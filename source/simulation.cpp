@@ -1,12 +1,12 @@
 
-#include "controller.h"
+#include "simulation.h"
 
 
 // Constructor
 
-Controller::Controller(string inputFileName)
+Simulation::Simulation(string inputFileName)
 {
-    // Parse inputfile, get ConfigruationParameters objects
+    // Parse inputfile, get ConfigursationParameters objects
 
 
     // Initialise the spacecraft components
@@ -25,7 +25,7 @@ Controller::Controller(string inputFileName)
 
 // Destructor
 
-Controller::~Controller()
+Simulation::~Simulation()
 {
     delete detector;
     delete camera;
@@ -39,7 +39,7 @@ Controller::~Controller()
 
 
 
-// Controller::run()
+// Simulation::run()
 //
 // PURPOSE:
 // 
@@ -48,7 +48,7 @@ Controller::~Controller()
 // OUTPUT:
 //
 
-void Controller::run(double startingTime)
+void Simulation::run(double startingTime)
 {
     // Get the super-resolution subfield
 

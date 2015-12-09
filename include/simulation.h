@@ -13,12 +13,12 @@
 using namespace std;
 
 
-class Controller
+class Simulation
 {
     public:
 
-        Controller(string inputFileName);
-        ~Controller();
+        Simulation(string inputFileName);
+        ~Simulation();
         virtual void run(double startingTime = 0.0);
 
     protected:

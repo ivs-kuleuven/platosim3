@@ -1,7 +1,7 @@
 
 #include <iostream>
 #include <cstdlib>
-#include "controller.h"
+#include "simulation.h"
 
 
 using namespace std;
@@ -16,8 +16,8 @@ int main(int Narguments, char* arguments[])
 
     string inputFileName(arguments[1]);
 
-    Controller controller(inputFileName);
-    controller.run();
+    Simulation simulation(inputFileName);
+    simulation.run();
 
     return EXIT_SUCCESS;
 }
