@@ -14,47 +14,100 @@ class Detector
 {
     public:
 
-        Detector(ConfigurationParameters configurationParameters);
-        ~Detector();
+        Detector(ConfigurationParameters configurationParameters, Camera camera);
+        virtual ~Detector();
 
-        virtual void takeExposure();
+        virtual void takeExposure(double startTime, double exposureTime);
         SubField getSubField();
 
     protected:
+    
+        // Integrate light
 
-        virtual void integrateLight();
-        virtual void readOut();
-        virtual void applyOpenShutterSmearing();
+        virtual void integrateLight(double startTime, double exposureTime);	// Integration (incl. jitter + drift) + background
+
         virtual void applyFlatfield();
-        virtual void applyQuantumEfficiency();
-        virtual void addPhotonNoise();
-        virtual void applyFullWellSaturation();
-        virtual void applyChargeTranferSmearing();
-        virtual void addReadoutNoise();
-        virtual void applyGain();
-        virtual void addBias();
-        virtual void applyDigitalSaturation();
 
-        unsigned int Nrows;                      // Number of rows
-        unsigned int Ncols;                      // Number of columns, readout is in column direction.
-        unsigned int Nsubpixels;                 // Each pixel consists of Nsubpixels*Nsubpixels subpixels
-        double readoutTime;                      // [s]
-        double chargeTransferTime;               // [s]
-        unsigned int biasLevel;                  // Electronic offset [ADU]
-        unsigned int readoutNoise;               // [electrons]
-        unsigned int gain;                       // [electrons/ADU]
-        unsigned long digitalSaturationLimit;    // [ADU/pix]
-        unsigned long fullWellCapacity;          // [electrons]
-        double quantumEfficiency;                // Detected photon to converted electron ratio, in [0,1]
-        double pixelSize;                        // [micrometer]
-        double pixelScale;                       // [arcsec/pix]
-        double originOffsetX;                    // x-coord of pixel (0,0) in focal plane reference system [mm]
-        double originOffsetY;                    // y-coord of pixel (0,0) in focal plane reference system [mm] 
+        // Read out
+
+        virtual void readOut();
+
+
+        virtual void applyQuantumEfficiency();
+    	virtual void addPhotonNoise();
+    	virtual void applyFullWellSaturation();
+    	virtual void applyCte();
+    	virtual void applyOpenShutterSmearing();
+    	virtual void addReadoutNoise();
+    	virtual void applyGain();
+    	virtual void addElectronicOffset();	// Bias
+    	virtual void applyDigitalSaturation();
+    
+
+
+
+
+        Camera camera;
+        SubField subField;
+
+    	unsigned int sizeX;// Number of columns of the detector (i.e. dimension in the x-direction = readout direction) [pixels]
+    	unsigned int sizeY;// Number of rows of the detector (i.e. dimension in the y-direction) [pixels]
+    	// unsigned int numSubPixelsPerPixels; // -> SubField?
+    	double originOffsetX;// Offset of the detector zeropoint from the centre of the optical plane in the x-direction [mm]
+    	double originOffsetY;// Offset of the detector zeropoint from the centre of the optical plane in the y-direction [mm]
+    	double orientationAngle;// Orientation angle of the detector w.r.t. the orientation of the focal plane, measured counterclockwise [degrees]
+
+    	unsigned int numSmearingOverscanRows;	// Number of rows in the over-scan strip
+    	unsigned int numBiasPrescanRows;	// Number of rows in the pre-scan strip
+
+    	unsigned double pixelSize;	// Pixel size [microns]
+    	// double pixelScale;	// Nominal pixel scale [arcsec/pixel] // -> replace by plate scale in Camera
+
+
+    	double smearingMap[][];	// Smearing map (i.e. over-scan strip)
+    	double biasRegisterMap[][];	// Bias register map (i.e. pre-scan strip)
+    	double cteMap[][];	// CTE map
+    	double flatfieldMap;	// Flatfield map
+
+    	unsigned double quantumEfficiency;	// Quantum efficiency (in [0,1])
+
+    	unsigned double readoutTime; // Readout time [s]
+    	unsigned double chargeTransferTime;	// Charge transfer time [s]
+
+    	bool doPhotonNoise;	// Whether or not to apply photon noise
+
+
+    	unsigned long fullWellSaturationLimit;	// Full-well saturation limit [electrons/pixel]
+
+    	//double flatfieldPeak2PeakNoise;	// Fractional peak-to-peak amplitude of the sub-pixel non-uniform sensitivity response
+    	//double flatfieldSubPixelNoise;	// White-noise component of the sub-pixels
+    	//double flatfieldIntraPixelWidth;	// Width of the central part of a pixel that is affected by sensitivity loss < 5% [percentage of a pixel (ceiled)]
+
+    	unsigned double meanCte;	// Mean charge-transfer efficiency
+    	unsigned double readoutNoise;	// Mean readout noise [electrons]
+    	unsigned double gain;	// Detector gain [e-/ADU]
+    	unsigned int electronicOffset;	// Bias or electronic offset [ADU]
+    	unsigned long digitalSaturationLimit;	// Digital saturation limit [ADU/pixel]
+
+    	string outputFilename;
+
+
+
+
+
+    	// Seeds for random generation
+
+    	double readoutNoiseSeed;
+    	double photonNoiseSeed;
+    	double flatfieldSeed;
+    	// double cosmicHitSeed;
+    	double cteMapSeedX;
+    	double cteMapSeedY;
+
+
 
         double **pixelMap;                       // Par of a CCD image. Nrows x Ncols
  
-        Telescope telescope;
-
         double internalTime;
 
 
