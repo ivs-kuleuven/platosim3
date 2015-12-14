@@ -462,3 +462,63 @@ void Detector::applyDigitalSaturation()
 	// Top off the values in the bias register map
 
 }
+
+
+
+
+
+/**
+ * Method that returns the offset of the detector origin from the centre of the
+ * optical plane (i.e. optical axis) [mm].
+ *
+ * @return Offset of the detector origin from the centre of the optical plane [mm].
+ * @rtype double
+ */
+double Detector::getOriginOffsetX()
+{
+
+	return this->originOffsetX;
+
+}
+
+
+
+
+
+/**
+ * Method that returns the offset of the detector origin from the centre of the
+ * optical plane (i.e. optical axis) [mm].
+ *
+ * @return Offset of the detector origin from the centre of the optical plane [mm].
+ * @rtype double
+ */
+double Detector::getOriginOffsetX()
+{
+
+	return this->originOffsetX;
+
+}
+
+
+
+
+
+/**
+ * Method that returns the pixel size of the detector [mm / pixel].
+ *
+ * @return Pixel size of the detector [mm / pixel].
+ * @rtype unsigned double
+ */
+unsigned double Detector::getPixelSize()
+{
+
+	return this->pixelSize;
+
+}
+
+double Detector::getOrientationAngle()
+{
+
+	return this->orientationAngle;
+
+}

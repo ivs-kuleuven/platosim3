@@ -20,6 +20,13 @@ class Detector
         virtual void takeExposure(double startTime, double exposureTime);
         SubField getSubField();
 
+        double getOriginOffsetX();
+        double getOriginOffsetY();
+
+        unsigned double getPixelSize();
+
+        double getOrientationAngle();
+
     protected:
     
         // Integrate light
@@ -53,8 +60,8 @@ class Detector
     	unsigned int sizeX;// Number of columns of the detector (i.e. dimension in the x-direction = readout direction) [pixels]
     	unsigned int sizeY;// Number of rows of the detector (i.e. dimension in the y-direction) [pixels]
     	// unsigned int numSubPixelsPerPixels; // -> SubField?
-    	double originOffsetX;// Offset of the detector zeropoint from the centre of the optical plane in the x-direction [mm]
-    	double originOffsetY;// Offset of the detector zeropoint from the centre of the optical plane in the y-direction [mm]
+    	double originOffsetX;// Offset of the detector origin from the centre of the optical plane in the x-direction [mm]
+    	double originOffsetY;// Offset of the detector origin from the centre of the optical plane in the y-direction [mm]
     	double orientationAngle;// Orientation angle of the detector w.r.t. the orientation of the focal plane, measured counterclockwise [degrees]
 
     	unsigned int numSmearingOverscanRows;	// Number of rows in the over-scan strip
