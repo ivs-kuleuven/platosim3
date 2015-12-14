@@ -105,19 +105,19 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 	// Reset the sub-field (i.e. get rid of the previous exposure, by zeroing the entire subfield)
 
-	this->subField.reset();
+//	this->subField.reset();
 
 	// Integration (incl. jitter) + background
 
-	this->camera.exposeSubField(this->subField);
+//	this->camera.exposeSubField(this->subField);
 
 	// Apply flatfield (at sub-pixel level)
 
-	this->subField * (this->flatfieldMap);
+//	this->subField * (this->flatfieldMap);
 
 	// Rebin
 
-	this->pixelMap = this->subField.rebin();
+//	this->pixelMap = this->subField.rebin();
 }
 
 
@@ -468,6 +468,22 @@ void Detector::applyDigitalSaturation()
 
 
 /**
+ * Method that returns the sub-field of the detector that is modelled in more
+ * detail.
+ *
+ * @return Sub-field of the detector that is modelled in more detail.
+ * @rtype SubField
+ */
+SubField Detector::getSubField()
+{
+
+}
+
+
+
+
+
+/**
  * Method that returns the offset of the detector origin from the centre of the
  * optical plane (i.e. optical axis) [mm].
  *
@@ -492,10 +508,10 @@ double Detector::getOriginOffsetX()
  * @return Offset of the detector origin from the centre of the optical plane [mm].
  * @rtype double
  */
-double Detector::getOriginOffsetX()
+double Detector::getOriginOffsetY()
 {
 
-	return this->originOffsetX;
+	return this->originOffsetY;
 
 }
 
@@ -509,7 +525,7 @@ double Detector::getOriginOffsetX()
  * @return Pixel size of the detector [mm / pixel].
  * @rtype unsigned double
  */
-unsigned double Detector::getPixelSize()
+double Detector::getPixelSize()
 {
 
 	return this->pixelSize;

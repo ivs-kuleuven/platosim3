@@ -15,7 +15,7 @@ public:
 	~Telescope();
 
 	Platform getPlatform();
-	unsigned double getLightCollectingArea();
+	double getLightCollectingArea();
 
 	double updatePointingCoordinates(double &alphaOpticalAxis,
 			double &deltaOpticalAxis, double currentTime);
@@ -30,7 +30,7 @@ private:
 	Platform platform;
 	void setPlatform(Platform platform);
 
-	unsigned double lightCollectingArea;
+	double lightCollectingArea;
 	void setLightCollectingArea(double lightCollectingArea);
 
 };
