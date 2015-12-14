@@ -26,6 +26,10 @@ Detector::Detector(ConfigurationParameters configurationParameters, Camera camer
 	// Initialise CTE map
 }
 
+
+
+
+
 /**
  * Destructor.
  */
@@ -38,6 +42,10 @@ Detector::~Detector()
 
 	// Destroy the CTE map
 }
+
+
+
+
 
 /**
  * Method that takes an exposure with the detector starting at the given time.
@@ -532,6 +540,17 @@ double Detector::getPixelSize()
 
 }
 
+
+
+
+
+/**
+ * Method that returns the orientation angle of the detector on the sky, measured
+ * counterclockwise [degrees].
+ *
+ * @return Orientation angle of the detector on the sky [degrees].
+ * @rtype double
+ */
 double Detector::getOrientationAngle()
 {
 
