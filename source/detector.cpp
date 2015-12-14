@@ -1,7 +1,17 @@
 #include "detector.h"
 
-
-Detector::Detector(ConfigurationParameters configurationParameters, Camera camera) {
+/**
+ * Constructor.  Creates a detector object, based on the given configuration
+ * parameters and attaches it to the given camera.
+ *
+ * @param configurationParameters: Configuration parameters for the detector.
+ * @type configurationParameters: ConfigurationParameters
+ *
+ * @param camera: Camera to which to attach the detector.
+ * @type camera: Camera
+ */
+Detector::Detector(ConfigurationParameters configurationParameters, Camera camera)
+{
 
 	// Parse the parameters from the configuration file
 
@@ -16,9 +26,11 @@ Detector::Detector(ConfigurationParameters configurationParameters, Camera camer
 	// Initialise CTE map
 }
 
-// Destructor
-
-Detector::~Detector() {
+/**
+ * Destructor.
+ */
+Detector::~Detector()
+{
 
 	// Destroy the sub-field
 
