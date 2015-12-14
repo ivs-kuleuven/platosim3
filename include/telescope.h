@@ -1,4 +1,3 @@
-
 #ifndef TELESCOPE_H
 #define TELESCOPE_H
 
@@ -6,30 +5,34 @@
 #include "platform.h"
 #include "configurationparameters.h"
 
-
 using namespace std;
 
+class Telescope {
+public:
 
-class Telescope
-{
-    public:
+	Telescope(ConfigurationParameters configurationParameters,
+			Platform platform);
+	~Telescope();
 
-        Telescope(ConfigurationParameters configurationParameters);
-        ~Telescope(); 
+	Platform getPlatform();
+	unsigned double getLightCollectingArea();
 
- 
-    protected:
+	double updatePointingCoordinates(double &alphaOpticalAxis,
+			double &deltaOpticalAxis, double currentTime);
 
-        double alphaOpticalAxis;                        // Current pointing right ascension [rad]
-        double deltaOpticalAxis;                        // Current pointing declination [rad]
- 
-    private:
-    
-        Platform platform;
+protected:
 
+	double alphaOpticalAxis;           // Current pointing right ascension [rad]
+	double deltaOpticalAxis;               // Current pointing declination [rad]
+
+private:
+
+	Platform platform;
+	void setPlatform(Platform platform);
+
+	unsigned double lightCollectingArea;
+	void setLightCollectingArea(double lightCollectingArea);
 
 };
-
-
 
 #endif
