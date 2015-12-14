@@ -20,7 +20,12 @@ class Sky
         ~Sky();
 
         StarCatalog getStarsWithinRadiusFrom(double RA, double dec, double radius);
-        double getSkyBackground(double RA, double dec);
+        double getSkyBackgroundFlux(double RA, double dec);
+        double getZodiacalBackgroundFlux(double RA, double dec);
+        double getUnresolvedStarsBackgroundFlux(double RA, double dec);
+
+        // magnitude range
+        
 
     protected:
 

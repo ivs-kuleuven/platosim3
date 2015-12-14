@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "configurationparameters.h"
 
 
 using namespace std;
@@ -14,10 +15,10 @@ class JitterGenerator
 {
     public:
 
-        JitterGenerator();
+        JitterGenerator(ConfigurationParameters &configurationParameters);
         ~JitterGenerator();
 
-        void getNextYawPitchRoll(double &yaw, double &pitch, double &roll, double timeInterval);
+        virtual void getNextYawPitchRoll(double &yaw, double &pitch, double &roll, double timeInterval);
 
     protected:
 
