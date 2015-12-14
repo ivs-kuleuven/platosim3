@@ -1,159 +1,464 @@
-
 #include "detector.h"
 
-
-// Constructor
-
-Detector::Detector()
+/**
+ * Constructor.  Creates a detector object, based on the given configuration
+ * parameters and attaches it to the given camera.
+ *
+ * @param configurationParameters: Configuration parameters for the detector.
+ * @type configurationParameters: ConfigurationParameters
+ *
+ * @param camera: Camera to which to attach the detector.
+ * @type camera: Camera
+ */
+Detector::Detector(ConfigurationParameters configurationParameters, Camera camera)
 {
 
+	// Parse the parameters from the configuration file
+
+	// Associate the camera
+
+	// Initialise sub-field?
+
+	// Initialise flatfield map
+
+	// this->setFlatfieldMap(peak2PeakNoise, subPixelNoise, intraPixelWidth);
+
+	// Initialise CTE map
 }
 
-
-
-
-// Destructor
-
+/**
+ * Destructor.
+ */
 Detector::~Detector()
 {
-    // Should also call the destructor of subField.
+
+	// Destroy the sub-field
+
+	// Destroy the flatfield map
+
+	// Destroy the CTE map
 }
 
-
-
-
-// Detector::takeExposure()
-//
-// PURPOSE:
-// 
-// INPUT:
-//
-// OUTPUT:
-//
-
-Detector::takeExposure()
+/**
+ * Method that takes an exposure with the detector starting at the given time.
+ *
+ * The light is integrated during the given exposure time, during which the
+ * detector suffers from the effects of jitter and telescope drift (i.e. thermo-
+ * elastic variations).  The background is assumed uniform for the whole
+ * sub-field.
+ *
+ * Afterwards, the collected light is read out, convolving the image with the
+ * PSF of the camera and adding various noise effects.
+ *
+ * @param startTime: Starting time of the exposure [s].
+ * @type startTime: double
+ *
+ * @param exposureTime: Duration of the exposure [s].
+ * @type exposureTime: double
+ */
+void Detector::takeExposure(double startTime, double exposureTime)
 {
 
-    integrateLight();
+	// Integration (jitter + drift) + background contribution
 
-    readOut();
-}
+	this->integrateLight(startTime, exposureTime);
 
+	// Readout: convolution with PSF + noise effects
 
-
-
-
-
-
-
-// Detector::integrateLight()
-//
-// PURPOSE:
-// 
-// INPUT:
-//
-// OUTPUT:
-//
-
-Detector::integrateLight()
-{
-    // Get rid of the previous exposure, by zeroing the entire subfield.
-
-    subField.reset();
-
-
-
-    camera.exposeSubField(subField);
-
-    // Apply the pixel response non-uniformity (flatfield) at subpixel level.
-    // (Sub)pixel units before: [electrons]
-    // (Sub)pixel units after: [electrons]
-
-    subField.multiply(flatfield);
-
-    // Rebin the subpixel map to the pixel map.
-
-    pixelMap = subField.rebin();
+	this->readOut();
 }
 
 
 
 
 
-
-// Detector::readOut()
-//
-// PURPOSE:
-// 
-// INPUT:
-//
-// OUTPUT:
-//
-
-Detector::readOut()
+/**
+ * Method that applies jitter to the exposure.  The jitter position are either
+ * read from an input file or can be calculated using the input parameters which
+ * are read from the configuration file.
+ *
+ * For each of the jitter position in the exposure, each star position is
+ * re-calculated and the flux is summed in the sub-pixel map, which introduces
+ * blurring.  Note that the convolution with the PSF is not yet done here.
+ *
+ * This method also adds the contribution of the background (zodiacal + galactic)
+ * to the sub-pixel map.
+ *
+ * @param startTime: Starting time of the exposure for which jitter must be
+ *        applied [s].
+ *
+ * @pre No sub-pixel map
+ * @pre No pixel map
+ * @pre No smearing map
+ * @pre No bias register map
+ *
+ * @post Pixel unit of the sub-pixel map: [e-]
+ * @post Re-calculated star position for each jitter step and summed the flux
+ *       in the sub-pixel map, which introduces blurring. Also the contribution
+ *       of the background (zodiacal + galactic) is added to the sub-pixel map.
+ * @post No pixel map
+ * @post No smearing map
+ * @post No bias register map
+ */
+void Detector::integrateLight(double startTime, double exposureTime)
 {
-    // Apply quantum efficiency
-    // Pixel units before: [photons]
-    // Pixel units after: [electrons]
 
-    applyQuantumEfficiency();
+	// Reset the sub-field (i.e. get rid of the previous exposure, by zeroing the entire subfield)
 
-    // Apply poisson distributed photon noise. 
-    // Pixel units before: [electrons]
-    // Pixel units after: [electrons]
+	this->subField.reset();
 
-    addPhotonNoise();
+	// Integration (incl. jitter) + background
 
-    // Apply full well saturation. A pixel has a maximum capacity of electrons (the full well capacity). 
-    // If photons free more electrons, the pixel saturates, and the electrons flow in the pixels above and below in 
-    // the same column (potential barriers are smallest in that direction).
-    // Pixel units before: [electrons]
-    // Pixel units after: [electrons]
+	this->camera.exposeSubField(this->subField);
 
-    applyFullWellSaturation();
+	// Apply flatfield (at sub-pixel level)
 
-    // Simulate the effects of the charge Transfer Inefficiency (CTI). When the 
-    // CCD is read out, row after row, a part of the charge is always left behind
-    // which then dribbles into the trailing pixels. This causes each star to have
-    // a small "tail". Only visible when the CTI = 1 - CTE is poor.
-    // Pixel units before: [electrons]
-    // Pixel units after: [electrons]        
+	this->subField * (this->flatfieldMap);
 
-    applyChargeTransferSmearing();
+	// Rebin
 
-    // Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
-    // the pixels are still receiving photons from the sky, while they are being transfered towards
-    // the readout register.
+	this->pixelMap = this->subField.rebin();
+}
 
-    applyOpenShutterSmearing();
 
-    // Each time the amplifier reads out a pixel, a tiny bit of noise is added.
-    // Add the readout noise.
-    // Pixel units before: [electrons]
-    // Pixel units after: [electrons]
-    
-    addReadoutNoise();
 
-    // Apply the gain, to increase the dynamic range of the detector.
-    // Pixel units before: [electrons]
-    // Pixel units after: [ADU]
 
-    applyGain();
 
-    // Take into account the bias level. I.e. add the constant "zero" level
-    // introduced by the amplifier.
-    // Pixel units before: [ADU]
-    // Pixel units after: [ADU]
+/**
+ * Method that reads out the detector and applies the following effects:
+ * <ul>
+ * 		<li>quantum efficiency</li>
+ * 		<li>photon noise</li>
+ * 		<li>full-well saturation (i.e. blooming)</li>
+ * 		<li>CTE</li>
+ * 		<li>open-shutter smearing</li>
+ * 		<li>readout noise</li>
+ * 		<li>gain</li>
+ * 		<li>electronic offset (i.e. bias)</li>
+ * 		<li>digital saturation</li>
+ * </ul>
+ */
+void Detector::readOut()
+{
 
-    addBias();
+	// Apply quantum efficiency
+	// Pixel units before: [photons]
+	// Pixel units after: [electrons]
 
-    // Take into acount digital saturation. If even after dividing by the gain
-    // the number of ADUs in a pixel is still higher than the analog-digital 
-    // converter (ADC) can represent with its fixed amount of bits, clip all 
-    // values that are too high to the saturation level of the ADC.
-    // Pixel units before: [ADU]
-    // Pixel units after: [ADU]
+	this->applyQuantumEfficiency();
 
-    applyDigitalSaturation();
+	// Apply poisson distributed photon noise
+	// Pixel units before: [electrons]
+	// Pixel units after: [electrons]
+
+	this->addPhotonNoise();
+
+	// Apply full well saturation. A pixel has a maximum capacity of electrons (the full well capacity).
+	// If photons free more electrons, the pixel saturates, and the electrons flow in the pixels above and below in
+	// the same column (potential barriers are smallest in that direction).
+	// Pixel units before: [electrons]
+	// Pixel units after: [electrons]
+
+	this->applyFullWellSaturation();
+
+	// Simulate the effects of the Charge Transfer Inefficiency (CTI). When the
+	// CCD is read out, row after row, a part of the charge is always left behind
+	// which then dribbles into the trailing pixels. This causes each star to have
+	// a small "tail". Only visible when the CTI = 1 - CTE is poor.
+	// Pixel units before: [electrons]
+	// Pixel units after: [electrons]
+
+	this->applyCte();
+
+	// Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
+	// the pixels are still receiving photons from the sky, while they are being transfered towards
+	// the readout register.
+
+	this->applyOpenShutterSmearing();
+
+	// Each time the amplifier reads out a pixel, a tiny bit of noise is added.
+	// Add the readout noise.
+	// Pixel units before: [electrons]
+	// Pixel units after: [electrons]
+
+	this->addReadoutNoise();
+
+	// Apply the gain, to increase the dynamic range of the detector.
+	// Pixel units before: [electrons]
+	// Pixel units after: [ADU]
+
+	this->applyGain();
+
+	// Take into account the bias level. I.e. add the constant "zero" level
+	// introduced by the amplifier.
+	// Pixel units before: [ADU]
+	// Pixel units after: [ADU]
+
+	this->addElectronicOffset();
+
+	// Take into acount digital saturation. If even after dividing by the gain
+	// the number of ADUs in a pixel is still higher than the analog-digital
+	// converter (ADC) can represent with its fixed amount of bits, clip all
+	// values that are too high to the saturation level of the ADC.
+	// Pixel units before: [ADU]
+	// Pixel units after: [ADU]
+
+	this->applyDigitalSaturation();
+}
+
+
+
+
+void Detector::applyQuantumEfficiency()
+{
+
+}
+
+
+
+
+
+/**
+ * Method that adds photon noise (i.e. shot noise) to the pixel map.  This type
+ * of noise occurs because of the discrete/quantised nature of the electric
+ * charge carried by the electrons (when counting them as representatives of
+ * photons hitting the detectors).  It follows a Poisson distribution and each
+ * pixel is treated independent of the other pixels.
+ *
+ * @pre Pixel unit in the pixel map: [e-]
+ * @pre No smearing map
+ * @pre No bias register map
+ *
+ * @post Pixel unit in the pixel map: [e-]
+ * @post Added photon noise to the pixel map
+ * @post Pixel unit in the smearing map: [e-]
+ * @post Added photon noise to the smearing map
+ * @post No bias register map
+ */
+void Detector::addPhotonNoise()
+{
+
+	// Add photon noise to the pixel map
+
+	// Iniitialise the smearing map with photon noise
+}
+
+
+
+
+
+/**
+ * Method that applies the effect of full-well saturation (i.e. blooming) to the
+ * pixel map.  If a pixel receives more electrons than the full-well saturation
+ * limit (expressed in [e-/pixel]), the additional electrons flow evenly
+ * distributed in positive and negative charge-transfer direction.  Electrons
+ * reaching the edge of the CCD will not be detected.
+ *
+ * @pre Pixel unit in the pixel map: [e-]
+ * @pre Pixel unit in the smearing map: [e-]
+ * @pre No bias register map
+ * @pre Full-well saturation limit expressed in [e-]
+ *
+ * @post Pixel unit in the pixel map: [e-]
+ * @post Effect of full-well saturation (i.e. blooming) applied to the pixel map
+ * @post Pixel unit in the smearing map: [e-]
+ * @post No bias register map
+ */
+void Detector::applyFullWellSaturation()
+{
+
+}
+
+
+
+
+
+/**
+ * Method that applies the effect of the charge-transfer (in)efficiency to the
+ * pixel map. Assumed is that the serial register has a CTE of 1, unlike the
+ * CCD that have a CTE map.
+ *
+ * @pre Pixel unit in the pixel map: [e-]
+ * @pre Pixel unit in the smearing map: [e-]
+ * @pre No bias register map
+ *
+ * @post Pixel unit in the pixel map: [e-]
+ * @post Applied the effect of the charge-transfer (in)efficiency of the CCD to
+ *       the pixel map.
+ * @post Pixel unit in the smearing map: [e-]
+ * @post No bias register map
+ */
+void Detector::applyCte()
+{
+
+}
+
+
+
+
+
+/**
+ * Method that applies the effect of readout smearing to the pixel map. This
+ * effect is due to the fact that - because of the absence of a shutter (which
+ * is common in space-based instruments) - the CCD still receives light during
+ * frame transfer.  The flux of each pixel is affected by the flux of the pixels
+ * in the same column.  Because the CCD is exposed during the whole readout and
+ * multiple exposures are created, also the pixels further away from the readout
+ * register have their influence.
+ *
+ * A smearing map is created and will be used in photometry to remove the
+ * smearing effect from the pixel map.
+ *
+ * @pre Pixel unit in the pixel map: [e-]
+ * @pre Pixel unit in the smearing map: [e-]
+ * @pre No bias register map
+ *
+ * @post Pixel unit in the pixel map: [e-]
+ * @post Applied the effect of readout smearing to the pixel map
+ * @post Pixel unit in the smearing map: [e-]
+ * @post Applied the effect of readout smearing to the smearing map
+ * @post No bias register map
+ */
+void Detector::applyOpenShutterSmearing()
+{
+
+}
+
+
+
+
+
+/**
+ * Method that applies the readout noise to the pixel map and initialises the
+ * bias register map.
+ *
+ * Readout noise occurs due to the imperfect nature of the CCD amplifiers.  When
+ * the electrons are transferred to the amplifier, the induced voltage is
+ * measured.  However, this measurement is not perfect, but gives a value which
+ * is on average correct, with the readout noise as standard deviation.  So
+ * readout noise is simply a measure of this scatter around the true value.
+ * Its value is expressed in electrons, because, after all, the packet of charge
+ * is made up of electrons.
+ *
+ * @pre Pixel unit in the pixel map: [e-]
+ * @pre Pixel unit in the smearing map: [e-]
+ * @pre No bias register map
+ * @pre Readout noise expressed in [e-]
+ *
+ * @post Pixel unit in the pixel map: [e-]
+ * @post Added readout noise to the pixel map
+ * @post Pixel unit in the smearing map: [e-]
+ * @post Pixel unit in the bias register map: [e-]
+ * @post Initialised the bias register map with readout noise
+ */
+void Detector::addReadoutNoise()
+{
+
+	// Normal<double, ranlib::MersenneTwister, ranlib::independentState> randomMap(
+	//		0, this->getReadoutNoise());
+	// randomMap.seed(p_DataSet->getSeedReadOutNoise());
+
+	// add randomMap.random() to all pixel values!!
+
+	// Add readout noise to the pixel map
+
+	// Initialise the bias register map with readout noise
+}
+
+
+
+
+
+/**
+ * Method that divides the bias register map, smearing map, and pixel map by the
+ * detector gain. This relates the number of electrons per pixels to the number
+ * of counts (i.e. ADU) per pixel and converts these three maps from electrons
+ * to ADU:
+ * <ul>
+ * <li>bias register map [ADU / pixel] = bias register map [e- / pixel] / gain [e- / ADU]</li>
+ * <li>smearing map [ADU / pixel] = smearing map [e- / pixel] / gain [e- / ADU]</li>
+ * <li>pixel map [ADU / pixel] = pixel map [e- / pixel] / gain [e- / ADU]</li>
+ * </ul>
+ *
+ * @pre Pixel unit in the pixel map: [e-]
+ * @pre Pixel unit in the smearing map: [e-]
+ * @pre Pixel unit in the bias register map: [e-]
+ *
+ * @post Pixel unit in the pixel map: [ADU]
+ * @post Pixel unit in the smearing map: [ADU]
+ * @post Pixel unit in the bias register map: [ADU]
+ */
+void Detector::applyGain()
+{
+
+	// Multiply the pixel map with the gain
+
+	// Multiply the smearing map with the gain
+
+	// Multiply the bias register map with the gain
+}
+
+
+
+
+
+/**
+ * Method that adds the electronic offset (i.e. bias level) to the pixel map,
+ * smearing map, and bias register map to avoid negative readout values.
+ *
+ * @pre Pixel unit in the pixel map: [ADU]
+ * @pre Pixel unit in the smearing map: [ADU]
+ * @pre Pixel unit in the bias register map: [ADU]
+ * @pre Electronic offset (i.e. bias level) expressed in [ADU]
+ *
+ * @post Pixel unit in the pixel map: [ADU]
+ * @post Electronic offset added to the pixel map
+ * @post Pixel unit in the smearing map: [ADU]
+ * @post Electronic offset added to the smearing map
+ * @post Pixel unit in the bias register map: [ADU]
+ * @post Electronic offset added to the bias register map
+ */
+void Detector::addElectronicOffset()
+{
+
+	// Add the electronic offset to the pixel map
+
+	// Add the electronic offset to the smearing map
+
+	// Add the electronic offset to the bias register map
+
+}
+
+
+
+
+
+/**
+ * Method that applies the effect of digital saturation to the pixel map,
+ * smearing map, and bias register map.  This means that the pixel values in
+ * these maps (expressed in [ADU/pixel]) are topped off to the digital saturation
+ * limit of the detector (also expressed in [ADU/pixel]).
+ *
+ * @pre Pixel unit in the pixel map: [ADU]
+ * @pre Pixel unit in the smearing map: [ADU]
+ * @pre Pixel unit in the bias register map: [ADU]
+ * @pre Digital saturation limit expressed in [ADU/pixel]
+ *
+ * @post Pixel unit in the pixel map: [ADU]
+ * @post Values in the pixel map topped off at the digital saturation limit
+ * @post Pixel unit in the smearing map: [ADU]
+ * @post Values in the smearing map topped off at the digital saturation limit
+ * @post Pixel unit in the bias register map: [ADU]
+ * @post Values in the bias register map topped off at the digital saturation
+ *       limit
+ */
+void Detector::applyDigitalSaturation()
+{
+
+	// Top off the values in the pixel map
+
+	// Top off the values in the smearing map
+
+	// Top off the values in the bias register map
 
 }
