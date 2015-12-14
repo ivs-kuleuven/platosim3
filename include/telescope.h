@@ -8,6 +8,7 @@
 using namespace std;
 
 class Telescope {
+	
 public:
 
 	Telescope(ConfigurationParameters configurationParameters,
@@ -15,22 +16,21 @@ public:
 	~Telescope();
 
 	Platform getPlatform();
-	unsigned double getLightCollectingArea();
+	double getLightCollectingArea();
 
-	double updatePointingCoordinates(double &alphaOpticalAxis,
-			double &deltaOpticalAxis, double currentTime);
+	double updatePointingCoordinates(double &alphaOpticalAxis, double &deltaOpticalAxis, double currentTime);
 
 protected:
 
 	double alphaOpticalAxis;           // Current pointing right ascension [rad]
-	double deltaOpticalAxis;               // Current pointing declination [rad]
+	double deltaOpticalAxis;           // Current pointing declination     [rad]
 
 private:
 
 	Platform platform;
 	void setPlatform(Platform platform);
 
-	unsigned double lightCollectingArea;
+	double lightCollectingArea;
 	void setLightCollectingArea(double lightCollectingArea);
 
 };
