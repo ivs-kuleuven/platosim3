@@ -13,27 +13,41 @@
  * Stores all information to convert from focal plane coordinates [mm] to
  * (sub-)pixel coordinates in the sub-pixel map.
  *
- * @param detector: Detector for which the sub-field will be modelled in more detail.
- * @type detector: Detector
+ * @param configurationParameters: Configuration parameters for the sub-field.
+ * @type configurationParameters: ConfigurationParameters
+ *
+ * @param detectorOriginOffsetX: Detector origin offset in the x-direction [mm].
+ * @type detectorOriginOffsetX: double
+ *
+ * @param detectorOriginOffsetY: Detector origin offset in the y-direction [mm].
+ * @type detectorOriginOffsetY: double
+ *
+ * @param detectorOrientation: Orientation angle of the detector w.r.t. the
+ *        focal plane [degree].
+ * @type detectorOrientation: double
+ *
+ * @param pixelSize: Detector pixel size [mm / pixel].
+ * @type pixelSize: double
  */
 SubField::SubField(ConfigurationParameters configurationParameters,
-		Detector detector)
+		double detectorOriginOffsetX, double detectorOriginOffsetY,
+		double detectorOrientation, double pixelSize)
 {
 
 	// Number of sub-pixels per pixel
 
 	// Detector origin offset in both directions [mm]
 
-	this->detectorOriginOffsetX = detector.getOriginOffsetX();
-	this->detectorOriginOffsetY = detector.getOriginOffsetY();
+	this->detectorOriginOffsetX = detectorOriginOffsetX;
+	this->detectorOriginOffsetY = detectorOriginOffsetY;
 
 	// Pixel size [mm / pixel]
 
-	this->pixelSize = detector.getPixelSize();
+	this->pixelSize = pixelSize;
 
 	// Detector orientation w.r.t. the focal plane [radians]
 
-	this->detectorOrientation = detector.getOrientationAngle() * M_PI / 180.0;
+	this->detectorOrientation = detectorOrientation * M_PI / 180.0;
 
 	// Number of pixels to add to each side of the sub-field to account for the
 	// edge effect

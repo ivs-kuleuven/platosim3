@@ -2,7 +2,6 @@
 #define SUBFIELD_H
 
 #include <math.h>
-#include "detector.h"
 #include "configurationparameters.h"
 #include "starcatalog.h"
 
@@ -13,7 +12,8 @@ class SubField
 public:
 
 	SubField(ConfigurationParameters configurationParameters,
-			Detector detector);
+			double detectorOriginOffsetX, double detectorOriginOffsetY,
+			double detectorOrientation, double pixelSize);
 	~SubField();
 
 	double getDistanceFromOpticalAxisToFieldCenter();
