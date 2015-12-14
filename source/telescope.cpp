@@ -23,6 +23,10 @@ Telescope::Telescope(ConfigurationParameters configurationParameters,
 
 }
 
+
+
+
+
 /**
  * Destructor.
  */
@@ -32,6 +36,10 @@ Telescope::~Telescope()
 	// Also destroy the platform
 
 }
+
+
+
+
 
 /**
  * Method that updates the pointing coordinates of the telescope (i.e. the
@@ -68,6 +76,10 @@ double Telescope::updatePointingCoordinates(double &alphaOpticalAxis,
 
 }
 
+
+
+
+
 // Platform
 
 /**
@@ -81,6 +93,10 @@ void Telescope::setPlatform(Platform platform) {
 	this->platform = platform;
 
 }
+
+
+
+
 
 /**
  * Method that returns the platform on which the telescope is mounted.
@@ -109,6 +125,10 @@ void Telescope::setLightCollectingArea(double lightCollectingArea)
 	this->lightCollectingArea = lightCollectingArea;
 
 }
+
+
+
+
 
 /**
  * Method that returns the light collecting area of the telescope [cm^2].
