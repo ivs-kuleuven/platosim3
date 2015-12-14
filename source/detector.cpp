@@ -26,6 +26,10 @@ Detector::Detector(ConfigurationParameters configurationParameters, Camera camer
 	// Initialise CTE map
 }
 
+
+
+
+
 /**
  * Destructor.
  */
@@ -38,6 +42,10 @@ Detector::~Detector()
 
 	// Destroy the CTE map
 }
+
+
+
+
 
 /**
  * Method that takes an exposure with the detector starting at the given time.
@@ -105,19 +113,19 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 	// Reset the sub-field (i.e. get rid of the previous exposure, by zeroing the entire subfield)
 
-	this->subField.reset();
+//	this->subField.reset();
 
 	// Integration (incl. jitter) + background
 
-	this->camera.exposeSubField(this->subField);
+//	this->camera.exposeSubField(this->subField);
 
 	// Apply flatfield (at sub-pixel level)
 
-	this->subField * (this->flatfieldMap);
+//	this->subField * (this->flatfieldMap);
 
 	// Rebin
 
-	this->pixelMap = this->subField.rebin();
+//	this->pixelMap = this->subField.rebin();
 }
 
 
@@ -460,5 +468,92 @@ void Detector::applyDigitalSaturation()
 	// Top off the values in the smearing map
 
 	// Top off the values in the bias register map
+
+}
+
+
+
+
+
+/**
+ * Method that returns the sub-field of the detector that is modelled in more
+ * detail.
+ *
+ * @return Sub-field of the detector that is modelled in more detail.
+ * @rtype SubField
+ */
+SubField Detector::getSubField()
+{
+
+}
+
+
+
+
+
+/**
+ * Method that returns the offset of the detector origin from the centre of the
+ * optical plane (i.e. optical axis) [mm].
+ *
+ * @return Offset of the detector origin from the centre of the optical plane [mm].
+ * @rtype double
+ */
+double Detector::getOriginOffsetX()
+{
+
+	return this->originOffsetX;
+
+}
+
+
+
+
+
+/**
+ * Method that returns the offset of the detector origin from the centre of the
+ * optical plane (i.e. optical axis) [mm].
+ *
+ * @return Offset of the detector origin from the centre of the optical plane [mm].
+ * @rtype double
+ */
+double Detector::getOriginOffsetY()
+{
+
+	return this->originOffsetY;
+
+}
+
+
+
+
+
+/**
+ * Method that returns the pixel size of the detector [mm / pixel].
+ *
+ * @return Pixel size of the detector [mm / pixel].
+ * @rtype unsigned double
+ */
+double Detector::getPixelSize()
+{
+
+	return this->pixelSize;
+
+}
+
+
+
+
+
+/**
+ * Method that returns the orientation angle of the detector on the sky, measured
+ * counterclockwise [degrees].
+ *
+ * @return Orientation angle of the detector on the sky [degrees].
+ * @rtype double
+ */
+double Detector::getOrientationAngle()
+{
+
+	return this->orientationAngle;
 
 }
