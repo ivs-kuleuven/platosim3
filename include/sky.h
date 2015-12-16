@@ -4,7 +4,8 @@
 
 #include <string>
 #include <vector>
-
+#include "timeticker.h"
+#include "hdf5writer.h"
 #include "configurationparameters.h"
 #include "starcatalog.h"
 
@@ -12,7 +13,7 @@
 using namespace std;
 
 
-class Sky
+class Sky : public TimeTicker, Hdf5Writer
 {
     public:
 

@@ -2,6 +2,8 @@
 #ifndef DETECTOR_H
 #define DETECTOR_H
 
+#include "timeticker.h"
+#include "hdf5writer.h"
 #include "camera.h"
 #include "subfield.h"
 
@@ -9,7 +11,7 @@
 using namespace std;
 
 
-class Detector
+class Detector : public TimeTicker, Hdf5Writer
 {
     public:
 

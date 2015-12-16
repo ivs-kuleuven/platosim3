@@ -3,6 +3,8 @@
 
 #include <string>
 #include <vector>
+#include "timeticker.h"
+#include "hdf5writer.h"
 #include "configurationparameters.h"
 #include "jittergenerator.h"
 
@@ -12,7 +14,7 @@ using namespace std;
 
 
 
-class Platform
+class Platform : public TimeTicker, Hdf5Writer
 {
     public:
 
