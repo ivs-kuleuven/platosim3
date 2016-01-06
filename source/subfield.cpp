@@ -123,22 +123,48 @@ void SubField::addFlux(double xCoords, double yCoords, double flux)
 
 	// Detector orientation (pixel level)
 
-	double x = xOffset * cos(this->detectorOrientation)
+	double column = xOffset * cos(this->detectorOrientation)
 			- yOffset * sin(this->detectorOrientation);
-	double y = xOffset * sin(this->detectorOrientation)
+	double row = xOffset * sin(this->detectorOrientation)
 			+ yOffset * cos(this->detectorOrientation);
 
-	// Sub-field incl. edge pixels
+	// Sub-field incl. edge pixels (also correct for sub-field zeropoint)
 
-	x = (x - this->subFieldZeroPointX + this->numEdgePixels)
+	column = (column - this->subFieldZeroPointX + this->numEdgePixels)
 			* this->numSubPixelsPerPixel;
-	y = (y - this->subFieldZeroPointY + this->numEdgePixels)
+	row = (row - this->subFieldZeroPointY + this->numEdgePixels)
 			* this->numSubPixelsPerPixel;
 
-	// Add flux in this->subPixelMap at (x, y)
+	// Add flux in this->subPixelMap at (row, column)
+
+	if(this->isInSubPixelMap(row, column))
+	{
+		this->subPixelMap[row][column] += flux;
+	}
 }
 
 
+
+
+
+/**
+ * Method that checks whether the given (row, column) coordinates are in the
+ * sub-pixel map.
+ *
+ * @param row: Row coordinate.
+ * @type row: double
+ *
+ * @param column: Column coordinate.
+ * @type column: double
+ *
+ * @return True if the given (row, column) coordinates are in the sub-pixel map;
+ *         false otherwise.
+ */
+bool SubField::isInSubPixelMap(double row, double column)
+{
+	return (column >= 0) && (row >= 0) && (column < this->subPixelMapSizeX)
+			&& (row < this->subPixelMapSizeY);
+}
 
 
 
@@ -151,7 +177,15 @@ void SubField::addFlux(double xCoords, double yCoords, double flux)
  */
 void SubField::addFlux(double flux)
 {
+	for (unsigned int row = 0; row < this->subPixelMapSizeY; row++)
+	{
+		for (unsigned int column = 0; column < this->subPixelMapSizeX; column++)
+		{
 
+			this->subPixelMap[row][column] += flux;
+
+		}
+	}
 }
 
 
