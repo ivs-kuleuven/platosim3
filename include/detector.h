@@ -19,14 +19,14 @@ class Detector : public TimeTicker, Hdf5Writer
         virtual ~Detector();
 
         virtual void takeExposure(double startTime, double exposureTime);
-        SubField getSubField();
+//        SubField getSubField();
 
-        double getOriginOffsetX();
-        double getOriginOffsetY();
+//        double getOriginOffsetX();
+//        double getOriginOffsetY();
 
-        double getPixelSize();
+//        double getPixelSize();
 
-        double getOrientationAngle();
+//        double getOrientationAngle();
 
     protected:
     
@@ -56,7 +56,7 @@ class Detector : public TimeTicker, Hdf5Writer
 
 
         Camera camera;
-//        SubField subField;
+        SubField subField;
 
     	unsigned int sizeX;// Number of columns of the detector (i.e. dimension in the x-direction = readout direction) [pixels]
     	unsigned int sizeY;// Number of rows of the detector (i.e. dimension in the y-direction) [pixels]
