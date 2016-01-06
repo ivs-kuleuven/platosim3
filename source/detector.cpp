@@ -10,7 +10,8 @@
  * @param camera: Camera to which to attach the detector.
  * @type camera: Camera
  */
-Detector::Detector(ConfigurationParameters configurationParameters, Camera camera)
+Detector::Detector(ConfigurationParameters configurationParameters,
+		Camera camera)
 {
 
 	// Parse the parameters from the configuration file
@@ -111,21 +112,21 @@ void Detector::takeExposure(double startTime, double exposureTime)
 void Detector::integrateLight(double startTime, double exposureTime)
 {
 
-	// Reset the sub-field (i.e. get rid of the previous exposure, by zeroing the entire subfield)
+	// Reset the sub-field (i.e. get rid of the previous exposure, by zeroing the entire sub-field)
 
-//	this->subField.reset();
+	this->subField.reset();
 
 	// Integration (incl. jitter) + background
 
-//	this->camera.exposeSubField(this->subField);
+	this->camera.exposeSubField(this->subField);
 
 	// Apply flatfield (at sub-pixel level)
 
-//	this->subField * (this->flatfieldMap);
+	this->subField.multiply(this->flatfieldMap);
 
 	// Rebin
 
-//	this->pixelMap = this->subField.rebin();
+	//	this->pixelMap = this->subField.rebin();
 }
 
 
@@ -134,17 +135,15 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 /**
  * Method that reads out the detector and applies the following effects:
- * <ul>
- * 		<li>quantum efficiency</li>
- * 		<li>photon noise</li>
- * 		<li>full-well saturation (i.e. blooming)</li>
- * 		<li>CTE</li>
- * 		<li>open-shutter smearing</li>
- * 		<li>readout noise</li>
- * 		<li>gain</li>
- * 		<li>electronic offset (i.e. bias)</li>
- * 		<li>digital saturation</li>
- * </ul>
+ *   - quantum efficiency
+ * 	 - photon noise
+ *   - full-well saturation (i.e. blooming)
+ * 	 - CTE
+ *   - open-shutter smearing
+ * 	 - readout noise
+ * 	 - gain
+ * 	 - electronic offset (i.e. bias)
+ * 	 - digital saturation
  */
 void Detector::readOut()
 {
@@ -217,14 +216,11 @@ void Detector::readOut()
 
 
 
+
 void Detector::applyQuantumEfficiency()
 {
 
 }
-
-
-
-
 
 /**
  * Method that adds photon noise (i.e. shot noise) to the pixel map.  This type
@@ -475,85 +471,85 @@ void Detector::applyDigitalSaturation()
 
 
 
-/**
- * Method that returns the sub-field of the detector that is modelled in more
- * detail.
- *
- * @return Sub-field of the detector that is modelled in more detail.
- * @rtype SubField
- */
-SubField Detector::getSubField()
-{
-
-}
-
-
-
-
-
-/**
- * Method that returns the offset of the detector origin from the centre of the
- * optical plane (i.e. optical axis) [mm].
- *
- * @return Offset of the detector origin from the centre of the optical plane [mm].
- * @rtype double
- */
-double Detector::getOriginOffsetX()
-{
-
-	return this->originOffsetX;
-
-}
-
-
-
-
-
-/**
- * Method that returns the offset of the detector origin from the centre of the
- * optical plane (i.e. optical axis) [mm].
- *
- * @return Offset of the detector origin from the centre of the optical plane [mm].
- * @rtype double
- */
-double Detector::getOriginOffsetY()
-{
-
-	return this->originOffsetY;
-
-}
-
-
-
-
-
-/**
- * Method that returns the pixel size of the detector [mm / pixel].
- *
- * @return Pixel size of the detector [mm / pixel].
- * @rtype unsigned double
- */
-double Detector::getPixelSize()
-{
-
-	return this->pixelSize;
-
-}
-
-
-
-
-
-/**
- * Method that returns the orientation angle of the detector on the sky, measured
- * counterclockwise [degrees].
- *
- * @return Orientation angle of the detector on the sky [degrees].
- * @rtype double
- */
-double Detector::getOrientationAngle()
-{
-
-	return this->orientationAngle;
-
-}
+///**
+// * Method that returns the sub-field of the detector that is modelled in more
+// * detail.
+// *
+// * @return Sub-field of the detector that is modelled in more detail.
+// * @rtype SubField
+// */
+//SubField Detector::getSubField()
+//{
+//
+//}
+//
+//
+//
+//
+//
+///**
+// * Method that returns the offset of the detector origin from the centre of the
+// * optical plane (i.e. optical axis) [mm].
+// *
+// * @return Offset of the detector origin from the centre of the optical plane [mm].
+// * @rtype double
+// */
+//double Detector::getOriginOffsetX()
+//{
+//
+//	return this->originOffsetX;
+//
+//}
+//
+//
+//
+//
+//
+///**
+// * Method that returns the offset of the detector origin from the centre of the
+// * optical plane (i.e. optical axis) [mm].
+// *
+// * @return Offset of the detector origin from the centre of the optical plane [mm].
+// * @rtype double
+// */
+//double Detector::getOriginOffsetY()
+//{
+//
+//	return this->originOffsetY;
+//
+//}
+//
+//
+//
+//
+//
+///**
+// * Method that returns the pixel size of the detector [mm / pixel].
+// *
+// * @return Pixel size of the detector [mm / pixel].
+// * @rtype unsigned double
+// */
+//double Detector::getPixelSize()
+//{
+//
+//	return this->pixelSize;
+//
+//}
+//
+//
+//
+//
+//
+///**
+// * Method that returns the orientation angle of the detector on the sky, measured
+// * counterclockwise [degrees].
+// *
+// * @return Orientation angle of the detector on the sky [degrees].
+// * @rtype double
+// */
+//double Detector::getOrientationAngle()
+//{
+//
+//	return this->orientationAngle;
+//
+//}
