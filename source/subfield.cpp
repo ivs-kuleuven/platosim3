@@ -137,9 +137,9 @@ void SubField::addFlux(double xCoords, double yCoords, double flux)
 
 	// Add flux in this->subPixelMap at (row, column)
 
-	if(this->isInSubPixelMap(row, column))
+	if (this->isInSubPixelMap(row, column))
 	{
-		this->subPixelMap[row][column] += flux;
+		this->subPixelMap[(int) row][(int) column] += flux;
 	}
 }
 
