@@ -89,16 +89,17 @@ SubField::~SubField()
  * Method that resets the sub-pixel map, including the edge pixels that are
  * added on each side to account for the edge effect.
  *
- * @pre The sub-pixel map either does not exist or contains values that must be
- *      set to zero.
+ * @pre The sub-pixel map contains values that must be set to zero.
  *
- * @post The sub-pixel maps is either initialised or its values are set to zero.
+ * @post The sub-pixel map's values are set to zero.
  */
 void SubField::reset()
 {
 
 	// Initialise sub-pixel map
 	// Dimensions: this-> subPixelMapSize
+
+	memset(this->subPixelMap, 0, sizeof(this->subPixelMap[0][0]) * this->subPixelMapSizeX * this->subPixelMapSizeY);
 }
 
 /**
