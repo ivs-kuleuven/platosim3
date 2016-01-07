@@ -23,9 +23,6 @@ class Detector : public TimeTicker, Hdf5Writer
     protected:
 
         virtual void reset();
-        virtual void resetSubField();
-        virtual void resetBiasRegisterMap();
-        virtual void resetSmearingMap();
     
         // Integrate light
 

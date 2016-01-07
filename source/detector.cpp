@@ -139,135 +139,33 @@ Detector::~Detector()
 /**
  * Method that resets the sub-field, the bias register map, and the smearing map.
  *
- * @pre Sub-field has either not been initialised yet, or is defined at pixel
- *      level and possibly contains values from previous exposure.
- * @pre Bias register map has either not been initialised yet, or has the correct
- *      dimensions but is possibly filled with values from previous exposure.
- * @pre Smearing map has either not been initialised yet, or has the correct
- *      dimensions but is possibly filled with values from previous exposure.
+ * @pre Sub-pixel map possibly filled with values from previous exposure.
+ * @pre Pixel map possibly filled with values from previous exposure.
+ * @pre Bias register map possibly filled with values from previous exposure.
+ * @pre Smearing map possibly filled with values from previous exposure.
  *
- * @post Sub-field of correct dimensions (i.e. at sub-pixel level, incl. edge
- *       pixels), filled with zeroes.
- * @post Bias register map of correct dimensions, filled with zeroes.
- * @post Smearing map of correct dimensions, filled with zeroes.
+ * @post Sub-pixel map filled with zeroes.
+ * @post Pixel map filled with zeroes
+ * @post Bias register map  filled with zeroes.
+ * @post Smearing map filled with zeroes.
  */
 void Detector::reset()
 {
-	// Reset sub-field
+	// Reset sub-pixel map
 
-	this->resetSubField();
+	memset(subPixelMap, 0,
+			sizeof(subPixelMap[0][0]) * subPixelMapSizeX * subPixelMapSizeY);
+
+	// Reset pixel map
+
+	memset(pixelMap, 0, pixelMap[0][0] * sizeX * sizeY);
 
 	// Reset bias register map
 
-	this->resetBiasRegisterMap();
-
-	// Reset smearing map
-
-	this->resetSmearingMap();
-}
-
-
-
-
-
-/**
- * Method that resets the sub-field.
- *
- * @pre Sub-field has either not been initialised yet, or is defined at pixel
- *      level and possibly contains values from previous exposure.
- *
- * @post Sub-field of correct dimensions (i.e. at sub-pixel level, incl. edge
- *       pixels), filled with zeroes.
- */
-void Detector::resetSubField()
-{
-	// De-allocate memory (pixel level, excl. edge pixels)
-
-	if (subField != nullptr)
-	{
-		for (unsigned int row = 0; row < subFieldSizeY; row++)
-		{
-			delete[] subField[row];
-		}
-
-		delete[] subField;
-	}
-
-	// Allocate memory (sub-pixel level, incl. edge pixels)
-
-	subField = new double*[subFieldSizeY];
-
-	for (unsigned int row = 0; row < subPixelMapSizeY; row++)
-	{
-		subField[row] = new double[subFieldSizeX];
-	}
-
-
-	// Set all values to zero
-
-	memset(subField, 0,
-			sizeof(subField[0][0]) * subPixelMapSizeX * subPixelMapSizeY);
-}
-
-
-
-
-
-/**
- * Mehod that resets the bias register map, i.e. all values are set to zero.
- *
- * @pre Bias register map has either not been initialised yet, or has the correct
- *      dimensions but is possibly filled with values from previous exposure.
- *
- * @post Bias register map of correct dimensions, filled with zeroes.
- */
-void Detector::resetBiasRegisterMap()
-{
-	// Allocate memory
-
-	if(biasRegisterMap == nullptr)
-	{
-		biasRegisterMap = new double*[numBiasPrescanRows];
-
-		for(unsigned int row = 0; row < numBiasPrescanRows; row++)
-		{
-			biasRegisterMap[row] = new double[subFieldSizeX];
-		}
-	}
-
-	// Set all values to zero
-
 	memset(biasRegisterMap, 0,
 			sizeof(biasRegisterMap[0][0]) * numBiasPrescanRows * subFieldSizeX);
-}
 
-
-
-
-
-/**
- * Method that resets the smearing map, i.e. all values are set to zero.
- *
- * @pre Smearing map has either not been initialised yet, or has the correct
- *      dimensions but is possibly filled with values from previous exposure.
- *
- * @post Smearing map of correct dimensions, filled with zeroes.
- */
-void Detector::resetSmearingMap()
-{
-	// Allocate memory
-
-	if (smearingMap == nullptr)
-	{
-		smearingMap = new double*[numSmearingOverscanRows];
-
-		for (unsigned int row = 0; row < numSmearingOverscanRows; row++)
-		{
-			smearingMap[row] = new double[subFieldSizeX];
-		}
-	}
-
-	// Set all values to zero
+	// Reset smearing map
 
 	memset(smearingMap, 0,
 			sizeof(smearingMap[0][0]) * numSmearingOverscanRows
