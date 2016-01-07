@@ -85,8 +85,8 @@ class Detector : public TimeTicker, Hdf5Writer
 
     	// Size of the sub-field in both directions [pixels]
 
-    	double subFieldSizeX;	// Number of columns in the sub-field at pixel level and excl. edge pixels  (i.e. dimension in the x-direction = readout direction)
-    	double subFieldSizeY;	// Number of rows in the sub-field at pixel leval and excl. edge pixels (i.e. dimension in the y-direction)
+    	int subFieldSizeX;	// Number of columns in the sub-field at pixel level and excl. edge pixels  (i.e. dimension in the x-direction = readout direction)
+    	int subFieldSizeY;	// Number of rows in the sub-field at pixel leval and excl. edge pixels (i.e. dimension in the y-direction)
 
     	int numSubPixelsPerPixel;	// Number of sub-pixels per pixel
     	int numEdgePixels; // Number of pixels to extend the sub-field on each side, to accoutn for the edge effect
