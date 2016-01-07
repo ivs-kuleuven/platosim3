@@ -205,7 +205,7 @@ void Detector::takeExposure(double startTime, double exposureTime)
 
 	// Readout: convolution with PSF + noise effects
 
-	this->readOut();
+	this->readOut(exposureTime);
 }
 
 
@@ -487,6 +487,9 @@ void Detector::rebin()
  * 	 - electronic offset (i.e. bias)
  * 	 - digital saturation
  *
+ * @param exposureTime: Exposure time [s].
+ * @type exposureTime: double
+ *
  * @pre Pixel unit in the pixel map: [photons /s]
  * @pre Bias register map filled with zeroes.
  * @pre Smearing map filled with zeroes.
@@ -495,14 +498,14 @@ void Detector::rebin()
  * @post Pixel unit in the bias register map: [ADU]
  * @post Pixel unit in the smearing map: [ADU]
  */
-void Detector::readOut()
+void Detector::readOut(double exposureTime)
 {
 
 	// Apply quantum efficiency
 	// Pixel units before: [photons / s]
 	// Pixel units after: [electrons]
 
-	this->applyQuantumEfficiency();
+	this->applyQuantumEfficiency(double exposureTime);
 
 	// Apply poisson distributed photon noise
 	// Pixel units before: [electrons]
@@ -581,7 +584,7 @@ void Detector::readOut()
  */
 void Detector::applyQuantumEfficiency()
 {
-
+	double factor = expo
 }
 
 /**

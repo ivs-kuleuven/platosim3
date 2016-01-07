@@ -37,9 +37,9 @@ class Detector : public TimeTicker, Hdf5Writer
 
         // Read out
 
-        virtual void readOut();
+        virtual void readOut(double exposureTime);
 
-        virtual void applyQuantumEfficiency();
+        virtual void applyQuantumEfficiency(double exposureTime);
     	virtual void addPhotonNoise();
     	virtual void applyFullWellSaturation();
     	virtual void applyCte();
