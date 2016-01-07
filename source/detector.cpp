@@ -871,13 +871,44 @@ void Detector::addElectronicOffset()
  */
 void Detector::applyDigitalSaturation()
 {
-
 	// Top off the values in the pixel map
 
-	// Top off the values in the smearing map
+	for (unsigned int row = 0; row < subFieldSizeY; row++)
+	{
+		for (unsigned int column = 0; column < subFieldSizeX; column++)
+		{
+			if (subField[row][column] > digitalSaturationLimit)
+			{
+				subField[row][column] = digitalSaturationLimit;
+			}
+		}
+	}
 
 	// Top off the values in the bias register map
 
+	for (unsigned int row = 0; row < numBiasPrescanRows; row++)
+	{
+		for (unsigned int column = 0; column < subFieldSizeX; column++)
+		{
+			if (biasRegisterMap[row][column] > digitalSaturationLimit)
+			{
+				biasRegisterMap[row][column] = digitalSaturationLimit;
+			}
+		}
+	}
+
+	// Top off the values in the smearing map
+
+	for (unsigned int row = 0; row < numSmearingOverscanRows; row++)
+	{
+		for (unsigned int column = 0; column < subFieldSizeX; column++)
+		{
+			if (smearingMap[row][column] > digitalSaturationLimit)
+			{
+				smearingMap[row][column] = digitalSaturationLimit;
+			}
+		}
+	}
 }
 
 
