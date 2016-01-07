@@ -83,38 +83,48 @@ Detector::Detector(ConfigurationParameters configurationParameters,
 Detector::~Detector()
 {
 
-	// Destroy the sub-field and the CTE map
+	// De-allocate the sub-pixel map
 
-	for(unsigned int row = 0; row < subFieldSizeY; row++)
+	for (unsigned int row = 0; row < subPixelMapSizeY; row++)
 	{
-		delete[] subField[row];
-		delete cteMap[row];
+		delete[] subPixelMap[row];
 	}
 
-	delete[] subField;
-	delete[] cteMap;
+	delete[] subPixelMap;
 
-	// Destroy the flatfield map
+	// De-allocate the flatfield map
 
-	for(unsigned int row = 0; row < subFieldSizeY*numSubPixelsPerPixel; row++)
+	for (unsigned int row = 0; row < subFieldSizeY * numSubPixelsPerPixel;
+			row++)
 	{
 		delete[] flatfieldMap[row];
 	}
 
 	delete[] flatfieldMap;
 
-	// Delete the bias register map
+	// De-allocate the pixel map and the CTE map
 
-	for(unsigned int row = 0; row < numBiasPrescanRows; row++)
+	for (unsigned int row = 0; row < sizeY; row++)
+	{
+		delete[] pixelMap[row];
+		delete[] cteMap[row];
+	}
+
+	delete[] pixelMap;
+	delete[] cteMap;
+
+	// De-allocate the bias register map
+
+	for (unsigned int row = 0; row < numBiasPrescanRows; row++)
 	{
 		delete[] biasRegisterMap[row];
 	}
 
 	delete[] biasRegisterMap;
 
-	// Delete the smearing map
+	// De-allocate the smearing map
 
-	for(unsigned int row = 0; row < numSmearingOverscanRows; row++)
+	for (unsigned int row = 0; row < numSmearingOverscanRows; row++)
 	{
 		delete[] smearingMap[row];
 	}
