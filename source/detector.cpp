@@ -135,7 +135,7 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 	// Rebin
 
-	//	this->pixelMap = this->subField.rebin();
+	this->rebin();
 }
 
 
@@ -247,9 +247,57 @@ void Detector::applyFlatfield()
 
 
 
+/**
+ * Method that rebins the sub-pixel map to pixel level and crops the edge pixels
+ * that were added on each side to account for the edge effect.
+ */
 void Detector::rebin()
 {
+	// Rebinning is only required of the pixels are divided into sub-pixels
 
+	if (numSubPixelsPerPixel > 1)
+	{
+
+		// Allocate memory
+
+		double **pixelMap = new double*[subFieldSizeY];
+
+		for (unsigned row = 0; row < subFieldSizeY; row++)
+		{
+			pixelMap[row] = new double[subFieldSizeX];
+		}
+
+		for (unsigned int row = 0; row < subFieldSizeY; row++)
+		{
+			for (unsigned int column = 0; column < subFieldSizeX; column)
+			{
+
+				double sum = 0;
+
+				for (unsigned int r = row * numSubPixelsPerPixel;
+						r < (row + 1) * numSubPixelsPerPixel; r++)
+				{
+					for (unsigned int c = column * numSubPixelsPerPixel;
+							c < (column + 1) * numSubPixelsPerPixel; c++)
+					{
+						sum += subField[r][c];
+					}
+				}
+
+				pixelMap[row][column] = sum;
+			}
+		}
+
+		for(unsigned int row = 0; row < subPixelMapSizeY; row++)
+		{
+			delete[] subField[row];
+		}
+
+		delete[] subField;
+
+		subField = pixelMap;
+		pixelMap = nullptr;
+	}
 }
 
 
