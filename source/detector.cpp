@@ -301,7 +301,7 @@ void Detector::addFlux(double xCoords, double yCoords, double flux)
 
 	if (this->isInSubField(row, column))
 	{
-		subField[(int) row][(int) column] += flux;
+		subPixelMap[(int) row][(int) column] += flux;
 	}
 }
 
@@ -322,7 +322,7 @@ void Detector::addFlux(double xCoords, double yCoords, double flux)
  * @return True if the given (row, column) coordinates are in the sub-pixel map;
  *         false otherwise.
  */
-bool Detector::isInSubField(double row, double column)
+bool Detector::isInSubPixelMap(double row, double column)
 {
 	return (column >= 0) && (row >= 0) && (column < subPixelMapSizeX)
 			&& (row < subPixelMapSizeY);

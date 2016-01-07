@@ -29,7 +29,7 @@ class Detector : public TimeTicker, Hdf5Writer
         virtual void integrateLight(double startTime, double exposureTime);	// Integration (incl. jitter + drift) + background
 
         virtual void addFlux(double xCoords, double yCoords, double flux);
-        virtual bool isInSubField(double row, double column);
+        virtual bool isInSubPixelMap(double row, double column);
         virtual void addFlux(double flux);
 
         virtual void applyFlatfield();
