@@ -6,7 +6,7 @@
 #include "hdf5writer.h"
 #include "camera.h"
 #include "subfield.h"
-
+#include <math.h>
 
 using namespace std;
 
@@ -29,6 +29,7 @@ class Detector : public TimeTicker, Hdf5Writer
         virtual void integrateLight(double startTime, double exposureTime);	// Integration (incl. jitter + drift) + background
 
         virtual void addFlux(double xCoords, double yCoords, double flux);
+        virtual bool isInSubField(double row, double column);
         virtual void addFlux(double flux);
 
         virtual void applyFlatfield();
@@ -87,6 +88,7 @@ class Detector : public TimeTicker, Hdf5Writer
     	double subFieldSizeX;	// Number of columns in the sub-field at pixel level and excl. edge pixels  (i.e. dimension in the x-direction = readout direction)
     	double subFieldSizeY;	// Number of rows in the sub-field at pixel leval and excl. edge pixels (i.e. dimension in the y-direction)
 
+    	int numSubPixelsPerPixel;	// Number of sub-pixels per pixel
     	int numEdgePixels; // Number of pixels to extend the sub-field on each side, to accoutn for the edge effect
 
     	// Sub-pixel map and its dimensions

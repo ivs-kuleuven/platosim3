@@ -48,6 +48,15 @@ Detector::~Detector()
 
 
 
+void Detector::reset()
+{
+
+}
+
+
+
+
+
 /**
  * Method that takes an exposure with the detector starting at the given time.
  *
@@ -114,19 +123,133 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 	// Reset the sub-field (i.e. get rid of the previous exposure, by zeroing the entire sub-field)
 
-	this->subField.reset();
+	this->reset();
 
 	// Integration (incl. jitter) + background
 
-	this->camera.exposeSubField(this->subField);
+	this->camera.exposeSubField(this);
 
 	// Apply flatfield (at sub-pixel level)
 
-	this->subField.multiply(this->flatfieldMap);
+	this->applyFlatfield();
 
 	// Rebin
 
 	//	this->pixelMap = this->subField.rebin();
+}
+
+
+
+
+
+/**
+ * Method that adds the given flux value to the value of the sub-pixel that
+ * corresponds to the given coordinates in the focal plane.
+ *
+ * @param xCoords: The x-coordinate of the sub-pixel in the focal plane [mm].
+ * @type xCoords: double
+ *
+ * @param yCoords: The y-coordinate of the sub-pixel in the focal plane [mm].
+ * @type yCoords: double
+ *
+ * @param flux: Flux to add to the sub-pixel map.
+ * @type flux: double
+ */
+void Detector::addFlux(double xCoords, double yCoords, double flux)
+{
+
+	// Detector origin offset (pixel level)
+
+	double xOffset = (xCoords - originOffsetX) / pixelSize;
+	double yOffset = (yCoords - originOffsetY) / pixelSize;
+
+	// Detector orientation (pixel level)
+
+	double column = xOffset * cos(orientationAngle)
+			- yOffset * sin(orientationAngle);
+
+	double row = xOffset * sin(orientationAngle)
+			+ yOffset * cos(orientationAngle);
+
+	// Sub-field incl. edge pixels (also correct for sub-field zeropoint)
+
+	column = (column - subFieldZeroPointX + numEdgePixels)
+			* numSubPixelsPerPixel;
+
+	row = (row - subFieldZeroPointY + numEdgePixels) * numSubPixelsPerPixel;
+
+	// Add flux in this->subPixelMap at (row, column)
+
+	if (this->isInSubField(row, column))
+	{
+		subField[(int) row][(int) column] += flux;
+	}
+}
+
+
+
+
+
+/**
+ * Method that checks whether the given (row, column) coordinates are in the
+ * sub-pixel map.
+ *
+ * @param row: Row coordinate.
+ * @type row: double
+ *
+ * @param column: Column coordinate.
+ * @type column: double
+ *
+ * @return True if the given (row, column) coordinates are in the sub-pixel map;
+ *         false otherwise.
+ */
+bool Detector::isInSubField(double row, double column)
+{
+
+	return (column >= 0) && (row >= 0) && (column < subPixelMapSizeX)
+			&& (row < subPixelMapSizeY);
+
+}
+
+
+
+
+
+/**
+ * Method that adds the given flux value to (all sub-pixels of) the sub-pixel map.
+ *
+ * @param flux: Flux to add to the sub-pixel map.
+ * @type flux: double
+ */
+void Detector::addFlux(double flux)
+{
+	for (unsigned int row = 0; row < subPixelMapSizeY; row++)
+	{
+		for (unsigned int column = 0; column < subPixelMapSizeX; column++)
+		{
+
+			subField[row][column] += flux;
+
+		}
+	}
+}
+
+
+
+
+
+void Detector::applyFlatfield()
+{
+
+}
+
+
+
+
+
+void Detector::rebin()
+{
+
 }
 
 
