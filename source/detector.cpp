@@ -107,7 +107,6 @@ Detector::~Detector()
  */
 void Detector::reset()
 {
-
 	// Reset sub-field
 
 	this->resetSubField();
@@ -119,7 +118,6 @@ void Detector::reset()
 	// Reset smearing map
 
 	this->resetSmearingMap();
-
 }
 
 
@@ -767,9 +765,33 @@ void Detector::applyGain()
 
 	// Multiply the pixel map with the gain
 
-	// Multiply the smearing map with the gain
+	for (unsigned int row = 0; row < subFieldSizeY; row++)
+	{
+		for (unsigned int column = 0; column < subFieldSizeX; column++)
+		{
+			subField[row][column] *= gain;
+		}
+	}
 
 	// Multiply the bias register map with the gain
+
+	for(unsigned int row = 0; row< numBiasPrescanRows; row++)
+	{
+		for(unsigned int column = 0; column<subFieldSizeX; column++)
+		{
+			biasRegisterMap[row][column] *= gain;
+		}
+	}
+
+	// Multiply the smearing map with the gain
+
+	for(unsigned int row = 0; row < numSmearingOverscanRows;row++)
+	{
+		for(unsigned int column = 0; column < subFieldSizeX; column++)
+		{
+			smearingMap[row][column] *= gain;
+		}
+	}
 }
 
 
