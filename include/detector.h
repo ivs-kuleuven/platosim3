@@ -19,19 +19,10 @@ class Detector : public TimeTicker, Hdf5Writer
         virtual ~Detector();
 
         virtual void takeExposure(double startTime, double exposureTime);
-//        SubField getSubField();
-
-//        double getOriginOffsetX();
-//        double getOriginOffsetY();
-
-//        double getPixelSize();
-
-//        double getOrientationAngle();
 
     protected:
 
         virtual void reset();
-
     
         // Integrate light
 
@@ -39,12 +30,13 @@ class Detector : public TimeTicker, Hdf5Writer
 
         virtual void addFlux(double xCoords, double yCoords, double flux);
         virtual void addFlux(double flux);
+
         virtual void applyFlatfield();
+        virtual void rebin();
 
         // Read out
 
         virtual void readOut();
-
 
         virtual void applyQuantumEfficiency();
     	virtual void addPhotonNoise();
