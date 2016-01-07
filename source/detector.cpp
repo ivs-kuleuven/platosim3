@@ -819,13 +819,34 @@ void Detector::addElectronicOffset()
 
 	// Add the electronic offset to the pixel map
 
-	// Add the electronic offset to the smearing map
+	for (unsigned int row = 0; row < subFieldSizeY; row++)
+	{
+		for (unsigned int column = 0; column < subFieldSizeX; column)
+		{
+			subField[row][column] += electronicOffset;
+		}
+	}
 
 	// Add the electronic offset to the bias register map
 
+	for (unsigned int row = 0; row < numBiasPrescanRows; row++)
+	{
+		for (unsigned int column = 0; column < subFieldSizeX; column++)
+		{
+			biasRegisterMap[row][column] += electronicOffset;
+		}
+	}
+
+	// Add the electronic offset to the smearing map
+
+	for (unsigned int row = 0; row < numSmearingOverscanRows; row++)
+	{
+		for (unsigned int column = 0; column < subFieldSizeX; column++)
+		{
+			smearingMap[row][column] += electronicOffset;
+		}
+	}
 }
-
-
 
 
 
