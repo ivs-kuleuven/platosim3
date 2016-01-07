@@ -382,10 +382,8 @@ void Detector::addFlux(double xCoords, double yCoords, double flux)
  */
 bool Detector::isInSubField(double row, double column)
 {
-
 	return (column >= 0) && (row >= 0) && (column < subPixelMapSizeX)
 			&& (row < subPixelMapSizeY);
-
 }
 
 
@@ -415,9 +413,33 @@ void Detector::addFlux(double flux)
 
 
 
+/**
+ * Method that multiplies the sub-pixel map with the flatfield map.  The central
+ * part (i.e. all pixels except the edge pixels) are multiplied element-wise.
+ *
+ * @pre Sub-field at sub-pixel level, incl. edge pixels.
+ * @pre Flatfield map at sub-pixel level, excl. edge pixels.
+ *
+ * @post Flatfielded sub-field at pixel level, incl. edge pixels.
+ */
 void Detector::applyFlatfield()
 {
+	unsigned int numEdgeSubPixels = numEdgePixels * numSubPixelsPerPixel;
 
+	// Loop over all elements in the sub-pixel map, except the edge pixels
+
+	for (unsigned int row = numEdgeSubPixels;
+			row < subPixelMapSizeY - numEdgeSubPixels; row++)
+	{
+		for (unsigned int column = numEdgeSubPixels;
+				column < subPixelMapSizeX - numEdgeSubPixels; column++)
+		{
+
+			subField[row][column] *= flatfieldMap[row - numEdgeSubPixels][column
+					- numEdgeSubPixels];
+
+		}
+	}
 }
 
 
