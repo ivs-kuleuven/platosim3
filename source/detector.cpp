@@ -68,12 +68,6 @@ Detector::Detector(ConfigurationParameters configurationParameters,
 /**
  * Destructor.
  *
- * @pre Sub-pixel map at pixel level, excl. edge pixels.
- * @pre CTE map at pixel level, excl. edge pixels.
- * @pre Flatfield map at sub-pixel level, excl. edge pixels.
- * @pre Bias register map at pixel level, excl. edge pixels.
- * @pre Smearing map at pixel level, excl. edge pixels.
- *
  * @post De-allocated memory of sub-field.
  * @post De-allocated memory of CTE map.
  * @post De-allocated memory of flatfield map.
@@ -224,18 +218,18 @@ void Detector::takeExposure(double startTime, double exposureTime)
  * @param startTime: Starting time of the exposure for which jitter must be
  *        applied [s].
  *
- * @pre No sub-pixel map
- * @pre No pixel map
- * @pre No smearing map
- * @pre No bias register map
+ * @pre Sub-pixel map possibly filled with values from previous exposure.
+ * @pre Pixel map possibly filled with values from previous exposure.
+ * @pre Bias register map possibly filled with values from previous exposure.
+ * @pre Smearing map possibly filled with values from previous exposure.
  *
  * @post Pixel unit of the sub-pixel map: [e-]
  * @post Re-calculated star position for each jitter step and summed the flux
  *       in the sub-pixel map, which introduces blurring. Also the contribution
  *       of the background (zodiacal + galactic) is added to the sub-pixel map.
- * @post No pixel map
- * @post No smearing map
- * @post No bias register map
+ * @post Pixel map filled with zeroes.
+ * @post Bias register map filled with zeroes.
+ * @post Smearing map filled with zeroes.
  */
 void Detector::integrateLight(double startTime, double exposureTime)
 {
@@ -273,6 +267,18 @@ void Detector::integrateLight(double startTime, double exposureTime)
  *
  * @param flux: Flux to add to the sub-pixel map.
  * @type flux: double
+ *
+ * @pre Flux received at the given position in the focal plane not added to the
+ *      sub-pixel map yet.
+ * @pre Pixel map filled with zeroes.
+ * @pre Bias register map filled with zeroes.
+ * @pre Smearing map filled with zeroes.
+ *
+ * @pre Flux received at the given position in the focal plane added to the
+ *      sub-pixel map.
+ * @post Pixel map filled with zeroes.
+ * @post Bias register map filled with zeroes.
+ * @post Smearing map filled with zeroes.
  */
 void Detector::addFlux(double xCoords, double yCoords, double flux)
 {
@@ -299,7 +305,7 @@ void Detector::addFlux(double xCoords, double yCoords, double flux)
 
 	// Add flux in this->subPixelMap at (row, column)
 
-	if (this->isInSubField(row, column))
+	if (this->isInSubPixelMap(row, column))
 	{
 		subPixelMap[(int) row][(int) column] += flux;
 	}
@@ -337,6 +343,16 @@ bool Detector::isInSubPixelMap(double row, double column)
  *
  * @param flux: Flux to add to the sub-pixel map.
  * @type flux: double
+ *
+ * @pre Given flux value not added to the sub-pixel map yet.
+ * @pre Pixel map filled with zeroes.
+ * @pre Bias register map filled with zeroes.
+ * @pre Smearing map filled with zeroes.
+ *
+ * @pre Flux value added to the sub-pixel map.
+ * @post Pixel map filled with zeroes.
+ * @post Bias register map filled with zeroes.
+ * @post Smearing map filled with zeroes.
  */
 void Detector::addFlux(double flux)
 {
@@ -345,7 +361,7 @@ void Detector::addFlux(double flux)
 		for (unsigned int column = 0; column < subPixelMapSizeX; column++)
 		{
 
-			subField[row][column] += flux;
+			subPixelMap[row][column] += flux;
 
 		}
 	}
@@ -377,7 +393,7 @@ void Detector::applyFlatfield()
 				column < subPixelMapSizeX - numEdgeSubPixels; column++)
 		{
 
-			subField[row][column] *= flatfieldMap[row - numEdgeSubPixels][column
+			subPixelMap[row][column] *= flatfieldMap[row - numEdgeSubPixels][column
 					- numEdgeSubPixels];
 
 		}
@@ -398,11 +414,6 @@ void Detector::rebin()
 
 	if (numSubPixelsPerPixel > 1)
 	{
-
-		// Allocate memory
-
-		double **pixelMap = new double*[subFieldSizeY];
-
 		for (unsigned row = 0; row < subFieldSizeY; row++)
 		{
 			pixelMap[row] = new double[subFieldSizeX];
@@ -421,23 +432,13 @@ void Detector::rebin()
 					for (unsigned int c = column * numSubPixelsPerPixel;
 							c < (column + 1) * numSubPixelsPerPixel; c++)
 					{
-						sum += subField[r][c];
+						sum += subPixelMap[r][c];
 					}
 				}
 
 				pixelMap[row][column] = sum;
 			}
 		}
-
-		for(unsigned int row = 0; row < subPixelMapSizeY; row++)
-		{
-			delete[] subField[row];
-		}
-
-		delete[] subField;
-
-		subField = pixelMap;
-		pixelMap = nullptr;
 	}
 }
 
