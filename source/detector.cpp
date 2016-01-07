@@ -23,6 +23,42 @@ Detector::Detector(ConfigurationParameters configurationParameters,
 	// this->setFlatfieldMap(peak2PeakNoise, subPixelNoise, intraPixelWidth);
 
 	// Initialise CTE map
+
+	// Allocate memory for the sub-pixel map
+
+	subPixelMap = new double*[subPixelMapSizeY];
+
+	for (unsigned int row = 0; row < subFieldZeroPointY; row++)
+	{
+		subPixelMap[row] = new double[subPixelMapSizeX];
+	}
+
+	// Allocate memory for the pixel map
+
+	pixelMap = new double*[sizeY];
+
+	for(unsigned int row = 0; row < sizeY; row++)
+	{
+		pixelMap[row] = new double[sizeX];
+	}
+
+	// Allocate memory for the bias register map
+
+	biasRegisterMap = new double*[numBiasPrescanRows];
+
+	for(unsigned int row = 0; row < numBiasPrescanRows; row++)
+	{
+		biasRegisterMap[row] = new double[sizeX];
+	}
+
+	// Allocate memory for the smearing map
+
+	smearingMap = new double*[numSmearingOverscanRows];
+
+	for(unsigned int row = 0; row < numSmearingOverscanRows; row++)
+	{
+		smearingMap[row] = new double[sizeX];
+	}
 }
 
 
