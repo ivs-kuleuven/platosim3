@@ -186,6 +186,15 @@ void Detector::reset()
  *
  * @param exposureTime: Duration of the exposure [s].
  * @type exposureTime: double
+ *
+ * @pre Sub-pixel map possibly filled with values from previous exposure.
+ * @pre Pixel map possibly filled with values from previous exposure.
+ * @pre Bias register map possibly filled with values from previous exposure.
+ * @pre Smearing map possibly filled with values from previous exposure.
+ *
+ * @post Pixel unit in the pixel map: [ADU]
+ * @post Pixel unit in the bias register map: [ADU]
+ * @post Pixel unit in the smearing map: [ADU]
  */
 void Detector::takeExposure(double startTime, double exposureTime)
 {
@@ -223,7 +232,7 @@ void Detector::takeExposure(double startTime, double exposureTime)
  * @pre Bias register map possibly filled with values from previous exposure.
  * @pre Smearing map possibly filled with values from previous exposure.
  *
- * @post Pixel unit of the sub-pixel map: [e-]
+ * @post Pixel unit of the sub-pixel map: [photons / s]
  * @post Re-calculated star position for each jitter step and summed the flux
  *       in the sub-pixel map, which introduces blurring. Also the contribution
  *       of the background (zodiacal + galactic) is added to the sub-pixel map.
@@ -274,8 +283,9 @@ void Detector::integrateLight(double startTime, double exposureTime)
  * @pre Bias register map filled with zeroes.
  * @pre Smearing map filled with zeroes.
  *
- * @pre Flux received at the given position in the focal plane added to the
+ * @post Flux received at the given position in the focal plane added to the
  *      sub-pixel map.
+ * @post Pixel unit in the sub-pixel map: [photons / s]
  * @post Pixel map filled with zeroes.
  * @post Bias register map filled with zeroes.
  * @post Smearing map filled with zeroes.
@@ -350,6 +360,7 @@ bool Detector::isInSubPixelMap(double row, double column)
  * @pre Smearing map filled with zeroes.
  *
  * @pre Flux value added to the sub-pixel map.
+ * @post Pixel unit in the sub-pixel map: [photons / s]
  * @post Pixel map filled with zeroes.
  * @post Bias register map filled with zeroes.
  * @post Smearing map filled with zeroes.
@@ -375,10 +386,18 @@ void Detector::addFlux(double flux)
  * Method that multiplies the sub-pixel map with the flatfield map.  The central
  * part (i.e. all pixels except the edge pixels) are multiplied element-wise.
  *
- * @pre Sub-field at sub-pixel level, incl. edge pixels.
+ * @pre Pixel value in the sub-pixel map: [photons / s].
  * @pre Flatfield map at sub-pixel level, excl. edge pixels.
+ * @pre Pixel map filled with zeroes.
+ * @pre Bias register map filled with zeroes.
+ * @pre Smearing map filled with zeroes.
  *
- * @post Flatfielded sub-field at pixel level, incl. edge pixels.
+ * @post Central part (i.e. everything except the edge pixels) of the sub-pixel
+ *       map is flatfielded.
+ * @post Pixel value in the sub-pixel map: [photons / s].
+ * @post Pixel map filled with zeroes.
+ * @post Bias register map filled with zeroes.
+ * @post Smearing map filled with zeroes.
  */
 void Detector::applyFlatfield()
 {
@@ -407,6 +426,16 @@ void Detector::applyFlatfield()
 /**
  * Method that rebins the sub-pixel map to pixel level and crops the edge pixels
  * that were added on each side to account for the edge effect.
+ *
+ * @pre Pixel value in the sub-pixel map: [photons / s].
+ * @pre Pixel map filled with zeroes.
+ * @pre Bias register map filled with zeroes.
+ * @pre Smearing map filled with zeroes.
+ *
+ * @post Pixel value in the sub-pixel map: [photons / s]
+ * @post Pixel value in the sub-pixel map: [photons / s]
+ * @post Bias register map filled with zeroes.
+ * @post Smearing map filled with zeroes.
  */
 void Detector::rebin()
 {
@@ -457,12 +486,20 @@ void Detector::rebin()
  * 	 - gain
  * 	 - electronic offset (i.e. bias)
  * 	 - digital saturation
+ *
+ * @pre Pixel unit in the pixel map: [photons /s]
+ * @pre Bias register map filled with zeroes.
+ * @pre Smearing map filled with zeroes.
+ *
+ * @post Pixel unit in the pixel map: [ADU]
+ * @post Pixel unit in the bias register map: [ADU]
+ * @post Pixel unit in the smearing map: [ADU]
  */
 void Detector::readOut()
 {
 
 	// Apply quantum efficiency
-	// Pixel units before: [photons]
+	// Pixel units before: [photons / s]
 	// Pixel units after: [electrons]
 
 	this->applyQuantumEfficiency();
@@ -530,6 +567,18 @@ void Detector::readOut()
 
 
 
+/**
+ * Method that applies that quantum efficiency to the pixel map and converts the
+ * pixels from [photons / s] to [e-].
+ *
+ * @pre Pixel unit in the pixel map: [photons /s]
+ * @pre Bias register map filled with zeroes.
+ * @pre Smearing map filled with zeroes.
+ *
+ * @pre Pixel unit in the pixel map: [e-]
+ * @post Bias register map filled with zeroes.
+ * @post Smearing map filled with zeroes.
+ */
 void Detector::applyQuantumEfficiency()
 {
 
@@ -714,7 +763,7 @@ void Detector::applyGain()
 	{
 		for (unsigned int column = 0; column < subFieldSizeX; column++)
 		{
-			subField[row][column] *= gain;
+			pixelMap[row][column] *= gain;
 		}
 	}
 
@@ -768,7 +817,7 @@ void Detector::addElectronicOffset()
 	{
 		for (unsigned int column = 0; column < subFieldSizeX; column)
 		{
-			subField[row][column] += electronicOffset;
+			pixelMap[row][column] += electronicOffset;
 		}
 	}
 
@@ -822,9 +871,9 @@ void Detector::applyDigitalSaturation()
 	{
 		for (unsigned int column = 0; column < subFieldSizeX; column++)
 		{
-			if (subField[row][column] > digitalSaturationLimit)
+			if (pixelMap[row][column] > digitalSaturationLimit)
 			{
-				subField[row][column] = digitalSaturationLimit;
+				pixelMap[row][column] = digitalSaturationLimit;
 			}
 		}
 	}
