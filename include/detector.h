@@ -29,11 +29,16 @@ class Detector : public TimeTicker, Hdf5Writer
 //        double getOrientationAngle();
 
     protected:
+
+        virtual void reset();
+
     
         // Integrate light
 
         virtual void integrateLight(double startTime, double exposureTime);	// Integration (incl. jitter + drift) + background
 
+        virtual void addFlux(double xCoords, double yCoords, double flux);
+        virtual void addFlux(double flux);
         virtual void applyFlatfield();
 
         // Read out
@@ -56,7 +61,12 @@ class Detector : public TimeTicker, Hdf5Writer
 
 
         Camera camera;
-        SubField subField;
+
+
+
+
+
+        // Detector specific information
 
     	unsigned int sizeX;// Number of columns of the detector (i.e. dimension in the x-direction = readout direction) [pixels]
     	unsigned int sizeY;// Number of rows of the detector (i.e. dimension in the y-direction) [pixels]
@@ -70,6 +80,34 @@ class Detector : public TimeTicker, Hdf5Writer
 
     	double pixelSize;	// Pixel size [microns]
     	// double pixelScale;	// Nominal pixel scale [arcsec/pixel] // -> replace by plate scale in Camera
+
+
+
+
+
+    	// Sub-field specific information
+
+    	double subFieldZeroPointX;	 // Position of the sub-field zeropoint w.r.t. the complete detector in the x-direction [pixels]
+    	double subFieldZeroPointY;	 // Position of the sub-field zeropoint w.r.t. the complete detector in the y-direction [pixels]
+
+    	// Size of the sub-field in both directions [pixels]
+
+    	double subFieldSizeX;	// Number of columns in the sub-field at pixel level and excl. edge pixels  (i.e. dimension in the x-direction = readout direction)
+    	double subFieldSizeY;	// Number of rows in the sub-field at pixel leval and excl. edge pixels (i.e. dimension in the y-direction)
+
+    	int numEdgePixels; // Number of pixels to extend the sub-field on each side, to accoutn for the edge effect
+
+    	// Sub-pixel map and its dimensions
+
+//    	double **subPixelMap;
+
+    	double **subField;
+
+    	int subPixelMapSizeX;	// Number of columns in the sub-field at sub-pixel level and incl. edge pixels (i.e. dimension in the x-direction = readout direction)
+    	int subPixelMapSizeY;	// Number of rows in the sub-field at sub-pixel level and incl. edge pixels (i.e. dimensions in the y-direction)
+
+
+
 
 
     	double **smearingMap;	// Smearing map (i.e. over-scan strip)
@@ -114,7 +152,7 @@ class Detector : public TimeTicker, Hdf5Writer
 
 
 
-        double **pixelMap;                       // Par of a CCD image. Nrows x Ncols
+//        double **pixelMap;                       // Par of a CCD image. Nrows x Ncols
  
         double internalTime;
 
