@@ -64,6 +64,8 @@ class Detector : public TimeTicker, Hdf5Writer
 
         // Detector specific information
 
+        double **pixelMap; 	// Pixel map, excl. edge pixels
+
     	unsigned int sizeX;// Number of columns of the detector (i.e. dimension in the x-direction = readout direction) [pixels]
     	unsigned int sizeY;// Number of rows of the detector (i.e. dimension in the y-direction) [pixels]
     	// unsigned int numSubPixelsPerPixels; // -> SubField?
@@ -96,9 +98,7 @@ class Detector : public TimeTicker, Hdf5Writer
 
     	// Sub-pixel map and its dimensions
 
-//    	double **subPixelMap;
-
-    	double **subField;
+    	double **subPixelMap;	// Sub-pixel map, incl. edge pixels
 
     	int subPixelMapSizeX;	// Number of columns in the sub-field at sub-pixel level and incl. edge pixels (i.e. dimension in the x-direction = readout direction)
     	int subPixelMapSizeY;	// Number of rows in the sub-field at sub-pixel level and incl. edge pixels (i.e. dimensions in the y-direction)
@@ -149,8 +149,8 @@ class Detector : public TimeTicker, Hdf5Writer
 
 
 
-//        double **pixelMap;                       // Par of a CCD image. Nrows x Ncols
- 
+
+
         double internalTime;
 
 
