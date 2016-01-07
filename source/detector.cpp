@@ -33,15 +33,59 @@ Detector::Detector(ConfigurationParameters configurationParameters,
 
 /**
  * Destructor.
+ *
+ * @pre Sub-pixel map at pixel level, excl. edge pixels.
+ * @pre CTE map at pixel level, excl. edge pixels.
+ * @pre Flatfield map at sub-pixel level, excl. edge pixels.
+ * @pre Bias register map at pixel level, excl. edge pixels.
+ * @pre Smearing map at pixel level, excl. edge pixels.
+ *
+ * @post De-allocated memory of sub-field.
+ * @post De-allocated memory of CTE map.
+ * @post De-allocated memory of flatfield map.
+ * @post De-allocated memory of bias register map.
+ * @post De-allocated memory of smearing map.
  */
 Detector::~Detector()
 {
 
-	// Destroy the sub-field
+	// Destroy the sub-field and the CTE map
+
+	for(unsigned int row = 0; row < subFieldSizeY; row++)
+	{
+		delete[] subField[row];
+		delete cteMap[row];
+	}
+
+	delete[] subField;
+	delete[] cteMap;
 
 	// Destroy the flatfield map
 
-	// Destroy the CTE map
+	for(unsigned int row = 0; row < subFieldSizeY*numSubPixelsPerPixel; row++)
+	{
+		delete[] flatfieldMap[row];
+	}
+
+	delete[] flatfieldMap;
+
+	// Delete the bias register map
+
+	for(unsigned int row = 0; row < numBiasPrescanRows; row++)
+	{
+		delete[] biasRegisterMap[row];
+	}
+
+	delete[] biasRegisterMap;
+
+	// Delete the smearing map
+
+	for(unsigned int row = 0; row < numSmearingOverscanRows; row++)
+	{
+		delete[] smearingMap[row];
+	}
+
+	delete[] smearingMap;
 }
 
 
@@ -51,6 +95,26 @@ Detector::~Detector()
 void Detector::reset()
 {
 
+	// Free memory (pixel level, excl. edge pixels)
+
+	if (subField != nullptr)
+	{
+		for (unsigned int row = 0; row < subFieldSizeY; row++)
+		{
+			delete[] subField[row];
+		}
+
+		delete[] subField;
+	}
+
+	// Allocate memory (sub-pixel level, incl. edge pixels)
+
+	subField = new double*[subFieldSizeY];
+
+	for (unsigned int row = 0; row < subPixelMapSizeY; row++)
+	{
+		subField[row] = new double[subFieldSizeX];
+	}
 }
 
 
