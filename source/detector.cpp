@@ -622,35 +622,35 @@ void Detector::applyQuantumEfficiency(double exposureTime)
  */
 void Detector::addPhotonNoise()
 {
-	// Default random number generated with seed of photon noise
-
-	double seed = 0.0;
-
-	// Add photon noise to the pixel map
-
-	for (unsigned int row = 0; row < subFieldSizeY; row++)
-	{
-		for (unsigned int column = 0; column < subFieldSizeX; column++)
-		{
-			std::default_random_engine generator(photonNoiseSeed + (seed++));
-			std::poisson_distribution<double> distribution(
-					pixelMap[row][column]);
-			pixelMap[row][column] = distribution(generator);
-		}
-	}
-
-	// Add photon noise to the smearing map
-
-	for (unsigned int row = 0; row < numSmearingOverscanRows; row++)
-	{
-		for (unsigned int column = 0; column < subFieldSizeX; column++)
-		{
-			std::default_random_engine generator(photonNoiseSeed + (seed++));
-			std::poisson_distribution<double> distribution(
-					smearingMap[row][column]);
-			smearingMap[row][column] = distribution(generator);
-		}
-	}
+//	// Default random number generated with seed of photon noise
+//
+//	double seed = 0.0;
+//
+//	// Add photon noise to the pixel map
+//
+//	for (unsigned int row = 0; row < subFieldSizeY; row++)
+//	{
+//		for (unsigned int column = 0; column < subFieldSizeX; column++)
+//		{
+//			std::default_random_engine generator(photonNoiseSeed);
+//			std::poisson_distribution<double> distribution(
+//					pixelMap[row][column]);
+//			pixelMap[row][column] = distribution(generator);
+//		}
+//	}
+//
+//	// Add photon noise to the smearing map
+//
+//	for (unsigned int row = 0; row < numSmearingOverscanRows; row++)
+//	{
+//		for (unsigned int column = 0; column < subFieldSizeX; column++)
+//		{
+//			std::default_random_engine generator(photonNoiseSeed);
+//			std::poisson_distribution<double> distribution(
+//					smearingMap[row][column]);
+//			smearingMap[row][column] = distribution(generator);
+//		}
+//	}
 }
 
 
