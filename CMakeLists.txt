@@ -25,6 +25,7 @@ cmake_minimum_required(VERSION 2.8)
 # Specify the locations of the header files
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/hdf5-1.8.16/include)
 
 
 # Specify the simulator source files to be compiled
