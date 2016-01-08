@@ -676,7 +676,79 @@ void Detector::addPhotonNoise()
  */
 void Detector::applyFullWellSaturation()
 {
+	double pixelValue, numExcessElectrons; // Pixel value, number of excess electrons per pixel (if positive)
+	int jmod;
 
+	for (unsigned int row = 0; row < sizeY; row++)
+	{
+		for (unsigned int column = 0; column < sizeX; column++)
+		{
+			pixelValue = pixelMap[row][column];
+
+			// If the full-well saturation limit has been exceeded, distribute
+			// the electrons evenly in the wells above and below until the
+			// saturation has disappeared (stay in the same column!)
+
+			if (pixelValue > fullWellSaturationLimit)
+			{
+				// Transfer excess electrons down
+
+				jmod = row;
+				numExcessElectrons = (pixelValue - fullWellSaturationLimit)
+						/ 2.0; // Move half of the excess electrons down...
+
+				while (numExcessElectrons > 0 && jmod < sizeY)
+				{
+					pixelMap[jmod][column] -= numExcessElectrons;
+					jmod++;
+
+					// Electrons reaching the edge of the CCD will not be detected
+
+					if (jmod < sizeY)
+					{
+						pixelMap[jmod][column] += numExcessElectrons;
+
+						// Make sure the pixel you move the excess electrons to
+						// does not get saturated too
+
+						if (pixelMap[jmod][column] > fullWellSaturationLimit)
+						{
+							numExcessElectrons = pixelMap[jmod][column]
+									- fullWellSaturationLimit;
+						}
+					}
+				}
+
+				// Transfer excess electrons up
+
+				jmod = row;
+				numExcessElectrons = (pixelValue - fullWellSaturationLimit)
+						/ 2.0; // ...and the rest of the excess electrons up
+
+				while (numExcessElectrons > 0 && jmod >= 0)
+				{
+					pixelMap[jmod][column] -= numExcessElectrons;
+					jmod--;
+
+					// Electrons reaching the edge of the CCD will not be detected
+
+					if (jmod >= 0)
+					{
+						pixelMap[jmod][column] += numExcessElectrons;
+
+						// Make sure the pixel you move the excess electrons to
+						// does not get saturated too
+
+						if (pixelMap[jmod][column] > fullWellSaturationLimit)
+						{
+							numExcessElectrons = pixelMap[jmod][column]
+									- fullWellSaturationLimit;
+						}
+					}
+				}
+			}
+		}
+	}
 }
 
 
