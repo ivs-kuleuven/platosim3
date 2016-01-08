@@ -18,13 +18,47 @@ Detector::Detector(ConfigurationParameters configurationParameters,
 
 	// Associate the camera
 
-	// Initialise sub-field?
-
 	// Initialise flatfield map
 
 	// this->setFlatfieldMap(peak2PeakNoise, subPixelNoise, intraPixelWidth);
 
 	// Initialise CTE map
+
+	// Allocate memory for the sub-pixel map
+
+	subPixelMap = new double*[subPixelMapSizeY];
+
+	for (unsigned int row = 0; row < subFieldZeroPointY; row++)
+	{
+		subPixelMap[row] = new double[subPixelMapSizeX];
+	}
+
+	// Allocate memory for the pixel map
+
+	pixelMap = new double*[subFieldSizeY];
+
+	for(unsigned int row = 0; row < subFieldSizeY; row++)
+	{
+		pixelMap[row] = new double[subFieldSizeX];
+	}
+
+	// Allocate memory for the bias register map
+
+	biasRegisterMap = new double*[numBiasPrescanRows];
+
+	for(unsigned int row = 0; row < numBiasPrescanRows; row++)
+	{
+		biasRegisterMap[row] = new double[subFieldSizeX];
+	}
+
+	// Allocate memory for the smearing map
+
+	smearingMap = new double*[numSmearingOverscanRows];
+
+	for(unsigned int row = 0; row < numSmearingOverscanRows; row++)
+	{
+		smearingMap[row] = new double[subFieldSizeX];
+	}
 }
 
 
@@ -33,15 +67,103 @@ Detector::Detector(ConfigurationParameters configurationParameters,
 
 /**
  * Destructor.
+ *
+ * @post De-allocated memory of sub-field.
+ * @post De-allocated memory of CTE map.
+ * @post De-allocated memory of flatfield map.
+ * @post De-allocated memory of bias register map.
+ * @post De-allocated memory of smearing map.
  */
 Detector::~Detector()
 {
 
-	// Destroy the sub-field
+	// De-allocate the sub-pixel map
 
-	// Destroy the flatfield map
+	for (unsigned int row = 0; row < subPixelMapSizeY; row++)
+	{
+		delete[] subPixelMap[row];
+	}
 
-	// Destroy the CTE map
+	delete[] subPixelMap;
+
+	// De-allocate the flatfield map
+
+	for (unsigned int row = 0; row < subFieldSizeY * numSubPixelsPerPixel;
+			row++)
+	{
+		delete[] flatfieldMap[row];
+	}
+
+	delete[] flatfieldMap;
+
+	// De-allocate the pixel map and the CTE map
+
+	for (unsigned int row = 0; row < subFieldSizeY; row++)
+	{
+		delete[] pixelMap[row];
+		delete[] cteMap[row];
+	}
+
+	delete[] pixelMap;
+	delete[] cteMap;
+
+	// De-allocate the bias register map
+
+	for (unsigned int row = 0; row < numBiasPrescanRows; row++)
+	{
+		delete[] biasRegisterMap[row];
+	}
+
+	delete[] biasRegisterMap;
+
+	// De-allocate the smearing map
+
+	for (unsigned int row = 0; row < numSmearingOverscanRows; row++)
+	{
+		delete[] smearingMap[row];
+	}
+
+	delete[] smearingMap;
+}
+
+
+
+
+
+/**
+ * Method that resets the sub-field, the bias register map, and the smearing map.
+ *
+ * @pre Sub-pixel map possibly filled with values from previous exposure.
+ * @pre Pixel map possibly filled with values from previous exposure.
+ * @pre Bias register map possibly filled with values from previous exposure.
+ * @pre Smearing map possibly filled with values from previous exposure.
+ *
+ * @post Sub-pixel map filled with zeroes.
+ * @post Pixel map filled with zeroes
+ * @post Bias register map  filled with zeroes.
+ * @post Smearing map filled with zeroes.
+ */
+void Detector::reset()
+{
+	// Reset sub-pixel map
+
+	memset(subPixelMap, 0,
+			sizeof(subPixelMap[0][0]) * subPixelMapSizeX * subPixelMapSizeY);
+
+	// Reset pixel map
+
+	memset(pixelMap, 0, pixelMap[0][0] * subFieldSizeX * subFieldSizeY);
+
+	// Reset bias register map
+
+	memset(biasRegisterMap, 0,
+			sizeof(biasRegisterMap[0][0]) * numBiasPrescanRows * subFieldSizeX);
+
+	// Reset smearing map
+
+	memset(smearingMap, 0,
+			sizeof(smearingMap[0][0]) * numSmearingOverscanRows
+					* subFieldSizeX);
 }
 
 
@@ -64,6 +186,15 @@ Detector::~Detector()
  *
  * @param exposureTime: Duration of the exposure [s].
  * @type exposureTime: double
+ *
+ * @pre Sub-pixel map possibly filled with values from previous exposure.
+ * @pre Pixel map possibly filled with values from previous exposure.
+ * @pre Bias register map possibly filled with values from previous exposure.
+ * @pre Smearing map possibly filled with values from previous exposure.
+ *
+ * @post Pixel unit in the pixel map: [ADU]
+ * @post Pixel unit in the bias register map: [ADU]
+ * @post Pixel unit in the smearing map: [ADU]
  */
 void Detector::takeExposure(double startTime, double exposureTime)
 {
@@ -74,7 +205,7 @@ void Detector::takeExposure(double startTime, double exposureTime)
 
 	// Readout: convolution with PSF + noise effects
 
-	this->readOut();
+	this->readOut(exposureTime);
 }
 
 
@@ -96,37 +227,248 @@ void Detector::takeExposure(double startTime, double exposureTime)
  * @param startTime: Starting time of the exposure for which jitter must be
  *        applied [s].
  *
- * @pre No sub-pixel map
- * @pre No pixel map
- * @pre No smearing map
- * @pre No bias register map
+ * @pre Sub-pixel map possibly filled with values from previous exposure.
+ * @pre Pixel map possibly filled with values from previous exposure.
+ * @pre Bias register map possibly filled with values from previous exposure.
+ * @pre Smearing map possibly filled with values from previous exposure.
  *
- * @post Pixel unit of the sub-pixel map: [e-]
+ * @post Pixel unit of the sub-pixel map: [photons / s]
  * @post Re-calculated star position for each jitter step and summed the flux
  *       in the sub-pixel map, which introduces blurring. Also the contribution
  *       of the background (zodiacal + galactic) is added to the sub-pixel map.
- * @post No pixel map
- * @post No smearing map
- * @post No bias register map
+ * @post Pixel map filled with zeroes.
+ * @post Bias register map filled with zeroes.
+ * @post Smearing map filled with zeroes.
  */
 void Detector::integrateLight(double startTime, double exposureTime)
 {
 
 	// Reset the sub-field (i.e. get rid of the previous exposure, by zeroing the entire sub-field)
 
-	this->subField.reset();
+	this->reset();
 
 	// Integration (incl. jitter) + background
 
-	this->camera.exposeSubField(this->subField);
+	this->camera.exposeSubField(this);
 
 	// Apply flatfield (at sub-pixel level)
 
-	this->subField.multiply(this->flatfieldMap);
+	this->applyFlatfield();
 
 	// Rebin
 
-	//	this->pixelMap = this->subField.rebin();
+	this->rebin();
+}
+
+
+
+
+
+/**
+ * Method that adds the given flux value to the value of the sub-pixel that
+ * corresponds to the given coordinates in the focal plane.
+ *
+ * @param xCoords: The x-coordinate of the sub-pixel in the focal plane [mm].
+ * @type xCoords: double
+ *
+ * @param yCoords: The y-coordinate of the sub-pixel in the focal plane [mm].
+ * @type yCoords: double
+ *
+ * @param flux: Flux to add to the sub-pixel map.
+ * @type flux: double
+ *
+ * @pre Flux received at the given position in the focal plane not added to the
+ *      sub-pixel map yet.
+ * @pre Pixel map filled with zeroes.
+ * @pre Bias register map filled with zeroes.
+ * @pre Smearing map filled with zeroes.
+ *
+ * @post Flux received at the given position in the focal plane added to the
+ *      sub-pixel map.
+ * @post Pixel unit in the sub-pixel map: [photons / s]
+ * @post Pixel map filled with zeroes.
+ * @post Bias register map filled with zeroes.
+ * @post Smearing map filled with zeroes.
+ */
+void Detector::addFlux(double xCoords, double yCoords, double flux)
+{
+
+	// Detector origin offset (pixel level)
+
+	double xOffset = (xCoords - originOffsetX) / pixelSize;
+	double yOffset = (yCoords - originOffsetY) / pixelSize;
+
+	// Detector orientation (pixel level)
+
+	double column = xOffset * cos(orientationAngle)
+			- yOffset * sin(orientationAngle);
+
+	double row = xOffset * sin(orientationAngle)
+			+ yOffset * cos(orientationAngle);
+
+	// Sub-field incl. edge pixels (also correct for sub-field zeropoint)
+
+	column = (column - subFieldZeroPointX + numEdgePixels)
+			* numSubPixelsPerPixel;
+
+	row = (row - subFieldZeroPointY + numEdgePixels) * numSubPixelsPerPixel;
+
+	// Add flux in this->subPixelMap at (row, column)
+
+	if (this->isInSubPixelMap(row, column))
+	{
+		subPixelMap[(int) row][(int) column] += flux;
+	}
+}
+
+
+
+
+
+/**
+ * Method that checks whether the given (row, column) coordinates are in the
+ * sub-pixel map.
+ *
+ * @param row: Row coordinate.
+ * @type row: double
+ *
+ * @param column: Column coordinate.
+ * @type column: double
+ *
+ * @return True if the given (row, column) coordinates are in the sub-pixel map;
+ *         false otherwise.
+ */
+bool Detector::isInSubPixelMap(double row, double column)
+{
+	return (column >= 0) && (row >= 0) && (column < subPixelMapSizeX)
+			&& (row < subPixelMapSizeY);
+}
+
+
+
+
+
+/**
+ * Method that adds the given flux value to (all sub-pixels of) the sub-pixel map.
+ *
+ * @param flux: Flux to add to the sub-pixel map.
+ * @type flux: double
+ *
+ * @pre Given flux value not added to the sub-pixel map yet.
+ * @pre Pixel map filled with zeroes.
+ * @pre Bias register map filled with zeroes.
+ * @pre Smearing map filled with zeroes.
+ *
+ * @pre Flux value added to the sub-pixel map.
+ * @post Pixel unit in the sub-pixel map: [photons / s]
+ * @post Pixel map filled with zeroes.
+ * @post Bias register map filled with zeroes.
+ * @post Smearing map filled with zeroes.
+ */
+void Detector::addFlux(double flux)
+{
+	for (unsigned int row = 0; row < subPixelMapSizeY; row++)
+	{
+		for (unsigned int column = 0; column < subPixelMapSizeX; column++)
+		{
+
+			subPixelMap[row][column] += flux;
+
+		}
+	}
+}
+
+
+
+
+
+/**
+ * Method that multiplies the sub-pixel map with the flatfield map.  The central
+ * part (i.e. all pixels except the edge pixels) are multiplied element-wise.
+ *
+ * @pre Pixel value in the sub-pixel map: [photons / s].
+ * @pre Flatfield map at sub-pixel level, excl. edge pixels.
+ * @pre Pixel map filled with zeroes.
+ * @pre Bias register map filled with zeroes.
+ * @pre Smearing map filled with zeroes.
+ *
+ * @post Central part (i.e. everything except the edge pixels) of the sub-pixel
+ *       map is flatfielded.
+ * @post Pixel value in the sub-pixel map: [photons / s].
+ * @post Pixel map filled with zeroes.
+ * @post Bias register map filled with zeroes.
+ * @post Smearing map filled with zeroes.
+ */
+void Detector::applyFlatfield()
+{
+	unsigned int numEdgeSubPixels = numEdgePixels * numSubPixelsPerPixel;
+
+	// Loop over all elements in the sub-pixel map, except the edge pixels
+
+	for (unsigned int row = numEdgeSubPixels;
+			row < subPixelMapSizeY - numEdgeSubPixels; row++)
+	{
+		for (unsigned int column = numEdgeSubPixels;
+				column < subPixelMapSizeX - numEdgeSubPixels; column++)
+		{
+
+			subPixelMap[row][column] *= flatfieldMap[row - numEdgeSubPixels][column
+					- numEdgeSubPixels];
+
+		}
+	}
+}
+
+
+
+
+
+/**
+ * Method that rebins the sub-pixel map to pixel level and crops the edge pixels
+ * that were added on each side to account for the edge effect.
+ *
+ * @pre Pixel value in the sub-pixel map: [photons / s].
+ * @pre Pixel map filled with zeroes.
+ * @pre Bias register map filled with zeroes.
+ * @pre Smearing map filled with zeroes.
+ *
+ * @post Pixel value in the sub-pixel map: [photons / s]
+ * @post Pixel value in the sub-pixel map: [photons / s]
+ * @post Bias register map filled with zeroes.
+ * @post Smearing map filled with zeroes.
+ */
+void Detector::rebin()
+{
+	// Rebinning is only required of the pixels are divided into sub-pixels
+
+	if (numSubPixelsPerPixel > 1)
+	{
+		for (unsigned row = 0; row < subFieldSizeY; row++)
+		{
+			pixelMap[row] = new double[subFieldSizeX];
+		}
+
+		for (unsigned int row = 0; row < subFieldSizeY; row++)
+		{
+			for (unsigned int column = 0; column < subFieldSizeX; column)
+			{
+
+				double sum = 0;
+
+				for (unsigned int r = row * numSubPixelsPerPixel;
+						r < (row + 1) * numSubPixelsPerPixel; r++)
+				{
+					for (unsigned int c = column * numSubPixelsPerPixel;
+							c < (column + 1) * numSubPixelsPerPixel; c++)
+					{
+						sum += subPixelMap[r][c];
+					}
+				}
+
+				pixelMap[row][column] = sum;
+			}
+		}
+	}
 }
 
 
@@ -144,21 +486,35 @@ void Detector::integrateLight(double startTime, double exposureTime)
  * 	 - gain
  * 	 - electronic offset (i.e. bias)
  * 	 - digital saturation
+ *
+ * @param exposureTime: Exposure time [s].
+ * @type exposureTime: double
+ *
+ * @pre Pixel unit in the pixel map: [photons /s]
+ * @pre Bias register map filled with zeroes.
+ * @pre Smearing map filled with zeroes.
+ *
+ * @post Pixel unit in the pixel map: [ADU]
+ * @post Pixel unit in the bias register map: [ADU]
+ * @post Pixel unit in the smearing map: [ADU]
  */
-void Detector::readOut()
+void Detector::readOut(double exposureTime)
 {
 
 	// Apply quantum efficiency
-	// Pixel units before: [photons]
+	// Pixel units before: [photons / s]
 	// Pixel units after: [electrons]
 
-	this->applyQuantumEfficiency();
+	this->applyQuantumEfficiency(exposureTime);
 
 	// Apply poisson distributed photon noise
 	// Pixel units before: [electrons]
 	// Pixel units after: [electrons]
 
-	this->addPhotonNoise();
+	if (doPhotonNoise)
+	{
+		this->addPhotonNoise();
+	}
 
 	// Apply full well saturation. A pixel has a maximum capacity of electrons (the full well capacity).
 	// If photons free more electrons, the pixel saturates, and the electrons flow in the pixels above and below in
@@ -217,10 +573,35 @@ void Detector::readOut()
 
 
 
-void Detector::applyQuantumEfficiency()
+/**
+ * Method that applies that quantum efficiency to the pixel map and converts the
+ * pixels from [photons / s] to [e-].  The pixel values are multiplied by the
+ * exposure time [s] and the quantum efficiency of the detector.
+ *
+ * @pre Pixel unit in the pixel map: [photons /s]
+ * @pre Bias register map filled with zeroes.
+ * @pre Smearing map filled with zeroes.
+ *
+ * @pre Pixel unit in the pixel map: [e-]
+ * @post Bias register map filled with zeroes.
+ * @post Smearing map filled with zeroes.
+ */
+void Detector::applyQuantumEfficiency(double exposureTime)
 {
+	double factor = exposureTime * quantumEfficiency;
 
+	for (unsigned int row = 0; row < subFieldSizeY; row++)
+	{
+		for (unsigned int column = 0; column < subFieldSizeX; column++)
+		{
+			pixelMap[row][column] *= factor;
+		}
+	}
 }
+
+
+
+
 
 /**
  * Method that adds photon noise (i.e. shot noise) to the pixel map.  This type
@@ -241,10 +622,35 @@ void Detector::applyQuantumEfficiency()
  */
 void Detector::addPhotonNoise()
 {
-
-	// Add photon noise to the pixel map
-
-	// Iniitialise the smearing map with photon noise
+//	// Default random number generated with seed of photon noise
+//
+//	double seed = 0.0;
+//
+//	// Add photon noise to the pixel map
+//
+//	for (unsigned int row = 0; row < subFieldSizeY; row++)
+//	{
+//		for (unsigned int column = 0; column < subFieldSizeX; column++)
+//		{
+//			std::default_random_engine generator(photonNoiseSeed);
+//			std::poisson_distribution<double> distribution(
+//					pixelMap[row][column]);
+//			pixelMap[row][column] = distribution(generator);
+//		}
+//	}
+//
+//	// Add photon noise to the smearing map
+//
+//	for (unsigned int row = 0; row < numSmearingOverscanRows; row++)
+//	{
+//		for (unsigned int column = 0; column < subFieldSizeX; column++)
+//		{
+//			std::default_random_engine generator(photonNoiseSeed);
+//			std::poisson_distribution<double> distribution(
+//					smearingMap[row][column]);
+//			smearingMap[row][column] = distribution(generator);
+//		}
+//	}
 }
 
 
@@ -270,7 +676,79 @@ void Detector::addPhotonNoise()
  */
 void Detector::applyFullWellSaturation()
 {
+	double pixelValue, numExcessElectrons; // Pixel value, number of excess electrons per pixel (if positive)
+	int jmod;
 
+	for (unsigned int row = 0; row < subFieldSizeY; row++)
+	{
+		for (unsigned int column = 0; column < subFieldSizeX; column++)
+		{
+			pixelValue = pixelMap[row][column];
+
+			// If the full-well saturation limit has been exceeded, distribute
+			// the electrons evenly in the wells above and below until the
+			// saturation has disappeared (stay in the same column!)
+
+			if (pixelValue > fullWellSaturationLimit)
+			{
+				// Transfer excess electrons down
+
+				jmod = row;
+				numExcessElectrons = (pixelValue - fullWellSaturationLimit)
+						/ 2.0; // Move half of the excess electrons down...
+
+				while (numExcessElectrons > 0 && jmod < subFieldSizeY)
+				{
+					pixelMap[jmod][column] -= numExcessElectrons;
+					jmod++;
+
+					// Electrons reaching the edge of the CCD will not be detected
+
+					if (jmod < subFieldSizeY)
+					{
+						pixelMap[jmod][column] += numExcessElectrons;
+
+						// Make sure the pixel you move the excess electrons to
+						// does not get saturated too
+
+						if (pixelMap[jmod][column] > fullWellSaturationLimit)
+						{
+							numExcessElectrons = pixelMap[jmod][column]
+									- fullWellSaturationLimit;
+						}
+					}
+				}
+
+				// Transfer excess electrons up
+
+				jmod = row;
+				numExcessElectrons = (pixelValue - fullWellSaturationLimit)
+						/ 2.0; // ...and the rest of the excess electrons up
+
+				while (numExcessElectrons > 0 && jmod >= 0)
+				{
+					pixelMap[jmod][column] -= numExcessElectrons;
+					jmod--;
+
+					// Electrons reaching the edge of the CCD will not be detected
+
+					if (jmod >= 0)
+					{
+						pixelMap[jmod][column] += numExcessElectrons;
+
+						// Make sure the pixel you move the excess electrons to
+						// does not get saturated too
+
+						if (pixelMap[jmod][column] > fullWellSaturationLimit)
+						{
+							numExcessElectrons = pixelMap[jmod][column]
+									- fullWellSaturationLimit;
+						}
+					}
+				}
+			}
+		}
+	}
 }
 
 
@@ -397,9 +875,33 @@ void Detector::applyGain()
 
 	// Multiply the pixel map with the gain
 
-	// Multiply the smearing map with the gain
+	for (unsigned int row = 0; row < subFieldSizeY; row++)
+	{
+		for (unsigned int column = 0; column < subFieldSizeX; column++)
+		{
+			pixelMap[row][column] *= gain;
+		}
+	}
 
 	// Multiply the bias register map with the gain
+
+	for(unsigned int row = 0; row< numBiasPrescanRows; row++)
+	{
+		for(unsigned int column = 0; column<subFieldSizeX; column++)
+		{
+			biasRegisterMap[row][column] *= gain;
+		}
+	}
+
+	// Multiply the smearing map with the gain
+
+	for(unsigned int row = 0; row < numSmearingOverscanRows;row++)
+	{
+		for(unsigned int column = 0; column < subFieldSizeX; column++)
+		{
+			smearingMap[row][column] *= gain;
+		}
+	}
 }
 
 
@@ -427,13 +929,34 @@ void Detector::addElectronicOffset()
 
 	// Add the electronic offset to the pixel map
 
-	// Add the electronic offset to the smearing map
+	for (unsigned int row = 0; row < subFieldSizeY; row++)
+	{
+		for (unsigned int column = 0; column < subFieldSizeX; column)
+		{
+			pixelMap[row][column] += electronicOffset;
+		}
+	}
 
 	// Add the electronic offset to the bias register map
 
+	for (unsigned int row = 0; row < numBiasPrescanRows; row++)
+	{
+		for (unsigned int column = 0; column < subFieldSizeX; column++)
+		{
+			biasRegisterMap[row][column] += electronicOffset;
+		}
+	}
+
+	// Add the electronic offset to the smearing map
+
+	for (unsigned int row = 0; row < numSmearingOverscanRows; row++)
+	{
+		for (unsigned int column = 0; column < subFieldSizeX; column++)
+		{
+			smearingMap[row][column] += electronicOffset;
+		}
+	}
 }
-
-
 
 
 
@@ -458,13 +981,44 @@ void Detector::addElectronicOffset()
  */
 void Detector::applyDigitalSaturation()
 {
-
 	// Top off the values in the pixel map
 
-	// Top off the values in the smearing map
+	for (unsigned int row = 0; row < subFieldSizeY; row++)
+	{
+		for (unsigned int column = 0; column < subFieldSizeX; column++)
+		{
+			if (pixelMap[row][column] > digitalSaturationLimit)
+			{
+				pixelMap[row][column] = digitalSaturationLimit;
+			}
+		}
+	}
 
 	// Top off the values in the bias register map
 
+	for (unsigned int row = 0; row < numBiasPrescanRows; row++)
+	{
+		for (unsigned int column = 0; column < subFieldSizeX; column++)
+		{
+			if (biasRegisterMap[row][column] > digitalSaturationLimit)
+			{
+				biasRegisterMap[row][column] = digitalSaturationLimit;
+			}
+		}
+	}
+
+	// Top off the values in the smearing map
+
+	for (unsigned int row = 0; row < numSmearingOverscanRows; row++)
+	{
+		for (unsigned int column = 0; column < subFieldSizeX; column++)
+		{
+			if (smearingMap[row][column] > digitalSaturationLimit)
+			{
+				smearingMap[row][column] = digitalSaturationLimit;
+			}
+		}
+	}
 }
 
 
