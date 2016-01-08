@@ -572,7 +572,8 @@ void Detector::readOut(double exposureTime)
 
 /**
  * Method that applies that quantum efficiency to the pixel map and converts the
- * pixels from [photons / s] to [e-].
+ * pixels from [photons / s] to [e-].  The pixel values are multiplied by the
+ * exposure time [s] and the quantum efficiency of the detector.
  *
  * @pre Pixel unit in the pixel map: [photons /s]
  * @pre Bias register map filled with zeroes.
@@ -582,10 +583,22 @@ void Detector::readOut(double exposureTime)
  * @post Bias register map filled with zeroes.
  * @post Smearing map filled with zeroes.
  */
-void Detector::applyQuantumEfficiency()
+void Detector::applyQuantumEfficiency(double exposureTime)
 {
-	double factor = expo
+	double factor = exposureTime * quantumEfficiency;
+
+	for (unsigned int row = 0; row < sizeY; row++)
+	{
+		for (unsigned int column = 0; column < sizeX; column++)
+		{
+			pixelMap[row][column] *= factor;
+		}
+	}
 }
+
+
+
+
 
 /**
  * Method that adds photon noise (i.e. shot noise) to the pixel map.  This type
