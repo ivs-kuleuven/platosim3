@@ -40,6 +40,6 @@ int main(int Narguments, char* arguments[])
 
     // That's it!
 
-    logfile.close();
+    logFile.close();
     return EXIT_SUCCESS;
 }
