@@ -35,8 +35,12 @@ file(GLOB sourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp)
 
 # Remove the main.cpp file from the list which is not needed to build the library
 
-list(REMOVE_ITEM sourceFiles main.cpp camera.cpp hdf5writer.cpp telescope.cpp timeticker.cpp)
-
+list(REMOVE_ITEM sourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/camera.cpp 
+                             ${CMAKE_CURRENT_SOURCE_DIR}/source/hdf5file.cpp
+                             ${CMAKE_CURRENT_SOURCE_DIR}/source/hdf5writer.cpp
+                             ${CMAKE_CURRENT_SOURCE_DIR}/source/telescope.cpp
+                             ${CMAKE_CURRENT_SOURCE_DIR}/source/timeticker.cpp)
+message(${sourceFiles})
 
 # Specify the simulator unittest files to be compiled
 
