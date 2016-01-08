@@ -35,11 +35,11 @@ Detector::Detector(ConfigurationParameters configurationParameters,
 
 	// Allocate memory for the pixel map
 
-	pixelMap = new double*[sizeY];
+	pixelMap = new double*[subFieldSizeY];
 
-	for(unsigned int row = 0; row < sizeY; row++)
+	for(unsigned int row = 0; row < subFieldSizeY; row++)
 	{
-		pixelMap[row] = new double[sizeX];
+		pixelMap[row] = new double[subFieldSizeX];
 	}
 
 	// Allocate memory for the bias register map
@@ -48,7 +48,7 @@ Detector::Detector(ConfigurationParameters configurationParameters,
 
 	for(unsigned int row = 0; row < numBiasPrescanRows; row++)
 	{
-		biasRegisterMap[row] = new double[sizeX];
+		biasRegisterMap[row] = new double[subFieldSizeX];
 	}
 
 	// Allocate memory for the smearing map
@@ -57,7 +57,7 @@ Detector::Detector(ConfigurationParameters configurationParameters,
 
 	for(unsigned int row = 0; row < numSmearingOverscanRows; row++)
 	{
-		smearingMap[row] = new double[sizeX];
+		smearingMap[row] = new double[subFieldSizeX];
 	}
 }
 
@@ -98,7 +98,7 @@ Detector::~Detector()
 
 	// De-allocate the pixel map and the CTE map
 
-	for (unsigned int row = 0; row < sizeY; row++)
+	for (unsigned int row = 0; row < subFieldSizeY; row++)
 	{
 		delete[] pixelMap[row];
 		delete[] cteMap[row];
@@ -152,7 +152,7 @@ void Detector::reset()
 
 	// Reset pixel map
 
-	memset(pixelMap, 0, pixelMap[0][0] * sizeX * sizeY);
+	memset(pixelMap, 0, pixelMap[0][0] * subFieldSizeX * subFieldSizeY);
 
 	// Reset bias register map
 
@@ -590,9 +590,9 @@ void Detector::applyQuantumEfficiency(double exposureTime)
 {
 	double factor = exposureTime * quantumEfficiency;
 
-	for (unsigned int row = 0; row < sizeY; row++)
+	for (unsigned int row = 0; row < subFieldSizeY; row++)
 	{
-		for (unsigned int column = 0; column < sizeX; column++)
+		for (unsigned int column = 0; column < subFieldSizeX; column++)
 		{
 			pixelMap[row][column] *= factor;
 		}
@@ -628,9 +628,9 @@ void Detector::addPhotonNoise()
 
 	// Add photon noise to the pixel map
 
-	for (unsigned int row = 0; row < sizeY; row++)
+	for (unsigned int row = 0; row < subFieldSizeY; row++)
 	{
-		for (unsigned int column = 0; column < sizeX; column++)
+		for (unsigned int column = 0; column < subFieldSizeX; column++)
 		{
 			std::default_random_engine generator(photonNoiseSeed + (seed++));
 			std::poisson_distribution<double> distribution(
@@ -643,7 +643,7 @@ void Detector::addPhotonNoise()
 
 	for (unsigned int row = 0; row < numSmearingOverscanRows; row++)
 	{
-		for (unsigned int column = 0; column < sizeX; column++)
+		for (unsigned int column = 0; column < subFieldSizeX; column++)
 		{
 			std::default_random_engine generator(photonNoiseSeed + (seed++));
 			std::poisson_distribution<double> distribution(
@@ -679,9 +679,9 @@ void Detector::applyFullWellSaturation()
 	double pixelValue, numExcessElectrons; // Pixel value, number of excess electrons per pixel (if positive)
 	int jmod;
 
-	for (unsigned int row = 0; row < sizeY; row++)
+	for (unsigned int row = 0; row < subFieldSizeY; row++)
 	{
-		for (unsigned int column = 0; column < sizeX; column++)
+		for (unsigned int column = 0; column < subFieldSizeX; column++)
 		{
 			pixelValue = pixelMap[row][column];
 
@@ -697,14 +697,14 @@ void Detector::applyFullWellSaturation()
 				numExcessElectrons = (pixelValue - fullWellSaturationLimit)
 						/ 2.0; // Move half of the excess electrons down...
 
-				while (numExcessElectrons > 0 && jmod < sizeY)
+				while (numExcessElectrons > 0 && jmod < subFieldSizeY)
 				{
 					pixelMap[jmod][column] -= numExcessElectrons;
 					jmod++;
 
 					// Electrons reaching the edge of the CCD will not be detected
 
-					if (jmod < sizeY)
+					if (jmod < subFieldSizeY)
 					{
 						pixelMap[jmod][column] += numExcessElectrons;
 
