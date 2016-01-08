@@ -1,6 +1,7 @@
 # Project related files to be ignored
 
-build*
+build/*
+dependencies/Installs/*
 *.xcodeproj/*
 *.sublime-project
 *.sublime-workspace
@@ -14,18 +15,6 @@ build*
 *.o
 *.so
 
-# Packages
-
-*.7z
-*.dmg
-*.gz
-*.tgz
-*.iso
-*.jar
-*.rar
-*.tar
-*.zip
-*.bz2
 
 # Logs and databases
 
