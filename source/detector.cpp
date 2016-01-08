@@ -505,13 +505,16 @@ void Detector::readOut(double exposureTime)
 	// Pixel units before: [photons / s]
 	// Pixel units after: [electrons]
 
-	this->applyQuantumEfficiency(double exposureTime);
+	this->applyQuantumEfficiency(exposureTime);
 
 	// Apply poisson distributed photon noise
 	// Pixel units before: [electrons]
 	// Pixel units after: [electrons]
 
-	this->addPhotonNoise();
+	if (doPhotonNoise)
+	{
+		this->addPhotonNoise();
+	}
 
 	// Apply full well saturation. A pixel has a maximum capacity of electrons (the full well capacity).
 	// If photons free more electrons, the pixel saturates, and the electrons flow in the pixels above and below in
@@ -619,10 +622,35 @@ void Detector::applyQuantumEfficiency(double exposureTime)
  */
 void Detector::addPhotonNoise()
 {
+	// Default random number generated with seed of photon noise
+
+	double seed = 0.0;
 
 	// Add photon noise to the pixel map
 
-	// Iniitialise the smearing map with photon noise
+	for (unsigned int row = 0; row < sizeY; row++)
+	{
+		for (unsigned int column = 0; column < sizeX; column++)
+		{
+			std::default_random_engine generator(photonNoiseSeed + (seed++));
+			std::poisson_distribution<double> distribution(
+					pixelMap[row][column]);
+			pixelMap[row][column] = distribution(generator);
+		}
+	}
+
+	// Add photon noise to the smearing map
+
+	for (unsigned int row = 0; row < numSmearingOverscanRows; row++)
+	{
+		for (unsigned int column = 0; column < sizeX; column++)
+		{
+			std::default_random_engine generator(photonNoiseSeed + (seed++));
+			std::poisson_distribution<double> distribution(
+					smearingMap[row][column]);
+			smearingMap[row][column] = distribution(generator);
+		}
+	}
 }
 
 
