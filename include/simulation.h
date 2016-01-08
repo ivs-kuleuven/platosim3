@@ -27,7 +27,9 @@ class Simulation
     private:
 
         double currentTime;
+        double exposureTime;
         int Nexposures;
+
 
         Detector  *detector;
         //Camera    *camera;

@@ -17,9 +17,10 @@ Simulation::Simulation(string inputFileName)
     //platform   = new Platform(platformConfigurationParameters);
     //sky        = new Sky(skyConfigurationParameters);
 
-    Nexposures = 3;   // hardcoded for the moment
-    
+    Nexposures = 3;        // hardcoded for the moment
+    exposureTime = 22.0;   // hard-coded for the moment
 }
+
 
 
 
@@ -47,22 +48,22 @@ Simulation::~Simulation()
 // PURPOSE: Loop over all exposures
 // 
 // INPUT: 
-//     . startingTime: begin time of the very first exposure. Time is expressed in seconds
-//                     in the rest of the code.
+//     . startTime: begin time of the very first exposure. Time is expressed in seconds
+//                  in the rest of the code.
 //
 // OUTPUT:
 //     . None
 //
 
-void Simulation::run(double startingTime)
+void Simulation::run(double startTime)
 {
-    currentTime = startingTime;
+    currentTime = startTime;
 
     // Loop over all exposures
 
     for (int n = 0; n < Nexposures; n++)
     {
-        detector->takeExposure();
+        detector->takeExposure(startTime, exposureTime);
     }
 }
 
