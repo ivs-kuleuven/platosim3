@@ -60,11 +60,14 @@ SubField::SubField(ConfigurationParameters configurationParameters,
 			* this->numSubPixelsPerPixel;
 	this->subPixelMapSizeY = (this->subFieldSizeY + 2 * this->numEdgePixels)
 			* this->numSubPixelsPerPixel;
+
+	this->subPixelMap = new double*[this->subPixelMapSizeY];
+
+	for (unsigned int row = 0; row < this->subPixelMapSizeY; row++)
+	{
+		this->subPixelMap[row] = new double[this->subPixelMapSizeX];
+	}
 }
-
-
-
-
 
 /**
  * Destructor.
@@ -74,31 +77,30 @@ SubField::~SubField()
 
 	// Destroy the sub-pixel map
 
+	for (unsigned int row = 0; row < this->subPixelMapSizeY; row++)
+	{
+		delete[] this->subPixelMap[row];
+	}
+
+	delete[] this->subPixelMap;
 }
-
-
-
-
 
 /**
  * Method that resets the sub-pixel map, including the edge pixels that are
  * added on each side to account for the edge effect.
  *
- * @pre The sub-pixel map either does not exist or contains values that must be
- *      set to zero.
+ * @pre The sub-pixel map contains values that must be set to zero.
  *
- * @post The sub-pixel maps is either initialised or its values are set to zero.
+ * @post The sub-pixel map's values are set to zero.
  */
 void SubField::reset()
 {
 
 	// Initialise sub-pixel map
 	// Dimensions: this-> subPixelMapSize
+
+	memset(this->subPixelMap, 0, sizeof(this->subPixelMap[0][0]) * this->subPixelMapSizeX * this->subPixelMapSizeY);
 }
-
-
-
-
 
 /**
  * Method that adds the given flux value to the value of the sub-pixel that
@@ -123,25 +125,44 @@ void SubField::addFlux(double xCoords, double yCoords, double flux)
 
 	// Detector orientation (pixel level)
 
-	double x = xOffset * cos(this->detectorOrientation)
+	double column = xOffset * cos(this->detectorOrientation)
 			- yOffset * sin(this->detectorOrientation);
-	double y = xOffset * sin(this->detectorOrientation)
+	double row = xOffset * sin(this->detectorOrientation)
 			+ yOffset * cos(this->detectorOrientation);
 
-	// Sub-field incl. edge pixels
+	// Sub-field incl. edge pixels (also correct for sub-field zeropoint)
 
-	x = (x - this->subFieldZeroPointX + this->numEdgePixels)
+	column = (column - this->subFieldZeroPointX + this->numEdgePixels)
 			* this->numSubPixelsPerPixel;
-	y = (y - this->subFieldZeroPointY + this->numEdgePixels)
+	row = (row - this->subFieldZeroPointY + this->numEdgePixels)
 			* this->numSubPixelsPerPixel;
 
-	// Add flux in this->subPixelMap at (x, y)
+	// Add flux in this->subPixelMap at (row, column)
+
+	if (this->isInSubPixelMap(row, column))
+	{
+		this->subPixelMap[(int) row][(int) column] += flux;
+	}
 }
 
-
-
-
-
+/**
+ * Method that checks whether the given (row, column) coordinates are in the
+ * sub-pixel map.
+ *
+ * @param row: Row coordinate.
+ * @type row: double
+ *
+ * @param column: Column coordinate.
+ * @type column: double
+ *
+ * @return True if the given (row, column) coordinates are in the sub-pixel map;
+ *         false otherwise.
+ */
+bool SubField::isInSubPixelMap(double row, double column)
+{
+	return (column >= 0) && (row >= 0) && (column < this->subPixelMapSizeX)
+			&& (row < this->subPixelMapSizeY);
+}
 
 /**
  * Method that adds the given flux value to (all sub-pixels of) the sub-pixel map.
@@ -151,12 +172,16 @@ void SubField::addFlux(double xCoords, double yCoords, double flux)
  */
 void SubField::addFlux(double flux)
 {
+	for (unsigned int row = 0; row < this->subPixelMapSizeY; row++)
+	{
+		for (unsigned int column = 0; column < this->subPixelMapSizeX; column++)
+		{
 
+			this->subPixelMap[row][column] += flux;
+
+		}
+	}
 }
-
-
-
-
 
 /**
  * Method that convolves the sub-field with the given PSF.
@@ -168,10 +193,6 @@ void SubField::convolveWithPsf(double **psf)
 {
 
 }
-
-
-
-
 
 /**
  * Method that multiplies the sub-pixel map with the given array.  If the dimensions
@@ -185,10 +206,6 @@ void SubField::multiply(double **array)
 {
 
 }
-
-
-
-
 
 /**
  * Method that rebins the sub-pixel map to pixel level and crops the edge pixels

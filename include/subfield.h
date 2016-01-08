@@ -19,7 +19,10 @@ public:
 	double getDistanceFromOpticalAxisToFieldCenter();
 
 	void addFlux(double xCoord, double yCoord, double flux);
+	bool isInSubPixelMap(double xCoord, double yCoord);
+
 	void addFlux(double);
+
 
 	void convolveWithPsf(double **psf);
 	void multiply(double **array);
