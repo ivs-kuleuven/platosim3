@@ -10,13 +10,13 @@ using namespace std;
 
 
 
-class Hdf5Writer
+class HDF5Writer
 {
     
     public:
 
-        Hdf5Writer(Hdf5File &hdf5File, string groupName);
-        ~Hdf5Writer();
+        HDF5Writer(HDF5File &hdf5File, string groupName);
+        ~HDF5Writer();
 
         virtual void flushOutput();
 
@@ -25,7 +25,7 @@ class Hdf5Writer
 
     private:
 
-        Hdf5File &hdf5File;
+        HDF5File &hdf5File;
         string hdf5GroupName;
     
 };
