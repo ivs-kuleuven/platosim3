@@ -31,6 +31,7 @@ class Detector
 
         virtual void applyFlatfield();
         virtual void rebin();
+    	virtual void applyExposureTime(double exposureTime);
 
         // Read out
 
@@ -45,7 +46,6 @@ class Detector
     	virtual void applyGain();
     	virtual void addElectronicOffset();	// Bias
     	virtual void applyDigitalSaturation();
-    	virtual void applyExposureTime(double exposureTime);
     
 
 
