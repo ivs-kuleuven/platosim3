@@ -36,7 +36,7 @@ class Detector
 
         virtual void readOut(double exposureTime);
 
-        virtual void applyQuantumEfficiency(double exposureTime);
+        virtual void applyQuantumEfficiency();
     	virtual void addPhotonNoise();
     	virtual void applyFullWellSaturation();
     	virtual void applyCte();
@@ -45,6 +45,7 @@ class Detector
     	virtual void applyGain();
     	virtual void addElectronicOffset();	// Bias
     	virtual void applyDigitalSaturation();
+    	virtual void applyExposureTime(double exposureTime);
     
 
 
