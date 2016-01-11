@@ -31,12 +31,13 @@ class Detector
 
         virtual void applyFlatfield();
         virtual void rebin();
+    	virtual void applyExposureTime(double exposureTime);
 
         // Read out
 
         virtual void readOut(double exposureTime);
 
-        virtual void applyQuantumEfficiency(double exposureTime);
+        virtual void applyQuantumEfficiency();
     	virtual void addPhotonNoise();
     	virtual void applyFullWellSaturation();
     	virtual void applyCte();
