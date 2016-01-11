@@ -25,7 +25,7 @@ cmake_minimum_required(VERSION 2.8)
 # Specify the locations of the header files
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/catch/include/)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/hdf5-1.8.16/include)
 
 
 # Specify the simulator source files to be compiled
@@ -33,14 +33,18 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/catch/include/)
 file(GLOB sourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp)
 
 
-# Remove the platosim.cpp file from the list, as it unnecessary to build the library
+# Remove the main.cpp file from the list which is not needed to build the library
 
-list(REMOVE_ITEM sourceFiles platosim.cpp)
-
+list(REMOVE_ITEM sourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/camera.cpp 
+                             ${CMAKE_CURRENT_SOURCE_DIR}/source/hdf5file.cpp
+                             ${CMAKE_CURRENT_SOURCE_DIR}/source/hdf5writer.cpp
+                             ${CMAKE_CURRENT_SOURCE_DIR}/source/telescope.cpp
+                             ${CMAKE_CURRENT_SOURCE_DIR}/source/timeticker.cpp)
+message(${sourceFiles})
 
 # Specify the simulator unittest files to be compiled
 
-file(GLOB unitTestFiles ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
+#file(GLOB unitTestFiles ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
 
 
 # Set the compiler flags
@@ -73,7 +77,7 @@ add_executable(platosim ${CMAKE_CURRENT_SOURCE_DIR}/source/main.cpp)
 
 # Create the testplatosim executable
 
-add_executable(testplatosim ${unitTestFiles})
+#add_executable(testplatosim ${unitTestFiles})
 
 
 # Install the library in the lib/ folder
@@ -88,7 +92,7 @@ target_link_libraries(platosim platosimlib)
 
 # Link the testplatosim executable with the PlatoSim library
 
-target_link_libraries(testplatosim platosimlib)
+#target_link_libraries(testplatosim platosimlib)
 
 
 

@@ -3,11 +3,11 @@
 
 #include <string>
 #include "detector.h"
-#include "camera.h"
-#include "telescope.h"
-#include "platform.h"
-#include "sky.h"
-#include "configurationparameters.h"
+//#include "camera.h"
+//#include "telescope.h"
+//#include "platform.h"
+//#include "sky.h"
+//#include "configurationparameters.h"
 
 
 using namespace std;
@@ -27,13 +27,15 @@ class Simulation
     private:
 
         double currentTime;
+        double exposureTime;
+        int Nexposures;
+
 
         Detector  *detector;
-        Camera    *camera;
-        Telescope *telescope;
-        Platform  *platform;
-        Sky       *sky;
-
+        //Camera    *camera;
+        //Telescope *telescope;
+        //Platform  *platform;
+        //Sky       *sky;
 };
 
 

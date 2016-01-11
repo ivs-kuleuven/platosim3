@@ -3,7 +3,7 @@
 
 
 
-Hdf5Writer::Hdf5Writer(Hdf5File &hdf5File, string groupName)
+HDF5Writer::HDF5Writer(HDF5File &hdf5File, string groupName)
 hdf5File(hdf5File), hdf5GroupName(groupName)
 {
 
@@ -13,7 +13,7 @@ hdf5File(hdf5File), hdf5GroupName(groupName)
 
 
 
-~Hdf5Writer::Hdf5Writer()
+~HDF5Writer::HDF5Writer()
 {
 
 }
