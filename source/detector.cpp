@@ -267,7 +267,7 @@ void Detector::takeExposure(double startTime, double exposureTime)
  * @pre Bias register map possibly filled with values from previous exposure.
  * @pre Smearing map possibly filled with values from previous exposure.
  *
- * @post Pixel unit of the sub-pixel map: [photons / s]
+ * @post Pixel unit of the sub-pixel map: [photons]
  * @post Re-calculated star position for each jitter step and summed the flux
  *       in the sub-pixel map, which introduces blurring. Also the contribution
  *       of the background (zodiacal + galactic) is added to the sub-pixel map.
@@ -294,6 +294,10 @@ void Detector::integrateLight(double startTime, double exposureTime)
 	// Rebin
 
 	rebin();
+
+	// Multiply with exposure time
+
+	applyExposureTime(exposureTime);
 }
 
 
@@ -456,11 +460,6 @@ void Detector::applyFlatfield()
 
 
 
-
-
-
-
-
 /**
  * Method that rebins the sub-pixel map to pixel level and crops the edge pixels
  * that were added on each side to account for the edge effect.
@@ -502,6 +501,34 @@ void Detector::rebin()
 
 
 
+/**
+ * Method that takes the integration time into account.  All values in the
+ * pixel map are multiplied by the given exposure time [s].
+ *
+ * @param exposureTime: Exposure time [s]
+ *
+ * @pre Pixel unit of the sub-pixel map: [photons /s]
+ * @pre Pixel map filled with zeroes.
+ * @pre Bias register map filled with zeroes.
+ * @pre Smearing map filled with zeroes.
+ *
+ * @post Pixel unit of the sub-pixel map: [photons]
+ * @post Pixel map filled with zeroes.
+ * @post Bias register map filled with zeroes.
+ * @post Smearing map filled with zeroes.
+ */
+void Detector::applyExposureTime(double exposureTime)
+{
+	for(unsigned int row = 0; row< subFieldSizeY; row++)
+	{
+		for(unsigned int column = 0; column < subFieldSizeX; column++)
+		{
+			pixelMap[row][column] *= exposureTime;
+		}
+	}
+}
+
+
 
 
 
@@ -535,7 +562,7 @@ void Detector::readOut(double exposureTime)
 	// Pixel units before: [photons / s]
 	// Pixel units after: [electrons]
 
-	applyQuantumEfficiency(exposureTime);
+	applyQuantumEfficiency();
 
 	// Apply poisson distributed photon noise
 	// Pixel units before: [electrons]
@@ -589,7 +616,7 @@ void Detector::readOut(double exposureTime)
 
 	addElectronicOffset();
 
-	// Take into acount digital saturation. If even after dividing by the gain
+	// Take into account digital saturation. If even after dividing by the gain
 	// the number of ADUs in a pixel is still higher than the analog-digital
 	// converter (ADC) can represent with its fixed amount of bits, clip all
 	// values that are too high to the saturation level of the ADC.
@@ -597,6 +624,10 @@ void Detector::readOut(double exposureTime)
 	// Pixel units after: [ADU]
 
 	applyDigitalSaturation();
+
+	// Multiply with the exposure time [s]
+
+	applyExposureTime(exposureTime);
 }
 
 
@@ -607,9 +638,8 @@ void Detector::readOut(double exposureTime)
 
 
 /**
- * Method that applies that quantum efficiency to the pixel map and converts the
- * pixels from [photons / s] to [e-].  The pixel values are multiplied by the
- * exposure time [s] and the quantum efficiency of the detector.
+ * Method that applies that quantum efficiency to the pixel.  The pixel values
+ * are multiplied by the quantum efficiency of the detector.
  *
  * @pre Pixel unit in the pixel map: [photons /s]
  * @pre Bias register map filled with zeroes.
@@ -620,15 +650,13 @@ void Detector::readOut(double exposureTime)
  * @post Smearing map filled with zeroes.
  */
 
-void Detector::applyQuantumEfficiency(double exposureTime)
+void Detector::applyQuantumEfficiency()
 {
-	double factor = exposureTime * quantumEfficiency;
-
 	for (unsigned int row = 0; row < subFieldSizeY; row++)
 	{
 		for (unsigned int column = 0; column < subFieldSizeX; column++)
 		{
-			pixelMap[row][column] *= factor;
+			pixelMap[row][column] *= quantumEfficiency;
 		}
 	}
 }
@@ -1081,10 +1109,6 @@ void Detector::applyDigitalSaturation()
 		}
 	}
 }
-
-
-
-
 
 
 
