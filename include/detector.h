@@ -3,7 +3,7 @@
 #define DETECTOR_H
 
 #include <string>
-#include <math.h>
+#include <cmath>
 
 using namespace std;
 
