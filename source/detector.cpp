@@ -352,7 +352,7 @@ void Detector::addFlux(double xCoords, double yCoords, double flux)
 
 	if (this->isInSubPixelMap(row, column))
 	{
-		subPixelMap[(int) row][(int) column] += flux;
+		subPixelMap[round(row)][round(column)] += flux;
 	}
 }
 
