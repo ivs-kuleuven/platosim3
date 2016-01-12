@@ -41,18 +41,18 @@ Detector::Detector()
 
 	// Allocate memory for the bias register map
 
-	biasMap = new double*[numBiasMapRows];
+	biasMap = new double*[numRowsBiasMap];
 
-	for(unsigned int row = 0; row < numBiasMapRows; row++)
+	for(unsigned int row = 0; row < numRowsBiasMap; row++)
 	{
 		biasMap[row] = new double[numColumnsSubField];
 	}
 
 	// Allocate memory for the smearing map
 
-	smearingMap = new double*[numSmearingMapRows];
+	smearingMap = new double*[numRowsSmearingMap];
 
-	for(unsigned int row = 0; row < numSmearingMapRows; row++)
+	for(unsigned int row = 0; row < numRowsSmearingMap; row++)
 	{
 		smearingMap[row] = new double[numColumnsSubField];
 	}
@@ -111,7 +111,7 @@ Detector::~Detector()
 
 	// De-allocate the bias register map
 
-	for (unsigned int row = 0; row < numBiasMapRows; row++)
+	for (unsigned int row = 0; row < numRowsBiasMap; row++)
 	{
 		delete[] biasMap[row];
 	}
@@ -120,7 +120,7 @@ Detector::~Detector()
 
 	// De-allocate the smearing map
 
-	for (unsigned int row = 0; row < numSmearingMapRows; row++)
+	for (unsigned int row = 0; row < numRowsSmearingMap; row++)
 	{
 		delete[] smearingMap[row];
 	}
@@ -176,7 +176,7 @@ void Detector::reset()
 
 	// Set elements of bias map to zero
 
-	for (unsigned int row = 0; row < numBiasMapRows; row++)
+	for (unsigned int row = 0; row < numRowsBiasMap; row++)
 	{
 		for (unsigned int col = 0; col < numColumnsSubField; col++)
 		{
@@ -187,7 +187,7 @@ void Detector::reset()
 
 	// Set elements of smearing map to zero
 
-	for (unsigned int row = 0; row < numSmearingMapRows; row++)
+	for (unsigned int row = 0; row < numRowsSmearingMap; row++)
 	{
 		for (unsigned int col = 0; col < numColumnsSubField; col++)
 		{
@@ -929,7 +929,7 @@ void Detector::applyGain()
 
 	// Multiply the bias map with the gain
 
-	for(unsigned int row = 0; row< numBiasMapRows; row++)
+	for(unsigned int row = 0; row< numRowsBiasMap; row++)
 	{
 		for(unsigned int column = 0; column<numColumnsSubField; column++)
 		{
@@ -939,7 +939,7 @@ void Detector::applyGain()
 
 	// Multiply the smearing map with the gain
 
-	for(unsigned int row = 0; row < numSmearingMapRows;row++)
+	for(unsigned int row = 0; row < numRowsSmearingMap;row++)
 	{
 		for(unsigned int column = 0; column < numColumnsSubField; column++)
 		{
@@ -986,7 +986,7 @@ void Detector::addElectronicOffset()
 
 	// Add the electronic offset to the bias register map
 
-	for (unsigned int row = 0; row < numBiasMapRows; row++)
+	for (unsigned int row = 0; row < numRowsBiasMap; row++)
 	{
 		for (unsigned int column = 0; column < numColumnsSubField; column++)
 		{
@@ -996,7 +996,7 @@ void Detector::addElectronicOffset()
 
 	// Add the electronic offset to the smearing map
 
-	for (unsigned int row = 0; row < numSmearingMapRows; row++)
+	for (unsigned int row = 0; row < numRowsSmearingMap; row++)
 	{
 		for (unsigned int column = 0; column < numColumnsSubField; column++)
 		{
@@ -1048,7 +1048,7 @@ void Detector::applyDigitalSaturation()
 
 	// Top off the values in the bias register map
 
-	for (unsigned int row = 0; row < numBiasMapRows; row++)
+	for (unsigned int row = 0; row < numRowsBiasMap; row++)
 	{
 		for (unsigned int column = 0; column < numColumnsSubField; column++)
 		{
@@ -1061,7 +1061,7 @@ void Detector::applyDigitalSaturation()
 
 	// Top off the values in the smearing map
 
-	for (unsigned int row = 0; row < numSmearingMapRows; row++)
+	for (unsigned int row = 0; row < numRowsSmearingMap; row++)
 	{
 		for (unsigned int column = 0; column < numColumnsSubField; column++)
 		{

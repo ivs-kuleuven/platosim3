@@ -58,8 +58,8 @@ class Detector
     	double originOffsetColumn;             // Offset of the detector origin from the centre of the optical plane in the column direction [mm]
     	double orientationAngle;               // Orientation angle of the detector w.r.t. the orientation of the focal plane, measured counterclockwise [degrees]
  
-    	unsigned int numSmearingMapRows;       // Number of rows in the smearing over-scan strip
-    	unsigned int numBiasMapRows;	       // Number of rows in the bias pre-scan strip
+    	unsigned int numRowsSmearingMap;       // Number of rows in the smearing over-scan strip [pixels]
+    	unsigned int numRowsBiasMap;	       // Number of rows in the bias pre-scan strip [pixels]
 
     	double pixelSize;	                   // Pixel size [microns]
     
@@ -68,18 +68,18 @@ class Detector
 
     	double subFieldZeroPointRow;	       // Position of the sub-field zeropoint w.r.t. the complete detector in the row direction [pixels]
     	double subFieldZeroPointColumn;	       // Position of the sub-field zeropoint w.r.t. the complete detector in the column direction [pixels]
-    	int numRowsSubField;	               // Number of rows in the sub-field at pixel level and excl. edge pixels (i.e. dimension in the y-direction)
-    	int numColumnsSubField;	               // Number of columns in the sub-field at pixel level and excl. edge pixels  (i.e. dimension in the x-direction = readout direction)
+    	int numRowsSubField;	               // Number of rows in the sub-field at pixel level and excl. edge pixels (i.e. dimension in the y-direction) [pixels]
+    	int numColumnsSubField;	               // Number of columns in the sub-field at pixel level and excl. edge pixels  (i.e. dimension in the x-direction = readout direction) [pixels]
     	int numSubPixelsPerPixel;	           // Number of sub-pixels per pixel
-    	int numEdgePixels;                     // Number of pixels to extend the sub-field on each side, to accoutn for the edge effect
+    	int numEdgePixels;                     // Number of pixels to extend the sub-field on each side, to account for the edge effect
 
 
     	// Sub-pixel map and its dimensions
 
     	double **subPixelMap;	               // Sub-pixel map, incl. edge pixels
 
-    	int numRowsSubPixelMap;	               // Number of rows in the sub-field at sub-pixel level and incl. edge pixels (i.e. dimensions in the y-direction)
-    	int numColumnsSubPixelMap;	           // Number of columns in the sub-field at sub-pixel level and incl. edge pixels (i.e. dimension in the x-direction = readout direction)
+    	int numRowsSubPixelMap;	               // Number of rows in the sub-field at sub-pixel level and incl. edge pixels (i.e. dimensions in the y-direction) [sub-pixels]
+    	int numColumnsSubPixelMap;	           // Number of columns in the sub-field at sub-pixel level and incl. edge pixels (i.e. dimension in the x-direction = readout direction) [sub-pixels]
 
 
 
@@ -101,9 +101,9 @@ class Detector
 
     	double meanCte;	                       // Mean charge-transfer efficiency
     	double readoutNoise;	               // Mean readout noise [electrons]
-    	double gain;	                       // Detector gain [e-/ADU]
+    	double gain;	                       // Detector gain [electrons / ADU]
     	unsigned int electronicOffset;	       // Bias or electronic offset [ADU]
-    	unsigned long digitalSaturationLimit;  // Digital saturation limit [ADU/pixel]
+    	unsigned long digitalSaturationLimit;  // Digital saturation limit [ADU / pixel]
 
     	string outputFilename;
 
