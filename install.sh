@@ -14,7 +14,7 @@ fi
 
 python ./dependencies/installscripts/install_hdf5.py
 python ./dependencies/installscripts/install_googletest.py
-
+python ./dependencies/installscripts/install_yaml.py
 
 # Build the simulator
 
