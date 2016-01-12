@@ -27,7 +27,7 @@ class Detector
 
         virtual void addFlux(double xCoords, double yCoords, double flux);
         virtual bool isInSubPixelMap(double row, double column);
-//        virtual void addFlux(double flux);
+        virtual void addFlux(double flux);
 
         virtual void applyFlatfield();
         virtual void rebin();
@@ -37,7 +37,6 @@ class Detector
         virtual void readOut(double exposureTime);
 
         virtual void applyQuantumEfficiency();
-        virtual void addSkyBackground(double exposureTime);
     	virtual void addPhotonNoise();
     	virtual void applyFullWellSaturation();
     	virtual void applyCte();

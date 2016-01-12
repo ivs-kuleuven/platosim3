@@ -286,7 +286,7 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 	// Integration (incl. jitter) + background
 
-	//camera.exposeSubField(this);
+	//camera.exposeSubField(this, exposureTime);
 
 	// Apply flatfield (at sub-pixel level)
 
@@ -308,7 +308,9 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 /**
  * Method that adds the given flux value to the value of the sub-pixel that
- * corresponds to the given coordinates in the focal plane.
+ * corresponds to the given coordinates in the focal plane.  The flux value has
+ * already been multiplied with the transmission efficiency but not with the
+ * qunatum efficiency.  Also the exposure time has been taken into account already.
  *
  * @param rowFocalPlane: Row coordinate of the sub-pixel in the focal plane [mm].
  * @param yCoords: Column coordinate of the sub-pixel in the focal plane [mm].
@@ -386,32 +388,35 @@ bool Detector::isInSubPixelMap(double row, double column)
 
 
 
-///**
-// * Method that adds the given flux value to (all sub-pixels of) the sub-pixel map.
-// *
-// * @param flux: Flux to add to the sub-pixel map.   [ TO DO: !!!!!!!!!!!!!!!  specify units  !!!!!!!!!!!!!!]
-// *
-// * @pre Given flux value not added to the sub-pixel map yet.
-// * @pre Pixel map filled with zeroes.
-// * @pre Bias register map filled with zeroes.
-// * @pre Smearing map filled with zeroes.
-// *
-// * @pre Flux value added to the sub-pixel map.
-// * @post Pixel unit in the sub-pixel map: [photons / s]
-// * @post Pixel map filled with zeroes.
-// * @post Bias register map filled with zeroes.
-// * @post Smearing map filled with zeroes.
-// */
-//void Detector::addFlux(double flux)
-//{
-//	for (unsigned int row = 0; row < numRowsSubPixelMap; row++)
-//	{
-//		for (unsigned int column = 0; column < numColumnsSubPixelMap; column++)
-//		{
-//			subPixelMap[row][column] += flux;
-//		}
-//	}
-//}
+/**
+ * Method that adds the given flux value to (all sub-pixels of) the sub-pixel map.
+ *
+ * @param flux: Flux to add to the sub-pixel map [photons], already multiplied
+ *        with the transmission efficiency of the camera but not with the
+ *        quantum efficiency of the detector.  Also the exposure time has been
+ *        taken into account already.
+ *
+ * @pre Given flux value not added to the sub-pixel map yet.
+ * @pre Pixel map filled with zeroes.
+ * @pre Bias register map filled with zeroes.
+ * @pre Smearing map filled with zeroes.
+ *
+ * @pre  Flux value added to the sub-pixel map.
+ * @post Pixel unit in the sub-pixel map: [photons]
+ * @post Pixel map filled with zeroes.
+ * @post Bias register map filled with zeroes.
+ * @post Smearing map filled with zeroes.
+ */
+void Detector::addFlux(double flux)
+{
+	for (unsigned int row = 0; row < numRowsSubPixelMap; row++)
+	{
+		for (unsigned int column = 0; column < numColumnsSubPixelMap; column++)
+		{
+			subPixelMap[row][column] += flux;
+		}
+	}
+}
 
 
 
@@ -511,7 +516,6 @@ void Detector::rebin()
 /**
  * Method that reads out the detector and applies the following effects:
  *   - quantum efficiency
- *   - sky background (zodiacal + galactic)
  * 	 - photon noise
  *   - full-well saturation (i.e. blooming)
  * 	 - CTE
@@ -539,12 +543,6 @@ void Detector::readOut(double exposureTime)
 	// Pixel units after: [electrons]
 
 	applyQuantumEfficiency();
-
-	// Add sky background
-	// Pixel units before: [electrons]
-	// Pixel units after: [electrons]
-
-	addSkyBackground(exposureTime);
 
 	// Apply poisson distributed photon noise
 	// Pixel units before: [electrons]
@@ -637,43 +635,6 @@ void Detector::applyQuantumEfficiency()
 			pixelMap[row][column] *= quantumEfficiency;
 		}
 	}
-}
-
-
-
-
-
-
-
-/**
- * Method that adds the contribution of the sky background (zodiacal + galactic)
- * to the pixel map.
- *
- * @param exposureTime: Exposure time [s]
- *
- * @pre Pixel unit in the pixel map: [electrons]
- * @pre No smearing map
- * @pre No bias register map
- *
- * @post Sky background added to the pixel map.
- * @post Pixel unit in the pixel map: [electrons]
- * @post No smearing map
- * @post No bias register map
- */
-void Detector::addSkyBackground(double exposureTime)
-{
-//	// Sky background expressed in [electrons / s / pixel]
-//	// -> must be multiplied with exposure time [s]
-//
-//	double flux = skyBackground * exposureTime;
-//
-//	for(unsigned int row = 0; row < numRowsSubField; row++)
-//	{
-//		for(unsigned int column = 0; column < numColumnsSubField; column++)
-//		{
-//			pixelMap[row][column] += flux;
-//		}
-//	}
 }
 
 
