@@ -53,8 +53,8 @@ class Detector
 
         double **pixelMap; 	                   // Pixel map, excl. edge pixels
 
-    	unsigned int sizeX;                    // Number of columns of the detector (i.e. dimension in the x-direction = readout direction) [pixels]
-    	unsigned int sizeY;                    // Number of rows of the detector (i.e. dimension in the y-direction) [pixels]
+        unsigned int numRows;                    // Number of rows of the detector (i.e. dimension in the y-direction) [pixels]
+    	unsigned int numColumns;                    // Number of columns of the detector (i.e. dimension in the x-direction = readout direction) [pixels]
     	double originOffsetX;                  // Offset of the detector origin from the centre of the optical plane in the x-direction [mm]
     	double originOffsetY;                  // Offset of the detector origin from the centre of the optical plane in the y-direction [mm]
     	double orientationAngle;               // Orientation angle of the detector w.r.t. the orientation of the focal plane, measured counterclockwise [degrees]
@@ -69,8 +69,8 @@ class Detector
 
     	double subFieldZeroPointX;	           // Position of the sub-field zeropoint w.r.t. the complete detector in the x-direction [pixels]
     	double subFieldZeroPointY;	           // Position of the sub-field zeropoint w.r.t. the complete detector in the y-direction [pixels]
-    	int subFieldSizeX;	                   // Number of columns in the sub-field at pixel level and excl. edge pixels  (i.e. dimension in the x-direction = readout direction)
-    	int subFieldSizeY;	                   // Number of rows in the sub-field at pixel leval and excl. edge pixels (i.e. dimension in the y-direction)
+    	int numRowsSubField;	                   // Number of rows in the sub-field at pixel level and excl. edge pixels (i.e. dimension in the y-direction)
+    	int numColumnsSubField;	                   // Number of columns in the sub-field at pixel level and excl. edge pixels  (i.e. dimension in the x-direction = readout direction)
     	int numSubPixelsPerPixel;	           // Number of sub-pixels per pixel
     	int numEdgePixels;                     // Number of pixels to extend the sub-field on each side, to accoutn for the edge effect
 
@@ -79,8 +79,9 @@ class Detector
 
     	double **subPixelMap;	               // Sub-pixel map, incl. edge pixels
 
-    	int subPixelMapSizeX;	               // Number of columns in the sub-field at sub-pixel level and incl. edge pixels (i.e. dimension in the x-direction = readout direction)
-    	int subPixelMapSizeY;	               // Number of rows in the sub-field at sub-pixel level and incl. edge pixels (i.e. dimensions in the y-direction)
+    	int numRowsSubPixelMap;	               // Number of rows in the sub-field at sub-pixel level and incl. edge pixels (i.e. dimensions in the y-direction)
+    	int numColumnsSubPixelMap;	               // Number of columns in the sub-field at sub-pixel level and incl. edge pixels (i.e. dimension in the x-direction = readout direction)
+
 
 
 
