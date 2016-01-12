@@ -335,8 +335,8 @@ void Detector::addFlux(double xCoords, double yCoords, double flux)
 
 	// Detector origin offset (pixel level)
 
-	double xOffset = (xCoords - originOffsetX) / pixelSize;
-	double yOffset = (yCoords - originOffsetY) / pixelSize;
+	double xOffset = (xCoords - originOffsetColumn) / pixelSize;
+	double yOffset = (yCoords - originOffsetRow) / pixelSize;
 
 	// Detector orientation (pixel level)
 
@@ -345,8 +345,8 @@ void Detector::addFlux(double xCoords, double yCoords, double flux)
 
 	// Sub-field incl. edge pixels (also correct for sub-field zeropoint)
 
-	column = (column - subFieldZeroPointX + numEdgePixels) * numSubPixelsPerPixel;
-	row = (row - subFieldZeroPointY + numEdgePixels) * numSubPixelsPerPixel;
+	column = (column - subFieldZeroPointColumn + numEdgePixels) * numSubPixelsPerPixel;
+	row = (row - subFieldZeroPointRow + numEdgePixels) * numSubPixelsPerPixel;
 
 	// Add flux in this->subPixelMap at (row, column)
 
