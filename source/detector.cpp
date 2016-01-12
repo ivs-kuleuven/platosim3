@@ -23,20 +23,20 @@ Detector::Detector()
 
 	// Allocate memory for the sub-pixel map
 
-	subPixelMap = new double*[subPixelMapSizeY];
+	subPixelMap = new double*[numRowsSubPixelMap];
 
-	for (unsigned int row = 0; row < subPixelMapSizeY; row++)
+	for (unsigned int row = 0; row < numRowsSubPixelMap; row++)
 	{
-		subPixelMap[row] = new double[subPixelMapSizeX];
+		subPixelMap[row] = new double[numColumnsSubPixelMap];
 	}
 
 	// Allocate memory for the pixel map
 
-	pixelMap = new double*[subFieldSizeY];
+	pixelMap = new double*[numRowsSubField];
 
-	for(unsigned int row = 0; row < subFieldSizeY; row++)
+	for(unsigned int row = 0; row < numRowsSubField; row++)
 	{
-		pixelMap[row] = new double[subFieldSizeX];
+		pixelMap[row] = new double[numColumnsSubField];
 	}
 
 	// Allocate memory for the bias register map
@@ -45,7 +45,7 @@ Detector::Detector()
 
 	for(unsigned int row = 0; row < numBiasMapRows; row++)
 	{
-		biasMap[row] = new double[subFieldSizeX];
+		biasMap[row] = new double[numColumnsSubField];
 	}
 
 	// Allocate memory for the smearing map
@@ -54,7 +54,7 @@ Detector::Detector()
 
 	for(unsigned int row = 0; row < numSmearingMapRows; row++)
 	{
-		smearingMap[row] = new double[subFieldSizeX];
+		smearingMap[row] = new double[numColumnsSubField];
 	}
 }
 
@@ -81,7 +81,7 @@ Detector::~Detector()
 
 	// De-allocate the sub-pixel map
 
-	for (unsigned int row = 0; row < subPixelMapSizeY; row++)
+	for (unsigned int row = 0; row < numRowsSubPixelMap; row++)
 	{
 		delete[] subPixelMap[row];
 	}
@@ -90,7 +90,7 @@ Detector::~Detector()
 
 	// De-allocate the flatfield map
 
-	for (unsigned int row = 0; row < subFieldSizeY * numSubPixelsPerPixel;
+	for (unsigned int row = 0; row < numRowsSubField * numSubPixelsPerPixel;
 			row++)
 	{
 		delete[] flatfieldMap[row];
@@ -100,7 +100,7 @@ Detector::~Detector()
 
 	// De-allocate the pixel map and the CTE map
 
-	for (unsigned int row = 0; row < subFieldSizeY; row++)
+	for (unsigned int row = 0; row < numRowsSubField; row++)
 	{
 		delete[] pixelMap[row];
 		delete[] cteMap[row];
@@ -154,9 +154,9 @@ void Detector::reset()
 
 	// Set elements of sub-pixel map to zero
 
-	for (unsigned int row = 0; row < subPixelMapSizeY; row++)
+	for (unsigned int row = 0; row < numRowsSubPixelMap; row++)
 	{
-		for (unsigned int col = 0; col < subPixelMapSizeX; col++)
+		for (unsigned int col = 0; col < numColumnsSubPixelMap; col++)
 		{
 			subPixelMap[row][col] = 0.0;
 		}
@@ -165,9 +165,9 @@ void Detector::reset()
 
 	// Set elements of pixel map to zero
 
-	for (unsigned int row = 0; row < sizeY; row++)
+	for (unsigned int row = 0; row < numRows; row++)
 	{
-		for (unsigned int col = 0; col < sizeX; col++)
+		for (unsigned int col = 0; col < numColumns; col++)
 		{
 			pixelMap[row][col] = 0.0;
 		}
@@ -178,7 +178,7 @@ void Detector::reset()
 
 	for (unsigned int row = 0; row < numBiasMapRows; row++)
 	{
-		for (unsigned int col = 0; col < subFieldSizeX; col++)
+		for (unsigned int col = 0; col < numColumnsSubField; col++)
 		{
 			biasMap[row][col] = 0.0;
 		}
@@ -189,7 +189,7 @@ void Detector::reset()
 
 	for (unsigned int row = 0; row < numSmearingMapRows; row++)
 	{
-		for (unsigned int col = 0; col < subFieldSizeX; col++)
+		for (unsigned int col = 0; col < numColumnsSubField; col++)
 		{
 			smearingMap[row][col] = 0.0;
 		}
@@ -335,8 +335,8 @@ void Detector::addFlux(double xCoords, double yCoords, double flux)
 
 	// Detector origin offset (pixel level)
 
-	double xOffset = (xCoords - originOffsetX) / pixelSize;
-	double yOffset = (yCoords - originOffsetY) / pixelSize;
+	double xOffset = (xCoords - originOffsetColumn) / pixelSize;
+	double yOffset = (yCoords - originOffsetRow) / pixelSize;
 
 	// Detector orientation (pixel level)
 
@@ -345,8 +345,8 @@ void Detector::addFlux(double xCoords, double yCoords, double flux)
 
 	// Sub-field incl. edge pixels (also correct for sub-field zeropoint)
 
-	column = (column - subFieldZeroPointX + numEdgePixels) * numSubPixelsPerPixel;
-	row = (row - subFieldZeroPointY + numEdgePixels) * numSubPixelsPerPixel;
+	column = (column - subFieldZeroPointColumn + numEdgePixels) * numSubPixelsPerPixel;
+	row = (row - subFieldZeroPointRow + numEdgePixels) * numSubPixelsPerPixel;
 
 	// Add flux in this->subPixelMap at (row, column)
 
@@ -376,7 +376,8 @@ void Detector::addFlux(double xCoords, double yCoords, double flux)
 
 bool Detector::isInSubPixelMap(double row, double column)
 {
-	return (column >= 0) && (row >= 0) && (column < subPixelMapSizeX) && (row < subPixelMapSizeY);
+	return (column >= 0) && (row >= 0) && (column < numColumnsSubPixelMap)
+			&& (row < numRowsSubPixelMap);
 }
 
 
@@ -406,9 +407,9 @@ bool Detector::isInSubPixelMap(double row, double column)
  */
 void Detector::addFlux(double flux)
 {
-	for (unsigned int row = 0; row < subPixelMapSizeY; row++)
+	for (unsigned int row = 0; row < numRowsSubPixelMap; row++)
 	{
-		for (unsigned int column = 0; column < subPixelMapSizeX; column++)
+		for (unsigned int column = 0; column < numColumnsSubPixelMap; column++)
 		{
 			subPixelMap[row][column] += flux;
 		}
@@ -447,9 +448,9 @@ void Detector::applyFlatfield()
 
 	// Loop over all elements in the sub-pixel map, except the edge pixels
 
-	for (unsigned int row = numEdgeSubPixels; row < subPixelMapSizeY - numEdgeSubPixels; row++)
+	for (unsigned int row = numEdgeSubPixels; row < numRowsSubPixelMap - numEdgeSubPixels; row++)
 	{
-		for (unsigned int column = numEdgeSubPixels; column < subPixelMapSizeX - numEdgeSubPixels; column++)
+		for (unsigned int column = numEdgeSubPixels; column < numColumnsSubPixelMap - numEdgeSubPixels; column++)
 		{
 			subPixelMap[row][column] *= flatfieldMap[row - numEdgeSubPixels][column- numEdgeSubPixels];
 		}
@@ -478,9 +479,9 @@ void Detector::rebin()
 {
 	// Rebinning is simply done by adding all values of the subpixels per pixel.
 
-    for (unsigned int row = 0; row < subFieldSizeY; row++)
+    for (unsigned int row = 0; row < numRowsSubField; row++)
 	{
-		for (unsigned int column = 0; column < subFieldSizeX; column++)
+		for (unsigned int column = 0; column < numColumnsSubField; column++)
 		{
 			double sum = 0;
 
@@ -519,9 +520,9 @@ void Detector::rebin()
  */
 void Detector::applyExposureTime(double exposureTime)
 {
-	for(unsigned int row = 0; row< subFieldSizeY; row++)
+	for(unsigned int row = 0; row< numRowsSubField; row++)
 	{
-		for(unsigned int column = 0; column < subFieldSizeX; column++)
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
 		{
 			pixelMap[row][column] *= exposureTime;
 		}
@@ -652,9 +653,9 @@ void Detector::readOut(double exposureTime)
 
 void Detector::applyQuantumEfficiency()
 {
-	for (unsigned int row = 0; row < subFieldSizeY; row++)
+	for (unsigned int row = 0; row < numRowsSubField; row++)
 	{
-		for (unsigned int column = 0; column < subFieldSizeX; column++)
+		for (unsigned int column = 0; column < numColumnsSubField; column++)
 		{
 			pixelMap[row][column] *= quantumEfficiency;
 		}
@@ -751,9 +752,9 @@ void Detector::applyFullWellSaturation()
 	double pixelValue, numExcessElectrons;
 	int jmod;    // TODO: document what jmod is !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-	for (unsigned int row = 0; row < subFieldSizeY; row++)
+	for (unsigned int row = 0; row < numRowsSubField; row++)
 	{
-		for (unsigned int column = 0; column < subFieldSizeX; column++)
+		for (unsigned int column = 0; column < numColumnsSubField; column++)
 		{
 			pixelValue = pixelMap[row][column];
 
@@ -768,14 +769,14 @@ void Detector::applyFullWellSaturation()
 				jmod = row;
 				numExcessElectrons = (pixelValue - fullWellSaturationLimit) / 2.0;    // Move half of the excess electrons down...
 
-				while (numExcessElectrons > 0 && jmod < subFieldSizeY)
+				while (numExcessElectrons > 0 && jmod < numRowsSubField)
 				{
 					pixelMap[jmod][column] -= numExcessElectrons;
 					jmod++;
 
 					// Electrons reaching the edge of the CCD will not be detected
 
-					if (jmod < subFieldSizeY)
+					if (jmod < numRowsSubField)
 					{
 						pixelMap[jmod][column] += numExcessElectrons;
 
@@ -956,9 +957,9 @@ void Detector::applyGain()
 {
 	// Multiply the pixel map with the gain
 
-	for (unsigned int row = 0; row < subFieldSizeY; row++)
+	for (unsigned int row = 0; row < numRowsSubField; row++)
 	{
-		for (unsigned int column = 0; column < subFieldSizeX; column++)
+		for (unsigned int column = 0; column < numColumnsSubField; column++)
 		{
 			pixelMap[row][column] *= gain;
 		}
@@ -968,7 +969,7 @@ void Detector::applyGain()
 
 	for(unsigned int row = 0; row< numBiasMapRows; row++)
 	{
-		for(unsigned int column = 0; column<subFieldSizeX; column++)
+		for(unsigned int column = 0; column<numColumnsSubField; column++)
 		{
 			biasMap[row][column] *= gain;
 		}
@@ -978,7 +979,7 @@ void Detector::applyGain()
 
 	for(unsigned int row = 0; row < numSmearingMapRows;row++)
 	{
-		for(unsigned int column = 0; column < subFieldSizeX; column++)
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
 		{
 			smearingMap[row][column] *= gain;
 		}
@@ -1013,9 +1014,9 @@ void Detector::addElectronicOffset()
 
 	// Add the electronic offset to the pixel map
 
-	for (unsigned int row = 0; row < subFieldSizeY; row++)
+	for (unsigned int row = 0; row < numRowsSubField; row++)
 	{
-		for (unsigned int column = 0; column < subFieldSizeX; column++)
+		for (unsigned int column = 0; column < numColumnsSubField; column++)
 		{
 			pixelMap[row][column] += electronicOffset;
 		}
@@ -1025,7 +1026,7 @@ void Detector::addElectronicOffset()
 
 	for (unsigned int row = 0; row < numBiasMapRows; row++)
 	{
-		for (unsigned int column = 0; column < subFieldSizeX; column++)
+		for (unsigned int column = 0; column < numColumnsSubField; column++)
 		{
 			biasMap[row][column] += electronicOffset;
 		}
@@ -1035,7 +1036,7 @@ void Detector::addElectronicOffset()
 
 	for (unsigned int row = 0; row < numSmearingMapRows; row++)
 	{
-		for (unsigned int column = 0; column < subFieldSizeX; column++)
+		for (unsigned int column = 0; column < numColumnsSubField; column++)
 		{
 			smearingMap[row][column] += electronicOffset;
 		}
@@ -1072,9 +1073,9 @@ void Detector::applyDigitalSaturation()
 {
 	// Top off the values in the pixel map
 
-	for (unsigned int row = 0; row < subFieldSizeY; row++)
+	for (unsigned int row = 0; row < numRowsSubField; row++)
 	{
-		for (unsigned int column = 0; column < subFieldSizeX; column++)
+		for (unsigned int column = 0; column < numColumnsSubField; column++)
 		{
 			if (pixelMap[row][column] > digitalSaturationLimit)
 			{
@@ -1087,7 +1088,7 @@ void Detector::applyDigitalSaturation()
 
 	for (unsigned int row = 0; row < numBiasMapRows; row++)
 	{
-		for (unsigned int column = 0; column < subFieldSizeX; column++)
+		for (unsigned int column = 0; column < numColumnsSubField; column++)
 		{
 			if (biasMap[row][column] > digitalSaturationLimit)
 			{
@@ -1100,7 +1101,7 @@ void Detector::applyDigitalSaturation()
 
 	for (unsigned int row = 0; row < numSmearingMapRows; row++)
 	{
-		for (unsigned int column = 0; column < subFieldSizeX; column++)
+		for (unsigned int column = 0; column < numColumnsSubField; column++)
 		{
 			if (smearingMap[row][column] > digitalSaturationLimit)
 			{
@@ -1109,90 +1110,3 @@ void Detector::applyDigitalSaturation()
 		}
 	}
 }
-
-
-
-
-
-///**
-// * Method that returns the sub-field of the detector that is modelled in more
-// * detail.
-// *
-// * @return Sub-field of the detector that is modelled in more detail.
-// * @rtype SubField
-// */
-//SubField Detector::getSubField()
-//{
-//
-//}
-//
-//
-//
-//
-//
-///**
-// * Method that returns the offset of the detector origin from the centre of the
-// * optical plane (i.e. optical axis) [mm].
-// *
-// * @return Offset of the detector origin from the centre of the optical plane [mm].
-// * @rtype double
-// */
-//double Detector::getOriginOffsetX()
-//{
-//
-//	return this->originOffsetX;
-//
-//}
-//
-//
-//
-//
-//
-///**
-// * Method that returns the offset of the detector origin from the centre of the
-// * optical plane (i.e. optical axis) [mm].
-// *
-// * @return Offset of the detector origin from the centre of the optical plane [mm].
-// * @rtype double
-// */
-//double Detector::getOriginOffsetY()
-//{
-//
-//	return this->originOffsetY;
-//
-//}
-//
-//
-//
-//
-//
-///**
-// * Method that returns the pixel size of the detector [mm / pixel].
-// *
-// * @return Pixel size of the detector [mm / pixel].
-// * @rtype unsigned double
-// */
-//double Detector::getPixelSize()
-//{
-//
-//	return this->pixelSize;
-//
-//}
-//
-//
-//
-//
-//
-///**
-// * Method that returns the orientation angle of the detector on the sky, measured
-// * counterclockwise [degrees].
-// *
-// * @return Orientation angle of the detector on the sky [degrees].
-// * @rtype double
-// */
-//double Detector::getOrientationAngle()
-//{
-//
-//	return this->orientationAngle;
-//
-//}
