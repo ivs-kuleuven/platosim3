@@ -540,6 +540,12 @@ void Detector::readOut(double exposureTime)
 
 	applyQuantumEfficiency();
 
+	// Add sky background
+	// Pixel units before: [electrons]
+	// Pixel units after: [electrons]
+
+	addSkyBackground(exposureTime);
+
 	// Apply poisson distributed photon noise
 	// Pixel units before: [electrons]
 	// Pixel units after: [electrons]
@@ -639,11 +645,39 @@ void Detector::applyQuantumEfficiency()
 
 
 
-
-void Detector::addSkyBackground()
+/**
+ * Method that adds the contribution of the sky background (zodiacal + galactic)
+ * to the pixel map.
+ *
+ * @param exposureTime: Exposure time [s]
+ *
+ * @pre Pixel unit in the pixel map: [electrons]
+ * @pre No smearing map
+ * @pre No bias register map
+ *
+ * @post Sky background added to the pixel map.
+ * @post Pixel unit in the pixel map: [electrons]
+ * @post No smearing map
+ * @post No bias register map
+ */
+void Detector::addSkyBackground(double exposureTime)
 {
-
+//	// Sky background expressed in [electrons / s / pixel]
+//	// -> must be multiplied with exposure time [s]
+//
+//	double flux = skyBackground * exposureTime;
+//
+//	for(unsigned int row = 0; row < numRowsSubField; row++)
+//	{
+//		for(unsigned int column = 0; column < numColumnsSubField; column++)
+//		{
+//			pixelMap[row][column] += flux;
+//		}
+//	}
 }
+
+
+
 
 
 

@@ -37,7 +37,7 @@ class Detector
         virtual void readOut(double exposureTime);
 
         virtual void applyQuantumEfficiency();
-        virtual void addSkyBackground();
+        virtual void addSkyBackground(double exposureTime);
     	virtual void addPhotonNoise();
     	virtual void applyFullWellSaturation();
     	virtual void applyCte();
