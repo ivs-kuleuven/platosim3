@@ -59,7 +59,10 @@ Detector::Detector()
 
 	// Random number generators
 
+	// Flatfield
 	photonNoiseGenerator.seed(photonNoiseSeed);
+	// CTE
+	readoutNoiseGenerator.seed(readoutNoiseSeed);
 }
 
 
@@ -890,16 +893,28 @@ void Detector::applyOpenShutterSmearing()
  */
 void Detector::addReadoutNoise()
 {
+	normalDistribution = normal_distribution<double>(0.0, readoutNoise);
 
-	// Normal<double, ranlib::MersenneTwister, ranlib::independentState> randomMap(
-	//		0, this->getReadoutNoise());
-	// randomMap.seed(p_DataSet->getSeedReadOutNoise());
-
-	// add randomMap.random() to all pixel values!!
 
 	// Add readout noise to the pixel map
 
+	for(unsigned int row = 0; row < numRowsSubField; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			pixelMap[row][column] += normalDistribution(readoutNoiseGenerator);
+		}
+	}
+
 	// Initialise the bias  map with readout noise
+
+	for(unsigned int row = 0; row < numRowsBiasMap; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			biasMap[row][column] += normalDistribution(readoutNoiseGenerator);
+		}
+	}
 }
 
 

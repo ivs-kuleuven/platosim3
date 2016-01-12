@@ -111,20 +111,21 @@ class Detector
 
     	// Seeds for random generation
 
+    	double flatfieldSeed;
     	double readoutNoiseSeed;
     	double photonNoiseSeed;
-    	double flatfieldSeed;
     	double cteMapSeedRow;
     	double cteMapSeedColumn;
 
     	// Random number generator
 
     	mt19937 photonNoiseGenerator;
+    	mt19937 readoutNoiseGenerator;
 
     	// Distributions
 
     	poisson_distribution<int> poissonDistribution;
-
+    	normal_distribution<double> normalDistribution;
 
 
         double internalTime;
