@@ -56,6 +56,10 @@ Detector::Detector()
 	{
 		smearingMap[row] = new double[numColumnsSubField];
 	}
+
+	// Random number generators
+
+	photonNoiseGenerator.seed(photonNoiseSeed);
 }
 
 
@@ -665,35 +669,25 @@ void Detector::applyQuantumEfficiency()
  */
 void Detector::addPhotonNoise()
 {
-//	// Default random number generated with seed of photon noise
-//
-//	double seed = 0.0;
-//
-//	// Add photon noise to the pixel map
-//
-//	for (unsigned int row = 0; row < subFieldSizeY; row++)
-//	{
-//		for (unsigned int column = 0; column < subFieldSizeX; column++)
-//		{
-//			std::default_random_engine generator(photonNoiseSeed);
-//			std::poisson_distribution<double> distribution(
-//					pixelMap[row][column]);
-//			pixelMap[row][column] = distribution(generator);
-//		}
-//	}
-//
-//	// Add photon noise to the smearing map
-//
-//	for (unsigned int row = 0; row < numSmearingOverscanRows; row++)
-//	{
-//		for (unsigned int column = 0; column < subFieldSizeX; column++)
-//		{
-//			std::default_random_engine generator(photonNoiseSeed);
-//			std::poisson_distribution<double> distribution(
-//					smearingMap[row][column]);
-//			smearingMap[row][column] = distribution(generator);
-//		}
-//	}
+	for (unsigned int row = 0; row < numRowsSubField; row++)
+	{
+		for (unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			poissonDistribution = poisson_distribution<int>(pixelMap[row][column]);
+			pixelMap[row][column] = poissonDistribution(photonNoiseGenerator);
+		}
+	}
+
+	// Add photon noise to the smearing map
+
+	for (unsigned int row = 0; row < numRowsSmearingMap; row++)
+	{
+		for (unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			poissonDistribution = poisson_distribution<int>(smearingMap[row][column]);
+			smearingMap[row][column] = poissonDistribution(photonNoiseGenerator);
+		}
+	}
 }
 
 
@@ -726,7 +720,7 @@ void Detector::applyFullWellSaturation()
 {
 	double pixelValue, numExcessElectrons;
 
-	int jmod;// Row coordinate where excess electrons are transferred from and to
+	unsigned int jmod;// Row coordinate where excess electrons are transferred from and to
 
 	for (unsigned int row = 0; row < numRowsSubField; row++)
 	{

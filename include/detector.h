@@ -4,6 +4,7 @@
 
 #include <string>
 #include <cmath>
+#include <random>
 
 using namespace std;
 
@@ -68,18 +69,18 @@ class Detector
 
     	double subFieldZeroPointRow;	       // Position of the sub-field zeropoint w.r.t. the complete detector in the row direction [pixels]
     	double subFieldZeroPointColumn;	       // Position of the sub-field zeropoint w.r.t. the complete detector in the column direction [pixels]
-    	int numRowsSubField;	               // Number of rows in the sub-field at pixel level and excl. edge pixels (i.e. dimension in the y-direction) [pixels]
-    	int numColumnsSubField;	               // Number of columns in the sub-field at pixel level and excl. edge pixels  (i.e. dimension in the x-direction = readout direction) [pixels]
-    	int numSubPixelsPerPixel;	           // Number of sub-pixels per pixel
-    	int numEdgePixels;                     // Number of pixels to extend the sub-field on each side, to account for the edge effect
+    	unsigned int numRowsSubField;	               // Number of rows in the sub-field at pixel level and excl. edge pixels (i.e. dimension in the y-direction) [pixels]
+    	unsigned int numColumnsSubField;	               // Number of columns in the sub-field at pixel level and excl. edge pixels  (i.e. dimension in the x-direction = readout direction) [pixels]
+    	unsigned int numSubPixelsPerPixel;	           // Number of sub-pixels per pixel
+    	unsigned int numEdgePixels;                     // Number of pixels to extend the sub-field on each side, to account for the edge effect
 
 
     	// Sub-pixel map and its dimensions
 
     	double **subPixelMap;	               // Sub-pixel map, incl. edge pixels
 
-    	int numRowsSubPixelMap;	               // Number of rows in the sub-field at sub-pixel level and incl. edge pixels (i.e. dimensions in the y-direction) [sub-pixels]
-    	int numColumnsSubPixelMap;	           // Number of columns in the sub-field at sub-pixel level and incl. edge pixels (i.e. dimension in the x-direction = readout direction) [sub-pixels]
+    	unsigned int numRowsSubPixelMap;	               // Number of rows in the sub-field at sub-pixel level and incl. edge pixels (i.e. dimensions in the y-direction) [sub-pixels]
+    	unsigned int numColumnsSubPixelMap;	           // Number of columns in the sub-field at sub-pixel level and incl. edge pixels (i.e. dimension in the x-direction = readout direction) [sub-pixels]
 
 
 
@@ -116,7 +117,13 @@ class Detector
     	double cteMapSeedRow;
     	double cteMapSeedColumn;
 
+    	// Random number generator
 
+    	mt19937 photonNoiseGenerator;
+
+    	// Distributions
+
+    	poisson_distribution<int> poissonDistribution;
 
 
 
