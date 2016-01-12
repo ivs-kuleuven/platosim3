@@ -20,6 +20,13 @@ class Detector
 
     protected:
 
+        void initSubPixelMap();
+        void initPixelMap();
+        void initBiasMap();
+        void initSmearingMap();
+        void initFlatfieldMap();
+        void initCteMap();
+
         virtual void reset();
     
         // Integrate light
@@ -46,8 +53,7 @@ class Detector
     	virtual void applyGain();
     	virtual void addElectronicOffset();	// Bias
     	virtual void applyDigitalSaturation();
-    
-
+	void initSubPixelMap();
 
         // Detector specific information
 
@@ -124,8 +130,8 @@ class Detector
 
     	// Distributions
 
-    	poisson_distribution<int> poissonDistribution;
-    	normal_distribution<double> normalDistribution;
+    	poisson_distribution<int> photonNoiseDistribution;
+    	normal_distribution<double> readoutNoiseDistribution;
 
 
         double internalTime;

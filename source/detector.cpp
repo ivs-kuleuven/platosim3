@@ -15,56 +15,27 @@ Detector::Detector()
 
 	// Associate the camera
 
-	// Initialise flatfield map
-
 	// this->setFlatfieldMap(peak2PeakNoise, subPixelNoise, intraPixelWidth);
 
-	// Initialise CTE map
 
-	// Allocate memory for the sub-pixel map
+	// Allocate memory for the sub-pixel map, the pixel map, the bias register map,
+	// and the smearing map
 
-	subPixelMap = new double*[numRowsSubPixelMap];
+	initSubPixelMap();
+	initPixelMap();
+	initBiasMap();
+	initSmearingMap();
 
-	for (unsigned int row = 0; row < numRowsSubPixelMap; row++)
-	{
-		subPixelMap[row] = new double[numColumnsSubPixelMap];
-	}
+	// Initialise the flatfield map and the CTE map
 
-	// Allocate memory for the pixel map
-
-	pixelMap = new double*[numRowsSubField];
-
-	for(unsigned int row = 0; row < numRowsSubField; row++)
-	{
-		pixelMap[row] = new double[numColumnsSubField];
-	}
-
-	// Allocate memory for the bias register map
-
-	biasMap = new double*[numRowsBiasMap];
-
-	for(unsigned int row = 0; row < numRowsBiasMap; row++)
-	{
-		biasMap[row] = new double[numColumnsSubField];
-	}
-
-	// Allocate memory for the smearing map
-
-	smearingMap = new double*[numRowsSmearingMap];
-
-	for(unsigned int row = 0; row < numRowsSmearingMap; row++)
-	{
-		smearingMap[row] = new double[numColumnsSubField];
-	}
+	initFlatfieldMap();
+	initCteMap();
 
 	// Random number generators
 
-	// Flatfield
 	photonNoiseGenerator.seed(photonNoiseSeed);
-	// CTE
 	readoutNoiseGenerator.seed(readoutNoiseSeed);
 }
-
 
 
 
@@ -133,6 +104,129 @@ Detector::~Detector()
 	}
 
 	delete[] smearingMap;
+}
+
+
+
+
+
+/**
+ * Method that allocates memory for the sub-pixel map.
+ */
+void Detector::initSubPixelMap()
+{
+	// Allocate memory for the sub-pixel map
+
+	subPixelMap = new double*[numRowsSubPixelMap];
+
+	for (unsigned int row = 0; row < numRowsSubPixelMap; row++)
+	{
+		subPixelMap[row] = new double[numColumnsSubPixelMap];
+	}
+}
+
+
+
+
+
+
+
+
+/**
+ * Method that allocates memory for the pixel map.
+ */
+void Detector::initPixelMap()
+{
+	// Allocate memory for the pixel map
+
+	pixelMap = new double*[numRowsSubField];
+
+	for (unsigned int row = 0; row < numRowsSubField; row++)
+	{
+		pixelMap[row] = new double[numColumnsSubField];
+	}
+}
+
+
+
+
+
+
+
+/**
+ * Method that allocates memory for the bias register map.
+ */
+void Detector::initBiasMap()
+{
+	// Allocate memory for the bias register map
+
+	biasMap = new double*[numRowsBiasMap];
+
+	for (unsigned int row = 0; row < numRowsBiasMap; row++)
+	{
+		biasMap[row] = new double[numColumnsSubField];
+	}
+}
+
+
+
+
+
+
+/**
+ * Method that allocates memory for the smearing map.
+ */
+void Detector::initSmearingMap()
+{
+	// Allocate memory for the smearing map
+
+	smearingMap = new double*[numRowsSmearingMap];
+
+	for(unsigned int row = 0; row < numRowsSmearingMap; row++)
+	{
+		smearingMap[row] = new double[numColumnsSubField];
+	}
+}
+
+
+
+
+
+
+
+/**
+ * Method that allocates memory for the flatfield map and initialises it.
+ */
+void Detector::initFlatfieldMap()
+{
+
+}
+
+
+
+
+
+
+/**
+ * Method that allocates memory for the CTE map and initialises it.
+ */
+void Detector::initCteMap()
+{
+//	discrete_distribution<int> cteRowDistribution(0.0,
+//			(double) numRowsSubField);
+//	discrete_distribution<int> cteColumnDistribution(0.0,
+//			(double) numColumnsSubField);
+//
+//	mt19937 cteRowGenerator(cteMapSeedRow);
+//	mt19937 cteColumnGenerator(cteMapSeedColumn);
+
+	for (unsigned int row = 0; row < numRowsSubField; row++)
+	{
+		for (unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			cteMap[row][column] = meanCte;
+		}
+	}
 }
 
 
@@ -676,8 +770,8 @@ void Detector::addPhotonNoise()
 	{
 		for (unsigned int column = 0; column < numColumnsSubField; column++)
 		{
-			poissonDistribution = poisson_distribution<int>(pixelMap[row][column]);
-			pixelMap[row][column] = poissonDistribution(photonNoiseGenerator);
+			photonNoiseDistribution = poisson_distribution<int>(pixelMap[row][column]);
+			pixelMap[row][column] = photonNoiseDistribution(photonNoiseGenerator);
 		}
 	}
 
@@ -687,8 +781,8 @@ void Detector::addPhotonNoise()
 	{
 		for (unsigned int column = 0; column < numColumnsSubField; column++)
 		{
-			poissonDistribution = poisson_distribution<int>(smearingMap[row][column]);
-			smearingMap[row][column] = poissonDistribution(photonNoiseGenerator);
+			photonNoiseDistribution = poisson_distribution<int>(smearingMap[row][column]);
+			smearingMap[row][column] = photonNoiseDistribution(photonNoiseGenerator);
 		}
 	}
 }
@@ -893,7 +987,7 @@ void Detector::applyOpenShutterSmearing()
  */
 void Detector::addReadoutNoise()
 {
-	normalDistribution = normal_distribution<double>(0.0, readoutNoise);
+	readoutNoiseDistribution = normal_distribution<double>(0.0, readoutNoise);
 
 
 	// Add readout noise to the pixel map
@@ -902,7 +996,7 @@ void Detector::addReadoutNoise()
 	{
 		for(unsigned int column = 0; column < numColumnsSubField; column++)
 		{
-			pixelMap[row][column] += normalDistribution(readoutNoiseGenerator);
+			pixelMap[row][column] += readoutNoiseDistribution(readoutNoiseGenerator);
 		}
 	}
 
@@ -912,7 +1006,7 @@ void Detector::addReadoutNoise()
 	{
 		for(unsigned int column = 0; column < numColumnsSubField; column++)
 		{
-			biasMap[row][column] += normalDistribution(readoutNoiseGenerator);
+			biasMap[row][column] += readoutNoiseDistribution(readoutNoiseGenerator);
 		}
 	}
 }
