@@ -294,10 +294,6 @@ void Detector::integrateLight(double startTime, double exposureTime)
 	// Rebin
 
 	rebin();
-
-	// Multiply with exposure time
-
-	applyExposureTime(exposureTime);
 }
 
 
@@ -502,36 +498,6 @@ void Detector::rebin()
 
 
 
-/**
- * Method that takes the integration time into account.  All values in the
- * pixel map are multiplied by the given exposure time [s].
- *
- * @param exposureTime: Exposure time [s]
- *
- * @pre Pixel unit of the sub-pixel map: [photons /s]
- * @pre Pixel map filled with zeroes.
- * @pre Bias register map filled with zeroes.
- * @pre Smearing map filled with zeroes.
- *
- * @post Pixel unit of the sub-pixel map: [photons]
- * @post Pixel map filled with zeroes.
- * @post Bias register map filled with zeroes.
- * @post Smearing map filled with zeroes.
- */
-void Detector::applyExposureTime(double exposureTime)
-{
-	for(unsigned int row = 0; row< numRowsSubField; row++)
-	{
-		for(unsigned int column = 0; column < numColumnsSubField; column++)
-		{
-			pixelMap[row][column] *= exposureTime;
-		}
-	}
-}
-
-
-
-
 
 /**
  * Method that reads out the detector and applies the following effects:
@@ -625,10 +591,6 @@ void Detector::readOut(double exposureTime)
 	// Pixel units after: [ADU]
 
 	applyDigitalSaturation();
-
-	// Multiply with the exposure time [s]
-
-	applyExposureTime(exposureTime);
 }
 
 

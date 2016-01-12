@@ -31,7 +31,6 @@ class Detector
 
         virtual void applyFlatfield();
         virtual void rebin();
-    	virtual void applyExposureTime(double exposureTime);
 
         // Read out
 
