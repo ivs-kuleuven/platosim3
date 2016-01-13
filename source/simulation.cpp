@@ -11,13 +11,16 @@ Simulation::Simulation(string inputFileName)
 
     // Initialise the spacecraft components
 
-    detector   = new Detector(detectorConfigurationParameters);
-    camera     = new Camera(cameraConfigurationParameters);
-    telescope  = new Telescope(telescopeConfigurationParameters);
-    platform   = new Platform(platformConfigurationParameters);
-    sky        = new Sky(skyConfigurationParameters);
-    
+    detector   = new Detector();
+    //camera     = new Camera(cameraConfigurationParameters);
+    //telescope  = new Telescope(telescopeConfigurationParameters);
+    //platform   = new Platform(platformConfigurationParameters);
+    //sky        = new Sky(skyConfigurationParameters);
+
+    Nexposures = 3;        // hardcoded for the moment
+    exposureTime = 22.0;   // hard-coded for the moment
 }
+
 
 
 
@@ -28,11 +31,12 @@ Simulation::Simulation(string inputFileName)
 Simulation::~Simulation()
 {
     delete detector;
-    delete camera;
-    delete telescope;
-    delete platform;
-    delete sky;
+    //delete camera;
+    //delete telescope;
+    //delete platform;
+    //delete sky;
 }
+
 
 
 
@@ -41,27 +45,25 @@ Simulation::~Simulation()
 
 // Simulation::run()
 //
-// PURPOSE:
+// PURPOSE: Loop over all exposures
 // 
-// INPUT:
+// INPUT: 
+//     . startTime: begin time of the very first exposure. Time is expressed in seconds
+//                  in the rest of the code.
 //
 // OUTPUT:
+//     . None
 //
 
-void Simulation::run(double startingTime)
+void Simulation::run(double startTime)
 {
-    // Get the super-resolution subfield
-
-    SubField subField = detector->getSubField();
-
-    // Initialise the PSF for this particular subfield
-
-    camera->initPsf(subField);
+    currentTime = startTime;
 
     // Loop over all exposures
 
     for (int n = 0; n < Nexposures; n++)
     {
-        detector->takeExposure();
+        detector->takeExposure(startTime, exposureTime);
     }
 }
+

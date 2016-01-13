@@ -2,36 +2,37 @@
 #define TELESCOPE_H
 
 #include <string>
+#include "timeticker.h"
+#include "hdf5writer.h"
 #include "platform.h"
 #include "configurationparameters.h"
 
 using namespace std;
 
-class Telescope {
-public:
+class Telescope  : public TimeTicker, Hdf5Writer
+{
+	
+	public:
 
-	Telescope(ConfigurationParameters configurationParameters,
-			Platform platform);
-	~Telescope();
+		Telescope(ConfigurationParameters configurationParameters, Platform platform);
+		~Telescope();
 
-	Platform getPlatform();
-	unsigned double getLightCollectingArea();
+		Platform getPlatform();
+		double getLightCollectingArea();
+		double updatePointingCoordinates(double &alphaOpticalAxis, double &deltaOpticalAxis, double currentTime);
 
-	double updatePointingCoordinates(double &alphaOpticalAxis,
-			double &deltaOpticalAxis, double currentTime);
+	protected:
 
-protected:
+		double alphaOpticalAxis;           // Current pointing right ascension [rad]
+		double deltaOpticalAxis;           // Current pointing declination     [rad]
 
-	double alphaOpticalAxis;           // Current pointing right ascension [rad]
-	double deltaOpticalAxis;               // Current pointing declination [rad]
+	private:
 
-private:
+		Platform platform;
+		void setPlatform(Platform platform);
 
-	Platform platform;
-	void setPlatform(Platform platform);
-
-	unsigned double lightCollectingArea;
-	void setLightCollectingArea(double lightCollectingArea);
+		double lightCollectingArea;
+		void setLightCollectingArea(double lightCollectingArea);
 
 };
 

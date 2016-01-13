@@ -2,8 +2,11 @@
 #define CAMERA_H
 
 #include <string>
+#include "timeticker.h"
+#include "hdf5writer.h"
 #include "telescope.h"
 #include "subfield.h"
+
 
 
 
@@ -11,7 +14,7 @@ using namespace std;
 
 
 
-class Camera
+class Camera : public TimeTicker, Hdf5Writer
 {
     public:
 

@@ -4,7 +4,8 @@
 
 #include <string>
 #include <vector>
-
+#include "timeticker.h"
+#include "hdf5writer.h"
 #include "configurationparameters.h"
 #include "starcatalog.h"
 
@@ -12,7 +13,7 @@
 using namespace std;
 
 
-class Sky
+class Sky : public TimeTicker, Hdf5Writer
 {
     public:
 
@@ -20,7 +21,12 @@ class Sky
         ~Sky();
 
         StarCatalog getStarsWithinRadiusFrom(double RA, double dec, double radius);
-        double getSkyBackground(double RA, double dec);
+        double getSkyBackgroundFlux(double RA, double dec);
+        double getZodiacalBackgroundFlux(double RA, double dec);
+        double getUnresolvedStarsBackgroundFlux(double RA, double dec);
+
+        // magnitude range
+        
 
     protected:
 
