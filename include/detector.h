@@ -72,8 +72,8 @@ class Detector
 
     	// Sub-field specific information
 
-    	int subFieldZeroPointRow;	       	   // Position of the sub-field zeropoint w.r.t. the complete detector in the row direction [pixels]
-    	int subFieldZeroPointColumn;	       // Position of the sub-field zeropoint w.r.t. the complete detector in the column direction [pixels]
+    	unsigned int subFieldZeroPointRow;	       	   // Position of the sub-field zeropoint w.r.t. the complete detector in the row direction [pixels]
+    	unsigned int subFieldZeroPointColumn;	       // Position of the sub-field zeropoint w.r.t. the complete detector in the column direction [pixels]
     	unsigned int numRowsSubField;	       // Number of rows in the sub-field at pixel level and excl. edge pixels (i.e. dimension in the y-direction) [pixels]
     	unsigned int numColumnsSubField;	   // Number of columns in the sub-field at pixel level and excl. edge pixels  (i.e. dimension in the x-direction = readout direction) [pixels]
     	unsigned int numSubPixelsPerPixel;	   // Number of sub-pixels per pixel

@@ -358,7 +358,7 @@ void Detector::initCteMap()
 
 	cteMap = new double*[numRowsSubField + subFieldZeroPointRow];
 
-	for(int row = 0; row < numRowsSubField + subFieldZeroPointRow; row++)
+	for(unsigned int row = 0; row < numRowsSubField + subFieldZeroPointRow; row++)
 	{
 		cteMap[row] = new double[numColumnsSubField];
 
@@ -977,7 +977,7 @@ void Detector::applyCte()
 
 	// Sub-field
 
-	for (int row = subFieldZeroPointRow;
+	for (unsigned int row = subFieldZeroPointRow;
 			row < subFieldZeroPointRow + numRowsSubField; row++)
 	{
 		shiftMap[row] = new double[numColumnsSubField];
@@ -992,7 +992,7 @@ void Detector::applyCte()
 	// Shift all the rows down one row (i.e. towards the readout register) one-by-one,
 	// until all rows in the sub-field have been read out.
 
-	for (int shiftIndex = 0;
+	for (unsigned int shiftIndex = 0;
 			shiftIndex < subFieldZeroPointRow + numRowsSubField; shiftIndex++)
 	{
 
