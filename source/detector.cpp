@@ -15,21 +15,18 @@ Detector::Detector()
 
 	// Associate the camera
 
-	// this->setFlatfieldMap(peak2PeakNoise, subPixelNoise, intraPixelWidth);
-
-
 	// Allocate memory for the sub-pixel map, the pixel map, the bias register map,
 	// and the smearing map
 
 	initSubPixelMap();
-//	initPixelMap();
-//	initBiasMap();
-//	initSmearingMap();
+	initPixelMap();
+	initBiasMap();
+	initSmearingMap();
 
 	// Initialise the flatfield map and the CTE map
 
-//	initFlatfieldMap();
-//	initCteMap();
+	initFlatfieldMap();
+	initCteMap();
 
 	// Random number generators
 
@@ -369,6 +366,15 @@ void Detector::initFlatfieldMap()
 			}
 		}
 	}
+
+	// De-allocate memory
+
+	for(unsigned int row = 0; row < dimensionPowerOf2; row++)
+	{
+		delete[] flatFieldMapPowerOf2Dimensions[row];
+	}
+
+	delete[] flatFieldMapPowerOf2Dimensions;
 }
 
 
