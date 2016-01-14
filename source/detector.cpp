@@ -15,49 +15,27 @@ Detector::Detector()
 
 	// Associate the camera
 
-	// Initialise flatfield map
-
 	// this->setFlatfieldMap(peak2PeakNoise, subPixelNoise, intraPixelWidth);
 
-	// Initialise CTE map
 
-	// Allocate memory for the sub-pixel map
+	// Allocate memory for the sub-pixel map, the pixel map, the bias register map,
+	// and the smearing map
 
-	subPixelMap = new double*[numRowsSubPixelMap];
+	initSubPixelMap();
+//	initPixelMap();
+//	initBiasMap();
+//	initSmearingMap();
 
-	for (unsigned int row = 0; row < numRowsSubPixelMap; row++)
-	{
-		subPixelMap[row] = new double[numColumnsSubPixelMap];
-	}
+	// Initialise the flatfield map and the CTE map
 
-	// Allocate memory for the pixel map
+//	initFlatfieldMap();
+//	initCteMap();
 
-	pixelMap = new double*[numRowsSubField];
+	// Random number generators
 
-	for(unsigned int row = 0; row < numRowsSubField; row++)
-	{
-		pixelMap[row] = new double[numColumnsSubField];
-	}
-
-	// Allocate memory for the bias register map
-
-	biasMap = new double*[numRowsBiasMap];
-
-	for(unsigned int row = 0; row < numRowsBiasMap; row++)
-	{
-		biasMap[row] = new double[numColumnsSubField];
-	}
-
-	// Allocate memory for the smearing map
-
-	smearingMap = new double*[numRowsSmearingMap];
-
-	for(unsigned int row = 0; row < numRowsSmearingMap; row++)
-	{
-		smearingMap[row] = new double[numColumnsSubField];
-	}
+	photonNoiseGenerator.seed(photonNoiseSeed);
+	readoutNoiseGenerator.seed(readoutNoiseSeed);
 }
-
 
 
 
@@ -126,6 +104,298 @@ Detector::~Detector()
 	}
 
 	delete[] smearingMap;
+}
+
+
+
+
+
+/**
+ * Method that allocates memory for the sub-pixel map.
+ */
+void Detector::initSubPixelMap()
+{
+	// Allocate memory for the sub-pixel map
+
+	subPixelMap = new double*[numRowsSubPixelMap];
+
+	for (unsigned int row = 0; row < numRowsSubPixelMap; row++)
+	{
+		subPixelMap[row] = new double[numColumnsSubPixelMap];
+	}
+}
+
+
+
+
+
+
+
+
+/**
+ * Method that allocates memory for the pixel map.
+ */
+void Detector::initPixelMap()
+{
+	// Allocate memory for the pixel map
+
+	pixelMap = new double*[numRowsSubField];
+
+	for (unsigned int row = 0; row < numRowsSubField; row++)
+	{
+		pixelMap[row] = new double[numColumnsSubField];
+	}
+}
+
+
+
+
+
+
+
+/**
+ * Method that allocates memory for the bias register map.
+ */
+void Detector::initBiasMap()
+{
+	// Allocate memory for the bias register map
+
+	biasMap = new double*[numRowsBiasMap];
+
+	for (unsigned int row = 0; row < numRowsBiasMap; row++)
+	{
+		biasMap[row] = new double[numColumnsSubField];
+	}
+}
+
+
+
+
+
+
+/**
+ * Method that allocates memory for the smearing map.
+ */
+void Detector::initSmearingMap()
+{
+	// Allocate memory for the smearing map
+
+	smearingMap = new double*[numRowsSmearingMap];
+
+	for(unsigned int row = 0; row < numRowsSmearingMap; row++)
+	{
+		smearingMap[row] = new double[numColumnsSubField];
+	}
+}
+
+
+
+
+
+
+
+/**
+ * Method that allocates memory for the flatfield map and initialises it.
+ */
+void Detector::initFlatfieldMap()
+{
+	// Random number generation
+
+	mt19937 flatfieldGenerator(flatfieldSeed);
+	normal_distribution<double> flatfieldDistribution(0.0, 1.0);
+
+	// Create a square map, filled with zeroes, in which the whole sub-field fits
+	// at pixel level and for which the dimensions are a power of 2
+
+	unsigned int dimensionPowerOf2 = 2;
+	unsigned int maxSubFieldDimension = max(numRowsSubField,
+			numColumnsSubField);
+
+	while (dimensionPowerOf2 <= maxSubFieldDimension)
+	{
+		dimensionPowerOf2 *= 2;
+	}
+
+	double** flatFieldMapPowerOf2Dimensions = new double*[dimensionPowerOf2];
+
+	for (unsigned int row = 0; row < dimensionPowerOf2; row++)
+	{
+		flatFieldMapPowerOf2Dimensions[row] = new double[dimensionPowerOf2];
+
+		for (unsigned int column = 0; column < dimensionPowerOf2; column++)
+		{
+			flatFieldMapPowerOf2Dimensions[row][column] = 0.0;
+		}
+	}
+
+	// Add variations at all spatial frequencies
+	// Recursive process (base case: n = dimension of the map / 2)
+	//		- add the same (random) value to pixels in the same (n,n) block
+	//		- n /= 2
+	//		- continue as long as n > 2
+
+	unsigned int numBlocks = 2;
+	double variation;
+
+	// Loop over all block sizes: dimensionPowerOf2 / 2, dimensionPowerOf2 / 4,
+	// dimensionPowerOf2 / 8,..., 2
+
+	for (unsigned int blockSize = dimensionPowerOf2 / 2; blockSize >= 2;
+			blockSize /= 2)
+	{
+		// Loop over all blocks of the current size
+
+		for (unsigned int blockRow = 0; blockRow < numBlocks; blockRow++)
+		{
+			for (unsigned int blockColumn = 0; blockColumn < numBlocks;
+					blockColumn++)
+			{
+				variation = flatfieldDistribution(flatfieldGenerator);
+
+				for (unsigned row = blockRow * blockSize;
+						blockRow < (blockRow + 1) * blockSize; row++)
+				{
+					for (unsigned column = blockColumn * blockSize;
+							column < (blockColumn + 1) * blockSize; column++)
+					{
+						flatFieldMapPowerOf2Dimensions[row][column] +=
+								variation;
+					}
+				}
+			}
+		}
+
+		numBlocks *= 2;
+	}
+
+	// Normalise and subtract 0.5 -> [-0.5, 0.5]
+	// Multiply by peak-to-peak noise amplitude
+
+	double minValue = std::numeric_limits<double>::max();
+	double maxValue = -std::numeric_limits<double>::max();
+
+	for (unsigned int row = 0; row < dimensionPowerOf2; row++)
+	{
+		for (unsigned int column = 0; column < dimensionPowerOf2; column++)
+		{
+			minValue = std::min(minValue,
+					flatFieldMapPowerOf2Dimensions[row][column]);// Look for the minimum value
+			maxValue = std::max(maxValue,
+					flatFieldMapPowerOf2Dimensions[row][column]);// Look for the maximum value
+		}
+	}
+
+	for (unsigned int row = 0; row < dimensionPowerOf2; row++)
+	{
+		for (unsigned int column = 0; column < dimensionPowerOf2; column++)
+		{
+			flatFieldMapPowerOf2Dimensions[row][column] =
+					((flatFieldMapPowerOf2Dimensions[row][column] - minValue)
+							/ maxValue - 0.5)
+							/ flatfieldPeak2PeakNoiseAmplitude;
+		}
+	}
+
+	// Allocate memory for the flatfield map (at sub-pixel level)
+
+	unsigned int numRowsFlatfieldMap = numSubPixelsPerPixel * numRowsSubField;
+	unsigned int numColumnsFlatfieldMap = numSubPixelsPerPixel
+			* numColumnsSubField;
+
+	flatfieldMap = new double*[numRowsFlatfieldMap];
+
+	for (unsigned int row = 0; row < numRowsFlatfieldMap; row++)
+	{
+		flatfieldMap[row] = new double[numColumnsFlatfieldMap];
+
+		for (unsigned int column = 0; column < numColumnsFlatfieldMap; column++)
+		{
+			flatfieldMap[row][column] = 0.0;
+		}
+	}
+
+	// The central part of the pixels has a sensitivity loss of less than 5%
+
+	unsigned int edge = (int) ceil(
+			numSubPixelsPerPixel * flatfieldIntraPixelWidth / 100.);
+
+	int flatfieldRow, flatfieldColumn;
+
+	// Loop over all pixels
+
+	for (unsigned int pixelRow = 0; pixelRow < numRowsSubField; pixelRow++)
+	{
+		for (unsigned int pixelColumn = 0; pixelColumn < numColumnsSubField;
+				pixelColumn++)
+		{
+			// Loop over all sub-pixels in the current pixel
+
+			for (unsigned int row = 0; row < numSubPixelsPerPixel; row++)
+			{
+				for (unsigned int column = 0; column < numSubPixelsPerPixel;
+						column++)
+				{
+					flatfieldRow = (pixelRow * numSubPixelsPerPixel) + row;
+					flatfieldColumn = (pixelColumn * numSubPixelsPerPixel)
+							+ column;
+
+					// Edge: sensitivity loss of 5%
+
+					if ((row < edge) || (column < edge)
+							|| (column >= numSubPixelsPerPixel - edge)
+							|| (row >= numSubPixelsPerPixel - edge))
+					{
+						flatfieldMap[flatfieldRow][flatfieldColumn] =
+								(1
+										+ flatFieldMapPowerOf2Dimensions[pixelRow][pixelColumn]
+										+ flatfieldDistribution(
+												flatfieldGenerator)
+												* flatfieldWhiteNoise)
+										* intraPixelSensitivity;
+					}
+
+					// Central part: no sensitivity loss
+
+					else
+					{
+						flatfieldMap[flatfieldRow][flatfieldColumn] =
+								(1
+										+ flatFieldMapPowerOf2Dimensions[pixelRow][pixelColumn]
+										+ flatfieldDistribution(
+												flatfieldGenerator)
+												* flatfieldWhiteNoise);
+					}
+				}
+			}
+		}
+	}
+}
+
+
+
+
+
+
+/**
+ * Method that allocates memory for the CTE map and initialises it.
+ */
+void Detector::initCteMap()
+{
+//	discrete_distribution<int> cteRowDistribution(0.0,
+//			(double) numRowsSubField);
+//	discrete_distribution<int> cteColumnDistribution(0.0,
+//			(double) numColumnsSubField);
+//
+//	mt19937 cteRowGenerator(cteMapSeedRow);
+//	mt19937 cteColumnGenerator(cteMapSeedColumn);
+
+	for (unsigned int row = 0; row < numRowsSubField; row++)
+	{
+		for (unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			cteMap[row][column] = meanCte;
+		}
+	}
 }
 
 
@@ -665,35 +935,25 @@ void Detector::applyQuantumEfficiency()
  */
 void Detector::addPhotonNoise()
 {
-//	// Default random number generated with seed of photon noise
-//
-//	double seed = 0.0;
-//
-//	// Add photon noise to the pixel map
-//
-//	for (unsigned int row = 0; row < subFieldSizeY; row++)
-//	{
-//		for (unsigned int column = 0; column < subFieldSizeX; column++)
-//		{
-//			std::default_random_engine generator(photonNoiseSeed);
-//			std::poisson_distribution<double> distribution(
-//					pixelMap[row][column]);
-//			pixelMap[row][column] = distribution(generator);
-//		}
-//	}
-//
-//	// Add photon noise to the smearing map
-//
-//	for (unsigned int row = 0; row < numSmearingOverscanRows; row++)
-//	{
-//		for (unsigned int column = 0; column < subFieldSizeX; column++)
-//		{
-//			std::default_random_engine generator(photonNoiseSeed);
-//			std::poisson_distribution<double> distribution(
-//					smearingMap[row][column]);
-//			smearingMap[row][column] = distribution(generator);
-//		}
-//	}
+	for (unsigned int row = 0; row < numRowsSubField; row++)
+	{
+		for (unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			photonNoiseDistribution = poisson_distribution<int>(pixelMap[row][column]);
+			pixelMap[row][column] = photonNoiseDistribution(photonNoiseGenerator);
+		}
+	}
+
+	// Add photon noise to the smearing map
+
+	for (unsigned int row = 0; row < numRowsSmearingMap; row++)
+	{
+		for (unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			photonNoiseDistribution = poisson_distribution<int>(smearingMap[row][column]);
+			smearingMap[row][column] = photonNoiseDistribution(photonNoiseGenerator);
+		}
+	}
 }
 
 
@@ -726,7 +986,7 @@ void Detector::applyFullWellSaturation()
 {
 	double pixelValue, numExcessElectrons;
 
-	int jmod;// Row coordinate where excess electrons are transferred from and to
+	unsigned int jmod;// Row coordinate where excess electrons are transferred from and to
 
 	for (unsigned int row = 0; row < numRowsSubField; row++)
 	{
@@ -896,16 +1156,28 @@ void Detector::applyOpenShutterSmearing()
  */
 void Detector::addReadoutNoise()
 {
+	readoutNoiseDistribution = normal_distribution<double>(0.0, readoutNoise);
 
-	// Normal<double, ranlib::MersenneTwister, ranlib::independentState> randomMap(
-	//		0, this->getReadoutNoise());
-	// randomMap.seed(p_DataSet->getSeedReadOutNoise());
-
-	// add randomMap.random() to all pixel values!!
 
 	// Add readout noise to the pixel map
 
+	for(unsigned int row = 0; row < numRowsSubField; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			pixelMap[row][column] += readoutNoiseDistribution(readoutNoiseGenerator);
+		}
+	}
+
 	// Initialise the bias  map with readout noise
+
+	for(unsigned int row = 0; row < numRowsBiasMap; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			biasMap[row][column] += readoutNoiseDistribution(readoutNoiseGenerator);
+		}
+	}
 }
 
 
