@@ -53,7 +53,6 @@ class Detector
     	virtual void applyGain();
     	virtual void addElectronicOffset();	// Bias
     	virtual void applyDigitalSaturation();
-	void initSubPixelMap();
 
         // Detector specific information
 
@@ -89,6 +88,13 @@ class Detector
     	unsigned int numColumnsSubPixelMap;	           // Number of columns in the sub-field at sub-pixel level and incl. edge pixels (i.e. dimension in the x-direction = readout direction) [sub-pixels]
 
 
+    	double flatfieldPeak2PeakNoiseAmplitude;
+    	double flatfieldWhiteNoise;
+    	double flatfieldIntraPixelWidth;
+    	// The input parameter flatfieldIntraPixelWidth is defined as the
+    	//  flatfield intrapixel-width at edge of pixel with 5% lower sensitivity [% of pixel size, rounded up]
+
+    	const double intraPixelSensitivity = 0.95;	// The input parameter flatfieldIntraPixelWidth is defined as the flatfield intra-pixel width at edge of pixel with 5% lower sensitivity [% of pixel size, rounded up]
 
 
     	double **smearingMap;	               // Smearing map (i.e. over-scan strip)

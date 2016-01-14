@@ -22,14 +22,14 @@ Detector::Detector()
 	// and the smearing map
 
 	initSubPixelMap();
-	initPixelMap();
-	initBiasMap();
-	initSmearingMap();
+//	initPixelMap();
+//	initBiasMap();
+//	initSmearingMap();
 
 	// Initialise the flatfield map and the CTE map
 
-	initFlatfieldMap();
-	initCteMap();
+//	initFlatfieldMap();
+//	initCteMap();
 
 	// Random number generators
 
@@ -199,7 +199,176 @@ void Detector::initSmearingMap()
  */
 void Detector::initFlatfieldMap()
 {
+	// Random number generation
 
+	mt19937 flatfieldGenerator(flatfieldSeed);
+	normal_distribution<double> flatfieldDistribution(0.0, 1.0);
+
+	// Create a square map, filled with zeroes, in which the whole sub-field fits
+	// at pixel level and for which the dimensions are a power of 2
+
+	unsigned int dimensionPowerOf2 = 2;
+	unsigned int maxSubFieldDimension = max(numRowsSubField,
+			numColumnsSubField);
+
+	while (dimensionPowerOf2 <= maxSubFieldDimension)
+	{
+		dimensionPowerOf2 *= 2;
+	}
+
+	double** flatFieldMapPowerOf2Dimensions = new double*[dimensionPowerOf2];
+
+	for (unsigned int row = 0; row < dimensionPowerOf2; row++)
+	{
+		flatFieldMapPowerOf2Dimensions[row] = new double[dimensionPowerOf2];
+
+		for (unsigned int column = 0; column < dimensionPowerOf2; column++)
+		{
+			flatFieldMapPowerOf2Dimensions[row][column] = 0.0;
+		}
+	}
+
+	// Add variations at all spatial frequencies
+	// Recursive process (base case: n = dimension of the map / 2)
+	//		- add the same (random) value to pixels in the same (n,n) block
+	//		- n /= 2
+	//		- continue as long as n > 2
+
+	unsigned int numBlocks = 2;
+	double variation;
+
+	// Loop over all block sizes: dimensionPowerOf2 / 2, dimensionPowerOf2 / 4,
+	// dimensionPowerOf2 / 8,..., 2
+
+	for (unsigned int blockSize = dimensionPowerOf2 / 2; blockSize >= 2;
+			blockSize /= 2)
+	{
+		// Loop over all blocks of the current size
+
+		for (unsigned int blockRow = 0; blockRow < numBlocks; blockRow++)
+		{
+			for (unsigned int blockColumn = 0; blockColumn < numBlocks;
+					blockColumn++)
+			{
+				variation = flatfieldDistribution(flatfieldGenerator);
+
+				for (unsigned row = blockRow * blockSize;
+						blockRow < (blockRow + 1) * blockSize; row++)
+				{
+					for (unsigned column = blockColumn * blockSize;
+							column < (blockColumn + 1) * blockSize; column++)
+					{
+						flatFieldMapPowerOf2Dimensions[row][column] +=
+								variation;
+					}
+				}
+			}
+		}
+
+		numBlocks *= 2;
+	}
+
+	// Normalise and subtract 0.5 -> [-0.5, 0.5]
+	// Multiply by peak-to-peak noise amplitude
+
+	double minValue = std::numeric_limits<double>::max();
+	double maxValue = -std::numeric_limits<double>::max();
+
+	for (unsigned int row = 0; row < dimensionPowerOf2; row++)
+	{
+		for (unsigned int column = 0; column < dimensionPowerOf2; column++)
+		{
+			minValue = std::min(minValue,
+					flatFieldMapPowerOf2Dimensions[row][column]);// Look for the minimum value
+			maxValue = std::max(maxValue,
+					flatFieldMapPowerOf2Dimensions[row][column]);// Look for the maximum value
+		}
+	}
+
+	for (unsigned int row = 0; row < dimensionPowerOf2; row++)
+	{
+		for (unsigned int column = 0; column < dimensionPowerOf2; column++)
+		{
+			flatFieldMapPowerOf2Dimensions[row][column] =
+					((flatFieldMapPowerOf2Dimensions[row][column] - minValue)
+							/ maxValue - 0.5)
+							/ flatfieldPeak2PeakNoiseAmplitude;
+		}
+	}
+
+	// Allocate memory for the flatfield map (at sub-pixel level)
+
+	unsigned int numRowsFlatfieldMap = numSubPixelsPerPixel * numRowsSubField;
+	unsigned int numColumnsFlatfieldMap = numSubPixelsPerPixel
+			* numColumnsSubField;
+
+	flatfieldMap = new double*[numRowsFlatfieldMap];
+
+	for (unsigned int row = 0; row < numRowsFlatfieldMap; row++)
+	{
+		flatfieldMap[row] = new double[numColumnsFlatfieldMap];
+
+		for (unsigned int column = 0; column < numColumnsFlatfieldMap; column++)
+		{
+			flatfieldMap[row][column] = 0.0;
+		}
+	}
+
+	// The central part of the pixels has a sensitivity loss of less than 5%
+
+	unsigned int edge = (int) ceil(
+			numSubPixelsPerPixel * flatfieldIntraPixelWidth / 100.);
+
+	int flatfieldRow, flatfieldColumn;
+
+	// Loop over all pixels
+
+	for (unsigned int pixelRow = 0; pixelRow < numRowsSubField; pixelRow++)
+	{
+		for (unsigned int pixelColumn = 0; pixelColumn < numColumnsSubField;
+				pixelColumn++)
+		{
+			// Loop over all sub-pixels in the current pixel
+
+			for (unsigned int row = 0; row < numSubPixelsPerPixel; row++)
+			{
+				for (unsigned int column = 0; column < numSubPixelsPerPixel;
+						column++)
+				{
+					flatfieldRow = (pixelRow * numSubPixelsPerPixel) + row;
+					flatfieldColumn = (pixelColumn * numSubPixelsPerPixel)
+							+ column;
+
+					// Edge: sensitivity loss of 5%
+
+					if ((row < edge) || (column < edge)
+							|| (column >= numSubPixelsPerPixel - edge)
+							|| (row >= numSubPixelsPerPixel - edge))
+					{
+						flatfieldMap[flatfieldRow][flatfieldColumn] =
+								(1
+										+ flatFieldMapPowerOf2Dimensions[pixelRow][pixelColumn]
+										+ flatfieldDistribution(
+												flatfieldGenerator)
+												* flatfieldWhiteNoise)
+										* intraPixelSensitivity;
+					}
+
+					// Central part: no sensitivity loss
+
+					else
+					{
+						flatfieldMap[flatfieldRow][flatfieldColumn] =
+								(1
+										+ flatFieldMapPowerOf2Dimensions[pixelRow][pixelColumn]
+										+ flatfieldDistribution(
+												flatfieldGenerator)
+												* flatfieldWhiteNoise);
+					}
+				}
+			}
+		}
+	}
 }
 
 
