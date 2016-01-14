@@ -26,6 +26,14 @@ cmake_minimum_required(VERSION 2.8)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/hdf5-1.8.16/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/googletest/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/yaml-cpp/include)
+
+
+# Specify the location of the dependency libraries
+
+link_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/googletest/lib)
+link_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/yaml-cpp/lib)
 
 
 # Specify the simulator source files to be compiled
@@ -40,11 +48,12 @@ list(REMOVE_ITEM sourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/camera.cpp
                              ${CMAKE_CURRENT_SOURCE_DIR}/source/hdf5writer.cpp
                              ${CMAKE_CURRENT_SOURCE_DIR}/source/telescope.cpp
                              ${CMAKE_CURRENT_SOURCE_DIR}/source/timeticker.cpp)
+
 message(${sourceFiles})
 
 # Specify the simulator unittest files to be compiled
 
-#file(GLOB unitTestFiles ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
+file(GLOB unitTestFiles ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
 
 
 # Set the compiler flags
@@ -63,7 +72,7 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 endif()
 
-
+#add_definitions(-std=c++11 -stdlib=libc++ -Wno-deprecated-register)
 
 # Create the platosim shared library
 
@@ -77,12 +86,18 @@ add_executable(platosim ${CMAKE_CURRENT_SOURCE_DIR}/source/main.cpp)
 
 # Create the testplatosim executable
 
-#add_executable(testplatosim ${unitTestFiles})
+add_executable(testplatosim ${unitTestFiles})
 
 
 # Install the library in the lib/ folder
 
 install(TARGETS platosimlib LIBRARY DESTINATION ${CMAKE_SOURCE_DIR}/lib)
+
+
+# Link the PlatoSim against its dependent libraries
+
+target_link_libraries(platosimlib yaml-cpp)
+
 
 
 # Link the platosim executable with the PlatoSim library
@@ -92,7 +107,7 @@ target_link_libraries(platosim platosimlib)
 
 # Link the testplatosim executable with the PlatoSim library
 
-#target_link_libraries(testplatosim platosimlib)
+target_link_libraries(testplatosim platosimlib gtest gtest_main)
 
 
 
