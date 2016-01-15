@@ -4,6 +4,7 @@
 
 #include <string>
 #include <cmath>
+#include <random>
 
 using namespace std;
 
@@ -18,6 +19,13 @@ class Detector
         virtual void takeExposure(double startTime, double exposureTime);
 
     protected:
+
+        void initSubPixelMap();
+        void initPixelMap();
+        void initBiasMap();
+        void initSmearingMap();
+        void initFlatfieldMap();
+        void initCteMap();
 
         virtual void reset();
     
@@ -45,8 +53,6 @@ class Detector
     	virtual void applyGain();
     	virtual void addElectronicOffset();	// Bias
     	virtual void applyDigitalSaturation();
-    
-
 
         // Detector specific information
 
@@ -66,22 +72,29 @@ class Detector
 
     	// Sub-field specific information
 
-    	double subFieldZeroPointRow;	       // Position of the sub-field zeropoint w.r.t. the complete detector in the row direction [pixels]
-    	double subFieldZeroPointColumn;	       // Position of the sub-field zeropoint w.r.t. the complete detector in the column direction [pixels]
-    	int numRowsSubField;	               // Number of rows in the sub-field at pixel level and excl. edge pixels (i.e. dimension in the y-direction) [pixels]
-    	int numColumnsSubField;	               // Number of columns in the sub-field at pixel level and excl. edge pixels  (i.e. dimension in the x-direction = readout direction) [pixels]
-    	int numSubPixelsPerPixel;	           // Number of sub-pixels per pixel
-    	int numEdgePixels;                     // Number of pixels to extend the sub-field on each side, to account for the edge effect
+    	unsigned int subFieldZeroPointRow;	       	   // Position of the sub-field zeropoint w.r.t. the complete detector in the row direction [pixels]
+    	unsigned int subFieldZeroPointColumn;	       // Position of the sub-field zeropoint w.r.t. the complete detector in the column direction [pixels]
+    	unsigned int numRowsSubField;	       // Number of rows in the sub-field at pixel level and excl. edge pixels (i.e. dimension in the y-direction) [pixels]
+    	unsigned int numColumnsSubField;	   // Number of columns in the sub-field at pixel level and excl. edge pixels  (i.e. dimension in the x-direction = readout direction) [pixels]
+    	unsigned int numSubPixelsPerPixel;	   // Number of sub-pixels per pixel
+    	unsigned int numEdgePixels;            // Number of pixels to extend the sub-field on each side, to account for the edge effect
 
 
     	// Sub-pixel map and its dimensions
 
     	double **subPixelMap;	               // Sub-pixel map, incl. edge pixels
 
-    	int numRowsSubPixelMap;	               // Number of rows in the sub-field at sub-pixel level and incl. edge pixels (i.e. dimensions in the y-direction) [sub-pixels]
-    	int numColumnsSubPixelMap;	           // Number of columns in the sub-field at sub-pixel level and incl. edge pixels (i.e. dimension in the x-direction = readout direction) [sub-pixels]
+    	unsigned int numRowsSubPixelMap;	   // Number of rows in the sub-field at sub-pixel level and incl. edge pixels (i.e. dimensions in the y-direction) [sub-pixels]
+    	unsigned int numColumnsSubPixelMap;	   // Number of columns in the sub-field at sub-pixel level and incl. edge pixels (i.e. dimension in the x-direction = readout direction) [sub-pixels]
 
 
+    	double flatfieldPeak2PeakNoiseAmplitude;
+    	double flatfieldWhiteNoise;
+    	double flatfieldIntraPixelWidth;
+    	// The input parameter flatfieldIntraPixelWidth is defined as the
+    	//  flatfield intrapixel-width at edge of pixel with 5% lower sensitivity [% of pixel size, rounded up]
+
+    	const double intraPixelSensitivity = 0.95;	// The input parameter flatfieldIntraPixelWidth is defined as the flatfield intra-pixel width at edge of pixel with 5% lower sensitivity [% of pixel size, rounded up]
 
 
     	double **smearingMap;	               // Smearing map (i.e. over-scan strip)
@@ -110,14 +123,21 @@ class Detector
 
     	// Seeds for random generation
 
+    	double flatfieldSeed;
     	double readoutNoiseSeed;
     	double photonNoiseSeed;
-    	double flatfieldSeed;
     	double cteMapSeedRow;
     	double cteMapSeedColumn;
 
+    	// Random number generator
 
+    	mt19937 photonNoiseGenerator;
+    	mt19937 readoutNoiseGenerator;
 
+    	// Distributions
+
+    	poisson_distribution<int> photonNoiseDistribution;
+    	normal_distribution<double> readoutNoiseDistribution;
 
 
         double internalTime;
