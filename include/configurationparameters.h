@@ -4,26 +4,27 @@
 #include <string>
 #include <list>
 
-#include "ConfigurationFormat.h"
+#include "yaml-cpp/yaml.h"
 
+using namespace std;
 
 class ConfigurationParameters
 {
 public:
     ConfigurationParameters();
     ConfigurationParameters(const char*);
-    ConfigurationParameters(const std::string &);
+    ConfigurationParameters(const string &);
     ~ConfigurationParameters();
 
-    // ConfigurationParameters getGroup(const std::string &);
-
-    int getInteger(const std::string &);
-    double getDouble(const std::string &);
-    std::string getString(const std::string &);
+    bool getBoolean(const string &);
+    int getInteger(const string &);
+    double getDouble(const string &);
+    string getString(const string &);
+    string getProjectFileName(const string &);
 
 private:
-    ConfigurationFormat *format;
-    std::string filename;
+    string filename;
+    YAML::Node config;
 };
 
 
