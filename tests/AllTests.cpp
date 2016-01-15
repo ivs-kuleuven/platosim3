@@ -10,6 +10,7 @@
 // Include all the tests here
 
 #include "GTestConfigurationParameters.h"
+#include "GTestFileUtilities.h"
 
 
 int main(int argc, char **argv) {
