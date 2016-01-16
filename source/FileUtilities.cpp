@@ -1,11 +1,11 @@
 #include "FileUtilities.h"
 
 /**
- * PURPOSE: Check if a file exists
+ * @brief      Check if a file exists
  * 
- * INPUTS:  filename
+ * @param[in]  filename
  * 
- * OUTPUTS: return true if and only if the file exists, false otherwise
+ * @returns    true if and only if the file exists, false otherwise
  */
 bool FileUtilities::fileExists(const string &filename) {
     ifstream fin(filename);
@@ -16,12 +16,15 @@ bool FileUtilities::fileExists(const string &filename) {
 
 
 /**
- * PURPOSE: Check if a path is relative or absolute. An absolute path starts 
- *          with a '/' character, otherwise the path is considered relative.
+ * @brief      Check if a path is relative or absolute.
+ * 
+ * @details
+ * 
+ * An absolute path starts with a '/' character, otherwise the path is considered relative.
  *
- * INPUTS:  path a path name
+ * @param[in]  path a path name
  *
- * OUTPUTS: true if path is relative, false otherwise
+ * @returns    true if path is relative, false otherwise
  */
 bool FileUtilities::isRelative(const string &path) {
     if (path[0] == '/')
