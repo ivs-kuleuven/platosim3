@@ -15,9 +15,16 @@ bool FileUtilities::fileExists(const string &filename) {
 
 
 
-
-bool FileUtilities::isRelative(const string &filename) {
-    if (filename[0] == '/')
+/**
+ * PURPOSE: Check if a path is relative or absolute. An absolute path starts 
+ *          with a '/' character, otherwise the path is considered relative.
+ *
+ * INPUTS:  path a path name
+ *
+ * OUTPUTS: true if path is relative, false otherwise
+ */
+bool FileUtilities::isRelative(const string &path) {
+    if (path[0] == '/')
     {
         return false;
     }
