@@ -1,9 +1,37 @@
-//
-//  StringUtilities.cpp
-//  New PLATO Simulator
-//
-//  Created by Rik Huygen on 27/11/15.
-//  Copyright © 2015 KU Leuven. All rights reserved.
-//
-
 #include "StringUtilities.h"
+
+
+bool StringUtilities::ends_with(string const & value, string const & ending)
+{
+    if (ending.size() > value.size())
+        return false;
+    return equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
+
+
+
+
+vector<string> StringUtilities::split(string myString, char delimiter)
+{
+   vector<string> parts;
+   string part;
+
+   istringstream myStream(myString);
+   while(getline(myStream, part, delimiter)) 
+   {
+      parts.push_back(part);
+   }
+
+  return parts;
+}
+
+
+
+
+
+void StringUtilities::print( std::vector <std::string> & vector )
+{
+    for (size_t n = 0; n < vector.size(); n++)
+        std::cout << "\"" << vector[ n ] << "\"" << std::endl;
+    std::cout << std::endl;
+}
