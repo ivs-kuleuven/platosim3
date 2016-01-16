@@ -9,13 +9,15 @@
 
 using namespace std;
 
+
+
 ConfigurationParameters::ConfigurationParameters() {}
 
 ConfigurationParameters::ConfigurationParameters(const char* name) : ConfigurationParameters::ConfigurationParameters(string(name)) {}
 
 ConfigurationParameters::ConfigurationParameters(const string &name)
 {
-    if ( ! FileUtilities::fileExists(name))
+    if ( ! FileUtilities::fileExists(name) )
     {
         Log.warning("Error: Filename \"" + name + "\" does not exist.");
         throw IOException("File passed as an argument to ConfigurationParameters does not exist.");
@@ -30,11 +32,16 @@ ConfigurationParameters::ConfigurationParameters(const string &name)
 
 
 
+/**
+ * PURPOSE: Return the boolean value for the specified parameter.
+ *
+ * INPUTS:  key: The name of a parameter used in the PLATO Simulator
+ *
+ * OUTPUTS: A boolean value for the given parameter
+ */
 bool ConfigurationParameters::getBoolean(const string &key)
 {
-    vector<string> fields;
-
-    split(fields, key, "/", split::no_empties);
+    vector<string> fields = StringUtilities::split(key, '/');
 
     if (fields.size() > 1)
     {
@@ -52,11 +59,16 @@ bool ConfigurationParameters::getBoolean(const string &key)
 
 
 
+/**
+ * PURPOSE: Return the integer value for the specified parameter.
+ *
+ * INPUTS:  key: The name of a parameter used in the PLATO Simulator
+ *
+ * OUTPUTS: An integer value for the given parameter
+ */
 int ConfigurationParameters::getInteger(const string &key)
 {
-    vector<string> fields;
-
-    split(fields, key, "/", split::no_empties);
+    vector<string> fields = StringUtilities::split(key, '/');
 
     if (fields.size() > 1)
     {
@@ -74,11 +86,16 @@ int ConfigurationParameters::getInteger(const string &key)
 
 
 
+/**
+ * PURPOSE: Return the double value for the specified parameter.
+ *
+ * INPUTS:  key: The name of a parameter used in the PLATO Simulator
+ *
+ * OUTPUTS: A double value for the given parameter
+ */
 double ConfigurationParameters::getDouble(const string &key)
 {
-    vector<string> fields;
-
-    split(fields, key, "/", split::no_empties);
+    vector<string> fields = StringUtilities::StringUtilities::StringUtilities::split(key, '/');
 
     if (fields.size() > 1)
     {
@@ -97,17 +114,15 @@ double ConfigurationParameters::getDouble(const string &key)
 
 
 /**
- * PURPOSE: Return the string value for the specified parameter
+ * PURPOSE: Return the string value for the specified parameter.
  *
- * INPUTS:  parameterName The name of a parameter used in the PLATO Simulator
+ * INPUTS:  key: The name of a parameter used in the PLATO Simulator
  *
  * OUTPUTS: A string value for the given parameter
  */
 string ConfigurationParameters::getString(const string &key) 
 {
-    vector<string> fields;
-
-    split(fields, key, "/", split::no_empties);
+    vector<string> fields = StringUtilities::StringUtilities::split(key, '/');
 
     if (fields.size() > 1)
     {
@@ -126,18 +141,19 @@ string ConfigurationParameters::getString(const string &key)
 
 
 /**
- * PURPOSE: Return the string value for the specified parameter
+ * PURPOSE: Return the absolute filename for the given parameter. When the parameter contains an
+ *          absolute filename, that value is returned. If the parameter contains a relative path,
+ *          the filename is constructed from the General/ProjectLocation and the relative filename
+ *          of the parameter.
  *
- * INPUTS:  parameterName The name of a parameter used in the PLATO Simulator
+ * INPUTS:  key: The name of a parameter used in the PLATO Simulator
  *
- * OUTPUTS: A string value for the given parameter
+ * OUTPUTS: An absolute filename
  */
-string ConfigurationParameters::getProjectFileName(const string &key) 
+string ConfigurationParameters::getAbsoluteFileName(const string &key) 
 {
     string filename;
-    vector<string> fields;
-
-    split(fields, key, "/", split::no_empties);
+    vector<string> fields = StringUtilities::split(key, '/');
 
     if (fields.size() > 1)
     {

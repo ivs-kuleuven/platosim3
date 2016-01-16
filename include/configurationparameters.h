@@ -20,7 +20,7 @@ public:
     int getInteger(const string &);
     double getDouble(const string &);
     string getString(const string &);
-    string getProjectFileName(const string &);
+    string getAbsoluteFileName(const string &);
 
 private:
     string filename;
