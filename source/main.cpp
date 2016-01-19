@@ -32,7 +32,7 @@ int main(int Narguments, char* arguments[])
     ofstream logFile("log.txt");
     Log.addOutputStream(cerr,    WARNING | ERROR);
     Log.addOutputStream(logFile, WARNING | ERROR | DEBUG | INFO);
-    Log.info("Log file: warning | error | debug | info");
+    Log.info("Main: Log file includes 'warning', 'error', 'debug', and 'info'");
 
 
     // Initialise the simulation, and loop over all exposures using run()

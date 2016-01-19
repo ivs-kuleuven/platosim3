@@ -80,12 +80,16 @@ void HDF5File::open(string filename, bool overwrite)
         {
             // Open file, and erase (truncate) all data previously stored in the file
 
+            Log.warning("HDF5File: opening existing HDF5 file, and erasing previous contents.");
+
             file = new H5::H5File(filename.c_str(), H5F_ACC_TRUNC);
         }
         else
         {
             // Open existing file for read/write.
             // Conserve the data previously stored in the file.
+
+            Log.warning("HDF5File: opening existing HDF5 file, for appending.");
 
             file = new H5::H5File(filename.c_str(), H5F_ACC_RDWR);
         }

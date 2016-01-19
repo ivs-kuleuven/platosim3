@@ -114,11 +114,22 @@ void Detector::takeExposure(double startTime, double exposureTime)
 
 	// Integration of point sources and background, taking into account jitter + drift.
 
+	Log.debug("Detector: Integrating light for exposure " + to_string(imageNr));
+	
 	integrateLight(startTime, exposureTime);
 
-	// Readout: convolution with PSF + noise effects
+	// Include noise effects like readout noise, photon noise, full well saturation, etc.
 
+	Log.debug("Detector: Adding noise effects to exposure " + to_string(imageNr));
+	
 	readOut(exposureTime);
+
+	// Write the CCD subfield to the HDF5 file
+
+	Log.debug("Detector: Writing PixelMap " + to_string(imageNr) + " to HDF5 file.");
+
+	writePixelMapToHDF5();
+
 }
 
 
@@ -162,6 +173,8 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 	// Reset the sub-field (i.e. get rid of the previous exposure, by zeroing the entire sub-field)
 
+	Log.debug("Detector: Resetting subfield array.");
+
 	reset();
 
 	// Integration (incl. jitter) + background
@@ -170,9 +183,13 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 	// Apply flatfield (at sub-pixel level)
 
+	Log.debug("Detector: applying flatfield.");
+
 	applyFlatfield();
 
 	// Rebin
+
+	Log.debug("Detector: Rebinning subpixel map into pixel map.");
 
 	rebin();
 }
