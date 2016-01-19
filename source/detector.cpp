@@ -8,7 +8,8 @@
  * @param camera:                  Camera to which to attach the detector.
  */
 
-Detector::Detector()
+Detector::Detector(HDF5File &hdf5file)
+: HDF5Writer(hdf5file)
 {
 
 	// Parse the parameters from the configuration file
@@ -1086,3 +1087,29 @@ void Detector::applyDigitalSaturation()
 		}
 	}
 }
+
+
+
+
+
+
+
+// Detector::initHDF5Groups()
+// 
+// PURPOSE: The detector class has its own group(s) in the HDF5 file where it writes
+//          information. These groups have to be created once, at the very beginning.
+//
+
+void Detector::initHDF5Groups()
+{
+	hdf5File.createGroup("/Images");
+	hdf5File.createGroup("/BiasMaps");
+	hdf5File.createGroup("/SmearingMaps");
+}
+
+
+
+
+
+
+

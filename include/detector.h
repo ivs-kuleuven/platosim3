@@ -4,15 +4,17 @@
 
 #include <string>
 #include <cmath>
+#include "hdf5file.h"
+#include "hdf5writer.h"
 
 using namespace std;
 
 
-class Detector
+class Detector : public HDF5Writer
 {
     public:
 
-        Detector();
+        Detector(HDF5File &hdf5File);
         virtual ~Detector();
 
         virtual void takeExposure(double startTime, double exposureTime);
@@ -21,21 +23,14 @@ class Detector
 
         virtual void reset();
     
-        // Integrate light
-
         virtual void integrateLight(double startTime, double exposureTime);
-
         virtual void addFlux(double xCoords, double yCoords, double flux);
         virtual bool isInSubPixelMap(double row, double column);
         virtual void addFlux(double flux);
-
         virtual void applyFlatfield();
         virtual void rebin();
-
-        // Read out
-
+        
         virtual void readOut(double exposureTime);
-
         virtual void applyQuantumEfficiency();
     	virtual void addPhotonNoise();
     	virtual void applyFullWellSaturation();
@@ -43,9 +38,11 @@ class Detector
     	virtual void applyOpenShutterSmearing();
     	virtual void addReadoutNoise();
     	virtual void applyGain();
-    	virtual void addElectronicOffset();	// Bias
+    	virtual void addElectronicOffset();	   // Bias
     	virtual void applyDigitalSaturation();
     
+        virtual void initHDF5Groups() override;
+
 
 
         // Detector specific information
@@ -115,10 +112,6 @@ class Detector
     	double flatfieldSeed;
     	double cteMapSeedRow;
     	double cteMapSeedColumn;
-
-
-
-
 
         double internalTime;
 
