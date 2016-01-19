@@ -9,7 +9,7 @@
  */
 
 Detector::Detector(HDF5File &hdf5file)
-: HDF5Writer(hdf5file)
+: HDF5Writer(hdf5file), imageNr(0)
 {
 
 	// Parse the parameters from the configuration file
