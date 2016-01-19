@@ -45,6 +45,8 @@ class Detector : public HDF5Writer
     
         virtual void initHDF5Groups() override;
 
+        void writePixelMapToHDF5();
+
 
 
         // Detector specific information
@@ -119,6 +121,8 @@ class Detector : public HDF5Writer
 
 
     private:
+
+        int imageNr;
 
 };
 

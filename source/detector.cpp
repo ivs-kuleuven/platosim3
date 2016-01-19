@@ -918,3 +918,21 @@ void Detector::initHDF5Groups()
 
 
 
+
+// Detector::writePixelMapToHDF5()
+// 
+
+void Detector::writePixelMapToHDF5()
+{
+	stringstream myStream;
+    myStream << "image" << setfill('0') << setw(6) << imageNr;    
+    string imageName = myStream.str();
+
+    // Add the image to the "Images" group
+
+    hdf5File.writeArray("/Images", imageName, pixelMap);
+
+    // Increment the counter for the next image
+
+    imageNr++;
+}
