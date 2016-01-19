@@ -58,10 +58,11 @@ class Logger
 };
 
 
+// The Logger object is defined in main.cpp
+// Every file including this header should know that the Logger
+// is externally defined.
 
-// Finally, create a static Logger object
-
-static Logger Log;
+extern Logger Log;
 
 
 #endif
