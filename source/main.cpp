@@ -9,6 +9,8 @@
 using namespace std;
 
 
+Logger Log;
+
 
 int main(int Narguments, char* arguments[])
 {
