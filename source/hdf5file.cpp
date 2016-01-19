@@ -790,7 +790,7 @@ void HDF5File::writeArray(string groupName, string arrayName, double* array, int
 
 
 
-// HDF5File::writeArray()  for 2D double armadillo arrays
+// HDF5File::writeArray()  for 2D float armadillo arrays
 //
 // PURPOSE: write a 2D armadillo array to a specified group in the HDF5 file.
 //
@@ -800,9 +800,16 @@ void HDF5File::writeArray(string groupName, string arrayName, double* array, int
 //
 // OUTPUT: None
 
-void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<double>& A)
+void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<float>& A)
 {
- 
+    // Sanity check on the shape of the array
+
+    if ((A.n_rows == 0) && (A.n_cols == 0))
+    {
+        Log.error("HDF5File::writeArray(): encountered array with shape (0,0)");
+        exit(1);
+    }
+
     // Create a DataSpace defining the shape and type of the data 
 
     unsigned int Ndimensions = 2;
@@ -842,11 +849,11 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<double>&
 
     // Inside the Images group, make room for the image array
 
-    H5::DataSet arrayDataset = file->createDataSet(arrayPath.c_str(), H5::PredType::NATIVE_DOUBLE, arraySpace);
+    H5::DataSet arrayDataset = file->createDataSet(arrayPath.c_str(), H5::PredType::NATIVE_FLOAT, arraySpace);
 
     // Copy the data from our image into the HDF5 file
 
-    arrayDataset.write(A.memptr(), H5::PredType::NATIVE_DOUBLE);
+    arrayDataset.write(A.memptr(), H5::PredType::NATIVE_FLOAT);
 
 
     // That's it
@@ -863,7 +870,7 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<double>&
 
 
 
-// HDF5File::readArray() for 2D double armadillo arrays
+// HDF5File::readArray() for 2D float armadillo arrays
 //
 // PURPOSE: read a 2D array from a specified group in the HDF5 file into an
 //          armadillo array.
@@ -874,7 +881,7 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<double>&
 //
 // OUTPUT: None
 
-void HDF5File::readArray(string groupName, string arrayName, arma::Mat<double>& A)
+void HDF5File::readArray(string groupName, string arrayName, arma::Mat<float>& A)
 {
     // Construct the path of the dataset in the HDF5 file
 
@@ -915,7 +922,7 @@ void HDF5File::readArray(string groupName, string arrayName, arma::Mat<double>& 
 
     // Read the HDF5 dataset into the array
 
-    dataset.read(A.memptr(), H5::PredType::NATIVE_DOUBLE);
+    dataset.read(A.memptr(), H5::PredType::NATIVE_FLOAT);
 
     // That's it
 

@@ -36,10 +36,10 @@ class HDF5File
         void writeArray(string groupName, string arrayName, int*    array, int size);
         void writeArray(string groupName, string arrayName, float*  array, int size);
         void writeArray(string groupName, string arrayName, double* array, int size);
-        void writeArray(string groupName, string arrayName, arma::Mat<double>& A);
+        void writeArray(string groupName, string arrayName, arma::Mat<float>& A);
 
 
-        void readArray(string groupName, string arrayName, arma::Mat<double>& A);
+        void readArray(string groupName, string arrayName, arma::Mat<float>& A);
 
 
     protected:

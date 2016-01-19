@@ -49,7 +49,7 @@ class Detector : public HDF5Writer
 
         // Detector specific information
 
-        arma::Mat<double> pixelMap;            // Pixel map, excl. edge pixels
+        arma::Mat<float> pixelMap;            // Pixel map, excl. edge pixels
 
         unsigned int numRows;                  // Number of rows of the detector (i.e. dimension in the y-direction) [pixels]
     	unsigned int numColumns;               // Number of columns of the detector (i.e. dimension in the x-direction = readout direction) [pixels]
@@ -75,7 +75,7 @@ class Detector : public HDF5Writer
 
     	// Sub-pixel map and its dimensions
 
-    	arma::Mat<double> subPixelMap;	       // Sub-pixel map, incl. edge pixels
+    	arma::Mat<float> subPixelMap;	       // Sub-pixel map, incl. edge pixels
 
     	int numRowsSubPixelMap;	               // Number of rows in the sub-field at sub-pixel level and incl. edge pixels (i.e. dimensions in the y-direction) [sub-pixels]
     	int numColumnsSubPixelMap;	           // Number of columns in the sub-field at sub-pixel level and incl. edge pixels (i.e. dimension in the x-direction = readout direction) [sub-pixels]
@@ -83,10 +83,10 @@ class Detector : public HDF5Writer
 
 
 
-    	arma::Mat<double> smearingMap;	       // Smearing map (i.e. over-scan strip)
-    	arma::Mat<double> biasMap;	           // Bias map (i.e. pre-scan strip)
-    	arma::Mat<double> cteMap;	           // CTE map
-    	arma::Mat<double> flatfieldMap;	       // Flatfield map
+    	arma::Mat<float> smearingMap;	       // Smearing map (i.e. over-scan strip)
+    	arma::Mat<float> biasMap;	           // Bias map (i.e. pre-scan strip)
+    	arma::Mat<float> cteMap;	           // CTE map
+    	arma::Mat<float> flatfieldMap;	       // Flatfield map
 
     	double quantumEfficiency;	           // Quantum efficiency (in [0,1])
 
