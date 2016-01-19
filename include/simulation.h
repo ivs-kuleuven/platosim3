@@ -2,6 +2,7 @@
 #define CONTROLLER_H
 
 #include <string>
+#include "hdf5file.h"
 #include "detector.h"
 //#include "camera.h"
 //#include "telescope.h"
@@ -17,7 +18,7 @@ class Simulation
 {
     public:
 
-        Simulation(string inputFileName);
+        Simulation(string inputFileName, string outputFileName);
         ~Simulation();
         virtual void run(double startingTime = 0.0);
 
@@ -36,6 +37,9 @@ class Simulation
         //Telescope *telescope;
         //Platform  *platform;
         //Sky       *sky;
+
+        HDF5File hdf5File;
+
 };
 
 

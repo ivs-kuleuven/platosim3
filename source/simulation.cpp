@@ -4,21 +4,23 @@
 
 // Constructor
 
-Simulation::Simulation(string inputFileName)
+Simulation::Simulation(string inputFileName, string outputFileName)
 {
     // Parse inputfile, get ConfigursationParameters objects
 
 
+    hdf5File.open(outputFileName);
+
     // Initialise the spacecraft components
 
-    detector   = new Detector();
+    detector   = new Detector(hdf5File);
     //camera     = new Camera(cameraConfigurationParameters);
     //telescope  = new Telescope(telescopeConfigurationParameters);
     //platform   = new Platform(platformConfigurationParameters);
     //sky        = new Sky(skyConfigurationParameters);
 
     Nexposures = 3;        // hardcoded for the moment
-    exposureTime = 22.0;   // hard-coded for the moment
+    exposureTime = 22.0;   // hardcoded for the moment
 }
 
 
@@ -35,6 +37,8 @@ Simulation::~Simulation()
     //delete telescope;
     //delete platform;
     //delete sky;
+
+    hdf5File.close();
 }
 
 
