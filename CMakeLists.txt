@@ -26,6 +26,10 @@ cmake_minimum_required(VERSION 2.8)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/hdf5-1.8.16/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/armadillo-6.400.3/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/yaml-cpp/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/googletest/include)
+
 
 
 # Specify the simulator source files to be compiled
