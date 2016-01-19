@@ -2,6 +2,7 @@
 #define CONTROLLER_H
 
 #include <string>
+#include "logger.h"
 #include "hdf5file.h"
 #include "detector.h"
 //#include "camera.h"
@@ -12,6 +13,7 @@
 
 
 using namespace std;
+
 
 
 class Simulation

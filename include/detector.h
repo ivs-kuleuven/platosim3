@@ -4,10 +4,12 @@
 
 #include <string>
 #include <cmath>
+#include "logger.h"
 #include "hdf5file.h"
 #include "hdf5writer.h"
 
 using namespace std;
+
 
 
 class Detector : public HDF5Writer

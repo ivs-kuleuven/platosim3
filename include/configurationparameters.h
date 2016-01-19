@@ -4,10 +4,10 @@
 
 #include <string>
 #include <fstream>
-
-
+#include "logger.h"
 
 using namespace std;
+
 
 
 class ConfigurationParameters

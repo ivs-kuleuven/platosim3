@@ -2,12 +2,16 @@
 #define TELESCOPE_H
 
 #include <string>
+#include "logger.h"
 #include "timeticker.h"
 #include "hdf5writer.h"
 #include "platform.h"
 #include "configurationparameters.h"
 
 using namespace std;
+
+
+
 
 class Telescope  : public TimeTicker, Hdf5Writer
 {
