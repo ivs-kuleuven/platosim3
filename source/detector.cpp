@@ -236,20 +236,17 @@ void Detector::addFlux(double rowFocalPlane, double columnFocalPlane, double flu
 
 	// Detector orientation (pixel level)
 
-	double column = columnOffset * cos(orientationAngle)
-			- rowOffset * sin(orientationAngle);
-	double row = columnOffset * sin(orientationAngle)
-			+ rowOffset * cos(orientationAngle);
+	double column = columnOffset * cos(orientationAngle) - rowOffset * sin(orientationAngle);
+	double row    = columnOffset * sin(orientationAngle) + rowOffset * cos(orientationAngle);
 
 	// Sub-field incl. edge pixels (also correct for sub-field zeropoint)
 
-	column = (column - subFieldZeroPointColumn + numEdgePixels)
-			* numSubPixelsPerPixel;
-	row = (row - subFieldZeroPointRow + numEdgePixels) * numSubPixelsPerPixel;
+	column = (column - subFieldZeroPointColumn + numEdgePixels) * numSubPixelsPerPixel;
+	row    = (row - subFieldZeroPointRow + numEdgePixels) * numSubPixelsPerPixel;
 
 	// Add flux in this->subPixelMap at (row, column)
 
-	if (this->isInSubPixelMap(row, column))
+	if (isInSubPixelMap(row, column))
 	{
 		subPixelMap((int) round(row), (int) round(column)) += flux;
 	}

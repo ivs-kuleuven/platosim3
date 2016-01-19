@@ -26,8 +26,6 @@ static LogLevel ERROR   = 8;
 static map<LogLevel, string> logLevelName{{DEBUG, "DEBUG"}, {INFO, "INFO"}, {WARNING, "WARNING"}, {ERROR, "ERROR"}};
 
 
-
-
 // Define the Logger class
 
 class Logger
