@@ -24,39 +24,9 @@ Detector::Detector(HDF5File &hdf5file)
 
 	// Allocate memory for the sub-pixel map
 
-	subPixelMap = new double*[numRowsSubPixelMap];
-
-	for (unsigned int row = 0; row < numRowsSubPixelMap; row++)
-	{
-		subPixelMap[row] = new double[numColumnsSubPixelMap];
-	}
-
-	// Allocate memory for the pixel map
-
-	pixelMap = new double*[numRowsSubField];
-
-	for(unsigned int row = 0; row < numRowsSubField; row++)
-	{
-		pixelMap[row] = new double[numColumnsSubField];
-	}
-
-	// Allocate memory for the bias register map
-
-	biasMap = new double*[numRowsBiasMap];
-
-	for(unsigned int row = 0; row < numRowsBiasMap; row++)
-	{
-		biasMap[row] = new double[numColumnsSubField];
-	}
-
-	// Allocate memory for the smearing map
-
-	smearingMap = new double*[numRowsSmearingMap];
-
-	for(unsigned int row = 0; row < numRowsSmearingMap; row++)
-	{
-		smearingMap[row] = new double[numColumnsSubField];
-	}
+	subPixelMap.zeros(numRowsSubPixelMap, numColumnsSubPixelMap);
+	biasMap.zeros(numRowsBiasMap, numColumnsSubField);
+	smearingMap.zeros(numRowsSmearingMap, numColumnsSubField);
 }
 
 
@@ -70,63 +40,11 @@ Detector::Detector(HDF5File &hdf5file)
 /**
  * Destructor.
  *
- * @post De-allocated memory of sub-field.
- * @post De-allocated memory of CTE map.
- * @post De-allocated memory of flatfield map.
- * @post De-allocated memory of bias register map.
- * @post De-allocated memory of smearing map.
  */
 
 Detector::~Detector()
 {
 
-	// De-allocate the sub-pixel map
-
-	for (unsigned int row = 0; row < numRowsSubPixelMap; row++)
-	{
-		delete[] subPixelMap[row];
-	}
-
-	delete[] subPixelMap;
-
-	// De-allocate the flatfield map
-
-	for (unsigned int row = 0; row < numRowsSubField * numSubPixelsPerPixel;
-			row++)
-	{
-		delete[] flatfieldMap[row];
-	}
-
-	delete[] flatfieldMap;
-
-	// De-allocate the pixel map and the CTE map
-
-	for (unsigned int row = 0; row < numRowsSubField; row++)
-	{
-		delete[] pixelMap[row];
-		delete[] cteMap[row];
-	}
-
-	delete[] pixelMap;
-	delete[] cteMap;
-
-	// De-allocate the bias register map
-
-	for (unsigned int row = 0; row < numRowsBiasMap; row++)
-	{
-		delete[] biasMap[row];
-	}
-
-	delete[] biasMap;
-
-	// De-allocate the smearing map
-
-	for (unsigned int row = 0; row < numRowsSmearingMap; row++)
-	{
-		delete[] smearingMap[row];
-	}
-
-	delete[] smearingMap;
 }
 
 
@@ -147,55 +65,16 @@ Detector::~Detector()
  *
  * @post Sub-pixel map filled with zeroes.
  * @post Pixel map filled with zeroes
- * @post Bias register map  filled with zeroes.
+ * @post Bias register map filled with zeroes.
  * @post Smearing map filled with zeroes.
  */
 
 void Detector::reset()
 {
-
-	// Set elements of sub-pixel map to zero
-
-	for (unsigned int row = 0; row < numRowsSubPixelMap; row++)
-	{
-		for (unsigned int column = 0; column < numColumnsSubPixelMap; column++)
-		{
-			subPixelMap[row][column] = 0.0;
-		}
-	}
-
-
-	// Set elements of pixel map to zero
-
-	for (unsigned int row = 0; row < numRows; row++)
-	{
-		for (unsigned int column = 0; column < numColumns; column++)
-		{
-			pixelMap[row][column] = 0.0;
-		}
-	}
-
-
-	// Set elements of bias map to zero
-
-	for (unsigned int row = 0; row < numRowsBiasMap; row++)
-	{
-		for (unsigned int column = 0; column < numColumnsSubField; column++)
-		{
-			biasMap[row][column] = 0.0;
-		}
-	}
-
-
-	// Set elements of smearing map to zero
-
-	for (unsigned int row = 0; row < numRowsSmearingMap; row++)
-	{
-		for (unsigned int column = 0; column < numColumnsSubField; column++)
-		{
-			smearingMap[row][column] = 0.0;
-		}
-	}
+	subPixelMap.zeros();
+	pixelMap.zeros();
+	biasMap.zeros();
+	smearingMap.zeros();
 }
 
 
@@ -329,8 +208,8 @@ void Detector::integrateLight(double startTime, double exposureTime)
  * @post Bias register map filled with zeroes.
  * @post Smearing map filled with zeroes.
  */
-void Detector::addFlux(double rowFocalPlane, double columnFocalPlane,
-		double flux)
+
+void Detector::addFlux(double rowFocalPlane, double columnFocalPlane, double flux)
 {
 
 	// Detector origin offset (pixel level)
@@ -355,7 +234,7 @@ void Detector::addFlux(double rowFocalPlane, double columnFocalPlane,
 
 	if (this->isInSubPixelMap(row, column))
 	{
-		subPixelMap[(int) round(row)][(int) round(column)] += flux;
+		subPixelMap((int) round(row), (int) round(column)) += flux;
 	}
 }
 
@@ -379,8 +258,7 @@ void Detector::addFlux(double rowFocalPlane, double columnFocalPlane,
 
 bool Detector::isInSubPixelMap(double row, double column)
 {
-	return (column >= 0) && (row >= 0) && (column < numColumnsSubPixelMap)
-			&& (row < numRowsSubPixelMap);
+	return (column >= 0) && (row >= 0) && (column < numColumnsSubPixelMap) && (row < numRowsSubPixelMap);
 }
 
 
@@ -413,13 +291,7 @@ bool Detector::isInSubPixelMap(double row, double column)
  */
 void Detector::addFlux(double flux)
 {
-	for (unsigned int row = 0; row < numRowsSubPixelMap; row++)
-	{
-		for (unsigned int column = 0; column < numColumnsSubPixelMap; column++)
-		{
-			subPixelMap[row][column] += flux;
-		}
-	}
+	subPixelMap += flux;
 }
 
 
@@ -453,15 +325,11 @@ void Detector::applyFlatfield()
 
 	// Loop over all elements in the sub-pixel map, except the edge pixels
 
-	for (unsigned int row = numEdgeSubPixels;
-			row < numRowsSubPixelMap - numEdgeSubPixels; row++)
+	for (unsigned int row = numEdgeSubPixels; row < numRowsSubPixelMap - numEdgeSubPixels; row++)
 	{
-		for (unsigned int column = numEdgeSubPixels;
-				column < numColumnsSubPixelMap - numEdgeSubPixels; column++)
+		for (unsigned int column = numEdgeSubPixels; column < numColumnsSubPixelMap - numEdgeSubPixels; column++)
 		{
-			subPixelMap[row][column] *=
-					flatfieldMap[row - numEdgeSubPixels][column
-							- numEdgeSubPixels];
+			subPixelMap(row, column) *= flatfieldMap(row - numEdgeSubPixels, column - numEdgeSubPixels);
 		}
 	}
 }
@@ -494,20 +362,15 @@ void Detector::rebin()
 		{
 			double sum = 0;
 
-			for (unsigned int rowSubPixelMap = row * numSubPixelsPerPixel;
-					rowSubPixelMap < (row + 1) * numSubPixelsPerPixel;
-					rowSubPixelMap++)
+			for (unsigned int rowSubPixelMap = row*numSubPixelsPerPixel; rowSubPixelMap < (row + 1)*numSubPixelsPerPixel; rowSubPixelMap++)
 			{
-				for (unsigned int columnSubPixelMap = column
-						* numSubPixelsPerPixel;
-						columnSubPixelMap < (column + 1) * numSubPixelsPerPixel;
-						columnSubPixelMap++)
+				for (unsigned int columnSubPixelMap = column*numSubPixelsPerPixel; columnSubPixelMap < (column + 1)*numSubPixelsPerPixel; columnSubPixelMap++)
 				{
-					sum += subPixelMap[rowSubPixelMap][columnSubPixelMap];
+					sum += subPixelMap(rowSubPixelMap, columnSubPixelMap);
 				}
 			}
 
-			pixelMap[row][column] = sum;
+			pixelMap(row, column) = sum;
 		}
 	}
 }
@@ -632,13 +495,7 @@ void Detector::readOut(double exposureTime)
 
 void Detector::applyQuantumEfficiency()
 {
-	for (unsigned int row = 0; row < numRowsSubField; row++)
-	{
-		for (unsigned int column = 0; column < numColumnsSubField; column++)
-		{
-			pixelMap[row][column] *= quantumEfficiency;
-		}
-	}
+	pixelMap *= quantumEfficiency;
 }
 
 
@@ -733,7 +590,7 @@ void Detector::applyFullWellSaturation()
 	{
 		for (unsigned int column = 0; column < numColumnsSubField; column++)
 		{
-			pixelValue = pixelMap[row][column];
+			pixelValue = pixelMap(row, column);
 
 			// If the full-well saturation limit has been exceeded, distribute
 			// the electrons evenly in the wells above and below until the
@@ -744,27 +601,25 @@ void Detector::applyFullWellSaturation()
 				// Transfer excess electrons down
 
 				jmod = row;
-				numExcessElectrons = (pixelValue - fullWellSaturationLimit)
-						/ 2.0;    // Move half of the excess electrons down...
+				numExcessElectrons = (pixelValue - fullWellSaturationLimit) / 2.0;   // Move half of the excess electrons down...
 
 				while (numExcessElectrons > 0 && jmod < numRowsSubField)
 				{
-					pixelMap[jmod][column] -= numExcessElectrons;
+					pixelMap(jmod, column) -= numExcessElectrons;
 					jmod++;
 
 					// Electrons reaching the edge of the CCD will not be detected
 
 					if (jmod < numRowsSubField)
 					{
-						pixelMap[jmod][column] += numExcessElectrons;
+						pixelMap(jmod, column) += numExcessElectrons;
 
 						// Make sure the pixel you move the excess electrons to
 						// does not get saturated too
 
-						if (pixelMap[jmod][column] > fullWellSaturationLimit)
+						if (pixelMap(jmod, column) > fullWellSaturationLimit)
 						{
-							numExcessElectrons = pixelMap[jmod][column]
-									- fullWellSaturationLimit;
+							numExcessElectrons = pixelMap(jmod, column) - fullWellSaturationLimit;
 						}
 					}
 				}
@@ -772,26 +627,24 @@ void Detector::applyFullWellSaturation()
 				// Transfer excess electrons up
 
 				jmod = row;
-				numExcessElectrons = (pixelValue - fullWellSaturationLimit)
-						/ 2.0;    // ...and the rest of the excess electrons up
+				numExcessElectrons = (pixelValue - fullWellSaturationLimit) / 2.0;    // ...and the rest of the excess electrons up
 
 				while (numExcessElectrons > 0 && jmod >= 0)
 				{
-					pixelMap[jmod][column] -= numExcessElectrons;
+					pixelMap(jmod, column) -= numExcessElectrons;
 					jmod--;
 
 					// Electrons reaching the edge of the CCD will not be detected
 
 					if (jmod >= 0)
 					{
-						pixelMap[jmod][column] += numExcessElectrons;
+						pixelMap(jmod, column) += numExcessElectrons;
 
 						// Make sure the pixel you move the excess electrons to does not get saturated too
 
-						if (pixelMap[jmod][column] > fullWellSaturationLimit)
+						if (pixelMap(jmod, column) > fullWellSaturationLimit)
 						{
-							numExcessElectrons = pixelMap[jmod][column]
-									- fullWellSaturationLimit;
+							numExcessElectrons = pixelMap(jmod, column) - fullWellSaturationLimit;
 						}
 					}
 				}
@@ -932,35 +785,11 @@ void Detector::addReadoutNoise()
  */
 void Detector::applyGain()
 {
-	// Multiply the pixel map with the gain
+	// Multiply the pixel, bias, and smearing map with the gain
 
-	for (unsigned int row = 0; row < numRowsSubField; row++)
-	{
-		for (unsigned int column = 0; column < numColumnsSubField; column++)
-		{
-			pixelMap[row][column] *= gain;
-		}
-	}
-
-	// Multiply the bias map with the gain
-
-	for (unsigned int row = 0; row < numRowsBiasMap; row++)
-	{
-		for (unsigned int column = 0; column < numColumnsSubField; column++)
-		{
-			biasMap[row][column] *= gain;
-		}
-	}
-
-	// Multiply the smearing map with the gain
-
-	for (unsigned int row = 0; row < numRowsSmearingMap; row++)
-	{
-		for (unsigned int column = 0; column < numColumnsSubField; column++)
-		{
-			smearingMap[row][column] *= gain;
-		}
-	}
+	pixelMap *= gain;
+	biasMap *= gain;
+	smearingMap *= gain;
 }
 
 
@@ -989,35 +818,11 @@ void Detector::applyGain()
 void Detector::addElectronicOffset()
 {
 
-	// Add the electronic offset to the pixel map
+	// Add the electronic offset to the pixel, bias, and smearing map
 
-	for (unsigned int row = 0; row < numRowsSubField; row++)
-	{
-		for (unsigned int column = 0; column < numColumnsSubField; column++)
-		{
-			pixelMap[row][column] += electronicOffset;
-		}
-	}
-
-	// Add the electronic offset to the bias register map
-
-	for (unsigned int row = 0; row < numRowsBiasMap; row++)
-	{
-		for (unsigned int column = 0; column < numColumnsSubField; column++)
-		{
-			biasMap[row][column] += electronicOffset;
-		}
-	}
-
-	// Add the electronic offset to the smearing map
-
-	for (unsigned int row = 0; row < numRowsSmearingMap; row++)
-	{
-		for (unsigned int column = 0; column < numColumnsSubField; column++)
-		{
-			smearingMap[row][column] += electronicOffset;
-		}
-	}
+	pixelMap += electronicOffset;
+	biasMap += electronicOffset;
+	smearingMap += electronicOffset;
 }
 
 
@@ -1054,9 +859,9 @@ void Detector::applyDigitalSaturation()
 	{
 		for (unsigned int column = 0; column < numColumnsSubField; column++)
 		{
-			if (pixelMap[row][column] > digitalSaturationLimit)
+			if (pixelMap(row, column) > digitalSaturationLimit)
 			{
-				pixelMap[row][column] = digitalSaturationLimit;
+				pixelMap(row, column) = digitalSaturationLimit;
 			}
 		}
 	}
@@ -1067,9 +872,9 @@ void Detector::applyDigitalSaturation()
 	{
 		for (unsigned int column = 0; column < numColumnsSubField; column++)
 		{
-			if (biasMap[row][column] > digitalSaturationLimit)
+			if (biasMap(row, column) > digitalSaturationLimit)
 			{
-				biasMap[row][column] = digitalSaturationLimit;
+				biasMap(row, column) = digitalSaturationLimit;
 			}
 		}
 	}
@@ -1080,9 +885,9 @@ void Detector::applyDigitalSaturation()
 	{
 		for (unsigned int column = 0; column < numColumnsSubField; column++)
 		{
-			if (smearingMap[row][column] > digitalSaturationLimit)
+			if (smearingMap(row, column) > digitalSaturationLimit)
 			{
-				smearingMap[row][column] = digitalSaturationLimit;
+				smearingMap(row, column) = digitalSaturationLimit;
 			}
 		}
 	}
