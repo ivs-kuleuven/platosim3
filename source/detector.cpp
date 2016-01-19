@@ -27,6 +27,10 @@ Detector::Detector(HDF5File &hdf5file)
 	subPixelMap.zeros(numRowsSubPixelMap, numColumnsSubPixelMap);
 	biasMap.zeros(numRowsBiasMap, numColumnsSubField);
 	smearingMap.zeros(numRowsSmearingMap, numColumnsSubField);
+	// Initialise the groups in the HDF5 file
+
+	initHDF5Groups();
+
 }
 
 
