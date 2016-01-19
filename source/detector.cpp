@@ -13,6 +13,15 @@ Detector::Detector(HDF5File &hdf5file)
 {
 
 	// Parse the parameters from the configuration file
+	// Currently: hard-coded
+
+	numRowsSubField = 10;
+	numColumnsSubField = 15;
+	numSubPixelsPerPixel = 8;
+	numRowsSubPixelMap = numRowsSubField * numSubPixelsPerPixel;
+	numColumnsSubPixelMap = numColumnsSubField * numSubPixelsPerPixel;
+	numRowsBiasMap = 5;
+	numRowsSmearingMap = 5;
 
 	// Associate the camera
 
@@ -24,9 +33,12 @@ Detector::Detector(HDF5File &hdf5file)
 
 	// Allocate memory for the sub-pixel map
 
+    pixelMap.zeros(numRowsSubField, numColumnsSubField);
 	subPixelMap.zeros(numRowsSubPixelMap, numColumnsSubPixelMap);
 	biasMap.zeros(numRowsBiasMap, numColumnsSubField);
 	smearingMap.zeros(numRowsSmearingMap, numColumnsSubField);
+	flatfieldMap.ones(numRowsSubPixelMap, numColumnsSubPixelMap);
+
 	// Initialise the groups in the HDF5 file
 
 	initHDF5Groups();
