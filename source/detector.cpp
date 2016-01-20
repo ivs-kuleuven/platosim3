@@ -25,13 +25,8 @@ Detector::Detector(HDF5File &hdf5file)
 
 	// Associate the camera
 
-	// Initialise flatfield map
-
-	// this->setFlatfieldMap(peak2PeakNoise, subPixelNoise, intraPixelWidth);
-
-	// Initialise CTE map
-
-	// Allocate memory for the sub-pixel map
+	// Allocate memory for the sub-pixel map, the pixel map, the bias register map,
+	// and the smearing map
 
     pixelMap.zeros(numRowsSubField, numColumnsSubField);
 	subPixelMap.zeros(numRowsSubPixelMap, numColumnsSubPixelMap);
@@ -39,15 +34,19 @@ Detector::Detector(HDF5File &hdf5file)
 	smearingMap.zeros(numRowsSmearingMap, numColumnsSubField);
 	flatfieldMap.ones(numRowsSubPixelMap, numColumnsSubPixelMap);
 
-	// Initialise the groups in the HDF5 file
+
+	// Initialise the flatfield map and the CTE map
+
+	//initFlatfieldMap();
+
+	// Random number generators
+
+	photonNoiseGenerator.seed(photonNoiseSeed);
+	readoutNoiseGenerator.seed(readoutNoiseSeed);
+
 
 	initHDF5Groups();
-
 }
-
-
-
-
 
 
 
@@ -57,10 +56,145 @@ Detector::Detector(HDF5File &hdf5file)
  * Destructor.
  *
  */
-
 Detector::~Detector()
 {
 
+}
+
+
+
+
+
+
+
+/**
+ * Method that allocates memory for the flatfield map and initialises it.
+ */
+void Detector::initFlatfieldMap()
+{
+	// Random number generation
+
+	mt19937 flatfieldGenerator(flatfieldSeed);
+	normal_distribution<double> flatfieldDistribution(0.0, 1.0);
+
+	// Create a square map, filled with zeroes, in which the whole sub-field fits
+	// at pixel level and for which the dimensions are a power of 2
+
+	unsigned int dimensionPowerOf2 = 2;
+	unsigned int maxSubFieldDimension = max(numRowsSubField,
+			numColumnsSubField);
+
+	while (dimensionPowerOf2 <= maxSubFieldDimension)
+	{
+		dimensionPowerOf2 *= 2;
+	}
+
+	arma::Mat<double> flatFieldMapPowerOf2Dimensions(dimensionPowerOf2, dimensionPowerOf2);
+	flatFieldMapPowerOf2Dimensions.zeros();
+
+
+
+	// Add variations at all spatial frequencies
+	// Recursive process (base case: n = dimension of the map / 2)
+	//		- add the same (random) value to pixels in the same (n,n) block
+	//		- n /= 2
+	//		- continue as long as n > 2
+
+	unsigned int numBlocks = 2;
+	double variation;
+
+	// Loop over all block sizes: dimensionPowerOf2 / 2, dimensionPowerOf2 / 4,
+	// dimensionPowerOf2 / 8,..., 2
+
+	for (unsigned int blockSize = dimensionPowerOf2 / 2; blockSize >= 2; blockSize /= 2)
+	{
+		// Loop over all blocks of the current size
+
+		for (unsigned int blockRow = 0; blockRow < numBlocks; blockRow++)
+		{
+			for (unsigned int blockColumn = 0; blockColumn < numBlocks; blockColumn++)
+			{
+				variation = flatfieldDistribution(flatfieldGenerator);
+
+				for (unsigned row = blockRow * blockSize; blockRow < (blockRow + 1) * blockSize; row++)
+				{
+					for (unsigned column = blockColumn * blockSize; column < (blockColumn + 1) * blockSize; column++)
+					{
+						flatFieldMapPowerOf2Dimensions(row, column) += variation;
+					}
+				}
+			}
+		}
+
+		numBlocks *= 2;
+	}
+
+	// Normalise and subtract 0.5 -> [-0.5, 0.5]
+	// Multiply by peak-to-peak noise amplitude
+
+	double minValue = std::numeric_limits<double>::max();
+	double maxValue = -std::numeric_limits<double>::max();
+
+	for (unsigned int row = 0; row < dimensionPowerOf2; row++)
+	{
+		for (unsigned int column = 0; column < dimensionPowerOf2; column++)
+		{
+			minValue = std::min(minValue, flatFieldMapPowerOf2Dimensions(row, column));
+			maxValue = std::max(maxValue, flatFieldMapPowerOf2Dimensions(row, column));
+		}
+	}
+
+	for (unsigned int row = 0; row < dimensionPowerOf2; row++)
+	{
+		for (unsigned int column = 0; column < dimensionPowerOf2; column++)
+		{
+			flatFieldMapPowerOf2Dimensions(row, column) = ((flatFieldMapPowerOf2Dimensions(row, column) - minValue) / maxValue - 0.5) / flatfieldPeak2PeakNoiseAmplitude;
+		}
+	}
+
+
+	// The central part of the pixels has a sensitivity loss of less than 5%
+
+	unsigned int edge = (int) ceil(numSubPixelsPerPixel * flatfieldIntraPixelWidth / 100.);
+
+	int flatfieldRow, flatfieldColumn;
+
+	// Loop over all pixels
+
+	for (unsigned int pixelRow = 0; pixelRow < numRowsSubField; pixelRow++)
+	{
+		for (unsigned int pixelColumn = 0; pixelColumn < numColumnsSubField; pixelColumn++)
+		{
+			// Loop over all sub-pixels in the current pixel
+
+			for (unsigned int row = 0; row < numSubPixelsPerPixel; row++)
+			{
+				for (unsigned int column = 0; column < numSubPixelsPerPixel; column++)
+				{
+					flatfieldRow = (pixelRow * numSubPixelsPerPixel) + row;
+					flatfieldColumn = (pixelColumn * numSubPixelsPerPixel) + column;
+
+					// Edge: sensitivity loss of 5%
+
+					if ((row < edge) || (column < edge) || (column >= numSubPixelsPerPixel - edge) || (row >= numSubPixelsPerPixel - edge))
+					{
+						flatfieldMap(flatfieldRow, flatfieldColumn) =
+								(1	+ flatFieldMapPowerOf2Dimensions(pixelRow, pixelColumn)
+									+ flatfieldDistribution(flatfieldGenerator) * flatfieldWhiteNoise) * intraPixelSensitivity;
+					}
+
+					// Central part: no sensitivity loss
+
+					else
+					{
+						flatfieldMap(flatfieldRow, flatfieldColumn) =
+								(1 + flatFieldMapPowerOf2Dimensions(pixelRow, pixelColumn)
+								   + flatfieldDistribution(flatfieldGenerator) * flatfieldWhiteNoise);
+					}
+				}
+			}
+		}
+	}
 }
 
 
@@ -84,7 +218,6 @@ Detector::~Detector()
  * @post Bias register map filled with zeroes.
  * @post Smearing map filled with zeroes.
  */
-
 void Detector::reset()
 {
 	subPixelMap.zeros();
@@ -147,6 +280,7 @@ void Detector::takeExposure(double startTime, double exposureTime)
 	writePixelMapToHDF5();
 
 }
+
 
 
 
@@ -219,6 +353,8 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 
 
+
+
 /**
  * Method that adds the given flux value to the value of the sub-pixel that
  * corresponds to the given coordinates in the focal plane.  The flux value has
@@ -275,6 +411,7 @@ void Detector::addFlux(double rowFocalPlane, double columnFocalPlane, double flu
 
 
 
+
 /**
  * Method that checks whether the given (row, column) coordinates are in the
  * sub-pixel map.
@@ -285,7 +422,6 @@ void Detector::addFlux(double rowFocalPlane, double columnFocalPlane, double flu
  * @return True if the given (row, column) coordinates are in the sub-pixel map;
  *         false otherwise.
  */
-
 bool Detector::isInSubPixelMap(double row, double column)
 {
 	return (column >= 0) && (row >= 0) && (column < numColumnsSubPixelMap) && (row < numRowsSubPixelMap);
@@ -368,6 +504,10 @@ void Detector::applyFlatfield()
 
 
 
+
+
+
+
 /**
  * Method that rebins the sub-pixel map to pixel level and crops the edge pixels
  * that were added on each side to account for the edge effect.
@@ -404,6 +544,12 @@ void Detector::rebin()
 		}
 	}
 }
+
+
+
+
+
+
 
 
 
@@ -510,6 +656,7 @@ void Detector::readOut(double exposureTime)
 
 
 
+
 /**
  * Method that applies that quantum efficiency to the pixel.  The pixel values
  * are multiplied by the quantum efficiency of the detector.
@@ -522,11 +669,13 @@ void Detector::readOut(double exposureTime)
  * @post Bias register map filled with zeroes.
  * @post Smearing map filled with zeroes.
  */
-
 void Detector::applyQuantumEfficiency()
 {
 	pixelMap *= quantumEfficiency;
 }
+
+
+
 
 
 
@@ -553,35 +702,25 @@ void Detector::applyQuantumEfficiency()
  */
 void Detector::addPhotonNoise()
 {
-//	// Default random number generated with seed of photon noise
-//
-//	double seed = 0.0;
-//
-//	// Add photon noise to the pixel map
-//
-//	for (unsigned int row = 0; row < subFieldSizeY; row++)
-//	{
-//		for (unsigned int column = 0; column < subFieldSizeX; column++)
-//		{
-//			std::default_random_engine generator(photonNoiseSeed);
-//			std::poisson_distribution<double> distribution(
-//					pixelMap[row][column]);
-//			pixelMap[row][column] = distribution(generator);
-//		}
-//	}
-//
-//	// Add photon noise to the smearing map
-//
-//	for (unsigned int row = 0; row < numSmearingOverscanRows; row++)
-//	{
-//		for (unsigned int column = 0; column < subFieldSizeX; column++)
-//		{
-//			std::default_random_engine generator(photonNoiseSeed);
-//			std::poisson_distribution<double> distribution(
-//					smearingMap[row][column]);
-//			smearingMap[row][column] = distribution(generator);
-//		}
-//	}
+	for (unsigned int row = 0; row < numRowsSubField; row++)
+	{
+		for (unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			photonNoiseDistribution = poisson_distribution<int>(pixelMap(row, column));
+			pixelMap(row, column) = photonNoiseDistribution(photonNoiseGenerator);
+		}
+	}
+
+	// Add photon noise to the smearing map
+
+	for (unsigned int row = 0; row < numRowsSmearingMap; row++)
+	{
+		for (unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			photonNoiseDistribution = poisson_distribution<int>(smearingMap(row, column));
+			smearingMap(row, column) = photonNoiseDistribution(photonNoiseGenerator);
+		}
+	}
 }
 
 
@@ -691,6 +830,9 @@ void Detector::applyFullWellSaturation()
 
 
 
+
+
+
 /**
  * Method that applies the effect of the charge-transfer (in)efficiency to the
  * pixel map. Assumed is that the serial register has a CTE of 1, unlike the
@@ -708,8 +850,15 @@ void Detector::applyFullWellSaturation()
  */
 void Detector::applyCte()
 {
+	// Create a map in which we will shift the rows (of the sub-field) one-by-one
+	// towards the readout register.  Bear in mind that the bottom row of the
+	// sub-field is not necessarily right next to the readout register (the
+	// distance between the two is subFieldZeroPointRow).
 
+	arma::Mat<double> shiftMap;
+	shiftMap.zeros(numRowsSubField, numColumnsSubField);
 }
+
 
 
 
@@ -755,6 +904,10 @@ void Detector::applyOpenShutterSmearing()
 
 
 
+
+
+
+
 /**
  * Method that applies the readout noise to the pixel map and initialises the
  * bias register map.
@@ -780,17 +933,30 @@ void Detector::applyOpenShutterSmearing()
  */
 void Detector::addReadoutNoise()
 {
-
-	// Normal<double, ranlib::MersenneTwister, ranlib::independentState> randomMap(
-	//		0, this->getReadoutNoise());
-	// randomMap.seed(p_DataSet->getSeedReadOutNoise());
-
-	// add randomMap.random() to all pixel values!!
+	readoutNoiseDistribution = normal_distribution<double>(0.0, readoutNoise);
 
 	// Add readout noise to the pixel map
 
+	for (unsigned int row = 0; row < numRowsSubField; row++)
+	{
+		for (unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			pixelMap(row, column) += readoutNoiseDistribution(readoutNoiseGenerator);
+		}
+	}
+
 	// Initialise the bias  map with readout noise
+
+	for (unsigned int row = 0; row < numRowsBiasMap; row++)
+	{
+		for (unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			biasMap(row, column) += readoutNoiseDistribution(readoutNoiseGenerator);
+		}
+	}
 }
+
+
 
 
 
@@ -829,6 +995,9 @@ void Detector::applyGain()
 
 
 
+
+
+
 /**
  * Method that adds the electronic offset (i.e. bias level) to the pixel map,
  * smearing map, and bias register map to avoid negative readout values.
@@ -854,6 +1023,10 @@ void Detector::addElectronicOffset()
 	biasMap += electronicOffset;
 	smearingMap += electronicOffset;
 }
+
+
+
+
 
 
 
@@ -929,6 +1102,12 @@ void Detector::applyDigitalSaturation()
 
 
 
+
+
+
+
+
+
 // Detector::initHDF5Groups()
 // 
 // PURPOSE: The detector class has its own group(s) in the HDF5 file where it writes
@@ -941,6 +1120,9 @@ void Detector::initHDF5Groups()
 	hdf5File.createGroup("/BiasMaps");
 	hdf5File.createGroup("/SmearingMaps");
 }
+
+
+
 
 
 
