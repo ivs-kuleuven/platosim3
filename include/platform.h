@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include "logger.h"
 #include "timeticker.h"
 #include "hdf5writer.h"
 #include "configurationparameters.h"

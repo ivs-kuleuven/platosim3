@@ -4,9 +4,11 @@
 
 #include <tuple>
 #include "units.h"
+#include "logger.h"
 
 
 using namespace std;
+
 
 
 // Strongly typed, but not scoped. Because CoordinateSystem::Equatorial is really long.

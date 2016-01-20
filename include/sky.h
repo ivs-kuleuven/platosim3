@@ -4,13 +4,15 @@
 
 #include <string>
 #include <vector>
+#include "logger.h"
 #include "timeticker.h"
 #include "hdf5writer.h"
 #include "configurationparameters.h"
 #include "starcatalog.h"
 
-
 using namespace std;
+
+
 
 
 class Sky : public TimeTicker, Hdf5Writer
