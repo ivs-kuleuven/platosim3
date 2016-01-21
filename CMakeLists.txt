@@ -77,6 +77,8 @@ endif()
 add_library(platosimlib SHARED ${sourceFiles})
 
 
+
+
 # Create the platosim executable
 
 add_executable(platosim ${sourceFiles})
@@ -88,6 +90,10 @@ add_executable(testplatosim ${unitTestFiles})
 
 
 
+
+# Link the PlatoSim library against its dependent libraries
+
+target_link_libraries(platosimlib yaml-cpp hdf5 hdf5_cpp armadillo.6)
 
 
 # Link the platosim executable with the PlatoSim library
