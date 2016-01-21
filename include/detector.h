@@ -25,13 +25,12 @@ class Detector : public HDF5Writer
 
     protected:
 
-        virtual void initFlatfieldMap();
-
         virtual void reset();
-    
+        virtual void generateFlatfieldMap();
+
         virtual void integrateLight(double startTime, double exposureTime);
-        virtual void addFlux(double xCoords, double yCoords, double flux);
         virtual bool isInSubPixelMap(double row, double column);
+        virtual void addFlux(double xCoords, double yCoords, double flux);
         virtual void addFlux(double flux);
         virtual void applyFlatfield();
         virtual void rebin();
@@ -40,74 +39,59 @@ class Detector : public HDF5Writer
         virtual void applyQuantumEfficiency();
     	virtual void addPhotonNoise();
     	virtual void applyFullWellSaturation();
-    	virtual void applyCte();
+    	virtual void applyCTE();
     	virtual void applyOpenShutterSmearing();
     	virtual void addReadoutNoise();
     	virtual void applyGain();
-    	virtual void addElectronicOffset();	     // Bias
+    	virtual void addElectronicOffset();	     
     	virtual void applyDigitalSaturation();
     
         virtual void initHDF5Groups() override;
-
         void writePixelMapToHDF5();
 
 
         arma::Mat<float> pixelMap;               // Pixel map, excl. edge pixels
+        arma::Mat<float> subPixelMap;            // Sub-pixel map, incl. edge pixels
+        arma::Mat<float> smearingMap;            // Smearing map (i.e. over-scan strip)
+        arma::Mat<float> biasMap;                // Bias map (i.e. pre-scan strip)
+        arma::Mat<float> cteMap;                 // CTE map
+        arma::Mat<float> flatfieldMap;           // Flatfield map
 
-        unsigned int numRows;                    // Number of rows of the detector (i.e. dimension in the y-direction) [pixels]
-    	unsigned int numColumns;                 // Number of columns of the detector (i.e. dimension in the x-direction = readout direction) [pixels]
+        unsigned int numRows;                    // Nr of rows of the detector (= size in y-direction) [pixels]
+    	unsigned int numColumns;                 // Nr of columns of the detector (= size in x-direction = readout direction) [pixels]
+        unsigned int numRowsSubField;            // Nr of rows in the subfield excl. edge pixels (= size the y-direction) [pixels]
+        unsigned int numColumnsSubField;         // Nr of columns in the subfield excl. edge pixels (= size in the x-direction = readout direction) [pixels]
+        unsigned int numRowsSubPixelMap;         // Nr of subpixel rows in the subfield incl. edge pixels (= size in the y-direction) [subpixels]
+        unsigned int numColumnsSubPixelMap;      // Nr of subpixel columns in the subfield incl. edge pixels (= size in the x-direction = readout direction) [subpixels]
+        unsigned int numRowsSmearingMap;         // Nr of rows in the smearing overscan strip [pixels]
+        unsigned int numRowsBiasMap;             // Nr of rows in the bias prescan strip [pixels]
+
     	double originOffsetRow;                  // Offset of the detector origin from the centre of the optical plane in the row direction [mm]
     	double originOffsetColumn;               // Offset of the detector origin from the centre of the optical plane in the column direction [mm]
+        unsigned int subFieldZeroPointRow;       // Position of the subfield zeropoint w.r.t. the complete detector in the row direction [pixels]
+        unsigned int subFieldZeroPointColumn;    // Position of the subfield zeropoint w.r.t. the complete detector in the column direction [pixels]
     	double orientationAngle;                 // Orientation angle of the detector w.r.t. the orientation of the focal plane, measured counterclockwise [degrees]
  
-    	unsigned int numRowsSmearingMap;         // Number of rows in the smearing over-scan strip [pixels]
-    	unsigned int numRowsBiasMap;	         // Number of rows in the bias pre-scan strip [pixels]
-
     	double pixelSize;	                     // Pixel size [microns]
-    
-
-    	unsigned int subFieldZeroPointRow;	     // Position of the sub-field zeropoint w.r.t. the complete detector in the row direction [pixels]
-    	unsigned int subFieldZeroPointColumn;    // Position of the sub-field zeropoint w.r.t. the complete detector in the column direction [pixels]
-    	unsigned int numRowsSubField;	         // Number of rows in the sub-field at pixel level and excl. edge pixels (i.e. dimension in the y-direction) [pixels]
-    	unsigned int numColumnsSubField;	     // Number of columns in the sub-field at pixel level and excl. edge pixels  (i.e. dimension in the x-direction = readout direction) [pixels]
-    	unsigned int numSubPixelsPerPixel;	     // Number of sub-pixels per pixel
-    	unsigned int numEdgePixels;              // Number of pixels to extend the sub-field on each side, to account for the edge effect
-
-    	arma::Mat<float> subPixelMap;	         // Sub-pixel map, incl. edge pixels
-
-    	unsigned int numRowsSubPixelMap;	     // Number of rows in the sub-field at sub-pixel level and incl. edge pixels (i.e. dimensions in the y-direction) [sub-pixels]
-    	unsigned int numColumnsSubPixelMap;	     // Number of columns in the sub-field at sub-pixel level and incl. edge pixels (i.e. dimension in the x-direction = readout direction) [sub-pixels]
+        unsigned int numSubPixelsPerPixel;	     // Nr of sub-pixels per pixel
+    	unsigned int numEdgePixels;              // Nr of pixels to extend the subfield on each side, to account for the edge effect
 
 
-    	double flatfieldPeak2PeakNoiseAmplitude;
-    	double flatfieldWhiteNoise;
-    	double flatfieldIntraPixelWidth;
+    	double flatfieldNoiseAmplitude;          // Peak-to-peak noise amplitude
 
-    	double intraPixelSensitivity = 0.95;	// The input parameter flatfieldIntraPixelWidth is defined as the flatfield intra-pixel width at edge of pixel with 5% lower sensitivity [% of pixel size, rounded up]
+    	double quantumEfficiency;	             // Quantum efficiency (in [0,1])
+    	double readoutTime;                      // Readout time [s]
+    	double chargeTransferTime;	             // Charge transfer time [s]
+        double meanCte;                          // Mean charge-transfer efficiency
+        double readoutNoise;                     // Mean readout noise [electrons]
+        double gain;                             // Detector gain [electrons / ADU]
+        unsigned long fullWellSaturationLimit;   // Full-well saturation limit [electrons/pixel]
+        unsigned int electronicOffset;           // Bias or electronic offset [ADU]
+        unsigned long digitalSaturationLimit;    // Digital saturation limit [ADU / pixel]
 
+    	bool includePhotonNoise;                 // Whether or not to include photon noise
 
-    	arma::Mat<float> smearingMap;	        // Smearing map (i.e. over-scan strip)
-    	arma::Mat<float> biasMap;	            // Bias map (i.e. pre-scan strip)
-    	arma::Mat<float> cteMap;	            // CTE map
-    	arma::Mat<float> flatfieldMap;	        // Flatfield map
-
-    	double quantumEfficiency;	            // Quantum efficiency (in [0,1])
-
-    	double readoutTime;                     // Readout time [s]
-    	double chargeTransferTime;	            // Charge transfer time [s]
-
-    	bool doPhotonNoise;	                    // Whether or not to apply photon noise
-
-
-    	unsigned long fullWellSaturationLimit;  // Full-well saturation limit [electrons/pixel]
-
-    	double meanCte;	                        // Mean charge-transfer efficiency
-    	double readoutNoise;	                // Mean readout noise [electrons]
-    	double gain;	                        // Detector gain [electrons / ADU]
-    	unsigned int electronicOffset;	        // Bias or electronic offset [ADU]
-    	unsigned long digitalSaturationLimit;   // Digital saturation limit [ADU / pixel]
-
-    	string outputFilename;
+        double internalTime;
 
     	double flatfieldSeed;
     	double readoutNoiseSeed;
@@ -121,7 +105,6 @@ class Detector : public HDF5Writer
     	poisson_distribution<int> photonNoiseDistribution;
     	normal_distribution<double> readoutNoiseDistribution;
 
-        double internalTime;
 
 
     private:
