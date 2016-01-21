@@ -40,7 +40,6 @@ list(REMOVE_ITEM sourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/camera.cpp
                              ${CMAKE_CURRENT_SOURCE_DIR}/source/telescope.cpp
                              ${CMAKE_CURRENT_SOURCE_DIR}/source/timeticker.cpp)
 
-message(${sourceFiles})
 
 # Specify the location of the dependency libraries
 
@@ -72,13 +71,6 @@ endif()
 
 
 
-# Create the platosim shared library
-
-add_library(platosimlib SHARED ${sourceFiles})
-
-
-
-
 # Create the platosim executable
 
 add_executable(platosim ${sourceFiles})
@@ -86,24 +78,18 @@ add_executable(platosim ${sourceFiles})
 
 # Link the platosim executable with the dependency libraries
 
-add_executable(testplatosim ${unitTestFiles})
+#add_executable(testplatosim ${unitTestFiles})
 
-
-
-
-# Link the PlatoSim library against its dependent libraries
-
-target_link_libraries(platosimlib yaml-cpp hdf5 hdf5_cpp armadillo.6)
 
 
 # Link the platosim executable with the PlatoSim library
 
-target_link_libraries(platosim platosimlib hdf5 hdf5_cpp armadillo.6)
+target_link_libraries(platosim hdf5 hdf5_cpp armadillo.6 yaml-cpp)
 
 
 # Link the testplatosim executable with the PlatoSim library
 
-target_link_libraries(testplatosim platosimlib gtest gtest_main)
+#target_link_libraries(testplatosim hdf5 hdf5_cpp armadillo.6 yaml-cpp gtest gtest_main)
 
 
 
