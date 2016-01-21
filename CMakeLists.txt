@@ -40,6 +40,7 @@ list(REMOVE_ITEM sourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/camera.cpp
                              ${CMAKE_CURRENT_SOURCE_DIR}/source/telescope.cpp
                              ${CMAKE_CURRENT_SOURCE_DIR}/source/timeticker.cpp)
 
+message(${sourceFiles})
 
 # Specify the location of the dependency libraries
 
@@ -47,6 +48,10 @@ link_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/hdf5-1.8.16/l
 link_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/armadillo-6.400.3/lib)
 link_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/yaml-cpp/lib)
 link_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/googletest/lib)
+
+# Specify the simulator unittest files to be compiled
+
+file(GLOB unitTestFiles ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
 
 
 # Set the compiler flags
@@ -66,6 +71,14 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 endif()
 
 
+
+# Create the platosim shared library
+
+add_library(platosimlib SHARED ${sourceFiles})
+
+
+
+
 # Create the platosim executable
 
 add_executable(platosim ${sourceFiles})
@@ -73,8 +86,24 @@ add_executable(platosim ${sourceFiles})
 
 # Link the platosim executable with the dependency libraries
 
-target_link_libraries(platosim hdf5 hdf5_cpp armadillo.6)
+add_executable(testplatosim ${unitTestFiles})
 
+
+
+
+# Link the PlatoSim library against its dependent libraries
+
+target_link_libraries(platosimlib yaml-cpp hdf5 hdf5_cpp armadillo.6)
+
+
+# Link the platosim executable with the PlatoSim library
+
+target_link_libraries(platosim platosimlib hdf5 hdf5_cpp armadillo.6)
+
+
+# Link the testplatosim executable with the PlatoSim library
+
+target_link_libraries(testplatosim platosimlib gtest gtest_main)
 
 
 
