@@ -26,25 +26,32 @@ cmake_minimum_required(VERSION 2.8)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/hdf5-1.8.16/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/armadillo-6.400.3/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/yaml-cpp/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/googletest/include)
 
 
 # Specify the simulator source files to be compiled
-              
+# Temporarily: remove some of the unfinished source files from the compilation list
+
 file(GLOB sourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp)
 
-
-# Remove the main.cpp file from the list which is not needed to build the library
-
 list(REMOVE_ITEM sourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/camera.cpp 
-                             ${CMAKE_CURRENT_SOURCE_DIR}/source/hdf5file.cpp
-                             ${CMAKE_CURRENT_SOURCE_DIR}/source/hdf5writer.cpp
                              ${CMAKE_CURRENT_SOURCE_DIR}/source/telescope.cpp
                              ${CMAKE_CURRENT_SOURCE_DIR}/source/timeticker.cpp)
+
 message(${sourceFiles})
+
+# Specify the location of the dependency libraries
+
+link_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/hdf5-1.8.16/lib)
+link_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/armadillo-6.400.3/lib)
+link_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/yaml-cpp/lib)
+link_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/googletest/lib)
 
 # Specify the simulator unittest files to be compiled
 
-#file(GLOB unitTestFiles ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
+file(GLOB unitTestFiles ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
 
 
 # Set the compiler flags
@@ -58,7 +65,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wall")
 # Then those specific for the compiler for using C++11 support.
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -std=c++11 -Wno-deprecated-register")    
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -std=c++11 -Wno-deprecated-register -Wno-unused-variable")    
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 endif()
@@ -70,29 +77,33 @@ endif()
 add_library(platosimlib SHARED ${sourceFiles})
 
 
+
+
 # Create the platosim executable
 
-add_executable(platosim ${CMAKE_CURRENT_SOURCE_DIR}/source/main.cpp)
+add_executable(platosim ${sourceFiles})
 
 
-# Create the testplatosim executable
+# Link the platosim executable with the dependency libraries
 
-#add_executable(testplatosim ${unitTestFiles})
+add_executable(testplatosim ${unitTestFiles})
 
 
-# Install the library in the lib/ folder
 
-install(TARGETS platosimlib LIBRARY DESTINATION ${CMAKE_SOURCE_DIR}/lib)
+
+# Link the PlatoSim library against its dependent libraries
+
+target_link_libraries(platosimlib yaml-cpp hdf5 hdf5_cpp armadillo.6)
 
 
 # Link the platosim executable with the PlatoSim library
 
-target_link_libraries(platosim platosimlib)
+target_link_libraries(platosim platosimlib hdf5 hdf5_cpp armadillo.6)
 
 
 # Link the testplatosim executable with the PlatoSim library
 
-#target_link_libraries(testplatosim platosimlib)
+target_link_libraries(testplatosim platosimlib gtest gtest_main)
 
 
 

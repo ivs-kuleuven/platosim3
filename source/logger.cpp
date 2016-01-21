@@ -67,9 +67,9 @@ void Logger::emit(string message, LogLevel logLevel)
     	{
     		if (outputStreamLogLevel[n] & logLevel & enabledLogLevels)
     		{
-                *outputStreams[n] << put_time(localtime(&currentTime), timeFormat)
-                                  << " " << logLevelName[logLevel]
-                                  << " " << message << endl;
+                *outputStreams[n] << put_time(localtime(&currentTime), timeFormat);
+                *outputStreams[n] << " " << setw(7) << left << logLevelName[logLevel];
+                *outputStreams[n] << " " << message << endl;
                 (*outputStreams[n]).flush();
     		}
 		}
