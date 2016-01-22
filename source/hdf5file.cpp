@@ -850,15 +850,13 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<float>& 
         exit(1);
     }
 
-
     // Inside the Images group, make room for the image array
 
     H5::DataSet arrayDataset = file->createDataSet(arrayPath.c_str(), H5::PredType::NATIVE_FLOAT, arraySpace);
-
+    
     // Copy the data from our image into the HDF5 file
 
     arrayDataset.write(A.memptr(), H5::PredType::NATIVE_FLOAT);
-
 
     // That's it
 
