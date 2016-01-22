@@ -3,8 +3,9 @@
 #define COORDINATES_H
 
 #include <cmath>
-#include "units.h"
-#include "logger.h"
+
+#include "Units.h"
+#include "Logger.h"
 
 
 using namespace std;

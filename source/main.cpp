@@ -2,8 +2,9 @@
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
-#include "simulation.h"
-#include "logger.h"
+
+#include "Simulation.h"
+#include "Logger.h"
 
 
 using namespace std;

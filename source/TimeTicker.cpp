@@ -1,5 +1,5 @@
 
-#include "timeticker.h"
+#include "TimeTicker.h"
 
 
 
