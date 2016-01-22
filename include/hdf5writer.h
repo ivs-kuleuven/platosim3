@@ -15,19 +15,18 @@ class HDF5Writer
     
     public:
 
-        HDF5Writer(HDF5File &hdf5File, string groupName);
+        HDF5Writer(HDF5File &hdf5File);
         ~HDF5Writer();
 
+        virtual void initHDF5Groups();
         virtual void flushOutput();
 
     protected:
 
+        HDF5File &hdf5File;
 
     private:
 
-        HDF5File &hdf5File;
-        string hdf5GroupName;
-    
 };
 
 #endif

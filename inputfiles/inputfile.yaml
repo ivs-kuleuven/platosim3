@@ -1,13 +1,17 @@
 # PlatoSim3 configuration file
 ---
+
+General:
+    ProjectLocation:        /Users/Joris/Cpp/PlatoSim3
+
 ObservingParameters:
 
     NumExposures:           40            # Number of expsosures
     ExposureTime:           23            # [s]
     RApointing:             180           # [deg] 
     DecPointing:            -70           # [deg]
-    StarCatalogFile:        /Users/Joris/Cpp/PlatoSim3/inputfiles/starcatalog.txt
-    HDF5OutputFile:         /Users/Joris/Cpp/PlatoSim3/outputfiles/outputfile.hdf5
+    StarCatalogFile:        inputfiles/starcatalog.txt
+    HDF5OutputFile:         outputfiles/outputfile.hdf5
 
 
 Platform:
@@ -19,7 +23,7 @@ Platform:
     JitterPitchRms:         2.3           # [arcsec]
     JitterRollRms:          2.3           # [arcsec]
     JitterTimeScale:        3600.         # [s]
-    JitterFileName:         /Users/Joris/Cpp/PlatoSim3/inputfiles/jitter.txt
+    JitterFileName:         inputfiles/jitter.txt
 
 
 Telescope:
@@ -42,7 +46,7 @@ Camera:
     PSFCenterX:             511.5         # X barycenter of the PSF in subpixel coordinates
     PSFCenterY:             512.5         # Y barycenter of the PSF in subpixel coorindates
     PSFOrientation:         45.0          # Orientiation of precomputed PSF [degrees]
-    PSFFileName:            /Users/Joris/Cpp/PlatoSim3/inputfiles/psf.txt
+    PSFFileName:            inputfiles/psf.txt
 
 
 CCD:

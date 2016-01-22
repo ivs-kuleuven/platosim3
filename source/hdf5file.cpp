@@ -80,12 +80,16 @@ void HDF5File::open(string filename, bool overwrite)
         {
             // Open file, and erase (truncate) all data previously stored in the file
 
+            Log.warning("HDF5File: opening existing HDF5 file, and erasing previous contents.");
+
             file = new H5::H5File(filename.c_str(), H5F_ACC_TRUNC);
         }
         else
         {
             // Open existing file for read/write.
             // Conserve the data previously stored in the file.
+
+            Log.warning("HDF5File: opening existing HDF5 file, for appending.");
 
             file = new H5::H5File(filename.c_str(), H5F_ACC_RDWR);
         }
@@ -175,12 +179,77 @@ bool HDF5File::fileExists(string filename)
 
 
 
+
+// HDF5File::createGroup()
+//
+// PURPOSE: Create a group in an HDF5 file.
+//
+// INPUT: groupName: full path of the group. Should always start with "/".
+//
+// OUTPUT: None
+// 
+// EXAMPLE: createGroup("/my/path/to/subgroup1") will create "subgroup1"
+//          in the parent group "/my/path/to". 
+//          Note that the parent group is assumed to already exist. 
+//          If not, an error will be given. So, to create "/my/path/to/subgroup1" 
+//          from scratch, you should call:
+//             createGroup("/my");
+//             createGroup("/my/path");
+//             createGroup("/my/path/to");
+//             createGroup("/my/path/to/subgroup1");
+
+void HDF5File::createGroup(string groupName)
+{
+    // Make sure the path of the group starts with a "/" (i.e. the root folder)
+
+    if (!groupName.compare(0, 1, "/"))
+    {
+        groupName.insert(0, "/");
+    }
+
+    // Find the parent group. 
+    // E.g. if the groupName is "/my/path/to/group1" then the parent group is 
+    //      "/my/path/to" and the subgroup is "group1".
+
+    auto position = groupName.find_last_of("/");
+    string parentGroupName = groupName.substr(0, position);
+    string subGroupName = groupName.substr(position+1);
+
+    // If the parent group name is empty, it means that the group should be 
+    // placed in the root group. In that case, make sure that the parentGroupName
+    // is "/".
+
+    if (parentGroupName.empty())
+    {
+        parentGroupName = "/";
+    }
+
+    // Open the parent group
+
+    H5::Group parentGroup = file->openGroup(parentGroupName.c_str());
+
+    // Create the new subgroup inside the parent group.
+
+    H5::Group subGroup = parentGroup.createGroup(groupName.c_str());
+}
+
+
+
+
+
+
+
+
+
+
+
+
 // HDF5File::writeAttribute()  for string-valued attributes
 //
 // PURPOSE: add a string attribute to the HDF5 file.
-//          The attribute is stored in "/<GroupName>/<attributeName>".
+//          The attribute is stored in "<GroupName>/<attributeName>".
 //          
-// INPUT: groupName:      string containing the full path of the group.
+// INPUT: groupName:      string containing the full path of an existing group. Starts with "/".
 //        attributeName:  string containing the name of the attribute
 //        attributeValue: string containing the attribute value
 //
@@ -238,7 +307,7 @@ void HDF5File::writeAttribute(string groupName, string attributeName, string att
     H5::StrType variableLengthStringType(0, H5T_VARIABLE);
     H5::DataSpace attributeSpace(H5S_SCALAR);
     H5::Attribute attribute = group.createAttribute(attributeName.c_str(), variableLengthStringType, attributeSpace);
-    attribute.write(variableLengthStringType, H5std_string(parameterValue.c_str()));
+    attribute.write(variableLengthStringType, H5std_string(attributeValue.c_str()));
 
     // That's it
 
@@ -261,9 +330,9 @@ void HDF5File::writeAttribute(string groupName, string attributeName, string att
 // HDF5File::writeAttribute() for integer attributes
 //
 // PURPOSE: add an integer attribute to the HDF5 file.
-//          The attribute is stored in "/<GroupName>/<attributeName>".
+//          The attribute is stored in "<GroupName>/<attributeName>".
 //          
-// INPUT: groupName:      string containing the full path of the group.
+// INPUT: groupName:      string containing the full path of an existing group. Starts with "/".
 //        attributeName:  string containing the name of the attribute
 //        attributeValue: integer containing the attribute value
 //
@@ -320,7 +389,7 @@ void HDF5File::writeAttribute(string groupName, string attributeName, int attrib
     H5::IntType integerType(H5::PredType::NATIVE_INT);
     H5::DataSpace attributeSpace(H5S_SCALAR);
     H5::Attribute attribute = group.createAttribute(attributeName.c_str(), integerType, attributeSpace);
-    attribute.write(integerType, &parameterValue);
+    attribute.write(integerType, &attributeValue);
     attribute.close();
 
     // That's it
@@ -346,9 +415,9 @@ void HDF5File::writeAttribute(string groupName, string attributeName, int attrib
 // HDF5File::writeAttribute()  for long integer attributes
 //
 // PURPOSE: add a long integer attribute to the HDF5 file.
-//          The attribute is stored in "/<GroupName>/<attributeName>".
+//          The attribute is stored in "<GroupName>/<attributeName>".
 //          
-// INPUT: groupName:      string containing the full path of the group.
+// INPUT: groupName:      string containing the full path of an existing group. Starts with "/".
 //        attributeName:  string containing the name of the attribute
 //        attributeValue: long integer containing the attribute value
 //
@@ -405,7 +474,7 @@ void HDF5File::writeAttribute(string groupName, string attributeName, long attri
     H5::IntType integerType(H5::PredType::NATIVE_LONG);
     H5::DataSpace attributeSpace(H5S_SCALAR);
     H5::Attribute attribute = group.createAttribute(attributeName.c_str(), integerType, attributeSpace);
-    attribute.write(integerType, &parameterValue);
+    attribute.write(integerType, &attributeValue);
     attribute.close();
 
     // That's it
@@ -430,9 +499,9 @@ void HDF5File::writeAttribute(string groupName, string attributeName, long attri
 // HDF5File::writeAttribute() for double-valued attributes
 //
 // PURPOSE: add a double-valued attribute to the HDF5 file.
-//          The attribute is stored in "/<GroupName>/<attributeName>".
+//          The attribute is stored in "<GroupName>/<attributeName>".
 //          
-// INPUT: groupName:      string containing the full path of the group.
+// INPUT: groupName:      string containing the full path of an existing group. Starts with "/".
 //        attributeName:  string containing the name of the attribute
 //        attributeValue: double containing the attribute value
 //
@@ -488,7 +557,7 @@ void HDF5File::writeAttribute(string groupName, string attributeName, double att
     H5::IntType floatType(H5::PredType::NATIVE_DOUBLE);
     H5::DataSpace attributeSpace(H5S_SCALAR);
     H5::Attribute attribute = group.createAttribute(attributeName.c_str(), floatType, attributeSpace);
-    attribute.write(floatType, &parameterValue);
+    attribute.write(floatType, &attributeValue);
     attribute.close();
 
     // That's it
@@ -514,9 +583,9 @@ void HDF5File::writeAttribute(string groupName, string attributeName, double att
 //
 // PURPOSE: write a 1D array to a specified group in the HDF5 file.
 //
-// INPUT: groupName: name of the existing HDF5 Group in the file, e.g. "StarPositions"
+// INPUT: groupName: full path of an existing HDF5 Group in the file. Starts with "/".
 //        arrayName: unique name of the array in the group, e.g. "starIDs000001"
-//        array:     1D integer array
+//        array:     1D integer native array
 //        size:      number of elements in the array
 //
 // OUTPUT: None
@@ -587,8 +656,8 @@ void HDF5File::writeArray(string groupName, string arrayName, int* array, int si
 //
 // PURPOSE: write a 1D array to a specified group in the HDF5 file.
 //
-// INPUT: array: 1D float blitz array
-//        groupName: name of the existing HDF5 Group in the file, e.g. "StarPositions"
+// INPUT: array: 1D float native array
+//        groupName: name of an existing HDF5 Group in the file. Starts with "/".
 //        arrayName: unique name of the array in the group, e.g. "starXcoordinates000001"
 //
 // OUTPUT: None
@@ -658,13 +727,13 @@ void HDF5File::writeArray(string groupName, string arrayName, float* array, int 
 //
 // PURPOSE: write a 1D array to a specified group in the HDF5 file.
 //
-// INPUT: array: 1D double blitz array
-//        groupName: name of the existing HDF5 Group in the file, e.g. "ACS"
+// INPUT: array: 1D double native array
+//        groupName: name of an existing HDF5 Group in the file. Starts with "/".
 //        arrayName: unique name of the array in the group, e.g. "DecOpticalAxis"
 //
 // OUTPUT: None
 
-void HDF5File::writeArray(string groupName, string arrayName, double *array, int size)
+void HDF5File::writeArray(string groupName, string arrayName, double* array, int size)
 {
     // Create a DataSpace defining the shape and type of the data 
 
@@ -708,7 +777,7 @@ void HDF5File::writeArray(string groupName, string arrayName, double *array, int
 
     // Copy the data from our image into the HDF5 file
 
-    arrayDataset.write(array.data(), H5::PredType::NATIVE_DOUBLE);
+    arrayDataset.write(array, H5::PredType::NATIVE_DOUBLE);
 
     // That's it
 
@@ -725,25 +794,32 @@ void HDF5File::writeArray(string groupName, string arrayName, double *array, int
 
 
 
-// HDF5File::writeArray()  for 2D float arrays
+// HDF5File::writeArray()  for 2D float armadillo arrays
 //
-// PURPOSE: write a 2D array to a specified group in the HDF5 file.
+// PURPOSE: write a 2D armadillo array to a specified group in the HDF5 file.
 //
-// INPUT: array: 2D blitz array
-//        groupName: name of the existing HDF5 Group in the file, e.g. "Images"
+// INPUT: array: 2D armadillo array
+//        groupName: name of an existing HDF5 Group in the file. Starts with "/".
 //        arrayName: unique name of the array in the group, e.g. "image000001"
 //
 // OUTPUT: None
 
-void HDF5File::writeArray(string groupName, string arrayName, float** array, int Nrows, int Ncolumns)
+void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<float>& A)
 {
- 
+    // Sanity check on the shape of the array
+
+    if ((A.n_rows == 0) && (A.n_cols == 0))
+    {
+        Log.error("HDF5File::writeArray(): encountered array with shape (0,0)");
+        exit(1);
+    }
+
     // Create a DataSpace defining the shape and type of the data 
 
     unsigned int Ndimensions = 2;
     unsigned long long shape[Ndimensions];
-    shape[0] = Nrows;
-    shape[1] = Ncolumns;
+    shape[0] = A.n_rows;
+    shape[1] = A.n_cols;
     H5::DataSpace arraySpace(Ndimensions, shape);
 
     // Check if the array is not already in the file.
@@ -774,14 +850,13 @@ void HDF5File::writeArray(string groupName, string arrayName, float** array, int
         exit(1);
     }
 
-
     // Inside the Images group, make room for the image array
 
     H5::DataSet arrayDataset = file->createDataSet(arrayPath.c_str(), H5::PredType::NATIVE_FLOAT, arraySpace);
-
+    
     // Copy the data from our image into the HDF5 file
 
-    arrayDataset.write(array.data(), H5::PredType::NATIVE_FLOAT);
+    arrayDataset.write(A.memptr(), H5::PredType::NATIVE_FLOAT);
 
     // That's it
 
@@ -797,18 +872,18 @@ void HDF5File::writeArray(string groupName, string arrayName, float** array, int
 
 
 
-
-// HDF5File::read2DFloatArray()
+// HDF5File::readArray() for 2D float armadillo arrays
 //
-// PURPOSE: read a 2D array to a specified group in the HDF5 file.
+// PURPOSE: read a 2D array from a specified group in the HDF5 file into an
+//          armadillo array.
 //
-// INPUT: array: 2D blitz array
-//        groupName: name of the existing HDF5 Group in the file, e.g. "Images"
+// INPUT: array: 2D armadillo array. Previous contents will be lost.
+//        groupName: name of an existing HDF5 Group in the file. Starts with "/".
 //        arrayName: unique name of the array in the group, e.g. "image000001"
 //
 // OUTPUT: None
 
-void HDF5File::read2DFloatArray(Array<float,2> &array, string groupName, string arrayName, float **array, int *Nrows, int *Ncolumns)
+void HDF5File::readArray(string groupName, string arrayName, arma::Mat<float>& A)
 {
     // Construct the path of the dataset in the HDF5 file
 
@@ -830,7 +905,7 @@ void HDF5File::read2DFloatArray(Array<float,2> &array, string groupName, string 
     }
     catch (H5::FileIException error)
     {
-        Log.error("read2DFloatArray(): " + arrayPath + " not in file.");
+        Log.error("readArray(): " + arrayPath + " not in file.");
         exit(1);
     }
 
@@ -839,20 +914,20 @@ void HDF5File::read2DFloatArray(Array<float,2> &array, string groupName, string 
     H5::DataSpace dataspace = dataset.getSpace();
     hsize_t shape[2];
     unsigned int Ndimensions = dataspace.getSimpleExtentDims(shape, NULL);
-    *Nrows = shape[0];
-    *Ncolumns = shape[1];
+    int Nrows = shape[0];
+    int Ncolumns = shape[1];
 
-    // Ensure that the array is sufficiently large
+    // Reset the size for the 2D array
 
-    array.resize(Nrows, Ncolumns);   // !!!!!!!!!!!!!!!!! TODO !!!!!!!!!!!!!!!
+    A.reset();
+    A.set_size(Nrows, Ncolumns);
 
     // Read the HDF5 dataset into the array
 
-    dataset.read(array, H5::PredType::NATIVE_FLOAT);
+    dataset.read(A.memptr(), H5::PredType::NATIVE_FLOAT);
 
     // That's it
 
     return;
 }
-
 

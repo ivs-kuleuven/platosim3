@@ -1,30 +1,33 @@
-#ifndef CONFIGURATIONPARAMETERS_H
-#define CONFIGURATIONPARAMETERS_H
-
+#ifndef CONFIGURATION_PARAMETERS_H_
+#define CONFIGURATION_PARAMETERS_H_
 
 #include <string>
 #include <fstream>
 
-
+#include "logger.h"
+#include "yaml-cpp/yaml.h"
 
 using namespace std;
 
 
 class ConfigurationParameters
 {
-    public:
+public:
+    ConfigurationParameters();
+    ConfigurationParameters(const char*);
+    ConfigurationParameters(const string &);
+    ~ConfigurationParameters();
 
-        ConfigurationParameters();
-        ~ConfigurationParameters();
+    bool getBoolean(const string &);
+    int getInteger(const string &);
+    double getDouble(const string &);
+    string getString(const string &);
+    string getAbsoluteFileName(const string &);
 
-
-    protected:
-
-
-    private:
-
+private:
+    string filename;
+    YAML::Node config;
 };
 
 
-
-#endif
+#endif /* CONFIGURATION_PARAMETERS_H_ */

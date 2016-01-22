@@ -3,9 +3,11 @@
 
 #include <string>
 #include <vector>
+#include "logger.h"
 #include "configurationparameters.h"
 
 using namespace std;
+
 
 
 class StarCatalog

@@ -2,16 +2,13 @@
 #ifndef COORDINATES_H
 #define COORDINATES_H
 
-#include <tuple>
+#include <cmath>
 #include "units.h"
+#include "logger.h"
 
 
 using namespace std;
 
-
-// Strongly typed, but not scoped. Because CoordinateSystem::Equatorial is really long.
-
-enum CoordinateSystem : short {Equatorial=0, Galactic=1, Ecliptic=2};
 
 
 
@@ -19,26 +16,31 @@ class Coordinates
 {
     public:
 
-        Coordinates(double longitude, double latitude, CoordinateSystem coordinateSystem=Equatorial);
-        ~Coordinates(){}; 
+        Coordinates(double RA, double decl, Unit angleUnit = Angle::degrees);
+        ~Coordinates(); 
 
-        tuple<double, double> toEquatorial(Units units = Angle::degrees);
-        tuple<double, double> toGalactic(Units units = Angle::degrees);
-        tuple<double, double> toEcliptic(Units units = Angle::degrees);
+        pair<double, double> toGalactic(Unit angleUnit = Angle::degrees);
+        pair<double, double> toEcliptic(Unit angleUnit = Angle::degrees);
 
  
-        friend double angularDistanceBetween(Coordinates &coordinates1, Coordinates &coordinates2, Units units);
+        friend double angularDistanceBetween(Coordinates &coordinates1, Coordinates &coordinates2, Unit angleUnit);
 
 
     protected:
 
-        double longitude;                        // Equatorial, galactic, or ecliptic longitude [rad]
-        double latitutde;                        // Equatorial, galactic, or ecliptic latitude  [rad]
+        void equatorial2ecliptic(const double alpha, const double delta, double &lambda, double &beta);
+        void equatorial2galactic(const double alpha, const double delta, double &l, double &b);
+
+        double RA;                    // Equatorial right ascension [rad]
+        double decl;                  // Equatorial declination     [rad]
  
     private:
+
+        const double obliquity;              // Obliquity of the ecliptic = 23.439 deg  [rad]
+        const double inclGalPlane;           // Inclination of the galactic plane = 62.6 deg in B1950 [rad]
+        const double alphaN;                 // Right ascension of the ascending node of the galactic plane = 282.25 deg in B1950 [rad]
+        const double l0;                     // Galactic longitude of the ascending node of the galactic plane = 33 deg in B1950 [rad]
     
-
-
 };
 
 

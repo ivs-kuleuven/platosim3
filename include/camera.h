@@ -2,12 +2,11 @@
 #define CAMERA_H
 
 #include <string>
+#include "logger.h"
 #include "timeticker.h"
 #include "hdf5writer.h"
 #include "telescope.h"
 #include "subfield.h"
-
-
 
 
 using namespace std;
