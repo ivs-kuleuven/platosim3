@@ -31,10 +31,11 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/yaml-cpp/i
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/googletest/include)
 
 
-# Specify the simulator source files to be compiled
+# Specify the simulator source files to be compiled, but exclude the main.cpp
 # Temporarily: remove some of the unfinished source files from the compilation list
 
 file(GLOB sourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp)
+list(REMOVE_ITEM sourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/main.cpp)
 
 list(REMOVE_ITEM sourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/camera.cpp 
                              ${CMAKE_CURRENT_SOURCE_DIR}/source/telescope.cpp
@@ -73,12 +74,12 @@ endif()
 
 # Create the platosim executable
 
-add_executable(platosim ${sourceFiles})
+add_executable(platosim ${sourceFiles} ${CMAKE_CURRENT_SOURCE_DIR}/source/main.cpp)
 
 
 # Link the platosim executable with the dependency libraries
 
-#add_executable(testplatosim ${unitTestFiles})
+add_executable(testplatosim ${unitTestFiles} ${sourceFiles})
 
 
 
@@ -89,7 +90,7 @@ target_link_libraries(platosim hdf5 hdf5_cpp armadillo.6 yaml-cpp)
 
 # Link the testplatosim executable with the PlatoSim library
 
-#target_link_libraries(testplatosim hdf5 hdf5_cpp armadillo.6 yaml-cpp gtest gtest_main)
+target_link_libraries(testplatosim hdf5 hdf5_cpp armadillo.6 yaml-cpp gtest gtest_main)
 
 
 
