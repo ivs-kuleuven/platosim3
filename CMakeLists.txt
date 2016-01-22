@@ -17,40 +17,85 @@
 
 project(PlatoSim)
 
+
+
+
 # cmake version shouldn't be too old
 
 cmake_minimum_required(VERSION 2.8)
 
 
+
+
 # Specify the locations of the header files
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/hdf5-1.8.16/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/armadillo-6.400.3/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/yaml-cpp/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/googletest/include)
+include_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/hdf5-1.8.16/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/armadillo-6.400.3/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/yaml-cpp/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/googletest/include
+)
+
+
 
 
 # Specify the simulator source files to be compiled
+# Note: using file(GLOB..) is not recommended in the CMake manual
 # Temporarily: remove some of the unfinished source files from the compilation list
 
-file(GLOB sourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp)
+set(platoSimSourceFiles
+#    ${CMAKE_CURRENT_SOURCE_DIR}/source/camera.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/ConfigurationParameters.cpp 
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/coordinates.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/detector.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/FileUtilities.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/hdf5file.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/hdf5writer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/IOException.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/logger.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/simulation.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/StringUtilities.cpp
+#    ${CMAKE_CURRENT_SOURCE_DIR}/source/telescope.cpp
+#    ${CMAKE_CURRENT_SOURCE_DIR}/source/timeticker.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/UnsupportedException.cpp
+)
 
-list(REMOVE_ITEM sourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/camera.cpp 
-                             ${CMAKE_CURRENT_SOURCE_DIR}/source/telescope.cpp
-                             ${CMAKE_CURRENT_SOURCE_DIR}/source/timeticker.cpp)
+set(platoSimMain ${CMAKE_CURRENT_SOURCE_DIR}/source/main.cpp)
+
+
+
+
+# Add all the platosim sources into a library
+# Note: this prevents recompilation of the source files for the unit tests
+
+add_library(platoSimLibrary ${platoSimSourceFiles})
+
+
+
+
+# Specify the simulator unittest files to be compiled
+
+set(unitTestSourceFiles
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/GTestConfigurationParameters.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/GTestFileUtilities.h
+)
+
+set(unitTestMain ${CMAKE_CURRENT_SOURCE_DIR}/tests/AllTests.cpp)
+
+
 
 
 # Specify the location of the dependency libraries
 
-link_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/hdf5-1.8.16/lib)
-link_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/armadillo-6.400.3/lib)
-link_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/yaml-cpp/lib)
-link_directories(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/googletest/lib)
+link_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/hdf5-1.8.16/lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/armadillo-6.400.3/lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/yaml-cpp/lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/googletest/lib
+)
 
-# Specify the simulator unittest files to be compiled
 
-file(GLOB unitTestFiles ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
 
 
 # Set the compiler flags
@@ -71,25 +116,17 @@ endif()
 
 
 
-# Create the platosim executable
+# Create the platosim and testplatosim executables
 
-add_executable(platosim ${sourceFiles})
-
-
-# Link the platosim executable with the dependency libraries
-
-#add_executable(testplatosim ${unitTestFiles})
+add_executable(platosim ${platoSimMain})
+add_executable(testplatosim ${unitTestMain} ${unitTestSourceFiles})
 
 
 
-# Link the platosim executable with the PlatoSim library
+# Link the platosim and testplatosim executable with the required libraries
 
-target_link_libraries(platosim hdf5 hdf5_cpp armadillo.6 yaml-cpp)
-
-
-# Link the testplatosim executable with the PlatoSim library
-
-#target_link_libraries(testplatosim hdf5 hdf5_cpp armadillo.6 yaml-cpp gtest gtest_main)
+target_link_libraries(platosim platoSimLibrary hdf5 hdf5_cpp armadillo.6 yaml-cpp)
+target_link_libraries(testplatosim platoSimLibrary hdf5 hdf5_cpp armadillo.6 yaml-cpp gtest gtest_main)
 
 
 

@@ -3,7 +3,9 @@
 
 #include "GTestConfigurationParameters.h"
 #include "GTestFileUtilities.h"
+#include "logger.h"
 
+Logger Log;
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
