@@ -25,6 +25,8 @@ bool FileUtilities::fileExists(const string &filename) {
  * @param[in]  path a path name
  *
  * @returns    true if path is relative, false otherwise
+ * 
+ * @todo       make this also work with Window paths, e.g. C:\\Documents
  */
 bool FileUtilities::isRelative(const string &path) {
     if (path[0] == '/')

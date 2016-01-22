@@ -23,14 +23,14 @@ Camera::~Camera()
 
 
 
-// Camera::exposeSubField()
-//
-// PURPOSE:
-//
-// INPUT:
-// 
-// OUTPUT:
 
+
+/**
+ * @brief      Expose the subField to the Sky, i.e. add flux to the detectors, 
+ *             add Background and convolve with the PSF.
+ *
+ * @param[in]  subField  { parameter_description }
+ */
 void Camera::exposeSubField(SubField subField)
 {
     auto starCatalog = sky.getStarsWithinRadiusFrom(alpha, delta, radius);  
@@ -59,6 +59,7 @@ void Camera::exposeSubField(SubField subField)
 
     return;
 }
+
 
 
 
