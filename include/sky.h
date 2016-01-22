@@ -4,11 +4,12 @@
 
 #include <string>
 #include <vector>
-#include "logger.h"
-#include "timeticker.h"
-#include "hdf5writer.h"
-#include "configurationparameters.h"
-#include "starcatalog.h"
+
+#include "Logger.h"
+#include "TimeTicker.h"
+#include "HDF5Writer.h"
+#include "ConfigurationParameters.h"
+#include "StarCatalog.h"
 
 using namespace std;
 

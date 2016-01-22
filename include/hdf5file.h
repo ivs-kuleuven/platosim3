@@ -6,10 +6,12 @@
 #include <sstream>
 #include <string>
 #include <vector>
+
 #include "H5Cpp.h"
-#include "logger.h"
 #include "memory.h"
 #include "armadillo"
+
+#include "Logger.h"
 
 using namespace std;
 

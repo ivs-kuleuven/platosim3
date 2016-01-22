@@ -16,7 +16,7 @@
 #include "StringUtilities.h"
 #include "Exceptions.h"
 #include "ConfigurationParameters.h"
-#include "logger.h"
+#include "Logger.h"
 
 using namespace std;
 

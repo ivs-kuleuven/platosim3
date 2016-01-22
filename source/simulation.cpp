@@ -1,5 +1,5 @@
 
-#include "simulation.h"
+#include "Simulation.h"
 
 
 // Constructor
