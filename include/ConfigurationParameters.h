@@ -4,7 +4,7 @@
 #include <string>
 #include <fstream>
 
-#include "logger.h"
+#include "Logger.h"
 #include "yaml-cpp/yaml.h"
 
 using namespace std;
