@@ -4,7 +4,8 @@
 
 #include <limits>
 #include <string>
-#include "hdf5file.h"
+
+#include "HDF5File.h"
 
 using namespace std;
 

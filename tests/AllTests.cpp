@@ -3,7 +3,7 @@
 
 #include "GTestConfigurationParameters.h"
 #include "GTestFileUtilities.h"
-#include "logger.h"
+#include "Logger.h"
 
 Logger Log;
 

@@ -2,11 +2,12 @@
 #define TELESCOPE_H
 
 #include <string>
-#include "logger.h"
-#include "timeticker.h"
-#include "hdf5writer.h"
-#include "platform.h"
-#include "configurationparameters.h"
+
+#include "Logger.h"
+#include "TimeTicker.h"
+#include "HDF5Writer.h"
+#include "Platform.h"
+#include "ConfigurationParameters.h"
 
 using namespace std;
 

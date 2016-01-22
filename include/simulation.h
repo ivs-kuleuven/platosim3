@@ -2,14 +2,15 @@
 #define CONTROLLER_H
 
 #include <string>
-#include "logger.h"
-#include "hdf5file.h"
-#include "detector.h"
-//#include "camera.h"
-//#include "telescope.h"
-//#include "platform.h"
-//#include "sky.h"
-//#include "configurationparameters.h"
+
+#include "Logger.h"
+#include "HDF5File.h"
+#include "Detector.h"
+//#include "Camera.h"
+//#include "Telescope.h"
+//#include "Platform.h"
+//#include "Sky.h"
+//#include "ConfigurationParameters.h"
 
 
 using namespace std;

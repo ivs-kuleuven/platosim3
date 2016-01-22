@@ -1,4 +1,4 @@
-#include "telescope.h"
+#include "Telescope.h"
 
 /**
  * Constructor.  Creates a telescope object, based on the given configuration

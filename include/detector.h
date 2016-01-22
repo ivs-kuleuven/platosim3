@@ -5,9 +5,10 @@
 #include <string>
 #include <cmath>
 #include <random>
-#include "logger.h"
-#include "hdf5file.h"
-#include "hdf5writer.h"
+
+#include "Logger.h"
+#include "HDF5File.h"
+#include "HDF5Writer.h"
 
 
 using namespace std;

@@ -3,8 +3,9 @@
 
 #include <string>
 #include <vector>
-#include "logger.h"
-#include "configurationparameters.h"
+
+#include "Logger.h"
+#include "ConfigurationParameters.h"
 
 
 using namespace std;

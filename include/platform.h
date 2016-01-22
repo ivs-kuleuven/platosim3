@@ -3,11 +3,12 @@
 
 #include <string>
 #include <vector>
-#include "logger.h"
-#include "timeticker.h"
-#include "hdf5writer.h"
-#include "configurationparameters.h"
-#include "jittergenerator.h"
+
+#include "Logger.h"
+#include "TimeTicker.h"
+#include "HDF5Writer.h"
+#include "ConfigurationParameters.h"
+#include "JitterGenerator.h"
 
 
 using namespace std;

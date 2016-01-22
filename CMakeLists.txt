@@ -45,19 +45,20 @@ include_directories(
 # Temporarily: remove some of the unfinished source files from the compilation list
 
 set(platoSimSourceFiles
-#    ${CMAKE_CURRENT_SOURCE_DIR}/source/camera.cpp
+#    ${CMAKE_CURRENT_SOURCE_DIR}/source/Camera.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/source/ConfigurationParameters.cpp 
-    ${CMAKE_CURRENT_SOURCE_DIR}/source/coordinates.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/source/detector.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/Coordinates.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/Detector.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/source/FileUtilities.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/source/hdf5file.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/source/hdf5writer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/HDF5File.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/HDF5Writer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/source/IOException.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/source/logger.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/source/simulation.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/Logger.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/PointSpreadFunction.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/Simulation.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/source/StringUtilities.cpp
-#    ${CMAKE_CURRENT_SOURCE_DIR}/source/telescope.cpp
-#    ${CMAKE_CURRENT_SOURCE_DIR}/source/timeticker.cpp
+#    ${CMAKE_CURRENT_SOURCE_DIR}/source/Telescope.cpp
+#    ${CMAKE_CURRENT_SOURCE_DIR}/source/TimeTicker.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/source/UnsupportedException.cpp
 )
 
