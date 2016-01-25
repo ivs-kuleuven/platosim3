@@ -60,8 +60,8 @@ class Detector : public HDF5Writer
 
         unsigned int numRows;                    // Nr of rows of the detector (= size in y-direction) [pixels]
     	unsigned int numColumns;                 // Nr of columns of the detector (= size in x-direction = readout direction) [pixels]
-        unsigned int numRowsSubField;            // Nr of rows in the subfield excl. edge pixels (= size the y-direction) [pixels]
-        unsigned int numColumnsSubField;         // Nr of columns in the subfield excl. edge pixels (= size in the x-direction = readout direction) [pixels]
+        unsigned int numRowsPixelMap;            // Nr of rows in the subfield excl. edge pixels (= size the y-direction) [pixels]
+        unsigned int numColumnsPixelMap;         // Nr of columns in the subfield excl. edge pixels (= size in the x-direction = readout direction) [pixels]
         unsigned int numRowsSubPixelMap;         // Nr of subpixel rows in the subfield incl. edge pixels (= size in the y-direction) [subpixels]
         unsigned int numColumnsSubPixelMap;      // Nr of subpixel columns in the subfield incl. edge pixels (= size in the x-direction = readout direction) [subpixels]
         unsigned int numRowsSmearingMap;         // Nr of rows in the smearing overscan strip [pixels]
