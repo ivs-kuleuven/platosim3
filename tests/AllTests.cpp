@@ -1,9 +1,11 @@
 
 // Include all the tests here
 
+#include "Logger.h"
+
 #include "GTestConfigurationParameters.h"
 #include "GTestFileUtilities.h"
-#include "Logger.h"
+#include "GTestPointSpreadFunction.h"
 
 Logger Log;
 
