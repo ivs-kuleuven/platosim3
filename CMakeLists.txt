@@ -60,6 +60,7 @@ set(platoSimSourceFiles
 #    ${CMAKE_CURRENT_SOURCE_DIR}/source/Telescope.cpp
 #    ${CMAKE_CURRENT_SOURCE_DIR}/source/TimeTicker.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/source/UnsupportedException.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/IllegalArgumentException.cpp
 )
 
 set(platoSimMain ${CMAKE_CURRENT_SOURCE_DIR}/source/main.cpp)
@@ -80,6 +81,7 @@ add_library(platoSimLibrary ${platoSimSourceFiles})
 set(unitTestSourceFiles
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/GTestConfigurationParameters.h
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/GTestFileUtilities.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/GTestPointSpreadFunction.h
 )
 
 set(unitTestMain ${CMAKE_CURRENT_SOURCE_DIR}/tests/AllTests.cpp)
