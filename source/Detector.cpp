@@ -888,11 +888,11 @@ void Detector::addReadoutNoise()
  */
 void Detector::applyGain()
 {
-	// Multiply the pixel, bias register, and smearing map with the gain
+	// Divide the pixel, bias register, and smearing map by the gain
 
-	pixelMap *= gain;
-	biasMap *= gain;
-	smearingMap *= gain;
+	pixelMap /= gain;
+	biasMap /= gain;
+	smearingMap /= gain;
 }
 
 
