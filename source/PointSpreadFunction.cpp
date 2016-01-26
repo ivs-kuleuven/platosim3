@@ -1,5 +1,7 @@
 #include "PointSpreadFunction.h"
 
+#include "Logger.h"
+
 
 PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &cp)
 {
@@ -32,6 +34,12 @@ void PointSpreadFunction::loadConfiguration(ConfigurationParameters &cp)
     groupName = "6000";  // this is currently the only group defined in the HDF5 file
     
     hdf5file = new HDF5File(location);
+
+    if ( !hdf5file->hasGroup(groupName) )
+    {
+        Log.error("PointSpreadFunction: The HDF5 file doesn't contain the expected group \"" + groupName + "\".");
+        exit(1);
+    }
 
 }
 
