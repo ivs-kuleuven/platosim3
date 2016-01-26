@@ -128,6 +128,91 @@ TEST(ConfigurationParametersTest, testNonExistingKey)
     ConfigurationParameters cp = ConfigurationParameters("../testData/input.yaml");
 
     ASSERT_THROW(string unknown = cp.getString("UnknownNode"), IllegalArgumentException);
+    ASSERT_THROW(string unknown = cp.getString("Special Values/UnknownSubNode"), IllegalArgumentException);
+
+    try
+    {
+        string unknown = cp.getString("Special Values/UnknownSubNode");
+        FAIL() << "This should never fail";
+    }
+    catch(IllegalArgumentException ex)
+    {
+        EXPECT_EQ(string("IllegalArgumentException: The sub-field \"UnknownSubNode\""),
+            string(ex.what()).substr(0, 56));
+    }
+
+    ASSERT_THROW(bool unknown = cp.getBoolean("UnknownNode"), IllegalArgumentException);
+    ASSERT_THROW(bool unknown = cp.getBoolean("Special Values/UnknownSubNode"), IllegalArgumentException);
+
+    ASSERT_THROW(int unknown = cp.getInteger("UnknownNode"), IllegalArgumentException);
+    ASSERT_THROW(int unknown = cp.getInteger("Special Values/UnknownSubNode"), IllegalArgumentException);
+
+    ASSERT_THROW(double unknown = cp.getDouble("UnknownNode"), IllegalArgumentException);
+    ASSERT_THROW(double unknown = cp.getDouble("Special Values/UnknownSubNode"), IllegalArgumentException);
+
+    ASSERT_THROW(string unknown = cp.getAbsoluteFileName("UnknownNode"), IllegalArgumentException);
+    ASSERT_THROW(string unknown = cp.getAbsoluteFileName("Special Values/UnknownSubNode"), IllegalArgumentException);
+
 }
 
+
+
+
+
+// This test checks that new fields can be set or added to a node.
+// 
+// * Set a new fields to a value
+// * Set the same field to another value
+// 
+// A log message will be issued as a warning that the field is overwritten.
+
+TEST(ConfigurationParametersTest, testSetNode)
+{
+    ConfigurationParameters cp = ConfigurationParameters();
+
+    string value;
+
+    cp.setNode("One New Key", "AFDEEBACFD");
+    ASSERT_NO_THROW(value = cp.getString("One New Key"));
+    ASSERT_STREQ("AFDEEBACFD", value.c_str());
+
+    cp.setNode("One New Key", "DFCABEEDFA");
+    ASSERT_NO_THROW(value = cp.getString("One New Key"));
+    ASSERT_STREQ("DFCABEEDFA", value.c_str());
+
+}
+
+
+
+
+
+
+// This test checks that new fields can be set or added to a map.
+// The map doesn't exist initially.
+// 
+// * Set a new fields in a non-existing map to a value
+// * Set the same field in the now existing map to another value
+// * Set another field in the map to a value
+// 
+// A log message will be issued as a warning that the field is overwritten.
+
+TEST(ConfigurationParametersTest, testSetSubNode)
+{
+    ConfigurationParameters cp = ConfigurationParameters();
+
+    string value;
+
+    cp.setNode("New Keys/Another New Key", "AFDEEBACFD");
+    ASSERT_NO_THROW(value = cp.getString("New Keys/Another New Key"));
+    ASSERT_STREQ("AFDEEBACFD", value.c_str());
+
+    cp.setNode("New Keys/Another New Key", "DFCABEEDFA");
+    ASSERT_NO_THROW(value = cp.getString("New Keys/Another New Key"));
+    ASSERT_STREQ("DFCABEEDFA", value.c_str());
+
+    cp.setNode("New Keys/Yet Another New Key", "FDBACEFDCB");
+    ASSERT_NO_THROW(value = cp.getString("New Keys/Yet Another New Key"));
+    ASSERT_STREQ("FDBACEFDCB", value.c_str());
+
+}
 
