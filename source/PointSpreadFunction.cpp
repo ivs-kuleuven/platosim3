@@ -20,9 +20,15 @@ PointSpreadFunction::~PointSpreadFunction()
 
 
 
+bool hasDataset(const string &)
+{
+    return false;
+}
+
+
 void PointSpreadFunction::loadConfiguration(ConfigurationParameters &cp)
 {
-    location = cp.getAbsoluteFileName("Camera/PSFFileName");
+    location = cp.getAbsoluteFileName("PSF/FileName");
     groupName = "6000";  // this is currently the only group defined in the HDF5 file
     
     hdf5file = new HDF5File(location);
