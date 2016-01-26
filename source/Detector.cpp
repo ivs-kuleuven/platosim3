@@ -40,12 +40,15 @@ Detector::Detector(HDF5File &hdf5file) :
 	biasMap.zeros(numRowsBiasMap, numColumnsPixelMap);
 	smearingMap.zeros(numRowsSmearingMap, numColumnsPixelMap);
 	flatfieldMap.ones(numRowsSubPixelMap, numColumnsSubPixelMap);	// TODO Cut off the edge pixels
+	cteMap.zeros(numRowsPixelMap, numColumnsPixelMap);
 
 	// Generate the flatfield map 
 
 	generateFlatfieldMap();
 
 	// Generate the CTE map
+
+	generateCteMap();
 
 	// Set the seeds of the random number generators
 
@@ -65,6 +68,31 @@ Detector::~Detector()
 {
 
 }
+
+
+
+
+
+
+
+
+/**
+ * @brief: Generate CTE map.  This map is generated at pixel level and currently
+ *         the value of all elements in the CTE map are set to the mean CTE.
+ *
+ * NOTE: In a later version, we can introduce pixels and/or rows of pixels (in the
+ *       pixel map) with a lower CTE, based on random distributions.
+ */
+void Detector::generateCteMap()
+{
+	cteMap = meanCte;
+
+	// Random pixels with lower CTE
+
+	// Random rows of pixels with lower CTE
+}
+
+
 
 
 
@@ -522,7 +550,7 @@ void Detector::readOut(double exposureTime)
 	// Pixel units before: [electrons]
 	// Pixel units after: [electrons]
 
-	applyCTE();
+	applyCte();
 
 	// Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
 	// the pixels are still receiving photons from the sky, while they are being transfered towards
@@ -760,7 +788,7 @@ void Detector::applyFullWellSaturation()
  * @post Pixel unit in the smearing map: [electrons].
  * @post No bias register map.
  */
-void Detector::applyCTE()
+void Detector::applyCte()
 {
 	// Create a map in which we will shift the rows (of the sub-field) one-by-one
 	// towards the readout register.  Bear in mind that the bottom row of the

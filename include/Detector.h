@@ -28,6 +28,7 @@ class Detector : public HDF5Writer
 
         virtual void reset();
         virtual void generateFlatfieldMap();
+        virtual void generateCteMap();
 
         virtual void integrateLight(double startTime, double exposureTime);
         virtual bool isInSubPixelMap(double row, double column);
@@ -40,7 +41,7 @@ class Detector : public HDF5Writer
         virtual void applyQuantumEfficiency();
     	virtual void addPhotonNoise();
     	virtual void applyFullWellSaturation();
-    	virtual void applyCTE();
+    	virtual void applyCte();
     	virtual void applyOpenShutterSmearing();
     	virtual void addReadoutNoise();
     	virtual void applyGain();
