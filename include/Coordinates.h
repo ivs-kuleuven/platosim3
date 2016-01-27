@@ -25,7 +25,7 @@ class Coordinates
 
  
         friend double angularDistanceBetween(Coordinates &coordinates1, Coordinates &coordinates2, Unit angleUnit);
-
+        friend vector<double> angularDistanceBetween(const double RA0, const double dec0, const vector<double> &RA, const vector<double> &dec, Unit angleUnit);
 
     protected:
 
