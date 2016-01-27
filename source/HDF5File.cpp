@@ -27,6 +27,7 @@ HDF5File::HDF5File()
 HDF5File::HDF5File(string filename, bool overwrite)
 : file(NULL), fileIsOpen(false)
 {
+    H5::Exception::dontPrint();
     open(filename, overwrite);
 }
 
@@ -173,7 +174,17 @@ bool HDF5File::fileExists(string filename)
 
 
 
+bool HDF5File::hasGroup(string groupName)
+{
+    try
+    {
+        H5::Group parentGroup = file->openGroup(groupName.c_str());
+        return true;
+    }
+    catch (H5::Exception ex) {}
 
+    return false;
+}
 
 
 

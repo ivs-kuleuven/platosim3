@@ -26,5 +26,25 @@ public:
 
 
 
+class IllegalArgumentException : public std::exception {
+    std::string message;
+public:
+    IllegalArgumentException(const char * msg);
+    IllegalArgumentException(const std::string msg);
+    virtual ~IllegalArgumentException() throw();
+    const char * what() const throw();
+};
+
+
+
+class FileException : public std::exception {
+    std::string message;
+public:
+    FileException(const char * msg);
+    FileException(const std::string msg);
+    virtual ~FileException() throw();
+    const char * what() const throw();
+};
+
 
 #endif /* EXCEPTIONS_H */

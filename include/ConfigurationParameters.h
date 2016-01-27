@@ -24,6 +24,8 @@ public:
     string getString(const string &);
     string getAbsoluteFileName(const string &);
 
+    void setParameter(const string &, const string &);
+
 private:
     string filename;
     YAML::Node config;

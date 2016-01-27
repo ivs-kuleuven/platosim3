@@ -18,9 +18,12 @@
 project(PlatoSim)
 
 
+
+
 # cmake version shouldn't be too old
 
 cmake_minimum_required(VERSION 2.8)
+
 
 
 
@@ -35,37 +38,57 @@ include_directories(
 )
 
 
-# Specify the simulator source files to be compiled, but exclude main.cpp.
-# Temporarily: remove some of the unfinished source files from the compilation list.
-
-file(GLOB platosimSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp)
-list(REMOVE_ITEM platosimSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/main.cpp)
-
-list(REMOVE_ITEM platosimSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/Camera.cpp 
-                                     ${CMAKE_CURRENT_SOURCE_DIR}/source/Telescope.cpp
-                                     ${CMAKE_CURRENT_SOURCE_DIR}/source/Timeticker.cpp)
 
 
-# Define the main.cpp of platosim separately.
+# Specify the simulator source files to be compiled
+# Note: using file(GLOB..) is not recommended in the CMake manual
+# Temporarily: remove some of the unfinished source files from the compilation list
 
-set(platosimMain ${CMAKE_CURRENT_SOURCE_DIR}/source/main.cpp)
+set(platoSimSourceFiles
+#    ${CMAKE_CURRENT_SOURCE_DIR}/source/Camera.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/ConfigurationParameters.cpp 
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/Coordinates.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/Detector.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/FileUtilities.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/HDF5File.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/HDF5Writer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/Logger.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/PointSpreadFunction.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/Simulation.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/StringUtilities.cpp
+#    ${CMAKE_CURRENT_SOURCE_DIR}/source/Telescope.cpp
+#    ${CMAKE_CURRENT_SOURCE_DIR}/source/TimeTicker.cpp
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/IOException.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/UnsupportedException.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/IllegalArgumentException.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/FileException.cpp
+)
+
+set(platoSimMain ${CMAKE_CURRENT_SOURCE_DIR}/source/main.cpp)
 
 
-# Add a platosim library. This way we need to compile the platosim source files
-# only once, when using them for platosim as well as testplatosim.
-
-add_library(platosimLibrary ${platosimSourceFiles})
 
 
-# Specify the simulator unittest files to be compiled, but exclude again the main().
+# Add all the platosim sources into a library
+# Note: this prevents recompilation of the source files for the unit tests
 
-file(GLOB unitTestSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
-list(REMOVE_ITEM unitTestSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/AllTests.cpp)
+add_library(platoSimLibrary ${platoSimSourceFiles})
 
 
-# Define the file with main() function for the unit tests separately. 
+
+
+# Specify the simulator unittest files to be compiled
+
+set(unitTestSourceFiles
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/GTestConfigurationParameters.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/GTestFileUtilities.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/GTestPointSpreadFunction.h
+)
 
 set(unitTestMain ${CMAKE_CURRENT_SOURCE_DIR}/tests/AllTests.cpp)
+
+
 
 
 # Specify the location of the dependency libraries
@@ -78,33 +101,37 @@ link_directories(
 )
 
 
+
+
 # Set the compiler flags
 # First those common to both gcc and clang:
 # -O3   = level 3 optimization; 
 # -Wall = enable all compiler's warning messages
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wall -Wno-deprecated-register -Wno-unused-variable")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wall")
 
 
 # Then those specific for the compiler for using C++11 support.
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -std=c++11")    
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -std=c++11 -Wno-deprecated-register -Wno-unused-variable")    
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 endif()
 
 
+
 # Create the platosim and testplatosim executables
 
-add_executable(platosim ${platosimMain})
+add_executable(platosim ${platoSimMain})
 add_executable(testplatosim ${unitTestMain} ${unitTestSourceFiles})
+
 
 
 # Link the platosim and testplatosim executable with the required libraries
 
-target_link_libraries(platosim platosimLibrary hdf5 hdf5_cpp armadillo.6 yaml-cpp)
-target_link_libraries(testplatosim platosimLibrary hdf5 hdf5_cpp armadillo.6 yaml-cpp gtest gtest_main)
+target_link_libraries(platosim platoSimLibrary hdf5 hdf5_cpp armadillo.6 yaml-cpp)
+target_link_libraries(testplatosim platoSimLibrary hdf5 hdf5_cpp armadillo.6 yaml-cpp gtest gtest_main)
 
 
 
