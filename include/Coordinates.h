@@ -48,8 +48,8 @@ class Coordinates
 
 
 
-double angularDistanceBetween(Coordinates &coordinates1, Coordinates &coordinates2, Unit angleUnit);
-vector<double> angularDistanceBetween(const double RA0, const double dec0, const vector<double> &RA, const vector<double> &dec, Unit angleUnit);
+double angularDistanceBetween(Coordinates &coordinates1, Coordinates &coordinates2, Unit outputAngleUnit);
+vector<double> angularDistanceBetween(const double RA0, const double dec0, const vector<double> &RA, const vector<double> &dec, Unit outputAngleUnit);
 
 
 
