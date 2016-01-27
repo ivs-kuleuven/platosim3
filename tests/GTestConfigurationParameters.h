@@ -56,13 +56,13 @@ TEST(ConfigurationParametersTest, readObservingValues)
     int exposureTime = cp.getInteger("Observing/ExposureTime");
     EXPECT_EQ(23, exposureTime);
 
-    string filename = cp.getString("Observing/StarCatalogueFileName");
+    string filename = cp.getString("Observing/StarCatalogueFilename");
     EXPECT_STREQ(filename.c_str(), "inputFiles/starField_RA180Dec-70.txt");
 
-    filename = cp.getAbsoluteFileName("Observing/StarCatalogueFileName");
+    filename = cp.getAbsoluteFilename("Observing/StarCatalogueFilename");
     EXPECT_STREQ(filename.c_str(), "/Users/rik/Work/PLATO/inputFiles/starField_RA180Dec-70.txt");
 
-    filename = cp.getAbsoluteFileName("Observing/AbsoluteFileName");
+    filename = cp.getAbsoluteFilename("Observing/AbsoluteFilename");
     EXPECT_STREQ(filename.c_str(), "/Users/rik/Work/PLATO/inputFiles/someInputFile.txt");
 
     double area = cp.getDouble("Observing/LightCollectingArea");
@@ -150,8 +150,8 @@ TEST(ConfigurationParametersTest, testNonExistingKey)
     ASSERT_THROW(double unknown = cp.getDouble("UnknownNode"), IllegalArgumentException);
     ASSERT_THROW(double unknown = cp.getDouble("Special Values/UnknownSubNode"), IllegalArgumentException);
 
-    ASSERT_THROW(string unknown = cp.getAbsoluteFileName("UnknownNode"), IllegalArgumentException);
-    ASSERT_THROW(string unknown = cp.getAbsoluteFileName("Special Values/UnknownSubNode"), IllegalArgumentException);
+    ASSERT_THROW(string unknown = cp.getAbsoluteFilename("UnknownNode"), IllegalArgumentException);
+    ASSERT_THROW(string unknown = cp.getAbsoluteFilename("Special Values/UnknownSubNode"), IllegalArgumentException);
 
 }
 

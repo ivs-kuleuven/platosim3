@@ -21,7 +21,7 @@ class Simulation
 {
     public:
 
-        Simulation(string inputFileName, string outputFileName);
+        Simulation(string inputFilename, string outputFilename);
         ~Simulation();
         virtual void run(double startingTime = 0.0);
 

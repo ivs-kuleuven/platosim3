@@ -22,7 +22,7 @@ PointSpreadFunction::~PointSpreadFunction()
 
 void PointSpreadFunction::loadConfiguration(ConfigurationParameters &cp)
 {
-    location = cp.getAbsoluteFileName("PSF/FileName");
+    location = cp.getAbsoluteFilename("PSF/Filename");
     groupName = "6000";  // this is currently the only group defined in the HDF5 file
     
     hdf5file = new HDF5File(location);
