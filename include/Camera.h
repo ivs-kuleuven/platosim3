@@ -2,18 +2,18 @@
 #define CAMERA_H
 
 #include <string>
-#include "logger.h"
-#include "timeticker.h"
-#include "hdf5writer.h"
-#include "telescope.h"
-#include "subfield.h"
+
+#include "Logger.h"
+#include "TimeTicker.h"
+#include "HDF5Writer.h"
+#include "Telescope.h"
 
 
 using namespace std;
 
 
 
-class Camera : public TimeTicker, Hdf5Writer
+class Camera : public TimeTicker, HDF5Writer
 {
     public:
 

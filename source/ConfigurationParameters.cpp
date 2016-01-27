@@ -8,6 +8,7 @@
  * The ConfigurationParameters provide an easy way to load and use input parameters
  * in the simulator. All parameters are loaded from a single YAML input file. The file is loaded 
  * and parsed by the constructor. 
+ * 
  */
 #include <string>
 #include <list>
@@ -17,8 +18,19 @@
 #include "Exceptions.h"
 #include "ConfigurationParameters.h"
 #include "Logger.h"
+#include "Exceptions.h"
 
 using namespace std;
+
+
+
+
+// Local functions that throw an Exception when incorrect node names are provided
+// 
+void noNodeError(string nodeName, string fileName);
+void noSubNodeError(string nodeName, string subNodeName, string fileName);
+
+
 
 
 ConfigurationParameters::ConfigurationParameters() {}
@@ -51,8 +63,7 @@ ConfigurationParameters::ConfigurationParameters(const string &name)
 {
     if ( ! FileUtilities::fileExists(name) )
     {
-        Log.warning("Error: Filename \"" + name + "\" does not exist.");
-        throw IOException("File passed as an argument to ConfigurationParameters does not exist.");
+        throw IllegalArgumentException("File (" + name + ") passed as an argument to ConfigurationParameters does not exist.");
     }
 
     filename = name;
@@ -86,10 +97,20 @@ bool ConfigurationParameters::getBoolean(const string &key)
     if (fields.size() > 1)
     {
         YAML::Node node = config[fields[0]];
-        return node[fields[1]].as<bool>();
+        if (!node) 
+            noNodeError(fields[0], filename);
+
+        YAML::Node subnode = node[fields[1]];
+        if (!subnode)
+            noSubNodeError(fields[0], fields[1], filename);
+
+        return subnode.as<bool>();
     }
     else 
     {
+        if (!config[key])
+            noNodeError(key, filename);
+
         return config[key].as<bool>();
     }
 
@@ -121,10 +142,20 @@ int ConfigurationParameters::getInteger(const string &key)
     if (fields.size() > 1)
     {
         YAML::Node node = config[fields[0]];
-        return node[fields[1]].as<int>();
+        if (!node) 
+            noNodeError(fields[0], filename);
+
+        YAML::Node subnode = node[fields[1]];
+        if (!subnode)
+            noSubNodeError(fields[0], fields[1], filename);
+
+        return subnode.as<int>();
     }
     else 
     {
+        if (!config[key])
+            noNodeError(key, filename);
+
         return config[key].as<int>();
     }
 
@@ -151,15 +182,25 @@ int ConfigurationParameters::getInteger(const string &key)
  */
 double ConfigurationParameters::getDouble(const string &key)
 {
-    vector<string> fields = StringUtilities::StringUtilities::StringUtilities::split(key, '/');
+    vector<string> fields = StringUtilities::split(key, '/');
 
     if (fields.size() > 1)
     {
         YAML::Node node = config[fields[0]];
-        return node[fields[1]].as<double>();
+        if (!node) 
+            noNodeError(fields[0], filename);
+
+        YAML::Node subnode = node[fields[1]];
+        if (!subnode)
+            noSubNodeError(fields[0], fields[1], filename);
+
+        return subnode.as<double>();
     }
     else 
     {
+        if (!config[key])
+            noNodeError(key, filename);
+
         return config[key].as<double>();
     }
 
@@ -186,15 +227,25 @@ double ConfigurationParameters::getDouble(const string &key)
  */
 string ConfigurationParameters::getString(const string &key) 
 {
-    vector<string> fields = StringUtilities::StringUtilities::split(key, '/');
+    vector<string> fields = StringUtilities::split(key, '/');
 
     if (fields.size() > 1)
     {
         YAML::Node node = config[fields[0]];
-        return node[fields[1]].as<string>();
+        if (!node) 
+            noNodeError(fields[0], filename);
+
+        YAML::Node subnode = node[fields[1]];
+        if (!subnode)
+            noSubNodeError(fields[0], fields[1], filename);
+
+        return subnode.as<string>();
     }
     else 
     {
+        if (!config[key])
+            noNodeError(key, filename);
+
         return config[key].as<string>();
     }
 
@@ -224,7 +275,7 @@ string ConfigurationParameters::getString(const string &key)
  *
  * @returns    An absolute filename
  */
-string ConfigurationParameters::getAbsoluteFileName(const string &key) 
+string ConfigurationParameters::getAbsoluteFilename(const string &key) 
 {
     string filename;
     vector<string> fields = StringUtilities::split(key, '/');
@@ -232,10 +283,20 @@ string ConfigurationParameters::getAbsoluteFileName(const string &key)
     if (fields.size() > 1)
     {
         YAML::Node node = config[fields[0]];
-        filename = node[fields[1]].as<string>();
+        if (!node) 
+            noNodeError(fields[0], filename);
+
+        YAML::Node subnode = node[fields[1]];
+        if (!subnode)
+            noSubNodeError(fields[0], fields[1], filename);
+
+        filename = subnode.as<string>();
     }
     else 
     {
+        if (!config[key])
+            noNodeError(key, filename);
+
         filename = config[key].as<string>();
     }
 
@@ -250,6 +311,64 @@ string ConfigurationParameters::getAbsoluteFileName(const string &key)
 
 
 
+
+
+/**
+ * @brief      Set a (new) value to the given parameter.
+ *
+ * The parameter must exist, in which case it will be 
+ * created automatically and assigned the given value.
+ * 
+ * The parameter might contain the name of a group/section in which it is defined. 
+ * If this group does not exist, it will be created.
+ * 
+ * A Log message will be issued as a warning if the action overwrites an existing field.
+ * 
+ * @param[in]  key    The name of the field to assign the new value
+ * @param[in]  value  The value to assign to the given field
+ */
+void ConfigurationParameters::setParameter(const string &key, const string &value)
+{
+    vector<string> fields = StringUtilities::split(key, '/');
+    if (fields.size() > 1)
+    {
+        YAML::Node node = config[fields[0]];
+        if (node)
+        {
+            YAML::Node subnode = node[fields[1]];
+            if (subnode)
+                Log.warning("Overwriting subnode \"" + fields[1] + "\" of node \"" + fields[0] + "\" in configuration parameters.");
+
+            node[fields[1]] = value;
+        }
+        else
+        {
+            config[fields[0]][fields[1]] = value;
+        }
+    }
+    else
+    {
+        if (config[key])
+            Log.warning("Overwriting node \"" + key + "\" in configuration parameters.");
+
+        config[key] = value;
+    }
+}
+
+
+
+void noNodeError(string nodeName, string fileName)
+{
+
+    string msg = "The field \"" + nodeName + "\" is not available in the configuration file (" + fileName + ").";
+    throw IllegalArgumentException(msg);
+}
+
+void noSubNodeError(string nodeName, string subNodeName, string fileName)
+{
+    string msg = "The sub-field \"" + subNodeName + "\" of field \"" + nodeName + "\" is not available in the configuration file (" + fileName + ").";
+    throw IllegalArgumentException(msg);
+}
 
 ConfigurationParameters::~ConfigurationParameters() {}
 
