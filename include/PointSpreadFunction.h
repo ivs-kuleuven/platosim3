@@ -19,7 +19,6 @@ class PointSpreadFunction
         PointSpreadFunction(ConfigurationParameters &);
         ~PointSpreadFunction();
 
-
     protected:
 
 
@@ -32,7 +31,7 @@ class PointSpreadFunction
         // The HDF5 file that holds the PSFs
         HDF5File *hdf5file;
 
-        // Loaded from the configuration, i.e. PSFFileName
+        // Loaded from the configuration, i.e. PSF/Filename
         string location;
 
         // Name of the HDF5 group that contains the PSF datasets
