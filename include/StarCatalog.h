@@ -21,15 +21,15 @@ class StarCatalog
         void getStarsWithinRadiusFrom(StarCatalog &starCatalog);
         void computeSkyBackground(double alpha, double delta);
 
-        virtual void configureWithFile(string fileName);
+        virtual void configureWithFile(string filename);
 
     protected:
 
 
     private:
 
-        string starCatalogFileName;
-        string outputFileName;;                      // HDF5 file, including full path
+        string starCatalogFilename;
+        string outputFilename;                      // HDF5 file, including full path
 
         long Nstars;
         vector<long> starID;

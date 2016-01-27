@@ -275,7 +275,7 @@ string ConfigurationParameters::getString(const string &key)
  *
  * @returns    An absolute filename
  */
-string ConfigurationParameters::getAbsoluteFileName(const string &key) 
+string ConfigurationParameters::getAbsoluteFilename(const string &key) 
 {
     string filename;
     vector<string> fields = StringUtilities::split(key, '/');
