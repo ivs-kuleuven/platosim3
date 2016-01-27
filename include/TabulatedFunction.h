@@ -29,12 +29,9 @@ class TabulatedFunction
         void setExtrapolationMethod(Extrap_Method method);
         void setInterpolationMethod(Interp_Method method);
 
-        double Begin();
-        double End();
-
         double operator()(const double xvalue);
 
-        double Integrate(double lower, double upper);
+        double integrate(double lower, double upper);
         void setAccuracy(const double accur);
 
     private:
@@ -486,7 +483,7 @@ double TabulatedFunction<Type>::linear_evaluate(const double xvalue)
  */
 
 template <class Type>
-double TabulatedFunction<Type>::Integrate(double lower, double upper)
+double TabulatedFunction<Type>::integrate(double lower, double upper)
 {
     const int JMAX = 20;
     double x,tnm,sum,del,olds;
@@ -564,71 +561,6 @@ void TabulatedFunction<Type>::setAccuracy(const double accur)
     {
         Log.error("TabulatedFunction::setAccuracy(): accuracy <= 0");
         exit(1);
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * \brief Return the smallest abscissa value
- */
-
-template <class Type>
-double TabulatedFunction<Type>::Begin()
-{
-    //  First check whether the class has already been initialized.
-
-    if (Nvalues == 0)
-    {
-        Log.error("TabulatedFunction::Begin(): TabulatedFunction not initialised");
-        exit(1);
-    } 
-    else
-    {
-        return(x[0]);
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * \brief Return the largest abscissa value
- */
- 
-template <class Type>
-double TabulatedFunction<Type>::End()
-{
-    //  First check whether the class has already been initialized.
-
-    if (Nvalues == 0)
-    {
-        Log.error("TabulatedFunction::End(): TabulatedFunction not initialised");
-        exit(1);
-    }
-    else
-    {
-        return(x[Nvalues-1]);
     }
 }
 
