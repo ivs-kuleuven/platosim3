@@ -1,5 +1,5 @@
 #include "PointSpreadFunction.h"
-
+#include "Exceptions.h"
 #include "Logger.h"
 
 
@@ -20,14 +20,6 @@ PointSpreadFunction::~PointSpreadFunction()
 }
 
 
-
-
-bool hasDataset(const string &)
-{
-    return false;
-}
-
-
 void PointSpreadFunction::loadConfiguration(ConfigurationParameters &cp)
 {
     location = cp.getAbsoluteFileName("PSF/FileName");
@@ -37,8 +29,7 @@ void PointSpreadFunction::loadConfiguration(ConfigurationParameters &cp)
 
     if ( !hdf5file->hasGroup(groupName) )
     {
-        Log.error("PointSpreadFunction: The HDF5 file doesn't contain the expected group \"" + groupName + "\".");
-        exit(1);
+        throw FileException("The HDF5 file doesn't contain the expected group \"" + groupName + "\".");
     }
 
 }
