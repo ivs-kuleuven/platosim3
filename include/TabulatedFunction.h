@@ -501,7 +501,7 @@ double TabulatedFunction<Type>::integrate(double lower, double upper)
     {
         if (j == 1)
         {
-            s = 0.5 * (upper - lower) * ((*this)(lower) + (*this)(upper));
+            s = 0.5 * (upper - lower);
         }
         else
         {
@@ -509,7 +509,10 @@ double TabulatedFunction<Type>::integrate(double lower, double upper)
             tnm = it;
             del = (upper - lower)/tnm;
             x = lower + 0.5 * del;
-            for (sum = 0.0, k=1; k <= it; k++, x+= del) sum += (*this)(x);
+            for (sum = 0.0, k=1; k <= it; k++, x+= del)
+            {
+                sum += x;
+            }
             s = 0.5 * (s + (upper-lower)*sum / tnm);
         }
 
