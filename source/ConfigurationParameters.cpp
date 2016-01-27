@@ -314,17 +314,20 @@ string ConfigurationParameters::getAbsoluteFileName(const string &key)
 
 
 /**
- * @brief      Set the given node or subnode key to a (new) value.
+ * @brief      Set a (new) value to the given parameter.
  *
- * The node nor the subnode must exist, in which case either of them will be 
+ * The parameter must exist, in which case it will be 
  * created automatically and assigned the given value.
+ * 
+ * The parameter might contain the name of a group/section in which it is defined. 
+ * If this group does not exist, it will be created.
  * 
  * A Log message will be issued as a warning if the action overwrites an existing field.
  * 
  * @param[in]  key    The name of the field to assign the new value
  * @param[in]  value  The value to assign to the given field
  */
-void ConfigurationParameters::setNode(const string &key, const string &value)
+void ConfigurationParameters::setParameter(const string &key, const string &value)
 {
     vector<string> fields = StringUtilities::split(key, '/');
     if (fields.size() > 1)

@@ -172,11 +172,11 @@ TEST(ConfigurationParametersTest, testSetNode)
 
     string value;
 
-    cp.setNode("One New Key", "AFDEEBACFD");
+    cp.setParameter("One New Key", "AFDEEBACFD");
     ASSERT_NO_THROW(value = cp.getString("One New Key"));
     ASSERT_STREQ("AFDEEBACFD", value.c_str());
 
-    cp.setNode("One New Key", "DFCABEEDFA");
+    cp.setParameter("One New Key", "DFCABEEDFA");
     ASSERT_NO_THROW(value = cp.getString("One New Key"));
     ASSERT_STREQ("DFCABEEDFA", value.c_str());
 
@@ -202,15 +202,15 @@ TEST(ConfigurationParametersTest, testSetSubNode)
 
     string value;
 
-    cp.setNode("New Keys/Another New Key", "AFDEEBACFD");
+    cp.setParameter("New Keys/Another New Key", "AFDEEBACFD");
     ASSERT_NO_THROW(value = cp.getString("New Keys/Another New Key"));
     ASSERT_STREQ("AFDEEBACFD", value.c_str());
 
-    cp.setNode("New Keys/Another New Key", "DFCABEEDFA");
+    cp.setParameter("New Keys/Another New Key", "DFCABEEDFA");
     ASSERT_NO_THROW(value = cp.getString("New Keys/Another New Key"));
     ASSERT_STREQ("DFCABEEDFA", value.c_str());
 
-    cp.setNode("New Keys/Yet Another New Key", "FDBACEFDCB");
+    cp.setParameter("New Keys/Yet Another New Key", "FDBACEFDCB");
     ASSERT_NO_THROW(value = cp.getString("New Keys/Yet Another New Key"));
     ASSERT_STREQ("FDBACEFDCB", value.c_str());
 

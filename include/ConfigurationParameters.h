@@ -24,7 +24,7 @@ public:
     string getString(const string &);
     string getAbsoluteFileName(const string &);
 
-    void setNode(const string &, const string &);
+    void setParameter(const string &, const string &);
 
 private:
     string filename;
