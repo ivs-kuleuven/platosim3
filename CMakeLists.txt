@@ -52,15 +52,17 @@ set(platoSimSourceFiles
     ${CMAKE_CURRENT_SOURCE_DIR}/source/FileUtilities.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/source/HDF5File.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/source/HDF5Writer.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/source/IOException.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/source/Logger.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/source/PointSpreadFunction.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/source/Simulation.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/source/StringUtilities.cpp
 #    ${CMAKE_CURRENT_SOURCE_DIR}/source/Telescope.cpp
 #    ${CMAKE_CURRENT_SOURCE_DIR}/source/TimeTicker.cpp
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/IOException.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/source/UnsupportedException.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/source/IllegalArgumentException.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/FileException.cpp
 )
 
 set(platoSimMain ${CMAKE_CURRENT_SOURCE_DIR}/source/main.cpp)

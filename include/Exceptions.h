@@ -37,5 +37,14 @@ public:
 
 
 
+class FileException : public std::exception {
+    std::string message;
+public:
+    FileException(const char * msg);
+    FileException(const std::string msg);
+    virtual ~FileException() throw();
+    const char * what() const throw();
+};
+
 
 #endif /* EXCEPTIONS_H */
