@@ -14,7 +14,7 @@ using namespace std;
 TEST(ConfigurationParametersTest, Constructor)
 {
 
-    ASSERT_THROW(ConfigurationParameters cp = ConfigurationParameters("input.yaml"), IOException);
+    ASSERT_THROW(ConfigurationParameters cp = ConfigurationParameters("input.yaml"), IllegalArgumentException);
 
 }
 
