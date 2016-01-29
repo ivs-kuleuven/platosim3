@@ -6,6 +6,7 @@
 #include <vector>
 #include <fstream>
 #include <sstream>
+#include <iterator>
 
 #include "Logger.h"
 #include "Units.h"

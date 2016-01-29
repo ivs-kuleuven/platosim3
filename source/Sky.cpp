@@ -15,7 +15,7 @@ Sky::Sky()
     {
         string temp;
         long n = 0;
-        while (getline(myfile, temp)) 
+        while (getline(myfile, temp))
         {
             istringstream buffer(temp);
             vector<double> numbers((istream_iterator<double>(buffer)), istream_iterator<double>());
