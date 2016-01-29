@@ -1,6 +1,7 @@
 # Project related files to be ignored
 
 build/*
+inputfiles/*
 dependencies/Installs/*
 *.xcodeproj/*
 *.sublime-project
