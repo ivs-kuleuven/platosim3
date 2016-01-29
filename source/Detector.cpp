@@ -17,20 +17,8 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file)
 	initHDF5Groups();
 
 	// Parse the parameters from the configuration file.
-	// Currently: hard-coded
 
-	numRowsPixelMap = 10;
-	numColumnsPixelMap = 15;
-
-	numSubPixelsPerPixel = 8;
-	numRowsSubPixelMap = numRowsPixelMap * numSubPixelsPerPixel;	// TODO Add edge pixels
-	numColumnsSubPixelMap = numColumnsPixelMap * numSubPixelsPerPixel;	// TODO Add edge pixels
-
-	numRowsBiasMap = 5;
-	numRowsSmearingMap = 5;
-
-	flatfieldNoiseAmplitude = 1.0;
-	gain = 1.0;
+	configure(configParam);
 
 	// Attach the camera
 
