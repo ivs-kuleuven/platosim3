@@ -46,7 +46,9 @@ ConfigurationParameters::ConfigurationParameters() {}
  * 
  * @param[in]  name  Filename of the input file for PlatoSim3
  */
-ConfigurationParameters::ConfigurationParameters(const char* name) : ConfigurationParameters::ConfigurationParameters(string(name)) {}
+ConfigurationParameters::ConfigurationParameters(const char* name) 
+: ConfigurationParameters::ConfigurationParameters(string(name)) 
+{}
 
 
 
@@ -370,7 +372,13 @@ void noSubNodeError(string nodeName, string subNodeName, string fileName)
     throw IllegalArgumentException(msg);
 }
 
-ConfigurationParameters::~ConfigurationParameters() {}
+
+
+
+ConfigurationParameters::~ConfigurationParameters() 
+{
+    
+}
 
 
 
