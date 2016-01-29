@@ -1024,42 +1024,18 @@ void Detector::applyDigitalSaturation()
 {
 	// Top off the values in the pixel map
 
-	for (unsigned int row = 0; row < numRowsPixelMap; row++)
-	{
-		for (unsigned int column = 0; column < numColumnsPixelMap; column++)
-		{
-			if (pixelMap(row, column) > digitalSaturationLimit)
-			{
-				pixelMap(row, column) = digitalSaturationLimit;
-			}
-		}
-	}
+	pixelMap(arma::find(pixelMap > digitalSaturationLimit)).fill(
+			digitalSaturationLimit);
 
 	// Top off the values in the bias register map
 
-	for (unsigned int row = 0; row < numRowsBiasMap; row++)
-	{
-		for (unsigned int column = 0; column < numColumnsPixelMap; column++)
-		{
-			if (biasMap(row, column) > digitalSaturationLimit)
-			{
-				biasMap(row, column) = digitalSaturationLimit;
-			}
-		}
-	}
+	biasMap(arma::find(biasMap > digitalSaturationLimit)).fill(
+			digitalSaturationLimit);
 
 	// Top off the values in the smearing map
 
-	for (unsigned int row = 0; row < numRowsSmearingMap; row++)
-	{
-		for (unsigned int column = 0; column < numColumnsPixelMap; column++)
-		{
-			if (smearingMap(row, column) > digitalSaturationLimit)
-			{
-				smearingMap(row, column) = digitalSaturationLimit;
-			}
-		}
-	}
+	smearingMap(arma::find(smearingMap > digitalSaturationLimit)).fill(
+			digitalSaturationLimit);
 }
 
 
