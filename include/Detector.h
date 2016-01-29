@@ -97,11 +97,10 @@ class Detector : public HDF5Writer
 
         double internalTime;
 
-    	double flatfieldSeed;
-    	double readoutNoiseSeed;
-    	double photonNoiseSeed;
-    	double cteMapSeedRow;
-    	double cteMapSeedColumn;
+    	long flatfieldSeed;
+    	long readoutNoiseSeed;
+    	long photonNoiseSeed;
+    	long cteMapSeed;
 
     	mt19937 photonNoiseGenerator;
     	mt19937 readoutNoiseGenerator;
