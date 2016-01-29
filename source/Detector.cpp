@@ -790,15 +790,58 @@ void Detector::applyFullWellSaturation()
  */
 void Detector::applyCte()
 {
-	// Create a map in which we will shift the rows (of the sub-field) one-by-one
+	// Create a map in which we will shift the rows of the pixel map one-by-one
 	// towards the readout register.  Bear in mind that the bottom row of the
 	// sub-field is not necessarily right next to the readout register (the
 	// distance between the two is subFieldZeroPointRow).
 
-	arma::Mat<double> shiftMap;
-	shiftMap.zeros(numRowsPixelMap, numColumnsPixelMap);
+	arma::Mat<float> shiftMap;
+	shiftMap.zeros(subFieldZeroPointRow + numRowsPixelMap, numColumnsPixelMap);
+	shiftMap.submat(
+			arma::span(subFieldZeroPointRow,
+					subFieldZeroPointRow + numRowsPixelMap - 1),
+			arma::span::all) = pixelMap;
 
-	// TODO
+	// The readout register
+
+	arma::Row<float> readoutStrip;
+	readoutStrip.zeros(numColumnsPixelMap);
+
+	// Array filled with ones (needed for the CTI)
+
+	arma::Row<float> ones;
+	ones.ones(numColumnsPixelMap);
+
+	// Shift all the rows down (i.e. towards the readout register) one-by-one
+	// Keep on doing this until all rows have been read out.
+
+	for (int shiftIndex = 0;
+			shiftIndex < numRowsPixelMap + subFieldZeroPointRow; shiftIndex++)
+	{
+
+		// Shift the bottom row to the readout strip
+
+		readoutStrip = cteMap(0, arma::span::all)
+				* shiftMap(0, arma::span::all);
+
+		if (shiftIndex >= subFieldZeroPointRow)
+		{
+			pixelMap(shiftIndex - subFieldZeroPointRow, arma::span::all) = readoutStrip(0, arma::span::all);
+		}
+
+		// Shift all other rows one row down (i.e. closer to the readout register)
+
+		for (int row = 0; row < subFieldZeroPointRow + numRowsPixelMap - 1;
+				row++)
+		{
+
+			shiftMap(row, arma::span::all) = (ones
+					- cteMap(row, arma::span::all))
+					* shiftMap(row, arma::span::all)	// Left behind when shifting row down (CTI = 1 - CTE)
+					+ cteMap(row + 1, arma::span::all)
+							* shiftMap(row + 1, arma::span::all);	// Transferred (CTE
+		}
+	}
 }
 
 
