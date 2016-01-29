@@ -83,7 +83,7 @@ link_directories(
 # -O3   = level 3 optimization; 
 # -Wall = enable all compiler's warning messages
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wall -Wno-deprecated-register -Wno-unused-variable")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wall -Wno-deprecated-register -Wno-unused-variable -Wno-return-type")
 
 
 # Then those specific for the compiler for using C++11 support.

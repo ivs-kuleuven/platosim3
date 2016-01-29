@@ -4,11 +4,11 @@
 
 // Constructor
 
-Simulation::Simulation(string inputFileName, string outputFileName)
+Simulation::Simulation(string inputFilename, string outputFilename)
 {
     // Parse inputfile, get ConfigursationParameters objects
 
-    hdf5File.open(outputFileName);
+    hdf5File.open(outputFilename);
 
     // Initialise the spacecraft components
 

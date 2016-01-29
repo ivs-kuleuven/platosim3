@@ -22,7 +22,9 @@ public:
     int getInteger(const string &);
     double getDouble(const string &);
     string getString(const string &);
-    string getAbsoluteFileName(const string &);
+    string getAbsoluteFilename(const string &);
+
+    void setParameter(const string &, const string &);
 
 private:
     string filename;

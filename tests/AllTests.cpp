@@ -1,15 +1,25 @@
+#include <fstream>
 
 // Include all the tests here
 
+#include "Logger.h"
+
 #include "GTestConfigurationParameters.h"
 #include "GTestFileUtilities.h"
-#include "Logger.h"
+#include "GTestPointSpreadFunction.h"
 
 Logger Log;
 
 int main(int argc, char **argv) 
 {
+    ofstream logFile("log.txt");
+    Log.addOutputStream(logFile, WARNING | ERROR | DEBUG | INFO);
+    Log.info("Main: Log file includes 'warning', 'error', 'debug', and 'info'");
+
     ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+    int returnValue = RUN_ALL_TESTS();
+
+    logFile.close();
+    return returnValue;
 }
 

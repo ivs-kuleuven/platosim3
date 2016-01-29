@@ -24,8 +24,8 @@ int main(int Narguments, char* arguments[])
         exit(EXIT_FAILURE);
     }
 
-    string inputFileName(arguments[1]);
-    string outputFileName(arguments[2]);
+    string inputFilename(arguments[1]);
+    string outputFilename(arguments[2]);
 
 
     // Set up the log file
@@ -38,7 +38,7 @@ int main(int Narguments, char* arguments[])
 
     // Initialise the simulation, and loop over all exposures using run()
 
-    Simulation simulation(inputFileName, outputFileName);
+    Simulation simulation(inputFilename, outputFilename);
     simulation.run();
 
 

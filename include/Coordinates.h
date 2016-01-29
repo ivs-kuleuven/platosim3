@@ -25,7 +25,7 @@ class Coordinates
 
  
         friend double angularDistanceBetween(Coordinates &coordinates1, Coordinates &coordinates2, Unit angleUnit);
-
+        friend vector<double> angularDistanceBetween(const double RA0, const double dec0, const vector<double> &RA, const vector<double> &dec, Unit angleUnit);
 
     protected:
 
@@ -43,6 +43,13 @@ class Coordinates
         const double l0;                     // Galactic longitude of the ascending node of the galactic plane = 33 deg in B1950 [rad]
     
 };
+
+
+
+
+
+double angularDistanceBetween(Coordinates &coordinates1, Coordinates &coordinates2, Unit outputAngleUnit);
+vector<double> angularDistanceBetween(const double RA0, const double dec0, const vector<double> &RA, const vector<double> &dec, Unit outputAngleUnit);
 
 
 

@@ -28,6 +28,7 @@ class HDF5File
         void open(string filename, bool overwrite=false);
         void close();
         
+        bool hasGroup(string groupName);
         void createGroup(string groupName);
 
         void writeAttribute(string groupName, string attributeName, string attributeValue);

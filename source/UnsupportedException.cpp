@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include "Logger.h"
 #include "Exceptions.h"
 
 using std::string;
@@ -10,10 +11,12 @@ const char * UnsupportedException::what() const throw() {
 
 UnsupportedException::UnsupportedException(const char * msg) {
     message = msg;
+    Log.error(what());
 }
 
 UnsupportedException::UnsupportedException(std::string msg) {
     message = msg;
+    Log.error(what());
 }
 
 UnsupportedException::~UnsupportedException() throw() {}
