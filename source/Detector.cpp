@@ -335,26 +335,23 @@ void Detector::integrateLight(double startTime, double exposureTime)
  * @post Pixel unit in the sub-pixel map: [photons].
  * @post Pixel, bias register, and smearing maps filled with zeroes.
  */
-void Detector::addFlux(double rowFocalPlane, double columnFocalPlane,
-		double flux)
+ 
+void Detector::addFlux(double rowFocalPlane, double columnFocalPlane, double flux)
 {
 
 	// Detector origin offset (pixel level)
 
-	double rowOffset = (rowFocalPlane - originOffsetRow) / pixelSize;
-	double columnOffset = (columnFocalPlane - originOffsetColumn) / pixelSize;
+	double rowOffset = (rowFocalPlane - originOffsetY) / pixelSize;
+	double columnOffset = (columnFocalPlane - originOffsetX) / pixelSize;
 
 	// Detector orientation (pixel level)
 
-	double column = columnOffset * cos(orientationAngle)
-			- rowOffset * sin(orientationAngle);
-	double row = columnOffset * sin(orientationAngle)
-			+ rowOffset * cos(orientationAngle);
+	double column = columnOffset * cos(orientationAngle) - rowOffset * sin(orientationAngle);
+	double row = columnOffset * sin(orientationAngle) + rowOffset * cos(orientationAngle);
 
 	// Sub-field incl. edge pixels (also correct for sub-field zeropoint)
 
-	column = (column - subFieldZeroPointColumn + numEdgePixels)
-			* numSubPixelsPerPixel;
+	column = (column - subFieldZeroPointColumn + numEdgePixels) * numSubPixelsPerPixel;
 	row = (row - subFieldZeroPointRow + numEdgePixels) * numSubPixelsPerPixel;
 
 	// Add flux in this->subPixelMap at (row, column)

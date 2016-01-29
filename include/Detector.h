@@ -68,9 +68,9 @@ class Detector : public HDF5Writer
         unsigned int numColumnsSubPixelMap;      // Nr of subpixel columns in the subfield incl. edge pixels (= size in the x-direction = readout direction) [subpixels]
         unsigned int numRowsSmearingMap;         // Nr of rows in the smearing overscan strip [pixels]
         unsigned int numRowsBiasMap;             // Nr of rows in the bias prescan strip [pixels]
-
-    	double originOffsetRow;                  // Offset of the detector origin from the centre of the optical plane in the row direction [mm]
-    	double originOffsetColumn;               // Offset of the detector origin from the centre of the optical plane in the column direction [mm]
+ 
+    	double originOffsetY;                    // Y-coordinate of the detector origin from the centre of the optical plane [mm]
+    	double originOffsetX;                    // X-coordinate of the detector origin from the centre of the optical plane [mm]
         unsigned int subFieldZeroPointRow;       // Position of the subfield zeropoint w.r.t. the complete detector in the row direction [pixels]
         unsigned int subFieldZeroPointColumn;    // Position of the subfield zeropoint w.r.t. the complete detector in the column direction [pixels]
     	double orientationAngle;                 // Orientation angle of the detector w.r.t. the orientation of the focal plane, measured counterclockwise [degrees]
