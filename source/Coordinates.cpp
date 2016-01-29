@@ -178,14 +178,53 @@ void Coordinates::equatorial2galactic(const double alpha, const double delta, do
  * \return angular separation [rad]
  */
 
-double angularDistanceBetween(Coordinates &coordinates1, Coordinates &coordinates2, Unit angleUnit)
+double angularDistanceBetween(Coordinates &coordinates1, Coordinates &coordinates2, Unit outputAngleUnit)
 {
     const double sinHalfDeltaLong = sin((coordinates1.RA - coordinates2.RA)/2.0);
     const double sinHalfDeltaLat = sin((coordinates1.decl - coordinates2.decl)/2.0);
     const double a = sinHalfDeltaLat*sinHalfDeltaLat + cos(coordinates1.decl) * cos(coordinates2.decl) * sinHalfDeltaLong*sinHalfDeltaLong;
 
-    const double angle = 2.0 * atan2(sqrt(a), sqrt(1.0-a));
+    const double angle = 2.0 * atan2(sqrt(a), sqrt(1.0-a)) * outputAngleUnit;
 
-    return angle * angleUnit;
+    return angle;
 }
 
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Compute the angular distance of for each of the stars with coordinates (RA, dec) to a reference point (RA0, dec0).
+ *        
+ * \details The haversine formula is used to get better numerical accuracy.
+ * 
+ * \param RA0              Right ascension of the reference point [rad]
+ * \param dec0             Declination of the reference point [rad]
+ * \param RA               Right ascension of each of the stars [rad]
+ * \param dec              Declination of each of the stars [rad]
+ * \param outputAngleUnit  anglesAngle::radians if output angle should be in radians, Angle::degrees if in degrees
+ *   
+ * \return           Angular separation [unit: see angleUnit]
+ */
+
+vector<double> angularDistanceBetween(const double RA0, const double dec0, const vector<double> &RA, const vector<double> &dec, Unit outputAngleUnit)
+{
+    vector<double> angularDistance(RA.size());
+
+    for (long n = 0; n < RA.size(); ++n)
+    {
+        const double sinHalfDeltaLong = sin((RA0 - RA[n])/2.0);
+        const double sinHalfDeltaLat = sin((dec0 - dec[n])/2.0);
+        const double a = sinHalfDeltaLat*sinHalfDeltaLat + cos(dec0) * cos(dec[n]) * sinHalfDeltaLong*sinHalfDeltaLong;
+
+        angularDistance[n] = 2.0 * atan2(sqrt(a), sqrt(1.0-a)) * outputAngleUnit;
+    }
+
+    return angularDistance;
+}

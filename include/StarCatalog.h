@@ -5,9 +5,36 @@
 #include <vector>
 
 #include "Logger.h"
-#include "ConfigurationParameters.h"
+#include "Units.h"
+#include "Coordinates.h"
+
 
 using namespace std;
+
+
+
+struct StarRecord
+{
+    public:
+
+        StarRecord(const long starID, const double RA, const double dec, const double Vmag)
+        : ID(starID), RA(RA), dec(dec), Vmag(Vmag)
+        {};
+
+        ~StarRecord(){};
+
+        StarRecord(StarRecord &&starRecord)
+        : ID(starRecord.ID), RA(starRecord.RA), dec(starRecord.dec), Vmag(starRecord.Vmag)
+        {};
+
+        const long   ID;        // Star identification number
+        const double RA;        // Right Ascension [rad]
+        const double dec;       // Declination [rad]
+        const double Vmag;      // Johnson V magnitude
+};
+
+
+
 
 
 
@@ -15,27 +42,26 @@ class StarCatalog
 {
     public:
 
-        StarCatalog(ConfigurationParameters configurationParameters);
+        StarCatalog();
+        StarCatalog(const StarCatalog &starCatalog);
+        StarCatalog(StarCatalog &&starCatalog);
         ~StarCatalog();
 
-        void getStarsWithinRadiusFrom(StarCatalog &starCatalog);
-        void computeSkyBackground(double alpha, double delta);
+        long size();
+        void addStar(const long starID, const double RA, const double dec, const double Vmag, Unit angleUnit);
+        StarRecord operator[](long index) const;
 
-        virtual void configureWithFile(string fileName);
+        StarCatalog getStarsWithinRadiusFrom(const double RA0, const double dec0, const double radius, Unit angleUnit);
 
     protected:
 
+        long Nstars;
+        vector<long> starID;        // Star identification number
+        vector<double> RA;          // Right Ascension [rad]
+        vector<double> dec;         // Declination [rad]
+        vector<double> Vmag;        // Johnson V magnitude
 
     private:
-
-        string starCatalogFileName;
-        string outputFileName;;                      // HDF5 file, including full path
-
-        long Nstars;
-        vector<long> starID;
-        vector<double> rightAscension;
-        vector<double> declination;
-        vector<double> Vmag; 
 
 };
 

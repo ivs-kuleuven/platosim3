@@ -30,6 +30,7 @@ Detector::Detector(HDF5File &hdf5file) :
 	numRowsSmearingMap = 5;
 
 	flatfieldNoiseAmplitude = 1.0;
+	gain = 1.0;
 
 	// Attach the camera
 
