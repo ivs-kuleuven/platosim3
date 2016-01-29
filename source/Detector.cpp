@@ -646,6 +646,8 @@ void Detector::readOut(double exposureTime)
  */
 void Detector::applyQuantumEfficiency()
 {
+	Log.debug("Detector: applying quantum efficiency");
+
 	pixelMap *= quantumEfficiency;
 }
 
@@ -672,6 +674,8 @@ void Detector::applyQuantumEfficiency()
  */
 void Detector::addPhotonNoise()
 {
+	Log.debug("Detector: adding photon noise");
+
 	// Add photon noise to the pixel map
 
 	for (unsigned int row = 0; row < numRowsPixelMap; row++)
@@ -723,6 +727,8 @@ void Detector::addPhotonNoise()
  */
 void Detector::applyFullWellSaturation()
 {
+	Log.debug("Detector: applying full well saturation");
+
 	double pixelValue, numExcessElectrons;
 
 	int jmod;// Row coordinate where excess electrons are transferred from and to
@@ -822,6 +828,8 @@ void Detector::applyFullWellSaturation()
  */
 void Detector::applyCte()
 {
+	Log.debug("Detector: Applying charge transfer inefficiency");
+
 	// Create a map in which we will shift the rows of the pixel map one-by-one
 	// towards the readout register.  Bear in mind that the bottom row of the
 	// sub-field is not necessarily right next to the readout register (the
@@ -941,6 +949,8 @@ void Detector::applyOpenShutterSmearing()
  */
 void Detector::addReadoutNoise()
 {
+	Log.debug("Detector: adding readout noise");
+
 	readoutNoiseDistribution = normal_distribution<double>(0.0, readoutNoise);
 
 	// Add readout noise to the pixel map
@@ -983,6 +993,8 @@ void Detector::addReadoutNoise()
  */
 void Detector::applyGain()
 {
+	Log.debug("Detector: applying gain");
+
 	// Divide the pixel, bias register, and smearing map by the gain
 
 	pixelMap /= gain;
@@ -1013,6 +1025,7 @@ void Detector::applyGain()
 
 void Detector::addElectronicOffset()
 {
+	Log.debug("Detector: adding a bias");
 
 	// Add the electronic offset to the pixel, bias register, and smearing maps
 
@@ -1045,6 +1058,8 @@ void Detector::addElectronicOffset()
  */
 void Detector::applyDigitalSaturation()
 {
+	Log.debug("Detector: applying digital saturation");
+
 	// Top off the values in the pixel map
 
 	pixelMap(arma::find(pixelMap > digitalSaturationLimit)).fill(digitalSaturationLimit);
@@ -1077,6 +1092,8 @@ void Detector::applyDigitalSaturation()
  */
 void Detector::initHDF5Groups()
 {
+	Log.debug("Detector: initialising HDF5 groups");
+
 	hdf5File.createGroup("/Images");
 	hdf5File.createGroup("/BiasMaps");
 	hdf5File.createGroup("/SmearingMaps");
