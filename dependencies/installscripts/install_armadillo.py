@@ -9,7 +9,7 @@ import os,sys,shutil,subprocess
 
 # Specify the dependency package name
 
-packageName = "armadillo-6.400.3"
+packageName = "armadillo-6.500.4"
 
 # Specify build and install folders
 
@@ -25,8 +25,8 @@ shutil.rmtree(installDir, ignore_errors=True)
 # Build and nstall package
 
 installProcedure = "cd {build};                                     \
-					tar -xzvf {package}.tgz;                        \
-					cd {package};                                   \
+                    tar -xzvf {package}.tgz;                        \
+                    cd {package};                                   \
                     mkdir build;                                    \
                     cd build;                                       \
                     cmake ..;                                       \
