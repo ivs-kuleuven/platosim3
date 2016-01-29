@@ -10,21 +10,21 @@
 
 Sky::Sky()
 {
-    ifstream myfile("starField_Ra180Dec-70.txt");
-    if (myfile.is_open())
-    {
-        string temp;
-        long n = 0;
-        while (getline(myfile, temp)) 
-        {
-            istringstream buffer(temp);
-            vector<double> numbers((istream_iterator<double>(buffer)), istream_iterator<double>());
-            starCatalog.addStar(n, numbers[0], numbers[1], numbers[2], Angle::degrees);
-            n++;
-        }
-
-        myfile.close();
-    }
+//    ifstream myfile("starField_Ra180Dec-70.txt");
+//    if (myfile.is_open())
+//    {
+//        string temp;
+//        long n = 0;
+//        while (getline(myfile, temp))
+//        {
+//            istringstream buffer(temp);
+//            vector<double> numbers((istream_iterator<double>(buffer)), istream_iterator<double>());
+//            starCatalog.addStar(n, numbers[0], numbers[1], numbers[2], Angle::degrees);
+//            n++;
+//        }
+//
+//        myfile.close();
+//    }
 }
 
 
