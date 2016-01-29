@@ -39,14 +39,13 @@ Telescope:
 Camera:
     
     FocalPlaneOrientation:  0.0           # [degrees]
+
+
+PSF:
+
     UseGauss:               1             # Use analytical Gaussian PSF (0=no,1=yes)
-    PSFGaussSigma:          1.0           # Width of Gaussian PSF [pixels]
-    PSFNumRows:             1024          # Number of rows of the (square) PSF 
-    PSFSubPixels:           128           # Number of subpixels per pixels (integer)
-    PSFCenterX:             511.5         # X barycenter of the PSF in subpixel coordinates
-    PSFCenterY:             512.5         # Y barycenter of the PSF in subpixel coorindates
-    PSFOrientation:         45.0          # Orientiation of precomputed PSF [degrees]
-    PSFFileName:            inputfiles/psf.txt
+    GaussSigma:             1.0           # Width of Gaussian PSF [pixels]
+    FileName:               inputfiles/psf.hdf5
 
 
 CCD:
