@@ -7,7 +7,7 @@
  * @param configurationParameters: Configuration parameters for the detector.
  * @param camera:                  Camera to which to attach the detector.
  */
-Detector::Detector(HDF5File &hdf5file) 
+Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file) 
 : HDF5Writer(hdf5file), imageNr(0)
 {
 	// Create the groups in the HDF5 file where the different maps (i.e. pixel map,
