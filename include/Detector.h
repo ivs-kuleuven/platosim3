@@ -24,6 +24,7 @@ class Detector : public HDF5Writer
         virtual ~Detector();
 
         virtual void takeExposure(double startTime, double exposureTime);
+        virtual void configure(ConfigurationParameters &configParam);
 
     protected:
 

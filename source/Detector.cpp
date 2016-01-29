@@ -77,6 +77,70 @@ Detector::~Detector()
 
 
 
+
+
+
+/**
+ * \brief Configure the Detector object using the ConfigurationParameters
+ * 
+ * \param configParam: the configuration parameters 
+ **/
+
+ void Detector::configure(ConfigurationParameters &configParam)
+ {
+ 	// Configuration parameters for the CCD detector
+
+    originOffsetX           = configParam.getDouble("CCD/OriginOffsetX");
+    originOffsetY           = configParam.getDouble("CCD/OriginOffsetY");
+    orientationAngle        = configParam.getDouble("CCD/Orientation");
+    numRows                 = configParam.getInteger("CCD/NumRows");
+    numColumns              = configParam.getInteger("CCD/NumColumns");
+    pixelSize               = configParam.getDouble("CCD/PixelSize");
+    gain                    = configParam.getInteger("CCD/Gain");
+    quantumEfficiency       = configParam.getDouble("CCD/QuantumEfficiency");
+    fullWellSaturationLimit = configParam.getLong("CCD/FullWellSaturation");
+    digitalSaturationLimit  = configParam.getLong("CCD/DigitalSaturation");
+    readoutNoise            = configParam.getDouble("CCD/ReadoutNoise");
+    electronicOffset        = configParam.getInteger("CCD/ElectronicOffset");
+    readoutTime             = configParam.getDouble("CCD/ReadoutTime");
+    flatfieldNoiseAmplitude = configParam.getDouble("CCD/FlatfieldPtPNoise");
+    meanCte                 = configParam.getDouble("CCD/CTEMean");
+
+    // Configuration parameters for the subfield
+
+    subFieldZeroPointRow    = configParam.getInteger("SubField/ZeroPointRow");
+    subFieldZeroPointColumn = configParam.getInteger("SubField/ZeroPointColumn");
+	numRowsPixelMap         = configParam.getInteger("SubField/NumRows");
+	numColumnsPixelMap      = configParam.getInteger("SubField/NumColumns");
+	numRowsBiasMap          = configParam.getInteger("SubField/NumBiasPrescanRows");
+	numRowsSmearingMap      = configParam.getInteger("SubField/NumSmearingOverscanRows");
+	numSubPixelsPerPixel    = configParam.getInteger("SubField/SubPixels");
+
+    // Configuration parameters for the noise source random seeds
+
+	readoutNoiseSeed        = configParam.getLong("RandomSeeds/ReadOutNoiseSeed");
+	photonNoiseSeed         = configParam.getLong("RandomSeeds/PhotonNoiseSeed");
+	flatfieldSeed           = configParam.getLong("RandomSeeds/FlatFieldSeed");
+	cteMapSeed              = configParam.getLong("RandomSeeds/CTESeed");
+
+	// Derive the dimensions of the subpixel map
+
+	numRowsSubPixelMap    = numRowsPixelMap    * numSubPixelsPerPixel;	// TODO Add edge pixels
+	numColumnsSubPixelMap = numColumnsPixelMap * numSubPixelsPerPixel;	// TODO Add edge pixels
+
+	numEdgePixels = 0;
+ }
+
+
+
+
+
+
+
+
+
+
+
 /**
  * @brief: Generate CTE map.  This map is generated at pixel level and currently
  *         the value of all elements in the CTE map are set to the mean CTE.
