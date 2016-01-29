@@ -20,6 +20,7 @@ public:
 
     bool getBoolean(const string &);
     int getInteger(const string &);
+    long getLong(const string &);
     double getDouble(const string &);
     string getString(const string &);
     string getAbsoluteFilename(const string &);

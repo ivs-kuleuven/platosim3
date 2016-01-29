@@ -167,6 +167,67 @@ int ConfigurationParameters::getInteger(const string &key)
 
 
 
+
+
+
+
+
+
+
+/**
+ * @brief      Return the long integer value for the specified parameter.
+ *
+ * @details    
+ * 
+ * The key is the name of the input parameter. If the input parameter is part
+ * of a section or group, then the key is a combination of the group name and 
+ * the parameter name, separated by a '/' delimiter. E.g. if the parameter
+ * fullWellSaturationLimit is part of the group CCD, then the key to get the value 
+ * for this parameter would be "CCD/fullWellSaturationLimit".
+ * 
+ * @param[in]  key The name of a parameter used in the PLATO Simulator
+ *
+ * @returns    An integer value for the given parameter
+ */
+long ConfigurationParameters::getLong(const string &key)
+{
+    vector<string> fields = StringUtilities::split(key, '/');
+
+    if (fields.size() > 1)
+    {
+        YAML::Node node = config[fields[0]];
+        if (!node) 
+            noNodeError(fields[0], filename);
+
+        YAML::Node subnode = node[fields[1]];
+        if (!subnode)
+            noSubNodeError(fields[0], fields[1], filename);
+
+        return subnode.as<long>();
+    }
+    else 
+    {
+        if (!config[key])
+            noNodeError(key, filename);
+
+        return config[key].as<long>();
+    }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /**
  * @brief      Return the double value for the specified parameter.
  *
