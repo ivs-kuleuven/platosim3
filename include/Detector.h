@@ -9,6 +9,7 @@
 #include "Logger.h"
 #include "HDF5File.h"
 #include "HDF5Writer.h"
+#include "ConfigurationParameters.h"
 
 
 using namespace std;
@@ -19,7 +20,7 @@ class Detector : public HDF5Writer
 {
     public:
 
-        Detector(HDF5File &hdf5File);
+        Detector(ConfigurationParameters &configParam, HDF5File &hdf5File);
         virtual ~Detector();
 
         virtual void takeExposure(double startTime, double exposureTime);
