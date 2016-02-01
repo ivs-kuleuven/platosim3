@@ -7,6 +7,10 @@ dependencies/Installs/*
 *.sublime-project
 *.sublime-workspace
 
+# Un-ignore some of the default input files in the inputfiles/ folder
+
+inputfiles/inputfile.yaml
+
 # Compiled source 
 
 *.pyc

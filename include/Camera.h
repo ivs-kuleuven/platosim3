@@ -21,7 +21,7 @@ class Camera : public TimeTicker, HDF5Writer
         ~Camera();
 
         void initPsf(SubField subField);
-        void exposeSubField(SubField subfield);
+        void exposeSubField(Dectector &detector);
 
     protected:
 
