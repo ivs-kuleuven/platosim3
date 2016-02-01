@@ -29,15 +29,15 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file)
 	biasMap.zeros(numRowsBiasMap, numColumnsPixelMap);
 	smearingMap.zeros(numRowsSmearingMap, numColumnsPixelMap);
 	flatfieldMap.ones(numRowsSubPixelMap, numColumnsSubPixelMap);
-	cteMap.zeros(numRowsPixelMap, numColumnsPixelMap);
+//	cteMap.zeros(numRowsPixelMap, numColumnsPixelMap);
 
 	// Generate the flatfield map 
 
 	generateFlatfieldMap();
 
-	// Generate the CTE map
-
-	generateCteMap();
+//	// Generate the CTE map
+//
+//	generateCteMap();
 
 	// Set the seeds of the random number generators
 
@@ -109,7 +109,7 @@ Detector::~Detector()
 	readoutNoiseSeed        = configParam.getLong("RandomSeeds/ReadOutNoiseSeed");
 	photonNoiseSeed         = configParam.getLong("RandomSeeds/PhotonNoiseSeed");
 	flatfieldSeed           = configParam.getLong("RandomSeeds/FlatFieldSeed");
-	cteMapSeed              = configParam.getLong("RandomSeeds/CTESeed");
+//	cteMapSeed              = configParam.getLong("RandomSeeds/CTESeed");
 
 	// Derive the dimensions of the subpixel map
 
@@ -129,21 +129,21 @@ Detector::~Detector()
 
 
 
-/**
- * @brief: Generate CTE map.  This map is generated at pixel level and currently
- *         the value of all elements in the CTE map are set to the mean CTE.
- *
- * NOTE: In a later version, we can introduce pixels and/or rows of pixels (in the
- *       pixel map) with a lower CTE, based on random distributions.
- */
-void Detector::generateCteMap()
-{
-	cteMap = meanCte;
-
-	// Random pixels with lower CTE
-
-	// Random rows of pixels with lower CTE
-}
+///**
+// * @brief: Generate CTE map.  This map is generated at pixel level and currently
+// *         the value of all elements in the CTE map are set to the mean CTE.
+// *
+// * NOTE: In a later version, we can introduce pixels and/or rows of pixels (in the
+// *       pixel map) with a lower CTE, based on random distributions.
+// */
+//void Detector::generateCteMap()
+//{
+//	cteMap = meanCte;
+//
+//	// Random pixels with lower CTE
+//
+//	// Random rows of pixels with lower CTE
+//}
 
 
 
@@ -818,6 +818,9 @@ void Detector::applyFullWellSaturation()
  *         pixel map. The serial register is assumed to have a CTE of 1, 
  *         unlike the CCD that has a CTE map.
  *
+ * NOTE The implementation is based on Eq. (5.2a) on p387 in Chapter 5 of
+ *      "Scientific Charge-Coupled Devices" by James R. Janesick.
+ *
  * @pre Pixel unit in the pixel map: [electrons].
  * @pre Pixel unit in the smearing map: [electrons].
  * @pre No bias register map.
@@ -830,51 +833,109 @@ void Detector::applyCte()
 {
 	Log.debug("Detector: Applying charge transfer inefficiency");
 
-	// Create a map in which we will shift the rows of the pixel map one-by-one
-	// towards the readout register.  Bear in mind that the bottom row of the
-	// sub-field is not necessarily right next to the readout register (the
-	// distance between the two is subFieldZeroPointRow).
+	float cti = 1.0 - meanCte;
 
-	arma::Mat<float> shiftMap;
-	shiftMap.zeros(subFieldZeroPointRow + numRowsPixelMap, numColumnsPixelMap);
-	shiftMap.submat(arma::span(subFieldZeroPointRow, subFieldZeroPointRow + numRowsPixelMap - 1), arma::span::all) = pixelMap;
+    // Computing the effects of CTE requires the use of a binomial distribution.
+    // To speed up things, we first pre-compute some parts of this distribution.
 
-	// The readout register
+	// Pre-compute the (natural) logarithms of the first N natural numbers
 
-	arma::Row<float> readoutStrip;
-	readoutStrip.zeros(numColumnsPixelMap);
+	vector<double> logs(numRowsPixelMap + subFieldZeroPointRow);
+	iota(logs.begin(), logs.end(), 1.0);
+	transform(logs.begin(), logs.end(), logs.begin(),
+			ptr_fun<double, double>(log));
 
-	// Array filled with ones (needed for the CTI)
+	// Compute the partial sums of these logarithms
+	// sumOfLogsUpTo[i] contains log((i+1)!) = log(1) + ... + log(i+1)
 
-	arma::Row<float> ones;
-	ones.ones(numColumnsPixelMap);
+	vector<double> sumOfLogsUpTo(numRowsPixelMap + subFieldZeroPointRow);
+	partial_sum(logs.begin(), logs.end(), sumOfLogsUpTo.begin());
 
-	// Shift all the rows down (i.e. towards the readout register) one-by-one
-	// Keep on doing this until all rows have been read out.
+	// Loop over all rows in the pixel map
 
-	for (int shiftIndex = 0;
-			shiftIndex < numRowsPixelMap + subFieldZeroPointRow; shiftIndex++)
+	for (unsigned int row = numRowsPixelMap - 1; row >= 0; row--)
 	{
+		// Each row picks up flux that is left behind when transferring the rows
+		// that are closer to the readout register, row-by-row to the readout
+		// register.
 
-		// Shift the bottom row to the readout strip
-
-		readoutStrip = cteMap(0, arma::span::all) * shiftMap(0, arma::span::all);
-
-		if (shiftIndex >= subFieldZeroPointRow)
+		for (unsigned int trailingRow = 0; trailingRow < numRowsPixelMap - row;
+				trailingRow++)
 		{
-			pixelMap(shiftIndex - subFieldZeroPointRow, arma::span::all) = readoutStrip(0, arma::span::all);
-		}
 
-		// Shift all other rows one row down (i.e. closer to the readout register)
+			const double factor1 = pow(meanCte, trailingRow)
+					* pow(cti, row + 1 - trailingRow);// (1 - CTI)^n * CTI^(N_P - n)
 
-		for (int row = 0; row < subFieldZeroPointRow + numRowsPixelMap - 1; row++)
-		{
-			shiftMap(row, arma::span::all) = (ones-cteMap(row, arma::span::all))
-					                           * shiftMap(row, arma::span::all)	// Left behind when shifting row down (CTI = 1 - CTE)
-					                         + cteMap(row + 1, arma::span::all)
-							                   * shiftMap(row + 1, arma::span::all);	// Transferred (CTE
+			// Target pixel itself (n = 0)
+
+			if (trailingRow == 0)
+			{
+				pixelMap(row + trailingRow, arma::span::all) *= factor1;
+			}
+
+			// Trailing pixels (n > 0)
+
+			else
+			{
+				const double factor2 = exp(
+						sumOfLogsUpTo[row + subFieldZeroPointRow]
+								- sumOfLogsUpTo[row + subFieldZeroPointRow
+										- trailingRow])
+						- sumOfLogsUpTo[trailingRow - 1];// N_P! / (N_P - n)! / n!
+
+				pixelMap(row + trailingRow, arma::span::all) = pixelMap(row,
+						arma::span::all) * factor1 * factor2;
+			}
 		}
 	}
+
+	// BELOW: OLD IMPLEMENTATION
+
+//	// Create a map in which we will shift the rows of the pixel map one-by-one
+//	// towards the readout register.  Bear in mind that the bottom row of the
+//	// sub-field is not necessarily right next to the readout register (the
+//	// distance between the two is subFieldZeroPointRow).
+//
+//	arma::Mat<float> shiftMap;
+//	shiftMap.zeros(subFieldZeroPointRow + numRowsPixelMap, numColumnsPixelMap);
+//	shiftMap.submat(arma::span(subFieldZeroPointRow, subFieldZeroPointRow + numRowsPixelMap - 1), arma::span::all) = pixelMap;
+//
+//	// The readout register
+//
+//	arma::Row<float> readoutStrip;
+//	readoutStrip.zeros(numColumnsPixelMap);
+//
+//	// Array filled with ones (needed for the CTI)
+//
+//	arma::Row<float> ones;
+//	ones.ones(numColumnsPixelMap);
+//
+//	// Shift all the rows down (i.e. towards the readout register) one-by-one
+//	// Keep on doing this until all rows have been read out.
+//
+//	for (int shiftIndex = 0;
+//			shiftIndex < numRowsPixelMap + subFieldZeroPointRow; shiftIndex++)
+//	{
+//
+//		// Shift the bottom row to the readout strip
+//
+//		readoutStrip = cteMap(0, arma::span::all) * shiftMap(0, arma::span::all);
+//
+//		if (shiftIndex >= subFieldZeroPointRow)
+//		{
+//			pixelMap(shiftIndex - subFieldZeroPointRow, arma::span::all) = readoutStrip(0, arma::span::all);
+//		}
+//
+//		// Shift all other rows one row down (i.e. closer to the readout register)
+//
+//		for (int row = 0; row < subFieldZeroPointRow + numRowsPixelMap - 1; row++)
+//		{
+//			shiftMap(row, arma::span::all) = (ones-cteMap(row, arma::span::all))
+//					                           * shiftMap(row, arma::span::all)	// Left behind when shifting row down (CTI = 1 - CTE)
+//					                         + cteMap(row + 1, arma::span::all)
+//							                   * shiftMap(row + 1, arma::span::all);	// Transferred (CTE)
+//		}
+//	}
 }
 
 
