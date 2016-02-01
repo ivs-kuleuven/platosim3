@@ -142,9 +142,10 @@ pair<double, double> Camera::getFocalPlaneCoordinates(double raStar, double decS
     double xFPprime =  xFP * cos(focalPlaneOrientation) + yFP * sin(focalPlaneOrientation);
     double yFPprime = -xFP * sin(focalPlaneOrientation) + yFP * cos(focalPlaneOrientation);
 
-    // Compute the conversion factor: conversion from [arcsec/pixel] to [mm/radian].
+    // Compute the conversion factor: conversion from [radians] to [mm].
+    // Note that the platescale is expressed in [arcsec/mm]
 
-    double conversionFactor = 3600. * Angle::degrees / 1000 / plateScale;
+    double conversionFactor = 3600. * Constants::PI / 180.0 / plateScale;
 
     // Return the scaled coordinates
 
