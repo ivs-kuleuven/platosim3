@@ -101,13 +101,12 @@ void Camera::configure(ConfigurationParameters &configParam)
  * \brief      select the PSF for the given star coordinates
  *
  * \param[in]  raStar   right ascension of the star [rad]
- * \param[in]  decStar  declination of the star [rad]
+ * \param[in]  decStar  declination of the star     [rad]
  */
+
 void Camera::selectPsf(double raStar, double decStar)
 {
-    pair<double, double> fpCoordinates = getFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, 
-        decOpticalAxis, focalPlaneOrientation, plateScale);
-
+    pair<double, double> fpCoordinates = getFocalPlaneCoordinates(raStar, decStar);
 }
 
 
