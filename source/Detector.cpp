@@ -465,6 +465,27 @@ void Detector::addFlux(double flux)
 
 
 
+
+/**
+ * @brief: Convolve the sub-pixel map with the given PSF, keeping the same dimensions.
+ *
+ * @param psf: PSF.
+ */
+void Detector::convolveWithPsf(arma::Mat<float> psf)
+{
+	subPixelMap = arma::conv2(subPixelMap, psf, "same");
+}
+
+
+
+
+
+
+
+
+
+
+
 /**
  * @brief: Multiply the sub-pixel map with the flatfield.
  * 
