@@ -35,7 +35,7 @@ class Detector : public HDF5Writer
 
         virtual void integrateLight(double startTime, double exposureTime);
         virtual bool isInSubPixelMap(double row, double column);
-        virtual void addFlux(double xCoords, double yCoords, double flux);
+        virtual void addFlux(double xCoord, double yCoord, double flux);
         virtual void addFlux(double flux);
         virtual void convolveWithPsf(arma::Mat<float> psf);
         virtual void applyFlatfield();
