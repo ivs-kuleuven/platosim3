@@ -83,29 +83,13 @@ Telescope::~Telescope()
 
 
 
-// Platform
 
-/**
- * Method that mounts the telescope on the given platform.
- *
- * @param platform: Platform on which to mount the telescope.
- * @type platform: Platform
- */
-void Telescope::setPlatform(Platform platform) {
-
-	this->platform = platform;
-
-}
 
 
 
 
 
 /**
- * Method that returns the platform on which the telescope is mounted.
- *
- * @return Platform on which the telescope is mounted.
- * @rtype Platform
  * \brief Set new pointing coordinates of the telescope
  * 
  * \details Set the new equatorial coordinates of the optical axis. These coordinates can change
@@ -114,10 +98,6 @@ void Telescope::setPlatform(Platform platform) {
  * \param newAlphaOpticalAxis: New right ascension of the optical axis of the telescope [rad]
  * \param newDeltaOpticalAxis: new declination of the optical axis of the telescope [rad]
  */
-Platform Telescope::getPlatform()
-{
-
-	return this->platform;
 
 void Telescope::setPointingCoordinates(double newAlphaOpticalAxis, double newDeltaOpticalAxis)
 {
@@ -125,38 +105,20 @@ void Telescope::setPointingCoordinates(double newAlphaOpticalAxis, double newDel
 	deltaOpticalAxis = newDeltaOpticalAxis;
 }
 
-// Light collecting area
 
-/**
- * Method that sets the light collecting area of the telescope to the given area.
- *
- * @param lightCollectingArea: Light collecting area to use for the telescope [cm^2].
- * @type lightCollectingArea: double
- */
-void Telescope::setLightCollectingArea(double lightCollectingArea)
-{
 
-	this->lightCollectingArea = lightCollectingArea;
 
-}
 
 
 
 
 
 /**
- * Method that returns the light collecting area of the telescope [cm^2].
- *
- * @return Light collecting area of the telescope [cm^2].
- * @rtype double
  * \brief Return the current values of the equatorial coordinates of the optical axis of the telescope
  * 
  * \return a pair (alphaOpticalAxis, deltaOpticalAxis)  in [rad]
  */
-unsigned double Telescope::getLightCollectingArea()
-{
 
-	return this->lightCollectingArea;
 pair<double, double> Telescope::getPointingCoordinates()
 {
 	return make_pair(alphaOpticalAxis, deltaOpticalAxis);
