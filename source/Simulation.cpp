@@ -6,13 +6,17 @@
 
 Simulation::Simulation(string inputFilename, string outputFilename)
 {
-    // Parse inputfile, get ConfigursationParameters objects
+    // Parse the configuration parameters file
+
+    ConfigurationParameters configParam(inputFilename);
+
+    // Open the HDF5 output file where the images will be written
 
     hdf5File.open(outputFilename);
 
     // Initialise the spacecraft components
 
-    detector   = new Detector(hdf5File);
+    detector   = new Detector(configParam, hdf5File);
     //camera    = new Camera(cameraConfigurationParameters);
     //telescope = new Telescope(telescopeConfigurationParameters);
     //platform  = new Platform(platformConfigurationParameters);

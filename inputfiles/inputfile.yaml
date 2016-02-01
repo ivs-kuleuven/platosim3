@@ -2,87 +2,88 @@
 ---
 
 General:
-    ProjectLocation:        /Users/Joris/Cpp/PlatoSim3
+    ProjectLocation:         /Users/Joris/Development/Cpp/PlatoSim3
+
 
 ObservingParameters:
 
-    NumExposures:           40            # Number of expsosures
-    ExposureTime:           23            # [s]
-    RApointing:             180           # [deg] 
-    DecPointing:            -70           # [deg]
-    StarCatalogFile:        inputfiles/starcatalog.txt
-    HDF5OutputFile:         outputfiles/outputfile.hdf5
+    NumExposures:            40              # Number of expsosures
+    ExposureTime:            23              # [s]
+    RApointing:              180             # [deg] 
+    DecPointing:             -70             # [deg]
+    StarCatalogFile:         inputfiles/starcatalog.txt
 
 
 Platform:
 
-    UseJitter:              1             # 0=no, 1=yes
-    UseJitterFromFile:      0             # 0=no, 1=yes
-    JitterInterval:         0.1           # [s]
-    JitterYawRms:           2.3           # [arcsec]
-    JitterPitchRms:         2.3           # [arcsec]
-    JitterRollRms:          2.3           # [arcsec]
-    JitterTimeScale:        3600.         # [s]
-    JitterFileName:         inputfiles/jitter.txt
+    UseJitter:               1               # 0=no, 1=yes
+    UseJitterFromFile:       0               # 0=no, 1=yes
+    JitterInterval:          0.1             # [s]
+    JitterYawRms:            2.3             # [arcsec]
+    JitterPitchRms:          2.3             # [arcsec]
+    JitterRollRms:           2.3             # [arcsec]
+    JitterTimeScale:         3600.           # [s]
+    JitterFileName:          inputfiles/jitter.txt
 
 
 Telescope:
     
-    LightCollectingArea:    113.1         # Effective area of 1 telescope [cmˆ2]
-    TransmissionEfficiency: 0.757         # in [0,1]
-    DriftYawRms:            2.3           # RMS of thermo-elastic drift in yaw [arcsec]
-    DriftPitchRms:          2.3           # RMS of thermo-elastic drift in pitch [arcsec]
-    DriftRollRms:           2.3           # RMS of thermo-elastic drift in roll [arcsec]
-    DriftTimeScale:         3600.         # Timescale of thermo-elastic drift [s]
+    LightCollectingArea:     113.1           # Effective area of 1 telescope [cmˆ2]
+    TransmissionEfficiency:  0.757           # in [0,1]
+    DriftYawRms:             2.3             # RMS of thermo-elastic drift in yaw [arcsec]
+    DriftPitchRms:           2.3             # RMS of thermo-elastic drift in pitch [arcsec]
+    DriftRollRms:            2.3             # RMS of thermo-elastic drift in roll [arcsec]
+    DriftTimeScale:          3600.           # Timescale of thermo-elastic drift [s]
 
 
 Camera:
     
-    FocalPlaneOrientation:  0.0           # [degrees]
-    UseGauss:               1             # Use analytical Gaussian PSF (0=no,1=yes)
-    PSFGaussSigma:          1.0           # Width of Gaussian PSF [pixels]
-    PSFNumRows:             1024          # Number of rows of the (square) PSF 
-    PSFSubPixels:           128           # Number of subpixels per pixels (integer)
-    PSFCenterX:             511.5         # X barycenter of the PSF in subpixel coordinates
-    PSFCenterY:             512.5         # Y barycenter of the PSF in subpixel coorindates
-    PSFOrientation:         45.0          # Orientiation of precomputed PSF [degrees]
-    PSFFileName:            inputfiles/psf.txt
+    FocalPlaneOrientation:   0.0             # [degrees]
+    PlateScale:              0.8333          # [arcsec/micron]
+
+
+PSF:
+
+    UseGauss:                1               # Use analytical Gaussian PSF (0=no,1=yes)
+    GaussSigma:              1.0             # Width of Gaussian PSF [pixels]
+    FileName:                inputfiles/psf.hdf5
 
 
 CCD:
 
-    CCDOriginOffsetX:       0             # X Offset of CCD origin from center of focal plane [mm]
-    CCDOriginOffsetY:       0             # Y Offset of CCD origin from center of focal plane [mm]
-    CCDOrientation:         0             # Orientation of CCD w.r.t. focal plane orientation [deg]
-    CCDSizeX:               4510          # Number of columns [pixels]
-    CCDSizeY:               4510          # Number of rows [pixels]
-    PixelSize:              18            # [micron]
-    PixelScale:             15            # [arcsec/pix]
-    Gain:                   16            # [e-/ADU]
-    QuantumEfficiency:      0.8745        # in [0,1]
-    FullWellSaturation:     1000000       # [e-/pixel]
-    DigitalSaturation:      65535         # E.g. 16 bit [ADU/pixel]
-    ReadoutNoise:           28            # [e-/pixel]
-    ElectronicOffset:       100           # bias [ADU]
-    ReadoutTime:            2             # time to read out entire CCD [s]
-    FlatfieldPtPNoise:      0.016         # peak-to-peak pixel noise
-    CTEMean:                0.99999       # Mean Charge Transfer Efficiency
+    OriginOffsetX:           0               # X Offset of CCD origin from center of focal plane [mm]
+    OriginOffsetY:           0               # Y Offset of CCD origin from center of focal plane [mm]
+    Orientation:             0               # Orientation of CCD w.r.t. focal plane orientation [deg]
+    NumColumns:              4510            # Number of columns [pixels]
+    NumRows:                 4510            # Number of rows [pixels]
+    PixelSize:               18              # [micron]
+    Gain:                    16              # [e-/ADU]
+    QuantumEfficiency:       0.8745          # in [0,1]
+    FullWellSaturation:      1000000         # [e-/pixel]
+    DigitalSaturation:       65535           # E.g. 16 bit [ADU/pixel]
+    ReadoutNoise:            28              # [e-/pixel]
+    ElectronicOffset:        100             # bias [ADU]
+    ReadoutTime:             2               # time to read out entire CCD [s]
+    FlatfieldPtPNoise:       0.016           # peak-to-peak pixel noise
+    CTEMean:                 0.99999         # Mean Charge Transfer Efficiency
 
 
 SubField:    
 
-    SubFieldZeroPointX:     0             # Zero-point X relative to CCD [pixels]
-    SubFieldZeroPointY:     0             # Zero-point Y relative to CCD [pixels]
-    SubFieldSizeX:          100           # Number of columns [pixels]
-    SubFieldSizeY:          100           # Number of rows [pixels]
-    SubPixels:              16            # Number of subpixels per CCD pixel
+    ZeroPointRow:            0               # Row of the (0,0) pixel of the subfield [pixels]
+    ZeroPointColumn:         0               # Column of the (0,0) pixel of the subfield [pixels]
+    NumColumns:              10              # Number of columns [pixels]
+    NumRows:                 10              # Number of rows [pixels]
+    NumBiasPrescanRows:      5               # Nr of rows of the prescan strip to determine the bias [pixels]
+    NumSmearingOverscanRows: 5               # Nr of rows of the overscan strip to determine the smearing [pixels]
+    SubPixels:               4               # Nr of subpixels per CCD pixel. E.g. 4 -> 4x4 subpix/pix
 
 
 RandomSeeds:
 
-    ReadOutNoiseSeed:       1424949740    # Unique positive integer 
-    PhotonNoiseSeed:        1433320336    # Unique positive integer 
-    JitterSeed:             1433320381    # Unique positive integer 
-    FlatFieldSeed:          1425284070    # Unique positive integer 
-    CTESeed:                1424949740    # Unique positive integer 
-    DriftSeed:              1433429158    # Unique positive integer 
+    ReadOutNoiseSeed:        1424949740      # Unique positive integer 
+    PhotonNoiseSeed:         1433320336      # Unique positive integer 
+    JitterSeed:              1433320381      # Unique positive integer 
+    FlatFieldSeed:           1425284070      # Unique positive integer 
+    CTESeed:                 1424949740      # Unique positive integer 
+    DriftSeed:               1433429158      # Unique positive integer 

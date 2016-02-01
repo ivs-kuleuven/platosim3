@@ -7,8 +7,8 @@
  * @param configurationParameters: Configuration parameters for the detector.
  * @param camera:                  Camera to which to attach the detector.
  */
-Detector::Detector(HDF5File &hdf5file) :
-		HDF5Writer(hdf5file), imageNr(0)
+Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file) 
+: HDF5Writer(hdf5file), imageNr(0)
 {
 	// Create the groups in the HDF5 file where the different maps (i.e. pixel map,
 	// bias register map, smearing map, etc.) will be saved. This needs to be done
@@ -17,20 +17,8 @@ Detector::Detector(HDF5File &hdf5file) :
 	initHDF5Groups();
 
 	// Parse the parameters from the configuration file.
-	// Currently: hard-coded
 
-	numRowsPixelMap = 10;
-	numColumnsPixelMap = 15;
-
-	numSubPixelsPerPixel = 8;
-	numRowsSubPixelMap = numRowsPixelMap * numSubPixelsPerPixel;	// TODO Add edge pixels
-	numColumnsSubPixelMap = numColumnsPixelMap * numSubPixelsPerPixel;	// TODO Add edge pixels
-
-	numRowsBiasMap = 5;
-	numRowsSmearingMap = 5;
-
-	flatfieldNoiseAmplitude = 1.0;
-	gain = 1.0;
+	configure(configParam);
 
 	// Attach the camera
 
@@ -40,7 +28,7 @@ Detector::Detector(HDF5File &hdf5file) :
 	subPixelMap.zeros(numRowsSubPixelMap, numColumnsSubPixelMap);
 	biasMap.zeros(numRowsBiasMap, numColumnsPixelMap);
 	smearingMap.zeros(numRowsSmearingMap, numColumnsPixelMap);
-	flatfieldMap.ones(numRowsSubPixelMap, numColumnsSubPixelMap);	// TODO Cut off the edge pixels
+	flatfieldMap.ones(numRowsSubPixelMap, numColumnsSubPixelMap);
 	cteMap.zeros(numRowsPixelMap, numColumnsPixelMap);
 
 	// Generate the flatfield map 
@@ -77,6 +65,70 @@ Detector::~Detector()
 
 
 
+
+
+
+/**
+ * \brief Configure the Detector object using the ConfigurationParameters
+ * 
+ * \param configParam: the configuration parameters 
+ **/
+
+ void Detector::configure(ConfigurationParameters &configParam)
+ {
+ 	// Configuration parameters for the CCD detector
+
+    originOffsetX           = configParam.getDouble("CCD/OriginOffsetX");
+    originOffsetY           = configParam.getDouble("CCD/OriginOffsetY");
+    orientationAngle        = configParam.getDouble("CCD/Orientation");
+    numRows                 = configParam.getInteger("CCD/NumRows");
+    numColumns              = configParam.getInteger("CCD/NumColumns");
+    pixelSize               = configParam.getDouble("CCD/PixelSize");
+    gain                    = configParam.getInteger("CCD/Gain");
+    quantumEfficiency       = configParam.getDouble("CCD/QuantumEfficiency");
+    fullWellSaturationLimit = configParam.getLong("CCD/FullWellSaturation");
+    digitalSaturationLimit  = configParam.getLong("CCD/DigitalSaturation");
+    readoutNoise            = configParam.getDouble("CCD/ReadoutNoise");
+    electronicOffset        = configParam.getInteger("CCD/ElectronicOffset");
+    readoutTime             = configParam.getDouble("CCD/ReadoutTime");
+    flatfieldNoiseAmplitude = configParam.getDouble("CCD/FlatfieldPtPNoise");
+    meanCte                 = configParam.getDouble("CCD/CTEMean");
+
+    // Configuration parameters for the subfield
+
+    subFieldZeroPointRow    = configParam.getInteger("SubField/ZeroPointRow");
+    subFieldZeroPointColumn = configParam.getInteger("SubField/ZeroPointColumn");
+	numRowsPixelMap         = configParam.getInteger("SubField/NumRows");
+	numColumnsPixelMap      = configParam.getInteger("SubField/NumColumns");
+	numRowsBiasMap          = configParam.getInteger("SubField/NumBiasPrescanRows");
+	numRowsSmearingMap      = configParam.getInteger("SubField/NumSmearingOverscanRows");
+	numSubPixelsPerPixel    = configParam.getInteger("SubField/SubPixels");
+
+    // Configuration parameters for the noise source random seeds
+
+	readoutNoiseSeed        = configParam.getLong("RandomSeeds/ReadOutNoiseSeed");
+	photonNoiseSeed         = configParam.getLong("RandomSeeds/PhotonNoiseSeed");
+	flatfieldSeed           = configParam.getLong("RandomSeeds/FlatFieldSeed");
+	cteMapSeed              = configParam.getLong("RandomSeeds/CTESeed");
+
+	// Derive the dimensions of the subpixel map
+
+	numRowsSubPixelMap    = numRowsPixelMap    * numSubPixelsPerPixel;	// TODO Add edge pixels
+	numColumnsSubPixelMap = numColumnsPixelMap * numSubPixelsPerPixel;	// TODO Add edge pixels
+
+	numEdgePixels = 0;
+ }
+
+
+
+
+
+
+
+
+
+
+
 /**
  * @brief: Generate CTE map.  This map is generated at pixel level and currently
  *         the value of all elements in the CTE map are set to the mean CTE.
@@ -92,6 +144,9 @@ void Detector::generateCteMap()
 
 	// Random rows of pixels with lower CTE
 }
+
+
+
 
 
 
@@ -119,8 +174,7 @@ void Detector::generateFlatfieldMap()
 	// and for which the dimensions are a power of 2
 
 	unsigned int NrowsSquareMap = 2;
-	unsigned int maxFlatfielMapDimension = max(flatfieldMap.n_rows,
-			flatfieldMap.n_cols);
+	unsigned int maxFlatfielMapDimension = max(flatfieldMap.n_rows, flatfieldMap.n_cols);
 
 	while (NrowsSquareMap <= maxFlatfielMapDimension)
 	{
@@ -141,23 +195,16 @@ void Detector::generateFlatfieldMap()
 
 	// Loop over all block sizes: N/2, N/4, N/8, ...
 
-	for (unsigned int blockSize = NrowsSquareMap / 2; blockSize >= 2;
-			blockSize /= 2)
+	for (unsigned int blockSize = NrowsSquareMap / 2; blockSize >= 2; blockSize /= 2)
 	{
 		// Loop over all overlapping blocks, and add a small variation
 
-		for (unsigned int blockRow = 0; blockRow < NrowsSquareMap - blockSize;
-				blockRow += blockSize)
+		for (unsigned int blockRow = 0; blockRow < NrowsSquareMap - blockSize; blockRow += blockSize)
 		{
-			for (unsigned int blockColumn = 0;
-					blockColumn < NrowsSquareMap - blockSize; blockColumn +=
-							blockSize)
+			for (unsigned int blockColumn = 0; blockColumn < NrowsSquareMap - blockSize; blockColumn += blockSize)
 			{
-				const double variation = flatfieldDistribution(
-						flatfieldGenerator);
-				squareMap(arma::span(blockRow, blockRow + blockSize - 1),
-						arma::span(blockColumn, blockColumn + blockSize - 1)) +=
-						variation;
+				const double variation = flatfieldDistribution(flatfieldGenerator);
+				squareMap(arma::span(blockRow, blockRow + blockSize - 1), arma::span(blockColumn, blockColumn + blockSize - 1)) += variation;
 			}
 		}
 	}
@@ -167,13 +214,11 @@ void Detector::generateFlatfieldMap()
 
 	double minValue = squareMap.min();
 	double maxValue = squareMap.max();
-	squareMap = ((squareMap - minValue) / (maxValue - minValue) - 0.5)
-			* flatfieldNoiseAmplitude;
+	squareMap = ((squareMap - minValue) / (maxValue - minValue) - 0.5) * flatfieldNoiseAmplitude;
 
 	// Copy a part of the squareMatrix corresponding to the size of the flatfieldMap, into the flatfieldMap
 
-	flatfieldMap = squareMap.submat(0, 0, flatfieldMap.n_rows - 1,
-			flatfieldMap.n_cols - 1);
+	flatfieldMap = squareMap.submat(0, 0, flatfieldMap.n_rows - 1, flatfieldMap.n_cols - 1);
 
 	// Save the flatfield in the HDF5 file
 
@@ -241,16 +286,13 @@ void Detector::takeExposure(double startTime, double exposureTime)
 
 	// Include noise effects like readout noise, photon noise, full well saturation, etc.
 
-	Log.debug(
-			"Detector: Adding noise effects to exposure " + to_string(imageNr));
+	Log.debug("Detector: Adding noise effects to exposure " + to_string(imageNr));
 
 	readOut(exposureTime);
 
 	// Write the CCD subfield to the HDF5 file
 
-	Log.debug(
-			"Detector: Writing PixelMap " + to_string(imageNr)
-					+ " to HDF5 file.");
+	Log.debug("Detector: Writing PixelMap " + to_string(imageNr) + " to HDF5 file.");
 
 	writePixelMapToHDF5();
 }
@@ -335,26 +377,23 @@ void Detector::integrateLight(double startTime, double exposureTime)
  * @post Pixel unit in the sub-pixel map: [photons].
  * @post Pixel, bias register, and smearing maps filled with zeroes.
  */
-void Detector::addFlux(double rowFocalPlane, double columnFocalPlane,
-		double flux)
+ 
+void Detector::addFlux(double rowFocalPlane, double columnFocalPlane, double flux)
 {
 
 	// Detector origin offset (pixel level)
 
-	double rowOffset = (rowFocalPlane - originOffsetRow) / pixelSize;
-	double columnOffset = (columnFocalPlane - originOffsetColumn) / pixelSize;
+	double rowOffset = (rowFocalPlane - originOffsetY) / pixelSize;
+	double columnOffset = (columnFocalPlane - originOffsetX) / pixelSize;
 
 	// Detector orientation (pixel level)
 
-	double column = columnOffset * cos(orientationAngle)
-			- rowOffset * sin(orientationAngle);
-	double row = columnOffset * sin(orientationAngle)
-			+ rowOffset * cos(orientationAngle);
+	double column = columnOffset * cos(orientationAngle) - rowOffset * sin(orientationAngle);
+	double row = columnOffset * sin(orientationAngle) + rowOffset * cos(orientationAngle);
 
 	// Sub-field incl. edge pixels (also correct for sub-field zeropoint)
 
-	column = (column - subFieldZeroPointColumn + numEdgePixels)
-			* numSubPixelsPerPixel;
+	column = (column - subFieldZeroPointColumn + numEdgePixels) * numSubPixelsPerPixel;
 	row = (row - subFieldZeroPointRow + numEdgePixels) * numSubPixelsPerPixel;
 
 	// Add flux in this->subPixelMap at (row, column)
@@ -448,8 +487,7 @@ void Detector::applyFlatfield()
 	const unsigned int endRow = numRowsSubPixelMap - numEdgeSubPixels - 1;
 	const unsigned int endCol = numColumnsSubPixelMap - numEdgeSubPixels - 1;
 
-	subPixelMap.submat(beginRow, beginCol, endRow, endCol) = subPixelMap.submat(
-			beginRow, beginCol, endRow, endCol) % flatfieldMap;
+	subPixelMap.submat(beginRow, beginCol, endRow, endCol) = subPixelMap.submat(beginRow, beginCol, endRow, endCol) % flatfieldMap;
 }
 
 
@@ -482,8 +520,7 @@ void Detector::rebin()
 			const unsigned int endRow = (row + 1) * numSubPixelsPerPixel - 1;
 			const unsigned int endCol = (column + 1) * numSubPixelsPerPixel - 1;
 
-			pixelMap(row, column) = arma::accu(
-					subPixelMap.submat(beginRow, beginCol, endRow, endCol));
+			pixelMap(row, column) = arma::accu(subPixelMap.submat(beginRow, beginCol, endRow, endCol));
 		}
 	}
 }
@@ -551,7 +588,7 @@ void Detector::readOut(double exposureTime)
 	// Pixel units before: [electrons]
 	// Pixel units after: [electrons]
 
-	applyCte();
+	//applyCte();
 
 	// Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
 	// the pixels are still receiving photons from the sky, while they are being transfered towards
@@ -609,6 +646,8 @@ void Detector::readOut(double exposureTime)
  */
 void Detector::applyQuantumEfficiency()
 {
+	Log.debug("Detector: applying quantum efficiency");
+
 	pixelMap *= quantumEfficiency;
 }
 
@@ -635,16 +674,16 @@ void Detector::applyQuantumEfficiency()
  */
 void Detector::addPhotonNoise()
 {
+	Log.debug("Detector: adding photon noise");
+
 	// Add photon noise to the pixel map
 
 	for (unsigned int row = 0; row < numRowsPixelMap; row++)
 	{
 		for (unsigned int column = 0; column < numColumnsPixelMap; column++)
 		{
-			photonNoiseDistribution = poisson_distribution<int>(
-					pixelMap(row, column));
-			pixelMap(row, column) = photonNoiseDistribution(
-					photonNoiseGenerator);
+			photonNoiseDistribution = poisson_distribution<int>(pixelMap(row, column));
+			pixelMap(row, column) = photonNoiseDistribution(photonNoiseGenerator);
 		}
 	}
 
@@ -654,10 +693,8 @@ void Detector::addPhotonNoise()
 	{
 		for (unsigned int column = 0; column < numColumnsPixelMap; column++)
 		{
-			photonNoiseDistribution = poisson_distribution<int>(
-					smearingMap(row, column));
-			smearingMap(row, column) = photonNoiseDistribution(
-					photonNoiseGenerator);
+			photonNoiseDistribution = poisson_distribution<int>(smearingMap(row, column));
+			smearingMap(row, column) = photonNoiseDistribution(photonNoiseGenerator);
 		}
 	}
 }
@@ -690,6 +727,8 @@ void Detector::addPhotonNoise()
  */
 void Detector::applyFullWellSaturation()
 {
+	Log.debug("Detector: applying full well saturation");
+
 	double pixelValue, numExcessElectrons;
 
 	int jmod;// Row coordinate where excess electrons are transferred from and to
@@ -728,8 +767,7 @@ void Detector::applyFullWellSaturation()
 
 						if (pixelMap(jmod, column) > fullWellSaturationLimit)
 						{
-							numExcessElectrons = pixelMap(jmod, column)
-									- fullWellSaturationLimit;
+							numExcessElectrons = pixelMap(jmod, column) - fullWellSaturationLimit;
 						}
 					}
 				}
@@ -755,8 +793,7 @@ void Detector::applyFullWellSaturation()
 
 						if (pixelMap(jmod, column) > fullWellSaturationLimit)
 						{
-							numExcessElectrons = pixelMap(jmod, column)
-									- fullWellSaturationLimit;
+							numExcessElectrons = pixelMap(jmod, column) - fullWellSaturationLimit;
 						}
 					}
 				}
@@ -791,6 +828,8 @@ void Detector::applyFullWellSaturation()
  */
 void Detector::applyCte()
 {
+	Log.debug("Detector: Applying charge transfer inefficiency");
+
 	// Create a map in which we will shift the rows of the pixel map one-by-one
 	// towards the readout register.  Bear in mind that the bottom row of the
 	// sub-field is not necessarily right next to the readout register (the
@@ -798,10 +837,7 @@ void Detector::applyCte()
 
 	arma::Mat<float> shiftMap;
 	shiftMap.zeros(subFieldZeroPointRow + numRowsPixelMap, numColumnsPixelMap);
-	shiftMap.submat(
-			arma::span(subFieldZeroPointRow,
-					subFieldZeroPointRow + numRowsPixelMap - 1),
-			arma::span::all) = pixelMap;
+	shiftMap.submat(arma::span(subFieldZeroPointRow, subFieldZeroPointRow + numRowsPixelMap - 1), arma::span::all) = pixelMap;
 
 	// The readout register
 
@@ -822,8 +858,7 @@ void Detector::applyCte()
 
 		// Shift the bottom row to the readout strip
 
-		readoutStrip = cteMap(0, arma::span::all)
-				* shiftMap(0, arma::span::all);
+		readoutStrip = cteMap(0, arma::span::all) * shiftMap(0, arma::span::all);
 
 		if (shiftIndex >= subFieldZeroPointRow)
 		{
@@ -832,15 +867,12 @@ void Detector::applyCte()
 
 		// Shift all other rows one row down (i.e. closer to the readout register)
 
-		for (int row = 0; row < subFieldZeroPointRow + numRowsPixelMap - 1;
-				row++)
+		for (int row = 0; row < subFieldZeroPointRow + numRowsPixelMap - 1; row++)
 		{
-
-			shiftMap(row, arma::span::all) = (ones
-					- cteMap(row, arma::span::all))
-					* shiftMap(row, arma::span::all)	// Left behind when shifting row down (CTI = 1 - CTE)
-					+ cteMap(row + 1, arma::span::all)
-							* shiftMap(row + 1, arma::span::all);	// Transferred (CTE
+			shiftMap(row, arma::span::all) = (ones-cteMap(row, arma::span::all))
+					                           * shiftMap(row, arma::span::all)	// Left behind when shifting row down (CTI = 1 - CTE)
+					                         + cteMap(row + 1, arma::span::all)
+							                   * shiftMap(row + 1, arma::span::all);	// Transferred (CTE
 		}
 	}
 }
@@ -877,6 +909,7 @@ void Detector::applyCte()
  */
 void Detector::applyOpenShutterSmearing()
 {
+
 	// TODO
 }
 
@@ -916,6 +949,8 @@ void Detector::applyOpenShutterSmearing()
  */
 void Detector::addReadoutNoise()
 {
+	Log.debug("Detector: adding readout noise");
+
 	readoutNoiseDistribution = normal_distribution<double>(0.0, readoutNoise);
 
 	// Add readout noise to the pixel map
@@ -924,8 +959,7 @@ void Detector::addReadoutNoise()
 	{
 		for (unsigned int column = 0; column < numColumnsPixelMap; column++)
 		{
-			pixelMap(row, column) += readoutNoiseDistribution(
-					readoutNoiseGenerator);
+			pixelMap(row, column) += readoutNoiseDistribution(readoutNoiseGenerator);
 		}
 	}
 
@@ -935,8 +969,7 @@ void Detector::addReadoutNoise()
 	{
 		for (unsigned int column = 0; column < numColumnsPixelMap; column++)
 		{
-			biasMap(row, column) += readoutNoiseDistribution(
-					readoutNoiseGenerator);
+			biasMap(row, column) += readoutNoiseDistribution(readoutNoiseGenerator);
 		}
 	}
 }
@@ -960,6 +993,8 @@ void Detector::addReadoutNoise()
  */
 void Detector::applyGain()
 {
+	Log.debug("Detector: applying gain");
+
 	// Divide the pixel, bias register, and smearing map by the gain
 
 	pixelMap /= gain;
@@ -990,6 +1025,7 @@ void Detector::applyGain()
 
 void Detector::addElectronicOffset()
 {
+	Log.debug("Detector: adding a bias");
 
 	// Add the electronic offset to the pixel, bias register, and smearing maps
 
@@ -1022,20 +1058,19 @@ void Detector::addElectronicOffset()
  */
 void Detector::applyDigitalSaturation()
 {
+	Log.debug("Detector: applying digital saturation");
+
 	// Top off the values in the pixel map
 
-	pixelMap(arma::find(pixelMap > digitalSaturationLimit)).fill(
-			digitalSaturationLimit);
+	pixelMap(arma::find(pixelMap > digitalSaturationLimit)).fill(digitalSaturationLimit);
 
 	// Top off the values in the bias register map
 
-	biasMap(arma::find(biasMap > digitalSaturationLimit)).fill(
-			digitalSaturationLimit);
+	biasMap(arma::find(biasMap > digitalSaturationLimit)).fill(digitalSaturationLimit);
 
 	// Top off the values in the smearing map
 
-	smearingMap(arma::find(smearingMap > digitalSaturationLimit)).fill(
-			digitalSaturationLimit);
+	smearingMap(arma::find(smearingMap > digitalSaturationLimit)).fill(digitalSaturationLimit);
 }
 
 
@@ -1057,6 +1092,8 @@ void Detector::applyDigitalSaturation()
  */
 void Detector::initHDF5Groups()
 {
+	Log.debug("Detector: initialising HDF5 groups");
+
 	hdf5File.createGroup("/Images");
 	hdf5File.createGroup("/BiasMaps");
 	hdf5File.createGroup("/SmearingMaps");
