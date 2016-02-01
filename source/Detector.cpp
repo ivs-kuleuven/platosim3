@@ -363,14 +363,10 @@ void Detector::integrateLight(double startTime, double exposureTime)
 /**
  * @brief: Add the given flux value to the value of the sub-pixel that
  *         corresponds to the given coordinates in the focal plane.
- * 
- * NOTES: - The flux value has already been multiplied with the transmission 
- *          efficiency but not with the quanum efficiency.
- *        - The exposure time has been taken into account already.
  *
- * @param rowFocalPlane: Row coordinate of the sub-pixel in the focal plane [mm].
- * @param columnFocalPlane: Column coordinate of the sub-pixel in the focal plane [mm].
- * @param flux:          Flux to add to the sub-pixel map [photons].
+ * @param xCoord   x-coordinate of the sub-pixel in the focal plane [mm].
+ * @param yCoord   y-coordinate of the sub-pixel in the focal plane [mm].
+ * @param flux     Flux to add to the sub-pixel map [photons].
  *
  * @pre Pixel, bias register, and smearing maps filled with zeroes.
  *
@@ -378,23 +374,23 @@ void Detector::integrateLight(double startTime, double exposureTime)
  * @post Pixel, bias register, and smearing maps filled with zeroes.
  */
  
-void Detector::addFlux(double rowFocalPlane, double columnFocalPlane, double flux)
+void Detector::addFlux(double xCoord, double yCoord, double flux)
 {
 
 	// Detector origin offset (pixel level)
 
-	double rowOffset = (rowFocalPlane - originOffsetY) / pixelSize;
-	double columnOffset = (columnFocalPlane - originOffsetX) / pixelSize;
+	double rowOffset = (xCoord - originOffsetY) / pixelSize;
+	double columnOffset = (yCoord - originOffsetX) / pixelSize;
 
 	// Detector orientation (pixel level)
 
 	double column = columnOffset * cos(orientationAngle) - rowOffset * sin(orientationAngle);
-	double row = columnOffset * sin(orientationAngle) + rowOffset * cos(orientationAngle);
+	double row    = columnOffset * sin(orientationAngle) + rowOffset * cos(orientationAngle);
 
 	// Sub-field incl. edge pixels (also correct for sub-field zeropoint)
 
 	column = (column - subFieldZeroPointColumn + numEdgePixels) * numSubPixelsPerPixel;
-	row = (row - subFieldZeroPointRow + numEdgePixels) * numSubPixelsPerPixel;
+	row    = (row    - subFieldZeroPointRow    + numEdgePixels) * numSubPixelsPerPixel;
 
 	// Add flux in this->subPixelMap at (row, column)
 
