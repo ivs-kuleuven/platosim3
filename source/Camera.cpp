@@ -77,15 +77,18 @@ void Camera::exposeSubField(Detector &detector)
 
 
 
+
+
 /**
  * \brief Configure the Camera object using the ConfigurationParameters
  * 
  * \param configParam: the configuration parameters 
  */
+
 void Camera::configure(ConfigurationParameters &configParam)
 {
-    plateScale = configParam.getDouble("Camera/PlateScale");
-    focalPlaneOrientation = = configParam.getDouble("Camera/FocalPlaneOrientation");
+    plateScale            = configParam.getDouble("Camera/PlateScale");
+    focalPlaneOrientation = deg2rad(configParam.getDouble("Camera/FocalPlaneOrientation"));
 }
 
 
