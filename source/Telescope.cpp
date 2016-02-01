@@ -43,10 +43,9 @@ Telescope::Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File)
 /**
  * Destructor.
  */
+
 Telescope::~Telescope()
 {
-
-	// Also destroy the platform
 
 }
 
@@ -54,38 +53,11 @@ Telescope::~Telescope()
 
 
 
-/**
- * Method that updates the pointing coordinates of the telescope (i.e. the
- * equatorial coordinates of the optical axis) after the application of jitter
- * (of the platform on which the telescope is mounted) and the thermo-elastic
- * variations (of the telescope itself).
- *
- * @param &alphaOpticalAxis: Right ascension of the optical axis, before applying
- *        the next jitter step and taking thermo-elastic variations into account
- *        [degees?/radians?]
- *
- * @param &deltaOpticalAxis: Declination of the optical axis, before applying the
- *        next jitter step and taking thermo-elastic variations into account
- *        [degrees?/radians?]
- */
-double Telescope::updatePointingCoordinates(double &alphaOpticalAxis,
-		double &deltaOpticalAxis, double currentTime)
-{
 
-	// Jitter -> platform
-	// Ask the platform to update the pointing coordinates (i.e. the equatorial
-	// coordinates of the telescope axis) and the current time, taking the
-	// jitter into account
 
-//	this->getPlatform().updatePointingCoordinates(alphaOpticalAxis, deltaOpticalAxis, currentTime);
 
-	// Thermo-elastic variations
-	// Update the coordinates of the displaced (because of the jitter) optical
-	// axis, taking the thermo-elastic variations into account
 
-//	this->getPlatform().updatePointingCoordinates(alphaOpticalAxis, deltaOpticalAxis, currentTime);
 
-	return currentTime;
 
 /**
  * \brief Configure the Telescope object using the ConfigurationParameters
@@ -134,12 +106,23 @@ void Telescope::setPlatform(Platform platform) {
  *
  * @return Platform on which the telescope is mounted.
  * @rtype Platform
+ * \brief Set new pointing coordinates of the telescope
+ * 
+ * \details Set the new equatorial coordinates of the optical axis. These coordinates can change
+ *          due to platform jitter and thermo-elastic variations of the telescope.
+ *          
+ * \param newAlphaOpticalAxis: New right ascension of the optical axis of the telescope [rad]
+ * \param newDeltaOpticalAxis: new declination of the optical axis of the telescope [rad]
  */
 Platform Telescope::getPlatform()
 {
 
 	return this->platform;
 
+void Telescope::setPointingCoordinates(double newAlphaOpticalAxis, double newDeltaOpticalAxis)
+{
+	alphaOpticalAxis = newAlphaOpticalAxis;
+	deltaOpticalAxis = newDeltaOpticalAxis;
 }
 
 // Light collecting area
@@ -166,9 +149,16 @@ void Telescope::setLightCollectingArea(double lightCollectingArea)
  *
  * @return Light collecting area of the telescope [cm^2].
  * @rtype double
+ * \brief Return the current values of the equatorial coordinates of the optical axis of the telescope
+ * 
+ * \return a pair (alphaOpticalAxis, deltaOpticalAxis)  in [rad]
  */
 unsigned double Telescope::getLightCollectingArea()
 {
 
 	return this->lightCollectingArea;
+pair<double, double> Telescope::getPointingCoordinates()
+{
+	return make_pair(alphaOpticalAxis, deltaOpticalAxis);
 }
+

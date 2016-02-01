@@ -22,11 +22,10 @@ class Telescope  : public Heartbeat, HDF5Writer
 		Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File);
 		~Telescope();
 
-		Platform getPlatform();
-		double getLightCollectingArea();
-		double updatePointingCoordinates(double &alphaOpticalAxis, double &deltaOpticalAxis, double currentTime);
 		virtual void configure(ConfigurationParameters &configParam);
 
+		void setPointingCoordinates(double newAlphaOpticalAxis, double newDeltaOpticalAxis);
+		pair<double, double> getPointingCoordinates();
 
 	protected:
 
