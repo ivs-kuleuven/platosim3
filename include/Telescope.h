@@ -18,7 +18,7 @@ class Telescope  : public Heartbeat, HDF5Writer
 	
 	public:
 
-		Telescope(ConfigurationParameters configurationParameters, Platform platform);
+		Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File);
 		~Telescope();
 
 		Platform getPlatform();
