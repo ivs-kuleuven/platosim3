@@ -1,27 +1,40 @@
 #include "Telescope.h"
 
 /**
- * Constructor.  Creates a telescope object, based on the given configuration
- * parameters and mounts it on the given platform.
- *
- * @param configurationParameters: Configuration parameters for the telescope.
- * @type configurationParameters: ConfigurationParameters
- *
- * @param Platform: Platform mount the telescope on.
- * @type Platform: Platform
+ * Constructor
+ * 
+ * \param configurationParameters: Configuration parameters for the telescope.
+ * \param Platform:                Platform on which the telescope is mounted
+ * \param hdf5File                 Output HDF5 file.
+ * 
  */
-Telescope::Telescope(ConfigurationParameters configurationParameters,
-		Platform platform)
+
+Telescope::Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File)
+: HDF5Writer(hdf5File)
 {
+	// Retrieve the Telescope configuration parameters
 
-	// Read configuration parameters:
-	// - light collecting area
+	configure(configParams);
 
-	// Mount on platform
+	// Set the heartbeat interval of the telescope.
+	// The Telescope properties (e.g. the coordinates of the optical axis) are evolving in time, 
+    // for example because of thermo-elastic drift, or because of the jitter of the platform it 
+    // is mounted on. To properly track these changes one has to use a small enough timestep, 
+    // which is called the "heartbeat" interval of the Telescope. Because Telescope depends on 
+    // other components, like Platform which in turn may also have a certain heartbeat, the
+    // 'global' heartbeat of Telescope is the minimum of its own intrinsic heartbeat and the
+    // heartbeat of all the components it depends on.
 
-	this->setPlatform(platform);
-
+	if (driftTimeScale != 0.0)
+	{
+		heartbeatInterval = driftTimeScale / 20.0;
+	}
 }
+
+
+
+
+
 
 
 
