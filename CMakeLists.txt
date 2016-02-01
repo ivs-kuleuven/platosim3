@@ -29,7 +29,7 @@ cmake_minimum_required(VERSION 2.8)
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/hdf5-1.8.16/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/armadillo-6.400.3/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/armadillo-6.500.4/include
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/yaml-cpp/include
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/googletest/include
 )
@@ -72,7 +72,7 @@ set(unitTestMain ${CMAKE_CURRENT_SOURCE_DIR}/tests/AllTests.cpp)
 
 link_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/hdf5-1.8.16/lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/armadillo-6.400.3/lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/armadillo-6.500.4/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/yaml-cpp/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/googletest/lib
 )

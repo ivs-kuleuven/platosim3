@@ -15,6 +15,8 @@
 #include "TabulatedFunction.h"
 #include "Skydata.h"
 #include "StarCatalog.h"
+#include "ConfigurationParameters.h"
+
 
 
 using namespace std;

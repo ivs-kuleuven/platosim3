@@ -10,7 +10,7 @@
 //#include "Telescope.h"
 //#include "Platform.h"
 //#include "Sky.h"
-//#include "ConfigurationParameters.h"
+#include "ConfigurationParameters.h"
 
 
 using namespace std;
