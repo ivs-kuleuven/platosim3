@@ -25,6 +25,8 @@ class Telescope  : public TimeTicker, Hdf5Writer
 		Platform getPlatform();
 		double getLightCollectingArea();
 		double updatePointingCoordinates(double &alphaOpticalAxis, double &deltaOpticalAxis, double currentTime);
+		virtual void configure(ConfigurationParameters &configParam);
+
 
 	protected:
 
