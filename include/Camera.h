@@ -2,11 +2,14 @@
 #define CAMERA_H
 
 #include <string>
+#include <cmath>
 
 #include "Logger.h"
 #include "TimeTicker.h"
+#include "HDF5File.h"
 #include "HDF5Writer.h"
-#include "Telescope.h"
+#include "Detector.h"
+#include "ConfigurationParameters.h"
 
 
 using namespace std;
@@ -17,21 +20,24 @@ class Camera : public TimeTicker, HDF5Writer
 {
     public:
 
-        Camera(ConfigurationParameters configurationParameters);
+        Camera(ConfigurationParameters &configParam, HDF5File &hdf5file);
         ~Camera();
 
-        void initPsf(SubField subField);
-        void exposeSubField(Dectector &detector);
+        void exposeSubField(Detector &detector);
 
     protected:
 
 
     private:
 
-        Telescope telescope;
-
-        double plateScale;             // [arcsec/mm]
+        double plateScale;             // [arcsec/micron]
+        double focalPlaneOrientation;  // [degrees]
         double internalTime;           // [s]
+
+        void configure(ConfigurationParameters &configParam);
+        void selectPsf(double raStar, double decStar);
+        pair<double, double> getFocalPlaneCoordinates(double raStar, double decStar, 
+            double raOpticalAxis, double decOpticalAxis, double plateScale);
 
 };
 
