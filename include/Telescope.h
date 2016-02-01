@@ -6,7 +6,6 @@
 #include "Logger.h"
 #include "Heartbeat.h"
 #include "HDF5Writer.h"
-#include "Platform.h"
 #include "ConfigurationParameters.h"
 
 using namespace std;
@@ -14,7 +13,7 @@ using namespace std;
 
 
 
-class Telescope  : public TimeTicker, Hdf5Writer
+class Telescope  : public Heartbeat, HDF5Writer
 {
 	
 	public:
