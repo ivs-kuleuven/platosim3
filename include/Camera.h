@@ -9,7 +9,7 @@
 #include "Constants.h"
 #include "ConfigurationParameters.h"
 #include "HDF5File.h"
-#include "TimeTicker.h"
+#include "Heartbeat.h"
 #include "HDF5File.h"
 #include "HDF5Writer.h"
 #include "Telescope.h"
@@ -36,7 +36,7 @@ class Camera : public HDF5Writer
 
         Telescope &telescope;
         Sky &sky;
-        
+
         double plateScale;                    // [arcsec/mm]
         double focalPlaneOrientation;         // [rad]
         double internalTime;                  // [s]

@@ -4,7 +4,7 @@
 #include <string>
 
 #include "Logger.h"
-#include "TimeTicker.h"
+#include "Heartbeat.h"
 #include "HDF5Writer.h"
 #include "Platform.h"
 #include "ConfigurationParameters.h"
