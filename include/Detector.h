@@ -37,6 +37,7 @@ class Detector : public HDF5Writer
         virtual bool isInSubPixelMap(double row, double column);
         virtual void addFlux(double xCoords, double yCoords, double flux);
         virtual void addFlux(double flux);
+        virtual void convolveWithPsf(arma::Mat<float> psf);
         virtual void applyFlatfield();
         virtual void rebin();
         
