@@ -115,21 +115,23 @@ void Camera::selectPsf(double raStar, double decStar)
 
 
 
+
 /**
- * \brief Computes the (x,y) coordinates in the focal plane of a star with given equatorial coordinates
+ * \brief Computes the (x,y) coordinates in the focal plane of a star 
+ *        with given equatorial coordinates using a gnomonic projection
  *
- * \param[in] raStar:          right ascension of the star [rad]
- * \param[in] decStar:         declination of the star [rad]
- * \param[in] raOpticalAxis:   right ascension of the optical axis [rad]
- * \param[in] decOpticalAxis:  declination of the optical axis [rad]
- * \param[in] pixelScale:      [arcsec/pixel]
- * \param[in] pixelSize:       [micrometer]
+ * \param raStar       Right ascension of the star [rad]
+ * \param decStar      Declination of the star [rad]
  *
- * return     pair of double:  x- and y-coordinate of the projected star in the focal plane in the FP-prime system [mm]
+ * return pair (x,y):  Cartesian coordinate of the projected star in the focal plane in the FP-prime system [mm]
  */
-pair<double, double> Camera::getFocalPlaneCoordinates(double raStar, double decStar, 
-    double raOpticalAxis, double decOpticalAxis, double plateScale)
+
+pair<double, double> Camera::getFocalPlaneCoordinates(double raStar, double decStar)
 {
+    // Get the equatorial coordinates of the optical axis [rad]
+
+    double raOpticalAxis, decOpticalAxis;
+    tie(raOpticalAxis, decOpticalAxis) = telescope.getPointingCoordinates();
 
     // Project the sky to the focal plane in the "FP" coordinate system
 
