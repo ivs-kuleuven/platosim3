@@ -5,6 +5,7 @@
 #include <string>
 #include <cmath>
 #include <random>
+#include <functional>
 
 #include "Logger.h"
 #include "HDF5File.h"
@@ -30,12 +31,13 @@ class Detector : public HDF5Writer
 
         virtual void reset();
         virtual void generateFlatfieldMap();
-        virtual void generateCteMap();
+//        virtual void generateCteMap();
 
         virtual void integrateLight(double startTime, double exposureTime);
         virtual bool isInSubPixelMap(double row, double column);
         virtual void addFlux(double xCoords, double yCoords, double flux);
         virtual void addFlux(double flux);
+        virtual void convolveWithPsf(arma::Mat<float> psf);
         virtual void applyFlatfield();
         virtual void rebin();
         
@@ -58,7 +60,7 @@ class Detector : public HDF5Writer
         arma::Mat<float> subPixelMap;            // Sub-pixel map, incl. edge pixels
         arma::Mat<float> smearingMap;            // Smearing map (i.e. over-scan strip)
         arma::Mat<float> biasMap;                // Bias map (i.e. pre-scan strip)
-        arma::Mat<float> cteMap;                 // CTE map
+//        arma::Mat<float> cteMap;                 // CTE map
         arma::Mat<float> flatfieldMap;           // Flatfield map
 
         unsigned int numRows;                    // Nr of rows of the detector (= size in y-direction) [pixels]
@@ -100,7 +102,7 @@ class Detector : public HDF5Writer
     	long flatfieldSeed;
     	long readoutNoiseSeed;
     	long photonNoiseSeed;
-    	long cteMapSeed;
+//    	long cteMapSeed;
 
     	mt19937 photonNoiseGenerator;
     	mt19937 readoutNoiseGenerator;
