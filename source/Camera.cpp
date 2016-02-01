@@ -7,11 +7,13 @@
 /**
  * \brief      Constructor
  *
- * \param[in]  configParam  configuration parameters for the Camera
- * \param[in]  hdf5file     HFD5 file to write the camera information to
+ * \param configParam   Configuration parameters for the Camera
+ * \param hdf5file      HFD5 file to write the camera information to
+ * \param telescope     Telescope on which the camera is mounted on
+ * \param sky           Sky object to query which stars we are seeing
  */
-Camera::Camera(ConfigurationParameters &configParam, HDF5File &hdf5file)
-: HDF5Writer(hdf5file)
+Camera::Camera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telescope &telescope, Sky &sky)
+: HDF5Writer(hdf5file), telescope(telescope), sky(sky), internalTime(0.0)
 {
     // Parse the parameters from the configuration file.
 
@@ -22,10 +24,10 @@ Camera::Camera(ConfigurationParameters &configParam, HDF5File &hdf5file)
 
 
 
-
 /**
- * @brief      Destructor
+ * @brief  Destructor
  */
+
 Camera::~Camera()
 {
 }
