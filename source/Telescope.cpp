@@ -87,6 +87,24 @@ double Telescope::updatePointingCoordinates(double &alphaOpticalAxis,
 
 	return currentTime;
 
+/**
+ * \brief Configure the Telescope object using the ConfigurationParameters
+ * 
+ * \param configParam: the configuration parameters 
+ **/
+
+ void Telescope::configure(ConfigurationParameters &configParam)
+ {
+ 	// Configuration parameters for the Telescope
+
+ 	alphaOpticalAxis        = deg2rad(configParam.getDouble("ObservingParameters/RApointing"));
+	deltaOpticalAxis        = deg2rad(configParam.getDouble("ObservingParameters/DecPointing"));        
+	lightCollectingArea     = configParam.getDouble("Telescope/lightCollectingArea");     
+	transmissionEfficiency  = configParam.getDouble("Telescope/TransmissionEfficiency");  
+	driftYawRms             = configParam.getDouble("Telescope/DriftYawRms");             
+    driftPitchRms           = configParam.getDouble("Telescope/DriftPitchRms");           
+    driftRollRms            = configParam.getDouble("Telescope/DriftRollRms");            
+    driftTimeScale          = configParam.getDouble("Telescope/DriftTimeScale");    
 }
 
 
