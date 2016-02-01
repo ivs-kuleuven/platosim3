@@ -5,39 +5,46 @@
 #include <cmath>
 
 #include "Logger.h"
+#include "Units.h"
+#include "Constants.h"
+#include "ConfigurationParameters.h"
+#include "HDF5File.h"
 #include "TimeTicker.h"
 #include "HDF5File.h"
 #include "HDF5Writer.h"
+#include "Telescope.h"
 #include "Detector.h"
-#include "ConfigurationParameters.h"
+#include "Sky.h"
+//#include "Telescope.h"
 
 
 using namespace std;
 
 
 
-class Camera : public TimeTicker, HDF5Writer
+class Camera : public HDF5Writer
 {
     public:
 
-        Camera(ConfigurationParameters &configParam, HDF5File &hdf5file);
+        Camera(ConfigurationParameters &configParam, HDF5File &hdf5File, Telescope &telescope, Sky &sky);
         ~Camera();
 
-        void exposeSubField(Detector &detector);
+        virtual void configure(ConfigurationParameters &configParam);
+        virtual void exposeDetector(Detector &detector);
 
     protected:
 
+        Telescope &telescope;
+        Sky &sky;
+        
+        double plateScale;                    // [arcsec/mm]
+        double focalPlaneOrientation;         // [rad]
+        double internalTime;                  // [s]
+
+        void selectPsf(double raStar, double decStar);
+        pair<double, double> getFocalPlaneCoordinates(double raStar, double decStar);
 
     private:
-
-        double plateScale;             // [arcsec/micron]
-        double focalPlaneOrientation;  // [degrees]
-        double internalTime;           // [s]
-
-        void configure(ConfigurationParameters &configParam);
-        void selectPsf(double raStar, double decStar);
-        pair<double, double> getFocalPlaneCoordinates(double raStar, double decStar, 
-            double raOpticalAxis, double decOpticalAxis, double plateScale);
 
 };
 
