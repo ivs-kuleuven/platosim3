@@ -30,15 +30,17 @@ class Telescope  : public TimeTicker, Hdf5Writer
 
 		double alphaOpticalAxis;           // Current pointing right ascension [rad]
 		double deltaOpticalAxis;           // Current pointing declination     [rad]
+		double FOVradius;                  // Radius of the Field-of-view      [rad]
+		double lightCollectingArea;        // Effective light collective area  [m^2]
+		double transmissionEfficiency;     // in [0,1]
+		double driftYawRms;                // RMS of thermo-elastic drift in yaw   [arcsec]
+    	double driftPitchRms;              // RMS of thermo-elastic drift in pitch [arcsec]
+    	double driftRollRms;               // RMS of thermo-elastic drift in roll  [arcsec]
+    	double driftTimeScale;             // Timescale of thermo-elastic drift [s]
 
 	private:
 
-		Platform platform;
-		void setPlatform(Platform platform);
-
-		double lightCollectingArea;
-		void setLightCollectingArea(double lightCollectingArea);
-
+		//Platform platform;
 };
 
 #endif
