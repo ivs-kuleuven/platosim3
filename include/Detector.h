@@ -51,7 +51,10 @@ class Detector : public HDF5Writer
     	virtual void applyGain();
     	virtual void addElectronicOffset();	     
     	virtual void applyDigitalSaturation();
-    
+
+        pair<double, double> pixelToFocalPlaneCoordinates(double row, double column);
+        pair<double, double> focalPlaneToPixelCoordinates(double xFPprime, double yFPprime);
+
         virtual void initHDF5Groups() override;
         void writePixelMapToHDF5();
 
