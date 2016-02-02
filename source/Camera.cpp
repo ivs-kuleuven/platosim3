@@ -155,3 +155,56 @@ pair<double, double> Camera::skyToFocalPlaneCoordinates(double raStar, double de
 }
 
 
+
+
+
+
+
+
+
+/**
+ * \brief Compute the equatorial sky coordinates of a star which has the given projected 
+ *        focal plane (FP') coordinates (x,y)
+ *        
+ * \param xFPprimeStar     x-coordinate of the projected star in the focal plane in the FP-prime system [mm]
+ * \param yFPprimeStar     y-coordinate of the projected star in the focal plane in the FP-prime system [mm]
+ *
+ * \return (alpha, delta)  Equatorial coordinates (RA & Dec) of the star [rad]
+ */
+
+pair<double, double> focalPlaneToSkyCoordinates(double xFPprimeStar, double yFPprimeStar)
+{    
+    if (xFPprimeStar == 0.0 and yFPprimeStar == 0.0)
+    {
+        return make_pair(0.0, 0.0);
+    }
+    
+    // Compute the conversion factor from [mm/radian] to [arcsec/pixel] and convert the
+    // focal plane coordinates from [mm] to [rad].
+
+    conversionFactor = 3600. * Constants::PI / 180.0 / plateScale;
+    xFPprime = xFPprimeStar / conversionFactor;
+    yFPprime = yFPprimeStar / conversionFactor;
+
+    // Convert the FP' coordinates into FP coordinates
+
+    xFP =  xFPprime * cos(focalPlaneOrientation) - yFPprime * sin(focalPlaneOrientation);
+    yFP =  xFPprime * sin(focalPlaneOrientation) + yFPprime * cos(focalPlaneOrientation);
+
+    // Get the equatorial coordinates of the optical axis [rad]
+
+    double raOpticalAxis, decOpticalAxis;
+    tie(raOpticalAxis, decOpticalAxis) = telescope.getPointingCoordinates();
+
+    // Project the focal plane in the "FP" coordinate system to the sky
+
+    rho = sqrt(xFP*xFP+yFP*yFP);
+    c = arctan(rho);
+    decStar = arcsin(cos(c)*sin(decOpticalAxis)+(-xFP*sin(c)*cos(decOpticalAxis))/rho);
+    raStar = raOpticalAxis + arctan2(yFP*sin(c), rho*cos(decOpticalAxis)*cos(c)+xFP*sin(decOpticalAxis)*sin(c));
+    
+
+    // Return the equatorial coordinates
+
+    return make_pair(raStar, decStar)
+}
