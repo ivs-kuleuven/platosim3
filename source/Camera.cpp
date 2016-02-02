@@ -145,9 +145,12 @@ pair<double, double> Camera::skyToFocalPlaneCoordinates(double raStar, double de
     double yFPprime = -xFP * sin(focalPlaneOrientation) + yFP * cos(focalPlaneOrientation);
 
     // Compute the conversion factor: conversion from [radians] to [mm].
-    // Note that the platescale is expressed in [arcsec/mm]
+    // Note that the plateScale is expressed in [arcsec/mm]
 
     double conversionFactor = 3600. * Constants::PI / 180.0 / plateScale;
+    // double conversionFactor = 3600. * 180. / Constants::PI / 1000.0 / plateScale;
+
+    Log.debug("Camera::skyToFocalPlaneCoordinates: conversionFactor = " + to_string(conversionFactor));
 
     // Return the scaled coordinates
 

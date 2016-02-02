@@ -7,6 +7,7 @@
 #include "GTestConfigurationParameters.h"
 #include "GTestFileUtilities.h"
 #include "GTestPointSpreadFunction.h"
+#include "GTestCamera.h"
 
 Logger Log;
 

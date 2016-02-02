@@ -32,6 +32,11 @@ class Camera : public HDF5Writer
         virtual void configure(ConfigurationParameters &configParam);
         virtual void exposeDetector(Detector &detector);
 
+#ifdef UNIT_TESTS
+        pair<double, double> test_skyToFocalPlaneCoordinates(double raStar, double decStar) {return skyToFocalPlaneCoordinates(raStar, decStar);};
+        pair<double, double> test_focalPlaneToSkyCoordinates(double x, double y) {return focalPlaneToSkyCoordinates(x, y);};
+#endif
+
     protected:
 
         Telescope &telescope;
