@@ -4,9 +4,9 @@
 #include <string>
 
 #include "Logger.h"
-#include "TimeTicker.h"
+#include "Units.h"
+#include "Heartbeat.h"
 #include "HDF5Writer.h"
-#include "Platform.h"
 #include "ConfigurationParameters.h"
 
 using namespace std;
@@ -14,31 +14,34 @@ using namespace std;
 
 
 
-class Telescope  : public TimeTicker, Hdf5Writer
+class Telescope  : public Heartbeat, HDF5Writer
 {
 	
 	public:
 
-		Telescope(ConfigurationParameters configurationParameters, Platform platform);
+		Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File);
 		~Telescope();
 
-		Platform getPlatform();
-		double getLightCollectingArea();
-		double updatePointingCoordinates(double &alphaOpticalAxis, double &deltaOpticalAxis, double currentTime);
+		virtual void configure(ConfigurationParameters &configParam);
+
+		void setPointingCoordinates(double newAlphaOpticalAxis, double newDeltaOpticalAxis);
+		pair<double, double> getPointingCoordinates();
 
 	protected:
 
 		double alphaOpticalAxis;           // Current pointing right ascension [rad]
 		double deltaOpticalAxis;           // Current pointing declination     [rad]
+		double FOVradius;                  // Radius of the Field-of-view      [rad]
+		double lightCollectingArea;        // Effective light collective area  [m^2]
+		double transmissionEfficiency;     // in [0,1]
+		double driftYawRms;                // RMS of thermo-elastic drift in yaw   [arcsec]
+    	double driftPitchRms;              // RMS of thermo-elastic drift in pitch [arcsec]
+    	double driftRollRms;               // RMS of thermo-elastic drift in roll  [arcsec]
+    	double driftTimeScale;             // Timescale of thermo-elastic drift [s]
 
 	private:
 
-		Platform platform;
-		void setPlatform(Platform platform);
-
-		double lightCollectingArea;
-		void setLightCollectingArea(double lightCollectingArea);
-
+		//Platform platform;
 };
 
 #endif

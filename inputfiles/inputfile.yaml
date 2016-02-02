@@ -30,6 +30,7 @@ Telescope:
     
     LightCollectingArea:     113.1           # Effective area of 1 telescope [cmˆ2]
     TransmissionEfficiency:  0.757           # in [0,1]
+    FieldOfViewRadius:       14.0            # [deg]
     DriftYawRms:             2.3             # RMS of thermo-elastic drift in yaw [arcsec]
     DriftPitchRms:           2.3             # RMS of thermo-elastic drift in pitch [arcsec]
     DriftRollRms:            2.3             # RMS of thermo-elastic drift in roll [arcsec]

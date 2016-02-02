@@ -363,14 +363,10 @@ void Detector::integrateLight(double startTime, double exposureTime)
 /**
  * @brief: Add the given flux value to the value of the sub-pixel that
  *         corresponds to the given coordinates in the focal plane.
- * 
- * NOTES: - The flux value has already been multiplied with the transmission 
- *          efficiency but not with the quanum efficiency.
- *        - The exposure time has been taken into account already.
  *
- * @param rowFocalPlane: Row coordinate of the sub-pixel in the focal plane [mm].
- * @param columnFocalPlane: Column coordinate of the sub-pixel in the focal plane [mm].
- * @param flux:          Flux to add to the sub-pixel map [photons].
+ * @param xCoord   x-coordinate of the sub-pixel in the focal plane [mm].
+ * @param yCoord   y-coordinate of the sub-pixel in the focal plane [mm].
+ * @param flux     Flux to add to the sub-pixel map [photons].
  *
  * @pre Pixel, bias register, and smearing maps filled with zeroes.
  *
@@ -378,23 +374,23 @@ void Detector::integrateLight(double startTime, double exposureTime)
  * @post Pixel, bias register, and smearing maps filled with zeroes.
  */
  
-void Detector::addFlux(double rowFocalPlane, double columnFocalPlane, double flux)
+void Detector::addFlux(double xCoord, double yCoord, double flux)
 {
 
 	// Detector origin offset (pixel level)
 
-	double rowOffset = (rowFocalPlane - originOffsetY) / pixelSize;
-	double columnOffset = (columnFocalPlane - originOffsetX) / pixelSize;
+	double rowOffset = (xCoord - originOffsetY) / pixelSize;
+	double columnOffset = (yCoord - originOffsetX) / pixelSize;
 
 	// Detector orientation (pixel level)
 
 	double column = columnOffset * cos(orientationAngle) - rowOffset * sin(orientationAngle);
-	double row = columnOffset * sin(orientationAngle) + rowOffset * cos(orientationAngle);
+	double row    = columnOffset * sin(orientationAngle) + rowOffset * cos(orientationAngle);
 
 	// Sub-field incl. edge pixels (also correct for sub-field zeropoint)
 
 	column = (column - subFieldZeroPointColumn + numEdgePixels) * numSubPixelsPerPixel;
-	row = (row - subFieldZeroPointRow + numEdgePixels) * numSubPixelsPerPixel;
+	row    = (row    - subFieldZeroPointRow    + numEdgePixels) * numSubPixelsPerPixel;
 
 	// Add flux in this->subPixelMap at (row, column)
 
@@ -1156,6 +1152,81 @@ void Detector::applyDigitalSaturation()
 }
 
 
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Compute the (x,y) coordinates in the FP' reference system (not the FP system) given
+ *        the (real-valued) pixel coordinates on the CCD.
+ *        
+ * \param row     Row coordinate, real-valued (e.g. 3.5)    [pix]
+ * \param column  Column coordinate, real-valued (e.g. 8.3) [pix]
+ * 
+ * \return (xFPprime, yFPprime)  A pair of (x,y) coordinates in the FP' reference system [mm]
+ */
+
+pair<double, double> Detector::pixelToFocalPlaneCoordinates(double row, double column)
+{
+    // Convert the pixel coordinates into [mm] coordinates
+    // The pixelSize is expressed in [micron].
+
+    double xCCDmm = column * pixelSize / 1000.0;
+    double yCCDmm = row * pixelSize / 1000.0;
+
+    // Convert the CCD coordinates into FP' coordinates [mm]
+    // Note: orientationAngle is in [rad], originOffsetX and originOffsetY in mm
+
+    double xFPprime = originOffsetX + xCCDmm * cos(orientationAngle) - yCCDmm * sin(orientationAngle);
+    double yFPprime = originOffsetY + xCCDmm * sin(orientationAngle) + yCCDmm * cos(orientationAngle);
+
+    // That's it
+
+    return make_pair(xFPprime, yFPprime);
+}
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Compute the (real-valued) pixel coordinates of the star on the CCD, given the (x,y)
+ *       coordinates in the FP' reference system (not the FP system)
+ *
+ * \param xFPprime  x-coordinate of the point in the FP' reference system  [mm]
+ * \param yFPprime  y-coordinate of the star in the FP' reference system  [mm]
+ * 
+ * \return (row, column)  Row and column pixel coordinates of the point (real-valued) [pix]
+ */
+
+pair<double, double> Detector::focalPlaneToPixelCoordinates(double xFPprime, double yFPprime)
+{
+	// Convert the FP' coordinates into CCD coordinates [mm]
+
+    double xCCDmm =  (xFPprime-originOffsetX) * cos(orientationAngle) + (yFPprime-originOffsetY) * sin(orientationAngle);
+    double yCCDmm = -(xFPprime-originOffsetX) * sin(orientationAngle) + (yFPprime-originOffsetY) * cos(orientationAngle);
+
+    // Convert the [mm] coordinates into pixel coordinates
+    // Note: the pixel size is expressed in [micron]
+
+    double column = xCCDmm / pixelSize * 1000.0;
+    double row = yCCDmm / pixelSize * 1000.0;
+
+    // That's it
+
+    return make_pair(row, column);
+}
 
 
 

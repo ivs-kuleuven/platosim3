@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "Logger.h"
-#include "TimeTicker.h"
+#include "Heartbeat.h"
 #include "HDF5Writer.h"
 #include "ConfigurationParameters.h"
 #include "JitterGenerator.h"
@@ -16,7 +16,7 @@ using namespace std;
 
 
 
-class Platform : public TimeTicker, Hdf5Writer
+class Platform : public Heartbeat, HDF5Writer
 {
     public:
 

@@ -41,9 +41,7 @@ include_directories(
 file(GLOB platosimSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp)
 list(REMOVE_ITEM platosimSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/main.cpp)
 
-list(REMOVE_ITEM platosimSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/Camera.cpp 
-                                     ${CMAKE_CURRENT_SOURCE_DIR}/source/Telescope.cpp
-                                     ${CMAKE_CURRENT_SOURCE_DIR}/source/Timeticker.cpp)
+list(REMOVE_ITEM platosimSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/Platform.cpp)
 
 
 # Define the main.cpp of platosim separately.
