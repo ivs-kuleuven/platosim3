@@ -106,7 +106,7 @@ void Camera::configure(ConfigurationParameters &configParam)
 
 void Camera::selectPsf(double raStar, double decStar)
 {
-    pair<double, double> fpCoordinates = getFocalPlaneCoordinates(raStar, decStar);
+    pair<double, double> fpCoordinates = skyToFocalPlaneCoordinates(raStar, decStar);
 }
 
 
@@ -126,7 +126,7 @@ void Camera::selectPsf(double raStar, double decStar)
  * return pair (x,y):  Cartesian coordinate of the projected star in the focal plane in the FP-prime system [mm]
  */
 
-pair<double, double> Camera::getFocalPlaneCoordinates(double raStar, double decStar)
+pair<double, double> Camera::skyToFocalPlaneCoordinates(double raStar, double decStar)
 {
     // Get the equatorial coordinates of the optical axis [rad]
 

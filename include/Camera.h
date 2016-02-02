@@ -42,7 +42,7 @@ class Camera : public HDF5Writer
         double internalTime;                  // [s]
 
         void selectPsf(double raStar, double decStar);
-        pair<double, double> getFocalPlaneCoordinates(double raStar, double decStar);
+        pair<double, double> skyToFocalPlaneCoordinates(double raStar, double decStar);
 
     private:
 
