@@ -44,31 +44,31 @@ Camera::~Camera()
  *
  * \param[in]  detector  the Detector class
  */
-void Camera::exposeSubField(Detector &detector)
+void Camera::exposeDetector(Detector &detector)
 {
-    auto starCatalog = sky.getStarsWithinRadiusFrom(alpha, delta, radius);  
-    double skyBackground = sky.getSkyBackground(alpha, delta)  
+    // auto starCatalog = sky.getStarsWithinRadiusFrom(alpha, delta, radius);  
+    // double skyBackground = sky.getSkyBackground(alpha, delta)  
 
-    double tickInterval = telescope.getTickInterval();
+    // double tickInterval = telescope.getTickInterval();
 
-    while (currentTime < startingTime + exposureTime)
-    {
-        telescope.updatePointingCoordinates(raOpticalAxis, decOpticalAxis, tickInterval);
-        currentTime += tickInterval;
+    // while (currentTime < startingTime + exposureTime)
+    // {
+    //     telescope.updatePointingCoordinates(raOpticalAxis, decOpticalAxis, tickInterval);
+    //     currentTime += tickInterval;
 
-        for (auto star : starCatalog)
-        {
-            computeFocalPlaneCoordinates(star, Xmm, Ymm)
+    //     for (auto star : starCatalog)
+    //     {
+    //         computeFocalPlaneCoordinates(star, Xmm, Ymm)
             
-            if (subField.containsPoint(Xmm, Ymm))
-            {
-                subField.addFlux(Xmm, Ymm, flux);
-            }
-        }
-    }
+    //         if (subField.containsPoint(Xmm, Ymm))
+    //         {
+    //             subField.addFlux(Xmm, Ymm, flux);
+    //         }
+    //     }
+    // }
 
-    subField.add(skyBackground * exposureTime);
-    subField.convolveWithPSF(psf);
+    // subField.add(skyBackground * exposureTime);
+    // subField.convolveWithPSF(psf);
 
     return;
 }
@@ -151,7 +151,7 @@ pair<double, double> Camera::skyToFocalPlaneCoordinates(double raStar, double de
 
     // Return the scaled coordinates
 
-    return make_pair(xFPprime * conversionFactor, yFPprime * conversionFactor)
+    return make_pair(xFPprime * conversionFactor, yFPprime * conversionFactor);
 }
 
 
@@ -172,7 +172,7 @@ pair<double, double> Camera::skyToFocalPlaneCoordinates(double raStar, double de
  * \return (alpha, delta)  Equatorial coordinates (RA & Dec) of the star [rad]
  */
 
-pair<double, double> focalPlaneToSkyCoordinates(double xFPprimeStar, double yFPprimeStar)
+pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFPprimeStar, double yFPprimeStar)
 {    
     if (xFPprimeStar == 0.0 and yFPprimeStar == 0.0)
     {
@@ -182,14 +182,14 @@ pair<double, double> focalPlaneToSkyCoordinates(double xFPprimeStar, double yFPp
     // Compute the conversion factor from [mm/radian] to [arcsec/pixel] and convert the
     // focal plane coordinates from [mm] to [rad].
 
-    conversionFactor = 3600. * Constants::PI / 180.0 / plateScale;
-    xFPprime = xFPprimeStar / conversionFactor;
-    yFPprime = yFPprimeStar / conversionFactor;
+    double conversionFactor = 3600. * Constants::PI / 180.0 / plateScale;
+    double xFPprime = xFPprimeStar / conversionFactor;
+    double yFPprime = yFPprimeStar / conversionFactor;
 
     // Convert the FP' coordinates into FP coordinates
 
-    xFP =  xFPprime * cos(focalPlaneOrientation) - yFPprime * sin(focalPlaneOrientation);
-    yFP =  xFPprime * sin(focalPlaneOrientation) + yFPprime * cos(focalPlaneOrientation);
+    double xFP =  xFPprime * cos(focalPlaneOrientation) - yFPprime * sin(focalPlaneOrientation);
+    double yFP =  xFPprime * sin(focalPlaneOrientation) + yFPprime * cos(focalPlaneOrientation);
 
     // Get the equatorial coordinates of the optical axis [rad]
 
@@ -198,13 +198,13 @@ pair<double, double> focalPlaneToSkyCoordinates(double xFPprimeStar, double yFPp
 
     // Project the focal plane in the "FP" coordinate system to the sky
 
-    rho = sqrt(xFP*xFP+yFP*yFP);
-    c = arctan(rho);
-    decStar = arcsin(cos(c)*sin(decOpticalAxis)+(-xFP*sin(c)*cos(decOpticalAxis))/rho);
-    raStar = raOpticalAxis + arctan2(yFP*sin(c), rho*cos(decOpticalAxis)*cos(c)+xFP*sin(decOpticalAxis)*sin(c));
+    double rho = sqrt(xFP*xFP+yFP*yFP);
+    double c = atan(rho);
+    double decStar = asin(cos(c)*sin(decOpticalAxis)+(-xFP*sin(c)*cos(decOpticalAxis))/rho);
+    double raStar = raOpticalAxis + atan2(yFP*sin(c), rho*cos(decOpticalAxis)*cos(c)+xFP*sin(decOpticalAxis)*sin(c));
     
 
     // Return the equatorial coordinates
 
-    return make_pair(raStar, decStar)
+    return make_pair(raStar, decStar);
 }
