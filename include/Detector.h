@@ -55,6 +55,9 @@ class Detector : public HDF5Writer
         pair<double, double> pixelToFocalPlaneCoordinates(double row, double column);
         pair<double, double> focalPlaneToPixelCoordinates(double xFPprime, double yFPprime);
 
+        pair<double, double> getFocalPlaneCoordinatesOfSubfieldCenter();
+        double getDiagonalLengthOfSubfield();
+
         virtual void initHDF5Groups() override;
         void writePixelMapToHDF5();
 

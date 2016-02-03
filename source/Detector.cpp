@@ -1238,6 +1238,76 @@ pair<double, double> Detector::focalPlaneToPixelCoordinates(double xFPprime, dou
 
 
 
+
+/**
+ * \brief  Return the focal plane coordinates of the center pixel of the subfield 
+ * 
+ * \return (x,y)   focal plane coordinates in the FP' reference system [mm]
+ */
+
+pair<double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCenter()
+{
+	double centerRow = subFieldZeroPointRow + numRowsPixelMap / 2.0;
+	double centerCol = subFieldZeroPointColumn + numColumnsPixelMap / 2.0;
+
+	return pixelToFocalPlaneCoordinates(centerRow, centerCol);
+}
+        
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief  Return the distance between the two diagonally opposite corner points of the 
+ *         subfield in [mm] on the focal plane.
+ * 
+ * \return length  Diagonal distance between the two opposite corners [mm]
+ */
+
+double Detector::getDiagonalLengthOfSubfield()
+{
+	// Define the pixel row and column coordinates of two corners diagonally opposite to each other
+
+	double corner1Row = subFieldZeroPointRow + numRowsPixelMap;
+	double corner1Col = subFieldZeroPointColumn;
+
+	double corner2Row = subFieldZeroPointRow;
+	double corner2Col = subFieldZeroPointColumn + numColumnsPixelMap;
+
+	// Compute their corresponding (x,y) coordinates in the focal plane FP'
+
+	double corner1X, corner1Y;
+	double corner2X, corner2Y;
+
+	tie(corner1X, corner1Y) = pixelToFocalPlaneCoordinates(corner1Row, corner1Col);
+	tie(corner2X, corner2Y) = pixelToFocalPlaneCoordinates(corner2Row, corner2Col);
+
+	// The diagonal length is simply the distance between the two corner points
+	// computed using Pythagoras
+
+	double diagonalLength = sqrt(pow(corner1X - corner2X, 2) + pow(corner1Y - corner2Y, 2));
+
+	return diagonalLength;
+}
+
+
+
+
+
+
+
+
+
+
+
+
 /**
  * @brief: Creates the group(s) in the HDF5 file where the detector specific
  *         information will be stored.  These groups have to be created once,
