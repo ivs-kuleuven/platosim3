@@ -870,7 +870,7 @@ void Detector::applyCte()
 
 	// Loop over all rows in the pixel map
 
-	for (unsigned int row = numRowsPixelMap - 1; row >= 0; row--)
+	for (int row = numRowsPixelMap - 1; row >= 0; row--)
 	{
 		// Each row picks up flux that is left behind when transferring the rows
 		// that are closer to the readout register, row-by-row to the readout
