@@ -27,6 +27,13 @@ class Detector : public HDF5Writer
         virtual void takeExposure(double startTime, double exposureTime);
         virtual void configure(ConfigurationParameters &configParam);
 
+        pair<double, double> pixelToFocalPlaneCoordinates(double row, double column);
+        pair<double, double> focalPlaneToPixelCoordinates(double xFPprime, double yFPprime);
+
+        pair<double, double> getFocalPlaneCoordinatesOfSubfieldCenter();
+        double getDiagonalLengthOfSubfield();
+
+
     protected:
 
         virtual void reset();
@@ -51,12 +58,6 @@ class Detector : public HDF5Writer
     	virtual void applyGain();
     	virtual void addElectronicOffset();	     
     	virtual void applyDigitalSaturation();
-
-        pair<double, double> pixelToFocalPlaneCoordinates(double row, double column);
-        pair<double, double> focalPlaneToPixelCoordinates(double xFPprime, double yFPprime);
-
-        pair<double, double> getFocalPlaneCoordinatesOfSubfieldCenter();
-        double getDiagonalLengthOfSubfield();
 
         virtual void initHDF5Groups() override;
         void writePixelMapToHDF5();
