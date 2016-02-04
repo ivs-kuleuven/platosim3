@@ -1,4 +1,7 @@
-# PlatoSim3 configuration file
+# PlatoSim3 configuration file for the CameraTest
+# 
+# The input values in this file are specific for the CameraTest, create a new input file
+# for testing other components.
 ---
 
 CCD:
