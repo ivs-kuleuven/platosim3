@@ -24,7 +24,7 @@ TEST(ConfigurationParametersTest, Constructor)
 
 TEST(ConfigurationParametersTest, readGlobalValues)
 {
-    ConfigurationParameters cp = ConfigurationParameters("../testData/input.yaml");
+    ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
 
     string description = cp.getString("Description");
     EXPECT_STREQ(description.c_str(), "YAML Input File for 3rd Generation PLATO Simulator");
@@ -39,7 +39,7 @@ TEST(ConfigurationParametersTest, readGlobalValues)
 
 TEST(ConfigurationParametersTest, readGeneralValues)
 {
-    ConfigurationParameters cp = ConfigurationParameters("../testData/input.yaml");
+    ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
 
     string projectLocation = cp.getString("General/ProjectLocation");
     EXPECT_STREQ(projectLocation.c_str(), "/Users/rik/Work/PLATO");
@@ -51,7 +51,7 @@ TEST(ConfigurationParametersTest, readGeneralValues)
 
 TEST(ConfigurationParametersTest, readObservingValues)
 {
-    ConfigurationParameters cp = ConfigurationParameters("../testData/input.yaml");
+    ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
 
     int exposureTime = cp.getInteger("Observing/ExposureTime");
     EXPECT_EQ(23, exposureTime);
@@ -75,7 +75,7 @@ TEST(ConfigurationParametersTest, readObservingValues)
 
 TEST(ConfigurationParametersTest, readSpecialValues)
 {
-    ConfigurationParameters cp = ConfigurationParameters("../testData/input.yaml");
+    ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
 
     int zeroValue = cp.getInteger("Special Values/zero");
     EXPECT_EQ(0, zeroValue);
@@ -104,7 +104,7 @@ TEST(ConfigurationParametersTest, readSpecialValues)
 
 TEST(ConfigurationParametersTest, testConversions)
 {
-    ConfigurationParameters cp = ConfigurationParameters("../testData/input.yaml");
+    ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
 
     // Can convert an integer value into a double
     double exposureTime = cp.getDouble("Observing/ExposureTime");
@@ -125,7 +125,7 @@ TEST(ConfigurationParametersTest, testConversions)
 
 TEST(ConfigurationParametersTest, testNonExistingKey)
 {
-    ConfigurationParameters cp = ConfigurationParameters("../testData/input.yaml");
+    ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
 
     ASSERT_THROW(string unknown = cp.getString("UnknownNode"), IllegalArgumentException);
     ASSERT_THROW(string unknown = cp.getString("Special Values/UnknownSubNode"), IllegalArgumentException);
