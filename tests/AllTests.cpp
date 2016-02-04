@@ -1,5 +1,7 @@
 #include <fstream>
 
+#define UNIT_TEST
+
 // Include all the tests here
 
 #include "Logger.h"
@@ -8,6 +10,8 @@
 #include "GTestFileUtilities.h"
 #include "GTestPointSpreadFunction.h"
 #include "GTestCamera.h"
+#include "GTestDetector.h"
+#include "GTestUnits.h"
 
 Logger Log;
 
