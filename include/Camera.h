@@ -35,6 +35,9 @@ class Camera : public HDF5Writer
 #ifdef UNIT_TESTS
         pair<double, double> test_skyToFocalPlaneCoordinates(double raStar, double decStar) {return skyToFocalPlaneCoordinates(raStar, decStar);};
         pair<double, double> test_focalPlaneToSkyCoordinates(double x, double y) {return focalPlaneToSkyCoordinates(x, y);};
+
+        pair<double, double> test_convertOffsetMillimetersToDegrees(double xFP, double yFP) {return convertOffsetMillimetersToDegrees(xFP, yFP);};
+        double test_getGnomonicRadialCoordinate(double xDeg, double yDeg) {return getGnomonicRadialCoordinate(xDeg, yDeg);};
 #endif
 
     protected:
@@ -49,6 +52,10 @@ class Camera : public HDF5Writer
         void selectPsf(double raStar, double decStar);
         pair<double, double> skyToFocalPlaneCoordinates(double raStar, double decStar);
         pair<double, double> focalPlaneToSkyCoordinates(double x, double y);
+
+        pair<double, double> convertOffsetMillimetersToDegrees(double xFP, double yFP);
+        double getGnomonicRadialCoordinate(double xDeg, double yDeg);
+
 
     private:
 
