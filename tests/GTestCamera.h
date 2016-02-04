@@ -20,22 +20,8 @@ class CameraTest : public testing::Test
 
         virtual void SetUp()
         {
-            // cp_ = ConfigurationParameters("../testData/input_CameraTest.yaml");
-            cp_ = ConfigurationParameters();
-            cp_.setParameter("Camera/PlateScale", "0.833333333");
-            cp_.setParameter("Camera/FocalPlaneOrientation", "0.0");
-            cp_.setParameter("ObservingParameters/RApointing", "0.0");    // raOpticalAxis
-            cp_.setParameter("ObservingParameters/DecPointing", "0.0");   // decOpticalAxis
-            cp_.setParameter("Telescope/lightCollectingArea", "0.0");
-            cp_.setParameter("Telescope/TransmissionEfficiency", "0.0");
-            cp_.setParameter("Telescope/DriftYawRms", "0.0");
-            cp_.setParameter("Telescope/DriftPitchRms", "0.0");       
-            cp_.setParameter("Telescope/DriftRollRms", "0.0");        
-            cp_.setParameter("Telescope/DriftTimeScale", "0.0");    
+            cp_ = ConfigurationParameters("../testData/input_CameraTest.yaml");
         
-            HDF5File hdf5File;
-            hdf5File.open("/tmp/cameraTest.hdf5");
-
             remove(hdf5Filename.c_str());
             hdf5File_.open(hdf5Filename);
         }
