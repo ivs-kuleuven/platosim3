@@ -106,7 +106,38 @@ void Camera::configure(ConfigurationParameters &configParam)
 
 void Camera::selectPsf(double raStar, double decStar)
 {
-    pair<double, double> fpCoordinates = skyToFocalPlaneCoordinates(raStar, decStar);
+    double xFPprime, yFPprime;
+    double xDeg, yDeg;
+
+    tie(xFPprime, yFPprime) = skyToFocalPlaneCoordinates(raStar, decStar);
+    tie(xDeg, yDeg) = convertOffsetMillimetersToDegrees(xFPprime, yFPprime);
+    
+    double radialCoord = getGnomonicRadialCoordinate(xDeg, yDeg);
+
+}
+
+
+
+
+
+
+
+/**
+ *  \brief     Converts the offset of the CCD from the optical axis from millimeter to degrees.
+ *  
+ *  \details   This is a straight forward linear conversion and does not take any field distortion
+ *             into account.
+ *
+ *  \param     xFP  x-offset in millimeter [mm]
+ *  \param     yFP  y-offset in millimeter [mm]
+ *
+ *  \return    pair(x, y) offset with respect to the optical axis, i.e. in the line of sight [deg]
+ */
+pair<double, double> Camera::convertOffsetMillimetersToDegrees(double xFP, double yFP)
+{
+    double xDeg = (plateScale * 1000.0 * xFP) / 3600.0;
+    double yDeg = (plateScale * 1000.0 * yFP) / 3600.0;
+    return make_pair(xDeg, yDeg);
 }
 
 
@@ -116,9 +147,35 @@ void Camera::selectPsf(double raStar, double decStar)
 
 
 
+
 /**
- * \brief Computes the (x,y) coordinates in the focal plane of a star 
- *        with given equatorial coordinates using a gnomonic projection
+ *  \brief     Calculate the radial coordinate (gnomonic) with respect to the line of sight in the sky.
+ *  
+ *  \details   This is a straight forward linear conversion and does not take any field distortion
+ *             into account.
+ *
+ *  \param     xDeg   field X coordinate with respect to the line of sight in the sky [deg]
+ *  \param     yDeg   field Y coordinate with respect to the line of sight in the sky [deg]
+ *
+ *  \return    the field radial coordinate (gnomonic) with respect to the line of sight in the sky [deg]
+ */
+double Camera::getGnomonicRadialCoordinate(double xDeg, double yDeg)
+{
+    double tanx = tan(deg2rad(xDeg));
+    double tany = tan(deg2rad(yDeg));
+
+    return rad2deg(acos(1.0/sqrt(1 + tanx*tanx + tany*tany)));
+}
+
+
+
+
+
+
+
+/**
+ * \brief Computes the (x,y) coordinates in the focal plane of a star with given equatorial coordinates
+ *        using a gnomonic projection.
  *
  * \param raStar       Right ascension of the star [rad]
  * \param decStar      Declination of the star [rad]
@@ -145,12 +202,10 @@ pair<double, double> Camera::skyToFocalPlaneCoordinates(double raStar, double de
     double yFPprime = -xFP * sin(focalPlaneOrientation) + yFP * cos(focalPlaneOrientation);
 
     // Compute the conversion factor: conversion from [radians] to [mm].
-    // Note that the plateScale is expressed in [arcsec/mm]
+    // Note that the plateScale is expressed in [arcsec/um]
 
-    double conversionFactor = 3600. * Constants::PI / 180.0 / plateScale;
-    // double conversionFactor = 3600. * 180. / Constants::PI / 1000.0 / plateScale;
-
-    Log.debug("Camera::skyToFocalPlaneCoordinates: conversionFactor = " + to_string(conversionFactor));
+    // double conversionFactor = 3600. * Constants::PI / 180.0 / 1000.0 / plateScale;
+    double conversionFactor = 3600. * 180. / 1000. / Constants::PI / plateScale;
 
     // Return the scaled coordinates
 
@@ -183,9 +238,10 @@ pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFPprimeStar, dou
     }
     
     // Compute the conversion factor from [mm/radian] to [arcsec/pixel] and convert the
-    // focal plane coordinates from [mm] to [rad].
+    // focal plane coordinates from [um] to [rad].
 
-    double conversionFactor = 3600. * Constants::PI / 180.0 / plateScale;
+    // double conversionFactor = 3600. * Constants::PI / 180.0 / 1000.0 / plateScale;
+    double conversionFactor = 3600. * 180. / 1000. / Constants::PI / plateScale;
     double xFPprime = xFPprimeStar / conversionFactor;
     double yFPprime = yFPprimeStar / conversionFactor;
 
@@ -203,8 +259,8 @@ pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFPprimeStar, dou
 
     double rho = sqrt(xFP*xFP+yFP*yFP);
     double c = atan(rho);
-    double decStar = asin(cos(c)*sin(decOpticalAxis)+(-xFP*sin(c)*cos(decOpticalAxis))/rho);
     double raStar = raOpticalAxis + atan2(yFP*sin(c), rho*cos(decOpticalAxis)*cos(c)+xFP*sin(decOpticalAxis)*sin(c));
+    double decStar = asin(cos(c)*sin(decOpticalAxis) + (-xFP*sin(c)*cos(decOpticalAxis))/rho);
     
 
     // Return the equatorial coordinates
