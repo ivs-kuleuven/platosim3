@@ -88,21 +88,15 @@ Telescope::~Telescope()
 
 
 
-
 /**
- * \brief Set new pointing coordinates of the telescope
- * 
- * \details Set the new equatorial coordinates of the optical axis. These coordinates can change
- *          due to platform jitter and thermo-elastic variations of the telescope.
+ * \brief Update the telescope's pointing coordinates. Over the given 'timeInterval' they may
+ *        change due to platform jitter or thermo-elastic variations.
  *          
- * \param newAlphaOpticalAxis: New right ascension of the optical axis of the telescope [rad]
- * \param newDeltaOpticalAxis: new declination of the optical axis of the telescope [rad]
- */
+ */ 
 
-void Telescope::setPointingCoordinates(double newAlphaOpticalAxis, double newDeltaOpticalAxis)
+void Telescope::updatePointingCoordinates(double timeInterval)
 {
-	alphaOpticalAxis = newAlphaOpticalAxis;
-	deltaOpticalAxis = newDeltaOpticalAxis;
+	return;
 }
 
 
