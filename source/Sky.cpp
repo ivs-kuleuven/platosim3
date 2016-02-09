@@ -126,7 +126,7 @@ StarCatalog Sky::getStarsWithinRadiusFrom(const double RA0, const double dec0, c
  * \return solar radiant flux at air mass zero [J s^{-1} m^{-2} m^{-1}]
  */
 
-double Sky::SolarRadiantFlux(const double lambda)
+double Sky::solarRadiantFlux(const double lambda)
 {
     int i;         // Index of the first point, defining the linear relation
     double result; // solar radiant flux in SI units.
@@ -144,7 +144,7 @@ double Sky::SolarRadiantFlux(const double lambda)
 
     if (i == -1)
     {
-        Log.error("Sky::SolarRadiantFlux()): no data for the given wavelength");
+        Log.error("Sky::solarRadiantFlux()): no data for the given wavelength");
         exit(1);
     }
 
@@ -188,7 +188,7 @@ double Sky::SolarRadiantFlux(const double lambda)
  * \return Integrated solar radiant flux [J s^{-1} m^{-2}]
  */
 
-double Sky::SolarRadiantFlux(const double lambda1, const double lambda2)
+double Sky::solarRadiantFlux(const double lambda1, const double lambda2)
 {
     double lam1;
     double lam2;
@@ -231,7 +231,7 @@ double Sky::SolarRadiantFlux(const double lambda1, const double lambda2)
         {
             if (j == 1)
             {
-                s = 0.5 * (lam2 - lam1) * (SolarRadiantFlux(lam1) + SolarRadiantFlux(lam2));
+                s = 0.5 * (lam2 - lam1) * (solarRadiantFlux(lam1) + solarRadiantFlux(lam2));
             }
             else
             {
@@ -241,7 +241,7 @@ double Sky::SolarRadiantFlux(const double lambda1, const double lambda2)
                 x = lam1 + 0.5 * del;
                 for (sum = 0.0, k = 1; k <= it; k++, x += del)
                 {
-                    sum += SolarRadiantFlux (x);
+                    sum += solarRadiantFlux(x);
                 }
                 s = 0.5 * (s + (lam2 - lam1) * sum / tnm);
             }
@@ -255,14 +255,14 @@ double Sky::SolarRadiantFlux(const double lambda1, const double lambda2)
             olds = s;
         }
 
-        Log.error("Sky::SolarRadiantFlux(): Integration not converged");
+        Log.error("Sky::solarRadiantFlux(): Integration not converged");
         exit (1);
     }
     else
     {
         // This is the case that the given wavelengths were not between the table boundaries.
 
-        Log.error("Sky::SolarRadiantFlux(): wavelength must be in [199.5e-9, 10075.0e-9]");
+        Log.error("Sky::solarRadiantFlux(): wavelength must be in [199.5e-9, 10075.0e-9]");
         exit (1);
     }
 } 
@@ -289,7 +289,7 @@ double Sky::SolarRadiantFlux(const double lambda1, const double lambda2)
  * \return Solar radiant flux  [J s^{-1} m^{-2}]
  */
 
-double Sky::SolarRadiantFlux(vector<double> &lambda, vector<double> &throughput)
+double Sky::solarRadiantFlux(vector<double> &lambda, vector<double> &throughput)
 {
     const double lambda1 = lambda[0];
     const double lambda2 = lambda[lambda.size()-1];
@@ -298,7 +298,7 @@ double Sky::SolarRadiantFlux(vector<double> &lambda, vector<double> &throughput)
 
     if ((lambda1 < 199.5e-9) || (lambda1 > 10075.0e-9) || (lambda2 < 199.5e-9) || (lambda2 > 10075.0e-9))
     {
-        Log.error("Sky::SolarRadiantFlux(): Passband wavelengths not in [199.5, 10075] nm.");
+        Log.error("Sky::solarRadiantFlux(): Passband wavelengths not in [199.5, 10075] nm.");
         exit(1);
     }
 
@@ -309,7 +309,7 @@ double Sky::SolarRadiantFlux(vector<double> &lambda, vector<double> &throughput)
 
    for (unsigned int i = 0; i < lambda.size(); i++)
    {
-      integrand[i] = SolarRadiantFlux(lambda[i]) * throughput[i];
+      integrand[i] = solarRadiantFlux(lambda[i]) * throughput[i];
    }
 
    tabfunction.init(lambda, integrand, lambda.size());
@@ -345,7 +345,7 @@ double Sky::SolarRadiantFlux(vector<double> &lambda, vector<double> &throughput)
  * \return Zodiacal flux [J s^{-1} m^{-2} sr^{-1}]
  */
 
-double Sky::ZodiacalFlux(const double alpha, const double delta, const double lambda1, const double lambda2)
+double Sky::zodiacalFlux(const double alpha, const double delta, const double lambda1, const double lambda2)
 {
     double lam, beta;
     double flux500;
@@ -377,7 +377,7 @@ double Sky::ZodiacalFlux(const double alpha, const double delta, const double la
 
     if ((lam_index == -1) || (beta_index == -1))
     {
-        Log.error("Sky::ZodiacalFlux(): No data for this part of the sky.");
+        Log.error("Sky::zodiacalFlux(): No data for this part of the sky.");
         exit(1);
     }
 
@@ -386,7 +386,7 @@ double Sky::ZodiacalFlux(const double alpha, const double delta, const double la
     if (  (skydata::zod[lam_index][beta_index] == -1) || (skydata::zod[lam_index][beta_index+1] == -1)
         || (skydata::zod[lam_index+1][beta_index] == -1) || (skydata::zod[lam_index+1][beta_index+1] == -1))
     {
-        Log.error("Sky::ZodiacalFlux(): No data for this part of the sky.");
+        Log.error("Sky::zodiacalFlux(): No data for this part of the sky.");
         exit (1);
     }
 
@@ -413,7 +413,7 @@ double Sky::ZodiacalFlux(const double alpha, const double delta, const double la
     // For this we use the fact that the zodiacal flux has a solar
     // wavelength dependence.
 
-    return (flux500 * SolarRadiantFlux(lambda1, lambda2) / SolarRadiantFlux(500e-9));
+    return (flux500 * solarRadiantFlux(lambda1, lambda2) / solarRadiantFlux(500e-9));
 }
 
 
@@ -441,7 +441,7 @@ double Sky::ZodiacalFlux(const double alpha, const double delta, const double la
  * \return  Zodiacal flux [J s^{-1} m^{-2} sr^{-1}]
  */
 
-double Sky::ZodiacalFlux(const double alpha, const double delta, vector<double> &lambda, vector<double> &throughput)
+double Sky::zodiacalFlux(const double alpha, const double delta, vector<double> &lambda, vector<double> &throughput)
 {
     double lam, beta;
     double flux500;
@@ -473,7 +473,7 @@ double Sky::ZodiacalFlux(const double alpha, const double delta, vector<double> 
 
     if ((lam_index == -1) || (beta_index == -1))
     {
-        Log.error("Sky::ZodiacalFlux(): No data for this part of the sky.");
+        Log.error("Sky::zodiacalFlux(): No data for this part of the sky.");
         exit(1);
     }
 
@@ -482,7 +482,7 @@ double Sky::ZodiacalFlux(const double alpha, const double delta, vector<double> 
     if (  (skydata::zod[lam_index][beta_index] == -1) || (skydata::zod[lam_index][beta_index+1] == -1)
         || (skydata::zod[lam_index+1][beta_index] == -1) || (skydata::zod[lam_index+1][beta_index+1] == -1))
     {
-        Log.error("Sky::ZodiacalFlux(): No data for this part of the sky.");
+        Log.error("Sky::zodiacalFlux(): No data for this part of the sky.");
         exit(1);
     }
 
@@ -509,7 +509,7 @@ double Sky::ZodiacalFlux(const double alpha, const double delta, vector<double> 
     // For this we use the fact that the zodiacal flux has a solar
     // wavelength dependence.
 
-    return (flux500 * SolarRadiantFlux(lambda, throughput) / SolarRadiantFlux(500e-9));
+    return (flux500 * solarRadiantFlux(lambda, throughput) / solarRadiantFlux(500e-9));
 
 }
 
@@ -544,7 +544,7 @@ double Sky::ZodiacalFlux(const double alpha, const double delta, vector<double> 
  * \return Stellar background flux in the Pioneer 10 blue/red passband [J s^{-1} m^{-2} sr^{-1}]
  */
 
-double Sky::StellarBackgroundFlux (const double RA, const double dec, const double lambda1, const double lambda2)
+double Sky::stellarBackgroundFlux (const double RA, const double dec, const double lambda1, const double lambda2)
 {
     double alpha, delta;
     int alpha_index, delta_index;
@@ -564,7 +564,7 @@ double Sky::StellarBackgroundFlux (const double RA, const double dec, const doub
 
     if ((alpha_index == -1) || (delta_index == -1))
     {
-        Log.error("Sky::StellarBgFlux(): No data for this part of the sky.");
+        Log.error("Sky::stellarBgFlux(): No data for this part of the sky.");
         exit (1);
     }
 
@@ -575,7 +575,7 @@ double Sky::StellarBackgroundFlux (const double RA, const double dec, const doub
     if (   (skydata::skyblue[alpha_index][delta_index] == -1) || (skydata::skyblue[alpha_index][delta_index+1] == -1)
         || (skydata::skyblue[alpha_index+1][delta_index] == -1) || (skydata::skyblue[alpha_index+1][delta_index] == -1))
     {
-        Log.error("Sky::StellarBgFlux(): No data for this part of the sky.");
+        Log.error("Sky::stellarBgFlux(): No data for this part of the sky.");
         exit (1);
     }
 
@@ -662,7 +662,7 @@ double Sky::StellarBackgroundFlux (const double RA, const double dec, const doub
  * \return  Stellar background flux [J s^{-1} m^{-2} sr^{-1}]
  */
 
-double Sky::StellarBackgroundFlux (const double RA, const double dec, vector<double> &lambda, vector<double> &throughput)
+double Sky::stellarBackgroundFlux (const double RA, const double dec, vector<double> &lambda, vector<double> &throughput)
 {
     int alpha_index, delta_index;
     double blueflux, redflux;
@@ -681,7 +681,7 @@ double Sky::StellarBackgroundFlux (const double RA, const double dec, vector<dou
 
     if ((alpha_index == -1) || (delta_index == -1))
     {
-        Log.error("Sky::StellarBgFlux(): No data for this part of the sky.");
+        Log.error("Sky::stellarBgFlux(): No data for this part of the sky.");
         exit (1);
     }
 
@@ -692,7 +692,7 @@ double Sky::StellarBackgroundFlux (const double RA, const double dec, vector<dou
     if (  (skydata::skyblue[alpha_index][delta_index] == -1) || (skydata::skyblue[alpha_index][delta_index+1] == -1)
         || (skydata::skyblue[alpha_index+1][delta_index] == -1) || (skydata::skyblue[alpha_index+1][delta_index] == -1))
     {
-        Log.error("Sky::StellarBgFlux(): No data for this part of the sky.");
+        Log.error("Sky::stellarBgFlux(): No data for this part of the sky.");
         exit (1);
     }
 
@@ -743,7 +743,7 @@ double Sky::StellarBackgroundFlux (const double RA, const double dec, vector<dou
 
     if (a <= 0.0)
     {
-        Log.warning("Sky::StellarBgFlux(): Bad behaviour of monochromatic background flux for lambda <= 690 nm.");
+        Log.warning("Sky::stellarBgFlux(): Bad behaviour of monochromatic background flux for lambda <= 690 nm.");
     }
 
     // Compute where this linear function is zero. Useful to know, because
