@@ -24,7 +24,7 @@ class Detector : public HDF5Writer
 {
     public:
 
-        Detector(ConfigurationParameters &configParam, HDF5File &hdf5File);
+        Detector(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera);
         virtual ~Detector();
 
         virtual void takeExposure(double startTime, double exposureTime);
@@ -124,6 +124,7 @@ class Detector : public HDF5Writer
 
     private:
 
+        Camera &camera;
         int imageNr;
 
 };
