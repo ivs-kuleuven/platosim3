@@ -36,12 +36,14 @@ TEST(CameraTest, skyToFocalPlaneCoordinates) {
     cp.setParameter("Camera/ThroughputLambdaC", "550");     
     cp.setParameter("ObservingParameters/RApointing", "0.0");
     cp.setParameter("ObservingParameters/DecPointing", "0.0");
-    cp.setParameter("Telescope/lightCollectingArea", "113.1");
+    cp.setParameter("ObservingParameters/StarCatalogFile", "inputfiles/starcatalog.txt"); 
+    cp.setParameter("Telescope/LightCollectingArea", "113.1");
     cp.setParameter("Telescope/TransmissionEfficiency", "0.757");
+    cp.setParameter("Telescope/FOVSquareDegrees", "1072.0");  
     cp.setParameter("Telescope/DriftYawRms", "14.0");
     cp.setParameter("Telescope/DriftPitchRms", "2.3");       
     cp.setParameter("Telescope/DriftRollRms", "2.3");        
-    cp.setParameter("Telescope/DriftTimeScale", "3600.");    
+    cp.setParameter("Telescope/DriftTimeScale", "3600.");  
 
     HDF5File hdf5File;
     hdf5File.open("/tmp/cameraTest.hdf5");
