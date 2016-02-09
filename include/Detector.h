@@ -82,7 +82,7 @@ class Detector : public HDF5Writer
     	double originOffsetX;                    // X-coordinate of the detector origin from the centre of the optical plane [mm]
         unsigned int subFieldZeroPointRow;       // Position of the subfield zeropoint w.r.t. the complete detector in the row direction [pixels]
         unsigned int subFieldZeroPointColumn;    // Position of the subfield zeropoint w.r.t. the complete detector in the column direction [pixels]
-    	double orientationAngle;                 // Orientation angle of the detector w.r.t. the orientation of the focal plane, measured counterclockwise [degrees]
+    	double orientationAngle;                 // Orientation angle of the detector w.r.t. the orientation of the focal plane, measured counterclockwise [radians]
  
     	double pixelSize;	                     // Pixel size [microns]
         unsigned int numSubPixelsPerPixel;	     // Nr of sub-pixels per pixel
