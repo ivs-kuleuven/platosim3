@@ -8,7 +8,7 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 {
     // Parse the configuration parameters file
 
-    ConfigurationParameters configParam(inputFilename);
+    ConfigurationParameters configParams(inputFilename);
 
     // Open the HDF5 output file where the images will be written
 
@@ -16,11 +16,11 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     // Initialise the spacecraft components
 
-    detector   = new Detector(configParam, hdf5File);
-    //camera    = new Camera(cameraConfigurationParameters);
-    //telescope = new Telescope(telescopeConfigurationParameters);
-    //platform  = new Platform(platformConfigurationParameters);
-    //sky       = new Sky(skyConfigurationParameters);
+    //platform  = new Platform(configParams);
+    telescope  = new Telescope(configParams, hdf5File);
+    sky        = new Sky(configParams);
+    camera     = new Camera(configParams, hdf5File, *telescope, *sky);
+    detector   = new Detector(configParams, hdf5File, *camera);
 
     Nexposures = 3;        // hardcoded for the moment
     exposureTime = 22.0;   // hardcoded for the moment
@@ -36,11 +36,14 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
 Simulation::~Simulation()
 {
+    // Delete order is the inverse of the order in which they were created
+
     delete detector;
-    //delete camera;
-    //delete telescope;
+    delete camera;
+    delete telescope;
+    delete sky;
     //delete platform;
-    //delete sky;
+    
 
     hdf5File.close();
 }

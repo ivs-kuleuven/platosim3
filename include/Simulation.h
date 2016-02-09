@@ -6,10 +6,10 @@
 #include "Logger.h"
 #include "HDF5File.h"
 #include "Detector.h"
-//#include "Camera.h"
-//#include "Telescope.h"
+#include "Camera.h"
+#include "Telescope.h"
 //#include "Platform.h"
-//#include "Sky.h"
+#include "Sky.h"
 #include "ConfigurationParameters.h"
 
 
@@ -36,10 +36,10 @@ class Simulation
 
 
         Detector  *detector;
-        //Camera    *camera;
-        //Telescope *telescope;
+        Camera    *camera;
+        Telescope *telescope;
         //Platform  *platform;
-        //Sky       *sky;
+        Sky       *sky;
 
         HDF5File hdf5File;
 
