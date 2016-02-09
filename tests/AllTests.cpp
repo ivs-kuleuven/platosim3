@@ -1,7 +1,5 @@
 #include <fstream>
 
-#define UNIT_TEST
-
 // Include all the tests here
 
 #include "Logger.h"
