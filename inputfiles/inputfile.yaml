@@ -42,6 +42,8 @@ Camera:
     
     FocalPlaneOrientation:   0.0             # [degrees]
     PlateScale:              0.8333          # [arcsec/micron]
+    ThroughputBandwidth:     650             # FWHM [nm]
+    ThroughputLambdaC:       550             # Central wavelength of the throughput passband [nm]
 
 
 PSF:
