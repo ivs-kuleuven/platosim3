@@ -572,14 +572,12 @@ void Detector::rebin()
  * 	 		- electronic offset (i.e. bias)
  * 	 		- digital saturation
  *
- * @param exposureTime: Exposure time [s].
- *
  * @pre Pixel unit in the pixel map: [photons].
  * @pre Bias register and smearing maps filled with zeroes.
  *
  * @post Pixel unit in the pixel, bias register, and smearing maps: [ADU].
  */
-void Detector::readOut(double exposureTime)
+void Detector::readOut()
 {
 
 	// Apply quantum efficiency
@@ -648,6 +646,10 @@ void Detector::readOut(double exposureTime)
 	// Pixel units after: [ADU]
 
 	applyDigitalSaturation();
+
+	// Advance the internal clock
+
+	internalTime += readoutTime;
 }
 
 
