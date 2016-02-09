@@ -76,6 +76,8 @@ pair<double, double> Platform::getPointingCoordinates()
 
 
 
+
+
 /**
  * \brief Update the pointing coordinates (varying due to jitter) until the given time point.
  * 
@@ -87,3 +89,29 @@ void Platform::updatePointingCoordinates(double time)
     internalTime = time;
     return;
 }
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Return the heartbeat interval of Platform. It's the largest interval with which 
+ *        small Platform variations (e.g. due to Jitter) can be tracked.
+ * 
+ */
+
+double Platform::getHeartbeatInterval()
+{
+    // Currently Platform does not change in any other way than just jittering, so delegate to the jitter generator.
+
+    return jitterGenerator.getHeartbeatInterval();
+}
+
+
+
+
+

@@ -29,15 +29,15 @@ class Platform : public Heartbeat, HDF5Writer
         void setPointingCoordinates(double rightAscencsion, double declination, Unit unit = Angle::degrees);
         pair<double, double> getPointingCoordinates();
 
-
+        virtual double getHeartbeatInterval() override;
+        
 
     protected:
 
         double internalTime;                        // [s]
-        
         double currentRA;                           // Right Ascension of pointing axis [rad]
         double currentDec;                          // Declination of pointing axis [rad]
-        
+
         JitterGenerator &jitterGenerator; 
  
     private:
