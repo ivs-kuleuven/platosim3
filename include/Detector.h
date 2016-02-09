@@ -11,10 +11,13 @@
 #include "HDF5File.h"
 #include "HDF5Writer.h"
 #include "ConfigurationParameters.h"
+#include "Camera.h"
 
 
 using namespace std;
 
+
+class Camera;  // forward declaration
 
 
 class Detector : public HDF5Writer

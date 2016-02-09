@@ -21,6 +21,8 @@
 using namespace std;
 
 
+class Detector;  // forward declaration
+
 
 class Camera : public HDF5Writer
 {
