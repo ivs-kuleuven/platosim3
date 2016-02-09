@@ -1,0 +1,14 @@
+# PlatoSim3 configuration file for the PointSpreadFunctionTest
+# 
+# The input values in this file are specific for the PointSpreadFunctionTest, create a new input file
+# for testing other components.
+
+General:
+    # Location of the simulation project
+    ProjectLocation: ../
+
+PSF:
+
+    # Location of the PSF HDF5 input file. This location is relative to the ProjectLocation.
+    Filename:            testData/PSF.hdf5
+

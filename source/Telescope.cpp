@@ -71,7 +71,7 @@ Telescope::~Telescope()
 
  	alphaOpticalAxis        = deg2rad(configParam.getDouble("ObservingParameters/RApointing"));
 	deltaOpticalAxis        = deg2rad(configParam.getDouble("ObservingParameters/DecPointing"));        
-	lightCollectingArea     = configParam.getDouble("Telescope/LightCollectingArea");  
+ 	lightCollectingArea     = configParam.getDouble("Telescope/LightCollectingArea");  
 	transmissionEfficiency  = configParam.getDouble("Telescope/TransmissionEfficiency"); 
 	FOVsolidAngle           = sqDeg2sr(configParam.getDouble("Telescope/FOVSquareDegrees"));  
 	driftYawRms             = configParam.getDouble("Telescope/DriftYawRms");             

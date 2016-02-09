@@ -1,5 +1,7 @@
 #include "Detector.h"
 
+#include "Units.h"
+
 /**
  * Constructor.  
  *
@@ -80,7 +82,7 @@ Detector::~Detector()
 
     originOffsetX           = configParam.getDouble("CCD/OriginOffsetX");
     originOffsetY           = configParam.getDouble("CCD/OriginOffsetY");
-    orientationAngle        = configParam.getDouble("CCD/Orientation");
+    orientationAngle        = deg2rad(configParam.getDouble("CCD/Orientation"));
     numRows                 = configParam.getInteger("CCD/NumRows");
     numColumns              = configParam.getInteger("CCD/NumColumns");
     pixelSize               = configParam.getDouble("CCD/PixelSize");
@@ -1186,8 +1188,8 @@ pair<double, double> Detector::pixelToFocalPlaneCoordinates(double row, double c
     // Convert the pixel coordinates into [mm] coordinates
     // The pixelSize is expressed in [micron].
 
-    double xCCDmm = column * pixelSize / 1000.0;
-    double yCCDmm = row * pixelSize / 1000.0;
+    double xCCDmm = row * pixelSize / 1000.0;
+    double yCCDmm = column * pixelSize / 1000.0;
 
     // Convert the CCD coordinates into FP' coordinates [mm]
     // Note: orientationAngle is in [rad], originOffsetX and originOffsetY in mm

@@ -1,0 +1,44 @@
+# PlatoSim3 configuration file for the DetectorTest
+# 
+# The input values in this file are specific for the DetectorTest, create a new input file
+# for testing other components.
+---
+
+CCD:
+
+    OriginOffsetX:           0               # X Offset of CCD origin from center of focal plane [mm]
+    OriginOffsetY:           0               # Y Offset of CCD origin from center of focal plane [mm]
+    Orientation:             0               # Orientation of CCD w.r.t. focal plane orientation [deg]
+    NumColumns:              4510            # Number of columns [pixels]
+    NumRows:                 4510            # Number of rows [pixels]
+    PixelSize:               18              # [micron]
+    Gain:                    16              # [e-/ADU]
+    QuantumEfficiency:       0.8745          # in [0,1]
+    FullWellSaturation:      1000000         # [e-/pixel]
+    DigitalSaturation:       65535           # E.g. 16 bit [ADU/pixel]
+    ReadoutNoise:            28              # [e-/pixel]
+    ElectronicOffset:        100             # bias [ADU]
+    ReadoutTime:             2               # time to read out entire CCD [s]
+    FlatfieldPtPNoise:       0.016           # peak-to-peak pixel noise
+    CTEMean:                 0.99999         # Mean Charge Transfer Efficiency
+
+
+SubField:    
+
+    ZeroPointRow:            0               # Row of the (0,0) pixel of the subfield [pixels]
+    ZeroPointColumn:         0               # Column of the (0,0) pixel of the subfield [pixels]
+    NumColumns:              10              # Number of columns [pixels]
+    NumRows:                 10              # Number of rows [pixels]
+    NumBiasPrescanRows:      5               # Nr of rows of the prescan strip to determine the bias [pixels]
+    NumSmearingOverscanRows: 5               # Nr of rows of the overscan strip to determine the smearing [pixels]
+    SubPixels:               4               # Nr of subpixels per CCD pixel. E.g. 4 -> 4x4 subpix/pix
+
+
+RandomSeeds:
+
+    ReadOutNoiseSeed:        1424949740      # Unique positive integer 
+    PhotonNoiseSeed:         1433320336      # Unique positive integer 
+    JitterSeed:              1433320381      # Unique positive integer 
+    FlatFieldSeed:           1425284070      # Unique positive integer 
+    CTESeed:                 1424949740      # Unique positive integer 
+    DriftSeed:               1433429158      # Unique positive integer 

@@ -35,11 +35,6 @@ class Camera : public HDF5Writer
         virtual void configure(ConfigurationParameters &configParam);
         virtual void exposeDetector(Detector &detector, double startTime, double exposureTime);
 
-#ifdef UNIT_TESTS
-        pair<double, double> test_skyToFocalPlaneCoordinates(double raStar, double decStar) {return skyToFocalPlaneCoordinates(raStar, decStar);};
-        pair<double, double> test_focalPlaneToSkyCoordinates(double x, double y) {return focalPlaneToSkyCoordinates(x, y);};
-#endif
-
     protected:
 
         Telescope &telescope;
@@ -53,6 +48,9 @@ class Camera : public HDF5Writer
         void selectPsf(double raStar, double decStar);
         pair<double, double> skyToFocalPlaneCoordinates(double raStar, double decStar);
         pair<double, double> focalPlaneToSkyCoordinates(double x, double y);
+
+        double getGnomonicRadialDistance(double xDeg, double yDeg);
+        double getAngularDistance(double xFP, double yFP);
 
     private:
 
