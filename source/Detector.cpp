@@ -277,6 +277,9 @@ void Detector::reset()
  */
 void Detector::takeExposure(double startTime, double exposureTime)
 {
+	// Advance the internal clock until the given start time
+
+	internalTime = startTime;
 
 	// Integration of point sources and background, taking into account jitter + drift.
 
@@ -288,7 +291,7 @@ void Detector::takeExposure(double startTime, double exposureTime)
 
 	Log.debug("Detector: Adding noise effects to exposure " + to_string(imageNr));
 
-	readOut(exposureTime);
+	readOut();
 
 	// Write the CCD subfield to the HDF5 file
 
@@ -334,7 +337,7 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 	// Integration (incl. jitter) + background
 
-	//camera.exposeSubField(this, exposureTime);
+	camera.exposeDetector(*this, startTime, exposureTime);
 
 	// Apply flatfield (at sub-pixel level)
 
@@ -342,11 +345,15 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 	applyFlatfield();
 
-	// Rebin
+	// Rebin from a subpixel map to a pixel map
 
 	Log.debug("Detector: Rebinning subpixel map into pixel map.");
 
 	rebin();
+
+	// Update the internal clock
+
+	internalTime += exposureTime;
 }
 
 
