@@ -27,11 +27,6 @@ class Detector : public HDF5Writer
         virtual void takeExposure(double startTime, double exposureTime);
         virtual void configure(ConfigurationParameters &configParam);
 
-#ifdef UNIT_TEST
-        pair<double, double> test_pixelToFocalPlaneCoordinates(double row, double column) {return pixelToFocalPlaneCoordinates(row, column);};
-        pair<double, double> test_focalPlaneToPixelCoordinates(double xFPprime, double yFPprime) {return focalPlaneToPixelCoordinates(xFPprime, yFPprime);};
-#endif
-
     protected:
 
         virtual void reset();
