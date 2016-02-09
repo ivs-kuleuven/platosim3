@@ -231,30 +231,6 @@ double Camera::getGnomonicRadialDistance(double xFPprime, double yFPprime)
 
 
 
-/**
- *  \brief     Calculate the angular distance (gnomonic) with respect to the line of sight in the sky.
- *  
- *  \details   See: http://mathworld.wolfram.com/GnomonicProjection.html
- *
- * \param      raStar       Right ascension of the star [rad]
- * \param      decStar      Declination of the star [rad]
- *
- *  \return    the angular distance (gnomonic) with respect to the line of sight in the sky [deg]
- */
-double Camera::getAngularDistance(double raStar, double decStar)
-{
-    // Get the equatorial coordinates of the optical axis [rad]
-
-    double raOpticalAxis, decOpticalAxis;  // [rad]
-    tie(raOpticalAxis, decOpticalAxis) = telescope.getPointingCoordinates();
-
-    double angularDistance = acos( cos(decOpticalAxis) * cos(decStar) * cos(raStar - raOpticalAxis) + sin(decOpticalAxis) * sin(decStar) );
-
-    return rad2deg(angularDistance);
-}
-
-
-
 
 
 
