@@ -49,7 +49,7 @@ class Camera : public HDF5Writer
         pair<double, double> skyToFocalPlaneCoordinates(double raStar, double decStar);
         pair<double, double> focalPlaneToSkyCoordinates(double x, double y);
 
-        double getGnomonicRadialDistance(double xDeg, double yDeg);
+        double getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double yFPprime);
 
     private:
 

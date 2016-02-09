@@ -201,14 +201,14 @@ void Camera::selectPsf(double raStar, double decStar)
 
 
 /**
- * \brief     Calculate the gnomonic radial distance with respect to the line of sight in the sky.
+ * \brief     Calculate the gnomonic radial distance with respect to the optical axis in the focal plane
  *
  * \param[in]  xFPprime Cartesian x-coordinate of the projected star in the focal plane in the FP-prime system [mm]
  * \param[in]  yFPprime Cartesian y-coordinate of the projected star in the focal plane in the FP-prime system [mm]
  *
  * \return     the field radial distance (gnomonic) with respect to the line of sight in the sky [deg]
  */
-double Camera::getGnomonicRadialDistance(double xFPprime, double yFPprime)
+double Camera::getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double yFPprime)
 {
     // Convert the focal plane coordinates from [mm] to [degrees]
     // Note the plateScale is given in [radians / micrometer]
