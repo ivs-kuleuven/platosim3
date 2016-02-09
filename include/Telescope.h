@@ -33,10 +33,10 @@ class Telescope  : public Heartbeat, HDF5Writer
 
 	protected:
 
-		double alphaOpticalAxis;           // Current pointing right ascension [rad]
-		double deltaOpticalAxis;           // Current pointing declination     [rad]
-		double FOVradius;                  // Radius of the Field-of-view      [rad]
-		double lightCollectingArea;        // Effective light collective area  [m^2]
+		double alphaOpticalAxis;           // Current pointing right ascension     [rad]
+		double deltaOpticalAxis;           // Current pointing declination         [rad]
+		double FOVsolidAngle;              // Solid angle of FOV of 1 telescope    [sr]
+		double lightCollectingArea;        // Effective light collective area      [cm^2]
 		double transmissionEfficiency;     // in [0,1]
 		double driftYawRms;                // RMS of thermo-elastic drift in yaw   [arcsec]
     	double driftPitchRms;              // RMS of thermo-elastic drift in pitch [arcsec]
