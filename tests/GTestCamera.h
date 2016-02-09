@@ -32,6 +32,8 @@ TEST(CameraTest, skyToFocalPlaneCoordinates) {
     ConfigurationParameters cp = ConfigurationParameters();
     cp.setParameter("Camera/PlateScale", "0.833333333");
     cp.setParameter("Camera/FocalPlaneOrientation", "0.0");
+    cp.setParameter("Camera/ThroughputBandwidth", "650");
+    cp.setParameter("Camera/ThroughputLambdaC", "550");     
     cp.setParameter("ObservingParameters/RApointing", "0.0");
     cp.setParameter("ObservingParameters/DecPointing", "0.0");
     cp.setParameter("Telescope/lightCollectingArea", "113.1");
