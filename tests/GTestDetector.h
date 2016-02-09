@@ -4,8 +4,6 @@
 
 #include "gtest/gtest.h"
 
-#define UNIT_TEST
-
 #include "Detector.h"
 #include "HDF5File.h"
 
@@ -44,6 +42,22 @@ class DetectorTest : public testing::Test
         HDF5File hdf5File_;
 };
 
+// This subclass of Detector serves the sole purpose of testing protected methods of Detector.
+// 
+class MyDetector : public Detector
+{
+    public:
+        MyDetector(ConfigurationParameters &configParam, HDF5File &hdf5File);
+
+        pair<double, double> test_pixelToFocalPlaneCoordinates(double row, double column) {return pixelToFocalPlaneCoordinates(row, column);};
+        pair<double, double> test_focalPlaneToPixelCoordinates(double xFPprime, double yFPprime) {return focalPlaneToPixelCoordinates(xFPprime, yFPprime);};
+
+};
+
+MyDetector::MyDetector(ConfigurationParameters &configParam, HDF5File &hdf5File)
+: Detector(configParam, hdf5File)
+{
+}
 
 
 TEST_F(DetectorTest, checkConversionsBetweenPixelsAndFocalPlane)
@@ -74,7 +88,7 @@ TEST_F(DetectorTest, checkConversionsBetweenPixelsAndFocalPlane)
         cp_.setParameter("CCD/OriginOffsetY", to_string(data["zeroPointY"]));
         cp_.setParameter("CCD/Orientation", to_string(data["ccdAngle"]));
     
-        Detector detector = Detector(cp_, hdf5File_);
+        MyDetector detector = MyDetector(cp_, hdf5File_);
     
         row = data["xCCD"];
         column = data["yCCD"];
