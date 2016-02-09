@@ -45,6 +45,7 @@ class Telescope  : public Heartbeat, HDF5Writer
 
 	private:
 
+		double internalTime;               // Internal clock
 		//Platform platform;
 };
 

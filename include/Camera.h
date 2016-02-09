@@ -54,6 +54,8 @@ class Camera : public HDF5Writer
 
     private:
 
+        double internalTime;
+
 };
 
 
