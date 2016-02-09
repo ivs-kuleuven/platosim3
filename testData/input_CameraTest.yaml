@@ -6,8 +6,8 @@
 
 ObservingParameters:
 
-    RApointing:              180             # [deg] 
-    DecPointing:             -70             # [deg]
+    RApointing:              0.0             # [deg] 
+    DecPointing:             0.0             # [deg]
 
 Camera:
     
