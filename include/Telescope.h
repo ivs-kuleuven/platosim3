@@ -8,6 +8,7 @@
 #include "Heartbeat.h"
 #include "HDF5Writer.h"
 #include "ConfigurationParameters.h"
+#include "Platform.h"
 
 using namespace std;
 
@@ -19,7 +20,7 @@ class Telescope  : public Heartbeat, HDF5Writer
 	
 	public:
 
-		Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File);
+		Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File, Platform &platform);
 		~Telescope();
 
 		virtual void configure(ConfigurationParameters &configParam);
@@ -46,7 +47,7 @@ class Telescope  : public Heartbeat, HDF5Writer
 	private:
 
 		double internalTime;               // Internal clock
-		//Platform platform;
+		Platform platform;
 };
 
 #endif

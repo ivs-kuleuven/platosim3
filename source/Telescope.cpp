@@ -4,13 +4,13 @@
  * Constructor
  * 
  * \param configurationParameters: Configuration parameters for the telescope.
- * \param Platform:                Platform on which the telescope is mounted
  * \param hdf5File                 Output HDF5 file.
+ * \param Platform:                Platform on which the telescope is mounted
  * 
  */
 
-Telescope::Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File)
-: HDF5Writer(hdf5File), internalTime(0.0)
+Telescope::Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File, Platform &platform)
+: HDF5Writer(hdf5File), internalTime(0.0), platform(platform)
 {
 	// Retrieve the Telescope configuration parameters
 
