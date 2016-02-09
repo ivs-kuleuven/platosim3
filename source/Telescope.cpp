@@ -71,8 +71,9 @@ Telescope::~Telescope()
 
  	alphaOpticalAxis        = deg2rad(configParam.getDouble("ObservingParameters/RApointing"));
 	deltaOpticalAxis        = deg2rad(configParam.getDouble("ObservingParameters/DecPointing"));        
-	lightCollectingArea     = configParam.getDouble("Telescope/lightCollectingArea");     
-	transmissionEfficiency  = configParam.getDouble("Telescope/TransmissionEfficiency");  
+	lightCollectingArea     = configParam.getDouble("Telescope/LightCollectingArea");  
+	transmissionEfficiency  = configParam.getDouble("Telescope/TransmissionEfficiency"); 
+	FOVsolidAngle           = sqDeg2sr(configParam.getDouble("Telescope/FOVSquareDegrees"));  
 	driftYawRms             = configParam.getDouble("Telescope/DriftYawRms");             
     driftPitchRms           = configParam.getDouble("Telescope/DriftPitchRms");           
     driftRollRms            = configParam.getDouble("Telescope/DriftRollRms");            
@@ -117,4 +118,65 @@ pair<double, double> Telescope::getPointingCoordinates()
 {
 	return make_pair(alphaOpticalAxis, deltaOpticalAxis);
 }
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Return the transmission efficiency of the telescope (number between 0 and 1)
+ * 
+ */
+
+double Telescope::getTransmissionEfficiency()
+{
+	return transmissionEfficiency;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Return the effective light collecting area (in [m^2])
+ * 
+ */
+
+
+double Telescope::getLightCollectingArea()
+{
+	return lightCollectingArea;
+}
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Return the solid angle covered by the FOV of 1 telescope [sr]
+ */
+
+double Telescope::getFOVsolidAngle()
+{
+	return FOVsolidAngle;
+}
+
 

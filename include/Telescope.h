@@ -27,6 +27,10 @@ class Telescope  : public Heartbeat, HDF5Writer
 		virtual void updatePointingCoordinates(double timeInterval);
 		pair<double, double> getPointingCoordinates();
 
+		double getTransmissionEfficiency();
+		double getLightCollectingArea();
+		double getFOVsolidAngle();
+
 	protected:
 
 		double alphaOpticalAxis;           // Current pointing right ascension [rad]
