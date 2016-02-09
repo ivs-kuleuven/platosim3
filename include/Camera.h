@@ -32,7 +32,7 @@ class Camera : public HDF5Writer
         ~Camera();
 
         virtual void configure(ConfigurationParameters &configParam);
-        virtual void exposeDetector(Detector &detector);
+        virtual void exposeDetector(Detector &detector, double startTime, double exposureTime);
 
 #ifdef UNIT_TESTS
         pair<double, double> test_skyToFocalPlaneCoordinates(double raStar, double decStar) {return skyToFocalPlaneCoordinates(raStar, decStar);};
