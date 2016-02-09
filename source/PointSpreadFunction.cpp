@@ -1,11 +1,24 @@
 #include "PointSpreadFunction.h"
+#include "Units.h"
 #include "Exceptions.h"
 #include "Logger.h"
 
 
-PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &cp)
+PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam)
 {
-    loadConfiguration(cp);
+    configure(configParam);
+
+    groupName = "6000";  // this is currently the only group defined in the HDF5 file
+
+    isSelected = false;
+    
+    hdf5file = new HDF5File(location);
+
+    if ( !hdf5file->hasGroup(groupName) )
+    {
+        throw FileException("The HDF5 file doesn't contain the expected group \"" + groupName + "\".");
+    }
+
 }
 
 
@@ -20,19 +33,19 @@ PointSpreadFunction::~PointSpreadFunction()
 }
 
 
-void PointSpreadFunction::loadConfiguration(ConfigurationParameters &cp)
+
+
+
+
+
+void PointSpreadFunction::configure(ConfigurationParameters &cp)
 {
     location = cp.getAbsoluteFilename("PSF/Filename");
-    groupName = "6000";  // this is currently the only group defined in the HDF5 file
-    
-    hdf5file = new HDF5File(location);
-
-    if ( !hdf5file->hasGroup(groupName) )
-    {
-        throw FileException("The HDF5 file doesn't contain the expected group \"" + groupName + "\".");
-    }
-
 }
+
+
+
+
 
 
 
@@ -46,9 +59,10 @@ void PointSpreadFunction::select()
 
 
 
-void PointSpreadFunction::rotate()
-{
 
+
+void PointSpreadFunction::rotate(double angle)
+{
 }
 
 
