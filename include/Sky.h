@@ -4,6 +4,7 @@
 
 #include <string>
 #include <vector>
+#include <string>
 #include <fstream>
 #include <sstream>
 #include <iterator>
@@ -28,8 +29,10 @@ class Sky
 {
     public:
 
-        Sky();
+        Sky(ConfigurationParameters &configParams);
         ~Sky();
+
+        virtual void configure(ConfigurationParameters &configParams);
 
         StarCatalog getStarsWithinRadiusFrom(double RA, double dec, double radius, Unit angleUnit = Angle::degrees);
 
@@ -47,6 +50,7 @@ class Sky
     private:
 
         StarCatalog starCatalog;
+        string starInputfile;
 
         vector<double> integrand;
         TabulatedFunction<vector<double>> tabfunction;

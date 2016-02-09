@@ -8,9 +8,16 @@
  * \brief Default Constructor
  */
 
-Sky::Sky()
+Sky::Sky(ConfigurationParameters &configParams)
 {
-    ifstream myfile("starField_Ra180Dec-70.txt");
+    // Configure this Sky 
+
+    configure(configParams);
+
+    // Open and read the file containing the position and magnitude of all stars
+    // The path of the starInputfile should have been set in configure().
+
+    ifstream myfile(starInputfile);
     if (myfile.is_open())
     {
         string temp;
@@ -24,8 +31,16 @@ Sky::Sky()
         }
 
         myfile.close();
+
+        Log.info("Sky: found " + to_string(n) + " stars in input file " + starInputfile);
+    }
+    else
+    {
+        Log.error("Sky: Cannot open star catalog file " + starInputfile);
+        exit(1);
     }
 }
+
 
 
 
@@ -41,6 +56,26 @@ Sky::~Sky()
 {
 
 }
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Configure the Sky class with the user given input parameters
+ */
+
+void Sky::configure(ConfigurationParameters &configParams)
+{
+    string projectRootPath = configParams.getString("General/ProjectLocation");
+    starInputfile = projectRootPath + "/" + configParams.getString("ObservingParameters/StarCatalogFile");
+}
+
+
 
 
 

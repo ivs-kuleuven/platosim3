@@ -49,7 +49,7 @@ TEST(CameraTest, skyToFocalPlaneCoordinates) {
     hdf5File.open("/tmp/cameraTest.hdf5");
     
     Telescope telescope = Telescope(cp, hdf5File);
-    Sky sky = Sky();
+    Sky sky = Sky(cp);
 
     Camera camera = Camera(cp, hdf5File, telescope, sky);
 
