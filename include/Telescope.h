@@ -24,7 +24,7 @@ class Telescope  : public Heartbeat, HDF5Writer
 
 		virtual void configure(ConfigurationParameters &configParam);
 
-		virtual void updatePointingCoordinates(double timeInterval);
+		virtual void updatePointingCoordinates(double time);
 		pair<double, double> getPointingCoordinates();
 
 		double getTransmissionEfficiency();
@@ -41,7 +41,7 @@ class Telescope  : public Heartbeat, HDF5Writer
 		double driftYawRms;                // RMS of thermo-elastic drift in yaw   [arcsec]
     	double driftPitchRms;              // RMS of thermo-elastic drift in pitch [arcsec]
     	double driftRollRms;               // RMS of thermo-elastic drift in roll  [arcsec]
-    	double driftTimeScale;             // Timescale of thermo-elastic drift [s]
+    	double driftTimeScale;             // Timescale of thermo-elastic drift    [s]
 
 	private:
 

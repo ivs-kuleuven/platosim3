@@ -10,7 +10,7 @@
  */
 
 Telescope::Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File)
-: HDF5Writer(hdf5File)
+: HDF5Writer(hdf5File), internalTime(0.0)
 {
 	// Retrieve the Telescope configuration parameters
 
@@ -90,13 +90,19 @@ Telescope::~Telescope()
 
 
 /**
- * \brief Update the telescope's pointing coordinates. Over the given 'timeInterval' they may
- *        change due to platform jitter or thermo-elastic variations.
- *          
+ * \brief Update the telescope's pointing coordinates, by evolving the 
+ *        the pointing coordinates (due to e.g. jitter or thermo-elastic variations)
+ *        until time point 'time'.  
  */ 
 
-void Telescope::updatePointingCoordinates(double timeInterval)
+void Telescope::updatePointingCoordinates(double time)
 {
+	if (time < internalTime)
+	{
+		Log.error("Telescope: cannot update pointing coordinates to time in the past");
+		exit(1);
+	}
+
 	return;
 }
 
