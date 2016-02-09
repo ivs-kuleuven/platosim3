@@ -160,6 +160,8 @@ void Camera::configure(ConfigurationParameters &configParam)
 {
     plateScale            = configParam.getDouble("Camera/PlateScale");
     focalPlaneOrientation = deg2rad(configParam.getDouble("Camera/FocalPlaneOrientation"));
+    throughputBandwidth   = configParam.getDouble("Camera/ThroughputBandwidth");
+    throughputLambdaC     = configParam.getDouble("Camera/ThroughputLambdaC");
 }
 
 

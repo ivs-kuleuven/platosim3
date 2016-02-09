@@ -3,6 +3,7 @@
 
 #include <string>
 #include <cmath>
+#include <algorithm>
 
 #include "Logger.h"
 #include "Units.h"
@@ -15,7 +16,7 @@
 #include "Telescope.h"
 #include "Detector.h"
 #include "Sky.h"
-//#include "Telescope.h"
+#include "Telescope.h"
 
 
 using namespace std;
@@ -46,7 +47,8 @@ class Camera : public HDF5Writer
 
         double plateScale;                    // [arcsec/mm]
         double focalPlaneOrientation;         // [rad]
-        double internalTime;                  // [s]
+        double throughputBandwidth;           // FWHM of the throughput passband [nm]
+        double throughputLambdaC;             // Central wavelength of the throughput passband [nm]
 
         void selectPsf(double raStar, double decStar);
         pair<double, double> skyToFocalPlaneCoordinates(double raStar, double decStar);
