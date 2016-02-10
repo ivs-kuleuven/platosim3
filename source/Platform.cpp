@@ -11,10 +11,12 @@
  * \param jitterGenerator          Generator of the yaw, pitch roll variations due to spacecraft jitter
  */
 
-Platform::Platform(ConfigurationParameters configurationParameters, HDF5File &hdf5File, JitterGenerator &jitterGenerator)
+Platform::Platform(ConfigurationParameters configParams, HDF5File &hdf5File, JitterGenerator &jitterGenerator)
 : HDF5Writer(hdf5File), jitterGenerator(jitterGenerator)
 {
+    // Configure the Platfrom object
 
+    configure(configParams);
 }
 
 
@@ -39,10 +41,16 @@ Platform::~Platform()
 
 
 
+/**
+ * \brief Configure the Platform object
+ * 
+ * \param configParams  The configuration parameters from the input parameters file
+ */
 
 void Platform::configure(ConfigurationParameters &configParams)
 {
-    // Currently empty. Jitter configuration is done through JitterGenerator.
+    currentRA  = deg2rad(configParams.getDouble("ObservingParameters/RApointing"));            
+    currentDec = deg2rad(configParams.getDouble("ObservingParameters/DecPointing"));     
 }
 
 
