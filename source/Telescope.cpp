@@ -65,19 +65,17 @@ Telescope::~Telescope()
  * \param configParam: the configuration parameters 
  **/
 
- void Telescope::configure(ConfigurationParameters &configParam)
+ void Telescope::configure(ConfigurationParameters &configParams)
  {
  	// Configuration parameters for the Telescope
 
- 	alphaOpticalAxis        = deg2rad(configParam.getDouble("ObservingParameters/RApointing"));
-	deltaOpticalAxis        = deg2rad(configParam.getDouble("ObservingParameters/DecPointing"));        
- 	lightCollectingArea     = configParam.getDouble("Telescope/LightCollectingArea");  
-	transmissionEfficiency  = configParam.getDouble("Telescope/TransmissionEfficiency"); 
-	FOVsolidAngle           = sqDeg2sr(configParam.getDouble("Telescope/FOVSquareDegrees"));  
-	driftYawRms             = configParam.getDouble("Telescope/DriftYawRms");             
-    driftPitchRms           = configParam.getDouble("Telescope/DriftPitchRms");           
-    driftRollRms            = configParam.getDouble("Telescope/DriftRollRms");            
-    driftTimeScale          = configParam.getDouble("Telescope/DriftTimeScale");    
+ 	lightCollectingArea     = configParams.getDouble("Telescope/LightCollectingArea");  
+	transmissionEfficiency  = configParams.getDouble("Telescope/TransmissionEfficiency"); 
+	FOVsolidAngle           = sqDeg2sr(configParams.getDouble("Telescope/FOVSquareDegrees"));  
+	driftYawRms             = configParams.getDouble("Telescope/DriftYawRms");             
+    driftPitchRms           = configParams.getDouble("Telescope/DriftPitchRms");           
+    driftRollRms            = configParams.getDouble("Telescope/DriftRollRms");            
+    driftTimeScale          = configParams.getDouble("Telescope/DriftTimeScale");    
 }
 
 
@@ -97,13 +95,29 @@ Telescope::~Telescope()
 
 void Telescope::updatePointingCoordinates(double time)
 {
+    // We can't turn back the clock, so 'time' needs to be in the future.
+
 	if (time < internalTime)
 	{
 		Log.error("Telescope: cannot update pointing coordinates to time in the past");
 		exit(1);
 	}
 
-	return;
+    // Telescope depends on Platform (and its jitter) to get new pointing coordinates.
+    // So first update platform.
+
+    platform.updatePointingCoordinates(time);
+
+    // There is currently no thermo-elastic variations in Telescope, so simply copy the 
+    // pointing coordinates from platform
+
+    tie(alphaOpticalAxis, deltaOpticalAxis) = platform.getPointingCoordinates();
+
+    // Update the internal clock
+
+    internalTime = time;
+	
+    return;
 }
 
 
