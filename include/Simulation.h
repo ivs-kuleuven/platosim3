@@ -8,8 +8,10 @@
 #include "Detector.h"
 #include "Camera.h"
 #include "Telescope.h"
-//#include "Platform.h"
+#include "Platform.h"
 #include "Sky.h"
+#include "JitterGenerator.h"
+#include "JitterFromFile.h"
 #include "ConfigurationParameters.h"
 
 
@@ -34,13 +36,14 @@ class Simulation
         double currentTime;
         double exposureTime;
         int Nexposures;
+        bool useJitterFromFile;
 
-
-        Detector  *detector;
-        Camera    *camera;
+        JitterGenerator *jitterGenerator;
+        Platform *platform;
         Telescope *telescope;
-        //Platform  *platform;
-        Sky       *sky;
+        Sky *sky;
+        Camera *camera;
+        Detector *detector;
 
         HDF5File hdf5File;
 

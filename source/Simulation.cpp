@@ -14,10 +14,26 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     hdf5File.open(outputFilename);
 
+    // Configure the Simulation object using the configuration parameters file
+
+    configure(configParams);
+
+    // Depending on what the user requested, define the proper jitter generator
+
+    if (useJitterFromFile)
+    {
+        jitterGenerator = new JitterFromFile(configParams);
+    }
+    else
+    {
+        Log.error("Simulation: useJitterFromFile=0 not yet implemented");
+        exit(1);
+    }
+
     // Initialise the spacecraft components
 
-    //platform  = new Platform(configParams);
-    telescope  = new Telescope(configParams, hdf5File);
+    platform   = new Platform(configParams, hdf5File, *jitterGenerator);
+    telescope  = new Telescope(configParams, hdf5File, *platform);
     sky        = new Sky(configParams);
     camera     = new Camera(configParams, hdf5File, *telescope, *sky);
     detector   = new Detector(configParams, hdf5File, *camera);
@@ -42,7 +58,8 @@ Simulation::~Simulation()
     delete camera;
     delete telescope;
     delete sky;
-    //delete platform;
+    delete platform;
+    delete jitterGenerator;
     
 
     hdf5File.close();
