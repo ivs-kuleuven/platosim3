@@ -54,6 +54,26 @@ Simulation::~Simulation()
 
 
 
+
+/**
+ * \brief Configure the Simulation object using the input parameter file
+ * 
+ * \param configParams  Contains all configuration parameters from the input file
+ */
+
+void Simulation::configure(ConfigurationParameters &configParams)
+{
+    exposureTime = configParams.getDouble("ObservingParameters/ExposureTime"); 
+    Nexposures   = configParams.getInteger("ObservingParameters/NumExposures"); 
+}
+
+
+
+
+
+
+
+
 // Simulation::run()
 //
 // PURPOSE: Loop over all exposures
