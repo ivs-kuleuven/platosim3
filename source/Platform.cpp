@@ -37,6 +37,21 @@ Platform::~Platform()
 
 
 
+
+
+
+void Platform::configure(ConfigurationParameters &configParams)
+{
+    // Currently empty. Jitter configuration is done through JitterGenerator.
+}
+
+
+
+
+
+
+
+
 /**
  * \brief Repoints the spacecraft to the given pointing coordinates
  * 

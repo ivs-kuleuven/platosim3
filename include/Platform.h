@@ -25,12 +25,14 @@ class Platform : public Heartbeat, HDF5Writer
         Platform(ConfigurationParameters configurationParameters, HDF5File &hdf5File, JitterGenerator &jitterGenerator);
         ~Platform();
 
+        virtual void configure(ConfigurationParameters &configParams);
+
         void updatePointingCoordinates(double time);
         void setPointingCoordinates(double rightAscencsion, double declination, Unit unit = Angle::degrees);
         pair<double, double> getPointingCoordinates();
 
         virtual double getHeartbeatInterval() override;
-        
+
 
     protected:
 
