@@ -32,7 +32,7 @@ Sky::Sky(ConfigurationParameters &configParams)
 
         myfile.close();
 
-        Log.info("Sky: found " + to_string(n) + " stars in input file " + starInputfile);
+        Log.info("Sky: found " + to_string(starCatalog.size()) + " stars in input file " + starInputfile);
     }
     else
     {
