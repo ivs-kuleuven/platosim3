@@ -18,10 +18,9 @@ class JitterGenerator : public Heartbeat
 {
     public:
 
-        JitterGenerator(ConfigurationParameters &configurationParameters);
+        JitterGenerator();
         ~JitterGenerator();
 
-        virtual void configure(ConfigurationParameters &configParams);
         virtual void getNextYawPitchRoll(double &yaw, double &pitch, double &roll, double timeInterval) = 0;
 
     protected:
