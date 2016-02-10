@@ -79,7 +79,7 @@ void Simulation::configure(ConfigurationParameters &configParams)
 {
     exposureTime      = configParams.getDouble("ObservingParameters/ExposureTime"); 
     Nexposures        = configParams.getInteger("ObservingParameters/NumExposures"); 
-    useJitterFromFile = configParams.getBoolean("Platform/UseJitterFromFile");
+    useJitterFromFile = configParams.getInteger("Platform/UseJitterFromFile");
 }
 
 
