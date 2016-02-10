@@ -22,7 +22,7 @@ class Platform : public Heartbeat, HDF5Writer
 {
     public:
 
-        Platform(ConfigurationParameters configurationParameters, HDF5File &hdf5File, JitterGenerator &jitterGenerator);
+        Platform(ConfigurationParameters configParams, HDF5File &hdf5File, JitterGenerator &jitterGenerator);
         ~Platform();
 
         virtual void configure(ConfigurationParameters &configParams);
@@ -38,7 +38,7 @@ class Platform : public Heartbeat, HDF5Writer
 
         double internalTime;                        // [s]
         double currentRA;                           // Right Ascension of pointing axis [rad]
-        double currentDec;                          // Declination of pointing axis [rad]
+        double currentDec;                          // Declination of pointing axis     [rad]
 
         JitterGenerator &jitterGenerator; 
  
