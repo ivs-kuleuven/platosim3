@@ -19,7 +19,6 @@ Platform:
 
     UseJitter:               1               # 0=no, 1=yes
     UseJitterFromFile:       0               # 0=no, 1=yes
-    JitterInterval:          0.1             # [s]
     JitterYawRms:            2.3             # [arcsec]
     JitterPitchRms:          2.3             # [arcsec]
     JitterRollRms:           2.3             # [arcsec]
