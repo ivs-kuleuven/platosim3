@@ -38,9 +38,6 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     camera     = new Camera(configParams, hdf5File, *telescope, *sky);
     detector   = new Detector(configParams, hdf5File, *camera);
 
-    Nexposures = 3;        // hardcoded for the moment
-    exposureTime = 22.0;   // hardcoded for the moment
-
 }
 
 
@@ -80,8 +77,9 @@ Simulation::~Simulation()
 
 void Simulation::configure(ConfigurationParameters &configParams)
 {
-    exposureTime = configParams.getDouble("ObservingParameters/ExposureTime"); 
-    Nexposures   = configParams.getInteger("ObservingParameters/NumExposures"); 
+    exposureTime      = configParams.getDouble("ObservingParameters/ExposureTime"); 
+    Nexposures        = configParams.getInteger("ObservingParameters/NumExposures"); 
+    useJitterFromFile = configParams.getBoolean("Platform/UseJitterFromFile");
 }
 
 
