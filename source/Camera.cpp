@@ -183,7 +183,6 @@ void Camera::selectPsf(double raStar, double decStar)
     double xFPprime, yFPprime;
 
     tie(xFPprime, yFPprime) = skyToFocalPlaneCoordinates(raStar, decStar);
-    double radialCoord = getGnomonicRadialDistance(xFPprime, yFPprime);
 
 }
 
