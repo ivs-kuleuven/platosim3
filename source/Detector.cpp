@@ -434,8 +434,7 @@ void Detector::addFlux(double xCoord, double yCoord, double flux)
  */
 bool Detector::isInSubPixelMap(double row, double column)
 {
-	return (column >= 0) && (row >= 0) && (column < numColumnsSubPixelMap)
-			&& (row < numRowsSubPixelMap);
+	return (column >= 0) && (row >= 0) && (column < numColumnsSubPixelMap) && (row < numRowsSubPixelMap);
 }
 
 
@@ -776,8 +775,7 @@ void Detector::applyFullWellSaturation()
 				// Transfer excess electrons down
 
 				jmod = row;
-				numExcessElectrons = (pixelValue - fullWellSaturationLimit)
-						/ 2.0;   // Move half of the excess electrons down...
+				numExcessElectrons = (pixelValue - fullWellSaturationLimit) / 2.0;   // Move half of the excess electrons down...
 
 				while (numExcessElectrons > 0 && jmod < numRowsPixelMap)
 				{
@@ -803,8 +801,7 @@ void Detector::applyFullWellSaturation()
 				// Transfer excess electrons up
 
 				jmod = row;
-				numExcessElectrons = (pixelValue - fullWellSaturationLimit)
-						/ 2.0;    // ...and the rest of the excess electrons up
+				numExcessElectrons = (pixelValue - fullWellSaturationLimit) / 2.0;    // ...and the rest of the excess electrons up
 
 				while (numExcessElectrons > 0 && jmod >= 0)
 				{
@@ -870,8 +867,7 @@ void Detector::applyCte()
 
 	vector<double> logs(numRowsPixelMap + subFieldZeroPointRow);
 	iota(logs.begin(), logs.end(), 1.0);
-	transform(logs.begin(), logs.end(), logs.begin(),
-			ptr_fun<double, double>(log));
+	transform(logs.begin(), logs.end(), logs.begin(), ptr_fun<double, double>(log));
 
 	// Compute the partial sums of these logarithms
 	// sumOfLogsUpTo[i] contains log((i+1)!) = log(1) + ... + log(i+1)
@@ -887,12 +883,11 @@ void Detector::applyCte()
 		// that are closer to the readout register, row-by-row to the readout
 		// register.
 
-		for (unsigned int trailingRow = 0; trailingRow < numRowsPixelMap - row;
-				trailingRow++)
+		for (unsigned int trailingRow = 0; trailingRow < numRowsPixelMap - row; trailingRow++)
 		{
+			// (1 - CTI)^n * CTI^(N_P - n)
 
-			const double factor1 = pow(meanCte, trailingRow)
-					* pow(cti, row + 1 - trailingRow);// (1 - CTI)^n * CTI^(N_P - n)
+			const double factor1 = pow(meanCte, trailingRow) * pow(cti, row + 1 - trailingRow);
 
 			// Target pixel itself (n = 0)
 
@@ -905,14 +900,12 @@ void Detector::applyCte()
 
 			else
 			{
-				const double factor2 = exp(
-						sumOfLogsUpTo[row + subFieldZeroPointRow]
-								- sumOfLogsUpTo[row + subFieldZeroPointRow
-										- trailingRow])
-						- sumOfLogsUpTo[trailingRow - 1];// N_P! / (N_P - n)! / n!
+				// N_P! / (N_P - n)! / n!
 
-				pixelMap(row + trailingRow, arma::span::all) = pixelMap(row,
-						arma::span::all) * factor1 * factor2;
+				const double factor2 = exp(sumOfLogsUpTo[row + subFieldZeroPointRow] - sumOfLogsUpTo[row + subFieldZeroPointRow - trailingRow])
+						              - sumOfLogsUpTo[trailingRow - 1];
+
+				pixelMap(row + trailingRow, arma::span::all) = pixelMap(row, arma::span::all) * factor1 * factor2;
 			}
 		}
 	}
