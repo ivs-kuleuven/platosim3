@@ -32,7 +32,7 @@ Sky::Sky(ConfigurationParameters &configParams)
 
         myfile.close();
 
-        Log.info("Sky: found " + to_string(starCatalog.size()) + " stars in input file " + starInputfile);
+        Log.info("Sky: found " + to_string(starCatalog.size()) + " stars in file " + starInputfile);
     }
     else
     {
@@ -377,8 +377,9 @@ double Sky::zodiacalFlux(const double alpha, const double delta, const double la
 
     if ((lam_index == -1) || (beta_index == -1))
     {
-        Log.error("Sky::zodiacalFlux(): No data for this part of the sky.");
-        exit(1);
+        string position = "(" + to_string(rad2deg(alpha)) + ", " + to_string(rad2deg(delta)) + ")";
+        Log.warning("Sky::zodiacalFlux(): No data for (alpha, delta) = " + position);
+        return 0.0;
     }
 
     // Check if we don't happen to be in a "hole" in the table
@@ -386,8 +387,9 @@ double Sky::zodiacalFlux(const double alpha, const double delta, const double la
     if (  (skydata::zod[lam_index][beta_index] == -1) || (skydata::zod[lam_index][beta_index+1] == -1)
         || (skydata::zod[lam_index+1][beta_index] == -1) || (skydata::zod[lam_index+1][beta_index+1] == -1))
     {
-        Log.error("Sky::zodiacalFlux(): No data for this part of the sky.");
-        exit (1);
+        string position = "(" + to_string(rad2deg(alpha)) + ", " + to_string(rad2deg(delta)) + ")";
+        Log.warning("Sky::zodiacalFlux(): No data for (alpha, delta) = " + position);
+        return 0.0;
     }
 
     // Do a bilinear interpolation
@@ -473,8 +475,9 @@ double Sky::zodiacalFlux(const double alpha, const double delta, vector<double> 
 
     if ((lam_index == -1) || (beta_index == -1))
     {
-        Log.error("Sky::zodiacalFlux(): No data for this part of the sky.");
-        exit(1);
+        string position = "(" + to_string(rad2deg(alpha)) + ", " + to_string(rad2deg(delta)) + ")";
+        Log.warning("Sky::zodiacalFlux(): No data for (alpha, delta) = " + position);
+        return 0.0;
     }
 
     // Check if we don't happen to be in a "hole" in the table
@@ -482,8 +485,9 @@ double Sky::zodiacalFlux(const double alpha, const double delta, vector<double> 
     if (  (skydata::zod[lam_index][beta_index] == -1) || (skydata::zod[lam_index][beta_index+1] == -1)
         || (skydata::zod[lam_index+1][beta_index] == -1) || (skydata::zod[lam_index+1][beta_index+1] == -1))
     {
-        Log.error("Sky::zodiacalFlux(): No data for this part of the sky.");
-        exit(1);
+        string position = "(" + to_string(rad2deg(alpha)) + ", " + to_string(rad2deg(delta)) + ")";
+        Log.warning("Sky::zodiacalFlux(): No data for (alpha, delta) = " + position);
+        return 0.0;
     }
 
     // Do a bilinear interpolation
