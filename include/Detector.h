@@ -118,7 +118,7 @@ class Detector : public HDF5Writer
     	mt19937 photonNoiseGenerator;
     	mt19937 readoutNoiseGenerator;
 
-    	poisson_distribution<int> photonNoiseDistribution;
+    	poisson_distribution<long> photonNoiseDistribution;
     	normal_distribution<double> readoutNoiseDistribution;
 
 

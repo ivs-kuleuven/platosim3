@@ -611,7 +611,7 @@ void Detector::readOut()
 	// Pixel units before: [electrons]
 	// Pixel units after: [electrons]
 
-	//applyCte();
+//	applyCte();
 
 	// Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
 	// the pixels are still receiving photons from the sky, while they are being transfered towards
@@ -709,7 +709,7 @@ void Detector::addPhotonNoise()
 	{
 		for (unsigned int column = 0; column < numColumnsPixelMap; column++)
 		{
-			photonNoiseDistribution = poisson_distribution<int>(pixelMap(row, column));
+			photonNoiseDistribution = poisson_distribution<long>(pixelMap(row, column));
 			pixelMap(row, column) = photonNoiseDistribution(photonNoiseGenerator);
 		}
 	}
@@ -720,7 +720,7 @@ void Detector::addPhotonNoise()
 	{
 		for (unsigned int column = 0; column < numColumnsPixelMap; column++)
 		{
-			photonNoiseDistribution = poisson_distribution<int>(smearingMap(row, column));
+			photonNoiseDistribution = poisson_distribution<long>(smearingMap(row, column));
 			smearingMap(row, column) = photonNoiseDistribution(photonNoiseGenerator);
 		}
 	}
@@ -860,8 +860,8 @@ void Detector::applyCte()
 
 	float cti = 1.0 - meanCte;
 
-    // Computing the effects of CTE requires the use of a binomial distribution.
-    // To speed up things, we first pre-compute some parts of this distribution.
+	// Computing the effects of CTE requires the use of a binomial distribution.
+	// To speed up things, we first pre-compute some parts of this distribution.
 
 	// Pre-compute the (natural) logarithms of the first N natural numbers
 
@@ -889,7 +889,7 @@ void Detector::applyCte()
 
 			const double factor1 = pow(meanCte, trailingRow) * pow(cti, row + 1 - trailingRow);
 
-			// Target pixel itself (n = 0)
+					// Target pixel itself (n = 0)
 
 			if (trailingRow == 0)
 			{
