@@ -26,8 +26,7 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     }
     else
     {
-        Log.error("Simulation: useJitterFromFile=0 not yet implemented");
-        exit(1);
+        jitterGenerator = new JitterFromRedNoise(configParams);
     }
 
     // Initialise the spacecraft components

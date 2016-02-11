@@ -12,6 +12,7 @@
 #include "Sky.h"
 #include "JitterGenerator.h"
 #include "JitterFromFile.h"
+#include "JitterFromRedNoise.h"
 #include "ConfigurationParameters.h"
 
 
