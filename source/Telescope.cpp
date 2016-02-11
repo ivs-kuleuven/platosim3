@@ -103,6 +103,13 @@ void Telescope::updatePointingCoordinates(double time)
 		exit(1);
 	}
 
+    // If the give time equals exactly the current internal time, then there is nothing to update.
+
+    if (time == internalTime)
+    {
+        return;
+    }
+
     // Telescope depends on Platform (and its jitter) to get new pointing coordinates.
     // So first update platform.
 
