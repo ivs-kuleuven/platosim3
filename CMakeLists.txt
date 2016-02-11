@@ -41,10 +41,6 @@ include_directories(
 file(GLOB platosimSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp)
 list(REMOVE_ITEM platosimSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/main.cpp)
 
-list(REMOVE_ITEM platosimSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/Camera.cpp 
-                                     ${CMAKE_CURRENT_SOURCE_DIR}/source/Telescope.cpp
-                                     ${CMAKE_CURRENT_SOURCE_DIR}/source/Timeticker.cpp)
-
 
 # Define the main.cpp of platosim separately.
 
@@ -59,13 +55,13 @@ add_library(platosimLibrary ${platosimSourceFiles})
 
 # Specify the simulator unittest files to be compiled, but exclude again the main().
 
-file(GLOB unitTestSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
-list(REMOVE_ITEM unitTestSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/AllTests.cpp)
+#file(GLOB unitTestSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
+#list(REMOVE_ITEM unitTestSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/AllTests.cpp)
 
 
 # Define the file with main() function for the unit tests separately. 
 
-set(unitTestMain ${CMAKE_CURRENT_SOURCE_DIR}/tests/AllTests.cpp)
+#set(unitTestMain ${CMAKE_CURRENT_SOURCE_DIR}/tests/AllTests.cpp)
 
 
 # Specify the location of the dependency libraries
@@ -98,13 +94,13 @@ endif()
 # Create the platosim and testplatosim executables
 
 add_executable(platosim ${platosimMain})
-add_executable(testplatosim ${unitTestMain} ${unitTestSourceFiles})
+#add_executable(testplatosim ${unitTestMain} ${unitTestSourceFiles})
 
 
 # Link the platosim and testplatosim executable with the required libraries
 
 target_link_libraries(platosim platosimLibrary hdf5 hdf5_cpp armadillo.6 yaml-cpp)
-target_link_libraries(testplatosim platosimLibrary hdf5 hdf5_cpp armadillo.6 yaml-cpp gtest gtest_main)
+#target_link_libraries(testplatosim platosimLibrary hdf5 hdf5_cpp armadillo.6 yaml-cpp gtest gtest_main)
 
 
 

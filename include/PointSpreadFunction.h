@@ -20,13 +20,23 @@ class PointSpreadFunction
         ~PointSpreadFunction();
 
     protected:
+        void rotate(double angle);
+        void configure(ConfigurationParameters &);
 
 
     private:
-        void loadConfiguration(ConfigurationParameters &);
         void select();
-        void rotate();
         void rebin();
+
+        // Determine if a psf has been selected
+        bool isSelected = false;
+
+        // The selected psf is copied into this array
+        arma::Mat<float> psfMap;
+
+        // The dimensions of the selected psf map will be set here
+        unsigned int numRowsPsfMap;
+        unsigned int numColumnsPsfMap;
 
         // The HDF5 file that holds the PSFs
         HDF5File *hdf5file;

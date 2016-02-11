@@ -1,27 +1,40 @@
 #include "Telescope.h"
 
 /**
- * Constructor.  Creates a telescope object, based on the given configuration
- * parameters and mounts it on the given platform.
- *
- * @param configurationParameters: Configuration parameters for the telescope.
- * @type configurationParameters: ConfigurationParameters
- *
- * @param Platform: Platform mount the telescope on.
- * @type Platform: Platform
+ * Constructor
+ * 
+ * \param configurationParameters: Configuration parameters for the telescope.
+ * \param hdf5File                 Output HDF5 file.
+ * \param Platform:                Platform on which the telescope is mounted
+ * 
  */
-Telescope::Telescope(ConfigurationParameters configurationParameters,
-		Platform platform)
+
+Telescope::Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File, Platform &platform)
+: HDF5Writer(hdf5File), internalTime(0.0), platform(platform)
 {
+	// Retrieve the Telescope configuration parameters
 
-	// Read configuration parameters:
-	// - light collecting area
+	configure(configParams);
 
-	// Mount on platform
+	// Set the heartbeat interval of the telescope.
+	// The Telescope properties (e.g. the coordinates of the optical axis) are evolving in time, 
+    // for example because of thermo-elastic drift, or because of the jitter of the platform it 
+    // is mounted on. To properly track these changes one has to use a small enough timestep, 
+    // which is called the "heartbeat" interval of the Telescope. Because Telescope depends on 
+    // other components, like Platform which in turn may also have a certain heartbeat, the
+    // 'global' heartbeat of Telescope is the minimum of its own intrinsic heartbeat and the
+    // heartbeat of all the components it depends on.
 
-	this->setPlatform(platform);
-
+	if (driftTimeScale != 0.0)
+	{
+		heartbeatInterval = driftTimeScale / 20.0;
+	}
 }
+
+
+
+
+
 
 
 
@@ -30,114 +43,160 @@ Telescope::Telescope(ConfigurationParameters configurationParameters,
 /**
  * Destructor.
  */
+
 Telescope::~Telescope()
 {
 
-	// Also destroy the platform
-
 }
 
 
 
 
 
+
+
+
+
+
+
 /**
- * Method that updates the pointing coordinates of the telescope (i.e. the
- * equatorial coordinates of the optical axis) after the application of jitter
- * (of the platform on which the telescope is mounted) and the thermo-elastic
- * variations (of the telescope itself).
- *
- * @param &alphaOpticalAxis: Right ascension of the optical axis, before applying
- *        the next jitter step and taking thermo-elastic variations into account
- *        [degees?/radians?]
- *
- * @param &deltaOpticalAxis: Declination of the optical axis, before applying the
- *        next jitter step and taking thermo-elastic variations into account
- *        [degrees?/radians?]
- */
-double Telescope::updatePointingCoordinates(double &alphaOpticalAxis,
-		double &deltaOpticalAxis, double currentTime)
+ * \brief Configure the Telescope object using the ConfigurationParameters
+ * 
+ * \param configParam: the configuration parameters 
+ **/
+
+ void Telescope::configure(ConfigurationParameters &configParams)
+ {
+ 	// Configuration parameters for the Telescope
+
+ 	lightCollectingArea     = configParams.getDouble("Telescope/LightCollectingArea");  
+	transmissionEfficiency  = configParams.getDouble("Telescope/TransmissionEfficiency"); 
+	FOVsolidAngle           = sqDeg2sr(configParams.getDouble("Telescope/FOVSquareDegrees"));  
+	driftYawRms             = configParams.getDouble("Telescope/DriftYawRms");             
+    driftPitchRms           = configParams.getDouble("Telescope/DriftPitchRms");           
+    driftRollRms            = configParams.getDouble("Telescope/DriftRollRms");            
+    driftTimeScale          = configParams.getDouble("Telescope/DriftTimeScale");    
+}
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Update the telescope's pointing coordinates, by evolving the 
+ *        the pointing coordinates (due to e.g. jitter or thermo-elastic variations)
+ *        until time point 'time'.  
+ */ 
+
+void Telescope::updatePointingCoordinates(double time)
 {
+    // We can't turn back the clock, so 'time' needs to be in the future.
 
-	// Jitter -> platform
-	// Ask the platform to update the pointing coordinates (i.e. the equatorial
-	// coordinates of the telescope axis) and the current time, taking the
-	// jitter into account
+	if (time < internalTime)
+	{
+		Log.error("Telescope: cannot update pointing coordinates to time in the past");
+		exit(1);
+	}
 
-//	this->getPlatform().updatePointingCoordinates(alphaOpticalAxis, deltaOpticalAxis, currentTime);
+    // Telescope depends on Platform (and its jitter) to get new pointing coordinates.
+    // So first update platform.
 
-	// Thermo-elastic variations
-	// Update the coordinates of the displaced (because of the jitter) optical
-	// axis, taking the thermo-elastic variations into account
+    platform.updatePointingCoordinates(time);
 
-//	this->getPlatform().updatePointingCoordinates(alphaOpticalAxis, deltaOpticalAxis, currentTime);
+    // There is currently no thermo-elastic variations in Telescope, so simply copy the 
+    // pointing coordinates from platform
 
-	return currentTime;
+    tie(alphaOpticalAxis, deltaOpticalAxis) = platform.getPointingCoordinates();
 
+    // Update the internal clock
+
+    internalTime = time;
+	
+    return;
 }
 
 
 
 
 
-// Platform
-
-/**
- * Method that mounts the telescope on the given platform.
- *
- * @param platform: Platform on which to mount the telescope.
- * @type platform: Platform
- */
-void Telescope::setPlatform(Platform platform) {
-
-	this->platform = platform;
-
-}
-
 
 
 
 
 /**
- * Method that returns the platform on which the telescope is mounted.
- *
- * @return Platform on which the telescope is mounted.
- * @rtype Platform
+ * \brief Return the current values of the equatorial coordinates of the optical axis of the telescope
+ * 
+ * \return a pair (alphaOpticalAxis, deltaOpticalAxis)  in [rad]
  */
-Platform Telescope::getPlatform()
+
+pair<double, double> Telescope::getPointingCoordinates()
 {
-
-	return this->platform;
-
+	return make_pair(alphaOpticalAxis, deltaOpticalAxis);
 }
 
-// Light collecting area
 
-/**
- * Method that sets the light collecting area of the telescope to the given area.
- *
- * @param lightCollectingArea: Light collecting area to use for the telescope [cm^2].
- * @type lightCollectingArea: double
- */
-void Telescope::setLightCollectingArea(double lightCollectingArea)
-{
 
-	this->lightCollectingArea = lightCollectingArea;
 
-}
+
+
 
 
 
 
 
 /**
- * Method that returns the light collecting area of the telescope [cm^2].
- *
- * @return Light collecting area of the telescope [cm^2].
- * @rtype double
+ * \brief Return the transmission efficiency of the telescope (number between 0 and 1)
+ * 
  */
-unsigned double Telescope::getLightCollectingArea()
-{
 
-	return this->lightCollectingArea;
+double Telescope::getTransmissionEfficiency()
+{
+	return transmissionEfficiency;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Return the effective light collecting area (in [m^2])
+ * 
+ */
+
+
+double Telescope::getLightCollectingArea()
+{
+	return lightCollectingArea;
+}
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Return the solid angle covered by the FOV of 1 telescope [sr]
+ */
+
+double Telescope::getFOVsolidAngle()
+{
+	return FOVsolidAngle;
+}
+
+

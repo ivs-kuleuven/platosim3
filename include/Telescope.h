@@ -4,41 +4,50 @@
 #include <string>
 
 #include "Logger.h"
-#include "TimeTicker.h"
+#include "Units.h"
+#include "Heartbeat.h"
 #include "HDF5Writer.h"
-#include "Platform.h"
 #include "ConfigurationParameters.h"
+#include "Platform.h"
 
 using namespace std;
 
 
 
 
-class Telescope  : public TimeTicker, Hdf5Writer
+class Telescope  : public Heartbeat, HDF5Writer
 {
 	
 	public:
 
-		Telescope(ConfigurationParameters configurationParameters, Platform platform);
+		Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File, Platform &platform);
 		~Telescope();
 
-		Platform getPlatform();
+		virtual void configure(ConfigurationParameters &configParam);
+
+		virtual void updatePointingCoordinates(double time);
+		pair<double, double> getPointingCoordinates();
+
+		double getTransmissionEfficiency();
 		double getLightCollectingArea();
-		double updatePointingCoordinates(double &alphaOpticalAxis, double &deltaOpticalAxis, double currentTime);
+		double getFOVsolidAngle();
 
 	protected:
 
-		double alphaOpticalAxis;           // Current pointing right ascension [rad]
-		double deltaOpticalAxis;           // Current pointing declination     [rad]
+		double alphaOpticalAxis;           // Current pointing right ascension     [rad]
+		double deltaOpticalAxis;           // Current pointing declination         [rad]
+		double FOVsolidAngle;              // Solid angle of FOV of 1 telescope    [sr]
+		double lightCollectingArea;        // Effective light collective area      [cm^2]
+		double transmissionEfficiency;     // in [0,1]
+		double driftYawRms;                // RMS of thermo-elastic drift in yaw   [arcsec]
+    	double driftPitchRms;              // RMS of thermo-elastic drift in pitch [arcsec]
+    	double driftRollRms;               // RMS of thermo-elastic drift in roll  [arcsec]
+    	double driftTimeScale;             // Timescale of thermo-elastic drift    [s]
 
 	private:
 
+		double internalTime;               // Internal clock
 		Platform platform;
-		void setPlatform(Platform platform);
-
-		double lightCollectingArea;
-		void setLightCollectingArea(double lightCollectingArea);
-
 };
 
 #endif

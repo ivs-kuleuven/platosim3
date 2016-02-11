@@ -5,8 +5,10 @@
 #include <vector>
 
 #include "Logger.h"
-#include "TimeTicker.h"
+#include "Units.h"
+#include "Heartbeat.h"
 #include "HDF5Writer.h"
+#include "HDF5File.h"
 #include "ConfigurationParameters.h"
 #include "JitterGenerator.h"
 
@@ -16,22 +18,29 @@ using namespace std;
 
 
 
-class Platform : public TimeTicker, Hdf5Writer
+class Platform : public Heartbeat, HDF5Writer
 {
     public:
 
-        Platform(ConfigurationParameters configurationParameters);
+        Platform(ConfigurationParameters configParams, HDF5File &hdf5File, JitterGenerator &jitterGenerator);
         ~Platform();
 
-        void setPointingCoordinates(double rightAscencsion, double declination, double time);
-        void updatePointingCoordinates(double &rightAscencsion, double &declination, double time);
+        virtual void configure(ConfigurationParameters &configParams);
+
+        void updatePointingCoordinates(double time);
+        void setPointingCoordinates(double rightAscencsion, double declination, Unit unit = Angle::degrees);
+        pair<double, double> getPointingCoordinates();
+
+        virtual double getHeartbeatInterval() override;
+
 
     protected:
 
-        double currentTime;                        // [s]
-        double currentRA;                          // Right Ascension of pointing axis [rad]
-        double currentDec;                         // Declination of pointing axis [rad]
-        JitterGenerator* jitterGenerator; 
+        double internalTime;                        // [s]
+        double currentRA;                           // Right Ascension of pointing axis [rad]
+        double currentDec;                          // Declination of pointing axis     [rad]
+
+        JitterGenerator &jitterGenerator; 
  
     private:
 

@@ -3,13 +3,16 @@
 // Include all the tests here
 
 #include "Logger.h"
-
 #include "GTestConfigurationParameters.h"
 #include "GTestFileUtilities.h"
 #include "GTestPointSpreadFunction.h"
-#include "GTestPsfConvolution.h"
+#include "GTestCamera.h"
+#include "GTestDetector.h"
+#include "GTestUnits.h"
+#include "PrettyPrinters.h"
 
 Logger Log;
+
 
 int main(int argc, char **argv) 
 {

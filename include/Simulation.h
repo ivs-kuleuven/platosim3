@@ -6,10 +6,13 @@
 #include "Logger.h"
 #include "HDF5File.h"
 #include "Detector.h"
-//#include "Camera.h"
-//#include "Telescope.h"
-//#include "Platform.h"
-//#include "Sky.h"
+#include "Camera.h"
+#include "Telescope.h"
+#include "Platform.h"
+#include "Sky.h"
+#include "JitterGenerator.h"
+#include "JitterFromFile.h"
+#include "JitterFromRedNoise.h"
 #include "ConfigurationParameters.h"
 
 
@@ -24,6 +27,7 @@ class Simulation
         Simulation(string inputFilename, string outputFilename);
         ~Simulation();
         virtual void run(double startingTime = 0.0);
+        virtual void configure(ConfigurationParameters &configParams);
 
     protected:
 
@@ -33,13 +37,14 @@ class Simulation
         double currentTime;
         double exposureTime;
         int Nexposures;
+        bool useJitterFromFile;
 
-
-        Detector  *detector;
-        //Camera    *camera;
-        //Telescope *telescope;
-        //Platform  *platform;
-        //Sky       *sky;
+        JitterGenerator *jitterGenerator;
+        Platform *platform;
+        Telescope *telescope;
+        Sky *sky;
+        Camera *camera;
+        Detector *detector;
 
         HDF5File hdf5File;
 

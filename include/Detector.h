@@ -11,21 +11,34 @@
 #include "HDF5File.h"
 #include "HDF5Writer.h"
 #include "ConfigurationParameters.h"
+#include "Camera.h"
 
 
 using namespace std;
 
+
+class Camera;  // forward declaration
 
 
 class Detector : public HDF5Writer
 {
     public:
 
-        Detector(ConfigurationParameters &configParam, HDF5File &hdf5File);
+        Detector(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera);
         virtual ~Detector();
 
         virtual void takeExposure(double startTime, double exposureTime);
         virtual void configure(ConfigurationParameters &configParam);
+
+        pair<double, double> pixelToFocalPlaneCoordinates(double row, double column);
+        pair<double, double> focalPlaneToPixelCoordinates(double xFPprime, double yFPprime);
+
+        pair<double, double> getFocalPlaneCoordinatesOfSubfieldCenter();
+        double getDiagonalLengthOfSubfield();
+
+        virtual void addFlux(double xCoord, double yCoord, double flux);
+        virtual void addFlux(double flux);
+
 
     protected:
 
@@ -35,13 +48,11 @@ class Detector : public HDF5Writer
 
         virtual void integrateLight(double startTime, double exposureTime);
         virtual bool isInSubPixelMap(double row, double column);
-        virtual void addFlux(double xCoords, double yCoords, double flux);
-        virtual void addFlux(double flux);
         virtual void convolveWithPsf(arma::Mat<float> psf);
         virtual void applyFlatfield();
         virtual void rebin();
         
-        virtual void readOut(double exposureTime);
+        virtual void readOut();
         virtual void applyQuantumEfficiency();
     	virtual void addPhotonNoise();
     	virtual void applyFullWellSaturation();
@@ -51,7 +62,7 @@ class Detector : public HDF5Writer
     	virtual void applyGain();
     	virtual void addElectronicOffset();	     
     	virtual void applyDigitalSaturation();
-    
+
         virtual void initHDF5Groups() override;
         void writePixelMapToHDF5();
 
@@ -76,7 +87,7 @@ class Detector : public HDF5Writer
     	double originOffsetX;                    // X-coordinate of the detector origin from the centre of the optical plane [mm]
         unsigned int subFieldZeroPointRow;       // Position of the subfield zeropoint w.r.t. the complete detector in the row direction [pixels]
         unsigned int subFieldZeroPointColumn;    // Position of the subfield zeropoint w.r.t. the complete detector in the column direction [pixels]
-    	double orientationAngle;                 // Orientation angle of the detector w.r.t. the orientation of the focal plane, measured counterclockwise [degrees]
+    	double orientationAngle;                 // Orientation angle of the detector w.r.t. the orientation of the focal plane, measured counterclockwise [radians]
  
     	double pixelSize;	                     // Pixel size [microns]
         unsigned int numSubPixelsPerPixel;	     // Nr of sub-pixels per pixel
@@ -114,6 +125,7 @@ class Detector : public HDF5Writer
 
     private:
 
+        Camera &camera;
         int imageNr;
 
 };

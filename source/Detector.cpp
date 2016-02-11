@@ -1,5 +1,7 @@
 #include "Detector.h"
 
+#include "Units.h"
+
 /**
  * Constructor.  
  *
@@ -7,8 +9,8 @@
  * @param configurationParameters: Configuration parameters for the detector.
  * @param camera:                  Camera to which to attach the detector.
  */
-Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file) 
-: HDF5Writer(hdf5file), imageNr(0)
+Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera) 
+: HDF5Writer(hdf5file), internalTime(0.0), camera(camera), imageNr(0)
 {
 	// Create the groups in the HDF5 file where the different maps (i.e. pixel map,
 	// bias register map, smearing map, etc.) will be saved. This needs to be done
@@ -80,7 +82,7 @@ Detector::~Detector()
 
     originOffsetX           = configParam.getDouble("CCD/OriginOffsetX");
     originOffsetY           = configParam.getDouble("CCD/OriginOffsetY");
-    orientationAngle        = configParam.getDouble("CCD/Orientation");
+    orientationAngle        = deg2rad(configParam.getDouble("CCD/Orientation"));
     numRows                 = configParam.getInteger("CCD/NumRows");
     numColumns              = configParam.getInteger("CCD/NumColumns");
     pixelSize               = configParam.getDouble("CCD/PixelSize");
@@ -277,6 +279,9 @@ void Detector::reset()
  */
 void Detector::takeExposure(double startTime, double exposureTime)
 {
+	// Advance the internal clock until the given start time
+
+	internalTime = startTime;
 
 	// Integration of point sources and background, taking into account jitter + drift.
 
@@ -288,7 +293,7 @@ void Detector::takeExposure(double startTime, double exposureTime)
 
 	Log.debug("Detector: Adding noise effects to exposure " + to_string(imageNr));
 
-	readOut(exposureTime);
+	readOut();
 
 	// Write the CCD subfield to the HDF5 file
 
@@ -334,7 +339,7 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 	// Integration (incl. jitter) + background
 
-	//camera.exposeSubField(this, exposureTime);
+	camera.exposeDetector(*this, startTime, exposureTime);
 
 	// Apply flatfield (at sub-pixel level)
 
@@ -342,11 +347,15 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 	applyFlatfield();
 
-	// Rebin
+	// Rebin from a subpixel map to a pixel map
 
 	Log.debug("Detector: Rebinning subpixel map into pixel map.");
 
 	rebin();
+
+	// Update the internal clock
+
+	internalTime += exposureTime;
 }
 
 
@@ -363,14 +372,10 @@ void Detector::integrateLight(double startTime, double exposureTime)
 /**
  * @brief: Add the given flux value to the value of the sub-pixel that
  *         corresponds to the given coordinates in the focal plane.
- * 
- * NOTES: - The flux value has already been multiplied with the transmission 
- *          efficiency but not with the quanum efficiency.
- *        - The exposure time has been taken into account already.
  *
- * @param rowFocalPlane: Row coordinate of the sub-pixel in the focal plane [mm].
- * @param columnFocalPlane: Column coordinate of the sub-pixel in the focal plane [mm].
- * @param flux:          Flux to add to the sub-pixel map [photons].
+ * @param xCoord   x-coordinate of the sub-pixel in the focal plane [mm].
+ * @param yCoord   y-coordinate of the sub-pixel in the focal plane [mm].
+ * @param flux     Flux to add to the sub-pixel map [photons].
  *
  * @pre Pixel, bias register, and smearing maps filled with zeroes.
  *
@@ -378,23 +383,23 @@ void Detector::integrateLight(double startTime, double exposureTime)
  * @post Pixel, bias register, and smearing maps filled with zeroes.
  */
  
-void Detector::addFlux(double rowFocalPlane, double columnFocalPlane, double flux)
+void Detector::addFlux(double xCoord, double yCoord, double flux)
 {
 
 	// Detector origin offset (pixel level)
 
-	double rowOffset = (rowFocalPlane - originOffsetY) / pixelSize;
-	double columnOffset = (columnFocalPlane - originOffsetX) / pixelSize;
+	double rowOffset = (xCoord - originOffsetY) / pixelSize;
+	double columnOffset = (yCoord - originOffsetX) / pixelSize;
 
 	// Detector orientation (pixel level)
 
 	double column = columnOffset * cos(orientationAngle) - rowOffset * sin(orientationAngle);
-	double row = columnOffset * sin(orientationAngle) + rowOffset * cos(orientationAngle);
+	double row    = columnOffset * sin(orientationAngle) + rowOffset * cos(orientationAngle);
 
 	// Sub-field incl. edge pixels (also correct for sub-field zeropoint)
 
 	column = (column - subFieldZeroPointColumn + numEdgePixels) * numSubPixelsPerPixel;
-	row = (row - subFieldZeroPointRow + numEdgePixels) * numSubPixelsPerPixel;
+	row    = (row    - subFieldZeroPointRow    + numEdgePixels) * numSubPixelsPerPixel;
 
 	// Add flux in this->subPixelMap at (row, column)
 
@@ -569,14 +574,12 @@ void Detector::rebin()
  * 	 		- electronic offset (i.e. bias)
  * 	 		- digital saturation
  *
- * @param exposureTime: Exposure time [s].
- *
  * @pre Pixel unit in the pixel map: [photons].
  * @pre Bias register and smearing maps filled with zeroes.
  *
  * @post Pixel unit in the pixel, bias register, and smearing maps: [ADU].
  */
-void Detector::readOut(double exposureTime)
+void Detector::readOut()
 {
 
 	// Apply quantum efficiency
@@ -645,6 +648,10 @@ void Detector::readOut(double exposureTime)
 	// Pixel units after: [ADU]
 
 	applyDigitalSaturation();
+
+	// Advance the internal clock
+
+	internalTime += readoutTime;
 }
 
 
@@ -1155,6 +1162,151 @@ void Detector::applyDigitalSaturation()
 	smearingMap(arma::find(smearingMap > digitalSaturationLimit)).fill(digitalSaturationLimit);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Compute the (x,y) coordinates in the FP' reference system (not the FP system) given
+ *        the (real-valued) pixel coordinates on the CCD.
+ *        
+ * \param row     Row coordinate, real-valued (e.g. 3.5)    [pix]
+ * \param column  Column coordinate, real-valued (e.g. 8.3) [pix]
+ * 
+ * \return (xFPprime, yFPprime)  A pair of (x,y) coordinates in the FP' reference system [mm]
+ */
+
+pair<double, double> Detector::pixelToFocalPlaneCoordinates(double row, double column)
+{
+    // Convert the pixel coordinates into [mm] coordinates
+    // The pixelSize is expressed in [micron].
+
+    double xCCDmm = row * pixelSize / 1000.0;
+    double yCCDmm = column * pixelSize / 1000.0;
+
+    // Convert the CCD coordinates into FP' coordinates [mm]
+    // Note: orientationAngle is in [rad], originOffsetX and originOffsetY in mm
+
+    double xFPprime = originOffsetX + xCCDmm * cos(orientationAngle) - yCCDmm * sin(orientationAngle);
+    double yFPprime = originOffsetY + xCCDmm * sin(orientationAngle) + yCCDmm * cos(orientationAngle);
+
+    // That's it
+
+    return make_pair(xFPprime, yFPprime);
+}
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Compute the (real-valued) pixel coordinates of the star on the CCD, given the (x,y)
+ *       coordinates in the FP' reference system (not the FP system)
+ *
+ * \param xFPprime  x-coordinate of the point in the FP' reference system  [mm]
+ * \param yFPprime  y-coordinate of the star in the FP' reference system  [mm]
+ * 
+ * \return (row, column)  Row and column pixel coordinates of the point (real-valued) [pix]
+ */
+
+pair<double, double> Detector::focalPlaneToPixelCoordinates(double xFPprime, double yFPprime)
+{
+	// Convert the FP' coordinates into CCD coordinates [mm]
+
+    double xCCDmm =  (xFPprime-originOffsetX) * cos(orientationAngle) + (yFPprime-originOffsetY) * sin(orientationAngle);
+    double yCCDmm = -(xFPprime-originOffsetX) * sin(orientationAngle) + (yFPprime-originOffsetY) * cos(orientationAngle);
+
+    // Convert the [mm] coordinates into pixel coordinates
+    // Note: the pixel size is expressed in [micron]
+
+    double column = xCCDmm / pixelSize * 1000.0;
+    double row = yCCDmm / pixelSize * 1000.0;
+
+    // That's it
+
+    return make_pair(row, column);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief  Return the focal plane coordinates of the center pixel of the subfield 
+ * 
+ * \return (x,y)   focal plane coordinates in the FP' reference system [mm]
+ */
+
+pair<double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCenter()
+{
+	double centerRow = subFieldZeroPointRow + numRowsPixelMap / 2.0;
+	double centerCol = subFieldZeroPointColumn + numColumnsPixelMap / 2.0;
+
+	return pixelToFocalPlaneCoordinates(centerRow, centerCol);
+}
+        
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief  Return the distance between the two diagonally opposite corner points of the 
+ *         subfield in [mm] on the focal plane.
+ * 
+ * \return length  Diagonal distance between the two opposite corners [mm]
+ */
+
+double Detector::getDiagonalLengthOfSubfield()
+{
+	// Define the pixel row and column coordinates of two corners diagonally opposite to each other
+
+	double corner1Row = subFieldZeroPointRow + numRowsPixelMap;
+	double corner1Col = subFieldZeroPointColumn;
+
+	double corner2Row = subFieldZeroPointRow;
+	double corner2Col = subFieldZeroPointColumn + numColumnsPixelMap;
+
+	// Compute their corresponding (x,y) coordinates in the focal plane FP'
+
+	double corner1X, corner1Y;
+	double corner2X, corner2Y;
+
+	tie(corner1X, corner1Y) = pixelToFocalPlaneCoordinates(corner1Row, corner1Col);
+	tie(corner2X, corner2Y) = pixelToFocalPlaneCoordinates(corner2Row, corner2Col);
+
+	// The diagonal length is simply the distance between the two corner points
+	// computed using Pythagoras
+
+	double diagonalLength = sqrt(pow(corner1X - corner2X, 2) + pow(corner1Y - corner2Y, 2));
+
+	return diagonalLength;
+}
 
 
 
