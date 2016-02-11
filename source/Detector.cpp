@@ -612,7 +612,7 @@ void Detector::readOut()
 	// Pixel units before: [electrons]
 	// Pixel units after: [electrons]
 
-	applyCte();
+//	applyCte();
 
 	// Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
 	// the pixels are still receiving photons from the sky, while they are being transfered towards
@@ -710,7 +710,7 @@ void Detector::addPhotonNoise()
 	{
 		for (unsigned int column = 0; column < numColumnsPixelMap; column++)
 		{
-			photonNoiseDistribution = poisson_distribution<int>(pixelMap(row, column));
+			photonNoiseDistribution = poisson_distribution<long>(pixelMap(row, column));
 			pixelMap(row, column) = photonNoiseDistribution(photonNoiseGenerator);
 		}
 	}
@@ -721,7 +721,7 @@ void Detector::addPhotonNoise()
 	{
 		for (unsigned int column = 0; column < numColumnsPixelMap; column++)
 		{
-			photonNoiseDistribution = poisson_distribution<int>(smearingMap(row, column));
+			photonNoiseDistribution = poisson_distribution<long>(smearingMap(row, column));
 			smearingMap(row, column) = photonNoiseDistribution(photonNoiseGenerator);
 		}
 	}
