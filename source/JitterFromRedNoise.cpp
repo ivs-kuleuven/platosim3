@@ -54,9 +54,11 @@ JitterFromRedNoise::~JitterFromRedNoise()
 
 void JitterFromRedNoise::configure(ConfigurationParameters &configParams)
 {
-    yawRMS          = configParams.getDouble("Platform/JitterYawRms");          
-    pitchRMS        = configParams.getDouble("Platform/JitterPitchRms");        
-    rollRMS         = configParams.getDouble("Platform/JitterRollRms");         
+    // Note that the inputfile lists the jitter RMS values in [arcsec]
+
+    yawRMS          = deg2rad(configParams.getDouble("Platform/JitterYawRms") / 3600.);          
+    pitchRMS        = deg2rad(configParams.getDouble("Platform/JitterPitchRms") / 3600.);        
+    rollRMS         = deg2rad(configParams.getDouble("Platform/JitterRollRms") / 3600.);         
     jitterTimeScale = configParams.getDouble("Platform/JitterTimeScale"); 
     jitterNoiseSeed = configParams.getLong("RandomSeeds/JitterSeed");
 
@@ -80,9 +82,9 @@ void JitterFromRedNoise::configure(ConfigurationParameters &configParams)
  * \note Also during CCD readout, the spacecraft jitters, to the user needs to take this into
  *       account when passing 'timeInterval'.
  * 
- * \param newYaw[out]       Will contain the next yaw value [?]
- * \param newPitch[out]     Will contain the next pitch value [?]
- * \param newRoll[out]      Will contain the next roll value [?]
+ * \param newYaw[out]       Will contain the next yaw value   [rad]
+ * \param newPitch[out]     Will contain the next pitch value [rad]
+ * \param newRoll[out]      Will contain the next roll value  [rad]
  * \param timeInterval[in]  Time interval that has passed since the last getNextYawPitchRoll() request. [s]
  */
 
