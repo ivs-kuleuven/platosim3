@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "armadillo"
+
 #include "Logger.h"
 #include "Units.h"
 #include "Heartbeat.h"
@@ -35,6 +37,9 @@ class Platform : public Heartbeat, HDF5Writer
 
 
     protected:
+
+        arma::colvec rotateYawPitchRoll(arma::colvec coord, const double yaw, const double pitch, const double roll);
+        
 
         double internalTime;                        // [s]
         double currentRA;                           // Right Ascension of pointing axis [rad]

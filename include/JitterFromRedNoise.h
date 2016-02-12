@@ -8,6 +8,7 @@
 #include <functional>
 
 #include "Logger.h"
+#include "Units.h"
 #include "Heartbeat.h"
 #include "HDF5Writer.h"
 #include "ConfigurationParameters.h"
@@ -31,9 +32,9 @@ class JitterFromRedNoise : public JitterGenerator
 
     protected:
 
-        double yawRMS;              // [?] 
-        double pitchRMS;            // [?]
-        double rollRMS;             // [?]
+        double yawRMS;              // [rad] 
+        double pitchRMS;            // [rad]
+        double rollRMS;             // [rad]
         double jitterTimeScale;     // [s]
 
         double lastYaw;
