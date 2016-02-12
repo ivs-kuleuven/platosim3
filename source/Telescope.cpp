@@ -4,13 +4,13 @@
  * Constructor
  * 
  * \param configurationParameters: Configuration parameters for the telescope.
- * \param Platform:                Platform on which the telescope is mounted
  * \param hdf5File                 Output HDF5 file.
+ * \param Platform:                Platform on which the telescope is mounted
  * 
  */
 
-Telescope::Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File)
-: HDF5Writer(hdf5File)
+Telescope::Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File, Platform &platform)
+: HDF5Writer(hdf5File), internalTime(0.0), platform(platform)
 {
 	// Retrieve the Telescope configuration parameters
 
@@ -65,18 +65,17 @@ Telescope::~Telescope()
  * \param configParam: the configuration parameters 
  **/
 
- void Telescope::configure(ConfigurationParameters &configParam)
+ void Telescope::configure(ConfigurationParameters &configParams)
  {
  	// Configuration parameters for the Telescope
 
- 	alphaOpticalAxis        = deg2rad(configParam.getDouble("ObservingParameters/RApointing"));
-	deltaOpticalAxis        = deg2rad(configParam.getDouble("ObservingParameters/DecPointing"));        
-	lightCollectingArea     = configParam.getDouble("Telescope/LightCollectingArea");     
-	transmissionEfficiency  = configParam.getDouble("Telescope/TransmissionEfficiency");  
-	driftYawRms             = configParam.getDouble("Telescope/DriftYawRms");             
-    driftPitchRms           = configParam.getDouble("Telescope/DriftPitchRms");           
-    driftRollRms            = configParam.getDouble("Telescope/DriftRollRms");            
-    driftTimeScale          = configParam.getDouble("Telescope/DriftTimeScale");    
+ 	lightCollectingArea     = configParams.getDouble("Telescope/LightCollectingArea");  
+	transmissionEfficiency  = configParams.getDouble("Telescope/TransmissionEfficiency"); 
+	FOVsolidAngle           = sqDeg2sr(configParams.getDouble("Telescope/FOVSquareDegrees"));  
+	driftYawRms             = configParams.getDouble("Telescope/DriftYawRms");             
+    driftPitchRms           = configParams.getDouble("Telescope/DriftPitchRms");           
+    driftRollRms            = configParams.getDouble("Telescope/DriftRollRms");            
+    driftTimeScale          = configParams.getDouble("Telescope/DriftTimeScale");    
 }
 
 
@@ -88,21 +87,44 @@ Telescope::~Telescope()
 
 
 
-
 /**
- * \brief Set new pointing coordinates of the telescope
- * 
- * \details Set the new equatorial coordinates of the optical axis. These coordinates can change
- *          due to platform jitter and thermo-elastic variations of the telescope.
- *          
- * \param newAlphaOpticalAxis: New right ascension of the optical axis of the telescope [rad]
- * \param newDeltaOpticalAxis: new declination of the optical axis of the telescope [rad]
- */
+ * \brief Update the telescope's pointing coordinates, by evolving the 
+ *        the pointing coordinates (due to e.g. jitter or thermo-elastic variations)
+ *        until time point 'time'.  
+ */ 
 
-void Telescope::setPointingCoordinates(double newAlphaOpticalAxis, double newDeltaOpticalAxis)
+void Telescope::updatePointingCoordinates(double time)
 {
-	alphaOpticalAxis = newAlphaOpticalAxis;
-	deltaOpticalAxis = newDeltaOpticalAxis;
+    // We can't turn back the clock, so 'time' needs to be in the future.
+
+	if (time < internalTime)
+	{
+		Log.error("Telescope: cannot update pointing coordinates to time in the past");
+		exit(1);
+	}
+
+    // If the give time equals exactly the current internal time, then there is nothing to update.
+
+    if (time == internalTime)
+    {
+        return;
+    }
+
+    // Telescope depends on Platform (and its jitter) to get new pointing coordinates.
+    // So first update platform.
+
+    platform.updatePointingCoordinates(time);
+
+    // There is currently no thermo-elastic variations in Telescope, so simply copy the 
+    // pointing coordinates from platform
+
+    tie(alphaOpticalAxis, deltaOpticalAxis) = platform.getPointingCoordinates();
+
+    // Update the internal clock
+
+    internalTime = time;
+	
+    return;
 }
 
 
@@ -123,4 +145,65 @@ pair<double, double> Telescope::getPointingCoordinates()
 {
 	return make_pair(alphaOpticalAxis, deltaOpticalAxis);
 }
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Return the transmission efficiency of the telescope (number between 0 and 1)
+ * 
+ */
+
+double Telescope::getTransmissionEfficiency()
+{
+	return transmissionEfficiency;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Return the effective light collecting area (in [m^2])
+ * 
+ */
+
+
+double Telescope::getLightCollectingArea()
+{
+	return lightCollectingArea;
+}
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Return the solid angle covered by the FOV of 1 telescope [sr]
+ */
+
+double Telescope::getFOVsolidAngle()
+{
+	return FOVsolidAngle;
+}
+
 

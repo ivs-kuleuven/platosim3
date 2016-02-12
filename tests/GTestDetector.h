@@ -47,15 +47,15 @@ class DetectorTest : public testing::Test
 class MyDetector : public Detector
 {
     public:
-        MyDetector(ConfigurationParameters &configParam, HDF5File &hdf5File);
+        MyDetector(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera);
 
         pair<double, double> test_pixelToFocalPlaneCoordinates(double row, double column) {return pixelToFocalPlaneCoordinates(row, column);};
         pair<double, double> test_focalPlaneToPixelCoordinates(double xFPprime, double yFPprime) {return focalPlaneToPixelCoordinates(xFPprime, yFPprime);};
 
 };
 
-MyDetector::MyDetector(ConfigurationParameters &configParam, HDF5File &hdf5File)
-: Detector(configParam, hdf5File)
+MyDetector::MyDetector(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera)
+: Detector(configParam, hdf5File, camera)
 {
 }
 
@@ -66,6 +66,10 @@ TEST_F(DetectorTest, checkConversionsBetweenPixelsAndFocalPlane)
     double xFPprime, yFPprime;
 
     vector<map<string, double>> pixel2fp;
+
+    Sky sky(cp_);
+    Telescope telescope(cp_, hdf5File_);
+    Camera camera(cp_, hdf5File_, telescope, sky);
 
     // Settings for camera A
     pixel2fp.push_back(map<string, double> {{"xCCD",    0.0}, {"yCCD",    0.0}, {"xFP",  -1.0000}, {"yFP",  82.1620}, {"zeroPointX", -1.0000}, {"zeroPointY", 82.1620}, {"ccdAngle", 180.0}});
@@ -88,7 +92,7 @@ TEST_F(DetectorTest, checkConversionsBetweenPixelsAndFocalPlane)
         cp_.setParameter("CCD/OriginOffsetY", to_string(data["zeroPointY"]));
         cp_.setParameter("CCD/Orientation", to_string(data["ccdAngle"]));
     
-        MyDetector detector = MyDetector(cp_, hdf5File_);
+        MyDetector detector = MyDetector(cp_, hdf5File_, camera);
     
         row = data["xCCD"];
         column = data["yCCD"];

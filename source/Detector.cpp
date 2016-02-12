@@ -9,8 +9,8 @@
  * @param configurationParameters: Configuration parameters for the detector.
  * @param camera:                  Camera to which to attach the detector.
  */
-Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file) 
-: HDF5Writer(hdf5file), imageNr(0)
+Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera) 
+: HDF5Writer(hdf5file), internalTime(0.0), camera(camera), imageNr(0)
 {
 	// Create the groups in the HDF5 file where the different maps (i.e. pixel map,
 	// bias register map, smearing map, etc.) will be saved. This needs to be done
@@ -279,6 +279,9 @@ void Detector::reset()
  */
 void Detector::takeExposure(double startTime, double exposureTime)
 {
+	// Advance the internal clock until the given start time
+
+	internalTime = startTime;
 
 	// Integration of point sources and background, taking into account jitter + drift.
 
@@ -290,7 +293,7 @@ void Detector::takeExposure(double startTime, double exposureTime)
 
 	Log.debug("Detector: Adding noise effects to exposure " + to_string(imageNr));
 
-	readOut(exposureTime);
+	readOut();
 
 	// Write the CCD subfield to the HDF5 file
 
@@ -336,7 +339,7 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 	// Integration (incl. jitter) + background
 
-	//camera.exposeSubField(this, exposureTime);
+	camera.exposeDetector(*this, startTime, exposureTime);
 
 	// Apply flatfield (at sub-pixel level)
 
@@ -344,11 +347,15 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 	applyFlatfield();
 
-	// Rebin
+	// Rebin from a subpixel map to a pixel map
 
 	Log.debug("Detector: Rebinning subpixel map into pixel map.");
 
 	rebin();
+
+	// Update the internal clock
+
+	internalTime += exposureTime;
 }
 
 
@@ -427,8 +434,7 @@ void Detector::addFlux(double xCoord, double yCoord, double flux)
  */
 bool Detector::isInSubPixelMap(double row, double column)
 {
-	return (column >= 0) && (row >= 0) && (column < numColumnsSubPixelMap)
-			&& (row < numRowsSubPixelMap);
+	return (column >= 0) && (row >= 0) && (column < numColumnsSubPixelMap) && (row < numRowsSubPixelMap);
 }
 
 
@@ -567,14 +573,12 @@ void Detector::rebin()
  * 	 		- electronic offset (i.e. bias)
  * 	 		- digital saturation
  *
- * @param exposureTime: Exposure time [s].
- *
  * @pre Pixel unit in the pixel map: [photons].
  * @pre Bias register and smearing maps filled with zeroes.
  *
  * @post Pixel unit in the pixel, bias register, and smearing maps: [ADU].
  */
-void Detector::readOut(double exposureTime)
+void Detector::readOut()
 {
 
 	// Apply quantum efficiency
@@ -607,7 +611,7 @@ void Detector::readOut(double exposureTime)
 	// Pixel units before: [electrons]
 	// Pixel units after: [electrons]
 
-	//applyCte();
+//	applyCte();
 
 	// Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
 	// the pixels are still receiving photons from the sky, while they are being transfered towards
@@ -643,6 +647,10 @@ void Detector::readOut(double exposureTime)
 	// Pixel units after: [ADU]
 
 	applyDigitalSaturation();
+
+	// Advance the internal clock
+
+	internalTime += readoutTime;
 }
 
 
@@ -701,7 +709,7 @@ void Detector::addPhotonNoise()
 	{
 		for (unsigned int column = 0; column < numColumnsPixelMap; column++)
 		{
-			photonNoiseDistribution = poisson_distribution<int>(pixelMap(row, column));
+			photonNoiseDistribution = poisson_distribution<long>(pixelMap(row, column));
 			pixelMap(row, column) = photonNoiseDistribution(photonNoiseGenerator);
 		}
 	}
@@ -712,7 +720,7 @@ void Detector::addPhotonNoise()
 	{
 		for (unsigned int column = 0; column < numColumnsPixelMap; column++)
 		{
-			photonNoiseDistribution = poisson_distribution<int>(smearingMap(row, column));
+			photonNoiseDistribution = poisson_distribution<long>(smearingMap(row, column));
 			smearingMap(row, column) = photonNoiseDistribution(photonNoiseGenerator);
 		}
 	}
@@ -767,8 +775,7 @@ void Detector::applyFullWellSaturation()
 				// Transfer excess electrons down
 
 				jmod = row;
-				numExcessElectrons = (pixelValue - fullWellSaturationLimit)
-						/ 2.0;   // Move half of the excess electrons down...
+				numExcessElectrons = (pixelValue - fullWellSaturationLimit) / 2.0;   // Move half of the excess electrons down...
 
 				while (numExcessElectrons > 0 && jmod < numRowsPixelMap)
 				{
@@ -794,8 +801,7 @@ void Detector::applyFullWellSaturation()
 				// Transfer excess electrons up
 
 				jmod = row;
-				numExcessElectrons = (pixelValue - fullWellSaturationLimit)
-						/ 2.0;    // ...and the rest of the excess electrons up
+				numExcessElectrons = (pixelValue - fullWellSaturationLimit) / 2.0;    // ...and the rest of the excess electrons up
 
 				while (numExcessElectrons > 0 && jmod >= 0)
 				{
@@ -854,15 +860,14 @@ void Detector::applyCte()
 
 	float cti = 1.0 - meanCte;
 
-    // Computing the effects of CTE requires the use of a binomial distribution.
-    // To speed up things, we first pre-compute some parts of this distribution.
+	// Computing the effects of CTE requires the use of a binomial distribution.
+	// To speed up things, we first pre-compute some parts of this distribution.
 
 	// Pre-compute the (natural) logarithms of the first N natural numbers
 
 	vector<double> logs(numRowsPixelMap + subFieldZeroPointRow);
 	iota(logs.begin(), logs.end(), 1.0);
-	transform(logs.begin(), logs.end(), logs.begin(),
-			ptr_fun<double, double>(log));
+	transform(logs.begin(), logs.end(), logs.begin(), ptr_fun<double, double>(log));
 
 	// Compute the partial sums of these logarithms
 	// sumOfLogsUpTo[i] contains log((i+1)!) = log(1) + ... + log(i+1)
@@ -878,14 +883,13 @@ void Detector::applyCte()
 		// that are closer to the readout register, row-by-row to the readout
 		// register.
 
-		for (unsigned int trailingRow = 0; trailingRow < numRowsPixelMap - row;
-				trailingRow++)
+		for (unsigned int trailingRow = 0; trailingRow < numRowsPixelMap - row; trailingRow++)
 		{
+			// (1 - CTI)^n * CTI^(N_P - n)
 
-			const double factor1 = pow(meanCte, trailingRow)
-					* pow(cti, row + 1 - trailingRow);// (1 - CTI)^n * CTI^(N_P - n)
+			const double factor1 = pow(meanCte, trailingRow) * pow(cti, row + 1 - trailingRow);
 
-			// Target pixel itself (n = 0)
+					// Target pixel itself (n = 0)
 
 			if (trailingRow == 0)
 			{
@@ -896,14 +900,12 @@ void Detector::applyCte()
 
 			else
 			{
-				const double factor2 = exp(
-						sumOfLogsUpTo[row + subFieldZeroPointRow]
-								- sumOfLogsUpTo[row + subFieldZeroPointRow
-										- trailingRow])
-						- sumOfLogsUpTo[trailingRow - 1];// N_P! / (N_P - n)! / n!
+				// N_P! / (N_P - n)! / n!
 
-				pixelMap(row + trailingRow, arma::span::all) = pixelMap(row,
-						arma::span::all) * factor1 * factor2;
+				const double factor2 = exp(sumOfLogsUpTo[row + subFieldZeroPointRow] - sumOfLogsUpTo[row + subFieldZeroPointRow - trailingRow])
+						              - sumOfLogsUpTo[trailingRow - 1];
+
+				pixelMap(row + trailingRow, arma::span::all) = pixelMap(row, arma::span::all) * factor1 * factor2;
 			}
 		}
 	}

@@ -59,25 +59,43 @@ TEST_F(CameraTest, DISABLED_skyToFocalPlaneCoordinates) {
 
     vector<map<string, double>> gnomonic;
 
-    gnomonic.push_back(map<string, double> {{"raStar",  0.0}, {"decStar",  0.0}, {"xFPprime",  0.0000}, {"yFPprime",  0.0000}, {"radialDistance",   0.0000}});
-    gnomonic.push_back(map<string, double> {{"raStar",  1.0}, {"decStar",  1.0}, {"xFPprime",  4.3206}, {"yFPprime",  4.3212}, {"radialDistance",   1.4141}});
-    gnomonic.push_back(map<string, double> {{"raStar",  2.0}, {"decStar",  2.0}, {"xFPprime",  8.6438}, {"yFPprime",  8.6491}, {"radialDistance",   2.8273}});
-    gnomonic.push_back(map<string, double> {{"raStar",  3.0}, {"decStar",  3.0}, {"xFPprime", 12.9723}, {"yFPprime", 12.9901}, {"radialDistance",   4.2388}});
-    gnomonic.push_back(map<string, double> {{"raStar",  4.0}, {"decStar",  4.0}, {"xFPprime", 17.3088}, {"yFPprime", 17.3510}, {"radialDistance",   5.6477}});
-    gnomonic.push_back(map<string, double> {{"raStar",  5.0}, {"decStar",  5.0}, {"xFPprime", 21.6558}, {"yFPprime", 21.7385}, {"radialDistance",   7.0532}});
-    gnomonic.push_back(map<string, double> {{"raStar",  6.0}, {"decStar",  6.0}, {"xFPprime", 26.0162}, {"yFPprime", 26.1595}, {"radialDistance",   8.4545}});
-    gnomonic.push_back(map<string, double> {{"raStar",  7.0}, {"decStar",  7.0}, {"xFPprime", 30.3925}, {"yFPprime", 30.6208}, {"radialDistance",   9.8508}});
-    gnomonic.push_back(map<string, double> {{"raStar",  8.0}, {"decStar",  8.0}, {"xFPprime", 34.7877}, {"yFPprime", 35.1296}, {"radialDistance",  11.2413}});
-    gnomonic.push_back(map<string, double> {{"raStar",  9.0}, {"decStar",  9.0}, {"xFPprime", 39.2045}, {"yFPprime", 39.6932}, {"radialDistance",  12.6253}});
-    gnomonic.push_back(map<string, double> {{"raStar", 10.0}, {"decStar", 10.0}, {"xFPprime", 43.6458}, {"yFPprime", 44.3191}, {"radialDistance",  14.0019}});
-    gnomonic.push_back(map<string, double> {{"raStar", 11.0}, {"decStar", 11.0}, {"xFPprime", 48.1145}, {"yFPprime", 49.0150}, {"radialDistance",  15.3707}});
-    gnomonic.push_back(map<string, double> {{"raStar", 12.0}, {"decStar", 12.0}, {"xFPprime", 52.6136}, {"yFPprime", 53.7890}, {"radialDistance",  16.7308}});
-    gnomonic.push_back(map<string, double> {{"raStar", 13.0}, {"decStar", 13.0}, {"xFPprime", 57.1462}, {"yFPprime", 58.6494}, {"radialDistance",  18.0817}});
-    gnomonic.push_back(map<string, double> {{"raStar", 13.6}, {"decStar", 13.6}, {"xFPprime", 59.8832}, {"yFPprime", 61.6107}, {"radialDistance",  18.8876}});
+    gnomonic.push_back(map<string, double> {{"raStar",  0.0}, {"decStar",  0.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",   0.0000}});
+    gnomonic.push_back(map<string, double> {{"raStar",  1.0}, {"decStar",  1.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",   1.4141}});
+    gnomonic.push_back(map<string, double> {{"raStar",  2.0}, {"decStar",  2.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",   2.8273}});
+    gnomonic.push_back(map<string, double> {{"raStar",  3.0}, {"decStar",  3.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",   4.2388}});
+    gnomonic.push_back(map<string, double> {{"raStar",  4.0}, {"decStar",  4.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",   5.6477}});
+    gnomonic.push_back(map<string, double> {{"raStar",  5.0}, {"decStar",  5.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",   7.0532}});
+    gnomonic.push_back(map<string, double> {{"raStar",  6.0}, {"decStar",  6.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",   8.4545}});
+    gnomonic.push_back(map<string, double> {{"raStar",  7.0}, {"decStar",  7.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",   9.8508}});
+    gnomonic.push_back(map<string, double> {{"raStar",  8.0}, {"decStar",  8.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",  11.2413}});
+    gnomonic.push_back(map<string, double> {{"raStar",  9.0}, {"decStar",  9.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",  12.6253}});
+    gnomonic.push_back(map<string, double> {{"raStar", 10.0}, {"decStar", 10.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",  14.0019}});
+    gnomonic.push_back(map<string, double> {{"raStar", 11.0}, {"decStar", 11.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",  15.3707}});
+    gnomonic.push_back(map<string, double> {{"raStar", 12.0}, {"decStar", 12.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",  16.7308}});
+    gnomonic.push_back(map<string, double> {{"raStar", 13.0}, {"decStar", 13.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",  18.0817}});
+    gnomonic.push_back(map<string, double> {{"raStar", 13.6}, {"decStar", 13.6}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",  18.8876}});
 
+    ConfigurationParameters cp = ConfigurationParameters();
+    cp.setParameter("Camera/PlateScale", "0.833333333");
+    cp.setParameter("Camera/FocalPlaneOrientation", "0.0");
+    cp.setParameter("Camera/ThroughputBandwidth", "650");
+    cp.setParameter("Camera/ThroughputLambdaC", "550");     
+    cp.setParameter("ObservingParameters/RApointing", "0.0");
+    cp.setParameter("ObservingParameters/DecPointing", "0.0");
+    cp.setParameter("ObservingParameters/StarCatalogFile", "inputfiles/starcatalog.txt"); 
+    cp.setParameter("Telescope/LightCollectingArea", "113.1");
+    cp.setParameter("Telescope/TransmissionEfficiency", "0.757");
+    cp.setParameter("Telescope/FOVSquareDegrees", "1072.0");  
+    cp.setParameter("Telescope/DriftYawRms", "14.0");
+    cp.setParameter("Telescope/DriftPitchRms", "2.3");       
+    cp.setParameter("Telescope/DriftRollRms", "2.3");        
+    cp.setParameter("Telescope/DriftTimeScale", "3600.");  
+
+    HDF5File hdf5File;
+    hdf5File.open("/tmp/cameraTest.hdf5");
     
-    Telescope telescope = Telescope(cp_, hdf5File_);
-    Sky sky = Sky();
+    Telescope telescope = Telescope(cp, hdf5File);
+    Sky sky = Sky(cp);
 
     MyCamera camera = MyCamera(cp_, hdf5File_, telescope, sky);
 

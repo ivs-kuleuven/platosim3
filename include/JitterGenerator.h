@@ -1,10 +1,12 @@
-#ifndef JITTER_H
-#define JITTER_H
+#ifndef JITTERGENERATOR_H
+#define JITTERGENERATOR_H
 
 #include <string>
 #include <vector>
 
 #include "Logger.h"
+#include "Heartbeat.h"
+#include "HDF5Writer.h"
 #include "ConfigurationParameters.h"
 
 
@@ -12,14 +14,14 @@ using namespace std;
 
 
 
-class JitterGenerator
+class JitterGenerator : public Heartbeat
 {
     public:
 
-        JitterGenerator(ConfigurationParameters &configurationParameters);
-        ~JitterGenerator();
+        JitterGenerator(){};
+        ~JitterGenerator(){};
 
-        virtual void getNextYawPitchRoll(double &yaw, double &pitch, double &roll, double timeInterval);
+        virtual void getNextYawPitchRoll(double &yaw, double &pitch, double &roll, double timeInterval) = 0;
 
     protected:
 
