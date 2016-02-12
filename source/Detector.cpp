@@ -612,7 +612,7 @@ void Detector::readOut()
 	// Pixel units before: [electrons]
 	// Pixel units after: [electrons]
 
-//	applyCte();
+	applyCte();
 
 	// Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
 	// the pixels are still receiving photons from the sky, while they are being transfered towards
@@ -846,9 +846,6 @@ void Detector::applyFullWellSaturation()
  *         pixel map. The serial register is assumed to have a CTE of 1, 
  *         unlike the CCD that has a CTE map.
  *
- * NOTE The implementation is based on Eq. (5.2a) on p387 in Chapter 5 of
- *      "Scientific Charge-Coupled Devices" by James R. Janesick.
- *
  * @pre Pixel unit in the pixel map: [electrons].
  * @pre Pixel unit in the smearing map: [electrons].
  * @pre No bias register map.
@@ -879,42 +876,46 @@ void Detector::applyCte()
 	vector<double> sumOfLogsUpTo(numRowsPixelMap + subFieldZeroPointRow);
 	partial_sum(logs.begin(), logs.end(), sumOfLogsUpTo.begin());
 
-	// Loop over all rows in the pixel map
+	arma::Row<float> readout;	// Readout strip
+
+	// Loop over all rows in the pixel map (starting at the row farthest away from
+	// the readout register)
 
 	for (int row = numRowsPixelMap - 1; row >= 0; row--)
 	{
+
+		// Reset the readout register
+
+		readout.zeros(numColumnsPixelMap);
+
 		// Each row picks up flux that is left behind when transferring the rows
 		// that are closer to the readout register, row-by-row to the readout
-		// register.
+		// register (these rows are looped over via the "index" variable - note
+		// that the detector zeropoint is added to it!).
 
-		for (unsigned int trailingRow = 0; trailingRow < numRowsPixelMap - row;
-				trailingRow++)
+		for (unsigned int index = subFieldZeroPointRow;
+				index < row + subFieldZeroPointRow; index++)
 		{
+			const double factor1 = pow(meanCte, index + 1)
+					* pow(cti, row + subFieldZeroPointRow - index);
 
-			const double factor1 = pow(meanCte, trailingRow)
-					* pow(cti, row + 1 - trailingRow);// (1 - CTI)^n * CTI^(N_P - n)
-
-					// Target pixel itself (n = 0)
-
-			if (trailingRow == 0)
+			if ((row + subFieldZeroPointRow == 0) || (index == 0))
 			{
-				pixelMap(row + trailingRow, arma::span::all) *= factor1;
-			}
-
-			// Trailing pixels (n > 0)
-
-			else
+				readout += pixelMap(index - subFieldZeroPointRow,
+						arma::span::all) * factor1;
+			} else
 			{
 				const double factor2 = exp(
-						sumOfLogsUpTo[row + subFieldZeroPointRow]
+						sumOfLogsUpTo[row + subFieldZeroPointRow - 1]
 								- sumOfLogsUpTo[row + subFieldZeroPointRow
-										- trailingRow])
-						- sumOfLogsUpTo[trailingRow - 1];// N_P! / (N_P - n)! / n!
-
-				pixelMap(row + trailingRow, arma::span::all) = pixelMap(row,
+										- index - 1]
+								- sumOfLogsUpTo[index - 1]);
+				readout += pixelMap(index - subFieldZeroPointRow,
 						arma::span::all) * factor1 * factor2;
 			}
 		}
+
+		pixelMap(row, arma::span::all) = readout(0, arma::span::all);
 	}
 
 	// BELOW: OLD IMPLEMENTATION
