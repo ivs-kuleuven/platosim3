@@ -113,7 +113,7 @@ Detector::~Detector()
 	flatfieldSeed           = configParam.getLong("RandomSeeds/FlatFieldSeed");
 //	cteMapSeed              = configParam.getLong("RandomSeeds/CTESeed");
 
-	// Derive the dimensions of the subpixel map
+	// Derive the dimensions of the sub-pixel map
 
 	numRowsSubPixelMap    = numRowsPixelMap    * numSubPixelsPerPixel;	// TODO Add edge pixels
 	numColumnsSubPixelMap = numColumnsPixelMap * numSubPixelsPerPixel;	// TODO Add edge pixels
@@ -293,7 +293,7 @@ void Detector::takeExposure(double startTime, double exposureTime)
 
 	Log.debug("Detector: Adding noise effects to exposure " + to_string(imageNr));
 
-	readOut();
+	readOut(exposureTime);
 
 	// Write the CCD subfield to the HDF5 file
 
@@ -573,12 +573,14 @@ void Detector::rebin()
  * 	 		- electronic offset (i.e. bias)
  * 	 		- digital saturation
  *
+ * @param exposureTime: Exposure time [s].
+ *
  * @pre Pixel unit in the pixel map: [photons].
  * @pre Bias register and smearing maps filled with zeroes.
  *
  * @post Pixel unit in the pixel, bias register, and smearing maps: [ADU].
  */
-void Detector::readOut()
+void Detector::readOut(float exposureTime)
 {
 
 	// Apply quantum efficiency
@@ -617,7 +619,7 @@ void Detector::readOut()
 	// the pixels are still receiving photons from the sky, while they are being transfered towards
 	// the readout register.
 
-	applyOpenShutterSmearing();
+	applyOpenShutterSmearing(exposureTime);
 
 	// Each time the amplifier reads out a pixel, a tiny bit of noise is added.
 	// Add the readout noise.
@@ -986,6 +988,8 @@ void Detector::applyCte()
  * NOTES: A smearing map is created and will be used in photometry to remove 
  *        the smearing effect from the pixel map.
  *
+ * @param exposureTime: Exposure time [s].
+ *
  * @pre Pixel unit in the pixel map: [electrons].
  * @pre Pixel unit in the smearing map: [electrons].
  * @pre No bias register map.
@@ -994,10 +998,28 @@ void Detector::applyCte()
  * @post Pixel unit in the smearing map: [electrons].
  * @post No bias register map.
  */
-void Detector::applyOpenShutterSmearing()
+void Detector::applyOpenShutterSmearing(float exposureTime)
 {
+	// Average out the fluxes in the pixel map per column and make sure it is
+	// scaled with the readout time instead of with the exposure time.
 
-	// TODO
+	arma::Row<float> openShutterSmearing = arma::sum(pixelMap, 0);
+	float factor = (readoutTime / exposureTime) / numRowsPixelMap;
+	openShutterSmearing *= factor;
+
+	// Add the effect of the open-shutter smearing to the pixel map
+
+	for (unsigned int row = 0; row < numRowsPixelMap; row++)
+	{
+		pixelMap(row, arma::span::all) += openShutterSmearing;
+	}
+
+	// Add the effect of the open-shutter smearing to the smearing map
+
+	for (unsigned int row = 0; row < numRowsSmearingMap; row++)
+	{
+		smearingMap(row, arma::span::all) += openShutterSmearing;
+	}
 }
 
 

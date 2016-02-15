@@ -52,12 +52,12 @@ class Detector : public HDF5Writer
         virtual void applyFlatfield();
         virtual void rebin();
         
-        virtual void readOut();
+        virtual void readOut(float exposureTime);
         virtual void applyQuantumEfficiency();
     	virtual void addPhotonNoise();
     	virtual void applyFullWellSaturation();
     	virtual void applyCte();
-    	virtual void applyOpenShutterSmearing();
+    	virtual void applyOpenShutterSmearing(float exposureTime);
     	virtual void addReadoutNoise();
     	virtual void applyGain();
     	virtual void addElectronicOffset();	     
