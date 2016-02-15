@@ -9,7 +9,7 @@
  * @param configurationParameters: Configuration parameters for the detector.
  * @param camera:                  Camera to which to attach the detector.
  */
-Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera) 
+Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera)
 : HDF5Writer(hdf5file), internalTime(0.0), camera(camera), imageNr(0)
 {
 	// Create the groups in the HDF5 file where the different maps (i.e. pixel map,
@@ -382,7 +382,7 @@ void Detector::integrateLight(double startTime, double exposureTime)
  * @post Pixel unit in the sub-pixel map: [photons].
  * @post Pixel, bias register, and smearing maps filled with zeroes.
  */
- 
+
 void Detector::addFlux(double xCoord, double yCoord, double flux)
 {
 
@@ -613,7 +613,7 @@ void Detector::readOut(float exposureTime)
 	// Pixel units before: [electrons]
 	// Pixel units after: [electrons]
 
-//	applyCte();
+	applyCte();
 
 	// Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
 	// the pixels are still receiving photons from the sky, while they are being transfered towards
@@ -1194,13 +1194,13 @@ void Detector::applyDigitalSaturation()
 
 
 /**
- * \brief Compute the (x,y) coordinates in the FP' reference system (not the FP system) given
+ * @brief Compute the (x,y) coordinates in the FP' reference system (not the FP system) given
  *        the (real-valued) pixel coordinates on the CCD.
  *        
- * \param row     Row coordinate, real-valued (e.g. 3.5)    [pix]
- * \param column  Column coordinate, real-valued (e.g. 8.3) [pix]
+ * @param row     Row coordinate, real-valued (e.g. 3.5)    [pix]
+ * @param column  Column coordinate, real-valued (e.g. 8.3) [pix]
  * 
- * \return (xFPprime, yFPprime)  A pair of (x,y) coordinates in the FP' reference system [mm]
+ * @return (xFPprime, yFPprime)  A pair of (x,y) coordinates in the FP' reference system [mm]
  */
 
 pair<double, double> Detector::pixelToFocalPlaneCoordinates(double row, double column)
@@ -1232,13 +1232,13 @@ pair<double, double> Detector::pixelToFocalPlaneCoordinates(double row, double c
 
 
 /**
- * \brief Compute the (real-valued) pixel coordinates of the star on the CCD, given the (x,y)
+ * @brief Compute the (real-valued) pixel coordinates of the star on the CCD, given the (x,y)
  *       coordinates in the FP' reference system (not the FP system)
  *
- * \param xFPprime  x-coordinate of the point in the FP' reference system  [mm]
- * \param yFPprime  y-coordinate of the star in the FP' reference system  [mm]
+ * @param xFPprime  x-coordinate of the point in the FP' reference system  [mm]
+ * @param yFPprime  y-coordinate of the star in the FP' reference system  [mm]
  * 
- * \return (row, column)  Row and column pixel coordinates of the point (real-valued) [pix]
+ * @return (row, column)  Row and column pixel coordinates of the point (real-valued) [pix]
  */
 
 pair<double, double> Detector::focalPlaneToPixelCoordinates(double xFPprime, double yFPprime)
@@ -1271,9 +1271,9 @@ pair<double, double> Detector::focalPlaneToPixelCoordinates(double xFPprime, dou
 
 
 /**
- * \brief  Return the focal plane coordinates of the center pixel of the subfield 
+ * @brief  Return the focal plane coordinates of the center pixel of the subfield
  * 
- * \return (x,y)   focal plane coordinates in the FP' reference system [mm]
+ * @return (x,y)   focal plane coordinates in the FP' reference system [mm]
  */
 
 pair<double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCenter()
@@ -1283,7 +1283,7 @@ pair<double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCenter()
 
 	return pixelToFocalPlaneCoordinates(centerRow, centerCol);
 }
-        
+
 
 
 
@@ -1296,10 +1296,10 @@ pair<double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCenter()
 
 
 /**
- * \brief  Return the distance between the two diagonally opposite corner points of the 
+ * @brief  Return the distance between the two diagonally opposite corner points of the
  *         subfield in [mm] on the focal plane.
  * 
- * \return length  Diagonal distance between the two opposite corners [mm]
+ * @return length  Diagonal distance between the two opposite corners [mm]
  */
 
 double Detector::getDiagonalLengthOfSubfield()
@@ -1371,7 +1371,7 @@ void Detector::initHDF5Groups()
 void Detector::writePixelMapToHDF5()
 {
 	stringstream myStream;
-    myStream << "image" << setfill('0') << setw(6) << imageNr;    
+    myStream << "image" << setfill('0') << setw(6) << imageNr;
     string imageName = myStream.str();
 
     // Add the image to the "Images" group
