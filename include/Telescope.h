@@ -13,6 +13,7 @@
 using namespace std;
 
 
+class Platform;  // Forward declaration
 
 
 class Telescope  : public Heartbeat, HDF5Writer
@@ -47,7 +48,7 @@ class Telescope  : public Heartbeat, HDF5Writer
 	private:
 
 		double internalTime;               // Internal clock
-		Platform platform;
+		Platform &platform;
 };
 
 #endif

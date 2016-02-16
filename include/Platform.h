@@ -11,12 +11,15 @@
 #include "Heartbeat.h"
 #include "HDF5Writer.h"
 #include "HDF5File.h"
+#include "Telescope.h"
 #include "ConfigurationParameters.h"
 #include "JitterGenerator.h"
 
 
 using namespace std;
 
+
+class Telescope;  // forward declaration
 
 
 
@@ -29,7 +32,7 @@ class Platform : public Heartbeat, HDF5Writer
 
         virtual void configure(ConfigurationParameters &configParams);
 
-        void updatePointingCoordinates(double time);
+        void updatePointingCoordinates(Telescope const &telescope, double time);
         void setPointingCoordinates(double rightAscencsion, double declination, Unit unit = Angle::degrees);
         pair<double, double> getPointingCoordinates();
 

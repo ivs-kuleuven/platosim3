@@ -113,7 +113,7 @@ void Telescope::updatePointingCoordinates(double time)
     // Telescope depends on Platform (and its jitter) to get new pointing coordinates.
     // So first update platform.
 
-    platform.updatePointingCoordinates(time);
+    platform.updatePointingCoordinates(*this, time);
 
     // There is currently no thermo-elastic variations in Telescope, so simply copy the 
     // pointing coordinates from platform

@@ -107,7 +107,7 @@ pair<double, double> Platform::getPointingCoordinates()
  * \param time [s]
  */
 
-void Platform::updatePointingCoordinates(double time)
+void Platform::updatePointingCoordinates(Telescope const &telescope, double time)
 {
     internalTime = time;
     return;
