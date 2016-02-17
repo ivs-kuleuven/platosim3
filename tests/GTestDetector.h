@@ -4,8 +4,7 @@
 
 #include "gtest/gtest.h"
 
-#include "Detector.h"
-#include "HDF5File.h"
+#include "Simulation.h"
 
 
 using namespace std;
@@ -67,8 +66,10 @@ TEST_F(DetectorTest, checkConversionsBetweenPixelsAndFocalPlane)
 
     vector<map<string, double>> pixel2fp;
 
+    JitterGenerator *jitterGenerator = new JitterFromRedNoise(cp_);
+    Platform platform(cp_, hdf5File_, *jitterGenerator);
     Sky sky(cp_);
-    Telescope telescope(cp_, hdf5File_);
+    Telescope telescope(cp_, hdf5File_, platform);
     Camera camera(cp_, hdf5File_, telescope, sky);
 
     // Settings for camera A
