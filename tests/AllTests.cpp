@@ -9,6 +9,7 @@
 #include "GTestCamera.h"
 #include "GTestDetector.h"
 #include "GTestUnits.h"
+#include "GTestArrayOperations.h"
 #include "PrettyPrinters.h"
 
 Logger Log;
