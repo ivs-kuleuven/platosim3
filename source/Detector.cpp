@@ -9,7 +9,7 @@
  * @param configurationParameters: Configuration parameters for the detector.
  * @param camera:                  Camera to which to attach the detector.
  */
-Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera) 
+Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera)
 : HDF5Writer(hdf5file), internalTime(0.0), camera(camera), imageNr(0)
 {
 	// Create the groups in the HDF5 file where the different maps (i.e. pixel map,
@@ -113,7 +113,7 @@ Detector::~Detector()
 	flatfieldSeed           = configParam.getLong("RandomSeeds/FlatFieldSeed");
 //	cteMapSeed              = configParam.getLong("RandomSeeds/CTESeed");
 
-	// Derive the dimensions of the subpixel map
+	// Derive the dimensions of the sub-pixel map
 
 	numRowsSubPixelMap    = numRowsPixelMap    * numSubPixelsPerPixel;	// TODO Add edge pixels
 	numColumnsSubPixelMap = numColumnsPixelMap * numSubPixelsPerPixel;	// TODO Add edge pixels
@@ -293,7 +293,7 @@ void Detector::takeExposure(double startTime, double exposureTime)
 
 	Log.debug("Detector: Adding noise effects to exposure " + to_string(imageNr));
 
-	readOut();
+	readOut(exposureTime);
 
 	// Write the CCD subfield to the HDF5 file
 
@@ -382,7 +382,7 @@ void Detector::integrateLight(double startTime, double exposureTime)
  * @post Pixel unit in the sub-pixel map: [photons].
  * @post Pixel, bias register, and smearing maps filled with zeroes.
  */
- 
+
 void Detector::addFlux(double xCoord, double yCoord, double flux)
 {
 
@@ -573,12 +573,14 @@ void Detector::rebin()
  * 	 		- electronic offset (i.e. bias)
  * 	 		- digital saturation
  *
+ * @param exposureTime: Exposure time [s].
+ *
  * @pre Pixel unit in the pixel map: [photons].
  * @pre Bias register and smearing maps filled with zeroes.
  *
  * @post Pixel unit in the pixel, bias register, and smearing maps: [ADU].
  */
-void Detector::readOut()
+void Detector::readOut(float exposureTime)
 {
 
 	// Apply quantum efficiency
@@ -611,13 +613,13 @@ void Detector::readOut()
 	// Pixel units before: [electrons]
 	// Pixel units after: [electrons]
 
-//	applyCte();
+	applyCte();
 
 	// Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
 	// the pixels are still receiving photons from the sky, while they are being transfered towards
 	// the readout register.
 
-	applyOpenShutterSmearing();
+	applyOpenShutterSmearing(exposureTime);
 
 	// Each time the amplifier reads out a pixel, a tiny bit of noise is added.
 	// Add the readout noise.
@@ -986,6 +988,8 @@ void Detector::applyCte()
  * NOTES: A smearing map is created and will be used in photometry to remove 
  *        the smearing effect from the pixel map.
  *
+ * @param exposureTime: Exposure time [s].
+ *
  * @pre Pixel unit in the pixel map: [electrons].
  * @pre Pixel unit in the smearing map: [electrons].
  * @pre No bias register map.
@@ -994,10 +998,28 @@ void Detector::applyCte()
  * @post Pixel unit in the smearing map: [electrons].
  * @post No bias register map.
  */
-void Detector::applyOpenShutterSmearing()
+void Detector::applyOpenShutterSmearing(float exposureTime)
 {
+	// Average out the fluxes in the pixel map per column and make sure it is
+	// scaled with the readout time instead of with the exposure time.
 
-	// TODO
+	arma::Row<float> openShutterSmearing = arma::sum(pixelMap, 0);
+	float factor = (readoutTime / exposureTime) / numRowsPixelMap;
+	openShutterSmearing *= factor;
+
+	// Add the effect of the open-shutter smearing to the pixel map
+
+	for (unsigned int row = 0; row < numRowsPixelMap; row++)
+	{
+		pixelMap(row, arma::span::all) += openShutterSmearing;
+	}
+
+	// Add the effect of the open-shutter smearing to the smearing map
+
+	for (unsigned int row = 0; row < numRowsSmearingMap; row++)
+	{
+		smearingMap(row, arma::span::all) += openShutterSmearing;
+	}
 }
 
 
@@ -1172,13 +1194,13 @@ void Detector::applyDigitalSaturation()
 
 
 /**
- * \brief Compute the (x,y) coordinates in the FP' reference system (not the FP system) given
+ * @brief Compute the (x,y) coordinates in the FP' reference system (not the FP system) given
  *        the (real-valued) pixel coordinates on the CCD.
  *        
- * \param row     Row coordinate, real-valued (e.g. 3.5)    [pix]
- * \param column  Column coordinate, real-valued (e.g. 8.3) [pix]
+ * @param row     Row coordinate, real-valued (e.g. 3.5)    [pix]
+ * @param column  Column coordinate, real-valued (e.g. 8.3) [pix]
  * 
- * \return (xFPprime, yFPprime)  A pair of (x,y) coordinates in the FP' reference system [mm]
+ * @return (xFPprime, yFPprime)  A pair of (x,y) coordinates in the FP' reference system [mm]
  */
 
 pair<double, double> Detector::pixelToFocalPlaneCoordinates(double row, double column)
@@ -1210,13 +1232,13 @@ pair<double, double> Detector::pixelToFocalPlaneCoordinates(double row, double c
 
 
 /**
- * \brief Compute the (real-valued) pixel coordinates of the star on the CCD, given the (x,y)
+ * @brief Compute the (real-valued) pixel coordinates of the star on the CCD, given the (x,y)
  *       coordinates in the FP' reference system (not the FP system)
  *
- * \param xFPprime  x-coordinate of the point in the FP' reference system  [mm]
- * \param yFPprime  y-coordinate of the star in the FP' reference system  [mm]
+ * @param xFPprime  x-coordinate of the point in the FP' reference system  [mm]
+ * @param yFPprime  y-coordinate of the star in the FP' reference system  [mm]
  * 
- * \return (row, column)  Row and column pixel coordinates of the point (real-valued) [pix]
+ * @return (row, column)  Row and column pixel coordinates of the point (real-valued) [pix]
  */
 
 pair<double, double> Detector::focalPlaneToPixelCoordinates(double xFPprime, double yFPprime)
@@ -1249,9 +1271,9 @@ pair<double, double> Detector::focalPlaneToPixelCoordinates(double xFPprime, dou
 
 
 /**
- * \brief  Return the focal plane coordinates of the center pixel of the subfield 
+ * @brief  Return the focal plane coordinates of the center pixel of the subfield
  * 
- * \return (x,y)   focal plane coordinates in the FP' reference system [mm]
+ * @return (x,y)   focal plane coordinates in the FP' reference system [mm]
  */
 
 pair<double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCenter()
@@ -1261,7 +1283,7 @@ pair<double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCenter()
 
 	return pixelToFocalPlaneCoordinates(centerRow, centerCol);
 }
-        
+
 
 
 
@@ -1274,10 +1296,10 @@ pair<double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCenter()
 
 
 /**
- * \brief  Return the distance between the two diagonally opposite corner points of the 
+ * @brief  Return the distance between the two diagonally opposite corner points of the
  *         subfield in [mm] on the focal plane.
  * 
- * \return length  Diagonal distance between the two opposite corners [mm]
+ * @return length  Diagonal distance between the two opposite corners [mm]
  */
 
 double Detector::getDiagonalLengthOfSubfield()
@@ -1349,7 +1371,7 @@ void Detector::initHDF5Groups()
 void Detector::writePixelMapToHDF5()
 {
 	stringstream myStream;
-    myStream << "image" << setfill('0') << setw(6) << imageNr;    
+    myStream << "image" << setfill('0') << setw(6) << imageNr;
     string imageName = myStream.str();
 
     // Add the image to the "Images" group
