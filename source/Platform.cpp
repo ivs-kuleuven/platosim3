@@ -49,9 +49,14 @@ Platform::~Platform()
 
 void Platform::configure(ConfigurationParameters &configParams)
 {
-    currentRA  = deg2rad(configParams.getDouble("ObservingParameters/RApointing"));            
-    currentDec = deg2rad(configParams.getDouble("ObservingParameters/DecPointing"));     
+    originalRA  = deg2rad(configParams.getDouble("ObservingParameters/RApointing"));            
+    originalDec = deg2rad(configParams.getDouble("ObservingParameters/DecPointing"));     
+    currentRA   = originalRA;
+    currentDec  = originalDec;
 }
+
+
+
 
 
 
@@ -70,8 +75,11 @@ void Platform::configure(ConfigurationParameters &configParams)
 
 void Platform::setPointingCoordinates(double rightAscencsion, double declination, Unit unit)
 {
-    currentRA = rightAscencsion / unit;
-    currentDec = declination / unit;
+    originalRA = rightAscencsion / unit;
+    originalDec = declination / unit;
+
+    currentRA  = originalRA;
+    currentDec = originalDec;
 }
 
 
@@ -83,12 +91,12 @@ void Platform::setPointingCoordinates(double rightAscencsion, double declination
 
 
 /**
- * \brief Return the current pointing coordinates of the spacecraft
+ * \brief Return the current sky pointing coordinates of the spacecraft
  * 
  * \return (alpha, delta)    RA & dec [rad] of the current pointing
  */
 
-pair<double, double> Platform::getPointingCoordinates()
+pair<double, double> Platform::getCurrentPointingCoordinates()
 {
     return make_pair(currentRA, currentDec);
 }

@@ -34,7 +34,7 @@ class Platform : public Heartbeat, HDF5Writer
 
         void updatePointingCoordinates(Telescope const &telescope, double time);
         void setPointingCoordinates(double rightAscencsion, double declination, Unit unit = Angle::degrees);
-        pair<double, double> getPointingCoordinates();
+        pair<double, double> getCurrentPointingCoordinates();
 
         virtual double getHeartbeatInterval() override;
 
@@ -45,8 +45,10 @@ class Platform : public Heartbeat, HDF5Writer
         
 
         double internalTime;                        // [s]
-        double currentRA;                           // Right Ascension of pointing axis [rad]
-        double currentDec;                          // Declination of pointing axis     [rad]
+        double currentRA;                           // Current right Ascension of spacecraft pointing axis (zSC-axis) [rad]
+        double currentDec;                          // Current declination     of spacecraft pointing axis (zSC-axis) [rad]
+        double originalRA;                          // Original user-given right Ascension of spacecraft pointing axis (zSC-axis) [rad]
+        double originalDec;                         // Original user-given declination     of spacecraft pointing axis (zSC-axis) [rad]
 
         JitterGenerator &jitterGenerator; 
  

@@ -118,7 +118,7 @@ void Telescope::updatePointingCoordinates(double time)
     // There is currently no thermo-elastic variations in Telescope, so simply copy the 
     // pointing coordinates from platform
 
-    tie(alphaOpticalAxis, deltaOpticalAxis) = platform.getPointingCoordinates();
+    tie(currentAlphaOpticalAxis, currentDeltaOpticalAxis) = platform.getCurrentPointingCoordinates();
 
     // Update the internal clock
 
@@ -141,9 +141,9 @@ void Telescope::updatePointingCoordinates(double time)
  * \return a pair (alphaOpticalAxis, deltaOpticalAxis)  in [rad]
  */
 
-pair<double, double> Telescope::getPointingCoordinates()
+pair<double, double> Telescope::getCurrentPointingCoordinates()
 {
-	return make_pair(alphaOpticalAxis, deltaOpticalAxis);
+	return make_pair(currentAlphaOpticalAxis, currentDeltaOpticalAxis);
 }
 
 
