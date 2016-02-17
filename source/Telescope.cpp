@@ -72,9 +72,9 @@ Telescope::~Telescope()
  	lightCollectingArea     = configParams.getDouble("Telescope/LightCollectingArea");  
 	transmissionEfficiency  = configParams.getDouble("Telescope/TransmissionEfficiency"); 
 	FOVsolidAngle           = sqDeg2sr(configParams.getDouble("Telescope/FOVSquareDegrees"));  
-	driftYawRms             = configParams.getDouble("Telescope/DriftYawRms");             
-    driftPitchRms           = configParams.getDouble("Telescope/DriftPitchRms");           
-    driftRollRms            = configParams.getDouble("Telescope/DriftRollRms");            
+	driftYawRms             = deg2rad(configParams.getDouble("Telescope/DriftYawRms") / 3600.);             
+    driftPitchRms           = deg2rad(configParams.getDouble("Telescope/DriftPitchRms") / 3600.);           
+    driftRollRms            = deg2rad(configParams.getDouble("Telescope/DriftRollRms") /3600.);            
     driftTimeScale          = configParams.getDouble("Telescope/DriftTimeScale");    
 }
 
