@@ -72,9 +72,9 @@ Telescope::~Telescope()
  	lightCollectingArea     = configParams.getDouble("Telescope/LightCollectingArea");  
 	transmissionEfficiency  = configParams.getDouble("Telescope/TransmissionEfficiency"); 
 	FOVsolidAngle           = sqDeg2sr(configParams.getDouble("Telescope/FOVSquareDegrees"));  
-	driftYawRms             = configParams.getDouble("Telescope/DriftYawRms");             
-    driftPitchRms           = configParams.getDouble("Telescope/DriftPitchRms");           
-    driftRollRms            = configParams.getDouble("Telescope/DriftRollRms");            
+	driftYawRms             = deg2rad(configParams.getDouble("Telescope/DriftYawRms") / 3600.);             
+    driftPitchRms           = deg2rad(configParams.getDouble("Telescope/DriftPitchRms") / 3600.);           
+    driftRollRms            = deg2rad(configParams.getDouble("Telescope/DriftRollRms") /3600.);            
     driftTimeScale          = configParams.getDouble("Telescope/DriftTimeScale");    
 }
 
@@ -113,12 +113,12 @@ void Telescope::updatePointingCoordinates(double time)
     // Telescope depends on Platform (and its jitter) to get new pointing coordinates.
     // So first update platform.
 
-    platform.updatePointingCoordinates(time);
+    platform.updatePointingCoordinates(*this, time);
 
     // There is currently no thermo-elastic variations in Telescope, so simply copy the 
     // pointing coordinates from platform
 
-    tie(alphaOpticalAxis, deltaOpticalAxis) = platform.getPointingCoordinates();
+    tie(currentAlphaOpticalAxis, currentDeltaOpticalAxis) = platform.getCurrentPointingCoordinates();
 
     // Update the internal clock
 
@@ -141,9 +141,9 @@ void Telescope::updatePointingCoordinates(double time)
  * \return a pair (alphaOpticalAxis, deltaOpticalAxis)  in [rad]
  */
 
-pair<double, double> Telescope::getPointingCoordinates()
+pair<double, double> Telescope::getCurrentPointingCoordinates()
 {
-	return make_pair(alphaOpticalAxis, deltaOpticalAxis);
+	return make_pair(currentAlphaOpticalAxis, currentDeltaOpticalAxis);
 }
 
 
@@ -206,4 +206,66 @@ double Telescope::getFOVsolidAngle()
 	return FOVsolidAngle;
 }
 
+
+
+
+
+
+
+
+/**
+ * \brief  Compute the cartesian coordinates of a point w.r.t. focal plane reference frame, given the cartesian
+ *         coordinates in the spacecraft reference system.
+ *         
+ * \details See technical note PLATO-KUL-PL-TN-001 (De Ridder et al.)
+ * 
+ * \param xSC  X-coordinate in the spacecraft reference frame
+ * \param ySC  Y-coordinate in the spacecraft reference frame
+ * \param zSC  Z-coordinate in the spacecraft reference frame
+ * \return (xFP, yFP, zFP)  Cartesian coordinates in the Focal Plane (NOT xFPprime, yFPprime, zFPprime) 
+ */
+
+tuple<double, double, double> Telescope::spacecraftToFocalPlaneCoordinates(const double xSC, const double ySC, const double zSC)
+{
+    // Currently the spacecraft frame equals the focal plane reference frame
+    // => jitter axis = optical axis
+
+    const double xFP = xSC;
+    const double yFP = ySC;
+    const double zFP = zSC;
+
+    return make_tuple(xFP, yFP, zFP);
+}
+
+
+
+
+
+
+
+
+
+/**
+ * \brief  Compute the cartesian coordinates of a point w.r.t. spacecraft reference frame, given the cartesian
+ *         coordinates in the focal plane reference system.
+ *         
+ * \details See technical note PLATO-KUL-PL-TN-001 (De Ridder et al.)
+ * 
+ * \param xFP  X-coordinate in the spacecraft reference frame  (not xFPprime)
+ * \param yFP  Y-coordinate in the spacecraft reference frame  (not yFPprime)
+ * \param zFP  Z-coordinate in the spacecraft reference frame  (not zFPprime)
+ * \return (xSC, ySC, zSC)  Cartesian coordinates in the Focal Plane reference frame.
+ */
+
+tuple<double, double, double> Telescope::focalPlaneToSpacecraftCoordinates(const double xFP, const double yFP, const double zFP)
+{
+    // Currently the spacecraft frame equals the focal plane reference frame
+    // => jitter axis = optical axis
+
+    const double xSC = xFP;
+    const double ySC = yFP;
+    const double zSC = zFP;
+
+    return make_tuple(xSC, ySC, zSC);
+}
 

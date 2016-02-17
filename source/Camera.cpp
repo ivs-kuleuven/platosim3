@@ -247,7 +247,7 @@ pair<double, double> Camera::skyToFocalPlaneCoordinates(double raStar, double de
     // Get the equatorial coordinates of the optical axis [rad]
 
     double raOpticalAxis, decOpticalAxis;
-    tie(raOpticalAxis, decOpticalAxis) = telescope.getPointingCoordinates();
+    tie(raOpticalAxis, decOpticalAxis) = telescope.getCurrentPointingCoordinates();
 
     // Project the sky to the focal plane in the "FP" coordinate system (gnomonic projection)
 
@@ -311,7 +311,7 @@ pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFPprimeStar, dou
     // Get the equatorial coordinates of the optical axis [rad]
 
     double raOpticalAxis, decOpticalAxis;
-    tie(raOpticalAxis, decOpticalAxis) = telescope.getPointingCoordinates();
+    tie(raOpticalAxis, decOpticalAxis) = telescope.getCurrentPointingCoordinates();
 
     // Project the focal plane in the "FP" coordinate system to the sky
 

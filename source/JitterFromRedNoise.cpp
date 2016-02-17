@@ -77,7 +77,9 @@ void JitterFromRedNoise::configure(ConfigurationParameters &configParams)
 
 
 /**
- * \brief Get the next (yaw, pitch, roll) values using a Brownian motion model
+ * \brief Get the next (yaw, pitch, roll) values using a Brownian motion model. These yaw, pitch,
+ *        and roll values are with respect to the original pointing (at t=0), NOT with respect to 
+ *        the last pointing.
  * 
  * \note Also during CCD readout, the spacecraft jitters, to the user needs to take this into
  *       account when passing 'timeInterval'.
