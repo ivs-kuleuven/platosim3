@@ -53,7 +53,7 @@ MyCamera::MyCamera(ConfigurationParameters &configParam, HDF5File &hdf5file, Tel
 
 // This test is DISABLED_ in the public master as I'm still working on the code and the tests fail currently.
 // The code itself is not activated yet in platosim.
-TEST_F(CameraTest, skyToFocalPlaneCoordinates) {
+TEST_F(CameraTest, DISABLED_skyToFocalPlaneCoordinates) {
 
     vector<map<string, double>> gnomonic;
 
@@ -90,31 +90,31 @@ TEST_F(CameraTest, skyToFocalPlaneCoordinates) {
     double raStar2, decStar2;    // [rad]
     double radialDistance;       // [deg]
 
-//    for (auto &data: gnomonic)
-//    {
-//        raStar = deg2rad(data["raStar"]);
-//        decStar = deg2rad(data["decStar"]);
-//
-//        tie(xFPprime, yFPprime) = camera.test_skyToFocalPlaneCoordinates(raStar, decStar);    // [radians] -> [mm]
-//
-//        tie(raStar2, decStar2) = camera.test_focalPlaneToSkyCoordinates(xFPprime, yFPprime);  // [mm] -> [radians]
-//
-//        radialDistance = camera.test_getGnomonicRadialDistance(xFPprime, yFPprime); // [mm] -> [degrees]
-//
-//        EXPECT_DOUBLE_EQ(raStar, raStar2);
-//        EXPECT_DOUBLE_EQ(decStar, decStar2);
-//
-//        //EXPECT_NEAR(data["xFPprime"], xFPprime, 0.0001);
-//        //EXPECT_NEAR(data["yFPprime"], yFPprime, 0.0001);
-//        EXPECT_NEAR(data["radialDistance"], radialDistance, 0.00001);
-//
-//
-//        Log.debug("CameraTest.skyToFocalPlaneCoordinates: raStar, decStar = " + to_string(raStar) + ", " + to_string(decStar));
-//        Log.debug("CameraTest.skyToFocalPlaneCoordinates: raStar2, decStar2 = " + to_string(raStar2) + ", " + to_string(decStar2));
-//        Log.debug("CameraTest.skyToFocalPlaneCoordinates: xFPprime, yFPprime = " + to_string(xFPprime) + ", " + to_string(yFPprime));
-//        Log.debug("CameraTest.skyToFocalPlaneCoordinates: radialDistance = " + to_string(radialDistance));
-//
-//    }
+    for (auto &data: gnomonic)
+    {
+        raStar = deg2rad(data["raStar"]);
+        decStar = deg2rad(data["decStar"]);
+
+        tie(xFPprime, yFPprime) = camera.test_skyToFocalPlaneCoordinates(raStar, decStar);    // [radians] -> [mm]
+
+        tie(raStar2, decStar2) = camera.test_focalPlaneToSkyCoordinates(xFPprime, yFPprime);  // [mm] -> [radians]
+
+        radialDistance = camera.test_getGnomonicRadialDistance(xFPprime, yFPprime); // [mm] -> [degrees]
+
+        EXPECT_DOUBLE_EQ(raStar, raStar2);
+        EXPECT_DOUBLE_EQ(decStar, decStar2);
+
+        //EXPECT_NEAR(data["xFPprime"], xFPprime, 0.0001);
+        //EXPECT_NEAR(data["yFPprime"], yFPprime, 0.0001);
+        EXPECT_NEAR(data["radialDistance"], radialDistance, 0.00001);
+
+
+        Log.debug("CameraTest.skyToFocalPlaneCoordinates: raStar, decStar = " + to_string(raStar) + ", " + to_string(decStar));
+        Log.debug("CameraTest.skyToFocalPlaneCoordinates: raStar2, decStar2 = " + to_string(raStar2) + ", " + to_string(decStar2));
+        Log.debug("CameraTest.skyToFocalPlaneCoordinates: xFPprime, yFPprime = " + to_string(xFPprime) + ", " + to_string(yFPprime));
+        Log.debug("CameraTest.skyToFocalPlaneCoordinates: radialDistance = " + to_string(radialDistance));
+
+    }
 
     tie(raStar, decStar) = camera.test_focalPlaneToSkyCoordinates(8.6354, 8.6354);
 

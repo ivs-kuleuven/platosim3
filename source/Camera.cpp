@@ -1,4 +1,34 @@
-
+/**
+ * \class     Camera 
+ * 
+ * \brief     Handle the distortions and effects that are cause by the optical system of the Telescope.
+ * 
+ * \details
+ * 
+ * The Camera is basically the set of six lenses with their mechanical mounts and support 
+ * structure also known as the TOU or Telescope Optical Units. The lenses distort the 
+ * incoming light in several ways. The following effects are due to the setup and 
+ * characteristics of the lenses:
+ *
+ *   * Image Quality (Enclosed Energy)
+ *   * Optical distortion
+ *   * Vignetting
+ *   * Point Spread Function (PSF)
+ *   * PSF Breathing due to thermal variations
+ *   * Transmission Efficiency
+ *   * Straylight
+ *   * Lens degradation and contamination (??)
+ * 
+ * Not all above effects are implemented in the PLATO Simulator at this point. We concentrate on the 
+ * most distinct effects like PSF, optical distortion, and vignetting.
+ * 
+ * The lenses are the main source of point source spreading over the detector array. The camera is 
+ * therefore the obvious choice for applying the PSF correction. The PSF itself is described in it’s 
+ * own class, see PointSpreadFunction Class.
+ * 
+ * 
+ * 
+ */
 #include "Camera.h"
 #include "Units.h"
 #include "Constants.h"
