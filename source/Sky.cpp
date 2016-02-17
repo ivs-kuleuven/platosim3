@@ -71,8 +71,7 @@ Sky::~Sky()
 
 void Sky::configure(ConfigurationParameters &configParams)
 {
-    string projectRootPath = configParams.getString("General/ProjectLocation");
-    starInputfile = projectRootPath + "/" + configParams.getString("ObservingParameters/StarCatalogFile");
+    starInputfile = configParams.getAbsoluteFilename("ObservingParameters/StarCatalogFile");
 }
 
 
