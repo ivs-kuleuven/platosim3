@@ -16,7 +16,6 @@
 #include "Telescope.h"
 #include "Detector.h"
 #include "Sky.h"
-#include "Telescope.h"
 
 
 using namespace std;
