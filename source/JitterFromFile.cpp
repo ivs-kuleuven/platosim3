@@ -27,10 +27,10 @@ JitterFromFile::JitterFromFile(ConfigurationParameters &configParams)
         {
             istringstream buffer(temp);
             vector<double> numbers((istream_iterator<double>(buffer)), istream_iterator<double>());
-            time[n]  = numbers[0];
-            yaw[n]   = numbers[1];
-            pitch[n] = numbers[2];
-            roll[n]  = numbers[3];
+            time[n]  = numbers[0];       
+            yaw[n]   = numbers[1];      // [rad]
+            pitch[n] = numbers[2];      // [rad]
+            roll[n]  = numbers[3];      // [rad]
             n++;
         }
 
@@ -106,12 +106,13 @@ void JitterFromFile::configure(ConfigurationParameters &configParams)
 
 /**
  * \brief Get the next (yaw, pitch, roll) values from the pre-computed jitter series.
+ * 
  * \details A linear interpolation between time points will be done if the timeInterval 
  *          does not coincide with the time step of the jitter file.
  * 
- * \param newYaw[out]       Will contain the next yaw value [?]
- * \param newPitch[out]     Will contain the next pitch value [?]
- * \param newRoll[out]      Will contain the next roll value [?]
+ * \param newYaw[out]       Will contain the next yaw value   [rad]
+ * \param newPitch[out]     Will contain the next pitch value [rad]
+ * \param newRoll[out]      Will contain the next roll value  [rad]
  * \param timeInterval[in]  Time interval that has passed since the last getNextYawPitchRoll() request. [s]
  */
 
