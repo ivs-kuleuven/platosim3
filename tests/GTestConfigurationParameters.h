@@ -141,14 +141,14 @@ TEST(ConfigurationParametersTest, testNonExistingKey)
             string(ex.what()).substr(0, 56));
     }
 
-    ASSERT_THROW(bool unknown = cp.getBoolean("UnknownNode"), IllegalArgumentException);
-    ASSERT_THROW(bool unknown = cp.getBoolean("Special Values/UnknownSubNode"), IllegalArgumentException);
+    ASSERT_THROW(cp.getBoolean("UnknownNode"), IllegalArgumentException);
+    ASSERT_THROW(cp.getBoolean("Special Values/UnknownSubNode"), IllegalArgumentException);
 
-    ASSERT_THROW(int unknown = cp.getInteger("UnknownNode"), IllegalArgumentException);
-    ASSERT_THROW(int unknown = cp.getInteger("Special Values/UnknownSubNode"), IllegalArgumentException);
+    ASSERT_THROW(cp.getInteger("UnknownNode"), IllegalArgumentException);
+    ASSERT_THROW(cp.getInteger("Special Values/UnknownSubNode"), IllegalArgumentException);
 
-    ASSERT_THROW(double unknown = cp.getDouble("UnknownNode"), IllegalArgumentException);
-    ASSERT_THROW(double unknown = cp.getDouble("Special Values/UnknownSubNode"), IllegalArgumentException);
+    ASSERT_THROW(cp.getDouble("UnknownNode"), IllegalArgumentException);
+    ASSERT_THROW(cp.getDouble("Special Values/UnknownSubNode"), IllegalArgumentException);
 
     ASSERT_THROW(string unknown = cp.getAbsoluteFilename("UnknownNode"), IllegalArgumentException);
     ASSERT_THROW(string unknown = cp.getAbsoluteFilename("Special Values/UnknownSubNode"), IllegalArgumentException);
