@@ -5,24 +5,11 @@
 
 #include "Simulation.h"
 #include "Coordinates.h"
-#include "FileUtilities.h"
 
 
-/**
- * \class CameraTest
- * 
- * \brief Test Fixture for the Camera class. 
- * 
- * \details
- * 
- * Setup configuration parameters for the Camera class and handle the HDF5 open-close.
- * 
- * Input parameters for this test are located in the file 'input_CameraTest.yaml' in the
- * testData directory of the distribution.
- * 
- * The test creates an HDF5 file 'cameraTest.hdf5' in the current working directory. This file is removed after the test finishes.
- */
-
+// Test Fixture: setup configuration parameters for the Camera class
+//               and handle the HDF5 open-close.
+//               
 class CameraTest : public testing::Test
 {
     protected:
@@ -31,28 +18,21 @@ class CameraTest : public testing::Test
         {
             cp_ = ConfigurationParameters("../testData/input_CameraTest.yaml");
         
+            remove(hdf5Filename.c_str());
             hdf5File_.open(hdf5Filename);
         }
 
         virtual void TearDown()
         {
             hdf5File_.close();
-            FileUtilities::remove(hdf5Filename);
         }
 
-        string hdf5Filename = "cameraTest.hdf5";
+        string hdf5Filename = "/tmp/cameraTest.hdf5";
         ConfigurationParameters cp_;
         HDF5File hdf5File_;
 };
 
-
-
-
-/**
- * 
- * \brief This subclass of Camera serves the sole purpose of testing protected methods of Camera.
- * 
- */
+// This subclass of Camera serves the sole purpose of testing protected methods of Camera.
 
 class MyCamera : public Camera
 {
@@ -70,10 +50,6 @@ MyCamera::MyCamera(ConfigurationParameters &configParam, HDF5File &hdf5file, Tel
 : Camera(configParam, hdf5file, telescope, sky)
 {
 }
-
-
-
-
 
 
 
