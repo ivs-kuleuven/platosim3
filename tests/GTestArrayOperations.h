@@ -11,6 +11,15 @@ void checkArraysToBeEqual(arma::Mat<float> arr1, arma::Mat<float> arr2);
 
 
 
+
+
+// TODO: * Add tests for other rotation angles
+//       * Add a test where we create a round image with some defined data and every pixel around that is black.
+//         Then rotate that image by different degrees and verify that some parameters are unchanged, e.g.
+//         the average pixel values, the sum of all the pixel values (flux conservative) etc.
+//       * Create a series of rotations which add up to 360 degrees and then compare to the original.
+//       * Rotate by 90 degrees and -270 degrees and compare the results, use different complementary angles to do the same.
+//       
 TEST(ArrayOperationsTest, Rotation)
 {
 
@@ -36,18 +45,21 @@ TEST(ArrayOperationsTest, Rotation)
                {0., 0., 0., 0., 0.,  0., 0., 0., 0.,  0., 0., 0., 0.,  0., 0., 0., 0., 0., 0.}, \
     };
 
+    // Test array where there are no zero (0) values at the sides.
     arma::Mat<float> smallArray = {
         {1., 2., 3.},
         {4., 5., 6.},
         {7., 8., 9.}
     };
 
+    // Expected result after rotating the smallArray by 90 degrees
     arma::Mat<float> rotatedSmallArray90 = {
         {3., 6., 9.},
         {2., 5., 8.},
         {1., 4., 7.}
     };
 
+    // Test array where zeros (0) are added
     arma::Mat<float> smallNulledArray = {
         {0. , 0., 0., 0., 0.},
         {0. , 1., 2., 3., 0.},
@@ -56,6 +68,7 @@ TEST(ArrayOperationsTest, Rotation)
         {0. , 0., 0., 0., 0.}
     };
 
+    // Expected result after rotating the smallNulledArray by 90 degrees
     arma::Mat<float> rotatedSmallNulledArray90 = {
         {0. , 0., 0., 0., 0.},
         {0. , 3., 6., 9., 0.},
@@ -69,8 +82,8 @@ TEST(ArrayOperationsTest, Rotation)
     arma::Mat<float> arr = rotateArray(smallArray, 90.0);
     checkArraysToBeEqual(rotatedSmallArray90, arr);
 
-    //printArray(smallArray, "Original smallArray");
-    //printArray(arr, "Rotated smallArray");
+//    printArray(smallArray, "Original smallArray");
+//    printArray(arr, "Rotated smallArray");
     
 
 
@@ -79,16 +92,22 @@ TEST(ArrayOperationsTest, Rotation)
     arr = rotateArray(smallNulledArray, 90.0);
     checkArraysToBeEqual(rotatedSmallNulledArray90, arr);
 
-    //printArray(smallNulledArray, "Original smallNulledArray");
-    //printArray(arr, "Rotated smallNulledArray");
+//    printArray(smallNulledArray, "Original smallNulledArray");
+//    printArray(arr, "Rotated smallNulledArray");
 
 
 
 
     arr = rotateArray(bigNulledArray, 90.0);
+    EXPECT_FLOAT_EQ(50.0, arr(9, 9));
+    EXPECT_FLOAT_EQ(10.0, arr(5, 5));
+    EXPECT_FLOAT_EQ(10.0, arr(13, 13));
+    EXPECT_FLOAT_EQ(20.0, arr(13, 5));
+    EXPECT_FLOAT_EQ(40.0, arr(5, 13));
 
-    //printArray(bigNulledArray, "Original bigNulledArray");
-    //printArray(arr, "Rotated bigNulledArray");
+
+//    printArray(bigNulledArray, "Original bigNulledArray");
+//    printArray(arr, "Rotated bigNulledArray");
 
 }
 
