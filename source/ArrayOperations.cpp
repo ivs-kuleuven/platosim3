@@ -36,7 +36,7 @@ arma::Mat<float> rotateArrayBilinear(arma::Mat<float> arr, double angle);
  * The rotation is done with respect to the positive x-axis and counter clockwise.
  *
  * \param[in]  arr    a 2D array of floats
- * \param[in]  angle  the angle over which the array must be rotated [degrees]
+ * \param[in]  angle  the angle over which the array must be rotated [radians]
  *
  * \return     the rotated array with the same dimensions as the original array
  */
@@ -88,7 +88,7 @@ void printArray(arma::Mat<float> arr, string msg)
  * \brief      Rotate a 2D armadillo array and use nearest neighbor selection 
  *
  * \param[in]  origArray  a 2D armadillo array of floats
- * \param[in]  angle      the degrees by which to rotate the array [degrees]
+ * \param[in]  angle      the degrees by which to rotate the array [radians]
  *
  * \return     a rotated 2D armadillo array with the same dimensions
  */
@@ -100,9 +100,8 @@ arma::Mat<float> rotateArrayNearestNeighbor(arma::Mat<float> origArray, double a
     int height = origArray.n_cols;
 
     float background = 0.0;  // this is the background used when no source pixel is matching
-    float rads = deg2rad(angle);
-    float cs = std::cos(-rads);   // precalculate these values, we negate the angle because we are going back from destination to source
-    float ss = std::sin(-rads);
+    float cs = std::cos(-angle);   // precalculate these values, we negate the angle because we are going back from destination to source
+    float ss = std::sin(-angle);
     float xcenter = ((float)(width) / 2.0);
     float ycenter = ((float)(height) / 2.0);
 
@@ -149,7 +148,7 @@ arma::Mat<float> rotateArrayNearestNeighbor(arma::Mat<float> origArray, double a
  * \brief      Rotate a 2D armadillo array and use bilinear interpolation to determine the pixel value 
  *
  * \param[in]  origArray  a 2D armadillo array of floats
- * \param[in]  angle      the degrees by which to rotate the array [degrees]
+ * \param[in]  angle      the degrees by which to rotate the array [radians]
  *
  * \return     a rotated 2D armadillo array with the same dimensions
  */
@@ -160,9 +159,8 @@ arma::Mat<float> rotateArrayBilinear(arma::Mat<float> origArray, double angle)
     int width = origArray.n_rows;
     int height = origArray.n_cols;
     
-    double rads = deg2rad(angle);
-    double cs = std::cos(-rads);  // precalculate these values
-    double ss = std::sin(-rads);
+    double cs = std::cos(-angle);  // precalculate these values
+    double ss = std::sin(-angle);
 
     double cX = (double)width / 2.0;
     double cY = (double)height / 2.0;
