@@ -50,7 +50,7 @@ Camera::Camera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telesco
     configure(configParam);
 
     // Initialize and load the PSF. This will open the PSF HDF5 file and perform some basic checking, 
-    // but the psf itself will only be loaded by the psf.select(ra, dec) method.
+    // but the psf itself will only be loaded by the psf.select(radius) method.
 
     psf = new PointSpreadFunction(configParam);
 }
@@ -61,7 +61,7 @@ Camera::Camera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telesco
 
 
 /**
- * @brief  Destructor
+ * \brief  Destructor
  */
 
 Camera::~Camera()
@@ -77,10 +77,12 @@ Camera::~Camera()
 
 
 /**
- * \brief      Expose the subField to the Sky, i.e. add flux to the detectors, 
+ * \brief      Expose the subField to the Sky, i.e. add flux to the detectors,
  *             add Background and convolve with the PSF.
  *
- * \param[in]  detector  the Detector class
+ * \param[in]  detector      the Detector class
+ * \param[in]  startTime     start time of the exposure [seconds]
+ * \param[in]  exposureTime  duration of one exposure [seconds]
  */
 void Camera::exposeDetector(Detector &detector, double startTime, double exposureTime)
 {
@@ -207,7 +209,11 @@ void Camera::configure(ConfigurationParameters &configParam)
 
 
 /**
- * \brief      select the PSF for the given star coordinates
+ * \brief      select the PSF for the given star coordinates.
+ * 
+ * \details
+ * 
+ * This method selects and rotates the PSF.
  *
  * \param[in]  raStar   right ascension of the star [rad]
  * \param[in]  decStar  declination of the star     [rad]
@@ -215,13 +221,31 @@ void Camera::configure(ConfigurationParameters &configParam)
 
 void Camera::selectPsf(double raStar, double decStar)
 {
-    double xFPprime, yFPprime;
 
-    tie(xFPprime, yFPprime) = skyToNormalizedFocalPlaneCoordinates(raStar, decStar);
+    // Get the equatorial coordinates of the optical axis [rad]
 
-    double radius = getGnomonicRadialDistanceFromOpticalAxisNormalized(xFPprime, yFPprime);
+    double raOpticalAxis, decOpticalAxis;
+    tie(raOpticalAxis, decOpticalAxis) = telescope.getCurrentPointingCoordinates();
+
+    // Calculate the angular separation (in [radians]) between the star and the optical axis.
+    // Use that angle to select the proper PSF.
+
+    Coordinates opticalAxis(raOpticalAxis, decOpticalAxis, Angle::radians);
+    Coordinates star(raStar, decStar, Angle::radians);
+
+    double radius = angularDistanceBetween(opticalAxis, star, Angle::radians);
 
     psf->select(radius);
+
+    // Calculate the rotation angle
+
+    double xFP, yFP;
+    tie(xFP, yFP) = skyToNormalizedFocalPlaneCoordinates(raStar, decStar);
+
+    double angle = atan2(yFP, xFP);
+
+    psf->rotate(angle);
+
 }
 
 
