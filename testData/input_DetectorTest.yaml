@@ -41,6 +41,10 @@ Camera:
     ThroughputBandwidth:     650             # FWHM [nm]
     ThroughputLambdaC:       550             # Central wavelength of the throughput passband [nm]
 
+PSF:
+
+    Filename:                testData/PSF.hdf5
+
 CCD:
 
     OriginOffsetX:           0               # X Offset of CCD origin from center of focal plane [mm]

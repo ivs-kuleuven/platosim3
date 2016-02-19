@@ -16,3 +16,11 @@ TEST(PointSpreadFunctionTest, Constructor_ConfigurationParameters)
 
 }
 
+TEST(PointSpreadFunctionTest, Selection)
+{
+    ConfigurationParameters cp = ConfigurationParameters("../testData/input_PointSpreadFunctionTest.yaml");
+
+    PointSpreadFunction psf = PointSpreadFunction(cp);
+    psf.select(deg2rad(13.0));
+
+}
