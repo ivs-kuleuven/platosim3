@@ -37,6 +37,10 @@ class PointSpreadFunction
         // Determine if this psf has been rotated
         bool isRotated = false;
 
+        // The angle by which the PSF is rotated with respect to the positive x-axis.
+        // Positive angles rotated counter-clockwise.
+        double rotationAngle = 0;    // [degrees]
+
         // The selected psf is copied into this array
         arma::Mat<float> psfMap;
 
