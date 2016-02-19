@@ -119,7 +119,7 @@ arma::Mat<float> rotateArrayNearestNeighbor(arma::Mat<float> origArray, double a
           int xPixel = std::round(xPrime-0.5);
           int yPixel = std::round(yPrime-0.5);
 
-          Log.debug("row, col | xPrime, yPrime | xPixel, yPixel = " + to_string(row) + ", " + to_string(column) + " | " + to_string(xPrime) + ", " + to_string(yPrime) + " | " + to_string(xPixel) + ", " + to_string(yPixel));
+          // Log.debug("row, col | xPrime, yPrime | xPixel, yPixel = " + to_string(row) + ", " + to_string(column) + " | " + to_string(xPrime) + ", " + to_string(yPrime) + " | " + to_string(xPixel) + ", " + to_string(yPixel));
 
           float pixel = background; // in case there is no original pixel
           
@@ -180,16 +180,16 @@ arma::Mat<float> rotateArrayBilinear(arma::Mat<float> origArray, double angle)
             double xPrime = cY + relX*cs - relY*ss - 0.5;
             double yPrime = cX + relX*ss + relY*cs - 0.5;
 
-            Log.debug("row, col | xPrime, yPrime = " + to_string(row) + ", " + to_string(column) + " | " + to_string(xPrime) + ", " + to_string(yPrime));
+            // Log.debug("row, col | xPrime, yPrime = " + to_string(row) + ", " + to_string(column) + " | " + to_string(xPrime) + ", " + to_string(yPrime));
 
             int xPixel = std::round(xPrime);
             int yPixel = std::round(yPrime);
 
-            Log.debug("xPixel, yPixel = " + to_string(xPixel) + ", " + to_string(yPixel));
+            // Log.debug("xPixel, yPixel = " + to_string(xPixel) + ", " + to_string(yPixel));
 
             if (yPrime <= (double)yPixel)
             {
-                Log.debug("yPrime in lower part of yPixel");
+                //Log.debug("yPrime in lower part of yPixel");
                 q12y = q22y = yPixel - 1;
                 q11y = q21y = yPixel;
             }
@@ -201,7 +201,7 @@ arma::Mat<float> rotateArrayBilinear(arma::Mat<float> origArray, double angle)
 
             if (xPrime <= (double)xPixel)
             {
-                Log.debug("xPrime in lower part of xPixel");
+                //Log.debug("xPrime in lower part of xPixel");
                 q12x = q11x = xPixel - 1;
                 q22x = q21x = xPixel;
             }
@@ -211,10 +211,10 @@ arma::Mat<float> rotateArrayBilinear(arma::Mat<float> origArray, double angle)
                 q22x = q21x = xPixel + 1;
             }
 
-            Log.debug("Q12x, Q12y = " + to_string(q12x) + ", " + to_string(q12y));
-            Log.debug("Q22x, Q22y = " + to_string(q22x) + ", " + to_string(q22y));
-            Log.debug("Q11x, Q11y = " + to_string(q11x) + ", " + to_string(q11y));
-            Log.debug("Q21x, Q21y = " + to_string(q21x) + ", " + to_string(q21y));
+            // Log.debug("Q12x, Q12y = " + to_string(q12x) + ", " + to_string(q12y));
+            // Log.debug("Q22x, Q22y = " + to_string(q22x) + ", " + to_string(q22y));
+            // Log.debug("Q11x, Q11y = " + to_string(q11x) + ", " + to_string(q11y));
+            // Log.debug("Q21x, Q21y = " + to_string(q21x) + ", " + to_string(q21y));
 
             double factor1;
             double factor2;
