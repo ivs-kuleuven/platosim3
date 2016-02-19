@@ -21,6 +21,6 @@ TEST(PointSpreadFunctionTest, Selection)
     ConfigurationParameters cp = ConfigurationParameters("../testData/input_PointSpreadFunctionTest.yaml");
 
     PointSpreadFunction psf = PointSpreadFunction(cp);
-    psf.select(13.0);
+    psf.select(deg2rad(13.0));
 
 }
