@@ -79,7 +79,7 @@ TEST(ArrayOperationsTest, Rotation)
 
 
     
-    arma::Mat<float> arr = rotateArray(smallArray, 90.0);
+    arma::Mat<float> arr = rotateArray(smallArray, deg2rad(90.0));
     checkArraysToBeEqual(rotatedSmallArray90, arr);
 
 //    printArray(smallArray, "Original smallArray");
@@ -89,7 +89,7 @@ TEST(ArrayOperationsTest, Rotation)
 
 
 
-    arr = rotateArray(smallNulledArray, 90.0);
+    arr = rotateArray(smallNulledArray, deg2rad(90.0));
     checkArraysToBeEqual(rotatedSmallNulledArray90, arr);
 
 //    printArray(smallNulledArray, "Original smallNulledArray");
@@ -98,7 +98,7 @@ TEST(ArrayOperationsTest, Rotation)
 
 
 
-    arr = rotateArray(bigNulledArray, 90.0);
+    arr = rotateArray(bigNulledArray, deg2rad(90.0));
     EXPECT_FLOAT_EQ(50.0, arr(9, 9));
     EXPECT_FLOAT_EQ(10.0, arr(5, 5));
     EXPECT_FLOAT_EQ(10.0, arr(13, 13));

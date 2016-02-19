@@ -145,7 +145,9 @@ void PointSpreadFunction::select(double radius)
     
     // The PSFs that are currently used are rotated by 45 degrees.
     // So this values is currently hard-coded because it is not provided as part of the delivery pack.
-    rotationAngle = 45.0;
+    // TODO: put this values in the HDF5 file of the PSFs as an attribute and read it from the file.
+
+    rotationAngle = deg2rad(45.0);
 
     isSelected = true;
 }
@@ -167,9 +169,6 @@ void PointSpreadFunction::select(double radius)
  */
 void PointSpreadFunction::rotate(double angle)
 {
-    // Angles in this method are all in degrees
-
-    angle = rad2deg(angle);
 
     if (isRotated)
     {
