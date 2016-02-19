@@ -354,18 +354,18 @@ string ConfigurationParameters::getAbsoluteFilename(const string &key)
     {
         YAML::Node node = config[fields[0]];
         if (!node) 
-            noNodeError(fields[0], filename);
+            noNodeError(fields[0], this->filename);
 
         YAML::Node subnode = node[fields[1]];
         if (!subnode)
-            noSubNodeError(fields[0], fields[1], filename);
+            noSubNodeError(fields[0], fields[1], this->filename);
 
         filename = subnode.as<string>();
     }
     else 
     {
         if (!config[key])
-            noNodeError(key, filename);
+            noNodeError(key, this->filename);
 
         filename = config[key].as<string>();
     }
