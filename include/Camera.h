@@ -40,7 +40,7 @@ class Camera : public HDF5Writer
         Telescope &telescope;
         Sky &sky;
 
-        double plateScale;                    // [arcsec/mm]
+        double plateScale;                    // [arcsec/micron]
         double focalPlaneOrientation;         // [rad]
         double throughputBandwidth;           // FWHM of the throughput passband [nm]
         double throughputLambdaC;             // Central wavelength of the throughput passband [nm]
