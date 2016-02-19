@@ -124,8 +124,8 @@ TEST_F(CameraTest, GnomonicRadialDistance) {
 
         EXPECT_NEAR(data["radius"], rad2deg(radius), 0.0001);
 
-        Log.debug("CameraTest.skyToFocalPlaneCoordinates: xFPprime, yFPprime = " + to_string(xFPprime) + ", " + to_string(yFPprime));
-        Log.debug("CameraTest.skyToFocalPlaneCoordinates: radius = " + to_string(radius));
+        Log.debug("CameraTest.GnomonicRadialDistance: xFPprime, yFPprime = " + to_string(xFPprime) + ", " + to_string(yFPprime));
+        Log.debug("CameraTest.GnomonicRadialDistance: radius = " + to_string(radius));
 
     }
 
