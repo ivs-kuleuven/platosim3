@@ -32,6 +32,8 @@ arma::Mat<float> rotateArrayBilinear(arma::Mat<float> arr, double angle);
  * 
  * This function currently uses a simple (not optimized) version of bilinear interpolation
  * to find the proper pixel value.
+ * 
+ * The rotation is done with respect to the positive x-axis and counter clockwise.
  *
  * \param[in]  arr    a 2D array of floats
  * \param[in]  angle  the angle over which the array must be rotated [degrees]
