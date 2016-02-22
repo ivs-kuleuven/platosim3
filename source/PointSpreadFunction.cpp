@@ -54,9 +54,10 @@ PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam)
     
     hdf5file = new HDF5File(location);
 
-    if ( !hdf5file->hasGroup("T6000") )
+    string groupName = "T6000";
+    if ( !hdf5file->hasGroup(groupName) )
     {
-        throw FileException("The HDF5 file doesn't contain the expected group \"" + groupName + "\".");
+        throw FileException("The HDF5 file (" + location + ") doesn't contain the expected group \"" + groupName + "\".");
     }
 
 }
