@@ -49,14 +49,12 @@ PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam)
 {
     configure(configParam);
 
-    groupName = "6000";  // this is currently the only group defined in the HDF5 file
-
     isSelected = false;
     isRotated = false;
     
     hdf5file = new HDF5File(location);
 
-    if ( !hdf5file->hasGroup(groupName) )
+    if ( !hdf5file->hasGroup("T6000") )
     {
         throw FileException("The HDF5 file doesn't contain the expected group \"" + groupName + "\".");
     }
