@@ -1,7 +1,10 @@
 #include "gtest/gtest.h"
 
+#include "gtest_definitions.h"
+
 #include "Units.h"
 #include "Constants.h"
+#include "Logger.h"
 #include "ArrayOperations.h"
 
 using namespace std;
@@ -22,6 +25,8 @@ void checkArraysToBeEqual(arma::Mat<float> arr1, arma::Mat<float> arr2);
 //       
 TEST(ArrayOperationsTest, Rotation)
 {
+
+    LOG_STARTING_OF_TEST
 
     arma::Mat<float> bigNulledArray = {
                {0., 0., 0., 0., 0.,  0., 0., 0., 0.,  0., 0., 0., 0.,  0., 0., 0., 0., 0., 0.}, \

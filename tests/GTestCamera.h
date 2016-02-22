@@ -1,12 +1,14 @@
+#include <string>
 #include <cstdio>
 #include <map>
 
 #include "gtest/gtest.h"
 
+#include "gtest_definitions.h"
+
 #include "Simulation.h"
 #include "Coordinates.h"
 #include "FileUtilities.h"
-
 
 /**
  * \class CameraTest
@@ -83,6 +85,8 @@ MyCamera::MyCamera(ConfigurationParameters &configParam, HDF5File &hdf5file, Tel
 // method in Camera. The relation between xDeg, yDeg and xFP, yFP is currently not available and can not be tested.
 // 
 TEST_F(CameraTest, GnomonicRadialDistance) {
+
+    LOG_STARTING_OF_TEST
 
     vector<map<string, double>> gnomonic;
 

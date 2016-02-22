@@ -4,6 +4,8 @@
 
 #include "gtest/gtest.h"
 
+#include "gtest_definitions.h"
+
 #include "ConfigurationParameters.h"
 #include "Exceptions.h"
 
@@ -13,6 +15,8 @@ using namespace std;
 
 TEST(ConfigurationParametersTest, Constructor)
 {
+
+    LOG_STARTING_OF_TEST
 
     ASSERT_THROW(ConfigurationParameters cp = ConfigurationParameters("input.yaml"), IllegalArgumentException);
 
@@ -24,6 +28,8 @@ TEST(ConfigurationParametersTest, Constructor)
 
 TEST(ConfigurationParametersTest, readGlobalValues)
 {
+    LOG_STARTING_OF_TEST
+
     ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
 
     string description = cp.getString("Description");
@@ -39,6 +45,8 @@ TEST(ConfigurationParametersTest, readGlobalValues)
 
 TEST(ConfigurationParametersTest, readGeneralValues)
 {
+    LOG_STARTING_OF_TEST
+
     ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
 
     string projectLocation = cp.getString("General/ProjectLocation");
@@ -51,6 +59,8 @@ TEST(ConfigurationParametersTest, readGeneralValues)
 
 TEST(ConfigurationParametersTest, readObservingValues)
 {
+    LOG_STARTING_OF_TEST
+
     ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
 
     int exposureTime = cp.getInteger("Observing/ExposureTime");
@@ -75,6 +85,8 @@ TEST(ConfigurationParametersTest, readObservingValues)
 
 TEST(ConfigurationParametersTest, readSpecialValues)
 {
+    LOG_STARTING_OF_TEST
+
     ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
 
     int zeroValue = cp.getInteger("Special Values/zero");
@@ -104,6 +116,8 @@ TEST(ConfigurationParametersTest, readSpecialValues)
 
 TEST(ConfigurationParametersTest, testConversions)
 {
+    LOG_STARTING_OF_TEST
+
     ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
 
     // Can convert an integer value into a double
@@ -125,6 +139,8 @@ TEST(ConfigurationParametersTest, testConversions)
 
 TEST(ConfigurationParametersTest, testNonExistingKey)
 {
+    LOG_STARTING_OF_TEST
+
     ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
 
     ASSERT_THROW(string unknown = cp.getString("UnknownNode"), IllegalArgumentException);
@@ -168,6 +184,8 @@ TEST(ConfigurationParametersTest, testNonExistingKey)
 
 TEST(ConfigurationParametersTest, testSetNode)
 {
+    LOG_STARTING_OF_TEST
+
     ConfigurationParameters cp = ConfigurationParameters();
 
     string value;
@@ -198,6 +216,8 @@ TEST(ConfigurationParametersTest, testSetNode)
 
 TEST(ConfigurationParametersTest, testSetSubNode)
 {
+    LOG_STARTING_OF_TEST
+
     ConfigurationParameters cp = ConfigurationParameters();
 
     string value;

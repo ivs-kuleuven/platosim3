@@ -4,6 +4,8 @@
 
 #include "gtest/gtest.h"
 
+#include "gtest_definitions.h"
+
 #include "Simulation.h"
 
 
@@ -61,6 +63,9 @@ MyDetector::MyDetector(ConfigurationParameters &configParam, HDF5File &hdf5File,
 
 TEST_F(DetectorTest, checkConversionsBetweenPixelsAndFocalPlane)
 {
+
+    LOG_STARTING_OF_TEST
+
     double row, column;
     double xFPprime, yFPprime;
 
