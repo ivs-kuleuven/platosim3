@@ -143,19 +143,33 @@ void PointSpreadFunction::select(double radius)
         index = psfdata::radius.n_elem-1;
     }
 
-    string id = "ar" + to_string(int(psfdata::radius(index) * 1000));
+    string angularRadiusGroup = "ar" + to_string(int(psfdata::radius(index) * 1000));
+    string temperatureGroup = "T6000";  // TODO: hardcoded value! 
+    string azimuthDataset = "az0";      // TODO: hardcoded value!
 
-    Log.debug("Identifier for selected PSF is " + id);
+    string groupName = temperatureGroup + "/" + angularRadiusGroup;
+
+    if ( ! hdf5file->hasGroup(groupName) )
+    {
+        throw FileException("The HDF5 file doesn't contain the expected group \"" + groupName + "\".");
+    }
+
+    if ( ! hdf5file->hasDataset(groupName, azimuthDataset) )
+    {
+        throw FileException("The HDF5 file doesn't contain the expected dataset \"" + azimuthDataset + "\".");
+    }
 
     // Load the psf array into the psfMap
     
-    hdf5file->readArray("/" + groupName, "ar00000", psfMap);
+    hdf5file->readArray("/" + groupName, azimuthDataset, psfMap);
     
-    // The PSFs that are currently used are rotated by 45 degrees.
-    // So this values is currently hard-coded because it is not provided as part of the delivery pack.
-    // TODO: put this values in the HDF5 file of the PSFs as an attribute and read it from the file.
+    // The PSFs that are currently used are rotated with respect to the focal plane x-axis.
+    // The rotation angle is given as an attribute to the dataset that contains the PSF.
 
-    rotationAngle = deg2rad(45.0);
+    double angle = hdf5file->readAttribute(groupName, azimuthDataset, "orientation");
+    Log.debug("PointSpreadFunction::select: orientation = " + to_string(angle));
+
+    rotationAngle = deg2rad(angle);
 
     isSelected = true;
 }
