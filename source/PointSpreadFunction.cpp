@@ -152,12 +152,12 @@ void PointSpreadFunction::select(double radius)
 
     if ( ! hdf5file->hasGroup(groupName) )
     {
-        throw FileException("The HDF5 file doesn't contain the expected group \"" + groupName + "\".");
+        throw FileException("The HDF5 file (" + location + ") doesn't contain the expected group \"" + groupName + "\".");
     }
 
     if ( ! hdf5file->hasDataset(groupName, azimuthDataset) )
     {
-        throw FileException("The HDF5 file doesn't contain the expected dataset \"" + azimuthDataset + "\".");
+        throw FileException("The HDF5 file (" + location + ") doesn't contain the expected dataset \"" + azimuthDataset + "\".");
     }
 
     // Load the psf array into the psfMap
@@ -168,6 +168,7 @@ void PointSpreadFunction::select(double radius)
     // The rotation angle is given as an attribute to the dataset that contains the PSF.
 
     double angle = hdf5file->readAttribute(groupName, azimuthDataset, "orientation");
+    Log.debug("PointSpreadFunction::select: group/dataset = " + groupName + "/" + azimuthDataset);
     Log.debug("PointSpreadFunction::select: orientation = " + to_string(angle));
 
     rotationAngle = deg2rad(angle);
