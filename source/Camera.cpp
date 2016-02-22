@@ -209,17 +209,13 @@ void Camera::selectPsf(double raStar, double decStar)
  */
 double Camera::getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double yFPprime)
 {
-    // Convert the focal plane coordinates from [mm] to [degrees]
-    // Note the plateScale is given in [radians / micrometer]
-    //
-    // xDeg   field X coordinate with respect to the line of sight in the sky [deg]
-    // yDeg   field Y coordinate with respect to the line of sight in the sky [deg]
+    // Convert from planar focal plane coordinates [mm] to angular focal plane coordinates [radians]
+    // We don't need the angular FP coordinates themselves, just the tangens of them. 
+    // So we avoid taking first the arctan() and then the tan()
 
-    double xDeg = (plateScale * 1000.0 * xFPprime) / 3600.0;
-    double yDeg = (plateScale * 1000.0 * yFPprime) / 3600.0;
-
-    double tanx = tan(deg2rad(xDeg));
-    double tany = tan(deg2rad(yDeg));
+    const double focalLength = 3600. * 180.0 / Constants::PI / 1000.0 / plateScale;
+    const double tanx = xFPprime / focalLength;               // = tan(atan(xFPprime / focalLength))
+    const double tany = yFPprime / focalLength;
 
     return rad2deg(acos(1.0/sqrt(1.0 + tanx*tanx + tany*tany)));
 }
@@ -251,23 +247,25 @@ pair<double, double> Camera::skyToFocalPlaneCoordinates(double raStar, double de
 
     // Project the sky to the focal plane in the "FP" coordinate system (gnomonic projection)
 
-    double denominator = cos(decOpticalAxis) * cos(decStar) * cos(raStar - raOpticalAxis) + sin(decOpticalAxis) * sin(decStar);
-    double xFP = ( sin(decOpticalAxis) * cos(decStar) * cos(raStar - raOpticalAxis) - cos(decOpticalAxis) * sin(decStar)) / denominator;
-    double yFP =  cos(decStar) * sin(raStar - raOpticalAxis) / denominator;
+    const double denominator = cos(decOpticalAxis) * cos(decStar) * cos(raStar - raOpticalAxis) + sin(decOpticalAxis) * sin(decStar);
+    const double xFPrad= ( sin(decOpticalAxis) * cos(decStar) * cos(raStar - raOpticalAxis) - cos(decOpticalAxis) * sin(decStar)) / denominator;
+    const double yFPrad =  cos(decStar) * sin(raStar - raOpticalAxis) / denominator;
 
-    // Convert the FP coordinates into FP' coordinates 
+    // Convert the FP coordinates into FP' coordinates. Both are in [rad]. 
 
-    double xFPprime =  xFP * cos(focalPlaneOrientation) + yFP * sin(focalPlaneOrientation);
-    double yFPprime = -xFP * sin(focalPlaneOrientation) + yFP * cos(focalPlaneOrientation);
+    const double xFPprime =  xFPrad * cos(focalPlaneOrientation) + yFPrad * sin(focalPlaneOrientation);
+    const double yFPprime = -xFPrad * sin(focalPlaneOrientation) + yFPrad * cos(focalPlaneOrientation);
 
-    // Compute the conversion factor: conversion from [radians] to [mm].
+    // Convert from angular focal plane coordinates [radians] to planar focal plane coordinates [mm].
     // Note that the plateScale is expressed in [arcsec/um]
 
-    double conversionFactor = 3600. * 180.0 / Constants::PI / 1000.0 / plateScale;
+    const double focalLength = 3600. * 180.0 / Constants::PI / 1000.0 / plateScale;
+    const double xFPprime_mm = focalLength * tan(xFPprime);
+    const double yFPprime_mm = focalLength * tan(yFPprime);
 
     // Return the scaled coordinates
 
-    return make_pair(xFPprime * conversionFactor, yFPprime * conversionFactor);
+    return make_pair(xFPprime_mm, yFPprime_mm);
 }
 
 
@@ -296,16 +294,17 @@ pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFPprimeStar, dou
     {
         return make_pair(0.0, 0.0);
     }
-    
-    // Compute the conversion factor from [mm/radian] to [arcsec/pixel] and convert the
-    // focal plane coordinates from [um] to [rad].
 
-    double conversionFactor = 3600. * 180.0 / Constants::PI / 1000.0 / plateScale;
-    double xFPprime = xFPprimeStar / conversionFactor;
-    double yFPprime = yFPprimeStar / conversionFactor;
+    // Convert from planar focal plane coordinates [mm] to angular focal plane coordinates [radians] 
 
-    double xFP =  xFPprime * cos(focalPlaneOrientation) - yFPprime * sin(focalPlaneOrientation);
-    double yFP =  xFPprime * sin(focalPlaneOrientation) + yFPprime * cos(focalPlaneOrientation);
+    const double focalLength = 3600. * 180.0 / Constants::PI / 1000.0 / plateScale;
+    const double xFPprime = atan(xFPprimeStar / focalLength);
+    const double yFPprime = atan(yFPprimeStar / focalLength);
+
+    // Convert from the FP' to the FP reference system.
+
+    const double xFP =  xFPprime * cos(focalPlaneOrientation) - yFPprime * sin(focalPlaneOrientation);
+    const double yFP =  xFPprime * sin(focalPlaneOrientation) + yFPprime * cos(focalPlaneOrientation);
 
 
     // Get the equatorial coordinates of the optical axis [rad]
@@ -315,10 +314,10 @@ pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFPprimeStar, dou
 
     // Project the focal plane in the "FP" coordinate system to the sky
 
-    double rho = sqrt(xFP*xFP+yFP*yFP);
-    double c = atan(rho);
-    double raStar = raOpticalAxis + atan2(yFP * sin(c), rho * cos(decOpticalAxis) * cos(c) + xFP * sin(decOpticalAxis) * sin(c));
-    double decStar = asin(cos(c) * sin(decOpticalAxis) - (xFP * sin(c) * cos(decOpticalAxis)) / rho);
+    const double rho = sqrt(xFP*xFP+yFP*yFP);
+    const double c = atan(rho);
+    const double raStar = raOpticalAxis + atan2(yFP * sin(c), rho * cos(decOpticalAxis) * cos(c) + xFP * sin(decOpticalAxis) * sin(c));
+    const double decStar = asin(cos(c) * sin(decOpticalAxis) - (xFP * sin(c) * cos(decOpticalAxis)) / rho);
 
 
     // Return the equatorial coordinates
