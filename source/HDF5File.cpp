@@ -565,7 +565,7 @@ void HDF5File::writeAttribute(string groupName, string attributeName, double att
 
     // Create and write the attribute to the group
 
-    H5::IntType floatType(H5::PredType::NATIVE_DOUBLE);
+    H5::FloatType floatType(H5::PredType::NATIVE_DOUBLE);
     H5::DataSpace attributeSpace(H5S_SCALAR);
     H5::Attribute attribute = group.createAttribute(attributeName.c_str(), floatType, attributeSpace);
     attribute.write(floatType, &attributeValue);
