@@ -9,6 +9,14 @@
  * different temperature and different positions in the field. Currently only PSFs for 6000K are
  * available. 
  * 
+ * 
+ * \todo
+ * 
+ * There are two hardcoded values used in this class, i.e. the top-level groupName of the HDF5 PSF file, 
+ * and the name of the dataset containing the PSF array. The latter should actually be generated from the 
+ * ra, dec from the center of the sub-field, but this information is currently not passed into the select()
+ * method.
+ * 
  */
 
 #include "PointSpreadFunction.h"
