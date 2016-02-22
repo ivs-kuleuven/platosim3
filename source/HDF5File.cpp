@@ -211,6 +211,44 @@ bool HDF5File::hasGroup(string groupName)
 
 
 
+/**
+ * \brief      Check if the given group has a dataset with the given name
+ *
+ * \param[in]  groupName    the full name of the group that contains the dataset
+ * \param[in]  datasetName  the name of the dataset
+ *
+ * \return     true if the dataset exists in this group, false otherwise
+ * 
+ * \exception  H5GroupException thrown when the group is unknown to the HDF5 file
+ */
+bool HDF5File::hasDataset(string groupName, string datasetName)
+{
+    if (hasGroup(groupName))
+    {
+        H5::Group group = file->openGroup(groupName.c_str());
+
+        try
+        {
+            H5::DataSet dataset = group.openDataSet(datasetName.c_str());
+            return true;
+        }
+        catch (H5::Exception ex) {}
+
+        return false;
+    }
+    else
+    {
+        throw H5GroupException("Unknown group (" + groupName + ") in HDF5 file " + file->getFileName());
+    }
+
+    return false;
+}
+
+
+
+
+
+
 // HDF5File::createGroup()
 //
 // PURPOSE: Create a group in an HDF5 file.
