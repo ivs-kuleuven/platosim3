@@ -187,6 +187,13 @@ bool HDF5File::fileExists(string filename)
 
 
 
+/**
+ * \brief      Check if the HDF5 file has a group with the given name
+ *
+ * \param[in]  groupName    the full name of the group
+ *
+ * \return     true if the group exists in this file, false otherwise
+ */
 bool HDF5File::hasGroup(string groupName)
 {
     try
