@@ -12,6 +12,7 @@
 #include "armadillo"
 
 #include "Logger.h"
+#include "HDF5Exceptions.h"
 
 using namespace std;
 
@@ -31,6 +32,8 @@ class HDF5File
         bool hasGroup(string groupName);
         void createGroup(string groupName);
 
+        bool hasDataset(string groupName, string datasetName);
+
         void writeAttribute(string groupName, string attributeName, string attributeValue);
         void writeAttribute(string groupName, string attributeName, int attributeValue);
         void writeAttribute(string groupName, string attributeName, long attributeValue);
@@ -41,6 +44,8 @@ class HDF5File
         void writeArray(string groupName, string arrayName, double* array, int size);
         void writeArray(string groupName, string arrayName, arma::Mat<float>& A);
 
+        double readAttribute(string groupName, string attributeName);
+        double readAttribute(string groupName, string datasetName, string attributeName);
 
         void readArray(string groupName, string arrayName, arma::Mat<float>& A);
 

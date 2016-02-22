@@ -43,7 +43,7 @@ Camera:
 
 PSF:
 
-    Filename:                testData/PSF.hdf5
+    Filename:                testData/psf_201506.hdf5
 
 CCD:
 

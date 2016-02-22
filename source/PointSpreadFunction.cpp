@@ -9,6 +9,14 @@
  * different temperature and different positions in the field. Currently only PSFs for 6000K are
  * available. 
  * 
+ * 
+ * \todo
+ * 
+ * There are two hardcoded values used in this class, i.e. the top-level groupName of the HDF5 PSF file, 
+ * and the name of the dataset containing the PSF array. The latter should actually be generated from the 
+ * ra, dec from the center of the sub-field, but this information is currently not passed into the select()
+ * method.
+ * 
  */
 
 #include "PointSpreadFunction.h"
@@ -41,14 +49,12 @@ PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam)
 {
     configure(configParam);
 
-    groupName = "6000";  // this is currently the only group defined in the HDF5 file
-
     isSelected = false;
     isRotated = false;
     
     hdf5file = new HDF5File(location);
 
-    if ( !hdf5file->hasGroup(groupName) )
+    if ( !hdf5file->hasGroup("T6000") )
     {
         throw FileException("The HDF5 file doesn't contain the expected group \"" + groupName + "\".");
     }
@@ -111,6 +117,8 @@ void PointSpreadFunction::configure(ConfigurationParameters &cp)
  */
 void PointSpreadFunction::select(double radius)
 {
+    // TODO: Should we take any action if different PSFs are selected for this object?
+
     if (isSelected)
     {
         Log.warning("Another PSF was previously selected.");
@@ -118,10 +126,10 @@ void PointSpreadFunction::select(double radius)
 
     radius = rad2deg(radius);
     
-    // Convert radius into the string id that identifies the psf dataset in the HDF5 file.
+    // Convert radius into the string angularRadiusGroup that identifies the psf dataset in the HDF5 file.
     // We work with a lookup table psfdata::radius which contains fixed radius values for which PSF data
     // was generated. The algorithm is to select the PSF with radius closest to the given radius by 
-    // the given radius from the tabulated radius and then selecting the lowest value to find the index.
+    // subtracting the given radius from the tabulated radius and then selecting the lowest value to find the index.
     
     arma::vec rads = psfdata::radius - radius;
     rads = abs(rads);
@@ -135,19 +143,33 @@ void PointSpreadFunction::select(double radius)
         index = psfdata::radius.n_elem-1;
     }
 
-    string id = "ar" + to_string(int(psfdata::radius(index) * 1000));
+    string angularRadiusGroup = "ar" + to_string(int(psfdata::radius(index) * 1000));
+    string temperatureGroup = "T6000";  // TODO: hardcoded value! 
+    string azimuthDataset = "az0";      // TODO: hardcoded value!
 
-    Log.debug("Identifier for selected PSF is " + id);
+    string groupName = temperatureGroup + "/" + angularRadiusGroup;
+
+    if ( ! hdf5file->hasGroup(groupName) )
+    {
+        throw FileException("The HDF5 file doesn't contain the expected group \"" + groupName + "\".");
+    }
+
+    if ( ! hdf5file->hasDataset(groupName, azimuthDataset) )
+    {
+        throw FileException("The HDF5 file doesn't contain the expected dataset \"" + azimuthDataset + "\".");
+    }
 
     // Load the psf array into the psfMap
     
-    hdf5file->readArray("/" + groupName, "ar00000", psfMap);
+    hdf5file->readArray("/" + groupName, azimuthDataset, psfMap);
     
-    // The PSFs that are currently used are rotated by 45 degrees.
-    // So this values is currently hard-coded because it is not provided as part of the delivery pack.
-    // TODO: put this values in the HDF5 file of the PSFs as an attribute and read it from the file.
+    // The PSFs that are currently used are rotated with respect to the focal plane x-axis.
+    // The rotation angle is given as an attribute to the dataset that contains the PSF.
 
-    rotationAngle = deg2rad(45.0);
+    double angle = hdf5file->readAttribute(groupName, azimuthDataset, "orientation");
+    Log.debug("PointSpreadFunction::select: orientation = " + to_string(angle));
+
+    rotationAngle = deg2rad(angle);
 
     isSelected = true;
 }

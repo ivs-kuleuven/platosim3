@@ -1,5 +1,7 @@
 #include "gtest/gtest.h"
 
+#include "gtest_definitions.h"
+
 #include "Units.h"
 #include "Constants.h"
 #include "Coordinates.h"
@@ -11,10 +13,12 @@ using namespace std;
 
 TEST(CoordinatesTest, angularDistance)
 {
-        Coordinates opticalAxis(0.0, 0.0, Angle::degrees);
-        Coordinates star(178, -70, Angle::degrees);
+    LOG_STARTING_OF_TEST
 
-        double angle = angularDistanceBetween(opticalAxis, star, Angle::degrees);
-        Log.debug("CoordinatesTest.angularDistance: angle = " + to_string(angle));
+    Coordinates opticalAxis(0.0, 0.0, Angle::degrees);
+    Coordinates star(178, -70, Angle::degrees);
+
+    double angle = angularDistanceBetween(opticalAxis, star, Angle::degrees);
+    Log.debug("CoordinatesTest.angularDistance: angle = " + to_string(angle));
 
 }
