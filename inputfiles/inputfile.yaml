@@ -49,7 +49,7 @@ PSF:
 
     UseGauss:                1               # Use analytical Gaussian PSF (0=no,1=yes)
     GaussSigma:              1.0             # Width of Gaussian PSF [pixels]
-    Filename:                inputfiles/psf.hdf5
+    Filename:                inputfiles/psf_201506.hdf5
 
 
 CCD:
