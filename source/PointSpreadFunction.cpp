@@ -117,6 +117,8 @@ void PointSpreadFunction::configure(ConfigurationParameters &cp)
  */
 void PointSpreadFunction::select(double radius)
 {
+    // TODO: Should we take any action if different PSFs are selected for this object?
+
     if (isSelected)
     {
         Log.warning("Another PSF was previously selected.");
@@ -124,10 +126,10 @@ void PointSpreadFunction::select(double radius)
 
     radius = rad2deg(radius);
     
-    // Convert radius into the string id that identifies the psf dataset in the HDF5 file.
+    // Convert radius into the string angularRadiusGroup that identifies the psf dataset in the HDF5 file.
     // We work with a lookup table psfdata::radius which contains fixed radius values for which PSF data
     // was generated. The algorithm is to select the PSF with radius closest to the given radius by 
-    // the given radius from the tabulated radius and then selecting the lowest value to find the index.
+    // subtracting the given radius from the tabulated radius and then selecting the lowest value to find the index.
     
     arma::vec rads = psfdata::radius - radius;
     rads = abs(rads);
