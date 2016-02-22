@@ -21,6 +21,9 @@ dependencies/Installs/*
 *.o
 *.so
 
+# Large test data files
+
+psf_201506.hdf5
 
 # Logs and databases
 
