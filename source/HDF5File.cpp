@@ -1,10 +1,23 @@
-
+/**
+ * \class HDF5File
+ * 
+ * \brief      Provides an application level interface to the HDF5 C++ API
+ * 
+ * \details
+ * 
+ * This class provides a convenient application level interface to the HDF5 C++ wrapper to 
+ * the HDF C library that is developed by the HDFGroup.
+ * 
+ * Use this class to access (read/write) HDF5 files from your code. Do not use the HDF5 C++
+ * wrapper.
+ */
 #include "HDF5File.h"
 
 
 
-// Default constructor
-
+/**
+ * \brief      Default Constructor
+ */
 HDF5File::HDF5File()
 : file(NULL), fileIsOpen(false)
 {
@@ -16,14 +29,13 @@ HDF5File::HDF5File()
 
 
 
-// Open file constructor
-//
-// PURPOSE: open an HDF5 file. If it doesn't already exist, create it.
-//
-// INPUT: - filename: full path of the file
-//        - overwrite: true if previously stored information in the file should be erased,
-//                     false otherwise
 
+/**
+ * \brief      Open file constructor
+ *
+ * \param[in]  filename   full path of the file
+ * \param[in]  overwrite  true if previously stored information in the file should be erased, false otherwise
+ */
 HDF5File::HDF5File(string filename, bool overwrite)
 : file(NULL), fileIsOpen(false)
 {
@@ -37,8 +49,9 @@ HDF5File::HDF5File(string filename, bool overwrite)
 
 
 
-// Destructor
-
+/**
+ * @brief      Destructor
+ */
 HDF5File::~HDF5File()
 {
     close();
