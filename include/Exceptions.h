@@ -4,6 +4,12 @@
 #include <string>
 #include <exception>
 
+
+
+/**
+ * \class IOException
+ * \brief throw this exception for any input/output problems in your code
+ */
 class IOException : public std::exception {
     std::string message;
 public:
@@ -15,6 +21,10 @@ public:
 
 
 
+/**
+ * \class UnsupportedException
+ * \brief throw this exception when some feature has not yet been supported in code
+ */
 class UnsupportedException : public std::exception {
     std::string message;
 public:
@@ -26,6 +36,10 @@ public:
 
 
 
+/**
+ * \class IllegalArgumentException
+ * \brief throw this exception when an argument that was passed to a method or function is invalid
+ */
 class IllegalArgumentException : public std::exception {
     std::string message;
 public:
@@ -37,6 +51,10 @@ public:
 
 
 
+/**
+ * \class FileException
+ * \brief throw this exception for any problems with files in your code
+ */
 class FileException : public std::exception {
     std::string message;
 public:
