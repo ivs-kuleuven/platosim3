@@ -24,7 +24,7 @@
 #include "Exceptions.h"
 #include "Logger.h"
 #include "ArrayOperations.h"
-
+#include "FileUtilities.h"
 
 
 
@@ -52,6 +52,11 @@ PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam)
     isSelected = false;
     isRotated = false;
     
+    if ( ! FileUtilities::fileExists(location) )
+    {
+        throw FileException("PointSpreadFunction: trying to load the PSF HDF5 file (" + location + "), but file doesn't exist.");
+    }
+
     try
     {
         hdf5file = new HDF5File(location);
