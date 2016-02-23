@@ -16,7 +16,7 @@ public:
     static bool ends_with(string const &, string const &);
     static vector<string> split(string, char);
     static void print(vector <string> &);
-    static string dtos(double value, bool scientific = false);
+    static string dtos(double value, bool scientific = false, int precision = 6);
 
 };
 

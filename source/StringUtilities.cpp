@@ -28,7 +28,7 @@ vector<string> StringUtilities::split(string myString, char delimiter)
 }
 
 
-string StringUtilities::dtos(double value, bool scientific)
+string StringUtilities::dtos(double value, bool scientific, int precision)
 {
     stringstream os;
 
@@ -42,7 +42,7 @@ string StringUtilities::dtos(double value, bool scientific)
     }
     
     os << showpoint;
-    os << setprecision(6);
+    os << setprecision(precision);
     os << value;
 
     return os.str();
