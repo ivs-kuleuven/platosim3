@@ -10,5 +10,5 @@ General:
 PSF:
 
     # Location of the PSF HDF5 input file. This location is relative to the ProjectLocation.
-    Filename:            testData/PSF.hdf5
+    Filename:            testData/psf_201506.hdf5
 

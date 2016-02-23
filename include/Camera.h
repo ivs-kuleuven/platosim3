@@ -9,7 +9,7 @@
 #include "Units.h"
 #include "Constants.h"
 #include "ConfigurationParameters.h"
-#include "HDF5File.h"
+#include "PointSpreadFunction.h"
 #include "Heartbeat.h"
 #include "HDF5File.h"
 #include "HDF5Writer.h"
@@ -39,20 +39,24 @@ class Camera : public HDF5Writer
         Telescope &telescope;
         Sky &sky;
 
-        double plateScale;                    // [arcsec/mm]
+        double plateScale;                    // [arcsec/micron]
         double focalPlaneOrientation;         // [rad]
         double throughputBandwidth;           // FWHM of the throughput passband [nm]
         double throughputLambdaC;             // Central wavelength of the throughput passband [nm]
 
         void selectPsf(double raStar, double decStar);
         pair<double, double> skyToFocalPlaneCoordinates(double raStar, double decStar);
+        pair<double, double> skyToNormalizedFocalPlaneCoordinates(double raStar, double decStar);
         pair<double, double> focalPlaneToSkyCoordinates(double x, double y);
 
         double getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double yFPprime);
+        double getGnomonicRadialDistanceFromOpticalAxisNormalized(double xFPprime, double yFPprime);
 
     private:
 
         double internalTime;
+
+        PointSpreadFunction *psf;
 
 };
 

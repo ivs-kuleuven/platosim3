@@ -1,13 +1,15 @@
 /**
- * @class      ConfigurationParameters 
+ * \class      ConfigurationParameters 
  * 
- * @brief      Parse the input file and make all input parameters available to the Simulator.
+ * \brief      Parse the input file and make all input parameters available to the Simulator.
  * 
- * @details
+ * \details
  * 
  * The ConfigurationParameters provide an easy way to load and use input parameters
  * in the simulator. All parameters are loaded from a single YAML input file. The file is loaded 
  * and parsed by the constructor. 
+ * 
+ * TODO: Add explanantion of the keys, i.e. that they need to contain the group or section e.g. "General/ProjectLocation".
  * 
  */
 #include <string>
@@ -26,7 +28,7 @@ using namespace std;
 
 
 // Local functions that throw an Exception when incorrect node names are provided
-// 
+
 void noNodeError(string nodeName, string fileName);
 void noSubNodeError(string nodeName, string subNodeName, string fileName);
 
@@ -40,11 +42,11 @@ ConfigurationParameters::ConfigurationParameters() {}
 
 
 /**
- * @brief      Loads the input file. The input is expected to be a YAML file.
+ * \brief      Loads the input file. The input is expected to be a YAML file.
  *
- * @exception  IOException is thrown when the file does not exist
+ * \exception  IOException is thrown when the file does not exist
  * 
- * @param[in]  name  Filename of the input file for PlatoSim3
+ * \param[in]  name  Filename of the input file for PlatoSim3
  */
 ConfigurationParameters::ConfigurationParameters(const char* name) 
 : ConfigurationParameters::ConfigurationParameters(string(name)) 
@@ -55,17 +57,17 @@ ConfigurationParameters::ConfigurationParameters(const char* name)
 
 
 /**
- * @brief      Loads the input file. The input is expected to be a YAML file.
+ * \brief      Loads the input file. The input is expected to be a YAML file.
  *
- * @exception  IOException is thrown when the file does not exist
+ * \exception  IOException is thrown when the file does not exist
  * 
- * @param[in]  name  Filename of the input file for PlatoSim3
+ * \param[in]  name  Filename of the input file for PlatoSim3
  */
 ConfigurationParameters::ConfigurationParameters(const string &name)
 {
     if ( ! FileUtilities::fileExists(name) )
     {
-        throw IllegalArgumentException("File (" + name + ") passed as an argument to ConfigurationParameters does not exist.");
+        throw IllegalArgumentException("ConfigurationParameters: File (" + name + ") passed as an argument to ConfigurationParameters does not exist.");
     }
 
     filename = name;
@@ -78,9 +80,14 @@ ConfigurationParameters::ConfigurationParameters(const string &name)
 
 
 /**
- * @brief      Return the boolean value for the specified parameter.
+ * \brief      Return the boolean value for the specified parameter.
  *
- * @details    
+ * \details    
+ * 
+ * A boolean value is always parsed from a string that can have the following values: "yes"/"no", "y"/"n", "true"/"false", "on"/"off".
+ * All the previous values can be Capitalized (i.e. start with an upper case letter) or can be all caps.
+ * 
+ * A boolean value can not be parsed from the integers 1 or 0.
  * 
  * The key is the name of the input parameter. If the input parameter is part
  * of a section or group, then the key is a combination of the group name and 
@@ -88,9 +95,9 @@ ConfigurationParameters::ConfigurationParameters(const string &name)
  * is part of the group ObservingParameters, then the key to get the value for this
  * parameter would be "ObservingParameters/ExposureTime".
  * 
- * @param[in]  key The name of a parameter used in the PLATO Simulator
+ * \param[in]  key The name of a parameter used in the PLATO Simulator
  *
- * @returns A boolean value for the given parameter
+ * \returns A boolean value for the given parameter
  */
 bool ConfigurationParameters::getBoolean(const string &key)
 {
@@ -123,9 +130,9 @@ bool ConfigurationParameters::getBoolean(const string &key)
 
 
 /**
- * @brief      Return the integer value for the specified parameter.
+ * \brief      Return the integer value for the specified parameter.
  *
- * @details    
+ * \details    
  * 
  * The key is the name of the input parameter. If the input parameter is part
  * of a section or group, then the key is a combination of the group name and 
@@ -133,9 +140,9 @@ bool ConfigurationParameters::getBoolean(const string &key)
  * is part of the group ObservingParameters, then the key to get the value for this
  * parameter would be "ObservingParameters/ExposureTime".
  * 
- * @param[in]  key The name of a parameter used in the PLATO Simulator
+ * \param[in]  key The name of a parameter used in the PLATO Simulator
  *
- * @returns    An integer value for the given parameter
+ * \returns    An integer value for the given parameter
  */
 int ConfigurationParameters::getInteger(const string &key)
 {
@@ -175,9 +182,9 @@ int ConfigurationParameters::getInteger(const string &key)
 
 
 /**
- * @brief      Return the long integer value for the specified parameter.
+ * \brief      Return the long integer value for the specified parameter.
  *
- * @details    
+ * \details    
  * 
  * The key is the name of the input parameter. If the input parameter is part
  * of a section or group, then the key is a combination of the group name and 
@@ -185,9 +192,9 @@ int ConfigurationParameters::getInteger(const string &key)
  * fullWellSaturationLimit is part of the group CCD, then the key to get the value 
  * for this parameter would be "CCD/fullWellSaturationLimit".
  * 
- * @param[in]  key The name of a parameter used in the PLATO Simulator
+ * \param[in]  key The name of a parameter used in the PLATO Simulator
  *
- * @returns    An integer value for the given parameter
+ * \returns    An integer value for the given parameter
  */
 long ConfigurationParameters::getLong(const string &key)
 {
@@ -229,9 +236,9 @@ long ConfigurationParameters::getLong(const string &key)
 
 
 /**
- * @brief      Return the double value for the specified parameter.
+ * \brief      Return the double value for the specified parameter.
  *
- * @details    
+ * \details    
  * 
  * The key is the name of the input parameter. If the input parameter is part
  * of a section or group, then the key is a combination of the group name and 
@@ -239,9 +246,9 @@ long ConfigurationParameters::getLong(const string &key)
  * is part of the group ObservingParameters, then the key to get the value for this
  * parameter would be "ObservingParameters/ExposureTime".
  * 
- * @param[in]  key The name of a parameter used in the PLATO Simulator
+ * \param[in]  key The name of a parameter used in the PLATO Simulator
  *
- * @returns    A double value for the given parameter
+ * \returns    A double value for the given parameter
  */
 double ConfigurationParameters::getDouble(const string &key)
 {
@@ -274,9 +281,9 @@ double ConfigurationParameters::getDouble(const string &key)
 
 
 /**
- * @brief      Return the string value for the specified parameter.
+ * \brief      Return the string value for the specified parameter.
  *
- * @details    
+ * \details    
  * 
  * The key is the name of the input parameter. If the input parameter is part
  * of a section or group, then the key is a combination of the group name and 
@@ -284,9 +291,9 @@ double ConfigurationParameters::getDouble(const string &key)
  * is part of the group ObservingParameters, then the key to get the value for this
  * parameter would be "ObservingParameters/ExposureTime".
  * 
- * @param[in]  key The name of a parameter used in the PLATO Simulator
+ * \param[in]  key The name of a parameter used in the PLATO Simulator
  *
- * @returns    A string value for the given parameter
+ * \returns    A string value for the given parameter
  */
 string ConfigurationParameters::getString(const string &key) 
 {
@@ -319,24 +326,24 @@ string ConfigurationParameters::getString(const string &key)
 
 
 /**
- * @brief      Return the absolute filename for the given parameter.
+ * \brief      Return the absolute filename for the given parameter.
  * 
- * @details    
- * 
- * The key is the name of the input parameter. If the input parameter is part
- * of a section or group, then the key is a combination of the group name and 
- * the parameter name, separated by a '/' delimiter. E.g. if the parameter ExposureTime 
- * is part of the group ObservingParameters, then the key to get the value for this
- * parameter would be "ObservingParameters/ExposureTime".
+ * \details    
  * 
  * When the parameter contains an absolute filename, that value is returned. 
  * If the parameter contains a relative path, the filename is preceeded by the value of the 
  * General/ProjectLocation parameter. An absolute path starts with a '/' character, 
  * otherwise the path is considered relative.
  *
- * @param[in]  key The name of a parameter used in the PLATO Simulator
+ * The key is the name of the input parameter. If the input parameter is part
+ * of a section or group, then the key is a combination of the group name and 
+ * the parameter name, separated by a '/' delimiter. E.g. if the parameter ExposureTime 
+ * is part of the group ObservingParameters, then the key to get the value for this
+ * parameter would be "ObservingParameters/ExposureTime".
+ * 
+ * \param[in]  key The name of a parameter used in the PLATO Simulator
  *
- * @returns    An absolute filename
+ * \returns    An absolute filename
  */
 string ConfigurationParameters::getAbsoluteFilename(const string &key) 
 {
@@ -347,18 +354,18 @@ string ConfigurationParameters::getAbsoluteFilename(const string &key)
     {
         YAML::Node node = config[fields[0]];
         if (!node) 
-            noNodeError(fields[0], filename);
+            noNodeError(fields[0], this->filename);
 
         YAML::Node subnode = node[fields[1]];
         if (!subnode)
-            noSubNodeError(fields[0], fields[1], filename);
+            noSubNodeError(fields[0], fields[1], this->filename);
 
         filename = subnode.as<string>();
     }
     else 
     {
         if (!config[key])
-            noNodeError(key, filename);
+            noNodeError(key, this->filename);
 
         filename = config[key].as<string>();
     }
@@ -377,7 +384,7 @@ string ConfigurationParameters::getAbsoluteFilename(const string &key)
 
 
 /**
- * @brief      Set a (new) value to the given parameter.
+ * \brief      Set a (new) value to the given parameter.
  *
  * The parameter must exist, in which case it will be 
  * created automatically and assigned the given value.
@@ -387,8 +394,8 @@ string ConfigurationParameters::getAbsoluteFilename(const string &key)
  * 
  * A Log message will be issued as a warning if the action overwrites an existing field.
  * 
- * @param[in]  key    The name of the field to assign the new value
- * @param[in]  value  The value to assign to the given field
+ * \param[in]  key    The name of the field to assign the new value
+ * \param[in]  value  The value to assign to the given field
  */
 void ConfigurationParameters::setParameter(const string &key, const string &value)
 {
@@ -423,13 +430,13 @@ void ConfigurationParameters::setParameter(const string &key, const string &valu
 void noNodeError(string nodeName, string fileName)
 {
 
-    string msg = "The field \"" + nodeName + "\" is not available in the configuration file (" + fileName + ").";
+    string msg = "ConfigurationParameters: The field \"" + nodeName + "\" is not available in the configuration file (" + fileName + ").";
     throw IllegalArgumentException(msg);
 }
 
 void noSubNodeError(string nodeName, string subNodeName, string fileName)
 {
-    string msg = "The sub-field \"" + subNodeName + "\" of field \"" + nodeName + "\" is not available in the configuration file (" + fileName + ").";
+    string msg = "ConfigurationParameters: The sub-field \"" + subNodeName + "\" of field \"" + nodeName + "\" is not available in the configuration file (" + fileName + ").";
     throw IllegalArgumentException(msg);
 }
 

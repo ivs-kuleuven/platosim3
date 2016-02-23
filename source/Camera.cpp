@@ -1,8 +1,38 @@
-
+/**
+ * \class     Camera 
+ * 
+ * \brief     Handle the distortions and effects that are cause by the optical system of the Telescope.
+ * 
+ * \details
+ * 
+ * The Camera is basically the set of six lenses with their mechanical mounts and support 
+ * structure also known as the TOU or Telescope Optical Units. The lenses distort the 
+ * incoming light in several ways. The following effects are due to the setup and 
+ * characteristics of the lenses:
+ *
+ *   * Image Quality (Enclosed Energy)
+ *   * Optical distortion
+ *   * Vignetting
+ *   * Point Spread Function (PSF)
+ *   * PSF Breathing due to thermal variations
+ *   * Transmission Efficiency
+ *   * Straylight
+ *   * Lens degradation and contamination (??)
+ * 
+ * Not all above effects are implemented in the PLATO Simulator at this point. We concentrate on the 
+ * most distinct effects like PSF, optical distortion, and vignetting.
+ * 
+ * The lenses are the main source of point source spreading over the detector array. The camera is 
+ * therefore the obvious choice for applying the PSF correction. The PSF itself is described in it’s 
+ * own class, see PointSpreadFunction Class.
+ * 
+ * 
+ * 
+ */
 #include "Camera.h"
 #include "Units.h"
 #include "Constants.h"
-
+#include "PointSpreadFunction.h"
 
 /**
  * \brief      Constructor
@@ -18,6 +48,11 @@ Camera::Camera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telesco
     // Parse the parameters from the configuration file.
 
     configure(configParam);
+
+    // Initialize and load the PSF. This will open the PSF HDF5 file and perform some basic checking, 
+    // but the psf itself will only be loaded by the psf.select(radius) method.
+
+    psf = new PointSpreadFunction(configParam);
 }
 
 
@@ -25,13 +60,13 @@ Camera::Camera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telesco
 
 
 
-
 /**
- * @brief  Destructor
+ * \brief  Destructor
  */
 
 Camera::~Camera()
 {
+    delete psf;
 }
 
 
@@ -42,10 +77,12 @@ Camera::~Camera()
 
 
 /**
- * \brief      Expose the subField to the Sky, i.e. add flux to the detectors, 
+ * \brief      Expose the subField to the Sky, i.e. add flux to the detectors,
  *             add Background and convolve with the PSF.
  *
- * \param[in]  detector  the Detector class
+ * \param[in]  detector      the Detector class
+ * \param[in]  startTime     start time of the exposure [seconds]
+ * \param[in]  exposureTime  duration of one exposure [seconds]
  */
 void Camera::exposeDetector(Detector &detector, double startTime, double exposureTime)
 {
@@ -172,7 +209,11 @@ void Camera::configure(ConfigurationParameters &configParam)
 
 
 /**
- * \brief      select the PSF for the given star coordinates
+ * \brief      select the PSF for the given star coordinates.
+ * 
+ * \details
+ * 
+ * This method selects and rotates the PSF.
  *
  * \param[in]  raStar   right ascension of the star [rad]
  * \param[in]  decStar  declination of the star     [rad]
@@ -180,9 +221,30 @@ void Camera::configure(ConfigurationParameters &configParam)
 
 void Camera::selectPsf(double raStar, double decStar)
 {
-    double xFPprime, yFPprime;
 
-    tie(xFPprime, yFPprime) = skyToFocalPlaneCoordinates(raStar, decStar);
+    // Get the equatorial coordinates of the optical axis [rad]
+
+    double raOpticalAxis, decOpticalAxis;
+    tie(raOpticalAxis, decOpticalAxis) = telescope.getCurrentPointingCoordinates();
+
+    // Calculate the angular separation (in [radians]) between the star and the optical axis.
+    // Use that angle to select the proper PSF.
+
+    Coordinates opticalAxis(raOpticalAxis, decOpticalAxis, Angle::radians);
+    Coordinates star(raStar, decStar, Angle::radians);
+
+    double radius = angularDistanceBetween(opticalAxis, star, Angle::radians);
+
+    psf->select(radius);
+
+    // Calculate the rotation angle
+
+    double xFP, yFP;
+    tie(xFP, yFP) = skyToNormalizedFocalPlaneCoordinates(raStar, decStar);
+
+    double angle = atan2(yFP, xFP);
+
+    psf->rotate(angle);
 
 }
 
@@ -200,7 +262,7 @@ void Camera::selectPsf(double raStar, double decStar)
 
 
 /**
- * \brief     Calculate the gnomonic radial distance with respect to the optical axis in the focal plane
+ * \brief      Calculate the gnomonic radial distance with respect to the optical axis in the focal plane
  *
  * \param[in]  xFPprime Cartesian x-coordinate of the projected star in the focal plane in the FP-prime system [mm]
  * \param[in]  yFPprime Cartesian y-coordinate of the projected star in the focal plane in the FP-prime system [mm]
@@ -223,6 +285,21 @@ double Camera::getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double 
 
 
 
+/**
+ * @brief      Calculate the gnomonic radial distance with respect to the optical axis in the normalized focal plane
+ *
+ * @param[in]  xFPprime  normalized focal plane x-coordinate [rad]
+ * @param[in]  yFPprime  normalized focal plane y-coordinate [rad]
+ *
+ * @return     the field radial distance (gnomonic) with respect to the line of sight in the sky [rad]
+ */
+double Camera::getGnomonicRadialDistanceFromOpticalAxisNormalized(double xFPprime, double yFPprime)
+{
+    double tanx = tan(xFPprime);
+    double tany = tan(yFPprime);
+
+    return acos(1.0/sqrt(1.0 + tanx*tanx + tany*tany));
+}
 
 
 
@@ -266,6 +343,44 @@ pair<double, double> Camera::skyToFocalPlaneCoordinates(double raStar, double de
     // Return the scaled coordinates
 
     return make_pair(xFPprime_mm, yFPprime_mm);
+}
+
+
+
+
+
+
+/**
+ * \brief Computes the (x,y) coordinates in the normalized focal plane of a star with given equatorial coordinates
+ *        using a gnomonic projection.
+ *
+ * \param raStar       Right ascension of the star [rad]
+ * \param decStar      Declination of the star [rad]
+ *
+ * return pair (x,y):  Cartesian coordinate of the projected star in the normalized focal plane in the FP-prime system [radians]
+ */
+
+pair<double, double> Camera::skyToNormalizedFocalPlaneCoordinates(double raStar, double decStar)
+{
+    // Get the equatorial coordinates of the optical axis [rad]
+
+    double raOpticalAxis, decOpticalAxis;
+    tie(raOpticalAxis, decOpticalAxis) = telescope.getCurrentPointingCoordinates();
+
+    // Project the sky to the focal plane in the "FP" coordinate system (gnomonic projection)
+
+    double denominator = cos(decOpticalAxis) * cos(decStar) * cos(raStar - raOpticalAxis) + sin(decOpticalAxis) * sin(decStar);
+    double xFP = ( sin(decOpticalAxis) * cos(decStar) * cos(raStar - raOpticalAxis) - cos(decOpticalAxis) * sin(decStar)) / denominator;
+    double yFP =  cos(decStar) * sin(raStar - raOpticalAxis) / denominator;
+
+    // Convert the FP coordinates into FP' coordinates 
+
+    double xFPprime =  xFP * cos(focalPlaneOrientation) + yFP * sin(focalPlaneOrientation);
+    double yFPprime = -xFP * sin(focalPlaneOrientation) + yFP * cos(focalPlaneOrientation);
+
+    // Return the scaled coordinates
+
+    return make_pair(xFPprime, yFPprime);
 }
 
 

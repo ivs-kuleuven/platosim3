@@ -1,10 +1,23 @@
-
+/**
+ * \class HDF5File
+ * 
+ * \brief      Provides an application level interface to the HDF5 C++ API
+ * 
+ * \details
+ * 
+ * This class provides a convenient application level interface to the HDF5 C++ wrapper to 
+ * the HDF C library that is developed by the HDFGroup.
+ * 
+ * Use this class to access (read/write) HDF5 files from your code. Do not use the HDF5 C++
+ * wrapper.
+ */
 #include "HDF5File.h"
 
 
 
-// Default constructor
-
+/**
+ * \brief      Default Constructor
+ */
 HDF5File::HDF5File()
 : file(NULL), fileIsOpen(false)
 {
@@ -16,14 +29,13 @@ HDF5File::HDF5File()
 
 
 
-// Open file constructor
-//
-// PURPOSE: open an HDF5 file. If it doesn't already exist, create it.
-//
-// INPUT: - filename: full path of the file
-//        - overwrite: true if previously stored information in the file should be erased,
-//                     false otherwise
 
+/**
+ * \brief      Open file constructor
+ *
+ * \param[in]  filename   full path of the file
+ * \param[in]  overwrite  true if previously stored information in the file should be erased, false otherwise
+ */
 HDF5File::HDF5File(string filename, bool overwrite)
 : file(NULL), fileIsOpen(false)
 {
@@ -37,8 +49,9 @@ HDF5File::HDF5File(string filename, bool overwrite)
 
 
 
-// Destructor
-
+/**
+ * @brief      Destructor
+ */
 HDF5File::~HDF5File()
 {
     close();
@@ -174,6 +187,13 @@ bool HDF5File::fileExists(string filename)
 
 
 
+/**
+ * \brief      Check if the HDF5 file has a group with the given name
+ *
+ * \param[in]  groupName    the full name of the group
+ *
+ * \return     true if the group exists in this file, false otherwise
+ */
 bool HDF5File::hasGroup(string groupName)
 {
     try
@@ -182,6 +202,44 @@ bool HDF5File::hasGroup(string groupName)
         return true;
     }
     catch (H5::Exception ex) {}
+
+    return false;
+}
+
+
+
+
+
+
+/**
+ * \brief      Check if the given group has a dataset with the given name
+ *
+ * \param[in]  groupName    the full name of the group that contains the dataset
+ * \param[in]  datasetName  the name of the dataset
+ *
+ * \return     true if the dataset exists in this group, false otherwise
+ * 
+ * \exception  H5GroupException thrown when the group is unknown to the HDF5 file
+ */
+bool HDF5File::hasDataset(string groupName, string datasetName)
+{
+    if (hasGroup(groupName))
+    {
+        H5::Group group = file->openGroup(groupName.c_str());
+
+        try
+        {
+            H5::DataSet dataset = group.openDataSet(datasetName.c_str());
+            return true;
+        }
+        catch (H5::Exception ex) {}
+
+        return false;
+    }
+    else
+    {
+        throw H5GroupException("HDF5File: Unknown group (" + groupName + ") in HDF5 file " + file->getFileName());
+    }
 
     return false;
 }
@@ -565,7 +623,7 @@ void HDF5File::writeAttribute(string groupName, string attributeName, double att
 
     // Create and write the attribute to the group
 
-    H5::IntType floatType(H5::PredType::NATIVE_DOUBLE);
+    H5::FloatType floatType(H5::PredType::NATIVE_DOUBLE);
     H5::DataSpace attributeSpace(H5S_SCALAR);
     H5::Attribute attribute = group.createAttribute(attributeName.c_str(), floatType, attributeSpace);
     attribute.write(floatType, &attributeValue);
@@ -579,6 +637,152 @@ void HDF5File::writeAttribute(string groupName, string attributeName, double att
     return;
 }
 
+
+
+
+/**
+ * \brief      read a double-valued attribute that is associated with groupName
+ *
+ * \param[in]  groupName      string containing the full path of an existing group. Starts with "/".
+ * \param[in]  attributeName  string containing the name of the attribute
+ *
+ * \return     the value of the attribute
+ * 
+ * \exception  H5FileException      if the HDF5 file has not been opened
+ * \exception  H5GroupException     if the group is unknown to the HDF5 file
+ * \exception  H5AttributeException if there is no attribute with the given name
+ */
+double HDF5File::readAttribute(string groupName, string attributeName)
+{
+    // Complain if the file was not first opened
+    
+    if (!fileIsOpen)
+    {
+        throw H5FileException("HDF5File: The file (" + file->getFileName() + ") has not been opened.");
+    }
+
+    // Open the proper group where the attribute is associated
+
+    H5::Group group;
+    if (hasGroup(groupName))
+    {
+        group = file->openGroup(groupName.c_str());
+    }
+    else 
+    {
+        throw H5GroupException("HDF5File: Unknown group (" + groupName + ") in HDF5 file " + file->getFileName());
+    }
+
+    // Check whether the attribute is in the group by trying to read it.
+    // If not, raise an exception.
+
+    H5::Attribute attr;
+
+    try 
+    {  
+        // Turn off the auto-printing when an exception is raised
+
+        H5::Exception::dontPrint();
+
+        // Try to open the attribute
+
+        attr = group.openAttribute(attributeName.c_str());
+    }
+    catch (H5::AttributeIException error)
+    {
+        throw H5AttributeException("HDF5File: Unknown Attribute (" + attributeName + ") in the group " + groupName + " for HDF5 file " + file->getFileName());
+    }
+
+    double value = 0.0;
+
+    H5::DataType type = attr.getDataType();
+    attr.read(type, &value);    
+
+    return value;
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief      read a double-valued attribute that is associated with groupName
+ *
+ * \param[in]  groupName      string containing the full path of an existing group. Starts with "/".
+ * \param[in]  datasetName    string containing the name of the dataSet where the attribute is attached
+ * \param[in]  attributeName  string containing the name of the attribute
+ *
+ * \return     the value of the attribute
+ * 
+ * \exception  H5FileException      if the HDF5 file has not been opened
+ * \exception  H5GroupException     if the group is unknown to the HDF5 file
+ * \exception  H5DatasetException   if the dataset is not known to the group
+ * \exception  H5AttributeException if there is no attribute with the given name
+ */
+double HDF5File::readAttribute(string groupName, string datasetName, string attributeName)
+{
+    // Complain if the file was not first opened
+    
+    if (!fileIsOpen)
+    {
+        throw H5FileException("HDF5File: The file (" + file->getFileName() + ") has not been opened.");
+    }
+
+    // Open the proper group where the attribute is associated
+
+    H5::Group group;
+    if (hasGroup(groupName))
+    {
+        group = file->openGroup(groupName.c_str());
+    }
+    else 
+    {
+        throw H5GroupException("HDF5File: Unknown group (" + groupName + ") in HDF5 file " + file->getFileName());
+    }
+
+    H5::DataSet dataset;
+    if (hasDataset(groupName, datasetName))
+    {
+        dataset = group.openDataSet(datasetName);
+    }
+    else 
+    {
+        throw H5DatasetException("HDF5File: Unknown dataset (" + datasetName + ") in group (" + groupName + ") in HDF5 file " + file->getFileName());
+    }
+
+    // Check whether the attribute is in the group by trying to read it.
+    // If not, raise an exception.
+
+    H5::Attribute attr;
+
+    try 
+    {  
+        // Turn off the auto-printing when an exception is raised
+
+        H5::Exception::dontPrint();
+
+        // Try to open the attribute
+
+        attr = dataset.openAttribute(attributeName.c_str());
+    }
+    catch (H5::AttributeIException error)
+    {
+        throw H5AttributeException("HDF5File: Unknown Attribute (" + attributeName + ") in the group " + groupName + " for HDF5 file " + file->getFileName());
+    }
+
+    double value = 0.0;
+
+    H5::DataType type = attr.getDataType();
+    attr.read(type, &value);
+
+    return value;
+}
 
 
 

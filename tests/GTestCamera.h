@@ -1,15 +1,30 @@
+#include <string>
 #include <cstdio>
 #include <map>
 
 #include "gtest/gtest.h"
 
+#include "gtest_definitions.h"
+
 #include "Simulation.h"
 #include "Coordinates.h"
+#include "FileUtilities.h"
 
+/**
+ * \class CameraTest
+ * 
+ * \brief Test Fixture for the Camera class. 
+ * 
+ * \details
+ * 
+ * Setup configuration parameters for the Camera class and handle the HDF5 open-close.
+ * 
+ * Input parameters for this test are located in the file 'input_CameraTest.yaml' in the
+ * testData directory of the distribution.
+ * 
+ * The test creates an HDF5 file 'cameraTest.hdf5' in the current working directory. This file is removed after the test finishes.
+ */
 
-// Test Fixture: setup configuration parameters for the Camera class
-//               and handle the HDF5 open-close.
-//               
 class CameraTest : public testing::Test
 {
     protected:
@@ -18,22 +33,29 @@ class CameraTest : public testing::Test
         {
             cp_ = ConfigurationParameters("../testData/input_CameraTest.yaml");
         
-            remove(hdf5Filename.c_str());
             hdf5File_.open(hdf5Filename);
         }
 
         virtual void TearDown()
         {
             hdf5File_.close();
+            FileUtilities::remove(hdf5Filename);
         }
 
-        string hdf5Filename = "/tmp/cameraTest.hdf5";
+        string hdf5Filename = "cameraTest.hdf5";
         ConfigurationParameters cp_;
         HDF5File hdf5File_;
 };
 
-// This subclass of Camera serves the sole purpose of testing protected methods of Camera.
-// 
+
+
+
+/**
+ * 
+ * \brief This subclass of Camera serves the sole purpose of testing protected methods of Camera.
+ * 
+ */
+
 class MyCamera : public Camera
 {
     public:
@@ -41,7 +63,8 @@ class MyCamera : public Camera
 
         pair<double, double> test_skyToFocalPlaneCoordinates(double raStar, double decStar) {return skyToFocalPlaneCoordinates(raStar, decStar);};
         pair<double, double> test_focalPlaneToSkyCoordinates(double x, double y) {return focalPlaneToSkyCoordinates(x, y);};
-        double test_getGnomonicRadialDistance(double xDeg, double yDeg) {return getGnomonicRadialDistanceFromOpticalAxis(xDeg, yDeg);};
+        double test_getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double yFPprime) {return getGnomonicRadialDistanceFromOpticalAxis(xFPprime, yFPprime);};
+        double test_getGnomonicRadialDistanceFromOpticalAxisNormalized(double xFPprime, double yFPprime) {return getGnomonicRadialDistanceFromOpticalAxisNormalized(xFPprime, yFPprime);};
 };
 
 
@@ -51,27 +74,37 @@ MyCamera::MyCamera(ConfigurationParameters &configParam, HDF5File &hdf5file, Tel
 }
 
 
-// This test is DISABLED_ in the public master as I'm still working on the code and the tests fail currently.
-// The code itself is not activated yet in platosim.
-TEST_F(CameraTest, skyToFocalPlaneCoordinates) {
+
+
+
+
+
+// The table below represents the data from the list file as provided with the PSFs.
+//
+// The relation between xDeg, yDeg and radius is provided by the getGnomonicRadialDistanceFromOpticalAxisNormalized(..)
+// method in Camera. The relation between xDeg, yDeg and xFP, yFP is currently not available and can not be tested.
+// 
+TEST_F(CameraTest, GnomonicRadialDistance) {
+
+    LOG_STARTING_OF_TEST
 
     vector<map<string, double>> gnomonic;
 
-    gnomonic.push_back(map<string, double> {{"xDeg",  0.0}, {"yDeg",  0.0}, {"xFP",  0.0000}, {"yFP",  0.0000}, {"radialDistance",   0.0000}});
-    gnomonic.push_back(map<string, double> {{"xDeg",  1.0}, {"yDeg",  1.0}, {"xFP",  0.0000}, {"yFP",  0.0000}, {"radialDistance",   1.4141}});
-    gnomonic.push_back(map<string, double> {{"xDeg",  2.0}, {"yDeg",  2.0}, {"xFP",  8.6354}, {"yFP",  8.6354}, {"radialDistance",   2.8273}});
-    gnomonic.push_back(map<string, double> {{"xDeg",  3.0}, {"yDeg",  3.0}, {"xFP",  0.0000}, {"yFP",  0.0000}, {"radialDistance",   4.2388}});
-    gnomonic.push_back(map<string, double> {{"xDeg",  4.0}, {"yDeg",  4.0}, {"xFP",  0.0000}, {"yFP",  0.0000}, {"radialDistance",   5.6477}});
-    gnomonic.push_back(map<string, double> {{"xDeg",  5.0}, {"yDeg",  5.0}, {"xFP",  0.0000}, {"yFP",  0.0000}, {"radialDistance",   7.0532}});
-    gnomonic.push_back(map<string, double> {{"xDeg",  6.0}, {"yDeg",  6.0}, {"xFP",  0.0000}, {"yFP",  0.0000}, {"radialDistance",   8.4545}});
-    gnomonic.push_back(map<string, double> {{"xDeg",  7.0}, {"yDeg",  7.0}, {"xFP",  0.0000}, {"yFP",  0.0000}, {"radialDistance",   9.8508}});
-    gnomonic.push_back(map<string, double> {{"xDeg",  8.0}, {"yDeg",  8.0}, {"xFP",  0.0000}, {"yFP",  0.0000}, {"radialDistance",  11.2413}});
-    gnomonic.push_back(map<string, double> {{"xDeg",  9.0}, {"yDeg",  9.0}, {"xFP",  0.0000}, {"yFP",  0.0000}, {"radialDistance",  12.6253}});
-    gnomonic.push_back(map<string, double> {{"xDeg", 10.0}, {"yDeg", 10.0}, {"xFP",  0.0000}, {"yFP",  0.0000}, {"radialDistance",  14.0019}});
-    gnomonic.push_back(map<string, double> {{"xDeg", 11.0}, {"yDeg", 11.0}, {"xFP",  0.0000}, {"yFP",  0.0000}, {"radialDistance",  15.3707}});
-    gnomonic.push_back(map<string, double> {{"xDeg", 12.0}, {"yDeg", 12.0}, {"xFP",  0.0000}, {"yFP",  0.0000}, {"radialDistance",  16.7308}});
-    gnomonic.push_back(map<string, double> {{"xDeg", 13.0}, {"yDeg", 13.0}, {"xFP",  0.0000}, {"yFP",  0.0000}, {"radialDistance",  18.0817}});
-    gnomonic.push_back(map<string, double> {{"xDeg", 13.6}, {"yDeg", 13.6}, {"xFP",  0.0000}, {"yFP",  0.0000}, {"radialDistance",  18.8876}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  0.0}, {"yDeg",  0.0}, {"xFP",   0.0000}, {"yFP",   0.0000}, {"radius",   0.0000}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  1.0}, {"yDeg",  1.0}, {"xFP",   0.0000}, {"yFP",   0.0000}, {"radius",   1.4141}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  2.0}, {"yDeg",  2.0}, {"xFP",   8.6354}, {"yFP",   8.6354}, {"radius",   2.8273}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  3.0}, {"yDeg",  3.0}, {"xFP",   0.0000}, {"yFP",   0.0000}, {"radius",   4.2388}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  4.0}, {"yDeg",  4.0}, {"xFP",  17.3325}, {"yFP",  17.3325}, {"radius",   5.6477}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  5.0}, {"yDeg",  5.0}, {"xFP",   0.0000}, {"yFP",   0.0000}, {"radius",   7.0532}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  6.0}, {"yDeg",  6.0}, {"xFP",  26.1552}, {"yFP",  26.1552}, {"radius",   8.4545}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  7.0}, {"yDeg",  7.0}, {"xFP",  30.6341}, {"yFP",  30.6341}, {"radius",   9.8508}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  8.0}, {"yDeg",  8.0}, {"xFP",  35.1698}, {"yFP",  35.1698}, {"radius",  11.2413}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  9.0}, {"yDeg",  9.0}, {"xFP",   0.0000}, {"yFP",   0.0000}, {"radius",  12.6253}});
+    gnomonic.push_back(map<string, double> {{"xDeg", 10.0}, {"yDeg", 10.0}, {"xFP",  44.4487}, {"yFP",  44.4487}, {"radius",  14.0019}});
+    gnomonic.push_back(map<string, double> {{"xDeg", 11.0}, {"yDeg", 11.0}, {"xFP",   0.0000}, {"yFP",   0.0000}, {"radius",  15.3707}});
+    gnomonic.push_back(map<string, double> {{"xDeg", 12.0}, {"yDeg", 12.0}, {"xFP",  54.0726}, {"yFP",  54.0726}, {"radius",  16.7308}});
+    gnomonic.push_back(map<string, double> {{"xDeg", 13.0}, {"yDeg", 13.0}, {"xFP",   0.0000}, {"yFP",   0.0000}, {"radius",  18.0817}});
+    gnomonic.push_back(map<string, double> {{"xDeg", 13.6}, {"yDeg", 13.6}, {"xFP",  62.0957}, {"yFP",  62.0957}, {"radius",  18.8876}});
 
     JitterGenerator *jitterGenerator = new JitterFromRedNoise(cp_);
     Platform platform = Platform(cp_, hdf5File_, *jitterGenerator);
@@ -80,58 +113,25 @@ TEST_F(CameraTest, skyToFocalPlaneCoordinates) {
 
     MyCamera camera = MyCamera(cp_, hdf5File_, telescope, sky);
 
-    // TODO:
-    // Test incomplete, I now only test if the from and to methods end up with the original values.
-    // What should be done is check for boundary values if the expected result is returned.
-    // Other tests should be done with optical axis not being (0,0).
+    double xFPprime, yFPprime;   // [rad]
+    double radius;               // [rad]
 
-    double xFPprime, yFPprime;   // [mm]
-    double raStar, decStar;      // [rad]
-    double raStar2, decStar2;    // [rad]
-    double radialDistance;       // [deg]
+    for (auto &data: gnomonic)
+    {
+        // Other tests that need to be performed is the conversion from xFP, yFP to xDeg, yDeg (in the data table above)
+        
+        // xFPprime and yFPprime as described in eq. 24 of TN on PlatSim Reference Frames v1.3
+        xFPprime = deg2rad(data["xDeg"]);
+        yFPprime = deg2rad(data["yDeg"]);
 
-//    for (auto &data: gnomonic)
-//    {
-//        raStar = deg2rad(data["raStar"]);
-//        decStar = deg2rad(data["decStar"]);
-//
-//        tie(xFPprime, yFPprime) = camera.test_skyToFocalPlaneCoordinates(raStar, decStar);    // [radians] -> [mm]
-//
-//        tie(raStar2, decStar2) = camera.test_focalPlaneToSkyCoordinates(xFPprime, yFPprime);  // [mm] -> [radians]
-//
-//        radialDistance = camera.test_getGnomonicRadialDistance(xFPprime, yFPprime); // [mm] -> [degrees]
-//
-//        EXPECT_DOUBLE_EQ(raStar, raStar2);
-//        EXPECT_DOUBLE_EQ(decStar, decStar2);
-//
-//        //EXPECT_NEAR(data["xFPprime"], xFPprime, 0.0001);
-//        //EXPECT_NEAR(data["yFPprime"], yFPprime, 0.0001);
-//        EXPECT_NEAR(data["radialDistance"], radialDistance, 0.00001);
-//
-//
-//        Log.debug("CameraTest.skyToFocalPlaneCoordinates: raStar, decStar = " + to_string(raStar) + ", " + to_string(decStar));
-//        Log.debug("CameraTest.skyToFocalPlaneCoordinates: raStar2, decStar2 = " + to_string(raStar2) + ", " + to_string(decStar2));
-//        Log.debug("CameraTest.skyToFocalPlaneCoordinates: xFPprime, yFPprime = " + to_string(xFPprime) + ", " + to_string(yFPprime));
-//        Log.debug("CameraTest.skyToFocalPlaneCoordinates: radialDistance = " + to_string(radialDistance));
-//
-//    }
+        radius = camera.test_getGnomonicRadialDistanceFromOpticalAxisNormalized(xFPprime, yFPprime); // [radians] -> [radians]
 
-    tie(raStar, decStar) = camera.test_focalPlaneToSkyCoordinates(8.6354, 8.6354);
+        EXPECT_NEAR(data["radius"], rad2deg(radius), 0.0001);
 
-    Coordinates opticalAxis(0.0, 0.0, Angle::degrees);
-    Coordinates starPosition(raStar, decStar, Angle::radians);
+        Log.debug("CameraTest.GnomonicRadialDistance: xFPprime, yFPprime = " + to_string(xFPprime) + ", " + to_string(yFPprime));
+        Log.debug("CameraTest.GnomonicRadialDistance: radius = " + to_string(radius));
 
-    double ad = angularDistanceBetween(opticalAxis, starPosition, Angle::degrees);
-    Log.debug("CameraTest.skyToFocalPlaneCoordinates: 8.6354, 8.6354 -> angularDistance = " + to_string(ad));
-    Log.debug("CameraTest.skyToFocalPlaneCoordinates: 8.6354, 8.6354 -> raStar, decStar = " + to_string(rad2deg(raStar)) + ", " + to_string(rad2deg(decStar)));
-
-    tie(raStar, decStar) = camera.test_focalPlaneToSkyCoordinates(17.3325, 17.3325);
-
-    Coordinates starPosition2(raStar, decStar, Angle::radians);
-
-    double ad2 = angularDistanceBetween(opticalAxis, starPosition2, Angle::degrees);
-    Log.debug("CameraTest.skyToFocalPlaneCoordinates: 17.3325, 17.3325 -> angularDistance = " + to_string(ad2));
-    Log.debug("CameraTest.skyToFocalPlaneCoordinates: 17.3325, 17.3325 -> raStar, decStar = " + to_string(rad2deg(raStar)) + ", " + to_string(rad2deg(decStar)));
+    }
 
 }
 
