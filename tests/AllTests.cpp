@@ -5,6 +5,7 @@
 #include "Logger.h"
 #include "GTestConfigurationParameters.h"
 #include "GTestFileUtilities.h"
+#include "GTestStringUtilities.h"
 #include "GTestPointSpreadFunction.h"
 #include "GTestCamera.h"
 #include "GTestDetector.h"

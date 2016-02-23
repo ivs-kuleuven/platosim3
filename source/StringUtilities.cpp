@@ -1,6 +1,8 @@
 #include "StringUtilities.h"
 
 
+
+
 bool StringUtilities::ends_with(string const & value, string const & ending)
 {
     if (ending.size() > value.size())
@@ -26,6 +28,25 @@ vector<string> StringUtilities::split(string myString, char delimiter)
 }
 
 
+string StringUtilities::dtos(double value, bool scientific)
+{
+    stringstream os;
+
+    if (scientific)
+    {
+        os << std::scientific;
+    }
+    else
+    {
+        os << fixed;
+    }
+    
+    os << showpoint;
+    os << setprecision(6);
+    os << value;
+
+    return os.str();
+}
 
 
 
