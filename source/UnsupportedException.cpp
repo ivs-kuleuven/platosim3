@@ -5,19 +5,18 @@
 
 using std::string;
 
-const char * UnsupportedException::what() const throw() {
-    return string("UnsupportedException: " + message).c_str();
+const char * UnsupportedException::what() const throw()
+{
+    return message.c_str();
 }
 
-UnsupportedException::UnsupportedException(const char * msg) {
+
+UnsupportedException::UnsupportedException(std::string msg)
+{
     message = msg;
-    Log.error(what());
+    Log.error(message);
 }
 
-UnsupportedException::UnsupportedException(std::string msg) {
-    message = msg;
-    Log.error(what());
-}
 
 UnsupportedException::~UnsupportedException() throw() {}
 

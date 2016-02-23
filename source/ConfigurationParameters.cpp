@@ -67,7 +67,7 @@ ConfigurationParameters::ConfigurationParameters(const string &name)
 {
     if ( ! FileUtilities::fileExists(name) )
     {
-        throw IllegalArgumentException("File (" + name + ") passed as an argument to ConfigurationParameters does not exist.");
+        throw IllegalArgumentException("ConfigurationParameters: File (" + name + ") passed as an argument to ConfigurationParameters does not exist.");
     }
 
     filename = name;
@@ -430,13 +430,13 @@ void ConfigurationParameters::setParameter(const string &key, const string &valu
 void noNodeError(string nodeName, string fileName)
 {
 
-    string msg = "The field \"" + nodeName + "\" is not available in the configuration file (" + fileName + ").";
+    string msg = "ConfigurationParameters: The field \"" + nodeName + "\" is not available in the configuration file (" + fileName + ").";
     throw IllegalArgumentException(msg);
 }
 
 void noSubNodeError(string nodeName, string subNodeName, string fileName)
 {
-    string msg = "The sub-field \"" + subNodeName + "\" of field \"" + nodeName + "\" is not available in the configuration file (" + fileName + ").";
+    string msg = "ConfigurationParameters: The sub-field \"" + subNodeName + "\" of field \"" + nodeName + "\" is not available in the configuration file (" + fileName + ").";
     throw IllegalArgumentException(msg);
 }
 
