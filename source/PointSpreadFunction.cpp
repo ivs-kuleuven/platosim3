@@ -52,12 +52,20 @@ PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam)
     isSelected = false;
     isRotated = false;
     
-    hdf5file = new HDF5File(location);
+    try
+    {
+        hdf5file = new HDF5File(location);
+    }
+    catch(H5::FileIException ex)
+    {
+        Log.error("H5::FileIException: " + string(ex.getCDetailMsg()));
+        throw H5FileException("HDF5File: Could not open HDF5 file: " + location);
+    }
 
     string groupName = "T6000";
     if ( !hdf5file->hasGroup(groupName) )
     {
-        throw FileException("The HDF5 file (" + location + ") doesn't contain the expected group \"" + groupName + "\".");
+        throw H5FileException("HDF5File: The HDF5 file (" + location + ") doesn't contain the expected group \"" + groupName + "\".");
     }
 
 }
