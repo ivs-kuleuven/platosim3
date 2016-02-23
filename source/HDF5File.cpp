@@ -238,7 +238,7 @@ bool HDF5File::hasDataset(string groupName, string datasetName)
     }
     else
     {
-        throw H5GroupException("Unknown group (" + groupName + ") in HDF5 file " + file->getFileName());
+        throw H5GroupException("HDF5File: Unknown group (" + groupName + ") in HDF5 file " + file->getFileName());
     }
 
     return false;
@@ -658,7 +658,7 @@ double HDF5File::readAttribute(string groupName, string attributeName)
     
     if (!fileIsOpen)
     {
-        throw H5FileException("The file (" + file->getFileName() + ") has not been opened.");
+        throw H5FileException("HDF5File: The file (" + file->getFileName() + ") has not been opened.");
     }
 
     // Open the proper group where the attribute is associated
@@ -670,7 +670,7 @@ double HDF5File::readAttribute(string groupName, string attributeName)
     }
     else 
     {
-        throw H5GroupException("Unknown group (" + groupName + ") in HDF5 file " + file->getFileName());
+        throw H5GroupException("HDF5File: Unknown group (" + groupName + ") in HDF5 file " + file->getFileName());
     }
 
     // Check whether the attribute is in the group by trying to read it.
@@ -690,7 +690,7 @@ double HDF5File::readAttribute(string groupName, string attributeName)
     }
     catch (H5::AttributeIException error)
     {
-        throw H5AttributeException("Unknown Attribute (" + attributeName + ") in the group " + groupName + " for HDF5 file " + file->getFileName());
+        throw H5AttributeException("HDF5File: Unknown Attribute (" + attributeName + ") in the group " + groupName + " for HDF5 file " + file->getFileName());
     }
 
     double value = 0.0;
@@ -731,7 +731,7 @@ double HDF5File::readAttribute(string groupName, string datasetName, string attr
     
     if (!fileIsOpen)
     {
-        throw H5FileException("The file (" + file->getFileName() + ") has not been opened.");
+        throw H5FileException("HDF5File: The file (" + file->getFileName() + ") has not been opened.");
     }
 
     // Open the proper group where the attribute is associated
@@ -743,7 +743,7 @@ double HDF5File::readAttribute(string groupName, string datasetName, string attr
     }
     else 
     {
-        throw H5GroupException("Unknown group (" + groupName + ") in HDF5 file " + file->getFileName());
+        throw H5GroupException("HDF5File: Unknown group (" + groupName + ") in HDF5 file " + file->getFileName());
     }
 
     H5::DataSet dataset;
@@ -753,7 +753,7 @@ double HDF5File::readAttribute(string groupName, string datasetName, string attr
     }
     else 
     {
-        throw H5DatasetException("Unknown dataset (" + datasetName + ") in group (" + groupName + ") in HDF5 file " + file->getFileName());
+        throw H5DatasetException("HDF5File: Unknown dataset (" + datasetName + ") in group (" + groupName + ") in HDF5 file " + file->getFileName());
     }
 
     // Check whether the attribute is in the group by trying to read it.
@@ -773,7 +773,7 @@ double HDF5File::readAttribute(string groupName, string datasetName, string attr
     }
     catch (H5::AttributeIException error)
     {
-        throw H5AttributeException("Unknown Attribute (" + attributeName + ") in the group " + groupName + " for HDF5 file " + file->getFileName());
+        throw H5AttributeException("HDF5File: Unknown Attribute (" + attributeName + ") in the group " + groupName + " for HDF5 file " + file->getFileName());
     }
 
     double value = 0.0;

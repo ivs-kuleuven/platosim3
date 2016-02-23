@@ -3,24 +3,19 @@
 #include "Logger.h"
 #include "HDF5Exceptions.h"
 
-using std::string;
+using namespace std;
 
 
 
 
 
 const char * H5FileException::what() const throw() {
-    return string("H5FileException: " + message).c_str();
+    return message.c_str();
 }
 
-H5FileException::H5FileException(const char * msg) {
+H5FileException::H5FileException(string msg) {
     message = msg;
-    Log.error(what());
-}
-
-H5FileException::H5FileException(std::string msg) {
-    message = msg;
-    Log.error(what());
+    Log.error(message);
 }
 
 H5FileException::~H5FileException() throw() {}
@@ -33,17 +28,12 @@ H5FileException::~H5FileException() throw() {}
 
 
 const char * H5GroupException::what() const throw() {
-    return string("H5GroupException: " + message).c_str();
+    return message.c_str();
 }
 
-H5GroupException::H5GroupException(const char * msg) {
+H5GroupException::H5GroupException(string msg) {
     message = msg;
-    Log.error(what());
-}
-
-H5GroupException::H5GroupException(std::string msg) {
-    message = msg;
-    Log.error(what());
+    Log.error(message);
 }
 
 H5GroupException::~H5GroupException() throw() {}
@@ -56,17 +46,12 @@ H5GroupException::~H5GroupException() throw() {}
 
 
 const char * H5DatasetException::what() const throw() {
-    return string("H5DatasetException: " + message).c_str();
+    return message.c_str();
 }
 
-H5DatasetException::H5DatasetException(const char * msg) {
+H5DatasetException::H5DatasetException(string msg) {
     message = msg;
-    Log.error(what());
-}
-
-H5DatasetException::H5DatasetException(std::string msg) {
-    message = msg;
-    Log.error(what());
+    Log.error(message);
 }
 
 H5DatasetException::~H5DatasetException() throw() {}
@@ -79,17 +64,12 @@ H5DatasetException::~H5DatasetException() throw() {}
 
 
 const char * H5AttributeException::what() const throw() {
-    return string("H5AttributeException: " + message).c_str();
+    return message.c_str();
 }
 
-H5AttributeException::H5AttributeException(const char * msg) {
+H5AttributeException::H5AttributeException(string msg) {
     message = msg;
-    Log.error(what());
-}
-
-H5AttributeException::H5AttributeException(std::string msg) {
-    message = msg;
-    Log.error(what());
+    Log.error(message);
 }
 
 H5AttributeException::~H5AttributeException() throw() {}

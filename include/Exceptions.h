@@ -4,17 +4,17 @@
 #include <string>
 #include <exception>
 
-
+using namespace std;
 
 /**
  * \class IOException
  * \brief throw this exception for any input/output problems in your code
  */
-class IOException : public std::exception {
-    std::string message;
+class IOException : public exception {
+    string message;
 public:
     IOException(const char * msg);
-    IOException(const std::string msg);
+    IOException(const string msg);
     virtual ~IOException() throw();
     const char * what() const throw();
 };
@@ -25,11 +25,11 @@ public:
  * \class UnsupportedException
  * \brief throw this exception when some feature has not yet been supported in code
  */
-class UnsupportedException : public std::exception {
-    std::string message;
+class UnsupportedException : public exception {
+    string message;
 public:
     UnsupportedException(const char * msg);
-    UnsupportedException(const std::string msg);
+    UnsupportedException(const string msg);
     virtual ~UnsupportedException() throw();
     const char * what() const throw();
 };
@@ -40,11 +40,11 @@ public:
  * \class IllegalArgumentException
  * \brief throw this exception when an argument that was passed to a method or function is invalid
  */
-class IllegalArgumentException : public std::exception {
-    std::string message;
+class IllegalArgumentException : public exception {
+    string message;
 public:
     IllegalArgumentException(const char * msg);
-    IllegalArgumentException(const std::string msg);
+    IllegalArgumentException(const string msg);
     virtual ~IllegalArgumentException() throw();
     const char * what() const throw();
 };
@@ -55,11 +55,11 @@ public:
  * \class FileException
  * \brief throw this exception for any problems with files in your code
  */
-class FileException : public std::exception {
-    std::string message;
+class FileException : public exception {
+    string message;
 public:
     FileException(const char * msg);
-    FileException(const std::string msg);
+    FileException(const string msg);
     virtual ~FileException() throw();
     const char * what() const throw();
 };

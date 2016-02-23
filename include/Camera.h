@@ -10,7 +10,6 @@
 #include "Constants.h"
 #include "ConfigurationParameters.h"
 #include "PointSpreadFunction.h"
-#include "HDF5File.h"
 #include "Heartbeat.h"
 #include "HDF5File.h"
 #include "HDF5Writer.h"
