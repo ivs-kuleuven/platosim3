@@ -22,6 +22,26 @@ static unsigned int nTerms(unsigned int n)
 
 
 
+
+
+
+/**
+ * \brief      Constructor for the Polynomial2D class
+ * 
+ * \detail
+ * 
+ * The general 2D polynomial of degree n is
+ * 
+ * \f[P(x, y) = c_{00} + c_{10} x + ... + c_{n0} x^{n} + c_{01} y 
+ *     + ... + c_{0n} y^{n} + c_{11} x y + c_{12} x y^{2} 
+ *     + ... + c_{1(n−1)} x y^{(n−1)} + ... + c_{(n−1)1} x^{(n−1)} y
+ * \f]
+ *
+ * \param[in]  deg    the degree of the Polynomial (n <= 3)
+ * \param      coeff  the coeficients of the polynomial
+ * 
+ * \exception UnsupportedException for degrees higher than 3
+ */
 Polynomial2D::Polynomial2D(int deg, double coeff[])
 {
     degree = deg;
@@ -42,11 +62,35 @@ Polynomial2D::Polynomial2D(int deg, double coeff[])
     }
 }
 
+
+
+
+
+
+
+/**
+ * \brief      Destructor, free coefficients memory
+ */
 Polynomial2D::~Polynomial2D()
 {
     delete [] coefficients;
 }
 
+
+
+
+
+
+
+
+/**
+ * \brief      Evaluate the 2D polynomial in x and y
+ *
+ * \param[in]  x     x-value
+ * \param[in]  y     y-value
+ *
+ * \return     z the evaluated polynomial
+ */
 double Polynomial2D::evaluateAt(double x, double y)
 {
 
@@ -56,13 +100,14 @@ double Polynomial2D::evaluateAt(double x, double y)
     double xPow = 1.0;
     double yPow = 1.0;
 
-    Log.debug("sum = " + dtos(sum));
+    //Log.debug("sum = " + dtos(sum));
 
     for(unsigned int i = 1; i <= degree; i++)
     {
         xPow *= x;
         yPow *= y;
         sum += xPow * coefficients[i] + yPow * coefficients[degree+i];
+        //Log.debug("sum = " + dtos(sum));
     }
 
     // now we take care of the mixing terms
@@ -77,13 +122,17 @@ double Polynomial2D::evaluateAt(double x, double y)
     {
         // mixing term for degrees == 2 is c11 * x * y
         sum += coefficients[idx++] * x * y;
+        //Log.debug("sum = " + dtos(sum));
     }
 
     if (degree >= 3)
     {
         // mixing terms for degree == 3 are c12 * x * y^2 and c21 * x^2 * y
         sum += coefficients[idx++] * x * y * y;
+        //Log.debug("sum = " + dtos(sum));
+
         sum += coefficients[idx++] * x * x * y;
+        //Log.debug("sum = " + dtos(sum));
     }
 
     return sum;
