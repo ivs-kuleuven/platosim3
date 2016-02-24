@@ -153,8 +153,8 @@ TEST(ConfigurationParametersTest, testNonExistingKey)
     }
     catch(IllegalArgumentException ex)
     {
-        EXPECT_EQ(string("IllegalArgumentException: The sub-field \"UnknownSubNode\""),
-            string(ex.what()).substr(0, 56));
+        string expected = "ConfigurationParameters: The sub-field \"UnknownSubNode\"";
+        EXPECT_EQ(expected, string(ex.what()).substr(0, expected.size()));
     }
 
     ASSERT_THROW(cp.getBoolean("UnknownNode"), IllegalArgumentException);
