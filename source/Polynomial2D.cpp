@@ -2,17 +2,41 @@
 
 using namespace std;
 
+
+
+/**
+ * \brief      Calculate the number of terms for the 2D polynomial of degree n
+ *
+ * \param[in]  n     the degree of the polynomial (n <= 3)
+ *
+ * \return     the number of terms
+ */
+static unsigned int nTerms(unsigned int n)
+{
+    unsigned int ret = 0;
+    for(unsigned int i = 1; i <= n+1; ++i)
+        ret += i;
+    return ret;
+}
+
+
+
+
 Polynomial2D::Polynomial2D(int deg, double coeff[])
 {
     degree = deg;
-    coefficients = new double[degree];
+    unsigned int n_terms = nTerms(degree);
+
+    //Log.debug("Number of terms for " + to_string(degree) + " is " + to_string(n_terms));
+
+    coefficients = new double[n_terms];
 
     if (degree > 3)
     {
         throw UnsupportedException("Polynomial2D::Constructor: Evaluation of a 2D polynomial of degree > 3 is not yet supported.");
     }
 
-    for( unsigned int i = 0; i <= degree; i++)
+    for( unsigned int i = 0; i < n_terms; i++)
     {
         coefficients[i] = coeff[i];
     }
