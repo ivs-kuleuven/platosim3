@@ -2,57 +2,59 @@
 
 
 
-
-bool StringUtilities::ends_with(string const & value, string const & ending)
+namespace StringUtilities
 {
-    if (ending.size() > value.size())
-        return false;
-    return equal(ending.rbegin(), ending.rend(), value.rbegin());
-}
 
-
-
-
-vector<string> StringUtilities::split(string myString, char delimiter)
-{
-   vector<string> parts;
-   string part;
-
-   istringstream myStream(myString);
-   while(getline(myStream, part, delimiter)) 
-   {
-      parts.push_back(part);
-   }
-
-  return parts;
-}
-
-
-string StringUtilities::dtos(double value, bool scientific, int precision)
-{
-    stringstream os;
-
-    if (scientific)
+    bool ends_with(string const & value, string const & ending)
     {
-        os << std::scientific;
-    }
-    else
-    {
-        os << fixed;
+        if (ending.size() > value.size())
+            return false;
+        return equal(ending.rbegin(), ending.rend(), value.rbegin());
     }
     
-    os << showpoint;
-    os << setprecision(precision);
-    os << value;
-
-    return os.str();
+    vector<string> split(string myString, char delimiter)
+    {
+       vector<string> parts;
+       string part;
+    
+       istringstream myStream(myString);
+       while(getline(myStream, part, delimiter)) 
+       {
+          parts.push_back(part);
+       }
+    
+      return parts;
+    }
+    
+    
+    string dtos(double value, bool scientific, int precision)
+    {
+        stringstream os;
+    
+        if (scientific)
+        {
+            os << std::scientific;
+        }
+        else
+        {
+            os << fixed;
+        }
+        
+        os << showpoint;
+        os << setprecision(precision);
+        os << value;
+    
+        return os.str();
+    }
+    
+    
+    
+    void print( std::vector <std::string> & vector )
+    {
+        for (size_t n = 0; n < vector.size(); n++)
+            std::cout << "\"" << vector[ n ] << "\"" << std::endl;
+        std::cout << std::endl;
+    }
 }
 
 
-
-void StringUtilities::print( std::vector <std::string> & vector )
-{
-    for (size_t n = 0; n < vector.size(); n++)
-        std::cout << "\"" << vector[ n ] << "\"" << std::endl;
-    std::cout << std::endl;
-}

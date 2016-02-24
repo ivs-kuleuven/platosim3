@@ -10,15 +10,16 @@
 
 using namespace std;
 
-class StringUtilities
-{
-public:
-    static bool ends_with(string const &, string const &);
-    static vector<string> split(string, char);
-    static void print(vector <string> &);
-    static string dtos(double value, bool scientific = false, int precision = 6);
 
-};
+
+namespace StringUtilities
+{
+    bool ends_with(string const & value, string const & ending);
+    vector<string> split(string myString, char delimiter);
+    string dtos(double value, bool scientific = false, int precision = 6);
+    void print( std::vector <std::string> & vector );
+}
+
 
 
 #endif /* STRING_UTILITIES_H */
