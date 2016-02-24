@@ -20,6 +20,9 @@ Logger Log;
 
 int main(int argc, char **argv) 
 {
+
+    //Log.addOutputStream(cerr,    WARNING | ERROR | DEBUG | INFO);
+
     ofstream logFile("log.txt");
     Log.addOutputStream(logFile, WARNING | ERROR | DEBUG | INFO);
     Log.info("Main: Log file includes 'warning', 'error', 'debug', and 'info'");
