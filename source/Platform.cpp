@@ -162,19 +162,17 @@ double Platform::getHeartbeatInterval()
  *          twice-rotated X_SC axis. The combined rotation matrix is: 
  *                 R(yaw, pitch, roll) = R(yaw) * R(pitch) * R(roll)
  *          Which transforms
- *                 vector_before = R(yaw, pitch, roll) * vector_after
- *          where vector_before and vector_after are the coordinates of the same point before and
- *          after the yaw.pitch,roll rotations. The inverse transformation (usd in this function) is
- *                 R^{-1}(yaw, pitch, roll) = R^t(roll) * R^t(pitch) * R^t(yaw)
- *          which transforms
  *                 vector_after = R(yaw, pitch, roll) * vector_before
- *          Here ^t denotes the transpose. 
+ *          where vector_before and vector_after are the coordinates of the same point before and
+ *          after the yaw.pitch,roll rotations. 
+ *          
+ * \note See also Technical Note PLATO-KUL-PL-TN-001
  * 
- * \param coord Coordinates of the point in the spacecraft reference frame before the rotation 
- * \param yaw   Yaw angle   [rad]
- * \param pitch Pitch angle [rad]
- * \param roll  Roll angle  [rad]
- * \return      Coordinates of the point in the spacecraft reference frame after the rotations
+ * \param coord  Coordinates of the vector in the spacecraft reference frame before the rotation 
+ * \param yaw    Yaw angle   [rad]
+ * \param pitch  Pitch angle [rad]
+ * \param roll   Roll angle  [rad]
+ * \return       Coordinates of the vector in the (old) spacecraft reference frame after the rotations
  */
 
 arma::colvec Platform::rotateYawPitchRoll(arma::colvec coord, const double yaw, const double pitch, const double roll)
@@ -204,7 +202,7 @@ arma::colvec Platform::rotateYawPitchRoll(arma::colvec coord, const double yaw, 
 
     // Do the transformation
 
-    return Rroll.t() * Rpitch.t() * Ryaw.t() * coord;
+    return Ryaw  * Rpitch * Rroll * coord;
 }
 
 
