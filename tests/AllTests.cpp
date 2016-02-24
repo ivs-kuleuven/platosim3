@@ -10,6 +10,7 @@
 #include "GTestDetector.h"
 #include "GTestUnits.h"
 #include "GTestArrayOperations.h"
+#include "GTestPolynomial.h"
 #include "GTestCoordinates.h"
 #include "PrettyPrinters.h"
 
