@@ -7,7 +7,7 @@
 #include "gtest_definitions.h"
 
 #include "Simulation.h"
-#include "Coordinates.h"
+#include "SkyCoordinates.h"
 #include "FileUtilities.h"
 
 /**
