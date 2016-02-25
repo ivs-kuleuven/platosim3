@@ -29,6 +29,10 @@ Telescope::Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File, 
 	{
 		heartbeatInterval = driftTimeScale / 20.0;
 	}
+
+    // Initialize the current position of the optical axis from the platform
+
+    tie(currentAlphaOpticalAxis, currentDeltaOpticalAxis) = platform.getCurrentPointingCoordinates();
 }
 
 
