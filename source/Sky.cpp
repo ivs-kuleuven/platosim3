@@ -562,13 +562,14 @@ double Sky::stellarBackgroundFlux (const double RA, const double dec, const doub
     // Locate the coordinates alpha & delta in the coordinate arrays
     // Check if the coordinates are out of boundary.
 
-    locate (alpha, skydata::skyRA, 37, alpha_index);
-    locate (delta, skydata::skydec, 25, delta_index);
+    locate(alpha, skydata::skyRA, 37, alpha_index);
+    locate(delta, skydata::skydec, 25, delta_index);
 
     if ((alpha_index == -1) || (delta_index == -1))
     {
-        Log.error("Sky::stellarBgFlux(): No data for this part of the sky.");
-        exit (1);
+        string position = "(" + to_string(rad2deg(alpha)) + ", " + to_string(rad2deg(delta)) + ")";
+        Log.warning("Sky::stellarBgFlux(): No data for (alpha, delta) = " + position);
+        return 0.0;
     }
 
 
@@ -578,8 +579,9 @@ double Sky::stellarBackgroundFlux (const double RA, const double dec, const doub
     if (   (skydata::skyblue[alpha_index][delta_index] == -1) || (skydata::skyblue[alpha_index][delta_index+1] == -1)
         || (skydata::skyblue[alpha_index+1][delta_index] == -1) || (skydata::skyblue[alpha_index+1][delta_index] == -1))
     {
-        Log.error("Sky::stellarBgFlux(): No data for this part of the sky.");
-        exit (1);
+        string position = "(" + to_string(rad2deg(alpha)) + ", " + to_string(rad2deg(delta)) + ")";
+        Log.warning("Sky::stellarBgFlux(): No data for (alpha, delta) = " + position);
+        return 0.0;
     }
 
 
@@ -684,8 +686,9 @@ double Sky::stellarBackgroundFlux (const double RA, const double dec, vector<dou
 
     if ((alpha_index == -1) || (delta_index == -1))
     {
-        Log.error("Sky::stellarBgFlux(): No data for this part of the sky.");
-        exit (1);
+        string position = "(" + to_string(rad2deg(alpha)) + ", " + to_string(rad2deg(delta)) + ")";
+        Log.warning("Sky::stellarBgFlux(): No data for (alpha, delta) = " + position);
+        return 0.0;
     }
 
 
@@ -695,8 +698,9 @@ double Sky::stellarBackgroundFlux (const double RA, const double dec, vector<dou
     if (  (skydata::skyblue[alpha_index][delta_index] == -1) || (skydata::skyblue[alpha_index][delta_index+1] == -1)
         || (skydata::skyblue[alpha_index+1][delta_index] == -1) || (skydata::skyblue[alpha_index+1][delta_index] == -1))
     {
-        Log.error("Sky::stellarBgFlux(): No data for this part of the sky.");
-        exit (1);
+        string position = "(" + to_string(rad2deg(alpha)) + ", " + to_string(rad2deg(delta)) + ")";
+        Log.warning("Sky::stellarBgFlux(): No data for (alpha, delta) = " + position);
+        return 0.0;
     }
 
 

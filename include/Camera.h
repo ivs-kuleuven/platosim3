@@ -40,17 +40,21 @@ class Camera : public HDF5Writer
         Sky &sky;
 
         double plateScale;                    // [arcsec/micron]
+        double focalLength;                   // [mm]
         double focalPlaneOrientation;         // [rad]
         double throughputBandwidth;           // FWHM of the throughput passband [nm]
         double throughputLambdaC;             // Central wavelength of the throughput passband [nm]
 
         void selectPsf(double raStar, double decStar);
-        pair<double, double> skyToFocalPlaneCoordinates(double raStar, double decStar);
-        pair<double, double> skyToNormalizedFocalPlaneCoordinates(double raStar, double decStar);
-        pair<double, double> focalPlaneToSkyCoordinates(double x, double y);
+        
+        pair<double, double> skyToAngularFocalPlaneCoordinates(double raStar, double decStar);
+        pair<double, double> angularFocalPlaneToSkyCoordinates(double xFPprime, double yFPprime);
+
+        pair<double, double> angularToPlanarFocalPlaneCoordinates(double xFPrad, double yFPrad);
+        pair<double, double> planarToAngularFocalPlaneCoordinates(double xFPmm, double yFPmm);
 
         double getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double yFPprime);
-        double getGnomonicRadialDistanceFromOpticalAxisNormalized(double xFPprime, double yFPprime);
+
 
     private:
 

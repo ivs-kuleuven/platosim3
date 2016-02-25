@@ -30,10 +30,10 @@ class Detector : public HDF5Writer
         virtual void takeExposure(double startTime, double exposureTime);
         virtual void configure(ConfigurationParameters &configParam);
 
-        pair<double, double> pixelToFocalPlaneCoordinates(double row, double column);
-        pair<double, double> focalPlaneToPixelCoordinates(double xFPprime, double yFPprime);
+        pair<double, double> pixelToPlanarFocalPlaneCoordinates(double row, double column);
+        pair<double, double> planarFocalPlaneToPixelCoordinates(double xFPprime, double yFPprime);
 
-        pair<double, double> getFocalPlaneCoordinatesOfSubfieldCenter();
+        pair<double, double> getPlanarFocalPlaneCoordinatesOfSubfieldCenter();
         double getDiagonalLengthOfSubfield();
 
         virtual void addFlux(double xCoord, double yCoord, double flux);
