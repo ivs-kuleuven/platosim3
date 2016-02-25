@@ -110,15 +110,14 @@ void Telescope::updatePointingCoordinates(double time)
         return;
     }
 
-    // Telescope depends on Platform (and its jitter) to get new pointing coordinates.
-    // So first update platform.
-
-    platform.updatePointingCoordinates(*this, time);
-
     // There is currently no thermo-elastic variations in Telescope, so simply copy the 
     // pointing coordinates from platform
 
-    tie(currentAlphaOpticalAxis, currentDeltaOpticalAxis) = platform.getCurrentPointingCoordinates();
+    tie(currentAlphaOpticalAxis, currentDeltaOpticalAxis) = platform.getPointingCoordinates(time);
+
+    Log.info("Telescope: At time " + to_string(time) + ": (RA, dec) = (" 
+                                   + to_string(rad2deg(currentAlphaOpticalAxis)) + ", " 
+                                   + to_string(rad2deg(currentDeltaOpticalAxis)) + ")");
 
     // Update the internal clock
 
