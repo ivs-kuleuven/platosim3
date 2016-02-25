@@ -206,6 +206,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 void Camera::configure(ConfigurationParameters &configParam)
 {
     plateScale            = configParam.getDouble("Camera/PlateScale");
+    focalLength           = configParam.getDouble("Camera/FocalLength") * 1000; // [m] -> [mm]
     focalPlaneOrientation = deg2rad(configParam.getDouble("Camera/FocalPlaneOrientation"));
     throughputBandwidth   = configParam.getDouble("Camera/ThroughputBandwidth");
     throughputLambdaC     = configParam.getDouble("Camera/ThroughputLambdaC");
@@ -232,25 +233,18 @@ void Camera::configure(ConfigurationParameters &configParam)
 void Camera::selectPsf(double raStar, double decStar)
 {
 
-    // Get the equatorial coordinates of the optical axis [rad]
-
-    double raOpticalAxis, decOpticalAxis;
-    tie(raOpticalAxis, decOpticalAxis) = telescope.getCurrentPointingCoordinates();
+    double xFPrad, yFPrad;
 
     // Calculate the angular separation (in [radians]) between the star and the optical axis.
     // Use that angle to select the proper PSF.
 
-    SkyCoordinates opticalAxis(raOpticalAxis, decOpticalAxis, Angle::radians);
-    SkyCoordinates star(raStar, decStar, Angle::radians);
-
-    double radius = angularDistanceBetween(opticalAxis, star, Angle::radians);
-
-    psf->select(radius);
-
-    // Calculate the rotation angle
-
-    double xFPrad, yFPrad;  
     tie(xFPrad, yFPrad) = skyToAngularFocalPlaneCoordinates(raStar, decStar);
+
+    double radius = getGnomonicRadialDistanceFromOpticalAxis(xFPrad, yFPrad);
+
+    psf->select(rad2deg(radius));
+
+    // Calculate the rotation angle [rad]
 
     double xFPmm, yFPmm;
     tie(xFPmm, yFPmm) = angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad);
@@ -403,7 +397,6 @@ pair<double, double> Camera::angularFocalPlaneToSkyCoordinates(double xFPprime, 
 
 pair<double, double> Camera::angularToPlanarFocalPlaneCoordinates(double xFPrad, double yFPrad)
 {
-    const double focalLength = 3600. * 180.0 / Constants::PI / 1000.0 / plateScale;
     const double xFPmm = tan(xFPrad) * focalLength;
     const double yFPmm = tan(yFPrad) * focalLength;
     
@@ -435,7 +428,6 @@ pair<double, double> Camera::angularToPlanarFocalPlaneCoordinates(double xFPrad,
 pair<double, double> Camera::planarToAngularFocalPlaneCoordinates(double xFPmm, double yFPmm)
 {
 
-    const double focalLength = 3600. * 180.0 / Constants::PI / 1000.0 / plateScale;
     const double xFPrad= focalLength * atan(xFPmm / focalLength);
     const double yFPrad= focalLength * atan(yFPmm / focalLength);
     

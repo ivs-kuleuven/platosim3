@@ -50,8 +50,8 @@ class MyDetector : public Detector
     public:
         MyDetector(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera);
 
-        pair<double, double> test_pixelToFocalPlaneCoordinates(double row, double column) {return pixelToFocalPlaneCoordinates(row, column);};
-        pair<double, double> test_focalPlaneToPixelCoordinates(double xFPprime, double yFPprime) {return focalPlaneToPixelCoordinates(xFPprime, yFPprime);};
+        pair<double, double> test_pixelToPlanarFocalPlaneCoordinates(double row, double column) {return pixelToPlanarFocalPlaneCoordinates(row, column);};
+        pair<double, double> test_planarFocalPlaneToPixelCoordinates(double xFPprime, double yFPprime) {return planarFocalPlaneToPixelCoordinates(xFPprime, yFPprime);};
 
 };
 
@@ -102,7 +102,7 @@ TEST_F(DetectorTest, checkConversionsBetweenPixelsAndFocalPlane)
     
         row = data["xCCD"];
         column = data["yCCD"];
-        tie(xFPprime, yFPprime) = detector.test_pixelToFocalPlaneCoordinates(row, column);
+        tie(xFPprime, yFPprime) = detector.test_pixelToPlanarFocalPlaneCoordinates(row, column);
     
         EXPECT_NEAR(data["xFP"], xFPprime, 0.00001);
         EXPECT_NEAR(data["yFP"], yFPprime, 0.00001);    
