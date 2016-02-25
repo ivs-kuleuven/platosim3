@@ -8,6 +8,7 @@
 
 #include "Simulation.h"
 #include "Coordinates.h"
+#include "StringUtilities.h"
 #include "FileUtilities.h"
 
 /**
@@ -61,13 +62,24 @@ class MyCamera : public Camera
     public:
         MyCamera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telescope &telescope, Sky &sky);
 
-        pair<double, double> test_skyToFocalPlaneCoordinates(double raStar, double decStar) {return skyToFocalPlaneCoordinates(raStar, decStar);};
-        pair<double, double> test_focalPlaneToSkyCoordinates(double x, double y) {return focalPlaneToSkyCoordinates(x, y);};
+        pair<double, double> test_skyToAngularFocalPlaneCoordinates(double raStar, double decStar) {return skyToAngularFocalPlaneCoordinates(raStar, decStar);};
+        pair<double, double> test_angularFocalPlaneToSkyCoordinates(double xFPprime, double yFPprime) {return angularFocalPlaneToSkyCoordinates(xFPprime, yFPprime);};
+
+        pair<double, double> test_angularToPlanarFocalPlaneCoordinates(double xFPrad, double yFPrad) {return angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad);};
+        pair<double, double> test_planarToAngularFocalPlaneCoordinates(double xFPmm, double yFPmm) {return planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm);};
+
         double test_getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double yFPprime) {return getGnomonicRadialDistanceFromOpticalAxis(xFPprime, yFPprime);};
-        double test_getGnomonicRadialDistanceFromOpticalAxisNormalized(double xFPprime, double yFPprime) {return getGnomonicRadialDistanceFromOpticalAxisNormalized(xFPprime, yFPprime);};
 };
 
 
+/**
+ * @brief      Constructor
+ *
+ * @param      configParam  Configuration parameters
+ * @param      hdf5file     Output HDF5 file
+ * @param      telescope    Telescope
+ * @param      sky          Sky
+ */
 MyCamera::MyCamera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telescope &telescope, Sky &sky)
 : Camera(configParam, hdf5file, telescope, sky)
 {
@@ -87,6 +99,8 @@ MyCamera::MyCamera(ConfigurationParameters &configParam, HDF5File &hdf5file, Tel
 TEST_F(CameraTest, GnomonicRadialDistance) {
 
     LOG_STARTING_OF_TEST
+
+    using StringUtilities::dtos;
 
     vector<map<string, double>> gnomonic;
 
@@ -113,23 +127,38 @@ TEST_F(CameraTest, GnomonicRadialDistance) {
 
     MyCamera camera = MyCamera(cp_, hdf5File_, telescope, sky);
 
-    double xFPprime, yFPprime;   // [rad]
+    double raStar, decStar;      // [rad]
+    double xFPprime, yFPprime;   // [mm]
+    double xDeg, yDeg;           // [deg]
+    double xFPrad, yFPrad;       // [rad]
     double radius;               // [rad]
 
     for (auto &data: gnomonic)
     {
         // Other tests that need to be performed is the conversion from xFP, yFP to xDeg, yDeg (in the data table above)
-        
-        // xFPprime and yFPprime as described in eq. 24 of TN on PlatSim Reference Frames v1.3
-        xFPprime = deg2rad(data["xDeg"]);
-        yFPprime = deg2rad(data["yDeg"]);
 
-        radius = camera.test_getGnomonicRadialDistanceFromOpticalAxisNormalized(xFPprime, yFPprime); // [radians] -> [radians]
+        xDeg = data["xDeg"];
+        yDeg = data["yDeg"];
+        xFPrad = deg2rad(xDeg);
+        yFPrad = deg2rad(yDeg);
+
+        radius = camera.test_getGnomonicRadialDistanceFromOpticalAxis(xFPrad, yFPrad); // [radians] -> [radians]
 
         EXPECT_NEAR(data["radius"], rad2deg(radius), 0.0001);
 
-        Log.debug("CameraTest.GnomonicRadialDistance: xFPprime, yFPprime = " + to_string(xFPprime) + ", " + to_string(yFPprime));
-        Log.debug("CameraTest.GnomonicRadialDistance: radius = " + to_string(radius));
+        Log.debug("CameraTest.GnomonicRadialDistance: xDeg, yDeg [deg] = " + dtos(xDeg) + ", " + dtos(yDeg));
+        Log.debug("CameraTest.GnomonicRadialDistance: xFPrad, yFPrad [rad] = " + dtos(xFPrad) + ", " + dtos(yFPrad));
+        Log.debug("CameraTest.GnomonicRadialDistance: radius [rad] = " + dtos(radius));
+        Log.debug("CameraTest.GnomonicRadialDistance: radius [deg] = " + dtos(rad2deg(radius)));
+
+        tie(xFPprime, yFPprime) = camera.test_angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad);
+
+        Log.debug("CameraTest.GnomonicRadialDistance: xFPprime, yFPprime [mm]= " + dtos(xFPprime) + ", " + dtos(yFPprime));
+
+        tie(raStar, decStar) = camera.test_angularFocalPlaneToSkyCoordinates(xFPrad, yFPrad);
+
+        Log.debug("CameraTest.GnomonicRadialDistance: raStar, decStar [rad] = " + dtos(raStar) + ", " + dtos(decStar));
+        Log.debug("CameraTest.GnomonicRadialDistance: raStar, decStar [deg] = " + dtos(rad2deg(raStar)) + ", " + dtos(rad2deg(decStar)));
 
     }
 
