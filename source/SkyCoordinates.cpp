@@ -1,5 +1,5 @@
 
-#include "Coordinates.h"
+#include "SkyCoordinates.h"
 
 
 /**
@@ -11,7 +11,7 @@
  *                   
  */
 
-Coordinates::Coordinates(double RA, double decl, Unit angleUnit)
+SkyCoordinates::SkyCoordinates(double RA, double decl, Unit angleUnit)
 : RA(RA), decl(decl), obliquity(0.409087723), inclGalPlane(1.0925761117484503), 
   alphaN(4.926191813753995), l0(0.5759586531581287)
 {
@@ -29,7 +29,7 @@ Coordinates::Coordinates(double RA, double decl, Unit angleUnit)
  * 
  */
 
-Coordinates::~Coordinates()
+SkyCoordinates::~SkyCoordinates()
 {
 } 
 
@@ -51,7 +51,7 @@ Coordinates::~Coordinates()
  * \return (l, b)
  */
 
-pair<double, double> Coordinates::toGalactic(Unit angleUnit)
+pair<double, double> SkyCoordinates::toGalactic(Unit angleUnit)
 {
     double b,l;
     equatorial2galactic(RA, decl, l, b);
@@ -75,7 +75,7 @@ pair<double, double> Coordinates::toGalactic(Unit angleUnit)
  * \return (lambda, beta)
  */
 
-pair<double, double> Coordinates::toEcliptic(Unit angleUnit)
+pair<double, double> SkyCoordinates::toEcliptic(Unit angleUnit)
 {
     double beta,lambda;
     equatorial2ecliptic(RA, decl, lambda, beta);
@@ -97,7 +97,7 @@ pair<double, double> Coordinates::toEcliptic(Unit angleUnit)
  * \param beta[out]:   ecliptic latitude [rad]
  */
 
-void Coordinates::equatorial2ecliptic(const double alpha, const double delta, double &lambda, double &beta)
+void SkyCoordinates::equatorial2ecliptic(const double alpha, const double delta, double &lambda, double &beta)
 {
     double sinbeta = sin(delta) * cos(obliquity) - cos(delta) * sin(obliquity) * sin(alpha);
     beta = asin(sinbeta);
@@ -136,7 +136,7 @@ void Coordinates::equatorial2ecliptic(const double alpha, const double delta, do
  * \param b[out]:    galactic latitude [rad]
  */
 
-void Coordinates::equatorial2galactic(const double alpha, const double delta, double &l, double &b)
+void SkyCoordinates::equatorial2galactic(const double alpha, const double delta, double &l, double &b)
 {
     double sinb = sin(delta) * cos(inclGalPlane) - cos(delta) * sin(alpha - alphaN) * sin(inclGalPlane);
     b = asin(sinb);
@@ -178,7 +178,7 @@ void Coordinates::equatorial2galactic(const double alpha, const double delta, do
  * \return angular separation [rad]
  */
 
-double angularDistanceBetween(Coordinates &coordinates1, Coordinates &coordinates2, Unit outputAngleUnit)
+double angularDistanceBetween(SkyCoordinates &coordinates1, SkyCoordinates &coordinates2, Unit outputAngleUnit)
 {
     const double sinHalfDeltaLong = sin((coordinates1.RA - coordinates2.RA)/2.0);
     const double sinHalfDeltaLat = sin((coordinates1.decl - coordinates2.decl)/2.0);

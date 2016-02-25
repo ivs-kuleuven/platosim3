@@ -240,8 +240,8 @@ void Camera::selectPsf(double raStar, double decStar)
     // Calculate the angular separation (in [radians]) between the star and the optical axis.
     // Use that angle to select the proper PSF.
 
-    Coordinates opticalAxis(raOpticalAxis, decOpticalAxis, Angle::radians);
-    Coordinates star(raStar, decStar, Angle::radians);
+    SkyCoordinates opticalAxis(raOpticalAxis, decOpticalAxis, Angle::radians);
+    SkyCoordinates star(raStar, decStar, Angle::radians);
 
     double radius = angularDistanceBetween(opticalAxis, star, Angle::radians);
 

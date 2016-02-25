@@ -1,6 +1,6 @@
 
-#ifndef COORDINATES_H
-#define COORDINATES_H
+#ifndef SKYCOORDINATES_H
+#define SKYCOORDINATES_H
 
 #include <cmath>
 
@@ -13,18 +13,18 @@ using namespace std;
 
 
 
-class Coordinates
+class SkyCoordinates
 {
     public:
 
-        Coordinates(double RA, double decl, Unit angleUnit = Angle::degrees);
-        ~Coordinates(); 
+        SkyCoordinates(double RA, double decl, Unit angleUnit = Angle::degrees);
+        ~SkyCoordinates(); 
 
         pair<double, double> toGalactic(Unit angleUnit = Angle::degrees);
         pair<double, double> toEcliptic(Unit angleUnit = Angle::degrees);
 
  
-        friend double angularDistanceBetween(Coordinates &coordinates1, Coordinates &coordinates2, Unit angleUnit);
+        friend double angularDistanceBetween(SkyCoordinates &skyCoordinates1, SkyCoordinates &skyCoordinates2, Unit angleUnit);
         friend vector<double> angularDistanceBetween(const double RA0, const double dec0, const vector<double> &RA, const vector<double> &dec, Unit angleUnit);
 
     protected:
@@ -48,7 +48,7 @@ class Coordinates
 
 
 
-double angularDistanceBetween(Coordinates &coordinates1, Coordinates &coordinates2, Unit outputAngleUnit);
+double angularDistanceBetween(SkyCoordinates &skyCoordinates1, SkyCoordinates &skyCoordinates2, Unit outputAngleUnit);
 vector<double> angularDistanceBetween(const double RA0, const double dec0, const vector<double> &RA, const vector<double> &dec, Unit outputAngleUnit);
 
 
