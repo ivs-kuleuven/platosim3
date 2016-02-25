@@ -2,13 +2,59 @@
 
 #include "gtest_definitions.h"
 
+#include "Polynomial1D.h"
 #include "Polynomial2D.h"
 
 using namespace std;
 
 
 
-TEST(PolynomialTest, EvaluationDeg1)
+TEST(Polynomial1DTest, EvaluationDeg0)
+{
+    LOG_STARTING_OF_TEST
+
+    double coeff[] = {42.30};
+
+    Polynomial1D p = Polynomial1D(0, coeff);
+
+    EXPECT_NEAR(42.30, p.evaluateAt(23.0), 0.00001);    
+}
+
+
+
+TEST(Polynomial1DTest, EvaluationDeg1)
+{
+    LOG_STARTING_OF_TEST
+
+    double coeff[] = {42.30, 16.7};
+
+    Polynomial1D p = Polynomial1D(1, coeff);
+
+    EXPECT_NEAR(  42.30, p.evaluateAt(  0.0), 0.00001);
+    EXPECT_NEAR( 426.40, p.evaluateAt( 23.0), 0.00001);
+    EXPECT_NEAR(-341.80, p.evaluateAt(-23.0), 0.00001);
+}
+
+
+
+
+TEST(Polynomial1DTest, EvaluationDeg2)
+{
+    LOG_STARTING_OF_TEST
+
+    double coeff[] = {42.30, 16.7, 0.02554};
+
+    Polynomial1D p = Polynomial1D(2, coeff);
+
+    EXPECT_NEAR(  42.30000, p.evaluateAt(  0.0), 0.00001);
+    EXPECT_NEAR( 439.91066, p.evaluateAt( 23.0), 0.00001);
+    EXPECT_NEAR(-328.28934, p.evaluateAt(-23.0), 0.00001);
+}
+
+
+
+
+TEST(Polynomial2DTest, EvaluationDeg1)
 {
 
     LOG_STARTING_OF_TEST
@@ -28,7 +74,7 @@ TEST(PolynomialTest, EvaluationDeg1)
 
 
 
-TEST(PolynomialTest, EvaluationDeg2)
+TEST(Polynomial2DTest, EvaluationDeg2)
 {
 
     LOG_STARTING_OF_TEST
@@ -64,7 +110,7 @@ TEST(PolynomialTest, EvaluationDeg2)
 
 
 
-TEST(PolynomialTest, EvaluationDeg3)
+TEST(Polynomial2DTest, EvaluationDeg3)
 {
 
     LOG_STARTING_OF_TEST
@@ -74,10 +120,17 @@ TEST(PolynomialTest, EvaluationDeg3)
     // The fit was done using astropy and the results where obtained
     // from the same fitted 2D polynomial.
 
-    double coeff_3[] = { -0.0805112828134,
-        4.34991909425, -0.00540040725843, 0.00112767910467,
-        0.0236240922537, -0.00237537065657, 7.24631958452e-05,
-        -0.00366561903111, 0.000586015203847, 0.000128792686889 
+    double coeff_3[] = { 
+        -0.0805112828134,
+         4.34991909425, 
+        -0.00540040725843, 
+         0.00112767910467,
+         0.0236240922537, 
+        -0.00237537065657, 
+         7.24631958452e-05,
+        -0.00366561903111,
+         0.000586015203847,
+         0.000128792686889 
     };
 
     Polynomial2D p = Polynomial2D(3, coeff_3);
@@ -93,7 +146,7 @@ TEST(PolynomialTest, EvaluationDeg3)
 
 
 
-TEST(PolynomialTest, EvaluationDeg4)
+TEST(Polynomial2DTest, EvaluationDeg4)
 {
 
     LOG_STARTING_OF_TEST
