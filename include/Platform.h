@@ -38,6 +38,8 @@ class Platform : public Heartbeat, HDF5Writer
 
         virtual double getHeartbeatInterval() override;
 
+        arma::colvec spacecraftToEquatorialCoordinates(arma::colvec &coordSC);
+
 
     protected:
 

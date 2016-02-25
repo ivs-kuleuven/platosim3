@@ -151,6 +151,58 @@ double Platform::getHeartbeatInterval()
 
 
 
+
+
+
+
+/**
+ * \brief Compute 3D cartesian coordinates in the celestial equatorial reference frame,
+ *        given the 3D cartesian coordinates in the spacecraft (SC) reference frame
+ * 
+ * \param coordSC   (xSC, ySC, zSC): cartesian coordinates of the point in the spacecraft reference frame
+ 
+ * \return coordEQ  (xEQ, yEQ, zEQ): cartesian coordinates in the celestial equatorial reference frame
+ */
+
+arma::colvec Platform::spacecraftToEquatorialCoordinates(arma::colvec &coordSC)
+{
+    // Some handy abbreviations
+
+    const double cosAlpha = cos(currentRA);
+    const double sinAlpha = sin(currentRA);
+    const double cosDelta = cos(currentDec);
+    const double sinDelta = sin(currentDec);
+
+    // The rotation matrices
+
+    arma::mat R1 = {{cosAlpha, -sinAlpha, 0.0},
+                    {sinAlpha,  cosAlpha, 0.0},
+                    {     0.0,       0.0, 1.0}};
+
+    arma::mat R2 = {{ sinDelta, 0.0, cosDelta},
+                    {      0.0, 1.0,      0.0},
+                    {-cosDelta, 0.0, sinDelta}};
+
+    // The transformation
+
+    arma::colvec coordEQ = R2 * R1 * coordSC;
+
+    // That's it
+
+    return coordEQ;
+}
+
+
+
+
+
+
+
+
+
+
+
+
 /**
  * \brief Transforms the coordinates of a vector after yaw, pitch, and roll rotations.
  * 
