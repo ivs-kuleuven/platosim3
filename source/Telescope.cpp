@@ -212,6 +212,41 @@ double Telescope::getFOVsolidAngle()
 
 
 
+
+
+
+/**
+ * \brief Return the equatorial sky coordinates of the optical axis of this telescope given the pointing
+ *        coordinates of the (roll axis of the) platform.
+ * 
+ * \param alphaPlatform   Right Ascension of the pointing axis of the platform [rad]
+ * \param deltaPlatform   Declination of the pointing axis of the platform     [rad]
+ * 
+ * \return (alphaOpticalAxis, deltaOpticalAxis)  equatorial sky coordinates of the optical axis [rad]
+ */
+
+pair<double, double> Telescope::platformToTelescopePointingCoordinates(double alphaPlatform, double deltaPlatform)
+{
+    // We currently assume that the telescope is perfectly aligned with the platform pointing (roll) axis
+    
+    const double alphaOpticalAxis = alphaPlatform;
+    const double deltaOpticalAxis = deltaPlatform;
+
+    return make_pair(alphaOpticalAxis, deltaOpticalAxis);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 /**
  * \brief  Compute the cartesian coordinates of a point w.r.t. focal plane reference frame, given the cartesian
  *         coordinates in the spacecraft reference system.
@@ -235,6 +270,8 @@ tuple<double, double, double> Telescope::spacecraftToFocalPlaneCoordinates(const
 
     return make_tuple(xFP, yFP, zFP);
 }
+
+
 
 
 
