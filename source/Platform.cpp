@@ -91,34 +91,68 @@ void Platform::setPointingCoordinates(double rightAscencsion, double declination
 
 
 /**
- * \brief Return the current sky pointing coordinates of the spacecraft
+ * \brief Return the pointing coordinates (of the roll axis) of the spacecraft
  * 
+ * \param time [s]
+ *  
  * \return (alpha, delta)    RA & dec [rad] of the current pointing
  */
 
-pair<double, double> Platform::getCurrentPointingCoordinates()
+pair<double, double> Platform::getPointingCoordinates(double time)
 {
-    return make_pair(currentRA, currentDec);
-}
+    // Check if the request is going backwards in time. If so: complain.
+
+    double timeInterval = time - internalTime;
+
+    if (timeInterval < 0.0)
+    {
+        Log.warning("Platform: getPointingCoordinates() at time before previous request: Not Implemented.");
+        return make_pair(currentRA, currentDec);
+    }
+
+    // Let the platfrom jitter until 'time'
+    // Yaw, pitch, and roll are in [rad]
+
+    double yaw, pitch, roll;
+    tie(yaw, pitch, roll) = jitterGenerator.getNextYawPitchRoll(timeInterval);
+
+    Log.debug("Platform: At time " + to_string(time) + ": (yaw, pitch, roll) = (" 
+                                   + to_string(rad2deg(yaw)*3600.) + ", " 
+                                   + to_string(rad2deg(pitch)*3600.) + ", " 
+                                   + to_string(rad2deg(roll)*3600.) + ") arcsec");
 
 
+    // The roll axis (= unit vector in z-direction in SC reference frame) will have slightly 
+    // rotated due to jitter. Find out the cartesian coordinates of the _new_ jitter axis in 
+    // the _old_ SpaceCraft reference frame. 
 
+    arma::colvec zUnitBeforeJitter = {0.0, 0.0, 1.0};
+    arma::colvec zUnitAfterJitter = rotateYawPitchRoll(zUnitBeforeJitter, yaw, pitch, roll);
 
+    // Compute the celestial equatorial cartesian coordinates of the new roll axis
+    // This requires the _old_ pointing coordinates of the platform.
 
+    const arma::colvec zUnitAfterJitterEQ = spacecraftToEquatorialCoordinates(zUnitAfterJitter);
 
+    // Convert from cartesian to celestial equatorial coordinates
 
+    const double x = zUnitAfterJitterEQ(0);
+    const double y = zUnitAfterJitterEQ(1);
+    const double z = zUnitAfterJitterEQ(2);
+    currentDec = PI / 2.0 - atan2(y,x);
+    currentRA = atan2(sqrt(x*x+y*y), z);
 
+    Log.debug("Platform: At time " + to_string(time) + ": (RA, dec) = (" 
+                                   + to_string(rad2deg(currentRA)) + ", " 
+                                   + to_string(rad2deg(currentDec)) + ")");
 
-/**
- * \brief Update the pointing coordinates (varying due to jitter) until the given time point.
- * 
- * \param time [s]
- */
+    // Update the internal clock
 
-void Platform::updatePointingCoordinates(Telescope const &telescope, double time)
-{
     internalTime = time;
-    return;
+
+    // That's it
+
+    return make_pair(currentRA, currentDec);
 }
 
 
