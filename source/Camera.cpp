@@ -232,25 +232,15 @@ void Camera::configure(ConfigurationParameters &configParam)
 void Camera::selectPsf(double raStar, double decStar)
 {
 
-    // Get the equatorial coordinates of the optical axis [rad]
+    double xFPrad, yFPrad;
 
-    double raOpticalAxis, decOpticalAxis;
-    tie(raOpticalAxis, decOpticalAxis) = telescope.getCurrentPointingCoordinates();
+    tie(xFPrad, yFPrad) = skyToAngularFocalPlaneCoordinates(raStar, decStar);
 
-    // Calculate the angular separation (in [radians]) between the star and the optical axis.
-    // Use that angle to select the proper PSF.
+    double radius = getGnomonicRadialDistanceFromOpticalAxis(xFPrad, yFPrad);
 
-    Coordinates opticalAxis(raOpticalAxis, decOpticalAxis, Angle::radians);
-    Coordinates star(raStar, decStar, Angle::radians);
-
-    double radius = angularDistanceBetween(opticalAxis, star, Angle::radians);
-
-    psf->select(radius);
+    psf->select(rad2deg(radius));
 
     // Calculate the rotation angle
-
-    double xFPrad, yFPrad;  
-    tie(xFPrad, yFPrad) = skyToAngularFocalPlaneCoordinates(raStar, decStar);
 
     double xFPmm, yFPmm;
     tie(xFPmm, yFPmm) = angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad);
