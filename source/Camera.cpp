@@ -206,6 +206,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 void Camera::configure(ConfigurationParameters &configParam)
 {
     plateScale            = configParam.getDouble("Camera/PlateScale");
+    focalLength           = configParam.getDouble("Camera/FocalLength") * 1000; // [m] -> [mm]
     focalPlaneOrientation = deg2rad(configParam.getDouble("Camera/FocalPlaneOrientation"));
     throughputBandwidth   = configParam.getDouble("Camera/ThroughputBandwidth");
     throughputLambdaC     = configParam.getDouble("Camera/ThroughputLambdaC");
@@ -393,7 +394,6 @@ pair<double, double> Camera::angularFocalPlaneToSkyCoordinates(double xFPprime, 
 
 pair<double, double> Camera::angularToPlanarFocalPlaneCoordinates(double xFPrad, double yFPrad)
 {
-    const double focalLength = 3600. * 180.0 / Constants::PI / 1000.0 / plateScale;
     const double xFPmm = tan(xFPrad) * focalLength;
     const double yFPmm = tan(yFPrad) * focalLength;
     
@@ -425,7 +425,6 @@ pair<double, double> Camera::angularToPlanarFocalPlaneCoordinates(double xFPrad,
 pair<double, double> Camera::planarToAngularFocalPlaneCoordinates(double xFPmm, double yFPmm)
 {
 
-    const double focalLength = 3600. * 180.0 / Constants::PI / 1000.0 / plateScale;
     const double xFPrad= focalLength * atan(xFPmm / focalLength);
     const double yFPrad= focalLength * atan(yFPmm / focalLength);
     

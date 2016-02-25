@@ -102,23 +102,27 @@ TEST_F(CameraTest, GnomonicRadialDistance) {
 
     using StringUtilities::dtos;
 
+    // The values in this table come from different sources
+    // xDeg, yDeg, and radius are taken from the table / attributes provided with the PSF delivery of <DATE>
+    // xFP, yFP are the paraxial x and y field coordinates taken from the distorion table calculated from ZEMAX <DATE>
+
     vector<map<string, double>> gnomonic;
 
-    gnomonic.push_back(map<string, double> {{"xDeg",  0.0}, {"yDeg",  0.0}, {"xFP",   0.0000}, {"yFP",   0.0000}, {"radius",   0.0000}});
-    gnomonic.push_back(map<string, double> {{"xDeg",  1.0}, {"yDeg",  1.0}, {"xFP",   0.0000}, {"yFP",   0.0000}, {"radius",   1.4141}});
-    gnomonic.push_back(map<string, double> {{"xDeg",  2.0}, {"yDeg",  2.0}, {"xFP",   8.6354}, {"yFP",   8.6354}, {"radius",   2.8273}});
-    gnomonic.push_back(map<string, double> {{"xDeg",  3.0}, {"yDeg",  3.0}, {"xFP",   0.0000}, {"yFP",   0.0000}, {"radius",   4.2388}});
-    gnomonic.push_back(map<string, double> {{"xDeg",  4.0}, {"yDeg",  4.0}, {"xFP",  17.3325}, {"yFP",  17.3325}, {"radius",   5.6477}});
-    gnomonic.push_back(map<string, double> {{"xDeg",  5.0}, {"yDeg",  5.0}, {"xFP",   0.0000}, {"yFP",   0.0000}, {"radius",   7.0532}});
-    gnomonic.push_back(map<string, double> {{"xDeg",  6.0}, {"yDeg",  6.0}, {"xFP",  26.1552}, {"yFP",  26.1552}, {"radius",   8.4545}});
-    gnomonic.push_back(map<string, double> {{"xDeg",  7.0}, {"yDeg",  7.0}, {"xFP",  30.6341}, {"yFP",  30.6341}, {"radius",   9.8508}});
-    gnomonic.push_back(map<string, double> {{"xDeg",  8.0}, {"yDeg",  8.0}, {"xFP",  35.1698}, {"yFP",  35.1698}, {"radius",  11.2413}});
-    gnomonic.push_back(map<string, double> {{"xDeg",  9.0}, {"yDeg",  9.0}, {"xFP",   0.0000}, {"yFP",   0.0000}, {"radius",  12.6253}});
-    gnomonic.push_back(map<string, double> {{"xDeg", 10.0}, {"yDeg", 10.0}, {"xFP",  44.4487}, {"yFP",  44.4487}, {"radius",  14.0019}});
-    gnomonic.push_back(map<string, double> {{"xDeg", 11.0}, {"yDeg", 11.0}, {"xFP",   0.0000}, {"yFP",   0.0000}, {"radius",  15.3707}});
-    gnomonic.push_back(map<string, double> {{"xDeg", 12.0}, {"yDeg", 12.0}, {"xFP",  54.0726}, {"yFP",  54.0726}, {"radius",  16.7308}});
-    gnomonic.push_back(map<string, double> {{"xDeg", 13.0}, {"yDeg", 13.0}, {"xFP",   0.0000}, {"yFP",   0.0000}, {"radius",  18.0817}});
-    gnomonic.push_back(map<string, double> {{"xDeg", 13.6}, {"yDeg", 13.6}, {"xFP",  62.0957}, {"yFP",  62.0957}, {"radius",  18.8876}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  0.0}, {"yDeg",  0.0}, {"xFP",   0.000000}, {"yFP",   0.00000}, {"radius",   0.0000}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  1.0}, {"yDeg",  1.0}, {"xFP",   4.313600}, {"yFP",  4.313600}, {"radius",   1.4141}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  2.0}, {"yDeg",  2.0}, {"xFP",   8.629828}, {"yFP",  8.629828}, {"radius",   2.8273}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  3.0}, {"yDeg",  3.0}, {"xFP",  12.951322}, {"yFP", 12.951322}, {"radius",   4.2388}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  4.0}, {"yDeg",  4.0}, {"xFP",  17.280730}, {"yFP", 17.280730}, {"radius",   5.6477}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  5.0}, {"yDeg",  5.0}, {"xFP",  21.620719}, {"yFP", 21.620719}, {"radius",   7.0532}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  6.0}, {"yDeg",  6.0}, {"xFP",  25.973984}, {"yFP", 25.973984}, {"radius",   8.4545}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  7.0}, {"yDeg",  7.0}, {"xFP",  30.343251}, {"yFP", 30.343251}, {"radius",   9.8508}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  8.0}, {"yDeg",  8.0}, {"xFP",  34.731287}, {"yFP", 34.731287}, {"radius",  11.2413}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  9.0}, {"yDeg",  9.0}, {"xFP",  39.140906}, {"yFP", 39.140906}, {"radius",  12.6253}});
+    gnomonic.push_back(map<string, double> {{"xDeg", 10.0}, {"yDeg", 10.0}, {"xFP",  43.574973}, {"yFP", 43.574973}, {"radius",  14.0019}});
+    gnomonic.push_back(map<string, double> {{"xDeg", 11.0}, {"yDeg", 11.0}, {"xFP",  48.036419}, {"yFP", 48.036419}, {"radius",  15.3707}});
+    gnomonic.push_back(map<string, double> {{"xDeg", 12.0}, {"yDeg", 12.0}, {"xFP",  52.528243}, {"yFP", 52.528243}, {"radius",  16.7308}});
+    gnomonic.push_back(map<string, double> {{"xDeg", 13.0}, {"yDeg", 13.0}, {"xFP",  57.053521}, {"yFP", 57.053521}, {"radius",  18.0817}});
+    gnomonic.push_back(map<string, double> {{"xDeg", 13.6}, {"yDeg", 13.6}, {"xFP",  59.786060}, {"yFP", 59.786060}, {"radius",  18.8876}});
 
     JitterGenerator *jitterGenerator = new JitterFromRedNoise(cp_);
     Platform platform = Platform(cp_, hdf5File_, *jitterGenerator);
@@ -152,6 +156,9 @@ TEST_F(CameraTest, GnomonicRadialDistance) {
         Log.debug("CameraTest.GnomonicRadialDistance: radius [deg] = " + dtos(rad2deg(radius)));
 
         tie(xFPprime, yFPprime) = camera.test_angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad);
+
+        EXPECT_NEAR(data["xFP"], xFPprime, 0.00001);
+        EXPECT_NEAR(data["yFP"], yFPprime, 0.00001);
 
         Log.debug("CameraTest.GnomonicRadialDistance: xFPprime, yFPprime [mm]= " + dtos(xFPprime) + ", " + dtos(yFPprime));
 
