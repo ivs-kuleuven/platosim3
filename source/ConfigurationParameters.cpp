@@ -12,17 +12,7 @@
  * TODO: Add explanantion of the keys, i.e. that they need to contain the group or section e.g. "General/ProjectLocation".
  * 
  */
-#include <string>
-#include <list>
-
-#include "FileUtilities.h"
-#include "StringUtilities.h"
-#include "Exceptions.h"
 #include "ConfigurationParameters.h"
-#include "Logger.h"
-#include "Exceptions.h"
-
-using namespace std;
 
 
 
