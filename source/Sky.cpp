@@ -567,8 +567,8 @@ double Sky::stellarBackgroundFlux(const double RA, const double dec, const doubl
 
     if ((alpha_index == -1) || (delta_index == -1))
     {
-        string position = "(" + to_string(rad2deg(alpha)) + ", " + to_string(rad2deg(delta)) + ")";
-        Log.warning("Sky::stellarBgFlux(): No data for (alpha, delta) = " + position);
+        string skyPosition = "(" + to_string(alpha) + ", " + to_string(delta) + ") deg";
+        Log.warning("Sky::stellarBgFlux(): No data for (alpha, delta) = " + skyPosition);
         return 0.0;
     }
 
@@ -579,8 +579,8 @@ double Sky::stellarBackgroundFlux(const double RA, const double dec, const doubl
     if (   (skydata::skyblue[alpha_index][delta_index] == -1) || (skydata::skyblue[alpha_index][delta_index+1] == -1)
         || (skydata::skyblue[alpha_index+1][delta_index] == -1) || (skydata::skyblue[alpha_index+1][delta_index] == -1))
     {
-        string position = "(" + to_string(rad2deg(alpha)) + ", " + to_string(rad2deg(delta)) + ")";
-        Log.warning("Sky::stellarBgFlux(): No data for (alpha, delta) = " + position);
+        string skyPosition = "(" + to_string(alpha) + ", " + to_string(delta) + ") deg";
+        Log.warning("Sky::stellarBgFlux(): No data for (alpha, delta) = " + skyPosition);
         return 0.0;
     }
 
@@ -686,8 +686,8 @@ double Sky::stellarBackgroundFlux (const double RA, const double dec, vector<dou
 
     if ((alpha_index == -1) || (delta_index == -1))
     {
-        string position = "(" + to_string(rad2deg(alpha)) + ", " + to_string(rad2deg(delta)) + ")";
-        Log.warning("Sky::stellarBgFlux(): No data for (alpha, delta) = " + position);
+        string skyPosition = "(" + to_string(alpha) + ", " + to_string(delta) + ") deg";
+        Log.warning("Sky::stellarBgFlux(): No data for (alpha, delta) = " + skyPosition);
         return 0.0;
     }
 
@@ -698,8 +698,8 @@ double Sky::stellarBackgroundFlux (const double RA, const double dec, vector<dou
     if (  (skydata::skyblue[alpha_index][delta_index] == -1) || (skydata::skyblue[alpha_index][delta_index+1] == -1)
         || (skydata::skyblue[alpha_index+1][delta_index] == -1) || (skydata::skyblue[alpha_index+1][delta_index] == -1))
     {
-        string position = "(" + to_string(rad2deg(alpha)) + ", " + to_string(rad2deg(delta)) + ")";
-        Log.warning("Sky::stellarBgFlux(): No data for (alpha, delta) = " + position);
+        string skyPosition = "(" + to_string(alpha) + ", " + to_string(delta) + ") deg";
+        Log.warning("Sky::stellarBgFlux(): No data for (alpha, delta) = " + skyPosition);
         return 0.0;
     }
 
