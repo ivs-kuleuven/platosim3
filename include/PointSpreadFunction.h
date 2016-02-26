@@ -6,11 +6,17 @@
 
 #include "armadillo"
 
-#include "Logger.h"
-#include "HDF5File.h"
+#include "ArrayOperations.h"
 #include "ConfigurationParameters.h"
+#include "Exceptions.h"
+#include "FileUtilities.h"
+#include "HDF5File.h"
+#include "Logger.h"
+#include "Units.h"
 
 using namespace std;
+
+
 
 
 
