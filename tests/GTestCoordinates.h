@@ -4,7 +4,7 @@
 
 #include "Units.h"
 #include "Constants.h"
-#include "Coordinates.h"
+#include "SkyCoordinates.h"
 
 using namespace std;
 
@@ -15,8 +15,8 @@ TEST(CoordinatesTest, angularDistance)
 {
     LOG_STARTING_OF_TEST
 
-    Coordinates opticalAxis(0.0, 0.0, Angle::degrees);
-    Coordinates star(178, -70, Angle::degrees);
+    SkyCoordinates opticalAxis(0.0, 0.0, Angle::degrees);
+    SkyCoordinates star(178, -70, Angle::degrees);
 
     double angle = angularDistanceBetween(opticalAxis, star, Angle::degrees);
     Log.debug("CoordinatesTest.angularDistance: angle = " + to_string(angle));

@@ -33,6 +33,9 @@ class Telescope  : public Heartbeat, HDF5Writer
 		double getLightCollectingArea();
 		double getFOVsolidAngle();
 
+
+		pair<double, double> platformToTelescopePointingCoordinates(double alphaPlatfrom, double deltaPlatform);
+
 		tuple<double, double, double> spacecraftToFocalPlaneCoordinates(const double xSC, const double ySC, const double zSC);
 		tuple<double, double, double> focalPlaneToSpacecraftCoordinates(const double xFP, const double yFP, const double zFP);
 

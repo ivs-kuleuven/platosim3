@@ -6,7 +6,7 @@
 
 #include "Logger.h"
 #include "Units.h"
-#include "Coordinates.h"
+#include "SkyCoordinates.h"
 
 
 using namespace std;

@@ -27,7 +27,7 @@ class Detector : public HDF5Writer
         Detector(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera);
         virtual ~Detector();
 
-        virtual void takeExposure(double startTime, double exposureTime);
+        virtual double takeExposure(double startTime, double exposureTime);
         virtual void configure(ConfigurationParameters &configParam);
 
         pair<double, double> pixelToPlanarFocalPlaneCoordinates(double row, double column);

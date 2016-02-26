@@ -8,7 +8,17 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 {
     // Parse the configuration parameters file
 
+    Log.info("Simulation: reading the input parameters file");
+
     ConfigurationParameters configParams(inputFilename);
+
+    // Check if the output HDF5 filename already exists. If so, complain.
+
+    if (fileExists(outputFilename))
+    {
+        Log.error("Simulation: Output file name already exists. Aborting.");
+        exit(1);
+    }
 
     // Open the HDF5 output file where the images will be written
 
@@ -108,9 +118,9 @@ void Simulation::run(double startTime)
 
     for (int n = 0; n < Nexposures; n++)
     {
-        Log.info("Simulation: Starting exposure " + to_string(n));
+        Log.info("Simulation: Starting exposure " + to_string(n) + " at time" + to_string(currentTime) );
         
-        detector->takeExposure(startTime, exposureTime);
+        currentTime = detector->takeExposure(currentTime, exposureTime);
     }
 }
 

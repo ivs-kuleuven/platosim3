@@ -235,13 +235,16 @@ void Camera::selectPsf(double raStar, double decStar)
 
     double xFPrad, yFPrad;
 
+    // Calculate the angular separation (in [radians]) between the star and the optical axis.
+    // Use that angle to select the proper PSF.
+
     tie(xFPrad, yFPrad) = skyToAngularFocalPlaneCoordinates(raStar, decStar);
 
     double radius = getGnomonicRadialDistanceFromOpticalAxis(xFPrad, yFPrad);
 
     psf->select(rad2deg(radius));
 
-    // Calculate the rotation angle
+    // Calculate the rotation angle [rad]
 
     double xFPmm, yFPmm;
     tie(xFPmm, yFPmm) = angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad);

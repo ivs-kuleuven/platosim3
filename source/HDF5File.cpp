@@ -11,6 +11,7 @@
  * Use this class to access (read/write) HDF5 files from your code. Do not use the HDF5 C++
  * wrapper.
  */
+ 
 #include "HDF5File.h"
 
 
@@ -31,16 +32,18 @@ HDF5File::HDF5File()
 
 
 /**
- * \brief      Open file constructor
+ * \brief  Open file constructor
  *
- * \param[in]  filename   full path of the file
- * \param[in]  overwrite  true if previously stored information in the file should be erased, false otherwise
+ * \param  filename   Absolute path of the file
+ * \param  readonly   True if an existing file should only be read and not written.
+ *                    False otherwise. Ignored if the file does not exist yet.
  */
-HDF5File::HDF5File(string filename, bool overwrite)
+
+HDF5File::HDF5File(string filename, bool readonly)
 : file(NULL), fileIsOpen(false)
 {
     H5::Exception::dontPrint();
-    open(filename, overwrite);
+    open(filename, readonly);
 }
 
 
@@ -64,17 +67,17 @@ HDF5File::~HDF5File()
 
 
 
-// HDF5File::open()
-//
-// PURPOSE: open an HDF5 file. If it doesn't already exist, create it.
-//
-// INPUT: - filename: full path of the file
-//        - overwrite: true if previously stored information in the file should be erased,
-//                     false otherwise
-//
-// OUTPUT: None
 
-void HDF5File::open(string filename, bool overwrite)
+/**
+ * \brief Open an HDF5 File. If it doesn't already exist, create it.
+ * 
+ * 
+ * \param filename   Absolute path of the file.
+ * \param readonly   True if an existing file should only be read and not written.
+ *                   False otherwise. Ignored if the file does not exist yet.
+ */
+
+void HDF5File::open(string filename, bool readonly)
 {
     // If there was already a file opened, complain and exit
 
@@ -90,29 +93,32 @@ void HDF5File::open(string filename, bool overwrite)
 
     if (fileExists(filename))
     {
-        if (overwrite)
+        if (readonly)
         {
-            // Open file, and erase (truncate) all data previously stored in the file
+            // Open existing HDF5 file to read.
 
-            Log.warning("HDF5File: opening existing HDF5 file, and erasing previous contents.");
+            file = new H5::H5File(filename.c_str(), H5F_ACC_RDONLY);
 
-            file = new H5::H5File(filename.c_str(), H5F_ACC_TRUNC);
+            Log.info("HDF5File: opened existing HDF5 file " + filename + " to read");
+
         }
         else
         {
-            // Open existing file for read/write.
-            // Conserve the data previously stored in the file.
-
-            Log.warning("HDF5File: opening existing HDF5 file, for appending.");
-
+            // Open an existing HDF5 file to both read and write
+    
             file = new H5::H5File(filename.c_str(), H5F_ACC_RDWR);
+
+            Log.info("HDF5File: opened existing HDF5 file " + filename + " to read/write");            
         }
     }
     else
     {
         // The file doesn't exist yet. Create a new one.
+        // New files are always opened for read/write.
 
         file = new H5::H5File(filename.c_str(), H5F_ACC_TRUNC);
+
+        Log.info("HDF5File: opened new HDF5 file " + filename + " to read/write");
     }
 
     fileIsOpen = true;
@@ -153,36 +159,6 @@ void HDF5File::close()
 
 
 
-
-
-
-
-
-
-// HDF5File::fileExists()
-//
-// PURPOSE: Check if file exists. This is done by trying to open the file,
-//          and verifying if the "good" flag is raised.
-//
-// INPUT: filename: full path of the file
-//
-// OUTPUT: true if the file exists, false otherwise
-
-bool HDF5File::fileExists(string filename)
-{
-    ifstream myFile(filename.c_str()); 
- 
-    if (myFile.good())
-    {
-        myFile.close();
-        return true;
-    } 
-    else 
-    {
-        myFile.close();
-        return false;
-    }   
-}
 
 
 
@@ -636,6 +612,11 @@ void HDF5File::writeAttribute(string groupName, string attributeName, double att
 
     return;
 }
+
+
+
+
+
 
 
 
@@ -1146,3 +1127,37 @@ void HDF5File::readArray(string groupName, string arrayName, arma::Mat<float>& A
     return;
 }
 
+
+
+
+
+
+
+
+
+
+
+// fileExists()
+//
+// PURPOSE: Check if file exists. This is done by trying to open the file,
+//          and verifying if the "good" flag is raised.
+//
+// INPUT: filename: full path of the file
+//
+// OUTPUT: true if the file exists, false otherwise
+
+bool fileExists(string filename)
+{
+    ifstream myFile(filename.c_str()); 
+ 
+    if (myFile.good())
+    {
+        myFile.close();
+        return true;
+    } 
+    else 
+    {
+        myFile.close();
+        return false;
+    }   
+}
