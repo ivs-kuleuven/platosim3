@@ -547,7 +547,7 @@ double Sky::zodiacalFlux(const double alpha, const double delta, vector<double> 
  * \return Stellar background flux in the Pioneer 10 blue/red passband [J s^{-1} m^{-2} sr^{-1}]
  */
 
-double Sky::stellarBackgroundFlux (const double RA, const double dec, const double lambda1, const double lambda2)
+double Sky::stellarBackgroundFlux(const double RA, const double dec, const double lambda1, const double lambda2)
 {
     double alpha, delta;
     int alpha_index, delta_index;
@@ -814,7 +814,7 @@ double Sky::stellarBackgroundFlux (const double RA, const double dec, vector<dou
  * \param index
  */
 
-void Sky::locate(double x, const double *array, int N, int &index)
+void Sky::locate(const double x, const double *array, int N, int &index)
 {
     int index1, index2;
 

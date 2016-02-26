@@ -55,7 +55,7 @@ class Sky
         vector<double> integrand;
         TabulatedFunction<vector<double>> tabfunction;
 
-        void locate(double x, const double *array, int N, int &index);
+        void locate(const double x, const double *array, int N, int &index);
 
 };
 
