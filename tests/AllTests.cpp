@@ -12,7 +12,7 @@
 #include "GTestUnits.h"
 #include "GTestArrayOperations.h"
 #include "GTestPolynomial.h"
-#include "GTestCoordinates.h"
+#include "GTestSkyCoordinates.h"
 #include "PrettyPrinters.h"
 
 Logger Log;
@@ -20,12 +20,9 @@ Logger Log;
 
 int main(int argc, char **argv) 
 {
-
-    //Log.addOutputStream(cerr,    WARNING | ERROR | DEBUG | INFO);
-
     ofstream logFile("log.txt");
     Log.addOutputStream(logFile, WARNING | ERROR | DEBUG | INFO);
-    Log.info("Main: Log file includes 'warning', 'error', 'debug', and 'info'");
+    Log.info("Main: Unit Test Log file includes 'warning', 'error', 'debug', and 'info'");
 
     ::testing::InitGoogleTest(&argc, argv);
     int returnValue = RUN_ALL_TESTS();
