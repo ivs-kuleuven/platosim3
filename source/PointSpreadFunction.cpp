@@ -133,7 +133,7 @@ void PointSpreadFunction::select(double radius)
 
     if (isSelected)
     {
-        Log.warning("Another PSF was previously selected.");
+        Log.warning("PSF: Another PSF was previously selected.");
     }
 
     radius = rad2deg(radius);
@@ -151,7 +151,7 @@ void PointSpreadFunction::select(double radius)
 
     if (index > psfdata::radius.n_elem-1)
     {
-        Log.warning("Radius index out of bounds.");
+        Log.warning("PSF: Radius index (" + to_string(index) + ") is out of bounds.");
         index = psfdata::radius.n_elem-1;
     }
 
@@ -174,14 +174,13 @@ void PointSpreadFunction::select(double radius)
     // Load the psf array into the psfMap
     
     hdf5file->readArray("/" + groupName, azimuthDataset, psfMap);
+
+    Log.debug("PSF: Selected PSF " + groupName + "/" + azimuthDataset);
     
     // The PSFs that are currently used are rotated with respect to the focal plane x-axis.
     // The rotation angle is given as an attribute to the dataset that contains the PSF.
 
     double angle = hdf5file->readAttribute(groupName, azimuthDataset, "orientation");
-    Log.debug("PointSpreadFunction::select: group/dataset = " + groupName + "/" + azimuthDataset);
-    Log.debug("PointSpreadFunction::select: orientation = " + to_string(angle));
-
     rotationAngle = deg2rad(angle);
 
     isSelected = true;
@@ -207,8 +206,7 @@ void PointSpreadFunction::rotate(double angle)
 
     if (isRotated)
     {
-        Log.warning("The PSF has been previously rotated and will not be rotated again because of inaccuracies.");
-        Log.warning("TODO: reload the PSF from the inputfile before rotating.");
+        Log.warning("PSF: Ignoring rotation: PSF was already rotated before.");
     }
     else
     {
@@ -220,7 +218,9 @@ void PointSpreadFunction::rotate(double angle)
         psfMap = rotateArray(psfMap, newAngle);
 
         rotationAngle = newAngle;
-        isRotated = true;        
+        isRotated = true;    
+
+        Log.debug("PSF: rotated current PSF over angle " + to_string(rad2deg(newAngle)) + " deg");    
     }
 }
 
