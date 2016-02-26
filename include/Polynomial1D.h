@@ -16,7 +16,7 @@ class Polynomial1D
         ~Polynomial1D();
 
         double getCoefficient(int index);
-        double evaluateAt(double x);    
+        double operator()(double x);    
 
     private:
         int degree;

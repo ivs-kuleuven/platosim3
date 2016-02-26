@@ -17,7 +17,7 @@ TEST(Polynomial1DTest, EvaluationDeg0)
 
     Polynomial1D p = Polynomial1D(0, coeff);
 
-    EXPECT_NEAR(42.30, p.evaluateAt(23.0), 0.00001);    
+    EXPECT_NEAR(42.30, p(23.0), 0.00001);    
 }
 
 
@@ -30,9 +30,9 @@ TEST(Polynomial1DTest, EvaluationDeg1)
 
     Polynomial1D p = Polynomial1D(1, coeff);
 
-    EXPECT_NEAR(  42.30, p.evaluateAt(  0.0), 0.00001);
-    EXPECT_NEAR( 426.40, p.evaluateAt( 23.0), 0.00001);
-    EXPECT_NEAR(-341.80, p.evaluateAt(-23.0), 0.00001);
+    EXPECT_NEAR(  42.30, p(  0.0), 0.00001);
+    EXPECT_NEAR( 426.40, p( 23.0), 0.00001);
+    EXPECT_NEAR(-341.80, p(-23.0), 0.00001);
 }
 
 
@@ -46,9 +46,9 @@ TEST(Polynomial1DTest, EvaluationDeg2)
 
     Polynomial1D p = Polynomial1D(2, coeff);
 
-    EXPECT_NEAR(  42.30000, p.evaluateAt(  0.0), 0.00001);
-    EXPECT_NEAR( 439.91066, p.evaluateAt( 23.0), 0.00001);
-    EXPECT_NEAR(-328.28934, p.evaluateAt(-23.0), 0.00001);
+    EXPECT_NEAR(  42.30000, p(  0.0), 0.00001);
+    EXPECT_NEAR( 439.91066, p( 23.0), 0.00001);
+    EXPECT_NEAR(-328.28934, p(-23.0), 0.00001);
 }
 
 
@@ -63,8 +63,8 @@ TEST(Polynomial2DTest, EvaluationDeg1)
 
     Polynomial2D p = Polynomial2D(1, coeff_1);
 
-    EXPECT_NEAR( 6.0, p.evaluateAt(1, 1),   0.00001);
-    EXPECT_NEAR(55.5, p.evaluateAt(10, 10),   0.00001);
+    EXPECT_NEAR( 6.0, p(1, 1),   0.00001);
+    EXPECT_NEAR(55.5, p(10, 10),   0.00001);
 
 }
 
@@ -95,11 +95,11 @@ TEST(Polynomial2DTest, EvaluationDeg2)
 
     Polynomial2D p = Polynomial2D(2, coeff_2);
 
-    EXPECT_NEAR( 4.6360651726, p.evaluateAt(1, 1),   0.00001);
-    EXPECT_NEAR( 8.7435490851, p.evaluateAt(2, 2),   0.00001);
-    EXPECT_NEAR(21.5491479211, p.evaluateAt(5, 5),   0.00001);
-    EXPECT_NEAR(44.5023029764, p.evaluateAt(10, 10), 0.00001);
-    EXPECT_NEAR(85.4146259196, p.evaluateAt(18, 18), 0.00001);
+    EXPECT_NEAR( 4.6360651726, p(1, 1),   0.00001);
+    EXPECT_NEAR( 8.7435490851, p(2, 2),   0.00001);
+    EXPECT_NEAR(21.5491479211, p(5, 5),   0.00001);
+    EXPECT_NEAR(44.5023029764, p(10, 10), 0.00001);
+    EXPECT_NEAR(85.4146259196, p(18, 18), 0.00001);
 
 
 
@@ -135,11 +135,11 @@ TEST(Polynomial2DTest, EvaluationDeg3)
 
     Polynomial2D p = Polynomial2D(3, coeff_3);
 
-    EXPECT_NEAR( 4.2835054569, p.evaluateAt(1, 1),   0.00001);
-    EXPECT_NEAR( 8.6361291039, p.evaluateAt(2, 2),   0.00001);
-    EXPECT_NEAR(21.7405384999, p.evaluateAt(5, 5),   0.00001);
-    EXPECT_NEAR(44.4257310788, p.evaluateAt(10, 10), 0.00001);
-    EXPECT_NEAR(86.1042429791, p.evaluateAt(18, 18), 0.00001);
+    EXPECT_NEAR( 4.2835054569, p(1, 1),   0.00001);
+    EXPECT_NEAR( 8.6361291039, p(2, 2),   0.00001);
+    EXPECT_NEAR(21.7405384999, p(5, 5),   0.00001);
+    EXPECT_NEAR(44.4257310788, p(10, 10), 0.00001);
+    EXPECT_NEAR(86.1042429791, p(18, 18), 0.00001);
 
 }
 

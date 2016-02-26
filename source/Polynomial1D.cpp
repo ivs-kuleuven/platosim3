@@ -63,7 +63,7 @@ Polynomial1D::~Polynomial1D()
  *
  * \return     y the evaluated polynomial
  */
-double Polynomial1D::evaluateAt(double x)
+double Polynomial1D::operator()(double x)
 {
 
     using StringUtilities::dtos;
