@@ -20,11 +20,6 @@
  */
 
 #include "PointSpreadFunction.h"
-#include "Units.h"
-#include "Exceptions.h"
-#include "Logger.h"
-#include "ArrayOperations.h"
-#include "FileUtilities.h"
 
 
 
