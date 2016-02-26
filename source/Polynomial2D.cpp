@@ -91,7 +91,7 @@ Polynomial2D::~Polynomial2D()
  *
  * \return     z the evaluated polynomial
  */
-double Polynomial2D::evaluateAt(double x, double y)
+double Polynomial2D::operator()(double x, double y)
 {
 
     using StringUtilities::dtos;

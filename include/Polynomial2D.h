@@ -16,7 +16,7 @@ class Polynomial2D
         ~Polynomial2D();
 
         double getCoefficient(int index);
-        double evaluateAt(double x, double y);    
+        double operator()(double x, double y);    
 
     private:
         int degree;
