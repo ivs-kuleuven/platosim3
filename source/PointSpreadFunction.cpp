@@ -40,6 +40,7 @@
  * 
  * \param      configParam  configuration parameters for the PSF
  */
+
 PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam)
 {
     configure(configParam);
@@ -47,26 +48,28 @@ PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam)
     isSelected = false;
     isRotated = false;
     
-    if ( ! FileUtilities::fileExists(location) )
+    if ( ! FileUtilities::fileExists(absolutePath) )
     {
-        throw FileException("PointSpreadFunction: trying to load the PSF HDF5 file (" + location + "), but file doesn't exist.");
+        throw FileException("PointSpreadFunction: trying to load the PSF HDF5 file (" + absolutePath + "), but file doesn't exist.");
     }
 
     try
     {
-        hdf5file = new HDF5File(location);
+        hdf5file = new HDF5File(absolutePath);
     }
     catch(H5::FileIException ex)
     {
         Log.error("H5::FileIException: " + string(ex.getCDetailMsg()));
-        throw H5FileException("HDF5File: Could not open HDF5 file: " + location);
+        throw H5FileException("HDF5File: Could not open HDF5 file: " + absolutePath);
     }
 
     string groupName = "T6000";
     if ( !hdf5file->hasGroup(groupName) )
     {
-        throw H5FileException("HDF5File: The HDF5 file (" + location + ") doesn't contain the expected group \"" + groupName + "\".");
+        throw H5FileException("HDF5File: The HDF5 file (" + absolutePath + ") doesn't contain the expected group \"" + groupName + "\".");
     }
+
+    Log.info("PSF: Opened the HDF5 file " + absolutePath + " containing the PSFs");
 
 }
 
@@ -102,7 +105,7 @@ PointSpreadFunction::~PointSpreadFunction()
 
 void PointSpreadFunction::configure(ConfigurationParameters &cp)
 {
-    location = cp.getAbsoluteFilename("PSF/Filename");
+    absolutePath = cp.getAbsoluteFilename("PSF/Filename");
 }
 
 
@@ -160,12 +163,12 @@ void PointSpreadFunction::select(double radius)
 
     if ( ! hdf5file->hasGroup(groupName) )
     {
-        throw FileException("The HDF5 file (" + location + ") doesn't contain the expected group \"" + groupName + "\".");
+        throw FileException("The HDF5 file (" + absolutePath + ") doesn't contain the expected group \"" + groupName + "\".");
     }
 
     if ( ! hdf5file->hasDataset(groupName, azimuthDataset) )
     {
-        throw FileException("The HDF5 file (" + location + ") doesn't contain the expected dataset \"" + azimuthDataset + "\".");
+        throw FileException("The HDF5 file (" + absolutePath + ") doesn't contain the expected dataset \"" + azimuthDataset + "\".");
     }
 
     // Load the psf array into the psfMap
