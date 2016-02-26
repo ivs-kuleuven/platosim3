@@ -32,7 +32,7 @@ Telescope::Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File, 
 
     // Initialize the current position of the optical axis from the platform
 
-    tie(currentAlphaOpticalAxis, currentDeltaOpticalAxis) = platform.getCurrentPointingCoordinates();
+    tie(currentAlphaOpticalAxis, currentDeltaOpticalAxis) = platform.getPointingCoordinates(internalTime);
 }
 
 
@@ -114,15 +114,14 @@ void Telescope::updatePointingCoordinates(double time)
         return;
     }
 
-    // Telescope depends on Platform (and its jitter) to get new pointing coordinates.
-    // So first update platform.
-
-    platform.updatePointingCoordinates(*this, time);
-
     // There is currently no thermo-elastic variations in Telescope, so simply copy the 
     // pointing coordinates from platform
 
-    tie(currentAlphaOpticalAxis, currentDeltaOpticalAxis) = platform.getCurrentPointingCoordinates();
+    tie(currentAlphaOpticalAxis, currentDeltaOpticalAxis) = platform.getPointingCoordinates(time);
+
+    Log.info("Telescope: At time " + to_string(time) + ": (RA, dec) = (" 
+                                   + to_string(rad2deg(currentAlphaOpticalAxis)) + ", " 
+                                   + to_string(rad2deg(currentDeltaOpticalAxis)) + ")");
 
     // Update the internal clock
 
@@ -217,6 +216,41 @@ double Telescope::getFOVsolidAngle()
 
 
 
+
+
+
+/**
+ * \brief Return the equatorial sky coordinates of the optical axis of this telescope given the pointing
+ *        coordinates of the (roll axis of the) platform.
+ * 
+ * \param alphaPlatform   Right Ascension of the pointing axis of the platform [rad]
+ * \param deltaPlatform   Declination of the pointing axis of the platform     [rad]
+ * 
+ * \return (alphaOpticalAxis, deltaOpticalAxis)  equatorial sky coordinates of the optical axis [rad]
+ */
+
+pair<double, double> Telescope::platformToTelescopePointingCoordinates(double alphaPlatform, double deltaPlatform)
+{
+    // We currently assume that the telescope is perfectly aligned with the platform pointing (roll) axis
+    
+    const double alphaOpticalAxis = alphaPlatform;
+    const double deltaOpticalAxis = deltaPlatform;
+
+    return make_pair(alphaOpticalAxis, deltaOpticalAxis);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 /**
  * \brief  Compute the cartesian coordinates of a point w.r.t. focal plane reference frame, given the cartesian
  *         coordinates in the spacecraft reference system.
@@ -240,6 +274,8 @@ tuple<double, double, double> Telescope::spacecraftToFocalPlaneCoordinates(const
 
     return make_tuple(xFP, yFP, zFP);
 }
+
+
 
 
 

@@ -272,12 +272,15 @@ void Detector::reset()
  *
  * \param startTime:    Starting time of the exposure [s].
  * \param exposureTime: Duration of the exposure [s].
+ * 
+ * \return endTime:     Time after the exposure (startTime + exposureTime + readoutTime)
  *
  * \pre Sub-pixel, pixel, bias register, and smearing map filled with values from previous exposure.
  *
  * \post Pixel unit in the pixel, bias register, and smearing maps: [ADU]
  */
-void Detector::takeExposure(double startTime, double exposureTime)
+
+double Detector::takeExposure(double startTime, double exposureTime)
 {
 	// Advance the internal clock until the given start time
 
@@ -285,11 +288,12 @@ void Detector::takeExposure(double startTime, double exposureTime)
 
 	// Integration of point sources and background, taking into account jitter + drift.
 
-	Log.debug("Detector: Integrating light for exposure " + to_string(imageNr));
+	Log.debug("Detector: Integrating light for exposure " + to_string(imageNr) + " with exposure time = " + to_string(exposureTime));
 
 	integrateLight(startTime, exposureTime);
 
 	// Include noise effects like readout noise, photon noise, full well saturation, etc.
+	// Note: readOut() needs the exposure time to compute the open shutter smearing.
 
 	Log.debug("Detector: Adding noise effects to exposure " + to_string(imageNr));
 
@@ -300,6 +304,12 @@ void Detector::takeExposure(double startTime, double exposureTime)
 	Log.debug("Detector: Writing PixelMap " + to_string(imageNr) + " to HDF5 file.");
 
 	writePixelMapToHDF5();
+
+	// Advance the internal clock
+
+	internalTime += exposureTime + readoutTime;
+
+	return internalTime;
 }
 
 
@@ -352,10 +362,6 @@ void Detector::integrateLight(double startTime, double exposureTime)
 	Log.debug("Detector: Rebinning subpixel map into pixel map.");
 
 	rebin();
-
-	// Update the internal clock
-
-	internalTime += exposureTime;
 }
 
 
@@ -649,10 +655,6 @@ void Detector::readOut(float exposureTime)
 	// Pixel units after: [ADU]
 
 	applyDigitalSaturation();
-
-	// Advance the internal clock
-
-	internalTime += readoutTime;
 }
 
 

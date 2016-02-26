@@ -8,6 +8,7 @@
 
 #include "Logger.h"
 #include "Units.h"
+#include "Constants.h"
 #include "Heartbeat.h"
 #include "HDF5Writer.h"
 #include "HDF5File.h"
@@ -17,6 +18,7 @@
 
 
 using namespace std;
+using Constants::PI;
 
 
 class Telescope;  // forward declaration
@@ -32,11 +34,12 @@ class Platform : public Heartbeat, HDF5Writer
 
         virtual void configure(ConfigurationParameters &configParams);
 
-        void updatePointingCoordinates(Telescope const &telescope, double time);
         void setPointingCoordinates(double rightAscencsion, double declination, Unit unit = Angle::degrees);
-        pair<double, double> getCurrentPointingCoordinates();
+        pair<double, double> getPointingCoordinates(double time);
 
         virtual double getHeartbeatInterval() override;
+
+        arma::colvec spacecraftToEquatorialCoordinates(arma::colvec &coordSC);
 
 
     protected:

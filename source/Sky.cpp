@@ -353,7 +353,7 @@ double Sky::zodiacalFlux(const double alpha, const double delta, const double la
     // Convert the equatorial coordinates to geocentric ecliptic coordinates.
     // All coordinates are in radians.
 
-    auto skyPoint = Coordinates(alpha, delta, Angle::radians);
+    auto skyPoint = SkyCoordinates(alpha, delta, Angle::radians);
     tie(lam, beta) = skyPoint.toEcliptic(Angle::radians);
 
     // The zodiacal light is approximately symmetric with respect to the
@@ -452,7 +452,7 @@ double Sky::zodiacalFlux(const double alpha, const double delta, vector<double> 
     // Convert the equatorial coordinates to geocentric ecliptic coordinates.
     // All coordinates are in radians.
 
-    auto skyPoint = Coordinates(alpha, delta, Angle::radians);
+    auto skyPoint = SkyCoordinates(alpha, delta, Angle::radians);
     tie(lam, beta) = skyPoint.toEcliptic(Angle::radians);
 
     // The zodiacal light is approximately symmetric with respect to the

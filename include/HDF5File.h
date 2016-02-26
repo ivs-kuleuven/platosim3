@@ -23,10 +23,10 @@ class HDF5File
     public:
 
         HDF5File();
-        HDF5File(string filename, bool overwrite=false);
+        HDF5File(string filename, bool readonly=true);
         ~HDF5File();
 
-        void open(string filename, bool overwrite=false);
+        void open(string filename, bool readonly=true);
         void close();
         
         bool hasGroup(string groupName);
@@ -52,8 +52,6 @@ class HDF5File
 
     protected:
 
-        bool fileExists(string filename);
-
 
     private:
 
@@ -62,6 +60,9 @@ class HDF5File
 
 };
 
+
+
+bool fileExists(string filename);
 
 
 #endif

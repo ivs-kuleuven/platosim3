@@ -12,7 +12,7 @@
 #include "Logger.h"
 #include "Units.h"
 #include "Constants.h"
-#include "Coordinates.h"
+#include "SkyCoordinates.h"
 #include "TabulatedFunction.h"
 #include "Skydata.h"
 #include "StarCatalog.h"
