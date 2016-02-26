@@ -19,37 +19,31 @@
 
 // Local functions that throw an Exception when incorrect node names are provided
 
-void noNodeError(string nodeName, string fileName);
-void noSubNodeError(string nodeName, string subNodeName, string fileName);
+static void noNodeError(string nodeName, string fileName);
+static void noSubNodeError(string nodeName, string subNodeName, string fileName);
 
 
 
 
+
+
+/**
+ * \brief      Default constructor
+ */
 ConfigurationParameters::ConfigurationParameters() {}
 
 
 
 
 
-/**
- * \brief      Loads the input file. The input is expected to be a YAML file.
- *
- * \exception  IOException is thrown when the file does not exist
- * 
- * \param[in]  name  Filename of the input file for PlatoSim3
- */
-ConfigurationParameters::ConfigurationParameters(const char* name) 
-: ConfigurationParameters::ConfigurationParameters(string(name)) 
-{}
-
 
 
 
 
 /**
- * \brief      Loads the input file. The input is expected to be a YAML file.
+ * \brief      Constructor. Loads the input file. The input is expected to be a YAML file.
  *
- * \exception  IOException is thrown when the file does not exist
+ * \exception  IllegalArgumentException is thrown when the file does not exist
  * 
  * \param[in]  name  Filename of the input file for PlatoSim3
  */
@@ -64,6 +58,19 @@ ConfigurationParameters::ConfigurationParameters(const string &name)
     config = YAML::LoadFile(name);
 
 }
+
+
+
+
+
+/**
+ * \brief      Destructor
+ */
+ConfigurationParameters::~ConfigurationParameters()
+{
+    // TODO: Find out if it is needed to close the YAML file and how to do this.
+}
+
 
 
 
@@ -417,26 +424,24 @@ void ConfigurationParameters::setParameter(const string &key, const string &valu
 
 
 
-void noNodeError(string nodeName, string fileName)
+
+
+
+
+static void noNodeError(string nodeName, string fileName)
 {
 
     string msg = "ConfigurationParameters: The field \"" + nodeName + "\" is not available in the configuration file (" + fileName + ").";
     throw IllegalArgumentException(msg);
 }
 
-void noSubNodeError(string nodeName, string subNodeName, string fileName)
+static void noSubNodeError(string nodeName, string subNodeName, string fileName)
 {
     string msg = "ConfigurationParameters: The sub-field \"" + subNodeName + "\" of field \"" + nodeName + "\" is not available in the configuration file (" + fileName + ").";
     throw IllegalArgumentException(msg);
 }
 
 
-
-
-ConfigurationParameters::~ConfigurationParameters() 
-{
-    
-}
 
 
 

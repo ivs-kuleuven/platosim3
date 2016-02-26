@@ -20,7 +20,6 @@ class ConfigurationParameters
 {
 public:
     ConfigurationParameters();
-    ConfigurationParameters(const char*);
     ConfigurationParameters(const string &);
     ~ConfigurationParameters();
 
