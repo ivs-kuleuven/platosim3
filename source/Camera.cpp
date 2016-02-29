@@ -170,28 +170,33 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
             tie(Xmm, Ymm) = angularToPlanarFocalPlaneCoordinates(Xrad, Yrad);
 
-            // Compute the flux [photons] of this star
+            // If the point falls on the subfield, add the flux.
 
-            double flux = fluxFactor * pow(10.0, -0.4 * star.Vmag) * timeStep;
+            if (detector.isInSubfield(Xmm, Ymm))
+            {
+                // Compute the flux [photons] of this star
 
-            // Add the flux to the detector. The latter checks if the star falls on a pixel of the subfield.
+                double flux = fluxFactor * pow(10.0, -0.4 * star.Vmag) * timeStep;
 
-            detector.addFlux(Xmm, Ymm, flux);
+                // Add the flux to the detector. The latter checks if the star falls on a pixel of the subfield.
+
+                detector.addFlux(Xmm, Ymm, flux);
+            }
         }
     }
 
     // Take the flux of the stellar background and the zodiacal light into account.
-    // Use one value for the entire subfield.
+    // Use one value for the entire subfield. As wavelength range we take the entire throughput band.
 
     const double energyOfOnePhoton = Constants::CLIGHT * Constants::HPLANCK / (throughputLambdaC * 1.e-9);                       // [J]
     const double lambda1 = (throughputLambdaC - throughputBandwidth/2.0) * 1.e-9;                                                // [m]
     const double lambda2 = (throughputLambdaC + throughputBandwidth/2.0) * 1.e-9;                                                // [m]
     
-    const double zodiacalFlux = sky.zodiacalFlux(RA, dec, lambda1, lambda2)                                                             // [photons/exposure]
+    const double zodiacalFlux = sky.zodiacalFlux(RA, dec, lambda1, lambda2)                                                      // [phot/exposure]
                                 * exposureTime * telescope.getTransmissionEfficiency() * telescope.getLightCollectingArea()
                                 * telescope.getFOVsolidAngle() / energyOfOnePhoton; 
 
-    const double stellarBackgroundFlux = sky.stellarBackgroundFlux(RA, dec, lambda1, lambda2)                                           // [photons/exposure]
+    const double stellarBackgroundFlux = sky.stellarBackgroundFlux(RA, dec, lambda1, lambda2)                                    // [phot/exposure]
                                          * exposureTime * telescope.getTransmissionEfficiency() * telescope.getLightCollectingArea()
                                          * telescope.getFOVsolidAngle() / energyOfOnePhoton;      
 
