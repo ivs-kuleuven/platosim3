@@ -20,19 +20,12 @@ using namespace std;
  * \param      coeff  the coeficients of the polynomial
  * 
  */
-Polynomial1D::Polynomial1D(int deg, double coeff[])
+Polynomial1D::Polynomial1D(int deg, vector<double> coeff)
 {
     degree = deg;
-    unsigned int n_terms = degree + 1;
 
-    Log.debug("Number of terms for " + to_string(degree) + " is " + to_string(n_terms));
-
-    coefficients = new double[n_terms];
-
-    for( unsigned int i = 0; i < n_terms; i++)
-    {
-        coefficients[i] = coeff[i];
-    }
+    // Copying the argument coefficients
+    coefficients = coeff;
 }
 
 
@@ -46,7 +39,6 @@ Polynomial1D::Polynomial1D(int deg, double coeff[])
  */
 Polynomial1D::~Polynomial1D()
 {
-    delete [] coefficients;
 }
 
 
@@ -71,13 +63,10 @@ double Polynomial1D::operator()(double x)
     double sum = coefficients[0];
     double xPow = 1.0;
 
-    Log.debug("sum = " + dtos(sum));
-
     for(unsigned int i = 1; i <= degree; i++)
     {
         xPow *= x;
         sum += xPow * coefficients[i];
-        Log.debug("sum = " + dtos(sum));
     }
 
     return sum;

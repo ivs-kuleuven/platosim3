@@ -42,24 +42,24 @@ static unsigned int nTerms(unsigned int n)
  * 
  * \exception UnsupportedException for degrees higher than 3
  */
-Polynomial2D::Polynomial2D(int deg, double coeff[])
+Polynomial2D::Polynomial2D(int deg, vector<double> coeff)
 {
     degree = deg;
+
     unsigned int n_terms = nTerms(degree);
-
-    //Log.debug("Number of terms for " + to_string(degree) + " is " + to_string(n_terms));
-
-    coefficients = new double[n_terms];
 
     if (degree > 3)
     {
         throw UnsupportedException("Polynomial2D::Constructor: Evaluation of a 2D polynomial of degree > 3 is not yet supported.");
     }
 
-    for( unsigned int i = 0; i < n_terms; i++)
+    if (coeff.size() != n_terms)
     {
-        coefficients[i] = coeff[i];
+        throw IllegalArgumentException("Polynomial2D::Constructor: Expected " + to_string(n_terms) + " coefficients for degree " + to_string(degree) + ", got " + to_string(coeff.size()) + " coefficients.");
     }
+
+    // Copying the argument coefficients
+    coefficients = coeff;
 }
 
 
@@ -73,7 +73,6 @@ Polynomial2D::Polynomial2D(int deg, double coeff[])
  */
 Polynomial2D::~Polynomial2D()
 {
-    delete [] coefficients;
 }
 
 
