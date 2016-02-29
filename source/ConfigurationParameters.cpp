@@ -17,13 +17,6 @@
 
 
 
-// Local functions that throw an Exception when incorrect node names are provided
-
-static void noNodeError(string nodeName, string fileName);
-static void noSubNodeError(string nodeName, string subNodeName, string fileName);
-
-
-
 
 
 
@@ -98,28 +91,8 @@ ConfigurationParameters::~ConfigurationParameters()
  */
 bool ConfigurationParameters::getBoolean(const string &key)
 {
-    vector<string> fields = StringUtilities::split(key, '/');
-
-    if (fields.size() > 1)
-    {
-        YAML::Node node = config[fields[0]];
-        if (!node) 
-            noNodeError(fields[0], filename);
-
-        YAML::Node subnode = node[fields[1]];
-        if (!subnode)
-            noSubNodeError(fields[0], fields[1], filename);
-
-        return subnode.as<bool>();
-    }
-    else 
-    {
-        if (!config[key])
-            noNodeError(key, filename);
-
-        return config[key].as<bool>();
-    }
-
+    YAML::Node node = getNode(key);
+    return node.as<bool>();
 }
 
 
@@ -143,28 +116,8 @@ bool ConfigurationParameters::getBoolean(const string &key)
  */
 int ConfigurationParameters::getInteger(const string &key)
 {
-    vector<string> fields = StringUtilities::split(key, '/');
-
-    if (fields.size() > 1)
-    {
-        YAML::Node node = config[fields[0]];
-        if (!node) 
-            noNodeError(fields[0], filename);
-
-        YAML::Node subnode = node[fields[1]];
-        if (!subnode)
-            noSubNodeError(fields[0], fields[1], filename);
-
-        return subnode.as<int>();
-    }
-    else 
-    {
-        if (!config[key])
-            noNodeError(key, filename);
-
-        return config[key].as<int>();
-    }
-
+    YAML::Node node = getNode(key);
+    return node.as<int>();
 }
 
 
@@ -195,28 +148,8 @@ int ConfigurationParameters::getInteger(const string &key)
  */
 long ConfigurationParameters::getLong(const string &key)
 {
-    vector<string> fields = StringUtilities::split(key, '/');
-
-    if (fields.size() > 1)
-    {
-        YAML::Node node = config[fields[0]];
-        if (!node) 
-            noNodeError(fields[0], filename);
-
-        YAML::Node subnode = node[fields[1]];
-        if (!subnode)
-            noSubNodeError(fields[0], fields[1], filename);
-
-        return subnode.as<long>();
-    }
-    else 
-    {
-        if (!config[key])
-            noNodeError(key, filename);
-
-        return config[key].as<long>();
-    }
-
+    YAML::Node node = getNode(key);
+    return node.as<long>();
 }
 
 
@@ -249,30 +182,44 @@ long ConfigurationParameters::getLong(const string &key)
  */
 double ConfigurationParameters::getDouble(const string &key)
 {
-    vector<string> fields = StringUtilities::split(key, '/');
-
-    if (fields.size() > 1)
-    {
-        YAML::Node node = config[fields[0]];
-        if (!node) 
-            noNodeError(fields[0], filename);
-
-        YAML::Node subnode = node[fields[1]];
-        if (!subnode)
-            noSubNodeError(fields[0], fields[1], filename);
-
-        return subnode.as<double>();
-    }
-    else 
-    {
-        if (!config[key])
-            noNodeError(key, filename);
-
-        return config[key].as<double>();
-    }
-
+    YAML::Node node = getNode(key);
+    return node.as<double>();
 }
 
+
+
+
+
+/**
+ * \brief      Return a vector of doubles for the specified parameter.
+ *
+ * \details    
+ * 
+ * The key is the name of the input parameter. If the input parameter is part
+ * of a section or group, then the key is a combination of the group name and 
+ * the parameter name, separated by a '/' delimiter. E.g. if the parameter ExposureTime 
+ * is part of the group ObservingParameters, then the key to get the value for this
+ * parameter would be "ObservingParameters/ExposureTime".
+ * 
+ * \param[in]  key The name of a parameter used in the PLATO Simulator
+ *
+ * \returns    A vector of double values for the given parameter
+ */
+vector <double> ConfigurationParameters::getDoubleVector(const string &key)
+{
+
+    YAML::Node valuesNode = getNode(key);
+
+    unsigned short nValues = valuesNode.size();
+
+    vector<double> values(nValues);
+
+    for (unsigned short idx = 0; idx < nValues; ++idx){
+            values[idx] = valuesNode[idx].as<double>();
+    }
+
+    return values;
+}
 
 
 
@@ -294,28 +241,8 @@ double ConfigurationParameters::getDouble(const string &key)
  */
 string ConfigurationParameters::getString(const string &key) 
 {
-    vector<string> fields = StringUtilities::split(key, '/');
-
-    if (fields.size() > 1)
-    {
-        YAML::Node node = config[fields[0]];
-        if (!node) 
-            noNodeError(fields[0], filename);
-
-        YAML::Node subnode = node[fields[1]];
-        if (!subnode)
-            noSubNodeError(fields[0], fields[1], filename);
-
-        return subnode.as<string>();
-    }
-    else 
-    {
-        if (!config[key])
-            noNodeError(key, filename);
-
-        return config[key].as<string>();
-    }
-
+    YAML::Node node = getNode(key);
+    return node.as<string>();
 }
 
 
@@ -344,28 +271,9 @@ string ConfigurationParameters::getString(const string &key)
  */
 string ConfigurationParameters::getAbsoluteFilename(const string &key) 
 {
-    string filename;
-    vector<string> fields = StringUtilities::split(key, '/');
+    YAML::Node node = getNode(key);
 
-    if (fields.size() > 1)
-    {
-        YAML::Node node = config[fields[0]];
-        if (!node) 
-            noNodeError(fields[0], this->filename);
-
-        YAML::Node subnode = node[fields[1]];
-        if (!subnode)
-            noSubNodeError(fields[0], fields[1], this->filename);
-
-        filename = subnode.as<string>();
-    }
-    else 
-    {
-        if (!config[key])
-            noNodeError(key, this->filename);
-
-        filename = config[key].as<string>();
-    }
+    string filename = node.as<string>();
 
     if (FileUtilities::isRelative(filename))
     {
@@ -427,23 +335,53 @@ void ConfigurationParameters::setParameter(const string &key, const string &valu
 
 
 
-
-static void noNodeError(string nodeName, string fileName)
+/**
+ * \brief      Get the YAML node for the given key
+ *
+ * \details    
+ * 
+ * The key is the name of the input parameter. If the input parameter is part
+ * of a section or group, then the key is a combination of the group name and 
+ * the parameter name, separated by a '/' delimiter. E.g. if the parameter ExposureTime 
+ * is part of the group ObservingParameters, then the key to get the value for this
+ * parameter would be "ObservingParameters/ExposureTime". 
+ * 
+ * There can be multiple levels, e.g. "Camera/Distortion/Polynomial/Coefficients"
+ * 
+ * \param[in]  key   The name of a parameter used in the PLATO Simulator
+ *
+ * \return     The YAML node for the given key
+ */
+YAML::Node ConfigurationParameters::getNode(const string & key)
 {
+    vector<string> fields = StringUtilities::split(key, '/');
 
-    string msg = "ConfigurationParameters: The field \"" + nodeName + "\" is not available in the configuration file (" + fileName + ").";
-    throw IllegalArgumentException(msg);
+    // Why do we use a stack here?
+    // Since we need to travers through the nodes and nodes are returned as references, so we can not
+    // assign the returned node to the variable containing the previous node.
+    // FIXME: explain this better, discuss with Joris...
+
+    stack<YAML::Node> nodes;
+
+
+    string parentNodeName = fields[0];
+
+    nodes.push(config[parentNodeName]);
+
+    if ( ! nodes.top() ) {
+        string msg = "ConfigurationParameters: The field \"" + parentNodeName + "\" is not available in the configuration file (" + filename + ").";
+        throw IllegalArgumentException(msg);
+    }
+
+    for (unsigned int idx = 1; idx < fields.size(); idx++)
+    {
+        nodes.push(nodes.top()[fields[idx]]);
+        if ( ! nodes.top() ) {
+            string msg = "ConfigurationParameters: The sub-field \"" + fields[idx] + "\" of field \"" + parentNodeName + "\" is not available in the configuration file (" + filename + ").";
+            throw IllegalArgumentException(msg);
+        }
+        parentNodeName += "/" + fields[idx];
+    }
+
+    return nodes.top();
 }
-
-static void noSubNodeError(string nodeName, string subNodeName, string fileName)
-{
-    string msg = "ConfigurationParameters: The sub-field \"" + subNodeName + "\" of field \"" + nodeName + "\" is not available in the configuration file (" + fileName + ").";
-    throw IllegalArgumentException(msg);
-}
-
-
-
-
-
-
-
