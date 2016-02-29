@@ -22,7 +22,7 @@ class Telescope  : public Heartbeat, HDF5Writer
 	public:
 
 		Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File, Platform &platform);
-		~Telescope();
+		virtual ~Telescope();
 
 		virtual void configure(ConfigurationParameters &configParam);
 

@@ -30,7 +30,7 @@ class Sky
     public:
 
         Sky(ConfigurationParameters &configParams);
-        ~Sky();
+        virtual ~Sky();
 
         virtual void configure(ConfigurationParameters &configParams);
 
