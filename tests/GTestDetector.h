@@ -18,7 +18,7 @@ using namespace std;
 // Test Fixture: setup configuration parameters for the Detector class
 //               and handle the HDF5 open-close.
 
-class DetectorTestFixture : public testing::Test
+class DetectorTest: public testing::Test
 {
     protected:
 
@@ -85,7 +85,7 @@ class MyDetector : public Detector
 
 
 
-TEST_F(DetectorTestFixture, checkConversionsBetweenPixelsAndFocalPlane)
+TEST_F(DetectorTest, checkConversionsBetweenPixelsAndFocalPlane)
 {
 
     LOG_STARTING_OF_TEST
@@ -146,7 +146,7 @@ TEST_F(DetectorTestFixture, checkConversionsBetweenPixelsAndFocalPlane)
 
 
 
-TEST_F(DetectorTestFixture, setAndGetSubfield)
+TEST_F(DetectorTest, setAndGetSubfield)
 {
     LOG_STARTING_OF_TEST
 
