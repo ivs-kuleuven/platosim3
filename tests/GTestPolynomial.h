@@ -13,7 +13,7 @@ TEST(Polynomial1DTest, EvaluationDeg0)
 {
     LOG_STARTING_OF_TEST
 
-    double coeff[] = {42.30};
+    vector<double> coeff {42.30};
 
     Polynomial1D p = Polynomial1D(0, coeff);
 
@@ -26,7 +26,7 @@ TEST(Polynomial1DTest, EvaluationDeg1)
 {
     LOG_STARTING_OF_TEST
 
-    double coeff[] = {42.30, 16.7};
+    vector<double> coeff = {42.30, 16.7};
 
     Polynomial1D p = Polynomial1D(1, coeff);
 
@@ -42,7 +42,7 @@ TEST(Polynomial1DTest, EvaluationDeg2)
 {
     LOG_STARTING_OF_TEST
 
-    double coeff[] = {42.30, 16.7, 0.02554};
+    vector<double> coeff = {42.30, 16.7, 0.02554};
 
     Polynomial1D p = Polynomial1D(2, coeff);
 
@@ -59,9 +59,9 @@ TEST(Polynomial2DTest, EvaluationDeg1)
 
     LOG_STARTING_OF_TEST
 
-    double coeff_1[] = {0.5, 3.0, 2.5};
+    vector<double> coeff = {0.5, 3.0, 2.5};
 
-    Polynomial2D p = Polynomial2D(1, coeff_1);
+    Polynomial2D p = Polynomial2D(1, coeff);
 
     EXPECT_NEAR( 6.0, p(1, 1),   0.00001);
     EXPECT_NEAR(55.5, p(10, 10),   0.00001);
@@ -84,7 +84,7 @@ TEST(Polynomial2DTest, EvaluationDeg2)
     // The fit was done using astropy and the results where obtained
     // from the same fitted 2D polynomial.
 
-    double coeff_2[] = {
+    vector<double> coeff = {
          0.609105776591, 
          4.07897153594, 
          0.0262060627497, 
@@ -93,7 +93,7 @@ TEST(Polynomial2DTest, EvaluationDeg2)
          0.00920092300214
     };
 
-    Polynomial2D p = Polynomial2D(2, coeff_2);
+    Polynomial2D p = Polynomial2D(2, coeff);
 
     EXPECT_NEAR( 4.6360651726, p(1, 1),   0.00001);
     EXPECT_NEAR( 8.7435490851, p(2, 2),   0.00001);
@@ -120,7 +120,7 @@ TEST(Polynomial2DTest, EvaluationDeg3)
     // The fit was done using astropy and the results where obtained
     // from the same fitted 2D polynomial.
 
-    double coeff_3[] = { 
+    vector<double> coeff = { 
         -0.0805112828134,
          4.34991909425, 
         -0.00540040725843, 
@@ -133,7 +133,7 @@ TEST(Polynomial2DTest, EvaluationDeg3)
          0.000128792686889 
     };
 
-    Polynomial2D p = Polynomial2D(3, coeff_3);
+    Polynomial2D p = Polynomial2D(3, coeff);
 
     EXPECT_NEAR( 4.2835054569, p(1, 1),   0.00001);
     EXPECT_NEAR( 8.6361291039, p(2, 2),   0.00001);
@@ -151,9 +151,10 @@ TEST(Polynomial2DTest, EvaluationDeg4)
 
     LOG_STARTING_OF_TEST
 
-    double coeff_4[15];
+    vector<double> coeff(15);
 
-    ASSERT_THROW(Polynomial2D p = Polynomial2D(4, coeff_4), UnsupportedException);
+    ASSERT_THROW(Polynomial2D p = Polynomial2D(2, coeff), IllegalArgumentException);
+    ASSERT_THROW(Polynomial2D p = Polynomial2D(4, coeff), UnsupportedException);
 
 }
 

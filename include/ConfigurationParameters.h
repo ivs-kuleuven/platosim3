@@ -3,6 +3,7 @@
 
 #include <string>
 #include <list>
+#include <stack>
 #include <fstream>
 
 #include "yaml-cpp/yaml.h"
@@ -18,23 +19,28 @@ using namespace std;
 
 class ConfigurationParameters
 {
-public:
-    ConfigurationParameters();
-    ConfigurationParameters(const string &);
-    ~ConfigurationParameters();
+    public:
+        ConfigurationParameters();
+        ConfigurationParameters(const string &);
+        ~ConfigurationParameters();
+    
+        bool getBoolean(const string &);
+        int getInteger(const string &);
+        long getLong(const string &);
+        double getDouble(const string &);
+        string getString(const string &);
+        string getAbsoluteFilename(const string &);
+    
+        vector <double> getDoubleVector(const string &key);
+    
+        void setParameter(const string &, const string &);
+    
+    private:
+        string filename;
+        YAML::Node config;
+    
+        YAML::Node getNode(const string & key);
 
-    bool getBoolean(const string &);
-    int getInteger(const string &);
-    long getLong(const string &);
-    double getDouble(const string &);
-    string getString(const string &);
-    string getAbsoluteFilename(const string &);
-
-    void setParameter(const string &, const string &);
-
-private:
-    string filename;
-    YAML::Node config;
 };
 
 

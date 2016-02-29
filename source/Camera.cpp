@@ -53,6 +53,8 @@ Camera::Camera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telesco
     // but the psf itself will only be loaded by the psf.select(radius) method.
 
     psf = new PointSpreadFunction(configParam);
+
+    poly = new Polynomial1D(polynomialDegree, polynomialCoefficients);
 }
 
 
@@ -61,16 +63,22 @@ Camera::Camera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telesco
 
 
 /**
- * \brief  Destructor
+ * \brief  Destructor, free memory for psf and polynomial
  */
 
 Camera::~Camera()
 {
     delete psf;
+    delete poly;
 }
 
 
 
+
+void Camera::setDistortionPolynomial(Polynomial1D *polynomial)
+{
+    poly = polynomial;
+}
 
 
 
@@ -230,11 +238,13 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
 void Camera::configure(ConfigurationParameters &configParam)
 {
-    plateScale            = configParam.getDouble("Camera/PlateScale");
-    focalLength           = configParam.getDouble("Camera/FocalLength") * 1000; // [m] -> [mm]
-    focalPlaneOrientation = deg2rad(configParam.getDouble("Camera/FocalPlaneOrientation"));
-    throughputBandwidth   = configParam.getDouble("Camera/ThroughputBandwidth");
-    throughputLambdaC     = configParam.getDouble("Camera/ThroughputLambdaC");
+    plateScale             = configParam.getDouble("Camera/PlateScale");
+    focalLength            = configParam.getDouble("Camera/FocalLength") * 1000; // [m] -> [mm]
+    focalPlaneOrientation  = deg2rad(configParam.getDouble("Camera/FocalPlaneOrientation"));
+    throughputBandwidth    = configParam.getDouble("Camera/ThroughputBandwidth");
+    throughputLambdaC      = configParam.getDouble("Camera/ThroughputLambdaC");
+    polynomialDegree       = configParam.getInteger("Camera/Polynomial/Degree");
+    polynomialCoefficients = configParam.getDoubleVector("Camera/Polynomial/Coefficients");
 }
 
 
@@ -457,4 +467,30 @@ pair<double, double> Camera::planarToAngularFocalPlaneCoordinates(double xFPmm, 
     const double yFPrad= focalLength * atan(yFPmm / focalLength);
     
     return make_pair(xFPrad, yFPrad);   
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * @brief      Convert from planar to distorted focal plane coordinates
+ *
+ * @param[in]  xFPmm  Planar focal plane x-coordinate [mm]
+ * @param[in]  yFPmm  Planar focal plane y-coordinate [mm]
+ *
+ * @return     (xFPdist, yFPdist) distorted x and y coordinates [mm]
+ */
+pair<double, double> Camera::planarToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm)
+{
+    double xFPdist = (*poly)(xFPmm);
+    double yFPdist = (*poly)(yFPmm);
+    
+    return make_pair(xFPdist, yFPdist);
 }

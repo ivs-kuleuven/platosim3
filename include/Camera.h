@@ -3,6 +3,7 @@
 
 #include <string>
 #include <cmath>
+#include <vector>
 #include <algorithm>
 
 #include "Logger.h"
@@ -10,6 +11,7 @@
 #include "Constants.h"
 #include "ConfigurationParameters.h"
 #include "PointSpreadFunction.h"
+#include "Polynomial1D.h"
 #include "Heartbeat.h"
 #include "HDF5File.h"
 #include "HDF5Writer.h"
@@ -53,14 +55,22 @@ class Camera : public HDF5Writer
         pair<double, double> angularToPlanarFocalPlaneCoordinates(double xFPrad, double yFPrad);
         pair<double, double> planarToAngularFocalPlaneCoordinates(double xFPmm, double yFPmm);
 
+        pair<double, double> planarToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm);
+
         double getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double yFPprime);
+
+        void setDistortionPolynomial(Polynomial1D *polynomial);
+
 
 
     private:
 
         double internalTime;
+        double polynomialDegree;
+        vector<double> polynomialCoefficients;
 
         PointSpreadFunction *psf;
+        Polynomial1D *poly;
 
 };
 
