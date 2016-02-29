@@ -91,6 +91,8 @@ pair<double, double> SkyCoordinates::toEcliptic(Unit angleUnit)
 /**
  * \brief Convert equatorial coordinates (alpha, delta) into ecliptic coordinates (lambda, beta)
  * 
+ * \note  Epoch=2000.0
+ * 
  * \param alpha[in]:   equtorial right ascension [rad]
  * \param delta[in]:   equatorial declination [rad]
  * \param lambda[out]: ecliptic longitude [rad]

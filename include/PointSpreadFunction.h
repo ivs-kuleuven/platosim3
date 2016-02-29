@@ -54,7 +54,7 @@ class PointSpreadFunction
         HDF5File hdf5file;
 
         // Loaded from the configuration, i.e. PSF/Filename
-        string location;
+        string absolutePath;
 
         // Name of the HDF5 group that contains the PSF datasets
         string groupName;

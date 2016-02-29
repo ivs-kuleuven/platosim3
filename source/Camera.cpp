@@ -84,13 +84,14 @@ void Camera::setDistortionPolynomial(Polynomial1D &polynomial)
 
 
 /**
- * \brief      Expose the subField to the Sky, i.e. add flux to the detectors,
- *             add Background and convolve with the PSF.
+ * \brief      Expose the subField to the Sky, i.e. add flux to the detector,
+ *             add the sky background, and convolve with the PSF.
  *
  * \param[in]  detector      the Detector class
  * \param[in]  startTime     start time of the exposure [seconds]
  * \param[in]  exposureTime  duration of one exposure [seconds]
  */
+
 void Camera::exposeDetector(Detector &detector, double startTime, double exposureTime)
 {
     // Get the focal plane coordinates of the center of the subfield (in [mm]), 
@@ -103,21 +104,30 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     double diagonalLength = detector.getDiagonalLengthOfSubfield();
     double radius = deg2rad(diagonalLength / 2.0 * plateScale / 3600.);
 
+    Log.debug("Camera: semi-diagonal of subfield = " + to_string(diagonalLength/2.0) + " mm = " + to_string(rad2deg(radius)) + " deg");
+
 
     // Convert the planar [mm] to angular [rad] focal plane coordinates 
 
     double Xrad, Yrad;
     tie(Xrad, Yrad) = planarToAngularFocalPlaneCoordinates(Xmm, Ymm);
 
+
     // Compute the (alpha, delta) equatorial coordinates in [rad] of the center of the subfield [rad]
 
     double RA, dec;
     tie(RA, dec) = angularFocalPlaneToSkyCoordinates(Xrad, Yrad);
 
+    Log.debug("Camera: center of subfield at (alpha, delta) = (" + to_string(rad2deg(RA)) + ", " + to_string(rad2deg(dec)) + ") deg");
+
+
     // Get a catalog of stars that fall on the subfield. Take the radius a bit larger so that the 
     // queried area includes possible small shifts of the projected subfield because of jitter.
 
-    auto starCatalog = sky.getStarsWithinRadiusFrom(RA, dec, radius * 1.1, Angle::radians);  
+    auto starCatalog = sky.getStarsWithinRadiusFrom(RA, dec, radius * 1.1, Angle::radians);
+
+    Log.debug("Camera: Found " + to_string(starCatalog.size()) + " stars on and near the subfield");  
+
 
     // If the telescope and/or platform show small variations (e.g. due to jitter) during the exposure,
     // the exposure time is split up in many small intervals, to track the effect of these variations
@@ -127,11 +137,13 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
     double timeStep = min(telescope.getHeartbeatInterval(), exposureTime);
 
+
     // Later on we will have to convert from magnitudes to fluxes. Precompute a constant prefactor.
     // 100023.8 is the photon flux [photons/s/cm^2/nm] for a V=0 G2V-star.
     // Units of fluxFactor: [photons/s]
   
     const double fluxFactor = 10023.8 * throughputBandwidth * telescope.getTransmissionEfficiency() * telescope.getLightCollectingArea(); 
+
 
     // Update the internal clock
 
@@ -165,28 +177,41 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
             tie(Xmm, Ymm) = angularToPlanarFocalPlaneCoordinates(Xrad, Yrad);
 
-            // Compute the flux [photons] of this star
+            // If the point falls on the subfield, add the flux.
 
-            double flux = fluxFactor * pow(10.0, -0.4 * star.Vmag) * timeStep;
+            if (detector.isInSubfield(Xmm, Ymm))
+            {
+                // Compute the flux [photons] of this star
 
-            // Add the flux to the detector. The latter checks if the star falls on a pixel of the subfield.
+                double flux = fluxFactor * pow(10.0, -0.4 * star.Vmag) * timeStep;
 
-            detector.addFlux(Xmm, Ymm, flux);
+                // Add the flux to the detector. The latter checks if the star falls on a pixel of the subfield.
+
+                detector.addFlux(Xmm, Ymm, flux);
+            }
         }
     }
 
     // Take the flux of the stellar background and the zodiacal light into account.
-    // Use one value for the entire subfield.
+    // Use one value for the entire subfield. As wavelength range we take the entire throughput band.
 
     const double energyOfOnePhoton = Constants::CLIGHT * Constants::HPLANCK / (throughputLambdaC * 1.e-9);                       // [J]
     const double lambda1 = (throughputLambdaC - throughputBandwidth/2.0) * 1.e-9;                                                // [m]
     const double lambda2 = (throughputLambdaC + throughputBandwidth/2.0) * 1.e-9;                                                // [m]
     
-    double backgroundFlux = (sky.zodiacalFlux(RA, dec, lambda1, lambda2) + sky.stellarBackgroundFlux(RA, dec, lambda1, lambda2))
-                            * exposureTime * telescope.getTransmissionEfficiency() * telescope.getLightCollectingArea()
-                            * telescope.getFOVsolidAngle() / energyOfOnePhoton;                                                  // [photons/exposure]
-    
-    detector.addFlux(backgroundFlux);
+    const double zodiacalFlux = sky.zodiacalFlux(RA, dec, lambda1, lambda2)                                                      // [phot/exposure]
+                                * exposureTime * telescope.getTransmissionEfficiency() * telescope.getLightCollectingArea()
+                                * telescope.getFOVsolidAngle() / energyOfOnePhoton; 
+
+    const double stellarBackgroundFlux = sky.stellarBackgroundFlux(RA, dec, lambda1, lambda2)                                    // [phot/exposure]
+                                         * exposureTime * telescope.getTransmissionEfficiency() * telescope.getLightCollectingArea()
+                                         * telescope.getFOVsolidAngle() / energyOfOnePhoton;      
+
+    detector.addFlux(zodiacalFlux + stellarBackgroundFlux);
+
+    Log.debug("Camera: zodiacal flux level in subfield = " + to_string(zodiacalFlux) + " photons/pixel/exposure");
+    Log.debug("Camera: stellar background flux level in subfield = " + to_string(zodiacalFlux) + " photons/pixel/exposure");
+
 
 
     // Convolve with the point spread function

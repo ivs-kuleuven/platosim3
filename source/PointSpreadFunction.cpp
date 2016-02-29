@@ -40,6 +40,7 @@
  * 
  * \param      configParam  configuration parameters for the PSF
  */
+
 PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam)
 {
     configure(configParam);
@@ -47,26 +48,28 @@ PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam)
     isSelected = false;
     isRotated = false;
     
-    if ( ! FileUtilities::fileExists(location) )
+    if ( ! FileUtilities::fileExists(absolutePath) )
     {
-        throw FileException("PointSpreadFunction: trying to load the PSF HDF5 file (" + location + "), but file doesn't exist.");
+        throw FileException("PointSpreadFunction: trying to load the PSF HDF5 file (" + absolutePath + "), but file doesn't exist.");
     }
 
     try
     {
-        hdf5file.open(location);
+        hdf5file.open(absolutePath);
     }
     catch(H5::FileIException ex)
     {
         Log.error("H5::FileIException: " + string(ex.getCDetailMsg()));
-        throw H5FileException("HDF5File: Could not open HDF5 file: " + location);
+        throw H5FileException("HDF5File: Could not open HDF5 file: " + absolutePath);
     }
 
     string groupName = "T6000";
     if ( ! hdf5file.hasGroup(groupName) )
     {
-        throw H5FileException("HDF5File: The HDF5 file (" + location + ") doesn't contain the expected group \"" + groupName + "\".");
+        throw H5FileException("HDF5File: The HDF5 file (" + absolutePath + ") doesn't contain the expected group \"" + groupName + "\".");
     }
+
+    Log.info("PSF: Opened the HDF5 file " + absolutePath + " containing the PSFs");
 
 }
 
@@ -101,7 +104,7 @@ PointSpreadFunction::~PointSpreadFunction()
 
 void PointSpreadFunction::configure(ConfigurationParameters &cp)
 {
-    location = cp.getAbsoluteFilename("PSF/Filename");
+    absolutePath = cp.getAbsoluteFilename("PSF/Filename");
 }
 
 
@@ -129,7 +132,7 @@ void PointSpreadFunction::select(double radius)
 
     if (isSelected)
     {
-        Log.warning("Another PSF was previously selected.");
+        Log.warning("PSF: Another PSF was previously selected.");
     }
 
     radius = rad2deg(radius);
@@ -147,7 +150,7 @@ void PointSpreadFunction::select(double radius)
 
     if (index > psfdata::radius.n_elem-1)
     {
-        Log.warning("Radius index out of bounds.");
+        Log.warning("PSF: Radius index (" + to_string(index) + ") is out of bounds.");
         index = psfdata::radius.n_elem-1;
     }
 
@@ -159,17 +162,19 @@ void PointSpreadFunction::select(double radius)
 
     if ( ! hdf5file.hasGroup(groupName) )
     {
-        throw FileException("The HDF5 file (" + location + ") doesn't contain the expected group \"" + groupName + "\".");
+        throw FileException("The HDF5 file (" + absolutePath + ") doesn't contain the expected group \"" + groupName + "\".");
     }
 
     if ( ! hdf5file.hasDataset(groupName, azimuthDataset) )
     {
-        throw FileException("The HDF5 file (" + location + ") doesn't contain the expected dataset \"" + azimuthDataset + "\".");
+        throw FileException("The HDF5 file (" + absolutePath + ") doesn't contain the expected dataset \"" + azimuthDataset + "\".");
     }
 
     // Load the psf array into the psfMap
     
     hdf5file.readArray("/" + groupName, azimuthDataset, psfMap);
+
+    Log.debug("PSF: Selected PSF " + groupName + "/" + azimuthDataset);
     
     // The PSFs that are currently used are rotated with respect to the focal plane x-axis.
     // The rotation angle is given as an attribute to the dataset that contains the PSF.
@@ -203,8 +208,7 @@ void PointSpreadFunction::rotate(double angle)
 
     if (isRotated)
     {
-        Log.warning("The PSF has been previously rotated and will not be rotated again because of inaccuracies.");
-        Log.warning("TODO: reload the PSF from the inputfile before rotating.");
+        Log.warning("PSF: Ignoring rotation: PSF was already rotated before.");
     }
     else
     {
@@ -216,7 +220,9 @@ void PointSpreadFunction::rotate(double angle)
         psfMap = rotateArray(psfMap, newAngle);
 
         rotationAngle = newAngle;
-        isRotated = true;        
+        isRotated = true;    
+
+        Log.debug("PSF: rotated current PSF over angle " + to_string(rad2deg(newAngle)) + " deg");    
     }
 }
 
