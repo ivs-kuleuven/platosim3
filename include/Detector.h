@@ -39,6 +39,8 @@ class Detector : public HDF5Writer
         virtual void addFlux(double xCoord, double yCoord, double flux);
         virtual void addFlux(double flux);
 
+        bool isInSubfield(const double xFPmm, const double yFPmm);
+
 
     protected:
 

@@ -423,6 +423,50 @@ void Detector::addFlux(double xCoord, double yCoord, double flux)
 
 
 
+
+
+
+
+
+/**
+ * \brief Verify if a point with given planar focal plane coordinates is in the subfield
+ * 
+ * \param xFPprime    Planar focal plane x-coordinate in the FP' reference frame [mm]
+ * \param yFPprime    Planar focal plane y-coordinate in the FP' reference frame [mm]
+ * 
+ * \return true if the point is in the subfield on the CCD, false otherwise.
+ */
+
+bool Detector::isInSubfield(const double xFPprime, const double yFPprime)
+{
+	// Convert to pixel coordinates in the unrotated CCD reference frame
+
+	double rowUnrot = (xFPprime - originOffsetY) / pixelSize;
+	double colUnrot = (yFPprime - originOffsetX) / pixelSize;
+
+	// Compute the coordinates in the rotated CCD reference frame
+
+	double colRot = colUnrot * cos(orientationAngle) - rowUnrot * sin(orientationAngle);
+	double rowRot = colUnrot * sin(orientationAngle) + rowUnrot * cos(orientationAngle);
+
+	// Check wether these pixel coordinates falls on the subfield
+
+	return    (colRot >= subFieldZeroPointColumn) && (colRot < subFieldZeroPointColumn + numColumnsPixelMap)
+	       && (rowRot >= subFieldZeroPointRow)    && (rowRot < subFieldZeroPointRow + numRowsPixelMap);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 /**
  * \brief: Check whether the given (row, column) coordinates are in the
  *         sub-pixel map.
