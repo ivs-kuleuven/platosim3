@@ -77,13 +77,14 @@ Camera::~Camera()
 
 
 /**
- * \brief      Expose the subField to the Sky, i.e. add flux to the detectors,
- *             add Background and convolve with the PSF.
+ * \brief      Expose the subField to the Sky, i.e. add flux to the detector,
+ *             add the sky background, and convolve with the PSF.
  *
  * \param[in]  detector      the Detector class
  * \param[in]  startTime     start time of the exposure [seconds]
  * \param[in]  exposureTime  duration of one exposure [seconds]
  */
+
 void Camera::exposeDetector(Detector &detector, double startTime, double exposureTime)
 {
     // Get the focal plane coordinates of the center of the subfield (in [mm]), 
@@ -96,7 +97,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     double diagonalLength = detector.getDiagonalLengthOfSubfield();
     double radius = deg2rad(diagonalLength / 2.0 * plateScale / 3600.);
 
-    Log.debug("Camera: semi-diagonal of subfield = " + to_string(diagonalLength/2.0) + " mm = " + to_string(radius) + " rad");
+    Log.debug("Camera: semi-diagonal of subfield = " + to_string(diagonalLength/2.0) + " mm = " + to_string(rad2deg(radius)) + " deg");
 
 
     // Convert the planar [mm] to angular [rad] focal plane coordinates 
