@@ -54,7 +54,7 @@ PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam)
 
     try
     {
-        hdf5file = new HDF5File(location);
+        hdf5file.open(location);
     }
     catch(H5::FileIException ex)
     {
@@ -63,7 +63,7 @@ PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam)
     }
 
     string groupName = "T6000";
-    if ( !hdf5file->hasGroup(groupName) )
+    if ( ! hdf5file.hasGroup(groupName) )
     {
         throw H5FileException("HDF5File: The HDF5 file (" + location + ") doesn't contain the expected group \"" + groupName + "\".");
     }
@@ -85,8 +85,7 @@ PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam)
  */
 PointSpreadFunction::~PointSpreadFunction()
 {
-    hdf5file->close();
-    delete hdf5file;
+    hdf5file.close();
 }
 
 
@@ -158,24 +157,24 @@ void PointSpreadFunction::select(double radius)
 
     string groupName = temperatureGroup + "/" + angularRadiusGroup;
 
-    if ( ! hdf5file->hasGroup(groupName) )
+    if ( ! hdf5file.hasGroup(groupName) )
     {
         throw FileException("The HDF5 file (" + location + ") doesn't contain the expected group \"" + groupName + "\".");
     }
 
-    if ( ! hdf5file->hasDataset(groupName, azimuthDataset) )
+    if ( ! hdf5file.hasDataset(groupName, azimuthDataset) )
     {
         throw FileException("The HDF5 file (" + location + ") doesn't contain the expected dataset \"" + azimuthDataset + "\".");
     }
 
     // Load the psf array into the psfMap
     
-    hdf5file->readArray("/" + groupName, azimuthDataset, psfMap);
+    hdf5file.readArray("/" + groupName, azimuthDataset, psfMap);
     
     // The PSFs that are currently used are rotated with respect to the focal plane x-axis.
     // The rotation angle is given as an attribute to the dataset that contains the PSF.
 
-    double angle = hdf5file->readAttribute(groupName, azimuthDataset, "orientation");
+    double angle = hdf5file.readAttribute(groupName, azimuthDataset, "orientation");
     Log.debug("PointSpreadFunction::select: group/dataset = " + groupName + "/" + azimuthDataset);
     Log.debug("PointSpreadFunction::select: orientation = " + to_string(angle));
 
