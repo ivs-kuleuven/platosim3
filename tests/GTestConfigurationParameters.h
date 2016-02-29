@@ -51,6 +51,9 @@ TEST(ConfigurationParametersTest, readGeneralValues)
 
     string projectLocation = cp.getString("General/ProjectLocation");
     EXPECT_STREQ(projectLocation.c_str(), "/Users/rik/Work/PLATO");
+
+    projectLocation = cp.getString("General/ProjectLocation");
+    EXPECT_STREQ(projectLocation.c_str(), "/Users/rik/Work/PLATO");
 }
 
 
@@ -235,4 +238,29 @@ TEST(ConfigurationParametersTest, testSetSubNode)
     ASSERT_STREQ("FDBACEFDCB", value.c_str());
 
 }
+
+
+
+
+TEST(ConfigurationParametersTest, Sequences)
+{
+    LOG_STARTING_OF_TEST
+
+    ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
+
+    vector<double> values = cp.getDoubleVector("Sequences/Polynomial/Coefficients");
+
+    double expected[] = {-1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5};
+
+    for(std::vector<double>::size_type idx = 0; idx < values.size(); idx++) 
+    {
+        EXPECT_DOUBLE_EQ(expected[idx], values[idx]);
+    }
+
+}
+
+
+
+
+
 

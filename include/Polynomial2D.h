@@ -12,7 +12,7 @@ class Polynomial2D
 {
 
     public:
-        Polynomial2D(int degree, double coefficients[]);
+        Polynomial2D(int degree, vector<double> coefficients);
         ~Polynomial2D();
 
         double getCoefficient(int index);
@@ -20,7 +20,7 @@ class Polynomial2D
 
     private:
         int degree;
-        double *coefficients;
+        vector<double> coefficients;
 };
 
 
