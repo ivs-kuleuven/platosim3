@@ -67,7 +67,11 @@ class MyCamera : public Camera
         pair<double, double> test_angularToPlanarFocalPlaneCoordinates(double xFPrad, double yFPrad) {return angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad);};
         pair<double, double> test_planarToAngularFocalPlaneCoordinates(double xFPmm, double yFPmm) {return planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm);};
 
+        pair<double, double> test_planarToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm) {return planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm);};
+
         double test_getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double yFPprime) {return getGnomonicRadialDistanceFromOpticalAxis(xFPprime, yFPprime);};
+
+        void test_setDistortionPolynomial(Polynomial1D *polynomial) {setDistortionPolynomial(polynomial);};
 };
 
 
@@ -95,7 +99,8 @@ MyCamera::MyCamera(ConfigurationParameters &configParam, HDF5File &hdf5file, Tel
 // The relation between xDeg, yDeg and radius is provided by the getGnomonicRadialDistanceFromOpticalAxisNormalized(..)
 // method in Camera. The relation between xDeg, yDeg and xFP, yFP is currently not available and can not be tested.
 // 
-TEST_F(CameraTest, GnomonicRadialDistance) {
+TEST_F(CameraTest, GnomonicRadialDistance)
+{
 
     LOG_STARTING_OF_TEST
 
@@ -169,4 +174,122 @@ TEST_F(CameraTest, GnomonicRadialDistance) {
     }
 
 }
+
+
+
+TEST_F(CameraTest, distortedCoordinates)
+{
+    LOG_STARTING_OF_TEST
+
+    using StringUtilities::dtos;
+
+    JitterGenerator *jitterGenerator = new JitterFromRedNoise(cp_);
+    Platform platform = Platform(cp_, hdf5File_, *jitterGenerator);
+    Telescope telescope = Telescope(cp_, hdf5File_, platform);
+    Sky sky = Sky(cp_);
+
+    const int degree = 1;
+    vector<double> coeff = {0.0, 1.0};
+
+    MyCamera camera = MyCamera(cp_, hdf5File_, telescope, sky);
+
+    camera.test_setDistortionPolynomial(new Polynomial1D(degree, coeff));
+
+    double xFPdist, yFPdist;   // [mm]
+
+    tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(10.0, 0.0);
+    EXPECT_NEAR(10.0000, xFPdist, 0.00001);
+    EXPECT_NEAR( 0.0000, yFPdist, 0.00001);
+
+    tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(0.0, 10.0);
+    EXPECT_NEAR( 0.0000, xFPdist, 0.00001);
+    EXPECT_NEAR(10.0000, yFPdist, 0.00001);
+
+    tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(5.0, 5.0);
+    EXPECT_NEAR( 5.0000, xFPdist, 0.00001);
+    EXPECT_NEAR( 5.0000, yFPdist, 0.00001);
+
+
+    coeff = {2.0, 0.5, 1.5};
+
+    camera.test_setDistortionPolynomial(new Polynomial1D(2, coeff));
+
+    tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(10.0, 0.0);
+    EXPECT_NEAR(157.0000, xFPdist, 0.00001);
+    EXPECT_NEAR( 2.0000, yFPdist, 0.00001);
+
+    tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(0.0, 10.0);
+    EXPECT_NEAR( 2.0000, xFPdist, 0.00001);
+    EXPECT_NEAR(157.0000, yFPdist, 0.00001);
+
+    tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(5.0, 5.0);
+    EXPECT_NEAR( 42.0000, xFPdist, 0.00001);
+    EXPECT_NEAR( 42.0000, yFPdist, 0.00001);
+
+    Log.debug("CameraTest.distortedCoordinates: xFPdist, yFPdist = " + dtos(xFPdist) + ", " + dtos(yFPdist));
+
+
+}
+
+
+TEST_F(CameraTest, reproduceDistortionMap)
+{
+    LOG_STARTING_OF_TEST
+
+    using StringUtilities::dtos;
+
+    JitterGenerator *jitterGenerator = new JitterFromRedNoise(cp_);
+    Platform platform = Platform(cp_, hdf5File_, *jitterGenerator);
+    Telescope telescope = Telescope(cp_, hdf5File_, platform);
+    Sky sky = Sky(cp_);
+
+    // Just a few values from the current distortion map for which the Polynomial1D was fitted.
+    vector<map<string, double>> distortion;
+    distortion.push_back(map<string, double> {{"xFPmm",  0.000000}, {"xFPdist",   0.00000}});
+    distortion.push_back(map<string, double> {{"xFPmm", 10.789752}, {"xFPdist",  10.796226}});
+    distortion.push_back(map<string, double> {{"xFPmm", 24.666449}, {"xFPdist",  24.743989}});
+    distortion.push_back(map<string, double> {{"xFPmm", 68.998805}, {"xFPdist",  70.734282}});
+    distortion.push_back(map<string, double> {{"xFPmm", 80.296089}, {"xFPdist",  83.062336}});
+
+    // These values are for a fit of Polynomial1D with degree=3 to the distortion table
+
+    int degree = 3;
+    vector<double> coeff = {-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06};
+
+    MyCamera camera = MyCamera(cp_, hdf5File_, telescope, sky);
+    camera.test_setDistortionPolynomial(new Polynomial1D(degree, coeff));
+
+    double xFPdist, yFPdist;   // [mm]
+
+    for (auto &data: distortion)
+    {
+        double xFPmm = data["xFPmm"];
+
+        tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(xFPmm, xFPmm);
+        EXPECT_NEAR( data["xFPdist"], xFPdist, 0.006);
+        EXPECT_NEAR( data["xFPdist"], yFPdist, 0.006);
+    }
+
+    // These values are for a fit of Polynomial1D with degree=4 to the distortion table
+    // Obviously the error of the fit is smaller, but we need to check what the effect is on the noise level.
+    // Remember that 1 pixel = 0.018 mm
+
+    degree = 4;
+    coeff = {0.000814670391532, 0.99970324817, 2.39592182367e-05, 4.44973838376e-06, 7.93413878401e-09};
+
+    camera.test_setDistortionPolynomial(new Polynomial1D(degree, coeff));
+
+    for (auto &data: distortion)
+    {
+        double xFPmm = data["xFPmm"];
+
+        tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(xFPmm, xFPmm);
+        EXPECT_NEAR( data["xFPdist"], xFPdist, 0.002);
+        EXPECT_NEAR( data["xFPdist"], yFPdist, 0.002);
+    }
+
+}
+
+
+
 
