@@ -8,6 +8,17 @@ using namespace std;
 
 
 /**
+ * @brief      Default constructor, defines x = 1
+ */
+Polynomial1D::Polynomial1D()
+: degree(0), coefficients({1.0})
+{
+
+}
+
+
+
+/**
  * \brief      Constructor for the Polynomial1D class
  * 
  * \detail
@@ -21,11 +32,9 @@ using namespace std;
  * 
  */
 Polynomial1D::Polynomial1D(int deg, vector<double> coeff)
+: degree(deg), coefficients(coeff)
 {
-    degree = deg;
 
-    // Copying the argument coefficients
-    coefficients = coeff;
 }
 
 

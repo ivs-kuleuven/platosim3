@@ -59,18 +59,19 @@ class Camera : public HDF5Writer
 
         double getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double yFPprime);
 
-        void setDistortionPolynomial(Polynomial1D *polynomial);
+        void setDistortionPolynomial(Polynomial1D &polynomial);
 
 
 
     private:
 
         double internalTime;
+        string polynomialType;
         double polynomialDegree;
         vector<double> polynomialCoefficients;
 
         PointSpreadFunction *psf;
-        Polynomial1D *poly;
+        Polynomial1D polynomial;
 
 };
 

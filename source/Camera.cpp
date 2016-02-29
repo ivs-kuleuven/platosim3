@@ -54,7 +54,7 @@ Camera::Camera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telesco
 
     psf = new PointSpreadFunction(configParam);
 
-    poly = new Polynomial1D(polynomialDegree, polynomialCoefficients);
+    polynomial = Polynomial1D(polynomialDegree, polynomialCoefficients);
 }
 
 
@@ -69,15 +69,14 @@ Camera::Camera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telesco
 Camera::~Camera()
 {
     delete psf;
-    delete poly;
 }
 
 
 
 
-void Camera::setDistortionPolynomial(Polynomial1D *polynomial)
+void Camera::setDistortionPolynomial(Polynomial1D &polynomial)
 {
-    poly = polynomial;
+    this->polynomial = polynomial;
 }
 
 
@@ -243,8 +242,10 @@ void Camera::configure(ConfigurationParameters &configParam)
     focalPlaneOrientation  = deg2rad(configParam.getDouble("Camera/FocalPlaneOrientation"));
     throughputBandwidth    = configParam.getDouble("Camera/ThroughputBandwidth");
     throughputLambdaC      = configParam.getDouble("Camera/ThroughputLambdaC");
-    polynomialDegree       = configParam.getInteger("Camera/Polynomial/Degree");
-    polynomialCoefficients = configParam.getDoubleVector("Camera/Polynomial/Coefficients");
+
+    polynomialType         = configParam.getString("Camera/FieldDistortion/Type");
+    polynomialDegree       = configParam.getInteger("Camera/FieldDistortion/Degree");
+    polynomialCoefficients = configParam.getDoubleVector("Camera/FieldDistortion/Coefficients");
 }
 
 
@@ -489,8 +490,8 @@ pair<double, double> Camera::planarToAngularFocalPlaneCoordinates(double xFPmm, 
  */
 pair<double, double> Camera::planarToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm)
 {
-    double xFPdist = (*poly)(xFPmm);
-    double yFPdist = (*poly)(yFPmm);
+    double xFPdist = polynomial(xFPmm);
+    double yFPdist = polynomial(yFPmm);
     
     return make_pair(xFPdist, yFPdist);
 }
