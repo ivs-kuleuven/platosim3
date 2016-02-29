@@ -379,9 +379,9 @@ void Detector::integrateLight(double startTime, double exposureTime)
  * \brief: Add the given flux value to the value of the sub-pixel that
  *         corresponds to the given coordinates in the focal plane.
  *
- * \param xCoord   x-coordinate of the sub-pixel in the focal plane [mm].
- * \param yCoord   y-coordinate of the sub-pixel in the focal plane [mm].
- * \param flux     Flux to add to the sub-pixel map [photons].
+ * \param xFPprime   x-coordinate of the sub-pixel in the focal plane in the FP' reference frame [mm].
+ * \param yFPprime   y-coordinate of the sub-pixel in the focal plane in the FP' reference frame [mm].
+ * \param flux       Flux to add to the sub-pixel map [photons].
  *
  * \pre Pixel, bias register, and smearing maps filled with zeroes.
  *
@@ -389,13 +389,13 @@ void Detector::integrateLight(double startTime, double exposureTime)
  * \post Pixel, bias register, and smearing maps filled with zeroes.
  */
 
-void Detector::addFlux(double xCoord, double yCoord, double flux)
+void Detector::addFlux(double xFPprime, double yFPprime, double flux)
 {
 
 	// Detector origin offset (pixel level)
 
-	double rowOffset = (xCoord - originOffsetY) / pixelSize;
-	double columnOffset = (yCoord - originOffsetX) / pixelSize;
+	double rowOffset    = (xFPprime - originOffsetY) / pixelSize;
+	double columnOffset = (yFPprime - originOffsetX) / pixelSize;
 
 	// Detector orientation (pixel level)
 
@@ -423,21 +423,70 @@ void Detector::addFlux(double xCoord, double yCoord, double flux)
 
 
 
+
+
+
+
+
 /**
- * \brief: Check whether the given (row, column) coordinates are in the
- *         sub-pixel map.
- *
- * NOTE: The input parameters row & column come from an coordinate transformation
- *       in the focal plane, and as a result are not necessarily integers. For the
- *       \brief of this function it's not necessary to round them to the nearest
- *       integer. 
- *
- * \param row:    Row coordinate     [sub-pixel].
- * \param column: Column coordinate  [sub-pixel].
- *
- * \return True if the given (row, column) coordinates are in the sub-pixel map;
- *         false otherwise.
+ * \brief Verify if a point with given planar focal plane coordinates is in the subfield
+ * 
+ * \param xFPprime    Planar focal plane x-coordinate in the FP' reference frame [mm]
+ * \param yFPprime    Planar focal plane y-coordinate in the FP' reference frame [mm]
+ * 
+ * \return true if the point is in the subfield on the CCD, false otherwise.
  */
+
+bool Detector::isInSubfield(const double xFPprime, const double yFPprime)
+{
+	// Convert to pixel coordinates in the unrotated CCD reference frame
+
+	double rowUnrot = (xFPprime - originOffsetY) / pixelSize;
+	double colUnrot = (yFPprime - originOffsetX) / pixelSize;
+
+	// Compute the coordinates in the rotated CCD reference frame
+
+	double colRot = colUnrot * cos(orientationAngle) - rowUnrot * sin(orientationAngle);
+	double rowRot = colUnrot * sin(orientationAngle) + rowUnrot * cos(orientationAngle);
+
+	// Check wether these pixel coordinates falls on the subfield
+
+	return    (colRot >= subFieldZeroPointColumn) && (colRot < subFieldZeroPointColumn + numColumnsPixelMap)
+	       && (rowRot >= subFieldZeroPointRow)    && (rowRot < subFieldZeroPointRow + numRowsPixelMap);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief   Check whether the given (row, column) coordinates are in the
+ *          sub-pixel map.
+ *
+ * \details  The input parameters row & column come from an coordinate transformation
+ *           in the focal plane, and as a result are not necessarily integers. For this 
+ *           function it's not necessary to round them to the nearest integer. 
+ *
+ * \param  row:    Row coordinate     [sub-pixel].
+ * \param  column: Column coordinate  [sub-pixel].
+ *
+ * \return  True if the given (row, column) coordinates are in the sub-pixel map;
+ *          false otherwise.
+ */
+
 bool Detector::isInSubPixelMap(double row, double column)
 {
 	return (column >= 0) && (row >= 0) && (column < numColumnsSubPixelMap) && (row < numRowsSubPixelMap);
@@ -1330,6 +1379,67 @@ double Detector::getDiagonalLengthOfSubfield()
 	return diagonalLength;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief     Set the subfield with a given array.  
+ * 
+ * \details   This function is primarily used for testing the code. One should not first get the pixelMap
+ *            perform an operation, and then setSubfield() again. Instead, let Detector do the operation.
+ *  
+ * \param subfield
+ */
+
+void Detector::setSubfield(const arma::Mat<float> &subfield)
+{
+	// Check if the given matrix has the proper dimensions. If not complain, and exit.
+
+	if ((subfield.n_rows != pixelMap.n_rows) || (subfield.n_cols != pixelMap.n_cols))
+	{
+		Log.error("Detector: setSubfield with incompatible array shape: (" 
+		          + to_string(subfield.n_rows) + ", " + to_string(subfield.n_cols) + ") != ("
+		          + to_string(pixelMap.n_rows) + ", " + to_string(pixelMap.n_cols) + ")");
+		exit(1);
+	} 
+
+	// Copy the contents of the subfield array into our pixelMap
+
+	pixelMap = subfield;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Return a copy of the pixelMap matrix
+ * 
+ * \details   This function is primarily used for testing the code. One should not first get the pixelMap
+ *            perform an operation, and then setSubfield() again. Instead, let Detector do the operation.
+ * 
+ * \return pixelMap
+ */
+
+ arma::Mat<float> Detector::getSubfield()
+ {
+ 	return pixelMap;
+ }
 
 
 

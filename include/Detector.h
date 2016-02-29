@@ -7,6 +7,8 @@
 #include <random>
 #include <functional>
 
+#include "armadillo"
+
 #include "Logger.h"
 #include "HDF5File.h"
 #include "HDF5Writer.h"
@@ -36,8 +38,10 @@ class Detector : public HDF5Writer
         pair<double, double> getPlanarFocalPlaneCoordinatesOfSubfieldCenter();
         double getDiagonalLengthOfSubfield();
 
-        virtual void addFlux(double xCoord, double yCoord, double flux);
+        virtual void addFlux(double xFPprime, double yFPprime, double flux);
         virtual void addFlux(double flux);
+
+        bool isInSubfield(const double xFPmm, const double yFPmm);
 
 
     protected:
@@ -62,6 +66,9 @@ class Detector : public HDF5Writer
     	virtual void applyGain();
     	virtual void addElectronicOffset();	     
     	virtual void applyDigitalSaturation();
+
+        void setSubfield(const arma::Mat<float> &subfield);
+        arma::Mat<float> getSubfield();
 
         virtual void initHDF5Groups() override;
         void writePixelMapToHDF5();

@@ -118,7 +118,7 @@ void Simulation::run(double startTime)
 
     for (int n = 0; n < Nexposures; n++)
     {
-        Log.info("Simulation: Starting exposure " + to_string(n) + " at time" + to_string(currentTime) );
+        Log.info("Simulation: Starting exposure " + to_string(n) + " at time " + to_string(currentTime) );
         
         currentTime = detector->takeExposure(currentTime, exposureTime);
     }
