@@ -71,7 +71,7 @@ class MyCamera : public Camera
 
         double test_getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double yFPprime) {return getGnomonicRadialDistanceFromOpticalAxis(xFPprime, yFPprime);};
 
-        void test_setDistortionPolynomial(Polynomial1D *polynomial) {setDistortionPolynomial(polynomial);};
+        void test_setDistortionPolynomial(Polynomial1D &polynomial) {setDistortionPolynomial(polynomial);};
 };
 
 
@@ -188,12 +188,13 @@ TEST_F(CameraTest, distortedCoordinates)
     Telescope telescope = Telescope(cp_, hdf5File_, platform);
     Sky sky = Sky(cp_);
 
-    const int degree = 1;
+    int degree = 1;
     vector<double> coeff = {0.0, 1.0};
+    Polynomial1D polynomial = Polynomial1D(degree, coeff);
 
     MyCamera camera = MyCamera(cp_, hdf5File_, telescope, sky);
 
-    camera.test_setDistortionPolynomial(new Polynomial1D(degree, coeff));
+    camera.test_setDistortionPolynomial(polynomial);
 
     double xFPdist, yFPdist;   // [mm]
 
@@ -209,10 +210,11 @@ TEST_F(CameraTest, distortedCoordinates)
     EXPECT_NEAR( 5.0000, xFPdist, 0.00001);
     EXPECT_NEAR( 5.0000, yFPdist, 0.00001);
 
-
+    degree = 2;
     coeff = {2.0, 0.5, 1.5};
+    polynomial = Polynomial1D(degree, coeff);
 
-    camera.test_setDistortionPolynomial(new Polynomial1D(2, coeff));
+    camera.test_setDistortionPolynomial(polynomial);
 
     tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(10.0, 0.0);
     EXPECT_NEAR(157.0000, xFPdist, 0.00001);
@@ -255,9 +257,10 @@ TEST_F(CameraTest, reproduceDistortionMap)
 
     int degree = 3;
     vector<double> coeff = {-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06};
+    Polynomial1D polynomial = Polynomial1D(degree, coeff);
 
     MyCamera camera = MyCamera(cp_, hdf5File_, telescope, sky);
-    camera.test_setDistortionPolynomial(new Polynomial1D(degree, coeff));
+    camera.test_setDistortionPolynomial(polynomial);
 
     double xFPdist, yFPdist;   // [mm]
 
@@ -276,8 +279,9 @@ TEST_F(CameraTest, reproduceDistortionMap)
 
     degree = 4;
     coeff = {0.000814670391532, 0.99970324817, 2.39592182367e-05, 4.44973838376e-06, 7.93413878401e-09};
+    polynomial = Polynomial1D(degree, coeff);
 
-    camera.test_setDistortionPolynomial(new Polynomial1D(degree, coeff));
+    camera.test_setDistortionPolynomial(polynomial);
 
     for (auto &data: distortion)
     {
