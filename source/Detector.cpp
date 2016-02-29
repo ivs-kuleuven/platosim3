@@ -379,9 +379,9 @@ void Detector::integrateLight(double startTime, double exposureTime)
  * \brief: Add the given flux value to the value of the sub-pixel that
  *         corresponds to the given coordinates in the focal plane.
  *
- * \param xCoord   x-coordinate of the sub-pixel in the focal plane [mm].
- * \param yCoord   y-coordinate of the sub-pixel in the focal plane [mm].
- * \param flux     Flux to add to the sub-pixel map [photons].
+ * \param xFPprime   x-coordinate of the sub-pixel in the focal plane in the FP' reference frame [mm].
+ * \param yFPprime   y-coordinate of the sub-pixel in the focal plane in the FP' reference frame [mm].
+ * \param flux       Flux to add to the sub-pixel map [photons].
  *
  * \pre Pixel, bias register, and smearing maps filled with zeroes.
  *
@@ -389,13 +389,13 @@ void Detector::integrateLight(double startTime, double exposureTime)
  * \post Pixel, bias register, and smearing maps filled with zeroes.
  */
 
-void Detector::addFlux(double xCoord, double yCoord, double flux)
+void Detector::addFlux(double xFPprime, double yFPprime, double flux)
 {
 
 	// Detector origin offset (pixel level)
 
-	double rowOffset = (xCoord - originOffsetY) / pixelSize;
-	double columnOffset = (yCoord - originOffsetX) / pixelSize;
+	double rowOffset    = (xFPprime - originOffsetY) / pixelSize;
+	double columnOffset = (yFPprime - originOffsetX) / pixelSize;
 
 	// Detector orientation (pixel level)
 

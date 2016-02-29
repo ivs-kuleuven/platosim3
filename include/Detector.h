@@ -36,7 +36,7 @@ class Detector : public HDF5Writer
         pair<double, double> getPlanarFocalPlaneCoordinatesOfSubfieldCenter();
         double getDiagonalLengthOfSubfield();
 
-        virtual void addFlux(double xCoord, double yCoord, double flux);
+        virtual void addFlux(double xFPprime, double yFPprime, double flux);
         virtual void addFlux(double flux);
 
         bool isInSubfield(const double xFPmm, const double yFPmm);
