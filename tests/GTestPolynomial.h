@@ -9,6 +9,16 @@ using namespace std;
 
 
 
+TEST(Polynomial1DTest, defaultConstructor)
+{
+    LOG_STARTING_OF_TEST
+
+    Polynomial1D p = Polynomial1D();
+
+    EXPECT_NEAR(1.0, p(42), 0.00001);    
+    EXPECT_NEAR(1.0, p(-42), 0.00001);    
+}
+
 TEST(Polynomial1DTest, EvaluationDeg0)
 {
     LOG_STARTING_OF_TEST
@@ -53,6 +63,17 @@ TEST(Polynomial1DTest, EvaluationDeg2)
 
 
 
+
+TEST(Polynomial2DTest, defaultConstructor)
+{
+    LOG_STARTING_OF_TEST
+
+    Polynomial2D p = Polynomial2D();
+
+    EXPECT_NEAR(1.0, p( 1.0,  1.0), 0.00001);
+    EXPECT_NEAR(1.0, p(42.0, 23.0), 0.00001);
+
+}
 
 TEST(Polynomial2DTest, EvaluationDeg1)
 {

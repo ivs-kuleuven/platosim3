@@ -22,6 +22,15 @@ static unsigned int nTerms(unsigned int n)
 
 
 
+/**
+ * @brief      Default constructor, x, y = 1.0
+ */
+Polynomial2D::Polynomial2D()
+: degree(0), coefficients({1.0})
+{
+
+}
+
 
 
 
