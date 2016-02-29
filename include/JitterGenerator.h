@@ -19,7 +19,7 @@ class JitterGenerator : public Heartbeat
     public:
 
         JitterGenerator(){};
-        ~JitterGenerator(){};
+        virtual ~JitterGenerator(){};
 
         virtual tuple<double, double, double> getNextYawPitchRoll(double timeInterval) = 0;
 

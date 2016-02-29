@@ -31,7 +31,7 @@ class Camera : public HDF5Writer
     public:
 
         Camera(ConfigurationParameters &configParam, HDF5File &hdf5File, Telescope &telescope, Sky &sky);
-        ~Camera();
+        virtual ~Camera();
 
         virtual void configure(ConfigurationParameters &configParam);
         virtual void exposeDetector(Detector &detector, double startTime, double exposureTime);

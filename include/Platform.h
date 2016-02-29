@@ -30,7 +30,7 @@ class Platform : public Heartbeat, HDF5Writer
     public:
 
         Platform(ConfigurationParameters configParams, HDF5File &hdf5File, JitterGenerator &jitterGenerator);
-        ~Platform();
+        virtual ~Platform();
 
         virtual void configure(ConfigurationParameters &configParams);
 
