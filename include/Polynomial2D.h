@@ -12,6 +12,7 @@ class Polynomial2D
 {
 
     public:
+        Polynomial2D();
         Polynomial2D(int degree, vector<double> coefficients);
         ~Polynomial2D();
 
