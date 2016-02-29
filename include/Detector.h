@@ -7,6 +7,8 @@
 #include <random>
 #include <functional>
 
+#include "armadillo"
+
 #include "Logger.h"
 #include "HDF5File.h"
 #include "HDF5Writer.h"
@@ -64,6 +66,9 @@ class Detector : public HDF5Writer
     	virtual void applyGain();
     	virtual void addElectronicOffset();	     
     	virtual void applyDigitalSaturation();
+
+        void setSubfield(const arma::Mat<float> &subfield);
+        arma::Mat<float> getSubfield();
 
         virtual void initHDF5Groups() override;
         void writePixelMapToHDF5();

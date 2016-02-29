@@ -467,21 +467,26 @@ bool Detector::isInSubfield(const double xFPprime, const double yFPprime)
 
 
 
+
+
+
+
+
 /**
- * \brief: Check whether the given (row, column) coordinates are in the
- *         sub-pixel map.
+ * \brief   Check whether the given (row, column) coordinates are in the
+ *          sub-pixel map.
  *
- * NOTE: The input parameters row & column come from an coordinate transformation
- *       in the focal plane, and as a result are not necessarily integers. For the
- *       \brief of this function it's not necessary to round them to the nearest
- *       integer. 
+ * \details  The input parameters row & column come from an coordinate transformation
+ *           in the focal plane, and as a result are not necessarily integers. For this 
+ *           function it's not necessary to round them to the nearest integer. 
  *
- * \param row:    Row coordinate     [sub-pixel].
- * \param column: Column coordinate  [sub-pixel].
+ * \param  row:    Row coordinate     [sub-pixel].
+ * \param  column: Column coordinate  [sub-pixel].
  *
- * \return True if the given (row, column) coordinates are in the sub-pixel map;
- *         false otherwise.
+ * \return  True if the given (row, column) coordinates are in the sub-pixel map;
+ *          false otherwise.
  */
+
 bool Detector::isInSubPixelMap(double row, double column)
 {
 	return (column >= 0) && (row >= 0) && (column < numColumnsSubPixelMap) && (row < numRowsSubPixelMap);
@@ -1374,6 +1379,67 @@ double Detector::getDiagonalLengthOfSubfield()
 	return diagonalLength;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief     Set the subfield with a given array.  
+ * 
+ * \details   This function is primarily used for testing the code. One should not first get the pixelMap
+ *            perform an operation, and then setSubfield() again. Instead, let Detector do the operation.
+ *  
+ * \param subfield
+ */
+
+void Detector::setSubfield(const arma::Mat<float> &subfield)
+{
+	// Check if the given matrix has the proper dimensions. If not complain, and exit.
+
+	if ((subfield.n_rows != pixelMap.n_rows) || (subfield.n_cols != pixelMap.n_cols))
+	{
+		Log.error("Detector: setSubfield with incompatible array shape: (" 
+		          + to_string(subfield.n_rows) + ", " + to_string(subfield.n_cols) + ") != ("
+		          + to_string(pixelMap.n_rows) + ", " + to_string(pixelMap.n_cols) + ")");
+		exit(1);
+	} 
+
+	// Copy the contents of the subfield array into our pixelMap
+
+	pixelMap = subfield;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Return a copy of the pixelMap matrix
+ * 
+ * \details   This function is primarily used for testing the code. One should not first get the pixelMap
+ *            perform an operation, and then setSubfield() again. Instead, let Detector do the operation.
+ * 
+ * \return pixelMap
+ */
+
+ arma::Mat<float> Detector::getSubfield()
+ {
+ 	return pixelMap;
+ }
 
 
 
