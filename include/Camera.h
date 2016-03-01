@@ -36,6 +36,10 @@ class Camera : public HDF5Writer
         virtual void configure(ConfigurationParameters &configParam);
         virtual void exposeDetector(Detector &detector, double startTime, double exposureTime);
 
+        virtual void initHDF5Groups() override;
+        virtual void flushOutput() override;
+
+
     protected:
 
         Telescope &telescope;
@@ -60,7 +64,6 @@ class Camera : public HDF5Writer
         double getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double yFPprime);
 
         void setDistortionPolynomial(Polynomial1D &polynomial);
-
 
 
     private:

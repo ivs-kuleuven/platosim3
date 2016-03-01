@@ -108,6 +108,14 @@ void Camera::setDistortionPolynomial(Polynomial1D &polynomial)
 
 
 
+
+
+
+
+
+
+
+
 /**
  * \brief      Expose the subField to the Sky, i.e. add flux to the detector,
  *             add the sky background, and convolve with the PSF.
