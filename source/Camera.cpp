@@ -154,12 +154,6 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
     while (internalTime < startTime + exposureTime)
     {
-        // Update the clock. Normally with 'timeStep', but if adding timeStep would overstep
-        // the total exposure time, take the small rest time instead.
-
-        timeStep = min(timeStep, startTime + exposureTime - internalTime);
-        internalTime += timeStep;
-
         // Let the telescope pointing evolve over a small time interval
 
         telescope.updatePointingCoordinates(internalTime);
@@ -177,19 +171,21 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
             tie(Xmm, Ymm) = angularToPlanarFocalPlaneCoordinates(Xrad, Yrad);
 
-            // If the point falls on the subfield, add the flux.
+            // Compute the flux [photons] of this star
 
-            if (detector.isInSubfield(Xmm, Ymm))
-            {
-                // Compute the flux [photons] of this star
+            double flux = fluxFactor * pow(10.0, -0.4 * star.Vmag) * timeStep;
 
-                double flux = fluxFactor * pow(10.0, -0.4 * star.Vmag) * timeStep;
+            // Add the flux to the detector. The latter checks if the star falls on a pixel of the subfield.
 
-                // Add the flux to the detector. The latter checks if the star falls on a pixel of the subfield.
-
-                detector.addFlux(Xmm, Ymm, flux);
-            }
+            bool isInSubfield = detector.addFlux(Xmm, Ymm, flux);
         }
+
+        // Update the clock. Normally with 'timeStep', but if adding timeStep would overstep
+        // the total exposure time, take the small rest time instead.
+
+        timeStep = min(timeStep, startTime + exposureTime - internalTime);
+        internalTime += timeStep;
+
     }
 
     // Take the flux of the stellar background and the zodiacal light into account.
