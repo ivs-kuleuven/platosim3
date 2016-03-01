@@ -322,13 +322,14 @@ double Detector::takeExposure(double startTime, double exposureTime)
 
 
 /**
- * \brief: During an exposure, this method makes the detector integrates the light
+ * \brief: During an exposure, this method makes the detector integrate the light
  *         in small steps. During each step the slight change of star positions due
  *         to spacecraft jitter is taken into account. 
- *         Besides jitter, also the sky background, and the flatfield is taken into 
- *         account. The sub-pixel map is rebinned in a pixel map.
+ *         
+ *  \details  Besides jitter, also the sky background, and the flatfield is taken into 
+ *            account. The sub-pixel map is rebinned in a pixel map.
  *
- * NOTE: The convolution with the PSF is not yet done here.
+ * \note The convolution with the PSF is not yet done here.
  *
  * \param startTime: Starting time of the exposure for which jitter must be applied [s].
  *
