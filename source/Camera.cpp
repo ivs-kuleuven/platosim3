@@ -211,6 +211,23 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
             // Add the flux to the detector. The latter checks if the star falls on a pixel of the subfield.
 
             bool isInSubfield = detector.addFlux(Xmm, Ymm, flux);
+
+            // 
+
+            if (isInSubfield)
+            {
+                if (detectedStarInfo.find(star.ID) == detectedStarInfo.end())
+                {
+                    detectedStarInfo[star.ID] = {{startTime, Xmm, Ymm, flux, 1.0}};
+                }
+                else
+                {
+                    detectedStarInfo[star.ID][1] += Xmm;      // Will be used to compute average Xmm during the exposure
+                    detectedStarInfo[star.ID][2] += Ymm;      // Will be used to compute average Ymm during the exposure
+                    detectedStarInfo[star.ID][3] += flux;     // Total flux
+                    detectedStarInfo[star.ID][4] += 1;        // # of times a star was on the subfield during an exposure 
+                }
+            }
         }
 
         // Update the clock. Normally with 'timeStep', but if adding timeStep would overstep
@@ -220,6 +237,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
         internalTime += timeStep;
 
     }
+
 
     // Take the flux of the stellar background and the zodiacal light into account.
     // Use one value for the entire subfield. As wavelength range we take the entire throughput band.

@@ -5,6 +5,8 @@
 #include <cmath>
 #include <vector>
 #include <algorithm>
+#include <map>
+#include <array>
 
 #include "Logger.h"
 #include "Units.h"
@@ -75,6 +77,8 @@ class Camera : public HDF5Writer
 
         PointSpreadFunction *psf;
         Polynomial1D polynomial;
+
+        map<int, array<double, 5>> detectedStarInfo;  // detectedStarInfo(starID, startTime) contains {startTime, xFPmean, yFPmean, sumFlux, Ndetections}
 
 };
 
