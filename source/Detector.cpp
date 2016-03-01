@@ -377,44 +377,47 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 
 /**
- * \brief: Add the given flux value to the value of the sub-pixel that
- *         corresponds to the given coordinates in the focal plane.
+ * \brief: Add the given flux value to the value of the sub-pixel that corresponds to the given coordinates 
+ *         in the focal plane. Return the pixel coordinates of the pixel to which the flux was added.
  *
  * \param xFPprime   X-coordinate of the sub-pixel in the focal plane in the FP' reference frame [mm].
  * \param yFPprime   Y-coordinate of the sub-pixel in the focal plane in the FP' reference frame [mm].
  * \param flux       Flux to add to the sub-pixel map [photons].
  *
- * \return           True if (xFPprime, yFPprime) are on the subfield, false otherwise.
+ * \return           (isInSubfield, row, col) 
+ *                   isInSubfield: True if (xFPprime, yFPprime) are on the subfield, false otherwise.
+ *                   row:          CCD row number of the pixel to which the flux was added
+ *                   col:          CCD column number of the pixel to which the flux was added  
  */
 
-bool Detector::addFlux(double xFPprime, double yFPprime, double flux)
+tuple<bool, double, double> Detector::addFlux(double xFPprime, double yFPprime, double flux)
 {
 
 	// Detector origin offset (pixel level)
 
-	double rowOffset    = (xFPprime - originOffsetY) / pixelSize;
-	double columnOffset = (yFPprime - originOffsetX) / pixelSize;
+	const double rowOffset    = (xFPprime - originOffsetY) / pixelSize;
+	const double columnOffset = (yFPprime - originOffsetX) / pixelSize;
 
 	// Detector orientation (pixel level)
 
-	double column = columnOffset * cos(orientationAngle) - rowOffset * sin(orientationAngle);
-	double row    = columnOffset * sin(orientationAngle) + rowOffset * cos(orientationAngle);
+	const double pixColumn = columnOffset * cos(orientationAngle) - rowOffset * sin(orientationAngle);
+	const double pixRow    = columnOffset * sin(orientationAngle) + rowOffset * cos(orientationAngle);
 
 	// Sub-field incl. edge pixels (also correct for sub-field zeropoint)
 
-	column = (column - subFieldZeroPointColumn + numEdgePixels) * numSubPixelsPerPixel;
-	row    = (row    - subFieldZeroPointRow    + numEdgePixels) * numSubPixelsPerPixel;
+	const double subpixColumn = (pixColumn - subFieldZeroPointColumn + numEdgePixels) * numSubPixelsPerPixel;
+	const double subpixRow    = (pixRow    - subFieldZeroPointRow    + numEdgePixels) * numSubPixelsPerPixel;
 
 	// Add flux in this->subPixelMap at (row, column)
 
-	if (isInSubPixelMap(row, column))
+	if (isInSubPixelMap(subpixRow, subpixColumn))
 	{
-		subPixelMap((int) round(row), (int) round(column)) += flux;
-		return true;
+		subPixelMap((int) round(subpixRow), (int) round(subpixColumn)) += flux;
+		return make_tuple(true, pixRow, pixColumn);
 	}
 	else
 	{
-		return false;
+		return make_tuple(true, pixRow, pixColumn);
 	}
 }
 
