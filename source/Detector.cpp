@@ -57,7 +57,7 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
  */
 Detector::~Detector()
 {
-
+	flushOutput();
 }
 
 
