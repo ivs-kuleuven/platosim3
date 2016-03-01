@@ -94,9 +94,39 @@ void Camera::initHDF5Groups()
 
 void Camera::flushOutput()
 {
+    
+
+
+}
 
 
 
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Configure the Camera object using the ConfigurationParameters
+ * 
+ * \param configParam: the configuration parameters 
+ */
+
+void Camera::configure(ConfigurationParameters &configParam)
+{
+    plateScale             = configParam.getDouble("Camera/PlateScale");
+    focalLength            = configParam.getDouble("Camera/FocalLength") * 1000; // [m] -> [mm]
+    focalPlaneOrientation  = deg2rad(configParam.getDouble("Camera/FocalPlaneOrientation"));
+    throughputBandwidth    = configParam.getDouble("Camera/ThroughputBandwidth");
+    throughputLambdaC      = configParam.getDouble("Camera/ThroughputLambdaC");
+
+    polynomialType         = configParam.getString("Camera/FieldDistortion/Type");
+    polynomialDegree       = configParam.getInteger("Camera/FieldDistortion/Degree");
+    polynomialCoefficients = configParam.getDoubleVector("Camera/FieldDistortion/Coefficients");
 }
 
 
@@ -285,29 +315,6 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
 
 
-
-
-
-
-
-/**
- * \brief Configure the Camera object using the ConfigurationParameters
- * 
- * \param configParam: the configuration parameters 
- */
-
-void Camera::configure(ConfigurationParameters &configParam)
-{
-    plateScale             = configParam.getDouble("Camera/PlateScale");
-    focalLength            = configParam.getDouble("Camera/FocalLength") * 1000; // [m] -> [mm]
-    focalPlaneOrientation  = deg2rad(configParam.getDouble("Camera/FocalPlaneOrientation"));
-    throughputBandwidth    = configParam.getDouble("Camera/ThroughputBandwidth");
-    throughputLambdaC      = configParam.getDouble("Camera/ThroughputLambdaC");
-
-    polynomialType         = configParam.getString("Camera/FieldDistortion/Type");
-    polynomialDegree       = configParam.getInteger("Camera/FieldDistortion/Degree");
-    polynomialCoefficients = configParam.getDoubleVector("Camera/FieldDistortion/Coefficients");
-}
 
 
 

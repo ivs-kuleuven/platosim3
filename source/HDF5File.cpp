@@ -53,7 +53,7 @@ HDF5File::HDF5File(string filename, bool readonly)
 
 
 /**
- * @brief      Destructor
+ * \brief      Destructor
  */
 HDF5File::~HDF5File()
 {
@@ -170,6 +170,7 @@ void HDF5File::close()
  *
  * \return     true if the group exists in this file, false otherwise
  */
+
 bool HDF5File::hasGroup(string groupName)
 {
     try
@@ -197,6 +198,7 @@ bool HDF5File::hasGroup(string groupName)
  * 
  * \exception  H5GroupException thrown when the group is unknown to the HDF5 file
  */
+ 
 bool HDF5File::hasDataset(string groupName, string datasetName)
 {
     if (hasGroup(groupName))
