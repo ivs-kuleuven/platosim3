@@ -1089,16 +1089,16 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
 
 
 /**
- * \brief: Apply the readout noise to the pixel map and initialises the
+ * \brief Apply the readout noise to the pixel map and initialises the
  *         bias map. 
  * 
- * NOTE: Readout noise occurs due to the imperfect nature of the CCD amplifiers.  
- *       When the electrons are transferred to the amplifier, the induced voltage
- *       is measured. However, this measurement is not perfect, but gives a value 
- *       which is on average correct, with the readout noise as standard deviation.
- *       So readout noise is a measure of this scatter around the true value.
- *       Its value is expressed in electrons as the packet of charge is made up of 
- *       electrons.
+ * \details Readout noise occurs due to the imperfect nature of the CCD amplifiers.  
+ *          When the electrons are transferred to the amplifier, the induced voltage
+ *          is measured. However, this measurement is not perfect, but gives a value 
+ *          which is on average correct, with the readout noise as standard deviation.
+ *          So readout noise is a measure of this scatter around the true value.
+ *          Its value is expressed in electrons as the packet of charge is made up of 
+ *          electrons.
  *
  * \pre Pixel unit in the pixel map: [electrons].
  * \pre Pixel unit in the smearing map: [electrons].
