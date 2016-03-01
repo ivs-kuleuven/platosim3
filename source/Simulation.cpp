@@ -54,6 +54,9 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
 
 
+
+
+
 // Destructor
 
 Simulation::~Simulation()
@@ -67,6 +70,7 @@ Simulation::~Simulation()
     delete platform;
     delete jitterGenerator;
     
+    // Close the output hdf5 file
 
     hdf5File.close();
 }
