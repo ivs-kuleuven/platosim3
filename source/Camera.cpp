@@ -94,9 +94,66 @@ void Camera::initHDF5Groups()
 
 void Camera::flushOutput()
 {
-    
+    Log.info("Camera: Flushing output to HDf5 file.");
 
+    // Extract and save the IDs of all stars that were at some point in time, detected in the subfield
+    // Note: keu is (key, value) pair, where key is also a pair consisting of the starID and the startTime
 
+    vector<unsigned int> starIDs;
+    for(auto keyValuePair: detectedStarInfo) starIDs.push_back(keyValuePair.first);
+    if (starIDs.size() != 0)
+    {
+        hdf5File.writeArray("StarInfo/", "DetectedStarIDs", starIDs.data(), starIDs.size());
+    }
+    else
+    {
+        Log.warning("Camera: No star positions to write to HDF5 file.");
+    }
+
+    // For each of the detected stars, make a subgroup, and write their position and flux for each exposure.
+    // Because some stars at the edge may jitter in and out of the subfield during the sequence of exposures,
+    // the written arrays may not be equally long for each star.
+
+    for (auto starID: starIDs)
+    {
+        // Make the proper group
+
+        stringstream myStream;
+        myStream << "star" << setfill('0') << setw(5) << starID;
+        const string starGroupName = "/StarInfo/" + myStream.str();
+        hdf5File.createGroup(starGroupName);
+
+        // Collect the different time series. For the positions, we only compute the sum, so we still need
+        // to divide by N to compute the average, where N is the number of times the star was detected to be
+        // in the subfield during an exposure.
+
+        vector<double> time;
+        vector<double> xFPmm;
+        vector<double> yFPmm;
+        vector<double> rowPix;
+        vector<double> colPix;
+        vector<double> flux;
+
+        for(auto keyValuePair: detectedStarInfo[starID])
+        {
+            const double t = keyValuePair.first;  // time
+            time.push_back(t);
+            xFPmm.push_back(detectedStarInfo[starID][t][0] / detectedStarInfo[starID][t][5]);
+            yFPmm.push_back(detectedStarInfo[starID][t][1] / detectedStarInfo[starID][t][5]);
+            rowPix.push_back(detectedStarInfo[starID][t][2] / detectedStarInfo[starID][t][5]);
+            colPix.push_back(detectedStarInfo[starID][t][3] / detectedStarInfo[starID][t][5]);
+            flux.push_back(detectedStarInfo[starID][t][4]);
+        }
+
+        // Write the time series to HDF5
+
+        hdf5File.writeArray(starGroupName, "time",   time.data(),   time.size());
+        hdf5File.writeArray(starGroupName, "xFPmm",  xFPmm.data(),  xFPmm.size());
+        hdf5File.writeArray(starGroupName, "yFPmm",  yFPmm.data(),  yFPmm.size());
+        hdf5File.writeArray(starGroupName, "rowPix", rowPix.data(), rowPix.size());
+        hdf5File.writeArray(starGroupName, "colPix", colPix.data(), colPix.size());
+        hdf5File.writeArray(starGroupName, "flux",   flux.data(),   flux.size());
+    }
 }
 
 
@@ -252,24 +309,48 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
             double flux = fluxFactor * pow(10.0, -0.4 * star.Vmag) * timeStep;
 
-            // Add the flux to the detector. The latter checks if the star falls on a pixel of the subfield.
+            // Let the detector add the flux to the appropriate pixel. 
+            // Detector.flux() returns the pixel to which the flux was added.
 
-            bool isInSubfield = detector.addFlux(Xmm, Ymm, flux);
+            bool isInSubfield;
+            double rowPix, colPix;
 
-            // 
+            tie(isInSubfield, rowPix, colPix) = detector.addFlux(Xmm, Ymm, flux);
+
+            // If the star is indeed in the subfield, collect the following information to later write to HDF5
+            //    1) average (Xmm, Ymm) coordinates of the star during the exposure [mm]
+            //    2) average (row, col) pixel coordinates of the star on the CCD during the exposure  [pix]
+            //    3) the total number of photons gathered of this star during the exposure [photons]
+            //    4) the total number of times that the star was in the subfield during the exposure
+            //
+            // Note: Due to jitter, the star can move in and out the subfield during the exposure
 
             if (isInSubfield)
             {
+                // If this is the first time we encounter this star, initialise the information
+
                 if (detectedStarInfo.find(star.ID) == detectedStarInfo.end())
                 {
-                    detectedStarInfo[star.ID] = {{startTime, Xmm, Ymm, flux, 1.0}};
+                    detectedStarInfo[star.ID][startTime] = {{Xmm, Ymm, rowPix, colPix, flux, 1.0}};
                 }
                 else
                 {
-                    detectedStarInfo[star.ID][1] += Xmm;      // Will be used to compute average Xmm during the exposure
-                    detectedStarInfo[star.ID][2] += Ymm;      // Will be used to compute average Ymm during the exposure
-                    detectedStarInfo[star.ID][3] += flux;     // Total flux
-                    detectedStarInfo[star.ID][4] += 1;        // # of times a star was on the subfield during an exposure 
+                    // If this is the first time that we encounter this startTime associated with this star,
+                    // initialise the information. If not, just update the info.
+
+                    if (detectedStarInfo[star.ID].find(startTime) == detectedStarInfo[star.ID].end())
+                    {
+                        detectedStarInfo[star.ID][startTime] = {{Xmm, Ymm, rowPix, colPix, flux, 1.0}};
+                    }
+                    else
+                    {
+                        detectedStarInfo[star.ID][startTime][0] += Xmm;      // Will be used to compute average Xmm during the exposure
+                        detectedStarInfo[star.ID][startTime][1] += Ymm;      // Will be used to compute average Ymm during the exposure
+                        detectedStarInfo[star.ID][startTime][2] += rowPix;   // Will be used to compute average pixel row during the exposure
+                        detectedStarInfo[star.ID][startTime][3] += colPix;   // Will be used to compute average pixel column during the exposure
+                        detectedStarInfo[star.ID][startTime][4] += flux;     // Total flux
+                        detectedStarInfo[star.ID][startTime][5] += 1;        // # of times a star was on the subfield during an exposure 
+                    }
                 }
             }
         }

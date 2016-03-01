@@ -78,7 +78,7 @@ class Camera : public HDF5Writer
         PointSpreadFunction *psf;
         Polynomial1D polynomial;
 
-        map<int, array<double, 5>> detectedStarInfo;  // detectedStarInfo(starID, startTime) contains {startTime, xFPmean, yFPmean, sumFlux, Ndetections}
+        map<unsigned int, map<double, array<double, 6>>> detectedStarInfo;  // detectedStarInfo[starID][startTime] contains the values (xFPmean, yFPmean, sumFlux, Ndetections} values
 
 };
 
