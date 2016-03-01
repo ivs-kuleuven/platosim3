@@ -99,6 +99,20 @@ void Camera::flushOutput()
 
 }
 
+
+
+
+
+
+
+
+
+
+/** \brief  Specify the type of fit function used to fit the distortion
+  *
+  * \param  polynomial
+  */
+
 void Camera::setDistortionPolynomial(Polynomial1D &polynomial)
 {
     this->polynomial = polynomial;
