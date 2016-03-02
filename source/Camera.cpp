@@ -532,11 +532,6 @@ pair<double, double> Camera::skyToAngularFocalPlaneCoordinates(double raStar, do
 
 pair<double, double> Camera::angularFocalPlaneToSkyCoordinates(double xFPprime, double yFPprime)
 {    
-    if (xFPprime == 0.0 and yFPprime == 0.0)
-    {
-        return make_pair(0.0, 0.0);
-    }
-
     // Convert from the FP' to the FP reference system.
 
     const double xFP =  xFPprime * cos(focalPlaneOrientation) - yFPprime * sin(focalPlaneOrientation);
@@ -548,17 +543,22 @@ pair<double, double> Camera::angularFocalPlaneToSkyCoordinates(double xFPprime, 
     double raOpticalAxis, decOpticalAxis;
     tie(raOpticalAxis, decOpticalAxis) = telescope.getCurrentPointingCoordinates();
 
+
     // Project the focal plane in the "FP" coordinate system to the sky
 
-    const double rho = sqrt(xFP*xFP+yFP*yFP);
-    const double c = atan(rho);
-    const double ra = raOpticalAxis + atan2(yFP * sin(c), rho * cos(decOpticalAxis) * cos(c) + xFP * sin(decOpticalAxis) * sin(c));
-    const double dec = asin(cos(c) * sin(decOpticalAxis) - (xFP * sin(c) * cos(decOpticalAxis)) / rho);
+    if (xFP == 0.0 and yFP == 0.0)
+    {
+        return make_pair(raOpticalAxis, decOpticalAxis);
+    }
+    else
+    {
+        const double rho = sqrt(xFP*xFP+yFP*yFP);
+        const double c = atan(rho);
+        const double ra = raOpticalAxis + atan2(yFP * sin(c), rho * cos(decOpticalAxis) * cos(c) + xFP * sin(decOpticalAxis) * sin(c));
+        const double dec = asin(cos(c) * sin(decOpticalAxis) - (xFP * sin(c) * cos(decOpticalAxis)) / rho);
 
-
-    // Return the equatorial coordinates
-
-    return make_pair(ra, dec);
+        return make_pair(ra, dec);
+    }
 }
 
 
