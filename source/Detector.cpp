@@ -467,8 +467,8 @@ bool Detector::isInSubfield(const double xFPprime, const double yFPprime)
 {
 	// Convert to pixel coordinates in the unrotated CCD reference frame
 
-	double rowUnrot = (xFPprime - originOffsetY) / pixelSize;
-	double colUnrot = (yFPprime - originOffsetX) / pixelSize;
+	double rowUnrot = (xFPprime - originOffsetY) / (pixelSize / 1000.0);
+	double colUnrot = (yFPprime - originOffsetX) / (pixelSize / 1000.0);
 
 	// Compute the coordinates in the rotated CCD reference frame
 
