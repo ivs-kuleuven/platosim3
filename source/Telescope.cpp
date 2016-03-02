@@ -111,6 +111,10 @@ void Telescope::updatePointingCoordinates(double time)
 
     if (time == internalTime)
     {
+        Log.info("Telescope: At time " + to_string(time) + ": (RA, dec) = (" 
+                               + to_string(rad2deg(currentAlphaOpticalAxis)) + ", " 
+                               + to_string(rad2deg(currentDeltaOpticalAxis)) + ")");
+       
         return;
     }
 

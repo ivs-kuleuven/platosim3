@@ -73,7 +73,7 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
  */
 Detector::~Detector()
 {
-
+	flushOutput();
 }
 
 
@@ -393,44 +393,47 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 
 /**
- * \brief: Add the given flux value to the value of the sub-pixel that
- *         corresponds to the given coordinates in the focal plane.
+ * \brief: Add the given flux value to the value of the sub-pixel that corresponds to the given coordinates 
+ *         in the focal plane. Return the pixel coordinates of the pixel to which the flux was added.
  *
  * \param xFPprime   X-coordinate of the sub-pixel in the focal plane in the FP' reference frame [mm].
  * \param yFPprime   Y-coordinate of the sub-pixel in the focal plane in the FP' reference frame [mm].
  * \param flux       Flux to add to the sub-pixel map [photons].
  *
- * \return           True if (xFPprime, yFPprime) are on the subfield, false otherwise.
+ * \return           (isInSubfield, row, col) 
+ *                   isInSubfield: True if (xFPprime, yFPprime) are on the subfield, false otherwise.
+ *                   row:          CCD row number of the pixel to which the flux was added
+ *                   col:          CCD column number of the pixel to which the flux was added  
  */
 
-bool Detector::addFlux(double xFPprime, double yFPprime, double flux)
+tuple<bool, double, double> Detector::addFlux(double xFPprime, double yFPprime, double flux)
 {
 
 	// Detector origin offset (pixel level)
 
-	double rowOffset    = (xFPprime - originOffsetY) / pixelSize;
-	double columnOffset = (yFPprime - originOffsetX) / pixelSize;
+	const double rowOffset    = (xFPprime - originOffsetY) / pixelSize;
+	const double columnOffset = (yFPprime - originOffsetX) / pixelSize;
 
 	// Detector orientation (pixel level)
 
-	double column = columnOffset * cos(orientationAngle) - rowOffset * sin(orientationAngle);
-	double row    = columnOffset * sin(orientationAngle) + rowOffset * cos(orientationAngle);
+	const double pixColumn = columnOffset * cos(orientationAngle) - rowOffset * sin(orientationAngle);
+	const double pixRow    = columnOffset * sin(orientationAngle) + rowOffset * cos(orientationAngle);
 
 	// Sub-field incl. edge pixels (also correct for sub-field zeropoint)
 
-	column = (column - subFieldZeroPointColumn + numEdgePixels) * numSubPixelsPerPixel;
-	row    = (row    - subFieldZeroPointRow    + numEdgePixels) * numSubPixelsPerPixel;
+	const double subpixColumn = (pixColumn - subFieldZeroPointColumn + numEdgePixels) * numSubPixelsPerPixel;
+	const double subpixRow    = (pixRow    - subFieldZeroPointRow    + numEdgePixels) * numSubPixelsPerPixel;
 
 	// Add flux in this->subPixelMap at (row, column)
 
-	if (isInSubPixelMap(row, column))
+	if (isInSubPixelMap(subpixRow, subpixColumn))
 	{
-		subPixelMap((int) round(row), (int) round(column)) += flux;
-		return true;
+		subPixelMap((int) round(subpixRow), (int) round(subpixColumn)) += flux;
+		return make_tuple(true, pixRow, pixColumn);
 	}
 	else
 	{
-		return false;
+		return make_tuple(true, pixRow, pixColumn);
 	}
 }
 
@@ -1105,16 +1108,16 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
 
 
 /**
- * \brief: Apply the readout noise to the pixel map and initialises the
+ * \brief Apply the readout noise to the pixel map and initialises the
  *         bias map. 
  * 
- * NOTE: Readout noise occurs due to the imperfect nature of the CCD amplifiers.  
- *       When the electrons are transferred to the amplifier, the induced voltage
- *       is measured. However, this measurement is not perfect, but gives a value 
- *       which is on average correct, with the readout noise as standard deviation.
- *       So readout noise is a measure of this scatter around the true value.
- *       Its value is expressed in electrons as the packet of charge is made up of 
- *       electrons.
+ * \details Readout noise occurs due to the imperfect nature of the CCD amplifiers.  
+ *          When the electrons are transferred to the amplifier, the induced voltage
+ *          is measured. However, this measurement is not perfect, but gives a value 
+ *          which is on average correct, with the readout noise as standard deviation.
+ *          So readout noise is a measure of this scatter around the true value.
+ *          Its value is expressed in electrons as the packet of charge is made up of 
+ *          electrons.
  *
  * \pre Pixel unit in the pixel map: [electrons].
  * \pre Pixel unit in the smearing map: [electrons].
@@ -1366,37 +1369,51 @@ pair<double, double> Detector::getPlanarFocalPlaneCoordinatesOfSubfieldCenter()
 
 
 /**
- * \brief  Return the distance between the two diagonally opposite corner points of the
- *         subfield in [mm] on the focal plane.
- * 
- * \return length  Diagonal distance between the two opposite corners [mm]
+ * \brief Return the (X,Y) coordinates in the FP' reference frame in [mm] of the 4 corners
+ *        of the subfield
+ *        
+ * \return (X00, Y00, X01, Y01, X11, Y11, X10, Y10)  [mm]
+ *         where: (X00, Y00) are the FP' coordinates of the lower left corner of the subfield
+ *                (X01, Y01) are the FP' coordinates of the lower right corner of the subfield
+ *                (X11, Y11) are the FP' coordinates of the upper right corner of the subfield
+ *                (X10, Y10) are the FP' coordinates of the upper left corner of the subfield
  */
 
-double Detector::getDiagonalLengthOfSubfield()
+tuple<double, double, double, double, double, double, double, double> Detector::getPlanarFocalPlaneCoordinatesOfSubfieldCorners()
 {
-	// Define the pixel row and column coordinates of two corners diagonally opposite to each other
+	double corner00Xmm, corner00Ymm, corner01Xmm, corner01Ymm, corner11Xmm, corner11Ymm, corner10Xmm, corner10Ymm;
+	double row, col;
 
-	double corner1Row = subFieldZeroPointRow + numRowsPixelMap;
-	double corner1Col = subFieldZeroPointColumn;
+	// Lower left corner
 
-	double corner2Row = subFieldZeroPointRow;
-	double corner2Col = subFieldZeroPointColumn + numColumnsPixelMap;
+	row = subFieldZeroPointRow;
+	col = subFieldZeroPointColumn;
+	tie(corner00Xmm, corner00Ymm) = pixelToPlanarFocalPlaneCoordinates(row, col);
 
-	// Compute their corresponding (x,y) coordinates in the focal plane FP'
+	// Lower right corner
 
-	double corner1X, corner1Y;
-	double corner2X, corner2Y;
+	row = subFieldZeroPointRow + numRowsPixelMap;
+	col = subFieldZeroPointColumn;
+	tie(corner10Xmm, corner01Ymm) = pixelToPlanarFocalPlaneCoordinates(row, col);
 
-	tie(corner1X, corner1Y) = pixelToPlanarFocalPlaneCoordinates(corner1Row, corner1Col);
-	tie(corner2X, corner2Y) = pixelToPlanarFocalPlaneCoordinates(corner2Row, corner2Col);
+	// Upper right corner
 
-	// The diagonal length is simply the distance between the two corner points
-	// computed using Pythagoras
+	row = subFieldZeroPointRow + numRowsPixelMap;
+	col = subFieldZeroPointColumn + numColumnsPixelMap;
+	tie(corner11Xmm, corner11Ymm) = pixelToPlanarFocalPlaneCoordinates(row, col);
 
-	double diagonalLength = sqrt(pow(corner1X - corner2X, 2) + pow(corner1Y - corner2Y, 2));
+	// Upper left corner
 
-	return diagonalLength;
+	row = subFieldZeroPointRow;
+	col = subFieldZeroPointColumn + numColumnsPixelMap;
+	tie(corner10Xmm, corner10Ymm) = pixelToPlanarFocalPlaneCoordinates(row, col);
+
+	return make_tuple(corner00Xmm, corner00Ymm, corner01Xmm, corner01Ymm, corner11Xmm, corner11Ymm, corner10Xmm, corner10Ymm);
 }
+
+
+
+
 
 
 

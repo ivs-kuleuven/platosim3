@@ -36,15 +36,15 @@ class Sky
 
         StarCatalog getStarsWithinRadiusFrom(double RA, double dec, double radius, Unit angleUnit = Angle::degrees);
 
-        double zodiacalFlux(const double RA, const double dec, const double lambda1, const double lambda2);
-        double zodiacalFlux(const double RA, const double dec, vector<double> &lambda, vector<double> &throughput);
-        double stellarBackgroundFlux(const double RA, const double dec, const double lambda1, const double lambda2);
-        double stellarBackgroundFlux(const double RA, const double decl, vector<double> &lambda, vector<double> &throughput);
+        double zodiacalFlux(double RA, double dec, double lambda1, double lambda2);
+        double zodiacalFlux(double RA, double dec, vector<double> &lambda, vector<double> &throughput);
+        double stellarBackgroundFlux(double RA, double dec, double lambda1, double lambda2);
+        double stellarBackgroundFlux(double RA, double decl, vector<double> &lambda, vector<double> &throughput);
 
     protected:
 
-        double solarRadiantFlux(const double lambda);
-        double solarRadiantFlux(const double lambda1, const double lambda2);
+        double solarRadiantFlux(double lambda);
+        double solarRadiantFlux(double lambda1, double lambda2);
         double solarRadiantFlux(vector<double> &lambda, vector<double> &throughput);
 
     private:
@@ -55,7 +55,7 @@ class Sky
         vector<double> integrand;
         TabulatedFunction<vector<double>> tabfunction;
 
-        void locate(const double x, const double *array, int N, int &index);
+        void locate(double x, const double *array, int N, int &index);
 
 };
 

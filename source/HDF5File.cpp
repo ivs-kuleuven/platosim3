@@ -53,7 +53,7 @@ HDF5File::HDF5File(string filename, bool readonly)
 
 
 /**
- * @brief      Destructor
+ * \brief      Destructor
  */
 HDF5File::~HDF5File()
 {
@@ -170,6 +170,7 @@ void HDF5File::close()
  *
  * \return     true if the group exists in this file, false otherwise
  */
+
 bool HDF5File::hasGroup(string groupName)
 {
     try
@@ -197,6 +198,7 @@ bool HDF5File::hasGroup(string groupName)
  * 
  * \exception  H5GroupException thrown when the group is unknown to the HDF5 file
  */
+ 
 bool HDF5File::hasDataset(string groupName, string datasetName)
 {
     if (hasGroup(groupName))
@@ -621,6 +623,8 @@ void HDF5File::writeAttribute(string groupName, string attributeName, double att
 
 
 
+
+
 /**
  * \brief      read a double-valued attribute that is associated with groupName
  *
@@ -633,6 +637,7 @@ void HDF5File::writeAttribute(string groupName, string attributeName, double att
  * \exception  H5GroupException     if the group is unknown to the HDF5 file
  * \exception  H5AttributeException if there is no attribute with the given name
  */
+
 double HDF5File::readAttribute(string groupName, string attributeName)
 {
     // Complain if the file was not first opened
@@ -706,6 +711,7 @@ double HDF5File::readAttribute(string groupName, string attributeName)
  * \exception  H5DatasetException   if the dataset is not known to the group
  * \exception  H5AttributeException if there is no attribute with the given name
  */
+
 double HDF5File::readAttribute(string groupName, string datasetName, string attributeName)
 {
     // Complain if the file was not first opened
@@ -836,6 +842,81 @@ void HDF5File::writeArray(string groupName, string arrayName, int* array, int si
 
     return;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Write a 1D unsigned integer array to a specified group in the HDF5 file
+ * 
+ * \param groupName  Full path of an existing HDF5 Group in the file. Starts with "/". 
+ * \param arrayName  Unique name of the array in the group 
+ * \param array      1d unsigned integer native array
+ * \param size       Number of elements in the array
+ */
+
+void HDF5File::writeArray(string groupName, string arrayName, unsigned int* array, int size)
+{
+    // Create a DataSpace defining the shape and type of the data 
+
+    unsigned int Ndimensions = 1;
+    unsigned long long shape[Ndimensions];
+    shape[0] = size;
+    H5::DataSpace arraySpace(Ndimensions, shape);
+
+    // Check if the array is not already in the file.
+    // There seems to be only a dirty way of determining this:
+    // try to access the dataset, and check if an exception is thrown.
+
+    bool arrayIsAlreadyInFile = true;
+    string arrayPath = groupName + "/" + arrayName;
+
+    try 
+    {  
+        // Turn off the auto-printing when an exception is raised
+
+        H5::Exception::dontPrint();
+
+        // Try to open the dataset
+
+        H5::DataSet testDataset = file->openDataSet(arrayPath.c_str());
+    }
+    catch (H5::FileIException error)
+    {
+        arrayIsAlreadyInFile = false;
+    }
+
+    if (arrayIsAlreadyInFile)
+    {
+        string errorMessage = "HDF5File::writeArray(): array " + groupName + "/" + arrayName + " already in file.";
+        Log.error(errorMessage);
+        throw H5FileException(errorMessage);
+    }
+
+
+    // Inside the Images group, make room for the image array
+
+    H5::DataSet arrayDataset = file->createDataSet(arrayPath.c_str(), H5::PredType::NATIVE_UINT, arraySpace);
+
+    // Copy the data from our image into the HDF5 file
+
+    arrayDataset.write(array, H5::PredType::NATIVE_UINT);
+
+    // That's it
+
+    return;
+}
+
+
 
 
 

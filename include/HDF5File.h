@@ -39,9 +39,10 @@ class HDF5File
         void writeAttribute(string groupName, string attributeName, long attributeValue);
         void writeAttribute(string groupName, string attributeName, double attributeValue);
 
-        void writeArray(string groupName, string arrayName, int*    array, int size);
-        void writeArray(string groupName, string arrayName, float*  array, int size);
-        void writeArray(string groupName, string arrayName, double* array, int size);
+        void writeArray(string groupName, string arrayName, int*          array, int size);
+        void writeArray(string groupName, string arrayName, unsigned int* array, int size);
+        void writeArray(string groupName, string arrayName, float*        array, int size);
+        void writeArray(string groupName, string arrayName, double*       array, int size);
         void writeArray(string groupName, string arrayName, arma::Mat<float>& A);
 
         double readAttribute(string groupName, string attributeName);
