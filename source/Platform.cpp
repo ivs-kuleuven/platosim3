@@ -139,8 +139,14 @@ pair<double, double> Platform::getPointingCoordinates(double time)
     const double x = zUnitAfterJitterEQ(0);
     const double y = zUnitAfterJitterEQ(1);
     const double z = zUnitAfterJitterEQ(2);
-    currentDec = PI / 2.0 - atan2(y,x);
-    currentRA = atan2(sqrt(x*x+y*y), z);
+
+    // Only now update the internal platform pointing coordinates to the ones after the jitter step
+    // Note: r should 1.0, as rotations don't change the length of the unit vector
+
+    const double r = sqrt(x*x+y*y+z*z);
+    currentDec = PI / 2.0 - acos(z/r);
+    currentRA = atan2(y, x);
+    if (currentRA < 0.0) currentRA += 2 * PI; 
 
     Log.debug("Platform: At time " + to_string(time) + ": (RA, dec) = (" 
                                    + to_string(rad2deg(currentRA)) + ", " 
