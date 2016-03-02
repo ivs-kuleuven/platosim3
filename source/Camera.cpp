@@ -228,37 +228,65 @@ void Camera::setDistortionPolynomial(Polynomial1D &polynomial)
 
 void Camera::exposeDetector(Detector &detector, double startTime, double exposureTime)
 {
-    // Get the focal plane coordinates of the center of the subfield (in [mm]), 
-    // and the diagonal length of the subfield (converted from [mm] to [rad]).
-    // These quantities are fixed, i.e. independent of any jitter.
-    // Note: diagonalLength is in [mm], platescale is in [arcsec/mm], radius is in [rad]
+    // Get the focal plane coordinates of the center and the corners of the subfield (in [mm]).
+    // To compute the diagonal length of the subfield, we only need the lower left (X00, Y00)
+    // and the upper right (X11, Y11) corner of the subfield.
 
-    double Xmm, Ymm;
-    tie(Xmm, Ymm) = detector.getPlanarFocalPlaneCoordinatesOfSubfieldCenter();
-    double diagonalLength = detector.getDiagonalLengthOfSubfield();
-    double radius = deg2rad(diagonalLength / 2.0 * plateScale / 3600.);
+    double centerXmm, centerYmm;
+    tie(centerXmm, centerYmm) = detector.getPlanarFocalPlaneCoordinatesOfSubfieldCenter();
 
-    Log.debug("Camera: semi-diagonal of subfield = " + to_string(diagonalLength/2.0) + " mm = " + to_string(rad2deg(radius)) + " deg");
+    double corner00Xmm, corner00Ymm, corner11Xmm, corner11Ymm, dummy;
+    tie(corner00Xmm, corner00Ymm, dummy, dummy, corner11Xmm, corner11Ymm, dummy, dummy) = detector.getPlanarFocalPlaneCoordinatesOfSubfieldCorners();
+
+    Log.debug("Camera: center of subfield at (Xmm, Ymm) = (" + to_string(centerXmm) + ", " + to_string(centerYmm) + ") mm");
+    Log.debug("Camera: lower left corner of subfield at (Xmm, Ymm) = (" + to_string(corner00Xmm) + ", " + to_string(corner00Ymm) + ") mm");
+    Log.debug("Camera: upper right corner of subfield at (Xmm, Ymm) = (" + to_string(corner11Xmm) + ", " + to_string(corner11Ymm) + ") mm");
+
 
 
     // Convert the planar [mm] to angular [rad] focal plane coordinates 
 
-    double Xrad, Yrad;
-    tie(Xrad, Yrad) = planarToAngularFocalPlaneCoordinates(Xmm, Ymm);
+    double centerXrad, centerYrad;
+    tie(centerXrad, centerYrad) = planarToAngularFocalPlaneCoordinates(centerXmm, centerYmm);
+
+    double corner00Xrad, corner00Yrad;
+    tie(corner00Xrad, corner00Yrad) = planarToAngularFocalPlaneCoordinates(corner00Xmm, corner00Ymm);
+
+    double corner11Xrad, corner11Yrad;
+    tie(corner11Xrad, corner11Yrad) = planarToAngularFocalPlaneCoordinates(corner11Xmm, corner11Ymm);
 
 
     // Compute the (alpha, delta) equatorial coordinates in [rad] of the center of the subfield [rad]
 
-    double RA, dec;
-    tie(RA, dec) = angularFocalPlaneToSkyCoordinates(Xrad, Yrad);
+    double centerRA, centerDec;
+    tie(centerRA, centerDec) = angularFocalPlaneToSkyCoordinates(centerXrad, centerYrad);
 
-    Log.debug("Camera: center of subfield at (alpha, delta) = (" + to_string(rad2deg(RA)) + ", " + to_string(rad2deg(dec)) + ") deg");
+    double corner00RA, corner00Dec;
+    tie(corner00RA, corner00Dec) = angularFocalPlaneToSkyCoordinates(corner00Xrad, corner00Yrad);
+
+    double corner11RA, corner11Dec;
+    tie(corner11RA, corner11Dec) = angularFocalPlaneToSkyCoordinates(corner11Xrad, corner11Yrad);
+
+    Log.debug("Camera: center of subfield at (alpha, delta) = (" + to_string(rad2deg(centerRA)) + ", " + to_string(rad2deg(centerDec)) + ") deg");
+    Log.debug("Camera: lower left corner of subfield at (alpha, delta) = (" + to_string(rad2deg(corner00RA)) + ", " + to_string(rad2deg(corner00Dec)) + ") deg");
+    Log.debug("Camera: upper right corner of subfield at (alpha, delta) = (" + to_string(rad2deg(corner11RA)) + ", " + to_string(rad2deg(corner11Dec)) + ") deg");
+
+
+    // Compute the angular distance on the sky between the lower left and the upper right corner
+    // of the subfield, to estimate the "radius" of the subfield.
+
+    SkyCoordinates skyCoordinates00(corner00RA, corner00Dec, Angle::radians);
+    SkyCoordinates skyCoordinates11(corner11RA, corner11Dec, Angle::radians);
+    
+    double radius = angularDistanceBetween(skyCoordinates00, skyCoordinates11, Angle::radians) / 2.0;
+
+    Log.debug("Camera: semi-diagonal of subfield = " + to_string(rad2deg(radius)) + " deg");
 
 
     // Get a catalog of stars that fall on the subfield. Take the radius a bit larger so that the 
     // queried area includes possible small shifts of the projected subfield because of jitter.
 
-    auto starCatalog = sky.getStarsWithinRadiusFrom(RA, dec, radius * 1.1, Angle::radians);
+    auto starCatalog = sky.getStarsWithinRadiusFrom(centerRA, centerDec, radius * 1.1, Angle::radians);
 
     Log.debug("Camera: Found " + to_string(starCatalog.size()) + " stars on and near the subfield");  
 
@@ -299,10 +327,12 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
             // Get the focal plane coordinates (in [mm]) of this particular star
             
             auto star = starCatalog[n];
+            double Xrad, Yrad;
             tie(Xrad, Yrad) = skyToAngularFocalPlaneCoordinates(star.RA, star.dec);
 
             // Convert the angular [rad] to planar [mm] focal plane coordinates 
 
+            double Xmm, Ymm;
             tie(Xmm, Ymm) = angularToPlanarFocalPlaneCoordinates(Xrad, Yrad);
 
             // Compute the flux [photons] of this star
@@ -310,7 +340,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
             double flux = fluxFactor * pow(10.0, -0.4 * star.Vmag) * timeStep;
 
             // Let the detector add the flux to the appropriate pixel. 
-            // Detector.flux() returns the pixel to which the flux was added.
+            // Detector.flux() returns the pixel coordinates to which the flux was added.
 
             bool isInSubfield;
             double rowPix, colPix;
@@ -371,11 +401,11 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     const double lambda1 = (throughputLambdaC - throughputBandwidth/2.0) * 1.e-9;                                                // [m]
     const double lambda2 = (throughputLambdaC + throughputBandwidth/2.0) * 1.e-9;                                                // [m]
     
-    const double zodiacalFlux = sky.zodiacalFlux(RA, dec, lambda1, lambda2)                                                      // [phot/exposure]
+    const double zodiacalFlux = sky.zodiacalFlux(centerRA, centerDec, lambda1, lambda2)                                                      // [phot/exposure]
                                 * exposureTime * telescope.getTransmissionEfficiency() * telescope.getLightCollectingArea()
                                 * telescope.getFOVsolidAngle() / energyOfOnePhoton; 
 
-    const double stellarBackgroundFlux = sky.stellarBackgroundFlux(RA, dec, lambda1, lambda2)                                    // [phot/exposure]
+    const double stellarBackgroundFlux = sky.stellarBackgroundFlux(centerRA, centerDec, lambda1, lambda2)                                    // [phot/exposure]
                                          * exposureTime * telescope.getTransmissionEfficiency() * telescope.getLightCollectingArea()
                                          * telescope.getFOVsolidAngle() / energyOfOnePhoton;      
 
