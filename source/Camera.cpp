@@ -301,10 +301,10 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
 
     // Later on we will have to convert from magnitudes to fluxes. Precompute a constant prefactor.
-    // 100023.8 is the photon flux [photons/s/cm^2/nm] for a V=0 G2V-star.
+    // 1.000238 is the photon flux [photons/s/m^2/nm] for a V=0 G2V-star.
     // Units of fluxFactor: [photons/s]
   
-    const double fluxFactor = 10023.8 * throughputBandwidth * telescope.getTransmissionEfficiency() * telescope.getLightCollectingArea(); 
+    const double fluxFactor = 1.00238 * throughputBandwidth * telescope.getTransmissionEfficiency() * telescope.getLightCollectingArea(); 
 
 
     // Update the internal clock
