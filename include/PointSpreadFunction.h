@@ -10,6 +10,7 @@
 #include "ConfigurationParameters.h"
 #include "Exceptions.h"
 #include "FileUtilities.h"
+#include "StringUtilities.h"
 #include "HDF5File.h"
 #include "Logger.h"
 #include "Units.h"
