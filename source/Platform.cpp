@@ -12,7 +12,7 @@
  */
 
 Platform::Platform(ConfigurationParameters configParams, HDF5File &hdf5File, JitterGenerator &jitterGenerator)
-: HDF5Writer(hdf5File), jitterGenerator(jitterGenerator)
+: HDF5Writer(hdf5File), internalTime(0.0), jitterGenerator(jitterGenerator)
 {
     // Configure the Platfrom object
 
