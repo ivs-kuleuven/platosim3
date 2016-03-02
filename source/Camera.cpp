@@ -426,7 +426,6 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
     }
 
-
     // Take the flux of the stellar background and the zodiacal light into account.
     // Use one value for the entire subfield. As wavelength range we take the entire throughput band.
     // Note: - the output of sky.zodicalFlux() is in [J s^{-1} m^{-2} sr^{-1} m^{-1}]
@@ -448,8 +447,6 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
     Log.debug("Camera: zodiacal flux level in subfield = " + to_string(zodiacalFlux) + " photons/pixel/exposure");
     Log.debug("Camera: stellar background flux level in subfield = " + to_string(stellarBackgroundFlux) + " photons/pixel/exposure");
-
-
 
     // Convolve with the point spread function
 
