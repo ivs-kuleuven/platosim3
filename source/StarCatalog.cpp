@@ -102,7 +102,7 @@ long StarCatalog::size()
  * \return None
  */
 
-void StarCatalog::addStar(const long starID, const double RA, const double dec, const double Vmag, Unit angleUnit)
+void StarCatalog::addStar(unsigned int starID, double RA, double dec, double Vmag, Unit angleUnit)
 {
     this->starID.push_back(starID);
     this->RA.push_back(RA / angleUnit);
@@ -128,11 +128,11 @@ void StarCatalog::addStar(const long starID, const double RA, const double dec, 
  * \return       A StarRecord of the 'index-th' star in the catalog.
  */
 
-StarRecord StarCatalog::operator[](long index) const
+StarRecord StarCatalog::operator[](unsigned int index) const
 {
     // Check if the value of index is within the proper range
 
-    if ((index < 0) || (index >= starID.size()))
+    if (index >= starID.size())
     {
         Log.error("StarCatalog[]: index out of range [0," + to_string(starID.size()) + "]");
         throw out_of_range("StarCatalog[]: index out of range");
@@ -165,7 +165,7 @@ StarRecord StarCatalog::operator[](long index) const
  * \return            A StarCatalog with all the selected stars.
  */
 
-StarCatalog StarCatalog::getStarsWithinRadiusFrom(const double RA0, const double dec0, const double radius, Unit inputAngleUnit)
+StarCatalog StarCatalog::getStarsWithinRadiusFrom(double RA0, double dec0, double radius, Unit inputAngleUnit)
 {
     // Create an empty star catalog
 

@@ -24,7 +24,7 @@ class SkyCoordinates
         pair<double, double> toEcliptic(Unit angleUnit = Angle::degrees);
 
  
-        friend double angularDistanceBetween(SkyCoordinates &skyCoordinates1, SkyCoordinates &skyCoordinates2, Unit angleUnit);
+        friend double angularDistanceBetween(SkyCoordinates &skyCoordinates1, SkyCoordinates &skyCoordinates2, Unit outputAngleUnit);
         friend vector<double> angularDistanceBetween(const double RA0, const double dec0, const vector<double> &RA, const vector<double> &dec, Unit angleUnit);
 
     protected:
