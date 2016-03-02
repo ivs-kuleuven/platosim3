@@ -6,18 +6,18 @@
 #include <vector>
 #include <algorithm>
 
-#include "Logger.h"
-#include "Units.h"
-#include "Constants.h"
 #include "ConfigurationParameters.h"
-#include "PointSpreadFunction.h"
-#include "Polynomial1D.h"
-#include "Heartbeat.h"
+#include "Constants.h"
+#include "Detector.h"
 #include "HDF5File.h"
 #include "HDF5Writer.h"
-#include "Telescope.h"
-#include "Detector.h"
+#include "Heartbeat.h"
+#include "Logger.h"
+#include "PointSpreadFunction.h"
+#include "Polynomial1D.h"
 #include "Sky.h"
+#include "Telescope.h"
+#include "Units.h"
 
 
 using namespace std;
