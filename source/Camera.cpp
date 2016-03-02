@@ -5,34 +5,34 @@
  * 
  * \details
  * 
- * The Camera is basically the set of six lenses with their mechanical mounts and support 
+ * The Camera is basically the set of lenses with their mechanical mounts and support 
  * structure also known as the TOU or Telescope Optical Units. The lenses distort the 
  * incoming light in several ways. The following effects are due to the setup and 
  * characteristics of the lenses:
  *
- *   * Image Quality (Enclosed Energy)
- *   * Optical distortion
- *   * Vignetting
- *   * Point Spread Function (PSF)
- *   * PSF Breathing due to thermal variations
- *   * Transmission Efficiency
- *   * Straylight
- *   * Lens degradation and contamination (??)
+ *   \li Image Quality (Enclosed Energy)
+ *   \li Optical distortion
+ *   \li Vignetting
+ *   \li Point Spread Function (PSF)
+ *   \li PSF Breathing due to thermal variations
+ *   \li Transmission Efficiency
+ *   \li Straylight
+ *   \li Lens degradation and contamination (??)
  * 
- * Not all above effects are implemented in the PLATO Simulator at this point. We concentrate on the 
+ * Not all above effects are implemented in the simulator at this point. We concentrate on the 
  * most distinct effects like PSF, optical distortion, and vignetting.
  * 
  * The lenses are the main source of point source spreading over the detector array. The camera is 
  * therefore the obvious choice for applying the PSF correction. The PSF itself is described in it’s 
  * own class, see PointSpreadFunction Class.
  * 
- * 
- * 
  */
 #include "Camera.h"
-#include "Units.h"
-#include "Constants.h"
-#include "PointSpreadFunction.h"
+
+
+
+
+
 
 /**
  * \brief      Constructor
@@ -54,6 +54,8 @@ Camera::Camera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telesco
 
     psf = new PointSpreadFunction(configParam);
 
+    // Initialize the polynomial that describes the field distortion of the camera.
+
     polynomial = Polynomial1D(polynomialDegree, polynomialCoefficients);
 }
 
@@ -63,7 +65,7 @@ Camera::Camera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telesco
 
 
 /**
- * \brief  Destructor, free memory for psf and polynomial
+ * \brief  Destructor, free memory for psf
  */
 
 Camera::~Camera()
@@ -74,10 +76,24 @@ Camera::~Camera()
 
 
 
+
+
+
+/**
+ * \brief      Set the polynomial which is used to describe the field distortion of the camera.
+ * 
+ * \todo       Change this interface so it accepts a Polynomial base class object
+ * 
+ * \param      polynomial  a Polynomial object
+ */
 void Camera::setDistortionPolynomial(Polynomial1D &polynomial)
 {
     this->polynomial = polynomial;
 }
+
+
+
+
 
 
 
@@ -97,7 +113,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     // Get the focal plane coordinates of the center of the subfield (in [mm]), 
     // and the diagonal length of the subfield (converted from [mm] to [rad]).
     // These quantities are fixed, i.e. independent of any jitter.
-    // Note: diagonalLength is in [mm], platescale is in [arcsec/mm], radius is in [rad]
+    // Note: diagonalLength is in [mm], platescale is in [arcsec/micron], radius is in [rad]
 
     double Xmm, Ymm;
     tie(Xmm, Ymm) = detector.getPlanarFocalPlaneCoordinatesOfSubfieldCenter();
@@ -228,7 +244,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 /**
  * \brief Configure the Camera object using the ConfigurationParameters
  * 
- * \param configParam: the configuration parameters 
+ * \param[in] configParam: the configuration parameters 
  */
 
 void Camera::configure(ConfigurationParameters &configParam)
