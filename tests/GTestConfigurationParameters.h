@@ -111,6 +111,12 @@ TEST(ConfigurationParametersTest, readSpecialValues)
     bool booleanFalse = cp.getBoolean("Special Values/boolean-false");
     EXPECT_FALSE(booleanFalse);
 
+    bool yes = cp.getBoolean("Special Values/boolean-yes");
+    EXPECT_TRUE(yes);
+
+    bool no = cp.getBoolean("Special Values/boolean-no");
+    EXPECT_FALSE(no);
+
 }
 
 
