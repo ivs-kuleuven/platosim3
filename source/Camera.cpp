@@ -612,9 +612,8 @@ pair<double, double> Camera::angularToPlanarFocalPlaneCoordinates(double xFPrad,
 
 pair<double, double> Camera::planarToAngularFocalPlaneCoordinates(double xFPmm, double yFPmm)
 {
-
-    const double xFPrad= focalLength * atan(xFPmm / focalLength);
-    const double yFPrad= focalLength * atan(yFPmm / focalLength);
+    const double xFPrad = atan(xFPmm / focalLength);
+    const double yFPrad = atan(yFPmm / focalLength);
     
     return make_pair(xFPrad, yFPrad);   
 }
