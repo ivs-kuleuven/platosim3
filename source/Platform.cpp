@@ -6,9 +6,9 @@
 /**
  * \brief Constructor
  * 
- * \param configurationParameters  Configuration parameters as read from the (e.g. yaml) inputfile
- * \param hdf5File                 HDF5 file where to write any output
- * \param jitterGenerator          Generator of the yaw, pitch roll variations due to spacecraft jitter
+ * \param configParams        Configuration parameters as read from the (e.g. yaml) inputfile
+ * \param hdf5File            HDF5 file where to write any output
+ * \param jitterGenerator     Generator of the yaw, pitch roll variations due to spacecraft jitter
  */
 
 Platform::Platform(ConfigurationParameters configParams, HDF5File &hdf5File, JitterGenerator &jitterGenerator)
@@ -106,7 +106,7 @@ pair<double, double> Platform::getPointingCoordinates(double time)
 
     if (timeInterval < 0.0)
     {
-        Log.warning("Platform: getPointingCoordinates() at time before previous request: Not Implemented.");
+        Log.warning("Platform: getPointingCoordinates() at time before previous request: Not Implemented. Returning current pointing coordinates.");
         return make_pair(currentRA, currentDec);
     }
 
@@ -246,9 +246,9 @@ arma::colvec Platform::spacecraftToEquatorialCoordinates(arma::colvec &coordSC)
  *          First a roll rotation is done around the Z_SC axis, then a pitch rotation is done 
  *          around the rotated Y_SC axis, and finally a yaw rotation is done around the already
  *          twice-rotated X_SC axis. The combined rotation matrix is: 
- *                 R(yaw, pitch, roll) = R(yaw) * R(pitch) * R(roll)
+ *                \f[ R(yaw, pitch, roll) = R(yaw) * R(pitch) * R(roll) \f]
  *          Which transforms
- *                 vector_after = R(yaw, pitch, roll) * vector_before
+ *                \f[ vector\_after = R(yaw, pitch, roll) * vector\_before \f]
  *          where vector_before and vector_after are the coordinates of the same point before and
  *          after the yaw.pitch,roll rotations. 
  *          
