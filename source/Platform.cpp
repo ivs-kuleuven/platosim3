@@ -219,7 +219,7 @@ arma::colvec Platform::spacecraftToEquatorialCoordinates(arma::colvec &coordSC)
 
     // The transformation
 
-    arma::colvec coordEQ = R2 * R1 * coordSC;
+    arma::colvec coordEQ = R1 * R2 * coordSC;
 
     // That's it
 
