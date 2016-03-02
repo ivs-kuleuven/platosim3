@@ -396,18 +396,20 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
     // Take the flux of the stellar background and the zodiacal light into account.
     // Use one value for the entire subfield. As wavelength range we take the entire throughput band.
+    // Note: - the output of sky.zodicalFlux() is in [J s^{-1} m^{-2} sr^{-1} m^{-1}]
 
-    const double energyOfOnePhoton = Constants::CLIGHT * Constants::HPLANCK / (throughputLambdaC * 1.e-9);                       // [J]
-    const double lambda1 = (throughputLambdaC - throughputBandwidth/2.0) * 1.e-9;                                                // [m]
-    const double lambda2 = (throughputLambdaC + throughputBandwidth/2.0) * 1.e-9;                                                // [m]
+    const double energyOfOnePhoton = Constants::CLIGHT * Constants::HPLANCK / (throughputLambdaC * 1.e-9);                // [J]
+    const double lambda1 = (throughputLambdaC - throughputBandwidth/2.0) * 1.e-9;                                         // [m]
+    const double lambda2 = (throughputLambdaC + throughputBandwidth/2.0) * 1.e-9;                                         // [m]
     
     const double zodiacalFlux = sky.zodiacalFlux(centerRA, centerDec, lambda1, lambda2)                                                      // [phot/exposure]
                                 * exposureTime * telescope.getTransmissionEfficiency() * telescope.getLightCollectingArea()
-                                * telescope.getFOVsolidAngle() / energyOfOnePhoton; 
+                                * detector.getSolidAngleOfOnePixel(plateScale) / energyOfOnePhoton; 
 
     const double stellarBackgroundFlux = sky.stellarBackgroundFlux(centerRA, centerDec, lambda1, lambda2)                                    // [phot/exposure]
                                          * exposureTime * telescope.getTransmissionEfficiency() * telescope.getLightCollectingArea()
-                                         * telescope.getFOVsolidAngle() / energyOfOnePhoton;      
+                                         * detector.getSolidAngleOfOnePixel(plateScale) / energyOfOnePhoton;      
+
 
     detector.addFlux(zodiacalFlux + stellarBackgroundFlux);
 
