@@ -412,7 +412,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     detector.addFlux(zodiacalFlux + stellarBackgroundFlux);
 
     Log.debug("Camera: zodiacal flux level in subfield = " + to_string(zodiacalFlux) + " photons/pixel/exposure");
-    Log.debug("Camera: stellar background flux level in subfield = " + to_string(zodiacalFlux) + " photons/pixel/exposure");
+    Log.debug("Camera: stellar background flux level in subfield = " + to_string(stellarBackgroundFlux) + " photons/pixel/exposure");
 
 
 
