@@ -6,13 +6,13 @@
 /**
  * \brief Constructor
  * 
- * \param configurationParameters  Configuration parameters as read from the (e.g. yaml) inputfile
- * \param hdf5File                 HDF5 file where to write any output
- * \param jitterGenerator          Generator of the yaw, pitch roll variations due to spacecraft jitter
+ * \param configParams        Configuration parameters as read from the (e.g. yaml) inputfile
+ * \param hdf5File            HDF5 file where to write any output
+ * \param jitterGenerator     Generator of the yaw, pitch roll variations due to spacecraft jitter
  */
 
 Platform::Platform(ConfigurationParameters configParams, HDF5File &hdf5File, JitterGenerator &jitterGenerator)
-: HDF5Writer(hdf5File), jitterGenerator(jitterGenerator)
+: HDF5Writer(hdf5File), internalTime(0.0), jitterGenerator(jitterGenerator)
 {
     // Configure the Platfrom object
 
@@ -106,7 +106,7 @@ pair<double, double> Platform::getPointingCoordinates(double time)
 
     if (timeInterval < 0.0)
     {
-        Log.warning("Platform: getPointingCoordinates() at time before previous request: Not Implemented.");
+        Log.warning("Platform: getPointingCoordinates() at time before previous request: Not Implemented. Returning current pointing coordinates.");
         return make_pair(currentRA, currentDec);
     }
 
@@ -139,8 +139,14 @@ pair<double, double> Platform::getPointingCoordinates(double time)
     const double x = zUnitAfterJitterEQ(0);
     const double y = zUnitAfterJitterEQ(1);
     const double z = zUnitAfterJitterEQ(2);
-    currentDec = PI / 2.0 - atan2(y,x);
-    currentRA = atan2(sqrt(x*x+y*y), z);
+
+    // Only now update the internal platform pointing coordinates to the ones after the jitter step
+    // Note: r should 1.0, as rotations don't change the length of the unit vector
+
+    const double r = sqrt(x*x+y*y+z*z);
+    currentDec = PI / 2.0 - acos(z/r);
+    currentRA = atan2(y, x);
+    if (currentRA < 0.0) currentRA += 2 * PI; 
 
     Log.debug("Platform: At time " + to_string(time) + ": (RA, dec) = (" 
                                    + to_string(rad2deg(currentRA)) + ", " 
@@ -219,7 +225,7 @@ arma::colvec Platform::spacecraftToEquatorialCoordinates(arma::colvec &coordSC)
 
     // The transformation
 
-    arma::colvec coordEQ = R2 * R1 * coordSC;
+    arma::colvec coordEQ = R1 * R2 * coordSC;
 
     // That's it
 
@@ -246,9 +252,9 @@ arma::colvec Platform::spacecraftToEquatorialCoordinates(arma::colvec &coordSC)
  *          First a roll rotation is done around the Z_SC axis, then a pitch rotation is done 
  *          around the rotated Y_SC axis, and finally a yaw rotation is done around the already
  *          twice-rotated X_SC axis. The combined rotation matrix is: 
- *                 R(yaw, pitch, roll) = R(yaw) * R(pitch) * R(roll)
+ *                \f[ R(yaw, pitch, roll) = R(yaw) * R(pitch) * R(roll) \f]
  *          Which transforms
- *                 vector_after = R(yaw, pitch, roll) * vector_before
+ *                \f[ vector\_after = R(yaw, pitch, roll) * vector\_before \f]
  *          where vector_before and vector_after are the coordinates of the same point before and
  *          after the yaw.pitch,roll rotations. 
  *          

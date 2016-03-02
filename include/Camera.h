@@ -5,19 +5,21 @@
 #include <cmath>
 #include <vector>
 #include <algorithm>
+#include <map>
+#include <array>
 
-#include "Logger.h"
-#include "Units.h"
-#include "Constants.h"
 #include "ConfigurationParameters.h"
-#include "PointSpreadFunction.h"
-#include "Polynomial1D.h"
-#include "Heartbeat.h"
+#include "Constants.h"
+#include "Detector.h"
 #include "HDF5File.h"
 #include "HDF5Writer.h"
-#include "Telescope.h"
-#include "Detector.h"
+#include "Heartbeat.h"
+#include "Logger.h"
+#include "PointSpreadFunction.h"
+#include "Polynomial1D.h"
 #include "Sky.h"
+#include "Telescope.h"
+#include "Units.h"
 
 
 using namespace std;
@@ -35,6 +37,10 @@ class Camera : public HDF5Writer
 
         virtual void configure(ConfigurationParameters &configParam);
         virtual void exposeDetector(Detector &detector, double startTime, double exposureTime);
+
+        virtual void initHDF5Groups() override;
+        virtual void flushOutput() override;
+
 
     protected:
 
@@ -62,7 +68,6 @@ class Camera : public HDF5Writer
         void setDistortionPolynomial(Polynomial1D &polynomial);
 
 
-
     private:
 
         double internalTime;
@@ -72,6 +77,8 @@ class Camera : public HDF5Writer
 
         PointSpreadFunction *psf;
         Polynomial1D polynomial;
+
+        map<unsigned int, map<double, array<double, 6>>> detectedStarInfo;  // detectedStarInfo[starID][startTime] contains the values (xFPmean, yFPmean, sumFlux, Ndetections} values
 
 };
 

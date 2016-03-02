@@ -60,16 +60,16 @@ PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam)
     catch(H5::FileIException ex)
     {
         Log.error("H5::FileIException: " + string(ex.getCDetailMsg()));
-        throw H5FileException("HDF5File: Could not open HDF5 file: " + absolutePath);
+        throw H5FileException("PointSpreadFunction: Could not open HDF5 file: " + absolutePath);
     }
 
     string groupName = "T6000";
     if ( ! hdf5file.hasGroup(groupName) )
     {
-        throw H5FileException("HDF5File: The HDF5 file (" + absolutePath + ") doesn't contain the expected group \"" + groupName + "\".");
+        throw H5FileException("PointSpreadFunction: The HDF5 file (" + absolutePath + ") doesn't contain the expected group \"" + groupName + "\".");
     }
 
-    Log.info("PSF: Opened the HDF5 file " + absolutePath + " containing the PSFs");
+    Log.info("PointSpreadFunction: Opened the HDF5 file " + absolutePath + " containing the PSFs");
 
 }
 
@@ -128,11 +128,13 @@ void PointSpreadFunction::configure(ConfigurationParameters &cp)
  */
 void PointSpreadFunction::select(double radius)
 {
+    using StringUtilities::dtos;
+    
     // TODO: Should we take any action if different PSFs are selected for this object?
 
     if (isSelected)
     {
-        Log.warning("PSF: Another PSF was previously selected.");
+        Log.warning("PointSpreadFunction: Another PSF was previously selected.");
     }
 
     radius = rad2deg(radius);
@@ -150,7 +152,7 @@ void PointSpreadFunction::select(double radius)
 
     if (index > psfdata::radius.n_elem-1)
     {
-        Log.warning("PSF: Radius index (" + to_string(index) + ") is out of bounds.");
+        Log.warning("PointSpreadFunction: Radius index (" + to_string(index) + ") is out of bounds.");
         index = psfdata::radius.n_elem-1;
     }
 
@@ -162,28 +164,26 @@ void PointSpreadFunction::select(double radius)
 
     if ( ! hdf5file.hasGroup(groupName) )
     {
-        throw FileException("The HDF5 file (" + absolutePath + ") doesn't contain the expected group \"" + groupName + "\".");
+        throw FileException("PointSpreadFunction: The HDF5 file (" + absolutePath + ") doesn't contain the expected group \"" + groupName + "\".");
     }
 
     if ( ! hdf5file.hasDataset(groupName, azimuthDataset) )
     {
-        throw FileException("The HDF5 file (" + absolutePath + ") doesn't contain the expected dataset \"" + azimuthDataset + "\".");
+        throw FileException("PointSpreadFunction: The HDF5 file (" + absolutePath + ") doesn't contain the expected dataset \"" + azimuthDataset + "\".");
     }
 
     // Load the psf array into the psfMap
     
     hdf5file.readArray("/" + groupName, azimuthDataset, psfMap);
-
-    Log.debug("PSF: Selected PSF " + groupName + "/" + azimuthDataset);
     
     // The PSFs that are currently used are rotated with respect to the focal plane x-axis.
     // The rotation angle is given as an attribute to the dataset that contains the PSF.
 
     double angle = hdf5file.readAttribute(groupName, azimuthDataset, "orientation");
-    Log.debug("PointSpreadFunction::select: group/dataset = " + groupName + "/" + azimuthDataset);
-    Log.debug("PointSpreadFunction::select: orientation = " + to_string(angle));
 
     rotationAngle = deg2rad(angle);
+
+    Log.debug("PointSpreadFunction: Selected PSF " + groupName + "/" + azimuthDataset + ", rotation set to " + dtos(angle) + " degrees.");
 
     isSelected = true;
 }
@@ -208,7 +208,7 @@ void PointSpreadFunction::rotate(double angle)
 
     if (isRotated)
     {
-        Log.warning("PSF: Ignoring rotation: PSF was already rotated before.");
+        Log.warning("PointSpreadFunction: Ignoring rotation: PSF was already rotated before.");
     }
     else
     {
@@ -222,7 +222,7 @@ void PointSpreadFunction::rotate(double angle)
         rotationAngle = newAngle;
         isRotated = true;    
 
-        Log.debug("PSF: rotated current PSF over angle " + to_string(rad2deg(newAngle)) + " deg");    
+        Log.debug("PointSpreadFunction: rotated current PSF over angle " + to_string(rad2deg(newAngle)) + " deg");    
     }
 }
 
