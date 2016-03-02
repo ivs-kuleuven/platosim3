@@ -111,6 +111,7 @@ Detector::~Detector()
     readoutTime             = configParam.getDouble("CCD/ReadoutTime");
     flatfieldNoiseAmplitude = configParam.getDouble("CCD/FlatfieldPtPNoise");
     meanCte                 = configParam.getDouble("CCD/CTEMean");
+    includePhotonNoise      = configParam.getBoolean("CCD/IncludePhotonNoise");
 
     // Configuration parameters for the subfield
 
