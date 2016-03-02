@@ -344,7 +344,7 @@ double Sky::solarRadiantFlux(vector<double> &lambda, vector<double> &throughput)
  * \return Zodiacal flux [J s^{-1} m^{-2} sr^{-1}]
  */
 
-double Sky::zodiacalFlux(const double alpha, const double delta, const double lambda1, const double lambda2)
+double Sky::zodiacalFlux(double alpha, double delta, double lambda1, double lambda2)
 {
     double lam, beta;
     double flux500;
