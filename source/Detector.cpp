@@ -1406,6 +1406,26 @@ tuple<double, double, double, double, double, double, double, double> Detector::
 
 
 
+/**
+ * \brief Return the solid angle of 1 single pixel on the sky. [sr]
+ * 
+ * \param plateScale  The platescale of the camera [arcsec/micron]
+ * \return            Solid angle in [s]
+ */
+
+double Detector::getSolidAngleOfOnePixel(double plateScale)
+{
+	return sqDeg2sr(pow(pixelSize * plateScale / 3600.0, 2));
+}
+
+
+
+
+
+
+
+
+
 
 
 
