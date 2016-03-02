@@ -499,18 +499,16 @@ bool Detector::isInSubfield(const double xFPprime, const double yFPprime)
 
 
 /**
- * \brief   Check whether the given (row, column) coordinates are in the
- *          sub-pixel map.
+ * \brief   Check whether the given (row, column) indices are within the array range of the subpixel map.
  *
- * \details  The input parameters row & column come from an coordinate transformation
+ * \details  The input parameters row & column come from a coordinate transformation
  *           in the focal plane, and as a result are not necessarily integers. For this 
  *           function it's not necessary to round them to the nearest integer. 
  *
- * \param  row:    Row coordinate     [sub-pixel].
- * \param  column: Column coordinate  [sub-pixel].
+ * \param  row:    Row index. NOT a coordinate in the CCD frame, but in the subfield frame. [sub-pixel].
+ * \param  column: Column index.NOT a coordinate in the CCD frame, but in the subfield frame.  [sub-pixel].
  *
- * \return  True if the given (row, column) coordinates are in the sub-pixel map;
- *          false otherwise.
+ * \return  True if the given (row, column) coordinates are in the sub-pixel map; false otherwise.
  */
 
 bool Detector::isInSubPixelMap(double row, double column)
@@ -530,16 +528,17 @@ bool Detector::isInSubPixelMap(double row, double column)
 /**
  * \brief: Add the given flux value to (all sub-pixels of) the sub-pixel map.
  *
- * \param flux: Flux to add to the sub-pixel map [photons].
+ * \param flux: Flux to add to the sub-pixel map [photons/pixel].
  *
- * \pre Pixel, bias register, and smearing maps filled with zeroes.
- *
- * \post Pixel unit in the sub-pixel map: [photons].
- * \post Pixel, bias register, and smearing maps filled with zeroes.
  */
+
 void Detector::addFlux(double flux)
 {
-	subPixelMap += flux;
+	// The flux is expressed in [photons/pixel] but we need the quantity expressed 
+	// in [photons/subpixel]. There are (numSubPixelsPerPixel)^2 per pixel (the
+	// name is thus a bit of a misnomer.).
+
+	subPixelMap += flux / numSubPixelsPerPixel / numSubPixelsPerPixel;
 }
 
 
