@@ -409,32 +409,35 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 tuple<bool, double, double> Detector::addFlux(double xFPprime, double yFPprime, double flux)
 {
+	// Convert from FP' coordinates to CCD pixel coordinates
 
-	// Detector origin offset (pixel level)
+	double pixRow, pixColumn;
+	tie(pixRow, pixColumn) = planarFocalPlaneToPixelCoordinates(xFPprime, yFPprime);
 
-	const double rowOffset    = (xFPprime - originOffsetY) / pixelSize;
-	const double columnOffset = (yFPprime - originOffsetX) / pixelSize;
+	// Sub-field coordinates, taking into account the edge pixels 
+	// (subpixRow, subpixColumn) are the indices of the star in the subpixelMap. So they are not 
+	// subpixel coordinates in the CCD frame, but in the subfield reference frame.
 
-	// Detector orientation (pixel level)
+	const double subpixColumn = round((pixColumn - subFieldZeroPointColumn + numEdgePixels) * numSubPixelsPerPixel);
+	const double subpixRow    = round((pixRow    - subFieldZeroPointRow    + numEdgePixels) * numSubPixelsPerPixel);
 
-	const double pixColumn = columnOffset * cos(orientationAngle) - rowOffset * sin(orientationAngle);
-	const double pixRow    = columnOffset * sin(orientationAngle) + rowOffset * cos(orientationAngle);
+	// Convert back the _rounded_ subpixel coordinates to pixel coordinates
+	// E.g. if there are 4 subpixels per pixel, then the pixel coordinates should always end with
+	//      0.0, 0.25, 0.5, or 0.75
 
-	// Sub-field incl. edge pixels (also correct for sub-field zeropoint)
+	pixRow    = subpixRow    / numSubPixelsPerPixel - numEdgePixels;
+	pixColumn = subpixColumn / numSubPixelsPerPixel - numEdgePixels;
 
-	const double subpixColumn = (pixColumn - subFieldZeroPointColumn + numEdgePixels) * numSubPixelsPerPixel;
-	const double subpixRow    = (pixRow    - subFieldZeroPointRow    + numEdgePixels) * numSubPixelsPerPixel;
-
-	// Add flux in this->subPixelMap at (row, column)
+	// Add the flux to the subPixelMap
 
 	if (isInSubPixelMap(subpixRow, subpixColumn))
 	{
-		subPixelMap((int) round(subpixRow), (int) round(subpixColumn)) += flux;
+		subPixelMap((int) subpixRow, (int) subpixColumn) += flux;
 		return make_tuple(true, pixRow, pixColumn);
 	}
 	else
 	{
-		return make_tuple(true, pixRow, pixColumn);
+		return make_tuple(false, pixRow, pixColumn);
 	}
 }
 
