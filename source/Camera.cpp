@@ -119,7 +119,7 @@ void Camera::flushOutput()
         // Make the proper group
 
         stringstream myStream;
-        myStream << "star" << setfill('0') << setw(5) << starID;
+        myStream << "star" << setfill('0') << setw(6) << starID;
         const string starGroupName = "/StarInfo/" + myStream.str();
         hdf5File.createGroup(starGroupName);
 
@@ -256,7 +256,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     tie(corner11Xrad, corner11Yrad) = planarToAngularFocalPlaneCoordinates(corner11Xmm, corner11Ymm);
 
 
-    // Compute the (alpha, delta) equatorial coordinates in [rad] of the center of the subfield [rad]
+    // Convert the angular [rad] focal plane coordinates to (alpha, delta) equatorial coordinates [rad]
 
     double centerRA, centerDec;
     tie(centerRA, centerDec) = angularFocalPlaneToSkyCoordinates(centerXrad, centerYrad);
