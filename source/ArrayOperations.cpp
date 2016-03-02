@@ -1,18 +1,9 @@
-#include <iostream>
-#include <iomanip>
-
-
-#include "Units.h"
-#include "Logger.h"
-
 #include "ArrayOperations.h"
 
 
-using std::cout;
-using std::endl;
-using std::stringstream;
-using std::setprecision;
-using std::setiosflags;
+using namespace std;
+
+
 
 // Functions used locally
 

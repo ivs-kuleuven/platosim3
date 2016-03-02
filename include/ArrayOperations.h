@@ -2,8 +2,14 @@
 #define ARRAY_OPERATIONS_H
 
 #include <string>
+#include <iostream>
+#include <iomanip>
 
 #include "armadillo"
+
+#include "Units.h"
+#include "Logger.h"
+
 
 using namespace std;
 

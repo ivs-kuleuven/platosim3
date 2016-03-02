@@ -1,7 +1,38 @@
+/**
+ * \class     Camera 
+ * 
+ * \brief     Handle the distortions and effects that are cause by the optical system of the Telescope.
+ * 
+ * \details
+ * 
+ * The Camera is basically the set of lenses with their mechanical mounts and support 
+ * structure also known as the TOU or Telescope Optical Units. The lenses distort the 
+ * incoming light in several ways. The following effects are due to the setup and 
+ * characteristics of the lenses:
+ *
+ *   \li Image Quality (Enclosed Energy)
+ *   \li Optical distortion
+ *   \li Vignetting
+ *   \li Point Spread Function (PSF)
+ *   \li PSF Breathing due to thermal variations
+ *   \li Transmission Efficiency
+ *   \li Straylight
+ *   \li Lens degradation and contamination (??)
+ * 
+ * Not all above effects are implemented in the simulator at this point. We concentrate on the 
+ * most distinct effects like PSF, optical distortion, and vignetting.
+ * 
+ * The lenses are the main source of point source spreading over the detector array. The camera is 
+ * therefore the obvious choice for applying the PSF correction. The PSF itself is described in it’s 
+ * own class, see PointSpreadFunction Class.
+ * 
+ */
 #include "Camera.h"
-#include "Units.h"
-#include "Constants.h"
-#include "PointSpreadFunction.h"
+
+
+
+
+
 
 
 
@@ -32,6 +63,8 @@ Camera::Camera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telesco
 
     psf = new PointSpreadFunction(configParam);
 
+    // Initialize the polynomial that describes the field distortion of the camera.
+
     polynomial = Polynomial1D(polynomialDegree, polynomialCoefficients);
 }
 
@@ -44,7 +77,7 @@ Camera::Camera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telesco
 
 
 /**
- * \brief  Destructor, free memory for psf and polynomial
+ * \brief  Destructor, free memory for psf
  */
 
 Camera::~Camera()
