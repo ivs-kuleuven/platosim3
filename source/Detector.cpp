@@ -3,11 +3,27 @@
 #include "Units.h"
 
 /**
- * Constructor.  
- *
- * \param hdf5file:                HFD5 file to write the detector images to.
- * \param configurationParameters: Configuration parameters for the detector.
- * \param camera:                  Camera to which to attach the detector.
+ * \brief Constructor.
+ * 
+ * \details
+ * 
+ * The constructor initializes the groups in the HDF5 file where the different maps (i.e. pixel map,
+ * bias register map, smearing map, etc.) will be saved. 
+ * 
+ * The following maps are initialized to zero:
+ * 
+ * \li \c pixelMap 
+ * \li \c subPixelMap
+ * \li \c biasMap
+ * \li \c smearingMap
+ * \li \c flatfieldMap
+ * \li \c cteMap
+ * 
+ * The flatfieldMap is filled at subPixel level and cteMap is filled at pixel level.
+ * 
+ * \param configParam    Configuration parameters for the detector.
+ * \param hdf5file       HFD5 file to write the detector images to.
+ * \param camera         Camera to which to attach the detector.
  */
 Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera)
 : HDF5Writer(hdf5file), internalTime(0.0), camera(camera), imageNr(0)
