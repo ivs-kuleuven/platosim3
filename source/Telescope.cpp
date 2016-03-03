@@ -73,12 +73,12 @@ Telescope::~Telescope()
  {
  	// Configuration parameters for the Telescope
 
- 	lightCollectingArea     = configParams.getDouble("Telescope/LightCollectingArea");  
-	transmissionEfficiency  = configParams.getDouble("Telescope/TransmissionEfficiency"); 
-	FOVsolidAngle           = sqDeg2sr(configParams.getDouble("Telescope/FOVSquareDegrees"));  
-	driftYawRms             = deg2rad(configParams.getDouble("Telescope/DriftYawRms") / 3600.);             
-    driftPitchRms           = deg2rad(configParams.getDouble("Telescope/DriftPitchRms") / 3600.);           
-    driftRollRms            = deg2rad(configParams.getDouble("Telescope/DriftRollRms") /3600.);            
+ 	lightCollectingArea     = configParams.getDouble("Telescope/LightCollectingArea") * 1.e-4;     // [m^2]  
+	transmissionEfficiency  = configParams.getDouble("Telescope/TransmissionEfficiency");          // [unitless]
+	FOVsolidAngle           = sqDeg2sr(configParams.getDouble("Telescope/FOVSquareDegrees"));      // [sr]
+	driftYawRms             = deg2rad(configParams.getDouble("Telescope/DriftYawRms") / 3600.);    // [rad]         
+    driftPitchRms           = deg2rad(configParams.getDouble("Telescope/DriftPitchRms") / 3600.);  // [rad]         
+    driftRollRms            = deg2rad(configParams.getDouble("Telescope/DriftRollRms") /3600.);    // [s]        
     driftTimeScale          = configParams.getDouble("Telescope/DriftTimeScale");    
 }
 
@@ -111,6 +111,10 @@ void Telescope::updatePointingCoordinates(double time)
 
     if (time == internalTime)
     {
+        Log.info("Telescope: At time " + to_string(time) + ": (RA, dec) = (" 
+                               + to_string(rad2deg(currentAlphaOpticalAxis)) + ", " 
+                               + to_string(rad2deg(currentDeltaOpticalAxis)) + ")");
+       
         return;
     }
 

@@ -1,9 +1,25 @@
+/**
+ * \class Simulation
+ * 
+ * \brief The starting point for any simulation.
+ * 
+ */
 
 #include "Simulation.h"
 
 
-// Constructor
-
+/**
+ * @brief      Constructor
+ * 
+ * @details
+ * 
+ * The constructor reads the YAML input file, and creates the HDF5 output file.
+ * Based on the user input a Jitter generator is created and all spacecraft
+ * components are initialized.
+ *
+ * @param[in]  inputFilename   the YAML input file 
+ * @param[in]  outputFilename  the HDF5 output file
+ */
 Simulation::Simulation(string inputFilename, string outputFilename)
 {
     // Parse the configuration parameters file
@@ -54,8 +70,10 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
 
 
-// Destructor
 
+/**
+ * @brief      Destructor, release memory of all spacecraft components
+ */
 Simulation::~Simulation()
 {
     // Delete order is the inverse of the order in which they were created
@@ -67,6 +85,7 @@ Simulation::~Simulation()
     delete platform;
     delete jitterGenerator;
     
+    // Close the output hdf5 file
 
     hdf5File.close();
 }
@@ -88,7 +107,7 @@ void Simulation::configure(ConfigurationParameters &configParams)
 {
     exposureTime      = configParams.getDouble("ObservingParameters/ExposureTime"); 
     Nexposures        = configParams.getInteger("ObservingParameters/NumExposures"); 
-    useJitterFromFile = configParams.getInteger("Platform/UseJitterFromFile");
+    useJitterFromFile = configParams.getBoolean("Platform/UseJitterFromFile");
 }
 
 
@@ -98,18 +117,11 @@ void Simulation::configure(ConfigurationParameters &configParams)
 
 
 
-// Simulation::run()
-//
-// PURPOSE: Loop over all exposures
-// 
-// INPUT: 
-//     . startTime: begin time of the very first exposure. Time is expressed in seconds
-//                  in the rest of the code.
-//
-// OUTPUT:
-//     . None
-//
-
+/**
+ * @brief      Loop over all exposures
+ *
+ * @param[in]  startTime  begin time of the very first exposure. Time is expressed in seconds in the rest of the code.
+ */
 void Simulation::run(double startTime)
 {
     currentTime = startTime;

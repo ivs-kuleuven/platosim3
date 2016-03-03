@@ -10,6 +10,7 @@
 #include "armadillo"
 
 #include "Logger.h"
+#include "Units.h"
 #include "HDF5File.h"
 #include "HDF5Writer.h"
 #include "ConfigurationParameters.h"
@@ -36,9 +37,11 @@ class Detector : public HDF5Writer
         pair<double, double> planarFocalPlaneToPixelCoordinates(double xFPprime, double yFPprime);
 
         pair<double, double> getPlanarFocalPlaneCoordinatesOfSubfieldCenter();
-        double getDiagonalLengthOfSubfield();
+        tuple<double, double, double, double, double, double, double, double> getPlanarFocalPlaneCoordinatesOfSubfieldCorners();
 
-        virtual bool addFlux(double xFPprime, double yFPprime, double flux);
+        double getSolidAngleOfOnePixel(double plateScale);
+
+        virtual tuple<bool, double, double> addFlux(double xFPprime, double yFPprime, double flux);
         virtual void addFlux(double flux);
 
         bool isInSubfield(const double xFPmm, const double yFPmm);

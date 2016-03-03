@@ -15,8 +15,20 @@ using namespace std;
 
 
 
-// Test Fixture: setup configuration parameters for the Detector class
-//               and handle the HDF5 open-close.
+/**
+ * \class DetectorTest
+ * 
+ * \brief Test Fixture for the Detector class. 
+ * 
+ * \details
+ * 
+ * Setup configuration parameters for the Detector class and handle the HDF5 open-close.
+ * 
+ * Input parameters for this test are located in the file 'input_DetectorTest.yaml' in the
+ * testData directory of the distribution.
+ * 
+ * The test creates an HDF5 file 'detectorTest.hdf5' in the current working directory. This file is removed after the test finishes.
+ */
 
 class DetectorTest: public testing::Test
 {
@@ -25,24 +37,23 @@ class DetectorTest: public testing::Test
         virtual void SetUp()
         {
             configParams = ConfigurationParameters("../testData/input_DetectorTest.yaml");
-
-            remove(hdf5Filename.c_str());
             hdf5File.open(hdf5Filename);
         }
 
         virtual void TearDown()
         {
             hdf5File.close();
+            FileUtilities::remove(hdf5Filename);
         }
 
         void reset()
         {
             hdf5File.close();
-            remove(hdf5Filename.c_str());
+            FileUtilities::remove(hdf5Filename);
             hdf5File.open(hdf5Filename);
         }
 
-        string hdf5Filename = "/tmp/detectorTest.hdf5";
+        string hdf5Filename = "detectorTest.hdf5";
         ConfigurationParameters configParams;
         HDF5File hdf5File;
 };
@@ -58,7 +69,11 @@ class DetectorTest: public testing::Test
 
 
 
-// MyDetector declares some of the protected Detector methods as public, so that they can be tested.
+/**
+ * 
+ * \brief This subclass of Detector serves the sole purpose of testing protected methods of Detector.
+ * 
+ */
 
 class MyDetector : public Detector
 {
@@ -94,6 +109,8 @@ TEST_F(DetectorTest, checkConversionsBetweenPixelsAndFocalPlane)
     double xFPprime, yFPprime;
 
     vector<map<string, double>> pixel2fp;
+
+    // Initialise all objects necessary to set up a Detector object
 
     JitterFromRedNoise jitterGenerator(configParams);
     Platform platform(configParams, hdf5File, jitterGenerator);

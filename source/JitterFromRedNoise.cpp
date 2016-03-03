@@ -91,6 +91,13 @@ void JitterFromRedNoise::configure(ConfigurationParameters &configParams)
 
 tuple<double, double, double> JitterFromRedNoise::getNextYawPitchRoll(double timeInterval)
 {
+    // If the time interval is zero, return the last computed values
+
+    if (timeInterval == 0.0)
+    {
+        make_tuple(lastYaw, lastPitch, lastRoll);
+    }
+
     // Use bind() to get a shorter normal01() function to generate random numbers instead of 
     // the cumbersome normalDistribition(jitterNoiseGenerator). Note: the std::ref() is needed, 
     // otherwise a copy is passed and the generator would always return the same number.

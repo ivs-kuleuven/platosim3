@@ -5,7 +5,10 @@
 
 
 /**
- * \brief Default Constructor
+ * \brief Constructor
+ * 
+ * \param configParams    Configuration parameters as read from the (e.g. yaml) inputfile
+ * 
  */
 
 Sky::Sky(ConfigurationParameters &configParams)
@@ -21,7 +24,7 @@ Sky::Sky(ConfigurationParameters &configParams)
     if (myfile.is_open())
     {
         string temp;
-        long n = 0;
+        unsigned int n = 0;
         while (getline(myfile, temp))
         {
             istringstream buffer(temp);
@@ -96,7 +99,7 @@ void Sky::configure(ConfigurationParameters &configParams)
  * \return           A StarCatalog object containing the ID, RA, dec, and Vmag of each star within the circle.
  */
 
-StarCatalog Sky::getStarsWithinRadiusFrom(const double RA0, const double dec0, const double radius, Unit angleUnit)
+StarCatalog Sky::getStarsWithinRadiusFrom(double RA0, double dec0, double radius, Unit angleUnit)
 {
     return starCatalog.getStarsWithinRadiusFrom(RA0, dec0, radius, angleUnit);
 }
@@ -112,20 +115,20 @@ StarCatalog Sky::getStarsWithinRadiusFrom(const double RA0, const double dec0, c
 
 
 /**
- * \brief Return the solar radiant flux at the givenwavelength, measured above the atmosphere of the earth.
+ * \brief Return the solar radiant flux at the given wavelength, measured above the atmosphere of the earth.
  * 
  * \details This function uses the Wehrli (1985) solar irradiance table
  *          plus linear interpolation. Note that the units of the tabulated
- *          data radiant fluxes are J s^{-1} m^{-2} (nm)^{-1}, where nm
+ *          data radiant fluxes are \f$ J s^{-1} m^{-2} (nm)^{-1} \f$, where nm
  *          is nanometer (unit of wavelength) while the units of the radiant
- *          flux that this function returns is SI: J s^{-1} m^{-2} m^{-1}
+ *          flux that this function returns is SI: \f$ J s^{-1} m^{-2} m^{-1} \f$
  * 
  * \param lambda  Wavelength [m], should be in [199.5 nm, 100075 nm]
  * 
- * \return solar radiant flux at air mass zero [J s^{-1} m^{-2} m^{-1}]
+ * \return solar radiant flux at air mass zero [\f$J s^{-1} m^{-2} m^{-1}\f$]
  */
 
-double Sky::solarRadiantFlux(const double lambda)
+double Sky::solarRadiantFlux(double lambda)
 {
     int i;         // Index of the first point, defining the linear relation
     double result; // solar radiant flux in SI units.
@@ -184,10 +187,10 @@ double Sky::solarRadiantFlux(const double lambda)
  * \param lambda1  Lower wavelength [m] of the interval, should be in [199.5 nm, 100075 nm]
  * \param lambda2  Upper wavelength [m] of the interval, should be in [199.5 nm, 100075 nm]
  * 
- * \return Integrated solar radiant flux [J s^{-1} m^{-2}]
+ * \return Integrated solar radiant flux [\f$J s^{-1} m^{-2}\f$]
  */
 
-double Sky::solarRadiantFlux(const double lambda1, const double lambda2)
+double Sky::solarRadiantFlux(double lambda1, double lambda2)
 {
     double lam1;
     double lam2;
@@ -285,7 +288,7 @@ double Sky::solarRadiantFlux(const double lambda1, const double lambda2)
  * \param lambda     Wavelengths of the passband [m], should be in [199.5 nm, 100075 nm]
  * \param throughput Throughput of the passband
  * 
- * \return Solar radiant flux  [J s^{-1} m^{-2}]
+ * \return Solar radiant flux  [\f$J s^{-1} m^{-2}\f$]
  */
 
 double Sky::solarRadiantFlux(vector<double> &lambda, vector<double> &throughput)
@@ -341,10 +344,10 @@ double Sky::solarRadiantFlux(vector<double> &lambda, vector<double> &throughput)
  * \param lambda1  Lower wavelength of the interval [m]
  * \param lambda2  Upper wavelength of the interval [m]
  * 
- * \return Zodiacal flux [J s^{-1} m^{-2} sr^{-1}]
+ * \return Zodiacal flux [\f$J s^{-1} m^{-2} sr^{-1}\f$]
  */
 
-double Sky::zodiacalFlux(const double alpha, const double delta, const double lambda1, const double lambda2)
+double Sky::zodiacalFlux(double alpha, double delta, double lambda1, double lambda2)
 {
     double lam, beta;
     double flux500;
@@ -439,10 +442,10 @@ double Sky::zodiacalFlux(const double alpha, const double delta, const double la
  * \param lambda      Wavelengths of the passband [m]
  * \param throughput  Throughput of the passband
  * 
- * \return  Zodiacal flux [J s^{-1} m^{-2} sr^{-1}]
+ * \return  Zodiacal flux [\f$J s^{-1} m^{-2} sr^{-1}\f$]
  */
 
-double Sky::zodiacalFlux(const double alpha, const double delta, vector<double> &lambda, vector<double> &throughput)
+double Sky::zodiacalFlux(double alpha, double delta, vector<double> &lambda, vector<double> &throughput)
 {
     double lam, beta;
     double flux500;
@@ -544,10 +547,10 @@ double Sky::zodiacalFlux(const double alpha, const double delta, vector<double> 
  * \param lambda1  Begin wavelength of the interval [m]
  * \param lambda2  End   wavelength of the interval [m]
  * 
- * \return Stellar background flux in the Pioneer 10 blue/red passband [J s^{-1} m^{-2} sr^{-1}]
+ * \return Stellar background flux in the Pioneer 10 blue/red passband [\f$J s^{-1} m^{-2} sr^{-1}\f$]
  */
 
-double Sky::stellarBackgroundFlux(const double RA, const double dec, const double lambda1, const double lambda2)
+double Sky::stellarBackgroundFlux(double RA, double dec, double lambda1, double lambda2)
 {
     double alpha, delta;
     int alpha_index, delta_index;
@@ -664,10 +667,10 @@ double Sky::stellarBackgroundFlux(const double RA, const double dec, const doubl
  * \param lambda      Wavelength values of the passband  [m]
  * \param throughput  Throughput of the passband
  * 
- * \return  Stellar background flux [J s^{-1} m^{-2} sr^{-1}]
+ * \return  Stellar background flux [\f$J s^{-1} m^{-2} sr^{-1}\f$]
  */
 
-double Sky::stellarBackgroundFlux (const double RA, const double dec, vector<double> &lambda, vector<double> &throughput)
+double Sky::stellarBackgroundFlux (double RA, double dec, vector<double> &lambda, vector<double> &throughput)
 {
     int alpha_index, delta_index;
     double blueflux, redflux;
@@ -814,7 +817,7 @@ double Sky::stellarBackgroundFlux (const double RA, const double dec, vector<dou
  * \param index
  */
 
-void Sky::locate(const double x, const double *array, int N, int &index)
+void Sky::locate(double x, const double *array, int N, int &index)
 {
     int index1, index2;
 
