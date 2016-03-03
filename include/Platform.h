@@ -42,10 +42,15 @@ class Platform : public Heartbeat, HDF5Writer
         arma::colvec spacecraftToEquatorialCoordinates(arma::colvec &coordSC);
 
 
+
+
     protected:
 
         arma::colvec rotateYawPitchRoll(arma::colvec coord, const double yaw, const double pitch, const double roll);
         
+        virtual void initHDF5Groups() override;
+        virtual void flushOutput() override;
+
 
         double internalTime;                        // [s]
         double currentRA;                           // Current right Ascension of spacecraft pointing axis (zSC-axis) [rad]
@@ -55,6 +60,13 @@ class Platform : public Heartbeat, HDF5Writer
 
         JitterGenerator &jitterGenerator; 
  
+        vector<double> historyTime;                 // The following vectors stores all computed ASC values to write to HDF5
+        vector<double> historyRA;
+        vector<double> historyDec;
+        vector<double> historyYaw;
+        vector<double> historyPitch;
+        vector<double> historyRoll;
+
     private:
 
 };

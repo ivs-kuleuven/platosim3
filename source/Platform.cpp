@@ -14,6 +14,10 @@
 Platform::Platform(ConfigurationParameters configParams, HDF5File &hdf5File, JitterGenerator &jitterGenerator)
 : HDF5Writer(hdf5File), internalTime(0.0), jitterGenerator(jitterGenerator)
 {
+    // Initialise the HDF5 group(s) in the output file
+
+    initHDF5Groups();
+
     // Configure the Platfrom object
 
     configure(configParams);
@@ -31,7 +35,7 @@ Platform::Platform(ConfigurationParameters configParams, HDF5File &hdf5File, Jit
 
 Platform::~Platform()
 {
-
+    flushOutput();
 }
 
 
@@ -53,6 +57,62 @@ void Platform::configure(ConfigurationParameters &configParams)
     originalDec = deg2rad(configParams.getDouble("ObservingParameters/DecPointing"));     
     currentRA   = originalRA;
     currentDec  = originalDec;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Creates the group(s) in the HDF5 file where the ACS information will be stored. 
+ *        These group(s) have to be created once, at the very beginning.
+ */
+
+void Platform::initHDF5Groups()
+{
+    Log.debug("Platform: initialising HDF5 groups");
+
+    hdf5File.createGroup("/ACS");
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Write all recorded information to the HDF5 output file
+ */
+
+void Platform::flushOutput()
+{
+     Log.info("Platform: Flushing output to HDf5 file.");
+
+     if (!historyTime.empty())
+     {
+        hdf5File.writeArray("/ACS/", "Time",        historyTime.data(),  historyTime.size());
+        hdf5File.writeArray("/ACS/", "PlatformRA",  historyRA.data(),    historyRA.size());
+        hdf5File.writeArray("/ACS/", "PlatformDec", historyDec.data(),   historyDec.size());
+        hdf5File.writeArray("/ACS/", "Yaw",         historyYaw.data(),   historyYaw.size());
+        hdf5File.writeArray("/ACS/", "Pitch",       historyPitch.data(), historyPitch.size());
+        hdf5File.writeArray("/ACS/", "Roll",        historyRoll.data(),  historyRoll.size());
+     }
+     else
+     {
+        Log.warning("Platform: No ACS history to flush to HDF5 file.");
+     }
 }
 
 
@@ -155,6 +215,16 @@ pair<double, double> Platform::getPointingCoordinates(double time)
     // Update the internal clock
 
     internalTime = time;
+
+    // Store the computed values so that they can later be saved to HDF5
+    // RA & Dec are saved in degrees. Yaw, pitch, roll in arcsec.
+
+    historyTime.push_back(time);
+    historyRA.push_back(rad2deg(currentRA));
+    historyDec.push_back(rad2deg(currentDec));
+    historyYaw.push_back(rad2deg(yaw) * 3600.);
+    historyPitch.push_back(rad2deg(pitch) * 3600.);
+    historyRoll.push_back(rad2deg(roll) * 3600.);
 
     // That's it
 
