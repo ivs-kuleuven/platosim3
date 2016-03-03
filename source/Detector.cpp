@@ -239,10 +239,30 @@ void Detector::generateFlatfieldMap()
 
 	flatfieldMap = squareMap.submat(0, 0, flatfieldMap.n_rows - 1, flatfieldMap.n_cols - 1);
 
-	// Save the flatfield in the HDF5 file
+	// Save the intra-pixel flatfield in the HDF5 file
 
-	hdf5File.writeArray("/Flatfield", "flatfield", flatfieldMap);
+	hdf5File.writeArray("/Flatfield", "IRNU", flatfieldMap);
 
+	// Rebin the intra-pixel flatfield to the pixel flatfield (IRNU -> PRNU)
+	// and also write this array to the HDF5 outputfile. This PRNU array is not used 
+	// in the remainder of the simulation.
+
+	arma::Mat<float> prnu(numRowsPixelMap, numColumnsPixelMap, arma::fill::zeros);
+
+	for (unsigned int row = 0; row < numRowsPixelMap; row++)
+	{
+		for (unsigned int column = 0; column < numColumnsPixelMap; column++)
+		{
+			const unsigned int beginRow = row * numSubPixelsPerPixel;
+			const unsigned int beginCol = column * numSubPixelsPerPixel;
+			const unsigned int endRow = (row + 1) * numSubPixelsPerPixel - 1;
+			const unsigned int endCol = (column + 1) * numSubPixelsPerPixel - 1;
+
+			prnu(row, column) = arma::accu(flatfieldMap.submat(beginRow, beginCol, endRow, endCol));
+		}
+	}
+
+	hdf5File.writeArray("/Flatfield", "PRNU", prnu);
 }
 
 
