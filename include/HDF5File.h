@@ -38,6 +38,7 @@ class HDF5File
         void writeAttribute(string groupName, string attributeName, int attributeValue);
         void writeAttribute(string groupName, string attributeName, long attributeValue);
         void writeAttribute(string groupName, string attributeName, double attributeValue);
+        void writeAttribute(string groupName, string attributeName, bool attributeValue);
 
         void writeArray(string groupName, string arrayName, int*          array, int size);
         void writeArray(string groupName, string arrayName, unsigned int* array, int size);
