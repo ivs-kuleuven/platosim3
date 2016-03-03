@@ -184,15 +184,16 @@ pair<double, double> Platform::getPointingCoordinates(double time)
 
     // The roll axis (= unit vector in z-direction in SC reference frame) will have slightly 
     // rotated due to jitter. Find out the cartesian coordinates of the _new_ jitter axis in 
-    // the _old_ SpaceCraft reference frame. 
+    // the SpaceCraft reference frame of the original pointing. 
 
     arma::colvec zUnitBeforeJitter = {0.0, 0.0, 1.0};
     arma::colvec zUnitAfterJitter = rotateYawPitchRoll(zUnitBeforeJitter, yaw, pitch, roll);
 
     // Compute the celestial equatorial cartesian coordinates of the new roll axis
-    // This requires the _old_ pointing coordinates of the platform.
+    // This requires the original pointing coordinates of the platform.
 
-    const arma::colvec zUnitAfterJitterEQ = spacecraftToEquatorialCoordinates(zUnitAfterJitter);
+    const bool useOriginalPointingCoordinates = true;
+    const arma::colvec zUnitAfterJitterEQ = spacecraftToEquatorialCoordinates(zUnitAfterJitter, useOriginalPointingCoordinates);
 
     // Convert from cartesian to celestial equatorial coordinates
 
