@@ -270,18 +270,33 @@ double Platform::getHeartbeatInterval()
  *        given the 3D cartesian coordinates in the spacecraft (SC) reference frame
  * 
  * \param coordSC   (xSC, ySC, zSC): cartesian coordinates of the point in the spacecraft reference frame
- 
+ * \param useOriginalPointingCoordinates  If true: use original pointing coordinates (before jitter started)
+ *                                        If false: use current pointing coordinates (affected by jitter)
+ *
  * \return coordEQ  (xEQ, yEQ, zEQ): cartesian coordinates in the celestial equatorial reference frame
  */
 
-arma::colvec Platform::spacecraftToEquatorialCoordinates(arma::colvec &coordSC)
+arma::colvec Platform::spacecraftToEquatorialCoordinates(arma::colvec &coordSC, bool useOriginalPointingCoordinates)
 {
+    double RA, dec;
+
+    if (useOriginalPointingCoordinates)
+    {
+        RA = originalRA;
+        dec = originalDec;
+    }
+    else
+    {
+        RA = currentRA;
+        dec = currentDec;
+    }
+
     // Some handy abbreviations
 
-    const double cosAlpha = cos(currentRA);
-    const double sinAlpha = sin(currentRA);
-    const double cosDelta = cos(currentDec);
-    const double sinDelta = sin(currentDec);
+    const double cosAlpha = cos(RA);
+    const double sinAlpha = sin(RA);
+    const double cosDelta = cos(dec);
+    const double sinDelta = sin(dec);
 
     // The rotation matrices
 
