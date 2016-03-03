@@ -334,10 +334,10 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
 
     // Later on we will have to convert from magnitudes to fluxes. Precompute a constant prefactor.
-    // 100023.8 is the photon flux [photons/s/cm^2/nm] for a V=0 G2V-star.
+    // 1.00238e8 is the photon flux [photons/s/m^2/nm] for a V=0 G2V-star.
     // Units of fluxFactor: [photons/s]
   
-    const double fluxFactor = 10023.8 * throughputBandwidth * telescope.getTransmissionEfficiency() * telescope.getLightCollectingArea(); 
+    const double fluxFactor = 1.00238e8 * throughputBandwidth * telescope.getTransmissionEfficiency() * telescope.getLightCollectingArea(); 
 
 
     // Update the internal clock
@@ -426,28 +426,27 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
     }
 
-
     // Take the flux of the stellar background and the zodiacal light into account.
     // Use one value for the entire subfield. As wavelength range we take the entire throughput band.
+    // Note: - the output of sky.zodicalFlux() is in [J s^{-1} m^{-2} sr^{-1} m^{-1}]
 
-    const double energyOfOnePhoton = Constants::CLIGHT * Constants::HPLANCK / (throughputLambdaC * 1.e-9);                       // [J]
-    const double lambda1 = (throughputLambdaC - throughputBandwidth/2.0) * 1.e-9;                                                // [m]
-    const double lambda2 = (throughputLambdaC + throughputBandwidth/2.0) * 1.e-9;                                                // [m]
+    const double energyOfOnePhoton = Constants::CLIGHT * Constants::HPLANCK / (throughputLambdaC * 1.e-9);                // [J]
+    const double lambda1 = (throughputLambdaC - throughputBandwidth/2.0) * 1.e-9;                                         // [m]
+    const double lambda2 = (throughputLambdaC + throughputBandwidth/2.0) * 1.e-9;                                         // [m]
     
     const double zodiacalFlux = sky.zodiacalFlux(centerRA, centerDec, lambda1, lambda2)                                                      // [phot/exposure]
                                 * exposureTime * telescope.getTransmissionEfficiency() * telescope.getLightCollectingArea()
-                                * telescope.getFOVsolidAngle() / energyOfOnePhoton; 
+                                * detector.getSolidAngleOfOnePixel(plateScale) / energyOfOnePhoton; 
 
     const double stellarBackgroundFlux = sky.stellarBackgroundFlux(centerRA, centerDec, lambda1, lambda2)                                    // [phot/exposure]
                                          * exposureTime * telescope.getTransmissionEfficiency() * telescope.getLightCollectingArea()
-                                         * telescope.getFOVsolidAngle() / energyOfOnePhoton;      
+                                         * detector.getSolidAngleOfOnePixel(plateScale) / energyOfOnePhoton;      
+
 
     detector.addFlux(zodiacalFlux + stellarBackgroundFlux);
 
     Log.debug("Camera: zodiacal flux level in subfield = " + to_string(zodiacalFlux) + " photons/pixel/exposure");
-    Log.debug("Camera: stellar background flux level in subfield = " + to_string(zodiacalFlux) + " photons/pixel/exposure");
-
-
+    Log.debug("Camera: stellar background flux level in subfield = " + to_string(stellarBackgroundFlux) + " photons/pixel/exposure");
 
     // Convolve with the point spread function
 

@@ -409,32 +409,35 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 tuple<bool, double, double> Detector::addFlux(double xFPprime, double yFPprime, double flux)
 {
+	// Convert from FP' coordinates to CCD pixel coordinates
 
-	// Detector origin offset (pixel level)
+	double pixRow, pixColumn;
+	tie(pixRow, pixColumn) = planarFocalPlaneToPixelCoordinates(xFPprime, yFPprime);
 
-	const double rowOffset    = (xFPprime - originOffsetY) / pixelSize;
-	const double columnOffset = (yFPprime - originOffsetX) / pixelSize;
+	// Sub-field coordinates, taking into account the edge pixels 
+	// (subpixRow, subpixColumn) are the indices of the star in the subpixelMap. So they are not 
+	// subpixel coordinates in the CCD frame, but in the subfield reference frame.
 
-	// Detector orientation (pixel level)
+	const double subpixColumn = round((pixColumn - subFieldZeroPointColumn + numEdgePixels) * numSubPixelsPerPixel);
+	const double subpixRow    = round((pixRow    - subFieldZeroPointRow    + numEdgePixels) * numSubPixelsPerPixel);
 
-	const double pixColumn = columnOffset * cos(orientationAngle) - rowOffset * sin(orientationAngle);
-	const double pixRow    = columnOffset * sin(orientationAngle) + rowOffset * cos(orientationAngle);
+	// Convert back the _rounded_ subpixel coordinates to pixel coordinates
+	// E.g. if there are 4 subpixels per pixel, then the pixel coordinates should always end with
+	//      0.0, 0.25, 0.5, or 0.75
 
-	// Sub-field incl. edge pixels (also correct for sub-field zeropoint)
+	pixRow    = subpixRow    / numSubPixelsPerPixel - numEdgePixels;
+	pixColumn = subpixColumn / numSubPixelsPerPixel - numEdgePixels;
 
-	const double subpixColumn = (pixColumn - subFieldZeroPointColumn + numEdgePixels) * numSubPixelsPerPixel;
-	const double subpixRow    = (pixRow    - subFieldZeroPointRow    + numEdgePixels) * numSubPixelsPerPixel;
-
-	// Add flux in this->subPixelMap at (row, column)
+	// Add the flux to the subPixelMap
 
 	if (isInSubPixelMap(subpixRow, subpixColumn))
 	{
-		subPixelMap((int) round(subpixRow), (int) round(subpixColumn)) += flux;
+		subPixelMap((int) subpixRow, (int) subpixColumn) += flux;
 		return make_tuple(true, pixRow, pixColumn);
 	}
 	else
 	{
-		return make_tuple(true, pixRow, pixColumn);
+		return make_tuple(false, pixRow, pixColumn);
 	}
 }
 
@@ -464,8 +467,8 @@ bool Detector::isInSubfield(const double xFPprime, const double yFPprime)
 {
 	// Convert to pixel coordinates in the unrotated CCD reference frame
 
-	double rowUnrot = (xFPprime - originOffsetY) / pixelSize;
-	double colUnrot = (yFPprime - originOffsetX) / pixelSize;
+	double rowUnrot = (xFPprime - originOffsetY) / (pixelSize / 1000.0);
+	double colUnrot = (yFPprime - originOffsetX) / (pixelSize / 1000.0);
 
 	// Compute the coordinates in the rotated CCD reference frame
 
@@ -496,18 +499,16 @@ bool Detector::isInSubfield(const double xFPprime, const double yFPprime)
 
 
 /**
- * \brief   Check whether the given (row, column) coordinates are in the
- *          sub-pixel map.
+ * \brief   Check whether the given (row, column) indices are within the array range of the subpixel map.
  *
- * \details  The input parameters row & column come from an coordinate transformation
+ * \details  The input parameters row & column come from a coordinate transformation
  *           in the focal plane, and as a result are not necessarily integers. For this 
  *           function it's not necessary to round them to the nearest integer. 
  *
- * \param  row:    Row coordinate     [sub-pixel].
- * \param  column: Column coordinate  [sub-pixel].
+ * \param  row:    Row index. NOT a coordinate in the CCD frame, but in the subfield frame. [sub-pixel].
+ * \param  column: Column index.NOT a coordinate in the CCD frame, but in the subfield frame.  [sub-pixel].
  *
- * \return  True if the given (row, column) coordinates are in the sub-pixel map;
- *          false otherwise.
+ * \return  True if the given (row, column) coordinates are in the sub-pixel map; false otherwise.
  */
 
 bool Detector::isInSubPixelMap(double row, double column)
@@ -527,16 +528,17 @@ bool Detector::isInSubPixelMap(double row, double column)
 /**
  * \brief: Add the given flux value to (all sub-pixels of) the sub-pixel map.
  *
- * \param flux: Flux to add to the sub-pixel map [photons].
+ * \param flux: Flux to add to the sub-pixel map [photons/pixel].
  *
- * \pre Pixel, bias register, and smearing maps filled with zeroes.
- *
- * \post Pixel unit in the sub-pixel map: [photons].
- * \post Pixel, bias register, and smearing maps filled with zeroes.
  */
+
 void Detector::addFlux(double flux)
 {
-	subPixelMap += flux;
+	// The flux is expressed in [photons/pixel] but we need the quantity expressed 
+	// in [photons/subpixel]. There are (numSubPixelsPerPixel)^2 per pixel (the
+	// name is thus a bit of a misnomer.).
+
+	subPixelMap += flux / numSubPixelsPerPixel / numSubPixelsPerPixel;
 }
 
 
@@ -1414,6 +1416,26 @@ tuple<double, double, double, double, double, double, double, double> Detector::
 
 
 
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Return the solid angle of 1 single pixel on the sky. [sr]
+ * 
+ * \param plateScale  The platescale of the camera [arcsec/micron]
+ * \return            Solid angle in [s]
+ */
+
+double Detector::getSolidAngleOfOnePixel(double plateScale)
+{
+	return sqDeg2sr(pow(pixelSize * plateScale / 3600.0, 2));
+}
 
 
 
