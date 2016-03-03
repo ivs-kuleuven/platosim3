@@ -121,7 +121,7 @@ void Camera::initHDF5Groups()
 
 
 /**
- * \brief [brief description]
+ * \brief Write all recorded information to the HDF5 output file
  * 
  */
 
@@ -134,7 +134,7 @@ void Camera::flushOutput()
 
     vector<unsigned int> starIDs;
     for(auto keyValuePair: detectedStarInfo) starIDs.push_back(keyValuePair.first);
-    if (starIDs.size() != 0)
+    if (!starIDs.empty())
     {
         hdf5File.writeArray("StarInfo/", "DetectedStarIDs", starIDs.data(), starIDs.size());
     }
