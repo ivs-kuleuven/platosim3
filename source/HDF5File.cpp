@@ -19,6 +19,7 @@
 /**
  * \brief      Default Constructor
  */
+ 
 HDF5File::HDF5File()
 : file(NULL), fileIsOpen(false)
 {
@@ -55,9 +56,13 @@ HDF5File::HDF5File(string filename, bool readonly)
 /**
  * \brief      Destructor
  */
+
 HDF5File::~HDF5File()
 {
-    close();
+    if (fileIsOpen)
+    {
+        close();
+    }
     delete file;
 }
 
@@ -148,7 +153,7 @@ void HDF5File::close()
     {
         file->close();
         delete file;
-        file = NULL;
+        file = nullptr;
         fileIsOpen = false;
     }
 }
