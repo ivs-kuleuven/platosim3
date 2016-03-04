@@ -113,10 +113,7 @@ TEST_F(DetectorTest, checkConversionsBetweenPixelsAndFocalPlane)
     // Initialise all objects necessary to set up a Detector object
 
     JitterFromRedNoise jitterGenerator(configParams);
-    Platform platform(configParams, hdf5File, jitterGenerator);
     Sky sky(configParams);
-    Telescope telescope(configParams, hdf5File, platform);
-    Camera camera(configParams, hdf5File, telescope, sky);
 
     // Settings for camera A
 
@@ -142,6 +139,9 @@ TEST_F(DetectorTest, checkConversionsBetweenPixelsAndFocalPlane)
         configParams.setParameter("CCD/OriginOffsetY", to_string(data["zeroPointY"]));
         configParams.setParameter("CCD/Orientation", to_string(data["ccdAngle"]));
     
+        Platform platform(configParams, hdf5File, jitterGenerator);
+        Telescope telescope(configParams, hdf5File, platform);
+        Camera camera(configParams, hdf5File, telescope, sky);
         MyDetector detector(configParams, hdf5File, camera);
     
         row = data["xCCD"];
