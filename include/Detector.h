@@ -82,7 +82,7 @@ class Detector : public HDF5Writer
         arma::Mat<float> smearingMap;            // Smearing map (i.e. over-scan strip)
         arma::Mat<float> biasMap;                // Bias map (i.e. pre-scan strip)
 //        arma::Mat<float> cteMap;                 // CTE map
-        arma::Mat<float> flatfieldMap;           // Flatfield map
+        arma::Mat<float> flatfieldMap;           // Intra-pixel flatfield map
 
         unsigned int numRows;                    // Nr of rows of the detector (= size in y-direction) [pixels]
     	unsigned int numColumns;                 // Nr of columns of the detector (= size in x-direction = readout direction) [pixels]

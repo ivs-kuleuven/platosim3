@@ -41,6 +41,9 @@ class Sky
         double stellarBackgroundFlux(double RA, double dec, double lambda1, double lambda2);
         double stellarBackgroundFlux(double RA, double decl, vector<double> &lambda, vector<double> &throughput);
 
+        pair<double, double> getCoordinatesOfStarWithID(int id, Unit outputAngleUnit = Angle::degrees);
+        double getVmagnitudeOfStarWithID(int id);
+
     protected:
 
         double solarRadiantFlux(double lambda);
