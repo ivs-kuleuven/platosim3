@@ -18,6 +18,7 @@
 #include "PointSpreadFunction.h"
 #include "Polynomial1D.h"
 #include "Sky.h"
+#include "StringUtilities.h"
 #include "Telescope.h"
 #include "Units.h"
 

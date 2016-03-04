@@ -712,8 +712,16 @@ pair<double, double> Camera::planarToAngularFocalPlaneCoordinates(double xFPmm, 
  */
 pair<double, double> Camera::planarToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm)
 {
-    double xFPdist = polynomial(xFPmm);
-    double yFPdist = polynomial(yFPmm);
+    double alpha = atan2(yFPmm, xFPmm);  // [radians]
+    
+    double rFP = sqrt(xFPmm * xFPmm + yFPmm * yFPmm);
+    double rFPdist = polynomial(rFP);
+    
+    double xFPdist = cos(alpha) * rFPdist;
+    double yFPdist = sin(alpha) * rFPdist;
     
     return make_pair(xFPdist, yFPdist);
 }
+
+
+
