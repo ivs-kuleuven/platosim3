@@ -59,7 +59,7 @@ class CameraTest : public testing::Test
 class MyCamera : public Camera
 {
     public:
-        MyCamera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telescope &telescope, Sky &sky);
+        MyCamera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telescope &telescope, Sky &sky): Camera(configParam, hdf5file, telescope, sky) {};
 
         pair<double, double> test_skyToAngularFocalPlaneCoordinates(double raStar, double decStar) {return skyToAngularFocalPlaneCoordinates(raStar, decStar);};
         pair<double, double> test_angularFocalPlaneToSkyCoordinates(double xFPprime, double yFPprime) {return angularFocalPlaneToSkyCoordinates(xFPprime, yFPprime);};
@@ -74,19 +74,6 @@ class MyCamera : public Camera
         void test_setDistortionPolynomial(Polynomial1D &polynomial) {setDistortionPolynomial(polynomial);};
 };
 
-
-/**
- * @brief      Constructor
- *
- * @param      configParam  Configuration parameters
- * @param      hdf5file     Output HDF5 file
- * @param      telescope    Telescope
- * @param      sky          Sky
- */
-MyCamera::MyCamera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telescope &telescope, Sky &sky)
-: Camera(configParam, hdf5file, telescope, sky)
-{
-}
 
 
 
@@ -154,22 +141,22 @@ TEST_F(CameraTest, GnomonicRadialDistance)
 
         EXPECT_NEAR(data["radius"], rad2deg(radius), 0.0001);
 
-        Log.debug("CameraTest.GnomonicRadialDistance: xDeg, yDeg [deg] = " + dtos(xDeg) + ", " + dtos(yDeg));
-        Log.debug("CameraTest.GnomonicRadialDistance: xFPrad, yFPrad [rad] = " + dtos(xFPrad) + ", " + dtos(yFPrad));
-        Log.debug("CameraTest.GnomonicRadialDistance: radius [rad] = " + dtos(radius));
-        Log.debug("CameraTest.GnomonicRadialDistance: radius [deg] = " + dtos(rad2deg(radius)));
+        //Log.debug("CameraTest.GnomonicRadialDistance: xDeg, yDeg [deg] = " + dtos(xDeg) + ", " + dtos(yDeg));
+        //Log.debug("CameraTest.GnomonicRadialDistance: xFPrad, yFPrad [rad] = " + dtos(xFPrad) + ", " + dtos(yFPrad));
+        //Log.debug("CameraTest.GnomonicRadialDistance: radius [rad] = " + dtos(radius));
+        //Log.debug("CameraTest.GnomonicRadialDistance: radius [deg] = " + dtos(rad2deg(radius)));
 
         tie(xFPprime, yFPprime) = camera.test_angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad);
 
         EXPECT_NEAR(data["xFP"], xFPprime, 0.00001);
         EXPECT_NEAR(data["yFP"], yFPprime, 0.00001);
 
-        Log.debug("CameraTest.GnomonicRadialDistance: xFPprime, yFPprime [mm]= " + dtos(xFPprime) + ", " + dtos(yFPprime));
+        //Log.debug("CameraTest.GnomonicRadialDistance: xFPprime, yFPprime [mm]= " + dtos(xFPprime) + ", " + dtos(yFPprime));
 
         tie(raStar, decStar) = camera.test_angularFocalPlaneToSkyCoordinates(xFPrad, yFPrad);
 
-        Log.debug("CameraTest.GnomonicRadialDistance: raStar, decStar [rad] = " + dtos(raStar) + ", " + dtos(decStar));
-        Log.debug("CameraTest.GnomonicRadialDistance: raStar, decStar [deg] = " + dtos(rad2deg(raStar)) + ", " + dtos(rad2deg(decStar)));
+        //Log.debug("CameraTest.GnomonicRadialDistance: raStar, decStar [rad] = " + dtos(raStar) + ", " + dtos(decStar));
+        //Log.debug("CameraTest.GnomonicRadialDistance: raStar, decStar [deg] = " + dtos(rad2deg(raStar)) + ", " + dtos(rad2deg(decStar)));
 
     }
 
@@ -218,18 +205,15 @@ TEST_F(CameraTest, distortedCoordinates)
 
     tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(10.0, 0.0);
     EXPECT_NEAR(157.0000, xFPdist, 0.00001);
-    EXPECT_NEAR( 2.0000, yFPdist, 0.00001);
+    EXPECT_NEAR(  0.0000, yFPdist, 0.00001);
 
     tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(0.0, 10.0);
-    EXPECT_NEAR( 2.0000, xFPdist, 0.00001);
+    EXPECT_NEAR(  0.0000, xFPdist, 0.00001);
     EXPECT_NEAR(157.0000, yFPdist, 0.00001);
 
     tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(5.0, 5.0);
-    EXPECT_NEAR( 42.0000, xFPdist, 0.00001);
-    EXPECT_NEAR( 42.0000, yFPdist, 0.00001);
-
-    Log.debug("CameraTest.distortedCoordinates: xFPdist, yFPdist = " + dtos(xFPdist) + ", " + dtos(yFPdist));
-
+    EXPECT_NEAR( 56.947222, xFPdist, 0.00001);
+    EXPECT_NEAR( 56.947222, yFPdist, 0.00001);
 
 }
 
@@ -247,11 +231,18 @@ TEST_F(CameraTest, reproduceDistortionMap)
 
     // Just a few values from the current distortion map for which the Polynomial1D was fitted.
     vector<map<string, double>> distortion;
-    distortion.push_back(map<string, double> {{"xFPmm",  0.000000}, {"xFPdist",   0.00000}});
-    distortion.push_back(map<string, double> {{"xFPmm", 10.789752}, {"xFPdist",  10.796226}});
-    distortion.push_back(map<string, double> {{"xFPmm", 24.666449}, {"xFPdist",  24.743989}});
-    distortion.push_back(map<string, double> {{"xFPmm", 68.998805}, {"xFPdist",  70.734282}});
-    distortion.push_back(map<string, double> {{"xFPmm", 80.296089}, {"xFPdist",  83.062336}});
+    distortion.push_back(map<string, double> {{"xFPmm",  0.000000}, {"yFPmm",  0.000000}, {"xFPdist",   0.000000}, {"yFPdist",  0.000000}});
+
+    distortion.push_back(map<string, double> {{"xFPmm",  2.156636}, {"yFPmm", 12.951322}, {"xFPdist",   2.158552}, {"yFPdist", 12.962833}});  // 0.500000	3.000000	3.041231
+    distortion.push_back(map<string, double> {{"xFPmm", 12.951322}, {"yFPmm",  2.156636}, {"xFPdist",  12.962833}, {"yFPdist",  2.158552}});  // 3.000000	0.500000	3.041231
+
+    distortion.push_back(map<string, double> {{"xFPmm", 22.490223}, {"yFPmm", 52.077606}, {"xFPdist",  22.869180}, {"yFPdist", 52.955106}});  // 5.200000   11.900000   12.927980
+    distortion.push_back(map<string, double> {{"xFPmm", 52.077606}, {"yFPmm", 22.490223}, {"xFPdist",  52.955106}, {"yFPdist", 22.869180}});  // 11.900000  5.200000    12.927980
+
+    distortion.push_back(map<string, double> {{"xFPmm", 10.789752}, {"yFPmm",  0.000000}, {"xFPdist",  10.796226}, {"yFPdist",  0.000000}});
+    distortion.push_back(map<string, double> {{"xFPmm", 24.666449}, {"yFPmm",  0.000000}, {"xFPdist",  24.743989}, {"yFPdist",  0.000000}});
+    distortion.push_back(map<string, double> {{"xFPmm", 68.998805}, {"yFPmm",  0.000000}, {"xFPdist",  70.734282}, {"yFPdist",  0.000000}});
+    distortion.push_back(map<string, double> {{"xFPmm", 80.296089}, {"yFPmm",  0.000000}, {"xFPdist",  83.062336}, {"yFPdist",  0.000000}});
 
     // These values are for a fit of Polynomial1D with degree=3 to the distortion table
 
@@ -267,10 +258,11 @@ TEST_F(CameraTest, reproduceDistortionMap)
     for (auto &data: distortion)
     {
         double xFPmm = data["xFPmm"];
+        double yFPmm = data["yFPmm"];
 
-        tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(xFPmm, xFPmm);
+        tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm);
         EXPECT_NEAR( data["xFPdist"], xFPdist, 0.006);
-        EXPECT_NEAR( data["xFPdist"], yFPdist, 0.006);
+        EXPECT_NEAR( data["yFPdist"], yFPdist, 0.006);
     }
 
     // These values are for a fit of Polynomial1D with degree=4 to the distortion table
@@ -286,10 +278,11 @@ TEST_F(CameraTest, reproduceDistortionMap)
     for (auto &data: distortion)
     {
         double xFPmm = data["xFPmm"];
+        double yFPmm = data["yFPmm"];
 
-        tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(xFPmm, xFPmm);
+        tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm);
         EXPECT_NEAR( data["xFPdist"], xFPdist, 0.002);
-        EXPECT_NEAR( data["xFPdist"], yFPdist, 0.002);
+        EXPECT_NEAR( data["yFPdist"], yFPdist, 0.002);
     }
 
 }
