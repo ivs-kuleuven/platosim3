@@ -31,7 +31,8 @@ class Simulation
 
     protected:
 
-        
+        virtual void writeInputParametersToHDF5(ConfigurationParameters &configParams);
+
     private:
 
         double currentTime;

@@ -1,32 +1,4 @@
-/**
- * \class     Camera 
- * 
- * \brief     Handle the distortions and effects that are cause by the optical system of the Telescope.
- * 
- * \details
- * 
- * The Camera is basically the set of lenses with their mechanical mounts and support 
- * structure also known as the TOU or Telescope Optical Units. The lenses distort the 
- * incoming light in several ways. The following effects are due to the setup and 
- * characteristics of the lenses:
- *
- *   \li Image Quality (Enclosed Energy)
- *   \li Optical distortion
- *   \li Vignetting
- *   \li Point Spread Function (PSF)
- *   \li PSF Breathing due to thermal variations
- *   \li Transmission Efficiency
- *   \li Straylight
- *   \li Lens degradation and contamination (??)
- * 
- * Not all above effects are implemented in the simulator at this point. We concentrate on the 
- * most distinct effects like PSF, optical distortion, and vignetting.
- * 
- * The lenses are the main source of point source spreading over the detector array. The camera is 
- * therefore the obvious choice for applying the PSF correction. The PSF itself is described in it’s 
- * own class, see PointSpreadFunction Class.
- * 
- */
+
 #include "Camera.h"
 
 
@@ -121,7 +93,7 @@ void Camera::initHDF5Groups()
 
 
 /**
- * \brief [brief description]
+ * \brief Write all recorded information to the HDF5 output file
  * 
  */
 
@@ -134,14 +106,36 @@ void Camera::flushOutput()
 
     vector<unsigned int> starIDs;
     for(auto keyValuePair: detectedStarInfo) starIDs.push_back(keyValuePair.first);
-    if (starIDs.size() != 0)
+    if (!starIDs.empty())
     {
-        hdf5File.writeArray("StarInfo/", "DetectedStarIDs", starIDs.data(), starIDs.size());
+        hdf5File.writeArray("StarInfo/", "StarIDs", starIDs.data(), starIDs.size());
     }
     else
     {
         Log.warning("Camera: No star positions to write to HDF5 file.");
     }
+
+    // For the detected (and only for the detected): get the sky coordinates and Vmag from 
+    // the star catalog, and save this information also in the HDF5 file.
+
+    const int Nstars = starIDs.size();
+    vector<double> RA(Nstars);
+    vector<double> dec(Nstars);
+    vector<double> Vmag(Nstars);
+
+    if (!starIDs.empty())
+    {
+        for (int n = 0; n < starIDs.size(); n++)
+        {
+            tie(RA[n], dec[n]) = sky.getCoordinatesOfStarWithID(starIDs[n], Angle::degrees);
+            Vmag[n] = sky.getVmagnitudeOfStarWithID(starIDs[n]);
+        }
+
+        hdf5File.writeArray("StarInfo/", "RA", RA.data(), RA.size());
+        hdf5File.writeArray("StarInfo/", "Dec", dec.data(), dec.size());
+        hdf5File.writeArray("StarInfo/", "Vmag", Vmag.data(), Vmag.size());
+    }
+
 
     // For each of the detected stars, make a subgroup, and write their position and flux for each exposure.
     // Because some stars at the edge may jitter in and out of the subfield during the sequence of exposures,

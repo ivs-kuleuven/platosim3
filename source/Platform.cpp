@@ -14,6 +14,10 @@
 Platform::Platform(ConfigurationParameters configParams, HDF5File &hdf5File, JitterGenerator &jitterGenerator)
 : HDF5Writer(hdf5File), internalTime(0.0), jitterGenerator(jitterGenerator)
 {
+    // Initialise the HDF5 group(s) in the output file
+
+    initHDF5Groups();
+
     // Configure the Platfrom object
 
     configure(configParams);
@@ -31,7 +35,7 @@ Platform::Platform(ConfigurationParameters configParams, HDF5File &hdf5File, Jit
 
 Platform::~Platform()
 {
-
+    flushOutput();
 }
 
 
@@ -53,6 +57,69 @@ void Platform::configure(ConfigurationParameters &configParams)
     originalDec = deg2rad(configParams.getDouble("ObservingParameters/DecPointing"));     
     currentRA   = originalRA;
     currentDec  = originalDec;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Creates the group(s) in the HDF5 file where the ACS information will be stored. 
+ *        These group(s) have to be created once, at the very beginning.
+ */
+
+void Platform::initHDF5Groups()
+{
+    Log.debug("Platform: initialising HDF5 groups");
+
+    hdf5File.createGroup("/ACS");
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Write all recorded information to the HDF5 output file
+ */
+
+void Platform::flushOutput()
+{
+    Log.info("Platform: Flushing output to HDf5 file.");
+
+    if ( ! hdf5File.hasGroup("ACS") )
+    {
+        Log.warning("Platform.flushOutput: HDF5 file has no ACS group, cannot flush Platform information.");
+        return;
+    }
+    
+
+     if (!historyTime.empty())
+     {
+        hdf5File.writeArray("/ACS/", "Time",        historyTime.data(),  historyTime.size());
+        hdf5File.writeArray("/ACS/", "PlatformRA",  historyRA.data(),    historyRA.size());
+        hdf5File.writeArray("/ACS/", "PlatformDec", historyDec.data(),   historyDec.size());
+        hdf5File.writeArray("/ACS/", "Yaw",         historyYaw.data(),   historyYaw.size());
+        hdf5File.writeArray("/ACS/", "Pitch",       historyPitch.data(), historyPitch.size());
+        hdf5File.writeArray("/ACS/", "Roll",        historyRoll.data(),  historyRoll.size());
+     }
+     else
+     {
+        Log.warning("Platform: No ACS history to flush to HDF5 file.");
+     }
 }
 
 
@@ -124,15 +191,16 @@ pair<double, double> Platform::getPointingCoordinates(double time)
 
     // The roll axis (= unit vector in z-direction in SC reference frame) will have slightly 
     // rotated due to jitter. Find out the cartesian coordinates of the _new_ jitter axis in 
-    // the _old_ SpaceCraft reference frame. 
+    // the SpaceCraft reference frame of the original pointing. 
 
     arma::colvec zUnitBeforeJitter = {0.0, 0.0, 1.0};
     arma::colvec zUnitAfterJitter = rotateYawPitchRoll(zUnitBeforeJitter, yaw, pitch, roll);
 
     // Compute the celestial equatorial cartesian coordinates of the new roll axis
-    // This requires the _old_ pointing coordinates of the platform.
+    // This requires the original pointing coordinates of the platform.
 
-    const arma::colvec zUnitAfterJitterEQ = spacecraftToEquatorialCoordinates(zUnitAfterJitter);
+    const bool useOriginalPointingCoordinates = true;
+    const arma::colvec zUnitAfterJitterEQ = spacecraftToEquatorialCoordinates(zUnitAfterJitter, useOriginalPointingCoordinates);
 
     // Convert from cartesian to celestial equatorial coordinates
 
@@ -155,6 +223,16 @@ pair<double, double> Platform::getPointingCoordinates(double time)
     // Update the internal clock
 
     internalTime = time;
+
+    // Store the computed values so that they can later be saved to HDF5
+    // RA & Dec are saved in degrees. Yaw, pitch, roll in arcsec.
+
+    historyTime.push_back(time);
+    historyRA.push_back(rad2deg(currentRA));
+    historyDec.push_back(rad2deg(currentDec));
+    historyYaw.push_back(rad2deg(yaw) * 3600.);
+    historyPitch.push_back(rad2deg(pitch) * 3600.);
+    historyRoll.push_back(rad2deg(roll) * 3600.);
 
     // That's it
 
@@ -200,18 +278,33 @@ double Platform::getHeartbeatInterval()
  *        given the 3D cartesian coordinates in the spacecraft (SC) reference frame
  * 
  * \param coordSC   (xSC, ySC, zSC): cartesian coordinates of the point in the spacecraft reference frame
- 
+ * \param useOriginalPointingCoordinates  If true: use original pointing coordinates (before jitter started)
+ *                                        If false: use current pointing coordinates (affected by jitter)
+ *
  * \return coordEQ  (xEQ, yEQ, zEQ): cartesian coordinates in the celestial equatorial reference frame
  */
 
-arma::colvec Platform::spacecraftToEquatorialCoordinates(arma::colvec &coordSC)
+arma::colvec Platform::spacecraftToEquatorialCoordinates(arma::colvec &coordSC, bool useOriginalPointingCoordinates)
 {
+    double RA, dec;
+
+    if (useOriginalPointingCoordinates)
+    {
+        RA = originalRA;
+        dec = originalDec;
+    }
+    else
+    {
+        RA = currentRA;
+        dec = currentDec;
+    }
+
     // Some handy abbreviations
 
-    const double cosAlpha = cos(currentRA);
-    const double sinAlpha = sin(currentRA);
-    const double cosDelta = cos(currentDec);
-    const double sinDelta = sin(currentDec);
+    const double cosAlpha = cos(RA);
+    const double sinAlpha = sin(RA);
+    const double cosDelta = cos(dec);
+    const double sinDelta = sin(dec);
 
     // The rotation matrices
 
