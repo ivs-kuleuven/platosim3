@@ -98,7 +98,14 @@ void Platform::initHDF5Groups()
 
 void Platform::flushOutput()
 {
-     Log.info("Platform: Flushing output to HDf5 file.");
+    Log.info("Platform: Flushing output to HDf5 file.");
+
+    if ( ! hdf5File.hasGroup("ACS") )
+    {
+        Log.warning("Platform.flushOutput: HDF5 file has no ACS group, cannot flush Platform information.");
+        return;
+    }
+    
 
      if (!historyTime.empty())
      {
