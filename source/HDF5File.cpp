@@ -19,6 +19,7 @@
 /**
  * \brief      Default Constructor
  */
+ 
 HDF5File::HDF5File()
 : file(NULL), fileIsOpen(false)
 {
@@ -55,9 +56,13 @@ HDF5File::HDF5File(string filename, bool readonly)
 /**
  * \brief      Destructor
  */
+
 HDF5File::~HDF5File()
 {
-    close();
+    if (fileIsOpen)
+    {
+        close();
+    }
     delete file;
 }
 
@@ -148,7 +153,7 @@ void HDF5File::close()
     {
         file->close();
         delete file;
-        file = NULL;
+        file = nullptr;
         fileIsOpen = false;
     }
 }
@@ -614,6 +619,104 @@ void HDF5File::writeAttribute(string groupName, string attributeName, double att
 
     return;
 }
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Add a boolean attribute to the HDF5 file. 
+ *        The attribute is stored in "<GroupName>/<attributeName>".
+ *        
+ * \param groupName        String containing the full path of an existing group. Starts with "/".
+ * \param attributeName    String containing the name of the attribute
+ * \param attributeValue   Integer containing the attribute value
+ * 
+ * \example  writeAttribute("/InputParameters/Platform", "UseJitter", true) 
+ * 
+ * \exception  H5FileException   If the HDF5 file has not been opened
+ * \exception  H5FileException   If the attribute already existed in the HDF5 file
+ */
+
+void HDF5File::writeAttribute(string groupName, string attributeName, bool attributeValue)
+{
+    // Complain if the file was not first opened
+    
+    if (!fileIsOpen)
+    {
+        string errorMessage = "HDF5File::writeAttribute(): file is not open.";
+        Log.error(errorMessage);
+        throw H5FileException(errorMessage);
+    }
+
+ 
+    // Open the proper group where the input parameter belongs
+
+    H5::Group group = file->openGroup(groupName.c_str());
+
+    // Check whether the attribute is not already in the group. If so, complain.
+    // The only way to do so, seems to try to access it and catch the exception
+    // if it does not yet exist.
+
+    bool attributeIsAlreadyInGroup = true;
+
+    try 
+    {  
+        // Turn off the auto-printing when an exception is raised
+
+        H5::Exception::dontPrint();
+
+        // Try to open the attribute
+
+        H5::Attribute attr = group.openAttribute(attributeName.c_str());
+    }
+    catch (H5::AttributeIException error)
+    {
+        attributeIsAlreadyInGroup = false;
+    }
+
+    if (attributeIsAlreadyInGroup)
+    {
+        string errorMessage = "HDF5File::writeAttribute(): attribute " + attributeName + " already in group " + groupName;
+        Log.error(errorMessage);
+        throw H5FileException(errorMessage);
+    }
+
+
+    // Create and write the attribute to the group
+    // First convert from boolean (true/false) to integer (1/0)
+
+    int value;
+    if (attributeValue)
+    {
+        value = 1;
+    }
+    else
+    {
+        value = 0;
+    }
+
+    H5::IntType integerType(H5::PredType::NATIVE_INT);
+    H5::DataSpace attributeSpace(H5S_SCALAR);
+    H5::Attribute attribute = group.createAttribute(attributeName.c_str(), integerType, attributeSpace);
+    attribute.write(integerType, &value);
+    attribute.close();
+
+    // That's it
+
+    attribute.close();
+    group.close();
+
+    return;
+}
+
+
+
 
 
 

@@ -87,6 +87,74 @@ void Sky::configure(ConfigurationParameters &configParams)
 
 
 /**
+ * \brief  Return the equatorial sky coordinates of the star with a given ID.
+ * 
+ * \param id               Sequential number of the star 
+ * \param outputAngleUnit  Either Angle::degrees or Angle::radians
+ * 
+ * \return (RA, dec)  Equatorial coordinates of the star [rad]
+ */
+
+pair<double, double> Sky::getCoordinatesOfStarWithID(int id, Unit outputAngleUnit)
+{
+    if ((id < 0) || (id >= starCatalog.size()))
+    {
+        string errorMessage = "Sky: getStarCoordinatesOfStarWithID(): id " + to_string(id) 
+                            + " is not in {0,.., " + to_string(starCatalog.size()-1) + "}";
+        Log.error(errorMessage);
+        throw IllegalArgumentException("errorMessage");
+    }
+    else
+    {
+        const auto star = starCatalog[id];
+        return make_pair(star.RA * outputAngleUnit, star.dec * outputAngleUnit);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief  Return the V magnitude of the star with given ID
+ * 
+ * \param id       Sequential number of the star 
+ * \return Vmag    V-magnitude of the star
+ */
+
+double Sky::getVmagnitudeOfStarWithID(int id)
+{
+    if ((id < 0) || (id >= starCatalog.size()))
+    {
+        string errorMessage = "Sky: getVmagnitudeOfStarWithID(): id " + to_string(id) 
+                            + " is not in {0,.., " + to_string(starCatalog.size()-1) + "}";
+        Log.error(errorMessage);
+        throw IllegalArgumentException("errorMessage");
+    }
+    else
+    {
+        const auto star = starCatalog[id];
+        return star.Vmag;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/**
  * \brief  Given a circle on the sky, return a catalog with all stars from the database within that circle.
  * 
  * \note The stars right on the circle are also included in the catalog.
