@@ -59,7 +59,7 @@ class CameraTest : public testing::Test
 class MyCamera : public Camera
 {
     public:
-        MyCamera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telescope &telescope, Sky &sky);
+        MyCamera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telescope &telescope, Sky &sky): Camera(configParam, hdf5file, telescope, sky) {};
 
         pair<double, double> test_skyToAngularFocalPlaneCoordinates(double raStar, double decStar) {return skyToAngularFocalPlaneCoordinates(raStar, decStar);};
         pair<double, double> test_angularFocalPlaneToSkyCoordinates(double xFPprime, double yFPprime) {return angularFocalPlaneToSkyCoordinates(xFPprime, yFPprime);};
@@ -74,19 +74,6 @@ class MyCamera : public Camera
         void test_setDistortionPolynomial(Polynomial1D &polynomial) {setDistortionPolynomial(polynomial);};
 };
 
-
-/**
- * @brief      Constructor
- *
- * @param      configParam  Configuration parameters
- * @param      hdf5file     Output HDF5 file
- * @param      telescope    Telescope
- * @param      sky          Sky
- */
-MyCamera::MyCamera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telescope &telescope, Sky &sky)
-: Camera(configParam, hdf5file, telescope, sky)
-{
-}
 
 
 
