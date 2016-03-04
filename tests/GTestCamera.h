@@ -141,22 +141,22 @@ TEST_F(CameraTest, GnomonicRadialDistance)
 
         EXPECT_NEAR(data["radius"], rad2deg(radius), 0.0001);
 
-        Log.debug("CameraTest.GnomonicRadialDistance: xDeg, yDeg [deg] = " + dtos(xDeg) + ", " + dtos(yDeg));
-        Log.debug("CameraTest.GnomonicRadialDistance: xFPrad, yFPrad [rad] = " + dtos(xFPrad) + ", " + dtos(yFPrad));
-        Log.debug("CameraTest.GnomonicRadialDistance: radius [rad] = " + dtos(radius));
-        Log.debug("CameraTest.GnomonicRadialDistance: radius [deg] = " + dtos(rad2deg(radius)));
+        //Log.debug("CameraTest.GnomonicRadialDistance: xDeg, yDeg [deg] = " + dtos(xDeg) + ", " + dtos(yDeg));
+        //Log.debug("CameraTest.GnomonicRadialDistance: xFPrad, yFPrad [rad] = " + dtos(xFPrad) + ", " + dtos(yFPrad));
+        //Log.debug("CameraTest.GnomonicRadialDistance: radius [rad] = " + dtos(radius));
+        //Log.debug("CameraTest.GnomonicRadialDistance: radius [deg] = " + dtos(rad2deg(radius)));
 
         tie(xFPprime, yFPprime) = camera.test_angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad);
 
         EXPECT_NEAR(data["xFP"], xFPprime, 0.00001);
         EXPECT_NEAR(data["yFP"], yFPprime, 0.00001);
 
-        Log.debug("CameraTest.GnomonicRadialDistance: xFPprime, yFPprime [mm]= " + dtos(xFPprime) + ", " + dtos(yFPprime));
+        //Log.debug("CameraTest.GnomonicRadialDistance: xFPprime, yFPprime [mm]= " + dtos(xFPprime) + ", " + dtos(yFPprime));
 
         tie(raStar, decStar) = camera.test_angularFocalPlaneToSkyCoordinates(xFPrad, yFPrad);
 
-        Log.debug("CameraTest.GnomonicRadialDistance: raStar, decStar [rad] = " + dtos(raStar) + ", " + dtos(decStar));
-        Log.debug("CameraTest.GnomonicRadialDistance: raStar, decStar [deg] = " + dtos(rad2deg(raStar)) + ", " + dtos(rad2deg(decStar)));
+        //Log.debug("CameraTest.GnomonicRadialDistance: raStar, decStar [rad] = " + dtos(raStar) + ", " + dtos(decStar));
+        //Log.debug("CameraTest.GnomonicRadialDistance: raStar, decStar [deg] = " + dtos(rad2deg(raStar)) + ", " + dtos(rad2deg(decStar)));
 
     }
 
