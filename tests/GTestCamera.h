@@ -205,18 +205,15 @@ TEST_F(CameraTest, distortedCoordinates)
 
     tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(10.0, 0.0);
     EXPECT_NEAR(157.0000, xFPdist, 0.00001);
-    EXPECT_NEAR( 2.0000, yFPdist, 0.00001);
+    EXPECT_NEAR(  0.0000, yFPdist, 0.00001);
 
     tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(0.0, 10.0);
-    EXPECT_NEAR( 2.0000, xFPdist, 0.00001);
+    EXPECT_NEAR(  0.0000, xFPdist, 0.00001);
     EXPECT_NEAR(157.0000, yFPdist, 0.00001);
 
     tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(5.0, 5.0);
-    EXPECT_NEAR( 42.0000, xFPdist, 0.00001);
-    EXPECT_NEAR( 42.0000, yFPdist, 0.00001);
-
-    Log.debug("CameraTest.distortedCoordinates: xFPdist, yFPdist = " + dtos(xFPdist) + ", " + dtos(yFPdist));
-
+    EXPECT_NEAR( 56.947222, xFPdist, 0.00001);
+    EXPECT_NEAR( 56.947222, yFPdist, 0.00001);
 
 }
 
@@ -234,11 +231,18 @@ TEST_F(CameraTest, reproduceDistortionMap)
 
     // Just a few values from the current distortion map for which the Polynomial1D was fitted.
     vector<map<string, double>> distortion;
-    distortion.push_back(map<string, double> {{"xFPmm",  0.000000}, {"xFPdist",   0.00000}});
-    distortion.push_back(map<string, double> {{"xFPmm", 10.789752}, {"xFPdist",  10.796226}});
-    distortion.push_back(map<string, double> {{"xFPmm", 24.666449}, {"xFPdist",  24.743989}});
-    distortion.push_back(map<string, double> {{"xFPmm", 68.998805}, {"xFPdist",  70.734282}});
-    distortion.push_back(map<string, double> {{"xFPmm", 80.296089}, {"xFPdist",  83.062336}});
+    distortion.push_back(map<string, double> {{"xFPmm",  0.000000}, {"yFPmm",  0.000000}, {"xFPdist",   0.000000}, {"yFPdist",  0.000000}});
+
+    distortion.push_back(map<string, double> {{"xFPmm",  2.156636}, {"yFPmm", 12.951322}, {"xFPdist",   2.158552}, {"yFPdist", 12.962833}});  // 0.500000	3.000000	3.041231
+    distortion.push_back(map<string, double> {{"xFPmm", 12.951322}, {"yFPmm",  2.156636}, {"xFPdist",  12.962833}, {"yFPdist",  2.158552}});  // 3.000000	0.500000	3.041231
+
+    distortion.push_back(map<string, double> {{"xFPmm", 22.490223}, {"yFPmm", 52.077606}, {"xFPdist",  22.869180}, {"yFPdist", 52.955106}});  // 5.200000   11.900000   12.927980
+    distortion.push_back(map<string, double> {{"xFPmm", 52.077606}, {"yFPmm", 22.490223}, {"xFPdist",  52.955106}, {"yFPdist", 22.869180}});  // 11.900000  5.200000    12.927980
+
+    distortion.push_back(map<string, double> {{"xFPmm", 10.789752}, {"yFPmm",  0.000000}, {"xFPdist",  10.796226}, {"yFPdist",  0.000000}});
+    distortion.push_back(map<string, double> {{"xFPmm", 24.666449}, {"yFPmm",  0.000000}, {"xFPdist",  24.743989}, {"yFPdist",  0.000000}});
+    distortion.push_back(map<string, double> {{"xFPmm", 68.998805}, {"yFPmm",  0.000000}, {"xFPdist",  70.734282}, {"yFPdist",  0.000000}});
+    distortion.push_back(map<string, double> {{"xFPmm", 80.296089}, {"yFPmm",  0.000000}, {"xFPdist",  83.062336}, {"yFPdist",  0.000000}});
 
     // These values are for a fit of Polynomial1D with degree=3 to the distortion table
 
@@ -254,10 +258,11 @@ TEST_F(CameraTest, reproduceDistortionMap)
     for (auto &data: distortion)
     {
         double xFPmm = data["xFPmm"];
+        double yFPmm = data["yFPmm"];
 
-        tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(xFPmm, xFPmm);
+        tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm);
         EXPECT_NEAR( data["xFPdist"], xFPdist, 0.006);
-        EXPECT_NEAR( data["xFPdist"], yFPdist, 0.006);
+        EXPECT_NEAR( data["yFPdist"], yFPdist, 0.006);
     }
 
     // These values are for a fit of Polynomial1D with degree=4 to the distortion table
@@ -273,10 +278,11 @@ TEST_F(CameraTest, reproduceDistortionMap)
     for (auto &data: distortion)
     {
         double xFPmm = data["xFPmm"];
+        double yFPmm = data["yFPmm"];
 
-        tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(xFPmm, xFPmm);
+        tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm);
         EXPECT_NEAR( data["xFPdist"], xFPdist, 0.002);
-        EXPECT_NEAR( data["xFPdist"], yFPdist, 0.002);
+        EXPECT_NEAR( data["yFPdist"], yFPdist, 0.002);
     }
 
 }
