@@ -79,7 +79,7 @@ void Camera::initHDF5Groups()
 {
     Log.debug("Camera: initialising HDF5 groups");
 
-    hdf5File.createGroup("/StarInfo");
+    hdf5File.createGroup("/StarPositions");
 }
 
 
@@ -101,86 +101,104 @@ void Camera::flushOutput()
 {
     Log.info("Camera: Flushing output to HDf5 file.");
 
-    // Extract and save the IDs of all stars that were at some point in time, detected in the subfield
-    // Note: keu is (key, value) pair, where key is also a pair consisting of the starID and the startTime
+    // Extract and save the time points of all exposures 
+    // Note: keyValuePair is (key, value) pair, where key is also a pair consisting of the startTime and StarID
 
-    vector<unsigned int> starIDs;
-    for(auto keyValuePair: detectedStarInfo) starIDs.push_back(keyValuePair.first);
-    if (!starIDs.empty())
+    vector<unsigned int> time;
+    for(auto keyValuePair: detectedStarInfo) time.push_back(keyValuePair.first);
+    if (!time.empty())
     {
-        hdf5File.writeArray("StarInfo/", "StarIDs", starIDs.data(), starIDs.size());
+        hdf5File.writeArray("StarPositions/", "Time", time.data(), time.size());
     }
     else
     {
         Log.warning("Camera: No star positions to write to HDF5 file.");
     }
 
-    // For the detected (and only for the detected): get the sky coordinates and Vmag from 
-    // the star catalog, and save this information also in the HDF5 file.
 
-    const int Nstars = starIDs.size();
-    vector<double> RA(Nstars);
-    vector<double> dec(Nstars);
-    vector<double> Vmag(Nstars);
+    // For each of the exposures, make a subgroup and write the position and flux of all detected stars.
+    // Because some stars at the edge may jitter in and out of the subfield from one exposure to the other,
+    // the written arrays may not be equally long for each exposure.
+    // Also keep a record of all stars that were detected in at least one exposure. 
 
-    if (!starIDs.empty())
+
+    set<unsigned int> allStarIDs;            // A set<> stores only unique members
+
+    for (int n = 0; n < time.size(); n++)
     {
-        for (int n = 0; n < starIDs.size(); n++)
-        {
-            tie(RA[n], dec[n]) = sky.getCoordinatesOfStarWithID(starIDs[n], Angle::degrees);
-            Vmag[n] = sky.getVmagnitudeOfStarWithID(starIDs[n]);
-        }
-
-        hdf5File.writeArray("StarInfo/", "RA", RA.data(), RA.size());
-        hdf5File.writeArray("StarInfo/", "Dec", dec.data(), dec.size());
-        hdf5File.writeArray("StarInfo/", "Vmag", Vmag.data(), Vmag.size());
-    }
-
-
-    // For each of the detected stars, make a subgroup, and write their position and flux for each exposure.
-    // Because some stars at the edge may jitter in and out of the subfield during the sequence of exposures,
-    // the written arrays may not be equally long for each star.
-
-    for (auto starID: starIDs)
-    {
-        // Make the proper group
+        // Make the subgroup group
 
         stringstream myStream;
-        myStream << "star" << setfill('0') << setw(6) << starID;
-        const string starGroupName = "/StarInfo/" + myStream.str();
-        hdf5File.createGroup(starGroupName);
+        myStream << "Exposure" << setfill('0') << setw(6) << n;
+        const string exposureGroupName = "/StarPositions/" + myStream.str();
+        hdf5File.createGroup(exposureGroupName);
 
         // Collect the different time series. For the positions, we only compute the sum, so we still need
         // to divide by N to compute the average, where N is the number of times the star was detected to be
         // in the subfield during an exposure.
 
-        vector<double> time;
+        vector<unsigned int> starIDs;
         vector<double> xFPmm;
         vector<double> yFPmm;
         vector<double> rowPix;
         vector<double> colPix;
         vector<double> flux;
 
-        for(auto keyValuePair: detectedStarInfo[starID])
+        for(auto keyValuePair: detectedStarInfo[time[n]])
         {
-            const double t = keyValuePair.first;  // time
-            time.push_back(t);
-            xFPmm.push_back(detectedStarInfo[starID][t][0] / detectedStarInfo[starID][t][5]);
-            yFPmm.push_back(detectedStarInfo[starID][t][1] / detectedStarInfo[starID][t][5]);
-            rowPix.push_back(detectedStarInfo[starID][t][2] / detectedStarInfo[starID][t][5]);
-            colPix.push_back(detectedStarInfo[starID][t][3] / detectedStarInfo[starID][t][5]);
-            flux.push_back(detectedStarInfo[starID][t][4]);
+            const unsigned int starID = keyValuePair.first;
+            starIDs.push_back(starID);                       // list of starIDs for this exposure only
+            allStarIDs.insert(starID);                       // list of starIDs over all exposures combined
+            xFPmm.push_back(detectedStarInfo[time[n]][starID][0] / detectedStarInfo[time[n]][starID][5]);
+            yFPmm.push_back(detectedStarInfo[time[n]][starID][1] / detectedStarInfo[time[n]][starID][5]);
+            rowPix.push_back(detectedStarInfo[time[n]][starID][2] / detectedStarInfo[time[n]][starID][5]);
+            colPix.push_back(detectedStarInfo[time[n]][starID][3] / detectedStarInfo[time[n]][starID][5]);
+            flux.push_back(detectedStarInfo[time[n]][starID][4]);
         }
 
         // Write the time series to HDF5
 
-        hdf5File.writeArray(starGroupName, "time",   time.data(),   time.size());
-        hdf5File.writeArray(starGroupName, "xFPmm",  xFPmm.data(),  xFPmm.size());
-        hdf5File.writeArray(starGroupName, "yFPmm",  yFPmm.data(),  yFPmm.size());
-        hdf5File.writeArray(starGroupName, "rowPix", rowPix.data(), rowPix.size());
-        hdf5File.writeArray(starGroupName, "colPix", colPix.data(), colPix.size());
-        hdf5File.writeArray(starGroupName, "flux",   flux.data(),   flux.size());
+        if(!starIDs.empty())
+        {
+            hdf5File.writeArray(exposureGroupName, "starID", starIDs.data(), starIDs.size());
+            hdf5File.writeArray(exposureGroupName, "xFPmm",  xFPmm.data(),   xFPmm.size());
+            hdf5File.writeArray(exposureGroupName, "yFPmm",  yFPmm.data(),   yFPmm.size());
+            hdf5File.writeArray(exposureGroupName, "rowPix", rowPix.data(),  rowPix.size());
+            hdf5File.writeArray(exposureGroupName, "colPix", colPix.data(),  colPix.size());
+            hdf5File.writeArray(exposureGroupName, "flux",   flux.data(),    flux.size());            
+        }
     }
+
+
+    // For all detected stars, copy the equatorial sky coordinates and the magnitude 
+    // from the user-given star catalog to the output HDF5 file in a custom group.
+    
+    hdf5File.createGroup("/StarCatalog");
+
+    const int Nstars = allStarIDs.size();
+    vector<unsigned int> starIDs(Nstars);    // set<> is not contiguous, vector<> is. Needed for HDF5.
+    vector<double> RA(Nstars);
+    vector<double> dec(Nstars);
+    vector<double> Vmag(Nstars);
+
+    if (!allStarIDs.empty())
+    {
+        int n = 0;
+        for (auto starID: allStarIDs)
+        {
+            starIDs[n] = starID;
+            tie(RA[n], dec[n]) = sky.getCoordinatesOfStarWithID(starID, Angle::degrees);
+            Vmag[n] = sky.getVmagnitudeOfStarWithID(starID);
+            n++;
+        }
+
+        hdf5File.writeArray("StarCatalog/", "starIDs", starIDs.data(), starIDs.size());
+        hdf5File.writeArray("StarCatalog/", "RA",      RA.data(), RA.size());
+        hdf5File.writeArray("StarCatalog/", "Dec",     dec.data(), dec.size());
+        hdf5File.writeArray("StarCatalog/", "Vmag",    Vmag.data(), Vmag.size());
+    }
+
+
 }
 
 
@@ -375,38 +393,38 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
             tie(isInSubfield, rowPix, colPix) = detector.addFlux(Xmm, Ymm, flux);
 
             // If the star is indeed in the subfield, collect the following information to later write to HDF5
-            //    1) average (Xmm, Ymm) coordinates of the star during the exposure [mm]
+            //    1) average (Xmm, Ymm) coordinates of the star during the exposure                   [mm]
             //    2) average (row, col) pixel coordinates of the star on the CCD during the exposure  [pix]
-            //    3) the total number of photons gathered of this star during the exposure [photons]
+            //    3) the total number of photons gathered of this star during the exposure            [photons]
             //    4) the total number of times that the star was in the subfield during the exposure
             //
             // Note: Due to jitter, the star can move in and out the subfield during the exposure
 
             if (isInSubfield)
             {
-                // If this is the first time we encounter this star, initialise the information
+                // If this is the first time we encounter this startTime, initialise the information
 
-                if (detectedStarInfo.find(star.ID) == detectedStarInfo.end())
+                if (detectedStarInfo.find(startTime) == detectedStarInfo.end())
                 {
-                    detectedStarInfo[star.ID][startTime] = {{Xmm, Ymm, rowPix, colPix, flux, 1.0}};
+                    detectedStarInfo[startTime][star.ID] = {{Xmm, Ymm, rowPix, colPix, flux, 1.0}};
                 }
                 else
                 {
-                    // If this is the first time that we encounter this startTime associated with this star,
+                    // If this is the first time that we encounter this star ID associated with this startTime,
                     // initialise the information. If not, just update the info.
 
-                    if (detectedStarInfo[star.ID].find(startTime) == detectedStarInfo[star.ID].end())
+                    if (detectedStarInfo[startTime].find(star.ID) == detectedStarInfo[startTime].end())
                     {
-                        detectedStarInfo[star.ID][startTime] = {{Xmm, Ymm, rowPix, colPix, flux, 1.0}};
+                        detectedStarInfo[startTime][star.ID] = {{Xmm, Ymm, rowPix, colPix, flux, 1.0}};
                     }
                     else
                     {
-                        detectedStarInfo[star.ID][startTime][0] += Xmm;      // Will be used to compute average Xmm during the exposure
-                        detectedStarInfo[star.ID][startTime][1] += Ymm;      // Will be used to compute average Ymm during the exposure
-                        detectedStarInfo[star.ID][startTime][2] += rowPix;   // Will be used to compute average pixel row during the exposure
-                        detectedStarInfo[star.ID][startTime][3] += colPix;   // Will be used to compute average pixel column during the exposure
-                        detectedStarInfo[star.ID][startTime][4] += flux;     // Total flux
-                        detectedStarInfo[star.ID][startTime][5] += 1;        // # of times a star was on the subfield during an exposure 
+                        detectedStarInfo[startTime][star.ID][0] += Xmm;      // Will be used to compute average Xmm during the exposure
+                        detectedStarInfo[startTime][star.ID][1] += Ymm;      // Will be used to compute average Ymm during the exposure
+                        detectedStarInfo[startTime][star.ID][2] += rowPix;   // Will be used to compute average pixel row during the exposure
+                        detectedStarInfo[startTime][star.ID][3] += colPix;   // Will be used to compute average pixel column during the exposure
+                        detectedStarInfo[startTime][star.ID][4] += flux;     // Total flux
+                        detectedStarInfo[startTime][star.ID][5] += 1;        // # of times a star was on the subfield during an exposure 
                     }
                 }
             }
@@ -694,8 +712,16 @@ pair<double, double> Camera::planarToAngularFocalPlaneCoordinates(double xFPmm, 
  */
 pair<double, double> Camera::planarToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm)
 {
-    double xFPdist = polynomial(xFPmm);
-    double yFPdist = polynomial(yFPmm);
+    double alpha = atan2(yFPmm, xFPmm);  // [radians]
+    
+    double rFP = sqrt(xFPmm * xFPmm + yFPmm * yFPmm);
+    double rFPdist = polynomial(rFP);
+    
+    double xFPdist = cos(alpha) * rFPdist;
+    double yFPdist = sin(alpha) * rFPdist;
     
     return make_pair(xFPdist, yFPdist);
 }
+
+
+

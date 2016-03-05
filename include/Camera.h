@@ -18,6 +18,7 @@
 #include "PointSpreadFunction.h"
 #include "Polynomial1D.h"
 #include "Sky.h"
+#include "StringUtilities.h"
 #include "Telescope.h"
 #include "Units.h"
 
@@ -78,7 +79,10 @@ class Camera : public HDF5Writer
         PointSpreadFunction *psf;
         Polynomial1D polynomial;
 
-        map<unsigned int, map<double, array<double, 6>>> detectedStarInfo;  // detectedStarInfo[starID][startTime] contains the values (xFPmean, yFPmean, sumFlux, Ndetections} values
+        // detectedStarInfo[startTime][starID] contains the values 
+        //    (xFPmean, yFPmean, rowPixMean, colPixmean, sumFlux, Ndetections} values
+
+        map<double, map<unsigned int, array<double, 6>>> detectedStarInfo;
 
 };
 
