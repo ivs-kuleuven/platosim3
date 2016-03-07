@@ -131,6 +131,8 @@ void Simulation::run(double startTime)
 {
     currentTime = startTime;
 
+    detector->setPsfForSubfieldCenter();
+
     // Loop over all exposures
 
     for (int n = 0; n < Nexposures; n++)

@@ -1385,7 +1385,20 @@ pair<double, double> Detector::getPlanarFocalPlaneCoordinatesOfSubfieldCenter()
 
 
 
+void Detector::setPsfForSubfieldCenter()
+{
+    using StringUtilities::dtos;
 
+    double centerXmm, centerYmm;
+    tie(centerXmm, centerYmm) = getPlanarFocalPlaneCoordinatesOfSubfieldCenter();
+
+    Log.debug("Detector.setPsf: centerXmm, centerYmm = " + dtos(centerXmm) + ", " + dtos(centerXmm));
+
+    camera.selectPsfForPlanarFocalPlanePosition(centerXmm, centerYmm);
+    
+    psfMap = camera.getPsfMap();
+
+}
 
 
 
