@@ -462,7 +462,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
     // Convolve with the point spread function
 
-    // subField.convolveWithPSF(psf);
+    detector.convolveWithPsf();
 
     return;
 }
