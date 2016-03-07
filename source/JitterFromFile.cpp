@@ -27,10 +27,10 @@ JitterFromFile::JitterFromFile(ConfigurationParameters &configParams)
         {
             istringstream buffer(temp);
             vector<double> numbers((istream_iterator<double>(buffer)), istream_iterator<double>());
-            time[n]  = numbers[0];
-            yaw[n]   = numbers[1];
-            pitch[n] = numbers[2];
-            roll[n]  = numbers[3];
+            time[n]  = numbers[0];       
+            yaw[n]   = numbers[1];      // [rad]
+            pitch[n] = numbers[2];      // [rad]
+            roll[n]  = numbers[3];      // [rad]
             n++;
         }
 
@@ -104,18 +104,19 @@ void JitterFromFile::configure(ConfigurationParameters &configParams)
 
 
 
+
 /**
  * \brief Get the next (yaw, pitch, roll) values from the pre-computed jitter series.
+ * 
  * \details A linear interpolation between time points will be done if the timeInterval 
  *          does not coincide with the time step of the jitter file.
  * 
- * \param newYaw[out]       Will contain the next yaw value [?]
- * \param newPitch[out]     Will contain the next pitch value [?]
- * \param newRoll[out]      Will contain the next roll value [?]
  * \param timeInterval[in]  Time interval that has passed since the last getNextYawPitchRoll() request. [s]
+ * 
+ * \return (newYaw, newPitch, newRoll)   [rad]
  */
 
-void JitterFromFile::getNextYawPitchRoll(double &newYaw, double &newPitch, double &newRoll, double timeInterval)
+tuple<double, double, double> JitterFromFile::getNextYawPitchRoll(double timeInterval)
 {
     // Advance the pointer 'timeIndex' in our precomputed jitter series such that we have
     //      time[index]-lastTime <= timeInterval < time[index+1]-lastTime 
@@ -134,14 +135,15 @@ void JitterFromFile::getNextYawPitchRoll(double &newYaw, double &newPitch, doubl
     // Do a linear interpolation
 
     timeIndex--;
-    double weight1 = (lastTime + timeInterval - time[timeIndex]) / (time[timeIndex+1] - time[timeIndex]);
-    double weight2 = (time[timeIndex+1] - lastTime - timeInterval) / (time[timeIndex+1] - time[timeIndex]);
-    newYaw   = yaw[timeIndex]   * weight1 + yaw[timeIndex+1]   * weight2;
-    newPitch = pitch[timeIndex] * weight1 + pitch[timeIndex+1] * weight2;
-    newRoll  = roll[timeIndex]  * weight1 + roll[timeIndex+1]  * weight2;
+    const double weight1 = (lastTime + timeInterval - time[timeIndex]) / (time[timeIndex+1] - time[timeIndex]);
+    const double weight2 = (time[timeIndex+1] - lastTime - timeInterval) / (time[timeIndex+1] - time[timeIndex]);
+    const double newYaw   = yaw[timeIndex]   * weight1 + yaw[timeIndex+1]   * weight2;
+    const double newPitch = pitch[timeIndex] * weight1 + pitch[timeIndex+1] * weight2;
+    const double newRoll  = roll[timeIndex]  * weight1 + roll[timeIndex+1]  * weight2;
     
-    return;
+    return make_tuple(newYaw, newPitch, newRoll);
 }
+
 
 
 

@@ -1,4 +1,7 @@
+#include <cstdio>   // for remove file
+
 #include "FileUtilities.h"
+#include "Logger.h"
 
 /**
  * @brief      Check if a file exists
@@ -36,5 +39,18 @@ bool FileUtilities::isRelative(const string &path) {
     else
     {
         return true;
+    }
+}
+
+
+
+void FileUtilities::remove(const string &filename)
+{
+    if (fileExists(filename))
+    {
+        if (std::remove(filename.c_str()))
+        {
+            Log.warning("Couldn't remove the file: " + filename);
+        }
     }
 }

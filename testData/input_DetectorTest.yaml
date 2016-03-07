@@ -4,6 +4,52 @@
 # for testing other components.
 ---
 
+General:
+    
+    ProjectLocation:         ../
+
+ObservingParameters:
+
+    RApointing:              0.0             # [deg] 
+    DecPointing:             0.0             # [deg]
+    StarCatalogFile:         testData/starcatalog.txt
+
+Platform:
+
+    UseJitter:               yes             # yes or no
+    UseJitterFromFile:       no              # yes or no
+    JitterYawRms:            2.3             # [arcsec]
+    JitterPitchRms:          2.3             # [arcsec]
+    JitterRollRms:           2.3             # [arcsec]
+    JitterTimeScale:         3600.           # [s]
+    JitterFileName:          testData/jitter.txt
+
+Telescope:
+    
+    LightCollectingArea:     113.1           # Effective area of 1 telescope [cmˆ2]
+    TransmissionEfficiency:  0.757           # in [0,1]
+    FOVSquareDegrees:        1072.0          # Sky area covered by the FOV of 1 telescope [deg^2]
+    DriftYawRms:             2.3             # RMS of thermo-elastic drift in yaw [arcsec]
+    DriftPitchRms:           2.3             # RMS of thermo-elastic drift in pitch [arcsec]
+    DriftRollRms:            2.3             # RMS of thermo-elastic drift in roll [arcsec]
+    DriftTimeScale:          3600.           # Timescale of thermo-elastic drift [s]
+
+Camera:
+    
+    FocalPlaneOrientation:   0.0             # [degrees]
+    PlateScale:              0.8333          # [arcsec/micron]
+    FocalLength:             0.24712595      # Focal length as recovered from ZEMAX model [m]
+    ThroughputBandwidth:     650             # FWHM [nm]
+    ThroughputLambdaC:       550             # Central wavelength of the throughput passband [nm]
+    FieldDistortion:                         # Describe the model for the field distortion
+        Type:                Polynomial1D
+        Degree:              3
+        Coefficients:        [-0.00366969196778, 0.000854231697381, -4.12553764817e-05, 5.7201219949e-06]
+
+PSF:
+
+    Filename:                testData/psf_201506.hdf5
+
 CCD:
 
     OriginOffsetX:           0               # X Offset of CCD origin from center of focal plane [mm]
@@ -21,6 +67,7 @@ CCD:
     ReadoutTime:             2               # time to read out entire CCD [s]
     FlatfieldPtPNoise:       0.016           # peak-to-peak pixel noise
     CTEMean:                 0.99999         # Mean Charge Transfer Efficiency
+    IncludePhotonNoise:      yes             # include photon noise [yes or no]
 
 
 SubField:    

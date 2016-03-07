@@ -13,6 +13,7 @@
 using namespace std;
 
 
+class Platform;  // Forward declaration
 
 
 class Telescope  : public Heartbeat, HDF5Writer
@@ -21,33 +22,40 @@ class Telescope  : public Heartbeat, HDF5Writer
 	public:
 
 		Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File, Platform &platform);
-		~Telescope();
+		virtual ~Telescope();
 
 		virtual void configure(ConfigurationParameters &configParam);
 
 		virtual void updatePointingCoordinates(double time);
-		pair<double, double> getPointingCoordinates();
+		pair<double, double> getCurrentPointingCoordinates();
 
 		double getTransmissionEfficiency();
 		double getLightCollectingArea();
 		double getFOVsolidAngle();
 
+
+		pair<double, double> platformToTelescopePointingCoordinates(double alphaPlatfrom, double deltaPlatform);
+
+		tuple<double, double, double> spacecraftToFocalPlaneCoordinates(const double xSC, const double ySC, const double zSC);
+		tuple<double, double, double> focalPlaneToSpacecraftCoordinates(const double xFP, const double yFP, const double zFP);
+
+
 	protected:
 
-		double alphaOpticalAxis;           // Current pointing right ascension     [rad]
-		double deltaOpticalAxis;           // Current pointing declination         [rad]
-		double FOVsolidAngle;              // Solid angle of FOV of 1 telescope    [sr]
-		double lightCollectingArea;        // Effective light collective area      [cm^2]
-		double transmissionEfficiency;     // in [0,1]
-		double driftYawRms;                // RMS of thermo-elastic drift in yaw   [arcsec]
-    	double driftPitchRms;              // RMS of thermo-elastic drift in pitch [arcsec]
-    	double driftRollRms;               // RMS of thermo-elastic drift in roll  [arcsec]
-    	double driftTimeScale;             // Timescale of thermo-elastic drift    [s]
+		double currentAlphaOpticalAxis;      // Current right ascension of the optical axis  [rad]
+		double currentDeltaOpticalAxis;      // Current declination of the optical axis      [rad]
+		double FOVsolidAngle;                // Solid angle of FOV of 1 telescope            [sr]
+		double lightCollectingArea;          // Effective light collective area              [cm^2]
+		double transmissionEfficiency;       // in [0,1]
+		double driftYawRms;                  // RMS of thermo-elastic drift in yaw           [rad]
+    	double driftPitchRms;                // RMS of thermo-elastic drift in pitch         [rad]
+    	double driftRollRms;                 // RMS of thermo-elastic drift in roll          [rad]
+    	double driftTimeScale;               // Timescale of thermo-elastic drift            [s]
 
 	private:
 
 		double internalTime;               // Internal clock
-		Platform platform;
+		Platform &platform;
 };
 
 #endif

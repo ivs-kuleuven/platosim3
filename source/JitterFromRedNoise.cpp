@@ -77,19 +77,27 @@ void JitterFromRedNoise::configure(ConfigurationParameters &configParams)
 
 
 /**
- * \brief Get the next (yaw, pitch, roll) values using a Brownian motion model
+ * \brief Get the next (yaw, pitch, roll) values using a Brownian motion model. These yaw, pitch,
+ *        and roll values are with respect to the original pointing (at t=0), NOT with respect to 
+ *        the last pointing.
  * 
  * \note Also during CCD readout, the spacecraft jitters, to the user needs to take this into
  *       account when passing 'timeInterval'.
  * 
- * \param newYaw[out]       Will contain the next yaw value   [rad]
- * \param newPitch[out]     Will contain the next pitch value [rad]
- * \param newRoll[out]      Will contain the next roll value  [rad]
  * \param timeInterval[in]  Time interval that has passed since the last getNextYawPitchRoll() request. [s]
+ * 
+ * \return (newYaw, newPitch, newRoll)  [rad]
  */
 
-void JitterFromRedNoise::getNextYawPitchRoll(double &newYaw, double &newPitch, double &newRoll, double timeInterval)
+tuple<double, double, double> JitterFromRedNoise::getNextYawPitchRoll(double timeInterval)
 {
+    // If the time interval is zero, return the last computed values
+
+    if (timeInterval == 0.0)
+    {
+        make_tuple(lastYaw, lastPitch, lastRoll);
+    }
+
     // Use bind() to get a shorter normal01() function to generate random numbers instead of 
     // the cumbersome normalDistribition(jitterNoiseGenerator). Note: the std::ref() is needed, 
     // otherwise a copy is passed and the generator would always return the same number.
@@ -104,9 +112,9 @@ void JitterFromRedNoise::getNextYawPitchRoll(double &newYaw, double &newPitch, d
 
     // Initialise the (yaw, pitch, roll) values with the last computed ones
 
-    newYaw = lastYaw;
-    newPitch = lastPitch;
-    newRoll = lastRoll;
+    double newYaw = lastYaw;
+    double newPitch = lastPitch;
+    double newRoll = lastRoll;
 
     // Move through the user-given timeInterval in steps of 'timeStep', 
     // each time updating the yaw, pitch, and roll.
@@ -139,7 +147,7 @@ void JitterFromRedNoise::getNextYawPitchRoll(double &newYaw, double &newPitch, d
     
     // That's it!
 
-    return;
+    return make_tuple(newYaw, newPitch, newRoll);
 }
 
 

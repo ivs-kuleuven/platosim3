@@ -5,19 +5,18 @@
 
 using std::string;
 
-const char * IllegalArgumentException::what() const throw() {
-    return string("IllegalArgumentException: " + message).c_str();
+const char * IllegalArgumentException::what() const throw()
+{
+    return message.c_str();
 }
 
-IllegalArgumentException::IllegalArgumentException(const char * msg) {
+
+IllegalArgumentException::IllegalArgumentException(std::string msg)
+{
     message = msg;
-    Log.error(what());
+    Log.error(message);
 }
 
-IllegalArgumentException::IllegalArgumentException(std::string msg) {
-    message = msg;
-    Log.error(what());
-}
 
 IllegalArgumentException::~IllegalArgumentException() throw() {}
 

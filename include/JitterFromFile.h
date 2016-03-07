@@ -26,7 +26,7 @@ class JitterFromFile : public JitterGenerator
         ~JitterFromFile();
 
         virtual void configure(ConfigurationParameters &configParams);
-        virtual void getNextYawPitchRoll(double &yaw, double &pitch, double &roll, double timeInterval) override;
+        virtual tuple<double, double, double> getNextYawPitchRoll(double timeInterval) override;
         virtual double getHeartbeatInterval() override;
 
     protected:
@@ -36,9 +36,9 @@ class JitterFromFile : public JitterGenerator
         int timeIndex;
 
         vector<double> time;
-        vector<double> yaw;
-        vector<double> pitch;
-        vector<double> roll;
+        vector<double> yaw;      // [rad]
+        vector<double> pitch;    // [rad]
+        vector<double> roll;     // [rad]
 
 
     private:

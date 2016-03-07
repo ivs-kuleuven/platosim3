@@ -9,7 +9,8 @@ dependencies/Installs/*
 
 # Un-ignore some of the default input files in the inputfiles/ folder
 
-inputfiles/inputfile.yaml
+!inputfiles/inputfile.yaml
+!inputfiles/starcatalog.txt
 
 # Compiled source 
 
@@ -20,6 +21,9 @@ inputfiles/inputfile.yaml
 *.o
 *.so
 
+# Large test data files
+
+psf_201506.hdf5
 
 # Logs and databases
 

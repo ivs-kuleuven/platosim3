@@ -1,16 +1,30 @@
+#include <string>
 #include <cstdio>
 #include <map>
 
 #include "gtest/gtest.h"
+#include "gtest_definitions.h"
 
-#include "Camera.h"
-#include "Units.h"
-#include "HDF5File.h"
+#include "Simulation.h"
+#include "SkyCoordinates.h"
+#include "StringUtilities.h"
+#include "FileUtilities.h"
 
+/**
+ * \class CameraTest
+ * 
+ * \brief Test Fixture for the Camera class. 
+ * 
+ * \details
+ * 
+ * Setup configuration parameters for the Camera class and handle the HDF5 open-close.
+ * 
+ * Input parameters for this test are located in the file 'input_CameraTest.yaml' in the
+ * testData directory of the distribution.
+ * 
+ * The test creates an HDF5 file 'cameraTest.hdf5' in the current working directory. This file is removed after the test finishes.
+ */
 
-// Test Fixture: setup configuration parameters for the Camera class
-//               and handle the HDF5 open-close.
-//               
 class CameraTest : public testing::Test
 {
     protected:
@@ -19,126 +33,260 @@ class CameraTest : public testing::Test
         {
             cp_ = ConfigurationParameters("../testData/input_CameraTest.yaml");
         
-            remove(hdf5Filename.c_str());
             hdf5File_.open(hdf5Filename);
         }
 
         virtual void TearDown()
         {
             hdf5File_.close();
+            FileUtilities::remove(hdf5Filename);
         }
 
-        string hdf5Filename = "/tmp/cameraTest.hdf5";
+        string hdf5Filename = "cameraTest.hdf5";
         ConfigurationParameters cp_;
         HDF5File hdf5File_;
 };
 
-// This subclass of Camera serves the sole purpose of testing protected methods of Camera.
-// 
+
+
+
+/**
+ * 
+ * \brief This subclass of Camera serves the sole purpose of testing protected methods of Camera.
+ * 
+ */
+
 class MyCamera : public Camera
 {
     public:
-        MyCamera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telescope &telescope, Sky &sky);
+        MyCamera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telescope &telescope, Sky &sky): Camera(configParam, hdf5file, telescope, sky) {};
 
-        pair<double, double> test_skyToFocalPlaneCoordinates(double raStar, double decStar) {return skyToFocalPlaneCoordinates(raStar, decStar);};
-        pair<double, double> test_focalPlaneToSkyCoordinates(double x, double y) {return focalPlaneToSkyCoordinates(x, y);};
-        double test_getGnomonicRadialDistance(double xDeg, double yDeg) {return getGnomonicRadialDistance(xDeg, yDeg);};
-        double test_getAngularDistance(double xFP, double yFP) {return getAngularDistance(xFP, yFP);};
+        pair<double, double> test_skyToAngularFocalPlaneCoordinates(double raStar, double decStar) {return skyToAngularFocalPlaneCoordinates(raStar, decStar);};
+        pair<double, double> test_angularFocalPlaneToSkyCoordinates(double xFPprime, double yFPprime) {return angularFocalPlaneToSkyCoordinates(xFPprime, yFPprime);};
+
+        pair<double, double> test_angularToPlanarFocalPlaneCoordinates(double xFPrad, double yFPrad) {return angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad);};
+        pair<double, double> test_planarToAngularFocalPlaneCoordinates(double xFPmm, double yFPmm) {return planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm);};
+
+        pair<double, double> test_planarToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm) {return planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm);};
+
+        double test_getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double yFPprime) {return getGnomonicRadialDistanceFromOpticalAxis(xFPprime, yFPprime);};
+
+        void test_setDistortionPolynomial(Polynomial1D &polynomial) {setDistortionPolynomial(polynomial);};
 };
 
 
-MyCamera::MyCamera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telescope &telescope, Sky &sky)
-: Camera(configParam, hdf5file, telescope, sky)
+
+
+
+
+
+
+// The table below represents the data from the list file as provided with the PSFs.
+//
+// The relation between xDeg, yDeg and radius is provided by the getGnomonicRadialDistanceFromOpticalAxisNormalized(..)
+// method in Camera. The relation between xDeg, yDeg and xFP, yFP is currently not available and can not be tested.
+// 
+TEST_F(CameraTest, GnomonicRadialDistance)
 {
-}
 
+    LOG_STARTING_OF_TEST
 
-// This test is DISABLED_ in the public master as I'm still working on the code and the tests fail currently.
-// The code itself is not activated yet in platosim.
-TEST_F(CameraTest, DISABLED_skyToFocalPlaneCoordinates) {
+    using StringUtilities::dtos;
+
+    // The values in this table come from different sources
+    // xDeg, yDeg, and radius are taken from the table / attributes provided with the PSF delivery of <DATE>
+    // xFP, yFP are the paraxial x and y field coordinates taken from the distorion table calculated from ZEMAX <DATE>
 
     vector<map<string, double>> gnomonic;
 
-    gnomonic.push_back(map<string, double> {{"raStar",  0.0}, {"decStar",  0.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",   0.0000}});
-    gnomonic.push_back(map<string, double> {{"raStar",  1.0}, {"decStar",  1.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",   1.4141}});
-    gnomonic.push_back(map<string, double> {{"raStar",  2.0}, {"decStar",  2.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",   2.8273}});
-    gnomonic.push_back(map<string, double> {{"raStar",  3.0}, {"decStar",  3.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",   4.2388}});
-    gnomonic.push_back(map<string, double> {{"raStar",  4.0}, {"decStar",  4.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",   5.6477}});
-    gnomonic.push_back(map<string, double> {{"raStar",  5.0}, {"decStar",  5.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",   7.0532}});
-    gnomonic.push_back(map<string, double> {{"raStar",  6.0}, {"decStar",  6.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",   8.4545}});
-    gnomonic.push_back(map<string, double> {{"raStar",  7.0}, {"decStar",  7.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",   9.8508}});
-    gnomonic.push_back(map<string, double> {{"raStar",  8.0}, {"decStar",  8.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",  11.2413}});
-    gnomonic.push_back(map<string, double> {{"raStar",  9.0}, {"decStar",  9.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",  12.6253}});
-    gnomonic.push_back(map<string, double> {{"raStar", 10.0}, {"decStar", 10.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",  14.0019}});
-    gnomonic.push_back(map<string, double> {{"raStar", 11.0}, {"decStar", 11.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",  15.3707}});
-    gnomonic.push_back(map<string, double> {{"raStar", 12.0}, {"decStar", 12.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",  16.7308}});
-    gnomonic.push_back(map<string, double> {{"raStar", 13.0}, {"decStar", 13.0}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",  18.0817}});
-    gnomonic.push_back(map<string, double> {{"raStar", 13.6}, {"decStar", 13.6}, {"x", 0.0}, {"y", 0.0}, {"radialCoordinate",  18.8876}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  0.0}, {"yDeg",  0.0}, {"xFP",   0.000000}, {"yFP",   0.00000}, {"radius",   0.0000}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  1.0}, {"yDeg",  1.0}, {"xFP",   4.313600}, {"yFP",  4.313600}, {"radius",   1.4141}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  2.0}, {"yDeg",  2.0}, {"xFP",   8.629828}, {"yFP",  8.629828}, {"radius",   2.8273}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  3.0}, {"yDeg",  3.0}, {"xFP",  12.951322}, {"yFP", 12.951322}, {"radius",   4.2388}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  4.0}, {"yDeg",  4.0}, {"xFP",  17.280730}, {"yFP", 17.280730}, {"radius",   5.6477}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  5.0}, {"yDeg",  5.0}, {"xFP",  21.620719}, {"yFP", 21.620719}, {"radius",   7.0532}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  6.0}, {"yDeg",  6.0}, {"xFP",  25.973984}, {"yFP", 25.973984}, {"radius",   8.4545}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  7.0}, {"yDeg",  7.0}, {"xFP",  30.343251}, {"yFP", 30.343251}, {"radius",   9.8508}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  8.0}, {"yDeg",  8.0}, {"xFP",  34.731287}, {"yFP", 34.731287}, {"radius",  11.2413}});
+    gnomonic.push_back(map<string, double> {{"xDeg",  9.0}, {"yDeg",  9.0}, {"xFP",  39.140906}, {"yFP", 39.140906}, {"radius",  12.6253}});
+    gnomonic.push_back(map<string, double> {{"xDeg", 10.0}, {"yDeg", 10.0}, {"xFP",  43.574973}, {"yFP", 43.574973}, {"radius",  14.0019}});
+    gnomonic.push_back(map<string, double> {{"xDeg", 11.0}, {"yDeg", 11.0}, {"xFP",  48.036419}, {"yFP", 48.036419}, {"radius",  15.3707}});
+    gnomonic.push_back(map<string, double> {{"xDeg", 12.0}, {"yDeg", 12.0}, {"xFP",  52.528243}, {"yFP", 52.528243}, {"radius",  16.7308}});
+    gnomonic.push_back(map<string, double> {{"xDeg", 13.0}, {"yDeg", 13.0}, {"xFP",  57.053521}, {"yFP", 57.053521}, {"radius",  18.0817}});
+    gnomonic.push_back(map<string, double> {{"xDeg", 13.6}, {"yDeg", 13.6}, {"xFP",  59.786060}, {"yFP", 59.786060}, {"radius",  18.8876}});
 
-    ConfigurationParameters cp = ConfigurationParameters();
-    cp.setParameter("Camera/PlateScale", "0.833333333");
-    cp.setParameter("Camera/FocalPlaneOrientation", "0.0");
-    cp.setParameter("Camera/ThroughputBandwidth", "650");
-    cp.setParameter("Camera/ThroughputLambdaC", "550");     
-    cp.setParameter("ObservingParameters/RApointing", "0.0");
-    cp.setParameter("ObservingParameters/DecPointing", "0.0");
-    cp.setParameter("ObservingParameters/StarCatalogFile", "inputfiles/starcatalog.txt"); 
-    cp.setParameter("Telescope/LightCollectingArea", "113.1");
-    cp.setParameter("Telescope/TransmissionEfficiency", "0.757");
-    cp.setParameter("Telescope/FOVSquareDegrees", "1072.0");  
-    cp.setParameter("Telescope/DriftYawRms", "14.0");
-    cp.setParameter("Telescope/DriftPitchRms", "2.3");       
-    cp.setParameter("Telescope/DriftRollRms", "2.3");        
-    cp.setParameter("Telescope/DriftTimeScale", "3600.");  
-
-    HDF5File hdf5File;
-    hdf5File.open("/tmp/cameraTest.hdf5");
-    
-    Telescope telescope = Telescope(cp, hdf5File);
-    Sky sky = Sky(cp);
+    JitterGenerator *jitterGenerator = new JitterFromRedNoise(cp_);
+    Platform platform = Platform(cp_, hdf5File_, *jitterGenerator);
+    Telescope telescope = Telescope(cp_, hdf5File_, platform);
+    Sky sky = Sky(cp_);
 
     MyCamera camera = MyCamera(cp_, hdf5File_, telescope, sky);
 
-    // TODO:
-    // Test incomplete, I now only test if the from and to methods end up with the original values.
-    // What should be done is check for boundary values if the expected result is returned.
-    // Other tests should be done with optical axis not being (0,0).
-
-    double xFPprime, yFPprime;   // [mm]
     double raStar, decStar;      // [rad]
-    double raStar2, decStar2;    // [rad]
-    double radialDistance;       // [deg]
-    double angularDistance;      // [deg]
+    double xFPprime, yFPprime;   // [mm]
+    double xDeg, yDeg;           // [deg]
+    double xFPrad, yFPrad;       // [rad]
+    double radius;               // [rad]
 
     for (auto &data: gnomonic)
     {
-        raStar = deg2rad(data["raStar"]);
-        decStar = deg2rad(data["decStar"]);
+        // Other tests that need to be performed is the conversion from xFP, yFP to xDeg, yDeg (in the data table above)
 
-        tie(xFPprime, yFPprime) = camera.test_skyToFocalPlaneCoordinates(raStar, decStar);    // [radians] -> [mm]
+        xDeg = data["xDeg"];
+        yDeg = data["yDeg"];
+        xFPrad = deg2rad(xDeg);
+        yFPrad = deg2rad(yDeg);
 
-        tie(raStar2, decStar2) = camera.test_focalPlaneToSkyCoordinates(xFPprime, yFPprime);  // [mm] -> [radians]
+        radius = camera.test_getGnomonicRadialDistanceFromOpticalAxis(xFPrad, yFPrad); // [radians] -> [radians]
 
-        radialDistance = camera.test_getGnomonicRadialDistance(xFPprime, yFPprime); // [mm] -> [degrees]
+        EXPECT_NEAR(data["radius"], rad2deg(radius), 0.0001);
 
-        angularDistance = camera.test_getAngularDistance(raStar, decStar);           // [radians] -> [degrees]
+        //Log.debug("CameraTest.GnomonicRadialDistance: xDeg, yDeg [deg] = " + dtos(xDeg) + ", " + dtos(yDeg));
+        //Log.debug("CameraTest.GnomonicRadialDistance: xFPrad, yFPrad [rad] = " + dtos(xFPrad) + ", " + dtos(yFPrad));
+        //Log.debug("CameraTest.GnomonicRadialDistance: radius [rad] = " + dtos(radius));
+        //Log.debug("CameraTest.GnomonicRadialDistance: radius [deg] = " + dtos(rad2deg(radius)));
 
-        EXPECT_DOUBLE_EQ(raStar, raStar2);
-        EXPECT_DOUBLE_EQ(decStar, decStar2);
+        tie(xFPprime, yFPprime) = camera.test_angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad);
 
-        //EXPECT_NEAR(data["xFPprime"], xFPprime, 0.0001);
-        //EXPECT_NEAR(data["yFPprime"], yFPprime, 0.0001);
-        EXPECT_NEAR(data["radialDistance"], radialDistance, 0.00001);
-        EXPECT_NEAR(data["radialDistance"], angularDistance, 0.00001);
+        EXPECT_NEAR(data["xFP"], xFPprime, 0.00001);
+        EXPECT_NEAR(data["yFP"], yFPprime, 0.00001);
 
+        //Log.debug("CameraTest.GnomonicRadialDistance: xFPprime, yFPprime [mm]= " + dtos(xFPprime) + ", " + dtos(yFPprime));
 
-        Log.debug("CameraTest.skyToFocalPlaneCoordinates: raStar, decStar = " + to_string(raStar) + ", " + to_string(decStar));
-        Log.debug("CameraTest.skyToFocalPlaneCoordinates: raStar2, decStar2 = " + to_string(raStar2) + ", " + to_string(decStar2));
-        Log.debug("CameraTest.skyToFocalPlaneCoordinates: xFPprime, yFPprime = " + to_string(xFPprime) + ", " + to_string(yFPprime));
-        Log.debug("CameraTest.skyToFocalPlaneCoordinates: radialDistance = " + to_string(radialDistance));
-        Log.debug("CameraTest.skyToFocalPlaneCoordinates: angularDistance = " + to_string(angularDistance));
+        tie(raStar, decStar) = camera.test_angularFocalPlaneToSkyCoordinates(xFPrad, yFPrad);
+
+        //Log.debug("CameraTest.GnomonicRadialDistance: raStar, decStar [rad] = " + dtos(raStar) + ", " + dtos(decStar));
+        //Log.debug("CameraTest.GnomonicRadialDistance: raStar, decStar [deg] = " + dtos(rad2deg(raStar)) + ", " + dtos(rad2deg(decStar)));
 
     }
 
 }
+
+
+
+TEST_F(CameraTest, distortedCoordinates)
+{
+    LOG_STARTING_OF_TEST
+
+    using StringUtilities::dtos;
+
+    JitterGenerator *jitterGenerator = new JitterFromRedNoise(cp_);
+    Platform platform = Platform(cp_, hdf5File_, *jitterGenerator);
+    Telescope telescope = Telescope(cp_, hdf5File_, platform);
+    Sky sky = Sky(cp_);
+
+    int degree = 1;
+    vector<double> coeff = {0.0, 1.0};
+    Polynomial1D polynomial = Polynomial1D(degree, coeff);
+
+    MyCamera camera = MyCamera(cp_, hdf5File_, telescope, sky);
+
+    camera.test_setDistortionPolynomial(polynomial);
+
+    double xFPdist, yFPdist;   // [mm]
+
+    tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(10.0, 0.0);
+    EXPECT_NEAR(10.0000, xFPdist, 0.00001);
+    EXPECT_NEAR( 0.0000, yFPdist, 0.00001);
+
+    tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(0.0, 10.0);
+    EXPECT_NEAR( 0.0000, xFPdist, 0.00001);
+    EXPECT_NEAR(10.0000, yFPdist, 0.00001);
+
+    tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(5.0, 5.0);
+    EXPECT_NEAR( 5.0000, xFPdist, 0.00001);
+    EXPECT_NEAR( 5.0000, yFPdist, 0.00001);
+
+    degree = 2;
+    coeff = {2.0, 0.5, 1.5};
+    polynomial = Polynomial1D(degree, coeff);
+
+    camera.test_setDistortionPolynomial(polynomial);
+
+    tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(10.0, 0.0);
+    EXPECT_NEAR(157.0000, xFPdist, 0.00001);
+    EXPECT_NEAR(  0.0000, yFPdist, 0.00001);
+
+    tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(0.0, 10.0);
+    EXPECT_NEAR(  0.0000, xFPdist, 0.00001);
+    EXPECT_NEAR(157.0000, yFPdist, 0.00001);
+
+    tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(5.0, 5.0);
+    EXPECT_NEAR( 56.947222, xFPdist, 0.00001);
+    EXPECT_NEAR( 56.947222, yFPdist, 0.00001);
+
+}
+
+
+TEST_F(CameraTest, reproduceDistortionMap)
+{
+    LOG_STARTING_OF_TEST
+
+    using StringUtilities::dtos;
+
+    JitterGenerator *jitterGenerator = new JitterFromRedNoise(cp_);
+    Platform platform = Platform(cp_, hdf5File_, *jitterGenerator);
+    Telescope telescope = Telescope(cp_, hdf5File_, platform);
+    Sky sky = Sky(cp_);
+
+    // Just a few values from the current distortion map for which the Polynomial1D was fitted.
+    vector<map<string, double>> distortion;
+    distortion.push_back(map<string, double> {{"xFPmm",  0.000000}, {"yFPmm",  0.000000}, {"xFPdist",   0.000000}, {"yFPdist",  0.000000}});
+
+    distortion.push_back(map<string, double> {{"xFPmm",  2.156636}, {"yFPmm", 12.951322}, {"xFPdist",   2.158552}, {"yFPdist", 12.962833}});  // 0.500000	3.000000	3.041231
+    distortion.push_back(map<string, double> {{"xFPmm", 12.951322}, {"yFPmm",  2.156636}, {"xFPdist",  12.962833}, {"yFPdist",  2.158552}});  // 3.000000	0.500000	3.041231
+
+    distortion.push_back(map<string, double> {{"xFPmm", 22.490223}, {"yFPmm", 52.077606}, {"xFPdist",  22.869180}, {"yFPdist", 52.955106}});  // 5.200000   11.900000   12.927980
+    distortion.push_back(map<string, double> {{"xFPmm", 52.077606}, {"yFPmm", 22.490223}, {"xFPdist",  52.955106}, {"yFPdist", 22.869180}});  // 11.900000  5.200000    12.927980
+
+    distortion.push_back(map<string, double> {{"xFPmm", 10.789752}, {"yFPmm",  0.000000}, {"xFPdist",  10.796226}, {"yFPdist",  0.000000}});
+    distortion.push_back(map<string, double> {{"xFPmm", 24.666449}, {"yFPmm",  0.000000}, {"xFPdist",  24.743989}, {"yFPdist",  0.000000}});
+    distortion.push_back(map<string, double> {{"xFPmm", 68.998805}, {"yFPmm",  0.000000}, {"xFPdist",  70.734282}, {"yFPdist",  0.000000}});
+    distortion.push_back(map<string, double> {{"xFPmm", 80.296089}, {"yFPmm",  0.000000}, {"xFPdist",  83.062336}, {"yFPdist",  0.000000}});
+
+    // These values are for a fit of Polynomial1D with degree=3 to the distortion table
+
+    int degree = 3;
+    vector<double> coeff = {-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06};
+    Polynomial1D polynomial = Polynomial1D(degree, coeff);
+
+    MyCamera camera = MyCamera(cp_, hdf5File_, telescope, sky);
+    camera.test_setDistortionPolynomial(polynomial);
+
+    double xFPdist, yFPdist;   // [mm]
+
+    for (auto &data: distortion)
+    {
+        double xFPmm = data["xFPmm"];
+        double yFPmm = data["yFPmm"];
+
+        tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm);
+        EXPECT_NEAR( data["xFPdist"], xFPdist, 0.006);
+        EXPECT_NEAR( data["yFPdist"], yFPdist, 0.006);
+    }
+
+    // These values are for a fit of Polynomial1D with degree=4 to the distortion table
+    // Obviously the error of the fit is smaller, but we need to check what the effect is on the noise level.
+    // Remember that 1 pixel = 0.018 mm
+
+    degree = 4;
+    coeff = {0.000814670391532, 0.99970324817, 2.39592182367e-05, 4.44973838376e-06, 7.93413878401e-09};
+    polynomial = Polynomial1D(degree, coeff);
+
+    camera.test_setDistortionPolynomial(polynomial);
+
+    for (auto &data: distortion)
+    {
+        double xFPmm = data["xFPmm"];
+        double yFPmm = data["yFPmm"];
+
+        tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm);
+        EXPECT_NEAR( data["xFPdist"], xFPdist, 0.002);
+        EXPECT_NEAR( data["yFPdist"], yFPdist, 0.002);
+    }
+
+}
+
+
+
 

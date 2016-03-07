@@ -5,19 +5,18 @@
 
 using std::string;
 
-const char * FileException::what() const throw() {
-    return string("FileException: " + message).c_str();
+const char * FileException::what() const throw()
+{
+    return message.c_str();
 }
 
-FileException::FileException(const char * msg) {
+
+FileException::FileException(std::string msg)
+{
     message = msg;
-    Log.error(what());
+    Log.error(message);
 }
 
-FileException::FileException(std::string msg) {
-    message = msg;
-    Log.error(what());
-}
 
 FileException::~FileException() throw() {}
 

@@ -19,9 +19,9 @@ class JitterGenerator : public Heartbeat
     public:
 
         JitterGenerator(){};
-        ~JitterGenerator(){};
+        virtual ~JitterGenerator(){};
 
-        virtual void getNextYawPitchRoll(double &yaw, double &pitch, double &roll, double timeInterval) = 0;
+        virtual tuple<double, double, double> getNextYawPitchRoll(double timeInterval) = 0;
 
     protected:
 

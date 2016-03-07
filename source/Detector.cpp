@@ -3,11 +3,27 @@
 #include "Units.h"
 
 /**
- * Constructor.  
- *
- * @param hdf5file:                HFD5 file to write the detector images to.
- * @param configurationParameters: Configuration parameters for the detector.
- * @param camera:                  Camera to which to attach the detector.
+ * \brief Constructor.
+ * 
+ * \details
+ * 
+ * The constructor initializes the groups in the HDF5 file where the different maps (i.e. pixel map,
+ * bias register map, smearing map, etc.) will be saved. 
+ * 
+ * The following maps are initialized to zero:
+ * 
+ * \li \c pixelMap 
+ * \li \c subPixelMap
+ * \li \c biasMap
+ * \li \c smearingMap
+ * \li \c flatfieldMap
+ * \li \c cteMap
+ * 
+ * The flatfieldMap is filled at subPixel level and cteMap is filled at pixel level.
+ * 
+ * \param configParam    Configuration parameters for the detector.
+ * \param hdf5file       HFD5 file to write the detector images to.
+ * \param camera         Camera to which to attach the detector.
  */
 Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera)
 : HDF5Writer(hdf5file), internalTime(0.0), camera(camera), imageNr(0)
@@ -57,7 +73,7 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
  */
 Detector::~Detector()
 {
-
+	flushOutput();
 }
 
 
@@ -95,6 +111,7 @@ Detector::~Detector()
     readoutTime             = configParam.getDouble("CCD/ReadoutTime");
     flatfieldNoiseAmplitude = configParam.getDouble("CCD/FlatfieldPtPNoise");
     meanCte                 = configParam.getDouble("CCD/CTEMean");
+    includePhotonNoise      = configParam.getBoolean("CCD/IncludePhotonNoise");
 
     // Configuration parameters for the subfield
 
@@ -132,7 +149,7 @@ Detector::~Detector()
 
 
 ///**
-// * @brief: Generate CTE map.  This map is generated at pixel level and currently
+// * \brief: Generate CTE map.  This map is generated at pixel level and currently
 // *         the value of all elements in the CTE map are set to the mean CTE.
 // *
 // * NOTE: In a later version, we can introduce pixels and/or rows of pixels (in the
@@ -159,7 +176,7 @@ Detector::~Detector()
 
 
 /**
- * @brief: Generate the (random) flatfield variations.  This map is generated
+ * \brief: Generate the (random) flatfield variations.  This map is generated
  *		   at sub-pixel level but without the edge pixels.
  */
 void Detector::generateFlatfieldMap()
@@ -222,10 +239,30 @@ void Detector::generateFlatfieldMap()
 
 	flatfieldMap = squareMap.submat(0, 0, flatfieldMap.n_rows - 1, flatfieldMap.n_cols - 1);
 
-	// Save the flatfield in the HDF5 file
+	// Save the intra-pixel flatfield in the HDF5 file
 
-	hdf5File.writeArray("/Flatfield", "flatfield", flatfieldMap);
+	hdf5File.writeArray("/Flatfield", "IRNU", flatfieldMap);
 
+	// Rebin the intra-pixel flatfield to the pixel flatfield (IRNU -> PRNU)
+	// and also write this array to the HDF5 outputfile. This PRNU array is not used 
+	// in the remainder of the simulation.
+
+	arma::Mat<float> prnu(numRowsPixelMap, numColumnsPixelMap, arma::fill::zeros);
+
+	for (unsigned int row = 0; row < numRowsPixelMap; row++)
+	{
+		for (unsigned int column = 0; column < numColumnsPixelMap; column++)
+		{
+			const unsigned int beginRow = row * numSubPixelsPerPixel;
+			const unsigned int beginCol = column * numSubPixelsPerPixel;
+			const unsigned int endRow = (row + 1) * numSubPixelsPerPixel - 1;
+			const unsigned int endCol = (column + 1) * numSubPixelsPerPixel - 1;
+
+			prnu(row, column) = arma::accu(flatfieldMap.submat(beginRow, beginCol, endRow, endCol));
+		}
+	}
+
+	hdf5File.writeArray("/Flatfield", "PRNU", prnu);
 }
 
 
@@ -240,11 +277,11 @@ void Detector::generateFlatfieldMap()
 
 
 /**
- * @brief: Zeroes the sub-pixel, pixel, bias register, and the smearing maps.
+ * \brief: Zeroes the sub-pixel, pixel, bias register, and the smearing maps.
  *
- * @pre Sub-pixel, pixel, bias register, and smearing maps filled with values from previous exposure.
+ * \pre Sub-pixel, pixel, bias register, and smearing maps filled with values from previous exposure.
  *
- * @post Sub-pixel, pixel, bias register, and smearing maps filled with zeroes.
+ * \post Sub-pixel, pixel, bias register, and smearing maps filled with zeroes.
  */
 void Detector::reset()
 {
@@ -263,21 +300,24 @@ void Detector::reset()
 
 
 /**
- * @brief: Take an exposure with the detector starting at the given time.
+ * \brief: Take an exposure with the detector starting at the given time.
  *		   The light is integrated during the given exposure time, during which 
  *         the detector experiences the effects of jitter and thermo-elastic telescope 
  *         drift. The background is assumed uniform for the whole subfield.
  *         Afterwards, the collected light is read out, convolving the image with the
  *         PSF of the camera and adding various noise effects.
  *
- * @param startTime:    Starting time of the exposure [s].
- * @param exposureTime: Duration of the exposure [s].
+ * \param startTime:    Starting time of the exposure [s].
+ * \param exposureTime: Duration of the exposure [s].
+ * 
+ * \return endTime:     Time after the exposure (startTime + exposureTime + readoutTime)
  *
- * @pre Sub-pixel, pixel, bias register, and smearing map filled with values from previous exposure.
+ * \pre Sub-pixel, pixel, bias register, and smearing map filled with values from previous exposure.
  *
- * @post Pixel unit in the pixel, bias register, and smearing maps: [ADU]
+ * \post Pixel unit in the pixel, bias register, and smearing maps: [ADU]
  */
-void Detector::takeExposure(double startTime, double exposureTime)
+
+double Detector::takeExposure(double startTime, double exposureTime)
 {
 	// Advance the internal clock until the given start time
 
@@ -285,11 +325,12 @@ void Detector::takeExposure(double startTime, double exposureTime)
 
 	// Integration of point sources and background, taking into account jitter + drift.
 
-	Log.debug("Detector: Integrating light for exposure " + to_string(imageNr));
+	Log.debug("Detector: Integrating light for exposure " + to_string(imageNr) + " with exposure time = " + to_string(exposureTime));
 
 	integrateLight(startTime, exposureTime);
 
 	// Include noise effects like readout noise, photon noise, full well saturation, etc.
+	// Note: readOut() needs the exposure time to compute the open shutter smearing.
 
 	Log.debug("Detector: Adding noise effects to exposure " + to_string(imageNr));
 
@@ -300,6 +341,12 @@ void Detector::takeExposure(double startTime, double exposureTime)
 	Log.debug("Detector: Writing PixelMap " + to_string(imageNr) + " to HDF5 file.");
 
 	writePixelMapToHDF5();
+
+	// Advance the internal clock
+
+	internalTime += exposureTime + readoutTime;
+
+	return internalTime;
 }
 
 
@@ -312,20 +359,21 @@ void Detector::takeExposure(double startTime, double exposureTime)
 
 
 /**
- * @brief: During an exposure, this method makes the detector integrates the light
+ * \brief: During an exposure, this method makes the detector integrate the light
  *         in small steps. During each step the slight change of star positions due
  *         to spacecraft jitter is taken into account. 
- *         Besides jitter, also the sky background, and the flatfield is taken into 
- *         account. The sub-pixel map is rebinned in a pixel map.
+ *         
+ *  \details  Besides jitter, also the sky background, and the flatfield is taken into 
+ *            account. The sub-pixel map is rebinned in a pixel map.
  *
- * NOTE: The convolution with the PSF is not yet done here.
+ * \note The convolution with the PSF is not yet done here.
  *
- * @param startTime: Starting time of the exposure for which jitter must be applied [s].
+ * \param startTime: Starting time of the exposure for which jitter must be applied [s].
  *
- * @pre Sub-pixel, pixel, bias register, and smearing map filled with values from previous exposure.
+ * \pre Sub-pixel, pixel, bias register, and smearing map filled with values from previous exposure.
  *
- * @post Pixel unit of the sub-pixel map: [photons].
- * @post Pixel, bias register, and smearing map filled with zeroes.
+ * \post Pixel unit of the sub-pixel map: [photons].
+ * \post Pixel, bias register, and smearing map filled with zeroes.
  */
 
 void Detector::integrateLight(double startTime, double exposureTime)
@@ -352,10 +400,6 @@ void Detector::integrateLight(double startTime, double exposureTime)
 	Log.debug("Detector: Rebinning subpixel map into pixel map.");
 
 	rebin();
-
-	// Update the internal clock
-
-	internalTime += exposureTime;
 }
 
 
@@ -370,42 +414,50 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 
 /**
- * @brief: Add the given flux value to the value of the sub-pixel that
- *         corresponds to the given coordinates in the focal plane.
+ * \brief: Add the given flux value to the value of the sub-pixel that corresponds to the given coordinates 
+ *         in the focal plane. Return the pixel coordinates of the pixel to which the flux was added.
  *
- * @param xCoord   x-coordinate of the sub-pixel in the focal plane [mm].
- * @param yCoord   y-coordinate of the sub-pixel in the focal plane [mm].
- * @param flux     Flux to add to the sub-pixel map [photons].
+ * \param xFPprime   X-coordinate of the sub-pixel in the focal plane in the FP' reference frame [mm].
+ * \param yFPprime   Y-coordinate of the sub-pixel in the focal plane in the FP' reference frame [mm].
+ * \param flux       Flux to add to the sub-pixel map [photons].
  *
- * @pre Pixel, bias register, and smearing maps filled with zeroes.
- *
- * @post Pixel unit in the sub-pixel map: [photons].
- * @post Pixel, bias register, and smearing maps filled with zeroes.
+ * \return           (isInSubfield, row, col) 
+ *                   isInSubfield: True if (xFPprime, yFPprime) are on the subfield, false otherwise.
+ *                   row:          subfield (not CCD) row number of the pixel to which the flux was added
+ *                   col:          subfield (not CCD) column number of the pixel to which the flux was added  
  */
 
-void Detector::addFlux(double xCoord, double yCoord, double flux)
+tuple<bool, double, double> Detector::addFlux(double xFPprime, double yFPprime, double flux)
 {
+	// Convert from FP' coordinates to CCD pixel coordinates
 
-	// Detector origin offset (pixel level)
+	double pixRow, pixColumn;
+	tie(pixRow, pixColumn) = planarFocalPlaneToPixelCoordinates(xFPprime, yFPprime);
 
-	double rowOffset = (xCoord - originOffsetY) / pixelSize;
-	double columnOffset = (yCoord - originOffsetX) / pixelSize;
+	// Sub-field coordinates, taking into account the edge pixels 
+	// (subpixRow, subpixColumn) are the indices of the star in the subpixelMap. So they are not 
+	// subpixel coordinates in the CCD frame, but in the subfield reference frame.
 
-	// Detector orientation (pixel level)
+	const double subpixColumn = round((pixColumn - subFieldZeroPointColumn + numEdgePixels) * numSubPixelsPerPixel);
+	const double subpixRow    = round((pixRow    - subFieldZeroPointRow    + numEdgePixels) * numSubPixelsPerPixel);
 
-	double column = columnOffset * cos(orientationAngle) - rowOffset * sin(orientationAngle);
-	double row    = columnOffset * sin(orientationAngle) + rowOffset * cos(orientationAngle);
+	// Convert back the _rounded_ subpixel coordinates to pixel coordinates
+	// E.g. if there are 4 subpixels per pixel, then the pixel coordinates should always end with
+	//      0.0, 0.25, 0.5, or 0.75
 
-	// Sub-field incl. edge pixels (also correct for sub-field zeropoint)
+	pixRow    = subpixRow    / numSubPixelsPerPixel - numEdgePixels;
+	pixColumn = subpixColumn / numSubPixelsPerPixel - numEdgePixels;
 
-	column = (column - subFieldZeroPointColumn + numEdgePixels) * numSubPixelsPerPixel;
-	row    = (row    - subFieldZeroPointRow    + numEdgePixels) * numSubPixelsPerPixel;
+	// Add the flux to the subPixelMap
 
-	// Add flux in this->subPixelMap at (row, column)
-
-	if (isInSubPixelMap(row, column))
+	if (isInSubPixelMap(subpixRow, subpixColumn))
 	{
-		subPixelMap((int) round(row), (int) round(column)) += flux;
+		subPixelMap((int) subpixRow, (int) subpixColumn) += flux;
+		return make_tuple(true, pixRow, pixColumn);
+	}
+	else
+	{
+		return make_tuple(false, pixRow, pixColumn);
 	}
 }
 
@@ -417,21 +469,68 @@ void Detector::addFlux(double xCoord, double yCoord, double flux)
 
 
 
+
+
+
+
+
 /**
- * @brief: Check whether the given (row, column) coordinates are in the
- *         sub-pixel map.
- *
- * NOTE: The input parameters row & column come from an coordinate transformation
- *       in the focal plane, and as a result are not necessarily integers. For the
- *       @brief of this function it's not necessary to round them to the nearest
- *       integer. 
- *
- * @param row:    Row coordinate     [sub-pixel].
- * @param column: Column coordinate  [sub-pixel].
- *
- * @return True if the given (row, column) coordinates are in the sub-pixel map;
- *         false otherwise.
+ * \brief Verify if a point with given planar focal plane coordinates is in the subfield
+ * 
+ * \param xFPprime    Planar focal plane x-coordinate in the FP' reference frame [mm]
+ * \param yFPprime    Planar focal plane y-coordinate in the FP' reference frame [mm]
+ * 
+ * \return true if the point is in the subfield on the CCD, false otherwise.
  */
+
+bool Detector::isInSubfield(const double xFPprime, const double yFPprime)
+{
+	// Convert to pixel coordinates in the unrotated CCD reference frame
+
+	double rowUnrot = (xFPprime - originOffsetY) / (pixelSize / 1000.0);
+	double colUnrot = (yFPprime - originOffsetX) / (pixelSize / 1000.0);
+
+	// Compute the coordinates in the rotated CCD reference frame
+
+	double colRot = colUnrot * cos(orientationAngle) - rowUnrot * sin(orientationAngle);
+	double rowRot = colUnrot * sin(orientationAngle) + rowUnrot * cos(orientationAngle);
+
+	// Check wether these pixel coordinates falls on the subfield
+
+	return    (colRot >= subFieldZeroPointColumn) && (colRot < subFieldZeroPointColumn + numColumnsPixelMap)
+	       && (rowRot >= subFieldZeroPointRow)    && (rowRot < subFieldZeroPointRow + numRowsPixelMap);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief   Check whether the given (row, column) indices are within the array range of the subpixel map.
+ *
+ * \details  The input parameters row & column come from a coordinate transformation
+ *           in the focal plane, and as a result are not necessarily integers. For this 
+ *           function it's not necessary to round them to the nearest integer. 
+ *
+ * \param  row:    Row index. NOT a coordinate in the CCD frame, but in the subfield frame. [sub-pixel].
+ * \param  column: Column index.NOT a coordinate in the CCD frame, but in the subfield frame.  [sub-pixel].
+ *
+ * \return  True if the given (row, column) coordinates are in the sub-pixel map; false otherwise.
+ */
+
 bool Detector::isInSubPixelMap(double row, double column)
 {
 	return (column >= 0) && (row >= 0) && (column < numColumnsSubPixelMap) && (row < numRowsSubPixelMap);
@@ -447,18 +546,19 @@ bool Detector::isInSubPixelMap(double row, double column)
 
 
 /**
- * @brief: Add the given flux value to (all sub-pixels of) the sub-pixel map.
+ * \brief: Add the given flux value to (all sub-pixels of) the sub-pixel map.
  *
- * @param flux: Flux to add to the sub-pixel map [photons].
+ * \param flux: Flux to add to the sub-pixel map [photons/pixel].
  *
- * @pre Pixel, bias register, and smearing maps filled with zeroes.
- *
- * @post Pixel unit in the sub-pixel map: [photons].
- * @post Pixel, bias register, and smearing maps filled with zeroes.
  */
+
 void Detector::addFlux(double flux)
 {
-	subPixelMap += flux;
+	// The flux is expressed in [photons/pixel] but we need the quantity expressed 
+	// in [photons/subpixel]. There are (numSubPixelsPerPixel)^2 per pixel (the
+	// name is thus a bit of a misnomer.).
+
+	subPixelMap += flux / numSubPixelsPerPixel / numSubPixelsPerPixel;
 }
 
 
@@ -471,9 +571,9 @@ void Detector::addFlux(double flux)
 
 
 /**
- * @brief: Convolve the sub-pixel map with the given PSF, keeping the same dimensions.
+ * \brief: Convolve the sub-pixel map with the given PSF, keeping the same dimensions.
  *
- * @param psf: PSF.
+ * \param psf: PSF.
  */
 void Detector::convolveWithPsf(arma::Mat<float> psf)
 {
@@ -491,18 +591,18 @@ void Detector::convolveWithPsf(arma::Mat<float> psf)
 
 
 /**
- * @brief: Multiply the sub-pixel map with the flatfield.
+ * \brief: Multiply the sub-pixel map with the flatfield.
  * 
  * NOTE: The sub-pixel map contains extra edge pixels, but the flatfield
  *       map does not. These edge pixels are excluded from this flatfield
  *       multiplication.
  *
- * @pre Unit of the sub-pixels: [photons].
- * @pre Flatfield map at sub-pixel level, excl. edge pixels.
- * @pre Pixel, bias register, and smearing maps filled with zeroes.
+ * \pre Unit of the sub-pixels: [photons].
+ * \pre Flatfield map at sub-pixel level, excl. edge pixels.
+ * \pre Pixel, bias register, and smearing maps filled with zeroes.
  *
- * @post Pixel value in the sub-pixel map: [photons].
- * @post Pixel, bias, and smearing maps filled with zeroes.
+ * \post Pixel value in the sub-pixel map: [photons].
+ * \post Pixel, bias, and smearing maps filled with zeroes.
  */
 void Detector::applyFlatfield()
 {
@@ -524,13 +624,13 @@ void Detector::applyFlatfield()
 
 
 /**
- * @brief: Rebin the sub-pixel map to pixel level and crop the edge pixels.
+ * \brief: Rebin the sub-pixel map to pixel level and crop the edge pixels.
  *
- * @pre Unit of the pixel value in the sub-pixel map: [photons].
- * @pre Pixel, bias register, and smearing map filled with zeroes.
+ * \pre Unit of the pixel value in the sub-pixel map: [photons].
+ * \pre Pixel, bias register, and smearing map filled with zeroes.
  *
- * @post Unit of pixel values in the sub-pixel map: [photons].
- * @post Bias register, and smearing maps filled with zeroes.
+ * \post Unit of pixel values in the sub-pixel map: [photons].
+ * \post Bias register, and smearing maps filled with zeroes.
  */
 void Detector::rebin()
 {
@@ -562,7 +662,7 @@ void Detector::rebin()
 
 
 /**
- * @brief: Reads out the detector and apply the following effects:
+ * \brief: Reads out the detector and apply the following effects:
  *   		- quantum efficiency
  * 	 		- photon noise
  *   		- full-well saturation (i.e. blooming)
@@ -573,12 +673,12 @@ void Detector::rebin()
  * 	 		- electronic offset (i.e. bias)
  * 	 		- digital saturation
  *
- * @param exposureTime: Exposure time [s].
+ * \param exposureTime: Exposure time [s].
  *
- * @pre Pixel unit in the pixel map: [photons].
- * @pre Bias register and smearing maps filled with zeroes.
+ * \pre Pixel unit in the pixel map: [photons].
+ * \pre Bias register and smearing maps filled with zeroes.
  *
- * @post Pixel unit in the pixel, bias register, and smearing maps: [ADU].
+ * \post Pixel unit in the pixel, bias register, and smearing maps: [ADU].
  */
 void Detector::readOut(float exposureTime)
 {
@@ -649,10 +749,6 @@ void Detector::readOut(float exposureTime)
 	// Pixel units after: [ADU]
 
 	applyDigitalSaturation();
-
-	// Advance the internal clock
-
-	internalTime += readoutTime;
 }
 
 
@@ -664,14 +760,14 @@ void Detector::readOut(float exposureTime)
 
 
 /**
- * @brief: Apply quantum efficiency to the pixel.  The pixel values
+ * \brief: Apply quantum efficiency to the pixel.  The pixel values
  *         are multiplied by the quantum efficiency of the detector.
  *
- * @pre Pixel unit in the pixel map: [photons].
- * @pre Bias and smearing maps filled with zeroes.
+ * \pre Pixel unit in the pixel map: [photons].
+ * \pre Bias and smearing maps filled with zeroes.
  *
- * @pre Pixel unit in the pixel map: [electrons].
- * @post Bias and smearing maps filled with zeroes.
+ * \pre Pixel unit in the pixel map: [electrons].
+ * \post Bias and smearing maps filled with zeroes.
  */
 void Detector::applyQuantumEfficiency()
 {
@@ -690,16 +786,16 @@ void Detector::applyQuantumEfficiency()
 
 
 /**
- * @brief: Add photon noise (i.e. shot noise) to the pixel and smearing maps. 
+ * \brief: Add photon noise (i.e. shot noise) to the pixel and smearing maps. 
  *         It follows a Poisson distribution and each pixel is treated 
  *         independently of the other pixels.
  *
- * @pre Pixel unit in the pixel map: [electrons].
- * @pre No bias register or smearing maps.
+ * \pre Pixel unit in the pixel map: [electrons].
+ * \pre No bias register or smearing maps.
  *
- * @post Pixel unit in the pixel map: [electrons].
- * @post Pixel unit in the smearing map: [electrons].
- * @post No bias register map.
+ * \post Pixel unit in the pixel map: [electrons].
+ * \post Pixel unit in the smearing map: [electrons].
+ * \post No bias register map.
  */
 void Detector::addPhotonNoise()
 {
@@ -738,21 +834,21 @@ void Detector::addPhotonNoise()
 
 
 /**
- * @brief: Apply the effect of full-well saturation (i.e. blooming) to the
+ * \brief: Apply the effect of full-well saturation (i.e. blooming) to the
  *         pixel map.  If a pixel receives more electrons than the full-well saturation
  *         limit (expressed in [electrons / pixel]), the additional electrons flow evenly
  *         distributed in positive and negative charge-transfer direction.  Electrons
  *         reaching the edge of the CCD will not be detected.
  *
- * @pre Pixel unit in the pixel map: [electrons].
- * @pre Pixel unit in the smearing map: [electrons].
- * @pre No bias register map.
- * @pre Full-well saturation limit expressed in [electrons].
+ * \pre Pixel unit in the pixel map: [electrons].
+ * \pre Pixel unit in the smearing map: [electrons].
+ * \pre No bias register map.
+ * \pre Full-well saturation limit expressed in [electrons].
  *
- * @post Pixel unit in the pixel map: [electrons].
- * @post Effect of full-well saturation (i.e. blooming) applied to the pixel map.
- * @post Pixel unit in the smearing map: [electrons].
- * @post No bias register map.
+ * \post Pixel unit in the pixel map: [electrons].
+ * \post Effect of full-well saturation (i.e. blooming) applied to the pixel map.
+ * \post Pixel unit in the smearing map: [electrons].
+ * \post No bias register map.
  */
 void Detector::applyFullWellSaturation()
 {
@@ -841,17 +937,17 @@ void Detector::applyFullWellSaturation()
 
 
 /**
- * @brief: Apply the effect of the charge-transfer (in)efficiency to the
+ * \brief: Apply the effect of the charge-transfer (in)efficiency to the
  *         pixel map. The serial register is assumed to have a CTE of 1, 
  *         unlike the CCD that has a CTE map.
  *
- * @pre Pixel unit in the pixel map: [electrons].
- * @pre Pixel unit in the smearing map: [electrons].
- * @pre No bias register map.
+ * \pre Pixel unit in the pixel map: [electrons].
+ * \pre Pixel unit in the smearing map: [electrons].
+ * \pre No bias register map.
  *
- * @post Pixel unit in the pixel map: [electrons].
- * @post Pixel unit in the smearing map: [electrons].
- * @post No bias register map.
+ * \post Pixel unit in the pixel map: [electrons].
+ * \post Pixel unit in the smearing map: [electrons].
+ * \post No bias register map.
  */
 void Detector::applyCte()
 {
@@ -977,7 +1073,7 @@ void Detector::applyCte()
 
 
 /**
- * @brief: Apply the effect of readout smearing to the pixel and the smearing map.
+ * \brief: Apply the effect of readout smearing to the pixel and the smearing map.
  *         This effect is due to the absence of a shutter (common in space-based 
  *         instruments) - the CCD still receives light during frame transfer.
  *         The flux of each pixel is affected by the flux of the pixels
@@ -988,15 +1084,15 @@ void Detector::applyCte()
  * NOTES: A smearing map is created and will be used in photometry to remove 
  *        the smearing effect from the pixel map.
  *
- * @param exposureTime: Exposure time [s].
+ * \param exposureTime: Exposure time [s].
  *
- * @pre Pixel unit in the pixel map: [electrons].
- * @pre Pixel unit in the smearing map: [electrons].
- * @pre No bias register map.
+ * \pre Pixel unit in the pixel map: [electrons].
+ * \pre Pixel unit in the smearing map: [electrons].
+ * \pre No bias register map.
  *
- * @post Pixel unit in the pixel map: [electrons].
- * @post Pixel unit in the smearing map: [electrons].
- * @post No bias register map.
+ * \post Pixel unit in the pixel map: [electrons].
+ * \post Pixel unit in the smearing map: [electrons].
+ * \post No bias register map.
  */
 void Detector::applyOpenShutterSmearing(float exposureTime)
 {
@@ -1035,26 +1131,26 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
 
 
 /**
- * @brief: Apply the readout noise to the pixel map and initialises the
+ * \brief Apply the readout noise to the pixel map and initialises the
  *         bias map. 
  * 
- * NOTE: Readout noise occurs due to the imperfect nature of the CCD amplifiers.  
- *       When the electrons are transferred to the amplifier, the induced voltage
- *       is measured. However, this measurement is not perfect, but gives a value 
- *       which is on average correct, with the readout noise as standard deviation.
- *       So readout noise is a measure of this scatter around the true value.
- *       Its value is expressed in electrons as the packet of charge is made up of 
- *       electrons.
+ * \details Readout noise occurs due to the imperfect nature of the CCD amplifiers.  
+ *          When the electrons are transferred to the amplifier, the induced voltage
+ *          is measured. However, this measurement is not perfect, but gives a value 
+ *          which is on average correct, with the readout noise as standard deviation.
+ *          So readout noise is a measure of this scatter around the true value.
+ *          Its value is expressed in electrons as the packet of charge is made up of 
+ *          electrons.
  *
- * @pre Pixel unit in the pixel map: [electrons].
- * @pre Pixel unit in the smearing map: [electrons].
- * @pre No bias register map.
- * @pre Readout noise expressed in [electrons].
+ * \pre Pixel unit in the pixel map: [electrons].
+ * \pre Pixel unit in the smearing map: [electrons].
+ * \pre No bias register map.
+ * \pre Readout noise expressed in [electrons].
  *
- * @post Pixel unit in the pixel map: [electrons].
- * @post Pixel unit in the smearing map: [electrons].
- * @post Pixel unit in the bias register map: [electrons].
- * @post Initialised the bias register map with readout noise.
+ * \post Pixel unit in the pixel map: [electrons].
+ * \post Pixel unit in the smearing map: [electrons].
+ * \post Pixel unit in the bias register map: [electrons].
+ * \post Initialised the bias register map with readout noise.
  */
 void Detector::addReadoutNoise()
 {
@@ -1093,12 +1189,12 @@ void Detector::addReadoutNoise()
 
 
 /**
- * @brief: Divide the bias register, smearing, and pixel map by the detector gain.
+ * \brief: Divide the bias register, smearing, and pixel map by the detector gain.
  *         This converts these three maps from electrons to ADU:
  *
- * @pre Pixel unit in the pixel, smearing, and bias register maps: [electrons].
+ * \pre Pixel unit in the pixel, smearing, and bias register maps: [electrons].
  *
- * @post Pixel unit in the pixel, smearing, and bias register maps: [ADU].
+ * \post Pixel unit in the pixel, smearing, and bias register maps: [ADU].
  */
 void Detector::applyGain()
 {
@@ -1122,14 +1218,14 @@ void Detector::applyGain()
 
 
 /**
- * @brief: Add the electronic offset (i.e. bias level) to the pixel map,
+ * \brief: Add the electronic offset (i.e. bias level) to the pixel map,
  *         smearing map, and bias map.
  *
- * @pre Pixel unit in the pixel, smearing, and bias maps: [ADU].
- * @pre Electronic offset (i.e. bias level) expressed in [ADU].
+ * \pre Pixel unit in the pixel, smearing, and bias maps: [ADU].
+ * \pre Electronic offset (i.e. bias level) expressed in [ADU].
  *
- * @post Pixel unit in the pixel, smearing, and bias register maps: [ADU].
- * @post Electronic offset added to the pixel, smearing, and bias register maps.
+ * \post Pixel unit in the pixel, smearing, and bias register maps: [ADU].
+ * \post Electronic offset added to the pixel, smearing, and bias register maps.
  */
 
 void Detector::addElectronicOffset()
@@ -1155,15 +1251,15 @@ void Detector::addElectronicOffset()
 
 
 /**
- * @brief: Apply the effect of digital saturation to the pixel map,
+ * \brief: Apply the effect of digital saturation to the pixel map,
  *         smearing map, and bias register map. This means that the pixel values in
  *         these maps (expressed in [ADU / pixel]) are topped off to the digital saturation
  *         limit of the detector (also expressed in [ADU / pixel]).
  *
- * @pre Pixel unit in the pixel, smearing, and bias maps: [ADU].
- * @pre Digital saturation limit expressed in [ADU / pixel].
+ * \pre Pixel unit in the pixel, smearing, and bias maps: [ADU].
+ * \pre Digital saturation limit expressed in [ADU / pixel].
  *
- * @post Pixel unit in the pixel, smearing, and bias register maps: [ADU].
+ * \post Pixel unit in the pixel, smearing, and bias register maps: [ADU].
  */
 void Detector::applyDigitalSaturation()
 {
@@ -1194,16 +1290,16 @@ void Detector::applyDigitalSaturation()
 
 
 /**
- * @brief Compute the (x,y) coordinates in the FP' reference system (not the FP system) given
- *        the (real-valued) pixel coordinates on the CCD.
+ * \brief Compute the planar (x,y) coordinates in the FP' reference system (not the FP system) 
+ *        given the (real-valued) pixel coordinates on the CCD.
  *        
- * @param row     Row coordinate, real-valued (e.g. 3.5)    [pix]
- * @param column  Column coordinate, real-valued (e.g. 8.3) [pix]
+ * \param row     Row coordinate, real-valued (e.g. 3.5)    [pix]
+ * \param column  Column coordinate, real-valued (e.g. 8.3) [pix]
  * 
- * @return (xFPprime, yFPprime)  A pair of (x,y) coordinates in the FP' reference system [mm]
+ * \return (xFPprime, yFPprime)  A pair of (x,y) coordinates in the FP' reference system [mm]
  */
 
-pair<double, double> Detector::pixelToFocalPlaneCoordinates(double row, double column)
+pair<double, double> Detector::pixelToPlanarFocalPlaneCoordinates(double row, double column)
 {
     // Convert the pixel coordinates into [mm] coordinates
     // The pixelSize is expressed in [micron].
@@ -1232,16 +1328,16 @@ pair<double, double> Detector::pixelToFocalPlaneCoordinates(double row, double c
 
 
 /**
- * @brief Compute the (real-valued) pixel coordinates of the star on the CCD, given the (x,y)
- *       coordinates in the FP' reference system (not the FP system)
+ * \brief Compute the (real-valued) pixel coordinates of the star on the CCD, given the 
+ *        planar (x,y) coordinates in the FP' reference system (not the FP system)
  *
- * @param xFPprime  x-coordinate of the point in the FP' reference system  [mm]
- * @param yFPprime  y-coordinate of the star in the FP' reference system  [mm]
+ * \param xFPprime  planar x-coordinate of the point in the FP' reference system  [mm]
+ * \param yFPprime  planar y-coordinate of the point in the FP' reference system  [mm]
  * 
- * @return (row, column)  Row and column pixel coordinates of the point (real-valued) [pix]
+ * \return (row, column)  Row and column pixel coordinates of the point (real-valued) [pix]
  */
 
-pair<double, double> Detector::focalPlaneToPixelCoordinates(double xFPprime, double yFPprime)
+pair<double, double> Detector::planarFocalPlaneToPixelCoordinates(double xFPprime, double yFPprime)
 {
 	// Convert the FP' coordinates into CCD coordinates [mm]
 
@@ -1271,17 +1367,17 @@ pair<double, double> Detector::focalPlaneToPixelCoordinates(double xFPprime, dou
 
 
 /**
- * @brief  Return the focal plane coordinates of the center pixel of the subfield
+ * \brief  Return the focal plane coordinates of the center pixel of the subfield
  * 
- * @return (x,y)   focal plane coordinates in the FP' reference system [mm]
+ * \return (x,y)   focal plane coordinates in the FP' reference system [mm]
  */
 
-pair<double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCenter()
+pair<double, double> Detector::getPlanarFocalPlaneCoordinatesOfSubfieldCenter()
 {
 	double centerRow = subFieldZeroPointRow + numRowsPixelMap / 2.0;
 	double centerCol = subFieldZeroPointColumn + numColumnsPixelMap / 2.0;
 
-	return pixelToFocalPlaneCoordinates(centerRow, centerCol);
+	return pixelToPlanarFocalPlaneCoordinates(centerRow, centerCol);
 }
 
 
@@ -1296,36 +1392,46 @@ pair<double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCenter()
 
 
 /**
- * @brief  Return the distance between the two diagonally opposite corner points of the
- *         subfield in [mm] on the focal plane.
- * 
- * @return length  Diagonal distance between the two opposite corners [mm]
+ * \brief Return the (X,Y) coordinates in the FP' reference frame in [mm] of the 4 corners
+ *        of the subfield
+ *        
+ * \return (X00, Y00, X01, Y01, X11, Y11, X10, Y10)  [mm]
+ *         where: (X00, Y00) are the FP' coordinates of the lower left corner of the subfield
+ *                (X01, Y01) are the FP' coordinates of the lower right corner of the subfield
+ *                (X11, Y11) are the FP' coordinates of the upper right corner of the subfield
+ *                (X10, Y10) are the FP' coordinates of the upper left corner of the subfield
  */
 
-double Detector::getDiagonalLengthOfSubfield()
+tuple<double, double, double, double, double, double, double, double> Detector::getPlanarFocalPlaneCoordinatesOfSubfieldCorners()
 {
-	// Define the pixel row and column coordinates of two corners diagonally opposite to each other
+	double corner00Xmm, corner00Ymm, corner01Xmm, corner01Ymm, corner11Xmm, corner11Ymm, corner10Xmm, corner10Ymm;
+	double row, col;
 
-	double corner1Row = subFieldZeroPointRow + numRowsPixelMap;
-	double corner1Col = subFieldZeroPointColumn;
+	// Lower left corner
 
-	double corner2Row = subFieldZeroPointRow;
-	double corner2Col = subFieldZeroPointColumn + numColumnsPixelMap;
+	row = subFieldZeroPointRow;
+	col = subFieldZeroPointColumn;
+	tie(corner00Xmm, corner00Ymm) = pixelToPlanarFocalPlaneCoordinates(row, col);
 
-	// Compute their corresponding (x,y) coordinates in the focal plane FP'
+	// Lower right corner
 
-	double corner1X, corner1Y;
-	double corner2X, corner2Y;
+	row = subFieldZeroPointRow + numRowsPixelMap;
+	col = subFieldZeroPointColumn;
+	tie(corner10Xmm, corner01Ymm) = pixelToPlanarFocalPlaneCoordinates(row, col);
 
-	tie(corner1X, corner1Y) = pixelToFocalPlaneCoordinates(corner1Row, corner1Col);
-	tie(corner2X, corner2Y) = pixelToFocalPlaneCoordinates(corner2Row, corner2Col);
+	// Upper right corner
 
-	// The diagonal length is simply the distance between the two corner points
-	// computed using Pythagoras
+	row = subFieldZeroPointRow + numRowsPixelMap;
+	col = subFieldZeroPointColumn + numColumnsPixelMap;
+	tie(corner11Xmm, corner11Ymm) = pixelToPlanarFocalPlaneCoordinates(row, col);
 
-	double diagonalLength = sqrt(pow(corner1X - corner2X, 2) + pow(corner1Y - corner2Y, 2));
+	// Upper left corner
 
-	return diagonalLength;
+	row = subFieldZeroPointRow;
+	col = subFieldZeroPointColumn + numColumnsPixelMap;
+	tie(corner10Xmm, corner10Ymm) = pixelToPlanarFocalPlaneCoordinates(row, col);
+
+	return make_tuple(corner00Xmm, corner00Ymm, corner01Xmm, corner01Ymm, corner11Xmm, corner11Ymm, corner10Xmm, corner10Ymm);
 }
 
 
@@ -1340,7 +1446,92 @@ double Detector::getDiagonalLengthOfSubfield()
 
 
 /**
- * @brief: Creates the group(s) in the HDF5 file where the detector specific
+ * \brief Return the solid angle of 1 single pixel on the sky. [sr]
+ * 
+ * \param plateScale  The platescale of the camera [arcsec/micron]
+ * \return            Solid angle in [s]
+ */
+
+double Detector::getSolidAngleOfOnePixel(double plateScale)
+{
+	return sqDeg2sr(pow(pixelSize * plateScale / 3600.0, 2));
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief     Set the subfield with a given array.  
+ * 
+ * \details   This function is primarily used for testing the code. One should not first get the pixelMap
+ *            perform an operation, and then setSubfield() again. Instead, let Detector do the operation.
+ *  
+ * \param subfield
+ */
+
+void Detector::setSubfield(const arma::Mat<float> &subfield)
+{
+	// Check if the given matrix has the proper dimensions. If not complain, and exit.
+
+	if ((subfield.n_rows != pixelMap.n_rows) || (subfield.n_cols != pixelMap.n_cols))
+	{
+		Log.error("Detector: setSubfield with incompatible array shape: (" 
+		          + to_string(subfield.n_rows) + ", " + to_string(subfield.n_cols) + ") != ("
+		          + to_string(pixelMap.n_rows) + ", " + to_string(pixelMap.n_cols) + ")");
+		exit(1);
+	} 
+
+	// Copy the contents of the subfield array into our pixelMap
+
+	pixelMap = subfield;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Return a copy of the pixelMap matrix
+ * 
+ * \details   This function is primarily used for testing the code. One should not first get the pixelMap
+ *            perform an operation, and then setSubfield() again. Instead, let Detector do the operation.
+ * 
+ * \return pixelMap
+ */
+
+ arma::Mat<float> Detector::getSubfield()
+ {
+ 	return pixelMap;
+ }
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief: Creates the group(s) in the HDF5 file where the detector specific
  *         information will be stored.  These groups have to be created once,
  *         at the very beginning.
  */
@@ -1366,7 +1557,7 @@ void Detector::initHDF5Groups()
 
 
 /**
- * @brief: Writes the pixel map for the HDF5 file.
+ * \brief: Writes the pixel map for the HDF5 file.
  */
 void Detector::writePixelMapToHDF5()
 {

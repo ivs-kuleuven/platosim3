@@ -5,7 +5,10 @@
 
 
 /**
- * \brief Default Constructor
+ * \brief Constructor
+ * 
+ * \param configParams    Configuration parameters as read from the (e.g. yaml) inputfile
+ * 
  */
 
 Sky::Sky(ConfigurationParameters &configParams)
@@ -21,7 +24,7 @@ Sky::Sky(ConfigurationParameters &configParams)
     if (myfile.is_open())
     {
         string temp;
-        long n = 0;
+        unsigned int n = 0;
         while (getline(myfile, temp))
         {
             istringstream buffer(temp);
@@ -71,9 +74,76 @@ Sky::~Sky()
 
 void Sky::configure(ConfigurationParameters &configParams)
 {
-    string projectRootPath = configParams.getString("General/ProjectLocation");
-    starInputfile = projectRootPath + "/" + configParams.getString("ObservingParameters/StarCatalogFile");
+    starInputfile = configParams.getAbsoluteFilename("ObservingParameters/StarCatalogFile");
 }
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief  Return the equatorial sky coordinates of the star with a given ID.
+ * 
+ * \param id               Sequential number of the star 
+ * \param outputAngleUnit  Either Angle::degrees or Angle::radians
+ * 
+ * \return (RA, dec)  Equatorial coordinates of the star [rad]
+ */
+
+pair<double, double> Sky::getCoordinatesOfStarWithID(int id, Unit outputAngleUnit)
+{
+    if ((id < 0) || (id >= starCatalog.size()))
+    {
+        string errorMessage = "Sky: getStarCoordinatesOfStarWithID(): id " + to_string(id) 
+                            + " is not in {0,.., " + to_string(starCatalog.size()-1) + "}";
+        Log.error(errorMessage);
+        throw IllegalArgumentException("errorMessage");
+    }
+    else
+    {
+        const auto star = starCatalog[id];
+        return make_pair(star.RA * outputAngleUnit, star.dec * outputAngleUnit);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief  Return the V magnitude of the star with given ID
+ * 
+ * \param id       Sequential number of the star 
+ * \return Vmag    V-magnitude of the star
+ */
+
+double Sky::getVmagnitudeOfStarWithID(int id)
+{
+    if ((id < 0) || (id >= starCatalog.size()))
+    {
+        string errorMessage = "Sky: getVmagnitudeOfStarWithID(): id " + to_string(id) 
+                            + " is not in {0,.., " + to_string(starCatalog.size()-1) + "}";
+        Log.error(errorMessage);
+        throw IllegalArgumentException("errorMessage");
+    }
+    else
+    {
+        const auto star = starCatalog[id];
+        return star.Vmag;
+    }
+}
+
+
 
 
 
@@ -97,7 +167,7 @@ void Sky::configure(ConfigurationParameters &configParams)
  * \return           A StarCatalog object containing the ID, RA, dec, and Vmag of each star within the circle.
  */
 
-StarCatalog Sky::getStarsWithinRadiusFrom(const double RA0, const double dec0, const double radius, Unit angleUnit)
+StarCatalog Sky::getStarsWithinRadiusFrom(double RA0, double dec0, double radius, Unit angleUnit)
 {
     return starCatalog.getStarsWithinRadiusFrom(RA0, dec0, radius, angleUnit);
 }
@@ -113,20 +183,20 @@ StarCatalog Sky::getStarsWithinRadiusFrom(const double RA0, const double dec0, c
 
 
 /**
- * \brief Return the solar radiant flux at the givenwavelength, measured above the atmosphere of the earth.
+ * \brief Return the solar radiant flux at the given wavelength, measured above the atmosphere of the earth.
  * 
  * \details This function uses the Wehrli (1985) solar irradiance table
  *          plus linear interpolation. Note that the units of the tabulated
- *          data radiant fluxes are J s^{-1} m^{-2} (nm)^{-1}, where nm
+ *          data radiant fluxes are \f$ J s^{-1} m^{-2} (nm)^{-1} \f$, where nm
  *          is nanometer (unit of wavelength) while the units of the radiant
- *          flux that this function returns is SI: J s^{-1} m^{-2} m^{-1}
+ *          flux that this function returns is SI: \f$ J s^{-1} m^{-2} m^{-1} \f$
  * 
  * \param lambda  Wavelength [m], should be in [199.5 nm, 100075 nm]
  * 
- * \return solar radiant flux at air mass zero [J s^{-1} m^{-2} m^{-1}]
+ * \return solar radiant flux at air mass zero [\f$J s^{-1} m^{-2} m^{-1}\f$]
  */
 
-double Sky::solarRadiantFlux(const double lambda)
+double Sky::solarRadiantFlux(double lambda)
 {
     int i;         // Index of the first point, defining the linear relation
     double result; // solar radiant flux in SI units.
@@ -185,10 +255,10 @@ double Sky::solarRadiantFlux(const double lambda)
  * \param lambda1  Lower wavelength [m] of the interval, should be in [199.5 nm, 100075 nm]
  * \param lambda2  Upper wavelength [m] of the interval, should be in [199.5 nm, 100075 nm]
  * 
- * \return Integrated solar radiant flux [J s^{-1} m^{-2}]
+ * \return Integrated solar radiant flux [\f$J s^{-1} m^{-2}\f$]
  */
 
-double Sky::solarRadiantFlux(const double lambda1, const double lambda2)
+double Sky::solarRadiantFlux(double lambda1, double lambda2)
 {
     double lam1;
     double lam2;
@@ -286,7 +356,7 @@ double Sky::solarRadiantFlux(const double lambda1, const double lambda2)
  * \param lambda     Wavelengths of the passband [m], should be in [199.5 nm, 100075 nm]
  * \param throughput Throughput of the passband
  * 
- * \return Solar radiant flux  [J s^{-1} m^{-2}]
+ * \return Solar radiant flux  [\f$J s^{-1} m^{-2}\f$]
  */
 
 double Sky::solarRadiantFlux(vector<double> &lambda, vector<double> &throughput)
@@ -342,10 +412,10 @@ double Sky::solarRadiantFlux(vector<double> &lambda, vector<double> &throughput)
  * \param lambda1  Lower wavelength of the interval [m]
  * \param lambda2  Upper wavelength of the interval [m]
  * 
- * \return Zodiacal flux [J s^{-1} m^{-2} sr^{-1}]
+ * \return Zodiacal flux [\f$J s^{-1} m^{-2} sr^{-1}\f$]
  */
 
-double Sky::zodiacalFlux(const double alpha, const double delta, const double lambda1, const double lambda2)
+double Sky::zodiacalFlux(double alpha, double delta, double lambda1, double lambda2)
 {
     double lam, beta;
     double flux500;
@@ -354,7 +424,7 @@ double Sky::zodiacalFlux(const double alpha, const double delta, const double la
     // Convert the equatorial coordinates to geocentric ecliptic coordinates.
     // All coordinates are in radians.
 
-    auto skyPoint = Coordinates(alpha, delta, Angle::radians);
+    auto skyPoint = SkyCoordinates(alpha, delta, Angle::radians);
     tie(lam, beta) = skyPoint.toEcliptic(Angle::radians);
 
     // The zodiacal light is approximately symmetric with respect to the
@@ -440,10 +510,10 @@ double Sky::zodiacalFlux(const double alpha, const double delta, const double la
  * \param lambda      Wavelengths of the passband [m]
  * \param throughput  Throughput of the passband
  * 
- * \return  Zodiacal flux [J s^{-1} m^{-2} sr^{-1}]
+ * \return  Zodiacal flux [\f$J s^{-1} m^{-2} sr^{-1}\f$]
  */
 
-double Sky::zodiacalFlux(const double alpha, const double delta, vector<double> &lambda, vector<double> &throughput)
+double Sky::zodiacalFlux(double alpha, double delta, vector<double> &lambda, vector<double> &throughput)
 {
     double lam, beta;
     double flux500;
@@ -453,7 +523,7 @@ double Sky::zodiacalFlux(const double alpha, const double delta, vector<double> 
     // Convert the equatorial coordinates to geocentric ecliptic coordinates.
     // All coordinates are in radians.
 
-    auto skyPoint = Coordinates(alpha, delta, Angle::radians);
+    auto skyPoint = SkyCoordinates(alpha, delta, Angle::radians);
     tie(lam, beta) = skyPoint.toEcliptic(Angle::radians);
 
     // The zodiacal light is approximately symmetric with respect to the
@@ -545,10 +615,10 @@ double Sky::zodiacalFlux(const double alpha, const double delta, vector<double> 
  * \param lambda1  Begin wavelength of the interval [m]
  * \param lambda2  End   wavelength of the interval [m]
  * 
- * \return Stellar background flux in the Pioneer 10 blue/red passband [J s^{-1} m^{-2} sr^{-1}]
+ * \return Stellar background flux in the Pioneer 10 blue/red passband [\f$J s^{-1} m^{-2} sr^{-1}\f$]
  */
 
-double Sky::stellarBackgroundFlux (const double RA, const double dec, const double lambda1, const double lambda2)
+double Sky::stellarBackgroundFlux(double RA, double dec, double lambda1, double lambda2)
 {
     double alpha, delta;
     int alpha_index, delta_index;
@@ -563,13 +633,14 @@ double Sky::stellarBackgroundFlux (const double RA, const double dec, const doub
     // Locate the coordinates alpha & delta in the coordinate arrays
     // Check if the coordinates are out of boundary.
 
-    locate (alpha, skydata::skyRA, 37, alpha_index);
-    locate (delta, skydata::skydec, 25, delta_index);
+    locate(alpha, skydata::skyRA, 37, alpha_index);
+    locate(delta, skydata::skydec, 25, delta_index);
 
     if ((alpha_index == -1) || (delta_index == -1))
     {
-        Log.error("Sky::stellarBgFlux(): No data for this part of the sky.");
-        exit (1);
+        string skyPosition = "(" + to_string(alpha) + ", " + to_string(delta) + ") deg";
+        Log.warning("Sky::stellarBgFlux(): No data for (alpha, delta) = " + skyPosition);
+        return 0.0;
     }
 
 
@@ -579,8 +650,9 @@ double Sky::stellarBackgroundFlux (const double RA, const double dec, const doub
     if (   (skydata::skyblue[alpha_index][delta_index] == -1) || (skydata::skyblue[alpha_index][delta_index+1] == -1)
         || (skydata::skyblue[alpha_index+1][delta_index] == -1) || (skydata::skyblue[alpha_index+1][delta_index] == -1))
     {
-        Log.error("Sky::stellarBgFlux(): No data for this part of the sky.");
-        exit (1);
+        string skyPosition = "(" + to_string(alpha) + ", " + to_string(delta) + ") deg";
+        Log.warning("Sky::stellarBgFlux(): No data for (alpha, delta) = " + skyPosition);
+        return 0.0;
     }
 
 
@@ -663,10 +735,10 @@ double Sky::stellarBackgroundFlux (const double RA, const double dec, const doub
  * \param lambda      Wavelength values of the passband  [m]
  * \param throughput  Throughput of the passband
  * 
- * \return  Stellar background flux [J s^{-1} m^{-2} sr^{-1}]
+ * \return  Stellar background flux [\f$J s^{-1} m^{-2} sr^{-1}\f$]
  */
 
-double Sky::stellarBackgroundFlux (const double RA, const double dec, vector<double> &lambda, vector<double> &throughput)
+double Sky::stellarBackgroundFlux (double RA, double dec, vector<double> &lambda, vector<double> &throughput)
 {
     int alpha_index, delta_index;
     double blueflux, redflux;
@@ -685,8 +757,9 @@ double Sky::stellarBackgroundFlux (const double RA, const double dec, vector<dou
 
     if ((alpha_index == -1) || (delta_index == -1))
     {
-        Log.error("Sky::stellarBgFlux(): No data for this part of the sky.");
-        exit (1);
+        string skyPosition = "(" + to_string(alpha) + ", " + to_string(delta) + ") deg";
+        Log.warning("Sky::stellarBgFlux(): No data for (alpha, delta) = " + skyPosition);
+        return 0.0;
     }
 
 
@@ -696,8 +769,9 @@ double Sky::stellarBackgroundFlux (const double RA, const double dec, vector<dou
     if (  (skydata::skyblue[alpha_index][delta_index] == -1) || (skydata::skyblue[alpha_index][delta_index+1] == -1)
         || (skydata::skyblue[alpha_index+1][delta_index] == -1) || (skydata::skyblue[alpha_index+1][delta_index] == -1))
     {
-        Log.error("Sky::stellarBgFlux(): No data for this part of the sky.");
-        exit (1);
+        string skyPosition = "(" + to_string(alpha) + ", " + to_string(delta) + ") deg";
+        Log.warning("Sky::stellarBgFlux(): No data for (alpha, delta) = " + skyPosition);
+        return 0.0;
     }
 
 

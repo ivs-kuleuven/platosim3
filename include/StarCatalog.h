@@ -6,7 +6,7 @@
 
 #include "Logger.h"
 #include "Units.h"
-#include "Coordinates.h"
+#include "SkyCoordinates.h"
 
 
 using namespace std;
@@ -17,7 +17,7 @@ struct StarRecord
 {
     public:
 
-        StarRecord(const long starID, const double RA, const double dec, const double Vmag)
+        StarRecord(unsigned int starID, double RA, double dec, double Vmag)
         : ID(starID), RA(RA), dec(dec), Vmag(Vmag)
         {};
 
@@ -27,10 +27,10 @@ struct StarRecord
         : ID(starRecord.ID), RA(starRecord.RA), dec(starRecord.dec), Vmag(starRecord.Vmag)
         {};
 
-        const long   ID;        // Star identification number
-        const double RA;        // Right Ascension [rad]
-        const double dec;       // Declination [rad]
-        const double Vmag;      // Johnson V magnitude
+        const unsigned int   ID;        // Star identification number
+        const double         RA;        // Right Ascension [rad]
+        const double         dec;       // Declination [rad]
+        const double         Vmag;      // Johnson V magnitude
 };
 
 
@@ -48,18 +48,18 @@ class StarCatalog
         ~StarCatalog();
 
         long size();
-        void addStar(const long starID, const double RA, const double dec, const double Vmag, Unit angleUnit);
-        StarRecord operator[](long index) const;
+        void addStar(unsigned int starID, double RA, double dec, double Vmag, Unit angleUnit);
+        StarRecord operator[](unsigned int index) const;
 
-        StarCatalog getStarsWithinRadiusFrom(const double RA0, const double dec0, const double radius, Unit angleUnit);
+        StarCatalog getStarsWithinRadiusFrom(double RA0, double dec0, double radius, Unit angleUnit);
 
     protected:
 
         long Nstars;
-        vector<long> starID;        // Star identification number
-        vector<double> RA;          // Right Ascension [rad]
-        vector<double> dec;         // Declination [rad]
-        vector<double> Vmag;        // Johnson V magnitude
+        vector<unsigned int> starID;        // Star identification number
+        vector<double> RA;                  // Right Ascension [rad]
+        vector<double> dec;                 // Declination [rad]
+        vector<double> Vmag;                // Johnson V magnitude
 
     private:
 

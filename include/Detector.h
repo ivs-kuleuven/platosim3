@@ -7,7 +7,10 @@
 #include <random>
 #include <functional>
 
+#include "armadillo"
+
 #include "Logger.h"
+#include "Units.h"
 #include "HDF5File.h"
 #include "HDF5Writer.h"
 #include "ConfigurationParameters.h"
@@ -27,17 +30,21 @@ class Detector : public HDF5Writer
         Detector(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera);
         virtual ~Detector();
 
-        virtual void takeExposure(double startTime, double exposureTime);
+        virtual double takeExposure(double startTime, double exposureTime);
         virtual void configure(ConfigurationParameters &configParam);
 
-        pair<double, double> pixelToFocalPlaneCoordinates(double row, double column);
-        pair<double, double> focalPlaneToPixelCoordinates(double xFPprime, double yFPprime);
+        pair<double, double> pixelToPlanarFocalPlaneCoordinates(double row, double column);
+        pair<double, double> planarFocalPlaneToPixelCoordinates(double xFPprime, double yFPprime);
 
-        pair<double, double> getFocalPlaneCoordinatesOfSubfieldCenter();
-        double getDiagonalLengthOfSubfield();
+        pair<double, double> getPlanarFocalPlaneCoordinatesOfSubfieldCenter();
+        tuple<double, double, double, double, double, double, double, double> getPlanarFocalPlaneCoordinatesOfSubfieldCorners();
 
-        virtual void addFlux(double xCoord, double yCoord, double flux);
+        double getSolidAngleOfOnePixel(double plateScale);
+
+        virtual tuple<bool, double, double> addFlux(double xFPprime, double yFPprime, double flux);
         virtual void addFlux(double flux);
+
+        bool isInSubfield(const double xFPmm, const double yFPmm);
 
 
     protected:
@@ -63,6 +70,9 @@ class Detector : public HDF5Writer
     	virtual void addElectronicOffset();	     
     	virtual void applyDigitalSaturation();
 
+        void setSubfield(const arma::Mat<float> &subfield);
+        arma::Mat<float> getSubfield();
+
         virtual void initHDF5Groups() override;
         void writePixelMapToHDF5();
 
@@ -72,7 +82,7 @@ class Detector : public HDF5Writer
         arma::Mat<float> smearingMap;            // Smearing map (i.e. over-scan strip)
         arma::Mat<float> biasMap;                // Bias map (i.e. pre-scan strip)
 //        arma::Mat<float> cteMap;                 // CTE map
-        arma::Mat<float> flatfieldMap;           // Flatfield map
+        arma::Mat<float> flatfieldMap;           // Intra-pixel flatfield map
 
         unsigned int numRows;                    // Nr of rows of the detector (= size in y-direction) [pixels]
     	unsigned int numColumns;                 // Nr of columns of the detector (= size in x-direction = readout direction) [pixels]

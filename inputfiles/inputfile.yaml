@@ -3,22 +3,22 @@
 
 General:
     
-    ProjectLocation:         /Users/Joris/Development/Cpp/PlatoSim3
+    ProjectLocation:         /Users/rik/Git/PlatoSim3
 
 
 ObservingParameters:
 
     NumExposures:            40              # Number of expsosures
     ExposureTime:            23              # [s]
-    RApointing:              180             # [deg] 
-    DecPointing:             -70             # [deg]
+    RApointing:              180             # Platform (not telescope) right ascension pointing coordinate [deg] 
+    DecPointing:             -70             # Platform (not telescope) declination pointing coordinate     [deg]
     StarCatalogFile:         inputfiles/starcatalog.txt
 
 
 Platform:
 
-    UseJitter:               1               # 0=no, 1=yes
-    UseJitterFromFile:       0               # 0=no, 1=yes
+    UseJitter:               yes             # yes or no
+    UseJitterFromFile:       no              # yes or no
     JitterYawRms:            2.3             # [arcsec]
     JitterPitchRms:          2.3             # [arcsec]
     JitterRollRms:           2.3             # [arcsec]
@@ -41,15 +41,19 @@ Camera:
     
     FocalPlaneOrientation:   0.0             # [degrees]
     PlateScale:              0.8333          # [arcsec/micron]
-    ThroughputBandwidth:     650             # FWHM [nm]
-    ThroughputLambdaC:       550             # Central wavelength of the throughput passband [nm]
-
+    FocalLength:             0.24712595      # Focal length as recovered from ZEMAX model [m]
+    ThroughputBandwidth:     400             # FWHM [nm]
+    ThroughputLambdaC:       600             # Central wavelength of the throughput passband [nm]
+    FieldDistortion:                         # Describe the model for the field distortion
+        Type:                Polynomial1D
+        Degree:              3
+        Coefficients:        [-0.00366969196778, 0.000854231697381, -4.12553764817e-05, 5.7201219949e-06]
 
 PSF:
 
-    UseGauss:                1               # Use analytical Gaussian PSF (0=no,1=yes)
+    UseGauss:                yes             # Use analytical Gaussian PSF (yes or no)
     GaussSigma:              1.0             # Width of Gaussian PSF [pixels]
-    FileName:                inputfiles/psf.hdf5
+    Filename:                inputfiles/psf_201506.hdf5
 
 
 CCD:
@@ -69,6 +73,7 @@ CCD:
     ReadoutTime:             2               # time to read out entire CCD [s]
     FlatfieldPtPNoise:       0.016           # peak-to-peak pixel noise
     CTEMean:                 0.99999         # Mean Charge Transfer Efficiency
+    IncludePhotonNoise:      yes             # include photon noise [yes or no]
 
 
 SubField:    

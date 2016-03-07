@@ -4,6 +4,8 @@
 
 #include "gtest/gtest.h"
 
+#include "gtest_definitions.h"
+
 #include "ConfigurationParameters.h"
 #include "Exceptions.h"
 
@@ -13,6 +15,8 @@ using namespace std;
 
 TEST(ConfigurationParametersTest, Constructor)
 {
+
+    LOG_STARTING_OF_TEST
 
     ASSERT_THROW(ConfigurationParameters cp = ConfigurationParameters("input.yaml"), IllegalArgumentException);
 
@@ -24,6 +28,8 @@ TEST(ConfigurationParametersTest, Constructor)
 
 TEST(ConfigurationParametersTest, readGlobalValues)
 {
+    LOG_STARTING_OF_TEST
+
     ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
 
     string description = cp.getString("Description");
@@ -39,9 +45,14 @@ TEST(ConfigurationParametersTest, readGlobalValues)
 
 TEST(ConfigurationParametersTest, readGeneralValues)
 {
+    LOG_STARTING_OF_TEST
+
     ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
 
     string projectLocation = cp.getString("General/ProjectLocation");
+    EXPECT_STREQ(projectLocation.c_str(), "/Users/rik/Work/PLATO");
+
+    projectLocation = cp.getString("General/ProjectLocation");
     EXPECT_STREQ(projectLocation.c_str(), "/Users/rik/Work/PLATO");
 }
 
@@ -51,6 +62,8 @@ TEST(ConfigurationParametersTest, readGeneralValues)
 
 TEST(ConfigurationParametersTest, readObservingValues)
 {
+    LOG_STARTING_OF_TEST
+
     ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
 
     int exposureTime = cp.getInteger("Observing/ExposureTime");
@@ -75,6 +88,8 @@ TEST(ConfigurationParametersTest, readObservingValues)
 
 TEST(ConfigurationParametersTest, readSpecialValues)
 {
+    LOG_STARTING_OF_TEST
+
     ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
 
     int zeroValue = cp.getInteger("Special Values/zero");
@@ -96,6 +111,12 @@ TEST(ConfigurationParametersTest, readSpecialValues)
     bool booleanFalse = cp.getBoolean("Special Values/boolean-false");
     EXPECT_FALSE(booleanFalse);
 
+    bool yes = cp.getBoolean("Special Values/boolean-yes");
+    EXPECT_TRUE(yes);
+
+    bool no = cp.getBoolean("Special Values/boolean-no");
+    EXPECT_FALSE(no);
+
 }
 
 
@@ -104,6 +125,8 @@ TEST(ConfigurationParametersTest, readSpecialValues)
 
 TEST(ConfigurationParametersTest, testConversions)
 {
+    LOG_STARTING_OF_TEST
+
     ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
 
     // Can convert an integer value into a double
@@ -125,6 +148,8 @@ TEST(ConfigurationParametersTest, testConversions)
 
 TEST(ConfigurationParametersTest, testNonExistingKey)
 {
+    LOG_STARTING_OF_TEST
+
     ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
 
     ASSERT_THROW(string unknown = cp.getString("UnknownNode"), IllegalArgumentException);
@@ -137,18 +162,18 @@ TEST(ConfigurationParametersTest, testNonExistingKey)
     }
     catch(IllegalArgumentException ex)
     {
-        EXPECT_EQ(string("IllegalArgumentException: The sub-field \"UnknownSubNode\""),
-            string(ex.what()).substr(0, 56));
+        string expected = "ConfigurationParameters: The sub-field \"UnknownSubNode\"";
+        EXPECT_EQ(expected, string(ex.what()).substr(0, expected.size()));
     }
 
-    ASSERT_THROW(bool unknown = cp.getBoolean("UnknownNode"), IllegalArgumentException);
-    ASSERT_THROW(bool unknown = cp.getBoolean("Special Values/UnknownSubNode"), IllegalArgumentException);
+    ASSERT_THROW(cp.getBoolean("UnknownNode"), IllegalArgumentException);
+    ASSERT_THROW(cp.getBoolean("Special Values/UnknownSubNode"), IllegalArgumentException);
 
-    ASSERT_THROW(int unknown = cp.getInteger("UnknownNode"), IllegalArgumentException);
-    ASSERT_THROW(int unknown = cp.getInteger("Special Values/UnknownSubNode"), IllegalArgumentException);
+    ASSERT_THROW(cp.getInteger("UnknownNode"), IllegalArgumentException);
+    ASSERT_THROW(cp.getInteger("Special Values/UnknownSubNode"), IllegalArgumentException);
 
-    ASSERT_THROW(double unknown = cp.getDouble("UnknownNode"), IllegalArgumentException);
-    ASSERT_THROW(double unknown = cp.getDouble("Special Values/UnknownSubNode"), IllegalArgumentException);
+    ASSERT_THROW(cp.getDouble("UnknownNode"), IllegalArgumentException);
+    ASSERT_THROW(cp.getDouble("Special Values/UnknownSubNode"), IllegalArgumentException);
 
     ASSERT_THROW(string unknown = cp.getAbsoluteFilename("UnknownNode"), IllegalArgumentException);
     ASSERT_THROW(string unknown = cp.getAbsoluteFilename("Special Values/UnknownSubNode"), IllegalArgumentException);
@@ -168,6 +193,8 @@ TEST(ConfigurationParametersTest, testNonExistingKey)
 
 TEST(ConfigurationParametersTest, testSetNode)
 {
+    LOG_STARTING_OF_TEST
+
     ConfigurationParameters cp = ConfigurationParameters();
 
     string value;
@@ -198,6 +225,8 @@ TEST(ConfigurationParametersTest, testSetNode)
 
 TEST(ConfigurationParametersTest, testSetSubNode)
 {
+    LOG_STARTING_OF_TEST
+
     ConfigurationParameters cp = ConfigurationParameters();
 
     string value;
@@ -215,4 +244,29 @@ TEST(ConfigurationParametersTest, testSetSubNode)
     ASSERT_STREQ("FDBACEFDCB", value.c_str());
 
 }
+
+
+
+
+TEST(ConfigurationParametersTest, Sequences)
+{
+    LOG_STARTING_OF_TEST
+
+    ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
+
+    vector<double> values = cp.getDoubleVector("Sequences/Polynomial/Coefficients");
+
+    double expected[] = {-1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5};
+
+    for(std::vector<double>::size_type idx = 0; idx < values.size(); idx++) 
+    {
+        EXPECT_DOUBLE_EQ(expected[idx], values[idx]);
+    }
+
+}
+
+
+
+
+
 
