@@ -47,6 +47,9 @@ class Detector : public HDF5Writer
         bool isInSubfield(const double xFPmm, const double yFPmm);
 
         void setPsfForSubfieldCenter();
+        virtual void convolveWithPsf();
+        virtual void convolveWithPsf(arma::Mat<float> psf);
+
 
     protected:
 
@@ -56,7 +59,6 @@ class Detector : public HDF5Writer
 
         virtual void integrateLight(double startTime, double exposureTime);
         virtual bool isInSubPixelMap(double row, double column);
-        virtual void convolveWithPsf(arma::Mat<float> psf);
         virtual void applyFlatfield();
         virtual void rebin();
         

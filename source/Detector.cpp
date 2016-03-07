@@ -591,6 +591,28 @@ void Detector::convolveWithPsf(arma::Mat<float> psf)
 
 
 /**
+ * \brief  Convolve the sub-pixel map with the previously selected PSF, keeping the same dimensions.
+ *
+ * \param psf: PSF.
+ * 
+ * \todo   implement a check that this psfMap has indeed been filled properly
+ */
+void Detector::convolveWithPsf()
+{
+    subPixelMap = arma::conv2(subPixelMap, psfMap, "same");
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
  * \brief: Multiply the sub-pixel map with the flatfield.
  * 
  * NOTE: The sub-pixel map contains extra edge pixels, but the flatfield
