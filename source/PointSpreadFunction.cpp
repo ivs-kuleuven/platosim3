@@ -156,9 +156,12 @@ void PointSpreadFunction::select(double radius)
         index = psfdata::radius.n_elem-1;
     }
 
-    string angularRadiusGroup = "ar" + to_string(int(psfdata::radius(index) * 1000));
-    string temperatureGroup = "T6000";  // TODO: hardcoded value! 
-    string azimuthDataset = "az0";      // TODO: hardcoded value!
+    stringstream myStream;
+    myStream << "ar" << setfill('0') << setw(5) << int(psfdata::radius(index) * 1000);
+
+    const string angularRadiusGroup = myStream.str();
+    const string temperatureGroup = "T6000";  // TODO: hardcoded value! 
+    const string azimuthDataset = "az0";      // TODO: hardcoded value!
 
     string groupName = temperatureGroup + "/" + angularRadiusGroup;
 
