@@ -233,6 +233,22 @@ void PointSpreadFunction::rotate(double angle)
 
 
 
+
+
+/**
+ * @brief      return a reference to the Armadillo array that contains the selected PSF
+ *
+ * @return     a float array with the PSF
+ */
+arma::Mat<float> PointSpreadFunction::getPsfMap()
+{
+    return psfMap;
+}
+
+
+
+
+
 void PointSpreadFunction::rebin()
 {
 
