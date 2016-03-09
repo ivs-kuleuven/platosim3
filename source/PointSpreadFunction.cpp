@@ -156,9 +156,12 @@ void PointSpreadFunction::select(double radius)
         index = psfdata::radius.n_elem-1;
     }
 
-    string angularRadiusGroup = "ar" + to_string(int(psfdata::radius(index) * 1000));
-    string temperatureGroup = "T6000";  // TODO: hardcoded value! 
-    string azimuthDataset = "az0";      // TODO: hardcoded value!
+    stringstream myStream;
+    myStream << "ar" << setfill('0') << setw(5) << int(psfdata::radius(index) * 1000);
+
+    const string angularRadiusGroup = myStream.str();
+    const string temperatureGroup = "T6000";  // TODO: hardcoded value! 
+    const string azimuthDataset = "az0";      // TODO: hardcoded value!
 
     string groupName = temperatureGroup + "/" + angularRadiusGroup;
 
@@ -224,6 +227,22 @@ void PointSpreadFunction::rotate(double angle)
 
         Log.debug("PointSpreadFunction: rotated current PSF over angle " + to_string(rad2deg(newAngle)) + " deg");    
     }
+}
+
+
+
+
+
+
+
+/**
+ * @brief      return a reference to the Armadillo array that contains the selected PSF
+ *
+ * @return     a float array with the PSF
+ */
+arma::Mat<float> PointSpreadFunction::getPsfMap()
+{
+    return psfMap;
 }
 
 
