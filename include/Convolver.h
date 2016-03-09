@@ -22,16 +22,20 @@ class Convolver
 {
     public:
 
-        Convolver(int Nrows, int Ncols, matrix &kernel);
+        Convolver();
         ~Convolver();
+        void initialise(int Nrows, int Ncols, matrix &kernel);
         void convolve(matrix &in, matrix &out, double zeroThreshold = 0.0);
 
     protected:
 
+        void free();
         void createExtendedMatrices(int Nrows, int Ncols, matrix &kernel);
         void createWrapAroundKernel(matrix &kernel);
 
     private:
+
+        bool isInitialised;            // true if initialise() has been called, false otherwise
 
         int NrowsInOut;                // Number of rows on the input and output arrays
         int NcolsInOut;                // Number of columns on the input and output arrays

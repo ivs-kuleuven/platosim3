@@ -3,7 +3,77 @@
 
 
 /**
- * \brief  Constructor
+ * \brief  Default constructor
+ * 
+ */
+
+Convolver::Convolver()
+: isInitialised(false), extendedOut(NULL), extendedIn(NULL), copyExtendedKern(NULL), fourierIn(NULL), 
+  fourierKern(NULL), fourierOut(NULL)
+{
+ 
+}
+
+
+
+
+
+
+
+/**
+ * \brief Destructor
+ */
+
+Convolver::~Convolver()
+{
+    if (isInitialised)
+    {
+        free();
+    }
+}
+
+
+
+
+
+
+
+
+/**
+ * \brief Free (deallocate) all arrays and FFTW plans that were previously allocated
+ */
+
+void Convolver::free()
+{
+    // The destruction should be done in the reverse order they were created
+    // First the FFTW plans
+
+    fftwf_destroy_plan(forwardPlanIn);
+    fftwf_destroy_plan(forwardPlanKern);
+    fftwf_destroy_plan(backwardPlanOut);
+
+    // Then the extended real and complex arrays.
+
+    fftwf_free(extendedIn);
+    fftwf_free(copyExtendedKern);
+    fftwf_free(extendedOut);
+
+    fftwf_free(fourierIn);
+    fftwf_free(fourierKern);
+    fftwf_free(fourierOut);
+}
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief    Initialise the Convolver
  * 
  * \details  Convolver convolves a (Nrows x Ncols) matrix with a kernel matrix, using FFTW.
  *           Care is taken that no wrap-around effects occur. The kernel matrix will be
@@ -15,16 +85,22 @@
  * \param kernel  Kernel matrix to convolve with. Should be smaller in shape than input matrix.
  */
 
-Convolver::Convolver(int Nrows, int Ncols, matrix &kernel)
+void Convolver::initialise(int Nrows, int Ncols, matrix &kernel)
 {
+    // First free any array allocations from a previous initialisation
+
+    if (isInitialised)
+    {
+        free();
+    }
+
     // Do sanity checks on the matrix dimensions
 
     if ((Nrows < 2) || (Ncols < 2))
     {
         string errorMessage = "Convolver: input matrix has a dimension < 2";
-        cout << errorMessage << endl;
         Log.error(errorMessage);
-        throw IllegalArgumentException("errorMessage");
+        throw IllegalArgumentException(errorMessage);
     }
 
     if ((kernel.n_rows > Nrows) || (kernel.n_cols > Ncols))
@@ -33,14 +109,14 @@ Convolver::Convolver(int Nrows, int Ncols, matrix &kernel)
                             + to_string(kernel.n_cols) + ") should be smaller than input matrix dimensions "
                             + "(" + to_string(Nrows) + "," + to_string(Ncols) + ")";
         Log.error(errorMessage);
-        throw IllegalArgumentException("errorMessage");
+        throw IllegalArgumentException(errorMessage);
     }
 
     if ((kernel.n_rows < 2) || (kernel.n_cols < 2))
     {
         string errorMessage = "Convolver: kernel has a dimension < 2";
         Log.error(errorMessage);
-        throw IllegalArgumentException("errorMessage");
+        throw IllegalArgumentException(errorMessage);
     }
 
     // Keep the dimensions of the input and output matrices where
@@ -69,6 +145,10 @@ Convolver::Convolver(int Nrows, int Ncols, matrix &kernel)
     // Compute the 2D fourier transform of the zero-padded wrap-around version of the kernel only once.
 
     fftwf_execute(forwardPlanKern);
+ 
+    // Remember that all arrays and plans were initialised
+
+    isInitialised = true;
 
 }
 
@@ -77,30 +157,6 @@ Convolver::Convolver(int Nrows, int Ncols, matrix &kernel)
 
 
 
-
-/**
- * \brief Destructor
- */
-
-Convolver::~Convolver()
-{
-    // The destruction should be done in the reverse order they were created
-    // First the FFTW plans
-
-    fftwf_destroy_plan(forwardPlanIn);
-    fftwf_destroy_plan(forwardPlanKern);
-    fftwf_destroy_plan(backwardPlanOut);
-
-    // Then the extended real and complex arrays.
-
-    fftwf_free(extendedIn);
-    fftwf_free(copyExtendedKern);
-    fftwf_free(extendedOut);
-
-    fftwf_free(fourierIn);
-    fftwf_free(fourierKern);
-    fftwf_free(fourierOut);
-}
 
 
 
@@ -184,9 +240,11 @@ void Convolver::createExtendedMatrices(int Nrows, int Ncols, matrix &kernel)
  *                                    \  B 0 ... 0 A / 
  * 
  *           The quadrant boundaries are determined by the Nrows/2, and Ncols/2
- *           Where the division is an integer division, and therefore rounded down for odd dimensions
+ *           where the division is an integer division, and therefore rounded down for odd dimensions
  *           Care is taken that the method works for both even and odd dimensions.
- *      
+ *  
+ * \note  The extendedKern armadillo array was already set to zeros in initialise->createExtendedMatrices.
+ *          
  * \param kernel:  Non-zero-padded kernel matrix
  */
 
@@ -282,7 +340,7 @@ void Convolver::convolve(matrix &in, matrix &out, double zeroThreshold)
         string errorMessage = "Convolver: output matrix shape (" + to_string(out.n_rows) + "," + to_string(out.n_cols)
                             + ") != expected shape (" + to_string(NrowsInOut) + "," + to_string(NcolsInOut) + ")";
         Log.error(errorMessage);
-        throw IllegalArgumentException("errorMessage");
+        throw IllegalArgumentException(errorMessage);
     }
 
    if ((in.n_rows != NrowsInOut) || (in.n_cols != NcolsInOut))
@@ -290,7 +348,7 @@ void Convolver::convolve(matrix &in, matrix &out, double zeroThreshold)
         string errorMessage = "Convolver: input matrix shape (" + to_string(in.n_rows) + "," + to_string(in.n_cols)
                             + ") != expected shape (" + to_string(NrowsInOut) + "," + to_string(NcolsInOut) + ")";
         Log.error(errorMessage);
-        throw IllegalArgumentException("errorMessage");
+        throw IllegalArgumentException(errorMessage);
     }
 
     // First copy the column-major armadillo input matrix into a row-major zero-padded array
