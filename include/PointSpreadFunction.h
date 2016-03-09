@@ -30,6 +30,7 @@ class PointSpreadFunction
 
         void rotate(double angle);
         void select(double radius);
+        arma::Mat<float> getPsfMap();
 
     protected:
         void configure(ConfigurationParameters &);

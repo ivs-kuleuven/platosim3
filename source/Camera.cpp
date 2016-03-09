@@ -462,7 +462,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
     // Convolve with the point spread function
 
-    // subField.convolveWithPSF(psf);
+    detector.convolveWithPsf();
 
     return;
 }
@@ -489,7 +489,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
  * \param[in]  decStar  declination of the star     [rad]
  */
 
-void Camera::selectPsf(double raStar, double decStar)
+void Camera::selectPsfForStar(double raStar, double decStar)
 {
 
     double xFPrad, yFPrad;
@@ -507,6 +507,62 @@ void Camera::selectPsf(double raStar, double decStar)
 
     double xFPmm, yFPmm;
     tie(xFPmm, yFPmm) = angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad);
+
+    double angle = atan2(yFPmm, xFPmm);
+
+    psf->rotate(angle);
+
+}
+
+
+
+
+
+
+
+
+
+
+arma::Mat<float> Camera::getPsfMap()
+{
+    return psf->getPsfMap();
+}
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief      select the PSF for the given planar focal plane coordinates.
+ * 
+ * \details
+ * 
+ * This method selects and rotates the PSF.
+ *
+ * @param[in]  xFPmm  Planar focal plane x-coordinate [mm]
+ * @param[in]  yFPmm  Planar focal plane y-coordinate [mm]
+ */
+
+void Camera::selectPsfForPlanarFocalPlanePosition(double xFPmm, double yFPmm)
+{
+
+    double xFPrad, yFPrad;
+
+    // Calculate the angular separation (in [radians]) between the star and the optical axis.
+    // Use that angle to select the proper PSF.
+
+    tie(xFPrad, yFPrad) = planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm);
+
+    double radius = getGnomonicRadialDistanceFromOpticalAxis(xFPrad, yFPrad);
+
+    psf->select(rad2deg(radius));
+
+    // Calculate the rotation angle [rad]
 
     double angle = atan2(yFPmm, xFPmm);
 

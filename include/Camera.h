@@ -42,6 +42,10 @@ class Camera : public HDF5Writer
         virtual void initHDF5Groups() override;
         virtual void flushOutput() override;
 
+        virtual void selectPsfForStar(double raStar, double decStar);
+        virtual void selectPsfForPlanarFocalPlanePosition(double xFPmm, double yFPmm);
+        virtual arma::Mat<float> getPsfMap();
+        
 
     protected:
 
@@ -54,8 +58,6 @@ class Camera : public HDF5Writer
         double throughputBandwidth;           // FWHM of the throughput passband [nm]
         double throughputLambdaC;             // Central wavelength of the throughput passband [nm]
 
-        void selectPsf(double raStar, double decStar);
-        
         pair<double, double> skyToAngularFocalPlaneCoordinates(double raStar, double decStar);
         pair<double, double> angularFocalPlaneToSkyCoordinates(double xFPprime, double yFPprime);
 
