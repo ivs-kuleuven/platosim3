@@ -31,20 +31,20 @@ class CameraTest : public testing::Test
 
         virtual void SetUp()
         {
-            cp_ = ConfigurationParameters("../testData/input_CameraTest.yaml");
+            configParams = ConfigurationParameters("../testData/input_CameraTest.yaml");
         
-            hdf5File_.open(hdf5Filename);
+            hdf5File.open(hdf5Filename);
         }
 
         virtual void TearDown()
         {
-            hdf5File_.close();
+            hdf5File.close();
             FileUtilities::remove(hdf5Filename);
         }
 
         string hdf5Filename = "cameraTest.hdf5";
-        ConfigurationParameters cp_;
-        HDF5File hdf5File_;
+        ConfigurationParameters configParams;
+        HDF5File hdf5File;
 };
 
 
@@ -58,20 +58,31 @@ class CameraTest : public testing::Test
 
 class MyCamera : public Camera
 {
+    
+    // Make all the protected methods that we want to test publically available
+    
     public:
-        MyCamera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telescope &telescope, Sky &sky): Camera(configParam, hdf5file, telescope, sky) {};
+        MyCamera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telescope &telescope, Sky &sky)
+            : Camera(configParam, hdf5file, telescope, sky) {};
 
-        pair<double, double> test_skyToAngularFocalPlaneCoordinates(double raStar, double decStar) {return skyToAngularFocalPlaneCoordinates(raStar, decStar);};
-        pair<double, double> test_angularFocalPlaneToSkyCoordinates(double xFPprime, double yFPprime) {return angularFocalPlaneToSkyCoordinates(xFPprime, yFPprime);};
+        pair<double, double> test_skyToAngularFocalPlaneCoordinates(double raStar, double decStar)
+            {return skyToAngularFocalPlaneCoordinates(raStar, decStar);};
+        pair<double, double> test_angularFocalPlaneToSkyCoordinates(double xFPprime, double yFPprime)
+            {return angularFocalPlaneToSkyCoordinates(xFPprime, yFPprime);};
 
-        pair<double, double> test_angularToPlanarFocalPlaneCoordinates(double xFPrad, double yFPrad) {return angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad);};
-        pair<double, double> test_planarToAngularFocalPlaneCoordinates(double xFPmm, double yFPmm) {return planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm);};
+        pair<double, double> test_angularToPlanarFocalPlaneCoordinates(double xFPrad, double yFPrad)
+            {return angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad);};
+        pair<double, double> test_planarToAngularFocalPlaneCoordinates(double xFPmm, double yFPmm)
+            {return planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm);};
 
-        pair<double, double> test_planarToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm) {return planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm);};
+        pair<double, double> test_planarToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm)
+            {return planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm);};
 
-        double test_getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double yFPprime) {return getGnomonicRadialDistanceFromOpticalAxis(xFPprime, yFPprime);};
+        double test_getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double yFPprime)
+            {return getGnomonicRadialDistanceFromOpticalAxis(xFPprime, yFPprime);};
 
-        void test_setDistortionPolynomial(Polynomial1D &polynomial) {setDistortionPolynomial(polynomial);};
+        void test_setDistortionPolynomial(Polynomial1D &polynomial)
+            {setDistortionPolynomial(polynomial);};
 };
 
 
@@ -115,12 +126,12 @@ TEST_F(CameraTest, GnomonicRadialDistance)
     gnomonic.push_back(map<string, double> {{"xDeg", 13.0}, {"yDeg", 13.0}, {"xFP",  57.053521}, {"yFP", 57.053521}, {"radius",  18.0817}});
     gnomonic.push_back(map<string, double> {{"xDeg", 13.6}, {"yDeg", 13.6}, {"xFP",  59.786060}, {"yFP", 59.786060}, {"radius",  18.8876}});
 
-    JitterGenerator *jitterGenerator = new JitterFromRedNoise(cp_);
-    Platform platform = Platform(cp_, hdf5File_, *jitterGenerator);
-    Telescope telescope = Telescope(cp_, hdf5File_, platform);
-    Sky sky = Sky(cp_);
+    JitterGenerator *jitterGenerator = new JitterFromRedNoise(configParams);
+    Platform platform = Platform(configParams, hdf5File, *jitterGenerator);
+    Telescope telescope = Telescope(configParams, hdf5File, platform);
+    Sky sky = Sky(configParams);
 
-    MyCamera camera = MyCamera(cp_, hdf5File_, telescope, sky);
+    MyCamera camera = MyCamera(configParams, hdf5File, telescope, sky);
 
     double raStar, decStar;      // [rad]
     double xFPprime, yFPprime;   // [mm]
@@ -163,6 +174,8 @@ TEST_F(CameraTest, GnomonicRadialDistance)
 }
 
 
+// Perform some simple tests providing a simple polynomial as distortion function
+// to the Camera class.
 
 TEST_F(CameraTest, distortedCoordinates)
 {
@@ -170,16 +183,21 @@ TEST_F(CameraTest, distortedCoordinates)
 
     using StringUtilities::dtos;
 
-    JitterGenerator *jitterGenerator = new JitterFromRedNoise(cp_);
-    Platform platform = Platform(cp_, hdf5File_, *jitterGenerator);
-    Telescope telescope = Telescope(cp_, hdf5File_, platform);
-    Sky sky = Sky(cp_);
+    JitterGenerator *jitterGenerator = new JitterFromRedNoise(configParams);
+    Platform platform = Platform(configParams, hdf5File, *jitterGenerator);
+    Telescope telescope = Telescope(configParams, hdf5File, platform);
+    Sky sky = Sky(configParams);
 
+
+    
+    
+    // Simple linear function: y = x
+    
     int degree = 1;
     vector<double> coeff = {0.0, 1.0};
     Polynomial1D polynomial = Polynomial1D(degree, coeff);
 
-    MyCamera camera = MyCamera(cp_, hdf5File_, telescope, sky);
+    MyCamera camera = MyCamera(configParams, hdf5File, telescope, sky);
 
     camera.test_setDistortionPolynomial(polynomial);
 
@@ -197,6 +215,11 @@ TEST_F(CameraTest, distortedCoordinates)
     EXPECT_NEAR( 5.0000, xFPdist, 0.00001);
     EXPECT_NEAR( 5.0000, yFPdist, 0.00001);
 
+
+    
+    
+    // Polynomial function: y = 2.0 + 0.5 * x + 1.5 * x^2
+    
     degree = 2;
     coeff = {2.0, 0.5, 1.5};
     polynomial = Polynomial1D(degree, coeff);
@@ -224,12 +247,13 @@ TEST_F(CameraTest, reproduceDistortionMap)
 
     using StringUtilities::dtos;
 
-    JitterGenerator *jitterGenerator = new JitterFromRedNoise(cp_);
-    Platform platform = Platform(cp_, hdf5File_, *jitterGenerator);
-    Telescope telescope = Telescope(cp_, hdf5File_, platform);
-    Sky sky = Sky(cp_);
+    JitterGenerator *jitterGenerator = new JitterFromRedNoise(configParams);
+    Platform platform = Platform(configParams, hdf5File, *jitterGenerator);
+    Telescope telescope = Telescope(configParams, hdf5File, platform);
+    Sky sky = Sky(configParams);
 
     // Just a few values from the current distortion map for which the Polynomial1D was fitted.
+    
     vector<map<string, double>> distortion;
     distortion.push_back(map<string, double> {{"xFPmm",  0.000000}, {"yFPmm",  0.000000}, {"xFPdist",   0.000000}, {"yFPdist",  0.000000}});
 
@@ -244,13 +268,17 @@ TEST_F(CameraTest, reproduceDistortionMap)
     distortion.push_back(map<string, double> {{"xFPmm", 68.998805}, {"yFPmm",  0.000000}, {"xFPdist",  70.734282}, {"yFPdist",  0.000000}});
     distortion.push_back(map<string, double> {{"xFPmm", 80.296089}, {"yFPmm",  0.000000}, {"xFPdist",  83.062336}, {"yFPdist",  0.000000}});
 
+
+    
+    
+    
     // These values are for a fit of Polynomial1D with degree=3 to the distortion table
 
     int degree = 3;
     vector<double> coeff = {-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06};
     Polynomial1D polynomial = Polynomial1D(degree, coeff);
 
-    MyCamera camera = MyCamera(cp_, hdf5File_, telescope, sky);
+    MyCamera camera = MyCamera(configParams, hdf5File, telescope, sky);
     camera.test_setDistortionPolynomial(polynomial);
 
     double xFPdist, yFPdist;   // [mm]
@@ -265,7 +293,13 @@ TEST_F(CameraTest, reproduceDistortionMap)
         EXPECT_NEAR( data["yFPdist"], yFPdist, 0.006);
     }
 
-    // These values are for a fit of Polynomial1D with degree=4 to the distortion table
+    
+    
+    
+    
+
+    
+    // These values are for a fit of Polynomial1D with degree=4 to the distortion table.
     // Obviously the error of the fit is smaller, but we need to check what the effect is on the noise level.
     // Remember that 1 pixel = 0.018 mm
 
