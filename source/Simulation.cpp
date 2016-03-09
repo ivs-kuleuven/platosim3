@@ -137,7 +137,7 @@ void Simulation::run(double startTime)
 
     double centerXmm, centerYmm;
     tie(centerXmm, centerYmm) = detector->getPlanarFocalPlaneCoordinatesOfSubfieldCenter();
-    detector->setPsfForSubfieldCenter(camera->getPsfForPlanarFocalPlaneCoordinates(centerXmm, centerYmm));
+    //detector->setPsfForSubfieldCenter(camera->getPsfForPlanarFocalPlaneCoordinates(centerXmm, centerYmm));
 
     // Loop over all exposures
 
