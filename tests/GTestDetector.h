@@ -408,7 +408,11 @@ TEST_F(DetectorTest, reset)
 	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
 	ASSERT_EQ(0, arma::accu(arma::abs(detector.test_getSmearingMap())));
 
-	// FLatfield map not reset!
+	// Flatfield map not reset!
+
+	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getFlatfieldMap().n_rows);
+	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getFlatfieldMap().n_cols);
+	ASSERT_NE(0, arma::accu(arma::abs(detector.test_getFlatfieldMap())));
 }
 
 
