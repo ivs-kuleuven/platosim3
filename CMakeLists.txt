@@ -32,6 +32,7 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/armadillo-6.500.4/include
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/yaml-cpp/include
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/googletest/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/fftw-3.3.4/include
 )
 
 
@@ -71,6 +72,7 @@ link_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/armadillo-6.500.4/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/yaml-cpp/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/googletest/lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/fftw-3.3.4/lib   
 )
 
 
@@ -99,8 +101,8 @@ add_executable(testplatosim ${unitTestMain} ${unitTestSourceFiles})
 
 # Link the platosim and testplatosim executable with the required libraries
 
-target_link_libraries(platosim platosimLibrary hdf5 hdf5_cpp armadillo.6 yaml-cpp)
-target_link_libraries(testplatosim platosimLibrary hdf5 hdf5_cpp armadillo.6 yaml-cpp gtest gtest_main)
+target_link_libraries(platosim platosimLibrary hdf5 hdf5_cpp armadillo.6 yaml-cpp fftw3f fftw3f_threads)
+target_link_libraries(testplatosim platosimLibrary hdf5 hdf5_cpp armadillo.6 yaml-cpp fftw3f fftw3f_threads gtest gtest_main)
 
 
 
