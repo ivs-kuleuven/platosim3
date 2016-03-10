@@ -276,6 +276,10 @@ public:
 		applyCte();
 	}
 
+	void test_addPhotonNoise()
+	{
+		addPhotonNoise();
+	}
 
 };
 
@@ -407,6 +411,8 @@ TEST_F(DetectorTest, setAndGetSubfield)
  */
 TEST_F(DetectorTest, dimensions)
 {
+	LOG_STARTING_OF_TEST
+
 	JitterFromRedNoise jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
@@ -459,6 +465,7 @@ TEST_F(DetectorTest, dimensions)
 
 TEST_F(DetectorTest, generateFlatfield)
 {
+	LOG_STARTING_OF_TEST
 
 }
 
@@ -479,6 +486,8 @@ TEST_F(DetectorTest, generateFlatfield)
  */
 TEST_F(DetectorTest, reset)
 {
+	LOG_STARTING_OF_TEST
+
 	JitterFromRedNoise jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
@@ -546,6 +555,8 @@ TEST_F(DetectorTest, reset)
  */
 TEST_F(DetectorTest, applyFlatfield)
 {
+	LOG_STARTING_OF_TEST
+
 	JitterFromRedNoise jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
@@ -617,6 +628,8 @@ TEST_F(DetectorTest, applyFlatfield)
  */
 TEST_F(DetectorTest, rebin)
 {
+	LOG_STARTING_OF_TEST
+
 	JitterFromRedNoise jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
@@ -703,6 +716,8 @@ TEST_F(DetectorTest, rebin)
  */
 TEST_F(DetectorTest, addBackgroudFlux)
 {
+	LOG_STARTING_OF_TEST
+
 	JitterFromRedNoise jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
@@ -769,6 +784,7 @@ TEST_F(DetectorTest, addBackgroudFlux)
 
 TEST_F(DetectorTest, addFlux)
 {
+	LOG_STARTING_OF_TEST
 
 }
 
@@ -782,6 +798,7 @@ TEST_F(DetectorTest, addFlux)
 
 TEST_F(DetectorTest, isInSubField)
 {
+	LOG_STARTING_OF_TEST
 
 }
 
@@ -798,6 +815,8 @@ TEST_F(DetectorTest, isInSubField)
  */
 TEST_F(DetectorTest, isInSubPixelMap)
 {
+	LOG_STARTING_OF_TEST
+
 	JitterFromRedNoise jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
@@ -841,6 +860,8 @@ TEST_F(DetectorTest, isInSubPixelMap)
  */
 TEST_F(DetectorTest, applyQuantumEfficiency)
 {
+	LOG_STARTING_OF_TEST
+
 	JitterFromRedNoise jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
@@ -904,9 +925,100 @@ TEST_F(DetectorTest, applyQuantumEfficiency)
 
 
 
+/**
+ * Photon noise.
+ *
+ * Photon noise must be added to the pixel map and the smearing map.
+ */
 TEST_F(DetectorTest, addPhotonNoise)
 {
+	JitterFromRedNoise jitterGenerator(configParams);
+		Platform platform(configParams, hdf5File, jitterGenerator);
+		Sky sky(configParams);
+		Telescope telescope(configParams, hdf5File, platform);
+		Camera camera(configParams, hdf5File, telescope, sky);
+		MyDetector detector(configParams, hdf5File, camera);
 
+		const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+		const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+		const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+		const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+		const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+
+		const bool includePhotonNoise = configParams.getBoolean("CCD/IncludePhotonNoise");
+
+		arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
+		detector.test_setSubPixelMap(subPixelMap);
+
+		arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
+		detector.test_setSubfield(subField);
+
+		arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);
+		detector.test_setBiasRegisterMap(biasMap);
+
+		arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);
+		detector.test_setSmearingMap(smearingMap);
+
+		detector.test_addPhotonNoise();
+
+		if(includePhotonNoise)
+		{
+			// Sub-pixel map
+
+			ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+			ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+			EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getSubPixelMap()) == arma::vectorise(subPixelMap)));
+
+			// Pixel map
+
+			ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
+			ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
+			// TODO
+	//		EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getSubfield()) == arma::vectorise(subField)));
+
+			// Bias register map
+
+			ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+			ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
+			EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getBiasRegisterMap()) == arma::vectorise(biasMap)));
+
+			// Smearing map
+
+			ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+			ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+			// TODO
+	//		EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getSmearingMap()) == arma::vectorise(smearingMap)));
+
+		}
+
+		else{
+
+			// Sub-pixel map
+
+			ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+			ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+			EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getSubPixelMap()) == arma::vectorise(subPixelMap)));
+
+			// Pixel map
+
+			ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
+			ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
+			EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getSubfield()) == arma::vectorise(subField)));
+
+			// Bias register map
+
+			ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+			ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
+			EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getBiasRegisterMap()) == arma::vectorise(biasMap)));
+
+			// Smearing map
+
+			ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+			ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+			EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getSmearingMap()) == arma::vectorise(smearingMap)));
+		}
 }
 
 
@@ -919,6 +1031,7 @@ TEST_F(DetectorTest, addPhotonNoise)
 
 TEST_F(DetectorTest, applyFullWellSaturation)
 {
+	LOG_STARTING_OF_TEST
 
 }
 
@@ -935,6 +1048,8 @@ TEST_F(DetectorTest, applyFullWellSaturation)
  */
 TEST_F(DetectorTest, applyCte)
 {
+	LOG_STARTING_OF_TEST
+
 	JitterFromRedNoise jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
@@ -1006,6 +1121,7 @@ TEST_F(DetectorTest, applyCte)
 
 TEST_F(DetectorTest, applyOpenShutterSmearing)
 {
+	LOG_STARTING_OF_TEST
 
 }
 
@@ -1019,6 +1135,7 @@ TEST_F(DetectorTest, applyOpenShutterSmearing)
 
 TEST_F(DetectorTest, addReadoutNoise)
 {
+	LOG_STARTING_OF_TEST
 
 }
 
@@ -1038,6 +1155,8 @@ TEST_F(DetectorTest, addReadoutNoise)
  */
 TEST_F(DetectorTest, applyGain)
 {
+	LOG_STARTING_OF_TEST
+
 	JitterFromRedNoise jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
@@ -1109,6 +1228,8 @@ TEST_F(DetectorTest, applyGain)
  */
 TEST_F(DetectorTest, addElectronicOffset)
 {
+	LOG_STARTING_OF_TEST
+
 	JitterFromRedNoise jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
@@ -1178,6 +1299,8 @@ TEST_F(DetectorTest, addElectronicOffset)
  */
 TEST_F(DetectorTest, applyDigitalSaturation)
 {
+	LOG_STARTING_OF_TEST
+
 	JitterFromRedNoise jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
@@ -1337,6 +1460,7 @@ TEST_F(DetectorTest, applyDigitalSaturation)
 
 TEST_F(DetectorTest, convolveWithPsf)
 {
+	LOG_STARTING_OF_TEST
 
 }
 
@@ -1350,6 +1474,7 @@ TEST_F(DetectorTest, convolveWithPsf)
 
 TEST_F(DetectorTest, getPlanarFocalPlaneCoordinatesOfSubfieldCorners)
 {
+	LOG_STARTING_OF_TEST
 
 }
 
@@ -1363,6 +1488,7 @@ TEST_F(DetectorTest, getPlanarFocalPlaneCoordinatesOfSubfieldCorners)
 
 TEST_F(DetectorTest, getSolidAngleOfOnePixel)
 {
+	LOG_STARTING_OF_TEST
 
 }
 
