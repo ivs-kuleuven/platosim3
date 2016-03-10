@@ -32,30 +32,31 @@ using namespace std;
 
 class DetectorTest: public testing::Test
 {
-    protected:
+protected:
 
-        virtual void SetUp()
-        {
-            configParams = ConfigurationParameters("../testData/input_DetectorTest.yaml");
-            hdf5File.open(hdf5Filename);
-        }
+	virtual void SetUp()
+	{
+		configParams = ConfigurationParameters(
+				"../testData/input_DetectorTest.yaml");
+		hdf5File.open(hdf5Filename);
+	}
 
-        virtual void TearDown()
-        {
-            hdf5File.close();
-            FileUtilities::remove(hdf5Filename);
-        }
+	virtual void TearDown()
+	{
+		hdf5File.close();
+		FileUtilities::remove(hdf5Filename);
+	}
 
-        void reset()
-        {
-            hdf5File.close();
-            FileUtilities::remove(hdf5Filename);
-            hdf5File.open(hdf5Filename);
-        }
+	void reset()
+	{
+		hdf5File.close();
+		FileUtilities::remove(hdf5Filename);
+		hdf5File.open(hdf5Filename);
+	}
 
-        string hdf5Filename = "detectorTest.hdf5";
-        ConfigurationParameters configParams;
-        HDF5File hdf5File;
+	string hdf5Filename = "detectorTest.hdf5";
+	ConfigurationParameters configParams;
+	HDF5File hdf5File;
 };
 
 
@@ -75,17 +76,39 @@ class DetectorTest: public testing::Test
  * 
  */
 
-class MyDetector : public Detector
+class MyDetector: public Detector
 {
-    public:
-        MyDetector(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera)
-        : Detector(configParam, hdf5File, camera) {};
+public:
+	MyDetector(ConfigurationParameters &configParam, HDF5File &hdf5File,
+			Camera &camera) :
+			Detector(configParam, hdf5File, camera)
+	{
+	}
+	;
 
-        pair<double, double> test_pixelToPlanarFocalPlaneCoordinates(double row, double column) {return pixelToPlanarFocalPlaneCoordinates(row, column);};
-        pair<double, double> test_planarFocalPlaneToPixelCoordinates(double xFPprime, double yFPprime) {return planarFocalPlaneToPixelCoordinates(xFPprime, yFPprime);};
+	pair<double, double> test_pixelToPlanarFocalPlaneCoordinates(double row,
+			double column)
+	{
+		return pixelToPlanarFocalPlaneCoordinates(row, column);
+	}
+	;
+	pair<double, double> test_planarFocalPlaneToPixelCoordinates(
+			double xFPprime, double yFPprime)
+	{
+		return planarFocalPlaneToPixelCoordinates(xFPprime, yFPprime);
+	}
+	;
 
-        void test_setSubfield(const arma::Mat<float> &subfield) { setSubfield(subfield); };
-        arma::Mat<float> test_getSubfield(){ return getSubfield(); };
+	void test_setSubfield(const arma::Mat<float> &subfield)
+	{
+		setSubfield(subfield);
+	}
+	;
+	arma::Mat<float> test_getSubfield()
+	{
+		return getSubfield();
+	}
+	;
 
 };
 
@@ -165,35 +188,284 @@ TEST_F(DetectorTest, checkConversionsBetweenPixelsAndFocalPlane)
 
 TEST_F(DetectorTest, setAndGetSubfield)
 {
-    LOG_STARTING_OF_TEST
+	LOG_STARTING_OF_TEST
 
-    // Initialise all objects necessary to set up a Detector object
+	// Initialise all objects necessary to set up a Detector object
 
-    JitterFromRedNoise jitterGenerator(configParams);
-    Platform platform(configParams, hdf5File, jitterGenerator);
-    Sky sky(configParams);
-    Telescope telescope(configParams, hdf5File, platform);
-    Camera camera(configParams, hdf5File, telescope, sky);
-    MyDetector detector(configParams, hdf5File, camera);
+JitterFromRedNoise	jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
 
-    // Find out what size of subfield we specified in the input yaml file
+	// Find out what size of subfield we specified in the input yaml file
 
-    const int Nrows = configParams.getInteger("SubField/NumRows");
-    const int Ncols = configParams.getInteger("SubField/NumColumns");
+	const int Nrows = configParams.getInteger("SubField/NumRows");
+	const int Ncols = configParams.getInteger("SubField/NumColumns");
 
-    // Make our own subfield (a diagonal unity matrix) and feed it to detector
+	// Make our own subfield (a diagonal unity matrix) and feed it to detector
 
-    auto diagonalMatrix = arma::eye<arma::Mat<float>>(Nrows, Ncols);
-    detector.test_setSubfield(diagonalMatrix);
+	auto diagonalMatrix = arma::eye<arma::Mat<float>>(Nrows, Ncols);
+	detector.test_setSubfield(diagonalMatrix);
 
-    // Get back the subfield from the detector 
+	// Get back the subfield from the detector
 
-    arma::Mat<float> mySubfield = detector.test_getSubfield();
+	arma::Mat<float> mySubfield = detector.test_getSubfield();
 
-    // Compare whether the output is the same matrix as we put in
+	// Compare whether the output is the same matrix as we put in
 
-    EXPECT_EQ(mySubfield.n_rows, Nrows);
-    EXPECT_EQ(mySubfield.n_cols, Ncols);
-    EXPECT_TRUE(arma::all(arma::vectorise(mySubfield) == arma::vectorise(diagonalMatrix)));
- 
+	EXPECT_EQ(mySubfield.n_rows, Nrows);
+	EXPECT_EQ(mySubfield.n_cols, Ncols);
+	EXPECT_TRUE(arma::all(arma::vectorise(mySubfield) == arma::vectorise(diagonalMatrix)));
+
 }
+
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, generateFlatfield)
+{
+
+}
+
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, reset)
+{
+
+}
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, applyFlatfield)
+{
+
+}
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, rebin)
+{
+
+}
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, addFlux)
+{
+
+}
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, isInSubField)
+{
+
+}
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, isInSubPixelMap)
+{
+
+}
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, applyQuantumEfficiency)
+{
+
+}
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, addPhotonNoise)
+{
+
+}
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, applyFullWellSaturation)
+{
+
+}
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, applyCte)
+{
+
+}
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, applyOpenShutterSmearing)
+{
+
+}
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, addReadoutNoise)
+{
+
+}
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, applyGain)
+{
+
+}
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, addElectronicOffset)
+{
+
+}
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, applyDigitalSaturation)
+{
+
+}
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, convolveWithPsf)
+{
+
+}
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, getPlanarFocalPlaneCoordinatesOfSubfieldCorners)
+{
+
+}
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, getSolidAngleOfOnePixel)
+{
+
+}
+
