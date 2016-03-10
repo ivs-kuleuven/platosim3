@@ -432,7 +432,6 @@ TEST_F(DetectorTest, dimensions)
 	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
 
 	// Sub-pixel map
-	// TODO Should initially also include edge pixels (not implemented currently)
 
 	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
 	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
@@ -594,7 +593,6 @@ TEST_F(DetectorTest, applyFlatfield)
 	detector.test_applyFlatfield();
 
 	// Sub-pixel map
-	// TODO Should also include edge pixels (not implemented currently)
 
 	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
 	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
@@ -663,8 +661,6 @@ TEST_F(DetectorTest, rebin)
 	detector.test_setSmearingMap(smearingMap);
 
 	detector.test_rebin();
-
-	// TODO Edge pixels
 
 	ASSERT_EQ(detector.test_getSubPixelMap().n_rows / numSubPixels, detector.test_getSubfield().n_rows);
 	ASSERT_EQ(detector.test_getSubPixelMap().n_cols / numSubPixels, detector.test_getSubfield().n_cols);
@@ -933,6 +929,10 @@ TEST_F(DetectorTest, applyQuantumEfficiency)
  * Photon noise.
  *
  * Photon noise must be added to the pixel map and the smearing map.
+ *
+ * As each pixel is treated independently, we repeat the process of adding photon noise (each time to the
+ * original pixel map and smearing map) and check afterwards whether this follows the expected Poisson
+ * distribution.  We use the normal approximation to the Poisson distribution for testing.
  */
 TEST_F(DetectorTest, addPhotonNoise)
 {
@@ -965,10 +965,67 @@ TEST_F(DetectorTest, addPhotonNoise)
 	arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);
 	detector.test_setSmearingMap(smearingMap);
 
-	detector.test_addPhotonNoise();
+
 
 	if(includePhotonNoise)
 	{
+		arma::fmat residualSubField;
+		arma::fmat meanSubField;
+		arma::fmat stdDevSubField;
+
+		arma::fmat residualSmearingMap;
+		arma::fmat meanSmearingMap;
+		arma::fmat stdDevSmearingMap;
+
+		int numIterations = 100;
+
+		for(unsigned int iteration = 0; iteration < numIterations; iteration++)
+		{
+			detector.test_addPhotonNoise();
+
+			residualSubField = detector.test_getSubfield() - subField;
+
+			meanSubField += residualSubField;
+			stdDevSubField += (residualSubField % residualSubField);
+
+			residualSmearingMap = detector.test_getSmearingMap();
+
+			meanSmearingMap += residualSmearingMap;
+			stdDevSmearingMap += (residualSubField % residualSubField);
+
+			detector.test_setSubfield(subField);
+			detector.test_setSmearingMap(smearingMap);
+		}
+
+		meanSubField /= numIterations;
+		stdDevSubField /= numIterations;
+
+		for(unsigned int row = 0; row < numRowsSubField; row++)
+		{
+			for(unsigned int column = 0; column < numColumnsSubField; column++)
+			{
+				ASSERT_EQ(std::sqrt(subField(row, column)), std::sqrt(stdDevSubField(row, column)));
+			}
+		}
+
+		ASSERT_EQ(0.0, meanSubField.min());
+		ASSERT_EQ(0.0, meanSubField.max());
+
+		meanSmearingMap /= numIterations;
+		stdDevSmearingMap /= numIterations;
+
+		for(unsigned int row = 0; row < numSmearingOverScanRows; row++)
+		{
+			for(unsigned int column = 0; column < numColumnsSubField; column++)
+			{
+				ASSERT_EQ(std::sqrt(smearingMap(row, column)), std::sqrt(stdDevSmearingMap(row, column)));
+			}
+		}
+
+		ASSERT_EQ(0.0, meanSmearingMap.min());
+		ASSERT_EQ(0.0, meanSmearingMap.max());
+
+
 		// Sub-pixel map
 
 		ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
@@ -979,8 +1036,6 @@ TEST_F(DetectorTest, addPhotonNoise)
 
 		ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
 		ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
-		// TODO
-	//	EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getSubfield()) == arma::vectorise(subField)));
 
 		// Bias register map
 
@@ -992,11 +1047,11 @@ TEST_F(DetectorTest, addPhotonNoise)
 
 		ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
 		ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
-		// TODO
-	//	EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getSmearingMap()) == arma::vectorise(smearingMap)));
 	}
 
 	else{
+
+		detector.test_addPhotonNoise();
 
 		// Sub-pixel map
 
