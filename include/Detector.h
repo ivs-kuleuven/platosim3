@@ -15,6 +15,7 @@
 #include "HDF5Writer.h"
 #include "ConfigurationParameters.h"
 #include "Camera.h"
+#include "Convolver.h"
 
 
 using namespace std;
@@ -46,9 +47,9 @@ class Detector : public HDF5Writer
 
         bool isInSubfield(const double xFPmm, const double yFPmm);
 
-        void setPsfForSubfieldCenter();
+        bool psfIsSet();
+        void setPsfForSubfieldCenter(arma::Mat<float> psf);
         virtual void convolveWithPsf();
-        virtual void convolveWithPsf(arma::Mat<float> psf);
 
 
     protected:
@@ -121,6 +122,7 @@ class Detector : public HDF5Writer
         unsigned long digitalSaturationLimit;    // Digital saturation limit [ADU / pixel]
 
     	bool includePhotonNoise;                 // Whether or not to include photon noise
+        bool psfWasSet;                          // True if PSF for subfield was already initialised. False otherwise.
 
         double internalTime;
 
@@ -140,6 +142,7 @@ class Detector : public HDF5Writer
     private:
 
         Camera &camera;
+        Convolver convolver;
         int imageNr;
 
 };
