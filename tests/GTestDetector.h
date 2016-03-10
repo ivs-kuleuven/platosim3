@@ -202,6 +202,11 @@ public:
 	{
 		return isInSubPixelMap(row, column);
 	}
+
+	void test_rebin()
+	{
+		rebin();
+	}
 };
 
 
@@ -538,9 +543,65 @@ TEST_F(DetectorTest, applyFlatfield)
 
 
 
+/**
+ * Rebinning.
+ */
 TEST_F(DetectorTest, rebin)
 {
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
 
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+
+
+	arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
+	detector.test_setSubPixelMap(subPixelMap);
+
+	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
+	detector.test_setSubfield(subField);
+
+	arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);
+	detector.test_setBiasRegisterMap(biasMap);
+
+	arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);
+	detector.test_setSmearingMap(smearingMap);
+
+	detector.test_rebin();
+
+	// TODO Edge pixels
+
+	ASSERT_EQ(detector.test_getSubPixelMap().n_rows / numSubPixels, detector.test_getSubfield().n_rows);
+	ASSERT_EQ(detector.test_getSubPixelMap().n_cols / numSubPixels, detector.test_getSubfield().n_cols);
+
+	double expectedValue;
+
+	for(unsigned int row = 0; row < numRowsSubField; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			expectedValue = 0.0;
+
+			for(unsigned int subRow = 0; subRow < numSubPixels; subRow++)
+			{
+				for(unsigned int subColumn = 0; subColumn < numSubPixels; subColumn++)
+				{
+					expectedValue += detector.test_getSubPixelMap()(row * numSubPixels + subRow, column * numSubPixels + subColumn);
+
+					ASSERT_EQ(expectedValue, detector.test_getSubfield()(row, column));
+				}
+			}
+		}
+	}
 }
 
 
@@ -609,6 +670,8 @@ TEST_F(DetectorTest, addBackgroudFlux)
 	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
 	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
 	EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getSmearingMap()) == arma::vectorise(smearingMap)));
+
+
 }
 
 
