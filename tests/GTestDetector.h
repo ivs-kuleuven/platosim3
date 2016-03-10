@@ -110,6 +110,24 @@ public:
 	}
 	;
 
+	arma::fmat test_getSubPixelMap()
+	{
+		return subPixelMap;
+	};
+
+	arma::fmat test_getBiasRegisterMap()
+	{
+		return biasMap;
+	};
+
+	arma::fmat test_getSmearingMap()
+	{
+		return smearingMap;
+	};
+	arma::fmat test_getFlatfieldMap()
+	{
+		return flatfieldMap;
+	};
 };
 
 
@@ -192,7 +210,7 @@ TEST_F(DetectorTest, setAndGetSubfield)
 
 	// Initialise all objects necessary to set up a Detector object
 
-JitterFromRedNoise	jitterGenerator(configParams);
+	JitterFromRedNoise	jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
 	Telescope telescope(configParams, hdf5File, platform);
@@ -219,6 +237,58 @@ JitterFromRedNoise	jitterGenerator(configParams);
 	EXPECT_EQ(mySubfield.n_cols, Ncols);
 	EXPECT_TRUE(arma::all(arma::vectorise(mySubfield) == arma::vectorise(diagonalMatrix)));
 
+}
+
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, dimensions)
+{
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
+
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+
+	// Pixel map
+
+	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
+
+	// Sub-pixel map
+	// TODO Should initally also include edge pixels (not implemented currently)
+
+	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+
+	// Bias register map
+
+	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
+
+	// Smearing map
+
+	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+
+	// Flatfield map
+
+	ASSERT_DOUBLE_EQ(numRowsSubField * numSubPixels, detector.test_getFlatfieldMap().n_rows);
+	ASSERT_DOUBLE_EQ(numColumnsSubField * numSubPixels, detector.test_getFlatfieldMap().n_cols);
 }
 
 
@@ -284,6 +354,13 @@ TEST_F(DetectorTest, rebin)
 
 TEST_F(DetectorTest, addFlux)
 {
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
+
 
 }
 
