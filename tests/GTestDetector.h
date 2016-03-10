@@ -197,6 +197,11 @@ public:
 	{
 		applyFlatfield();
 	}
+
+	bool test_isInSubPixelMap(double row, double column)
+	{
+		return isInSubPixelMap(row, column);
+	}
 };
 
 
@@ -578,9 +583,37 @@ TEST_F(DetectorTest, isInSubField)
 
 
 
+/**
+ * Check whether given position (row, column) is located in the sub-pixel map.
+ */
 TEST_F(DetectorTest, isInSubPixelMap)
 {
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
 
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+	ASSERT_FALSE(detector.test_isInSubPixelMap(-1,0));
+	ASSERT_FALSE(detector.test_isInSubPixelMap(-1,-20));
+	ASSERT_FALSE(detector.test_isInSubPixelMap(-1,-50));
+	ASSERT_FALSE(detector.test_isInSubPixelMap(-1,0));
+
+	ASSERT_TRUE(detector.test_isInSubPixelMap(numRowsSubField * numSubPixels / 2.0, numColumnsSubField * numSubPixels / 2.0));
+
+	ASSERT_FALSE(detector.test_isInSubPixelMap(numRowsSubField * numSubPixels / 2.0, numColumnsSubField * numSubPixels));
+	ASSERT_FALSE(detector.test_isInSubPixelMap(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels / 2.0));
+
+	ASSERT_TRUE(detector.test_isInSubPixelMap(numRowsSubField * numSubPixels -1.0, numColumnsSubField * numSubPixels - 1.0));
+
+	ASSERT_FALSE(detector.test_isInSubPixelMap(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels - 1.0));
+	ASSERT_FALSE(detector.test_isInSubPixelMap(numRowsSubField * numSubPixels -1.0, numColumnsSubField * numSubPixels));
 }
 
 
