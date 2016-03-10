@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <algorithm>
 
 #include "armadillo"
 
@@ -30,6 +31,8 @@ class PointSpreadFunction
 
         void rotate(double angle);
         void select(double radius);
+        void rebin(unsigned int numSubPixelsPerPixel);
+
         arma::Mat<float> getPsfMap();
 
     protected:
@@ -37,13 +40,15 @@ class PointSpreadFunction
 
 
     private:
-        void rebin();
 
         // Determine if a psf has been selected
         bool isSelected = false;
 
         // Determine if this psf has been rotated
         bool isRotated = false;
+
+        // Determine if this psf has been rotated
+        bool isRebinned = false;
 
         // The angle by which the PSF is rotated with respect to the positive x-axis.
         // Positive angles rotated counter-clockwise.
@@ -60,6 +65,13 @@ class PointSpreadFunction
 
         // Name of the HDF5 group that contains the PSF datasets
         string groupName;
+
+        // Number of sub-pixels per pixel that was used to generate the PSF
+        unsigned int m_numberOfSubPixelsPerPixel = 128;
+
+        // Location of the reference subpixel, i.e. the center of the PSF
+        unsigned int xCenter = 513;
+        unsigned int yCenter = 513;
 };
 
 
