@@ -602,6 +602,24 @@ TEST_F(DetectorTest, rebin)
 			}
 		}
 	}
+
+	// Sub-pixel map
+
+	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+	EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getSubPixelMap()) == arma::vectorise(subPixelMap)));
+
+	// Bias register map
+
+	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
+	EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getBiasRegisterMap()) == arma::vectorise(biasMap)));
+
+	// Smearing map
+
+	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+	EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getSmearingMap()) == arma::vectorise(smearingMap)));
 }
 
 
@@ -670,8 +688,6 @@ TEST_F(DetectorTest, addBackgroudFlux)
 	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
 	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
 	EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getSmearingMap()) == arma::vectorise(smearingMap)));
-
-
 }
 
 
