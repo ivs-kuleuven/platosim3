@@ -171,16 +171,21 @@ public:
 
 	void test_reset(){
 		reset();
-	}
+	};
 
 	void test_addElectronicOffset()
 	{
 		addElectronicOffset();
-	}
+	};
 
 	void test_applyGain()
 	{
 		applyGain();
+	};
+
+	void test_applyQuantumEfficiency()
+	{
+		applyQuantumEfficiency();
 	}
 };
 
@@ -327,16 +332,16 @@ TEST_F(DetectorTest, dimensions)
 	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
 	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
 
-	// Pixel map
-
-	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
-	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
-
 	// Sub-pixel map
 	// TODO Should initally also include edge pixels (not implemented currently)
 
 	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
 	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+
+	// Pixel map
+
+	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
 
 	// Bias register map
 
@@ -393,14 +398,11 @@ TEST_F(DetectorTest, reset)
 	MyDetector detector(configParams, hdf5File, camera);
 
 	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
-	const int numColumnsSubField = configParams.getInteger(
-			"SubField/NumColumns");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
 	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
 
-	const int numBiasPreScanRows = configParams.getInteger(
-			"SubField/NumBiasPrescanRows");
-	const int numSmearingOverScanRows = configParams.getInteger(
-			"SubField/NumSmearingOverscanRows");
+	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
 
 	detector.test_setSubPixelMap(arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels));
 	detector.test_setSubfield(arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField));
@@ -409,17 +411,17 @@ TEST_F(DetectorTest, reset)
 
 	detector.test_reset();
 
-	// Pixel map
-
-	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
-	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
-	ASSERT_EQ(0, arma::accu(arma::abs(detector.test_getSubfield())));
-
 	// Sub-pixel map
 
 	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
 	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
 	ASSERT_EQ(0, arma::accu(arma::abs(detector.test_getSubPixelMap())));
+
+	// Pixel map
+
+	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
+	ASSERT_EQ(0, arma::accu(arma::abs(detector.test_getSubfield())));
 
 	// Bias register map
 
@@ -519,9 +521,67 @@ TEST_F(DetectorTest, isInSubPixelMap)
 
 
 
+/**
+ * Quantum efficiency.
+ *
+ * Multiplies the values in the sub-pixel map with the quantum efficiency.
+ */
 TEST_F(DetectorTest, applyQuantumEfficiency)
 {
+	JitterFromRedNoise jitterGenerator(configParams);
+		Platform platform(configParams, hdf5File, jitterGenerator);
+		Sky sky(configParams);
+		Telescope telescope(configParams, hdf5File, platform);
+		Camera camera(configParams, hdf5File, telescope, sky);
+		MyDetector detector(configParams, hdf5File, camera);
 
+		const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+		const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+		const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+		const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+		const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+
+		const double quantumEfficiency = configParams.getDouble("CCD/QuantumEfficiency");
+
+		arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
+		detector.test_setSubPixelMap(subPixelMap);
+
+		arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
+		detector.test_setSubfield(subField);
+
+		arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);
+		detector.test_setBiasRegisterMap(biasMap);
+
+		arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);
+		detector.test_setSmearingMap(smearingMap);
+
+		detector.test_applyQuantumEfficiency();
+
+		// Sub-pixel map
+
+		ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+		ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+		EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getSubPixelMap()) == arma::vectorise(subPixelMap)));
+
+		// Pixel map
+
+		ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
+		ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
+		EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getSubfield()) == arma::vectorise(subField * quantumEfficiency)));
+
+		// Bias register map
+
+		ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+		ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
+		EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getBiasRegisterMap()) == arma::vectorise(biasMap)));
+
+		// Smearing map
+
+		ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+		ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+		EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getSmearingMap()) == arma::vectorise(smearingMap)));
 }
 
 
@@ -615,10 +675,15 @@ TEST_F(DetectorTest, applyGain)
 	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
 	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
 
+	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
 	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
 	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
 
 	const int gain = configParams.getInteger("CCD/Gain");
+
+	arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
+	detector.test_setSubPixelMap(subPixelMap);
 
 	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
 	detector.test_setSubfield(subField);
@@ -630,6 +695,12 @@ TEST_F(DetectorTest, applyGain)
 	detector.test_setSmearingMap(smearingMap);
 
 	detector.test_applyGain();
+
+	// Sub-pixel map
+
+	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+	EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getSubPixelMap()) == arma::vectorise(subPixelMap)));
 
 	// Pixel map
 
@@ -673,15 +744,17 @@ TEST_F(DetectorTest, addElectronicOffset)
 	MyDetector detector(configParams, hdf5File, camera);
 
 	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
-	const int numColumnsSubField = configParams.getInteger(
-			"SubField/NumColumns");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
 
-	const int numBiasPreScanRows = configParams.getInteger(
-				"SubField/NumBiasPrescanRows");
-	const int numSmearingOverScanRows = configParams.getInteger(
-				"SubField/NumSmearingOverscanRows");
+	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
 
 	const int electronicOffset = configParams.getInteger("CCD/ElectronicOffset");
+
+	arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
+	detector.test_setSubPixelMap(subPixelMap);
 
 	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
 	detector.test_setSubfield(subField);
@@ -693,6 +766,12 @@ TEST_F(DetectorTest, addElectronicOffset)
 	detector.test_setSmearingMap(smearingMap);
 
 	detector.test_addElectronicOffset();
+
+	// Sub-pixel map
+
+	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+	EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getSubPixelMap()) == arma::vectorise(subPixelMap)));
 
 	// Pixel map
 
