@@ -172,6 +172,11 @@ public:
 	void test_reset(){
 		reset();
 	}
+
+	void test_addElectronicOffset()
+	{
+		addElectronicOffset();
+	}
 };
 
 
@@ -587,7 +592,27 @@ TEST_F(DetectorTest, applyGain)
 
 TEST_F(DetectorTest, addElectronicOffset)
 {
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
 
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger(
+			"SubField/NumColumns");
+
+	const int electronicOffset = configParams.getInteger("CCD/ElectronicOffset");
+
+	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
+	detector.test_setSubfield(subField);
+
+	detector.test_addElectronicOffset();
+
+	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
+	EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getSubfield()) == arma::vectorise(subField + electronicOffset)));
 }
 
 
