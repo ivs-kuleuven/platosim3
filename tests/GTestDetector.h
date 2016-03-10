@@ -1,6 +1,8 @@
 #include <cstdio>
 #include <cmath>
 #include <map>
+#include <random>
+#include <algorithm>
 
 #include "armadillo"
 
@@ -206,6 +208,11 @@ public:
 	void test_rebin()
 	{
 		rebin();
+	}
+
+	void test_applyDigitalSaturation()
+	{
+		applyDigitalSaturation();
 	}
 };
 
@@ -1045,7 +1052,153 @@ TEST_F(DetectorTest, addElectronicOffset)
 
 TEST_F(DetectorTest, applyDigitalSaturation)
 {
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
 
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+
+	const int digitalSaturationLimit = configParams.getInteger("CCD/DigitalSaturation");
+
+	int row;
+	int column;
+
+	std::default_random_engine engine;
+
+	arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
+
+	for(unsigned int index = 0; index < 5; index++)
+	{
+		std::uniform_real_distribution<double> randomRow(0, numRowsSubField * numSubPixels - 1);
+		std::uniform_real_distribution<double> randomColumn(0, numColumnsSubField * numSubPixels - 1);
+
+		row = randomRow(engine);
+		column = randomColumn(engine);
+
+		subPixelMap(row, column) = digitalSaturationLimit + 1;
+	}
+
+	detector.test_setSubPixelMap(subPixelMap);
+
+
+	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
+
+	for(unsigned int index = 0; index < 5; index++)
+	{
+		std::uniform_real_distribution<double> randomRow(0, numRowsSubField - 1);
+		std::uniform_real_distribution<double> randomColumn(0, numColumnsSubField - 1);
+
+		row = randomRow(engine);
+		column = randomColumn(engine);
+
+		subField(row, column) = digitalSaturationLimit + 1;
+	}
+
+	detector.test_setSubfield(subField);
+
+	arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);
+
+	for(unsigned int index = 0; index < 5; index++)
+	{
+		std::uniform_real_distribution<double> randomRow(0, numBiasPreScanRows - 1);
+		std::uniform_real_distribution<double> randomColumn(0, numColumnsSubField - 1);
+
+		row = randomRow(engine);
+		column = randomColumn(engine);
+
+		biasMap(row, column) = digitalSaturationLimit + 1;
+
+	}
+
+	detector.test_setBiasRegisterMap(biasMap);
+
+	arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);
+
+	for(unsigned int index = 0; index < 5; index++)
+	{
+		std::uniform_real_distribution<double> randomRow(0, numSmearingOverScanRows - 1);
+		std::uniform_real_distribution<double> randomColumn(0, numColumnsSubField - 1);
+
+		row = randomRow(engine);
+		column = randomColumn(engine);
+
+		smearingMap(row, column) = digitalSaturationLimit + 1;
+
+	}
+
+	detector.test_setSmearingMap(smearingMap);
+
+	detector.test_applyDigitalSaturation();
+
+	// Sub-pixel map
+
+	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+	ASSERT_EQ(digitalSaturationLimit, subPixelMap.max());
+
+	for(unsigned int row = 0; row < numRowsSubField * numSubPixels; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField * numSubPixels; column++)
+		{
+			double expected = std::min((float) digitalSaturationLimit, subPixelMap.at(row, column));
+			ASSERT_EQ(expected, detector.test_getSubPixelMap()(row, column));
+		}
+	}
+
+	// Pixel map
+
+	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
+	ASSERT_EQ(digitalSaturationLimit, subField.max());
+
+	for(unsigned int row = 0; row < numRowsSubField; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			double expected = std::min((float) digitalSaturationLimit, subField.at(row, column));
+			ASSERT_EQ(expected, detector.test_getSubfield()(row, column));
+		}
+	}
+
+
+	// Bias register map
+
+	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
+	ASSERT_EQ(digitalSaturationLimit, biasMap.max());
+
+	for(unsigned int row = 0; row < numBiasPreScanRows; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			double expected = std::min((float) digitalSaturationLimit, biasMap.at(row, column));
+			ASSERT_EQ(expected, detector.test_getBiasRegisterMap()(row, column));
+		}
+	}
+
+	// Smearing map
+
+	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+	ASSERT_EQ(digitalSaturationLimit, smearingMap.max());
+
+	for(unsigned int row = 0; row < numSmearingOverScanRows; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			double expected = std::min((float) digitalSaturationLimit, smearingMap.at(row, column));
+			ASSERT_EQ(expected, detector.test_getSmearingMap()(row, column));
+		}
+	}
 }
 
 
