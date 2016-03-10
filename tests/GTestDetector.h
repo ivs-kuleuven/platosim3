@@ -104,6 +104,46 @@ public:
 		setSubfield(subfield);
 	}
 	;
+	void test_setSubPixelMap(const arma::fmat &subPixelMap)
+	{
+		if ((subPixelMap.n_rows != this->subPixelMap.n_rows)
+				|| (subPixelMap.n_cols != this->subPixelMap.n_cols))
+		{
+			Log.error(
+					"MyDetector: test_setSubPixelMap with incompatible array shape");
+			exit(1);
+		}
+
+		this->subPixelMap = subPixelMap;
+	}
+	;
+
+	void test_setBiasRegisterMap(const arma::fmat &biasMap)
+	{
+		if ((biasMap.n_rows != this->biasMap.n_rows)
+				|| (biasMap.n_cols != this->biasMap.n_cols))
+		{
+			Log.error(
+					"MyDetector: test_setBiasRegisterMap with incompatible array shape");
+			exit(1);
+		}
+
+		this->biasMap = biasMap;
+	}
+	;
+	void test_setSmearingMap(const arma::fmat &smearingMap)
+	{
+		if ((smearingMap.n_rows != this->smearingMap.n_rows)
+				|| (smearingMap.n_cols != this->smearingMap.n_cols))
+		{
+			Log.error(
+					"MyDetector: test_setSmearingMap with incompatible array shape");
+			exit(1);
+		}
+
+		this->smearingMap = smearingMap;
+	};
+
 	arma::Mat<float> test_getSubfield()
 	{
 		return getSubfield();
@@ -128,6 +168,10 @@ public:
 	{
 		return flatfieldMap;
 	};
+
+	void test_reset(){
+		reset();
+	}
 };
 
 
@@ -316,7 +360,55 @@ TEST_F(DetectorTest, generateFlatfield)
 
 TEST_F(DetectorTest, reset)
 {
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
 
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger(
+			"SubField/NumColumns");
+	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+	const int numBiasPreScanRows = configParams.getInteger(
+			"SubField/NumBiasPrescanRows");
+	const int numSmearingOverScanRows = configParams.getInteger(
+			"SubField/NumSmearingOverscanRows");
+
+	detector.test_setSubPixelMap(arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels));
+	detector.test_setSubfield(arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField));
+	detector.test_setBiasRegisterMap(arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField));
+	detector.test_setSmearingMap(arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField));
+
+	detector.test_reset();
+
+	// Pixel map
+
+	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
+	ASSERT_EQ(0, arma::accu(arma::abs(detector.test_getSubfield())));
+
+	// Sub-pixel map
+
+	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+	ASSERT_EQ(0, arma::accu(arma::abs(detector.test_getSubPixelMap())));
+
+	// Bias register map
+
+	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
+	ASSERT_EQ(0, arma::accu(arma::abs(detector.test_getBiasRegisterMap())));
+
+	// Smearing map
+
+	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+	ASSERT_EQ(0, arma::accu(arma::abs(detector.test_getSmearingMap())));
+
+	// FLatfield map not reset!
 }
 
 
