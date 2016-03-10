@@ -352,7 +352,6 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
   
     const double fluxFactor = 1.00238e8 * throughputBandwidth * telescope.getTransmissionEfficiency() * telescope.getLightCollectingArea(); 
 
-
     // Update the internal clock
 
     internalTime = startTime;
@@ -461,9 +460,11 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     Log.debug("Camera: zodiacal flux level in subfield = " + to_string(zodiacalFlux) + " photons/pixel/exposure");
     Log.debug("Camera: stellar background flux level in subfield = " + to_string(stellarBackgroundFlux) + " photons/pixel/exposure");
 
-    // Convolve with the point spread function
 
-    detector.convolveWithPsf();
+    // Convolve with the point spread function
+    // Detector was given the proper PSF in Simulation::run().
+
+    //detector.convolveWithPsf();
 
     return;
 }
@@ -480,52 +481,33 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
 
 /**
- * \brief      select the PSF for the given star coordinates.
+ * \brief    Select the PSF for the given planar focal plane coordinates
  * 
- * \details
- * 
- * This method selects and rotates the PSF.
+ * \details  This method selects and rotates the PSF.
  *
- * \param[in]  raStar   right ascension of the star [rad]
- * \param[in]  decStar  declination of the star     [rad]
- */
+ * \param xFPmm   Planar x-coordinate in the FP' reference frame [rad]
+ * \param yFPmm   Planar y-coordinate in the FP' reference frame [rad]
+ *  */
 
-void Camera::selectPsfForStar(double raStar, double decStar)
+arma::Mat<float> Camera::getPsfForPlanarFocalPlaneCoordinates(double xFPmm, double yFPmm)
 {
+    // Calculate the angular FP coordinates
 
     double xFPrad, yFPrad;
+    tie(xFPrad, yFPrad) = planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm);
 
-    // Calculate the angular separation (in [radians]) between the star and the optical axis.
-    // Use that angle to select the proper PSF.
-
-    tie(xFPrad, yFPrad) = skyToAngularFocalPlaneCoordinates(raStar, decStar);
-
-    double radius = getGnomonicRadialDistanceFromOpticalAxis(xFPrad, yFPrad);
+    const double radius = getGnomonicRadialDistanceFromOpticalAxis(xFPrad, yFPrad);
 
     psf->select(rad2deg(radius));
 
     // Calculate the rotation angle [rad]
 
-    double xFPmm, yFPmm;
-    tie(xFPmm, yFPmm) = angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad);
-
-    double angle = atan2(yFPmm, xFPmm);
+    const double angle = atan2(yFPmm, xFPmm);
 
     psf->rotate(angle);
 
-}
+    // That's it
 
-
-
-
-
-
-
-
-
-
-arma::Mat<float> Camera::getPsfMap()
-{
     return psf->getPsfMap();
 }
 
@@ -534,45 +516,6 @@ arma::Mat<float> Camera::getPsfMap()
 
 
 
-
-
-
-
-/**
- * \brief      select the PSF for the given planar focal plane coordinates.
- * 
- * \details
- * 
- * This method selects and rotates the PSF.
- *
- * @param[in]  xFPmm  Planar focal plane x-coordinate [mm]
- * @param[in]  yFPmm  Planar focal plane y-coordinate [mm]
- */
-
-void Camera::selectPsfForPlanarFocalPlanePosition(double xFPmm, double yFPmm)
-{
-
-    double xFPrad, yFPrad;
-
-    // Calculate the angular separation (in [radians]) between the star and the optical axis.
-    // Use that angle to select the proper PSF.
-
-    tie(xFPrad, yFPrad) = planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm);
-
-    double radius = getGnomonicRadialDistanceFromOpticalAxis(xFPrad, yFPrad);
-
-    psf->select(rad2deg(radius));
-
-    // Calculate the rotation angle [rad]
-
-    double angle = atan2(yFPmm, xFPmm);
-
-    psf->rotate(angle);
-
-    arma::Mat<float> psfMap = psf->getPsfMap();
-    hdf5File.writeArray("/PSF", "selectedPSF", psfMap);
-
-}
 
 
 

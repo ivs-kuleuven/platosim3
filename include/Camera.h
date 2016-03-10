@@ -42,9 +42,7 @@ class Camera : public HDF5Writer
         virtual void initHDF5Groups() override;
         virtual void flushOutput() override;
 
-        virtual void selectPsfForStar(double raStar, double decStar);
-        virtual void selectPsfForPlanarFocalPlanePosition(double xFPmm, double yFPmm);
-        virtual arma::Mat<float> getPsfMap();
+        virtual arma::Mat<float> getPsfForPlanarFocalPlaneCoordinates(double xFPmm, double yFPmm);
         
 
     protected:

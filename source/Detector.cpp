@@ -12,12 +12,12 @@
  * 
  * The following maps are initialized to zero:
  * 
- * \li \c pixelMap 
- * \li \c subPixelMap
- * \li \c biasMap
- * \li \c smearingMap
- * \li \c flatfieldMap
- * \li \c cteMap
+ * pixelMap 
+ * subPixelMap
+ * biasMap
+ * smearingMap
+ * flatfieldMap
+ * cteMap
  * 
  * The flatfieldMap is filled at subPixel level and cteMap is filled at pixel level.
  * 
@@ -25,8 +25,9 @@
  * \param hdf5file       HFD5 file to write the detector images to.
  * \param camera         Camera to which to attach the detector.
  */
+
 Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera)
-: HDF5Writer(hdf5file), internalTime(0.0), camera(camera), imageNr(0)
+: HDF5Writer(hdf5file), psfWasSet(false), internalTime(0.0), camera(camera), imageNr(0)
 {
 	// Create the groups in the HDF5 file where the different maps (i.e. pixel map,
 	// bias register map, smearing map, etc.) will be saved. This needs to be done
@@ -570,45 +571,6 @@ void Detector::addFlux(double flux)
 
 
 
-/**
- * \brief: Convolve the sub-pixel map with the given PSF, keeping the same dimensions.
- *
- * \param psf: PSF.
- */
-void Detector::convolveWithPsf(arma::Mat<float> psf)
-{
-	subPixelMap = arma::conv2(subPixelMap, psf, "same");
-}
-
-
-
-
-
-
-
-
-
-
-
-/**
- * \brief  Convolve the sub-pixel map with the previously selected PSF, keeping the same dimensions.
- *
- * \param psf: PSF.
- * 
- * \todo   implement a check that this psfMap has indeed been filled properly
- */
-void Detector::convolveWithPsf()
-{
-    subPixelMap = arma::conv2(subPixelMap, psfMap, "same");
-}
-
-
-
-
-
-
-
-
 
 
 
@@ -1018,17 +980,13 @@ void Detector::applyCte()
 
 			if ((row + subFieldZeroPointRow == 0) || (index == 0))
 			{
-				readout += pixelMap(index - subFieldZeroPointRow,
-						arma::span::all) * factor1;
+				readout += pixelMap(index - subFieldZeroPointRow, arma::span::all) * factor1;
 			} else
 			{
-				const double factor2 = exp(
-						sumOfLogsUpTo[row + subFieldZeroPointRow - 1]
-								- sumOfLogsUpTo[row + subFieldZeroPointRow
-										- index - 1]
-								- sumOfLogsUpTo[index - 1]);
-				readout += pixelMap(index - subFieldZeroPointRow,
-						arma::span::all) * factor1 * factor2;
+				const double factor2 = exp(sumOfLogsUpTo[row + subFieldZeroPointRow - 1]
+								       - sumOfLogsUpTo[row + subFieldZeroPointRow - index - 1]
+	                                   - sumOfLogsUpTo[index - 1]);
+				readout += pixelMap(index - subFieldZeroPointRow, arma::span::all) * factor1 * factor2;
 			}
 		}
 
@@ -1407,20 +1365,75 @@ pair<double, double> Detector::getPlanarFocalPlaneCoordinatesOfSubfieldCenter()
 
 
 
-void Detector::setPsfForSubfieldCenter()
+
+
+
+
+
+
+/**
+ * \brief Return a boolean telling whether the PSF has been previously set
+ *        through setPsfForSubfieldCenter().
+ * 
+ * \return  true if the PSF was previously set, false otherwise
+ */
+
+bool Detector::psfIsSet()
 {
-    using StringUtilities::dtos;
-
-    double centerXmm, centerYmm;
-    tie(centerXmm, centerYmm) = getPlanarFocalPlaneCoordinatesOfSubfieldCenter();
-
-    Log.debug("Detector.setPsf: centerXmm, centerYmm = " + dtos(centerXmm) + ", " + dtos(centerXmm));
-
-    camera.selectPsfForPlanarFocalPlanePosition(centerXmm, centerYmm);
-    
-    psfMap = camera.getPsfMap();
-
+	return psfWasSet;
 }
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Set the Point Spread Function map for the subfield
+ * 
+ * \param psf  2D array containing the subpixel PSF map
+ */
+
+void Detector::setPsfForSubfieldCenter(arma::Mat<float> psf)
+{   
+	convolver.initialise(numRowsSubPixelMap, numColumnsSubPixelMap, psf);
+    psfMap = psf;
+    psfWasSet = true;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief: Convolve the sub-pixel map with the PSF, keeping the same dimensions.
+ *
+ * \param psf: PSF.
+ */
+void Detector::convolveWithPsf()
+{
+	// subpixelMap serves here both as input as well as output matrix;
+
+	convolver.convolve(subPixelMap, subPixelMap);
+}
+
+
+
+
+
+
+
+
 
 
 
