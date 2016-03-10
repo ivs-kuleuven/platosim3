@@ -79,8 +79,11 @@ class Camera : public HDF5Writer
         PointSpreadFunction *psf;
         Polynomial1D polynomial;
 
+        double userGivenSkyBackground;        // User-set zodiacal + stellar sky background. [phot/pix/s]
+                                              // If negative, computed by the Sky class
+
         // detectedStarInfo[startTime][starID] contains the values 
-        //    (xFPmean, yFPmean, rowPixMean, colPixmean, sumFlux, Ndetections} values
+        //    (xFPmean, yFPmean, rowPixMean, colPixmean, sumFlux, Ndetections)
 
         map<double, map<unsigned int, array<double, 6>>> detectedStarInfo;
 

@@ -10,8 +10,9 @@ ObservingParameters:
 
     NumExposures:            40              # Number of expsosures
     ExposureTime:            23              # [s]
-    RApointing:              180             # Platform (not telescope) right ascension pointing coordinate [deg] 
-    DecPointing:             -70             # Platform (not telescope) declination pointing coordinate     [deg]
+    RApointing:              180             # Platform (not telescope) right ascension pointing coordinate  [deg] 
+    DecPointing:             -70             # Platform (not telescope) declination pointing coordinate      [deg]
+    SkyBackground:           220.            # Stellar + zodiacal background level. Set negative to compute. [phot/pix/s]
     StarCatalogFile:         inputfiles/starcatalog.txt
 
 

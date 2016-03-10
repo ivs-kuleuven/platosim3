@@ -207,6 +207,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("ExposureTime");
     addDouble("RApointing");
     addDouble("DecPointing");
+    addDouble("SkyBackground");
     addString("StarCatalogFile");
 
     subGroup = "Platform";
