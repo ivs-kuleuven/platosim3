@@ -177,6 +177,11 @@ public:
 	{
 		addElectronicOffset();
 	}
+
+	void test_applyGain()
+	{
+		applyGain();
+	}
 };
 
 
@@ -592,9 +597,57 @@ TEST_F(DetectorTest, addReadoutNoise)
 
 
 
+/**
+ * Gain.
+ *
+ * The values in the pixel map, bias register map, and smearing map must be divided by the
+ * gain, on order to convert from [e- / pixel] to [ADU / pixel].
+ */
 TEST_F(DetectorTest, applyGain)
 {
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
 
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+
+	const int gain = configParams.getInteger("CCD/Gain");
+
+	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
+	detector.test_setSubfield(subField);
+
+	arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);
+	detector.test_setBiasRegisterMap(biasMap);
+
+	arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);
+	detector.test_setSmearingMap(smearingMap);
+
+	detector.test_applyGain();
+
+	// Pixel map
+
+	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
+	EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getSubfield()) == arma::vectorise(subField / gain)));
+
+	// Bias register map
+
+	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
+	EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getBiasRegisterMap()) == arma::vectorise(biasMap / gain)));
+
+	// Smearing map
+
+	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+	EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getSmearingMap()) == arma::vectorise(smearingMap / gain)));
 }
 
 
@@ -633,10 +686,10 @@ TEST_F(DetectorTest, addElectronicOffset)
 	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
 	detector.test_setSubfield(subField);
 
-	arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);;
+	arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);
 	detector.test_setBiasRegisterMap(biasMap);
 
-	arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);;
+	arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);
 	detector.test_setSmearingMap(smearingMap);
 
 	detector.test_addElectronicOffset();
