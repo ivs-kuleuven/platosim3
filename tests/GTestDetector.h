@@ -297,6 +297,15 @@ TEST_F(DetectorTest, setAndGetSubfield)
 
 
 
+/**
+ * Dimensions.
+ *
+ * The pixel map, bias register map, and smearing map must be generated at pixel level, whilst the
+ * sub-pixel map and the flatfield map must be generated at sub-pixel level.
+ *
+ * Currently, no edge pixels are added to the sub-pixel maps.  At a later stage, the addition of edge pixels
+ * will be implemented and the test harness must be updated accordingly.
+ */
 TEST_F(DetectorTest, dimensions)
 {
 	JitterFromRedNoise jitterGenerator(configParams);
@@ -363,6 +372,12 @@ TEST_F(DetectorTest, generateFlatfield)
 
 
 
+/**
+ * Reset.
+ *
+ * The dimensions of the sub-pixel map, pixel map, bias register map, and smearing map must remain unchanged
+ * but the values in these maps must be set to zero.
+ */
 TEST_F(DetectorTest, reset)
 {
 	JitterFromRedNoise jitterGenerator(configParams);
@@ -590,6 +605,11 @@ TEST_F(DetectorTest, applyGain)
 
 
 
+/**
+ * Electronic offset.
+ *
+ * The electronic offset must be added to the pixel map, bias register map, and smearing map.
+ */
 TEST_F(DetectorTest, addElectronicOffset)
 {
 	JitterFromRedNoise jitterGenerator(configParams);
