@@ -603,16 +603,41 @@ TEST_F(DetectorTest, addElectronicOffset)
 	const int numColumnsSubField = configParams.getInteger(
 			"SubField/NumColumns");
 
+	const int numBiasPreScanRows = configParams.getInteger(
+				"SubField/NumBiasPrescanRows");
+	const int numSmearingOverScanRows = configParams.getInteger(
+				"SubField/NumSmearingOverscanRows");
+
 	const int electronicOffset = configParams.getInteger("CCD/ElectronicOffset");
 
 	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
 	detector.test_setSubfield(subField);
 
+	arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);;
+	detector.test_setBiasRegisterMap(biasMap);
+
+	arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);;
+	detector.test_setSmearingMap(smearingMap);
+
 	detector.test_addElectronicOffset();
+
+	// Pixel map
 
 	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
 	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
 	EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getSubfield()) == arma::vectorise(subField + electronicOffset)));
+
+	// Bias register map
+
+	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
+	EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getBiasRegisterMap()) == arma::vectorise(biasMap + electronicOffset)));
+
+	// Smearing map
+
+	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+	EXPECT_TRUE(arma::all(arma::vectorise(detector.test_getSmearingMap()) == arma::vectorise(smearingMap + electronicOffset)));
 }
 
 
