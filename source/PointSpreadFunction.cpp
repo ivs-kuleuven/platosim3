@@ -249,8 +249,114 @@ arma::Mat<float> PointSpreadFunction::getPsfMap()
 
 
 
-void PointSpreadFunction::rebin()
-{
 
+
+
+/**
+ * \brief Method that rebins the PSF from the sub-pixel level in the PSF to
+ *        sub-pixel level in the sub-field.
+ *
+ */
+void PointSpreadFunction::rebin(unsigned int numSubPixelsPerPixel) {
+
+
+    // Create an intermediate PSF map of odd size for which the centre of the
+    // PSF lies in the middle of the map.  This map shall be big enough so the
+    // complete PSF fits in.  Sub-pixels that are not taken up by the actual PSF
+    // are filled with zeroes.
+
+    // xCenter and yCenter are the coordinates (at sub-pixel level in the
+    // PSF) of the centre of the PSF.
+
+    unsigned int  sizeIntermediatePsf = max(
+        (unsigned int) max(xCenter + 1, yCenter + 1),
+        (unsigned int) max(psfMap.n_rows - xCenter, psfMap.n_cols - yCenter)) * 2 - 1;
+
+    arma::Mat<float> intermediatePsf(sizeIntermediatePsf, sizeIntermediatePsf, arma::fill::zeros);
+
+    double centerIntermediatePsf = (sizeIntermediatePsf - 1) / 2.0;
+
+    intermediatePsf(
+        arma::span(centerIntermediatePsf - xCenter, centerIntermediatePsf - xCenter + psfMap.n_rows - 1),
+        arma::span(centerIntermediatePsf - yCenter, centerIntermediatePsf - yCenter + psfMap.n_cols - 1)) =
+        psfMap;
+
+    // Rebinning
+
+    double binning = double(m_numberOfSubPixelsPerPixel) / double(numSubPixelsPerPixel);
+
+    // Size of the rebinned PSF
+    unsigned int size = int(sizeIntermediatePsf / binning);
+
+    arma::Mat<float> psf;
+
+    if (binning >= 1)
+    {
+
+        if (size % 2 == 0)
+            size++;
+
+        psf = arma::zeros<arma::Mat<float>>(size, size);
+
+        for (int row = 0; row < size; row++) 
+        {
+            for (int column = 0; column < size; column++) 
+            {
+                if ((row + 1) * binning - 1 < sizeIntermediatePsf
+                        && (column + 1) * binning - 1 < sizeIntermediatePsf)
+                {
+                    psf(row, column) = arma::accu(
+                        intermediatePsf(arma::span(row * binning, (row + 1) * binning - 1),
+                                        arma::span(column * binning, (column + 1) * binning - 1)));
+                }
+            }
+        }
+    }
+
+    if (binning == 0.5)
+    {
+        unsigned int size2 = sizeIntermediatePsf * 2 + 1;    // Size of the rebinned PSF
+
+        psf = arma::zeros<arma::Mat<float>>(size2, size2);
+        binning = 1;
+
+        for (int row = 0; row < size; row++)
+        {
+            for (int column = 0; column < size; column++)
+            {
+                if ((row + 1) * binning - 1 < sizeIntermediatePsf
+                    && (column + 1) * binning - 1 < sizeIntermediatePsf)
+                {
+                    psf(row * 2, column * 2) = arma::accu(
+                        intermediatePsf(arma::span(row * binning, (row + 1) * binning - 1),
+                                        arma::span(column * binning, (column + 1) * binning - 1)));
+                }
+            }
+        }
+
+        for (int row = 0; row < size - 1; row++)
+        {
+            for (int column = 0; column < size - 1; column++)
+            {
+                if ((row + 1) * binning - 1 < sizeIntermediatePsf
+                        && (column + 1) * binning - 1 < sizeIntermediatePsf)
+                {
+                    psf(row * 2 + 1, column * 2) = (psf(row * 2, column * 2)
+                            + psf(row * 2 + 2, column * 2)) / 2.;
+
+                    psf(row * 2, column * 2 + 1) = (psf(row * 2, column * 2)
+                            + psf(row * 2, column * 2 + 2)) / 2.;
+
+                    psf(row * 2 + 1, column * 2 + 1) = (psf(row * 2, column * 2)
+                            + psf(row * 2 + 2, column * 2)
+                            + psf(row * 2, column * 2 + 2)
+                            + psf(row * 2 + 2, column * 2 + 2)) / 4.;
+                }
+            }
+        }
+    }
+
+    psfMap = psf;
+    isRebinned = true;
 }
 
