@@ -80,6 +80,7 @@ void Camera::initHDF5Groups()
     Log.debug("Camera: initialising HDF5 groups");
 
     hdf5File.createGroup("/StarPositions");
+    hdf5File.createGroup("/PSF");
 }
 
 
@@ -567,6 +568,9 @@ void Camera::selectPsfForPlanarFocalPlanePosition(double xFPmm, double yFPmm)
     double angle = atan2(yFPmm, xFPmm);
 
     psf->rotate(angle);
+
+    arma::Mat<float> psfMap = psf->getPsfMap();
+    hdf5File.writeArray("/PSF", "selectedPSF", psfMap);
 
 }
 
