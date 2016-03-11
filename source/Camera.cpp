@@ -481,15 +481,17 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
 
 /**
- * \brief    Select the PSF for the given planar focal plane coordinates
- * 
- * \details  This method selects and rotates the PSF.
+ * @brief      Select the PSF for the given planar focal plane coordinates
  *
- * \param xFPmm   Planar x-coordinate in the FP' reference frame [rad]
- * \param yFPmm   Planar y-coordinate in the FP' reference frame [rad]
- *  */
-
-arma::Mat<float> Camera::getPsfForPlanarFocalPlaneCoordinates(double xFPmm, double yFPmm)
+ * @details    This method selects, rotates and rebins the PSF.
+ *
+ * @param      xFPmm            Planar x-coordinate in the FP' reference frame [rad]
+ * @param      yFPmm            Planar y-coordinate in the FP' reference frame [rad]
+ * @param[in]  targetSubPixels  the number of subpixels per pixels in the detector
+ *
+ * @return     the psfMap that was selected, rotated and rebinned
+ */
+arma::Mat<float> Camera::getRebinnedPsfForPlanarFocalPlaneCoordinates(double xFPmm, double yFPmm, unsigned int targetSubPixels)
 {
     // Calculate the angular FP coordinates
 
@@ -505,6 +507,8 @@ arma::Mat<float> Camera::getPsfForPlanarFocalPlaneCoordinates(double xFPmm, doub
     const double angle = atan2(yFPmm, xFPmm);
 
     psf->rotate(angle);
+
+    psf->rebin(targetSubPixels);
 
     // Write the selected and rotated PSF to the output HDF5 file and return the PSF Array.
 
