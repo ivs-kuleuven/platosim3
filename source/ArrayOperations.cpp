@@ -159,7 +159,7 @@ arma::fmat rotateArrayBilinear(arma::fmat origArray, double angle)
     int q11x, q12x, q21x, q22x;
     int q11y, q12y, q21y, q22y;
 
-    Log.debug("cX, cY = " + to_string(cX) + ", " + to_string(cY));
+    // Log.debug("cX, cY = " + to_string(cX) + ", " + to_string(cY));
 
     for (int row=0; row < width; row++)
     {
