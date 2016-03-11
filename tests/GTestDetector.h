@@ -393,7 +393,6 @@ TEST_F(DetectorTest, setAndGetSubfield)
 	EXPECT_EQ(mySubfield.n_cols, Ncols);
 
 	EXPECT_TRUE(arma::all(arma::vectorise(mySubfield) == arma::vectorise(diagonalMatrix)));
-
 }
 
 
@@ -582,7 +581,7 @@ TEST_F(DetectorTest, reset)
  *
  * The sub-pixel map must be divided by the flatfield map.
  */
-TEST_F(DetectorTest, DISABLED_applyFlatfield)
+TEST_F(DetectorTest, applyFlatfield)
 {
 	LOG_STARTING_OF_TEST
 
@@ -605,8 +604,6 @@ TEST_F(DetectorTest, DISABLED_applyFlatfield)
 
 	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
 
-	const double quantumEfficiency = configParams.getDouble("CCD/QuantumEfficiency");
-
 	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
 
 	arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
@@ -621,9 +618,6 @@ TEST_F(DetectorTest, DISABLED_applyFlatfield)
 	arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);
 	detector.test_setSmearingMap(smearingMap);
 
-	detector.test_generateFlatFieldMap();
-	arma::fmat flatfieldMap = detector.test_getFlatfieldMap();
-
 
 
 	// Flatfield
@@ -637,52 +631,28 @@ TEST_F(DetectorTest, DISABLED_applyFlatfield)
 	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
 	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
 
-	for(unsigned int row = 0; row < numRowsSubField * numSubPixels; row++)
-	{
-		for(unsigned int column = 0; column < numColumnsSubField * numSubPixels; column++)
-		{
-			ASSERT_EQ(subPixelMap(row, column) / flatfieldMap(row, column), detector.test_getSubPixelMap()(row, column));
-		}
-	}
+	EXPECT_TRUE(arma::all(arma::vectorise(subPixelMap % detector.test_getFlatfieldMap()) == arma::vectorise(detector.test_getSubPixelMap())));
 
 	// Pixel map: check dimensions and content (unaltered)
 
 	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
 	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
 
-	for(unsigned int row = 0; row < numRowsSubField; row++)
-	{
-		for(unsigned int column = 0; column < numColumnsSubField; column++)
-		{
-			ASSERT_EQ(subField(row, column), detector.test_getSubfield()(row, column));
-		}
-	}
+	EXPECT_TRUE(arma::all(arma::vectorise(subField) == arma::vectorise(detector.test_getSubfield())));
 
 	// Bias register map: check dimensions and content (unaltered)
 
 	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
 	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
 
-	for(unsigned int row = 0; row < numBiasPreScanRows; row++)
-	{
-		for(unsigned int column = 0; column < numColumnsSubField; column++)
-		{
-			ASSERT_EQ(biasMap(row, column), detector.test_getBiasRegisterMap()(row, column));
-		}
-	}
+	EXPECT_TRUE(arma::all(arma::vectorise(biasMap) == arma::vectorise(detector.test_getBiasRegisterMap())));
 
 	// Smearing map: check dimensions and content (unaltered)
 
 	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
 	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
 
-	for(unsigned int row = 0; row < numSmearingOverScanRows; row++)
-	{
-		for(unsigned int column = 0; column < numColumnsSubField; column++)
-		{
-			ASSERT_EQ(smearingMap(row, column), detector.test_getSmearingMap()(row, column));
-		}
-	}
+	EXPECT_TRUE(arma::all(arma::vectorise(smearingMap) == arma::vectorise(detector.test_getSmearingMap())));
 }
 
 
@@ -1024,7 +994,7 @@ TEST_F(DetectorTest, applyQuantumEfficiency)
 	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
 	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
 
-	EXPECT_TRUE(arma::all(arma::vectorise(subField) == arma::vectorise(detector.test_getSubfield())));
+	EXPECT_TRUE(arma::all(arma::vectorise(subField * quantumEfficiency) == arma::vectorise(detector.test_getSubfield())));
 
 	// Bias register map: check dimensions and content (unaltered)
 
