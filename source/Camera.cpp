@@ -506,9 +506,12 @@ arma::Mat<float> Camera::getPsfForPlanarFocalPlaneCoordinates(double xFPmm, doub
 
     psf->rotate(angle);
 
-    // That's it
+    // Write the selected and rotated PSF to the output HDF5 file and return the PSF Array.
 
-    return psf->getPsfMap();
+    arma::Mat<float> psfMap = psf->getPsfMap();
+    hdf5File.writeArray("/PSF", "selectedPSF", psfMap);
+
+    return psfMap;
 }
 
 

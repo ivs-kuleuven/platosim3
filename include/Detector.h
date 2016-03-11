@@ -48,7 +48,7 @@ class Detector : public HDF5Writer
         bool isInSubfield(const double xFPmm, const double yFPmm);
 
         bool psfIsSet();
-        void setPsfForSubfieldCenter(arma::Mat<float> psf);
+        void setPsfForSubfieldCenter();
         virtual void convolveWithPsf();
 
 
