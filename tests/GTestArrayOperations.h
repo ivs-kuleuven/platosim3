@@ -16,6 +16,35 @@ void checkArraysToBeEqual(arma::fmat arr1, arma::fmat arr2);
 
 
 
+
+// This test is actually to guide and practice the access of elements from an array.
+
+TEST(ArrayOperationsTest, SingleElementAccess)
+{
+
+    using StringUtilities::dtos;
+
+    arma::fmat array = {
+        { 1,  2,  3,  4,  5},
+        { 6,  7,  8,  9, 10},
+        {11, 12, 13, 14, 15}
+    };
+
+    ASSERT_EQ(11, array(2, 0));
+    ASSERT_EQ(3, array(0, 2));
+
+    ASSERT_EQ(3, array.n_rows);
+    ASSERT_EQ(5, array.n_cols);
+
+}
+
+
+
+
+
+
+
+
 // TODO: * Add tests for other rotation angles
 //       * Add a test where we create a round image with some defined data and every pixel around that is black.
 //         Then rotate that image by different degrees and verify that some parameters are unchanged, e.g.
