@@ -581,7 +581,7 @@ TEST_F(DetectorTest, reset)
  *
  * The sub-pixel map must be divided by the flatfield map.
  */
-TEST_F(DetectorTest, applyFlatfield)
+TEST_F(DetectorTest, DISABLED_applyFlatfield)
 {
 	LOG_STARTING_OF_TEST
 
@@ -1932,20 +1932,14 @@ TEST_F(DetectorTest, applyDigitalSaturation)
 	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
 	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
 
-	for(unsigned int row = 0; row < numRowsSubField * numSubPixels; row++)
-	{
-		for(unsigned int column = 0; column < numColumnsSubField * numSubPixels; column++)
-		{
-			ASSERT_EQ(subPixelMap(row, column), detector.test_getSubPixelMap()(row, column));
-		}
-	}
+	EXPECT_TRUE(arma::all(arma::vectorise(subPixelMap) == arma::vectorise(detector.test_getSubPixelMap())));
 
 	// Pixel map: check dimensions and content (topped off at digital saturation limit)
 
 	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
 	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
 
-	ASSERT_EQ(digitalSaturationLimit, subField.max());
+	ASSERT_EQ(digitalSaturationLimit, detector.test_getSubfield().max());
 
 	for(unsigned int row = 0; row < numRowsSubField; row++)
 	{
@@ -1962,7 +1956,7 @@ TEST_F(DetectorTest, applyDigitalSaturation)
 	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
 	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
 
-	ASSERT_EQ(digitalSaturationLimit, biasMap.max());
+	ASSERT_EQ(digitalSaturationLimit, detector.test_getBiasRegisterMap().max());
 
 	for(unsigned int row = 0; row < numBiasPreScanRows; row++)
 	{
@@ -1978,7 +1972,7 @@ TEST_F(DetectorTest, applyDigitalSaturation)
 	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
 	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
 
-	ASSERT_EQ(digitalSaturationLimit, smearingMap.max());
+	ASSERT_EQ(digitalSaturationLimit, detector.test_getSmearingMap().max());
 
 	for(unsigned int row = 0; row < numSmearingOverScanRows; row++)
 	{
