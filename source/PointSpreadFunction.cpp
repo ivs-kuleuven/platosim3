@@ -105,6 +105,7 @@ PointSpreadFunction::~PointSpreadFunction()
 void PointSpreadFunction::configure(ConfigurationParameters &cp)
 {
     absolutePath = cp.getAbsoluteFilename("PSF/Filename");
+    numberOfSubPixelsPerPixel = cp.getInteger("PSF/SubPixels");
 }
 
 
