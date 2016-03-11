@@ -31,7 +31,7 @@ class PointSpreadFunction
 
         void rotate(double angle);
         void select(double radius);
-        void rebin(unsigned int numSubPixelsPerPixel);
+        void rebin(unsigned int targetSubPixels);
 
         arma::Mat<float> getPsfMap();
 
@@ -67,11 +67,11 @@ class PointSpreadFunction
         string groupName;
 
         // Number of sub-pixels per pixel that was used to generate the PSF
-        unsigned int m_numberOfSubPixelsPerPixel = 128;
+        unsigned int numberOfSubPixelsPerPixel;
 
         // Location of the reference subpixel, i.e. the center of the PSF
-        unsigned int xCenter = 513;
-        unsigned int yCenter = 513;
+        double xCenter;
+        double yCenter;
 };
 
 

@@ -9,14 +9,14 @@
 
 #include "armadillo"
 
-#include "Logger.h"
-#include "Units.h"
+#include "ArrayOperations.h"
+#include "Camera.h"
+#include "ConfigurationParameters.h"
+#include "Convolver.h"
 #include "HDF5File.h"
 #include "HDF5Writer.h"
-#include "ConfigurationParameters.h"
-#include "Camera.h"
-#include "Convolver.h"
-
+#include "Logger.h"
+#include "Units.h"
 
 using namespace std;
 

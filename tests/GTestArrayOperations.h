@@ -9,6 +9,7 @@
 #include "StringUtilities.h"
 
 using namespace std;
+using namespace ArrayOperations;
 
 
 void checkArraysToBeEqual(arma::fmat arr1, arma::fmat arr2);
@@ -114,7 +115,7 @@ TEST(ArrayOperationsTest, Rotation)
 
 
     
-    arma::fmat arr = rotateArray(smallArray, deg2rad(90.0));
+    arma::fmat arr = ArrayOperations::rotateArray(smallArray, deg2rad(90.0));
     checkArraysToBeEqual(rotatedSmallArray90, arr);
 
 //    printArray(smallArray, "Original smallArray");
@@ -124,7 +125,7 @@ TEST(ArrayOperationsTest, Rotation)
 
 
 
-    arr = rotateArray(smallNulledArray, deg2rad(90.0));
+    arr = ArrayOperations::rotateArray(smallNulledArray, deg2rad(90.0));
     checkArraysToBeEqual(rotatedSmallNulledArray90, arr);
 
 //    printArray(smallNulledArray, "Original smallNulledArray");
@@ -133,7 +134,7 @@ TEST(ArrayOperationsTest, Rotation)
 
 
 
-    arr = rotateArray(bigNulledArray, deg2rad(90.0));
+    arr = ArrayOperations::rotateArray(bigNulledArray, deg2rad(90.0));
     EXPECT_FLOAT_EQ(50.0, arr(9, 9));
     EXPECT_FLOAT_EQ(10.0, arr(5, 5));
     EXPECT_FLOAT_EQ(10.0, arr(13, 13));
