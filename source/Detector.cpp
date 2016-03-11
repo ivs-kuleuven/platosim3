@@ -1,7 +1,5 @@
 #include "Detector.h"
 
-#include "Units.h"
-
 /**
  * \brief Constructor.
  * 
