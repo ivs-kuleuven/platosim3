@@ -12,6 +12,7 @@ ObservingParameters:
 
     RApointing:              0.0             # [deg] 
     DecPointing:             0.0             # [deg]
+    SkyBackground:           220.            # Stellar + zodiacal background level. Set negative to compute. [photons/s]
     StarCatalogFile:         testData/starcatalog.txt
 
 Platform:
