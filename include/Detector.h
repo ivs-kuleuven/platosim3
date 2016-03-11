@@ -122,6 +122,9 @@ class Detector : public HDF5Writer
         unsigned long digitalSaturationLimit;    // Digital saturation limit [ADU / pixel]
 
     	bool includePhotonNoise;                 // Whether or not to include photon noise
+        bool includeReadoutNoise;                // Include readout noise [yes or no]
+        bool includeCTIeffects;                  // Include CTI effects [yes or no]
+        bool includeOpenShutterSmearing;         // Include trails due reading out with an open shutter
         bool psfWasSet;                          // True if PSF for subfield was already initialised. False otherwise.
 
         double internalTime;
