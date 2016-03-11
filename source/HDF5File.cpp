@@ -88,9 +88,8 @@ void HDF5File::open(string filename, bool readonly)
 
     if (fileIsOpen)
     {
-        Log.error("HDF5File::open(): file " + filename + " already open.");
         close();
-        exit(1);
+        throw H5FileException("HDF5File::open(): file " + filename + " is already open.");
     }
 
     // Check if the file already exists.
@@ -316,8 +315,7 @@ void HDF5File::writeAttribute(string groupName, string attributeName, string att
     
     if (!fileIsOpen)
     {
-        Log.error("HDF5File::writeAttribute(): file is not open.");
-        exit(1);
+        throw H5FileException("HDF5File::writeAttribute(): file " + file->getFileName() + " is not open.");
     }
 
     // Open the proper group where the input parameter belongs
@@ -347,8 +345,7 @@ void HDF5File::writeAttribute(string groupName, string attributeName, string att
 
     if (attributeIsAlreadyInGroup)
     {
-        Log.error("HDF5File::writeAttribute(): attribute " + attributeName + " already in group " + groupName);
-        exit(1);
+        throw H5AttributeException("HDF5File::writeAttribute(): attribute " + attributeName + " already in group " + groupName);
     }
 
 
@@ -399,8 +396,7 @@ void HDF5File::writeAttribute(string groupName, string attributeName, int attrib
     
     if (!fileIsOpen)
     {
-        Log.error("HDF5File::writeAttribute(): file is not open.");
-        exit(1);
+        throw H5FileException("HDF5File::writeAttribute(): file " + file->getFileName() + " is not open.");
     }
 
  
@@ -431,8 +427,7 @@ void HDF5File::writeAttribute(string groupName, string attributeName, int attrib
 
     if (attributeIsAlreadyInGroup)
     {
-        Log.error("HDF5File::writeAttribute(): attribute " + attributeName + " already in group " + groupName);
-        exit(1);
+        throw H5AttributeException("HDF5File::writeAttribute(): attribute " + attributeName + " already in group " + groupName);
     }
 
 
@@ -484,8 +479,7 @@ void HDF5File::writeAttribute(string groupName, string attributeName, long attri
     
     if (!fileIsOpen)
     {
-        Log.error("HDF5File::writeAttribute(): file is not open.");
-        exit(1);
+        throw H5FileException("HDF5File::writeAttribute(): file " + file-> getFileName() + " is not open.");
     }
 
 
@@ -516,8 +510,7 @@ void HDF5File::writeAttribute(string groupName, string attributeName, long attri
 
     if (attributeIsAlreadyInGroup)
     {
-        Log.error("HDF5File::writeAttribute(): attribute " + attributeName + " already in group " + groupName);
-        exit(1);
+        throw H5AttributeException("HDF5File::writeAttribute(): attribute " + attributeName + " already in group " + groupName);
     }
 
 
@@ -568,8 +561,7 @@ void HDF5File::writeAttribute(string groupName, string attributeName, double att
     
     if (!fileIsOpen)
     {
-        Log.error("HDF5File::writeAttribute(): file is not open.");
-        exit(1);
+        throw H5FileException("HDF5File::writeAttribute(): file " + file->getFileName() + " is not open.");
     }
 
     // Open the proper group where the input parameter belongs
@@ -599,8 +591,7 @@ void HDF5File::writeAttribute(string groupName, string attributeName, double att
 
     if (attributeIsAlreadyInGroup)
     {
-        Log.error("HDF5File::writeAttribute(): attribute " + attributeName + " already in group " + groupName);
-        exit(1);
+        throw H5AttributeException("HDF5File::writeAttribute(): attribute " + attributeName + " already in group " + groupName);
     }
 
 
@@ -928,8 +919,7 @@ void HDF5File::writeArray(string groupName, string arrayName, int* array, int si
 
     if (arrayIsAlreadyInFile)
     {
-        Log.error("HDF5File::writeArray(): array " + groupName + "/" + arrayName + " already in file.");
-        exit(1);
+        throw H5GroupException("HDF5File::writeArray(): array " + groupName + "/" + arrayName + " already in file.");
     }
 
 
@@ -1075,8 +1065,7 @@ void HDF5File::writeArray(string groupName, string arrayName, float* array, int 
 
     if (arrayIsAlreadyInFile)
     {
-        Log.error("HDF5File::writeArray(): array " + groupName + "/" + arrayName + " already in file.");
-        exit(1);
+        throw H5GroupException("HDF5File::writeArray(): array " + groupName + "/" + arrayName + " already in file.");
     }
 
 
@@ -1146,8 +1135,7 @@ void HDF5File::writeArray(string groupName, string arrayName, double* array, int
 
     if (arrayIsAlreadyInFile)
     {
-        Log.error("HDF5File::writeArray(): array " + groupName + "/" + arrayName + " already in file.");
-        exit(1);
+        throw H5GroupException("HDF5File::writeArray(): array " + groupName + "/" + arrayName + " already in file.");
     }
 
 
@@ -1190,8 +1178,7 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<float>& 
 
     if ((A.n_rows == 0) && (A.n_cols == 0))
     {
-        Log.error("HDF5File::writeArray(): encountered array with shape (0,0)");
-        exit(1);
+        throw H5FileException("HDF5File::writeArray(): encountered array with shape (0,0)");
     }
 
     // Create a DataSpace defining the shape and type of the data 
@@ -1226,8 +1213,7 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<float>& 
 
     if (arrayIsAlreadyInFile)
     {
-        Log.error("HDF5File::writeArray(): array " + groupName + "/" + arrayName + " already in file.");
-        exit(1);
+        throw H5GroupException("HDF5File::writeArray(): array " + groupName + "/" + arrayName + " already in file.");
     }
 
     // Inside the Images group, make room for the image array
@@ -1285,8 +1271,7 @@ void HDF5File::readArray(string groupName, string arrayName, arma::Mat<float>& A
     }
     catch (H5::FileIException error)
     {
-        Log.error("readArray(): " + arrayPath + " not in file.");
-        exit(1);
+        throw H5DatasetException("HDF5File::readArray(): " + arrayPath + " not in file.");
     }
 
     // Find out the number of rows and columns of the dataset
