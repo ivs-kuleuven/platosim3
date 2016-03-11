@@ -464,7 +464,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     // Convolve with the point spread function
     // Detector was given the proper PSF in Simulation::run().
 
-    //detector.convolveWithPsf();
+    detector.convolveWithPsf();
 
     return;
 }
