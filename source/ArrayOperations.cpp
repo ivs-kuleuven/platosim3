@@ -7,8 +7,8 @@ using namespace std;
 
 // Functions used locally
 
-arma::Mat<float> rotateArrayNearestNeighbor(arma::Mat<float> arr, double angle);
-arma::Mat<float> rotateArrayBilinear(arma::Mat<float> arr, double angle);
+arma::fmat rotateArrayNearestNeighbor(arma::fmat arr, double angle);
+arma::fmat rotateArrayBilinear(arma::fmat arr, double angle);
 
 
 
@@ -31,7 +31,7 @@ arma::Mat<float> rotateArrayBilinear(arma::Mat<float> arr, double angle);
  *
  * \return     the rotated array with the same dimensions as the original array
  */
-arma::Mat<float> rotateArray(arma::Mat<float> arr, double angle)
+arma::fmat rotateArray(arma::fmat arr, double angle)
 {
     return rotateArrayBilinear(arr, angle);
 }
@@ -48,7 +48,7 @@ arma::Mat<float> rotateArray(arma::Mat<float> arr, double angle)
  * \param[in]  arr   a 2D armadillo array
  * \param[in]  msg   a message that is printed before the array is printed
  */
-void printArray(arma::Mat<float> arr, string msg)
+void printArray(arma::fmat arr, string msg)
 {
     stringstream fullMessage;
 
@@ -83,9 +83,9 @@ void printArray(arma::Mat<float> arr, string msg)
  *
  * \return     a rotated 2D armadillo array with the same dimensions
  */
-arma::Mat<float> rotateArrayNearestNeighbor(arma::Mat<float> origArray, double angle)
+arma::fmat rotateArrayNearestNeighbor(arma::fmat origArray, double angle)
 {
-    arma::Mat<float> rotatedArray(arma::size(origArray), arma::fill::zeros);
+    arma::fmat rotatedArray(arma::size(origArray), arma::fill::zeros);
 
     int width = origArray.n_rows;
     int height = origArray.n_cols;
@@ -143,9 +143,9 @@ arma::Mat<float> rotateArrayNearestNeighbor(arma::Mat<float> origArray, double a
  *
  * \return     a rotated 2D armadillo array with the same dimensions
  */
-arma::Mat<float> rotateArrayBilinear(arma::Mat<float> origArray, double angle)
+arma::fmat rotateArrayBilinear(arma::fmat origArray, double angle)
 {
-    arma::Mat<float> rotatedArray(arma::size(origArray), arma::fill::zeros);
+    arma::fmat rotatedArray(arma::size(origArray), arma::fill::zeros);
 
     int width = origArray.n_rows;
     int height = origArray.n_cols;
