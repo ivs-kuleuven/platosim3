@@ -10,7 +10,7 @@
 using namespace std;
 
 
-void checkArraysToBeEqual(arma::Mat<float> arr1, arma::Mat<float> arr2);
+void checkArraysToBeEqual(arma::fmat arr1, arma::fmat arr2);
 
 
 
@@ -28,7 +28,7 @@ TEST(ArrayOperationsTest, Rotation)
 
     LOG_STARTING_OF_TEST
 
-    arma::Mat<float> bigNulledArray = {
+    arma::fmat bigNulledArray = {
                {0., 0., 0., 0., 0.,  0., 0., 0., 0.,  0., 0., 0., 0.,  0., 0., 0., 0., 0., 0.}, \
                {0., 0., 0., 0., 0.,  0., 0., 0., 0.,  0., 0., 0., 0.,  0., 0., 0., 0., 0., 0.}, \
                {0., 0., 0., 0., 0.,  0., 0., 0., 0.,  0., 0., 0., 0.,  0., 0., 0., 0., 0., 0.}, \
@@ -51,21 +51,21 @@ TEST(ArrayOperationsTest, Rotation)
     };
 
     // Test array where there are no zero (0) values at the sides.
-    arma::Mat<float> smallArray = {
+    arma::fmat smallArray = {
         {1., 2., 3.},
         {4., 5., 6.},
         {7., 8., 9.}
     };
 
     // Expected result after rotating the smallArray by 90 degrees
-    arma::Mat<float> rotatedSmallArray90 = {
+    arma::fmat rotatedSmallArray90 = {
         {3., 6., 9.},
         {2., 5., 8.},
         {1., 4., 7.}
     };
 
     // Test array where zeros (0) are added
-    arma::Mat<float> smallNulledArray = {
+    arma::fmat smallNulledArray = {
         {0. , 0., 0., 0., 0.},
         {0. , 1., 2., 3., 0.},
         {0. , 4., 5., 6., 0.},
@@ -74,7 +74,7 @@ TEST(ArrayOperationsTest, Rotation)
     };
 
     // Expected result after rotating the smallNulledArray by 90 degrees
-    arma::Mat<float> rotatedSmallNulledArray90 = {
+    arma::fmat rotatedSmallNulledArray90 = {
         {0. , 0., 0., 0., 0.},
         {0. , 3., 6., 9., 0.},
         {0. , 2., 5., 8., 0.},
@@ -84,7 +84,7 @@ TEST(ArrayOperationsTest, Rotation)
 
 
     
-    arma::Mat<float> arr = rotateArray(smallArray, deg2rad(90.0));
+    arma::fmat arr = rotateArray(smallArray, deg2rad(90.0));
     checkArraysToBeEqual(rotatedSmallArray90, arr);
 
 //    printArray(smallArray, "Original smallArray");
@@ -118,7 +118,7 @@ TEST(ArrayOperationsTest, Rotation)
 
 
 
-void checkArraysToBeEqual(arma::Mat<float> arr1, arma::Mat<float> arr2)
+void checkArraysToBeEqual(arma::fmat arr1, arma::fmat arr2)
 {
     EXPECT_EQ(arr1.n_rows, arr2.n_rows);
     EXPECT_EQ(arr1.n_cols, arr2.n_cols);
