@@ -6,6 +6,7 @@
 #include "Constants.h"
 #include "Logger.h"
 #include "ArrayOperations.h"
+#include "StringUtilities.h"
 
 using namespace std;
 
@@ -145,6 +146,203 @@ TEST(ArrayOperationsTest, Rotation)
 
 }
 
+
+TEST(ArrayOperationsTest, Rebinning)
+{
+    arma::fmat array(10, 10, arma::fill::eye);
+    arma::fmat testArray(5, 5, arma::fill::eye);
+    testArray *= 2;
+
+    arma::fmat rebinnedArray = rebin(array, 5, 5);
+    checkArraysToBeEqual(rebinnedArray, testArray);
+
+    array = {
+        {1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5},
+        {1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5},
+        {1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5},
+
+        {2, 2, 2, 1, 1, 1, 4, 4, 4, 5, 5, 5, 4, 4, 4},
+        {2, 2, 2, 1, 1, 1, 4, 4, 4, 5, 5, 5, 4, 4, 4},
+        {2, 2, 2, 1, 1, 1, 4, 4, 4, 5, 5, 5, 4, 4, 4},
+
+        {3, 3, 3, 4, 4, 4, 1, 1, 1, 4, 4, 4, 3, 3, 3},
+        {3, 3, 3, 4, 4, 4, 1, 1, 1, 4, 4, 4, 3, 3, 3},
+        {3, 3, 3, 4, 4, 4, 1, 1, 1, 4, 4, 4, 3, 3, 3},
+
+        {4, 4, 4, 5, 5, 5, 4, 4, 4, 1, 1, 1, 2, 2, 2},
+        {4, 4, 4, 5, 5, 5, 4, 4, 4, 1, 1, 1, 2, 2, 2},
+        {4, 4, 4, 5, 5, 5, 4, 4, 4, 1, 1, 1, 2, 2, 2},
+
+        {5, 5, 5, 4, 4, 4, 3, 3, 3, 2, 2, 2, 1, 1, 1},
+        {5, 5, 5, 4, 4, 4, 3, 3, 3, 2, 2, 2, 1, 1, 1},
+        {5, 5, 5, 4, 4, 4, 3, 3, 3, 2, 2, 2, 1, 1, 1}
+    };
+
+    testArray = {
+        {1 * 9, 2 * 9, 3 * 9, 4 * 9, 5 * 9},
+        {2 * 9, 1 * 9, 4 * 9, 5 * 9, 4 * 9},
+        {3 * 9, 4 * 9, 1 * 9, 4 * 9, 3 * 9},
+        {4 * 9, 5 * 9, 4 * 9, 1 * 9, 2 * 9},
+        {5 * 9, 4 * 9, 3 * 9, 2 * 9, 1 * 9}
+    };
+
+    rebinnedArray = rebin(array, 5, 5);
+    checkArraysToBeEqual(rebinnedArray, testArray);
+
+
+    testArray = {
+        { 37,  81, 113},
+        { 81,  69,  81},
+        {113,  81,  37},
+    };
+
+    rebinnedArray = rebin(array, 3, 3);
+    checkArraysToBeEqual(rebinnedArray, testArray);
+
+
+    // Only square arrays are currently supported
+    ASSERT_THROW(rebinnedArray = rebin(array, 3, 5), IllegalArgumentException);
+
+    // Only down scaling is currently supported
+    ASSERT_THROW(rebinnedArray = rebin(array, 17, 5), IllegalArgumentException);
+
+    // Rebinned array must be integer fraction of original array
+    ASSERT_THROW(rebinnedArray = rebin(array, 4, 4), IllegalArgumentException);
+}
+
+TEST(ArrayOperationsTest, RebinningCenter)
+{
+    arma::fmat sourceArray;
+    arma::fmat testArray;
+    arma::fmat rebinnedArray;
+
+
+    // This is the simplest case where the array
+    //   * is square and of odd size so
+    //   * the center element is perfectly in the middle
+
+    sourceArray = {  // 9 x 9, center element is (4, 4)
+        {0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 1, 1, 1, 0, 0, 0},
+        {0, 0, 0, 1, 1, 1, 0, 0, 0},
+        {0, 0, 0, 1, 1, 1, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0},
+    };
+
+    rebinnedArray = rebin(sourceArray, 3, 1, 4, 4);
+
+    testArray = {
+        {0, 0, 0},
+        {0, 9, 0},
+        {0, 0, 0},
+    };
+
+    checkArraysToBeEqual(rebinnedArray, testArray);
+
+}
+
+
+
+
+TEST(ArrayOperationsTest, RebinningGrow)
+{
+    arma::fmat sourceArray;
+    arma::fmat testArray;
+    arma::fmat rebinnedArray;
+
+
+    sourceArray = {
+        {0, 0, 0, 0, 0, 0, 0, 0, 1},
+        {0, 0, 1, 2, 3, 0, 0, 0, 0},
+        {0, 0, 4, 5, 6, 0, 0, 0, 2},
+        {0, 0, 7, 8, 9, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 3},
+        {1, 0, 0, 2, 0, 0, 3, 0, 0}
+    };
+
+    testArray = {
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1},
+        {0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 4, 4, 5, 5, 6, 6, 0, 0, 0, 0, 0, 0, 2, 2},
+        {0, 0, 0, 0, 4, 4, 5, 5, 6, 6, 0, 0, 0, 0, 0, 0, 2, 2},
+        {0, 0, 0, 0, 7, 7, 8, 8, 9, 9, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 7, 7, 8, 8, 9, 9, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3},
+        {1, 1, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 3, 3, 0, 0, 0, 0},
+        {1, 1, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 3, 3, 0, 0, 0, 0}
+    };
+
+    ASSERT_THROW(rebinnedArray = rebin(sourceArray, 1, 2, 2, 3), UnsupportedException);
+
+    // checkArraysToBeEqual(rebinnedArray, testArray);
+
+}
+
+
+
+
+
+
+TEST(ArrayOperationsTest, RebinningCenterOdd)
+{
+    arma::fmat sourceArray;
+    arma::fmat testArray;
+    arma::fmat rebinnedArray;
+
+
+    sourceArray = {  // 10 x 10, center element is (4, 4)
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 1, 1, 1, 0, 0, 0, 0},
+        {0, 0, 0, 1, 1, 1, 0, 0, 0, 2},
+        {0, 0, 0, 1, 1, 1, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 3},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 1, 0, 0, 2, 0, 0, 3, 0, 0},
+    };
+
+    testArray = {
+        {0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 1},
+        {0, 0, 9, 0, 2},
+        {0, 0, 0, 0, 3},
+        {0, 1, 2, 3, 0},
+    };
+
+    rebinnedArray = rebin(sourceArray, 3, 1, 4, 4);
+    checkArraysToBeEqual(rebinnedArray, testArray);
+
+    testArray = {
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 2, 0, 0},
+        {0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 1, 0, 0, 2, 0, 0, 3, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    };
+
+    rebinnedArray = rebin(sourceArray, 3, 3, 4, 4);
+    checkArraysToBeEqual(rebinnedArray, testArray);
+
+}
 
 
 void checkArraysToBeEqual(arma::fmat arr1, arma::fmat arr2)
