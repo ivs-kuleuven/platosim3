@@ -5,13 +5,14 @@ using namespace std;
 
 
 
-// Functions used locally
+
+namespace ArrayOperations
+{
+
+// Functions Prototypes 
 
 arma::fmat rotateArrayNearestNeighbor(arma::fmat arr, double angle);
 arma::fmat rotateArrayBilinear(arma::fmat arr, double angle);
-
-
-
 
 
 
@@ -434,5 +435,5 @@ arma::fmat rebin(arma::fmat array, unsigned int n_rows_new, unsigned int n_cols_
     return rebinnedArray;
 }
 
-
+}  // End of namespace ArrayOperations
 
