@@ -41,6 +41,7 @@ JitterFromFile::JitterFromFile(ConfigurationParameters &configParams)
         if (time.size() < 2)
         {
             Log.error("JitterFromFile: Jitter file " + pathToJitterFile + " contains less than 2 time points");
+            // FIXME: exit ???
         }
         else
         {        

@@ -129,9 +129,15 @@ void Simulation::configure(ConfigurationParameters &configParams)
  */
 void Simulation::run(double startTime)
 {
+    // Update the internal clock
+
     currentTime = startTime;
 
-    detector->setPsfForSubfieldCenter();
+    // Ensure that the proper PSF is set for the detector
+
+    double centerXmm, centerYmm;
+    tie(centerXmm, centerYmm) = detector->getPlanarFocalPlaneCoordinatesOfSubfieldCenter();
+    //detector->setPsfForSubfieldCenter(camera->getPsfForPlanarFocalPlaneCoordinates(centerXmm, centerYmm));
 
     // Loop over all exposures
 
