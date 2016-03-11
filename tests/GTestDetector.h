@@ -610,7 +610,7 @@ TEST_F(DetectorTest, DISABLED_applyFlatfield)
 
 	arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
 	detector.test_setSubPixelMap(subPixelMap);
-
+	EXPECT_TRUE(arma::all(arma::vectorise(subPixelMap) == arma::vectorise(detector.test_getSubPixelMap())));
 	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
 	detector.test_setSubfield(subField);
 
@@ -721,6 +721,7 @@ TEST_F(DetectorTest, rebin)
 	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
 
 	arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
+	subPixelMap.ones(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
 	detector.test_setSubPixelMap(subPixelMap);
 
 	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
@@ -738,6 +739,8 @@ TEST_F(DetectorTest, rebin)
 
 	detector.test_rebin();
 
+
+
 	// Pixel map: check dimensions  and content (all sub-pixels must be summed per pixel)
 
 	ASSERT_EQ(detector.test_getSubPixelMap().n_rows / numSubPixels, detector.test_getSubfield().n_rows);
@@ -745,21 +748,21 @@ TEST_F(DetectorTest, rebin)
 
 	double expectedValue;
 
-	for(unsigned int row = 0; row < numRowsSubField; row++)
+	for (unsigned int row = 0; row < numRowsSubField; row++)
 	{
-		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		for (unsigned int column = 0; column < numColumnsSubField; column++)
 		{
 			expectedValue = 0.0;
 
-			for(unsigned int subRow = 0; subRow < numSubPixels; subRow++)
+			for(unsigned int subRow = row * numSubPixels; subRow < (row + 1) * numSubPixels; subRow++)
 			{
-				for(unsigned int subColumn = 0; subColumn < numSubPixels; subColumn++)
+				for(unsigned int subColumn = column * numSubPixels; subColumn < (column + 1) * numSubPixels; subColumn++)
 				{
-					expectedValue += detector.test_getSubPixelMap()(row * numSubPixels + subRow, column * numSubPixels + subColumn);
-
-					ASSERT_EQ(expectedValue, detector.test_getSubfield()(row, column));
+					expectedValue += subPixelMap(row, column);
 				}
 			}
+
+			ASSERT_EQ(expectedValue, detector.test_getSubfield()(row, column));
 		}
 	}
 
@@ -768,39 +771,21 @@ TEST_F(DetectorTest, rebin)
 	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
 	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
 
-	for(unsigned int row = 0; row < numRowsSubField * numSubPixels; row++)
-	{
-		for(unsigned int column = 0; column < numColumnsSubField * numSubPixels; column++)
-		{
-			ASSERT_EQ(subPixelMap(row, column), detector.test_getSubPixelMap()(row, column));
-		}
-	}
+	EXPECT_TRUE(arma::all(arma::vectorise(subPixelMap) == arma::vectorise(detector.test_getSubPixelMap())));
 
 	// Bias register map: check dimensions and content (unaltered)
 
 	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
 	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
 
-	for(unsigned int row = 0; row < numBiasPreScanRows; row++)
-	{
-		for(unsigned int column = 0; column < numColumnsSubField; column++)
-		{
-			ASSERT_EQ(biasMap(row, column), detector.test_getBiasRegisterMap()(row, column));
-		}
-	}
+	EXPECT_TRUE(arma::all(arma::vectorise(biasMap) == arma::vectorise(detector.test_getBiasRegisterMap())));
 
 	// Smearing map: check dimensions and content (unaltered)
 
 	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
 	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
 
-	for(unsigned int row = 0; row < numSmearingOverScanRows; row++)
-	{
-		for(unsigned int column = 0; column < numColumnsSubField; column++)
-		{
-			ASSERT_EQ(smearingMap(row, column), detector.test_getSmearingMap()(row, column));
-		}
-	}
+	EXPECT_TRUE(arma::all(arma::vectorise(smearingMap) == arma::vectorise(detector.test_getSmearingMap())));
 }
 
 
@@ -1489,7 +1474,7 @@ TEST_F(DetectorTest, addReadoutNoise)
 
 	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
 
-	const bool readoutNoise = configParams.getBoolean("CCD/ReadoutNoise");
+	const int readoutNoise = configParams.getInteger("CCD/ReadoutNoise");
 
 	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
 
@@ -1518,31 +1503,25 @@ TEST_F(DetectorTest, addReadoutNoise)
 	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
 	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
 
-	for(unsigned int row = 0; row < numRowsSubField * numSubPixels; row++)
-	{
-		for(unsigned int column = 0; column < numColumnsSubField * numSubPixels; column++)
-		{
-			ASSERT_EQ(subPixelMap(row, column), detector.test_getSubPixelMap()(row, column));
-		}
-	}
+	EXPECT_TRUE(arma::all(arma::vectorise(subPixelMap) == arma::vectorise(detector.test_getSubPixelMap())));
 
 	// Pixel map: check dimensions and content (added normal distribution)
 
 	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
 	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
 
-	arma::fmat residualSubField = detector.test_getSubPixelMap() - subField;
+	arma::fmat residualSubField = detector.test_getSubfield() - subField;
 	double stdDev = arma::accu(residualSubField % residualSubField) / (numRowsSubField * numColumnsSubField);
 
-	ASSERT_EQ(0.0, mean(mean(residualSubField)));
-	ASSERT_EQ(readoutNoise, stdDev);
+	EXPECT_EQ(0.0, mean(mean(residualSubField)));
+	EXPECT_EQ(readoutNoise, stdDev);
 
 	// Bias register map: check dimensions and content (added normal distribution)
 
 	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
 	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
 
-	arma::fmat residualSmearingMap = detector.test_getSmearingMap() - subField;
+	arma::fmat residualSmearingMap = detector.test_getSmearingMap() - smearingMap;
 	stdDev = arma::accu(residualSmearingMap % residualSmearingMap) / (numRowsSubField * numColumnsSubField);
 
 	ASSERT_EQ(0.0, mean(mean(residualSmearingMap)));
@@ -1550,16 +1529,18 @@ TEST_F(DetectorTest, addReadoutNoise)
 
 	// Smearing map: check dimensions and content (unaltered)
 
-	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
-	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+	EXPECT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+	EXPECT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
 
 	for(unsigned int row = 0; row < numSmearingOverScanRows; row++)
 	{
 		for(unsigned int column = 0; column < numColumnsSubField; column++)
 		{
-			ASSERT_EQ(smearingMap(row, column), detector.test_getSmearingMap()(row, column));
+			EXPECT_EQ(smearingMap(row, column), detector.test_getSmearingMap()(row, column));
 		}
 	}
+
+	EXPECT_TRUE(arma::all(arma::vectorise(smearingMap) == arma::vectorise(detector.test_getSmearingMap())));
 }
 
 
