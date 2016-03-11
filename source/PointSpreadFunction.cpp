@@ -221,7 +221,7 @@ void PointSpreadFunction::rotate(double angle)
         // the requested angle minus the rotationAngle of the PSF.
 
         double newAngle = angle - rotationAngle;
-        psfMap = rotateArray(psfMap, newAngle);
+        psfMap = ArrayOperations::rotateArray(psfMap, newAngle);
 
         rotationAngle = newAngle;
         isRotated = true;    
