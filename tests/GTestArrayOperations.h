@@ -147,6 +147,29 @@ TEST(ArrayOperationsTest, Rotation)
 }
 
 
+// Test what the effect is of small rebinning actions
+
+TEST(ArrayOperationsTest, DISABLED_RebinningEffect)
+{
+
+    arma::fmat array(1024, 1024, arma::fill::eye);
+
+    arma::fmat rebinnedArray = rebin(array, 128, 1, 512, 512);
+    printArray(rebinnedArray, "ArrayOperationsTest.RebinningEffect");
+
+    EXPECT_EQ(9, rebinnedArray.n_rows);
+    EXPECT_EQ(9, rebinnedArray.n_cols);
+    EXPECT_EQ(1024, arma::accu(rebinnedArray));
+
+    rebinnedArray = rebin(array, 8, 8);
+    printArray(rebinnedArray, "ArrayOperationsTest.RebinningEffect");
+
+    EXPECT_EQ(8, rebinnedArray.n_rows);
+    EXPECT_EQ(8, rebinnedArray.n_cols);
+    EXPECT_EQ(1024, arma::accu(rebinnedArray));
+
+}
+
 TEST(ArrayOperationsTest, Rebinning)
 {
     arma::fmat array(10, 10, arma::fill::eye);
