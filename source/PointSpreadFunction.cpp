@@ -251,5 +251,27 @@ arma::Mat<float> PointSpreadFunction::getPsfMap()
 
 
 
+/**
+ * @brief      Rebin the PSF map to the target number of subpixels
+ *
+ * @details
+ * 
+ * The number of subpixels used to generate the PSF is not necessarily the same
+ * as the number of subpixels per pixel for the detector. So, the PSF needs to be
+ * rebinned to the number of subpixels per pixel for the detector, which is given
+ * as targetSubPixels.
+ * 
+ * @param[in]  targetSubPixels  the target number of subpixels
+ */
+void PointSpreadFunction::rebin(unsigned int targetSubPixels)
+{
+    unsigned int binSize = psfMap.n_rows / numberOfSubPixelsPerPixel * targetSubPixels;
+
+    psfMap = ArrayOperations::rebin(psfMap, binSize, binSize);
+
+    isRebinned = true;
+}
+
+
 
 

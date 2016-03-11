@@ -31,7 +31,7 @@ class PointSpreadFunction
 
         void rotate(double angle);
         void select(double radius);
-        void rebin(unsigned int numSubPixelsPerPixel);
+        void rebin(unsigned int targetSubPixels);
 
         arma::Mat<float> getPsfMap();
 
