@@ -8,6 +8,7 @@
 #include <map>
 #include <array>
 
+#include "Arrayoperations.h"
 #include "ConfigurationParameters.h"
 #include "Constants.h"
 #include "Detector.h"
