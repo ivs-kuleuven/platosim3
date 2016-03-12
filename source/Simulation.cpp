@@ -205,6 +205,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("ExposureTime");
     addDouble("RApointing");
     addDouble("DecPointing");
+    addDouble("SkyBackground");
     addString("StarCatalogFile");
 
     subGroup = "Platform";
@@ -258,6 +259,9 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("FlatfieldPtPNoise");
     addDouble("CTEMean");
     addBoolean("IncludePhotonNoise");
+    addBoolean("IncludeReadoutNoise");
+    addBoolean("IncludeCTIeffects"); 
+    addBoolean("IncludeOpenShutterSmearing");
 
     subGroup = "SubField";
     hdf5File.createGroup(parentGroup + "/" + subGroup);

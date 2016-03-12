@@ -10,8 +10,9 @@ ObservingParameters:
 
     NumExposures:            40              # Number of expsosures
     ExposureTime:            23              # [s]
-    RApointing:              180             # Platform (not telescope) right ascension pointing coordinate [deg] 
-    DecPointing:             -70             # Platform (not telescope) declination pointing coordinate     [deg]
+    RApointing:              180             # Platform (not telescope) right ascension pointing coordinate  [deg] 
+    DecPointing:             -70             # Platform (not telescope) declination pointing coordinate      [deg]
+    SkyBackground:           220.            # Stellar + zodiacal background level. Set negative to compute. [phot/pix/s]
     StarCatalogFile:         inputfiles/starcatalog.txt
 
 
@@ -59,33 +60,36 @@ PSF:
 
 CCD:
 
-    OriginOffsetX:           0               # X Offset of CCD origin from center of focal plane [mm]
-    OriginOffsetY:           0               # Y Offset of CCD origin from center of focal plane [mm]
-    Orientation:             0               # Orientation of CCD w.r.t. focal plane orientation [deg]
-    NumColumns:              4510            # Number of columns [pixels]
-    NumRows:                 4510            # Number of rows [pixels]
-    PixelSize:               18              # [micron]
-    Gain:                    16              # [e-/ADU]
-    QuantumEfficiency:       0.8745          # in [0,1]
-    FullWellSaturation:      1000000         # [e-/pixel]
-    DigitalSaturation:       65535           # E.g. 16 bit [ADU/pixel]
-    ReadoutNoise:            28              # [e-/pixel]
-    ElectronicOffset:        100             # bias [ADU]
-    ReadoutTime:             2               # time to read out entire CCD [s]
-    FlatfieldPtPNoise:       0.016           # peak-to-peak pixel noise
-    CTEMean:                 0.99999         # Mean Charge Transfer Efficiency
-    IncludePhotonNoise:      yes             # include photon noise [yes or no]
+    OriginOffsetX:               0           # X Offset of CCD origin from center of focal plane [mm]
+    OriginOffsetY:               0           # Y Offset of CCD origin from center of focal plane [mm]
+    Orientation:                 0           # Orientation of CCD w.r.t. focal plane orientation [deg]
+    NumColumns:                  4510        # Number of columns [pixels]
+    NumRows:                     4510        # Number of rows [pixels]
+    PixelSize:                   18          # [micron]
+    Gain:                        16          # [e-/ADU]
+    QuantumEfficiency:           0.8745      # in [0,1]
+    FullWellSaturation:          1000000     # [e-/pixel]
+    DigitalSaturation:           65535       # E.g. 16 bit [ADU/pixel]
+    ReadoutNoise:                28          # [e-/pixel]
+    ElectronicOffset:            100         # bias [ADU]
+    ReadoutTime:                 2           # time to read out entire CCD [s]
+    FlatfieldPtPNoise:           0.016       # peak-to-peak pixel noise
+    CTEMean:                     0.99999     # Mean Charge Transfer Efficiency
+    IncludePhotonNoise:          yes         # Include photon noise [yes or no]
+    IncludeReadoutNoise:         yes         # Include readout noise [yes or no]
+    IncludeCTIeffects:           yes         # Include charge transfer inefficiency effects [yes or no]
+    IncludeOpenShutterSmearing:  yes         # Include trails due reading out with an open shutter [yes or no]
 
 
 SubField:    
 
     ZeroPointRow:            0               # Row of the (0,0) pixel of the subfield [pixels]
     ZeroPointColumn:         0               # Column of the (0,0) pixel of the subfield [pixels]
-    NumColumns:              10              # Number of columns [pixels]
-    NumRows:                 10              # Number of rows [pixels]
+    NumColumns:              10              # Number of columns, should be >= 4 [pixels]
+    NumRows:                 10              # Number of rows should be >= 4 [pixels]
     NumBiasPrescanRows:      5               # Nr of rows of the prescan strip to determine the bias [pixels]
     NumSmearingOverscanRows: 5               # Nr of rows of the overscan strip to determine the smearing [pixels]
-    SubPixels:               4               # Nr of subpixels per CCD pixel. E.g. 4 -> 4x4 subpix/pix
+    SubPixels:               4               # (Sqrt of ) nr of subpixels per CCD pixel. Should be 2^n <= 128.
 
 
 RandomSeeds:
