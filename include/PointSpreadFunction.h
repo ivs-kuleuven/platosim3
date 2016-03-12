@@ -69,9 +69,6 @@ class PointSpreadFunction
         // Number of sub-pixels per pixel that was used to generate the PSF
         unsigned int numberOfSubPixelsPerPixel;
 
-        // Location of the reference subpixel, i.e. the center of the PSF
-        double xCenter;
-        double yCenter;
 };
 
 
