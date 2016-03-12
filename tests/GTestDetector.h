@@ -1,6 +1,8 @@
 #include <cstdio>
 #include <cmath>
 #include <map>
+#include <random>
+#include <algorithm>
 
 #include "armadillo"
 
@@ -32,30 +34,87 @@ using namespace std;
 
 class DetectorTest: public testing::Test
 {
-    protected:
 
-        virtual void SetUp()
-        {
-            configParams = ConfigurationParameters("../testData/input_DetectorTest.yaml");
-            hdf5File.open(hdf5Filename);
-        }
 
-        virtual void TearDown()
-        {
-            hdf5File.close();
-            FileUtilities::remove(hdf5Filename);
-        }
+protected:
 
-        void reset()
-        {
-            hdf5File.close();
-            FileUtilities::remove(hdf5Filename);
-            hdf5File.open(hdf5Filename);
-        }
+	virtual void SetUp()
+	{
+		configParams = ConfigurationParameters(
+				"../testData/input_DetectorTest.yaml");
+		hdf5File.open(hdf5Filename);
+	}
 
-        string hdf5Filename = "detectorTest.hdf5";
-        ConfigurationParameters configParams;
-        HDF5File hdf5File;
+	virtual void TearDown()
+	{
+		hdf5File.close();
+		FileUtilities::remove(hdf5Filename);
+	}
+
+	void reset()
+	{
+		hdf5File.close();
+		FileUtilities::remove(hdf5Filename);
+		hdf5File.open(hdf5Filename);
+	}
+
+	string hdf5Filename = "detectorTest.hdf5";
+	ConfigurationParameters configParams;
+	HDF5File hdf5File;
+
+	arma::fmat applyCteOldImplementation(arma::fmat pixelMap, int subFieldZeroPointRow, int subFieldZeroPointColumn, int numRowsPixelMap, int numColumnsPixelMap, double meanCte)
+	{
+		// Create a map in which we will shift the rows of the pixel map one-by-one
+		// towards the readout register.  Bear in mind that the bottom row of the
+		// sub-field is not necessarily right next to the readout register (the
+		// distance between the two is subFieldZeroPointRow).
+
+		arma::Mat<float> shiftMap;
+		shiftMap.zeros(subFieldZeroPointRow + numRowsPixelMap, numColumnsPixelMap);
+		shiftMap.submat(arma::span(subFieldZeroPointRow, subFieldZeroPointRow + numRowsPixelMap - 1), arma::span::all) = pixelMap;
+
+		arma::fmat cteMap (numRowsPixelMap, numColumnsPixelMap);
+		cteMap.fill(meanCte);
+
+		// The readout register
+
+		arma::Row<float> readoutStrip;
+		readoutStrip.zeros(numColumnsPixelMap);
+
+		// Array filled with ones (needed for the CTI)
+
+		arma::Row<float> ones;
+		ones.ones(numColumnsPixelMap);
+
+		// Shift all the rows down (i.e. towards the readout register) one-by-one
+		// Keep on doing this until all rows have been read out.
+
+		for (int shiftIndex = 0; shiftIndex < numRowsPixelMap + subFieldZeroPointRow; shiftIndex++)
+		{
+
+			// Shift the bottom row to the readout strip
+
+			readoutStrip = cteMap(0, arma::span::all) * shiftMap(0, arma::span::all);
+
+			if (shiftIndex >= subFieldZeroPointRow)
+			{
+				pixelMap(shiftIndex - subFieldZeroPointRow, arma::span::all) = readoutStrip(0, arma::span::all);
+			}
+
+			// Shift all other rows one row down (i.e. closer to the readout register)
+
+			for (int row = 0; row < subFieldZeroPointRow + numRowsPixelMap - 1; row++)
+			{
+				shiftMap(row, arma::span::all) = (ones
+						- cteMap(row, arma::span::all))
+						* shiftMap(row, arma::span::all)// Left behind when shifting row down (CTI = 1 - CTE)
+						+ cteMap(row + 1, arma::span::all)
+								* shiftMap(row + 1, arma::span::all);// Transferred (CTE)
+				}
+			}
+
+		return pixelMap;
+	}
 };
 
 
@@ -75,20 +134,158 @@ class DetectorTest: public testing::Test
  * 
  */
 
-class MyDetector : public Detector
+class MyDetector: public Detector
 {
-    public:
-        MyDetector(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera)
-        : Detector(configParam, hdf5File, camera) {};
+public:
+	MyDetector(ConfigurationParameters &configParam, HDF5File &hdf5File,
+			Camera &camera) :
+			Detector(configParam, hdf5File, camera)
+	{
+	}
+	;
 
-        pair<double, double> test_pixelToPlanarFocalPlaneCoordinates(double row, double column) {return pixelToPlanarFocalPlaneCoordinates(row, column);};
-        pair<double, double> test_planarFocalPlaneToPixelCoordinates(double xFPprime, double yFPprime) {return planarFocalPlaneToPixelCoordinates(xFPprime, yFPprime);};
+	pair<double, double> test_pixelToPlanarFocalPlaneCoordinates(double row,
+			double column)
+	{
+		return pixelToPlanarFocalPlaneCoordinates(row, column);
+	}
+	;
+	pair<double, double> test_planarFocalPlaneToPixelCoordinates(
+			double xFPprime, double yFPprime)
+	{
+		return planarFocalPlaneToPixelCoordinates(xFPprime, yFPprime);
+	}
+	;
 
-        void test_setSubfield(const arma::Mat<float> &subfield) { setSubfield(subfield); };
-        arma::Mat<float> test_getSubfield(){ return getSubfield(); };
+	void test_setSubfield(const arma::Mat<float> &subfield)
+	{
+		setSubfield(subfield);
+	}
+	;
+	void test_setSubPixelMap(const arma::fmat &subPixelMap)
+	{
+		if ((subPixelMap.n_rows != this->subPixelMap.n_rows)
+				|| (subPixelMap.n_cols != this->subPixelMap.n_cols))
+		{
+			Log.error(
+					"MyDetector: test_setSubPixelMap with incompatible array shape");
+			exit(1);
+		}
 
+		this->subPixelMap = subPixelMap;
+	}
+	;
+
+	void test_setBiasRegisterMap(const arma::fmat &biasMap)
+	{
+		if ((biasMap.n_rows != this->biasMap.n_rows)
+				|| (biasMap.n_cols != this->biasMap.n_cols))
+		{
+			Log.error(
+					"MyDetector: test_setBiasRegisterMap with incompatible array shape");
+			exit(1);
+		}
+
+		this->biasMap = biasMap;
+	}
+	;
+	void test_setSmearingMap(const arma::fmat &smearingMap)
+	{
+		if ((smearingMap.n_rows != this->smearingMap.n_rows)
+				|| (smearingMap.n_cols != this->smearingMap.n_cols))
+		{
+			Log.error(
+					"MyDetector: test_setSmearingMap with incompatible array shape");
+			exit(1);
+		}
+
+		this->smearingMap = smearingMap;
+	};
+
+	arma::Mat<float> test_getSubfield()
+	{
+		return getSubfield();
+	}
+	;
+
+	arma::fmat test_getSubPixelMap()
+	{
+		return subPixelMap;
+	};
+
+	arma::fmat test_getBiasRegisterMap()
+	{
+		return biasMap;
+	};
+
+	arma::fmat test_getSmearingMap()
+	{
+		return smearingMap;
+	};
+	arma::fmat test_getFlatfieldMap()
+	{
+		return flatfieldMap;
+	};
+
+	void test_reset(){
+		reset();
+	};
+
+	void test_addElectronicOffset()
+	{
+		addElectronicOffset();
+	};
+
+	void test_applyGain()
+	{
+		applyGain();
+	};
+
+	void test_applyQuantumEfficiency()
+	{
+		applyQuantumEfficiency();
+	}
+
+	void test_generateFlatFieldMap()
+	{
+		generateFlatfieldMap();
+	}
+
+	void test_applyFlatfield()
+	{
+		applyFlatfield();
+	}
+
+	bool test_isInSubPixelMap(double row, double column)
+	{
+		return isInSubPixelMap(row, column);
+	}
+
+	void test_rebin()
+	{
+		rebin();
+	}
+
+	void test_applyDigitalSaturation()
+	{
+		applyDigitalSaturation();
+	}
+
+	void test_applyCte()
+	{
+		applyCte();
+	}
+
+	void test_addPhotonNoise()
+	{
+		addPhotonNoise();
+	}
+
+	void test_addReadoutNoise()
+	{
+		addReadoutNoise();
+	}
 };
-
 
 
 
@@ -165,35 +362,1672 @@ TEST_F(DetectorTest, checkConversionsBetweenPixelsAndFocalPlane)
 
 TEST_F(DetectorTest, setAndGetSubfield)
 {
-    LOG_STARTING_OF_TEST
+	LOG_STARTING_OF_TEST
 
-    // Initialise all objects necessary to set up a Detector object
+	// Initialise all objects necessary to set up a Detector object
 
-    JitterFromRedNoise jitterGenerator(configParams);
-    Platform platform(configParams, hdf5File, jitterGenerator);
-    Sky sky(configParams);
-    Telescope telescope(configParams, hdf5File, platform);
-    Camera camera(configParams, hdf5File, telescope, sky);
-    MyDetector detector(configParams, hdf5File, camera);
+	JitterFromRedNoise	jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
 
-    // Find out what size of subfield we specified in the input yaml file
+	// Find out what size of subfield we specified in the input yaml file
 
-    const int Nrows = configParams.getInteger("SubField/NumRows");
-    const int Ncols = configParams.getInteger("SubField/NumColumns");
+	const int Nrows = configParams.getInteger("SubField/NumRows");
+	const int Ncols = configParams.getInteger("SubField/NumColumns");
 
-    // Make our own subfield (a diagonal unity matrix) and feed it to detector
+	// Make our own subfield (a diagonal unity matrix) and feed it to detector
 
-    auto diagonalMatrix = arma::eye<arma::Mat<float>>(Nrows, Ncols);
-    detector.test_setSubfield(diagonalMatrix);
+	auto diagonalMatrix = arma::eye<arma::Mat<float>>(Nrows, Ncols);
+	detector.test_setSubfield(diagonalMatrix);
 
-    // Get back the subfield from the detector 
+	// Get back the subfield from the detector
 
-    arma::Mat<float> mySubfield = detector.test_getSubfield();
+	arma::Mat<float> mySubfield = detector.test_getSubfield();
 
-    // Compare whether the output is the same matrix as we put in
+	// Compare whether the output is the same matrix as we put in
 
-    EXPECT_EQ(mySubfield.n_rows, Nrows);
-    EXPECT_EQ(mySubfield.n_cols, Ncols);
-    EXPECT_TRUE(arma::all(arma::vectorise(mySubfield) == arma::vectorise(diagonalMatrix)));
- 
+	EXPECT_EQ(mySubfield.n_rows, Nrows);
+	EXPECT_EQ(mySubfield.n_cols, Ncols);
+	EXPECT_TRUE(arma::all(arma::vectorise(mySubfield) == arma::vectorise(diagonalMatrix)));
+
 }
+
+
+
+
+
+
+
+
+
+
+/**
+ * Dimensions.
+ *
+ * The pixel map, bias register map, and smearing map must be generated at pixel level, whilst the
+ * sub-pixel map and the flatfield map must be generated at sub-pixel level.
+ *
+ * Currently, no edge pixels are added to the sub-pixel maps.  At a later stage, the addition of edge pixels
+ * will be implemented and the test harness must be updated accordingly.
+ */
+TEST_F(DetectorTest, dimensions)
+{
+	LOG_STARTING_OF_TEST
+
+	// Constructiomn
+
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
+
+	// Configuration parameters
+
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+
+	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+
+
+	// Sub-pixel map: check dimensions
+
+	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+
+	// Pixel map: check dimensions
+
+	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
+
+	// Bias register map: check dimensions
+
+	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
+
+	// Smearing map: check dimensions
+
+	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+
+	// Flatfield map: check dimensions
+
+	ASSERT_DOUBLE_EQ(numRowsSubField * numSubPixels, detector.test_getFlatfieldMap().n_rows);
+	ASSERT_DOUBLE_EQ(numColumnsSubField * numSubPixels, detector.test_getFlatfieldMap().n_cols);
+}
+
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, generateFlatfield)
+{
+	LOG_STARTING_OF_TEST
+
+}
+
+
+
+
+
+
+
+
+
+
+/**
+ * Reset.
+ *
+ * The dimensions of the sub-pixel map, pixel map, bias register map, and smearing map must remain unchanged
+ * but the values in these maps must be set to zero.
+ */
+TEST_F(DetectorTest, reset)
+{
+	// Construction
+
+	LOG_STARTING_OF_TEST
+
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
+
+	// Configuration parameters
+
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+
+	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
+
+	detector.test_setSubPixelMap(arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels));
+	detector.test_setSubfield(arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField));
+	detector.test_setBiasRegisterMap(arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField));
+	detector.test_setSmearingMap(arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField));
+
+
+
+	// Reset
+
+	detector.test_reset();
+
+
+
+	// Sub-pixel map: check dimensions and content (should be all zeroes)
+
+	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+
+	ASSERT_EQ(0, arma::accu(arma::abs(detector.test_getSubPixelMap())));
+
+	// Pixel map: check dimensions and content (should be all zeroes)
+
+	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
+
+	ASSERT_EQ(0, arma::accu(arma::abs(detector.test_getSubfield())));
+
+	// Bias register map: check dimensions and content (should be all zeroes)
+
+	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
+
+	ASSERT_EQ(0, arma::accu(arma::abs(detector.test_getBiasRegisterMap())));
+
+	// Smearing map: check dimensions and content (should be all zeroes)
+
+	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+
+	ASSERT_EQ(0, arma::accu(arma::abs(detector.test_getSmearingMap())));
+
+	// Flatfield map not reset!
+
+	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getFlatfieldMap().n_rows);
+	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getFlatfieldMap().n_cols);
+
+	ASSERT_NE(0, arma::accu(arma::abs(detector.test_getFlatfieldMap())));
+}
+
+
+
+
+
+
+
+
+
+/**
+ * Flatfielding.
+ *
+ * The sub-pixel map must be divided by the flatfield map.
+ */
+TEST_F(DetectorTest, applyFlatfield)
+{
+	LOG_STARTING_OF_TEST
+
+	// Construction
+
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
+
+	// Configuration parameters
+
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+
+	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+	const double quantumEfficiency = configParams.getDouble("CCD/QuantumEfficiency");
+
+	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
+
+	arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
+	detector.test_setSubPixelMap(subPixelMap);
+
+	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
+	detector.test_setSubfield(subField);
+
+	arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);
+	detector.test_setBiasRegisterMap(biasMap);
+
+	arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);
+	detector.test_setSmearingMap(smearingMap);
+
+	detector.test_generateFlatFieldMap();
+	arma::fmat flatfieldMap = detector.test_getFlatfieldMap();
+
+
+
+	// Flatfield
+
+	detector.test_applyFlatfield();
+
+
+
+	// Sub-pixel map: check dimensions and content (divided by flatfield map)
+
+	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+
+	for(unsigned int row = 0; row < numRowsSubField * numSubPixels; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField * numSubPixels; column++)
+		{
+			ASSERT_EQ(subPixelMap(row, column) / flatfieldMap(row, column), detector.test_getSubPixelMap()(row, column));
+		}
+	}
+
+	// Pixel map: check dimensions and content (unaltered)
+
+	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
+
+	for(unsigned int row = 0; row < numRowsSubField; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			ASSERT_EQ(subField(row, column), detector.test_getSubfield()(row, column));
+		}
+	}
+
+	// Bias register map: check dimensions and content (unaltered)
+
+	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
+
+	for(unsigned int row = 0; row < numBiasPreScanRows; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			ASSERT_EQ(biasMap(row, column), detector.test_getBiasRegisterMap()(row, column));
+		}
+	}
+
+	// Smearing map: check dimensions and content (unaltered)
+
+	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+
+	for(unsigned int row = 0; row < numSmearingOverScanRows; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			ASSERT_EQ(smearingMap(row, column), detector.test_getSmearingMap()(row, column));
+		}
+	}
+}
+
+
+
+
+
+
+
+
+
+/**
+ * Rebinning.
+ */
+TEST_F(DetectorTest, rebin)
+{
+	LOG_STARTING_OF_TEST
+
+	// Construction
+
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
+
+	// Configuration parameters
+
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+
+	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
+
+	arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
+	detector.test_setSubPixelMap(subPixelMap);
+
+	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
+	detector.test_setSubfield(subField);
+
+	arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);
+	detector.test_setBiasRegisterMap(biasMap);
+
+	arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);
+	detector.test_setSmearingMap(smearingMap);
+
+
+
+	// Rebin
+
+	detector.test_rebin();
+
+	// Pixel map: check dimensions  and content (all sub-pixels must be summed per pixel)
+
+	ASSERT_EQ(detector.test_getSubPixelMap().n_rows / numSubPixels, detector.test_getSubfield().n_rows);
+	ASSERT_EQ(detector.test_getSubPixelMap().n_cols / numSubPixels, detector.test_getSubfield().n_cols);
+
+	double expectedValue;
+
+	for(unsigned int row = 0; row < numRowsSubField; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			expectedValue = 0.0;
+
+			for(unsigned int subRow = 0; subRow < numSubPixels; subRow++)
+			{
+				for(unsigned int subColumn = 0; subColumn < numSubPixels; subColumn++)
+				{
+					expectedValue += detector.test_getSubPixelMap()(row * numSubPixels + subRow, column * numSubPixels + subColumn);
+
+					ASSERT_EQ(expectedValue, detector.test_getSubfield()(row, column));
+				}
+			}
+		}
+	}
+
+	// Sub-pixel map: check dimensions and content (unaltered)
+
+	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+
+	for(unsigned int row = 0; row < numRowsSubField * numSubPixels; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField * numSubPixels; column++)
+		{
+			ASSERT_EQ(subPixelMap(row, column), detector.test_getSubPixelMap()(row, column));
+		}
+	}
+
+	// Bias register map: check dimensions and content (unaltered)
+
+	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
+
+	for(unsigned int row = 0; row < numBiasPreScanRows; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			ASSERT_EQ(biasMap(row, column), detector.test_getBiasRegisterMap()(row, column));
+		}
+	}
+
+	// Smearing map: check dimensions and content (unaltered)
+
+	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+
+	for(unsigned int row = 0; row < numSmearingOverScanRows; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			ASSERT_EQ(smearingMap(row, column), detector.test_getSmearingMap()(row, column));
+		}
+	}
+}
+
+
+
+
+
+
+
+
+/**
+ * Adding same flux value to all sub-pixels.
+ */
+TEST_F(DetectorTest, addBackgroudFlux)
+{
+	LOG_STARTING_OF_TEST
+
+	// Construction
+
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
+
+	// Configuration parameters
+
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+
+	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
+
+	arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
+	detector.test_setSubPixelMap(subPixelMap);
+
+	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
+	detector.test_setSubfield(subField);
+
+	arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);
+	detector.test_setBiasRegisterMap(biasMap);
+
+	arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);
+	detector.test_setSmearingMap(smearingMap);
+
+
+
+	// Add flux
+
+	double background = 121.47;	// Per pixel
+
+	detector.addFlux(background);
+
+
+
+	// Sub-pixel map: check dimensions and content (background must be added)
+
+	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+
+	for(unsigned int row = 0; row < numRowsSubField * numSubPixels; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			ASSERT_EQ(subPixelMap(row, column) + (background / numSubPixels / numSubPixels), detector.test_getSubPixelMap()(row, column));	// Per sub-pixel
+		}
+	}
+
+	// Pixel map: check dimensions and content (unaltered)
+
+	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
+
+	for(unsigned int row = 0; row < numRowsSubField; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			ASSERT_EQ(subField(row, column), detector.test_getSubfield()(row, column));
+		}
+	}
+
+	// Bias register map: check dimensions and content (unaltered)
+
+	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
+
+	for(unsigned int row = 0; row < numBiasPreScanRows; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			ASSERT_EQ(biasMap(row, column), detector.test_getBiasRegisterMap()(row, column));
+		}
+	}
+	// Smearing map: check dimensions and content (unaltered)
+
+	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+
+	for(unsigned int row = 0; row < numSmearingOverScanRows; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			ASSERT_EQ(smearingMap(row, column), detector.test_getSmearingMap()(row, column));
+		}
+	}
+}
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, addFlux)
+{
+	LOG_STARTING_OF_TEST
+
+}
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, isInSubField)
+{
+	LOG_STARTING_OF_TEST
+
+}
+
+
+
+
+
+
+
+
+
+/**
+ * Check whether given position (row, column) is located in the sub-pixel map.
+ */
+TEST_F(DetectorTest, isInSubPixelMap)
+{
+	LOG_STARTING_OF_TEST
+
+	// Construction
+
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
+
+	// Configuration parameters
+
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+
+
+	ASSERT_FALSE(detector.test_isInSubPixelMap(-1,0));
+	ASSERT_FALSE(detector.test_isInSubPixelMap(-1,-20));
+	ASSERT_FALSE(detector.test_isInSubPixelMap(-1,-50));
+	ASSERT_FALSE(detector.test_isInSubPixelMap(-1,0));
+
+	ASSERT_TRUE(detector.test_isInSubPixelMap(numRowsSubField * numSubPixels / 2.0, numColumnsSubField * numSubPixels / 2.0));
+
+	ASSERT_FALSE(detector.test_isInSubPixelMap(numRowsSubField * numSubPixels / 2.0, numColumnsSubField * numSubPixels));
+	ASSERT_FALSE(detector.test_isInSubPixelMap(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels / 2.0));
+
+	ASSERT_TRUE(detector.test_isInSubPixelMap(numRowsSubField * numSubPixels -1.0, numColumnsSubField * numSubPixels - 1.0));
+
+	ASSERT_FALSE(detector.test_isInSubPixelMap(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels - 1.0));
+	ASSERT_FALSE(detector.test_isInSubPixelMap(numRowsSubField * numSubPixels -1.0, numColumnsSubField * numSubPixels));
+}
+
+
+
+
+
+
+
+
+
+/**
+ * Quantum efficiency.
+ *
+ * Multiplies the values in the sub-pixel map with the quantum efficiency.
+ */
+TEST_F(DetectorTest, applyQuantumEfficiency)
+{
+	LOG_STARTING_OF_TEST
+
+	// Construction
+
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
+
+	// Configuration parameters
+
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+
+	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+	const double quantumEfficiency = configParams.getDouble("CCD/QuantumEfficiency");
+
+	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
+
+	arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
+	detector.test_setSubPixelMap(subPixelMap);
+
+	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
+	detector.test_setSubfield(subField);
+
+	arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);
+	detector.test_setBiasRegisterMap(biasMap);
+
+	arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);
+	detector.test_setSmearingMap(smearingMap);
+
+
+
+	// Quantum efficiency
+
+	detector.test_applyQuantumEfficiency();
+
+
+
+	// Sub-pixel map: check dimensions and content (unaltered)
+
+	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+
+	for(unsigned int row = 0; row < numRowsSubField * numSubPixels; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField * numSubPixels; column++)
+		{
+			ASSERT_EQ(subPixelMap(row, column), detector.test_getSubPixelMap()(row, column));
+		}
+	}
+
+	// Pixel map: check dimensions and content (multiplied by quantum efficiency)
+
+	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
+
+	for(unsigned int row = 0; row < numRowsSubField; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			ASSERT_EQ(subField(row, column) * quantumEfficiency, detector.test_getSubfield()(row, column));
+		}
+	}
+
+	// Bias register map: check dimensions and content (unaltered)
+
+	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
+
+	for(unsigned int row = 0; row < numBiasPreScanRows; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			ASSERT_EQ(biasMap(row, column), detector.test_getBiasRegisterMap()(row, column));
+		}
+	}
+
+	// Smearing map: check dimensions and content (unaltered)
+
+	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+
+	for(unsigned int row = 0; row < numSmearingOverScanRows; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			ASSERT_EQ(smearingMap(row, column), detector.test_getSmearingMap()(row, column));
+		}
+	}
+}
+
+
+
+
+
+
+
+
+
+/**
+ * Photon noise.
+ *
+ * Photon noise must be added to the pixel map and the smearing map.
+ *
+ * As each pixel is treated independently, we repeat the process of adding photon noise (each time to the
+ * original pixel map and smearing map) and check afterwards whether this follows the expected Poisson
+ * distribution.  We use the normal approximation to the Poisson distribution for testing.
+ */
+TEST_F(DetectorTest, addPhotonNoise)
+{
+	LOG_STARTING_OF_TEST
+
+	// Construction
+
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
+
+	// Configuration parameters
+
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+
+	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+	const bool includePhotonNoise = configParams.getBoolean("CCD/IncludePhotonNoise");
+
+	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
+
+	arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
+	detector.test_setSubPixelMap(subPixelMap);
+
+	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
+	detector.test_setSubfield(subField);
+
+	arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);
+	detector.test_setBiasRegisterMap(biasMap);
+
+	arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);
+	detector.test_setSmearingMap(smearingMap);
+
+
+
+	if(includePhotonNoise)
+	{
+		arma::fmat residualSubField;
+		arma::fmat meanSubField;
+		arma::fmat stdDevSubField;
+
+		arma::fmat residualSmearingMap;
+		arma::fmat meanSmearingMap;
+		arma::fmat stdDevSmearingMap;
+
+		int numIterations = 100;
+
+		for(unsigned int iteration = 0; iteration < numIterations; iteration++)
+		{
+			// Photon noise
+
+			detector.test_addPhotonNoise();
+
+
+
+
+			residualSubField = detector.test_getSubfield() - subField;
+
+			meanSubField += residualSubField;
+			stdDevSubField += (residualSubField % residualSubField);
+
+			residualSmearingMap = detector.test_getSmearingMap();
+
+			meanSmearingMap += residualSmearingMap;
+			stdDevSmearingMap += (residualSubField % residualSubField);
+
+			detector.test_setSubfield(subField);
+			detector.test_setSmearingMap(smearingMap);
+		}
+
+		meanSubField /= numIterations;
+		stdDevSubField /= numIterations;
+
+		meanSmearingMap /= numIterations;
+		stdDevSmearingMap /= numIterations;
+
+		// Pixel map: check dimensions and content (added Poisson distribution, all pixels treated independently)
+
+		ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
+		ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
+
+		for(unsigned int row = 0; row < numRowsSubField; row++)
+		{
+			for(unsigned int column = 0; column < numColumnsSubField; column++)
+			{
+				ASSERT_EQ(std::sqrt(subField(row, column)), std::sqrt(stdDevSubField(row, column)));	// Std.dev. = SQRT(pixel value)
+			}
+		}
+
+		ASSERT_EQ(0.0, meanSubField.min());	// Mean = 0
+		ASSERT_EQ(0.0, meanSubField.max());	// Mean = 0
+
+		// Smearing map: check dimensions and content (added Poisson distribution, all pixels treated independently)
+
+		ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+		ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+
+		for(unsigned int row = 0; row < numSmearingOverScanRows; row++)
+		{
+			for(unsigned int column = 0; column < numColumnsSubField; column++)
+			{
+				ASSERT_EQ(std::sqrt(smearingMap(row, column)), std::sqrt(stdDevSmearingMap(row, column)));	// Std.dev. = SQRT(pixel value)
+			}
+		}
+
+		ASSERT_EQ(0.0, meanSmearingMap.min());	// Mean = 0
+		ASSERT_EQ(0.0, meanSmearingMap.max());	// Mean = 0
+
+
+		// Sub-pixel map: check dimensions and content (unaltered)
+
+		ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+		ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+
+		for(unsigned int row = 0; row < numRowsSubField * numSubPixels; row++)
+		{
+			for(unsigned int column = 0; column < numColumnsSubField * numSubPixels; column++)
+			{
+				ASSERT_EQ(subPixelMap(row, column), detector.test_getSubPixelMap()(row, column));
+			}
+		}
+
+
+		// Bias register map: check dimensions and content (unaltered)
+
+		ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+		ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
+
+		for(unsigned int row = 0; row < numBiasPreScanRows; row++)
+		{
+			for(unsigned int column = 0; column < numColumnsSubField; column++)
+			{
+				ASSERT_EQ(biasMap(row, column), detector.test_getBiasRegisterMap()(row, column));
+			}
+		}
+
+		// Smearing map: check dimensions and content (unaltered)
+
+		for(unsigned int row = 0; row < numSmearingOverScanRows; row++)
+		{
+			for(unsigned int column = 0; column < numColumnsSubField; column++)
+			{
+				ASSERT_EQ(smearingMap(row, column), detector.test_getSmearingMap()(row, column));
+			}
+		}
+	}
+
+	else{
+
+		detector.test_addPhotonNoise();
+
+		// Sub-pixel map: check dimensions and content (unaltered)
+
+		ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+		ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+
+		for(unsigned int row = 0; row < numRowsSubField * numSubPixels; row++)
+		{
+			for(unsigned int column = 0; column < numColumnsSubField * numSubPixels; column++)
+			{
+				ASSERT_EQ(subPixelMap(row, column), detector.test_getSubPixelMap()(row, column));
+			}
+		}
+
+		// Pixel map: check dimensions and content (unaltered)
+
+		ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
+		ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
+
+		for(unsigned int row = 0; row < numRowsSubField; row++)
+		{
+			for(unsigned int column = 0; column < numColumnsSubField; column++)
+			{
+				ASSERT_EQ(subField(row, column), detector.test_getSubfield()(row, column));
+			}
+		}
+
+		// Bias register map: check dimensions and content (unaltered)
+
+		ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+		ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
+
+		for(unsigned int row = 0; row < numBiasPreScanRows; row++)
+		{
+			for(unsigned int column = 0; column < numColumnsSubField; column++)
+			{
+				ASSERT_EQ(biasMap(row, column), detector.test_getBiasRegisterMap()(row, column));
+			}
+		}
+
+		// Smearing map: check dimensions and content (unaltered)
+
+		ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+		ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+
+		for(unsigned int row = 0; row < numSmearingOverScanRows; row++)
+		{
+			for(unsigned int column = 0; column < numColumnsSubField; column++)
+			{
+				ASSERT_EQ(smearingMap(row, column), detector.test_getSmearingMap()(row, column));
+			}
+		}
+	}
+}
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, applyFullWellSaturation)
+{
+	LOG_STARTING_OF_TEST
+
+}
+
+
+
+
+
+
+
+
+
+/**
+ * Charge Transfer Efficiency (CTE).
+ */
+TEST_F(DetectorTest, applyCte)
+{
+	LOG_STARTING_OF_TEST
+
+	// Construction
+
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
+
+	// Configuration parameters
+
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+
+	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+	const int detectorZeropointRow = configParams.getInteger("SubField/ZeroPointRow");
+	const int detectorZeropointColumn = configParams.getInteger("SubField/ZeroPointColumn");
+
+	const double meanCte = configParams.getDouble("CCD/CTEMean");
+
+	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
+
+	arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
+	detector.test_setSubPixelMap(subPixelMap);
+
+	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
+	detector.test_setSubfield(subField);
+
+	arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);
+	detector.test_setBiasRegisterMap(biasMap);
+
+	arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);
+	detector.test_setSmearingMap(smearingMap);
+
+
+
+	// CTE
+
+	detector.test_applyCte();
+
+
+
+	// Sub-pixel map: check dimensions and content (unaltered)
+
+	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+
+	for(unsigned int row = 0; row < numRowsSubField * numSubPixels; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField * numSubPixels; column++)
+		{
+			ASSERT_EQ(subPixelMap(row, column), detector.test_getSubPixelMap()(row, column));
+		}
+	}
+
+	// Pixel map: check dimension and content (compare with brute-force method (i.e. old implementation))
+
+	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
+
+	arma::fmat expected = applyCteOldImplementation(subField, detectorZeropointRow , detectorZeropointColumn, numRowsSubField, numColumnsSubField, meanCte);
+
+	for(unsigned int row = 0; row < numRowsSubField; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			ASSERT_EQ(expected(row, column), detector.test_getSubfield()(row, column));
+		}
+	}
+
+	// Bias register map: check dimensions and content (unaltered)
+
+	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
+
+	for(unsigned int row = 0; row < numBiasPreScanRows; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			ASSERT_EQ(biasMap(row, column), detector.test_getBiasRegisterMap()(row, column));
+		}
+	}
+
+	// Smearing map: check dimensions and content (unaltered)
+
+	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+
+	for(unsigned int row = 0; row < numSmearingOverScanRows; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			ASSERT_EQ(smearingMap(row, column), detector.test_getSmearingMap()(row, column));
+		}
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, applyOpenShutterSmearing)
+{
+	LOG_STARTING_OF_TEST
+
+}
+
+
+
+
+
+
+
+
+
+/**
+ * Readout noise.
+ *
+ * Readout noise must be added to the pixel map and the bias register map.
+ */
+TEST_F(DetectorTest, addReadoutNoise)
+{
+	LOG_STARTING_OF_TEST
+
+	// Construction
+
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
+
+	// Configuration parameters
+
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+
+	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+	const bool readoutNoise = configParams.getBoolean("CCD/ReadoutNoise");
+
+	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
+
+	arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
+	detector.test_setSubPixelMap(subPixelMap);
+
+	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
+	detector.test_setSubfield(subField);
+
+	arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);
+	detector.test_setBiasRegisterMap(biasMap);
+
+	arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);
+	detector.test_setSmearingMap(smearingMap);
+
+
+
+	// Readout noise
+
+	detector.test_addReadoutNoise();
+
+
+
+	// Sub-pixel map: check dimensions and content (unaltered)
+
+	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+
+	for(unsigned int row = 0; row < numRowsSubField * numSubPixels; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField * numSubPixels; column++)
+		{
+			ASSERT_EQ(subPixelMap(row, column), detector.test_getSubPixelMap()(row, column));
+		}
+	}
+
+	// Pixel map: check dimensions and content (added normal distribution)
+
+	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
+
+	arma::fmat residualSubField = detector.test_getSubPixelMap() - subField;
+	double stdDev = arma::accu(residualSubField % residualSubField) / (numRowsSubField * numColumnsSubField);
+
+	ASSERT_EQ(0.0, mean(mean(residualSubField)));
+	ASSERT_EQ(readoutNoise, stdDev);
+
+	// Bias register map: check dimensions and content (added normal distribution)
+
+	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
+
+	arma::fmat residualSmearingMap = detector.test_getSmearingMap() - subField;
+	stdDev = arma::accu(residualSmearingMap % residualSmearingMap) / (numRowsSubField * numColumnsSubField);
+
+	ASSERT_EQ(0.0, mean(mean(residualSmearingMap)));
+	ASSERT_EQ(readoutNoise, stdDev);
+
+	// Smearing map: check dimensions and content (unaltered)
+
+	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+
+	for(unsigned int row = 0; row < numSmearingOverScanRows; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			ASSERT_EQ(smearingMap(row, column), detector.test_getSmearingMap()(row, column));
+		}
+	}
+}
+
+
+
+
+
+
+
+
+
+/**
+ * Gain.
+ *
+ * The values in the pixel map, bias register map, and smearing map must be divided by the
+ * gain, on order to convert from [e- / pixel] to [ADU / pixel].
+ */
+TEST_F(DetectorTest, applyGain)
+{
+	LOG_STARTING_OF_TEST
+
+	// Construction
+
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
+
+	// Configuration parameters
+
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+
+	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+	const int gain = configParams.getInteger("CCD/Gain");
+
+	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
+
+	arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
+	detector.test_setSubPixelMap(subPixelMap);
+
+	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
+	detector.test_setSubfield(subField);
+
+	arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);
+	detector.test_setBiasRegisterMap(biasMap);
+
+	arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);
+	detector.test_setSmearingMap(smearingMap);
+
+
+
+	// Gain
+
+	detector.test_applyGain();
+
+
+
+	// Sub-pixel map: check dimensions and content (unaltered)
+
+	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+
+	for(unsigned int row = 0; row < numRowsSubField * numSubPixels; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField * numSubPixels; column++)
+		{
+			ASSERT_EQ(subPixelMap(row, column), detector.test_getSubPixelMap()(row, column));
+		}
+	}
+
+	// Pixel map: check dimensions and content (divided by gain)
+
+	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
+
+	for(unsigned int row = 0; row < numRowsSubField; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			ASSERT_EQ(subField(row, column) / gain, detector.test_getSubfield()(row, column));
+		}
+	}
+
+	// Bias register map: check dimensions and content (divided by gain)
+
+	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
+
+	for(unsigned int row = 0; row < numBiasPreScanRows; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			ASSERT_EQ(biasMap(row, column) / gain, detector.test_getBiasRegisterMap()(row, column));
+		}
+	}
+
+	// Smearing map: check dimensions and content (divided by gain)
+
+	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+
+	for(unsigned int row = 0; row < numSmearingOverScanRows; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			ASSERT_EQ(smearingMap(row, column) / gain, detector.test_getSmearingMap()(row, column));
+		}
+	}
+}
+
+
+
+
+
+
+
+
+
+/**
+ * Electronic offset.
+ *
+ * The electronic offset must be added to the pixel map, bias register map, and smearing map.
+ */
+TEST_F(DetectorTest, addElectronicOffset)
+{
+	LOG_STARTING_OF_TEST
+
+	// Construction
+
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
+
+	// Configuration parameters
+
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+
+	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+	const int electronicOffset = configParams.getInteger("CCD/ElectronicOffset");
+
+	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
+
+	arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
+	detector.test_setSubPixelMap(subPixelMap);
+
+	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
+	detector.test_setSubfield(subField);
+
+	arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);
+	detector.test_setBiasRegisterMap(biasMap);
+
+	arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);
+	detector.test_setSmearingMap(smearingMap);
+
+
+
+	// Electronic offset
+
+	detector.test_addElectronicOffset();
+
+
+
+	// Sub-pixel map: check dimensions and content (unaltered)
+
+	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+
+	for(unsigned int row = 0; row < numRowsSubField * numSubPixels; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField * numSubPixels; column++)
+		{
+			ASSERT_EQ(subPixelMap(row, column), detector.test_getSubPixelMap()(row, column));
+		}
+	}
+
+	// Pixel map: check dimensions and content (added electronic offset)
+
+	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
+
+	for(unsigned int row = 0; row < numRowsSubField; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			ASSERT_EQ(subField(row, column) + electronicOffset, detector.test_getSubfield()(row, column));
+		}
+	}
+
+	// Bias register map: check dimensions and content (added electronic offset)
+
+	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
+
+	for(unsigned int row = 0; row < numBiasPreScanRows; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			ASSERT_EQ(biasMap(row, column) + electronicOffset, detector.test_getBiasRegisterMap()(row, column));
+		}
+	}
+
+	// Smearing map: check dimensions and content (added electronic offset)
+
+	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+
+	for(unsigned int row = 0; row < numSmearingOverScanRows; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			ASSERT_EQ(smearingMap(row, column), detector.test_getSmearingMap()(row, column));
+		}
+	}
+}
+
+
+
+
+
+
+
+
+
+/**
+ * Digital saturation.
+ */
+TEST_F(DetectorTest, applyDigitalSaturation)
+{
+	LOG_STARTING_OF_TEST
+
+	// Construction
+
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
+
+	// Configuration parameters
+
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+
+	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+	const int digitalSaturationLimit = configParams.getInteger("CCD/DigitalSaturation");
+
+	// Initialise the sub-pixel map, pixel map, bias register map, and smearing map
+	// (make sure some pixel values exceed the digital saturation limit)
+
+	int row;
+	int column;
+
+	std::default_random_engine engine;
+
+	arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
+
+	for(unsigned int index = 0; index < 5; index++)
+	{
+		std::uniform_real_distribution<double> randomRow(0, numRowsSubField * numSubPixels - 1);
+		std::uniform_real_distribution<double> randomColumn(0, numColumnsSubField * numSubPixels - 1);
+
+		row = randomRow(engine);
+		column = randomColumn(engine);
+
+		subPixelMap(row, column) = digitalSaturationLimit + 1;
+	}
+
+	detector.test_setSubPixelMap(subPixelMap);
+
+
+	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
+
+	for(unsigned int index = 0; index < 5; index++)
+	{
+		std::uniform_real_distribution<double> randomRow(0, numRowsSubField - 1);
+		std::uniform_real_distribution<double> randomColumn(0, numColumnsSubField - 1);
+
+		row = randomRow(engine);
+		column = randomColumn(engine);
+
+		subField(row, column) = digitalSaturationLimit + 1;
+	}
+
+	detector.test_setSubfield(subField);
+
+	arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);
+
+	for(unsigned int index = 0; index < 5; index++)
+	{
+		std::uniform_real_distribution<double> randomRow(0, numBiasPreScanRows - 1);
+		std::uniform_real_distribution<double> randomColumn(0, numColumnsSubField - 1);
+
+		row = randomRow(engine);
+		column = randomColumn(engine);
+
+		biasMap(row, column) = digitalSaturationLimit + 1;
+
+	}
+
+	detector.test_setBiasRegisterMap(biasMap);
+
+	arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);
+
+	for(unsigned int index = 0; index < 5; index++)
+	{
+		std::uniform_real_distribution<double> randomRow(0, numSmearingOverScanRows - 1);
+		std::uniform_real_distribution<double> randomColumn(0, numColumnsSubField - 1);
+
+		row = randomRow(engine);
+		column = randomColumn(engine);
+
+		smearingMap(row, column) = digitalSaturationLimit + 1;
+
+	}
+
+	detector.test_setSmearingMap(smearingMap);
+
+
+
+	// Digital saturation
+
+	detector.test_applyDigitalSaturation();
+
+
+
+	// Sub-pixel map: check dimensions and content (unaltered)
+
+	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+
+	for(unsigned int row = 0; row < numRowsSubField * numSubPixels; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField * numSubPixels; column++)
+		{
+			ASSERT_EQ(subPixelMap(row, column), detector.test_getSubPixelMap()(row, column));
+		}
+	}
+
+	// Pixel map: check dimensions and content (topped off at digital saturation limit)
+
+	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
+
+	ASSERT_EQ(digitalSaturationLimit, subField.max());
+
+	for(unsigned int row = 0; row < numRowsSubField; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			double expected = std::min((float) digitalSaturationLimit, subField.at(row, column));
+			ASSERT_EQ(expected, detector.test_getSubfield()(row, column));
+		}
+	}
+
+
+	// Bias register map: check dimensions and content (topped off at digital saturation limit)
+
+	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
+
+	ASSERT_EQ(digitalSaturationLimit, biasMap.max());
+
+	for(unsigned int row = 0; row < numBiasPreScanRows; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			double expected = std::min((float) digitalSaturationLimit, biasMap.at(row, column));
+			ASSERT_EQ(expected, detector.test_getBiasRegisterMap()(row, column));
+		}
+	}
+
+	// Smearing map: check dimensions and content (topped off at digital saturation limit)
+
+	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+
+	ASSERT_EQ(digitalSaturationLimit, smearingMap.max());
+
+	for(unsigned int row = 0; row < numSmearingOverScanRows; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			double expected = std::min((float) digitalSaturationLimit, smearingMap.at(row, column));
+			ASSERT_EQ(expected, detector.test_getSmearingMap()(row, column));
+		}
+	}
+}
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, convolveWithPsf)
+{
+	LOG_STARTING_OF_TEST
+
+}
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, getPlanarFocalPlaneCoordinatesOfSubfieldCorners)
+{
+	LOG_STARTING_OF_TEST
+
+}
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, getSolidAngleOfOnePixel)
+{
+	LOG_STARTING_OF_TEST
+}
+
