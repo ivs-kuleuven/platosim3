@@ -82,6 +82,20 @@ TEST(ArrayOperationsTest, Rotation)
     };
 
     // Test array where there are no zero (0) values at the sides.
+    arma::fmat tinyArray = {
+        {0.1, 0.2, 0.3},
+        {0.4, 0.5, 0.6},
+        {0.7, 0.8, 0.9}
+    };
+
+    // Expected result after rotating the smallArray by 90 degrees
+    arma::fmat rotatedTinyArray90 = {
+        {0.3, 0.6, 0.9},
+        {0.2, 0.5, 0.8},
+        {0.1, 0.4, 0.7}
+    };
+
+    // Test array where there are no zero (0) values at the sides.
     arma::fmat smallArray = {
         {1., 2., 3.},
         {4., 5., 6.},
@@ -115,8 +129,30 @@ TEST(ArrayOperationsTest, Rotation)
 
 
     
-    arma::fmat arr = ArrayOperations::rotateArray(smallArray, deg2rad(90.0));
+    arma::fmat arr = ArrayOperations::rotateArray(tinyArray, deg2rad(90.0));
+    checkArraysToBeEqual(rotatedTinyArray90, arr);
+
+//    printArray(smallArray, "Original smallArray");
+//    printArray(arr, "Rotated smallArray");
+
+    arr = ArrayOperations::rotateArray(tinyArray, deg2rad(0.0));
+    checkArraysToBeEqual(tinyArray, arr);
+
+//    printArray(smallArray, "Original smallArray");
+//    printArray(arr, "Rotated smallArray");
+    
+
+
+
+
+    arr = ArrayOperations::rotateArray(smallArray, deg2rad(90.0));
     checkArraysToBeEqual(rotatedSmallArray90, arr);
+
+//    printArray(smallArray, "Original smallArray");
+//    printArray(arr, "Rotated smallArray");
+
+    arr = ArrayOperations::rotateArray(smallArray, deg2rad(0.0));
+    checkArraysToBeEqual(smallArray, arr);
 
 //    printArray(smallArray, "Original smallArray");
 //    printArray(arr, "Rotated smallArray");
@@ -134,12 +170,24 @@ TEST(ArrayOperationsTest, Rotation)
 
 
 
+    arr = ArrayOperations::rotateArray(smallNulledArray, deg2rad(0.0));
+    checkArraysToBeEqual(smallNulledArray, arr);
+
+//    printArray(smallNulledArray, "Original smallNulledArray");
+//    printArray(arr, "Rotated smallNulledArray");
+
+
+
+
     arr = ArrayOperations::rotateArray(bigNulledArray, deg2rad(90.0));
     EXPECT_FLOAT_EQ(50.0, arr(9, 9));
     EXPECT_FLOAT_EQ(10.0, arr(5, 5));
     EXPECT_FLOAT_EQ(10.0, arr(13, 13));
     EXPECT_FLOAT_EQ(20.0, arr(13, 5));
     EXPECT_FLOAT_EQ(40.0, arr(5, 13));
+
+    arr = ArrayOperations::rotateArray(bigNulledArray, deg2rad(0.0));
+    checkArraysToBeEqual(bigNulledArray, arr);
 
 
 //    printArray(bigNulledArray, "Original bigNulledArray");

@@ -97,7 +97,7 @@ arma::fmat rotateArrayNearestNeighbor(arma::fmat origArray, double angle)
     float xcenter = ((float)(width) / 2.0);
     float ycenter = ((float)(height) / 2.0);
 
-    Log.debug("xcenter, ycenter = " + to_string(xcenter) + ", " + to_string(ycenter));
+    // Log.debug("xcenter, ycenter = " + to_string(xcenter) + ", " + to_string(ycenter));
 
     for (int row = 0; row < width; ++row)
     {
@@ -154,13 +154,15 @@ arma::fmat rotateArrayBilinear(arma::fmat origArray, double angle)
     double cs = std::cos(-angle);  // precalculate these values
     double ss = std::sin(-angle);
 
+    // Log.debug("rotateArrayBilinear: cs, ss = " + to_string(cs) + ", " + to_string(ss));
+
     double cX = (double)width / 2.0;
     double cY = (double)height / 2.0;
 
     int q11x, q12x, q21x, q22x;
     int q11y, q12y, q21y, q22y;
 
-    // Log.debug("cX, cY = " + to_string(cX) + ", " + to_string(cY));
+    // Log.debug("rotateArrayBilinear: cX, cY = " + to_string(cX) + ", " + to_string(cY));
 
     for (int row=0; row < width; row++)
     {
@@ -172,16 +174,16 @@ arma::fmat rotateArrayBilinear(arma::fmat origArray, double angle)
             double xPrime = cY + relX*cs - relY*ss - 0.5;
             double yPrime = cX + relX*ss + relY*cs - 0.5;
 
-            // Log.debug("row, col | xPrime, yPrime = " + to_string(row) + ", " + to_string(column) + " | " + to_string(xPrime) + ", " + to_string(yPrime));
+            // Log.debug("rotateArrayBilinear: row, col | xPrime, yPrime = " + to_string(row) + ", " + to_string(column) + " | " + to_string(xPrime) + ", " + to_string(yPrime));
 
             int xPixel = std::round(xPrime);
             int yPixel = std::round(yPrime);
 
-            // Log.debug("xPixel, yPixel = " + to_string(xPixel) + ", " + to_string(yPixel));
+            // Log.debug("rotateArrayBilinear: xPixel, yPixel = " + to_string(xPixel) + ", " + to_string(yPixel));
 
             if (yPrime <= (double)yPixel)
             {
-                //Log.debug("yPrime in lower part of yPixel");
+                //Log.debug("rotateArrayBilinear: yPrime in lower part of yPixel");
                 q12y = q22y = yPixel - 1;
                 q11y = q21y = yPixel;
             }
@@ -193,7 +195,7 @@ arma::fmat rotateArrayBilinear(arma::fmat origArray, double angle)
 
             if (xPrime <= (double)xPixel)
             {
-                //Log.debug("xPrime in lower part of xPixel");
+                //Log.debug("rotateArrayBilinear: xPrime in lower part of xPixel");
                 q12x = q11x = xPixel - 1;
                 q22x = q21x = xPixel;
             }
@@ -203,32 +205,32 @@ arma::fmat rotateArrayBilinear(arma::fmat origArray, double angle)
                 q22x = q21x = xPixel + 1;
             }
 
-            // Log.debug("Q12x, Q12y = " + to_string(q12x) + ", " + to_string(q12y));
-            // Log.debug("Q22x, Q22y = " + to_string(q22x) + ", " + to_string(q22y));
-            // Log.debug("Q11x, Q11y = " + to_string(q11x) + ", " + to_string(q11y));
-            // Log.debug("Q21x, Q21y = " + to_string(q21x) + ", " + to_string(q21y));
+            // Log.debug("rotateArrayBilinear: Q12x, Q12y = " + to_string(q12x) + ", " + to_string(q12y));
+            // Log.debug("rotateArrayBilinear: Q22x, Q22y = " + to_string(q22x) + ", " + to_string(q22y));
+            // Log.debug("rotateArrayBilinear: Q11x, Q11y = " + to_string(q11x) + ", " + to_string(q11y));
+            // Log.debug("rotateArrayBilinear: Q21x, Q21y = " + to_string(q21x) + ", " + to_string(q21y));
 
             double factor1;
             double factor2;
 
-            unsigned int q11, q12, q21, q22;
+            double q11, q12, q21, q22;
 
             // We need to get the four nearest neighbooring pixels.
             // Pixels which are past the border of the image are clamped to the border already.
             if (q11x < 0 or q11x > width-1 or q11y < 0 or q11y > height-1)
-                q11 = 0;
+                q11 = 0.0;
             else
                 q11 = origArray(q11x, q11y);
             if (q12x < 0 or q12x > width-1 or q12y < 0 or q12y > height-1)
-                q12 = 0;
+                q12 = 0.0;
             else
                 q12 = origArray(q12x, q12y);
             if (q21x < 0 or q21x > width-1 or q21y < 0 or q21y > height-1)
-                q21 = 0;
+                q21 = 0.0;
             else
                 q21 = origArray(q21x, q21y);
             if (q22x < 0 or q22x > width-1 or q22y < 0 or q22y > height-1)
-                q22 = 0;
+                q22 = 0.0;
             else
                 q22 = origArray(q22x, q22y);      
 
@@ -242,8 +244,11 @@ arma::fmat rotateArrayBilinear(arma::fmat origArray, double angle)
                 factor1 = (((double)q21x - xPrime)/((double)q21x - (double)q11x));
                 factor2 = ((xPrime - (double)q11x)/((double)q21x - (double)q11x));
             }
-            double R1 = factor1 * (double)q11 + factor2*(double)q21;
-            double R2 = factor1 * (double)q12 + factor2*(double)q22;
+
+            // Log.debug("rotateArrayBilinear: factor1, factor2 = " + to_string(factor1) + ", " + to_string(factor2));
+            
+            double R1 = factor1 * q11 + factor2 * q21;
+            double R2 = factor1 * q12 + factor2 * q22;
 
             double factor3;
             double factor4;
@@ -258,8 +263,12 @@ arma::fmat rotateArrayBilinear(arma::fmat origArray, double angle)
                 factor3 = ((double) q12y - yPrime)/((double)q12y - (double)q11y);
                 factor4 = (yPrime - (double)q11y)/((double)q12y - (double)q11y);
             }
+
+            // Log.debug("rotateArrayBilinear: factor3, factor4 = " + to_string(factor3) + ", " + to_string(factor3));
             
             double finalR = (factor3 * R1) + (factor4 * R2);
+
+            // Log.debug("rotateArrayBilinear: finalR = " + to_string(finalR));
 
             rotatedArray(row, column) = finalR;
         }

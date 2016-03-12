@@ -502,11 +502,13 @@ arma::Mat<float> Camera::getRebinnedPsfForPlanarFocalPlaneCoordinates(double xFP
 
     psf->select(rad2deg(radius));
 
-    // Calculate the rotation angle [rad]
+    // Calculate the rotation angle [rad] and rotate the PSF
 
     const double angle = atan2(yFPmm, xFPmm);
 
     psf->rotate(angle);
+
+    // Rebin the psfMap to the number of sub-pixels per pixel used for the Detector
 
     psf->rebin(targetSubPixels);
 
