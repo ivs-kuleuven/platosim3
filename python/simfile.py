@@ -305,12 +305,12 @@ class SimFile (object):
 
         figure = plt.figure()
         axis = figure.add_subplot(111)
-        imagePlot = axis.imshow(image, cmap=cm.hot, interpolation="nearest", origin='lower', extent=[0,Nrows,0,Ncols])
+        imagePlot = axis.imshow(image, cmap=cm.jet, interpolation="nearest", origin='lower', extent=[0,Nrows,0,Ncols])
 
         # The large dynamic range of the pixel values often results in images where only
         # the brightest stars are visible. To improve the contrast, clip the color mapping.
 
-        imagePlot.set_clim(np.percentile(image, 1), np.percentile(image, 99))
+        #imagePlot.set_clim(np.percentile(image, 1), np.percentile(image, 99))
 
         # If required, put the title
 
