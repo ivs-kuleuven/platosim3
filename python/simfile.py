@@ -185,18 +185,16 @@ class SimFile (object):
         """
 
         # Get the image from the HDF5 file
-        # Flip (left-right) the image, then rotate it 90 degrees. This way the smearing lines
-        # are vertical, and the image is oriented in such a way that overplotting the 
-        # star x,y coordinates from getStarPixelCoordinates() becomes straightforward.
 
-        image = np.rot90(np.fliplr(self.getImage(imageNr)))
+        image = self.getImage(imageNr)
         Nrows, Ncols = image.shape
 
-        # Plot the image. 
+        # Plot the image. Note that imshow tends to plot coordinates at the beginning of each pixel, while we would
+        # likt them to have at the center of each pixel. Hence the -0.5 terms in extent = [...].
 
         figure = plt.figure()
         axis = figure.add_subplot(111)
-        imagePlot = axis.imshow(image, cmap=cm.hot, interpolation="nearest", origin='lower', extent=[0,Nrows,0,Ncols])
+        imagePlot = axis.imshow(image, cmap=cm.hot, interpolation="nearest", origin='lower', extent=[-0.5,Nrows-0.5,-0.5,Ncols-0.5])
 
         # The large dynamic range of the pixel values often results in images where only
         # the brightest stars are visible. To improve the contrast, clip the color mapping.
