@@ -80,6 +80,7 @@ void Camera::initHDF5Groups()
     Log.debug("Camera: initialising HDF5 groups");
 
     hdf5File.createGroup("/StarPositions");
+    hdf5File.createGroup("/PSF");
 }
 
 
@@ -473,7 +474,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     // Convolve with the point spread function
     // Detector was given the proper PSF in Simulation::run().
 
-    //detector.convolveWithPsf();
+    detector.convolveWithPsf();
 
     return;
 }
@@ -490,16 +491,20 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
 
 /**
- * \brief    Select the PSF for the given planar focal plane coordinates
- * 
- * \details  This method selects and rotates the PSF.
+ * @brief      Select the PSF for the given planar focal plane coordinates
  *
- * \param xFPmm   Planar x-coordinate in the FP' reference frame [rad]
- * \param yFPmm   Planar y-coordinate in the FP' reference frame [rad]
- *  */
-
-arma::Mat<float> Camera::getPsfForPlanarFocalPlaneCoordinates(double xFPmm, double yFPmm)
+ * @details    This method selects, rotates and rebins the PSF.
+ *
+ * @param      xFPmm            Planar x-coordinate in the FP' reference frame [rad]
+ * @param      yFPmm            Planar y-coordinate in the FP' reference frame [rad]
+ * @param[in]  targetSubPixels  the number of subpixels per pixels in the detector
+ *
+ * @return     the psfMap that was selected, rotated and rebinned
+ */
+arma::Mat<float> Camera::getRebinnedPsfForPlanarFocalPlaneCoordinates(double xFPmm, double yFPmm, unsigned int targetSubPixels)
 {
+    arma::Mat<float> psfMap;
+
     // Calculate the angular FP coordinates
 
     double xFPrad, yFPrad;
@@ -507,17 +512,30 @@ arma::Mat<float> Camera::getPsfForPlanarFocalPlaneCoordinates(double xFPmm, doub
 
     const double radius = getGnomonicRadialDistanceFromOpticalAxis(xFPrad, yFPrad);
 
-    psf->select(rad2deg(radius));
+    psf->select(radius);
 
-    // Calculate the rotation angle [rad]
+    psfMap = psf->getPsfMap();
+    hdf5File.writeArray("/PSF", "selectedPSF", psfMap);
+
+    // Calculate the rotation angle [rad] and rotate the PSF
 
     const double angle = atan2(yFPmm, xFPmm);
 
     psf->rotate(angle);
 
-    // That's it
+    psfMap = psf->getPsfMap();
+    hdf5File.writeArray("/PSF", "rotatedPSF", psfMap);
 
-    return psf->getPsfMap();
+    // Rebin the psfMap to the number of sub-pixels per pixel used for the Detector
+
+    psf->rebin(targetSubPixels);
+
+    // Write the selected and rotated PSF to the output HDF5 file and return the PSF Array.
+
+    psfMap = psf->getPsfMap();
+    hdf5File.writeArray("/PSF", "rebinnedPSF", psfMap);
+
+    return psfMap;
 }
 
 
