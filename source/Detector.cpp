@@ -984,13 +984,22 @@ void Detector::applyCte()
 		// register (these rows are looped over via the "index" variable - note
 		// that the detector zeropoint is added to it!).
 
+		if(row + subFieldZeroPointRow == 0)
+		{
+			const double factor1 = meanCte;
+
+			readout += pixelMap(0, arma::span::all) * factor1;
+
+		}
+
 		for (unsigned int index = subFieldZeroPointRow;
 				index < row + subFieldZeroPointRow; index++)
 		{
 			const double factor1 = pow(meanCte, index + 1)
 					* pow(cti, row + subFieldZeroPointRow - index);
 
-			if ((row + subFieldZeroPointRow == 0) || (index == 0))
+//			if ((row + subFieldZeroPointRow == 0) || (index == 0))
+			if (index == 0)
 			{
 				readout += pixelMap(index - subFieldZeroPointRow, arma::span::all) * factor1;
 			} else

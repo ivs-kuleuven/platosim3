@@ -1227,7 +1227,7 @@ TEST_F(DetectorTest, applyFullWellSaturation)
 /**
  * Charge Transfer Efficiency (CTE).
  */
-TEST_F(DetectorTest, DISABLED_applyCte)
+TEST_F(DetectorTest, applyCte)
 {
 	LOG_STARTING_OF_TEST
 
@@ -1291,7 +1291,15 @@ TEST_F(DetectorTest, DISABLED_applyCte)
 
 	arma::fmat expected = applyCteOldImplementation(subField, detectorZeropointRow , detectorZeropointColumn, numRowsSubField, numColumnsSubField, meanCte);
 
-	EXPECT_TRUE(arma::all(arma::vectorise(expected) == arma::vectorise(detector.test_getSubfield())));
+//	EXPECT_TRUE(arma::all(arma::vectorise(expected(0, arma::span::all)) == arma::vectorise(detector.test_getSubfield()(0, arma::span::all))));
+
+	const unsigned int row = 1;
+
+	for(unsigned int column = 0; column < numColumnsSubField; column++)
+	{
+		EXPECT_FLOAT_EQ(expected(row, column), detector.test_getSubfield()(row, column));
+	}
+
 
 	// Bias register map: check dimensions and content (unaltered)
 
