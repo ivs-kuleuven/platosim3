@@ -285,6 +285,11 @@ public:
 	{
 		addReadoutNoise();
 	}
+
+	void test_applyOpenShutterSmearing(double exposureTime)
+	{
+		applyOpenShutterSmearing(exposureTime);
+	}
 };
 
 
@@ -1277,13 +1282,7 @@ TEST_F(DetectorTest, DISABLED_applyCte)
 	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
 	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
 
-	for(unsigned int row = 0; row < numRowsSubField * numSubPixels; row++)
-	{
-		for(unsigned int column = 0; column < numColumnsSubField * numSubPixels; column++)
-		{
-			ASSERT_EQ(subPixelMap(row, column), detector.test_getSubPixelMap()(row, column));
-		}
-	}
+	EXPECT_TRUE(arma::all(arma::vectorise(subPixelMap) == arma::vectorise(detector.test_getSubPixelMap())));
 
 	// Pixel map: check dimension and content (compare with brute-force method (i.e. old implementation))
 
@@ -1292,39 +1291,21 @@ TEST_F(DetectorTest, DISABLED_applyCte)
 
 	arma::fmat expected = applyCteOldImplementation(subField, detectorZeropointRow , detectorZeropointColumn, numRowsSubField, numColumnsSubField, meanCte);
 
-	for(unsigned int row = 0; row < numRowsSubField; row++)
-	{
-		for(unsigned int column = 0; column < numColumnsSubField; column++)
-		{
-			ASSERT_EQ(expected(row, column), detector.test_getSubfield()(row, column));
-		}
-	}
+	EXPECT_TRUE(arma::all(arma::vectorise(expected) == arma::vectorise(detector.test_getSubfield())));
 
 	// Bias register map: check dimensions and content (unaltered)
 
 	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
 	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
 
-	for(unsigned int row = 0; row < numBiasPreScanRows; row++)
-	{
-		for(unsigned int column = 0; column < numColumnsSubField; column++)
-		{
-			ASSERT_EQ(biasMap(row, column), detector.test_getBiasRegisterMap()(row, column));
-		}
-	}
+	EXPECT_TRUE(arma::all(arma::vectorise(biasMap) == arma::vectorise(detector.test_getBiasRegisterMap())));
 
 	// Smearing map: check dimensions and content (unaltered)
 
 	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
 	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
 
-	for(unsigned int row = 0; row < numSmearingOverScanRows; row++)
-	{
-		for(unsigned int column = 0; column < numColumnsSubField; column++)
-		{
-			ASSERT_EQ(smearingMap(row, column), detector.test_getSmearingMap()(row, column));
-		}
-	}
+	EXPECT_TRUE(arma::all(arma::vectorise(smearingMap) == arma::vectorise(detector.test_getSmearingMap())));
 }
 
 
@@ -1341,6 +1322,82 @@ TEST_F(DetectorTest, applyOpenShutterSmearing)
 {
 	LOG_STARTING_OF_TEST
 
+
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
+
+	// Configuration parameters
+
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+	const double readoutTime = configParams.getDouble("CCD/ReadoutTime");	// 2
+	const double exposureTime = readoutTime * 20.0;
+
+	arma::fmat pixelMap = arma::fmat(numRowsSubField, numColumnsSubField);
+	pixelMap.zeros();
+	pixelMap(0, 2) = 100.0;
+	detector.test_setSubfield(pixelMap);
+
+	detector.test_applyOpenShutterSmearing(exposureTime);
+
+	double expectedNoise = pixelMap(0, 2) / numRowsSubField * readoutTime / exposureTime;
+
+	EXPECT_TRUE(expectedNoise != 0.0);
+
+	for(unsigned int row = 0; row < 10; row++)
+	{
+		for(unsigned int column = 0; column < 10; column++)
+		{
+			if(column != 2)
+			{
+				EXPECT_EQ(0.0, detector.test_getSubfield()(row, column));
+			}
+
+			else
+			{
+				EXPECT_EQ(pixelMap(row, column) + expectedNoise, detector.test_getSubfield()(row, column));
+			}
+		}
+	}
+
+
+
+
+
+//	arma::mat testMatrix = arma::mat(10,15);
+//	testMatrix.zeros();
+//
+//	for(unsigned int column = 0; column < 15; column++)
+//	{
+//		testMatrix(0, column) = column;
+//	}
+//
+//	arma::rowvec summed = arma::sum(testMatrix, 0);
+//
+//	EXPECT_EQ(15, summed.size());
+//
+//	for(unsigned int column = 0; column < 15; column++)
+//	{
+//		EXPECT_EQ(column, summed(column));
+//	}
+//
+//	for(unsigned int row = 1; row < 10; row++)
+//	{
+//		testMatrix(row, arma::span::all) += summed;
+//	}
+//
+//	for(unsigned int row = 0; row < 10; row++)
+//	{
+//		for(unsigned int column = 0; column < 15; column++)
+//		{
+//			EXPECT_EQ(column, testMatrix(row, column));
+//		}
+//	}
 }
 
 
@@ -1839,4 +1896,3 @@ TEST_F(DetectorTest, getSolidAngleOfOnePixel)
 {
 	LOG_STARTING_OF_TEST
 }
-
