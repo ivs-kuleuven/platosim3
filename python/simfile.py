@@ -335,8 +335,8 @@ class SimFile (object):
                          stars visible in the current image (subfield). The star 
                          identifier equals the line number of the star in the input 
                          star catalog (counting from 0). 
-                row: The (decimal) pixel row coordinates of each star in the image.
-                col: The (decimal) pixel column coordinates of each star in the image.
+                row: The pixel row coordinates of each star in the image.
+                col: The pixel column coordinates of each star in the image.
                 Xmm: The focal plane FP' x-coordinates of each star in the image
                 Ymm: The focal plane FP' y-coordinates of each star in the image
 
@@ -348,7 +348,7 @@ class SimFile (object):
             >>> file = SimFile("Simul01.hdf5")
             >>> file.showImage(4)
             >>> ID, row, col, Xmm, Ymm = file.getStarCoordinates(4, minVmag=6.0, maxVmag=9.0)
-            >>> plt.scatter(x,y, marker='x', c='g')
+            >>> plt.scatter(row, col, marker='x', c='g')
 
         """
 
@@ -396,6 +396,10 @@ class SimFile (object):
         Xmm = Xmm[sorted]
         Ymm = Ymm[sorted]
 
+        # Convert the pixel coordinates to integer values (rounding down)
+
+        row = np.array(row, dtype=np.int)
+        col = np.array(col, dtype=np.int)
 
         # If no cut in V magnitude is required, we're finished.
 
