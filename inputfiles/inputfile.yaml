@@ -55,6 +55,7 @@ PSF:
     UseGauss:                yes             # Use analytical Gaussian PSF (yes or no)
     GaussSigma:              1.0             # Width of Gaussian PSF [pixels]
     Filename:                inputfiles/psf_201506.hdf5
+    SubPixels:               128             # Nr of subpixels per pixel that was used to generate the PSF
 
 
 CCD:

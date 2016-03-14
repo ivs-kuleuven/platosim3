@@ -1,7 +1,5 @@
 #include "Detector.h"
 
-#include "Units.h"
-
 /**
  * \brief Constructor.
  * 
@@ -1411,9 +1409,15 @@ bool Detector::psfIsSet()
  * \param psf  2D array containing the subpixel PSF map
  */
 
-void Detector::setPsfForSubfieldCenter(arma::Mat<float> psf)
-{   
+void Detector::setPsfForSubfieldCenter()
+{
+    double centerXmm, centerYmm;
+    tie(centerXmm, centerYmm) = getPlanarFocalPlaneCoordinatesOfSubfieldCenter();
+
+    arma::Mat<float> psf = camera.getRebinnedPsfForPlanarFocalPlaneCoordinates(centerXmm, centerYmm, numSubPixelsPerPixel);
+
 	convolver.initialise(numRowsSubPixelMap, numColumnsSubPixelMap, psf);
+
     psfMap = psf;
     psfWasSet = true;
 }
