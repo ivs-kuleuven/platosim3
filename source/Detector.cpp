@@ -430,8 +430,8 @@ void Detector::integrateLight(double startTime, double exposureTime)
  *
  * \return           (isInSubfield, row, col) 
  *                   isInSubfield: True if (xFPprime, yFPprime) are on the subfield, false otherwise.
- *                   row:          subfield (not CCD) row number of the pixel to which the flux was added
- *                   col:          subfield (not CCD) column number of the pixel to which the flux was added  
+ *                   row:          Subfield (not CCD) decimal row number of the pixel to which the flux was added
+ *                   col:          Subfield (not CCD) decimal column number of the pixel to which the flux was added  
  */
 
 tuple<bool, double, double> Detector::addFlux(double xFPprime, double yFPprime, double flux)
