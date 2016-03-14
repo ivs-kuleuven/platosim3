@@ -92,8 +92,14 @@ arma::fmat rotateArrayNearestNeighbor(arma::fmat origArray, double angle)
     int height = origArray.n_cols;
 
     float background = 0.0;  // this is the background used when no source pixel is matching
-    float cs = std::cos(-angle);   // precalculate these values, we negate the angle because we are going back from destination to source
-    float ss = std::sin(-angle);
+    
+    // precalculate these values, 
+    // we should negate the angle because we are going back from destination to source, but
+    // since the rotation is on the positive x-axis going counter-clockwise, and the array
+    // is flipped vertically when displayed,  we have to negate the angle again which results
+    // is just the angle.
+    float cs = std::cos(angle);
+    float ss = std::sin(angle);
     float xcenter = ((float)(width) / 2.0);
     float ycenter = ((float)(height) / 2.0);
 
@@ -151,8 +157,8 @@ arma::fmat rotateArrayBilinear(arma::fmat origArray, double angle)
     int width = origArray.n_rows;
     int height = origArray.n_cols;
     
-    double cs = std::cos(-angle);  // precalculate these values
-    double ss = std::sin(-angle);
+    double cs = std::cos(angle);  // precalculate these values
+    double ss = std::sin(angle);
 
     // Log.debug("rotateArrayBilinear: cs, ss = " + to_string(cs) + ", " + to_string(ss));
 
