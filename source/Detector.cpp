@@ -189,7 +189,7 @@ void Detector::generateCteMap()
 void Detector::generateFlatfieldMap()
 {
 
-	Log.info("Detector: generating flatfield map.");
+	Log.info("Detector: Warning: disabled generating flatfield map.");
 
 	// Random number generation
 
@@ -244,7 +244,7 @@ void Detector::generateFlatfieldMap()
 
 	// Copy a part of the squareMatrix corresponding to the size of the flatfieldMap, into the flatfieldMap
 
-	flatfieldMap = squareMap.submat(0, 0, flatfieldMap.n_rows - 1, flatfieldMap.n_cols - 1);
+	//flatfieldMap = squareMap.submat(0, 0, flatfieldMap.n_rows - 1, flatfieldMap.n_cols - 1);
 
 	// Save the intra-pixel flatfield in the HDF5 file
 
