@@ -503,6 +503,8 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
  */
 arma::Mat<float> Camera::getRebinnedPsfForPlanarFocalPlaneCoordinates(double xFPmm, double yFPmm, unsigned int targetSubPixels)
 {
+    arma::Mat<float> psfMap;
+
     // Calculate the angular FP coordinates
 
     double xFPrad, yFPrad;
@@ -510,7 +512,10 @@ arma::Mat<float> Camera::getRebinnedPsfForPlanarFocalPlaneCoordinates(double xFP
 
     const double radius = getGnomonicRadialDistanceFromOpticalAxis(xFPrad, yFPrad);
 
-    psf->select(rad2deg(radius));
+    psf->select(radius);
+
+    psfMap = psf->getPsfMap();
+    hdf5File.writeArray("/PSF", "selectedPSF", psfMap);
 
     // Calculate the rotation angle [rad] and rotate the PSF
 
@@ -518,14 +523,17 @@ arma::Mat<float> Camera::getRebinnedPsfForPlanarFocalPlaneCoordinates(double xFP
 
     psf->rotate(angle);
 
+    psfMap = psf->getPsfMap();
+    hdf5File.writeArray("/PSF", "rotatedPSF", psfMap);
+
     // Rebin the psfMap to the number of sub-pixels per pixel used for the Detector
 
     psf->rebin(targetSubPixels);
 
     // Write the selected and rotated PSF to the output HDF5 file and return the PSF Array.
 
-    arma::Mat<float> psfMap = psf->getPsfMap();
-    hdf5File.writeArray("/PSF", "selectedPSF", psfMap);
+    psfMap = psf->getPsfMap();
+    hdf5File.writeArray("/PSF", "rebinnedPSF", psfMap);
 
     return psfMap;
 }

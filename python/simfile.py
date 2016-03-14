@@ -245,6 +245,116 @@ class SimFile (object):
 
 
 
+    def getPsf(self, datasetName):
+
+        """
+        PURPOSE: extract the PSF from the HDF5 file (if present)
+
+        INPUT:   the name of the dataset that contains the PSF in the HDF5 file
+        
+        OUTPUT:  psf: 2D numpy array containing the image
+        """
+
+
+        # Check if the image is in the file. If not: complain, if yes: copy the contents into a numpy array.
+
+        if datasetName not in self.hdf5file["PSF"].keys():
+            print("Error: SimfFile.getPsf(): {0} not in hdf5 file".format(datasetName))
+            return
+        else:
+            dataset = self.hdf5file["PSF"][datasetName]
+            image = np.zeros(dataset.shape, dataset.dtype)
+            dataset.read_direct(image)
+            return image 
+
+
+
+
+
+
+
+
+
+
+
+    def showPsf(self, datasetName, useTitle=True):
+
+        """
+        PURPOSE: make a plot of the requested PSF
+
+        INPUT: datasetName: the name of the dataset that contains the PSF in the HDF5 file
+               This is set by the Simulator and is currently: selectedPSF, rotatedPSF, or rebinnedPSF
+               useTitle: True is a title should be plotted, False otherwise
+
+        OUTPUT: None
+
+        EXAMPLE: 
+            >>> file = SimFile("Simul01.hdf5")
+            >>> file.showPsf("selectedPSF")
+        """
+
+        # Get the image from the HDF5 file
+        # Flip (left-right) the image, then rotate it 90 degrees. This way the smearing lines
+        # are vertical, and the image is oriented in such a way that overplotting the 
+        # star x,y coordinates from getStarPixelCoordinates() becomes straightforward.
+
+        image = np.rot90(np.fliplr(self.getPSF(datasetName)))
+        Nrows, Ncols = image.shape
+
+        # Plot the image. 
+
+        figure = plt.figure()
+        axis = figure.add_subplot(111)
+        imagePlot = axis.imshow(image, cmap=cm.hot, interpolation="nearest", origin='lower', extent=[0,Nrows,0,Ncols])
+
+        # The large dynamic range of the pixel values often results in images where only
+        # the brightest stars are visible. To improve the contrast, clip the color mapping.
+
+        imagePlot.set_clim(np.percentile(image, 1), np.percentile(image, 99))
+
+        # If required, put the title
+
+        if useTitle:
+            fileBasename = os.path.splitext(self.filename)[0]                  # with the .hdf5
+            title = fileBasename + " - {}".format(datasetName)
+            plt.title(title)
+
+        # By default, matplotlib only shows the (x,y) coordinates of each pixel, but not the pixel value itself.
+        # Change this by redefining the axis.format_coord
+
+        Nrows, Ncols = image.shape
+        def format_coord(x, y):
+            col = int(x+0.5)
+            row = int(y+0.5)
+            if col>=0 and col<Ncols and row>=0 and row<Nrows:
+                z = image[row,col]
+                return "x={:.1f}, y={:.1f}, z={:.1f}".format(x, y, z)
+            else:
+                return "x={:.1f}, y={:.1f}".format(x, y)
+
+        axis.format_coord = format_coord
+
+        plt.xticks(np.arange(0, Nrows, 10))
+        plt.yticks(np.arange(0, Ncols, 10))
+
+        # Show the image
+
+        plt.draw()
+        plt.show()
+
+        # That's it!
+
+        return
+
+
+
+
+
+
+
+
+
+
     def getStarCatalog(self):
 
         """
