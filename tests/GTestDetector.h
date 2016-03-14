@@ -1338,20 +1338,54 @@ TEST_F(DetectorTest, applyOpenShutterSmearing)
 	const double readoutTime = configParams.getDouble("CCD/ReadoutTime");	// 2
 	const double exposureTime = readoutTime * 20.0;
 
-	arma::fmat pixelMap = arma::fmat(numRowsSubField, numColumnsSubField);
-	pixelMap.zeros();
-	pixelMap(0, 2) = 100.0;
-	detector.test_setSubfield(pixelMap);
+	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+
+	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
+
+	arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
+	detector.test_setSubPixelMap(subPixelMap);
+
+	arma::fmat subField = arma::fmat(numRowsSubField, numColumnsSubField);
+	subField.zeros();
+	subField(0, 2) = 100.0;
+	detector.test_setSubfield(subField);
+
+	arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);
+	detector.test_setBiasRegisterMap(biasMap);
+
+	arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);
+	detector.test_setSmearingMap(smearingMap);
+
+
+
+	// Open-shutter smearing
 
 	detector.test_applyOpenShutterSmearing(exposureTime);
 
-	double expectedNoise = pixelMap(0, 2) / numRowsSubField * readoutTime / exposureTime;
+
+
+	// Sub-pixel map: check dimensions and content (unaltered)
+
+	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+
+	EXPECT_TRUE(arma::all(arma::vectorise(subPixelMap) == arma::vectorise(detector.test_getSubPixelMap())));
+
+	// Pixel map: check dimensions and content (added open-shutter smearing)
+
+	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
+
+	double expectedNoise = subField(0, 2) / numRowsSubField * readoutTime / exposureTime;
 
 	EXPECT_TRUE(expectedNoise != 0.0);
 
-	for(unsigned int row = 0; row < 10; row++)
+	for(unsigned int row = 0; row < numRowsSubField; row++)
 	{
-		for(unsigned int column = 0; column < 10; column++)
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
 		{
 			if(column != 2)
 			{
@@ -1360,14 +1394,38 @@ TEST_F(DetectorTest, applyOpenShutterSmearing)
 
 			else
 			{
-				EXPECT_EQ(pixelMap(row, column) + expectedNoise, detector.test_getSubfield()(row, column));
+				EXPECT_EQ(subField(row, column) + expectedNoise, detector.test_getSubfield()(row, column));
 			}
 		}
 	}
 
+	// Bias register map: check dimensions and content (added normal distribution)
 
+	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
 
+	EXPECT_TRUE(arma::all(arma::vectorise(biasMap) == arma::vectorise(detector.test_getBiasRegisterMap())));
 
+	// Smearing map: check dimensions and content (unaltered)
+
+	EXPECT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+	EXPECT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+
+	for(unsigned int row = 0; row < numBiasPreScanRows; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			if(column != 2)
+			{
+				EXPECT_FLOAT_EQ(smearingMap(row, column), detector.test_getSmearingMap()(row, column));
+			}
+
+			else
+			{
+				EXPECT_FLOAT_EQ(smearingMap(row, column) + expectedNoise, detector.test_getSmearingMap()(row, column));
+			}
+		}
+	}
 
 //	arma::mat testMatrix = arma::mat(10,15);
 //	testMatrix.zeros();
