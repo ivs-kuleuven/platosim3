@@ -1234,9 +1234,22 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<float>& 
 
     H5::DataSet arrayDataset = file->createDataSet(arrayPath.c_str(), H5::PredType::NATIVE_FLOAT, arraySpace);
     
+    // Copy the Armadillo array to a vector, because the internally Armadillo stores the data column-major
+    // while HDF5 assumes data to be stored row-major
+
+    vector<float> temp(A.n_rows * A.n_cols);
+    for (int n = 0; n < A.n_rows; n++)
+    {
+        for(int k = 0; k < A.n_cols; k++)
+        {
+            const int nk = n * A.n_cols + k;
+            temp[nk] = A(n,k);
+        }
+    }
+
     // Copy the data from our image into the HDF5 file
 
-    arrayDataset.write(A.memptr(), H5::PredType::NATIVE_FLOAT);
+    arrayDataset.write(temp.data(), H5::PredType::NATIVE_FLOAT);
 
     // That's it
 
@@ -1297,14 +1310,29 @@ void HDF5File::readArray(string groupName, string arrayName, arma::Mat<float>& A
     int Nrows = shape[0];
     int Ncolumns = shape[1];
 
-    // Reset the size for the 2D array
+
+    // Make a temporary vector<> object. We cannot read directly into the Armadillo array
+    // because the latter are column-major while HDF5 stores data row-major
+
+    vector<float> temp(Nrows*Ncolumns);
+
+    // Read the HDF5 dataset into the array
+
+    dataset.read(temp.data(), H5::PredType::NATIVE_FLOAT);
+
+    // Reset the size for the 2D Armadillo array, and copy the data.
 
     A.reset();
     A.set_size(Nrows, Ncolumns);
 
-    // Read the HDF5 dataset into the array
-
-    dataset.read(A.memptr(), H5::PredType::NATIVE_FLOAT);
+    for (int n = 0; n < A.n_rows; n++)
+    {
+        for(int k = 0; k < A.n_cols; k++)
+        {
+            const int nk = n * A.n_cols + k;
+            A(n,k) = temp[nk];                   // Is stored column-major
+        }
+    }
 
     // That's it
 
