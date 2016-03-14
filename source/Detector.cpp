@@ -50,15 +50,15 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 	biasMap.zeros(numRowsBiasMap, numColumnsPixelMap);
 	smearingMap.zeros(numRowsSmearingMap, numColumnsPixelMap);
 	flatfieldMap.ones(numRowsSubPixelMap, numColumnsSubPixelMap);
-//	cteMap.zeros(numRowsPixelMap, numColumnsPixelMap);
+    //cteMap.zeros(numRowsPixelMap, numColumnsPixelMap);
 
 	// Generate the flatfield map 
 
 	generateFlatfieldMap();
 
-//	// Generate the CTE map
-//
-//	generateCteMap();
+	// Generate the CTE map
+
+	//generateCteMap();
 
 	// Set the seeds of the random number generators
 
@@ -154,21 +154,22 @@ Detector::~Detector()
 
 
 
-///**
-// * \brief: Generate CTE map.  This map is generated at pixel level and currently
-// *         the value of all elements in the CTE map are set to the mean CTE.
-// *
-// * NOTE: In a later version, we can introduce pixels and/or rows of pixels (in the
-// *       pixel map) with a lower CTE, based on random distributions.
-// */
-//void Detector::generateCteMap()
-//{
-//	cteMap = meanCte;
-//
-//	// Random pixels with lower CTE
-//
-//	// Random rows of pixels with lower CTE
-//}
+/**
+* \brief: Generate CTE map.  This map is generated at pixel level and currently
+*         the value of all elements in the CTE map are set to the mean CTE.
+*
+* NOTE: In a later version, we can introduce pixels and/or rows of pixels (in the
+*       pixel map) with a lower CTE, based on random distributions.
+*/
+
+void Detector::generateCteMap()
+{
+	cteMap = meanCte;
+
+	// Random pixels with lower CTE
+
+	// Random rows of pixels with lower CTE
+}
 
 
 
@@ -951,109 +952,108 @@ void Detector::applyCte()
 {
 	Log.debug("Detector: Applying charge transfer inefficiency");
 
-	float cti = 1.0 - meanCte;
+	// float cti = 1.0 - meanCte;
 
-	// Computing the effects of CTE requires the use of a binomial distribution.
-	// To speed up things, we first pre-compute some parts of this distribution.
+	// // Computing the effects of CTE requires the use of a binomial distribution.
+	// // To speed up things, we first pre-compute some parts of this distribution.
 
-	// Pre-compute the (natural) logarithms of the first N natural numbers
+	// // Pre-compute the (natural) logarithms of the first N natural numbers
 
-	vector<double> logs(numRowsPixelMap + subFieldZeroPointRow);
-	iota(logs.begin(), logs.end(), 1.0);
-	transform(logs.begin(), logs.end(), logs.begin(),
-			ptr_fun<double, double>(log));
+	// vector<double> logs(numRowsPixelMap + subFieldZeroPointRow);
+	// iota(logs.begin(), logs.end(), 1.0);
+	// transform(logs.begin(), logs.end(), logs.begin(),
+	// 		ptr_fun<double, double>(log));
 
-	// Compute the partial sums of these logarithms
-	// sumOfLogsUpTo[i] contains log((i+1)!) = log(1) + ... + log(i+1)
+	// // Compute the partial sums of these logarithms
+	// // sumOfLogsUpTo[i] contains log((i+1)!) = log(1) + ... + log(i+1)
 
-	vector<double> sumOfLogsUpTo(numRowsPixelMap + subFieldZeroPointRow);
-	partial_sum(logs.begin(), logs.end(), sumOfLogsUpTo.begin());
+	// vector<double> sumOfLogsUpTo(numRowsPixelMap + subFieldZeroPointRow);
+	// partial_sum(logs.begin(), logs.end(), sumOfLogsUpTo.begin());
 
-	arma::Row<float> readout;	// Readout strip
+	// arma::Row<float> readout;	// Readout strip
 
-	// Loop over all rows in the pixel map (starting at the row farthest away from
-	// the readout register)
+	// // Loop over all rows in the pixel map (starting at the row farthest away from
+	// // the readout register)
 
-	for (int row = numRowsPixelMap - 1; row >= 0; row--)
-	{
+	// for (int row = numRowsPixelMap - 1; row >= 0; row--)
+	// {
 
-		// Reset the readout register
+	// 	// Reset the readout register
 
-		readout.zeros(numColumnsPixelMap);
+	// 	readout.zeros(numColumnsPixelMap);
 
-		// Each row picks up flux that is left behind when transferring the rows
-		// that are closer to the readout register, row-by-row to the readout
-		// register (these rows are looped over via the "index" variable - note
-		// that the detector zeropoint is added to it!).
+	// 	// Each row picks up flux that is left behind when transferring the rows
+	// 	// that are closer to the readout register, row-by-row to the readout
+	// 	// register (these rows are looped over via the "index" variable - note
+	// 	// that the detector zeropoint is added to it!).
 
-		for (unsigned int index = subFieldZeroPointRow;
-				index < row + subFieldZeroPointRow; index++)
-		{
-			const double factor1 = pow(meanCte, index + 1)
-					* pow(cti, row + subFieldZeroPointRow - index);
+	// 	for (unsigned int index = subFieldZeroPointRow;
+	// 			index < row + subFieldZeroPointRow; index++)
+	// 	{
+	// 		const double factor1 = pow(meanCte, index + 1)
+	// 				* pow(cti, row + subFieldZeroPointRow - index);
 
-			if ((row + subFieldZeroPointRow == 0) || (index == 0))
-			{
-				readout += pixelMap(index - subFieldZeroPointRow, arma::span::all) * factor1;
-			} else
-			{
-				const double factor2 = exp(sumOfLogsUpTo[row + subFieldZeroPointRow - 1]
-								       - sumOfLogsUpTo[row + subFieldZeroPointRow - index - 1]
-	                                   - sumOfLogsUpTo[index - 1]);
-				readout += pixelMap(index - subFieldZeroPointRow, arma::span::all) * factor1 * factor2;
-			}
-		}
+	// 		if ((row + subFieldZeroPointRow == 0) || (index == 0))
+	// 		{
+	// 			readout += pixelMap(index - subFieldZeroPointRow, arma::span::all) * factor1;
+	// 		} else
+	// 		{
+	// 			const double factor2 = exp(sumOfLogsUpTo[row + subFieldZeroPointRow - 1]
+	// 							       - sumOfLogsUpTo[row + subFieldZeroPointRow - index - 1]
+	//                                    - sumOfLogsUpTo[index - 1]);
+	// 			readout += pixelMap(index - subFieldZeroPointRow, arma::span::all) * factor1 * factor2;
+	// 		}
+	// 	}
 
-		pixelMap(row, arma::span::all) = readout(0, arma::span::all);
-	}
+	// 	pixelMap(row, arma::span::all) = readout(0, arma::span::all);
+	// }
 
 	// BELOW: OLD IMPLEMENTATION
 
-//	// Create a map in which we will shift the rows of the pixel map one-by-one
-//	// towards the readout register.  Bear in mind that the bottom row of the
-//	// sub-field is not necessarily right next to the readout register (the
-//	// distance between the two is subFieldZeroPointRow).
-//
-//	arma::Mat<float> shiftMap;
-//	shiftMap.zeros(subFieldZeroPointRow + numRowsPixelMap, numColumnsPixelMap);
-//	shiftMap.submat(arma::span(subFieldZeroPointRow, subFieldZeroPointRow + numRowsPixelMap - 1), arma::span::all) = pixelMap;
-//
-//	// The readout register
-//
-//	arma::Row<float> readoutStrip;
-//	readoutStrip.zeros(numColumnsPixelMap);
-//
-//	// Array filled with ones (needed for the CTI)
-//
-//	arma::Row<float> ones;
-//	ones.ones(numColumnsPixelMap);
-//
-//	// Shift all the rows down (i.e. towards the readout register) one-by-one
-//	// Keep on doing this until all rows have been read out.
-//
-//	for (int shiftIndex = 0;
-//			shiftIndex < numRowsPixelMap + subFieldZeroPointRow; shiftIndex++)
-//	{
-//
-//		// Shift the bottom row to the readout strip
-//
-//		readoutStrip = cteMap(0, arma::span::all) * shiftMap(0, arma::span::all);
-//
-//		if (shiftIndex >= subFieldZeroPointRow)
-//		{
-//			pixelMap(shiftIndex - subFieldZeroPointRow, arma::span::all) = readoutStrip(0, arma::span::all);
-//		}
-//
-//		// Shift all other rows one row down (i.e. closer to the readout register)
-//
-//		for (int row = 0; row < subFieldZeroPointRow + numRowsPixelMap - 1; row++)
-//		{
-//			shiftMap(row, arma::span::all) = (ones-cteMap(row, arma::span::all))
-//					                           * shiftMap(row, arma::span::all)	// Left behind when shifting row down (CTI = 1 - CTE)
-//					                         + cteMap(row + 1, arma::span::all)
-//							                   * shiftMap(row + 1, arma::span::all);	// Transferred (CTE)
-//		}
-//	}
+	// Create a map in which we will shift the rows of the pixel map one-by-one
+	// towards the readout register.  Bear in mind that the bottom row of the
+	// sub-field is not necessarily right next to the readout register (the
+	// distance between the two is subFieldZeroPointRow).
+
+	arma::Mat<float> shiftMap;
+	shiftMap.zeros(subFieldZeroPointRow + numRowsPixelMap, numColumnsPixelMap);
+	shiftMap.submat(arma::span(subFieldZeroPointRow, subFieldZeroPointRow + numRowsPixelMap - 1), arma::span::all) = pixelMap;
+
+	// The readout register
+
+	arma::Row<float> readoutStrip;
+	readoutStrip.zeros(numColumnsPixelMap);
+
+	// Array filled with ones (needed for the CTI)
+
+	arma::Row<float> ones;
+	ones.ones(numColumnsPixelMap);
+
+	// Shift all the rows down (i.e. towards the readout register) one-by-one
+	// Keep on doing this until all rows have been read out.
+
+	for (int shiftIndex = 0; shiftIndex < numRowsPixelMap + subFieldZeroPointRow; shiftIndex++)
+	{
+
+		// Shift the bottom row to the readout strip
+
+		readoutStrip = cteMap(0, arma::span::all) * shiftMap(0, arma::span::all);
+
+		if (shiftIndex >= subFieldZeroPointRow)
+		{
+			pixelMap(shiftIndex - subFieldZeroPointRow, arma::span::all) = readoutStrip(0, arma::span::all);
+		}
+
+		// Shift all other rows one row down (i.e. closer to the readout register)
+
+		for (int row = 0; row < subFieldZeroPointRow + numRowsPixelMap - 1; row++)
+		{
+			shiftMap(row, arma::span::all) = (ones-cteMap(row, arma::span::all))
+					                           * shiftMap(row, arma::span::all)	// Left behind when shifting row down (CTI = 1 - CTE)
+					                         + cteMap(row + 1, arma::span::all)
+							                   * shiftMap(row + 1, arma::span::all);	// Transferred (CTE)
+		}
+	}
 }
 
 

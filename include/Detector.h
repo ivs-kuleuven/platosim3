@@ -56,7 +56,7 @@ class Detector : public HDF5Writer
 
         virtual void reset();
         virtual void generateFlatfieldMap();
-//        virtual void generateCteMap();
+        virtual void generateCteMap();
 
         virtual void integrateLight(double startTime, double exposureTime);
         virtual bool isInSubPixelMap(double row, double column);
@@ -85,7 +85,7 @@ class Detector : public HDF5Writer
         arma::Mat<float> subPixelMap;            // Sub-pixel map, incl. edge pixels
         arma::Mat<float> smearingMap;            // Smearing map (i.e. over-scan strip)
         arma::Mat<float> biasMap;                // Bias map (i.e. pre-scan strip)
-//        arma::Mat<float> cteMap;                 // CTE map
+        arma::Mat<float> cteMap;                 // CTE map
         arma::Mat<float> flatfieldMap;           // Intra-pixel flatfield map
         arma::Mat<float> psfMap;                 // The PSF map that will be used for convolving
 
