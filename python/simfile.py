@@ -298,7 +298,7 @@ class SimFile (object):
         # are vertical, and the image is oriented in such a way that overplotting the 
         # star x,y coordinates from getStarPixelCoordinates() becomes straightforward.
 
-        image = np.rot90(np.fliplr(self.getPSF(datasetName)))
+        image = np.rot90(np.fliplr(self.getPsf(datasetName)))
         Nrows, Ncols = image.shape
 
         # Plot the image. 
