@@ -8,6 +8,7 @@
 #include <map>
 #include <array>
 
+#include "Arrayoperations.h"
 #include "ConfigurationParameters.h"
 #include "Constants.h"
 #include "Detector.h"
@@ -42,7 +43,7 @@ class Camera : public HDF5Writer
         virtual void initHDF5Groups() override;
         virtual void flushOutput() override;
 
-        virtual arma::Mat<float> getPsfForPlanarFocalPlaneCoordinates(double xFPmm, double yFPmm);
+        virtual arma::Mat<float> getRebinnedPsfForPlanarFocalPlaneCoordinates(double xFPmm, double yFPmm, unsigned int targetSubPixels);
         
 
     protected:

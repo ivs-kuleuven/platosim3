@@ -22,6 +22,7 @@ int main(int argc, char **argv)
 {
     ofstream logFile("log.txt");
     Log.addOutputStream(logFile, WARNING | ERROR | DEBUG | INFO);
+    // Log.addOutputStream(cout, WARNING | ERROR | DEBUG | INFO);  // uncomment this line to show log messages on the Console
     Log.info("Main: Unit Test Log file includes 'warning', 'error', 'debug', and 'info'");
 
     ::testing::InitGoogleTest(&argc, argv);

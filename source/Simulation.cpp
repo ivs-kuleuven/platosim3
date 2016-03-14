@@ -135,9 +135,7 @@ void Simulation::run(double startTime)
 
     // Ensure that the proper PSF is set for the detector
 
-    double centerXmm, centerYmm;
-    tie(centerXmm, centerYmm) = detector->getPlanarFocalPlaneCoordinatesOfSubfieldCenter();
-    //detector->setPsfForSubfieldCenter(camera->getPsfForPlanarFocalPlaneCoordinates(centerXmm, centerYmm));
+    detector->setPsfForSubfieldCenter();
 
     // Loop over all exposures
 
@@ -261,6 +259,9 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("FlatfieldPtPNoise");
     addDouble("CTEMean");
     addBoolean("IncludePhotonNoise");
+    addBoolean("IncludeReadoutNoise");
+    addBoolean("IncludeCTIeffects"); 
+    addBoolean("IncludeOpenShutterSmearing");
 
     subGroup = "SubField";
     hdf5File.createGroup(parentGroup + "/" + subGroup);

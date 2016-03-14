@@ -1,7 +1,5 @@
 #include "Detector.h"
 
-#include "Units.h"
-
 /**
  * \brief Constructor.
  * 
@@ -27,7 +25,9 @@
  */
 
 Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera)
-: HDF5Writer(hdf5file), psfWasSet(false), internalTime(0.0), camera(camera), imageNr(0)
+: HDF5Writer(hdf5file), includePhotonNoise(true), includeReadoutNoise(true),
+  includeCTIeffects(true), includeOpenShutterSmearing(true), psfWasSet(false), 
+  internalTime(0.0), camera(camera), imageNr(0)
 {
 	// Create the groups in the HDF5 file where the different maps (i.e. pixel map,
 	// bias register map, smearing map, etc.) will be saved. This needs to be done
@@ -97,22 +97,25 @@ Detector::~Detector()
  {
  	// Configuration parameters for the CCD detector
 
-    originOffsetX           = configParam.getDouble("CCD/OriginOffsetX");
-    originOffsetY           = configParam.getDouble("CCD/OriginOffsetY");
-    orientationAngle        = deg2rad(configParam.getDouble("CCD/Orientation"));
-    numRows                 = configParam.getInteger("CCD/NumRows");
-    numColumns              = configParam.getInteger("CCD/NumColumns");
-    pixelSize               = configParam.getDouble("CCD/PixelSize");
-    gain                    = configParam.getInteger("CCD/Gain");
-    quantumEfficiency       = configParam.getDouble("CCD/QuantumEfficiency");
-    fullWellSaturationLimit = configParam.getLong("CCD/FullWellSaturation");
-    digitalSaturationLimit  = configParam.getLong("CCD/DigitalSaturation");
-    readoutNoise            = configParam.getDouble("CCD/ReadoutNoise");
-    electronicOffset        = configParam.getInteger("CCD/ElectronicOffset");
-    readoutTime             = configParam.getDouble("CCD/ReadoutTime");
-    flatfieldNoiseAmplitude = configParam.getDouble("CCD/FlatfieldPtPNoise");
-    meanCte                 = configParam.getDouble("CCD/CTEMean");
-    includePhotonNoise      = configParam.getBoolean("CCD/IncludePhotonNoise");
+    originOffsetX              = configParam.getDouble("CCD/OriginOffsetX");
+    originOffsetY              = configParam.getDouble("CCD/OriginOffsetY");
+    orientationAngle           = deg2rad(configParam.getDouble("CCD/Orientation"));
+    numRows                    = configParam.getInteger("CCD/NumRows");
+    numColumns                 = configParam.getInteger("CCD/NumColumns");
+    pixelSize                  = configParam.getDouble("CCD/PixelSize");
+    gain                       = configParam.getInteger("CCD/Gain");
+    quantumEfficiency          = configParam.getDouble("CCD/QuantumEfficiency");
+    fullWellSaturationLimit    = configParam.getLong("CCD/FullWellSaturation");
+    digitalSaturationLimit     = configParam.getLong("CCD/DigitalSaturation");
+    readoutNoise               = configParam.getDouble("CCD/ReadoutNoise");
+    electronicOffset           = configParam.getInteger("CCD/ElectronicOffset");
+    readoutTime                = configParam.getDouble("CCD/ReadoutTime");
+    flatfieldNoiseAmplitude    = configParam.getDouble("CCD/FlatfieldPtPNoise");
+    meanCte                    = configParam.getDouble("CCD/CTEMean");
+    includePhotonNoise         = configParam.getBoolean("CCD/IncludePhotonNoise");
+    includeReadoutNoise        = configParam.getBoolean("CCD/IncludeReadoutNoise");   
+    includeCTIeffects          = configParam.getBoolean("CCD/IncludeCTIeffects");  
+    includeOpenShutterSmearing = configParam.getBoolean("CCD/IncludeOpenShutterSmearing");
 
     // Configuration parameters for the subfield
 
@@ -697,20 +700,29 @@ void Detector::readOut(float exposureTime)
 	// Pixel units before: [electrons]
 	// Pixel units after: [electrons]
 
-	applyCte();
+	if (includeCTIeffects)
+	{
+		applyCte();
+	}
 
 	// Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
 	// the pixels are still receiving photons from the sky, while they are being transfered towards
 	// the readout register.
 
-	applyOpenShutterSmearing(exposureTime);
+	if (includeOpenShutterSmearing)
+	{
+		applyOpenShutterSmearing(exposureTime);
+	}
 
 	// Each time the amplifier reads out a pixel, a tiny bit of noise is added.
 	// Add the readout noise.
 	// Pixel units before: [electrons]
 	// Pixel units after: [electrons]
 
-	addReadoutNoise();
+	if (includeReadoutNoise)
+	{ 
+		addReadoutNoise();
+	}
 
 	// Apply the gain, to increase the dynamic range of the detector.
 	// Pixel units before: [electrons]
@@ -1397,9 +1409,15 @@ bool Detector::psfIsSet()
  * \param psf  2D array containing the subpixel PSF map
  */
 
-void Detector::setPsfForSubfieldCenter(arma::Mat<float> psf)
-{   
+void Detector::setPsfForSubfieldCenter()
+{
+    double centerXmm, centerYmm;
+    tie(centerXmm, centerYmm) = getPlanarFocalPlaneCoordinatesOfSubfieldCenter();
+
+    arma::Mat<float> psf = camera.getRebinnedPsfForPlanarFocalPlaneCoordinates(centerXmm, centerYmm, numSubPixelsPerPixel);
+
 	convolver.initialise(numRowsSubPixelMap, numColumnsSubPixelMap, psf);
+
     psfMap = psf;
     psfWasSet = true;
 }

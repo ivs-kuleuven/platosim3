@@ -50,6 +50,7 @@ Camera:
 PSF:
 
     Filename:                testData/psf_201506.hdf5
+    SubPixels:               128             # Nr of subpixels per pixel that was used to generate the PSF
 
 CCD:
 
@@ -69,6 +70,9 @@ CCD:
     FlatfieldPtPNoise:       0.016           # peak-to-peak pixel noise
     CTEMean:                 0.99999         # Mean Charge Transfer Efficiency
     IncludePhotonNoise:      yes             # include photon noise [yes or no]
+    IncludeReadoutNoise:         yes         # Include readout noise [yes or no]
+    IncludeCTIeffects:           yes         # Include charge transfer inefficiency effects [yes or no]
+    IncludeOpenShutterSmearing:  yes         # Include trails due reading out with an open shutter [yes or no]
 
 
 SubField:    
