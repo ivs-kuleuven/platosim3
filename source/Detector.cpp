@@ -395,9 +395,9 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 	// Apply flatfield (at sub-pixel level)
 
-	Log.debug("Detector: applying flatfield.");
+	Log.debug("Detector: NOT applying flatfield.");
 
-	applyFlatfield();
+	//applyFlatfield();
 
 	// Rebin from a subpixel map to a pixel map
 
