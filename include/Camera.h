@@ -45,6 +45,16 @@ class Camera : public HDF5Writer
 
         virtual arma::Mat<float> getRebinnedPsfForPlanarFocalPlaneCoordinates(double xFPmm, double yFPmm, unsigned int targetSubPixels);
         
+        pair<double, double> skyToAngularFocalPlaneCoordinates(double raStar, double decStar);
+        pair<double, double> angularFocalPlaneToSkyCoordinates(double xFPprime, double yFPprime);
+
+        pair<double, double> angularToPlanarFocalPlaneCoordinates(double xFPrad, double yFPrad);
+        pair<double, double> planarToAngularFocalPlaneCoordinates(double xFPmm, double yFPmm);
+
+        pair<double, double> planarToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm);
+
+        double getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double yFPprime);
+
 
     protected:
 
@@ -56,16 +66,6 @@ class Camera : public HDF5Writer
         double focalPlaneOrientation;         // [rad]
         double throughputBandwidth;           // FWHM of the throughput passband [nm]
         double throughputLambdaC;             // Central wavelength of the throughput passband [nm]
-
-        pair<double, double> skyToAngularFocalPlaneCoordinates(double raStar, double decStar);
-        pair<double, double> angularFocalPlaneToSkyCoordinates(double xFPprime, double yFPprime);
-
-        pair<double, double> angularToPlanarFocalPlaneCoordinates(double xFPrad, double yFPrad);
-        pair<double, double> planarToAngularFocalPlaneCoordinates(double xFPmm, double yFPmm);
-
-        pair<double, double> planarToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm);
-
-        double getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double yFPprime);
 
         void setDistortionPolynomial(Polynomial1D &polynomial);
 
