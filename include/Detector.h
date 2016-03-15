@@ -57,9 +57,11 @@ class Detector : public HDF5Writer
         virtual void reset();
         virtual void generateFlatfieldMap();
         //virtual void generateCteMap();
+        virtual void generateVignettingMap();
 
         virtual void integrateLight(double startTime, double exposureTime);
         virtual bool isInSubPixelMap(double row, double column);
+        virtual void applyVignetting();
         virtual void applyFlatfield();
         virtual void rebin();
         
@@ -88,6 +90,7 @@ class Detector : public HDF5Writer
         arma::Mat<float> cteMap;                 // CTE map
         arma::Mat<float> flatfieldMap;           // Intra-pixel flatfield map
         arma::Mat<float> psfMap;                 // The PSF map that will be used for convolving
+        arma::Mat<float> vignettingMap;          // Brightness attenuation map, due to vignetting
 
         unsigned int numRows;                    // Nr of rows of the detector (= size in y-direction) [pixels]
     	unsigned int numColumns;                 // Nr of columns of the detector (= size in x-direction = readout direction) [pixels]
@@ -125,6 +128,7 @@ class Detector : public HDF5Writer
         bool includeReadoutNoise;                // Include readout noise [yes or no]
         bool includeCTIeffects;                  // Include CTI effects [yes or no]
         bool includeOpenShutterSmearing;         // Include trails due reading out with an open shutter
+        bool includeVignetting;                  // Include brightness attenuation due to vignetting
         bool psfWasSet;                          // True if PSF for subfield was already initialised. False otherwise.
 
         double internalTime;

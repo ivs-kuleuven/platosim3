@@ -26,7 +26,7 @@
 
 Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera)
 : HDF5Writer(hdf5file), includePhotonNoise(true), includeReadoutNoise(true),
-  includeCTIeffects(true), includeOpenShutterSmearing(true), psfWasSet(false), 
+  includeCTIeffects(true), includeOpenShutterSmearing(true), includeVignetting(true), psfWasSet(false), 
   internalTime(0.0), camera(camera), imageNr(0)
 {
 	// Create the groups in the HDF5 file where the different maps (i.e. pixel map,
@@ -49,6 +49,7 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 	smearingMap.zeros(numRowsSmearingMap, numColumnsPixelMap);
 	flatfieldMap.ones(numRowsSubPixelMap, numColumnsSubPixelMap);
 //	cteMap.zeros(numRowsPixelMap, numColumnsPixelMap);
+	vignettingMap.ones(numRowsPixelMap, numColumnsPixelMap);
 
 	// Generate the flatfield map 
 
@@ -57,6 +58,11 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 //	// Generate the CTE map
 //
 //	generateCteMap();
+
+	// Generate the vignetting map
+
+	generateVignettingMap();
+
 
 	// Set the seeds of the random number generators
 
@@ -116,6 +122,7 @@ Detector::~Detector()
     includeReadoutNoise        = configParam.getBoolean("CCD/IncludeReadoutNoise");   
     includeCTIeffects          = configParam.getBoolean("CCD/IncludeCTIeffects");  
     includeOpenShutterSmearing = configParam.getBoolean("CCD/IncludeOpenShutterSmearing");
+    includeVignetting          = configParam.getBoolean("CCD/IncludeVignetting");
 
     // Configuration parameters for the subfield
 
@@ -279,6 +286,60 @@ void Detector::generateFlatfieldMap()
 
 
 
+/**
+ * \brief Generate the vignetting map containing for each subfield pixel the vignetting brightness 
+ *        attenuation factor. Each array value is a value between 0 and 1.
+ * 
+ * \details Because of vignetting, the stars at the edge of the FOV look dimmer than the stars close
+ *          to the optical axis. If the incoming flux before vignetting at pixel (i,j) is F(i,j), 
+ *          then the flux after vignetting taken into account is F(i,j) * vignettingMap(i,j).
+ *          
+ * \note    The vignetting map is written to the HDF5 map.
+ */
+
+void Detector::generateVignettingMap()
+{
+	Log.info("Detector: generating vignetting map.");
+
+	for (int row = 0; row < pixelMap.n_rows; row++)
+	{
+		for (int column = 0; column < pixelMap.n_cols; column++)
+		{
+			// For each pixel in the pixel map, compute first the planar and from there the 
+			// angular focal plane coordinates
+
+			double xFPmm, yFPmm;
+			tie(xFPmm, yFPmm) = pixelToPlanarFocalPlaneCoordinates(row, column);
+
+			double xFPrad, yFPrad;
+			tie(xFPrad, yFPrad) = camera.planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm);
+
+			// Get the angular distance [rad] of the pixel from the optical axis
+
+			const double angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPrad, yFPrad); 
+
+			// Compute the geometrical vignetting attentuation factor
+
+			vignettingMap(row, column) = cos(angle) * cos(angle);
+		}
+	}
+
+	// Write the result to HDF5
+
+	Log.debug("Detector: writing vignetting map to HDF5");
+
+	hdf5File.writeArray("/Vignetting", "vignettingMap", vignettingMap);
+}
+
+
+
+
+
+
+
+
+
+
 
 /**
  * \brief: Zeroes the sub-pixel, pixel, bias register, and the smearing maps.
@@ -294,6 +355,9 @@ void Detector::reset()
 	biasMap.zeros();
 	smearingMap.zeros();
 }
+
+
+
 
 
 
@@ -362,6 +426,8 @@ double Detector::takeExposure(double startTime, double exposureTime)
 
 
 
+
+
 /**
  * \brief: During an exposure, this method makes the detector integrate the light
  *         in small steps. During each step the slight change of star positions due
@@ -395,15 +461,24 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 	// Apply flatfield (at sub-pixel level)
 
-	Log.debug("Detector: applying flatfield.");
+	Log.debug("Detector: NOT applying flatfield.");
 
-	applyFlatfield();
+	//applyFlatfield();
 
 	// Rebin from a subpixel map to a pixel map
 
 	Log.debug("Detector: Rebinning subpixel map into pixel map.");
 
 	rebin();
+
+	// Apply vignetting on the pixel map
+
+	Log.debug("Detector: applying vignetting");
+
+	if (includeVignetting)
+	{
+		applyVignetting();
+	}
 }
 
 
@@ -563,6 +638,27 @@ void Detector::addFlux(double flux)
 	// name is thus a bit of a misnomer.).
 
 	subPixelMap += flux / numSubPixelsPerPixel / numSubPixelsPerPixel;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Apply vignetting. This is the brightness attenuation towards the edges of the FOV
+ * 
+ */
+
+void Detector::applyVignetting()
+{
+	pixelMap = pixelMap % vignettingMap;
 }
 
 
@@ -1623,6 +1719,7 @@ void Detector::initHDF5Groups()
 	hdf5File.createGroup("/BiasMaps");
 	hdf5File.createGroup("/SmearingMaps");
 	hdf5File.createGroup("/Flatfield");
+	hdf5File.createGroup("/Vignetting");
 }
 
 
