@@ -136,32 +136,40 @@ protected:
 
 class MyDetector: public Detector
 {
+
 public:
+
 	MyDetector(ConfigurationParameters &configParam, HDF5File &hdf5File,
 			Camera &camera) :
 			Detector(configParam, hdf5File, camera)
 	{
 	}
-	;
+
+
 
 	pair<double, double> test_pixelToPlanarFocalPlaneCoordinates(double row,
 			double column)
 	{
 		return pixelToPlanarFocalPlaneCoordinates(row, column);
 	}
-	;
+
+
+
 	pair<double, double> test_planarFocalPlaneToPixelCoordinates(
 			double xFPprime, double yFPprime)
 	{
 		return planarFocalPlaneToPixelCoordinates(xFPprime, yFPprime);
 	}
-	;
+
+
 
 	void test_setSubfield(const arma::Mat<float> &subfield)
 	{
 		setSubfield(subfield);
 	}
-	;
+
+
+
 	void test_setSubPixelMap(const arma::fmat &subPixelMap)
 	{
 		if ((subPixelMap.n_rows != this->subPixelMap.n_rows)
@@ -174,7 +182,8 @@ public:
 
 		this->subPixelMap = subPixelMap;
 	}
-	;
+
+
 
 	void test_setBiasRegisterMap(const arma::fmat &biasMap)
 	{
@@ -188,7 +197,9 @@ public:
 
 		this->biasMap = biasMap;
 	}
-	;
+
+
+
 	void test_setSmearingMap(const arma::fmat &smearingMap)
 	{
 		if ((smearingMap.n_rows != this->smearingMap.n_rows)
@@ -200,81 +211,113 @@ public:
 		}
 
 		this->smearingMap = smearingMap;
-	};
+	}
+
+
 
 	arma::Mat<float> test_getSubfield()
 	{
 		return getSubfield();
 	}
-	;
+
+
 
 	arma::fmat test_getSubPixelMap()
 	{
 		return subPixelMap;
-	};
+	}
+
+
 
 	arma::fmat test_getBiasRegisterMap()
 	{
 		return biasMap;
-	};
+	}
+
+
 
 	arma::fmat test_getSmearingMap()
 	{
 		return smearingMap;
-	};
+	}
+
+
+
 	arma::fmat test_getFlatfieldMap()
 	{
 		return flatfieldMap;
-	};
+	}
+
+
 
 	void test_reset(){
 		reset();
-	};
+	}
+
+
 
 	void test_addElectronicOffset()
 	{
 		addElectronicOffset();
-	};
+	}
+
+
 
 	void test_applyGain()
 	{
 		applyGain();
-	};
+	}
+
+
 
 	void test_applyQuantumEfficiency()
 	{
 		applyQuantumEfficiency();
 	}
 
+
+
 	void test_generateFlatFieldMap()
 	{
 		generateFlatfieldMap();
 	}
+
+
 
 	void test_applyFlatfield()
 	{
 		applyFlatfield();
 	}
 
+
+
 	bool test_isInSubPixelMap(double row, double column)
 	{
 		return isInSubPixelMap(row, column);
 	}
+
+
 
 	void test_rebin()
 	{
 		rebin();
 	}
 
+
+
 	void test_applyDigitalSaturation()
 	{
 		applyDigitalSaturation();
 	}
 
+
+
 	void test_applyCte()
 	{
 		applyCte();
 	}
+
+
 
 	void test_addPhotonNoise()
 	{
@@ -286,14 +329,36 @@ public:
 		addReadoutNoise();
 	}
 
+
+
 	void test_applyOpenShutterSmearing(double exposureTime)
 	{
 		applyOpenShutterSmearing(exposureTime);
 	}
 
+
+
 	void test_setZeroPointRow(int row)
 	{
-		this->subFieldZeroPointRow = row;
+		subFieldZeroPointRow = row;
+	}
+
+
+
+	normal_distribution<double> test_getReadoutNoiseDistribution()
+	{
+		return readoutNoiseDistribution;
+	}
+
+
+
+	void test_setDimensions(unsigned int numRowsSubField, unsigned int numColumnsSubField, unsigned numSubPixels)
+	{
+		numRowsPixelMap = numRowsSubField;
+		numColumnsPixelMap = numColumnsSubField;
+
+		numRowsSubPixelMap = numRowsSubField * numSubPixels;
+		numColumnsSubPixelMap = numColumnsSubField * numSubPixels;
 	}
 };
 
@@ -339,7 +404,7 @@ TEST_F(DetectorTest, checkConversionsBetweenPixelsAndFocalPlane)
 
     for (auto &data: pixel2fp)
     {
-        // FIXME: This is an inconvenience that the selection/orientation of the CCD can not be done with accessor methods.
+        // FIXME: This is an inconvenience that the selection/orientation of the CCD can not be done with access methods.
         
         reset();
         configParams.setParameter("CCD/OriginOffsetX", to_string(data["zeroPointX"]));
@@ -1441,36 +1506,6 @@ TEST_F(DetectorTest, applyOpenShutterSmearing)
 			}
 		}
 	}
-
-//	arma::mat testMatrix = arma::mat(10,15);
-//	testMatrix.zeros();
-//
-//	for(unsigned int column = 0; column < 15; column++)
-//	{
-//		testMatrix(0, column) = column;
-//	}
-//
-//	arma::rowvec summed = arma::sum(testMatrix, 0);
-//
-//	EXPECT_EQ(15, summed.size());
-//
-//	for(unsigned int column = 0; column < 15; column++)
-//	{
-//		EXPECT_EQ(column, summed(column));
-//	}
-//
-//	for(unsigned int row = 1; row < 10; row++)
-//	{
-//		testMatrix(row, arma::span::all) += summed;
-//	}
-//
-//	for(unsigned int row = 0; row < 10; row++)
-//	{
-//		for(unsigned int column = 0; column < 15; column++)
-//		{
-//			EXPECT_EQ(column, testMatrix(row, column));
-//		}
-//	}
 }
 
 
@@ -1486,11 +1521,14 @@ TEST_F(DetectorTest, applyOpenShutterSmearing)
  *
  * Readout noise must be added to the pixel map and the bias register map.
  */
-TEST_F(DetectorTest, DISABLED_addReadoutNoise)
+TEST_F(DetectorTest, addReadoutNoise)
 {
 	LOG_STARTING_OF_TEST
 
 	// Construction
+
+	configParams.setParameter("SubField/NumRows", "100");
+	configParams.setParameter("SubField/NumColumns", "100");
 
 	JitterFromRedNoise jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
@@ -1511,12 +1549,14 @@ TEST_F(DetectorTest, DISABLED_addReadoutNoise)
 
 	const int readoutNoise = configParams.getInteger("CCD/ReadoutNoise");
 
+
 	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
 
 	arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
 	detector.test_setSubPixelMap(subPixelMap);
 
 	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
+	subField *= 1000.0;
 	detector.test_setSubfield(subField);
 
 	arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);
@@ -1533,6 +1573,11 @@ TEST_F(DetectorTest, DISABLED_addReadoutNoise)
 
 
 
+	// Readout noise distribution
+
+	EXPECT_EQ(0.0, detector.test_getReadoutNoiseDistribution().mean());
+	EXPECT_EQ(readoutNoise, detector.test_getReadoutNoiseDistribution().stddev());
+
 	// Sub-pixel map: check dimensions and content (unaltered)
 
 	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
@@ -1544,36 +1589,27 @@ TEST_F(DetectorTest, DISABLED_addReadoutNoise)
 
 	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
 	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
-
 	arma::fmat residualSubField = detector.test_getSubfield() - subField;
 	double stdDev = sqrt(arma::accu(residualSubField % residualSubField) / (numRowsSubField * numColumnsSubField));
 
-	EXPECT_EQ(0.0, mean(mean(residualSubField)));
-	EXPECT_EQ(readoutNoise, stdDev);
+	EXPECT_NEAR(0.0, mean(mean(residualSubField)), 0.6);
+	EXPECT_NEAR(readoutNoise, stdDev, 0.01 * readoutNoise);
 
 	// Bias register map: check dimensions and content (added normal distribution)
 
 	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
 	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
 
-	arma::fmat residualSmearingMap = detector.test_getSmearingMap() - smearingMap;
-	stdDev = sqrt(arma::accu(residualSmearingMap % residualSmearingMap) / (numRowsSubField * numColumnsSubField));
+	arma::fmat residualBiasRegisterMap = detector.test_getBiasRegisterMap() - biasMap;
+	stdDev = sqrt(arma::accu(residualBiasRegisterMap % residualBiasRegisterMap) / (numBiasPreScanRows * numColumnsSubField));
 
-	ASSERT_EQ(0.0, mean(mean(residualSmearingMap)));
-	ASSERT_EQ(readoutNoise, stdDev);
+	ASSERT_NEAR(0.0, mean(mean(residualBiasRegisterMap)), 0.6);
+	ASSERT_NEAR(readoutNoise, stdDev, 0.05 * readoutNoise);
 
 	// Smearing map: check dimensions and content (unaltered)
 
 	EXPECT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
 	EXPECT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
-
-	for(unsigned int row = 0; row < numSmearingOverScanRows; row++)
-	{
-		for(unsigned int column = 0; column < numColumnsSubField; column++)
-		{
-			EXPECT_EQ(smearingMap(row, column), detector.test_getSmearingMap()(row, column));
-		}
-	}
 
 	EXPECT_TRUE(arma::all(arma::vectorise(smearingMap) == arma::vectorise(detector.test_getSmearingMap())));
 }
