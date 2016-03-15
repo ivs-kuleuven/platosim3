@@ -73,7 +73,7 @@ protected:
 		shiftMap.zeros(subFieldZeroPointRow + numRowsPixelMap, numColumnsPixelMap);
 		shiftMap.submat(arma::span(subFieldZeroPointRow, subFieldZeroPointRow + numRowsPixelMap - 1), arma::span::all) = pixelMap;
 
-		arma::fmat cteMap (numRowsPixelMap, numColumnsPixelMap);
+		arma::fmat cteMap (numRowsPixelMap + subFieldZeroPointRow, numColumnsPixelMap);
 		cteMap.fill(meanCte);
 
 		// The readout register
@@ -103,7 +103,7 @@ protected:
 
 			// Shift all other rows one row down (i.e. closer to the readout register)
 
-			for (int row = 0; row < subFieldZeroPointRow + numRowsPixelMap - 1; row++)
+			for (int row = 0; row < numRowsPixelMap + subFieldZeroPointRow - 1; row++)
 			{
 				shiftMap(row, arma::span::all) = (ones
 						- cteMap(row, arma::span::all))
@@ -289,6 +289,11 @@ public:
 	void test_applyOpenShutterSmearing(double exposureTime)
 	{
 		applyOpenShutterSmearing(exposureTime);
+	}
+
+	void test_setZeroPointRow(int row)
+	{
+		this->subFieldZeroPointRow = row;
 	}
 };
 
@@ -1240,6 +1245,10 @@ TEST_F(DetectorTest, applyCte)
 	Camera camera(configParams, hdf5File, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
+	int detectorZeroPointRow = 10;
+	detector.test_setZeroPointRow(detectorZeroPointRow);
+
+
 	// Configuration parameters
 
 	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
@@ -1250,7 +1259,7 @@ TEST_F(DetectorTest, applyCte)
 
 	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
 
-	const int detectorZeropointRow = configParams.getInteger("SubField/ZeroPointRow");
+//	const int detectorZeropointRow = configParams.getInteger("SubField/ZeroPointRow");
 	const int detectorZeropointColumn = configParams.getInteger("SubField/ZeroPointColumn");
 
 	const double meanCte = configParams.getDouble("CCD/CTEMean");
@@ -1261,6 +1270,7 @@ TEST_F(DetectorTest, applyCte)
 	detector.test_setSubPixelMap(subPixelMap);
 
 	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
+//	subField *= 1000.0;
 	detector.test_setSubfield(subField);
 
 	arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);
@@ -1289,17 +1299,15 @@ TEST_F(DetectorTest, applyCte)
 	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
 	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
 
-	arma::fmat expected = applyCteOldImplementation(subField, detectorZeropointRow , detectorZeropointColumn, numRowsSubField, numColumnsSubField, meanCte);
+	arma::fmat expected = applyCteOldImplementation(subField, detectorZeroPointRow , detectorZeropointColumn, numRowsSubField, numColumnsSubField, meanCte);
 
-//	EXPECT_TRUE(arma::all(arma::vectorise(expected(0, arma::span::all)) == arma::vectorise(detector.test_getSubfield()(0, arma::span::all))));
-
-	const unsigned int row = 1;
-
-	for(unsigned int column = 0; column < numColumnsSubField; column++)
+	for(unsigned int row = 0; row < numRowsSubField; row++)
 	{
-		EXPECT_FLOAT_EQ(expected(row, column), detector.test_getSubfield()(row, column));
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			EXPECT_NEAR(expected(row, column), detector.test_getSubfield()(row, column), 0.015 * std::max(expected(row, column), detector.test_getSubfield()(row, column)));
+		}
 	}
-
 
 	// Bias register map: check dimensions and content (unaltered)
 
