@@ -56,7 +56,7 @@ class Detector : public HDF5Writer
 
         virtual void reset();
         virtual void generateFlatfieldMap();
-        virtual void generateCteMap();
+        //virtual void generateCteMap();
 
         virtual void integrateLight(double startTime, double exposureTime);
         virtual bool isInSubPixelMap(double row, double column);
