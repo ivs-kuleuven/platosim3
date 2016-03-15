@@ -62,7 +62,7 @@ protected:
 	ConfigurationParameters configParams;
 	HDF5File hdf5File;
 
-	arma::fmat applyCteOldImplementation(arma::fmat pixelMap, int subFieldZeroPointRow, int subFieldZeroPointColumn, int numRowsPixelMap, int numColumnsPixelMap, double meanCte)
+	arma::fmat applyCteOldImplementation(arma::fmat pixelMap, int subFieldZeroPointRow, int numRowsPixelMap, int numColumnsPixelMap, double meanCte)
 	{
 		// Create a map in which we will shift the rows of the pixel map one-by-one
 		// towards the readout register.  Bear in mind that the bottom row of the
@@ -1245,83 +1245,82 @@ TEST_F(DetectorTest, applyCte)
 	Camera camera(configParams, hdf5File, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
-	int detectorZeroPointRow = 10;
-	detector.test_setZeroPointRow(detectorZeroPointRow);
-
-
-	// Configuration parameters
-
-	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
-	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
-
-	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
-	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
-
-	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
-
-//	const int detectorZeropointRow = configParams.getInteger("SubField/ZeroPointRow");
-	const int detectorZeropointColumn = configParams.getInteger("SubField/ZeroPointColumn");
-
-	const double meanCte = configParams.getDouble("CCD/CTEMean");
-
-	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
-
-	arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
-	detector.test_setSubPixelMap(subPixelMap);
-
-	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
-//	subField *= 1000.0;
-	detector.test_setSubfield(subField);
-
-	arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);
-	detector.test_setBiasRegisterMap(biasMap);
-
-	arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);
-	detector.test_setSmearingMap(smearingMap);
-
-
-
-	// CTE
-
-	detector.test_applyCte();
-
-
-
-	// Sub-pixel map: check dimensions and content (unaltered)
-
-	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
-	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
-
-	EXPECT_TRUE(arma::all(arma::vectorise(subPixelMap) == arma::vectorise(detector.test_getSubPixelMap())));
-
-	// Pixel map: check dimension and content (compare with brute-force method (i.e. old implementation))
-
-	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
-	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
-
-	arma::fmat expected = applyCteOldImplementation(subField, detectorZeroPointRow , detectorZeropointColumn, numRowsSubField, numColumnsSubField, meanCte);
-
-	for(unsigned int row = 0; row < numRowsSubField; row++)
+	for(unsigned int detectorZeroPointRow = 0; detectorZeroPointRow <= 15; detectorZeroPointRow += 10)
 	{
-		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		detector.test_setZeroPointRow(detectorZeroPointRow);
+
+
+		// Configuration parameters
+
+		const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+		const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+		const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+		const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+
+		const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+		const double meanCte = configParams.getDouble("CCD/CTEMean");
+
+		// Initialise sub-pixel map, pixel map, bias register map, and smearing map
+
+		arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
+		detector.test_setSubPixelMap(subPixelMap);
+
+		arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
+		//	subField *= 1000.0;
+		detector.test_setSubfield(subField);
+
+		arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);
+		detector.test_setBiasRegisterMap(biasMap);
+
+		arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);
+		detector.test_setSmearingMap(smearingMap);
+
+
+
+		// CTE
+
+		detector.test_applyCte();
+
+
+
+		// Sub-pixel map: check dimensions and content (unaltered)
+
+		ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+		ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+
+		EXPECT_TRUE(arma::all(arma::vectorise(subPixelMap) == arma::vectorise(detector.test_getSubPixelMap())));
+
+		// Pixel map: check dimension and content (compare with brute-force method (i.e. old implementation))
+
+		ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
+		ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
+
+		arma::fmat expected = applyCteOldImplementation(subField, detectorZeroPointRow, numRowsSubField, numColumnsSubField, meanCte);
+
+		for(unsigned int row = 0; row < numRowsSubField; row++)
 		{
-			EXPECT_NEAR(expected(row, column), detector.test_getSubfield()(row, column), 0.015 * std::max(expected(row, column), detector.test_getSubfield()(row, column)));
+			for(unsigned int column = 0; column < numColumnsSubField; column++)
+			{
+				EXPECT_NEAR(expected(row, column), detector.test_getSubfield()(row, column), 0.015 * std::max(expected(row, column), detector.test_getSubfield()(row, column)));
+			}
 		}
+
+		// Bias register map: check dimensions and content (unaltered)
+
+		ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+		ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
+
+		EXPECT_TRUE(arma::all(arma::vectorise(biasMap) == arma::vectorise(detector.test_getBiasRegisterMap())));
+
+		// Smearing map: check dimensions and content (unaltered)
+
+		ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+		ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+
+		EXPECT_TRUE(arma::all(arma::vectorise(smearingMap) == arma::vectorise(detector.test_getSmearingMap())));
 	}
-
-	// Bias register map: check dimensions and content (unaltered)
-
-	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
-	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
-
-	EXPECT_TRUE(arma::all(arma::vectorise(biasMap) == arma::vectorise(detector.test_getBiasRegisterMap())));
-
-	// Smearing map: check dimensions and content (unaltered)
-
-	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
-	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
-
-	EXPECT_TRUE(arma::all(arma::vectorise(smearingMap) == arma::vectorise(detector.test_getSmearingMap())));
 }
 
 
