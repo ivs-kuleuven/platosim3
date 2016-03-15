@@ -984,7 +984,7 @@ void Detector::applyCte()
 		// register (these rows are looped over via the "index" variable - note
 		// that the detector zeropoint is added to it!).
 
-		if(row + subFieldZeroPointRow == 0)
+		if (row + subFieldZeroPointRow == 0)
 		{
 			const double factor1 = meanCte;
 
@@ -992,22 +992,27 @@ void Detector::applyCte()
 
 		}
 
-		for (unsigned int index = subFieldZeroPointRow;
-				index < row + subFieldZeroPointRow; index++)
+		else
 		{
-			const double factor1 = pow(meanCte, index + 1)
-					* pow(cti, row + subFieldZeroPointRow - index);
+			for (unsigned int index = subFieldZeroPointRow; index <= row + subFieldZeroPointRow; index++)
+			{
+				const double cteFactor = pow(meanCte, index + 1)
+						* pow(cti, row + subFieldZeroPointRow - index);
 
-//			if ((row + subFieldZeroPointRow == 0) || (index == 0))
-			if (index == 0)
-			{
-				readout += pixelMap(index - subFieldZeroPointRow, arma::span::all) * factor1;
-			} else
-			{
-				const double factor2 = exp(sumOfLogsUpTo[row + subFieldZeroPointRow - 1]
-								       - sumOfLogsUpTo[row + subFieldZeroPointRow - index - 1]
-	                                   - sumOfLogsUpTo[index - 1]);
-				readout += pixelMap(index - subFieldZeroPointRow, arma::span::all) * factor1 * factor2;
+				if ((index == 0) || (row - (index - subFieldZeroPointRow) == 0))
+				{
+					readout += pixelMap(index - subFieldZeroPointRow, arma::span::all) * cteFactor;
+				}
+
+				else
+				{
+					const double binomialFactor = exp(
+							sumOfLogsUpTo[row + subFieldZeroPointRow - 1]
+									- sumOfLogsUpTo[row - (index - subFieldZeroPointRow) - 1]
+									- sumOfLogsUpTo[index - 1]);
+
+					readout += pixelMap(index - subFieldZeroPointRow, arma::span::all) * cteFactor;
+				}
 			}
 		}
 
