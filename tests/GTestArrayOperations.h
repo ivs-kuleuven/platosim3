@@ -90,9 +90,9 @@ TEST(ArrayOperationsTest, Rotation)
 
     // Expected result after rotating the smallArray by 90 degrees
     arma::fmat rotatedTinyArray90 = {
-        {0.3, 0.6, 0.9},
-        {0.2, 0.5, 0.8},
-        {0.1, 0.4, 0.7}
+        {0.7, 0.4, 0.1},
+        {0.8, 0.5, 0.2},
+        {0.9, 0.6, 0.3}
     };
 
     // Test array where there are no zero (0) values at the sides.
@@ -104,9 +104,9 @@ TEST(ArrayOperationsTest, Rotation)
 
     // Expected result after rotating the smallArray by 90 degrees
     arma::fmat rotatedSmallArray90 = {
-        {3., 6., 9.},
-        {2., 5., 8.},
-        {1., 4., 7.}
+        {7., 4., 1.},
+        {8., 5., 2.},
+        {9., 6., 3.}
     };
 
     // Test array where zeros (0) are added
@@ -121,9 +121,9 @@ TEST(ArrayOperationsTest, Rotation)
     // Expected result after rotating the smallNulledArray by 90 degrees
     arma::fmat rotatedSmallNulledArray90 = {
         {0. , 0., 0., 0., 0.},
-        {0. , 3., 6., 9., 0.},
-        {0. , 2., 5., 8., 0.},
-        {0. , 1., 4., 7., 0.},
+        {0. , 7., 4., 1., 0.},
+        {0. , 8., 5., 2., 0.},
+        {0. , 9., 6., 3., 0.},
         {0. , 0., 0., 0., 0.}
     };
 
@@ -183,8 +183,8 @@ TEST(ArrayOperationsTest, Rotation)
     EXPECT_FLOAT_EQ(50.0, arr(9, 9));
     EXPECT_FLOAT_EQ(10.0, arr(5, 5));
     EXPECT_FLOAT_EQ(10.0, arr(13, 13));
-    EXPECT_FLOAT_EQ(20.0, arr(13, 5));
-    EXPECT_FLOAT_EQ(40.0, arr(5, 13));
+    EXPECT_FLOAT_EQ(40.0, arr(13, 5));
+    EXPECT_FLOAT_EQ(20.0, arr(5, 13));
 
     arr = ArrayOperations::rotateArray(bigNulledArray, deg2rad(0.0));
     checkArraysToBeEqual(bigNulledArray, arr);
