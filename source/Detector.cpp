@@ -252,6 +252,8 @@ void Detector::generateFlatfieldMap()
 
 	// Save the intra-pixel flatfield in the HDF5 file
 
+	Log.debug("Detector: writing IRNU to HDF5");
+
 	hdf5File.writeArray("/Flatfield", "IRNU", flatfieldMap);
 
 	// Rebin the intra-pixel flatfield to the pixel flatfield (IRNU -> PRNU)
@@ -272,6 +274,10 @@ void Detector::generateFlatfieldMap()
 			prnu(row, column) = arma::accu(flatfieldMap.submat(beginRow, beginCol, endRow, endCol));
 		}
 	}
+
+	// Write the result to the HDF5 output file
+
+	Log.debug("Detector: writing PRNU to HDF5");
 
 	hdf5File.writeArray("/Flatfield", "PRNU", prnu);
 }
