@@ -262,7 +262,8 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("IncludeReadoutNoise");
     addBoolean("IncludeCTIeffects"); 
     addBoolean("IncludeOpenShutterSmearing");
-
+    addBoolean("IncludeVignetting");
+    
     subGroup = "SubField";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addInteger("ZeroPointRow");
