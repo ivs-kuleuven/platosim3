@@ -483,8 +483,8 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 	if (includeVignetting)
 	{
-    applyVignetting();
-}
+        applyVignetting();
+    }
 }
 
 
@@ -665,7 +665,7 @@ void Detector::addFlux(double flux)
 void Detector::applyVignetting()
 {
         pixelMap = pixelMap % vignettingMap;
-    }
+}
 
 
 
@@ -793,8 +793,13 @@ void Detector::readOut(float exposureTime)
 
 	if (includePhotonNoise)
 	{
+        Log.debug("Detector: adding photon noise");
 		addPhotonNoise();
 	}
+    else 
+    {
+        Log.debug("Detector: no photon noise added.");
+    }
 
 	// Apply full-well saturation. A pixel has a maximum capacity of electrons (the full well capacity).
 	// If photons free more electrons, the pixel saturates, and the electrons flow in the pixels above and below in
@@ -813,8 +818,13 @@ void Detector::readOut(float exposureTime)
 
 	if (includeCTIeffects)
 	{
+        Log.debug("Detector: applying charge transfer inefficiency");
 		applyCte();
 	}
+    else
+    {
+        Log.debug("Detector: no charge transfer inefficiency applied.");
+    }
 
 	// Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
 	// the pixels are still receiving photons from the sky, while they are being transfered towards
@@ -822,8 +832,13 @@ void Detector::readOut(float exposureTime)
 
 	if (includeOpenShutterSmearing)
 	{
+        Log.debug("Detector: applying open shutter smearing.");
 		applyOpenShutterSmearing(exposureTime);
 	}
+    else 
+    {
+        Log.debug("Detector: no open shutter smearing applied.");
+    }
 
 	// Each time the amplifier reads out a pixel, a tiny bit of noise is added.
 	// Add the readout noise.
@@ -832,8 +847,13 @@ void Detector::readOut(float exposureTime)
 
 	if (includeReadoutNoise)
 	{ 
+        Log.debug("Detector: adding readout noise.");
 		addReadoutNoise();
 	}
+    else
+    {
+        Log.debug("Detector: no readout noise added.");
+    }
 
 	// Apply the gain, to increase the dynamic range of the detector.
 	// Pixel units before: [electrons]
@@ -906,8 +926,6 @@ void Detector::applyQuantumEfficiency()
  */
 void Detector::addPhotonNoise()
 {
-	Log.debug("Detector: adding photon noise");
-
 	// Add photon noise to the pixel map
 
 	for (unsigned int row = 0; row < numRowsPixelMap; row++)
@@ -1058,8 +1076,6 @@ void Detector::applyFullWellSaturation()
  */
 void Detector::applyCte()
 {
-	Log.debug("Detector: Applying charge transfer inefficiency");
-
 	float cti = 1.0 - meanCte;
 
 	// Computing the effects of CTE requires the use of a binomial distribution.
@@ -1271,7 +1287,6 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
  */
 void Detector::addReadoutNoise()
 {
-	Log.debug("Detector: adding readout noise");
 
 	readoutNoiseDistribution = normal_distribution<double>(0.0, readoutNoise);
 
