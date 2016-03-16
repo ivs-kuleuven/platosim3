@@ -69,7 +69,8 @@ CCD:
     ReadoutTime:             2               # time to read out entire CCD [s]
     FlatfieldPtPNoise:       0.016           # peak-to-peak pixel noise
     CTEMean:                 0.99999         # Mean Charge Transfer Efficiency
-    IncludePhotonNoise:      yes             # include photon noise [yes or no]
+    IncludeFlatfield:            yes         # Include flatfield [yes or no]
+    IncludePhotonNoise:          yes         # include photon noise [yes or no]
     IncludeReadoutNoise:         yes         # Include readout noise [yes or no]
     IncludeCTIeffects:           yes         # Include charge transfer inefficiency effects [yes or no]
     IncludeOpenShutterSmearing:  yes         # Include trails due reading out with an open shutter [yes or no]
