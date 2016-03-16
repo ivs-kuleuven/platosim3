@@ -785,7 +785,7 @@ void Detector::readOut(float exposureTime)
 	// Pixel units before: [photons]
 	// Pixel units after: [electrons]
 
-	applyQuantumEfficiency();
+	//applyQuantumEfficiency();
 
 	// Apply poisson distributed photon noise
 	// Pixel units before: [electrons]
@@ -859,14 +859,14 @@ void Detector::readOut(float exposureTime)
 	// Pixel units before: [electrons]
 	// Pixel units after: [ADU]
 
-	applyGain();
+	//applyGain();
 
 	// Take into account the bias level (i.e. add the constant "zero" level
 	// introduced by the amplifier).
 	// Pixel units before: [ADU]
 	// Pixel units after: [ADU]
 
-	addElectronicOffset();
+	//addElectronicOffset();
 
 	// Take into account digital saturation. If even after dividing by the gain
 	// the number of ADUs in a pixel is still higher than the analogue-digital
@@ -875,7 +875,7 @@ void Detector::readOut(float exposureTime)
 	// Pixel units before: [ADU]
 	// Pixel units after: [ADU]
 
-	applyDigitalSaturation();
+	//applyDigitalSaturation();
 }
 
 
