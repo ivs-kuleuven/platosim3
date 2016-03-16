@@ -130,6 +130,8 @@ class Detector : public HDF5Writer
         bool includeCTIeffects;                  // Include CTI effects [yes or no]
         bool includeOpenShutterSmearing;         // Include trails due reading out with an open shutter
         bool includeVignetting;                  // Include brightness attenuation due to vignetting
+        bool includeConvolution;                 // Wheter or not to convolve the subPixelMap with the PSF
+
         bool psfWasSet;                          // True if PSF for subfield was already initialised. False otherwise.
 
         double internalTime;

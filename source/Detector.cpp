@@ -124,6 +124,7 @@ Detector::~Detector()
     includeCTIeffects          = configParam.getBoolean("CCD/IncludeCTIeffects");  
     includeOpenShutterSmearing = configParam.getBoolean("CCD/IncludeOpenShutterSmearing");
     includeVignetting          = configParam.getBoolean("CCD/IncludeVignetting");
+    includeConvolution         = configParam.getBoolean("CCD/IncludeConvolution");
 
     // Configuration parameters for the subfield
 
@@ -482,8 +483,8 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 	if (includeVignetting)
 	{
-		applyVignetting();
-	}
+    applyVignetting();
+}
 }
 
 
@@ -663,8 +664,8 @@ void Detector::addFlux(double flux)
 
 void Detector::applyVignetting()
 {
-	pixelMap = pixelMap % vignettingMap;
-}
+        pixelMap = pixelMap % vignettingMap;
+    }
 
 
 
@@ -877,10 +878,10 @@ void Detector::readOut(float exposureTime)
  */
 void Detector::applyQuantumEfficiency()
 {
-	Log.debug("Detector: applying quantum efficiency");
+    	Log.debug("Detector: applying quantum efficiency");
 
-	pixelMap *= quantumEfficiency;
-}
+    	pixelMap *= quantumEfficiency;
+    }
 
 
 
@@ -1564,9 +1565,19 @@ void Detector::setPsfForSubfieldCenter()
  */
 void Detector::convolveWithPsf()
 {
-	// subpixelMap serves here both as input as well as output matrix;
 
-	convolver.convolve(subPixelMap, subPixelMap);
+    if(includeConvolution)
+    {
+        Log.debug("Detector: convolving subPixelMap with PSF.");
+
+        // subpixelMap serves here both as input as well as output matrix;
+    	convolver.convolve(subPixelMap, subPixelMap);
+    }
+    else
+    {
+        Log.debug("Detector: no convolution applied.");
+    }
+
 }
 
 
