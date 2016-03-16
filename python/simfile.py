@@ -185,18 +185,16 @@ class SimFile (object):
         """
 
         # Get the image from the HDF5 file
-        # Flip (left-right) the image, then rotate it 90 degrees. This way the smearing lines
-        # are vertical, and the image is oriented in such a way that overplotting the 
-        # star x,y coordinates from getStarPixelCoordinates() becomes straightforward.
 
-        image = np.rot90(np.fliplr(self.getImage(imageNr)))
+        image = self.getImage(imageNr)
         Nrows, Ncols = image.shape
 
-        # Plot the image. 
+        # Plot the image. Note that imshow tends to plot coordinates at the beginning of each pixel, while we would
+        # likt them to have at the center of each pixel. Hence the -0.5 terms in extent = [...].
 
         figure = plt.figure()
         axis = figure.add_subplot(111)
-        imagePlot = axis.imshow(image, cmap=cm.hot, interpolation="nearest", origin='lower', extent=[0,Nrows,0,Ncols])
+        imagePlot = axis.imshow(image, cmap=cm.hot, interpolation="nearest", origin='lower', extent=[-0.5,Nrows-0.5,-0.5,Ncols-0.5])
 
         # The large dynamic range of the pixel values often results in images where only
         # the brightest stars are visible. To improve the contrast, clip the color mapping.
@@ -447,8 +445,8 @@ class SimFile (object):
                          stars visible in the current image (subfield). The star 
                          identifier equals the line number of the star in the input 
                          star catalog (counting from 0). 
-                row: The (decimal) pixel row coordinates of each star in the image.
-                col: The (decimal) pixel column coordinates of each star in the image.
+                row: The pixel row coordinates of each star in the image.
+                col: The pixel column coordinates of each star in the image.
                 Xmm: The focal plane FP' x-coordinates of each star in the image
                 Ymm: The focal plane FP' y-coordinates of each star in the image
 
@@ -460,7 +458,7 @@ class SimFile (object):
             >>> file = SimFile("Simul01.hdf5")
             >>> file.showImage(4)
             >>> ID, row, col, Xmm, Ymm = file.getStarCoordinates(4, minVmag=6.0, maxVmag=9.0)
-            >>> plt.scatter(x,y, marker='x', c='g')
+            >>> plt.scatter(row, col, marker='x', c='g')
 
         """
 
@@ -508,6 +506,10 @@ class SimFile (object):
         Xmm = Xmm[sorted]
         Ymm = Ymm[sorted]
 
+        # Convert the pixel coordinates to integer values (rounding down)
+
+        row = np.array(row, dtype=np.int)
+        col = np.array(col, dtype=np.int)
 
         # If no cut in V magnitude is required, we're finished.
 
