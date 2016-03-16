@@ -477,7 +477,16 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 	// Apply flatfield (at sub-pixel level)
 
-	applyFlatfield();
+    if (includeFlatfield)
+    {
+        Log.debug("Detector: applying Flatfield.");
+
+    	applyFlatfield();
+    }
+    else
+    {
+        Log.debug("Detector: no flatfield applied.");
+    }
 
 	// Rebin from a subpixel map to a pixel map
 
@@ -487,12 +496,17 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 	// Apply vignetting on the pixel map
 
-	Log.debug("Detector: applying vignetting");
-
 	if (includeVignetting)
 	{
+        Log.debug("Detector: applying vignetting");
+
         applyVignetting();
     }
+    else
+    {
+        Log.debug("Detector: no vignetting applied.");
+    }
+
 }
 
 
@@ -818,7 +832,7 @@ void Detector::readOut(float exposureTime)
     if (includeFullWellSaturation)
     {
         Log.debug("Detector: aplying full well saturation.");
-	applyFullWellSaturation();
+        applyFullWellSaturation();
     }
     else
     {
