@@ -131,6 +131,7 @@ class Detector : public HDF5Writer
         bool includeOpenShutterSmearing;         // Include trails due reading out with an open shutter
         bool includeVignetting;                  // Include brightness attenuation due to vignetting
         bool includeConvolution;                 // Wheter or not to convolve the subPixelMap with the PSF
+        bool includeFullWellSaturation;          // Wheter or not full well saturation should be applied
 
         bool psfWasSet;                          // True if PSF for subfield was already initialised. False otherwise.
 

@@ -25,8 +25,15 @@
  */
 
 Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera)
-: HDF5Writer(hdf5file), includePhotonNoise(true), includeReadoutNoise(true),
-  includeCTIeffects(true), includeOpenShutterSmearing(true), includeVignetting(true), psfWasSet(false), 
+: HDF5Writer(hdf5file), 
+  includeFlatfield(true), 
+  includePhotonNoise(true), 
+  includeReadoutNoise(true),
+  includeCTIeffects(true), 
+  includeOpenShutterSmearing(true), 
+  includeVignetting(true), 
+  includeFullWellSaturation(true),
+  psfWasSet(false), 
   internalTime(0.0), camera(camera), imageNr(0)
 {
 	// Create the groups in the HDF5 file where the different maps (i.e. pixel map,
@@ -125,6 +132,7 @@ Detector::~Detector()
     includeOpenShutterSmearing = configParam.getBoolean("CCD/IncludeOpenShutterSmearing");
     includeVignetting          = configParam.getBoolean("CCD/IncludeVignetting");
     includeConvolution         = configParam.getBoolean("CCD/IncludeConvolution");
+    includeFullWellSaturation  = configParam.getBoolean("CCD/IncludeFullWellSaturation");
 
     // Configuration parameters for the subfield
 
@@ -807,7 +815,15 @@ void Detector::readOut(float exposureTime)
 	// Pixel units before: [electrons]
 	// Pixel units after: [electrons]
 
+    if (includeFullWellSaturation)
+    {
+        Log.debug("Detector: aplying full well saturation.");
 	applyFullWellSaturation();
+    }
+    else
+    {
+        Log.debug("Detector: no full well saturation applied.");
+    }
 
 	// Simulate the effects of the Charge Transfer Inefficiency (CTI). When the
 	// CCD is read out, row after row, a part of the charge is always left behind
