@@ -124,7 +124,8 @@ class Detector : public HDF5Writer
         unsigned int electronicOffset;           // Bias or electronic offset [ADU]
         unsigned long digitalSaturationLimit;    // Digital saturation limit [ADU / pixel]
 
-    	bool includePhotonNoise;                 // Whether or not to include photon noise
+        bool includeFlatfield;                   // Whether or not to include flat fielding
+        bool includePhotonNoise;                 // Whether or not to include photon noise
         bool includeReadoutNoise;                // Include readout noise [yes or no]
         bool includeCTIeffects;                  // Include CTI effects [yes or no]
         bool includeOpenShutterSmearing;         // Include trails due reading out with an open shutter

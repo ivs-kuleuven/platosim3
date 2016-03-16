@@ -118,6 +118,7 @@ Detector::~Detector()
     readoutTime                = configParam.getDouble("CCD/ReadoutTime");
     flatfieldNoiseAmplitude    = configParam.getDouble("CCD/FlatfieldPtPNoise");
     meanCte                    = configParam.getDouble("CCD/CTEMean");
+    includeFlatfield           = configParam.getBoolean("CCD/IncludeFlatfield");
     includePhotonNoise         = configParam.getBoolean("CCD/IncludePhotonNoise");
     includeReadoutNoise        = configParam.getBoolean("CCD/IncludeReadoutNoise");   
     includeCTIeffects          = configParam.getBoolean("CCD/IncludeCTIeffects");  
@@ -467,9 +468,7 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 	// Apply flatfield (at sub-pixel level)
 
-	Log.debug("Detector: NOT applying flatfield.");
-
-	//applyFlatfield();
+	applyFlatfield();
 
 	// Rebin from a subpixel map to a pixel map
 
@@ -701,7 +700,16 @@ void Detector::applyFlatfield()
 	const unsigned int endRow = numRowsSubPixelMap - numEdgeSubPixels - 1;
 	const unsigned int endCol = numColumnsSubPixelMap - numEdgeSubPixels - 1;
 
-	subPixelMap.submat(beginRow, beginCol, endRow, endCol) = subPixelMap.submat(beginRow, beginCol, endRow, endCol) % flatfieldMap;
+    if (includeFlatfield)
+    {
+        Log.debug("Detector: applying flatfield.");
+
+    	subPixelMap.submat(beginRow, beginCol, endRow, endCol) = subPixelMap.submat(beginRow, beginCol, endRow, endCol) % flatfieldMap;
+    }
+    else
+    {
+        Log.debug("Detector: flatfield not applied.");
+    }
 }
 
 
