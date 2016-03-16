@@ -709,7 +709,7 @@ void Detector::applyFlatfield()
     }
     else
     {
-        Log.debug("Detector: flatfield not applied.");
+        Log.debug("Detector: no flatfield applied.");
     }
 }
 
