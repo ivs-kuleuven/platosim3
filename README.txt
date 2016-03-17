@@ -8,20 +8,22 @@ bash script:
 $ ./install.sh
 
 This install script requires Python on your system, and runs the Python install 
-scripts in dependencies/installscripts/.
+scripts in dependencies/installscripts/. This may take a while. You may get some 
+warnings, this is normal. Afterwards it also builds the PlatoSim simulator itself.
 
-Once the dependencies are installed, you can build the actual simulator with 
-
-$ mkdir build
-$ cd build
-$ cmake ..
-# make
-
-This should build two executables: testplatosim and platosim. Executing 
+In the build/ folder you should find two executables: testplatosim and platosim. 
+Executing 
 
 $ ./testplatosim
 
 runs all the unit tests.
+
+If, for some reason, you ever want to recompile the simulator, simply:
+
+$ cd build
+$ rm *
+$ cmake ..
+# make
 
 
 
