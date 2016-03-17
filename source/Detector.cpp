@@ -927,7 +927,7 @@ void Detector::readOut(float exposureTime)
  */
 void Detector::applyQuantumEfficiency()
 {
-    	Log.debug("Detector: applying quantum efficiency");
+  	Log.debug("Detector: applying quantum efficiency to pixelMap (quantumEfficiency=" + to_string(quantumEfficiency) + ").");
 
    	pixelMap *= quantumEfficiency;
 }
@@ -1359,7 +1359,7 @@ void Detector::addReadoutNoise()
  */
 void Detector::applyGain()
 {
-	Log.debug("Detector: applying gain");
+	Log.debug("Detector: applying gain to pixelMap, biasMap, and smearingMap (gain=" + to_string(gain) + ")");
 
 	// Divide the pixel, bias register, and smearing map by the gain
 
@@ -1391,7 +1391,7 @@ void Detector::applyGain()
 
 void Detector::addElectronicOffset()
 {
-	Log.debug("Detector: adding a bias");
+	Log.debug("Detector: adding a bias to pixelMap, biasMap and smearingMap (electronicOffset=" + to_string(electronicOffset)+ ")");
 
 	// Add the electronic offset to the pixel, bias register, and smearing maps
 
@@ -1424,8 +1424,6 @@ void Detector::addElectronicOffset()
  */
 void Detector::applyDigitalSaturation()
 {
-	Log.debug("Detector: applying digital saturation");
-
 	// Top off the values in the pixel map
 
 	pixelMap(arma::find(pixelMap > digitalSaturationLimit)).fill(digitalSaturationLimit);
