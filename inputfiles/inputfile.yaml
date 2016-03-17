@@ -3,102 +3,104 @@
 
 General:
     
-    ProjectLocation:         /Users/rik/Git/PlatoSim3
+    ProjectLocation:             /Users/rik/Git/PlatoSim3
 
 
 ObservingParameters:
 
-    NumExposures:            40              # Number of expsosures
-    ExposureTime:            23              # [s]
-    RApointing:              180             # Platform (not telescope) right ascension pointing coordinate  [deg] 
-    DecPointing:             -70             # Platform (not telescope) declination pointing coordinate      [deg]
-    SkyBackground:           220.            # Stellar + zodiacal background level. Set negative to compute. [phot/pix/s]
-    StarCatalogFile:         inputfiles/starcatalog.txt
+    NumExposures:                40              # Number of expsosures
+    ExposureTime:                23              # [s]
+    RApointing:                  180             # Platform (not telescope) right ascension pointing coordinate  [deg] 
+    DecPointing:                 -70             # Platform (not telescope) declination pointing coordinate      [deg]
+    SkyBackground:               220.            # Stellar + zodiacal background level. Set negative to compute. [phot/pix/s]
+    StarCatalogFile:             inputfiles/starcatalog.txt
 
 
 Platform:
 
-    UseJitter:               yes             # yes or no
-    UseJitterFromFile:       no              # yes or no
-    JitterYawRms:            2.3             # [arcsec]
-    JitterPitchRms:          2.3             # [arcsec]
-    JitterRollRms:           2.3             # [arcsec]
-    JitterTimeScale:         3600.           # [s]
-    JitterFileName:          inputfiles/jitter.txt
+    UseJitter:                   yes             # yes or no
+    UseJitterFromFile:           no              # yes or no
+    JitterYawRms:                2.3             # [arcsec]
+    JitterPitchRms:              2.3             # [arcsec]
+    JitterRollRms:               2.3             # [arcsec]
+    JitterTimeScale:             3600.           # [s]
+    JitterFileName:              inputfiles/jitter.txt
 
 
 Telescope:
     
-    LightCollectingArea:     113.1           # Effective area of 1 telescope [cmˆ2]
-    TransmissionEfficiency:  0.757           # in [0,1]
-    FOVSquareDegrees:        1072.0          # Sky area covered by the FOV of 1 telescope [deg^2]
-    DriftYawRms:             2.3             # RMS of thermo-elastic drift in yaw [arcsec]
-    DriftPitchRms:           2.3             # RMS of thermo-elastic drift in pitch [arcsec]
-    DriftRollRms:            2.3             # RMS of thermo-elastic drift in roll [arcsec]
-    DriftTimeScale:          3600.           # Timescale of thermo-elastic drift [s]
+    LightCollectingArea:         113.1           # Effective area of 1 telescope [cmˆ2]
+    TransmissionEfficiency:      0.757           # in [0,1]
+    FOVSquareDegrees:            1072.0          # Sky area covered by the FOV of 1 telescope [deg^2]
+    DriftYawRms:                 2.3             # RMS of thermo-elastic drift in yaw [arcsec]
+    DriftPitchRms:               2.3             # RMS of thermo-elastic drift in pitch [arcsec]
+    DriftRollRms:                2.3             # RMS of thermo-elastic drift in roll [arcsec]
+    DriftTimeScale:              3600.           # Timescale of thermo-elastic drift [s]
 
 
 Camera:
     
-    FocalPlaneOrientation:   0.0             # [degrees]
-    PlateScale:              0.8333          # [arcsec/micron]
-    FocalLength:             0.24712595      # Focal length as recovered from ZEMAX model [m]
-    ThroughputBandwidth:     400             # FWHM [nm]
-    ThroughputLambdaC:       600             # Central wavelength of the throughput passband [nm]
-    FieldDistortion:                         # Describe the model for the field distortion
-        Type:                Polynomial1D
-        Degree:              3
-        Coefficients:        [-0.00366969196778, 0.000854231697381, -4.12553764817e-05, 5.7201219949e-06]
+    FocalPlaneOrientation:       0.0             # [degrees]
+    PlateScale:                  0.8333          # [arcsec/micron]
+    FocalLength:                 0.24712595      # Focal length as recovered from ZEMAX model [m]
+    ThroughputBandwidth:         400             # FWHM [nm]
+    ThroughputLambdaC:           600             # Central wavelength of the throughput passband [nm]
+    FieldDistortion:                             # Describe the model for the field distortion
+        Type:                    Polynomial1D
+        Degree:                  3
+        Coefficients:            [-0.00366969196778, 0.000854231697381, -4.12553764817e-05, 5.7201219949e-06]
 
 PSF:
 
-    UseGauss:                yes             # Use analytical Gaussian PSF (yes or no)
-    GaussSigma:              1.0             # Width of Gaussian PSF [pixels]
-    Filename:                inputfiles/psf_201506.hdf5
-    SubPixels:               128             # Nr of subpixels per pixel that was used to generate the PSF
+    UseGauss:                    yes             # Use analytical Gaussian PSF (yes or no)
+    GaussSigma:                  1.0             # Width of Gaussian PSF [pixels]
+    Filename:                    inputfiles/psf_201506.hdf5
+    SubPixels:                   128             # Nr of subpixels per pixel that was used to generate the PSF
 
 
 CCD:
 
-    OriginOffsetX:               0           # X Offset of CCD origin from center of focal plane [mm]
-    OriginOffsetY:               0           # Y Offset of CCD origin from center of focal plane [mm]
-    Orientation:                 0           # Orientation of CCD w.r.t. focal plane orientation [deg]
-    NumColumns:                  4510        # Number of columns [pixels]
-    NumRows:                     4510        # Number of rows [pixels]
-    PixelSize:                   18          # [micron]
-    Gain:                        16          # [e-/ADU]
-    QuantumEfficiency:           0.8745      # in [0,1]
-    FullWellSaturation:          1000000     # [e-/pixel]
-    DigitalSaturation:           65535       # E.g. 16 bit [ADU/pixel]
-    ReadoutNoise:                28          # [e-/pixel]
-    ElectronicOffset:            100         # bias [ADU]
-    ReadoutTime:                 2           # time to read out entire CCD [s]
-    FlatfieldPtPNoise:           0.016       # peak-to-peak pixel noise
-    CTEMean:                     0.99999     # Mean Charge Transfer Efficiency
-    IncludeFlatfield:            no          # Include flatfield [yes or no]
-    IncludePhotonNoise:          yes         # Include photon noise [yes or no]
-    IncludeReadoutNoise:         yes         # Include readout noise [yes or no]
-    IncludeCTIeffects:           yes         # Include charge transfer inefficiency effects [yes or no]
-    IncludeOpenShutterSmearing:  yes         # Include trails due reading out with an open shutter [yes or no]
-    IncludeVignetting:           yes         # Include brightness attenuation towards the edge of the FOV due to vignetting 
-    IncludeConvolution:          yes         # Wheter or not to convolve the subPixelMap with the PSF
+    OriginOffsetX:               0               # X Offset of CCD origin from center of focal plane [mm]
+    OriginOffsetY:               0               # Y Offset of CCD origin from center of focal plane [mm]
+    Orientation:                 0               # Orientation of CCD w.r.t. focal plane orientation [deg]
+    NumColumns:                  4510            # Number of columns [pixels]
+    NumRows:                     4510            # Number of rows [pixels]
+    PixelSize:                   18              # [micron]
+    Gain:                        16              # [e-/ADU]
+    QuantumEfficiency:           0.8745          # in [0,1]
+    FullWellSaturation:          1000000         # [e-/pixel]
+    DigitalSaturation:           65535           # E.g. 16 bit [ADU/pixel]
+    ReadoutNoise:                28              # [e-/pixel]
+    ElectronicOffset:            100             # bias [ADU]
+    ReadoutTime:                 2               # time to read out entire CCD [s]
+    FlatfieldPtPNoise:           0.016           # peak-to-peak pixel noise
+    CTEMean:                     0.99999         # Mean Charge Transfer Efficiency
+    IncludeFlatfield:            no              # Include flatfield [yes or no]
+    IncludePhotonNoise:          yes             # Include photon noise [yes or no]
+    IncludeReadoutNoise:         yes             # Include readout noise [yes or no]
+    IncludeCTIeffects:           yes             # Include charge transfer inefficiency effects [yes or no]
+    IncludeOpenShutterSmearing:  yes             # Include trails due reading out with an open shutter [yes or no]
+    IncludeVignetting:           yes             # Include brightness attenuation towards the edge of the FOV due to vignetting 
+    IncludeConvolution:          yes             # Wheter or not to convolve the subPixelMap with the PSF
+    IncludeFullWellSaturation:   yes             # Wheter or not full well saturation should be applied
+    IncludeDigitalSaturation:    yes             # Wheter or not digital saturation should be applied
 
 SubField:    
 
-    ZeroPointRow:            0               # Row of the (0,0) pixel of the subfield [pixels]
-    ZeroPointColumn:         0               # Column of the (0,0) pixel of the subfield [pixels]
-    NumColumns:              10              # Number of columns, should be >= 8 [pixels]
-    NumRows:                 10              # Number of rows,    should be >= 8 [pixels]
-    NumBiasPrescanRows:      5               # Nr of rows of the prescan strip to determine the bias [pixels]
-    NumSmearingOverscanRows: 5               # Nr of rows of the overscan strip to determine the smearing [pixels]
-    SubPixels:               4               # (Sqrt of ) nr of subpixels per CCD pixel. Should be 2^n <= 128.
+    ZeroPointRow:                0               # Row of the (0,0) pixel of the subfield [pixels]
+    ZeroPointColumn:             0               # Column of the (0,0) pixel of the subfield [pixels]
+    NumColumns:                  10              # Number of columns, should be >= 8 [pixels]
+    NumRows:                     10              # Number of rows,    should be >= 8 [pixels]
+    NumBiasPrescanRows:          5               # Nr of rows of the prescan strip to determine the bias [pixels]
+    NumSmearingOverscanRows:     5               # Nr of rows of the overscan strip to determine the smearing [pixels]
+    SubPixels:                   4               # (Sqrt of ) nr of subpixels per CCD pixel. Should be 2^n <= 128.
 
 
 RandomSeeds:
 
-    ReadOutNoiseSeed:        1424949740      # Unique positive integer 
-    PhotonNoiseSeed:         1433320336      # Unique positive integer 
-    JitterSeed:              1433320381      # Unique positive integer 
-    FlatFieldSeed:           1425284070      # Unique positive integer 
-    CTESeed:                 1424949740      # Unique positive integer 
-    DriftSeed:               1433429158      # Unique positive integer 
+    ReadOutNoiseSeed:            1424949740      # Unique positive integer 
+    PhotonNoiseSeed:             1433320336      # Unique positive integer 
+    JitterSeed:                  1433320381      # Unique positive integer 
+    FlatFieldSeed:               1425284070      # Unique positive integer 
+    CTESeed:                     1424949740      # Unique positive integer 
+    DriftSeed:                   1433429158      # Unique positive integer 
