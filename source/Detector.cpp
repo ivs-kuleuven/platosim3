@@ -26,20 +26,19 @@
 
 Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera)
 : HDF5Writer(hdf5file), includePhotonNoise(true), includeReadoutNoise(true),
-  includeCTIeffects(true), includeOpenShutterSmearing(true), includeVignetting(true), psfWasSet(false), 
-  internalTime(0.0), camera(camera), imageNr(0)
+  includeCTIeffects(true), includeOpenShutterSmearing(true), includeVignetting(true), 
+  writeSubPixelImagesToHDF5(false), psfWasSet(false), internalTime(0.0), camera(camera), 
+  imageNr(0), subPixelImageNr(0)
 {
+	// Parse the parameters from the configuration file.
+
+	configure(configParam);
+
 	// Create the groups in the HDF5 file where the different maps (i.e. pixel map,
 	// bias register map, smearing map, etc.) will be saved. This needs to be done
 	// BEFORE other methods write arrays to HDF5.
 
 	initHDF5Groups();
-
-	// Parse the parameters from the configuration file.
-
-	configure(configParam);
-
-	// Attach the camera
 
 	// Allocate memory for the different maps
 
@@ -69,6 +68,9 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 	photonNoiseGenerator.seed(photonNoiseSeed);
 	readoutNoiseGenerator.seed(readoutNoiseSeed);
 }
+
+
+
 
 
 
@@ -123,6 +125,7 @@ Detector::~Detector()
     includeCTIeffects          = configParam.getBoolean("CCD/IncludeCTIeffects");  
     includeOpenShutterSmearing = configParam.getBoolean("CCD/IncludeOpenShutterSmearing");
     includeVignetting          = configParam.getBoolean("CCD/IncludeVignetting");
+    writeSubPixelImagesToHDF5  = configParam.getBoolean("CCD/WriteSubPixelImagesToHDF5");
 
     // Configuration parameters for the subfield
 
@@ -415,6 +418,14 @@ double Detector::takeExposure(double startTime, double exposureTime)
 	Log.debug("Detector: Writing PixelMap " + to_string(imageNr) + " to HDF5 file.");
 
 	writePixelMapToHDF5();
+
+	// If required, also write the subpixel image to the HDF5 file
+
+	if (writeSubPixelImagesToHDF5)
+	{
+		Log.debug("Detector: Writing SubPixelMap " + to_string(subPixelImageNr) + " to HDF5 file.");
+		writeSubPixelMapToHDF5();
+	}
 
 	// Advance the internal clock
 
@@ -1726,6 +1737,11 @@ void Detector::initHDF5Groups()
 	hdf5File.createGroup("/SmearingMaps");
 	hdf5File.createGroup("/Flatfield");
 	hdf5File.createGroup("/Vignetting");
+
+	if (writeSubPixelImagesToHDF5)
+	{
+		hdf5File.createGroup("/SubPixelImages");
+	}
 }
 
 
@@ -1742,6 +1758,7 @@ void Detector::initHDF5Groups()
 /**
  * \brief: Writes the pixel map for the HDF5 file.
  */
+
 void Detector::writePixelMapToHDF5()
 {
 	stringstream myStream;
@@ -1756,3 +1773,34 @@ void Detector::writePixelMapToHDF5()
 
     imageNr++;
 }
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief: Writes the subpixel map for the HDF5 file.
+ */
+
+void Detector::writeSubPixelMapToHDF5()
+{
+	stringstream myStream;
+    myStream << "subPixelImage" << setfill('0') << setw(6) << subPixelImageNr;
+    string imageName = myStream.str();
+
+    // Add the image to the "SubPixelImages" group
+
+    hdf5File.writeArray("/SubPixelImages", imageName, subPixelMap);
+
+    // Increment the counter for the next subpixel image
+
+    subPixelImageNr++;
+}
+
+
