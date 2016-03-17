@@ -32,6 +32,7 @@ RUNNING PLATOSIM
 
 Running PlatoSim is done with
 
+$ cd build
 $ ./platosim ../inputfiles/myInputfile.yaml myOutputfile.hdf5
 
 The first argument is the simulation configuration input file, of which you can find an
@@ -42,7 +43,7 @@ ProjectLocation:         /Users/rik/Git/PlatoSim3
 
 to your own location of PlatoSim.
 
-The first argument is the name of the (non-existing!) HDF5 file to which all simulation 
+The second argument is the name of the (non-existing!) HDF5 file to which all simulation 
 output is written. Apart from this HDF5 file, the simulator also writes logging statements
 to a log.txt file.
 
@@ -81,17 +82,18 @@ $ h5ls myOutputfile.hdf5/StarCatalog
 For PYTHON USERS, we provided a simfile.py module in the python/ folder, with convenients 
 tools to extract and plot the Simulator output. For example, one can plot a subfield image using
 
->>> myFile = SimFile("myOutputfile.hdf5", "r")
+>>> from simfile import *
+>>> myFile = SimFile("myOutputfile.hdf5")
 >>> myFile.showImage(0)
 
 The top of simfile.py contains documentation with several examples.
 
 
 Still for PYTHON USERS, you can also access the HDF5 file using the pytables module. For 
-example:
+example (using the latest version of PyTables):
 
 >>> import tables as tbl
->>> myFile = tbl.open_file("myOutputfile.hdf5")
+>>> myFile = tbl.open_file("myOutputfile.hdf5", "r")
 >>> image = myFile.root.Images.image000000
 >>> imshow(image, interpolation="nearest", origin="lower")
 >>> myFile.root.InputParameters.CCD._v_attrs
