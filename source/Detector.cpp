@@ -723,16 +723,7 @@ void Detector::applyFlatfield()
 	const unsigned int endRow = numRowsSubPixelMap - numEdgeSubPixels - 1;
 	const unsigned int endCol = numColumnsSubPixelMap - numEdgeSubPixels - 1;
 
-    if (includeFlatfield)
-    {
-        Log.debug("Detector: applying flatfield.");
-
   	subPixelMap.submat(beginRow, beginCol, endRow, endCol) = subPixelMap.submat(beginRow, beginCol, endRow, endCol) % flatfieldMap;
-}
-    else
-    {
-        Log.debug("Detector: no flatfield applied.");
-    }
 }
 
 
