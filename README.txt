@@ -1,6 +1,11 @@
 INSTALLATION OF PLATOSIM
 ------------------------
 
+The installation of PlatoSim assumes 2 prerequisites:
+
+1) gcc v4.7 or more recent, or, clang v3.3 or more recent
+2) cmake v2.8 or more recent (freely downloadable from https://cmake.org/download/)
+
 PlatoSim relies on a number of dependencies, which are all included in this package
 for the convenience of the user. To build, and install them, you can run the install
 bash script:
