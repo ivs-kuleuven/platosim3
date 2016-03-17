@@ -132,6 +132,7 @@ class Detector : public HDF5Writer
         bool includeVignetting;                  // Include brightness attenuation due to vignetting
         bool includeConvolution;                 // Wheter or not to convolve the subPixelMap with the PSF
         bool includeFullWellSaturation;          // Wheter or not full well saturation should be applied
+        bool includeDigitalSaturation;           // Wheter or not digital saturation should be applied
 
         bool psfWasSet;                          // True if PSF for subfield was already initialised. False otherwise.
 

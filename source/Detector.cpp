@@ -905,7 +905,15 @@ void Detector::readOut(float exposureTime)
 	// Pixel units before: [ADU]
 	// Pixel units after: [ADU]
 
-	//applyDigitalSaturation();
+    if (includeDigitalSaturation)
+    { 
+        Log.debug("Detector: applying digital saturation to pixelMap, biasMap and smearingMap (digitalSaturationLimit=" + to_string(digitalSaturationLimit) + ")");
+    	applyDigitalSaturation();
+    }
+    else
+    {
+        Log.debug("Detector: no digital saturation applied.");
+    }
 }
 
 
