@@ -409,14 +409,14 @@ double Detector::takeExposure(double startTime, double exposureTime)
 
 	// Integration of point sources and background, taking into account jitter + drift.
 
-	Log.debug("Detector: Integrating light for exposure " + to_string(imageNr) + " with exposure time = " + to_string(exposureTime));
+	Log.info("Detector: Integrating light for exposure " + to_string(imageNr) + " with exposure time = " + to_string(exposureTime));
 
 	integrateLight(startTime, exposureTime);
 
 	// Include noise effects like readout noise, photon noise, full well saturation, etc.
 	// Note: readOut() needs the exposure time to compute the open shutter smearing.
 
-	Log.debug("Detector: Adding noise effects to exposure " + to_string(imageNr));
+	Log.info("Detector: Adding noise effects to exposure " + to_string(imageNr));
 
 	readOut(exposureTime);
 
@@ -467,7 +467,7 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 	// Reset the sub-field (i.e. get rid of the previous exposure, by zeroing the entire sub-field)
 
-	Log.debug("Detector: Resetting subfield array.");
+	Log.debug("Detector: resetting subfield array for new exposure.");
 
 	reset();
 
@@ -490,7 +490,7 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 	// Rebin from a subpixel map to a pixel map
 
-	Log.debug("Detector: Rebinning subpixel map into pixel map.");
+	Log.debug("Detector: rebinning subpixel map into pixel map.");
 
 	rebin();
 
@@ -1359,7 +1359,7 @@ void Detector::addReadoutNoise()
  */
 void Detector::applyGain()
 {
-	Log.debug("Detector: applying gain to pixelMap, biasMap, and smearingMap (gain=" + to_string(gain) + ")");
+	Log.debug("Detector: applying gain to pixelMap, biasMap and smearingMap (gain=" + to_string(gain) + ")");
 
 	// Divide the pixel, bias register, and smearing map by the gain
 
