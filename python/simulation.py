@@ -55,6 +55,7 @@ configuration file.
 """
 
 import yaml
+import pyaml
 import inspect
 import subprocess
 import os
@@ -154,19 +155,24 @@ class Simulation:
 
 
 
-    def readConfigurationFile(self, fileName):
+    def readConfigurationFile(self, filename):
         """
         """
+        self.configurationFilename = filename
         if self.debug:
-            print "Parsing", fileName
+            print "Parsing", filename
         
         with open(filename, 'r') as stream:
             try:
-                print(yaml.load(stream))
+                self.yamlDocument = yaml.load(stream)
             except yaml.YAMLError as exc:
-                print(exc)        
+                print(exc)
         
 
+
+
+    def getYamlConfiguration(self):
+        return self.yamlDocument
 
 
 
@@ -175,33 +181,37 @@ class Simulation:
     def __getitem__(self, key):
 
         """
-        Returns the value of the input parameter (key) as a string.
+        Returns the value of the input parameter (key).
 
-        Param: key - a string with parent node name and node name seperated by a slash
+        Param: key - a string containing the parameter name or "Group/ParameterName" combination
 
-        Return: the value of the node as a string if the node exists, an empty string otherwise
+        Return: the value of the parameter, if only a Group is given the 
         """
         
-        parentNodeName, nodeName = key.split("/")
-        root = self.ccdXMLDocument.getroot()
-        parentNode = root.find( parentNodeName )
+        if key.find('/') == -1:
+            parentNodeName, nodeName = key, None
+            print ("usage: the given parameter name (key) should include the group name of the group that contains the parameter.")
+            print ("       E.g in 'Camera/PlateScale', Camera is the group, PlatScale is the parameter.")
+            return None
+        else:
+            parentNodeName, nodeName = key.split("/")
 
-        if parentNode:
-            for node in parentNode:
-                if node.tag == nodeName:
-                    return node.text.strip()
+        root = self.yamlDocument
+        
+        if root.has_key(parentNodeName):
+            parentNode = root[parentNodeName]
+        else:
+            print ("ERROR: The group '{}' was not found in the yaml inputfile '{}'.".format(parentNodeName, self.configurationFilename))
+            return None
 
-        # Arriving here means the parameter is not in the CCD parameter input file
+        if nodeName:
+            if parentNode.has_key(nodeName):
+                return parentNode[nodeName]
+            print ("ERROR: The parameter '{}' was not found in the group '{}' in the yaml inputfile '{}'.".format(nodeName, parentNodeName, self.configurationFilename))
+        else:
+            return parentNode
 
-        root = self.photometryXMLDocument.getroot()
-        parentNode = root.find( parentNodeName )
-
-        if parentNode:
-            for node in parentNode:
-                if node.tag == nodeName:
-                    return node.text.strip()
-
-        return ""
+        return None
 
 
 
@@ -220,29 +230,30 @@ class Simulation:
         
         if not isinstance(item, basestring):
             item = str(item)
-        parentNodeName, nodeName = key.split("/")
-        root = self.ccdXMLDocument.getroot()
-        parentNode = root.find( parentNodeName )
 
-        if parentNode:
-            for node in parentNode:
-                if node.tag == nodeName:
-                    node.text = item
-                    node.set("updated", "yes")
-                    return True
+        if key.find('/') == -1:
+            print ("usage: the given parameter name (key) should include the group name of the group that contains the parameter.")
+            print ("       E.g in 'Camera/PlateScale', Camera is the group, PlatScale is the parameter.")
+            return None
+        else:
+            parentNodeName, nodeName = key.split("/")
+
+        root = self.yamlDocument
+
+        if root.has_key(parentNodeName):
+            parentNode = root[parentNodeName]
+        else:
+            print ("ERROR: The group '{}' was not found in the yaml inputfile '{}'.".format(parentNodeName, self.configurationFilename))
+            return False
+
+        if nodeName:
+            if parentNode.has_key(nodeName):
+                parentNode[nodeName] = item
+                return True
+            else:
+                print ("ERROR: The parameter '{}' was not found in the group '{}' in the yaml inputfile '{}'.".format(nodeName, parentNodeName, self.configurationFilename))
+
         
-        # Arriving here means that the node is not part of the CCD parameters input file
-
-        root = self.photometryXMLDocument.getroot()
-        parentNode = root.find( parentNodeName )
-
-        if parentNode:
-            for node in parentNode:
-                if node.tag == nodeName:
-                    node.text = item
-                    node.set("updated", "yes")
-                    return True
-
         return False
 
 
@@ -260,24 +271,17 @@ class Simulation:
 
 
 
-    def writeCCDInputToXMLFile(self, fileName):
+    def writeYamlConfigurationFile(self, filename):
         """
         """
         if self.debug:
-            print "Writing", fileName
-        self.ccdXMLDocument.write(fileName)
-        
+            print ("Writing the Yaml configuration file {}.".format(filename))
+        with open(filename, 'w') as outfile:
+            outfile.write( pyaml.dump(self.yamlDocument, indent=4, width=120) )
 
 
 
 
-    def writePhotometryInputToXMLFile(self, fileName):
-        """
-        """
-        if self.debug:
-            print "Writing", fileName
-        self.photometryXMLDocument.write(fileName)
-        
 
 
     def getInputFilesLocation(self):
@@ -286,32 +290,23 @@ class Simulation:
 
 
 
-    def run(self, doPhotometry=True):
+    def run(self):
         """
         Run the PLATO Simulator. By default, the simulation includes the photometry step. 
-        If you do not want the photometry, set the doPhotometry keyword to False.
         """
 
         if not self.hasTargetLocation:
             raise Exception("Target location not set for this Simulation. Set the target location before executing the run() method.")
 
-        outputFilePrefix = self.__getitem__("OutputParameters/Prefix")
-        outputFilesLocation = self.__getitem__("OutputParameters/OutputPath")
-
         inputFilesLocation = self.getInputFilesLocation()
-        CCDFilename = inputFilesLocation + "/" + "ccd_parameters.xml"
-        PhotometryFilename = inputFilesLocation + "/" + "photometry_parameters.xml"
+        inputFilename = inputFilesLocation + "/" + "inputfile.yaml"
 
         self.createDirectory(outputFilesLocation)
         self.createDirectory(inputFilesLocation)
 
-        self.writeCCDInputToXMLFile(CCDFilename)
-        self.writePhotometryInputToXMLFile(PhotometryFilename)
+        self.writeYamlConfigurationFile(inputFilename)
 
-        if doPhotometry:
-            subprocess.call([self.platosimBuildLocation + "/platosim", "-s", CCDFilename, "-p", PhotometryFilename])
-        else:
-            subprocess.call([self.platosimBuildLocation + "/platosim", "-s", CCDFilename])
+        subprocess.call([self.platosimBuildLocation + "/platosim", inputFilename, outputFilename])
 
         simFile = SimFile(outputFilesLocation + "/" + outputFilePrefix + "/" + outputFilePrefix + ".hdf5")
 
@@ -327,23 +322,11 @@ class Simulation:
         If a parameter value has been updated for this Simulation, [updated] will be printed
         after the value.
         """
-        root = self.ccdXMLDocument.getroot()
-        msg = "CCD XML tags:\n"
-        for parentNode in root:
-            for childNode in parentNode.getchildren():
-                msg += parentNode.tag + "/" + childNode.tag + " = " + childNode.text.strip()
-                if 'updated' in childNode.attrib:
-                    msg += " [updated]"
-                msg += "\n"
-
-        msg += "\n"
-        root = self.photometryXMLDocument.getroot()
-        msg += "Photometry XML tags:\n"
-        for parentNode in root:
-            for childNode in parentNode.getchildren():
-                msg += parentNode.tag + "/" + childNode.tag + " = " + childNode.text.strip()
-                if 'updated' in childNode.attrib:
-                    msg += " [updated]"
+        root = self.yamlDocument
+        msg = "YAML Configuration:\n"
+        for parentNodeName in root:
+            for childNodeName in root[parentNodeName]:
+                msg += parentNodeName + "/" + childNodeName + " = " + root[parentNodeName][childNodeName].strip()
                 msg += "\n"
 
         return msg
