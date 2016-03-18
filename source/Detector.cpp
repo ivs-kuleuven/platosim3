@@ -25,21 +25,27 @@
  */
 
 Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera)
-: HDF5Writer(hdf5file), includePhotonNoise(true), includeReadoutNoise(true),
-  includeCTIeffects(true), includeOpenShutterSmearing(true), psfWasSet(false), 
+: HDF5Writer(hdf5file), 
+  includeFlatfield(true), 
+  includePhotonNoise(true), 
+  includeReadoutNoise(true),
+  includeCTIeffects(true), 
+  includeOpenShutterSmearing(true), 
+  includeVignetting(true), 
+  writeSubPixelImagesToHDF5(false),
+  includeFullWellSaturation(true),
+  psfWasSet(false), 
   internalTime(0.0), camera(camera), imageNr(0)
 {
+	// Parse the parameters from the configuration file.
+
+	configure(configParam);
+
 	// Create the groups in the HDF5 file where the different maps (i.e. pixel map,
 	// bias register map, smearing map, etc.) will be saved. This needs to be done
 	// BEFORE other methods write arrays to HDF5.
 
 	initHDF5Groups();
-
-	// Parse the parameters from the configuration file.
-
-	configure(configParam);
-
-	// Attach the camera
 
 	// Allocate memory for the different maps
 
@@ -49,6 +55,7 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 	smearingMap.zeros(numRowsSmearingMap, numColumnsPixelMap);
 	flatfieldMap.ones(numRowsSubPixelMap, numColumnsSubPixelMap);
 //	cteMap.zeros(numRowsPixelMap, numColumnsPixelMap);
+	vignettingMap.ones(numRowsPixelMap, numColumnsPixelMap);
 
 	// Generate the flatfield map 
 
@@ -58,11 +65,19 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 //
 //	generateCteMap();
 
+	// Generate the vignetting map
+
+	generateVignettingMap();
+
+
 	// Set the seeds of the random number generators
 
 	photonNoiseGenerator.seed(photonNoiseSeed);
 	readoutNoiseGenerator.seed(readoutNoiseSeed);
 }
+
+
+
 
 
 
@@ -112,10 +127,16 @@ Detector::~Detector()
     readoutTime                = configParam.getDouble("CCD/ReadoutTime");
     flatfieldNoiseAmplitude    = configParam.getDouble("CCD/FlatfieldPtPNoise");
     meanCte                    = configParam.getDouble("CCD/CTEMean");
+    includeFlatfield           = configParam.getBoolean("CCD/IncludeFlatfield");
     includePhotonNoise         = configParam.getBoolean("CCD/IncludePhotonNoise");
     includeReadoutNoise        = configParam.getBoolean("CCD/IncludeReadoutNoise");   
     includeCTIeffects          = configParam.getBoolean("CCD/IncludeCTIeffects");  
     includeOpenShutterSmearing = configParam.getBoolean("CCD/IncludeOpenShutterSmearing");
+    includeVignetting          = configParam.getBoolean("CCD/IncludeVignetting");
+    writeSubPixelImagesToHDF5  = configParam.getBoolean("CCD/WriteSubPixelImagesToHDF5");
+    includeConvolution         = configParam.getBoolean("CCD/IncludeConvolution");
+    includeFullWellSaturation  = configParam.getBoolean("CCD/IncludeFullWellSaturation");
+    writeSubPixelImagesToHDF5  = configParam.getBoolean("CCD/WriteSubPixelImagesToHDF5");
 
     // Configuration parameters for the subfield
 
@@ -245,6 +266,8 @@ void Detector::generateFlatfieldMap()
 
 	// Save the intra-pixel flatfield in the HDF5 file
 
+	Log.debug("Detector: writing IRNU to HDF5");
+
 	hdf5File.writeArray("/Flatfield", "IRNU", flatfieldMap);
 
 	// Rebin the intra-pixel flatfield to the pixel flatfield (IRNU -> PRNU)
@@ -266,9 +289,67 @@ void Detector::generateFlatfieldMap()
 		}
 	}
 
+	// Write the result to the HDF5 output file
+
+	Log.debug("Detector: writing PRNU to HDF5");
+
 	hdf5File.writeArray("/Flatfield", "PRNU", prnu);
 }
 
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Generate the vignetting map containing for each subfield pixel the vignetting brightness 
+ *        attenuation factor. Each array value is a value between 0 and 1.
+ * 
+ * \details Because of vignetting, the stars at the edge of the FOV look dimmer than the stars close
+ *          to the optical axis. If the incoming flux before vignetting at pixel (i,j) is F(i,j), 
+ *          then the flux after vignetting taken into account is F(i,j) * vignettingMap(i,j).
+ *          
+ * \note    The vignetting map is written to the HDF5 map.
+ */
+
+void Detector::generateVignettingMap()
+{
+	Log.info("Detector: generating vignetting map.");
+
+	for (int row = 0; row < pixelMap.n_rows; row++)
+	{
+		for (int column = 0; column < pixelMap.n_cols; column++)
+		{
+			// For each pixel in the pixel map, compute first the planar and from there the 
+			// angular focal plane coordinates
+
+			double xFPmm, yFPmm;
+			tie(xFPmm, yFPmm) = pixelToPlanarFocalPlaneCoordinates(row, column);
+
+			double xFPrad, yFPrad;
+			tie(xFPrad, yFPrad) = camera.planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm);
+
+			// Get the angular distance [rad] of the pixel from the optical axis
+
+			const double angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPrad, yFPrad); 
+
+			// Compute the geometrical vignetting attentuation factor
+
+			vignettingMap(row, column) = cos(angle) * cos(angle);
+		}
+	}
+
+	// Write the result to HDF5
+
+	Log.debug("Detector: writing vignetting map to HDF5");
+
+	hdf5File.writeArray("/Vignetting", "vignettingMap", vignettingMap);
+}
 
 
 
@@ -294,6 +375,9 @@ void Detector::reset()
 	biasMap.zeros();
 	smearingMap.zeros();
 }
+
+
+
 
 
 
@@ -329,14 +413,14 @@ double Detector::takeExposure(double startTime, double exposureTime)
 
 	// Integration of point sources and background, taking into account jitter + drift.
 
-	Log.debug("Detector: Integrating light for exposure " + to_string(imageNr) + " with exposure time = " + to_string(exposureTime));
+	Log.info("Detector: Integrating light for exposure " + to_string(imageNr) + " with exposure time = " + to_string(exposureTime));
 
 	integrateLight(startTime, exposureTime);
 
 	// Include noise effects like readout noise, photon noise, full well saturation, etc.
 	// Note: readOut() needs the exposure time to compute the open shutter smearing.
 
-	Log.debug("Detector: Adding noise effects to exposure " + to_string(imageNr));
+	Log.info("Detector: Adding noise effects to exposure " + to_string(imageNr));
 
 	readOut(exposureTime);
 
@@ -346,12 +430,22 @@ double Detector::takeExposure(double startTime, double exposureTime)
 
 	writePixelMapToHDF5();
 
+	// If required, also write the subpixel image to the HDF5 file
+
+	if (writeSubPixelImagesToHDF5)
+	{
+		Log.debug("Detector: Writing SubPixelMap " + to_string(subPixelImageNr) + " to HDF5 file.");
+		writeSubPixelMapToHDF5();
+	}
+
 	// Advance the internal clock
 
 	internalTime += exposureTime + readoutTime;
 
 	return internalTime;
 }
+
+
 
 
 
@@ -385,7 +479,7 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 	// Reset the sub-field (i.e. get rid of the previous exposure, by zeroing the entire sub-field)
 
-	Log.debug("Detector: Resetting subfield array.");
+	Log.debug("Detector: resetting subfield array for new exposure.");
 
 	reset();
 
@@ -395,15 +489,36 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 	// Apply flatfield (at sub-pixel level)
 
-	Log.debug("Detector: applying flatfield.");
+    if (includeFlatfield)
+    {
+        Log.debug("Detector: applying Flatfield.");
 
-	applyFlatfield();
+    	applyFlatfield();
+    }
+    else
+    {
+        Log.debug("Detector: no flatfield applied.");
+    }
 
 	// Rebin from a subpixel map to a pixel map
 
-	Log.debug("Detector: Rebinning subpixel map into pixel map.");
+	Log.debug("Detector: rebinning subpixel map into pixel map.");
 
 	rebin();
+
+	// Apply vignetting on the pixel map
+
+	if (includeVignetting)
+	{
+        Log.debug("Detector: applying vignetting");
+
+        applyVignetting();
+    }
+    else
+    {
+        Log.debug("Detector: no vignetting applied.");
+    }
+
 }
 
 
@@ -576,6 +691,27 @@ void Detector::addFlux(double flux)
 
 
 
+/**
+ * \brief Apply vignetting. This is the brightness attenuation towards the edges of the FOV
+ * 
+ */
+
+void Detector::applyVignetting()
+{
+    pixelMap = pixelMap % vignettingMap;
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 /**
  * \brief: Multiply the sub-pixel map with the flatfield.
@@ -599,7 +735,7 @@ void Detector::applyFlatfield()
 	const unsigned int endRow = numRowsSubPixelMap - numEdgeSubPixels - 1;
 	const unsigned int endCol = numColumnsSubPixelMap - numEdgeSubPixels - 1;
 
-	subPixelMap.submat(beginRow, beginCol, endRow, endCol) = subPixelMap.submat(beginRow, beginCol, endRow, endCol) % flatfieldMap;
+  	subPixelMap.submat(beginRow, beginCol, endRow, endCol) = subPixelMap.submat(beginRow, beginCol, endRow, endCol) % flatfieldMap;
 }
 
 
@@ -682,8 +818,13 @@ void Detector::readOut(float exposureTime)
 
 	if (includePhotonNoise)
 	{
+        Log.debug("Detector: adding photon noise");
 		addPhotonNoise();
 	}
+    else 
+    {
+        Log.debug("Detector: no photon noise added.");
+    }
 
 	// Apply full-well saturation. A pixel has a maximum capacity of electrons (the full well capacity).
 	// If photons free more electrons, the pixel saturates, and the electrons flow in the pixels above and below in
@@ -691,7 +832,15 @@ void Detector::readOut(float exposureTime)
 	// Pixel units before: [electrons]
 	// Pixel units after: [electrons]
 
-	applyFullWellSaturation();
+    if (includeFullWellSaturation)
+    {
+        Log.debug("Detector: aplying full well saturation.");
+        applyFullWellSaturation();
+    }
+    else
+    {
+        Log.debug("Detector: no full well saturation applied.");
+    }
 
 	// Simulate the effects of the Charge Transfer Inefficiency (CTI). When the
 	// CCD is read out, row after row, a part of the charge is always left behind
@@ -702,8 +851,13 @@ void Detector::readOut(float exposureTime)
 
 	if (includeCTIeffects)
 	{
+        Log.debug("Detector: applying charge transfer inefficiency");
 		applyCte();
 	}
+    else
+    {
+        Log.debug("Detector: no charge transfer inefficiency applied.");
+    }
 
 	// Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
 	// the pixels are still receiving photons from the sky, while they are being transfered towards
@@ -711,8 +865,13 @@ void Detector::readOut(float exposureTime)
 
 	if (includeOpenShutterSmearing)
 	{
+        Log.debug("Detector: applying open shutter smearing.");
 		applyOpenShutterSmearing(exposureTime);
 	}
+    else 
+    {
+        Log.debug("Detector: no open shutter smearing applied.");
+    }
 
 	// Each time the amplifier reads out a pixel, a tiny bit of noise is added.
 	// Add the readout noise.
@@ -721,8 +880,13 @@ void Detector::readOut(float exposureTime)
 
 	if (includeReadoutNoise)
 	{ 
+        Log.debug("Detector: adding readout noise.");
 		addReadoutNoise();
 	}
+    else
+    {
+        Log.debug("Detector: no readout noise added.");
+    }
 
 	// Apply the gain, to increase the dynamic range of the detector.
 	// Pixel units before: [electrons]
@@ -744,7 +908,15 @@ void Detector::readOut(float exposureTime)
 	// Pixel units before: [ADU]
 	// Pixel units after: [ADU]
 
-	applyDigitalSaturation();
+    if (includeDigitalSaturation)
+    { 
+        Log.debug("Detector: applying digital saturation to pixelMap, biasMap and smearingMap (digitalSaturationLimit=" + to_string(digitalSaturationLimit) + ")");
+    	applyDigitalSaturation();
+    }
+    else
+    {
+        Log.debug("Detector: no digital saturation applied.");
+    }
 }
 
 
@@ -767,9 +939,9 @@ void Detector::readOut(float exposureTime)
  */
 void Detector::applyQuantumEfficiency()
 {
-	Log.debug("Detector: applying quantum efficiency");
+  	Log.debug("Detector: applying quantum efficiency to pixelMap (quantumEfficiency=" + to_string(quantumEfficiency) + ").");
 
-	pixelMap *= quantumEfficiency;
+   	pixelMap *= quantumEfficiency;
 }
 
 
@@ -795,8 +967,6 @@ void Detector::applyQuantumEfficiency()
  */
 void Detector::addPhotonNoise()
 {
-	Log.debug("Detector: adding photon noise");
-
 	// Add photon noise to the pixel map
 
 	for (unsigned int row = 0; row < numRowsPixelMap; row++)
@@ -947,8 +1117,6 @@ void Detector::applyFullWellSaturation()
  */
 void Detector::applyCte()
 {
-	Log.debug("Detector: Applying charge transfer inefficiency");
-
 	float cti = 1.0 - meanCte;
 
 	// Computing the effects of CTE requires the use of a binomial distribution.
@@ -1160,7 +1328,6 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
  */
 void Detector::addReadoutNoise()
 {
-	Log.debug("Detector: adding readout noise");
 
 	readoutNoiseDistribution = normal_distribution<double>(0.0, readoutNoise);
 
@@ -1204,7 +1371,7 @@ void Detector::addReadoutNoise()
  */
 void Detector::applyGain()
 {
-	Log.debug("Detector: applying gain");
+	Log.debug("Detector: applying gain to pixelMap, biasMap and smearingMap (gain=" + to_string(gain) + ")");
 
 	// Divide the pixel, bias register, and smearing map by the gain
 
@@ -1236,7 +1403,7 @@ void Detector::applyGain()
 
 void Detector::addElectronicOffset()
 {
-	Log.debug("Detector: adding a bias");
+	Log.debug("Detector: adding a bias to pixelMap, biasMap and smearingMap (electronicOffset=" + to_string(electronicOffset)+ ")");
 
 	// Add the electronic offset to the pixel, bias register, and smearing maps
 
@@ -1269,8 +1436,6 @@ void Detector::addElectronicOffset()
  */
 void Detector::applyDigitalSaturation()
 {
-	Log.debug("Detector: applying digital saturation");
-
 	// Top off the values in the pixel map
 
 	pixelMap(arma::find(pixelMap > digitalSaturationLimit)).fill(digitalSaturationLimit);
@@ -1454,9 +1619,19 @@ void Detector::setPsfForSubfieldCenter()
  */
 void Detector::convolveWithPsf()
 {
-	// subpixelMap serves here both as input as well as output matrix;
 
-	convolver.convolve(subPixelMap, subPixelMap);
+    if(includeConvolution)
+    {
+        Log.debug("Detector: convolving subPixelMap with PSF.");
+
+        // subpixelMap serves here both as input as well as output matrix;
+    	convolver.convolve(subPixelMap, subPixelMap);
+    }
+    else
+    {
+        Log.debug("Detector: no convolution applied.");
+    }
+
 }
 
 
@@ -1623,6 +1798,12 @@ void Detector::initHDF5Groups()
 	hdf5File.createGroup("/BiasMaps");
 	hdf5File.createGroup("/SmearingMaps");
 	hdf5File.createGroup("/Flatfield");
+	hdf5File.createGroup("/Vignetting");
+
+	if (writeSubPixelImagesToHDF5)
+	{
+		hdf5File.createGroup("/SubPixelImages");
+	}
 }
 
 
@@ -1639,6 +1820,7 @@ void Detector::initHDF5Groups()
 /**
  * \brief: Writes the pixel map for the HDF5 file.
  */
+
 void Detector::writePixelMapToHDF5()
 {
 	stringstream myStream;
@@ -1653,3 +1835,34 @@ void Detector::writePixelMapToHDF5()
 
     imageNr++;
 }
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief: Writes the subpixel map for the HDF5 file.
+ */
+
+void Detector::writeSubPixelMapToHDF5()
+{
+	stringstream myStream;
+    myStream << "subPixelImage" << setfill('0') << setw(6) << subPixelImageNr;
+    string imageName = myStream.str();
+
+    // Add the image to the "SubPixelImages" group
+
+    hdf5File.writeArray("/SubPixelImages", imageName, subPixelMap);
+
+    // Increment the counter for the next subpixel image
+
+    subPixelImageNr++;
+}
+
+

@@ -15,23 +15,24 @@ JitterFromFile::JitterFromFile(ConfigurationParameters &configParams)
 
     configure(configParams);
 
-    // Open the jitter file, and read time yaw, pitch, roll time series
+    // Open the jitter file, and read time yaw, pitch, roll time series.
+    // The time is assumed to be in [s], pitch, yaw, and roll in [arcsec].
     // The path of the jitter file should have been set in configure().
+
+    Log.info("JitterFromFile: Opening jitter file " + pathToJitterFile + " to read");
 
     ifstream jitterFile(pathToJitterFile);
     if (jitterFile.is_open())
     {
         string temp;
-        long n = 0;
         while (getline(jitterFile, temp))
         {
             istringstream buffer(temp);
             vector<double> numbers((istream_iterator<double>(buffer)), istream_iterator<double>());
-            time[n]  = numbers[0];       
-            yaw[n]   = numbers[1];      // [rad]
-            pitch[n] = numbers[2];      // [rad]
-            roll[n]  = numbers[3];      // [rad]
-            n++;
+            time.push_back(numbers[0]);                      // [s]  
+            yaw.push_back(deg2rad(numbers[1]/3600.));        // [arcsec] -> [rad]
+            pitch.push_back(deg2rad(numbers[2]/3600.));      // [arcsec] -> [rad]
+            roll.push_back(deg2rad(numbers[3]/3600.));       // [arcsec] -> [rad]
         }
 
         jitterFile.close();
@@ -40,12 +41,12 @@ JitterFromFile::JitterFromFile(ConfigurationParameters &configParams)
 
         if (time.size() < 2)
         {
-            Log.error("JitterFromFile: Jitter file " + pathToJitterFile + " contains less than 2 time points");
+            Log.error("JitterFromFile: Jitter file contains less than 2 time points");
             // FIXME: exit ???
         }
         else
         {        
-            Log.info("JitterFromFile: found " + to_string(time.size()) + " time points in input file " + pathToJitterFile);
+            Log.info("JitterFromFile: found " + to_string(time.size()) + " time points in jitter input file");
         }
     }
     else
