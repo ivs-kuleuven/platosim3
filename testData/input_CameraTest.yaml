@@ -49,7 +49,7 @@ Camera:
 
 PSF:
 
-    Filename:                testData/psf_201506.hdf5
+    Filename:                testData/psf.hdf5
     SubPixels:               128             # Nr of subpixels per pixel that was used to generate the PSF
 
 RandomSeeds:
