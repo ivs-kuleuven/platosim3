@@ -57,9 +57,11 @@ class Detector : public HDF5Writer
         virtual void reset();
         virtual void generateFlatfieldMap();
         //virtual void generateCteMap();
+        virtual void generateVignettingMap();
 
         virtual void integrateLight(double startTime, double exposureTime);
         virtual bool isInSubPixelMap(double row, double column);
+        virtual void applyVignetting();
         virtual void applyFlatfield();
         virtual void rebin();
         
@@ -79,6 +81,7 @@ class Detector : public HDF5Writer
 
         virtual void initHDF5Groups() override;
         void writePixelMapToHDF5();
+        void writeSubPixelMapToHDF5();
 
 
         arma::Mat<float> pixelMap;               // Pixel map, excl. edge pixels
@@ -88,6 +91,7 @@ class Detector : public HDF5Writer
         arma::Mat<float> cteMap;                 // CTE map
         arma::Mat<float> flatfieldMap;           // Intra-pixel flatfield map
         arma::Mat<float> psfMap;                 // The PSF map that will be used for convolving
+        arma::Mat<float> vignettingMap;          // Brightness attenuation map, due to vignetting
 
         unsigned int numRows;                    // Nr of rows of the detector (= size in y-direction) [pixels]
     	unsigned int numColumns;                 // Nr of columns of the detector (= size in x-direction = readout direction) [pixels]
@@ -121,10 +125,16 @@ class Detector : public HDF5Writer
         unsigned int electronicOffset;           // Bias or electronic offset [ADU]
         unsigned long digitalSaturationLimit;    // Digital saturation limit [ADU / pixel]
 
-    	bool includePhotonNoise;                 // Whether or not to include photon noise
+        bool includeFlatfield;                   // Whether or not to include flat fielding
+        bool includePhotonNoise;                 // Whether or not to include photon noise
         bool includeReadoutNoise;                // Include readout noise [yes or no]
         bool includeCTIeffects;                  // Include CTI effects [yes or no]
         bool includeOpenShutterSmearing;         // Include trails due reading out with an open shutter
+        bool includeVignetting;                  // Include brightness attenuation due to vignetting
+        bool writeSubPixelImagesToHDF5;          // Write subpixel maps to HDF5 as well
+        bool includeConvolution;                 // Whether or not to convolve the subPixelMap with the PSF
+        bool includeFullWellSaturation;          // Whether or not full well saturation should be applied
+        bool includeDigitalSaturation;           // Whether or not digital saturation should be applied
         bool psfWasSet;                          // True if PSF for subfield was already initialised. False otherwise.
 
         double internalTime;
@@ -147,6 +157,7 @@ class Detector : public HDF5Writer
         Camera &camera;
         Convolver convolver;
         int imageNr;
+        int subPixelImageNr;
 
 };
 
