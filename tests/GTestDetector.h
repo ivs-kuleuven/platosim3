@@ -553,8 +553,28 @@ TEST_F(DetectorTest, generateFlatfield)
 	Camera camera(configParams, hdf5File, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
-	ASSERT_TRUE(detector.test_getFlatfieldMap().min() >= 0.0);
-	ASSERT_TRUE(detector.test_getFlatfieldMap().max() <= 1.0);
+	// Configuration parameters
+
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+	const double flatfieldNoiseAmplitude = configParams.getDouble("CCD/FlatfieldPtPNoise");
+
+	// Flatfield map: check dimensions and content
+
+	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getFlatfieldMap().n_rows);
+	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getFlatfieldMap().n_cols);
+
+	EXPECT_FLOAT_EQ(1.0 - flatfieldNoiseAmplitude, detector.test_getFlatfieldMap().min());
+	EXPECT_FLOAT_EQ(1.0, detector.test_getFlatfieldMap().max());
+
+
+	// TODO
+	float mean = arma::accu(detector.test_getFlatfieldMap()) / numRowsSubField / numColumnsSubField / numSubPixels / numSubPixels;
+
+//	EXPECT_NEAR(1.0, mean, 1.0e-3);
 }
 
 
