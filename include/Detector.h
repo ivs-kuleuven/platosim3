@@ -81,6 +81,7 @@ class Detector : public HDF5Writer
 
         virtual void initHDF5Groups() override;
         void writePixelMapToHDF5();
+        void writeSubPixelMapToHDF5();
 
 
         arma::Mat<float> pixelMap;               // Pixel map, excl. edge pixels
@@ -130,10 +131,10 @@ class Detector : public HDF5Writer
         bool includeCTIeffects;                  // Include CTI effects [yes or no]
         bool includeOpenShutterSmearing;         // Include trails due reading out with an open shutter
         bool includeVignetting;                  // Include brightness attenuation due to vignetting
-        bool includeConvolution;                 // Wheter or not to convolve the subPixelMap with the PSF
-        bool includeFullWellSaturation;          // Wheter or not full well saturation should be applied
-        bool includeDigitalSaturation;           // Wheter or not digital saturation should be applied
-
+        bool writeSubPixelImagesToHDF5;          // Write subpixel maps to HDF5 as well
+        bool includeConvolution;                 // Whether or not to convolve the subPixelMap with the PSF
+        bool includeFullWellSaturation;          // Whether or not full well saturation should be applied
+        bool includeDigitalSaturation;           // Whether or not digital saturation should be applied
         bool psfWasSet;                          // True if PSF for subfield was already initialised. False otherwise.
 
         double internalTime;
@@ -156,6 +157,7 @@ class Detector : public HDF5Writer
         Camera &camera;
         Convolver convolver;
         int imageNr;
+        int subPixelImageNr;
 
 };
 

@@ -78,7 +78,7 @@ CCD:
     IncludeConvolution:          yes             # Wheter or not to convolve the subPixelMap with the PSF
     IncludeFullWellSaturation:   no              # Wheter or not full well saturation should be applied
     IncludeDigitalSaturation:    no              # Wheter or not digital saturation should be applied
-
+    WriteSubPixelImagesToHDF5:   no              # Only use this for a limited number of exposures. Takes a lot of space! 
 
 SubField:    
 

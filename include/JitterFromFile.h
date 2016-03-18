@@ -8,6 +8,7 @@
 #include <iterator>
 
 #include "Logger.h"
+#include "Units.h"
 #include "Heartbeat.h"
 #include "HDF5Writer.h"
 #include "ConfigurationParameters.h"

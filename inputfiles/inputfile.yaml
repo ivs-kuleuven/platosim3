@@ -54,7 +54,7 @@ PSF:
 
     UseGauss:                    yes             # Use analytical Gaussian PSF (yes or no)
     GaussSigma:                  1.0             # Width of Gaussian PSF [pixels]
-    Filename:                    inputfiles/psf_201506.hdf5
+    Filename:                    inputfiles/psf.hdf5
     SubPixels:                   128             # Nr of subpixels per pixel that was used to generate the PSF
 
 
@@ -84,6 +84,7 @@ CCD:
     IncludeConvolution:          yes             # Wheter or not to convolve the subPixelMap with the PSF
     IncludeFullWellSaturation:   yes             # Wheter or not full well saturation should be applied
     IncludeDigitalSaturation:    yes             # Wheter or not digital saturation should be applied
+    WriteSubPixelImagesToHDF5:   no              # Only use this for a limited number of exposures. Takes a lot of space! 
 
 SubField:    
 

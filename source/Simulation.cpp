@@ -263,6 +263,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("IncludeCTIeffects"); 
     addBoolean("IncludeOpenShutterSmearing");
     addBoolean("IncludeVignetting");
+    addBoolean("WriteSubPixelImagesToHDF5");
     
     subGroup = "SubField";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
