@@ -410,35 +410,3 @@ class Simulation(object):
         return
 
 
-
-
-    def rotatePsf(self):
-        
-        """
-        Rotates the PSF for the given simulation, stores the rotated PSF and 
-        updates the corresponding configuration parameters.  Information about 
-        which pre-computed PSF needs to be rotated and how the rotation has to 
-        be performed can be read from the CCD configuration file of the 
-        simulation.  For more information concerning the different configuration 
-        parameters for the PSF, you are kindly referred to the PlatoSim 
-        documentation on GitHub.
-        The rotated PSF will be stored in the same directory as the adapted 
-        configuration file(s) and will bare the following name:
-            "rotated_" + <original filename>
-        
-        Note that some of the configuration parameters in the CCD configuration 
-        file of the given simulation will be adapted in the process:
-            - (PSFCenterX, PSFCenterY) will be changed to hold the centre of the 
-              PSF after rotation
-            - PSFRotation will be set to "0", indicating that no rotation needs 
-              to be performed anymore
-            - PSFLocationDependent will be set to "0"
-            - PSFFileName will be adapted to hold the full path to the rotated 
-              version of the PSF.
-        """
-        
-        print "Rotating PSF"
-                
-        psfRotationTools.rotatePsf(self)
-
-
