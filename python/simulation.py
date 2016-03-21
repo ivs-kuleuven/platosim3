@@ -70,11 +70,12 @@ from simfile import SimFile
 
 
 
-class Simulation:
+class Simulation(object):
     
     """
     Simulation class allows running the PLATO simulator interactively from Python
     and tuning the input parameters before each run. For more help, type:
+
     >>> import simulation
     >>> print(simulation)
     """
