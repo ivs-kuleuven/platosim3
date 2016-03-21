@@ -221,21 +221,21 @@ class Simulation(object):
         if key.find('/') == -1:
             parentNodeName, nodeName = key, None
             print ("usage: the given parameter name (key) should include the group name of the group that contains the parameter.")
-            print ("       E.g in 'Camera/PlateScale', Camera is the group, PlatScale is the parameter.")
+            print ("       E.g in 'Camera/PlateScale', Camera is the group, PlateScale is the parameter.")
             return None
         else:
             parentNodeName, nodeName = key.split("/")
 
         root = self.yamlDocument
         
-        if root.has_key(parentNodeName):
+        if parentNodeName in root:
             parentNode = root[parentNodeName]
         else:
             print ("ERROR: The group '{}' was not found in the yaml inputfile '{}'.".format(parentNodeName, self.configurationFilename))
             return None
 
         if nodeName:
-            if parentNode.has_key(nodeName):
+            if nodeName in parentNode:
                 return parentNode[nodeName]
             print ("ERROR: The parameter '{}' was not found in the group '{}' in the yaml inputfile '{}'.".format(nodeName, parentNodeName, self.configurationFilename))
         else:
@@ -258,8 +258,9 @@ class Simulation(object):
         Return: True if node could be updated, False otherwise
         """
         
-        if not isinstance(item, basestring):
-            item = str(item)
+        # Ensure that the given item is a string
+
+        item = str(item)
 
         if key.find('/') == -1:
             print ("usage: the given parameter name (key) should include the group name of the group that contains the parameter.")
@@ -270,14 +271,14 @@ class Simulation(object):
 
         root = self.yamlDocument
 
-        if root.has_key(parentNodeName):
+        if parentNodeName in root:
             parentNode = root[parentNodeName]
         else:
             print ("ERROR: The group '{}' was not found in the yaml inputfile '{}'.".format(parentNodeName, self.configurationFilename))
             return False
 
         if nodeName:
-            if parentNode.has_key(nodeName):
+            if nodeName in parentNode:
                 parentNode[nodeName] = item
                 return True
             else:
@@ -293,7 +294,7 @@ class Simulation(object):
     def createDirectory(self, path):
         try: 
             os.makedirs(path)
-        except OSError, ose:
+        except OSError as ose:
             print (ose)
             if not os.path.isdir(path):
                 raise Exception("Couldn't create directory {}".format(path))
