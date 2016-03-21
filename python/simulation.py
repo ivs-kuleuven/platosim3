@@ -108,7 +108,8 @@ class Simulation(object):
         
         """
         Given the location of the simfile.py module, try to find the build/ folder where
-        the simulator executable should be.
+        the simulator executable should be. Then set the default locations for the platosim 
+        executable (i.e. build directory), and the original input files location.        
         """
 
         # Find the absolute path of the simfile.py. This will allow us to located the other
@@ -160,6 +161,7 @@ class Simulation(object):
 
     def readConfigurationFile(self, filename):
         """
+        Read the YAML input configuration file. 
         """
         self.configurationFilename = filename
         if self.debug:
@@ -175,6 +177,9 @@ class Simulation(object):
 
 
     def getYamlConfiguration(self):
+        """
+        Return the YAML configuration as a dictionary.
+        """
         return self.yamlDocument
 
 
@@ -276,6 +281,8 @@ class Simulation(object):
 
     def writeYamlConfigurationFile(self, filename):
         """
+        Write the modified configuration to output file location. This configuration will 
+        be loaded by the PLATO Simulator when the run() method is executed.
         """
         if self.debug:
             print ("Writing the Yaml configuration file {}.".format(filename))
