@@ -718,7 +718,7 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
     # so this affects the number of rows and the row-pixel-coordinate of the star
 
     if ccdCode in ["AF", "BF", "CF", "DF"]:
-        CCDSizeY = CCDSizeY / 2
+        CCDSizeY = CCDSizeY // 2                   # integer division, not float
         yPix = yPix - CCDSizeY
 
     if ccdCode == "AF": CCDOriginOffsetY = CCDOriginOffsetY / 2
