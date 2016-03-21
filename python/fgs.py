@@ -83,7 +83,7 @@ for n in range(NguideStars):
 
     # Set some other input parameters specific to this simulation
 
-    sim["ObservingParameters/NumExposures"] = 1440						# 1h observation
+    sim["ObservingParameters/NumExposures"] = 10
     sim["ObservingParameters/SkyBackground"] = 150
     sim["ObservingParameters/ExposureTime"] = 2.25
     sim["ObservingParameters/StarCatalogFile"] = starCatalog
