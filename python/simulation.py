@@ -370,6 +370,9 @@ class Simulation(object):
 
 
 
+
+
+
     def useNominalCamera(self):
 
         """
@@ -377,16 +380,19 @@ class Simulation(object):
 
         REMARKS: The following parameters are updated:
 
-                 CCD/CCDSizeX = 4510
-                 CCD/CCDSizeY = 4510
+                 CCD/NumColumns = 4510
+                 CCD/NumRows = 4510
                  ObservingParameters/ExposureTime = 23
         """
 
-        self.__setitem__("CCD/CCDSizeX", "4510")
-        self.__setitem__("CCD/CCDSizeY", "4510")
+        self.__setitem__("CCD/NumColumns", "4510")
+        self.__setitem__("CCD/NumRows",    "4510")
         self.__setitem__("ObservingParameters/ExposureTime", "23")
 
         return
+
+
+
 
 
 
@@ -398,13 +404,13 @@ class Simulation(object):
 
         REMARKS: The following parameters are updated:
 
-                 CCD/CCDSizeX = 4510
-                 CCD/CCDSizeY = 2255
+                 CCD/NumColumns = 4510
+                 CCD/NumRows = 2255
                  ObservingParameters/ExposureTime = 2.3
         """
 
-        self.__setitem__("CCD/CCDSizeX", "4510")
-        self.__setitem__("CCD/CCDSizeY", "4510")
+        self.__setitem__("CCD/NumColumns", "4510")
+        self.__setitem__("CCD/NumRows",    "2255")
         self.__setitem__("ObservingParameters/ExposureTime", "23")
 
         return
