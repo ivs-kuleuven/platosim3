@@ -334,19 +334,16 @@ class Simulation(object):
         """
 
         if not self.hasTargetLocation:
-            raise Exception("Target location not set for this Simulation. Set the target location before executing the run() method.")
+            raise Exception("Output location not set for this Simulation. Set the outputDir before executing the run() method.")
 
-        inputFilesLocation = self.getInputFilesLocation()
-        inputFilename = inputFilesLocation + "/" + "inputfile.yaml"
-
-        self.createDirectory(outputFilesLocation)
-        self.createDirectory(inputFilesLocation)
+        inputFilename = "{}/{}.yaml".format(self.targetOutputFilesLocation, self.runName)
+        outputFilename = "{}/{}.hdf5".format(self.targetOutputFilesLocation, self.runName)
 
         self.writeYamlConfigurationFile(inputFilename)
 
         subprocess.call([self.platosimBuildLocation + "/platosim", inputFilename, outputFilename])
 
-        simFile = SimFile(outputFilesLocation + "/" + outputFilePrefix + "/" + outputFilePrefix + ".hdf5")
+        simFile = SimFile(outputFilename)
 
         return simFile 
 
