@@ -28,6 +28,7 @@ psf_201506.hdf5
 
 # Logs and databases
 
+log.txt
 *.log
 *.sql
 *.sqlite
