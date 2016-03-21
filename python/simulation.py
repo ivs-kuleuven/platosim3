@@ -353,6 +353,9 @@ class Simulation(object):
 
 
 
+
+
+
     def __str__(self):
 
         """
@@ -362,10 +365,7 @@ class Simulation(object):
         """
         root = self.yamlDocument
         msg = "YAML Configuration:\n"
-        for parentNodeName in root:
-            for childNodeName in root[parentNodeName]:
-                msg += parentNodeName + "/" + childNodeName + " = " + root[parentNodeName][childNodeName].strip()
-                msg += "\n"
+        msg += pyaml.dump(root, indent=4)
 
         return msg
 
