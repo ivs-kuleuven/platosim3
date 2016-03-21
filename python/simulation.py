@@ -290,9 +290,16 @@ class Simulation(object):
     def createDirectory(self, path):
         try: 
             os.makedirs(path)
-        except OSError:
+        except OSError, ose:
+            print (ose)
             if not os.path.isdir(path):
-                raise
+                raise Exception("Couldn't create directory {}".format(path))
+
+        return
+
+
+
+
 
 
 
