@@ -89,8 +89,11 @@ class Simulation(object):
 
         self.debug = debug
         self.runName = runName
-        self.configurationLoaded = False
+        
+        # flag to check if output directory has been specified before running the Simulation.
+        
         self.hasTargetLocation = False
+        self.targetOutputFilesLocation = None
 
         self.setSimulatorLocation();
 
