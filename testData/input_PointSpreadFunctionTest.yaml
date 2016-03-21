@@ -10,6 +10,6 @@ General:
 PSF:
 
     # Location of the PSF HDF5 input file. This location is relative to the ProjectLocation.
-    Filename:            testData/psf_201506.hdf5
+    Filename:            testData/psf.hdf5
     SubPixels:           128             # Nr of subpixels per pixel that was used to generate the PSF
 
