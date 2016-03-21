@@ -80,7 +80,7 @@ class Detector : public HDF5Writer
         arma::Mat<float> getSubfield();
 
         virtual void initHDF5Groups() override;
-        void writePixelMapToHDF5();
+        void writePixelMapsToHDF5();
         void writeSubPixelMapToHDF5();
 
 
