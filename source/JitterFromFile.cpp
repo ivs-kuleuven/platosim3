@@ -93,9 +93,7 @@ JitterFromFile::~JitterFromFile()
 
 void JitterFromFile::configure(ConfigurationParameters &configParams)
 {
-    string rootPath       = configParams.getString("General/ProjectLocation");
-    string jitterFileName = configParams.getString("Platform/JitterFileName");
-    pathToJitterFile = rootPath + "/" + jitterFileName;
+    pathToJitterFile = configParams.getAbsoluteFilename("Platform/JitterFileName");
 }
 
 
