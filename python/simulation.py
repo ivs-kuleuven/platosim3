@@ -323,9 +323,8 @@ class Simulation(object):
 
 
 
-    def getInputFilesLocation(self):
 
-        return self.targetInputFilesLocation + "/" + self.runName
+
 
 
 
