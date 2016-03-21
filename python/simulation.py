@@ -47,7 +47,7 @@ Interactive usage example:
         FlatfieldPtPNoise: 0.016
         FullWellSaturation: 1000000
         Gain: 16
-    ...
+        ...
     >>> sim["CCD/CTEMean"] = 0.98
     >>> print (sim["General/ProjectLocation"])
     /Users/rik/Git/PlatoSim3
