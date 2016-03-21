@@ -524,11 +524,11 @@ double Detector::takeExposure(double startTime, double exposureTime)
 
 	readOut(exposureTime);
 
-	// Write the CCD subfield to the HDF5 file
+	// Write the CCD subfield, the bias map, and the smearing map to the HDF5 file
 
-	Log.debug("Detector: Writing PixelMap " + to_string(imageNr) + " to HDF5 file.");
+	Log.debug("Detector: Writing PixelMap, smearing map, and bias map #" + to_string(imageNr) + " to HDF5 file.");
 
-	writePixelMapToHDF5();
+	writePixelMapsToHDF5();
 
 	// If required, also write the subpixel image to the HDF5 file
 
@@ -1947,8 +1947,10 @@ void Detector::initHDF5Groups()
  * \brief: Writes the pixel map for the HDF5 file.
  */
 
-void Detector::writePixelMapToHDF5()
+void Detector::writePixelMapsToHDF5()
 {
+    // Compose the image name
+
 	stringstream myStream;
     myStream << "image" << setfill('0') << setw(6) << imageNr;
     string imageName = myStream.str();
@@ -1956,6 +1958,31 @@ void Detector::writePixelMapToHDF5()
     // Add the image to the "Images" group
 
     hdf5File.writeArray("/Images", imageName, pixelMap);
+
+    // Clear the string stream and compose the smearing map name
+
+    myStream.str(string());      // insert empty string
+    myStream.clear();            // clear eof bit
+
+    myStream << "smearingMap" << setfill('0') << setw(6) << imageNr;
+    string smearingMapName = myStream.str();
+
+    // Add the smearing map to the "SmearingMaps" group
+
+    hdf5File.writeArray("/SmearingMaps", smearingMapName, smearingMap);
+
+    // Clear the string stream and compose the bias map name
+
+    myStream.str(string());      // insert empty string
+    myStream.clear();            // clear eof bit
+
+    myStream << "biasMap" << setfill('0') << setw(6) << imageNr;
+    string biasMapName = myStream.str();
+
+    // Add the smearing map to the "SmearingMaps" group
+
+    hdf5File.writeArray("/BiasMaps", biasMapName, biasMap);
+
 
     // Increment the counter for the next image
 

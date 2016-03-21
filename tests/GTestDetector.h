@@ -2118,6 +2118,9 @@ TEST_F(DetectorTest, photonNoise)
 	{
 		for(unsigned int column = 0; column < numColumnsSubField; column++)
 		{
+            Log.debug("DetectorTest.photonNoise: smearingMap( " + to_string(row) + ", " + to_string(column) + ") = " 
+                + to_string(smearingMap(row, column)) + ", mean(" + to_string(smearingMean(row, column)) + ")");
+
 			EXPECT_NEAR(smearingMap(row, column), smearingMean(row, column), 0.01 * smearingMap(row, column));
 			EXPECT_NEAR(sqrt(smearingMap(row, column)), sqrt(smearingStdDev(row, column)), 0.05 * sqrt(smearingMap(row, column)));
 		}
