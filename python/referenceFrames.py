@@ -1,4 +1,5 @@
 from numpy import *
+
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
@@ -37,7 +38,7 @@ CCD = \
 
 
 
-def gnomonicProjectionSkyToFocalPlane(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, pixelScale, pixelSize):
+def gnomonicProjectionSkyToFocalPlane(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale, pixelSize):
 
     """
     PURPOSE: computes the (x,y) coordinates in the focal plane of a star with given equatorial coordinates
@@ -47,7 +48,7 @@ def gnomonicProjectionSkyToFocalPlane(raStar, decStar, raOpticalAxis, decOptical
            raOpticalAxis:   right ascension of the optical axis [rad]
            decOpticalAxis:  declination of the optical axis [rad]
            focalPlaneAngle: angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
-           pixelScale:      [arcsec/pixel]
+           plateScale:      [arcsec/micron]
            pixelSize:       [micrometer]
 
     OUTPUT: xFPprime: x-coordinate of the projected star in the focal plane in the FP-prime system [mm]
@@ -74,7 +75,7 @@ def gnomonicProjectionSkyToFocalPlane(raStar, decStar, raOpticalAxis, decOptical
 
     # Compute the conversion factor: conversion from [arcsec/pixel] to [mm/radian].
 
-    conversionFactor = 3600. * 180 * pixelSize / 1000 / pi / pixelScale
+    conversionFactor = 3600. * 180 / 1000 / pi / plateScale
 
     print("gnomonicProjectionSkyToFocalPlane: conversionFactor = " + str(conversionFactor))
 
@@ -89,7 +90,7 @@ def gnomonicProjectionSkyToFocalPlane(raStar, decStar, raOpticalAxis, decOptical
 
 
 
-def inverseGnomonicProjectionFocalPlaneToSky(xFPprimeStar, yFPprimeStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, pixelScale, pixelSize):
+def inverseGnomonicProjectionFocalPlaneToSky(xFPprimeStar, yFPprimeStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale):
 
     """
     PURPOSE: computes the (x,y) coordinates in the focal plane of a star with given equatorial coordinates
@@ -99,8 +100,7 @@ def inverseGnomonicProjectionFocalPlaneToSky(xFPprimeStar, yFPprimeStar, raOptic
            raOpticalAxis:   right ascension of the optical axis [rad]
            decOpticalAxis:  declination of the optical axis [rad]
            focalPlaneAngle: angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
-           pixelScale:      [arcsec/pixel]
-           pixelSize:       [micrometer]
+           plateScale:      [arcsec/micron]
 
     OUTPUT: raStar:  right ascension of the star [rad]
             decStar: declination of the star [rad]
@@ -115,7 +115,7 @@ def inverseGnomonicProjectionFocalPlaneToSky(xFPprimeStar, yFPprimeStar, raOptic
     # Compute the conversion factor from [mm/radian] to [arcsec/pixel] and convert the
     # focal plane coordinates from [mm] to [rad].
 
-    conversionFactor = 3600. * 180 * pixelSize / 1000 / pi / pixelScale
+    conversionFactor = 3600. * 180 / 1000 / pi / plateScale
     xFPprime = xFPprimeStar / conversionFactor
     yFPprime = yFPprimeStar / conversionFactor
 
@@ -260,7 +260,7 @@ def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
 
 
 
-def drawCCDsInSky(raOpticalAxis, decOpticalAxis, focalPlaneAngle, pixelScale, pixelSize, nominal=True):
+def drawCCDsInSky(raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale, pixelSize, nominal=True):
 
     """
     PURPOSE: Project and plot the 4 CCDs of 1 camera on the sky
@@ -268,7 +268,7 @@ def drawCCDsInSky(raOpticalAxis, decOpticalAxis, focalPlaneAngle, pixelScale, pi
     INPUT: raOpticalAxis:   right ascension of the optical axis [rad]
            decOpticalAxis:  declination of the optical axis [rad]
            focalPlaneAngle: angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
-           pixelScale:      [arcsec/pixel]
+           plateScale:      [arcsec/micron]
            pixelSize:       [micrometer]
            nominal:         True for the nominal camera configuration, False for the fast cameras
 
@@ -301,7 +301,7 @@ def drawCCDsInSky(raOpticalAxis, decOpticalAxis, focalPlaneAngle, pixelScale, pi
 
         # Convert the FP' coordinates to equatorial coordinates
 
-        ra, dec = inverseGnomonicProjectionFocalPlaneToSky(cornersXmm, cornersYmm, raOpticalAxis, decOpticalAxis, focalPlaneAngle, pixelScale, pixelSize)
+        ra, dec = inverseGnomonicProjectionFocalPlaneToSky(cornersXmm, cornersYmm, raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale, pixelSize)
 
         # Repeat the coordinates of the 1st corner, to plot a nice closed loop
         # Convert from radians to degrees
@@ -488,7 +488,7 @@ def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize):
 
 
 def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle,  \
-                              pixelScale, pixelSize, nominal=True):
+                              plateScale, pixelSize, nominal=True):
 
     """
     PURPOSE: Given the equatorial coordinates of a star, find out on which CCD it falls ('A', 'B', ...)
@@ -499,7 +499,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
            raOpticalAxis:   right ascension of the optical axis [rad]
            decOpticalAxis:  declination of the optical axis [rad]
            focalPlaneAngle: angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
-           pixelScale:      [arcsec/pixel]
+           plateScale:      [arcsec/micron]
            pixelSize:       [micrometer]
            nominal:         True for the nominal camera configuration, False for the fast cameras
 
@@ -523,7 +523,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
 
     # Compute the (x,y) coordinates in the FP' reference system [mm]
 
-    xFPprime, yFPprime = gnomonicProjectionSkyToFocalPlane(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, pixelScale, pixelSize)
+    xFPprime, yFPprime = gnomonicProjectionSkyToFocalPlane(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale, pixelSize)
 
     # Find out if this falls on a CCD, and if yes which one.
     # Our approach: try each of the CCDs. Not elegant, but robust...
@@ -565,7 +565,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
 
 
 
-def getSkyCoordinates(ccdCode, xCCDpix, yCCDpix, pixelScale, pixelSize, raOpticalAxis, decOpticalAxis, focalPlaneAngle):
+def getSkyCoordinates(ccdCode, xCCDpix, yCCDpix, plateScale, pixelSize, raOpticalAxis, decOpticalAxis, focalPlaneAngle):
 
     """
     PURPOSE: Return the sky coordinates of a pixel on the CCD in equatorial coordinates.
@@ -574,7 +574,7 @@ def getSkyCoordinates(ccdCode, xCCDpix, yCCDpix, pixelScale, pixelSize, raOptica
                               for fast camera: either 'AF', 'BF', 'CF', 'DF'
              xCCDpix:         x-coordinate (column number, zero-based) of the pixel on the CCD  [pix]
              yCCDpix:         y-coordinate (row number, zero-based) of the pixel on the CCD  [pix]
-             pixelScale:      [arcsec/pixel]
+             plateScale:      [arcsec/micron]
              pixelSize:       [micrometer]
              raOpticalAxis:   right ascension of the optical axis [rad]
              decOpticalAxis:  declination of the optical axis [rad]
@@ -595,7 +595,7 @@ def getSkyCoordinates(ccdCode, xCCDpix, yCCDpix, pixelScale, pixelSize, raOptica
 
     # Convert the FP' coordinates to equatorial coordinates
 
-    raStar, decStar = inverseGnomonicProjectionFocalPlaneToSky(xFPprime, yFPprime, raOpticalAxis, decOpticalAxis, focalPlaneAngle, pixelScale, pixelSize)
+    raStar, decStar = inverseGnomonicProjectionFocalPlaneToSky(xFPprime, yFPprime, raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale, pixelSize)
 
     return raStar, decStar
 
@@ -604,23 +604,23 @@ def getSkyCoordinates(ccdCode, xCCDpix, yCCDpix, pixelScale, pixelSize, raOptica
 
 
 
-def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY, pixelScale, pixelSize, \
+def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY, plateScale, pixelSize, \
                                        raOpticalAxis, decOpticalAxis, focalPlaneAngle, nominal=True):
 
     """
     PURPOSE: Calculates the location of the subfield such that the star with coordinates (raStar, decStar)
              is centered in the subfield.
 
-    INPUTS:  raStar:        right ascension [rad]
-             decStar:       declination [rad]
-             subfieldSizeX: full width (# of columns) of the subfield [pix]
-             subfieldSizeY: full height (#of rows) of the subfield [pix]
-             pixelScale:      [arcsec/pixel]
+    INPUTS:  raStar:          right ascension [rad]
+             decStar:         declination [rad]
+             subfieldSizeX:   full width (# of columns) of the subfield [pix]
+             subfieldSizeY:   full height (#of rows) of the subfield [pix]
+             plateScale:      [arcsec/micron]
              pixelSize:       [micrometer]
              raOpticalAxis:   right ascension of the optical axis [rad]
              decOpticalAxis:  declination of the optical axis [rad]
              focalPlaneAngle: angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
-             nominal:       True for the nominal camera configuration, False for the fast cameras
+             nominal:         True for the nominal camera configuration, False for the fast cameras
 
     OUTPUTS: ccdCode: "A", "B", "C" or "D" if nominal=True, "AF", "BF", "CF" or "DF" otherwise
              xCCDpix: x-coordinate of the star in pixels (i.e. column number)
@@ -634,7 +634,7 @@ def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldS
     # Find out on which CCD the star falls, and the corresponding pixel coordinates
 
     ccdCode, xCCDpix, yCCDpix = getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, \
-        focalPlaneAngle, pixelScale, pixelSize, nominal)
+        focalPlaneAngle, plateScale, pixelSize, nominal)
 
     # If the CCD code is None, the star does not fall on any ccd -> error
 
@@ -676,7 +676,7 @@ def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldS
 
 
 
-def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSizeY, pixelScale, pixelSize, \
+def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSizeY, plateScale, pixelSize, \
                                  raOpticalAxis, decOpticalAxis, focalPlaneAngle, nominal=True):
     
     """
@@ -693,8 +693,8 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
              decStar:         declination [radians]
              subfieldSizeX:   width (i.e. number of columns) of the subiield [pixels]
              subfieldSizeY:   height (i.e. number of rows) of the sub-field [pixels]
-             pixelScale:      Nominal pixel scale. [arcsec/pixel]
-             pixelSize:       Size of a pixel [microns]
+             plateScale:      Plate scale. [arcsec/micron]
+             pixelSize:       [micrometer]
              raOpticalAxis:   right ascension of the optical axis [radians]
              decOpticalAxis:  declination of the optical axis [radians]
              focalPlaneAngle: orientation angle of the focal plane [radians]
@@ -711,7 +711,7 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
     # Compute the position of the subfield.
     # xPix and yPix are the CCD coordinates of the star, given a 4510x4510 CCD.
 
-    ccdCode, xPix, yPix = calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY, pixelScale, pixelSize, raOpticalAxis, decOpticalAxis, focalPlaneAngle, nominal)
+    ccdCode, xPix, yPix = calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY, plateScale, pixelSize, raOpticalAxis, decOpticalAxis, focalPlaneAngle, nominal)
     
     if ccdCode == None:
         return False
@@ -738,18 +738,18 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
 
     # If we arrive here, there is no problem accommodating the entire sufield on the CCD
 
-    sim["ObservingParameters/CCDPredefinedPosition"] = ccdCode
-    sim["ObservingParameters/CCDOriginOffsetX"] = str(CCDOriginOffsetX)
-    sim["ObservingParameters/CCDOriginOffsetY"] = str(CCDOriginOffsetY)
-    sim["ObservingParameters/CCDOrientation"] = str(rad2deg(CCDOrientation))
+    sim["CCD/PredefinedPosition"] = ccdCode
+    sim["CCD/OriginOffsetX"] = str(CCDOriginOffsetX)
+    sim["CCD/OriginOffsetY"] = str(CCDOriginOffsetY)
+    sim["CCD/Orientation"] = str(rad2deg(CCDOrientation))
 
-    sim["CCD/CCDSizeX"] = CCDSizeX
-    sim["CCD/CCDSizeY"] = CCDSizeY
+    sim["CCD/NumColumns"] = CCDSizeX
+    sim["CCD/NumRows"] = CCDSizeY
 
-    sim["SubField/SubFieldZeroPointX"] = str(xPix - subfieldSizeX/2)
-    sim["SubField/SubFieldZeroPointY"] = str(yPix - subfieldSizeY/2)
-    sim["SubField/SubFieldSizeX"] = str(subfieldSizeX)
-    sim["SubField/SubFieldSizeY"] = str(subfieldSizeY)
+    sim["SubField/ZeroPointRow"] = str(int(xPix - subfieldSizeX/2))
+    sim["SubField/ZeroPointColumn"] = str(int(yPix - subfieldSizeY/2))
+    sim["SubField/NumRows"] = str(subfieldSizeX)
+    sim["SubField/NumColumns"] = str(subfieldSizeY)
 
     # Set the exposure time, depending on fast vs nominal cams
 
