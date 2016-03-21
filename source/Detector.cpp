@@ -1136,33 +1136,54 @@ void Detector::applyFullWellSaturation()
 
 			if (pixelValue > fullWellSaturationLimit)
 			{
-				// Transfer excess electrons down
+				// Transfer excess electrons up
 
 				jmod = row;
 				numExcessElectrons = (pixelValue - fullWellSaturationLimit) / 2.0;   // Move half of the excess electrons down...
 
+				bool transfer2Saturated = false;
+
 				while (numExcessElectrons > 0 && jmod < numRowsPixelMap)
 				{
-					pixelMap(jmod, column) -= numExcessElectrons;
+					if(!transfer2Saturated)
+					{
+						pixelMap(jmod, column) -= numExcessElectrons;
+					}
+
 					jmod++;
 
 					// Electrons reaching the edge of the CCD will not be detected
 
 					if (jmod < numRowsPixelMap)
 					{
-						pixelMap(jmod, column) += numExcessElectrons;
-
-						// Make sure the pixel you move the excess electrons to
-						// does not get saturated too
-
-						if (pixelMap(jmod, column) > fullWellSaturationLimit)
+						if(pixelMap(jmod, column) >= fullWellSaturationLimit)
 						{
-							numExcessElectrons = pixelMap(jmod, column) - fullWellSaturationLimit;
+							transfer2Saturated= true;
+						}
+
+						else{
+
+							transfer2Saturated = false;
+
+							pixelMap(jmod, column) += numExcessElectrons;
+
+							// Make sure the pixel you move the excess electrons to
+							// does not get saturated too
+
+							if (pixelMap(jmod, column) > fullWellSaturationLimit)
+							{
+								numExcessElectrons = pixelMap(jmod, column) - fullWellSaturationLimit;
+							}
+
+							else
+							{
+								numExcessElectrons = 0;
+							}
 						}
 					}
 				}
 
-				// Transfer excess electrons up
+				// Transfer excess electrons down
 
 				jmod = row;
 				numExcessElectrons = (pixelValue - fullWellSaturationLimit) / 2.0;    // ...and the rest of the excess electrons up
@@ -1183,6 +1204,11 @@ void Detector::applyFullWellSaturation()
 						if (pixelMap(jmod, column) > fullWellSaturationLimit)
 						{
 							numExcessElectrons = pixelMap(jmod, column) - fullWellSaturationLimit;
+						}
+
+						else
+						{
+							numExcessElectrons = 0;
 						}
 					}
 				}
