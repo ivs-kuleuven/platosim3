@@ -138,20 +138,36 @@ class Simulation(object):
 
 
 
-    def setOutputDir(self, path):
+    @property
+    def outputDir(self):
+        """
+        Return the output files location.
+        """
+        return self.targetOutputFilesLocation
+
+
+
+
+    @outputDir.setter
+    def outputDir(self, path):
 
         """
-        Specify the absolute path of the output directory. This directory will contain
-        a subdir 'input' which will contain the XML files used for the simulation, and 
-        a subdir 'output' which will contain the HDF5 output files
+        Specify the absolute path for the output directory. This directory will contain
+        a copy of the modified input file and the HDF5 output file for this simulation.
+        
+        If the output path doesn't exist, it is created.
         """
 
-        self.targetInputFilesLocation = path + "/input" 
-        self.targetOutputFilesLocation = path + "/output"
-        self.__setitem__("OutputPath", self.targetOutputFilesLocation)
-        self.__setitem__("OutputPathPrefix", self.runName)
+        if not os.path.exists(path):
+            if self.debug:
+                print("DEBUG: creating output directory {}.".format(path))
+            self.createDirectory(path)
+        
+        self.targetOutputFilesLocation = path
         self.hasTargetLocation = True
 
+        if self.debug:
+            print("DEBUG: output dir set to {}.".format(path))
 
 
 
@@ -164,8 +180,9 @@ class Simulation(object):
         Read the YAML input configuration file. 
         """
         self.configurationFilename = filename
+
         if self.debug:
-            print "Parsing", filename
+            print ("Parsing YAML configuration file {}.".format(filename))
         
         with open(filename, 'r') as stream:
             try:
@@ -173,6 +190,8 @@ class Simulation(object):
             except yaml.YAMLError as exc:
                 print(exc)
         
+
+
 
 
 
