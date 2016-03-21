@@ -203,66 +203,166 @@ Detector::~Detector()
 /**
  * \brief: Generate the (random) flatfield variations.  This map is generated
  *		   at sub-pixel level but without the edge pixels.
+ *
+ * https://github.com/python-acoustics/python-acoustics/blob/master/acoustics/generator.py#L108
  */
 void Detector::generateFlatfieldMap()
 {
 
 	Log.info("Detector: generating flatfield map.");
 
+//	// Random number generation
+//
+//	mt19937 flatfieldGenerator(flatfieldSeed);
+//	normal_distribution<double> flatfieldDistribution(0.0, 1.0);
+//
+//	arma::cx_fmat pinkNoise = arma::cx_fmat(2 * numRowsPixelMap * numSubPixelsPerPixel, 2 * numColumnsPixelMap * numSubPixelsPerPixel);
+//	arma::fmat aux = arma::fmat(pinkNoise.n_rows, pinkNoise.n_cols);
+//
+//	for(unsigned int row = 0; row < pinkNoise.n_rows; row++)
+//	{
+//		for(unsigned int column = 0; column < pinkNoise.n_cols; column++)
+//		{
+//			pinkNoise(row, column) = flatfieldDistribution(flatfieldGenerator) / sqrt(column + 1.0);
+//		}
+//	}
+//
+//
+//
+//	for(unsigned int row = 0; row < pinkNoise.n_rows; row++)
+//	{
+//		pinkNoise(row, arma::span::all) = arma::ifft(pinkNoise(row, arma::span::all));
+//	}
+//
+//	aux = arma::real(pinkNoise);
+//
+//	pinkNoise.zeros();
+//	pinkNoise.set_real(aux);
+//
+//	for(unsigned int row = 0; row < pinkNoise.n_rows; row++)
+//	{
+//		pinkNoise(row, arma::span::all) /= sqrt(row + 1.0);
+//	}
+//
+//	for(unsigned int column = 0; column < pinkNoise.n_cols; column++)
+//	{
+//		pinkNoise(arma::span::all, column) = arma::ifft(pinkNoise(arma::span::all, column));
+//	}
+//
+//	aux = arma::real(pinkNoise);
+//	flatfieldMap(arma::span::all, arma::span::all) = aux(arma::span(0, flatfieldMap.n_rows - 1), arma::span(0, flatfieldMap.n_cols - 1));
+//
+//	float minPinkNoise = flatfieldMap.min();
+//	float maxPinkNoise = flatfieldMap.max();
+//
+//	flatfieldMap -= minPinkNoise;
+//	flatfieldMap /= (maxPinkNoise - minPinkNoise); // [0, 1]
+//	flatfieldMap *= flatfieldNoiseAmplitude;	// [0, flatfialdNoiseAmplitude]
+//
+//	flatfieldMap += (1.0 - flatfieldNoiseAmplitude);
+
+	// 1D -> 2D IMPLEMENTATION
+
 	// Random number generation
 
 	mt19937 flatfieldGenerator(flatfieldSeed);
 	normal_distribution<double> flatfieldDistribution(0.0, 1.0);
 
-	// Create a square map, filled with zeroes, in which the whole subfield fits,
-	// and for which the dimensions are a power of 2
+	// Double the dimensions (this is necessary because of the behaviour of the Fourier transforms)
+	// (this is a bit inconvenient as we are working at sub-pixel level -> to be investigated)
 
-	unsigned int NrowsSquareMap = 2;
-	unsigned int maxFlatfielMapDimension = max(flatfieldMap.n_rows, flatfieldMap.n_cols);
+	int numRows = 2 * numRowsPixelMap * numSubPixelsPerPixel;
+	int numColumns = 2 * numColumnsPixelMap * numSubPixelsPerPixel;
 
-	while (NrowsSquareMap <= maxFlatfielMapDimension)
+	arma::cx_fmat evenMap = arma::cx_fmat(numRows, numColumns);
+
+	for(unsigned int row = 0; row < numRows; row++)
 	{
-		NrowsSquareMap *= 2;
-	}
-
-	arma::Mat<float> squareMap(NrowsSquareMap, NrowsSquareMap);
-	squareMap.ones();
-
-	// Add variations at all spatial frequencies
-	// This is done by dividing the square map into:
-	// 		overlapping blocks of size (N/2)x(N/2)
-	// 		overlapping blocks of size (N/4)x(N/4)
-	//      overlapping blocks of size (N/8)x(N/8)
-	//      ...
-	//
-	// and add a gaussian noise to each of those blocks
-
-	// Loop over all block sizes: N/2, N/4, N/8, ...
-
-	for (unsigned int blockSize = NrowsSquareMap / 2; blockSize >= 2; blockSize /= 2)
-	{
-		// Loop over all overlapping blocks, and add a small variation
-
-		for (unsigned int blockRow = 0; blockRow < NrowsSquareMap - blockSize; blockRow += blockSize)
+		for(unsigned int column = 0; column < numColumns; column++)
 		{
-			for (unsigned int blockColumn = 0; blockColumn < NrowsSquareMap - blockSize; blockColumn += blockSize)
-			{
-				const double variation = flatfieldDistribution(flatfieldGenerator);
-				squareMap(arma::span(blockRow, blockRow + blockSize - 1), arma::span(blockColumn, blockColumn + blockSize - 1)) += variation;
-			}
+			// Fourier space: generate white noise and include 1/f dependency
+			// (Note: see https://en.wikipedia.org/wiki/Pink_noise#Generalization_to_more_than_one_dimension)
+
+			evenMap(row, column) = flatfieldDistribution(flatfieldGenerator) / (pow(row, 2) + std::pow(column, 2) + 1);
 		}
 	}
 
-	// Normalise and subtract 0.5 -> all values are in [-0.5, 0.5]
-	// Multiply by peak-to-peak noise amplitude -> all values are in [-peakAmplitude/2, +peakAmplitude/2]
+	// Take the real part of the inverse Fourier transform
 
-	double minValue = squareMap.min();
-	double maxValue = squareMap.max();
-	squareMap = ((squareMap - minValue) / (maxValue - minValue) - 0.5) * flatfieldNoiseAmplitude;
+	evenMap = arma::ifft2(evenMap);
+	arma::fmat realMap = arma::real(evenMap);
 
-	// Copy a part of the squareMatrix corresponding to the size of the flatfieldMap, into the flatfieldMap
+	// Cut out the appropriate part
 
-	flatfieldMap = squareMap.submat(0, 0, flatfieldMap.n_rows - 1, flatfieldMap.n_cols - 1);
+	flatfieldMap(arma::span::all, arma::span::all) = realMap(arma::span(0, numRows / 2 - 1), arma::span(0, numColumns / 2 - 1));
+
+	// Normalise
+
+	float minPinkNoise = flatfieldMap.min();
+	float maxPinkNoise = flatfieldMap.max();
+
+
+	flatfieldMap -= minPinkNoise;
+	flatfieldMap /= (maxPinkNoise - minPinkNoise); // [0, 1]
+	flatfieldMap *= flatfieldNoiseAmplitude;	// [0, flatfialdNoiseAmplitude]
+	flatfieldMap += (1.0 - flatfieldNoiseAmplitude);
+
+
+	// OLD IMPLEMENTATION
+//	// Random number generation
+//
+//	mt19937 flatfieldGenerator(flatfieldSeed);
+//	normal_distribution<double> flatfieldDistribution(0.0, 1.0);
+//
+//	// Create a square map, filled with zeroes, in which the whole subfield fits,
+//	// and for which the dimensions are a power of 2
+//
+//	unsigned int NrowsSquareMap = 2;
+//	unsigned int maxFlatfielMapDimension = max(flatfieldMap.n_rows, flatfieldMap.n_cols);
+//
+//	while (NrowsSquareMap <= maxFlatfielMapDimension)
+//	{
+//		NrowsSquareMap *= 2;
+//	}
+//
+//	arma::Mat<float> squareMap(NrowsSquareMap, NrowsSquareMap);
+//	squareMap.ones();
+//
+//	// Add variations at all spatial frequencies
+//	// This is done by dividing the square map into:
+//	// 		overlapping blocks of size (N/2)x(N/2)
+//	// 		overlapping blocks of size (N/4)x(N/4)
+//	//      overlapping blocks of size (N/8)x(N/8)
+//	//      ...
+//	//
+//	// and add a gaussian noise to each of those blocks
+//
+//	// Loop over all block sizes: N/2, N/4, N/8, ...
+//
+//	for (unsigned int blockSize = NrowsSquareMap / 2; blockSize >= 2; blockSize /= 2)
+//	{
+//		// Loop over all overlapping blocks, and add a small variation
+//
+//		for (unsigned int blockRow = 0; blockRow < NrowsSquareMap - blockSize; blockRow += blockSize)
+//		{
+//			for (unsigned int blockColumn = 0; blockColumn < NrowsSquareMap - blockSize; blockColumn += blockSize)
+//			{
+//				const double variation = flatfieldDistribution(flatfieldGenerator);
+//				squareMap(arma::span(blockRow, blockRow + blockSize - 1), arma::span(blockColumn, blockColumn + blockSize - 1)) += variation;
+//			}
+//		}
+//	}
+//
+//	// Normalise and subtract 0.5 -> all values are in [-0.5, 0.5]
+//	// Multiply by peak-to-peak noise amplitude -> all values are in [0, f]
+//
+//	double minValue = squareMap.min();
+//	double maxValue = squareMap.max();
+//	squareMap = ((squareMap - minValue) / (maxValue - minValue) - 0.5) * flatfieldNoiseAmplitude;
+//
+//	// Copy a part of the squareMatrix corresponding to the size of the flatfieldMap, into the flatfieldMap
+//
+//	flatfieldMap = squareMap.submat(0, 0, flatfieldMap.n_rows - 1, flatfieldMap.n_cols - 1);
 
 	// Save the intra-pixel flatfield in the HDF5 file
 
@@ -271,7 +371,7 @@ void Detector::generateFlatfieldMap()
 	hdf5File.writeArray("/Flatfield", "IRNU", flatfieldMap);
 
 	// Rebin the intra-pixel flatfield to the pixel flatfield (IRNU -> PRNU)
-	// and also write this array to the HDF5 outputfile. This PRNU array is not used 
+	// and also write this array to the HDF5 outputfile. This PRNU array is not used
 	// in the remainder of the simulation.
 
 	arma::Mat<float> prnu(numRowsPixelMap, numColumnsPixelMap, arma::fill::zeros);

@@ -349,17 +349,6 @@ public:
 	{
 		return readoutNoiseDistribution;
 	}
-
-
-
-	void test_setDimensions(unsigned int numRowsSubField, unsigned int numColumnsSubField, unsigned numSubPixels)
-	{
-		numRowsPixelMap = numRowsSubField;
-		numColumnsPixelMap = numColumnsSubField;
-
-		numRowsSubPixelMap = numRowsSubField * numSubPixels;
-		numColumnsSubPixelMap = numColumnsSubField * numSubPixels;
-	}
 };
 
 
@@ -548,10 +537,44 @@ TEST_F(DetectorTest, dimensions)
 
 
 
+/**
+ * Flatfield.
+ */
 TEST_F(DetectorTest, generateFlatfield)
 {
 	LOG_STARTING_OF_TEST
 
+	// Construction
+
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
+
+	// Configuration parameters
+
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+	const double flatfieldNoiseAmplitude = configParams.getDouble("CCD/FlatfieldPtPNoise");
+
+	// Flatfield map: check dimensions and content
+
+	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getFlatfieldMap().n_rows);
+	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getFlatfieldMap().n_cols);
+
+	EXPECT_FLOAT_EQ(1.0 - flatfieldNoiseAmplitude, detector.test_getFlatfieldMap().min());
+	EXPECT_FLOAT_EQ(1.0, detector.test_getFlatfieldMap().max());
+
+
+	// TODO
+	float mean = arma::accu(detector.test_getFlatfieldMap()) / numRowsSubField / numColumnsSubField / numSubPixels / numSubPixels;
+
+//	EXPECT_NEAR(1.0, mean, 1.0e-3);
 }
 
 
@@ -571,9 +594,10 @@ TEST_F(DetectorTest, generateFlatfield)
  */
 TEST_F(DetectorTest, reset)
 {
-	// Construction
 
 	LOG_STARTING_OF_TEST
+
+	// Construction
 
 	JitterFromRedNoise jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
