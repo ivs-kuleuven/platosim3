@@ -11,6 +11,7 @@ dependencies/Installs/*
 
 !inputfiles/inputfile.yaml
 !inputfiles/starcatalog.txt
+!inputfiles/psf.hdf5
 
 # Compiled source 
 
@@ -27,6 +28,7 @@ psf_201506.hdf5
 
 # Logs and databases
 
+log.txt
 *.log
 *.sql
 *.sqlite

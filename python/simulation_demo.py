@@ -9,16 +9,17 @@ outputDir   = "/Users/rik/Work/PLATO/Simulation/"
 # Set up a Simulation object
 
 sim = Simulation("Simul01", configurationFile="/Users/rik/Work/PLATO/myInputs/inputfile.yaml")
-sim.setOutputDir(outputDir)
+sim.outputDir = "/Users/rik/Work/PLATO/Simulations"
 
-# Run the simulation without the flux extraction, with an HDF5 file as output
+# Run the simulation
 
-simFile = sim.run(doPhotometry=False)
+simFile = sim.run()
 
-# Look at an exposure image
+# Look at the first exposure image
 
 simFile.showImage(0)
 
 # Read an imagette from the output HDF5 file
 
 imagette = simFile.getImagette(15209, 0, radius=2)
+

@@ -60,6 +60,7 @@ PSF:
 
 CCD:
 
+    PredefinedPosition:          A               # Predefined position of CCD (A, B, C, D, AF, BF, CF, DF)
     OriginOffsetX:               0               # X Offset of CCD origin from center of focal plane [mm]
     OriginOffsetY:               0               # Y Offset of CCD origin from center of focal plane [mm]
     Orientation:                 0               # Orientation of CCD w.r.t. focal plane orientation [deg]

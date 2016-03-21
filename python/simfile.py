@@ -11,6 +11,12 @@ To get the subfield image of the 10th exposure:
 >>> im = f.getImage(10) 
 
 
+Similarly, the corresponding smearing and bias maps can be obtained through:
+
+>>> biasMap = f.getBiasMap(10)
+>>> smearingMap = f.getSmearingMap(10)
+
+
 To plot the subfield image of the 10th exposure:
 
 >>> f.showImage(10)
@@ -126,6 +132,85 @@ class SimFile (object):
         self.hdf5file.close()
         self.hdf5file = h5py.File(self.filename, "r")
         return
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    def getSmearingMap(self, exposureNr):
+
+        """
+        PURPOSE: extract the smearing map of the given exposure # from the HDF5 file (if present)
+
+        INPUT: exposureNr: integer sequential number of the smearing map
+
+        OUTPUT: smearingMap: 2D numpy array containing the smearing map
+        """
+
+        # Construct the smearing map name that was used to store the map
+
+        smearingMapName = "smearingMap{0:06d}".format(exposureNr)
+
+        # Check if the smearing map is in the file. If not: complain, if yes: copy the contents into a numpy array.
+
+        if smearingMapName not in self.hdf5file["SmearingMaps"].keys():
+            print("Error: SimfFile.getSmearingMap(): {0} not in hdf5 file".format(smearingMapName))
+            return
+        else:
+            dataset = self.hdf5file["SmearingMaps"][smearingMapName]
+            smearingMap = np.zeros(dataset.shape, dataset.dtype)
+            dataset.read_direct(smearingMap)
+            return smearingMap 
+
+
+
+
+
+
+
+
+
+
+
+
+    def getBiasMap(self, exposureNr):
+
+        """
+        PURPOSE: extract the bias map of the given exposure # from the HDF5 file (if present)
+
+        INPUT: exposureNr: integer sequential number of the bias map
+
+        OUTPUT: biasMap: 2D numpy array containing the bias map
+        """
+
+        # Construct the bias map name that was used to store the map
+
+        biasMapName = "biasMap{0:06d}".format(exposureNr)
+
+        # Check if the bias map is in the file. If not: complain, if yes: copy the contents into a numpy array.
+
+        if biasMapName not in self.hdf5file["BiasMaps"].keys():
+            print("Error: SimfFile.getBiasMap(): {0} not in hdf5 file".format(biasMapName))
+            return
+        else:
+            dataset = self.hdf5file["BiasMaps"][biasMapName]
+            biasMap = np.zeros(dataset.shape, dataset.dtype)
+            dataset.read_direct(biasMap)
+            return biasMap 
+
+
+
+
+
 
 
 
