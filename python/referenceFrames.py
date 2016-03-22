@@ -55,29 +55,20 @@ def gnomonicProjectionSkyToFocalPlane(raStar, decStar, raOpticalAxis, decOptical
             yFPprime: y-coordinate of the projected star in the focal plane in the FP-prime system [mm]
     """
 
-    print ("gnomonicProjectionSkyToFocalPlane: raStar, decStar = " + str(raStar) + ", " + str(decStar));
-    print ("gnomonicProjectionSkyToFocalPlane: raOpticalAxis, decOpticalAxis, focalPlaneAngle = " + str(raOpticalAxis) + ", " + str(decOpticalAxis) + ", " + str(focalPlaneAngle))
-
     # Project the sky to the focal plane in the "FP" coordinate system
 
     denominator = cos(decOpticalAxis) * cos(decStar) * cos(raStar - raOpticalAxis) + sin(decOpticalAxis) * sin(decStar)
     xFP = (sin(decOpticalAxis) * cos(decStar) * cos(raStar - raOpticalAxis) - cos(decOpticalAxis) * sin(decStar)) / denominator
     yFP =  cos(decStar) * sin(raStar - raOpticalAxis) / denominator
 
-    print("gnomonicProjectionSkyToFocalPlane: denominator, xFP, yFP = " + str(denominator) + ", " + str(xFP) + ", " + str(yFP))
-
     # Convert the FP coordinates into FP' coordinates 
 
     xFPprime =  xFP * cos(focalPlaneAngle) + yFP * sin(focalPlaneAngle)
     yFPprime = -xFP * sin(focalPlaneAngle) + yFP * cos(focalPlaneAngle)
 
-    print("gnomonicProjectionSkyToFocalPlane: xFPprime, yFPprime = " + str(xFPprime) + ", " + str(yFPprime))
-
     # Compute the conversion factor: conversion from [arcsec/pixel] to [mm/radian].
 
     conversionFactor = 3600. * 180 / 1000 / pi / plateScale
-
-    print("gnomonicProjectionSkyToFocalPlane: conversionFactor = " + str(conversionFactor))
 
     # Return the scaled coordinates
 
@@ -727,7 +718,7 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
     # so this affects the number of rows and the row-pixel-coordinate of the star
 
     if ccdCode in ["AF", "BF", "CF", "DF"]:
-        CCDSizeY = CCDSizeY / 2
+        CCDSizeY = CCDSizeY // 2                   # integer division, not float
         yPix = yPix - CCDSizeY
 
     if ccdCode == "AF": CCDOriginOffsetY = CCDOriginOffsetY / 2
@@ -738,7 +729,6 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
 
     # If we arrive here, there is no problem accommodating the entire sufield on the CCD
 
-    sim["CCD/PredefinedPosition"] = ccdCode
     sim["CCD/OriginOffsetX"] = str(CCDOriginOffsetX)
     sim["CCD/OriginOffsetY"] = str(CCDOriginOffsetY)
     sim["CCD/Orientation"] = str(rad2deg(CCDOrientation))

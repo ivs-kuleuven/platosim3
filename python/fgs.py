@@ -6,14 +6,18 @@ from referenceFrames import setSubfieldAroundCoordinates
 
 # Specify the absolute paths of some of the input files and the output folder
 
+myInputs    = "/Users/joris/Development/Cpp/PlatoSim3/inputfiles"
 myInputs    = "/Users/rik/Work/PLATO/myInputs"
 
 inputFile   = myInputs + "/myInputfile.yaml"
+
 starCatalog = myInputs + "/guide_stars_EQ.txt"
 jitterFile  = myInputs + "/PlatoJitter_Airbus.txt"
 psfFile     = myInputs + "/psf.hdf5"
 
+outputDir   = "/Users/joris/Development/Cpp/PlatoSim3/python"
 outputDir   = "/Users/rik/Work/PLATO/Simulations"
+outputFilePrefix = "GuideStarThalesFine"
 
 # Read the guide star catalog
 
@@ -33,7 +37,7 @@ for n in range(NguideStars):
 
     # Set up a Simulation object
 
-    sim = Simulation("GuideStarThalesFine{0:02d}".format(n), inputFile)
+    sim = Simulation(outputFilePrefix + "{0:02d}".format(n), inputFile)
     sim.outputDir = outputDir
 
     # Point the spacecraft. The coordinates refer to location of the optical axis.
@@ -82,7 +86,7 @@ for n in range(NguideStars):
 
     # Set some other input parameters specific to this simulation
 
-    sim["ObservingParameters/NumExposures"] = 1440						# 1h observation
+    sim["ObservingParameters/NumExposures"] = 10
     sim["ObservingParameters/SkyBackground"] = 150
     sim["ObservingParameters/ExposureTime"] = 2.25
     sim["ObservingParameters/StarCatalogFile"] = starCatalog
@@ -103,7 +107,7 @@ for n in range(NguideStars):
     sim["SubField/SubPixels"] = 128
 
     sim["PSF/UseGauss"] = "yes"
-    sim["PSF/Sigma"] = .5
+    sim["PSF/Sigma"] = .025
     sim["PSF/NumberOfPixels"] = 8
     sim["PSF/NumberOfSubPixels"] = 128
     sim["PSF/Filename"] = psfFile
