@@ -54,9 +54,9 @@ PSF:
 
     UseGauss:                    yes             # Use analytical Gaussian PSF (yes or no)
     Sigma:                       1.0             # Width of Gaussian PSF [pixels]
-    Filename:                    inputfiles/psf.hdf5
-    NumberOfPixels:              10              # The number of pixels in the field for which the PSF is generated
-    NumberOfSubPixels:           512             # The number of subpixels per pixel that was used to generate the PSF
+    NumberOfPixels:              8               # The number of pixels in the field for which the PSF is generated
+    NumberOfSubPixels:           128             # The number of subpixels per pixel that was used to generate the PSF
+    Filename:                    inputfiles/psf.hdf5 # Read pre-calculated PSF from HDF5 file when UseGauss = no
 
 
 CCD:
