@@ -1421,6 +1421,8 @@ TEST_F(DetectorTest, applyOpenShutterSmearing)
 	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
 	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
 
+	const int numRowsDetector = configParams.getInteger("CCD/NumRows");
+
 	const double readoutTime = configParams.getDouble("CCD/ReadoutTime");	// 2
 	const double exposureTime = readoutTime * 20.0;
 
@@ -1465,7 +1467,7 @@ TEST_F(DetectorTest, applyOpenShutterSmearing)
 	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
 	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
 
-	double expectedNoise = subField(0, 2) / numRowsSubField * readoutTime / exposureTime;
+	double expectedNoise = subField(0, 2) / numRowsDetector * readoutTime / exposureTime;
 
 	EXPECT_TRUE(expectedNoise != 0.0);
 
