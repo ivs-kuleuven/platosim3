@@ -238,8 +238,10 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     subGroup = "PSF";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addBoolean("UseGauss");
-    addDouble("GaussSigma");
+    addDouble("Sigma");
     addString("Filename");
+    addInteger("NumberOfPixels");
+    addInteger("NumberOfSubPixels");
 
     subGroup = "CCD";
     hdf5File.createGroup(parentGroup + "/" + subGroup);

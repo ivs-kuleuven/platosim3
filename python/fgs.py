@@ -102,8 +102,10 @@ for n in range(NguideStars):
     sim["SubField/NumSmearingOverscanRows"] = 0
     sim["SubField/SubPixels"] = 128
 
-    sim["PSF/UseGauss"] = "no"
-    sim["PSF/GaussSigma"] = .5
+    sim["PSF/UseGauss"] = "yes"
+    sim["PSF/Sigma"] = .5
+    sim["PSF/NumberOfPixels"] = 8
+    sim["PSF/NumberOfSubPixels"] = 128
     sim["PSF/Filename"] = psfFile
 
     sim["Platform/UseJitter"] = "yes"
