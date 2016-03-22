@@ -9,6 +9,7 @@
 
 #include "ArrayOperations.h"
 #include "ConfigurationParameters.h"
+#include "Constants.h"
 #include "Exceptions.h"
 #include "FileUtilities.h"
 #include "StringUtilities.h"
@@ -37,7 +38,7 @@ class PointSpreadFunction
 
     protected:
         void configure(ConfigurationParameters &);
-
+        arma::fmat getGaussianPsf();
 
     private:
 
@@ -54,6 +55,9 @@ class PointSpreadFunction
         // Positive angles rotated counter-clockwise.
         double rotationAngle = 0;    // [radians]
 
+        // Handle a Gaussian PSF slightly different, i.e. not location dependent, no rotation needed
+        bool isGaussian = false;
+
         // The selected psf is copied into this array
         arma::Mat<float> psfMap;
 
@@ -66,9 +70,14 @@ class PointSpreadFunction
         // Name of the HDF5 group that contains the PSF datasets
         string groupName;
 
-        // Number of sub-pixels per pixel that was used to generate the PSF
+        // Number of sub-pixels per pixel that was/is used to generate the PSF
         unsigned int numberOfSubPixelsPerPixel;
 
+        // Number of pixels in the field that holds the PSF
+        unsigned int numberOfPixels;
+
+        // Width of the Gaussian PSF
+        double sigma;
 };
 
 

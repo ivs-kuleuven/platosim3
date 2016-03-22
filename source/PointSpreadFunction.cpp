@@ -96,6 +96,41 @@ PointSpreadFunction::~PointSpreadFunction()
 
 
 
+
+
+arma::fmat PointSpreadFunction::getGaussianPsf()
+{
+
+    double centerRow = numberOfSubPixelsPerPixel * numberOfPixels / 2.0;
+    double centerColumn = numberOfSubPixelsPerPixel * numberOfPixels / 2.0;
+
+    if (sigma < 1.0 / numberOfSubPixelsPerPixel)
+    {
+        throw IllegalArgumentException("The width of the Gaussian PSF must be larger than the size of a subpixel.");
+    }
+
+    // Generate the Gaussian PSF at the sub-pixel level
+
+    double width = sigma * numberOfSubPixelsPerPixel;
+    double normalizationFactor = 1.0 / (width * width * 2.0 * Constants::PI);
+    double denominator = 2.0 * width * width;
+
+    arma::fmat gaussianPsf (numberOfPixels * numberOfSubPixelsPerPixel, numberOfPixels * numberOfSubPixelsPerPixel, arma::fill::zeros);
+
+    for (unsigned int xi = 0; xi < gaussianPsf.n_cols; xi++)
+    {
+        for (unsigned int xj = 0; xj < gaussianPsf.n_rows; xj++)
+        {
+            // FIXME: This a equation can probably be optimized with Armadillo functionality
+            gaussianPsf(xi, xj) = normalizationFactor 
+                * exp( - (pow(xi - centerColumn, 2.0) + pow(xj - centerRow, 2.0)) / denominator);
+        }
+    }
+
+    return gaussianPsf;
+}
+
+
 /**
  * \brief Configure the PointSpreadFunction object using the ConfigurationParameters
  * 
@@ -104,8 +139,11 @@ PointSpreadFunction::~PointSpreadFunction()
 
 void PointSpreadFunction::configure(ConfigurationParameters &cp)
 {
-    absolutePath = cp.getAbsoluteFilename("PSF/Filename");
-    numberOfSubPixelsPerPixel = cp.getInteger("PSF/SubPixels");
+    isGaussian                = cp.getBoolean("PSF/UseGauss");
+    absolutePath              = cp.getAbsoluteFilename("PSF/Filename");
+    numberOfSubPixelsPerPixel = cp.getInteger("PSF/NumberOfSubPixels");
+    numberOfPixels            = cp.getInteger("PSF/NumberOfPixels");
+    sigma                     = cp.getDouble("PSF/Sigma");
 }
 
 
@@ -136,6 +174,14 @@ void PointSpreadFunction::select(double radius)
     if (isSelected)
     {
         Log.warning("PointSpreadFunction: Another PSF was previously selected.");
+    }
+
+    if (isGaussian)
+    {
+        psfMap = getGaussianPsf();
+        isSelected = true;
+        rotationAngle = 0.0;
+        return;
     }
 
     radius = rad2deg(radius);
@@ -209,6 +255,11 @@ void PointSpreadFunction::select(double radius)
  */
 void PointSpreadFunction::rotate(double angle)
 {
+
+    // We do not need to rotate a Gaussian PSF
+
+    if (isGaussian)
+        return;
 
     if (isRotated)
     {
