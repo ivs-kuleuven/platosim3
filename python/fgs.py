@@ -7,13 +7,16 @@ from referenceFrames import setSubfieldAroundCoordinates
 # Specify the absolute paths of some of the input files and the output folder
 
 myInputs    = "/Users/joris/Development/Cpp/PlatoSim3/inputfiles"
+myInputs    = "/Users/rik/Work/PLATO/myInputs"
 
-inputFile   = myInputs + "/inputjoris.yaml"
+inputFile   = myInputs + "/myInputfile.yaml"
+
 starCatalog = myInputs + "/guide_stars_EQ.txt"
 jitterFile  = myInputs + "/PlatoJitter_Airbus.txt"
 psfFile     = myInputs + "/psf.hdf5"
 
 outputDir   = "/Users/joris/Development/Cpp/PlatoSim3/python"
+outputDir   = "/Users/rik/Work/PLATO/Simulations"
 outputFilePrefix = "GuideStarThalesFine"
 
 # Read the guide star catalog
