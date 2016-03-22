@@ -104,7 +104,7 @@ for n in range(NguideStars):
     sim["SubField/SubPixels"] = 128
 
     sim["PSF/UseGauss"] = "yes"
-    sim["PSF/Sigma"] = .5
+    sim["PSF/Sigma"] = .025
     sim["PSF/NumberOfPixels"] = 8
     sim["PSF/NumberOfSubPixels"] = 128
     sim["PSF/Filename"] = psfFile
