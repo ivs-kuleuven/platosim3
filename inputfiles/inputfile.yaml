@@ -29,7 +29,7 @@ Platform:
 
 Telescope:
     
-    LightCollectingArea:         113.1           # Effective area of 1 telescope [cmˆ2]
+    LightCollectingArea:         113.1           # Effective area of 1 telescope [cm^2]
     TransmissionEfficiency:      0.757           # in [0,1]
     FOVSquareDegrees:            1072.0          # Sky area covered by the FOV of 1 telescope [deg^2]
     DriftYawRms:                 2.3             # RMS of thermo-elastic drift in yaw [arcsec]

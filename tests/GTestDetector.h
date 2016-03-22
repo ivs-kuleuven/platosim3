@@ -349,6 +349,11 @@ public:
 	{
 		return readoutNoiseDistribution;
 	}
+
+	void test_applyFullWellSaturation()
+	{
+		applyFullWellSaturation();
+	}
 };
 
 
@@ -1122,6 +1127,169 @@ TEST_F(DetectorTest, applyFullWellSaturation)
 {
 	LOG_STARTING_OF_TEST
 
+	// Construction
+
+		JitterFromRedNoise jitterGenerator(configParams);
+		Platform platform(configParams, hdf5File, jitterGenerator);
+		Sky sky(configParams);
+		Telescope telescope(configParams, hdf5File, platform);
+		Camera camera(configParams, hdf5File, telescope, sky);
+		MyDetector detector(configParams, hdf5File, camera);
+
+		// Configuration parameters
+
+		const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+		const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+		const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+		const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+
+		const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+		const double saturationLimit = configParams.getDouble("CCD/FullWellSaturation");
+
+		// Initialise sub-pixel map, pixel map, bias register map, and smearing map
+
+		arma::fmat subPixelMap = arma::fmat(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
+		subPixelMap.zeros();
+		detector.test_setSubPixelMap(subPixelMap);
+
+		arma::fmat subField = arma::fmat(numRowsSubField, numColumnsSubField);
+		subField.ones();
+
+		subField(9, 7) = 5 * saturationLimit;	// At the edge -> flux falls off the sub-field
+		subField(0, 3) = 5 * saturationLimit;	// At the edge -> flux falls off the sub-field
+		subField(5, 5) = 5 * saturationLimit; // Away from the edge
+//
+		subField(4,1) = 3 * saturationLimit;
+		subField(5,1) = 3 * saturationLimit;
+
+		detector.test_setSubfield(subField);
+
+		arma::fmat biasMap = arma::fmat(numBiasPreScanRows, numColumnsSubField);
+		biasMap.ones();
+		detector.test_setBiasRegisterMap(biasMap);
+
+		arma::fmat smearingMap = arma::fmat(numSmearingOverScanRows, numColumnsSubField);
+		smearingMap.ones();
+		detector.test_setSmearingMap(smearingMap);
+
+
+
+		// Full-well saturation
+
+		detector.test_applyFullWellSaturation();
+
+
+
+		// Pixel map: check dimension and content
+
+		ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
+		ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
+
+		for(unsigned int column = 0; column < numColumnsSubField; column++)
+		{
+			for(unsigned int row = 0; row < numRowsSubField; row++)
+			{
+
+				if(column == 7)
+				{
+					if(row >= 7)
+					{
+						EXPECT_FLOAT_EQ(saturationLimit, detector.test_getSubfield()(row, column));
+					}
+
+					else if(row == 6)
+					{
+						EXPECT_FLOAT_EQ(3.0, detector.test_getSubfield()(row, column));
+					}
+
+					else
+					{
+						EXPECT_FLOAT_EQ(1.0, detector.test_getSubfield()(row, column));
+					}
+				}
+
+				else if(column == 3)
+				{
+					if(row <= 2)
+					{
+						EXPECT_FLOAT_EQ(saturationLimit, detector.test_getSubfield()(row, column));
+					}
+
+					else if(row == 3)
+					{
+						EXPECT_FLOAT_EQ(3.0, detector.test_getSubfield()(row, column));
+					}
+					else
+					{
+						EXPECT_FLOAT_EQ(1.0, detector.test_getSubfield()(row, column));
+					}
+				}
+
+				else if(column == 5)
+				{
+					if(row >= 3 && row <= 7)
+					{
+						EXPECT_FLOAT_EQ(saturationLimit, detector.test_getSubfield()(row, column));
+					}
+
+					else if((row == 2) || (row == 8))
+					{
+						EXPECT_FLOAT_EQ(3.0, detector.test_getSubfield()(row, column));
+					}
+
+					else{
+						EXPECT_FLOAT_EQ(1.0, detector.test_getSubfield()(row, column));
+					}
+				}
+
+				else if(column == 1)
+				{
+					if((row == 1) || (row == 8))
+					{
+						EXPECT_FLOAT_EQ(3.0, detector.test_getSubfield()(row, column));
+					}
+
+					else if((row >= 2) && (row <= 7))
+					{
+						EXPECT_FLOAT_EQ(saturationLimit, detector.test_getSubfield()(row, column));
+					}
+
+					else
+					{
+						EXPECT_FLOAT_EQ(1.0, detector.test_getSubfield()(row, column));
+					}
+
+				}
+
+				else
+				{
+					EXPECT_FLOAT_EQ(1.0, detector.test_getSubfield()(row, column));
+				}
+			}
+		}
+
+		// Sub-pixel map: check dimensions and content (unaltered)
+
+		ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+		ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+
+		EXPECT_TRUE(arma::all(arma::vectorise(subPixelMap) == arma::vectorise(detector.test_getSubPixelMap())));
+
+		// Bias register map: check dimensions and content (unaltered)
+
+		ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+		ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
+
+		EXPECT_TRUE(arma::all(arma::vectorise(biasMap) == arma::vectorise(detector.test_getBiasRegisterMap())));
+
+		// Smearing map: check dimensions and content (unaltered)
+
+		ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+		ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+
+		EXPECT_TRUE(arma::all(arma::vectorise(smearingMap) == arma::vectorise(detector.test_getSmearingMap())));
 }
 
 
