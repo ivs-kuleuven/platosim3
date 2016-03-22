@@ -1400,7 +1400,7 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
 	// scaled with the readout time instead of with the exposure time.
 
 	arma::Row<float> openShutterSmearing = arma::sum(pixelMap, 0);
-	float factor = (readoutTime / exposureTime) / numRowsPixelMap;
+	float factor = (readoutTime / exposureTime) / numRows;
 	openShutterSmearing *= factor;
 
 	// Add the effect of the open-shutter smearing to the pixel map
