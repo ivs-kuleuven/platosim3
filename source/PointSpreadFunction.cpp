@@ -98,6 +98,20 @@ PointSpreadFunction::~PointSpreadFunction()
 
 
 
+/**
+ * @brief      Return a two-dimensional Gaussian function
+ * 
+ * @details
+ * 
+ * The Gaussian PSF is calculated from the following equation:
+ * 
+ * \f[
+ *   f(x, y)  =  \frac{1}{2\pi\sigma^{2}} e^{-[(x - \mu_x)^{2} + (y - \mu_y)^{2}] / (2\sigma^{2})}
+ * \f]
+ *
+ *
+ * @return     a 2D Gaussian PSF
+ */
 arma::fmat PointSpreadFunction::getGaussianPsf()
 {
 
