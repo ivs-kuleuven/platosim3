@@ -354,6 +354,16 @@ public:
 	{
 		applyFullWellSaturation();
 	}
+
+	pair<double, double> test_getPlanarFocalPlaneCoordinatesOfSubfieldCenter()
+	{
+		return getPlanarFocalPlaneCoordinatesOfSubfieldCenter();
+	}
+
+	tuple<double, double, double, double, double, double, double, double> test_getPlanarFocalPlaneCoordinatesOfSubfieldCorners()
+	{
+		return getPlanarFocalPlaneCoordinatesOfSubfieldCorners();
+	}
 };
 
 
@@ -2165,6 +2175,47 @@ TEST_F(DetectorTest, getPlanarFocalPlaneCoordinatesOfSubfieldCorners)
 
 
 
+TEST_F(DetectorTest, getPlanarFocalPlaneCoordinatesOfSubfieldCenter)
+{
+	LOG_STARTING_OF_TEST
+
+	// Construction
+
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
+
+
+
+	// Configuration parameters
+
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+	const int zeropointRow = configParams.getInteger("SubField/ZeroPointRow");
+	const int zeropointColumn = configParams.getInteger("SubField/ZeroPointColumn");
+
+
+
+	pair<double, double> expected =
+			detector.test_pixelToPlanarFocalPlaneCoordinates(zeropointRow + numRowsSubField / 2, zeropointColumn + numColumnsSubField / 2);
+
+	EXPECT_FLOAT_EQ(expected.first, detector.getPlanarFocalPlaneCoordinatesOfSubfieldCenter().first);
+	EXPECT_FLOAT_EQ(expected.second, detector.getPlanarFocalPlaneCoordinatesOfSubfieldCenter().second);
+}
+
+
+
+
+
+
+
+
+
+
 TEST_F(DetectorTest, getSolidAngleOfOnePixel)
 {
 	LOG_STARTING_OF_TEST
@@ -2179,8 +2230,13 @@ TEST_F(DetectorTest, getSolidAngleOfOnePixel)
 	MyDetector detector(configParams, hdf5File, camera);
 
 
+
+	// Configuration parameters
+
 	double pixelSize = configParams.getDouble("CCD/PixelSize");
 	double plateScale = configParams.getDouble("Camera/PlateScale");
+
+
 
 	double expected = pixelSize * plateScale; // [arcsec]
 	expected /= 3600.0; // [degrees]
