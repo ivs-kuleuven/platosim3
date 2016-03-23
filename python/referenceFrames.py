@@ -737,10 +737,10 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
         CCDSizeY = CCDSizeY // 2                   # integer division, not float
         yPix = yPix - CCDSizeY
 
-    if ccdCode == "AF": CCDOriginOffsetY = CCDOriginOffsetY / 2
-    if ccdCode == "BF": CCDOriginOffsetX = CCDOriginOffsetX / 2
-    if ccdCode == "CF": CCDOriginOffsetX = CCDOriginOffsetX / 2
-    if ccdCode == "DF": CCDOriginOffsetY = CCDOriginOffsetY / 2
+    # if ccdCode == "AF": CCDOriginOffsetY = CCDOriginOffsetY / 2
+    # if ccdCode == "BF": CCDOriginOffsetX = CCDOriginOffsetX / 2
+    # if ccdCode == "CF": CCDOriginOffsetX = CCDOriginOffsetX / 2
+    # if ccdCode == "DF": CCDOriginOffsetY = CCDOriginOffsetY / 2
 
 
     # If we arrive here, there is no problem accommodating the entire sufield on the CCD
