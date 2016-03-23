@@ -1477,12 +1477,12 @@ TEST_F(DetectorTest, applyOpenShutterSmearing)
 		{
 			if(column != 2)
 			{
-				EXPECT_EQ(0.0, detector.test_getSubfield()(row, column));
+				EXPECT_FLOAT_EQ(0.0, detector.test_getSubfield()(row, column));
 			}
 
 			else
 			{
-				EXPECT_EQ(subField(row, column) + expectedNoise, detector.test_getSubfield()(row, column));
+				EXPECT_FLOAT_EQ(subField(row, column) + expectedNoise, detector.test_getSubfield()(row, column));
 			}
 		}
 	}
@@ -2168,4 +2168,24 @@ TEST_F(DetectorTest, getPlanarFocalPlaneCoordinatesOfSubfieldCorners)
 TEST_F(DetectorTest, getSolidAngleOfOnePixel)
 {
 	LOG_STARTING_OF_TEST
+
+	// Construction
+
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
+
+
+	double pixelSize = configParams.getDouble("CCD/PixelSize");
+	double plateScale = configParams.getDouble("Camera/PlateScale");
+
+	double expected = pixelSize * plateScale; // [arcsec]
+	expected /= 3600.0; // [degrees]
+	expected = pow(expected, 2);	// [square degrees]
+	expected /= pow(180.0 / M_PI, 2);	// [sr]
+
+	EXPECT_FLOAT_EQ(expected, detector.getSolidAngleOfOnePixel(plateScale));
 }
