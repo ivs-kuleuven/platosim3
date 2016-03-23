@@ -38,7 +38,7 @@ CCD = \
 
 
 
-def gnomonicProjectionSkyToFocalPlane(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale, pixelSize):
+def skyToAngularFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale, pixelSize):
 
     """
     PURPOSE: computes the (x,y) coordinates in the focal plane of a star with given equatorial coordinates
@@ -51,8 +51,7 @@ def gnomonicProjectionSkyToFocalPlane(raStar, decStar, raOpticalAxis, decOptical
            plateScale:      [arcsec/micron]
            pixelSize:       [micrometer]
 
-    OUTPUT: xFPprime: x-coordinate of the projected star in the focal plane in the FP-prime system [mm]
-            yFPprime: y-coordinate of the projected star in the focal plane in the FP-prime system [mm]
+    OUTPUT: xFPrad, yFPrad: Cartesian coordinate of the projected star in the focal plane in the FP-prime system [radians]
     """
 
     # Project the sky to the focal plane in the "FP" coordinate system
@@ -63,16 +62,19 @@ def gnomonicProjectionSkyToFocalPlane(raStar, decStar, raOpticalAxis, decOptical
 
     # Convert the FP coordinates into FP' coordinates 
 
-    xFPprime =  xFP * cos(focalPlaneAngle) + yFP * sin(focalPlaneAngle)
-    yFPprime = -xFP * sin(focalPlaneAngle) + yFP * cos(focalPlaneAngle)
-
-    # Compute the conversion factor: conversion from [arcsec/pixel] to [mm/radian].
-
-    conversionFactor = 3600. * 180 / 1000 / pi / plateScale
+    xFPrad =  xFP * cos(focalPlaneAngle) + yFP * sin(focalPlaneAngle)
+    yFPrad = -xFP * sin(focalPlaneAngle) + yFP * cos(focalPlaneAngle)
 
     # Return the scaled coordinates
 
-    return xFPprime * conversionFactor, yFPprime * conversionFactor
+    return xFPrad, yFPrad
+
+
+
+
+
+
+
 
 
 def angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad, focalLength):
@@ -528,7 +530,11 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
 
     # Compute the (x,y) coordinates in the FP' reference system [mm]
 
-    xFPprime, yFPprime = gnomonicProjectionSkyToFocalPlane(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale, pixelSize)
+    xFPrad, yFPrad = skyToAngularFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale, pixelSize)
+    xFPmm, yFPmm = angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad, focalLength)
+
+    print ("DEBUG referenceFrames.getCCDandPixelCoordinates: xFPrad, yFPrad = {}, {}".format(xFPrad, yFPrad))
+    print ("DEBUG referenceFrames.getCCDandPixelCoordinates: xFPmm, yFPmm = {}, {}".format(xFPmm, yFPmm))
 
     # Find out if this falls on a CCD, and if yes which one.
     # Our approach: try each of the CCDs. Not elegant, but robust...
@@ -542,7 +548,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
         zeroPointYmm = CCD[ccdCode]["zeroPointYmm"]
         ccdAngle     = CCD[ccdCode]["angle"]
         
-        xCCDpix, yCCDpix = focalPlaneToPixelCoordinates(xFPprime, yFPprime, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
+        xCCDpix, yCCDpix = focalPlaneToPixelCoordinates(xFPmm, yFPmm, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
 
         # Check if the star falls on the exposed area of the CCD. If not: go to next CCD
 
