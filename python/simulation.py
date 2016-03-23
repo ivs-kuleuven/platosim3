@@ -339,10 +339,11 @@ class Simulation(object):
 
         inputFilename = "{}/{}.yaml".format(self.targetOutputFilesLocation, self.runName)
         outputFilename = "{}/{}.hdf5".format(self.targetOutputFilesLocation, self.runName)
+        logFilename = "{}/{}.log".format(self.targetOutputFilesLocation, self.runName)
 
         self.writeYamlConfigurationFile(inputFilename)
 
-        subprocess.call([self.platosimBuildLocation + "/platosim", inputFilename, outputFilename])
+        subprocess.call([self.platosimBuildLocation + "/platosim", inputFilename, outputFilename, logFilename])
 
         simFile = SimFile(outputFilename)
 
