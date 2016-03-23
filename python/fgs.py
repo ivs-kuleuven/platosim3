@@ -30,8 +30,8 @@ DEC_OPTICAL_AXIS = -46.395950854582
 
 # For each guide star, center a subfield around it, and run the simulator
 
-for n in range(NguideStars):
-
+#for n in range(NguideStars):
+for n in [0,1]:
     print("Running the simulator for guide star {0}".format(n))
     print("Guide Star Coordinates [deg]: {}, {}".format(ra[n], dec[n]))
 
@@ -62,6 +62,21 @@ for n in range(NguideStars):
 
     nominalCamera = False
 
+    # This function sets the following configuration parameters:
+    # 
+    # CCD/OriginOffsetX
+    # CCD/OriginOffsetY
+    # CCD/Orientation
+    # CCD/NumColumns
+    # CCD/NumRows
+    # 
+    # SubField/ZeroPointRow
+    # SubField/ZeroPointColumn
+    # SubField/NumRows
+    # SubField/NumColumns
+    # 
+    # ObservingParameters/ExposureTime
+    # 
     hasCcdCode = setSubfieldAroundCoordinates(sim, np.deg2rad(ra[n]), np.deg2rad(dec[n]), 
                                               subfieldSizeX, subfieldSizeY, focalLength, plateScale, pixelSize, \
                                               raOpticalAxis, decOpticalAxis, focalPlaneAngle, nominalCamera)
