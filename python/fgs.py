@@ -53,6 +53,7 @@ for n in range(NguideStars):
     raOpticalAxis   = np.deg2rad(RA_OPTICAL_AXIS)
     decOpticalAxis  = np.deg2rad(DEC_OPTICAL_AXIS)
     focalPlaneAngle = np.deg2rad(float(sim["Camera/FocalPlaneOrientation"]))
+    focalLength     = float(sim["Camera/FocalLength"]) * 1000.0
     pixelSize       = int(sim["CCD/PixelSize"])    # [micron]
     plateScale      = float(sim["Camera/PlateScale"])   # [arcsec/micron]
 
@@ -62,10 +63,9 @@ for n in range(NguideStars):
     nominalCamera = False
 
     hasCcdCode = setSubfieldAroundCoordinates(sim, np.deg2rad(ra[n]), np.deg2rad(dec[n]), 
-                                              subfieldSizeX, subfieldSizeY, plateScale, pixelSize, \
+                                              subfieldSizeX, subfieldSizeY, focalLength, plateScale, pixelSize, \
                                               raOpticalAxis, decOpticalAxis, focalPlaneAngle, nominalCamera)
 
-    
     # If the star does not fall on a CCD, or is too close to the edge, skip it.
 
     if not hasCcdCode:

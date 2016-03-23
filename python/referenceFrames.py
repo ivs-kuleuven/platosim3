@@ -75,8 +75,21 @@ def gnomonicProjectionSkyToFocalPlane(raStar, decStar, raOpticalAxis, decOptical
     return xFPprime * conversionFactor, yFPprime * conversionFactor
 
 
+def angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad, focalLength):
+    """
+    PURPOSE: Convert from angular to planar focal plane coordinates, assuming no optical distortion.
 
+    INPUT:   xFPrad   Angular focal plane x-coordinate [rad]
+             yFPrad   Angular focal plane y-coordinate [rad]
+    
+    OUTPUT:  (xFPmm, yFPmm)    Planar focal plane x and y coordinates [mm]
 
+    """
+
+    xFPmm = tan(xFPrad) * focalLength
+    yFPmm = tan(yFPrad) * focalLength
+
+    return xFPmm, yFPmm
 
 
 
@@ -479,7 +492,7 @@ def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize):
 
 
 def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle,  \
-                              plateScale, pixelSize, nominal=True):
+                              focalLength, plateScale, pixelSize, nominal=True):
 
     """
     PURPOSE: Given the equatorial coordinates of a star, find out on which CCD it falls ('A', 'B', ...)
@@ -490,6 +503,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
            raOpticalAxis:   right ascension of the optical axis [rad]
            decOpticalAxis:  declination of the optical axis [rad]
            focalPlaneAngle: angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
+           focalLength:     focal length of the telescope [m]
            plateScale:      [arcsec/micron]
            pixelSize:       [micrometer]
            nominal:         True for the nominal camera configuration, False for the fast cameras
@@ -595,7 +609,7 @@ def getSkyCoordinates(ccdCode, xCCDpix, yCCDpix, plateScale, pixelSize, raOptica
 
 
 
-def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY, plateScale, pixelSize, \
+def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY, focalLength, plateScale, pixelSize, \
                                        raOpticalAxis, decOpticalAxis, focalPlaneAngle, nominal=True):
 
     """
@@ -606,6 +620,7 @@ def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldS
              decStar:         declination [rad]
              subfieldSizeX:   full width (# of columns) of the subfield [pix]
              subfieldSizeY:   full height (#of rows) of the subfield [pix]
+             focalLength:     focal length of the telescope [m]
              plateScale:      [arcsec/micron]
              pixelSize:       [micrometer]
              raOpticalAxis:   right ascension of the optical axis [rad]
@@ -625,7 +640,7 @@ def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldS
     # Find out on which CCD the star falls, and the corresponding pixel coordinates
 
     ccdCode, xCCDpix, yCCDpix = getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, \
-        focalPlaneAngle, plateScale, pixelSize, nominal)
+        focalPlaneAngle, focalLength, plateScale, pixelSize, nominal)
 
     # If the CCD code is None, the star does not fall on any ccd -> error
 
@@ -667,7 +682,7 @@ def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldS
 
 
 
-def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSizeY, plateScale, pixelSize, \
+def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSizeY, focalLength, plateScale, pixelSize, \
                                  raOpticalAxis, decOpticalAxis, focalPlaneAngle, nominal=True):
     
     """
@@ -684,6 +699,7 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
              decStar:         declination [radians]
              subfieldSizeX:   width (i.e. number of columns) of the subiield [pixels]
              subfieldSizeY:   height (i.e. number of rows) of the sub-field [pixels]
+             focalLength:     focal length of the telescope [m]
              plateScale:      Plate scale. [arcsec/micron]
              pixelSize:       [micrometer]
              raOpticalAxis:   right ascension of the optical axis [radians]
@@ -702,7 +718,7 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
     # Compute the position of the subfield.
     # xPix and yPix are the CCD coordinates of the star, given a 4510x4510 CCD.
 
-    ccdCode, xPix, yPix = calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY, plateScale, pixelSize, raOpticalAxis, decOpticalAxis, focalPlaneAngle, nominal)
+    ccdCode, xPix, yPix = calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY, focalLength, plateScale, pixelSize, raOpticalAxis, decOpticalAxis, focalPlaneAngle, nominal)
     
     if ccdCode == None:
         return False
