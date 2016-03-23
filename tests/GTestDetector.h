@@ -354,6 +354,16 @@ public:
 	{
 		applyFullWellSaturation();
 	}
+
+	pair<double, double> test_getPlanarFocalPlaneCoordinatesOfSubfieldCenter()
+	{
+		return getPlanarFocalPlaneCoordinatesOfSubfieldCenter();
+	}
+
+	tuple<double, double, double, double, double, double, double, double> test_getPlanarFocalPlaneCoordinatesOfSubfieldCorners()
+	{
+		return getPlanarFocalPlaneCoordinatesOfSubfieldCorners();
+	}
 };
 
 
@@ -1477,12 +1487,12 @@ TEST_F(DetectorTest, applyOpenShutterSmearing)
 		{
 			if(column != 2)
 			{
-				EXPECT_EQ(0.0, detector.test_getSubfield()(row, column));
+				EXPECT_FLOAT_EQ(0.0, detector.test_getSubfield()(row, column));
 			}
 
 			else
 			{
-				EXPECT_EQ(subField(row, column) + expectedNoise, detector.test_getSubfield()(row, column));
+				EXPECT_FLOAT_EQ(subField(row, column) + expectedNoise, detector.test_getSubfield()(row, column));
 			}
 		}
 	}
@@ -2155,7 +2165,88 @@ TEST_F(DetectorTest, getPlanarFocalPlaneCoordinatesOfSubfieldCorners)
 {
 	LOG_STARTING_OF_TEST
 
+	// Construction
+
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
+
+
+
+	// Configuration parameters
+
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+	const int zeropointRow = configParams.getInteger("SubField/ZeroPointRow");
+	const int zeropointColumn = configParams.getInteger("SubField/ZeroPointColumn");
+
+
+
+	pair<double, double> expectedUpperLeft = detector.test_pixelToPlanarFocalPlaneCoordinates(zeropointRow + numRowsSubField, zeropointColumn);
+	pair<double, double> expectedUpperRight = detector.test_pixelToPlanarFocalPlaneCoordinates(zeropointRow + numRowsSubField, zeropointColumn + numColumnsSubField);
+	pair<double, double> expectedLowerRight = detector.test_pixelToPlanarFocalPlaneCoordinates(zeropointRow, zeropointColumn + numColumnsSubField);
+	pair<double, double> expectedLowerLeft = detector.test_pixelToPlanarFocalPlaneCoordinates(zeropointRow, zeropointColumn);
+
+	double lowerLeftRow, lowerLeftColumn, lowerRightRow, lowerRightColumn, upperRightRow, upperRightColumn, upperLeftRow, upperLeftColumn;
+
+	tie(lowerLeftRow, lowerLeftColumn, lowerRightRow, lowerRightColumn, upperRightRow, upperRightColumn, upperLeftRow, upperLeftColumn) =
+			detector.test_getPlanarFocalPlaneCoordinatesOfSubfieldCorners();
+
+	EXPECT_FLOAT_EQ(expectedLowerLeft.first, lowerLeftRow);
+	EXPECT_FLOAT_EQ(expectedLowerLeft.second, lowerLeftColumn);
+	EXPECT_FLOAT_EQ(expectedLowerRight.first, lowerRightRow);
+	EXPECT_FLOAT_EQ(expectedLowerRight.second, lowerRightColumn);
+	EXPECT_FLOAT_EQ(expectedUpperLeft.first, upperLeftRow);
+	EXPECT_FLOAT_EQ(expectedUpperLeft.second, upperLeftColumn);
+	EXPECT_FLOAT_EQ(expectedUpperRight.first, upperRightRow);
+	EXPECT_FLOAT_EQ(expectedUpperRight.second, upperRightColumn);
 }
+
+
+
+
+
+
+
+
+
+
+TEST_F(DetectorTest, getPlanarFocalPlaneCoordinatesOfSubfieldCenter)
+{
+	LOG_STARTING_OF_TEST
+
+	// Construction
+
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
+
+
+
+	// Configuration parameters
+
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+	const int zeropointRow = configParams.getInteger("SubField/ZeroPointRow");
+	const int zeropointColumn = configParams.getInteger("SubField/ZeroPointColumn");
+
+
+
+	pair<double, double> expected =
+			detector.test_pixelToPlanarFocalPlaneCoordinates(zeropointRow + numRowsSubField / 2, zeropointColumn + numColumnsSubField / 2);
+
+	EXPECT_FLOAT_EQ(expected.first, detector.getPlanarFocalPlaneCoordinatesOfSubfieldCenter().first);
+	EXPECT_FLOAT_EQ(expected.second, detector.getPlanarFocalPlaneCoordinatesOfSubfieldCenter().second);
+}
+
 
 
 
@@ -2168,4 +2259,29 @@ TEST_F(DetectorTest, getPlanarFocalPlaneCoordinatesOfSubfieldCorners)
 TEST_F(DetectorTest, getSolidAngleOfOnePixel)
 {
 	LOG_STARTING_OF_TEST
+
+	// Construction
+
+	JitterFromRedNoise jitterGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
+
+
+
+	// Configuration parameters
+
+	double pixelSize = configParams.getDouble("CCD/PixelSize");
+	double plateScale = configParams.getDouble("Camera/PlateScale");
+
+
+
+	double expected = pixelSize * plateScale; // [arcsec]
+	expected /= 3600.0; // [degrees]
+	expected = pow(expected, 2);	// [square degrees]
+	expected /= pow(180.0 / M_PI, 2);	// [sr]
+
+	EXPECT_FLOAT_EQ(expected, detector.getSolidAngleOfOnePixel(plateScale));
 }

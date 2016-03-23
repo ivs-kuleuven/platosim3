@@ -1796,9 +1796,9 @@ tuple<double, double, double, double, double, double, double, double> Detector::
 
 	// Lower right corner
 
-	row = subFieldZeroPointRow + numRowsPixelMap;
-	col = subFieldZeroPointColumn;
-	tie(corner10Xmm, corner01Ymm) = pixelToPlanarFocalPlaneCoordinates(row, col);
+	row = subFieldZeroPointRow;
+	col = subFieldZeroPointColumn + numColumnsPixelMap;
+	tie(corner01Xmm, corner01Ymm) = pixelToPlanarFocalPlaneCoordinates(row, col);
 
 	// Upper right corner
 
@@ -1808,8 +1808,8 @@ tuple<double, double, double, double, double, double, double, double> Detector::
 
 	// Upper left corner
 
-	row = subFieldZeroPointRow;
-	col = subFieldZeroPointColumn + numColumnsPixelMap;
+	row = subFieldZeroPointRow + numRowsPixelMap;
+	col = subFieldZeroPointColumn;
 	tie(corner10Xmm, corner10Ymm) = pixelToPlanarFocalPlaneCoordinates(row, col);
 
 	return make_tuple(corner00Xmm, corner00Ymm, corner01Xmm, corner01Ymm, corner11Xmm, corner11Ymm, corner10Xmm, corner10Ymm);
