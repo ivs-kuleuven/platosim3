@@ -7,16 +7,16 @@ from referenceFrames import setSubfieldAroundCoordinates
 # Specify the absolute paths of some of the input files and the output folder
 
 myInputs    = "/Users/joris/Development/Cpp/PlatoSim3/inputfiles"
-myInputs    = "/Users/rik/Work/PLATO/myInputs"
+#myInputs    = "/Users/rik/Work/PLATO/myInputs"
 
-inputFile   = myInputs + "/myInputfile.yaml"
+inputFile   = myInputs + "/inputjoris.yaml"
 
 starCatalog = myInputs + "/guide_stars_EQ.txt"
 jitterFile  = myInputs + "/PlatoJitter_Airbus.txt"
 psfFile     = myInputs + "/psf.hdf5"
 
 outputDir   = "/Users/joris/Development/Cpp/PlatoSim3/python"
-outputDir   = "/Users/rik/Work/PLATO/Simulations"
+#outputDir   = "/Users/rik/Work/PLATO/Simulations"
 outputFilePrefix = "GuideStarThalesFine"
 
 # Read the guide star catalog
@@ -30,8 +30,8 @@ DEC_OPTICAL_AXIS = -46.395950854582
 
 # For each guide star, center a subfield around it, and run the simulator
 
-#for n in range(NguideStars):
-for n in [0,1]:
+for n in range(NguideStars):
+
     print("Running the simulator for guide star {0}".format(n))
     print("Guide Star Coordinates [deg]: {}, {}".format(ra[n], dec[n]))
 
@@ -42,7 +42,7 @@ for n in [0,1]:
 
     # Point the spacecraft. The coordinates refer to location of the optical axis.
 
-    sim["ObservingParameters/RApointing"] = RA_OPTICAL_AXIS
+    sim["ObservingParameters/RApointing"]  = RA_OPTICAL_AXIS
     sim["ObservingParameters/DecPointing"] = DEC_OPTICAL_AXIS
 
 
@@ -119,7 +119,7 @@ for n in [0,1]:
 
     sim["SubField/NumBiasPrescanRows"] = 0
     sim["SubField/NumSmearingOverscanRows"] = 0
-    sim["SubField/SubPixels"] = 128
+    sim["SubField/SubPixels"] = 2
 
     sim["PSF/UseGauss"] = "yes"
     sim["PSF/Sigma"] = .025
