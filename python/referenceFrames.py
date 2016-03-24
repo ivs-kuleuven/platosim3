@@ -96,6 +96,9 @@ def angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad, focalLength):
 
 
 
+
+
+
 def inverseGnomonicProjectionFocalPlaneToSky(xFPprimeStar, yFPprimeStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale):
 
     """
@@ -116,7 +119,7 @@ def inverseGnomonicProjectionFocalPlaneToSky(xFPprimeStar, yFPprimeStar, raOptic
 
     
     if isscalar(xFPprimeStar) and isscalar(yFPprimeStar) and xFPprimeStar == 0.0 and yFPprimeStar == 0.0:
-        return 0.0, 0.0
+        return raOpticalAxis, decOpticalAxis
     
     # Compute the conversion factor from [mm/radian] to [arcsec/pixel] and convert the
     # focal plane coordinates from [mm] to [rad].
