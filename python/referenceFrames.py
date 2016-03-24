@@ -669,8 +669,8 @@ def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldS
     if     (xCCDpix - subfieldSizeX/2 < 0)        or (xCCDpix + subfieldSizeX/2 > Ncols-1)   \
         or (yCCDpix - subfieldSizeY/2 < firstRow) or (yCCDpix + subfieldSizeY/2 > Nrows-1): 
 
-        print("Error: pixel coordinates ({0},{1}) too close to the edge to accommodate subfield with size {2}x{3}" \
-           .format(xCCDpix,yCCDpix,subfieldSizeX, subfieldSizeY))
+        print("Error: pixel coordinates (row, col) = ({0},{1}) too close to the edge to accommodate subfield with size {2}x{3}" \
+           .format(yCCDpix,xCCDpix,subfieldSizeX, subfieldSizeY))
         return None, None, None
 
     # That's it!
