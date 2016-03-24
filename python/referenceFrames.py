@@ -536,9 +536,6 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
     xFPrad, yFPrad = skyToAngularFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale, pixelSize)
     xFPmm, yFPmm = angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad, focalLength)
 
-    print ("DEBUG referenceFrames.getCCDandPixelCoordinates: xFPrad, yFPrad = {}, {}".format(xFPrad, yFPrad))
-    print ("DEBUG referenceFrames.getCCDandPixelCoordinates: xFPmm, yFPmm = {}, {}".format(xFPmm, yFPmm))
-
     # Find out if this falls on a CCD, and if yes which one.
     # Our approach: try each of the CCDs. Not elegant, but robust...
 
@@ -563,8 +560,6 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
         if (xCCDpix >= Ncols) or (yCCDpix >= Nrows): continue
 
         # If we arrive here, we found a CCD on which the star is located
-
-        print ("DEBUG referenceFrames.getCCDandPixelCoordinates: ccdCode, xCCDpix, yCCDpix = {}, {}, {}".format(ccdCode, xCCDpix, yCCDpix))
 
         return ccdCode, xCCDpix, yCCDpix
 
@@ -726,9 +721,6 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
                followed by an exit(1)
     """
     
-    print ("DEBUG referenceFrames.setSubfieldAroundCoordinates: raStar, decStar = {}, {}".format(raStar, decStar))
-    print ("DEBUG referenceFrames.setSubfieldAroundCoordinates: raOpticalAxis, decOpticalAxis = {}, {}".format(raOpticalAxis, decOpticalAxis))
-
     # Compute the position of the subfield.
     # xPix and yPix are the CCD coordinates of the star, given a 4510x4510 CCD [colNumber, rowNumber].
 
