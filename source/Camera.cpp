@@ -390,7 +390,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
             // Detector.flux() returns the pixel coordinates to which the flux was added.
 
             bool isInSubfield;
-            double rowPix, colPix;
+            double rowPix, colPix;    // subfield (not CCD) pixel coordinates
 
             tie(isInSubfield, rowPix, colPix) = detector.addFlux(Xmm, Ymm, flux);
 

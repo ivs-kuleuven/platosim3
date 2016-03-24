@@ -96,6 +96,9 @@ def angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad, focalLength):
 
 
 
+
+
+
 def inverseGnomonicProjectionFocalPlaneToSky(xFPprimeStar, yFPprimeStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale):
 
     """
@@ -116,7 +119,7 @@ def inverseGnomonicProjectionFocalPlaneToSky(xFPprimeStar, yFPprimeStar, raOptic
 
     
     if isscalar(xFPprimeStar) and isscalar(yFPprimeStar) and xFPprimeStar == 0.0 and yFPprimeStar == 0.0:
-        return 0.0, 0.0
+        return raOpticalAxis, decOpticalAxis
     
     # Compute the conversion factor from [mm/radian] to [arcsec/pixel] and convert the
     # focal plane coordinates from [mm] to [rad].
@@ -533,9 +536,6 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
     xFPrad, yFPrad = skyToAngularFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale, pixelSize)
     xFPmm, yFPmm = angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad, focalLength)
 
-    print ("DEBUG referenceFrames.getCCDandPixelCoordinates: xFPrad, yFPrad = {}, {}".format(xFPrad, yFPrad))
-    print ("DEBUG referenceFrames.getCCDandPixelCoordinates: xFPmm, yFPmm = {}, {}".format(xFPmm, yFPmm))
-
     # Find out if this falls on a CCD, and if yes which one.
     # Our approach: try each of the CCDs. Not elegant, but robust...
 
@@ -560,8 +560,6 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
         if (xCCDpix >= Ncols) or (yCCDpix >= Nrows): continue
 
         # If we arrive here, we found a CCD on which the star is located
-
-        print ("DEBUG referenceFrames.getCCDandPixelCoordinates: ccdCode, xCCDpix, yCCDpix = {}, {}, {}".format(ccdCode, xCCDpix, yCCDpix))
 
         return ccdCode, xCCDpix, yCCDpix
 
@@ -671,8 +669,8 @@ def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldS
     if     (xCCDpix - subfieldSizeX/2 < 0)        or (xCCDpix + subfieldSizeX/2 > Ncols-1)   \
         or (yCCDpix - subfieldSizeY/2 < firstRow) or (yCCDpix + subfieldSizeY/2 > Nrows-1): 
 
-        print("Error: pixel coordinates ({0},{1}) too close to the edge to accommodate subfield with size {2}x{3}" \
-           .format(xCCDpix,yCCDpix,subfieldSizeX, subfieldSizeY))
+        print("Error: pixel coordinates (row, col) = ({0},{1}) too close to the edge to accommodate subfield with size {2}x{3}" \
+           .format(yCCDpix,xCCDpix,subfieldSizeX, subfieldSizeY))
         return None, None, None
 
     # That's it!
@@ -723,9 +721,6 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
                followed by an exit(1)
     """
     
-    print ("DEBUG referenceFrames.setSubfieldAroundCoordinates: raStar, decStar = {}, {}".format(raStar, decStar))
-    print ("DEBUG referenceFrames.setSubfieldAroundCoordinates: raOpticalAxis, decOpticalAxis = {}, {}".format(raOpticalAxis, decOpticalAxis))
-
     # Compute the position of the subfield.
     # xPix and yPix are the CCD coordinates of the star, given a 4510x4510 CCD [colNumber, rowNumber].
 
@@ -740,20 +735,6 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
     CCDOriginOffsetY = CCD[ccdCode]["zeroPointYmm"]
     CCDOrientation   = CCD[ccdCode]["angle"]
 
-    # PlatoSim uses a different approach for the fast CCDs, which it does not consider as
-    # a 4510x4510 CCD that is only exposed half, but as half a CCD exposed fully,
-    # so this affects the number of rows and the row-pixel-coordinate of the star
-
-    if ccdCode in ["AF", "BF", "CF", "DF"]:
-        CCDSizeY = CCDSizeY // 2                   # integer division, not float
-        yPix = yPix - CCDSizeY
-
-    if ccdCode == "AF": CCDOriginOffsetY = CCDOriginOffsetY / 2
-    if ccdCode == "BF": CCDOriginOffsetX = CCDOriginOffsetX / 2
-    if ccdCode == "CF": CCDOriginOffsetX = CCDOriginOffsetX / 2
-    if ccdCode == "DF": CCDOriginOffsetY = CCDOriginOffsetY / 2
-
-
     # If we arrive here, there is no problem accommodating the entire sufield on the CCD
 
     sim["CCD/OriginOffsetX"] = str(CCDOriginOffsetX)
@@ -763,10 +744,10 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
     sim["CCD/NumColumns"] = CCDSizeX
     sim["CCD/NumRows"] = CCDSizeY
 
-    sim["SubField/ZeroPointRow"] = str(int(xPix - subfieldSizeX/2))
-    sim["SubField/ZeroPointColumn"] = str(int(yPix - subfieldSizeY/2))
-    sim["SubField/NumRows"] = str(subfieldSizeX)
-    sim["SubField/NumColumns"] = str(subfieldSizeY)
+    sim["SubField/ZeroPointRow"] = str(int(yPix - subfieldSizeY/2))
+    sim["SubField/ZeroPointColumn"] = str(int(xPix - subfieldSizeX/2))
+    sim["SubField/NumRows"] = str(subfieldSizeY)
+    sim["SubField/NumColumns"] = str(subfieldSizeX)
 
     # Set the exposure time, depending on fast vs nominal cams
 
