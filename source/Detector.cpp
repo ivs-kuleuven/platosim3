@@ -1674,7 +1674,9 @@ pair<double, double> Detector::getPlanarFocalPlaneCoordinatesOfSubfieldCenter()
 	double centerRow = subFieldZeroPointRow + numRowsPixelMap / 2.0;
 	double centerCol = subFieldZeroPointColumn + numColumnsPixelMap / 2.0;
 
-	return pixelToPlanarFocalPlaneCoordinates(centerRow, centerCol);
+    // The columns correspond to the x-coordinate, the rows to the y-coordinate
+
+	return pixelToPlanarFocalPlaneCoordinates(centerCol, centerRow);
 }
 
 
