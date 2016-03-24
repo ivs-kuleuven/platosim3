@@ -7,16 +7,16 @@ from referenceFrames import setSubfieldAroundCoordinates
 # Specify the absolute paths of some of the input files and the output folder
 
 myInputs    = "/Users/joris/Development/Cpp/PlatoSim3/inputfiles"
-myInputs    = "/Users/rik/Work/PLATO/myInputs"
+#myInputs    = "/Users/rik/Work/PLATO/myInputs"
 
-inputFile   = myInputs + "/myInputfile.yaml"
+inputFile   = myInputs + "/inputjoris.yaml"
 
 starCatalog = myInputs + "/guide_stars_EQ.txt"
 jitterFile  = myInputs + "/PlatoJitter_Airbus.txt"
 psfFile     = myInputs + "/psf.hdf5"
 
 outputDir   = "/Users/joris/Development/Cpp/PlatoSim3/python"
-outputDir   = "/Users/rik/Work/PLATO/Simulations"
+#outputDir   = "/Users/rik/Work/PLATO/Simulations"
 outputFilePrefix = "GuideStarThalesFine"
 
 # Read the guide star catalog
@@ -42,7 +42,7 @@ for n in range(NguideStars):
 
     # Point the spacecraft. The coordinates refer to location of the optical axis.
 
-    sim["ObservingParameters/RApointing"] = RA_OPTICAL_AXIS
+    sim["ObservingParameters/RApointing"]  = RA_OPTICAL_AXIS
     sim["ObservingParameters/DecPointing"] = DEC_OPTICAL_AXIS
 
 
@@ -53,6 +53,7 @@ for n in range(NguideStars):
     raOpticalAxis   = np.deg2rad(RA_OPTICAL_AXIS)
     decOpticalAxis  = np.deg2rad(DEC_OPTICAL_AXIS)
     focalPlaneAngle = np.deg2rad(float(sim["Camera/FocalPlaneOrientation"]))
+    focalLength     = float(sim["Camera/FocalLength"]) * 1000.0
     pixelSize       = int(sim["CCD/PixelSize"])    # [micron]
     plateScale      = float(sim["Camera/PlateScale"])   # [arcsec/micron]
 
@@ -61,11 +62,25 @@ for n in range(NguideStars):
 
     nominalCamera = False
 
+    # This function sets the following configuration parameters:
+    # 
+    # CCD/OriginOffsetX
+    # CCD/OriginOffsetY
+    # CCD/Orientation
+    # CCD/NumColumns
+    # CCD/NumRows
+    # 
+    # SubField/ZeroPointRow
+    # SubField/ZeroPointColumn
+    # SubField/NumRows
+    # SubField/NumColumns
+    # 
+    # ObservingParameters/ExposureTime
+    # 
     hasCcdCode = setSubfieldAroundCoordinates(sim, np.deg2rad(ra[n]), np.deg2rad(dec[n]), 
-                                              subfieldSizeX, subfieldSizeY, plateScale, pixelSize, \
+                                              subfieldSizeX, subfieldSizeY, focalLength, plateScale, pixelSize, \
                                               raOpticalAxis, decOpticalAxis, focalPlaneAngle, nominalCamera)
 
-    
     # If the star does not fall on a CCD, or is too close to the edge, skip it.
 
     if not hasCcdCode:
@@ -104,7 +119,7 @@ for n in range(NguideStars):
 
     sim["SubField/NumBiasPrescanRows"] = 0
     sim["SubField/NumSmearingOverscanRows"] = 0
-    sim["SubField/SubPixels"] = 128
+    sim["SubField/SubPixels"] = 2
 
     sim["PSF/UseGauss"] = "yes"
     sim["PSF/Sigma"] = .025
