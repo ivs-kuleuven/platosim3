@@ -744,10 +744,10 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
     sim["CCD/NumColumns"] = CCDSizeX
     sim["CCD/NumRows"] = CCDSizeY
 
-    sim["SubField/ZeroPointRow"] = str(int(xPix - subfieldSizeX/2))
-    sim["SubField/ZeroPointColumn"] = str(int(yPix - subfieldSizeY/2))
-    sim["SubField/NumRows"] = str(subfieldSizeX)
-    sim["SubField/NumColumns"] = str(subfieldSizeY)
+    sim["SubField/ZeroPointRow"] = str(int(yPix - subfieldSizeY/2))
+    sim["SubField/ZeroPointColumn"] = str(int(xPix - subfieldSizeX/2))
+    sim["SubField/NumRows"] = str(subfieldSizeY)
+    sim["SubField/NumColumns"] = str(subfieldSizeX)
 
     # Set the exposure time, depending on fast vs nominal cams
 
