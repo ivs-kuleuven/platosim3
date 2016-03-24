@@ -735,20 +735,6 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
     CCDOriginOffsetY = CCD[ccdCode]["zeroPointYmm"]
     CCDOrientation   = CCD[ccdCode]["angle"]
 
-    # PlatoSim uses a different approach for the fast CCDs, which it does not consider as
-    # a 4510x4510 CCD that is only exposed half, but as half a CCD exposed fully,
-    # so this affects the number of rows and the row-pixel-coordinate of the star
-
-    if ccdCode in ["AF", "BF", "CF", "DF"]:
-        CCDSizeY = CCDSizeY // 2                   # integer division, not float
-        yPix = yPix - CCDSizeY
-
-    # if ccdCode == "AF": CCDOriginOffsetY = CCDOriginOffsetY / 2
-    # if ccdCode == "BF": CCDOriginOffsetX = CCDOriginOffsetX / 2
-    # if ccdCode == "CF": CCDOriginOffsetX = CCDOriginOffsetX / 2
-    # if ccdCode == "DF": CCDOriginOffsetY = CCDOriginOffsetY / 2
-
-
     # If we arrive here, there is no problem accommodating the entire sufield on the CCD
 
     sim["CCD/OriginOffsetX"] = str(CCDOriginOffsetX)
