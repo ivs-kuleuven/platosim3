@@ -35,7 +35,7 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
   writeSubPixelImagesToHDF5(false),
   includeFullWellSaturation(true),
   psfWasSet(false), 
-  internalTime(0.0), camera(camera), imageNr(0)
+  internalTime(0.0), camera(camera), imageNr(0), subPixelImageNr(0)
 {
 	// Parse the parameters from the configuration file.
 
