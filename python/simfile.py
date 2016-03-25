@@ -226,7 +226,7 @@ class SimFile (object):
 
         INPUT: imageNr: integer sequential number of the image
 
-        OUTPUT: image: 2D numpy array containing the image
+        OUTPUT: image: 2D numpy array containing the image [ADU]
         """
 
         # Construct the image name that was used to store the image
@@ -243,6 +243,46 @@ class SimFile (object):
             image = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(image)
             return image 
+
+
+
+
+
+
+
+
+
+
+
+
+    def getSubPixelImage(self, exposureNr):
+
+        """
+        PURPOSE: extract the subpixel image (if present) with seq. nr. 'exposureNr' from the HDF5 file
+
+        INPUT: exposureNr: integer sequential number of the subpixel image
+
+        OUTPUT: subPixelImage: 2D numpy array containing the sub-pixel image [electrons]
+        """
+
+        # Construct the subpixel image name that was used to store the subpixel image
+
+        subPixelImageName = "subPixelImage{0:06d}".format(exposureNr)
+
+        # Check if the subpixel image is in the file. If not: complain, if yes: copy the contents into a numpy array.
+
+        if "SubPixelImages" not in self.hdf5file:
+            print("Error: SimFile.getSubPixelImage(): there is no SubPixelImages group in the HDF5 file")
+        else:
+            if subPixelImageName not in self.hdf5file["SubPixelImages"]:
+                print("Error: SimfFile.getSubPixelImage(): {0} not in hdf5 file".format(subPixelImageName))
+                return
+            else:
+                dataset = self.hdf5file["SubPixelImages"][subPixelImageName]
+                subPixelImage = np.zeros(dataset.shape, dataset.dtype)
+                dataset.read_direct(subPixelImage)
+                return subPixelImage 
+
 
 
 
