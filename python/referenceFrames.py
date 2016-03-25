@@ -1,4 +1,5 @@
 from numpy import *
+from math import atan, atan2, asin, cos, sin
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
