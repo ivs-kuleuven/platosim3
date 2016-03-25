@@ -111,8 +111,9 @@ def angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad, focalLength):
     """
     PURPOSE: Convert from angular to planar focal plane coordinates, assuming no optical distortion.
 
-    INPUT:   xFPrad   Angular focal plane x-coordinate [rad]
-             yFPrad   Angular focal plane y-coordinate [rad]
+    INPUT:   xFPrad:      Angular focal plane x-coordinate [rad]
+             yFPrad:      Angular focal plane y-coordinate [rad]
+             focalLength: Focal length of the telescope [mm]
     
     OUTPUT:  (xFPmm, yFPmm)    Planar focal plane x and y coordinates [mm]
 
