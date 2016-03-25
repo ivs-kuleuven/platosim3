@@ -273,15 +273,26 @@ string ConfigurationParameters::getAbsoluteFilename(const string &key)
 {
     YAML::Node node = getNode(key);
 
-    string filename = node.as<string>();
+	string filename = node.as<string>();
 
-    if (FileUtilities::isRelative(filename))
-    {
-        string projectLocation = this->getString("General/ProjectLocation");
-        return projectLocation + "/" + filename;
-    }
+	if (FileUtilities::isRelative(filename))
+	{
+		string projectLocation = this->getString("General/ProjectLocation");
 
-    return filename;
+		const string start = "<%= ENV[\'";
+		const string end = "\'] %>";
+
+		if ((projectLocation.compare(0, start.length(), start) == 0))
+		{
+			projectLocation = projectLocation.substr(start.length(), projectLocation.length() - start.length() - end.length());
+			projectLocation = std::getenv(projectLocation.c_str());
+		}
+
+
+		return projectLocation + "/" + filename;
+	}
+
+	return filename;
 }
 
 
