@@ -151,6 +151,34 @@ def planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm, focalLength):
 
 
 
+
+
+
+
+
+def radialToPlanarFocalPlaneCoordinates(radius, angle):
+
+    xFPmm = cos(alpha) * radius;
+    yFPmm = sin(alpha) * radius;
+
+    return xFPmm, yFPmm
+
+
+def planarToRadialFocalPlaneCoordinates(xFPmm, yFPmm):
+    
+    alpha = atan2(yFPmm, xFPmm);  # [radians]
+    radius = sqrt(xFPmm * xFPmm + yFPmm * yFPmm);
+
+    return radius, alpha
+
+
+
+
+
+
+
+
+
 def inverseGnomonicProjectionFocalPlaneToSky(xFPprimeStar, yFPprimeStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale):
 
     """
