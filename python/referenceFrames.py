@@ -741,6 +741,45 @@ def getSkyCoordinates(ccdCode, xCCDpix, yCCDpix, plateScale, pixelSize, raOptica
 
 
 
+
+
+
+
+def calculateSubfieldAroundRadiusFromOpticalAxis(sim, radius, orientation):
+    """
+    PURPOSE: Calculates the location of the subfield such that the star 
+    
+    INPUTS:  radius: 
+             orientation: the angle counter clockwise from the x-axis of the focal plane
+              
+    """
+
+    raOpticalAxis = np.radians(sim["ObservingParameters/RApointing"])
+    decOpticalAxis = np.radians(sim["ObservingParameters/DecPointing"])
+    focalPlaneAngle = np.radians(sim["Camera/FocalPlaneOrientation"])
+    subfieldSizeX = sim["SubField/NumColumns"]
+    subfieldSizeY = sim["SubField/NumRows"]
+    plateScale = sim["Camera/PlateScale"]
+    pixelSize = sim["CCD/PixelSize"]
+    focalLength = sim["Camera/FocalLength"] * 1000.0  # [m] -> [mm]
+
+    xFPmm, yFPmm = radialToPlanarFocalPlaneCoordinates(radius, orientation)
+    xFPrad, yFPrad = planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm, focalLength)
+    raStar, decStar = angularFocalPlaneToSkyCoordinates(xFPrad, yFPrad, raOpticalAxis, decOpticalAxis, focalPlaneAngle)
+
+    ccdCode, xCCDpix, yCCDpix = calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY, focalLength, plateScale, pixelSize, \
+                                       raOpticalAxis, decOpticalAxis, focalPlaneAngle, nominal=True)
+
+    return ccdCode, xCCDpix, yCCDpix
+
+
+
+
+
+
+
+
+
 def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY, focalLength, plateScale, pixelSize, \
                                        raOpticalAxis, decOpticalAxis, focalPlaneAngle, nominal=True):
 
