@@ -73,6 +73,38 @@ def skyToAngularFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOptical
 
 
 
+def angularFocalPlaneToSkyCoordinates(xFPrad, yFPrad, raOpticalAxis, decOpticalAxis, focalPlaneAngle):
+
+    """
+    PURPOSE: computes the (x,y) coordinates in the focal plane of a star with given equatorial coordinates
+
+    INPUT: xFPrad            Cartesian coordinate of the projected star in the focal plane in the FP-prime system [radians]
+           yFPrad            Cartesian coordinate of the projected star in the focal plane in the FP-prime system [radians]
+           raOpticalAxis:    right ascension of the optical axis [rad]
+           decOpticalAxis:   declination of the optical axis [rad]
+           focalPlaneAngle:  angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
+
+    OUTPUT: raStar, decStar: Equatorial coordinates (right ascension and declination) of the star [rad]
+    """
+
+    xFP =  xFPrad * cos(focalPlaneAngle) - yFPprime * sin(focalPlaneAngle);
+    yFP =  xFPrad * sin(focalPlaneAngle) + yFPprime * cos(focalPlaneAngle);
+
+    if xFP == 0.0 and yFP == 0.0:
+        return raOpticalAxis, decOpticalAxis
+
+    rho = sqrt(xFP*xFP+yFP*yFP);
+    c = atan(rho);
+    ra = raOpticalAxis + atan2(yFP * sin(c), rho * cos(decOpticalAxis) * cos(c) + xFP * sin(decOpticalAxis) * sin(c));
+    dec = asin(cos(c) * sin(decOpticalAxis) - (xFP * sin(c) * cos(decOpticalAxis)) / rho);
+
+    return ra, dec
+
+
+
+
+
+
 
 
 def angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad, focalLength):
