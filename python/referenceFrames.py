@@ -583,12 +583,13 @@ def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize):
 
     """
     PURPOSE: Plot a pixel from a particular CCD in the focal plane. The actual position in millimeter
-             is shown as a red dot, while the pixel itself is drwan as a rectangle with edge pixelSize.
+             is shown as a red dot, while the pixel itself is drawn as a rectangle with edge pixelSize.
 
     INPUTS:  ccdCode:   for nominal camera: either 'A', 'B', 'C', or 'D'
                         for fast camer: either 'AF', 'BF', 'CF', 'DF'
              xCCDpix:   x-coordinate (column number, zero-based) of the pixel on the CCD  [pix]
              yCCDpix:   y-coordinate (row number, zero-based) of the pixel on the CCD  [pix]
+             pixelSize: the size of a pixel in micron
 
     OUTPUTS: None
     """
