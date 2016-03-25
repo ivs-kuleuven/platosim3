@@ -481,6 +481,20 @@ def drawSubfieldInFocalPlane(ccdCode, xCCD, yCCD, subfieldSizeX, subfieldSizeY, 
 
     """
     PURPOSE: Draw a subfield in the focal plane.
+    
+             
+    INPUT:   xCCD:          center x coordinate of the subfield [pixels]
+             yCCD:          center y coordinate of the subfield [pixels]
+             subfieldSizeX: size of the subfield along the x-axis [pixels]
+             subfieldSizeY: size of the subfield along the y-axis [pixels]
+             pixelSize:     the size of a pixel in microns
+    
+    OUTPUT:  Subfield frames draw on the current plot. The subfield is drawn with respect of the 
+             coordinate system of the CCD.
+    
+             A blue dot indicates the lower left corner of the subfield.
+             A green dot indicates the upper right corner of the subfield.
+             A red dot indicates the center of the subfield.
     """
 
     # Compute the position of the subfield in pixel coordinates, for the current CCD, 
