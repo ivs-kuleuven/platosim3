@@ -547,6 +547,36 @@ def drawSubfieldInFocalPlane(ccdCode, xCCD, yCCD, subfieldSizeX, subfieldSizeY, 
 
 
 
+def drawStarInFocalPlane(sim, raStar, decStar):
+    """
+    PURPOSE:  Draw a star given by the equatorial coordinates in the focal plane.
+
+    INPUT:    raStar:  right ascension of the star [rad]
+              decStar: declination of the star [rad]
+    
+    OUTPUT:   Draw a red dot where the star is located on the CCD
+
+    """
+    pixelSize = sim["CCD/PixelSize"]
+    raOpticalAxis = np.radians(sim["ObservingParameters/RApointing"])
+    decOpticalAxis = np.radians(sim["ObservingParameters/DecPointing"])
+    focalPlaneAngle = np.radians(sim["Camera/FocalPlaneOrientation"])
+    focalLength = sim["Camera/FocalLength"] * 1000.0  # [m] -> [mm]
+    ccdZeroPointX = sim["CCD/OriginOffsetX"]
+    ccdZeroPointY = sim["CCD/OriginOffsetY"]
+    ccdAngle = np.radians(sim["CCD/Orientation"])
+
+    xFPrad, yFPrad = skyToAngularFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle)
+    xFPmm, yFPmm = angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad, focalLength)
+    xCCD, yCCD = focalPlaneToPixelCoordinates(xFPmm, yFPmm, pixelSize, ccdZeroPointX, ccdZeroPointY, ccdAngle)
+
+    # TODO: Determine the ccdCode
+
+    drawPixelInFocalPlane("B", xCCD, yCCD, pixelSize)
+
+    return
+
+
 
 
 def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize):
