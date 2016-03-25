@@ -87,8 +87,8 @@ def angularFocalPlaneToSkyCoordinates(xFPrad, yFPrad, raOpticalAxis, decOpticalA
     OUTPUT: raStar, decStar: Equatorial coordinates (right ascension and declination) of the star [rad]
     """
 
-    xFP =  xFPrad * cos(focalPlaneAngle) - yFPprime * sin(focalPlaneAngle);
-    yFP =  xFPrad * sin(focalPlaneAngle) + yFPprime * cos(focalPlaneAngle);
+    xFP =  xFPrad * cos(focalPlaneAngle) - yFPrad * sin(focalPlaneAngle);
+    yFP =  xFPrad * sin(focalPlaneAngle) + yFPrad * cos(focalPlaneAngle);
 
     if xFP == 0.0 and yFP == 0.0:
         return raOpticalAxis, decOpticalAxis
