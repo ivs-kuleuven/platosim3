@@ -159,18 +159,18 @@ def planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm, focalLength):
 
 def radialToPlanarFocalPlaneCoordinates(radius, angle):
 
-    xFPmm = cos(alpha) * radius;
-    yFPmm = sin(alpha) * radius;
+    xFPmm = cos(angle) * radius;
+    yFPmm = sin(angle) * radius;
 
     return xFPmm, yFPmm
 
 
 def planarToRadialFocalPlaneCoordinates(xFPmm, yFPmm):
     
-    alpha = atan2(yFPmm, xFPmm);  # [radians]
+    angle = atan2(yFPmm, xFPmm);  # [radians]
     radius = sqrt(xFPmm * xFPmm + yFPmm * yFPmm);
 
-    return radius, alpha
+    return radius, angle
 
 
 
