@@ -38,7 +38,7 @@ CCD = \
 
 
 
-def skyToAngularFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale, pixelSize):
+def skyToAngularFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle):
 
     """
     PURPOSE: computes the (x,y) coordinates in the focal plane of a star with given equatorial coordinates
@@ -48,8 +48,6 @@ def skyToAngularFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOptical
            raOpticalAxis:   right ascension of the optical axis [rad]
            decOpticalAxis:  declination of the optical axis [rad]
            focalPlaneAngle: angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
-           plateScale:      [arcsec/micron]
-           pixelSize:       [micrometer]
 
     OUTPUT: xFPrad, yFPrad: Cartesian coordinate of the projected star in the focal plane in the FP-prime system [radians]
     """
