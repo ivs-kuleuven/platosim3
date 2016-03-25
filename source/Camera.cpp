@@ -198,8 +198,6 @@ void Camera::flushOutput()
         hdf5File.writeArray("StarCatalog/", "Dec",     dec.data(), dec.size());
         hdf5File.writeArray("StarCatalog/", "Vmag",    Vmag.data(), Vmag.size());
     }
-
-
 }
 
 
@@ -495,13 +493,14 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
  *
  * @details    This method selects, rotates and rebins the PSF.
  *
- * @param      xFPmm            Planar x-coordinate in the FP' reference frame [rad]
- * @param      yFPmm            Planar y-coordinate in the FP' reference frame [rad]
- * @param[in]  targetSubPixels  the number of subpixels per pixels in the detector
+ * @param      xFPmm             Planar x-coordinate in the FP' reference frame [rad]
+ * @param      yFPmm             Planar y-coordinate in the FP' reference frame [rad]
+ * @param[in]  targetSubPixels   the number of subpixels per pixels in the detector
+ * @param[in]  orientationAngle  the orientation of the CCD wrt focal plane orientation (counter clockwise)
  *
  * @return     the psfMap that was selected, rotated and rebinned
  */
-arma::Mat<float> Camera::getRebinnedPsfForPlanarFocalPlaneCoordinates(double xFPmm, double yFPmm, unsigned int targetSubPixels)
+arma::Mat<float> Camera::getRebinnedPsfForPlanarFocalPlaneCoordinates(double xFPmm, double yFPmm, unsigned int targetSubPixels, double orientationAngle)
 {
     arma::Mat<float> psfMap;
 
@@ -519,7 +518,11 @@ arma::Mat<float> Camera::getRebinnedPsfForPlanarFocalPlaneCoordinates(double xFP
 
     // Calculate the rotation angle [rad] and rotate the PSF
 
-    const double angle = atan2(yFPmm, xFPmm);
+    double angle = atan2(yFPmm, xFPmm);
+
+    //  Compensate for the orientation of the CCD wrt focal plane orientation.
+
+    angle -= orientationAngle;
 
     psf->rotate(angle);
 

@@ -34,8 +34,9 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
   includeVignetting(true), 
   writeSubPixelImagesToHDF5(false),
   includeFullWellSaturation(true),
+  includeDigitalSaturation(true),
   psfWasSet(false), 
-  internalTime(0.0), camera(camera), imageNr(0)
+  internalTime(0.0), camera(camera), imageNr(0), subPixelImageNr(0)
 {
 	// Parse the parameters from the configuration file.
 
@@ -136,6 +137,7 @@ Detector::~Detector()
     writeSubPixelImagesToHDF5  = configParam.getBoolean("CCD/WriteSubPixelImagesToHDF5");
     includeConvolution         = configParam.getBoolean("CCD/IncludeConvolution");
     includeFullWellSaturation  = configParam.getBoolean("CCD/IncludeFullWellSaturation");
+    includeDigitalSaturation   = configParam.getBoolean("CCD/IncludeDigitalSaturation");
     writeSubPixelImagesToHDF5  = configParam.getBoolean("CCD/WriteSubPixelImagesToHDF5");
 
     // Configuration parameters for the subfield
@@ -905,7 +907,6 @@ void Detector::rebin()
  */
 void Detector::readOut(float exposureTime)
 {
-
 	// Apply quantum efficiency
 	// Pixel units before: [photons]
 	// Pixel units after: [electrons]
@@ -1721,7 +1722,7 @@ void Detector::setPsfForSubfieldCenter()
     double centerXmm, centerYmm;
     tie(centerXmm, centerYmm) = getPlanarFocalPlaneCoordinatesOfSubfieldCenter();
 
-    arma::Mat<float> psf = camera.getRebinnedPsfForPlanarFocalPlaneCoordinates(centerXmm, centerYmm, numSubPixelsPerPixel);
+    arma::Mat<float> psf = camera.getRebinnedPsfForPlanarFocalPlaneCoordinates(centerXmm, centerYmm, numSubPixelsPerPixel, getOrientationAngle());
 
 	convolver.initialise(numRowsSubPixelMap, numColumnsSubPixelMap, psf);
 
@@ -1753,6 +1754,7 @@ void Detector::convolveWithPsf()
         Log.debug("Detector: convolving subPixelMap with PSF.");
 
         // subpixelMap serves here both as input as well as output matrix;
+
     	convolver.convolve(subPixelMap, subPixelMap);
     }
     else
@@ -1832,6 +1834,7 @@ tuple<double, double, double, double, double, double, double, double> Detector::
  * \brief Return the solid angle of 1 single pixel on the sky. [sr]
  * 
  * \param plateScale  The platescale of the camera [arcsec/micron]
+ *
  * \return            Solid angle in [s]
  */
 
@@ -1840,6 +1843,27 @@ double Detector::getSolidAngleOfOnePixel(double plateScale)
 	return sqDeg2sr(pow(pixelSize * plateScale / 3600.0, 2));
 }
 
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * @brief      Return the orientation of the CCD with respect to the orientation of the focal plane.
+ *             The rotations of the CCD are counter clockwise.
+ *
+ * @return     the orientation of the CCD [radians]
+ */
+double Detector::getOrientationAngle()
+{
+    return orientationAngle;
+}
 
 
 

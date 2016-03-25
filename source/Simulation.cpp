@@ -260,13 +260,17 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("ReadoutTime");
     addDouble("FlatfieldPtPNoise");
     addDouble("CTEMean");
+    addBoolean("IncludeFlatfield");
     addBoolean("IncludePhotonNoise");
     addBoolean("IncludeReadoutNoise");
     addBoolean("IncludeCTIeffects"); 
     addBoolean("IncludeOpenShutterSmearing");
     addBoolean("IncludeVignetting");
+    addBoolean("IncludeConvolution");
+    addBoolean("IncludeFullWellSaturation");
+    addBoolean("IncludeDigitalSaturation");
     addBoolean("WriteSubPixelImagesToHDF5");
-    
+
     subGroup = "SubField";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addInteger("ZeroPointRow");
