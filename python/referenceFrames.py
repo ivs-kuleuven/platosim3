@@ -130,6 +130,27 @@ def angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad, focalLength):
 
 
 
+
+def planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm, focalLength):
+    """
+    PURPOSE: Convert from planar to angulare focal plane coordinates, assuming no optical distortion.
+
+    INPUT:   xFPmm:        Planar focal plane x-coordinate [mm]
+             yFPmm:        Planar focal plane y-coordinate [mm]
+             focalLength:  Focal length of the telescope [mm]
+    
+    OUTPUT:  (xFPrad, yFPrad)  Angular focal plane x and y coordinates [rad]
+
+    """
+
+    xFPrad = atan(xFPmm / focalLength)
+    yFPrad = atan(yFPmm / focalLength)
+
+    return xFPrad, yFPrad
+
+
+
+
 def inverseGnomonicProjectionFocalPlaneToSky(xFPprimeStar, yFPprimeStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale):
 
     """
