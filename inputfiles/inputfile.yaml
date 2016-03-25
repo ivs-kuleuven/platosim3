@@ -3,7 +3,7 @@
 
 General:
     
-    ProjectLocation:             /Users/rik/Git/PlatoSim3
+    ProjectLocation:             <%= ENV['PLATOPROJECT'] %>
 
 
 ObservingParameters:
