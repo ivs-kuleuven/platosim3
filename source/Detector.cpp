@@ -34,6 +34,7 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
   includeVignetting(true), 
   writeSubPixelImagesToHDF5(false),
   includeFullWellSaturation(true),
+  includeDigitalSaturation(true),
   psfWasSet(false), 
   internalTime(0.0), camera(camera), imageNr(0), subPixelImageNr(0)
 {
@@ -136,6 +137,7 @@ Detector::~Detector()
     writeSubPixelImagesToHDF5  = configParam.getBoolean("CCD/WriteSubPixelImagesToHDF5");
     includeConvolution         = configParam.getBoolean("CCD/IncludeConvolution");
     includeFullWellSaturation  = configParam.getBoolean("CCD/IncludeFullWellSaturation");
+    includeDigitalSaturation   = configParam.getBoolean("CCD/IncludeDigitalSaturation");
     writeSubPixelImagesToHDF5  = configParam.getBoolean("CCD/WriteSubPixelImagesToHDF5");
 
     // Configuration parameters for the subfield
@@ -905,7 +907,6 @@ void Detector::rebin()
  */
 void Detector::readOut(float exposureTime)
 {
-
 	// Apply quantum efficiency
 	// Pixel units before: [photons]
 	// Pixel units after: [electrons]
@@ -1753,6 +1754,7 @@ void Detector::convolveWithPsf()
         Log.debug("Detector: convolving subPixelMap with PSF.");
 
         // subpixelMap serves here both as input as well as output matrix;
+
     	convolver.convolve(subPixelMap, subPixelMap);
     }
     else

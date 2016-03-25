@@ -198,8 +198,6 @@ void Camera::flushOutput()
         hdf5File.writeArray("StarCatalog/", "Dec",     dec.data(), dec.size());
         hdf5File.writeArray("StarCatalog/", "Vmag",    Vmag.data(), Vmag.size());
     }
-
-
 }
 
 
