@@ -310,7 +310,7 @@ def drawCCDsInSky(raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale, pi
 
         # Convert the FP' coordinates to equatorial coordinates
 
-        ra, dec = inverseGnomonicProjectionFocalPlaneToSky(cornersXmm, cornersYmm, raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale, pixelSize)
+        ra, dec = inverseGnomonicProjectionFocalPlaneToSky(cornersXmm, cornersYmm, raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale)
 
         # Repeat the coordinates of the 1st corner, to plot a nice closed loop
         # Convert from radians to degrees
