@@ -41,6 +41,7 @@ class Detector : public HDF5Writer
         tuple<double, double, double, double, double, double, double, double> getPlanarFocalPlaneCoordinatesOfSubfieldCorners();
 
         double getSolidAngleOfOnePixel(double plateScale);
+        double getOrientationAngle();
 
         virtual tuple<bool, double, double> addFlux(double xFPprime, double yFPprime, double flux);
         virtual void addFlux(double flux);
