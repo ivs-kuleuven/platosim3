@@ -325,6 +325,8 @@ def drawCCDsInSky(raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale, pi
         plt.plot([ra[0], ra[1]], [dec[0], dec[1]], c=color[ccdCode], linewidth=3)
 
 
+    plt.xlabel("RA [deg]")
+    plt.ylabel("Dec [deg]")
     plt.draw()
 
     # That's it
@@ -385,6 +387,8 @@ def drawCCDsInFocalPlane(pixelSize, nominal=True):
         plt.plot([x[0], x[1]], [y[0], y[1]], c=color[ccdCode], linewidth=3)
 
 
+    plt.xlabel("x_FP [mm]")
+    plt.ylabel("y_FP [mm]")
     plt.draw()
 
     # That's it
