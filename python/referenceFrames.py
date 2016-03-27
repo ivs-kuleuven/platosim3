@@ -1,5 +1,4 @@
 from numpy import *
-from math import atan, atan2, asin, cos, sin
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -144,8 +143,8 @@ def planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm, focalLength):
 
     """
 
-    xFPrad = atan(xFPmm / focalLength)
-    yFPrad = atan(yFPmm / focalLength)
+    xFPrad = arctan(xFPmm / focalLength)
+    yFPrad = arctan(yFPmm / focalLength)
 
     return xFPrad, yFPrad
 
@@ -174,7 +173,7 @@ def radialToPlanarFocalPlaneCoordinates(radius, angle):
 
 def planarToRadialFocalPlaneCoordinates(xFPmm, yFPmm):
     
-    angle = atan2(yFPmm, xFPmm);  # [radians]
+    angle = arctan2(yFPmm, xFPmm);  # [radians]
     radius = sqrt(xFPmm * xFPmm + yFPmm * yFPmm);
 
     return radius, angle
