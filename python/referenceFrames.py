@@ -1,5 +1,4 @@
 from numpy import *
-from math import atan, atan2, asin, cos, sin
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -91,7 +90,7 @@ def angularFocalPlaneToSkyCoordinates(xFPrad, yFPrad, raOpticalAxis, decOpticalA
     xFP =  xFPrad * cos(focalPlaneAngle) - yFPrad * sin(focalPlaneAngle);
     yFP =  xFPrad * sin(focalPlaneAngle) + yFPrad * cos(focalPlaneAngle);
 
-    if xFP == 0.0 and yFP == 0.0:
+    if isscalar(xFP) and isscalar(yFP) and xFP == 0.0 and yFP == 0.0:
         return raOpticalAxis, decOpticalAxis
 
     rho = sqrt(xFP*xFP+yFP*yFP);
@@ -144,10 +143,11 @@ def planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm, focalLength):
 
     """
 
-    xFPrad = atan(xFPmm / focalLength)
-    yFPrad = atan(yFPmm / focalLength)
+    xFPrad = arctan(xFPmm / focalLength)
+    yFPrad = arctan(yFPmm / focalLength)
 
     return xFPrad, yFPrad
+
 
 
 
@@ -165,9 +165,15 @@ def radialToPlanarFocalPlaneCoordinates(radius, angle):
     return xFPmm, yFPmm
 
 
+
+
+
+
+
+
 def planarToRadialFocalPlaneCoordinates(xFPmm, yFPmm):
     
-    angle = atan2(yFPmm, xFPmm);  # [radians]
+    angle = arctan2(yFPmm, xFPmm);  # [radians]
     radius = sqrt(xFPmm * xFPmm + yFPmm * yFPmm);
 
     return radius, angle
@@ -195,7 +201,7 @@ def inverseGnomonicProjectionFocalPlaneToSky(xFPprimeStar, yFPprimeStar, raOptic
     OUTPUT: raStar:  right ascension of the star [rad]
             decStar: declination of the star [rad]
             
-    REMARK: This function does not work when the star is located at 0, 0 (Zenit).
+    REMARK: This function does not work when the star is located at 0, 0
     """
 
     
@@ -391,7 +397,7 @@ def drawCCDsInSky(raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale, pi
 
         # Convert the FP' coordinates to equatorial coordinates
 
-        ra, dec = inverseGnomonicProjectionFocalPlaneToSky(cornersXmm, cornersYmm, raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale, pixelSize)
+        ra, dec = inverseGnomonicProjectionFocalPlaneToSky(cornersXmm, cornersYmm, raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale)
 
         # Repeat the coordinates of the 1st corner, to plot a nice closed loop
         # Convert from radians to degrees
@@ -406,6 +412,8 @@ def drawCCDsInSky(raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale, pi
         plt.plot([ra[0], ra[1]], [dec[0], dec[1]], c=color[ccdCode], linewidth=3)
 
 
+    plt.xlabel("RA [deg]")
+    plt.ylabel("Dec [deg]")
     plt.draw()
 
     # That's it
@@ -466,11 +474,18 @@ def drawCCDsInFocalPlane(pixelSize, nominal=True):
         plt.plot([x[0], x[1]], [y[0], y[1]], c=color[ccdCode], linewidth=3)
 
 
+    plt.xlabel("x_FP [mm]")
+    plt.ylabel("y_FP [mm]")
     plt.draw()
 
     # That's it
 
     return
+
+
+
+
+
 
 
 
@@ -548,6 +563,10 @@ def drawSubfieldInFocalPlane(ccdCode, xCCD, yCCD, subfieldSizeX, subfieldSizeY, 
 
 
 
+
+
+
+
 def drawStarInFocalPlane(sim, raStar, decStar):
     """
     PURPOSE:  Draw a star given by the equatorial coordinates in the focal plane.
@@ -576,6 +595,11 @@ def drawStarInFocalPlane(sim, raStar, decStar):
     drawPixelInFocalPlane("B", xCCD, yCCD, pixelSize)
 
     return
+
+
+
+
+
 
 
 
