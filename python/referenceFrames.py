@@ -157,12 +157,19 @@ def planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm, focalLength):
 
 
 
+
 def radialToPlanarFocalPlaneCoordinates(radius, angle):
 
     xFPmm = cos(angle) * radius;
     yFPmm = sin(angle) * radius;
 
     return xFPmm, yFPmm
+
+
+
+
+
+
 
 
 def planarToRadialFocalPlaneCoordinates(xFPmm, yFPmm):
@@ -195,7 +202,7 @@ def inverseGnomonicProjectionFocalPlaneToSky(xFPprimeStar, yFPprimeStar, raOptic
     OUTPUT: raStar:  right ascension of the star [rad]
             decStar: declination of the star [rad]
             
-    REMARK: This function does not work when the star is located at 0, 0 (Zenit).
+    REMARK: This function does not work when the star is located at 0, 0
     """
 
     
@@ -482,6 +489,11 @@ def drawCCDsInFocalPlane(pixelSize, nominal=True):
 
 
 
+
+
+
+
+
 def drawSubfieldInFocalPlane(ccdCode, xCCD, yCCD, subfieldSizeX, subfieldSizeY, pixelSize):
 
     """
@@ -552,6 +564,10 @@ def drawSubfieldInFocalPlane(ccdCode, xCCD, yCCD, subfieldSizeX, subfieldSizeY, 
 
 
 
+
+
+
+
 def drawStarInFocalPlane(sim, raStar, decStar):
     """
     PURPOSE:  Draw a star given by the equatorial coordinates in the focal plane.
@@ -580,6 +596,11 @@ def drawStarInFocalPlane(sim, raStar, decStar):
     drawPixelInFocalPlane("B", xCCD, yCCD, pixelSize)
 
     return
+
+
+
+
+
 
 
 
