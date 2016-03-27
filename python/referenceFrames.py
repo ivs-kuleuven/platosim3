@@ -1,5 +1,6 @@
 from numpy import *
-
+from math import atan, atan2, asin, cos, sin
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
@@ -38,7 +39,7 @@ CCD = \
 
 
 
-def skyToAngularFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale, pixelSize):
+def skyToAngularFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle):
 
     """
     PURPOSE: computes the (x,y) coordinates in the focal plane of a star with given equatorial coordinates
@@ -48,8 +49,6 @@ def skyToAngularFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOptical
            raOpticalAxis:   right ascension of the optical axis [rad]
            decOpticalAxis:  declination of the optical axis [rad]
            focalPlaneAngle: angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
-           plateScale:      [arcsec/micron]
-           pixelSize:       [micrometer]
 
     OUTPUT: xFPrad, yFPrad: Cartesian coordinate of the projected star in the focal plane in the FP-prime system [radians]
     """
@@ -75,14 +74,47 @@ def skyToAngularFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOptical
 
 
 
+def angularFocalPlaneToSkyCoordinates(xFPrad, yFPrad, raOpticalAxis, decOpticalAxis, focalPlaneAngle):
+
+    """
+    PURPOSE: computes the (x,y) coordinates in the focal plane of a star with given equatorial coordinates
+
+    INPUT: xFPrad            Cartesian coordinate of the projected star in the focal plane in the FP-prime system [radians]
+           yFPrad            Cartesian coordinate of the projected star in the focal plane in the FP-prime system [radians]
+           raOpticalAxis:    right ascension of the optical axis [rad]
+           decOpticalAxis:   declination of the optical axis [rad]
+           focalPlaneAngle:  angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
+
+    OUTPUT: raStar, decStar: Equatorial coordinates (right ascension and declination) of the star [rad]
+    """
+
+    xFP =  xFPrad * cos(focalPlaneAngle) - yFPrad * sin(focalPlaneAngle);
+    yFP =  xFPrad * sin(focalPlaneAngle) + yFPrad * cos(focalPlaneAngle);
+
+    if xFP == 0.0 and yFP == 0.0:
+        return raOpticalAxis, decOpticalAxis
+
+    rho = sqrt(xFP*xFP+yFP*yFP);
+    c = atan(rho);
+    ra = raOpticalAxis + atan2(yFP * sin(c), rho * cos(decOpticalAxis) * cos(c) + xFP * sin(decOpticalAxis) * sin(c));
+    dec = asin(cos(c) * sin(decOpticalAxis) - (xFP * sin(c) * cos(decOpticalAxis)) / rho);
+
+    return ra, dec
+
+
+
+
+
+
 
 
 def angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad, focalLength):
     """
     PURPOSE: Convert from angular to planar focal plane coordinates, assuming no optical distortion.
 
-    INPUT:   xFPrad   Angular focal plane x-coordinate [rad]
-             yFPrad   Angular focal plane y-coordinate [rad]
+    INPUT:   xFPrad:      Angular focal plane x-coordinate [rad]
+             yFPrad:      Angular focal plane y-coordinate [rad]
+             focalLength: Focal length of the telescope [mm]
     
     OUTPUT:  (xFPmm, yFPmm)    Planar focal plane x and y coordinates [mm]
 
@@ -92,6 +124,55 @@ def angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad, focalLength):
     yFPmm = tan(yFPrad) * focalLength
 
     return xFPmm, yFPmm
+
+
+
+
+
+
+
+
+def planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm, focalLength):
+    """
+    PURPOSE: Convert from planar to angulare focal plane coordinates, assuming no optical distortion.
+
+    INPUT:   xFPmm:        Planar focal plane x-coordinate [mm]
+             yFPmm:        Planar focal plane y-coordinate [mm]
+             focalLength:  Focal length of the telescope [mm]
+    
+    OUTPUT:  (xFPrad, yFPrad)  Angular focal plane x and y coordinates [rad]
+
+    """
+
+    xFPrad = atan(xFPmm / focalLength)
+    yFPrad = atan(yFPmm / focalLength)
+
+    return xFPrad, yFPrad
+
+
+
+
+
+
+
+
+
+def radialToPlanarFocalPlaneCoordinates(radius, angle):
+
+    xFPmm = cos(angle) * radius;
+    yFPmm = sin(angle) * radius;
+
+    return xFPmm, yFPmm
+
+
+def planarToRadialFocalPlaneCoordinates(xFPmm, yFPmm):
+    
+    angle = atan2(yFPmm, xFPmm);  # [radians]
+    radius = sqrt(xFPmm * xFPmm + yFPmm * yFPmm);
+
+    return radius, angle
+
+
 
 
 
@@ -405,6 +486,20 @@ def drawSubfieldInFocalPlane(ccdCode, xCCD, yCCD, subfieldSizeX, subfieldSizeY, 
 
     """
     PURPOSE: Draw a subfield in the focal plane.
+    
+             
+    INPUT:   xCCD:          center x coordinate of the subfield [pixels]
+             yCCD:          center y coordinate of the subfield [pixels]
+             subfieldSizeX: size of the subfield along the x-axis [pixels]
+             subfieldSizeY: size of the subfield along the y-axis [pixels]
+             pixelSize:     the size of a pixel in microns
+    
+    OUTPUT:  Subfield frames draw on the current plot. The subfield is drawn with respect of the 
+             coordinate system of the CCD.
+    
+             A blue dot indicates the lower left corner of the subfield.
+             A green dot indicates the upper right corner of the subfield.
+             A red dot indicates the center of the subfield.
     """
 
     # Compute the position of the subfield in pixel coordinates, for the current CCD, 
@@ -457,18 +552,49 @@ def drawSubfieldInFocalPlane(ccdCode, xCCD, yCCD, subfieldSizeX, subfieldSizeY, 
 
 
 
+def drawStarInFocalPlane(sim, raStar, decStar):
+    """
+    PURPOSE:  Draw a star given by the equatorial coordinates in the focal plane.
+
+    INPUT:    raStar:  right ascension of the star [rad]
+              decStar: declination of the star [rad]
+    
+    OUTPUT:   Draw a red dot where the star is located on the CCD
+
+    """
+    pixelSize = sim["CCD/PixelSize"]
+    raOpticalAxis = np.radians(sim["ObservingParameters/RApointing"])
+    decOpticalAxis = np.radians(sim["ObservingParameters/DecPointing"])
+    focalPlaneAngle = np.radians(sim["Camera/FocalPlaneOrientation"])
+    focalLength = sim["Camera/FocalLength"] * 1000.0  # [m] -> [mm]
+    ccdZeroPointX = sim["CCD/OriginOffsetX"]
+    ccdZeroPointY = sim["CCD/OriginOffsetY"]
+    ccdAngle = np.radians(sim["CCD/Orientation"])
+
+    xFPrad, yFPrad = skyToAngularFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle)
+    xFPmm, yFPmm = angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad, focalLength)
+    xCCD, yCCD = focalPlaneToPixelCoordinates(xFPmm, yFPmm, pixelSize, ccdZeroPointX, ccdZeroPointY, ccdAngle)
+
+    # TODO: Determine the ccdCode
+
+    drawPixelInFocalPlane("B", xCCD, yCCD, pixelSize)
+
+    return
+
+
 
 
 def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize):
 
     """
     PURPOSE: Plot a pixel from a particular CCD in the focal plane. The actual position in millimeter
-             is shown as a red dot, while the pixel itself is drwan as a rectangle with edge pixelSize.
+             is shown as a red dot, while the pixel itself is drawn as a rectangle with edge pixelSize.
 
     INPUTS:  ccdCode:   for nominal camera: either 'A', 'B', 'C', or 'D'
                         for fast camer: either 'AF', 'BF', 'CF', 'DF'
              xCCDpix:   x-coordinate (column number, zero-based) of the pixel on the CCD  [pix]
              yCCDpix:   y-coordinate (row number, zero-based) of the pixel on the CCD  [pix]
+             pixelSize: the size of a pixel in micron
 
     OUTPUTS: None
     """
@@ -537,7 +663,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
 
     # Compute the (x,y) coordinates in the FP' reference system [mm]
 
-    xFPrad, yFPrad = skyToAngularFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale, pixelSize)
+    xFPrad, yFPrad = skyToAngularFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle)
     xFPmm, yFPmm = angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad, focalLength)
 
     # Find out if this falls on a CCD, and if yes which one.
@@ -613,6 +739,45 @@ def getSkyCoordinates(ccdCode, xCCDpix, yCCDpix, plateScale, pixelSize, raOptica
     raStar, decStar = inverseGnomonicProjectionFocalPlaneToSky(xFPprime, yFPprime, raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale, pixelSize)
 
     return raStar, decStar
+
+
+
+
+
+
+
+
+
+
+def calculateSubfieldAroundRadiusFromOpticalAxis(sim, radius, orientation):
+    """
+    PURPOSE: Calculates the location of the subfield such that the star 
+    
+    INPUTS:  radius: 
+             orientation: the angle counter clockwise from the x-axis of the focal plane
+              
+    """
+
+    raOpticalAxis = np.radians(sim["ObservingParameters/RApointing"])
+    decOpticalAxis = np.radians(sim["ObservingParameters/DecPointing"])
+    focalPlaneAngle = np.radians(sim["Camera/FocalPlaneOrientation"])
+    subfieldSizeX = sim["SubField/NumColumns"]
+    subfieldSizeY = sim["SubField/NumRows"]
+    plateScale = sim["Camera/PlateScale"]
+    pixelSize = sim["CCD/PixelSize"]
+    focalLength = sim["Camera/FocalLength"] * 1000.0  # [m] -> [mm]
+
+    xFPmm, yFPmm = radialToPlanarFocalPlaneCoordinates(radius, orientation)
+    xFPrad, yFPrad = planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm, focalLength)
+    raStar, decStar = angularFocalPlaneToSkyCoordinates(xFPrad, yFPrad, raOpticalAxis, decOpticalAxis, focalPlaneAngle)
+
+    ccdCode, xCCDpix, yCCDpix = calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY, focalLength, plateScale, pixelSize, \
+                                       raOpticalAxis, decOpticalAxis, focalPlaneAngle, nominal=True)
+
+    return ccdCode, xCCDpix, yCCDpix
+
+
+
 
 
 

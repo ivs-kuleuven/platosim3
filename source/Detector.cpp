@@ -1722,7 +1722,7 @@ void Detector::setPsfForSubfieldCenter()
     double centerXmm, centerYmm;
     tie(centerXmm, centerYmm) = getPlanarFocalPlaneCoordinatesOfSubfieldCenter();
 
-    arma::Mat<float> psf = camera.getRebinnedPsfForPlanarFocalPlaneCoordinates(centerXmm, centerYmm, numSubPixelsPerPixel);
+    arma::Mat<float> psf = camera.getRebinnedPsfForPlanarFocalPlaneCoordinates(centerXmm, centerYmm, numSubPixelsPerPixel, getOrientationAngle());
 
 	convolver.initialise(numRowsSubPixelMap, numColumnsSubPixelMap, psf);
 
@@ -1834,6 +1834,7 @@ tuple<double, double, double, double, double, double, double, double> Detector::
  * \brief Return the solid angle of 1 single pixel on the sky. [sr]
  * 
  * \param plateScale  The platescale of the camera [arcsec/micron]
+ *
  * \return            Solid angle in [s]
  */
 
@@ -1842,6 +1843,27 @@ double Detector::getSolidAngleOfOnePixel(double plateScale)
 	return sqDeg2sr(pow(pixelSize * plateScale / 3600.0, 2));
 }
 
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * @brief      Return the orientation of the CCD with respect to the orientation of the focal plane.
+ *             The rotations of the CCD are counter clockwise.
+ *
+ * @return     the orientation of the CCD [radians]
+ */
+double Detector::getOrientationAngle()
+{
+    return orientationAngle;
+}
 
 
 
