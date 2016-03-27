@@ -91,7 +91,7 @@ def angularFocalPlaneToSkyCoordinates(xFPrad, yFPrad, raOpticalAxis, decOpticalA
     xFP =  xFPrad * cos(focalPlaneAngle) - yFPrad * sin(focalPlaneAngle);
     yFP =  xFPrad * sin(focalPlaneAngle) + yFPrad * cos(focalPlaneAngle);
 
-    if xFP == 0.0 and yFP == 0.0:
+    if isscalar(xFP) and isscalar(yFP) and xFP == 0.0 and yFP == 0.0:
         return raOpticalAxis, decOpticalAxis
 
     rho = sqrt(xFP*xFP+yFP*yFP);
