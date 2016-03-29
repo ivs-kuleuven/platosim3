@@ -54,8 +54,8 @@ shutil.rmtree(buildDir+packageName, ignore_errors=True)
 
 if sys.platform == "darwin":
 
-    correctionProcedure = "cd {install}/lib;                                                                \
-                           install_name_tool -id {install}/lib/libarmadillo.6.dylib libarmadillo.6.dylib    \
+    correctionProcedure = "cd {install}/lib;                                                            \
+                           install_name_tool -id {install}/lib/libarmadillo.dylib libarmadillo.dylib    \
                           ".format(install=installDir)
 
     subprocess.call(correctionProcedure, shell=True)
