@@ -20,8 +20,15 @@ installDir = currentWorkingDir + "/dependencies/Installs/" + packageName
 
 shutil.rmtree(installDir, ignore_errors=True)
 
+# Print a banner
 
-# Build and nstall package
+print("\n\n\n")
+print("===============")
+print("Installing FFTW")
+print("===============")
+print("\n")
+
+# Build and install package
 
 installProcedure = "cd {build};                                                      \
                     tar -xzvf {package}.tgz;                                         \

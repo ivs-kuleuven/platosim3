@@ -17,8 +17,15 @@ currentWorkingDir = os.getcwd()
 buildDir   = currentWorkingDir + "/dependencies/Downloads/"
 installDir = currentWorkingDir + "/dependencies/Installs/" + packageName 
 
+# Print a banner
 
-# Build and nstall package
+print("\n\n\n")
+print("===================")
+print("Installing YAML-CPP")
+print("===================")
+print("\n")
+
+# Build and install package
 
 installProcedure = "cd {build};                                     \
 					tar -xzvf {package}.tgz;                        \
