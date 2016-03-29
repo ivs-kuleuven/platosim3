@@ -1,6 +1,6 @@
 #
 # install.sh runs automatically this script. It can be done manually running (from the same folder than install.sh):
-# $ python ./installscripts/install_fftw.py
+# $ python ./dependencies/installscripts/install_fftw.py
 #
 
 import os,sys,shutil,subprocess
