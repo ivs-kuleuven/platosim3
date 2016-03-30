@@ -291,7 +291,16 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     Log.debug("Camera: lower left corner of subfield at (Xmm, Ymm) = (" + to_string(corner00Xmm) + ", " + to_string(corner00Ymm) + ") mm");
     Log.debug("Camera: upper right corner of subfield at (Xmm, Ymm) = (" + to_string(corner11Xmm) + ", " + to_string(corner11Ymm) + ") mm");
 
+    // Convert the planar [mm] to distorted [mm] focal plane coordinates
 
+    if (includeFieldDistortion)
+    {
+        Log.info("Camera: including field distortion");
+
+        tie(centerXmm, centerYmm) = planarToDistortedFocalPlaneCoordinates(centerXmm, centerYmm);
+        tie(corner00Xmm, corner00Ymm) = planarToDistortedFocalPlaneCoordinates(corner00Xmm, corner00Ymm);
+        tie(corner11Xmm, corner11Ymm) = planarToDistortedFocalPlaneCoordinates(corner11Xmm, corner11Ymm);
+    }
 
     // Convert the planar [mm] to angular [rad] focal plane coordinates 
 
@@ -337,7 +346,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
     auto starCatalog = sky.getStarsWithinRadiusFrom(centerRA, centerDec, radius * 1.1, Angle::radians);
 
-    Log.debug("Camera: Found " + to_string(starCatalog.size()) + " stars on and near the subfield");  
+    Log.info("Camera: Found " + to_string(starCatalog.size()) + " stars on and near the subfield");  
 
 
     // If the telescope and/or platform show small variations (e.g. due to jitter) during the exposure,
@@ -385,7 +394,6 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
             if (includeFieldDistortion)
             {
-                Log.debug("Camera: including field distortion");
                 tie(Xmm, Ymm) = planarToDistortedFocalPlaneCoordinates(Xmm, Ymm);
             }
 
