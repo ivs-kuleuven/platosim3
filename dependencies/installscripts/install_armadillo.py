@@ -43,12 +43,41 @@ installProcedure = "cd {build};                                     \
 subprocess.call(installProcedure, shell=True)
 
 
-# make installed Armadillo locally, but still with a /usr/local/ directory structure.
-# Copy the include and lib folders in the install folder, and remove the /usr/local folder.
+# Armadillo installs the libraries and header files differently depending on the operating system,
+# which needs we need to distinguish between Mac OS X and Linux in what follows.
 
-shutil.copytree(installDir+"/usr/local/include", installDir+"/include")
-shutil.copytree(installDir+"/usr/local/lib", installDir+"/lib")
-shutil.rmtree(installDir+"/usr", ignore_errors=True)
+if sys.platform == "darwin":
+
+    # make installed Armadillo locally, but still with a /usr/local/ directory structure.
+    # Copy the include and lib folders in the install folder, and remove the /usr/local folder.
+
+    shutil.copytree(installDir+"/usr/local/include", installDir+"/include")
+    shutil.copytree(installDir+"/usr/local/lib", installDir+"/lib")
+    shutil.rmtree(installDir+"/usr", ignore_errors=True)
+
+    # Correct the relative path in the armadillo.6 library
+
+    correctionProcedure = "cd {install}/lib;                                                            \
+                           install_name_tool -id {install}/lib/libarmadillo.dylib libarmadillo.dylib    \
+                          ".format(install=installDir)
+
+    subprocess.call(correctionProcedure, shell=True)
+
+elif sys.platform.startswith("linux"):
+
+    # Note: in Python 2.x sys.platform = "linux2", in Python 3.x sys.platform = "linux",
+    #       hence the startswith().
+
+    # make installed Armadillo locally, but still with a /usr/local/ directory structure.
+    # Copy the include and lib folders in the install folder, and remove the /usr/local folder.
+
+    shutil.copytree(installDir+"/usr/local/include", installDir+"/include")
+    shutil.copytree(installDir+"/usr/local/lib64", installDir+"/lib")
+    shutil.rmtree(installDir+"/usr", ignore_errors=True)
+
+
+
+
 
 
 # After installation in the install folder, remove the decompressed package folder in 
@@ -56,14 +85,4 @@ shutil.rmtree(installDir+"/usr", ignore_errors=True)
 
 shutil.rmtree(buildDir+packageName, ignore_errors=True)
 
-
-# If we are on a Mac, correct the relative path in the armadillo.6 library
-
-if sys.platform == "darwin":
-
-    correctionProcedure = "cd {install}/lib;                                                            \
-                           install_name_tool -id {install}/lib/libarmadillo.dylib libarmadillo.dylib    \
-                          ".format(install=installDir)
-
-    subprocess.call(correctionProcedure, shell=True)
 
