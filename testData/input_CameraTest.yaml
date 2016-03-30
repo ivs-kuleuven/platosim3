@@ -42,10 +42,11 @@ Camera:
     FocalLength:             0.24712595      # [m]
     ThroughputBandwidth:     650             # FWHM [nm]
     ThroughputLambdaC:       550             # Central wavelength of the throughput passband [nm]
+    IncludeFieldDistortion:  yes             # Wheter or not to include field distortion
     FieldDistortion:                         # Describe the model for the field distortion
         Type:                Polynomial1D
         Degree:              3
-        Coefficients:        [-0.00366969196778, 0.000854231697381, -4.12553764817e-05, 5.7201219949e-06]
+        Coefficients:        [-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06]
 
 PSF:
 

@@ -80,6 +80,8 @@ class Camera : public HDF5Writer
         PointSpreadFunction *psf;
         Polynomial1D polynomial;
 
+        bool includeFieldDistortion;          // Wheter or not field distortion should be included
+
         double userGivenSkyBackground;        // User-set zodiacal + stellar sky background. [phot/pix/s]
                                               // If negative, computed by the Sky class
 
