@@ -77,12 +77,14 @@ class MyCamera : public Camera
 
         pair<double, double> test_planarToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm)
             {return planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm);};
+        pair<double, double> test_distortedToPlanarFocalPlaneCoordinates(double xFPdist, double yFPdist)
+            {return distortedToPlanarFocalPlaneCoordinates(xFPdist, yFPdist);};
 
         double test_getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double yFPprime)
             {return getGnomonicRadialDistanceFromOpticalAxis(xFPprime, yFPprime);};
 
-        void test_setDistortionPolynomial(Polynomial1D &polynomial)
-            {setDistortionPolynomial(polynomial);};
+        void test_setDistortionPolynomial(Polynomial1D &polynomial, Polynomial1D &inversePolynomial)
+            {setDistortionPolynomial(polynomial, inversePolynomial);};
 };
 
 
@@ -199,7 +201,7 @@ TEST_F(CameraTest, distortedCoordinates)
 
     MyCamera camera = MyCamera(configParams, hdf5File, telescope, sky);
 
-    camera.test_setDistortionPolynomial(polynomial);
+    camera.test_setDistortionPolynomial(polynomial, polynomial); // Do not care about the inverse polynomial for this test
 
     double xFPdist, yFPdist;   // [mm]
 
@@ -224,7 +226,7 @@ TEST_F(CameraTest, distortedCoordinates)
     coeff = {2.0, 0.5, 1.5};
     polynomial = Polynomial1D(degree, coeff);
 
-    camera.test_setDistortionPolynomial(polynomial);
+    camera.test_setDistortionPolynomial(polynomial, polynomial); // Do not care about the inverse polynomial for this test
 
     tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(10.0, 0.0);
     EXPECT_NEAR(157.0000, xFPdist, 0.00001);
@@ -278,23 +280,51 @@ TEST_F(CameraTest, reproduceDistortionMap)
     vector<double> coeff = {-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06};
     Polynomial1D polynomial = Polynomial1D(degree, coeff);
 
+    vector<double> inverseCoeff = {-0.00458067036444, 1.00110311283, -5.61136295937e-05, -4.311925329e-06};
+    Polynomial1D inversePolynomial = Polynomial1D(degree, inverseCoeff);
+
     MyCamera camera = MyCamera(configParams, hdf5File, telescope, sky);
-    camera.test_setDistortionPolynomial(polynomial);
+    camera.test_setDistortionPolynomial(polynomial, inversePolynomial);
 
     double xFPdist, yFPdist;   // [mm]
+    double xFPmm, yFPmm;       // [mm]
+
+    for (auto &data: distortion)
+    {
+        xFPmm = data["xFPmm"];
+        yFPmm = data["yFPmm"];
+
+        tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm);
+        EXPECT_NEAR( data["xFPdist"], xFPdist, 0.006);
+        EXPECT_NEAR( data["yFPdist"], yFPdist, 0.006);
+
+        xFPdist = data["xFPdist"];
+        yFPdist = data["yFPdist"];
+
+        tie(xFPmm, yFPmm) = camera.test_distortedToPlanarFocalPlaneCoordinates(xFPdist, yFPdist);
+        EXPECT_NEAR( data["xFPmm"], xFPmm, 0.006);
+        EXPECT_NEAR( data["yFPmm"], yFPmm, 0.006);
+
+    }
+
+    
+    // The following loop is to test if the inverse function is indeed the inverse polynomial.
+    // The biggest difference that I got was 0.0103 mm which is only slightly less than the size of a pixel.
+    // TODO: Should we look into improving this distortion with Polynomials?
 
     for (auto &data: distortion)
     {
         double xFPmm = data["xFPmm"];
         double yFPmm = data["yFPmm"];
 
-        tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm);
-        EXPECT_NEAR( data["xFPdist"], xFPdist, 0.006);
-        EXPECT_NEAR( data["yFPdist"], yFPdist, 0.006);
+        double xFPdist = polynomial(xFPmm);
+        double yFPdist = polynomial(yFPmm);
+
+        EXPECT_NEAR(xFPmm, inversePolynomial(xFPdist), 0.02);
+        EXPECT_NEAR(yFPmm, inversePolynomial(yFPdist), 0.02);
     }
 
-    
-    
+
     
     
 
@@ -307,7 +337,7 @@ TEST_F(CameraTest, reproduceDistortionMap)
     coeff = {0.000814670391532, 0.99970324817, 2.39592182367e-05, 4.44973838376e-06, 7.93413878401e-09};
     polynomial = Polynomial1D(degree, coeff);
 
-    camera.test_setDistortionPolynomial(polynomial);
+    camera.test_setDistortionPolynomial(polynomial, polynomial); // Do not care about the inverse polynomial for this test
 
     for (auto &data: distortion)
     {
