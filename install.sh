@@ -3,6 +3,11 @@
 # Just run this script:
 # $ ./install.sh
 
+
+# Stop this script if we encounter an error with one of the packages
+
+set -e
+
 # Install dependencies
 # There is one python script under dependencies/installscripts/ folder for each 
 # dependency package. Each script Unzip/Untar packages in dependencies/Downloads/ 
