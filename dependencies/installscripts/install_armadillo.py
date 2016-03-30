@@ -1,6 +1,6 @@
 #
 # install.sh runs automatically this script. It can be done manually running (from the same folder than install.sh):
-# $ python ./installscripts/install_armadillo.py
+# $ python ./dependencies/installscripts/install_armadillo.py
 #
 
 
@@ -21,8 +21,15 @@ installDir = currentWorkingDir + "/dependencies/Installs/" + packageName
 
 shutil.rmtree(installDir, ignore_errors=True)
 
+# Print a banner
 
-# Build and nstall package
+print("\n\n\n")
+print("====================")
+print("Installing ARMADILLO")
+print("====================")
+print("\n")
+
+# Build and install package
 
 installProcedure = "cd {build};                                     \
                     tar -xzvf {package}.tgz;                        \
@@ -54,8 +61,8 @@ shutil.rmtree(buildDir+packageName, ignore_errors=True)
 
 if sys.platform == "darwin":
 
-    correctionProcedure = "cd {install}/lib;                                                                \
-                           install_name_tool -id {install}/lib/libarmadillo.6.dylib libarmadillo.6.dylib    \
+    correctionProcedure = "cd {install}/lib;                                                            \
+                           install_name_tool -id {install}/lib/libarmadillo.dylib libarmadillo.dylib    \
                           ".format(install=installDir)
 
     subprocess.call(correctionProcedure, shell=True)
