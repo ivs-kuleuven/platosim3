@@ -1,6 +1,6 @@
 #
 # install.sh runs automatically this script. It can be done manually running (from the same folder than install.sh):
-# $ python ./installscripts/install_hdf5.py
+# $ python ./dependencies/installscripts/install_hdf5.py
 #
 
 
@@ -22,7 +22,15 @@ installDir = currentWorkingDir + "/dependencies/Installs/" + packageName
 shutil.rmtree(installDir, ignore_errors=True)
 os.mkdir(installDir)
 
-# Build and nstall package
+# Print a banner
+
+print("\n\n\n")
+print("===============")
+print("Installing HDF5")
+print("===============")
+print("\n")
+
+# Build and install package
 
 installProcedure = "cd {build};                                     \
 					tar -xzvf {package}.tgz;                        \

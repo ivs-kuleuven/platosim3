@@ -52,6 +52,7 @@ class Platform : public Heartbeat, HDF5Writer
         virtual void flushOutput() override;
 
 
+        bool useJitter;                             // If false, the yaw, pitch, and roll, are always zero.
         double internalTime;                        // [s]
         double currentRA;                           // Current right Ascension of spacecraft pointing axis (zSC-axis) [rad]
         double currentDec;                          // Current declination     of spacecraft pointing axis (zSC-axis) [rad]

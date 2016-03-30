@@ -9,10 +9,12 @@
  * \param configParams        Configuration parameters as read from the (e.g. yaml) inputfile
  * \param hdf5File            HDF5 file where to write any output
  * \param jitterGenerator     Generator of the yaw, pitch roll variations due to spacecraft jitter
+ * 
+ * \note  The jitterGenerator has been configured in Simulation::Simulation()
  */
 
 Platform::Platform(ConfigurationParameters configParams, HDF5File &hdf5File, JitterGenerator &jitterGenerator)
-: HDF5Writer(hdf5File), internalTime(0.0), jitterGenerator(jitterGenerator)
+: HDF5Writer(hdf5File), useJitter(true), internalTime(0.0), jitterGenerator(jitterGenerator)
 {
     // Initialise the HDF5 group(s) in the output file
 
@@ -53,6 +55,7 @@ Platform::~Platform()
 
 void Platform::configure(ConfigurationParameters &configParams)
 {
+    useJitter   = configParams.getBoolean("Platform/UseJitter");
     originalRA  = deg2rad(configParams.getDouble("ObservingParameters/RApointing"));            
     originalDec = deg2rad(configParams.getDouble("ObservingParameters/DecPointing"));     
     currentRA   = originalRA;
@@ -167,54 +170,67 @@ void Platform::setPointingCoordinates(double rightAscencsion, double declination
 
 pair<double, double> Platform::getPointingCoordinates(double time)
 {
-    // Check if the request is going backwards in time. If so: complain.
+    double yaw=0.0, pitch=0.0, roll=0.0;
 
-    double timeInterval = time - internalTime;
-
-    if (timeInterval < 0.0)
+    if (useJitter)
     {
-        Log.warning("Platform: getPointingCoordinates() at time before previous request: Not Implemented. Returning current pointing coordinates.");
-        return make_pair(currentRA, currentDec);
+        // Check if the request is going backwards in time. If so: complain.
+
+        double timeInterval = time - internalTime;
+
+        if (timeInterval < 0.0)
+        {
+            Log.warning("Platform: getPointingCoordinates() at time before previous request: Not Implemented. Returning current pointing coordinates.");
+            return make_pair(currentRA, currentDec);
+        }
+
+        // Let the platfrom jitter until 'time'
+        // Yaw, pitch, and roll are in [rad]
+
+        tie(yaw, pitch, roll) = jitterGenerator.getNextYawPitchRoll(timeInterval);
+
+        Log.debug("Platform: At time " + to_string(time) + ": (yaw, pitch, roll) = (" 
+                                       + to_string(rad2deg(yaw)*3600.) + ", " 
+                                       + to_string(rad2deg(pitch)*3600.) + ", " 
+                                       + to_string(rad2deg(roll)*3600.) + ") arcsec");
+
+
+        // The roll axis (= unit vector in z-direction in SC reference frame) will have slightly 
+        // rotated due to jitter. Find out the cartesian coordinates of the _new_ jitter axis in 
+        // the SpaceCraft reference frame of the original pointing. 
+
+        arma::colvec zUnitBeforeJitter = {0.0, 0.0, 1.0};
+        arma::colvec zUnitAfterJitter = rotateYawPitchRoll(zUnitBeforeJitter, yaw, pitch, roll);
+
+        // Compute the celestial equatorial cartesian coordinates of the new roll axis
+        // This requires the original pointing coordinates of the platform.
+
+        const bool useOriginalPointingCoordinates = true;
+        const arma::colvec zUnitAfterJitterEQ = spacecraftToEquatorialCoordinates(zUnitAfterJitter, useOriginalPointingCoordinates);
+
+        // Convert from cartesian to celestial equatorial coordinates
+
+        const double x = zUnitAfterJitterEQ(0);
+        const double y = zUnitAfterJitterEQ(1);
+        const double z = zUnitAfterJitterEQ(2);
+
+        // Only now update the internal platform pointing coordinates to the ones after the jitter step
+        // Note: r should 1.0, as rotations don't change the length of the unit vector
+
+        const double r = sqrt(x*x+y*y+z*z);
+        currentDec = PI / 2.0 - acos(z/r);
+        currentRA = atan2(y, x);
+        if (currentRA < 0.0) currentRA += 2 * PI; 
     }
-
-    // Let the platfrom jitter until 'time'
-    // Yaw, pitch, and roll are in [rad]
-
-    double yaw, pitch, roll;
-    tie(yaw, pitch, roll) = jitterGenerator.getNextYawPitchRoll(timeInterval);
-
-    Log.debug("Platform: At time " + to_string(time) + ": (yaw, pitch, roll) = (" 
-                                   + to_string(rad2deg(yaw)*3600.) + ", " 
-                                   + to_string(rad2deg(pitch)*3600.) + ", " 
-                                   + to_string(rad2deg(roll)*3600.) + ") arcsec");
-
-
-    // The roll axis (= unit vector in z-direction in SC reference frame) will have slightly 
-    // rotated due to jitter. Find out the cartesian coordinates of the _new_ jitter axis in 
-    // the SpaceCraft reference frame of the original pointing. 
-
-    arma::colvec zUnitBeforeJitter = {0.0, 0.0, 1.0};
-    arma::colvec zUnitAfterJitter = rotateYawPitchRoll(zUnitBeforeJitter, yaw, pitch, roll);
-
-    // Compute the celestial equatorial cartesian coordinates of the new roll axis
-    // This requires the original pointing coordinates of the platform.
-
-    const bool useOriginalPointingCoordinates = true;
-    const arma::colvec zUnitAfterJitterEQ = spacecraftToEquatorialCoordinates(zUnitAfterJitter, useOriginalPointingCoordinates);
-
-    // Convert from cartesian to celestial equatorial coordinates
-
-    const double x = zUnitAfterJitterEQ(0);
-    const double y = zUnitAfterJitterEQ(1);
-    const double z = zUnitAfterJitterEQ(2);
-
-    // Only now update the internal platform pointing coordinates to the ones after the jitter step
-    // Note: r should 1.0, as rotations don't change the length of the unit vector
-
-    const double r = sqrt(x*x+y*y+z*z);
-    currentDec = PI / 2.0 - acos(z/r);
-    currentRA = atan2(y, x);
-    if (currentRA < 0.0) currentRA += 2 * PI; 
+    else
+    {
+        Log.info("Platform: Ignoring jitter, (yaw, pitch, roll) = (0.0, 0.0, 0.0");
+        yaw = 0.0;
+        pitch = 0.0;
+        roll = 0.0;
+        currentRA = originalRA;
+        currentDec = originalDec;
+    }
 
     Log.debug("Platform: At time " + to_string(time) + ": (RA, dec) = (" 
                                    + to_string(rad2deg(currentRA)) + ", " 
