@@ -52,6 +52,7 @@ class Camera : public HDF5Writer
         pair<double, double> planarToAngularFocalPlaneCoordinates(double xFPmm, double yFPmm);
 
         pair<double, double> planarToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm);
+        pair<double, double> distortedToPlanarFocalPlaneCoordinates(double xFPdist, double yFPdist);
 
         double getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double yFPprime);
 
@@ -67,7 +68,7 @@ class Camera : public HDF5Writer
         double throughputBandwidth;           // FWHM of the throughput passband [nm]
         double throughputLambdaC;             // Central wavelength of the throughput passband [nm]
 
-        void setDistortionPolynomial(Polynomial1D &polynomial);
+        void setDistortionPolynomial(Polynomial1D &polynomial, Polynomial1D &inversePolynomial);
 
 
     private:
@@ -76,9 +77,11 @@ class Camera : public HDF5Writer
         string polynomialType;
         double polynomialDegree;
         vector<double> polynomialCoefficients;
+        vector<double> inversePolynomialCoefficients;
 
         PointSpreadFunction *psf;
         Polynomial1D polynomial;
+        Polynomial1D inversePolynomial;
 
         bool includeFieldDistortion;          // Wheter or not field distortion should be included
 
