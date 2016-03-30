@@ -291,7 +291,13 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     Log.debug("Camera: lower left corner of subfield at (Xmm, Ymm) = (" + to_string(corner00Xmm) + ", " + to_string(corner00Ymm) + ") mm");
     Log.debug("Camera: upper right corner of subfield at (Xmm, Ymm) = (" + to_string(corner11Xmm) + ", " + to_string(corner11Ymm) + ") mm");
 
-
+    if (includeFieldDistortion)
+    {
+        // Convert the planar [mm] to distorted [mm] focal plane coordinates
+        tie(centerXmm, centerYmm) = planarToDistortedFocalPlaneCoordinates(centerXmm, centerYmm);
+        tie(corner00Xmm, corner00Ymm) = planarToDistortedFocalPlaneCoordinates(corner00Xmm, corner00Ymm);
+        tie(corner11Xmm, corner11Ymm) = planarToDistortedFocalPlaneCoordinates(corner11Xmm, corner11Ymm);
+    }
 
     // Convert the planar [mm] to angular [rad] focal plane coordinates 
 
