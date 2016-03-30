@@ -346,7 +346,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
     auto starCatalog = sky.getStarsWithinRadiusFrom(centerRA, centerDec, radius * 1.1, Angle::radians);
 
-    Log.debug("Camera: Found " + to_string(starCatalog.size()) + " stars on and near the subfield");  
+    Log.info("Camera: Found " + to_string(starCatalog.size()) + " stars on and near the subfield");  
 
 
     // If the telescope and/or platform show small variations (e.g. due to jitter) during the exposure,
