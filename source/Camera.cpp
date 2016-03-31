@@ -292,10 +292,6 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
     // Convert the planar [mm] to distorted [mm] focal plane coordinates
 
-    Log.debug("Camera: center of subfield at (Xmm, Ymm) = (" + to_string(centerXmm) + ", " + to_string(centerYmm) + ") mm");
-    Log.debug("Camera: lower left corner of subfield at (Xmm, Ymm) = (" + to_string(corner00Xmm) + ", " + to_string(corner00Ymm) + ") mm");
-    Log.debug("Camera: upper right corner of subfield at (Xmm, Ymm) = (" + to_string(corner11Xmm) + ", " + to_string(corner11Ymm) + ") mm");
-
     if (includeFieldDistortion)
     {
         Log.info("Camera: including field distortion");
