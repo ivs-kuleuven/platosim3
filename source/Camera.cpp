@@ -36,9 +36,10 @@ Camera::Camera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telesco
 
     psf = new PointSpreadFunction(configParam);
 
-    // Initialize the polynomial that describes the field distortion of the camera.
+    // Initialize the polynomials that describes the field distortion of the camera.
 
     polynomial = Polynomial1D(polynomialDegree, polynomialCoefficients);
+    inversePolynomial = Polynomial1D(polynomialDegree, inversePolynomialCoefficients);
 }
 
 
@@ -229,6 +230,7 @@ void Camera::configure(ConfigurationParameters &configParam)
     polynomialType         = configParam.getString("Camera/FieldDistortion/Type");
     polynomialDegree       = configParam.getInteger("Camera/FieldDistortion/Degree");
     polynomialCoefficients = configParam.getDoubleVector("Camera/FieldDistortion/Coefficients");
+    inversePolynomialCoefficients = configParam.getDoubleVector("Camera/FieldDistortion/InverseCoefficients");
 
     includeFieldDistortion = configParam.getBoolean("Camera/IncludeFieldDistortion");
 
@@ -249,9 +251,10 @@ void Camera::configure(ConfigurationParameters &configParam)
   * \param  polynomial
   */
 
-void Camera::setDistortionPolynomial(Polynomial1D &polynomial)
+void Camera::setDistortionPolynomial(Polynomial1D &polynomial, Polynomial1D &inversePolynomial)
 {
     this->polynomial = polynomial;
+    this->inversePolynomial = inversePolynomial;
 }
 
 
@@ -293,15 +296,14 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     {
         Log.info("Camera: including field distortion");
 
-        tie(centerXmm, centerYmm) = planarToDistortedFocalPlaneCoordinates(centerXmm, centerYmm);
-        tie(corner00Xmm, corner00Ymm) = planarToDistortedFocalPlaneCoordinates(corner00Xmm, corner00Ymm);
-        tie(corner11Xmm, corner11Ymm) = planarToDistortedFocalPlaneCoordinates(corner11Xmm, corner11Ymm);
+        tie(centerXmm, centerYmm) = distortedToPlanarFocalPlaneCoordinates(centerXmm, centerYmm);
+        tie(corner00Xmm, corner00Ymm) = distortedToPlanarFocalPlaneCoordinates(corner00Xmm, corner00Ymm);
+        tie(corner11Xmm, corner11Ymm) = distortedToPlanarFocalPlaneCoordinates(corner11Xmm, corner11Ymm);
     }
 
     Log.debug("Camera: center of subfield at (Xmm, Ymm) = (" + to_string(centerXmm) + ", " + to_string(centerYmm) + ") mm");
     Log.debug("Camera: lower left corner of subfield at (Xmm, Ymm) = (" + to_string(corner00Xmm) + ", " + to_string(corner00Ymm) + ") mm");
     Log.debug("Camera: upper right corner of subfield at (Xmm, Ymm) = (" + to_string(corner11Xmm) + ", " + to_string(corner11Ymm) + ") mm");
-
 
     // Convert the planar [mm] to angular [rad] focal plane coordinates 
 
@@ -749,7 +751,6 @@ pair<double, double> Camera::planarToAngularFocalPlaneCoordinates(double xFPmm, 
 
 
 
-// TODO: Provide a distorted to Planar focal plane coordinates transformation
 
 
 
@@ -772,6 +773,33 @@ pair<double, double> Camera::planarToDistortedFocalPlaneCoordinates(double xFPmm
     double yFPdist = sin(alpha) * rFPdist;
     
     return make_pair(xFPdist, yFPdist);
+}
+
+
+
+
+
+
+
+/**
+ * @brief      Convert from distorted to planar focal plane coordinates
+ *
+ * @param[in]  xFPdist  Distorted focal plane x-coordinate [mm]
+ * @param[in]  yFPdist  DIstorted focal plane y-coordinate [mm]
+ *
+ * @return     (xFPmm, yFPmm) distorted x and y coordinates [mm]
+ */
+pair<double, double> Camera::distortedToPlanarFocalPlaneCoordinates(double xFPdist, double yFPdist)
+{
+    double alpha = atan2(yFPdist, xFPdist);  // [radians]
+    
+    double rFP   = sqrt(xFPdist * xFPdist + yFPdist * yFPdist);
+    double rFPmm = inversePolynomial(rFP);
+    
+    double xFPmm = cos(alpha) * rFPmm;
+    double yFPmm = sin(alpha) * rFPmm;
+    
+    return make_pair(xFPmm, yFPmm);
 }
 
 
