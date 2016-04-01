@@ -88,7 +88,7 @@ PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam, H
 /**
  * \brief      Destructor
  * 
- * \Details
+ * \details
  * 
  * Close the HDF5 file and release the memory.
  * 
@@ -127,9 +127,9 @@ void PointSpreadFunction::initHDF5Groups()
 
 
 /**
- * @brief      Return a two-dimensional Gaussian function
+ * \brief      Return a two-dimensional Gaussian function
  * 
- * @details
+ * \details
  * 
  * The Gaussian PSF is calculated from the following equation:
  * 
@@ -143,7 +143,7 @@ void PointSpreadFunction::initHDF5Groups()
  * [numberOfSubPixelsPerPixel * numberOfPixels, numberOfSubPixelsPerPixel * numberOfPixels], 
  * but the standard deviation \f$\sigma\f$ is defined at pixel level.
  * 
- * @return     a 2D Gaussian PSF
+ * \return     a 2D Gaussian PSF
  */
 arma::fmat PointSpreadFunction::getGaussianPsf()
 {
