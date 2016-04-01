@@ -228,6 +228,10 @@ void PointSpreadFunction::select(double radius)
         psfMap = getGaussianPsf();
         isSelected = true;
         rotationAngle = 0.0;
+
+        hdf5File.writeAttribute("/PSF", "selectedPSF", "Gaussian PSF selected with sigma=" + to_string(sigma));
+        hdf5File.writeArray("/PSF", "selectedPSF", psfMap);
+
         return;
     }
 
@@ -282,6 +286,11 @@ void PointSpreadFunction::select(double radius)
 
     Log.debug("PointSpreadFunction: Selected PSF " + groupName + "/" + azimuthDataset + ", rotation set to " + dtos(angle) + " degrees.");
 
+    hdf5File.writeAttribute("/PSF", "selectedPSF", "Selected PSF from group " + groupName + "/" + azimuthDataset + ".");
+    // We do not write the psfMap into the output file as the PSF is already in the PSF HDF5 file and we do
+    // not want to copy this data unnecessary.
+    // hdf5File.writeArray("/PSF", "selectedPSF", psfMap);
+
     isSelected = true;
 }
 
@@ -324,7 +333,10 @@ void PointSpreadFunction::rotate(double angle)
         rotationAngle = newAngle;
         isRotated = true;    
 
-        Log.debug("PointSpreadFunction: rotated current PSF over angle " + to_string(rad2deg(newAngle)) + " deg");    
+        Log.debug("PointSpreadFunction: rotated current PSF over angle " + to_string(rad2deg(newAngle)) + " deg");
+
+        hdf5File.writeArray("/PSF", "rotatedPSF", psfMap);
+
     }
 }
 
@@ -368,6 +380,11 @@ void PointSpreadFunction::rebin(unsigned int targetSubPixels)
     psfMap = ArrayOperations::rebin(psfMap, binSize, binSize);
 
     isRebinned = true;
+
+    // Write the rebinned PSF to the output HDF5 file
+
+    hdf5File.writeArray("/PSF", "rebinnedPSF", psfMap);
+
 }
 
 
