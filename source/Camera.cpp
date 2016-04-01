@@ -82,7 +82,6 @@ void Camera::initHDF5Groups()
     Log.debug("Camera: initialising HDF5 groups");
 
     hdf5File.createGroup("/StarPositions");
-    hdf5File.createGroup("/PSF");
 }
 
 
@@ -533,9 +532,6 @@ arma::Mat<float> Camera::getRebinnedPsfForPlanarFocalPlaneCoordinates(double xFP
 
     psf->select(radius);
 
-    psfMap = psf->getPsfMap();
-    hdf5File.writeArray("/PSF", "selectedPSF", psfMap);
-
     // Calculate the rotation angle [rad] and rotate the PSF
 
     double angle = atan2(yFPmm, xFPmm);
@@ -546,17 +542,11 @@ arma::Mat<float> Camera::getRebinnedPsfForPlanarFocalPlaneCoordinates(double xFP
 
     psf->rotate(angle);
 
-    psfMap = psf->getPsfMap();
-    hdf5File.writeArray("/PSF", "rotatedPSF", psfMap);
-
     // Rebin the psfMap to the number of sub-pixels per pixel used for the Detector
 
     psf->rebin(targetSubPixels);
 
-    // Write the selected and rotated PSF to the output HDF5 file and return the PSF Array.
-
     psfMap = psf->getPsfMap();
-    hdf5File.writeArray("/PSF", "rebinnedPSF", psfMap);
 
     return psfMap;
 }
