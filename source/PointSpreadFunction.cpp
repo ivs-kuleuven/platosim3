@@ -230,7 +230,6 @@ void PointSpreadFunction::select(double radius)
         rotationAngle = 0.0;
 
         hdf5File.writeAttribute("/PSF", "selectedPSF", "Gaussian PSF selected with sigma=" + to_string(sigma));
-        hdf5File.writeArray("/PSF", "selectedPSF", psfMap);
 
         return;
     }
@@ -286,10 +285,7 @@ void PointSpreadFunction::select(double radius)
 
     Log.debug("PointSpreadFunction: Selected PSF " + groupName + "/" + azimuthDataset + ", rotation set to " + dtos(angle) + " degrees.");
 
-    hdf5File.writeAttribute("/PSF", "selectedPSF", "Selected PSF from group " + groupName + "/" + azimuthDataset + ".");
-    // We do not write the psfMap into the output file as the PSF is already in the PSF HDF5 file and we do
-    // not want to copy this data unnecessary.
-    // hdf5File.writeArray("/PSF", "selectedPSF", psfMap);
+    hdf5File.writeAttribute("/PSF", "selectedPSF", "Realistic PSF selected from group " + groupName + "/" + azimuthDataset + ".");
 
     isSelected = true;
 }
@@ -313,9 +309,16 @@ void PointSpreadFunction::rotate(double angle)
 {
 
     // We do not need to rotate a Gaussian PSF
+    // Even if we do not rotate the Gaussian PSF, we do save the psfMap as a rotatedPSF.
+    // This is to keep consistency in the output file where we do not save the selected PSF,
+    // but we do save the rotated PSF.
 
     if (isGaussian)
+    {
+        hdf5File.writeArray("/PSF", "rotatedPSF", psfMap);
+        hdf5File.writeAttribute("/PSF", "rotationAngle", rotationAngle);
         return;
+    }
 
     if (isRotated)
     {
@@ -335,7 +338,10 @@ void PointSpreadFunction::rotate(double angle)
 
         Log.debug("PointSpreadFunction: rotated current PSF over angle " + to_string(rad2deg(newAngle)) + " deg");
 
+        // Write the psfMap of the rotated PSF to the HDF5 output file
+
         hdf5File.writeArray("/PSF", "rotatedPSF", psfMap);
+        hdf5File.writeAttribute("/PSF", "rotationAngle", rotationAngle);
 
     }
 }
