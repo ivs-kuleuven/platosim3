@@ -14,6 +14,7 @@
 #include "FileUtilities.h"
 #include "StringUtilities.h"
 #include "HDF5File.h"
+#include "HDF5Writer.h"
 #include "Logger.h"
 #include "Units.h"
 
@@ -23,12 +24,15 @@ using namespace std;
 
 
 
-class PointSpreadFunction
+class PointSpreadFunction : public HDF5Writer
 {
     public:
 
-        PointSpreadFunction(ConfigurationParameters &);
-        ~PointSpreadFunction();
+        PointSpreadFunction(ConfigurationParameters &, HDF5File &hdf5File);
+        virtual ~PointSpreadFunction();
+
+        virtual void initHDF5Groups() override;
+        virtual void flushOutput() override;
 
         void rotate(double angle);
         void select(double radius);

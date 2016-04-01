@@ -41,8 +41,15 @@
  * \param      configParam  configuration parameters for the PSF
  */
 
-PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam)
+PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam, HDF5File &hdf5file)
+: HDF5Writer(hdf5file)
 {
+    // Create the groups in the HDF5 file where the different PSFs and their description will be saved.
+
+    initHDF5Groups();
+
+    // Parse the parameters from the configuration file.
+
     configure(configParam);
 
     isSelected = false;
@@ -89,10 +96,31 @@ PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam)
 PointSpreadFunction::~PointSpreadFunction()
 {
     hdf5file.close();
+    flushOutput();
 }
 
 
 
+
+/**
+ * \brief Write all recorded and remaining information to the HDF5 output file.
+ */
+void PointSpreadFunction::flushOutput()
+{
+    Log.info("PointSpreadFunction: Flushing output to HDf5 file.");    
+}
+
+
+/**
+ * \brief Creates the group(s) in the HDF5 file where the PSF information will be stored. 
+ *        These group(s) have to be created once, at the very beginning.
+ */
+void PointSpreadFunction::initHDF5Groups()
+{
+    Log.debug("PointSpreadFunction: initialising HDF5 groups");
+
+    hdf5File.createGroup("/PSF");
+}
 
 
 
