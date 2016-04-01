@@ -34,7 +34,7 @@ Camera::Camera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telesco
     // Initialize and load the PSF. This will open the PSF HDF5 file and perform some basic checking, 
     // but the psf itself will only be loaded by the psf.select(radius) method.
 
-    psf = new PointSpreadFunction(configParam);
+    psf = new PointSpreadFunction(configParam, hdf5file);
 
     // Initialize the polynomials that describes the field distortion of the camera.
 
