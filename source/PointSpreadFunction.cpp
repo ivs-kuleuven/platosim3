@@ -41,8 +41,15 @@
  * \param      configParam  configuration parameters for the PSF
  */
 
-PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam)
+PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam, HDF5File &hdf5file)
+: HDF5Writer(hdf5file)
 {
+    // Create the groups in the HDF5 file where the different PSFs and their description will be saved.
+
+    initHDF5Groups();
+
+    // Parse the parameters from the configuration file.
+
     configure(configParam);
 
     isSelected = false;
@@ -55,7 +62,7 @@ PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam)
 
     try
     {
-        hdf5file.open(absolutePath);
+        psfFile.open(absolutePath);
     }
     catch(H5::FileIException ex)
     {
@@ -64,7 +71,7 @@ PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam)
     }
 
     string groupName = "T6000";
-    if ( ! hdf5file.hasGroup(groupName) )
+    if ( ! psfFile.hasGroup(groupName) )
     {
         throw H5FileException("PointSpreadFunction: The HDF5 file (" + absolutePath + ") doesn't contain the expected group \"" + groupName + "\".");
     }
@@ -81,27 +88,48 @@ PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam)
 /**
  * \brief      Destructor
  * 
- * \Details
+ * \details
  * 
  * Close the HDF5 file and release the memory.
  * 
  */
 PointSpreadFunction::~PointSpreadFunction()
 {
-    hdf5file.close();
+    flushOutput();
+    psfFile.close();
+}
+
+
+
+
+/**
+ * \brief Write all recorded and remaining information to the HDF5 output file.
+ */
+void PointSpreadFunction::flushOutput()
+{
+    Log.info("PointSpreadFunction: Flushing output to HDf5 file.");    
+}
+
+
+/**
+ * \brief Creates the group(s) in the HDF5 file where the PSF information will be stored. 
+ *        These group(s) have to be created once, at the very beginning.
+ */
+void PointSpreadFunction::initHDF5Groups()
+{
+    Log.debug("PointSpreadFunction: initialising HDF5 groups");
+
+    hdf5File.createGroup("/PSF");
 }
 
 
 
 
 
-
-
-
 /**
- * @brief      Return a two-dimensional Gaussian function
+ * \brief      Return a two-dimensional Gaussian function
  * 
- * @details
+ * \details
  * 
  * The Gaussian PSF is calculated from the following equation:
  * 
@@ -115,7 +143,7 @@ PointSpreadFunction::~PointSpreadFunction()
  * [numberOfSubPixelsPerPixel * numberOfPixels, numberOfSubPixelsPerPixel * numberOfPixels], 
  * but the standard deviation \f$\sigma\f$ is defined at pixel level.
  * 
- * @return     a 2D Gaussian PSF
+ * \return     a 2D Gaussian PSF
  */
 arma::fmat PointSpreadFunction::getGaussianPsf()
 {
@@ -200,6 +228,10 @@ void PointSpreadFunction::select(double radius)
         psfMap = getGaussianPsf();
         isSelected = true;
         rotationAngle = 0.0;
+
+        hdf5File.writeAttribute("/PSF", "selectedPSF", "Gaussian PSF selected with sigma=" + to_string(sigma));
+        hdf5File.writeArray("/PSF", "selectedPSF", psfMap);
+
         return;
     }
 
@@ -231,28 +263,33 @@ void PointSpreadFunction::select(double radius)
 
     string groupName = temperatureGroup + "/" + angularRadiusGroup;
 
-    if ( ! hdf5file.hasGroup(groupName) )
+    if ( ! psfFile.hasGroup(groupName) )
     {
         throw FileException("PointSpreadFunction: The HDF5 file (" + absolutePath + ") doesn't contain the expected group \"" + groupName + "\".");
     }
 
-    if ( ! hdf5file.hasDataset(groupName, azimuthDataset) )
+    if ( ! psfFile.hasDataset(groupName, azimuthDataset) )
     {
         throw FileException("PointSpreadFunction: The HDF5 file (" + absolutePath + ") doesn't contain the expected dataset \"" + azimuthDataset + "\".");
     }
 
     // Load the psf array into the psfMap
     
-    hdf5file.readArray("/" + groupName, azimuthDataset, psfMap);
+    psfFile.readArray("/" + groupName, azimuthDataset, psfMap);
     
     // The PSFs that are currently used are rotated with respect to the focal plane x-axis.
     // The rotation angle is given as an attribute to the dataset that contains the PSF.
 
-    double angle = hdf5file.readAttribute(groupName, azimuthDataset, "orientation");
+    double angle = psfFile.readAttribute(groupName, azimuthDataset, "orientation");
 
     rotationAngle = deg2rad(angle);
 
     Log.debug("PointSpreadFunction: Selected PSF " + groupName + "/" + azimuthDataset + ", rotation set to " + dtos(angle) + " degrees.");
+
+    hdf5File.writeAttribute("/PSF", "selectedPSF", "Selected PSF from group " + groupName + "/" + azimuthDataset + ".");
+    // We do not write the psfMap into the output file as the PSF is already in the PSF HDF5 file and we do
+    // not want to copy this data unnecessary.
+    // hdf5File.writeArray("/PSF", "selectedPSF", psfMap);
 
     isSelected = true;
 }
@@ -296,7 +333,10 @@ void PointSpreadFunction::rotate(double angle)
         rotationAngle = newAngle;
         isRotated = true;    
 
-        Log.debug("PointSpreadFunction: rotated current PSF over angle " + to_string(rad2deg(newAngle)) + " deg");    
+        Log.debug("PointSpreadFunction: rotated current PSF over angle " + to_string(rad2deg(newAngle)) + " deg");
+
+        hdf5File.writeArray("/PSF", "rotatedPSF", psfMap);
+
     }
 }
 
@@ -340,6 +380,11 @@ void PointSpreadFunction::rebin(unsigned int targetSubPixels)
     psfMap = ArrayOperations::rebin(psfMap, binSize, binSize);
 
     isRebinned = true;
+
+    // Write the rebinned PSF to the output HDF5 file
+
+    hdf5File.writeArray("/PSF", "rebinnedPSF", psfMap);
+
 }
 
 
