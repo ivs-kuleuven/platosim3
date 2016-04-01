@@ -62,7 +62,7 @@ PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam, H
 
     try
     {
-        hdf5file.open(absolutePath);
+        psfFile.open(absolutePath);
     }
     catch(H5::FileIException ex)
     {
@@ -71,7 +71,7 @@ PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam, H
     }
 
     string groupName = "T6000";
-    if ( ! hdf5file.hasGroup(groupName) )
+    if ( ! psfFile.hasGroup(groupName) )
     {
         throw H5FileException("PointSpreadFunction: The HDF5 file (" + absolutePath + ") doesn't contain the expected group \"" + groupName + "\".");
     }
@@ -95,8 +95,8 @@ PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam, H
  */
 PointSpreadFunction::~PointSpreadFunction()
 {
-    hdf5file.close();
     flushOutput();
+    psfFile.close();
 }
 
 
@@ -259,24 +259,24 @@ void PointSpreadFunction::select(double radius)
 
     string groupName = temperatureGroup + "/" + angularRadiusGroup;
 
-    if ( ! hdf5file.hasGroup(groupName) )
+    if ( ! psfFile.hasGroup(groupName) )
     {
         throw FileException("PointSpreadFunction: The HDF5 file (" + absolutePath + ") doesn't contain the expected group \"" + groupName + "\".");
     }
 
-    if ( ! hdf5file.hasDataset(groupName, azimuthDataset) )
+    if ( ! psfFile.hasDataset(groupName, azimuthDataset) )
     {
         throw FileException("PointSpreadFunction: The HDF5 file (" + absolutePath + ") doesn't contain the expected dataset \"" + azimuthDataset + "\".");
     }
 
     // Load the psf array into the psfMap
     
-    hdf5file.readArray("/" + groupName, azimuthDataset, psfMap);
+    psfFile.readArray("/" + groupName, azimuthDataset, psfMap);
     
     // The PSFs that are currently used are rotated with respect to the focal plane x-axis.
     // The rotation angle is given as an attribute to the dataset that contains the PSF.
 
-    double angle = hdf5file.readAttribute(groupName, azimuthDataset, "orientation");
+    double angle = psfFile.readAttribute(groupName, azimuthDataset, "orientation");
 
     rotationAngle = deg2rad(angle);
 

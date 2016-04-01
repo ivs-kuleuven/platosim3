@@ -66,7 +66,7 @@ class PointSpreadFunction : public HDF5Writer
         arma::Mat<float> psfMap;
 
         // The HDF5 file that holds the PSFs
-        HDF5File hdf5file;
+        HDF5File psfFile;
 
         // Loaded from the configuration, i.e. PSF/Filename
         string absolutePath;
