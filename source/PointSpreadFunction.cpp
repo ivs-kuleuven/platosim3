@@ -107,7 +107,14 @@ PointSpreadFunction::~PointSpreadFunction()
  */
 void PointSpreadFunction::flushOutput()
 {
-    Log.info("PointSpreadFunction: Flushing output to HDf5 file.");    
+    Log.info("PointSpreadFunction: Flushing output to HDf5 file.");
+
+    if (! isSelected)
+        return;
+    
+    // Save the PSF subpixel map when it is rebinned to pixel level.
+
+    rebinToPixels();
 }
 
 
