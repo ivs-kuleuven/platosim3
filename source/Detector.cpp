@@ -1432,8 +1432,7 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
 
 
 /**
- * \brief Apply the readout noise to the pixel map and initialises the
- *         bias map. 
+ * \brief Apply the readout noise to the pixel map, bias map, and smearing map
  * 
  * \details Readout noise occurs due to the imperfect nature of the CCD amplifiers.  
  *          When the electrons are transferred to the amplifier, the induced voltage
@@ -1445,14 +1444,15 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
  *
  * \pre Pixel unit in the pixel map: [electrons].
  * \pre Pixel unit in the smearing map: [electrons].
- * \pre No bias register map.
+ * \pre Bias map not initialised.
  * \pre Readout noise expressed in [electrons].
  *
  * \post Pixel unit in the pixel map: [electrons].
  * \post Pixel unit in the smearing map: [electrons].
  * \post Pixel unit in the bias register map: [electrons].
- * \post Initialised the bias register map with readout noise.
+ * \post Initialised the bias and smearing maps with readout noise.
  */
+
 void Detector::addReadoutNoise()
 {
 
@@ -1468,7 +1468,7 @@ void Detector::addReadoutNoise()
 		}
 	}
 
-	// Initialise the bias register map with readout noise
+	// Add readout noise to the bias prescan map
 
 	for (unsigned int row = 0; row < numRowsBiasMap; row++)
 	{
@@ -1477,6 +1477,16 @@ void Detector::addReadoutNoise()
 			biasMap(row, column) += readoutNoiseDistribution(readoutNoiseGenerator);
 		}
 	}
+
+    // Add readout noise to the smearing overscan map
+
+    for (unsigned int row = 0; row < numRowsSmearingMap; row++)
+    {
+        for (unsigned int column = 0; column < numColumnsPixelMap; column++)
+        {
+            smearingMap(row, column) += readoutNoiseDistribution(readoutNoiseGenerator);
+        }
+    }
 }
 
 
