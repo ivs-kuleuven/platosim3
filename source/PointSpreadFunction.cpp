@@ -85,6 +85,10 @@ PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam, H
 
 
 
+
+
+
+
 /**
  * \brief      Destructor
  * 
@@ -102,6 +106,11 @@ PointSpreadFunction::~PointSpreadFunction()
 
 
 
+
+
+
+
+
 /**
  * \brief Write all recorded and remaining information to the HDF5 output file.
  */
@@ -109,6 +118,12 @@ void PointSpreadFunction::flushOutput()
 {
     Log.info("PointSpreadFunction: Flushing output to HDf5 file.");    
 }
+
+
+
+
+
+
 
 
 /**
@@ -121,6 +136,11 @@ void PointSpreadFunction::initHDF5Groups()
 
     hdf5File.createGroup("/PSF");
 }
+
+
+
+
+
 
 
 
@@ -178,6 +198,14 @@ arma::fmat PointSpreadFunction::getGaussianPsf()
 }
 
 
+
+
+
+
+
+
+
+
 /**
  * \brief Configure the PointSpreadFunction object using the ConfigurationParameters
  * 
@@ -192,6 +220,9 @@ void PointSpreadFunction::configure(ConfigurationParameters &cp)
     numberOfPixels            = cp.getInteger("PSF/NumberOfPixels");
     sigma                     = cp.getDouble("PSF/Sigma");
 }
+
+
+
 
 
 
@@ -279,7 +310,7 @@ void PointSpreadFunction::select(double radius)
     // The PSFs that are currently used are rotated with respect to the focal plane x-axis.
     // The rotation angle is given as an attribute to the dataset that contains the PSF.
 
-    double angle = psfFile.readAttribute(groupName, azimuthDataset, "orientation");
+    double angle = psfFile.readDoubleDatasetAttribute(groupName, azimuthDataset, "orientation");
 
     rotationAngle = deg2rad(angle);
 
@@ -289,6 +320,10 @@ void PointSpreadFunction::select(double radius)
 
     isSelected = true;
 }
+
+
+
+
 
 
 
@@ -352,6 +387,9 @@ void PointSpreadFunction::rotate(double angle)
 
 
 
+
+
+
 /**
  * @brief      return a reference to the Armadillo array that contains the selected PSF
  *
@@ -361,6 +399,10 @@ arma::Mat<float> PointSpreadFunction::getPsfMap()
 {
     return psfMap;
 }
+
+
+
+
 
 
 
@@ -392,7 +434,3 @@ void PointSpreadFunction::rebin(unsigned int targetSubPixels)
     hdf5File.writeArray("/PSF", "rebinnedPSF", psfMap);
 
 }
-
-
-
-
