@@ -51,7 +51,7 @@ class HDF5File
         double readDoubleDatasetAttribute(string groupName, string datasetName, string attributeName);
 
         void readArray(string groupName, string arrayName, arma::Mat<float>& A);
-
+        void readArray(string groupName, string arrayName, vector<double> &vec);
 
     protected:
 

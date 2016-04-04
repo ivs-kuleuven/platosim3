@@ -1332,7 +1332,7 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<float>& 
 // PURPOSE: read a 2D array from a specified group in the HDF5 file into an
 //          armadillo array.
 //
-// INPUT: array: 2D armadillo array. Previous contents will be lost.
+// INPUT: array:     2D armadillo array. Previous contents will be lost.
 //        groupName: name of an existing HDF5 Group in the file. Starts with "/".
 //        arrayName: unique name of the array in the group, e.g. "image000001"
 //
@@ -1399,6 +1399,79 @@ void HDF5File::readArray(string groupName, string arrayName, arma::Mat<float>& A
 
     return;
 }
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief  Read a 2D array from a specified group in the HDF5 file into an armadillo array.
+ * 
+ * \param groupName  Name of an existing HDF5 Group in the file. Starts with "/".
+ * \param arrayName  Unique name of the array in the group, e.g. "skyBackground"
+ * \param vec        C++ vector<double>. Previous contents will be lost.
+ * 
+ */
+
+void HDF5File::readArray(string groupName, string arrayName, vector<double> &vec)
+{
+    // Construct the path of the dataset in the HDF5 file
+
+    string arrayPath = groupName + "/" + arrayName;
+
+    // Try to open the dataset
+
+    H5::DataSet dataset;
+
+    try 
+    {  
+        // Turn off the auto-printing when an exception is raised
+
+        H5::Exception::dontPrint();
+
+        // Try to open the dataset
+
+        dataset = file->openDataSet(arrayPath.c_str());
+    }
+    catch (H5::FileIException error)
+    {
+        throw H5DatasetException("HDF5File::readArray(): " + arrayPath + " not in file.");
+    }
+
+    // Find out the size of the dataset
+
+    H5::DataSpace dataspace = dataset.getSpace();
+
+    int rank = dataspace.getSimpleExtentNdims();
+    if (rank != 1)
+    {
+        throw H5DatasetException("HDF5File::readArray(): " + arrayPath + " is not 1D.");
+    }
+
+    hsize_t shape[1];
+    unsigned int Ndimensions = dataspace.getSimpleExtentDims(shape, NULL);
+    int size = shape[0];
+
+
+    // Ensure that the vector has enough space to read all data
+
+    vec.clear();
+    vec.resize(size);
+
+    // Read the HDF5 dataset into the array
+
+    dataset.read(vec.data(), H5::PredType::NATIVE_DOUBLE);
+
+    // That's it
+
+    return;
+}
+
 
 
 
