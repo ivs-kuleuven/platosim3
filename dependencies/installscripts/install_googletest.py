@@ -1,6 +1,6 @@
 #
 # install.sh runs automatically this script. It can be done manually running (from the same folder than install.sh):
-# $ python ./installscripts/install_googletest.py
+# $ python ./dependencies/installscripts/install_googletest.py
 #
 
 
@@ -17,8 +17,15 @@ currentWorkingDir = os.getcwd()
 buildDir   = currentWorkingDir + "/dependencies/Downloads/"
 installDir = currentWorkingDir + "/dependencies/Installs/" + packageName 
 
+# Print a banner
 
-# Build and nstall package
+print("\n\n\n")
+print("=====================")
+print("Installing GOOGLETEST")
+print("=====================")
+print("\n")
+
+# Build and install package
 
 installProcedure = "cd {build};                                     \
 					tar -xzvf {package}.tgz;                        \

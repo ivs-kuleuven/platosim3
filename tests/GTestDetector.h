@@ -2001,7 +2001,7 @@ TEST_F(DetectorTest, applyDigitalSaturation)
  * original pixel map and smearing map) and check afterwards whether this follows the expected Poisson
  * distribution.  We use the normal approximation to the Poisson distribution for testing.
  */
-TEST_F(DetectorTest, photonNoise)
+TEST_F(DetectorTest, DISABLED_photonNoise)
 {
 	LOG_STARTING_OF_TEST
 

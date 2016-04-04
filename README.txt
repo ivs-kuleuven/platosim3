@@ -1,12 +1,19 @@
 INSTALLATION OF PLATOSIM
 ------------------------
 
-The installation of PlatoSim assumes 2 prerequisites:
+The installation of PlatoSim assumes 3 prerequisites:
 
-1) gcc v4.7 or more recent, or, clang v3.3 or more recent
+1) gcc v5.1 or more recent, or, clang v3.3 or more recent
 2) cmake v2.8 or more recent (freely downloadable from https://cmake.org/download/)
+3) BLAS and LAPACK. Without these, the simulator will likely be slower. These libraries
+   come pre-installed on Mac OS X (so Mac users do not have to do anything). Many Linux 
+   distributions also standardly have these libraries installed, or offer a package manager
+   to easily install them. In case you do need to install them manually, we refer to
+   the following websites where you can download them:
+        http://www.openblas.net
+        http://www.netlib.org/lapack/
 
-PlatoSim relies on a number of dependencies, which are all included in this package
+PlatoSim relies on a number of other dependencies, which are all included in this package
 for the convenience of the user. To build, and install them, you can run the install
 bash script:
 

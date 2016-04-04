@@ -12,6 +12,7 @@ ObservingParameters:
     ExposureTime:                23              # [s]
     RApointing:                  180             # Platform (not telescope) right ascension pointing coordinate  [deg] 
     DecPointing:                 -70             # Platform (not telescope) declination pointing coordinate      [deg]
+    Fluxm0:                      1.00238e8       # Photon flux of a V=0 G2V-star                                 [phot/s/m^2/nm]
     SkyBackground:               220.            # Stellar + zodiacal background level. Set negative to compute. [phot/pix/s]
     StarCatalogFile:             inputfiles/starcatalog.txt
 
@@ -45,10 +46,12 @@ Camera:
     FocalLength:                 0.24712595      # Focal length as recovered from ZEMAX model [m]
     ThroughputBandwidth:         400             # FWHM [nm]
     ThroughputLambdaC:           600             # Central wavelength of the throughput passband [nm]
+    IncludeFieldDistortion:      yes             # Wheter or not to include field distortion
     FieldDistortion:                             # Describe the model for the field distortion
         Type:                    Polynomial1D
         Degree:                  3
-        Coefficients:            [-0.00366969196778, 0.000854231697381, -4.12553764817e-05, 5.7201219949e-06]
+        Coefficients:            [-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06]
+        InverseCoefficients:     [-0.00458067036444, 1.00110311283, -5.61136295937e-05, -4.311925329e-06]
 
 PSF:
 

@@ -52,6 +52,7 @@ class Camera : public HDF5Writer
         pair<double, double> planarToAngularFocalPlaneCoordinates(double xFPmm, double yFPmm);
 
         pair<double, double> planarToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm);
+        pair<double, double> distortedToPlanarFocalPlaneCoordinates(double xFPdist, double yFPdist);
 
         double getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double yFPprime);
 
@@ -67,7 +68,7 @@ class Camera : public HDF5Writer
         double throughputBandwidth;           // FWHM of the throughput passband [nm]
         double throughputLambdaC;             // Central wavelength of the throughput passband [nm]
 
-        void setDistortionPolynomial(Polynomial1D &polynomial);
+        void setDistortionPolynomial(Polynomial1D &polynomial, Polynomial1D &inversePolynomial);
 
 
     private:
@@ -76,12 +77,18 @@ class Camera : public HDF5Writer
         string polynomialType;
         double polynomialDegree;
         vector<double> polynomialCoefficients;
+        vector<double> inversePolynomialCoefficients;
 
         PointSpreadFunction *psf;
         Polynomial1D polynomial;
+        Polynomial1D inversePolynomial;
+
+        bool includeFieldDistortion;          // Wheter or not field distortion should be included
 
         double userGivenSkyBackground;        // User-set zodiacal + stellar sky background. [phot/pix/s]
                                               // If negative, computed by the Sky class
+
+        double fluxOfV0Star;                  // Photon flux of a V=0 (G2V) star [phot/s/m^2/nm]
 
         // detectedStarInfo[startTime][starID] contains the values 
         //    (xFPmean, yFPmean, rowPixMean, colPixmean, sumFlux, Ndetections)
