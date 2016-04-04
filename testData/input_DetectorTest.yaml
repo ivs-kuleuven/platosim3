@@ -12,6 +12,7 @@ ObservingParameters:
 
     RApointing:              0.0             # [deg] 
     DecPointing:             0.0             # [deg]
+    Fluxm0:                  1.00238e8       # Photon flux of a V=0 G2V-star                                 [phot/s/m^2/nm]
     SkyBackground:           220.            # Stellar + zodiacal background level. Set negative to compute. [photons/s]
     StarCatalogFile:         testData/starcatalog.txt
 
