@@ -470,6 +470,8 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     // Note: - The output of sky.zodiacalFlux() is in [J s^{-1} m^{-2} sr^{-1} m^{-1}]
     //       - As wavelength range we take the entire throughput band.
 
+    double totalSkyBackground = 0.0;
+
     if (userGivenSkyBackground < 0.0)
     {
         const double energyOfOnePhoton = Constants::CLIGHT * Constants::HPLANCK / (throughputLambdaC * 1.e-9);                // [J]
@@ -485,21 +487,23 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
                                              * detector.getSolidAngleOfOnePixel(plateScale) / energyOfOnePhoton;      
 
 
-        double totalSkyBackground = zodiacalFlux + stellarBackgroundFlux;
+        totalSkyBackground = zodiacalFlux + stellarBackgroundFlux;
         detector.addFlux(totalSkyBackground);
-        skyBackgroundValues.push_back(totalSkyBackground);
 
         Log.debug("Camera: zodiacal flux level in subfield = " + to_string(zodiacalFlux) + " photons/pixel/exposure");
         Log.debug("Camera: stellar background flux level in subfield = " + to_string(stellarBackgroundFlux) + " photons/pixel/exposure");
     }
     else
     {
-        double totalSkyBackground = userGivenSkyBackground * exposureTime;
+        totalSkyBackground = userGivenSkyBackground * exposureTime;
         detector.addFlux(totalSkyBackground);
-        skyBackgroundValues.push_back(totalSkyBackground);
 
         Log.debug("Camera: user-given sky background flux = " + to_string(userGivenSkyBackground * exposureTime) + " photons/pixel/exposure");
     }
+
+    // Save the sky background value that we added. [photons/pix/exposure]
+
+    skyBackgroundValues.push_back(totalSkyBackground);
 
     // Convolve with the point spread function
     // Detector was given the proper PSF in Simulation::run().
