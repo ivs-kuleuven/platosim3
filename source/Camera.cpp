@@ -82,6 +82,7 @@ void Camera::initHDF5Groups()
     Log.debug("Camera: initialising HDF5 groups");
 
     hdf5File.createGroup("/StarPositions");
+    hdf5File.createGroup("/Background");
 }
 
 
@@ -199,6 +200,12 @@ void Camera::flushOutput()
         hdf5File.writeArray("StarCatalog/", "Dec",     dec.data(), dec.size());
         hdf5File.writeArray("StarCatalog/", "Vmag",    Vmag.data(), Vmag.size());
     }
+
+
+    // Write the total sky background flux values [photons/pixel/exposure] to HDF5 in a custom group
+
+    hdf5File.writeArray("Background/", "skyBackground", skyBackgroundValues.data(), skyBackgroundValues.size());
+
 }
 
 
@@ -478,14 +485,19 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
                                              * detector.getSolidAngleOfOnePixel(plateScale) / energyOfOnePhoton;      
 
 
-        detector.addFlux(zodiacalFlux + stellarBackgroundFlux);
+        double totalSkyBackground = zodiacalFlux + stellarBackgroundFlux;
+        detector.addFlux(totalSkyBackground);
+        skyBackgroundValues.push_back(totalSkyBackground);
 
         Log.debug("Camera: zodiacal flux level in subfield = " + to_string(zodiacalFlux) + " photons/pixel/exposure");
         Log.debug("Camera: stellar background flux level in subfield = " + to_string(stellarBackgroundFlux) + " photons/pixel/exposure");
     }
     else
     {
-        detector.addFlux(userGivenSkyBackground * exposureTime);
+        double totalSkyBackground = userGivenSkyBackground * exposureTime;
+        detector.addFlux(totalSkyBackground);
+        skyBackgroundValues.push_back(totalSkyBackground);
+
         Log.debug("Camera: user-given sky background flux = " + to_string(userGivenSkyBackground * exposureTime) + " photons/pixel/exposure");
     }
 
