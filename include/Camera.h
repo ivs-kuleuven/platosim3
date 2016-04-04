@@ -88,6 +88,8 @@ class Camera : public HDF5Writer
         double userGivenSkyBackground;        // User-set zodiacal + stellar sky background. [phot/pix/s]
                                               // If negative, computed by the Sky class
 
+        double fluxOfV0Star;                  // Photon flux of a V=0 (G2V) star [phot/s/m^2/nm]
+
         // detectedStarInfo[startTime][starID] contains the values 
         //    (xFPmean, yFPmean, rowPixMean, colPixmean, sumFlux, Ndetections)
 
