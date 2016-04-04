@@ -107,7 +107,14 @@ PointSpreadFunction::~PointSpreadFunction()
  */
 void PointSpreadFunction::flushOutput()
 {
-    Log.info("PointSpreadFunction: Flushing output to HDf5 file.");    
+    Log.info("PointSpreadFunction: Flushing output to HDf5 file.");
+
+    if (! isSelected)
+        return;
+    
+    // Save the PSF subpixel map when it is rebinned to pixel level.
+
+    rebinToPixels();
 }
 
 
@@ -352,17 +359,6 @@ void PointSpreadFunction::rotate(double angle)
 
 
 
-/**
- * @brief      return a reference to the Armadillo array that contains the selected PSF
- *
- * @return     a float array with the PSF
- */
-arma::Mat<float> PointSpreadFunction::getPsfMap()
-{
-    return psfMap;
-}
-
-
 
 
 
@@ -370,27 +366,66 @@ arma::Mat<float> PointSpreadFunction::getPsfMap()
 /**
  * @brief      Rebin the PSF map to the target number of subpixels
  *
- * @details
- * 
- * The number of subpixels used to generate the PSF is not necessarily the same
- * as the number of subpixels per pixel for the detector. So, the PSF needs to be
- * rebinned to the number of subpixels per pixel for the detector, which is given
- * as targetSubPixels.
+ * @details    The number of subpixels used to generate the PSF is not
+ *             necessarily the same as the number of subpixels per pixel for the
+ *             detector. So, the PSF needs to be rebinned to the number of
+ *             subpixels per pixel for the detector, which is given as
+ *             targetSubPixels.
+ *
+ * @note       This method does not change the psfMap of the PointSpreadFunction class.
  * 
  * @param[in]  targetSubPixels  the target number of subpixels
+ *
+ * @return     the rebinned PSF map
  */
-void PointSpreadFunction::rebin(unsigned int targetSubPixels)
+arma::fmat PointSpreadFunction::rebinToSubPixels(unsigned int targetSubPixels)
 {
     unsigned int binSize = psfMap.n_rows / numberOfSubPixelsPerPixel * targetSubPixels;
 
-    psfMap = ArrayOperations::rebin(psfMap, binSize, binSize);
+    arma::fmat rebinnedMap = ArrayOperations::rebin(psfMap, binSize, binSize);
 
     isRebinned = true;
 
     // Write the rebinned PSF to the output HDF5 file
 
-    hdf5File.writeArray("/PSF", "rebinnedPSF", psfMap);
+    hdf5File.writeArray("/PSF", "rebinnedPSFsubPixel", rebinnedMap);
 
+    return rebinnedMap;
+}
+
+
+
+
+
+
+
+
+
+/**
+ * @brief      Rebin the PSF map to the target number of pixels
+ *
+ * @details    The PSF subpixel map will be rebinned to a pixel map.
+ * 
+ * @note       This method does not change the psfMap of the PointSpreadFunction class.
+ *
+ * @param[in]  targetPixels  the target number of pixels
+ * 
+ * @return     the rebinned PSF map
+ * 
+ */
+arma::fmat PointSpreadFunction::rebinToPixels()
+{
+    unsigned int binSize = psfMap.n_rows / numberOfSubPixelsPerPixel;
+
+    arma::fmat rebinnedMap = ArrayOperations::rebin(psfMap, binSize, binSize);
+
+    isRebinned = true;
+
+    // Write the rebinned PSF to the output HDF5 file
+
+    hdf5File.writeArray("/PSF", "rebinnedPSFpixel", rebinnedMap);
+
+    return rebinnedMap;
 }
 
 
