@@ -94,6 +94,7 @@ class Camera : public HDF5Writer
         //    (xFPmean, yFPmean, rowPixMean, colPixmean, sumFlux, Ndetections)
 
         map<double, map<unsigned int, array<double, 6>>> detectedStarInfo;
+        vector<double> skyBackgroundValues;
 
 };
 
