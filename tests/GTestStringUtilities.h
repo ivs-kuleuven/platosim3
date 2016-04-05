@@ -49,13 +49,21 @@ TEST(StringUtilitiesTest, environment)
 
     LOG_STARTING_OF_TEST
 
-    string str = "ENV['UNKNOWN_ENV']";
-    EXPECT_EQ("ENV['UNKNOWN_ENV']", replaceEnvironmentVariable(str));
+    // Test what happends when no pattern is in the inputString
 
-    str = "Nothing here to replace";
+    string str = "Nothing here to replace";
     EXPECT_EQ("Nothing here to replace", replaceEnvironmentVariable(str));
 
+    // Test what happens when the environment variable is not set/known
+
+    str = "ENV['UNKNOWN_ENV']";
+    EXPECT_EQ("ENV['UNKNOWN_ENV']", replaceEnvironmentVariable(str));
+
+    // Make sure the environment variable is known to the tests
+
     setenv("PLATOSIM_PROJECT_HOME", "/Users/rik/Git/PlatoSim3", 1);
+
+    // Check that the pattern is properly replaced
 
     str = "ENV['PLATOSIM_PROJECT_HOME']";
     EXPECT_EQ("/Users/rik/Git/PlatoSim3", replaceEnvironmentVariable(str));
