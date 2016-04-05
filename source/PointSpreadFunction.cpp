@@ -286,7 +286,7 @@ void PointSpreadFunction::select(double radius)
     // The PSFs that are currently used are rotated with respect to the focal plane x-axis.
     // The rotation angle is given as an attribute to the dataset that contains the PSF.
 
-    double angle = psfFile.readAttribute(groupName, azimuthDataset, "orientation");
+    double angle = psfFile.readDoubleDatasetAttribute(groupName, azimuthDataset, "orientation");
 
     rotationAngle = deg2rad(angle);
 

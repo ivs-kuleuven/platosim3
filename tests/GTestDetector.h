@@ -1624,12 +1624,10 @@ TEST_F(DetectorTest, addReadoutNoise)
 	ASSERT_NEAR(0.0, mean(mean(residualBiasRegisterMap)), 0.6);
 	ASSERT_NEAR(readoutNoise, stdDev, 0.05 * readoutNoise);
 
-	// Smearing map: check dimensions and content (unaltered)
+	// Smearing map: check dimensions 
 
 	EXPECT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
 	EXPECT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
-
-	EXPECT_TRUE(arma::all(arma::vectorise(smearingMap) == arma::vectorise(detector.test_getSmearingMap())));
 }
 
 

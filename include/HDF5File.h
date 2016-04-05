@@ -46,11 +46,12 @@ class HDF5File
         void writeArray(string groupName, string arrayName, double*       array, int size);
         void writeArray(string groupName, string arrayName, arma::Mat<float>& A);
 
-        double readAttribute(string groupName, string attributeName);
-        double readAttribute(string groupName, string datasetName, string attributeName);
+        double readDoubleGroupAttribute(string groupName, string attributeName);
+        int readIntegerGroupAttribute(string groupName, string attributeName);
+        double readDoubleDatasetAttribute(string groupName, string datasetName, string attributeName);
 
         void readArray(string groupName, string arrayName, arma::Mat<float>& A);
-
+        void readArray(string groupName, string arrayName, vector<double> &vec);
 
     protected:
 
