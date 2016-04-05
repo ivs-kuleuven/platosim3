@@ -36,12 +36,11 @@ class PointSpreadFunction : public HDF5Writer
 
         void rotate(double angle);
         void select(double radius);
-        void rebin(unsigned int targetSubPixels);
-
-        arma::Mat<float> getPsfMap();
+        arma::fmat rebinToSubPixels(unsigned int targetSubPixels);
 
     protected:
         void configure(ConfigurationParameters &);
+        arma::fmat rebinToPixels();
         arma::fmat getGaussianPsf();
 
     private:

@@ -561,9 +561,7 @@ arma::Mat<float> Camera::getRebinnedPsfForPlanarFocalPlaneCoordinates(double xFP
 
     // Rebin the psfMap to the number of sub-pixels per pixel used for the Detector
 
-    psf->rebin(targetSubPixels);
-
-    psfMap = psf->getPsfMap();
+    psfMap = psf->rebinToSubPixels(targetSubPixels);
 
     return psfMap;
 }
