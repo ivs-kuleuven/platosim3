@@ -1677,7 +1677,7 @@ pair<double, double> Detector::planarFocalPlaneToPixelCoordinates(double xFPprim
 /**
  * \brief  Return the focal plane coordinates of the center pixel of the subfield
  * 
- * \return (x,y)   focal plane coordinates in the FP' reference system [mm]
+ * \return (xFPprime, yFPprime)   focal plane coordinates in the FP' reference system [mm]
  */
 
 pair<double, double> Detector::getPlanarFocalPlaneCoordinatesOfSubfieldCenter()
@@ -1687,7 +1687,10 @@ pair<double, double> Detector::getPlanarFocalPlaneCoordinatesOfSubfieldCenter()
 
     // The columns correspond to the x-coordinate, the rows to the y-coordinate
 
-	return pixelToPlanarFocalPlaneCoordinates(centerCol, centerRow);
+    double xFPprime, yFPprime;
+    tie(xFPprime, yFPprime) = pixelToPlanarFocalPlaneCoordinates(centerRow, centerCol);
+
+	return make_pair(xFPprime, yFPprime);
 }
 
 
