@@ -252,18 +252,18 @@ string ConfigurationParameters::getString(const string &key)
 /**
  * \brief      Return the absolute filename for the given parameter.
  * 
- * \details    
- * 
- * When the parameter contains an absolute filename, that value is returned. 
- * If the parameter contains a relative path, the filename is preceeded by the value of the 
- * General/ProjectLocation parameter. An absolute path starts with a '/' character, 
- * otherwise the path is considered relative.
+ * \details    When the parameter contains an absolute filename, that value is returned. 
+ *             If the parameter contains a relative path, the filename is preceeded by the value of the 
+ *             General/ProjectLocation parameter. When the ProjectLocation contains an environment 
+ *             variable pattern ENV['var'], this is replaced with the value of the environment variable.
+ *             
+ *             An absolute path starts with a '/' character, otherwise the path is considered relative.
  *
- * The key is the name of the input parameter. If the input parameter is part
- * of a section or group, then the key is a combination of the group name and 
- * the parameter name, separated by a '/' delimiter. E.g. if the parameter ExposureTime 
- * is part of the group ObservingParameters, then the key to get the value for this
- * parameter would be "ObservingParameters/ExposureTime".
+ *             The key is the name of the input parameter. If the input parameter is part
+ *             of a section or group, then the key is a combination of the group name and 
+ *             the parameter name, separated by a '/' delimiter. E.g. if the parameter ExposureTime 
+ *             is part of the group ObservingParameters, then the key to get the value for this
+ *             parameter would be "ObservingParameters/ExposureTime".
  * 
  * \param[in]  key The name of a parameter used in the PLATO Simulator
  *
@@ -271,6 +271,8 @@ string ConfigurationParameters::getString(const string &key)
  */
 string ConfigurationParameters::getAbsoluteFilename(const string &key) 
 {
+    using StringUtilities::replaceEnvironmentVariable;
+
     YAML::Node node = getNode(key);
 
 	string filename = node.as<string>();
@@ -279,21 +281,16 @@ string ConfigurationParameters::getAbsoluteFilename(const string &key)
 	{
 		string projectLocation = this->getString("General/ProjectLocation");
 
-		const string start = "<%= ENV[\'";
-		const string end = "\'] %>";
-
-		if ((projectLocation.compare(0, start.length(), start) == 0))
-		{
-			projectLocation = projectLocation.substr(start.length(), projectLocation.length() - start.length() - end.length());
-			projectLocation = std::getenv(projectLocation.c_str());
-		}
-
+        projectLocation = replaceEnvironmentVariable(projectLocation);
 
 		return projectLocation + "/" + filename;
 	}
 
 	return filename;
 }
+
+
+
 
 
 
@@ -396,3 +393,7 @@ YAML::Node ConfigurationParameters::getNode(const string & key)
 
     return nodes.top();
 }
+
+
+
+
