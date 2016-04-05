@@ -3,7 +3,7 @@
 
 General:
     
-    ProjectLocation:             ENV['PLATOPROJECT']
+    ProjectLocation:             ENV['PLATO_PROJECT_HOME']
 
 
 ObservingParameters:
