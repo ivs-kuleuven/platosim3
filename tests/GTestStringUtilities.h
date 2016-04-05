@@ -39,3 +39,32 @@ TEST(StringUtilitiesTest, dtos)
 
 
 
+
+
+
+
+TEST(StringUtilitiesTest, environment)
+{
+    using StringUtilities::replaceEnvironmentVariable;
+
+    LOG_STARTING_OF_TEST
+
+    string str = "ENV['UNKNOWN_ENV']";
+    EXPECT_EQ("ENV['UNKNOWN_ENV']", replaceEnvironmentVariable(str));
+
+    str = "Nothing here to replace";
+    EXPECT_EQ("Nothing here to replace", replaceEnvironmentVariable(str));
+
+    setenv("PLATOSIM_PROJECT_HOME", "/Users/rik/Git/PlatoSim3", 1);
+
+    str = "ENV['PLATOSIM_PROJECT_HOME']";
+    EXPECT_EQ("/Users/rik/Git/PlatoSim3", replaceEnvironmentVariable(str));
+
+    str = "ENV['PLATOSIM_PROJECT_HOME']/inputfiles";
+    EXPECT_EQ("/Users/rik/Git/PlatoSim3/inputfiles", replaceEnvironmentVariable(str));
+
+}
+
+
+
+
