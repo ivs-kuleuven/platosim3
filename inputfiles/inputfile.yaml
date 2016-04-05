@@ -3,7 +3,7 @@
 
 General:
     
-    ProjectLocation:             <%= ENV['PLATOPROJECT'] %>
+    ProjectLocation:             ENV['PLATOPROJECT']
 
 
 ObservingParameters:
