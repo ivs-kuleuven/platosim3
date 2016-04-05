@@ -1599,8 +1599,11 @@ void Detector::applyDigitalSaturation()
 
 /**
  * \brief Compute the planar (x,y) coordinates in the FP' reference system (not the FP system) 
- *        given the (real-valued) pixel coordinates on the CCD.
+ *        given the (real-valued) pixel row and column numbers on the CCD.
  *        
+ * \note  The rows correspond to the y-direction, and the columns to the x-direction.
+ *        Pixel (row, col) = (0,0) starts at (yFP, xFP) = (0, 0).
+ *               
  * \param row     Row coordinate, real-valued (e.g. 3.5)    [pix]
  * \param column  Column coordinate, real-valued (e.g. 8.3) [pix]
  * 
@@ -1612,8 +1615,8 @@ pair<double, double> Detector::pixelToPlanarFocalPlaneCoordinates(double row, do
     // Convert the pixel coordinates into [mm] coordinates
     // The pixelSize is expressed in [micron].
 
-    double xCCDmm = row * pixelSize / 1000.0;
-    double yCCDmm = column * pixelSize / 1000.0;
+    double xCCDmm = column * pixelSize / 1000.0;
+    double yCCDmm = row * pixelSize / 1000.0;
 
     // Convert the CCD coordinates into FP' coordinates [mm]
     // Note: orientationAngle is in [rad], originOffsetX and originOffsetY in mm
