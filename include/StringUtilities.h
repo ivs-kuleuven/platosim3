@@ -5,8 +5,12 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include <regex>
 #include <vector>
 #include <cstddef>
+
+#include "Logger.h"
+
 
 using namespace std;
 
@@ -18,6 +22,7 @@ namespace StringUtilities
     vector<string> split(string myString, char delimiter);
     string dtos(double value, bool scientific = false, int precision = 6);
     void print( std::vector <std::string> & vector );
+    string replaceEnvironmentVariable(const string value);
 }
 
 
