@@ -2,6 +2,7 @@
 #define CONFIGURATION_PARAMETERS_H_
 
 #include <string>
+#include <regex>
 #include <list>
 #include <stack>
 #include <fstream>

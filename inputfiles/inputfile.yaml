@@ -3,7 +3,7 @@
 
 General:
     
-    ProjectLocation:             /Users/rik/Git/PlatoSim3
+    ProjectLocation:             ENV['PLATO_PROJECT_HOME']
 
 
 ObservingParameters:
