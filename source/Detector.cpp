@@ -1639,6 +1639,9 @@ pair<double, double> Detector::pixelToPlanarFocalPlaneCoordinates(double row, do
  * \brief Compute the (real-valued) pixel coordinates of the star on the CCD, given the 
  *        planar (x,y) coordinates in the FP' reference system (not the FP system)
  *
+ * \note  The rows correspond to the y-direction, and the columns to the x-direction.
+ *        Pixel (row, col) = (0,0) starts at (yFP, xFP) = (0, 0).
+ *        
  * \param xFPprime  planar x-coordinate of the point in the FP' reference system  [mm]
  * \param yFPprime  planar y-coordinate of the point in the FP' reference system  [mm]
  * 
