@@ -255,10 +255,10 @@ void Camera::configure(ConfigurationParameters &configParam)
 
 /** 
  * \brief      Specify the type of fit function used to fit the distortion
-  *
+ *
  * \param      polynomial         The polynomial that describes the distortion
  * \param      inversePolynomial  The inverse polynomial
-  */
+ */
 
 void Camera::setDistortionPolynomial(Polynomial1D &polynomial, Polynomial1D &inversePolynomial)
 {
@@ -533,39 +533,58 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
 
 /**
- * @brief      Select the PSF for the given planar focal plane coordinates
+ * \brief      Select the PSF for the given planar focal plane coordinates
  *
- * @details    This method selects, rotates and rebins the PSF.
+ * \details    This method selects, rotates and rebins the PSF.
  *
- * @param      xFPmm             Planar x-coordinate in the FP' reference frame [rad]
- * @param      yFPmm             Planar y-coordinate in the FP' reference frame [rad]
- * @param[in]  targetSubPixels   the number of subpixels per pixels in the detector
- * @param[in]  orientationAngle  the orientation of the CCD wrt focal plane orientation (counter clockwise)
+ * \param[in]  xFPmm             Planar x-coordinate in the FP' reference frame [rad]
+ * \param[in]  yFPmm             Planar y-coordinate in the FP' reference frame [rad]
+ * \param[in]  targetSubPixels   the number of subpixels per pixels in the detector subfield
+ * \param[in]  orientationAngle  the orientation of the CCD wrt focal plane orientation (counter clockwise) [rad]
  *
- * @return     the psfMap that was selected, rotated and rebinned
+ * \return     the psfMap that was selected, rotated and rebinned
  */
-arma::Mat<float> Camera::getRebinnedPsfForPlanarFocalPlaneCoordinates(double xFPmm, double yFPmm, unsigned int targetSubPixels, double orientationAngle)
+arma::fmat Camera::getRebinnedPsfForPlanarFocalPlaneCoordinates(double xFPmm, double yFPmm, unsigned int targetSubPixels, double orientationAngle)
 {
-    arma::Mat<float> psfMap;
+    arma::fmat psfMap;
 
     // Calculate the angular FP coordinates
 
     double xFPrad, yFPrad;
     tie(xFPrad, yFPrad) = planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm);
 
-    const double radius = getGnomonicRadialDistanceFromOpticalAxis(xFPrad, yFPrad);
+
+    // Get the 'user specified' angular distance to the optical axis from the psf.
+    // If the user didn't specify an angular distance, calculate it from the given
+    // focal plane coordinates.
+
+    double radius = psf->getRequestedDistanceToOpticalAxis();
+
+    if (radius < 0.0)
+    {
+        radius = getGnomonicRadialDistanceFromOpticalAxis(xFPrad, yFPrad);
+    }
 
     psf->select(radius);
 
-    // Calculate the rotation angle [rad] and rotate the PSF
 
-    double angle = atan2(yFPmm, xFPmm);
+    // Get the 'user specified' orientation angle from the psf.
+    // if the user didn't specify a rotation angle, calculate it 
+    // from the given focal plane coordinates.
+
+    double angle = psf->getRequestedRotationAngle();
+
+    if (angle < 0.0)
+    {
+        angle = atan2(yFPmm, xFPmm);
+    }
 
     //  Compensate for the orientation of the CCD wrt focal plane orientation.
 
     angle -= orientationAngle;
 
     psf->rotate(angle);
+
 
     // Rebin the psfMap to the number of sub-pixels per pixel used for the Detector
 

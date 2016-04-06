@@ -43,8 +43,8 @@ class Camera : public HDF5Writer
         virtual void initHDF5Groups() override;
         virtual void flushOutput() override;
 
-        virtual arma::Mat<float> getRebinnedPsfForPlanarFocalPlaneCoordinates(double xFPmm, double yFPmm, unsigned int targetSubPixels, double orientationAngle);
-        
+        virtual arma::fmat getRebinnedPsfForPlanarFocalPlaneCoordinates(double xFPmm, double yFPmm, unsigned int targetSubPixels, double orientationAngle);
+
         pair<double, double> skyToAngularFocalPlaneCoordinates(double raStar, double decStar);
         pair<double, double> angularFocalPlaneToSkyCoordinates(double xFPprime, double yFPprime);
 
