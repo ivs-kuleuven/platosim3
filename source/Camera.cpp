@@ -253,9 +253,11 @@ void Camera::configure(ConfigurationParameters &configParam)
 
 
 
-/** \brief  Specify the type of fit function used to fit the distortion
+/** 
+ * \brief      Specify the type of fit function used to fit the distortion
   *
-  * \param  polynomial
+ * \param      polynomial         The polynomial that describes the distortion
+ * \param      inversePolynomial  The inverse polynomial
   */
 
 void Camera::setDistortionPolynomial(Polynomial1D &polynomial, Polynomial1D &inversePolynomial)
