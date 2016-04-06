@@ -135,7 +135,7 @@ void Simulation::run(double startTime)
 
     // Ensure that the proper PSF is set for the detector
 
-    detector->setPsfForSubfieldCenter();
+    detector->setPsfForSubfield();
 
     // Loop over all exposures
 
@@ -228,6 +228,8 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("DriftRollRms");
     addDouble("DriftTimeScale");
 
+    // TODO: Camera contains information about the field distortion which is not saved
+
     subGroup = "Camera";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addDouble("FocalPlaneOrientation");
@@ -236,13 +238,15 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("ThroughputBandwidth");
     addDouble("ThroughputLambdaC");
 
+    // TODO: The structure of the PSF input parameters has changed drastically
+    //       This should be fixed!
+
     subGroup = "PSF";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
-    addBoolean("UseGauss");
-    addDouble("Sigma");
-    addString("Filename");
-    addInteger("NumberOfPixels");
-    addInteger("NumberOfSubPixels");
+    addString("Model");
+    //addDouble("Sigma");
+    //addString("Filename");
+    //addInteger("NumberOfPixels");
 
     subGroup = "CCD";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
