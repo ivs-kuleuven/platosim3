@@ -11,7 +11,6 @@ dependencies/Installs/*
 
 !inputfiles/inputfile.yaml
 !inputfiles/starcatalog.txt
-!inputfiles/psf.hdf5
 
 # Compiled source 
 
