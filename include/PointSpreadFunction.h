@@ -36,6 +36,10 @@ class PointSpreadFunction : public HDF5Writer
 
         void rotate(double angle);
         void select(double radius);
+
+        double getRequestedDistanceToOpticalAxis();
+        double getRequestedRotationAngle();
+
         arma::fmat rebinToSubPixels(unsigned int targetSubPixels);
 
     protected:
@@ -54,13 +58,13 @@ class PointSpreadFunction : public HDF5Writer
         // Determine if this psf has been rotated
         bool isRebinned = false;
 
-        // The angle by which the PSF is rotated with respect to the positive x-axis.
-        // Positive angles rotated counter-clockwise.
-        double rotationAngle = 0;    // [radians]
-
         // Handle a Gaussian PSF slightly different, i.e. not location dependent, no rotation needed
         bool isGaussian = false;
 
+        // The PSF shall be loaded from an HDF5 file
+        // This option can not be true if isGaussian is already true!
+        bool isLoadedFromFile = false;
+        
         // The selected psf is copied into this array
         arma::Mat<float> psfMap;
 
@@ -79,8 +83,21 @@ class PointSpreadFunction : public HDF5Writer
         // Number of pixels in the field that holds the PSF
         unsigned int numberOfPixels;
 
-        // Width of the Gaussian PSF
+        // Width (standard deviation) of the Gaussian PSF [pixels]
         double sigma;
+
+        // The actual rotation angle of the PSF with respect to the x-axis orientation of the focal plane
+        double rotationAngle = 0.0;    // [radians]
+
+        // The angular distance to the Optical Axis as requested by the user
+        // A negative value indicates no user input,, i.e. auto-compute
+        double requestedDistanceToOA = -1.0;     // [radians]
+
+        // The angle by which the PSF should be rotated with respect to the positive x-axis.
+        // Positive angles rotate counter-clockwise.
+        // A negative value indicates no user input,, i.e. auto-compute
+        double requestedRotationAngle = -1.0;    // [radians]
+
 };
 
 

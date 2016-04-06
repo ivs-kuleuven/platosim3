@@ -55,28 +55,33 @@ PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam, H
     isSelected = false;
     isRotated = false;
     
-    if ( ! FileUtilities::fileExists(absolutePath) )
+    if (isLoadedFromFile)
     {
-        throw FileException("PointSpreadFunction: trying to load the PSF HDF5 file (" + absolutePath + "), but file doesn't exist.");
-    }
+        // Prepare the psfFile by performing some basic checks
 
-    try
-    {
-        psfFile.open(absolutePath);
+        if ( ! FileUtilities::fileExists(absolutePath) )
+        {
+            throw FileException("PointSpreadFunction: trying to load the PSF HDF5 file (" + absolutePath + "), but file doesn't exist.");
+        }
+    
+        try
+        {
+            psfFile.open(absolutePath);
+        }
+        catch(H5::FileIException ex)
+        {
+            Log.error("H5::FileIException: " + string(ex.getCDetailMsg()));
+            throw H5FileException("PointSpreadFunction: Could not open HDF5 file: " + absolutePath);
+        }
+    
+        string groupName = "T6000";
+        if ( ! psfFile.hasGroup(groupName) )
+        {
+            throw H5FileException("PointSpreadFunction: The HDF5 file (" + absolutePath + ") doesn't contain the expected group \"" + groupName + "\".");
+        }
+    
+        Log.info("PointSpreadFunction: Opened the HDF5 file " + absolutePath + " containing the PSFs");
     }
-    catch(H5::FileIException ex)
-    {
-        Log.error("H5::FileIException: " + string(ex.getCDetailMsg()));
-        throw H5FileException("PointSpreadFunction: Could not open HDF5 file: " + absolutePath);
-    }
-
-    string groupName = "T6000";
-    if ( ! psfFile.hasGroup(groupName) )
-    {
-        throw H5FileException("PointSpreadFunction: The HDF5 file (" + absolutePath + ") doesn't contain the expected group \"" + groupName + "\".");
-    }
-
-    Log.info("PointSpreadFunction: Opened the HDF5 file " + absolutePath + " containing the PSFs");
 
 }
 
@@ -135,21 +140,21 @@ void PointSpreadFunction::initHDF5Groups()
 
 /**
  * \brief      Return a two-dimensional Gaussian function
- * 
- * \details    The Gaussian PSF is calculated from the following equation:
- * 
- * \f[
- *   f(x, y)  =  \frac{1}{2\pi\sigma^{2}} e^{-[(x - \mu_x)^{2} + (y - \mu_y)^{2}] / (2\sigma^{2})}
- * \f]
  *
+ * \details    The Gaussian PSF is calculated from the following equation:
+ *
+ *             \f[
+ *                f(x, y)  =  \frac{1}{2\pi\sigma^{2}} e^{-[(x - \mu_x)^{2} + (y - \mu_y)^{2}] / (2\sigma^{2})}
+ *             \f]
+ *            
  *             where \f$\mu_x\f$ and \f$\mu_y\f$ are the mean (center points) and 
  *             \f$\sigma\f$ is the standard deviation.
- *
+ *            
  *             The Gaussian PSF is centered in an array at subpixel level, i.e. the array
  *             has dimension [numberOfSubPixelsPerPixel * numberOfPixels,
  *             numberOfSubPixelsPerPixel * numberOfPixels], but the standard deviation 
  *             \f$\sigma\f$ is defined at pixel level.
- * 
+ *
  * \return     a 2D Gaussian PSF
  */
 arma::fmat PointSpreadFunction::getGaussianPsf()
@@ -185,20 +190,96 @@ arma::fmat PointSpreadFunction::getGaussianPsf()
 }
 
 
-/**
- * \brief Configure the PointSpreadFunction object using the ConfigurationParameters
- * 
- * \param[in] configParam: the configuration parameters 
- **/
 
-void PointSpreadFunction::configure(ConfigurationParameters &cp)
+
+
+
+
+
+
+
+/**
+ * \brief      Configure the PointSpreadFunction object using the
+ *             ConfigurationParameters
+ *
+ * \param[in]  configParam  the configuration parameters
+ */
+void PointSpreadFunction::configure(ConfigurationParameters &configParam)
 {
-    isGaussian                = cp.getBoolean("PSF/UseGauss");
-    absolutePath              = cp.getAbsoluteFilename("PSF/Filename");
-    numberOfSubPixelsPerPixel = cp.getInteger("PSF/NumberOfSubPixels");
-    numberOfPixels            = cp.getInteger("PSF/NumberOfPixels");
-    sigma                     = cp.getDouble("PSF/Sigma");
+    string model = configParam.getString("PSF/Model");
+
+    // The user specified to use a Gaussian shape PSF
+    // The number of sub-pixels per pixel that will be used to calculate the 
+    // Gaussian PSF is equal to the number of sub-pixels per pixels for the sub-field.
+
+    if (model == "Gaussian")
+    {
+        isGaussian                = true;
+        sigma                     = configParam.getDouble("PSF/Gaussian/Sigma");
+        numberOfPixels            = configParam.getInteger("PSF/Gaussian/NumberOfPixels");
+
+        // The Gaussian PSF shall be created with a resolution equal to that of the sub-field
+        
+        numberOfSubPixelsPerPixel = configParam.getInteger("SubField/SubPixels");
+    }
+
+    // The user specified to use the pre-calculated PSFs from file
+    // The number of sub-pixels per pixel is derived from the number of pixels specified 
+    // and the size of the array in the file. (The number of sub-pixels should be in the file).
+
+    if (model == "FromFile")
+    {
+        isLoadedFromFile          = true;
+        absolutePath              = configParam.getAbsoluteFilename("PSF/FromFile/Filename");
+        numberOfPixels            = configParam.getInteger("PSF/FromFile/NumberOfPixels");
+        requestedDistanceToOA     = deg2rad(configParam.getDouble("PSF/FromFile/DistanceToOA"));
+        requestedRotationAngle    = deg2rad(configParam.getDouble("PSF/FromFile/RotationAngle"));
+    }
+
 }
+
+
+
+
+
+
+
+
+/**
+ * \brief      Return the distance to the optical axis as requested by the user.
+ * 
+ * \details    When the returned value is negative [-1], the user input will be ignored
+ *
+ * \return     distance to optical axis [rad]
+ */
+double PointSpreadFunction::getRequestedDistanceToOpticalAxis()
+{
+    return requestedDistanceToOA;
+}
+
+
+
+
+
+
+
+
+
+/**
+ * \brief      Return the orientation angle of the PSF as requested by the user.
+ *
+ * \details    This orientation is what the user specified in the input file and
+ *             is not necessarily equal to the rotation angle of the PSF (which
+ *             is also compensated for the CCD orientation).
+ *
+ * \return     the orientation as requested by the user
+ */
+double PointSpreadFunction::getRequestedRotationAngle()
+{
+    return requestedRotationAngle;
+}
+
+
 
 
 
@@ -209,13 +290,11 @@ void PointSpreadFunction::configure(ConfigurationParameters &cp)
 /**
  * \brief      Select the proper PSF matching the given radius closest.
  *
- * \details
- * 
- * The generated PSF is position dependent and a look-up table has been provided that contains the 
- * field radial coordinate along the line of sight for which the PSF was generated.
+ * \details    The generated PSF is position dependent and a look-up table has been provided that 
+ *             contains the field radial coordinate along the line of sight for which the PSF was generated.
  *  
- * The appropriate PSF will be selected, i.e. the PSF for which the angular distance of the centre 
- * of the sub-field from the centre of the focal plane matches best.
+ *             The appropriate PSF will be selected, i.e. the PSF for which the angular distance of 
+ *             the centre of the sub-field from the centre of the focal plane matches best.
  * 
  * \param[in]  radius  angular separation of the source for which to select the PSF [radians]
  */
@@ -289,6 +368,13 @@ void PointSpreadFunction::select(double radius)
     double angle = psfFile.readDoubleDatasetAttribute(groupName, azimuthDataset, "orientation");
 
     rotationAngle = deg2rad(angle);
+
+    // We should be able to read the number of sub-pixels per pixel that was used to generate the PSFs
+    // from an attribute in the HDF5 file. Unfortunately, this is not available and we therefore derive 
+    // the number from the array size of the psfMap and the number of pixels, currently specified 
+    // in the input file.
+
+    numberOfSubPixelsPerPixel = psfMap.n_rows / numberOfPixels;
 
     Log.debug("PointSpreadFunction: Selected PSF " + groupName + "/" + azimuthDataset + ", rotation set to " + dtos(angle) + " degrees.");
 
