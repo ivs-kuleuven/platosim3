@@ -59,10 +59,10 @@ PSF:
     Filename:                    inputfiles/psf.hdf5 # Read pre-calculated PSF from HDF5 file when UseGauss = no
 
 CCD:
-
-    OriginOffsetX:               0               # X Offset of CCD origin from center of focal plane [mm]
-    OriginOffsetY:               0               # Y Offset of CCD origin from center of focal plane [mm]
-    Orientation:                 0               # Orientation of CCD w.r.t. focal plane orientation [deg]
+    # Settings for CCD 'B'
+    OriginOffsetX:               82.180          # X Offset of CCD origin from center of focal plane [mm]
+    OriginOffsetY:                1.000          # Y Offset of CCD origin from center of focal plane [mm]
+    Orientation:                 90              # Orientation of CCD w.r.t. focal plane orientation [deg]
     NumColumns:                  4510            # Number of columns [pixels]
     NumRows:                     4510            # Number of rows [pixels]
     PixelSize:                   18              # [micron]
