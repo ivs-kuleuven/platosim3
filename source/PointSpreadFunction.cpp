@@ -136,19 +136,19 @@ void PointSpreadFunction::initHDF5Groups()
 /**
  * \brief      Return a two-dimensional Gaussian function
  * 
- * \details
- * 
- * The Gaussian PSF is calculated from the following equation:
+ * \details    The Gaussian PSF is calculated from the following equation:
  * 
  * \f[
  *   f(x, y)  =  \frac{1}{2\pi\sigma^{2}} e^{-[(x - \mu_x)^{2} + (y - \mu_y)^{2}] / (2\sigma^{2})}
  * \f]
  *
- * where \f$\mu_x\f$ and \f$\mu_y\f$ are the mean (center points) and \f$\sigma\f$ is the standard deviation.
+ *             where \f$\mu_x\f$ and \f$\mu_y\f$ are the mean (center points) and 
+ *             \f$\sigma\f$ is the standard deviation.
  *
- * The Gaissian PSF is centered in an array at subpixel level, i.e. the array has dimension 
- * [numberOfSubPixelsPerPixel * numberOfPixels, numberOfSubPixelsPerPixel * numberOfPixels], 
- * but the standard deviation \f$\sigma\f$ is defined at pixel level.
+ *             The Gaussian PSF is centered in an array at subpixel level, i.e. the array
+ *             has dimension [numberOfSubPixelsPerPixel * numberOfPixels,
+ *             numberOfSubPixelsPerPixel * numberOfPixels], but the standard deviation 
+ *             \f$\sigma\f$ is defined at pixel level.
  * 
  * \return     a 2D Gaussian PSF
  */
