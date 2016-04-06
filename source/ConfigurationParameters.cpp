@@ -252,7 +252,11 @@ string ConfigurationParameters::getString(const string &key)
 /**
  * \brief      Return the absolute filename for the given parameter.
  * 
- * \details    When the parameter contains an absolute filename, that value is returned. 
+ * \details    The filename is first checked for a ENV['var'] pattern, which is then replaced by the 
+ *             value of the environment value var.
+ *             
+ *             When the parameter contains an absolute filename, that value is returned.
+ *             
  *             If the parameter contains a relative path, the filename is preceeded by the value of the 
  *             General/ProjectLocation parameter. When the ProjectLocation contains an environment 
  *             variable pattern ENV['var'], this is replaced with the value of the environment variable.
@@ -276,6 +280,8 @@ string ConfigurationParameters::getAbsoluteFilename(const string &key)
     YAML::Node node = getNode(key);
 
 	string filename = node.as<string>();
+
+    filename = replaceEnvironmentVariable(filename);
 
 	if (FileUtilities::isRelative(filename))
 	{
