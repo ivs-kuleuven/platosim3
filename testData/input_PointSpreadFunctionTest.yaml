@@ -9,9 +9,13 @@ General:
 
 PSF:
 
-    UseGauss:                    yes             # Use analytical Gaussian PSF (yes or no)
-    Sigma:                       1.0             # Width of Gaussian PSF [pixels]
-    NumberOfPixels:              8               # The number of pixels in the field for which the PSF is generated
-    NumberOfSubPixels:           128             # The number of subpixels per pixel that was used to generate the PSF
-    Filename:                    inputfiles/psf.hdf5 # Read pre-calculated PSF from HDF5 file when UseGauss = no
+    Model:                       FromFile        # Select the model to be used for the PSF [Gaussian, FromFile]
+    Gaussian:                                    # Generate the PSF from a 2D Gaussian function
+      Sigma:                     0.025           # Standard deviation of Gaussian PSF [pixels]
+      NumberOfPixels:            8               # The number of pixels in the field for which the PSF is generated
+    FromFile:                                    # Read a pre-calculated PSF from an HDF5 file
+      Filename:                  inputfiles/psf.hdf5 
+      DistanceToOA:              10              # The angular distance to the optical axis. -1 to auto-compute. [deg]
+      RotationAngle:             45              # The rotation angle with respect to the x-axis orientation of the focal plane. -1 to auto-compute. [deg]
+      NumberOfPixels:            8               # The number of pixels in the field for which the PSF is generated
 
