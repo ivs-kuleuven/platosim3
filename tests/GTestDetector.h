@@ -420,8 +420,8 @@ TEST_F(DetectorTest, checkConversionsBetweenPixelsAndFocalPlane)
         Camera camera(configParams, hdf5File, telescope, sky);
         MyDetector detector(configParams, hdf5File, camera);
     
-        row = data["xCCD"];
-        column = data["yCCD"];
+        row = data["yCCD"];
+        column = data["xCCD"];
         tie(xFPprime, yFPprime) = detector.test_pixelToPlanarFocalPlaneCoordinates(row, column);
     
         EXPECT_NEAR(data["xFP"], xFPprime, 0.00001);
