@@ -393,18 +393,18 @@ TEST_F(DetectorTest, checkConversionsBetweenPixelsAndFocalPlane)
 
     // Settings for camera A
 
-    pixel2fp.push_back(map<string, double> {{"xCCD",    0.0}, {"yCCD",    0.0}, {"xFP",  -1.0000}, {"yFP",  82.1620}, {"zeroPointX", -1.0000}, {"zeroPointY", 82.1620}, {"ccdAngle", 180.0}});
-    pixel2fp.push_back(map<string, double> {{"xCCD", 4509.0}, {"yCCD",    0.0}, {"xFP", -82.1620}, {"yFP",  82.1620}, {"zeroPointX", -1.0000}, {"zeroPointY", 82.1620}, {"ccdAngle", 180.0}});
-    pixel2fp.push_back(map<string, double> {{"xCCD", 4509.0}, {"yCCD", 4509.0}, {"xFP", -82.1620}, {"yFP",   1.0000}, {"zeroPointX", -1.0000}, {"zeroPointY", 82.1620}, {"ccdAngle", 180.0}});
-    pixel2fp.push_back(map<string, double> {{"xCCD",    0.0}, {"yCCD", 4509.0}, {"xFP",  -1.0000}, {"yFP",   1.0000}, {"zeroPointX", -1.0000}, {"zeroPointY", 82.1620}, {"ccdAngle", 180.0}});
+    pixel2fp.push_back(map<string, double> {{"xCCD",    0.0}, {"yCCD",    0.0}, {"xFP",  -1.0000}, {"yFP",  82.1800}, {"zeroPointX", -1.0000}, {"zeroPointY", 82.1800}, {"ccdAngle", 180.0}});
+    pixel2fp.push_back(map<string, double> {{"xCCD", 4510.0}, {"yCCD",    0.0}, {"xFP", -82.1800}, {"yFP",  82.1800}, {"zeroPointX", -1.0000}, {"zeroPointY", 82.1800}, {"ccdAngle", 180.0}});
+    pixel2fp.push_back(map<string, double> {{"xCCD", 4510.0}, {"yCCD", 4510.0}, {"xFP", -82.1800}, {"yFP",   1.0000}, {"zeroPointX", -1.0000}, {"zeroPointY", 82.1800}, {"ccdAngle", 180.0}});
+    pixel2fp.push_back(map<string, double> {{"xCCD",    0.0}, {"yCCD", 4510.0}, {"xFP",  -1.0000}, {"yFP",   1.0000}, {"zeroPointX", -1.0000}, {"zeroPointY", 82.1800}, {"ccdAngle", 180.0}});
 
     
     // Settings for camera B
     
-    pixel2fp.push_back(map<string, double> {{"xCCD",    0.0}, {"yCCD",    0.0}, {"xFP",  82.1620}, {"yFP",   1.0000}, {"zeroPointX", 82.1620}, {"zeroPointY",  1.0000}, {"ccdAngle",  90.0}});
-    pixel2fp.push_back(map<string, double> {{"xCCD", 4509.0}, {"yCCD",    0.0}, {"xFP",  82.1620}, {"yFP",  82.1620}, {"zeroPointX", 82.1620}, {"zeroPointY",  1.0000}, {"ccdAngle",  90.0}});
-    pixel2fp.push_back(map<string, double> {{"xCCD", 4509.0}, {"yCCD", 4509.0}, {"xFP",   1.0000}, {"yFP",  82.1620}, {"zeroPointX", 82.1620}, {"zeroPointY",  1.0000}, {"ccdAngle",  90.0}});
-    pixel2fp.push_back(map<string, double> {{"xCCD",    0.0}, {"yCCD", 4509.0}, {"xFP",   1.0000}, {"yFP",   1.0000}, {"zeroPointX", 82.1620}, {"zeroPointY",  1.0000}, {"ccdAngle",  90.0}});
+    pixel2fp.push_back(map<string, double> {{"xCCD",    0.0}, {"yCCD",    0.0}, {"xFP",  82.1800}, {"yFP",   1.0000}, {"zeroPointX", 82.1800}, {"zeroPointY",  1.0000}, {"ccdAngle",  90.0}});
+    pixel2fp.push_back(map<string, double> {{"xCCD", 4510.0}, {"yCCD",    0.0}, {"xFP",  82.1800}, {"yFP",  82.1800}, {"zeroPointX", 82.1800}, {"zeroPointY",  1.0000}, {"ccdAngle",  90.0}});
+    pixel2fp.push_back(map<string, double> {{"xCCD", 4510.0}, {"yCCD", 4510.0}, {"xFP",   1.0000}, {"yFP",  82.1800}, {"zeroPointX", 82.1800}, {"zeroPointY",  1.0000}, {"ccdAngle",  90.0}});
+    pixel2fp.push_back(map<string, double> {{"xCCD",    0.0}, {"yCCD", 4510.0}, {"xFP",   1.0000}, {"yFP",   1.0000}, {"zeroPointX", 82.1800}, {"zeroPointY",  1.0000}, {"ccdAngle",  90.0}});
 
     for (auto &data: pixel2fp)
     {
