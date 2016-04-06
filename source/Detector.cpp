@@ -1711,8 +1711,8 @@ pair<double, double> Detector::getPlanarFocalPlaneCoordinatesOfSubfieldCenter()
 
 
 /**
- * \brief Return a boolean telling whether the PSF has been previously set
- *        through setPsfForSubfieldCenter().
+ * \brief Return a boolean telling whether the PSF has been previously set, e.g.
+ *        through setPsfForSubfield().
  * 
  * \return  true if the PSF was previously set, false otherwise
  */
@@ -1731,23 +1731,22 @@ bool Detector::psfIsSet()
 
 
 /**
- * \brief Set the Point Spread Function map for the subfield
+ * \brief      Set the Point Spread Function map for the subfield
  * 
- * \param psf  2D array containing the subpixel PSF map
+ * \details    The PSF that is selected is dependent on the user input.
  */
 void Detector::setPsfForSubfield()
 {
     double centerXmm, centerYmm;
     tie(centerXmm, centerYmm) = getPlanarFocalPlaneCoordinatesOfSubfieldCenter();
 
-    arma::Mat<float> psf = camera.getRebinnedPsfForPlanarFocalPlaneCoordinates(centerXmm, centerYmm, numSubPixelsPerPixel, getOrientationAngle());
+    arma::fmat psf = camera.getRebinnedPsfForPlanarFocalPlaneCoordinates(centerXmm, centerYmm, numSubPixelsPerPixel, getOrientationAngle());
 
 	convolver.initialise(numRowsSubPixelMap, numColumnsSubPixelMap, psf);
 
     psfMap = psf;
     psfWasSet = true;
 }
-
 
 
 
@@ -1873,10 +1872,11 @@ double Detector::getSolidAngleOfOnePixel(double plateScale)
 
 
 /**
- * @brief      Return the orientation of the CCD with respect to the orientation of the focal plane.
- *             The rotations of the CCD are counter clockwise.
+ * \brief      Return the orientation of the CCD with respect to the orientation
+ *             of the focal plane. The rotations of the CCD are counter
+ *             clockwise.
  *
- * @return     the orientation of the CCD [radians]
+ * \return     the orientation of the CCD [radians]
  */
 double Detector::getOrientationAngle()
 {
