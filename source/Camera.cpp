@@ -312,6 +312,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     Log.debug("Camera: lower left corner of subfield at (Xmm, Ymm) = (" + to_string(corner00Xmm) + ", " + to_string(corner00Ymm) + ") mm");
     Log.debug("Camera: upper right corner of subfield at (Xmm, Ymm) = (" + to_string(corner11Xmm) + ", " + to_string(corner11Ymm) + ") mm");
 
+
     // Convert the planar [mm] to angular [rad] focal plane coordinates 
 
     double centerXrad, centerYrad;
@@ -322,6 +323,11 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
     double corner11Xrad, corner11Yrad;
     tie(corner11Xrad, corner11Yrad) = planarToAngularFocalPlaneCoordinates(corner11Xmm, corner11Ymm);
+
+    Log.debug("Camera: center of subfield at (Xrad, Yrad) = (" + to_string(centerXrad) + ", " + to_string(centerYrad) + ") rad");
+    Log.debug("Camera: lower left corner of subfield at (Xrad, Yrad) = (" + to_string(corner00Xrad) + ", " + to_string(corner00Yrad) + ") rad");
+    Log.debug("Camera: upper right corner of subfield at (Xrad, Yrad) = (" + to_string(corner11Xrad) + ", " + to_string(corner11Yrad) + ") rad");
+
 
 
     // Convert the angular [rad] focal plane coordinates to (alpha, delta) equatorial coordinates [rad]

@@ -245,8 +245,8 @@ def pixelToFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX,
     PUROSE: Given the (real-valued) pixel coordinates of the star on the CCD, compute the (x,y)
             coordinates in the FP' reference system (not the FP system!).
 
-    INPUT: xCCDpixel     : x-coordinate of the star on the CCD  [pixel]
-           yCCDpixel     : y-coordinate of the star on the CCD  [pixel]
+    INPUT: xCCDpixel     : x-coordinate (column-number) of the star on the CCD  [pixel]
+           yCCDpixel     : y-coordinate (row-number) of the star on the CCD  [pixel]
            pixelSize     : size of 1 pixel in micron (not [mm]!)
            ccdZeroPointX : x-coordinate of the CCD (0,0) point in the FP' reference system [mm]
            ccdZeroPointY : y-coordinate of the CCD (0,0) point in the FP' reference system [mm]
@@ -329,6 +329,7 @@ def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
     """
 
     # Get the pixel coordinates of the 4 corners of the exposed part of the CCD
+    # Note that the x-direction corresponds to the CCD columns, and the y-direction to the CCD rows.
 
     Nrows = CCD[ccdCode]["Nrows"]
     Ncols = CCD[ccdCode]["Ncols"]

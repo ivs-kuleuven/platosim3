@@ -1599,8 +1599,11 @@ void Detector::applyDigitalSaturation()
 
 /**
  * \brief Compute the planar (x,y) coordinates in the FP' reference system (not the FP system) 
- *        given the (real-valued) pixel coordinates on the CCD.
+ *        given the (real-valued) pixel row and column numbers on the CCD.
  *        
+ * \note  The rows correspond to the y-direction, and the columns to the x-direction.
+ *        Pixel (row, col) = (0,0) starts at (yFP, xFP) = (0, 0).
+ *               
  * \param row     Row coordinate, real-valued (e.g. 3.5)    [pix]
  * \param column  Column coordinate, real-valued (e.g. 8.3) [pix]
  * 
@@ -1612,8 +1615,8 @@ pair<double, double> Detector::pixelToPlanarFocalPlaneCoordinates(double row, do
     // Convert the pixel coordinates into [mm] coordinates
     // The pixelSize is expressed in [micron].
 
-    double xCCDmm = row * pixelSize / 1000.0;
-    double yCCDmm = column * pixelSize / 1000.0;
+    double xCCDmm = column * pixelSize / 1000.0;
+    double yCCDmm = row * pixelSize / 1000.0;
 
     // Convert the CCD coordinates into FP' coordinates [mm]
     // Note: orientationAngle is in [rad], originOffsetX and originOffsetY in mm
@@ -1639,6 +1642,9 @@ pair<double, double> Detector::pixelToPlanarFocalPlaneCoordinates(double row, do
  * \brief Compute the (real-valued) pixel coordinates of the star on the CCD, given the 
  *        planar (x,y) coordinates in the FP' reference system (not the FP system)
  *
+ * \note  The rows correspond to the y-direction, and the columns to the x-direction.
+ *        Pixel (row, col) = (0,0) starts at (yFP, xFP) = (0, 0).
+ *        
  * \param xFPprime  planar x-coordinate of the point in the FP' reference system  [mm]
  * \param yFPprime  planar y-coordinate of the point in the FP' reference system  [mm]
  * 
@@ -1677,7 +1683,7 @@ pair<double, double> Detector::planarFocalPlaneToPixelCoordinates(double xFPprim
 /**
  * \brief  Return the focal plane coordinates of the center pixel of the subfield
  * 
- * \return (x,y)   focal plane coordinates in the FP' reference system [mm]
+ * \return (xFPprime, yFPprime)   focal plane coordinates in the FP' reference system [mm]
  */
 
 pair<double, double> Detector::getPlanarFocalPlaneCoordinatesOfSubfieldCenter()
@@ -1687,7 +1693,10 @@ pair<double, double> Detector::getPlanarFocalPlaneCoordinatesOfSubfieldCenter()
 
     // The columns correspond to the x-coordinate, the rows to the y-coordinate
 
-	return pixelToPlanarFocalPlaneCoordinates(centerCol, centerRow);
+    double xFPprime, yFPprime;
+    tie(xFPprime, yFPprime) = pixelToPlanarFocalPlaneCoordinates(centerRow, centerCol);
+
+	return make_pair(xFPprime, yFPprime);
 }
 
 
