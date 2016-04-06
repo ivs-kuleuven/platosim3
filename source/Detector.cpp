@@ -1735,8 +1735,7 @@ bool Detector::psfIsSet()
  * 
  * \param psf  2D array containing the subpixel PSF map
  */
-
-void Detector::setPsfForSubfieldCenter()
+void Detector::setPsfForSubfield()
 {
     double centerXmm, centerYmm;
     tie(centerXmm, centerYmm) = getPlanarFocalPlaneCoordinatesOfSubfieldCenter();

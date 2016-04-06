@@ -49,7 +49,7 @@ class Detector : public HDF5Writer
         bool isInSubfield(const double xFPmm, const double yFPmm);
 
         bool psfIsSet();
-        void setPsfForSubfieldCenter();
+        void setPsfForSubfield();
         virtual void convolveWithPsf();
 
 
