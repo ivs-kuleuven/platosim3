@@ -57,8 +57,8 @@ for n in range(NguideStars):
     pixelSize       = int(sim["CCD/PixelSize"])    # [micron]
     plateScale      = float(sim["Camera/PlateScale"])   # [arcsec/micron]
 
-    subfieldSizeX = 9     # [pixels]
-    subfieldSizeY = 9     # [pixels]
+    subfieldSizeX = 9     # column width [pixels]
+    subfieldSizeY = 9     # row width [pixels]
 
     nominalCamera = False
 
