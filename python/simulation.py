@@ -218,30 +218,34 @@ class Simulation(object):
         Return: the value of the parameter, if only a Group is given the 
         """
         
+        # Split the path into node names
+        # E.g. "PSF/Gaussian/Sigma" into ["PSF", "Gaussian", "Sigma"]
+
         if key.find('/') == -1:
             parentNodeName, nodeName = key, None
             print ("usage: the given parameter name (key) should include the group name of the group that contains the parameter.")
             print ("       E.g in 'Camera/PlateScale', Camera is the group, PlateScale is the parameter.")
             return None
         else:
-            parentNodeName, nodeName = key.split("/")
+            nodeNames = key.split("/")
 
-        root = self.yamlDocument
+        # Navigate to the deepest node, starting from the document root
+
+        node = self.yamlDocument 
+
+        for nodeName in nodeNames:
+            if nodeName in node:
+                node = node[nodeName]
+            else:
+                print("ERROR: The group '{}' was not found in the yaml inputfile '{}'.".format(key, self.configurationFilename))
+                return None
         
-        if parentNodeName in root:
-            parentNode = root[parentNodeName]
-        else:
-            print ("ERROR: The group '{}' was not found in the yaml inputfile '{}'.".format(parentNodeName, self.configurationFilename))
-            return None
+        # Return the value of the deepest node
 
-        if nodeName:
-            if nodeName in parentNode:
-                return parentNode[nodeName]
-            print ("ERROR: The parameter '{}' was not found in the group '{}' in the yaml inputfile '{}'.".format(nodeName, parentNodeName, self.configurationFilename))
-        else:
-            return parentNode
+        return node
 
-        return None
+
+
 
 
 
@@ -262,30 +266,74 @@ class Simulation(object):
 
         item = str(item)
 
+        # Split the path into node names
+        # E.g. "PSF/Gaussian/Sigma" into ["PSF", "Gaussian", "Sigma"]
+
         if key.find('/') == -1:
             print ("usage: the given parameter name (key) should include the group name of the group that contains the parameter.")
             print ("       E.g in 'Camera/PlateScale', Camera is the group, PlatScale is the parameter.")
             return None
         else:
-            parentNodeName, nodeName = key.split("/")
+            nodeNames = key.split("/")
 
-        root = self.yamlDocument
+        # Check whether the parent node is in the document. If not, complain
 
-        if parentNodeName in root:
-            parentNode = root[parentNodeName]
-        else:
-            print ("ERROR: The group '{}' was not found in the yaml inputfile '{}'.".format(parentNodeName, self.configurationFilename))
-            return False
+        if nodeNames[0] not in self.yamlDocument:
+             print("Error: no node with the name {0} found in input yaml file".format(nodeNames[0]))
+             return False
 
-        if nodeName:
-            if nodeName in parentNode:
-                parentNode[nodeName] = item
-                return True
-            else:
-                print ("ERROR: The parameter '{}' was not found in the group '{}' in the yaml inputfile '{}'.".format(nodeName, parentNodeName, self.configurationFilename))
+        # If there is only 1 node in the path, we're finished after setting its value
 
-        
+        if len(nodeNames) == 1:
+            self.yamlDocument[nodeNames[0]] = item
+            return True
+
+        # If we arrive here, there are at least 2 node in the path, check if 2nd parent node exists
+
+        if nodeNames[1] not in self.yamlDocument[nodeNames[0]]:
+             print("Error: no node with the name {0} found in input yaml file".format(nodeNames[0]+"/"+nodeNames[1]))
+             return False
+
+        # If there are only 2 nodes in the path, we're finished after setting its value
+
+        if len(nodeNames) == 2:
+            self.yamlDocument[nodeNames[0]][nodeNames[1]] = item
+            return True
+
+        # If we arrive here, there are at least 3 nodes in the path, check if 3rd parent node exists
+
+        if nodeNames[2] not in self.yamlDocument[nodeNames[0]][nodeNames[1]]:
+             print("Error: no node with the name {0} found in input yaml file".format(nodeNames[0]+"/"+nodeNames[1]+"/"+nodeNames[2]))
+             return False
+
+        # If there are only 3 nodes in the path, we're finished after setting its value
+
+        if len(nodeNames) == 3:
+            self.yamlDocument[nodeNames[0]][nodeNames[1]][nodeNames[2]] = item
+            return True
+
+        # If we arrive here, there are at least 4 nodes in the path, check if 4th parent node exists
+
+        if nodeNames[3] not in self.yamlDocument[nodeNames[0]][nodeNames[1]][nodeNames[2]]:
+             print("Error: no node with the name {0} found in input yaml file".format(nodeNames[0]+"/"+nodeNames[1]+"/"+nodeNames[2]+"/"+nodeNames[3]))
+             return False
+
+        # If there are only 34nodes in the path, we're finished after setting its value
+
+        if len(nodeNames) == 4:
+            self.yamlDocument[nodeNames[0]][nodeNames[1]][nodeNames[2]][nodeNames[3]] = item
+            return True
+  
+
+        # If we arrive here, there are at least 5 nodes in the path. Issue a not-implemented error message.
+
+        print("Error: detected 5 or more nodes in the path {0}".format(key))
         return False
+
+
+
+
+
 
 
 
