@@ -62,7 +62,7 @@ PSF:
     FromFile:                                    # Read a pre-calculated PSF from an HDF5 file
       Filename:                  inputfiles/psf.hdf5 
       DistanceToOA:              10              # The angular distance to the optical axis. -1 to auto-compute. [deg]
-      RotationAngle:             45              # The rotation angle with respect to the x-axis orientation of the focal plane. -1 to auto-compute. [deg]
+      RotationAngle:             45              # PSF rotation angle w.r.t the x-axis of the focal plane. -1 to auto-compute. [deg]
       NumberOfPixels:            8               # The number of pixels in the field for which the PSF is generated
 
 
