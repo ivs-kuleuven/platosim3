@@ -30,7 +30,7 @@ $ ./testplatosim
 
 runs all the unit tests.
 
-If, for some reason, you ever want to recompile the simulator, simply:
+If, for some reason (e.g. a software update), you ever want to recompile the simulator, type:
 
 $ cd build
 $ rm *
@@ -45,19 +45,24 @@ RUNNING PLATOSIM
 Running PlatoSim is done with
 
 $ cd build
-$ ./platosim ../inputfiles/myInputfile.yaml myOutputfile.hdf5
+$ ./platosim ../inputfiles/myInputfile.yaml myOutputfile.hdf5 myLogFile.txt
 
 The first argument is the simulation configuration input file, of which you can find an
 example 'inputfile.yaml' in the folder inputfiles/. You can copy this configuration file
-and adapt the line
+and adapt it to your needs. Note that this input file contains the line:
 
-ProjectLocation:         /Users/rik/Git/PlatoSim3
+ProjectLocation:         ENV['PLATO_PROJECT_HOME']
 
-to your own location of PlatoSim.
+This assumes that you have an environment variable 'PLATO_PROJECT_HOME' set to the base
+folder of PlatoSim3. For example, you can put in your .bash_profile the following:
 
-The second argument is the name of the (non-existing!) HDF5 file to which all simulation 
-output is written. Apart from this HDF5 file, the simulator also writes logging statements
-to a log.txt file.
+PLATO_PROJECT_HOME="/home/john/plato/PlatoSim3"
+export PLATO_PROJECT_HOME
+
+
+The second argument of platosim on the command line is the name of the (non-existing!) HDF5 file 
+to which all simulation output is written. Apart from this HDF5 file, the simulator also writes 
+logging statements to a log file.
 
 
 
