@@ -1,3 +1,7 @@
+# Example script how to use the SimFile and Simulation classes
+# Run this script using:
+#  $ ipython fgs.py
+
 import numpy as np
 
 from simfile import SimFile
@@ -119,13 +123,11 @@ for n in range(NguideStars):
 
     sim["SubField/NumBiasPrescanRows"] = 0
     sim["SubField/NumSmearingOverscanRows"] = 0
-    sim["SubField/SubPixels"] = 2
+    sim["SubField/SubPixels"] = 8
 
-    sim["PSF/UseGauss"] = "yes"
-    sim["PSF/Sigma"] = .025
-    sim["PSF/NumberOfPixels"] = 8
-    sim["PSF/NumberOfSubPixels"] = 128
-    sim["PSF/Filename"] = psfFile
+    sim["PSF/Model"] = "Gaussian"
+    sim["PSF/Gaussian/Sigma"] = .25
+    sim["PSF/Gaussian/NumberOfPixels"] = 8
 
     sim["Platform/UseJitter"] = "yes"
     sim["Platform/UseJitterFromFile"] = "yes"
