@@ -171,7 +171,6 @@ arma::fmat PointSpreadFunction::getGaussianPsf()
     // Generate the Gaussian PSF at the sub-pixel level
 
     double width = sigma * numberOfSubPixelsPerPixel;
-    double normalizationFactor = 1.0 / (width * width * 2.0 * Constants::PI);
     double denominator = 2.0 * width * width;
 
     arma::fmat gaussianPsf (numberOfPixels * numberOfSubPixelsPerPixel, numberOfPixels * numberOfSubPixelsPerPixel, arma::fill::zeros);
@@ -180,11 +179,11 @@ arma::fmat PointSpreadFunction::getGaussianPsf()
     {
         for (unsigned int xj = 0; xj < gaussianPsf.n_rows; xj++)
         {
-            // FIXME: This a equation can probably be optimized with Armadillo functionality
-            gaussianPsf(xi, xj) = normalizationFactor 
-                * exp( - (pow(xi - centerColumn, 2.0) + pow(xj - centerRow, 2.0)) / denominator);
+            gaussianPsf(xj, xi) = exp( - (pow(xi - centerColumn, 2) + pow(xj - centerRow, 2)) / denominator);
         }
     }
+
+    gaussianPsf /= width * sqrt(2.0 * Constants::PI);
 
     return gaussianPsf;
 }
