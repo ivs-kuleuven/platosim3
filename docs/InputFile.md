@@ -76,13 +76,13 @@ Integration time of one exposure, expressed in seconds. Note that the total inte
 
 @subsubsection  raPointing RApointing
 
-<i>Allowed values:</i> \f$ \in [0, 360]\f$
+<i>Allowed values:</i>  ∈ [0, 360]
 
 Right ascension of the pointing, expressed in degrees.
 
 @subsubsection  decPointing DecPointing
 
-<i>Allowed values:</i> \f$ \in [-90, 90]\f$
+<i>Allowed values:</i> ∈ [-90, 90]
 
 Declination of the pointing, expressed in degrees.
 
@@ -90,9 +90,9 @@ Declination of the pointing, expressed in degrees.
 
 <i>Allowed values:</i> > 0
 
-Flux of a star of zero magnitude (\f$ m_{\lambda} = 0 \f$), expressed in \f$ photons \cdot s^{-1} \cdot cm^{-2}\f$ in the passband of the magnitudes listed in the star catalogue.
+Flux of a star of zero magnitude (\f$ m_{\lambda} = 0 \f$), expressed in photons \f$ \cdot \f$  s<sup>-1</sup> \f$  \cdot \f$  cm<sup>-2</sup> in the passband of the magnitudes listed in the star catalogue.
 
-For an exposure of \f$t_{exp}\f$ seconds, the measured flux \f$F_{phot}\f$ of a star is computed from its catalogue magnitude \f$m_{\lambda}\f$, the effective light-collecting area \f$A\f$ (in \f$cm^2\f$) of the telescope, the transmission efficiency \f$T_{\lambda}\f$ of the optical system, the quantum efficiency \f$Q\f$ of the detector, and the flux per second \f$F_0\f$ of a star with zero magnitude (\f$m_{\lambda} = 0\f$) from the equation
+For an exposure of \f$t_{exp}\f$ seconds, the measured flux \f$F_{phot}\f$ of a star is computed from its catalogue magnitude \f$m_{\lambda}\f$, the effective light-collecting area \f$A\f$ (in cm<sup>2</sup>) of the telescope, the transmission efficiency \f$T_{\lambda}\f$ of the optical system, the quantum efficiency \f$Q\f$ of the detector, and the flux per second \f$F_0\f$ of a star with zero magnitude (\f$m_{\lambda} = 0\f$) from the equation
 
 \f[
 F_{phot} = t_{exp} \cdot F_0 \cdot T_{\lambda} \cdot Q \cdot A \cdot 10^{-0.4} m_{\lambda}
@@ -102,9 +102,11 @@ where the \f$\lambda\f$ subscript refers to the wavelength range in which the si
 
 @subsubsection skyBackground SkyBackground
 
-<i>Allowed values:</i> ≥ 0
+<i>Allowed values:</i> for automatic calculation, ≥ 0 to use the input value
 
-The sky background (zodiacal + galactic), expressed in \f$photons \cdot s^{-1} \cdot pixel^{-1}\f$.
+In case a positive value is given, the sky background (zodiacal + galactic), is set to the given value, expressed in photons \f$ \cdot \f$ s<sup>-1</sup> \f$ \cdot \f$ pixel<sup>-1</sup>.
+
+In case a negative value is given, the sky background is computed automatically from tabular values, interpolated to the central coordinates of the sub-field. A constant sky background is assumed for the whole sub-field. Note that for some regions in the sky the automatic computation of the sky background may fail due to the lack of tabulated values. In that case you can set the sky background manually.
 
 @subsubsection  starCatalogFile StarCatalogFile
 
@@ -143,28 +145,85 @@ Indicates whether the jitter time series must be read from a jitter file ("yes")
 
 <i>Allowed values:</i> ≥ 0, only required if the jitter positions must be generated from jitter parameters (@ref useJitterFromFile = 0)
 
-Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the yaw value from one jitter position to the next one.
+Standard deviation (expressed in arcsec / s) of the normal distribution (with zero mean) describing the yaw value from one jitter position to the next one.
 
 @subsubsection jitterPitchRms JitterPitchRms
 
 <i>Allowed values:</i> ≥ 0, only required if the jitter positions must be generated from jitter parameters (@ref useJitterFromFile = 0)
 
-Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the pitch value from one jitter position to the next one.
+Standard deviation (expressed in arcsec / s) of the normal distribution (with zero mean) describing the pitch value from one jitter position to the next one.
 
 @subsubsection jitterRollRms JitterRollRms
 
 <i>Allowed values:</i> ≥ 0, only required if the jitter positions must be generated from jitter parameters (@ref useJitterFromFile = 0)
 
-Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the roll value from one jitter position to the next one.
+Standard deviation (expressed in arcsec / s) of the normal distribution (with zero mean) describing the roll value from one jitter position to the next one.
 
 @subsubsection jitterTimeScale JitterTimeScale
-???
 
-@subsubsection jitterFileName
+<i>Allowed values:</i> > 0
+
+Timescale of the jitter, expressed in seconds.
+
+@subsubsection jitterFileName JiterFileName
 
 Full path of the jitter file. This is only required if the jitter positions must be read from a file (@ref useJitterFromFile = 1).
 
 @subsection telescopeParameters Telescope Parameters
+
+\code{.yaml}
+Telescope:
+    
+    LightCollectingArea:         113.1         
+    TransmissionEfficiency:      0.757         
+    FOVSquareDegrees:            1072.0        
+    DriftYawRms:                 2.3           
+    DriftPitchRms:               2.3           
+    DriftRollRms:                2.3           
+    DriftTimeScale:              3600.         
+\endcode
+
+@subsubsection lightCollectingArea LightCollectingArea
+
+<i>Allowed values:</i> > 0
+
+Light-collecting area of one telescope, expressed in cm<sup>2</sup>.
+
+@subsubsection transmissionEfficiency TransmissionEfficiency
+
+<i>Allowed values:</i> ∈ [0,1]
+
+Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the Fluxm0 parameter and the magnitudes in the star catalogue.
+
+@subsubsection  fovSquareDegrees FOVSquareDegrees
+
+<i>Allowed values:</i> > 0
+
+Sky area covered by the FOV of one telescope, expressed in degrees<sup>2</sup>.
+
+@subsubsection driftYawRms DriftYawRms
+
+<i>Allowed values:</i> ≥ 0
+
+Standard deviation (expressed in arcsec /  min) of the normal distribution (with zero mean) describing the yaw value from one thermo-elastic drift position to the next one.
+
+@subsubsection driftPitchRms DriftPitchRms
+
+<i>Allowed values:</i> ≥ 0
+
+Standard deviation (expressed in arcsec / min) of the normal distribution (with zero mean) describing the pitch value from one thermo-elastic drift position to the next one.
+
+@subsubsection driftRollRms DriftRollRms
+
+<i>Allowed values:</i> ≥ 0
+
+Standard deviation (expressed in arcsec / min) of the normal distribution (with zero mean) describing the roll value from one thermo-elastic drift position to the next one.
+
+@subsubsection driftTimeScale DriftTimeScale
+
+<i>Allowed values:</i> > 0
+
+Timescale of the thermo-elastic drift, expressed in seconds.
 
 @subsection cameraParameters Camera Parameters
 
