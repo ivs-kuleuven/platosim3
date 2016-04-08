@@ -110,7 +110,59 @@ The sky background (zodiacal + galactic), expressed in \f$photons \cdot s^{-1} \
 
 Full path to the @ref starCatalogFile "star catalogue file".
 
+
 @subsection platformParameters Platform Parameters
+
+The <b>PlatformParameters</b> block of the configuration file contains all the information that is specific to the platform of the satellite.  The structure of this block is the following:
+
+\code{.yaml}
+Platform:
+
+    UseJitter:                   yes             
+    UseJitterFromFile:           no              
+    JitterYawRms:                2.3             
+    JitterPitchRms:              2.3             
+    JitterRollRms:               2.3             
+    JitterTimeScale:             3600.           
+    JitterFileName:              inputfiles/jitter.txt
+\endcode
+
+@subsubsection useJitter UseJitter
+
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether pointing variations should be taken into account.
+
+@subsubsection useJitterFromFile UseJitterFromFile
+
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether the jitter time series must be read from a jitter file ("yes") or the jitter positions must be generated from the jitter parameters ("no").
+
+@subsubsection  jitterYawRms JitterYawRms
+
+<i>Allowed values:</i> ≥ 0, only required if the jitter positions must be generated from jitter parameters (@ref useJitterFromFile = 0)
+
+Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the yaw value from one jitter position to the next one.
+
+@subsubsection jitterPitchRms JitterPitchRms
+
+<i>Allowed values:</i> ≥ 0, only required if the jitter positions must be generated from jitter parameters (@ref useJitterFromFile = 0)
+
+Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the pitch value from one jitter position to the next one.
+
+@subsubsection jitterRollRms JitterRollRms
+
+<i>Allowed values:</i> ≥ 0, only required if the jitter positions must be generated from jitter parameters (@ref useJitterFromFile = 0)
+
+Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the roll value from one jitter position to the next one.
+
+@subsubsection jitterTimeScale JitterTimeScale
+???
+
+@subsubsection jitterFileName
+
+Full path of the jitter file. This is only required if the jitter positions must be read from a file (@ref useJitterFromFile = 1).
 
 @subsection telescopeParameters Telescope Parameters
 
