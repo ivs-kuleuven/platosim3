@@ -312,7 +312,7 @@ Coefficients for inverse polynomial of the polynomial describing the field disto
 
 @subsection psfParameters PSF Parameters
 
-The <b>PSF</b> block of the configuration file contains all the information that is specific to the telescope.  The structure of this block is the following:
+The <b>PSF</b> block of the configuration file contains all the information that is specific to the PSF.  The structure of this block is the following:
 
 
 \code{.yaml}
@@ -360,7 +360,7 @@ In case a positive value is given the input value will be used for the angular d
 
 In case a negative value is given, the angular distance to the optical axis will be calculated automatically.
 
-@subsubsection  psfRotation FromFile: RotationAngle
+@subsubsection psfRotation FromFile: RotationAngle
 
 <i>Allowed values:</i> Any, only required if a pre-computed PSF must be used (@ref psfModel = FromFile).
 
@@ -373,6 +373,131 @@ Arbitrary rotation angle of the PSF, expressed in degrees and measured countercl
 Number of pixels (in both directions) for which the PSF was generated.
 
 @subsection ccdParameters CCD Parameters
+
+The <b>CCD</b> block of the configuration file contains all the information that is specific to the CCD.  The structure of this block is the following:
+
+\code{.yaml}
+CCD:
+
+    OriginOffsetX:               0         
+    OriginOffsetY:               0         
+    Orientation:                 0         
+    NumColumns:                  4510      
+    NumRows:                     4510      
+    PixelSize:                   18        
+    Gain:                        16             
+    QuantumEfficiency:           0.8745         
+    FullWellSaturation:          1000000        
+    DigitalSaturation:           65535          
+    ReadoutNoise:                28             
+    ElectronicOffset:            100            
+    ReadoutTime:                 2              
+    FlatfieldPtPNoise:           0.016          
+    CTEMean:                     0.99999        
+    IncludeFlatfield:            no             
+    IncludePhotonNoise:          yes            
+    IncludeReadoutNoise:         yes            
+    IncludeCTIeffects:           yes            
+    IncludeOpenShutterSmearing:  yes            
+    IncludeVignetting:           yes             
+    IncludeConvolution:          yes            
+    IncludeFullWellSaturation:   yes            
+    IncludeDigitalSaturation:    yes            
+    WriteSubPixelImagesToHDF5:   no              
+\endcode
+
+@subsubsection originOffsetX OriginOffsetX
+
+<i>Allowed values:</i> Any
+
+Offset of the CCD origin from the centre of the optical plane (i.e. the intersection of the optical axis with the focal plane) in the x-direction, expressed in mm. The origin of the CCD is defined as the point where the readout register is located. See Fig. 1 for more details.
+
+@subsubsection originOffsetY OriginOffsetY
+
+<i>Allowed values:</i> Any
+
+Offset of the CCD origin from the centre of the optical plane (i.e. the intersection of the optical axis with the focal plane) in the y-direction, expressed in mm. The origin of the CCD is defined as the point where the readout register is located. See Fig. 1 for more details.
+
+@subsubsection ccdOrientation Orientation
+
+<i>Allowed values:</i> Any
+
+Orientation angle of the CCD w.r.t. the orientation of the focal plane, measured counterclockwise and expressed in degrees. This rotation is performed around the offset origin of the CCD. See Fig. 1 for more details.
+
+@subsubsection ccdNumColumns NumColumns
+
+<i>Allowed values:</i> > 0
+
+Number of pixels of the CCD in the x-direction (i.e. number of columns).
+
+@subsubsection ccdNumRows NumRows
+
+<i>Allowed values:</i> > 0
+
+Number of pixels of the CCD in the y-direction (i.e. number of rows).
+
+@subsubsection pixelSize PixelSize
+<i>Allowed values:</i> > 0
+
+Nominal pixel size, expressed in micron.
+        
+@subsubsection Gain             
+<i>Allowed values:</i> > 0
+
+CCD gain, expressed in e<sup>-</sup> / ADU and assumed to be constant throughout a simulation. This parameter relates the number of electrons per pixel to the number of counts (i.e. ADU) per pixel.
+
+
+@subsubsection QuantumEfficiency   
+<i>Allowed values:</i> ∈ [0,1]
+
+Quantum efficiency of the detector, considering the passband and the spectral energy distribution of the stars given the @ref fluxm0 parameter and the magnitude of the stars in the @ref starCatalogue. This is the ratio of the number of collected electrons to the number of incident photons.
+
+@subsubsection fullWellSaturation FullWellSaturation
+<i>Allowed values:</i> > 0
+     
+Full-well saturation limit of a single CCD pixel, expressed in e<sup>-</sup> / pixel. If a pixels receives more electrons than its full-well saturation limit, the additional electrons flow evenly distributed in positive and negative charge-transfer direction, a phenomenon called <i>blooming</i>. The electrons reaching the edge of the CCD will not be detected.
+  
+@subsubsection digitalSaturation DigitalSaturation
+<i>Allowed values:</i> > 0
+
+Digital saturation limit of the CCD to which pixel values are topped off, expressed in ADU / pixel. This value depends on the A/D convertor of the detector. For a 16-bit convertor, the digital saturation limit is 65536 ADU.
+
+The @ref gain of the detector should be such that the full-well saturation results in values below the digital saturation limit.
+     
+@subsubsection readoutNoise ReadoutNoise   
+<i>Allowed values:</i> ≥ 0
+
+Mean readout noise of the detector, expressed in e<sup>-</sup>.
+
+Readout noise occurs due to the imperfect nature of the CCD amplifiers. When the electrons are transferred to the amplifier, the induced voltage is measured. However, this measurement is not perfect, but gives a value which is on average too high by an amount of the readout noise, with the squareroot of the readout noise as standard deviation.
+       
+@subsubsection electronicOffset ElectronicOffset
+<i>Allowed values:</i> ≥ 0
+
+Electronic offset or bias level, expressed in ADU, that is added to the digital signal in order to avoid negative readout values. The electronic offset can be measured in a pre-scan strip, which essentially consists of a few additional rows of the CCD. These rows only contain the electronic offset and the readout noise. This pre-scan strip consisting of @ref piasPreScanRows rows will be stored in the output file.
+        
+@subsubsection readoutTime ReadoutTime
+
+<i>Allowed values:</i> ≥ 0
+
+Time required to read out an entire CCD working in frame transfer mode, expressed in seconds. Because of the absence of a shutter (which is common in space-based instruments), the CCD still receives light during frame transfer. The flux of each sub-pixel is affected by the flux of the sub-pixels in the same column. Because the CCD is exposed during the whole readout and multiple exposures are created, also the sub-pixels further away from the readout register have their influence.
+
+For non-frame-transfer CCDs the readout time should be set to zero.
+
+@subsubsection flatfieldPtPNoise FlatfieldPtPNoise
+<i>Allowed values:</i> ∈ [0,1]
+
+Fractional peak-to-peak amplitude of the pixel non-uniform sensitivity response.
+  
+@subsubsection CTEMean cteMean
+Allowed values: ∈ [0,1]
+
+Mean charge-transfer efficiency (CTE) of the detector.
+
+Because of detector defects, electrons can get trapped in the readout process. The trapped charge ends up getting dissociated from its original pixel and eventually gets released into another pixel. The result is that the original image gets smeared out in the direction away from the readout amplifier (visible in the appearance of "charge trails"). This is known as imperfect CTE (Charge-Transfer Efficiency) or alternatively as CTI (Charge-Transfer Inefficiency). The fraction of the charge that is successfully transferred from one row to the next row is expressed by this parameter.
+
+The charge trails impact photometry, noise, and astrometry of sources. CTI removes flux from the central pixel and thus degrades the expected S/N for an observation. CTI trails bias measurements of source along the trail direction, which can severely impact high-precision astrometry.
+
 
 @subsection subFieldParameters Sub-Field Parameters
 
