@@ -29,7 +29,8 @@ The general configuration parameters a listed in the <b>General</b> block of the
 
 \code{.yaml}
 General:
-	ProjectLocation:	ENV['PLATO_PROJECT_HOME']
+   
+    ProjectLocation:             ENV['PLATO_PROJECT_HOME']
 \endcode
 
 
@@ -44,6 +45,70 @@ Full path of the directory in which you have checked out the PlatoSim3 project, 
 \endcode
 
 @subsection observingParameters Observing Parameters
+
+The <b>ObservingParameters</b> block of the configuration file contains the configuration parameters that are specific to the simulated observation and are not specific for the hardware components of the satellite.  The structure of this block is the following:
+
+\code{.yaml}
+ObservingParameters:
+
+	NumExposures:                40              
+    ExposureTime:                23              
+    RApointing:                  180              
+    DecPointing:                 -70             
+    Fluxm0:                      1.00238e8       
+    SkyBackground:               220.            
+    StarCatalogFile:             inputfiles/starcatalog.txt
+\endcode
+
+@subsubsection numExposures NumExposures
+
+<i>Allowed values:</i> > 0
+
+Number of exposures to generate for the simulation.
+
+@subsubsection exposureTime ExposureTime
+
+<i>Allowed values:</i> > 0
+
+Integration time of one exposure, expressed in seconds. Note that the total integration time is the sum of the exposure and the readout time:
+
+	\f[ t_{integration} = t_{exposure} + t_{readout}.\f]
+
+@subsubsection  raPointing RApointing
+
+<i>Allowed values:</i> \f$ \in [0, 360]\f$
+
+Right ascension of the pointing, expressed in degrees.
+
+@subsubsection  decPointing DecPointing
+
+<i>Allowed values:</i> \f$ \in [-90, 90]\f$
+
+Declination of the pointing, expressed in degrees.
+
+@subsubsection fluxm0 Fluxm0
+
+<i>Allowed values:</i> > 0
+
+Flux of a star of zero magnitude (\f$ m_{\lambda} = 0 \f$), expressed in \f$ photons \cdot s^{-1} \cdot cm^{-2}\f$ in the passband of the magnitudes listed in the star catalogue.
+
+For an exposure of \f$t_{exp}\f$ seconds, the measured flux \f$F_{phot}\f$ of a star is computed from its catalogue magnitude \f$m_{\lambda}\f$, the effective light-collecting area \f$A\f$ (in \f$cm^2\f$) of the telescope, the transmission efficiency \f$T_{\lambda}\f$ of the optical system, the quantum efficiency \f$Q\f$ of the detector, and the flux per second \f$F_0\f$ of a star with zero magnitude (\f$m_{\lambda} = 0\f$) from the equation
+
+\f[
+F_{phot} = t_{exp} \cdot F_0 \cdot T_{\lambda} \cdot Q \cdot A \cdot 10^{-0.4} m_{\lambda}
+\f]
+
+where the \f$\lambda\f$ subscript refers to the wavelength range in which the simulation is performed.
+
+@subsubsection skyBackground SkyBackground
+
+<i>Allowed values:</i> ≥ 0
+
+The sky background (zodiacal + galactic), expressed in \f$photons \cdot s^{-1} \cdot pixel^{-1}\f$.
+
+@subsubsection  starCatalogFile StarCatalogFile
+
+Full path to the @ref starCatalogFile "star catalogue file".
 
 @subsection platformParameters Platform Parameters
 
@@ -64,18 +129,5 @@ Full path of the directory in which you have checked out the PlatoSim3 project, 
 @section psfFile PSF File (Optional)
 
 @section jitterFile Jitter File (Optional)
- 
-The YAML input file consists of the following blocks:
 
-* General
-
-   Specifies general parameters that are used throughout the simulator code. The most important parameter is the *ProjectLocation* which defines the path where input- and output for the simulator run will be stored. The ProjectLocation also serves as the prefix to be used for relative paths used for other input paramaters.
-
-* ObservingParameters
-* Platform
-* Telescope
-* Camera
-* CCD
-* SubField
-* RandomSeeds
 
