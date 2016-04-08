@@ -171,6 +171,9 @@ Full path of the jitter file. This is only required if the jitter positions must
 
 @subsection telescopeParameters Telescope Parameters
 
+The <b>TelescopeParameters</b> block of the configuration file contains all the information that is specific to the telescope.  The structure of this block is the following:
+
+
 \code{.yaml}
 Telescope:
     
@@ -226,6 +229,86 @@ Standard deviation (expressed in arcsec / min) of the normal distribution (with 
 Timescale of the thermo-elastic drift, expressed in seconds.
 
 @subsection cameraParameters Camera Parameters
+
+The <b>CameraParameters</b> block of the configuration file contains all the information that is specific to the camera.  The structure of this block is the following:
+
+\code{.yaml}
+Camera:
+    
+    FocalPlaneOrientation:       0.0             
+    PlateScale:                  0.8333          
+    FocalLength:                 0.24712595      
+    ThroughputBandwidth:         400             
+    ThroughputLambdaC:           600             
+    IncludeFieldDistortion:      yes             
+    FieldDistortion:                             
+        Type:                    Polynomial1D
+        Degree:                  3
+        Coefficients:            [-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06]
+        InverseCoefficients:     [-0.00458067036444, 1.00110311283, -5.61136295937e-05, -4.311925329e-06]
+\endcode
+
+@subsubsection focalPlaneOrientation FocalPlaneOrientation
+
+<i>Allowed values:</i> any
+
+Orientation angle of the focal plane, expressed in degrees. For an angle of 0°, the y-axis of the CCD (with an orientation angle of 0°) points towards the North. A positive angle corresponds to a counterclockwise rotation. Have a look at Fig. 1 for more details.
+
+@subsubsection plateScale PlateScale
+
+<i>Allowed values:</i> > 0
+
+Nominal plate scale in arcsec / micron. This value affects the visible FOV of the CCD.
+
+@subsubsection focalLength FocalLength
+
+<i>Allowed values:</i> > 0
+
+Focal length as recovered from the Zemax model, expresse in m.
+
+@subsubsection throughputBandwidth ThroughputBandwidth
+
+<i>Allowed values:</i> > 0
+
+FWHM of the throughput passband, expressed in nm.
+
+@subsubsection throughputLambdaC ThroughputLambdaC
+
+<i>Allowed values:</i> > 0
+
+Central wavelength of the throughput passband, expressed in nm.
+
+@subsubsection includeFieldDistortion  IncludeFieldDistortion
+
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the field distortion must be taken into account.
+
+@subsubsection fieldDistortionType FieldDistortion: Type
+
+<i>Allowed values:</i> "Polynomial1D" or "Polynomial2D"
+
+Indicates that the field distortion is calculated by means of either a 1D or a 2D polynomial.
+
+A 1D polynomial of degrees \f$n\f$ can be written as 
+
+\f[P(x) = c_{0} + c_{1} \cdot x + c_{2} \cdot x^{2} + ... + c_{n} \cdot x^{n}\f]
+
+and a d polynomial as \f[P(x, y) = c_{00} + c_{10} \cdot x + ... + c_{n0} \cdot x^{n} + c_{01} \cdot y      + ... + c_{0n} \cdot y^{n} + c_{11} \cdot x \cdot y + c_{12} \cdot x \cdot y^{2}      + ... + c_{1(n - 1)} \cdot x \cdot y^{n - 1} + ... + c_{(n - 1)1} \cdot x^{n - 1} \cdot y \f]
+
+@subsubsection fieldDistortionDegree FieldDistortion: Degree
+
+<i>Allowed values:</i> > 0; for the 2D polynominal: ≤ 3
+
+Degree \f$n\f$ of the polynomial describing the field distortion.
+
+@subsubsection fieldDistortionCoefficients FieldDistortion: Coefficients
+
+Coefficients of the polynomial describing the field distortion.  For a 1D polynomial the coefficients are specified as \f$ [c_0, c_1,..., c_n] \f$, whilst for a 2D polynomial as \f$ [[c_{00}, c_{01},..., c_{0n}], [c_{10}, c_{11},..., c_{1n}],..., [c_{n0}, c_{n1},..., c_{nn}]] \f$.
+
+@subsubsection fieldDistortionInverseCoefficients FieldDistortion: InverseCoefficients
+
+Coefficients for inverse polynomial of the polynomial describing the field distortion.
 
 @subsection psfParameters PSF Parameters
 
