@@ -102,7 +102,7 @@ where the \f$\lambda\f$ subscript refers to the wavelength range in which the si
 
 @subsubsection skyBackground SkyBackground
 
-<i>Allowed values:</i> for automatic calculation, ≥ 0 to use the input value
+<i>Allowed values:</i> < 0 for automatic calculation, ≥ 0 to use the input value
 
 In case a positive value is given, the sky background (zodiacal + galactic), is set to the given value, expressed in photons \f$ \cdot \f$ s<sup>-1</sup> \f$ \cdot \f$ pixel<sup>-1</sup>.
 
@@ -115,7 +115,7 @@ Full path to the @ref starCatalogFile "star catalogue file".
 
 @subsection platformParameters Platform Parameters
 
-The <b>PlatformParameters</b> block of the configuration file contains all the information that is specific to the platform of the satellite.  The structure of this block is the following:
+The <b>Platform</b> block of the configuration file contains all the information that is specific to the platform of the satellite.  The structure of this block is the following:
 
 \code{.yaml}
 Platform:
@@ -171,7 +171,7 @@ Full path of the jitter file. This is only required if the jitter positions must
 
 @subsection telescopeParameters Telescope Parameters
 
-The <b>TelescopeParameters</b> block of the configuration file contains all the information that is specific to the telescope.  The structure of this block is the following:
+The <b>Telescope</b> block of the configuration file contains all the information that is specific to the telescope.  The structure of this block is the following:
 
 
 \code{.yaml}
@@ -230,7 +230,7 @@ Timescale of the thermo-elastic drift, expressed in seconds.
 
 @subsection cameraParameters Camera Parameters
 
-The <b>CameraParameters</b> block of the configuration file contains all the information that is specific to the camera.  The structure of this block is the following:
+The <b>Camera</b> block of the configuration file contains all the information that is specific to the camera.  The structure of this block is the following:
 
 \code{.yaml}
 Camera:
@@ -311,6 +311,66 @@ Coefficients of the polynomial describing the field distortion.  For a 1D polyno
 Coefficients for inverse polynomial of the polynomial describing the field distortion.
 
 @subsection psfParameters PSF Parameters
+
+The <b>PSF</b> block of the configuration file contains all the information that is specific to the telescope.  The structure of this block is the following:
+
+
+\code{.yaml}
+PSF:
+
+    Model:                       Gaussian 
+    Gaussian:                             
+      Sigma:                     0.25     
+      NumberOfPixels:            8        
+    FromFile:                             
+      Filename:                  inputfiles/psf.hdf5 
+      DistanceToOA:              10       
+      RotationAngle:             45         
+      NumberOfPixels:            8          
+\endcode
+
+@subsubsection  psfModel Model
+<i>Allowed values:</i> "Gaussian" and "FromFile"
+
+Indicates whether to use a Gaussian PSF or to read the PSF from an HDF5 file.
+
+@subsubsection  gaussSigma Gaussian: Sigma
+
+<i>Allowed values:</i> > 0, only required if a Gaussian PSF must be used (@ref psfModel = Gaussian).
+
+Width (σ) of the two-dimensional Gaussian PSF, expressed in pixels.
+
+@subsubsection  gaussNumPixels Gaussian: NumberOfPixels
+
+<i>Allowed values:</i> > 0, only required if a Gaussian PSF must be used (@ref psfModel = Gaussian).
+
+Number of pixels (in both directions) for which the Gaussian PSF must be generated.
+
+@subsubsection  psfFilename FromFile: Filename
+
+<i>Allowed values:</i> only required if a pre-computed PSF must be used (@ref psfModel = FromFile).
+
+Full path to the file holding the location independent @ref psfFile "pre-computed PSF".
+
+@subsubsection  psfDistance FromFile: DistanceToOA
+
+<i>Allowed values:</i> -1 for automatic calculation, ≥ 0 to use the input value; only required if a pre-computed PSF must be used (@ref psfModel = FromFile).
+
+In case a positive value is given the input value will be used for the angular distance to the optical axis.
+
+In case a negative value is given, the angular distance to the optical axis will be calculated automatically.
+
+@subsubsection  psfRotation FromFile: RotationAngle
+
+<i>Allowed values:</i> Any, only required if a pre-computed PSF must be used (@ref psfModel = FromFile).
+
+Arbitrary rotation angle of the PSF, expressed in degrees and measured counterclockwise.
+
+@subsubsection  psfNumPixels FromFile: NumberOfPixels
+
+<i>Allowed values:</i> > 0, only required if a pre-computed PSF must be used (@ref psfModel = FromFile).
+
+Number of pixels (in both directions) for which the PSF was generated.
 
 @subsection ccdParameters CCD Parameters
 
