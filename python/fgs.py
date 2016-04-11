@@ -65,8 +65,11 @@ for n in range(NguideStars):
     subfieldSizeY = 9     # row width [pixels]
 
     nominalCamera = False
+    includeFieldDistortion = False
 
     # This function sets the following configuration parameters:
+    # 
+    # Camera/FieldDistortion/IncludeFieldDistortion = True
     # 
     # CCD/OriginOffsetX
     # CCD/OriginOffsetY
@@ -83,7 +86,7 @@ for n in range(NguideStars):
     # 
     hasCcdCode = setSubfieldAroundCoordinates(sim, np.deg2rad(ra[n]), np.deg2rad(dec[n]), 
                                               subfieldSizeX, subfieldSizeY, focalLength, plateScale, pixelSize, \
-                                              raOpticalAxis, decOpticalAxis, focalPlaneAngle, nominalCamera)
+                                              raOpticalAxis, decOpticalAxis, focalPlaneAngle, includeFieldDistortion, nominalCamera)
 
     # If the star does not fall on a CCD, or is too close to the edge, skip it.
 
