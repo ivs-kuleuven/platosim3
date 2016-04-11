@@ -169,11 +169,18 @@ def planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm, focalLength):
 
 
 
+#-------------------------------------------------------------------------------
+## \brief      Convert polar coordinates to cartesian coordinates
+##
+## \param[in]  distance  distance from the pole (reference point) [mm]
+## \param[in]  angle     angle counter-clockwise from the x-axis [rad]
+##
+## \return     (xFPmm, yFPmm) Cartesian coordinates in the focal plane [mm]
+##
+def polarToPlanarFocalPlaneCoordinates(distance, angle):
 
-def radialToPlanarFocalPlaneCoordinates(radius, angle):
-
-    xFPmm = cos(angle) * radius;
-    yFPmm = sin(angle) * radius;
+    xFPmm = cos(angle) * distance
+    yFPmm = sin(angle) * distance
 
     return xFPmm, yFPmm
 
@@ -183,13 +190,78 @@ def radialToPlanarFocalPlaneCoordinates(radius, angle):
 
 
 
-
-def planarToRadialFocalPlaneCoordinates(xFPmm, yFPmm):
+#-------------------------------------------------------------------------------
+## \brief      Convert cartesian coordinates to polar coordinates
+##
+## \param[in]  xFPmm  x-axis cartesian coordinate in the focal plane [mm]
+## \param[in]  yFPmm  y-axis cartesian coordinate in the focal plane [mm]
+##
+## \return     (distance, angle) polar coordinates in the focal plane
+##
+def planarToPolarFocalPlaneCoordinates(xFPmm, yFPmm):
     
-    angle = arctan2(yFPmm, xFPmm);  # [radians]
-    radius = sqrt(xFPmm * xFPmm + yFPmm * yFPmm);
+    angle = arctan2(yFPmm, xFPmm)      # [radians]
+    distance = sqrt(xFPmm * xFPmm + yFPmm * yFPmm)
 
-    return radius, angle
+    return distance, angle
+
+
+
+
+
+
+
+
+
+#-------------------------------------------------------------------------------
+## \brief      Convert from planar to distorted focal plane coordinates
+##
+## \param[in]  xFPmm  Planar focal plane x-coordinate [mm]
+## \param[in]  yFPmm  Planar focal plane y-coordinate [mm]
+##
+## \return     (xFPdist, yFPdist) distorted x and y coordinates [mm]
+##
+def planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm):
+    P = Polynomial(FIELD_DISTORTION["Coeff"])
+
+    angle = arctan2(yFPmm, xFPmm)    # [radians]
+    
+    rFP = sqrt(xFPmm * xFPmm + yFPmm * yFPmm)
+    rFPdist = P(rFP)
+    
+    xFPdist = cos(angle) * rFPdist
+    yFPdist = sin(angle) * rFPdist
+    
+    return xFPdist, yFPdist
+
+
+
+
+
+
+
+
+
+
+## \brief      Convert from distorted to planar focal plane coordinates
+##
+## \param[in]  xFPdist  Distorted focal plane x-coordinate [mm]
+## \param[in]  yFPdist  DIstorted focal plane y-coordinate [mm]
+##
+## \return     (xFPmm, yFPmm) distorted x and y coordinates [mm]
+##
+def distortedToPlanarFocalPlaneCoordinates(xFPdist, yFPdist):
+    IP = Polynomial(FIELD_DISTORTION["InverseCoeff"])
+    
+    angle = atan2(yFPdist, xFPdist)  # [radians]
+    
+    rFP   = sqrt(xFPdist * xFPdist + yFPdist * yFPdist)
+    rFPmm = IP(rFP)
+    
+    xFPmm = cos(angle) * rFPmm
+    yFPmm = sin(angle) * rFPmm
+    
+    return xFPmm, yFPmm
 
 
 
@@ -667,16 +739,16 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
     PURPOSE: Given the equatorial coordinates of a star, find out on which CCD it falls ('A', 'B', ...)
              and compute the pixel coordinates of the star on this CCD.
 
-    INPUT: raStar:          right ascension of the star [rad]
-           decStar:         declination of the star [rad]      
-           raOpticalAxis:   right ascension of the optical axis [rad]
-           decOpticalAxis:  declination of the optical axis [rad]
-           focalPlaneAngle: angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
-           focalLength:     focal length of the telescope [m]
-           plateScale:      [arcsec/micron]
-           pixelSize:       [micrometer]
+    INPUT: raStar:                 right ascension of the star [rad]
+           decStar:                declination of the star [rad]      
+           raOpticalAxis:          right ascension of the optical axis [rad]
+           decOpticalAxis:         declination of the optical axis [rad]
+           focalPlaneAngle:        angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
+           focalLength:            focal length of the telescope [m]
+           plateScale:             [arcsec/micron]
+           pixelSize:              [micrometer]
            includeFieldDistortion: True to include field distortion in coordinate transformations, false otherwise
-           nominal:         True for the nominal camera configuration, False for the fast cameras
+           nominal:                True for the nominal camera configuration, False for the fast cameras
 
     OUTPUT: ccdCode: for nominal camera: either 'A', 'B', 'C', or 'D'
                      for fast camer: either 'AF', 'BF', 'CF', 'DF'
@@ -805,7 +877,7 @@ def calculateSubfieldAroundRadiusFromOpticalAxis(sim, radius, orientation):
     pixelSize = sim["CCD/PixelSize"]
     focalLength = sim["Camera/FocalLength"] * 1000.0  # [m] -> [mm]
 
-    xFPmm, yFPmm = radialToPlanarFocalPlaneCoordinates(radius, orientation)
+    xFPmm, yFPmm = polarToPlanarFocalPlaneCoordinates(radius, orientation)
     xFPrad, yFPrad = planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm, focalLength)
     raStar, decStar = angularFocalPlaneToSkyCoordinates(xFPrad, yFPrad, raOpticalAxis, decOpticalAxis, focalPlaneAngle)
 
@@ -829,18 +901,18 @@ def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldS
     PURPOSE: Calculates the location of the subfield such that the star with coordinates (raStar, decStar)
              is centered in the subfield.
 
-    INPUTS:  raStar:          right ascension [rad]
-             decStar:         declination [rad]
-             subfieldSizeX:   full width (# of columns) of the subfield [pix]
-             subfieldSizeY:   full height (#of rows) of the subfield [pix]
-             focalLength:     focal length of the telescope [m]
-             plateScale:      [arcsec/micron]
-             pixelSize:       [micrometer]
-             raOpticalAxis:   right ascension of the optical axis [rad]
-             decOpticalAxis:  declination of the optical axis [rad]
-             focalPlaneAngle: angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
+    INPUTS:  raStar:                 right ascension [rad]
+             decStar:                declination [rad]
+             subfieldSizeX:          full width (# of columns) of the subfield [pix]
+             subfieldSizeY:          full height (#of rows) of the subfield [pix]
+             focalLength:            focal length of the telescope [m]
+             plateScale:             [arcsec/micron]
+             pixelSize:              [micrometer]
+             raOpticalAxis:          right ascension of the optical axis [rad]
+             decOpticalAxis:         declination of the optical axis [rad]
+             focalPlaneAngle:        angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
              includeFieldDistortion: True to include field distortion in coordinate transformations, false otherwise
-             nominal:         True for the nominal camera configuration, False for the fast cameras
+             nominal:                True for the nominal camera configuration, False for the fast cameras
 
     OUTPUTS: ccdCode: "A", "B", "C" or "D" if nominal=True, "AF", "BF", "CF" or "DF" otherwise
              xCCDpix: x-coordinate of the star in pixels (i.e. column number)
