@@ -40,7 +40,11 @@ After you have downloaded the Plato Simulator code, you must first take care of 
 To be able to install the dependencies and build the code, the following software must be installed on your computer:
 
 * Python: for the installation of the dependencies
+* gcc v5.1 or more recent, or clang v3.3 or more recent
 *  <a href="https://cmake.org/">CMake</a>: cross-platform open-source build system to control the software compilation process (using simple platform and compiler independent configuration files)
+* <a href="http://www.openblas.net">BLAS</a> and <a href = "http://www.netlib.org/lapack/">LAPACK</a>. Without these, the simulator will likely be slower. These libraries    come pre-installed on Mac OS X (so Mac users do not have to do anything). Many Linux distributions also standardly have these libraries installed, or offer a package manager to easily install them.
+        
+        
 
 
 <!-- Dependencies -->
@@ -82,6 +86,66 @@ make -j 4
 This will create two executables :
 * <code>platosim</code> to run simulations (see below)
 * and <code>testplatosim</code> to run the test harnesses (without arguments).
+
+<!-- Accessing the Output -->
+
+PlatoSim3 writes its output to an HDF5 file. HDF stands for Hierarchical Data Format, and is a next generation file format that was specifically designed to store and organise large amounts of data.
+
+HDF5 behaves much likes a Unix-like folder structure, but where folders are called groups.  Each group can contain other groups, array datasets, and scalar attributes. For example, the first subfield image is located in <code>/Images/image000000</code> in the HDF5 file.
+
+To quickly list the contents of the group structure of an HDF5 file on the command line, make sure that your PATH environment variable includes <code>dependencies/Installs/hdf5-1.8.16/bin/</code>, so that you can execute
+
+\code
+$ h5ls myOutputfile.hdf5
+\endcode
+
+or e.g.
+
+\code
+$ h5ls myOutputfile.hdf5/StarCatalog
+\endcode
+
+@subsubsection python Python
+
+For Python users, we provided a <code>simfile.py</code> module in the <code>/python</code> folder, with convenient tools to extract and plot the Simulator output. For example, one can plot a subfield image using
+
+\code{.py}
+from simfile import *
+myFile = SimFile("myOutputfile.hdf5")
+myFile.showImage(0)
+\endcode
+
+The top of <code>simfile.py</code> contains documentation with several examples.
+
+
+You can also access the HDF5 file using the <code>pytables</code> module. For example (using the latest version of <code>PyTables</code>):
+
+\code{.py}
+import tables as tbl
+myFile = tbl.open_file("myOutputfile.hdf5", "r")
+image = myFile.root.Images.image000000
+imshow(image, interpolation="nearest", origin="lower")
+myFile.root.InputParameters.CCD._v_attrs
+...
+print(myFile.root.InputParameters.CCD._v_attrs.Gain)
+\endcode
+
+
+@subsubsection idl IDL
+IDL user can access the HDF5 file using, for example, 
+
+\code{.idl}
+path = FILEPATH(“Simul01.hdf5")
+file = H5F_OPEN(path)
+contents = H5_PARSE(path)
+help, contents, /STRUCTURE
+...
+help, contents.Images, /STRUCTURE
+...
+dataset = H5D_OPEN(file,'/Images/image000000') 
+image = H5D_READ(dataset)
+print, size(image)
+\endcode
 
 
 
