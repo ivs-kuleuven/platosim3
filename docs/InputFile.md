@@ -659,4 +659,15 @@ The simulator will automatically select the PSF for which the angular distance t
 
 @section jitterFile Jitter File (Optional)
 
+If required (@ref useJitterFromFile = "yes"), a jitter time series must be provided in a file in ASCII format. This file should contain four columns, separated by a space, holding the following information:
+
+* time [s]
+* yaw [arsec]
+* pitch [arcsec]
+* roll [arcsec]
+
+The path of this file, relative to the @ref projectLocation "project location", must be provided via the @ref jitterFilename parameter in the configuration file.
+
+To ensure a realistic modelling of the jitter, the time step in the jitter time series must be smaller than the @ref exposureTime "exposure time".
+
 
