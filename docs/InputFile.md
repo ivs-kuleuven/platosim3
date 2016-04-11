@@ -644,6 +644,13 @@ Seed for the random number generator used for the drift.
 
 @section starCatalogue Star Catalogue
 
+A star catalogue must be provided in a file in ASCII format. This file should contain three columns, separated by a space, holding the following information:
+* right ascension of the stars [degrees]
+* declination of the stars [degrees]
+* stellar magnitude
+
+The full path of this file must be provided via the @ref starCatalogFile parameter in the configuration file (under observing parameters). 
+
 @section psfFile PSF File (Optional)
 
 @section jitterFile Jitter File (Optional)
