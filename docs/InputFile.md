@@ -498,6 +498,55 @@ Because of detector defects, electrons can get trapped in the readout process. T
 
 The charge trails impact photometry, noise, and astrometry of sources. CTI removes flux from the central pixel and thus degrades the expected S/N for an observation. CTI trails bias measurements of source along the trail direction, which can severely impact high-precision astrometry.
 
+@subsubsection inclFlatfield IncludeFlatfield
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to include the flatfield.
+
+@subsubsection inclPhotonNoise IncludePhotonNoise
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to include photon noise.
+
+@subsubsection inclReadoutNoise IncludeReadoutNoise
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to include readout noise.
+
+@subsubsection inclCTI IncludeCTIeffects
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to include CTI effects.
+
+@subsubsection inclOpenShutterSmearing IncludeOpenShutterSmearing
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to include open-shutter smearing effects.
+
+@subsubsection inclVignetting IncludeVignetting          
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to include brightness attenuation towards the edge of the FOV due to vignetting.
+        
+@subsubsection inclConvolution IncludeConvolution
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the sub-pixel map must be convolved with the PSF.
+
+@subsubsection inclFullWellSaturation IncludeFullWellSaturation
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to apply full-well saturation.
+
+@subsubsection inclDigitalSaturation IncludeDigitalSaturation
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to apply digital saturation.
+
+@subsubsection writeSubPixelImages WriteSubPixelImagesToHDF5
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the sub-pixel images must be written to the HDF5-file.  Use this for a limited number of exposures, as it takes a lot of space.
 
 @subsection subFieldParameters Sub-Field Parameters
 
