@@ -550,7 +550,97 @@ Indicates whether or not the sub-pixel images must be written to the HDF5-file. 
 
 @subsection subFieldParameters Sub-Field Parameters
 
+The <b>SubField</b> block of the configuration file contains all the information about the sub-field of the CCD that is modelled by the simulation.  The structure of this block is the following:
+
+\code{.yaml}
+SubField:    
+
+    ZeroPointRow:                0
+    ZeroPointColumn:             0
+    NumColumns:                  10
+    NumRows:                     10
+    NumBiasPrescanRows:          5
+    NumSmearingOverscanRows:     5
+    SubPixels:                   4
+\endcode
+
+@subsubsection zeroPointRow ZeroPointRow
+<i>Allowed values:</i> > 0
+
+Row of the origin of the sub-field in the detector, expressed in pixels.
+
+@subsubsection zeroPointColumn ZeroPointColumn
+<i>Allowed values:</i> > 0
+
+Column of the origin of the sub-field in the detector, expressed in pixels.
+
+@subsubsection  numColumns NumColumns
+<i>Allowed values:</i> ≥ 8
+
+Number of columns in the sub-field, expressed in pixels.
+
+@subsubsection numRows NumRows
+<i>Allowed values:</i> ≥ 8
+
+Number of rows in the sub-field, expressed in pixels.
+
+@subsubsection  numPreScanRows NumBiasPrescanRows
+<i>Allowed values:</i> ≥ 0
+
+Number of rows in the pre-scan strip (to determine the bias), expressed in pixels.
+
+@subsubsection numOverScanRows NumSmearingOverscanRows
+<i>Allowed values:</i> ≥ 0
+
+Number of rows in the over-scan strip (to determine the smearing), expressed in pixels.
+
+@ubsubsection numSubPixels SubPixels
+<i>Allowed values:</i> power of 2 (≤ 128)
+
+Number of sub-pixels per pixel in both directions.
+
 @subsection seedParameters Seed Parameters
+
+The <b>RandomSeeds</b> block of the configuration file contains all the seeds for random-number generation in the simulator.  The structure of this block is the following:
+
+\code{.yaml}
+    ReadOutNoiseSeed:            1424949740 
+    PhotonNoiseSeed:             1433320336 
+    JitterSeed:                  1433320381 
+    FlatFieldSeed:               1425284070 
+    CTESeed:                     1424949740 
+    DriftSeed:                   1433429158 
+\endcode
+
+@subsubsection ReadOutNoiseSeed
+<i>Allowed values:</i> > 0
+
+Seed for the random-number generator used for the readout noise.
+
+@subsubsection PhotonNoiseSeed
+<i>Allowed values:</i> > 0
+
+Seed for the random-number generator used for the photon noise.
+
+@subsubsection JitterSeed
+<i>Allowed values:</i> > 0
+
+Seed for the random-number generator used for the jitter.
+
+@subsubsection FlatFieldSeed
+<i>Allowed values:</i> > 0
+
+Seed for the random-number generator used for the flatfield.
+
+@subsubsection CTESeed
+<i>Allowed values:</i> > 0
+
+Seed for the random-number generator used for the CTE.
+
+@subsubsection DriftSeed
+<i>Allowed values:</i> > 0
+
+Seed for the random number generator used for the drift.
 
 @section starCatalogue Star Catalogue
 
