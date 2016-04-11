@@ -649,9 +649,13 @@ A star catalogue must be provided in a file in ASCII format. This file should co
 * declination of the stars [degrees]
 * stellar magnitude
 
-The full path of this file must be provided via the @ref starCatalogFile parameter in the configuration file (under observing parameters). 
+The path of this file, relative to the @ref projectLocation "project location", must be provided via the @ref starCatalogFile parameter in the configuration file (under observing parameters). 
 
 @section psfFile PSF File (Optional)
+
+Unless you indicate you want to generate a Gaussian PSF, pre-computed normalised PSFs must be provided in the form of an HDF5-file (@ref useGauss = 0). The path of this file, relative to the @ref projectLocation "project location", is specified via the @ref psfFilename parameter.
+
+The simulator will automatically select the PSF for which the angular distance to the optical axis matches best for the simulated sub-field.
 
 @section jitterFile Jitter File (Optional)
 
