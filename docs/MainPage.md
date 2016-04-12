@@ -159,7 +159,7 @@ After the installation of the software, the Plato Simulator can be run from the 
 To initiate a simulation, <code>cd</code> to the <code>/build</code> directory and type:
 
 \code
-./platosim < input file > <output file> [<log file>]
+./platosim <input file> <output file> [<log file>]
 \endcode
 
 The structure of the input file and the meaning of the individual configuration parameters are described @ref docs/InputFile.md "here".
