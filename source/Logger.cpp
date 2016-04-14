@@ -58,8 +58,18 @@ void Logger::addOutputStream(ostream &outputStream, LogLevel logLevel)
 
 void Logger::emit(string message, LogLevel logLevel)
 {
+    // Get the current time [clock ticks]
+
     auto currentTime = chrono::system_clock::to_time_t(chrono::system_clock::now());
-    const char* timeFormat = "%Y-%m-%d %H:%M:%S";
+    
+    // Convert this into the date and time in the local time zone
+
+    struct tm *localDateAndTime = localtime(&currentTime);
+    
+    // Format the result in a time stamp containing date and time
+
+    char timeStamp[80];
+    strftime(timeStamp, 80, "%F %T", localDateAndTime);
 
 	if (outputStreams.size() != 0)
 	{
@@ -67,7 +77,7 @@ void Logger::emit(string message, LogLevel logLevel)
     	{
     		if (outputStreamLogLevel[n] & logLevel & enabledLogLevels)
     		{
-                *outputStreams[n] << put_time(localtime(&currentTime), timeFormat);
+                *outputStreams[n] << timeStamp;
                 *outputStreams[n] << " " << setw(7) << left << logLevelName[logLevel];
                 *outputStreams[n] << " " << message << endl;
                 (*outputStreams[n]).flush();
