@@ -60,6 +60,7 @@ folder of PlatoSim3. For example, you can put in your .bash_profile the followin
 PLATO_PROJECT_HOME="/home/john/plato/PlatoSim3"
 export PLATO_PROJECT_HOME
 
+Note that you have to use an absolute path, so not "~/plato/PlatoSim3".
 
 The second argument of platosim on the command line is the name of the (non-existing!) HDF5 file 
 to which all simulation output is written. Apart from this HDF5 file, the simulator also writes 
