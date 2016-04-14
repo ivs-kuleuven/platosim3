@@ -48,8 +48,9 @@ $ cd build
 $ ./platosim ../inputfiles/myInputfile.yaml myOutputfile.hdf5 myLogFile.txt
 
 The first argument is the simulation configuration input file, of which you can find an
-example 'inputfile.yaml' in the folder inputfiles/. You can copy this configuration file
-and adapt it to your needs. Note that this input file contains the line:
+example 'inputfile.yaml' in the folder inputfiles/. You can (and are adivsed to) copy 
+this configuration file to a new file, and adapt the latter to your needs. 
+Note that this input file contains the line:
 
 ProjectLocation:         ENV['PLATO_PROJECT_HOME']
 
@@ -62,7 +63,20 @@ export PLATO_PROJECT_HOME
 
 The second argument of platosim on the command line is the name of the (non-existing!) HDF5 file 
 to which all simulation output is written. Apart from this HDF5 file, the simulator also writes 
-logging statements to a log file.
+logging statements to a log file. 
+
+If you want to use realistic PSF models instead of a Gaussian, you can download 
+
+ftp://ftp.ster.kuleuven.be/dist/joris/plato/platosim/psf.hdf5
+
+into the folder inputfiles/, and configure the PSF section in the yaml input file:
+
+    Model:                         FromFile 
+    FromFile:              
+        Filename:                  inputfiles/psf.hdf5 
+        DistanceToOA:              -1  
+        RotationAngle:             -1  
+        NumberOfPixels:             8 
 
 
 
