@@ -8,7 +8,7 @@ General:
 
 ObservingParameters:
 
-    NumExposures:                40              # Number of expsosures
+    NumExposures:                10              # Number of expsosures
     ExposureTime:                23              # [s]
     RApointing:                  180             # Platform (not telescope) right ascension pointing coordinate  [deg] 
     DecPointing:                 -70             # Platform (not telescope) declination pointing coordinate      [deg]
@@ -57,12 +57,12 @@ PSF:
 
     Model:                       Gaussian        # Select the model to be used for the PSF [Gaussian, FromFile]
     Gaussian:                                    # Generate the PSF from a 2D Gaussian function
-      Sigma:                     0.25            # Standard deviation of Gaussian PSF [pixels]
+      Sigma:                     0.50            # Standard deviation of Gaussian PSF [pixels]
       NumberOfPixels:            8               # The number of pixels in the field for which the PSF is generated
     FromFile:                                    # Read a pre-calculated PSF from an HDF5 file
       Filename:                  inputfiles/psf.hdf5 
-      DistanceToOA:              10              # The angular distance to the optical axis. -1 to auto-compute. [deg]
-      RotationAngle:             45              # PSF rotation angle w.r.t the x-axis of the focal plane. -1 to auto-compute. [deg]
+      DistanceToOA:              -1              # The angular distance to the optical axis. -1 to auto-compute. [deg]
+      RotationAngle:             -1              # PSF rotation angle w.r.t the x-axis of the focal plane. -1 to auto-compute. [deg]
       NumberOfPixels:            8               # The number of pixels in the field for which the PSF is generated
 
 
@@ -83,7 +83,7 @@ CCD:
     ReadoutTime:                 2               # time to read out entire CCD [s]
     FlatfieldPtPNoise:           0.016           # peak-to-peak pixel noise
     CTEMean:                     0.99999         # Mean Charge Transfer Efficiency
-    IncludeFlatfield:            no              # Include flatfield [yes or no]
+    IncludeFlatfield:            yes              # Include flatfield [yes or no]
     IncludePhotonNoise:          yes             # Include photon noise [yes or no]
     IncludeReadoutNoise:         yes             # Include readout noise [yes or no]
     IncludeCTIeffects:           yes             # Include charge transfer inefficiency effects [yes or no]
@@ -98,11 +98,11 @@ SubField:
 
     ZeroPointRow:                0               # Row of the (0,0) pixel of the subfield [pixels]
     ZeroPointColumn:             0               # Column of the (0,0) pixel of the subfield [pixels]
-    NumColumns:                  10              # Number of columns, should be >= 8 [pixels]
-    NumRows:                     10              # Number of rows,    should be >= 8 [pixels]
+    NumColumns:                  100              # Number of columns, should be >= 8 [pixels]
+    NumRows:                     100              # Number of rows,    should be >= 8 [pixels]
     NumBiasPrescanRows:          5               # Nr of rows of the prescan strip to determine the bias [pixels]
     NumSmearingOverscanRows:     5               # Nr of rows of the overscan strip to determine the smearing [pixels]
-    SubPixels:                   4               # (Sqrt of ) nr of subpixels per CCD pixel. Should be 2^n <= 128.
+    SubPixels:                   8               # (Sqrt of ) nr of subpixels per CCD pixel. Should be 2^n <= 128.
 
 
 RandomSeeds:
