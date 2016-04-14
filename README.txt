@@ -48,8 +48,9 @@ $ cd build
 $ ./platosim ../inputfiles/myInputfile.yaml myOutputfile.hdf5 myLogFile.txt
 
 The first argument is the simulation configuration input file, of which you can find an
-example 'inputfile.yaml' in the folder inputfiles/. You can copy this configuration file
-and adapt it to your needs. Note that this input file contains the line:
+example 'inputfile.yaml' in the folder inputfiles/. You can (and are adivsed to) copy 
+this configuration file to a new file, and adapt the latter to your needs. 
+Note that this input file contains the line:
 
 ProjectLocation:         ENV['PLATO_PROJECT_HOME']
 
