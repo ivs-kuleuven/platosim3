@@ -10,7 +10,7 @@ dependencies/Installs/*
 # Un-ignore some of the default input files in the inputfiles/ folder
 
 !inputfiles/inputfile.yaml
-!inputfiles/starcatalog.txt
+!starField_RA180Dec-70.txt
 
 # Compiled source 
 
