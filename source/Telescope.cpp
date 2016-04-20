@@ -377,8 +377,13 @@ pair<double, double> Telescope::platformToTelescopePointingCoordinates(double al
     // Compute the equatorial sky coordinates [rad] from the cartesian coordinates.
 
     const double norm = sqrt(zOA(0)*zOA(0) + zOA(1)*zOA(1) + zOA(2)*zOA(2));    // should be 1.0
-    const double deltaOpticalAxis = Constants::PI/2.0 - acos(zOA(2)/norm);
-    const double alphaOpticalAxis = atan2(zOA(1), zOA(0));
+    double deltaOpticalAxis = Constants::PI/2.0 - acos(zOA(2)/norm);
+    double alphaOpticalAxis = atan2(zOA(1), zOA(0));
+
+    if (alphaOpticalAxis < 0.0)
+    {
+        alphaOpticalAxis += 2.0 * Constants::PI;
+    }
 
     // That's it!
 
