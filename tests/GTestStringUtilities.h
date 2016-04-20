@@ -38,38 +38,37 @@ TEST(StringUtilitiesTest, dtos)
 }
 
 
-
-
-
-
-
-TEST(StringUtilitiesTest, environment)
+TEST(StringUtilitiesTest, replaceEnvironmentVariable)
 {
     using StringUtilities::replaceEnvironmentVariable;
 
     LOG_STARTING_OF_TEST
 
-    // Test what happends when no pattern is in the inputString
+    // if no ENV['var'] pattern, the string should just be returned
 
-    string str = "Nothing here to replace";
-    EXPECT_EQ("Nothing here to replace", replaceEnvironmentVariable(str));
+    EXPECT_EQ("ABC__XYZ__DEF", replaceEnvironmentVariable("ABC__XYZ__DEF"));
 
-    // Test what happens when the environment variable is not set/known
+    // no environment variable __XYZ__ should exist at this point
 
-    str = "ENV['UNKNOWN_ENV']";
-    EXPECT_EQ("ENV['UNKNOWN_ENV']", replaceEnvironmentVariable(str));
+    EXPECT_EQ("ABCENV['__XYZ__']DEF", replaceEnvironmentVariable("ABCENV['__XYZ__']DEF"));
 
-    // Make sure the environment variable is known to the tests
+    // Make sure the environment variable __XYZ__ is known to the tests
 
-    setenv("PLATOSIM_PROJECT_HOME", "/Users/rik/Git/PlatoSim3", 1);
+    setenv("__XYZ__", "+++QWERTY+++", 1);
 
-    // Check that the pattern is properly replaced
+    string str = "ENV['__XYZ__']";
+    EXPECT_EQ("+++QWERTY+++", replaceEnvironmentVariable(str));
 
-    str = "ENV['PLATOSIM_PROJECT_HOME']";
-    EXPECT_EQ("/Users/rik/Git/PlatoSim3", replaceEnvironmentVariable(str));
+    str = "ABCENV['__XYZ__']DEF";
+    EXPECT_EQ("ABC+++QWERTY+++DEF", replaceEnvironmentVariable(str));
 
-    str = "ENV['PLATOSIM_PROJECT_HOME']/inputfiles";
-    EXPECT_EQ("/Users/rik/Git/PlatoSim3/inputfiles", replaceEnvironmentVariable(str));
+    str = "ENVENV['__XYZ__']ENV";
+    EXPECT_EQ("ENV+++QWERTY+++ENV", replaceEnvironmentVariable(str));
+
+    // Test the condition that ENV['var'] pattern is not complete (e.g. typo!)
+ 
+    str = "ENVENV['__XYZ__'}";
+    EXPECT_EQ(str, replaceEnvironmentVariable(str));
 
 }
 
