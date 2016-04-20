@@ -1477,7 +1477,7 @@ TEST_F(DetectorTest, applyOpenShutterSmearing)
 	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
 	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
 
-	double expectedNoise = subField(0, 2) / numRowsDetector * readoutTime / exposureTime;
+	double expectedNoise = subField(0, 2) / numRowsSubField * readoutTime / exposureTime;
 
 	EXPECT_TRUE(expectedNoise != 0.0);
 
