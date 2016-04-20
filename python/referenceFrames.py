@@ -858,6 +858,101 @@ def getSkyCoordinates(ccdCode, xCCDpix, yCCDpix, plateScale, pixelSize, raOptica
 
 
 
+def platformToTelescopePointingCoordinates(alphaPlatform, deltaPlatform, azimuthAngle, tiltAngle):
+
+    """
+    PURPOSE: Given the platform pointing coordinates (i.e. the sky coordinates of the jitter axis)
+             and the orientation of the telescope on the platform, compute the sky coordinates of
+             the optical axis of the telescope.
+             See also: PLATO-KUL-PL-TN-001
+
+    INPUT: alphaPlatform:  Right Ascension of the Platform pointing axis [rad]
+           deltaPlatform:  Declination of the platfor pointing axis [rad]
+           azimuthAngle:   azimuth of the telescope on the platform [rad]
+           tiltAngle:      tilt angle between platform and telescope pointing axes [rad]
+
+    OUTPUT: alphaTelescope: right ascension of the optical axis of the telescope [rad]
+            deltaTelescope: declination of the optical axis of the telescope [rad]
+
+    """
+
+    # Specify the coordinates in the equatorial reference frame of the unit vector zSC,
+    # corresponding to the jitter (Z) axis of the SpaceCraft
+
+    zSC = array([cos(alphaPlatform)*cos(deltaPlatform), sin(alphaPlatform)*cos(deltaPlatform), sin(deltaPlatform)])
+
+    # Construct the rotation matrix for a rotation around the zSC axis over the azimuth angle
+    # {ux, uy, uz} is short-hand notation.
+
+    ux = zSC[0]
+    uy = zSC[1]
+    uz = zSC[2]
+
+    cosAngle = cos(azimuthAngle)
+    sinAngle = sin(azimuthAngle)
+
+    rotAzimuth = array([[cosAngle+ux*ux*(1-cosAngle),    ux*uy*(1-cosAngle)-uz*sinAngle, ux*uz*(1-cosAngle)+uy*sinAngle], \
+                        [uy*ux*(1-cosAngle)+uz*sinAngle, cosAngle+uy*uy*(1-cosAngle),    uy*uz*(1-cosAngle)-ux*sinAngle], \
+                        [uz*ux*(1-cosAngle)-uy*sinAngle, uz*uy*(1-cosAngle)+ux*sinAngle, cosAngle+uz*uz*(1-cosAngle)]])
+
+
+    # The goal of the rotZ rotation matrix is to rotate the ySC unit vector (corresponding to the y-axis in 
+    # the spacecraft reference frame) in the azimuth direction of the telescope. Rather than using ySC, we use
+    # another reference vector yRef as defined below. y0 is perpendicular to zSC, and has the advantage that the 
+    # exact orientation of the spacecraft (i.e. in which direction the sunshield is pointing) is not needed.
+
+    yRef = array([-sin(alphaPlatform), cos(alphaPlatform), 0.0])
+
+    # Rotate this reference vector
+    # Note: numpy.matrix uses algebraic multiplication.
+
+    yAzimuth = dot(rotAzimuth, yRef)
+
+    # Next, construct the rotation matrix for a rotation around the yAzimuth vector over the tilt angle
+    # of the telescope. The tilt angle is the angle between the optical axis of the telescope and the
+    # the jitter Z-axis of the platform.
+
+    ux = yAzimuth[0]
+    uy = yAzimuth[1]
+    uz = yAzimuth[2]
+
+    cosAngle = cos(tiltAngle)
+    sinAngle = sin(tiltAngle)    
+
+    rotTilt = array([[cosAngle+ux*ux*(1-cosAngle),    ux*uy*(1-cosAngle)-uz*sinAngle, ux*uz*(1-cosAngle)+uy*sinAngle], \
+                     [uy*ux*(1-cosAngle)+uz*sinAngle, cosAngle+uy*uy*(1-cosAngle),    uy*uz*(1-cosAngle)-ux*sinAngle], \
+                     [uz*ux*(1-cosAngle)-uy*sinAngle, uz*uy*(1-cosAngle)+ux*sinAngle, cosAngle+uz*uz*(1-cosAngle)]])
+
+
+    # Compute the unit vector zOA in the direction of the telescope's optical axis
+
+    zOA = dot(rotTilt, zSC);
+
+
+    # zOA now contains the cartesian coordinates of the optical axis in the equatorial reference frame. 
+    # Compute the equatorial sky coordinates [rad] from the cartesian coordinates.
+
+    norm = sqrt(zOA[0]*zOA[0]+zOA[1]*zOA[1]+zOA[2]*zOA[2])
+
+    deltaTelescope = pi/2.0 - arccos(zOA[2]/norm)
+    alphaTelescope = arctan2(zOA[1], zOA[0])
+    if (alphaTelescope < 0.0): alphaTelescope += 2.0 * pi
+
+    return alphaTelescope, deltaTelescope
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 def calculateSubfieldAroundRadiusFromOpticalAxis(sim, radius, orientation):
     """
