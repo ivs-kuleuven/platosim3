@@ -39,6 +39,8 @@ class Telescope  : public Heartbeat, HDF5Writer
 
 	protected:
 
+		double azimuthAngle;                 // Azimuth angle of telescope on platform       [rad]
+		double tiltAngle;                    // Tilt angle of telescope on platform          [rad]
 		double currentAlphaOpticalAxis;      // Current right ascension of the optical axis  [rad]
 		double currentDeltaOpticalAxis;      // Current declination of the optical axis      [rad]
 		double FOVsolidAngle;                // Solid angle of FOV of 1 telescope            [sr]
