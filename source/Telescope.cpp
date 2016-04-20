@@ -255,29 +255,6 @@ pair<double, double> Telescope::platformToTelescopePointingCoordinates(double al
 
 
 
-/**
- * \brief  Compute the cartesian coordinates of a point w.r.t. focal plane reference frame, given the cartesian
- *         coordinates in the spacecraft reference system.
- *         
- * \details See technical note PLATO-KUL-PL-TN-001 (De Ridder et al.)
- * 
- * \param xSC  X-coordinate in the spacecraft reference frame
- * \param ySC  Y-coordinate in the spacecraft reference frame
- * \param zSC  Z-coordinate in the spacecraft reference frame
- * \return (xFP, yFP, zFP)  Cartesian coordinates in the Focal Plane (NOT xFPprime, yFPprime, zFPprime) 
- */
-
-tuple<double, double, double> Telescope::spacecraftToFocalPlaneCoordinates(const double xSC, const double ySC, const double zSC)
-{
-    // Currently the spacecraft frame equals the focal plane reference frame
-    // => jitter axis = optical axis
-
-    const double xFP = xSC;
-    const double yFP = ySC;
-    const double zFP = zSC;
-
-    return make_tuple(xFP, yFP, zFP);
-}
 
 
 
@@ -289,27 +266,7 @@ tuple<double, double, double> Telescope::spacecraftToFocalPlaneCoordinates(const
 
 
 
-/**
- * \brief  Compute the cartesian coordinates of a point w.r.t. spacecraft reference frame, given the cartesian
- *         coordinates in the focal plane reference system.
- *         
- * \details See technical note PLATO-KUL-PL-TN-001 (De Ridder et al.)
- * 
- * \param xFP  X-coordinate in the spacecraft reference frame  (not xFPprime)
- * \param yFP  Y-coordinate in the spacecraft reference frame  (not yFPprime)
- * \param zFP  Z-coordinate in the spacecraft reference frame  (not zFPprime)
- * \return (xSC, ySC, zSC)  Cartesian coordinates in the Focal Plane reference frame.
- */
 
-tuple<double, double, double> Telescope::focalPlaneToSpacecraftCoordinates(const double xFP, const double yFP, const double zFP)
-{
-    // Currently the spacecraft frame equals the focal plane reference frame
-    // => jitter axis = optical axis
 
-    const double xSC = xFP;
-    const double ySC = yFP;
-    const double zSC = zFP;
 
-    return make_tuple(xSC, ySC, zSC);
-}
 
