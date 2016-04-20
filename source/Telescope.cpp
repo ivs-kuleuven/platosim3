@@ -12,6 +12,10 @@
 Telescope::Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File, Platform &platform)
 : HDF5Writer(hdf5File), azimuthAngle(0.0), tiltAngle(0.0), internalTime(0.0), platform(platform)
 {
+    // Initialise the HDF5 group(s) in the output file
+
+    initHDF5Groups();
+
 	// Retrieve the Telescope configuration parameters
 
 	configure(configParams);
@@ -53,7 +57,7 @@ Telescope::Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File, 
 
 Telescope::~Telescope()
 {
-
+    flushOutput();
 }
 
 
@@ -87,6 +91,62 @@ Telescope::~Telescope()
     driftRollRms            = deg2rad(configParams.getDouble("Telescope/DriftRollRms") /3600.);    // [s]        
     driftTimeScale          = configParams.getDouble("Telescope/DriftTimeScale");    
 }
+
+
+
+
+
+
+
+
+/**
+ * \brief Creates the group(s) in the HDF5 file where the Telescope pointing information
+ *        will be stored. These group(s) have to be created once, at the very beginning.
+ */
+
+void Telescope::initHDF5Groups()
+{
+    Log.debug("Telescope: initialising HDF5 groups");
+
+    hdf5File.createGroup("/Telescope");
+}
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Write all recorded information to the HDF5 output file
+ */
+
+void Telescope::flushOutput()
+{
+    Log.info("Telescope: Flushing output to HDf5 file.");
+
+    if ( ! hdf5File.hasGroup("Telescope") )
+    {
+        Log.warning("Telescope::flushOutput: HDF5 file has no Telescope group, cannot flush Telescope information.");
+        return;
+    }
+    
+
+     if (!historyTime.empty())
+     {
+        hdf5File.writeArray("/Telescope/", "Time",         historyTime.data(),  historyTime.size());
+        hdf5File.writeArray("/Telescope/", "TelescopeRA",  historyRA.data(),    historyRA.size());
+        hdf5File.writeArray("/Telescope/", "TelescopeDec", historyDec.data(),   historyDec.size());
+     }
+     else
+     {
+        Log.warning("Telescope: No telescope pointing history to flush to HDF5 file.");
+     }
+}
+
+
 
 
 
@@ -144,6 +204,13 @@ void Telescope::updatePointingCoordinates(double time)
     Log.info("Telescope: At time " + to_string(time) + ": (RA, dec) = (" 
                                    + to_string(rad2deg(currentAlphaOpticalAxis)) + ", " 
                                    + to_string(rad2deg(currentDeltaOpticalAxis)) + ")");
+
+
+    // Save the pointing values to write to HDF5
+
+    historyTime.push_back(time);
+    historyRA.push_back(rad2deg(currentAlphaOpticalAxis));
+    historyDec.push_back(rad2deg(currentDeltaOpticalAxis));
 
     // Update the internal clock
 
