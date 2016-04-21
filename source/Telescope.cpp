@@ -181,6 +181,24 @@ void Telescope::updatePointingCoordinates(double time)
                                + to_string(rad2deg(currentAlphaOpticalAxis)) + ", " 
                                + to_string(rad2deg(currentDeltaOpticalAxis)) + ")");
        
+        // If we haven't saved the optical axis coordinates for this time point yet, do so.
+
+        if (historyTime.empty())
+        {
+            historyTime.push_back(time);
+            historyRA.push_back(rad2deg(currentAlphaOpticalAxis));
+            historyDec.push_back(rad2deg(currentDeltaOpticalAxis));
+        }
+        else
+        {   
+            if (historyTime.back() != time)
+            {
+                historyTime.push_back(time);
+                historyRA.push_back(rad2deg(currentAlphaOpticalAxis));
+                historyDec.push_back(rad2deg(currentDeltaOpticalAxis));
+            }
+        }
+
         return;
     }
 
