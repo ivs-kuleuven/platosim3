@@ -107,7 +107,7 @@ void Camera::flushOutput()
     // Extract and save the time points of all exposures 
     // Note: keyValuePair is (key, value) pair, where key is also a pair consisting of the startTime and StarID
 
-    vector<unsigned int> time;
+    vector<double> time;
     for(auto keyValuePair: detectedStarInfo) time.push_back(keyValuePair.first);
     if (!time.empty())
     {
@@ -186,13 +186,13 @@ void Camera::flushOutput()
 
     if (!allStarIDs.empty())
     {
-        int n = 0;
+        int k = 0;
         for (auto starID: allStarIDs)
         {
-            starIDs[n] = starID;
-            tie(RA[n], dec[n]) = sky.getCoordinatesOfStarWithID(starID, Angle::degrees);
-            Vmag[n] = sky.getVmagnitudeOfStarWithID(starID);
-            n++;
+            starIDs[k] = starID;
+            tie(RA[k], dec[k]) = sky.getCoordinatesOfStarWithID(starID, Angle::degrees);
+            Vmag[k] = sky.getVmagnitudeOfStarWithID(starID);
+            k++;
         }
 
         hdf5File.writeArray("StarCatalog/", "starIDs", starIDs.data(), starIDs.size());
