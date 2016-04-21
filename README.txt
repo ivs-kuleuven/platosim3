@@ -3,7 +3,7 @@ INSTALLATION OF PLATOSIM
 
 The installation of PlatoSim assumes 3 prerequisites:
 
-1) gcc v5.1 or more recent, or, clang v3.3 or more recent
+1) gcc v4.9 or more recent, or, clang v3.3 or more recent
 2) cmake v2.8 or more recent (freely downloadable from https://cmake.org/download/)
 3) BLAS and LAPACK. Without these, the simulator will likely be slower. These libraries
    come pre-installed on Mac OS X (so Mac users do not have to do anything). Many Linux 
@@ -30,12 +30,36 @@ $ ./testplatosim
 
 runs all the unit tests.
 
-If, for some reason (e.g. a software update), you ever want to recompile the simulator, type:
+
+
+
+
+UPDATING PLATOSIM
+-----------------
+
+If you obtained PlatoSim with 
+
+$ git clone https://github.com/IvS-KULeuven/PlatoSim3.git
+
+you can get an update with
+
+$ cd <platosim home folder>
+$ git pull origin master
+
+However, this will only work smoothly if you did not change any of the PlatoSim files 
+or added files to the PlatoSim folders. The only exception is the inputfiles/ folder 
+where you can add files, but not change the original files. We therefore recommend that
+you copy the inputfile.yaml file to your own version. 
+
+After the git update, recompile the updated simulator with
 
 $ cd build
 $ rm *
 $ cmake ..
-# make
+$ make
+
+
+
 
 
 
