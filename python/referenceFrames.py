@@ -952,49 +952,16 @@ def platformToTelescopePointingCoordinates(alphaPlatform, deltaPlatform, azimuth
 
 
 
-
-
-def calculateSubfieldAroundRadiusFromOpticalAxis(sim, radius, orientation):
-    """
-    PURPOSE: Calculates the location of the subfield such that the star 
-    
-    INPUTS:  radius: 
-             orientation: the angle counter clockwise from the x-axis of the focal plane
-              
-    """
-
-    raOpticalAxis = np.radians(sim["ObservingParameters/RApointing"])
-    decOpticalAxis = np.radians(sim["ObservingParameters/DecPointing"])
-    focalPlaneAngle = np.radians(sim["Camera/FocalPlaneOrientation"])
-    subfieldSizeX = sim["SubField/NumColumns"]
-    subfieldSizeY = sim["SubField/NumRows"]
-    plateScale = sim["Camera/PlateScale"]
-    pixelSize = sim["CCD/PixelSize"]
-    focalLength = sim["Camera/FocalLength"] * 1000.0  # [m] -> [mm]
-
-    xFPmm, yFPmm = polarToPlanarFocalPlaneCoordinates(radius, orientation)
-    xFPrad, yFPrad = planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm, focalLength)
-    raStar, decStar = angularFocalPlaneToSkyCoordinates(xFPrad, yFPrad, raOpticalAxis, decOpticalAxis, focalPlaneAngle)
-
-    ccdCode, xCCDpix, yCCDpix = calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY, focalLength, plateScale, pixelSize, \
-                                       raOpticalAxis, decOpticalAxis, focalPlaneAngle, nominal=True)
-
-    return ccdCode, xCCDpix, yCCDpix
-
-
-
-
-
-
-
-
-
 def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY, focalLength, plateScale, pixelSize, \
                                        raOpticalAxis, decOpticalAxis, focalPlaneAngle, includeFieldDistortion=True, nominal=True):
 
     """
     PURPOSE: Calculates the location of the subfield such that the star with coordinates (raStar, decStar)
-             is centered in the subfield.
+             is centered in the subfield. This function is used by setSubfieldAroundCoordinates() and usually
+             does not need to be called by the user.
+
+    NOTE: This function requires (raOpticalAxis, decOpticalAxis) while the function setSubfieldAroundCoordinates()
+          requires (raPlatform, decPlatform).
 
     INPUTS:  raStar:                 right ascension [rad]
              decStar:                declination [rad]
@@ -1064,30 +1031,35 @@ def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldS
 
 
 def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSizeY, focalLength, plateScale, pixelSize, \
-                                 raOpticalAxis, decOpticalAxis, focalPlaneAngle, includeFieldDistortion=True, nominal=True):
+                                 raPlatform, decPlatform, focalPlaneAngle, azimuthTelescope, tiltTelescope,              \
+                                 includeFieldDistortion=True, nominal=True):
     
     """
-    Calculates the location of the sub-field such that it is centred on the star 
-    with the given sky coordinates.  Depending on the CCD (in nomincal mode:
-    "A", "B", "C", or "D"; in fast mode: "AF", "BF", "CF", or "DF"), the 
-    configuration file for the given simulation are adapted.  These include the
-    pre-defined CCD position, the dimensions of the CCD (and also of the sub-field,
-    although this is not affected by the calculations), the sub-field zeropoint
-    and the exposure time. 
+    PURPOSE: Calculates the location of the sub-field such that it is centred on the star 
+             with the given sky coordinates.  Depending on the CCD (in nomincal mode:
+             "A", "B", "C", or "D"; in fast mode: "AF", "BF", "CF", or "DF"), the 
+             configuration file for the given simulation are adapted.  These include the
+             pre-defined CCD position, the dimensions of the CCD (and also of the sub-field,
+             although this is not affected by the calculations), the sub-field zeropoint
+             and the exposure time. 
 
-    INPUTS:  sim:             simulation for which the configuration file is adapted
-             raStar:          right ascension of the star [radians]
-             decStar:         declination [radians]
-             subfieldSizeX:   width (i.e. number of columns) of the subiield [pixels]
-             subfieldSizeY:   height (i.e. number of rows) of the sub-field [pixels]
-             focalLength:     focal length of the telescope [m]
-             plateScale:      Plate scale. [arcsec/micron]
-             pixelSize:       [micrometer]
-             raOpticalAxis:   right ascension of the optical axis [radians]
-             decOpticalAxis:  declination of the optical axis [radians]
-             focalPlaneAngle: orientation angle of the focal plane [radians]
+    NOTE: This function calls the calculateSubfieldAroundCoordinates() function.
+
+    INPUTS:  sim:                    simulation for which the configuration file is adapted
+             raStar:                 right ascension of the star [radians]
+             decStar:                declination [radians]
+             subfieldSizeX:          width (i.e. number of columns) of the subiield [pixels]
+             subfieldSizeY:          height (i.e. number of rows) of the sub-field [pixels]
+             focalLength:            focal length of the telescope [m]
+             plateScale:             Plate scale. [arcsec/micron]
+             pixelSize:              [micrometer]
+             raPlatform:             right ascension of the platform pointing axis (not the optical axis) [rad]
+             decPlatform:            declination of the platform pointing axis (not the optical axis) [rad]
+             focalPlaneAngle:        orientation angle of the focal plane [rad]
+             azimuthTelescope:       azimuth angle of the telescope on the platform [rad]
+             tiltTelescope:          tilt angle of the telescope w.r.t. the platform pointing axis [rad]
              includeFieldDistortion: True to include field distortion in coordinate transformations, false otherwise
-             nominal:         True for the nominal camera configuration, False for the fast cameras
+             nominal:                True for the nominal camera configuration, False for the fast cameras
 
     OUTPUT: True if the CCD code (i.e. the pre-defined CCD position) could be
             determined, False otherwise 
@@ -1097,6 +1069,10 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
                followed by an exit(1)
     """
     
+    # Derive the (RA, Dec) of the optical axis, given the (RA, Dec) of the platform, and the orientation
+    # (azimith, tilt) of the telescope on the platform.
+
+    raOpticalAxis, decOpticalAxis = platformToTelescopePointingCoordinates(raPlatform, decPlatform, azimuthTelescope, tiltTelescope)    
 
     # When the user requested to include field distortion, update the Simulation input parameter and
     # initialize the field distortion global that will be used by the distortion functions.
