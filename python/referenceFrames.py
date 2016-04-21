@@ -858,33 +858,91 @@ def getSkyCoordinates(ccdCode, xCCDpix, yCCDpix, plateScale, pixelSize, raOptica
 
 
 
+def platformToTelescopePointingCoordinates(alphaPlatform, deltaPlatform, azimuthAngle, tiltAngle):
 
-def calculateSubfieldAroundRadiusFromOpticalAxis(sim, radius, orientation):
     """
-    PURPOSE: Calculates the location of the subfield such that the star 
-    
-    INPUTS:  radius: 
-             orientation: the angle counter clockwise from the x-axis of the focal plane
-              
+    PURPOSE: Given the platform pointing coordinates (i.e. the sky coordinates of the jitter axis)
+             and the orientation of the telescope on the platform, compute the sky coordinates of
+             the optical axis of the telescope.
+             See also: PLATO-KUL-PL-TN-001
+
+    INPUT: alphaPlatform:  Right Ascension of the Platform pointing axis [rad]
+           deltaPlatform:  Declination of the platfor pointing axis [rad]
+           azimuthAngle:   azimuth of the telescope on the platform [rad]
+           tiltAngle:      tilt angle between platform and telescope pointing axes [rad]
+
+    OUTPUT: alphaTelescope: right ascension of the optical axis of the telescope [rad]
+            deltaTelescope: declination of the optical axis of the telescope [rad]
+
     """
 
-    raOpticalAxis = np.radians(sim["ObservingParameters/RApointing"])
-    decOpticalAxis = np.radians(sim["ObservingParameters/DecPointing"])
-    focalPlaneAngle = np.radians(sim["Camera/FocalPlaneOrientation"])
-    subfieldSizeX = sim["SubField/NumColumns"]
-    subfieldSizeY = sim["SubField/NumRows"]
-    plateScale = sim["Camera/PlateScale"]
-    pixelSize = sim["CCD/PixelSize"]
-    focalLength = sim["Camera/FocalLength"] * 1000.0  # [m] -> [mm]
+    # Specify the coordinates in the equatorial reference frame of the unit vector zSC,
+    # corresponding to the jitter (Z) axis of the SpaceCraft
 
-    xFPmm, yFPmm = polarToPlanarFocalPlaneCoordinates(radius, orientation)
-    xFPrad, yFPrad = planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm, focalLength)
-    raStar, decStar = angularFocalPlaneToSkyCoordinates(xFPrad, yFPrad, raOpticalAxis, decOpticalAxis, focalPlaneAngle)
+    zSC = array([cos(alphaPlatform)*cos(deltaPlatform), sin(alphaPlatform)*cos(deltaPlatform), sin(deltaPlatform)])
 
-    ccdCode, xCCDpix, yCCDpix = calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY, focalLength, plateScale, pixelSize, \
-                                       raOpticalAxis, decOpticalAxis, focalPlaneAngle, nominal=True)
+    # Construct the rotation matrix for a rotation around the zSC axis over the azimuth angle
+    # {ux, uy, uz} is short-hand notation.
 
-    return ccdCode, xCCDpix, yCCDpix
+    ux = zSC[0]
+    uy = zSC[1]
+    uz = zSC[2]
+
+    cosAngle = cos(azimuthAngle)
+    sinAngle = sin(azimuthAngle)
+
+    rotAzimuth = array([[cosAngle+ux*ux*(1-cosAngle),    ux*uy*(1-cosAngle)-uz*sinAngle, ux*uz*(1-cosAngle)+uy*sinAngle], \
+                        [uy*ux*(1-cosAngle)+uz*sinAngle, cosAngle+uy*uy*(1-cosAngle),    uy*uz*(1-cosAngle)-ux*sinAngle], \
+                        [uz*ux*(1-cosAngle)-uy*sinAngle, uz*uy*(1-cosAngle)+ux*sinAngle, cosAngle+uz*uz*(1-cosAngle)]])
+
+
+    # The goal of the rotZ rotation matrix is to rotate the ySC unit vector (corresponding to the y-axis in 
+    # the spacecraft reference frame) in the azimuth direction of the telescope. Rather than using ySC, we use
+    # another reference vector yRef as defined below. y0 is perpendicular to zSC, and has the advantage that the 
+    # exact orientation of the spacecraft (i.e. in which direction the sunshield is pointing) is not needed.
+
+    yRef = array([-sin(alphaPlatform), cos(alphaPlatform), 0.0])
+
+    # Rotate this reference vector
+    # Note: numpy.matrix uses algebraic multiplication.
+
+    yAzimuth = dot(rotAzimuth, yRef)
+
+    # Next, construct the rotation matrix for a rotation around the yAzimuth vector over the tilt angle
+    # of the telescope. The tilt angle is the angle between the optical axis of the telescope and the
+    # the jitter Z-axis of the platform.
+
+    ux = yAzimuth[0]
+    uy = yAzimuth[1]
+    uz = yAzimuth[2]
+
+    cosAngle = cos(tiltAngle)
+    sinAngle = sin(tiltAngle)    
+
+    rotTilt = array([[cosAngle+ux*ux*(1-cosAngle),    ux*uy*(1-cosAngle)-uz*sinAngle, ux*uz*(1-cosAngle)+uy*sinAngle], \
+                     [uy*ux*(1-cosAngle)+uz*sinAngle, cosAngle+uy*uy*(1-cosAngle),    uy*uz*(1-cosAngle)-ux*sinAngle], \
+                     [uz*ux*(1-cosAngle)-uy*sinAngle, uz*uy*(1-cosAngle)+ux*sinAngle, cosAngle+uz*uz*(1-cosAngle)]])
+
+
+    # Compute the unit vector zOA in the direction of the telescope's optical axis
+
+    zOA = dot(rotTilt, zSC);
+
+
+    # zOA now contains the cartesian coordinates of the optical axis in the equatorial reference frame. 
+    # Compute the equatorial sky coordinates [rad] from the cartesian coordinates.
+
+    norm = sqrt(zOA[0]*zOA[0]+zOA[1]*zOA[1]+zOA[2]*zOA[2])
+
+    deltaTelescope = pi/2.0 - arccos(zOA[2]/norm)
+    alphaTelescope = arctan2(zOA[1], zOA[0])
+    if (alphaTelescope < 0.0): alphaTelescope += 2.0 * pi
+
+    return alphaTelescope, deltaTelescope
+
+
+
+
 
 
 
@@ -899,7 +957,11 @@ def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldS
 
     """
     PURPOSE: Calculates the location of the subfield such that the star with coordinates (raStar, decStar)
-             is centered in the subfield.
+             is centered in the subfield. This function is used by setSubfieldAroundCoordinates() and usually
+             does not need to be called by the user.
+
+    NOTE: This function requires (raOpticalAxis, decOpticalAxis) while the function setSubfieldAroundCoordinates()
+          requires (raPlatform, decPlatform).
 
     INPUTS:  raStar:                 right ascension [rad]
              decStar:                declination [rad]
@@ -969,30 +1031,35 @@ def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldS
 
 
 def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSizeY, focalLength, plateScale, pixelSize, \
-                                 raOpticalAxis, decOpticalAxis, focalPlaneAngle, includeFieldDistortion=True, nominal=True):
+                                 raPlatform, decPlatform, focalPlaneAngle, azimuthTelescope, tiltTelescope,              \
+                                 includeFieldDistortion=True, nominal=True):
     
     """
-    Calculates the location of the sub-field such that it is centred on the star 
-    with the given sky coordinates.  Depending on the CCD (in nomincal mode:
-    "A", "B", "C", or "D"; in fast mode: "AF", "BF", "CF", or "DF"), the 
-    configuration file for the given simulation are adapted.  These include the
-    pre-defined CCD position, the dimensions of the CCD (and also of the sub-field,
-    although this is not affected by the calculations), the sub-field zeropoint
-    and the exposure time. 
+    PURPOSE: Calculates the location of the sub-field such that it is centred on the star 
+             with the given sky coordinates.  Depending on the CCD (in nomincal mode:
+             "A", "B", "C", or "D"; in fast mode: "AF", "BF", "CF", or "DF"), the 
+             configuration file for the given simulation are adapted.  These include the
+             pre-defined CCD position, the dimensions of the CCD (and also of the sub-field,
+             although this is not affected by the calculations), the sub-field zeropoint
+             and the exposure time. 
 
-    INPUTS:  sim:             simulation for which the configuration file is adapted
-             raStar:          right ascension of the star [radians]
-             decStar:         declination [radians]
-             subfieldSizeX:   width (i.e. number of columns) of the subiield [pixels]
-             subfieldSizeY:   height (i.e. number of rows) of the sub-field [pixels]
-             focalLength:     focal length of the telescope [m]
-             plateScale:      Plate scale. [arcsec/micron]
-             pixelSize:       [micrometer]
-             raOpticalAxis:   right ascension of the optical axis [radians]
-             decOpticalAxis:  declination of the optical axis [radians]
-             focalPlaneAngle: orientation angle of the focal plane [radians]
+    NOTE: This function calls the calculateSubfieldAroundCoordinates() function.
+
+    INPUTS:  sim:                    simulation for which the configuration file is adapted
+             raStar:                 right ascension of the star [radians]
+             decStar:                declination [radians]
+             subfieldSizeX:          width (i.e. number of columns) of the subiield [pixels]
+             subfieldSizeY:          height (i.e. number of rows) of the sub-field [pixels]
+             focalLength:            focal length of the telescope [m]
+             plateScale:             Plate scale. [arcsec/micron]
+             pixelSize:              [micrometer]
+             raPlatform:             right ascension of the platform pointing axis (not the optical axis) [rad]
+             decPlatform:            declination of the platform pointing axis (not the optical axis) [rad]
+             focalPlaneAngle:        orientation angle of the focal plane [rad]
+             azimuthTelescope:       azimuth angle of the telescope on the platform [rad]
+             tiltTelescope:          tilt angle of the telescope w.r.t. the platform pointing axis [rad]
              includeFieldDistortion: True to include field distortion in coordinate transformations, false otherwise
-             nominal:         True for the nominal camera configuration, False for the fast cameras
+             nominal:                True for the nominal camera configuration, False for the fast cameras
 
     OUTPUT: True if the CCD code (i.e. the pre-defined CCD position) could be
             determined, False otherwise 
@@ -1002,6 +1069,10 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
                followed by an exit(1)
     """
     
+    # Derive the (RA, Dec) of the optical axis, given the (RA, Dec) of the platform, and the orientation
+    # (azimith, tilt) of the telescope on the platform.
+
+    raOpticalAxis, decOpticalAxis = platformToTelescopePointingCoordinates(raPlatform, decPlatform, azimuthTelescope, tiltTelescope)    
 
     # When the user requested to include field distortion, update the Simulation input parameter and
     # initialize the field distortion global that will be used by the distortion functions.

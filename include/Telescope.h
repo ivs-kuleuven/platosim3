@@ -36,12 +36,14 @@ class Telescope  : public Heartbeat, HDF5Writer
 
 		pair<double, double> platformToTelescopePointingCoordinates(double alphaPlatfrom, double deltaPlatform);
 
-		tuple<double, double, double> spacecraftToFocalPlaneCoordinates(const double xSC, const double ySC, const double zSC);
-		tuple<double, double, double> focalPlaneToSpacecraftCoordinates(const double xFP, const double yFP, const double zFP);
-
 
 	protected:
 
+		virtual void initHDF5Groups() override;
+		virtual void flushOutput() override;
+
+		double azimuthAngle;                 // Azimuth angle of telescope on platform       [rad]
+		double tiltAngle;                    // Tilt angle of telescope on platform          [rad]
 		double currentAlphaOpticalAxis;      // Current right ascension of the optical axis  [rad]
 		double currentDeltaOpticalAxis;      // Current declination of the optical axis      [rad]
 		double FOVsolidAngle;                // Solid angle of FOV of 1 telescope            [sr]
@@ -51,6 +53,11 @@ class Telescope  : public Heartbeat, HDF5Writer
     	double driftPitchRms;                // RMS of thermo-elastic drift in pitch         [rad]
     	double driftRollRms;                 // RMS of thermo-elastic drift in roll          [rad]
     	double driftTimeScale;               // Timescale of thermo-elastic drift            [s]
+
+
+    	vector<double> historyTime;          // The following vectors stores the telescope pointings
+        vector<double> historyRA;            //     to write in the HDF5 file
+        vector<double> historyDec;
 
 	private:
 

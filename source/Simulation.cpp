@@ -220,6 +220,8 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "Telescope";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("AzimuthAngle");
+    addDouble("TiltAngle");
     addDouble("LightCollectingArea");
     addDouble("TransmissionEfficiency");
     addDouble("FOVSquareDegrees");

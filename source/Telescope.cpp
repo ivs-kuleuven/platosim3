@@ -10,8 +10,12 @@
  */
 
 Telescope::Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File, Platform &platform)
-: HDF5Writer(hdf5File), internalTime(0.0), platform(platform)
+: HDF5Writer(hdf5File), azimuthAngle(0.0), tiltAngle(0.0), internalTime(0.0), platform(platform)
 {
+    // Initialise the HDF5 group(s) in the output file
+
+    initHDF5Groups();
+
 	// Retrieve the Telescope configuration parameters
 
 	configure(configParams);
@@ -30,9 +34,12 @@ Telescope::Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File, 
 		heartbeatInterval = driftTimeScale / 20.0;
 	}
 
-    // Initialize the current position of the optical axis from the platform
+    // Initialize the current position of the optical axis of the telescope given the 
+    // platform pointing axis.
 
-    tie(currentAlphaOpticalAxis, currentDeltaOpticalAxis) = platform.getPointingCoordinates(internalTime);
+    double alphaPlatform, deltaPlatform;
+    tie(alphaPlatform, deltaPlatform) = platform.getPointingCoordinates(internalTime);
+    tie(currentAlphaOpticalAxis, currentDeltaOpticalAxis) = platformToTelescopePointingCoordinates(alphaPlatform, deltaPlatform);
 }
 
 
@@ -50,7 +57,7 @@ Telescope::Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File, 
 
 Telescope::~Telescope()
 {
-
+    flushOutput();
 }
 
 
@@ -73,6 +80,9 @@ Telescope::~Telescope()
  {
  	// Configuration parameters for the Telescope
 
+
+    azimuthAngle            = deg2rad(configParams.getDouble("Telescope/AzimuthAngle"));           // [rad]
+    tiltAngle               = deg2rad(configParams.getDouble("Telescope/TiltAngle"));              // [rad]
  	lightCollectingArea     = configParams.getDouble("Telescope/LightCollectingArea") * 1.e-4;     // [m^2]  
 	transmissionEfficiency  = configParams.getDouble("Telescope/TransmissionEfficiency");          // [unitless]
 	FOVsolidAngle           = sqDeg2sr(configParams.getDouble("Telescope/FOVSquareDegrees"));      // [sr]
@@ -81,6 +91,62 @@ Telescope::~Telescope()
     driftRollRms            = deg2rad(configParams.getDouble("Telescope/DriftRollRms") /3600.);    // [s]        
     driftTimeScale          = configParams.getDouble("Telescope/DriftTimeScale");    
 }
+
+
+
+
+
+
+
+
+/**
+ * \brief Creates the group(s) in the HDF5 file where the Telescope pointing information
+ *        will be stored. These group(s) have to be created once, at the very beginning.
+ */
+
+void Telescope::initHDF5Groups()
+{
+    Log.debug("Telescope: initialising HDF5 groups");
+
+    hdf5File.createGroup("/Telescope");
+}
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Write all recorded information to the HDF5 output file
+ */
+
+void Telescope::flushOutput()
+{
+    Log.info("Telescope: Flushing output to HDf5 file.");
+
+    if ( ! hdf5File.hasGroup("Telescope") )
+    {
+        Log.warning("Telescope::flushOutput: HDF5 file has no Telescope group, cannot flush Telescope information.");
+        return;
+    }
+    
+
+     if (!historyTime.empty())
+     {
+        hdf5File.writeArray("/Telescope/", "Time",         historyTime.data(),  historyTime.size());
+        hdf5File.writeArray("/Telescope/", "TelescopeRA",  historyRA.data(),    historyRA.size());
+        hdf5File.writeArray("/Telescope/", "TelescopeDec", historyDec.data(),   historyDec.size());
+     }
+     else
+     {
+        Log.warning("Telescope: No telescope pointing history to flush to HDF5 file.");
+     }
+}
+
+
 
 
 
@@ -118,14 +184,33 @@ void Telescope::updatePointingCoordinates(double time)
         return;
     }
 
-    // There is currently no thermo-elastic variations in Telescope, so simply copy the 
-    // pointing coordinates from platform
+    // Get the updated pointing coordinates of the platform
 
-    tie(currentAlphaOpticalAxis, currentDeltaOpticalAxis) = platform.getPointingCoordinates(time);
+    double platformPointingRA, platformPointingDec;
+    tie(platformPointingRA, platformPointingDec) = platform.getPointingCoordinates(time);
+
+    // The telescope's optical axis does not need to be aligned with the platform's pointing axis,
+    // but is usually oriented differently. Compute the equatorial sky coordinates of the telescope's
+    // optical axis.
+
+    tie(currentAlphaOpticalAxis, currentDeltaOpticalAxis) = platformToTelescopePointingCoordinates(platformPointingRA, platformPointingDec);
+
+    // Apply a thermo-elastic drift 
+
+    // TBD
+
+    // Log the current telescope pointing coordinates
 
     Log.info("Telescope: At time " + to_string(time) + ": (RA, dec) = (" 
                                    + to_string(rad2deg(currentAlphaOpticalAxis)) + ", " 
                                    + to_string(rad2deg(currentDeltaOpticalAxis)) + ")");
+
+
+    // Save the pointing values to write to HDF5
+
+    historyTime.push_back(time);
+    historyRA.push_back(rad2deg(currentAlphaOpticalAxis));
+    historyDec.push_back(rad2deg(currentDeltaOpticalAxis));
 
     // Update the internal clock
 
@@ -226,6 +311,8 @@ double Telescope::getFOVsolidAngle()
 /**
  * \brief Return the equatorial sky coordinates of the optical axis of this telescope given the pointing
  *        coordinates of the (roll axis of the) platform.
+ *        
+ * \note  See also PLATO-KUL-PL-TN-001 for the definitions of the reference frames.
  * 
  * \param alphaPlatform   Right Ascension of the pointing axis of the platform [rad]
  * \param deltaPlatform   Declination of the pointing axis of the platform     [rad]
@@ -235,10 +322,70 @@ double Telescope::getFOVsolidAngle()
 
 pair<double, double> Telescope::platformToTelescopePointingCoordinates(double alphaPlatform, double deltaPlatform)
 {
-    // We currently assume that the telescope is perfectly aligned with the platform pointing (roll) axis
-    
-    const double alphaOpticalAxis = alphaPlatform;
-    const double deltaOpticalAxis = deltaPlatform;
+    // Specify the coordinates in the equatorial reference frame of the unit vector zSC,
+    // corresponding to the jitter (Z) axis of the SpaceCraft
+
+    arma::vec zSC = {cos(alphaPlatform)*cos(deltaPlatform), sin(alphaPlatform)*cos(deltaPlatform), sin(deltaPlatform)};
+
+    // Construct the rotation matrix for a rotation around the zSC axis over the azimuth angle
+    // {ux, uy, uz} is short-hand notation
+
+    double ux = zSC(0);
+    double uy = zSC(1);
+    double uz = zSC(2);
+
+    double cosAngle = cos(azimuthAngle);
+    double sinAngle = sin(azimuthAngle);
+
+    arma::mat rotAzimuth = {{cosAngle+ux*ux*(1-cosAngle),    ux*uy*(1-cosAngle)-uz*sinAngle, ux*uz*(1-cosAngle)+uy*sinAngle},
+                            {uy*ux*(1-cosAngle)+uz*sinAngle, cosAngle+uy*uy*(1-cosAngle),    uy*uz*(1-cosAngle)-ux*sinAngle},
+                            {uz*ux*(1-cosAngle)-uy*sinAngle, uz*uy*(1-cosAngle)+ux*sinAngle, cosAngle+uz*uz*(1-cosAngle)}};
+
+
+    // The goal of the rotZ rotation matrix is to rotate the ySC unit vector (corresponding to the y-axis in 
+    // the spacecraft reference frame) in the azimuth direction of the telescope. Rather than using ySC, we use
+    // another reference vector yRef as defined below. y0 is perpendicular to zSC, and has the advantage that the 
+    // exact orientation of the spacecraft (i.e. in which direction the sunshield is pointing) is not needed.
+
+    arma::vec yRef = {-sin(alphaPlatform), cos(alphaPlatform), 0.0};
+
+    // Rotate this reference vector
+
+    arma::vec yAzimuth = rotAzimuth * yRef;
+
+    // Next, construct the rotation matrix for a rotation around the yAzimuth vector over the tilt angle
+    // of the telescope. The tilt angle is the angle between the optical axis of the telescope and the
+    // the jitter Z-axis of the platform.
+
+    ux = yAzimuth(0);
+    uy = yAzimuth(1);
+    uz = yAzimuth(2);
+
+    cosAngle = cos(tiltAngle);
+    sinAngle = sin(tiltAngle);
+
+    arma::mat rotTilt = {{cosAngle+ux*ux*(1-cosAngle),    ux*uy*(1-cosAngle)-uz*sinAngle, ux*uz*(1-cosAngle)+uy*sinAngle},
+                         {uy*ux*(1-cosAngle)+uz*sinAngle, cosAngle+uy*uy*(1-cosAngle),    uy*uz*(1-cosAngle)-ux*sinAngle},
+                         {uz*ux*(1-cosAngle)-uy*sinAngle, uz*uy*(1-cosAngle)+ux*sinAngle, cosAngle+uz*uz*(1-cosAngle)}};
+
+
+    // Compute the unit vector zOA in the direction of the telescope's optical axis
+
+    arma::vec zOA = rotTilt * zSC;
+
+    // zOA now contains the cartesian coordinates of the optical axis in the equatorial reference frame. 
+    // Compute the equatorial sky coordinates [rad] from the cartesian coordinates.
+
+    const double norm = sqrt(zOA(0)*zOA(0) + zOA(1)*zOA(1) + zOA(2)*zOA(2));    // should be 1.0
+    double deltaOpticalAxis = Constants::PI/2.0 - acos(zOA(2)/norm);
+    double alphaOpticalAxis = atan2(zOA(1), zOA(0));
+
+    if (alphaOpticalAxis < 0.0)
+    {
+        alphaOpticalAxis += 2.0 * Constants::PI;
+    }
+
+    // That's it!
 
     return make_pair(alphaOpticalAxis, deltaOpticalAxis);
 }
@@ -249,67 +396,4 @@ pair<double, double> Telescope::platformToTelescopePointingCoordinates(double al
 
 
 
-
-
-
-
-
-
-/**
- * \brief  Compute the cartesian coordinates of a point w.r.t. focal plane reference frame, given the cartesian
- *         coordinates in the spacecraft reference system.
- *         
- * \details See technical note PLATO-KUL-PL-TN-001 (De Ridder et al.)
- * 
- * \param xSC  X-coordinate in the spacecraft reference frame
- * \param ySC  Y-coordinate in the spacecraft reference frame
- * \param zSC  Z-coordinate in the spacecraft reference frame
- * \return (xFP, yFP, zFP)  Cartesian coordinates in the Focal Plane (NOT xFPprime, yFPprime, zFPprime) 
- */
-
-tuple<double, double, double> Telescope::spacecraftToFocalPlaneCoordinates(const double xSC, const double ySC, const double zSC)
-{
-    // Currently the spacecraft frame equals the focal plane reference frame
-    // => jitter axis = optical axis
-
-    const double xFP = xSC;
-    const double yFP = ySC;
-    const double zFP = zSC;
-
-    return make_tuple(xFP, yFP, zFP);
-}
-
-
-
-
-
-
-
-
-
-
-
-/**
- * \brief  Compute the cartesian coordinates of a point w.r.t. spacecraft reference frame, given the cartesian
- *         coordinates in the focal plane reference system.
- *         
- * \details See technical note PLATO-KUL-PL-TN-001 (De Ridder et al.)
- * 
- * \param xFP  X-coordinate in the spacecraft reference frame  (not xFPprime)
- * \param yFP  Y-coordinate in the spacecraft reference frame  (not yFPprime)
- * \param zFP  Z-coordinate in the spacecraft reference frame  (not zFPprime)
- * \return (xSC, ySC, zSC)  Cartesian coordinates in the Focal Plane reference frame.
- */
-
-tuple<double, double, double> Telescope::focalPlaneToSpacecraftCoordinates(const double xFP, const double yFP, const double zFP)
-{
-    // Currently the spacecraft frame equals the focal plane reference frame
-    // => jitter axis = optical axis
-
-    const double xSC = xFP;
-    const double ySC = yFP;
-    const double zSC = zFP;
-
-    return make_tuple(xSC, ySC, zSC);
-}
 

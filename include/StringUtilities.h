@@ -5,7 +5,6 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
-#include <regex>
 #include <vector>
 #include <cstddef>
 

@@ -10,21 +10,18 @@ from simulation import Simulation
 from referenceFrames import setSubfieldAroundCoordinates
 
 # Specify the absolute paths of some of the input files and the output folder.
-# 
-# By default, files are loaded from the PLATO_WORK_DIR environment variable.
-# 
-#   * Input files are expected in ENV['PLATO_WORK_DIR']/inputfiles
-#   * Output files will go into ENV['PLATO_WORK_DIR]'/Simulations
+# The following default values will always work, but we advice you not to use
+# them, but make your own input and output folders (and specify their paths here),
+# so that you don't pollute the PlatoSim base inputfiles/ or python/ folders.
 
-myInputs    = os.getenv("PLATO_WORK_DIR") + "/inputfiles"
+inputDir    = os.getenv("PLATO_PROJECT_HOME") + "/inputfiles"
 
-inputFile   = myInputs + "/fgs.yaml"
+inputFile   = inputDir + "/inputfile.yaml"
+starCatalog = inputDir + "/guide_stars_EQ.txt"
+jitterFile  = inputDir + "/PlatoJitter_Airbus.txt"
+psfFile     = inputDir + "/psf.hdf5"
 
-starCatalog = myInputs + "/guide_stars_EQ.txt"
-jitterFile  = myInputs + "/PlatoJitter_Airbus.txt"
-psfFile     = myInputs + "/psf.hdf5"
-
-outputDir   = os.getenv("PLATO_WORK_DIR") + "/Simulations"
+outputDir   = os.getcwd()
 outputFilePrefix = "/GuideStarThalesFine"
 
 # Read the guide star catalog
@@ -32,9 +29,10 @@ outputFilePrefix = "/GuideStarThalesFine"
 ra, dec, V = np.loadtxt(starCatalog, unpack=True)
 NguideStars = len(ra)
 
+# Set the platform pointing coordinates (not the optical axis)
 
-RA_OPTICAL_AXIS = 86.7987057905419
-DEC_OPTICAL_AXIS = -46.395950854582
+RA_PLATFORM = 86.7987057905419
+DEC_PLATFORM = -46.395950854582
 
 # For each guide star, center a subfield around it, and run the simulator
 
@@ -48,18 +46,25 @@ for n in range(NguideStars):
     sim = Simulation(outputFilePrefix + "{0:02d}".format(n), inputFile)
     sim.outputDir = outputDir
 
-    # Point the spacecraft. The coordinates refer to location of the optical axis.
+    # Point the spacecraft. The coordinates refer to location of the spacecraft roll axis,
+    # not the optical axis of the telescope
 
-    sim["ObservingParameters/RApointing"]  = RA_OPTICAL_AXIS
-    sim["ObservingParameters/DecPointing"] = DEC_OPTICAL_AXIS
+    sim["ObservingParameters/RApointing"]  = RA_PLATFORM
+    sim["ObservingParameters/DecPointing"] = DEC_PLATFORM
+
+
+    # Specify the orientation of the telescope on the platform
+
+    azimuthTelescope = 1.0     # [deg]
+    tiltTelescope    = 1.0     # [deg]
 
 
     # Center the subfield around the current guide star
-    # First extract the required information from the XML.
+    # First extract the required information from the yaml input file.
     # Note that for this simulation, we want to use the fast cams, not the nominal ones.
 
-    raOpticalAxis   = np.deg2rad(RA_OPTICAL_AXIS)
-    decOpticalAxis  = np.deg2rad(DEC_OPTICAL_AXIS)
+    raPlatform      = np.deg2rad(RA_PLATFORM)
+    decPlatform     = np.deg2rad(DEC_PLATFORM)
     focalPlaneAngle = np.deg2rad(float(sim["Camera/FocalPlaneOrientation"]))
     focalLength     = float(sim["Camera/FocalLength"]) * 1000.0
     pixelSize       = int(sim["CCD/PixelSize"])    # [micron]
@@ -88,9 +93,11 @@ for n in range(NguideStars):
     # 
     # ObservingParameters/ExposureTime
     # 
-    hasCcdCode = setSubfieldAroundCoordinates(sim, np.deg2rad(ra[n]), np.deg2rad(dec[n]), 
-                                              subfieldSizeX, subfieldSizeY, focalLength, plateScale, pixelSize, \
-                                              raOpticalAxis, decOpticalAxis, focalPlaneAngle, includeFieldDistortion, nominalCamera)
+
+    hasCcdCode = setSubfieldAroundCoordinates(sim, np.deg2rad(ra[n]), np.deg2rad(dec[n]), subfieldSizeX, subfieldSizeY, 
+                                              focalLength, plateScale, pixelSize, raPlatform, decPlatform, focalPlaneAngle, 
+                                              np.deg2rad(azimuthTelescope), np.deg2rad(tiltTelescope), includeFieldDistortion, 
+                                              nominalCamera)
 
     # If the star does not fall on a CCD, or is too close to the edge, skip it.
 
@@ -108,8 +115,6 @@ for n in range(NguideStars):
     sim["RandomSeeds/CTESeed"]          = 1424949740 + n
     sim["RandomSeeds/DriftSeed"]        = 1433826961 + n
 
-    sim["CCD/IncludePhotonNoise"]       = "yes"
-
     # Set some other input parameters specific to this simulation
 
     sim["ObservingParameters/NumExposures"] = 10
@@ -117,6 +122,8 @@ for n in range(NguideStars):
     sim["ObservingParameters/ExposureTime"] = 2.25
     sim["ObservingParameters/StarCatalogFile"] = starCatalog
 
+    sim["Telescope/AzimuthAngle"] = azimuthTelescope           # [deg]
+    sim["Telescope/TiltAngle"] = tiltTelescope                 # [deg]
     sim["Telescope/TransmissionEfficiency"] = 0.5
 
     sim["CCD/Gain"] = 58
@@ -127,6 +134,7 @@ for n in range(NguideStars):
     sim["CCD/ElectronicOffset"] = 100
     sim["CCD/FlatfieldPtPNoise"] = 0.016
     sim["CCD/ReadoutTime"] = 0.25
+    sim["CCD/IncludePhotonNoise"]       = "yes"
 
     sim["SubField/NumBiasPrescanRows"] = 0
     sim["SubField/NumSmearingOverscanRows"] = 0

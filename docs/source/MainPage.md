@@ -162,7 +162,7 @@ To initiate a simulation, <code>cd</code> to the <code>/build</code> directory a
 ./platosim <input file> <output file> [<log file>]
 \endcode
 
-The structure of the input file and the meaning of the individual configuration parameters are described @ref docs/InputFile.md "here".
+The structure of the input file and the meaning of the individual configuration parameters are described in a separate document: [Description of the input file](@ref InputFileDescription).
 
 
 
@@ -175,3 +175,5 @@ The structure of the input file and the meaning of the individual configuration 
 @section reference Reference
 
 We kindly ask you to refer to <a href="http://arxiv.org/abs/1404.1886">this work</a> in any publication the Plato Simulator software contributes to.
+
+

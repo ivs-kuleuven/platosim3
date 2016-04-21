@@ -55,7 +55,7 @@ General:
 Full path of the directory in which you have checked out the PlatoSim3 project, or an environment variable, e.g. PLATO_PROJECT_HOME, containing the full path to that directory.  In the latter case, you must make sure you have exported this variable before initiating a simulation:
 
 \code{.unparsed}
- export PLATO_PROJECT_HOME = <full path to the PlatoSim3 directory>
+ export PLATO_PROJECT_HOME=<full path to the PlatoSim3 directory>
 \endcode
 
 
@@ -188,21 +188,21 @@ Indicates whether the jitter time series must be read from a jitter file ("yes")
 
 
 @subsubsection  jitterYawRms JitterYawRms
-<i>Allowed values:</i> ≥ 0, only required if the jitter positions must be generated from jitter parameters (@ref useJitterFromFile = 0)
+<i>Allowed values:</i> ≥ 0, only required if the jitter positions must be generated from jitter parameters (@ref useJitterFromFile = no)
 
 Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the yaw value from one jitter position to the next one.
 
 
 
 @subsubsection jitterPitchRms JitterPitchRms
-<i>Allowed values:</i> ≥ 0, only required if the jitter positions must be generated from jitter parameters (@ref useJitterFromFile = 0)
+<i>Allowed values:</i> ≥ 0, only required if the jitter positions must be generated from jitter parameters (@ref useJitterFromFile = no)
 
 Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the pitch value from one jitter position to the next one.
 
 
 
 @subsubsection jitterRollRms JitterRollRms
-<i>Allowed values:</i> ≥ 0, only required if the jitter positions must be generated from jitter parameters (@ref useJitterFromFile = 0)
+<i>Allowed values:</i> ≥ 0, only required if the jitter positions must be generated from jitter parameters (@ref useJitterFromFile = no)
 
 Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the roll value from one jitter position to the next one.
 
@@ -215,9 +215,9 @@ Timescale of the jitter (i.e. time between two subsequent jitter positions), exp
 
 
 
-@subsubsection jitterFileName JiterFileName
+@subsubsection jitterFileName JitterFileName
 
-Path of the jitter file, relative to the @ref projectLocation "projectLocation". This is only required if the jitter positions must be read from a file (@ref useJitterFromFile = 1).
+Path of the jitter file, relative to the @ref projectLocation "projectLocation". This is only required if the jitter positions must be read from a file (@ref useJitterFromFile = yes).
 
 
 
@@ -657,7 +657,7 @@ Indicates whether or not to include open-shutter smearing effects.
 
 
 
-@subsubsection inclVignetting IncludeVignetting          
+@subsubsection inclVignetting IncludeVignetting
 <i>Allowed values:</i> "yes" and "no"
 
 Indicates whether or not to include brightness attenuation towards the edge of the FOV due to vignetting.
@@ -702,7 +702,7 @@ Indicates whether or not the sub-pixel images must be written to the HDF5-file. 
 The <b>SubField</b> block of the configuration file contains all the information about the sub-field of the CCD that is modelled by the simulation.  The structure of this block is the following:
 
 \code{.yaml}
-SubField:    
+SubField:
 
     ZeroPointRow:                0
     ZeroPointColumn:             0
@@ -762,7 +762,7 @@ Number of rows in the over-scan strip (see Fig. 3), expressed in normal pixel un
 
 
 
-@ubsubsection numSubPixels SubPixels
+@subsubsection numSubPixels SubPixels
 <i>Allowed values:</i> power of 2 (≤ 128)
 
 Number of sub-pixels per pixel in both directions.
@@ -856,7 +856,7 @@ The path of this file, relative to the @ref projectLocation "project location", 
 
 @section psfFile PSF File (Optional)
 
-Unless you indicate you want to generate a Gaussian PSF, pre-computed normalised PSFs must be provided in the form of an HDF5-file (@ref useGauss = 0). The path of this file, relative to the @ref projectLocation "project location", is specified via the @ref psfFilename parameter.
+Unless you indicate you want to generate a Gaussian PSF, pre-computed normalised PSFs must be provided in the form of an HDF5-file. The path of this file, relative to the @ref projectLocation "project location", is specified via the @ref psfFilename parameter.
 
 The simulator will automatically select the PSF for which the angular distance to the optical axis matches best for the simulated sub-field.
 
@@ -877,7 +877,7 @@ If required (@ref useJitterFromFile = "yes"), a jitter time series must be provi
 * pitch [arcsec]
 * roll [arcsec]
 
-The path of this file, relative to the @ref projectLocation "project location", must be provided via the @ref jitterFilename parameter in the configuration file.
+The path of this file, relative to the @ref projectLocation "project location", must be provided via the @ref jitterFileName parameter in the configuration file.
 
 To ensure a realistic modelling of the jitter, the time step in the jitter time series must be smaller than the @ref exposureTime "exposure time".
 

@@ -44,21 +44,21 @@ PROJECT_NUMBER         = 3.0
 # for a project that appears at the top of each page and should give viewer a
 # quick idea about the purpose of the project. Keep the description short.
 
-PROJECT_BRIEF          = 
+PROJECT_BRIEF          = "An end-to-end simulator for the Plato mission."
 
 # With the PROJECT_LOGO tag one can specify a logo or an icon that is included
 # in the documentation. The maximum height of the logo should not exceed 55
 # pixels and the maximum width should not exceed 200 pixels. Doxygen will copy
 # the logo to the output directory.
 
-PROJECT_LOGO           = $(PLATO_PROJECT_HOME)/docs/logo.png
+PROJECT_LOGO           = $(PLATO_PROJECT_HOME)/docs/source/images/logo.png
 
 # The OUTPUT_DIRECTORY tag is used to specify the (relative or absolute) path
 # into which the generated documentation will be written. If a relative path is
 # entered, it will be relative to the location where doxygen was started. If
 # left blank the current directory will be used.
 
-OUTPUT_DIRECTORY       = $(PLATO_PROJECT_HOME)/build/Documentation
+OUTPUT_DIRECTORY       = $(PLATO_PROJECT_HOME)/docs
 
 # If the CREATE_SUBDIRS tag is set to YES then doxygen will create 4096 sub-
 # directories (in 2 levels) under the output directory of each output format and
@@ -694,7 +694,7 @@ FILE_VERSION_FILTER    =
 # DoxygenLayout.xml, doxygen will parse it automatically even if the LAYOUT_FILE
 # tag is left empty.
 
-LAYOUT_FILE            = $(PLATO_PROJECT_HOME)/docs/DoxygenLayout.xml
+LAYOUT_FILE            = $(PLATO_PROJECT_HOME)/docs/source/style/DoxygenLayout.xml
 
 # The CITE_BIB_FILES tag can be used to specify one or more bib files containing
 # the reference definitions. This must be a list of .bib files. The .bib
@@ -823,7 +823,8 @@ RECURSIVE              = YES
 
 EXCLUDE                = $(PLATO_PROJECT_HOME)/dependencies \
                          $(PLATO_PROJECT_HOME)/inputfiles \
-                         $(PLATO_PROJECT_HOME)/build
+                         $(PLATO_PROJECT_HOME)/build \
+                         $(PLATO_PROJECT_HOME)/testData
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
 # directories that are symbolic links (a Unix file system feature) are excluded
@@ -876,7 +877,7 @@ EXAMPLE_RECURSIVE      = NO
 # that contain images that are to be included in the documentation (see the
 # \image command).
 
-IMAGE_PATH             = $(PLATO_PROJECT_HOME)/docs/images
+IMAGE_PATH             = $(PLATO_PROJECT_HOME)/docs/source/images
 
 # The INPUT_FILTER tag can be used to specify a program that doxygen should
 # invoke to filter for each input file. Doxygen will invoke the filter program
@@ -945,7 +946,7 @@ USE_MDFILE_AS_MAINPAGE =
 # also VERBATIM_HEADERS is set to NO.
 # The default value is: NO.
 
-SOURCE_BROWSER         = YES
+SOURCE_BROWSER         = NO
 
 # Setting the INLINE_SOURCES tag to YES will include the body of functions,
 # classes and enums directly into the documentation.
@@ -1142,7 +1143,7 @@ HTML_STYLESHEET        =
 # list). For an example see the documentation.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-HTML_EXTRA_STYLESHEET  = $(PLATO_PROJECT_HOME)/docs/customdoxygen.css
+HTML_EXTRA_STYLESHEET  = $(PLATO_PROJECT_HOME)/docs/source/style/customdoxygen.css
 
 # The HTML_EXTRA_FILES tag can be used to specify one or more extra images or
 # other source files which should be copied to the HTML output directory. Note
