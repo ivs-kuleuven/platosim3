@@ -32,11 +32,11 @@ To get the coordinates of all stars within a magnitude range [minVmag, maxVmag] 
 
 >>> ID, row, col, Xmm, Ymm = f.getStarCoordinates(10, minVmag=None, maxVmag=12.0)
 
-This is useful to overplot on an image:
+This is useful to overplot on an image. Mind the order of row and col when plotting!
 
 >>> f.showImage(10)
 >>> ID, row, col, Xmm, Ymm = f.getStarCoordinates(10)
->>> plt.scatter(row, col, marker='x', c='g')
+>>> plt.scatter(floor(col), floor(row), marker='x', c='g')
 
 
 To get an imagette around star #13561 in image #2:
@@ -576,14 +576,24 @@ class SimFile (object):
                 Ymm: The focal plane FP' y-coordinates of each star in the image
 
 
-        NOTE: The coordinates returned are the time-averaged coordinates of the stars during the exposure.
+        REMARKS: 
+            - The coordinates returned are the time-averaged coordinates of the stars during the exposure.
+            
+            - To get the pixel with the higest flux of star #0, given its (row, col) coordinates:
+              >>> im = file.getImage(0)
+              >>> ID, row, col, Xmm, Ymm = file.getStarCoordinates(4, minVmag=6.0, maxVmag=9.0)  
+              >>> im[int(row[0]), int(col[0])]
+
+            - To use this function to overplot the positions of the stars on an image plotted by 
+              showImage(), use plt.scatter(floor(col), floor(row)) because showImage uses 
+              matplotlib.imshow() which switches rows and columns.
 
         EXAMPLE:
 
             >>> file = SimFile("Simul01.hdf5")
             >>> file.showImage(4)
             >>> ID, row, col, Xmm, Ymm = file.getStarCoordinates(4, minVmag=6.0, maxVmag=9.0)
-            >>> plt.scatter(row, col, marker='x', c='g')
+            >>> plt.scatter(floor(col), floor(row), marker='x', c='g')
 
         """
 
