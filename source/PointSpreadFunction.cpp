@@ -90,6 +90,8 @@ PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam, H
 
 
 
+
+
 /**
  * \brief      Destructor
  * 
@@ -103,6 +105,11 @@ PointSpreadFunction::~PointSpreadFunction()
     flushOutput();
     psfFile.close();
 }
+
+
+
+
+
 
 
 
@@ -123,6 +130,13 @@ void PointSpreadFunction::flushOutput()
 }
 
 
+
+
+
+
+
+
+
 /**
  * \brief Creates the group(s) in the HDF5 file where the PSF information will be stored. 
  *        These group(s) have to be created once, at the very beginning.
@@ -133,6 +147,10 @@ void PointSpreadFunction::initHDF5Groups()
 
     hdf5File.createGroup("/PSF");
 }
+
+
+
+
 
 
 
@@ -172,6 +190,7 @@ arma::fmat PointSpreadFunction::getGaussianPsf()
 
     double width = sigma * numberOfSubPixelsPerPixel;
     double denominator = 2.0 * width * width;
+    double sumPSF = 0.0;
 
     arma::fmat gaussianPsf (numberOfPixels * numberOfSubPixelsPerPixel, numberOfPixels * numberOfSubPixelsPerPixel, arma::fill::zeros);
 
@@ -180,10 +199,13 @@ arma::fmat PointSpreadFunction::getGaussianPsf()
         for (unsigned int xj = 0; xj < gaussianPsf.n_rows; xj++)
         {
             gaussianPsf(xj, xi) = exp( - (pow(xi - centerColumn, 2) + pow(xj - centerRow, 2)) / denominator);
+            sumPSF += gaussianPsf(xj, xi);
         }
     }
 
-    gaussianPsf /= width * sqrt(2.0 * Constants::PI);
+    // Normalize the gaussian, so that the flux is conserved
+    
+    gaussianPsf /= sumPSF;
 
     return gaussianPsf;
 }
