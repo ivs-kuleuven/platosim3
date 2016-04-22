@@ -387,7 +387,8 @@ void Detector::generateFlatfieldMap()
 			const unsigned int endRow = (row + 1) * numSubPixelsPerPixel - 1;
 			const unsigned int endCol = (column + 1) * numSubPixelsPerPixel - 1;
 
-			prnu(row, column) = arma::accu(flatfieldMap.submat(beginRow, beginCol, endRow, endCol));
+			prnu(row, column) = arma::accu(flatfieldMap.submat(beginRow, beginCol, endRow, endCol))
+                                / (numSubPixelsPerPixel * numSubPixelsPerPixel);
 		}
 	}
 
