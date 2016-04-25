@@ -416,8 +416,9 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
             }
 
             // Compute the flux [photons] of this star
+            // Photons are always an integer number, so round down.
 
-            double flux = fluxFactor * pow(10.0, -0.4 * star.Vmag) * timeStep;
+            double flux = floor(fluxFactor * pow(10.0, -0.4 * star.Vmag) * timeStep);
 
             // Let the detector add the flux to the appropriate pixel. 
             // Detector.flux() returns the pixel coordinates to which the flux was added.
@@ -477,6 +478,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     // A negative value for the user given sky background value [phot/pix/s] signals that we should compute it ourselves.
     // Note: - The output of sky.zodiacalFlux() is in [J s^{-1} m^{-2} sr^{-1} m^{-1}]
     //       - As wavelength range we take the entire throughput band.
+    //       - Photons are always an integer number, thus round down.
 
     double totalSkyBackground = 0.0;
 
@@ -495,7 +497,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
                                              * detector.getSolidAngleOfOnePixel(plateScale) / energyOfOnePhoton;      
 
 
-        totalSkyBackground = zodiacalFlux + stellarBackgroundFlux;
+        totalSkyBackground = floor(zodiacalFlux + stellarBackgroundFlux);
         detector.addFlux(totalSkyBackground);
 
         Log.debug("Camera: zodiacal flux level in subfield = " + to_string(zodiacalFlux) + " photons/pixel/exposure");
@@ -503,7 +505,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     }
     else
     {
-        totalSkyBackground = userGivenSkyBackground * exposureTime;
+        totalSkyBackground = floor(userGivenSkyBackground * exposureTime);
         detector.addFlux(totalSkyBackground);
 
         Log.debug("Camera: user-given sky background flux = " + to_string(userGivenSkyBackground * exposureTime) + " photons/pixel/exposure");
