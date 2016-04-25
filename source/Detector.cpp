@@ -1003,6 +1003,16 @@ void Detector::readOut(float exposureTime)
 
 	addElectronicOffset();
 
+
+    // At this point, because pixel values are floats, the previous steps may have
+    // resulted in fractional ADUs. Take care that pixel maps, bias maps, and smearing
+    // maps do not have fractional values.
+
+    pixelMap = arma::floor(pixelMap);
+    biasMap = arma::floor(biasMap);
+    smearingMap = arma::floor(smearingMap);
+    
+
 	// Take into account digital saturation. If even after dividing by the gain
 	// the number of ADUs in a pixel is still higher than the analogue-digital
 	// converter (ADC) can represent with its fixed amount of bits, clip all
