@@ -1142,7 +1142,14 @@ void Detector::applyFullWellSaturation()
 				jmod = row;
 				numExcessElectrons = (pixelValue - fullWellSaturationLimit) / 2.0;   // Move half of the excess electrons down...
 
-				bool transfer2Saturated = false;
+                // When we move half of the excess electrons down, the pixel below may also become saturated 
+                // (or was already saturated). When processing this pixel below, we need to avoid that it also 
+                // sends its excess electrons up and down, and therefore sends part of its excess electrons 
+                // back up where they actually came from. The variable 'transfer2Saturated' is to keep track 
+                // whether the destination pixel is also saturated, so that it does not send back electrons
+                // where they came from.
+                
+                bool transfer2Saturated = false;
 
 				while (numExcessElectrons > 0 && jmod < numRowsPixelMap)
 				{
