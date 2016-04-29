@@ -162,8 +162,7 @@ To initiate a simulation, <code>cd</code> to the <code>/build</code> directory a
 ./platosim <input file> <output file> [<log file>]
 \endcode
 
-The structure of the input file and the meaning of the individual configuration parameters are described in a separate document: [Description of the input file](@ref InputFileDescription).
-
+The structure of the input file and the meaning of the individual configuration parameters are described in a separate document: <a href="InputFileDescription.html">Description of the input file</a>.
 
 
 
