@@ -31,7 +31,6 @@ class Telescope  : public Heartbeat, HDF5Writer
 
 		double getTransmissionEfficiency();
 		double getLightCollectingArea();
-		double getFOVsolidAngle();
 
 
 		pair<double, double> platformToTelescopePointingCoordinates(double alphaPlatfrom, double deltaPlatform);
@@ -46,7 +45,6 @@ class Telescope  : public Heartbeat, HDF5Writer
 		double tiltAngle;                    // Tilt angle of telescope on platform          [rad]
 		double currentAlphaOpticalAxis;      // Current right ascension of the optical axis  [rad]
 		double currentDeltaOpticalAxis;      // Current declination of the optical axis      [rad]
-		double FOVsolidAngle;                // Solid angle of FOV of 1 telescope            [sr]
 		double lightCollectingArea;          // Effective light collective area              [cm^2]
 		double transmissionEfficiency;       // in [0,1]
 		double driftYawRms;                  // RMS of thermo-elastic drift in yaw           [rad]

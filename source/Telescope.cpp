@@ -85,7 +85,6 @@ Telescope::~Telescope()
     tiltAngle               = deg2rad(configParams.getDouble("Telescope/TiltAngle"));              // [rad]
  	lightCollectingArea     = configParams.getDouble("Telescope/LightCollectingArea") * 1.e-4;     // [m^2]  
 	transmissionEfficiency  = configParams.getDouble("Telescope/TransmissionEfficiency");          // [unitless]
-	FOVsolidAngle           = sqDeg2sr(configParams.getDouble("Telescope/FOVSquareDegrees"));      // [sr]
 	driftYawRms             = deg2rad(configParams.getDouble("Telescope/DriftYawRms") / 3600.);    // [rad]         
     driftPitchRms           = deg2rad(configParams.getDouble("Telescope/DriftPitchRms") / 3600.);  // [rad]         
     driftRollRms            = deg2rad(configParams.getDouble("Telescope/DriftRollRms") /3600.);    // [s]        
@@ -296,24 +295,6 @@ double Telescope::getTransmissionEfficiency()
 double Telescope::getLightCollectingArea()
 {
 	return lightCollectingArea;
-}
-
-
-
-
-
-
-
-
-
-
-/**
- * \brief Return the solid angle covered by the FOV of 1 telescope [sr]
- */
-
-double Telescope::getFOVsolidAngle()
-{
-	return FOVsolidAngle;
 }
 
 

@@ -32,7 +32,6 @@ Telescope:
     TiltAngle:               9.2             # Tilt angle of the telescope on the platform [deg]
     LightCollectingArea:     113.1           # Effective area of 1 telescope [cmˆ2]
     TransmissionEfficiency:  0.757           # in [0,1]
-    FOVSquareDegrees:        1072.0          # Sky area covered by the FOV of 1 telescope [deg^2]
     DriftYawRms:             2.3             # RMS of thermo-elastic drift in yaw [arcsec]
     DriftPitchRms:           2.3             # RMS of thermo-elastic drift in pitch [arcsec]
     DriftRollRms:            2.3             # RMS of thermo-elastic drift in roll [arcsec]
