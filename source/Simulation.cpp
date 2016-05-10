@@ -224,7 +224,6 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("TiltAngle");
     addDouble("LightCollectingArea");
     addDouble("TransmissionEfficiency");
-    addDouble("FOVSquareDegrees");
     addDouble("DriftYawRms");
     addDouble("DriftPitchRms");
     addDouble("DriftRollRms");
