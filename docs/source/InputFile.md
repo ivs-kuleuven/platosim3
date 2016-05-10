@@ -235,7 +235,6 @@ Telescope:
     
     LightCollectingArea:         113.1         
     TransmissionEfficiency:      0.757         
-    FOVSquareDegrees:            1072.0        
     DriftYawRms:                 2.3           
     DriftPitchRms:               2.3           
     DriftRollRms:                2.3           
@@ -255,13 +254,6 @@ Light-collecting area of one telescope, expressed in cm<sup>2</sup>.
 <i>Allowed values:</i> ∈ [0,1]
 
 Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the Fluxm0 parameter and the magnitudes in the star catalogue.
-
-
-
-@subsubsection  fovSquareDegrees FOVSquareDegrees
-<i>Allowed values:</i> > 0
-
-Area in the sky covered by the FOV of one telescope, expressed in degrees<sup>2</sup>.
 
 
 
