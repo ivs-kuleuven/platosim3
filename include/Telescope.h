@@ -31,7 +31,6 @@ class Telescope  : public Heartbeat, HDF5Writer
 
 		double getTransmissionEfficiency();
 		double getLightCollectingArea();
-		double getFOVsolidAngle();
 
 
 		pair<double, double> platformToTelescopePointingCoordinates(double alphaPlatfrom, double deltaPlatform);
