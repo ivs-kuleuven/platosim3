@@ -1,4 +1,4 @@
-@mainpage Documentation for the PLATO Simulator
+@mainpage Documentation for the Plato Simulator
 
 <!-- ************************************ -->
 <!-- Welcome to the Plato Simulator Pages -->
@@ -22,13 +22,29 @@ Many aspects concerning the design trade-off of a space-based instrument and its
 
 @section installation Installation
 
-The PlatoSim3 software is being distributed via <a href="https://github.com/IvS-KULeuven/PlatoSim3">GitHub</a> (see screenshot below). 
+The PlatoSim3 software is being distributed via <a href="https://github.com/IvS-KULeuven/PlatoSim3">GitHub</a> (see screenshot below), so you'll be needing a (free) <a href="https://github.com/join">GitHub account</a>.  As the PlatoSim3 repository is kept private for now, access must be granted by the PlatoSim3 team explicitly.
 
-If you are interested in contributing to the software, you must <code>fork</code> PlatoSim3.  If you are only interested in using it, it suffices to download the ZIP-file.  At a later stage, releases will be distributed.
+If you are interested in contributing to the software, you must <code>fork</code> PlatoSim3, using  the GitHub web interface.  Just press the <code>"Fork"</code> button on the GitHub web interface (see Fig. 1).
 
-@image html /images/gitHub.png ""
 
-After you have downloaded the Plato Simulator code, you must first take care of the dependencies before you can actually build and run the Plato Simulator. The next sub-sections describe the requirements and the procedures to install the dependencies and to build the Plato Simulator code.
+If you are only interested in using PlatoSim3, it suffices to download the ZIP file, by pressing the <code>"Download ZIP"</code> button in the GitHub web interface (see Fig. 1).  If you want to be able to update the software, it is better to <code>clone</code> PlatoSim3 by executing the following command:
+
+\code git clone https://github.com/IvS-KULeuven/PlatoSim3.git .\endcode
+
+
+You can then update the software by executing the command
+
+\code git pull origin master \endcode 
+
+in the directory in which you installed PlatoSim3.
+
+However, this will only work smoothly if you did not change any of the PlatoSim3 files or added files to the PlatoSim3 folders. The only exception is the <code>/inputfiles</code> folder, where you can add files but should not change the original files. We recommend that you copy the <code>inputfile.yaml</code> file to your own version.
+
+At a later stage, releases will be distributed.
+
+@image html /images/gitHub.png "Figure 1: Screenshot of the GitHub web interface."
+
+After you have downloaded the PlatoSim3 code, you must first take care of the dependencies before you can actually build and run the Plato Simulator. The next sub-sections describe the requirements and the procedures to install the dependencies and to build the PlatoSim3 code.
 
 
 
@@ -44,15 +60,14 @@ To be able to install the dependencies and build the code, the following softwar
 *  <a href="https://cmake.org/">CMake</a>: cross-platform open-source build system to control the software compilation process (using simple platform and compiler independent configuration files)
 * <a href="http://www.openblas.net">BLAS</a> and <a href = "http://www.netlib.org/lapack/">LAPACK</a>. Without these, the simulator will likely be slower. These libraries    come pre-installed on Mac OS X (so Mac users do not have to do anything). Many Linux distributions also standardly have these libraries installed, or offer a package manager to easily install them.
         
-        
-
+It is also possible to run simulation from within Python.  We recommend downloading a Python distribution such as <a href="https://docs.continuum.io/anaconda/install">Anaconda</a>.
 
 <!-- Dependencies -->
 <!-- ************ -->
 
 @subsection dependencies Dependencies
 
-Everything concerning the dependencies for PlatoSim3 can be found in the <code>/dependencies</code> directory.  The <code>/dependencyDownloads</code> contains the tarball or zipball file of all required packages.  In the <code>/installscripts</code> sub-directory you can find Python scripts that help you to unzip or untar these files into the <code>/dependencyInstalls</code> directory.  You can do this for one dependency at a time, like this:
+PlatoSim3 relies on a number of other dependencies, which are all included in the packages for your convenience.  Everything concerning the dependencies can be found in the <code>/dependencies</code> directory.  The <code>/dependencyDownloads</code> sub-directory contains the tarball or zipball file of all required packages.  In the <code>/installscripts</code> sub-directory you can find Python scripts that help you to unzip or untar these files into the <code>/dependencyInstalls</code> directory.  You can do this for one dependency at a time, like this:
 
  \code{.py}
 python ./installscripts/install_hdf5.py
@@ -87,7 +102,37 @@ This will create two executables :
 * <code>platosim</code> to run simulations (see below)
 * and <code>testplatosim</code> to run the test harnesses (without arguments).
 
+
+<!-- Running PlatoSim3 -->
+<!-- ***************** -->
+
+@section run Running PlatoSim3
+
+After the installation of the software, the Plato Simulator can be run from the <code>/build</code> directory you have created. For the simulation itself, only one input file with configuration parameters (e.g. <code>/inputfiles/inputfile.xml</code>) is required as input. 
+
+To initiate a simulation, <code>cd</code> to the <code>/build</code> directory and type:
+
+\code
+./platosim <input file> <non-existing output file> [<log file>]
+\endcode
+
+The structure of the input file and the meaning of the individual configuration parameters are described in a separate document: @ref InputFileDescription
+
+Note that - before running PlatoSim3 - you must have an environment variable <code>PLATO_PROJECT_HOME</code>, set to the base folder of PlatoSim3.  For example, you can put in your <code>.bash_profile</code> the following:
+
+\code
+PLATO_PROJECT_HOME="<path to PlatoSim3>"
+export PLATO_PROJECT_HOME
+\endcode
+
+Note that you have to use an absolute path!
+
+If you want to use realistic PSF models instead of a Gaussian, you can download these from <a href="ftp://ftp.ster.kuleuven.be/dist/Plato/PlatoSim3/psf.hdf5">our FTP server</a>.  A convenient place to store this file is in the <code>/inputfiles</code> directory.
+
 <!-- Accessing the Output -->
+<!-- ********************* -->
+
+@subsection output Accessing the Output
 
 PlatoSim3 writes its output to an HDF5 file. HDF stands for Hierarchical Data Format, and is a next generation file format that was specifically designed to store and organise large amounts of data.
 
@@ -146,23 +191,6 @@ dataset = H5D_OPEN(file,'/Images/image000000')
 image = H5D_READ(dataset)
 print, size(image)
 \endcode
-
-
-
-<!-- Running PlatoSim3 -->
-<!-- ***************** -->
-
-@subsection run Running PlatoSim3
-
-After the installation of the software, the Plato Simulator can be run from the <code>/build</code> directory you have created. For the simulation itself, only one input file with configuration parameters (e.g. <code>/inputfiles/inputfile.xml</code>) is required as input. 
-
-To initiate a simulation, <code>cd</code> to the <code>/build</code> directory and type:
-
-\code
-./platosim <input file> <output file> [<log file>]
-\endcode
-
-The structure of the input file and the meaning of the individual configuration parameters are described in a separate document: @ref InputFileDescription
 
 
 
