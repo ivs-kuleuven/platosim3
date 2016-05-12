@@ -83,21 +83,21 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="contents">
 <div class="textblock"><p>To configure the Plato Simulator, a large set of input parameters is required. The input file format use for PlatoSim3 is YAML (see <a href="https://learnxinyminutes.com/docs/yaml/">https://learnxinyminutes.com/docs/yaml/</a>). We use only a very limited set of the YAML functionality, enough to allow us to provide input files for different parts of the simulator.</p>
 <p>Any desired simulation can be obtained by modifying the following input:</p><ul>
-<li><a class="el" href="_input_file_description.html#configurationParameters">configuration parameters</a> (in the YAML file):<ul>
-<li><a class="el" href="_input_file_description.html#generalParameters">general parameters</a></li>
-<li><a class="el" href="_input_file_description.html#observingParameters">observing parameters</a></li>
-<li><a class="el" href="_input_file_description.html#platformParameters">platform parameters</a></li>
-<li><a class="el" href="_input_file_description.html#telescopeParameters">telescope parameters</a></li>
-<li><a class="el" href="_input_file_description.html#cameraParameters">camera parameters</a></li>
-<li><a class="el" href="_input_file_description.html#psfParameters">PSF parameters</a></li>
-<li><a class="el" href="_input_file_description.html#ccdParameters">CCD parameters</a></li>
-<li><a class="el" href="_input_file_description.html#subFieldParameters">sub-field parameters</a></li>
-<li><a class="el" href="_input_file_description.html#seedParameters">seed parameters</a></li>
+<li><a class="el" href="InputFileDescription.html#configurationParameters">configuration parameters</a> (in the YAML file):<ul>
+<li><a class="el" href="InputFileDescription.html#generalParameters">general parameters</a></li>
+<li><a class="el" href="InputFileDescription.html#observingParameters">observing parameters</a></li>
+<li><a class="el" href="InputFileDescription.html#platformParameters">platform parameters</a></li>
+<li><a class="el" href="InputFileDescription.html#telescopeParameters">telescope parameters</a></li>
+<li><a class="el" href="InputFileDescription.html#cameraParameters">camera parameters</a></li>
+<li><a class="el" href="InputFileDescription.html#psfParameters">PSF parameters</a></li>
+<li><a class="el" href="InputFileDescription.html#ccdParameters">CCD parameters</a></li>
+<li><a class="el" href="InputFileDescription.html#subFieldParameters">sub-field parameters</a></li>
+<li><a class="el" href="InputFileDescription.html#seedParameters">seed parameters</a></li>
 </ul>
 </li>
-<li>file comprising a <a class="el" href="_input_file_description.html#starCatalogue">star catalogue</a> of the region of the sky of interest</li>
-<li>optional file comprising <a class="el" href="_input_file_description.html#psfFile">pre-computed PSFs</a></li>
-<li><a class="el" href="_input_file_description.html#jitterFile">jitter</a> file (only required when the jitter option has been enabled in the configuration file)</li>
+<li>file comprising a <a class="el" href="InputFileDescription.html#starCatalogue">star catalogue</a> of the region of the sky of interest</li>
+<li>optional file comprising <a class="el" href="InputFileDescription.html#psfFile">pre-computed PSFs</a></li>
+<li><a class="el" href="InputFileDescription.html#jitterFile">jitter</a> file (only required when the jitter option has been enabled in the configuration file)</li>
 </ul>
 <p>In the following sections we describe these parameters for the simulations in detail.</p>
 <h1><a class="anchor" id="configurationParameters"></a>
@@ -148,8 +148,8 @@ DecPointing</h3>
 <h3><a class="anchor" id="fluxm0"></a>
 Fluxm0</h3>
 <p><em>Allowed values:</em> &gt; 0</p>
-<p>Flux of a star of zero magnitude ( <img class="formulaInl" alt="$ m_{\lambda} = 0 $" src="form_1.png"/>), expressed in photons <img class="formulaInl" alt="$ \cdot $" src="form_2.png"/> s<sup>-1</sup> <img class="formulaInl" alt="$ \cdot $" src="form_2.png"/> cm<sup>-2</sup> in the passband of the magnitudes that are listed in the <a class="el" href="_input_file_description.html#starCatalogue">star catalogue</a>.</p>
-<p>For an exposure of <img class="formulaInl" alt="$t_{exp}$" src="form_3.png"/> seconds, the measured flux <img class="formulaInl" alt="$F_{phot}$" src="form_4.png"/> of a star, expressed in photons, is computed from its catalogue magnitude <img class="formulaInl" alt="$m_{\lambda}$" src="form_5.png"/>, the <a class="el" href="_input_file_description.html#lightCollectingArea">effective light-collecting area</a> <img class="formulaInl" alt="$A$" src="form_6.png"/> (in cm<sup>2</sup>) of the telescope, the <a class="el" href="_input_file_description.html#transmissionEfficiency">transmission efficiency</a> <img class="formulaInl" alt="$T_{\lambda}$" src="form_7.png"/> of the optical system, the <a class="el" href="_input_file_description.html#quantumEfficiency">quantum efficiency</a> <img class="formulaInl" alt="$Q$" src="form_8.png"/> of the detector, and the flux per second <img class="formulaInl" alt="$F_0$" src="form_9.png"/> of a star with zero magnitude ( <img class="formulaInl" alt="$m_{\lambda} = 0$" src="form_10.png"/>) from the equation</p>
+<p>Flux of a star of zero magnitude ( <img class="formulaInl" alt="$ m_{\lambda} = 0 $" src="form_1.png"/>), expressed in photons <img class="formulaInl" alt="$ \cdot $" src="form_2.png"/> s<sup>-1</sup> <img class="formulaInl" alt="$ \cdot $" src="form_2.png"/> cm<sup>-2</sup> in the passband of the magnitudes that are listed in the <a class="el" href="InputFileDescription.html#starCatalogue">star catalogue</a>.</p>
+<p>For an exposure of <img class="formulaInl" alt="$t_{exp}$" src="form_3.png"/> seconds, the measured flux <img class="formulaInl" alt="$F_{phot}$" src="form_4.png"/> of a star, expressed in photons, is computed from its catalogue magnitude <img class="formulaInl" alt="$m_{\lambda}$" src="form_5.png"/>, the <a class="el" href="InputFileDescription.html#lightCollectingArea">effective light-collecting area</a> <img class="formulaInl" alt="$A$" src="form_6.png"/> (in cm<sup>2</sup>) of the telescope, the <a class="el" href="InputFileDescription.html#transmissionEfficiency">transmission efficiency</a> <img class="formulaInl" alt="$T_{\lambda}$" src="form_7.png"/> of the optical system, the <a class="el" href="InputFileDescription.html#quantumEfficiency">quantum efficiency</a> <img class="formulaInl" alt="$Q$" src="form_8.png"/> of the detector, and the flux per second <img class="formulaInl" alt="$F_0$" src="form_9.png"/> of a star with zero magnitude ( <img class="formulaInl" alt="$m_{\lambda} = 0$" src="form_10.png"/>) from the equation</p>
 <p class="formulaDsp">
 <img class="formulaDsp" alt="\[ F_{phot} = t_{exp} \cdot F_0 \cdot T_{\lambda} \cdot Q \cdot A \cdot 10^{-0.4} m_{\lambda} \]" src="form_11.png"/>
 </p>
@@ -161,7 +161,7 @@ SkyBackground</h3>
 <p>In case a negative value is given, the sky background is computed automatically from tabular values, interpolated to the central coordinates of the sub-field. A constant sky background is assumed for the whole sub-field. Note that for some regions in the sky the automatic computation of the sky background may fail due to the lack of tabulated values. In that case you can set the sky background manually.</p>
 <h3><a class="anchor" id="starCatalogFile"></a>
 StarCatalogFile</h3>
-<p>Path to the <a class="el" href="_input_file_description.html#starCatalogFile">star catalogue file</a>, relative to the <a class="el" href="_input_file_description.html#projectLocation">project location</a>.</p>
+<p>Path to the <a class="el" href="InputFileDescription.html#starCatalogFile">star catalogue file</a>, relative to the <a class="el" href="InputFileDescription.html#projectLocation">project location</a>.</p>
 <h2><a class="anchor" id="platformParameters"></a>
 Platform Parameters</h2>
 <p>The <b>Platform</b> block of the configuration file contains all the information that is specific to the platform of the satellite. The structure of this block is the following:</p>
@@ -179,7 +179,7 @@ UseJitter</h3>
 <p><em>Allowed values:</em> "yes" and "no"</p>
 <p>Indicates whether pointing variations should be taken into account.</p>
 <p>The Plato Simulator can also account for pointing variations of the spacecraft, so-called jitter. A time series of pointing displacement, expressed in Euler angles (yaw, pitch, roll), either has to be provided as a jitter file or will be generated based on the given jitter parameters (see further).</p>
-<p>To ensure a realistic modelling of the jitter, the <a class="el" href="_input_file_description.html#jitterTimeScale">time step of the jitter time series</a> must be smaller than the <a class="el" href="_input_file_description.html#exposureTime">exposure time</a>.</p>
+<p>To ensure a realistic modelling of the jitter, the <a class="el" href="InputFileDescription.html#jitterTimeScale">time step of the jitter time series</a> must be smaller than the <a class="el" href="InputFileDescription.html#exposureTime">exposure time</a>.</p>
 <p>The configuration of the jitter axes is depicted below. In the current implementation, the jitter roll axis of the spacecraft and the optical axis of the telescope are aligned, but this will change in the near future.</p>
 <p>The definition of yaw, pitch, and roll axes is such that - if the jitter roll axis is aligned with the optical axis - the angular distance between jitter roll axis and optical axis is 0°, and the optical axis is pointed at λ=0°. A positive yaw angle results in an displacement of the field towards the East, a positive pitch angle result in a displacement towards the North, and a positive roll angle rotates the CCD clockwise (N-W-S-E).</p>
 <div class="image">
@@ -192,15 +192,15 @@ UseJitterFromFile</h3>
 <p>Indicates whether the jitter time series must be read from a jitter file ("yes") or the jitter positions must be generated from the jitter parameters ("no").</p>
 <h3><a class="anchor" id="jitterYawRms"></a>
 JitterYawRms</h3>
-<p><em>Allowed values:</em> ≥ 0, only required if the jitter positions must be generated from jitter parameters (<a class="el" href="_input_file_description.html#useJitterFromFile">UseJitterFromFile</a> = no)</p>
+<p><em>Allowed values:</em> ≥ 0, only required if the jitter positions must be generated from jitter parameters (<a class="el" href="InputFileDescription.html#useJitterFromFile">UseJitterFromFile</a> = no)</p>
 <p>Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the yaw value from one jitter position to the next one.</p>
 <h3><a class="anchor" id="jitterPitchRms"></a>
 JitterPitchRms</h3>
-<p><em>Allowed values:</em> ≥ 0, only required if the jitter positions must be generated from jitter parameters (<a class="el" href="_input_file_description.html#useJitterFromFile">UseJitterFromFile</a> = no)</p>
+<p><em>Allowed values:</em> ≥ 0, only required if the jitter positions must be generated from jitter parameters (<a class="el" href="InputFileDescription.html#useJitterFromFile">UseJitterFromFile</a> = no)</p>
 <p>Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the pitch value from one jitter position to the next one.</p>
 <h3><a class="anchor" id="jitterRollRms"></a>
 JitterRollRms</h3>
-<p><em>Allowed values:</em> ≥ 0, only required if the jitter positions must be generated from jitter parameters (<a class="el" href="_input_file_description.html#useJitterFromFile">UseJitterFromFile</a> = no)</p>
+<p><em>Allowed values:</em> ≥ 0, only required if the jitter positions must be generated from jitter parameters (<a class="el" href="InputFileDescription.html#useJitterFromFile">UseJitterFromFile</a> = no)</p>
 <p>Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the roll value from one jitter position to the next one.</p>
 <h3><a class="anchor" id="jitterTimeScale"></a>
 JitterTimeScale</h3>
@@ -208,7 +208,7 @@ JitterTimeScale</h3>
 <p>Timescale of the jitter (i.e. time between two subsequent jitter positions), expressed in seconds.</p>
 <h3><a class="anchor" id="jitterFileName"></a>
 JitterFileName</h3>
-<p>Path of the jitter file, relative to the <a class="el" href="_input_file_description.html#projectLocation">projectLocation</a>. This is only required if the jitter positions must be read from a file (<a class="el" href="_input_file_description.html#useJitterFromFile">UseJitterFromFile</a> = yes).</p>
+<p>Path of the jitter file, relative to the <a class="el" href="InputFileDescription.html#projectLocation">projectLocation</a>. This is only required if the jitter positions must be read from a file (<a class="el" href="InputFileDescription.html#useJitterFromFile">UseJitterFromFile</a> = yes).</p>
 <h2><a class="anchor" id="telescopeParameters"></a>
 Telescope Parameters</h2>
 <p>The <b>Telescope</b> block of the configuration file contains all the information that is specific to the telescope. The structure of this block is the following:</p>
@@ -329,28 +329,28 @@ Model</h3>
 <p>Indicates whether to use a Gaussian PSF or to read the PSF from an HDF5 file.</p>
 <h3><a class="anchor" id="gaussSigma"></a>
 Gaussian: Sigma</h3>
-<p><em>Allowed values:</em> &gt; 0, only required if a Gaussian PSF must be used (<a class="el" href="_input_file_description.html#psfModel">Model</a> = Gaussian).</p>
+<p><em>Allowed values:</em> &gt; 0, only required if a Gaussian PSF must be used (<a class="el" href="InputFileDescription.html#psfModel">Model</a> = Gaussian).</p>
 <p>Width (σ) of the two-dimensional Gaussian PSF, expressed in pixels.</p>
 <h3><a class="anchor" id="gaussNumPixels"></a>
 Gaussian: NumberOfPixels</h3>
-<p><em>Allowed values:</em> &gt; 0, only required if a Gaussian PSF must be used (<a class="el" href="_input_file_description.html#psfModel">Model</a> = Gaussian).</p>
+<p><em>Allowed values:</em> &gt; 0, only required if a Gaussian PSF must be used (<a class="el" href="InputFileDescription.html#psfModel">Model</a> = Gaussian).</p>
 <p>Number of pixels (in both directions) for which the Gaussian PSF must be generated.</p>
 <h3><a class="anchor" id="psfFilename"></a>
 FromFile: Filename</h3>
-<p><em>Allowed values:</em> only required if a pre-computed PSF must be used (<a class="el" href="_input_file_description.html#psfModel">Model</a> = FromFile).</p>
-<p>Path to the file, relative to the <a class="el" href="_input_file_description.html#projectLocation">project location</a>, holding the location independent <a class="el" href="_input_file_description.html#psfFile">pre-computed PSF</a>.</p>
+<p><em>Allowed values:</em> only required if a pre-computed PSF must be used (<a class="el" href="InputFileDescription.html#psfModel">Model</a> = FromFile).</p>
+<p>Path to the file, relative to the <a class="el" href="InputFileDescription.html#projectLocation">project location</a>, holding the location independent <a class="el" href="InputFileDescription.html#psfFile">pre-computed PSF</a>.</p>
 <h3><a class="anchor" id="psfDistance"></a>
 FromFile: DistanceToOA</h3>
-<p><em>Allowed values:</em> -1 for automatic calculation, ≥ 0 to use the input value; only required if a pre-computed PSF must be used (<a class="el" href="_input_file_description.html#psfModel">Model</a> = FromFile).</p>
+<p><em>Allowed values:</em> -1 for automatic calculation, ≥ 0 to use the input value; only required if a pre-computed PSF must be used (<a class="el" href="InputFileDescription.html#psfModel">Model</a> = FromFile).</p>
 <p>In case a positive value is given the input value will be used for the angular distance to the optical axis.</p>
 <p>In case a negative value is given, the angular distance to the optical axis will be calculated automatically.</p>
 <h3><a class="anchor" id="psfRotation"></a>
 FromFile: RotationAngle</h3>
-<p><em>Allowed values:</em> Any, only required if a pre-computed PSF must be used (<a class="el" href="_input_file_description.html#psfModel">Model</a> = FromFile).</p>
+<p><em>Allowed values:</em> Any, only required if a pre-computed PSF must be used (<a class="el" href="InputFileDescription.html#psfModel">Model</a> = FromFile).</p>
 <p>Arbitrary rotation angle of the PSF, expressed in degrees and measured counterclockwise.</p>
 <h3><a class="anchor" id="psfNumPixels"></a>
 FromFile: NumberOfPixels</h3>
-<p><em>Allowed values:</em> &gt; 0, only required if a pre-computed PSF must be used (<a class="el" href="_input_file_description.html#psfModel">Model</a> = FromFile).</p>
+<p><em>Allowed values:</em> &gt; 0, only required if a pre-computed PSF must be used (<a class="el" href="InputFileDescription.html#psfModel">Model</a> = FromFile).</p>
 <p>Number of pixels (in both directions) for which the PSF was generated.</p>
 <h2><a class="anchor" id="ccdParameters"></a>
 CCD Parameters</h2>
@@ -413,7 +413,7 @@ Gain</h3>
 <h3><a class="anchor" id="quantumEfficiency"></a>
 QuantumEfficiency</h3>
 <p><em>Allowed values:</em> ∈ [0,1]</p>
-<p>Quantum efficiency of the detector, considering the passband and the spectral energy distribution of the stars given the <a class="el" href="_input_file_description.html#fluxm0">Fluxm0</a> parameter and the magnitude of the stars in the <a class="el" href="_input_file_description.html#starCatalogue">star catalogue</a>. This is the ratio of the number of collected electrons to the number of incident photons.</p>
+<p>Quantum efficiency of the detector, considering the passband and the spectral energy distribution of the stars given the <a class="el" href="InputFileDescription.html#fluxm0">Fluxm0</a> parameter and the magnitude of the stars in the <a class="el" href="InputFileDescription.html#starCatalogue">star catalogue</a>. This is the ratio of the number of collected electrons to the number of incident photons.</p>
 <h3><a class="anchor" id="fullWellSaturation"></a>
 FullWellSaturation</h3>
 <p><em>Allowed values:</em> &gt; 0</p>
@@ -422,7 +422,7 @@ FullWellSaturation</h3>
 DigitalSaturation</h3>
 <p><em>Allowed values:</em> &gt; 0</p>
 <p>Digital saturation limit of the CCD to which pixel values are topped off, expressed in ADU / pixel. This value depends on the A/D convertor of the detector. For a 16-bit convertor, the digital saturation limit is 65536 ADU.</p>
-<p>The <a class="el" href="_input_file_description.html#gain">gain</a> of the detector should be such that the <a class="el" href="_input_file_description.html#fullWellSaturation">full-well saturation</a> results in values below the digital saturation limit.</p>
+<p>The <a class="el" href="InputFileDescription.html#gain">gain</a> of the detector should be such that the <a class="el" href="InputFileDescription.html#fullWellSaturation">full-well saturation</a> results in values below the digital saturation limit.</p>
 <h3><a class="anchor" id="readoutNoise"></a>
 ReadoutNoise</h3>
 <p><em>Allowed values:</em> ≥ 0</p>
@@ -431,7 +431,7 @@ ReadoutNoise</h3>
 <h3><a class="anchor" id="electronicOffset"></a>
 ElectronicOffset</h3>
 <p><em>Allowed values:</em> ≥ 0</p>
-<p>Electronic offset or bias level, expressed in ADU, that is added to the digital signal in order to avoid negative readout values. The electronic offset can be measured in a pre-scan strip, which essentially consists of a few additional rows of the CCD. These rows only contain the electronic offset and the readout noise. This pre-scan strip consisting of <a class="el" href="_input_file_description.html#numPreScanRows">NumBiasPrescanRows</a> rows will be stored in the output file.</p>
+<p>Electronic offset or bias level, expressed in ADU, that is added to the digital signal in order to avoid negative readout values. The electronic offset can be measured in a pre-scan strip, which essentially consists of a few additional rows of the CCD. These rows only contain the electronic offset and the readout noise. This pre-scan strip consisting of <a class="el" href="InputFileDescription.html#numPreScanRows">NumBiasPrescanRows</a> rows will be stored in the output file.</p>
 <h3><a class="anchor" id="readoutTime"></a>
 ReadoutTime</h3>
 <p><em>Allowed values:</em> ≥ 0</p>
@@ -571,22 +571,22 @@ Star Catalogue</h1>
 <li>declination of the stars [degrees]</li>
 <li>stellar magnitude</li>
 </ul>
-<p>The path of this file, relative to the <a class="el" href="_input_file_description.html#projectLocation">project location</a>, must be provided via the <a class="el" href="_input_file_description.html#starCatalogFile">StarCatalogFile</a> parameter in the configuration file (under observing parameters).</p>
+<p>The path of this file, relative to the <a class="el" href="InputFileDescription.html#projectLocation">project location</a>, must be provided via the <a class="el" href="InputFileDescription.html#starCatalogFile">StarCatalogFile</a> parameter in the configuration file (under observing parameters).</p>
 <h1><a class="anchor" id="psfFile"></a>
 PSF File (Optional)</h1>
-<p>Unless you indicate you want to generate a Gaussian PSF, pre-computed normalised PSFs must be provided in the form of an HDF5-file. The path of this file, relative to the <a class="el" href="_input_file_description.html#projectLocation">project location</a>, is specified via the <a class="el" href="_input_file_description.html#psfFilename">FromFile: Filename</a> parameter.</p>
+<p>Unless you indicate you want to generate a Gaussian PSF, pre-computed normalised PSFs must be provided in the form of an HDF5-file. The path of this file, relative to the <a class="el" href="InputFileDescription.html#projectLocation">project location</a>, is specified via the <a class="el" href="InputFileDescription.html#psfFilename">FromFile: Filename</a> parameter.</p>
 <p>The simulator will automatically select the PSF for which the angular distance to the optical axis matches best for the simulated sub-field.</p>
 <h1><a class="anchor" id="jitterFile"></a>
 Jitter File (Optional)</h1>
-<p>If required (<a class="el" href="_input_file_description.html#useJitterFromFile">UseJitterFromFile</a> = "yes"), a jitter time series must be provided in a file in ASCII format. This file should contain four columns, separated by a space, holding the following information:</p>
+<p>If required (<a class="el" href="InputFileDescription.html#useJitterFromFile">UseJitterFromFile</a> = "yes"), a jitter time series must be provided in a file in ASCII format. This file should contain four columns, separated by a space, holding the following information:</p>
 <ul>
 <li>time [s]</li>
 <li>yaw [arsec]</li>
 <li>pitch [arcsec]</li>
 <li>roll [arcsec]</li>
 </ul>
-<p>The path of this file, relative to the <a class="el" href="_input_file_description.html#projectLocation">project location</a>, must be provided via the <a class="el" href="_input_file_description.html#jitterFileName">JitterFileName</a> parameter in the configuration file.</p>
-<p>To ensure a realistic modelling of the jitter, the time step in the jitter time series must be smaller than the <a class="el" href="_input_file_description.html#exposureTime">exposure time</a>. </p>
+<p>The path of this file, relative to the <a class="el" href="InputFileDescription.html#projectLocation">project location</a>, must be provided via the <a class="el" href="InputFileDescription.html#jitterFileName">JitterFileName</a> parameter in the configuration file.</p>
+<p>To ensure a realistic modelling of the jitter, the time step in the jitter time series must be smaller than the <a class="el" href="InputFileDescription.html#exposureTime">exposure time</a>. </p>
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
