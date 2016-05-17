@@ -14,6 +14,7 @@
 #include "JitterFromFile.h"
 #include "JitterFromRedNoise.h"
 #include "ConfigurationParameters.h"
+#include "version.h"
 
 
 using namespace std;
@@ -32,6 +33,7 @@ class Simulation
     protected:
 
         virtual void writeInputParametersToHDF5(ConfigurationParameters &configParams);
+        virtual void writeVersionInformationToHDF5();
 
     private:
 

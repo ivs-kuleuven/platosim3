@@ -41,6 +41,10 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     hdf5File.open(outputFilename);
 
+    // Write the version info to the output HDF5 file
+
+    writeVersionInformationToHDF5();
+
     // Configure the Simulation object using the configuration parameters file
 
     configure(configParams);
@@ -150,7 +154,19 @@ void Simulation::run(double startTime)
 
 
 
+void Simulation::writeVersionInformationToHDF5()
+{
+    Log.info("Simulation: writing version information to HDF5");
 
+    // Make the parent group
+
+    string parentGroup = "/Version";
+    hdf5File.createGroup(parentGroup);
+ 
+    hdf5File.writeAttribute(parentGroup, "Application", string("PlatoSim3"));
+    hdf5File.writeAttribute(parentGroup, "GitVersion", string(GIT_DESCRIBE));
+
+}
 
 
 
