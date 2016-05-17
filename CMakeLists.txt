@@ -23,10 +23,42 @@ project(PlatoSim)
 cmake_minimum_required(VERSION 2.8)
 
 
+if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
+  execute_process(
+    COMMAND git rev-parse --abbrev-ref HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_BRANCH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+
+  execute_process(
+    COMMAND git describe
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_DESCRIBE
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+else(EXISTS "${CMAKE_SOURCE_DIR}/.git")
+  set(GIT_BRANCH "")
+  set(GIT_DESCRIBE "")
+endif(EXISTS "${CMAKE_SOURCE_DIR}/.git")
+
+message(STATUS "Git current branch: ${GIT_BRANCH}")
+message(STATUS "Git describe: ${GIT_DESCRIBE}")
+message(STATUS "CMake source dir: ${CMAKE_SOURCE_DIR}")
+message(STATUS "CMake current source dir: ${CMAKE_CURRENT_SOURCE_DIR}")
+message(STATUS "CMake binary dir: ${CMAKE_BINARY_DIR}")
+
+message(STATUS "Generating version.h")
+
+configure_file(
+  ${CMAKE_SOURCE_DIR}/include/version.h.in
+  ${CMAKE_BINARY_DIR}/generated/version.h
+)
 
 # Specify the locations of the header files
 
 include_directories(
+	${CMAKE_BINARY_DIR}/generated
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/hdf5-1.8.16/include
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/armadillo-6.500.4/include
