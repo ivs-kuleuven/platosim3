@@ -64,7 +64,6 @@ class Camera : public HDF5Writer
 
         double plateScale;                    // [arcsec/micron]
         double focalLength;                   // [mm]
-        double focalPlaneOrientation;         // [rad]
         double throughputBandwidth;           // FWHM of the throughput passband [nm]
         double throughputLambdaC;             // Central wavelength of the throughput passband [nm]
 
