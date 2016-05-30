@@ -270,59 +270,6 @@ def distortedToPlanarFocalPlaneCoordinates(xFPdist, yFPdist):
 
 
 
-def inverseGnomonicProjectionFocalPlaneToSky(xFPprimeStar, yFPprimeStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale):
-
-    """
-    PURPOSE: computes the (x,y) coordinates in the focal plane of a star with given equatorial coordinates
-
-    INPUT: xFPprimeStar:    x-coordinate of the projected star in the focal plane in the FP-prime system [mm]
-           xFPprimeStar:    y-coordinate of the projected star in the focal plane in the FP-prime system [mm]
-           raOpticalAxis:   right ascension of the optical axis [rad]
-           decOpticalAxis:  declination of the optical axis [rad]
-           focalPlaneAngle: angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
-           plateScale:      [arcsec/micron]
-
-    OUTPUT: raStar:  right ascension of the star [rad]
-            decStar: declination of the star [rad]
-            
-    REMARK: This function does not work when the star is located at 0, 0
-    """
-
-    
-    if isscalar(xFPprimeStar) and isscalar(yFPprimeStar) and xFPprimeStar == 0.0 and yFPprimeStar == 0.0:
-        return raOpticalAxis, decOpticalAxis
-    
-    # Compute the conversion factor from [mm/radian] to [arcsec/pixel] and convert the
-    # focal plane coordinates from [mm] to [rad].
-
-    conversionFactor = 3600. * 180 / 1000 / pi / plateScale
-    xFPprime = xFPprimeStar / conversionFactor
-    yFPprime = yFPprimeStar / conversionFactor
-
-    # Convert the FP' coordinates into FP coordinates
-
-    xFP =  xFPprime * cos(focalPlaneAngle) - yFPprime * sin(focalPlaneAngle)
-    yFP =  xFPprime * sin(focalPlaneAngle) + yFPprime * cos(focalPlaneAngle)
-
-    # Project the focal plane in the "FP" coordinate system to the sky
-
-    rho = sqrt(xFP*xFP+yFP*yFP)
-    c = arctan(rho)
-    decStar = arcsin(cos(c)*sin(decOpticalAxis)+(-xFP*sin(c)*cos(decOpticalAxis))/rho)
-    raStar = raOpticalAxis + arctan2(yFP*sin(c), rho*cos(decOpticalAxis)*cos(c)+xFP*sin(decOpticalAxis)*sin(c))
-    
-
-    # Return the equatorial coordinates
-
-    return raStar, decStar
-
-
-
-
-
-
-
-
 def pixelToPlanarFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX, ccdZeroPointY, CCDangle):
 
     """
@@ -441,7 +388,7 @@ def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
 
 
 
-def drawCCDsInSky(raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale, pixelSize, nominal=True):
+def drawCCDsInSky(raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength, pixelSize, nominal=True):
 
     """
     PURPOSE: Project and plot the 4 CCDs of 1 camera on the sky
@@ -449,7 +396,7 @@ def drawCCDsInSky(raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale, pi
     INPUT: raOpticalAxis:   right ascension of the optical axis [rad]
            decOpticalAxis:  declination of the optical axis [rad]
            focalPlaneAngle: angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
-           plateScale:      [arcsec/micron]
+           focalLength:     [mm]
            pixelSize:       [micrometer]
            nominal:         True for the nominal camera configuration, False for the fast cameras
 
@@ -476,13 +423,17 @@ def drawCCDsInSky(raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale, pi
 
     for ccdCode in ccdCodes:
 
-        # Get the corner coordinates in the FP' plane
+        # Get the planar FP' coordinates of the CCD corners  [mm]
 
         cornersXmm, cornersYmm = computeCCDcornersInFocalPlane(ccdCode, pixelSize)
 
-        # Convert the FP' coordinates to equatorial coordinates
+        # Convert the planar FP' coordinates to angular FP' coordinates [rad]
 
-        ra, dec = inverseGnomonicProjectionFocalPlaneToSky(cornersXmm, cornersYmm, raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale)
+        cornersXrad, cornersYrad = planarToAngularFocalPlaneCoordinates(cornersXmm, cornersYmm, focalLength)
+
+        # Compute the equatorial sky coordinates [rad] from the the angular FP' coordinates [rad] of the corners
+
+        ra, dec = angularFocalPlaneToSkyCoordinates(cornersXrad, cornersYrad, raOpticalAxis, decOpticalAxis, focalPlaneAngle)
 
         # Repeat the coordinates of the 1st corner, to plot a nice closed loop
         # Convert from radians to degrees
@@ -818,7 +769,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
 
 
 
-def getSkyCoordinates(ccdCode, xCCDpix, yCCDpix, plateScale, pixelSize, raOpticalAxis, decOpticalAxis, focalPlaneAngle):
+def getSkyCoordinates(ccdCode, xCCDpix, yCCDpix, focalLength, pixelSize, raOpticalAxis, decOpticalAxis, focalPlaneAngle):
 
     """
     PURPOSE: Return the sky coordinates of a pixel on the CCD in equatorial coordinates.
@@ -827,7 +778,7 @@ def getSkyCoordinates(ccdCode, xCCDpix, yCCDpix, plateScale, pixelSize, raOptica
                               for fast camera: either 'AF', 'BF', 'CF', 'DF'
              xCCDpix:         x-coordinate (column number, zero-based) of the pixel on the CCD  [pix]
              yCCDpix:         y-coordinate (row number, zero-based) of the pixel on the CCD  [pix]
-             plateScale:      [arcsec/micron]
+             focalLength:     [mm]
              pixelSize:       [micrometer]
              raOpticalAxis:   right ascension of the optical axis [rad]
              decOpticalAxis:  declination of the optical axis [rad]
@@ -837,8 +788,7 @@ def getSkyCoordinates(ccdCode, xCCDpix, yCCDpix, plateScale, pixelSize, raOptica
              decStar:         declination of the star [rad]
     """
 
-    # Compute the position of the star in pixel coordinates, for the current CCD, 
-    # disregarding the physical extend of the CCD
+    # Compute the planar focal plane coordinates of the star given its pixel coordinates and the CCD code.
 
     zeroPointXmm = CCD[ccdCode]["zeroPointXmm"]
     zeroPointYmm = CCD[ccdCode]["zeroPointYmm"]
@@ -846,9 +796,15 @@ def getSkyCoordinates(ccdCode, xCCDpix, yCCDpix, plateScale, pixelSize, raOptica
 
     xFPmm, yFPmm = pixelToPlanarFocalPlaneCoordinates(xCCDpix, yCCDpix, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)   # [mm]
 
-    # Convert the FP' coordinates to equatorial coordinates
+    # Convert the planar focal plane FP' coordinates [mm] to angular focal plane FP' coordinates [rad]
 
-    raStar, decStar = inverseGnomonicProjectionFocalPlaneToSky(xFPprime, yFPprime, raOpticalAxis, decOpticalAxis, focalPlaneAngle, plateScale, pixelSize)
+    xFPrad, yFPrad = planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm, focalLength)
+
+    # Convert the FP' planar coordinates [mm] to equatorial sky coordinates [rad]
+
+    raStar, decStar = angularFocalPlaneToSkyCoordinates(xFPrad, yFPrad, raOpticalAxis, decOpticalAxis, focalPlaneAngle)
+
+    # That's it!
 
     return raStar, decStar
 
