@@ -323,7 +323,7 @@ def inverseGnomonicProjectionFocalPlaneToSky(xFPprimeStar, yFPprimeStar, raOptic
 
 
 
-def pixelToFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX, ccdZeroPointY, CCDangle):
+def pixelToPlanarFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX, ccdZeroPointY, CCDangle):
 
     """
     PUROSE: Given the (real-valued) pixel coordinates of the star on the CCD, compute the (x,y)
@@ -361,7 +361,7 @@ def pixelToFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX,
 
 
 
-def focalPlaneToPixelCoordinates(xFPprime, yFPprime, pixelSize, ccdZeroPointX, ccdZeroPointY, CCDangle):
+def planarFocalPlaneToPixelCoordinates(xFPprime, yFPprime, pixelSize, ccdZeroPointX, ccdZeroPointY, CCDangle):
 
     """
     PUROSE: Compute the (real-valued) pixel coordinates of the star on the CCD, given the (x,y)
@@ -428,7 +428,7 @@ def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
     zeroPointYmm = CCD[ccdCode]["zeroPointYmm"]
     ccdAngle     = CCD[ccdCode]["angle"]
 
-    cornersXmm, cornersYmm = pixelToFocalPlaneCoordinates(cornersXpix, cornersYpix, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle) 
+    cornersXmm, cornersYmm = pixelToPlanarFocalPlaneCoordinates(cornersXpix, cornersYpix, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle) 
     
     # That's it
 
@@ -605,10 +605,10 @@ def drawSubfieldInFocalPlane(ccdCode, xCCD, yCCD, subfieldSizeX, subfieldSizeY, 
     zeroPointYmm = CCD[ccdCode]["zeroPointYmm"]
     ccdAngle     = CCD[ccdCode]["angle"]
 
-    xFPprime, yFPprime = pixelToFocalPlaneCoordinates(xCCD, yCCD, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
-    xFPprimeLL, yFPprimeLL = pixelToFocalPlaneCoordinates(xCCD - subfieldSizeX/2, yCCD - subfieldSizeY/2, \
+    xFPprime, yFPprime = pixelToPlanarFocalPlaneCoordinates(xCCD, yCCD, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
+    xFPprimeLL, yFPprimeLL = pixelToPlanarFocalPlaneCoordinates(xCCD - subfieldSizeX/2, yCCD - subfieldSizeY/2, \
         pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
-    xFPprimeUR, yFPprimeUR = pixelToFocalPlaneCoordinates(xCCD + subfieldSizeX/2, yCCD + subfieldSizeY/2, \
+    xFPprimeUR, yFPprimeUR = pixelToPlanarFocalPlaneCoordinates(xCCD + subfieldSizeX/2, yCCD + subfieldSizeY/2, \
         pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
 
 
@@ -653,6 +653,7 @@ def drawSubfieldInFocalPlane(ccdCode, xCCD, yCCD, subfieldSizeX, subfieldSizeY, 
 
 
 def drawStarInFocalPlane(sim, raStar, decStar):
+
     """
     PURPOSE:  Draw a star given by the equatorial coordinates in the focal plane.
 
@@ -660,6 +661,8 @@ def drawStarInFocalPlane(sim, raStar, decStar):
               decStar: declination of the star [rad]
     
     OUTPUT:   Draw a red dot where the star is located on the CCD
+
+    TODO: Update doc-string
 
     """
     pixelSize = sim["CCD/PixelSize"]
@@ -673,7 +676,7 @@ def drawStarInFocalPlane(sim, raStar, decStar):
 
     xFPrad, yFPrad = skyToAngularFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle)
     xFPmm, yFPmm = angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad, focalLength)
-    xCCD, yCCD = focalPlaneToPixelCoordinates(xFPmm, yFPmm, pixelSize, ccdZeroPointX, ccdZeroPointY, ccdAngle)
+    xCCD, yCCD = planarFocalPlaneToPixelCoordinates(xFPmm, yFPmm, pixelSize, ccdZeroPointX, ccdZeroPointY, ccdAngle)
 
     # TODO: Determine the ccdCode
 
@@ -711,7 +714,7 @@ def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize):
     zeroPointYmm = CCD[ccdCode]["zeroPointYmm"]
     ccdAngle     = CCD[ccdCode]["angle"]
 
-    xFPprime, yFPprime = pixelToFocalPlaneCoordinates(xCCD, yCCD, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
+    xFPprime, yFPprime = pixelToPlanarFocalPlaneCoordinates(xCCD, yCCD, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
 
     # Get the current axis
 
@@ -787,7 +790,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
         zeroPointYmm = CCD[ccdCode]["zeroPointYmm"]
         ccdAngle     = CCD[ccdCode]["angle"]
         
-        xCCDpix, yCCDpix = focalPlaneToPixelCoordinates(xFPmm, yFPmm, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
+        xCCDpix, yCCDpix = planarFocalPlaneToPixelCoordinates(xFPmm, yFPmm, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
 
         # Check if the star falls on the exposed area of the CCD. If not: go to next CCD
 
@@ -841,7 +844,7 @@ def getSkyCoordinates(ccdCode, xCCDpix, yCCDpix, plateScale, pixelSize, raOptica
     zeroPointYmm = CCD[ccdCode]["zeroPointYmm"]
     ccdAngle     = CCD[ccdCode]["angle"]
 
-    xFPprime, yFPprime = pixelToFocalPlaneCoordinates(xCCDpix, yCCDpix, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
+    xFPmm, yFPmm = pixelToPlanarFocalPlaneCoordinates(xCCDpix, yCCDpix, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)   # [mm]
 
     # Convert the FP' coordinates to equatorial coordinates
 
