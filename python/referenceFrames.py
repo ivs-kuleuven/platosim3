@@ -1,3 +1,5 @@
+
+import math
 import numpy as np
 
 from numpy import *
@@ -107,9 +109,9 @@ def angularFocalPlaneToSkyCoordinates(xFPrad, yFPrad, raOpticalAxis, decOpticalA
         return raOpticalAxis, decOpticalAxis
 
     rho = sqrt(xFP*xFP+yFP*yFP)
-    c = atan(rho)
-    ra = raOpticalAxis + atan2(yFP * sin(c), rho * cos(decOpticalAxis) * cos(c) + xFP * sin(decOpticalAxis) * sin(c))
-    dec = asin(cos(c) * sin(decOpticalAxis) - (xFP * sin(c) * cos(decOpticalAxis)) / rho)
+    c = arctan(rho)
+    ra = raOpticalAxis + arctan2(yFP * sin(c), rho * cos(decOpticalAxis) * cos(c) + xFP * sin(decOpticalAxis) * sin(c))
+    dec = arcsin(cos(c) * sin(decOpticalAxis) - (xFP * sin(c) * cos(decOpticalAxis)) / rho)
 
     return ra, dec
 
@@ -169,7 +171,6 @@ def planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm, focalLength):
 
 
 
-#-------------------------------------------------------------------------------
 ## \brief      Convert polar coordinates to cartesian coordinates
 ##
 ## \param[in]  distance  distance from the pole (reference point) [mm]
@@ -190,7 +191,6 @@ def polarToPlanarFocalPlaneCoordinates(distance, angle):
 
 
 
-#-------------------------------------------------------------------------------
 ## \brief      Convert cartesian coordinates to polar coordinates
 ##
 ## \param[in]  xFPmm  x-axis cartesian coordinate in the focal plane [mm]
@@ -213,7 +213,6 @@ def planarToPolarFocalPlaneCoordinates(xFPmm, yFPmm):
 
 
 
-#-------------------------------------------------------------------------------
 ## \brief      Convert from planar to distorted focal plane coordinates
 ##
 ## \param[in]  xFPmm  Planar focal plane x-coordinate [mm]
