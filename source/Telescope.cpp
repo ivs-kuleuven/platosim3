@@ -205,17 +205,14 @@ void Telescope::updatePointingCoordinates(double time)
         if (historyTime.empty())
         {
             historyTime.push_back(time);
-            historyRA.push_back(rad2deg(currentAlphaOpticalAxis));
-            historyDec.push_back(rad2deg(currentDeltaOpticalAxis));
-        }
-        else
-        {   
-            if (historyTime.back() != time)
-            {
-                historyTime.push_back(time);
-                historyRA.push_back(rad2deg(currentAlphaOpticalAxis));
-                historyDec.push_back(rad2deg(currentDeltaOpticalAxis));
-            }
+            historyRA.push_back(rad2deg(currentAlphaOpticalAxis));                            // [deg]
+            historyDec.push_back(rad2deg(currentDeltaOpticalAxis));                           // [deg]
+            historyYaw.push_back(0.0);                                                        // [arcsec]
+            historyPitch.push_back(0.0);                                                      // [arcsec]
+            historyRoll.push_back(0.0);                                                       // [arcsec]
+            historyAzimuth.push_back(rad2deg(currentAzimuthAngle));                           // [deg]
+            historyTilt.push_back(rad2deg(currentTiltAngle));                                 // [deg]
+            historyFocalPlaneOrientation.push_back(rad2deg(currentFocalPlaneOrientation));    // [deg]
         }
 
         return;
@@ -238,6 +235,10 @@ void Telescope::updatePointingCoordinates(double time)
         currentAzimuthAngle = originalAzimuthAngle + yaw;
         currentTiltAngle = originalTiltAngle + pitch;
         currentFocalPlaneOrientation = originalFocalPlaneOrientation + roll;
+    }
+    else
+    {
+        Log.info("Telescope: Ignoring drift, telescope (yaw, pitch, roll) = (0.0, 0.0, 0.0)");
     }
 
 
