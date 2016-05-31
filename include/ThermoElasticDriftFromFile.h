@@ -35,6 +35,7 @@ class ThermoElasticDriftFromFile : public DriftGenerator
         string pathToDriftFile;
 
         int timeIndex;
+        double internalTime;
 
         vector<double> time;
         vector<double> yaw;      // [rad]

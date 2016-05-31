@@ -55,9 +55,10 @@ ThermoElasticDriftFromFile::ThermoElasticDriftFromFile(ConfigurationParameters &
         exit(1);
     }
 
-    // We start with the first time
+    // We start with the first time point of the file
 
     timeIndex = 0;
+    internalTime = time[0];
 
 }
 
@@ -119,10 +120,9 @@ void ThermoElasticDriftFromFile::configure(ConfigurationParameters &configParams
 tuple<double, double, double> ThermoElasticDriftFromFile::getNextYawPitchRoll(double timeInterval)
 {
     // Advance the pointer 'timeIndex' in our precomputed jitter series such that we have
-    //      time[index]-lastTime <= timeInterval < time[index+1]-lastTime 
+    //      time[index] <= internalTime + timeInterval < time[index+1]
 
-    double lastTime = time[timeIndex];
-    while (time[timeIndex] - lastTime < timeInterval)
+    while (time[timeIndex] < internalTime + timeInterval)
     {
         timeIndex++;
         if (timeIndex >= time.size())
@@ -135,11 +135,17 @@ tuple<double, double, double> ThermoElasticDriftFromFile::getNextYawPitchRoll(do
     // Do a linear interpolation
 
     timeIndex--;
-    const double weight1 = (lastTime + timeInterval - time[timeIndex]) / (time[timeIndex+1] - time[timeIndex]);
-    const double weight2 = (time[timeIndex+1] - lastTime - timeInterval) / (time[timeIndex+1] - time[timeIndex]);
+    const double weight1 = (internalTime + timeInterval - time[timeIndex]) / (time[timeIndex+1] - time[timeIndex]);
+    const double weight2 = (time[timeIndex+1] - internalTime - timeInterval) / (time[timeIndex+1] - time[timeIndex]);
     const double newYaw   = yaw[timeIndex]   * weight1 + yaw[timeIndex+1]   * weight2;
     const double newPitch = pitch[timeIndex] * weight1 + pitch[timeIndex+1] * weight2;
     const double newRoll  = roll[timeIndex]  * weight1 + roll[timeIndex+1]  * weight2;
+
+    // Update the internal time
+
+    internalTime += timeInterval;
+
+    // That's it!
     
     return make_tuple(newYaw, newPitch, newRoll);
 }
