@@ -35,6 +35,7 @@ class JitterFromFile : public JitterGenerator
         string pathToJitterFile;
 
         int timeIndex;
+        double internalTime;
 
         vector<double> time;
         vector<double> yaw;      // [rad]

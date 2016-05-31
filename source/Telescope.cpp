@@ -190,6 +190,7 @@ void Telescope::updatePointingCoordinates(double time)
 
     if (time == internalTime)
     {
+        Log.debug("Telescope: updatePointingCoordinates: coordinates up-to-date for requested time " + to_string(time));
         Log.debug("Telescope: At time " + to_string(time) + ": (azimuth, tilt, roll orient) = (" 
                                         + to_string(rad2deg(currentAzimuthAngle)) + ", " 
                                         + to_string(rad2deg(currentTiltAngle)) + ", " 
@@ -204,27 +205,20 @@ void Telescope::updatePointingCoordinates(double time)
         if (historyTime.empty())
         {
             historyTime.push_back(time);
-            historyRA.push_back(rad2deg(currentAlphaOpticalAxis));
-            historyDec.push_back(rad2deg(currentDeltaOpticalAxis));
-        }
-        else
-        {   
-            if (historyTime.back() != time)
-            {
-                historyTime.push_back(time);
-                historyRA.push_back(rad2deg(currentAlphaOpticalAxis));
-                historyDec.push_back(rad2deg(currentDeltaOpticalAxis));
-            }
+            historyRA.push_back(rad2deg(currentAlphaOpticalAxis));                            // [deg]
+            historyDec.push_back(rad2deg(currentDeltaOpticalAxis));                           // [deg]
+            historyYaw.push_back(0.0);                                                        // [arcsec]
+            historyPitch.push_back(0.0);                                                      // [arcsec]
+            historyRoll.push_back(0.0);                                                       // [arcsec]
+            historyAzimuth.push_back(rad2deg(currentAzimuthAngle));                           // [deg]
+            historyTilt.push_back(rad2deg(currentTiltAngle));                                 // [deg]
+            historyFocalPlaneOrientation.push_back(rad2deg(currentFocalPlaneOrientation));    // [deg]
         }
 
         return;
     }
 
-    // Get the updated pointing coordinates of the platform, after platform jittering
-
-    double platformPointingRA, platformPointingDec;
-    tie(platformPointingRA, platformPointingDec) = platform.getPointingCoordinates(time);
-
+ 
     // Update the azimuth, tilt, and roll orientation of the telescope which change in time due to a thermo-elastic drift
 
     double yaw=0.0, pitch=0.0, roll=0.0;
@@ -237,15 +231,16 @@ void Telescope::updatePointingCoordinates(double time)
         currentAzimuthAngle = originalAzimuthAngle + yaw;
         currentTiltAngle = originalTiltAngle + pitch;
         currentFocalPlaneOrientation = originalFocalPlaneOrientation + roll;
+
+        Log.debug("Telescope: At time " + to_string(time) + ": (yaw, pitch, roll) = (" 
+                                        + to_string(rad2deg(yaw)*3600.) + ", " 
+                                        + to_string(rad2deg(pitch)*3600.) + ", " 
+                                        + to_string(rad2deg(roll)*3600.) + ") arcsec");
     }
-
-
-    // Log the thermo-elastic drift perturbations of the telescope
-
-    Log.debug("Telescope: At time " + to_string(time) + ": (yaw, pitch, roll) = (" 
-                                    + to_string(rad2deg(yaw)*3600.) + ", " 
-                                    + to_string(rad2deg(pitch)*3600.) + ", " 
-                                    + to_string(rad2deg(roll)*3600.) + ") arcsec");
+    else
+    {
+        Log.info("Telescope: Ignoring drift, telescope (yaw, pitch, roll) = (0.0, 0.0, 0.0)");
+    }
 
 
     // Log the current telescope orientation of the telescope on the platform
@@ -262,12 +257,14 @@ void Telescope::updatePointingCoordinates(double time)
     // but is usually oriented differently. Compute the equatorial sky coordinates of the telescope's
     // optical axis.
 
+    double platformPointingRA, platformPointingDec;
+    tie(platformPointingRA, platformPointingDec) = platform.getPointingCoordinates(time);
     tie(currentAlphaOpticalAxis, currentDeltaOpticalAxis) = platformToTelescopePointingCoordinates(platformPointingRA, platformPointingDec);
 
 
     // Log the current telescope pointing coordinates
 
-    Log.info("Telescope: At time " + to_string(time) + ": (RA, dec) = (" 
+    Log.debug("Telescope: At time " + to_string(time) + ": (RA, dec) = (" 
                                    + to_string(rad2deg(currentAlphaOpticalAxis)) + ", " 
                                    + to_string(rad2deg(currentDeltaOpticalAxis)) + ")");
 
