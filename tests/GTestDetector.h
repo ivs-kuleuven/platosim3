@@ -40,8 +40,7 @@ protected:
 
 	virtual void SetUp()
 	{
-		configParams = ConfigurationParameters(
-				"../testData/input_DetectorTest.yaml");
+		configParams = ConfigurationParameters("../testData/input_DetectorTest.yaml");
 		hdf5File.open(hdf5Filename);
 	}
 
@@ -389,6 +388,7 @@ TEST_F(DetectorTest, checkConversionsBetweenPixelsAndFocalPlane)
     // Initialise all objects necessary to set up a Detector object
 
     JitterFromRedNoise jitterGenerator(configParams);
+    ThermoElasticDriftFromRedNoise driftGenerator(configParams);
     Sky sky(configParams);
 
     // Settings for camera A
@@ -416,7 +416,7 @@ TEST_F(DetectorTest, checkConversionsBetweenPixelsAndFocalPlane)
         configParams.setParameter("CCD/Orientation", to_string(data["ccdAngle"]));
     
         Platform platform(configParams, hdf5File, jitterGenerator);
-        Telescope telescope(configParams, hdf5File, platform);
+        Telescope telescope(configParams, hdf5File, platform, driftGenerator);
         Camera camera(configParams, hdf5File, telescope, sky);
         MyDetector detector(configParams, hdf5File, camera);
     
@@ -446,9 +446,11 @@ TEST_F(DetectorTest, setAndGetSubfield)
 	// Initialise all objects necessary to set up a Detector object
 
 	JitterFromRedNoise	jitterGenerator(configParams);
+	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
+
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
-	Telescope telescope(configParams, hdf5File, platform);
+	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
 	Camera camera(configParams, hdf5File, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
@@ -499,9 +501,10 @@ TEST_F(DetectorTest, dimensions)
 	// Constructiomn
 
 	JitterFromRedNoise jitterGenerator(configParams);
+	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
-	Telescope telescope(configParams, hdf5File, platform);
+	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
 	Camera camera(configParams, hdf5File, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
@@ -562,9 +565,10 @@ TEST_F(DetectorTest, generateFlatfield)
 	// Construction
 
 	JitterFromRedNoise jitterGenerator(configParams);
+	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
-	Telescope telescope(configParams, hdf5File, platform);
+	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
 	Camera camera(configParams, hdf5File, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
@@ -615,9 +619,10 @@ TEST_F(DetectorTest, reset)
 	// Construction
 
 	JitterFromRedNoise jitterGenerator(configParams);
+	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
-	Telescope telescope(configParams, hdf5File, platform);
+	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
 	Camera camera(configParams, hdf5File, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
@@ -702,9 +707,10 @@ TEST_F(DetectorTest, applyFlatfield)
 	// Construction
 
 	JitterFromRedNoise jitterGenerator(configParams);
+	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
-	Telescope telescope(configParams, hdf5File, platform);
+	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
 	Camera camera(configParams, hdf5File, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
@@ -787,9 +793,10 @@ TEST_F(DetectorTest, rebin)
 	// Construction
 
 	JitterFromRedNoise jitterGenerator(configParams);
+	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
-	Telescope telescope(configParams, hdf5File, platform);
+	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
 	Camera camera(configParams, hdf5File, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
@@ -890,9 +897,10 @@ TEST_F(DetectorTest, addBackgroudFlux)
 	// Construction
 
 	JitterFromRedNoise jitterGenerator(configParams);
+	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
-	Telescope telescope(configParams, hdf5File, platform);
+	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
 	Camera camera(configParams, hdf5File, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
@@ -1005,9 +1013,10 @@ TEST_F(DetectorTest, isInSubPixelMap)
 	// Construction
 
 	JitterFromRedNoise jitterGenerator(configParams);
+	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
-	Telescope telescope(configParams, hdf5File, platform);
+	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
 	Camera camera(configParams, hdf5File, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
@@ -1056,9 +1065,10 @@ TEST_F(DetectorTest, applyQuantumEfficiency)
 	// Construction
 
 	JitterFromRedNoise jitterGenerator(configParams);
+	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
-	Telescope telescope(configParams, hdf5File, platform);
+	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
 	Camera camera(configParams, hdf5File, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
@@ -1140,9 +1150,10 @@ TEST_F(DetectorTest, applyFullWellSaturation)
 	// Construction
 
 		JitterFromRedNoise jitterGenerator(configParams);
+		ThermoElasticDriftFromRedNoise driftGenerator(configParams);
 		Platform platform(configParams, hdf5File, jitterGenerator);
 		Sky sky(configParams);
-		Telescope telescope(configParams, hdf5File, platform);
+		Telescope telescope(configParams, hdf5File, platform, driftGenerator);
 		Camera camera(configParams, hdf5File, telescope, sky);
 		MyDetector detector(configParams, hdf5File, camera);
 
@@ -1320,9 +1331,10 @@ TEST_F(DetectorTest, applyCte)
 	// Construction
 
 	JitterFromRedNoise jitterGenerator(configParams);
+	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
-	Telescope telescope(configParams, hdf5File, platform);
+	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
 	Camera camera(configParams, hdf5File, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
@@ -1420,9 +1432,10 @@ TEST_F(DetectorTest, applyOpenShutterSmearing)
 
 
 	JitterFromRedNoise jitterGenerator(configParams);
+	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
-	Telescope telescope(configParams, hdf5File, platform);
+	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
 	Camera camera(configParams, hdf5File, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
@@ -1549,9 +1562,10 @@ TEST_F(DetectorTest, addReadoutNoise)
 	configParams.setParameter("SubField/NumColumns", "100");
 
 	JitterFromRedNoise jitterGenerator(configParams);
+	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
-	Telescope telescope(configParams, hdf5File, platform);
+	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
 	Camera camera(configParams, hdf5File, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
@@ -1651,9 +1665,10 @@ TEST_F(DetectorTest, applyGain)
 	// Construction
 
 	JitterFromRedNoise jitterGenerator(configParams);
+	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
-	Telescope telescope(configParams, hdf5File, platform);
+	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
 	Camera camera(configParams, hdf5File, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
@@ -1740,9 +1755,10 @@ TEST_F(DetectorTest, addElectronicOffset)
 	// Construction
 
 	JitterFromRedNoise jitterGenerator(configParams);
+	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
-	Telescope telescope(configParams, hdf5File, platform);
+	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
 	Camera camera(configParams, hdf5File, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
@@ -1827,9 +1843,10 @@ TEST_F(DetectorTest, applyDigitalSaturation)
 	// Construction
 
 	JitterFromRedNoise jitterGenerator(configParams);
+	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
-	Telescope telescope(configParams, hdf5File, platform);
+	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
 	Camera camera(configParams, hdf5File, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
@@ -2006,9 +2023,10 @@ TEST_F(DetectorTest, DISABLED_photonNoise)
 	// Construction
 
 	JitterFromRedNoise jitterGenerator(configParams);
+	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
-	Telescope telescope(configParams, hdf5File, platform);
+	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
 	Camera camera(configParams, hdf5File, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
@@ -2166,9 +2184,10 @@ TEST_F(DetectorTest, getPlanarFocalPlaneCoordinatesOfSubfieldCorners)
 	// Construction
 
 	JitterFromRedNoise jitterGenerator(configParams);
+	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
-	Telescope telescope(configParams, hdf5File, platform);
+	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
 	Camera camera(configParams, hdf5File, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
@@ -2220,9 +2239,10 @@ TEST_F(DetectorTest, getPlanarFocalPlaneCoordinatesOfSubfieldCenter)
 	// Construction
 
 	JitterFromRedNoise jitterGenerator(configParams);
+	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
-	Telescope telescope(configParams, hdf5File, platform);
+	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
 	Camera camera(configParams, hdf5File, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
@@ -2261,9 +2281,10 @@ TEST_F(DetectorTest, getSolidAngleOfOnePixel)
 	// Construction
 
 	JitterFromRedNoise jitterGenerator(configParams);
+	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
-	Telescope telescope(configParams, hdf5File, platform);
+	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
 	Camera camera(configParams, hdf5File, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 

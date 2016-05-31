@@ -229,7 +229,6 @@ void Camera::configure(ConfigurationParameters &configParam)
 {
     plateScale             = configParam.getDouble("Camera/PlateScale");
     focalLength            = configParam.getDouble("Camera/FocalLength") * 1000;                  // [m] -> [mm]
-    focalPlaneOrientation  = deg2rad(configParam.getDouble("Camera/FocalPlaneOrientation"));
     throughputBandwidth    = configParam.getDouble("Camera/ThroughputBandwidth");
     throughputLambdaC      = configParam.getDouble("Camera/ThroughputLambdaC");
 
@@ -466,6 +465,9 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
             }
         }
 
+        Log.debug("Camera: Incremented flux of stars in subfield");
+
+
         // Update the clock. Normally with 'timeStep', but if adding timeStep would overstep
         // the total exposure time, take the small rest time instead.
 
@@ -664,6 +666,7 @@ pair<double, double> Camera::skyToAngularFocalPlaneCoordinates(double raStar, do
 
     // Convert the FP coordinates into FP' coordinates 
 
+    const double focalPlaneOrientation = telescope.getCurrentFocalPlaneOrientation();
     double xFPprime =  xFP * cos(focalPlaneOrientation) + yFP * sin(focalPlaneOrientation);
     double yFPprime = -xFP * sin(focalPlaneOrientation) + yFP * cos(focalPlaneOrientation);
 
@@ -695,6 +698,7 @@ pair<double, double> Camera::angularFocalPlaneToSkyCoordinates(double xFPprime, 
 {    
     // Convert from the FP' to the FP reference system.
 
+    const double focalPlaneOrientation = telescope.getCurrentFocalPlaneOrientation();
     const double xFP =  xFPprime * cos(focalPlaneOrientation) - yFPprime * sin(focalPlaneOrientation);
     const double yFP =  xFPprime * sin(focalPlaneOrientation) + yFPprime * cos(focalPlaneOrientation);
 

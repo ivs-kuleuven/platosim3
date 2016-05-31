@@ -49,7 +49,7 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     configure(configParams);
 
-    // Depending on what the user requested, define the proper jitter generator
+    // Depending on what the user requested, define the proper platform jitter generator
 
     if (useJitterFromFile)
     {
@@ -60,10 +60,21 @@ Simulation::Simulation(string inputFilename, string outputFilename)
         jitterGenerator = new JitterFromRedNoise(configParams);
     }
 
+    // Depending on what the user requested, define the proper telescope thermo-elastic drift generator
+
+    if (useDriftFromFile)
+    {
+        driftGenerator = new ThermoElasticDriftFromFile(configParams);
+    }
+    else
+    {
+        driftGenerator = new ThermoElasticDriftFromRedNoise(configParams);
+    }
+
     // Initialise the spacecraft components
 
     platform   = new Platform(configParams, hdf5File, *jitterGenerator);
-    telescope  = new Telescope(configParams, hdf5File, *platform);
+    telescope  = new Telescope(configParams, hdf5File, *platform, *driftGenerator);
     sky        = new Sky(configParams);
     camera     = new Camera(configParams, hdf5File, *telescope, *sky);
     detector   = new Detector(configParams, hdf5File, *camera);
@@ -93,6 +104,7 @@ Simulation::~Simulation()
     delete sky;
     delete platform;
     delete jitterGenerator;
+    delete driftGenerator;
     
     // Close the output hdf5 file
 
@@ -117,6 +129,7 @@ void Simulation::configure(ConfigurationParameters &configParams)
     exposureTime      = configParams.getDouble("ObservingParameters/ExposureTime"); 
     Nexposures        = configParams.getInteger("ObservingParameters/NumExposures"); 
     useJitterFromFile = configParams.getBoolean("Platform/UseJitterFromFile");
+    useDriftFromFile  = configParams.getBoolean("Telescope/UseDriftFromFile");  
 }
 
 
@@ -240,10 +253,12 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("TiltAngle");
     addDouble("LightCollectingArea");
     addDouble("TransmissionEfficiency");
+    addBoolean("UseDriftFromFile");
     addDouble("DriftYawRms");
     addDouble("DriftPitchRms");
     addDouble("DriftRollRms");
     addDouble("DriftTimeScale");
+    addString("DriftFileName");
 
     // TODO: Camera contains information about the field distortion which is not saved
 

@@ -19,11 +19,11 @@ ObservingParameters:
 
 Platform:
 
-    UseJitter:                   yes             # yes or no
-    UseJitterFromFile:           no              # yes or no
-    JitterYawRms:                2.3             # [arcsec]
-    JitterPitchRms:              2.3             # [arcsec]
-    JitterRollRms:               2.3             # [arcsec]
+    UseJitter:                   yes             # yes or no. If no, ignore everything below.
+    UseJitterFromFile:           no              # yes or no. If yes, ignore RMS and timescale below.
+    JitterYawRms:                1.0             # [arcsec]
+    JitterPitchRms:              1.0             # [arcsec]
+    JitterRollRms:               1.0             # [arcsec]
     JitterTimeScale:             3600.           # [s]
     JitterFileName:              inputfiles/jitter.txt
 
@@ -34,10 +34,13 @@ Telescope:
     TiltAngle:                   0.0             # Tilt angle of the telescope on the platform [deg]
     LightCollectingArea:         113.1           # Effective area of 1 telescope [cm^2]
     TransmissionEfficiency:      0.757           # in [0,1]
-    DriftYawRms:                 2.3             # RMS of thermo-elastic drift in yaw [arcsec]
-    DriftPitchRms:               2.3             # RMS of thermo-elastic drift in pitch [arcsec]
-    DriftRollRms:                2.3             # RMS of thermo-elastic drift in roll [arcsec]
-    DriftTimeScale:              3600.           # Timescale of thermo-elastic drift [s]
+    UseDrift:                    no              # yes or no. If no, ignore everything below.
+    UseDriftFromFile:            no              # yes or no. If yes: ignore RMS and timescale below
+    DriftYawRms:                 2.0             # RMS of thermo-elastic drift in yaw [arcsec]
+    DriftPitchRms:               2.0             # RMS of thermo-elastic drift in pitch [arcsec]
+    DriftRollRms:                2.0             # RMS of thermo-elastic drift in roll [arcsec]
+    DriftTimeScale:              86400.          # Timescale of thermo-elastic drift [s]
+    DriftFileName:               inputfiles/drift.txt
 
 
 Camera:
