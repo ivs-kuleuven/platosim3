@@ -190,6 +190,7 @@ void Telescope::updatePointingCoordinates(double time)
 
     if (time == internalTime)
     {
+        Log.debug("Telescope: updatePointingCoordinates: coordinates up-to-date for requested time " + to_string(time));
         Log.debug("Telescope: At time " + to_string(time) + ": (azimuth, tilt, roll orient) = (" 
                                         + to_string(rad2deg(currentAzimuthAngle)) + ", " 
                                         + to_string(rad2deg(currentTiltAngle)) + ", " 
@@ -267,7 +268,7 @@ void Telescope::updatePointingCoordinates(double time)
 
     // Log the current telescope pointing coordinates
 
-    Log.info("Telescope: At time " + to_string(time) + ": (RA, dec) = (" 
+    Log.debug("Telescope: At time " + to_string(time) + ": (RA, dec) = (" 
                                    + to_string(rad2deg(currentAlphaOpticalAxis)) + ", " 
                                    + to_string(rad2deg(currentDeltaOpticalAxis)) + ")");
 
