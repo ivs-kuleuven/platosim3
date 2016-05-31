@@ -1,0 +1,294 @@
+"""
+Script to run the Plato Simulator for a multi-telescope configuration.  The 32 telescopes are arranged in four groups of 8 telescopes.  All telescopes in the 
+same group have the same FOV and the lines of sight of the four groups are offset by an angle of 9.2 degrees from the PLM z-axis.
+
+For each of the telescopes a simulation will be performed (i.e. a sub-field will be modelled with the Plato Simulator).  The sub-field has the same 
+dimensions (in pixels for each telescope) and is always centred on the same coordinates (raCenter, decCenter).
+"""
+
+#########
+# Imports
+#########
+
+import os
+
+from simulation import Simulation
+from referenceFrames import getCCDandPixelCoordinates
+from referenceFrames import platformToTelescopePointingCoordinates
+
+
+
+################
+# Input & Output
+################
+
+inputDir = os.getenv("PLATO_PROJECT_HOME") + "/inputfiles"
+inputFile   = inputDir + "/inputfile.yaml"
+
+outputDir   = os.getcwd()
+outputFilePrefix = "/MultiTelescopeConfiguration"
+
+
+
+
+
+##########################
+# Configuration parameters
+##########################
+
+
+# Observing parameters
+######################
+
+numExposures = 10                                           # Number of exposures (for each telescope)
+exposureTime = 23                                           # Exposure time [s]
+raPointing = 180.0                                          # Platform right ascension pointing coordinate [degrees]
+decPointing = 70.0                                          # Platform declination pointing coordinate [degrees]
+flux_m0 = 1.00238e8                                         # Photon flux of a V = 0 G2V star [photons / s / m² / nm]
+skyBackground = 220.0                                       # Stellar + zodiacal background level [photons / pixel / s]
+starCatalog = inputDir + "/starField_RA180Dec-70.txt"       # Filename of the star catalogue
+
+raCenter = 180.0                                            # Right ascension of the point about which to centre the sub-field [degrees]
+decCenter = 70.0                                            # Declination of the point about which to centre the sub-field [degrees] 
+
+
+# Platform parameters
+#####################
+
+useJitter = "yes"                           # Do you want to account for the platform jitter?
+useJitterFromFile = "no"                    # Do you want to read the jitter from a file?
+
+jitterSeed = 1433320381                     # Random seed for jitter (the same for all telescopes)
+jitterRaRms = 2.3                           # Jitter yaw RMS [arcsec]
+jitterPitchRms = 2.3                        # Jitter pitch RMS [arcsec]
+jitterRollRms = 2.3                         # Jitter roll RMS [arcsec]
+jitterTimescale = 3600.0                    # Jitter timescale [s]
+
+jitterFilename = inputDir + "/jitter.txt"   # Name of the jitter file (full path)
+
+
+# Telescope parameters
+######################
+
+azimuthAngles = [45, 135, -135, -45]    # Azimuth angles of the telescopes (same within a group) [degrees]
+tiltAngle = 9.2                         # Tilt angle of the telescopes (same for the 4 groups) [degrees]
+
+lightCollectingArea = 113.1             # Effective area of a single telescope [cm²]
+transmissionEfficiency =  0.757         # Transmission efficiency                                             <--- use the same value for all the telescopes for now
+driftYawRms = 2.3                       # Telescope drift yaw RMS [arcsec]                                    <--- use the same value for all the telescopes for now
+driftPitchRms = 2.3                     # Telescope drift pitch RMS [arcsec]                                  <--- use the same value for all the telescopes for now
+driftRollRms = 2.3                      # Telescope drift roll RMS [arcsec]                                   <--- use the same value for all the telescopes for now
+driftTimescale = 3600.0                 # Telescope drift timescale [s]                                       <--- use the same value for all the telescopes for now
+
+driftSeed = 1433429158                  # Random seed for telescope drift                                     <--- different for each telescope!
+
+
+# Camera parameters
+###################
+
+focalPlaneAngle = 0                                                                                                 # Focal plane angle [degrees]
+plateScale = 0.8333                                                                                                 # Plate scale [arcsec / micron]
+focalLength = 0.24712595                                                                                            # Focal length as recovered from ZEMAX model [m]
+throughputBandwidth = 400                                                                                           # FWHM of the throughput passband[nm]
+throughputCentralWavelength = 600                                                                                   # Central wavelength of the throughput passband [nm]
+includeFieldDistortion = "yes"                                                                                      # Do you want to include field distortion?
+
+fieldDistortionType = "Polynomial1D"                                                                                # Field distortion implementation (1D/2D polynomial)
+fieldDistortionDegree = 3                                                                                           # Degree of the field distortion polynomial
+fieldDistortionCoefficients = "[-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06]"              # Coefficients of the field distortion polynomial
+fieldDistortionInverseCoefficients = "[-0.00458067036444, 1.00110311283, -5.61136295937e-05, -4.311925329e-06]"     # Coefficients of the inverse field distortion polynomial
+
+
+# PSF parameters    <--- in principle different for each telescope, but we have only one PSF
+################
+
+psfModel = "Gaussian"                           # Do you want to use a Gaussian PSF or read it from a file?
+
+gaussianPsfSigma = 0.50                         # Standard deviation of the Gaussian PSF [pixels]
+gaussianPsfNumPixels = 8                        # Number of pixels for which the Gaussian PSF is generated, in both directions
+
+psfFromFileFilename = inputDir + "/psf.hdf5"    # Name of the file holding the PSF
+psfFromFileDistanceToOA = -1                    # Auto-complete distance to the optical axis
+psfFromFileRotationAngle = -1                   # Auto-complete rotation angle of the PSF w.r.t. the x-axis of the focal plane
+psfFromFileNumPixels = 8                        # Number of pixel for which the PSF was generated, in both directions
+
+
+# CCD parameters
+################
+
+# Automatically determined:
+#    - origin offset (x, y)
+#    - orientation
+#    - size = 4510 x 4510
+#
+
+pixelSize = 18                          # Pixel size [micron]
+gain = 16                               # Detector gain [e- / ADU ]                                                 <--- use the same value for all the telescopes for now
+quantumEfficiency = 0.8745              # Quantum efficiency                                                        <--- use the same value for all the telescopes for now
+fullWellSaturation = 1000000            # Full-well saturation limit [e- / pixel]
+digitalSaturation = 65535               # Digital saturation limit [ADU / pixel]
+readoutNoise = 28                       # Readout noise [e- / pixel]                                                <--- use the same value for all the telescopes for now
+electronicOffset = 100                  # Electronic offset [ADU]                                                   <--- use the same value for all the telescopes for now
+readoutTime = 2                         # Readout time [s]
+flatfieldP2PNoise = 0.016               # Flatfield peak-to-peak pixel noise                                        <--- use the same value for all the telescopes for now
+cte = 0.99999                           # Mean CTE                                                                  <--- use the same value for all the telescopes for now
+
+includeFlatfield = "yes"                # Do you want to account for the flatfield?
+includePhotonNoise = "yes"              # Do you want to account for the photon noise?
+includeReadoutNoise = "yes"             # Do you want to account for the readout noise?
+includeCTIeffects = "yes"               # Do you want to account for the CTI effects?
+includeOpenShutterSmearing = "yes"      # Do you want to account for the open-shutter smearing?
+includeVignetting = "yes"               # Do you want to account for vignetting?
+includeConvolution = "yes"              # Do you want to convolve with the PSF?
+includeFullWellSaturation = "yes"       # Do you want to account for the full-well saturation (i.e. blooming)?
+includeDigitalSaturation = "yes"        # Do you want to account for the digitatal saturation?
+writeSubPixelImagesToHDF5 = "no"        # Do you want to store the sub-pixels images?
+
+readoutNoiseSeed =  1424949740          # Random seed for the readout noise                                         <--- different for each telescope!
+photonNoiseSeed = 1433320336            # Random seed for the photon noise                                          <--- different for each telescope!
+flatfieldSeed = 1433320381              # Random seed for the flatfield                                             <--- different for each telescope!
+cteSeed = 1424949740                    # Random seed for the CTE                                                   <--- different for each telescope!
+
+
+# Sub-field parameters
+######################
+
+# Zeropoint depends on the pointing of the telescope
+
+numColumnsSubField = 10         # Number of columns in the modelled sub-field [pixels]
+numRowsSubField = 10            # Number of rows in the modelled sub-field [pixels]
+numBiasPreScanRows = 5          # Number of rows in the pre-scan strip to determine the bias
+numSmearingOverScanRows = 5     # Number of rows in the over-scan strip to determine the smearing
+numSubPixelsPerPixel = 8        # Number of sub-pixels per pixels, in both directions, in the modelled sub-field
+
+
+
+
+
+############
+# Simulation
+############
+
+numTelescopeGroups = 4
+numTelescopesPerGroup = 8
+
+# Loop over all groups of telescopes
+
+for group in range(numTelescopeGroups):
+    
+    # Loop over all telescopes in the current group
+    
+    for telescope in range(numTelescopesPerGroup):
+        
+        telescopeIndex = numTelescopesPerGroup * group + telescope
+        
+        sim = Simulation(outputFilePrefix + "{0:02d}".format(telescopeIndex), inputFile)
+        sim.outputDir = outputDir
+        
+        # Compute the telescope pointing, based on the platform pointing, and the tilt and azimuth angle of the telescope
+        
+        raTelescope, decTelescope = getTelescopePointing(raPointing, decPointing, azimuthAngles[0], tiltAngle)
+        
+        ccdCode, columnCenter, rowCenter = getCCDandPixelCoordinates(raCenter, decCenter, raTelescope, decTelescope, focalPlaneAngle, focalLength, plateScale, pixelSize, includeFieldDistortion, nominal=True)
+        
+        # Observing parameters
+        
+        sim["ObservingParameters/NumExposures"] = numExposures
+        sim["ObservingParameters/ExposureTime"]  = exposureTime
+        sim["ObservingParameters/RApointing"] = raPlatform
+        sim["ObservingParameters/DecPointing"] = decPlatform
+        sim["ObservingParameters/Fluxm0"] = flux_m0
+        sim["ObservingParameters/SkyBackground"] = skyBackground
+        sim["ObservingParameters/StarCatalogFile"] = starCatalog 
+        
+        # Platform parameters
+        
+        sim["Platform/UseJitter"] = useJitter
+        sim["Platform/UseJitterFromFile"] = useJitterFromFile 
+        sim["Platform/JitterYawRms"] = jitterYawRms 
+        sim["Platform/JitterPitchRms"] = jitterPitchRms 
+        sim["Platform/JitterRollRms"] = jitterRollRms 
+        sim["Platform/jitterTimeScale"] = jitterTimescale
+        sim["Platform/JitterFileName"] = jitterFilename  
+        
+        # Telescope parameters
+        
+        sim["Telescope/AzimuthAngle"] = azimuthAngle[group]
+        sim["Telescope/TiltAngle"] = tiltAngle
+        sim["Telescope/lightCollectingArea"] = lightCollectingArea
+        sim["Telescope/TransmissionEfficiency"] = transmissionEfficiency 
+        sim["Telescope/DriftYawRsm"] = driftYawRms 
+        sim["Telescope/DriftPathRms"] = driftPitchRms 
+        sim["Telescope/DriftRollRms"] = driftRollRms 
+        sim["Telescope/DriftTimeScale"] = driftTimescale
+        
+        # Camera parameters
+        
+        sim["Camera/FocalPlaneOrientation"] = focalPlaneAngle
+        sim["Camera/PlateScale"] = plateScale
+        sim["Camera/FocalLength"] = focalLength
+        sim["Camera/ThroughputBandwidth"] = throughputBandwidth
+        sim["Camera/ThroughputLambdaC"] = throughputCentralWavelength
+        sim["CameraIncludeFieldDistortion"] = includeFieldDistortion
+        
+        # PSF parameters
+        
+        sim["PSF/Model"] = psfModel
+        sim["PSF/Gaussian/Sigma"] = gaussianPsfSigma
+        sim["PSF/Gaussian/NumberOfPixels"] = gaussianPsfNumPixels
+        sim["PSF/FromFile/Filename"] = psfFromFileFilename
+        sim["PSF/FromFile/DistanceToOA"] = psfFromFileDistanceToOA
+        sim["PSF/FromFile/RotationAngle"] = psfFromFileRotationAngle
+        sim["PSF/FromFile/NumberOfPixels"] = psfFromFileNumPixels
+        
+        # CCD parameters
+        
+        sim["CCD/OriginOffsetX"] = CCD[ccdCode]["zeroPointXmm"]
+        sim["CCD/OriginOffsetY"] = CCD[ccdCode]["zeroPointYmm"]
+        sim["CCD/Orientation"] = CCD[ccdCode]["angle"]
+        sim["CCD/NumColumns"] = CCD[ccdCode]["NCols"]
+        sim["CCD/NumRows"] = CCD[ccdCode]["NRows"]
+        
+        sim["CCD/PixelSize"] = pixelSize
+        sim["CCD/Gain"] = gain
+        sim["CCD/QuantumEfficiency"] = quantumEfficiency
+        sim["CCD/FullWellSaturation"] = fullWellSaturation
+        sim["CCD/DigitalSaturation"] = digitalSaturation
+        sim["CCD/ReadoutNoise"] = readoutNoise
+        sim["CCD/ElectronicOffset"] = electronicOffset
+        sim["CCD/ReadoutTime"] = readoutTime
+        sim["CCD/FlatfieldPtPNoise"] = flatfieldP2PNoise
+        sim["CCD/CTEMean"] = cte
+        
+        sim["CCD/IncludeFlatfield"] =  includeFlatfield
+        sim["CCD/IncludePhotonNoise"] =  includePhotonNoise
+        sim["CCD/IncludeReadoutNoise"] = includeReadoutNoise
+        sim["CCD/IncludeCTIeffects"] = includeCtiEffects
+        sim["CCD/IncludeOpenShutterSmearing"] = includeOpenShutterSmearing
+        sim["CCD/IncludeVignetting"] = includeVignetting
+        sim["CCD/IncludeConvolution"] = includeConvolution
+        sim["CCD/IncludeFullWellSaturation"] = includeFullWellSaturation
+        sim["CCD/IncludeDigitalSaturation"] = includeDigitalSaturation
+        sim["CCD/WriteSubPixelImagesToHDF5"] = writeSubPixelImagesToHDF5
+        
+        # Sub-field parameters
+        
+        sim["SubField/ZeroPointRow"] = rowCenter - numRowsSubField / 2
+        sim["SubField/ZeroPointColumn"] = columnCenter - numColumnsSubField / 2
+        
+        sim["SubField/NumColumns"] = numColumnsSubField
+        sim["SubField/NumRows"] = numRowsSubField
+        sim["SubField/NumBiasPrescanRows"] = numBiasPreScanRows
+        sim["SubField/NumSmearingOverscanRows"] = numSmearingOverScanRows
+        sim["SubField/SubPixels"] = numSubPixelsPerPixel
+        
+        # Seed parameters
+        
+        sim["RandomSeeds/ReadOutNoiseSeed"] = readoutNoiseSeed + telescopeIndex
+        sim["RandomSeeds/PhotonNoiseSeed"] = photonNoiseSeed + telescopeIndex 
+        sim["RandomSeeds/JitterSeed"] = jitterSeed 
+        sim["RandomSeeds/FlatFieldSeed"] = flatfieldSeed + telescopeIndex 
+        sim["RandomSeeds/CTESeed"] = cteSeed + telescopeIndex 
+        sim["RandomSeeds/driftSeed"] = driftSeed + telescopeIndex  
+        
+        simFile = sim.run()
