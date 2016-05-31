@@ -218,11 +218,7 @@ void Telescope::updatePointingCoordinates(double time)
         return;
     }
 
-    // Get the updated pointing coordinates of the platform, after platform jittering
-
-    double platformPointingRA, platformPointingDec;
-    tie(platformPointingRA, platformPointingDec) = platform.getPointingCoordinates(time);
-
+ 
     // Update the azimuth, tilt, and roll orientation of the telescope which change in time due to a thermo-elastic drift
 
     double yaw=0.0, pitch=0.0, roll=0.0;
@@ -235,19 +231,16 @@ void Telescope::updatePointingCoordinates(double time)
         currentAzimuthAngle = originalAzimuthAngle + yaw;
         currentTiltAngle = originalTiltAngle + pitch;
         currentFocalPlaneOrientation = originalFocalPlaneOrientation + roll;
+
+        Log.debug("Telescope: At time " + to_string(time) + ": (yaw, pitch, roll) = (" 
+                                        + to_string(rad2deg(yaw)*3600.) + ", " 
+                                        + to_string(rad2deg(pitch)*3600.) + ", " 
+                                        + to_string(rad2deg(roll)*3600.) + ") arcsec");
     }
     else
     {
         Log.info("Telescope: Ignoring drift, telescope (yaw, pitch, roll) = (0.0, 0.0, 0.0)");
     }
-
-
-    // Log the thermo-elastic drift perturbations of the telescope
-
-    Log.debug("Telescope: At time " + to_string(time) + ": (yaw, pitch, roll) = (" 
-                                    + to_string(rad2deg(yaw)*3600.) + ", " 
-                                    + to_string(rad2deg(pitch)*3600.) + ", " 
-                                    + to_string(rad2deg(roll)*3600.) + ") arcsec");
 
 
     // Log the current telescope orientation of the telescope on the platform
@@ -264,6 +257,8 @@ void Telescope::updatePointingCoordinates(double time)
     // but is usually oriented differently. Compute the equatorial sky coordinates of the telescope's
     // optical axis.
 
+    double platformPointingRA, platformPointingDec;
+    tie(platformPointingRA, platformPointingDec) = platform.getPointingCoordinates(time);
     tie(currentAlphaOpticalAxis, currentDeltaOpticalAxis) = platformToTelescopePointingCoordinates(platformPointingRA, platformPointingDec);
 
 
