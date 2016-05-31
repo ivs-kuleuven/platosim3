@@ -465,6 +465,9 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
             }
         }
 
+        Log.debug("Incremented flux of stars in subfield");
+
+
         // Update the clock. Normally with 'timeStep', but if adding timeStep would overstep
         // the total exposure time, take the small rest time instead.
 
