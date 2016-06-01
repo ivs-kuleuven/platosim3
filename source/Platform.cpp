@@ -324,13 +324,16 @@ arma::colvec Platform::spacecraftToEquatorialCoordinates(arma::colvec &coordSC, 
 
     // The rotation matrices
 
-    arma::mat R1 = {{cosAlpha, -sinAlpha, 0.0},
-                    {sinAlpha,  cosAlpha, 0.0},
-                    {     0.0,       0.0, 1.0}};
+    arma::mat R1;
+    R1 << cosAlpha <<  -sinAlpha << 0.0 << arma::endr
+       << sinAlpha <<   cosAlpha << 0.0 << arma::endr
+       <<    0.0   <<      0.0   << 1.0 << arma::endr;
 
-    arma::mat R2 = {{ sinDelta, 0.0, cosDelta},
-                    {      0.0, 1.0,      0.0},
-                    {-cosDelta, 0.0, sinDelta}};
+
+    arma::mat R2;
+    R2 <<  sinDelta <<  0.0 <<  cosDelta << arma::endr
+       <<    0.0    <<  1.0 <<    0.0    << arma::endr
+       << -cosDelta <<  0.0 <<  sinDelta << arma::endr;
 
     // The transformation
 
