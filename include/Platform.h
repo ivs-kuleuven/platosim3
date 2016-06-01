@@ -36,6 +36,8 @@ class Platform : public Heartbeat, HDF5Writer
 
         void setPointingCoordinates(double rightAscencsion, double declination, Unit unit = Angle::degrees);
         pair<double, double> getPointingCoordinates(double time);
+        pair<double, double> getInitialPointingCoordinates();
+
 
         virtual double getHeartbeatInterval() override;
 
