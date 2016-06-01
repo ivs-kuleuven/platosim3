@@ -392,17 +392,20 @@ arma::colvec Platform::rotateYawPitchRoll(arma::colvec coord, const double yaw, 
 
     // The rotation matrices
 
-    arma::mat Ryaw = {{1.0,    0.0,     0.0},
-                      {0.0, cosYaw, -sinYaw},
-                      {0.0, sinYaw,  cosYaw}};
+    arma::mat Ryaw;
+    Ryaw << 1.0  <<  0.0    <<     0.0   << arma::endr
+         << 0.0  <<  cosYaw <<  -sinYaw  << arma::endr
+         << 0.0  <<  sinYaw <<   cosYaw  << arma::endr;
 
-    arma::mat Rpitch = {{ cosPitch, 0.0, sinPitch},
-                        {      0.0, 1.0,      0.0},
-                        {-sinPitch, 0.0, cosPitch}};
+    arma::mat Rpitch;
+    Rpitch <<  cosPitch  <<  0.0  <<  sinPitch  << arma::endr
+           <<   0.0      <<  1.0  <<    0.0     << arma::endr
+           << -sinPitch  <<  0.0  <<  cosPitch  << arma::endr;
 
-    arma::mat Rroll = {{cosRoll, -sinRoll, 0.0},
-                       {sinRoll,  cosRoll, 0.0},
-                       {    0.0,      0.0, 1.0}}; 
+    arma::mat Rroll;
+    Rroll << cosRoll  <<  -sinRoll  <<  0.0  << arma::endr
+          << sinRoll  <<   cosRoll  <<  0.0  << arma::endr
+          <<  0.0     <<     0.0    <<  1.0  << arma::endr; 
 
     // Do the transformation
 
