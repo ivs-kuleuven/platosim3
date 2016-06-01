@@ -92,7 +92,30 @@ void Camera::initHDF5Groups()
 
 
 
+/**
+ * \brief      Collect and return the IDs of all stars that fall within the subField
+ * 
+ * \details    Note that this method pulls the detected stars from a map that is filled by 
+ *             exposeDetector for each exposure. So, depending on when this method is called, 
+ *             the returned set might be empty or incomplete.
+ *             
+ * \return     a set of unique star IDs that were detected in the subField
+ */
+set<unsigned int> Camera::getAllStarIDs()
+{
+    set<unsigned int> allStarIDs;            // A set<> stores only unique members
 
+    for(auto timeMapPair: detectedStarInfo)
+    {
+        for (auto idArrayPair: timeMapPair.second)
+        {
+            allStarIDs.insert(idArrayPair.first);
+        }
+    }
+
+    return allStarIDs;
+
+}
 
 
 /**

@@ -56,6 +56,8 @@ class Camera : public HDF5Writer
 
         double getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double yFPprime);
 
+        set<unsigned int> getAllStarIDs();
+
 
     protected:
 
