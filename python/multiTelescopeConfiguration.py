@@ -206,7 +206,7 @@ for group in range(numTelescopeGroups):
         
         # Compute the telescope pointing, based on the platform pointing, and the tilt and azimuth angle of the telescope
         
-        raTelescope, decTelescope = platformToTelescopePointingCoordinates(raPointing, decPointing, azimuthAngles[0], tiltAngle)
+        raTelescope, decTelescope = platformToTelescopePointingCoordinates(raPointing, decPointing, azimuthAngles[group], tiltAngle)
         
         # Determine on which CCD (A, B, C, or D) the coordinates (raCenter, decCenter) are positioned and at which location
         # (in pixel coordinates)
