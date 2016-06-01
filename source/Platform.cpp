@@ -160,6 +160,25 @@ void Platform::setPointingCoordinates(double rightAscencsion, double declination
 
 
 
+
+/**
+ * \brief Return the original pointing coordinates (of the roll axis) of the spacecraft
+ * 
+ * \return (alpha, delta)    RA & dec [rad] of the original pointing
+ */
+
+pair<double, double> Platform::getInitialPointingCoordinates()
+{
+    return make_pair(originalRA, originalDec);
+}
+
+
+
+
+
+
+
+
 /**
  * \brief Return the pointing coordinates (of the roll axis) of the spacecraft
  * 
