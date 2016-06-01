@@ -9,8 +9,10 @@
  * 
  */
 
-Telescope::Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File, Platform &platform)
-: HDF5Writer(hdf5File), azimuthAngle(0.0), tiltAngle(0.0), internalTime(0.0), platform(platform)
+Telescope::Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File, Platform &platform, DriftGenerator &driftGenerator)
+: HDF5Writer(hdf5File), originalAzimuthAngle(0.0), originalTiltAngle(0.0), currentAzimuthAngle(0.0), currentTiltAngle(0.0),
+  useDrift(true), originalFocalPlaneOrientation(0.0), currentFocalPlaneOrientation(0.0), internalTime(0.0), 
+  driftGenerator(driftGenerator), platform(platform)
 {
     // Initialise the HDF5 group(s) in the output file
 
@@ -20,7 +22,7 @@ Telescope::Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File, 
 
 	configure(configParams);
 
-	// Set the heartbeat interval of the telescope.
+	// Initialise the heartbeat interval of the telescope.
 	// The Telescope properties (e.g. the coordinates of the optical axis) are evolving in time, 
     // for example because of thermo-elastic drift, or because of the jitter of the platform it 
     // is mounted on. To properly track these changes one has to use a small enough timestep, 
@@ -29,10 +31,8 @@ Telescope::Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File, 
     // 'global' heartbeat of Telescope is the minimum of its own intrinsic heartbeat and the
     // heartbeat of all the components it depends on.
 
-	if (driftTimeScale != 0.0)
-	{
-		heartbeatInterval = driftTimeScale / 20.0;
-	}
+    heartbeatInterval = min(platform.getHeartbeatInterval(), driftGenerator.getHeartbeatInterval());
+
 
     // Initialize the current position of the optical axis of the telescope given the 
     // platform pointing axis.
@@ -81,14 +81,22 @@ Telescope::~Telescope()
  	// Configuration parameters for the Telescope
 
 
-    azimuthAngle            = deg2rad(configParams.getDouble("Telescope/AzimuthAngle"));           // [rad]
-    tiltAngle               = deg2rad(configParams.getDouble("Telescope/TiltAngle"));              // [rad]
+    originalAzimuthAngle    = deg2rad(configParams.getDouble("Telescope/AzimuthAngle"));           // [rad]
+    originalTiltAngle       = deg2rad(configParams.getDouble("Telescope/TiltAngle"));              // [rad]
  	lightCollectingArea     = configParams.getDouble("Telescope/LightCollectingArea") * 1.e-4;     // [m^2]  
 	transmissionEfficiency  = configParams.getDouble("Telescope/TransmissionEfficiency");          // [unitless]
-	driftYawRms             = deg2rad(configParams.getDouble("Telescope/DriftYawRms") / 3600.);    // [rad]         
-    driftPitchRms           = deg2rad(configParams.getDouble("Telescope/DriftPitchRms") / 3600.);  // [rad]         
-    driftRollRms            = deg2rad(configParams.getDouble("Telescope/DriftRollRms") /3600.);    // [s]        
-    driftTimeScale          = configParams.getDouble("Telescope/DriftTimeScale");    
+    useDrift                = configParams.getBoolean("Telescope/UseDrift");
+
+    currentAzimuthAngle = originalAzimuthAngle;
+    currentTiltAngle = originalTiltAngle;
+
+    // The focal plane orientation gamma_FP used to be in the Camera class, but got moved out because 
+    // it corresponds to the telescope roll orientation, which is susceptible to thermo-elastic drift, 
+    // and which only Telescope can vary. Camera can access this variable throught the method
+    //   Telescope::getCurrentFocalPlaneOrientation()
+
+    originalFocalPlaneOrientation  = deg2rad(configParams.getDouble("Camera/FocalPlaneOrientation"));  // [rad]
+    currentFocalPlaneOrientation = originalFocalPlaneOrientation;
 }
 
 
@@ -135,9 +143,15 @@ void Telescope::flushOutput()
 
      if (!historyTime.empty())
      {
-        hdf5File.writeArray("/Telescope/", "Time",         historyTime.data(),  historyTime.size());
-        hdf5File.writeArray("/Telescope/", "TelescopeRA",  historyRA.data(),    historyRA.size());
-        hdf5File.writeArray("/Telescope/", "TelescopeDec", historyDec.data(),   historyDec.size());
+        hdf5File.writeArray("/Telescope/", "Time",           historyTime.data(),    historyTime.size());
+        hdf5File.writeArray("/Telescope/", "TelescopeRA",    historyRA.data(),      historyRA.size());         // [deg]
+        hdf5File.writeArray("/Telescope/", "TelescopeDec",   historyDec.data(),     historyDec.size());        // [deg]
+        hdf5File.writeArray("/Telescope/", "TelescopeYaw",   historyYaw.data(),     historyYaw.size());        // [arcsec]
+        hdf5File.writeArray("/Telescope/", "TelescopePitch", historyPitch.data(),   historyPitch.size());      // [arcsec]
+        hdf5File.writeArray("/Telescope/", "TelescopeRoll",  historyRoll.data(),    historyRoll.size());       // [arcsec]
+        hdf5File.writeArray("/Telescope/", "Azimuth",        historyAzimuth.data(), historyAzimuth.size());    // [deg]
+        hdf5File.writeArray("/Telescope/", "Tilt",           historyTilt.data(),    historyTilt.size());       // [deg]
+        hdf5File.writeArray("/Telescope/", "FocalPlaneOrientation", historyFocalPlaneOrientation.data(),  historyFocalPlaneOrientation.size());   // [deg]
      }
      else
      {
@@ -176,6 +190,12 @@ void Telescope::updatePointingCoordinates(double time)
 
     if (time == internalTime)
     {
+        Log.debug("Telescope: updatePointingCoordinates: coordinates up-to-date for requested time " + to_string(time));
+        Log.debug("Telescope: At time " + to_string(time) + ": (azimuth, tilt, roll orient) = (" 
+                                        + to_string(rad2deg(currentAzimuthAngle)) + ", " 
+                                        + to_string(rad2deg(currentTiltAngle)) + ", " 
+                                        + to_string(rad2deg(currentFocalPlaneOrientation)) + ") deg");
+
         Log.info("Telescope: At time " + to_string(time) + ": (RA, dec) = (" 
                                + to_string(rad2deg(currentAlphaOpticalAxis)) + ", " 
                                + to_string(rad2deg(currentDeltaOpticalAxis)) + ")");
@@ -185,40 +205,66 @@ void Telescope::updatePointingCoordinates(double time)
         if (historyTime.empty())
         {
             historyTime.push_back(time);
-            historyRA.push_back(rad2deg(currentAlphaOpticalAxis));
-            historyDec.push_back(rad2deg(currentDeltaOpticalAxis));
-        }
-        else
-        {   
-            if (historyTime.back() != time)
-            {
-                historyTime.push_back(time);
-                historyRA.push_back(rad2deg(currentAlphaOpticalAxis));
-                historyDec.push_back(rad2deg(currentDeltaOpticalAxis));
-            }
+            historyRA.push_back(rad2deg(currentAlphaOpticalAxis));                            // [deg]
+            historyDec.push_back(rad2deg(currentDeltaOpticalAxis));                           // [deg]
+            historyYaw.push_back(0.0);                                                        // [arcsec]
+            historyPitch.push_back(0.0);                                                      // [arcsec]
+            historyRoll.push_back(0.0);                                                       // [arcsec]
+            historyAzimuth.push_back(rad2deg(currentAzimuthAngle));                           // [deg]
+            historyTilt.push_back(rad2deg(currentTiltAngle));                                 // [deg]
+            historyFocalPlaneOrientation.push_back(rad2deg(currentFocalPlaneOrientation));    // [deg]
         }
 
         return;
     }
 
-    // Get the updated pointing coordinates of the platform
+ 
+    // Update the azimuth, tilt, and roll orientation of the telescope which change in time due to a thermo-elastic drift
 
-    double platformPointingRA, platformPointingDec;
-    tie(platformPointingRA, platformPointingDec) = platform.getPointingCoordinates(time);
+    double yaw=0.0, pitch=0.0, roll=0.0;
+
+    if (useDrift)
+    {
+        const double timeInterval = time - internalTime;
+        tie(yaw, pitch, roll) = driftGenerator.getNextYawPitchRoll(timeInterval);   // [rad]
+
+        currentAzimuthAngle = originalAzimuthAngle + yaw;
+        currentTiltAngle = originalTiltAngle + pitch;
+        currentFocalPlaneOrientation = originalFocalPlaneOrientation + roll;
+
+        Log.debug("Telescope: At time " + to_string(time) + ": (yaw, pitch, roll) = (" 
+                                        + to_string(rad2deg(yaw)*3600.) + ", " 
+                                        + to_string(rad2deg(pitch)*3600.) + ", " 
+                                        + to_string(rad2deg(roll)*3600.) + ") arcsec");
+    }
+    else
+    {
+        Log.info("Telescope: Ignoring drift, telescope (yaw, pitch, roll) = (0.0, 0.0, 0.0)");
+    }
+
+
+    // Log the current telescope orientation of the telescope on the platform
+
+    Log.debug("Telescope: At time " + to_string(time) + ": (azimuth, tilt, roll orient) = (" 
+                                    + to_string(rad2deg(currentAzimuthAngle)) + ", " 
+                                    + to_string(rad2deg(currentTiltAngle)) + ", " 
+                                    + to_string(rad2deg(currentFocalPlaneOrientation)) + ") deg");
+
+
+
 
     // The telescope's optical axis does not need to be aligned with the platform's pointing axis,
     // but is usually oriented differently. Compute the equatorial sky coordinates of the telescope's
     // optical axis.
 
+    double platformPointingRA, platformPointingDec;
+    tie(platformPointingRA, platformPointingDec) = platform.getPointingCoordinates(time);
     tie(currentAlphaOpticalAxis, currentDeltaOpticalAxis) = platformToTelescopePointingCoordinates(platformPointingRA, platformPointingDec);
 
-    // Apply a thermo-elastic drift 
-
-    // TBD
 
     // Log the current telescope pointing coordinates
 
-    Log.info("Telescope: At time " + to_string(time) + ": (RA, dec) = (" 
+    Log.debug("Telescope: At time " + to_string(time) + ": (RA, dec) = (" 
                                    + to_string(rad2deg(currentAlphaOpticalAxis)) + ", " 
                                    + to_string(rad2deg(currentDeltaOpticalAxis)) + ")");
 
@@ -226,8 +272,15 @@ void Telescope::updatePointingCoordinates(double time)
     // Save the pointing values to write to HDF5
 
     historyTime.push_back(time);
-    historyRA.push_back(rad2deg(currentAlphaOpticalAxis));
-    historyDec.push_back(rad2deg(currentDeltaOpticalAxis));
+    historyRA.push_back(rad2deg(currentAlphaOpticalAxis));                            // [deg]
+    historyDec.push_back(rad2deg(currentDeltaOpticalAxis));                           // [deg]
+    historyYaw.push_back(rad2deg(yaw) * 3600.);                                       // [arcsec]
+    historyPitch.push_back(rad2deg(pitch) * 3600.);                                   // [arcsec]
+    historyRoll.push_back(rad2deg(roll) * 3600.);                                     // [arcsec]
+    historyAzimuth.push_back(rad2deg(currentAzimuthAngle));                           // [deg]
+    historyTilt.push_back(rad2deg(currentTiltAngle));                                 // [deg]
+    historyFocalPlaneOrientation.push_back(rad2deg(currentFocalPlaneOrientation));    // [deg]
+
 
     // Update the internal clock
 
@@ -297,6 +350,28 @@ pair<double, double> Telescope::getInitialPointingCoordinates()
 
 
 
+/**
+ * \brief Return the heartbeat interval of Telescope. It's the largest interval with which 
+ *        small Telescope variations (e.g. due to Platform Jitter or due to thermo-elastic
+ *        drift variations) can be tracked.
+ * 
+ */
+
+double Telescope::getHeartbeatInterval()
+{
+    return min(platform.getHeartbeatInterval(), driftGenerator.getHeartbeatInterval());
+}
+
+
+
+
+
+
+
+
+
+
+
 
 /**
  * \brief Return the transmission efficiency of the telescope (number between 0 and 1)
@@ -338,6 +413,32 @@ double Telescope::getLightCollectingArea()
 
 
 
+/**
+ * \brief  Return the current value of the focal plane orientation. The current value
+ *         differs from the original value in the input file due to thermo-elastic drift.
+ * 
+ * \details  This variable used to be in the Camera class, but got moved out because it 
+ *           corresponds to the telescope roll orientation, which is susceptible to thermo-
+ *           elastic drift, and which only Telescope can vary. 
+ *            
+ * \note  See also PLATO-KUL-PL-TN-0001
+ * 
+ * \return current value of the focal plane orientation gamma_FP  [rad]
+ */
+
+double Telescope::getCurrentFocalPlaneOrientation()
+{
+    return currentFocalPlaneOrientation;
+}
+
+
+
+
+
+
+
+
+
 
 
 /**
@@ -366,8 +467,8 @@ pair<double, double> Telescope::platformToTelescopePointingCoordinates(double al
     double uy = zSC(1);
     double uz = zSC(2);
 
-    double cosAngle = cos(azimuthAngle);
-    double sinAngle = sin(azimuthAngle);
+    double cosAngle = cos(currentAzimuthAngle);
+    double sinAngle = sin(currentAzimuthAngle);
 
     arma::mat rotAzimuth = {{cosAngle+ux*ux*(1-cosAngle),    ux*uy*(1-cosAngle)-uz*sinAngle, ux*uz*(1-cosAngle)+uy*sinAngle},
                             {uy*ux*(1-cosAngle)+uz*sinAngle, cosAngle+uy*uy*(1-cosAngle),    uy*uz*(1-cosAngle)-ux*sinAngle},
@@ -393,8 +494,8 @@ pair<double, double> Telescope::platformToTelescopePointingCoordinates(double al
     uy = yAzimuth(1);
     uz = yAzimuth(2);
 
-    cosAngle = cos(tiltAngle);
-    sinAngle = sin(tiltAngle);
+    cosAngle = cos(currentTiltAngle);
+    sinAngle = sin(currentTiltAngle);
 
     arma::mat rotTilt = {{cosAngle+ux*ux*(1-cosAngle),    ux*uy*(1-cosAngle)-uz*sinAngle, ux*uz*(1-cosAngle)+uy*sinAngle},
                          {uy*ux*(1-cosAngle)+uz*sinAngle, cosAngle+uy*uy*(1-cosAngle),    uy*uz*(1-cosAngle)-ux*sinAngle},

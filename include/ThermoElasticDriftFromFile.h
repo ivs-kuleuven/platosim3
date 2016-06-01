@@ -1,5 +1,5 @@
-#ifndef JITTERFROMFILE_H
-#define JITTERFROMFILE_H
+#ifndef THERMOELASTICDRIFTFROMFILE_H
+#define THERMOELASTICDRIFTFROMFILE_H
 
 #include <string>
 #include <vector>
@@ -12,19 +12,19 @@
 #include "Heartbeat.h"
 #include "HDF5Writer.h"
 #include "ConfigurationParameters.h"
-#include "JitterGenerator.h"
+#include "DriftGenerator.h"
 
 
 using namespace std;
 
 
 
-class JitterFromFile : public JitterGenerator
+class ThermoElasticDriftFromFile : public DriftGenerator
 {
     public:
 
-        JitterFromFile(ConfigurationParameters &configurationParameters);
-        ~JitterFromFile();
+        ThermoElasticDriftFromFile(ConfigurationParameters &configurationParameters);
+        ~ThermoElasticDriftFromFile();
 
         virtual void configure(ConfigurationParameters &configParams);
         virtual tuple<double, double, double> getNextYawPitchRoll(double timeInterval) override;
@@ -32,7 +32,7 @@ class JitterFromFile : public JitterGenerator
 
     protected:
 
-        string pathToJitterFile;
+        string pathToDriftFile;
 
         int timeIndex;
         double internalTime;

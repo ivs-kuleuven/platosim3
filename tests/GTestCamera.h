@@ -129,8 +129,10 @@ TEST_F(CameraTest, GnomonicRadialDistance)
     gnomonic.push_back(map<string, double> {{"xDeg", 13.6}, {"yDeg", 13.6}, {"xFP",  59.786060}, {"yFP", 59.786060}, {"radius",  18.8876}});
 
     JitterGenerator *jitterGenerator = new JitterFromRedNoise(configParams);
+    DriftGenerator *driftGenerator = new ThermoElasticDriftFromRedNoise(configParams);
+    
     Platform platform = Platform(configParams, hdf5File, *jitterGenerator);
-    Telescope telescope = Telescope(configParams, hdf5File, platform);
+    Telescope telescope = Telescope(configParams, hdf5File, platform, *driftGenerator);
     Sky sky = Sky(configParams);
 
     MyCamera camera = MyCamera(configParams, hdf5File, telescope, sky);
@@ -186,8 +188,9 @@ TEST_F(CameraTest, distortedCoordinates)
     using StringUtilities::dtos;
 
     JitterGenerator *jitterGenerator = new JitterFromRedNoise(configParams);
+    DriftGenerator *driftGenerator = new ThermoElasticDriftFromRedNoise(configParams);
     Platform platform = Platform(configParams, hdf5File, *jitterGenerator);
-    Telescope telescope = Telescope(configParams, hdf5File, platform);
+    Telescope telescope = Telescope(configParams, hdf5File, platform, *driftGenerator);
     Sky sky = Sky(configParams);
 
 
@@ -250,8 +253,9 @@ TEST_F(CameraTest, reproduceDistortionMap)
     using StringUtilities::dtos;
 
     JitterGenerator *jitterGenerator = new JitterFromRedNoise(configParams);
+    DriftGenerator *driftGenerator = new ThermoElasticDriftFromRedNoise(configParams);
     Platform platform = Platform(configParams, hdf5File, *jitterGenerator);
-    Telescope telescope = Telescope(configParams, hdf5File, platform);
+    Telescope telescope = Telescope(configParams, hdf5File, platform, *driftGenerator);
     Sky sky = Sky(configParams);
 
     // Just a few values from the current distortion map for which the Polynomial1D was fitted.
