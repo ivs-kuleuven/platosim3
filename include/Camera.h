@@ -45,6 +45,8 @@ class Camera : public HDF5Writer
 
         virtual arma::fmat getRebinnedPsfForPlanarFocalPlaneCoordinates(double xFPmm, double yFPmm, unsigned int targetSubPixels, double orientationAngle);
 
+        pair<double, double> skyToAngularFocalPlaneCoordinates(double raStar, double decStar, double raOpticalAxis, double decOpticalAxis);
+
         pair<double, double> skyToAngularFocalPlaneCoordinates(double raStar, double decStar);
         pair<double, double> angularFocalPlaneToSkyCoordinates(double xFPprime, double yFPprime);
 

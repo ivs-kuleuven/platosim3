@@ -666,6 +666,8 @@ double Camera::getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double 
  * \brief Computes the (x,y) coordinates in the normalized focal plane of a star with given equatorial coordinates
  *        using a gnomonic projection.
  *
+ * \details    The transformation is with respect to the current pointing coordinates of the telescope.
+ *
  * \param raStar       Right ascension of the star [rad]
  * \param decStar      Declination of the star [rad]
  *
@@ -679,6 +681,44 @@ pair<double, double> Camera::skyToAngularFocalPlaneCoordinates(double raStar, do
     double raOpticalAxis, decOpticalAxis;
     tie(raOpticalAxis, decOpticalAxis) = telescope.getCurrentPointingCoordinates();
 
+    // Project the sky to the focal plane in the "FP" coordinate system (gnomonic projection)
+
+    double denominator = cos(decOpticalAxis) * cos(decStar) * cos(raStar - raOpticalAxis) + sin(decOpticalAxis) * sin(decStar);
+    double xFP = ( sin(decOpticalAxis) * cos(decStar) * cos(raStar - raOpticalAxis) - cos(decOpticalAxis) * sin(decStar)) / denominator;
+    double yFP =  cos(decStar) * sin(raStar - raOpticalAxis) / denominator;
+
+    // Convert the FP coordinates into FP' coordinates 
+
+    double xFPprime =  xFP * cos(focalPlaneOrientation) + yFP * sin(focalPlaneOrientation);
+    double yFPprime = -xFP * sin(focalPlaneOrientation) + yFP * cos(focalPlaneOrientation);
+
+    // Return the angular focal plane coordinates [rad]
+
+    return make_pair(xFPprime, yFPprime);
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Computes the (x,y) coordinates in the normalized focal plane of a star with given equatorial coordinates
+ *        using a gnomonic projection.
+ *
+ * \param raStar       Right ascension of the star [rad]
+ * \param decStar      Declination of the star [rad]
+ *
+ * return pair (x,y):  Cartesian coordinate of the projected star in the focal plane in the FP-prime system [radians]
+ */
+
+pair<double, double> Camera::skyToAngularFocalPlaneCoordinates(double raStar, double decStar, double raOpticalAxis, double decOpticalAxis)
+{
     // Project the sky to the focal plane in the "FP" coordinate system (gnomonic projection)
 
     double denominator = cos(decOpticalAxis) * cos(decStar) * cos(raStar - raOpticalAxis) + sin(decOpticalAxis) * sin(decStar);
