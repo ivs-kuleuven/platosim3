@@ -92,7 +92,30 @@ void Camera::initHDF5Groups()
 
 
 
+/**
+ * \brief      Collect and return the IDs of all stars that fall within the subField
+ * 
+ * \details    Note that this method pulls the detected stars from a map that is filled by 
+ *             exposeDetector for each exposure. So, depending on when this method is called, 
+ *             the returned set might be empty or incomplete.
+ *             
+ * \return     a set of unique star IDs that were detected in the subField
+ */
+set<unsigned int> Camera::getAllStarIDs()
+{
+    set<unsigned int> allStarIDs;            // A set<> stores only unique members
 
+    for(auto timeMapPair: detectedStarInfo)
+    {
+        for (auto idArrayPair: timeMapPair.second)
+        {
+            allStarIDs.insert(idArrayPair.first);
+        }
+    }
+
+    return allStarIDs;
+
+}
 
 
 /**
@@ -122,10 +145,7 @@ void Camera::flushOutput()
     // For each of the exposures, make a subgroup and write the position and flux of all detected stars.
     // Because some stars at the edge may jitter in and out of the subfield from one exposure to the other,
     // the written arrays may not be equally long for each exposure.
-    // Also keep a record of all stars that were detected in at least one exposure. 
 
-
-    set<unsigned int> allStarIDs;            // A set<> stores only unique members
 
     for (int n = 0; n < time.size(); n++)
     {
@@ -151,7 +171,6 @@ void Camera::flushOutput()
         {
             const unsigned int starID = keyValuePair.first;
             starIDs.push_back(starID);                       // list of starIDs for this exposure only
-            allStarIDs.insert(starID);                       // list of starIDs over all exposures combined
             xFPmm.push_back(detectedStarInfo[time[n]][starID][0] / detectedStarInfo[time[n]][starID][5]);
             yFPmm.push_back(detectedStarInfo[time[n]][starID][1] / detectedStarInfo[time[n]][starID][5]);
             rowPix.push_back(detectedStarInfo[time[n]][starID][2] / detectedStarInfo[time[n]][starID][5]);
@@ -171,36 +190,6 @@ void Camera::flushOutput()
             hdf5File.writeArray(exposureGroupName, "flux",   flux.data(),    flux.size());            
         }
     }
-
-
-    // For all detected stars, copy the equatorial sky coordinates and the magnitude 
-    // from the user-given star catalog to the output HDF5 file in a custom group.
-    
-    hdf5File.createGroup("/StarCatalog");
-
-    const int Nstars = allStarIDs.size();
-    vector<unsigned int> starIDs(Nstars);    // set<> is not contiguous, vector<> is. Needed for HDF5.
-    vector<double> RA(Nstars);
-    vector<double> dec(Nstars);
-    vector<double> Vmag(Nstars);
-
-    if (!allStarIDs.empty())
-    {
-        int k = 0;
-        for (auto starID: allStarIDs)
-        {
-            starIDs[k] = starID;
-            tie(RA[k], dec[k]) = sky.getCoordinatesOfStarWithID(starID, Angle::degrees);
-            Vmag[k] = sky.getVmagnitudeOfStarWithID(starID);
-            k++;
-        }
-
-        hdf5File.writeArray("StarCatalog/", "starIDs", starIDs.data(), starIDs.size());
-        hdf5File.writeArray("StarCatalog/", "RA",      RA.data(), RA.size());
-        hdf5File.writeArray("StarCatalog/", "Dec",     dec.data(), dec.size());
-        hdf5File.writeArray("StarCatalog/", "Vmag",    Vmag.data(), Vmag.size());
-    }
-
 
     // Write the total sky background flux values [photons/pixel/exposure] to HDF5 in a custom group
 
@@ -640,8 +629,10 @@ double Camera::getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double 
 
 
 /**
- * \brief Computes the (x,y) coordinates in the normalized focal plane of a star with given equatorial coordinates
- *        using a gnomonic projection.
+ * \brief      Computes the (x,y) coordinates in the normalized focal plane of a star with given equatorial coordinates
+ *             using a gnomonic projection.
+ * 
+ * \details    The transformation is with respect to the current pointing coordinates of the telescope.
  *
  * \param raStar       Right ascension of the star [rad]
  * \param decStar      Declination of the star [rad]
@@ -656,6 +647,44 @@ pair<double, double> Camera::skyToAngularFocalPlaneCoordinates(double raStar, do
     double raOpticalAxis, decOpticalAxis;
     tie(raOpticalAxis, decOpticalAxis) = telescope.getCurrentPointingCoordinates();
 
+    // Project the sky to the focal plane in the "FP" coordinate system (gnomonic projection)
+
+    double denominator = cos(decOpticalAxis) * cos(decStar) * cos(raStar - raOpticalAxis) + sin(decOpticalAxis) * sin(decStar);
+    double xFP = ( sin(decOpticalAxis) * cos(decStar) * cos(raStar - raOpticalAxis) - cos(decOpticalAxis) * sin(decStar)) / denominator;
+    double yFP =  cos(decStar) * sin(raStar - raOpticalAxis) / denominator;
+
+    // Convert the FP coordinates into FP' coordinates 
+
+    double xFPprime =  xFP * cos(focalPlaneOrientation) + yFP * sin(focalPlaneOrientation);
+    double yFPprime = -xFP * sin(focalPlaneOrientation) + yFP * cos(focalPlaneOrientation);
+
+    // Return the angular focal plane coordinates [rad]
+
+    return make_pair(xFPprime, yFPprime);
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Computes the (x,y) coordinates in the normalized focal plane of a star with given equatorial coordinates
+ *        using a gnomonic projection.
+ *
+ * \param raStar       Right ascension of the star [rad]
+ * \param decStar      Declination of the star [rad]
+ *
+ * return pair (x,y):  Cartesian coordinate of the projected star in the focal plane in the FP-prime system [radians]
+ */
+
+pair<double, double> Camera::skyToAngularFocalPlaneCoordinates(double raStar, double decStar, double raOpticalAxis, double decOpticalAxis)
+{
     // Project the sky to the focal plane in the "FP" coordinate system (gnomonic projection)
 
     double denominator = cos(decOpticalAxis) * cos(decStar) * cos(raStar - raOpticalAxis) + sin(decOpticalAxis) * sin(decStar);

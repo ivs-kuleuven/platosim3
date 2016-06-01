@@ -252,7 +252,40 @@ void Telescope::updatePointingCoordinates(double time)
 
 pair<double, double> Telescope::getCurrentPointingCoordinates()
 {
-	return make_pair(currentAlphaOpticalAxis, currentDeltaOpticalAxis);
+    return make_pair(currentAlphaOpticalAxis, currentDeltaOpticalAxis);
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Return the original values of the equatorial coordinates of the optical axis of the telescope
+ * 
+ * \return a pair (alphaOpticalAxis, deltaOpticalAxis)  in [rad]
+ */
+
+pair<double, double> Telescope::getInitialPointingCoordinates()
+{
+    // Get the original pointing coordinates of the platform
+
+    double platformPointingRA, platformPointingDec;
+    tie(platformPointingRA, platformPointingDec) = platform.getInitialPointingCoordinates();
+
+    // The telescope's optical axis does not need to be aligned with the platform's pointing axis,
+    // but is usually oriented differently. Compute the equatorial sky coordinates of the telescope's
+    // optical axis.
+
+    double originalAlphaOpticalAxis, originalDeltaOpticalAxis;
+    tie(originalAlphaOpticalAxis, originalDeltaOpticalAxis) = platformToTelescopePointingCoordinates(platformPointingRA, platformPointingDec);
+
+    return make_pair(originalAlphaOpticalAxis, originalDeltaOpticalAxis);
 }
 
 

@@ -34,6 +34,7 @@ class Simulation
 
         virtual void writeInputParametersToHDF5(ConfigurationParameters &configParams);
         virtual void writeVersionInformationToHDF5();
+        virtual void writeStarCatalogToHDF5();
 
     private:
 
@@ -41,6 +42,7 @@ class Simulation
         double exposureTime;
         int Nexposures;
         bool useJitterFromFile;
+        bool includeFieldDistortion;
 
         JitterGenerator *jitterGenerator;
         Platform *platform;
