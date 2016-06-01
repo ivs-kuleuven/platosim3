@@ -224,7 +224,7 @@ pair<double, double> Platform::getPointingCoordinates(double time)
     }
     else
     {
-        Log.info("Platform: Ignoring jitter, (yaw, pitch, roll) = (0.0, 0.0, 0.0");
+        Log.info("Platform: Ignoring jitter, platform (yaw, pitch, roll) = (0.0, 0.0, 0.0)");
         yaw = 0.0;
         pitch = 0.0;
         roll = 0.0;

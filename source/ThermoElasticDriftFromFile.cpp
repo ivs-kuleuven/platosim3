@@ -1,5 +1,5 @@
 
-#include "JitterFromFile.h"
+#include "ThermoElasticDriftFromFile.h"
 
 
 
@@ -9,23 +9,23 @@
  * \param configParams The configuration parameters from the input parameters file
  */
 
-JitterFromFile::JitterFromFile(ConfigurationParameters &configParams)
+ThermoElasticDriftFromFile::ThermoElasticDriftFromFile(ConfigurationParameters &configParams)
 {
     // Set the configuration parameters
 
     configure(configParams);
 
-    // Open the jitter file, and read time yaw, pitch, roll time series.
+    // Open the thermo-elastic drift file, and read time yaw, pitch, roll time series.
     // The time is assumed to be in [s], pitch, yaw, and roll in [arcsec].
-    // The path of the jitter file should have been set in configure().
+    // The path of the thermo-elastic drift file should have been set in configure().
 
-    Log.info("JitterFromFile: Opening jitter file " + pathToJitterFile + " to read");
+    Log.info("ThermoElasticDriftFromFile: Opening input file " + pathToDriftFile + " to read");
 
-    ifstream jitterFile(pathToJitterFile);
-    if (jitterFile.is_open())
+    ifstream driftFile(pathToDriftFile);
+    if (driftFile.is_open())
     {
         string temp;
-        while (getline(jitterFile, temp))
+        while (getline(driftFile, temp))
         {
             istringstream buffer(temp);
             vector<double> numbers((istream_iterator<double>(buffer)), istream_iterator<double>());
@@ -35,27 +35,27 @@ JitterFromFile::JitterFromFile(ConfigurationParameters &configParams)
             roll.push_back(deg2rad(numbers[3]/3600.));       // [arcsec] -> [rad]
         }
 
-        jitterFile.close();
+        driftFile.close();
 
         // If there are less than two points, we can't even derive a heartbeat interval
 
         if (time.size() < 2)
         {
-            Log.error("JitterFromFile: Jitter file contains less than 2 time points");
+            Log.error("ThermoElasticDriftFromFile: Jitter file contains less than 2 time points");
             // FIXME: exit ???
         }
         else
         {        
-            Log.info("JitterFromFile: found " + to_string(time.size()) + " time points in jitter input file");
+            Log.info("ThermoElasticDriftFromFile: found " + to_string(time.size()) + " time points in jitter input file");
         }
     }
     else
     {
-        Log.error("JitterFromFile: Cannot open jitter file " + pathToJitterFile);
+        Log.error("ThermoElasticDriftFromFile: Cannot open jitter file " + pathToDriftFile);
         exit(1);
     }
 
-    // We start with the first time
+    // We start with the first time point of the file
 
     timeIndex = 0;
     internalTime = time[0];
@@ -75,7 +75,7 @@ JitterFromFile::JitterFromFile(ConfigurationParameters &configParams)
  * \brief Destructor
  */
 
-JitterFromFile::~JitterFromFile()
+ThermoElasticDriftFromFile::~ThermoElasticDriftFromFile()
 {
 
 }
@@ -92,9 +92,9 @@ JitterFromFile::~JitterFromFile()
  * \param configParams  The configuration parameters
  */
 
-void JitterFromFile::configure(ConfigurationParameters &configParams)
+void ThermoElasticDriftFromFile::configure(ConfigurationParameters &configParams)
 {
-    pathToJitterFile = configParams.getAbsoluteFilename("Platform/JitterFileName");
+    pathToDriftFile = configParams.getAbsoluteFilename("Telescope/DriftFileName");
 }
 
 
@@ -107,17 +107,17 @@ void JitterFromFile::configure(ConfigurationParameters &configParams)
 
 
 /**
- * \brief Get the next (yaw, pitch, roll) values from the pre-computed jitter series.
+ * \brief Get the next (yaw, pitch, roll) values from the pre-computed drift series.
  * 
  * \details A linear interpolation between time points will be done if the timeInterval 
- *          does not coincide with the time step of the jitter file.
+ *          does not coincide with the time step of the drift file.
  * 
  * \param timeInterval[in]  Time interval that has passed since the last getNextYawPitchRoll() request. [s]
  * 
  * \return (newYaw, newPitch, newRoll)   [rad]
  */
 
-tuple<double, double, double> JitterFromFile::getNextYawPitchRoll(double timeInterval)
+tuple<double, double, double> ThermoElasticDriftFromFile::getNextYawPitchRoll(double timeInterval)
 {
     // Advance the pointer 'timeIndex' in our precomputed jitter series such that we have
     //      time[index] <= internalTime + timeInterval < time[index+1]
@@ -127,7 +127,7 @@ tuple<double, double, double> JitterFromFile::getNextYawPitchRoll(double timeInt
         timeIndex++;
         if (timeIndex >= time.size())
         {
-            Log.error("JitterFromFile: jitter file not large enough");
+            Log.error("ThermoElasticDriftFromFile: input file not large enough");
             exit(1);
         }
     }
@@ -140,13 +140,13 @@ tuple<double, double, double> JitterFromFile::getNextYawPitchRoll(double timeInt
     const double newYaw   = yaw[timeIndex]   * weight1 + yaw[timeIndex+1]   * weight2;
     const double newPitch = pitch[timeIndex] * weight1 + pitch[timeIndex+1] * weight2;
     const double newRoll  = roll[timeIndex]  * weight1 + roll[timeIndex+1]  * weight2;
-    
+
     // Update the internal time
 
     internalTime += timeInterval;
 
     // That's it!
-
+    
     return make_tuple(newYaw, newPitch, newRoll);
 }
 
@@ -159,15 +159,15 @@ tuple<double, double, double> JitterFromFile::getNextYawPitchRoll(double timeInt
 
 
 /**
- * \brief Return the heartbeat interval of this Jitter generator
+ * \brief Return the heartbeat interval of this thermo-elastic drift generator
  * 
- * \details It is assumed that the pre-computed jitter time series are equidistant so that
- *          the time step over which the jitter changes is simply time[1]-time[0].
+ * \details It is assumed that the pre-computed drift time series are equidistant so that
+ *          the time step over which the drift changes is simply time[1]-time[0].
  *          
  * \return  heartbeatInterval [s]
  */
 
-double JitterFromFile::getHeartbeatInterval()
+double ThermoElasticDriftFromFile::getHeartbeatInterval()
 {
     return (time[1] - time[0]);
 }
