@@ -45,6 +45,8 @@ class Camera : public HDF5Writer
 
         virtual arma::fmat getRebinnedPsfForPlanarFocalPlaneCoordinates(double xFPmm, double yFPmm, unsigned int targetSubPixels, double orientationAngle);
 
+        pair<double, double> skyToAngularFocalPlaneCoordinates(double raStar, double decStar, double raOpticalAxis, double decOpticalAxis);
+
         pair<double, double> skyToAngularFocalPlaneCoordinates(double raStar, double decStar);
         pair<double, double> angularFocalPlaneToSkyCoordinates(double xFPprime, double yFPprime);
 
@@ -56,6 +58,8 @@ class Camera : public HDF5Writer
 
         double getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double yFPprime);
 
+        set<unsigned int> getAllStarIDs();
+
 
     protected:
 
@@ -64,7 +68,6 @@ class Camera : public HDF5Writer
 
         double plateScale;                    // [arcsec/micron]
         double focalLength;                   // [mm]
-        double focalPlaneOrientation;         // [rad]
         double throughputBandwidth;           // FWHM of the throughput passband [nm]
         double throughputLambdaC;             // Central wavelength of the throughput passband [nm]
 

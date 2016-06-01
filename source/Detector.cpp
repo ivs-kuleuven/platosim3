@@ -1271,8 +1271,7 @@ void Detector::applyCte()
 
 	vector<double> logs(numRowsPixelMap + subFieldZeroPointRow);
 	iota(logs.begin(), logs.end(), 1.0);
-	transform(logs.begin(), logs.end(), logs.begin(),
-			ptr_fun<double, double>(log));
+	transform(logs.begin(), logs.end(), logs.begin(), ptr_fun<double, double>(log));
 
 	// Compute the partial sums of these logarithms
 	// sumOfLogsUpTo[i] contains log((i+1)!) = log(1) + ... + log(i+1)

@@ -13,6 +13,9 @@
 #include "JitterGenerator.h"
 #include "JitterFromFile.h"
 #include "JitterFromRedNoise.h"
+#include "DriftGenerator.h"
+#include "ThermoElasticDriftFromFile.h"
+#include "ThermoElasticDriftFromRedNoise.h"
 #include "ConfigurationParameters.h"
 #include "version.h"
 
@@ -34,6 +37,7 @@ class Simulation
 
         virtual void writeInputParametersToHDF5(ConfigurationParameters &configParams);
         virtual void writeVersionInformationToHDF5();
+        virtual void writeStarCatalogToHDF5();
 
     private:
 
@@ -41,8 +45,11 @@ class Simulation
         double exposureTime;
         int Nexposures;
         bool useJitterFromFile;
+        bool includeFieldDistortion;
+        bool useDriftFromFile;
 
         JitterGenerator *jitterGenerator;
+        DriftGenerator *driftGenerator;
         Platform *platform;
         Telescope *telescope;
         Sky *sky;

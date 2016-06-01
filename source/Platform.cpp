@@ -160,6 +160,25 @@ void Platform::setPointingCoordinates(double rightAscencsion, double declination
 
 
 
+
+/**
+ * \brief Return the original pointing coordinates (of the roll axis) of the spacecraft
+ * 
+ * \return (alpha, delta)    RA & dec [rad] of the original pointing
+ */
+
+pair<double, double> Platform::getInitialPointingCoordinates()
+{
+    return make_pair(originalRA, originalDec);
+}
+
+
+
+
+
+
+
+
 /**
  * \brief Return the pointing coordinates (of the roll axis) of the spacecraft
  * 
@@ -224,7 +243,7 @@ pair<double, double> Platform::getPointingCoordinates(double time)
     }
     else
     {
-        Log.info("Platform: Ignoring jitter, (yaw, pitch, roll) = (0.0, 0.0, 0.0");
+        Log.info("Platform: Ignoring jitter, platform (yaw, pitch, roll) = (0.0, 0.0, 0.0)");
         yaw = 0.0;
         pitch = 0.0;
         roll = 0.0;
