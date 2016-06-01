@@ -437,9 +437,10 @@ pair<double, double> Telescope::platformToTelescopePointingCoordinates(double al
     double cosAngle = cos(currentAzimuthAngle);
     double sinAngle = sin(currentAzimuthAngle);
 
-    arma::mat rotAzimuth = {{cosAngle+ux*ux*(1-cosAngle),    ux*uy*(1-cosAngle)-uz*sinAngle, ux*uz*(1-cosAngle)+uy*sinAngle},
-                            {uy*ux*(1-cosAngle)+uz*sinAngle, cosAngle+uy*uy*(1-cosAngle),    uy*uz*(1-cosAngle)-ux*sinAngle},
-                            {uz*ux*(1-cosAngle)-uy*sinAngle, uz*uy*(1-cosAngle)+ux*sinAngle, cosAngle+uz*uz*(1-cosAngle)}};
+    arma::mat rotAzimuth;
+    rotAzimuth <<  cosAngle+ux*ux*(1-cosAngle)    <<  ux*uy*(1-cosAngle)-uz*sinAngle  <<  ux*uz*(1-cosAngle)+uy*sinAngle << arma::endr
+               <<  uy*ux*(1-cosAngle)+uz*sinAngle <<  cosAngle+uy*uy*(1-cosAngle)     <<  uy*uz*(1-cosAngle)-ux*sinAngle << arma::endr
+               <<  uz*ux*(1-cosAngle)-uy*sinAngle <<  uz*uy*(1-cosAngle)+ux*sinAngle  <<  cosAngle+uz*uz*(1-cosAngle)    << arma::endr;
 
 
     // The goal of the rotZ rotation matrix is to rotate the ySC unit vector (corresponding to the y-axis in 
@@ -464,9 +465,10 @@ pair<double, double> Telescope::platformToTelescopePointingCoordinates(double al
     cosAngle = cos(currentTiltAngle);
     sinAngle = sin(currentTiltAngle);
 
-    arma::mat rotTilt = {{cosAngle+ux*ux*(1-cosAngle),    ux*uy*(1-cosAngle)-uz*sinAngle, ux*uz*(1-cosAngle)+uy*sinAngle},
-                         {uy*ux*(1-cosAngle)+uz*sinAngle, cosAngle+uy*uy*(1-cosAngle),    uy*uz*(1-cosAngle)-ux*sinAngle},
-                         {uz*ux*(1-cosAngle)-uy*sinAngle, uz*uy*(1-cosAngle)+ux*sinAngle, cosAngle+uz*uz*(1-cosAngle)}};
+    arma::mat rotTilt;
+    rotTilt <<  cosAngle+ux*ux*(1-cosAngle)     <<  ux*uy*(1-cosAngle)-uz*sinAngle  <<  ux*uz*(1-cosAngle)+uy*sinAngle  << arma::endr
+            <<  uy*ux*(1-cosAngle)+uz*sinAngle  <<  cosAngle+uy*uy*(1-cosAngle)     <<  uy*uz*(1-cosAngle)-ux*sinAngle  << arma::endr
+            <<  uz*ux*(1-cosAngle)-uy*sinAngle  <<  uz*uy*(1-cosAngle)+ux*sinAngle  <<  cosAngle+uz*uz*(1-cosAngle)     << arma::endr;
 
 
     // Compute the unit vector zOA in the direction of the telescope's optical axis
