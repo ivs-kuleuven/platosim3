@@ -150,6 +150,8 @@ void Simulation::run(double startTime)
         
         currentTime = detector->takeExposure(currentTime, exposureTime);
     }
+
+    writeStarCatalogToHDF5();
 }
 
 
@@ -169,6 +171,76 @@ void Simulation::writeVersionInformationToHDF5()
 
 }
 
+
+/**
+ * \brief      Write information about the stars that were detected in the subField 
+ *             to the HDF5 output file. 
+ * 
+ * \details    The Camera collects all the stars that fall within the boundaries of the subField.
+ * 
+ *             This function should only be called after all exposures have been taken in order 
+ *             to have the complete collections of stars that have been detected in the subField.
+ *             
+ */
+void Simulation::writeStarCatalogToHDF5()
+{
+    Log.info("Simulation: writing info on detected stars to HDF5 in /StarCatalog");
+
+    set<unsigned int> allStarIDs = camera->getAllStarIDs();
+
+    // For all detected stars, copy the equatorial sky coordinates and the magnitude 
+    // from the user-given star catalog to the output HDF5 file in a custom group.
+    
+    hdf5File.createGroup("/StarCatalog");
+
+    const int Nstars = allStarIDs.size();
+    vector<unsigned int> starIDs(Nstars);    // set<> is not contiguous, vector<> is. Needed for HDF5.
+    vector<double> RA(Nstars);
+    vector<double> dec(Nstars);
+    vector<double> Vmag(Nstars);
+    vector<double> rowPix(Nstars);
+    vector<double> colPix(Nstars);
+    vector<double> xFPmm(Nstars);
+    vector<double> yFPmm(Nstars);
+
+    double raOpticalAxis, decOpticalAxis;
+    tie(raOpticalAxis, decOpticalAxis) = telescope->getInitialPointingCoordinates();
+
+    double xFPrad, yFPrad;
+
+    if (!allStarIDs.empty())
+    {
+        int k = 0;
+        for (auto starID: allStarIDs)
+        {
+            starIDs[k] = starID;
+            tie(RA[k], dec[k]) = sky->getCoordinatesOfStarWithID(starID, Angle::degrees);  // be careful, ra & dec returned in degrees!
+            Vmag[k] = sky->getVmagnitudeOfStarWithID(starID);
+            tie(xFPrad, yFPrad) = camera->skyToAngularFocalPlaneCoordinates(deg2rad(RA[k]), deg2rad(dec[k]), raOpticalAxis, decOpticalAxis);
+            tie(xFPmm[k], yFPmm[k]) = camera->angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad);
+            if (includeFieldDistortion)
+            {
+               tie(xFPmm[k], yFPmm[k]) = camera->planarToDistortedFocalPlaneCoordinates(xFPmm[k], yFPmm[k]);
+            }
+            tie(rowPix[k], colPix[k]) = detector->planarFocalPlaneToPixelCoordinates(xFPmm[k], yFPmm[k]);
+            k++;
+        }
+
+        hdf5File.writeArray("StarCatalog/", "starIDs", starIDs.data(), starIDs.size());
+        hdf5File.writeArray("StarCatalog/", "RA",      RA.data(), RA.size());
+        hdf5File.writeArray("StarCatalog/", "Dec",     dec.data(), dec.size());
+        hdf5File.writeArray("StarCatalog/", "Vmag",    Vmag.data(), Vmag.size());
+        hdf5File.writeArray("StarCatalog/", "xFPmm",    xFPmm.data(), xFPmm.size());
+        hdf5File.writeArray("StarCatalog/", "yFPmm",    yFPmm.data(), yFPmm.size());
+        hdf5File.writeArray("StarCatalog/", "colPix",    colPix.data(), colPix.size());
+        hdf5File.writeArray("StarCatalog/", "rowPix",    rowPix.data(), rowPix.size());
+    }
+    else
+    {
+        Log.warning("Simulation: no information about detected stars to write to HDF5");
+    }
+
+}
 
 
 /**

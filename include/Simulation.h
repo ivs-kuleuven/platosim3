@@ -34,6 +34,7 @@ class Simulation
 
         virtual void writeInputParametersToHDF5(ConfigurationParameters &configParams);
         virtual void writeVersionInformationToHDF5();
+        virtual void writeStarCatalogToHDF5();
 
     private:
 
