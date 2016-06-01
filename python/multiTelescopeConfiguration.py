@@ -2,8 +2,25 @@
 Script to run the Plato Simulator for a multi-telescope configuration.  The 32 telescopes are arranged in four groups of 8 telescopes.  All telescopes in the 
 same group have the same FOV and the lines of sight of the four groups are offset by an angle of 9.2 degrees from the PLM z-axis.
 
-For each of the telescopes a simulation will be performed (i.e. a sub-field will be modelled with the Plato Simulator).  The sub-field has the same 
-dimensions (in pixels for each telescope) and is always centred on the same coordinates (raCenter, decCenter).
+For each of the telescopes a simulation will be performed (i.e. a sub-field will be modelled with the Plato Simulator).  The sub-field has the same dimensions 
+(in pixels for each telescope) and is always centred on the same coordinates (raCenter, decCenter).
+
+Differences between the telescopes are:
+
+- azimuth angle (the same within a group)
+- seed for the readout noise
+- seed for the photon noise
+- seed for the flatfield map
+- seed for the CTE map
+
+All other configuration parameters are the same for the individual telescopes, incl.
+
+- all platform-related parameters
+- the PSF
+- the field distortion polynomial
+
+For each telescope, the script will automatically determine on which CCD the sub-field will be positioned.  A simulation will only be performed if the sub-field
+falls on the CCD entirely.
 """
 
 #########
@@ -26,7 +43,7 @@ inputDir = os.getenv("PLATO_PROJECT_HOME") + "/inputfiles"
 inputFile   = inputDir + "/inputfile.yaml"
 
 outputDir   = os.getcwd()
-outputFilePrefix = "/MultiTelescopeConfiguration"
+outputPrefix = "/MultiTelescopeConfiguration"
 
 
 
@@ -52,13 +69,13 @@ raCenter = 180.0                                            # Right ascension of
 decCenter = 70.0                                            # Declination of the point about which to centre the sub-field [degrees] 
 
 
-# Platform parameters
+# Platform parameters (the same for all telescopes)
 #####################
 
 useJitter = "yes"                           # Do you want to account for the platform jitter?
 useJitterFromFile = "no"                    # Do you want to read the jitter from a file?
 
-jitterSeed = 1433320381                     # Random seed for jitter (the same for all telescopes)
+jitterSeed = 1433320381                     # Random seed for jitter
 jitterRaRms = 2.3                           # Jitter yaw RMS [arcsec]
 jitterPitchRms = 2.3                        # Jitter pitch RMS [arcsec]
 jitterRollRms = 2.3                         # Jitter roll RMS [arcsec]
@@ -119,8 +136,7 @@ psfFromFileNumPixels = 8                        # Number of pixel for which the 
 # Automatically determined:
 #    - origin offset (x, y)
 #    - orientation
-#    - size = 4510 x 4510
-#
+#    - size
 
 pixelSize = 18                          # Pixel size [micron]
 gain = 16                               # Detector gain [e- / ADU ]                                                 <--- use the same value for all the telescopes for now
@@ -141,7 +157,7 @@ includeOpenShutterSmearing = "yes"      # Do you want to account for the open-sh
 includeVignetting = "yes"               # Do you want to account for vignetting?
 includeConvolution = "yes"              # Do you want to convolve with the PSF?
 includeFullWellSaturation = "yes"       # Do you want to account for the full-well saturation (i.e. blooming)?
-includeDigitalSaturation = "yes"        # Do you want to account for the digitatal saturation?
+includeDigitalSaturation = "yes"        # Do you want to account for the digital saturation?
 writeSubPixelImagesToHDF5 = "no"        # Do you want to store the sub-pixels images?
 
 readoutNoiseSeed =  1424949740          # Random seed for the readout noise                                         <--- different for each telescope!
@@ -182,7 +198,10 @@ for group in range(numTelescopeGroups):
         
         telescopeIndex = numTelescopesPerGroup * group + telescope
         
-        sim = Simulation(outputFilePrefix + "{0:02d}".format(telescopeIndex), inputFile)
+        # Output will be stored in /MultiTelescopeConfiguration/group<group>/telescope<telescope>
+        
+        outputFilePrefix = outputPrefix + "/group" +  "{0:02d}".format(group + 1) + "/telescope" + "{0:02d}".format(telescope + 1)
+        sim = Simulation(outputFilePrefix, inputFile)
         sim.outputDir = outputDir
         
         # Compute the telescope pointing, based on the platform pointing, and the tilt and azimuth angle of the telescope
