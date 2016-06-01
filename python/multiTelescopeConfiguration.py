@@ -213,104 +213,113 @@ for group in range(numTelescopeGroups):
         
         ccdCode, columnCenter, rowCenter = getCCDandPixelCoordinates(raCenter, decCenter, raTelescope, decTelescope, focalPlaneAngle, focalLength, plateScale, pixelSize, includeFieldDistortion, nominal=True)
         
-        # Observing parameters
+        # Check whether the sub-field falls entirely on the detector
         
-        sim["ObservingParameters/NumExposures"] = numExposures
-        sim["ObservingParameters/ExposureTime"]  = exposureTime
-        sim["ObservingParameters/RApointing"] = raPlatform
-        sim["ObservingParameters/DecPointing"] = decPlatform
-        sim["ObservingParameters/Fluxm0"] = flux_m0
-        sim["ObservingParameters/SkyBackground"] = skyBackground
-        sim["ObservingParameters/StarCatalogFile"] = starCatalog 
+        if (ccdCode != None) and (rowCenter - numRowsSubField / 2 >= 0) and (rowCenter + numRowsSubField / 2 < CCD[ccdCode]["NRows"]) and (columnCenter - numColumnsSubField / 2 >= 0) and (columnCenter + numColumnsSubField / 2 < CCD[ccdCode]["NCols"]):
         
-        # Platform parameters
+            print "Processing simulation for telescope " + str(telescope + 1) + " of group " + str(group + 1)
         
-        sim["Platform/UseJitter"] = useJitter
-        sim["Platform/UseJitterFromFile"] = useJitterFromFile 
-        sim["Platform/JitterYawRms"] = jitterYawRms 
-        sim["Platform/JitterPitchRms"] = jitterPitchRms 
-        sim["Platform/JitterRollRms"] = jitterRollRms 
-        sim["Platform/jitterTimeScale"] = jitterTimescale
-        sim["Platform/JitterFileName"] = jitterFilename  
+            # Observing parameters
         
-        # Telescope parameters
+            sim["ObservingParameters/NumExposures"] = numExposures
+            sim["ObservingParameters/ExposureTime"]  = exposureTime
+            sim["ObservingParameters/RApointing"] = raPlatform
+            sim["ObservingParameters/DecPointing"] = decPlatform
+            sim["ObservingParameters/Fluxm0"] = flux_m0
+            sim["ObservingParameters/SkyBackground"] = skyBackground
+            sim["ObservingParameters/StarCatalogFile"] = starCatalog 
         
-        sim["Telescope/AzimuthAngle"] = azimuthAngle[group]
-        sim["Telescope/TiltAngle"] = tiltAngle
-        sim["Telescope/lightCollectingArea"] = lightCollectingArea
-        sim["Telescope/TransmissionEfficiency"] = transmissionEfficiency 
-        sim["Telescope/DriftYawRsm"] = driftYawRms 
-        sim["Telescope/DriftPathRms"] = driftPitchRms 
-        sim["Telescope/DriftRollRms"] = driftRollRms 
-        sim["Telescope/DriftTimeScale"] = driftTimescale
+            # Platform parameters
         
-        # Camera parameters
+            sim["Platform/UseJitter"] = useJitter
+            sim["Platform/UseJitterFromFile"] = useJitterFromFile 
+            sim["Platform/JitterYawRms"] = jitterYawRms 
+            sim["Platform/JitterPitchRms"] = jitterPitchRms 
+            sim["Platform/JitterRollRms"] = jitterRollRms 
+            sim["Platform/jitterTimeScale"] = jitterTimescale
+            sim["Platform/JitterFileName"] = jitterFilename  
         
-        sim["Camera/FocalPlaneOrientation"] = focalPlaneAngle
-        sim["Camera/PlateScale"] = plateScale
-        sim["Camera/FocalLength"] = focalLength
-        sim["Camera/ThroughputBandwidth"] = throughputBandwidth
-        sim["Camera/ThroughputLambdaC"] = throughputCentralWavelength
-        sim["CameraIncludeFieldDistortion"] = includeFieldDistortion
+            # Telescope parameters
         
-        # PSF parameters
+            sim["Telescope/AzimuthAngle"] = azimuthAngle[group]
+            sim["Telescope/TiltAngle"] = tiltAngle
+            sim["Telescope/lightCollectingArea"] = lightCollectingArea
+            sim["Telescope/TransmissionEfficiency"] = transmissionEfficiency 
+            sim["Telescope/DriftYawRsm"] = driftYawRms 
+            sim["Telescope/DriftPathRms"] = driftPitchRms 
+            sim["Telescope/DriftRollRms"] = driftRollRms 
+            sim["Telescope/DriftTimeScale"] = driftTimescale
         
-        sim["PSF/Model"] = psfModel
-        sim["PSF/Gaussian/Sigma"] = gaussianPsfSigma
-        sim["PSF/Gaussian/NumberOfPixels"] = gaussianPsfNumPixels
-        sim["PSF/FromFile/Filename"] = psfFromFileFilename
-        sim["PSF/FromFile/DistanceToOA"] = psfFromFileDistanceToOA
-        sim["PSF/FromFile/RotationAngle"] = psfFromFileRotationAngle
-        sim["PSF/FromFile/NumberOfPixels"] = psfFromFileNumPixels
+            # Camera parameters
         
-        # CCD parameters
+            sim["Camera/FocalPlaneOrientation"] = focalPlaneAngle
+            sim["Camera/PlateScale"] = plateScale
+            sim["Camera/FocalLength"] = focalLength
+            sim["Camera/ThroughputBandwidth"] = throughputBandwidth
+            sim["Camera/ThroughputLambdaC"] = throughputCentralWavelength
+            sim["CameraIncludeFieldDistortion"] = includeFieldDistortion
         
-        sim["CCD/OriginOffsetX"] = CCD[ccdCode]["zeroPointXmm"]
-        sim["CCD/OriginOffsetY"] = CCD[ccdCode]["zeroPointYmm"]
-        sim["CCD/Orientation"] = CCD[ccdCode]["angle"]
-        sim["CCD/NumColumns"] = CCD[ccdCode]["NCols"]
-        sim["CCD/NumRows"] = CCD[ccdCode]["NRows"]
+            # PSF parameters
         
-        sim["CCD/PixelSize"] = pixelSize
-        sim["CCD/Gain"] = gain
-        sim["CCD/QuantumEfficiency"] = quantumEfficiency
-        sim["CCD/FullWellSaturation"] = fullWellSaturation
-        sim["CCD/DigitalSaturation"] = digitalSaturation
-        sim["CCD/ReadoutNoise"] = readoutNoise
-        sim["CCD/ElectronicOffset"] = electronicOffset
-        sim["CCD/ReadoutTime"] = readoutTime
-        sim["CCD/FlatfieldPtPNoise"] = flatfieldP2PNoise
-        sim["CCD/CTEMean"] = cte
+            sim["PSF/Model"] = psfModel
+            sim["PSF/Gaussian/Sigma"] = gaussianPsfSigma
+            sim["PSF/Gaussian/NumberOfPixels"] = gaussianPsfNumPixels
+            sim["PSF/FromFile/Filename"] = psfFromFileFilename
+            sim["PSF/FromFile/DistanceToOA"] = psfFromFileDistanceToOA
+            sim["PSF/FromFile/RotationAngle"] = psfFromFileRotationAngle
+            sim["PSF/FromFile/NumberOfPixels"] = psfFromFileNumPixels
         
-        sim["CCD/IncludeFlatfield"] =  includeFlatfield
-        sim["CCD/IncludePhotonNoise"] =  includePhotonNoise
-        sim["CCD/IncludeReadoutNoise"] = includeReadoutNoise
-        sim["CCD/IncludeCTIeffects"] = includeCtiEffects
-        sim["CCD/IncludeOpenShutterSmearing"] = includeOpenShutterSmearing
-        sim["CCD/IncludeVignetting"] = includeVignetting
-        sim["CCD/IncludeConvolution"] = includeConvolution
-        sim["CCD/IncludeFullWellSaturation"] = includeFullWellSaturation
-        sim["CCD/IncludeDigitalSaturation"] = includeDigitalSaturation
-        sim["CCD/WriteSubPixelImagesToHDF5"] = writeSubPixelImagesToHDF5
+            # CCD parameters
         
-        # Sub-field parameters
+            sim["CCD/OriginOffsetX"] = CCD[ccdCode]["zeroPointXmm"]
+            sim["CCD/OriginOffsetY"] = CCD[ccdCode]["zeroPointYmm"]
+            sim["CCD/Orientation"] = CCD[ccdCode]["angle"]
+            sim["CCD/NumColumns"] = CCD[ccdCode]["NCols"]
+            sim["CCD/NumRows"] = CCD[ccdCode]["NRows"]
         
-        sim["SubField/ZeroPointRow"] = rowCenter - numRowsSubField / 2
-        sim["SubField/ZeroPointColumn"] = columnCenter - numColumnsSubField / 2
+            sim["CCD/PixelSize"] = pixelSize
+            sim["CCD/Gain"] = gain
+            sim["CCD/QuantumEfficiency"] = quantumEfficiency
+            sim["CCD/FullWellSaturation"] = fullWellSaturation
+            sim["CCD/DigitalSaturation"] = digitalSaturation
+            sim["CCD/ReadoutNoise"] = readoutNoise
+            sim["CCD/ElectronicOffset"] = electronicOffset
+            sim["CCD/ReadoutTime"] = readoutTime
+            sim["CCD/FlatfieldPtPNoise"] = flatfieldP2PNoise
+            sim["CCD/CTEMean"] = cte
         
-        sim["SubField/NumColumns"] = numColumnsSubField
-        sim["SubField/NumRows"] = numRowsSubField
-        sim["SubField/NumBiasPrescanRows"] = numBiasPreScanRows
-        sim["SubField/NumSmearingOverscanRows"] = numSmearingOverScanRows
-        sim["SubField/SubPixels"] = numSubPixelsPerPixel
+            sim["CCD/IncludeFlatfield"] =  includeFlatfield
+            sim["CCD/IncludePhotonNoise"] =  includePhotonNoise
+            sim["CCD/IncludeReadoutNoise"] = includeReadoutNoise
+            sim["CCD/IncludeCTIeffects"] = includeCtiEffects
+            sim["CCD/IncludeOpenShutterSmearing"] = includeOpenShutterSmearing
+            sim["CCD/IncludeVignetting"] = includeVignetting
+            sim["CCD/IncludeConvolution"] = includeConvolution
+            sim["CCD/IncludeFullWellSaturation"] = includeFullWellSaturation
+            sim["CCD/IncludeDigitalSaturation"] = includeDigitalSaturation
+            sim["CCD/WriteSubPixelImagesToHDF5"] = writeSubPixelImagesToHDF5
         
-        # Seed parameters
+            # Sub-field parameters
         
-        sim["RandomSeeds/ReadOutNoiseSeed"] = readoutNoiseSeed + telescopeIndex
-        sim["RandomSeeds/PhotonNoiseSeed"] = photonNoiseSeed + telescopeIndex 
-        sim["RandomSeeds/JitterSeed"] = jitterSeed 
-        sim["RandomSeeds/FlatFieldSeed"] = flatfieldSeed + telescopeIndex 
-        sim["RandomSeeds/CTESeed"] = cteSeed + telescopeIndex 
-        sim["RandomSeeds/driftSeed"] = driftSeed + telescopeIndex  
+            sim["SubField/ZeroPointRow"] = rowCenter - numRowsSubField / 2
+            sim["SubField/ZeroPointColumn"] = columnCenter - numColumnsSubField / 2
         
-        simFile = sim.run()
+            sim["SubField/NumColumns"] = numColumnsSubField
+            sim["SubField/NumRows"] = numRowsSubField
+            sim["SubField/NumBiasPrescanRows"] = numBiasPreScanRows
+            sim["SubField/NumSmearingOverscanRows"] = numSmearingOverScanRows
+            sim["SubField/SubPixels"] = numSubPixelsPerPixel
+        
+            # Seed parameters
+        
+            sim["RandomSeeds/ReadOutNoiseSeed"] = readoutNoiseSeed + telescopeIndex
+            sim["RandomSeeds/PhotonNoiseSeed"] = photonNoiseSeed + telescopeIndex 
+            sim["RandomSeeds/JitterSeed"] = jitterSeed 
+            sim["RandomSeeds/FlatFieldSeed"] = flatfieldSeed + telescopeIndex 
+            sim["RandomSeeds/CTESeed"] = cteSeed + telescopeIndex 
+            sim["RandomSeeds/driftSeed"] = driftSeed + telescopeIndex  
+        
+            simFile = sim.run()
+            
+        else:
+            print "Sub-field centred on (" + str(raCenter) + ", " + str(decCenter) + ") does lay entirely on a CCD for telescope " + str(telescope + 1) + " of group " + str(group + 1)
