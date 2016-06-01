@@ -117,6 +117,7 @@ void Simulation::configure(ConfigurationParameters &configParams)
     exposureTime      = configParams.getDouble("ObservingParameters/ExposureTime"); 
     Nexposures        = configParams.getInteger("ObservingParameters/NumExposures"); 
     useJitterFromFile = configParams.getBoolean("Platform/UseJitterFromFile");
+    includeFieldDistortion = configParams.getBoolean("Camera/IncludeFieldDistortion"); // do we want to do this or should this be asked to Camera?
 }
 
 

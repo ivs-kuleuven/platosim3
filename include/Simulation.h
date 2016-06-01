@@ -41,6 +41,7 @@ class Simulation
         double exposureTime;
         int Nexposures;
         bool useJitterFromFile;
+        bool includeFieldDistortion;
 
         JitterGenerator *jitterGenerator;
         Platform *platform;
