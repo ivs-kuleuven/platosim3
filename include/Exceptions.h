@@ -62,6 +62,9 @@ class IllegalArgumentException : public exception
 
 
 
+
+
+
 /**
  * \class FileException
  * \brief throw this exception for any problems with files in your code
@@ -71,6 +74,28 @@ class FileException : public exception
     public:
         FileException(const string msg);
         virtual ~FileException() throw();
+        virtual const char * what() const throw() override;
+    private:
+        string message;
+};
+
+
+
+
+
+
+
+
+
+/**
+ * \class ConfigurationException
+ * \brief throw this exception for any problems with the configuration, e.g. YAML
+ */
+class ConfigurationException : public exception 
+{
+    public:
+        ConfigurationException(const string msg);
+        virtual ~ConfigurationException() throw();
         virtual const char * what() const throw() override;
     private:
         string message;
