@@ -16,7 +16,7 @@ from referenceFrames import setSubfieldAroundCoordinates
 
 inputDir    = os.getenv("PLATO_PROJECT_HOME") + "/inputfiles"
 
-inputFile   = inputDir + "/inputfile.yaml"
+inputFile   = inputDir + "/inputfgs.yaml"
 starCatalog = inputDir + "/guide_stars_EQ.txt"
 jitterFile  = inputDir + "/PlatoJitter_Airbus.txt"
 psfFile     = inputDir + "/psf.hdf5"
