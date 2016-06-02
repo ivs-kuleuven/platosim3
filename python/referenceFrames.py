@@ -697,7 +697,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
            raOpticalAxis:          right ascension of the optical axis [rad]
            decOpticalAxis:         declination of the optical axis [rad]
            focalPlaneAngle:        angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
-           focalLength:            focal length of the telescope [m]
+           focalLength:            focal length of the telescope [mm]
            plateScale:             [arcsec/micron]
            pixelSize:              [micrometer]
            includeFieldDistortion: True to include field distortion in coordinate transformations, false otherwise
@@ -724,7 +724,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
     # Compute the (x,y) coordinates in the FP' reference system [mm]
 
     xFPrad, yFPrad = skyToAngularFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle)
-    xFPmm, yFPmm = angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad, focalLength * 1000)
+    xFPmm, yFPmm = angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad, focalLength)
 
     if includeFieldDistortion:
         xFPmm, yFPmm = planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm)
@@ -925,7 +925,7 @@ def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldS
              decStar:                declination [rad]
              subfieldSizeX:          full width (# of columns) of the subfield [pix]
              subfieldSizeY:          full height (#of rows) of the subfield [pix]
-             focalLength:            focal length of the telescope [m]
+             focalLength:            focal length of the telescope [mm]
              plateScale:             [arcsec/micron]
              pixelSize:              [micrometer]
              raOpticalAxis:          right ascension of the optical axis [rad]
@@ -1008,7 +1008,7 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
              decStar:                declination [radians]
              subfieldSizeX:          width (i.e. number of columns) of the subiield [pixels]
              subfieldSizeY:          height (i.e. number of rows) of the sub-field [pixels]
-             focalLength:            focal length of the telescope [m]
+             focalLength:            focal length of the telescope [mm]
              plateScale:             Plate scale. [arcsec/micron]
              pixelSize:              [micrometer]
              raPlatform:             right ascension of the platform pointing axis (not the optical axis) [rad]
