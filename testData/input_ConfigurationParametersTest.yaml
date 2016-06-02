@@ -42,3 +42,7 @@ Special Values:
     boolean-false: false
     boolean-yes: yes
     boolean-no: no
+    boolean-one: 1
+    boolean-zero: 0
+    boolean-integer: 23
+    integer-float: 2.4

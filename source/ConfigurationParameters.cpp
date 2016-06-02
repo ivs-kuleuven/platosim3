@@ -77,7 +77,7 @@ ConfigurationParameters::~ConfigurationParameters()
  * A boolean value is always parsed from a string that can have the following values: "yes"/"no", "y"/"n", "true"/"false", "on"/"off".
  * All the previous values can be Capitalized (i.e. start with an upper case letter) or can be all caps.
  * 
- * A boolean value can not be parsed from the integers 1 or 0.
+ * A boolean value can also be parsed from the integers 1 or 0.
  * 
  * The key is the name of the input parameter. If the input parameter is part
  * of a section or group, then the key is a combination of the group name and 
@@ -91,8 +91,39 @@ ConfigurationParameters::~ConfigurationParameters()
  */
 bool ConfigurationParameters::getBoolean(const string &key)
 {
+    bool value;
+
     YAML::Node node = getNode(key);
-    return node.as<bool>();
+
+    // First try to convert to a boolean, values should be true/false, on/off, yes/no, ..
+    // Trying to convert from an integer into a boolean will fail with an Exception.
+
+    try
+    {
+        value = node.as<bool>();
+    }
+    catch(YAML::Exception ex)
+    {
+        // Try to convert from an integer 0 or 1 
+
+        try
+        {
+            int iValue = node.as<int>();
+            if (iValue == 0)
+                value = false;
+            else if (iValue == 1)
+                value = true;
+            else
+                throw ConfigurationException("ConfigurationParameters: expected boolean value for key=\"" + key + "\", while value=" + node.as<string>());
+        }
+        catch(YAML::Exception ex)
+        {
+            throw ConfigurationException("ConfigurationParameters: cannot convert key to boolean: key=\"" + key + "\", value=" + node.as<string>());
+        }
+
+    }
+
+    return value;
 }
 
 
@@ -116,8 +147,20 @@ bool ConfigurationParameters::getBoolean(const string &key)
  */
 int ConfigurationParameters::getInteger(const string &key)
 {
+    int value;
+
     YAML::Node node = getNode(key);
-    return node.as<int>();
+
+    try
+    {
+        value = node.as<int>();
+    }
+    catch(YAML::Exception ex)
+    {
+        throw ConfigurationException("ConfigurationParameters: cannot convert key to integer: key=\"" + key + "\", value= " + node.as<string>());
+    }
+
+    return value;
 }
 
 
@@ -148,8 +191,20 @@ int ConfigurationParameters::getInteger(const string &key)
  */
 long ConfigurationParameters::getLong(const string &key)
 {
+    long value;
+
     YAML::Node node = getNode(key);
-    return node.as<long>();
+
+    try
+    {
+        value = node.as<long>();
+    }
+    catch(YAML::Exception ex)
+    {
+        throw ConfigurationException("ConfigurationParameters: cannot convert key to integer type long: key=\"" + key + "\", value= " + node.as<string>());
+    }
+
+    return value;
 }
 
 
@@ -182,8 +237,20 @@ long ConfigurationParameters::getLong(const string &key)
  */
 double ConfigurationParameters::getDouble(const string &key)
 {
+    double value;
+
     YAML::Node node = getNode(key);
-    return node.as<double>();
+
+    try
+    {
+        value = node.as<double>();
+    }
+    catch(YAML::Exception ex)
+    {
+        throw ConfigurationException("ConfigurationParameters: cannot convert key to double: key=\"" + key + "\", value= " + node.as<string>());
+    }
+
+    return value;
 }
 
 
