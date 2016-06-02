@@ -47,7 +47,7 @@ inputDir = os.getenv("PLATO_PROJECT_HOME") + "/inputfiles"
 inputFile   = inputDir + "/inputfile.yaml"
 
 outputDir   = os.getcwd()
-outputPrefix = "/MultiTelescopeConfiguration"
+outputPrefix = "MultiTelescopeConfiguration"
 
 
 
@@ -236,8 +236,6 @@ for group in range(numTelescopeGroups):
         print "Platform pointing: " + str(raPointing) + ", " + str(decPointing)
         print "Telescope pointing: " + str(math.degrees(raTelescope)) + ", " + str(math.degrees(decTelescope))
         
-        #drawCCDsInSky(raTelescope, decTelescope, 0, focalLength * 1000, pixelSize, nominal=True)
-        
         # Determine on which CCD (A, B, C, or D) the coordinates (raCenter, decCenter) are positioned and at which location
         # (in pixel coordinates)
         
@@ -288,7 +286,7 @@ for group in range(numTelescopeGroups):
             sim["Camera/FocalLength"] = focalLength
             sim["Camera/ThroughputBandwidth"] = throughputBandwidth
             sim["Camera/ThroughputLambdaC"] = throughputCentralWavelength
-            sim["CameraIncludeFieldDistortion"] = includeFieldDistortion
+            sim["Camera/IncludeFieldDistortion"] = includeFieldDistortion
         
             # PSF parameters
         
@@ -348,7 +346,7 @@ for group in range(numTelescopeGroups):
             sim["RandomSeeds/JitterSeed"] = jitterSeed 
             sim["RandomSeeds/FlatFieldSeed"] = flatfieldSeed + telescopeIndex 
             sim["RandomSeeds/CTESeed"] = cteSeed + telescopeIndex 
-            sim["RandomSeeds/driftSeed"] = driftSeed + telescopeIndex  
+            sim["RandomSeeds/DriftSeed"] = driftSeed + telescopeIndex  
         
             simFile = sim.run()
             print "Done"
