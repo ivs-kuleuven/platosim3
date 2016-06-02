@@ -209,8 +209,8 @@ numSubPixelsPerPixel = 8        # Number of sub-pixels per pixels, in both direc
 # Simulation
 ############
 
-numTelescopeGroups = 1
-numTelescopesPerGroup = 1
+numTelescopeGroups = 4
+numTelescopesPerGroup = 8
 
 # Loop over all groups of telescopes
 
@@ -219,6 +219,8 @@ for group in range(numTelescopeGroups):
     # Loop over all telescopes in the current group
     
     for telescope in range(numTelescopesPerGroup):
+        
+        print "Processing telescope " + str(telescope + 1) + " of group " + str(group + 1)
         
         telescopeIndex = numTelescopesPerGroup * group + telescope
         
@@ -243,11 +245,11 @@ for group in range(numTelescopeGroups):
         ccdCode, columnCenter, rowCenter = getCCDandPixelCoordinates(math.radians(raCenter), math.radians(decCenter), raTelescope, decTelescope, math.radians(focalPlaneAngle), focalLength, plateScale, pixelSize, includeFieldDistortionAsBoolean, nominal=True)
         
         # Check whether the sub-field falls entirely on the detector
-        print ccdCode, columnCenter, rowCenter
-        #if (ccdCode != None) and (rowCenter - numRowsSubField / 2 >= 0) and (rowCenter + numRowsSubField / 2 < CCD[ccdCode]["NRows"]) and (columnCenter - numColumnsSubField / 2 >= 0) and (columnCenter + numColumnsSubField / 2 < CCD[ccdCode]["NCols"]):
-        if ccdCode != None:
-            print "Processing simulation for telescope " + str(telescope + 1) + " of group " + str(group + 1)
         
+        if (ccdCode != None) and (rowCenter - numRowsSubField / 2 >= 0) and (rowCenter + numRowsSubField / 2 < CCD[ccdCode]["Nrows"]) and (columnCenter - numColumnsSubField / 2 >= 0) and (columnCenter + numColumnsSubField / 2 < CCD[ccdCode]["Ncols"]):
+            
+            print "CCD " + ccdCode + " selected"
+            
             # Observing parameters
         
             sim["ObservingParameters/NumExposures"] = numExposures
@@ -267,9 +269,9 @@ for group in range(numTelescopeGroups):
             sim["Platform/JitterRollRms"] = jitterRollRms 
             sim["Platform/JitterTimeScale"] = jitterTimescale
             sim["Platform/JitterFileName"] = jitterFilename  
-        
+    
             # Telescope parameters
-        
+                        
             sim["Telescope/AzimuthAngle"] = azimuthAngles[group]
             sim["Telescope/TiltAngle"] = tiltAngle
             sim["Telescope/LightCollectingArea"] = lightCollectingArea
@@ -280,7 +282,7 @@ for group in range(numTelescopeGroups):
             sim["Telescope/DriftTimeScale"] = driftTimescale
         
             # Camera parameters
-        
+            
             sim["Camera/FocalPlaneOrientation"] = focalPlaneAngle
             sim["Camera/PlateScale"] = plateScale
             sim["Camera/FocalLength"] = focalLength
@@ -289,7 +291,7 @@ for group in range(numTelescopeGroups):
             sim["Camera/IncludeFieldDistortion"] = includeFieldDistortion
         
             # PSF parameters
-        
+            
             sim["PSF/Model"] = psfModel
             sim["PSF/Gaussian/Sigma"] = gaussianPsfSigma
             sim["PSF/Gaussian/NumberOfPixels"] = gaussianPsfNumPixels
@@ -330,8 +332,8 @@ for group in range(numTelescopeGroups):
         
             # Sub-field parameters
         
-            sim["SubField/ZeroPointRow"] = rowCenter - numRowsSubField / 2
-            sim["SubField/ZeroPointColumn"] = columnCenter - numColumnsSubField / 2
+            sim["SubField/ZeroPointRow"] = int(rowCenter - numRowsSubField / 2)
+            sim["SubField/ZeroPointColumn"] = int(columnCenter - numColumnsSubField / 2)
         
             sim["SubField/NumColumns"] = numColumnsSubField
             sim["SubField/NumRows"] = numRowsSubField
@@ -349,7 +351,6 @@ for group in range(numTelescopeGroups):
             sim["RandomSeeds/DriftSeed"] = driftSeed + telescopeIndex  
         
             simFile = sim.run()
-            print "Done"
             
         else:
             print "Sub-field centred on (" + str(raCenter) + ", " + str(decCenter) + ") does not lay entirely on a CCD for telescope " + str(telescope + 1) + " of group " + str(group + 1)
