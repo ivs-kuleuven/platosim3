@@ -160,6 +160,25 @@ void Platform::setPointingCoordinates(double rightAscencsion, double declination
 
 
 
+
+/**
+ * \brief Return the original pointing coordinates (of the roll axis) of the spacecraft
+ * 
+ * \return (alpha, delta)    RA & dec [rad] of the original pointing
+ */
+
+pair<double, double> Platform::getInitialPointingCoordinates()
+{
+    return make_pair(originalRA, originalDec);
+}
+
+
+
+
+
+
+
+
 /**
  * \brief Return the pointing coordinates (of the roll axis) of the spacecraft
  * 
@@ -324,13 +343,16 @@ arma::colvec Platform::spacecraftToEquatorialCoordinates(arma::colvec &coordSC, 
 
     // The rotation matrices
 
-    arma::mat R1 = {{cosAlpha, -sinAlpha, 0.0},
-                    {sinAlpha,  cosAlpha, 0.0},
-                    {     0.0,       0.0, 1.0}};
+    arma::mat R1;
+    R1 << cosAlpha <<  -sinAlpha << 0.0 << arma::endr
+       << sinAlpha <<   cosAlpha << 0.0 << arma::endr
+       <<    0.0   <<      0.0   << 1.0 << arma::endr;
 
-    arma::mat R2 = {{ sinDelta, 0.0, cosDelta},
-                    {      0.0, 1.0,      0.0},
-                    {-cosDelta, 0.0, sinDelta}};
+
+    arma::mat R2;
+    R2 <<  sinDelta <<  0.0 <<  cosDelta << arma::endr
+       <<    0.0    <<  1.0 <<    0.0    << arma::endr
+       << -cosDelta <<  0.0 <<  sinDelta << arma::endr;
 
     // The transformation
 
@@ -389,17 +411,20 @@ arma::colvec Platform::rotateYawPitchRoll(arma::colvec coord, const double yaw, 
 
     // The rotation matrices
 
-    arma::mat Ryaw = {{1.0,    0.0,     0.0},
-                      {0.0, cosYaw, -sinYaw},
-                      {0.0, sinYaw,  cosYaw}};
+    arma::mat Ryaw;
+    Ryaw << 1.0  <<  0.0    <<     0.0   << arma::endr
+         << 0.0  <<  cosYaw <<  -sinYaw  << arma::endr
+         << 0.0  <<  sinYaw <<   cosYaw  << arma::endr;
 
-    arma::mat Rpitch = {{ cosPitch, 0.0, sinPitch},
-                        {      0.0, 1.0,      0.0},
-                        {-sinPitch, 0.0, cosPitch}};
+    arma::mat Rpitch;
+    Rpitch <<  cosPitch  <<  0.0  <<  sinPitch  << arma::endr
+           <<   0.0      <<  1.0  <<    0.0     << arma::endr
+           << -sinPitch  <<  0.0  <<  cosPitch  << arma::endr;
 
-    arma::mat Rroll = {{cosRoll, -sinRoll, 0.0},
-                       {sinRoll,  cosRoll, 0.0},
-                       {    0.0,      0.0, 1.0}}; 
+    arma::mat Rroll;
+    Rroll << cosRoll  <<  -sinRoll  <<  0.0  << arma::endr
+          << sinRoll  <<   cosRoll  <<  0.0  << arma::endr
+          <<  0.0     <<     0.0    <<  1.0  << arma::endr; 
 
     // Do the transformation
 

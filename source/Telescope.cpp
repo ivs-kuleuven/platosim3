@@ -305,7 +305,40 @@ void Telescope::updatePointingCoordinates(double time)
 
 pair<double, double> Telescope::getCurrentPointingCoordinates()
 {
-	return make_pair(currentAlphaOpticalAxis, currentDeltaOpticalAxis);
+    return make_pair(currentAlphaOpticalAxis, currentDeltaOpticalAxis);
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Return the original values of the equatorial coordinates of the optical axis of the telescope
+ * 
+ * \return a pair (alphaOpticalAxis, deltaOpticalAxis)  in [rad]
+ */
+
+pair<double, double> Telescope::getInitialPointingCoordinates()
+{
+    // Get the original pointing coordinates of the platform
+
+    double platformPointingRA, platformPointingDec;
+    tie(platformPointingRA, platformPointingDec) = platform.getInitialPointingCoordinates();
+
+    // The telescope's optical axis does not need to be aligned with the platform's pointing axis,
+    // but is usually oriented differently. Compute the equatorial sky coordinates of the telescope's
+    // optical axis.
+
+    double originalAlphaOpticalAxis, originalDeltaOpticalAxis;
+    tie(originalAlphaOpticalAxis, originalDeltaOpticalAxis) = platformToTelescopePointingCoordinates(platformPointingRA, platformPointingDec);
+
+    return make_pair(originalAlphaOpticalAxis, originalDeltaOpticalAxis);
 }
 
 
@@ -437,9 +470,10 @@ pair<double, double> Telescope::platformToTelescopePointingCoordinates(double al
     double cosAngle = cos(currentAzimuthAngle);
     double sinAngle = sin(currentAzimuthAngle);
 
-    arma::mat rotAzimuth = {{cosAngle+ux*ux*(1-cosAngle),    ux*uy*(1-cosAngle)-uz*sinAngle, ux*uz*(1-cosAngle)+uy*sinAngle},
-                            {uy*ux*(1-cosAngle)+uz*sinAngle, cosAngle+uy*uy*(1-cosAngle),    uy*uz*(1-cosAngle)-ux*sinAngle},
-                            {uz*ux*(1-cosAngle)-uy*sinAngle, uz*uy*(1-cosAngle)+ux*sinAngle, cosAngle+uz*uz*(1-cosAngle)}};
+    arma::mat rotAzimuth;
+    rotAzimuth <<  cosAngle+ux*ux*(1-cosAngle)    <<  ux*uy*(1-cosAngle)-uz*sinAngle  <<  ux*uz*(1-cosAngle)+uy*sinAngle << arma::endr
+               <<  uy*ux*(1-cosAngle)+uz*sinAngle <<  cosAngle+uy*uy*(1-cosAngle)     <<  uy*uz*(1-cosAngle)-ux*sinAngle << arma::endr
+               <<  uz*ux*(1-cosAngle)-uy*sinAngle <<  uz*uy*(1-cosAngle)+ux*sinAngle  <<  cosAngle+uz*uz*(1-cosAngle)    << arma::endr;
 
 
     // The goal of the rotZ rotation matrix is to rotate the ySC unit vector (corresponding to the y-axis in 
@@ -464,9 +498,10 @@ pair<double, double> Telescope::platformToTelescopePointingCoordinates(double al
     cosAngle = cos(currentTiltAngle);
     sinAngle = sin(currentTiltAngle);
 
-    arma::mat rotTilt = {{cosAngle+ux*ux*(1-cosAngle),    ux*uy*(1-cosAngle)-uz*sinAngle, ux*uz*(1-cosAngle)+uy*sinAngle},
-                         {uy*ux*(1-cosAngle)+uz*sinAngle, cosAngle+uy*uy*(1-cosAngle),    uy*uz*(1-cosAngle)-ux*sinAngle},
-                         {uz*ux*(1-cosAngle)-uy*sinAngle, uz*uy*(1-cosAngle)+ux*sinAngle, cosAngle+uz*uz*(1-cosAngle)}};
+    arma::mat rotTilt;
+    rotTilt <<  cosAngle+ux*ux*(1-cosAngle)     <<  ux*uy*(1-cosAngle)-uz*sinAngle  <<  ux*uz*(1-cosAngle)+uy*sinAngle  << arma::endr
+            <<  uy*ux*(1-cosAngle)+uz*sinAngle  <<  cosAngle+uy*uy*(1-cosAngle)     <<  uy*uz*(1-cosAngle)-ux*sinAngle  << arma::endr
+            <<  uz*ux*(1-cosAngle)-uy*sinAngle  <<  uz*uy*(1-cosAngle)+ux*sinAngle  <<  cosAngle+uz*uz*(1-cosAngle)     << arma::endr;
 
 
     // Compute the unit vector zOA in the direction of the telescope's optical axis

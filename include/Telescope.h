@@ -29,7 +29,8 @@ class Telescope  : public Heartbeat, HDF5Writer
 		virtual void configure(ConfigurationParameters &configParam);
 
 		virtual void updatePointingCoordinates(double time);
-		pair<double, double> getCurrentPointingCoordinates();
+        pair<double, double> getCurrentPointingCoordinates();
+        pair<double, double> getInitialPointingCoordinates();
 
         virtual double getHeartbeatInterval() override;
 
