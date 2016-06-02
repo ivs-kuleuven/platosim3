@@ -1,0 +1,120 @@
+# PlatoSim3 configuration file for Fine Guidance Star Simulations.
+---
+
+General:
+    
+    ProjectLocation:             ENV['PLATO_PROJECT_HOME']
+
+
+ObservingParameters:
+
+    NumExposures:                1400             # Number of expsosures
+    ExposureTime:                2.3              # [s]
+    RApointing:                  86.79870         # Platform (not telescope) right ascension pointing coordinate  [deg] 
+    DecPointing:                 -46.39595        # Platform (not telescope) declination pointing coordinate      [deg]
+    Fluxm0:                      1.00238e8        # Photon flux of a V=0 G2V-star                                 [phot/s/m^2/nm]
+    SkyBackground:               -1.              # Stellar + zodiacal background level. Set negative to compute. [phot/pix/s]
+    StarCatalogFile:             inputfiles/guide_stars_EQ.txt
+
+
+Platform:
+
+    UseJitter:                   no               # yes or no
+    UseJitterFromFile:           yes              # yes or no
+    JitterYawRms:                0.5              # [arcsec]
+    JitterPitchRms:              0.5              # [arcsec]
+    JitterRollRms:               0.5              # [arcsec]
+    JitterTimeScale:             180              # [s]
+    JitterFileName:              inputfiles/PlatoJitter_Airbus.txt 
+
+
+Telescope:
+    
+    AzimuthAngle:                1.0             # Azimuth angle of telescope on the platform [deg]
+    TiltAngle:                   1.0             # Tilt angle of the telescope on the platform [deg]
+    LightCollectingArea:         113.1           # Effective area of 1 telescope [cm^2]
+    TransmissionEfficiency:      0.5             # in [0,1]
+    FOVSquareDegrees:            1072.0          # Sky area covered by the FOV of 1 telescope [deg^2]
+    UseDrift:                    no              # yes or no
+    UseDriftFromFile:            no              # yes or no, if yes: ignore RMS and timescale below
+    DriftYawRms:                 2.3             # RMS of thermo-elastic drift in yaw [arcsec]
+    DriftPitchRms:               2.3             # RMS of thermo-elastic drift in pitch [arcsec]
+    DriftRollRms:                2.3             # RMS of thermo-elastic drift in roll [arcsec]
+    DriftTimeScale:              86400.0         # Timescale of thermo-elastic drift [s]
+    DriftFileName:               inputfiles/drift.txt
+
+
+Camera:
+    
+    FocalPlaneOrientation:       0.0             # [degrees]
+    PlateScale:                  0.8333          # [arcsec/micron]
+    FocalLength:                 0.24712595      # Focal length as recovered from ZEMAX model [m]
+    ThroughputBandwidth:         400             # FWHM [nm]
+    ThroughputLambdaC:           600             # Central wavelength of the throughput passband [nm]
+    IncludeFieldDistortion:      no              # Wheter or not to include field distortion
+    FieldDistortion:                             # Describe the model for the field distortion
+        Type:                    Polynomial1D
+        Degree:                  3
+        Coefficients:            [-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06]
+        InverseCoefficients:     [-0.00458067036444, 1.00110311283, -5.61136295937e-05, -4.311925329e-06]
+
+PSF:
+
+    Model:                       Gaussian        # Select the model to be used for the PSF [Gaussian, FromFile]
+    Gaussian:                                    # Generate the PSF from a 2D Gaussian function
+      Sigma:                     0.25            # Standard deviation of Gaussian PSF [pixels]
+      NumberOfPixels:            8               # The number of pixels in the field for which the PSF is generated
+    FromFile:                                    # Read a pre-calculated PSF from an HDF5 file
+      Filename:                  inputfiles/psf.hdf5 
+      DistanceToOA:              -1              # The angular distance to the optical axis. -1 to auto-compute. [deg]
+      RotationAngle:             -1              # PSF rotation angle w.r.t the x-axis of the focal plane. -1 to auto-compute. [deg]
+      NumberOfPixels:            8               # The number of pixels in the field for which the PSF is generated
+
+
+CCD:
+
+    OriginOffsetX:               0               # X Offset of CCD origin from center of focal plane [mm]
+    OriginOffsetY:               0               # Y Offset of CCD origin from center of focal plane [mm]
+    Orientation:                 0               # Orientation of CCD w.r.t. focal plane orientation [deg]
+    NumColumns:                  4510            # Number of columns [pixels]
+    NumRows:                     4510            # Number of rows [pixels]
+    PixelSize:                   18              # [micron]
+    Gain:                        58              # [e-/ADU]
+    QuantumEfficiency:           0.5             # in [0,1]
+    FullWellSaturation:          1243000         # [e-/pixel]
+    DigitalSaturation:           16383           # E.g. 16 bit [ADU/pixel]
+    ReadoutNoise:                130             # [e-/pixel]
+    ElectronicOffset:            100             # bias [ADU]
+    ReadoutTime:                 0.25            # time to read out entire CCD [s]
+    FlatfieldPtPNoise:           0.016           # peak-to-peak pixel noise
+    CTEMean:                     0.99999         # Mean Charge Transfer Efficiency
+    IncludeFlatfield:            yes             # Include flatfield [yes or no]
+    IncludePhotonNoise:          yes             # Include photon noise [yes or no]
+    IncludeReadoutNoise:         yes             # Include readout noise [yes or no]
+    IncludeCTIeffects:           no              # Include charge transfer inefficiency effects [yes or no]
+    IncludeOpenShutterSmearing:  no              # Include trails due reading out with an open shutter [yes or no]
+    IncludeVignetting:           yes             # Include brightness attenuation towards the edge of the FOV due to vignetting 
+    IncludeConvolution:          yes             # Wheter or not to convolve the subPixelMap with the PSF
+    IncludeFullWellSaturation:   yes             # Wheter or not full well saturation should be applied
+    IncludeDigitalSaturation:    yes             # Wheter or not digital saturation should be applied
+    WriteSubPixelImagesToHDF5:   no              # Only use this for a limited number of exposures. Takes a lot of space! 
+
+SubField:    
+
+    ZeroPointRow:                0               # Row of the (0,0) pixel of the subfield [pixels]
+    ZeroPointColumn:             0               # Column of the (0,0) pixel of the subfield [pixels]
+    NumColumns:                  9               # Number of columns, should be >= 8 [pixels]
+    NumRows:                     9               # Number of rows,    should be >= 8 [pixels]
+    NumBiasPrescanRows:          0               # Nr of rows of the prescan strip to determine the bias [pixels]
+    NumSmearingOverscanRows:     0               # Nr of rows of the overscan strip to determine the smearing [pixels]
+    SubPixels:                   16              # (Sqrt of ) nr of subpixels per CCD pixel. Should be 2^n <= 128.
+
+
+RandomSeeds:
+
+    ReadOutNoiseSeed:            1424949740      # Unique positive integer 
+    PhotonNoiseSeed:             1433320336      # Unique positive integer 
+    JitterSeed:                  1433320381      # Unique positive integer 
+    FlatFieldSeed:               1425284070      # Unique positive integer 
+    CTESeed:                     1424949740      # Unique positive integer 
+    DriftSeed:                   1433429158      # Unique positive integer 
