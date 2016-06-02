@@ -66,7 +66,7 @@ for n in range(NguideStars):
     raPlatform      = np.deg2rad(RA_PLATFORM)
     decPlatform     = np.deg2rad(DEC_PLATFORM)
     focalPlaneAngle = np.deg2rad(float(sim["Camera/FocalPlaneOrientation"]))
-    focalLength     = float(sim["Camera/FocalLength"]) * 1000.0
+    focalLength     = float(sim["Camera/FocalLength"]) * 1000   # [mm]
     pixelSize       = int(sim["CCD/PixelSize"])    # [micron]
     plateScale      = float(sim["Camera/PlateScale"])   # [arcsec/micron]
 
