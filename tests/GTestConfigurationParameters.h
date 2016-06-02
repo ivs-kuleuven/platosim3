@@ -101,10 +101,6 @@ TEST(ConfigurationParametersTest, readSpecialValues)
     int minusOneValue = cp.getInteger("Special Values/minus-one");
     EXPECT_EQ(-1, minusOneValue);
 
-    // A 0 or a 1 can not be converted into a Boolean - CHECK THIS!
-    ASSERT_ANY_THROW(cp.getBoolean("Special Values/zero"));
-    ASSERT_ANY_THROW(cp.getBoolean("Special Values/one"));
-
     bool booleanTrue = cp.getBoolean("Special Values/boolean-true");
     EXPECT_TRUE(booleanTrue);
 
@@ -116,6 +112,16 @@ TEST(ConfigurationParametersTest, readSpecialValues)
 
     bool no = cp.getBoolean("Special Values/boolean-no");
     EXPECT_FALSE(no);
+
+    bool booleanOne = cp.getBoolean("Special Values/boolean-one");
+    EXPECT_TRUE(booleanOne);
+
+    bool booleanZero = cp.getBoolean("Special Values/boolean-zero");
+    EXPECT_FALSE(booleanZero);
+
+    ASSERT_THROW(cp.getBoolean("Special Values/boolean-integer"), ConfigurationException);
+
+    ASSERT_THROW(cp.getInteger("Special Values/integer-float"), ConfigurationException);
 
 }
 

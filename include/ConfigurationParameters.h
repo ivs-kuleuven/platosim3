@@ -8,6 +8,7 @@
 #include <fstream>
 
 #include "yaml-cpp/yaml.h"
+#include "yaml-cpp/exceptions.h"
 
 #include "FileUtilities.h"
 #include "StringUtilities.h"
