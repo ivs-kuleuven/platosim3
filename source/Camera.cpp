@@ -696,6 +696,7 @@ pair<double, double> Camera::skyToAngularFocalPlaneCoordinates(double raStar, do
 
     // Convert the FP coordinates into FP' coordinates 
 
+    const double focalPlaneOrientation = telescope.getCurrentFocalPlaneOrientation();
     double xFPprime =  xFP * cos(focalPlaneOrientation) + yFP * sin(focalPlaneOrientation);
     double yFPprime = -xFP * sin(focalPlaneOrientation) + yFP * cos(focalPlaneOrientation);
 
