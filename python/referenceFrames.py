@@ -697,7 +697,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
            raOpticalAxis:          right ascension of the optical axis [rad]
            decOpticalAxis:         declination of the optical axis [rad]
            focalPlaneAngle:        angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
-           focalLength:            focal length of the telescope [m]
+           focalLength:            focal length of the telescope [mm]
            plateScale:             [arcsec/micron]
            pixelSize:              [micrometer]
            includeFieldDistortion: True to include field distortion in coordinate transformations, false otherwise
@@ -925,7 +925,7 @@ def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldS
              decStar:                declination [rad]
              subfieldSizeX:          full width (# of columns) of the subfield [pix]
              subfieldSizeY:          full height (#of rows) of the subfield [pix]
-             focalLength:            focal length of the telescope [m]
+             focalLength:            focal length of the telescope [mm]
              plateScale:             [arcsec/micron]
              pixelSize:              [micrometer]
              raOpticalAxis:          right ascension of the optical axis [rad]
@@ -988,9 +988,7 @@ def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldS
 
 
 
-def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSizeY, focalLength, plateScale, pixelSize, \
-                                 raPlatform, decPlatform, focalPlaneAngle, azimuthTelescope, tiltTelescope,              \
-                                 includeFieldDistortion=True, nominal=True):
+def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSizeY, nominal=True):
     
     """
     PURPOSE: Calculates the location of the sub-field such that it is centred on the star 
@@ -1003,30 +1001,43 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
 
     NOTE: This function calls the calculateSubfieldAroundCoordinates() function.
 
+    NOTE: It is assumed that the configuration parameters in the sim object contains
+          a correct (ra, dec)  of the platform, a correct (azimuth, tilt) of the telescope,
+          a valid values for the focal length, the plate scale, the pixel size, and that
+          the switch to include distortion or not is set correctly
+
     INPUTS:  sim:                    simulation for which the configuration file is adapted
              raStar:                 right ascension of the star [radians]
              decStar:                declination [radians]
              subfieldSizeX:          width (i.e. number of columns) of the subiield [pixels]
              subfieldSizeY:          height (i.e. number of rows) of the sub-field [pixels]
-             focalLength:            focal length of the telescope [m]
-             plateScale:             Plate scale. [arcsec/micron]
-             pixelSize:              [micrometer]
-             raPlatform:             right ascension of the platform pointing axis (not the optical axis) [rad]
-             decPlatform:            declination of the platform pointing axis (not the optical axis) [rad]
-             focalPlaneAngle:        orientation angle of the focal plane [rad]
-             azimuthTelescope:       azimuth angle of the telescope on the platform [rad]
-             tiltTelescope:          tilt angle of the telescope w.r.t. the platform pointing axis [rad]
-             includeFieldDistortion: True to include field distortion in coordinate transformations, false otherwise
              nominal:                True for the nominal camera configuration, False for the fast cameras
 
-    OUTPUT: True if the CCD code (i.e. the pre-defined CCD position) could be
-            determined, False otherwise 
+    OUTPUT: True if the CCD code (i.e. the pre-defined CCD position) could be determined, False otherwise 
 
     REMARKS: - If the coordinates do not fall on any CCD, an error message is shown, followed by an exit(1)
              - If the star is too close to the edge for the given subfield size, and error message is shown,
                followed by an exit(1)
     """
     
+
+    # Find out some instrumental characteristics from the sim object
+
+    raPlatform = np.deg2rad(float(sim["ObservingParameters/RApointing"]))
+    decPlatform = np.deg2rad(float(sim["ObservingParameters/DecPointing"]))
+    azimuthTelescope = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
+    tiltTelescope = np.deg2rad(float(sim["Telescope/TiltAngle"]))
+    focalLength = float(sim["Camera/FocalLength"]) * 1000.0       # [m] -> [mm]
+    plateScale = float(sim["Camera/PlateScale"])          
+    focalPlaneAngle = float(sim["Camera/FocalPlaneOrientation"])
+    pixelSize = float(sim["CCD/PixelSize"]) 
+
+    if (sim["Camera/IncludeFieldDistortion"] == "yes")  or (sim["Camera/IncludeFieldDistortion"] == "1"):
+        includeFieldDistortion = True
+    else:
+        includeFieldDistortion = False
+
+
     # Derive the (RA, Dec) of the optical axis, given the (RA, Dec) of the platform, and the orientation
     # (azimith, tilt) of the telescope on the platform.
 
@@ -1073,12 +1084,14 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
     sim["SubField/NumRows"] = str(subfieldSizeY)
     sim["SubField/NumColumns"] = str(subfieldSizeX)
 
-    # Set the exposure time, depending on fast vs nominal cams
+    # Set the exposure and the readout time, depending on fast vs nominal cams
 
     if nominal:
         sim["ObservingParameters/ExposureTime"] = 23
+        sim["CCD/ReadoutTime"] = 2.5
     else:
         sim["ObservingParameters/ExposureTime"] = 2.3
+        sim["CCD/ReadoutTime"] = 0.2
     
     # That's it
 
