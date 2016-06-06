@@ -379,6 +379,8 @@ class Simulation(object):
         Run the PLATO Simulator.
 
         When rerunning the same simulation again, remove the output file by setting the optional keyword to True.
+
+        When PlatoSim fails for some reason and returns an error code (!= 0), an Exception is raised.
         """
 
         if not self.hasTargetLocation:
@@ -396,7 +398,10 @@ class Simulation(object):
 
         self.writeYamlConfigurationFile(inputFilename)
 
-        subprocess.call([self.platosimBuildLocation + "/platosim", inputFilename, outputFilename, logFilename])
+        rc = subprocess.call([self.platosimBuildLocation + "/platosim", inputFilename, outputFilename, logFilename])
+
+        if rc:
+            raise Exception("Simulation.run(): PlatoSim returned with exit code {}.".format(rc))
 
         simFile = SimFile(outputFilename)
 
