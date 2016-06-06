@@ -374,12 +374,13 @@ class Simulation(object):
 
 
 
-
-
-
-    def run(self):
+    def run(self, removeOutputFile=False):
         """
-        Run the PLATO Simulator. By default, the simulation includes the photometry step. 
+        Run the PLATO Simulator.
+
+        When rerunning the same simulation again, remove the output file by setting the optional keyword to True.
+
+        When PlatoSim fails for some reason and returns an error code (!= 0), an Exception is raised.
         """
 
         if not self.hasTargetLocation:
@@ -389,9 +390,18 @@ class Simulation(object):
         outputFilename = "{}/{}.hdf5".format(self.targetOutputFilesLocation, self.runName)
         logFilename = "{}/{}.log".format(self.targetOutputFilesLocation, self.runName)
 
+        if removeOutputFile:
+            try:
+                os.remove(outputFilename)
+            except OSError:
+                pass
+
         self.writeYamlConfigurationFile(inputFilename)
 
-        subprocess.call([self.platosimBuildLocation + "/platosim", inputFilename, outputFilename, logFilename])
+        rc = subprocess.call([self.platosimBuildLocation + "/platosim", inputFilename, outputFilename, logFilename])
+
+        if rc:
+            raise Exception("Simulation.run(): PlatoSim returned with exit code {}.".format(rc))
 
         simFile = SimFile(outputFilename)
 
