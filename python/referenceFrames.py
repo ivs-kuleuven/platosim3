@@ -618,14 +618,15 @@ def drawStarInFocalPlane(sim, raStar, decStar):
     TODO: Update doc-string
 
     """
-    pixelSize = sim["CCD/PixelSize"]
-    raOpticalAxis = np.radians(sim["ObservingParameters/RApointing"])
-    decOpticalAxis = np.radians(sim["ObservingParameters/DecPointing"])
-    focalPlaneAngle = np.radians(sim["Camera/FocalPlaneOrientation"])
-    focalLength = sim["Camera/FocalLength"] * 1000.0  # [m] -> [mm]
-    ccdZeroPointX = sim["CCD/OriginOffsetX"]
-    ccdZeroPointY = sim["CCD/OriginOffsetY"]
-    ccdAngle = np.radians(sim["CCD/Orientation"])
+
+    pixelSize = float(sim["CCD/PixelSize"])
+    raOpticalAxis = np.radians(float(sim["ObservingParameters/RApointing"]))
+    decOpticalAxis = np.radians(float(sim["ObservingParameters/DecPointing"]))
+    focalPlaneAngle = np.radians(float(sim["Camera/FocalPlaneOrientation"]))
+    focalLength = float(sim["Camera/FocalLength"]) * 1000.0  # [m] -> [mm]
+    ccdZeroPointX = float(sim["CCD/OriginOffsetX"])
+    ccdZeroPointY = float(sim["CCD/OriginOffsetY"])
+    ccdAngle = np.radians(float(sim["CCD/Orientation"]))
 
     xFPrad, yFPrad = skyToAngularFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle)
     xFPmm, yFPmm = angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad, focalLength)
