@@ -398,10 +398,22 @@ class Simulation(object):
 
         self.writeYamlConfigurationFile(inputFilename)
 
-        rc = subprocess.call([self.platosimBuildLocation + "/platosim", inputFilename, outputFilename, logFilename])
+        # The run() method was only introduced with Python 3.5, use the older call() method when running e.g. Python 2.7
 
-        if rc:
-            raise Exception("Simulation.run(): PlatoSim returned with exit code {}.".format(rc))
+        if sys.version_info < (3, 5):   
+            rc = subprocess.call([self.platosimBuildLocation + "/platosim", inputFilename, outputFilename, logFilename])
+            if rc:
+                raise Exception("Simulation.run(): PlatoSim returned with exit code {}.".format(rc))
+        else:
+            completedProcess = subprocess.run([self.platosimBuildLocation + "/platosim", inputFilename, outputFilename, logFilename], 
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+            if completedProcess.returncode:
+                if completedProcess.stdout:
+                    print (str(completedProcess.stdout.decode("utf-8")))
+                if completedProcess.stderr:
+                    print (str(completedProcess.stderr.decode("utf-8")))
+                raise Exception("Simulation.run(): PlatoSim returned with exit code {}.".format(completedProcess.returncode))
 
         simFile = SimFile(outputFilename)
 
