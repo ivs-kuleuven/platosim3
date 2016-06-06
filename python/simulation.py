@@ -374,12 +374,11 @@ class Simulation(object):
 
 
 
-
-
-
-    def run(self):
+    def run(self, removeOutputFile=False):
         """
-        Run the PLATO Simulator. By default, the simulation includes the photometry step. 
+        Run the PLATO Simulator.
+
+        When rerunning the same simulation again, remove the output file by setting the optional keyword to True.
         """
 
         if not self.hasTargetLocation:
@@ -388,6 +387,12 @@ class Simulation(object):
         inputFilename = "{}/{}.yaml".format(self.targetOutputFilesLocation, self.runName)
         outputFilename = "{}/{}.hdf5".format(self.targetOutputFilesLocation, self.runName)
         logFilename = "{}/{}.log".format(self.targetOutputFilesLocation, self.runName)
+
+        if removeOutputFile:
+            try:
+                os.remove(outputFilename)
+            except OSError:
+                pass
 
         self.writeYamlConfigurationFile(inputFilename)
 
