@@ -487,13 +487,19 @@ class SimFile (object):
                  information is the Star Input Catalog that the user specified before running the 
                  simulation.
 
+                 The initial planar focal plane and pixel coordinates are the coordinates of the 
+                 stars on the CCD before any Jitter or thermal distortions took place. Field distortion
+                 is however taken into account when requested by the user in the YAML input file.
+
         INPUT: None
 
-        OUTPUT: starIDs: Sequential number of those stars in the input catalog that were detected
-                         on the subfield in one or more exposures.
-                RA:      Right ascension in decimal degrees 
-                decl:    Declination in decimal degrees
-                Vmag:    V magnitude
+        OUTPUT: starIDs:        Sequential number of those stars in the input catalog that were detected
+                                on the subfield in one or more exposures.
+                RA:             Right ascension in decimal degrees 
+                decl:           Declination in decimal degrees
+                Vmag:           V magnitude
+                xFPmm, yFPmm:   Initial planar focal plane coordinates of the stars [mm]
+                rowPix, colPix: Initial pixel coordinates of the stars [pixels:float]
 
         EXAMPLE:
 
@@ -538,6 +544,28 @@ class SimFile (object):
         dataset = self.hdf5file["StarCatalog"]["Vmag"]
         Vmag = np.zeros(dataset.shape, dataset.dtype)
         dataset.read_direct(Vmag)
+
+        # xFPmm, yFPmm, rowPix, and colPix were all introduced with the same commit
+        # So, testing if xFPmm is present in the StarCatalog group is sufficient
+
+        if "xFPmm" in self.hdf5file["StarCatalog"].keys():
+            dataset = self.hdf5file["StarCatalog"]["xFPmm"]
+            xFPmm = np.zeros(dataset.shape, dataset.dtype)
+            dataset.read_direct(xFPmm)
+            
+            dataset = self.hdf5file["StarCatalog"]["yFPmm"]
+            yFPmm = np.zeros(dataset.shape, dataset.dtype)
+            dataset.read_direct(yFPmm)
+            
+            dataset = self.hdf5file["StarCatalog"]["colPix"]
+            colPix = np.zeros(dataset.shape, dataset.dtype)
+            dataset.read_direct(colPix)
+            
+            dataset = self.hdf5file["StarCatalog"]["rowPix"]
+            rowPix = np.zeros(dataset.shape, dataset.dtype)
+            dataset.read_direct(rowPix)
+
+            return starIDs, RA, declination, Vmag, xFPmm, yFPmm, rowPix, colPix
 
         # That's it!
 
