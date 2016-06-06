@@ -254,7 +254,7 @@ def distortedToPlanarFocalPlaneCoordinates(xFPdist, yFPdist):
     """
     IP = Polynomial(FIELD_DISTORTION["InverseCoeff"])
     
-    angle = atan2(yFPdist, xFPdist)  # [radians]
+    angle = arctan2(yFPdist, xFPdist)  # [radians]
     
     rFP   = sqrt(xFPdist * xFPdist + yFPdist * yFPdist)
     rFPmm = IP(rFP)
