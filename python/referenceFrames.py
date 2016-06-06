@@ -619,6 +619,13 @@ def drawStarInFocalPlane(sim, raStar, decStar):
 
     """
 
+    if (sim["Camera/IncludeFieldDistortion"] == "yes")  or (sim["Camera/IncludeFieldDistortion"] == "1"):
+        includeFieldDistortion = True
+        FIELD_DISTORTION["Coeff"] = sim["Camera/FieldDistortion/Coefficients"]
+        FIELD_DISTORTION["InverseCoeff"] = sim["Camera/FieldDistortion/InverseCoefficients"]
+    else:
+        includeFieldDistortion = False
+
     pixelSize = float(sim["CCD/PixelSize"])
     raOpticalAxis = np.radians(float(sim["ObservingParameters/RApointing"]))
     decOpticalAxis = np.radians(float(sim["ObservingParameters/DecPointing"]))
@@ -630,6 +637,9 @@ def drawStarInFocalPlane(sim, raStar, decStar):
 
     xFPrad, yFPrad = skyToAngularFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle)
     xFPmm, yFPmm = angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad, focalLength)
+    if includeFieldDistortion:
+        xFPmm, yFPmm = planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm)
+
     xCCD, yCCD = planarFocalPlaneToPixelCoordinates(xFPmm, yFPmm, pixelSize, ccdZeroPointX, ccdZeroPointY, ccdAngle)
 
     # TODO: Determine the ccdCode
