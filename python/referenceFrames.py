@@ -213,14 +213,15 @@ def planarToPolarFocalPlaneCoordinates(xFPmm, yFPmm):
 
 
 
-## \brief      Convert from planar to distorted focal plane coordinates
-##
-## \param[in]  xFPmm  Planar focal plane x-coordinate [mm]
-## \param[in]  yFPmm  Planar focal plane y-coordinate [mm]
-##
-## \return     (xFPdist, yFPdist) distorted x and y coordinates [mm]
-##
 def planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm):
+    """
+    PURPOSE:      Convert from planar to distorted focal plane coordinates
+    
+    INPUTS:       xFPmm  Planar focal plane x-coordinate [mm]
+                  yFPmm  Planar focal plane y-coordinate [mm]
+    
+    OUTPUTS:      (xFPdist, yFPdist) distorted x and y coordinates [mm]
+    """
     P = Polynomial(FIELD_DISTORTION["Coeff"])
 
     angle = arctan2(yFPmm, xFPmm)    # [radians]
@@ -242,17 +243,18 @@ def planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm):
 
 
 
-## \brief      Convert from distorted to planar focal plane coordinates
-##
-## \param[in]  xFPdist  Distorted focal plane x-coordinate [mm]
-## \param[in]  yFPdist  DIstorted focal plane y-coordinate [mm]
-##
-## \return     (xFPmm, yFPmm) distorted x and y coordinates [mm]
-##
 def distortedToPlanarFocalPlaneCoordinates(xFPdist, yFPdist):
+    """
+    PURPOSE:     Convert from distorted to planar focal plane coordinates
+    
+    INPUTS:      xFPdist  Distorted focal plane x-coordinate [mm]
+                 yFPdist  DIstorted focal plane y-coordinate [mm]
+    
+    OUTPUTS:     (xFPmm, yFPmm) distorted x and y coordinates [mm]
+    """
     IP = Polynomial(FIELD_DISTORTION["InverseCoeff"])
     
-    angle = atan2(yFPdist, xFPdist)  # [radians]
+    angle = arctan2(yFPdist, xFPdist)  # [radians]
     
     rFP   = sqrt(xFPdist * xFPdist + yFPdist * yFPdist)
     rFPmm = IP(rFP)
@@ -616,17 +618,28 @@ def drawStarInFocalPlane(sim, raStar, decStar):
     TODO: Update doc-string
 
     """
-    pixelSize = sim["CCD/PixelSize"]
-    raOpticalAxis = np.radians(sim["ObservingParameters/RApointing"])
-    decOpticalAxis = np.radians(sim["ObservingParameters/DecPointing"])
-    focalPlaneAngle = np.radians(sim["Camera/FocalPlaneOrientation"])
-    focalLength = sim["Camera/FocalLength"] * 1000.0  # [m] -> [mm]
-    ccdZeroPointX = sim["CCD/OriginOffsetX"]
-    ccdZeroPointY = sim["CCD/OriginOffsetY"]
-    ccdAngle = np.radians(sim["CCD/Orientation"])
+
+    if (sim["Camera/IncludeFieldDistortion"] == "yes")  or (sim["Camera/IncludeFieldDistortion"] == "1"):
+        includeFieldDistortion = True
+        FIELD_DISTORTION["Coeff"] = sim["Camera/FieldDistortion/Coefficients"]
+        FIELD_DISTORTION["InverseCoeff"] = sim["Camera/FieldDistortion/InverseCoefficients"]
+    else:
+        includeFieldDistortion = False
+
+    pixelSize = float(sim["CCD/PixelSize"])
+    raOpticalAxis = np.radians(float(sim["ObservingParameters/RApointing"]))
+    decOpticalAxis = np.radians(float(sim["ObservingParameters/DecPointing"]))
+    focalPlaneAngle = np.radians(float(sim["Camera/FocalPlaneOrientation"]))
+    focalLength = float(sim["Camera/FocalLength"]) * 1000.0  # [m] -> [mm]
+    ccdZeroPointX = float(sim["CCD/OriginOffsetX"])
+    ccdZeroPointY = float(sim["CCD/OriginOffsetY"])
+    ccdAngle = np.radians(float(sim["CCD/Orientation"]))
 
     xFPrad, yFPrad = skyToAngularFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle)
     xFPmm, yFPmm = angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad, focalLength)
+    if includeFieldDistortion:
+        xFPmm, yFPmm = planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm)
+
     xCCD, yCCD = planarFocalPlaneToPixelCoordinates(xFPmm, yFPmm, pixelSize, ccdZeroPointX, ccdZeroPointY, ccdAngle)
 
     # TODO: Determine the ccdCode
@@ -1097,4 +1110,66 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
 
     return True
 
+
+
+
+
+
+
+
+
+
+
+
+def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
+    """
+    PURPOSE: Convert pixel coordinates to sky coordinates
+    
+    NOTE:   It is assumed that the configuration parameters in the sim object contains
+            a correct (ra, dec) of the platform, a correct (azimuth, tilt) of the telescope,
+            a valid value for the focal length, the plate scale, the pixel size, and that
+            the switch to include distortion or not is set correctly.
+            
+    INPUT:  sim:        simulation for which the configuration file is adapted
+            ccdCode:    for nominal camera: either 'A', 'B', 'C', 'D'
+                        for fast camera: either 'AF', 'BF', 'CF', 'DF'
+            xCCDpixel:  x-coordinate (column-number) of the star on the CCD  [pixel]
+            yCCDpixel:  y-coordinate (row-number) of the star on the CCD  [pixel]
+    
+    OUTPUT: raStar, decStar: Equatorial coordinates (right ascension and declination) of the star [rad]
+    """
+    
+    if (sim["Camera/IncludeFieldDistortion"] == "yes")  or (sim["Camera/IncludeFieldDistortion"] == "1"):
+        includeFieldDistortion = True
+        FIELD_DISTORTION["Coeff"] = sim["Camera/FieldDistortion/Coefficients"]
+        FIELD_DISTORTION["InverseCoeff"] = sim["Camera/FieldDistortion/InverseCoefficients"]
+    else:
+        includeFieldDistortion = False
+
+    pixelSize = float(sim["CCD/PixelSize"])
+    focalLength = float(sim["Camera/FocalLength"]) * 1000.0       # [m] -> [mm]
+    raPlatform = np.deg2rad(float(sim["ObservingParameters/RApointing"]))
+    decPlatform = np.deg2rad(float(sim["ObservingParameters/DecPointing"]))
+    focalPlaneAngle = float(sim["Camera/FocalPlaneOrientation"])
+    azimuthTelescope = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
+    tiltTelescope = np.deg2rad(float(sim["Telescope/TiltAngle"]))
+
+    ccdZeroPointX = CCD[ccdCode]['zeroPointXmm']
+    ccdZeroPointY = CCD[ccdCode]['zeroPointYmm']
+    ccdAngle = CCD[ccdCode]['angle']
+    
+    # Derive the (RA, Dec) of the optical axis, given the (RA, Dec) of the platform, and the orientation
+    # (azimith, tilt) of the telescope on the platform.
+
+    raOpticalAxis, decOpticalAxis = platformToTelescopePointingCoordinates(raPlatform, decPlatform, azimuthTelescope, tiltTelescope)    
+
+    xFPmm, yFPmm = pixelToPlanarFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX, ccdZeroPointY, ccdAngle)
+    
+    if includeFieldDistortion:
+        xFPmm, yFPmm = distortedToPlanarFocalPlaneCoordinates(xFPmm, yFPmm)
+    
+    xFPrad, yFPrad = planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm, focalLength)
+    ra, dec = angularFocalPlaneToSkyCoordinates(xFPrad, yFPrad, raOpticalAxis, decOpticalAxis, focalPlaneAngle)
+    
+    return ra, dec
 
