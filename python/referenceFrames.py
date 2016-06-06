@@ -213,14 +213,15 @@ def planarToPolarFocalPlaneCoordinates(xFPmm, yFPmm):
 
 
 
-## \brief      Convert from planar to distorted focal plane coordinates
-##
-## \param[in]  xFPmm  Planar focal plane x-coordinate [mm]
-## \param[in]  yFPmm  Planar focal plane y-coordinate [mm]
-##
-## \return     (xFPdist, yFPdist) distorted x and y coordinates [mm]
-##
 def planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm):
+    """
+    PURPOSE:      Convert from planar to distorted focal plane coordinates
+    
+    INPUTS:       xFPmm  Planar focal plane x-coordinate [mm]
+                  yFPmm  Planar focal plane y-coordinate [mm]
+    
+    OUTPUTS:      (xFPdist, yFPdist) distorted x and y coordinates [mm]
+    """
     P = Polynomial(FIELD_DISTORTION["Coeff"])
 
     angle = arctan2(yFPmm, xFPmm)    # [radians]
@@ -242,14 +243,15 @@ def planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm):
 
 
 
-## \brief      Convert from distorted to planar focal plane coordinates
-##
-## \param[in]  xFPdist  Distorted focal plane x-coordinate [mm]
-## \param[in]  yFPdist  DIstorted focal plane y-coordinate [mm]
-##
-## \return     (xFPmm, yFPmm) distorted x and y coordinates [mm]
-##
 def distortedToPlanarFocalPlaneCoordinates(xFPdist, yFPdist):
+    """
+    PURPOSE:     Convert from distorted to planar focal plane coordinates
+    
+    INPUTS:      xFPdist  Distorted focal plane x-coordinate [mm]
+                 yFPdist  DIstorted focal plane y-coordinate [mm]
+    
+    OUTPUTS:     (xFPmm, yFPmm) distorted x and y coordinates [mm]
+    """
     IP = Polynomial(FIELD_DISTORTION["InverseCoeff"])
     
     angle = atan2(yFPdist, xFPdist)  # [radians]
