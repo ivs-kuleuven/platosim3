@@ -782,53 +782,6 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
 
 
 
-def getSkyCoordinates(ccdCode, xCCDpix, yCCDpix, focalLength, pixelSize, raOpticalAxis, decOpticalAxis, focalPlaneAngle):
-
-    """
-    PURPOSE: Return the sky coordinates of a pixel on the CCD in equatorial coordinates.
-
-    INPUTS:  ccdCode:         for nominal camera: either 'A', 'B', 'C', 'D'
-                              for fast camera: either 'AF', 'BF', 'CF', 'DF'
-             xCCDpix:         x-coordinate (column number, zero-based) of the pixel on the CCD  [pix]
-             yCCDpix:         y-coordinate (row number, zero-based) of the pixel on the CCD  [pix]
-             focalLength:     [mm]
-             pixelSize:       [micrometer]
-             raOpticalAxis:   right ascension of the optical axis [rad]
-             decOpticalAxis:  declination of the optical axis [rad]
-             focalPlaneAngle: angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
- 
-    OUTPUTS: raStar:          right ascension of the star [rad]
-             decStar:         declination of the star [rad]
-    """
-
-    # Compute the planar focal plane coordinates of the star given its pixel coordinates and the CCD code.
-
-    zeroPointXmm = CCD[ccdCode]["zeroPointXmm"]
-    zeroPointYmm = CCD[ccdCode]["zeroPointYmm"]
-    ccdAngle     = CCD[ccdCode]["angle"]
-
-    xFPmm, yFPmm = pixelToPlanarFocalPlaneCoordinates(xCCDpix, yCCDpix, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)   # [mm]
-
-    # Convert the planar focal plane FP' coordinates [mm] to angular focal plane FP' coordinates [rad]
-
-    xFPrad, yFPrad = planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm, focalLength)
-
-    # Convert the FP' planar coordinates [mm] to equatorial sky coordinates [rad]
-
-    raStar, decStar = angularFocalPlaneToSkyCoordinates(xFPrad, yFPrad, raOpticalAxis, decOpticalAxis, focalPlaneAngle)
-
-    # That's it!
-
-    return raStar, decStar
-
-
-
-
-
-
-
-
-
 def platformToTelescopePointingCoordinates(alphaPlatform, deltaPlatform, azimuthAngle, tiltAngle):
 
     """
