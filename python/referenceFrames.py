@@ -952,9 +952,34 @@ def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldS
 
 
 
+def setSubfieldAroundPixelCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel, subfieldSizeX, subfieldSizeY):
+    """
+    PURPOSE:  Calculate the location of the subField such that it is centered on the star with 
+              the given pixel coordinates.
 
+    INPUTS:   sim            simulation for which the configuration file is adapted
+              ccdCode:       for nominal camera: either 'A', 'B', 'C', 'D'
+                             for fast camera: either 'AF', 'BF', 'CF', 'DF'
+              xCCDpixel:     x-coordinate (column-number) of the star on the CCD  [pixel/float]
+              yCCDpixel:     y-coordinate (row-number) of the star on the CCD  [pixel/float]
+              subfieldSizeX: width (i.e. number of columns) of the sub-field [pixels]
+              subfieldSizeY: height (i.e. number of rows) of the sub-field [pixels]
 
+    OUTPUTS:  None
+    """
 
+    raStar, decStar = pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel)
+
+    # TODO: determine nominal from the given ccdCode
+
+    nominal = True
+
+    success = setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSizeY, nominal)
+
+    if not success:
+        print ("Warning: setSubfieldAroundPixelCoordinates() failed to set subField around the star.")
+
+    return
 
 
 
@@ -1068,6 +1093,68 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
     # That's it
 
     return True
+
+
+
+
+
+
+
+
+
+
+
+
+def skyToPixelCoordinates(sim, raStar, decStar, nominal=True):
+    """
+    PURPOSE: Convert sky coordinates to pixel coordinates
+    
+    NOTE:   It is assumed that the configuration parameters in the sim object contains
+            a correct (ra, dec) of the platform, a correct (azimuth, tilt) of the telescope,
+            a valid value for the focal length, the plate scale, the pixel size, and that
+            the switch to include distortion or not is set correctly.
+            
+    INPUT:  sim:        simulation for which the configuration file is adapted
+            raStar:                 right ascension of the star [radians]
+            decStar:                declination [radians]
+            subfieldSizeX:          width (i.e. number of columns) of the subiield [pixels]
+            subfieldSizeY:          height (i.e. number of rows) of the sub-field [pixels]
+            nominal:                True for the nominal camera configuration, False for the fast cameras
+    
+    OUTPUT: ccdCode
+            xCCDpixel: column pixel coordinate of the star (real-valued) 
+            yCCDpixel: row pixel coordinate of the star (real-valued)
+    """
+    
+    if (sim["Camera/IncludeFieldDistortion"] == "yes")  or (sim["Camera/IncludeFieldDistortion"] == "1"):
+        includeFieldDistortion = True
+        FIELD_DISTORTION["Coeff"] = sim["Camera/FieldDistortion/Coefficients"]
+        FIELD_DISTORTION["InverseCoeff"] = sim["Camera/FieldDistortion/InverseCoefficients"]
+    else:
+        includeFieldDistortion = False
+
+    pixelSize = float(sim["CCD/PixelSize"])
+    plateScale = float(sim["Camera/PlateScale"])
+    focalLength = float(sim["Camera/FocalLength"]) * 1000.0       # [m] -> [mm]
+    raPlatform = np.deg2rad(float(sim["ObservingParameters/RApointing"]))
+    decPlatform = np.deg2rad(float(sim["ObservingParameters/DecPointing"]))
+    focalPlaneAngle = float(sim["Camera/FocalPlaneOrientation"])
+    azimuthTelescope = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
+    tiltTelescope = np.deg2rad(float(sim["Telescope/TiltAngle"]))
+    
+    # Derive the (RA, Dec) of the optical axis, given the (RA, Dec) of the platform, and the orientation
+    # (azimith, tilt) of the telescope on the platform.
+
+    raOpticalAxis, decOpticalAxis = platformToTelescopePointingCoordinates(raPlatform, decPlatform, azimuthTelescope, tiltTelescope)    
+    
+    ccdCode, xCCDpixel, yCCDpixel = getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, 
+        focalLength, plateScale, pixelSize, includeFieldDistortion, nominal)
+
+    return ccdCode, xCCDpixel, yCCDpixel
+
+
+
+
 
 
 
