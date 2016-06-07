@@ -102,9 +102,14 @@ def photometry(inputFilePath, outputFilePath, sigmaPSF, verbose=False):
 
     # Create the necessary groups in the output hdf5 file
 
-    outputFile.create_group("/Photometry");
+    photometryGroup = outputFile.create_group("/Photometry");
 
-    
+    # Copy the time points of the input HDF5 file to the output file.
+
+    time = array(inputFile["/StarPositions/Time"])
+    photometryGroup.create_dataset("time", data=time)
+
+
     # Collect the relevant input parameters from the HDF5 file
 
     gain = inputFile["/InputParameters/CCD/"].attrs["Gain"]                             # [e-/ADU]
