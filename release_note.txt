@@ -1,0 +1,10 @@
+# Release Note for PlatoSim3 v3.1.0
+
+Version: 3.1.0-RC1
+
+# Fixes
+
+* Version information is now included in the log file and the output HDF5 file. An optinal version argument prints the version information on the commandline.
+
+# Features
+
