@@ -6,49 +6,19 @@ import h5py
 
 
 
-
-
-
-
-
-
-def photometry(inputFilePath, outputFilePath):
+def computePSFsigma(psf, Nsubpixels):
 
     """
-    PURPOSE: Given a platosim simulation output file, this function loops over all
-             stored images, and performs a weighted aperture photometry 
+    PURPOSE: Approximate the PSF with a 2D symmetric gaussian distribution, to compute 
+             its standard deviation, assuming that the barycenter is in the middle of the image. 
+             This standard deviation will be used for the weighted mask photometry
 
-    INPUT: inputFilePath:  path of the input hdf5 file
-           outputFilePath: path of the output hdf5 file
+    INPUT: psf:        2D numpy image containing the PSF
+           Nsubpixels: the number of subpixels per pixel (1D)
 
-    OUTPUT:
+    OUTPUT: sigma: the standard deviation of the symmetric PSF  [pix]
 
     """
-
-
-    # Open the input and the output HDF5 files
-
-    inputFile = h5py.File(inputFilePath, "r")
-    
-    if not os.path.isfile(outputFilePath):
-        outputFile = h5py.File(outputFilePath, "w")
-    else:
-        raise IOError("Output file already exists")
-
-
-    # Create the necessary groups in the output hdf5 file
-
-    outputFile.create_group("/Photometry");
-
-    # Read the PSF image (at subpixel level)
-
-    psf = array(inputFile["/PSF/rebinnedPSFsubPixel"])
-
-    # Approximate the PSF with a 2D symmetric gaussian distribution, to compute its standard deviation,
-    # assuming that the barycenter is in the middle of the image. This standard deviation will be used
-    # for the weighted mask photometry
-
-    print("Determining PSF sigma.")
 
     Nsamples = 10000
     sumPSF = sum(psf)
@@ -87,10 +57,52 @@ def photometry(inputFilePath, outputFilePath):
     
     # Convert the stdev of the PSF from subpixels to pixels
 
-    Nsubpixels = inputFile["/InputParameters/SubField/"].attrs["SubPixels"]
     sigmaPSF = sigmaPSF / Nsubpixels                                             # [pixels]
 
-    print("Sigma PSF = {0}".format(sigmaPSF))
+    # That's it!
+
+    return sigmaPSF
+
+
+
+
+
+
+
+
+
+
+
+
+def photometry(inputFilePath, outputFilePath, sigmaPSF, verbose=False):
+
+    """
+    PURPOSE: Given a platosim simulation output file, this function loops over all
+             stored images, and performs a weighted aperture photometry 
+
+    INPUT: inputFilePath:  path of the input hdf5 file
+           outputFilePath: path of the output hdf5 file
+           sigmaPSF: the standard deviation of the PSF (assumed to be symmetrical) [pix]
+           verbose: if False, do not print info messages on screen
+
+    OUTPUT: None
+
+    """
+
+
+    # Open the input and the output HDF5 files
+
+    inputFile = h5py.File(inputFilePath, "r")
+    
+    if not os.path.isfile(outputFilePath):
+        outputFile = h5py.File(outputFilePath, "w")
+    else:
+        raise IOError("Output file already exists")
+
+
+    # Create the necessary groups in the output hdf5 file
+
+    outputFile.create_group("/Photometry");
 
     
     # Collect the relevant input parameters from the HDF5 file
@@ -120,11 +132,13 @@ def photometry(inputFilePath, outputFilePath):
 
     Nexposures = inputFile["/InputParameters/ObservingParameters/"].attrs["NumExposures"];
 
-    print("Looping over all images in HDF5 file.")
+    if verbose:
+        print("Looping over all images in HDF5 file.")
 
     for imageNr in range(Nexposures):
 
-        print("Image # {0}".format(imageNr))
+        if verbose:
+            print("Image # {0}".format(imageNr))
 
         # Read the bias and smearing map, and the image itself
 
@@ -139,7 +153,8 @@ def photometry(inputFilePath, outputFilePath):
         image -= bias
         smearingMap -= bias
 
-        print("    Subtracted bias level of {0} ADU".format(bias))
+        if verbose:
+            print("    Subtracted bias level of {0} ADU".format(bias))
 
         # Correct for open shutter smearing using the smearing maps
         # meanSmearing contains a smearing value for each column
@@ -147,13 +162,15 @@ def photometry(inputFilePath, outputFilePath):
         meanSmearing = smearingMap.mean(axis=0)
         image -= meanSmearing
 
-        print("    Corrected for open-shutter smearing")
+        if verbose:
+            print("    Corrected for open-shutter smearing")
 
         # Convert from [ADU] to [electrons] using the gain
 
         image *= gain
 
-        print("    Converted from [ADU] to [electrons] using a Gain of {0} e-/ADU".format(gain))
+        if verbose:
+            print("    Converted from [ADU] to [electrons] using a Gain of {0} e-/ADU".format(gain))
 
         # Correct for geometrical vignetting
         # TODO
@@ -162,9 +179,10 @@ def photometry(inputFilePath, outputFilePath):
         # Correct for the flatfield
 
         flatfield = array(inputFile["Flatfield/PRNU"])
-        #image /= flatfield;
+        image /= flatfield;
 
-        #print("    Corrected for PRNU")
+        if verbose:
+            print("    Corrected for PRNU")
         
         # Loop over all stars in this image, and do weighted aperture photometry
 
@@ -190,8 +208,9 @@ def photometry(inputFilePath, outputFilePath):
         varEstimatedFlux = zeros(len(starID))
         Vmag = zeros(len(starID))
 
-        print ("    Looping over all stars in image to do weighted mask photometry")
-        print ("        Using background level of {0} e-/pix/exposure".format(skyBackground[imageNr]))
+        if verbose:
+            print ("    Looping over all stars in image to do weighted mask photometry")
+            print ("        Using background level of {0} e-/pix/exposure".format(skyBackground[imageNr]))
 
         for starNr in range(len(starID)):
             
@@ -221,9 +240,9 @@ def photometry(inputFilePath, outputFilePath):
         # Save all computed arrays for this image to the HDF5 file
 
         exposureGroup.create_dataset("starID",           data=starID)
-        exposureGroup.create_dataset("estimatedFlux",    data=estimatedFlux)  # [e-/exposure]
-        exposureGroup.create_dataset("varEstimatedFlux", data=estimatedFlux)  # [e-/exposure]
-        exposureGroup.create_dataset("inputFlux",        data=inputFlux)      # [e-/exposure]
+        exposureGroup.create_dataset("estimatedFlux",    data=estimatedFlux)     # [e-/exposure]
+        exposureGroup.create_dataset("varEstimatedFlux", data=varEstimatedFlux)  # [e-/exposure]
+        exposureGroup.create_dataset("inputFlux",        data=inputFlux)         # [e-/exposure]
         exposureGroup.create_dataset("SNR",              data=snr)            
         exposureGroup.create_dataset("Vmag",             data=Vmag)                        
         exposureGroup.create_dataset("maskSize",         data=maskSize)
