@@ -38,8 +38,6 @@ def simpleTransit(time, t0, flatPartDuration, transitDuration, orbitalPeriod, re
     ingressStart = 0.0
     flatPartStart = ingressDuration
     egressStart = flatPartStart + flatPartDuration
-
-    print(ingressDuration, flatPartDuration, egressDuration)
     
     # Start with everything out of transit
 
@@ -53,7 +51,7 @@ def simpleTransit(time, t0, flatPartDuration, transitDuration, orbitalPeriod, re
     # Flat part
 
     flat = (phase >= flatPartStart) & (phase < flatPartStart + flatPartDuration)
-    relativeFlux[flat] = relativeDepth
+    relativeFlux[flat] = 1.0-relativeDepth
 
     # Egress part
 
