@@ -33,7 +33,6 @@ import math
 from simulation import Simulation
 from referenceFrames import getCCDandPixelCoordinates
 from referenceFrames import platformToTelescopePointingCoordinates
-from referenceFrames import drawCCDsInSky
 from referenceFrames import CCD
 
 
