@@ -120,11 +120,13 @@ def photometry(inputFilePath, outputFilePath):
 
     Nexposures = inputFile["/InputParameters/ObservingParameters/"].attrs["NumExposures"];
 
-    print("Looping over all images in HDF5 file.")
+    if verbose:
+        print("Looping over all images in HDF5 file.")
 
     for imageNr in range(Nexposures):
 
-        print("Image # {0}".format(imageNr))
+        if verbose:
+            print("Image # {0}".format(imageNr))
 
         # Read the bias and smearing map, and the image itself
 
@@ -139,7 +141,8 @@ def photometry(inputFilePath, outputFilePath):
         image -= bias
         smearingMap -= bias
 
-        print("    Subtracted bias level of {0} ADU".format(bias))
+        if verbose:
+            print("    Subtracted bias level of {0} ADU".format(bias))
 
         # Correct for open shutter smearing using the smearing maps
         # meanSmearing contains a smearing value for each column
@@ -147,13 +150,15 @@ def photometry(inputFilePath, outputFilePath):
         meanSmearing = smearingMap.mean(axis=0)
         image -= meanSmearing
 
-        print("    Corrected for open-shutter smearing")
+        if verbose:
+            print("    Corrected for open-shutter smearing")
 
         # Convert from [ADU] to [electrons] using the gain
 
         image *= gain
 
-        print("    Converted from [ADU] to [electrons] using a Gain of {0} e-/ADU".format(gain))
+        if verbose:
+            print("    Converted from [ADU] to [electrons] using a Gain of {0} e-/ADU".format(gain))
 
         # Correct for geometrical vignetting
         # TODO
@@ -162,9 +167,10 @@ def photometry(inputFilePath, outputFilePath):
         # Correct for the flatfield
 
         flatfield = array(inputFile["Flatfield/PRNU"])
-        #image /= flatfield;
+        image /= flatfield;
 
-        #print("    Corrected for PRNU")
+        if verbose:
+            print("    Corrected for PRNU")
         
         # Loop over all stars in this image, and do weighted aperture photometry
 
@@ -190,8 +196,9 @@ def photometry(inputFilePath, outputFilePath):
         varEstimatedFlux = zeros(len(starID))
         Vmag = zeros(len(starID))
 
-        print ("    Looping over all stars in image to do weighted mask photometry")
-        print ("        Using background level of {0} e-/pix/exposure".format(skyBackground[imageNr]))
+        if verbose:
+            print ("    Looping over all stars in image to do weighted mask photometry")
+            print ("        Using background level of {0} e-/pix/exposure".format(skyBackground[imageNr]))
 
         for starNr in range(len(starID)):
             
