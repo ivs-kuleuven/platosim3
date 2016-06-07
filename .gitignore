@@ -12,6 +12,11 @@ dependencies/Installs/*
 !inputfiles/inputfile.yaml
 !starField_RA180Dec-70.txt
 
+# Ignore checkpoints of iPython notebooks
+
+docs/tutorials/.ipynb_checkpoints/*
+docs/tutorials/*/.ipynb_checkpoints/*
+
 # Compiled source 
 
 *.pyc
