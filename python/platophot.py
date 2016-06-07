@@ -6,49 +6,19 @@ import h5py
 
 
 
-
-
-
-
-
-
-def photometry(inputFilePath, outputFilePath):
+def computePSFsigma(psf, Nsubpixels):
 
     """
-    PURPOSE: Given a platosim simulation output file, this function loops over all
-             stored images, and performs a weighted aperture photometry 
+    PURPOSE: Approximate the PSF with a 2D symmetric gaussian distribution, to compute 
+             its standard deviation, assuming that the barycenter is in the middle of the image. 
+             This standard deviation will be used for the weighted mask photometry
 
-    INPUT: inputFilePath:  path of the input hdf5 file
-           outputFilePath: path of the output hdf5 file
+    INPUT: psf:        2D numpy image containing the PSF
+           Nsubpixels: the number of subpixels per pixel (1D)
 
-    OUTPUT:
+    OUTPUT: sigma: the standard deviation of the symmetric PSF  [pix]
 
     """
-
-
-    # Open the input and the output HDF5 files
-
-    inputFile = h5py.File(inputFilePath, "r")
-    
-    if not os.path.isfile(outputFilePath):
-        outputFile = h5py.File(outputFilePath, "w")
-    else:
-        raise IOError("Output file already exists")
-
-
-    # Create the necessary groups in the output hdf5 file
-
-    outputFile.create_group("/Photometry");
-
-    # Read the PSF image (at subpixel level)
-
-    psf = array(inputFile["/PSF/rebinnedPSFsubPixel"])
-
-    # Approximate the PSF with a 2D symmetric gaussian distribution, to compute its standard deviation,
-    # assuming that the barycenter is in the middle of the image. This standard deviation will be used
-    # for the weighted mask photometry
-
-    print("Determining PSF sigma.")
 
     Nsamples = 10000
     sumPSF = sum(psf)
@@ -87,10 +57,52 @@ def photometry(inputFilePath, outputFilePath):
     
     # Convert the stdev of the PSF from subpixels to pixels
 
-    Nsubpixels = inputFile["/InputParameters/SubField/"].attrs["SubPixels"]
     sigmaPSF = sigmaPSF / Nsubpixels                                             # [pixels]
 
-    print("Sigma PSF = {0}".format(sigmaPSF))
+    # That's it!
+
+    return sigmaPSF
+
+
+
+
+
+
+
+
+
+
+
+
+def photometry(inputFilePath, outputFilePath, sigmaPSF, verbose=False):
+
+    """
+    PURPOSE: Given a platosim simulation output file, this function loops over all
+             stored images, and performs a weighted aperture photometry 
+
+    INPUT: inputFilePath:  path of the input hdf5 file
+           outputFilePath: path of the output hdf5 file
+           sigmaPSF: the standard deviation of the PSF (assumed to be symmetrical) [pix]
+           verbose: if False, do not print info messages on screen
+
+    OUTPUT: None
+
+    """
+
+
+    # Open the input and the output HDF5 files
+
+    inputFile = h5py.File(inputFilePath, "r")
+    
+    if not os.path.isfile(outputFilePath):
+        outputFile = h5py.File(outputFilePath, "w")
+    else:
+        raise IOError("Output file already exists")
+
+
+    # Create the necessary groups in the output hdf5 file
+
+    outputFile.create_group("/Photometry");
 
     
     # Collect the relevant input parameters from the HDF5 file
