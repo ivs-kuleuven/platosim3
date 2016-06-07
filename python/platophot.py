@@ -228,9 +228,9 @@ def photometry(inputFilePath, outputFilePath):
         # Save all computed arrays for this image to the HDF5 file
 
         exposureGroup.create_dataset("starID",           data=starID)
-        exposureGroup.create_dataset("estimatedFlux",    data=estimatedFlux)  # [e-/exposure]
-        exposureGroup.create_dataset("varEstimatedFlux", data=estimatedFlux)  # [e-/exposure]
-        exposureGroup.create_dataset("inputFlux",        data=inputFlux)      # [e-/exposure]
+        exposureGroup.create_dataset("estimatedFlux",    data=estimatedFlux)     # [e-/exposure]
+        exposureGroup.create_dataset("varEstimatedFlux", data=varEstimatedFlux)  # [e-/exposure]
+        exposureGroup.create_dataset("inputFlux",        data=inputFlux)         # [e-/exposure]
         exposureGroup.create_dataset("SNR",              data=snr)            
         exposureGroup.create_dataset("Vmag",             data=Vmag)                        
         exposureGroup.create_dataset("maskSize",         data=maskSize)
