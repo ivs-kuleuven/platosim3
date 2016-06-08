@@ -22,6 +22,8 @@ Many aspects concerning the design trade-off of a space-based instrument and its
 
 @section installation Installation
 
+PlatoSim has been used on recent OS X and recent Linux (Fedora, Ubuntu, Debian) systems. We cannot support  Windows systems for the moment, so we advice Windows users to install a Virtual Machine, and run PlatoSim inside the VM.
+
 The PlatoSim3 software is being distributed via <a href="https://github.com/IvS-KULeuven/PlatoSim3">GitHub</a> (see screenshot below), so you'll be needing a (free) <a href="https://github.com/join">GitHub account</a>.  As the PlatoSim3 repository is kept private for now, access must be granted by the PlatoSim3 team explicitly.
 
 If you are interested in contributing to the software, you must <code>fork</code> PlatoSim3, using  the GitHub web interface.  Just press the <code>"Fork"</code> button on the GitHub web interface (see Fig. 1).
