@@ -1,4 +1,4 @@
-# Description of the input file {#InputFileDescription}
+# Description of the Input File {#InputFileDescription}
 
 To configure the Plato Simulator, a large set of input parameters is required.  The input file format use for PlatoSim3 is YAML (see https://learnxinyminutes.com/docs/yaml/). We use only a very limited set of the YAML functionality, enough to allow us to provide input files for different parts of the simulator. 
 
