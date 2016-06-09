@@ -1,4 +1,4 @@
-# Issue Tracking
+# Issue Tracking {#IssueTracking}
 
 You are encouraged to use the issue tracking system of GitHub to report any problem you would come across, rather than sending one of the PlatoSim developers an email.  This helps you and us to better keep track of which problems arise and what their status is.
 
@@ -10,12 +10,11 @@ You can raise a new issue by clicking the green <code>New issue</code> button.  
 
 @image html /images/newIssue.png "Figure 2: Reporting a new issue on GitHub."
 
+@section issueProvidedInput Which Information to Provide?
+
 In the upper part (where it says "Title") you can enter a concise description of the problem.  A more elaborate description can be entered in the bottom part (where it says "Leave a comment").  In order to save some time, it is suggested to provide us with the following information in the issue:
 
-- Which version of the PlatoSim software are you using?  This can be easily retrieved by typing 
-\code
-git describe
-\endcode
+- Which version of the PlatoSim software are you using?  This can be easily retrieved by typing <code>git describe</code>
 on the command line in your installation directory.
 - How can the problem be reproduced?  You can, e.g., attach an example script to the issue.
 - In case the results are different than you expected, please explain us which numbers you expected and why.
