@@ -263,3 +263,44 @@ def photometry(inputFilePath, outputFilePath, sigmaPSF, verbose=False):
     #return estimatedFlux, varEstimatedFlux, snr, inputFlux, Vmag, maskSize
 
 
+
+
+
+
+def getPhotometryTimeSeries(photometryFile, starID):
+
+    """
+     PURPOSE: extract the flux time series of star with a given identifier.
+
+     INPUT: photometryFile: an HDF5 output file written by the photometry() function above
+            starID:  star identifier (integer, e.g. 9789)
+
+     OUTPUT: time: a numpy array containing the time points [s]
+             flux; a numpy array containing the flux points [electrons/exposure]
+
+     REMARK: To find out which star identifiers are in the photometry file, look in the HDF5 simulation
+             output file of PlatoSim: 
+             allStarIDs = array(platosimOutputFile["StarCatalog/starIDs"])
+    """
+
+    photFile = h5py.File(photometryFile)
+    allTimePoints = array(photFile["/Photometry/time"])
+    Nimages = len(allTimePoints)
+
+    time = []
+    flux = []
+    for k in range(Nimages):
+        allStarIDsInImage = array(photFile["/Photometry/Exposure{0:06d}/starID".format(k)])
+        if starID in allStarIDsInImage:
+            estimatedFlux = array(photFile["/Photometry/Exposure{0:06d}/estimatedFlux".format(k)])
+            flux.append(estimatedFlux[where(allStarIDsInImage==starID)][0])
+            time.append(array(photFile["/Photometry/time"])[k])
+
+    flux = array(flux)
+    time = array(time)
+
+    photFile.close()
+
+    return time, flux
+    
+
