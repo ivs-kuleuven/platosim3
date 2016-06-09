@@ -6,6 +6,8 @@ Browse to the PlatoSim3 repository on GitHub and select the <code>Issues</code> 
 
 @image html /images/issueTracking.png "Figure 1: Issue tracking on GitHub."
 
+The issue were are currently working on are listed on this page.
+
 You can raise a new issue by clicking the green <code>New issue</code> button.  This will direct you to a page as shown in Fig. 2.
 
 @image html /images/newIssue.png "Figure 2: Reporting a new issue on GitHub."
