@@ -22,17 +22,19 @@ Many aspects concerning the design trade-off of a space-based instrument and its
 
 @section installation Installation
 
-PlatoSim has been used on recent OS X and recent Linux (Fedora, Ubuntu, Debian) systems. We cannot support  Windows systems for the moment, so we advice Windows users to install a Virtual Machine, and run PlatoSim inside the VM.
+PlatoSim has been used on recent OS X and recent Linux (Fedora, Ubuntu, Debian) systems. We cannot support  Windows systems at the moment, so we advise Windows users to install a Virtual Machine, and run PlatoSim inside the VM.
 
 The PlatoSim3 software is being distributed via <a href="https://github.com/IvS-KULeuven/PlatoSim3">GitHub</a> (see screenshot below), so you'll be needing a (free) <a href="https://github.com/join">GitHub account</a>.  As the PlatoSim3 repository is kept private for now, access must be granted by the PlatoSim3 team explicitly.
 
-If you are interested in contributing to the software, you must <code>fork</code> PlatoSim3, using  the GitHub web interface.  Just press the <code>"Fork"</code> button on the GitHub web interface (see Fig. 1).
+If you are interested in contributing to the software, you must <code>fork</code> PlatoSim3, using the GitHub web interface.  Just press the <code>"Fork"</code> button on the GitHub web interface (see Fig. 1).
 
+If you are only interested in using PlatoSim3, it suffices to download the ZIP file, by pressing the <code>"Download ZIP"</code> button in the GitHub web interface (see Fig. 1). The disadvantage is that - every time you want to update to a more recent version of the software - you must download a new ZIP file and re-install the dependencies (see below).
 
-If you are only interested in using PlatoSim3, it suffices to download the ZIP file, by pressing the <code>"Download ZIP"</code> button in the GitHub web interface (see Fig. 1).  If you want to be able to update the software, it is better to <code>clone</code> PlatoSim3 by executing the following command:
+If you want to be able to update the software (without having to re-install the dependencies each time), it is better to <code>clone</code> PlatoSim3 by executing the following command in a designated directory (you have to do this only once):
 
 \code git clone https://github.com/IvS-KULeuven/PlatoSim3.git .\endcode
 
+Mind the dot at the end of the command!
 
 You can then update the software by executing the command
 
@@ -42,7 +44,7 @@ in the directory in which you installed PlatoSim3.
 
 However, this will only work smoothly if you did not change any of the PlatoSim3 files or added files to the PlatoSim3 folders. The only exception is the <code>/inputfiles</code> folder, where you can add files but should not change the original files. We recommend that you copy the <code>inputfile.yaml</code> file to your own version.
 
-At a later stage, releases will be distributed.
+At a later stage, releases will be distributed.  We will then extend the documentation accordingly.
 
 @image html /images/gitHub.png "Figure 1: Screenshot of the GitHub web interface."
 
