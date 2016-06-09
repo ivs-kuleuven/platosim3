@@ -25,7 +25,7 @@ To plot the subfield image of the 10th exposure:
 To get information of the stars that were detected on the subfield in at least one exposure.
 The starIDs are the line number (starting with 0) of the original stellar input catalog.
 
->>> starIDs, RA, dec, Vmag = f.getStarCatalog()
+>>> starIDs, RA, dec, Vmag, xFPmm, yFPmm, rowPix, colPix = f.getStarCatalog()
 
 
 To get the coordinates of all stars within a magnitude range [minVmag, maxVmag] in image #10.
@@ -512,19 +512,19 @@ class SimFile (object):
 
         if "starIDs" not in self.hdf5file["StarCatalog"].keys():
             print("Error: SimfFile.getStarCatalog(): not starIDs found in hdf5 file")
-            return None, None, None, None
+            return None, None, None, None, None, None, None, None
 
         elif "RA" not in self.hdf5file["StarCatalog"].keys():
             print("Error: SimfFile.getStarCatalog(): not RA values found in hdf5 file")
-            return None, None, None, None
+            return None, None, None, None, None, None, None, None
 
         elif "Dec" not in self.hdf5file["StarCatalog"].keys():
             print("Error: SimfFile.getStarCatalog(): no declination values found in hdf5 file")
-            return None, None, None, None
+            return None, None, None, None, None, None, None, None
 
         elif "Vmag" not in self.hdf5file["StarCatalog"].keys():
             print("Error: SimfFile.getStarCatalog(): no V magnitudes found in hdf5 file")
-            return None, None, None, None
+            return None, None, None, None, None, None, None, None
 
 
         # Extract the data from the HDF5 file
@@ -569,7 +569,7 @@ class SimFile (object):
 
         # That's it!
 
-        return starIDs, RA, declination, Vmag
+        return starIDs, RA, declination, Vmag, None, None, None, None
 
 
 
@@ -681,7 +681,7 @@ class SimFile (object):
 
         # If a cut in magnitude is required, first get the magnitudes from the star input catalog.
 
-        inputStarIDs, RA, decl, Vmag = self.getStarCatalog()
+        inputStarIDs, RA, decl, Vmag, xFPmm, yFPmm, rowPix, colPix = self.getStarCatalog()
         subFieldVmag = Vmag[np.in1d(inputStarIDs, starIDs)]
 
         # If the min or max V magnitude is set to None, use the default values

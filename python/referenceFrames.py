@@ -938,8 +938,16 @@ def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldS
     Ncols = CCD[ccdCode]["Ncols"]
     Nrows = CCD[ccdCode]["Nrows"]
 
-    if     (xCCDpix - subfieldSizeX/2 < 0)        or (xCCDpix + subfieldSizeX/2 > Ncols-1)   \
-        or (yCCDpix - subfieldSizeY/2 < firstRow) or (yCCDpix + subfieldSizeY/2 > Nrows-1): 
+    # print ("Ncols, Nrows = {}, {}".format(Ncols, Nrows))
+    # print ("xCCDpix, yCCDpix = {}, {}".format(xCCDpix, yCCDpix))
+    # print ("subfieldSizeX, subFieldSizeY = {}, {}".format(subfieldSizeX, subfieldSizeY))
+    # print ("xCCDpix - subfieldSizeX/2 < 0 = {} < {} = {}".format(xCCDpix - subfieldSizeX/2, 0, xCCDpix - subfieldSizeX/2 < 0))
+    # print ("xCCDpix + subfieldSizeX/2 - 1> Ncols-1 = {} > {} = {}".format(xCCDpix + subfieldSizeX/2 - 1, Ncols-1, xCCDpix + subfieldSizeX/2 - 1> Ncols-1))
+    # print ("yCCDpix - subfieldSizeY/2 < firstRow = {} < {} = {}".format(yCCDpix - subfieldSizeY/2, firstRow, yCCDpix - subfieldSizeY/2 < firstRow))
+    # print ("yCCDpix + subfieldSizeY/2 - 1> Nrows-1 = {} > {} = {}".format(yCCDpix + subfieldSizeY/2 - 1, Nrows-1, yCCDpix + subfieldSizeY/2 - 1> Nrows-1))
+
+    if     (xCCDpix - subfieldSizeX/2 < 0)        or (xCCDpix + subfieldSizeX/2 - 1 > Ncols-1)   \
+        or (yCCDpix - subfieldSizeY/2 < firstRow) or (yCCDpix + subfieldSizeY/2 - 1> Nrows-1): 
 
         print("Error: pixel coordinates (row, col) = ({0},{1}) too close to the edge to accommodate subfield with size {2}x{3}" \
            .format(yCCDpix,xCCDpix,subfieldSizeX, subfieldSizeY))
