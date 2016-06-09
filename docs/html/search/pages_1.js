@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['mainpage',['MainPage',['../md_docs_source_MainPage.html',1,'']]]
+  ['issue_20tracking',['Issue Tracking',['../IssueTracking.html',1,'']]]
 ];
