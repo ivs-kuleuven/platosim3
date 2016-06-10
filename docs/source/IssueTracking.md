@@ -12,7 +12,11 @@ You can raise a new issue by clicking the green <code>New issue</code> button.  
 
 @image html /images/newIssue.png "Figure 2: Reporting a new issue on GitHub."
 
-@section issueProvidedInput Which Information to Provide?
+
+
+
+
+## Which Information to Provide?
 
 In the upper part (where it says "Title") you can enter a concise description of the problem.  A more elaborate description can be entered in the bottom part (where it says "Leave a comment").  In order to save some time, it is suggested to provide us with the following information in the issue:
 
