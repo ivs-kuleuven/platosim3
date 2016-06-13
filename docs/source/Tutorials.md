@@ -11,7 +11,9 @@ Open a browser and go to <a href="http://localhost:8888/tree">http://localhost:8
 
 The individual cells of the notebook can be run one-by-one by pressing the <code>Play</code> button in the toolbar or by selecting <code>Cell > Run Cells</code>.
 
-@section Jupyter
+
+
+## Jupyter
 
 If you have installed <a href="https://docs.continuum.io/anaconda/install">Anaconda</a>, you can install <code>Jupyter</code> by typing the following command:
 

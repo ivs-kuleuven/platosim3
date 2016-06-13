@@ -3,19 +3,19 @@
 To configure the Plato Simulator, a large set of input parameters is required.  The input file format use for PlatoSim3 is YAML (see https://learnxinyminutes.com/docs/yaml/). We use only a very limited set of the YAML functionality, enough to allow us to provide input files for different parts of the simulator. 
 
 Any desired simulation can be obtained by modifying the following input:
-	* @ref configurationParameters "configuration parameters" (in the YAML file):
-		- @ref generalParameters "general parameters"
-		- @ref observingParameters "observing parameters"
-		- @ref platformParameters "platform parameters"
-		- @ref telescopeParameters "telescope parameters"
-		- @ref cameraParameters "camera parameters"
-		- @ref psfParameters "PSF parameters"
-		- @ref ccdParameters "CCD parameters"
-		- @ref subFieldParameters "sub-field parameters"
-		- @ref seedParameters "seed parameters"
-	* file comprising a @ref starCatalogue "star catalogue" of the region of the sky of interest
-	* optional file comprising @ref psfFile "pre-computed PSFs"
-	* @ref jitterFile "jitter" file (only required when the jitter option has been enabled in the configuration file)
+	*  [configuration parameters](#configurationParameters) (in the YAML file):
+		- [general parameters](#generalParameters)
+		- [observing parameters](#observingParameters)
+		- [platform parameters](#platformParameters)
+		- [telescope parameters](#telescopeParameters)
+		- [camera parameters](#cameraParameters)
+		- [PSF parameters](#psfParameters)
+		- [CCD parameters](#ccdParameters)
+		- [sub-field parameters](#subFieldParameters)
+		- [seed parameters](#seedParameters)
+	* file comprising a [star catalogue](#starCatalogue) of the region of the sky of interest
+	* optional file comprising [pre-computed PSFs](#psfFile)
+	* [jitter](#jitterFile) file (only required when the jitter option has been enabled in the configuration file)
  
 In the following sections we describe these parameters for the simulations in detail.
 
@@ -27,16 +27,16 @@ In the following sections we describe these parameters for the simulations in de
 <!-- Configuration Parameters -->
 <!-- ************************ -->
 
-@section configurationParameters Configuration Parameters 
+## <a name="configurationParameters"></a>Configuration Parameters
 
-The configuration parameters for the simulation are stored in a YAML file, e.g. inputfile.yaml, in the /inputfiles directory. This section describes the parameters in the different blocks of the configuration file. These blocks reflect their function in the simulation.
+The configuration parameters for the simulation are stored in a YAML file, e.g. <code>inputfile.yaml</code>, in the <code>/inputfiles</code> directory. This section describes the parameters in the different blocks of the configuration file. These blocks reflect their function in the simulation.
 
 
 
 <!-- General Parameters -->
 <!-- ****************** -->
 
-@subsection generalParameters General Parameters
+### <a name="generalParameters"></a>General Parameters
 
 The general configuration parameters a listed in the <b>General</b> block of the configuration file.  The structure of this block is the following:
 
@@ -48,8 +48,8 @@ General:
 
 
 
+#### <a name="projectLocation"></a>ProjectLocation
 
-@subsubsection projectLocation ProjectLocation
 <i>Allowed values:</i> name of an existing directory on disk or environment variable in the format <dfn>ENV['PLATO_PROJECT_HOME']</dfn>
 
 Full path of the directory in which you have checked out the PlatoSim3 project, or an environment variable, e.g. PLATO_PROJECT_HOME, containing the full path to that directory.  In the latter case, you must make sure you have exported this variable before initiating a simulation:
@@ -60,7 +60,7 @@ Full path of the directory in which you have checked out the PlatoSim3 project, 
 
 
 
-@subsection observingParameters Observing Parameters
+### <a name="observingParameters"></a>Observing Parameters
 
 The <b>ObservingParameters</b> block of the configuration file contains the configuration parameters that are specific to the simulated observation and are not specific for the hardware components of the satellite.  The structure of this block is the following:
 
@@ -78,14 +78,14 @@ ObservingParameters:
 
 
 
-@subsubsection numExposures NumExposures
+#### <a name="numExposures"></a>NumExposures
 <i>Allowed values:</i> > 0
 
 Number of exposures to generate in the simulation.
 
 
 
-@subsubsection exposureTime ExposureTime
+#### <a name="exposureTime"></a>ExposureTime
 <i>Allowed values:</i> > 0
 
 Integration time of one exposure, expressed in seconds. Note that the total integration time is the sum of the exposure and the readout time:
@@ -94,26 +94,26 @@ Integration time of one exposure, expressed in seconds. Note that the total inte
 
 
 
-@subsubsection  raPointing RApointing
+#### <a name="raPointing"></a>RApointing
 <i>Allowed values:</i>  ∈ [0, 360]
 
 Right ascension of the pointing, expressed in degrees.
 
 
 
-@subsubsection  decPointing DecPointing
+#### <a name="decPointing"></a>DecPointing
 <i>Allowed values:</i> ∈ [-90, 90]
 
 Declination of the pointing, expressed in degrees.
 
 
 
-@subsubsection fluxm0 Fluxm0
+#### <a name="fluxm0"></a>Fluxm0
 <i>Allowed values:</i> > 0
 
-Flux of a star of zero magnitude (\f$ m_{\lambda} = 0 \f$), expressed in photons \f$ \cdot \f$  s<sup>-1</sup> \f$  \cdot \f$  cm<sup>-2</sup> in the passband of the magnitudes that are listed in the @ref starCatalogue "star catalogue".
+Flux of a star of zero magnitude (\f$ m_{\lambda} = 0 \f$), expressed in photons \f$ \cdot \f$  s<sup>-1</sup> \f$  \cdot \f$  cm<sup>-2</sup> in the passband of the magnitudes that are listed in the [star catalogue](#starCatalogue).
 
-For an exposure of \f$t_{exp}\f$ seconds, the measured flux \f$F_{phot}\f$ of a star, expressed in photons, is computed from its catalogue magnitude \f$m_{\lambda}\f$, the @ref lightCollectingArea "effective light-collecting area" \f$A\f$ (in cm<sup>2</sup>) of the telescope, the @ref transmissionEfficiency "transmission efficiency" \f$T_{\lambda}\f$ of the optical system, the @ref quantumEfficiency "quantum efficiency" \f$Q\f$ of the detector, and the flux per second \f$F_0\f$ of a star with zero magnitude (\f$m_{\lambda} = 0\f$) from the equation
+For an exposure of \f$t_{exp}\f$ seconds, the measured flux \f$F_{phot}\f$ of a star, expressed in photons, is computed from its catalogue magnitude \f$m_{\lambda}\f$, the [effective light-collecting area](#lightCollectingArea) \f$A\f$ (in cm<sup>2</sup>) of the telescope, the  [transmission efficiency](#transmissionEfficiency) \f$T_{\lambda}\f$ of the optical system, the [quantum efficiency](#quantumEfficiency) \f$Q\f$ of the detector, and the flux per second \f$F_0\f$ of a star with zero magnitude (\f$m_{\lambda} = 0\f$) from the equation
 
 \f[
 F_{phot} = t_{exp} \cdot F_0 \cdot T_{\lambda} \cdot Q \cdot A \cdot 10^{-0.4} m_{\lambda}
@@ -123,7 +123,7 @@ where the \f$\lambda\f$ subscript refers to the wavelength range in which the si
 
 
 
-@subsubsection skyBackground SkyBackground
+#### <a name="skyBackground"></a>SkyBackground
 <i>Allowed values:</i> < 0 for automatic calculation, ≥ 0 to use the input value
 
 In case a positive value is given, the sky background (zodiacal + galactic), is set to the given value, expressed in photons \f$ \cdot \f$ s<sup>-1</sup> \f$ \cdot \f$ pixel<sup>-1</sup>.
@@ -132,9 +132,9 @@ In case a negative value is given, the sky background is computed automatically 
 
 
 
-@subsubsection  starCatalogFile StarCatalogFile
+####<a name="starCatalogFile"></a> StarCatalogFile
 
-Path to the @ref starCatalogFile "star catalogue file", relative to the @ref projectLocation "project location".
+Path to the [star catalogue file](#starCatalogFile), relative to the [project location](#projectLocation).
 
 
 
@@ -143,7 +143,8 @@ Path to the @ref starCatalogFile "star catalogue file", relative to the @ref pro
 <!-- Platform Parameters -->
 <!-- ******************* -->
 
-@subsection platformParameters Platform Parameters
+## <a name="platformParameters"></a>Platform Parameters
+
 
 The <b>Platform</b> block of the configuration file contains all the information that is specific to the platform of the satellite.  The structure of this block is the following:
 
@@ -161,14 +162,14 @@ Platform:
 
 
 
-@subsubsection useJitter UseJitter
+#### <a name="useJitter"></a>UseJitter
 <i>Allowed values:</i> "yes" and "no"
 
 Indicates whether pointing variations should be taken into account.
 
 The Plato Simulator can also account for pointing variations of the spacecraft, so-called jitter. A time series of pointing displacement, expressed in Euler angles (yaw, pitch, roll), either has to be provided as a jitter file or will be generated based on the given jitter parameters (see further).
 
-To ensure a realistic modelling of the jitter, the @ref jitterTimeScale "time step of the jitter time series" must be smaller than the @ref exposureTime "exposure time".
+To ensure a realistic modelling of the jitter, the [time step of the jitter time series](#jitterTimeScale) must be smaller than the [exposure time](#exposureTime).
 
 The configuration of the jitter axes is depicted below.  In the current implementation, the jitter roll axis of the spacecraft and the optical axis of the telescope are aligned, but this will change in the near future. 
 
@@ -180,44 +181,44 @@ The definition of yaw, pitch, and roll axes is such that - if the jitter roll ax
 
 
 
-@subsubsection useJitterFromFile UseJitterFromFile
+#### <a name="useJitterFromFile"></a>UseJitterFromFile
 <i>Allowed values:</i> "yes" and "no"
 
 Indicates whether the jitter time series must be read from a jitter file ("yes") or the jitter positions must be generated from the jitter parameters ("no").
 
 
 
-@subsubsection  jitterYawRms JitterYawRms
-<i>Allowed values:</i> ≥ 0, only required if the jitter positions must be generated from jitter parameters (@ref useJitterFromFile = no)
+#### <a name="jitterYawRms"></a>JitterYawRms
+<i>Allowed values:</i> ≥ 0, only required if the jitter positions must be generated from jitter parameters ([useJitterFromFile](#useJitterFromFile) = no)
 
 Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the yaw value from one jitter position to the next one.
 
 
 
-@subsubsection jitterPitchRms JitterPitchRms
-<i>Allowed values:</i> ≥ 0, only required if the jitter positions must be generated from jitter parameters (@ref useJitterFromFile = no)
+#### <a name="jitterPitchRms"></a>JitterPitchRms
+<i>Allowed values:</i> ≥ 0, only required if the jitter positions must be generated from jitter parameters ([useJitterFromFile](#useJitterFromFile) = no)
 
 Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the pitch value from one jitter position to the next one.
 
 
 
-@subsubsection jitterRollRms JitterRollRms
-<i>Allowed values:</i> ≥ 0, only required if the jitter positions must be generated from jitter parameters (@ref useJitterFromFile = no)
+#### <a name="jitterRollRms"></a>JitterRollRms
+<i>Allowed values:</i> ≥ 0, only required if the jitter positions must be generated from jitter parameters ([useJitterFromFile](#useJitterFromFile) = no)
 
 Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the roll value from one jitter position to the next one.
 
 
 
-@subsubsection jitterTimeScale JitterTimeScale
+#### <a name="jitterTimeScale"></a>JitterTimeScale
 <i>Allowed values:</i> > 0
 
 Timescale of the jitter (i.e. time between two subsequent jitter positions), expressed in seconds.
 
 
 
-@subsubsection jitterFileName JitterFileName
+#### <a name="jitterFileName"></a>JitterFileName
 
-Path of the jitter file, relative to the @ref projectLocation "projectLocation". This is only required if the jitter positions must be read from a file (@ref useJitterFromFile = yes).
+Path of the jitter file, relative to the [project location](#projectLocation). This is only required if the jitter positions must be read from a file ([UseJitterFromFile](#useJitterFromFile) = yes).
 
 
 
@@ -226,7 +227,7 @@ Path of the jitter file, relative to the @ref projectLocation "projectLocation".
 <!-- Telescope Parameters -->
 <!-- ******************** -->
 
-@subsection telescopeParameters Telescope Parameters
+### <a name="telescopeParameters"></a>Telescope Parameters
 
 The <b>Telescope</b> block of the configuration file contains all the information that is specific to the telescope.  The structure of this block is the following:
 
@@ -243,42 +244,42 @@ Telescope:
 
 
 
-@subsubsection lightCollectingArea LightCollectingArea
+#### <a name="lightCollectingArea"></a>LightCollectingArea
 <i>Allowed values:</i> > 0
 
 Light-collecting area of one telescope, expressed in cm<sup>2</sup>.
 
 
 
-@subsubsection transmissionEfficiency TransmissionEfficiency
+#### <a name="transmissionEfficiency"></a>TransmissionEfficiency
 <i>Allowed values:</i> ∈ [0,1]
 
 Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the Fluxm0 parameter and the magnitudes in the star catalogue.
 
 
 
-@subsubsection driftYawRms DriftYawRms
+#### <a name="driftYawRms"></a>DriftYawRms
 <i>Allowed values:</i> ≥ 0
 
 Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the yaw value from one thermo-elastic drift position to the next one.
 
 
 
-@subsubsection driftPitchRms DriftPitchRms
+#### <a name="driftPitchRms"></a>DriftPitchRms
 <i>Allowed values:</i> ≥ 0
 
 Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the pitch value from one thermo-elastic drift position to the next one.
 
 
 
-@subsubsection driftRollRms DriftRollRms
+#### <a name="driftRollRms"></a>DriftRollRms
 <i>Allowed values:</i> ≥ 0
 
 Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the roll value from one thermo-elastic drift position to the next one.
 
 
 
-@subsubsection driftTimeScale DriftTimeScale
+#### <a name="driftTimeScale"></a>DriftTimeScale
 <i>Allowed values:</i> > 0
 
 Timescale of the thermo-elastic drift (i.e. time between two subsequent drift positions), expressed in seconds.
@@ -290,7 +291,7 @@ Timescale of the thermo-elastic drift (i.e. time between two subsequent drift po
 <!-- Camera Parameters -->
 <!-- ***************** -->
 
-@subsection cameraParameters Camera Parameters
+## <a name="cameraParameters"></a>Camera Parameters
 
 The <b>Camera</b> block of the configuration file contains all the information that is specific to the camera.  The structure of this block is the following:
 
@@ -312,7 +313,8 @@ Camera:
 
 
 
-@subsubsection focalPlaneOrientation FocalPlaneOrientation
+
+#### <a name="focalPlaneOrientation"></a>FocalPlaneOrientation
 <i>Allowed values:</i> Any
 
 Orientation angle of the focal plane, expressed in degrees. For an angle of 0°, the y-axis of the CCD (with an orientation angle of 0°) points towards the North. A positive angle corresponds to a counterclockwise rotation. Have a look at Fig. 2 for more details.
@@ -321,42 +323,48 @@ Orientation angle of the focal plane, expressed in degrees. For an angle of 0°,
 
 
 
-@subsubsection plateScale PlateScale
+
+#### <a name="plateScale"></a>PlateScale
 <i>Allowed values:</i> > 0
 
 Nominal plate scale in arcsec / micron. This value affects the visible FOV of the CCD.
 
 
 
-@subsubsection focalLength FocalLength
+
+#### <a name="focalLength"></a>FocalLength
 <i>Allowed values:</i> > 0
 
 Focal length as recovered from the Zemax model, expressed in m.
 
 
 
-@subsubsection throughputBandwidth ThroughputBandwidth
+
+#### <a name="throughputBandwidth"></a>ThroughputBandwidth
 <i>Allowed values:</i> > 0
 
 FWHM of the throughput passband, expressed in nm.
 
 
 
-@subsubsection throughputLambdaC ThroughputLambdaC
+
+#### <a name="throughputLambdaC"></a>ThroughputLambdaC
 <i>Allowed values:</i> > 0
 
 Central wavelength of the throughput passband, expressed in nm.
 
 
 
-@subsubsection includeFieldDistortion  IncludeFieldDistortion
+
+#### <a name="includeFieldDistortion"></a>IncludeFieldDistortion
 <i>Allowed values:</i> "yes" and "no"
 
 Indicates whether or not the field distortion must be taken into account.
 
 
 
-@subsubsection fieldDistortionType FieldDistortion: Type
+
+#### <a name="fieldDistortionType"></a>FieldDistortionType
 <i>Allowed values:</i> "Polynomial1D" or "Polynomial2D"
 
 Indicates that the field distortion is calculated by means of either a 1D or a 2D polynomial.
@@ -369,20 +377,23 @@ and a d polynomial as \f[P(x, y) = c_{00} + c_{10} \cdot x + ... + c_{n0} \cdot 
 
 
 
-@subsubsection fieldDistortionDegree FieldDistortion: Degree
+
+#### <a name="fieldDistortionDegree"></a>FieldDistortion: Degree
 <i>Allowed values:</i> > 0; for the 2D polynominal: ≤ 3
 
 Degree \f$n\f$ of the polynomial describing the field distortion.
 
 
 
-@subsubsection fieldDistortionCoefficients FieldDistortion: Coefficients
+
+#### <a name="fieldDistortionCoefficients"></a>FieldDistortion
 
 Coefficients of the polynomial describing the field distortion.  For a 1D polynomial the coefficients are specified as \f$ [c_0, c_1,..., c_n] \f$, whilst for a 2D polynomial as \f$ [[c_{00}, c_{01},..., c_{0n}], [c_{10}, c_{11},..., c_{1n}],..., [c_{n0}, c_{n1},..., c_{nn}]] \f$.
 
 
 
-@subsubsection fieldDistortionInverseCoefficients FieldDistortion: InverseCoefficients
+
+#### <a name="fieldDistortionInverseCoefficients"></a>FieldDistortion: InverseCoefficients
 
 Coefficients for inverse polynomial of the polynomial describing the field distortion.
 
@@ -392,7 +403,8 @@ Coefficients for inverse polynomial of the polynomial describing the field disto
 
 <!-- PSF Parameters -->
 <!-- ************** -->
-@subsection psfParameters PSF Parameters
+
+### <a name="psfParameters"></a>PSF Parameters
 
 The <b>PSF</b> block of the configuration file contains all the information that is specific to the PSF.  The structure of this block is the following:
 
@@ -411,36 +423,42 @@ PSF:
       NumberOfPixels:            8          
 \endcode
 
-@subsubsection  psfModel Model
+
+
+
+#### <a name="psfModel"></a>Model
 <i>Allowed values:</i> "Gaussian" and "FromFile"
 
 Indicates whether to use a Gaussian PSF or to read the PSF from an HDF5 file.
 
 
 
-@subsubsection  gaussSigma Gaussian: Sigma
-<i>Allowed values:</i> > 0, only required if a Gaussian PSF must be used (@ref psfModel = Gaussian).
+
+#### <a name=gaussSigme""></a>Gaussian: Sigma
+<i>Allowed values:</i> > 0, only required if a Gaussian PSF must be used ([psfModel](#Model) = Gaussian).
 
 Width (σ) of the two-dimensional Gaussian PSF, expressed in pixels.
 
 
 
-@subsubsection  gaussNumPixels Gaussian: NumberOfPixels
-<i>Allowed values:</i> > 0, only required if a Gaussian PSF must be used (@ref psfModel = Gaussian).
+
+#### <a name="gaussNumPixels"></a>Gaussian: NumberOfPixels
+<i>Allowed values:</i> > 0, only required if a Gaussian PSF must be used ([Model](#psfModel) = Gaussian).
 
 Number of pixels (in both directions) for which the Gaussian PSF must be generated.
 
 
 
-@subsubsection  psfFilename FromFile: Filename
-<i>Allowed values:</i> only required if a pre-computed PSF must be used (@ref psfModel = FromFile).
 
-Path to the file, relative to the @ref projectLocation "project location", holding the location independent @ref psfFile "pre-computed PSF".
+#### <a name="psfFilename"></a>FromFile: Filename
+<i>Allowed values:</i> only required if a pre-computed PSF must be used ([psfModel](#Model) = FromFile).
+
+Path to the file, relative to the [project location](#projectLocation), holding the location independent [pre-computed PSF](#psfFile).
 
 
-@subsubsection  psfDistance FromFile: DistanceToOA
 
-<i>Allowed values:</i> -1 for automatic calculation, ≥ 0 to use the input value; only required if a pre-computed PSF must be used (@ref psfModel = FromFile).
+#### <a name="psfDistance"></a>FromFile: DistanceToOA
+<i>Allowed values:</i> -1 for automatic calculation, ≥ 0 to use the input value; only required if a pre-computed PSF must be used ([Model](#psfModel) = FromFile).
 
 In case a positive value is given the input value will be used for the angular distance to the optical axis.
 
@@ -448,15 +466,17 @@ In case a negative value is given, the angular distance to the optical axis will
 
 
 
-@subsubsection psfRotation FromFile: RotationAngle
-<i>Allowed values:</i> Any, only required if a pre-computed PSF must be used (@ref psfModel = FromFile).
+
+#### <a name="psfRotation"></a>FromFile: RotationAngle
+<i>Allowed values:</i> Any, only required if a pre-computed PSF must be used ([Model](#psfModel) = FromFile).
 
 Arbitrary rotation angle of the PSF, expressed in degrees and measured counterclockwise.
 
 
 
-@subsubsection  psfNumPixels FromFile: NumberOfPixels
-<i>Allowed values:</i> > 0, only required if a pre-computed PSF must be used (@ref psfModel = FromFile).
+
+#### <a name="psfNumPixels"></a>FromFile: NumberOfPixels
+<i>Allowed values:</i> > 0, only required if a pre-computed PSF must be used ([Model](#psfModel) = FromFile).
 
 Number of pixels (in both directions) for which the PSF was generated.
 
@@ -465,7 +485,8 @@ Number of pixels (in both directions) for which the PSF was generated.
 
 
 <!-- CCD Parameters -->
-@subsection ccdParameters CCD Parameters
+
+## <a name="ccdParameters"></a>CCD Parameters
 
 The <b>CCD</b> block of the configuration file contains all the information that is specific to the CCD.  The structure of this block is the following:
 
@@ -501,78 +522,84 @@ CCD:
 
 
 
-@subsubsection originOffsetX OriginOffsetX
+
+#### <a name="orginOffsetX"></a>OriginOffsetX
 <i>Allowed values:</i> Any
 
 Offset of the CCD origin from the centre of the optical plane (i.e. the intersection of the optical axis with the focal plane) in the x-direction, expressed in mm. The origin of the CCD is defined as the point where the readout register is located. See Fig. 2 for more details (Δx<sub>CCD</sub>).
 
 
 
-@subsubsection originOffsetY OriginOffsetY
+
+#### <a name=originOffsetY""></a>OriginOffsetY
 <i>Allowed values:</i> Any
 
 Offset of the CCD origin from the centre of the optical plane (i.e. the intersection of the optical axis with the focal plane) in the y-direction, expressed in mm. The origin of the CCD is defined as the point where the readout register is located. See Fig. 2 for more details (Δy<sub>CCD</sub>).
 
-@subsubsection ccdOrientation Orientation
+
+#### <a name="ccdOrientation"></a>Orientation
 <i>Allowed values:</i> Any
 
 Orientation angle of the CCD w.r.t. the orientation of the focal plane, measured counterclockwise and expressed in degrees. This rotation is performed around the offset origin of the CCD. See Fig. 2 for more details (γ<sub>CCD</sub>).
 
 
 
-@subsubsection ccdNumColumns NumColumns
+
+#### <a name="ccdNumColumns"></a>NumColumns
 <i>Allowed values:</i> > 0
 
 Number of pixels of the CCD in the x-direction (i.e. number of columns).
 
 
 
-@subsubsection ccdNumRows NumRows
+
+#### <a name="ccdNumRows"></a>NumRows
 <i>Allowed values:</i> > 0
 
 Number of pixels of the CCD in the y-direction (i.e. number of rows).
 
 
 
-@subsubsection pixelSize PixelSize
-<i>Allowed values:</i> > 0
+
+#### <a name="pixelSize"></a>PixelSizeS<i>Allowed values:</i> > 0
 
 Nominal pixel size, expressed in micron.
 
 
         
-@subsubsection gain Gain             
+#### <a name="gain"></a>Gain
 <i>Allowed values:</i> > 0
 
 CCD gain, expressed in e<sup>-</sup> / ADU and assumed to be constant throughout a simulation. This parameter relates the number of electrons per pixel to the number of counts (i.e. ADU) per pixel.
 
 
 
-@subsubsection quantumEfficiency QuantumEfficiency   
+#### <a name="quantumEfficiency"></a>QuantumEfficiency
 <i>Allowed values:</i> ∈ [0,1]
 
-Quantum efficiency of the detector, considering the passband and the spectral energy distribution of the stars given the @ref fluxm0 parameter and the magnitude of the stars in the @ref starCatalogue "star catalogue". This is the ratio of the number of collected electrons to the number of incident photons.
+Quantum efficiency of the detector, considering the passband and the spectral energy distribution of the stars given the [Fluxm0](#fluxm0) parameter and the magnitude of the stars in the [star catalogue](#starCatalogue). This is the ratio of the number of collected electrons to the number of incident photons.
 
 
 
-@subsubsection fullWellSaturation FullWellSaturation
+
+#### <a name="fullWellSaturation"></a>FullWellSaturation
 <i>Allowed values:</i> > 0
      
-Full-well saturation limit of a single CCD pixel, expressed in e<sup>-</sup> / pixel. If a pixels receives more electrons than its full-well saturation limit, the additional electrons flow evenly distributed in positive and negative charge-transfer direction, a phenomenon called <i>blooming</i>. The electrons reaching the edge of the CCD will not be detected.
+Full-well saturation limit of a single CCD pixel, expressed in e<sup>-</sup> / pixel. If a pixels receives more electrons than its full-well saturation limit, the additional electrons flow evenly distributed in positive and negative charge-transfer direction, a phenomenon called <i>blooming</i>. The electrons reaching the edge of the CCD will not be detected..
 
 
 
-@subsubsection digitalSaturation DigitalSaturation
+#### <a name="digitalSaturation"></a>DigitalSaturation
 <i>Allowed values:</i> > 0
 
 Digital saturation limit of the CCD to which pixel values are topped off, expressed in ADU / pixel. This value depends on the A/D convertor of the detector. For a 16-bit convertor, the digital saturation limit is 65536 ADU.
 
-The @ref gain "gain" of the detector should be such that the @ref fullWellSaturation "full-well saturation" results in values below the digital saturation limit.
+The [gain](#gain) of the detector should be such that the [full-well saturation](#fullWellSaturation) results in values below the digital saturation limit.
 
 
      
-@subsubsection readoutNoise ReadoutNoise   
-<i>Allowed values:</i> ≥ 0
+
+#### <a name="readoutNoise"></a>ReadoutNoise <i>Allowed values:</i> ≥ 0
 
 Mean readout noise of the detector, expressed in e<sup>-</sup>.
 
@@ -580,14 +607,14 @@ Readout noise occurs due to the imperfect nature of the CCD amplifiers. When the
        
        
        
-@subsubsection electronicOffset ElectronicOffset
+#### <a name="electronicOffset"></a>ElectronicOffset
 <i>Allowed values:</i> ≥ 0
 
-Electronic offset or bias level, expressed in ADU, that is added to the digital signal in order to avoid negative readout values. The electronic offset can be measured in a pre-scan strip, which essentially consists of a few additional rows of the CCD. These rows only contain the electronic offset and the readout noise. This pre-scan strip consisting of @ref numPreScanRows rows will be stored in the output file.
+Electronic offset or bias level, expressed in ADU, that is added to the digital signal in order to avoid negative readout values. The electronic offset can be measured in a pre-scan strip, which essentially consists of a few additional rows of the CCD. These rows only contain the electronic offset and the readout noise. This pre-scan strip consisting of [NumPreScanRows](#numPreScanRows) rows will be stored in the output file.
        
        
         
-@subsubsection readoutTime ReadoutTime
+#### <a name="readoutTime"></a>ReadoutTime
 <i>Allowed values:</i> ≥ 0
 
 Time required to read out an entire CCD working in frame transfer mode, expressed in seconds. Because of the absence of a shutter (which is common in space-based instruments), the CCD still receives light during frame transfer. The flux of each sub-pixel is affected by the flux of the sub-pixels in the same column. Because the CCD is exposed during the whole readout and multiple exposures are created, also the sub-pixels further away from the readout register have their influence.
@@ -596,15 +623,15 @@ For non-frame-transfer CCDs the readout time should be set to zero.
 
 
 
-@subsubsection flatfieldPtPNoise FlatfieldPtPNoise
-<i>Allowed values:</i> ∈ [0,1]
+#### <a name="flatfieldPtPNoise"></a>FlatfieldPtPNoise
+<i>Allowed values:</i> ∈ [0,1]]
 
-Fractional peak-to-peak amplitude of the pixel non-uniform sensitivity response.
+Fractional peak-to-peak amplitude of the pixel non-uniform sensitivity response..
   
   
   
-@subsubsection CTEMean cteMean
-Allowed values: ∈ [0,1]
+#### <a name="cteMean"></a>CTEMean
+Allowed values: ∈ [0,1]]
 
 Mean charge-transfer efficiency (CTE) of the detector.
 
@@ -614,70 +641,79 @@ The charge trails impact photometry, noise, and astrometry of sources. CTI remov
 
 
 
-@subsubsection inclFlatfield IncludeFlatfield
+#### <a name="inclFlatfield"></a>IncludeFlatfield
 <i>Allowed values:</i> "yes" and "no"
 
 Indicates whether or not to include the flatfield.
 
 
 
-@subsubsection inclPhotonNoise IncludePhotonNoise
+
+#### <a name="inclPhotonNoise"></a>IncludePhotonNoise
 <i>Allowed values:</i> "yes" and "no"
 
 Indicates whether or not to include photon noise.
 
 
 
-@subsubsection inclReadoutNoise IncludeReadoutNoise
+
+#### <a name="inclReadoutNoise"></a>IncludeReadoutNoise
 <i>Allowed values:</i> "yes" and "no"
 
 Indicates whether or not to include readout noise.
 
 
 
-@subsubsection inclCTI IncludeCTIeffects
+
+#### <a name="inclCTI"></a>IncludeCTIeffects
 <i>Allowed values:</i> "yes" and "no"
 
 Indicates whether or not to include CTI effects.
 
 
 
-@subsubsection inclOpenShutterSmearing IncludeOpenShutterSmearing
+
+#### <a name="inclOpenShutterSmearing"></a>IncludeOpenShutterSmearing
 <i>Allowed values:</i> "yes" and "no"
 
 Indicates whether or not to include open-shutter smearing effects.
 
 
 
-@subsubsection inclVignetting IncludeVignetting
+
+#### <a name="inclVignetting"></a>IncludeVignetting
 <i>Allowed values:</i> "yes" and "no"
 
 Indicates whether or not to include brightness attenuation towards the edge of the FOV due to vignetting.
 
 
         
-@subsubsection inclConvolution IncludeConvolution
+
+#### <a name="inclConvolution"></a>IncludeConvolution
 <i>Allowed values:</i> "yes" and "no"
 
 Indicates whether or not the sub-pixel map must be convolved with the PSF.
 
 
 
-@subsubsection inclFullWellSaturation IncludeFullWellSaturation
+
+#### <a name="inclFullWellSaturation"></a>IncludeFullWellSaturation
 <i>Allowed values:</i> "yes" and "no"
 
 Indicates whether or not to apply full-well saturation.
 
 
 
-@subsubsection inclDigitalSaturation IncludeDigitalSaturation
+
+#### <a name="inclDigitalSaturation"></a>IncludeDigitalSaturation
 <i>Allowed values:</i> "yes" and "no"
 
 Indicates whether or not to apply digital saturation.
 
 
 
-@subsubsection writeSubPixelImages WriteSubPixelImagesToHDF5
+
+#### <a name="writeSubPixelImages"></a>WriteSubPixelImages
 <i>Allowed values:</i> "yes" and "no"
 
 Indicates whether or not the sub-pixel images must be written to the HDF5-file.  Use this for a limited number of exposures, as it takes a lot of space.
@@ -689,7 +725,7 @@ Indicates whether or not the sub-pixel images must be written to the HDF5-file. 
 <!-- Sub-Field Parameters -->
 <!-- ******************** -->
 
-@subsection subFieldParameters Sub-Field Parameters
+## <a name="subFieldParameters"></a>Sub-Field Parameters
 
 The <b>SubField</b> block of the configuration file contains all the information about the sub-field of the CCD that is modelled by the simulation.  The structure of this block is the following:
 
@@ -712,49 +748,56 @@ SubField:
 
 
 
-@subsubsection zeroPointRow ZeroPointRow
+
+#### <a name="zeroPointRow"></a>ZeroPointRow
 <i>Allowed values:</i> > 0
 
 Row of the origin of the sub-field in the detector, expressed in pixels.  See Fig. 3 for more details (y<sub>s</sub>).
 
 
 
-@subsubsection zeroPointColumn ZeroPointColumn
+
+#### <a name="zeroPointColumn"></a>ZeroPointColumn
 <i>Allowed values:</i> > 0
 
 Column of the origin of the sub-field in the detector, expressed in pixels.  See Fig. 3 for more details (x<sub>s</sub>).
 
 
 
-@subsubsection  numColumns NumColumns
+
+#### <a name="numColumns"></a>NumColumns
 <i>Allowed values:</i> ≥ 8
 
 Number of columns in the sub-field, expressed in pixels.
 
 
 
-@subsubsection numRows NumRows
+
+#### <a name="numRows"></a>NumColumns
 <i>Allowed values:</i> ≥ 8
 
 Number of rows in the sub-field, expressed in pixels.
 
 
 
-@subsubsection  numPreScanRows NumBiasPrescanRows
+
+#### <a name="numPreScanRows"></a>NumBiasPrescanRows
 <i>Allowed values:</i> ≥ 0
 
 Number of rows in the pre-scan strip (see Fig. 3), expressed in normal pixel units.   This strip is located at the bottom of the sub-field that is modelled in detail and contains the electronic offset and readout noise.
 
 
 
-@subsubsection numOverScanRows NumSmearingOverscanRows
+
+#### <a name="numOverScanRows"></a>NumSmearingOverscanRows
 <i>Allowed values:</i> ≥ 0
 
 Number of rows in the over-scan strip (see Fig. 3), expressed in normal pixel units. This strip is located at the top of the sub-field that is modelled in detail and contains the star smearing due to the absence of a shutter. This flux in this strip is also affected by the electronic offset, readout noise, and shot noise. Not included are the PRNU, cosmic hits, and charge-transfer efficiency (CTE).
 
 
 
-@subsubsection numSubPixels SubPixels
+
+#### <a name="numSubPixels"></a>SubPixels
 <i>Allowed values:</i> power of 2 (≤ 128)
 
 Number of sub-pixels per pixel in both directions.
@@ -766,7 +809,7 @@ Number of sub-pixels per pixel in both directions.
 <!-- Seed Parameters -->
 <!-- *************** -->
 
-@subsection seedParameters Seed Parameters
+## <a name="seedParameters"></a>Seed Parameters
 
 The <b>RandomSeeds</b> block of the configuration file contains all the seeds for random-number generation in the simulator.  The structure of this block is the following:
 
@@ -781,42 +824,42 @@ The <b>RandomSeeds</b> block of the configuration file contains all the seeds fo
 
 
 
-@subsubsection ReadOutNoiseSeed
+#### ReadOutNoiseSeed
 <i>Allowed values:</i> > 0
 
 Seed for the random-number generator used for the readout noise.
 
 
 
-@subsubsection PhotonNoiseSeed
+#### PhotonNoiseSeed
 <i>Allowed values:</i> > 0
 
 Seed for the random-number generator used for the photon noise.
 
 
 
-@subsubsection JitterSeed
+#### JitterSeed
 <i>Allowed values:</i> > 0
 
 Seed for the random-number generator used for the jitter.
 
 
 
-@subsubsection FlatFieldSeed
+#### FlatFieldSeed
 <i>Allowed values:</i> > 0
 
 Seed for the random-number generator used for the flatfield.
 
 
 
-@subsubsection CTESeed
+#### CTESeed
 <i>Allowed values:</i> > 0
 
 Seed for the random-number generator used for the CTE.
 
 
 
-@subsubsection DriftSeed
+#### DriftSeed
 <i>Allowed values:</i> > 0
 
 Seed for the random number generator used for the drift.
@@ -829,14 +872,14 @@ Seed for the random number generator used for the drift.
 <!-- Star Catalogue -->
 <!-- ************** -->
 
-@section starCatalogue Star Catalogue
+# <a name="starCatalogue"></a>Star Catalogue
 
 A star catalogue must be provided in a file in ASCII format. This file should contain three columns, separated by a space, holding the following information:
 * right ascension of the stars [degrees]
 * declination of the stars [degrees]
 * stellar magnitude
 
-The path of this file, relative to the @ref projectLocation "project location", must be provided via the @ref starCatalogFile parameter in the configuration file (under observing parameters). 
+The path of this file, relative to the [project location](#projectLocation), must be provided via the [StarCatalogFile](#starCatalogFile) parameter in the configuration file (under observing parameters). 
 
 
 
@@ -846,9 +889,9 @@ The path of this file, relative to the @ref projectLocation "project location", 
 <!-- PSF File -->
 <!-- ******** -->
 
-@section psfFile PSF File (Optional)
+# <a name="psfFile"></a>PSF File (Optional)
 
-Unless you indicate you want to generate a Gaussian PSF, pre-computed normalised PSFs must be provided in the form of an HDF5-file. The path of this file, relative to the @ref projectLocation "project location", is specified via the @ref psfFilename parameter.
+Unless you indicate you want to generate a Gaussian PSF, pre-computed normalised PSFs must be provided in the form of an HDF5-file. The path of this file, relative to the [project location](#projectLocation), is specified via the [Filename](#psfFilename) parameter.
 
 The simulator will automatically select the PSF for which the angular distance to the optical axis matches best for the simulated sub-field.
 
@@ -860,17 +903,17 @@ The simulator will automatically select the PSF for which the angular distance t
 <!-- Jitter File -->
 <!-- *********** -->
 
-@section jitterFile Jitter File (Optional)
+# <a name="jitterFile"></a>Jitter File (Optional)
 
-If required (@ref useJitterFromFile = "yes"), a jitter time series must be provided in a file in ASCII format. This file should contain four columns, separated by a space, holding the following information:
+If required ([UseJitterFromFile](#useJitterFromFile) = "yes"), a jitter time series must be provided in a file in ASCII format. This file should contain four columns, separated by a space, holding the following information:
 
 * time [s]
 * yaw [arsec]
 * pitch [arcsec]
 * roll [arcsec]
 
-The path of this file, relative to the @ref projectLocation "project location", must be provided via the @ref jitterFileName parameter in the configuration file.
+The path of this file, relative to the [project location](#projectLocation), must be provided via the  [JitterFileName]{#jitterFileName) parameter in the configuration file.
 
-To ensure a realistic modelling of the jitter, the time step in the jitter time series must be smaller than the @ref exposureTime "exposure time".
+To ensure a realistic modelling of the jitter, the time step in the jitter time series must be smaller than the [exposure time](#exposureTime).
 
 

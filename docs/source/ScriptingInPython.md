@@ -10,13 +10,12 @@ Under <code>/docs/tutorials/ScriptingInPython</code> you can find a basic tutori
 
 ## Setting your Python Path
 
+
 The Python functionality that is offered in PlatoSim can be found in the <code>python</code>.  Make sure to add this directory to your Python path, as follows:
 
 \code{python}
 PYTHONPATH=$PYTHONPATH:<full path to the /Platosim3/python directory>
 \endcode
-
-
 
 
 
