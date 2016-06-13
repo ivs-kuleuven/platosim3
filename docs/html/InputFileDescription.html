@@ -145,12 +145,12 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <p>Indicates whether pointing variations should be taken into account.</p>
 <p>The Plato Simulator can also account for pointing variations of the spacecraft, so-called jitter. A time series of pointing displacement, expressed in Euler angles (yaw, pitch, roll), either has to be provided as a jitter file or will be generated based on the given jitter parameters (see further).</p>
 <p>To ensure a realistic modelling of the jitter, the <a href="#jitterTimeScale">time step of the jitter time series</a> must be smaller than the <a href="#exposureTime">exposure time</a>.</p>
-<p>The configuration of the jitter axes is depicted below. In the current implementation, the jitter roll axis of the spacecraft and the optical axis of the telescope are aligned, but this will change in the near future.</p>
-<p>The definition of yaw, pitch, and roll axes is such that - if the jitter roll axis is aligned with the optical axis - the angular distance between jitter roll axis and optical axis is 0°, and the optical axis is pointed at λ=0°. A positive yaw angle results in an displacement of the field towards the East, a positive pitch angle result in a displacement towards the North, and a positive roll angle rotates the CCD clockwise (N-W-S-E).</p>
+<p>The configuration of the jitter axes is depicted below. The Euler angles that characterise the jitter are defined w.r.t. to the spacecraft coordinate system (see Fig. 1). The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module. The positive roll axis z<sub>SC</sub> points towards the operator-given mean payload line-of-sight, given by the equatorial coordinates (<a href="#raPointing">RApointing</a>, <a href="#decPointing">DecPointing</a>).</p>
+<p>The angles are defined such that they increase with a clockwise rotation, when looking along the positive axes. First a roll rotation is done around the z<sub>SC</sub> axis, then a pitch rotation is done around the rotated y<sub>SC</sub> axis, and finally a yaw rotation is done around the twice-rotated x<sub>SC</sub> axis.</p>
 <div class="image">
 <img src="jitterConfiguration.png" alt="jitterConfiguration.png"/>
 <div class="caption">
-Figure 1: Configuration of the jitter axes for the Plato Simulator.</div></div>
+Figure 1: Configuration of the jitter axes for the Plato Simulator, defined w.r.t. the spacecraft coordinate system (xSC, ySC, z&lt;sub&gt;SC&lt;/sub&gt;). The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module. The positive zSC axis points towards the operator-given pointing coordinates. The xSC axis points in the direction of the highest point of the sunshield.</div></div>
 <h4><a class="anchor" id="useJitterFromFile"></a>UseJitterFromFile</h4>
 <p><em>Allowed values:</em> "yes" and "no"</p>
 <p>Indicates whether the jitter time series must be read from a jitter file ("yes") or the jitter positions must be generated from the jitter parameters ("no").</p>
@@ -196,7 +196,7 @@ Figure 1: Configuration of the jitter axes for the Plato Simulator.</div></div>
 <div class="image">
 <img src="orientation.png" alt="orientation.png"/>
 <div class="caption">
-Figure 2: Definition of the focal-plane orientation and relative CCD location and orientation. The focal plane is rotated by the angle γFP w.r.t. to the North direction. The origin of the CCD in the focal plane is defined by its offset (ΔxCCD, ΔyCCD) in mm from the centre of the focal plane. It is then rotated by the angle γCCD round its origin.</div></div>
+Figure 2: A schematic overview of the focal plane with 4 CCDs. The optical axis zFP is the blue dot in the middle of the 4 CCDs and points in the positive direction towards the reader. The jitter roll axis zSC is the purple dot, and also points in the positive direction towards the reader. The focal plane is rotated by the angle γFP w.r.t. to the North direction. The origin of the CCD in the focal plane is defined by its offset (ΔxCCD, ΔyCCD) in mm from the centre of the focal plane. It is then rotated by the angle γCCD round its origin.</div></div>
 <h4><a class="anchor" id="plateScale"></a>PlateScale</h4>
 <p><em>Allowed values:</em> &gt; 0</p>
 <p>Nominal plate scale in arcsec / micron. This value affects the visible FOV of the CCD.</p>

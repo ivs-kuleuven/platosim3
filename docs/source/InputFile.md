@@ -171,13 +171,11 @@ The Plato Simulator can also account for pointing variations of the spacecraft, 
 
 To ensure a realistic modelling of the jitter, the [time step of the jitter time series](#jitterTimeScale) must be smaller than the [exposure time](#exposureTime).
 
-The configuration of the jitter axes is depicted below.  In the current implementation, the jitter roll axis of the spacecraft and the optical axis of the telescope are aligned, but this will change in the near future. 
+The configuration of the jitter axes is depicted below.  The Euler angles that characterise the jitter are defined w.r.t. to the spacecraft coordinate system (see Fig. 1).  The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module.  The positive roll axis z<sub>SC</sub> points towards the operator-given mean payload line-of-sight, given by the equatorial coordinates ([RApointing](#raPointing), [DecPointing](#decPointing)).
 
-<!-- The jitter roll axis of the spacecraft is not necessarily aligned with the optical axis of the telescope.-->
+The angles are defined such that they increase with a clockwise rotation, when looking along the positive axes. First a roll rotation is done around the z<sub>SC</sub> axis, then a pitch rotation is done around the rotated y<sub>SC</sub> axis, and finally a yaw rotation is done around the twice-rotated x<sub>SC</sub> axis.
 
-The definition of yaw, pitch, and roll axes is such that - if the jitter roll axis is aligned with the optical axis - the angular distance between jitter roll axis and optical axis is 0°, and the optical axis is pointed at λ=0°. A positive yaw angle results in an displacement of the field towards the East, a positive pitch angle result in a displacement towards the North, and a positive roll angle rotates the CCD clockwise (N-W-S-E).
-
-@image html /images/jitterConfiguration.png "Figure 1: Configuration of the jitter axes for the Plato Simulator."
+@image html /images/jitterConfiguration.png "Figure 1: Configuration of the jitter axes for the Plato Simulator, defined w.r.t. the spacecraft coordinate system (xSC, ySC, z<sub>SC</sub>).  The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module.  The positive zSC axis points towards the operator-given pointing coordinates. The xSC axis points in the direction of the highest point of the sunshield."
 
 
 
@@ -319,7 +317,10 @@ Camera:
 
 Orientation angle of the focal plane, expressed in degrees. For an angle of 0°, the y-axis of the CCD (with an orientation angle of 0°) points towards the North. A positive angle corresponds to a counterclockwise rotation. Have a look at Fig. 2 for more details.
 
-@image html /images/orientation.png "Figure 2:  Definition of the focal-plane orientation and relative CCD location and orientation. The focal plane is rotated by the angle γFP w.r.t. to the North direction. The origin of the CCD in the focal plane is defined by its offset (ΔxCCD, ΔyCCD) in mm from the centre of the focal plane. It is then rotated by the angle γCCD round its origin."
+@image html /images/orientation.png "Figure 2: A schematic overview of the focal plane with 4 CCDs. The optical axis zFP is the blue dot in the middle of the 4 CCDs and points in the positive direction towards the reader. The jitter roll axis zSC is the purple dot, and also points in the positive direction towards the reader.  The focal plane is rotated by the angle γFP w.r.t. to the North direction. The origin of the CCD in the focal plane is defined by its offset (ΔxCCD, ΔyCCD) in mm from the centre of the focal plane. It is then rotated by the angle γCCD round its origin."
+
+
+
 
 
 
