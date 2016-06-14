@@ -82,9 +82,33 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><p>The basic functionality of the C++ code is to model a part (i.e. sub-field) of one of the four CCDs (A, B, C, or D) that are attached to the camera of one telescope on the platform. You can initiate Plato simulations from within Python, e.g. to automatically select the correct CCD or to combine multiple telescopes on the platform.</p>
-<p>Under <code>/docs/tutorials/ScriptingInPython</code> you can find a basic tutorial on scripting PlatoSim in Python. The Python functionality that is offered in PlatoSim can be found in the <code>python</code>.</p>
-<p>(UNDER CONSTRUCTION) </p>
-</div></div><!-- contents -->
+<p>Under <code>/docs/tutorials/ScriptingInPython</code> you can find a basic tutorial on scripting PlatoSim in Python.</p>
+<h2>Setting your Python Path</h2>
+<p>The Python functionality that is offered in PlatoSim can be found in the <code>python</code>. Make sure to add this directory to your Python path, as follows:</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;PYTHONPATH=$PYTHONPATH:&lt;full path to the /Platosim3/python directory&gt;</div></div><!-- fragment --><h2>Creating a <code>simulation</code> Object</h2>
+<p>To run PlatoSim from within Python, you have to import the <code>simulation</code> module:</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;import simulation</div></div><!-- fragment --><p>and create a new <code>Simulation object</code> (the name <code>sim</code> is arbitrary):</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;sim = Simulation(&lt;runName&gt;, configurationFile = &lt;full path to the configuration file&gt;, outputDir = &lt;full path to the output directory&gt;)</div></div><!-- fragment --><h3>Input Configuration File</h3>
+<p>The <code>configurationFile</code> parameter is optional and contains the full path to the configuration file that will be used as a reference. A copy of this file will be stored in the output directory (with the name <code>runName.yaml</code>) and only the copy (and not the original file) will be modified. We will show later how to do this.</p>
+<p>If not specified, the <code>inputfile.yaml</code> configuration file from the <code>/inputfiles</code> directory will be used (provided you have exported the <code>PLATO_PROJECT_HOME</code> evironment variable). It is possible to also set the path to the reference input file as follows:</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;sim.readConfigurationFile(&lt;full path to the configuration file&gt;)</div></div><!-- fragment --><h3>Output</h3>
+<p>Also the <code>outputDir</code> parameter is optional. This contains the full path to the output directory. If this is not specified, the current directory will be used to store the output files. The output directory can be set can also be set as follows:</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;sim.outputDir = &lt;full path to the output directory&gt;</div></div><!-- fragment --><p>In this directory, the following information will be stored when running the simulation:</p>
+<ul>
+<li><code>runName.yaml</code>: copy of the input file with the chosen configuration parameters (copied from the reference configuration file and possibly modified, as shown below);</li>
+<li><code>runName.hdf5</code>: resulting exposures (images, PSF, etc.);</li>
+<li><code>runName.log</code>: log file (to report any problems).</li>
+</ul>
+<h2>Modifying Configuration Parameters</h2>
+<p>Individual configuration parameters can be modified in the copy of the configuration file (which will be stored with the name <code>runName.yaml</code> in the output directory) as follows:</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;sim[&quot;&lt;block&gt;/&lt;parameter&gt;&quot;] = &lt;new value&gt;</div></div><!-- fragment --><p>for individual parameters in the block of the YAML file (e.g. <code>sim["Camera/FocalPlaneOrientation"] = 0</code>), or</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;sim[&quot;&lt;block&gt;/&lt;sub-block&gt;/&lt;parameter&gt;&quot;] = &lt;new value&gt;</div></div><!-- fragment --><p>for parameters in sub-block in the YAML file (e.g. <code>sim["PSF/Gaussian/Sigma"] = 0.50</code>).</p>
+<p>A detailed description of the configuration parameters can be found <a class="el" href="InputFileDescription.html">here</a>.</p>
+<p>Note that the original YAML file is not modified. Only the copy of this fill gets modified.</p>
+<h2>Running the Simulation</h2>
+<p>The simulation can be executed with the following command:</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;sim.run()</div></div><!-- fragment --><p>By setting the optional input parameter <code>removeOutputFile</code> to <code>True</code>, any files with the same names in the specified output directory will be deleted first:</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;sim.run(removeOutputFile = True)</div></div><!-- fragment --> </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
 Generated by &#160;<a href="http://www.doxygen.org/index.html">
