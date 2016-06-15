@@ -1,6 +1,6 @@
 # Description of the Input File {#InputFileDescription}
 
-To configure the Plato Simulator, a large set of input parameters is required.  The input file format use for PlatoSim3 is YAML (see https://learnxinyminutes.com/docs/yaml/). We use only a very limited set of the YAML functionality, enough to allow us to provide input files for different parts of the simulator. 
+To configure the Plato Simulator, a large set of input parameters is required.  The input file format use for PlatoSim3 is <a href="https://learnxinyminutes.com/docs/yaml/">YAML</a>. We use only a very limited set of the YAML functionality, enough to allow us to provide input files for different parts of the simulator. 
 
 Any desired simulation can be obtained by modifying the following input:
 	*  [configuration parameters](#configurationParameters) (in the YAML file):
@@ -913,7 +913,7 @@ If required ([UseJitterFromFile](#useJitterFromFile) = "yes"), a jitter time ser
 * pitch [arcsec]
 * roll [arcsec]
 
-The path of this file, relative to the [project location](#projectLocation), must be provided via the  [JitterFileName]{#jitterFileName) parameter in the configuration file.
+The path of this file, relative to the [project location](#projectLocation), must be provided via the  [JitterFileName](#jitterFileName) parameter in the configuration file.
 
 To ensure a realistic modelling of the jitter, the time step in the jitter time series must be smaller than the [exposure time](#exposureTime).
 
