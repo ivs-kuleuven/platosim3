@@ -73,7 +73,7 @@ To be able to install the dependencies and build the code, the following softwar
 *  <a href="https://cmake.org/">CMake</a>: cross-platform open-source build system to control the software compilation process (using simple platform and compiler independent configuration files)
 * <a href="http://www.openblas.net">BLAS</a> and <a href = "http://www.netlib.org/lapack/">LAPACK</a>. Without these, the simulator will likely be slower. These libraries come pre-installed on Mac OS X (so Mac users do not have to do anything). Many Linux distributions also standardly have these libraries installed or offer a package manager to easily install them.
         
-It is also possible to run the PLATO Simulator from within Python.  We recommend downloading a Python distribution such as <a href="https://docs.continuum.io/anaconda/install">Anaconda</a>.  More information on setting up your Python distribution and scripting PlatoSim3 using Python can be found on a separate page: @ref ScriptingInPython.
+It is also possible to run the PLATO Simulator from within Python.  We recommend downloading a Python distribution such as <a href="https://docs.continuum.io/anaconda/install">Anaconda</a>.  More information on setting up your Python distribution and scripting PlatoSim3 using Python can be found @ref ScriptingInPython "here".
 
 <!-- Dependencies -->
 <!-- ************ -->
@@ -176,7 +176,7 @@ To initiate a simulation, <code>cd</code> to the <code>/build</code> directory a
 ./platosim <input file> <non-existing output file> [<log file>]
 \endcode
 
-The structure of the input file and the meaning of the individual configuration parameters are described in a separate document: @ref InputFileDescription
+The structure of the input file and the meaning of the individual configuration parameters are described @ref InputFileDescription "here".
 
 Note that - before running PlatoSim3 - you must have an environment variable <code>PLATO_PROJECT_HOME</code>, set to the base folder of PlatoSim3.
 
@@ -187,63 +187,10 @@ If you want to use realistic PSF models instead of a Gaussian, you can download 
 
 ### <a name="output"></a>Output
 
-PlatoSim3 writes its output to an HDF5 file. HDF stands for Hierarchical Data Format, and is a next generation file format that was specifically designed to store and organise large amounts of data.
-
-HDF5 behaves much likes a Unix-like folder structure, but where folders are called groups.  Each group can contain other groups, array datasets, and scalar attributes. For example, the first subfield image is located in <code>/Images/image000000</code> in the HDF5 file.
-
-To quickly list the contents of the group structure of an HDF5 file on the command line, make sure that your PATH environment variable includes <code>dependencies/Installs/hdf5-1.8.16/bin/</code>, so that you can execute
-
-\code
-$ h5ls myOutputfile.hdf5
-\endcode
-
-or e.g.
-
-\code
-$ h5ls myOutputfile.hdf5/StarCatalog
-\endcode
-
-#### <a name="python"></a>Python
-
-For Python users, we provided a <code>simfile.py</code> module in the <code>/python</code> folder, with convenient tools to extract and plot the Simulator output. For example, one can plot a subfield image using
-
-\code{.py}
-from simfile import *
-myFile = SimFile("myOutputfile.hdf5")
-myFile.showImage(0)
-\endcode
-
-The top of <code>simfile.py</code> contains documentation with several examples.
+The output of the simulations with PlatoSim3 is stored as an HDF5 file.  The structure of such files and how to access (and visualise) the content is described @ref OutputFileDescription "here".
 
 
-You can also access the HDF5 file using the <code>pytables</code> module. For example (using the latest version of <code>PyTables</code>):
 
-\code{.py}
-import tables as tbl
-myFile = tbl.open_file("myOutputfile.hdf5", "r")
-image = myFile.root.Images.image000000
-imshow(image, interpolation="nearest", origin="lower")
-myFile.root.InputParameters.CCD._v_attrs
-...
-print(myFile.root.InputParameters.CCD._v_attrs.Gain)
-\endcode
-
-
-#### <a name="idl"></a>IDL
-IDL user can access the HDF5 file using, for example, 
-
-\code{.idl}
-path = FILEPATH(“Simul01.hdf5")
-file = H5F_OPEN(path)
-contents = H5_PARSE(path)
-help, contents, /STRUCTURE
-...
-help, contents.Images, /STRUCTURE
-...
-dataset = H5D_OPEN(file,'/Images/image000000') 
-image = H5D_READ(dataset)
-print, size(image)
-\endcode
 
 
 <!-- ******************* -->
@@ -252,7 +199,7 @@ print, size(image)
 
 ## <a name=inCaseOfProblems>In Case of Problems
 
-In case you would come across problems you cannot solve yourself, please, let us know!  We would like you to use the issue tracking on GitHub rather than sending an email to the developers, as this helps to better keep track of the issues and their status.  How raise issues (and which information you must provide us with) is desribed on a separate page: @ref IssueTracking.
+In case you would come across problems you cannot solve yourself, please, let us know!  We would like you to use the issue tracking on GitHub rather than sending an email to the developers, as this helps to better keep track of the issues and their status.  How raise issues (and which information you must provide us with) is desribed @ref IssueTracking "here".
 
 <!-- ********* -->
 <!-- Reference -->
