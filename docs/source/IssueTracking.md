@@ -16,7 +16,7 @@ You can raise a new issue by clicking the green <code>New issue</code> button.  
 
 
 
-## Which Information to Provide?
+## <a name=whichInformationToProvide>Which Information to Provide?
 
 In the upper part (where it says "Title") you can enter a concise description of the problem.  A more elaborate description can be entered in the bottom part (where it says "Leave a comment").  In order to save some time, it is suggested to provide us with the following information in the issue:
 
@@ -26,7 +26,7 @@ on the command line in your installation directory.
 - In case the results are different than you expected, please explain us which numbers you expected and why.
 - Which system are you using?
 	- operating system
-	- gcc/clang
-	- CMake
+	- gcc/clang (<code>gcc --version</code> or <code>clang --version</code>)
+	- CMake (<code>cmake --version</code>)
 - What have you tried to solve the problem?
 - Error and log messages.
