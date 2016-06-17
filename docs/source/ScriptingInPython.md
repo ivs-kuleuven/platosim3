@@ -46,7 +46,7 @@ As it comes to the choice between <code>conda install</code> and <code>pip insta
 
 The Python functionality that is offered in PlatoSim3 can be found in the <code>python</code>.  Make sure to add this directory to your Python path, as follows:
 
-\code{python}
+\code{.py}
 PYTHONPATH=$PYTHONPATH:<full path to the /Platosim3/python directory>
 export PYTHONPATH
 \endcode
@@ -60,19 +60,19 @@ In Spyder, click on the "Python Path Manager" button to add the path to this dir
 
 To run PlatoSim from within Python, you have to import the <code>simulation</code> module:
 
-\code{python}
+\code{.py}
 import simulation
 \endcode
 
 and create a new <code>Simulation object</code> (the name <code>sim</code> is arbitrary):
 
-\code{python}
+\code{.py}
 sim = Simulation(<runName>, configurationFile = <full path to the configuration file>, outputDir = <full path to the output directory>)
 \endcode
 
 Note that you can use the working directory (i.e. the directory specified in the <code>PLATO_WORKDIR</code>) environment variable to specify the path to the input configuration file or the output directory.  To read the content of this environment variable in Python, use
 
-\code{python}
+\code{.py}
 import os
 workDir = os.environ["PLATO_WORKDIR"]
 \endcode
@@ -84,7 +84,7 @@ The <code>configurationFile</code> parameter is optional and contains the full p
 
 If not specified, the <code>inputfile.yaml</code> configuration file from the <code>/inputfiles</code> directory will be used (provided you have exported the <code>PLATO_PROJECT_HOME</code> environment variable).  It is possible to also set the path to the reference input file as follows:
 
-\code{python}
+\code{.py}
 sim.readConfigurationFile(<full path to the configuration file>)
 \endcode
 
@@ -94,7 +94,7 @@ In that case, all changes to the configuration parameters you may have applied, 
 
 Also the <code>outputDir</code> parameter is optional.  This contains the full path to the output directory.  This must be specified before you can start the simulation.  The output directory can be set can also be set as follows:
 
-\code{python}
+\code{.py}
 sim.outputDir = <full path to the output directory>
 \endcode
 
@@ -109,13 +109,13 @@ In this directory, the following information will be stored when running the sim
 
 Individual configuration parameters can be modified in the copy of the configuration file (which will be stored with the name <code>runName.yaml</code> in the output directory) as follows:
 
-\code{python}
+\code{.py}
 sim["<block>/<parameter>"] = <new value>
 \endcode
 
 for individual parameters in the block of the YAML file (e.g. <code>sim["Camera/FocalPlaneOrientation"] = 0</code>), or
 
-\code{python}
+\code{.py}
 sim["<block>/<sub-block>/<parameter>"] = <new value>
 \endcode
 
@@ -129,12 +129,12 @@ A detailed description of the configuration parameters can be found @ref InputFi
 
 The simulation can be executed with the following command:
 
-\code{python}
+\code{.py}
 sim.run()
 \endcode
 
 By setting the optional input parameter <code>removeOutputFile</code> to <code>True</code>, any files with the same names in the specified output directory will be deleted first:
 
-\code{python}
+\code{.py}
 sim.run(removeOutputFile = True)
 \endcode
