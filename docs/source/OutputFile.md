@@ -43,7 +43,7 @@ Under <code>/docs/tutorials/InspectHDF5</code> you can find @ref Tutorials "tuto
 
 These packages have to be installed with <code>conda install</code>.  To use them, you must do the following imports and create the following objects: 
 
-\code{python}
+\code{.py}
 # To use the SimFile class from PlatoSim3 itself
 
 import simfile
@@ -63,7 +63,7 @@ pytablesFile = tables.openFile(<full path to the HDF5 file>)
 
 In the following sections, we will discuss which groups are present in the output HDF5 files and which information their datasets and attributes contain.  To access a dataset in a given group, the following commands can be used:
 
-\code{python}
+\code{.py}
 simDataset = simFile.hdf5file["<group name>"]["<dataset name>"]
 
 h5pyDataset = h5pyFile["/<group name>/<dataset name>"]
@@ -73,7 +73,7 @@ pytablesDataset = pytablesFile.root.<group name>.<dataset name>
 
 and to access an attribute in a given group:
 
-\code{python}
+\code{.py}
 simAttribute = simFile.hdf5file["<group name>"].attrs[attribute name>]
 
 h5pyAttribute = h5pyFile["<group name>"].attrs["<attribute name>"]
@@ -85,7 +85,7 @@ You can use <a href="http://matplotlib.org/users/image_tutorial.html">matplotlib
 
 To get an overview of the groups and attributes, you can use the following commands:
 
-<!-- \code{python}
+<!-- \code{.py}
 simFile.hdf5file.keys()								# Main groups
 simFile.hdf5file.attrs.keys()						# Main attributes (None)
 simFile.hdf5file["<group name>"].keys()				# Sub-groups in the given group
@@ -113,7 +113,7 @@ To enable you to trace back which configuration parameters you have used to gene
 
 To check the value of an individual configuration parameter (from the stored YAML file), the following commands can be used:
 
-\code{python}
+\code{.py}
 simValue1 = simFile.getInputParameter("<block name in the YAML file>", "<parameter name in the YAML file>")
 simValue2 = simFile.hdf5file["InputParameters"]["<block name in the YAML file>"].attrs["<parameter name in the YAML file>"]
 
@@ -133,13 +133,13 @@ Have a look @ref InputFileDescription "here" to find out the names of the blocks
 
 The **Images** group contains one dataset, **images<exposure number with 6 digits>**, per exposure (counting starts at 000000).  An alternative way to get hold of such a dataset is
 
-\code{python}
+\code{.py}
 simImage = simFile.getImage(<exposure number>)
 \endcode
 
 Visualisation can be done as follows:
 
-\code{python}
+\code{.py}
 simFile.showImage(<exposure number>)
 \endcode
 
@@ -147,7 +147,7 @@ In case you have stored the images at sub-pixel level too, you can find these in
 
 To retrieve a small square imagette, centred about a star with the given ID, use the command
 
-\code{python}
+\code{.py}
 simImagette = simFile.getImagette(<star ID>, <number of the exposure>, <radius>)
 \endcode
 
@@ -189,7 +189,7 @@ The **StarCatalog** group contains the following datasets:
 
 You can get hold of all these datasets in one go, with the following command:
 
-\code{python}
+\code{.py}
 simStarIds, simRa, simDec, simVmag, simXFPmm, simYFPmm, simRowPix, simColPix = simFile.getStarCatalog()
 \endcode
 
@@ -209,7 +209,7 @@ The **StarPositions** group contains one group, **Exposure<exposure number with 
 
 To get hold of these dataset in one go, you can use the following command:
 
-\code{python}
+\code{.py}
 simStarIds, simRowPix, simColPix, simXFPmm, simYFPmm = simFile.getStarCoordinates(<exposureNumber>, [minVmag = <minimum V magnitude in the selection>], [maxVmag = <maximum V magnitude in the selection>])
 \endcode
 
@@ -239,7 +239,7 @@ The **ACS** group contains the information concerning the spacecraft attitude, o
 
 To get hold of the Euler angles and of the platform pointing, you can use the following commands:
 
-\code{python}
+\code{.py}
 simJitterYaw, simJitterPitch, simJitterRoll = simFile.getYawPitchRoll()
 simPlatformRa, simPlatformDec = simFile.getPlatformPointingCoordinates() 
 
@@ -285,13 +285,13 @@ and the following attributes:
 
 You can also get hold of the datasets as follows:
 
-\code{python}
+\code{.py}
 simPsf = simFile.getPsf(<name of the dataset>)
 \endcode
 
 Visualisation can be done as follows:
 
-\code{python}
+\code{.py}
 simFile.showPSF(<name of the dataset>)
 \endcode
 
@@ -318,7 +318,7 @@ The **Flatfield** group contains two datasets:
 
 These can be accessed with the following commands:
 
-\code{python}
+\code{.py}
 simPrnu = simFile.getPRNU()
 simIrnu = simFile.getIRNU()
 \endcode
@@ -345,7 +345,37 @@ The **Version** group contains two attributes:
 
 ## Alternatives to Python
 
-There are two alternatives to Python (that involve no coding) we have been using ourselves (to quickly check the data):
+
+
+
+<!-- IDL -->
+<!-- *** -->
+
+### IDL
+
+IDL users can access the HDF5 file using, for example, 
+
+\code{.idl}
+path = FILEPATH(“Simul01.hdf5")
+file = H5F_OPEN(path)
+contents = H5_PARSE(path)
+help, contents, /STRUCTURE
+...
+help, contents.Images, /STRUCTURE
+...
+dataset = H5D_OPEN(file,'/Images/image000000') 
+image = H5D_READ(dataset)
+print, size(image)
+\endcode
+
+
+
+<!-- Visualisation Tools -->
+<!-- ******************* -->
+
+### Visualisation Tools
+
+There are two alternatives to Python that involve no coding we have been using ourselves (to quickly check the data):
 
 - <a href="https://www.hdfgroup.org/products/java/hdfview/">HDFView</a>
 - <a href="https://www.hdfgroup.org/projects/compass/">HDF Compass</a>
