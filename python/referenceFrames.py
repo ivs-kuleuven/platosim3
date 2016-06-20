@@ -53,67 +53,65 @@ FIELD_DISTORTION = {'Coeff' : [1.0, 0.0, 0.0, 0.0], 'InverseCoeff' : [-1.0, 0.0,
 
 
 
-def skyToAngularFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle):
+
+
+
+
+def skyToFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength):
 
     """
-    PURPOSE: computes the (x,y) coordinates in the focal plane of a star with given equatorial coordinates
+    PURPOSE: Convert the equatorial sky coordinates (alpha, delta) of a star to focal plane coordinates (xFPprim, yFPprime),
+             assuming a spherical pinhole camera.
 
-    INPUT: raStar:          right ascension of the star [rad]
-           decStar:         declination of the star [rad]
-           raOpticalAxis:   right ascension of the optical axis [rad]
-           decOpticalAxis:  declination of the optical axis [rad]
-           focalPlaneAngle: angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
+    INPUT: raStar:           right ascension of the star [rad]
+           decStar:          declination of the star [rad]
+           raOpticalAxis:    right ascension of the optical axis [rad]
+           decOpticalAxis:   declination of the optical axis [rad]
+           focalPlaneAngle:  angle between the Y_FP axis and the Y'_FP axis: gamma_FP  [rad]
+           focalLength:      focal length of the camera. Unit: see remarks.
 
-    OUTPUT: xFPrad, yFPrad: Cartesian coordinate of the projected star in the focal plane in the FP-prime system [radians]
+    OUTPUT: xFPprime, yFPprime: cartesian coordinates of the project star in the focal plane in the FP-prime reference frame. 
+                                Unit: see remarks:
+    
+    REMARK: - The unit of the cartesian focal plane coordinates is the same as the one of focalLength. 
+              focalLength can be expressed in e.g. [mm] or in [pixels]. If focalLength == 1.0, then the corresponding
+              focal plane coordinates are called "normalized coordinates."
     """
 
-    # Project the sky to the focal plane in the "FP" coordinate system
+    # Convert the equatorial sky coordinate of the star to equatorial cartesian coordinates on the unit sphere
 
-    denominator = cos(decOpticalAxis) * cos(decStar) * cos(raStar - raOpticalAxis) + sin(decOpticalAxis) * sin(decStar)
-    xFP = (sin(decOpticalAxis) * cos(decStar) * cos(raStar - raOpticalAxis) - cos(decOpticalAxis) * sin(decStar)) / denominator
-    yFP =  cos(decStar) * sin(raStar - raOpticalAxis) / denominator
+    xEQ = sin(pi/2.-decStar) * cos(raStar)
+    yEQ = sin(pi/2.-decStar) * sin(raStar)
+    zEQ = cos(pi/2.-decStar)
+
+    vecEQ = array([xEQ, yEQ, zEQ])
+
+    # Convert the equatorial cartesian coordinates to focal plane cartesian coordinates.
+
+    rotMatrix1 = array([[ cos(raOpticalAxis), sin(raOpticalAxis), 0],      \
+                        [-sin(raOpticalAxis), cos(raOpticalAxis), 0],      \
+                        [                  0,                  0, 1]])
+
+    rotMatrix2 = array([[sin(decOpticalAxis),  0, -cos(decOpticalAxis)],   \
+                        [                  0,  1,                    0],   \
+                        [cos(decOpticalAxis),  0,  sin(decOpticalAxis)]])
+
+    vecFP = dot(rotMatrix2, dot(rotMatrix1, vecEQ))
+
+    # Take into account the projection effect of the pinhole camera
+    # Note that the pinhole reverses the image, hence the minus signs.
+
+    xFP = -focalLength * vecFP[0]/vecFP[2]
+    yFP = -focalLength * vecFP[1]/vecFP[2]
 
     # Convert the FP coordinates into FP' coordinates 
 
-    xFPrad =  xFP * cos(focalPlaneAngle) + yFP * sin(focalPlaneAngle)
-    yFPrad = -xFP * sin(focalPlaneAngle) + yFP * cos(focalPlaneAngle)
+    xFPprime =  xFP * cos(focalPlaneAngle) + yFP * sin(focalPlaneAngle)
+    yFPprime = -xFP * sin(focalPlaneAngle) + yFP * cos(focalPlaneAngle)
 
-    # Return the scaled coordinates
+    # That's it!
 
-    return xFPrad, yFPrad
-
-
-
-
-
-
-
-def angularFocalPlaneToSkyCoordinates(xFPrad, yFPrad, raOpticalAxis, decOpticalAxis, focalPlaneAngle):
-
-    """
-    PURPOSE: computes the (x,y) coordinates in the focal plane of a star with given equatorial coordinates
-
-    INPUT: xFPrad            Cartesian coordinate of the projected star in the focal plane in the FP-prime system [radians]
-           yFPrad            Cartesian coordinate of the projected star in the focal plane in the FP-prime system [radians]
-           raOpticalAxis:    right ascension of the optical axis [rad]
-           decOpticalAxis:   declination of the optical axis [rad]
-           focalPlaneAngle:  angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
-
-    OUTPUT: raStar, decStar: Equatorial coordinates (right ascension and declination) of the star [rad]
-    """
-
-    xFP =  xFPrad * cos(focalPlaneAngle) - yFPrad * sin(focalPlaneAngle)
-    yFP =  xFPrad * sin(focalPlaneAngle) + yFPrad * cos(focalPlaneAngle)
-
-    if isscalar(xFP) and isscalar(yFP) and xFP == 0.0 and yFP == 0.0:
-        return raOpticalAxis, decOpticalAxis
-
-    rho = sqrt(xFP*xFP+yFP*yFP)
-    c = arctan(rho)
-    ra = raOpticalAxis + arctan2(yFP * sin(c), rho * cos(decOpticalAxis) * cos(c) + xFP * sin(decOpticalAxis) * sin(c))
-    dec = arcsin(cos(c) * sin(decOpticalAxis) - (xFP * sin(c) * cos(decOpticalAxis)) / rho)
-
-    return ra, dec
+    return xFPprime, yFPprime
 
 
 
@@ -122,46 +120,63 @@ def angularFocalPlaneToSkyCoordinates(xFPrad, yFPrad, raOpticalAxis, decOpticalA
 
 
 
-def angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad, focalLength):
-    """
-    PURPOSE: Convert from angular to planar focal plane coordinates, assuming no optical distortion.
 
-    INPUT:   xFPrad:      Angular focal plane x-coordinate [rad]
-             yFPrad:      Angular focal plane y-coordinate [rad]
-             focalLength: Focal length of the telescope [mm]
-    
-    OUTPUT:  (xFPmm, yFPmm)    Planar focal plane x and y coordinates [mm]
+
+def focalPlaneToSkyCoordinates(xFPprime, yFPprime, raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength):
 
     """
+    PURPOSE: Convert the focal plane coordinates (xFPprim, yFPprime) of a star to equatorial sky coordinates (alpha, delta),
+             assuming a spherical pinhole camera.
 
-    xFPmm = tan(xFPrad) * focalLength
-    yFPmm = tan(yFPrad) * focalLength
+    INPUT: xFPprime:         Cartesian x-coordinate in the focal plane in the FP-prime reference frame [same unit as focalLength]
+           yFPprime:         Cartesian y-coordinate in the focal plane in the FP-prime reference frame [same unit as focalLength]
+           raOpticalAxis:    Right ascension of the optical axis [rad]
+           decOpticalAxis:   Declination of the optical axis [rad]
+           focalPlaneAngle:  Angle between the Y_FP axis and the Y'_FP axis: gamma_FP  [rad]
+           focalLength:      focal length of the camera. Unit: [mm] or [pix] or [1.] or ...
 
-    return xFPmm, yFPmm
+    OUTPUT: raStar. decStar: Equatorial sky coordinates, right ascension and declination, of the star [rad]
 
-
-
-
-
-
-
-
-def planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm, focalLength):
-    """
-    PURPOSE: Convert from planar to angulare focal plane coordinates, assuming no optical distortion.
-
-    INPUT:   xFPmm:        Planar focal plane x-coordinate [mm]
-             yFPmm:        Planar focal plane y-coordinate [mm]
-             focalLength:  Focal length of the telescope [mm]
-    
-    OUTPUT:  (xFPrad, yFPrad)  Angular focal plane x and y coordinates [rad]
-
+    REMARK: The transformation assumes that the pinhole reverses the image.
     """
 
-    xFPrad = arctan(xFPmm / focalLength)
-    yFPrad = arctan(yFPmm / focalLength)
+    # Convert the FP' coordinates in FP coordinates
 
-    return xFPrad, yFPrad
+    xFP =  xFPprime * cos(focalPlaneAngle) - yFPprime * sin(focalPlaneAngle)
+    yFP =  xFPprime * sin(focalPlaneAngle) + yFPprime * cos(focalPlaneAngle)
+
+    # Undo the reverse-image projection effect of the pinhole
+
+    vecFP = array([-xFP/focalLength, -yFP/focalLength, 1.0])
+
+    # Convert the focal plane cartesian coordinates to equatorial cartesian coordinates. 
+
+    rotMatrix1 = array([[ sin(decOpticalAxis),  0, cos(decOpticalAxis)],    \
+                        [                  0,   1,                    0],   \
+                        [-cos(decOpticalAxis),  0, sin(decOpticalAxis)]])
+
+    rotMatrix2 = array([[cos(raOpticalAxis), -sin(raOpticalAxis), 0],   \
+                        [sin(raOpticalAxis),  cos(raOpticalAxis), 0],   \
+                        [                  0,                  0, 1]])
+
+    vecEQ = dot(rotMatrix2, dot(rotMatrix1, vecFP))
+
+
+    # Convert the cartesian equatorial coordinates to equatorial sky coordinates
+
+    norm = sqrt(vecEQ[0]*vecEQ[0] + vecEQ[1]*vecEQ[1] + vecEQ[2]*vecEQ[2]) 
+    decStar = pi/2.0 - arccos(vecEQ[2]/norm);
+    raStar = arctan2(vecEQ[1], vecEQ[0]);
+
+    if (raStar < 0.0):
+        raStar += 2.*pi
+
+    # That's it!
+
+    return raStar, decStar
+
+
+
 
 
 
