@@ -465,6 +465,9 @@ def drawCCDsInSky(raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength, p
 
 
 
+
+
+
 def drawCCDsInFocalPlane(pixelSize, nominal=True):
 
     """
@@ -662,6 +665,10 @@ def drawStarInFocalPlane(sim, raStar, decStar):
 
 
 
+
+
+
+
 def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize):
 
     """
@@ -695,6 +702,10 @@ def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize):
     plt.draw()
 
     return
+
+
+
+
 
 
 
@@ -779,6 +790,9 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
     # If we arrive here, the star does not fall on any CCD  
 
     return None, None, None
+
+
+
 
 
 
@@ -960,6 +974,13 @@ def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldS
 
 
 
+
+
+
+
+
+
+
 def setSubfieldAroundPixelCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel, subfieldSizeX, subfieldSizeY):
     """
     PURPOSE:  Calculate the location of the subField such that it is centered on the star with 
@@ -988,6 +1009,12 @@ def setSubfieldAroundPixelCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel, subfie
         print ("Warning: setSubfieldAroundPixelCoordinates() failed to set subField around the star.")
 
     return
+
+
+
+
+
+
 
 
 
