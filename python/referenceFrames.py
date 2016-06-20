@@ -228,9 +228,9 @@ def planarToPolarFocalPlaneCoordinates(xFPmm, yFPmm):
 
 
 
-def planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm):
+def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm):
     """
-    PURPOSE:      Convert from planar to distorted focal plane coordinates
+    PURPOSE:      Convert from undistorted to distorted focal plane coordinates
     
     INPUTS:       xFPmm  Planar focal plane x-coordinate [mm]
                   yFPmm  Planar focal plane y-coordinate [mm]
@@ -258,9 +258,9 @@ def planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm):
 
 
 
-def distortedToPlanarFocalPlaneCoordinates(xFPdist, yFPdist):
+def distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist):
     """
-    PURPOSE:     Convert from distorted to planar focal plane coordinates
+    PURPOSE:     Convert from distorted to undistorted focal plane coordinates
     
     INPUTS:      xFPdist  Distorted focal plane x-coordinate [mm]
                  yFPdist  DIstorted focal plane y-coordinate [mm]
@@ -287,7 +287,7 @@ def distortedToPlanarFocalPlaneCoordinates(xFPdist, yFPdist):
 
 
 
-def pixelToPlanarFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX, ccdZeroPointY, CCDangle):
+def pixelToFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX, ccdZeroPointY, CCDangle):
 
     """
     PUROSE: Given the (real-valued) pixel coordinates of the star on the CCD, compute the (x,y)
@@ -325,7 +325,7 @@ def pixelToPlanarFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroP
 
 
 
-def planarFocalPlaneToPixelCoordinates(xFPprime, yFPprime, pixelSize, ccdZeroPointX, ccdZeroPointY, CCDangle):
+def focalPlaneToPixelCoordinates(xFPprime, yFPprime, pixelSize, ccdZeroPointX, ccdZeroPointY, CCDangle):
 
     """
     PUROSE: Compute the (real-valued) pixel coordinates of the star on the CCD, given the (x,y)
