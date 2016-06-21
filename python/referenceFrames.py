@@ -395,7 +395,7 @@ def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
     zeroPointYmm = CCD[ccdCode]["zeroPointYmm"]
     ccdAngle     = CCD[ccdCode]["angle"]
 
-    cornersXmm, cornersYmm = pixelToPlanarFocalPlaneCoordinates(cornersXpix, cornersYpix, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle) 
+    cornersXmm, cornersYmm = pixelToFocalPlaneCoordinates(cornersXpix, cornersYpix, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle) 
     
     # That's it
 
@@ -447,13 +447,9 @@ def drawCCDsInSky(raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength, p
 
         cornersXmm, cornersYmm = computeCCDcornersInFocalPlane(ccdCode, pixelSize)
 
-        # Convert the planar FP' coordinates to angular FP' coordinates [rad]
+        # Compute the equatorial sky coordinates [rad] from the the focal plane FP' coordinates [mm] of the corners
 
-        cornersXrad, cornersYrad = planarToAngularFocalPlaneCoordinates(cornersXmm, cornersYmm, focalLength)
-
-        # Compute the equatorial sky coordinates [rad] from the the angular FP' coordinates [rad] of the corners
-
-        ra, dec = angularFocalPlaneToSkyCoordinates(cornersXrad, cornersYrad, raOpticalAxis, decOpticalAxis, focalPlaneAngle)
+        ra, dec = focalPlaneToSkyCoordinates(cornersXmm, cornersYmm, raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength)
 
         # Repeat the coordinates of the 1st corner, to plot a nice closed loop
         # Convert from radians to degrees
@@ -573,17 +569,17 @@ def drawSubfieldInFocalPlane(ccdCode, xCCD, yCCD, subfieldSizeX, subfieldSizeY, 
     """
 
     # Compute the position of the subfield in pixel coordinates, for the current CCD, 
-    # disregarding the physical extend of the CCD
+    # disregarding the physical extend of the CCD. LL = lower left, UR = upper right.
 
     zeroPointXmm = CCD[ccdCode]["zeroPointXmm"]
     zeroPointYmm = CCD[ccdCode]["zeroPointYmm"]
     ccdAngle     = CCD[ccdCode]["angle"]
 
-    xFPprime, yFPprime = pixelToPlanarFocalPlaneCoordinates(xCCD, yCCD, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
-    xFPprimeLL, yFPprimeLL = pixelToPlanarFocalPlaneCoordinates(xCCD - subfieldSizeX/2, yCCD - subfieldSizeY/2, \
-        pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
-    xFPprimeUR, yFPprimeUR = pixelToPlanarFocalPlaneCoordinates(xCCD + subfieldSizeX/2, yCCD + subfieldSizeY/2, \
-        pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
+    xFPprime, yFPprime = pixelToFocalPlaneCoordinates(xCCD, yCCD, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
+    xFPprimeLL, yFPprimeLL = pixelToFocalPlaneCoordinates(xCCD - subfieldSizeX/2, yCCD - subfieldSizeY/2, \
+                                                          pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
+    xFPprimeUR, yFPprimeUR = pixelToFocalPlaneCoordinates(xCCD + subfieldSizeX/2, yCCD + subfieldSizeY/2, \
+                                                          pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
 
 
     verts = [
@@ -659,8 +655,8 @@ def drawStarInFocalPlane(sim, raStar, decStar):
     ccdZeroPointY = float(sim["CCD/OriginOffsetY"])
     ccdAngle = np.radians(float(sim["CCD/Orientation"]))
 
-    xFPrad, yFPrad = skyToAngularFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle)
-    xFPmm, yFPmm = angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad, focalLength)
+    xFPmm, yFPmm = skyToFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength)
+
 
     if includeFieldDistortion:
         xFPmm, yFPmm = planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm)
@@ -709,7 +705,7 @@ def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize):
     zeroPointYmm = CCD[ccdCode]["zeroPointYmm"]
     ccdAngle     = CCD[ccdCode]["angle"]
 
-    xFPprime, yFPprime = pixelToPlanarFocalPlaneCoordinates(xCCD, yCCD, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
+    xFPprime, yFPprime = pixelToFocalPlaneCoordinates(xCCD, yCCD, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)   # [mm]
 
     # Get the current axis
 
@@ -771,8 +767,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
 
     # Compute the (x,y) coordinates in the FP' reference system [mm]
 
-    xFPrad, yFPrad = skyToAngularFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle)
-    xFPmm, yFPmm = angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad, focalLength)
+    xFPmm, yFPmm = skyToFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength)
 
     if includeFieldDistortion:
         xFPmm, yFPmm = planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm)
@@ -789,7 +784,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
         zeroPointYmm = CCD[ccdCode]["zeroPointYmm"]
         ccdAngle     = CCD[ccdCode]["angle"]
         
-        xCCDpix, yCCDpix = planarFocalPlaneToPixelCoordinates(xFPmm, yFPmm, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
+        xCCDpix, yCCDpix = focalPlaneToPixelCoordinates(xFPmm, yFPmm, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
 
         # Check if the star falls on the exposed area of the CCD. If not: go to next CCD
 
@@ -970,14 +965,6 @@ def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldS
     firstRow = CCD[ccdCode]["firstRow"]     # different from nominal than for fast cams
     Ncols = CCD[ccdCode]["Ncols"]
     Nrows = CCD[ccdCode]["Nrows"]
-
-    # print ("Ncols, Nrows = {}, {}".format(Ncols, Nrows))
-    # print ("xCCDpix, yCCDpix = {}, {}".format(xCCDpix, yCCDpix))
-    # print ("subfieldSizeX, subFieldSizeY = {}, {}".format(subfieldSizeX, subfieldSizeY))
-    # print ("xCCDpix - subfieldSizeX/2 < 0 = {} < {} = {}".format(xCCDpix - subfieldSizeX/2, 0, xCCDpix - subfieldSizeX/2 < 0))
-    # print ("xCCDpix + subfieldSizeX/2 - 1> Ncols-1 = {} > {} = {}".format(xCCDpix + subfieldSizeX/2 - 1, Ncols-1, xCCDpix + subfieldSizeX/2 - 1> Ncols-1))
-    # print ("yCCDpix - subfieldSizeY/2 < firstRow = {} < {} = {}".format(yCCDpix - subfieldSizeY/2, firstRow, yCCDpix - subfieldSizeY/2 < firstRow))
-    # print ("yCCDpix + subfieldSizeY/2 - 1> Nrows-1 = {} > {} = {}".format(yCCDpix + subfieldSizeY/2 - 1, Nrows-1, yCCDpix + subfieldSizeY/2 - 1> Nrows-1))
 
     if     (xCCDpix - subfieldSizeX/2 < 0)        or (xCCDpix + subfieldSizeX/2 - 1 > Ncols-1)   \
         or (yCCDpix - subfieldSizeY/2 < firstRow) or (yCCDpix + subfieldSizeY/2 - 1> Nrows-1): 
@@ -1264,13 +1251,12 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
 
     raOpticalAxis, decOpticalAxis = platformToTelescopePointingCoordinates(raPlatform, decPlatform, azimuthTelescope, tiltTelescope)    
 
-    xFPmm, yFPmm = pixelToPlanarFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX, ccdZeroPointY, ccdAngle)
+    xFPmm, yFPmm = pixelToFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX, ccdZeroPointY, ccdAngle)
     
     if includeFieldDistortion:
         xFPmm, yFPmm = distortedToPlanarFocalPlaneCoordinates(xFPmm, yFPmm)
     
-    xFPrad, yFPrad = planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm, focalLength)
-    ra, dec = angularFocalPlaneToSkyCoordinates(xFPrad, yFPrad, raOpticalAxis, decOpticalAxis, focalPlaneAngle)
+    ra, dec = focalPlaneToSkyCoordinates(xFPmm, yFPmm, raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength)
     
     return ra, dec
 
