@@ -299,6 +299,12 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
         hdf5File.writeAttribute(parentGroup + "/" + subGroup, attributeName, configParams.getBoolean(subGroup + "/" + attributeName));
     };
 
+    auto addDoubleVector = [&] (string attributeName) 
+    {
+        hdf5File.writeAttribute(parentGroup + "/" + subGroup, attributeName, configParams.getDoubleVector(subGroup + "/" + attributeName));
+    };
+
+
     // Copy the input parameters to the output HDF5 file
 
     subGroup = "ObservingParameters";
@@ -318,6 +324,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("JitterYawRms");
     addDouble("JitterPitchRms");
     addDouble("JitterRollRms");
+    addDouble("JitterTimeScale");
     addString("JitterFileName");
 
     subGroup = "Telescope";
@@ -326,14 +333,13 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("TiltAngle");
     addDouble("LightCollectingArea");
     addDouble("TransmissionEfficiency");
+    addBoolean("UseDrift");
     addBoolean("UseDriftFromFile");
     addDouble("DriftYawRms");
     addDouble("DriftPitchRms");
     addDouble("DriftRollRms");
     addDouble("DriftTimeScale");
     addString("DriftFileName");
-
-    // TODO: Camera contains information about the field distortion which is not saved
 
     subGroup = "Camera";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
@@ -342,16 +348,28 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("FocalLength");
     addDouble("ThroughputBandwidth");
     addDouble("ThroughputLambdaC");
-
-    // TODO: The structure of the PSF input parameters has changed drastically
-    //       This should be fixed!
+    addBoolean("IncludeFieldDistortion");
+    subGroup = "Camera/FieldDistortion";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addString("Type");
+    addInteger("Degree");
+    addDoubleVector("Coefficients");
+    addDoubleVector("InverseCoefficients");
 
     subGroup = "PSF";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addString("Model");
-    //addDouble("Sigma");
-    //addString("Filename");
-    //addInteger("NumberOfPixels");
+    subGroup = "PSF/Gaussian";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("Sigma");
+    addInteger("NumberOfPixels");
+
+    subGroup = "PSF/FromFile";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addString("Filename");
+    addInteger("DistanceToOA");
+    addInteger("RotationAngle");
+    addInteger("NumberOfPixels");
 
     subGroup = "CCD";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
