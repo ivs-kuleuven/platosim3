@@ -367,8 +367,8 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     subGroup = "PSF/FromFile";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addString("Filename");
-    addInteger("DistanceToOA");
-    addInteger("RotationAngle");
+    addDouble("DistanceToOA");
+    addDouble("RotationAngle");
     addInteger("NumberOfPixels");
 
     subGroup = "CCD";
