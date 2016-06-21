@@ -325,6 +325,9 @@ def pixelToFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX,
 
 
 
+
+
+
 def focalPlaneToPixelCoordinates(xFPprime, yFPprime, pixelSize, ccdZeroPointX, ccdZeroPointY, CCDangle):
 
     """
@@ -405,7 +408,7 @@ def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
 
 
 
-def drawCCDsInSky(raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength, pixelSize, nominal=True):
+def drawCCDsInSky(raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength, pixelSize, normal=True):
 
     """
     PURPOSE: Project and plot the 4 CCDs of 1 camera on the sky
@@ -415,7 +418,7 @@ def drawCCDsInSky(raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength, p
            focalPlaneAngle: angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
            focalLength:     [mm]
            pixelSize:       [micrometer]
-           nominal:         True for the nominal camera configuration, False for the fast cameras
+           normal:         True for the normal camera configuration, False for the fast cameras
 
     OUTPUT: None
 
@@ -424,7 +427,7 @@ def drawCCDsInSky(raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength, p
 
     # Select the proper CCD codes depending on whether we're dealing with the nominal or the fast cams
     
-    if nominal == True:
+    if normal == True:
         ccdCodes = ['A', 'B', 'C', 'D']
     else:
         ccdCodes = ['AF', 'BF', 'CF', 'DF']
@@ -483,14 +486,14 @@ def drawCCDsInSky(raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength, p
 
 
 
-def drawCCDsInFocalPlane(pixelSize, nominal=True):
+def drawCCDsInFocalPlane(pixelSize, normal=True):
 
     """
     PURPOSE: Plot the 4 CCDs in the focal plane in the FP' reference frame.
              May serve as a background to overplot the projected stars on the focal plane
 
     INPUT: pixelSize: size of 1 pixel [micron]
-           nominal: True for the nominal camera configuration, False for the fast cameras
+           normal: True for the normal camera configuration, False for the fast cameras
 
     OUTPUT: None
 
@@ -498,7 +501,7 @@ def drawCCDsInFocalPlane(pixelSize, nominal=True):
 
     # Select the proper CCD codes depending on whether we're dealing with the nominal or the fast cams
     
-    if nominal == True:
+    if normal == True:
         ccdCodes = ['A', 'B', 'C', 'D']
     else:
         ccdCodes = ['AF', 'BF', 'CF', 'DF']
@@ -637,7 +640,7 @@ def drawStarInFocalPlane(sim, raStar, decStar):
 
     """
 
-    nominal = True  # FIXME: where can we specify that we use the fast or normal Camera
+    normal = True  # FIXME: where can we specify that we use the fast or normal Camera
 
     if (sim["Camera/IncludeFieldDistortion"] == "yes")  or (sim["Camera/IncludeFieldDistortion"] == "1"):
         includeFieldDistortion = True
@@ -663,7 +666,7 @@ def drawStarInFocalPlane(sim, raStar, decStar):
         xFPmm, yFPmm = planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm)
 
     ccdCode, xCCD, yCCD = getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, 
-        focalLength, plateScale, pixelSize, includeFieldDistortion, nominal)
+                                                    focalLength, plateScale, pixelSize, includeFieldDistortion, normal)
 
     if ccdCode == None:
         print ("Warning: DrawStarInFocalPlane(): The star doesn't fall on any of the CCDs.")
@@ -731,7 +734,7 @@ def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize):
 
 
 def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle,  \
-                              focalLength, plateScale, pixelSize, includeFieldDistortion=True, nominal=True):
+                              focalLength, plateScale, pixelSize, includeFieldDistortion=True, normal=True):
 
     """
     PURPOSE: Given the equatorial coordinates of a star, find out on which CCD it falls ('A', 'B', ...)
@@ -746,9 +749,9 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
            plateScale:             [arcsec/micron]
            pixelSize:              [micrometer]
            includeFieldDistortion: True to include field distortion in coordinate transformations, false otherwise
-           nominal:                True for the nominal camera configuration, False for the fast cameras
+           normal:                 True for the normal camera configuration, False for the fast cameras
 
-    OUTPUT: ccdCode: for nominal camera: either 'A', 'B', 'C', or 'D'
+    OUTPUT: ccdCode: for normal camera: either 'A', 'B', 'C', or 'D'
                      for fast camer: either 'AF', 'BF', 'CF', 'DF'
                      if on no CCD: None    
             xCCDpix: x-coordinate (column number) of the star on the CCD  [pix]
@@ -760,7 +763,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
 
     # Select the proper CCD codes depending on whether we're dealing with the nominal or the fast cams
 
-    if nominal == True:
+    if normal == True:
         ccdCodes = ['A', 'B', 'C', 'D']
     else:
         ccdCodes = ['AF', 'BF', 'CF', 'DF']
@@ -912,7 +915,7 @@ def platformToTelescopePointingCoordinates(alphaPlatform, deltaPlatform, azimuth
 
 
 def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY, focalLength, plateScale, pixelSize, \
-                                       raOpticalAxis, decOpticalAxis, focalPlaneAngle, includeFieldDistortion=True, nominal=True):
+                                       raOpticalAxis, decOpticalAxis, focalPlaneAngle, includeFieldDistortion=True, normal=True):
 
     """
     PURPOSE: Calculates the location of the subfield such that the star with coordinates (raStar, decStar)
@@ -933,7 +936,7 @@ def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldS
              decOpticalAxis:         declination of the optical axis [rad]
              focalPlaneAngle:        angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
              includeFieldDistortion: True to include field distortion in coordinate transformations, false otherwise
-             nominal:                True for the nominal camera configuration, False for the fast cameras
+             normal:                 True for the normal camera configuration, False for the fast cameras
 
     OUTPUTS: ccdCode: "A", "B", "C" or "D" if nominal=True, "AF", "BF", "CF" or "DF" otherwise
              xCCDpix: x-coordinate of the star in pixels (i.e. column number)
@@ -947,7 +950,8 @@ def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldS
     # Find out on which CCD the star falls, and the corresponding pixel coordinates
 
     ccdCode, xCCDpix, yCCDpix = getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, \
-        focalPlaneAngle, focalLength, plateScale, pixelSize, includeFieldDistortion, nominal)
+                                                          focalPlaneAngle, focalLength, plateScale, pixelSize,
+                                                          includeFieldDistortion, normal)
 
     # If the CCD code is None, the star does not fall on any ccd -> error
 
@@ -1016,9 +1020,9 @@ def setSubfieldAroundPixelCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel, subfie
 
     # TODO: determine nominal from the given ccdCode
 
-    nominal = True
+    normal = True
 
-    success = setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSizeY, nominal)
+    success = setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSizeY, normal)
 
     if not success:
         print ("Warning: setSubfieldAroundPixelCoordinates() failed to set subField around the star.")
@@ -1035,7 +1039,7 @@ def setSubfieldAroundPixelCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel, subfie
 
 
 
-def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSizeY, nominal=True):
+def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSizeY, normal=True):
     
     """
     PURPOSE: Calculates the location of the sub-field such that it is centred on the star 
@@ -1058,7 +1062,7 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
              decStar:                declination [radians]
              subfieldSizeX:          width (i.e. number of columns) of the subiield [pixels]
              subfieldSizeY:          height (i.e. number of rows) of the sub-field [pixels]
-             nominal:                True for the nominal camera configuration, False for the fast cameras
+             normal:                 True for the normal camera configuration, False for the fast cameras
 
     OUTPUT: True if the CCD code (i.e. the pre-defined CCD position) could be determined, False otherwise 
 
@@ -1106,7 +1110,8 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
     # xPix and yPix are the CCD coordinates of the star, given a 4510x4510 CCD [colNumber, rowNumber].
 
     ccdCode, xPix, yPix = calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY, \
-            focalLength, plateScale, pixelSize, raOpticalAxis, decOpticalAxis, focalPlaneAngle, includeFieldDistortion, nominal)
+                                                             focalLength, plateScale, pixelSize, raOpticalAxis, decOpticalAxis, 
+                                                             focalPlaneAngle, includeFieldDistortion, normal)
     
     if ccdCode == None:
         return False
@@ -1155,7 +1160,7 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
 
 
 
-def skyToPixelCoordinates(sim, raStar, decStar, nominal=True):
+def skyToPixelCoordinates(sim, raStar, decStar, normal=True):
     """
     PURPOSE: Convert sky coordinates to pixel coordinates
     
@@ -1169,7 +1174,7 @@ def skyToPixelCoordinates(sim, raStar, decStar, nominal=True):
             decStar:                declination [radians]
             subfieldSizeX:          width (i.e. number of columns) of the subiield [pixels]
             subfieldSizeY:          height (i.e. number of rows) of the sub-field [pixels]
-            nominal:                True for the nominal camera configuration, False for the fast cameras
+            normal:                 True for the normal camera configuration, False for the fast cameras
     
     OUTPUT: ccdCode
             xCCDpixel: column pixel coordinate of the star (real-valued) 
@@ -1198,7 +1203,7 @@ def skyToPixelCoordinates(sim, raStar, decStar, nominal=True):
     raOpticalAxis, decOpticalAxis = platformToTelescopePointingCoordinates(raPlatform, decPlatform, azimuthTelescope, tiltTelescope)    
     
     ccdCode, xCCDpixel, yCCDpixel = getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, 
-        focalLength, plateScale, pixelSize, includeFieldDistortion, nominal)
+                                                              focalLength, plateScale, pixelSize, includeFieldDistortion, normal)
 
     return ccdCode, xCCDpixel, yCCDpixel
 
