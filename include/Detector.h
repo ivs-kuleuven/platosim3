@@ -34,11 +34,11 @@ class Detector : public HDF5Writer
         virtual double takeExposure(double startTime, double exposureTime);
         virtual void configure(ConfigurationParameters &configParam);
 
-        pair<double, double> pixelToPlanarFocalPlaneCoordinates(double row, double column);
-        pair<double, double> planarFocalPlaneToPixelCoordinates(double xFPprime, double yFPprime);
+        pair<double, double> pixelToFocalPlaneCoordinates(double row, double column);
+        pair<double, double> focalPlaneToPixelCoordinates(double xFPprime, double yFPprime);
 
-        pair<double, double> getPlanarFocalPlaneCoordinatesOfSubfieldCenter();
-        tuple<double, double, double, double, double, double, double, double> getPlanarFocalPlaneCoordinatesOfSubfieldCorners();
+        pair<double, double> getFocalPlaneCoordinatesOfSubfieldCenter();
+        tuple<double, double, double, double, double, double, double, double> getFocalPlaneCoordinatesOfSubfieldCorners();
 
         double getSolidAngleOfOnePixel(double plateScale);
         double getOrientationAngle();
