@@ -19,8 +19,8 @@ ObservingParameters:
 
 Platform:
 
-    UseJitter:                   no               # yes or no
-    UseJitterFromFile:           yes              # yes or no
+    UseJitter:                   yes              # yes or no. If no, ignore everything below.
+    UseJitterFromFile:           yes              # yes or no. If yes, ignore RMS and timescale below.
     JitterYawRms:                0.5              # [arcsec]
     JitterPitchRms:              0.5              # [arcsec]
     JitterRollRms:               0.5              # [arcsec]
@@ -30,13 +30,13 @@ Platform:
 
 Telescope:
     
-    AzimuthAngle:                1.0             # Azimuth angle of telescope on the platform [deg]
-    TiltAngle:                   1.0             # Tilt angle of the telescope on the platform [deg]
+    AzimuthAngle:                0.0             # Azimuth angle of telescope on the platform [deg]
+    TiltAngle:                   0.0             # Tilt angle of the telescope on the platform [deg]
     LightCollectingArea:         113.1           # Effective area of 1 telescope [cm^2]
     TransmissionEfficiency:      0.5             # in [0,1]
     FOVSquareDegrees:            1072.0          # Sky area covered by the FOV of 1 telescope [deg^2]
-    UseDrift:                    no              # yes or no
-    UseDriftFromFile:            no              # yes or no, if yes: ignore RMS and timescale below
+    UseDrift:                    no              # yes or no. If no, ignore everything below.
+    UseDriftFromFile:            no              # yes or no. If yes: ignore RMS and timescale below
     DriftYawRms:                 2.3             # RMS of thermo-elastic drift in yaw [arcsec]
     DriftPitchRms:               2.3             # RMS of thermo-elastic drift in pitch [arcsec]
     DriftRollRms:                2.3             # RMS of thermo-elastic drift in roll [arcsec]
