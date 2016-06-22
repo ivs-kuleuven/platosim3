@@ -1125,7 +1125,7 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
 
     # Set the exposure and the readout time, depending on fast vs nominal cams
 
-    if nominal:
+    if normal:
         sim["ObservingParameters/ExposureTime"] = 23
         sim["CCD/ReadoutTime"] = 2.5
     else:
