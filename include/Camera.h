@@ -43,18 +43,13 @@ class Camera : public HDF5Writer
         virtual void initHDF5Groups() override;
         virtual void flushOutput() override;
 
-        virtual arma::fmat getRebinnedPsfForPlanarFocalPlaneCoordinates(double xFPmm, double yFPmm, unsigned int targetSubPixels, double orientationAngle);
+        virtual arma::fmat getRebinnedPsfForFocalPlaneCoordinates(double xFPmm, double yFPmm, unsigned int targetSubPixels, double orientationAngle);
 
-        pair<double, double> skyToAngularFocalPlaneCoordinates(double raStar, double decStar, double raOpticalAxis, double decOpticalAxis);
+        pair<double, double> skyToFocalPlaneCoordinates(double raStar, double decStar);
+        pair<double, double> focalPlaneToSkyCoordinates(double xFPprime, double yFPprime);
 
-        pair<double, double> skyToAngularFocalPlaneCoordinates(double raStar, double decStar);
-        pair<double, double> angularFocalPlaneToSkyCoordinates(double xFPprime, double yFPprime);
-
-        pair<double, double> angularToPlanarFocalPlaneCoordinates(double xFPrad, double yFPrad);
-        pair<double, double> planarToAngularFocalPlaneCoordinates(double xFPmm, double yFPmm);
-
-        pair<double, double> planarToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm);
-        pair<double, double> distortedToPlanarFocalPlaneCoordinates(double xFPdist, double yFPdist);
+        pair<double, double> undistortedToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm);
+        pair<double, double> distortedToUndistortedFocalPlaneCoordinates(double xFPdist, double yFPdist);
 
         double getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double yFPprime);
 
