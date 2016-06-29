@@ -193,7 +193,7 @@ def focalPlaneToSkyCoordinates(xFPprime, yFPprime, raOpticalAxis, decOpticalAxis
 ##
 ## \return     (xFPmm, yFPmm) Cartesian coordinates in the focal plane [mm]
 ##
-def polarToPlanarFocalPlaneCoordinates(distance, angle):
+def polarToCartesianFocalPlaneCoordinates(distance, angle):
 
     xFPmm = cos(angle) * distance
     yFPmm = sin(angle) * distance
@@ -213,7 +213,7 @@ def polarToPlanarFocalPlaneCoordinates(distance, angle):
 ##
 ## \return     (distance, angle) polar coordinates in the focal plane
 ##
-def planarToPolarFocalPlaneCoordinates(xFPmm, yFPmm):
+def cartesianToPolarFocalPlaneCoordinates(xFPmm, yFPmm):
     
     angle = arctan2(yFPmm, xFPmm)      # [radians]
     distance = sqrt(xFPmm * xFPmm + yFPmm * yFPmm)
@@ -232,8 +232,8 @@ def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm):
     """
     PURPOSE:      Convert from undistorted to distorted focal plane coordinates
     
-    INPUTS:       xFPmm  Planar focal plane x-coordinate [mm]
-                  yFPmm  Planar focal plane y-coordinate [mm]
+    INPUTS:       xFPmm  undistorted focal plane x-coordinate [mm]
+                  yFPmm  undistorted focal plane y-coordinate [mm]
     
     OUTPUTS:      (xFPdist, yFPdist) distorted x and y coordinates [mm]
     """
@@ -443,7 +443,7 @@ def drawCCDsInSky(raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength, p
 
     for ccdCode in ccdCodes:
 
-        # Get the planar FP' coordinates of the CCD corners  [mm]
+        # Get the focal plane FP' coordinates of the CCD corners  [mm]
 
         cornersXmm, cornersYmm = computeCCDcornersInFocalPlane(ccdCode, pixelSize)
 
@@ -659,7 +659,7 @@ def drawStarInFocalPlane(sim, raStar, decStar):
 
 
     if includeFieldDistortion:
-        xFPmm, yFPmm = planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm)
+        xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm)
 
     ccdCode, xCCD, yCCD = getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, 
                                                     focalLength, plateScale, pixelSize, includeFieldDistortion, normal)
@@ -770,7 +770,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
     xFPmm, yFPmm = skyToFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength)
 
     if includeFieldDistortion:
-        xFPmm, yFPmm = planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm)
+        xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm)
 
     # Find out if this falls on a CCD, and if yes which one.
     # Our approach: try each of the CCDs. Not elegant, but robust...
@@ -1254,7 +1254,7 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
     xFPmm, yFPmm = pixelToFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX, ccdZeroPointY, ccdAngle)
     
     if includeFieldDistortion:
-        xFPmm, yFPmm = distortedToPlanarFocalPlaneCoordinates(xFPmm, yFPmm)
+        xFPmm, yFPmm = distortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm)
     
     ra, dec = focalPlaneToSkyCoordinates(xFPmm, yFPmm, raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength)
     
