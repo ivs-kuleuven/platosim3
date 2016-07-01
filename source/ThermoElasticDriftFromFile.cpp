@@ -119,7 +119,17 @@ void ThermoElasticDriftFromFile::configure(ConfigurationParameters &configParams
 
 tuple<double, double, double> ThermoElasticDriftFromFile::getNextYawPitchRoll(double timeInterval)
 {
-    // Advance the pointer 'timeIndex' in our precomputed jitter series such that we have
+    // If the time interval is zero then no interpolation is needed, just return 
+    // the (yaw, pitch, roll) at the current index. Don't advance the timeIndex, 
+    // because more timeInterval==0.0 may turn up.
+
+    if (timeInterval == 0.0)
+    {
+        return make_tuple(yaw[timeIndex], pitch[timeIndex], roll[timeIndex]);
+    }
+
+    // If timeInterval is larger than zero, Advance the pointer 'timeIndex' in our precomputed 
+    // jitter series such that we have
     //      time[index] <= internalTime + timeInterval < time[index+1]
 
     while (time[timeIndex] < internalTime + timeInterval)
