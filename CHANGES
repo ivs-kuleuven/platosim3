@@ -1,0 +1,1440 @@
+Version 0.1.0
+ - Merge pull request #83 from JorisDeRidder/master
+ - Adapted the throughput bandwidth and the throughput reference wavelength in the yaml file, so that the flux of a zeroth magnitude star of 6000K is 6.39e6 photon/cm^2/s.
+ - Merge pull request #81 from rhuygen/master
+ - Fix InputParameters DistanceToOA and RotationAngle in HDF5 output file which should be Double instead of Integer
+ - Merge pull request #80 from rhuygen/master
+ - Merge branch 'develop'
+ - Merge branch 'feature/inputParameters' into develop
+ - Add lambda function to add a vector<double> to the HDF5File and update the InputParameters group to be consistent with the YAML configuration file.
+ - Add method to HDF5File to write an attribute of type vector<double>.
+ - Merge branch 'master' of https://github.com/rhuygen/PlatoSim3 into develop
+ - Merge pull request #77 from SaraRegibo/master
+ - Re-generated documentation.
+ - Improved consistency with the rest of the documentation.
+ - Correction of the flux formula in the description of Fluxm0.
+ - Correction of the Python code blocks.
+ - Added info on how to inspect the output with IDL.
+ - Replaced description of the output to link to separate page.
+ - Merge remote-tracking branch 'upstream/master'
+ - Re-generated documentation.
+ - Added page describing the output file.
+ - Fig.: structure of the output HDF5 file.
+ - Description of the output file.
+ - Fig.: structure of the output file.
+ - Renaming tutorials for consistency.
+ - Added link to YAML website.
+ - Change the output directory from current to working directory.
+ - Better description on how to configure Python.
+ - How to know version of Cmake, gcc, and clang?
+ - Updating main page after comments raised at the PlatoSim Workshop.
+ - Merge pull request #75 from rhuygen/master
+ - Merge branch 'master' of https://github.com/IvS-KULeuven/PlatoSim3
+ - Added some global information about the design and the control flow of the PLATO Simulator and updated and resized the figures.
+ - Merge pull request #74 from JorisDeRidder/master
+ - Merge branch 'master' of https://github.com/IvS-KULeuven/PlatoSim3 into ivs
+ - Adding guide_stars_EQ.txt to inputfiles folder. Since the force-add of guide_stars_EQ.txt in by Sara, I experience problems with this file: sourcetree sees the file as completely new.
+ - Merge pull request #72 from SaraRegibo/master
+ - Included new figures + improved description of the platform jitter.
+ - Better figure showing the focal plane and the 4 CCDs.
+ - Improved figure showing the jitter configuration.
+ - Merge pull request #70 from SaraRegibo/master
+ - Correction of typing mistake.
+ - Merge remote-tracking branch 'upstream/master'
+ - Improved consistency in use of headers.
+ - Merge pull request #69 from rhuygen/master
+ - Regenerated documentation
+ - Updated the resolution of the pictures in simulation steps
+ - Added the figures that explain the initialisation and control flow of the PlatoSim3.
+ - Minor editorial changes
+ - Consistency in making sections and sub-sections throughout all files.
+ - Extended documentation on scripting PlatoSim from Python.
+ - Merge pull request #67 from SaraRegibo/master
+ - Merge branch 'tutorialDocumentation'.
+ - Merge remote-tracking branch 'upstream/master' into tutorialDocumentation
+ - Updating documentation.
+ - Placeholder for description of the simulation steps.
+ - Image showing issue tracking on GitHub.
+ - Consistency in capitalisation.
+ - Placeholder for documentation on scripting in Python.
+ - Extended documentation on how to download the software.
+ - Documentation on tutorials.
+ - Documentation on issue tracking (HTML version).
+ - Where to find open issues.
+ - Image showing what raising a new issue looks like.
+ - Screenshot of GitHub, and where to find and raise issues.
+ - Added section on which information to provide.
+ - Merge pull request #65 from rhuygen/master
+ - Fix projectDir and workDir problem in inspectHDF5 notebooks.
+ - Documentation on issue tracking.
+ - Merge upstream/master.
+ - Merge upstream/master.
+ - Documentation on the tutorials.
+ - Merge pull request #63 from rhuygen/master
+ - Remove the auto generated star catalog file fro this notebook
+ - Fix projectDir and WorkDir problem in setupEnvironment for Speficy Stars in CCD Coordinates.
+ - Merge pull request #62 from rhuygen/master
+ - Fix projectDir and workDir problem in tutorial notebook for 'Scripting PlatoSim in Python'.
+ - Merge pull request #61 from JorisDeRidder/master
+ - Merge branch 'master' of https://github.com/IvS-KULeuven/PlatoSim3
+ - Updated the photometry notebook tutorial.
+ - Merge pull request #60 from rhuygen/master
+ - Fix a boundary problem in calculateSubfieldAroundCoordinates() in referenceFrames.py
+ - Added the getPhotometryTimeSeries() convenience function in platophot.py
+ - Merge pull request #58 from SaraRegibo/master
+ - Input file for guide stars tutorial.
+ - Merge pull request #57 from JorisDeRidder/master
+ - Added the input yaml files for the astrometry and photometry notebook tutorials.
+ - Merge pull request #56 from JorisDeRidder/master
+ - Added installation information for Windows users in the HTML documentation.
+ - Merge pull request #55 from rhuygen/master
+ - Updates to tutorial notebooks
+ - Merge pull request #54 from rhuygen/master
+ - Fix a problem in getStarCoordinates() which calls an old implementation of getStarCatalog() which returned only four arguments, the new interface returns eight arguments.
+ - Merge pull request #53 from JorisDeRidder/master
+ - Merge branch 'master' of https://github.com/IvS-KULeuven/PlatoSim3 into github
+ - First version of the Photometry notebook tutorial.
+ - Moved FineGuidanceStarsExample notebook in docs/tutorials to a separate folder.
+ - photometry() in platophot.py now also stores the time points of the light curves in its output file.
+ - Merge pull request #52 from rhuygen/master
+ - Add information about the structure of each group in the HDF5 output file, add a figure explaining the structure.
+ - Merge pull request #51 from JorisDeRidder/master
+ - Added some more explanation for the Jitter noise in the ConfigurationParameters notebook.
+ - Merge pull request #50 from rhuygen/master
+ - Merge branch 'master' of https://github.com/IvS-KULeuven/PlatoSim3
+ - Update the notebook tutorial for the PSF and how PlatoSim uses it...
+ - Merge pull request #49 from JorisDeRidder/master
+ - Merge pull request #48 from rhuygen/master
+ - Merge branch 'master' of https://github.com/IvS-KULeuven/PlatoSim3 into github
+ - Merge branch 'master' of https://github.com/IvS-KULeuven/PlatoSim3
+ - Extracted computePSFsigma() from photometry() in platophot.py.
+ - Corrected bug for varEstimatedFlux in photometry() in platophot.py.
+ - The print() statements in photometry() in platophot.py are now only executed depending on the 'verbose' argument.
+ - Corrected bug in simpleTransit() in transits.py
+ - Merge pull request #47 from SaraRegibo/master
+ - Merge branch 'tutorial'
+ - Merge remote-tracking branch 'upstream/master' into tutorial
+ - Renamed InputFiles to ConfigurationParameters.
+ - Added figures with coordinate systems.
+ - Merge branch 'master' of https://github.com/IvS-KULeuven/PlatoSim3
+ - Update notebook tutorial on PSF HDF5 with a figure...
+ - Merge upstream/master.
+ - Merge pull request #46 from rhuygen/master
+ - Add first draft of a tutorial notebook about the structure of the PSF HDF5 file.
+ - Merge pull request #45 from rhuygen/master
+ - First simple draft of tutorial notebooks on HDF5.
+ - Merge pull request #44 from rhuygen/master
+ - Add tutorial notebook about scripting PlatoSim with Python.
+ - First version of tutorial on the configuration parameters.
+ - Image depicting the tilt and azimuth angle of the telescope.
+ - Image depicting the spacecraft coordinate system.
+ - Image depicting the focal-plane coordinate system.
+ - Specify imports from referenceFrames explicitly, and further cleanup imports..
+ - Merge pull request #43 from rhuygen/master
+ - Merge branch 'master' of https://github.com/IvS-KULeuven/PlatoSim3
+ - Merge branch 'master' of https://github.com/IvS-KULeuven/PlatoSim3 into develop
+ - Merge branch 'master' into develop
+ - Add notebook tutorial to specify star in a star catalog in pixel coordinates.
+ - Add function to convert Sky to Pixel Coordinates in referenceFrames
+ - Add function to center the subField around pixel coordinates in referenceFrames
+ - Merge pull request #42 from SaraRegibo/master
+ - Merge branch 'tutorial'
+ - Merge pull request #41 from rhuygen/master
+ - Merge pull request #41 from rhuygen/master
+ - Tutorial for the multi-telescope configuration.
+ - Image showing the resulting FOV of the multi-telescope configuration.
+ - Image showing the tilt and azimuth angle for the telescopes.
+ - Image showing the multi-telescope configuration.
+ - Merge pull request #41 from rhuygen/master
+ - Merge branch 'develop'
+ - Fix ccdCode which was hard coded in drawStarInFocalPlane(..) in referenceFrames.py
+ - Delete unused import.
+ - Merge branch 'master' into develop
+ - Merge pull request #40 from rhuygen/master
+ - Remove obsolete function getSkyCoordinates(..) from referenceFrames. This has been replaced by pixelToSkyCoordinates(..).
+ - Merge pull request #39 from rhuygen/master
+ - Merge branch 'develop'
+ - Add a function to convert pixel coordinates to Sky coordinates in referenceFrames.py
+ - Take field distortion into account with drawStarInFocalPlane() in referenceFrames.py
+ - Values read out of a sim object needs to be converted to the proper type, i.e. string to float in drawStarInFocalPlane() in referenceFrames.py
+ - Fix a problem with the use of incorrect atan2 in referenceFrames.py
+ - Provide proper docstrings to the planarToDistortedFocalPlaneCoordinates() and distortedToPlanarFocalPlaneCoordinates() in referenceFrames.py
+ - Merge branch 'master' into develop
+ - Merge pull request #38 from rhuygen/master
+ - Merge branch 'develop'
+ - Optionally allow to set the outputDir during construction of a Simulation object.
+ - Merge pull request #37 from rhuygen/master
+ - Merge branch 'master' into develop
+ - Merge branch 'master' of https://github.com/IvS-KULeuven/PlatoSim3
+ - Merge pull request #36 from JorisDeRidder/master
+ - Merge branch 'master' of https://github.com/IvS-KULeuven/PlatoSim3 into rik
+ - First version of FineGuidanceStarsExample notebook in docs/tutorials/.
+ - Merge branch 'develop'
+ - make run() method in simulation.py more user friendly by printing stdout and stderr in the python environment. This is only possible for Python 3.5, for earlier versions of Python users still  need to check the terminal output...
+ - Merge pull request #35 from rhuygen/master
+ - Merge branch 'develop'
+ - simFile.getStarCatalog() now also returns the xFPmm, yFPmm, and the rowPix and colPix from the HDF5 output file.
+ - Merge pull request #34 from rhuygen/master
+ - Merge branch 'develop'
+ - Catch the return code from the subprocess.call() method in Simulation.run() and raise an exception if the return code != 0.
+ - Add an optional keywordt to the run() command in Simulation to remove the output file before starting PlatoSim
+ - Merge branch 'master' into develop
+ - Merge pull request #33 from JorisDeRidder/master
+ - Strongly simplified the argument list of setSubfieldAroundCoordinates() in referenceFrames.py. Most of the information is auto-extracted from the sim object.
+ - Added a dedicated yaml input file for fgs.py, for the fine guidance star simulations.
+ - Merge pull request #32 from SaraRegibo/master
+ - Merge remote-tracking branch 'origin/multiTelescopeConfiguration'
+ - Merge remote-tracking branch 'upstream/master' into multiTelescopeConfiguration
+ - Merge pull request #31 from rhuygen/master
+ - Merge branch 'develop'
+ - Add a few tests for the type checking and ConfigurationException for ConfigurationParameters
+ - Check for bad conversions in the parsing of the YAML input in ConfigurationParameters and throw an appropriate ConfigurationException. Boolean values can now also be parsed from integers 0 and 1.
+ - add the ConfigurationException class to the known Exceptions
+ - Using focal length expressed in [mm].
+ - Consistent use of [mm] as unit for focal length.
+ - Documenting unit of focal length.
+ - Cleaning configuration parameters.
+ - Forcing the sub-field zeropoint to be an integer.
+ - Merge remote-tracking branch 'upstream/master' into multiTelescopeConfiguration
+ - Correction of incorrectly written configuration parameters.
+ - Merge branch 'master' into develop
+ - Correction of typing errors, converting includeFieldDistortion to Bool.
+ - Correction of the units in getCCDandPixelCoordinates.
+ - Merge pull request #29 from JorisDeRidder/master
+ - Merge branch 'master' of https://github.com/IvS-KULeuven/PlatoSim3 into rik
+ - In Platform::rotateYawPitchRoll(), replaced the C++11 initializer lists with a C++98 << construct to accommodate gcc 4.8.
+ - In Platform::spacecraftToEquatorialCoordinates() replaced the C++11 initializer lists with a C++98 << construct to accommodate gcc 4.8.
+ - In Telescope::platformToTelescopePointingCoordinates(), replaced the C++11 initializer lists with a C++98  << construct to accommodate gcc 4.8.
+ - Merge pull request #28 from rhuygen/master
+ - fix a problem after merging different branches, focalPlaneOrientation was moved out of Camera and should be retrieved from telescope
+ - Merge branch 'develop'
+ - Merge branch 'master' of https://github.com/IvS-KULeuven/PlatoSim3 into develop
+ - Merge branch 'feature/issue#9' into develop
+ - Add the method to write the StarCatalog to the output file in Simulation
+ - remove the code for writing the StarCatalog in the output file from Camera::flushOutput. That is now handled by Simulation.
+ - add a method to Camera to convert sky coordinates to angular focal plane coordinates using user supplied ra/dec of the optical axis instead of the current pointing
+ - simulation needs to know about field distortion when calculating star coordinates to put into the StarCatalog output group
+ - add a method to Telescope to retrieve the initial pointing coordinates
+ - add a method to Platform to retrieve the initial pointing coordinates
+ - add a method to Camera retrieve all detected star IDs
+ - Merge remote-tracking branch 'origin/master' into multiTelescopeConfiguration
+ - Checking whether the sub-field lays entirely on a CCD.
+ - Selection of the correct azimuth angle per group.
+ - Update of output file prefix.
+ - Include Telescope drift
+ - Merge branch 'drift'
+ - Minor reshuffling of code in Telescope::updatePointingCoordinates() to make the flow more clear.
+ - Fixed bug in Telescope::updatePointingCoordinates() that caused the telescope orientation angles of the first drift step not to be saved in HDF5.
+ - Improved Log.debug() message in Camera::exposeDetector().
+ - Fixed (the same) bug in JitterFromFile::getNextYawPitchRoll() and ThermoElasticDriftFromFile::getNextYawPitchRoll() that caused the returned Yaw, Pitch, and Roll values not to change within one exposure.
+ - Added a Log.debug() statement in Camera::exposeDetector().
+ - Added some Log.debug() statements in Telescope::updatePointingCoordinates().
+ - Making use of the methods from referencesFrames.
+ - Multi-telescope configuration.
+ - Cosmetic changes to referenceFrames.py.
+ - In referenceFrames.py, replaced inverseGnomonicProjectionFocalPlaneToSky() in favor of planarToAngularFocalPlaneCoordinates() and angularFocalPlaneToSkyCoordinates().
+ - Improved function names of coordinate transformations involving focal plane coordinates in referenceFrames.py, making it clear whether they concern planar or angular focal plane coordinates.
+ - In angularFocalPlaneToSkyCoordinates() in referenceFrames.py: changed the math versions atan() and atan2() to the numpy versions arctan() and arctan2() so that they work with arrays.
+ - Merge branch 'drift'
+ - Minor change in a Log.info() comment in Platform.cpp
+ - Adapted Camera so that it no longer keeps the focalPlaneOrientation, but requests this information from Telescope. This was needed because this angle corresponds to the Telescope roll orientation, which is varying due to thermo-elastic drift.
+ - Adapted the unit tests to the new configuration of the Telescope class.
+ - Adapted the Simulation class to the new configuration of Telescope (i.e. with the DriftGenerator).
+ - Adapted Telescope so that it now accepts a DriftGenerator in its constructor. Telescope::updatePointingCoordinates() now takes into account the drift of the telescope. All drift information is stored in the HDF5 file.
+ - First version of the class ThermoElasticDriftFromFile.
+ - First version of the class ThermoElasticDriftFromRedNoise.
+ - First version of the abstract base class DriftGenerator.
+ - Added the keywords UseDrift, UseDriftFromFile, and DriftFileName in inputfile.yaml as well as in the unit test input yaml files.
+ - Added <stdexcept> include statement in StarCatalog.h. Gcc does not automatically include standard exceptions.
+ - First versions of noise.py, star.py, and transits.py
+ - Cosmetic change in Detector.cpp
+ - Merge branch 'develop'
+ - Merge branch 'feature/versioning' into develop
+ - Write version information to the HDF5 output file.
+ - Add optional -version argument to print PlatoSim version information on the console. PlatoSim version info is also added to the log file.
+ - Add version information to the build/cmake.
+ - Merge pull request #24 from SaraRegibo/master
+ - Updating content of README in line with documentation.
+ - Merge pull request #22 from SaraRegibo/master
+ - Solving linking problems with InputFileDescription.html.
+ - Merge pull request #20 from SaraRegibo/master
+ - Bringing up-to-date with README.
+ - Merge pull request #18 from SaraRegibo/master
+ - Solving linking problems manually.
+ - Solving linking problems manually.
+ - Remove the FOVSquareDegrees parameter in the yaml inputfile
+ - Remove the FOVSquareDegrees parameter in the yaml inputfile
+ - Remove the FOVSquareDegrees parameter in the yaml inputfile
+ - Merge pull request #16 from SaraRegibo/master
+ - Remove the FOVSquareDegrees parameter in the yaml inputfile
+ - Remove the FOVSquareDegrees parameter in the yaml inputfile
+ - Remove the FOVSquareDegrees parameter in the yaml inputfile
+ - Remove the FOVSquareDegrees parameter in the yaml inputfile
+ - Remove the FOVSquareDegrees parameter in the yaml inputfile
+ - Remove the FOVSquareDegrees parameter in the yaml inputfile
+ - Remove the FOVSquareDegrees parameter in the yaml inputfile
+ - Remove the FOVSquareDegrees parameter in the yaml inputfile - Adapt Telescope::Configure() - Remove Telescope::getFOVsolidAngle()
+ - Remove FOVsolidAngle variable from Telescope.
+ -  Remove FOVSquareDegrees in the input yaml file.
+ - Merge branch 'photometry'
+ - Platophot.py now also saves the S/N estimate, and works in electrons rather than photons.
+ - Merge pull request #13 from SaraRegibo/master
+ - Removing auto-generated file.
+ - Correcting the link to the description of the input file.
+ - Correcting output directory.
+ - Correcting link to description of the input file.
+ - Correcting input & output directory.
+ - Initial /docs/html subtree commit
+ - Documented better Detector::applyFullWellSaturation()
+ - Fixed a bug that caused the pixel, bias, and smearing maps to return fractional ADUs. ADUs are now always integer values. Affected function: Detector::readOut().
+ - Photon fluxes (star & background) added to the subpixel maps are now always integer values. Changed function: Camera::exposeDetector().
+ - First version of platophot.py
+ - Fixed bug in Detector::generateFlatfieldMap() leading to a PRNU map in the HDF5 file with a wrong scale.
+ - Improved documentation of simfile.py to make it clear how you can overplot the star positions on an imagette.
+ - Fixed bug in normalization constant of the Gaussian PSF in PointSpreadFunction::getGaussianPsf().
+ - Fixed bug in Camera::flushOutput() causing not all star positions to be written to the HDF5 output file.
+ - Merge branch 'master' into photometry
+ - Fixed bug in Telescope::updatePointingCoordinates() causing the flushing of (RA, Dec) history to fail when the number of observations is 1.
+ - Merge branch 'master' into photometry
+ - Updated the README.txt file to explain how users can get a (git) update of the PlatoSim simulator.
+ - Adapted referenceFrames.py and fgs.py to include the new azimuth and tilt orientation angles of the telescope on the platform.
+ - Setting default telescope azimuth and tilt angles to zero in inputfile.yaml
+ - Added platformToTelescopePointingCoordinates() to referenceFrames.py
+ - Fixed Telescope::platformToTelescopePointingCoordinates() so that the output RA of the optical axis is always positive.
+ - Telescope now keeps a history of the sky coordinates of the optical axis, and writes them to the HDF5 output file.
+ - Added azimuthAngle and tiltAngle to the Telescope class, and updated Telescope::updatePointingCoordinates() and Telescope::platformToTelescopePointingCoordinates() to take them into account.
+ - Removed the obsolete Telescope::spacecraftToFocalPlaneCoordinates() and Telescope::focalPlaneToSpacecraftCoordinates(). Cf PLATO-KUL-PL-TN-001 for the Spacecraft reference frame definition.
+ - Simulation now stores the input parameters 'AzimuthAngle' and 'TiltAngle' in the output HDF5 file.
+ - Added AzimuthAngle and TiltAngle parameters to the input yaml file. Adapted the input files for the unit tests accordingly.
+ - Merge commit 'd9347df69c6923bc06d20f687654ef5e42796cea'
+ - Merge pull request #11 from rhuygen/master
+ - Merge branch 'env'
+ - Update StringUtilities unit tests
+ - Remove the implementation of replaceEnvironmentVariable(..) using regular expressions with a version using plain string functions in StringUtilities.
+ - Merge pull request #10 from SaraRegibo/feature/Feature-8
+ - GitHub#8: Background during readout time
+ - GitHib#8: Background during readout time
+ - Merge branch 'pullRequest'
+ - Merge branch 'master' of https://github.com/IvS-KULeuven/PlatoSim3 into pullRequest
+ - HTML generated by Doxygen
+ - Moved markdown into docs/source
+ - Moved style files into docs/source/style
+ - Moved images into docs/source/images
+ - Moved style files into docs/source/style directory
+ - Moved markdown files into docs/source directory
+ - Updated Doxyfile for new directory structure unders docs.
+ - Extended README.txt to make it clear that you have to use an absolute path for PLATO_PROJECT_HOME.
+ - Merge branch 'master' into photometry
+ - Mentioned in the README file that users are adviced to copy the inputfile.yaml to a new file, and only change the latter.
+ - Adapted the inputfile.yaml so that StarCatalogFile now points to inputfiles/starField_RA180Dec-70.txt
+ - Added starField_RA180Dec-70.txt to the inputfiles. Adapted .gitignore accordingly.
+ - Extended the README.txt file to include a section about using realistic PSFs.
+ - Changed some of the parameters in inputfile.yaml to more typical values.
+ - Removed the use of put_time() in Logger.h, so that the code also works for older compilers (like gcc 4.9). The code is now using strftime().
+ - Made the armadillo installer more robust.
+ - Merge branch 'master' of https://github.com/IvS-KULeuven/PlatoSim3
+ - Merge pull request #5 from SaraRegibo/documentation
+ - Merge branch 'master' of https://github.com/IvS-KULeuven/PlatoSim3
+ - Merge branch 'master' into documentation
+ - Merge pull request #3 from rhuygen/fieldDistortion
+ - Merge branch 'docs'
+ - Merge pull request #4 from rhuygen/docs
+ - Added readArray() to a vector<unsigned int>  in HDF5File.
+ - Screenshot of GitHub.
+ - Replace the custom doxygen team.
+ - Describing how to access the output.
+ - First version of improved Doxygen HTML output. Only files in the docs directory are processed, this is user documentation. For developer documentation include other directories like source etc.
+ - Introduction + installation + dependencies + running simulation.
+ - Merge branch 'master' into docs
+ - Update fgs.py to use the PLATO_WORK_DIR environment variable for locating the input files and wrting the output files.
+ - Update fgs.py for includeFieldDistortion. Python code now is conform the C++ code with respect to field distortion.
+ - Rename functions with incorrect name (radialTo..), add distortion functions to convert from/to planar focal plane coordinates in referenceFrames.py.
+ - Remove semi-colons at end of lines.
+ - Include field distortion in referenceFrames.py, update function arguments, update documentation.
+ - Merge pull request #1 from IvS-KULeuven/master
+ - Set image path.
+ - Added images to description of the configuration parameters.
+ - Included images + clean-up.
+ - Merge pull request #1 from SaraRegibo/documentation
+ - Documented the jitter file.
+ - Documented the PSF file.
+ - Documented the star catalogue file.
+ - Documented the random seeds.
+ - Documented CCD parameters.
+ - Documented CCD parameters.
+ - Documented PSF parameters.
+ - Documented the camera parameters.
+ - Documented telescope parameters.
+ - Documented the platform parameters.
+ - Documented the observing parameters.
+ - Defining the structure + documenting general parameters.
+ - Fixed bug in normalisation constant in PointSpreadFunction::getGaussianPsf().
+ - Updated the README.txt file to reflect that ProjectLocation now also works with environment variables.
+ - Corrected fgs.py so that it conforms the new format of the PSF information in inputfile.yaml.
+ - Adapted __setitem__ and __getitem__ in simulation.py so that it can handle the new PSF information structure in the inputfile.yaml.
+ - Made the docstring for PSF-FromFile-RotationAngle in inputfile.yaml slightly shorter.
+ - Update the getRebinnedPsfForPlanarFocalPlaneCoordinates() to handle user specific PSF requests that overrule the defaults.
+ - set PLATO_PROJECT_HOME and don't use MATHJAX
+ - update documentation in Detector
+ - update the PointSpreadFunction for the new input parameters and allow users to specify distance to optical axis and rotation
+ - update inputfile.yaml for new PSF layout and parameters
+ - Update testData input files for new PSF section layout.
+ - Update documentation of getAbsoluteFilename() in ConfigurationParameters and make sure any ENV['var'] pattern is also replaced in the filename.
+ - Update method name for setPsfForSubfield() and comment TODO for input parameters that need to be fixed in output file
+ - Reformat documentation for getGaussianPsf()
+ - Rename setPsfForSubFieldCenter() to setPsfForSubField() in Detector
+ - Update documentation of setDistortionPolynomial in Camera.cpp
+ - Adapted .gitignore so that inputfiles/psf.hdf5 is now ignored.
+ - Removed psf.hdf5 from the repository as its 500 MB size is problematic for GitHub.
+ - Merge branch 'master+Joris'
+ - switch row and column (as row=y and column=x) in GTestDetector
+ - Provide coordinates of actual corners of the CCD 'A' and 'B' in the test case for DetectorTest
+ - Use settings for CCD 'B' in DetectorTest inputfile
+ - Merge branch 'joris' into master+Joris
+ - Fixed bug in Detector::pixelToPlanarFocalPlaneCoordinates() causing the rows and the columns to be swapped.
+ - Extended documentation of Detector::planarFocalPlaneToPixelCoordinates().
+ - Improved readability of code in Detector::getPlanarFocalPlaneCoordinatesOfSubfieldCenter().
+ - Camera::exposeDetector() now also logs the angular focal plane coordinates of the subfield center and corners.
+ - Improved documentation in referenceFrames.py
+ - Minor improvement of in-code documentation in fgs.py
+ - Merge branch 'master+Joris'
+ - Merge branch 'joris' into master+Joris
+ - Merge branch 'hardCodedPaths'
+ - rename PLATOPROJECT to PLATO_PROJECT_HOME
+ - Add comments to the unit test for environment variables in GTestStringUtilities
+ - add a function to replace environment variable patterns in an input string in StringUtilities.
+ - simplify the pattern for environment variables in input.yaml
+ - write basic tests for the replaceEnvironmentVariable function in GTestStringUtilities.
+ - replace the code to handle environment variables in ConfigurationParameters.cpp by a StringUtilities function.
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be/home/sara/softwareDevelopment/Plato/PlatoSim3/proj into riksara
+ - Fixed merge problem in PointSpreadFunction::select() that was forgotten in the previous commit 6a23fef.
+ - Resolved merge conflicts in PointSpreadFunction.cpp after mergin with Rik/Master.
+ - Reorganized the saving of the sky background values in Camera::exposeDetector().
+ - Detector::addReadoutNoise() now also adds noise to the smearing overscan rows. Adapted GTestDetector so that it no longer assumes that the smearing map is untouched.
+ - Camera now saves the sky background value for each exposure into an array in the HDF5 output file in the group /Background.
+ - Added HDF5File::readArray() to read into a vector<double>.
+ - Fixed bug that caused HDF5File.readAttribute() to fail when reading integer attributes. HDF5File now uses readDoubleGroupAttribute(), readIntegerGroupAttribute(), and readDoubleDatasetAttribute(). Adapted PointSpreadFunction.cpp accordingly.
+ - Merge remote-tracking branch 'origin/master' into hardCodedPaths
+ - Merge remote-tracking branch 'joris/master'
+ - Merge branch 'master+Joris'
+ - Merge branch 'joris' into master+Joris
+ - Merge branch 'psfSaving'
+ - Fix a problem in PointSpreadFunction.cpp  when flushOutput() is called while no PSF was selected before.
+ - use the renamed rebinToSubPixels() method in Camera.cpp
+ - rename rebin() method to rebinToSubPixels() and add rebinToPixels() method to PointSpreadFinction.{h,cpp}
+ - The flux of a V=0 star is now configureable in the input yaml file, and used by Camera.cpp.  Adapted the unit test input yaml files accordingly. Simulation.cpp writes this attribute to the output HDF5 file.
+ - Merge branch 'psfSaving'
+ - do not write selectedPSF map, but do write rotatedPSF map for both realistic and Gaussian PSFs in PointSpreadFunction.cpp
+ - Merge branch 'psfSaving'
+ - Fix the PointSpreadFunction Unit Tests for the changes wrt to PointSpreadFunction class becoming a HDF5Writer.
+ - Write the selectedPSF (Gaussian), the rotated and rebinned PSFs to the output file in PointSpreadFunction.cpp
+ - Editorial changes in PointSpreadFunction.cpp
+ - Rename variable hdf5file to psfFile in PointSpreadFunction.cpp and .h in order to avoid conflict with HDF5Writer class protected variable.
+ - The PointSpreadFunction constructor now accepts an HDF5File argument, change call in Camera.cpp.
+ - Make PointSpreadFunction a HDF5Write class, include initHDF5Groups and flushOutput methods.
+ - remove the lines that save PSF information from the Camera.cpp. The PSF information is now saved by the PointSpreadFunction class.
+ - Merge branch 'joris'
+ - Resolved conflicts after merging with Rik/master.
+ - Moved Log.debug() messages in Camera::exposeDetector() after possible field distortion.
+ - Merge branch 'fieldDistortion'
+ - Add tests for inverse polynomial for field distortions to GTestCamera.h
+ - Add inverseCoefficients for field distortion to inputfiles
+ - Implement inverse polynomial in Camera en fix the bug that the center of the subfield should be converted from distorted to planar coordinates. Add function distortedToPlanarFocalPlaneCoordinates to Camera.
+ - Merge branch 'master' into fieldDistortion
+ - Merge branch 'joris'
+ - move logging message in Camera.cpp
+ - include field distortion also when calculating coordinates for the subfield in Camera.ccp
+ - Updated a few Log.debug() to Log.info() statements in Camera::exposeDetector().
+ - Merge branch 'joris'
+ - Merge branch 'fieldDistortion'
+ - update the polynomial coefficients for the field distortion and add the includeFieldDistortion flag.
+ - Include field distortion in Camera.ccp and Camera.h
+ - Slightly relaxed version requirement of gcc compiler in README.txt.
+ - Updating the gcc requirement in the README.txt (needed for std::put_time in Logger.cpp).
+ - Merge branch 'master+Joris'
+ - Merge branch 'joris' into master+Joris
+ - Merge branch 'master' into master+Joris
+ - New version of install_armadillo.py which distinguishes between OS X en Linux.
+ - Merge remote-tracking branch 'joris/master'
+ - Added the set -e suggestion of Bram to install.sh
+ - Corrected an error in the top doc string of each of the dependencies/installscripts/install_*.py.
+ - All dependencies/installscripts/install_*.py scripts now print a banner right before they start installing.
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be/home/rik/git/PlatoSim3/proj into rik
+ - CMake now links against armadillo rather than armadillo.6.   Adapted install_armadillo.py accordingly.
+ - Fixed bug in Platform class causing the configuration parameter "useJitter" to be ignored.
+ - Disabled PhotonNoise test until it works properly.
+ - Added BLAS+LAPACK dependency information in the README.txt file.
+ - disabled unit test on photonNoise in GTestDetector.cpp
+ - Merge branch 'master+Joris'
+ - Merge branch 'joris' into master+Joris
+ - Merge branch 'master' into master+Joris
+ - Removed "from math import ..." statement in referenceFrames.py as it introduces math functions that crash on numpy arrays. Adapted planarToAngularFocalPlaneCoordinates() and planarToRadialFocalPlaneCoordinates() to make them work with both scalars and numpy arrays. Now drawCCDsInSky() no longer crashes.
+ - Cosmetic changes to referenceFrames.py
+ - Fixed bug in angularFocalPlaneToSkyCoordinates() in referenceFrames.py that made the function crash on numpy arrays.
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be/home/rik/git/PlatoSim3/proj into rik
+ - Added axis labels to the functions drawCCDsInSky() and drawCCDsInFocalPlane() in referenceFrames.py.
+ - Fixed erroneous call to inverseGnomonicProjectionFocalPlaneToSky() in drawCCDsInSky() in referenceFrames.py
+ - add first version of calculateSubfieldAroundRadiusFromOpticalAxis() to referenceFrames
+ - replace alpha by angle
+ - import some math functions
+ - fix a bug using wrong yFPprime instead of yFPrad
+ - remove obsolete arguments plateScale and pixelSize from call to skyToAngularFocalPlaneCoordinates()
+ - improve documentation
+ - add a method to referenceFrames.py  to draw a star in the focal plane giving its equatorial coordinates ra and dec
+ - improve documentation
+ - add the simple conversions from radial to planar and vice versa to referenceFrames.py
+ - add the planarToAngularFocalPlaneCoordinates() method to referenceFrames.py
+ - improve documentation
+ - Add the angularFocalPlaneToSkyCoordinate() conversion method
+ - plateScale and pixelSize are not needed for this function
+ - add import for numpy
+ - add a todo comment
+ - Merge remote-tracking branch 'origin/master' into hardCodedPaths
+ - Merge remote-tracking branch 'rik/master'
+ - Merge remote-tracking branch 'joris/master'
+ - Ue of environment variable for the project location.
+ - Using environment variable for I/O directories.
+ - Use of environment variable for the project location.
+ - Merge branch 'psf'
+ - Fix the rotation of the PSF by compensating for the orientation of the ccd wrt focal plane orientation.
+ - Merge branch 'master+Joris'
+ - Merge branch 'fgs' into master+Joris
+ - Merge branch 'joris' into master+Joris
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be/home/rik/git/PlatoSim3/proj into rik
+ - Cosmetic changes to Camera.cpp
+ - Added a getSubPixelImage() method to simfile.py.
+ - Fixed the fact that the include-switches were not included in Simulator::writeInputParametersToHDF5().
+ - Fixed incomplete implementation of the includeDigitalSaturation switch.
+ - Merge branch 'master' into fgs
+ - Merge branch 'master+Joris'
+ - Merge branch 'fgs' into master+Joris
+ - Merge branch 'joris' into master+Joris
+ - Initialize subPixelsImageNr in Detector::Constructor
+ - Merge remote-tracking branch 'joris/master'
+ - Resolved merge conflicts after merging with Rik/master. Fixed bug in referenceFrames.py introduced in commit 2ff3152dc.
+ - Decreased the number of subpixels in fgs.py to make it go faster.
+ - Added comment in camera::exposeDetector().
+ - Fixed bug in Detector::getPlanarFocalPlaneCoordinatesofSubfieldCenter() where the conversion of (row, columns) to (x,y) pixel coordinates was done erroneously.
+ - Fixed bug in setSubfieldAroundCoordinates() in referenceFrames.py where (x,y) pixel coordinates where not correctly converted to rows and columns.
+ - Fixed bug in setSubfieldAroundCoordinates() in referenceFrames.py that caused wrong CCD origin offsets in case of the fast cams.
+ - Improved error message in calculateSubfieldAroundCoordinates() in referenceFrames.py, when the star is too close to the edge of the CCD to accommodate a subfield.
+ - Removed debug print statements in referenceFrames.py
+ - Fixed bug in inverseGnomonicProjectionFocalPlaneToSky() in referenceFrames.py, when (xFP, yFP) = (0,0).
+ - Merge branch 'gaussianPsf' into fgs
+ - Merge branch 'master' into fgs
+ - Merge branch 'master+Joris'
+ - Merge branch 'joris' into master+Joris
+ - Merge branch 'master' into master+Joris
+ - Merge branch 'fgs'
+ - undo commit 5b1e8f7a53 [formerly 4d0b156a38] where origin offset change for fast camera was commented out
+ - Merge branch 'fgs' of ssh://copernicus.ster.kuleuven.be/home/rik/git/PlatoSim3/proj into fgs
+ - Merge branch 'testDetector'
+ - Correction of the coordinates while testing.
+ - Testing calculation of planar coordinates of sub-field corners.
+ - add some debug statements and comments
+ - rename transformation functions to make them similar to the C++ names in the PlatoSim3, also make functionality equal by splitting up some functions.
+ - Origin of the CCD is unchanged between nominal and fast cameras
+ - Put the log file with the runName in the target output location.
+ - Allow the user to specify the log file as a third argument to the simulator
+ - Remove unused PredefinedPosition parameter
+ - Add some useful comments describing a side effect of the python function setSubfieldAroundCoordinates.
+ - Add focalLength to several functions in order to properly calculate the angular to planar focal plane coordinates
+ - Testing calculating of the FP coordinates of the sub-field centre.
+ - Testing solid-angle calculation of one pixel.
+ - Merge branch 'openShutterSmearing'
+ - Merge remote-tracking branch 'rik/master'
+ - Correction of too bright trails.
+ - Merge branch 'master' into gaussianPsf
+ - add my personalised inputs
+ - improved documentation
+ - Merge branch 'master+Joris'
+ - fix value for the PSF/Sigma parameter
+ - Add brief documentation for the getGaussianPsf function
+ - Fix a value for the Sigma parameter
+ - Merge remote-tracking branch 'rik/master'
+ - Merge branch 'joris' into master+Joris
+ - Merge branch 'gaussianPsf'
+ - First implementation of Gaussian PSF
+ - Add and correct input parameters for Gaussian PSF
+ - Add and correct input parameters for Gaussian PSF
+ - add and define Gaussian PSF parameters
+ - Fixed bug in Simulation.useNominalCamera() and in Simulation.useFastCamera() in simulation.py.
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be/home/sara/softwareDevelopment/Plato/PlatoSim3/proj into sara
+ - Decreased the number of requested observations in fgs.py
+ - Fixed bug in referenceFrame.py leading to a float output of the number of CCD rows, causing a yaml error when trying to reading an int.
+ - Removed sim["CCD/PredefinedPosition"] in referenceFrames.py as this is no longer applicable (and causes a runtime error).
+ - Customized outputFilePrefix in python/fgs.py
+ - Made simulation.py Python3 compatible.
+ - Removed non-ascii character from inputfile.yaml. Yaml only supports ascii.
+ - Merge branch 'blooming'
+ - Merge remote-tracking branch 'origin/master' into blooming
+ - Merge remote-tracking branch 'rik/master'
+ - Bug fixes when testing.
+ - Testing blooming.
+ - Merge branch 'master+Joris'
+ - Merge branch 'joris' into master+Joris
+ - Merge branch 'fgs'
+ - Jitter file name can also be absolute, use getAbsoluteFilename() instead of just asuming the entry is relaive to the ProjectLocation.
+ - script adapted to new PlatoSim3 and new input parameters
+ - First adapted version of fgs script
+ - Add predefined position to CCD
+ - Ignore log.txt
+ - Detector now writes the bias and smearing maps to the HDF5 file. Implemented also SimFile.getBiasMap() and SimFile.getSmearingMap() in python.
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be/home/sara/softwareDevelopment/Plato/PlatoSim3/proj into sara
+ - Merge branch 'master+Sara'
+ - Merge branch 'sara' into master+Sara
+ - load psf.hdf5 test data from inputfiles instead of testData
+ - Do not ignore psf.hdf5
+ - Merge branch 'pythonWrapper'
+ - add logging statement for debugging
+ - make simulation demo script work with new implementation
+ - white space
+ - Fix the run() method to work with new settings for input and output flocations
+ - improve generation and layout of yaml output
+ - remove obsolete code
+ - add output files location and remove obsolete variables
+ - remove obsolete code for rotating the PSF
+ - improve exception handling
+ - Define outputDir as a property and remove obsolete settings
+ - improve documentation
+ - add root object to class definition
+ - Improve documentation of the Simulation class.
+ - Merge branch 'flatfield'
+ - Merge remote-tracking branch 'origin/master' into flatfield
+ - Merge remote-tracking branch 'joris/master'
+ - Testing flatfield generation (to be completed).
+ - New implementation of flatfield generation.
+ - Fix naming of psf.hdf5 file for unit tests
+ - Merge branch 'joris' into pythonWrapper
+ - First version of simulation python script - not yet working completely -
+ - Fixed bug in JitterFromFile that caused SegFault because vector<> were not initialised to the correct size. Also corrected the units of the yaw, pitch, roll that were read from the file.
+ - Added version requirements on gcc/clang and cmake in README.txt.
+ - Improved the README.txt file with feedback of Pierre.
+ - Adapted PSF file name in inputfile.yaml.
+ - Fixed conflict after merging with Rik/Master.
+ - Added inputfiles/psf.hdf5
+ - Subpixel images are now also written to the HDF5 file, if the switch in inputfile.yaml is set.
+ - Merge branch 'switchOff'
+ - improve debugging log messages
+ - Improved the README.txt file.
+ - improve debugging log messages
+ - remove condition to include flatfield, this is done in the calling routine already
+ - enable noise features in code again (undo commenting out)
+ - add missing input parameters
+ - Add switch to turn on/off digital saturation
+ - use switch for enable/disable vignetting and flatfielding
+ - Add switch to turn off full well saturation
+ - Uncomment some effects for testing convolution
+ - Harmonize logging messages..
+ - change debugging message
+ - Provide a switch to turn off convolution with the PSF.
+ - Add includeFlatfield parameter to other input files.
+ - new includeFlatfield configurationParameter to switch off flatfielding in the simulator.
+ - Merge branch 'master+Joris+Sara'
+ - Merge branch 'sara' into master+Joris+Sara
+ - Testing flatfield.
+ - Merge branch 'joris' into master+Joris
+ - Merge branch 'vignetting'
+ - Added Log statement in Detector::generateFlatfield()
+ - First version of geometrical vignetting added in Detector. Adapted the configuration input file and the unit tests accordingly.
+ - Made several protected methods of Camera public, as they can/will be used by other classes.
+ - Temporarily switching off including the flatfield until the bug is fixed.
+ - Added simulation and its demo from the old simulator to adapt for PlatoSim3
+ - Merge branch 'testDetector'
+ - Merge branch 'master' into testDetector
+ - Merge remote-tracking branch 'joris/master'
+ - Testing photon noise.
+ - Testing readout noise.
+ - Solved merged conflicts after merging branch 'master' of ssh://copernicus.ster.kuleuven.be/home/sara/softwareDevelopment/Plato/PlatoSim3/proj into rik
+ - First version of README.txt
+ - Merge branch 'testDetector'
+ - Merge branch 'master' into testDetector
+ - Merge remote-tracking branch 'rik/master'
+ - CTE test: multiple values of subFieldZeroPointRow.
+ - CTE bug fix for subfFieldZeroPointRow > 0.
+ - Testing CTE.
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be/home/rik/git/PlatoSim3/proj into rik
+ - Merge branch 'psf'
+ - use another colormap for the PSFs and temporarily remove clipping the colormap.
+ - Fixed the test harness for the change in rotateArray (sign change)
+ - Merge branch 'sara'
+ - Merge branch 'psf'
+ - Fixed the name of the getPsf() method.
+ - Fix the rotation so it is counter-clockwise wrt the positive x-axis when the array is displayed in an image.
+ - Temporarily switching off alltogether the CTE effects (both old and new) as it introduces armadillo index-out-of-range errors.
+ - Merge branch 'master' into psf
+ - Started testing CTE again.
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be/home/sara/softwareDevelopment/Plato/PlatoSim3/proj into riksara
+ - SimFile.getStarCoordinates now returns integer (row, column) positions of the stars in the subfield, so that they can now easier be used with showImage().
+ - Fixed some bugs in SimFile.showImage().
+ - Temporarily switching off flatfield map generation. Current version contains a non-trivial bug, which will soon be repaired.
+ - Improved doc of Detector::addFlux().
+ - Temporarily switching to the old CTE implementation.
+ - Writing/reading armadillo arrays from an HDF5 file now takes into account that Armadillo is column-major while HDF5 is row-major.
+ - Merge branch 'testDetector'
+ - Merge branch 'master' into testDetector
+ - Fixed the inclusion of ArrayOperations.h.
+ - Merge remote-tracking branch 'rik/master'
+ - Completed test of open-shutter smearing.
+ - Started testing open-shutter smearing.
+ - Merge branch 'psf'
+ - Add getPsf() and showPsf() methods.
+ - Write the selectedPsf, rotatedPsf and rebinnedPsf to the output file. Fix an incorrect argument to the select() method, radians instead of degrees.
+ - Merge branch 'master' into psf
+ - Merge branch 'master+Joris'
+ - Merge branch 'joris' into master+Joris
+ - Merge branch 'master' into psf
+ - Removed unused private variables.
+ - Added some comments.
+ - Fix bug: "PSF becomes zero after rotation". Temporary variables where of type unsigned int while they should be double. This caused all elements that were smaller than 1.0 to become zero after rotation.
+ - Include tests that reproduce the problem with the complete array becoming zero after rotating.
+ - Merge branch 'psf'
+ - Enable convolution.
+ - Adapt for namespace ArrayOperations.
+ - Adapt for rotateArray in the ArrayOperations namespace.
+ - Add rebin() method.
+ - Add numberOfSubPixelsPerPixel as a member variable and load it from input configuration.
+ - Renamed getPsfForPlanarFocalPlaneCoordinates() to getRebinnedPsfForPlanarFocalPlaneCoordinates()
+ - Add targetSubPixels argument and renamed getPsfForPlanarFocalPlaneCoordinates to getRebinnedPsfForPlanarFocalPlaneCoordinates().
+ - Put all functions in their own namespace.
+ - Add the number of sub pixels per pixel used for PSF generation to the inputfiles.
+ - Add argument that passes number of subpixels per pixel
+ - Move Units header file into the Detector header.
+ - Enabled test of flatfield again.
+ - Merge branch 'master' into psf
+ - Using vectorisation again for comparison.
+ - Merge branch 'arrayoperations'
+ - Check what the effect is of centering the image on an intermediate array with respect to the size of the rebinned array.
+ - Bug fix in test of rebinning.
+ - Bug fix in test of quantum efficiency.
+ - Adapted comment lines in inputfile.yaml
+ - Merge branch 'hdf5'
+ - Replace all exit() statements with throw Exception.
+ - Bug fis in test of electronic offset.
+ - Bug fix in test of digital saturation.
+ - Merge branch 'psf'
+ - Moved the rebinning code to Arrayoperations.
+ - Move code for getting the psf from the camera inside the detector method.
+ - Write the selected and rotated PSF to the output file.
+ - Add test harness for rebinning methods.
+ - Simple tests to confirm array element access.
+ - Replace arma::Mat<float> to the typedef arma::fmat for make the code more readable.
+ - Add first version of rebining functions.
+ - Comment out a debugging message.
+ - replace arma::Mat<float> by the typedef arma::fmat to make the code more readable.
+ - Send output to terminal if needed when running test harnesses.
+ - Undoing last CMakeLists.txt change.
+ - Merge branch 'master' into psf
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be/home/sara/softwareDevelopment/Plato/PlatoSim3/proj into sara
+ - Added the boolean options IncludeReadOutNoise, IncludeCTIeffects, and IncludeOpenShutterSmearing in the input yaml file. Adapted the code accordingly.
+ - Merge branch 'testDetector'
+ - Merge remote-tracking branch 'origin/master' into testDetector
+ - Merge remote-tracking branch 'joris/master'
+ - Added the option of a user-given sky background flux, instead of letting Sky compute this value.
+ - Testing photon noise.
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be/home/sara/softwareDevelopment/Plato/PlatoSim3/proj into riksara
+ - Testing readout noise.
+ - Updated comments in inputjoris.yaml to make nr of pixels of subfield >= 4, and number of intrapixels = 2^n <= 128.
+ - Testing photon noise.
+ - Merge branch 'master+Joris'
+ - Merge branch 'joris' into master+Joris
+ - Testing CTE.
+ - Merge branch 'psf'
+ - Add group /PSF to HDF5 file and write selectedPSF.
+ - First version of rebin() method.
+ - Testing digital saturation.
+ - Testing rebinning.
+ - Testing rebinning.
+ - Testing adding background flux (at sub-pixel level).
+ - Testing the isInSubPixelMap() method.
+ - Testing flatfielding.
+ - Testing application of quantum efficiency.
+ - Testing the application of the gain.
+ - Documenting the tests written so far.
+ - Testing addition of electronic offset.
+ - Testing addition of electronic offset.
+ - Added test to make sure the flatfield map is not reset.
+ - Testing reset.
+ - Testing dimensions of the maps after initialisation.
+ - Placeholder for all test methods.
+ - Merge remote-tracking branch 'joris/master'
+ - Temporarily deactivated convolution in Camera::exposeDetector() and in Simulation::run().
+ - Simulation::run() now sets the proper PSF for Detector.
+ - Implemented Detector::psfIsSet(), Detector::setPsfForSubfieldCenter(), and added a Convolver class to Detector.
+ - Merged selecting and getting the PSF in one function Camera:getPsfForPlanarFocalPlaneCoordinates().
+ - Changed Convolver so that the kernel does not need to be supplied through the constructor.
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be/home/rik/git/PlatoSim3/proj into rik
+ - First version of Convolver, which uses FFTW.
+ - Fixed a erroneous comment line in install_armadillo.py.
+ - Added FFTW as a dependency to do the convolution. Created a python install script. Adapted the install.py and CMakeLists.txt accordingly.
+ - Merge remote-tracking branch 'rik/master'
+ - Should we not exit here, or better throw an Exception?
+ - Merge branch 'psf'
+ - Merge remote-tracking branch 'joris/master'
+ - Convolution done by the detector with a PSF that is known by the detector.
+ - Provide a method to convolve with the PSF that has been previously saved.
+ - Provide a method to get the psfMap.
+ - Fix a bug in the selection of the PSF from the HDF5 file, group name for radius needs to be fixed width of 5 characters.
+ - Differentiate between selecting the PSF for a Star (ra, dec) and selecting for the subfield center.
+ - Provide a means to get and save the PSF outside of the loop over the exposures. PSF is once selected for the center of the subfield.
+ - Merge branch 'master' into psf
+ - Merge branch 'master+Joris'
+ - Merge branch 'joris' into master+Joris
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be/home/rik/git/PlatoSim3/proj into rik
+ - First version of simfile.py: a python interface to extract the information from a PlatoSim output HDF5 file.
+ - Corrected doc of Detector::addFlux()
+ - Use clearer name for class variables Vertical layout improved Improve documentation
+ - Overhauled Camera::flushOutput() so that now we have per exposure a list of stars and their positions.
+ - Merge branch 'distortion'
+ - Fix and improve the tests for the distortion.
+ - Disable debug messages.
+ - Simplify code by defining the constructor in the class instead of outside the class.
+ - Fix the implementation of the conversion from planar to distorted coordinates.
+ - Merge branch 'master' into psf
+ - Merge branch 'master+Joris'
+ - Move construction of platform, telescope and camera into the for loop so the HDF5file is properly initialized for each iteration in the loop.
+ - Merge branch 'master+Joris'
+ - Add a check for the ACS group, If the group is not there, raise a warning message and continue without flushing Platform information.
+ - Merge branch 'joris' into master+Joris
+ - Camera::flushOuput() now also writes the (RA, dec) and Vmag of each detected star to the HDF5 output file.
+ - First version of Sky::getCoordinatesOfStarWithID() and Sky::getVmagnitudeOfStarWithID().
+ - Destructor of HDF5File now explicitely checks if the file is open before closing it.
+ - Added an HDF5File::writeAttribute() for boolean attribute values (converted to 0/1).
+ - Simulation now writes all input parameters to the output HDF5 file.
+ - Detector::generateFlatfieldMap() now writes both the PRNU and the IRNU to HDF5.
+ - Adapted Platfrom::getPointingCoordinates() so that it uses the (yaw, pitch, roll) against the original pointing coordinates rather than the current ones.
+ - Platform::spacecraftToEquatorialCoordinates() can now use either the original or current pointing coordinates.
+ - Merge branch 'joris' into master+Joris
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be/home/rik/git/PlatoSim3/proj into rik
+ - Wrote doc for Camera::flushOutput().
+ - Platform now write a history of RA, Dec, yaw, pitch, and roll to the output HDF5 file.
+ - Merge branch 'master' into psf
+ - Merge branch 'master+Joris'
+ - Merge branch 'joris' into master+Joris
+ - Improved doc of Detector::isInSubPixelMap().
+ - Corrected pixelSize unit bug in Detector::isInSubfield().
+ - Cosmetic changes to Camera.cpp
+ - Corrected coordinate transformation bug in Detector.addFlux()
+ - Fixed bug in Camera::exposeDetector()
+ - Fixed central wavelengt and FWHM of camera throughput.
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be/home/rik/git/PlatoSim3/proj into rik
+ - Removed redundant const qualifiers for pass-by-value arguments of Sky::zodiacalFlux().
+ - Fixed bug in Camera::exposeDetector() to mixed up solid angles.
+ - Added Detector::getSolidAngleOfOnePixel().
+ - Fixed Log comment bug in Camera::exposeDetector().
+ - Telescope now stores and returns the light collecting area in SI:  [m^2] rather than [cm^2]. Adapted camera accordingly.
+ - improve comment in input file
+ - Merge branch 'config'
+ - Merge branch 'master' into config
+ - Initialize includePhotonNoise from input files
+ - Merge branch 'config'
+ - Merge branch 'master+Joris'
+ - Merge branch 'joris' into master+Joris
+ - Merge branch 'docs'
+ - Adapted the /StarInfo/Starxxxxxx HDF5 group names to contain 6 rather than 5 digits for the star ID numbers.
+ - Adapted Camera::exposeDetector() so that it now uses Detector::getPlanarFocalPlaneCoordinatesOf SubfieldCorners() rather than Detector::getDiagonalLengthOfSubfield().
+ - Corrected bug in Camera::planarToAngularFocalPlaneCoordinates().
+ - Corrected bug in Camera::angularFocalPlaneToSkyCoordinates(), when (xFP, yFP) = (0,0).
+ - Added log (info) statement in Telescope::updatePointingCoordinates().
+ - Corrected bug in Platform::getPointingCoordinates().
+ - Corrected bug Platform::spacecraftToEquatorialCoordinates(): order of rotation matrices was wrong.
+ - Corrected bug in Platform, where the internal time was not initialised in the constructor.
+ - Corrected bug in JitterFromNoise::getNextYawPitchRoll() when given time interval is zero.
+ - In Detector removed getDiagonalLengthOfSubfield() and added getPlanarFocalPlaneCoordinatesOfSubfieldCorners() instead.
+ - Improved some comments in inputfile.yaml
+ - Made angle unit argument name in angularDistanceBetween() the same in the header as in the source file.
+ - Merge branch 'master' into docs
+ - improve documentation only remove the HDF5 output file in the TearDown and reset methods
+ - add doxygen style documentation
+ - Add doxygen style documentation
+ - improve information in log messages
+ - fix documentation
+ - add documentation
+ - update documentation and clean up include statements
+ - move include statements into the header file
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be/home/rik/git/PlatoSim3/proj into rik
+ - Rewrote star information recording by Camera. At destruction, this information is now written to the HDF5 file.
+ - Added HDF5File::writeArray(.., unsigned int* array, ...) also to the HDF5File header.
+ - Detector.addFlux() now returns the pixel coordinates of the pixel to which the flux was added.
+ - Added HDF5File.writeArray() for (unsigned int) native arrays.
+ - ConfigurationParameters::setParameter() now gives decent Log warnings.
+ - Cosmetic changes to Camera.cpp and HDF5File.cpp
+ - Added missing doc for Camera::setDistortionPolynomial().
+ - Camera::exposeDetector() now records information about the average star positions for output to HDF5.
+ - Merge branch 'joris' into docs
+ - Merge branch 'joris' into psf
+ - Merge branch 'joris'
+ - Merge branch 'joris' into config
+ - Added Camera::initHDF5Groups() and Camera::flushOutput() also to Camera.h
+ - First version of Camera::initHDF5Groups() and Camera::flushOutput()
+ - Use boolean values yes or no instead of 1 or 0 in inputfiles to make it clearer
+ - Cosmetic change to Simulation destructor.
+ - Detector destructor now flushes (hdf5) output, if any.
+ - Improved doc of Detector::addReadoutNoise().
+ - Removed unnecessary const type qualifiers in Sky methods.
+ - In StarCatalog, made starID 'unsigned int' instead of 'long'.
+ - addFlux(xFPprime, yFPprime, flux) now returns a boolean depending on whether (xFPprime, yFPprime) is in the subfield, or not.
+ - Improved docs of Detector::integrateLight()
+ - Merge branch 'master+joris'
+ - Merge branch 'joris' into master+joris
+ - Merge branch 'cleanup'
+ - Use object instead of pointer to object
+ - use virtual constructors in the base class
+ - Renamed again DetectorTestFixture to DetectorTest.
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be/home/rik/git/PlatoSim3/proj into rik
+ - Introduced Detector::getSubfield() and Detector::setSubfield() + unit test.
+ - Merge branch 'field-distortion'
+ - Fix tests for changes in Camera class with respect to Polynomial behaviour
+ - Fix class object to be of type Polynomial1D instead of pointer to. Adapt Camera code to work with object instad of pointer to object.
+ - Provide default constructors for Polynomial1D and Polynomial2D and add tests for those constructors.
+ - Add more generic terms for field distortion parameters
+ - Made argument names of Detector.addFlux() more precise.
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be/home/rik/git/PlatoSim3/proj into rik
+ - Camera::exposeDetector() now only computes and add the flux when the star is in the subfield.
+ - Improved docs and Log message of Camera::exposeDetector().
+ - First version of  Detector::isInSubfield().
+ - Merge branch 'joris'
+ - Merge branch 'field-distortion'
+ - basic tests for planar to distorted focal plane coordinates.
+ - First simple implementation of planar to distorted focal plane coordinates.
+ - Add polynomial coefficients to input files.
+ - Adapt test harness to the use of vector<double> instead of double[].
+ - Simplify by removing dplicate code from all functions into the getNode(..) method. Ann getDoubleVector(..) which returns a vector of doubles for the given parameter (needed for coefficients of polynomial).
+ - Use of vectors greatly simplifies the code, remove some debugging log messages.
+ - Inserted extra Log.debug() statements in Camera and PointSpreadFunction.
+ - Renamed 'location' to 'absolutePath' in PointSpreadFunction.
+ - Doc string improvement of SkyCoordinates::equatorial2ecliptic()
+ - Fixed bug in log comments written by Sky::StellarBackgroundFlux().
+ - Cosmetic changes in Sky and Skydata.
+ - Fixed typo in log statement written by Simulation.
+ - Added unit tests for SkyCoordinates.
+ - Renamed GTestCoordinates.h to GTestSkyCoordinates.h. Changed AllTests.cpp accordingly.
+ - Merge branch 'master' into field-distortion
+ - Merge branch 'exceptions'
+ - move includes into the header file
+ - make local functions static, remove constructor that takes a char * because it is redundant
+ - move all includes into the header file, also the using statement
+ - Merge branch 'master' into field-distortion
+ - Merge branch 'joris'
+ - Merge branch 'field-distortion'
+ - Replace the evaluateAt() method with operator overloading operator().
+ - Resolved merge conflicts in Camera.cpp and GTestCamera.h.
+ - First version of Telescope.platformToTelescopePointingCoordinates().
+ - Updated Telescope.updatePointingCoordinates() to new version of Platform.getPointingCoordinates().
+ - First version of Platform::getPointingCoordinates(time).
+ - First version of Platform::spacecraftToEquatorialCoordinates().
+ - Detector::takeExposure() now returns the time after the exposure finished.
+ - Simulation now checks if output filename already exists, and aborts if so.
+ - Improved HDF5File.open() so that there are no longer unclear warnings.
+ - Changed Coordinates to SkyCoordinates in GTestCamera and GTestCoordinates as well.
+ - Merge branch 'master' into field-distortion
+ - Merge branch 'psf'
+ - First version of 1D polynomial similar to 2D polynomial
+ - Merge branch 'master' into psf
+ - Merge branch 'field-distortion'
+ - Update test harness for angular to planar conversion
+ - Adapt the Camera functions to use focalLength instead of platescale
+ - Renamed class Coordinates to SkyCoordinates.
+ - JitterGenerator::getNextYawPitchRoll() now return a tuple.
+ - Add FocalLength parameter to the input files
+ - Merge branch 'master' into field-distortion
+ - Merge branch 'master+Joris'
+ - Fix calculation of radius to determine position of PSF
+ - Initialize the current position of the optical axis from the platform
+ - fix unit tests for new / renamed methods in Camera and Detector
+ - Merge branch 'joris' into master+Joris
+ - Merge branch 'field-distortion'
+ - tests for degree 1, 2, and 3
+ - Add documentation and comment out debug lines
+ - fix calculation of terms
+ - Add output stream cerr (but commented) for if we want to see the output of the tests on the terminal.
+ - Merge branch 'strings' into field-distortion
+ - first version of Polynomial2D
+ - Adapted Platform::rotateYawPitchRoll() to new version described in Technical Note PLATO-KUL-PL-TN-001.
+ - Camera and Detector now make an explicit distinction between planar and angular focal plane coordinates.
+ - Sky::stellarBgFlux() no longer gives an error but a warning when it has no data for a position in the sky.
+ - refactor StringUtilities as a namespace, no need for a class. This allows the 'using namespace StringUtilities' or even better 'using StringUtilities::dtos' local to a function;
+ - Merge branch 'master' into psf
+ - Merge branch 'joris'
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be/home/rik/git/PlatoSim3/proj into rik
+ - add precision parameter to dtos(..)
+ - First Implementation of StringUtilities::dtos(..) for use in Log messages.
+ - Merge branch 'exceptions'
+ - add override identifier to virtual function what() explicitly use private instead of assuming implicite private variables
+ - layout changes
+ - fix test for changes in what() method of IllegalArgumentException
+ - fix tests for changes in what() method of IllegalArgumentException
+ - remove c-style method that takes char *, let compiler do conversion to string. add identifier override to virtual function what() use private explicitly instead of assuming implicite private
+ - Merge branch 'psf'
+ - check if PSF file exists before opening, because the HDF5File constructor otherwise creates an empty file.
+ - Merge branch 'psf'
+ - catch file open error when incorrect filename is passed into HDF5File constructor
+ - fix incorrect HDF5 file location for tests
+ - put HDF5File as extra info in exception messages
+ - remove c-style constructors, char * is converted to string by compiler, simplify what() methods
+ - using namespace std and get rid of obsolete std::
+ - remove duplicate include
+ - add file location iformation to exception messages and add debugging log message
+ - add file location to exception message
+ - Merge branch 'psf'
+ - use LOG_STARTING_OF_TEST in all test cases
+ - Add a definition to log the start of a test at info level.
+ - Corrected the bug in  Camera::skyToFocalPlaneCoordinates(), Camera::focalPlaneToSkyCoordinates(), and Camera::getGnomonicRadialDistanceFromOpticalAxis() where a tangens was omitted in the conversion between angular and planar focal plane coordinates.
+ - Delete old test data
+ - Ignore large psf inputfiles
+ - Fix this method to work with the new format of the HDF5 PSF file.
+ - editorial changes
+ - The root group is now T6000. We should find a better way to use this value instead of hard coded.
+ - Add todo entry for this class at the top
+ - Add pretty printers for the new HDF5 Exceptions
+ - Use new PSF format file in test data
+ - add new methods to class definition
+ - Add methods to read double-valued attribute from a group or a dataset
+ - Add method to check if dataset exists in a group
+ - write documentation
+ - write doxygen documentation for some methods
+ - HDF5 Exception on file, group, dataset, and attribute level. Use these at application level.
+ - document exceptions
+ - use the correct type for double attributes
+ - Merge branch 'master' into psf
+ - rotation angle is now in radians
+ - plateScale is in arcsec/micron
+ - interface change: the rotation angle is now in radians
+ - Merge branch 'psf'
+ - add more documentation and improve select and rotate methods (needs further tests)
+ - add the rotation angle of the psf as internal variable
+ - use Filename instead of FileName
+ - psf.select now expects radians
+ - improve calculation of radius for selectPsf and calculate rotation angle.
+ - add clarifying comment
+ - comment out debugging messages that clutter the output too much
+ - fix name of test in log message
+ - Add start for Coordinates tests.
+ - Added the remove function.
+ - Revert "Revert "Added remove function.""
+ - Revert "Added remove function."
+ - Added remove function.
+ - Add some documentation and tests for the bigNulledArray. Add a TODO list of tests.
+ - Get rid of unused variable compiler warnings.
+ - Start test for selecting PSF.
+ - Simplify tests based on working conversion code.
+ - Add PSF/Filename to the input files for tests.
+ - move rotate and select methods into public. Add status variable to keep track if the PSF has been rotated or not.Add lookup table for radius at which PSF is generated.First version of select and rotate methods.
+ - use class variable this->filename here since it is overwritten by the local variable filename
+ - provide conversion methods for the normalized focal plane coordinates which leave out the plate scale conversion. This might be temporary until we solve the conversion between focal plane coordinates [mm] and focal plane coordinates in [deg].
+ - Merge branch 'test+doc'
+ - Use getAbsoluteFilename(..) for retrieving the star catalog filename from the input files
+ - Test for sky to focal plane disabled temporarily till we solve the discrepancy
+ - documentation update
+ - Merge branch 'master+Joris'
+ - Merge branch 'joris' into master+Joris
+ - Merge branch 'rotation'
+ - Add simple tests for array rotation.
+ - Add first working version of array rotation by an arbitrary angle. This code is not yet optimized for speed nor for duplicate code.
+ - Updated camera so that it now calls telescope.getCurrentPointingCoordinates() rather than getPointingCoordinates().
+ - Merge branch 'master' into telescope2
+ - In Telescope: driftYawRms, driftPitchRms, and driftRollRms are now stored in radians rather than arcsec.
+ - Platform and Telescope now distinguish between current and original pointing coordinates (as the latter evolves in time).
+ - Improved docs inside JitterFromFile and JitterFromRedNoise.
+ - Merge branch 'master+Sara'
+ - Merge branch 'sara' into master+Sara
+ - Merge branch 'tests'
+ - Add starcatalog to inputfiles and make sure it is not ignored by git.
+ - add starcatalog test data
+ - Fix and activate test harnesses again
+ - Added Telescope::spacecraftToFocalPlaneCoordinates() and Telescope::focalPlaneToSpacecraftCoordinates(). Currently the two reference frames are assumed identical.
+ - Platform::updatedPointingCoordinates() now takes a Telescope& argument. Required mutual forward declarations in Platform and Telescope.
+ - Removed duplicate header inclusion in Camera.h
+ - Corrected tags.
+ - Merge branch 'openShutterSmearing'
+ - Implemented open-shutter smearing.
+ - Merge branch 'CTE'
+ - Merge remote-tracking branch 'origin/master' into CTE
+ - Merge remote-tracking branch 'joris/master'
+ - Implemented CTE.
+ - Merge branch 'joris'
+ - First version of Platform::rotateYawPitchRoll().
+ - In Telescope::updatePointingCoordinates(), added a check if the given time equals the internal time of the Telescope.
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be//home/sara/softwareDevelopment/Plato/PlatoSim3/proj into sara
+ - Updating photonNoiseDistribution (int to long).
+ - Fixed auto-break of Eclipse after column 80 in Detector.
+ - Merge remote-tracking branch 'joris/master'
+ - JitterFromRedNoise now stores the jitter RMS values in [radians].
+ - Simulation class now includes JitterFromRedNoise as a jittering option.
+ - First version of the class JitterFromRedNoise.
+ - Sky::zodiacalLight() now returns 0.0 and gives a warning if no data is available for the given sky position.
+ - Removed JitterInterval from inputfile.yaml as it will be automatically determined.
+ - Platform now reads the pointing coordinates from the configuration input parameters file.
+ - Cosmetics in the Platform header file.
+ - Telescope now gets the pointing coordinates from Platform, rather than reading it from the configuration input file.
+ - Fixed bug in Simulation::configure() because ConfigurationParameters::getBoolean() cannot parse integers.
+ - Added empty bodies of constructor and destructor in JitterGenerator.h
+ - First version of JitterFromFile class.
+ - JitterGenerator now only has a default constructor. Also removed configure() as the configuration will be done by the deriving classes.
+ - Added Platform::configure().
+ - Removed getGnomonicRadialDistance() from Camera::selectPsf() as this will be replaced by another function.
+ - Added another configuration parameter for Simulation::configure() to include.
+ - Simulation class now defines a JitterGenerator and a Platform object.
+ - Fixed a bug in the constructor of Sky.
+ - Made JitterGenerator an abstract base clase.
+ - Added a Simulation::configure() method.
+ - Added Platform::getHeartbeatInterval().
+ - Telescope now accepts a Platform object in its constructor.
+ - First version of Platform.
+ - Renamed Camera::getGnomonicRadialDistance() to Camera::getGnomonicRadialDistanceFromOpticalAxis().
+ - Disabled unit tests compilation until the API is more stable.
+ - Cleaned up Camera::skyToFocalPlaneCoordinates() and Camera::focalPlaneToSkyCoordinates().
+ - Removed Camera::getAngularDistance() as it is a numerically less accurate duplicate of Coordinates::angularDistanceBetween().
+ - Resolved conflicts after merging with Rik's public master.
+ - Adapted Detector::readOut() so that it no longer accepts the exposureTime, and so that it updates Detector's internal clock.
+ - Telescope::updatePointingCoordinates() now accepts a 'time' rather than a timeInterval.
+ - Made Detector::addFlux() methods public.
+ - Camera now configures the quantities throughputBandwidth and throughputLambdaC.
+ - Updated version of Detector::takeExposure, taking into account camera.exposeSubfield()
+ - Added the private variable 'internalTime' to the classes Camera and Telescope.
+ - First version of Camera::exposeDetector()
+ - Simulation class now allocates the Sky, Camera, and Telescope classes.
+ - Constructor of Detector now accepts a camera in its constructor.
+ - Detector and Camera need to know about each other, so included forward declarations in each of the header files.
+ - Cosmetic changes to comment lines in Telescope.h.
+ - Merge branch 'moreTestingNeeded'
+ - Telescope now correctly configures LightCollectingArea, TransmissionEfficiency, and FOVsolidAngle. Implemented getters for these 3 quantities.
+ - Preparations for rotate()
+ - move initialization out of configure into the constructor
+ - set location of optical axis to (0, 0) for unit tests
+ - Added functionality in Units.h to deal with solid angles.
+ - Start on rotation...
+ - Added subclass of Camera to allow for testing proptected methods. Improved testing of coordinate transformations...
+ - Made all methods in Sky class start with a lowercase rather than a uppercase letter.
+ - Added subclass of Detector to allow testing of protected methods.
+ - Sky class now accepts a ConfigurationParameters object in its constructor. Adapted GTestCamera.h accordingly.
+ - Remove the need for UNIT_TEST
+ - Playing around with the coordinate transformations based on the technical note on reference frames. This is an intermediate commit, code compiles but is not correct yet...
+ - Remove the need for UNIT_TEST
+ - Adapted GTestCamera to new fields in yaml inputfile.
+ - Adapted
+ - Added ThroughputBandwidth and ThroughputLambdaC to inputfile.yaml
+ - Replaced FieldOfViewRadius with FOVSquareDegrees in inputfile.yaml
+ - Removed Telescope::setPointingCoordinates() as use case is no longer there. Re-instated the updatePointingCoordinates() method.
+ - Making the following methods In Detector public instead of protected: pixelToFocalPlaneCoordinates(), focalPlaneToPixelCoordinates(), getFocalPlaneCoordinatesOfSubfieldCenter(), and getDiagonalLengthOfSubfield().
+ - fixed a typo
+ - Cleanup CameraTest input/configuration file
+ - Add some pretty printers for exceptions
+ - Merge branch 'joris' into moreTestingNeeded
+ - Merge branch 'joris'
+ - Use the new individual input files for each component.
+ - New input file for these components
+ - Add explanatory comment at the top
+ - Add and improve testing of coordinate transformations in Camera and Detector.
+ - Add directive UNIT_TEST to enable testing of protected and private methods.
+ - Add protected and private information to the documentation Allow processing of mathematical formulas in the documentation.
+ - Just simple tests for this component
+ - A specific input file for each unit/component test so that values can be tuned independent of other unit tests
+ - Read orientationAngle in radians. column and row were switched in pixelToFocalPlaneCoordinates.
+ - Add helper methods for coordinate conversion (taken from old Python code) to select correct PSF. Further work on skyToFocalPlane...
+ - Added Detector::getFocalPlaneCoordinatesOfSubfieldCenter() and Detector::getDiagonalLengthOfSubfield().
+ - Fixed bug in Detector::applyCte() where a decreasing unsigned int variable in a for loop could never become negative.
+ - Merge branch 'tests'
+ - Add first tests for skyToFocalPlaneCoordinates...
+ - Merge branch 'joris'
+ - Added Detector::pixelToFocalPlaneCoordinates() and Detector::focalPlaneToPixelCoordinates().
+ - Fixed bugs in Camera that went unnoticed because the source file was excluded in CMakeLists.txt
+ - Added a camera::focalPlaneToSkyCoordinates() method.
+ - Renamed Camera::getFocalPlaneCoordinates() to Camera::skyToFocalPlaneCoordinates(), as it does not concern a getter.
+ - Camera::getFocalPlaneCoordinates() no longer requires the raOpticalAxis, decOpticalAxis, and the plateScale as arguments, but derives them itself.
+ - Fixed bug in conversion factor in Camera::getFocalPlaneCoordinates().
+ - Changed arguments of getFocalPlaneCoordinates() called in Camera::selectPsf().
+ - Fixed syntax error in Camera::configure().
+ - Removed getter and setter for a platform and lightCollectingArea in Telescope. These values will be set directly in the constructor or in configure().
+ - Added setPointingCoordinates() and getPointingCoordinates() in Telescope.
+ - #included Units.h in the Telescope header file.
+ - Adapted constructor of Telescope so that it now accepts an HDF5File.
+ - Fixed the Telescope base class names, which were forgotten in commit 924691.
+ - Added Telescope::configure() also in the Telescope.h header file.
+ - Added the input parameters of the Telescope section in inputfile.yaml in the Telescope class definition.
+ - Renamed in Detector::addFlux() rowFocalPlane & columnFocalPlane to xCoord & yCoord. There is no notion of rows and columns in the focal plane, only in Detector.
+ - Added Telescope::configure().
+ - Adapted the Constructor of Telescope so that it computes its heartbeat interval.
+ - Adapted the constructor of Camera to accept Telescope and Sky.
+ - Added FieldOfViewRadius to the Telescope section in the inputfile.yaml
+ - Replaced TimeTicker with Heartbeat in Camera, Telescope, and Platform.
+ - Replaced TimeTicker with Heartbeat.
+ - Cosmetic change to argument variable name in Detector::addFlux()
+ - Extended the constructor of Camera, and added more methods in the header file.
+ - Merge remote-tracking branch 'rik/master'
+ - Including application of CTE again.
+ - Add test for PSF convolution.
+ - Merge branch 'joris'
+ - Merge branch 'psf'
+ - Added proper constructor and intialisation of configuration parameters by the configure() method Started with selectingthe proper PSF from the input HDF5 file
+ - Merge branch 'convolution'
+ - Implement convolution with PSF.
+ - Merge branch 'CTE'
+ - New implementation of CTE.
+ - Merge branch 'master' into psf
+ - Merge branch 'sara'
+ - Merge remote-tracking branch 'joris/master'
+ - Replaced armadillo 6.400.3 with 6.500.4. Adapted CMakeLists.txt and install_armadillo.py accordingly.
+ - Added Log.debug() information in several of the Detector methods()
+ - Commented out applyCte() because of compilation errors.
+ - Fixed annoying auto-breaks at column 80 of Eclipse.
+ - Removed hard-coded configuration parameters in Detector in favor of configure().
+ - Changed type of random seeds from double to long.
+ - Added a configure() method to Detector.
+ - Constructor of Detector now takes a ConfigurationParameters object. Adapted Simulation accordingly.
+ - Using a smaller default size of the subfield in inputfile.yaml.
+ - Changed PixelScale to PlateScale in inputfile.yaml
+ - Added a getLong() method to ConfigurationParameters.
+ - Changed SubField argument of Camera::exposeSubField() to Detector
+ - Added or renamed configuration parameters in inputfile.yaml
+ - In Detector: changed name originOffsetRow -> originOffsetY and originOffsetColumn -> originOffsetX to avoid confusion due to CCD orientation in the focal plane.
+ - #included the ConfigurationParameters header file in the headers of Detector, Simulation, and Sky.
+ - Putting member initialiser list below the class constructor heading, instead of after.
+ - Split the PSF input parameters from the Camera input parameters in inputfile.yaml.
+ - Git-un-ignored some of the example input files in the inputfiles/ folder.
+ - Merge branch 'master' into psf
+ - Merge branch 'master+masterSara'
+ - Cosmetic change.
+ - Merge branch 'master+masterSara' into psf
+ - Merge branch 'master+masterSara'
+ - Merging digitalSaturation branch.
+ - Solving compilation problems in Sky constructor by including iterator.
+ - Merge branch 'CTE'
+ - Merge remote-tracking branch 'origin/master' into CTE
+ - Uncommenting code in Sky constructor.
+ - Merge remote-tracking branch 'origin/master' into CTE
+ - Merge remote-tracking branch 'joris/master'
+ - Implemented CTE.
+ - Added gain to Detector so that dividing by gain no longer gives NaN in HDF5 images.
+ - Resolved conflicts after merging with Sara's and Rik's branch.
+ - First version of the Sky class.
+ - First version of StarCatalog
+ - Changed .gitignore so that it ignores files in the inputfiles/ folder by default.
+ - Renamed angleUnit to outputAngleUnit in the Coordinates::angularDistanceBetween() functions for clarity.
+ - Fixed bug in TabulatedFunction::integrate().
+ - Removed Begin() and End() methods in TabulatedFunction. Renamed Integrate() to integrate().
+ - Merge branch 'master' into psf
+ - Added angularDistanceBetween() functions also outside the class definition of Coordinates
+ - Merge branch 'master+saraMaster'
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be/home/sara/softwareDevelopment/Plato/PlatoSim3/proj into master+saraMaster
+ - Rename all FileName to Filename
+ - Added vector-version of angularDistanceBetween() as friend function in Coordinates.h.
+ - Merge branch 'psf'
+ - Rename method setNode(..) to setParameter(..)
+ - Remove hasDataset function as it should be in HDF5File, use FileException instead of exit(1)
+ - Editorial change
+ - Changed exception that was thrown when input file doesn't exist
+ - Remove logging statements as they are logged by the Exceptions
+ - Add new FileException and log exception message as Error
+ - Added -Wno-return-type as compiler option to CMakeLists.txt file.
+ - Added a vector version of angularDistanceBetween in Coordinates.
+ - First complete version of TabulatedFunction.h
+ - Added the header file Constants.h
+ - Check if the HDF5 file has the expected group "6000"
+ - Add the hasGroup(..) method and disable printing exceptions
+ - Generation of the CTE map.
+ - Dividing by the gain (instead of multiplying with it).
+ - First version of Skydata.h.
+ - Add PSF HDF5 input file for running unit tests and add PSF specific input parameters to the input file
+ - Use the new setNode(..) method to allow reading the PSF.hdf5 from the testData directory
+ - Test setNode(..) method and behaviour when requesting values for non-existing keys
+ - Add Logging for the tests
+ - Implement constructor for PSF
+ - Simplify error reporting and add setNode(..) method
+ - Making sure "sub-field" is no longer used in documentation.
+ - Add new type of Exception
+ - Some editorial changes and add test for unknown keyword in input file
+ - Start unit test for PointSpreadFunction
+ - Add new type of Exception
+ - Add new classes..
+ - fix capitalisation of includes and superclass
+ - Revert "Reimplemented changes of commit fa44e57, that got lost when solving merge conflicts."
+ - Merge branch 'psf'
+ - Corrected inclusion of Logger.
+ - Merge remote-tracking branch 'joris/master'
+ - Reimplemented changes of commit fa44e57, that got lost when solving merge conflicts.
+ - Fix all filename with the 'git mv' command to proper CamelCase.
+ - Merge branch 'CamelCase'
+ - Fix all file names and include statements to proper CamelCase
+ - Merge branch 'doxygen'
+ - Merge branch 'psf'
+ - Merge branch 'master+masterJoris'
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be/home/joris/github/PlatoSim3/proj into master+masterJoris
+ - Used Rik's suggestion to optimise CMakeLists.txt so that source files are not compiled twice for platosim and testplatosim.
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be/home/joris/github/PlatoSim3/proj into master+masterJoris
+ - Don't use GLOB in CMakeLists.txt as it is not recommended. external Logger should also be known in AllTests.cpp
+ - Merge remote-tracking branch 'joris/master'
+ - Fixed problem with compilation of unittests.
+ - Skeleton for the PSF class
+ - First working version of the Coordinates class.
+ - Added deg2rad() and rad2deg() inline functions in units.h
+ - Removing shared library libplatosim from CMakeLists.txt. Commenting out testplatosum executable and linking because of linking problems.
+ - Rename proper CamelCase..
+ - Pure documentation update
+ - Editorial changes to doxygen configuration file
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be/home/rik/git/PlatoSim3/proj into rik
+ - Cosmetic changes to hdf5file.cpp
+ - Adapting Detector class to include more functionality of Armadillo + code review.
+ - Start documentation in doxygen..
+ - Merge branch 'master+masterJoris'
+ - Provide PlatoSim library
+ - Merge branch 'configurationParameters' into master+masterJoris
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be/home/joris/github/PlatoSim3/proj into master+masterJoris
+ - Resolved conflicts in detector.h and detector.cpp after merging with Sara's master branch.
+ - Temporarily hardcoded some Detector characteristics. Initialised pixelMap en flatfieldMap accordingly.
+ - Improved the formatting of the log file output.
+ - Added initialisation of dedicated HDF5 groups in constructor of Detector.
+ - Fixed initialisation of parent class HDF5Writer in constructor of child class Detector.
+ - Cosmetic changes to the code.
+ - Added Logging messages in various source files.
+ - The Logger object is now defined in main.cpp instead of logger.h.
+ - Fixed bug in logger.h: static Logger -> extern Logger.
+ - Added Detector::writePixelMapToHDF5() method.
+ - Changed 2D maps in detector from <double> to <float>. Adapted read/writeArray in hdf5file accordingly.
+ - Added #include "logger.h" in all header files.
+ - Changed compiler option -Wunused-variable to -Wno-unused-variable in CMakeLists.txt.
+ - Replaced native double** arrays with armadillo arrays in the Detector class.
+ - Adapted CMakeLists.txt so that platosim is now linked with the HDF5 and the Armadillo dependency libraries.
+ - The platosim executable (main.cpp) now expects the HDF5 output filename as an extra command line argument.
+ - The Simulation class now creates and passes on an HDF5File to the different components.
+ - Added an (virtual override) initHDF5Groups() method to the Detector class.
+ - Added an initHDF5Groups() method to the HDF5Writer class.
+ - First version of hdf5file to write attributes and arrays to HDF5.
+ - Adapted the armadillo install script so that it now fixes the relative path in the armadillo.6.dylib library on OSX.
+ - Added Armadillo to the dependencies/Downloads/ folder, and an install_armadillo.py script. Adapted install.sh and CMakeLists.txt accordingly.
+ - Add simple tests for isRelative.
+ - Remove obsolete comments at the top
+ - Add doxygen comments
+ - Write documentation in doxygen
+ - Remove the extra blank line
+ - Add General/ProjectLocation and use relative paths for all other parameters.
+ - Add vertical spacing and add tests for conversions.
+ - Add documentation
+ - Remove obsolete and redundant comments at the top of the file.
+ - Use new split method from StringUtilities and renamed getProjectFileName to getAbsoluteFilename.
+ - Turned into a class with static methods and rewrite the split function based on input from Joris.
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be/home/sara/softwareDevelopment/Plato/PlatoSim3/proj into configurationParameters
+ - Remove JSon related tests and improved yaml testing.
+ - Add FileUtilities tests.
+ - Add special input values for tests.
+ - Use more portable code to check file properties.
+ - Remove all JSon related code and tests.
+ - Resolving warning (signed vs. unsigned).
+ - Merge branch 'noise'
+ - Implemented CTE.
+ - De-allocate memory when initialising flatfield map.
+ - Merge noise branch
+ - Initialisation of the flatfield map.
+ - First basic implementation of configurationParameters using a strategy pattern to allow two types of input format, JSon and Yaml.
+ - Merge branch 'masterSara'
+ - Initialisation of the maps.
+ - Implemented readout noise.
+ - Implemented photon noise.
+ - Merge remote-tracking branch 'origin/master' into noise
+ - Casting (row, column) to int in addFlux().
+ - Replaced addSkyBackground() by addFlux().
+ - Added the addSkyBackground() method.
+ - Properly documented units.
+ - Ensuring consistency in naming dimensions.
+ - Removed the applyExposureTime() method.
+ - Include cmath.
+ - Round (row, column) in addFlux() method.
+ - Merge branch 'dimensions'
+ - Remove code that was commented out (getters).
+ - Expressing origin offset, zeropoint, and CTE position in (row, column).
+ - Expressing dimensions in (row, column) rather than in (y, x).
+ - Merge remote-tracking branch 'joris/master'
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be//home/sara/softwareDevelopment/Plato/PlatoSim3/proj into sara
+ - Added the yaml-cpp dependency, made an install_yaml script, and adapted install.sh accordingly.
+ - Fixed typo in install_googletest.py
+ - Moved applyExposureTime() up.
+ - Merge branch 'quantumEfficiency'
+ - Added applyExposureTime() method.
+ - Merge remote-tracking branch 'joris/master'
+ - Reorganised location of installscripts, adapted install.sh accordingly.
+ - Added a global install script that builds and installs the dependencies as well as the simulator itself.
+ - Added the googletest library and a python install script for it.
+ - Debugged Detector::reset() so that it no longer uses memset(). Fixed some loose ends so that Detector now compiles.
+ - Made first version of Simulation class that interacts with Detector.
+ - Fixed typo in main.cpp
+ - SubField is no longer used and no longer tracked by git.
+ - Fixed bug in CMakeLists so that unfinished source files are now really removed from the list of files to compile.
+ - Included path to header files of HDF5 library in CMakeLists.txt
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be//home/sara/softwareDevelopment/Plato/PlatoSim3/proj into sara
+ - Removed unfinished header and source files in CMakeLists.txt
+ - Downscaled simulation.h and simulation.cpp code to make it work with detector only.
+ - Initialised Logger instance in main.cpp
+ - First version of the HDF5file and HDF5Writer classes.
+ - Amended .gitignore so that it ingores all installations in the dependencies/Installs folder.
+ - Added the Python install script for the HDF5 library.
+ - Added the hdf5-1.8.16 package to the dependencies/Downloads/ folder.
+ - Merge branch 'implementationStrategyStep1'
+ - Commented out implementation of photon noise.
+ - Using the sub-field size instead of detector size to loop over maps.
+ - Implemented full-well saturation.
+ - Implemented photon noise.
+ - Implemented efficiency.
+ - Exposure time is required to qpply quantum efficiency.
+ - Documentation + use of sub-pixel and pixel map.
+ - Both pixel and sub-pixel map are stored after rebinning.
+ - Renamed isInSubField() to isInSubPixelMap().
+ - Resetting pixel, sub-pixel, bias register, and smearing map.
+ - De-allocating arrays in destructor.
+ - Allocating memory for pixel, sub-pixel, bias register, and smearing map.
+ - Storing both the pixel and the sub-pixel map.
+ - Implemented digital saturation.
+ - Implemented electronic offset.
+ - Implemented gain.
+ - Implemented flatfielding.
+ - Implemented resetting methods.
+ - Implementation of destructor.
+ - Changed type of sub-field dimensions from double to int.
+ - Implementation of rebin().
+ - Implementation of addFlux() and isInSubField().
+ - Added rebinning + deleted getters.
+ - Moving methods from SubField to Detector.
+ - Merge branch 'implementationStrategyStep1'
+ - Implemented integrateLight(startTime, exposureTime) method.
+ - Storing SubField.
+ - Implemented reset() method.
+ - Initialisation + destruction of the sub-pixel map.
+ - Cast (row, column) coordinates to integers in addFlux(x, y, flux).
+ - Implementation of the addFlux() methods.
+ - Merge remote-tracking branch 'joris/master'
+ - First version of TabulatedFunction header file.
+ - Merge remote-tracking branch 'joris/master'
+ - Added example of a yaml configuration file.
+ - Adapted Camera::exposeSubField() method to include the TimeTicker functionality, to determine the timestep.
+ - Made Camera, Detector, Platform, Telescope, and Sky derive from TimeTicker and Hdf5Writer.
+ - First version of the Hdf5Writer class.
+ - First version of the definition of the Hd5File class.
+ - First version of the TimeTicker class.
+ - Merge remote-tracking branch 'joris/master'
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be//home/sara/softwareDevelopment/Plato/PlatoSim3/proj
+ - First version of logger class.
+ - Vertical spacing.
+ - Merge branch 'subField'
+ - Merge remote-tracking branch 'joris/master' into subField
+ - Changed signature of the constructor.
+ - Updated constructor and getNextYawPitchRoll() method in jittergenerator.h.
+ - Corrected non-existent "unsigned double" type in telescope.h
+ - Merge branch 'master' of ssh://copernicus.ster.kuleuven.be/home/rik/git/PlatoSim3/proj
+ - Added more backgroundFlux() methods to Sky.h
+ - Merge branch 'subField'
+ - Placeholder for all methods in the header file.
+ - Defined extra variables for coordinate conversion.
+ - Resolved compilation problems.
+ - Added getters for origin offset, pixel size, and orientation.
+ - Merge branch 'telescope+detector'
+ - Added comments.
+ - Vertical spacing.
+ - Definition of the header file.
+ - Placeholder for all methods in the  header file.
+ - First version of units.h
+ - First version of the Coordinates class.
+ - Placeholder for all methods from header file + documentation.
+ - Definition of the header file for detector.
+ - Changed name of Controller to Simulation. Adapted main.cpp accordingly.
+ - Very first skeleton version of the code.
+ - Initialisation of PlatoSim3 repository.
+
