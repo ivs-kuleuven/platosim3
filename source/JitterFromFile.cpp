@@ -119,7 +119,17 @@ void JitterFromFile::configure(ConfigurationParameters &configParams)
 
 tuple<double, double, double> JitterFromFile::getNextYawPitchRoll(double timeInterval)
 {
-    // Advance the pointer 'timeIndex' in our precomputed jitter series such that we have
+    // If the time interval is zero then no interpolation is needed, just return 
+    // the (yaw, pitch, roll) at the current index. Don't advance the timeIndex, 
+    // because more timeInterval==0.0 may turn up.
+
+    if (timeInterval == 0.0)
+    {
+        return make_tuple(yaw[timeIndex], pitch[timeIndex], roll[timeIndex]);
+    }
+
+    // If timeInterval is larger than zero, Advance the pointer 'timeIndex' in our precomputed 
+    // jitter series such that we have
     //      time[index] <= internalTime + timeInterval < time[index+1]
 
     while (time[timeIndex] < internalTime + timeInterval)
@@ -137,9 +147,9 @@ tuple<double, double, double> JitterFromFile::getNextYawPitchRoll(double timeInt
     timeIndex--;
     const double weight1 = (internalTime + timeInterval - time[timeIndex]) / (time[timeIndex+1] - time[timeIndex]);
     const double weight2 = (time[timeIndex+1] - internalTime - timeInterval) / (time[timeIndex+1] - time[timeIndex]);
-    const double newYaw   = yaw[timeIndex]   * weight1 + yaw[timeIndex+1]   * weight2;
-    const double newPitch = pitch[timeIndex] * weight1 + pitch[timeIndex+1] * weight2;
-    const double newRoll  = roll[timeIndex]  * weight1 + roll[timeIndex+1]  * weight2;
+    const double newYaw   = yaw[timeIndex]   * weight2 + yaw[timeIndex+1]   * weight1;
+    const double newPitch = pitch[timeIndex] * weight2 + pitch[timeIndex+1] * weight1;
+    const double newRoll  = roll[timeIndex]  * weight2 + roll[timeIndex+1]  * weight1;
     
     // Update the internal time
 

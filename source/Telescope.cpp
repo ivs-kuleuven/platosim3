@@ -186,36 +186,24 @@ void Telescope::updatePointingCoordinates(double time)
 		exit(1);
 	}
 
-    // If the give time equals exactly the current internal time, then there is nothing to update.
+    // Check if the given 'time' is the same as the last one we processed (and kept).
+    // If so, nothing has to change.
 
-    if (time == internalTime)
+    if (!historyTime.empty())
     {
-        Log.debug("Telescope: updatePointingCoordinates: coordinates up-to-date for requested time " + to_string(time));
-        Log.debug("Telescope: At time " + to_string(time) + ": (azimuth, tilt, roll orient) = (" 
-                                        + to_string(rad2deg(currentAzimuthAngle)) + ", " 
-                                        + to_string(rad2deg(currentTiltAngle)) + ", " 
-                                        + to_string(rad2deg(currentFocalPlaneOrientation)) + ") deg");
-
-        Log.info("Telescope: At time " + to_string(time) + ": (RA, dec) = (" 
-                               + to_string(rad2deg(currentAlphaOpticalAxis)) + ", " 
-                               + to_string(rad2deg(currentDeltaOpticalAxis)) + ")");
-       
-        // If we haven't saved the optical axis coordinates for this time point yet, do so.
-
-        if (historyTime.empty())
+        if (time == historyTime.back())
         {
-            historyTime.push_back(time);
-            historyRA.push_back(rad2deg(currentAlphaOpticalAxis));                            // [deg]
-            historyDec.push_back(rad2deg(currentDeltaOpticalAxis));                           // [deg]
-            historyYaw.push_back(0.0);                                                        // [arcsec]
-            historyPitch.push_back(0.0);                                                      // [arcsec]
-            historyRoll.push_back(0.0);                                                       // [arcsec]
-            historyAzimuth.push_back(rad2deg(currentAzimuthAngle));                           // [deg]
-            historyTilt.push_back(rad2deg(currentTiltAngle));                                 // [deg]
-            historyFocalPlaneOrientation.push_back(rad2deg(currentFocalPlaneOrientation));    // [deg]
-        }
+            Log.debug("Telescope: updatePointingCoordinates: coordinates up-to-date for requested time " + to_string(time));
+            Log.debug("Telescope: At time " + to_string(time) + ": (azimuth, tilt, roll orient) = (" 
+                                            + to_string(rad2deg(currentAzimuthAngle)) + ", " 
+                                            + to_string(rad2deg(currentTiltAngle)) + ", " 
+                                            + to_string(rad2deg(currentFocalPlaneOrientation)) + ") deg");
 
-        return;
+            Log.info("Telescope: At time " + to_string(time) + ": (RA, dec) = (" 
+                                   + to_string(rad2deg(currentAlphaOpticalAxis)) + ", " 
+                                   + to_string(rad2deg(currentDeltaOpticalAxis)) + ")");
+            return;
+        }
     }
 
  
