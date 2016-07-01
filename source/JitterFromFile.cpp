@@ -137,9 +137,9 @@ tuple<double, double, double> JitterFromFile::getNextYawPitchRoll(double timeInt
     timeIndex--;
     const double weight1 = (internalTime + timeInterval - time[timeIndex]) / (time[timeIndex+1] - time[timeIndex]);
     const double weight2 = (time[timeIndex+1] - internalTime - timeInterval) / (time[timeIndex+1] - time[timeIndex]);
-    const double newYaw   = yaw[timeIndex]   * weight1 + yaw[timeIndex+1]   * weight2;
-    const double newPitch = pitch[timeIndex] * weight1 + pitch[timeIndex+1] * weight2;
-    const double newRoll  = roll[timeIndex]  * weight1 + roll[timeIndex+1]  * weight2;
+    const double newYaw   = yaw[timeIndex]   * weight2 + yaw[timeIndex+1]   * weight1;
+    const double newPitch = pitch[timeIndex] * weight2 + pitch[timeIndex+1] * weight1;
+    const double newRoll  = roll[timeIndex]  * weight2 + roll[timeIndex+1]  * weight1;
     
     // Update the internal time
 
