@@ -203,8 +203,25 @@ pair<double, double> Platform::getPointingCoordinates(double time)
             return make_pair(currentRA, currentDec);
         }
 
-        // Let the platfrom jitter until 'time'
-        // Yaw, pitch, and roll are in [rad]
+
+        // Check if the given 'time' is the same as the last one we processed (and kept).
+        // If so, nothing has to change.
+
+        if (!historyTime.empty())
+        {
+            if (time == historyTime.back())
+            {
+                Log.debug("Platform: getPointingCoordinates: coordinates up-to-date for requested time " + to_string(time));
+                Log.debug("Platform: At time " + to_string(time) + ": (RA, dec) = (" 
+                                               + to_string(historyRA.back()) + ", " 
+                                               + to_string(historyDec.back()) + ")");
+
+                return make_pair(deg2rad(historyRA.back()), deg2rad(historyDec.back()));
+            }
+        }
+
+        // We're know in the case that we haven't processed the given time point yet.
+        // Let the platfrom jitter until 'time'. Yaw, pitch, and roll are in [rad]
 
         tie(yaw, pitch, roll) = jitterGenerator.getNextYawPitchRoll(timeInterval);
 
