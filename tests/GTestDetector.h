@@ -1454,6 +1454,9 @@ TEST_F(DetectorTest, applyOpenShutterSmearing)
 
 	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
 
+	const double quantumEfficiency = configParams.getDouble("CCD/QuantumEfficiency");
+	double totalSkyBackground = camera.getTotalSkyBackground() * quantumEfficiency;
+
 	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
 
 	arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
@@ -1490,7 +1493,11 @@ TEST_F(DetectorTest, applyOpenShutterSmearing)
 	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
 	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
 
-	double expectedNoise = subField(0, 2) / numRowsSubField * readoutTime / exposureTime;
+	//double expectedNoise = subField(0, 2) / numRowsSubField * readoutTime / exposureTime;
+
+	double expectedNoise = subField(0,2);
+	expectedNoise += totalSkyBackground * (numRowsDetector - numRowsSubField + numBiasPreScanRows + numSmearingOverScanRows);
+	expectedNoise *= (readoutTime / exposureTime / numRowsDetector);
 
 	EXPECT_TRUE(expectedNoise != 0.0);
 
@@ -1500,7 +1507,7 @@ TEST_F(DetectorTest, applyOpenShutterSmearing)
 		{
 			if(column != 2)
 			{
-				EXPECT_FLOAT_EQ(0.0, detector.test_getSubfield()(row, column));
+				EXPECT_FLOAT_EQ(totalSkyBackground * (numRowsDetector - numRowsSubField + numBiasPreScanRows + numSmearingOverScanRows) * (readoutTime / exposureTime / numRowsDetector), detector.test_getSubfield()(row, column));
 			}
 
 			else
@@ -1528,7 +1535,7 @@ TEST_F(DetectorTest, applyOpenShutterSmearing)
 		{
 			if(column != 2)
 			{
-				EXPECT_FLOAT_EQ(smearingMap(row, column), detector.test_getSmearingMap()(row, column));
+				EXPECT_FLOAT_EQ(smearingMap(row, column) + totalSkyBackground * (numRowsDetector - numRowsSubField + numBiasPreScanRows + numSmearingOverScanRows) * (readoutTime / exposureTime / numRowsDetector), detector.test_getSmearingMap()(row, column));
 			}
 
 			else
