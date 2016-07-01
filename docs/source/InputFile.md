@@ -618,7 +618,7 @@ Electronic offset or bias level, expressed in ADU, that is added to the digital 
 #### <a name="readoutTime"></a>ReadoutTime
 <i>Allowed values:</i> ≥ 0
 
-Time required to read out an entire CCD working in frame transfer mode, expressed in seconds. Because of the absence of a shutter (which is common in space-based instruments), the CCD still receives light during frame transfer. The flux of each sub-pixel is affected by the flux of the sub-pixels in the same column. Because the CCD is exposed during the whole readout and multiple exposures are created, also the sub-pixels further away from the readout register have their influence.
+Time required to read out an entire CCD working in frame transfer mode, and the pre-scan and the over-scan strips (to estimate the bias and the smearing resp.), expressed in seconds. Because of the absence of a shutter (which is common in space-based instruments), the CCD still receives light during frame transfer. The flux of each sub-pixel is affected by the flux of the sub-pixels in the same column. Because the CCD is exposed during the whole readout and multiple exposures are created, also the sub-pixels further away from the readout register have their influence.
 
 For non-frame-transfer CCDs the readout time should be set to zero.
 
