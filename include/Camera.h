@@ -60,6 +60,8 @@ class Camera : public HDF5Writer
 
         set<unsigned int> getAllStarIDs();
 
+        double getTotalSkyBackground();
+
 
     protected:
 
@@ -98,6 +100,7 @@ class Camera : public HDF5Writer
 
         map<double, map<unsigned int, array<double, 6>>> detectedStarInfo;
         vector<double> skyBackgroundValues;
+        double totalSkyBackground;			// Total sky background [photons / pixel / exposure]
 
 };
 

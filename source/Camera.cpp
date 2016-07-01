@@ -471,7 +471,8 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     //       - As wavelength range we take the entire throughput band.
     //       - Photons are always an integer number, thus round down.
 
-    double totalSkyBackground = 0.0;
+    totalSkyBackground = 0.0;
+
 
     if (userGivenSkyBackground < 0.0)
     {
@@ -872,3 +873,15 @@ pair<double, double> Camera::distortedToPlanarFocalPlaneCoordinates(double xFPdi
 
 
 
+
+
+
+/**
+ * @brief   Returns the total sky background, expressed in photons / pixel / exposure.
+ *
+ * @ return  Total sky background [photons / pixel / exposure].
+ */
+double Camera::getTotalSkyBackground()
+{
+	return totalSkyBackground;
+}

@@ -936,7 +936,7 @@ void Detector::readOut(float exposureTime)
 
     if (includeFullWellSaturation)
     {
-        Log.debug("Detector: aplying full well saturation.");
+        Log.debug("Detector: applying full well saturation.");
         applyFullWellSaturation();
     }
     else
@@ -1414,11 +1414,17 @@ void Detector::applyCte()
  */
 void Detector::applyOpenShutterSmearing(float exposureTime)
 {
-	// Average out the fluxes in the pixel map per column and make sure it is
-	// scaled with the readout time instead of with the exposure time.
+	// Average out the fluxes in the pixel map per column (of the whole CCD) and make sure it is
+	// scaled with the readout time instead of with the exposure time:
+	// - rows in the sub-field: use actual fluxes
+	// - rows outside the sub-field: use total sky background
 
-	arma::Row<float> openShutterSmearing = arma::mean(pixelMap, 0);
-	float factor = readoutTime / exposureTime;
+	arma::Row<float> openShutterSmearing = arma::sum(pixelMap, 0);
+
+	float openShutterSmearingOutsideSubField = camera.getTotalSkyBackground() * quantumEfficiency * (numRows - numRowsPixelMap + numRowsBiasMap + numRowsSmearingMap);
+	openShutterSmearing += openShutterSmearingOutsideSubField;
+
+	float factor = (readoutTime / exposureTime) / numRows;
 	openShutterSmearing *= factor;
 
 	// Add the effect of the open-shutter smearing to the pixel map
