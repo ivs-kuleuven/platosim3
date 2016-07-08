@@ -65,20 +65,20 @@ class MyCamera : public Camera
         MyCamera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telescope &telescope, Sky &sky)
             : Camera(configParam, hdf5file, telescope, sky) {};
 
-        pair<double, double> test_skyToAngularFocalPlaneCoordinates(double raStar, double decStar)
-            {return skyToAngularFocalPlaneCoordinates(raStar, decStar);};
-        pair<double, double> test_angularFocalPlaneToSkyCoordinates(double xFPprime, double yFPprime)
-            {return angularFocalPlaneToSkyCoordinates(xFPprime, yFPprime);};
+        pair<double, double> test_skyToFocalPlaneCoordinates(double raStar, double decStar)
+            {return skyToFocalPlaneCoordinates(raStar, decStar);};
+        pair<double, double> test_focalPlaneToSkyCoordinates(double xFPprime, double yFPprime)
+            {return focalPlaneToSkyCoordinates(xFPprime, yFPprime);};
 
-        pair<double, double> test_angularToPlanarFocalPlaneCoordinates(double xFPrad, double yFPrad)
-            {return angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad);};
-        pair<double, double> test_planarToAngularFocalPlaneCoordinates(double xFPmm, double yFPmm)
-            {return planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm);};
+        pair<double, double> test_polarToCartesianFocalPlaneCoordinates(double distance, double angle)
+            {return polarToCartesianFocalPlaneCoordinates(distance, angle);};
+        pair<double, double> test_cartesianToPolarFocalPlaneCoordinates(double xFPdist, double yFPdist)
+            {return distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist);};
 
-        pair<double, double> test_planarToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm)
-            {return planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm);};
-        pair<double, double> test_distortedToPlanarFocalPlaneCoordinates(double xFPdist, double yFPdist)
-            {return distortedToPlanarFocalPlaneCoordinates(xFPdist, yFPdist);};
+        pair<double, double> test_undistortedToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm)
+            {return undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm);};
+        pair<double, double> test_distortedToUndistortedFocalPlaneCoordinates(double xFPdist, double yFPdist)
+            {return distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist);};
 
         double test_getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double yFPprime)
             {return getGnomonicRadialDistanceFromOpticalAxis(xFPprime, yFPprime);};
@@ -139,6 +139,7 @@ TEST_F(CameraTest, GnomonicRadialDistance)
 
     double raStar, decStar;      // [rad]
     double xFPprime, yFPprime;   // [mm]
+    double xFP, yFP;             // [mm]
     double xDeg, yDeg;           // [deg]
     double xFPrad, yFPrad;       // [rad]
     double radius;               // [rad]
@@ -149,10 +150,22 @@ TEST_F(CameraTest, GnomonicRadialDistance)
 
         xDeg = data["xDeg"];
         yDeg = data["yDeg"];
+        xFP  = data["xFP"];
+        yFP  = data["yFP"];
         xFPrad = deg2rad(xDeg);
         yFPrad = deg2rad(yDeg);
 
-        radius = camera.test_getGnomonicRadialDistanceFromOpticalAxis(xFPrad, yFPrad); // [radians] -> [radians]
+        // We do not use angular focal plane coordinates anymore, but even then, conversion from xDeg, yDeg to xFP, yFP
+        // is still an unknown....
+
+        //tie(xFPprime, yFPprime) = camera.test_angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad);
+
+        //EXPECT_NEAR(xFP, xFPprime, 0.00001);
+        //EXPECT_NEAR(yFP, yFPprime, 0.00001);
+
+        //Log.debug("CameraTest.GnomonicRadialDistance: xFPprime, yFPprime [mm]= " + dtos(xFPprime) + ", " + dtos(yFPprime));
+
+        radius = camera.test_getGnomonicRadialDistanceFromOpticalAxis(xFP, yFP); // [mm] -> [radians]
 
         EXPECT_NEAR(data["radius"], rad2deg(radius), 0.0001);
 
@@ -161,14 +174,7 @@ TEST_F(CameraTest, GnomonicRadialDistance)
         //Log.debug("CameraTest.GnomonicRadialDistance: radius [rad] = " + dtos(radius));
         //Log.debug("CameraTest.GnomonicRadialDistance: radius [deg] = " + dtos(rad2deg(radius)));
 
-        tie(xFPprime, yFPprime) = camera.test_angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad);
-
-        EXPECT_NEAR(data["xFP"], xFPprime, 0.00001);
-        EXPECT_NEAR(data["yFP"], yFPprime, 0.00001);
-
-        //Log.debug("CameraTest.GnomonicRadialDistance: xFPprime, yFPprime [mm]= " + dtos(xFPprime) + ", " + dtos(yFPprime));
-
-        tie(raStar, decStar) = camera.test_angularFocalPlaneToSkyCoordinates(xFPrad, yFPrad);
+        tie(raStar, decStar) = camera.test_focalPlaneToSkyCoordinates(xFP, yFP);
 
         //Log.debug("CameraTest.GnomonicRadialDistance: raStar, decStar [rad] = " + dtos(raStar) + ", " + dtos(decStar));
         //Log.debug("CameraTest.GnomonicRadialDistance: raStar, decStar [deg] = " + dtos(rad2deg(raStar)) + ", " + dtos(rad2deg(decStar)));
@@ -208,15 +214,15 @@ TEST_F(CameraTest, distortedCoordinates)
 
     double xFPdist, yFPdist;   // [mm]
 
-    tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(10.0, 0.0);
+    tie(xFPdist, yFPdist) = camera.test_undistortedToDistortedFocalPlaneCoordinates(10.0, 0.0);
     EXPECT_NEAR(10.0000, xFPdist, 0.00001);
     EXPECT_NEAR( 0.0000, yFPdist, 0.00001);
 
-    tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(0.0, 10.0);
+    tie(xFPdist, yFPdist) = camera.test_undistortedToDistortedFocalPlaneCoordinates(0.0, 10.0);
     EXPECT_NEAR( 0.0000, xFPdist, 0.00001);
     EXPECT_NEAR(10.0000, yFPdist, 0.00001);
 
-    tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(5.0, 5.0);
+    tie(xFPdist, yFPdist) = camera.test_undistortedToDistortedFocalPlaneCoordinates(5.0, 5.0);
     EXPECT_NEAR( 5.0000, xFPdist, 0.00001);
     EXPECT_NEAR( 5.0000, yFPdist, 0.00001);
 
@@ -231,15 +237,15 @@ TEST_F(CameraTest, distortedCoordinates)
 
     camera.test_setDistortionPolynomial(polynomial, polynomial); // Do not care about the inverse polynomial for this test
 
-    tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(10.0, 0.0);
+    tie(xFPdist, yFPdist) = camera.test_undistortedToDistortedFocalPlaneCoordinates(10.0, 0.0);
     EXPECT_NEAR(157.0000, xFPdist, 0.00001);
     EXPECT_NEAR(  0.0000, yFPdist, 0.00001);
 
-    tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(0.0, 10.0);
+    tie(xFPdist, yFPdist) = camera.test_undistortedToDistortedFocalPlaneCoordinates(0.0, 10.0);
     EXPECT_NEAR(  0.0000, xFPdist, 0.00001);
     EXPECT_NEAR(157.0000, yFPdist, 0.00001);
 
-    tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(5.0, 5.0);
+    tie(xFPdist, yFPdist) = camera.test_undistortedToDistortedFocalPlaneCoordinates(5.0, 5.0);
     EXPECT_NEAR( 56.947222, xFPdist, 0.00001);
     EXPECT_NEAR( 56.947222, yFPdist, 0.00001);
 
@@ -298,14 +304,14 @@ TEST_F(CameraTest, reproduceDistortionMap)
         xFPmm = data["xFPmm"];
         yFPmm = data["yFPmm"];
 
-        tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm);
+        tie(xFPdist, yFPdist) = camera.test_undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm);
         EXPECT_NEAR( data["xFPdist"], xFPdist, 0.006);
         EXPECT_NEAR( data["yFPdist"], yFPdist, 0.006);
 
         xFPdist = data["xFPdist"];
         yFPdist = data["yFPdist"];
 
-        tie(xFPmm, yFPmm) = camera.test_distortedToPlanarFocalPlaneCoordinates(xFPdist, yFPdist);
+        tie(xFPmm, yFPmm) = camera.test_distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist);
         EXPECT_NEAR( data["xFPmm"], xFPmm, 0.006);
         EXPECT_NEAR( data["yFPmm"], yFPmm, 0.006);
 
@@ -348,7 +354,7 @@ TEST_F(CameraTest, reproduceDistortionMap)
         double xFPmm = data["xFPmm"];
         double yFPmm = data["yFPmm"];
 
-        tie(xFPdist, yFPdist) = camera.test_planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm);
+        tie(xFPdist, yFPdist) = camera.test_undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm);
         EXPECT_NEAR( data["xFPdist"], xFPdist, 0.002);
         EXPECT_NEAR( data["yFPdist"], yFPdist, 0.002);
     }
