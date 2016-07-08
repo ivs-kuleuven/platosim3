@@ -640,7 +640,7 @@ double Camera::getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double 
  * \param raStar       Right ascension of the star [rad]
  * \param decStar      Declination of the star [rad]
  *
- * return pair (x,y):  Cartesian coordinate of the projected star in the focal plane in the FP-prime system [radians]
+ * return pair (x,y):  Cartesian coordinate of the projected star in the focal plane in the FP-prime system [mm]
  */
 
 pair<double, double> Camera::skyToFocalPlaneCoordinates(double raStar, double decStar)
@@ -770,6 +770,45 @@ pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFPprime, double 
 
 
 
+
+
+
+
+/**
+ * \brief      Convert polar coordinates to cartesian coordinates
+ *
+ * \param[in]  distance  distance from the pole (reference point) [mm]
+ * \param[in]  angle     angle counter-clockwise from the x-axis [rad]
+ *
+ * \return     (xFPmm, yFPmm) Cartesian coordinates in the focal plane [mm]
+ */
+pair<double, double> Camera::polarToCartesianFocalPlaneCoordinates(double distance, double angle)
+{
+    double xFPmm = cos(angle) * distance;
+    double yFPmm = sin(angle) * distance;
+
+    return make_pair(xFPmm, yFPmm);
+}
+
+
+
+
+
+/**
+ * \brief      Convert cartesian coordinates to polar coordinates
+ *
+ * \param[in]  xFPmm  x-axis cartesian coordinate in the focal plane [mm]
+ * \param[in]  yFPmm  y-axis cartesian coordinate in the focal plane [mm]
+ *
+ * \return     (distance, angle) polar coordinates in the focal plane
+ */
+pair<double, double> Camera::cartesianToPolarFocalPlaneCoordinates(double xFPmm, double yFPmm)
+{
+    double angle = atan2(yFPmm, xFPmm);
+    double distance = sqrt(xFPmm * xFPmm + yFPmm * yFPmm);
+
+    return make_pair(distance, angle);
+}
 
 
 
