@@ -1312,8 +1312,8 @@ void Detector::applyShort2013CTImodel()
             const double alpha = chargeTransferTime * trapCaptureCrossSection[k] * thermalVelocity * pow(fullWellSaturationLimit, beta) / 2.0 / maxVolumePerPixel;
             const double gamma = trapDensity[k] * (subFieldZeroPointRow + rowNumber) / pow(fullWellSaturationLimit, beta);
 
-            numberOfCapturedElectrons =   (gamma * arma::pow(pixelMap.row(rowNumber), beta) - numberOfOccupiedTraps[k]) \
-                                        / (gamma * arma::pow(pixelMap.row(rowNumber), beta-1) + 1)                      \
+            numberOfCapturedElectrons =   (gamma * arma::pow(pixelMap.row(rowNumber), beta) - numberOfOccupiedTraps.row(k)) \
+                                        / (gamma * arma::pow(pixelMap.row(rowNumber), beta-1) + 1)                          \
                                         % (1 - arma::exp(-alpha * arma::pow(pixelMap.row(rowNumber), 1-beta)));
 
             // Captured electron numbers can't be negative, so clip negative value to zero.
