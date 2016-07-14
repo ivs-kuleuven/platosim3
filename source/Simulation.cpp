@@ -387,7 +387,6 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addInteger("ElectronicOffset");
     addDouble("ReadoutTime");
     addDouble("FlatfieldPtPNoise");
-    addDouble("CTEMean");
     addBoolean("IncludeFlatfield");
     addBoolean("IncludePhotonNoise");
     addBoolean("IncludeReadoutNoise");
@@ -398,6 +397,21 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("IncludeFullWellSaturation");
     addBoolean("IncludeDigitalSaturation");
     addBoolean("WriteSubPixelImagesToHDF5");
+    
+    subGroup = "CCD/CTI";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addString("Model");
+    subGroup = "CCD/CTI/Simple";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("MeanCTI");
+    subGroup = "CCD/CTI/Short2013";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("Beta");
+    addDouble("Temperature");
+    addInteger("NumTrapSpecies");
+    addDoubleVector("TrapDensity");
+    addDoubleVector("TrapCaptureCrossSection");
+    addDoubleVector("ReleaseTime");
 
     subGroup = "SubField";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
