@@ -118,6 +118,13 @@ set<unsigned int> Camera::getAllStarIDs()
 }
 
 
+
+
+
+
+
+
+
 /**
  * \brief Write all recorded information to the HDF5 output file
  * 
