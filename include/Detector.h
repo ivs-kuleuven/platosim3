@@ -9,6 +9,7 @@
 
 #include "armadillo"
 
+#include "Constants.h"
 #include "ArrayOperations.h"
 #include "Camera.h"
 #include "ConfigurationParameters.h"
@@ -57,7 +58,6 @@ class Detector : public HDF5Writer
 
         virtual void reset();
         virtual void generateFlatfieldMap();
-        //virtual void generateCteMap();
         virtual void generateVignettingMap();
 
         virtual void integrateLight(double startTime, double exposureTime);
@@ -70,12 +70,15 @@ class Detector : public HDF5Writer
         virtual void applyQuantumEfficiency();
     	virtual void addPhotonNoise();
     	virtual void applyFullWellSaturation();
-    	virtual void applyCte();
+    	virtual void applyCTI();
     	virtual void applyOpenShutterSmearing(float exposureTime);
     	virtual void addReadoutNoise();
     	virtual void applyGain();
     	virtual void addElectronicOffset();	     
     	virtual void applyDigitalSaturation();
+
+        void applySimpleCTImodel();
+        void applyShort2013CTImodel();
 
         void setSubfield(const arma::Mat<float> &subfield);
         arma::Mat<float> getSubfield();
@@ -89,12 +92,11 @@ class Detector : public HDF5Writer
         arma::Mat<float> subPixelMap;            // Sub-pixel map, incl. edge pixels
         arma::Mat<float> smearingMap;            // Smearing map (i.e. over-scan strip)
         arma::Mat<float> biasMap;                // Bias map (i.e. pre-scan strip)
-        arma::Mat<float> cteMap;                 // CTE map
         arma::Mat<float> flatfieldMap;           // Intra-pixel flatfield map
         arma::Mat<float> psfMap;                 // The PSF map that will be used for convolving
         arma::Mat<float> vignettingMap;          // Brightness attenuation map, due to vignetting
 
-        unsigned int numRows;                    // Nr of rows of the detector (= size in y-direction) [pixels]
+        unsigned int numRows;                    // Nr of rows of the detector (= size in y-direction) including non-exposed ones [pixels]
     	unsigned int numColumns;                 // Nr of columns of the detector (= size in x-direction = readout direction) [pixels]
         unsigned int numRowsPixelMap;            // Nr of rows in the subfield excl. edge pixels (= size the y-direction) [pixels]
         unsigned int numColumnsPixelMap;         // Nr of columns in the subfield excl. edge pixels (= size in the x-direction = readout direction) [pixels]
@@ -118,13 +120,20 @@ class Detector : public HDF5Writer
 
     	double quantumEfficiency;	             // Quantum efficiency (in [0,1])
     	double readoutTime;                      // Readout time [s]
-    	double chargeTransferTime;	             // Charge transfer time [s]
-        double meanCte;                          // Mean charge-transfer efficiency
-        double readoutNoise;                     // Mean readout noise [electrons]
+    	double readoutNoise;                     // Mean readout noise [electrons]
         double gain;                             // Detector gain [electrons / ADU]
         unsigned long fullWellSaturationLimit;   // Full-well saturation limit [electrons/pixel]
         unsigned int electronicOffset;           // Bias or electronic offset [ADU]
         unsigned long digitalSaturationLimit;    // Digital saturation limit [ADU / pixel]
+
+        string CTImodel;
+        double meanCte;                          // Mean charge-transfer efficiency  (in [0,1])
+        double beta;                             // Beta exponent in Short et al., MNRAS 430, 3078-3085 (2010).
+        double temperature;                      // Temperature of the detector
+        unsigned int numTrapSpecies;             // Number of different trap species included in the Short2010 model
+        vector<double> trapDensity;              // For each trap species: the trap density [traps/pixel]
+        vector<double> trapCaptureCrossSection;  // For each trap species: the trap capture cross section [m^2]
+        vector<double> releaseTime;              // For each trap species: the electron release time [s]
 
         bool includeFlatfield;                   // Whether or not to include flat fielding
         bool includePhotonNoise;                 // Whether or not to include photon noise
@@ -143,7 +152,6 @@ class Detector : public HDF5Writer
     	long flatfieldSeed;
     	long readoutNoiseSeed;
     	long photonNoiseSeed;
-//    	long cteMapSeed;
 
     	mt19937 photonNoiseGenerator;
     	mt19937 readoutNoiseGenerator;
