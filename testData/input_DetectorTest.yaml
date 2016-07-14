@@ -82,7 +82,17 @@ CCD:
     ElectronicOffset:            100             # bias [ADU]
     ReadoutTime:                 2               # time to read out entire CCD [s]
     FlatfieldPtPNoise:           0.016           # peak-to-peak pixel noise
-    CTEMean:                     0.99999         # Mean Charge Transfer Efficiency
+    CTI:
+        Model:                       Simple       # The method used to generate the CTI, either "Simple" or "Short2013"
+        Simple:
+            MeanCTI:                 0.99999         # Mean CTI over all CCD pixels      
+        Short2013:
+            Beta:                    0.37                                         # beta exponent in Short et al. (2013)
+            Temperature:             203.                                         # [K]
+            NumTrapSpecies:          4                                            # number of different trap species
+            TrapDensity:             [9.8, 3.31, 1.56, 13.24]                     # for each trap species [traps/pixel]
+            TrapCaptureCrossSection: [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]     # for each trap species [m^2]
+            ReleaseTime:             [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]         # for each trap species [s]
     IncludeFlatfield:            yes             # Include flatfield [yes or no]
     IncludePhotonNoise:          yes             # include photon noise [yes or no]
     IncludeReadoutNoise:         yes             # Include readout noise [yes or no]
