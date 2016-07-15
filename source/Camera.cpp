@@ -125,6 +125,7 @@ set<unsigned int> Camera::getAllStarIDs()
 
 
 
+
 /**
  * \brief Write all recorded information to the HDF5 output file
  * 
@@ -289,20 +290,20 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     // and the upper right (X11, Y11) corner of the subfield.
 
     double centerXmm, centerYmm;
-    tie(centerXmm, centerYmm) = detector.getPlanarFocalPlaneCoordinatesOfSubfieldCenter();
+    tie(centerXmm, centerYmm) = detector.getFocalPlaneCoordinatesOfSubfieldCenter();
 
     double corner00Xmm, corner00Ymm, corner11Xmm, corner11Ymm, dummy;
-    tie(corner00Xmm, corner00Ymm, dummy, dummy, corner11Xmm, corner11Ymm, dummy, dummy) = detector.getPlanarFocalPlaneCoordinatesOfSubfieldCorners();
+    tie(corner00Xmm, corner00Ymm, dummy, dummy, corner11Xmm, corner11Ymm, dummy, dummy) = detector.getFocalPlaneCoordinatesOfSubfieldCorners();
 
-    // Convert the planar [mm] to distorted [mm] focal plane coordinates
+    // Convert the undistorted [mm] to distorted [mm] focal plane coordinates
 
     if (includeFieldDistortion)
     {
         Log.info("Camera: including field distortion");
 
-        tie(centerXmm, centerYmm) = distortedToPlanarFocalPlaneCoordinates(centerXmm, centerYmm);
-        tie(corner00Xmm, corner00Ymm) = distortedToPlanarFocalPlaneCoordinates(corner00Xmm, corner00Ymm);
-        tie(corner11Xmm, corner11Ymm) = distortedToPlanarFocalPlaneCoordinates(corner11Xmm, corner11Ymm);
+        tie(centerXmm, centerYmm) = distortedToUndistortedFocalPlaneCoordinates(centerXmm, centerYmm);
+        tie(corner00Xmm, corner00Ymm) = distortedToUndistortedFocalPlaneCoordinates(corner00Xmm, corner00Ymm);
+        tie(corner11Xmm, corner11Ymm) = distortedToUndistortedFocalPlaneCoordinates(corner11Xmm, corner11Ymm);
     }
 
     Log.debug("Camera: center of subfield at (Xmm, Ymm) = (" + to_string(centerXmm) + ", " + to_string(centerYmm) + ") mm");
@@ -310,33 +311,16 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     Log.debug("Camera: upper right corner of subfield at (Xmm, Ymm) = (" + to_string(corner11Xmm) + ", " + to_string(corner11Ymm) + ") mm");
 
 
-    // Convert the planar [mm] to angular [rad] focal plane coordinates 
-
-    double centerXrad, centerYrad;
-    tie(centerXrad, centerYrad) = planarToAngularFocalPlaneCoordinates(centerXmm, centerYmm);
-
-    double corner00Xrad, corner00Yrad;
-    tie(corner00Xrad, corner00Yrad) = planarToAngularFocalPlaneCoordinates(corner00Xmm, corner00Ymm);
-
-    double corner11Xrad, corner11Yrad;
-    tie(corner11Xrad, corner11Yrad) = planarToAngularFocalPlaneCoordinates(corner11Xmm, corner11Ymm);
-
-    Log.debug("Camera: center of subfield at (Xrad, Yrad) = (" + to_string(centerXrad) + ", " + to_string(centerYrad) + ") rad");
-    Log.debug("Camera: lower left corner of subfield at (Xrad, Yrad) = (" + to_string(corner00Xrad) + ", " + to_string(corner00Yrad) + ") rad");
-    Log.debug("Camera: upper right corner of subfield at (Xrad, Yrad) = (" + to_string(corner11Xrad) + ", " + to_string(corner11Yrad) + ") rad");
-
-
-
-    // Convert the angular [rad] focal plane coordinates to (alpha, delta) equatorial coordinates [rad]
+    // Convert the focal plane coordinates [mm] to (alpha, delta) equatorial sky coordinates [rad]
 
     double centerRA, centerDec;
-    tie(centerRA, centerDec) = angularFocalPlaneToSkyCoordinates(centerXrad, centerYrad);
+    tie(centerRA, centerDec) = focalPlaneToSkyCoordinates(centerXmm, centerYmm);
 
     double corner00RA, corner00Dec;
-    tie(corner00RA, corner00Dec) = angularFocalPlaneToSkyCoordinates(corner00Xrad, corner00Yrad);
+    tie(corner00RA, corner00Dec) = focalPlaneToSkyCoordinates(corner00Xmm, corner00Ymm);
 
     double corner11RA, corner11Dec;
-    tie(corner11RA, corner11Dec) = angularFocalPlaneToSkyCoordinates(corner11Xrad, corner11Yrad);
+    tie(corner11RA, corner11Dec) = focalPlaneToSkyCoordinates(corner11Xmm, corner11Ymm);
 
     Log.debug("Camera: center of subfield at (alpha, delta) = (" + to_string(rad2deg(centerRA)) + ", " + to_string(rad2deg(centerDec)) + ") deg");
     Log.debug("Camera: lower left corner of subfield at (alpha, delta) = (" + to_string(rad2deg(corner00RA)) + ", " + to_string(rad2deg(corner00Dec)) + ") deg");
@@ -397,17 +381,14 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
             // Get the focal plane coordinates (in [mm]) of this particular star
             
             auto star = starCatalog[n];
-            double Xrad, Yrad;
-            tie(Xrad, Yrad) = skyToAngularFocalPlaneCoordinates(star.RA, star.dec);
-
-            // Convert the angular [rad] to planar [mm] focal plane coordinates 
-
             double Xmm, Ymm;
-            tie(Xmm, Ymm) = angularToPlanarFocalPlaneCoordinates(Xrad, Yrad);
+            tie(Xmm, Ymm) = skyToFocalPlaneCoordinates(star.RA, star.dec);
+
+            // If required, include field distortion
 
             if (includeFieldDistortion)
             {
-                tie(Xmm, Ymm) = planarToDistortedFocalPlaneCoordinates(Xmm, Ymm);
+                tie(Xmm, Ymm) = undistortedToDistortedFocalPlaneCoordinates(Xmm, Ymm);
             }
 
             // Compute the flux [photons] of this star
@@ -534,26 +515,20 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
 
 /**
- * \brief      Select the PSF for the given planar focal plane coordinates
+ * \brief      Select the PSF for the given focal plane coordinates
  *
  * \details    This method selects, rotates and rebins the PSF.
  *
- * \param[in]  xFPmm             Planar x-coordinate in the FP' reference frame [rad]
- * \param[in]  yFPmm             Planar y-coordinate in the FP' reference frame [rad]
+ * \param[in]  xFPmm             x-coordinate in the FP' reference frame [mm]
+ * \param[in]  yFPmm             y-coordinate in the FP' reference frame [mm]
  * \param[in]  targetSubPixels   the number of subpixels per pixels in the detector subfield
  * \param[in]  orientationAngle  the orientation of the CCD wrt focal plane orientation (counter clockwise) [rad]
  *
  * \return     the psfMap that was selected, rotated and rebinned
  */
-arma::fmat Camera::getRebinnedPsfForPlanarFocalPlaneCoordinates(double xFPmm, double yFPmm, unsigned int targetSubPixels, double orientationAngle)
+arma::fmat Camera::getRebinnedPsfForFocalPlaneCoordinates(double xFPmm, double yFPmm, unsigned int targetSubPixels, double orientationAngle)
 {
     arma::fmat psfMap;
-
-    // Calculate the angular FP coordinates
-
-    double xFPrad, yFPrad;
-    tie(xFPrad, yFPrad) = planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm);
-
 
     // Get the 'user specified' angular distance to the optical axis from the psf.
     // If the user didn't specify an angular distance, calculate it from the given
@@ -563,7 +538,7 @@ arma::fmat Camera::getRebinnedPsfForPlanarFocalPlaneCoordinates(double xFPmm, do
 
     if (radius < 0.0)
     {
-        radius = getGnomonicRadialDistanceFromOpticalAxis(xFPrad, yFPrad);
+        radius = getGnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm);
     }
 
     psf->select(radius);
@@ -614,17 +589,34 @@ arma::fmat Camera::getRebinnedPsfForPlanarFocalPlaneCoordinates(double xFPmm, do
 /**
  * @brief      Calculate the gnomonic radial distance with respect to the optical axis in the focal plane
  *
- * @param[in]  xFPprime  angular focal plane x-coordinate [rad]
- * @param[in]  yFPprime  angular focal plane y-coordinate [rad]
+ * @param[in]  xFPprime  Focal plane x-coordinate [mm]
+ * @param[in]  yFPprime  Focal plane y-coordinate [mm]
  *
- * @return     the field radial distance (gnomonic) with respect to the line of sight in the sky [rad]
+ * @return     the angular distance of the star w.r.t. the optical axis [rad]
+ * 
  */
 double Camera::getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double yFPprime)
 {
-    double tanx = tan(xFPprime);
-    double tany = tan(yFPprime);
+    const double tanx = xFPprime / focalLength;
+    const double tany = yFPprime / focalLength;
 
-    return acos(1.0/sqrt(1.0 + tanx*tanx + tany*tany));
+    double angularDistance = acos(1.0/sqrt(1.0 + tanx*tanx + tany*tany));
+
+    // Take care that the angle is between [0, 2*PI]
+
+    if (angularDistance < 0.0)
+    {
+        angularDistance += 2.0 * Constants::PI;
+    }
+
+    if (angularDistance > 2.0 * Constants::PI)
+    {
+        angularDistance -= 2.0 * Constants::PI;
+    }
+
+    // That's it!
+
+    return angularDistance;
 }
 
 
@@ -639,37 +631,59 @@ double Camera::getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double 
 
 
 /**
- * \brief      Computes the (x,y) coordinates in the normalized focal plane of a star with given equatorial coordinates
- *             using a gnomonic projection.
- * 
+ * \brief      Computes the (x,y) coordinates in the focal plane, of a star with given equatorial 
+ *             sky coordinates, assuming a pinhole camera.
+ *             
  * \details    The transformation is with respect to the current pointing coordinates of the telescope.
  *
  * \param raStar       Right ascension of the star [rad]
  * \param decStar      Declination of the star [rad]
  *
- * return pair (x,y):  Cartesian coordinate of the projected star in the focal plane in the FP-prime system [radians]
+ * return pair (x,y):  Cartesian coordinate of the projected star in the focal plane in the FP-prime system [mm]
  */
 
-pair<double, double> Camera::skyToAngularFocalPlaneCoordinates(double raStar, double decStar)
+pair<double, double> Camera::skyToFocalPlaneCoordinates(double raStar, double decStar)
 {
-    // Get the equatorial coordinates of the optical axis [rad]
+    // Get the current equatorial coordinates of the optical axis [rad]
 
     double raOpticalAxis, decOpticalAxis;
     tie(raOpticalAxis, decOpticalAxis) = telescope.getCurrentPointingCoordinates();
 
-    // Project the sky to the focal plane in the "FP" coordinate system (gnomonic projection)
+    // Get the current focal plane orientation
 
-    double denominator = cos(decOpticalAxis) * cos(decStar) * cos(raStar - raOpticalAxis) + sin(decOpticalAxis) * sin(decStar);
-    double xFP = ( sin(decOpticalAxis) * cos(decStar) * cos(raStar - raOpticalAxis) - cos(decOpticalAxis) * sin(decStar)) / denominator;
-    double yFP =  cos(decStar) * sin(raStar - raOpticalAxis) / denominator;
+    const double focalPlaneAngle = telescope.getCurrentFocalPlaneOrientation();
+
+    // Convert the equatorial sky coordinate of the star to equatorial cartesian coordinates on the unit sphere
+
+    arma::vec vecEQ = {cos(decStar) * cos(raStar), cos(decStar) * sin(raStar), sin(decStar)};
+
+    // Convert the equatorial cartesian coordinates to focal plane cartesian coordinates.
+
+    arma::mat rotMatrix1;
+    rotMatrix1 <<  cos(raOpticalAxis) << sin(raOpticalAxis) <<  0 << arma::endr
+               << -sin(raOpticalAxis) << cos(raOpticalAxis) <<  0 << arma::endr
+               <<          0          <<          0         <<  1 << arma::endr;
+
+    arma::mat rotMatrix2;
+    rotMatrix2 << sin(decOpticalAxis) << 0 << -cos(decOpticalAxis) << arma::endr
+               <<          0          << 1 <<          0           << arma::endr
+               << cos(decOpticalAxis) << 0 <<  sin(decOpticalAxis) << arma::endr;
+
+    arma::vec vecFP = rotMatrix2 * rotMatrix1 * vecEQ;
+
+    // Take into account the projection effect of the pinhole camera
+    // Note that the pinhole reverses the image, hence the minus signs.
+    // The focalLength is assumed to be in [mm] so that the (xFP, yFP) coordinates are also in [mm].
+
+    const double xFP = -focalLength * vecFP(0)/vecFP(2);
+    const double yFP = -focalLength * vecFP(1)/vecFP(2);
 
     // Convert the FP coordinates into FP' coordinates 
 
-    const double focalPlaneOrientation = telescope.getCurrentFocalPlaneOrientation();
-    double xFPprime =  xFP * cos(focalPlaneOrientation) + yFP * sin(focalPlaneOrientation);
-    double yFPprime = -xFP * sin(focalPlaneOrientation) + yFP * cos(focalPlaneOrientation);
+    const double xFPprime =  xFP * cos(focalPlaneAngle) + yFP * sin(focalPlaneAngle);
+    const double yFPprime = -xFP * sin(focalPlaneAngle) + yFP * cos(focalPlaneAngle);
 
-    // Return the angular focal plane coordinates [rad]
+    // That's it!
 
     return make_pair(xFPprime, yFPprime);
 }
@@ -684,141 +698,70 @@ pair<double, double> Camera::skyToAngularFocalPlaneCoordinates(double raStar, do
 
 
 
-/**
- * \brief Computes the (x,y) coordinates in the normalized focal plane of a star with given equatorial coordinates
- *        using a gnomonic projection.
- *
- * \param raStar       Right ascension of the star [rad]
- * \param decStar      Declination of the star [rad]
- *
- * return pair (x,y):  Cartesian coordinate of the projected star in the focal plane in the FP-prime system [radians]
- */
-
-pair<double, double> Camera::skyToAngularFocalPlaneCoordinates(double raStar, double decStar, double raOpticalAxis, double decOpticalAxis)
-{
-    // Project the sky to the focal plane in the "FP" coordinate system (gnomonic projection)
-
-    double denominator = cos(decOpticalAxis) * cos(decStar) * cos(raStar - raOpticalAxis) + sin(decOpticalAxis) * sin(decStar);
-    double xFP = ( sin(decOpticalAxis) * cos(decStar) * cos(raStar - raOpticalAxis) - cos(decOpticalAxis) * sin(decStar)) / denominator;
-    double yFP =  cos(decStar) * sin(raStar - raOpticalAxis) / denominator;
-
-    // Convert the FP coordinates into FP' coordinates 
-
-    const double focalPlaneOrientation = telescope.getCurrentFocalPlaneOrientation();
-    double xFPprime =  xFP * cos(focalPlaneOrientation) + yFP * sin(focalPlaneOrientation);
-    double yFPprime = -xFP * sin(focalPlaneOrientation) + yFP * cos(focalPlaneOrientation);
-
-    // Return the angular focal plane coordinates [rad]
-
-    return make_pair(xFPprime, yFPprime);
-}
-
-
-
-
-
-
-
 
 
 
 
 /**
- * \brief Compute the equatorial sky coordinates of a star which has the given angular focal plane (FP') coordinates (x,y)
+ * \brief Compute the equatorial sky coordinates of a star which has the given focal plane (FP') coordinates (x,y),
+ *        assuming a pinhole camera model
  *        
- * \param xFPprime     Angular focal plane x-coordinate in the FP-prime system [rad]
- * \param yFPprime     Angular focal plane y-coordinate in the FP-prime system [rad]
+ * \param xFPprime     Focal plane x-coordinate in the FP-prime system [mm]
+ * \param yFPprime     Focal plane y-coordinate in the FP-prime system [mm]
  *
  * \return (alpha, delta)  Equatorial coordinates (RA & Dec) of the star [rad]
  */
 
-pair<double, double> Camera::angularFocalPlaneToSkyCoordinates(double xFPprime, double yFPprime)
+pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFPprime, double yFPprime)
 {    
-    // Convert from the FP' to the FP reference system.
-
-    const double focalPlaneOrientation = telescope.getCurrentFocalPlaneOrientation();
-    const double xFP =  xFPprime * cos(focalPlaneOrientation) - yFPprime * sin(focalPlaneOrientation);
-    const double yFP =  xFPprime * sin(focalPlaneOrientation) + yFPprime * cos(focalPlaneOrientation);
-
-
-    // Get the equatorial coordinates of the optical axis [rad]
+    // Get the current equatorial coordinates of the optical axis [rad]
 
     double raOpticalAxis, decOpticalAxis;
     tie(raOpticalAxis, decOpticalAxis) = telescope.getCurrentPointingCoordinates();
 
+    // Get the current focal plane orientation
 
-    // Project the focal plane in the "FP" coordinate system to the sky
+    const double focalPlaneAngle = telescope.getCurrentFocalPlaneOrientation();
 
-    if (xFP == 0.0 and yFP == 0.0)
+    // Convert the FP' coordinates in FP coordinates
+
+    const double xFP =  xFPprime * cos(focalPlaneAngle) - yFPprime * sin(focalPlaneAngle);
+    const double yFP =  xFPprime * sin(focalPlaneAngle) + yFPprime * cos(focalPlaneAngle);
+
+    // Undo the reverse-image projection effect of the pinhole.
+    // Both the focalLength and the (xFP, yFP) coordinates are assumed to be in [mm].
+
+    arma::vec vecFP = {-xFP/focalLength, -yFP/focalLength, 1.0};
+
+    // Convert the focal plane cartesian coordinates to equatorial cartesian coordinates. 
+
+    arma::mat rotMatrix1;
+    rotMatrix1 <<  sin(decOpticalAxis) << 0 << cos(decOpticalAxis) << arma::endr
+               <<          0           << 1 <<          0          << arma::endr
+               << -cos(decOpticalAxis) << 0 << sin(decOpticalAxis) << arma::endr;
+
+    arma::mat rotMatrix2;
+    rotMatrix2 << cos(raOpticalAxis) << -sin(raOpticalAxis) <<  0 << arma::endr
+               << sin(raOpticalAxis) <<  cos(raOpticalAxis) <<  0 << arma::endr
+               <<          0         <<          0          <<  1 << arma::endr;
+
+    arma::vec vecEQ = rotMatrix2 * rotMatrix1 * vecFP;
+
+
+    // Convert the cartesian equatorial coordinates to equatorial sky coordinates
+
+    const double norm = sqrt(vecEQ(0)*vecEQ(0) + vecEQ(1)*vecEQ(1) + vecEQ(2)*vecEQ(2)); 
+    double decStar = Constants::PI/2.0 - acos(vecEQ(2)/norm);
+    double raStar = atan2(vecEQ(1), vecEQ(0));
+
+    if (raStar < 0.0)
     {
-        return make_pair(raOpticalAxis, decOpticalAxis);
+        raStar += 2.*Constants::PI;
     }
-    else
-    {
-        const double rho = sqrt(xFP*xFP+yFP*yFP);
-        const double c = atan(rho);
-        const double ra = raOpticalAxis + atan2(yFP * sin(c), rho * cos(decOpticalAxis) * cos(c) + xFP * sin(decOpticalAxis) * sin(c));
-        const double dec = asin(cos(c) * sin(decOpticalAxis) - (xFP * sin(c) * cos(decOpticalAxis)) / rho);
 
-        return make_pair(ra, dec);
-    }
-}
+    // That's it!
 
-
-
-
-
-
-
-
-
-/**
- * \brief Convert from angular to planar focal plane coordinates, assuming no optical distortion.
- * 
- * \note This conversion depends on the focal length of the camera
- * 
- * \param xFPrad   Angular focal plane x-coordinate [rad]
- * \param yFPrad   Angular focal plane y-coordinate [rad]
- * 
- * \return (xFPmm, yFPmm)    Planar focal plane x and y coordinates [mm]
- */
-
-pair<double, double> Camera::angularToPlanarFocalPlaneCoordinates(double xFPrad, double yFPrad)
-{
-    const double xFPmm = tan(xFPrad) * focalLength;
-    const double yFPmm = tan(yFPrad) * focalLength;
-    
-    return make_pair(xFPmm, yFPmm);   
-}
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * \brief Convert from planar to angular focal plane coordinates, assuming no optical distortion.
- * 
- * \note This conversion depends on the focal length of the camera
- * 
- * \param xFPrad   Planar focal plane x-coordinate [mm]
- * \param yFPrad   Planar focal plane y-coordinate [mm]
- * 
- * \return (xFPrad, yFPrad)    Angular focal plane x and y coordinates [rad]
- */
-
-pair<double, double> Camera::planarToAngularFocalPlaneCoordinates(double xFPmm, double yFPmm)
-{
-    const double xFPrad = atan(xFPmm / focalLength);
-    const double yFPrad = atan(yFPmm / focalLength);
-    
-    return make_pair(xFPrad, yFPrad);   
+    return make_pair(raStar, decStar);
 }
 
 
@@ -831,14 +774,61 @@ pair<double, double> Camera::planarToAngularFocalPlaneCoordinates(double xFPmm, 
 
 
 /**
- * @brief      Convert from planar to distorted focal plane coordinates
+ * \brief      Convert polar coordinates to cartesian coordinates
  *
- * @param[in]  xFPmm  Planar focal plane x-coordinate [mm]
- * @param[in]  yFPmm  Planar focal plane y-coordinate [mm]
+ * \param[in]  distance  distance from the pole (reference point) [mm]
+ * \param[in]  angle     angle counter-clockwise from the x-axis [rad]
+ *
+ * \return     (xFPmm, yFPmm) Cartesian coordinates in the focal plane [mm]
+ */
+pair<double, double> Camera::polarToCartesianFocalPlaneCoordinates(double distance, double angle)
+{
+    double xFPmm = cos(angle) * distance;
+    double yFPmm = sin(angle) * distance;
+
+    return make_pair(xFPmm, yFPmm);
+}
+
+
+
+
+
+/**
+ * \brief      Convert cartesian coordinates to polar coordinates
+ *
+ * \param[in]  xFPmm  x-axis cartesian coordinate in the focal plane [mm]
+ * \param[in]  yFPmm  y-axis cartesian coordinate in the focal plane [mm]
+ *
+ * \return     (distance, angle) polar coordinates in the focal plane
+ */
+pair<double, double> Camera::cartesianToPolarFocalPlaneCoordinates(double xFPmm, double yFPmm)
+{
+    double angle = atan2(yFPmm, xFPmm);
+    double distance = sqrt(xFPmm * xFPmm + yFPmm * yFPmm);
+
+    return make_pair(distance, angle);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * @brief      Convert from undistorted to distorted focal plane coordinates
+ *
+ * @param[in]  xFPmm  Undistorted focal plane x-coordinate [mm]
+ * @param[in]  yFPmm  Undistorted focal plane y-coordinate [mm]
  *
  * @return     (xFPdist, yFPdist) distorted x and y coordinates [mm]
  */
-pair<double, double> Camera::planarToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm)
+pair<double, double> Camera::undistortedToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm)
 {
     double alpha = atan2(yFPmm, xFPmm);  // [radians]
     
@@ -858,14 +848,14 @@ pair<double, double> Camera::planarToDistortedFocalPlaneCoordinates(double xFPmm
 
 
 /**
- * @brief      Convert from distorted to planar focal plane coordinates
+ * @brief      Convert from distorted to undistorted focal plane coordinates
  *
  * @param[in]  xFPdist  Distorted focal plane x-coordinate [mm]
  * @param[in]  yFPdist  DIstorted focal plane y-coordinate [mm]
  *
  * @return     (xFPmm, yFPmm) distorted x and y coordinates [mm]
  */
-pair<double, double> Camera::distortedToPlanarFocalPlaneCoordinates(double xFPdist, double yFPdist)
+pair<double, double> Camera::distortedToUndistortedFocalPlaneCoordinates(double xFPdist, double yFPdist)
 {
     double alpha = atan2(yFPdist, xFPdist);  // [radians]
     

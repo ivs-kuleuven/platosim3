@@ -170,7 +170,6 @@ Detector::~Detector()
 	readoutNoiseSeed        = configParam.getLong("RandomSeeds/ReadOutNoiseSeed");
 	photonNoiseSeed         = configParam.getLong("RandomSeeds/PhotonNoiseSeed");
 	flatfieldSeed           = configParam.getLong("RandomSeeds/FlatFieldSeed");
-//	cteMapSeed              = configParam.getLong("RandomSeeds/CTESeed");
 
 	// Derive the dimensions of the sub-pixel map
 
@@ -307,18 +306,14 @@ void Detector::generateVignettingMap()
 	{
 		for (int column = 0; column < pixelMap.n_cols; column++)
 		{
-			// For each pixel in the pixel map, compute first the planar and from there the 
-			// angular focal plane coordinates
+			// For each pixel in the pixel map, compute first the focal plane coordinates
 
 			double xFPmm, yFPmm;
-			tie(xFPmm, yFPmm) = pixelToPlanarFocalPlaneCoordinates(row, column);
-
-			double xFPrad, yFPrad;
-			tie(xFPrad, yFPrad) = camera.planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm);
+			tie(xFPmm, yFPmm) = pixelToFocalPlaneCoordinates(row, column);
 
 			// Get the angular distance [rad] of the pixel from the optical axis
 
-			const double angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPrad, yFPrad); 
+			const double angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm); 
 
 			// Compute the geometrical vignetting attentuation factor
 
@@ -533,7 +528,7 @@ tuple<bool, double, double> Detector::addFlux(double xFPprime, double yFPprime, 
 	// Convert from FP' coordinates to CCD pixel coordinates
 
 	double pixRow, pixColumn;
-	tie(pixRow, pixColumn) = planarFocalPlaneToPixelCoordinates(xFPprime, yFPprime);
+	tie(pixRow, pixColumn) = focalPlaneToPixelCoordinates(xFPprime, yFPprime);
 
 	// Sub-field coordinates, taking into account the edge pixels 
 	// (subpixRow, subpixColumn) are the indices of the star in the subpixelMap. So they are not 
@@ -1585,7 +1580,7 @@ void Detector::applyDigitalSaturation()
 
 
 /**
- * \brief Compute the planar (x,y) coordinates in the FP' reference system (not the FP system) 
+ * \brief Compute the (x,y) coordinates [mm] in the FP' reference system (not the FP system) 
  *        given the (real-valued) pixel row and column numbers on the CCD.
  *        
  * \note  The rows correspond to the y-direction, and the columns to the x-direction.
@@ -1597,7 +1592,7 @@ void Detector::applyDigitalSaturation()
  * \return (xFPprime, yFPprime)  A pair of (x,y) coordinates in the FP' reference system [mm]
  */
 
-pair<double, double> Detector::pixelToPlanarFocalPlaneCoordinates(double row, double column)
+pair<double, double> Detector::pixelToFocalPlaneCoordinates(double row, double column)
 {
     // Convert the pixel coordinates into [mm] coordinates
     // The pixelSize is expressed in [micron].
@@ -1627,18 +1622,18 @@ pair<double, double> Detector::pixelToPlanarFocalPlaneCoordinates(double row, do
 
 /**
  * \brief Compute the (real-valued) pixel coordinates of the star on the CCD, given the 
- *        planar (x,y) coordinates in the FP' reference system (not the FP system)
+ *        (x,y) coordinates [mm] in the FP' reference system (not the FP system)
  *
  * \note  The rows correspond to the y-direction, and the columns to the x-direction.
  *        Pixel (row, col) = (0,0) starts at (yFP, xFP) = (0, 0).
  *        
- * \param xFPprime  planar x-coordinate of the point in the FP' reference system  [mm]
- * \param yFPprime  planar y-coordinate of the point in the FP' reference system  [mm]
+ * \param xFPprime  x-coordinate of the point in the FP' reference system  [mm]
+ * \param yFPprime  y-coordinate of the point in the FP' reference system  [mm]
  * 
  * \return (row, column)  Row and column pixel coordinates of the point (real-valued) [pix]
  */
 
-pair<double, double> Detector::planarFocalPlaneToPixelCoordinates(double xFPprime, double yFPprime)
+pair<double, double> Detector::focalPlaneToPixelCoordinates(double xFPprime, double yFPprime)
 {
 	// Convert the FP' coordinates into CCD coordinates [mm]
 
@@ -1673,7 +1668,7 @@ pair<double, double> Detector::planarFocalPlaneToPixelCoordinates(double xFPprim
  * \return (xFPprime, yFPprime)   focal plane coordinates in the FP' reference system [mm]
  */
 
-pair<double, double> Detector::getPlanarFocalPlaneCoordinatesOfSubfieldCenter()
+pair<double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCenter()
 {
 	double centerRow = subFieldZeroPointRow + numRowsPixelMap / 2.0;
 	double centerCol = subFieldZeroPointColumn + numColumnsPixelMap / 2.0;
@@ -1681,7 +1676,7 @@ pair<double, double> Detector::getPlanarFocalPlaneCoordinatesOfSubfieldCenter()
     // The columns correspond to the x-coordinate, the rows to the y-coordinate
 
     double xFPprime, yFPprime;
-    tie(xFPprime, yFPprime) = pixelToPlanarFocalPlaneCoordinates(centerRow, centerCol);
+    tie(xFPprime, yFPprime) = pixelToFocalPlaneCoordinates(centerRow, centerCol);
 
 	return make_pair(xFPprime, yFPprime);
 }
@@ -1725,9 +1720,9 @@ bool Detector::psfIsSet()
 void Detector::setPsfForSubfield()
 {
     double centerXmm, centerYmm;
-    tie(centerXmm, centerYmm) = getPlanarFocalPlaneCoordinatesOfSubfieldCenter();
+    tie(centerXmm, centerYmm) = getFocalPlaneCoordinatesOfSubfieldCenter();
 
-    arma::fmat psf = camera.getRebinnedPsfForPlanarFocalPlaneCoordinates(centerXmm, centerYmm, numSubPixelsPerPixel, getOrientationAngle());
+    arma::fmat psf = camera.getRebinnedPsfForFocalPlaneCoordinates(centerXmm, centerYmm, numSubPixelsPerPixel, getOrientationAngle());
 
 	convolver.initialise(numRowsSubPixelMap, numColumnsSubPixelMap, psf);
 
@@ -1791,7 +1786,7 @@ void Detector::convolveWithPsf()
  *                (X10, Y10) are the FP' coordinates of the upper left corner of the subfield
  */
 
-tuple<double, double, double, double, double, double, double, double> Detector::getPlanarFocalPlaneCoordinatesOfSubfieldCorners()
+tuple<double, double, double, double, double, double, double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCorners()
 {
 	double corner00Xmm, corner00Ymm, corner01Xmm, corner01Ymm, corner11Xmm, corner11Ymm, corner10Xmm, corner10Ymm;
 	double row, col;
@@ -1800,25 +1795,25 @@ tuple<double, double, double, double, double, double, double, double> Detector::
 
 	row = subFieldZeroPointRow;
 	col = subFieldZeroPointColumn;
-	tie(corner00Xmm, corner00Ymm) = pixelToPlanarFocalPlaneCoordinates(row, col);
+	tie(corner00Xmm, corner00Ymm) = pixelToFocalPlaneCoordinates(row, col);
 
 	// Lower right corner
 
 	row = subFieldZeroPointRow;
 	col = subFieldZeroPointColumn + numColumnsPixelMap;
-	tie(corner01Xmm, corner01Ymm) = pixelToPlanarFocalPlaneCoordinates(row, col);
+	tie(corner01Xmm, corner01Ymm) = pixelToFocalPlaneCoordinates(row, col);
 
 	// Upper right corner
 
 	row = subFieldZeroPointRow + numRowsPixelMap;
 	col = subFieldZeroPointColumn + numColumnsPixelMap;
-	tie(corner11Xmm, corner11Ymm) = pixelToPlanarFocalPlaneCoordinates(row, col);
+	tie(corner11Xmm, corner11Ymm) = pixelToFocalPlaneCoordinates(row, col);
 
 	// Upper left corner
 
 	row = subFieldZeroPointRow + numRowsPixelMap;
 	col = subFieldZeroPointColumn;
-	tie(corner10Xmm, corner10Ymm) = pixelToPlanarFocalPlaneCoordinates(row, col);
+	tie(corner10Xmm, corner10Ymm) = pixelToFocalPlaneCoordinates(row, col);
 
 	return make_tuple(corner00Xmm, corner00Ymm, corner01Xmm, corner01Ymm, corner11Xmm, corner11Ymm, corner10Xmm, corner10Ymm);
 }

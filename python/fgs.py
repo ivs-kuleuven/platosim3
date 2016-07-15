@@ -66,9 +66,9 @@ for n in range(NguideStars):
 
     subfieldSizeX = 9     # column width [pixels]
     subfieldSizeY = 9     # row width [pixels]
-    nominalCamera = False
+    normalCamera = False
 
-    hasCcdCode = setSubfieldAroundCoordinates(sim, np.deg2rad(ra[n]), np.deg2rad(dec[n]), subfieldSizeX, subfieldSizeY, nominalCamera)
+    hasCcdCode = setSubfieldAroundCoordinates(sim, np.deg2rad(ra[n]), np.deg2rad(dec[n]), subfieldSizeX, subfieldSizeY, normalCamera)
 
     # If the star does not fall on a CCD, or is too close to the edge, skip it.
 
