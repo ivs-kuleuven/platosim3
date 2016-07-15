@@ -55,16 +55,11 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 	biasMap.zeros(numRowsBiasMap, numColumnsPixelMap);
 	smearingMap.zeros(numRowsSmearingMap, numColumnsPixelMap);
 	flatfieldMap.ones(numRowsSubPixelMap, numColumnsSubPixelMap);
-//	cteMap.zeros(numRowsPixelMap, numColumnsPixelMap);
 	vignettingMap.ones(numRowsPixelMap, numColumnsPixelMap);
 
 	// Generate the flatfield map 
 
 	generateFlatfieldMap();
-
-//	// Generate the CTE map
-//
-//	generateCteMap();
 
 	// Generate the vignetting map
 
@@ -127,7 +122,27 @@ Detector::~Detector()
     electronicOffset           = configParam.getInteger("CCD/ElectronicOffset");
     readoutTime                = configParam.getDouble("CCD/ReadoutTime");
     flatfieldNoiseAmplitude    = configParam.getDouble("CCD/FlatfieldPtPNoise");
-    meanCte                    = configParam.getDouble("CCD/CTEMean");
+
+    CTImodel                   = configParam.getString("CCD/CTI/Model");
+    if (CTImodel == "Simple")
+    {
+        meanCte                = configParam.getDouble("CCD/CTI/Simple/MeanCTI");
+    }
+    else if (CTImodel == "Short2013")
+    {
+        beta                    = configParam.getDouble("CCD/CTI/Short2013/Beta");
+        temperature             = configParam.getDouble("CCD/CTI/Short2013/Temperature");
+        numTrapSpecies          = configParam.getInteger("CCD/CTI/Short2013/NumTrapSpecies");   
+        trapDensity             = configParam.getDoubleVector("CCD/CTI/Short2013/TrapDensity");
+        trapCaptureCrossSection = configParam.getDoubleVector("CCD/CTI/Short2013/TrapCaptureCrossSection");
+        releaseTime             = configParam.getDoubleVector("CCD/CTI/Short2013/ReleaseTime");
+    }
+    else
+    {
+        Log.error("Detector::configure(): Unkown CTI model specification in configuration file: "  + CTImodel);
+        throw ConfigurationException("Detector: Unkown CTI model specification in configuration file");
+    }
+
     includeFlatfield           = configParam.getBoolean("CCD/IncludeFlatfield");
     includePhotonNoise         = configParam.getBoolean("CCD/IncludePhotonNoise");
     includeReadoutNoise        = configParam.getBoolean("CCD/IncludeReadoutNoise");   
@@ -155,7 +170,6 @@ Detector::~Detector()
 	readoutNoiseSeed        = configParam.getLong("RandomSeeds/ReadOutNoiseSeed");
 	photonNoiseSeed         = configParam.getLong("RandomSeeds/PhotonNoiseSeed");
 	flatfieldSeed           = configParam.getLong("RandomSeeds/FlatFieldSeed");
-//	cteMapSeed              = configParam.getLong("RandomSeeds/CTESeed");
 
 	// Derive the dimensions of the sub-pixel map
 
@@ -164,33 +178,6 @@ Detector::~Detector()
 
 	numEdgePixels = 0;
  }
-
-
-
-
-
-
-
-
-
-
-
-///**
-// * \brief: Generate CTE map.  This map is generated at pixel level and currently
-// *         the value of all elements in the CTE map are set to the mean CTE.
-// *
-// * NOTE: In a later version, we can introduce pixels and/or rows of pixels (in the
-// *       pixel map) with a lower CTE, based on random distributions.
-// */
-//void Detector::generateCteMap()
-//{
-//	cteMap = meanCte;
-//
-//	// Random pixels with lower CTE
-//
-//	// Random rows of pixels with lower CTE
-//}
-
 
 
 
@@ -212,58 +199,6 @@ void Detector::generateFlatfieldMap()
 {
 
 	Log.info("Detector: generating flatfield map.");
-
-//	// Random number generation
-//
-//	mt19937 flatfieldGenerator(flatfieldSeed);
-//	normal_distribution<double> flatfieldDistribution(0.0, 1.0);
-//
-//	arma::cx_fmat pinkNoise = arma::cx_fmat(2 * numRowsPixelMap * numSubPixelsPerPixel, 2 * numColumnsPixelMap * numSubPixelsPerPixel);
-//	arma::fmat aux = arma::fmat(pinkNoise.n_rows, pinkNoise.n_cols);
-//
-//	for(unsigned int row = 0; row < pinkNoise.n_rows; row++)
-//	{
-//		for(unsigned int column = 0; column < pinkNoise.n_cols; column++)
-//		{
-//			pinkNoise(row, column) = flatfieldDistribution(flatfieldGenerator) / sqrt(column + 1.0);
-//		}
-//	}
-//
-//
-//
-//	for(unsigned int row = 0; row < pinkNoise.n_rows; row++)
-//	{
-//		pinkNoise(row, arma::span::all) = arma::ifft(pinkNoise(row, arma::span::all));
-//	}
-//
-//	aux = arma::real(pinkNoise);
-//
-//	pinkNoise.zeros();
-//	pinkNoise.set_real(aux);
-//
-//	for(unsigned int row = 0; row < pinkNoise.n_rows; row++)
-//	{
-//		pinkNoise(row, arma::span::all) /= sqrt(row + 1.0);
-//	}
-//
-//	for(unsigned int column = 0; column < pinkNoise.n_cols; column++)
-//	{
-//		pinkNoise(arma::span::all, column) = arma::ifft(pinkNoise(arma::span::all, column));
-//	}
-//
-//	aux = arma::real(pinkNoise);
-//	flatfieldMap(arma::span::all, arma::span::all) = aux(arma::span(0, flatfieldMap.n_rows - 1), arma::span(0, flatfieldMap.n_cols - 1));
-//
-//	float minPinkNoise = flatfieldMap.min();
-//	float maxPinkNoise = flatfieldMap.max();
-//
-//	flatfieldMap -= minPinkNoise;
-//	flatfieldMap /= (maxPinkNoise - minPinkNoise); // [0, 1]
-//	flatfieldMap *= flatfieldNoiseAmplitude;	// [0, flatfialdNoiseAmplitude]
-//
-//	flatfieldMap += (1.0 - flatfieldNoiseAmplitude);
-
-	// 1D -> 2D IMPLEMENTATION
 
 	// Random number generation
 
@@ -308,63 +243,6 @@ void Detector::generateFlatfieldMap()
 	flatfieldMap /= (maxPinkNoise - minPinkNoise); // [0, 1]
 	flatfieldMap *= flatfieldNoiseAmplitude;	// [0, flatfialdNoiseAmplitude]
 	flatfieldMap += (1.0 - flatfieldNoiseAmplitude);
-
-
-	// OLD IMPLEMENTATION
-//	// Random number generation
-//
-//	mt19937 flatfieldGenerator(flatfieldSeed);
-//	normal_distribution<double> flatfieldDistribution(0.0, 1.0);
-//
-//	// Create a square map, filled with zeroes, in which the whole subfield fits,
-//	// and for which the dimensions are a power of 2
-//
-//	unsigned int NrowsSquareMap = 2;
-//	unsigned int maxFlatfielMapDimension = max(flatfieldMap.n_rows, flatfieldMap.n_cols);
-//
-//	while (NrowsSquareMap <= maxFlatfielMapDimension)
-//	{
-//		NrowsSquareMap *= 2;
-//	}
-//
-//	arma::Mat<float> squareMap(NrowsSquareMap, NrowsSquareMap);
-//	squareMap.ones();
-//
-//	// Add variations at all spatial frequencies
-//	// This is done by dividing the square map into:
-//	// 		overlapping blocks of size (N/2)x(N/2)
-//	// 		overlapping blocks of size (N/4)x(N/4)
-//	//      overlapping blocks of size (N/8)x(N/8)
-//	//      ...
-//	//
-//	// and add a gaussian noise to each of those blocks
-//
-//	// Loop over all block sizes: N/2, N/4, N/8, ...
-//
-//	for (unsigned int blockSize = NrowsSquareMap / 2; blockSize >= 2; blockSize /= 2)
-//	{
-//		// Loop over all overlapping blocks, and add a small variation
-//
-//		for (unsigned int blockRow = 0; blockRow < NrowsSquareMap - blockSize; blockRow += blockSize)
-//		{
-//			for (unsigned int blockColumn = 0; blockColumn < NrowsSquareMap - blockSize; blockColumn += blockSize)
-//			{
-//				const double variation = flatfieldDistribution(flatfieldGenerator);
-//				squareMap(arma::span(blockRow, blockRow + blockSize - 1), arma::span(blockColumn, blockColumn + blockSize - 1)) += variation;
-//			}
-//		}
-//	}
-//
-//	// Normalise and subtract 0.5 -> all values are in [-0.5, 0.5]
-//	// Multiply by peak-to-peak noise amplitude -> all values are in [0, f]
-//
-//	double minValue = squareMap.min();
-//	double maxValue = squareMap.max();
-//	squareMap = ((squareMap - minValue) / (maxValue - minValue) - 0.5) * flatfieldNoiseAmplitude;
-//
-//	// Copy a part of the squareMatrix corresponding to the size of the flatfieldMap, into the flatfieldMap
-//
-//	flatfieldMap = squareMap.submat(0, 0, flatfieldMap.n_rows - 1, flatfieldMap.n_cols - 1);
 
 	// Save the intra-pixel flatfield in the HDF5 file
 
@@ -428,18 +306,14 @@ void Detector::generateVignettingMap()
 	{
 		for (int column = 0; column < pixelMap.n_cols; column++)
 		{
-			// For each pixel in the pixel map, compute first the planar and from there the 
-			// angular focal plane coordinates
+			// For each pixel in the pixel map, compute first the focal plane coordinates
 
 			double xFPmm, yFPmm;
-			tie(xFPmm, yFPmm) = pixelToPlanarFocalPlaneCoordinates(row, column);
-
-			double xFPrad, yFPrad;
-			tie(xFPrad, yFPrad) = camera.planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm);
+			tie(xFPmm, yFPmm) = pixelToFocalPlaneCoordinates(row, column);
 
 			// Get the angular distance [rad] of the pixel from the optical axis
 
-			const double angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPrad, yFPrad); 
+			const double angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm); 
 
 			// Compute the geometrical vignetting attentuation factor
 
@@ -654,7 +528,7 @@ tuple<bool, double, double> Detector::addFlux(double xFPprime, double yFPprime, 
 	// Convert from FP' coordinates to CCD pixel coordinates
 
 	double pixRow, pixColumn;
-	tie(pixRow, pixColumn) = planarFocalPlaneToPixelCoordinates(xFPprime, yFPprime);
+	tie(pixRow, pixColumn) = focalPlaneToPixelCoordinates(xFPprime, yFPprime);
 
 	// Sub-field coordinates, taking into account the edge pixels 
 	// (subpixRow, subpixColumn) are the indices of the star in the subpixelMap. So they are not 
@@ -954,7 +828,7 @@ void Detector::readOut(float exposureTime)
 	if (includeCTIeffects)
 	{
         Log.debug("Detector: applying charge transfer inefficiency");
-		applyCte();
+		applyCTI();
 	}
     else
     {
@@ -1128,10 +1002,9 @@ void Detector::addPhotonNoise()
  * \post Pixel unit in the smearing map: [electrons].
  * \post No bias register map.
  */
+
 void Detector::applyFullWellSaturation()
 {
-	Log.debug("Detector: applying full well saturation");
-
 	double pixelValue, numExcessElectrons;
 
 	int jmod;// Row coordinate where excess electrons are transferred from and to
@@ -1246,11 +1119,53 @@ void Detector::applyFullWellSaturation()
 
 
 
+/**
+ * \brief Apply the effect of the charge-transfer inefficiency to the
+ *        pixel map. The exact model used depends on the configuration
+ *        in the input file.
+ *  
+ *  \note The pixel map should be expressed in [e-] and not [ADU]
+ *  
+ * \pre Pixel unit in the pixel map: [electrons]
+ * \pre Pixel unit in the smearing map: [electrons].
+ * \pre No bias register map.
+ *
+ * \post Pixel unit in the pixel map: [electrons].
+ * \post Pixel unit in the smearing map: [electrons].
+ * \post No bias register map.              
+ */
+
+void Detector::applyCTI()
+{
+    if (CTImodel == "Simple")
+    {
+        Log.info("Detector: applying simple CTI model");
+        applySimpleCTImodel();
+    }
+    else if (CTImodel == "Short2013")
+    {
+        Log.info("Detector: applying Short et al. (2013) CTI model");
+        applyShort2013CTImodel();
+    }
+}
+
+
+
+
+
+
+
+
+
+
 
 /**
- * \brief: Apply the effect of the charge-transfer (in)efficiency to the
- *         pixel map. The serial register is assumed to have a CTE of 1, 
- *         unlike the CCD that has a CTE map.
+ * \brief: Apply the effect of the charge-transfer inefficiency to the
+ *         pixel map, using a simple CTI model. The CTI of this simple model
+ *         has no dependence on the flux level, nor on the distance of the 
+ *         readout register.
+ *         
+ * \note The serial register is assumed to have a CTE of 1.
  *
  * \pre Pixel unit in the pixel map: [electrons].
  * \pre Pixel unit in the smearing map: [electrons].
@@ -1260,7 +1175,8 @@ void Detector::applyFullWellSaturation()
  * \post Pixel unit in the smearing map: [electrons].
  * \post No bias register map.
  */
-void Detector::applyCte()
+
+void Detector::applySimpleCTImodel()
 {
 	float cti = 1.0 - meanCte;
 
@@ -1303,7 +1219,6 @@ void Detector::applyCte()
 			readout += pixelMap(0, arma::span::all) * factor1;
 
 		}
-
 		else
 		{
 			for (unsigned int index = subFieldZeroPointRow; index <= row + subFieldZeroPointRow; index++)
@@ -1318,10 +1233,9 @@ void Detector::applyCte()
 
 				else
 				{
-					const double binomialFactor = exp(
-							sumOfLogsUpTo[row + subFieldZeroPointRow - 1]
-									- sumOfLogsUpTo[row - (index - subFieldZeroPointRow) - 1]
-									- sumOfLogsUpTo[index - 1]);
+					const double binomialFactor = exp(sumOfLogsUpTo[row + subFieldZeroPointRow - 1]
+									                  - sumOfLogsUpTo[row - (index - subFieldZeroPointRow) - 1]
+									                  - sumOfLogsUpTo[index - 1]);
 
 					readout += pixelMap(index - subFieldZeroPointRow, arma::span::all) * cteFactor;
 				}
@@ -1330,55 +1244,100 @@ void Detector::applyCte()
 
 		pixelMap(row, arma::span::all) = readout(0, arma::span::all);
 	}
-
-	// BELOW: OLD IMPLEMENTATION
-
-//	// Create a map in which we will shift the rows of the pixel map one-by-one
-//	// towards the readout register.  Bear in mind that the bottom row of the
-//	// sub-field is not necessarily right next to the readout register (the
-//	// distance between the two is subFieldZeroPointRow).
-//
-//	arma::Mat<float> shiftMap;
-//	shiftMap.zeros(subFieldZeroPointRow + numRowsPixelMap, numColumnsPixelMap);
-//	shiftMap.submat(arma::span(subFieldZeroPointRow, subFieldZeroPointRow + numRowsPixelMap - 1), arma::span::all) = pixelMap;
-//
-//	// The readout register
-//
-//	arma::Row<float> readoutStrip;
-//	readoutStrip.zeros(numColumnsPixelMap);
-//
-//	// Array filled with ones (needed for the CTI)
-//
-//	arma::Row<float> ones;
-//	ones.ones(numColumnsPixelMap);
-//
-//	// Shift all the rows down (i.e. towards the readout register) one-by-one
-//	// Keep on doing this until all rows have been read out.
-//
-//	for (int shiftIndex = 0;
-//			shiftIndex < numRowsPixelMap + subFieldZeroPointRow; shiftIndex++)
-//	{
-//
-//		// Shift the bottom row to the readout strip
-//
-//		readoutStrip = cteMap(0, arma::span::all) * shiftMap(0, arma::span::all);
-//
-//		if (shiftIndex >= subFieldZeroPointRow)
-//		{
-//			pixelMap(shiftIndex - subFieldZeroPointRow, arma::span::all) = readoutStrip(0, arma::span::all);
-//		}
-//
-//		// Shift all other rows one row down (i.e. closer to the readout register)
-//
-//		for (int row = 0; row < subFieldZeroPointRow + numRowsPixelMap - 1; row++)
-//		{
-//			shiftMap(row, arma::span::all) = (ones-cteMap(row, arma::span::all))
-//					                           * shiftMap(row, arma::span::all)	// Left behind when shifting row down (CTI = 1 - CTE)
-//					                         + cteMap(row + 1, arma::span::all)
-//							                   * shiftMap(row + 1, arma::span::all);	// Transferred (CTE)
-//		}
-//	}
 }
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief: Apply the effect of the charge-transfer inefficiency to the pixel map,
+ *         using the model described in Short et al., MNRAS 430, 3078-3085 (2013).
+ *         Only paralllell readout is taken into account here.
+ *         
+ * \note The readout register is assumed to be right next to row [0] of the pixel map.
+ *       The pixel map needs to be in [e-], not in [ADU]
+ * 
+ * \pre Pixel unit in the pixel map: [electrons].
+ * \pre Pixel unit in the smearing map: [electrons].
+ * \pre No bias register map.
+ *
+ * \post Pixel unit in the pixel map: [electrons].
+ * \post Pixel unit in the smearing map: [electrons].
+ * \post No bias register map.
+ */
+ 
+void Detector::applyShort2013CTImodel()
+{
+    // Compute the maximum geometrical volume that electrons can occupy within a pixel.
+    // I.e. the volume of the electron cloud when the capacity of the full well is maxed out.
+    // E.g if the pixel size is 18 micron, then the volume is 18e-6 * 18e-6 * 1.e-6 / 2.0
+
+    const double maxVolumePerPixel = pixelSize * pixelSize * 1.e-18  / 2.0;                                  // [m^3]
+
+    // Compute the time it takes to transfer 1 row during readout
+
+    const double chargeTransferTime = readoutTime / numRows;                                                 // [s] 
+
+    // Compute the thermal velocity of the electrons in the silicon
+
+    const double effectiveElectronMass = 0.5 * Constants::FREEELECTRONMASS;                                  // [kg]
+    const double thermalVelocity = sqrt(3.0 * Constants::KBOLTZMANN * temperature / effectiveElectronMass);  // [m/s]
+
+    // Arrays to keep track of the number of occupied traps in a column
+
+    arma::Mat<float> numberOfOccupiedTraps = arma::zeros<arma::Mat<float>>(numTrapSpecies, numColumnsPixelMap);
+
+    // Arrays to keep track of the captured and released electrons, for each column in a particular row.
+
+    arma::Row<float> numberOfCapturedElectrons(numColumnsPixelMap);
+    arma::Row<float> numberOfReleasedElectrons(numColumnsPixelMap);
+
+    // Loop over all rows of the pixelMap, and over all trap species.
+    // For each row, the computations are done for all columns simultaneously.
+
+    for (int rowNumber = 0; rowNumber < numRowsPixelMap; rowNumber++)
+    {
+        for (int k = 0; k < numTrapSpecies; k++)
+        {
+            // Compute the number of electrons captured in a trap, according to Eq. (22)-(23) of Short et al. (2013).
+            // Note that Armadillo uses % for elementwise multiplication.
+
+            const double alpha = chargeTransferTime * trapCaptureCrossSection[k] * thermalVelocity * pow(fullWellSaturationLimit, beta) / 2.0 / maxVolumePerPixel;
+            const double gamma = trapDensity[k] * (subFieldZeroPointRow + rowNumber) / pow(fullWellSaturationLimit, beta);
+
+            numberOfCapturedElectrons =   (gamma * arma::pow(pixelMap.row(rowNumber), beta) - numberOfOccupiedTraps.row(k)) \
+                                        / (gamma * arma::pow(pixelMap.row(rowNumber), beta-1) + 1)                          \
+                                        % (1 - arma::exp(-alpha * arma::pow(pixelMap.row(rowNumber), 1-beta)));
+
+            // Captured electron numbers can't be negative, so clip negative value to zero.
+
+            arma::Col<arma::uword> isNegative = arma::find(numberOfCapturedElectrons < 0.0);
+            numberOfCapturedElectrons(isNegative).zeros();
+
+            // Update the number of occupied traps with the estimated number of captured electrons
+
+            numberOfOccupiedTraps.row(k) += numberOfCapturedElectrons;
+            
+            // Correct the number of occupied traps with the electrons that were released again during the charge transfer time.
+
+            numberOfReleasedElectrons = numberOfOccupiedTraps.row(k) * (1-exp(-chargeTransferTime/releaseTime[k]));
+            numberOfOccupiedTraps.row(k) -= numberOfReleasedElectrons;
+
+            // Add the electron excess to the current pixel value
+
+            pixelMap.row(rowNumber) += numberOfReleasedElectrons - numberOfCapturedElectrons;
+        }
+    }
+}
+
+
 
 
 
@@ -1621,7 +1580,7 @@ void Detector::applyDigitalSaturation()
 
 
 /**
- * \brief Compute the planar (x,y) coordinates in the FP' reference system (not the FP system) 
+ * \brief Compute the (x,y) coordinates [mm] in the FP' reference system (not the FP system) 
  *        given the (real-valued) pixel row and column numbers on the CCD.
  *        
  * \note  The rows correspond to the y-direction, and the columns to the x-direction.
@@ -1633,7 +1592,7 @@ void Detector::applyDigitalSaturation()
  * \return (xFPprime, yFPprime)  A pair of (x,y) coordinates in the FP' reference system [mm]
  */
 
-pair<double, double> Detector::pixelToPlanarFocalPlaneCoordinates(double row, double column)
+pair<double, double> Detector::pixelToFocalPlaneCoordinates(double row, double column)
 {
     // Convert the pixel coordinates into [mm] coordinates
     // The pixelSize is expressed in [micron].
@@ -1663,18 +1622,18 @@ pair<double, double> Detector::pixelToPlanarFocalPlaneCoordinates(double row, do
 
 /**
  * \brief Compute the (real-valued) pixel coordinates of the star on the CCD, given the 
- *        planar (x,y) coordinates in the FP' reference system (not the FP system)
+ *        (x,y) coordinates [mm] in the FP' reference system (not the FP system)
  *
  * \note  The rows correspond to the y-direction, and the columns to the x-direction.
  *        Pixel (row, col) = (0,0) starts at (yFP, xFP) = (0, 0).
  *        
- * \param xFPprime  planar x-coordinate of the point in the FP' reference system  [mm]
- * \param yFPprime  planar y-coordinate of the point in the FP' reference system  [mm]
+ * \param xFPprime  x-coordinate of the point in the FP' reference system  [mm]
+ * \param yFPprime  y-coordinate of the point in the FP' reference system  [mm]
  * 
  * \return (row, column)  Row and column pixel coordinates of the point (real-valued) [pix]
  */
 
-pair<double, double> Detector::planarFocalPlaneToPixelCoordinates(double xFPprime, double yFPprime)
+pair<double, double> Detector::focalPlaneToPixelCoordinates(double xFPprime, double yFPprime)
 {
 	// Convert the FP' coordinates into CCD coordinates [mm]
 
@@ -1709,7 +1668,7 @@ pair<double, double> Detector::planarFocalPlaneToPixelCoordinates(double xFPprim
  * \return (xFPprime, yFPprime)   focal plane coordinates in the FP' reference system [mm]
  */
 
-pair<double, double> Detector::getPlanarFocalPlaneCoordinatesOfSubfieldCenter()
+pair<double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCenter()
 {
 	double centerRow = subFieldZeroPointRow + numRowsPixelMap / 2.0;
 	double centerCol = subFieldZeroPointColumn + numColumnsPixelMap / 2.0;
@@ -1717,7 +1676,7 @@ pair<double, double> Detector::getPlanarFocalPlaneCoordinatesOfSubfieldCenter()
     // The columns correspond to the x-coordinate, the rows to the y-coordinate
 
     double xFPprime, yFPprime;
-    tie(xFPprime, yFPprime) = pixelToPlanarFocalPlaneCoordinates(centerRow, centerCol);
+    tie(xFPprime, yFPprime) = pixelToFocalPlaneCoordinates(centerRow, centerCol);
 
 	return make_pair(xFPprime, yFPprime);
 }
@@ -1761,9 +1720,9 @@ bool Detector::psfIsSet()
 void Detector::setPsfForSubfield()
 {
     double centerXmm, centerYmm;
-    tie(centerXmm, centerYmm) = getPlanarFocalPlaneCoordinatesOfSubfieldCenter();
+    tie(centerXmm, centerYmm) = getFocalPlaneCoordinatesOfSubfieldCenter();
 
-    arma::fmat psf = camera.getRebinnedPsfForPlanarFocalPlaneCoordinates(centerXmm, centerYmm, numSubPixelsPerPixel, getOrientationAngle());
+    arma::fmat psf = camera.getRebinnedPsfForFocalPlaneCoordinates(centerXmm, centerYmm, numSubPixelsPerPixel, getOrientationAngle());
 
 	convolver.initialise(numRowsSubPixelMap, numColumnsSubPixelMap, psf);
 
@@ -1827,7 +1786,7 @@ void Detector::convolveWithPsf()
  *                (X10, Y10) are the FP' coordinates of the upper left corner of the subfield
  */
 
-tuple<double, double, double, double, double, double, double, double> Detector::getPlanarFocalPlaneCoordinatesOfSubfieldCorners()
+tuple<double, double, double, double, double, double, double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCorners()
 {
 	double corner00Xmm, corner00Ymm, corner01Xmm, corner01Ymm, corner11Xmm, corner11Ymm, corner10Xmm, corner10Ymm;
 	double row, col;
@@ -1836,25 +1795,25 @@ tuple<double, double, double, double, double, double, double, double> Detector::
 
 	row = subFieldZeroPointRow;
 	col = subFieldZeroPointColumn;
-	tie(corner00Xmm, corner00Ymm) = pixelToPlanarFocalPlaneCoordinates(row, col);
+	tie(corner00Xmm, corner00Ymm) = pixelToFocalPlaneCoordinates(row, col);
 
 	// Lower right corner
 
 	row = subFieldZeroPointRow;
 	col = subFieldZeroPointColumn + numColumnsPixelMap;
-	tie(corner01Xmm, corner01Ymm) = pixelToPlanarFocalPlaneCoordinates(row, col);
+	tie(corner01Xmm, corner01Ymm) = pixelToFocalPlaneCoordinates(row, col);
 
 	// Upper right corner
 
 	row = subFieldZeroPointRow + numRowsPixelMap;
 	col = subFieldZeroPointColumn + numColumnsPixelMap;
-	tie(corner11Xmm, corner11Ymm) = pixelToPlanarFocalPlaneCoordinates(row, col);
+	tie(corner11Xmm, corner11Ymm) = pixelToFocalPlaneCoordinates(row, col);
 
 	// Upper left corner
 
 	row = subFieldZeroPointRow + numRowsPixelMap;
 	col = subFieldZeroPointColumn;
-	tie(corner10Xmm, corner10Ymm) = pixelToPlanarFocalPlaneCoordinates(row, col);
+	tie(corner10Xmm, corner10Ymm) = pixelToFocalPlaneCoordinates(row, col);
 
 	return make_tuple(corner00Xmm, corner00Ymm, corner01Xmm, corner01Ymm, corner11Xmm, corner11Ymm, corner10Xmm, corner10Ymm);
 }

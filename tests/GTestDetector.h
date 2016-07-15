@@ -146,18 +146,18 @@ public:
 
 
 
-	pair<double, double> test_pixelToPlanarFocalPlaneCoordinates(double row,
+	pair<double, double> test_pixelToFocalPlaneCoordinates(double row,
 			double column)
 	{
-		return pixelToPlanarFocalPlaneCoordinates(row, column);
+		return pixelToFocalPlaneCoordinates(row, column);
 	}
 
 
 
-	pair<double, double> test_planarFocalPlaneToPixelCoordinates(
+	pair<double, double> test_focalPlaneToPixelCoordinates(
 			double xFPprime, double yFPprime)
 	{
-		return planarFocalPlaneToPixelCoordinates(xFPprime, yFPprime);
+		return focalPlaneToPixelCoordinates(xFPprime, yFPprime);
 	}
 
 
@@ -313,7 +313,7 @@ public:
 
 	void test_applyCte()
 	{
-		applyCte();
+		applyCTI();
 	}
 
 
@@ -354,14 +354,14 @@ public:
 		applyFullWellSaturation();
 	}
 
-	pair<double, double> test_getPlanarFocalPlaneCoordinatesOfSubfieldCenter()
+	pair<double, double> test_getFocalPlaneCoordinatesOfSubfieldCenter()
 	{
-		return getPlanarFocalPlaneCoordinatesOfSubfieldCenter();
+		return getFocalPlaneCoordinatesOfSubfieldCenter();
 	}
 
-	tuple<double, double, double, double, double, double, double, double> test_getPlanarFocalPlaneCoordinatesOfSubfieldCorners()
+	tuple<double, double, double, double, double, double, double, double> test_getFocalPlaneCoordinatesOfSubfieldCorners()
 	{
-		return getPlanarFocalPlaneCoordinatesOfSubfieldCorners();
+		return getFocalPlaneCoordinatesOfSubfieldCorners();
 	}
 };
 
@@ -422,7 +422,7 @@ TEST_F(DetectorTest, checkConversionsBetweenPixelsAndFocalPlane)
     
         row = data["yCCD"];
         column = data["xCCD"];
-        tie(xFPprime, yFPprime) = detector.test_pixelToPlanarFocalPlaneCoordinates(row, column);
+        tie(xFPprime, yFPprime) = detector.test_pixelToFocalPlaneCoordinates(row, column);
     
         EXPECT_NEAR(data["xFP"], xFPprime, 0.00001);
         EXPECT_NEAR(data["yFP"], yFPprime, 0.00001);    
@@ -1353,7 +1353,7 @@ TEST_F(DetectorTest, applyCte)
 
 		const int numSubPixels = configParams.getInteger("SubField/SubPixels");
 
-		const double meanCte = configParams.getDouble("CCD/CTEMean");
+		const double meanCte = configParams.getDouble("CCD/CTI/Simple/MeanCTI");
 
 		// Initialise sub-pixel map, pixel map, bias register map, and smearing map
 
@@ -2210,15 +2210,15 @@ TEST_F(DetectorTest, getPlanarFocalPlaneCoordinatesOfSubfieldCorners)
 
 
 
-	pair<double, double> expectedUpperLeft = detector.test_pixelToPlanarFocalPlaneCoordinates(zeropointRow + numRowsSubField, zeropointColumn);
-	pair<double, double> expectedUpperRight = detector.test_pixelToPlanarFocalPlaneCoordinates(zeropointRow + numRowsSubField, zeropointColumn + numColumnsSubField);
-	pair<double, double> expectedLowerRight = detector.test_pixelToPlanarFocalPlaneCoordinates(zeropointRow, zeropointColumn + numColumnsSubField);
-	pair<double, double> expectedLowerLeft = detector.test_pixelToPlanarFocalPlaneCoordinates(zeropointRow, zeropointColumn);
+	pair<double, double> expectedUpperLeft = detector.test_pixelToFocalPlaneCoordinates(zeropointRow + numRowsSubField, zeropointColumn);
+	pair<double, double> expectedUpperRight = detector.test_pixelToFocalPlaneCoordinates(zeropointRow + numRowsSubField, zeropointColumn + numColumnsSubField);
+	pair<double, double> expectedLowerRight = detector.test_pixelToFocalPlaneCoordinates(zeropointRow, zeropointColumn + numColumnsSubField);
+	pair<double, double> expectedLowerLeft = detector.test_pixelToFocalPlaneCoordinates(zeropointRow, zeropointColumn);
 
 	double lowerLeftRow, lowerLeftColumn, lowerRightRow, lowerRightColumn, upperRightRow, upperRightColumn, upperLeftRow, upperLeftColumn;
 
 	tie(lowerLeftRow, lowerLeftColumn, lowerRightRow, lowerRightColumn, upperRightRow, upperRightColumn, upperLeftRow, upperLeftColumn) =
-			detector.test_getPlanarFocalPlaneCoordinatesOfSubfieldCorners();
+			detector.test_getFocalPlaneCoordinatesOfSubfieldCorners();
 
 	EXPECT_FLOAT_EQ(expectedLowerLeft.first, lowerLeftRow);
 	EXPECT_FLOAT_EQ(expectedLowerLeft.second, lowerLeftColumn);
@@ -2266,10 +2266,10 @@ TEST_F(DetectorTest, getPlanarFocalPlaneCoordinatesOfSubfieldCenter)
 
 
 	pair<double, double> expected =
-			detector.test_pixelToPlanarFocalPlaneCoordinates(zeropointRow + numRowsSubField / 2, zeropointColumn + numColumnsSubField / 2);
+			detector.test_pixelToFocalPlaneCoordinates(zeropointRow + numRowsSubField / 2, zeropointColumn + numColumnsSubField / 2);
 
-	EXPECT_FLOAT_EQ(expected.first, detector.getPlanarFocalPlaneCoordinatesOfSubfieldCenter().first);
-	EXPECT_FLOAT_EQ(expected.second, detector.getPlanarFocalPlaneCoordinatesOfSubfieldCenter().second);
+	EXPECT_FLOAT_EQ(expected.first, detector.getFocalPlaneCoordinatesOfSubfieldCenter().first);
+	EXPECT_FLOAT_EQ(expected.second, detector.getFocalPlaneCoordinatesOfSubfieldCenter().second);
 }
 
 

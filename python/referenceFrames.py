@@ -53,67 +53,65 @@ FIELD_DISTORTION = {'Coeff' : [1.0, 0.0, 0.0, 0.0], 'InverseCoeff' : [-1.0, 0.0,
 
 
 
-def skyToAngularFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle):
+
+
+
+
+def skyToFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength):
 
     """
-    PURPOSE: computes the (x,y) coordinates in the focal plane of a star with given equatorial coordinates
+    PURPOSE: Convert the equatorial sky coordinates (alpha, delta) of a star to focal plane coordinates (xFPprim, yFPprime),
+             assuming a spherical pinhole camera.
 
-    INPUT: raStar:          right ascension of the star [rad]
-           decStar:         declination of the star [rad]
-           raOpticalAxis:   right ascension of the optical axis [rad]
-           decOpticalAxis:  declination of the optical axis [rad]
-           focalPlaneAngle: angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
+    INPUT: raStar:           right ascension of the star [rad]
+           decStar:          declination of the star [rad]
+           raOpticalAxis:    right ascension of the optical axis [rad]
+           decOpticalAxis:   declination of the optical axis [rad]
+           focalPlaneAngle:  angle between the Y_FP axis and the Y'_FP axis: gamma_FP  [rad]
+           focalLength:      focal length of the camera. Unit: see remarks.
 
-    OUTPUT: xFPrad, yFPrad: Cartesian coordinate of the projected star in the focal plane in the FP-prime system [radians]
+    OUTPUT: xFPprime, yFPprime: cartesian coordinates of the project star in the focal plane in the FP-prime reference frame. 
+                                Unit: see remarks:
+    
+    REMARK: - The unit of the cartesian focal plane coordinates is the same as the one of focalLength. 
+              focalLength can be expressed in e.g. [mm] or in [pixels]. If focalLength == 1.0, then the corresponding
+              focal plane coordinates are called "normalized coordinates."
     """
 
-    # Project the sky to the focal plane in the "FP" coordinate system
+    # Convert the equatorial sky coordinate of the star to equatorial cartesian coordinates on the unit sphere
 
-    denominator = cos(decOpticalAxis) * cos(decStar) * cos(raStar - raOpticalAxis) + sin(decOpticalAxis) * sin(decStar)
-    xFP = (sin(decOpticalAxis) * cos(decStar) * cos(raStar - raOpticalAxis) - cos(decOpticalAxis) * sin(decStar)) / denominator
-    yFP =  cos(decStar) * sin(raStar - raOpticalAxis) / denominator
+    xEQ = sin(pi/2.-decStar) * cos(raStar)
+    yEQ = sin(pi/2.-decStar) * sin(raStar)
+    zEQ = cos(pi/2.-decStar)
+
+    vecEQ = array([xEQ, yEQ, zEQ])
+
+    # Convert the equatorial cartesian coordinates to focal plane cartesian coordinates.
+
+    rotMatrix1 = array([[ cos(raOpticalAxis), sin(raOpticalAxis), 0],      \
+                        [-sin(raOpticalAxis), cos(raOpticalAxis), 0],      \
+                        [                  0,                  0, 1]])
+
+    rotMatrix2 = array([[sin(decOpticalAxis),  0, -cos(decOpticalAxis)],   \
+                        [                  0,  1,                    0],   \
+                        [cos(decOpticalAxis),  0,  sin(decOpticalAxis)]])
+
+    vecFP = dot(rotMatrix2, dot(rotMatrix1, vecEQ))
+
+    # Take into account the projection effect of the pinhole camera
+    # Note that the pinhole reverses the image, hence the minus signs.
+
+    xFP = -focalLength * vecFP[0]/vecFP[2]
+    yFP = -focalLength * vecFP[1]/vecFP[2]
 
     # Convert the FP coordinates into FP' coordinates 
 
-    xFPrad =  xFP * cos(focalPlaneAngle) + yFP * sin(focalPlaneAngle)
-    yFPrad = -xFP * sin(focalPlaneAngle) + yFP * cos(focalPlaneAngle)
+    xFPprime =  xFP * cos(focalPlaneAngle) + yFP * sin(focalPlaneAngle)
+    yFPprime = -xFP * sin(focalPlaneAngle) + yFP * cos(focalPlaneAngle)
 
-    # Return the scaled coordinates
+    # That's it!
 
-    return xFPrad, yFPrad
-
-
-
-
-
-
-
-def angularFocalPlaneToSkyCoordinates(xFPrad, yFPrad, raOpticalAxis, decOpticalAxis, focalPlaneAngle):
-
-    """
-    PURPOSE: computes the (x,y) coordinates in the focal plane of a star with given equatorial coordinates
-
-    INPUT: xFPrad            Cartesian coordinate of the projected star in the focal plane in the FP-prime system [radians]
-           yFPrad            Cartesian coordinate of the projected star in the focal plane in the FP-prime system [radians]
-           raOpticalAxis:    right ascension of the optical axis [rad]
-           decOpticalAxis:   declination of the optical axis [rad]
-           focalPlaneAngle:  angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
-
-    OUTPUT: raStar, decStar: Equatorial coordinates (right ascension and declination) of the star [rad]
-    """
-
-    xFP =  xFPrad * cos(focalPlaneAngle) - yFPrad * sin(focalPlaneAngle)
-    yFP =  xFPrad * sin(focalPlaneAngle) + yFPrad * cos(focalPlaneAngle)
-
-    if isscalar(xFP) and isscalar(yFP) and xFP == 0.0 and yFP == 0.0:
-        return raOpticalAxis, decOpticalAxis
-
-    rho = sqrt(xFP*xFP+yFP*yFP)
-    c = arctan(rho)
-    ra = raOpticalAxis + arctan2(yFP * sin(c), rho * cos(decOpticalAxis) * cos(c) + xFP * sin(decOpticalAxis) * sin(c))
-    dec = arcsin(cos(c) * sin(decOpticalAxis) - (xFP * sin(c) * cos(decOpticalAxis)) / rho)
-
-    return ra, dec
+    return xFPprime, yFPprime
 
 
 
@@ -122,46 +120,68 @@ def angularFocalPlaneToSkyCoordinates(xFPrad, yFPrad, raOpticalAxis, decOpticalA
 
 
 
-def angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad, focalLength):
-    """
-    PURPOSE: Convert from angular to planar focal plane coordinates, assuming no optical distortion.
 
-    INPUT:   xFPrad:      Angular focal plane x-coordinate [rad]
-             yFPrad:      Angular focal plane y-coordinate [rad]
-             focalLength: Focal length of the telescope [mm]
-    
-    OUTPUT:  (xFPmm, yFPmm)    Planar focal plane x and y coordinates [mm]
+
+def focalPlaneToSkyCoordinates(xFPprime, yFPprime, raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength):
 
     """
+    PURPOSE: Convert the focal plane coordinates (xFPprim, yFPprime) of a star to equatorial sky coordinates (alpha, delta),
+             assuming a spherical pinhole camera.
 
-    xFPmm = tan(xFPrad) * focalLength
-    yFPmm = tan(yFPrad) * focalLength
+    INPUT: xFPprime:         Cartesian x-coordinate in the focal plane in the FP-prime reference frame [same unit as focalLength]
+           yFPprime:         Cartesian y-coordinate in the focal plane in the FP-prime reference frame [same unit as focalLength]
+           raOpticalAxis:    Right ascension of the optical axis [rad]
+           decOpticalAxis:   Declination of the optical axis [rad]
+           focalPlaneAngle:  Angle between the Y_FP axis and the Y'_FP axis: gamma_FP  [rad]
+           focalLength:      focal length of the camera. Unit: [mm] or [pix] or [1.] or ...
 
-    return xFPmm, yFPmm
+    OUTPUT: raStar, decStar: Equatorial sky coordinates, right ascension and declination, of the star [rad]
 
-
-
-
-
-
-
-
-def planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm, focalLength):
-    """
-    PURPOSE: Convert from planar to angulare focal plane coordinates, assuming no optical distortion.
-
-    INPUT:   xFPmm:        Planar focal plane x-coordinate [mm]
-             yFPmm:        Planar focal plane y-coordinate [mm]
-             focalLength:  Focal length of the telescope [mm]
-    
-    OUTPUT:  (xFPrad, yFPrad)  Angular focal plane x and y coordinates [rad]
-
+    REMARK: The transformation assumes that the pinhole reverses the image.
     """
 
-    xFPrad = arctan(xFPmm / focalLength)
-    yFPrad = arctan(yFPmm / focalLength)
+    # Convert the FP' coordinates in FP coordinates
 
-    return xFPrad, yFPrad
+    xFP =  xFPprime * cos(focalPlaneAngle) - yFPprime * sin(focalPlaneAngle)
+    yFP =  xFPprime * sin(focalPlaneAngle) + yFPprime * cos(focalPlaneAngle)
+
+    # Undo the reverse-image projection effect of the pinhole
+
+    vecFP = array([-xFP/focalLength, -yFP/focalLength, 1.0])
+
+    # Convert the focal plane cartesian coordinates to equatorial cartesian coordinates. 
+
+    rotMatrix1 = array([[ sin(decOpticalAxis),  0, cos(decOpticalAxis)],    \
+                        [                  0,   1,                    0],   \
+                        [-cos(decOpticalAxis),  0, sin(decOpticalAxis)]])
+
+    rotMatrix2 = array([[cos(raOpticalAxis), -sin(raOpticalAxis), 0],   \
+                        [sin(raOpticalAxis),  cos(raOpticalAxis), 0],   \
+                        [                  0,                  0, 1]])
+
+    vecEQ = dot(rotMatrix2, dot(rotMatrix1, vecFP))
+
+
+    # Convert the cartesian equatorial coordinates to equatorial sky coordinates
+
+    norm = sqrt(vecEQ[0]*vecEQ[0] + vecEQ[1]*vecEQ[1] + vecEQ[2]*vecEQ[2]) 
+    decStar = pi/2.0 - arccos(vecEQ[2]/norm);
+    raStar = arctan2(vecEQ[1], vecEQ[0]);
+
+    # Ensure that the right ascension is positive
+
+    if isinstance(raStar, np.ndarray):
+        raStar[raStar < 0.0] += 2.*pi
+    else:
+        if (raStar < 0.0):
+            raStar += 2.*pi
+
+    # That's it!
+
+    return raStar, decStar
+
+
+
 
 
 
@@ -178,7 +198,7 @@ def planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm, focalLength):
 ##
 ## \return     (xFPmm, yFPmm) Cartesian coordinates in the focal plane [mm]
 ##
-def polarToPlanarFocalPlaneCoordinates(distance, angle):
+def polarToCartesianFocalPlaneCoordinates(distance, angle):
 
     xFPmm = cos(angle) * distance
     yFPmm = sin(angle) * distance
@@ -198,7 +218,7 @@ def polarToPlanarFocalPlaneCoordinates(distance, angle):
 ##
 ## \return     (distance, angle) polar coordinates in the focal plane
 ##
-def planarToPolarFocalPlaneCoordinates(xFPmm, yFPmm):
+def cartesianToPolarFocalPlaneCoordinates(xFPmm, yFPmm):
     
     angle = arctan2(yFPmm, xFPmm)      # [radians]
     distance = sqrt(xFPmm * xFPmm + yFPmm * yFPmm)
@@ -213,12 +233,12 @@ def planarToPolarFocalPlaneCoordinates(xFPmm, yFPmm):
 
 
 
-def planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm):
+def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm):
     """
-    PURPOSE:      Convert from planar to distorted focal plane coordinates
+    PURPOSE:      Convert from undistorted to distorted focal plane coordinates
     
-    INPUTS:       xFPmm  Planar focal plane x-coordinate [mm]
-                  yFPmm  Planar focal plane y-coordinate [mm]
+    INPUTS:       xFPmm  undistorted focal plane x-coordinate [mm]
+                  yFPmm  undistorted focal plane y-coordinate [mm]
     
     OUTPUTS:      (xFPdist, yFPdist) distorted x and y coordinates [mm]
     """
@@ -243,9 +263,9 @@ def planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm):
 
 
 
-def distortedToPlanarFocalPlaneCoordinates(xFPdist, yFPdist):
+def distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist):
     """
-    PURPOSE:     Convert from distorted to planar focal plane coordinates
+    PURPOSE:     Convert from distorted to undistorted focal plane coordinates
     
     INPUTS:      xFPdist  Distorted focal plane x-coordinate [mm]
                  yFPdist  DIstorted focal plane y-coordinate [mm]
@@ -272,7 +292,7 @@ def distortedToPlanarFocalPlaneCoordinates(xFPdist, yFPdist):
 
 
 
-def pixelToPlanarFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX, ccdZeroPointY, CCDangle):
+def pixelToFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX, ccdZeroPointY, CCDangle):
 
     """
     PUROSE: Given the (real-valued) pixel coordinates of the star on the CCD, compute the (x,y)
@@ -310,7 +330,10 @@ def pixelToPlanarFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroP
 
 
 
-def planarFocalPlaneToPixelCoordinates(xFPprime, yFPprime, pixelSize, ccdZeroPointX, ccdZeroPointY, CCDangle):
+
+
+
+def focalPlaneToPixelCoordinates(xFPprime, yFPprime, pixelSize, ccdZeroPointX, ccdZeroPointY, CCDangle):
 
     """
     PUROSE: Compute the (real-valued) pixel coordinates of the star on the CCD, given the (x,y)
@@ -377,7 +400,7 @@ def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
     zeroPointYmm = CCD[ccdCode]["zeroPointYmm"]
     ccdAngle     = CCD[ccdCode]["angle"]
 
-    cornersXmm, cornersYmm = pixelToPlanarFocalPlaneCoordinates(cornersXpix, cornersYpix, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle) 
+    cornersXmm, cornersYmm = pixelToFocalPlaneCoordinates(cornersXpix, cornersYpix, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle) 
     
     # That's it
 
@@ -390,7 +413,7 @@ def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
 
 
 
-def drawCCDsInSky(raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength, pixelSize, nominal=True):
+def drawCCDsInSky(raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength, pixelSize, normal=True):
 
     """
     PURPOSE: Project and plot the 4 CCDs of 1 camera on the sky
@@ -400,7 +423,7 @@ def drawCCDsInSky(raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength, p
            focalPlaneAngle: angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
            focalLength:     [mm]
            pixelSize:       [micrometer]
-           nominal:         True for the nominal camera configuration, False for the fast cameras
+           normal:         True for the normal camera configuration, False for the fast cameras
 
     OUTPUT: None
 
@@ -409,7 +432,7 @@ def drawCCDsInSky(raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength, p
 
     # Select the proper CCD codes depending on whether we're dealing with the nominal or the fast cams
     
-    if nominal == True:
+    if normal == True:
         ccdCodes = ['A', 'B', 'C', 'D']
     else:
         ccdCodes = ['AF', 'BF', 'CF', 'DF']
@@ -425,17 +448,13 @@ def drawCCDsInSky(raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength, p
 
     for ccdCode in ccdCodes:
 
-        # Get the planar FP' coordinates of the CCD corners  [mm]
+        # Get the focal plane FP' coordinates of the CCD corners  [mm]
 
         cornersXmm, cornersYmm = computeCCDcornersInFocalPlane(ccdCode, pixelSize)
 
-        # Convert the planar FP' coordinates to angular FP' coordinates [rad]
+        # Compute the equatorial sky coordinates [rad] from the the focal plane FP' coordinates [mm] of the corners
 
-        cornersXrad, cornersYrad = planarToAngularFocalPlaneCoordinates(cornersXmm, cornersYmm, focalLength)
-
-        # Compute the equatorial sky coordinates [rad] from the the angular FP' coordinates [rad] of the corners
-
-        ra, dec = angularFocalPlaneToSkyCoordinates(cornersXrad, cornersYrad, raOpticalAxis, decOpticalAxis, focalPlaneAngle)
+        ra, dec = focalPlaneToSkyCoordinates(cornersXmm, cornersYmm, raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength)
 
         # Repeat the coordinates of the 1st corner, to plot a nice closed loop
         # Convert from radians to degrees
@@ -465,14 +484,17 @@ def drawCCDsInSky(raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength, p
 
 
 
-def drawCCDsInFocalPlane(pixelSize, nominal=True):
+
+
+
+def drawCCDsInFocalPlane(pixelSize, normal=True):
 
     """
     PURPOSE: Plot the 4 CCDs in the focal plane in the FP' reference frame.
              May serve as a background to overplot the projected stars on the focal plane
 
     INPUT: pixelSize: size of 1 pixel [micron]
-           nominal: True for the nominal camera configuration, False for the fast cameras
+           normal: True for the normal camera configuration, False for the fast cameras
 
     OUTPUT: None
 
@@ -480,7 +502,7 @@ def drawCCDsInFocalPlane(pixelSize, nominal=True):
 
     # Select the proper CCD codes depending on whether we're dealing with the nominal or the fast cams
     
-    if nominal == True:
+    if normal == True:
         ccdCodes = ['A', 'B', 'C', 'D']
     else:
         ccdCodes = ['AF', 'BF', 'CF', 'DF']
@@ -552,17 +574,17 @@ def drawSubfieldInFocalPlane(ccdCode, xCCD, yCCD, subfieldSizeX, subfieldSizeY, 
     """
 
     # Compute the position of the subfield in pixel coordinates, for the current CCD, 
-    # disregarding the physical extend of the CCD
+    # disregarding the physical extend of the CCD. LL = lower left, UR = upper right.
 
     zeroPointXmm = CCD[ccdCode]["zeroPointXmm"]
     zeroPointYmm = CCD[ccdCode]["zeroPointYmm"]
     ccdAngle     = CCD[ccdCode]["angle"]
 
-    xFPprime, yFPprime = pixelToPlanarFocalPlaneCoordinates(xCCD, yCCD, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
-    xFPprimeLL, yFPprimeLL = pixelToPlanarFocalPlaneCoordinates(xCCD - subfieldSizeX/2, yCCD - subfieldSizeY/2, \
-        pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
-    xFPprimeUR, yFPprimeUR = pixelToPlanarFocalPlaneCoordinates(xCCD + subfieldSizeX/2, yCCD + subfieldSizeY/2, \
-        pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
+    xFPprime, yFPprime = pixelToFocalPlaneCoordinates(xCCD, yCCD, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
+    xFPprimeLL, yFPprimeLL = pixelToFocalPlaneCoordinates(xCCD - subfieldSizeX/2, yCCD - subfieldSizeY/2, \
+                                                          pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
+    xFPprimeUR, yFPprimeUR = pixelToFocalPlaneCoordinates(xCCD + subfieldSizeX/2, yCCD + subfieldSizeY/2, \
+                                                          pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
 
 
     verts = [
@@ -619,7 +641,7 @@ def drawStarInFocalPlane(sim, raStar, decStar):
 
     """
 
-    nominal = True  # FIXME: where can we specify that we use the fast or normal Camera
+    normal = True  # FIXME: where can we specify that we use the fast or normal Camera
 
     if (sim["Camera/IncludeFieldDistortion"] == "yes")  or (sim["Camera/IncludeFieldDistortion"] == "1"):
         includeFieldDistortion = True
@@ -638,14 +660,14 @@ def drawStarInFocalPlane(sim, raStar, decStar):
     ccdZeroPointY = float(sim["CCD/OriginOffsetY"])
     ccdAngle = np.radians(float(sim["CCD/Orientation"]))
 
-    xFPrad, yFPrad = skyToAngularFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle)
-    xFPmm, yFPmm = angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad, focalLength)
+    xFPmm, yFPmm = skyToFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength)
+
 
     if includeFieldDistortion:
-        xFPmm, yFPmm = planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm)
+        xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm)
 
     ccdCode, xCCD, yCCD = getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, 
-        focalLength, plateScale, pixelSize, includeFieldDistortion, nominal)
+                                                    focalLength, plateScale, pixelSize, includeFieldDistortion, normal)
 
     if ccdCode == None:
         print ("Warning: DrawStarInFocalPlane(): The star doesn't fall on any of the CCDs.")
@@ -653,6 +675,10 @@ def drawStarInFocalPlane(sim, raStar, decStar):
         drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize)
 
     return
+
+
+
+
 
 
 
@@ -684,7 +710,7 @@ def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize):
     zeroPointYmm = CCD[ccdCode]["zeroPointYmm"]
     ccdAngle     = CCD[ccdCode]["angle"]
 
-    xFPprime, yFPprime = pixelToPlanarFocalPlaneCoordinates(xCCD, yCCD, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
+    xFPprime, yFPprime = pixelToFocalPlaneCoordinates(xCCD, yCCD, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)   # [mm]
 
     # Get the current axis
 
@@ -704,8 +730,12 @@ def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize):
 
 
 
+
+
+
+
 def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle,  \
-                              focalLength, plateScale, pixelSize, includeFieldDistortion=True, nominal=True):
+                              focalLength, plateScale, pixelSize, includeFieldDistortion=True, normal=True):
 
     """
     PURPOSE: Given the equatorial coordinates of a star, find out on which CCD it falls ('A', 'B', ...)
@@ -720,9 +750,9 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
            plateScale:             [arcsec/micron]
            pixelSize:              [micrometer]
            includeFieldDistortion: True to include field distortion in coordinate transformations, false otherwise
-           nominal:                True for the nominal camera configuration, False for the fast cameras
+           normal:                 True for the normal camera configuration, False for the fast cameras
 
-    OUTPUT: ccdCode: for nominal camera: either 'A', 'B', 'C', or 'D'
+    OUTPUT: ccdCode: for normal camera: either 'A', 'B', 'C', or 'D'
                      for fast camer: either 'AF', 'BF', 'CF', 'DF'
                      if on no CCD: None    
             xCCDpix: x-coordinate (column number) of the star on the CCD  [pix]
@@ -734,7 +764,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
 
     # Select the proper CCD codes depending on whether we're dealing with the nominal or the fast cams
 
-    if nominal == True:
+    if normal == True:
         ccdCodes = ['A', 'B', 'C', 'D']
     else:
         ccdCodes = ['AF', 'BF', 'CF', 'DF']
@@ -742,11 +772,10 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
 
     # Compute the (x,y) coordinates in the FP' reference system [mm]
 
-    xFPrad, yFPrad = skyToAngularFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle)
-    xFPmm, yFPmm = angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad, focalLength)
+    xFPmm, yFPmm = skyToFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength)
 
     if includeFieldDistortion:
-        xFPmm, yFPmm = planarToDistortedFocalPlaneCoordinates(xFPmm, yFPmm)
+        xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm)
 
     # Find out if this falls on a CCD, and if yes which one.
     # Our approach: try each of the CCDs. Not elegant, but robust...
@@ -760,7 +789,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
         zeroPointYmm = CCD[ccdCode]["zeroPointYmm"]
         ccdAngle     = CCD[ccdCode]["angle"]
         
-        xCCDpix, yCCDpix = planarFocalPlaneToPixelCoordinates(xFPmm, yFPmm, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
+        xCCDpix, yCCDpix = focalPlaneToPixelCoordinates(xFPmm, yFPmm, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
 
         # Check if the star falls on the exposed area of the CCD. If not: go to next CCD
 
@@ -779,6 +808,9 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
     # If we arrive here, the star does not fall on any CCD  
 
     return None, None, None
+
+
+
 
 
 
@@ -883,7 +915,7 @@ def platformToTelescopePointingCoordinates(alphaPlatform, deltaPlatform, azimuth
 
 
 def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY, focalLength, plateScale, pixelSize, \
-                                       raOpticalAxis, decOpticalAxis, focalPlaneAngle, includeFieldDistortion=True, nominal=True):
+                                       raOpticalAxis, decOpticalAxis, focalPlaneAngle, includeFieldDistortion=True, normal=True):
 
     """
     PURPOSE: Calculates the location of the subfield such that the star with coordinates (raStar, decStar)
@@ -904,7 +936,7 @@ def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldS
              decOpticalAxis:         declination of the optical axis [rad]
              focalPlaneAngle:        angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
              includeFieldDistortion: True to include field distortion in coordinate transformations, false otherwise
-             nominal:                True for the nominal camera configuration, False for the fast cameras
+             normal:                 True for the normal camera configuration, False for the fast cameras
 
     OUTPUTS: ccdCode: "A", "B", "C" or "D" if nominal=True, "AF", "BF", "CF" or "DF" otherwise
              xCCDpix: x-coordinate of the star in pixels (i.e. column number)
@@ -918,7 +950,8 @@ def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldS
     # Find out on which CCD the star falls, and the corresponding pixel coordinates
 
     ccdCode, xCCDpix, yCCDpix = getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, \
-        focalPlaneAngle, focalLength, plateScale, pixelSize, includeFieldDistortion, nominal)
+                                                          focalPlaneAngle, focalLength, plateScale, pixelSize,
+                                                          includeFieldDistortion, normal)
 
     # If the CCD code is None, the star does not fall on any ccd -> error
 
@@ -938,14 +971,6 @@ def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldS
     Ncols = CCD[ccdCode]["Ncols"]
     Nrows = CCD[ccdCode]["Nrows"]
 
-    # print ("Ncols, Nrows = {}, {}".format(Ncols, Nrows))
-    # print ("xCCDpix, yCCDpix = {}, {}".format(xCCDpix, yCCDpix))
-    # print ("subfieldSizeX, subFieldSizeY = {}, {}".format(subfieldSizeX, subfieldSizeY))
-    # print ("xCCDpix - subfieldSizeX/2 < 0 = {} < {} = {}".format(xCCDpix - subfieldSizeX/2, 0, xCCDpix - subfieldSizeX/2 < 0))
-    # print ("xCCDpix + subfieldSizeX/2 - 1> Ncols-1 = {} > {} = {}".format(xCCDpix + subfieldSizeX/2 - 1, Ncols-1, xCCDpix + subfieldSizeX/2 - 1> Ncols-1))
-    # print ("yCCDpix - subfieldSizeY/2 < firstRow = {} < {} = {}".format(yCCDpix - subfieldSizeY/2, firstRow, yCCDpix - subfieldSizeY/2 < firstRow))
-    # print ("yCCDpix + subfieldSizeY/2 - 1> Nrows-1 = {} > {} = {}".format(yCCDpix + subfieldSizeY/2 - 1, Nrows-1, yCCDpix + subfieldSizeY/2 - 1> Nrows-1))
-
     if     (xCCDpix - subfieldSizeX/2 < 0)        or (xCCDpix + subfieldSizeX/2 - 1 > Ncols-1)   \
         or (yCCDpix - subfieldSizeY/2 < firstRow) or (yCCDpix + subfieldSizeY/2 - 1> Nrows-1): 
 
@@ -956,6 +981,13 @@ def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldS
     # That's it!
 
     return ccdCode, xCCDpix, yCCDpix
+
+
+
+
+
+
+
 
 
 
@@ -980,9 +1012,9 @@ def setSubfieldAroundPixelCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel, subfie
 
     # TODO: determine nominal from the given ccdCode
 
-    nominal = True
+    normal = True
 
-    success = setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSizeY, nominal)
+    success = setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSizeY, normal)
 
     if not success:
         print ("Warning: setSubfieldAroundPixelCoordinates() failed to set subField around the star.")
@@ -993,7 +1025,13 @@ def setSubfieldAroundPixelCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel, subfie
 
 
 
-def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSizeY, nominal=True):
+
+
+
+
+
+
+def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSizeY, normal=True):
     
     """
     PURPOSE: Calculates the location of the sub-field such that it is centred on the star 
@@ -1016,7 +1054,7 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
              decStar:                declination [radians]
              subfieldSizeX:          width (i.e. number of columns) of the subiield [pixels]
              subfieldSizeY:          height (i.e. number of rows) of the sub-field [pixels]
-             nominal:                True for the nominal camera configuration, False for the fast cameras
+             normal:                 True for the normal camera configuration, False for the fast cameras
 
     OUTPUT: True if the CCD code (i.e. the pre-defined CCD position) could be determined, False otherwise 
 
@@ -1064,7 +1102,8 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
     # xPix and yPix are the CCD coordinates of the star, given a 4510x4510 CCD [colNumber, rowNumber].
 
     ccdCode, xPix, yPix = calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY, \
-            focalLength, plateScale, pixelSize, raOpticalAxis, decOpticalAxis, focalPlaneAngle, includeFieldDistortion, nominal)
+                                                             focalLength, plateScale, pixelSize, raOpticalAxis, decOpticalAxis, 
+                                                             focalPlaneAngle, includeFieldDistortion, normal)
     
     if ccdCode == None:
         return False
@@ -1091,7 +1130,7 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
 
     # Set the exposure and the readout time, depending on fast vs nominal cams
 
-    if nominal:
+    if normal:
         sim["ObservingParameters/ExposureTime"] = 23
         sim["CCD/ReadoutTime"] = 2.5
     else:
@@ -1113,7 +1152,7 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
 
 
 
-def skyToPixelCoordinates(sim, raStar, decStar, nominal=True):
+def skyToPixelCoordinates(sim, raStar, decStar, normal=True):
     """
     PURPOSE: Convert sky coordinates to pixel coordinates
     
@@ -1127,7 +1166,7 @@ def skyToPixelCoordinates(sim, raStar, decStar, nominal=True):
             decStar:                declination [radians]
             subfieldSizeX:          width (i.e. number of columns) of the subiield [pixels]
             subfieldSizeY:          height (i.e. number of rows) of the sub-field [pixels]
-            nominal:                True for the nominal camera configuration, False for the fast cameras
+            normal:                 True for the normal camera configuration, False for the fast cameras
     
     OUTPUT: ccdCode
             xCCDpixel: column pixel coordinate of the star (real-valued) 
@@ -1156,7 +1195,7 @@ def skyToPixelCoordinates(sim, raStar, decStar, nominal=True):
     raOpticalAxis, decOpticalAxis = platformToTelescopePointingCoordinates(raPlatform, decPlatform, azimuthTelescope, tiltTelescope)    
     
     ccdCode, xCCDpixel, yCCDpixel = getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, 
-        focalLength, plateScale, pixelSize, includeFieldDistortion, nominal)
+                                                              focalLength, plateScale, pixelSize, includeFieldDistortion, normal)
 
     return ccdCode, xCCDpixel, yCCDpixel
 
@@ -1217,13 +1256,12 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
 
     raOpticalAxis, decOpticalAxis = platformToTelescopePointingCoordinates(raPlatform, decPlatform, azimuthTelescope, tiltTelescope)    
 
-    xFPmm, yFPmm = pixelToPlanarFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX, ccdZeroPointY, ccdAngle)
+    xFPmm, yFPmm = pixelToFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX, ccdZeroPointY, ccdAngle)
     
     if includeFieldDistortion:
-        xFPmm, yFPmm = distortedToPlanarFocalPlaneCoordinates(xFPmm, yFPmm)
+        xFPmm, yFPmm = distortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm)
     
-    xFPrad, yFPrad = planarToAngularFocalPlaneCoordinates(xFPmm, yFPmm, focalLength)
-    ra, dec = angularFocalPlaneToSkyCoordinates(xFPrad, yFPrad, raOpticalAxis, decOpticalAxis, focalPlaneAngle)
+    ra, dec = focalPlaneToSkyCoordinates(xFPmm, yFPmm, raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength)
     
     return ra, dec
 
