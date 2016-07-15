@@ -135,7 +135,7 @@ def focalPlaneToSkyCoordinates(xFPprime, yFPprime, raOpticalAxis, decOpticalAxis
            focalPlaneAngle:  Angle between the Y_FP axis and the Y'_FP axis: gamma_FP  [rad]
            focalLength:      focal length of the camera. Unit: [mm] or [pix] or [1.] or ...
 
-    OUTPUT: raStar. decStar: Equatorial sky coordinates, right ascension and declination, of the star [rad]
+    OUTPUT: raStar, decStar: Equatorial sky coordinates, right ascension and declination, of the star [rad]
 
     REMARK: The transformation assumes that the pinhole reverses the image.
     """
@@ -168,8 +168,13 @@ def focalPlaneToSkyCoordinates(xFPprime, yFPprime, raOpticalAxis, decOpticalAxis
     decStar = pi/2.0 - arccos(vecEQ[2]/norm);
     raStar = arctan2(vecEQ[1], vecEQ[0]);
 
-    if (raStar < 0.0):
-        raStar += 2.*pi
+    # Ensure that the right ascension is positive
+
+    if isinstance(raStar, np.ndarray):
+        raStar[raStar < 0.0] += 2.*pi
+    else:
+        if (raStar < 0.0):
+            raStar += 2.*pi
 
     # That's it!
 
