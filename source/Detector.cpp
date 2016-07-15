@@ -1284,7 +1284,7 @@ void Detector::applyShort2013CTImodel()
     // I.e. the volume of the electron cloud when the capacity of the full well is maxed out.
     // E.g if the pixel size is 18 micron, then the volume is 18e-6 * 18e-6 * 1.e-6 / 2.0
 
-    const double maxVolumePerPixel = pixelSize * pixelSize * 1.e-18  / 2.0;                                   // [m^3]
+    const double maxVolumePerPixel = pixelSize * pixelSize * 1.e-18  / 2.0;                                  // [m^3]
 
     // Compute the time it takes to transfer 1 row during readout
 
@@ -1295,19 +1295,24 @@ void Detector::applyShort2013CTImodel()
     const double effectiveElectronMass = 0.5 * Constants::FREEELECTRONMASS;                                  // [kg]
     const double thermalVelocity = sqrt(3.0 * Constants::KBOLTZMANN * temperature / effectiveElectronMass);  // [m/s]
 
-    // Arrays to keep track of the number of occupied traps, and the captured and released electrons
+    // Arrays to keep track of the number of occupied traps in a column
 
     arma::Mat<float> numberOfOccupiedTraps = arma::zeros<arma::Mat<float>>(numTrapSpecies, numColumnsPixelMap);
+
+    // Arrays to keep track of the captured and released electrons, for each column in a particular row.
+
     arma::Row<float> numberOfCapturedElectrons(numColumnsPixelMap);
     arma::Row<float> numberOfReleasedElectrons(numColumnsPixelMap);
 
-    // Loop over all rows of the pixelMap, and over all trap species
+    // Loop over all rows of the pixelMap, and over all trap species.
+    // For each row, the computations are done for all columns simultaneously.
 
     for (int rowNumber = 0; rowNumber < numRowsPixelMap; rowNumber++)
     {
         for (int k = 0; k < numTrapSpecies; k++)
         {
             // Compute the number of electrons captured in a trap, according to Eq. (22)-(23) of Short et al. (2013).
+            // Note that Armadillo uses % for elementwise multiplication.
 
             const double alpha = chargeTransferTime * trapCaptureCrossSection[k] * thermalVelocity * pow(fullWellSaturationLimit, beta) / 2.0 / maxVolumePerPixel;
             const double gamma = trapDensity[k] * (subFieldZeroPointRow + rowNumber) / pow(fullWellSaturationLimit, beta);
