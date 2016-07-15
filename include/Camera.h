@@ -48,6 +48,9 @@ class Camera : public HDF5Writer
         pair<double, double> skyToFocalPlaneCoordinates(double raStar, double decStar);
         pair<double, double> focalPlaneToSkyCoordinates(double xFPprime, double yFPprime);
 
+        pair<double, double> polarToCartesianFocalPlaneCoordinates(double distance, double angle);
+        pair<double, double> cartesianToPolarFocalPlaneCoordinates(double xFPmm, double yFPmm);
+
         pair<double, double> undistortedToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm);
         pair<double, double> distortedToUndistortedFocalPlaneCoordinates(double xFPdist, double yFPdist);
 
