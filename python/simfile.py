@@ -114,8 +114,7 @@ class SimFile (object):
         PURPOSE: destructor
         """
 
-        self.hdf5file.close()
-
+        pass
 
 
 
