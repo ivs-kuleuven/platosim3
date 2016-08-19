@@ -1072,7 +1072,7 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
     tiltTelescope = np.deg2rad(float(sim["Telescope/TiltAngle"]))
     focalLength = float(sim["Camera/FocalLength"]) * 1000.0       # [m] -> [mm]
     plateScale = float(sim["Camera/PlateScale"])          
-    focalPlaneAngle = float(sim["Camera/FocalPlaneOrientation"])
+    focalPlaneAngle = np.deg2rad(float(sim["Camera/FocalPlaneOrientation"]))
     pixelSize = float(sim["CCD/PixelSize"]) 
 
     if (sim["Camera/IncludeFieldDistortion"] == "yes")  or (sim["Camera/IncludeFieldDistortion"] == "1"):
