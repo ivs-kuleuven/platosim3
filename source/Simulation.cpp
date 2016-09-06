@@ -229,13 +229,14 @@ void Simulation::writeStarCatalogToHDF5()
             starIDs[k] = starID;
             tie(RA[k], dec[k]) = sky->getCoordinatesOfStarWithID(starID, Angle::degrees);  // be careful, ra & dec returned in degrees!
             Vmag[k] = sky->getVmagnitudeOfStarWithID(starID);
-            tie(xFPrad, yFPrad) = camera->skyToAngularFocalPlaneCoordinates(deg2rad(RA[k]), deg2rad(dec[k]), raOpticalAxis, decOpticalAxis);
-            tie(xFPmm[k], yFPmm[k]) = camera->angularToPlanarFocalPlaneCoordinates(xFPrad, yFPrad);
+            tie(xFPmm[k], yFPmm[k]) = camera->skyToFocalPlaneCoordinates(deg2rad(RA[k]), deg2rad(dec[k]));
+            
             if (includeFieldDistortion)
             {
-               tie(xFPmm[k], yFPmm[k]) = camera->planarToDistortedFocalPlaneCoordinates(xFPmm[k], yFPmm[k]);
+               tie(xFPmm[k], yFPmm[k]) = camera->undistortedToDistortedFocalPlaneCoordinates(xFPmm[k], yFPmm[k]);
             }
-            tie(rowPix[k], colPix[k]) = detector->planarFocalPlaneToPixelCoordinates(xFPmm[k], yFPmm[k]);
+
+            tie(rowPix[k], colPix[k]) = detector->focalPlaneToPixelCoordinates(xFPmm[k], yFPmm[k]);
             k++;
         }
 
@@ -387,7 +388,6 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addInteger("ElectronicOffset");
     addDouble("ReadoutTime");
     addDouble("FlatfieldPtPNoise");
-    addDouble("CTEMean");
     addBoolean("IncludeFlatfield");
     addBoolean("IncludePhotonNoise");
     addBoolean("IncludeReadoutNoise");
@@ -398,6 +398,21 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("IncludeFullWellSaturation");
     addBoolean("IncludeDigitalSaturation");
     addBoolean("WriteSubPixelImagesToHDF5");
+    
+    subGroup = "CCD/CTI";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addString("Model");
+    subGroup = "CCD/CTI/Simple";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("MeanCTI");
+    subGroup = "CCD/CTI/Short2013";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("Beta");
+    addDouble("Temperature");
+    addInteger("NumTrapSpecies");
+    addDoubleVector("TrapDensity");
+    addDoubleVector("TrapCaptureCrossSection");
+    addDoubleVector("ReleaseTime");
 
     subGroup = "SubField";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
