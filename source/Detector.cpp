@@ -126,7 +126,7 @@ Detector::~Detector()
     CTImodel                   = configParam.getString("CCD/CTI/Model");
     if (CTImodel == "Simple")
     {
-        meanCte                = configParam.getDouble("CCD/CTI/Simple/MeanCTI");
+        meanCte                = configParam.getDouble("CCD/CTI/Simple/MeanCTE");
     }
     else if (CTImodel == "Short2013")
     {
