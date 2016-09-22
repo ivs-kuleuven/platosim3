@@ -21,3 +21,6 @@
 \form#20:\[ \frac{V_c}{V_g} = \left( \frac{N_e}{FWC} \right)^{\beta}. \]
 \form#21:\[ v_t = \frac{3kT}{m_e^{*}}, \]
 \form#22:\[ v_t = \frac{3kT}{m_e^{\ast}}, \]
+\form#23:\[F_{phot} = t_{exp} \cdot F_0 \cdot T_{\lambda} \cdot Q \cdot A \cdot 10^{-0.4 \cdot m_{\lambda}}\]
+\form#24:\[\frac{V_c}{V_g} = \left( \frac{N_e}{FWC} \right)^{\beta}.\]
+\form#25:\[v_t = \frac{3kT}{m_e^{\ast}},\]

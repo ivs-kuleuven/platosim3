@@ -115,9 +115,7 @@ Flux of a star of zero magnitude (\f$ m_{\lambda} = 0 \f$), expressed in photons
 
 For an exposure of \f$t_{exp}\f$ seconds, the measured flux \f$F_{phot}\f$ of a star, expressed in photons, is computed from its catalogue magnitude \f$m_{\lambda}\f$, the [effective light-collecting area](#lightCollectingArea) \f$A\f$ (in cm<sup>2</sup>) of the telescope, the  [transmission efficiency](#transmissionEfficiency) \f$T_{\lambda}\f$ of the optical system, the [quantum efficiency](#quantumEfficiency) \f$Q\f$ of the detector, and the flux per second \f$F_0\f$ of a star with zero magnitude (\f$m_{\lambda} = 0\f$) from the equation
 
-\f[
-F_{phot} = t_{exp} \cdot F_0 \cdot T_{\lambda} \cdot Q \cdot A \cdot 10^{-0.4 \cdot m_{\lambda}}
-\f]
+\f[F_{phot} = t_{exp} \cdot F_0 \cdot T_{\lambda} \cdot Q \cdot A \cdot 10^{-0.4 \cdot m_{\lambda}}\f]
 
 where the \f$\lambda\f$ subscript refers to the wavelength range in which the simulation is performed.
 
@@ -671,7 +669,7 @@ Mean charge-transfer efficiency (CTE) of the detector.  The fraction of the char
 
 Exponent β in Eq. (1) of Short et al. 2013 describing the relationship between the volume of the charge cloud (<i>V<sub>c</sub></i>), the number of electrons in a pixel (<i>N<sub>e</sub></i>), the full-well capacity in electrons (<i>FWC</i>), and the assumed maximum geometrical volume that electrons can occupy within a pixel (<i>V<sub>g</sub></i>):
 
-\f[ \frac{V_c}{V_g} = \left( \frac{N_e}{FWC} \right)^{\beta}. \f]
+\f[\frac{V_c}{V_g} = \left( \frac{N_e}{FWC} \right)^{\beta}.\f]
 
 
 
@@ -682,7 +680,7 @@ Exponent β in Eq. (1) of Short et al. 2013 describing the relationship between 
 
 Temperature <i>T</i> that is used to calculated the thermal velocity <i>v<sub>t</sub></i> of the electrons:
 
-\f[ v_t = \frac{3kT}{m_e^{\ast}}, \f]
+\f[v_t = \frac{3kT}{m_e^{\ast}},\f]
 
 where <i>k</i> is the Boltzmann constant and <i>m<sub>e</sub><sup>*</sup></i> is the effective electron mass in silicon, which we approximate by half the free electron rest mass.
 

@@ -129,7 +129,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <p>Flux of a star of zero magnitude ( <img class="formulaInl" alt="$ m_{\lambda} = 0 $" src="form_1.png"/>), expressed in photons <img class="formulaInl" alt="$ \cdot $" src="form_2.png"/> s<sup>-1</sup> <img class="formulaInl" alt="$ \cdot $" src="form_2.png"/> cm<sup>-2</sup> in the passband of the magnitudes that are listed in the <a href="#starCatalogue">star catalogue</a>.</p>
 <p>For an exposure of <img class="formulaInl" alt="$t_{exp}$" src="form_3.png"/> seconds, the measured flux <img class="formulaInl" alt="$F_{phot}$" src="form_4.png"/> of a star, expressed in photons, is computed from its catalogue magnitude <img class="formulaInl" alt="$m_{\lambda}$" src="form_5.png"/>, the <a href="#lightCollectingArea">effective light-collecting area</a> <img class="formulaInl" alt="$A$" src="form_6.png"/> (in cm<sup>2</sup>) of the telescope, the <a href="#transmissionEfficiency">transmission efficiency</a> <img class="formulaInl" alt="$T_{\lambda}$" src="form_7.png"/> of the optical system, the <a href="#quantumEfficiency">quantum efficiency</a> <img class="formulaInl" alt="$Q$" src="form_8.png"/> of the detector, and the flux per second <img class="formulaInl" alt="$F_0$" src="form_9.png"/> of a star with zero magnitude ( <img class="formulaInl" alt="$m_{\lambda} = 0$" src="form_10.png"/>) from the equation</p>
 <p class="formulaDsp">
-<img class="formulaDsp" alt="\[ F_{phot} = t_{exp} \cdot F_0 \cdot T_{\lambda} \cdot Q \cdot A \cdot 10^{-0.4 \cdot m_{\lambda}} \]" src="form_19.png"/>
+<img class="formulaDsp" alt="\[F_{phot} = t_{exp} \cdot F_0 \cdot T_{\lambda} \cdot Q \cdot A \cdot 10^{-0.4 \cdot m_{\lambda}}\]" src="form_23.png"/>
 </p>
 <p>where the <img class="formulaInl" alt="$\lambda$" src="form_12.png"/> subscript refers to the wavelength range in which the simulation is performed.</p>
 <h4><a class="anchor" id="skyBackground"></a>SkyBackground</h4>
@@ -315,13 +315,13 @@ A more sophisticated implementation ("Short2013") is based on <a href="http://mn
 <h4><a class="anchor" id="beta"></a>CTI: Short2013: Beta</h4>
 <p>Exponent β in Eq. (1) of Short et al. 2013 describing the relationship between the volume of the charge cloud (<em>V<sub>c</sub></em>), the number of electrons in a pixel (<em>N<sub>e</sub></em>), the full-well capacity in electrons (<em>FWC</em>), and the assumed maximum geometrical volume that electrons can occupy within a pixel (<em>V<sub>g</sub></em>):</p>
 <p class="formulaDsp">
-<img class="formulaDsp" alt="\[ \frac{V_c}{V_g} = \left( \frac{N_e}{FWC} \right)^{\beta}. \]" src="form_20.png"/>
+<img class="formulaDsp" alt="\[\frac{V_c}{V_g} = \left( \frac{N_e}{FWC} \right)^{\beta}.\]" src="form_24.png"/>
 </p>
 <h4><a class="anchor" id="temperature"></a>CTI: Short2013: Temperature</h4>
 <p><em>Allowed values:</em> ≥ 0</p>
 <p>Temperature <em>T</em> that is used to calculated the thermal velocity <em>v<sub>t</sub></em> of the electrons:</p>
 <p class="formulaDsp">
-<img class="formulaDsp" alt="\[ v_t = \frac{3kT}{m_e^{\ast}}, \]" src="form_22.png"/>
+<img class="formulaDsp" alt="\[v_t = \frac{3kT}{m_e^{\ast}},\]" src="form_25.png"/>
 </p>
 <p>where <em>k</em> is the Boltzmann constant and <em>m<sub>e</sub><sup>*</sup></em> is the effective electron mass in silicon, which we approximate by half the free electron rest mass.</p>
 <h4>name="numTrapSpecies"CTI: Short2013: NumTrapSpecies</h4>
