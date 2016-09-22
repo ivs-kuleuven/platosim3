@@ -404,7 +404,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addString("Model");
     subGroup = "CCD/CTI/Simple";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
-    addDouble("MeanCTI");
+    addDouble("MeanCTE");
     subGroup = "CCD/CTI/Short2013";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addDouble("Beta");

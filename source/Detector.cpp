@@ -126,7 +126,7 @@ Detector::~Detector()
     CTImodel                   = configParam.getString("CCD/CTI/Model");
     if (CTImodel == "Simple")
     {
-        meanCte                = configParam.getDouble("CCD/CTI/Simple/MeanCTI");
+        meanCte                = configParam.getDouble("CCD/CTI/Simple/MeanCTE");
     }
     else if (CTImodel == "Short2013")
     {
@@ -1259,7 +1259,7 @@ void Detector::applySimpleCTImodel()
 /**
  * \brief: Apply the effect of the charge-transfer inefficiency to the pixel map,
  *         using the model described in Short et al., MNRAS 430, 3078-3085 (2013).
- *         Only paralllell readout is taken into account here.
+ *         Only parallel readout is taken into account here.
  *         
  * \note The readout register is assumed to be right next to row [0] of the pixel map.
  *       The pixel map needs to be in [e-], not in [ADU]

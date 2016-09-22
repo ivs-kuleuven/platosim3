@@ -90,7 +90,7 @@ CCD:
     CTI:
         Model:                       Short2013       # The method used to generate the CTI, either "Simple" or "Short2013"
         Simple:
-            MeanCTI:                 0.99999         # Mean CTI over all CCD pixels      
+            MeanCTE:                 0.99999         # Mean CTI over all CCD pixels      
         Short2013:
             Beta:                    0.37                                         # beta exponent in Short et al. (2013)
             Temperature:             203.                                         # [K]
