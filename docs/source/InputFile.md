@@ -539,7 +539,7 @@ Offset of the CCD origin from the centre of the optical plane (i.e. the intersec
 
 
 
-#### <a name=originOffsetY""></a>OriginOffsetY
+#### <a name="originOffsetY"></a>OriginOffsetY
 <i>Allowed values:</i> Any
 
 Offset of the CCD origin from the centre of the optical plane (i.e. the intersection of the optical axis with the focal plane) in the y-direction, expressed in mm. The origin of the CCD is defined as the point where the readout register is located. See Fig. 2 for more details (Δy<sub>CCD</sub>).
