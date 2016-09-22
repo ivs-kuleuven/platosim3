@@ -18,3 +18,6 @@
 \form#17:$ [[c_{00}, c_{01},..., c_{0n}], [c_{10}, c_{11},..., c_{1n}],..., [c_{n0}, c_{n1},..., c_{nn}]] $
 \form#18:\[ F_{phot} = t_{exp} \cdot F_0 \cdot T_{\lambda} \cdot Q \cdot A \cdot 10^{-0.4 m_{\lambda}} \]
 \form#19:\[ F_{phot} = t_{exp} \cdot F_0 \cdot T_{\lambda} \cdot Q \cdot A \cdot 10^{-0.4 \cdot m_{\lambda}} \]
+\form#20:\[ \frac{V_c}{V_g} = \left( \frac{N_e}{FWC} \right)^{\beta}. \]
+\form#21:\[ v_t = \frac{3kT}{m_e^{*}}, \]
+\form#22:\[ v_t = \frac{3kT}{m_e^{\ast}}, \]
