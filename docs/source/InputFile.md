@@ -687,7 +687,7 @@ where <i>k</i> is the Boltzmann constant and <i>m<sub>e</sub><sup>*</sup></i> is
 
 
 
-#### <aname="numTrapSpecies"></a>CTI: Short2013: NumTrapSpecies
+#### <a name="numTrapSpecies"></a>CTI: Short2013: NumTrapSpecies
 
 <i>Allowed values:</i> > 0
 
