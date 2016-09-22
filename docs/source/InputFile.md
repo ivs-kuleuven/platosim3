@@ -435,7 +435,7 @@ Indicates whether to use a Gaussian PSF or to read the PSF from an HDF5 file.
 
 
 
-#### <a name=gaussSigme""></a>Gaussian: Sigma
+#### <a name="gaussSigma"></a>Gaussian: Sigma
 <i>Allowed values:</i> > 0, only required if a Gaussian PSF must be used ([psfModel](#Model) = Gaussian).
 
 Width (σ) of the two-dimensional Gaussian PSF, expressed in pixels.
