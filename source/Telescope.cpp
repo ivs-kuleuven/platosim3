@@ -430,6 +430,27 @@ double Telescope::getCurrentFocalPlaneOrientation()
 
 
 /**
+ * \brief  Return the original value of the focal plane orientation, i.e. the value from the input file.
+ * 
+ * \return original value of the focal plane orientation gamma_FP  [rad]
+ */
+
+double Telescope::getInitialFocalPlaneOrientation()
+{
+    return originalFocalPlaneOrientation;
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
  * \brief Return the equatorial sky coordinates of the optical axis of this telescope given the pointing
  *        coordinates of the (roll axis of the) platform.
  *        
