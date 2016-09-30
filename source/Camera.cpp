@@ -653,6 +653,40 @@ pair<double, double> Camera::skyToFocalPlaneCoordinates(double raStar, double de
 
     const double focalPlaneAngle = telescope.getCurrentFocalPlaneOrientation();
 
+    return skyToFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief      Computes the (x,y) coordinates in the focal plane, of a star with given equatorial 
+ *             sky coordinates, assuming a pinhole camera.
+ *             
+ * \details    The transformation is with respect to the given pointing coordinates of the telescope.
+ *
+ * \param raStar          Right ascension of the star [rad]
+ * \param decStar         Declination of the star [rad]
+ * \param raOpticalAxis   Right ascension of the optical axis [rad]
+ * \param decOpticalAxis  Declination of the optical axis [rad]
+ * \param focalPlaneAngle The Focal Plane Orientation [rad]
+ *
+ * return pair (x,y):  Cartesian coordinate of the projected star in the focal plane in the FP-prime system [mm]
+ */
+
+pair<double, double> Camera::skyToFocalPlaneCoordinates(double raStar, double decStar, double raOpticalAxis, double decOpticalAxis, double focalPlaneAngle)
+{
+
     // Convert the equatorial sky coordinate of the star to equatorial cartesian coordinates on the unit sphere
 
     arma::vec vecEQ = {cos(decStar) * cos(raStar), cos(decStar) * sin(raStar), sin(decStar)};
