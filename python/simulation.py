@@ -27,8 +27,8 @@ Usage example:
     
     for n in range(Nsimulations):
         sim = Simulation("Simul-{:02d}".format(n), outputDir="/Users/rik/Work/PLATO/Simulations")
-
-        sim["CCD/CTEMean"] = 0.98
+		sim["CCD/CTI/Model"] = "Simple"
+        sim["CCD/CTI/Simple/MeanCTE"] = 0.98
         sim["ObservingParameters/ExposureTime"] = 3.0
         sim["ObservingParameters/RApointing"] = alpha[n]
         sim["ObservingParameters/DecPointing"] = delta[n]
@@ -44,14 +44,18 @@ Interactive usage example:
     >>> print (sim)
     YAML Configuration:
     CCD:
-        CTEMean: 0.99999
+    	CTI:
+    		Model: Simple
+    		Simple:
+		        MeanCTE: 0. 99999
         DigitalSaturation: 65535
         ElectronicOffset: 100
         FlatfieldPtPNoise: 0.016
         FullWellSaturation: 1000000
         Gain: 16
         ...
-    >>> sim["CCD/CTEMean"] = 0.98
+    >>> sim["CCD/CTI/Model"] = "Simple"
+    >>> sim["CCD/Simple/MeanCTE"] = 0.98
     >>> print (sim["General/ProjectLocation"])
     /Users/rik/Git/PlatoSim3
     >>> simFile = sim.run()

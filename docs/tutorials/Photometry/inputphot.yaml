@@ -87,7 +87,10 @@ CCD:
     ElectronicOffset:            100             # bias [ADU]
     ReadoutTime:                 2               # time to read out entire CCD [s]
     FlatfieldPtPNoise:           0.016           # peak-to-peak pixel noise
-    CTEMean:                     0.99999         # Mean Charge Transfer Efficiency
+    CTI:
+        Model:                   Simple
+        Simple:
+            MeanCTE:                     0.99999         # Mean Charge Transfer Efficiency
     IncludeFlatfield:            no              # Include flatfield [yes or no]
     IncludePhotonNoise:          yes             # Include photon noise [yes or no]
     IncludeReadoutNoise:         yes             # Include readout noise [yes or no]

@@ -1353,7 +1353,7 @@ TEST_F(DetectorTest, applyCte)
 
 		const int numSubPixels = configParams.getInteger("SubField/SubPixels");
 
-		const double meanCte = configParams.getDouble("CCD/CTI/Simple/MeanCTI");
+		const double meanCte = configParams.getDouble("CCD/CTI/Simple/MeanCTE");
 
 		// Initialise sub-pixel map, pixel map, bias register map, and smearing map
 
