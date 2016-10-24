@@ -115,9 +115,7 @@ Flux of a star of zero magnitude (\f$ m_{\lambda} = 0 \f$), expressed in photons
 
 For an exposure of \f$t_{exp}\f$ seconds, the measured flux \f$F_{phot}\f$ of a star, expressed in photons, is computed from its catalogue magnitude \f$m_{\lambda}\f$, the [effective light-collecting area](#lightCollectingArea) \f$A\f$ (in cm<sup>2</sup>) of the telescope, the  [transmission efficiency](#transmissionEfficiency) \f$T_{\lambda}\f$ of the optical system, the [quantum efficiency](#quantumEfficiency) \f$Q\f$ of the detector, and the flux per second \f$F_0\f$ of a star with zero magnitude (\f$m_{\lambda} = 0\f$) from the equation
 
-\f[
-F_{phot} = t_{exp} \cdot F_0 \cdot T_{\lambda} \cdot Q \cdot A \cdot 10^{-0.4 \cdot m_{\lambda}}
-\f]
+\f[F_{phot} = t_{exp} \cdot F_0 \cdot T_{\lambda} \cdot Q \cdot A \cdot 10^{-0.4 \cdot m_{\lambda}}\f]
 
 where the \f$\lambda\f$ subscript refers to the wavelength range in which the simulation is performed.
 
@@ -435,7 +433,7 @@ Indicates whether to use a Gaussian PSF or to read the PSF from an HDF5 file.
 
 
 
-#### <a name=gaussSigme""></a>Gaussian: Sigma
+#### <a name="gaussSigma"></a>Gaussian: Sigma
 <i>Allowed values:</i> > 0, only required if a Gaussian PSF must be used ([psfModel](#Model) = Gaussian).
 
 Width (σ) of the two-dimensional Gaussian PSF, expressed in pixels.
@@ -507,8 +505,17 @@ CCD:
     ReadoutNoise:                28             
     ElectronicOffset:            100            
     ReadoutTime:                 2              
-    FlatfieldPtPNoise:           0.016          
-    CTEMean:                     0.99999        
+    FlatfieldPtPNoise:           0.016      
+    CTI:
+    		Model:			 Simple
+    		Simple:
+    		   CTEMean:        0.99999
+    	      Short2013:
+    	          Beta:		0.37
+    	          Temperature:	203.0
+    	          NumTrapSpecies:[9.8, 3.31, 1.56, 13.24]
+    	          TrapDensity:   [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]
+    	          ReleaseTime:   [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]
     IncludeFlatfield:            no             
     IncludePhotonNoise:          yes            
     IncludeReadoutNoise:         yes            
@@ -532,7 +539,7 @@ Offset of the CCD origin from the centre of the optical plane (i.e. the intersec
 
 
 
-#### <a name=originOffsetY""></a>OriginOffsetY
+#### <a name="originOffsetY"></a>OriginOffsetY
 <i>Allowed values:</i> Any
 
 Offset of the CCD origin from the centre of the optical plane (i.e. the intersection of the optical axis with the focal plane) in the y-direction, expressed in mm. The origin of the CCD is defined as the point where the readout register is located. See Fig. 2 for more details (Δy<sub>CCD</sub>).
@@ -624,22 +631,94 @@ For non-frame-transfer CCDs the readout time should be set to zero.
 
 
 
+
 #### <a name="flatfieldPtPNoise"></a>FlatfieldPtPNoise
 <i>Allowed values:</i> ∈ [0,1]]
 
 Fractional peak-to-peak amplitude of the pixel non-uniform sensitivity response..
-  
-  
-  
-#### <a name="cteMean"></a>CTEMean
-Allowed values: ∈ [0,1]]
 
-Mean charge-transfer efficiency (CTE) of the detector.
 
-Because of detector defects, electrons can get trapped in the readout process. The trapped charge ends up getting dissociated from its original pixel and eventually gets released into another pixel. The result is that the original image gets smeared out in the direction away from the readout amplifier (visible in the appearance of "charge trails"). This is known as imperfect CTE (Charge-Transfer Efficiency) or alternatively as CTI (Charge-Transfer Inefficiency). The fraction of the charge that is successfully transferred from one row to the next row is expressed by this parameter.
+
+  
+#### <a name="CTImodel"></a>CTI: Model
+
+<i>Allowed values:</i> "Simple" and "Short2013"
+
+Because of detector defects, electrons can get trapped in the readout process. The trapped charge ends up getting dissociated from its original pixel and eventually gets released into another pixel. The result is that the original image gets smeared out in the direction away from the readout amplifier (visible in the appearance of "charge trails"). This is known as imperfect CTE (Charge-Transfer Efficiency) or alternatively as CTI (Charge-Transfer Inefficiency).
 
 The charge trails impact photometry, noise, and astrometry of sources. CTI removes flux from the central pixel and thus degrades the expected S/N for an observation. CTI trails bias measurements of source along the trail direction, which can severely impact high-precision astrometry.
 
+PlatoSim3 offers two implementation of the CTI:
+
+<ul>
+	<li>The simple implementation ("Simple") assumes that for each row transfer (in the direction of the readout register) a fraction of the charge is not transferred to the next row, but stays behind.  It will be released by later row transfers.</li>
+	<li>A more sophisticated implementation ("Short2013") is based on <a href="http://mnras.oxfordjournals.org/content/430/4/3078.full.pdf">Short et al., MNRAS 430, 3078-3085 (2013)</a>, in which only parallel readout is taken into account.</li>
+</ul>
+
+
+
+  
+#### <a name="MeanCTE"></a>CTI: Simple: MeanCTE
+<i>Allowed values:</i> ∈ [0,1]]
+
+Mean charge-transfer efficiency (CTE) of the detector.  The fraction of the charge that is successfully transferred from one row to the next row is expressed by this parameter.
+
+
+
+#### <a name="beta"></a>CTI: Short2013: Beta
+
+Exponent β in Eq. (1) of Short et al. 2013 describing the relationship between the volume of the charge cloud (<i>V<sub>c</sub></i>), the number of electrons in a pixel (<i>N<sub>e</sub></i>), the full-well capacity in electrons (<i>FWC</i>), and the assumed maximum geometrical volume that electrons can occupy within a pixel (<i>V<sub>g</sub></i>):
+
+\f[\frac{V_c}{V_g} = \left( \frac{N_e}{FWC} \right)^{\beta}.\f]
+
+
+
+
+#### <a name="temperature"></a>CTI: Short2013: Temperature
+
+<i>Allowed values:</i> ≥ 0
+
+Temperature <i>T</i> that is used to calculated the thermal velocity <i>v<sub>t</sub></i> of the electrons:
+
+\f[v_t = \frac{3kT}{m_e^{\ast}},\f]
+
+where <i>k</i> is the Boltzmann constant and <i>m<sub>e</sub><sup>*</sup></i> is the effective electron mass in silicon, which we approximate by half the free electron rest mass.
+
+
+
+
+#### <a name="numTrapSpecies"></a>CTI: Short2013: NumTrapSpecies
+
+<i>Allowed values:</i> > 0
+
+Number of trap species that is used in the CTI model by Short et al. 2013.
+
+
+
+
+#### <a name="trapDensity"></a>CTI: Short2013: TrapDensity
+
+<i>Allowed values:</i> Array holding one non-negative entry per trap species. 
+
+Array holding the trap density <i>n<sub>t</sub></i> for each of the considered trap species, expressed in number of traps per pixel.  This is used to calculate the γ-value in Eq. (22) of Short et al. 2013.
+
+
+
+
+#### <a name="trapCaptureCrossSection"></a>CTI: Short2013: TrapCaptureCrossSection
+
+<i>Allowed values:</i> Array holding one non-negative entry per trap species.
+
+Array holding the trap capture cross-section <i>σ</i> for each of the considered trap species, expressed in m<sup>2</sup>.  This is used to calculated the α-value in Eq. (22) of Short et al. 2013.  In this formula, the charge transfer time is used as value for <i>t</i>.
+
+
+
+
+#### <a name="releaseTime"></a>CTI: Short2013: ReleaseTime 
+
+<i>Allowed values:</i> Array holding one non-negative entry per trap species.
+
+Array holding the trap release time constants <i>τ<sub>r</sub></i> for each of the considered trap species, expressed in seconds.
 
 
 #### <a name="inclFlatfield"></a>IncludeFlatfield

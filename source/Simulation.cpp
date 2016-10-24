@@ -219,6 +219,9 @@ void Simulation::writeStarCatalogToHDF5()
     double raOpticalAxis, decOpticalAxis;
     tie(raOpticalAxis, decOpticalAxis) = telescope->getInitialPointingCoordinates();
 
+    double focalPlaneAngle = telescope->getInitialFocalPlaneOrientation();
+
+
     double xFPrad, yFPrad;
 
     if (!allStarIDs.empty())
@@ -229,7 +232,7 @@ void Simulation::writeStarCatalogToHDF5()
             starIDs[k] = starID;
             tie(RA[k], dec[k]) = sky->getCoordinatesOfStarWithID(starID, Angle::degrees);  // be careful, ra & dec returned in degrees!
             Vmag[k] = sky->getVmagnitudeOfStarWithID(starID);
-            tie(xFPmm[k], yFPmm[k]) = camera->skyToFocalPlaneCoordinates(deg2rad(RA[k]), deg2rad(dec[k]));
+            tie(xFPmm[k], yFPmm[k]) = camera->skyToFocalPlaneCoordinates(deg2rad(RA[k]), deg2rad(dec[k]), raOpticalAxis, decOpticalAxis, focalPlaneAngle);
             
             if (includeFieldDistortion)
             {
@@ -404,7 +407,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addString("Model");
     subGroup = "CCD/CTI/Simple";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
-    addDouble("MeanCTI");
+    addDouble("MeanCTE");
     subGroup = "CCD/CTI/Short2013";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addDouble("Beta");
