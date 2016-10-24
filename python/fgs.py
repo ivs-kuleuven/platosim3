@@ -41,6 +41,12 @@ for n in range(NguideStars):
     sim = Simulation(outputFilePrefix + "{0:02d}".format(n), inputFile)
     sim.outputDir = outputDir
 
+    # Make sure it uses the right starCatalog, jitter file, and PSF file
+
+    sim["ObservingParameters/StarCatalogFile"] = starCatalog
+    sim["Platform/JitterFileName"] = jitterFile
+    sim["PSF/FromFile/Filename"] = psfFile 
+
     # Center the subfield around the current guide star
     # First extract the required information from the yaml input file.
     # Note that for this simulation, we want to use the fast cams, not the nominal ones.
