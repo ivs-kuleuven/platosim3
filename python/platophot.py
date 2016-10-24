@@ -6,21 +6,21 @@ import h5py
 
 
 
-def computePSFsigma(psf, Nsubpixels):
+def computePSFsigma(psf, Nsubpixels, Nsamples=10000):
 
     """
-    PURPOSE: Approximate the PSF with a 2D symmetric gaussian distribution, to compute 
+    PURPOSE: Approximate the PSF with a 2D symmetric Gaussian distribution, to compute 
              its standard deviation, assuming that the barycenter is in the middle of the image. 
              This standard deviation will be used for the weighted mask photometry
 
     INPUT: psf:        2D numpy image containing the PSF
            Nsubpixels: the number of subpixels per pixel (1D)
+           Nsamples:   the number of monte carlo samples of the PSF to fit a Gaussian
 
     OUTPUT: sigma: the standard deviation of the symmetric PSF  [pix]
 
     """
 
-    Nsamples = 10000
     sumPSF = sum(psf)
     randomNumber = uniform(0.0, 1.0, Nsamples)
 
@@ -276,7 +276,7 @@ def getPhotometryTimeSeries(photometryFile, starID):
             starID:  star identifier (integer, e.g. 9789)
 
      OUTPUT: time: a numpy array containing the time points [s]
-             flux; a numpy array containing the flux points [electrons/exposure]
+             flux: a numpy array containing the flux points [electrons/exposure]
 
      REMARK: To find out which star identifiers are in the photometry file, look in the HDF5 simulation
              output file of PlatoSim: 
@@ -289,6 +289,7 @@ def getPhotometryTimeSeries(photometryFile, starID):
 
     time = []
     flux = []
+
     for k in range(Nimages):
         allStarIDsInImage = array(photFile["/Photometry/Exposure{0:06d}/starID".format(k)])
         if starID in allStarIDsInImage:
