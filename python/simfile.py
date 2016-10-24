@@ -405,7 +405,8 @@ class SimFile (object):
         PURPOSE: make a plot of the requested PSF
 
         INPUT: datasetName: the name of the dataset that contains the PSF in the HDF5 file
-               This is set by the Simulator and is currently: selectedPSF, rotatedPSF, or rebinnedPSF
+               This is set by the Simulator and is currently: 
+                    rebinnedPSFpixel, rebinnedPSFsubPixel,  or  rotatedPSF
                useTitle: True is a title should be plotted, False otherwise
 
         OUTPUT: None
