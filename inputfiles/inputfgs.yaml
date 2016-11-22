@@ -8,7 +8,7 @@ General:
 
 ObservingParameters:
 
-    NumExposures:                1400             # Number of expsosures
+    NumExposures:                100             # Number of expsosures
     ExposureTime:                2.3              # [s]
     RApointing:                  86.79870         # Platform (not telescope) right ascension pointing coordinate  [deg] 
     DecPointing:                 -46.39595        # Platform (not telescope) declination pointing coordinate      [deg]
@@ -25,7 +25,7 @@ Platform:
     JitterPitchRms:              0.5              # [arcsec]
     JitterRollRms:               0.5              # [arcsec]
     JitterTimeScale:             180              # [s]
-    JitterFileName:              inputfiles/PlatoJitter_Airbus.txt 
+    JitterFileName:              inputfiles/Jitter.txt 
 
 
 Telescope:
@@ -60,7 +60,7 @@ Camera:
 
 PSF:
 
-    Model:                       Gaussian        # Select the model to be used for the PSF [Gaussian, FromFile]
+    Model:                       FromFile        # Select the model to be used for the PSF [Gaussian, FromFile]
     Gaussian:                                    # Generate the PSF from a 2D Gaussian function
       Sigma:                     0.25            # Standard deviation of Gaussian PSF [pixels]
       NumberOfPixels:            8               # The number of pixels in the field for which the PSF is generated
@@ -98,15 +98,15 @@ CCD:
             TrapDensity:             [9.8, 3.31, 1.56, 13.24]                     # for each trap species [traps/pixel]
             TrapCaptureCrossSection: [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]     # for each trap species [m^2]
             ReleaseTime:             [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]         # for each trap species [s]
-    IncludeFlatfield:            yes             # Include flatfield [yes or no]
+    IncludeFlatfield:            no             # Include flatfield [yes or no]
     IncludePhotonNoise:          yes             # Include photon noise [yes or no]
     IncludeReadoutNoise:         yes             # Include readout noise [yes or no]
-    IncludeCTIeffects:           yes             # Include charge transfer inefficiency effects [yes or no]
+    IncludeCTIeffects:           no             # Include charge transfer inefficiency effects [yes or no]
     IncludeOpenShutterSmearing:  no              # Include trails due reading out with an open shutter [yes or no]
-    IncludeVignetting:           yes             # Include brightness attenuation towards the edge of the FOV due to vignetting 
+    IncludeVignetting:           no             # Include brightness attenuation towards the edge of the FOV due to vignetting 
     IncludeConvolution:          yes             # Wheter or not to convolve the subPixelMap with the PSF
-    IncludeFullWellSaturation:   yes             # Wheter or not full well saturation should be applied
-    IncludeDigitalSaturation:    yes             # Wheter or not digital saturation should be applied
+    IncludeFullWellSaturation:   no             # Wheter or not full well saturation should be applied
+    IncludeDigitalSaturation:    no             # Wheter or not digital saturation should be applied
     WriteSubPixelImagesToHDF5:   no              # Only use this for a limited number of exposures. Takes a lot of space! 
 
 SubField:    

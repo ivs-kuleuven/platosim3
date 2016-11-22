@@ -23,6 +23,9 @@
 
 Simulation::Simulation(string inputFilename, string outputFilename)
 {
+    // Log.disableLogLevel(DEBUG);
+    // Log.disableLogLevel(INFO);
+    
     // Parse the configuration parameters file
 
     Log.info("Simulation: reading the input parameters file");
@@ -232,7 +235,7 @@ void Simulation::writeStarCatalogToHDF5()
             starIDs[k] = starID;
             tie(RA[k], dec[k]) = sky->getCoordinatesOfStarWithID(starID, Angle::degrees);  // be careful, ra & dec returned in degrees!
             Vmag[k] = sky->getVmagnitudeOfStarWithID(starID);
-            tie(xFPmm[k], yFPmm[k]) = camera->skyToFocalPlaneCoordinates(deg2rad(RA[k]), deg2rad(dec[k]), raOpticalAxis, decOpticalAxis, focalPlaneAngle);
+            tie(xFPmm[k], yFPmm[k]) = camera->initialSkyToFocalPlaneCoordinates(deg2rad(RA[k]), deg2rad(dec[k]));
             
             if (includeFieldDistortion)
             {
