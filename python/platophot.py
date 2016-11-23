@@ -13,7 +13,7 @@ def computePSFsigma(psf, Nsubpixels, Nsamples=10000):
              its standard deviation, assuming that the barycenter is in the middle of the image. 
              This standard deviation will be used for the weighted mask photometry
 
-    INPUT: psf:        2D numpy image containing the PSF
+    INPUT: psf:        2D numpy image containing the rotated PSF at subpixel level
            Nsubpixels: the number of subpixels per pixel (1D)
            Nsamples:   the number of monte carlo samples of the PSF to fit a Gaussian
 
