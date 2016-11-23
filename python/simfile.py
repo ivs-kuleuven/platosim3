@@ -19,7 +19,7 @@ Similarly, the corresponding smearing and bias maps can be obtained through:
 
 To plot the subfield image of the 10th exposure:
 
->>> f.showImage(10)
+>>> f.showImage(10, showStarPositions=True)
 
 
 To get information of the stars that were detected on the subfield in at least one exposure.
@@ -31,12 +31,6 @@ The starIDs are the line number (starting with 0) of the original stellar input 
 To get the coordinates of all stars within a magnitude range [minVmag, maxVmag] in image #10.
 
 >>> ID, row, col, Xmm, Ymm = f.getStarCoordinates(10, minVmag=None, maxVmag=12.0)
-
-This is useful to overplot on an image. Mind the order of row and col when plotting!
-
->>> f.showImage(10)
->>> ID, row, col, Xmm, Ymm = f.getStarCoordinates(10)
->>> plt.scatter(floor(col), floor(row), marker='x', c='g')
 
 
 To get an imagette around star #13561 in image #2:
@@ -293,13 +287,15 @@ class SimFile (object):
 
 
 
-    def showImage(self, imageNr, useTitle=True):
+    def showImage(self, imageNr, showStarPositions=False, useTitle=True):
 
         """
         PURPOSE: make a plot of the requested image 
 
-        INPUT: imageNr: integer sequential number of the image in the HDF5 file
-               useTitle: True is an image title should be plotted, False otherwise
+        INPUT: imageNr:           Integer sequential number of the image in the HDF5 file
+               showStarPositions: True if the average star positions (averaged over the exposure)
+                                  should be shown with a small green cross. False otherwise.
+               useTitle:          True is an image title should be plotted, False otherwise
 
         OUTPUT: None
 
@@ -313,17 +309,27 @@ class SimFile (object):
         image = self.getImage(imageNr)
         Nrows, Ncols = image.shape
 
-        # Plot the image. Note that imshow tends to plot coordinates at the beginning of each pixel, while we would
-        # likt them to have at the center of each pixel. Hence the -0.5 terms in extent = [...].
+        # Plot the image. Note that pixel coordinates start at the left bottom side of each pixel. 
 
         figure = plt.figure()
         axis = figure.add_subplot(111)
-        imagePlot = axis.imshow(image, cmap=cm.hot, interpolation="nearest", origin='lower', extent=[-0.5,Nrows-0.5,-0.5,Ncols-0.5])
+        imagePlot = axis.imshow(image, cmap=cm.hot, interpolation="nearest", origin='lower', extent=[0,Nrows,0,Ncols])
 
         # The large dynamic range of the pixel values often results in images where only
         # the brightest stars are visible. To improve the contrast, clip the color mapping.
 
-        imagePlot.set_clim(np.percentile(image, 1), np.percentile(image, 99))
+        imagePlot.set_clim(np.percentile(image, 2), np.percentile(image, 98))
+
+        # If required, overplot the true averaged star positions
+
+        if showStarPositions:
+            ID, row, col, Xmm, Ymm = self.getStarCoordinates(imageNr)
+            axis.scatter(col, row, marker='x', c='g')        
+
+        # Ensure that the axis limits are properly set.
+        
+        axis.set_xlim(0,Ncols)
+        axis.set_ylim(0,Nrows)
 
         # If required, put the title
 
@@ -337,8 +343,8 @@ class SimFile (object):
 
         Nrows, Ncols = image.shape
         def format_coord(x, y):
-            col = int(x+0.5)
-            row = int(y+0.5)
+            col = int(x)
+            row = int(y)
             if col>=0 and col<Ncols and row>=0 and row<Nrows:
                 z = image[row,col]
                 return "x={:.1f}, y={:.1f}, z={:.1f}".format(x, y, z)
@@ -372,8 +378,9 @@ class SimFile (object):
         """
         PURPOSE: extract the PSF from the HDF5 file (if present)
 
-        INPUT:   the name of the dataset that contains the PSF in the HDF5 file
-        
+        INPUT:   the PSF name: "rebinnedPSFpixel", "rebinnedPSFsubPixel", or "rotatedPSF"
+                 where rotatedPSF is at subpixel level.
+                 
         OUTPUT:  psf: 2D numpy array containing the image
         """
 
@@ -405,7 +412,8 @@ class SimFile (object):
         PURPOSE: make a plot of the requested PSF
 
         INPUT: datasetName: the name of the dataset that contains the PSF in the HDF5 file
-               This is set by the Simulator and is currently: selectedPSF, rotatedPSF, or rebinnedPSF
+               This is set by the Simulator and is currently: 
+                    rebinnedPSFpixel, rebinnedPSFsubPixel,  or  rotatedPSF
                useTitle: True is a title should be plotted, False otherwise
 
         OUTPUT: None
@@ -597,8 +605,8 @@ class SimFile (object):
                          stars visible in the current image (subfield). The star 
                          identifier equals the line number of the star in the input 
                          star catalog (counting from 0). 
-                row: The pixel row coordinates of each star in the image.
-                col: The pixel column coordinates of each star in the image.
+                row: The pixel row coordinates of each star in the image (float).
+                col: The pixel column coordinates of each star in the image (float).
                 Xmm: The focal plane FP' x-coordinates of each star in the image
                 Ymm: The focal plane FP' y-coordinates of each star in the image
 
@@ -668,10 +676,6 @@ class SimFile (object):
         Xmm = Xmm[sorted]
         Ymm = Ymm[sorted]
 
-        # Convert the pixel coordinates to integer values (rounding down)
-
-        row = np.array(row, dtype=np.int)
-        col = np.array(col, dtype=np.int)
 
         # If no cut in V magnitude is required, we're finished.
 
@@ -980,5 +984,50 @@ class SimFile (object):
         return self.hdf5file["/InputParameters/" + groupName].attrs[parameterName]
 
 
+
+
+
+
+    def getPositionTimeSeries(self, starID):
+
+        """
+         PURPOSE: Given the ID of 1 particular star, extract the time series of its pixel
+                  coordinates and its focal plane coordinates, for every image where the
+                  star occurs.
+
+         INPUT: starID: integer ID of a star
+
+         OUTPUT: time:   time points of the time series [s]
+                 rowPix: row coordinate (real-valued) of the average position of the star during the exposure
+                 colPix: column coordinate (real-valued) of the average position of the star during the exposure 
+                 xFPmm:  focal plane x-coordinate [mm] of the average position of the star during the exposure
+                 yFPmm:  focal plane y-coordinate [mm] of the average position of the star during the exposure
+        """
+
+        allTimePoints = np.array(self.hdf5file["/StarPositions/Time"])
+
+        colPix = []
+        rowPix = []
+        xFPmm = []
+        yFPmm = []
+        time = []
+
+        for k in range(len(allTimePoints)):
+            allStarIDsInImage = np.array(self.hdf5file["StarPositions/Exposure{0:06d}/starID".format(k)])
+            if starID in allStarIDsInImage:
+                colPixOfAllStars  = np.array(self.hdf5file["StarPositions/Exposure{0:06d}/colPix".format(k)])
+                rowPixOfAllStars  = np.array(self.hdf5file["StarPositions/Exposure{0:06d}/rowPix".format(k)])
+                xFPmmOfAllStars   = np.array(self.hdf5file["StarPositions/Exposure{0:06d}/xFPmm".format(k)])
+                yFPmmOfAllStars   = np.array(self.hdf5file["StarPositions/Exposure{0:06d}/yFPmm".format(k)])
+
+                starIndex = np.where(allStarIDsInImage==starID)[0]
+                colPix.append(colPixOfAllStars[starIndex])
+                rowPix.append(rowPixOfAllStars[starIndex])
+                xFPmm.append(xFPmmOfAllStars[starIndex])
+                yFPmm.append(yFPmmOfAllStars[starIndex])
+                time.append(allTimePoints[k])
+
+        return np.array(time).flatten(), np.array(rowPix).flatten(), np.array(colPix).flatten(),  \
+               np.array(xFPmm).flatten(), np.array(yFPmm).flatten()
 
 
