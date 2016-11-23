@@ -70,6 +70,37 @@ def computePSFsigma(psf, Nsubpixels, Nsamples=10000):
 
 
 
+def computePSFBarycenterOffset(psf, Npixels):
+
+    """
+    PURPOSE: Compute the barycenter coordinates of the given PSF. The zero-point is the center of the psf.
+
+    INPUT: psf:     2D numpy image (Nrows x Ncolumns) containing the rotated PSF at subpixel level
+           Npixels: the number of pixels in 1 dimension of the square PSF (e.g. 8)
+
+    OUTPUT: (deltaRow, deltaColumn): the pixel coordinates of the barycenter of the PSF
+                                     relative to the center of the pixel image   [pix]
+    """
+
+    Nrows, Ncols = psf.shape
+
+    rowIndices = arange(Nrows)
+    colIndices = arange(Ncols) 
+
+    baryRow = sum(psf * rowIndices) / psf.sum()
+    baryCol = sum(psf * colIndices.reshape(Ncols,1)) / psf.sum()
+
+    Nsubpixels = Nrows / Npixels
+    deltaRow = (baryRow - Nrows / 2.0) / Nsubpixels
+    deltaCol = (baryCol - Ncols / 2.0) / Nsubpixels
+
+    return (deltaRow, deltaCol)
+
+
+
+
+
+
 
 
 
@@ -108,6 +139,16 @@ def photometry(inputFilePath, outputFilePath, sigmaPSF, verbose=False):
 
     time = array(inputFile["/StarPositions/Time"])
     photometryGroup.create_dataset("time", data=time)
+
+    # Compute the offset of the barycenter of the PSF
+
+    psf = array(inputFile["/PSF/rotatedPSF"])                                           # [subpix]
+    if inputFile["/InputParameters/PSF"].attrs["Model"] == "FromFile":
+        Npixels = int(inputFile["/InputParameters/PSF/FromFile"].attrs["NumberOfPixels"])
+    else:
+        Npixels = int(inputFile["/InputParameters/PSF/Gaussian"].attrs["NumberOfPixels"])
+
+    deltaRow, deltaCol = computePSFBarycenterOffset(psf, Npixels)                       # [pix]
 
 
     # Collect the relevant input parameters from the HDF5 file
@@ -221,8 +262,8 @@ def photometry(inputFilePath, outputFilePath, sigmaPSF, verbose=False):
             
             Vmag[starNr] = magnitude[starID[starNr]]
             estimatedFlux[starNr] = 0.0
-            rowStar = int(rowPix[starNr])
-            colStar = int(colPix[starNr])
+            rowStar = int(rowPix[starNr] + deltaRow)         # deltaRow, deltaCol are the PSF barycenter offsets
+            colStar = int(colPix[starNr] + deltaCol)
 
             for row in range(rowStar-1, rowStar+2):
                 
@@ -232,7 +273,7 @@ def photometry(inputFilePath, outputFilePath, sigmaPSF, verbose=False):
 
                     if (col < 0) or (col > image.shape[1]-1): continue
                     
-                    weight = exp(-(pow(row-rowPix[starNr],2) + pow(col-colPix[starNr],2))/2.0/sigmaPSF/sigmaPSF)
+                    weight = exp(-(pow(row-rowPix[starNr]-deltaRow,2) + pow(col-colPix[starNr]-deltaCol,2))/2.0/sigmaPSF/sigmaPSF)
                     estimatedFlux[starNr] += weight * (image[row, col] - skyBackground[imageNr])
                     varEstimatedFlux[starNr] += weight*weight * (image[row, col] + sigmaRON * sigmaRON)
                     maskSize[starNr] +=1 
