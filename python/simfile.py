@@ -378,8 +378,9 @@ class SimFile (object):
         """
         PURPOSE: extract the PSF from the HDF5 file (if present)
 
-        INPUT:   the name of the dataset that contains the PSF in the HDF5 file
-        
+        INPUT:   the PSF name: "rebinnedPSFpixel", "rebinnedPSFsubPixel", or "rotatedPSF"
+                 where rotatedPSF is at subpixel level.
+                 
         OUTPUT:  psf: 2D numpy array containing the image
         """
 
