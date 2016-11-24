@@ -38,7 +38,7 @@ for n in range(NguideStars):
 
     # Set up a Simulation object
 
-    sim = Simulation(outputFilePrefix + "{0:02d}".format(n), inputFile)
+    sim = Simulation(outputFilePrefix + "{0:04d}".format(n), inputFile)
     sim.outputDir = outputDir
 
     # Make sure it uses the right starCatalog, jitter file, and PSF file
