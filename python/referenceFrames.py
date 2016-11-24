@@ -643,7 +643,7 @@ def drawStarInFocalPlane(sim, raStar, decStar):
 
     normal = True  # FIXME: where can we specify that we use the fast or normal Camera
 
-    if (sim["Camera/IncludeFieldDistortion"] == "yes")  or (sim["Camera/IncludeFieldDistortion"] == "1"):
+    if (str(sim["Camera/IncludeFieldDistortion"] == "yes"))  or (str(sim["Camera/IncludeFieldDistortion"] == "1")):
         includeFieldDistortion = True
         FIELD_DISTORTION["Coeff"] = sim["Camera/FieldDistortion/Coefficients"]
         FIELD_DISTORTION["InverseCoeff"] = sim["Camera/FieldDistortion/InverseCoefficients"]
