@@ -450,6 +450,8 @@ void PointSpreadFunction::rotate(double angle)
         rotationAngle = newAngle;
         isRotated = true;    
 
+        psfMap /= arma::accu(psfMap);
+
         Log.debug("PointSpreadFunction: rotated current PSF over angle " + to_string(rad2deg(newAngle)) + " deg");
 
         // Write the psfMap of the rotated PSF to the HDF5 output file
@@ -493,6 +495,8 @@ arma::fmat PointSpreadFunction::rebinToSubPixels(unsigned int targetSubPixels)
 
     isRebinned = true;
 
+    rebinnedMap /= arma::accu(rebinnedMap);
+
     // Write the rebinned PSF to the output HDF5 file
 
     hdf5File.writeArray("/PSF", "rebinnedPSFsubPixel", rebinnedMap);
@@ -528,12 +532,16 @@ arma::fmat PointSpreadFunction::rebinToPixels()
 
     isRebinned = true;
 
+    rebinnedMap /= arma::accu(rebinnedMap);
+
     // Write the rebinned PSF to the output HDF5 file
 
     hdf5File.writeArray("/PSF", "rebinnedPSFpixel", rebinnedMap);
 
     return rebinnedMap;
 }
+
+
 
 
 
