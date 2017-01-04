@@ -146,6 +146,8 @@ Figure 1: Screenshot of the GitHub web interface.</div></div>
 <p>If you want to use realistic PSF models instead of a Gaussian, you can download these from <a href="ftp://ftp.ster.kuleuven.be/dist/Plato/PlatoSim3/psf.hdf5">our FTP server</a>. A convenient place to store this file is in the <code>/inputfiles</code> directory.</p>
 <h3><a class="anchor" id="output"></a>Output</h3>
 <p>The output of the simulations with PlatoSim3 is stored as an HDF5 file. The structure of such files and how to access (and visualise) the content is described <a class="el" href="OutputFileDescription.html">here</a>.</p>
+<p>Note that the x-axis is defined along the serial readout register and corresponds to the columns of the detector (and therefore of the pixel and sub-pixel map). The y-axis corresponds to the rows of the detector (and therefore of the pixel and sub-pixel map). In Python, for example, the <code>imshow()</code> method of <code>matplotlib</code> transposes the image as it tries to mimic Matlab.</p>
+<p>The <code>Armadillo</code> arrays (that are used internally to store the maps) are column-major rather than row-major.</p>
 <h2><a class="anchor" id="inCaseOfProblems"></a>In Case of Problems</h2>
 <p>In case you would come across problems you cannot solve yourself, please, let us know! We would like you to use the issue tracking on GitHub rather than sending an email to the developers, as this helps to better keep track of the issues and their status. How raise issues (and which information you must provide us with) is desribed <a class="el" href="IssueTracking.html">here</a>.</p>
 <h2><a class="anchor" id="reference"></a>Reference</h2>

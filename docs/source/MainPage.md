@@ -191,6 +191,10 @@ If you want to use realistic PSF models instead of a Gaussian, you can download 
 
 The output of the simulations with PlatoSim3 is stored as an HDF5 file.  The structure of such files and how to access (and visualise) the content is described @ref OutputFileDescription "here".
 
+Note that the x-axis is defined along the serial readout register and corresponds to the columns of the detector (and therefore of the pixel and sub-pixel map).  The y-axis corresponds to the rows of the detector (and therefore of the pixel and sub-pixel map).  In Python, for example, the <code>imshow()</code> method of <code>matplotlib</code> transposes the image as it tries to mimic Matlab.
+
+The <code>Armadillo</code> arrays (that are used internally to store the maps) are column-major rather than row-major.
+
 
 
 
