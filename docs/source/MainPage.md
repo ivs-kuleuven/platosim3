@@ -55,6 +55,8 @@ However, this will only work smoothly if you did not change any of the PlatoSim3
 
 At a later stage, releases will be distributed.  We will then extend the documentation accordingly.
 
+Please note that you have to re-build the code each time you fetch software changes. How to do this is explained [here](#build&install).
+
 @image html /images/gitHub.png "Figure 1: Screenshot of the GitHub web interface."
 
 After you have downloaded the PlatoSim3 code, you first have to install a few packages (so-called [dependencies](#dependencies)) before you can actually build and run the PLATO Simulator.  The next sub-sections describe the [requirements](#requirements), and the procedures to install the [dependencies](#dependencies) and to [build](#build&install) the PlatoSim3 code.
