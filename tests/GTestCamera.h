@@ -68,8 +68,6 @@ class MyCamera : public Camera
         pair<double, double> test_focalPlaneToSkyCoordinates(double xFPprime, double yFPprime)
             {return focalPlaneToSkyCoordinates(xFPprime, yFPprime);};
 
-        pair<double, double> test_polarToCartesianFocalPlaneCoordinates(double distance, double angle)
-            {return polarToCartesianFocalPlaneCoordinates(distance, angle);};
         pair<double, double> test_cartesianToPolarFocalPlaneCoordinates(double xFPdist, double yFPdist)
             {return distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist);};
 

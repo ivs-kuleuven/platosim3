@@ -191,46 +191,6 @@ def focalPlaneToSkyCoordinates(xFPprime, yFPprime, raOpticalAxis, decOpticalAxis
 
 
 
-## \brief      Convert polar coordinates to cartesian coordinates
-##
-## \param[in]  distance  distance from the pole (reference point) [mm]
-## \param[in]  angle     angle counter-clockwise from the x-axis [rad]
-##
-## \return     (xFPmm, yFPmm) Cartesian coordinates in the focal plane [mm]
-##
-def polarToCartesianFocalPlaneCoordinates(distance, angle):
-
-    xFPmm = cos(angle) * distance
-    yFPmm = sin(angle) * distance
-
-    return xFPmm, yFPmm
-
-
-
-
-
-
-
-## \brief      Convert cartesian coordinates to polar coordinates
-##
-## \param[in]  xFPmm  x-axis cartesian coordinate in the focal plane [mm]
-## \param[in]  yFPmm  y-axis cartesian coordinate in the focal plane [mm]
-##
-## \return     (distance, angle) polar coordinates in the focal plane
-##
-def cartesianToPolarFocalPlaneCoordinates(xFPmm, yFPmm):
-    
-    angle = arctan2(yFPmm, xFPmm)      # [radians]
-    distance = sqrt(xFPmm * xFPmm + yFPmm * yFPmm)
-
-    return distance, angle
-
-
-
-
-
-
-
 
 
 def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm):
