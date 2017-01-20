@@ -629,46 +629,6 @@ double Camera::getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double 
 
 
 
-
-/**
- * \brief      Computes the (x,y) coordinates in the focal plane, of a star with given equatorial 
- *             sky coordinates, assuming a pinhole camera.
- *             
- * \details    The transformation is with respect to the current pointing coordinates of the telescope.
- *
- * \param raStar       Right ascension of the star [rad]
- * \param decStar      Declination of the star [rad]
- *
- * return pair (x,y):  Cartesian coordinate of the projected star in the focal plane in the FP-prime system [mm]
- */
-
-pair<double, double> Camera::skyToFocalPlaneCoordinates(double raStar, double decStar)
-{
-    // Get the current equatorial coordinates of the optical axis [rad]
-
-    double raOpticalAxis, decOpticalAxis;
-    tie(raOpticalAxis, decOpticalAxis) = telescope.getCurrentPointingCoordinates();
-
-    // Get the current focal plane orientation
-
-    const double focalPlaneAngle = telescope.getCurrentFocalPlaneOrientation();
-
-    return skyToFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /**
  * \brief      Computes the (x,y) coordinates in the focal plane, of a star with given equatorial 
  *             sky coordinates, assuming a pinhole camera.

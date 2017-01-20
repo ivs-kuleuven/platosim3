@@ -65,8 +65,6 @@ class MyCamera : public Camera
         MyCamera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telescope &telescope, Sky &sky)
             : Camera(configParam, hdf5file, telescope, sky) {};
 
-        pair<double, double> test_skyToFocalPlaneCoordinates(double raStar, double decStar)
-            {return skyToFocalPlaneCoordinates(raStar, decStar);};
         pair<double, double> test_focalPlaneToSkyCoordinates(double xFPprime, double yFPprime)
             {return focalPlaneToSkyCoordinates(xFPprime, yFPprime);};
 
