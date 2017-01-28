@@ -133,7 +133,7 @@ add_executable(testplatosim ${unitTestMain} ${unitTestSourceFiles})
 
 # Link the platosim and testplatosim executable with the required libraries
 
-target_link_libraries(platosim platosimLibrary hdf5 hdf5_cpp armadillo yaml-cpp fftw3f fftw3f_threads)
+target_link_libraries(platosim platosimLibrary hdf5 hdf5_cpp armadillo yaml-cpp fftw3f fftw3f_threads pthread)
 target_link_libraries(testplatosim platosimLibrary hdf5 hdf5_cpp armadillo yaml-cpp fftw3f fftw3f_threads gtest gtest_main pthread)
 
 
