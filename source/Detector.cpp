@@ -143,12 +143,16 @@ Detector::~Detector()
         throw ConfigurationException("Detector: Unkown CTI model specification in configuration file");
     }
 
+    polarizationEfficiency = configParam.getDouble("CCD/Polarization/PolarizationEfficiency");
+    polarizationRefAngle = configParam.getDouble("CCD/Polarization/RefAngle");
+
     includeFlatfield           = configParam.getBoolean("CCD/IncludeFlatfield");
     includePhotonNoise         = configParam.getBoolean("CCD/IncludePhotonNoise");
     includeReadoutNoise        = configParam.getBoolean("CCD/IncludeReadoutNoise");   
     includeCTIeffects          = configParam.getBoolean("CCD/IncludeCTIeffects");  
     includeOpenShutterSmearing = configParam.getBoolean("CCD/IncludeOpenShutterSmearing");
     includeVignetting          = configParam.getBoolean("CCD/IncludeVignetting");
+    includePolarization        = configParam.getBoolean("CCD/IncludePolarization");
     writeSubPixelImagesToHDF5  = configParam.getBoolean("CCD/WriteSubPixelImagesToHDF5");
     includeConvolution         = configParam.getBoolean("CCD/IncludeConvolution");
     includeFullWellSaturation  = configParam.getBoolean("CCD/IncludeFullWellSaturation");
@@ -315,7 +319,7 @@ void Detector::generateVignettingMap()
 
 			const double angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm); 
 
-			// Compute the geometrical vignetting attentuation factor
+			// Compute the geometrical vignetting attenuation factor
 
 			vignettingMap(row, column) = cos(angle) * cos(angle);
 		}
@@ -439,7 +443,8 @@ double Detector::takeExposure(double startTime, double exposureTime)
  *         to spacecraft jitter is taken into account. 
  *         
  *  \details  Besides jitter, also the sky background, and the flatfield is taken into 
- *            account. The sub-pixel map is rebinned in a pixel map.
+ *            account. The sub-pixel map is rebinned in a pixel map.  After rebinning,
+ *            vignetting and polarisation are applied (if applicable).
  *
  * \note The convolution with the PSF is not yet done here.
  *
@@ -470,7 +475,7 @@ void Detector::integrateLight(double startTime, double exposureTime)
     {
         Log.debug("Detector: applying Flatfield.");
 
-    	applyFlatfield();
+        applyFlatfield();
     }
     else
     {
@@ -495,6 +500,19 @@ void Detector::integrateLight(double startTime, double exposureTime)
     {
         Log.debug("Detector: no vignetting applied.");
     }
+
+	// Apply polarisation
+
+	if(includePolarization)
+	{
+		Log.debug("Debug: applying polarisation.");
+
+		applyPolarization();
+	}
+	else
+	{
+		Log.debug("Detector: no polarisation applied");
+	}
 
 }
 
@@ -669,13 +687,55 @@ void Detector::addFlux(double flux)
 
 
 /**
- * \brief Apply vignetting. This is the brightness attenuation towards the edges of the FOV
+ * \brief Apply vignetting. This is the brightness attenuation towards the edges of the FOV.
  * 
  */
 
 void Detector::applyVignetting()
 {
     pixelMap = pixelMap % vignettingMap;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Apply the effect of loss of throughput due to polarisation.
+ */
+void Detector::applyPolarization(){
+
+	const double refAngle = deg2rad(polarizationRefAngle);					// Reference angle for the polarisation efficiency [radians]
+	const double cosPolarizationEfficiency = cos(polarizationEfficiency);
+
+	double angle;
+	double xFPmm, yFPmm;
+
+	// Loop over all pixels in the pixel map
+
+	for (unsigned int row = 0; row < numRowsPixelMap; row++)
+	{
+		for (unsigned int column = 0; column < numColumnsPixelMap; column++)
+		{
+			// Pixel coordinates (in the detector) -> focal-plane coordinates
+
+			tie(xFPmm, yFPmm) = pixelToFocalPlaneCoordinates(row, column);
+
+			// Angular distance [radians] of the pixel from the optical axis
+
+			angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm);
+
+			pixelMap(row, column) *= cos(angle / refAngle * cosPolarizationEfficiency);	// Eq. 4-11 in PLATO-DLR-PL-RP-001
+		}
+	}
 }
 
 
