@@ -82,6 +82,9 @@ CCD:
     ElectronicOffset:            100             # bias [ADU]
     ReadoutTime:                 2               # time to read out entire CCD [s]
     FlatfieldPtPNoise:           0.016           # peak-to-peak pixel noise
+    Polarization:
+        PolarizationEfficiency:      0.978           # Efficiency caused by polarisation at the reference angle
+        RefAngle:                    18.8875         # Reference angle for polarisation [degrees]
     CTI:
         Model:                       Simple       # The method used to generate the CTI, either "Simple" or "Short2013"
         Simple:
@@ -98,7 +101,8 @@ CCD:
     IncludeReadoutNoise:         yes             # Include readout noise [yes or no]
     IncludeCTIeffects:           yes             # Include charge transfer inefficiency effects [yes or no]
     IncludeOpenShutterSmearing:  yes             # Include trails due reading out with an open shutter [yes or no]
-    IncludeVignetting:           yes             # Include brightness attenuation towards the edge of the FOV due to vignetting 
+    IncludeVignetting:           yes             # Include brightness attenuation towards the edge of the FOV due to vignetting
+    IncludePolarization:         yes             # Include polarisation 
     IncludeConvolution:          yes             # Wheter or not to convolve the subPixelMap with the PSF
     IncludeFullWellSaturation:   no              # Wheter or not full well saturation should be applied
     IncludeDigitalSaturation:    no              # Wheter or not digital saturation should be applied
