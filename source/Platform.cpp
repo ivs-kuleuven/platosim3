@@ -448,5 +448,12 @@ arma::colvec Platform::rotateYawPitchRoll(arma::colvec coord, const double yaw, 
     return Ryaw  * Rpitch * Rroll * coord;
 }
 
+tuple<double, double, double> Platform::getNextYawPitchRoll(double timeInterval)
+{
+    double yaw=0.0, pitch=0.0, roll=0.0;
 
+    tie(yaw, pitch, roll) = jitterGenerator.getNextYawPitchRoll(timeInterval);
+
+    return make_tuple(yaw, pitch, roll);
+}
 

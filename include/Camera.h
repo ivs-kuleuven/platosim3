@@ -49,6 +49,10 @@ class Camera : public HDF5Writer
         pair<double, double> skyToFocalPlaneCoordinates(double raStar, double decStar, double raOpticalAxis, double decOpticalAxis, double focalPlaneAngle);
         pair<double, double> focalPlaneToSkyCoordinates(double xFPprime, double yFPprime);
 
+	pair<double, double> initialSkyToFocalPlaneCoordinates(double raStar, double decStar);
+        pair<double, double> newSkyToFocalPlaneCoordinates(double raStar, double decStar, double time);
+        pair<double, double> newFocalPlaneToSkyCoordinates(double xFPprime, double yFPprime);
+
         pair<double, double> polarToCartesianFocalPlaneCoordinates(double distance, double angle);
         pair<double, double> cartesianToPolarFocalPlaneCoordinates(double xFPmm, double yFPmm);
 
@@ -60,6 +64,17 @@ class Camera : public HDF5Writer
         set<unsigned int> getAllStarIDs();
 
         double getTotalSkyBackground();
+        
+        double alphaPlatform;            
+        double decPlatform; 
+
+        double azimuthAngle;
+        double tiltAngle;
+
+        double focalPlaneAngle; 
+
+	bool useJitter;
+	bool useDrift;
 
 
     protected:

@@ -42,6 +42,8 @@ class Telescope  : public Heartbeat, HDF5Writer
 
 		pair<double, double> platformToTelescopePointingCoordinates(double alphaPlatfrom, double deltaPlatform);
 
+		tuple<double, double, double> getNextYawPitchRoll(double timeInterval);
+		tuple<double, double, double> getThermalDrift(double timeInterval);
 
 	protected:
 

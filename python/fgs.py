@@ -18,11 +18,11 @@ inputDir    = os.getenv("PLATO_PROJECT_HOME") + "/inputfiles"
 
 inputFile   = inputDir + "/inputfgs.yaml"
 starCatalog = inputDir + "/guide_stars_EQ.txt"
-jitterFile  = inputDir + "/PlatoJitter_Airbus.txt"
+jitterFile  = inputDir + "/Jitter.txt"
 psfFile     = inputDir + "/psf.hdf5"
 
-outputDir   = os.getcwd()
-outputFilePrefix = "/GuideStarThalesFine"
+outputDir   = os.getenv("PLATO_WORKDIR") + "/test"
+outputFilePrefix = "/test"
 
 # Read the guide star catalog
 
@@ -38,7 +38,7 @@ for n in range(NguideStars):
 
     # Set up a Simulation object
 
-    sim = Simulation(outputFilePrefix + "{0:02d}".format(n), inputFile)
+    sim = Simulation(outputFilePrefix + "{0:04d}".format(n), inputFile)
     sim.outputDir = outputDir
 
     # Make sure it uses the right starCatalog, jitter file, and PSF file

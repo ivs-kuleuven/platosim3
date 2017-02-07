@@ -534,7 +534,23 @@ pair<double, double> Telescope::platformToTelescopePointingCoordinates(double al
     return make_pair(alphaOpticalAxis, deltaOpticalAxis);
 }
 
+tuple<double, double, double> Telescope::getNextYawPitchRoll(double timeInterval)
+{
+    double yaw=0.0, pitch=0.0, roll=0.0;
 
+    tie(yaw, pitch, roll) = platform.getNextYawPitchRoll(timeInterval);
+
+    return make_tuple(yaw, pitch, roll);
+}
+
+tuple<double, double, double> Telescope::getThermalDrift(double timeInterval)
+{
+    double yaw=0.0, pitch=0.0, roll=0.0;
+
+    tie(yaw, pitch, roll) = driftGenerator.getNextYawPitchRoll(timeInterval);
+
+    return make_tuple(yaw, pitch, roll);
+}
 
 
 
