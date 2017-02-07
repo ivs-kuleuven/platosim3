@@ -290,6 +290,13 @@ public:
 
 
 
+	void test_applyPolarization()
+	{
+		applyPolarization();
+	}
+
+
+
 	bool test_isInSubPixelMap(double row, double column)
 	{
 		return isInSubPixelMap(row, column);
@@ -773,6 +780,55 @@ TEST_F(DetectorTest, applyFlatfield)
 	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
 
 	EXPECT_TRUE(arma::all(arma::vectorise(smearingMap) == arma::vectorise(detector.test_getSmearingMap())));
+}
+
+
+
+
+
+
+
+
+
+/**
+ * Apply polarisation.
+ */
+TEST_F(DetectorTest, applyPolarization)
+{
+	LOG_STARTING_OF_TEST
+
+	// Construction
+
+	JitterFromRedNoise	jitterGenerator(configParams);
+	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
+
+	// Configuration parameters
+
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+
+	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
+
+	arma::fmat pixelMap(4510, 4510, arma::fill::ones);
+	detector.test_setSubfield(pixelMap);
+
+	// Apply polarisation
+
+	detector.test_applyPolarization();
+
+	auto avg = mean(mean(detector.test_getSubfield()));
+
+	ASSERT_EQ(0.989, avg);
 }
 
 
