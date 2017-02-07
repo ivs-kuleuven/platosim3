@@ -249,6 +249,13 @@ public:
 
 
 
+	arma::fmat test_getThroughputMap()
+	{
+		return throughputMap;
+	}
+
+
+
 	void test_reset(){
 		reset();
 	}
@@ -290,9 +297,9 @@ public:
 
 
 
-	void test_applyPolarization()
+	void test_applyThroughputEfficiency()
 	{
-		applyPolarization();
+		applyThroughputEfficiency();
 	}
 
 
@@ -799,6 +806,11 @@ TEST_F(DetectorTest, applyPolarization)
 
 	// Construction
 
+	configParams.setParameter("CCD/IncludeVignetting", "no");
+	configParams.setParameter("CCD/IncludePolarization", "yes");
+	configParams.setParameter("CCD/IncludeParticulateContamination", "no");
+	configParams.setParameter("CCD/IncludeMolecularContamination", "no");
+
 	JitterFromRedNoise	jitterGenerator(configParams);
 	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
@@ -824,13 +836,133 @@ TEST_F(DetectorTest, applyPolarization)
 
 	// Apply polarisation
 
-	detector.test_applyPolarization();
+	detector.test_applyThroughputEfficiency();
 
-	auto avg = mean(mean(detector.test_getSubfield()));
+	float avg = mean(mean(detector.test_getSubfield()));
+
+	ASSERT_TRUE(detector.test_getThroughputMap().min() >= 0.0);
+	ASSERT_TRUE(detector.test_getThroughputMap().max() <= 1.0);
 
 	ASSERT_EQ(0.989, avg);
 }
 
+
+
+
+
+
+
+
+
+/**
+ * Apply particulate contamination.
+ */
+TEST_F(DetectorTest, applyParticulateContamination)
+{
+	LOG_STARTING_OF_TEST
+
+	// Construction
+
+	configParams.setParameter("CCD/IncludeVignetting", "no");
+	configParams.setParameter("CCD/IncludePolarization", "no");
+	configParams.setParameter("CCD/IncludeParticulateContamination", "yes");
+	configParams.setParameter("CCD/IncludeMolecularContamination", "no");
+
+	JitterFromRedNoise	jitterGenerator(configParams);
+	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
+
+	// Configuration parameters
+
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+
+	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
+
+	arma::fmat pixelMap(numRowsSubField, numColumnsSubField, arma::fill::ones);
+	detector.test_setSubfield(pixelMap);
+
+	// Apply polarisation
+
+	detector.test_applyThroughputEfficiency();
+
+
+	const double expectedEfficiency = configParams.getDouble("CCD/Contamination/ParticulateContaminationEfficiency");
+
+	ASSERT_EQ(expectedEfficiency, detector.test_getThroughputMap().min());
+	ASSERT_EQ(expectedEfficiency, detector.test_getThroughputMap().max());
+
+	ASSERT_EQ(expectedEfficiency, detector.test_getSubfield().min());
+	ASSERT_EQ(expectedEfficiency, detector.test_getSubfield().max());
+}
+
+
+
+
+
+
+
+
+
+/**
+ * Apply molecular contamination.
+ */
+TEST_F(DetectorTest, applyMolecularContamination)
+{
+	LOG_STARTING_OF_TEST
+
+	// Construction
+
+	configParams.setParameter("CCD/IncludeVignetting", "no");
+	configParams.setParameter("CCD/IncludePolarization", "no");
+	configParams.setParameter("CCD/IncludeParticulateContamination", "no");
+	configParams.setParameter("CCD/IncludeMolecularContamination", "yes");
+
+	JitterFromRedNoise	jitterGenerator(configParams);
+	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
+	Platform platform(configParams, hdf5File, jitterGenerator);
+	Sky sky(configParams);
+	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
+	Camera camera(configParams, hdf5File, telescope, sky);
+	MyDetector detector(configParams, hdf5File, camera);
+
+	// Configuration parameters
+
+	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+
+	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+
+	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+
+	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
+
+	arma::fmat pixelMap(numRowsSubField, numColumnsSubField, arma::fill::ones);
+	detector.test_setSubfield(pixelMap);
+
+	// Apply polarisation
+
+	detector.test_applyThroughputEfficiency();
+
+
+	const double expectedEfficiency = configParams.getDouble("CCD/Contamination/MolecularContaminationEfficiency");
+
+	ASSERT_EQ(expectedEfficiency, detector.test_getThroughputMap().min());
+	ASSERT_EQ(expectedEfficiency, detector.test_getThroughputMap().max());
+
+	ASSERT_EQ(expectedEfficiency, detector.test_getSubfield().min());
+	ASSERT_EQ(expectedEfficiency, detector.test_getSubfield().max());
+}
 
 
 

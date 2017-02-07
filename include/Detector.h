@@ -58,14 +58,13 @@ protected:
 
 	virtual void reset();
 	virtual void generateFlatfieldMap();
-	virtual void generateVignettingMap();
+	virtual void generateThroughputMap();
 
 	virtual void integrateLight(double startTime, double exposureTime);
 	virtual bool isInSubPixelMap(double row, double column);
 	virtual void applyFlatfield();
 	virtual void rebin();
-	virtual void applyVignetting();
-	void applyPolarization();
+	virtual void applyThroughputEfficiency();
 
 	virtual void readOut(float exposureTime);
 	virtual void applyQuantumEfficiency();
@@ -81,6 +80,9 @@ protected:
 	void applySimpleCTImodel();
 	void applyShort2013CTImodel();
 
+	void applyParticulateContamination();
+	void applyMolecularContamination();
+
 	void setSubfield(const arma::Mat<float> &subfield);
 	arma::Mat<float> getSubfield();
 
@@ -94,7 +96,7 @@ protected:
 	arma::Mat<float> biasMap;                // Bias map (i.e. pre-scan strip)
 	arma::Mat<float> flatfieldMap;           // Intra-pixel flatfield map
 	arma::Mat<float> psfMap;     			// The PSF map that will be used for convolving
-	arma::Mat<float> vignettingMap; 			// Brightness attenuation map, due to vignetting
+	arma::Mat<float> throughputMap; 			// Throughput efficiency map, due to vignetting, particulate & molecular contamination, and quantum efficiency
 
 	unsigned int numRows; 					// Nr of rows of the detector (= size in y-direction) including non-exposed ones [pixels]
 	unsigned int numColumns; 				// Nr of columns of the detector (= size in x-direction = readout direction) [pixels]
@@ -119,6 +121,8 @@ protected:
 
 	double polarizationEfficiency;			// Efficiency due to polarisation at the reference angle
 	double polarizationRefAngle;				// Reference angle for the polarisation [degrees]
+	double particulatePolarizationEfficiency;	// Efficiency of particulate efficiency (in [0,1])
+	double molecularPolarizationEfficiency;		// Efficiency of molecular efficiency (in [0,1])
 	double quantumEfficiency;	            // Quantum efficiency (in [0,1])
 	double readoutTime;                      // Readout time [s]
 	double readoutNoise;                     // Mean readout noise [electrons]
@@ -143,6 +147,8 @@ protected:
 	bool includeOpenShutterSmearing; 		// Include trails due reading out with an open shutter
 	bool includeVignetting;  				// Include brightness attenuation due to vignetting
 	bool includePolarization;				// Include loss of throughput due to polarisation
+	bool includeParticulateContamination;	// Include loss of throughput due to particulate contamination
+	bool includeMolecularContamination;		// Include loss of throughput due to molecular contamination
 	bool writeSubPixelImagesToHDF5;       	// Write subpixel maps to HDF5 as well
 	bool includeConvolution; 				// Whether or not to convolve the subPixelMap with the PSF
 	bool includeFullWellSaturation; 			// Whether or not full well saturation should be applied
