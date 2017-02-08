@@ -182,7 +182,8 @@ The structure of the input file and the meaning of the individual configuration 
 
 Note that - before running PlatoSim3 - you must have an environment variable <code>PLATO_PROJECT_HOME</code>, set to the base folder of PlatoSim3.
 
-If you want to use realistic PSF models instead of a Gaussian, you can download these from <a href="ftp://ftp.ster.kuleuven.be/dist/Plato/PlatoSim3/psf.hdf5">our FTP server</a>.  A convenient place to store this file is in the <code>/inputfiles</code> directory.
+If you want to use realistic PSF models instead of a Gaussian, you can download these from <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/psf.hdf5
+">our FTP server</a>.  A convenient place to store this file is in the <code>/inputfiles</code> directory.
 
 <!-- Accessing the Output -->
 <!-- ********************* -->
