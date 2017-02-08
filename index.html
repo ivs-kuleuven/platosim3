@@ -51,8 +51,8 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
                onmouseout="return searchBox.OnSearchSelectHide()"
                alt=""/>
           <input type="text" id="MSearchField" value="Search" accesskey="S"
-               onfocus="searchBox.OnSearchFieldFocus(true)" 
-               onblur="searchBox.OnSearchFieldFocus(false)" 
+               onfocus="searchBox.OnSearchFieldFocus(true)"
+               onblur="searchBox.OnSearchFieldFocus(false)"
                onkeyup="searchBox.OnSearchFieldChange(event)"/>
           </span><span class="right">
             <a id="MSearchClose" href="javascript:searchBox.CloseResultsWindow()"><img id="MSearchCloseImg" border="0" src="search/close.png" alt=""/></a>
@@ -71,7 +71,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 
 <!-- iframe showing the search results (closed by default) -->
 <div id="MSearchResultsWindow">
-<iframe src="javascript:void(0)" frameborder="0" 
+<iframe src="javascript:void(0)" frameborder="0"
         name="MSearchResults" id="MSearchResults">
 </iframe>
 </div>
@@ -143,7 +143,7 @@ Figure 1: Screenshot of the GitHub web interface.</div></div>
 <p>To initiate a simulation, <code>cd</code> to the <code>/build</code> directory and type:</p>
 <div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;./platosim &lt;input file&gt; &lt;non-existing output file&gt; [&lt;log file&gt;]</div></div><!-- fragment --><p>The structure of the input file and the meaning of the individual configuration parameters are described <a class="el" href="InputFileDescription.html">here</a>.</p>
 <p>Note that - before running PlatoSim3 - you must have an environment variable <code>PLATO_PROJECT_HOME</code>, set to the base folder of PlatoSim3.</p>
-<p>If you want to use realistic PSF models instead of a Gaussian, you can download these from <a href="ftp://ftp.ster.kuleuven.be/dist/Plato/PlatoSim3/psf.hdf5">our FTP server</a>. A convenient place to store this file is in the <code>/inputfiles</code> directory.</p>
+<p>If you want to use realistic PSF models instead of a Gaussian, you can download these from <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/psf.hdf5">our FTP server</a>. A convenient place to store this file is in the <code>/inputfiles</code> directory.</p>
 <h3><a class="anchor" id="output"></a>Output</h3>
 <p>The output of the simulations with PlatoSim3 is stored as an HDF5 file. The structure of such files and how to access (and visualise) the content is described <a class="el" href="OutputFileDescription.html">here</a>.</p>
 <p>Note that the x-axis is defined along the serial readout register and corresponds to the columns of the detector (and therefore of the pixel and sub-pixel map). The y-axis corresponds to the rows of the detector (and therefore of the pixel and sub-pixel map). In Python, for example, the <code>imshow()</code> method of <code>matplotlib</code> transposes the image as it tries to mimic Matlab.</p>
