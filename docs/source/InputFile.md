@@ -533,7 +533,11 @@ CCD:
     IncludeReadoutNoise:         yes            
     IncludeCTIeffects:           yes            
     IncludeOpenShutterSmearing:  yes            
-    IncludeVignetting:           yes             
+    IncludeVignetting:           yes   
+    IncludePolarization:         yes
+    IncludeParticulateContamination:  yes
+    IncludeMolecularContamination:    yes
+    IncludeQuantumEfficiency:    yes
     IncludeConvolution:          yes            
     IncludeFullWellSaturation:   yes            
     IncludeDigitalSaturation:    yes            
@@ -834,6 +838,39 @@ Indicates whether or not to include open-shutter smearing effects.
 <i>Allowed values:</i> "yes" and "no"
 
 Indicates whether or not to include brightness attenuation towards the edge of the FOV due to vignetting.
+
+
+        
+
+#### <a name="inclPolarization"></a>IncludePolarization
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to include loss of throughput efficiency due to polarisation.
+
+
+        
+
+#### <a name="inclParticulateContamination"></a>IncludeParticulateContamination
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to include loss of throughput efficiency due to particulate contamination.
+
+
+        
+
+
+#### <a name="inclMolecularContamination"></a>IncludeMolecularContamination
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to include loss of throughput efficiency due to molecular contamination.
+
+
+        
+
+#### <a name="inclQuantumEfficiency"></a>IncludeQuantumEfficiency
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to include loss of throughput efficiency due to quantum efficiency.
 
 
         
