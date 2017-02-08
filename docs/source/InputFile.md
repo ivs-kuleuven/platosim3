@@ -499,7 +499,19 @@ CCD:
     NumRows:                     4510      
     PixelSize:                   18        
     Gain:                        16             
-    QuantumEfficiency:           0.8745         
+    QuantumEfficiency:           
+    		Efficiency:          0.925
+    		RefAngle:            45.0
+    		ExpectedValue:       0.993    
+    Polarization:           
+    		Efficiency:          0.978
+    		RefAngle:            18.8875
+    		ExpectedValue:       0.989      
+    Vignetting:
+    		ExpectedValue:       0.945 
+    Contamination:
+    		ParticulateContaminationEfficiency:  0.98
+    		MolecularContaminationEfficiency:    0.0566
     FullWellSaturation:          1000000        
     DigitalSaturation:           65535          
     ReadoutNoise:                28             
@@ -516,16 +528,20 @@ CCD:
     	          NumTrapSpecies:[9.8, 3.31, 1.56, 13.24]
     	          TrapDensity:   [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]
     	          ReleaseTime:   [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]
-    IncludeFlatfield:            no             
-    IncludePhotonNoise:          yes            
-    IncludeReadoutNoise:         yes            
-    IncludeCTIeffects:           yes            
-    IncludeOpenShutterSmearing:  yes            
-    IncludeVignetting:           yes             
-    IncludeConvolution:          yes            
-    IncludeFullWellSaturation:   yes            
-    IncludeDigitalSaturation:    yes            
-    WriteSubPixelImagesToHDF5:   no              
+    IncludeFlatfield:                 no             
+    IncludePhotonNoise:               yes            
+    IncludeReadoutNoise:              yes            
+    IncludeCTIeffects:                yes            
+    IncludeOpenShutterSmearing:       yes            
+    IncludeVignetting:                yes   
+    IncludePolarization:              yes
+    IncludeParticulateContamination:  yes
+    IncludeMolecularContamination:    yes
+    IncludeQuantumEfficiency:         yes
+    IncludeConvolution:               yes            
+    IncludeFullWellSaturation:        yes            
+    IncludeDigitalSaturation:         yes            
+    WriteSubPixelImagesToHDF5:        no              
 \endcode
 
 
@@ -582,10 +598,69 @@ CCD gain, expressed in e<sup>-</sup> / ADU and assumed to be constant throughout
 
 
 
-#### <a name="quantumEfficiency"></a>QuantumEfficiency
+#### <a name="quantumEfficiency"></a>QuantumEfficiency: Efficiency
 <i>Allowed values:</i> ∈ [0,1]
 
-Quantum efficiency of the detector, considering the passband and the spectral energy distribution of the stars given the [Fluxm0](#fluxm0) parameter and the magnitude of the stars in the [star catalogue](#starCatalogue). This is the ratio of the number of collected electrons to the number of incident photons.
+Throughput efficiency due to the quantum efficiency at the given reference angle, considering the passband and the spectral energy distribution of the stars given the [Fluxm0](#fluxm0) parameter and the magnitude of the stars in the [star catalogue](#starCatalogue). This is the ratio of the number of collected electrons to the number of incident photons.
+
+
+
+#### <a name="quantumEfficiencyRefAngle"></a>QuantumEfficiency: RefAngle
+<i>Allowed values:</i> Any
+
+Reference angle for the throughput efficiency due to the quantum efficiency, expressed in degrees.
+
+
+
+#### <a name="quantumEfficiencyExpectedValue"></a>QuantumEfficiency: ExpectedValue
+<i>Allowed values:</i> ∈ [0,1]
+
+Expected value of the throughput efficiency due to quantum efficiency (i.e. the mean over all pixels of one detector).
+
+
+
+#### <a name="polarizationEfficiency"></a>Polarization: Efficiency
+<i>Allowed values:</i> ∈ [0,1]
+
+Throughput efficiency due to the polarisation at the given reference angle.
+
+
+
+#### <a name="PolarizationRefAngle"></a>Polarization: RefAngle
+<i>Allowed values:</i> Any
+
+Reference angle for the throughput efficiency due to the polarisation, expressed in degrees.
+
+
+
+#### <a name="polarizationExpectedValue"></a>Polarization: ExpectedValue
+<i>Allowed values:</i> ∈ [0,1]
+
+Expected value of the throughput efficiency due to polarisation (i.e. the mean over all pixels of one detector).
+
+
+
+
+#### <a name="vignettingExpectedValue"></a>Vignetting: ExpectedValue
+<i>Allowed values:</i> ∈ [0,1]
+
+Expected value of the throughput efficiency due to vignetting (i.e. the mean over all pixels of one detector).
+
+
+
+
+#### <a name="particulateContamination"></a>Contamination: ParticulateContaminationEfficiency
+<i>Allowed values:</i> ∈ [0,1]
+
+Throughput efficiency due to particulate contamination.
+
+
+
+#### <a name="molecularContamination"></a>Contamination: MolecularContaminationEfficiency
+<i>Allowed values:</i> ∈ [0,1]
+
+Throughput efficiency due to molecular contamination.
+
 
 
 
@@ -765,6 +840,39 @@ Indicates whether or not to include open-shutter smearing effects.
 <i>Allowed values:</i> "yes" and "no"
 
 Indicates whether or not to include brightness attenuation towards the edge of the FOV due to vignetting.
+
+
+        
+
+#### <a name="inclPolarization"></a>IncludePolarization
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to include loss of throughput efficiency due to polarisation.
+
+
+        
+
+#### <a name="inclParticulateContamination"></a>IncludeParticulateContamination
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to include loss of throughput efficiency due to particulate contamination.
+
+
+        
+
+
+#### <a name="inclMolecularContamination"></a>IncludeMolecularContamination
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to include loss of throughput efficiency due to molecular contamination.
+
+
+        
+
+#### <a name="inclQuantumEfficiency"></a>IncludeQuantumEfficiency
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to include loss of throughput efficiency due to quantum efficiency.
 
 
         
