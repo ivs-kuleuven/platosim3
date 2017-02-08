@@ -276,13 +276,6 @@ public:
 
 
 
-	void test_applyQuantumEfficiency()
-	{
-		applyQuantumEfficiency();
-	}
-
-
-
 	void test_generateFlatFieldMap()
 	{
 		generateFlatfieldMap();
@@ -512,7 +505,7 @@ TEST_F(DetectorTest, dimensions)
 {
 	LOG_STARTING_OF_TEST
 
-	// Constructiomn
+	// Construction
 
 	JitterFromRedNoise jitterGenerator(configParams);
 	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
@@ -797,714 +790,750 @@ TEST_F(DetectorTest, applyFlatfield)
 
 
 
-/**
- * Apply polarisation.
- */
-TEST_F(DetectorTest, applyPolarization)
-{
-	LOG_STARTING_OF_TEST
-
-	// Construction
-
-	configParams.setParameter("CCD/IncludeVignetting", "no");
-	configParams.setParameter("CCD/IncludePolarization", "yes");
-	configParams.setParameter("CCD/IncludeParticulateContamination", "no");
-	configParams.setParameter("CCD/IncludeMolecularContamination", "no");
-
-	JitterFromRedNoise	jitterGenerator(configParams);
-	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
-	Platform platform(configParams, hdf5File, jitterGenerator);
-	Sky sky(configParams);
-	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
-	MyDetector detector(configParams, hdf5File, camera);
-
-	// Configuration parameters
-
-	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
-	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
-
-	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
-	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
-
-	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
-
-	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
-
-	arma::fmat pixelMap(4510, 4510, arma::fill::ones);
-	detector.test_setSubfield(pixelMap);
-
-	// Apply polarisation
-
-	detector.test_applyThroughputEfficiency();
-
-	float avg = mean(mean(detector.test_getSubfield()));
-
-	ASSERT_TRUE(detector.test_getThroughputMap().min() >= 0.0);
-	ASSERT_TRUE(detector.test_getThroughputMap().max() <= 1.0);
-
-	ASSERT_EQ(0.989, avg);
-}
-
-
-
-
-
-
-
-
-
-/**
- * Apply particulate contamination.
- */
-TEST_F(DetectorTest, applyParticulateContamination)
-{
-	LOG_STARTING_OF_TEST
-
-	// Construction
-
-	configParams.setParameter("CCD/IncludeVignetting", "no");
-	configParams.setParameter("CCD/IncludePolarization", "no");
-	configParams.setParameter("CCD/IncludeParticulateContamination", "yes");
-	configParams.setParameter("CCD/IncludeMolecularContamination", "no");
-
-	JitterFromRedNoise	jitterGenerator(configParams);
-	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
-	Platform platform(configParams, hdf5File, jitterGenerator);
-	Sky sky(configParams);
-	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
-	MyDetector detector(configParams, hdf5File, camera);
-
-	// Configuration parameters
-
-	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
-	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
-
-	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
-	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
-
-	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
-
-	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
-
-	arma::fmat pixelMap(numRowsSubField, numColumnsSubField, arma::fill::ones);
-	detector.test_setSubfield(pixelMap);
-
-	// Apply polarisation
-
-	detector.test_applyThroughputEfficiency();
-
-
-	const double expectedEfficiency = configParams.getDouble("CCD/Contamination/ParticulateContaminationEfficiency");
-
-	ASSERT_EQ(expectedEfficiency, detector.test_getThroughputMap().min());
-	ASSERT_EQ(expectedEfficiency, detector.test_getThroughputMap().max());
-
-	ASSERT_EQ(expectedEfficiency, detector.test_getSubfield().min());
-	ASSERT_EQ(expectedEfficiency, detector.test_getSubfield().max());
-}
-
-
-
-
-
-
-
-
-
-/**
- * Apply molecular contamination.
- */
-TEST_F(DetectorTest, applyMolecularContamination)
-{
-	LOG_STARTING_OF_TEST
-
-	// Construction
-
-	configParams.setParameter("CCD/IncludeVignetting", "no");
-	configParams.setParameter("CCD/IncludePolarization", "no");
-	configParams.setParameter("CCD/IncludeParticulateContamination", "no");
-	configParams.setParameter("CCD/IncludeMolecularContamination", "yes");
-
-	JitterFromRedNoise	jitterGenerator(configParams);
-	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
-	Platform platform(configParams, hdf5File, jitterGenerator);
-	Sky sky(configParams);
-	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
-	MyDetector detector(configParams, hdf5File, camera);
-
-	// Configuration parameters
-
-	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
-	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
-
-	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
-	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
-
-	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
-
-	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
-
-	arma::fmat pixelMap(numRowsSubField, numColumnsSubField, arma::fill::ones);
-	detector.test_setSubfield(pixelMap);
-
-	// Apply polarisation
-
-	detector.test_applyThroughputEfficiency();
-
-
-	const double expectedEfficiency = configParams.getDouble("CCD/Contamination/MolecularContaminationEfficiency");
-
-	ASSERT_EQ(expectedEfficiency, detector.test_getThroughputMap().min());
-	ASSERT_EQ(expectedEfficiency, detector.test_getThroughputMap().max());
-
-	ASSERT_EQ(expectedEfficiency, detector.test_getSubfield().min());
-	ASSERT_EQ(expectedEfficiency, detector.test_getSubfield().max());
-}
-
-
-
-
-
-
-
-
-/**
- * Rebinning.
- */
-TEST_F(DetectorTest, rebin)
-{
-	LOG_STARTING_OF_TEST
-
-	// Construction
-
-	JitterFromRedNoise jitterGenerator(configParams);
-	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
-	Platform platform(configParams, hdf5File, jitterGenerator);
-	Sky sky(configParams);
-	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
-	MyDetector detector(configParams, hdf5File, camera);
-
-	// Configuration parameters
-
-	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
-	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
-
-	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
-	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
-
-	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
-
-	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
-
-	arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
-	subPixelMap.ones(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
-	detector.test_setSubPixelMap(subPixelMap);
-
-	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
-	detector.test_setSubfield(subField);
-
-	arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);
-	detector.test_setBiasRegisterMap(biasMap);
-
-	arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);
-	detector.test_setSmearingMap(smearingMap);
-
-
-
-	// Rebin
-
-	detector.test_rebin();
-
-
-
-	// Pixel map: check dimensions  and content (all sub-pixels must be summed per pixel)
-
-	ASSERT_EQ(detector.test_getSubPixelMap().n_rows / numSubPixels, detector.test_getSubfield().n_rows);
-	ASSERT_EQ(detector.test_getSubPixelMap().n_cols / numSubPixels, detector.test_getSubfield().n_cols);
-
-	double expectedValue;
-
-	for (unsigned int row = 0; row < numRowsSubField; row++)
-	{
-		for (unsigned int column = 0; column < numColumnsSubField; column++)
-		{
-			expectedValue = 0.0;
-
-			for(unsigned int subRow = row * numSubPixels; subRow < (row + 1) * numSubPixels; subRow++)
-			{
-				for(unsigned int subColumn = column * numSubPixels; subColumn < (column + 1) * numSubPixels; subColumn++)
-				{
-					expectedValue += subPixelMap(row, column);
-				}
-			}
-
-			ASSERT_EQ(expectedValue, detector.test_getSubfield()(row, column));
-		}
-	}
-
-	// Sub-pixel map: check dimensions and content (unaltered)
-
-	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
-	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
-
-	EXPECT_TRUE(arma::all(arma::vectorise(subPixelMap) == arma::vectorise(detector.test_getSubPixelMap())));
-
-	// Bias register map: check dimensions and content (unaltered)
-
-	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
-	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
-
-	EXPECT_TRUE(arma::all(arma::vectorise(biasMap) == arma::vectorise(detector.test_getBiasRegisterMap())));
-
-	// Smearing map: check dimensions and content (unaltered)
-
-	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
-	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
-
-	EXPECT_TRUE(arma::all(arma::vectorise(smearingMap) == arma::vectorise(detector.test_getSmearingMap())));
-}
-
-
-
-
-
-
-
-
-/**
- * Adding same flux value to all sub-pixels.
- */
-TEST_F(DetectorTest, addBackgroudFlux)
-{
-	LOG_STARTING_OF_TEST
-
-	// Construction
-
-	JitterFromRedNoise jitterGenerator(configParams);
-	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
-	Platform platform(configParams, hdf5File, jitterGenerator);
-	Sky sky(configParams);
-	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
-	MyDetector detector(configParams, hdf5File, camera);
-
-	// Configuration parameters
-
-	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
-	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
-
-	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
-	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
-
-	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
-
-	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
-
-	arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
-	detector.test_setSubPixelMap(subPixelMap);
-
-	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
-	detector.test_setSubfield(subField);
-
-	arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);
-	detector.test_setBiasRegisterMap(biasMap);
-
-	arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);
-	detector.test_setSmearingMap(smearingMap);
-
-
-
-	// Add flux
-
-	double background = 121.47;	// Per pixel
-
-	detector.addFlux(background);
-
-
-
-	// Sub-pixel map: check dimensions and content (background must be added)
-
-	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
-	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
-
-	EXPECT_TRUE(arma::all(arma::vectorise(subPixelMap + (background / numSubPixels / numSubPixels)) == arma::vectorise(detector.test_getSubPixelMap())));
-
-	// Pixel map: check dimensions and content (unaltered)
-
-	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
-	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
-
-	EXPECT_TRUE(arma::all(arma::vectorise(subField) == arma::vectorise(detector.test_getSubfield())));
-
-	// Bias register map: check dimensions and content (unaltered)
-
-	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
-	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
-
-	EXPECT_TRUE(arma::all(arma::vectorise(biasMap) == arma::vectorise(detector.test_getBiasRegisterMap())));
-
-	// Smearing map: check dimensions and content (unaltered)
-
-	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
-	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
-
-	EXPECT_TRUE(arma::all(arma::vectorise(smearingMap) == arma::vectorise(detector.test_getSmearingMap())));
-}
-
-
-
-
-
-
-
-
-
-TEST_F(DetectorTest, addFlux)
-{
-	LOG_STARTING_OF_TEST
-
-}
-
-
-
-
-
-
-
-
-
-TEST_F(DetectorTest, isInSubField)
-{
-	LOG_STARTING_OF_TEST
-
-}
-
-
-
-
-
-
-
-
-
-/**
- * Check whether given position (row, column) is located in the sub-pixel map.
- */
-TEST_F(DetectorTest, isInSubPixelMap)
-{
-	LOG_STARTING_OF_TEST
-
-	// Construction
-
-	JitterFromRedNoise jitterGenerator(configParams);
-	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
-	Platform platform(configParams, hdf5File, jitterGenerator);
-	Sky sky(configParams);
-	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
-	MyDetector detector(configParams, hdf5File, camera);
-
-	// Configuration parameters
-
-	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
-	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
-
-	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
-
-
-
-	ASSERT_FALSE(detector.test_isInSubPixelMap(-1,0));
-	ASSERT_FALSE(detector.test_isInSubPixelMap(-1,-20));
-	ASSERT_FALSE(detector.test_isInSubPixelMap(-1,-50));
-	ASSERT_FALSE(detector.test_isInSubPixelMap(-1,0));
-
-	ASSERT_TRUE(detector.test_isInSubPixelMap(numRowsSubField * numSubPixels / 2.0, numColumnsSubField * numSubPixels / 2.0));
-
-	ASSERT_FALSE(detector.test_isInSubPixelMap(numRowsSubField * numSubPixels / 2.0, numColumnsSubField * numSubPixels));
-	ASSERT_FALSE(detector.test_isInSubPixelMap(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels / 2.0));
-
-	ASSERT_TRUE(detector.test_isInSubPixelMap(numRowsSubField * numSubPixels -1.0, numColumnsSubField * numSubPixels - 1.0));
-
-	ASSERT_FALSE(detector.test_isInSubPixelMap(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels - 1.0));
-	ASSERT_FALSE(detector.test_isInSubPixelMap(numRowsSubField * numSubPixels -1.0, numColumnsSubField * numSubPixels));
-}
-
-
-
-
-
-
-
-
-
-/**
- * Quantum efficiency.
- *
- * Multiplies the values in the sub-pixel map with the quantum efficiency.
- */
-TEST_F(DetectorTest, applyQuantumEfficiency)
-{
-	LOG_STARTING_OF_TEST
-
-	// Construction
-
-	JitterFromRedNoise jitterGenerator(configParams);
-	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
-	Platform platform(configParams, hdf5File, jitterGenerator);
-	Sky sky(configParams);
-	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
-	MyDetector detector(configParams, hdf5File, camera);
-
-	// Configuration parameters
-
-	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
-	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
-
-	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
-	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
-
-	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
-
-	const double quantumEfficiency = configParams.getDouble("CCD/QuantumEfficiency");
-
-	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
-
-	arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
-	detector.test_setSubPixelMap(subPixelMap);
-
-	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
-	detector.test_setSubfield(subField);
-
-	arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);
-	detector.test_setBiasRegisterMap(biasMap);
-
-	arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);
-	detector.test_setSmearingMap(smearingMap);
-
-
-
-	// Quantum efficiency
-
-	detector.test_applyQuantumEfficiency();
-
-
-
-	// Sub-pixel map: check dimensions and content (unaltered)
-
-	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
-	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
-
-	EXPECT_TRUE(arma::all(arma::vectorise(subPixelMap) == arma::vectorise(detector.test_getSubPixelMap())));
-
-	// Pixel map: check dimensions and content (multiplied by quantum efficiency)
-
-	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
-	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
-
-	EXPECT_TRUE(arma::all(arma::vectorise(subField * quantumEfficiency) == arma::vectorise(detector.test_getSubfield())));
-
-	// Bias register map: check dimensions and content (unaltered)
-
-	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
-	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
-
-	EXPECT_TRUE(arma::all(arma::vectorise(biasMap) == arma::vectorise(detector.test_getBiasRegisterMap())));
-
-	// Smearing map: check dimensions and content (unaltered)
-
-	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
-	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
-
-	EXPECT_TRUE(arma::all(arma::vectorise(smearingMap) == arma::vectorise(detector.test_getSmearingMap())));
-}
-
-
-
-
-
-
-
-
-
-TEST_F(DetectorTest, applyFullWellSaturation)
-{
-	LOG_STARTING_OF_TEST
-
-	// Construction
-
-		JitterFromRedNoise jitterGenerator(configParams);
-		ThermoElasticDriftFromRedNoise driftGenerator(configParams);
-		Platform platform(configParams, hdf5File, jitterGenerator);
-		Sky sky(configParams);
-		Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-		Camera camera(configParams, hdf5File, telescope, sky);
-		MyDetector detector(configParams, hdf5File, camera);
-
-		// Configuration parameters
-
-		const int numRowsSubField = configParams.getInteger("SubField/NumRows");
-		const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
-
-		const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
-		const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
-
-		const int numSubPixels = configParams.getInteger("SubField/SubPixels");
-
-		const double saturationLimit = configParams.getDouble("CCD/FullWellSaturation");
-
-		// Initialise sub-pixel map, pixel map, bias register map, and smearing map
-
-		arma::fmat subPixelMap = arma::fmat(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
-		subPixelMap.zeros();
-		detector.test_setSubPixelMap(subPixelMap);
-
-		arma::fmat subField = arma::fmat(numRowsSubField, numColumnsSubField);
-		subField.ones();
-
-		subField(9, 7) = 5 * saturationLimit;	// At the edge -> flux falls off the sub-field
-		subField(0, 3) = 5 * saturationLimit;	// At the edge -> flux falls off the sub-field
-		subField(5, 5) = 5 * saturationLimit; // Away from the edge
+///**
+// * Apply vignetting.
+// */
+//TEST_F(DetectorTest, applyVignetting)
+//{
+//	LOG_STARTING_OF_TEST
 //
-		subField(4,1) = 3 * saturationLimit;
-		subField(5,1) = 3 * saturationLimit;
-
-		detector.test_setSubfield(subField);
-
-		arma::fmat biasMap = arma::fmat(numBiasPreScanRows, numColumnsSubField);
-		biasMap.ones();
-		detector.test_setBiasRegisterMap(biasMap);
-
-		arma::fmat smearingMap = arma::fmat(numSmearingOverScanRows, numColumnsSubField);
-		smearingMap.ones();
-		detector.test_setSmearingMap(smearingMap);
-
-
-
-		// Full-well saturation
-
-		detector.test_applyFullWellSaturation();
-
-
-
-		// Pixel map: check dimension and content
-
-		ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
-		ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
-
-		for(unsigned int column = 0; column < numColumnsSubField; column++)
-		{
-			for(unsigned int row = 0; row < numRowsSubField; row++)
-			{
-
-				if(column == 7)
-				{
-					if(row >= 7)
-					{
-						EXPECT_FLOAT_EQ(saturationLimit, detector.test_getSubfield()(row, column));
-					}
-
-					else if(row == 6)
-					{
-						EXPECT_FLOAT_EQ(3.0, detector.test_getSubfield()(row, column));
-					}
-
-					else
-					{
-						EXPECT_FLOAT_EQ(1.0, detector.test_getSubfield()(row, column));
-					}
-				}
-
-				else if(column == 3)
-				{
-					if(row <= 2)
-					{
-						EXPECT_FLOAT_EQ(saturationLimit, detector.test_getSubfield()(row, column));
-					}
-
-					else if(row == 3)
-					{
-						EXPECT_FLOAT_EQ(3.0, detector.test_getSubfield()(row, column));
-					}
-					else
-					{
-						EXPECT_FLOAT_EQ(1.0, detector.test_getSubfield()(row, column));
-					}
-				}
-
-				else if(column == 5)
-				{
-					if(row >= 3 && row <= 7)
-					{
-						EXPECT_FLOAT_EQ(saturationLimit, detector.test_getSubfield()(row, column));
-					}
-
-					else if((row == 2) || (row == 8))
-					{
-						EXPECT_FLOAT_EQ(3.0, detector.test_getSubfield()(row, column));
-					}
-
-					else{
-						EXPECT_FLOAT_EQ(1.0, detector.test_getSubfield()(row, column));
-					}
-				}
-
-				else if(column == 1)
-				{
-					if((row == 1) || (row == 8))
-					{
-						EXPECT_FLOAT_EQ(3.0, detector.test_getSubfield()(row, column));
-					}
-
-					else if((row >= 2) && (row <= 7))
-					{
-						EXPECT_FLOAT_EQ(saturationLimit, detector.test_getSubfield()(row, column));
-					}
-
-					else
-					{
-						EXPECT_FLOAT_EQ(1.0, detector.test_getSubfield()(row, column));
-					}
-
-				}
-
-				else
-				{
-					EXPECT_FLOAT_EQ(1.0, detector.test_getSubfield()(row, column));
-				}
-			}
-		}
-
-		// Sub-pixel map: check dimensions and content (unaltered)
-
-		ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
-		ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
-
-		EXPECT_TRUE(arma::all(arma::vectorise(subPixelMap) == arma::vectorise(detector.test_getSubPixelMap())));
-
-		// Bias register map: check dimensions and content (unaltered)
-
-		ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
-		ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
-
-		EXPECT_TRUE(arma::all(arma::vectorise(biasMap) == arma::vectorise(detector.test_getBiasRegisterMap())));
-
-		// Smearing map: check dimensions and content (unaltered)
-
-		ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
-		ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
-
-		EXPECT_TRUE(arma::all(arma::vectorise(smearingMap) == arma::vectorise(detector.test_getSmearingMap())));
-}
+//	// Construction
+//
+//	configParams.setParameter("SubField/NumRows", "4510");
+//	configParams.setParameter("SubField/NumColumns", "4510");
+//	configParams.setParameter("SubField/SubPixels", "1");
+//	configParams.setParameter("CCD/IncludeVignetting", "yes");
+//	configParams.setParameter("CCD/IncludePolarization", "no");
+//	configParams.setParameter("CCD/IncludeParticulateContamination", "no");
+//	configParams.setParameter("CCD/IncludeMolecularContamination", "no");
+//	configParams.setParameter("CCD/IncludeQuantumEfficiency", "no");
+//
+//	JitterFromRedNoise	jitterGenerator(configParams);
+//	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
+//	Platform platform(configParams, hdf5File, jitterGenerator);
+//	Sky sky(configParams);
+//	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
+//	Camera camera(configParams, hdf5File, telescope, sky);
+//	MyDetector detector(configParams, hdf5File, camera);
+//
+//
+//
+//	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+//	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+//
+//	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+//
+//	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
+//
+//	arma::fmat pixelMap(4510, 4510, arma::fill::ones);
+//	detector.test_setSubfield(pixelMap);
+//
+//	// Apply polarisation
+//
+//	detector.test_applyThroughputEfficiency();
+//
+//
+//	ASSERT_TRUE(detector.test_getThroughputMap().min() >= 0.0);
+//	ASSERT_TRUE(detector.test_getThroughputMap().max() <= 1.0);
+//
+//	ASSERT_TRUE(detector.test_getSubfield().min() >= 0.0);
+//	ASSERT_TRUE(detector.test_getSubfield().max() <= 1.0);
+//
+//	EXPECT_NEAR(configParams.getDouble("CCD/Vignetting/ExpectedValue"), mean(mean(detector.test_getThroughputMap())), 0.015);
+//	EXPECT_NEAR(configParams.getDouble("CCD/Vignetting/ExpectedValue"), mean(mean(detector.test_getSubfield())), 0.015);
+//}
 
 
 
 
 
+
+
+
+
+
+///**
+// * Apply polarisation.
+// */
+//TEST_F(DetectorTest, applyPolarization)
+//{
+//	LOG_STARTING_OF_TEST
+//
+//	// Construction
+//
+//	configParams.setParameter("SubField/NumRows", "4510");
+//	configParams.setParameter("SubField/NumColumns", "4510");
+//	configParams.setParameter("SubField/SubPixels", "1");
+//	configParams.setParameter("CCD/IncludeVignetting", "no");
+//	configParams.setParameter("CCD/IncludePolarization", "yes");
+//	configParams.setParameter("CCD/IncludeParticulateContamination", "no");
+//	configParams.setParameter("CCD/IncludeMolecularContamination", "no");
+//	configParams.setParameter("CCD/IncludeQuantumEfficiency", "no");
+//
+//	JitterFromRedNoise	jitterGenerator(configParams);
+//	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
+//	Platform platform(configParams, hdf5File, jitterGenerator);
+//	Sky sky(configParams);
+//	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
+//	Camera camera(configParams, hdf5File, telescope, sky);
+//	MyDetector detector(configParams, hdf5File, camera);
+//
+//	// Configuration parameters
+//
+//	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+//	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+//
+//	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+//	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+//
+//	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+//
+//	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
+//
+//	arma::fmat pixelMap(4510, 4510, arma::fill::ones);
+//	detector.test_setSubfield(pixelMap);
+//
+//	// Apply polarisation
+//
+//	detector.test_applyThroughputEfficiency();
+//
+//	ASSERT_TRUE(detector.test_getThroughputMap().min() >= 0.0);
+//	ASSERT_TRUE(detector.test_getThroughputMap().max() <= 1.0);
+//
+//	ASSERT_TRUE(detector.test_getSubfield().min() >= 0.0);
+//	ASSERT_TRUE(detector.test_getSubfield().max() <= 1.0);
+//
+//	EXPECT_NEAR(configParams.getDouble("CCD/Polarization/ExpectedValue"), mean(mean(detector.test_getThroughputMap())), 0.015);
+//	EXPECT_NEAR(configParams.getDouble("CCD/Polarization/ExpectedValue"), mean(mean(detector.test_getSubfield())), 0.015);
+//}
+//
+//
+//
+//
+//
+//
+//
+//
+//
+///**
+// * Apply particulate contamination.
+// */
+//TEST_F(DetectorTest, applyParticulateContamination)
+//{
+//	LOG_STARTING_OF_TEST
+//
+//	// Construction
+//
+//	configParams.setParameter("CCD/IncludeVignetting", "no");
+//	configParams.setParameter("CCD/IncludePolarization", "no");
+//	configParams.setParameter("CCD/IncludeParticulateContamination", "yes");
+//	configParams.setParameter("CCD/IncludeMolecularContamination", "no");
+//	configParams.setParameter("CCD/IncludeQuantumEfficiency", "no");
+//
+//	JitterFromRedNoise	jitterGenerator(configParams);
+//	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
+//	Platform platform(configParams, hdf5File, jitterGenerator);
+//	Sky sky(configParams);
+//	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
+//	Camera camera(configParams, hdf5File, telescope, sky);
+//	MyDetector detector(configParams, hdf5File, camera);
+//
+//	// Configuration parameters
+//
+//	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+//	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+//
+//	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+//	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+//
+//	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+//
+//	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
+//
+//	arma::fmat pixelMap(numRowsSubField, numColumnsSubField, arma::fill::ones);
+//	detector.test_setSubfield(pixelMap);
+//
+//	// Apply polarisation
+//
+//	detector.test_applyThroughputEfficiency();
+//
+//
+//	const double expectedEfficiency = configParams.getDouble("CCD/Contamination/ParticulateContaminationEfficiency");
+//
+//	ASSERT_FLOAT_EQ(expectedEfficiency, detector.test_getThroughputMap().min());
+//	ASSERT_FLOAT_EQ(expectedEfficiency, detector.test_getThroughputMap().max());
+//
+//	ASSERT_FLOAT_EQ(expectedEfficiency, detector.test_getSubfield().min());
+//	ASSERT_FLOAT_EQ(expectedEfficiency, detector.test_getSubfield().max());
+//}
+//
+//
+//
+//
+//
+//
+//
+//
+//
+///**
+// * Apply molecular contamination.
+// */
+//TEST_F(DetectorTest, applyMolecularContamination)
+//{
+//	LOG_STARTING_OF_TEST
+//
+//	// Construction
+//
+//	configParams.setParameter("CCD/IncludeVignetting", "no");
+//	configParams.setParameter("CCD/IncludePolarization", "no");
+//	configParams.setParameter("CCD/IncludeParticulateContamination", "no");
+//	configParams.setParameter("CCD/IncludeMolecularContamination", "yes");
+//	configParams.setParameter("CCD/IncludeQuantumEfficiency", "no");
+//
+//	JitterFromRedNoise	jitterGenerator(configParams);
+//	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
+//	Platform platform(configParams, hdf5File, jitterGenerator);
+//	Sky sky(configParams);
+//	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
+//	Camera camera(configParams, hdf5File, telescope, sky);
+//	MyDetector detector(configParams, hdf5File, camera);
+//
+//	// Configuration parameters
+//
+//	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+//	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+//
+//	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+//	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+//
+//	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+//
+//	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
+//
+//	arma::fmat pixelMap(numRowsSubField, numColumnsSubField, arma::fill::ones);
+//	detector.test_setSubfield(pixelMap);
+//
+//	// Apply polarisation
+//
+//	detector.test_applyThroughputEfficiency();
+//
+//
+//	const double expectedEfficiency = configParams.getDouble("CCD/Contamination/MolecularContaminationEfficiency");
+//
+//	ASSERT_FLOAT_EQ(expectedEfficiency, detector.test_getThroughputMap().min());
+//	ASSERT_FLOAT_EQ(expectedEfficiency, detector.test_getThroughputMap().max());
+//
+//	ASSERT_FLOAT_EQ(expectedEfficiency, detector.test_getSubfield().min());
+//	ASSERT_FLOAT_EQ(expectedEfficiency, detector.test_getSubfield().max());
+//}
+//
+//
+//
+//
+//
+//
+//
+//
+//
+///**
+// * Apply quantum efficiency.
+// */
+//TEST_F(DetectorTest, applyQuantumEfficiency)
+//{
+//	LOG_STARTING_OF_TEST
+//
+//	// Construction
+//
+//	configParams.setParameter("SubField/NumRows", "4510");
+//	configParams.setParameter("SubField/NumColumns", "4510");
+//	configParams.setParameter("SubField/SubPixels", "1");
+//	configParams.setParameter("CCD/IncludeVignetting", "no");
+//	configParams.setParameter("CCD/IncludePolarization", "no");
+//	configParams.setParameter("CCD/IncludeParticulateContamination", "no");
+//	configParams.setParameter("CCD/IncludeMolecularContamination", "no");
+//	configParams.setParameter("CCD/IncludeQuantumEfficiency", "yes");
+//
+//	JitterFromRedNoise	jitterGenerator(configParams);
+//	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
+//	Platform platform(configParams, hdf5File, jitterGenerator);
+//	Sky sky(configParams);
+//	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
+//	Camera camera(configParams, hdf5File, telescope, sky);
+//	MyDetector detector(configParams, hdf5File, camera);
+//
+//	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
+//
+//	arma::fmat pixelMap(4510, 4510, arma::fill::ones);
+//	detector.test_setSubfield(pixelMap);
+//
+//	// Apply polarisation
+//
+//	detector.test_applyThroughputEfficiency();
+//
+//
+//	const double expectedEfficiency = configParams.getDouble("CCD/QuantumEfficiency/ExpectedValue");
+//
+////	ASSERT_FLOAT_EQ(expectedEfficiency, detector.test_getThroughputMap().min());
+////	ASSERT_FLOAT_EQ(expectedEfficiency, detector.test_getThroughputMap().max());
+////
+////	ASSERT_FLOAT_EQ(expectedEfficiency, detector.test_getSubfield().min());
+////	ASSERT_FLOAT_EQ(expectedEfficiency, detector.test_getSubfield().max());
+//
+//	EXPECT_NEAR(configParams.getDouble("CCD/QuantumEfficiency/ExpectedValue"), mean(mean(detector.test_getThroughputMap())), 0.015);
+//	EXPECT_NEAR(configParams.getDouble("CCD/QuantumEfficiency/ExpectedValue"), mean(mean(detector.test_getSubfield())), 0.015);
+//}
+//
+//
+//
+//
+//
+//
+//
+//
+///**
+// * Rebinning.
+// */
+//TEST_F(DetectorTest, rebin)
+//{
+//	LOG_STARTING_OF_TEST
+//
+//	// Construction
+//
+//	JitterFromRedNoise jitterGenerator(configParams);
+//	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
+//	Platform platform(configParams, hdf5File, jitterGenerator);
+//	Sky sky(configParams);
+//	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
+//	Camera camera(configParams, hdf5File, telescope, sky);
+//	MyDetector detector(configParams, hdf5File, camera);
+//
+//	// Configuration parameters
+//
+//	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+//	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+//
+//	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+//	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+//
+//	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+//
+//	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
+//
+//	arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
+//	subPixelMap.ones(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
+//	detector.test_setSubPixelMap(subPixelMap);
+//
+//	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
+//	detector.test_setSubfield(subField);
+//
+//	arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);
+//	detector.test_setBiasRegisterMap(biasMap);
+//
+//	arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);
+//	detector.test_setSmearingMap(smearingMap);
+//
+//
+//
+//	// Rebin
+//
+//	detector.test_rebin();
+//
+//
+//
+//	// Pixel map: check dimensions  and content (all sub-pixels must be summed per pixel)
+//
+//	ASSERT_EQ(detector.test_getSubPixelMap().n_rows / numSubPixels, detector.test_getSubfield().n_rows);
+//	ASSERT_EQ(detector.test_getSubPixelMap().n_cols / numSubPixels, detector.test_getSubfield().n_cols);
+//
+//	double expectedValue;
+//
+//	for (unsigned int row = 0; row < numRowsSubField; row++)
+//	{
+//		for (unsigned int column = 0; column < numColumnsSubField; column++)
+//		{
+//			expectedValue = 0.0;
+//
+//			for(unsigned int subRow = row * numSubPixels; subRow < (row + 1) * numSubPixels; subRow++)
+//			{
+//				for(unsigned int subColumn = column * numSubPixels; subColumn < (column + 1) * numSubPixels; subColumn++)
+//				{
+//					expectedValue += subPixelMap(row, column);
+//				}
+//			}
+//
+//			ASSERT_EQ(expectedValue, detector.test_getSubfield()(row, column));
+//		}
+//	}
+//
+//	// Sub-pixel map: check dimensions and content (unaltered)
+//
+//	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+//	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+//
+//	EXPECT_TRUE(arma::all(arma::vectorise(subPixelMap) == arma::vectorise(detector.test_getSubPixelMap())));
+//
+//	// Bias register map: check dimensions and content (unaltered)
+//
+//	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+//	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
+//
+//	EXPECT_TRUE(arma::all(arma::vectorise(biasMap) == arma::vectorise(detector.test_getBiasRegisterMap())));
+//
+//	// Smearing map: check dimensions and content (unaltered)
+//
+//	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+//	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+//
+//	EXPECT_TRUE(arma::all(arma::vectorise(smearingMap) == arma::vectorise(detector.test_getSmearingMap())));
+//}
+//
+//
+//
+//
+//
+//
+//
+//
+///**
+// * Adding same flux value to all sub-pixels.
+// */
+//TEST_F(DetectorTest, addBackgroudFlux)
+//{
+//	LOG_STARTING_OF_TEST
+//
+//	// Construction
+//
+//	JitterFromRedNoise jitterGenerator(configParams);
+//	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
+//	Platform platform(configParams, hdf5File, jitterGenerator);
+//	Sky sky(configParams);
+//	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
+//	Camera camera(configParams, hdf5File, telescope, sky);
+//	MyDetector detector(configParams, hdf5File, camera);
+//
+//	// Configuration parameters
+//
+//	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+//	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+//
+//	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+//	const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+//
+//	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+//
+//	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
+//
+//	arma::fmat subPixelMap = arma::randu<arma::fmat>(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
+//	detector.test_setSubPixelMap(subPixelMap);
+//
+//	arma::fmat subField = arma::randu<arma::fmat>(numRowsSubField, numColumnsSubField);
+//	detector.test_setSubfield(subField);
+//
+//	arma::fmat biasMap = arma::randu<arma::fmat>(numBiasPreScanRows, numColumnsSubField);
+//	detector.test_setBiasRegisterMap(biasMap);
+//
+//	arma::fmat smearingMap = arma::randu<arma::fmat>(numSmearingOverScanRows, numColumnsSubField);
+//	detector.test_setSmearingMap(smearingMap);
+//
+//
+//
+//	// Add flux
+//
+//	double background = 121.47;	// Per pixel
+//
+//	detector.addFlux(background);
+//
+//
+//
+//	// Sub-pixel map: check dimensions and content (background must be added)
+//
+//	ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+//	ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+//
+//	EXPECT_TRUE(arma::all(arma::vectorise(subPixelMap + (background / numSubPixels / numSubPixels)) == arma::vectorise(detector.test_getSubPixelMap())));
+//
+//	// Pixel map: check dimensions and content (unaltered)
+//
+//	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
+//	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
+//
+//	EXPECT_TRUE(arma::all(arma::vectorise(subField) == arma::vectorise(detector.test_getSubfield())));
+//
+//	// Bias register map: check dimensions and content (unaltered)
+//
+//	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+//	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
+//
+//	EXPECT_TRUE(arma::all(arma::vectorise(biasMap) == arma::vectorise(detector.test_getBiasRegisterMap())));
+//
+//	// Smearing map: check dimensions and content (unaltered)
+//
+//	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+//	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+//
+//	EXPECT_TRUE(arma::all(arma::vectorise(smearingMap) == arma::vectorise(detector.test_getSmearingMap())));
+//}
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//TEST_F(DetectorTest, addFlux)
+//{
+//	LOG_STARTING_OF_TEST
+//
+//}
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//TEST_F(DetectorTest, isInSubField)
+//{
+//	LOG_STARTING_OF_TEST
+//
+//}
+//
+//
+//
+//
+//
+//
+//
+//
+//
+///**
+// * Check whether given position (row, column) is located in the sub-pixel map.
+// */
+//TEST_F(DetectorTest, isInSubPixelMap)
+//{
+//	LOG_STARTING_OF_TEST
+//
+//	// Construction
+//
+//	JitterFromRedNoise jitterGenerator(configParams);
+//	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
+//	Platform platform(configParams, hdf5File, jitterGenerator);
+//	Sky sky(configParams);
+//	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
+//	Camera camera(configParams, hdf5File, telescope, sky);
+//	MyDetector detector(configParams, hdf5File, camera);
+//
+//	// Configuration parameters
+//
+//	const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+//	const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+//
+//	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+//
+//
+//
+//	ASSERT_FALSE(detector.test_isInSubPixelMap(-1,0));
+//	ASSERT_FALSE(detector.test_isInSubPixelMap(-1,-20));
+//	ASSERT_FALSE(detector.test_isInSubPixelMap(-1,-50));
+//	ASSERT_FALSE(detector.test_isInSubPixelMap(-1,0));
+//
+//	ASSERT_TRUE(detector.test_isInSubPixelMap(numRowsSubField * numSubPixels / 2.0, numColumnsSubField * numSubPixels / 2.0));
+//
+//	ASSERT_FALSE(detector.test_isInSubPixelMap(numRowsSubField * numSubPixels / 2.0, numColumnsSubField * numSubPixels));
+//	ASSERT_FALSE(detector.test_isInSubPixelMap(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels / 2.0));
+//
+//	ASSERT_TRUE(detector.test_isInSubPixelMap(numRowsSubField * numSubPixels -1.0, numColumnsSubField * numSubPixels - 1.0));
+//
+//	ASSERT_FALSE(detector.test_isInSubPixelMap(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels - 1.0));
+//	ASSERT_FALSE(detector.test_isInSubPixelMap(numRowsSubField * numSubPixels -1.0, numColumnsSubField * numSubPixels));
+//}
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//TEST_F(DetectorTest, applyFullWellSaturation)
+//{
+//	LOG_STARTING_OF_TEST
+//
+//	// Construction
+//
+//		JitterFromRedNoise jitterGenerator(configParams);
+//		ThermoElasticDriftFromRedNoise driftGenerator(configParams);
+//		Platform platform(configParams, hdf5File, jitterGenerator);
+//		Sky sky(configParams);
+//		Telescope telescope(configParams, hdf5File, platform, driftGenerator);
+//		Camera camera(configParams, hdf5File, telescope, sky);
+//		MyDetector detector(configParams, hdf5File, camera);
+//
+//		// Configuration parameters
+//
+//		const int numRowsSubField = configParams.getInteger("SubField/NumRows");
+//		const int numColumnsSubField = configParams.getInteger("SubField/NumColumns");
+//
+//		const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
+//		const int numSmearingOverScanRows = configParams.getInteger("SubField/NumSmearingOverscanRows");
+//
+//		const int numSubPixels = configParams.getInteger("SubField/SubPixels");
+//
+//		const double saturationLimit = configParams.getDouble("CCD/FullWellSaturation");
+//
+//		// Initialise sub-pixel map, pixel map, bias register map, and smearing map
+//
+//		arma::fmat subPixelMap = arma::fmat(numRowsSubField * numSubPixels, numColumnsSubField * numSubPixels);
+//		subPixelMap.zeros();
+//		detector.test_setSubPixelMap(subPixelMap);
+//
+//		arma::fmat subField = arma::fmat(numRowsSubField, numColumnsSubField);
+//		subField.ones();
+//
+//		subField(9, 7) = 5 * saturationLimit;	// At the edge -> flux falls off the sub-field
+//		subField(0, 3) = 5 * saturationLimit;	// At the edge -> flux falls off the sub-field
+//		subField(5, 5) = 5 * saturationLimit; // Away from the edge
+//
+//		subField(4,1) = 3 * saturationLimit;
+//		subField(5,1) = 3 * saturationLimit;
+//
+//		detector.test_setSubfield(subField);
+//
+//		arma::fmat biasMap = arma::fmat(numBiasPreScanRows, numColumnsSubField);
+//		biasMap.ones();
+//		detector.test_setBiasRegisterMap(biasMap);
+//
+//		arma::fmat smearingMap = arma::fmat(numSmearingOverScanRows, numColumnsSubField);
+//		smearingMap.ones();
+//		detector.test_setSmearingMap(smearingMap);
+//
+//
+//
+//		// Full-well saturation
+//
+//		detector.test_applyFullWellSaturation();
+//
+//
+//
+//		// Pixel map: check dimension and content
+//
+//		ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
+//		ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
+//
+//		for(unsigned int column = 0; column < numColumnsSubField; column++)
+//		{
+//			for(unsigned int row = 0; row < numRowsSubField; row++)
+//			{
+//
+//				if(column == 7)
+//				{
+//					if(row >= 7)
+//					{
+//						EXPECT_FLOAT_EQ(saturationLimit, detector.test_getSubfield()(row, column));
+//					}
+//
+//					else if(row == 6)
+//					{
+//						EXPECT_FLOAT_EQ(3.0, detector.test_getSubfield()(row, column));
+//					}
+//
+//					else
+//					{
+//						EXPECT_FLOAT_EQ(1.0, detector.test_getSubfield()(row, column));
+//					}
+//				}
+//
+//				else if(column == 3)
+//				{
+//					if(row <= 2)
+//					{
+//						EXPECT_FLOAT_EQ(saturationLimit, detector.test_getSubfield()(row, column));
+//					}
+//
+//					else if(row == 3)
+//					{
+//						EXPECT_FLOAT_EQ(3.0, detector.test_getSubfield()(row, column));
+//					}
+//					else
+//					{
+//						EXPECT_FLOAT_EQ(1.0, detector.test_getSubfield()(row, column));
+//					}
+//				}
+//
+//				else if(column == 5)
+//				{
+//					if(row >= 3 && row <= 7)
+//					{
+//						EXPECT_FLOAT_EQ(saturationLimit, detector.test_getSubfield()(row, column));
+//					}
+//
+//					else if((row == 2) || (row == 8))
+//					{
+//						EXPECT_FLOAT_EQ(3.0, detector.test_getSubfield()(row, column));
+//					}
+//
+//					else{
+//						EXPECT_FLOAT_EQ(1.0, detector.test_getSubfield()(row, column));
+//					}
+//				}
+//
+//				else if(column == 1)
+//				{
+//					if((row == 1) || (row == 8))
+//					{
+//						EXPECT_FLOAT_EQ(3.0, detector.test_getSubfield()(row, column));
+//					}
+//
+//					else if((row >= 2) && (row <= 7))
+//					{
+//						EXPECT_FLOAT_EQ(saturationLimit, detector.test_getSubfield()(row, column));
+//					}
+//
+//					else
+//					{
+//						EXPECT_FLOAT_EQ(1.0, detector.test_getSubfield()(row, column));
+//					}
+//
+//				}
+//
+//				else
+//				{
+//					EXPECT_FLOAT_EQ(1.0, detector.test_getSubfield()(row, column));
+//				}
+//			}
+//		}
+//
+//		// Sub-pixel map: check dimensions and content (unaltered)
+//
+//		ASSERT_EQ(numRowsSubField * numSubPixels, detector.test_getSubPixelMap().n_rows);
+//		ASSERT_EQ(numColumnsSubField * numSubPixels, detector.test_getSubPixelMap().n_cols);
+//
+//		EXPECT_TRUE(arma::all(arma::vectorise(subPixelMap) == arma::vectorise(detector.test_getSubPixelMap())));
+//
+//		// Bias register map: check dimensions and content (unaltered)
+//
+//		ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
+//		ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
+//
+//		EXPECT_TRUE(arma::all(arma::vectorise(biasMap) == arma::vectorise(detector.test_getBiasRegisterMap())));
+//
+//		// Smearing map: check dimensions and content (unaltered)
+//
+//		ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
+//		ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
+//
+//		EXPECT_TRUE(arma::all(arma::vectorise(smearingMap) == arma::vectorise(detector.test_getSmearingMap())));
+//}
+//
+//
+//
+//
+//
 
 
 
@@ -1642,7 +1671,7 @@ TEST_F(DetectorTest, applyOpenShutterSmearing)
 
 	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
 
-	const double quantumEfficiency = configParams.getDouble("CCD/QuantumEfficiency");
+	const double quantumEfficiency = configParams.getDouble("CCD/QuantumEfficiency/ExpectedValue");
 	double totalSkyBackground = camera.getTotalSkyBackground() * quantumEfficiency;
 
 	// Initialise sub-pixel map, pixel map, bias register map, and smearing map

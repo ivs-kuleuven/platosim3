@@ -32,6 +32,7 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
   includeReadoutNoise(true),
   includeCTIeffects(true), 
   includeOpenShutterSmearing(true), 
+  includeQuantumEfficiency(true),
   includeVignetting(true),
   includeParticulateContamination(true),
   includeMolecularContamination(true),
@@ -64,7 +65,7 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 
 	generateFlatfieldMap();
 
-	// Generate the throughput map (vignetting + particulate & molecular contamination + quantum efficiency)
+	// Generate the throughput map (vignetting + polarisation + particulate & molecular contamination + quantum efficiency)
 
 	generateThroughputMap();
 
@@ -118,15 +119,18 @@ Detector::~Detector()
     numColumns                 			= configParam.getInteger("CCD/NumColumns");
     pixelSize                  			= configParam.getDouble("CCD/PixelSize");
     gain                       			= configParam.getInteger("CCD/Gain");
-    quantumEfficiency          			= configParam.getDouble("CCD/QuantumEfficiency");
+    quantumEfficiency          			= configParam.getDouble("CCD/QuantumEfficiency/Efficiency");
+    refAngleQuantumEfficiency            = configParam.getDouble("CCD/QuantumEfficiency/RefAngle");
+    expectedValueQuantumEfficiency       = configParam.getDouble("CCD/QuantumEfficiency/ExpectedValue");
     fullWellSaturationLimit    			= configParam.getLong("CCD/FullWellSaturation");
     digitalSaturationLimit     			= configParam.getLong("CCD/DigitalSaturation");
     readoutNoise              			= configParam.getDouble("CCD/ReadoutNoise");
     electronicOffset           			= configParam.getInteger("CCD/ElectronicOffset");
     readoutTime                			= configParam.getDouble("CCD/ReadoutTime");
     flatfieldNoiseAmplitude    			= configParam.getDouble("CCD/FlatfieldPtPNoise");
-    particulatePolarizationEfficiency 	= configParam.getDouble("CCD/Contamination/ParticulateContaminationEfficiency");
-    molecularPolarizationEfficiency      = configParam.getDouble("CCD/Contamination/MolecularContaminationEfficiency");
+    expectedValueVignetting              = configParam.getDouble("CCD/Vignetting/ExpectedValue");
+    particulateContaminationEfficiency 	= configParam.getDouble("CCD/Contamination/ParticulateContaminationEfficiency");
+    molecularContaminationEfficiency     = configParam.getDouble("CCD/Contamination/MolecularContaminationEfficiency");
 
     CTImodel                   = configParam.getString("CCD/CTI/Model");
     if (CTImodel == "Simple")
@@ -154,18 +158,21 @@ Detector::~Detector()
 
 
 
-    includeFlatfield           = configParam.getBoolean("CCD/IncludeFlatfield");
-    includePhotonNoise         = configParam.getBoolean("CCD/IncludePhotonNoise");
-    includeReadoutNoise        = configParam.getBoolean("CCD/IncludeReadoutNoise");   
-    includeCTIeffects          = configParam.getBoolean("CCD/IncludeCTIeffects");  
-    includeOpenShutterSmearing = configParam.getBoolean("CCD/IncludeOpenShutterSmearing");
-    includeVignetting          = configParam.getBoolean("CCD/IncludeVignetting");
-    includePolarization        = configParam.getBoolean("CCD/IncludePolarization");
-    writeSubPixelImagesToHDF5  = configParam.getBoolean("CCD/WriteSubPixelImagesToHDF5");
-    includeConvolution         = configParam.getBoolean("CCD/IncludeConvolution");
-    includeFullWellSaturation  = configParam.getBoolean("CCD/IncludeFullWellSaturation");
-    includeDigitalSaturation   = configParam.getBoolean("CCD/IncludeDigitalSaturation");
-    writeSubPixelImagesToHDF5  = configParam.getBoolean("CCD/WriteSubPixelImagesToHDF5");
+    includeFlatfield                = configParam.getBoolean("CCD/IncludeFlatfield");
+    includeParticulateContamination = configParam.getBoolean("CCD/IncludeParticulateContamination");
+    includeMolecularContamination   = configParam.getBoolean("CCD/IncludeMolecularContamination");
+    includePhotonNoise              = configParam.getBoolean("CCD/IncludePhotonNoise");
+    includeReadoutNoise             = configParam.getBoolean("CCD/IncludeReadoutNoise");
+    includeCTIeffects               = configParam.getBoolean("CCD/IncludeCTIeffects");
+    includeOpenShutterSmearing      = configParam.getBoolean("CCD/IncludeOpenShutterSmearing");
+    includeQuantumEfficiency        = configParam.getBoolean("CCD/IncludeQuantumEfficiency");
+    includeVignetting               = configParam.getBoolean("CCD/IncludeVignetting");
+    includePolarization             = configParam.getBoolean("CCD/IncludePolarization");
+    writeSubPixelImagesToHDF5       = configParam.getBoolean("CCD/WriteSubPixelImagesToHDF5");
+    includeConvolution              = configParam.getBoolean("CCD/IncludeConvolution");
+    includeFullWellSaturation       = configParam.getBoolean("CCD/IncludeFullWellSaturation");
+    includeDigitalSaturation        = configParam.getBoolean("CCD/IncludeDigitalSaturation");
+    writeSubPixelImagesToHDF5       = configParam.getBoolean("CCD/WriteSubPixelImagesToHDF5");
 
     // Configuration parameters for the subfield
 
@@ -301,8 +308,8 @@ void Detector::generateFlatfieldMap()
 
 /**
  *\brief Generate throughput map, containing for each sub-field pixel the combined throughput efficiency
- *       of vignetting, particulate & molecular contamination, and quantum efficiency.  Each array value is
- *       a value between 0 and 1.
+ *       of vignetting, polarisation, particulate & molecular contamination, and quantum efficiency.  Each
+ *       array value is a value between 0 and 1.
  * 
  * \details Because of vignetting, the stars at the edge of the FOV look dimmer than the stars close
  *          to the optical axis. If the incoming flux before vignetting at pixel (i,j) is F(i,j), 
@@ -323,31 +330,49 @@ void Detector::generateThroughputMap()
 	const double refAnglePolarizationRadians = deg2rad(refAnglePolarization);		// Reference angle for the polarisation efficiency [radians]
 	const double cosPolarizationEfficiency = cos(polarizationEfficiency);
 
-	// Loop over all pixels in the pixel map
+	const double refAngleQuantumEfficiencyRadians = deg2rad(refAngleQuantumEfficiency);		// Reference angle for the quantum efficiency [radians]
+	const double cosQuantumEfficiency = cos(quantumEfficiency);
 
-	for (unsigned int row = 0; row < numRowsPixelMap; row++) {
-		for (unsigned int column = 0; column < numColumnsPixelMap; column++) {
-			// Pixel coordinates (in the detector) -> focal-plane coordinates
+	if (includeVignetting || includePolarization || includeQuantumEfficiency)
+	{
+		// Loop over all pixels in the pixel map
 
-			tie(xFPmm, yFPmm) = pixelToFocalPlaneCoordinates(row, column);
+		for (unsigned int row = 0; row < numRowsPixelMap; row++)
+		{
 
-			// Angular distance [radians] of the pixel from the optical axis
+			for (unsigned int column = 0; column < numColumnsPixelMap;
+					column++)
+			{
 
-			angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm,
-					yFPmm);
+				// Pixel coordinates (in the detector) -> focal-plane coordinates
 
-			// Vignetting
+				tie(xFPmm, yFPmm) = pixelToFocalPlaneCoordinates(row, column);
 
-			if (includeVignetting) {
-				throughputMap(row, column) *= pow(cos(angle), 2);
-			}
+				// Angular distance [radians] of the pixel from the optical axis
 
-			// Polarisation
+				angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm,
+						yFPmm);
 
-			if (includePolarization) {
-				throughputMap(row, column) *= cos(
-						angle / refAnglePolarizationRadians
-								* cosPolarizationEfficiency);// Eq. 4-11 in PLATO-DLR-PL-RP-001
+				// Vignetting
+
+				if (includeVignetting)
+					throughputMap(row, column) *= pow(cos(angle), 2);
+
+				// Polarisation
+
+				if (includePolarization)
+					throughputMap(row, column) *= cos(
+							angle / refAnglePolarizationRadians
+									* cosPolarizationEfficiency);// Eq. 4-11 in PLATO-DLR-PL-RP-001
+
+				// Quantum efficiency
+				// Pixel units before: [photons]
+				// Pixel units after: [electrons]
+
+				if (includeQuantumEfficiency)
+					throughputMap(row, column) *= cos(
+							angle / refAngleQuantumEfficiencyRadians
+									* cosQuantumEfficiency);// Eq. 4-12 in PLATO-DLR-PL-RP-001
 			}
 		}
 	}
@@ -356,14 +381,14 @@ void Detector::generateThroughputMap()
 
 	if(includeParticulateContamination)
 	{
-		throughputMap *= particulatePolarizationEfficiency;	// Sect. 4.2.4.3 in PLATO-DLR-PL-RP-001
+		throughputMap *= particulateContaminationEfficiency;	// Sect. 4.2.4.3 in PLATO-DLR-PL-RP-001
 	}
 
 	// Molecular contamination
 
 	if(includeMolecularContamination)
 	{
-		throughputMap *= molecularPolarizationEfficiency;	// Sect. 4.2.4.4 in PLATO-DLR-PL-RP-001
+		throughputMap *= molecularContaminationEfficiency;	// Sect. 4.2.4.4 in PLATO-DLR-PL-RP-001
 	}
 
 	// Write the result to HDF5
@@ -803,7 +828,6 @@ void Detector::applyThroughputEfficiency()
 
 /**
  * \brief: Reads out the detector and apply the following effects:
- *   		- quantum efficiency
  * 	 		- photon noise
  *   		- full-well saturation (i.e. blooming)
  * 	 		- CTE
@@ -822,11 +846,6 @@ void Detector::applyThroughputEfficiency()
  */
 void Detector::readOut(float exposureTime)
 {
-	// Apply quantum efficiency
-	// Pixel units before: [photons]
-	// Pixel units after: [electrons]
-
-	applyQuantumEfficiency();
 
 	// Apply poisson distributed photon noise
 	// Pixel units before: [electrons]
@@ -943,31 +962,6 @@ void Detector::readOut(float exposureTime)
     {
         Log.debug("Detector: no digital saturation applied.");
     }
-}
-
-
-
-
-
-
-
-
-
-/**
- * \brief: Apply quantum efficiency to the pixel.  The pixel values
- *         are multiplied by the quantum efficiency of the detector.
- *
- * \pre Pixel unit in the pixel map: [photons].
- * \pre Bias and smearing maps filled with zeroes.
- *
- * \pre Pixel unit in the pixel map: [electrons].
- * \post Bias and smearing maps filled with zeroes.
- */
-void Detector::applyQuantumEfficiency()
-{
-  	Log.debug("Detector: applying quantum efficiency to pixelMap (quantumEfficiency=" + to_string(quantumEfficiency) + ").");
-
-   	pixelMap *= quantumEfficiency;
 }
 
 
@@ -1420,7 +1414,26 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
 
 	arma::Row<float> openShutterSmearing = arma::sum(pixelMap, 0);
 
-	float openShutterSmearingOutsideSubField = camera.getTotalSkyBackground() * quantumEfficiency * (numRows - numRowsPixelMap + numRowsBiasMap + numRowsSmearingMap);
+	float openShutterSmearingOutsideSubField = camera.getTotalSkyBackground() * (numRows - numRowsPixelMap + numRowsBiasMap + numRowsSmearingMap);
+
+	// Apply all throughput efficiencies
+
+	if(includeVignetting)
+		openShutterSmearingOutsideSubField *= expectedValueVignetting;
+
+	if(includePolarization)
+		openShutterSmearingOutsideSubField *= expectedValuePolarization;
+
+	if(includeParticulateContamination)
+		openShutterSmearingOutsideSubField *= particulateContaminationEfficiency;
+
+	if(includeMolecularContamination)
+		openShutterSmearingOutsideSubField *= molecularContaminationEfficiency;
+
+	if(includeQuantumEfficiency)
+		openShutterSmearingOutsideSubField *= expectedValueQuantumEfficiency;
+
+
 	openShutterSmearing += openShutterSmearingOutsideSubField;
 
 	float factor = (readoutTime / exposureTime) / numRows;

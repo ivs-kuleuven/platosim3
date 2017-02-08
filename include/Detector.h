@@ -67,7 +67,6 @@ protected:
 	virtual void applyThroughputEfficiency();
 
 	virtual void readOut(float exposureTime);
-	virtual void applyQuantumEfficiency();
 	virtual void addPhotonNoise();
 	virtual void applyFullWellSaturation();
 	virtual void applyCTI();
@@ -119,12 +118,15 @@ protected:
 
 	double flatfieldNoiseAmplitude;          // Peak-to-peak noise amplitude
 
-	double polarizationEfficiency;			// Efficiency due to polarisation at the reference angle
+	double polarizationEfficiency;			// Efficiency due to polarisation at the reference angle (in [0,1])
+	double expectedValueVignetting;          // Expected value of the throughput efficiency due to vignetting (int [0,1])
 	double refAnglePolarization;				// Reference angle for the polarisation [degrees]
 	double expectedValuePolarization;		// Expected value of the throughput efficiency due to polarisation
-	double particulatePolarizationEfficiency;	// Efficiency of particulate efficiency (in [0,1])
-	double molecularPolarizationEfficiency;		// Efficiency of molecular efficiency (in [0,1])
-	double quantumEfficiency;	            // Quantum efficiency (in [0,1])
+	double particulateContaminationEfficiency;	// Efficiency of particulate contamination (in [0,1])
+	double molecularContaminationEfficiency;		// Efficiency of molecular contamination (in [0,1])
+	double quantumEfficiency;	            // Quantum efficiency at the reference angle (in [0,1])
+	double refAngleQuantumEfficiency;        // Reference angle for quantum efficiency [degrees]
+	double expectedValueQuantumEfficiency;   // Expected value of the throughput efficiency due to quantum efficiency
 	double readoutTime;                      // Readout time [s]
 	double readoutNoise;                     // Mean readout noise [electrons]
 	double gain;                             // Detector gain [electrons / ADU]
@@ -146,6 +148,7 @@ protected:
 	bool includeReadoutNoise;                // Include readout noise [yes or no]
 	bool includeCTIeffects;                  // Include CTI effects [yes or no]
 	bool includeOpenShutterSmearing; 		// Include trails due reading out with an open shutter
+	bool includeQuantumEfficiency;           // Include loss of throughput due to quantum efficiency
 	bool includeVignetting;  				// Include brightness attenuation due to vignetting
 	bool includePolarization;				// Include loss of throughput due to polarisation
 	bool includeParticulateContamination;	// Include loss of throughput due to particulate contamination
