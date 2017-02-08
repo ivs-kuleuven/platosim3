@@ -499,7 +499,10 @@ CCD:
     NumRows:                     4510      
     PixelSize:                   18        
     Gain:                        16             
-    QuantumEfficiency:           0.8745         
+    QuantumEfficiency:           
+    		Efficiency:          0.925
+    		RefAngle:            45.0
+		ExpectedValue:       0.993         
     FullWellSaturation:          1000000        
     DigitalSaturation:           65535          
     ReadoutNoise:                28             
@@ -582,10 +585,23 @@ CCD gain, expressed in e<sup>-</sup> / ADU and assumed to be constant throughout
 
 
 
-#### <a name="quantumEfficiency"></a>QuantumEfficiency
+#### <a name="quantumEfficiency"></a>QuantumEfficiency: Efficiency
 <i>Allowed values:</i> ∈ [0,1]
 
-Quantum efficiency of the detector, considering the passband and the spectral energy distribution of the stars given the [Fluxm0](#fluxm0) parameter and the magnitude of the stars in the [star catalogue](#starCatalogue). This is the ratio of the number of collected electrons to the number of incident photons.
+Throughput efficiency due to the quantum efficiency at the given reference angle, considering the passband and the spectral energy distribution of the stars given the [Fluxm0](#fluxm0) parameter and the magnitude of the stars in the [star catalogue](#starCatalogue). This is the ratio of the number of collected electrons to the number of incident photons.
+
+
+
+#### <a name="quantumEfficiencyRefAngle"></a>QuantumEfficiency: RefAngle
+
+Reference angle for the throughput efficiency due to the quantum efficiency, expressed in degrees.
+
+
+
+#### <a name="quantumEfficiencyExpectedValue"></a>QuantumEfficiency: ExpectedValue
+<i>Allowed values:</i> ∈ [0,1]
+
+Expected value of the throughput efficiency due to quantum efficiency (i.e. the mean over all pixels of one detector).
 
 
 
