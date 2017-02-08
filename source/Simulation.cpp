@@ -384,7 +384,6 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addInteger("NumRows");
     addDouble("PixelSize");
     addInteger("Gain");
-    addDouble("QuantumEfficiency");
     addLong("FullWellSaturation");
     addInteger("DigitalSaturation");
     addInteger("ReadoutNoise");
@@ -397,11 +396,36 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("IncludeCTIeffects"); 
     addBoolean("IncludeOpenShutterSmearing");
     addBoolean("IncludeVignetting");
+    addBoolean("IncludePolarization");
+    addBoolean("IncludeParticulateContamination");
+    addBoolean("IncludeMolecularContamination");
+    addBoolean("IncludeQuantumEfficiency");
     addBoolean("IncludeConvolution");
     addBoolean("IncludeFullWellSaturation");
     addBoolean("IncludeDigitalSaturation");
     addBoolean("WriteSubPixelImagesToHDF5");
     
+    subGroup = "CCD/Vignetting";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("ExpectedValue");
+
+    subGroup = "CCD/QuantumEfficiency";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("Efficiency");
+    addDouble("RefAngle");
+    addDouble("ExpectedValue");
+
+    subGroup = "CCD/Polarization";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("Efficiency");
+    addDouble("RefAngle");
+    addDouble("ExpectedValue");
+
+    subGroup = "CCD/Contamination";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("ParticulateContaminationEfficiency");
+    addDouble("MolecularContaminationEfficiency");
+
     subGroup = "CCD/CTI";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addString("Model");
