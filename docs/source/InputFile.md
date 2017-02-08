@@ -502,11 +502,11 @@ CCD:
     QuantumEfficiency:           
     		Efficiency:          0.925
     		RefAngle:            45.0
-		ExpectedValue:       0.993    
+    		ExpectedValue:       0.993    
     Polarization:           
     		Efficiency:          0.978
     		RefAngle:            18.8875
-		ExpectedValue:       0.989      
+    		ExpectedValue:       0.989      
     Vignetting:
     		ExpectedValue:       0.945 
     Contamination:
@@ -528,20 +528,20 @@ CCD:
     	          NumTrapSpecies:[9.8, 3.31, 1.56, 13.24]
     	          TrapDensity:   [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]
     	          ReleaseTime:   [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]
-    IncludeFlatfield:            no             
-    IncludePhotonNoise:          yes            
-    IncludeReadoutNoise:         yes            
-    IncludeCTIeffects:           yes            
-    IncludeOpenShutterSmearing:  yes            
-    IncludeVignetting:           yes   
-    IncludePolarization:         yes
+    IncludeFlatfield:                 no             
+    IncludePhotonNoise:               yes            
+    IncludeReadoutNoise:              yes            
+    IncludeCTIeffects:                yes            
+    IncludeOpenShutterSmearing:       yes            
+    IncludeVignetting:                yes   
+    IncludePolarization:              yes
     IncludeParticulateContamination:  yes
     IncludeMolecularContamination:    yes
-    IncludeQuantumEfficiency:    yes
-    IncludeConvolution:          yes            
-    IncludeFullWellSaturation:   yes            
-    IncludeDigitalSaturation:    yes            
-    WriteSubPixelImagesToHDF5:   no              
+    IncludeQuantumEfficiency:         yes
+    IncludeConvolution:               yes            
+    IncludeFullWellSaturation:        yes            
+    IncludeDigitalSaturation:         yes            
+    WriteSubPixelImagesToHDF5:        no              
 \endcode
 
 
@@ -606,6 +606,7 @@ Throughput efficiency due to the quantum efficiency at the given reference angle
 
 
 #### <a name="quantumEfficiencyRefAngle"></a>QuantumEfficiency: RefAngle
+<i>Allowed values:</i> Any
 
 Reference angle for the throughput efficiency due to the quantum efficiency, expressed in degrees.
 
@@ -626,6 +627,7 @@ Throughput efficiency due to the polarisation at the given reference angle.
 
 
 #### <a name="PolarizationRefAngle"></a>Polarization: RefAngle
+<i>Allowed values:</i> Any
 
 Reference angle for the throughput efficiency due to the polarisation, expressed in degrees.
 
