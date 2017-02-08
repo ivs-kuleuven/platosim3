@@ -149,7 +149,8 @@ Detector::~Detector()
     }
 
     polarizationEfficiency = configParam.getDouble("CCD/Polarization/Efficiency");
-    polarizationRefAngle = configParam.getDouble("CCD/Polarization/RefAngle");
+    refAnglePolarization = configParam.getDouble("CCD/Polarization/RefAngle");
+    expectedValuePolarization = configParam.getDouble("CCD/Polarization/ExpectedValue");
 
 
 
@@ -319,7 +320,7 @@ void Detector::generateThroughputMap()
 	double xFPmm, yFPmm;
 	double angle;
 
-	const double refAnglePolarization = deg2rad(polarizationRefAngle);		// Reference angle for the polarisation efficiency [radians]
+	const double refAnglePolarizationRadians = deg2rad(refAnglePolarization);		// Reference angle for the polarisation efficiency [radians]
 	const double cosPolarizationEfficiency = cos(polarizationEfficiency);
 
 	// Loop over all pixels in the pixel map
@@ -345,7 +346,7 @@ void Detector::generateThroughputMap()
 
 			if (includePolarization) {
 				throughputMap(row, column) *= cos(
-						angle / refAnglePolarization
+						angle / refAnglePolarizationRadians
 								* cosPolarizationEfficiency);// Eq. 4-11 in PLATO-DLR-PL-RP-001
 			}
 		}

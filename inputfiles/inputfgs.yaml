@@ -91,7 +91,7 @@ CCD:
         Efficiency:                  0.978           # Throughput efficiency caused by polarisation at the reference angle
         RefAngle:                   18.8875          # Reference angle for polarisation [degrees]
     Contamination:
-        ParticulateContaminationEffiency:   0.98      # Throughput efficiency due to particulate contamination
+        ParticulateContaminationEfficiency:   0.98      # Throughput efficiency due to particulate contamination
         MolecularContaminationEfficiency:   0.9566    # Throughput efficiency due to molecular contamination
     CTI:
         Model:                       Short2013       # The method used to generate the CTI, either "Simple" or "Short2013"

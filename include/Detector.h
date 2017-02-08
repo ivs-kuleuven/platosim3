@@ -120,7 +120,8 @@ protected:
 	double flatfieldNoiseAmplitude;          // Peak-to-peak noise amplitude
 
 	double polarizationEfficiency;			// Efficiency due to polarisation at the reference angle
-	double polarizationRefAngle;				// Reference angle for the polarisation [degrees]
+	double refAnglePolarization;				// Reference angle for the polarisation [degrees]
+	double expectedValuePolarization;		// Expected value of the throughput efficiency due to polarisation
 	double particulatePolarizationEfficiency;	// Efficiency of particulate efficiency (in [0,1])
 	double molecularPolarizationEfficiency;		// Efficiency of molecular efficiency (in [0,1])
 	double quantumEfficiency;	            // Quantum efficiency (in [0,1])
