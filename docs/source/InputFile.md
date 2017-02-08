@@ -502,7 +502,11 @@ CCD:
     QuantumEfficiency:           
     		Efficiency:          0.925
     		RefAngle:            45.0
-		ExpectedValue:       0.993         
+		ExpectedValue:       0.993    
+    Polarization:           
+    		Efficiency:          0.978
+    		RefAngle:            18.8875
+		ExpectedValue:       0.989       
     FullWellSaturation:          1000000        
     DigitalSaturation:           65535          
     ReadoutNoise:                28             
@@ -602,6 +606,26 @@ Reference angle for the throughput efficiency due to the quantum efficiency, exp
 <i>Allowed values:</i> ∈ [0,1]
 
 Expected value of the throughput efficiency due to quantum efficiency (i.e. the mean over all pixels of one detector).
+
+
+
+#### <a name="polarizationEfficiency"></a>Polarization: Efficiency
+<i>Allowed values:</i> ∈ [0,1]
+
+Throughput efficiency due to the polarisation at the given reference angle.
+
+
+
+#### <a name="PolarizationRefAngle"></a>Polarization: RefAngle
+
+Reference angle for the throughput efficiency due to the polarisation, expressed in degrees.
+
+
+
+#### <a name="polarizationExpectedValue"></a>Polarization: ExpectedValue
+<i>Allowed values:</i> ∈ [0,1]
+
+Expected value of the throughput efficiency due to polarisation (i.e. the mean over all pixels of one detector).
 
 
 
