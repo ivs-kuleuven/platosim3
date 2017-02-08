@@ -506,7 +506,12 @@ CCD:
     Polarization:           
     		Efficiency:          0.978
     		RefAngle:            18.8875
-		ExpectedValue:       0.989       
+		ExpectedValue:       0.989      
+    Vignetting:
+    		ExpectedValue:       0.945 
+    Contamination:
+    		ParticulateContaminationEfficiency:  0.98
+    		MolecularContaminationEfficiency:    0.0566
     FullWellSaturation:          1000000        
     DigitalSaturation:           65535          
     ReadoutNoise:                28             
@@ -626,6 +631,30 @@ Reference angle for the throughput efficiency due to the polarisation, expressed
 <i>Allowed values:</i> ∈ [0,1]
 
 Expected value of the throughput efficiency due to polarisation (i.e. the mean over all pixels of one detector).
+
+
+
+
+#### <a name="vignettingExpectedValue"></a>Vignetting: ExpectedValue
+<i>Allowed values:</i> ∈ [0,1]
+
+Expected value of the throughput efficiency due to vignetting (i.e. the mean over all pixels of one detector).
+
+
+
+
+#### <a name="particulateContamination"></a>Contamination: ParticulateContaminationEfficiency
+<i>Allowed values:</i> ∈ [0,1]
+
+Throughput efficiency due to particulate contamination.
+
+
+
+#### <a name="molecularContamination"></a>Contamination: MolecularContaminationEfficiency
+<i>Allowed values:</i> ∈ [0,1]
+
+Throughput efficiency due to molecular contamination.
+
 
 
 
