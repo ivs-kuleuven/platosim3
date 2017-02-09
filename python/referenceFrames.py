@@ -28,15 +28,20 @@ from matplotlib.path import Path
 
 CCD = \
 {
-    'A'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.0,   'zeroPointYmm': +82.162, 'angle': pi},
-    'B'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm': +82.162, 'zeroPointYmm':  +1.0,   'angle': pi/2},
-    'C'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm': -82.162, 'zeroPointYmm':  -1.0,   'angle': 3*pi/2},
-    'D'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  +1.0,   'zeroPointYmm': -82.162, 'angle': 0},
-    'AF' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.0,   'zeroPointYmm': +82.162, 'angle': pi},
-    'BF' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm': +82.162, 'zeroPointYmm':  +1.0,   'angle': pi/2},
-    'CF' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm': -82.162, 'zeroPointYmm':  -1.0,   'angle': 3*pi/2},
-    'DF' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  +1.0,   'zeroPointYmm': -82.162, 'angle': 0}
+    'A'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': pi},
+    'B'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': 3*pi/2},
+    'C'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': pi/2},
+    'D'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': 0},
+    'AF' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': pi},
+    'BF' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': 3*pi/2},
+    'CF' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': pi/2},
+    'DF' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': 0}
 }
+
+
+
+
+
 
 # FIELD DISTORTION
 # 
@@ -57,110 +62,224 @@ FIELD_DISTORTION = {'Coeff' : [1.0, 0.0, 0.0, 0.0], 'InverseCoeff' : [-1.0, 0.0,
 
 
 
-def skyToFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength):
+def sunSkyCoordinates(julianDate):
 
     """
-    PURPOSE: Convert the equatorial sky coordinates (alpha, delta) of a star to focal plane coordinates (xFPprim, yFPprime),
+    PURPOSE: Compute the equatorial sky coordinates of the Sun at the given time.
+
+    INPUT: julianDate: Julian date (floating point). The distinction between JD and BJD is neglected.
+                       E.g. 2455000.5
+
+    OUTPUT: (RA, Dec): equatorial sky coordinates of the Sun at the given time [rad]
+
+    REMARK: Source: "Computing the solar vector", Blanco-Muriel et al., (2001), Solar Energy, Vol 70, pp 431-441
+    """
+
+    # Compute the (fractional) number of days since 1 Jan 2000 at 12:00 noon.
+
+    elapsedJulianDays = julianDate - 2451545.0
+
+    # In the following we assume that the solar ecliptic latitude is always exactly 0.0.
+
+    Omega = 2.1429 - 0.0010394594 * elapsedJulianDays
+    meanLongitude = 4.8950630 + 0.017202791698 * elapsedJulianDays
+    meanAnomaly = 6.2400600 + 0.0172019699 * elapsedJulianDays
+
+    eclipticLongitude = meanLongitude + 0.03341607 * sin(meanAnomaly) + 0.00034894 * sin(2*meanAnomaly) - 0.0001134 - 0.0000203 * sin(Omega)
+    eclipticObliquity = 0.4090928 - 6.2140e-9 * elapsedJulianDays + 0.00003963 * cos(Omega)
+
+    # Compute the RA, DEC of the Sun. Ensure that the RA is positive.
+
+    rightAscensionSun = np.arctan2(cos(eclipticObliquity) * sin(eclipticLongitude), cos(eclipticLongitude))
+    declinationSun = np.arcsin(sin(eclipticObliquity) * sin(eclipticLongitude))
+
+    if rightAscensionSun < 0.0:
+        rightAscensionSun += 2.0 * np.pi
+
+    # That's it
+
+    return rightAscensionSun, declinationSun
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def skyToFocalPlaneCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPlatform, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength):
+
+    """
+    PURPOSE: Convert the equatorial sky coordinates (alpha, delta) of a star to undistorted normalized focal plane coordinates (xFP, yFP),
              assuming a spherical pinhole camera.
 
-    INPUT: raStar:           right ascension of the star [rad]
-           decStar:          declination of the star [rad]
-           raOpticalAxis:    right ascension of the optical axis [rad]
-           decOpticalAxis:   declination of the optical axis [rad]
-           focalPlaneAngle:  angle between the Y_FP axis and the Y'_FP axis: gamma_FP  [rad]
-           focalLength:      focal length of the camera. Unit: see remarks.
+    INPUT: raStar:          right ascension of the star                               [rad]
+           decStar:         declination of the star                                   [rad]
+           raSun:           right ascension of the sun                                [rad]
+           decSun:          declination of the sun                                    [rad]
+           raPlatform:      right ascension of the optical axis                       [rad]
+           decPlatform:     declination of the optical axis                           [rad]
+           tiltAngle:       tilt angle of the telescope w.r.t. platform z-axis        [rad]                   
+           azimuthAngle:    azimuth angle of the telescope on the platform            [rad]
+           focalPlaneAngle: angle between the Y_TL axis and the Y_FP axis: gamma_FP   [rad]
+           focalLength:     focal length of the camera. Unit: see remarks.
 
-    OUTPUT: xFPprime, yFPprime: cartesian coordinates of the project star in the focal plane in the FP-prime reference frame. 
-                                Unit: see remarks:
+    OUTPUT: xFP, yFP: normalized cartesian coordinates of the project star in the focal plane in the FP reference frame. 
+                      Unit: see remarks:
     
     REMARK: - The unit of the cartesian focal plane coordinates is the same as the one of focalLength. 
               focalLength can be expressed in e.g. [mm] or in [pixels]. If focalLength == 1.0, then the corresponding
               focal plane coordinates are called "normalized coordinates."
-    """
-
-    # Convert the equatorial sky coordinate of the star to equatorial cartesian coordinates on the unit sphere
-
-    xEQ = sin(pi/2.-decStar) * cos(raStar)
-    yEQ = sin(pi/2.-decStar) * sin(raStar)
-    zEQ = cos(pi/2.-decStar)
-
-    vecEQ = array([xEQ, yEQ, zEQ])
-
-    # Convert the equatorial cartesian coordinates to focal plane cartesian coordinates.
-
-    rotMatrix1 = array([[ cos(raOpticalAxis), sin(raOpticalAxis), 0],      \
-                        [-sin(raOpticalAxis), cos(raOpticalAxis), 0],      \
-                        [                  0,                  0, 1]])
-
-    rotMatrix2 = array([[sin(decOpticalAxis),  0, -cos(decOpticalAxis)],   \
-                        [                  0,  1,                    0],   \
-                        [cos(decOpticalAxis),  0,  sin(decOpticalAxis)]])
-
-    vecFP = dot(rotMatrix2, dot(rotMatrix1, vecEQ))
-
-    # Take into account the projection effect of the pinhole camera
-    # Note that the pinhole reverses the image, hence the minus signs.
-
-    xFP = -focalLength * vecFP[0]/vecFP[2]
-    yFP = -focalLength * vecFP[1]/vecFP[2]
-
-    # Convert the FP coordinates into FP' coordinates 
-
-    xFPprime =  xFP * cos(focalPlaneAngle) + yFP * sin(focalPlaneAngle)
-    yFPprime = -xFP * sin(focalPlaneAngle) + yFP * cos(focalPlaneAngle)
-
-    # That's it!
-
-    return xFPprime, yFPprime
-
-
-
-
-
-
-
-
-
-
-def focalPlaneToSkyCoordinates(xFPprime, yFPprime, raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength):
+            - Reference documents: PLATO-KUL-PL-TN-0001 and PLATO-DLR-PL-TN-016
 
     """
-    PURPOSE: Convert the focal plane coordinates (xFPprim, yFPprime) of a star to equatorial sky coordinates (alpha, delta),
+
+    # Compute the equatorial cartesian coordinates of the unit vector along the z-axis (= roll = pointing axis) of the platform.
+    # The x-axis of the platform points to the highest point fof the sunshield, which is pointing to the (average) sky position
+    # of the Sun.
+
+    zSC = np.array([cos(decPlatform)*cos(raPlatform), cos(decPlatform)*sin(raPlatform), sin(decPlatform)])
+    deltax = np.arctan(- cos(raPlatform-raSun) / tan(decPlatform))
+    xSC = np.array([cos(deltax)*cos(raSun), cos(deltax)*sin(raSun), sin(deltax)])
+    ySC = np.cross(zSC, xSC)
+
+    # Compute the rotation matrix to convert cartesian coordinates in the equatorial reference frame to 
+    # cartesian coordinates in the spacecraft framework.
+
+    rotEQ2SC   = np.array([[xSC[0], xSC[1], xSC[2]], \
+                           [ySC[0], ySC[1], ySC[2]], \
+                           [zSC[0], zSC[1], zSC[2]]])
+
+    
+    # Compute the rotation matrix to convert cartesian coordinates in the spacecraft reference frame to 
+    # cartesian coordinates in the telescope reference frame
+
+    rotAzimuth = np.array([[cos(azimuthAngle), -sin(azimuthAngle), 0],   \
+                           [sin(azimuthAngle),  cos(azimuthAngle), 0],   \
+                           [        0        ,          0,         1]])
+
+    rotTilt = np.array([[cos(tiltAngle), 0, -sin(tiltAngle)], \
+                        [     0        , 1,        0       ], \
+                        [sin(tiltAngle), 0,  cos(tiltAngle)]])
+
+    rotSC2TL = np.dot(rotTilt, rotAzimuth)
+
+    # Compute the rotation matrix to convert cartesian coordinates in the telescope reference frame to
+    # cartesian coordinates in the focal plane reference frame
+
+    rotTL2FP = np.array([[ cos(focalPlaneAngle), sin(focalPlaneAngle), 0],  \
+                         [-sin(focalPlaneAngle), cos(focalPlaneAngle), 0],  \
+                         [          0          ,           0         , 1]])
+
+    # Combine all the rotation matrices
+
+    rotEQ2FP = np.dot(rotTL2FP, np.dot(rotSC2TL, rotEQ2SC))
+
+    # Compute the cartesian coordinates of the star in the equatorial reference frame
+
+    starEQ = np.array([cos(decStar)*cos(raStar), cos(decStar)*sin(raStar), sin(decStar)])
+
+    # Transform these coordinates to the corresponding ones in the focal plane reference frame:
+
+    starFP = np.dot(rotEQ2FP, starEQ)
+
+    # Convert the units to the one of focalLength (usually [mm]), and normalize the coordinates 
+    # to take into account the pinhole camera projection.
+
+    xFPmm = - focalLength * starFP[0]/starFP[2]
+    yFPmm = - focalLength * starFP[1]/starFP[2]
+
+    # That's it
+
+    return xFPmm, yFPmm
+    
+
+
+
+
+
+
+
+
+
+
+
+def focalPlaneToSkyCoordinates(xFP, yFP, raSun, decSun, raPlatform, decPlatform, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength):
+
+    """
+    PURPOSE: Convert the undistorted normalized focal plane coordinates (xFP, yFP) of a star to equatorial sky coordinates (alpha, delta),
              assuming a spherical pinhole camera.
 
-    INPUT: xFPprime:         Cartesian x-coordinate in the focal plane in the FP-prime reference frame [same unit as focalLength]
-           yFPprime:         Cartesian y-coordinate in the focal plane in the FP-prime reference frame [same unit as focalLength]
-           raOpticalAxis:    Right ascension of the optical axis [rad]
-           decOpticalAxis:   Declination of the optical axis [rad]
-           focalPlaneAngle:  Angle between the Y_FP axis and the Y'_FP axis: gamma_FP  [rad]
-           focalLength:      focal length of the camera. Unit: [mm] or [pix] or [1.] or ...
+    INPUT: xFP:             undistorted normalized cartesian x-coordinate in the focal plane reference frame [same unit as focalLength]
+           yFP:             undistorted normalized cartesian y-coordinate in the focal plane reference frame [same unit as focalLength]
+           raSun:           right ascension of the sun                                [rad]
+           decSun:          declination of the sun                                    [rad]
+           raPlatform:      right ascension of the platform pointing axis             [rad]
+           decPlatform:     declination of the platform pointing axis                 [rad]
+           tiltAngle:       tilt angle of the telescope w.r.t. platform z-axis        [rad]                   
+           azimuthAngle:    azimuth angle of the telescope on the platform            [rad]
+           focalPlaneAngle: angle between the Y_TL axis and the Y_FP axis: gamma_FP   [rad]
+           focalLength:     focal length of the camera.                               [mm]
 
     OUTPUT: raStar, decStar: Equatorial sky coordinates, right ascension and declination, of the star [rad]
 
     REMARK: The transformation assumes that the pinhole reverses the image.
     """
 
-    # Convert the FP' coordinates in FP coordinates
-
-    xFP =  xFPprime * cos(focalPlaneAngle) - yFPprime * sin(focalPlaneAngle)
-    yFP =  xFPprime * sin(focalPlaneAngle) + yFPprime * cos(focalPlaneAngle)
-
     # Undo the reverse-image projection effect of the pinhole
 
     vecFP = array([-xFP/focalLength, -yFP/focalLength, 1.0])
 
-    # Convert the focal plane cartesian coordinates to equatorial cartesian coordinates. 
+    # Compute the rotation matrix to convert cartesian coordinates in the focal plane reference frame to
+    # cartesian coordinates in the telescope reference frame
 
-    rotMatrix1 = array([[ sin(decOpticalAxis),  0, cos(decOpticalAxis)],    \
-                        [                  0,   1,                    0],   \
-                        [-cos(decOpticalAxis),  0, sin(decOpticalAxis)]])
+    rotFP2TL = np.array([[cos(focalPlaneAngle), -sin(focalPlaneAngle), 0],  \
+                         [sin(focalPlaneAngle),  cos(focalPlaneAngle), 0],  \
+                         [          0          ,           0         , 1]])
 
-    rotMatrix2 = array([[cos(raOpticalAxis), -sin(raOpticalAxis), 0],   \
-                        [sin(raOpticalAxis),  cos(raOpticalAxis), 0],   \
-                        [                  0,                  0, 1]])
+    # Compute the rotation matrix to convert cartesian coordinates in the telescope reference frame to 
+    # cartesian coordinates in the spacecraft reference frame
 
-    vecEQ = dot(rotMatrix2, dot(rotMatrix1, vecFP))
+    rotAzimuth = np.array([[ cos(azimuthAngle), sin(azimuthAngle), 0],   \
+                           [-sin(azimuthAngle), cos(azimuthAngle), 0],   \
+                           [        0        ,          0,         1]])
 
+    rotTilt = np.array([[ cos(tiltAngle), 0, sin(tiltAngle)], \
+                        [     0        , 1,        0       ], \
+                        [-sin(tiltAngle), 0, cos(tiltAngle)]])
+
+    rotTL2SC = np.dot(rotAzimuth, rotTilt)
+
+
+    # Compute the equatorial cartesian coordinates of the unit vector along the z-axis (= roll = pointing axis) of the platform.
+    # The x-axis of the platform points to the highest point fof the sunshield, which is pointing to the (average) sky position
+    # of the Sun.
+
+    zSC = np.array([cos(decPlatform)*cos(raPlatform), cos(decPlatform)*sin(raPlatform), sin(decPlatform)])
+    deltax = np.arctan(- cos(raPlatform-raSun) / tan(decPlatform))
+    xSC = np.array([cos(deltax)*cos(raSun), cos(deltax)*sin(raSun), sin(deltax)])
+    ySC = np.cross(zSC, xSC)
+
+    # Compute the rotation matrix to convert cartesian coordinates in the equatorial reference frame to 
+    # cartesian coordinates in the spacecraft reference frame
+
+    rotSC2EQ   = np.array([[xSC[0], ySC[0], zSC[0]], \
+                           [xSC[1], ySC[1], zSC[1]], \
+                           [xSC[2], ySC[2], zSC[2]]])
+    
+    # Combine all the rotation matrices
+
+    rotFP2EQ = np.dot(rotSC2EQ, np.dot(rotTL2SC, rotFP2TL))
+
+    # Transform the unnormalized focal plane coordinates to the corresponding ones in the equatorial reference frame
+
+    vecEQ = np.dot(rotFP2EQ, vecFP)
 
     # Convert the cartesian equatorial coordinates to equatorial sky coordinates
 
@@ -193,15 +312,19 @@ def focalPlaneToSkyCoordinates(xFPprime, yFPprime, raOpticalAxis, decOpticalAxis
 
 
 
+
+
 def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm):
-    """
-    PURPOSE:      Convert from undistorted to distorted focal plane coordinates
     
-    INPUTS:       xFPmm  undistorted focal plane x-coordinate [mm]
-                  yFPmm  undistorted focal plane y-coordinate [mm]
+    """
+    PURPOSE:      Convert from undistorted to distorted normalized focal plane coordinates
+    
+    INPUTS:       xFPmm  undistorted normalized focal plane x-coordinate [mm]
+                  yFPmm  undistorted normalized focal plane y-coordinate [mm]
     
     OUTPUTS:      (xFPdist, yFPdist) distorted x and y coordinates [mm]
     """
+
     P = Polynomial(FIELD_DISTORTION["Coeff"])
 
     angle = arctan2(yFPmm, xFPmm)    # [radians]
@@ -224,14 +347,16 @@ def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm):
 
 
 def distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist):
-    """
-    PURPOSE:     Convert from distorted to undistorted focal plane coordinates
     
-    INPUTS:      xFPdist  Distorted focal plane x-coordinate [mm]
-                 yFPdist  DIstorted focal plane y-coordinate [mm]
+    """
+    PURPOSE:     Convert from distorted to undistorted normalized focal plane coordinates
+    
+    INPUTS:      xFPdist  Distorted normalized focal plane x-coordinate [mm]
+                 yFPdist  DIstorted normalized focal plane y-coordinate [mm]
     
     OUTPUTS:     (xFPmm, yFPmm) distorted x and y coordinates [mm]
     """
+    
     IP = Polynomial(FIELD_DISTORTION["InverseCoeff"])
     
     angle = arctan2(yFPdist, xFPdist)  # [radians]
@@ -252,11 +377,13 @@ def distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist):
 
 
 
+
+
 def pixelToFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX, ccdZeroPointY, CCDangle):
 
     """
     PUROSE: Given the (real-valued) pixel coordinates of the star on the CCD, compute the (x,y)
-            coordinates in the FP' reference system (not the FP system!).
+            coordinates in the FP reference system.
 
     INPUT: xCCDpixel     : x-coordinate (column-number) of the star on the CCD  [pixel]
            yCCDpixel     : y-coordinate (row-number) of the star on the CCD  [pixel]
@@ -276,12 +403,12 @@ def pixelToFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX,
 
     # Convert the CCD coordinates into FP' coordinates [mm]
 
-    xFPprime = ccdZeroPointX + xCCDmm * cos(CCDangle) - yCCDmm * sin(CCDangle)
-    yFPprime = ccdZeroPointY + xCCDmm * sin(CCDangle) + yCCDmm * cos(CCDangle)
+    xFP = (xCCDmm - ccdZeroPointX) * cos(CCDangle) - (yCCDmm - ccdZeroPointY) * sin(CCDangle)
+    yFP = (xCCDmm - ccdZeroPointX) * sin(CCDangle) + (yCCDmm - ccdZeroPointY) * cos(CCDangle)
 
     # That's it
 
-    return xFPprime, yFPprime
+    return xFP, yFP
 
 
 
@@ -293,18 +420,19 @@ def pixelToFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX,
 
 
 
-def focalPlaneToPixelCoordinates(xFPprime, yFPprime, pixelSize, ccdZeroPointX, ccdZeroPointY, CCDangle):
+def focalPlaneToPixelCoordinates(xFP, yFP, pixelSize, ccdZeroPointX, ccdZeroPointY, CCDangle):
 
     """
     PUROSE: Compute the (real-valued) pixel coordinates of the star on the CCD, given the (x,y)
-            coordinates in the FP' reference system (not the FP system!).
+            coordinates in the FP reference system. The cartesian focal plane coordinates are
+            supposed to be normalized (i.e. with the pinhole projection taken into account).
 
-    INPUT: xFPprime      : x-coordinate of the star in the FP' reference system  [mm]
-           yFPprime      : y-coordinate of the star in the FP' reference system  [mm]
+    INPUT: xFP           : normalized x-coordinate of the star in the FP reference system  [mm]
+           yFP           : normalized y-coordinate of the star in the FP reference system  [mm]
            pixelSize     : size of 1 pixel [micron]  (not [mm]!)
-           ccdZeroPointX : x-coordinate of the CCD (0,0) point in the FP' reference system [mm]
-           ccdZeroPointY : y-coordinate of the CCD (0,0) point in the FP' reference system [mm]
-           CCDangle      : CCD orientation angle in the FP' reference frame  [rad]
+           ccdZeroPointX : x-coordinate of the CCD (0,0) point in the FP reference system [mm]
+           ccdZeroPointY : y-coordinate of the CCD (0,0) point in the FP reference system [mm]
+           CCDangle      : CCD orientation angle in the FP reference frame  [rad]
 
     OUTPUT: xCCDpixel: column pixel coordinate of the star (real-valued) 
             yCCDpixel: row pixel coordinate of the star (real-valued)
@@ -312,8 +440,8 @@ def focalPlaneToPixelCoordinates(xFPprime, yFPprime, pixelSize, ccdZeroPointX, c
 
     # Convert the FP' coordinates into CCD coordinates [mm]
 
-    xCCDmm =  (xFPprime-ccdZeroPointX) * cos(CCDangle) + (yFPprime-ccdZeroPointY) * sin(CCDangle)
-    yCCDmm = -(xFPprime-ccdZeroPointX) * sin(CCDangle) + (yFPprime-ccdZeroPointY) * cos(CCDangle)
+    xCCDmm = ccdZeroPointX + xFP * cos(CCDangle) + yFP * sin(CCDangle)
+    yCCDmm = ccdZeroPointY - xFP * sin(CCDangle) + yFP * cos(CCDangle)
 
     # Convert the [mm] coordinates into pixel coordinates
 
@@ -323,6 +451,8 @@ def focalPlaneToPixelCoordinates(xFPprime, yFPprime, pixelSize, ccdZeroPointX, c
     # That's it
 
     return xCCDpixel, yCCDpixel
+
+
 
 
 
@@ -373,342 +503,29 @@ def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
 
 
 
-def drawCCDsInSky(raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength, pixelSize, normal=True):
 
-    """
-    PURPOSE: Project and plot the 4 CCDs of 1 camera on the sky
 
-    INPUT: raOpticalAxis:   right ascension of the optical axis [rad]
-           decOpticalAxis:  declination of the optical axis [rad]
-           focalPlaneAngle: angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
-           focalLength:     [mm]
-           pixelSize:       [micrometer]
-           normal:         True for the normal camera configuration, False for the fast cameras
 
-    OUTPUT: None
 
-    TODO: Does not work yet for the fast cams
-    """
-
-    # Select the proper CCD codes depending on whether we're dealing with the nominal or the fast cams
-    
-    if normal == True:
-        ccdCodes = ['A', 'B', 'C', 'D']
-    else:
-        ccdCodes = ['AF', 'BF', 'CF', 'DF']
-
-
-    # Set up the colors to be used to draw each CCD. 
-    # Different CCDs have different colors.
-
-    color = {'A': 'b', 'AF': 'b', 'B': 'r', 'BF': 'r', 'C': 'g', 'CF': 'g', 'D': 'k', 'DF': 'k'}
-
-
-    # Plot each of the 4 CCDs
-
-    for ccdCode in ccdCodes:
-
-        # Get the focal plane FP' coordinates of the CCD corners  [mm]
-
-        cornersXmm, cornersYmm = computeCCDcornersInFocalPlane(ccdCode, pixelSize)
-
-        # Compute the equatorial sky coordinates [rad] from the the focal plane FP' coordinates [mm] of the corners
-
-        ra, dec = focalPlaneToSkyCoordinates(cornersXmm, cornersYmm, raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength)
-
-        # Repeat the coordinates of the 1st corner, to plot a nice closed loop
-        # Convert from radians to degrees
-
-        ra  = append(ra, ra[0]) * 180 / pi
-        dec = append(dec, dec[0]) * 180 / pi
-        
-        plt.plot(ra, dec, c=color[ccdCode])
-
-        # Overplot the row closest to the readout register with a thicker line
-
-        plt.plot([ra[0], ra[1]], [dec[0], dec[1]], c=color[ccdCode], linewidth=3)
-
-
-    plt.xlabel("RA [deg]")
-    plt.ylabel("Dec [deg]")
-    plt.draw()
-
-    # That's it
-
-    return
-
-
-
-
-
-
-
-
-
-
-
-def drawCCDsInFocalPlane(pixelSize, normal=True):
-
-    """
-    PURPOSE: Plot the 4 CCDs in the focal plane in the FP' reference frame.
-             May serve as a background to overplot the projected stars on the focal plane
-
-    INPUT: pixelSize: size of 1 pixel [micron]
-           normal: True for the normal camera configuration, False for the fast cameras
-
-    OUTPUT: None
-
-    """
-
-    # Select the proper CCD codes depending on whether we're dealing with the nominal or the fast cams
-    
-    if normal == True:
-        ccdCodes = ['A', 'B', 'C', 'D']
-    else:
-        ccdCodes = ['AF', 'BF', 'CF', 'DF']
-
-
-    # Set up the colors to be used to draw each CCD. 
-    # Different CCDs have different colors.
-
-    color = {'A': 'b', 'AF': 'b', 'B': 'r', 'BF': 'r', 'C': 'g', 'CF': 'g', 'D': 'k', 'DF': 'k'}
-
-
-    # Plot each of the 4 CCDs
-
-    for ccdCode in ccdCodes:
-
-        # Get the corner coordinates in the FP' plane
-
-        cornersXmm, cornersYmm = computeCCDcornersInFocalPlane(ccdCode, pixelSize)
-
-        # Repeat the coordinates of the 1st corner, to plot a nice closed loop
-
-        x = append(cornersXmm, cornersXmm[0])
-        y = append(cornersYmm, cornersYmm[0])
-        
-        plt.plot(x, y, c=color[ccdCode])
-
-        # Overplot the row closest to the readout register with a thicker line
-
-        plt.plot([x[0], x[1]], [y[0], y[1]], c=color[ccdCode], linewidth=3)
-
-
-    plt.xlabel("x_FP [mm]")
-    plt.ylabel("y_FP [mm]")
-    plt.draw()
-
-    # That's it
-
-    return
-
-
-
-
-
-
-
-
-
-
-
-
-def drawSubfieldInFocalPlane(ccdCode, xCCD, yCCD, subfieldSizeX, subfieldSizeY, pixelSize):
-
-    """
-    PURPOSE: Draw a subfield in the focal plane.
-    
-             
-    INPUT:   xCCD:          center x coordinate of the subfield [pixels]
-             yCCD:          center y coordinate of the subfield [pixels]
-             subfieldSizeX: size of the subfield along the x-axis [pixels]
-             subfieldSizeY: size of the subfield along the y-axis [pixels]
-             pixelSize:     the size of a pixel in microns
-    
-    OUTPUT:  Subfield frames draw on the current plot. The subfield is drawn with respect of the 
-             coordinate system of the CCD.
-    
-             A blue dot indicates the lower left corner of the subfield.
-             A green dot indicates the upper right corner of the subfield.
-             A red dot indicates the center of the subfield.
-    """
-
-    # Compute the position of the subfield in pixel coordinates, for the current CCD, 
-    # disregarding the physical extend of the CCD. LL = lower left, UR = upper right.
-
-    zeroPointXmm = CCD[ccdCode]["zeroPointXmm"]
-    zeroPointYmm = CCD[ccdCode]["zeroPointYmm"]
-    ccdAngle     = CCD[ccdCode]["angle"]
-
-    xFPprime, yFPprime = pixelToFocalPlaneCoordinates(xCCD, yCCD, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
-    xFPprimeLL, yFPprimeLL = pixelToFocalPlaneCoordinates(xCCD - subfieldSizeX/2, yCCD - subfieldSizeY/2, \
-                                                          pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
-    xFPprimeUR, yFPprimeUR = pixelToFocalPlaneCoordinates(xCCD + subfieldSizeX/2, yCCD + subfieldSizeY/2, \
-                                                          pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
-
-
-    verts = [
-        (xFPprimeLL, yFPprimeLL), # left, bottom
-        (xFPprimeLL, yFPprimeUR), # left, top
-        (xFPprimeUR, yFPprimeUR), # right, top
-        (xFPprimeUR, yFPprimeLL), # right, bottom
-        (xFPprimeLL, yFPprimeLL), # ignored
-    ]
-
-    codes = [
-        Path.MOVETO,
-        Path.LINETO,
-        Path.LINETO,
-        Path.LINETO,
-        Path.CLOSEPOLY,
-    ]
-
-    path = Path(verts, codes)
-
-    # Get the current axis
-
-    currentAxis = plt.gca()
-    currentAxis.add_patch( patches.PathPatch(path, facecolor='none') )
-
-    plt.plot(xFPprime, yFPprime, 'ro')
-    plt.plot(xFPprimeLL, yFPprimeLL, 'bo')
-    plt.plot(xFPprimeUR, yFPprimeUR, 'go')
-    plt.draw()
-
-
-    return
-
-
-
-
-
-
-
-
-
-
-def drawStarInFocalPlane(sim, raStar, decStar):
-
-    """
-    PURPOSE:  Draw a star given by the equatorial coordinates in the focal plane.
-
-    INPUT:    raStar:  right ascension of the star [rad]
-              decStar: declination of the star [rad]
-    
-    OUTPUT:   Draw a red dot where the star is located on the CCD
-
-    TODO: Update doc-string
-
-    """
-
-    normal = True  # FIXME: where can we specify that we use the fast or normal Camera
-
-    if (sim["Camera/IncludeFieldDistortion"] == "yes")  or (sim["Camera/IncludeFieldDistortion"] == "1"):
-        includeFieldDistortion = True
-        FIELD_DISTORTION["Coeff"] = sim["Camera/FieldDistortion/Coefficients"]
-        FIELD_DISTORTION["InverseCoeff"] = sim["Camera/FieldDistortion/InverseCoefficients"]
-    else:
-        includeFieldDistortion = False
-
-    pixelSize = float(sim["CCD/PixelSize"])
-    plateScale = float(sim["Camera/PlateScale"])
-    raOpticalAxis = np.radians(float(sim["ObservingParameters/RApointing"]))
-    decOpticalAxis = np.radians(float(sim["ObservingParameters/DecPointing"]))
-    focalPlaneAngle = np.radians(float(sim["Camera/FocalPlaneOrientation"]))
-    focalLength = float(sim["Camera/FocalLength"]) * 1000.0  # [m] -> [mm]
-    ccdZeroPointX = float(sim["CCD/OriginOffsetX"])
-    ccdZeroPointY = float(sim["CCD/OriginOffsetY"])
-    ccdAngle = np.radians(float(sim["CCD/Orientation"]))
-
-    xFPmm, yFPmm = skyToFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength)
-
-
-    if includeFieldDistortion:
-        xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm)
-
-    ccdCode, xCCD, yCCD = getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, 
-                                                    focalLength, plateScale, pixelSize, includeFieldDistortion, normal)
-
-    if ccdCode == None:
-        print ("Warning: DrawStarInFocalPlane(): The star doesn't fall on any of the CCDs.")
-    else:
-        drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize)
-
-    return
-
-
-
-
-
-
-
-
-
-
-
-
-
-def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize):
-
-    """
-    PURPOSE: Plot a pixel from a particular CCD in the focal plane. The actual position in millimeter
-             is shown as a red dot, while the pixel itself is drawn as a rectangle with edge pixelSize.
-
-    INPUTS:  ccdCode:   for nominal camera: either 'A', 'B', 'C', or 'D'
-                        for fast camer: either 'AF', 'BF', 'CF', 'DF'
-             xCCDpix:   x-coordinate (column number, zero-based) of the pixel on the CCD  [pix]
-             yCCDpix:   y-coordinate (row number, zero-based) of the pixel on the CCD  [pix]
-             pixelSize: the size of a pixel in micron
-
-    OUTPUTS: None
-    """
-
-    # Compute the position of the star in pixel coordinates, for the current CCD, 
-    # disregarding the physical extend of the CCD
-
-    zeroPointXmm = CCD[ccdCode]["zeroPointXmm"]
-    zeroPointYmm = CCD[ccdCode]["zeroPointYmm"]
-    ccdAngle     = CCD[ccdCode]["angle"]
-
-    xFPprime, yFPprime = pixelToFocalPlaneCoordinates(xCCD, yCCD, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)   # [mm]
-
-    # Get the current axis
-
-    currentAxis = plt.gca()
-    currentAxis.add_patch( patches.Rectangle( (xFPprime, yFPprime), pixelSize / 1000.0, pixelSize / 1000.0, fill=False) )
-
-    plt.plot(xFPprime, yFPprime, 'ro')
-    plt.draw()
-
-    return
-
-
-
-
-
-
-
-
-
-
-
-
-
-def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle,  \
-                              focalLength, plateScale, pixelSize, includeFieldDistortion=True, normal=True):
+def getCCDandPixelCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPlatform, tiltAngle, azimuthAngle,  \
+                              focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, normal):
 
     """
     PURPOSE: Given the equatorial coordinates of a star, find out on which CCD it falls ('A', 'B', ...)
-             and compute the pixel coordinates of the star on this CCD.
+             and compute the pixel coordinates of the star on this CCD. If the star doesn't fall on any of the CCDs
+             then (None, None, None) is given as output.
 
-    INPUT: raStar:                 right ascension of the star [rad]
-           decStar:                declination of the star [rad]      
-           raOpticalAxis:          right ascension of the optical axis [rad]
-           decOpticalAxis:         declination of the optical axis [rad]
-           focalPlaneAngle:        angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
-           focalLength:            focal length of the telescope [mm]
-           plateScale:             [arcsec/micron]
-           pixelSize:              [micrometer]
+    INPUT: raStar:          right ascension of the star                               [rad]
+           decStar:         declination of the star                                   [rad]      
+           raSun:           right ascension of the sun                                [rad]
+           decSun:          declination of the sun                                    [rad]
+           raPlatform:      right ascension of the platform pointing axis             [rad]
+           decPlatform:     declination of the platform pointing axis                 [rad]
+           tiltAngle:       tilt angle of the telescope w.r.t. platform z-axis        [rad]                   
+           azimuthAngle:    azimuth angle of the telescope on the platform            [rad]
+           focalPlaneAngle: angle between the Y_TL axis and the Y_FP axis: gamma_FP   [rad]
+           focalLength:     focal length of the camera.                               [mm]
+           pixelSize:       pixel size                                                [micron]
            includeFieldDistortion: True to include field distortion in coordinate transformations, false otherwise
            normal:                 True for the normal camera configuration, False for the fast cameras
 
@@ -730,15 +547,21 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
         ccdCodes = ['AF', 'BF', 'CF', 'DF']
 
 
-    # Compute the (x,y) coordinates in the FP' reference system [mm]
+    # Compute the (x,y) coordinates in the FP reference system [mm]
 
-    xFPmm, yFPmm = skyToFocalPlaneCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength)
+    xFPmm, yFPmm = skyToFocalPlaneCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPlatform, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength)
 
     if includeFieldDistortion:
         xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm)
 
+    # Concert to CCD pixel coordinates
+    # Note that the pixel size is in [micron] not in [mm]
+
+    xCCDpixel = xFPmm / pixelSize * 1000.0
+    yCCDpixel = yFPmm / pixelSize * 1000.0
+
     # Find out if this falls on a CCD, and if yes which one.
-    # Our approach: try each of the CCDs. Not elegant, but robust...
+    # Our approach: try each of the CCDs. Not elegant, but robust...  
 
     for ccdCode in ccdCodes:
 
@@ -780,7 +603,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, fo
 
 
 
-def platformToTelescopePointingCoordinates(alphaPlatform, deltaPlatform, azimuthAngle, tiltAngle):
+def platformToTelescopePointingCoordinates(raPlatform, decPlatform, raSun, decSun, azimuthAngle, tiltAngle):
 
     """
     PURPOSE: Given the platform pointing coordinates (i.e. the sky coordinates of the jitter axis)
@@ -788,79 +611,78 @@ def platformToTelescopePointingCoordinates(alphaPlatform, deltaPlatform, azimuth
              the optical axis of the telescope.
              See also: PLATO-KUL-PL-TN-001
 
-    INPUT: alphaPlatform:  Right Ascension of the Platform pointing axis [rad]
-           deltaPlatform:  Declination of the platfor pointing axis [rad]
-           azimuthAngle:   azimuth of the telescope on the platform [rad]
-           tiltAngle:      tilt angle between platform and telescope pointing axes [rad]
+    INPUT: raPlatform:   Right Ascension of the Platform pointing axis           [rad]
+           declatform:   Declination of the platfor pointing axis                [rad]
+           raSun:        Right Ascension of the Sun (shield)                     [rad]
+           decSun:       Declination of the Sun (shield)                         [rad]
+           azimuthAngle: Azimuth of the telescope on the platform                [rad]
+           tiltAngle:    Tilt angle between platform and telescope pointing axes [rad]
 
-    OUTPUT: alphaTelescope: right ascension of the optical axis of the telescope [rad]
-            deltaTelescope: declination of the optical axis of the telescope [rad]
+    OUTPUT: raTelescope: right ascension of the optical axis of the telescope [rad]
+            decTelescope: declination of the optical axis of the telescope [rad]
 
     """
 
-    # Specify the coordinates in the equatorial reference frame of the unit vector zSC,
-    # corresponding to the jitter (Z) axis of the SpaceCraft
 
-    zSC = array([cos(alphaPlatform)*cos(deltaPlatform), sin(alphaPlatform)*cos(deltaPlatform), sin(deltaPlatform)])
+    # Compute the rotation matrix to convert cartesian coordinates in the telescope reference frame to 
+    # cartesian coordinates in the spacecraft reference frame
 
-    # Construct the rotation matrix for a rotation around the zSC axis over the azimuth angle
-    # {ux, uy, uz} is short-hand notation.
+    rotAzimuth = np.array([[ cos(azimuthAngle), sin(azimuthAngle), 0],   \
+                           [-sin(azimuthAngle), cos(azimuthAngle), 0],   \
+                           [        0        ,          0,         1]])
 
-    ux = zSC[0]
-    uy = zSC[1]
-    uz = zSC[2]
+    rotTilt = np.array([[ cos(tiltAngle), 0, sin(tiltAngle)], \
+                        [     0        , 1,        0       ], \
+                        [-sin(tiltAngle), 0, cos(tiltAngle)]])
 
-    cosAngle = cos(azimuthAngle)
-    sinAngle = sin(azimuthAngle)
-
-    rotAzimuth = array([[cosAngle+ux*ux*(1-cosAngle),    ux*uy*(1-cosAngle)-uz*sinAngle, ux*uz*(1-cosAngle)+uy*sinAngle], \
-                        [uy*ux*(1-cosAngle)+uz*sinAngle, cosAngle+uy*uy*(1-cosAngle),    uy*uz*(1-cosAngle)-ux*sinAngle], \
-                        [uz*ux*(1-cosAngle)-uy*sinAngle, uz*uy*(1-cosAngle)+ux*sinAngle, cosAngle+uz*uz*(1-cosAngle)]])
+    rotTL2SC = np.dot(rotAzimuth, rotTilt)
 
 
-    # The goal of the rotZ rotation matrix is to rotate the ySC unit vector (corresponding to the y-axis in 
-    # the spacecraft reference frame) in the azimuth direction of the telescope. Rather than using ySC, we use
-    # another reference vector yRef as defined below. y0 is perpendicular to zSC, and has the advantage that the 
-    # exact orientation of the spacecraft (i.e. in which direction the sunshield is pointing) is not needed.
+    # Compute the equatorial cartesian coordinates of the unit vector along the z-axis (= roll = pointing axis) of the platform.
+    # The x-axis of the platform points to the highest point fof the sunshield, which is pointing to the (average) sky position
+    # of the Sun.
 
-    yRef = array([-sin(alphaPlatform), cos(alphaPlatform), 0.0])
+    zSC = np.array([cos(decPlatform)*cos(raPlatform), cos(decPlatform)*sin(raPlatform), sin(decPlatform)])
+    deltax = np.arctan(- cos(raPlatform-raSun) / tan(decPlatform))
+    xSC = np.array([cos(deltax)*cos(raSun), cos(deltax)*sin(raSun), sin(deltax)])
+    ySC = np.cross(zSC, xSC)
 
-    # Rotate this reference vector
-    # Note: numpy.matrix uses algebraic multiplication.
+    # Compute the rotation matrix to convert cartesian coordinates in the equatorial reference frame to 
+    # cartesian coordinates in the spacecraft reference frame
 
-    yAzimuth = dot(rotAzimuth, yRef)
+    rotSC2EQ   = np.array([[xSC[0], ySC[0], zSC[0]], \
+                           [xSC[1], ySC[1], zSC[1]], \
+                           [xSC[2], ySC[2], zSC[2]]])
+    
+    # Combine all the rotation matrices
 
-    # Next, construct the rotation matrix for a rotation around the yAzimuth vector over the tilt angle
-    # of the telescope. The tilt angle is the angle between the optical axis of the telescope and the
-    # the jitter Z-axis of the platform.
+    rotTL2EQ = np.dot(rotSC2EQ, rotTL2SC)
 
-    ux = yAzimuth[0]
-    uy = yAzimuth[1]
-    uz = yAzimuth[2]
+    # In the telescope reference frame, the optical axis is simply the z-axis = (0,0,1)
 
-    cosAngle = cos(tiltAngle)
-    sinAngle = sin(tiltAngle)    
+    vecTL = np.array([0.0, 0.0, 1.0])
 
-    rotTilt = array([[cosAngle+ux*ux*(1-cosAngle),    ux*uy*(1-cosAngle)-uz*sinAngle, ux*uz*(1-cosAngle)+uy*sinAngle], \
-                     [uy*ux*(1-cosAngle)+uz*sinAngle, cosAngle+uy*uy*(1-cosAngle),    uy*uz*(1-cosAngle)-ux*sinAngle], \
-                     [uz*ux*(1-cosAngle)-uy*sinAngle, uz*uy*(1-cosAngle)+ux*sinAngle, cosAngle+uz*uz*(1-cosAngle)]])
+    # Get the equatorial coordinates of this optical axis vector.
 
+    vecEQ = np.dot(rotTL2EQ, vecTL)
 
-    # Compute the unit vector zOA in the direction of the telescope's optical axis
+    # Convert the cartesian equatorial coordinates to equatorial sky coordinates
 
-    zOA = dot(rotTilt, zSC);
+    norm = sqrt(vecEQ[0]*vecEQ[0] + vecEQ[1]*vecEQ[1] + vecEQ[2]*vecEQ[2]) 
+    decOpticalAxis = pi/2.0 - arccos(vecEQ[2]/norm);
+    raOpticalAxis = arctan2(vecEQ[1], vecEQ[0]);
 
+    # Ensure that the right ascension is positive
 
-    # zOA now contains the cartesian coordinates of the optical axis in the equatorial reference frame. 
-    # Compute the equatorial sky coordinates [rad] from the cartesian coordinates.
+    if isinstance(raOpticalAxis, np.ndarray):
+        raOpticalAxis[raOpticalAxis < 0.0] += 2.*pi
+    else:
+        if (raOpticalAxis < 0.0):
+            raOpticalAxis += 2.*np.pi
 
-    norm = sqrt(zOA[0]*zOA[0]+zOA[1]*zOA[1]+zOA[2]*zOA[2])
+    # That's it
 
-    deltaTelescope = pi/2.0 - arccos(zOA[2]/norm)
-    alphaTelescope = arctan2(zOA[1], zOA[0])
-    if (alphaTelescope < 0.0): alphaTelescope += 2.0 * pi
-
-    return alphaTelescope, deltaTelescope
+    return (raOpticalAxis, decOpticalAxis)
 
 
 
@@ -873,66 +695,66 @@ def platformToTelescopePointingCoordinates(alphaPlatform, deltaPlatform, azimuth
 
 
 
-
-def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY, focalLength, plateScale, pixelSize, \
-                                       raOpticalAxis, decOpticalAxis, focalPlaneAngle, includeFieldDistortion=True, normal=True):
+def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, decStar, raSun, decSun, raPlatform, decPlatform, \
+                                       tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength, pixelSize,              \
+                                       includeFieldDistortion, normal):
 
     """
     PURPOSE: Calculates the location of the subfield such that the star with coordinates (raStar, decStar)
-             is centered in the subfield. This function is used by setSubfieldAroundCoordinates() and usually
-             does not need to be called by the user.
+             is centered in the subfield. The function also checks if there is enough space around the pixel
+             to accommodate a subfield of the specified size. 
 
-    NOTE: This function requires (raOpticalAxis, decOpticalAxis) while the function setSubfieldAroundCoordinates()
-          requires (raPlatform, decPlatform).
+    NOTE:    This function is used by setSubfieldAroundCoordinates() and usually does not need to be called by the user. 
 
-    INPUTS:  raStar:                 right ascension [rad]
-             decStar:                declination [rad]
-             subfieldSizeX:          full width (# of columns) of the subfield [pix]
-             subfieldSizeY:          full height (#of rows) of the subfield [pix]
-             focalLength:            focal length of the telescope [mm]
-             plateScale:             [arcsec/micron]
-             pixelSize:              [micrometer]
-             raOpticalAxis:          right ascension of the optical axis [rad]
-             decOpticalAxis:         declination of the optical axis [rad]
-             focalPlaneAngle:        angle between the Y_FP axis and the Y'_FP axis: gamme_FP  [rad]
-             includeFieldDistortion: True to include field distortion in coordinate transformations, false otherwise
-             normal:                 True for the normal camera configuration, False for the fast cameras
+    INPUT: subfieldSizeX:          full width (# of columns) of the subfield                [pix]
+           subfieldSizeY:          full height (#of rows) of the subfield                   [pix]
+           raStar:                 right ascension of the star                              [rad]
+           decStar:                declination of the star                                  [rad]
+           raSun:                  right ascension of the sun                               [rad]
+           decSun:                 declination of the sun                                   [rad]
+           raPlatform:             right ascension of the platform pointing axis            [rad]
+           decPlatform:            declination of the platform pointing axis                [rad]
+           tiltTelescope           tilt angle of the telescope w.r.t. platform z-axis       [rad]                   
+           azimuthTelescope:       azimuth angle of the telescope on the platform           [rad]
+           focalPlaneAngle:        angle between the Y_TL axis and the Y_FP axis: gamma_FP  [rad]
+           focalLength:            focal length of the camera.                              [mm]
+           pixelSize:              pixel size                                               [micron]
+           includeFieldDistortion: True to include field distortion in coordinate transformations, false otherwise
+           normal:                 True for the normal camera configuration, False for the fast cameras
 
-    OUTPUTS: ccdCode: "A", "B", "C" or "D" if nominal=True, "AF", "BF", "CF" or "DF" otherwise
-             xCCDpix: x-coordinate of the star in pixels (i.e. column number)
-             yCCDpix: y-coordinate of the star in pixels (i.e. row number)
+    OUTPUT: ccdCode: "A", "B", "C" or "D" if nominal=True, "AF", "BF", "CF" or "DF" otherwise
+            xCCDpix: x-coordinate of the star in pixels (i.e. column number)
+            yCCDpix: y-coordinate of the star in pixels (i.e. row number)
 
-    REMARKS: - If the coordinates do not fall on any CCD, an error message is shown, followed by an exit(1)
+    REMARKS: - If the coordinates do not fall on any CCD, an error message is shown
              - If the star is too close to the edge for the given subfield size, and error message is shown,
                followed by an exit(1)
     """
 
     # Find out on which CCD the star falls, and the corresponding pixel coordinates
 
-    ccdCode, xCCDpix, yCCDpix = getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, \
-                                                          focalPlaneAngle, focalLength, plateScale, pixelSize,
-                                                          includeFieldDistortion, normal)
+    ccdCode, xCCDpix, yCCDpix = getCCDandPixelCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPlatform, tiltTelescope, azimuthTelescope,  \
+                                                          focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, normal)
 
     # If the CCD code is None, the star does not fall on any ccd -> error
 
     if ccdCode == None:
         print("Error: coordinates do not fall on any CCD")
         print("raStar, decStar = {0}, {1}".format(raStar, decStar))
-        print("Optical Axis (ra, dec, angle) = {0}, {1}, {2}". format(raOpticalAxis, decOpticalAxis, focalPlaneAngle))
         return None, None, None
 
 
     # If the star does fall on a CCD, check if it's not too close to the edge for the subfield to
     # be completely on the CCD.
 
-    xCCDpix = round(xCCDpix)    # integer values
+    xCCDpix = round(xCCDpix)                # integer values
     yCCDpix = round(yCCDpix)
     firstRow = CCD[ccdCode]["firstRow"]     # different from nominal than for fast cams
     Ncols = CCD[ccdCode]["Ncols"]
     Nrows = CCD[ccdCode]["Nrows"]
 
     if     (xCCDpix - subfieldSizeX/2 < 0)        or (xCCDpix + subfieldSizeX/2 - 1 > Ncols-1)   \
-        or (yCCDpix - subfieldSizeY/2 < firstRow) or (yCCDpix + subfieldSizeY/2 - 1> Nrows-1): 
+        or (yCCDpix - subfieldSizeY/2 < firstRow) or (yCCDpix + subfieldSizeY/2 - 1 > Nrows-1): 
 
         print("Error: pixel coordinates (row, col) = ({0},{1}) too close to the edge to accommodate subfield with size {2}x{3}" \
            .format(yCCDpix,xCCDpix,subfieldSizeX, subfieldSizeY))
@@ -952,46 +774,9 @@ def calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldS
 
 
 
-def setSubfieldAroundPixelCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel, subfieldSizeX, subfieldSizeY):
-    """
-    PURPOSE:  Calculate the location of the subField such that it is centered on the star with 
-              the given pixel coordinates.
-
-    INPUTS:   sim            simulation for which the configuration file is adapted
-              ccdCode:       for nominal camera: either 'A', 'B', 'C', 'D'
-                             for fast camera: either 'AF', 'BF', 'CF', 'DF'
-              xCCDpixel:     x-coordinate (column-number) of the star on the CCD  [pixel/float]
-              yCCDpixel:     y-coordinate (row-number) of the star on the CCD  [pixel/float]
-              subfieldSizeX: width (i.e. number of columns) of the sub-field [pixels]
-              subfieldSizeY: height (i.e. number of rows) of the sub-field [pixels]
-
-    OUTPUTS:  None
-    """
-
-    raStar, decStar = pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel)
-
-    # TODO: determine nominal from the given ccdCode
-
-    normal = True
-
-    success = setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSizeY, normal)
-
-    if not success:
-        print ("Warning: setSubfieldAroundPixelCoordinates() failed to set subField around the star.")
-
-    return
 
 
-
-
-
-
-
-
-
-
-
-def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSizeY, normal=True):
+def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSizeY, normal):
     
     """
     PURPOSE: Calculates the location of the sub-field such that it is centred on the star 
@@ -1026,25 +811,22 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
 
     # Find out some instrumental characteristics from the sim object
 
-    raPlatform = np.deg2rad(float(sim["ObservingParameters/RApointing"]))
-    decPlatform = np.deg2rad(float(sim["ObservingParameters/DecPointing"]))
+    raPlatform       = np.deg2rad(float(sim["ObservingParameters/RApointing"]))
+    decPlatform      = np.deg2rad(float(sim["ObservingParameters/DecPointing"]))
+    raSun            = np.deg2rad(float(sim["ObservingParameters/RASun"]))
+    decSun           = np.deg2rad(float(sim["ObservingParameters/DecSun"]))
     azimuthTelescope = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
-    tiltTelescope = np.deg2rad(float(sim["Telescope/TiltAngle"]))
-    focalLength = float(sim["Camera/FocalLength"]) * 1000.0       # [m] -> [mm]
-    plateScale = float(sim["Camera/PlateScale"])          
-    focalPlaneAngle = np.deg2rad(float(sim["Camera/FocalPlaneOrientation"]))
-    pixelSize = float(sim["CCD/PixelSize"]) 
+    tiltTelescope    = np.deg2rad(float(sim["Telescope/TiltAngle"]))
+    focalLength      = float(sim["Camera/FocalLength"]) * 1000.0                     # [m] -> [mm]
+    plateScale       = float(sim["Camera/PlateScale"])          
+    focalPlaneAngle  = np.deg2rad(float(sim["Camera/FocalPlaneOrientation"]))
+    pixelSize        = float(sim["CCD/PixelSize"]) 
 
     if (sim["Camera/IncludeFieldDistortion"] == "yes")  or (sim["Camera/IncludeFieldDistortion"] == "1"):
         includeFieldDistortion = True
     else:
         includeFieldDistortion = False
 
-
-    # Derive the (RA, Dec) of the optical axis, given the (RA, Dec) of the platform, and the orientation
-    # (azimith, tilt) of the telescope on the platform.
-
-    raOpticalAxis, decOpticalAxis = platformToTelescopePointingCoordinates(raPlatform, decPlatform, azimuthTelescope, tiltTelescope)    
 
     # When the user requested to include field distortion, update the Simulation input parameter and
     # initialize the field distortion global that will be used by the distortion functions.
@@ -1061,9 +843,9 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
     # Compute the position of the subfield.
     # xPix and yPix are the CCD coordinates of the star, given a 4510x4510 CCD [colNumber, rowNumber].
 
-    ccdCode, xPix, yPix = calculateSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY, \
-                                                             focalLength, plateScale, pixelSize, raOpticalAxis, decOpticalAxis, 
-                                                             focalPlaneAngle, includeFieldDistortion, normal)
+    ccdCode, xPix, yPix = calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, decStar, raSun, decSun, raPlatform, decPlatform, \
+                                                             tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength, pixelSize,              \
+                                                             includeFieldDistortion, normal)
     
     if ccdCode == None:
         return False
@@ -1112,7 +894,9 @@ def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSi
 
 
 
-def skyToPixelCoordinates(sim, raStar, decStar, normal=True):
+
+
+def skyToPixelCoordinates(sim, raStar, decStar, normal):
     """
     PURPOSE: Convert sky coordinates to pixel coordinates
     
@@ -1121,11 +905,11 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal=True):
             a valid value for the focal length, the plate scale, the pixel size, and that
             the switch to include distortion or not is set correctly.
             
-    INPUT:  sim:        simulation for which the configuration file is adapted
-            raStar:                 right ascension of the star [radians]
-            decStar:                declination [radians]
-            subfieldSizeX:          width (i.e. number of columns) of the subiield [pixels]
-            subfieldSizeY:          height (i.e. number of rows) of the sub-field [pixels]
+    INPUT:  sim:            instance of simulation class, see simulation.py
+            raStar:                 right ascension of the star                    [rad]
+            decStar:                declination                                    [rad]
+            subfieldSizeX:          width (i.e. number of columns) of the subiield [pix]
+            subfieldSizeY:          height (i.e. number of rows) of the sub-field  [pix]
             normal:                 True for the normal camera configuration, False for the fast cameras
     
     OUTPUT: ccdCode
@@ -1140,22 +924,18 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal=True):
     else:
         includeFieldDistortion = False
 
-    pixelSize = float(sim["CCD/PixelSize"])
-    plateScale = float(sim["Camera/PlateScale"])
-    focalLength = float(sim["Camera/FocalLength"]) * 1000.0       # [m] -> [mm]
-    raPlatform = np.deg2rad(float(sim["ObservingParameters/RApointing"]))
-    decPlatform = np.deg2rad(float(sim["ObservingParameters/DecPointing"]))
-    focalPlaneAngle = float(sim["Camera/FocalPlaneOrientation"])
+    pixelSize        = float(sim["CCD/PixelSize"])
+    focalLength      = float(sim["Camera/FocalLength"]) * 1000.0                   # [m] -> [mm]
+    raPlatform       = np.deg2rad(float(sim["ObservingParameters/RApointing"]))
+    decPlatform      = np.deg2rad(float(sim["ObservingParameters/DecPointing"]))
+    raSun            = np.deg2rad(float(sim["ObservingParameters/RASun"]))
+    decSun           = np.deg2rad(float(sim["ObservingParameters/DecSun"]))
+    focalPlaneAngle  = float(sim["Camera/FocalPlaneOrientation"])
     azimuthTelescope = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
-    tiltTelescope = np.deg2rad(float(sim["Telescope/TiltAngle"]))
+    tiltTelescope    = np.deg2rad(float(sim["Telescope/TiltAngle"]))
     
-    # Derive the (RA, Dec) of the optical axis, given the (RA, Dec) of the platform, and the orientation
-    # (azimith, tilt) of the telescope on the platform.
-
-    raOpticalAxis, decOpticalAxis = platformToTelescopePointingCoordinates(raPlatform, decPlatform, azimuthTelescope, tiltTelescope)    
-    
-    ccdCode, xCCDpixel, yCCDpixel = getCCDandPixelCoordinates(raStar, decStar, raOpticalAxis, decOpticalAxis, focalPlaneAngle, 
-                                                              focalLength, plateScale, pixelSize, includeFieldDistortion, normal)
+    ccdCode, xCCDpixel, yCCDpixel = getCCDandPixelCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPlatform, tiltTelescope, azimuthTelescope,  \
+                                                              focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, normal)
 
     return ccdCode, xCCDpixel, yCCDpixel
 
@@ -1175,19 +955,20 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal=True):
 
 
 def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
+
     """
-    PURPOSE: Convert pixel coordinates to sky coordinates
+    PURPOSE: Convert pixel coordinates to equatorial sky coordinates (ra,dec)
     
     NOTE:   It is assumed that the configuration parameters in the sim object contains
             a correct (ra, dec) of the platform, a correct (azimuth, tilt) of the telescope,
-            a valid value for the focal length, the plate scale, the pixel size, and that
+            a valid value for the focal length, the pixel size, and that
             the switch to include distortion or not is set correctly.
             
     INPUT:  sim:        simulation for which the configuration file is adapted
             ccdCode:    for nominal camera: either 'A', 'B', 'C', 'D'
                         for fast camera: either 'AF', 'BF', 'CF', 'DF'
-            xCCDpixel:  x-coordinate (column-number) of the star on the CCD  [pixel]
-            yCCDpixel:  y-coordinate (row-number) of the star on the CCD  [pixel]
+            xCCDpixel:  x-coordinate (column-number) of the star on the CCD  [pix]
+            yCCDpixel:  y-coordinate (row-number) of the star on the CCD     [pix]
     
     OUTPUT: raStar, decStar: Equatorial coordinates (right ascension and declination) of the star [rad]
     """
@@ -1199,29 +980,27 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
     else:
         includeFieldDistortion = False
 
-    pixelSize = float(sim["CCD/PixelSize"])
-    focalLength = float(sim["Camera/FocalLength"]) * 1000.0       # [m] -> [mm]
-    raPlatform = np.deg2rad(float(sim["ObservingParameters/RApointing"]))
-    decPlatform = np.deg2rad(float(sim["ObservingParameters/DecPointing"]))
-    focalPlaneAngle = float(sim["Camera/FocalPlaneOrientation"])
+    pixelSize        = float(sim["CCD/PixelSize"])
+    focalLength      = float(sim["Camera/FocalLength"]) * 1000.0                     # [m] -> [mm]
+    raPlatform       = np.deg2rad(float(sim["ObservingParameters/RApointing"]))
+    decPlatform      = np.deg2rad(float(sim["ObservingParameters/DecPointing"]))
+    raSun            = np.deg2rad(float(sim["ObservingParameters/RASun"]))
+    decSun           = np.deg2rad(float(sim["ObservingParameters/DecSun"]))
+    focalPlaneAngle  = float(sim["Camera/FocalPlaneOrientation"])
     azimuthTelescope = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
-    tiltTelescope = np.deg2rad(float(sim["Telescope/TiltAngle"]))
+    tiltTelescope    = np.deg2rad(float(sim["Telescope/TiltAngle"]))
 
     ccdZeroPointX = CCD[ccdCode]['zeroPointXmm']
     ccdZeroPointY = CCD[ccdCode]['zeroPointYmm']
     ccdAngle = CCD[ccdCode]['angle']
     
-    # Derive the (RA, Dec) of the optical axis, given the (RA, Dec) of the platform, and the orientation
-    # (azimith, tilt) of the telescope on the platform.
-
-    raOpticalAxis, decOpticalAxis = platformToTelescopePointingCoordinates(raPlatform, decPlatform, azimuthTelescope, tiltTelescope)    
 
     xFPmm, yFPmm = pixelToFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX, ccdZeroPointY, ccdAngle)
     
     if includeFieldDistortion:
         xFPmm, yFPmm = distortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm)
     
-    ra, dec = focalPlaneToSkyCoordinates(xFPmm, yFPmm, raOpticalAxis, decOpticalAxis, focalPlaneAngle, focalLength)
-    
-    return ra, dec
+    ra, dec = focalPlaneToSkyCoordinates(xFPmm, yFPmm, raSun, decSun, raPlatform, decPlatform, tiltTelescope, azimuthTelescope, \
+                                            focalPlaneAngle, focalLength)
 
+    return ra, dec

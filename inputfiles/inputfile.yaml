@@ -10,10 +10,12 @@ ObservingParameters:
 
     NumExposures:                    10              # Number of expsosures
     ExposureTime:                    23              # [s]
-    RApointing:                      180             # Platform (not telescope) right ascension pointing coordinate  [deg] 
-    DecPointing:                     -70             # Platform (not telescope) declination pointing coordinate      [deg]
-    Fluxm0:                          1.00238e8       # Photon flux of a V=0 G2V-star                                 [phot/s/m^2/nm]
-    SkyBackground:                   220.            # Stellar + zodiacal background level. Set negative to compute. [phot/pix/s]
+    RApointing:                      180             # Platform (not telescope) right ascension pointing coordinate      [deg] 
+    DecPointing:                     -70             # Platform (not telescope) declination pointing coordinate          [deg]
+    RASun:                           166.0           # Right ascension of the direction of the sun shield during the run [deg]
+    DecSun:                          -46.0           # Declination of the direction of the sun shield during the run     [deg]
+    Fluxm0:                          1.00238e8       # Photon flux of a V=0 G2V-star                                     [phot/s/m^2/nm]
+    SkyBackground:                   220.            # Stellar + zodiacal background level. Set negative to compute.     [phot/pix/s]
     StarCatalogFile:                 inputfiles/starcatalog.txt
 
 
