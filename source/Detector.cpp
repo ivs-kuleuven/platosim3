@@ -27,20 +27,12 @@
 
 Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera)
 : HDF5Writer(hdf5file), 
-  includeFlatfield(true), 
-  includePhotonNoise(true), 
-  includeReadoutNoise(true),
-  includeCTIeffects(true), 
-  includeOpenShutterSmearing(true), 
-  includeQuantumEfficiency(true),
-  includeVignetting(true),
-  includeParticulateContamination(true),
-  includeMolecularContamination(true),
-  writeSubPixelImagesToHDF5(false),
-  includeFullWellSaturation(true),
-  includeDigitalSaturation(true),
-  psfWasSet(false), 
-  internalTime(0.0), camera(camera), imageNr(0), subPixelImageNr(0)
+  includeFlatfield(true), includePhotonNoise(true), includeReadoutNoise(
+				true), includeCTIeffects(true), includeOpenShutterSmearing(
+				true), includeQuantumEfficiency(true), includeVignetting(true), includeParticulateContamination(
+				true), includeMolecularContamination(true), writeSubPixelImagesToHDF5(
+				false), includeFullWellSaturation(true), includeDigitalSaturation(
+				true), psfWasSet(false), internalTime(0.0), camera(camera), imageNr(0), subPixelImageNr(0)
 {
 	// Parse the parameters from the configuration file.
 
@@ -51,6 +43,10 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 	// BEFORE other methods write arrays to HDF5.
 
 	initHDF5Groups();
+
+	// Front-end electronics
+
+	frontEndElectronics = new FrontEndElectronics(configParam, hdf5file);
 
 	// Allocate memory for the different maps
 
@@ -90,6 +86,8 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 Detector::~Detector()
 {
 	flushOutput();
+
+	delete frontEndElectronics;
 }
 
 
@@ -915,7 +913,7 @@ void Detector::readOut(float exposureTime)
 
 	if (includeReadoutNoise)
 	{ 
-        Log.debug("Detector: adding readout noise.");
+        Log.debug("Detector: adding readout noise of CCD and FEE.");
 		addReadoutNoise();
 	}
     else
@@ -956,7 +954,7 @@ void Detector::readOut(float exposureTime)
     if (includeDigitalSaturation)
     { 
         Log.debug("Detector: applying digital saturation to pixelMap, biasMap and smearingMap (digitalSaturationLimit=" + to_string(digitalSaturationLimit) + ")");
-    	applyDigitalSaturation();
+    		applyDigitalSaturation();
     }
     else
     {
@@ -1490,8 +1488,11 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
 
 void Detector::addReadoutNoise()
 {
+// TODO
 
-	readoutNoiseDistribution = normal_distribution<double>(0.0, readoutNoise);
+	const double totalReadoutNoise = sqrt(pow(readoutNoise, 2) + pow(frontEndElectronics->getReadoutNoise(), 2));
+
+	readoutNoiseDistribution = normal_distribution<double>(0.0, totalReadoutNoise);
 
 	// Add readout noise to the pixel map
 
