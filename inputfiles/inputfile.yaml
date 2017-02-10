@@ -69,7 +69,11 @@ PSF:
       RotationAngle:                 -1              # PSF rotation angle w.r.t the x-axis of the focal plane. -1 to auto-compute. [deg]
       NumberOfPixels:                8               # The number of pixels in the field for which the PSF is generated
 
+FEE:
 
+    NominalOperatingTemp:             210.15          # Nominal operating temperature of the FEE [K]
+    ReadoutNoise:                     40.5            # Readout noise for the FEE [e-/pixel] (same for both ADCs)
+    
 CCD:
 
     OriginOffsetX:                   0               # X Offset of CCD origin from center of focal plane [mm]
@@ -85,7 +89,7 @@ CCD:
         ExpectedValue:               0.993           # Expected value (mean over all pixels of one detector)
     FullWellSaturation:              900000          # [e-/pixel]
     DigitalSaturation:               65535           # E.g. 16 bit [ADU/pixel]
-    ReadoutNoise:                    28              # [e-/pixel]
+    ReadoutNoise:                    44.3             # [e-/pixel]
     ElectronicOffset:                100             # bias [ADU]
     ReadoutTime:                     2.3             # time to read out entire CCD [s]
     FlatfieldPtPNoise:               0.016           # peak-to-peak pixel noise
@@ -132,7 +136,7 @@ SubField:
     NumRows:                         100             # Number of rows,    should be >= 8 [pixels]
     NumBiasPrescanRows:              5               # Nr of rows of the prescan strip to determine the bias [pixels]
     NumSmearingOverscanRows:         5               # Nr of rows of the overscan strip to determine the smearing [pixels]
-    SubPixels:                       4               # (Sqrt of ) nr of subpixels per CCD pixel. Should be 2^n <= 128.
+    SubPixels:                       4               # (Sqrt of) nr of subpixels per CCD pixel. Should be 2^n <= 128.
 
 
 RandomSeeds:
