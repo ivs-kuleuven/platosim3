@@ -170,6 +170,16 @@ void Simulation::run(double startTime)
 
 
 
+
+
+
+
+
+
+/**
+ * \brief Take care that the version of the simulator is included in the HDF5 file,.
+ */
+
 void Simulation::writeVersionInformationToHDF5()
 {
     Log.info("Simulation: writing version information to HDF5");
@@ -183,6 +193,13 @@ void Simulation::writeVersionInformationToHDF5()
     hdf5File.writeAttribute(parentGroup, "GitVersion", string(GIT_DESCRIBE));
 
 }
+
+
+
+
+
+
+
 
 
 /**
@@ -216,12 +233,6 @@ void Simulation::writeStarCatalogToHDF5()
     vector<double> xFPmm(Nstars);
     vector<double> yFPmm(Nstars);
 
-    double raOpticalAxis, decOpticalAxis;
-    tie(raOpticalAxis, decOpticalAxis) = telescope->getInitialPointingCoordinates();
-
-    double focalPlaneAngle = telescope->getInitialFocalPlaneOrientation();
-
-
     double xFPrad, yFPrad;
 
     if (!allStarIDs.empty())
@@ -232,7 +243,8 @@ void Simulation::writeStarCatalogToHDF5()
             starIDs[k] = starID;
             tie(RA[k], dec[k]) = sky->getCoordinatesOfStarWithID(starID, Angle::degrees);  // be careful, ra & dec returned in degrees!
             Vmag[k] = sky->getVmagnitudeOfStarWithID(starID);
-            tie(xFPmm[k], yFPmm[k]) = camera->skyToFocalPlaneCoordinates(deg2rad(RA[k]), deg2rad(dec[k]), raOpticalAxis, decOpticalAxis, focalPlaneAngle);
+            const bool useInitialOrientation = true;
+            tie(xFPmm[k], yFPmm[k]) = camera->skyToFocalPlaneCoordinates(deg2rad(RA[k]), deg2rad(dec[k]), useInitialOrientation);
             
             if (includeFieldDistortion)
             {
