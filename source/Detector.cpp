@@ -581,20 +581,13 @@ tuple<bool, double, double> Detector::addFlux(double xFP, double yFP, double flu
 
 bool Detector::isInSubfield(double xFP, double yFP)
 {
-	// Convert to pixel coordinates in the unrotated CCD reference frame
-
-	double rowUnrot = (xFPprime - originOffsetY) / (pixelSize / 1000.0);
-	double colUnrot = (yFPprime - originOffsetX) / (pixelSize / 1000.0);
-
-	// Compute the coordinates in the rotated CCD reference frame
-
-	double colRot = colUnrot * cos(orientationAngle) - rowUnrot * sin(orientationAngle);
-	double rowRot = colUnrot * sin(orientationAngle) + rowUnrot * cos(orientationAngle);
+    double row, column;
+    tie(row, column) = focalPlaneToPixelCoordinates(xFP, yFP);
 
 	// Check wether these pixel coordinates falls on the subfield
 
-	return    (colRot >= subFieldZeroPointColumn) && (colRot < subFieldZeroPointColumn + numColumnsPixelMap)
-	       && (rowRot >= subFieldZeroPointRow)    && (rowRot < subFieldZeroPointRow + numRowsPixelMap);
+	return    (column >= subFieldZeroPointColumn) && (column < subFieldZeroPointColumn + numColumnsPixelMap)
+	       && (row    >= subFieldZeroPointRow)    && (row < subFieldZeroPointRow + numRowsPixelMap);
 }
 
 
