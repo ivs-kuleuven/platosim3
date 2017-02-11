@@ -317,6 +317,8 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("ExposureTime");
     addDouble("RApointing");
     addDouble("DecPointing");
+    addDouble("RASun");
+    addDouble("DecSun");
     addDouble("Fluxm0");
     addDouble("SkyBackground");
     addString("StarCatalogFile");
