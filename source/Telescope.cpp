@@ -38,7 +38,7 @@ Telescope::Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File, 
     // platform pointing axis.
 
     double alphaPlatform, deltaPlatform;
-    tie(alphaPlatform, deltaPlatform) = platform.getPointingCoordinates(internalTime);
+    tie(alphaPlatform, deltaPlatform) = platform.getInitialPointingCoordinates();
     tie(currentAlphaOpticalAxis, currentDeltaOpticalAxis) = platformToTelescopePointingCoordinates(alphaPlatform, deltaPlatform);
 }
 
