@@ -401,7 +401,7 @@ def pixelToFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX,
     xCCDmm = xCCDpixel * pixelSize / 1000.0
     yCCDmm = yCCDpixel * pixelSize / 1000.0
 
-    # Convert the CCD coordinates into FP' coordinates [mm]
+    # Convert the CCD coordinates into FP coordinates [mm]
 
     xFP = (xCCDmm - ccdZeroPointX) * cos(CCDangle) - (yCCDmm - ccdZeroPointY) * sin(CCDangle)
     yFP = (xCCDmm - ccdZeroPointX) * sin(CCDangle) + (yCCDmm - ccdZeroPointY) * cos(CCDangle)
@@ -438,7 +438,7 @@ def focalPlaneToPixelCoordinates(xFP, yFP, pixelSize, ccdZeroPointX, ccdZeroPoin
             yCCDpixel: row pixel coordinate of the star (real-valued)
     """
 
-    # Convert the FP' coordinates into CCD coordinates [mm]
+    # Convert the FP coordinates into CCD coordinates [mm]
 
     xCCDmm = ccdZeroPointX + xFP * cos(CCDangle) + yFP * sin(CCDangle)
     yCCDmm = ccdZeroPointY - xFP * sin(CCDangle) + yFP * cos(CCDangle)
@@ -669,8 +669,8 @@ def platformToTelescopePointingCoordinates(raPlatform, decPlatform, raSun, decSu
     # Convert the cartesian equatorial coordinates to equatorial sky coordinates
 
     norm = sqrt(vecEQ[0]*vecEQ[0] + vecEQ[1]*vecEQ[1] + vecEQ[2]*vecEQ[2]) 
-    decOpticalAxis = pi/2.0 - arccos(vecEQ[2]/norm);
-    raOpticalAxis = arctan2(vecEQ[1], vecEQ[0]);
+    decOpticalAxis = pi/2.0 - arccos(vecEQ[2]/norm)
+    raOpticalAxis = arctan2(vecEQ[1], vecEQ[0])
 
     # Ensure that the right ascension is positive
 
