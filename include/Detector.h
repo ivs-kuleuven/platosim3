@@ -47,7 +47,7 @@ class Detector : public HDF5Writer
         virtual tuple<bool, double, double> addFlux(double xFPprime, double yFPprime, double flux);
         virtual void addFlux(double flux);
 
-        bool isInSubfield(const double xFPmm, const double yFPmm);
+        bool isInSubfield(double xFPmm, double yFPmm);
 
         bool psfIsSet();
         void setPsfForSubfield();

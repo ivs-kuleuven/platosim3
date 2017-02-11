@@ -579,7 +579,7 @@ tuple<bool, double, double> Detector::addFlux(double xFPprime, double yFPprime, 
  * \return true if the point is in the subfield on the CCD, false otherwise.
  */
 
-bool Detector::isInSubfield(const double xFPprime, const double yFPprime)
+bool Detector::isInSubfield(double xFP, double yFP)
 {
 	// Convert to pixel coordinates in the unrotated CCD reference frame
 
