@@ -98,6 +98,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;git pull origin master </div></div><!-- fragment --><p>in the directory in which you installed PlatoSim3.</p>
 <p>However, this will only work smoothly if you did not change any of the PlatoSim3 files or added files to the PlatoSim3 folders. The only exceptions are the <code>/inputfiles</code> and the <code>/build</code> folder, where you can add files. Please, do not modify the original files in the <code>/inputfiles</code> folder, as this might cause problems when updating the software. We recommend that you copy the <code>inputfile.yaml</code> file and modify the copy rather than the original file.</p>
 <p>At a later stage, releases will be distributed. We will then extend the documentation accordingly.</p>
+<p>Please note that you have to re-build the code each time you fetch software changes. How to do this is explained <a href="#build&amp;install">here</a>.</p>
 <div class="image">
 <img src="gitHub.png" alt="gitHub.png"/>
 <div class="caption">
@@ -142,9 +143,12 @@ Figure 1: Screenshot of the GitHub web interface.</div></div>
 <p>To initiate a simulation, <code>cd</code> to the <code>/build</code> directory and type:</p>
 <div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;./platosim &lt;input file&gt; &lt;non-existing output file&gt; [&lt;log file&gt;]</div></div><!-- fragment --><p>The structure of the input file and the meaning of the individual configuration parameters are described <a class="el" href="InputFileDescription.html">here</a>.</p>
 <p>Note that - before running PlatoSim3 - you must have an environment variable <code>PLATO_PROJECT_HOME</code>, set to the base folder of PlatoSim3.</p>
-<p>If you want to use realistic PSF models instead of a Gaussian, you can download these from <a href="ftp://ftp.ster.kuleuven.be/dist/Plato/PlatoSim3/psf.hdf5">our FTP server</a>. A convenient place to store this file is in the <code>/inputfiles</code> directory.</p>
+<p>If you want to use realistic PSF models instead of a Gaussian, you can download these from <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/psf.hdf5
+">our FTP server</a>. A convenient place to store this file is in the <code>/inputfiles</code> directory.</p>
 <h3><a class="anchor" id="output"></a>Output</h3>
 <p>The output of the simulations with PlatoSim3 is stored as an HDF5 file. The structure of such files and how to access (and visualise) the content is described <a class="el" href="OutputFileDescription.html">here</a>.</p>
+<p>Note that the x-axis is defined along the serial readout register and corresponds to the columns of the detector (and therefore of the pixel and sub-pixel map). The y-axis corresponds to the rows of the detector (and therefore of the pixel and sub-pixel map). In Python, for example, the <code>imshow()</code> method of <code>matplotlib</code> transposes the image as it tries to mimic Matlab.</p>
+<p>The <code>Armadillo</code> arrays (that are used internally to store the maps) are column-major rather than row-major.</p>
 <h2><a class="anchor" id="inCaseOfProblems"></a>In Case of Problems</h2>
 <p>In case you would come across problems you cannot solve yourself, please, let us know! We would like you to use the issue tracking on GitHub rather than sending an email to the developers, as this helps to better keep track of the issues and their status. How raise issues (and which information you must provide us with) is desribed <a class="el" href="IssueTracking.html">here</a>.</p>
 <h2><a class="anchor" id="reference"></a>Reference</h2>

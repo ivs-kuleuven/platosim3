@@ -15,9 +15,10 @@
  * biasMap
  * smearingMap
  * flatfieldMap
+ * throughputMap
  * cteMap
  * 
- * The flatfieldMap is filled at subPixel level and cteMap is filled at pixel level.
+ * The flatfieldMap is filled at sub-pixel level, the throughputMap and cteMap are filled at pixel level.
  * 
  * \param configParam    Configuration parameters for the detector.
  * \param hdf5file       HFD5 file to write the detector images to.
@@ -31,7 +32,10 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
   includeReadoutNoise(true),
   includeCTIeffects(true), 
   includeOpenShutterSmearing(true), 
-  includeVignetting(true), 
+  includeQuantumEfficiency(true),
+  includeVignetting(true),
+  includeParticulateContamination(true),
+  includeMolecularContamination(true),
   writeSubPixelImagesToHDF5(false),
   includeFullWellSaturation(true),
   includeDigitalSaturation(true),
@@ -55,15 +59,15 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 	biasMap.zeros(numRowsBiasMap, numColumnsPixelMap);
 	smearingMap.zeros(numRowsSmearingMap, numColumnsPixelMap);
 	flatfieldMap.ones(numRowsSubPixelMap, numColumnsSubPixelMap);
-	vignettingMap.ones(numRowsPixelMap, numColumnsPixelMap);
+	throughputMap.ones(numRowsPixelMap, numColumnsPixelMap);
 
 	// Generate the flatfield map 
 
 	generateFlatfieldMap();
 
-	// Generate the vignetting map
+	// Generate the throughput map (vignetting + polarisation + particulate & molecular contamination + quantum efficiency)
 
-	generateVignettingMap();
+	generateThroughputMap();
 
 
 	// Set the seeds of the random number generators
@@ -108,20 +112,25 @@ Detector::~Detector()
  {
  	// Configuration parameters for the CCD detector
 
-    originOffsetX              = configParam.getDouble("CCD/OriginOffsetX");
-    originOffsetY              = configParam.getDouble("CCD/OriginOffsetY");
-    orientationAngle           = deg2rad(configParam.getDouble("CCD/Orientation"));
-    numRows                    = configParam.getInteger("CCD/NumRows");
-    numColumns                 = configParam.getInteger("CCD/NumColumns");
-    pixelSize                  = configParam.getDouble("CCD/PixelSize");
-    gain                       = configParam.getInteger("CCD/Gain");
-    quantumEfficiency          = configParam.getDouble("CCD/QuantumEfficiency");
-    fullWellSaturationLimit    = configParam.getLong("CCD/FullWellSaturation");
-    digitalSaturationLimit     = configParam.getLong("CCD/DigitalSaturation");
-    readoutNoise               = configParam.getDouble("CCD/ReadoutNoise");
-    electronicOffset           = configParam.getInteger("CCD/ElectronicOffset");
-    readoutTime                = configParam.getDouble("CCD/ReadoutTime");
-    flatfieldNoiseAmplitude    = configParam.getDouble("CCD/FlatfieldPtPNoise");
+    originOffsetX              			= configParam.getDouble("CCD/OriginOffsetX");
+    originOffsetY              			= configParam.getDouble("CCD/OriginOffsetY");
+    orientationAngle           			= deg2rad(configParam.getDouble("CCD/Orientation"));
+    numRows                    			= configParam.getInteger("CCD/NumRows");
+    numColumns                 			= configParam.getInteger("CCD/NumColumns");
+    pixelSize                  			= configParam.getDouble("CCD/PixelSize");
+    gain                       			= configParam.getInteger("CCD/Gain");
+    quantumEfficiency          			= configParam.getDouble("CCD/QuantumEfficiency/Efficiency");
+    refAngleQuantumEfficiency            = configParam.getDouble("CCD/QuantumEfficiency/RefAngle");
+    expectedValueQuantumEfficiency       = configParam.getDouble("CCD/QuantumEfficiency/ExpectedValue");
+    fullWellSaturationLimit    			= configParam.getLong("CCD/FullWellSaturation");
+    digitalSaturationLimit     			= configParam.getLong("CCD/DigitalSaturation");
+    readoutNoise              			= configParam.getDouble("CCD/ReadoutNoise");
+    electronicOffset           			= configParam.getInteger("CCD/ElectronicOffset");
+    readoutTime                			= configParam.getDouble("CCD/ReadoutTime");
+    flatfieldNoiseAmplitude    			= configParam.getDouble("CCD/FlatfieldPtPNoise");
+    expectedValueVignetting              = configParam.getDouble("CCD/Vignetting/ExpectedValue");
+    particulateContaminationEfficiency 	= configParam.getDouble("CCD/Contamination/ParticulateContaminationEfficiency");
+    molecularContaminationEfficiency     = configParam.getDouble("CCD/Contamination/MolecularContaminationEfficiency");
 
     CTImodel                   = configParam.getString("CCD/CTI/Model");
     if (CTImodel == "Simple")
@@ -143,17 +152,27 @@ Detector::~Detector()
         throw ConfigurationException("Detector: Unkown CTI model specification in configuration file");
     }
 
-    includeFlatfield           = configParam.getBoolean("CCD/IncludeFlatfield");
-    includePhotonNoise         = configParam.getBoolean("CCD/IncludePhotonNoise");
-    includeReadoutNoise        = configParam.getBoolean("CCD/IncludeReadoutNoise");   
-    includeCTIeffects          = configParam.getBoolean("CCD/IncludeCTIeffects");  
-    includeOpenShutterSmearing = configParam.getBoolean("CCD/IncludeOpenShutterSmearing");
-    includeVignetting          = configParam.getBoolean("CCD/IncludeVignetting");
-    writeSubPixelImagesToHDF5  = configParam.getBoolean("CCD/WriteSubPixelImagesToHDF5");
-    includeConvolution         = configParam.getBoolean("CCD/IncludeConvolution");
-    includeFullWellSaturation  = configParam.getBoolean("CCD/IncludeFullWellSaturation");
-    includeDigitalSaturation   = configParam.getBoolean("CCD/IncludeDigitalSaturation");
-    writeSubPixelImagesToHDF5  = configParam.getBoolean("CCD/WriteSubPixelImagesToHDF5");
+    polarizationEfficiency = configParam.getDouble("CCD/Polarization/Efficiency");
+    refAnglePolarization = configParam.getDouble("CCD/Polarization/RefAngle");
+    expectedValuePolarization = configParam.getDouble("CCD/Polarization/ExpectedValue");
+
+
+
+    includeFlatfield                = configParam.getBoolean("CCD/IncludeFlatfield");
+    includeParticulateContamination = configParam.getBoolean("CCD/IncludeParticulateContamination");
+    includeMolecularContamination   = configParam.getBoolean("CCD/IncludeMolecularContamination");
+    includePhotonNoise              = configParam.getBoolean("CCD/IncludePhotonNoise");
+    includeReadoutNoise             = configParam.getBoolean("CCD/IncludeReadoutNoise");
+    includeCTIeffects               = configParam.getBoolean("CCD/IncludeCTIeffects");
+    includeOpenShutterSmearing      = configParam.getBoolean("CCD/IncludeOpenShutterSmearing");
+    includeQuantumEfficiency        = configParam.getBoolean("CCD/IncludeQuantumEfficiency");
+    includeVignetting               = configParam.getBoolean("CCD/IncludeVignetting");
+    includePolarization             = configParam.getBoolean("CCD/IncludePolarization");
+    writeSubPixelImagesToHDF5       = configParam.getBoolean("CCD/WriteSubPixelImagesToHDF5");
+    includeConvolution              = configParam.getBoolean("CCD/IncludeConvolution");
+    includeFullWellSaturation       = configParam.getBoolean("CCD/IncludeFullWellSaturation");
+    includeDigitalSaturation        = configParam.getBoolean("CCD/IncludeDigitalSaturation");
+    writeSubPixelImagesToHDF5       = configParam.getBoolean("CCD/WriteSubPixelImagesToHDF5");
 
     // Configuration parameters for the subfield
 
@@ -288,44 +307,95 @@ void Detector::generateFlatfieldMap()
 
 
 /**
- * \brief Generate the vignetting map containing for each subfield pixel the vignetting brightness 
- *        attenuation factor. Each array value is a value between 0 and 1.
+ *\brief Generate throughput map, containing for each sub-field pixel the combined throughput efficiency
+ *       of vignetting, polarisation, particulate & molecular contamination, and quantum efficiency.  Each
+ *       array value is a value between 0 and 1.
  * 
  * \details Because of vignetting, the stars at the edge of the FOV look dimmer than the stars close
  *          to the optical axis. If the incoming flux before vignetting at pixel (i,j) is F(i,j), 
  *          then the flux after vignetting taken into account is F(i,j) * vignettingMap(i,j).
+ *          Because of contamination (both particulate and molecular) the throughput efficiency
+ *          decreases over the entire FOV by the same factor.
  *          
- * \note    The vignetting map is written to the HDF5 map.
+ * \note    The throughput map is written to the HDF5 map.
  */
 
-void Detector::generateVignettingMap()
+void Detector::generateThroughputMap()
 {
-	Log.info("Detector: generating vignetting map.");
+	Log.info("Detector: generating throughput map.");
 
-	for (int row = 0; row < pixelMap.n_rows; row++)
+	double xFPmm, yFPmm;
+	double angle;
+
+	const double refAnglePolarizationRadians = deg2rad(refAnglePolarization);		// Reference angle for the polarisation efficiency [radians]
+	const double cosPolarizationEfficiency = cos(polarizationEfficiency);
+
+	const double refAngleQuantumEfficiencyRadians = deg2rad(refAngleQuantumEfficiency);		// Reference angle for the quantum efficiency [radians]
+	const double cosQuantumEfficiency = cos(quantumEfficiency);
+
+	if (includeVignetting || includePolarization || includeQuantumEfficiency)
 	{
-		for (int column = 0; column < pixelMap.n_cols; column++)
+		// Loop over all pixels in the pixel map
+
+		for (unsigned int row = 0; row < numRowsPixelMap; row++)
 		{
-			// For each pixel in the pixel map, compute first the focal plane coordinates
 
-			double xFPmm, yFPmm;
-			tie(xFPmm, yFPmm) = pixelToFocalPlaneCoordinates(row, column);
+			for (unsigned int column = 0; column < numColumnsPixelMap;
+					column++)
+			{
 
-			// Get the angular distance [rad] of the pixel from the optical axis
+				// Pixel coordinates (in the detector) -> focal-plane coordinates
 
-			const double angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm); 
+				tie(xFPmm, yFPmm) = pixelToFocalPlaneCoordinates(row, column);
 
-			// Compute the geometrical vignetting attentuation factor
+				// Angular distance [radians] of the pixel from the optical axis
 
-			vignettingMap(row, column) = cos(angle) * cos(angle);
+				angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm,
+						yFPmm);
+
+				// Vignetting
+
+				if (includeVignetting)
+					throughputMap(row, column) *= pow(cos(angle), 2);
+
+				// Polarisation
+
+				if (includePolarization)
+					throughputMap(row, column) *= cos(
+							angle / refAnglePolarizationRadians
+									* cosPolarizationEfficiency);// Eq. 4-11 in PLATO-DLR-PL-RP-001
+
+				// Quantum efficiency
+				// Pixel units before: [photons]
+				// Pixel units after: [electrons]
+
+				if (includeQuantumEfficiency)
+					throughputMap(row, column) *= cos(
+							angle / refAngleQuantumEfficiencyRadians
+									* cosQuantumEfficiency);// Eq. 4-12 in PLATO-DLR-PL-RP-001
+			}
 		}
+	}
+
+	// Particulate contamination
+
+	if(includeParticulateContamination)
+	{
+		throughputMap *= particulateContaminationEfficiency;	// Sect. 4.2.4.3 in PLATO-DLR-PL-RP-001
+	}
+
+	// Molecular contamination
+
+	if(includeMolecularContamination)
+	{
+		throughputMap *= molecularContaminationEfficiency;	// Sect. 4.2.4.4 in PLATO-DLR-PL-RP-001
 	}
 
 	// Write the result to HDF5
 
-	Log.debug("Detector: writing vignetting map to HDF5");
+	Log.debug("Detector: writing throughput map to HDF5");
 
-	hdf5File.writeArray("/Vignetting", "vignettingMap", vignettingMap);
+	hdf5File.writeArray("/Throughput", "throughputMap", throughputMap);
 }
 
 
@@ -439,7 +509,8 @@ double Detector::takeExposure(double startTime, double exposureTime)
  *         to spacecraft jitter is taken into account. 
  *         
  *  \details  Besides jitter, also the sky background, and the flatfield is taken into 
- *            account. The sub-pixel map is rebinned in a pixel map.
+ *            account. The sub-pixel map is rebinned in a pixel map.  After rebinning,
+ *            vignetting and polarisation are applied (if applicable).
  *
  * \note The convolution with the PSF is not yet done here.
  *
@@ -470,7 +541,7 @@ void Detector::integrateLight(double startTime, double exposureTime)
     {
         Log.debug("Detector: applying Flatfield.");
 
-    	applyFlatfield();
+        applyFlatfield();
     }
     else
     {
@@ -479,23 +550,13 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 	// Rebin from a subpixel map to a pixel map
 
-	Log.debug("Detector: rebinning subpixel map into pixel map.");
+	Log.debug("Detector: rebinning sub-pixel map into pixel map.");
 
 	rebin();
 
-	// Apply vignetting on the pixel map
+	// Apply throughput efficiency on the pixel map
 
-	if (includeVignetting)
-	{
-        Log.debug("Detector: applying vignetting");
-
-        applyVignetting();
-    }
-    else
-    {
-        Log.debug("Detector: no vignetting applied.");
-    }
-
+	applyThroughputEfficiency();
 }
 
 
@@ -662,28 +723,6 @@ void Detector::addFlux(double flux)
 
 
 /**
- * \brief Apply vignetting. This is the brightness attenuation towards the edges of the FOV
- * 
- */
-
-void Detector::applyVignetting()
-{
-    pixelMap = pixelMap % vignettingMap;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-/**
  * \brief: Multiply the sub-pixel map with the flatfield.
  * 
  * NOTE: The sub-pixel map contains extra edge pixels, but the flatfield
@@ -755,8 +794,33 @@ void Detector::rebin()
 
 
 /**
+ * \brief Apply throughput efficiency. This is the combined effect of:
+ * 			- vignetting (brightness attenuation towards the edges of the FOV);
+ * 			- particulate contamination;
+ * 			- molecular contamination;
+ * 			- quantum efficiency.
+ */
+
+void Detector::applyThroughputEfficiency()
+{
+    pixelMap = pixelMap % throughputMap;		// Element-wise multiplication with the throughput map
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
  * \brief: Reads out the detector and apply the following effects:
- *   		- quantum efficiency
  * 	 		- photon noise
  *   		- full-well saturation (i.e. blooming)
  * 	 		- CTE
@@ -775,11 +839,6 @@ void Detector::rebin()
  */
 void Detector::readOut(float exposureTime)
 {
-	// Apply quantum efficiency
-	// Pixel units before: [photons]
-	// Pixel units after: [electrons]
-
-	applyQuantumEfficiency();
 
 	// Apply poisson distributed photon noise
 	// Pixel units before: [electrons]
@@ -896,31 +955,6 @@ void Detector::readOut(float exposureTime)
     {
         Log.debug("Detector: no digital saturation applied.");
     }
-}
-
-
-
-
-
-
-
-
-
-/**
- * \brief: Apply quantum efficiency to the pixel.  The pixel values
- *         are multiplied by the quantum efficiency of the detector.
- *
- * \pre Pixel unit in the pixel map: [photons].
- * \pre Bias and smearing maps filled with zeroes.
- *
- * \pre Pixel unit in the pixel map: [electrons].
- * \post Bias and smearing maps filled with zeroes.
- */
-void Detector::applyQuantumEfficiency()
-{
-  	Log.debug("Detector: applying quantum efficiency to pixelMap (quantumEfficiency=" + to_string(quantumEfficiency) + ").");
-
-   	pixelMap *= quantumEfficiency;
 }
 
 
@@ -1373,7 +1407,26 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
 
 	arma::Row<float> openShutterSmearing = arma::sum(pixelMap, 0);
 
-	float openShutterSmearingOutsideSubField = camera.getTotalSkyBackground() * quantumEfficiency * (numRows - numRowsPixelMap + numRowsBiasMap + numRowsSmearingMap);
+	float openShutterSmearingOutsideSubField = camera.getTotalSkyBackground() * (numRows - numRowsPixelMap + numRowsBiasMap + numRowsSmearingMap);
+
+	// Apply all throughput efficiencies
+
+	if(includeVignetting)
+		openShutterSmearingOutsideSubField *= expectedValueVignetting;
+
+	if(includePolarization)
+		openShutterSmearingOutsideSubField *= expectedValuePolarization;
+
+	if(includeParticulateContamination)
+		openShutterSmearingOutsideSubField *= particulateContaminationEfficiency;
+
+	if(includeMolecularContamination)
+		openShutterSmearingOutsideSubField *= molecularContaminationEfficiency;
+
+	if(includeQuantumEfficiency)
+		openShutterSmearingOutsideSubField *= expectedValueQuantumEfficiency;
+
+
 	openShutterSmearing += openShutterSmearingOutsideSubField;
 
 	float factor = (readoutTime / exposureTime) / numRows;
@@ -1941,7 +1994,7 @@ void Detector::initHDF5Groups()
 	hdf5File.createGroup("/BiasMaps");
 	hdf5File.createGroup("/SmearingMaps");
 	hdf5File.createGroup("/Flatfield");
-	hdf5File.createGroup("/Vignetting");
+	hdf5File.createGroup("/Throughput");
 
 	if (writeSubPixelImagesToHDF5)
 	{
