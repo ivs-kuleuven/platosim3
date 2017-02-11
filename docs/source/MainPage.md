@@ -55,6 +55,8 @@ However, this will only work smoothly if you did not change any of the PlatoSim3
 
 At a later stage, releases will be distributed.  We will then extend the documentation accordingly.
 
+Please note that you have to re-build the code each time you fetch software changes. How to do this is explained [here](#build&install).
+
 @image html /images/gitHub.png "Figure 1: Screenshot of the GitHub web interface."
 
 After you have downloaded the PlatoSim3 code, you first have to install a few packages (so-called [dependencies](#dependencies)) before you can actually build and run the PLATO Simulator.  The next sub-sections describe the [requirements](#requirements), and the procedures to install the [dependencies](#dependencies) and to [build](#build&install) the PlatoSim3 code.
@@ -180,7 +182,8 @@ The structure of the input file and the meaning of the individual configuration 
 
 Note that - before running PlatoSim3 - you must have an environment variable <code>PLATO_PROJECT_HOME</code>, set to the base folder of PlatoSim3.
 
-If you want to use realistic PSF models instead of a Gaussian, you can download these from <a href="ftp://ftp.ster.kuleuven.be/dist/Plato/PlatoSim3/psf.hdf5">our FTP server</a>.  A convenient place to store this file is in the <code>/inputfiles</code> directory.
+If you want to use realistic PSF models instead of a Gaussian, you can download these from <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/psf.hdf5
+">our FTP server</a>.  A convenient place to store this file is in the <code>/inputfiles</code> directory.
 
 <!-- Accessing the Output -->
 <!-- ********************* -->
@@ -188,6 +191,10 @@ If you want to use realistic PSF models instead of a Gaussian, you can download 
 ### <a name="output"></a>Output
 
 The output of the simulations with PlatoSim3 is stored as an HDF5 file.  The structure of such files and how to access (and visualise) the content is described @ref OutputFileDescription "here".
+
+Note that the x-axis is defined along the serial readout register and corresponds to the columns of the detector (and therefore of the pixel and sub-pixel map).  The y-axis corresponds to the rows of the detector (and therefore of the pixel and sub-pixel map).  In Python, for example, the <code>imshow()</code> method of <code>matplotlib</code> transposes the image as it tries to mimic Matlab.
+
+The <code>Armadillo</code> arrays (that are used internally to store the maps) are column-major rather than row-major.
 
 
 
