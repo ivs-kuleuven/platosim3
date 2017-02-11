@@ -35,7 +35,8 @@ class Platform : public Heartbeat, HDF5Writer
         virtual void configure(ConfigurationParameters &configParams);
 
         void setPointingCoordinates(double rightAscencsion, double declination, Unit unit = Angle::degrees);
-        pair<double, double> getPointingCoordinates(double time);
+        void updatePointingCoordinates(double time);
+        pair<double, double> getCurrentPointingCoordinates();
         pair<double, double> getInitialPointingCoordinates();
 
 
@@ -43,7 +44,7 @@ class Platform : public Heartbeat, HDF5Writer
 
         arma::colvec spacecraftToEquatorialCoordinates(arma::colvec &coordSC, bool useOriginalPointingCoordinates=false);
 
-
+	tuple<double, double, double> getNextYawPitchRoll(double timeInterval);
 
 
     protected:
@@ -56,10 +57,12 @@ class Platform : public Heartbeat, HDF5Writer
 
         bool useJitter;                             // If false, the yaw, pitch, and roll, are always zero.
         double internalTime;                        // [s]
-        double currentRA;                           // Current right Ascension of spacecraft pointing axis (zSC-axis) [rad]
-        double currentDec;                          // Current declination     of spacecraft pointing axis (zSC-axis) [rad]
+        double currentRA;                           // Current right Ascension of spacecraft pointing axis (zSC-axis)             [rad]
+        double currentDec;                          // Current declination     of spacecraft pointing axis (zSC-axis)             [rad]
         double originalRA;                          // Original user-given right Ascension of spacecraft pointing axis (zSC-axis) [rad]
         double originalDec;                         // Original user-given declination     of spacecraft pointing axis (zSC-axis) [rad]
+        double raSun;                               // Right ascension of the direction of the sun shield during the run          [rad]
+        double decSun;                              // Declination of the direction of the sun shield during the run              [rad]
 
         JitterGenerator &jitterGenerator; 
  
