@@ -8,6 +8,8 @@
 #include <map>
 #include <array>
 
+#include "armadillo"
+
 #include "ArrayOperations.h"
 #include "ConfigurationParameters.h"
 #include "Constants.h"
@@ -45,9 +47,8 @@ class Camera : public HDF5Writer
 
         virtual arma::fmat getRebinnedPsfForFocalPlaneCoordinates(double xFPmm, double yFPmm, unsigned int targetSubPixels, double orientationAngle);
 
-        pair<double, double> skyToFocalPlaneCoordinates(double raStar, double decStar, double raOpticalAxis, double decOpticalAxis, double focalPlaneAngle);
-        pair<double, double> focalPlaneToSkyCoordinates(double xFPprime, double yFPprime);
-
+        pair<double, double> skyToFocalPlaneCoordinates(double raStar, double decStar, bool useInitialOrientation=false);
+        pair<double, double> focalPlaneToSkyCoordinates(double xFP, double yFP, bool useInitialOrientation=false);
 
         pair<double, double> undistortedToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm);
         pair<double, double> distortedToUndistortedFocalPlaneCoordinates(double xFPdist, double yFPdist);
@@ -84,17 +85,17 @@ class Camera : public HDF5Writer
         Polynomial1D polynomial;
         Polynomial1D inversePolynomial;
 
-        bool includeFieldDistortion;          // Wheter or not field distortion should be included
+        bool includeFieldDistortion;      // Wheter or not field distortion should be included
 
-        double userGivenSkyBackground;        // User-set zodiacal + stellar sky background. [phot/pix/s]
-                                              // If negative, computed by the Sky class
+        double userGivenSkyBackground;    // User-set zodiacal + stellar sky background.                        [phot/pix/s]
+                                          // If negative, computed by the Sky class
+        double fluxOfV0Star;              // Photon flux of a V=0 (G2V) star                                    [phot/s/m^2/nm]
+
         double raSun;                     // Right ascension of the direction of the sun shield during the run  [rad]
         double decSun;                    // Declination of the direction of the sun shield during the run      [rad]
 
-        double fluxOfV0Star;                  // Photon flux of a V=0 (G2V) star [phot/s/m^2/nm]
 
-        // detectedStarInfo[startTime][starID] contains the values 
-        //    (xFPmean, yFPmean, rowPixMean, colPixmean, sumFlux, Ndetections)
+        // detectedStarInfo[startTime][starID] contains the values (xFPmean, yFPmean, rowPixMean, colPixmean, sumFlux, Ndetections)
 
         map<double, map<unsigned int, array<double, 6>>> detectedStarInfo;
         vector<double> skyBackgroundValues;

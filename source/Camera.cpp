@@ -374,7 +374,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     {
         // Let the telescope pointing evolve over a small time interval
 
-        telescope.updatePointingCoordinates(internalTime);
+        telescope.updateTelescopeOrientation(internalTime);
 
         // Loop over all stars in the catalog, and add their flux to the subfield
 
@@ -516,6 +516,9 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
 
 
+
+
+
 /**
  * \brief      Select the PSF for the given focal plane coordinates
  *
@@ -639,52 +642,90 @@ double Camera::getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double 
  *
  * \param raStar          Right ascension of the star [rad]
  * \param decStar         Declination of the star [rad]
- * \param raOpticalAxis   Right ascension of the optical axis [rad]
- * \param decOpticalAxis  Declination of the optical axis [rad]
- * \param focalPlaneAngle The Focal Plane Orientation [rad]
+ * \param useInitialOrientation  true: use initial orientation of telescope and platform (i.e. before first exposure)
+ *                               false: use current (jittered and drifted) telescope and platform orientation   
  *
- * return pair (x,y):  Cartesian coordinate of the projected star in the focal plane in the FP-prime system [mm]
+ * return pair (xFP,yFP): Cartesian coordinate of the projected star in the focal plane in the FP system.
+ *                        The unit is the same as the one of the focal length, usually [mm].
  */
 
-pair<double, double> Camera::skyToFocalPlaneCoordinates(double raStar, double decStar, double raOpticalAxis, double decOpticalAxis, double focalPlaneAngle)
+pair<double, double> Camera::skyToFocalPlaneCoordinates(double raStar, double decStar, bool useInitialOrientation)
 {
+    // Retrieve the current telescope orientation angles
 
-    // Convert the equatorial sky coordinate of the star to equatorial cartesian coordinates on the unit sphere
+    double azimuthAngle, tiltAngle, focalPlaneAngle, raPlatform, decPlatform;
+    if (useInitialOrientation)
+    {
+        tie(azimuthAngle, tiltAngle, focalPlaneAngle, raPlatform, decPlatform) = telescope.getInitialTelescopeOrientation();
+    }
+    else
+    {
+        tie(azimuthAngle, tiltAngle, focalPlaneAngle, raPlatform, decPlatform) = telescope.getCurrentTelescopeOrientation();
+    }
 
-    arma::vec vecEQ = {cos(decStar) * cos(raStar), cos(decStar) * sin(raStar), sin(decStar)};
+    // Compute the equatorial cartesian coordinates of the unit vector along the z-axis (= roll = pointing axis) of the platform.
+    // The x-axis of the platform points to the highest point fof the sunshield, which is pointing to the (average) sky position
+    // of the Sun.
 
-    // Convert the equatorial cartesian coordinates to focal plane cartesian coordinates.
+    double deltax = atan(-cos(raPlatform-raSun) / tan(decPlatform));
+    arma::colvec zSC = {cos(decPlatform)*cos(raPlatform), cos(decPlatform)*sin(raPlatform), sin(decPlatform)};
+    arma::colvec xSC = {cos(deltax)*cos(raSun), cos(deltax)*sin(raSun), sin(deltax)};
+    arma::colvec ySC = arma::cross(zSC, xSC);
 
-    arma::mat rotMatrix1;
-    rotMatrix1 <<  cos(raOpticalAxis) << sin(raOpticalAxis) <<  0 << arma::endr
-               << -sin(raOpticalAxis) << cos(raOpticalAxis) <<  0 << arma::endr
-               <<          0          <<          0         <<  1 << arma::endr;
+    // Compute the rotation matrix to convert cartesian coordinates in the equatorial reference frame to 
+    // cartesian coordinates in the spacecraft framework.
 
-    arma::mat rotMatrix2;
-    rotMatrix2 << sin(decOpticalAxis) << 0 << -cos(decOpticalAxis) << arma::endr
-               <<          0          << 1 <<          0           << arma::endr
-               << cos(decOpticalAxis) << 0 <<  sin(decOpticalAxis) << arma::endr;
+    arma::mat rotEQ2SC;
+    rotEQ2SC << xSC[0] << xSC[1] << xSC[2] << arma::endr
+             << ySC[0] << ySC[1] << ySC[2] << arma::endr
+             << zSC[0] << zSC[1] << zSC[2] << arma::endr;
 
-    arma::vec vecFP = rotMatrix2 * rotMatrix1 * vecEQ;
+    
+    // Compute the rotation matrix to convert cartesian coordinates in the spacecraft reference frame to 
+    // cartesian coordinates in the telescope reference frame
 
-    // Take into account the projection effect of the pinhole camera
-    // Note that the pinhole reverses the image, hence the minus signs.
-    // The focalLength is assumed to be in [mm] so that the (xFP, yFP) coordinates are also in [mm].
+    arma::mat rotAzimuth;
+    rotAzimuth << cos(azimuthAngle) << -sin(azimuthAngle) << 0 << arma::endr
+               << sin(azimuthAngle) <<  cos(azimuthAngle) << 0 << arma::endr
+               <<        0          <<         0          << 1 << arma::endr;
 
-    const double xFP = -focalLength * vecFP(0)/vecFP(2);
-    const double yFP = -focalLength * vecFP(1)/vecFP(2);
+    arma::mat rotTilt;
+    rotTilt << cos(tiltAngle) << 0 << -sin(tiltAngle) << arma::endr
+            <<       0        << 1 <<        0        << arma::endr
+            << sin(tiltAngle) << 0 <<  cos(tiltAngle) << arma:: endr;
 
-    // Convert the FP coordinates into FP' coordinates 
+    arma::mat rotSC2TL = rotTilt * rotAzimuth;
 
-    const double xFPprime =  xFP * cos(focalPlaneAngle) + yFP * sin(focalPlaneAngle);
-    const double yFPprime = -xFP * sin(focalPlaneAngle) + yFP * cos(focalPlaneAngle);
+    // Compute the rotation matrix to convert cartesian coordinates in the telescope reference frame to
+    // cartesian coordinates in the focal plane reference frame
 
-    // That's it!
+    arma::mat rotTL2FP;
+    rotTL2FP <<  cos(focalPlaneAngle) << sin(focalPlaneAngle) << 0 << arma::endr
+             << -sin(focalPlaneAngle) << cos(focalPlaneAngle) << 0 << arma::endr
+             <<           0           <<           0          << 1 << arma::endr;
 
-    return make_pair(xFPprime, yFPprime);
+    // Combine all the rotation matrices
+
+    arma::mat rotEQ2FP = rotTL2FP * rotSC2TL * rotEQ2SC;
+
+    // Compute the cartesian coordinates of the star in the equatorial reference frame
+
+    arma::colvec starEQ = {cos(decStar)*cos(raStar), cos(decStar)*sin(raStar), sin(decStar)};
+
+    // Transform these coordinates to the corresponding ones in the focal plane reference frame:
+
+    arma::colvec starFP = rotEQ2FP * starEQ;
+
+    // Convert the units to the one of focalLength (usually [mm]), and normalize the coordinates 
+    // to take into account the pinhole camera projection.
+
+    double xFP = - focalLength * starFP[0]/starFP[2];
+    double yFP = - focalLength * starFP[1]/starFP[2];
+
+    // That's it
+
+    return make_pair(xFP, yFP);
 }
-
-
 
 
 
@@ -699,61 +740,94 @@ pair<double, double> Camera::skyToFocalPlaneCoordinates(double raStar, double de
 
 
 /**
- * \brief Compute the equatorial sky coordinates of a star which has the given focal plane (FP') coordinates (x,y),
+ * \brief Compute the equatorial sky coordinates of a star which has the given focal plane (FP) coordinates (x,y),
  *        assuming a pinhole camera model
  *        
- * \param xFPprime     Focal plane x-coordinate in the FP-prime system [mm]
- * \param yFPprime     Focal plane y-coordinate in the FP-prime system [mm]
- *
+ * \param xFP     Focal plane x-coordinate in the FP system [mm]
+ * \param yFP     Focal plane y-coordinate in the FP system [mm]
+ * \param useInitialOrientation  true: use initial orientation of telescope and platform (i.e. before first exposure)
+ *                               false: use current (jittered and drifted) telescope and platform orientation  
+ *                               
  * \return (alpha, delta)  Equatorial coordinates (RA & Dec) of the star [rad]
  */
 
-pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFPprime, double yFPprime)
+pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFP, double yFP, bool useInitialOrientation)
 {    
-    // Get the current equatorial coordinates of the optical axis [rad]
+    // Retrieve the current telescope orientation angles
+    
+    double azimuthAngle, tiltAngle, focalPlaneAngle, raPlatform, decPlatform;
+    if (useInitialOrientation)
+    {
+        tie(azimuthAngle, tiltAngle, focalPlaneAngle, raPlatform, decPlatform) = telescope.getInitialTelescopeOrientation();
+    }
+    else
+    {
+        tie(azimuthAngle, tiltAngle, focalPlaneAngle, raPlatform, decPlatform) = telescope.getCurrentTelescopeOrientation();
+    }
 
-    double raOpticalAxis, decOpticalAxis;
-    tie(raOpticalAxis, decOpticalAxis) = telescope.getCurrentPointingCoordinates();
 
-    // Get the current focal plane orientation
+    // Undo the reverse-image projection effect of the pinhole
 
-    const double focalPlaneAngle = telescope.getCurrentFocalPlaneOrientation();
+    arma::colvec vecFP = {-xFP/focalLength, -yFP/focalLength, 1.0};
 
-    // Convert the FP' coordinates in FP coordinates
+    // Compute the rotation matrix to convert cartesian coordinates in the focal plane reference frame to
+    // cartesian coordinates in the telescope reference frame
 
-    const double xFP =  xFPprime * cos(focalPlaneAngle) - yFPprime * sin(focalPlaneAngle);
-    const double yFP =  xFPprime * sin(focalPlaneAngle) + yFPprime * cos(focalPlaneAngle);
+    arma::mat rotFP2TL;
+    rotFP2TL << cos(focalPlaneAngle) << -sin(focalPlaneAngle) << 0 << arma::endr
+             << sin(focalPlaneAngle) <<  cos(focalPlaneAngle) << 0 << arma::endr
+             <<           0          <<           0          <<  1 << arma::endr;
 
-    // Undo the reverse-image projection effect of the pinhole.
-    // Both the focalLength and the (xFP, yFP) coordinates are assumed to be in [mm].
+    // Compute the rotation matrix to convert cartesian coordinates in the telescope reference frame to 
+    // cartesian coordinates in the spacecraft reference frame
 
-    arma::vec vecFP = {-xFP/focalLength, -yFP/focalLength, 1.0};
+    arma::mat rotAzimuth;
+    rotAzimuth <<  cos(azimuthAngle) << sin(azimuthAngle) << 0 << arma::endr
+               << -sin(azimuthAngle) << cos(azimuthAngle) << 0 << arma::endr
+               <<         0          <<         0         << 1 << arma::endr;
 
-    // Convert the focal plane cartesian coordinates to equatorial cartesian coordinates. 
+    arma::mat rotTilt;
+    rotTilt <<  cos(tiltAngle) << 0 << sin(tiltAngle) << arma::endr
+            <<        0        << 1 <<       0        << arma::endr
+            << -sin(tiltAngle) << 0 << cos(tiltAngle) << arma::endr;
 
-    arma::mat rotMatrix1;
-    rotMatrix1 <<  sin(decOpticalAxis) << 0 << cos(decOpticalAxis) << arma::endr
-               <<          0           << 1 <<          0          << arma::endr
-               << -cos(decOpticalAxis) << 0 << sin(decOpticalAxis) << arma::endr;
+    arma::mat rotTL2SC = rotAzimuth * rotTilt;
 
-    arma::mat rotMatrix2;
-    rotMatrix2 << cos(raOpticalAxis) << -sin(raOpticalAxis) <<  0 << arma::endr
-               << sin(raOpticalAxis) <<  cos(raOpticalAxis) <<  0 << arma::endr
-               <<          0         <<          0          <<  1 << arma::endr;
 
-    arma::vec vecEQ = rotMatrix2 * rotMatrix1 * vecFP;
+    // Compute the equatorial cartesian coordinates of the unit vector along the z-axis (= roll = pointing axis) of the platform.
+    // The x-axis of the platform points to the highest point fof the sunshield, which is pointing to the (average) sky position
+    // of the Sun.
 
+    double deltax = atan(- cos(raPlatform-raSun) / tan(decPlatform));
+    arma::colvec zSC = {cos(decPlatform)*cos(raPlatform), cos(decPlatform)*sin(raPlatform), sin(decPlatform)};
+    arma::colvec xSC = {cos(deltax)*cos(raSun), cos(deltax)*sin(raSun), sin(deltax)};
+    arma::colvec ySC = arma::cross(zSC, xSC);
+
+    // Compute the rotation matrix to convert cartesian coordinates in the equatorial reference frame to 
+    // cartesian coordinates in the spacecraft reference frame
+
+    arma::mat rotSC2EQ;
+    rotSC2EQ << xSC[0] << ySC[0] << zSC[0] << arma::endr
+             << xSC[1] << ySC[1] << zSC[1] << arma::endr
+             << xSC[2] << ySC[2] << zSC[2] << arma::endr;
+
+    // Combine all the rotation matrices
+
+    arma::mat rotFP2EQ = rotSC2EQ * rotTL2SC * rotFP2TL;
+
+    // Transform the unnormalized focal plane coordinates to the corresponding ones in the equatorial reference frame
+
+    arma::colvec vecEQ = rotFP2EQ * vecFP;
 
     // Convert the cartesian equatorial coordinates to equatorial sky coordinates
 
-    const double norm = sqrt(vecEQ(0)*vecEQ(0) + vecEQ(1)*vecEQ(1) + vecEQ(2)*vecEQ(2)); 
-    double decStar = Constants::PI/2.0 - acos(vecEQ(2)/norm);
-    double raStar = atan2(vecEQ(1), vecEQ(0));
+    double norm = sqrt(vecEQ[0]*vecEQ[0] + vecEQ[1]*vecEQ[1] + vecEQ[2]*vecEQ[2]); 
+    double decStar = Constants::PI/2.0 - acos(vecEQ[2]/norm);
+    double raStar = atan2(vecEQ[1], vecEQ[0]);
 
-    if (raStar < 0.0)
-    {
-        raStar += 2.*Constants::PI;
-    }
+    // Ensure that the right ascension is positive
+
+    if (raStar < 0.0) { raStar += 2.*Constants::PI; }
 
     // That's it!
 
@@ -761,22 +835,6 @@ pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFPprime, double 
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-}
 
 
 
@@ -809,6 +867,10 @@ pair<double, double> Camera::undistortedToDistortedFocalPlaneCoordinates(double 
     
     return make_pair(xFPdist, yFPdist);
 }
+
+
+
+
 
 
 
