@@ -238,6 +238,8 @@ void Camera::configure(ConfigurationParameters &configParam)
 
     fluxOfV0Star           = configParam.getDouble("ObservingParameters/Fluxm0");                 // [phot/s/m^2/nm]
     userGivenSkyBackground = configParam.getDouble("ObservingParameters/SkyBackground");          // [phot/pix/s]
+    raSun                  = deg2rad(configParam.getDouble("ObservingParameters/RASun"));         // [rad]    
+    decSun                 = deg2rad(configParam.getDouble("ObservingParameters/DecSun"));        // [rad]
 }
 
 
