@@ -6,6 +6,7 @@
 
 #include "Logger.h"
 #include "Units.h"
+#include "Constants.h"
 #include "Heartbeat.h"
 #include "HDF5Writer.h"
 #include "ConfigurationParameters.h"
@@ -28,16 +29,14 @@ class Telescope  : public Heartbeat, HDF5Writer
 
 		virtual void configure(ConfigurationParameters &configParam);
 
-		virtual void updatePointingCoordinates(double time);
-        pair<double, double> getCurrentPointingCoordinates();
-        pair<double, double> getInitialPointingCoordinates();
+        virtual void updateTelescopeOrientation(double time);
+        tuple<double, double, double, double, double> getCurrentTelescopeOrientation();
+        tuple<double, double, double, double, double> getInitialTelescopeOrientation();
 
         virtual double getHeartbeatInterval() override;
 
 		double getTransmissionEfficiency();
 		double getLightCollectingArea();
-        double getCurrentFocalPlaneOrientation();
-        double getInitialFocalPlaneOrientation();
 
 
 		pair<double, double> platformToTelescopePointingCoordinates(double alphaPlatfrom, double deltaPlatform);
