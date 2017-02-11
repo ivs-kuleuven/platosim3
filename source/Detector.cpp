@@ -586,7 +586,7 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 tuple<bool, double, double> Detector::addFlux(double xFP, double yFP, double flux)
 {
-	// Convert from FP' coordinates to CCD pixel coordinates
+	// Convert from FP coordinates to CCD pixel coordinates
 
 	double pixRow, pixColumn;
 	tie(pixRow, pixColumn) = focalPlaneToPixelCoordinates(xFP, yFP);
