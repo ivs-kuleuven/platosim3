@@ -83,6 +83,8 @@ Telescope::~Telescope()
 
     originalAzimuthAngle    = deg2rad(configParams.getDouble("Telescope/AzimuthAngle"));           // [rad]
     originalTiltAngle       = deg2rad(configParams.getDouble("Telescope/TiltAngle"));              // [rad]
+    raSun                   = deg2rad(configParams.getDouble("ObservingParameters/RASun"));        // [rad]
+    decSun                  = deg2rad(configParams.getDouble("ObservingParameters/DecSun"));       // [rad]
  	lightCollectingArea     = configParams.getDouble("Telescope/LightCollectingArea") * 1.e-4;     // [m^2]  
 	transmissionEfficiency  = configParams.getDouble("Telescope/TransmissionEfficiency");          // [unitless]
     useDrift                = configParams.getBoolean("Telescope/UseDrift");

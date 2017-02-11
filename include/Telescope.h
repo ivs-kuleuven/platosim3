@@ -60,7 +60,9 @@ class Telescope  : public Heartbeat, HDF5Writer
     	double driftPitchRms;                  // RMS of thermo-elastic drift in pitch                              [rad]
     	double driftRollRms;                   // RMS of thermo-elastic drift in roll                               [rad]
     	double driftTimeScale;                 // Timescale of thermo-elastic drift                                 [s]
-
+        double raSun;                          // Right ascension of the direction of the sun shield during the run [rad]
+        double decSun;                         // Declination of the direction of the sun shield during the run     [rad]
+ 
         bool useDrift;                         // If false, the yaw, pitch, and roll of the thermo-elastic drift are always zero.
 
         double originalFocalPlaneOrientation;  // As in the input file [rad]
