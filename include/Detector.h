@@ -36,7 +36,7 @@ class Detector : public HDF5Writer
         virtual void configure(ConfigurationParameters &configParam);
 
         pair<double, double> pixelToFocalPlaneCoordinates(double row, double column);
-        pair<double, double> focalPlaneToPixelCoordinates(double xFPprime, double yFPprime);
+        pair<double, double> focalPlaneToPixelCoordinates(double xFP, double yFP);
 
         pair<double, double> getFocalPlaneCoordinatesOfSubfieldCenter();
         tuple<double, double, double, double, double, double, double, double> getFocalPlaneCoordinatesOfSubfieldCorners();
@@ -44,7 +44,7 @@ class Detector : public HDF5Writer
         double getSolidAngleOfOnePixel(double plateScale);
         double getOrientationAngle();
 
-        virtual tuple<bool, double, double> addFlux(double xFPprime, double yFPprime, double flux);
+        virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux);
         virtual void addFlux(double flux);
 
         bool isInSubfield(double xFPmm, double yFPmm);

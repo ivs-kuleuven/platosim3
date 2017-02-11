@@ -513,22 +513,22 @@ void Detector::integrateLight(double startTime, double exposureTime)
  * \brief: Add the given flux value to the value of the sub-pixel that corresponds to the given coordinates 
  *         in the focal plane. Return the pixel coordinates of the pixel to which the flux was added.
  *
- * \param xFPprime   X-coordinate of the sub-pixel in the focal plane in the FP' reference frame [mm].
- * \param yFPprime   Y-coordinate of the sub-pixel in the focal plane in the FP' reference frame [mm].
- * \param flux       Flux to add to the sub-pixel map [photons].
+ * \param xFP   X-coordinate of the sub-pixel in the focal plane in the FP reference frame [mm].
+ * \param yFP   Y-coordinate of the sub-pixel in the focal plane in the FP reference frame [mm].
+ * \param flux  Flux to add to the sub-pixel map [photons].
  *
  * \return           (isInSubfield, row, col) 
- *                   isInSubfield: True if (xFPprime, yFPprime) are on the subfield, false otherwise.
+ *                   isInSubfield: True if (xFP, yFP) are on the subfield, false otherwise.
  *                   row:          subfield (not CCD) row number of the pixel to which the flux was added
  *                   col:          subfield (not CCD) column number of the pixel to which the flux was added  
  */
 
-tuple<bool, double, double> Detector::addFlux(double xFPprime, double yFPprime, double flux)
+tuple<bool, double, double> Detector::addFlux(double xFP, double yFP, double flux)
 {
 	// Convert from FP' coordinates to CCD pixel coordinates
 
 	double pixRow, pixColumn;
-	tie(pixRow, pixColumn) = focalPlaneToPixelCoordinates(xFPprime, yFPprime);
+	tie(pixRow, pixColumn) = focalPlaneToPixelCoordinates(xFP, yFP);
 
 	// Sub-field coordinates, taking into account the edge pixels 
 	// (subpixRow, subpixColumn) are the indices of the star in the subpixelMap. So they are not 
@@ -573,8 +573,8 @@ tuple<bool, double, double> Detector::addFlux(double xFPprime, double yFPprime, 
 /**
  * \brief Verify if a point with given planar focal plane coordinates is in the subfield
  * 
- * \param xFPprime    Planar focal plane x-coordinate in the FP' reference frame [mm]
- * \param yFPprime    Planar focal plane y-coordinate in the FP' reference frame [mm]
+ * \param xFP    Planar focal plane x-coordinate in the FP reference frame [mm]
+ * \param yFP    Planar focal plane y-coordinate in the FP reference frame [mm]
  * 
  * \return true if the point is in the subfield on the CCD, false otherwise.
  */
@@ -1580,7 +1580,7 @@ void Detector::applyDigitalSaturation()
 
 
 /**
- * \brief Compute the (x,y) coordinates [mm] in the FP' reference system (not the FP system) 
+ * \brief Compute the (x,y) coordinates [mm] in the FP reference system 
  *        given the (real-valued) pixel row and column numbers on the CCD.
  *        
  * \note  The rows correspond to the y-direction, and the columns to the x-direction.
@@ -1589,26 +1589,25 @@ void Detector::applyDigitalSaturation()
  * \param row     Row coordinate, real-valued (e.g. 3.5)    [pix]
  * \param column  Column coordinate, real-valued (e.g. 8.3) [pix]
  * 
- * \return (xFPprime, yFPprime)  A pair of (x,y) coordinates in the FP' reference system [mm]
+ * \return (xFP, yFP)  A pair of (x,y) coordinates in the FP reference system [mm]
  */
 
 pair<double, double> Detector::pixelToFocalPlaneCoordinates(double row, double column)
 {
+
     // Convert the pixel coordinates into [mm] coordinates
-    // The pixelSize is expressed in [micron].
 
-    double xCCDmm = column * pixelSize / 1000.0;
-    double yCCDmm = row * pixelSize / 1000.0;
+    const double xCCDmm = column * pixelSize / 1000.0;
+    const double yCCDmm = row * pixelSize / 1000.0;
 
-    // Convert the CCD coordinates into FP' coordinates [mm]
-    // Note: orientationAngle is in [rad], originOffsetX and originOffsetY in mm
+    // Convert the CCD coordinates into FP coordinates [mm]
 
-    double xFPprime = originOffsetX + xCCDmm * cos(orientationAngle) - yCCDmm * sin(orientationAngle);
-    double yFPprime = originOffsetY + xCCDmm * sin(orientationAngle) + yCCDmm * cos(orientationAngle);
+    const double xFP = (xCCDmm - originOffsetX) * cos(orientationAngle) - (yCCDmm - originOffsetY) * sin(orientationAngle);
+    const double yFP = (xCCDmm - originOffsetX) * sin(orientationAngle) + (yCCDmm - originOffsetY) * cos(orientationAngle);
 
     // That's it
 
-    return make_pair(xFPprime, yFPprime);
+    return make_pair(xFP, yFP);
 }
 
 
@@ -1622,29 +1621,28 @@ pair<double, double> Detector::pixelToFocalPlaneCoordinates(double row, double c
 
 /**
  * \brief Compute the (real-valued) pixel coordinates of the star on the CCD, given the 
- *        (x,y) coordinates [mm] in the FP' reference system (not the FP system)
+ *        (x,y) coordinates [mm] in the FP reference system
  *
- * \note  The rows correspond to the y-direction, and the columns to the x-direction.
- *        Pixel (row, col) = (0,0) starts at (yFP, xFP) = (0, 0).
+ * \note  - The rows correspond to the y-direction, and the columns to the x-direction.
+ *        - Pixel (row, col) = (0,0) starts at (yFP, xFP) = (0, 0).
  *        
- * \param xFPprime  x-coordinate of the point in the FP' reference system  [mm]
- * \param yFPprime  y-coordinate of the point in the FP' reference system  [mm]
+ * \param xFP  x-coordinate of the point in the FP reference system  [mm]
+ * \param yFP  y-coordinate of the point in the FP reference system  [mm]
  * 
- * \return (row, column)  Row and column pixel coordinates of the point (real-valued) [pix]
+ * \return (row, column)  row and column pixel coordinates of the point (real-valued) [pix]
  */
 
-pair<double, double> Detector::focalPlaneToPixelCoordinates(double xFPprime, double yFPprime)
+pair<double, double> Detector::focalPlaneToPixelCoordinates(double xFP, double yFP)
 {
-	// Convert the FP' coordinates into CCD coordinates [mm]
+    // Convert the FP coordinates into CCD coordinates [mm]
 
-    double xCCDmm =  (xFPprime-originOffsetX) * cos(orientationAngle) + (yFPprime-originOffsetY) * sin(orientationAngle);
-    double yCCDmm = -(xFPprime-originOffsetX) * sin(orientationAngle) + (yFPprime-originOffsetY) * cos(orientationAngle);
+    const double xCCDmm = originOffsetX + xFP * cos(orientationAngle) + yFP * sin(orientationAngle);
+    const double yCCDmm = originOffsetY - xFP * sin(orientationAngle) + yFP * cos(orientationAngle);
 
     // Convert the [mm] coordinates into pixel coordinates
-    // Note: the pixel size is expressed in [micron]
 
-    double column = xCCDmm / pixelSize * 1000.0;
-    double row = yCCDmm / pixelSize * 1000.0;
+    const double column = xCCDmm / pixelSize * 1000.0;
+    const double row = yCCDmm / pixelSize * 1000.0;
 
     // That's it
 
@@ -1665,7 +1663,7 @@ pair<double, double> Detector::focalPlaneToPixelCoordinates(double xFPprime, dou
 /**
  * \brief  Return the focal plane coordinates of the center pixel of the subfield
  * 
- * \return (xFPprime, yFPprime)   focal plane coordinates in the FP' reference system [mm]
+ * \return (xFP, yFP)   focal plane coordinates in the FP'reference system [mm]
  */
 
 pair<double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCenter()
@@ -1675,10 +1673,10 @@ pair<double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCenter()
 
     // The columns correspond to the x-coordinate, the rows to the y-coordinate
 
-    double xFPprime, yFPprime;
-    tie(xFPprime, yFPprime) = pixelToFocalPlaneCoordinates(centerRow, centerCol);
+    double xFP, yFP;
+    tie(xFP, yFP) = pixelToFocalPlaneCoordinates(centerRow, centerCol);
 
-	return make_pair(xFPprime, yFPprime);
+	return make_pair(xFP, yFP);
 }
 
 
@@ -1780,10 +1778,10 @@ void Detector::convolveWithPsf()
  *        of the subfield
  *        
  * \return (X00, Y00, X01, Y01, X11, Y11, X10, Y10)  [mm]
- *         where: (X00, Y00) are the FP' coordinates of the lower left corner of the subfield
- *                (X01, Y01) are the FP' coordinates of the lower right corner of the subfield
- *                (X11, Y11) are the FP' coordinates of the upper right corner of the subfield
- *                (X10, Y10) are the FP' coordinates of the upper left corner of the subfield
+ *         where: (X00, Y00) are the FP coordinates of the lower left corner of the subfield
+ *                (X01, Y01) are the FP coordinates of the lower right corner of the subfield
+ *                (X11, Y11) are the FP coordinates of the upper right corner of the subfield
+ *                (X10, Y10) are the FP coordinates of the upper left corner of the subfield
  */
 
 tuple<double, double, double, double, double, double, double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCorners()
