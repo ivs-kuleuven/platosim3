@@ -531,9 +531,14 @@ void Detector::integrateLight(double startTime, double exposureTime)
 
 	reset();
 
-	// Integration (incl. jitter) + background
+	// Integration (incl. jitter): point sources + background
 
 	camera.exposeDetector(*this, startTime, exposureTime);
+
+    // Convolve with the point spread function
+    // Detector was given the proper PSF in Simulation::run().
+
+    convolveWithPsf();
 
 	// Apply flatfield (at sub-pixel level)
 
