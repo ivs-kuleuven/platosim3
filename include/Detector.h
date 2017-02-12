@@ -12,6 +12,7 @@
 #include "ArrayOperations.h"
 #include "Camera.h"
 #include "ConfigurationParameters.h"
+#include "PointSpreadFunction.h"
 #include "Convolver.h"
 #include "HDF5File.h"
 #include "HDF5Writer.h"
@@ -48,9 +49,6 @@ class Detector: public HDF5Writer
 
     	bool isInSubfield(double xFPmm, double yFPmm);
 
-    	bool psfIsSet();
-    	void setPsfForSubfield();
-    	virtual void convolveWithPsf();
 
     protected:
 
@@ -86,6 +84,11 @@ class Detector: public HDF5Writer
     	virtual void initHDF5Groups() override;
     	void writePixelMapsToHDF5();
     	void writeSubPixelMapToHDF5();
+
+        void setPsfForSubfield();
+        virtual void convolveWithPsf();
+
+        PointSpreadFunction *psf;
 
     	arma::Mat<float> pixelMap;               // Pixel map, excl. edge pixels
     	arma::Mat<float> subPixelMap;            // Sub-pixel map, incl. edge pixels
@@ -155,7 +158,6 @@ class Detector: public HDF5Writer
     	bool includeConvolution; 				// Whether or not to convolve the subPixelMap with the PSF
     	bool includeFullWellSaturation; 		// Whether or not full well saturation should be applied
     	bool includeDigitalSaturation; 			// Whether or not digital saturation should be applied
-    	bool psfWasSet; 						// True if PSF for subfield was already initialised. False otherwise.
 
     	double internalTime;
 

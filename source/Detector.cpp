@@ -39,7 +39,6 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
   writeSubPixelImagesToHDF5(false),
   includeFullWellSaturation(true),
   includeDigitalSaturation(true),
-  psfWasSet(false), 
   internalTime(0.0), camera(camera), imageNr(0), subPixelImageNr(0)
 {
 	// Parse the parameters from the configuration file.
@@ -69,6 +68,11 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 
 	generateThroughputMap();
 
+    // Initialize and load the PSF. This will open the PSF HDF5 file and perform some basic checking, 
+    // Then select the proper PSF for the given subfield. Should only be done after calling configure().
+
+    psf = new PointSpreadFunction(configParam, hdf5file);
+    setPsfForSubfield();
 
 	// Set the seeds of the random number generators
 
@@ -90,6 +94,7 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 Detector::~Detector()
 {
 	flushOutput();
+    delete psf;
 }
 
 
@@ -440,7 +445,7 @@ void Detector::reset()
  *         the detector experiences the effects of jitter and thermo-elastic telescope 
  *         drift. The background is assumed uniform for the whole subfield.
  *         Afterwards, the collected light is read out, convolving the image with the
- *         PSF of the camera and adding various noise effects.
+ *         point spread function and adding various noise effects.
  *
  * \param startTime:    Starting time of the exposure [s].
  * \param exposureTime: Duration of the exposure [s].
@@ -512,8 +517,6 @@ double Detector::takeExposure(double startTime, double exposureTime)
  *            account. The sub-pixel map is rebinned in a pixel map.  After rebinning,
  *            vignetting and polarisation are applied (if applicable).
  *
- * \note The convolution with the PSF is not yet done here.
- *
  * \param startTime: Starting time of the exposure for which jitter must be applied [s].
  *
  * \pre Sub-pixel, pixel, bias register, and smearing map filled with values from previous exposure.
@@ -536,7 +539,6 @@ void Detector::integrateLight(double startTime, double exposureTime)
 	camera.exposeDetector(*this, startTime, exposureTime);
 
     // Convolve with the point spread function
-    // Detector was given the proper PSF in Simulation::run().
 
     convolveWithPsf();
 
@@ -1742,41 +1744,57 @@ pair<double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCenter()
 
 
 /**
- * \brief Return a boolean telling whether the PSF has been previously set, e.g.
- *        through setPsfForSubfield().
- * 
- * \return  true if the PSF was previously set, false otherwise
- */
-
-bool Detector::psfIsSet()
-{
-	return psfWasSet;
-}
-
-
-
-
-
-
-
-
-
-/**
  * \brief      Set the Point Spread Function map for the subfield
  * 
  * \details    The PSF that is selected is dependent on the user input.
  */
 void Detector::setPsfForSubfield()
 {
-    double centerXmm, centerYmm;
-    tie(centerXmm, centerYmm) = getFocalPlaneCoordinatesOfSubfieldCenter();
+    // There is one PSF for the entire subfield, which we take the one of the center 
+    // of the subfield.
 
-    arma::fmat psf = camera.getRebinnedPsfForFocalPlaneCoordinates(centerXmm, centerYmm, numSubPixelsPerPixel, getOrientationAngle());
+    double xFPmm, yFPmm;
+    tie(xFPmm, yFPmm) = getFocalPlaneCoordinatesOfSubfieldCenter();
 
-	convolver.initialise(numRowsSubPixelMap, numColumnsSubPixelMap, psf);
+    // Get the 'user specified' angular distance to the optical axis from the psf.
+    // If the user didn't specify an angular distance, calculate it from the given
+    // focal plane coordinates.
 
-    psfMap = psf;
-    psfWasSet = true;
+    double radius = psf->getRequestedDistanceToOpticalAxis();
+
+    if (radius < 0.0)
+    {
+        radius = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm);
+    }
+
+    psf->select(radius);
+
+
+    // Get the 'user specified' orientation angle from the psf.
+    // if the user didn't specify a rotation angle, calculate it 
+    // from the given focal plane coordinates.
+
+    double angle = psf->getRequestedRotationAngle();
+
+    if (angle < 0.0)
+    {
+        angle = atan2(yFPmm, xFPmm);
+    }
+
+    //  Compensate for the orientation of the CCD wrt focal plane orientation.
+
+    angle -= orientationAngle;
+    psf->rotate(angle);
+
+    // Rebin the psfMap to the number of sub-pixels per pixel used for the Detector
+
+    psfMap = psf->rebinToSubPixels(numSubPixelsPerPixel);
+
+    // Allow the convolver to precompute some stuff given the PSF, so that it doesn't
+    // need to be recomputed every convolution.
+
+	convolver.initialise(numRowsSubPixelMap, numColumnsSubPixelMap, psfMap);
+
 }
 
 
