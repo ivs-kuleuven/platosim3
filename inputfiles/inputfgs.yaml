@@ -74,6 +74,10 @@ FEE:
 
     NominalOperatingTemp:        210.15          # Nominal operating temperature of the FEE [K]
     ReadoutNoise:                40.5            # Readout noise for the FEE [e-/pixel]
+    Gain:
+        RefValue:                    11.1            # [ADU/µV] (Total gain = FFE gain * CCD gain = 20 e-/ADU)
+        Stability:                   -100.0          # [ppm/K] = [ADU/µV/K]
+        Delta:                       0.0             # Difference in gain betwwen both ADCs [%]
 
 CCD:
 
@@ -83,7 +87,11 @@ CCD:
     NumColumns:                  4510            # Number of columns [pixels]
     NumRows:                     4510            # Number of rows [pixels]
     PixelSize:                   18              # [micron]
-    Gain:                        58              # [e-/ADU]
+    Gain:                            #16              # [e-/ADU]
+        RefValue:                     1.80            # [µV/e-]
+        Stability:                   -0.004          # [µV/e-/K]
+        Delta:                       15.0             # Difference in gain between both CCD halves [%]
+        Delta:                       0.0             # Difference in gain between both CCD halves [%]
     QuantumEfficiency: 
         Efficiency:              0.925           # Throughput efficiency due to quantum efficiency at the reference angle
         RefAngle:                    45.0             # Reference angle for quantum efficiency [degrees]
@@ -113,6 +121,7 @@ CCD:
             TrapDensity:             [9.8, 3.31, 1.56, 13.24]                     # for each trap species [traps/pixel]
             TrapCaptureCrossSection: [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]     # for each trap species [m^2]
             ReleaseTime:             [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]         # for each trap species [s]
+    NominalOperatingTemp:            203.15          # Nominal operating temperature of the detector [K]
     IncludeFlatfield:                yes             # Include flatfield [yes or no]
     IncludePhotonNoise:              yes             # Include photon noise [yes or no]
     IncludeReadoutNoise:             yes             # Include readout noise [yes or no]
@@ -147,3 +156,5 @@ RandomSeeds:
     FlatFieldSeed:               1425284070      # Unique positive integer 
     CTESeed:                     1424949740      # Unique positive integer 
     DriftSeed:                   1433429158      # Unique positive integer 
+    FeeGainSeed:                 1429485030      # Unique positive integer
+    CcdGainSeed:                 1420450443      # Unique positive integer

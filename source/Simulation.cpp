@@ -357,6 +357,12 @@ void Simulation::writeInputParametersToHDF5(
 	addDouble("NominalOperatingTemp");
 	addDouble("ReadoutNoise");
 
+	subGroup = "FEE/Gain";
+	hdf5File.createGroup(parentGroup + "/" + subGroup);
+	addDouble("RefValue");
+	addDouble("Stability");
+	addDouble("Delta");
+
 	subGroup = "CCD";
 	hdf5File.createGroup(parentGroup + "/" + subGroup);
 	addDouble("OriginOffsetX");
@@ -365,13 +371,13 @@ void Simulation::writeInputParametersToHDF5(
 	addInteger("NumColumns");
 	addInteger("NumRows");
 	addDouble("PixelSize");
-	addInteger("Gain");
 	addLong("FullWellSaturation");
 	addInteger("DigitalSaturation");
 	addDouble("ReadoutNoise");
 	addInteger("ElectronicOffset");
 	addDouble("ReadoutTime");
 	addDouble("FlatfieldPtPNoise");
+	addDouble("NominalOperatingTemp");
 	addBoolean("IncludeFlatfield");
 	addBoolean("IncludePhotonNoise");
 	addBoolean("IncludeReadoutNoise");
@@ -386,6 +392,12 @@ void Simulation::writeInputParametersToHDF5(
 	addBoolean("IncludeFullWellSaturation");
 	addBoolean("IncludeDigitalSaturation");
 	addBoolean("WriteSubPixelImagesToHDF5");
+
+	subGroup = "CCD/Gain";
+	hdf5File.createGroup(parentGroup + "/" + subGroup);
+	addDouble("RefValue");
+	addDouble("Stability");
+	addDouble("Delta");
 
 	subGroup = "CCD/Vignetting";
 	hdf5File.createGroup(parentGroup + "/" + subGroup);
@@ -441,4 +453,6 @@ void Simulation::writeInputParametersToHDF5(
 	addLong("FlatFieldSeed");
 	addLong("CTESeed");
 	addLong("DriftSeed");
+	addLong("FeeGainSeed");
+	addLong("CcdGainSeed");
 }
