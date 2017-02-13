@@ -56,6 +56,8 @@ public:
 	void setPsfForSubfield();
 	virtual void convolveWithPsf();
 
+	virtual double getTemperature();
+
 protected:
 
 	virtual void reset();
@@ -77,6 +79,8 @@ protected:
 	virtual void applyGain();
 	virtual void addElectronicOffset();
 	virtual void applyDigitalSaturation();
+
+	virtual void generateGain();
 
 	void applySimpleCTImodel();
 	void applyShort2013CTImodel();
@@ -131,7 +135,15 @@ protected:
 	double expectedValueQuantumEfficiency; // Expected value of the throughput efficiency due to quantum efficiency
 	double readoutTime;                      // Readout time [s]
 	double readoutNoise;                     // Mean readout noise [electrons]
-	double gain;                             // Detector gain [electrons / ADU]
+
+	double refValueGain;						// Detector gain [µV/e-]
+	double gainStability;					// Gain stability [µV/e-]
+	double gainDelta;						// Allowed difference in detector gain between the left and the right half of the detector
+	double refValueGainLeft;								// Reference value for the gain on the ACD reading the left-hand side of the detector [µV/e-]
+	double refValueGainRight;							// Reference value for the gain on the ACD reading the right-hand side of the detector [µV/e-]
+	long gainSeed;
+
+
 	unsigned long fullWellSaturationLimit; // Full-well saturation limit [electrons/pixel]
 	unsigned int electronicOffset;           // Bias or electronic offset [ADU]
 	unsigned long digitalSaturationLimit; // Digital saturation limit [ADU / pixel]
@@ -172,6 +184,8 @@ protected:
 
 	poisson_distribution<long> photonNoiseDistribution;
 	normal_distribution<double> readoutNoiseDistribution;
+
+	double nominalOperatingTemperature;
 
 private:
 
