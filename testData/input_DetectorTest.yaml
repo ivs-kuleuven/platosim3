@@ -83,10 +83,10 @@ CCD:
     NumColumns:                  4510            # Number of columns [pixels]
     NumRows:                     4510            # Number of rows [pixels]
     PixelSize:                   18              # [micron]
-    Gain:                            #16              # [e-/ADU]
-        RefValue:                     1.80            # [µV/e-]
-        Stability:                   -0.004          # [µV/e-/K]
-        Delta:                       0.0              # Difference in gain between both CCD halves [%]
+    Gain:                            #16         # [e-/ADU]
+        RefValue:                     1.80       # [µV/e-]
+        Stability:                   -0.004      # [µV/e-/K]
+        Delta:                       0.0         # Difference in gain between both CCD halves [%]
     QuantumEfficiency:
         Efficiency:              0.925           # Throughput efficiency due to quantum efficiency at the reference angle
         RefAngle:                45.0            # Reference angle for quantum efficiency [degrees]

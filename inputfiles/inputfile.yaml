@@ -86,29 +86,29 @@ CCD:
     NumColumns:                      4510            # Number of columns on the CCD [pixels]
     NumRows:                         4510            # Number of rows on the CCD [pixels] (including non-exposed ones)
     PixelSize:                       18              # [micron]
-    Gain:                            #16              # [e-/ADU]
-        RefValue:                     1.80            # [µV/e-]
+    Gain:                           
+        RefValue:                    1.80            # [µV/e-]
         Stability:                   -0.004          # [µV/e-/K]
-        Delta:                       15.0             # Difference in gain between both CCD halves [%]
+        Delta:                       15.0            # Difference in gain between both CCD halves [%]
     QuantumEfficiency:
         Efficiency:                  0.925           # Throughput efficiency due to quantum efficiency at the reference angle
         RefAngle:                    45.0            # Reference angle for quantum efficiency [degrees]
         ExpectedValue:               0.993           # Expected value (mean over all pixels of one detector)
     FullWellSaturation:              900000          # [e-/pixel]
     DigitalSaturation:               65535           # E.g. 16 bit [ADU/pixel]
-    ReadoutNoise:                    44.3             # [e-/pixel]
+    ReadoutNoise:                    44.3            # [e-/pixel]
     ElectronicOffset:                100             # bias [ADU]
     ReadoutTime:                     2.3             # time to read out entire CCD [s]
     FlatfieldPtPNoise:               0.016           # peak-to-peak pixel noise
     Vignetting: 
-        ExpectedValue:           0.945           # Expected value of the throughput efficiency due to vignetting
+        ExpectedValue:           0.945               # Expected value of the throughput efficiency due to vignetting
     Polarization:
       Efficiency:                    0.978           # Throughput efficiency caused by polarisation at the reference angle
       RefAngle:                     18.8875          # Reference angle for polarisation [degrees]
       ExpectedValue:                 0.989           # Expected value (mean of all detector pixels)
     Contamination:
-        ParticulateContaminationEfficiency:   0.98      # Throughput efficiency due to particulate contamination
-        MolecularContaminationEfficiency:   0.9566    # Throughput efficiency due to molecular contamination
+        ParticulateContaminationEfficiency: 0.98     # Throughput efficiency due to particulate contamination
+        MolecularContaminationEfficiency:   0.9566   # Throughput efficiency due to molecular contamination
     CTI:
         Model:                       Short2013       # The method used to generate the CTI, either "Simple" or "Short2013"
         Simple:
