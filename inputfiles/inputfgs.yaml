@@ -78,6 +78,9 @@ FEE:
         RefValue:                11.1            # [ADU/µV] (Total gain = FFE gain * CCD gain = 20 e-/ADU)
         Stability:               -100.0          # [ppm/K] = [ADU/µV/K]
         Delta:                   0.0             # Difference in gain betwwen both ADCs [%]
+    ElectronicOffset: 
+        RefValue:                    100             # Reference value for the electronic offset [ADU/pixel]
+        Stability:                   1               # Offset stability [ADU/pixel/K]
 
 CCD:
 
@@ -91,7 +94,6 @@ CCD:
         RefValue:                1.80            # [µV/e-]
         Stability:               -0.004          # [µV/e-/K]
         Delta:                   15.0            # Difference in gain between both CCD halves [%]
-        Delta:                   0.0             # Difference in gain between both CCD halves [%]
     QuantumEfficiency: 
         Efficiency:              0.925           # Throughput efficiency due to quantum efficiency at the reference angle
         RefAngle:                45.0            # Reference angle for quantum efficiency [degrees]
@@ -99,7 +101,6 @@ CCD:
     FullWellSaturation:          1243000         # [e-/pixel]
     DigitalSaturation:           16383           # E.g. 16 bit [ADU/pixel]
     ReadoutNoise:                44.3            # Readout noise for the CCD [e-/pixel]
-    ElectronicOffset:            100             # bias [ADU]
     ReadoutTime:                 0.25            # time to read out entire CCD [s]
     FlatfieldPtPNoise:           0.016           # peak-to-peak pixel noise
     Vignetting:

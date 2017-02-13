@@ -363,6 +363,11 @@ void Simulation::writeInputParametersToHDF5(
 	addDouble("Stability");
 	addDouble("Delta");
 
+	subGroup = "FEE/ElectronicOffset";
+	hdf5File.createGroup(parentGroup + "/" + subGroup);
+	addInteger("RefValue");
+	addDouble("Stability");
+
 	subGroup = "CCD";
 	hdf5File.createGroup(parentGroup + "/" + subGroup);
 	addDouble("OriginOffsetX");
@@ -374,7 +379,6 @@ void Simulation::writeInputParametersToHDF5(
 	addLong("FullWellSaturation");
 	addInteger("DigitalSaturation");
 	addDouble("ReadoutNoise");
-	addInteger("ElectronicOffset");
 	addDouble("ReadoutTime");
 	addDouble("FlatfieldPtPNoise");
 	addDouble("NominalOperatingTemp");

@@ -145,7 +145,6 @@ protected:
 
 
 	unsigned long fullWellSaturationLimit; // Full-well saturation limit [electrons/pixel]
-	unsigned int electronicOffset;           // Bias or electronic offset [ADU]
 	unsigned long digitalSaturationLimit; // Digital saturation limit [ADU / pixel]
 
 	string CTImodel;

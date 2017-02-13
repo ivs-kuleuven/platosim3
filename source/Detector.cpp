@@ -125,7 +125,6 @@ Detector::~Detector()
     fullWellSaturationLimit    			= configParam.getLong("CCD/FullWellSaturation");
     digitalSaturationLimit     			= configParam.getLong("CCD/DigitalSaturation");
     readoutNoise              			= configParam.getDouble("CCD/ReadoutNoise");
-    electronicOffset           			= configParam.getInteger("CCD/ElectronicOffset");
     readoutTime                			= configParam.getDouble("CCD/ReadoutTime");
     flatfieldNoiseAmplitude    			= configParam.getDouble("CCD/FlatfieldPtPNoise");
     expectedValueVignetting              = configParam.getDouble("CCD/Vignetting/ExpectedValue");
@@ -1591,19 +1590,19 @@ void Detector::applyGain()
 
 	// FEE gain (left & right)
 
-	const double feeGainOverDeltaTemp = frontEndElectronics->getGainStability()
-			* (frontEndElectronics->getTemperature()
-					- frontEndElectronics->getNominalOperatingTemperature());
-
-	const double feeGainLeft = frontEndElectronics->getGainRefValueLeft()
-			+ feeGainOverDeltaTemp;
-	const double feeGainRight = frontEndElectronics->getGainRefValueRight()
-			+ feeGainOverDeltaTemp;
+//	const double feeGainOverDeltaTemp = frontEndElectronics->getGainStability()
+//			* (frontEndElectronics->getTemperature()
+//					- frontEndElectronics->getNominalOperatingTemperature());
+//
+//	const double feeGainLeft = frontEndElectronics->getGainRefValueLeft()
+//			+ feeGainOverDeltaTemp;
+//	const double feeGainRight = frontEndElectronics->getGainRefValueRight()
+//			+ feeGainOverDeltaTemp;
 
 	// Combined gain (FEE & CCD)
 
-	const double combinedGainLeft = feeGainLeft * ccdGainLeft;
-	const double combinedGainRight = feeGainRight * ccdGainRight;
+	const double combinedGainLeft = frontEndElectronics->getGainLeftAdc() * ccdGainLeft;
+	const double combinedGainRight = frontEndElectronics->getGainRightAdc() * ccdGainRight;
 
 	if(lastIndexSubFieldLeft >= numColumnsSubPixelMap - 1)	// Left ADC only
 	{
@@ -1631,11 +1630,6 @@ void Detector::applyGain()
 		biasMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) /= combinedGainRight;
 		smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) /= combinedGainRight;
 	}
-
-
-
-
-
 }
 
 
@@ -1649,7 +1643,7 @@ void Detector::applyGain()
 
 
 /**
- * \brief: Add the electronic offset (i.e. bias level) to the pixel map,
+ * \brief: Add the electronic offset (i.e. bias level) of the FEE to the pixel map,
  *         smearing map, and bias map.
  *
  * \pre Pixel unit in the pixel, smearing, and bias maps: [ADU].
@@ -1661,13 +1655,15 @@ void Detector::applyGain()
 
 void Detector::addElectronicOffset()
 {
-	Log.debug("Detector: adding a bias to pixelMap, biasMap and smearingMap (electronicOffset=" + to_string(electronicOffset)+ ")");
+	const double offset = frontEndElectronics->getElectronicOffset();
+
+	Log.debug("Detector: adding a bias to pixelMap, biasMap and smearingMap (electronicOffset=" + to_string(offset)+ ")");
 
 	// Add the electronic offset to the pixel, bias register, and smearing maps
 
-	pixelMap += electronicOffset;
-	biasMap += electronicOffset;
-	smearingMap += electronicOffset;
+	pixelMap += offset;
+	biasMap += offset;
+	smearingMap += offset;
 }
 
 

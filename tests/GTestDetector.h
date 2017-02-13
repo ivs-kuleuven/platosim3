@@ -1413,7 +1413,6 @@ TEST_F(DetectorTest, applyGain) {
 
 	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
 
-//	const int gain = configParams.getInteger("CCD/Gain");
 	const double gain = configParams.getDouble("CCD/Gain/RefValue") * configParams.getDouble("FEE/Gain/RefValue");
 
 	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
@@ -1491,7 +1490,7 @@ JitterFromRedNoise	jitterGenerator(configParams);
 
 	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
 
-	const int electronicOffset = configParams.getInteger("CCD/ElectronicOffset");
+	const int electronicOffset = configParams.getInteger("FEE/ElectronicOffset/RefValue");
 
 	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
 

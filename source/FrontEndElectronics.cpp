@@ -47,6 +47,9 @@ void FrontEndElectronics::configure(ConfigurationParameters &configParam)
 	gainStability = configParam.getDouble("FEE/Gain/Stability");
 	gainDelta     = configParam.getDouble("FEE/Gain/Delta");
 	gainSeed      = configParam.getLong("RandomSeeds/FeeGainSeed");
+
+	refValueBias  = configParam.getInteger("FEE/ElectronicOffset/RefValue");
+	biasStability = configParam.getDouble("FEE/ElectronicOffset/Stability");
  }
 
 
@@ -72,6 +75,60 @@ void FrontEndElectronics::generateGain()
 	refValueGainLeft = gainDistribution(gainGenerator);
 	refValueGainRight = gainDistribution(gainGenerator);
 }
+
+
+
+
+
+
+
+
+
+
+/**
+ * Returns the gain of the left ACD for the current operating temperature of the FEE.
+ */
+double FrontEndElectronics::getGainLeftAdc()
+{
+	return refValueGainLeft
+			+ gainStability * (getTemperature() - nominalOperatingTemperature);
+}
+
+
+
+
+
+
+
+
+
+/**
+ * Returns the gain of the right ACD for the current operating temperature of the FEE.
+ */
+double FrontEndElectronics::getGainRightAdc()
+{
+	return refValueGainRight
+			+ gainStability * (getTemperature() - nominalOperatingTemperature);
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Returns the electronic offset for the current operating temperature of the FEE.
+ */
+double FrontEndElectronics::getElectronicOffset()
+{
+	return refValueBias + biasStability * (getTemperature() - nominalOperatingTemperature);
+}
+
 
 
 

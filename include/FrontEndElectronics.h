@@ -31,14 +31,14 @@ public:
 
 	virtual double getReadoutNoise(){return readoutNoise;};					// FEE readout noise [e-/pixel]
 
-	virtual double getGainRefValueLeft(){return refValueGainLeft;};
-	virtual double getGainRefValueRight(){return refValueGainRight;};
-	virtual double getGainStability(){return gainStability;};
+	virtual double getGainLeftAdc();
+	virtual double getGainRightAdc();
+
+	virtual double getElectronicOffset();
 
 protected:
 
 	virtual void generateGain();
-
 
 	double nominalOperatingTemperature;					// Nominal operating temperature of the FEE [K]
 
@@ -50,6 +50,9 @@ protected:
 
 	double refValueGainLeft;								// Reference value for the gain on the ACD reading the left-hand side of the detector [µV/e-]
 	double refValueGainRight;							// Reference value for the gain on the ACD reading the right-hand side of the detector [µV/e-]
+
+	int refValueBias;									// Reference value for the electronic offset [ADU/pixel]
+	double biasStability;								// Bias stability [ADU/pixel/K]
 
 	long gainSeed;
 
