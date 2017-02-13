@@ -1395,7 +1395,7 @@ TEST_F(DetectorTest, applyGain) {
 
 	// Construction
 
-JitterFromRedNoise	jitterGenerator(configParams);
+	JitterFromRedNoise	jitterGenerator(configParams);
 	ThermoElasticDriftFromRedNoise driftGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
@@ -1413,7 +1413,8 @@ JitterFromRedNoise	jitterGenerator(configParams);
 
 	const int numSubPixels = configParams.getInteger("SubField/SubPixels");
 
-	const int gain = configParams.getInteger("CCD/Gain");
+//	const int gain = configParams.getInteger("CCD/Gain");
+	const double gain = configParams.getDouble("CCD/Gain/RefValue") * configParams.getDouble("FEE/Gain/RefValue");
 
 	// Initialise sub-pixel map, pixel map, bias register map, and smearing map
 
