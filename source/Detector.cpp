@@ -27,20 +27,12 @@
 
 Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera)
 : HDF5Writer(hdf5file), 
-  includeFlatfield(true), 
-  includePhotonNoise(true), 
-  includeReadoutNoise(true),
-  includeCTIeffects(true), 
-  includeOpenShutterSmearing(true), 
-  includeQuantumEfficiency(true),
-  includeVignetting(true),
-  includeParticulateContamination(true),
-  includeMolecularContamination(true),
-  writeSubPixelImagesToHDF5(false),
-  includeFullWellSaturation(true),
-  includeDigitalSaturation(true),
-  psfWasSet(false), 
-  internalTime(0.0), camera(camera), imageNr(0), subPixelImageNr(0)
+  includeFlatfield(true), includePhotonNoise(true), includeReadoutNoise(
+				true), includeCTIeffects(true), includeOpenShutterSmearing(
+				true), includeQuantumEfficiency(true), includeVignetting(true), includeParticulateContamination(
+				true), includeMolecularContamination(true), writeSubPixelImagesToHDF5(
+				false), includeFullWellSaturation(true), includeDigitalSaturation(
+				true), psfWasSet(false), internalTime(0.0), camera(camera), imageNr(0), subPixelImageNr(0)
 {
 	// Parse the parameters from the configuration file.
 
@@ -51,6 +43,10 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 	// BEFORE other methods write arrays to HDF5.
 
 	initHDF5Groups();
+
+	// Front-end electronics
+
+	frontEndElectronics = new FrontEndElectronics(configParam, hdf5file);
 
 	// Allocate memory for the different maps
 
@@ -69,6 +65,9 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 
 	generateThroughputMap();
 
+	// Generate detector gain
+
+	generateGain();
 
 	// Set the seeds of the random number generators
 
@@ -90,6 +89,8 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 Detector::~Detector()
 {
 	flushOutput();
+
+	delete frontEndElectronics;
 }
 
 
@@ -118,19 +119,22 @@ Detector::~Detector()
     numRows                    			= configParam.getInteger("CCD/NumRows");
     numColumns                 			= configParam.getInteger("CCD/NumColumns");
     pixelSize                  			= configParam.getDouble("CCD/PixelSize");
-    gain                       			= configParam.getInteger("CCD/Gain");
     quantumEfficiency          			= configParam.getDouble("CCD/QuantumEfficiency/Efficiency");
     refAngleQuantumEfficiency            = configParam.getDouble("CCD/QuantumEfficiency/RefAngle");
     expectedValueQuantumEfficiency       = configParam.getDouble("CCD/QuantumEfficiency/ExpectedValue");
     fullWellSaturationLimit    			= configParam.getLong("CCD/FullWellSaturation");
     digitalSaturationLimit     			= configParam.getLong("CCD/DigitalSaturation");
     readoutNoise              			= configParam.getDouble("CCD/ReadoutNoise");
-    electronicOffset           			= configParam.getInteger("CCD/ElectronicOffset");
     readoutTime                			= configParam.getDouble("CCD/ReadoutTime");
     flatfieldNoiseAmplitude    			= configParam.getDouble("CCD/FlatfieldPtPNoise");
     expectedValueVignetting              = configParam.getDouble("CCD/Vignetting/ExpectedValue");
     particulateContaminationEfficiency 	= configParam.getDouble("CCD/Contamination/ParticulateContaminationEfficiency");
     molecularContaminationEfficiency     = configParam.getDouble("CCD/Contamination/MolecularContaminationEfficiency");
+
+    refValueGain       = configParam.getDouble("CCD/Gain/RefValue");
+    gainStability      = configParam.getDouble("CCD/Gain/Stability");
+    gainDelta          = configParam.getDouble("CCD/Gain/Delta");
+    gainSeed           = configParam.getLong("RandomSeeds/CcdGainSeed");
 
     CTImodel                   = configParam.getString("CCD/CTI/Model");
     if (CTImodel == "Simple")
@@ -156,7 +160,7 @@ Detector::~Detector()
     refAnglePolarization = configParam.getDouble("CCD/Polarization/RefAngle");
     expectedValuePolarization = configParam.getDouble("CCD/Polarization/ExpectedValue");
 
-
+    nominalOperatingTemperature = configParam.getDouble("CCD/NominalOperatingTemp");
 
     includeFlatfield                = configParam.getBoolean("CCD/IncludeFlatfield");
     includeParticulateContamination = configParam.getBoolean("CCD/IncludeParticulateContamination");
@@ -396,6 +400,31 @@ void Detector::generateThroughputMap()
 	Log.debug("Detector: writing throughput map to HDF5");
 
 	hdf5File.writeArray("/Throughput", "throughputMap", throughputMap);
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Generate detector gain for the left-hand and the right-hand side of the detector.
+ */
+void Detector::generateGain()
+{
+	mt19937 gainGenerator;
+	gainGenerator.seed(gainSeed);
+
+	normal_distribution<double> gainDistribution = normal_distribution<double>(
+			refValueGain, gainDelta * refValueGain);
+
+	refValueGainLeft = gainDistribution(gainGenerator);
+	refValueGainRight = gainDistribution(gainGenerator);
 }
 
 
@@ -908,7 +937,7 @@ void Detector::readOut(float exposureTime)
 
 	if (includeReadoutNoise)
 	{ 
-        Log.debug("Detector: adding readout noise.");
+        Log.debug("Detector: adding readout noise of CCD and FEE.");
 		addReadoutNoise();
 	}
     else
@@ -949,7 +978,7 @@ void Detector::readOut(float exposureTime)
     if (includeDigitalSaturation)
     { 
         Log.debug("Detector: applying digital saturation to pixelMap, biasMap and smearingMap (digitalSaturationLimit=" + to_string(digitalSaturationLimit) + ")");
-    	applyDigitalSaturation();
+    		applyDigitalSaturation();
     }
     else
     {
@@ -1460,7 +1489,8 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
 
 
 /**
- * \brief Apply the readout noise to the pixel map, bias map, and smearing map
+ * \brief Apply the readout noise to the pixel map, bias map, and smearing map.  The readout
+ *        noise is contributed to by the detector and by the FEE.
  * 
  * \details Readout noise occurs due to the imperfect nature of the CCD amplifiers.  
  *          When the electrons are transferred to the amplifier, the induced voltage
@@ -1483,8 +1513,11 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
 
 void Detector::addReadoutNoise()
 {
+	// Adding the readout noise in quadrature (CCD & FEE)
 
-	readoutNoiseDistribution = normal_distribution<double>(0.0, readoutNoise);
+	const double totalReadoutNoise = sqrt(pow(readoutNoise, 2) + pow(frontEndElectronics->getReadoutNoise(), 2));
+
+	readoutNoiseDistribution = normal_distribution<double>(0.0, totalReadoutNoise);
 
 	// Add readout noise to the pixel map
 
@@ -1536,13 +1569,60 @@ void Detector::addReadoutNoise()
  */
 void Detector::applyGain()
 {
-	Log.debug("Detector: applying gain to pixelMap, biasMap and smearingMap (gain=" + to_string(gain) + ")");
+	Log.debug("Detector: applying gain to pixelMap, biasMap and smearingMap");
 
-	// Divide the pixel, bias register, and smearing map by the gain
+	const int lastIndexCcdLeft = numColumns / 2 - 1;
+	const int lastIndexSubFieldLeft = lastIndexCcdLeft - subFieldZeroPointColumn;
 
-	pixelMap /= gain;
-	biasMap /= gain;
-	smearingMap /= gain;
+	// Detector gain (left & right)
+
+	const double ccdGainOverDeltaTemp = gainStability * (getTemperature() - nominalOperatingTemperature);
+
+	const double ccdGainLeft = refValueGainLeft + ccdGainOverDeltaTemp;
+	const double ccdGainRight = refValueGainRight + ccdGainOverDeltaTemp;
+
+	// FEE gain (left & right)
+
+//	const double feeGainOverDeltaTemp = frontEndElectronics->getGainStability()
+//			* (frontEndElectronics->getTemperature()
+//					- frontEndElectronics->getNominalOperatingTemperature());
+//
+//	const double feeGainLeft = frontEndElectronics->getGainRefValueLeft()
+//			+ feeGainOverDeltaTemp;
+//	const double feeGainRight = frontEndElectronics->getGainRefValueRight()
+//			+ feeGainOverDeltaTemp;
+
+	// Combined gain (FEE & CCD)
+
+	const double combinedGainLeft = frontEndElectronics->getGainLeftAdc() * ccdGainLeft;
+	const double combinedGainRight = frontEndElectronics->getGainRightAdc() * ccdGainRight;
+
+	if(lastIndexSubFieldLeft >= numColumnsSubPixelMap - 1)	// Left ADC only
+	{
+		pixelMap /= combinedGainLeft;
+		biasMap /= combinedGainLeft;
+		smearingMap /= combinedGainLeft;
+	}
+	else if(lastIndexSubFieldLeft < 0)	// Right ADC only
+	{
+		pixelMap /= combinedGainRight;
+		biasMap /= combinedGainRight;
+		smearingMap /= combinedGainRight;
+	}
+	else
+	{
+		// 0 -> lastIndexSubFieldLeft: left ADC
+
+		pixelMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) /= combinedGainLeft;
+		biasMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) /= combinedGainLeft;
+		smearingMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) /= combinedGainLeft;
+
+		// lastIndexSubFieldLeft + 1 -> numColumnsSubPixelMap -1: right ADC
+
+		pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) /= combinedGainRight;
+		biasMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) /= combinedGainRight;
+		smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) /= combinedGainRight;
+	}
 }
 
 
@@ -1556,7 +1636,7 @@ void Detector::applyGain()
 
 
 /**
- * \brief: Add the electronic offset (i.e. bias level) to the pixel map,
+ * \brief: Add the electronic offset (i.e. bias level) of the FEE to the pixel map,
  *         smearing map, and bias map.
  *
  * \pre Pixel unit in the pixel, smearing, and bias maps: [ADU].
@@ -1568,13 +1648,15 @@ void Detector::applyGain()
 
 void Detector::addElectronicOffset()
 {
-	Log.debug("Detector: adding a bias to pixelMap, biasMap and smearingMap (electronicOffset=" + to_string(electronicOffset)+ ")");
+	const double offset = frontEndElectronics->getElectronicOffset();
+
+	Log.debug("Detector: adding a bias to pixelMap, biasMap and smearingMap (electronicOffset=" + to_string(offset)+ ")");
 
 	// Add the electronic offset to the pixel, bias register, and smearing maps
 
-	pixelMap += electronicOffset;
-	biasMap += electronicOffset;
-	smearingMap += electronicOffset;
+	pixelMap += offset;
+	biasMap += offset;
+	smearingMap += offset;
 }
 
 
@@ -2089,3 +2171,18 @@ void Detector::writeSubPixelMapToHDF5()
 }
 
 
+
+
+
+
+
+
+
+
+/**
+ * \brief Returns the current temperature of the detector.
+ */
+double Detector::getTemperature()
+{
+	return nominalOperatingTemperature;
+}
