@@ -663,9 +663,10 @@ pair<double, double> Camera::skyToFocalPlaneCoordinates(double raStar, double de
         tie(azimuthAngle, tiltAngle, focalPlaneAngle, raPlatform, decPlatform) = telescope.getCurrentTelescopeOrientation();
     }
 
-    // Compute the equatorial cartesian coordinates of the unit vector along the z-axis (= roll = pointing axis) of the platform.
-    // The x-axis of the platform points to the highest point fof the sunshield, which is pointing to the (average) sky position
-    // of the Sun.
+    // Compute the equatorial cartesian coordinates of the unit vectors along the platform's main axes. 
+    // The platform's z-axis is the roll = pointing axis. The x-axis of the platform points to the highest point
+    // of the sunshield, which is pointing to the (average) sky position of the Sun. The y-axis completes the right-handed
+    // reference frame.
 
     double deltax = atan(-cos(raPlatform-raSun) / tan(decPlatform));
     arma::colvec zSC = {cos(decPlatform)*cos(raPlatform), cos(decPlatform)*sin(raPlatform), sin(decPlatform)};
