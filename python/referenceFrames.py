@@ -49,7 +49,7 @@ CCD = \
 # InverseCoeff: Coefficients of the Inverse Polynomial
 # 
 
-FIELD_DISTORTION = {'Coeff' : [1.0, 0.0, 0.0, 0.0], 'InverseCoeff' : [-1.0, 0.0, 0.0, 0.0]}
+FIELD_DISTORTION = {'Coeff' : [0.0, 1.0, 0.0, 0.0], 'InverseCoeff' : [0.0, 1.0, 0.0, 0.0]}
 
 
 
