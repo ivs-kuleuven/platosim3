@@ -18,7 +18,6 @@
 #include "HDF5Writer.h"
 #include "Heartbeat.h"
 #include "Logger.h"
-#include "PointSpreadFunction.h"
 #include "Polynomial1D.h"
 #include "Sky.h"
 #include "StringUtilities.h"
@@ -45,15 +44,13 @@ class Camera : public HDF5Writer
         virtual void initHDF5Groups() override;
         virtual void flushOutput() override;
 
-        virtual arma::fmat getRebinnedPsfForFocalPlaneCoordinates(double xFPmm, double yFPmm, unsigned int targetSubPixels, double orientationAngle);
-
         pair<double, double> skyToFocalPlaneCoordinates(double raStar, double decStar, bool useInitialOrientation=false);
         pair<double, double> focalPlaneToSkyCoordinates(double xFP, double yFP, bool useInitialOrientation=false);
 
         pair<double, double> undistortedToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm);
         pair<double, double> distortedToUndistortedFocalPlaneCoordinates(double xFPdist, double yFPdist);
 
-        double getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double yFPprime);
+        double getGnomonicRadialDistanceFromOpticalAxis(double xFP, double yFP);
 
         set<unsigned int> getAllStarIDs();
 
@@ -81,7 +78,6 @@ class Camera : public HDF5Writer
         vector<double> polynomialCoefficients;
         vector<double> inversePolynomialCoefficients;
 
-        PointSpreadFunction *psf;
         Polynomial1D polynomial;
         Polynomial1D inversePolynomial;
 

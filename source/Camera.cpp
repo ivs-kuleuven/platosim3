@@ -31,11 +31,6 @@ Camera::Camera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telesco
 
     configure(configParam);
 
-    // Initialize and load the PSF. This will open the PSF HDF5 file and perform some basic checking, 
-    // but the psf itself will only be loaded by the psf.select(radius) method.
-
-    psf = new PointSpreadFunction(configParam, hdf5file);
-
     // Initialize the polynomials that describes the field distortion of the camera.
 
     polynomial = Polynomial1D(polynomialDegree, polynomialCoefficients);
@@ -57,7 +52,6 @@ Camera::Camera(ConfigurationParameters &configParam, HDF5File &hdf5file, Telesco
 Camera::~Camera()
 {
     flushOutput();
-    delete psf;
 }
 
 
@@ -497,88 +491,8 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
     skyBackgroundValues.push_back(totalSkyBackground);
 
-    // Convolve with the point spread function
-    // Detector was given the proper PSF in Simulation::run().
-
-    detector.convolveWithPsf();
-
     return;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * \brief      Select the PSF for the given focal plane coordinates
- *
- * \details    This method selects, rotates and rebins the PSF.
- *
- * \param[in]  xFPmm             x-coordinate in the FP' reference frame [mm]
- * \param[in]  yFPmm             y-coordinate in the FP' reference frame [mm]
- * \param[in]  targetSubPixels   the number of subpixels per pixels in the detector subfield
- * \param[in]  orientationAngle  the orientation of the CCD wrt focal plane orientation (counter clockwise) [rad]
- *
- * \return     the psfMap that was selected, rotated and rebinned
- */
-arma::fmat Camera::getRebinnedPsfForFocalPlaneCoordinates(double xFPmm, double yFPmm, unsigned int targetSubPixels, double orientationAngle)
-{
-    arma::fmat psfMap;
-
-    // Get the 'user specified' angular distance to the optical axis from the psf.
-    // If the user didn't specify an angular distance, calculate it from the given
-    // focal plane coordinates.
-
-    double radius = psf->getRequestedDistanceToOpticalAxis();
-
-    if (radius < 0.0)
-    {
-        radius = getGnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm);
-    }
-
-    psf->select(radius);
-
-
-    // Get the 'user specified' orientation angle from the psf.
-    // if the user didn't specify a rotation angle, calculate it 
-    // from the given focal plane coordinates.
-
-    double angle = psf->getRequestedRotationAngle();
-
-    if (angle < 0.0)
-    {
-        angle = atan2(yFPmm, xFPmm);
-    }
-
-    //  Compensate for the orientation of the CCD wrt focal plane orientation.
-
-    angle -= orientationAngle;
-
-    psf->rotate(angle);
-
-
-    // Rebin the psfMap to the number of sub-pixels per pixel used for the Detector
-
-    psfMap = psf->rebinToSubPixels(targetSubPixels);
-
-    return psfMap;
-}
-
-
-
-
-
-
 
 
 

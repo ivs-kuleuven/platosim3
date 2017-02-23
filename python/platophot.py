@@ -143,10 +143,10 @@ def photometry(inputFilePath, outputFilePath, sigmaPSF, verbose=False):
     # Compute the offset of the barycenter of the PSF
 
     psf = array(inputFile["/PSF/rotatedPSF"])                                           # [subpix]
-    if inputFile["/InputParameters/PSF"].attrs["Model"] == "FromFile":
-        Npixels = int(inputFile["/InputParameters/PSF/FromFile"].attrs["NumberOfPixels"])
+    if inputFile["/InputParameters/PSF"].attrs["Model"] == "MappedFromFile":
+        Npixels = int(inputFile["/InputParameters/PSF/MappedFromFile"].attrs["NumberOfPixels"])
     else:
-        Npixels = int(inputFile["/InputParameters/PSF/Gaussian"].attrs["NumberOfPixels"])
+        Npixels = int(inputFile["/InputParameters/PSF/MappedGaussian"].attrs["NumberOfPixels"])
 
     deltaRow, deltaCol = computePSFBarycenterOffset(psf, Npixels)                       # [pix]
 

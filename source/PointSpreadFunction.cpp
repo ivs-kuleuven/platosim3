@@ -229,33 +229,40 @@ void PointSpreadFunction::configure(ConfigurationParameters &configParam)
 {
     string model = configParam.getString("PSF/Model");
 
-    // The user specified to use a Gaussian shape PSF
-    // The number of sub-pixels per pixel that will be used to calculate the 
-    // Gaussian PSF is equal to the number of sub-pixels per pixels for the sub-field.
-
-    if (model == "Gaussian")
+    if (model == "MappedGaussian")
     {
+        // The user specified to use a Gaussian shape PSF
+        // The number of sub-pixels per pixel that will be used to calculate the 
+        // Gaussian PSF is equal to the number of sub-pixels per pixels for the sub-field.
+
         isGaussian                = true;
-        sigma                     = configParam.getDouble("PSF/Gaussian/Sigma");
-        numberOfPixels            = configParam.getInteger("PSF/Gaussian/NumberOfPixels");
+        sigma                     = configParam.getDouble("PSF/MappedGaussian/Sigma");
+        numberOfPixels            = configParam.getInteger("PSF/MappedGaussian/NumberOfPixels");
 
         // The Gaussian PSF shall be created with a resolution equal to that of the sub-field
         
         numberOfSubPixelsPerPixel = configParam.getInteger("SubField/SubPixels");
-    }
-
-    // The user specified to use the pre-calculated PSFs from file
-    // The number of sub-pixels per pixel is derived from the number of pixels specified 
-    // and the size of the array in the file. (The number of sub-pixels should be in the file).
-
-    if (model == "FromFile")
+    } 
+    else if (model == "MappedFromFile")
     {
+        // The user specified to use the pre-calculated PSFs from file
+        // The number of sub-pixels per pixel is derived from the number of pixels specified 
+        // and the size of the array in the file. (The number of sub-pixels should be in the file).
+      
         isLoadedFromFile          = true;
-        absolutePath              = configParam.getAbsoluteFilename("PSF/FromFile/Filename");
-        numberOfPixels            = configParam.getInteger("PSF/FromFile/NumberOfPixels");
-        requestedDistanceToOA     = deg2rad(configParam.getDouble("PSF/FromFile/DistanceToOA"));
-        requestedRotationAngle    = deg2rad(configParam.getDouble("PSF/FromFile/RotationAngle"));
+        absolutePath              = configParam.getAbsoluteFilename("PSF/MappedFromFile/Filename");
+        numberOfPixels            = configParam.getInteger("PSF/MappedFromFile/NumberOfPixels");
+        requestedDistanceToOA     = deg2rad(configParam.getDouble("PSF/MappedFromFile/DistanceToOA"));
+        requestedRotationAngle    = deg2rad(configParam.getDouble("PSF/MappedFromFile/RotationAngle"));
+
     }
+    else
+    {
+        string errorMessage = "PointSpreadFunction: Model '" + model + "' is not supported.";
+        Log.error(errorMessage);
+        throw IllegalArgumentException(errorMessage);
+    }
+
 
 }
 
