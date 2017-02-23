@@ -27,7 +27,6 @@
 
 Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera)
 : HDF5Writer(hdf5file), 
-  includeFlatfield(true), 
   includePhotonNoise(true), 
   includeReadoutNoise(true),
   includeCTIeffects(true), 
@@ -36,11 +35,9 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
   includeVignetting(true),
   includeParticulateContamination(true),
   includeMolecularContamination(true),
-  writeSubPixelImagesToHDF5(false),
   includeFullWellSaturation(true),
   includeDigitalSaturation(true),
-  psfWasSet(false), 
-  internalTime(0.0), camera(camera), imageNr(0), subPixelImageNr(0)
+  internalTime(0.0), camera(camera), imageNr(0)
 {
 	// Parse the parameters from the configuration file.
 
@@ -55,20 +52,13 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 	// Allocate memory for the different maps
 
 	pixelMap.zeros(numRowsPixelMap, numColumnsPixelMap);
-	subPixelMap.zeros(numRowsSubPixelMap, numColumnsSubPixelMap);
 	biasMap.zeros(numRowsBiasMap, numColumnsPixelMap);
 	smearingMap.zeros(numRowsSmearingMap, numColumnsPixelMap);
-	flatfieldMap.ones(numRowsSubPixelMap, numColumnsSubPixelMap);
 	throughputMap.ones(numRowsPixelMap, numColumnsPixelMap);
-
-	// Generate the flatfield map 
-
-	generateFlatfieldMap();
 
 	// Generate the throughput map (vignetting + polarisation + particulate & molecular contamination + quantum efficiency)
 
 	generateThroughputMap();
-
 
 	// Set the seeds of the random number generators
 
@@ -127,7 +117,6 @@ Detector::~Detector()
     readoutNoise              			= configParam.getDouble("CCD/ReadoutNoise");
     electronicOffset           			= configParam.getInteger("CCD/ElectronicOffset");
     readoutTime                			= configParam.getDouble("CCD/ReadoutTime");
-    flatfieldNoiseAmplitude    			= configParam.getDouble("CCD/FlatfieldPtPNoise");
     expectedValueVignetting              = configParam.getDouble("CCD/Vignetting/ExpectedValue");
     particulateContaminationEfficiency 	= configParam.getDouble("CCD/Contamination/ParticulateContaminationEfficiency");
     molecularContaminationEfficiency     = configParam.getDouble("CCD/Contamination/MolecularContaminationEfficiency");
@@ -156,9 +145,6 @@ Detector::~Detector()
     refAnglePolarization = configParam.getDouble("CCD/Polarization/RefAngle");
     expectedValuePolarization = configParam.getDouble("CCD/Polarization/ExpectedValue");
 
-
-
-    includeFlatfield                = configParam.getBoolean("CCD/IncludeFlatfield");
     includeParticulateContamination = configParam.getBoolean("CCD/IncludeParticulateContamination");
     includeMolecularContamination   = configParam.getBoolean("CCD/IncludeMolecularContamination");
     includePhotonNoise              = configParam.getBoolean("CCD/IncludePhotonNoise");
@@ -168,11 +154,8 @@ Detector::~Detector()
     includeQuantumEfficiency        = configParam.getBoolean("CCD/IncludeQuantumEfficiency");
     includeVignetting               = configParam.getBoolean("CCD/IncludeVignetting");
     includePolarization             = configParam.getBoolean("CCD/IncludePolarization");
-    writeSubPixelImagesToHDF5       = configParam.getBoolean("CCD/WriteSubPixelImagesToHDF5");
-    includeConvolution              = configParam.getBoolean("CCD/IncludeConvolution");
     includeFullWellSaturation       = configParam.getBoolean("CCD/IncludeFullWellSaturation");
     includeDigitalSaturation        = configParam.getBoolean("CCD/IncludeDigitalSaturation");
-    writeSubPixelImagesToHDF5       = configParam.getBoolean("CCD/WriteSubPixelImagesToHDF5");
 
     // Configuration parameters for the subfield
 
@@ -182,18 +165,11 @@ Detector::~Detector()
 	numColumnsPixelMap      = configParam.getInteger("SubField/NumColumns");
 	numRowsBiasMap          = configParam.getInteger("SubField/NumBiasPrescanRows");
 	numRowsSmearingMap      = configParam.getInteger("SubField/NumSmearingOverscanRows");
-	numSubPixelsPerPixel    = configParam.getInteger("SubField/SubPixels");
 
     // Configuration parameters for the noise source random seeds
 
 	readoutNoiseSeed        = configParam.getLong("RandomSeeds/ReadOutNoiseSeed");
 	photonNoiseSeed         = configParam.getLong("RandomSeeds/PhotonNoiseSeed");
-	flatfieldSeed           = configParam.getLong("RandomSeeds/FlatFieldSeed");
-
-	// Derive the dimensions of the sub-pixel map
-
-	numRowsSubPixelMap    = numRowsPixelMap    * numSubPixelsPerPixel;	// TODO Add edge pixels
-	numColumnsSubPixelMap = numColumnsPixelMap * numSubPixelsPerPixel;	// TODO Add edge pixels
 
 	numEdgePixels = 0;
  }
@@ -206,94 +182,54 @@ Detector::~Detector()
 
 
 
-
-
 /**
- * \brief: Generate the (random) flatfield variations.  This map is generated
- *		   at sub-pixel level but without the edge pixels.
+ * \brief: Take an exposure with the detector starting at the given time.
+ *         The light is integrated during the given exposure time, during which 
+ *         the detector experiences the effects of jitter and thermo-elastic telescope 
+ *         drift. The background is assumed uniform for the whole subfield.
+ *         Afterwards, the collected light is read out, convolving the image with the
+ *         point spread function and adding various noise effects.
  *
- * https://github.com/python-acoustics/python-acoustics/blob/master/acoustics/generator.py#L108
+ * \param startTime:    Starting time of the exposure [s].
+ * \param exposureTime: Duration of the exposure [s].
+ * 
+ * \return endTime:     Time after the exposure (startTime + exposureTime + readoutTime)
+ *
+ * \pre Sub-pixel, pixel, bias register, and smearing map filled with values from previous exposure.
+ *
+ * \post Pixel unit in the pixel, bias register, and smearing maps: [ADU]
  */
-void Detector::generateFlatfieldMap()
+
+double Detector::takeExposure(double startTime, double exposureTime)
 {
+    // Advance the internal clock until the given start time
 
-	Log.info("Detector: generating flatfield map.");
+    internalTime = startTime;
 
-	// Random number generation
+    // Integration of point sources and background, taking into account jitter + drift.
 
-	mt19937 flatfieldGenerator(flatfieldSeed);
-	normal_distribution<double> flatfieldDistribution(0.0, 1.0);
+    Log.info("Detector: Integrating light for exposure " + to_string(imageNr) + " with exposure time = " + to_string(exposureTime));
 
-	// Double the dimensions (this is necessary because of the behaviour of the Fourier transforms)
-	// (this is a bit inconvenient as we are working at sub-pixel level -> to be investigated)
+    integrateLight(startTime, exposureTime);
 
-	int numRows = 2 * numRowsPixelMap * numSubPixelsPerPixel;
-	int numColumns = 2 * numColumnsPixelMap * numSubPixelsPerPixel;
+    // Include noise effects like readout noise, photon noise, full well saturation, etc.
+    // Note: readOut() needs the exposure time to compute the open shutter smearing.
 
-	arma::cx_fmat evenMap = arma::cx_fmat(numRows, numColumns);
+    Log.info("Detector: Adding noise effects to exposure " + to_string(imageNr));
 
-	for(unsigned int row = 0; row < numRows; row++)
-	{
-		for(unsigned int column = 0; column < numColumns; column++)
-		{
-			// Fourier space: generate white noise and include 1/f dependency
-			// (Note: see https://en.wikipedia.org/wiki/Pink_noise#Generalization_to_more_than_one_dimension)
+    readOut(exposureTime);
 
-			evenMap(row, column) = flatfieldDistribution(flatfieldGenerator) / (pow(row, 2) + std::pow(column, 2) + 1);
-		}
-	}
+    // Write the CCD subfield, the bias map, and the smearing map to the HDF5 file
 
-	// Take the real part of the inverse Fourier transform
+    Log.debug("Detector: Writing PixelMap, smearing map, and bias map #" + to_string(imageNr) + " to HDF5 file.");
 
-	evenMap = arma::ifft2(evenMap);
-	arma::fmat realMap = arma::real(evenMap);
+    writePixelMapsToHDF5();
 
-	// Cut out the appropriate part
+    // Advance the internal clock
 
-	flatfieldMap(arma::span::all, arma::span::all) = realMap(arma::span(0, numRows / 2 - 1), arma::span(0, numColumns / 2 - 1));
+    internalTime += exposureTime + readoutTime;
 
-	// Normalise
-
-	float minPinkNoise = flatfieldMap.min();
-	float maxPinkNoise = flatfieldMap.max();
-
-
-	flatfieldMap -= minPinkNoise;
-	flatfieldMap /= (maxPinkNoise - minPinkNoise); // [0, 1]
-	flatfieldMap *= flatfieldNoiseAmplitude;	// [0, flatfialdNoiseAmplitude]
-	flatfieldMap += (1.0 - flatfieldNoiseAmplitude);
-
-	// Save the intra-pixel flatfield in the HDF5 file
-
-	Log.debug("Detector: writing IRNU to HDF5");
-
-	hdf5File.writeArray("/Flatfield", "IRNU", flatfieldMap);
-
-	// Rebin the intra-pixel flatfield to the pixel flatfield (IRNU -> PRNU)
-	// and also write this array to the HDF5 outputfile. This PRNU array is not used
-	// in the remainder of the simulation.
-
-	arma::Mat<float> prnu(numRowsPixelMap, numColumnsPixelMap, arma::fill::zeros);
-
-	for (unsigned int row = 0; row < numRowsPixelMap; row++)
-	{
-		for (unsigned int column = 0; column < numColumnsPixelMap; column++)
-		{
-			const unsigned int beginRow = row * numSubPixelsPerPixel;
-			const unsigned int beginCol = column * numSubPixelsPerPixel;
-			const unsigned int endRow = (row + 1) * numSubPixelsPerPixel - 1;
-			const unsigned int endCol = (column + 1) * numSubPixelsPerPixel - 1;
-
-			prnu(row, column) = arma::accu(flatfieldMap.submat(beginRow, beginCol, endRow, endCol))
-                                / (numSubPixelsPerPixel * numSubPixelsPerPixel);
-		}
-	}
-
-	// Write the result to the HDF5 output file
-
-	Log.debug("Detector: writing PRNU to HDF5");
-
-	hdf5File.writeArray("/Flatfield", "PRNU", prnu);
+    return internalTime;
 }
 
 
@@ -408,228 +344,6 @@ void Detector::generateThroughputMap()
 
 
 
-/**
- * \brief: Zeroes the sub-pixel, pixel, bias register, and the smearing maps.
- *
- * \pre Sub-pixel, pixel, bias register, and smearing maps filled with values from previous exposure.
- *
- * \post Sub-pixel, pixel, bias register, and smearing maps filled with zeroes.
- */
-void Detector::reset()
-{
-	subPixelMap.zeros();
-	pixelMap.zeros();
-	biasMap.zeros();
-	smearingMap.zeros();
-}
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * \brief: Take an exposure with the detector starting at the given time.
- *		   The light is integrated during the given exposure time, during which 
- *         the detector experiences the effects of jitter and thermo-elastic telescope 
- *         drift. The background is assumed uniform for the whole subfield.
- *         Afterwards, the collected light is read out, convolving the image with the
- *         PSF of the camera and adding various noise effects.
- *
- * \param startTime:    Starting time of the exposure [s].
- * \param exposureTime: Duration of the exposure [s].
- * 
- * \return endTime:     Time after the exposure (startTime + exposureTime + readoutTime)
- *
- * \pre Sub-pixel, pixel, bias register, and smearing map filled with values from previous exposure.
- *
- * \post Pixel unit in the pixel, bias register, and smearing maps: [ADU]
- */
-
-double Detector::takeExposure(double startTime, double exposureTime)
-{
-	// Advance the internal clock until the given start time
-
-	internalTime = startTime;
-
-	// Integration of point sources and background, taking into account jitter + drift.
-
-	Log.info("Detector: Integrating light for exposure " + to_string(imageNr) + " with exposure time = " + to_string(exposureTime));
-
-	integrateLight(startTime, exposureTime);
-
-	// Include noise effects like readout noise, photon noise, full well saturation, etc.
-	// Note: readOut() needs the exposure time to compute the open shutter smearing.
-
-	Log.info("Detector: Adding noise effects to exposure " + to_string(imageNr));
-
-	readOut(exposureTime);
-
-	// Write the CCD subfield, the bias map, and the smearing map to the HDF5 file
-
-	Log.debug("Detector: Writing PixelMap, smearing map, and bias map #" + to_string(imageNr) + " to HDF5 file.");
-
-	writePixelMapsToHDF5();
-
-	// If required, also write the subpixel image to the HDF5 file
-
-	if (writeSubPixelImagesToHDF5)
-	{
-		Log.debug("Detector: Writing SubPixelMap " + to_string(subPixelImageNr) + " to HDF5 file.");
-		writeSubPixelMapToHDF5();
-	}
-
-	// Advance the internal clock
-
-	internalTime += exposureTime + readoutTime;
-
-	return internalTime;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * \brief: During an exposure, this method makes the detector integrate the light
- *         in small steps. During each step the slight change of star positions due
- *         to spacecraft jitter is taken into account. 
- *         
- *  \details  Besides jitter, also the sky background, and the flatfield is taken into 
- *            account. The sub-pixel map is rebinned in a pixel map.  After rebinning,
- *            vignetting and polarisation are applied (if applicable).
- *
- * \note The convolution with the PSF is not yet done here.
- *
- * \param startTime: Starting time of the exposure for which jitter must be applied [s].
- *
- * \pre Sub-pixel, pixel, bias register, and smearing map filled with values from previous exposure.
- *
- * \post Pixel unit of the sub-pixel map: [photons].
- * \post Pixel, bias register, and smearing map filled with zeroes.
- */
-
-void Detector::integrateLight(double startTime, double exposureTime)
-{
-
-	// Reset the sub-field (i.e. get rid of the previous exposure, by zeroing the entire sub-field)
-
-	Log.debug("Detector: resetting subfield array for new exposure.");
-
-	reset();
-
-	// Integration (incl. jitter) + background
-
-	camera.exposeDetector(*this, startTime, exposureTime);
-
-	// Apply flatfield (at sub-pixel level)
-
-    if (includeFlatfield)
-    {
-        Log.debug("Detector: applying Flatfield.");
-
-        applyFlatfield();
-    }
-    else
-    {
-        Log.debug("Detector: no flatfield applied.");
-    }
-
-	// Rebin from a subpixel map to a pixel map
-
-	Log.debug("Detector: rebinning sub-pixel map into pixel map.");
-
-	rebin();
-
-	// Apply throughput efficiency on the pixel map
-
-	applyThroughputEfficiency();
-}
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * \brief: Add the given flux value to the value of the sub-pixel that corresponds to the given coordinates 
- *         in the focal plane. Return the pixel coordinates of the pixel to which the flux was added.
- *
- * \param xFP   X-coordinate of the sub-pixel in the focal plane in the FP reference frame [mm].
- * \param yFP   Y-coordinate of the sub-pixel in the focal plane in the FP reference frame [mm].
- * \param flux  Flux to add to the sub-pixel map [photons].
- *
- * \return           (isInSubfield, row, col) 
- *                   isInSubfield: True if (xFP, yFP) are on the subfield, false otherwise.
- *                   row:          subfield (not CCD) row number of the pixel to which the flux was added
- *                   col:          subfield (not CCD) column number of the pixel to which the flux was added  
- */
-
-tuple<bool, double, double> Detector::addFlux(double xFP, double yFP, double flux)
-{
-	// Convert from FP coordinates to CCD pixel coordinates
-
-	double pixRow, pixColumn;
-	tie(pixRow, pixColumn) = focalPlaneToPixelCoordinates(xFP, yFP);
-
-	// Sub-field coordinates, taking into account the edge pixels 
-	// (subpixRow, subpixColumn) are the indices of the star in the subpixelMap. So they are not 
-	// subpixel coordinates in the CCD frame, but in the subfield reference frame.
-
-	const double subpixColumn = round((pixColumn - subFieldZeroPointColumn + numEdgePixels) * numSubPixelsPerPixel);
-	const double subpixRow    = round((pixRow    - subFieldZeroPointRow    + numEdgePixels) * numSubPixelsPerPixel);
-
-	// Convert back the _rounded_ subpixel coordinates to pixel coordinates
-	// E.g. if there are 4 subpixels per pixel, then the pixel coordinates should always end with
-	//      0.0, 0.25, 0.5, or 0.75
-
-	pixRow    = subpixRow    / numSubPixelsPerPixel - numEdgePixels;
-	pixColumn = subpixColumn / numSubPixelsPerPixel - numEdgePixels;
-
-	// Add the flux to the subPixelMap
-
-	if (isInSubPixelMap(subpixRow, subpixColumn))
-	{
-		subPixelMap((int) subpixRow, (int) subpixColumn) += flux;
-		return make_tuple(true, pixRow, pixColumn);
-	}
-	else
-	{
-		return make_tuple(false, pixRow, pixColumn);
-	}
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /**
  * \brief Verify if a point with given planar focal plane coordinates is in the subfield
@@ -650,138 +364,6 @@ bool Detector::isInSubfield(double xFP, double yFP)
 	return    (column >= subFieldZeroPointColumn) && (column < subFieldZeroPointColumn + numColumnsPixelMap)
 	       && (row    >= subFieldZeroPointRow)    && (row < subFieldZeroPointRow + numRowsPixelMap);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * \brief   Check whether the given (row, column) indices are within the array range of the subpixel map.
- *
- * \details  The input parameters row & column come from a coordinate transformation
- *           in the focal plane, and as a result are not necessarily integers. For this 
- *           function it's not necessary to round them to the nearest integer. 
- *
- * \param  row:    Row index. NOT a coordinate in the CCD frame, but in the subfield frame. [sub-pixel].
- * \param  column: Column index.NOT a coordinate in the CCD frame, but in the subfield frame.  [sub-pixel].
- *
- * \return  True if the given (row, column) coordinates are in the sub-pixel map; false otherwise.
- */
-
-bool Detector::isInSubPixelMap(double row, double column)
-{
-	return (column >= 0) && (row >= 0) && (column < numColumnsSubPixelMap) && (row < numRowsSubPixelMap);
-}
-
-
-
-
-
-
-
-
-
-
-/**
- * \brief: Add the given flux value to (all sub-pixels of) the sub-pixel map.
- *
- * \param flux: Flux to add to the sub-pixel map [photons/pixel].
- *
- */
-
-void Detector::addFlux(double flux)
-{
-	// The flux is expressed in [photons/pixel] but we need the quantity expressed 
-	// in [photons/subpixel]. There are (numSubPixelsPerPixel)^2 per pixel (the
-	// name is thus a bit of a misnomer.).
-
-	subPixelMap += flux / numSubPixelsPerPixel / numSubPixelsPerPixel;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * \brief: Multiply the sub-pixel map with the flatfield.
- * 
- * NOTE: The sub-pixel map contains extra edge pixels, but the flatfield
- *       map does not. These edge pixels are excluded from this flatfield
- *       multiplication.
- *
- * \pre Unit of the sub-pixels: [photons].
- * \pre Flatfield map at sub-pixel level, excl. edge pixels.
- * \pre Pixel, bias register, and smearing maps filled with zeroes.
- *
- * \post Pixel value in the sub-pixel map: [photons].
- * \post Pixel, bias, and smearing maps filled with zeroes.
- */
-void Detector::applyFlatfield()
-{
-	const unsigned int numEdgeSubPixels = numEdgePixels * numSubPixelsPerPixel;
-	const unsigned int beginRow = numEdgePixels;
-	const unsigned int beginCol = numEdgePixels;
-	const unsigned int endRow = numRowsSubPixelMap - numEdgeSubPixels - 1;
-	const unsigned int endCol = numColumnsSubPixelMap - numEdgeSubPixels - 1;
-
-  	subPixelMap.submat(beginRow, beginCol, endRow, endCol) = subPixelMap.submat(beginRow, beginCol, endRow, endCol) % flatfieldMap;
-}
-
-
-
-
-
-
-
-
-
-/**
- * \brief: Rebin the sub-pixel map to pixel level and crop the edge pixels.
- *
- * \pre Unit of the pixel value in the sub-pixel map: [photons].
- * \pre Pixel, bias register, and smearing map filled with zeroes.
- *
- * \post Unit of pixel values in the sub-pixel map: [photons].
- * \post Bias register, and smearing maps filled with zeroes.
- */
-void Detector::rebin()
-{
-	// Rebinning is simply done by adding all values of the sub-pixels per pixel.
-
-	for (unsigned int row = 0; row < numRowsPixelMap; row++)
-	{
-		for (unsigned int column = 0; column < numColumnsPixelMap; column++)
-		{
-			const unsigned int beginRow = row * numSubPixelsPerPixel;
-			const unsigned int beginCol = column * numSubPixelsPerPixel;
-			const unsigned int endRow = (row + 1) * numSubPixelsPerPixel - 1;
-			const unsigned int endCol = (column + 1) * numSubPixelsPerPixel - 1;
-
-			pixelMap(row, column) = arma::accu(subPixelMap.submat(beginRow, beginCol, endRow, endCol));
-		}
-	}
-}
-
 
 
 
@@ -1734,91 +1316,6 @@ pair<double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCenter()
 
 
 
-
-
-/**
- * \brief Return a boolean telling whether the PSF has been previously set, e.g.
- *        through setPsfForSubfield().
- * 
- * \return  true if the PSF was previously set, false otherwise
- */
-
-bool Detector::psfIsSet()
-{
-	return psfWasSet;
-}
-
-
-
-
-
-
-
-
-
-/**
- * \brief      Set the Point Spread Function map for the subfield
- * 
- * \details    The PSF that is selected is dependent on the user input.
- */
-void Detector::setPsfForSubfield()
-{
-    double centerXmm, centerYmm;
-    tie(centerXmm, centerYmm) = getFocalPlaneCoordinatesOfSubfieldCenter();
-
-    arma::fmat psf = camera.getRebinnedPsfForFocalPlaneCoordinates(centerXmm, centerYmm, numSubPixelsPerPixel, getOrientationAngle());
-
-	convolver.initialise(numRowsSubPixelMap, numColumnsSubPixelMap, psf);
-
-    psfMap = psf;
-    psfWasSet = true;
-}
-
-
-
-
-
-
-
-
-
-
-
-/**
- * \brief: Convolve the sub-pixel map with the PSF, keeping the same dimensions.
- *
- * \param psf: PSF.
- */
-void Detector::convolveWithPsf()
-{
-
-    if(includeConvolution)
-    {
-        Log.debug("Detector: convolving subPixelMap with PSF.");
-
-        // subpixelMap serves here both as input as well as output matrix;
-
-    	convolver.convolve(subPixelMap, subPixelMap);
-    }
-    else
-    {
-        Log.debug("Detector: no convolution applied.");
-    }
-
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
 /**
  * \brief Return the (X,Y) coordinates in the FP' reference frame in [mm] of the 4 corners
  *        of the subfield
@@ -1995,11 +1492,6 @@ void Detector::initHDF5Groups()
 	hdf5File.createGroup("/SmearingMaps");
 	hdf5File.createGroup("/Flatfield");
 	hdf5File.createGroup("/Throughput");
-
-	if (writeSubPixelImagesToHDF5)
-	{
-		hdf5File.createGroup("/SubPixelImages");
-	}
 }
 
 
@@ -2058,34 +1550,4 @@ void Detector::writePixelMapsToHDF5()
 
     imageNr++;
 }
-
-
-
-
-
-
-
-
-
-
-
-/**
- * \brief: Writes the subpixel map for the HDF5 file.
- */
-
-void Detector::writeSubPixelMapToHDF5()
-{
-	stringstream myStream;
-    myStream << "subPixelImage" << setfill('0') << setw(6) << subPixelImageNr;
-    string imageName = myStream.str();
-
-    // Add the image to the "SubPixelImages" group
-
-    hdf5File.writeArray("/SubPixelImages", imageName, subPixelMap);
-
-    // Increment the counter for the next subpixel image
-
-    subPixelImageNr++;
-}
-
 

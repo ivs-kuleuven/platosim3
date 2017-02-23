@@ -229,7 +229,7 @@ class Simulation(object):
         """
         
         # Split the path into node names
-        # E.g. "PSF/Gaussian/Sigma" into ["PSF", "Gaussian", "Sigma"]
+        # E.g. "PSF/MappedGaussian/Sigma" into ["PSF", "MappedGaussian", "Sigma"]
 
         if key.find('/') == -1:
             parentNodeName, nodeName = key, None
@@ -277,7 +277,7 @@ class Simulation(object):
         item = str(item)
 
         # Split the path into node names
-        # E.g. "PSF/Gaussian/Sigma" into ["PSF", "Gaussian", "Sigma"]
+        # E.g. "PSF/MappedGaussian/Sigma" into ["PSF", "MappedGaussian", "Sigma"]
 
         if key.find('/') == -1:
             print ("usage: the given parameter name (key) should include the group name of the group that contains the parameter.")

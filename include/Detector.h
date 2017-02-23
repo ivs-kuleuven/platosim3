@@ -12,6 +12,7 @@
 #include "ArrayOperations.h"
 #include "Camera.h"
 #include "ConfigurationParameters.h"
+#include "PointSpreadFunction.h"
 #include "Convolver.h"
 #include "HDF5File.h"
 #include "HDF5Writer.h"
@@ -32,7 +33,7 @@ class Detector: public HDF5Writer
     	virtual ~Detector();
 
     	virtual double takeExposure(double startTime, double exposureTime);
-    	virtual void configure(ConfigurationParameters &configParam);
+    	void configure(ConfigurationParameters &configParam);
 
     	pair<double, double> pixelToFocalPlaneCoordinates(double row, double column);
     	pair<double, double> focalPlaneToPixelCoordinates(double xFP, double yFP);
@@ -43,25 +44,19 @@ class Detector: public HDF5Writer
     	double getSolidAngleOfOnePixel(double plateScale);
     	double getOrientationAngle();
 
-    	virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux);
-    	virtual void addFlux(double flux);
+    	virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) = 0;
+    	virtual void addFlux(double flux) = 0;
 
     	bool isInSubfield(double xFPmm, double yFPmm);
 
-    	bool psfIsSet();
-    	void setPsfForSubfield();
-    	virtual void convolveWithPsf();
 
     protected:
 
-    	virtual void reset();
-    	virtual void generateFlatfieldMap();
+        virtual void integrateLight(double startTime, double exposureTime) = 0;
+
     	virtual void generateThroughputMap();
 
-    	virtual void integrateLight(double startTime, double exposureTime);
-    	virtual bool isInSubPixelMap(double row, double column);
-    	virtual void applyFlatfield();
-    	virtual void rebin();
+    	virtual void applyFlatfield() = 0;
     	virtual void applyThroughputEfficiency();
 
     	virtual void readOut(float exposureTime);
@@ -85,22 +80,17 @@ class Detector: public HDF5Writer
 
     	virtual void initHDF5Groups() override;
     	void writePixelMapsToHDF5();
-    	void writeSubPixelMapToHDF5();
+
 
     	arma::Mat<float> pixelMap;               // Pixel map, excl. edge pixels
-    	arma::Mat<float> subPixelMap;            // Sub-pixel map, incl. edge pixels
     	arma::Mat<float> smearingMap;            // Smearing map (i.e. over-scan strip)
     	arma::Mat<float> biasMap;                // Bias map (i.e. pre-scan strip)
-    	arma::Mat<float> flatfieldMap;           // Intra-pixel flatfield map
-    	arma::Mat<float> psfMap;     			 // The PSF map that will be used for convolving
     	arma::Mat<float> throughputMap; 		 // Throughput efficiency map, due to vignetting, particulate & molecular contamination, and quantum efficiency
 
     	unsigned int numRows; 					// Nr of rows of the detector (= size in y-direction) including non-exposed ones [pixels]
     	unsigned int numColumns; 				// Nr of columns of the detector (= size in x-direction = readout direction) [pixels]
     	unsigned int numRowsPixelMap; 			// Nr of rows in the subfield excl. edge pixels (= size the y-direction) [pixels]
     	unsigned int numColumnsPixelMap; 		// Nr of columns in the subfield excl. edge pixels (= size in the x-direction = readout direction) [pixels]
-    	unsigned int numRowsSubPixelMap; 		// Nr of subpixel rows in the subfield incl. edge pixels (= size in the y-direction) [subpixels]
-    	unsigned int numColumnsSubPixelMap;   	// Nr of subpixel columns in the subfield incl. edge pixels (= size in the x-direction = readout direction) [subpixels]
     	unsigned int numRowsSmearingMap; 		// Nr of rows in the smearing overscan strip [pixels]
     	unsigned int numRowsBiasMap; 			// Nr of rows in the bias prescan strip [pixels]
 
@@ -111,10 +101,7 @@ class Detector: public HDF5Writer
     	double orientationAngle; 				// Orientation angle of the detector w.r.t. the orientation of the focal plane, measured counterclockwise [radians]
 
     	double pixelSize;	                     // Pixel size [microns]
-    	unsigned int numSubPixelsPerPixel;	     // Nr of sub-pixels per pixel
     	unsigned int numEdgePixels; 				 // Nr of pixels to extend the subfield on each side, to account for the edge effect
-
-    	double flatfieldNoiseAmplitude;          // Peak-to-peak noise amplitude
 
     	double polarizationEfficiency;			 // Efficiency due to polarisation at the reference angle (in [0,1])
     	double expectedValueVignetting;          // Expected value of the throughput efficiency due to vignetting (int [0,1])
@@ -141,7 +128,6 @@ class Detector: public HDF5Writer
     	vector<double> trapCaptureCrossSection; // For each trap species: the trap capture cross section [m^2]
     	vector<double> releaseTime; 			// For each trap species: the electron release time [s]
 
-    	bool includeFlatfield;           		// Whether or not to include flat fielding
     	bool includePhotonNoise;           		// Whether or not to include photon noise
     	bool includeReadoutNoise;               // Include readout noise [yes or no]
     	bool includeCTIeffects;                 // Include CTI effects [yes or no]
@@ -151,15 +137,11 @@ class Detector: public HDF5Writer
     	bool includePolarization;				// Include loss of throughput due to polarisation
     	bool includeParticulateContamination;	// Include loss of throughput due to particulate contamination
     	bool includeMolecularContamination;		// Include loss of throughput due to molecular contamination
-    	bool writeSubPixelImagesToHDF5;       	// Write subpixel maps to HDF5 as well
-    	bool includeConvolution; 				// Whether or not to convolve the subPixelMap with the PSF
     	bool includeFullWellSaturation; 		// Whether or not full well saturation should be applied
     	bool includeDigitalSaturation; 			// Whether or not digital saturation should be applied
-    	bool psfWasSet; 						// True if PSF for subfield was already initialised. False otherwise.
 
     	double internalTime;
 
-    	long flatfieldSeed;
     	long readoutNoiseSeed;
     	long photonNoiseSeed;
 
@@ -169,12 +151,10 @@ class Detector: public HDF5Writer
     	poisson_distribution<long> photonNoiseDistribution;
     	normal_distribution<double> readoutNoiseDistribution;
 
-    private:
+        Camera &camera;
+        int imageNr;
 
-    	Camera &camera;
-    	Convolver convolver;
-    	int imageNr;
-    	int subPixelImageNr;
+    private:
 
 };
 

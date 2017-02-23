@@ -45,7 +45,7 @@ for n in range(NguideStars):
 
     sim["ObservingParameters/StarCatalogFile"] = starCatalog
     sim["Platform/JitterFileName"] = jitterFile
-    sim["PSF/FromFile/Filename"] = psfFile 
+    sim["PSF/MappedFromFile/Filename"] = psfFile 
 
     # Center the subfield around the current guide star
     # First extract the required information from the yaml input file.
