@@ -6,6 +6,7 @@
 #include "Logger.h"
 #include "HDF5File.h"
 #include "Detector.h"
+#include "DetectorWithMappedPSF.h"
 #include "Camera.h"
 #include "Telescope.h"
 #include "Platform.h"
@@ -47,6 +48,7 @@ class Simulation
         bool useJitterFromFile;
         bool includeFieldDistortion;
         bool useDriftFromFile;
+        string psfModel;
 
         JitterGenerator *jitterGenerator;
         DriftGenerator *driftGenerator;

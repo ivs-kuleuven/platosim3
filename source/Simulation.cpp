@@ -77,7 +77,23 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     telescope  = new Telescope(configParams, hdf5File, *platform, *driftGenerator);
     sky        = new Sky(configParams);
     camera     = new Camera(configParams, hdf5File, *telescope, *sky);
-    detector   = new Detector(configParams, hdf5File, *camera);
+
+    // Depending on how the PSF is computed (analytically or pre-mapped) the Detector object is different.
+
+    if ((psfModel == "MappedGaussian") || (psfModel == "MappedFromFile"))
+    {
+        detector = new DetectorWithMappedPSF(configParams, hdf5File, *camera);
+    }
+    else if (psfModel == "AnalyticGaussian")
+    {
+        // detector = new DetectorWithAnalyticGaussianPSF(configParams, hdf5File, *camera);
+    }
+    else
+    {
+        string errorMessage = "Simulation: PSF Model '" + psfModel + "' is not supported.";
+        Log.error(errorMessage);
+        throw IllegalArgumentException(errorMessage);
+    }
 
     // Write the input parameters to the output HDF5 file
 
@@ -131,6 +147,7 @@ void Simulation::configure(ConfigurationParameters &configParams)
     useJitterFromFile = configParams.getBoolean("Platform/UseJitterFromFile");
     includeFieldDistortion = configParams.getBoolean("Camera/IncludeFieldDistortion"); // do we want to do this or should this be asked to Camera?
     useDriftFromFile  = configParams.getBoolean("Telescope/UseDriftFromFile");  
+    psfModel          = configParams.getString("PSF/Model");   
 }
 
 
@@ -373,12 +390,12 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     subGroup = "PSF";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addString("Model");
-    subGroup = "PSF/Gaussian";
+    subGroup = "PSF/MappedGaussian";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addDouble("Sigma");
     addInteger("NumberOfPixels");
 
-    subGroup = "PSF/FromFile";
+    subGroup = "PSF/MappedFromFile";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addString("Filename");
     addDouble("DistanceToOA");
