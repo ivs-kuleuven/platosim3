@@ -86,7 +86,7 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     }
     else if (psfModel == "AnalyticGaussian")
     {
-        // detector = new DetectorWithAnalyticGaussianPSF(configParams, hdf5File, *camera);
+        detector = new DetectorWithAnalyticGaussianPSF(configParams, hdf5File, *camera);
     }
     else
     {
@@ -401,6 +401,13 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("DistanceToOA");
     addDouble("RotationAngle");
     addInteger("NumberOfPixels");
+
+    subGroup = "PSF/AnalyticGaussian";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("SigmaX00");
+    addDouble("SigmaY00");
+    addDouble("SigmaX18");
+    addDouble("SigmaY18");
 
     subGroup = "CCD";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
