@@ -4,7 +4,7 @@
 #
 
 
-import os,sys,shutil,subprocess
+import os,sys,shutil,subprocess, glob
 
 
 # Specify the dependency package name
@@ -48,33 +48,35 @@ subprocess.call(installProcedure, shell=True)
 # structure, we copy the old folder structure into a new one.
 
 # First try to copy the header files to the folder /include.
+# Note: from Python 3.5 on it's possible to use "glob(installDir + "/**/include", recursive=True)" 
 
-if os.path.isdir(installDir+"/usr/local/include"):
-    shutil.copytree(installDir+"/usr/local/include", installDir+"/include")
-elif os.path.isdir(installDir+"/usr/include"):
-    shutil.copytree(installDir+"/usr/include", installDir+"/include")    
-else:
+pathOfIncludeFolder =   glob.glob(installDir + "/include") + glob.glob(installDir + "/*/include") \
+                      + glob.glob(installDir + "/*/*/include") + glob.glob(installDir + "/*/*/*/include")
+
+if len(pathOfIncludeFolder) != 1:
+    print("Path of include folder: {0}".format(pathOfIncludeFolder))
     print("Armadillo installation failed: please email the folder structure in " + installDir + "to Joris De Ridder")
     exit(1)
+else:
+    shutil.copytree(pathOfIncludeFolder[0], installDir+"/include")
+
 
 # Then try to copy the library files to the folder /lib
 
-if os.path.isdir(installDir+"/usr/local/lib"):
-    shutil.copytree(installDir+"/usr/local/lib", installDir+"/lib")
-elif os.path.isdir(installDir+"/usr/local/lib64"):
-    shutil.copytree(installDir+"/usr/local/lib64", installDir+"/lib")
-elif os.path.isdir(installDir+"/usr/lib64"):
-    shutil.copytree(installDir+"/usr/lib64", installDir+"/lib")
-elif os.path.isdir(installDir+"/usr/lib"):
-    shutil.copytree(installDir+"/usr/lib", installDir+"/lib")
-else:
+pathOfLibFolder =   glob.glob(installDir + "/lib") + glob.glob(installDir + "/*/lib") \
+                  + glob.glob(installDir + "/*/*/lib") + glob.glob(installDir + "/*/*/*/lib")
+
+if len(pathOfLibFolder) != 1:
+    print("Path of lib folder: {0}".format(pathOfLibFolder))
     print("Armadillo installation failed: please email the folder structure in " + installDir + "to Joris De Ridder")
     exit(1)
+else:
+    shutil.copytree(pathOfLibFolder[0], installDir+"/lib")
 
 
 # If we arrived here, the copying succeeded, and we need to remove the old folder
 
-shutil.rmtree(installDir+"/usr", ignore_errors=True)
+#shutil.rmtree(installDir+"/usr", ignore_errors=True)
 
 
 # For Mac systems, we still need to correct the relative path in the armadillo library
