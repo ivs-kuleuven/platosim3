@@ -165,7 +165,7 @@ void Simulation::configure(ConfigurationParameters &configParams)
  *
  * \param[in]  startTime  begin time of the very first exposure. Time is expressed in seconds in the rest of the code.
  */
-void Simulation::run(double startTime)
+void Simulation::run()
 {
     // Update the internal clock
 

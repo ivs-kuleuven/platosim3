@@ -32,7 +32,7 @@ class Simulation
 
         Simulation(string inputFilename, string outputFilename);
         ~Simulation();
-        virtual void run(double startingTime = 0.0);
+        virtual void run();
         virtual void configure(ConfigurationParameters &configParams);
 
     protected:
