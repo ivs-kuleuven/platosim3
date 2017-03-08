@@ -404,8 +404,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "PSF/AnalyticGaussian";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
-    addDouble("SigmaX00");
-    addDouble("SigmaY00");
+    addDouble("Sigma00");
     addDouble("SigmaX18");
     addDouble("SigmaY18");
 
