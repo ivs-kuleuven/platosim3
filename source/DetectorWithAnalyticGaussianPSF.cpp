@@ -1,4 +1,4 @@
-#include "DetectorWithAnalyticPSF.h"
+#include "DetectorWithAnalyticGaussianPSF.h"
 
 /**
  * \brief Constructor.
@@ -31,12 +31,6 @@ DetectorWithAnalyticGaussianPSF::DetectorWithAnalyticGaussianPSF(ConfigurationPa
     // Parse the parameters from the configuration file.
 
     configure(configParam);
-
-    // Create the groups in the HDF5 file where the different maps (i.e. pixel map,
-    // bias register map, smearing map, etc.) will be saved. This needs to be done
-    // BEFORE other methods write arrays to HDF5.
-
-    initHDF5Groups();
 
     // Allocate memory for the flatfield map
 
@@ -83,8 +77,7 @@ DetectorWithAnalyticGaussianPSF::~DetectorWithAnalyticGaussianPSF()
  {
     // Treat the specific configurations for a analytical Gaussian PSF
 
-    sigmaX00 = configParam.getDouble("PSF/AnalyticGaussian/SigmaX00");
-    sigmaY00 = configParam.getDouble("PSF/AnalyticGaussian/SigmaY00");
+    sigma00 = configParam.getDouble("PSF/AnalyticGaussian/Sigma00");
     sigmaX18 = configParam.getDouble("PSF/AnalyticGaussian/SigmaX18");
     sigmaY18 = configParam.getDouble("PSF/AnalyticGaussian/SigmaY18");
 
@@ -317,9 +310,10 @@ void DetectorWithAnalyticGaussianPSF::integrateLight(double startTime, double ex
 
 
 /**
- *  !!!!!!!!!!!!!  COMPLETLY REWRITE  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
- * \brief: Add the given flux value to the value of the sub-pixel that corresponds to the given coordinates 
- *         in the focal plane. Return the pixel coordinates of the pixel to which the flux was added.
+ * \brief: Add the PSF of the star with given focal plane coordinates and flux level to the pixel map.
+ *         Return the pixel coordinates of the barycenter of the PSF. As PSF we use a Gaussian which
+ *         is symmetric at the optical axis, and becomes more asymmetric and fatter towards the edge
+ *         of the FOV (although the user can set the parameters such that the effect can be opposite).
  *
  * \param xFP   X-coordinate of the (fractional) pixel in the focal plane in the FP reference frame [mm].
  * \param yFP   Y-coordinate of the (fractional) pixel in the focal plane in the FP reference frame [mm].
@@ -327,8 +321,11 @@ void DetectorWithAnalyticGaussianPSF::integrateLight(double startTime, double ex
  *
  * \return           (isInSubfield, row, col) 
  *                   isInSubfield: True if (xFP, yFP) are on the subfield, false otherwise.
- *                   row:          subfield (not CCD) row number of the pixel to which the flux was added
- *                   col:          subfield (not CCD) column number of the pixel to which the flux was added  
+ *                   row:          subfield (not CCD) row number of the barycenter of the PSF.
+ *                   col:          subfield (not CCD) column number of the barycenter of the PSF.
+ *                   
+ * \note In the code below, we use pixelMap(i,j) that involves a boundary check. To increase speed,
+ *       switch to pixelMap.at(i,j) that does not involve a boundary check. 
  */
 
 tuple<bool, double, double> DetectorWithAnalyticGaussianPSF::addFlux(double xFP, double yFP, double flux)
@@ -352,56 +349,66 @@ tuple<bool, double, double> DetectorWithAnalyticGaussianPSF::addFlux(double xFP,
     // Determine the standard deviations in both directions.
 
     const double theta = rad2deg(camera.getGnomonicRadialDistanceFromOpticalAxis(xFP, yFP));
-    const double sigmaX = sigmaX00 + theta/18.0  * (sigmaX18 - sigmaX00);
-    const double sigmaY = sigmaY00 + theta/18.0  * (sigmaY18 - sigmaY00);
+    const double sigmaX = sigma00 + theta/18.0  * (sigmaX18 - sigma00);
+    const double sigmaY = sigma00 + theta/18.0  * (sigmaY18 - sigma00);
 
     // Construct the covariance matrix of the rotated non-spherial gaussian
+    // Note: sigmaX corresponds to the column direction, sigmaY to the row direction.
 
-    const double angle = atan2(yFP, xFP)
+    const double angle = Constants::PI - atan2(yFP, xFP);
     
     arma::mat R(2,2);
-    R << cos(angle) << -sin(angle) << mat::endr
-      << sin(angle) <<  cos(angle) << mat::endr;
+    R << cos(angle) << -sin(angle) << arma::endr
+      << sin(angle) <<  cos(angle) << arma::endr;
     
     arma::mat invS(2,2);
-    invS << 1./(sigmaX*sigmaX) <<         0          << arma::endr
-      <<            0          << 1./(sigmaY*sigmaY) << arma::endr;
+    invS << 1./(sigmaY*sigmaY) <<         0          << arma::endr
+         <<          0         << 1./(sigmaX*sigmaX) << arma::endr;
 
-    arma::mat invCov = R * invS * R.t;                         // Inverse of the covariance matrix
+    const arma::mat invCov = R * invS * R.t();                      // Inverse of the covariance matrix
 
-    const double detCov = 1./arma::det(invCov);                // Determination of the covariance matrix
+    // Compute the prefactor of the 2D gaussian, that contains the determinant of the cov matrix
 
-    //
+    const double detCov = 1./arma::det(invCov);
+    double preFactor = 1./(2*Constants::PI * sqrt(detCov));
 
-    arma::colvec mu = {row0, column0};
+    // Take care that the total flux is conserved over the pixel range that we're computing the PSF.
+    // Compute the integral (sum) over the total range (not only the visible range).
 
+    const arma::colvec mu = {row0, column0};
     double sum = 0.0;
 
-    int range = max(10*floor(sigmaX), 10*floor(sigmaY));
+    int range = max(6*floor(sigmaX), 6*floor(sigmaY));
+
+    for (int row = int(floor(row0))-range; row < int(floor(row0))+range+1; row++)
+    {
+        for (int col = int(floor(column0))-range; col < int(floor(column0))+range+1; col++)
+        {
+            const arma::colvec x = {double(row), double(col)};
+            sum += preFactor * arma::exp(-0.5 * (x - mu).t() * invCov * (x-mu)).at(0,0);
+        }
+    }
+
+    preFactor = preFactor / sum * flux;
+
+    // Paste the 2D gaussian PSF into the pixelMap
 
     for (int row = int(floor(row0))-range; row < int(floor(row0))+range+1; row++)
     {
         if ((row < 0) || (row >= numRowsPixelMap)) continue;
 
-        for (int col = int(floor(column0)))-range; col < int(floor(column0))+range+1; col++)
+        for (int col = int(floor(column0))-range; col < int(floor(column0))+range+1; col++)
         {
             if ((col < 0) || (col >= numColumnsPixelMap)) continue;
         
-            arma::colvec x = {row, col};
-
-            0.5 * (x - mu).t * invCov * (x-mu)
-
-            sum += 
-
+            arma::colvec x = {double(row), double(col)};
+            pixelMap(row, col) += preFactor * arma::exp(-0.5 * (x - mu).t() * invCov * (x-mu)).at(0,0);
         }
     }
 
-    // Normalize 
-
-
     // That's it!
     
-    return make_tuple(true, row, column);
+    return make_tuple(true, row0, column0);
 }
 
 

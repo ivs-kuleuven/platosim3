@@ -9,6 +9,7 @@
 
 #include "armadillo"
 
+#include "Constants.h"
 #include "Units.h"
 #include "Detector.h"
 
@@ -16,12 +17,12 @@ using namespace std;
 
 
 
-class DetectorWithAnalyticPSF: public Detector 
+class DetectorWithAnalyticGaussianPSF: public Detector 
 {
     public:
 
-        DetectorWithAnalyticPSF(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera);
-        virtual ~DetectorWithAnalyticPSF();
+        DetectorWithAnalyticGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera);
+        virtual ~DetectorWithAnalyticGaussianPSF();
 
         virtual double takeExposure(double startTime, double exposureTime) override;
 
@@ -40,8 +41,7 @@ class DetectorWithAnalyticPSF: public Detector
 
         arma::Mat<float> flatfieldMap;      // Pixel flatfield map
 
-        double sigmaX00;                    // Stdev of Gaussian PSF in x-direction at the optical axis             [pix]
-        double sigmaY00;                    // Stdev of Gaussian PSF in y-direction at the optical axis             [pix]
+        double sigma00;                     // Stdev of Gaussian PSF in x- and y-direction at the optical axis      [pix]
         double sigmaX18;                    // Stdev of Gaussian PSF in x-direction at 18 deg from the optical axis [pix]
         double sigmaY18;                    // Stdev of Gaussian PSF in y-direction at 18 deg from the optical axis [pix]
 
