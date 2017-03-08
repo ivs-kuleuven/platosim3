@@ -7,6 +7,7 @@
 #include "HDF5File.h"
 #include "Detector.h"
 #include "DetectorWithMappedPSF.h"
+#include "DetectorWithAnalyticGaussianPSF.h"
 #include "Camera.h"
 #include "Telescope.h"
 #include "Platform.h"

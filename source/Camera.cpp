@@ -508,16 +508,16 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 /**
  * @brief      Calculate the gnomonic radial distance with respect to the optical axis in the focal plane
  *
- * @param[in]  xFPprime  Focal plane x-coordinate [mm]
- * @param[in]  yFPprime  Focal plane y-coordinate [mm]
+ * @param[in]  xFP  Focal plane x-coordinate [mm]
+ * @param[in]  yFP  Focal plane y-coordinate [mm]
  *
  * @return     the angular distance of the star w.r.t. the optical axis [rad]
  * 
  */
-double Camera::getGnomonicRadialDistanceFromOpticalAxis(double xFPprime, double yFPprime)
+double Camera::getGnomonicRadialDistanceFromOpticalAxis(double xFP, double yFP)
 {
-    const double tanx = xFPprime / focalLength;
-    const double tany = yFPprime / focalLength;
+    const double tanx = xFP / focalLength;
+    const double tany = yFP / focalLength;
 
     double angularDistance = acos(1.0/sqrt(1.0 + tanx*tanx + tany*tany));
 
