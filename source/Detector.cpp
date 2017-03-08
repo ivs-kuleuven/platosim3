@@ -64,6 +64,12 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 
 	photonNoiseGenerator.seed(photonNoiseSeed);
 	readoutNoiseGenerator.seed(readoutNoiseSeed);
+
+    // Fast forward the 
+
+    fastForwardReadoutNoiseGeneratorToExposure(beginExposureNr);
+    fastForwardPhotonNoiseGeneratorToExposure(beginExposureNr);
+
 }
 
 
@@ -170,6 +176,10 @@ Detector::~Detector()
 
 	readoutNoiseSeed        = configParam.getLong("RandomSeeds/ReadOutNoiseSeed");
 	photonNoiseSeed         = configParam.getLong("RandomSeeds/PhotonNoiseSeed");
+
+    // Get the sequential number of the very first exposure (used for e.g. fast-forwarding the noise generators)
+
+    beginExposureNr         = configParam.getInteger("ObservingParameters/BeginExposureNr");
 
 	numEdgePixels = 0;
  }
@@ -1552,5 +1562,115 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
 
 
 
+
+
+
+
+
+
+
+/**
+ * \brief PlatoSim allows to generate e.g. exposures 0->99, and then a second run
+ *        from 100->199, which facilitates Slurming long time series. The results
+ *        should be the same as if we would generate 0->199 in one stretch. Therefore,
+ *        when generating exposures 100->199, we have to take care that all noise 
+ *        generators start in the correct state. The way to do this, is to fast-forward
+ *        through all noise generations of exposures 0->99. This function is therefore
+ *        a skeleton version of addReadoutNoise(), where noise is generated but further
+ *        ignored.
+ *        
+ * \param beginExposureNr: fast forward from 0 to beginExposureNr-1
+ */
+
+void Detector::fastForwardReadoutNoiseGeneratorToExposure(int beginExposureNr)
+{
+
+    readoutNoiseDistribution = normal_distribution<double>(0.0, readoutNoise);
+
+    double dummy;
+
+    for (int n = 0; n < beginExposureNr; n++)
+    {
+        // The readout noise generated for the pixel map
+
+        for (unsigned int row = 0; row < numRowsPixelMap; row++)
+        {
+            for (unsigned int column = 0; column < numColumnsPixelMap; column++)
+            {
+                dummy = readoutNoiseDistribution(readoutNoiseGenerator);
+            }
+        }
+
+        // The readout noise generated for the bias prescan map
+
+        for (unsigned int row = 0; row < numRowsBiasMap; row++)
+        {
+            for (unsigned int column = 0; column < numColumnsPixelMap; column++)
+            {
+                dummy = readoutNoiseDistribution(readoutNoiseGenerator);
+            }
+        }
+
+        // The readout noise generated for the smearing overscan map
+
+        for (unsigned int row = 0; row < numRowsSmearingMap; row++)
+        {
+            for (unsigned int column = 0; column < numColumnsPixelMap; column++)
+            {
+                dummy = readoutNoiseDistribution(readoutNoiseGenerator);
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+/**
+ * \brief PlatoSim allows to generate e.g. exposures 0->99, and then a second run
+ *        from 100->199, which facilitates Slurming long time series. The results
+ *        should be the same as if we would generate 0->199 in one stretch. Therefore,
+ *        when generating exposures 100->199, we have to take care that all noise 
+ *        generators start in the correct state. The way to do this, is to fast-forward
+ *        through all noise generations of exposures 0->99. This function is therefore
+ *        a skeleton version of addPhotonNoise(), where noise is generated but further
+ *        ignored.
+ * 
+ * \param beginExposureNr: fast forward from 0 to beginExposureNr-1
+ */
+
+void Detector::fastForwardPhotonNoiseGeneratorToExposure(int beginExposureNr)
+{
+    double dummy;
+
+    for (int n = 0; n < beginExposureNr; n++)
+    {
+        // The photon noise generated for the pixel map
+
+        for (unsigned int row = 0; row < numRowsPixelMap; row++)
+        {
+            for (unsigned int column = 0; column < numColumnsPixelMap; column++)
+            {
+                photonNoiseDistribution = poisson_distribution<long>(pixelMap(row, column));
+                dummy = photonNoiseDistribution(photonNoiseGenerator);
+            }
+        }
+
+        // The photon noise for the smearing map
+
+        for (unsigned int row = 0; row < numRowsSmearingMap; row++)
+        {
+            for (unsigned int column = 0; column < numColumnsPixelMap; column++)
+            {
+                photonNoiseDistribution = poisson_distribution<long>(smearingMap(row, column));
+                dummy = photonNoiseDistribution(photonNoiseGenerator);
+            }
+        }
+    }
 }
 

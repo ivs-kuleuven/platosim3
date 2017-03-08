@@ -81,6 +81,9 @@ class Detector: public HDF5Writer
     	virtual void initHDF5Groups() override;
     	void writePixelMapsToHDF5(int exposureNr);
 
+        void fastForwardReadoutNoiseGeneratorToExposure(int beginExposureNr);
+        void fastForwardPhotonNoiseGeneratorToExposure(int beginExposureNr);
+
 
     	arma::Mat<float> pixelMap;               // Pixel map, excl. edge pixels
     	arma::Mat<float> smearingMap;            // Smearing map (i.e. over-scan strip)
@@ -139,6 +142,8 @@ class Detector: public HDF5Writer
     	bool includeMolecularContamination;		// Include loss of throughput due to molecular contamination
     	bool includeFullWellSaturation; 		// Whether or not full well saturation should be applied
     	bool includeDigitalSaturation; 			// Whether or not digital saturation should be applied
+
+        int beginExposureNr;                    // Sequential number of the very first exposure. See yaml input file.
 
     	double internalTime;
 
