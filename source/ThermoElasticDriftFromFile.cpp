@@ -41,8 +41,9 @@ ThermoElasticDriftFromFile::ThermoElasticDriftFromFile(ConfigurationParameters &
 
         if (time.size() < 2)
         {
-            Log.error("ThermoElasticDriftFromFile: Jitter file contains less than 2 time points");
-            // FIXME: exit ???
+            string msg = "ThermoElasticDriftFromFile: Jitter file contains less than 2 time points";
+            Log.error(msg);
+            throw FileException(msg);
         }
         else
         {        
@@ -51,8 +52,9 @@ ThermoElasticDriftFromFile::ThermoElasticDriftFromFile(ConfigurationParameters &
     }
     else
     {
-        Log.error("ThermoElasticDriftFromFile: Cannot open jitter file " + pathToDriftFile);
-        exit(1);
+        string msg = "ThermoElasticDriftFromFile: Cannot open jitter file " + pathToDriftFile;
+        Log.error(msg);
+        throw FileException(msg);
     }
 
     // We start with the first time point of the file

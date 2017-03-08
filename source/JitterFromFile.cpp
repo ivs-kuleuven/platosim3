@@ -41,8 +41,9 @@ JitterFromFile::JitterFromFile(ConfigurationParameters &configParams)
 
         if (time.size() < 2)
         {
-            Log.error("JitterFromFile: Jitter file contains less than 2 time points");
-            // FIXME: exit ???
+            string msg = "JitterFromFile: Jitter file contains less than 2 time points";
+            Log.error(msg);
+            throw FileException(msg);
         }
         else
         {        
@@ -51,8 +52,9 @@ JitterFromFile::JitterFromFile(ConfigurationParameters &configParams)
     }
     else
     {
-        Log.error("JitterFromFile: Cannot open jitter file " + pathToJitterFile);
-        exit(1);
+        string msg = "JitterFromFile: Cannot open jitter file " + pathToJitterFile;
+        Log.error(msg);
+        throw FileException(msg);
     }
 
     // We start with the first time

@@ -7,6 +7,7 @@
 #include <sstream>
 #include <iterator>
 
+#include "Exceptions.h"
 #include "Logger.h"
 #include "Units.h"
 #include "Heartbeat.h"
