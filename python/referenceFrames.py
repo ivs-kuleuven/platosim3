@@ -385,15 +385,15 @@ def pixelToFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX,
     PUROSE: Given the (real-valued) pixel coordinates of the star on the CCD, compute the (x,y)
             coordinates in the FP reference system.
 
-    INPUT: xCCDpixel     : x-coordinate (column-number) of the star on the CCD  [pixel]
-           yCCDpixel     : y-coordinate (row-number) of the star on the CCD  [pixel]
+    INPUT: xCCDpixel     : x-coordinate (column-number !!) of the star on the CCD  [pixel]
+           yCCDpixel     : y-coordinate (row-number !!)  of the star on the CCD  [pixel]
            pixelSize     : size of 1 pixel in micron (not [mm]!)
            ccdZeroPointX : x-coordinate of the CCD (0,0) point in the FP' reference system [mm]
            ccdZeroPointY : y-coordinate of the CCD (0,0) point in the FP' reference system [mm]
            CCDangle      : CCD orientation angle in the FP' reference frame  [rad]
 
-    OUTPUT: xFPprime: column pixel coordinate of the star (real-valued) [mm]
-            yFPprime: row pixel coordinate of the star (real-valued) [mm]
+    OUTPUT: xFP: column pixel coordinate of the star (real-valued) [mm]
+            yFP: row pixel coordinate of the star (real-valued) [mm]
     """
 
     # Convert the pixel coordinates into [mm] coordinates
@@ -451,6 +451,48 @@ def focalPlaneToPixelCoordinates(xFP, yFP, pixelSize, ccdZeroPointX, ccdZeroPoin
     # That's it
 
     return xCCDpixel, yCCDpixel
+
+
+
+
+
+
+
+
+
+
+
+
+
+def gnomonicRadialDistanceFromOpticalAxis(xFP, yFP, focalLength):
+
+    """
+    Calculate the gnomonic radial distance with respect to the optical axis in the focal plane
+
+    INPUT: xFP  Focal plane x-coordinate [mm]
+           yFP  Focal plane y-coordinate [mm]
+ 
+    OUTPUT: the angular distance of the star w.r.t. the optical axis [rad]
+
+    """
+
+    tanx = xFP / focalLength
+    tany = yFP / focalLength
+
+    angularDistance = arccos(1.0/sqrt(1.0 + tanx*tanx + tany*tany));
+
+    # Take care that the angle is between [0, 2*PI]
+
+    if angularDistance < 0.0:
+        angularDistance += 2.0 * np.pi
+    elif angularDistance > 2.0 * np.pi:
+        angularDistance -= 2.0 * np.pi
+
+    # That's it!
+
+    return angularDistance;
+
+
 
 
 

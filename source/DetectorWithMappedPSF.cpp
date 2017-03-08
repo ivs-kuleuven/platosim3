@@ -9,7 +9,7 @@
  * The constructor initializes the groups in the HDF5 file where the different maps (i.e. pixel map,
  * bias register map, smearing map, etc.) will be saved. 
  * 
- * The following maps are initialized to zero:
+ * The following maps are initialized to zero (partly through the base class Detector):
  * 
  * pixelMap 
  * subPixelMap
