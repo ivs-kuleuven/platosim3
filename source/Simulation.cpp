@@ -490,6 +490,5 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addLong("PhotonNoiseSeed");
     addLong("JitterSeed");
     addLong("FlatFieldSeed");
-    addLong("CTESeed");
     addLong("DriftSeed");
 }

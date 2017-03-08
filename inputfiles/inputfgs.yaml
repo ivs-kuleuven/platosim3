@@ -148,5 +148,4 @@ RandomSeeds:
     PhotonNoiseSeed:             1433320336      # Unique positive integer 
     JitterSeed:                  1433320381      # Unique positive integer 
     FlatFieldSeed:               1425284070      # Unique positive integer 
-    CTESeed:                     1424949740      # Unique positive integer 
     DriftSeed:                   1433429158      # Unique positive integer 
