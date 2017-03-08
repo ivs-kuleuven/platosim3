@@ -385,15 +385,15 @@ def pixelToFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX,
     PUROSE: Given the (real-valued) pixel coordinates of the star on the CCD, compute the (x,y)
             coordinates in the FP reference system.
 
-    INPUT: xCCDpixel     : x-coordinate (column-number) of the star on the CCD  [pixel]
-           yCCDpixel     : y-coordinate (row-number) of the star on the CCD  [pixel]
+    INPUT: xCCDpixel     : x-coordinate (column-number !!) of the star on the CCD  [pixel]
+           yCCDpixel     : y-coordinate (row-number !!)  of the star on the CCD  [pixel]
            pixelSize     : size of 1 pixel in micron (not [mm]!)
            ccdZeroPointX : x-coordinate of the CCD (0,0) point in the FP' reference system [mm]
            ccdZeroPointY : y-coordinate of the CCD (0,0) point in the FP' reference system [mm]
            CCDangle      : CCD orientation angle in the FP' reference frame  [rad]
 
-    OUTPUT: xFPprime: column pixel coordinate of the star (real-valued) [mm]
-            yFPprime: row pixel coordinate of the star (real-valued) [mm]
+    OUTPUT: xFP: column pixel coordinate of the star (real-valued) [mm]
+            yFP: row pixel coordinate of the star (real-valued) [mm]
     """
 
     # Convert the pixel coordinates into [mm] coordinates
