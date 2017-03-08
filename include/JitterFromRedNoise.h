@@ -27,7 +27,7 @@ class JitterFromRedNoise : public JitterGenerator
         ~JitterFromRedNoise();
 
         virtual void configure(ConfigurationParameters &configParams);
-        virtual tuple<double, double, double> getNextYawPitchRoll(double timeInterval) override;
+        virtual tuple<double, double, double> getNextYawPitchRoll(double time) override;
         virtual double getHeartbeatInterval() override;
 
     protected:
@@ -44,6 +44,8 @@ class JitterFromRedNoise : public JitterGenerator
         double jitterTimeInterval;  // [s]
 
         long jitterNoiseSeed;
+
+        double internalTime;        // [s]
 
     private:
 

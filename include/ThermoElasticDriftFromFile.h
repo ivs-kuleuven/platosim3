@@ -28,7 +28,7 @@ class ThermoElasticDriftFromFile : public DriftGenerator
         ~ThermoElasticDriftFromFile();
 
         virtual void configure(ConfigurationParameters &configParams);
-        virtual tuple<double, double, double> getNextYawPitchRoll(double timeInterval) override;
+        virtual tuple<double, double, double> getNextYawPitchRoll(double time) override;
         virtual double getHeartbeatInterval() override;
 
     protected:
@@ -38,10 +38,10 @@ class ThermoElasticDriftFromFile : public DriftGenerator
         int timeIndex;
         double internalTime;
 
-        vector<double> time;
-        vector<double> yaw;      // [rad]
-        vector<double> pitch;    // [rad]
-        vector<double> roll;     // [rad]
+        vector<double> timeFromFile;    // [s]
+        vector<double> yaw;             // [rad]
+        vector<double> pitch;           // [rad]
+        vector<double> roll;            // [rad]
 
 
     private:

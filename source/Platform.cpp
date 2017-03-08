@@ -210,7 +210,7 @@ void Platform::updatePointingCoordinates(double time)
         // We're know in the case that we haven't processed the given time point yet.
         // Let the platfrom jitter until 'time'. Yaw, pitch, and roll are in [rad]
 
-        tie(yaw, pitch, roll) = jitterGenerator.getNextYawPitchRoll(timeInterval);
+        tie(yaw, pitch, roll) = jitterGenerator.getNextYawPitchRoll(time);
 
         Log.debug("Platform: At time " + to_string(time) + ": (yaw, pitch, roll) = (" 
                                        + to_string(rad2deg(yaw)*3600.) + ", " 

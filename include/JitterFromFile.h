@@ -38,10 +38,10 @@ class JitterFromFile : public JitterGenerator
         int timeIndex;
         double internalTime;
 
-        vector<double> time;
-        vector<double> yaw;      // [rad]
-        vector<double> pitch;    // [rad]
-        vector<double> roll;     // [rad]
+        vector<double> timeFromFile;  // [s]
+        vector<double> yaw;           // [rad]
+        vector<double> pitch;         // [rad]
+        vector<double> roll;          // [rad]
 
 
     private:

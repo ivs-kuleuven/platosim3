@@ -44,7 +44,7 @@ class Platform : public Heartbeat, HDF5Writer
 
         arma::colvec spacecraftToEquatorialCoordinates(arma::colvec &coordSC, bool useOriginalPointingCoordinates=false);
 
-	tuple<double, double, double> getNextYawPitchRoll(double timeInterval);
+	    tuple<double, double, double> getNextYawPitchRoll(double time);
 
 
     protected:

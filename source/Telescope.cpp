@@ -216,8 +216,7 @@ void Telescope::updateTelescopeOrientation(double time)
 
     if (useDrift)
     {
-        const double timeInterval = time - internalTime;
-        tie(yaw, pitch, roll) = driftGenerator.getNextYawPitchRoll(timeInterval);   // [rad]
+        tie(yaw, pitch, roll) = driftGenerator.getNextYawPitchRoll(time);   // [rad]
 
         currentAzimuthAngle = originalAzimuthAngle + yaw;
         currentTiltAngle = originalTiltAngle + pitch;
