@@ -21,7 +21,7 @@ class DetectorWithMappedPSF: public Detector
         DetectorWithMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera);
         virtual ~DetectorWithMappedPSF();
 
-        virtual double takeExposure(double startTime, double exposureTime) override;
+        virtual double takeExposure(int exposureNr, double startTime, double exposureTime) override;
 
         void configure(ConfigurationParameters &configParam);
 
@@ -32,12 +32,12 @@ class DetectorWithMappedPSF: public Detector
 
         virtual void reset();
         virtual void initHDF5Groups() override;
-        virtual void integrateLight(double startTime, double exposureTime) override;
+        virtual void integrateLight(int exposureNr, double startTime, double exposureTime) override;
         virtual bool isInSubPixelMap(double row, double column);
         virtual void applyFlatfield() override;
         virtual void generateFlatfieldMap();
         virtual void rebin();
-        void writeSubPixelMapToHDF5();
+        void writeSubPixelMapToHDF5(int exposureNr);
 
         void setPsfForSubfield();
         virtual void convolveWithPsf();
@@ -66,7 +66,6 @@ class DetectorWithMappedPSF: public Detector
     private:
 
         Convolver convolver;
-        int subPixelImageNr;
 
 };
 

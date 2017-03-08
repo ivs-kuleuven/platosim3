@@ -143,11 +143,16 @@ Simulation::~Simulation()
 void Simulation::configure(ConfigurationParameters &configParams)
 {
     exposureTime      = configParams.getDouble("ObservingParameters/ExposureTime"); 
-    Nexposures        = configParams.getInteger("ObservingParameters/NumExposures"); 
+    beginExposureNr   = configParams.getInteger("ObservingParameters/BeginExposureNr");
+    endExposureNr     = configParams.getInteger("ObservingParameters/EndExposureNr");
     useJitterFromFile = configParams.getBoolean("Platform/UseJitterFromFile");
     includeFieldDistortion = configParams.getBoolean("Camera/IncludeFieldDistortion"); // do we want to do this or should this be asked to Camera?
     useDriftFromFile  = configParams.getBoolean("Telescope/UseDriftFromFile");  
     psfModel          = configParams.getString("PSF/Model");   
+    readoutTime       = configParams.getDouble("CCD/ReadoutTime"); 
+
+    Nexposures        = endExposureNr - beginExposureNr + 1;
+
 }
 
 
@@ -162,19 +167,19 @@ void Simulation::configure(ConfigurationParameters &configParams)
  *
  * \param[in]  startTime  begin time of the very first exposure. Time is expressed in seconds in the rest of the code.
  */
-void Simulation::run(double startTime)
+void Simulation::run()
 {
     // Update the internal clock
 
-    currentTime = startTime;
+    currentTime = beginExposureNr * (exposureTime + readoutTime);
 
     // Loop over all exposures
 
-    for (int n = 0; n < Nexposures; n++)
+    for (int n = beginExposureNr; n <= endExposureNr; n++)
     {
         Log.info("Simulation: Starting exposure " + to_string(n) + " at time " + to_string(currentTime) );
         
-        currentTime = detector->takeExposure(currentTime, exposureTime);
+        currentTime = detector->takeExposure(n, currentTime, exposureTime);
     }
 
     writeStarCatalogToHDF5();
@@ -338,7 +343,8 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "ObservingParameters";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
-    addInteger("NumExposures");
+    addInteger("BeginExposureNr");
+    addInteger("EndExposureNr");
     addDouble("ExposureTime");
     addDouble("RApointing");
     addDouble("DecPointing");
@@ -490,6 +496,5 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addLong("PhotonNoiseSeed");
     addLong("JitterSeed");
     addLong("FlatFieldSeed");
-    addLong("CTESeed");
     addLong("DriftSeed");
 }

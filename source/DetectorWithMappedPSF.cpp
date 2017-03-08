@@ -27,7 +27,7 @@
  */
 
 DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera)
-: Detector(configParam, hdf5file, camera), includeFlatfield(true), writeSubPixelImagesToHDF5(false), subPixelImageNr(0)
+: Detector(configParam, hdf5file, camera), includeFlatfield(true), writeSubPixelImagesToHDF5(false)
 {
     // Parse the parameters from the configuration file.
 
@@ -249,6 +249,7 @@ void DetectorWithMappedPSF::reset()
  *         Afterwards, the collected light is read out, convolving the image with the
  *         point spread function and adding various noise effects.
  *
+ * \param exposureNr:   Sequential number of the exposure
  * \param startTime:    Starting time of the exposure [s].
  * \param exposureTime: Duration of the exposure [s].
  * 
@@ -259,7 +260,7 @@ void DetectorWithMappedPSF::reset()
  * \post Pixel unit in the pixel, bias register, and smearing maps: [ADU]
  */
 
-double DetectorWithMappedPSF::takeExposure(double startTime, double exposureTime)
+double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, double exposureTime)
 {
     // Advance the internal clock until the given start time
 
@@ -267,29 +268,29 @@ double DetectorWithMappedPSF::takeExposure(double startTime, double exposureTime
 
     // Integration of point sources and background, taking into account jitter + drift.
 
-    Log.info("Detector: Integrating light for exposure " + to_string(imageNr) + " with exposure time = " + to_string(exposureTime));
+    Log.info("Detector: Integrating light for exposure " + to_string(exposureNr) + " with exposure time = " + to_string(exposureTime));
 
-    integrateLight(startTime, exposureTime);
+    integrateLight(exposureNr, startTime, exposureTime);
 
     // Include noise effects like readout noise, photon noise, full well saturation, etc.
     // Note: readOut() needs the exposure time to compute the open shutter smearing.
 
-    Log.info("Detector: Adding noise effects to exposure " + to_string(imageNr));
+    Log.info("Detector: Adding noise effects to exposure " + to_string(exposureNr));
 
     readOut(exposureTime);
 
     // Write the CCD subfield, the bias map, and the smearing map to the HDF5 file
 
-    Log.debug("Detector: Writing PixelMap, smearing map, and bias map #" + to_string(imageNr) + " to HDF5 file.");
+    Log.debug("Detector: Writing PixelMap, smearing map, and bias map #" + to_string(exposureNr) + " to HDF5 file.");
 
-    writePixelMapsToHDF5();
+    writePixelMapsToHDF5(exposureNr);
 
     // If required, also write the subpixel image to the HDF5 file
 
     if (writeSubPixelImagesToHDF5)
     {
-        Log.debug("Detector: Writing SubPixelMap " + to_string(subPixelImageNr) + " to HDF5 file.");
-        writeSubPixelMapToHDF5();
+        Log.debug("Detector: Writing SubPixelMap " + to_string(exposureNr) + " to HDF5 file.");
+        writeSubPixelMapToHDF5(exposureNr);
     }
 
     // Advance the internal clock
@@ -319,7 +320,9 @@ double DetectorWithMappedPSF::takeExposure(double startTime, double exposureTime
  *            account. The sub-pixel map is rebinned in a pixel map.  After rebinning,
  *            vignetting and polarisation are applied (if applicable).
  *
- * \param startTime: Starting time of the exposure for which jitter must be applied [s].
+ * \param exposureNr:   Sequential number of the exposure
+ * \param startTime:    Starting time of the exposure for which jitter must be applied [s].
+ * \param exposureTime: Duration of the exposure [s].
  *
  * \pre Sub-pixel, pixel, bias register, and smearing map filled with values from previous exposure.
  *
@@ -327,7 +330,7 @@ double DetectorWithMappedPSF::takeExposure(double startTime, double exposureTime
  * \post Pixel, bias register, and smearing map filled with zeroes.
  */
 
-void DetectorWithMappedPSF::integrateLight(double startTime, double exposureTime)
+void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, double exposureTime)
 {
 
     // Reset the sub-field (i.e. get rid of the previous exposure, by zeroing the entire sub-field)
@@ -684,19 +687,15 @@ void DetectorWithMappedPSF::initHDF5Groups()
  * \brief: Writes the subpixel map for the HDF5 file.
  */
 
-void DetectorWithMappedPSF::writeSubPixelMapToHDF5()
+void DetectorWithMappedPSF::writeSubPixelMapToHDF5(int exposureNr)
 {
     stringstream myStream;
-    myStream << "subPixelImage" << setfill('0') << setw(6) << subPixelImageNr;
+    myStream << "subPixelImage" << setfill('0') << setw(6) << exposureNr;
     string imageName = myStream.str();
 
     // Add the image to the "SubPixelImages" group
 
     hdf5File.writeArray("/SubPixelImages", imageName, subPixelMap);
-
-    // Increment the counter for the next subpixel image
-
-    subPixelImageNr++;
 }
 
 

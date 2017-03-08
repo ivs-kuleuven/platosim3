@@ -9,7 +9,7 @@
  */
 
 JitterFromRedNoise::JitterFromRedNoise(ConfigurationParameters &configParams)
-: lastYaw(0.0), lastPitch(0.0), lastRoll(0.0)
+: lastYaw(0.0), lastPitch(0.0), lastRoll(0.0), internalTime(0.0)
 {
     // Set the configuration parameters
 
@@ -84,16 +84,16 @@ void JitterFromRedNoise::configure(ConfigurationParameters &configParams)
  * \note Also during CCD readout, the spacecraft jitters, to the user needs to take this into
  *       account when passing 'timeInterval'.
  * 
- * \param timeInterval[in]  Time interval that has passed since the last getNextYawPitchRoll() request. [s]
+ * \param time   The time point for which the (yaw, pitch, roll) is requested [s]
  * 
  * \return (newYaw, newPitch, newRoll)  [rad]
  */
 
-tuple<double, double, double> JitterFromRedNoise::getNextYawPitchRoll(double timeInterval)
+tuple<double, double, double> JitterFromRedNoise::getNextYawPitchRoll(double time)
 {
     // If the time interval is zero, return the last computed values
 
-    if (timeInterval == 0.0)
+    if (time == internalTime)
     {
         make_tuple(lastYaw, lastPitch, lastRoll);
     }
@@ -108,7 +108,7 @@ tuple<double, double, double> JitterFromRedNoise::getNextYawPitchRoll(double tim
     // Normally this time step is the jitterTimeInterval, but if the user-given timeInterval
     // is actually smaller than, take the latter.
 
-    double timeStep = min(timeInterval, jitterTimeInterval);
+    double timeStep = min(time - internalTime, jitterTimeInterval);
 
     // Initialise the (yaw, pitch, roll) values with the last computed ones
 
@@ -120,7 +120,7 @@ tuple<double, double, double> JitterFromRedNoise::getNextYawPitchRoll(double tim
     // each time updating the yaw, pitch, and roll.
 
     int n = 0;
-    while (n * timeStep < timeInterval)
+    while (internalTime + n * timeStep < time)
     {
         newYaw   = exp(-timeStep/jitterTimeScale) * newYaw   + yawRMS   * sqrt(timeStep/jitterTimeScale) * normal01();
         newPitch = exp(-timeStep/jitterTimeScale) * newPitch + pitchRMS * sqrt(timeStep/jitterTimeScale) * normal01();
@@ -132,7 +132,7 @@ tuple<double, double, double> JitterFromRedNoise::getNextYawPitchRoll(double tim
     // In case that the user-given timeInterval cannot be covered with an integral number
     // of 'timeSteps', there is a small time interval left which still needs to be covered
 
-    timeStep = timeInterval - (n-1) * timeStep;
+    timeStep = time - internalTime - (n-1) * timeStep;
 
     newYaw   = exp(-timeStep/jitterTimeScale) * newYaw   + yawRMS   * sqrt(timeStep/jitterTimeScale) * normal01();
     newPitch = exp(-timeStep/jitterTimeScale) * newPitch + pitchRMS * sqrt(timeStep/jitterTimeScale) * normal01();
@@ -145,6 +145,10 @@ tuple<double, double, double> JitterFromRedNoise::getNextYawPitchRoll(double tim
     lastPitch = newPitch;
     lastRoll = newRoll;
     
+    // Update the internal clock
+
+    internalTime = time;
+
     // That's it!
 
     return make_tuple(newYaw, newPitch, newRoll);

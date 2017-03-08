@@ -32,7 +32,7 @@ class Simulation
 
         Simulation(string inputFilename, string outputFilename);
         ~Simulation();
-        virtual void run(double startingTime = 0.0);
+        virtual void run();
         virtual void configure(ConfigurationParameters &configParams);
 
     protected:
@@ -45,6 +45,9 @@ class Simulation
 
         double currentTime;
         double exposureTime;
+        double readoutTime;
+        int beginExposureNr;
+        int endExposureNr;
         int Nexposures;
         bool useJitterFromFile;
         bool includeFieldDistortion;

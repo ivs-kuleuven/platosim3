@@ -87,7 +87,6 @@ driftSeed = 1433429158                  # Random seed for telescope drift       
 readoutNoiseSeed =  1424949740          # Random seed for the readout noise                                         <--- different for each telescope!
 photonNoiseSeed = 1433320336            # Random seed for the photon noise                                          <--- different for each telescope!
 flatfieldSeed = 1433320381              # Random seed for the flatfield                                             <--- different for each telescope!
-cteSeed = 1424949740                    # Random seed for the CTE                                                   <--- different for each telescope!
 
 
 # Sub-field parameters
@@ -183,7 +182,6 @@ for group in range(numTelescopeGroups):
             sim["RandomSeeds/ReadOutNoiseSeed"] = readoutNoiseSeed + telescopeIndex
             sim["RandomSeeds/PhotonNoiseSeed"] = photonNoiseSeed + telescopeIndex
             sim["RandomSeeds/FlatFieldSeed"] = flatfieldSeed + telescopeIndex 
-            sim["RandomSeeds/CTESeed"] = cteSeed + telescopeIndex 
             sim["RandomSeeds/DriftSeed"] = driftSeed + telescopeIndex  
         
             simFile = sim.run()

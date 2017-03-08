@@ -89,7 +89,6 @@ for n in range(NguideStars):
     sim["RandomSeeds/ReadOutNoiseSeed"] = 1424949740 + n
     sim["RandomSeeds/FlatFieldSeed"]    = 1425284070 + n
     sim["RandomSeeds/JitterSeed"]       = 1424967476 + n
-    sim["RandomSeeds/CTESeed"]          = 1424949740 + n
     sim["RandomSeeds/DriftSeed"]        = 1433826961 + n
 
 

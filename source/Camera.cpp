@@ -154,7 +154,7 @@ void Camera::flushOutput()
         // Make the subgroup group
 
         stringstream myStream;
-        myStream << "Exposure" << setfill('0') << setw(6) << n;
+        myStream << "Exposure" << setfill('0') << setw(6) << beginExposureNr + n;
         const string exposureGroupName = "/StarPositions/" + myStream.str();
         hdf5File.createGroup(exposureGroupName);
 
@@ -218,6 +218,9 @@ void Camera::flushOutput()
 
 void Camera::configure(ConfigurationParameters &configParam)
 {
+    beginExposureNr        = configParam.getInteger("ObservingParameters/BeginExposureNr");
+    endExposureNr          = configParam.getInteger("ObservingParameters/EndExposureNr");
+
     plateScale             = configParam.getDouble("Camera/PlateScale");
     focalLength            = configParam.getDouble("Camera/FocalLength") * 1000;                  // [m] -> [mm]
     throughputBandwidth    = configParam.getDouble("Camera/ThroughputBandwidth");

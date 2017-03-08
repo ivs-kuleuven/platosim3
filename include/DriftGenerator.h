@@ -21,7 +21,7 @@ class DriftGenerator : public Heartbeat
         DriftGenerator(){};
         virtual ~DriftGenerator(){};
 
-        virtual tuple<double, double, double> getNextYawPitchRoll(double timeInterval) = 0;
+        virtual tuple<double, double, double> getNextYawPitchRoll(double time) = 0;
 
     protected:
 

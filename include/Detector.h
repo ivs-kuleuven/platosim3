@@ -32,7 +32,7 @@ class Detector: public HDF5Writer
     	Detector(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera);
     	virtual ~Detector();
 
-    	virtual double takeExposure(double startTime, double exposureTime);
+    	virtual double takeExposure(int exposureNr, double startTime, double exposureTime);
     	void configure(ConfigurationParameters &configParam);
 
     	pair<double, double> pixelToFocalPlaneCoordinates(double row, double column);
@@ -52,7 +52,7 @@ class Detector: public HDF5Writer
 
     protected:
 
-        virtual void integrateLight(double startTime, double exposureTime) = 0;
+        virtual void integrateLight(int exposureNr, double startTime, double exposureTime) = 0;
 
     	virtual void generateThroughputMap();
 
@@ -79,7 +79,10 @@ class Detector: public HDF5Writer
     	arma::Mat<float> getSubfield();
 
     	virtual void initHDF5Groups() override;
-    	void writePixelMapsToHDF5();
+    	void writePixelMapsToHDF5(int exposureNr);
+
+        void fastForwardReadoutNoiseGeneratorToExposure(int beginExposureNr);
+        void fastForwardPhotonNoiseGeneratorToExposure(int beginExposureNr);
 
 
     	arma::Mat<float> pixelMap;               // Pixel map, excl. edge pixels
@@ -140,6 +143,8 @@ class Detector: public HDF5Writer
     	bool includeFullWellSaturation; 		// Whether or not full well saturation should be applied
     	bool includeDigitalSaturation; 			// Whether or not digital saturation should be applied
 
+        int beginExposureNr;                    // Sequential number of the very first exposure. See yaml input file.
+
     	double internalTime;
 
     	long readoutNoiseSeed;
@@ -152,7 +157,6 @@ class Detector: public HDF5Writer
     	normal_distribution<double> readoutNoiseDistribution;
 
         Camera &camera;
-        int imageNr;
 
     private:
 

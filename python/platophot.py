@@ -176,12 +176,14 @@ def photometry(inputFilePath, outputFilePath, sigmaPSF, verbose=False):
 
     # Loop over all exposure, and apply weighted mask photometry on each image
 
-    Nexposures = inputFile["/InputParameters/ObservingParameters/"].attrs["NumExposures"];
+    beginExposureNr = inputFile["/InputParameters/ObservingParameters/"].attrs["BeginExposureNr"]
+    endExposureNr = inputFile["/InputParameters/ObservingParameters/"].attrs["EndExposureNr"]
+    Nexposures = endExposureNr - beginExposureNr + 1
 
     if verbose:
         print("Looping over all images in HDF5 file.")
 
-    for imageNr in range(Nexposures):
+    for imageNr in range(beginExposureNr, endExposureNr+1):
 
         if verbose:
             print("Image # {0}".format(imageNr))
