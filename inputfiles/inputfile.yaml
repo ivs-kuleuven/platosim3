@@ -8,7 +8,8 @@ General:
 
 ObservingParameters:
 
-    NumExposures:                    10              # Number of expsosures
+    BeginExposureNr:                  0              # Time span = [beginNr, endNr+1] * (exposureTime + readoutTime). 
+    EndExposureNr:                    9              #   endNr-beginNr+1 exposures. Useful for parallellisation through slurm.
     ExposureTime:                    23              # [s]
     RApointing:                      180             # Platform (not telescope) right ascension pointing coordinate      [deg] 
     DecPointing:                     -70             # Platform (not telescope) declination pointing coordinate          [deg]
@@ -27,7 +28,7 @@ Platform:
     JitterPitchRms:                  1.0             # [arcsec]
     JitterRollRms:                   1.0             # [arcsec]
     JitterTimeScale:                 3600.           # [s]
-    JitterFileName:                  inputfiles/jitter.txt
+    JitterFileName:                  inputfiles/PlatoJitter_Airbus.txt
 
 
 Telescope:

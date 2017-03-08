@@ -8,7 +8,8 @@ General:
 
 ObservingParameters:
 
-    NumExposures:                1400             # Number of expsosures
+    beginExposureNr:               0              # Time span = [beginNr, endNr+1] * (exposureTime + readoutTime). 
+    endExposureNr:              1399              #   endNr-beginNr+1 exposures. Useful for parallellisation through slurm.
     ExposureTime:                2.3              # [s]
     RApointing:                  86.79870         # Platform (not telescope) right ascension pointing coordinate      [deg] 
     DecPointing:                 -46.39595        # Platform (not telescope) declination pointing coordinate          [deg]

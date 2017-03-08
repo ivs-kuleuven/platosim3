@@ -143,11 +143,14 @@ Simulation::~Simulation()
 void Simulation::configure(ConfigurationParameters &configParams)
 {
     exposureTime      = configParams.getDouble("ObservingParameters/ExposureTime"); 
-    Nexposures        = configParams.getInteger("ObservingParameters/NumExposures"); 
+    beginExposureNr   = configParams.getInteger("ObservingParameters/BeginExposureNr");
+    endExposureNr     = configParams.getInteger("ObservingParameters/EndExposureNr");
     useJitterFromFile = configParams.getBoolean("Platform/UseJitterFromFile");
     includeFieldDistortion = configParams.getBoolean("Camera/IncludeFieldDistortion"); // do we want to do this or should this be asked to Camera?
     useDriftFromFile  = configParams.getBoolean("Telescope/UseDriftFromFile");  
     psfModel          = configParams.getString("PSF/Model");   
+    Nexposures        = endExposureNr - beginExposureNr + 1;
+
 }
 
 
@@ -338,7 +341,8 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "ObservingParameters";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
-    addInteger("NumExposures");
+    addInteger("BeginExposureNr");
+    addInteger("EndExposureNr");
     addDouble("ExposureTime");
     addDouble("RApointing");
     addDouble("DecPointing");
