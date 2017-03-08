@@ -461,6 +461,48 @@ def focalPlaneToPixelCoordinates(xFP, yFP, pixelSize, ccdZeroPointX, ccdZeroPoin
 
 
 
+
+
+
+def gnomonicRadialDistanceFromOpticalAxis(xFP, yFP, focalLength):
+
+    """
+    Calculate the gnomonic radial distance with respect to the optical axis in the focal plane
+
+    INPUT: xFP  Focal plane x-coordinate [mm]
+           yFP  Focal plane y-coordinate [mm]
+ 
+    OUTPUT: the angular distance of the star w.r.t. the optical axis [rad]
+
+    """
+
+    tanx = xFP / focalLength
+    tany = yFP / focalLength
+
+    angularDistance = arccos(1.0/sqrt(1.0 + tanx*tanx + tany*tany));
+
+    # Take care that the angle is between [0, 2*PI]
+
+    if angularDistance < 0.0:
+        angularDistance += 2.0 * np.pi
+    elif angularDistance > 2.0 * np.pi:
+        angularDistance -= 2.0 * np.pi
+
+    # That's it!
+
+    return angularDistance;
+
+
+
+
+
+
+
+
+
+
+
+
 def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
 
     """
