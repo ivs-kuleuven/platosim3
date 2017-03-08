@@ -24,7 +24,7 @@ class DetectorWithAnalyticGaussianPSF: public Detector
         DetectorWithAnalyticGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera);
         virtual ~DetectorWithAnalyticGaussianPSF();
 
-        virtual double takeExposure(double startTime, double exposureTime) override;
+        virtual double takeExposure(int exposureNr, double startTime, double exposureTime) override;
 
         void configure(ConfigurationParameters &configParam);
 
@@ -34,7 +34,7 @@ class DetectorWithAnalyticGaussianPSF: public Detector
     protected:
 
         virtual void reset();
-        virtual void integrateLight(double startTime, double exposureTime) override;
+        virtual void integrateLight(int exposureNr, double startTime, double exposureTime) override;
         virtual void applyFlatfield() override;
         virtual void generateFlatfieldMap();
         virtual bool isInPixelMap(double row, double column);

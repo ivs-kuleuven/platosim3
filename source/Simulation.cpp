@@ -149,6 +149,8 @@ void Simulation::configure(ConfigurationParameters &configParams)
     includeFieldDistortion = configParams.getBoolean("Camera/IncludeFieldDistortion"); // do we want to do this or should this be asked to Camera?
     useDriftFromFile  = configParams.getBoolean("Telescope/UseDriftFromFile");  
     psfModel          = configParams.getString("PSF/Model");   
+    readoutTime       = configParams.getDouble("CCD/ReadoutTime"); 
+
     Nexposures        = endExposureNr - beginExposureNr + 1;
 
 }
@@ -169,15 +171,15 @@ void Simulation::run()
 {
     // Update the internal clock
 
-    currentTime = startTime;
+    currentTime = beginExposureNr * (exposureTime + readoutTime);
 
     // Loop over all exposures
 
-    for (int n = 0; n < Nexposures; n++)
+    for (int n = beginExposureNr; n <= endExposureNr; n++)
     {
         Log.info("Simulation: Starting exposure " + to_string(n) + " at time " + to_string(currentTime) );
         
-        currentTime = detector->takeExposure(currentTime, exposureTime);
+        currentTime = detector->takeExposure(n, currentTime, exposureTime);
     }
 
     writeStarCatalogToHDF5();

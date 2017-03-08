@@ -37,7 +37,7 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
   includeMolecularContamination(true),
   includeFullWellSaturation(true),
   includeDigitalSaturation(true),
-  internalTime(0.0), camera(camera), imageNr(0)
+  internalTime(0.0), camera(camera)
 {
 	// Parse the parameters from the configuration file.
 
@@ -190,6 +190,7 @@ Detector::~Detector()
  *         Afterwards, the collected light is read out, convolving the image with the
  *         point spread function and adding various noise effects.
  *
+ * \param exposureNr:   sequential number of the exposure
  * \param startTime:    Starting time of the exposure [s].
  * \param exposureTime: Duration of the exposure [s].
  * 
@@ -200,7 +201,7 @@ Detector::~Detector()
  * \post Pixel unit in the pixel, bias register, and smearing maps: [ADU]
  */
 
-double Detector::takeExposure(double startTime, double exposureTime)
+double Detector::takeExposure(int exposureNr, double startTime, double exposureTime)
 {
     // Advance the internal clock until the given start time
 
@@ -208,22 +209,22 @@ double Detector::takeExposure(double startTime, double exposureTime)
 
     // Integration of point sources and background, taking into account jitter + drift.
 
-    Log.info("Detector: Integrating light for exposure " + to_string(imageNr) + " with exposure time = " + to_string(exposureTime));
+    Log.info("Detector: Integrating light for exposure " + to_string(exposureNr) + " with exposure time = " + to_string(exposureTime));
 
-    integrateLight(startTime, exposureTime);
+    integrateLight(exposureNr, startTime, exposureTime);
 
     // Include noise effects like readout noise, photon noise, full well saturation, etc.
     // Note: readOut() needs the exposure time to compute the open shutter smearing.
 
-    Log.info("Detector: Adding noise effects to exposure " + to_string(imageNr));
+    Log.info("Detector: Adding noise effects to exposure " + to_string(exposureNr));
 
     readOut(exposureTime);
 
     // Write the CCD subfield, the bias map, and the smearing map to the HDF5 file
 
-    Log.debug("Detector: Writing PixelMap, smearing map, and bias map #" + to_string(imageNr) + " to HDF5 file.");
+    Log.debug("Detector: Writing PixelMap, smearing map, and bias map #" + to_string(exposureNr) + " to HDF5 file.");
 
-    writePixelMapsToHDF5();
+    writePixelMapsToHDF5(exposureNr);
 
     // Advance the internal clock
 
@@ -1507,14 +1508,16 @@ void Detector::initHDF5Groups()
 
 /**
  * \brief: Writes the pixel map for the HDF5 file.
+ * 
+ * \param exposureNr:   Sequential number of the exposure
  */
 
-void Detector::writePixelMapsToHDF5()
+void Detector::writePixelMapsToHDF5(int exposureNr)
 {
     // Compose the image name
 
 	stringstream myStream;
-    myStream << "image" << setfill('0') << setw(6) << imageNr;
+    myStream << "image" << setfill('0') << setw(6) << exposureNr;
     string imageName = myStream.str();
 
     // Add the image to the "Images" group
@@ -1526,7 +1529,7 @@ void Detector::writePixelMapsToHDF5()
     myStream.str(string());      // insert empty string
     myStream.clear();            // clear eof bit
 
-    myStream << "smearingMap" << setfill('0') << setw(6) << imageNr;
+    myStream << "smearingMap" << setfill('0') << setw(6) << exposureNr;
     string smearingMapName = myStream.str();
 
     // Add the smearing map to the "SmearingMaps" group
@@ -1538,16 +1541,16 @@ void Detector::writePixelMapsToHDF5()
     myStream.str(string());      // insert empty string
     myStream.clear();            // clear eof bit
 
-    myStream << "biasMap" << setfill('0') << setw(6) << imageNr;
+    myStream << "biasMap" << setfill('0') << setw(6) << exposureNr;
     string biasMapName = myStream.str();
 
     // Add the smearing map to the "SmearingMaps" group
 
     hdf5File.writeArray("/BiasMaps", biasMapName, biasMap);
+}
 
 
-    // Increment the counter for the next image
 
-    imageNr++;
+
 }
 
