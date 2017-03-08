@@ -45,6 +45,9 @@ class Simulation
 
         double currentTime;
         double exposureTime;
+        double readoutTime;
+        int beginExposureNr;
+        int endExposureNr;
         int Nexposures;
         bool useJitterFromFile;
         bool includeFieldDistortion;
