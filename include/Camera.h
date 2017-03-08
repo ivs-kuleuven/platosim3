@@ -59,6 +59,9 @@ class Camera : public HDF5Writer
 
     protected:
 
+        int beginExposureNr;                  // See input yaml file 
+        int endExposureNr;                    // See input yaml file
+
         Telescope &telescope;
         Sky &sky;
 
@@ -68,9 +71,6 @@ class Camera : public HDF5Writer
         double throughputLambdaC;             // Central wavelength of the throughput passband [nm]
 
         void setDistortionPolynomial(Polynomial1D &polynomial, Polynomial1D &inversePolynomial);
-
-
-    private:
 
         double internalTime;
         string polynomialType;
@@ -97,6 +97,9 @@ class Camera : public HDF5Writer
         vector<double> skyBackgroundValues;
         double totalSkyBackground;			// Total sky background [photons / pixel / exposure]
 
+    private:
+
+        
 };
 
 
