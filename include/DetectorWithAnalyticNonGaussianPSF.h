@@ -6,8 +6,11 @@
 #include <random>
 #include <algorithm>
 #include <functional>
+#include <complex>
+#include <valarray>
 
 #include "armadillo"
+#include "Faddeeva.hh"
 
 #include "Constants.h"
 #include "Units.h"
