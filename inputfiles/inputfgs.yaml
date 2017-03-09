@@ -80,6 +80,20 @@ PSF:
     AnalyticNonGaussian:
         ParameterFileName:           inputfiles/parameters.txt
 
+
+FEE:
+
+    NominalOperatingTemp:        210.15          # Nominal operating temperature of the FEE [K]
+    ReadoutNoise:                 40.5           # Readout noise for the FEE [e-/pixel]
+    Gain:
+        RefValue:                 11.1           # [ADU/µV] (Total gain = FFE gain * CCD gain = 20 e-/ADU)
+        Stability:              -100.0           # [ppm/K] = [ADU/µV/K]
+        Delta:                     0.0           # Difference in gain betwwen both ADCs [%]
+    ElectronicOffset: 
+        RefValue:                100             # Reference value for the electronic offset [ADU/pixel]
+        Stability:                 1             # Offset stability [ADU/pixel/K]
+
+
 CCD:
 
     OriginOffsetX:               0               # X Offset of CCD origin from center of focal plane [mm]
@@ -88,15 +102,17 @@ CCD:
     NumColumns:                  4510            # Number of columns [pixels]
     NumRows:                     4510            # Number of rows [pixels]
     PixelSize:                   18              # [micron]
-    Gain:                        58              # [e-/ADU]
+    Gain:                            
+        RefValue:                1.80            # [µV/e-]
+        Stability:               -0.004          # [µV/e-/K]
+        Delta:                   15.0            # Difference in gain between both CCD halves [%]
     QuantumEfficiency: 
         Efficiency:              0.925           # Throughput efficiency due to quantum efficiency at the reference angle
-        RefAngle:                    45.0             # Reference angle for quantum efficiency [degrees]
-        ExpectedValue:               0.993            # Expected value (mean over all pixels of one detector)
+        RefAngle:                45.0            # Reference angle for quantum efficiency [degrees]
+        ExpectedValue:           0.993           # Expected value (mean over all pixels of one detector)
     FullWellSaturation:          1243000         # [e-/pixel]
     DigitalSaturation:           16383           # E.g. 16 bit [ADU/pixel]
-    ReadoutNoise:                130             # [e-/pixel]
-    ElectronicOffset:            100             # bias [ADU]
+    ReadoutNoise:                44.3            # Readout noise for the CCD [e-/pixel]
     ReadoutTime:                 0.25            # time to read out entire CCD [s]
     FlatfieldPtPNoise:           0.016           # peak-to-peak pixel noise
     Vignetting:
@@ -105,8 +121,8 @@ CCD:
         Efficiency:                  0.978           # Throughput efficiency caused by polarisation at the reference angle
         RefAngle:                   18.8875          # Reference angle for polarisation [degrees]
     Contamination:
-        ParticulateContaminationEfficiency:   0.98      # Throughput efficiency due to particulate contamination
-        MolecularContaminationEfficiency:   0.9566    # Throughput efficiency due to molecular contamination
+        ParticulateContaminationEfficiency: 0.98     # Throughput efficiency due to particulate contamination
+        MolecularContaminationEfficiency:   0.9566   # Throughput efficiency due to molecular contamination
     CTI:
         Model:                       Short2013       # The method used to generate the CTI, either "Simple" or "Short2013"
         Simple:
@@ -118,6 +134,7 @@ CCD:
             TrapDensity:             [9.8, 3.31, 1.56, 13.24]                     # for each trap species [traps/pixel]
             TrapCaptureCrossSection: [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]     # for each trap species [m^2]
             ReleaseTime:             [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]         # for each trap species [s]
+    NominalOperatingTemp:            203.15          # Nominal operating temperature of the detector [K]
     IncludeFlatfield:                yes             # Include flatfield [yes or no]
     IncludePhotonNoise:              yes             # Include photon noise [yes or no]
     IncludeReadoutNoise:             yes             # Include readout noise [yes or no]
@@ -132,6 +149,7 @@ CCD:
     IncludeFullWellSaturation:       yes             # Wheter or not full well saturation should be applied
     IncludeDigitalSaturation:        yes             # Wheter or not digital saturation should be applied
     WriteSubPixelImagesToHDF5:       no              # Only use this for a limited number of exposures. Takes a lot of space! 
+
 
 SubField:    
 
@@ -151,3 +169,5 @@ RandomSeeds:
     JitterSeed:                  1433320381      # Unique positive integer 
     FlatFieldSeed:               1425284070      # Unique positive integer 
     DriftSeed:                   1433429158      # Unique positive integer 
+    FeeGainSeed:                 1429485030      # Unique positive integer
+    CcdGainSeed:                 1420450443      # Unique positive integer
