@@ -88,6 +88,10 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     {
         detector = new DetectorWithAnalyticGaussianPSF(configParams, hdf5File, *camera);
     }
+    else if (psfModel == "AnalyticNonGaussian")
+    {
+        detector = new DetectorWithAnalyticNonGaussianPSF(configParams, hdf5File, *camera);
+    }
     else
     {
         string errorMessage = "Simulation: PSF Model '" + psfModel + "' is not supported.";
@@ -410,6 +414,10 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("Sigma00");
     addDouble("SigmaX18");
     addDouble("SigmaY18");
+
+    subGroup = "PSF/AnalyticNonGaussian";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addString("ParameterFileName");
 
     subGroup = "CCD";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
