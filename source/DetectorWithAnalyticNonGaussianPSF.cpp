@@ -363,6 +363,8 @@ tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addFlux(double x
 
     // CARSTEN
 
+    complex<double> z1(0.5, 0.5);
+    complex<double> z2 = Faddeeva::w(z1);
 
     // That's it!
     
