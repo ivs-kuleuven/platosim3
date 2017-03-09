@@ -11,6 +11,7 @@
 #include "Constants.h"
 #include "ArrayOperations.h"
 #include "Camera.h"
+#include "FrontEndElectronics.h"
 #include "ConfigurationParameters.h"
 #include "PointSpreadFunction.h"
 #include "Convolver.h"
@@ -35,19 +36,20 @@ class Detector: public HDF5Writer
     	virtual double takeExposure(int exposureNr, double startTime, double exposureTime);
     	void configure(ConfigurationParameters &configParam);
 
-    	pair<double, double> pixelToFocalPlaneCoordinates(double row, double column);
-    	pair<double, double> focalPlaneToPixelCoordinates(double xFP, double yFP);
+   		pair<double, double> pixelToFocalPlaneCoordinates(double row, double column);
+   		pair<double, double> focalPlaneToPixelCoordinates(double xFP, double yFP);
 
-    	pair<double, double> getFocalPlaneCoordinatesOfSubfieldCenter();
-    	tuple<double, double, double, double, double, double, double, double> getFocalPlaneCoordinatesOfSubfieldCorners();
+   		pair<double, double> getFocalPlaneCoordinatesOfSubfieldCenter();
+   		tuple<double, double, double, double, double, double, double, double> getFocalPlaneCoordinatesOfSubfieldCorners();
 
-    	double getSolidAngleOfOnePixel(double plateScale);
-    	double getOrientationAngle();
+   		double getSolidAngleOfOnePixel(double plateScale);
+   		double getOrientationAngle();
 
     	virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) = 0;
     	virtual void addFlux(double flux) = 0;
 
-    	bool isInSubfield(double xFPmm, double yFPmm);
+
+   		bool isInSubfield(double xFPmm, double yFPmm);
 
 
     protected:
@@ -55,6 +57,7 @@ class Detector: public HDF5Writer
         virtual void integrateLight(int exposureNr, double startTime, double exposureTime) = 0;
 
     	virtual void generateThroughputMap();
+        virtual void generateGain();
 
     	virtual void applyFlatfield() = 0;
     	virtual void applyThroughputEfficiency();
@@ -84,11 +87,12 @@ class Detector: public HDF5Writer
         void fastForwardReadoutNoiseGeneratorToExposure(int beginExposureNr);
         void fastForwardPhotonNoiseGeneratorToExposure(int beginExposureNr);
 
+        virtual double getTemperature();
 
-    	arma::Mat<float> pixelMap;               // Pixel map, excl. edge pixels
-    	arma::Mat<float> smearingMap;            // Smearing map (i.e. over-scan strip)
-    	arma::Mat<float> biasMap;                // Bias map (i.e. pre-scan strip)
-    	arma::Mat<float> throughputMap; 		 // Throughput efficiency map, due to vignetting, particulate & molecular contamination, and quantum efficiency
+    	arma::Mat<float> pixelMap;              // Pixel map, excl. edge pixels
+    	arma::Mat<float> smearingMap;           // Smearing map (i.e. over-scan strip)
+    	arma::Mat<float> biasMap;               // Bias map (i.e. pre-scan strip)
+    	arma::Mat<float> throughputMap; 		// Throughput efficiency map, due to vignetting, particulate & molecular contamination, and quantum efficiency
 
     	unsigned int numRows; 					// Nr of rows of the detector (= size in y-direction) including non-exposed ones [pixels]
     	unsigned int numColumns; 				// Nr of columns of the detector (= size in x-direction = readout direction) [pixels]
@@ -117,7 +121,11 @@ class Detector: public HDF5Writer
     	double expectedValueQuantumEfficiency;   // Expected value of the throughput efficiency due to quantum efficiency
     	double readoutTime;                      // Readout time [s]
     	double readoutNoise;                     // Mean readout noise [electrons]
-    	double gain;                             // Detector gain [electrons / ADU]
+        double refValueGain;                     // Detector gain [µV/e-]
+        double gainStability;                    // Gain stability [µV/e-]
+        double gainDelta;                        // Allowed difference in detector gain between the left and the right half of the detector
+        double refValueGainLeft;                 // Reference value for the gain on the ACD reading the left-hand side of the detector [µV/e-]
+        double refValueGainRight;                // Reference value for the gain on the ACD reading the right-hand side of the detector [µV/e-]
     	unsigned long fullWellSaturationLimit;   // Full-well saturation limit [electrons/pixel]
     	unsigned int electronicOffset;           // Bias or electronic offset [ADU]
     	unsigned long digitalSaturationLimit; 	 // Digital saturation limit [ADU / pixel]
@@ -145,20 +153,24 @@ class Detector: public HDF5Writer
 
         int beginExposureNr;                    // Sequential number of the very first exposure. See yaml input file.
 
+        double nominalOperatingTemperature;
     	double internalTime;
 
     	long readoutNoiseSeed;
     	long photonNoiseSeed;
+        long gainSeed;
 
     	mt19937 photonNoiseGenerator;
     	mt19937 readoutNoiseGenerator;
 
     	poisson_distribution<long> photonNoiseDistribution;
     	normal_distribution<double> readoutNoiseDistribution;
-
+ 
         Camera &camera;
+		FrontEndElectronics *frontEndElectronics;
 
     private:
+
 
 };
 
