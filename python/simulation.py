@@ -70,6 +70,7 @@ import inspect
 import subprocess
 import os
 import sys
+import ast
 import numpy as np
 
 import simfile
@@ -226,7 +227,7 @@ class Simulation(object):
 
         Param: key - a string containing the parameter name or "Group/ParameterName" combination
 
-        Return: the value of the parameter, if only a Group is given the 
+        Return: the value of the parameter
         """
         
         # Split the path into node names
@@ -250,10 +251,17 @@ class Simulation(object):
             else:
                 print("ERROR: The group '{}' was not found in the yaml inputfile '{}'.".format(key, self.configurationFilename))
                 return None
+
+        # node is a string, so cast it to its proper value
+
+        try:
+            value = ast.literal_eval(node)
+        except ValueError:
+            value = node
         
         # Return the value of the deepest node
 
-        return node
+        return value
 
 
 
