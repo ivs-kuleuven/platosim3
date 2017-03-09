@@ -60,9 +60,10 @@ Camera:
         Coefficients:                [-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06]
         InverseCoefficients:         [-0.00458067036444, 1.00110311283, -5.61136295937e-05, -4.311925329e-06]
 
+
 PSF:
 
-    Model:                           MappedFromFile  # PSF model: MappedGaussian, MappedFromFile, or AnalyticGaussian
+    Model:                           MappedGaussian  # PSF model: MappedGaussian, MappedFromFile, AnalyticGaussian, AnalyticNonGaussian
     MappedGaussian:                                  # Generate the PSF from a fixed 2D Gaussian function
         Sigma:                       0.50            # Standard deviation of Gaussian PSF [pix]
         NumberOfPixels:              8               # The number of pixels in the field for which the PSF is generated
@@ -75,6 +76,8 @@ PSF:
         Sigma00:                     1.0             # Stdev of Gaussian PSF in x- and y-direction at the optical axis      [pix]
         SigmaX18:                    5.0             # Stdev of Gaussian PSF in x-direction at 18 deg from the optical axis [pix]
         SigmaY18:                    2.0             # Stdev of Gaussian PSF in y-direction at 18 deg from the optical axis [pix]
+    AnalyticNonGaussian:
+        ParameterFileName:           inputfiles/parameters.txt
 
 
 CCD:
