@@ -77,7 +77,8 @@ PSF:
         Sigma00:                     1.0             # Stdev of Gaussian PSF in x- and y-direction at the optical axis      [pix]
         SigmaX18:                    5.0             # Stdev of Gaussian PSF in x-direction at 18 deg from the optical axis [pix]
         SigmaY18:                    2.0             # Stdev of Gaussian PSF in y-direction at 18 deg from the optical axis [pix]
-
+    AnalyticNonGaussian:
+        ParameterFileName:           inputfiles/parameters.txt
 
 CCD:
 

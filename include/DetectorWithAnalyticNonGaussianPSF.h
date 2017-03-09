@@ -1,5 +1,5 @@
-#ifndef DETECTORWITHANALYTICGAUSSIANPSF_H
-#define DETECTORWITHANALYTICGAUSSIANPSF_H
+#ifndef DETECTORWITHANALYTICNONGAUSSIANPSF_H
+#define DETECTORWITHANALYTICNONGAUSSIANPSF_H
 
 #include <string>
 #include <cmath>
@@ -17,12 +17,12 @@ using namespace std;
 
 
 
-class DetectorWithAnalyticGaussianPSF: public Detector 
+class DetectorWithAnalyticNonGaussianPSF: public Detector 
 {
     public:
 
-        DetectorWithAnalyticGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera);
-        virtual ~DetectorWithAnalyticGaussianPSF();
+        DetectorWithAnalyticNonGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera);
+        virtual ~DetectorWithAnalyticNonGaussianPSF();
 
         virtual double takeExposure(int exposureNr, double startTime, double exposureTime) override;
 
@@ -40,10 +40,6 @@ class DetectorWithAnalyticGaussianPSF: public Detector
         virtual bool isInPixelMap(double row, double column);
 
         arma::Mat<float> flatfieldMap;      // Pixel flatfield map
-
-        double sigma00;                     // Stdev of Gaussian PSF in x- and y-direction at the optical axis      [pix]
-        double sigmaX18;                    // Stdev of Gaussian PSF in x-direction at 18 deg from the optical axis [pix]
-        double sigmaY18;                    // Stdev of Gaussian PSF in y-direction at 18 deg from the optical axis [pix]
 
         double flatfieldNoiseAmplitude;     // Peak-to-peak noise amplitude
 
