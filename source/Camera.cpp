@@ -218,8 +218,8 @@ void Camera::flushOutput()
 
 void Camera::configure(ConfigurationParameters &configParam)
 {
+    numExposures           = configParam.getInteger("ObservingParameters/NumExposures");
     beginExposureNr        = configParam.getInteger("ObservingParameters/BeginExposureNr");
-    endExposureNr          = configParam.getInteger("ObservingParameters/EndExposureNr");
 
     plateScale             = configParam.getDouble("Camera/PlateScale");
     focalLength            = configParam.getDouble("Camera/FocalLength") * 1000;                  // [m] -> [mm]
