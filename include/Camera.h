@@ -59,8 +59,8 @@ class Camera : public HDF5Writer
 
     protected:
 
-        int beginExposureNr;                  // See input yaml file 
-        int endExposureNr;                    // See input yaml file
+        int beginExposureNr;                 // sequential number of first exposure. useful for slurm parallellisation
+        int numExposures;                    // Number of exposures
 
         Telescope &telescope;
         Sky &sky;
