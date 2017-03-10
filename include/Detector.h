@@ -146,6 +146,8 @@ class Detector : public HDF5Writer
         bool includeFullWellSaturation;          // Whether or not full well saturation should be applied
         bool includeDigitalSaturation;           // Whether or not digital saturation should be applied
         bool psfWasSet;                          // True if PSF for subfield was already initialised. False otherwise.
+        
+        bool writeMapsToHDF5;          // Write other pixel maps to HDF5 as well
 
         double internalTime;
 

@@ -227,7 +227,8 @@ arma::fmat PointSpreadFunction::getGaussianPsf()
  */
 void PointSpreadFunction::configure(ConfigurationParameters &configParam)
 {
-    string model = configParam.getString("PSF/Model");
+    string  model   = configParam.getString("PSF/Model");
+    writeMapsToHDF5 = configParam.getBoolean("CCD/WriteMapsToHDF5");
 
     // The user specified to use a Gaussian shape PSF
     // The number of sub-pixels per pixel that will be used to calculate the 
@@ -429,8 +430,11 @@ void PointSpreadFunction::rotate(double angle)
 
     if (isGaussian)
     {
-        hdf5File.writeArray("/PSF", "rotatedPSF", psfMap);
-        hdf5File.writeAttribute("/PSF", "rotationAngle", rotationAngle);
+        if (writeMapsToHDF5)
+        {
+            hdf5File.writeArray("/PSF", "rotatedPSF", psfMap);
+            hdf5File.writeAttribute("/PSF", "rotationAngle", rotationAngle);
+        }
         return;
     }
 
@@ -450,13 +454,16 @@ void PointSpreadFunction::rotate(double angle)
         rotationAngle = newAngle;
         isRotated = true;    
 
+        psfMap /= arma::accu(psfMap);
+
         Log.debug("PointSpreadFunction: rotated current PSF over angle " + to_string(rad2deg(newAngle)) + " deg");
 
         // Write the psfMap of the rotated PSF to the HDF5 output file
-
-        hdf5File.writeArray("/PSF", "rotatedPSF", psfMap);
-        hdf5File.writeAttribute("/PSF", "rotationAngle", rotationAngle);
-
+        if (writeMapsToHDF5)
+        {
+            hdf5File.writeArray("/PSF", "rotatedPSF", psfMap);
+            hdf5File.writeAttribute("/PSF", "rotationAngle", rotationAngle);
+        }
     }
 }
 
@@ -493,9 +500,14 @@ arma::fmat PointSpreadFunction::rebinToSubPixels(unsigned int targetSubPixels)
 
     isRebinned = true;
 
+    rebinnedMap /= arma::accu(rebinnedMap);
+
     // Write the rebinned PSF to the output HDF5 file
 
-    hdf5File.writeArray("/PSF", "rebinnedPSFsubPixel", rebinnedMap);
+    if (writeMapsToHDF5)
+    {
+        hdf5File.writeArray("/PSF", "rebinnedPSFsubPixel", rebinnedMap);
+    }
 
     return rebinnedMap;
 }
@@ -528,12 +540,19 @@ arma::fmat PointSpreadFunction::rebinToPixels()
 
     isRebinned = true;
 
+    rebinnedMap /= arma::accu(rebinnedMap);
+
     // Write the rebinned PSF to the output HDF5 file
 
-    hdf5File.writeArray("/PSF", "rebinnedPSFpixel", rebinnedMap);
+    if (writeMapsToHDF5)
+    {
+        hdf5File.writeArray("/PSF", "rebinnedPSFpixel", rebinnedMap);
+    }
 
     return rebinnedMap;
 }
+
+
 
 
 

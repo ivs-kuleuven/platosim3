@@ -9,6 +9,11 @@ from simfile import SimFile
 from simulation import Simulation
 from referenceFrames import setSubfieldAroundCoordinates
 
+from datetime import datetime
+
+tstart = datetime.now()
+
+
 # Specify the absolute paths of some of the input files and the output folder.
 # The following default values will always work, but we advice you not to use
 # them, but make your own input and output folders (and specify their paths here),
@@ -17,12 +22,12 @@ from referenceFrames import setSubfieldAroundCoordinates
 inputDir    = os.getenv("PLATO_PROJECT_HOME") + "/inputfiles"
 
 inputFile   = inputDir + "/inputfgs.yaml"
-starCatalog = inputDir + "/guide_stars_EQ.txt"
+starCatalog = inputDir + "/complete_cat.txt"
 jitterFile  = inputDir + "/Jitter.txt"
 psfFile     = inputDir + "/psf.hdf5"
 
 outputDir   = os.getenv("PLATO_WORKDIR") + "/test"
-outputFilePrefix = "/test"
+outputFilePrefix = "/test_"
 
 # Read the guide star catalog
 
@@ -40,6 +45,12 @@ for n in range(NguideStars):
 
     sim = Simulation(outputFilePrefix + "{0:04d}".format(n), inputFile)
     sim.outputDir = outputDir
+
+    # Make sure it uses the right starCatalog, jitter file, and PSF file
+
+    sim["ObservingParameters/StarCatalogFile"] = starCatalog
+    sim["Platform/JitterFileName"] = jitterFile
+    sim["PSF/FromFile/Filename"] = psfFile 
 
     # Center the subfield around the current guide star
     # First extract the required information from the yaml input file.
@@ -89,6 +100,15 @@ for n in range(NguideStars):
 
     # Run the simulation without the flux extraction, with an HDF5 file as output
 
+    # with open('/home/bert/PlatoSim3/inputfiles/relevant_stars.txt', 'a') as fout:
+    #   fout.write(str(float(ra[n])) + "  " + str(float(dec[n])) + "  " + str(float(V[n])) + '\n')
+
+
     simFile = sim.run()
  
  
+tend = datetime.now()
+
+duration = tend - tstart
+
+print (duration)

@@ -50,7 +50,7 @@ class Camera : public HDF5Writer
         pair<double, double> focalPlaneToSkyCoordinates(double xFPprime, double yFPprime);
 
 	pair<double, double> initialSkyToFocalPlaneCoordinates(double raStar, double decStar);
-        pair<double, double> newSkyToFocalPlaneCoordinates(double raStar, double decStar, double time);
+        pair<double, double> newSkyToFocalPlaneCoordinates(double raStar, double decStar, double startTime, double time, bool useJitter, bool useDrift);
         pair<double, double> newFocalPlaneToSkyCoordinates(double xFPprime, double yFPprime);
 
         pair<double, double> polarToCartesianFocalPlaneCoordinates(double distance, double angle);

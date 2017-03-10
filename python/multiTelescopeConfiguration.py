@@ -135,11 +135,11 @@ for group in range(numTelescopeGroups):
         print "Platform pointing: " + str(raPointing) + ", " + str(decPointing)
         print "Telescope pointing: " + str(math.degrees(raTelescope)) + ", " + str(math.degrees(decTelescope))
         
-        includeFieldDistortion = (sim["Camera/IncludeFieldDistortion"] == "yes")        # Whether or not to include field distortion
-        focalPlaneAngle = sim["Camera/FocalPlaneOrientation"]                           # Focal-plane orientation [degrees]
-        focalLength = sim["Camera/FocalLength"] * 1000                                  # Focal length [mm]
-        plateScale = sim["Camera/PlateScale"]                                           # Plate scale [arcsec / micron]
-        pixelSize = sim["CCD/PixelSize"]                                                # Pixel size [micron / pixel]
+        includeFieldDistortion = (str(sim["Camera/IncludeFieldDistortion"] == "yes"))  or (str(sim["Camera/IncludeFieldDistortion"] == "1"))        # Whether or not to include field distortion
+        focalPlaneAngle = sim["Camera/FocalPlaneOrientation"]                                                                                       # Focal-plane orientation [degrees]
+        focalLength = sim["Camera/FocalLength"] * 1000                                                                                              # Focal length [mm]
+        plateScale = sim["Camera/PlateScale"]                                                                                                       # Plate scale [arcsec / micron]
+        pixelSize = sim["CCD/PixelSize"]                                                                                                            # Pixel size [micron / pixel]
         
         # Determine on which CCD (A, B, C, or D) the coordinates (raCenter, decCenter) are positioned and at which location
         # (in pixel coordinates)

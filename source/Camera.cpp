@@ -2,12 +2,339 @@
 #include "Camera.h"
 
 
+pair<double, double> Camera::newSkyToFocalPlaneCoordinates(double raStar, double decStar, double startTime, double time, bool useJitter, bool useDrift)
+{
+    // create the initial spacecraft coordinate system conversion matrix according 
+    // to PLATO-DLR-PL-TN-016_i1_2draft by Denis Griessbach
+
+    // the matrix transformations consist of rotations as well as translations, 
+    // which is why 4x4 matrices are used
+
+    // S/C reference frame
+
+    // the z-axis is the pointing coordinate of the spacecraft, the y-axis is lying in the equatorial plane 
+    // and the x-axis is calculated
+    arma::vec zSC = {cos(decPlatform) * cos(alphaPlatform), cos(decPlatform) * sin(alphaPlatform), sin(decPlatform)};
+    arma::vec ySC = {cos(alphaPlatform + PI/2), sin(alphaPlatform + PI/2), 0.0};
+    arma::vec xSC = cross(ySC, zSC);
+
+    arma::mat rotSCtoEQ;
+    rotSCtoEQ       <<  xSC[0] << ySC[0] << zSC[0] << 0.0 << arma::endr
+                    <<  xSC[1] << ySC[1] << zSC[1] << 0.0 << arma::endr
+                    <<  xSC[2] << ySC[2] << zSC[2] << 0.0 << arma::endr
+                    <<    0.0  <<   0.0  <<   0.0  << 1.0 << arma::endr;
+
+    // include a rotation around the z - axis to align the x - axis to the average direction of the sun
+
+    const double sunDirectionAngle = deg2rad(-9.047422535);
+
+    //create the rotation matrix
+    double sinSun = sin(sunDirectionAngle);
+    double cosSun = cos(sunDirectionAngle);
+
+    arma::mat rotSun;
+    rotSun          <<   cosSun << -sinSun << 0.0 << 0.0 << arma::endr
+                    <<   sinSun <<  cosSun << 0.0 << 0.0 << arma::endr
+                    <<    0.0   <<   0.0   << 1.0 << 0.0 << arma::endr
+                    <<    0.0   <<   0.0   << 0.0 << 1.0 << arma::endr;
+
+    arma::mat rotEQtoSC;
+
+    // include jitter, if it's considered
+
+    if (useJitter)
+    {
+
+        //include jitter
+        double yaw=0.0, pitch=0.0, roll=0.0;
+        double timeInterval = time - startTime;
+        tie(yaw, pitch, roll) = telescope.getNextYawPitchRoll(timeInterval);
+
+        // Some handy abbreviations
+
+        const double sinYaw   = sin(yaw);
+        const double cosYaw   = cos(yaw);
+        const double sinPitch = sin(pitch);
+        const double cosPitch = cos(pitch);
+        const double sinRoll  = sin(roll);
+        const double cosRoll  = cos(roll);
+
+        // The rotation matrices
+
+        arma::mat rotYaw;
+        rotYaw      << 1.0  <<    0.0   <<     0.0   << 0.0 << arma::endr
+                    << 0.0  <<  cosYaw  <<  -sinYaw  << 0.0 << arma::endr
+                    << 0.0  <<  sinYaw  <<   cosYaw  << 0.0 << arma::endr
+                    << 0.0  <<    0.0   <<     0.0   << 1.0 << arma::endr;
+
+        arma::mat rotPitch;
+        rotPitch    <<  cosPitch  <<  0.0  <<  sinPitch  << 0.0 << arma::endr
+                    <<   0.0      <<  1.0  <<    0.0     << 0.0 << arma::endr
+                    << -sinPitch  <<  0.0  <<  cosPitch  << 0.0 << arma::endr
+                    <<   0.0      <<  0.0  <<    0.0     << 1.0 << arma::endr;
+
+        arma::mat rotRoll;
+        rotRoll     << cosRoll  <<  -sinRoll  <<  0.0  << 0.0 << arma::endr
+                    << sinRoll  <<   cosRoll  <<  0.0  << 0.0 << arma::endr
+                    <<  0.0     <<     0.0    <<  1.0  << 0.0 << arma::endr
+                    <<  0.0     <<     0.0    <<  0.0  << 1.0 << arma::endr;
+
+        //rotEQtoSC = rotRoll.t() * rotPitch.t() * rotYaw.t() * rotSCtoEQ.t();
+
+        rotEQtoSC = rotSCtoEQ.t(); 
+
+        rotEQtoSC = rotRoll * rotPitch * rotYaw * rotSun * rotEQtoSC;
+
+    }
+    else
+    {
+        rotEQtoSC = rotSun * rotSCtoEQ.t();
+    }
+
+    // the payload module reference frame
+
+    // the PLM frame coincides with the SC frame, except for a small mounting  offset, 
+    // which is a translation on the z-axis in positive direction. This is just for completeness, since
+    // an offset in z - direction doesn't influence the picture generation
+
+    arma::vec distSCtoPLM = {0.0, 0.0, 0.0};
+
+    arma::mat rotSCtoPLM;
+    rotSCtoPLM      << 1.0 << 0.0 << 0.0 << distSCtoPLM[0] << arma::endr
+                    << 0.0 << 1.0 << 0.0 << distSCtoPLM[1] << arma::endr
+                    << 0.0 << 0.0 << 1.0 << distSCtoPLM[2] << arma::endr
+                    << 0.0 << 0.0 << 0.0 <<      1.0       << arma::endr;
+
+    // include the thermoelastic drift TED, if it's considered
+
+    if (useDrift)
+    {
+        //include drift
+        double yaw=0.0, pitch=0.0, roll=0.0;
+        double timeInterval = time - internalTime;
+        tie(yaw, pitch, roll) = telescope.getThermalDrift(timeInterval);
+
+        // Some handy abbreviations
+
+        const double sinYaw   = sin(yaw);
+        const double cosYaw   = cos(yaw);
+        const double sinPitch = sin(pitch);
+        const double cosPitch = cos(pitch);
+        const double sinRoll  = sin(roll);
+        const double cosRoll  = cos(roll);
+
+        // The rotation matrices
+
+        arma::mat rotYaw;
+        rotYaw      << 1.0  <<    0.0   <<     0.0   << 0.0 << arma::endr
+                    << 0.0  <<  cosYaw  <<  -sinYaw  << 0.0 << arma::endr
+                    << 0.0  <<  sinYaw  <<   cosYaw  << 0.0 << arma::endr
+                    << 0.0  <<    0.0   <<     0.0   << 1.0 << arma::endr;
+
+        arma::mat rotPitch;
+        rotPitch    <<  cosPitch  <<  0.0  <<  sinPitch  << 0.0 << arma::endr
+                    <<   0.0      <<  1.0  <<    0.0     << 0.0 << arma::endr
+                    << -sinPitch  <<  0.0  <<  cosPitch  << 0.0 << arma::endr
+                    <<   0.0      <<  0.0  <<    0.0     << 1.0 << arma::endr;
+
+        arma::mat rotRoll;
+        rotRoll     << cosRoll  <<  -sinRoll  <<  0.0  << 0.0 << arma::endr
+                    << sinRoll  <<   cosRoll  <<  0.0  << 0.0 << arma::endr
+                    <<  0.0     <<     0.0    <<  1.0  << 0.0 << arma::endr
+                    <<  0.0     <<     0.0    <<  0.0  << 1.0 << arma::endr;
+
+
+        rotSCtoPLM = rotRoll * rotPitch * rotYaw * rotSCtoPLM;
+    }
+
+
+    // the camera/FPA reference frame
+
+    // the x - axis should point towards the orientation screw, which can be achieved 
+    // by a rotation around the z  -axis
+
+    const double screwAngle = 0.0;
+
+    double sinScrew = sin(screwAngle);
+    double cosScrew = cos(screwAngle);
+
+    arma::mat rotScrew;
+    rotScrew        <<   cosScrew << -sinScrew << 0.0 << 0.0 << arma::endr
+                    <<   sinScrew <<  cosScrew << 0.0 << 0.0 << arma::endr
+                    <<      0.0   <<     0.0   << 1.0 << 0.0 << arma::endr
+                    <<      0.0   <<     0.0   << 0.0 << 1.0 << arma::endr;     
+
+    // the z - axis points towards the line of sight which is achieved by a 
+    // rotation of the z axis around the x - axis over the tilt - angle 
+
+    double sinTilt = sin(tiltAngle);
+    double cosTilt = cos(tiltAngle);
+
+    arma::mat rotTilt;
+    rotTilt         << 1.0 << 0.0     <<    0.0   << 0.0 << arma::endr
+                    << 0.0 << cosTilt << -sinTilt << 0.0  << arma::endr
+                    << 0.0 << sinTilt <<  cosTilt << 0.0 << arma::endr
+                    << 0.0 <<   0.0   <<    0.0   << 1.0 << arma::endr;  
+
+    // the next step is the rotation over the focal plane angle
+
+    double sinOrient = sin(focalPlaneAngle);
+    double cosOrient = cos(focalPlaneAngle);
+
+    arma::mat rotOrient;
+    rotOrient       <<   cosOrient <<  -sinOrient << 0.0 << 0.0 << arma::endr
+                    <<   sinOrient <<   cosOrient << 0.0 << 0.0 << arma::endr
+                    <<     0.0     <<     0.0     << 1.0 << 0.0 << arma::endr
+                    <<     0.0     <<     0.0     << 0.0 << 1.0 << arma::endr; 
+
+    //rotEQtoSC = rotRoll * rotPitch * rotYaw * rotOrient * rotEQtoSC;                
+
+
+    arma::mat rotPLMtoCAM = rotOrient * rotTilt * rotScrew;
+
+
+    // combine all transformation matrices
+
+    arma::mat rotEQtoCAM = rotPLMtoCAM * rotSCtoPLM * rotEQtoSC;
+
+    // create the cartesian star coordinates
+    arma::vec starEQ = {cos(decStar) * cos(raStar), cos(decStar) * sin(raStar), sin(decStar), 1};
+
+    // calculation of the star coordinates in the CAM reference frame   
 
 
 
 
+    //printf("mit Jitter: \n");
+    //cout << rotEQtoCAM;
+    //rotEQtoCAM.print();
 
 
+    arma::vec starCAM = rotEQtoCAM * starEQ;
+
+    //calculate the mm values of the coordinates and return them
+
+    const double xFPmm = - focalLength * starCAM(0)/starCAM(2);
+    const double yFPmm = - focalLength * starCAM(1)/starCAM(2);
+
+    return make_pair(xFPmm, yFPmm);
+
+}
+
+
+//newFocalPlaneToSkyCoordinates replaces focalPlaneToSkyCoordinates
+
+pair<double, double> Camera::newFocalPlaneToSkyCoordinates(double xFPprime, double yFPprime)
+{    
+    arma::vec zSC = {cos(decPlatform) * cos(alphaPlatform), cos(decPlatform) * sin(alphaPlatform), sin(decPlatform)};
+    arma::vec ySC = {cos(alphaPlatform + PI/2), sin(alphaPlatform + PI/2), 0.0};
+    arma::vec xSC = cross(ySC, zSC);
+
+    arma::mat rotSCtoEQ;
+    rotSCtoEQ       <<  xSC[0] << ySC[0] << zSC[0] << 0.0 << arma::endr
+                    <<  xSC[1] << ySC[1] << zSC[1] << 0.0 << arma::endr
+                    <<  xSC[2] << ySC[2] << zSC[2] << 0.0 << arma::endr
+                    <<    0.0  <<   0.0  <<   0.0  << 1.0 << arma::endr;
+
+    // include a rotation around the z - axis to align the x - axis to the average direction of the sun
+
+    const double sunDirectionAngle = deg2rad(-9.047422535);
+
+    //create the rotation matrix
+    double sinSun = sin(sunDirectionAngle);
+    double cosSun = cos(sunDirectionAngle);
+
+    arma::mat rotSun;
+    rotSun          <<   cosSun << -sinSun << 0.0 << 0.0 << arma::endr
+                    <<   sinSun <<  cosSun << 0.0 << 0.0 << arma::endr
+                    <<    0.0   <<   0.0   << 1.0 << 0.0 << arma::endr
+                    <<    0.0   <<   0.0   << 0.0 << 1.0 << arma::endr;
+
+    rotSCtoEQ = rotSCtoEQ * rotSun.t();
+
+
+    // the payload module reference frame
+
+    // the PLM frame coincides with the SC frame, except for a small mounting  offset, 
+    // which is a translation on the z-axis in positive direction. This is just for completeness, since
+    // an offset in z - direction doesn't influence the picture generation
+
+    arma::vec distSCtoPLM = {0.0, 0.0, 0.0};
+
+    arma::mat rotPLMtoSC;
+    rotPLMtoSC      << 1.0 << 0.0 << 0.0 << -distSCtoPLM[0] << arma::endr
+                    << 0.0 << 1.0 << 0.0 << -distSCtoPLM[1] << arma::endr
+                    << 0.0 << 0.0 << 1.0 << -distSCtoPLM[2] << arma::endr
+                    << 0.0 << 0.0 << 0.0 <<      1.0       << arma::endr;
+
+
+    // the camera/FPA reference frame
+
+    // the x - axis should point towards the orientation screw, which can be achieved 
+    // by a rotation around the z  -axis
+
+    const double screwAngle = 0.0;
+
+    double sinScrew = sin(screwAngle);
+    double cosScrew = cos(screwAngle);
+
+    arma::mat rotScrew;
+    rotScrew        <<   cosScrew << -sinScrew << 0.0 << 0.0 << arma::endr
+                    <<   sinScrew <<  cosScrew << 0.0 << 0.0 << arma::endr
+                    <<      0.0   <<     0.0   << 1.0 << 0.0 << arma::endr
+                    <<      0.0   <<     0.0   << 0.0 << 1.0 << arma::endr;     
+
+    // the z - axis points towards the line of sight which is achieved by a 
+    // rotation of the z axis around the x - axis over the tilt - angle 
+
+    double sinTilt = sin(tiltAngle);
+    double cosTilt = cos(tiltAngle);
+
+    arma::mat rotTilt;
+    rotTilt         << 1.0 << 0.0     <<    0.0   << 0.0 << arma::endr
+                    << 0.0 << cosTilt << -sinTilt << 0.0  << arma::endr
+                    << 0.0 << sinTilt <<  cosTilt << 0.0 << arma::endr
+                    << 0.0 <<   0.0   <<    0.0   << 1.0 << arma::endr;  
+
+    // the next step is the rotation over the focal plane angle
+
+    double sinOrient = sin(focalPlaneAngle);
+    double cosOrient = cos(focalPlaneAngle);
+
+    arma::mat rotOrient;
+    rotOrient       <<   cosOrient <<  -sinOrient << 0.0 << 0.0 << arma::endr
+                    <<   sinOrient <<   cosOrient << 0.0 << 0.0 << arma::endr
+                    <<     0.0     <<     0.0     << 1.0 << 0.0 << arma::endr
+                    <<     0.0     <<     0.0     << 0.0 << 1.0 << arma::endr; 
+
+
+    arma::mat rotCAMtoPLM = rotScrew.t() * rotTilt.t() * rotOrient.t();
+
+    // combine all transformation matrices
+
+    arma::mat rotCAMtoEQ = rotSCtoEQ * rotPLMtoSC * rotCAMtoPLM;
+
+    //reverse the projection
+    arma::vec starCAM = {xFPprime/-focalLength, yFPprime/-focalLength, 1.0, 1.0};
+
+    // convert the CAM star coordinates to EQ star coordinates
+    arma::vec starEQ = rotCAMtoEQ * starCAM;
+
+    //convert the cartesian coordinates to equatorial coordinates
+    double norm = sqrt(starEQ(0)*starEQ(0) + starEQ(1)*starEQ(1) + starEQ(2)*starEQ(2)); 
+    double decStar = Constants::PI/2.0 - acos(starEQ(2)/norm);
+    double raStar = atan2(starEQ(1), starEQ(0));
+
+    if (raStar < 0.0)
+    {
+        raStar += 2.*Constants::PI;
+    }
+
+    // That's it!
+
+    return make_pair(raStar, decStar);
+
+}
 
 
 /**
@@ -395,7 +722,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
             
             auto star = starCatalog[n];
             double Xmm, Ymm;
-            tie(Xmm, Ymm) = newSkyToFocalPlaneCoordinates(star.RA, star.dec, internalTime);
+            tie(Xmm, Ymm) = newSkyToFocalPlaneCoordinates(star.RA, star.dec, startTime, internalTime, useJitter, useDrift);
 
             // If required, include field distortion
 
@@ -735,340 +1062,6 @@ pair<double, double> Camera::skyToFocalPlaneCoordinates(double raStar, double de
     return make_pair(xFPprime, yFPprime);
 }
 
-pair<double, double> Camera::initialSkyToFocalPlaneCoordinates(double raStar, double decStar)
-{
-    // create the initial spacecraft coordinate system conversion matrix according 
-    // to PLATO-DLR-PL-TN-016_i1_2draft by Denis Griessbach
-
-    // the matrix transformations consist of rotations as well as translations, 
-    // which is why 4x4 matrices are used
-
-    // S/C reference frame
-
-    // the z-axis is the pointing coordinate of the spacecraft, the y-axis is lying in the equatorial plane 
-    // and the x-axis is calculated
-    arma::vec zSC = {cos(decPlatform) * cos(alphaPlatform), cos(decPlatform) * sin(alphaPlatform), sin(decPlatform)};
-    arma::vec ySC = {cos(alphaPlatform + PI/2), sin(alphaPlatform + PI/2), 0.0};
-    arma::vec xSC = cross(ySC, zSC);
-
-    arma::mat rotSCtoEQ;
-    rotSCtoEQ       <<  xSC[0] << ySC[0] << zSC[0] << 0.0 << arma::endr
-                    <<  xSC[1] << ySC[1] << zSC[1] << 0.0 << arma::endr
-                    <<  xSC[2] << ySC[2] << zSC[2] << 0.0 << arma::endr
-                    <<    0.0  <<   0.0  <<   0.0  << 1.0 << arma::endr;
-
-    // include a rotation around the z - axis to align the x - axis to the average direction of the sun
-
-    const double sunDirectionAngle = 0.0;
-
-    //create the rotation matrix
-    double sinSun = sin(sunDirectionAngle);
-    double cosSun = cos(sunDirectionAngle);
-
-    arma::mat rotSun;
-    rotSun          <<   cosSun << -sinSun << 0.0 << 0.0 << arma::endr
-                    <<   sinSun <<  cosSun << 0.0 << 0.0 << arma::endr
-                    <<    0.0   <<   0.0   << 1.0 << 0.0 << arma::endr
-                    <<    0.0   <<   0.0   << 0.0 << 1.0 << arma::endr;
-
-    rotSCtoEQ = rotSun * rotSCtoEQ;
-
-    arma::mat rotEQtoSC = rotSCtoEQ.t();
-
-    // the payload module reference frame
-
-    // the PLM frame coincides with the SC frame, except for a small mounting  offset, 
-    // which is a translation on the z-axis in positive direction. This is just for completeness, since
-    // an offset in z - direction doesn't influence the picture generation
-
-    arma::vec distSCtoPLM = {0.0, 0.0, 0.0};
-
-    arma::mat rotSCtoPLM;
-    rotSCtoPLM      << 1.0 << 0.0 << 0.0 << distSCtoPLM[0] << arma::endr
-                    << 0.0 << 1.0 << 0.0 << distSCtoPLM[1] << arma::endr
-                    << 0.0 << 0.0 << 1.0 << distSCtoPLM[2] << arma::endr
-                    << 0.0 << 0.0 << 0.0 <<      1.0       << arma::endr;
-
-
-    // the camera/FPA reference frame
-
-    // the x - axis should point towards the orientation screw, which can be achieved 
-    // by a rotation around the z  -axis
-
-    const double screwAngle = 0.0;
-
-    double sinScrew = sin(screwAngle);
-    double cosScrew = cos(screwAngle);
-
-    arma::mat rotScrew;
-    rotScrew        <<   cosScrew << -sinScrew << 0.0 << 0.0 << arma::endr
-                    <<   sinScrew <<  cosScrew << 0.0 << 0.0 << arma::endr
-                    <<      0.0   <<     0.0   << 1.0 << 0.0 << arma::endr
-                    <<      0.0   <<     0.0   << 0.0 << 1.0 << arma::endr;     
-
-    // the z - axis points towards the line of sight which is achieved by a 
-    // rotation of the z axis around the x - axis over the tilt - angle 
-
-    double sinTilt = sin(tiltAngle);
-    double cosTilt = cos(tiltAngle);
-
-    arma::mat rotTilt;
-    rotTilt         << 1.0 << 0.0     <<    0.0   << 0.0 << arma::endr
-                    << 0.0 << cosTilt << -sinTilt << 0.0  << arma::endr
-                    << 0.0 << sinTilt <<  cosTilt << 0.0 << arma::endr
-                    << 0.0 <<   0.0   <<    0.0   << 1.0 << arma::endr;  
-
-    // the next step is the rotation over the focal plane angle
-
-    double sinOrient = sin(focalPlaneAngle);
-    double cosOrient = cos(focalPlaneAngle);
-
-    arma::mat rotOrient;
-    rotOrient       <<   cosOrient <<  -sinOrient << 0.0 << 0.0 << arma::endr
-                    <<   sinOrient <<   cosOrient << 0.0 << 0.0 << arma::endr
-                    <<     0.0     <<     0.0     << 1.0 << 0.0 << arma::endr
-                    <<     0.0     <<     0.0     << 0.0 << 1.0 << arma::endr; 
-
-
-    arma::mat rotPLMtoCAM = rotOrient * rotTilt * rotScrew;
-
-
-    // combine all transformation matrices
-
-    arma::mat rotEQtoCAM = rotPLMtoCAM * rotSCtoPLM * rotEQtoSC;
-
-    // create the cartesian star coordinates
-    arma::vec starEQ = {cos(decStar) * cos(raStar), cos(decStar) * sin(raStar), sin(decStar), 1};
-
-    // calculation of the star coordinates in the CAM reference frame          
-
-    arma::vec starCAM = rotEQtoCAM * starEQ;
-
-    //calculate the mm values of the coordinates and return them
-
-    const double xFPmm = focalLength * starCAM(0)/starCAM(2);
-    const double yFPmm = focalLength * starCAM(1)/starCAM(2);
-
-    return make_pair(xFPmm, yFPmm);
-
-}
-
-pair<double, double> Camera::newSkyToFocalPlaneCoordinates(double raStar, double decStar, double time)
-{
-    // create the initial spacecraft coordinate system conversion matrix according 
-    // to PLATO-DLR-PL-TN-016_i1_2draft by Denis Griessbach
-
-    // the matrix transformations consist of rotations as well as translations, 
-    // which is why 4x4 matrices are used
-
-    // S/C reference frame
-
-    // the z-axis is the pointing coordinate of the spacecraft, the y-axis is lying in the equatorial plane 
-    // and the x-axis is calculated
-    arma::vec zSC = {cos(decPlatform) * cos(alphaPlatform), cos(decPlatform) * sin(alphaPlatform), sin(decPlatform)};
-    arma::vec ySC = {cos(alphaPlatform + PI/2), sin(alphaPlatform + PI/2), 0.0};
-    arma::vec xSC = cross(ySC, zSC);
-
-    arma::mat rotSCtoEQ;
-    rotSCtoEQ       <<  xSC[0] << ySC[0] << zSC[0] << 0.0 << arma::endr
-                    <<  xSC[1] << ySC[1] << zSC[1] << 0.0 << arma::endr
-                    <<  xSC[2] << ySC[2] << zSC[2] << 0.0 << arma::endr
-                    <<    0.0  <<   0.0  <<   0.0  << 1.0 << arma::endr;
-
-    // include a rotation around the z - axis to align the x - axis to the average direction of the sun
-
-    const double sunDirectionAngle = 0.0;
-
-    //create the rotation matrix
-    double sinSun = sin(sunDirectionAngle);
-    double cosSun = cos(sunDirectionAngle);
-
-    arma::mat rotSun;
-    rotSun          <<   cosSun << -sinSun << 0.0 << 0.0 << arma::endr
-                    <<   sinSun <<  cosSun << 0.0 << 0.0 << arma::endr
-                    <<    0.0   <<   0.0   << 1.0 << 0.0 << arma::endr
-                    <<    0.0   <<   0.0   << 0.0 << 1.0 << arma::endr;
-
-    arma::mat rotEQtoSC;
-
-    // include jitter, if it's considered
-
-    if (useJitter)
-    {
-
-        //include jitter
-        double yaw=0.0, pitch=0.0, roll=0.0;
-        double timeInterval = time - internalTime;
-        tie(yaw, pitch, roll) = telescope.getNextYawPitchRoll(timeInterval);
-
-        // Some handy abbreviations
-
-        const double sinYaw   = sin(yaw);
-        const double cosYaw   = cos(yaw);
-        const double sinPitch = sin(pitch);
-        const double cosPitch = cos(pitch);
-        const double sinRoll  = sin(roll);
-        const double cosRoll  = cos(roll);
-
-        // The rotation matrices
-
-        arma::mat rotYaw;
-        rotYaw      << 1.0  <<    0.0   <<     0.0   << 0.0 << arma::endr
-                    << 0.0  <<  cosYaw  <<  -sinYaw  << 0.0 << arma::endr
-                    << 0.0  <<  sinYaw  <<   cosYaw  << 0.0 << arma::endr
-                    << 0.0  <<    0.0   <<     0.0   << 1.0 << arma::endr;
-
-        arma::mat rotPitch;
-        rotPitch    <<  cosPitch  <<  0.0  <<  sinPitch  << 0.0 << arma::endr
-                    <<   0.0      <<  1.0  <<    0.0     << 0.0 << arma::endr
-                    << -sinPitch  <<  0.0  <<  cosPitch  << 0.0 << arma::endr
-                    <<   0.0      <<  0.0  <<    0.0     << 1.0 << arma::endr;
-
-        arma::mat rotRoll;
-        rotRoll     << cosRoll  <<  -sinRoll  <<  0.0  << 0.0 << arma::endr
-                    << sinRoll  <<   cosRoll  <<  0.0  << 0.0 << arma::endr
-                    <<  0.0     <<     0.0    <<  1.0  << 0.0 << arma::endr
-                    <<  0.0     <<     0.0    <<  0.0  << 1.0 << arma::endr;
-
-
-        rotSCtoEQ = rotRoll * rotPitch * rotYaw * rotSun * rotSCtoEQ;
-
-        rotEQtoSC = rotSCtoEQ.t();
-
-    }
-    else
-    {
-        rotSCtoEQ = rotSun * rotSCtoEQ;
-
-        rotEQtoSC = rotSCtoEQ.t();
-    }
-
-
-    rotSCtoEQ = rotSun * rotSCtoEQ;
-
-    rotEQtoSC = rotSCtoEQ.t();
-
-
-
-    // the payload module reference frame
-
-    // the PLM frame coincides with the SC frame, except for a small mounting  offset, 
-    // which is a translation on the z-axis in positive direction. This is just for completeness, since
-    // an offset in z - direction doesn't influence the picture generation
-
-    arma::vec distSCtoPLM = {0.0, 0.0, 0.0};
-
-    arma::mat rotSCtoPLM;
-    rotSCtoPLM      << 1.0 << 0.0 << 0.0 << distSCtoPLM[0] << arma::endr
-                    << 0.0 << 1.0 << 0.0 << distSCtoPLM[1] << arma::endr
-                    << 0.0 << 0.0 << 1.0 << distSCtoPLM[2] << arma::endr
-                    << 0.0 << 0.0 << 0.0 <<      1.0       << arma::endr;
-
-    // include the thermoelastic drift TED, if it's considered
-
-    if (useDrift)
-    {
-        //include drift
-        double yaw=0.0, pitch=0.0, roll=0.0;
-        double timeInterval = time - internalTime;
-        tie(yaw, pitch, roll) = telescope.getThermalDrift(timeInterval);
-
-        // Some handy abbreviations
-
-        const double sinYaw   = sin(yaw);
-        const double cosYaw   = cos(yaw);
-        const double sinPitch = sin(pitch);
-        const double cosPitch = cos(pitch);
-        const double sinRoll  = sin(roll);
-        const double cosRoll  = cos(roll);
-
-        // The rotation matrices
-
-        arma::mat rotYaw;
-        rotYaw      << 1.0  <<    0.0   <<     0.0   << 0.0 << arma::endr
-                    << 0.0  <<  cosYaw  <<  -sinYaw  << 0.0 << arma::endr
-                    << 0.0  <<  sinYaw  <<   cosYaw  << 0.0 << arma::endr
-                    << 0.0  <<    0.0   <<     0.0   << 1.0 << arma::endr;
-
-        arma::mat rotPitch;
-        rotPitch    <<  cosPitch  <<  0.0  <<  sinPitch  << 0.0 << arma::endr
-                    <<   0.0      <<  1.0  <<    0.0     << 0.0 << arma::endr
-                    << -sinPitch  <<  0.0  <<  cosPitch  << 0.0 << arma::endr
-                    <<   0.0      <<  0.0  <<    0.0     << 1.0 << arma::endr;
-
-        arma::mat rotRoll;
-        rotRoll     << cosRoll  <<  -sinRoll  <<  0.0  << 0.0 << arma::endr
-                    << sinRoll  <<   cosRoll  <<  0.0  << 0.0 << arma::endr
-                    <<  0.0     <<     0.0    <<  1.0  << 0.0 << arma::endr
-                    <<  0.0     <<     0.0    <<  0.0  << 1.0 << arma::endr;
-
-
-        rotSCtoPLM = rotRoll * rotPitch * rotYaw * rotSCtoPLM;
-    }
-
-
-    // the camera/FPA reference frame
-
-    // the x - axis should point towards the orientation screw, which can be achieved 
-    // by a rotation around the z  -axis
-
-    const double screwAngle = 0.0;
-
-    double sinScrew = sin(screwAngle);
-    double cosScrew = cos(screwAngle);
-
-    arma::mat rotScrew;
-    rotScrew        <<   cosScrew << -sinScrew << 0.0 << 0.0 << arma::endr
-                    <<   sinScrew <<  cosScrew << 0.0 << 0.0 << arma::endr
-                    <<      0.0   <<     0.0   << 1.0 << 0.0 << arma::endr
-                    <<      0.0   <<     0.0   << 0.0 << 1.0 << arma::endr;     
-
-    // the z - axis points towards the line of sight which is achieved by a 
-    // rotation of the z axis around the x - axis over the tilt - angle 
-
-    double sinTilt = sin(tiltAngle);
-    double cosTilt = cos(tiltAngle);
-
-    arma::mat rotTilt;
-    rotTilt         << 1.0 << 0.0     <<    0.0   << 0.0 << arma::endr
-                    << 0.0 << cosTilt << -sinTilt << 0.0  << arma::endr
-                    << 0.0 << sinTilt <<  cosTilt << 0.0 << arma::endr
-                    << 0.0 <<   0.0   <<    0.0   << 1.0 << arma::endr;  
-
-    // the next step is the rotation over the focal plane angle
-
-    double sinOrient = sin(focalPlaneAngle);
-    double cosOrient = cos(focalPlaneAngle);
-
-    arma::mat rotOrient;
-    rotOrient       <<   cosOrient <<  -sinOrient << 0.0 << 0.0 << arma::endr
-                    <<   sinOrient <<   cosOrient << 0.0 << 0.0 << arma::endr
-                    <<     0.0     <<     0.0     << 1.0 << 0.0 << arma::endr
-                    <<     0.0     <<     0.0     << 0.0 << 1.0 << arma::endr; 
-
-
-    arma::mat rotPLMtoCAM = rotOrient * rotTilt * rotScrew;
-
-
-    // combine all transformation matrices
-
-    arma::mat rotEQtoCAM = rotPLMtoCAM * rotSCtoPLM * rotEQtoSC;
-
-    // create the cartesian star coordinates
-    arma::vec starEQ = {cos(decStar) * cos(raStar), cos(decStar) * sin(raStar), sin(decStar), 1};
-
-    // calculation of the star coordinates in the CAM reference frame          
-
-    arma::vec starCAM = rotEQtoCAM * starEQ;
-
-    //calculate the mm values of the coordinates and return them
-
-    const double xFPmm = - focalLength * starCAM(0)/starCAM(2);
-    const double yFPmm = - focalLength * starCAM(1)/starCAM(2);
-
-    return make_pair(xFPmm, yFPmm);
-
-}
 
 /**
  * \brief Compute the equatorial sky coordinates of a star which has the given focal plane (FP') coordinates (x,y),
@@ -1132,117 +1125,6 @@ pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFPprime, double 
     return make_pair(raStar, decStar);
 }
 
-pair<double, double> Camera::newFocalPlaneToSkyCoordinates(double xFPprime, double yFPprime)
-{    
-    arma::vec zSC = {cos(decPlatform) * cos(alphaPlatform), cos(decPlatform) * sin(alphaPlatform), sin(decPlatform)};
-    arma::vec ySC = {cos(alphaPlatform + PI/2), sin(alphaPlatform + PI/2), 0.0};
-    arma::vec xSC = cross(ySC, zSC);
-
-    arma::mat rotSCtoEQ;
-    rotSCtoEQ       <<  xSC[0] << ySC[0] << zSC[0] << 0.0 << arma::endr
-                    <<  xSC[1] << ySC[1] << zSC[1] << 0.0 << arma::endr
-                    <<  xSC[2] << ySC[2] << zSC[2] << 0.0 << arma::endr
-                    <<    0.0  <<   0.0  <<   0.0  << 1.0 << arma::endr;
-
-    // include a rotation around the z - axis to align the x - axis to the average direction of the sun
-
-    const double sunDirectionAngle = 0.0;
-
-    //create the rotation matrix
-    double sinSun = sin(sunDirectionAngle);
-    double cosSun = cos(sunDirectionAngle);
-
-    arma::mat rotSun;
-    rotSun          <<   cosSun << -sinSun << 0.0 << 0.0 << arma::endr
-                    <<   sinSun <<  cosSun << 0.0 << 0.0 << arma::endr
-                    <<    0.0   <<   0.0   << 1.0 << 0.0 << arma::endr
-                    <<    0.0   <<   0.0   << 0.0 << 1.0 << arma::endr;
-
-    rotSCtoEQ = rotSun * rotSCtoEQ;
-
-
-    // the payload module reference frame
-
-    // the PLM frame coincides with the SC frame, except for a small mounting  offset, 
-    // which is a translation on the z-axis in positive direction. This is just for completeness, since
-    // an offset in z - direction doesn't influence the picture generation
-
-    arma::vec distSCtoPLM = {0.0, 0.0, 0.0};
-
-    arma::mat rotPLMtoSC;
-    rotPLMtoSC      << 1.0 << 0.0 << 0.0 << -distSCtoPLM[0] << arma::endr
-                    << 0.0 << 1.0 << 0.0 << -distSCtoPLM[1] << arma::endr
-                    << 0.0 << 0.0 << 1.0 << -distSCtoPLM[2] << arma::endr
-                    << 0.0 << 0.0 << 0.0 <<      1.0       << arma::endr;
-
-
-    // the camera/FPA reference frame
-
-    // the x - axis should point towards the orientation screw, which can be achieved 
-    // by a rotation around the z  -axis
-
-    const double screwAngle = 0.0;
-
-    double sinScrew = sin(screwAngle);
-    double cosScrew = cos(screwAngle);
-
-    arma::mat rotScrew;
-    rotScrew        <<   cosScrew << -sinScrew << 0.0 << 0.0 << arma::endr
-                    <<   sinScrew <<  cosScrew << 0.0 << 0.0 << arma::endr
-                    <<      0.0   <<     0.0   << 1.0 << 0.0 << arma::endr
-                    <<      0.0   <<     0.0   << 0.0 << 1.0 << arma::endr;     
-
-    // the z - axis points towards the line of sight which is achieved by a 
-    // rotation of the z axis around the x - axis over the tilt - angle 
-
-    double sinTilt = sin(tiltAngle);
-    double cosTilt = cos(tiltAngle);
-
-    arma::mat rotTilt;
-    rotTilt         << 1.0 << 0.0     <<    0.0   << 0.0 << arma::endr
-                    << 0.0 << cosTilt << -sinTilt << 0.0  << arma::endr
-                    << 0.0 << sinTilt <<  cosTilt << 0.0 << arma::endr
-                    << 0.0 <<   0.0   <<    0.0   << 1.0 << arma::endr;  
-
-    // the next step is the rotation over the focal plane angle
-
-    double sinOrient = sin(focalPlaneAngle);
-    double cosOrient = cos(focalPlaneAngle);
-
-    arma::mat rotOrient;
-    rotOrient       <<   cosOrient <<  -sinOrient << 0.0 << 0.0 << arma::endr
-                    <<   sinOrient <<   cosOrient << 0.0 << 0.0 << arma::endr
-                    <<     0.0     <<     0.0     << 1.0 << 0.0 << arma::endr
-                    <<     0.0     <<     0.0     << 0.0 << 1.0 << arma::endr; 
-
-
-    arma::mat rotCAMtoPLM = rotScrew.t() * rotTilt.t() * rotOrient.t();
-
-    // combine all transformation matrices
-
-    arma::mat rotCAMtoEQ = rotSCtoEQ * rotPLMtoSC * rotCAMtoPLM;
-
-    //reverse the projection
-    arma::vec starCAM = {xFPprime/-focalLength, yFPprime/-focalLength, 1.0, 1.0};
-
-    // convert the CAM star coordinates to EQ star coordinates
-    arma::vec starEQ = rotCAMtoEQ * starCAM;
-
-    //convert the cartesian coordinates to equatorial coordinates
-    double norm = sqrt(starEQ(0)*starEQ(0) + starEQ(1)*starEQ(1) + starEQ(2)*starEQ(2)); 
-    double decStar = Constants::PI/2.0 - acos(starEQ(2)/norm);
-    double raStar = atan2(starEQ(1), starEQ(0));
-
-    if (raStar < 0.0)
-    {
-        raStar += 2.*Constants::PI;
-    }
-
-    // That's it!
-
-    return make_pair(raStar, decStar);
-
-}
 
 /**
  * \brief      Convert polar coordinates to cartesian coordinates

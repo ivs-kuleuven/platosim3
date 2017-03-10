@@ -154,6 +154,7 @@ Detector::~Detector()
     includeFullWellSaturation  = configParam.getBoolean("CCD/IncludeFullWellSaturation");
     includeDigitalSaturation   = configParam.getBoolean("CCD/IncludeDigitalSaturation");
     writeSubPixelImagesToHDF5  = configParam.getBoolean("CCD/WriteSubPixelImagesToHDF5");
+    writeMapsToHDF5  	   	   = configParam.getBoolean("CCD/WriteMapsToHDF5");
 
     // Configuration parameters for the subfield
 
@@ -248,7 +249,10 @@ void Detector::generateFlatfieldMap()
 
 	Log.debug("Detector: writing IRNU to HDF5");
 
-	hdf5File.writeArray("/Flatfield", "IRNU", flatfieldMap);
+	if (writeMapsToHDF5)
+	{
+		hdf5File.writeArray("/Flatfield", "IRNU", flatfieldMap);
+	}
 
 	// Rebin the intra-pixel flatfield to the pixel flatfield (IRNU -> PRNU)
 	// and also write this array to the HDF5 outputfile. This PRNU array is not used
@@ -274,8 +278,12 @@ void Detector::generateFlatfieldMap()
 
 	Log.debug("Detector: writing PRNU to HDF5");
 
-	hdf5File.writeArray("/Flatfield", "PRNU", prnu);
+	if (writeMapsToHDF5)
+	{
+		hdf5File.writeArray("/Flatfield", "PRNU", prnu);
+	}
 }
+
 
 
 
@@ -325,7 +333,10 @@ void Detector::generateVignettingMap()
 
 	Log.debug("Detector: writing vignetting map to HDF5");
 
-	hdf5File.writeArray("/Vignetting", "vignettingMap", vignettingMap);
+	if (writeMapsToHDF5)
+	{
+		hdf5File.writeArray("/Vignetting", "vignettingMap", vignettingMap);
+	}
 }
 
 
@@ -1995,7 +2006,10 @@ void Detector::writePixelMapsToHDF5()
 
     // Add the smearing map to the "SmearingMaps" group
 
-    hdf5File.writeArray("/SmearingMaps", smearingMapName, smearingMap);
+    if (writeMapsToHDF5)
+	{
+    	hdf5File.writeArray("/SmearingMaps", smearingMapName, smearingMap);
+    }
 
     // Clear the string stream and compose the bias map name
 
@@ -2007,8 +2021,10 @@ void Detector::writePixelMapsToHDF5()
 
     // Add the smearing map to the "SmearingMaps" group
 
-    hdf5File.writeArray("/BiasMaps", biasMapName, biasMap);
-
+    if (writeMapsToHDF5)
+	{
+    	hdf5File.writeArray("/BiasMaps", biasMapName, biasMap);
+    }
 
     // Increment the counter for the next image
 

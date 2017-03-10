@@ -8,13 +8,13 @@ General:
 
 ObservingParameters:
 
-    NumExposures:                100             # Number of expsosures
+    NumExposures:                10             # Number of expsosures
     ExposureTime:                2.3              # [s]
     RApointing:                  86.79870         # Platform (not telescope) right ascension pointing coordinate  [deg] 
     DecPointing:                 -46.39595        # Platform (not telescope) declination pointing coordinate      [deg]
     Fluxm0:                      1.00238e8        # Photon flux of a V=0 G2V-star                                 [phot/s/m^2/nm]
-    SkyBackground:               -1.              # Stellar + zodiacal background level. Set negative to compute. [phot/pix/s]
-    StarCatalogFile:             inputfiles/guide_stars_EQ.txt
+    SkyBackground:               100              # Stellar + zodiacal background level. Set negative to compute. [phot/pix/s]
+    StarCatalogFile:             inputfiles/complete_cat.txt
 
 
 Platform:
@@ -46,9 +46,9 @@ Telescope:
 
 Camera:
     
-    FocalPlaneOrientation:       0.0             # [degrees]
+    FocalPlaneOrientation:       0.0             #-9.047422535    #170.952577465057             # [degrees]
     PlateScale:                  0.8333          # [arcsec/micron]
-    FocalLength:                 0.24712595      # Focal length as recovered from ZEMAX model [m]
+    FocalLength:                 0.247517767387433      # Focal length as recovered from ZEMAX model [m]
     ThroughputBandwidth:         638             # FWHM [nm]
     ThroughputLambdaC:           550             # Central wavelength of the throughput passband [nm]
     IncludeFieldDistortion:      no              # Wheter or not to include field distortion
@@ -99,15 +99,16 @@ CCD:
             TrapCaptureCrossSection: [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]     # for each trap species [m^2]
             ReleaseTime:             [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]         # for each trap species [s]
     IncludeFlatfield:            no             # Include flatfield [yes or no]
-    IncludePhotonNoise:          yes             # Include photon noise [yes or no]
-    IncludeReadoutNoise:         yes             # Include readout noise [yes or no]
+    IncludePhotonNoise:          no             # Include photon noise [yes or no]
+    IncludeReadoutNoise:         no             # Include readout noise [yes or no]
     IncludeCTIeffects:           no             # Include charge transfer inefficiency effects [yes or no]
     IncludeOpenShutterSmearing:  no              # Include trails due reading out with an open shutter [yes or no]
     IncludeVignetting:           no             # Include brightness attenuation towards the edge of the FOV due to vignetting 
     IncludeConvolution:          yes             # Wheter or not to convolve the subPixelMap with the PSF
     IncludeFullWellSaturation:   no             # Wheter or not full well saturation should be applied
     IncludeDigitalSaturation:    no             # Wheter or not digital saturation should be applied
-    WriteSubPixelImagesToHDF5:   no              # Only use this for a limited number of exposures. Takes a lot of space! 
+    WriteSubPixelImagesToHDF5:   no             # Only use this for a limited number of exposures. Takes a lot of space!
+    WriteMapsToHDF5:             yes             # reduces the size of the hdf5 files 
 
 SubField:    
 

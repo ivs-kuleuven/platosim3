@@ -140,7 +140,7 @@ def newSkyToFocalPlaneCoordinates(raStar, decStar, raPlatform, decPlatform, tilt
 
     ## include a rotation around the z - axis to align the x - axis to the average direction of the sun
 
-    sunDirectionAngle = 0.0
+    sunDirectionAngle = np.deg2rad(-9.047422535)
 
     sinSun = sin(sunDirectionAngle)
     cosSun = cos(sunDirectionAngle)
@@ -151,9 +151,9 @@ def newSkyToFocalPlaneCoordinates(raStar, decStar, raPlatform, decPlatform, tilt
                             [  0.0 ,    0.0 , 0.0, 1.0]])
                        
 
-    rotSCtoEQ = np.dot(rotSun, rotSCtoEQ)
+    rotEQtoSC = np.dot(rotSun, np.transpose(rotSCtoEQ))
 
-    rotEQtoSC = np.transpose(rotSCtoEQ)
+    #rotEQtoSC = np.transpose(rotSCtoEQ)
 
 
     ## the payload module reference frame
@@ -892,7 +892,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, tiltAngl
 
     print(xCCDpixel, yCCDpixel)
 
-    with open('/home/bert/PlatoSim3/inputfiles/test.txt', 'a') as fout:
+    with open('/home/bert/OldPlato/inputfiles/test.txt', 'a') as fout:
       fout.write(str(float(xCCDpixel)) + "  " + str(float(yCCDpixel)) + "  " + str(float(xFPmm)) + "  " + str(float(yFPmm)) + '\n')
 
 

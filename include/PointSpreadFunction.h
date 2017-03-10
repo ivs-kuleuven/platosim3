@@ -97,6 +97,8 @@ class PointSpreadFunction : public HDF5Writer
         // Positive angles rotate counter-clockwise.
         // A negative value indicates no user input,, i.e. auto-compute
         double requestedRotationAngle = -1.0;    // [radians]
+        
+        bool    writeMapsToHDF5;
 
 };
 

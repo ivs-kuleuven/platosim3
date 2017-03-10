@@ -6,21 +6,21 @@ import h5py
 
 
 
-def computePSFsigma(psf, Nsubpixels):
+def computePSFsigma(psf, Nsubpixels, Nsamples=10000):
 
     """
-    PURPOSE: Approximate the PSF with a 2D symmetric gaussian distribution, to compute 
+    PURPOSE: Approximate the PSF with a 2D symmetric Gaussian distribution, to compute 
              its standard deviation, assuming that the barycenter is in the middle of the image. 
              This standard deviation will be used for the weighted mask photometry
 
-    INPUT: psf:        2D numpy image containing the PSF
+    INPUT: psf:        2D numpy image containing the rotated PSF at subpixel level
            Nsubpixels: the number of subpixels per pixel (1D)
+           Nsamples:   the number of monte carlo samples of the PSF to fit a Gaussian
 
     OUTPUT: sigma: the standard deviation of the symmetric PSF  [pix]
 
     """
 
-    Nsamples = 10000
     sumPSF = sum(psf)
     randomNumber = uniform(0.0, 1.0, Nsamples)
 
@@ -70,6 +70,37 @@ def computePSFsigma(psf, Nsubpixels):
 
 
 
+def computePSFBarycenterOffset(psf, Npixels):
+
+    """
+    PURPOSE: Compute the barycenter coordinates of the given PSF. The zero-point is the center of the psf.
+
+    INPUT: psf:     2D numpy image (Nrows x Ncolumns) containing the rotated PSF at subpixel level
+           Npixels: the number of pixels in 1 dimension of the square PSF (e.g. 8)
+
+    OUTPUT: (deltaRow, deltaColumn): the pixel coordinates of the barycenter of the PSF
+                                     relative to the center of the pixel image   [pix]
+    """
+
+    Nrows, Ncols = psf.shape
+
+    rowIndices = arange(Nrows)
+    colIndices = arange(Ncols) 
+
+    baryRow = sum(psf * rowIndices) / psf.sum()
+    baryCol = sum(psf * colIndices.reshape(Ncols,1)) / psf.sum()
+
+    Nsubpixels = Nrows / Npixels
+    deltaRow = (baryRow - Nrows / 2.0) / Nsubpixels
+    deltaCol = (baryCol - Ncols / 2.0) / Nsubpixels
+
+    return (deltaRow, deltaCol)
+
+
+
+
+
+
 
 
 
@@ -108,6 +139,16 @@ def photometry(inputFilePath, outputFilePath, sigmaPSF, verbose=False):
 
     time = array(inputFile["/StarPositions/Time"])
     photometryGroup.create_dataset("time", data=time)
+
+    # Compute the offset of the barycenter of the PSF
+
+    psf = array(inputFile["/PSF/rotatedPSF"])                                           # [subpix]
+    if inputFile["/InputParameters/PSF"].attrs["Model"] == "FromFile":
+        Npixels = int(inputFile["/InputParameters/PSF/FromFile"].attrs["NumberOfPixels"])
+    else:
+        Npixels = int(inputFile["/InputParameters/PSF/Gaussian"].attrs["NumberOfPixels"])
+
+    deltaRow, deltaCol = computePSFBarycenterOffset(psf, Npixels)                       # [pix]
 
 
     # Collect the relevant input parameters from the HDF5 file
@@ -221,8 +262,8 @@ def photometry(inputFilePath, outputFilePath, sigmaPSF, verbose=False):
             
             Vmag[starNr] = magnitude[starID[starNr]]
             estimatedFlux[starNr] = 0.0
-            rowStar = int(rowPix[starNr])
-            colStar = int(colPix[starNr])
+            rowStar = int(rowPix[starNr] + deltaRow)         # deltaRow, deltaCol are the PSF barycenter offsets
+            colStar = int(colPix[starNr] + deltaCol)
 
             for row in range(rowStar-1, rowStar+2):
                 
@@ -232,7 +273,7 @@ def photometry(inputFilePath, outputFilePath, sigmaPSF, verbose=False):
 
                     if (col < 0) or (col > image.shape[1]-1): continue
                     
-                    weight = exp(-(pow(row-rowPix[starNr],2) + pow(col-colPix[starNr],2))/2.0/sigmaPSF/sigmaPSF)
+                    weight = exp(-(pow(row-rowPix[starNr]-deltaRow,2) + pow(col-colPix[starNr]-deltaCol,2))/2.0/sigmaPSF/sigmaPSF)
                     estimatedFlux[starNr] += weight * (image[row, col] - skyBackground[imageNr])
                     varEstimatedFlux[starNr] += weight*weight * (image[row, col] + sigmaRON * sigmaRON)
                     maskSize[starNr] +=1 
@@ -276,7 +317,7 @@ def getPhotometryTimeSeries(photometryFile, starID):
             starID:  star identifier (integer, e.g. 9789)
 
      OUTPUT: time: a numpy array containing the time points [s]
-             flux; a numpy array containing the flux points [electrons/exposure]
+             flux: a numpy array containing the flux points [electrons/exposure]
 
      REMARK: To find out which star identifiers are in the photometry file, look in the HDF5 simulation
              output file of PlatoSim: 
@@ -289,6 +330,7 @@ def getPhotometryTimeSeries(photometryFile, starID):
 
     time = []
     flux = []
+
     for k in range(Nimages):
         allStarIDsInImage = array(photFile["/Photometry/Exposure{0:06d}/starID".format(k)])
         if starID in allStarIDsInImage:
