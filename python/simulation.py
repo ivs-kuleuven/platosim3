@@ -73,6 +73,7 @@ import sys
 import ast
 import numpy as np
 
+import referenceFrames as rf
 import simfile
 from simfile import SimFile
 
@@ -397,7 +398,7 @@ class Simulation(object):
         """
         Run the PLATO Simulator.
 
-        When rerunning the same simulation again, remove the output file by setting the optional keyword to True.
+        param removeOutputFile: if the outputfile already exists before the run started, simply delete it.
 
         When PlatoSim fails for some reason and returns an error code (!= 0), an Exception is raised.
         """
@@ -504,5 +505,121 @@ class Simulation(object):
         self.__setitem__("ObservingParameters/ExposureTime", "23")
 
         return
+
+
+
+
+
+
+
+
+
+
+    def setSubfieldAroundCoordinates(self, raStar, decStar, subfieldSizeX, subfieldSizeY, normal):
+        
+        """
+        PURPOSE: Set the location of the sub-field such that it is centred on the star 
+                 with the given sky coordinates.  Depending on the CCD (in nomincal mode:
+                 "A", "B", "C", or "D"; in fast mode: "AF", "BF", "CF", or "DF"), the 
+                 configuration file for the given simulation is adapted.  These include the
+                 pre-defined CCD position, the dimensions of the CCD (and also of the sub-field,
+                 although this is not affected by the calculations), the sub-field zeropoint
+                 and the exposure time. 
+
+        NOTE: This function calls the calculateSubfieldAroundCoordinates() function in reference frames
+
+        NOTE: It is assumed that the configuration parameters in the sim object contains
+              a correct (ra, dec)  of the platform, a correct (azimuth, tilt) of the telescope,
+              a valid values for the focal length, the plate scale, the pixel size, and that
+              the switch to include distortion or not is set correctly
+
+        INPUT:  raStar:                 right ascension of the star [radians]
+                decStar:                declination [radians]
+                subfieldSizeX:          width (i.e. number of columns) of the subiield [pixels]
+                subfieldSizeY:          height (i.e. number of rows) of the sub-field [pixels]
+                normal:                 True for the normal camera configuration, False for the fast cameras
+
+        OUTPUT: True if the CCD code (i.e. the pre-defined CCD position) could be determined, False otherwise 
+
+        REMARKS: - If the coordinates do not fall on any CCD, an error message is shown, followed by an exit(1)
+                 - If the star is too close to the edge for the given subfield size, and error message is shown,
+                   followed by an exit(1)
+        """
+        
+
+        # Find out some instrumental characteristics from the sim object
+
+        raPlatform       = np.deg2rad(float(self["ObservingParameters/RApointing"]))
+        decPlatform      = np.deg2rad(float(self["ObservingParameters/DecPointing"]))
+        raSun            = np.deg2rad(float(self["ObservingParameters/RASun"]))
+        decSun           = np.deg2rad(float(self["ObservingParameters/DecSun"]))
+        azimuthTelescope = np.deg2rad(float(self["Telescope/AzimuthAngle"]))
+        tiltTelescope    = np.deg2rad(float(self["Telescope/TiltAngle"]))
+        focalLength      = float(self["Camera/FocalLength"]) * 1000.0                     # [m] -> [mm]
+        plateScale       = float(self["Camera/PlateScale"])          
+        focalPlaneAngle  = np.deg2rad(float(self["Camera/FocalPlaneOrientation"]))
+        pixelSize        = float(self["CCD/PixelSize"]) 
+
+        if (self["Camera/IncludeFieldDistortion"] == "yes")  or (self["Camera/IncludeFieldDistortion"] == "1"):
+            includeFieldDistortion = True
+        else:
+            includeFieldDistortion = False
+
+
+        # When the user requested to include field distortion, update the Simulation input parameter and
+        # initialize the field distortion global that will be used by the distortion functions.
+
+        if includeFieldDistortion:
+            self["Camera/IncludeFieldDistortion"] = "yes"
+
+            FIELD_DISTORTION["Coeff"] = self["Camera/FieldDistortion/Coefficients"]
+            FIELD_DISTORTION["InverseCoeff"] = self["Camera/FieldDistortion/InverseCoefficients"]
+        else:
+            self["Camera/IncludeFieldDistortion"] = "no"
+
+
+        # Compute the position of the subfield.
+        # xPix and yPix are the CCD coordinates of the star, given a 4510x4510 CCD [colNumber, rowNumber].
+
+        ccdCode, xPix, yPix = rf.calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, decStar, raSun, decSun, raPlatform, decPlatform, \
+                                                                    tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength, pixelSize,              \
+                                                                    includeFieldDistortion, normal)
+        
+        if ccdCode == None:
+            return False
+        
+        CCDSizeX         = rf.CCD[ccdCode]["Ncols"]
+        CCDSizeY         = rf.CCD[ccdCode]["Nrows"]
+        CCDOriginOffsetX = rf.CCD[ccdCode]["zeroPointXmm"]
+        CCDOriginOffsetY = rf.CCD[ccdCode]["zeroPointYmm"]
+        CCDOrientation   = rf.CCD[ccdCode]["angle"]
+
+        # If we arrive here, there is no problem accommodating the entire sufield on the CCD
+
+        self["CCD/OriginOffsetX"] = str(CCDOriginOffsetX)
+        self["CCD/OriginOffsetY"] = str(CCDOriginOffsetY)
+        self["CCD/Orientation"] = str(np.rad2deg(CCDOrientation))
+
+        self["CCD/NumColumns"] = CCDSizeX
+        self["CCD/NumRows"] = CCDSizeY
+
+        self["SubField/ZeroPointRow"] = str(int(yPix - subfieldSizeY/2))
+        self["SubField/ZeroPointColumn"] = str(int(xPix - subfieldSizeX/2))
+        self["SubField/NumRows"] = str(subfieldSizeY)
+        self["SubField/NumColumns"] = str(subfieldSizeX)
+
+        # Set the exposure and the readout time, depending on fast vs nominal cams
+
+        if normal:
+            self["ObservingParameters/ExposureTime"] = 23
+            self["CCD/ReadoutTime"] = 2.5
+        else:
+            self["ObservingParameters/ExposureTime"] = 2.3
+            self["CCD/ReadoutTime"] = 0.2
+        
+        # That's it
+
+        return True
+
 
 

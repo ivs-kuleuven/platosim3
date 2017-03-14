@@ -7,7 +7,8 @@ import numpy as np
 
 from simfile import SimFile
 from simulation import Simulation
-from referenceFrames import setSubfieldAroundCoordinates
+
+
 
 # Specify the absolute paths of some of the input files and the output folder.
 # The following default values will always work, but we advice you not to use
@@ -74,7 +75,7 @@ for n in range(NguideStars):
     subfieldSizeY = 9     # row width [pixels]
     normalCamera = False
 
-    hasCcdCode = setSubfieldAroundCoordinates(sim, np.deg2rad(ra[n]), np.deg2rad(dec[n]), subfieldSizeX, subfieldSizeY, normalCamera)
+    hasCcdCode = sim.setSubfieldAroundCoordinates(np.deg2rad(ra[n]), np.deg2rad(dec[n]), subfieldSizeX, subfieldSizeY, normalCamera)
 
     # If the star does not fall on a CCD, or is too close to the edge, skip it.
 
