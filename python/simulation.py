@@ -562,20 +562,9 @@ class Simulation(object):
 
         if (self["Camera/IncludeFieldDistortion"] == "yes")  or (self["Camera/IncludeFieldDistortion"] == "1"):
             includeFieldDistortion = True
+            distortionCoefficients = sim["Camera/FieldDistortion/Coefficients"]
         else:
             includeFieldDistortion = False
-
-
-        # When the user requested to include field distortion, update the Simulation input parameter and
-        # initialize the field distortion global that will be used by the distortion functions.
-
-        if includeFieldDistortion:
-            self["Camera/IncludeFieldDistortion"] = "yes"
-
-            FIELD_DISTORTION["Coeff"] = self["Camera/FieldDistortion/Coefficients"]
-            FIELD_DISTORTION["InverseCoeff"] = self["Camera/FieldDistortion/InverseCoefficients"]
-        else:
-            self["Camera/IncludeFieldDistortion"] = "no"
 
 
         # Compute the position of the subfield.
@@ -583,7 +572,7 @@ class Simulation(object):
 
         ccdCode, xPix, yPix = rf.calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, decStar, raSun, decSun, raPlatform, decPlatform, \
                                                                     tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength, pixelSize,              \
-                                                                    includeFieldDistortion, normal)
+                                                                    includeFieldDistortion, distortionCoefficients, normal)
         
         if ccdCode == None:
             return False
