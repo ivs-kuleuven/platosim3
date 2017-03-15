@@ -612,3 +612,64 @@ class Simulation(object):
 
 
 
+
+
+
+
+
+
+
+
+    def createStarCatalogFileFromPixelCoordinates(self, rows, cols, magnitudes, starCatalogFileName):
+
+        """
+        PURPOSE: Create a star catalog ascii file given the pixel coordinates (row and column) of the stars.
+                 This requires the orientation of the spacecraft, telescopes, focal plane, hence it's a 
+                 member function of the Simulation class. 
+ 
+        INPUT: rows:       Numpy array with fractional row coordinates of the stars (CCD, not subfield) [pix]     
+               cols:       Numpy array with fractional column coordinates of the stars (CCD, not subfield) [pix]  
+               magnitudes: Johnson V magnitudes of the stars
+               starCatalogFileName: Path of the star catalog file that will be written.
+
+        OUTPUT: None. A file will be saved, containing, ra, dec, and magnitude of the stars.
+        """
+
+        # Extract the needed information from the yaml input file
+
+        pixelSize       = self["CCD/PixelSize"]
+        ccdZeroPointX   = self["CCD/OriginOffsetX"]
+        ccdZeroPointY   = self["CCD/OriginOffsetY"]
+        CCDangle        = np.deg2rad(self["CCD/Orientation"])
+        raPlatform      = np.deg2rad(self["ObservingParameters/RApointing"])
+        decPlatform     = np.deg2rad(self["ObservingParameters/DecPointing"])
+        raSun           = np.deg2rad(self["ObservingParameters/RASun"])
+        decSun          = np.deg2rad(self["ObservingParameters/DecSun"])
+        azimuthAngle    = np.deg2rad(self["Telescope/AzimuthAngle"])
+        tiltAngle       = np.deg2rad(self["Telescope/TiltAngle"])
+        focalPlaneAngle = np.deg2rad(self["Camera/FocalPlaneOrientation"])
+        focalLength     = self["Camera/FocalLength"] * 1000.0                     # [m] -> [mm]
+        includeFieldDistortion = self["Camera/IncludeFieldDistortion"]
+        inverseDistortionCoefficients = self["Camera/FieldDistortion/InverseCoefficients"]
+
+        # Convert the pixel coordinates to focal plane coordinates [mm]
+        
+        xFPmm, yFPmm = rf.pixelToFocalPlaneCoordinates(cols, rows, pixelSize, ccdZeroPointX, ccdZeroPointY, CCDangle)
+        
+        # If distortion is required in the yaml input file, distort the focal plane coordinates [mm]
+
+        if (includeFieldDistortion == "yes"):
+            xFPmm, yFPmm = rf.distortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, inverseDistortionCoefficients)
+
+        # Convert the focal plane coordinates to equatorial sky coordinates [rad]
+
+        ra, dec = rf.focalPlaneToSkyCoordinates(xFPmm, yFPmm, raSun, decSun, raPlatform, decPlatform, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength)
+
+        # Save the sky coordinates (in [deg]) to the star catalog file
+
+        np.savetxt(starCatalogFileName, np.transpose([np.rad2deg(ra), np.rad2deg(dec), magnitudes]))
+
+        # That's it
+
+        return
+
