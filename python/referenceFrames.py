@@ -43,24 +43,6 @@ CCD = \
 
 
 
-# FIELD DISTORTION
-# 
-# The field distortion is modelled by a 1D polynomial function of the 3rd degree.
-# The FIELD_DISTORTION variable holds the coefficients of the polynomial and its inverse. The actual values
-# are initialized by the setSubfieldAroundCoordinates() function when field distortion is requested.
-# The evaluation is done by the Polynomial class of numpy.
-# 
-# Coeff:        Coefficients of the Polynomial
-# InverseCoeff: Coefficients of the Inverse Polynomial
-# 
-
-FIELD_DISTORTION = {'Coeff' : [1.0, 0.0, 0.0, 0.0], 'InverseCoeff' : [-1.0, 0.0, 0.0, 0.0]}
-
-
-
-
-
-
 
 def sunSkyCoordinates(julianDate):
 
@@ -314,18 +296,21 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raSun, decSun, raPlatform, decPlatform,
 
 
 
-def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm):
+def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients):
     
     """
     PURPOSE:      Convert from undistorted to distorted normalized focal plane coordinates
     
     INPUTS:       xFPmm  undistorted normalized focal plane x-coordinate [mm]
                   yFPmm  undistorted normalized focal plane y-coordinate [mm]
+                  distortionCoefficients  List of polynomial coefficients
     
     OUTPUTS:      (xFPdist, yFPdist) distorted x and y coordinates [mm]
+
+    Note: Example of distortion coefficients: [-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06]
     """
 
-    P = Polynomial(FIELD_DISTORTION["Coeff"])
+    P = Polynomial(distortionCoefficients)
 
     angle = arctan2(yFPmm, xFPmm)    # [radians]
     
@@ -346,18 +331,21 @@ def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm):
 
 
 
-def distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist):
+def distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, inverseDistortionCoefficients):
     
     """
     PURPOSE:     Convert from distorted to undistorted normalized focal plane coordinates
     
     INPUTS:      xFPdist  Distorted normalized focal plane x-coordinate [mm]
                  yFPdist  DIstorted normalized focal plane y-coordinate [mm]
+                 inverseDistortionCoefficients  List of polynomial coefficients
     
     OUTPUTS:     (xFPmm, yFPmm) distorted x and y coordinates [mm]
+
+    Note: Example of inverse distortion coefficients: [-0.00458067036444, 1.00110311283, -5.61136295937e-05, -4.311925329e-06]
     """
     
-    IP = Polynomial(FIELD_DISTORTION["InverseCoeff"])
+    IP = Polynomial(inverseDistortionCoefficients)
     
     angle = arctan2(yFPdist, xFPdist)  # [radians]
     
@@ -550,7 +538,8 @@ def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
 
 
 def getCCDandPixelCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPlatform, tiltAngle, azimuthAngle,  \
-                              focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, normal):
+                              focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, distortionCoefficients, \
+                              normal):
 
     """
     PURPOSE: Given the equatorial coordinates of a star, find out on which CCD it falls ('A', 'B', ...)
@@ -569,6 +558,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPla
            focalLength:     focal length of the camera.                               [mm]
            pixelSize:       pixel size                                                [micron]
            includeFieldDistortion: True to include field distortion in coordinate transformations, false otherwise
+           distortionCoefficients: Coefficients of the polynomial describing the distortion 
            normal:                 True for the normal camera configuration, False for the fast cameras
 
     OUTPUT: ccdCode: for normal camera: either 'A', 'B', 'C', or 'D'
@@ -577,7 +567,9 @@ def getCCDandPixelCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPla
             xCCDpix: x-coordinate (column number) of the star on the CCD  [pix]
                      if on no CCD: None
             yCCDpix: y-coordinate (row number) of the star on the CCD  [pix]
-                     if on no CCD: None             
+                     if on no CCD: None 
+
+    Note: Example of distortion coefficients: [-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06]            
     """
 
 
@@ -593,8 +585,8 @@ def getCCDandPixelCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPla
 
     xFPmm, yFPmm = skyToFocalPlaneCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPlatform, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength)
 
-    if includeFieldDistortion:
-        xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm)
+    if (includeFieldDistortion == True) or (includeFieldDistortion == "yes"):
+        xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients)
 
     # Concert to CCD pixel coordinates
     # Note that the pixel size is in [micron] not in [mm]
@@ -739,7 +731,7 @@ def platformToTelescopePointingCoordinates(raPlatform, decPlatform, raSun, decSu
 
 def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, decStar, raSun, decSun, raPlatform, decPlatform, \
                                        tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength, pixelSize,              \
-                                       includeFieldDistortion, normal):
+                                       includeFieldDistortion, distortionCoefficients, normal):
 
     """
     PURPOSE: Calculates the location of the subfield such that the star with coordinates (raStar, decStar)
@@ -762,6 +754,7 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
            focalLength:            focal length of the camera.                              [mm]
            pixelSize:              pixel size                                               [micron]
            includeFieldDistortion: True to include field distortion in coordinate transformations, false otherwise
+           distortionCoefficients: Coefficients of the polynomial describing the distortion
            normal:                 True for the normal camera configuration, False for the fast cameras
 
     OUTPUT: ccdCode: "A", "B", "C" or "D" if nominal=True, "AF", "BF", "CF" or "DF" otherwise
@@ -771,12 +764,14 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
     REMARKS: - If the coordinates do not fall on any CCD, an error message is shown
              - If the star is too close to the edge for the given subfield size, and error message is shown,
                followed by an exit(1)
+             - Example of distortion coefficients: [-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06]
     """
 
     # Find out on which CCD the star falls, and the corresponding pixel coordinates
 
-    ccdCode, xCCDpix, yCCDpix = getCCDandPixelCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPlatform, tiltTelescope, azimuthTelescope,  \
-                                                          focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, normal)
+    ccdCode, xCCDpix, yCCDpix = getCCDandPixelCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPlatform, tiltTelescope, \
+                                                          azimuthTelescope, focalPlaneAngle, focalLength, pixelSize, \
+                                                          includeFieldDistortion, distortionCoefficients, normal)
 
     # If the CCD code is None, the star does not fall on any ccd -> error
 
@@ -817,127 +812,6 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
 
 
 
-
-def setSubfieldAroundCoordinates(sim, raStar, decStar, subfieldSizeX, subfieldSizeY, normal):
-    
-    """
-    PURPOSE: Calculates the location of the sub-field such that it is centred on the star 
-             with the given sky coordinates.  Depending on the CCD (in nomincal mode:
-             "A", "B", "C", or "D"; in fast mode: "AF", "BF", "CF", or "DF"), the 
-             configuration file for the given simulation are adapted.  These include the
-             pre-defined CCD position, the dimensions of the CCD (and also of the sub-field,
-             although this is not affected by the calculations), the sub-field zeropoint
-             and the exposure time. 
-
-    NOTE: This function calls the calculateSubfieldAroundCoordinates() function.
-
-    NOTE: It is assumed that the configuration parameters in the sim object contains
-          a correct (ra, dec)  of the platform, a correct (azimuth, tilt) of the telescope,
-          a valid values for the focal length, the plate scale, the pixel size, and that
-          the switch to include distortion or not is set correctly
-
-    INPUTS:  sim:                    simulation for which the configuration file is adapted
-             raStar:                 right ascension of the star [radians]
-             decStar:                declination [radians]
-             subfieldSizeX:          width (i.e. number of columns) of the subiield [pixels]
-             subfieldSizeY:          height (i.e. number of rows) of the sub-field [pixels]
-             normal:                 True for the normal camera configuration, False for the fast cameras
-
-    OUTPUT: True if the CCD code (i.e. the pre-defined CCD position) could be determined, False otherwise 
-
-    REMARKS: - If the coordinates do not fall on any CCD, an error message is shown, followed by an exit(1)
-             - If the star is too close to the edge for the given subfield size, and error message is shown,
-               followed by an exit(1)
-    """
-    
-
-    # Find out some instrumental characteristics from the sim object
-
-    raPlatform       = np.deg2rad(float(sim["ObservingParameters/RApointing"]))
-    decPlatform      = np.deg2rad(float(sim["ObservingParameters/DecPointing"]))
-    raSun            = np.deg2rad(float(sim["ObservingParameters/RASun"]))
-    decSun           = np.deg2rad(float(sim["ObservingParameters/DecSun"]))
-    azimuthTelescope = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
-    tiltTelescope    = np.deg2rad(float(sim["Telescope/TiltAngle"]))
-    focalLength      = float(sim["Camera/FocalLength"]) * 1000.0                     # [m] -> [mm]
-    plateScale       = float(sim["Camera/PlateScale"])          
-    focalPlaneAngle  = np.deg2rad(float(sim["Camera/FocalPlaneOrientation"]))
-    pixelSize        = float(sim["CCD/PixelSize"]) 
-
-    if (sim["Camera/IncludeFieldDistortion"] == "yes")  or (sim["Camera/IncludeFieldDistortion"] == "1"):
-        includeFieldDistortion = True
-    else:
-        includeFieldDistortion = False
-
-
-    # When the user requested to include field distortion, update the Simulation input parameter and
-    # initialize the field distortion global that will be used by the distortion functions.
-
-    if includeFieldDistortion:
-        sim["Camera/IncludeFieldDistortion"] = "yes"
-
-        FIELD_DISTORTION["Coeff"] = sim["Camera/FieldDistortion/Coefficients"]
-        FIELD_DISTORTION["InverseCoeff"] = sim["Camera/FieldDistortion/InverseCoefficients"]
-    else:
-        sim["Camera/IncludeFieldDistortion"] = "no"
-
-
-    # Compute the position of the subfield.
-    # xPix and yPix are the CCD coordinates of the star, given a 4510x4510 CCD [colNumber, rowNumber].
-
-    ccdCode, xPix, yPix = calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, decStar, raSun, decSun, raPlatform, decPlatform, \
-                                                             tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength, pixelSize,              \
-                                                             includeFieldDistortion, normal)
-    
-    if ccdCode == None:
-        return False
-    
-    CCDSizeX         = CCD[ccdCode]["Ncols"]
-    CCDSizeY         = CCD[ccdCode]["Nrows"]
-    CCDOriginOffsetX = CCD[ccdCode]["zeroPointXmm"]
-    CCDOriginOffsetY = CCD[ccdCode]["zeroPointYmm"]
-    CCDOrientation   = CCD[ccdCode]["angle"]
-
-    # If we arrive here, there is no problem accommodating the entire sufield on the CCD
-
-    sim["CCD/OriginOffsetX"] = str(CCDOriginOffsetX)
-    sim["CCD/OriginOffsetY"] = str(CCDOriginOffsetY)
-    sim["CCD/Orientation"] = str(rad2deg(CCDOrientation))
-
-    sim["CCD/NumColumns"] = CCDSizeX
-    sim["CCD/NumRows"] = CCDSizeY
-
-    sim["SubField/ZeroPointRow"] = str(int(yPix - subfieldSizeY/2))
-    sim["SubField/ZeroPointColumn"] = str(int(xPix - subfieldSizeX/2))
-    sim["SubField/NumRows"] = str(subfieldSizeY)
-    sim["SubField/NumColumns"] = str(subfieldSizeX)
-
-    # Set the exposure and the readout time, depending on fast vs nominal cams
-
-    if normal:
-        sim["ObservingParameters/ExposureTime"] = 23
-        sim["CCD/ReadoutTime"] = 2.5
-    else:
-        sim["ObservingParameters/ExposureTime"] = 2.3
-        sim["CCD/ReadoutTime"] = 0.2
-    
-    # That's it
-
-    return True
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def skyToPixelCoordinates(sim, raStar, decStar, normal):
     """
     PURPOSE: Convert sky coordinates to pixel coordinates
@@ -961,8 +835,7 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal):
     
     if (sim["Camera/IncludeFieldDistortion"] == "yes")  or (sim["Camera/IncludeFieldDistortion"] == "1"):
         includeFieldDistortion = True
-        FIELD_DISTORTION["Coeff"] = sim["Camera/FieldDistortion/Coefficients"]
-        FIELD_DISTORTION["InverseCoeff"] = sim["Camera/FieldDistortion/InverseCoefficients"]
+        distortionCoefficients = sim["Camera/FieldDistortion/Coefficients"]
     else:
         includeFieldDistortion = False
 
@@ -977,7 +850,7 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal):
     tiltTelescope    = np.deg2rad(float(sim["Telescope/TiltAngle"]))
     
     ccdCode, xCCDpixel, yCCDpixel = getCCDandPixelCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPlatform, tiltTelescope, azimuthTelescope,  \
-                                                              focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, normal)
+                                                              focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, distortionCoefficients, normal)
 
     return ccdCode, xCCDpixel, yCCDpixel
 
@@ -1017,8 +890,7 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
     
     if (sim["Camera/IncludeFieldDistortion"] == "yes")  or (sim["Camera/IncludeFieldDistortion"] == "1"):
         includeFieldDistortion = True
-        FIELD_DISTORTION["Coeff"] = sim["Camera/FieldDistortion/Coefficients"]
-        FIELD_DISTORTION["InverseCoeff"] = sim["Camera/FieldDistortion/InverseCoefficients"]
+        inverseDistortionCoefficients = sim["Camera/FieldDistortion/InverseCoefficients"]
     else:
         includeFieldDistortion = False
 
@@ -1034,15 +906,15 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
 
     ccdZeroPointX = CCD[ccdCode]['zeroPointXmm']
     ccdZeroPointY = CCD[ccdCode]['zeroPointYmm']
-    ccdAngle = CCD[ccdCode]['angle']
+    ccdAngle      = CCD[ccdCode]['angle']
     
 
     xFPmm, yFPmm = pixelToFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX, ccdZeroPointY, ccdAngle)
     
     if includeFieldDistortion:
-        xFPmm, yFPmm = distortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm)
+        xFPmm, yFPmm = distortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, inverseDistortionCoefficients)
     
     ra, dec = focalPlaneToSkyCoordinates(xFPmm, yFPmm, raSun, decSun, raPlatform, decPlatform, tiltTelescope, azimuthTelescope, \
-                                            focalPlaneAngle, focalLength)
+                                         focalPlaneAngle, focalLength)
 
     return ra, dec

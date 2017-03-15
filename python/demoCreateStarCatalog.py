@@ -1,0 +1,75 @@
+
+# Example script how to use the SimFile and Simulation classes
+# Run this script using:
+#  $ ipython demoCreateStarCatalog.py
+
+import os
+import numpy as np
+
+from simfile import SimFile
+from simulation import Simulation
+
+
+
+# Specify the absolute paths of some of the input files and the output folder.
+
+inputDir    = os.getenv("PLATO_PROJECT_HOME") + "/inputfiles"
+inputFile   = inputDir + "/inputfile.yaml"
+
+outputDir   = os.getcwd()
+outputFile  = "DemoOutput"
+
+starCatalogFileName = inputDir + "/myCatalog.txt"
+
+# Set up a Simulation object
+
+sim = Simulation(outputFile, inputFile)
+sim.outputDir = outputDir
+
+sim["Platform/UseJitter"] = "no"
+sim["PSF/Model"] = "MappedGaussian"
+
+
+# Specify the orientation of the platform, telescope, focal plane, etc.
+# Do this before creating the star catalog.
+
+sim["ObservingParameters/RApointing"]  = 180.0 
+sim["ObservingParameters/DecPointing"] = -70.0
+sim["Telescope/AzimuthAngle"]          =   0.0
+sim["Telescope/TiltAngle"]             =   0.0
+sim["Camera/FocalPlaneOrientation"]    =   5.0
+sim["CCD/OriginOffsetX"]               =   0.0
+sim["CCD/OriginOffsetY"]               =   0.0
+sim["CCD/Orientation"]                 =  90.0
+sim["Camera/IncludeFieldDistortion"]   =  "no"
+
+
+# Specify the pixel coordinates (of the CCD, not of the subfield) of your stars
+
+row = np.array([10.0, 10.5, 11.0])
+col = np.array([40.8, 39.1, 38.0])
+magnitude = np.array([11.0, 10.0, 12.0])
+
+
+# Create the star catalog file: an ascii file will be written with the columns
+# ra, dec, and magnitude.
+
+sim.createStarCatalogFileFromPixelCoordinates(row, col, magnitude, starCatalogFileName)
+
+
+# Make sure the simulation object uses this star catalog
+
+sim["ObservingParameters/StarCatalogFile"] = starCatalogFileName
+
+
+# Set a subfield around the stars, large enough to contain all of them
+
+sim["SubField/ZeroPointRow"]    = 5
+sim["SubField/ZeroPointColumn"] = 30
+sim["SubField/NumColumns"]      = 15
+sim["SubField/NumRows"]         = 15
+
+
+# Run the simulation
+
+simFile = sim.run()

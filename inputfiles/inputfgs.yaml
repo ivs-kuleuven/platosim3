@@ -86,8 +86,8 @@ FEE:
     NominalOperatingTemp:        210.15          # Nominal operating temperature of the FEE [K]
     ReadoutNoise:                 40.5           # Readout noise for the FEE [e-/pixel]
     Gain:
-        RefValue:                 11.1           # [ADU/µV] (Total gain = FFE gain * CCD gain = 20 e-/ADU)
-        Stability:              -100.0           # [ppm/K] = [ADU/µV/K]
+        RefValue:                 11.1           # [ADU/microV] (Total gain = FFE gain * CCD gain = 20 e-/ADU)
+        Stability:              -100.0           # [ppm/K] = [ADU/microV/K]
         Delta:                     0.0           # Difference in gain betwwen both ADCs [%]
     ElectronicOffset: 
         RefValue:                100             # Reference value for the electronic offset [ADU/pixel]
@@ -103,8 +103,8 @@ CCD:
     NumRows:                     4510            # Number of rows [pixels]
     PixelSize:                   18              # [micron]
     Gain:                            
-        RefValue:                1.80            # [µV/e-]
-        Stability:               -0.004          # [µV/e-/K]
+        RefValue:                1.80            # [microV/e-]
+        Stability:               -0.004          # [microV/e-/K]
         Delta:                   15.0            # Difference in gain between both CCD halves [%]
     QuantumEfficiency: 
         Efficiency:              0.925           # Throughput efficiency due to quantum efficiency at the reference angle
@@ -120,6 +120,7 @@ CCD:
     Polarization:
         Efficiency:                  0.978           # Throughput efficiency caused by polarisation at the reference angle
         RefAngle:                   18.8875          # Reference angle for polarisation [degrees]
+        ExpectedValue:                 0.989           # Expected value (mean of all detector pixels)
     Contamination:
         ParticulateContaminationEfficiency: 0.98     # Throughput efficiency due to particulate contamination
         MolecularContaminationEfficiency:   0.9566   # Throughput efficiency due to molecular contamination
