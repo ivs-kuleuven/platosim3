@@ -551,8 +551,6 @@ class Simulation(object):
 
         raPlatform       = np.deg2rad(float(self["ObservingParameters/RApointing"]))
         decPlatform      = np.deg2rad(float(self["ObservingParameters/DecPointing"]))
-        raSun            = np.deg2rad(float(self["ObservingParameters/RASun"]))
-        decSun           = np.deg2rad(float(self["ObservingParameters/DecSun"]))
         azimuthTelescope = np.deg2rad(float(self["Telescope/AzimuthAngle"]))
         tiltTelescope    = np.deg2rad(float(self["Telescope/TiltAngle"]))
         focalLength      = float(self["Camera/FocalLength"]) * 1000.0                     # [m] -> [mm]
@@ -565,12 +563,13 @@ class Simulation(object):
             distortionCoefficients = sim["Camera/FieldDistortion/Coefficients"]
         else:
             includeFieldDistortion = False
+            distortionCoefficients = None
 
 
         # Compute the position of the subfield.
         # xPix and yPix are the CCD coordinates of the star, given a 4510x4510 CCD [colNumber, rowNumber].
 
-        ccdCode, xPix, yPix = rf.calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, decStar, raSun, decSun, raPlatform, decPlatform, \
+        ccdCode, xPix, yPix = rf.calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, decStar, raPlatform, decPlatform, \
                                                                     tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength, pixelSize,              \
                                                                     includeFieldDistortion, distortionCoefficients, normal)
         
@@ -643,14 +642,16 @@ class Simulation(object):
         CCDangle        = np.deg2rad(self["CCD/Orientation"])
         raPlatform      = np.deg2rad(self["ObservingParameters/RApointing"])
         decPlatform     = np.deg2rad(self["ObservingParameters/DecPointing"])
-        raSun           = np.deg2rad(self["ObservingParameters/RASun"])
-        decSun          = np.deg2rad(self["ObservingParameters/DecSun"])
         azimuthAngle    = np.deg2rad(self["Telescope/AzimuthAngle"])
         tiltAngle       = np.deg2rad(self["Telescope/TiltAngle"])
         focalPlaneAngle = np.deg2rad(self["Camera/FocalPlaneOrientation"])
         focalLength     = self["Camera/FocalLength"] * 1000.0                     # [m] -> [mm]
         includeFieldDistortion = self["Camera/IncludeFieldDistortion"]
         inverseDistortionCoefficients = self["Camera/FieldDistortion/InverseCoefficients"]
+
+        # Get the sky position of the Sun (ra, dec) in the middle of the time series [rad]
+
+        raSun, decSun = rf.sunSkyCoordinatesAwayfromPlatformPointing(radPlatform, decPlatform)
 
         # Convert the pixel coordinates to focal plane coordinates [mm]
         

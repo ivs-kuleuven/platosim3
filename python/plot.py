@@ -55,7 +55,7 @@ def drawCCDsInSky(raSun, decSun, raPlatform, decPlatform, tiltAngle, azimuthAngl
 
         # Compute the equatorial sky coordinates [rad] from the the focal plane FP' coordinates [mm] of the corners
 
-        ra, dec = focalPlaneToSkyCoordinates(cornersXmm, cornersYmm, raSun, decSun, raPlatform, decPlatform,   \
+        ra, dec = focalPlaneToSkyCoordinates(cornersXmm, cornersYmm, raPlatform, decPlatform,   \
                                              tiltAngle, azimuthAngle, focalPlaneAngle, focalLength)
 
         # Repeat the coordinates of the 1st corner, to plot a nice closed loop
@@ -256,8 +256,6 @@ def drawStarInFocalPlane(sim, raStar, decStar):
     pixelSize        = float(sim["CCD/PixelSize"])
     raPlatform       = np.radians(float(sim["ObservingParameters/RApointing"]))
     decPlatform      = np.radians(float(sim["ObservingParameters/DecPointing"]))
-    raSun            = np.deg2rad(float(sim["ObservingParameters/RASun"]))
-    decSun           = np.deg2rad(float(sim["ObservingParameters/DecSun"]))
     azimuthTelescope = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
     tiltTelescope    = np.deg2rad(float(sim["Telescope/TiltAngle"]))
     focalPlaneAngle  = np.radians(float(sim["Camera/FocalPlaneOrientation"]))
@@ -266,13 +264,13 @@ def drawStarInFocalPlane(sim, raStar, decStar):
     ccdZeroPointY    = float(sim["CCD/OriginOffsetY"])
     ccdAngle         = np.radians(float(sim["CCD/Orientation"]))
 
-    xFPmm, yFPmm = skyToFocalPlaneCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPlatform, tiltTelescope, azimuthTelescope, \
+    xFPmm, yFPmm = skyToFocalPlaneCoordinates(raStar, decStar, raPlatform, decPlatform, tiltTelescope, azimuthTelescope, \
                                               focalPlaneAngle, focalLength)
 
     if includeFieldDistortion:
         xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm)
 
-    ccdCode, xCCD, yCCD = getCCDandPixelCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPlatform, tiltTelescope, azimuthTelescope,  \
+    ccdCode, xCCD, yCCD = getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, tiltTelescope, azimuthTelescope,  \
                                                     focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, normal)
 
     if ccdCode == None:
