@@ -40,6 +40,10 @@ Telescope::Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File, 
     double alphaPlatform, deltaPlatform;
     tie(alphaPlatform, deltaPlatform) = platform.getInitialPointingCoordinates();
     tie(currentAlphaOpticalAxis, currentDeltaOpticalAxis) = platformToTelescopePointingCoordinates(alphaPlatform, deltaPlatform);
+
+    // Get the equatorial sky coordinates of the Sun, which is know by platform since it's pointing its sunshield towards it.
+
+    tie(raSun, decSun) = platform.getRADecSun();
 }
 
 
@@ -83,8 +87,6 @@ Telescope::~Telescope()
 
     originalAzimuthAngle    = deg2rad(configParams.getDouble("Telescope/AzimuthAngle"));           // [rad]
     originalTiltAngle       = deg2rad(configParams.getDouble("Telescope/TiltAngle"));              // [rad]
-    raSun                   = deg2rad(configParams.getDouble("ObservingParameters/RASun"));        // [rad]
-    decSun                  = deg2rad(configParams.getDouble("ObservingParameters/DecSun"));       // [rad]
  	lightCollectingArea     = configParams.getDouble("Telescope/LightCollectingArea") * 1.e-4;     // [m^2]  
 	transmissionEfficiency  = configParams.getDouble("Telescope/TransmissionEfficiency");          // [unitless]
     useDrift                = configParams.getBoolean("Telescope/UseDrift");
