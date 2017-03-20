@@ -172,6 +172,44 @@ def equatorial2ecliptic(alpha, delta):
 
 def skyToFocalPlaneCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPlatform, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength):
 
+
+
+
+
+
+
+
+def sunSkyCoordinatesAwayfromPlatformPointing(raPlatform, decPlatform):
+
+    """
+    Derive the location of the Sun which we assume to always be 180 degrees away from the platform pointing
+    in the middle of the total time series.
+
+    INPUT: raPlatform:  right ascension of the pointing of the Platform [rad]
+           decPlatform: declination of the pointing of the Platform [rad]
+
+    OUTPUT: raSun:  right ascension of the sun [rad]
+            decSun: declination of the sun [rad]
+    """
+
+    lambdaPlatform, betaPlatform = equatorial2ecliptic(raPlatform, decPlatform)
+    lambdaSun = lambdaPlatform - np.pi
+    if (lambdaSun < 0.0): lambdaSun += 2.0 * np.pi
+    raSun, decSun = ecliptic2equatorial(lambdaSun, 0.0)
+
+    return raSun, decSun
+
+
+
+
+
+
+
+
+
+
+
+
     """
     PURPOSE: Convert the equatorial sky coordinates (alpha, delta) of a star to undistorted normalized focal plane coordinates (xFP, yFP),
              assuming a spherical pinhole camera.
