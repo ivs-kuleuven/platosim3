@@ -12,6 +12,7 @@
 #include "Heartbeat.h"
 #include "HDF5Writer.h"
 #include "HDF5File.h"
+#include "SkyCoordinates.h"
 #include "Telescope.h"
 #include "ConfigurationParameters.h"
 #include "JitterGenerator.h"
@@ -46,6 +47,8 @@ class Platform : public Heartbeat, HDF5Writer
 
 	    tuple<double, double, double> getNextYawPitchRoll(double time);
 
+        tuple<double, double> getRADecSun();
+        
 
     protected:
 
