@@ -92,10 +92,123 @@ def sunSkyCoordinates(julianDate):
 
 
 
+def ecliptic2equatorial(lam, beta):
+
+    """
+    Convert ecliptic coordinates (lambda, beta) into equatorial coordinates (alpha, delta)
+
+    INPUT: lam:   ecliptic longitude        [rad]
+           beta:  ecliptic latitude         [rad]
+ 
+    OUTPUT: alpha: equtorial right ascension [rad]
+            delta: equatorial declination    [rad]
+    """
+
+    obliquity = 0.409087723                  # Obliquity of the ecliptic = 23.439 deg  [rad]
+ 
+    sindelta = sin(beta) * cos(obliquity) + cos(beta) * sin(obliquity) * sin(lam)
+    delta = arcsin(sindelta)
+    cosdelta = cos(delta)
+
+    if (cosdelta == 0.0):
+        print("ecliptic2equatorial: pointing to equatorial pole.")
+        return None,None
+    
+    sinalpha = (-sin(beta) * sin(obliquity) + cos(beta) * cos(obliquity) * sin(lam)) / cosdelta
+    cosalpha = cos(lam) * cos(beta) / cosdelta
+
+    alpha = arctan2(sinalpha, cosalpha)
+
+    if (alpha < 0.0): alpha += 2.0 * 3.141592653589793
+
+    return alpha, delta
 
 
 
-def skyToFocalPlaneCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPlatform, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength):
+
+
+
+
+
+
+
+
+
+
+
+
+def equatorial2ecliptic(alpha, delta):
+
+    """
+    Convert equatorial coordinates (alpha, delta) into ecliptic coordinates (lambda, beta)
+
+    INPUT: alpha: equatorial right ascension [rad]
+           delta: equatorial declination [rad]
+
+    OUTPUT: lam:  ecliptic longitude [rad]
+            beta: ecliptic latitude [rad]
+    """
+
+    obliquity = 0.409087723                   # Obliquity of the ecliptic = 23.439 deg  [rad]
+ 
+    sinbeta = sin(delta) * cos(obliquity) - cos(delta) * sin(obliquity) * sin(alpha)
+    beta = arcsin(sinbeta)
+    cosbeta = cos(beta)
+
+    if (cosbeta == 0.0):
+        print("equatorial2ecliptic: pointing to ecliptic pole.")
+        return None, None
+
+    sinlambda = (sin(delta) * sin(obliquity) + cos(delta) * cos(obliquity) * sin(alpha)) / cosbeta
+    coslambda = cos(alpha) * cos(delta) / cosbeta
+
+    lam = arctan2(sinlambda, coslambda)
+
+    if (lam < 0.0): lam += 2.0 * 3.141592653589793
+
+    return lam, beta
+
+
+
+
+
+
+
+
+
+
+
+def sunSkyCoordinatesAwayfromPlatformPointing(raPlatform, decPlatform):
+
+    """
+    Derive the location of the Sun which we assume to always be 180 degrees away from the platform pointing
+    in the middle of the total time series.
+
+    INPUT: raPlatform:  right ascension of the pointing of the Platform [rad]
+           decPlatform: declination of the pointing of the Platform [rad]
+
+    OUTPUT: raSun:  right ascension of the sun [rad]
+            decSun: declination of the sun [rad]
+    """
+
+    lambdaPlatform, betaPlatform = equatorial2ecliptic(raPlatform, decPlatform)
+    lambdaSun = lambdaPlatform - np.pi
+    if (lambdaSun < 0.0): lambdaSun += 2.0 * np.pi
+    raSun, decSun = ecliptic2equatorial(lambdaSun, 0.0)
+
+    return raSun, decSun
+
+
+
+
+
+
+
+
+
+
+
+def skyToFocalPlaneCoordinates(raStar, decStar, raPlatform, decPlatform, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength):
 
     """
     PURPOSE: Convert the equatorial sky coordinates (alpha, delta) of a star to undistorted normalized focal plane coordinates (xFP, yFP),
@@ -103,8 +216,6 @@ def skyToFocalPlaneCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPl
 
     INPUT: raStar:          right ascension of the star                               [rad]
            decStar:         declination of the star                                   [rad]
-           raSun:           right ascension of the sun                                [rad]
-           decSun:          declination of the sun                                    [rad]
            raPlatform:      right ascension of the optical axis                       [rad]
            decPlatform:     declination of the optical axis                           [rad]
            tiltAngle:       tilt angle of the telescope w.r.t. platform z-axis        [rad]                   
@@ -121,6 +232,10 @@ def skyToFocalPlaneCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPl
             - Reference documents: PLATO-KUL-PL-TN-0001 and PLATO-DLR-PL-TN-016
 
     """
+
+    # Get the sky position of the Sun (ra, dec) [rad]
+
+    raSun, decSun = sunSkyCoordinatesAwayfromPlatformPointing(raPlatform, decPlatform)
 
     # Compute the equatorial cartesian coordinates of the unit vector along the z-axis (= roll = pointing axis) of the platform.
     # The x-axis of the platform points to the highest point fof the sunshield, which is pointing to the (average) sky position
@@ -192,7 +307,7 @@ def skyToFocalPlaneCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPl
 
 
 
-def focalPlaneToSkyCoordinates(xFP, yFP, raSun, decSun, raPlatform, decPlatform, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength):
+def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength):
 
     """
     PURPOSE: Convert the undistorted normalized focal plane coordinates (xFP, yFP) of a star to equatorial sky coordinates (alpha, delta),
@@ -200,8 +315,6 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raSun, decSun, raPlatform, decPlatform,
 
     INPUT: xFP:             undistorted normalized cartesian x-coordinate in the focal plane reference frame [same unit as focalLength]
            yFP:             undistorted normalized cartesian y-coordinate in the focal plane reference frame [same unit as focalLength]
-           raSun:           right ascension of the sun                                [rad]
-           decSun:          declination of the sun                                    [rad]
            raPlatform:      right ascension of the platform pointing axis             [rad]
            decPlatform:     declination of the platform pointing axis                 [rad]
            tiltAngle:       tilt angle of the telescope w.r.t. platform z-axis        [rad]                   
@@ -213,6 +326,10 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raSun, decSun, raPlatform, decPlatform,
 
     REMARK: The transformation assumes that the pinhole reverses the image.
     """
+
+    # Get the sky position of the Sun (ra, dec) [rad]
+
+    raSun, decSun = sunSkyCoordinatesAwayfromPlatformPointing(radPlatform, decPlatform)
 
     # Undo the reverse-image projection effect of the pinhole
 
@@ -537,7 +654,7 @@ def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
 
 
 
-def getCCDandPixelCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPlatform, tiltAngle, azimuthAngle,  \
+def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, tiltAngle, azimuthAngle,  \
                               focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, distortionCoefficients, \
                               normal):
 
@@ -548,8 +665,6 @@ def getCCDandPixelCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPla
 
     INPUT: raStar:          right ascension of the star                               [rad]
            decStar:         declination of the star                                   [rad]      
-           raSun:           right ascension of the sun                                [rad]
-           decSun:          declination of the sun                                    [rad]
            raPlatform:      right ascension of the platform pointing axis             [rad]
            decPlatform:     declination of the platform pointing axis                 [rad]
            tiltAngle:       tilt angle of the telescope w.r.t. platform z-axis        [rad]                   
@@ -572,7 +687,6 @@ def getCCDandPixelCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPla
     Note: Example of distortion coefficients: [-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06]            
     """
 
-
     # Select the proper CCD codes depending on whether we're dealing with the nominal or the fast cams
 
     if normal == True:
@@ -583,7 +697,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPla
 
     # Compute the (x,y) coordinates in the FP reference system [mm]
 
-    xFPmm, yFPmm = skyToFocalPlaneCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPlatform, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength)
+    xFPmm, yFPmm = skyToFocalPlaneCoordinates(raStar, decStar, raPlatform, decPlatform, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength)
 
     if (includeFieldDistortion == True) or (includeFieldDistortion == "yes"):
         xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients)
@@ -729,7 +843,7 @@ def platformToTelescopePointingCoordinates(raPlatform, decPlatform, raSun, decSu
 
 
 
-def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, decStar, raSun, decSun, raPlatform, decPlatform, \
+def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, decStar, raPlatform, decPlatform, \
                                        tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength, pixelSize,              \
                                        includeFieldDistortion, distortionCoefficients, normal):
 
@@ -744,8 +858,6 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
            subfieldSizeY:          full height (#of rows) of the subfield                   [pix]
            raStar:                 right ascension of the star                              [rad]
            decStar:                declination of the star                                  [rad]
-           raSun:                  right ascension of the sun                               [rad]
-           decSun:                 declination of the sun                                   [rad]
            raPlatform:             right ascension of the platform pointing axis            [rad]
            decPlatform:            declination of the platform pointing axis                [rad]
            tiltTelescope           tilt angle of the telescope w.r.t. platform z-axis       [rad]                   
@@ -769,7 +881,7 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
 
     # Find out on which CCD the star falls, and the corresponding pixel coordinates
 
-    ccdCode, xCCDpix, yCCDpix = getCCDandPixelCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPlatform, tiltTelescope, \
+    ccdCode, xCCDpix, yCCDpix = getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, tiltTelescope, \
                                                           azimuthTelescope, focalPlaneAngle, focalLength, pixelSize, \
                                                           includeFieldDistortion, distortionCoefficients, normal)
 
@@ -843,12 +955,16 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal):
     focalLength      = float(sim["Camera/FocalLength"]) * 1000.0                   # [m] -> [mm]
     raPlatform       = np.deg2rad(float(sim["ObservingParameters/RApointing"]))
     decPlatform      = np.deg2rad(float(sim["ObservingParameters/DecPointing"]))
-    raSun            = np.deg2rad(float(sim["ObservingParameters/RASun"]))
-    decSun           = np.deg2rad(float(sim["ObservingParameters/DecSun"]))
     focalPlaneAngle  = float(sim["Camera/FocalPlaneOrientation"])
     azimuthTelescope = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
     tiltTelescope    = np.deg2rad(float(sim["Telescope/TiltAngle"]))
     
+    # Get the sky position of the Sun (ra, dec) in the middle of the time series [rad] 
+
+    raSun, decSun = sunSkyCoordinatesAwayfromPlatformPointing(radPlatform, decPlatform)
+
+    # Get the pixel coordinates on the CCD
+
     ccdCode, xCCDpixel, yCCDpixel = getCCDandPixelCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPlatform, tiltTelescope, azimuthTelescope,  \
                                                               focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, distortionCoefficients, normal)
 
@@ -898,8 +1014,6 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
     focalLength      = float(sim["Camera/FocalLength"]) * 1000.0                     # [m] -> [mm]
     raPlatform       = np.deg2rad(float(sim["ObservingParameters/RApointing"]))
     decPlatform      = np.deg2rad(float(sim["ObservingParameters/DecPointing"]))
-    raSun            = np.deg2rad(float(sim["ObservingParameters/RASun"]))
-    decSun           = np.deg2rad(float(sim["ObservingParameters/DecSun"]))
     focalPlaneAngle  = float(sim["Camera/FocalPlaneOrientation"])
     azimuthTelescope = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
     tiltTelescope    = np.deg2rad(float(sim["Telescope/TiltAngle"]))
@@ -909,11 +1023,21 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
     ccdAngle      = CCD[ccdCode]['angle']
     
 
+    # Get the sky position of the Sun (ra, dec) in the middle of the time series [rad] 
+
+    raSun, decSun = sunSkyCoordinatesAwayfromPlatformPointing(radPlatform, decPlatform)
+
+    # Get the focal plane coordinates
+
     xFPmm, yFPmm = pixelToFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX, ccdZeroPointY, ccdAngle)
+    
+    # If required, undistort them
     
     if includeFieldDistortion:
         xFPmm, yFPmm = distortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, inverseDistortionCoefficients)
     
+    # Get the corresponding sky coordinats
+
     ra, dec = focalPlaneToSkyCoordinates(xFPmm, yFPmm, raSun, decSun, raPlatform, decPlatform, tiltTelescope, azimuthTelescope, \
                                          focalPlaneAngle, focalLength)
 

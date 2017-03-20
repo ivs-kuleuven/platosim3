@@ -21,6 +21,7 @@
 #include "Polynomial1D.h"
 #include "Sky.h"
 #include "StringUtilities.h"
+#include "Platform.h"
 #include "Telescope.h"
 #include "Units.h"
 
@@ -35,7 +36,7 @@ class Camera : public HDF5Writer
 {
     public:
 
-        Camera(ConfigurationParameters &configParam, HDF5File &hdf5File, Telescope &telescope, Sky &sky);
+        Camera(ConfigurationParameters &configParam, HDF5File &hdf5File, Platform &platform, Telescope &telescope, Sky &sky);
         virtual ~Camera();
 
         virtual void configure(ConfigurationParameters &configParam);
@@ -62,6 +63,7 @@ class Camera : public HDF5Writer
         int beginExposureNr;                 // sequential number of first exposure. useful for slurm parallellisation
         int numExposures;                    // Number of exposures
 
+        Platform &platform;
         Telescope &telescope;
         Sky &sky;
 

@@ -58,11 +58,23 @@ void Platform::configure(ConfigurationParameters &configParams)
     useJitter   = configParams.getBoolean("Platform/UseJitter");
     originalRA  = deg2rad(configParams.getDouble("ObservingParameters/RApointing"));            
     originalDec = deg2rad(configParams.getDouble("ObservingParameters/DecPointing"));
-    raSun       = deg2rad(configParams.getDouble("ObservingParameters/RASun"));            
-    decSun      = deg2rad(configParams.getDouble("ObservingParameters/DecSun"));
          
     currentRA   = originalRA;
     currentDec  = originalDec;
+
+    // Derive the location of the Sun which we assume to always be 180 degrees away from the platform pointing
+    // in the middle of the total time series.
+
+    double lambdaPlatform;                                 // Ecliptic longitude of the platform pointing [rad]
+    double betaPlatform;                                   // Ecliptic latitude  of the platform pointing [rad]
+    equatorial2ecliptic(originalRA, originalDec, lambdaPlatform, betaPlatform);
+
+    double lambdaSun = lambdaPlatform - Constants::PI;
+    if (lambdaSun < 0.0) lambdaSun += 2.0 * Constants::PI;
+    ecliptic2equatorial(lambdaSun, 0.0, raSun, decSun);
+
+    Log.debug("Platform: (RA Sun, Dec Sun) = (" + to_string(rad2deg(raSun)) + ", " + to_string(rad2deg(decSun)) + ")");
+
 }
 
 
@@ -483,4 +495,34 @@ arma::colvec Platform::rotateYawPitchRoll(arma::colvec coord, const double yaw, 
 
     return Ryaw  * Rpitch * Rroll * coord;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Return the right ascension and declination of the Sun in the middle of the time series
+ * \details It is assumed that the Sun is always 180 degrees away from platform pointing in the middle of the time series.
+ * 
+ * \return raSun:  Right Ascension of the Sun [rad]
+ *         decSun: Declination of the Sun [rad]
+ */
+
+tuple<double, double> Platform::getRADecSun()
+{
+    return make_pair(raSun, decSun);
+}
+
+
+
+
+
 

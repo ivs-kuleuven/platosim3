@@ -76,7 +76,7 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     platform   = new Platform(configParams, hdf5File, *jitterGenerator);
     telescope  = new Telescope(configParams, hdf5File, *platform, *driftGenerator);
     sky        = new Sky(configParams);
-    camera     = new Camera(configParams, hdf5File, *telescope, *sky);
+    camera     = new Camera(configParams, hdf5File, *platform, *telescope, *sky);
 
     // Depending on how the PSF is computed (analytically or pre-mapped) the Detector object is different.
 
@@ -358,8 +358,6 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("ExposureTime");
     addDouble("RApointing");
     addDouble("DecPointing");
-    addDouble("RASun");
-    addDouble("DecSun");
     addDouble("Fluxm0");
     addDouble("SkyBackground");
     addString("StarCatalogFile");
