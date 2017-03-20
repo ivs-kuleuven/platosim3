@@ -92,6 +92,81 @@ def sunSkyCoordinates(julianDate):
 
 
 
+def ecliptic2equatorial(lam, beta):
+
+    """
+    Convert ecliptic coordinates (lambda, beta) into equatorial coordinates (alpha, delta)
+
+    INPUT: lam:   ecliptic longitude        [rad]
+           beta:  ecliptic latitude         [rad]
+ 
+    OUTPUT: alpha: equtorial right ascension [rad]
+            delta: equatorial declination    [rad]
+    """
+
+    obliquity = 0.409087723                  # Obliquity of the ecliptic = 23.439 deg  [rad]
+ 
+    sindelta = sin(beta) * cos(obliquity) + cos(beta) * sin(obliquity) * sin(lam)
+    delta = arcsin(sindelta)
+    cosdelta = cos(delta)
+
+    if (cosdelta == 0.0):
+        print("ecliptic2equatorial: pointing to equatorial pole.")
+        return None,None
+    
+    sinalpha = (-sin(beta) * sin(obliquity) + cos(beta) * cos(obliquity) * sin(lam)) / cosdelta
+    cosalpha = cos(lam) * cos(beta) / cosdelta
+
+    alpha = arctan2(sinalpha, cosalpha)
+
+    if (alpha < 0.0): alpha += 2.0 * 3.141592653589793
+
+    return alpha, delta
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def equatorial2ecliptic(alpha, delta):
+
+    """
+    Convert equatorial coordinates (alpha, delta) into ecliptic coordinates (lambda, beta)
+
+    INPUT: alpha: equatorial right ascension [rad]
+           delta: equatorial declination [rad]
+
+    OUTPUT: lam:  ecliptic longitude [rad]
+            beta: ecliptic latitude [rad]
+    """
+
+    obliquity = 0.409087723                   # Obliquity of the ecliptic = 23.439 deg  [rad]
+ 
+    sinbeta = sin(delta) * cos(obliquity) - cos(delta) * sin(obliquity) * sin(alpha)
+    beta = arcsin(sinbeta)
+    cosbeta = cos(beta)
+
+    if (cosbeta == 0.0):
+        print("equatorial2ecliptic: pointing to ecliptic pole.")
+        return None, None
+
+    sinlambda = (sin(delta) * sin(obliquity) + cos(delta) * cos(obliquity) * sin(alpha)) / cosbeta
+    coslambda = cos(alpha) * cos(delta) / cosbeta
+
+    lam = arctan2(sinlambda, coslambda)
+
+    if (lam < 0.0): lam += 2.0 * 3.141592653589793
+
+    return lam, beta
 
 
 
