@@ -221,6 +221,44 @@ class Simulation(object):
 
 
 
+
+
+
+    def __contains__(self, key):
+        """
+        Returns true if the input parameter (key) is known/exists.
+
+        Usage: if "Group/ParameterName" in sim: # do something
+
+        Param: key - a string containing the parameter name or "Group/ParameterName" combination
+
+        Return: true if key exists, false otherwise
+
+        """
+        if key.find('/') == -1:
+            nodeNames = [key]
+        else:
+            nodeNames = key.split("/")
+
+        node = self.yamlDocument
+
+        for nodeName in nodeNames:
+            print "> {}, {}".format(nodeName, type(node))
+            try:
+                node = node[nodeName]
+            except:
+                return False
+
+        return True
+
+
+
+
+
+
+
+
+
     def __getitem__(self, key):
 
         """
