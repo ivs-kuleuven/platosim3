@@ -353,6 +353,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "ObservingParameters";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("MissionDuration");
     addInteger("NumExposures");
     addInteger("BeginExposureNr");
     addDouble("ExposureTime");
@@ -377,7 +378,6 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("AzimuthAngle");
     addDouble("TiltAngle");
     addDouble("LightCollectingArea");
-    addDouble("TransmissionEfficiency");
     addBoolean("UseDrift");
     addBoolean("UseDriftFromFile");
     addDouble("DriftYawRms");
@@ -385,6 +385,10 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("DriftRollRms");
     addDouble("DriftTimeScale");
     addString("DriftFileName");
+    subGroup = "Telescope/TransmissionEfficiency";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("BOL");
+    addDouble("EOL");
 
     subGroup = "Camera";
     hdf5File.createGroup(parentGroup + "/" + subGroup);

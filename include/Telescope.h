@@ -35,7 +35,7 @@ class Telescope  : public Heartbeat, HDF5Writer
 
         virtual double getHeartbeatInterval() override;
 
-		double getTransmissionEfficiency();
+		double getTransmissionEfficiency(double time);
 		double getLightCollectingArea();
 
 
@@ -54,7 +54,9 @@ class Telescope  : public Heartbeat, HDF5Writer
 		double currentAlphaOpticalAxis;        // Current right ascension of the optical axis                       [rad]
 		double currentDeltaOpticalAxis;        // Current declination of the optical axis                           [rad]
 		double lightCollectingArea;            // Effective light collective area                                   [cm^2]
-		double transmissionEfficiency;         // in [0,1]
+        double transmissionEfficiencyBOL;      // Efficiency at Beginning Of Life in [0,1]
+        double transmissionEfficiencyEOL;      // Efficiency at End Of Life in [0,1]
+        double missionDuration;                // Duration of the PLATO Mission, used for degrading parameters      [s]
 		double driftYawRms;                    // RMS of thermo-elastic drift in yaw                                [rad]
     	double driftPitchRms;                  // RMS of thermo-elastic drift in pitch                              [rad]
     	double driftRollRms;                   // RMS of thermo-elastic drift in roll                               [rad]
