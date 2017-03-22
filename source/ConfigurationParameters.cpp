@@ -468,5 +468,27 @@ YAML::Node ConfigurationParameters::getNode(const string & key)
 }
 
 
+bool ConfigurationParameters::hasParameter(const string & key) 
+{
+    vector<string> fields = StringUtilities::split(key, '/');
+
+    stack<YAML::Node> nodes;
+
+    nodes.push(config[fields[0]]);
+
+    if ( ! nodes.top() ) {
+        return false;
+    }
+
+    for (unsigned int idx = 1; idx < fields.size(); idx++)
+    {
+        nodes.push(nodes.top()[fields[idx]]);
+        if ( ! nodes.top() ) {
+            return false;
+        }
+    }
+
+    return true;
+}
 
 
