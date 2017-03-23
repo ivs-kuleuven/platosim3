@@ -97,6 +97,7 @@ class Camera : public HDF5Writer
 
         map<double, map<unsigned int, array<double, 6>>> detectedStarInfo;
         vector<double> skyBackgroundValues;
+        vector<double> transmissionEfficiencyValues;
         double totalSkyBackground;			// Total sky background [photons / pixel / exposure]
 
     private:

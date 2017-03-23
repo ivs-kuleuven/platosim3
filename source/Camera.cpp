@@ -81,6 +81,7 @@ void Camera::initHDF5Groups()
 
     hdf5File.createGroup("/StarPositions");
     hdf5File.createGroup("/Background");
+    hdf5File.createGroup("/TransmissionEfficiency");
 }
 
 
@@ -200,6 +201,10 @@ void Camera::flushOutput()
     // Write the total sky background flux values [photons/pixel/exposure] to HDF5 in a custom group
 
     hdf5File.writeArray("Background/", "skyBackground", skyBackgroundValues.data(), skyBackgroundValues.size());
+
+    // Write the transmissionEfficiency values for each exposureTime to HDF5 in a custom group
+
+    hdf5File.writeArray("TransmissionEfficiency/", "transmissionEfficiency", transmissionEfficiencyValues.data(), transmissionEfficiencyValues.size());
 
 }
 
@@ -502,6 +507,10 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     // Save the sky background value that we added. [photons/pix/exposure]
 
     skyBackgroundValues.push_back(totalSkyBackground);
+
+    // Save the transmissionEfficiency value that was calculated for this exposure.
+
+    transmissionEfficiencyValues.push_back(transmissionEfficiency);
 
     return;
 }
