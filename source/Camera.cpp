@@ -81,6 +81,7 @@ void Camera::initHDF5Groups()
 
     hdf5File.createGroup("/StarPositions");
     hdf5File.createGroup("/Background");
+    hdf5File.createGroup("/TransmissionEfficiency");
 }
 
 
@@ -201,6 +202,10 @@ void Camera::flushOutput()
 
     hdf5File.writeArray("Background/", "skyBackground", skyBackgroundValues.data(), skyBackgroundValues.size());
 
+    // Write the transmissionEfficiency values for each exposureTime to HDF5 in a custom group
+
+    hdf5File.writeArray("TransmissionEfficiency/", "transmissionEfficiency", transmissionEfficiencyValues.data(), transmissionEfficiencyValues.size());
+
 }
 
 
@@ -286,6 +291,13 @@ void Camera::setDistortionPolynomial(Polynomial1D &polynomial, Polynomial1D &inv
 
 void Camera::exposeDetector(Detector &detector, double startTime, double exposureTime)
 {
+    // Get the value for the degrading TransmissionEfficiency parameter at the startTime of this exposure
+
+    double transmissionEfficiency = telescope.getTransmissionEfficiency(startTime);
+
+    Log.debug("Camera: TransmissionEfficiency at time "+to_string(startTime)+" is "+to_string(transmissionEfficiency));
+
+
     // Get the focal plane coordinates of the center and the corners of the subfield (in [mm]).
     // To compute the diagonal length of the subfield, we only need the lower left (X00, Y00)
     // and the upper right (X11, Y11) corner of the subfield.
@@ -360,7 +372,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     // fluxOfV0Star is the photon flux [photons/s/m^2/nm] for a V=0 G2V-star.
     // Units of fluxFactor: [photons/s]
   
-    const double fluxFactor = fluxOfV0Star * throughputBandwidth * telescope.getTransmissionEfficiency() * telescope.getLightCollectingArea(); 
+    const double fluxFactor = fluxOfV0Star * throughputBandwidth * transmissionEfficiency * telescope.getLightCollectingArea(); 
 
     // Update the internal clock
 
@@ -470,11 +482,11 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
         const double lambda2 = (throughputLambdaC + throughputBandwidth/2.0) * 1.e-9;                                         // [m]
     
         const double zodiacalFlux = sky.zodiacalFlux(centerRA, centerDec, lambda1, lambda2)                                                      // [phot/exposure]
-                                    * exposureTime * telescope.getTransmissionEfficiency() * telescope.getLightCollectingArea()
+                                    * exposureTime * transmissionEfficiency * telescope.getLightCollectingArea()
                                     * detector.getSolidAngleOfOnePixel(plateScale) / energyOfOnePhoton; 
 
         const double stellarBackgroundFlux = sky.stellarBackgroundFlux(centerRA, centerDec, lambda1, lambda2)                                    // [phot/exposure]
-                                             * exposureTime * telescope.getTransmissionEfficiency() * telescope.getLightCollectingArea()
+                                             * exposureTime * transmissionEfficiency * telescope.getLightCollectingArea()
                                              * detector.getSolidAngleOfOnePixel(plateScale) / energyOfOnePhoton;      
 
 
@@ -495,6 +507,10 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     // Save the sky background value that we added. [photons/pix/exposure]
 
     skyBackgroundValues.push_back(totalSkyBackground);
+
+    // Save the transmissionEfficiency value that was calculated for this exposure.
+
+    transmissionEfficiencyValues.push_back(transmissionEfficiency);
 
     return;
 }

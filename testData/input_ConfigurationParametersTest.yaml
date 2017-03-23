@@ -33,6 +33,10 @@ Sequences:
       Degree:       6
       Coefficients: [-1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5]
 
+Degradation:
+    Efficiency:     {'BOL': 0.999, 'EOL': 0.777}
+    NoDegradation:  {'FIXED': 1.0}
+
 Special Values:
 
     zero: 0

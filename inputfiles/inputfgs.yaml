@@ -8,8 +8,9 @@ General:
 
 ObservingParameters:
 
-    NumExposures:                 10              # Number of exposures
-    BeginExposureNr:               0              # Sequential number of first exposure. useful for slurm parallellisation
+    MissionDuration:             6.0              # Total duration of the mission in years [yr]
+    NumExposures:                10               # Number of exposures
+    BeginExposureNr:              0               # Sequential number of first exposure. useful for slurm parallellisation
     ExposureTime:                2.3              # [s]
     RApointing:                  86.79870         # Platform (not telescope) right ascension pointing coordinate      [deg] 
     DecPointing:                 -46.39595        # Platform (not telescope) declination pointing coordinate          [deg]
@@ -34,7 +35,7 @@ Telescope:
     AzimuthAngle:                0.0             # Azimuth angle of telescope on the platform [deg]
     TiltAngle:                   0.0             # Tilt angle of the telescope on the platform [deg]
     LightCollectingArea:         113.1           # Effective area of 1 telescope [cm^2]
-    TransmissionEfficiency:      0.5             # in [0,1]
+    TransmissionEfficiency:      {'BOL': 0.5, 'EOL': 0.5}  # values in [0,1] KEPT FIXED FOR NOW
     FOVSquareDegrees:            1072.0          # Sky area covered by the FOV of 1 telescope [deg^2]
     UseDrift:                    no              # yes or no. If no, ignore everything below.
     UseDriftFromFile:            no              # yes or no. If yes: ignore RMS and timescale below
