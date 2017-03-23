@@ -85,12 +85,12 @@ Telescope::~Telescope()
  	// Configuration parameters for the Telescope
 
 
-    originalAzimuthAngle      = deg2rad(configParams.getDouble("Telescope/AzimuthAngle"));           // [rad]
-    originalTiltAngle         = deg2rad(configParams.getDouble("Telescope/TiltAngle"));              // [rad]
- 	lightCollectingArea       = configParams.getDouble("Telescope/LightCollectingArea") * 1.e-4;     // [m^2]  
+    originalAzimuthAngle      = deg2rad(configParams.getDouble("Telescope/AzimuthAngle"));                  // [rad]
+    originalTiltAngle         = deg2rad(configParams.getDouble("Telescope/TiltAngle"));                     // [rad]
+ 	lightCollectingArea       = configParams.getDouble("Telescope/LightCollectingArea") * 1.e-4;            // [m^2]  
     transmissionEfficiencyBOL = configParams.getDouble("Telescope/TransmissionEfficiency/BOL");
     transmissionEfficiencyEOL = configParams.getDouble("Telescope/TransmissionEfficiency/EOL");
-    missionDuration           = configParams.getDouble("ObservingParameters/MissionDuration");       // [s]
+    missionDuration           = configParams.getDouble("ObservingParameters/MissionDuration") * 31536000.0; // [s]
     useDrift                  = configParams.getBoolean("Telescope/UseDrift");
 
     currentAzimuthAngle = originalAzimuthAngle;
