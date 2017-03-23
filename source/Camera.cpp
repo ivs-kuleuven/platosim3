@@ -290,7 +290,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
     double transmissionEfficiency = telescope.getTransmissionEfficiency(startTime);
 
-    Log.debug("Camera: TransmissionEfficiency["+to_string(startTime)+"] = "+to_string(transmissionEfficiency));
+    Log.debug("Camera: TransmissionEfficiency at time "+to_string(startTime)+" is "+to_string(transmissionEfficiency));
 
 
     // Get the focal plane coordinates of the center and the corners of the subfield (in [mm]).
