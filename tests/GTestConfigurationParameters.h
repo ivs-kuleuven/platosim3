@@ -220,6 +220,26 @@ TEST(ConfigurationParametersTest, testSetNode)
 
 
 
+
+TEST(ConfigurationParametersTest, testHasParameter)
+{
+    LOG_STARTING_OF_TEST
+
+    ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
+
+    EXPECT_TRUE(cp.hasParameter("Degradation/Efficiency"));
+    EXPECT_TRUE(cp.hasParameter("Degradation/Efficiency/BOL"));
+    EXPECT_TRUE(cp.hasParameter("Degradation/Efficiency/EOL"));
+    EXPECT_EQ(0.999, cp.getDouble("Degradation/Efficiency/BOL"));
+    EXPECT_EQ(0.777, cp.getDouble("Degradation/Efficiency/EOL"));
+
+    EXPECT_FALSE(cp.hasParameter("Degradation/NoDegradation/BOL"));
+}
+
+
+
+
+
 // This test checks that new fields can be set or added to a map.
 // The map doesn't exist initially.
 // 

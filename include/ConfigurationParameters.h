@@ -36,6 +36,7 @@ class ConfigurationParameters
         vector <double> getDoubleVector(const string &key);
     
         void setParameter(const string &, const string &);
+        bool hasParameter(const string & key);
     
     private:
         string filename;
