@@ -34,8 +34,8 @@ class Telescope  : public Heartbeat, HDF5Writer
         tuple<double, double, double, double, double> getInitialTelescopeOrientation();
 
         virtual double getHeartbeatInterval() override;
-
-		double getTransmissionEfficiency(double time);
+		virtual double getTransmissionEfficiency(double time);
+        
 		double getLightCollectingArea();
 
 
