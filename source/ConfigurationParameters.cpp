@@ -467,7 +467,25 @@ YAML::Node ConfigurationParameters::getNode(const string & key)
     return nodes.top();
 }
 
-
+/**
+ * \brief Check if the parameter 'key' exists.
+ *
+ * \details
+ *
+ * Crawls over the hierarchy of configuration parameters and returns true when the parameter 'key' exists.
+ *
+ * The 'key' is the name of the configuration or input parameter. If the parameter is part
+ * of a section or group, then the 'key' is a combination of the group name and 
+ * the parameter name, separated by a '/' delimiter. E.g. if the parameter ExposureTime 
+ * is part of the group ObservingParameters, then the key to check the existance of this
+ * parameter would be "ObservingParameters/ExposureTime". 
+ * 
+ * There can be multiple levels, e.g. "Camera/Distortion/Polynomial/Coefficients"
+ *
+ * \param[in]  key   The name of a parameter used in the PLATO Simulator
+ *
+ * \return true if the parameter exists, false otherwise
+ */
 bool ConfigurationParameters::hasParameter(const string & key) 
 {
     vector<string> fields = StringUtilities::split(key, '/');
