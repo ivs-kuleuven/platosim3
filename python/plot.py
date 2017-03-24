@@ -9,14 +9,12 @@ from referenceFrames import *
 
 
 
-def drawCCDsInSky(raSun, decSun, raPlatform, decPlatform, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength, pixelSize, normal=True):
+def drawCCDsInSky(raPlatform, decPlatform, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength, pixelSize, normal=True):
 
     """
     PURPOSE: Project and plot the 4 CCDs of 1 camera on the sky
 
-    INPUT: raSun:           right ascension of the sun                                [rad]
-           decSun:          declination of the sun                                    [rad]
-           raPlatform:      right ascension of the platform pointing axis             [rad]
+    INPUT: raPlatform:      right ascension of the platform pointing axis             [rad]
            decPlatform:     declination of the platform pointing axis                 [rad]
            tiltAngle:       tilt angle of the telescope w.r.t. platform z-axis        [rad]                   
            azimuthAngle:    azimuth angle of the telescope on the platform            [rad]

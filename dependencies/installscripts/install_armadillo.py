@@ -63,8 +63,9 @@ else:
 
 # Then try to copy the library files to the folder /lib
 
-pathOfLibFolder =   glob.glob(installDir + "/lib") + glob.glob(installDir + "/*/lib") \
-                  + glob.glob(installDir + "/*/*/lib") + glob.glob(installDir + "/*/*/*/lib")
+pathOfLibFolder =   glob.glob(installDir + "/lib") + glob.glob(installDir + "/*/lib")         \
+                  + glob.glob(installDir + "/*/*/lib") + glob.glob(installDir + "/*/*/*/lib") \
+                  + glob.glob(installDir + "/*/lib64") + glob.glob(installDir + "/*/*/lib64")
 
 if len(pathOfLibFolder) != 1:
     print("Path of lib folder: {0}".format(pathOfLibFolder))
