@@ -243,7 +243,7 @@ class Simulation(object):
         node = self.yamlDocument
 
         for nodeName in nodeNames:
-            print "> {}, {}".format(nodeName, type(node))
+            print("> {}, {}".format(nodeName, type(node)))
             try:
                 node = node[nodeName]
             except:
