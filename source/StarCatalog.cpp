@@ -199,6 +199,12 @@ StarCatalog StarCatalog::getStarsWithinRadiusFrom(double RA0, double dec0, doubl
 
 /**
  * \brief  Calculate the apparent positions of the stars based on the current platform pointing coordinates.
+ *
+ * \detail
+ *
+ * This calculation is an approximation based on a circular earth orbit around the sun and *not* taking
+ * the Lissajous orbit of the satellite around L2 into account. We do calculate the differential aberration
+ * however which takes into account the aberration correction done for the Spacecraft pointing.
  * 
  * \param platform    the current platform from which the position of the Sun and the pointing coordinates are requested
  * 
