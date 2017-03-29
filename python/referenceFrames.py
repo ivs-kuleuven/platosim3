@@ -329,7 +329,7 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, tiltAngle, azi
 
     # Get the sky position of the Sun (ra, dec) [rad]
 
-    raSun, decSun = sunSkyCoordinatesAwayfromPlatformPointing(radPlatform, decPlatform)
+    raSun, decSun = sunSkyCoordinatesAwayfromPlatformPointing(raPlatform, decPlatform)
 
     # Undo the reverse-image projection effect of the pinhole
 
@@ -961,7 +961,7 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal):
     
     # Get the sky position of the Sun (ra, dec) in the middle of the time series [rad] 
 
-    raSun, decSun = sunSkyCoordinatesAwayfromPlatformPointing(radPlatform, decPlatform)
+    raSun, decSun = sunSkyCoordinatesAwayfromPlatformPointing(raPlatform, decPlatform)
 
     # Get the pixel coordinates on the CCD
 
@@ -1025,7 +1025,7 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
 
     # Get the sky position of the Sun (ra, dec) in the middle of the time series [rad] 
 
-    raSun, decSun = sunSkyCoordinatesAwayfromPlatformPointing(radPlatform, decPlatform)
+    raSun, decSun = sunSkyCoordinatesAwayfromPlatformPointing(raPlatform, decPlatform)
 
     # Get the focal plane coordinates
 
