@@ -197,3 +197,68 @@ StarCatalog StarCatalog::getStarsWithinRadiusFrom(double RA0, double dec0, doubl
 }
 
 
+/**
+ * \brief  Calculate the apparent positions of the stars based on the current platform pointing coordinates.
+ * 
+ * \param platform    the current platform from which the position of the Sun and the pointing coordinates are requested
+ * 
+ * \return            A StarCatalog with all the aberration corrected stars.
+ */
+
+StarCatalog StarCatalog::aberate(Platform &platform)
+{
+
+    // Create an empty star catalog
+
+    StarCatalog newCatalog;
+
+    double amplitude = deg2rad(20.496 / 3600.0);
+
+    // Request the longitude of the Sun. This is known by the Platform, but it only returns the 
+    // equatorial coordinates while they were internally calculated as ecliptic. Platform should 
+    // maybe have a getLonLatSun().
+
+    double raSun, decSun;
+    tie(raSun, decSun) = platform.getRADecSun();
+    double lambdaSun, betaSun;
+    equatorial2ecliptic(raSun, decSun, lambdaSun, betaSun);
+
+    // Request the current platform pointing coordinates (i.e. pointing of the Fast Camera's)
+
+    double raPlatform, decPlatform;
+    tie(raPlatform, decPlatform) = platform.getCurrentPointingCoordinates();
+
+    double lambdaPlatform, betaPlatform;
+    equatorial2ecliptic(raPlatform, decPlatform, lambdaPlatform, betaPlatform);
+
+    double deltaLambdaPlatform, deltaBetaPlatform;
+    deltaLambdaPlatform = - amplitude * cos(lambdaPlatform - lambdaSun) / cos(betaPlatform);
+    deltaBetaPlatform   = - amplitude * sin(lambdaPlatform - lambdaSun) * sin(betaPlatform);
+
+    for (long n = 0; n < starID.size(); ++n)
+    {
+        double raStar = RA[n];
+        double decStar = dec[n];
+    
+        double lambdaStar, betaStar;
+        equatorial2ecliptic(raStar, decStar, lambdaStar, betaStar);
+    
+        double deltaLambdaStar, deltaBetaStar;
+        deltaLambdaStar = - amplitude * cos(lambdaStar - lambdaSun) / cos(betaStar);
+        deltaBetaStar   = - amplitude * sin(lambdaStar - lambdaSun) * sin(betaStar);
+    
+        double deltaLambdaAberration = deltaLambdaStar - deltaLambdaPlatform;
+        double deltaBetaAberration   = deltaBetaStar   - deltaBetaPlatform;
+    
+        double raStarAberrated, decStarAberrated;
+        ecliptic2equatorial(lambdaStar - deltaLambdaAberration, betaStar - deltaBetaAberration, raStarAberrated, decStarAberrated);
+        
+        newCatalog.addStar(starID[n], raStarAberrated, decStarAberrated, Vmag[n], Angle::radians);
+    }
+
+    return newCatalog;
+}
+
+
+
+
