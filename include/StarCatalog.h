@@ -7,6 +7,7 @@
 
 #include "Logger.h"
 #include "Units.h"
+#include "Platform.h"
 #include "SkyCoordinates.h"
 
 
@@ -53,6 +54,7 @@ class StarCatalog
         StarRecord operator[](unsigned int index) const;
 
         StarCatalog getStarsWithinRadiusFrom(double RA0, double dec0, double radius, Unit angleUnit);
+        StarCatalog aberate(Platform &platform);
 
     protected:
 

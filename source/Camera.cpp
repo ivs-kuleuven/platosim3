@@ -358,6 +358,11 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
     Log.info("Camera: Found " + to_string(starCatalog.size()) + " stars on and near the subfield");  
 
+    // Get the apparent position of the stars, i.e. apply the differential aberration correction to
+    // all the star positions in this starCatalog.
+
+    auto aberratedStarCatalog = starCatalog.aberate(platform);
+
 
     // If the telescope and/or platform show small variations (e.g. due to jitter) during the exposure,
     // the exposure time is split up in many small intervals, to track the effect of these variations
@@ -389,11 +394,12 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
         // Loop over all stars in the catalog, and add their flux to the subfield
 
-        for (int n = 0; n < starCatalog.size(); n++)
+        for (int n = 0; n < aberratedStarCatalog.size(); n++)
         {
             // Get the focal plane coordinates (in [mm]) of this particular star
             
-            auto star = starCatalog[n];
+            auto star = aberratedStarCatalog[n];
+            
             double Xmm, Ymm;
             tie(Xmm, Ymm) = skyToFocalPlaneCoordinates(star.RA, star.dec);
 
