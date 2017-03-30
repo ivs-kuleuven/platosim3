@@ -7,6 +7,7 @@
 
 #include "Logger.h"
 #include "Units.h"
+#include "Platform.h"
 #include "SkyCoordinates.h"
 
 
@@ -45,7 +46,6 @@ class StarCatalog
 
         StarCatalog();
         StarCatalog(const StarCatalog &starCatalog);
-        StarCatalog(StarCatalog &&starCatalog);
         ~StarCatalog();
 
         long size();
@@ -53,10 +53,11 @@ class StarCatalog
         StarRecord operator[](unsigned int index) const;
 
         StarCatalog getStarsWithinRadiusFrom(double RA0, double dec0, double radius, Unit angleUnit);
+        StarCatalog aberate(Platform &platform);
 
     protected:
 
-        long Nstars;
+        //long Nstars;
         vector<unsigned int> starID;        // Star identification number
         vector<double> RA;                  // Right Ascension [rad]
         vector<double> dec;                 // Declination [rad]

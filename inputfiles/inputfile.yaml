@@ -35,7 +35,9 @@ Telescope:
     AzimuthAngle:                    0.0             # Azimuth angle of telescope on the platform [deg]
     TiltAngle:                       0.0             # Tilt angle of the telescope on the platform [deg]
     LightCollectingArea:             113.1           # Effective area of 1 telescope [cm^2]
-    TransmissionEfficiency:          {'BOL': 0.800, 'EOL': 0.757}  # values in [0,1]
+    TransmissionEfficiency:
+        BOL:                         0.800           # Beginning of Life value in [0,1]
+        EOL:                         0.757           # End of Life value in [0,1]
     UseDrift:                        no              # yes or no. If no, ignore everything below.
     UseDriftFromFile:                no              # yes or no. If yes: ignore RMS and timescale below
     DriftYawRms:                     2.0             # RMS of thermo-elastic drift in yaw [arcsec]
@@ -52,6 +54,7 @@ Camera:
     FocalLength:                     0.24712595      # Focal length as recovered from ZEMAX model [m]
     ThroughputBandwidth:             638             # FWHM [nm]
     ThroughputLambdaC:               550             # Central wavelength of the throughput passband [nm]
+    IncludeAberrationCorrection:     yes             # Calculate the differential aberration correction and apply
     IncludeFieldDistortion:          yes             # Wheter or not to include field distortion
     FieldDistortion:                                 # Describe the model for the field distortion
         Type:                        Polynomial1D
