@@ -60,8 +60,9 @@ def showSim(simfile, n=0, type="Image", dpi=0, figname=None,verbose=True, **kwar
                    su - subPixelImage
                    sm - smearingMap
                    bi - biasMap
-                   pr - prnu
-                   ir - irnu
+                   fp - prnu -- FF pixel
+                   fs - irnu -- FF subpixel
+
         dpi      : for subpixelImage and IRNU, controls the image resolution (see output)
         figname  : change the default matplotlib.figure name
         verbose  : False : silent. True : prints clim (except for Flatfield)
@@ -81,7 +82,7 @@ def showSim(simfile, n=0, type="Image", dpi=0, figname=None,verbose=True, **kwar
         >>> showSim(myFile, 3, type="im")
         >>> showSim(myFile, type="pr", figname="Flatfield")
     """
-
+    from h5 import h5get
 
     # Extract the data from the HDF5 file
 
@@ -92,7 +93,9 @@ def showSim(simfile, n=0, type="Image", dpi=0, figname=None,verbose=True, **kwar
 
     firstTwoLettersOfDataProduct = str(type).lower()[:2]
     if not figname:
-       dataProduct = {"im":'image', "su":'subPixelImage', "bi":"biasMap", "sm":"smearingMap", "pr":"PRNU", "ir":"IRNU"}
+       dataProduct = {"im":'image', "su":'subPixelImage', "bi":"biasMap",\
+       "sm":"smearingMap", "fp":"PRNU", "fs":"IRNU", "pp":"rebinnedPSFpixel",\
+       "ps":"rebinnedPSFsubPixel", "pr":"rotatedPSF"}
        figname = dataProduct[firstTwoLettersOfDataProduct]+str(n).zfill(6)
     
     # Compute the median and the deviations of the image, which will be used to set the intensity range
@@ -104,28 +107,43 @@ def showSim(simfile, n=0, type="Image", dpi=0, figname=None,verbose=True, **kwar
     
     # Set the default imshow arguments
 
-    kwargs.setdefault('cmap', cm.hot)
     kwargs.setdefault('interpolation', 'nearest')
     kwargs.setdefault("origin", "lower")
-    if firstTwoLettersOfDataProduct not in ["pr", "ir"]: 
+    if firstTwoLettersOfDataProduct not in ["pp","pr","ps"]: 
+        kwargs.setdefault('cmap', cm.hot)
+    if firstTwoLettersOfDataProduct not in ["fp", "fs","pp","pr","ps"]: 
         kwargs.setdefault("clim",[int(med-meddev),int(med+3.*stddev)])
         if verbose: print("clim", kwargs["clim"])
     
     # Show the plot
-    
+    """
+    # JORIS' VERSION : ALWAYS CREATES A NEW PLOT
     if firstTwoLettersOfDataProduct in ["su","ir"]:
         if not dpi: dpi = 96
         fig, axis = plt.subplots(dpi=dpi)
     else:
         fig, axis = plt.subplots()
+    """
+    # PIERRE'S VERSION : UNLESS SPECIFIED VIA FIGNAME, REUSES EXISTING PLOT     
+    if firstTwoLettersOfDataProduct in ["su","ir"]:
+        if not dpi: dpi = 96
+        fig = plt.figure(figname,dpi=dpi)
+        axis = fig.add_subplot(111)
+    else:
+        fig = plt.figure(figname)
+        axis = fig.add_subplot(111)
+
     
-    axis.set_title(figname)
+    zeroPointRow = h5get(simfile,"ZeroPointRow",verbose=False)
+    zeroPointColumn = h5get(simfile,"ZeroPointColumn",verbose=False)
+    
+    axis.set_title(figname + " - LL Corner: [{0},{1}]".format(zeroPointRow,zeroPointColumn))
     axis.imshow(image, **kwargs)
     plt.show()
 
     # That's it!
 
-    return
+    return axis
 
 
 
@@ -149,8 +167,11 @@ def getSim(simfile, n=0, type="Image"):
                    su - subPixelImage
                    sm - smearingMap
                    bi - biasMap
-                   pr - prnu
-                   ir - irnu
+                   fp - prnu -- FF pixel
+                   fs - irnu -- FF subpixel
+                   pp - rebinnedPSFpixel
+                   ps - rebinnedPSFsubPixel
+                   pr - rotatedPSF
         
     OUTPUT
         Numpy arrays with the requested data product according to input parameters 'n' and 'type'
@@ -161,14 +182,16 @@ def getSim(simfile, n=0, type="Image"):
     # the group names and the data array name within that group
 
     firstTwoLettersOfDataProduct = str(type).lower()[:2]
-    hdf5GroupNameMapping = {"im":'Images', "su":'SubPixelImages', "bi":"BiasMaps", "sm":"SmearingMaps", "pr":"Flatfield", "ir":"Flatfield"}
-    hdf5DataNameMapping  = {"im":'image', "su":'subPixelImage', "bi":"biasMap", "sm":"smearingMap", "pr":"PRNU", "ir":"IRNU"}
+    hdf5GroupNameMapping = {"im":'Images', "su":'SubPixelImages', "bi":"BiasMaps",\
+    "sm":"SmearingMaps", "fp":"Flatfield", "fs":"Flatfield","pp":"PSF","ps":"PSF","pr":"PSF"}
+    hdf5DataNameMapping  = {"im":'image', "su":'subPixelImage', "bi":"biasMap",\
+    "sm":"smearingMap", "fp":"PRNU", "fs":"IRNU", "pp":"rebinnedPSFpixel", "ps":"rebinnedPSFsubPixel", "pr":"rotatedPSF"}
     
     groupName = hdf5GroupNameMapping[firstTwoLettersOfDataProduct]
 
     # Extract the data into numpy arrays
 
-    if firstTwoLettersOfDataProduct in ["pr","ir"]:
+    if firstTwoLettersOfDataProduct in ["fp","fs","pp","ps","pr"]:
         dataName = hdf5DataNameMapping[firstTwoLettersOfDataProduct]
         return simfile[groupName][dataName]
     elif firstTwoLettersOfDataProduct in ["im","su","bi","sm"]:
