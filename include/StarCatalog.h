@@ -46,7 +46,6 @@ class StarCatalog
 
         StarCatalog();
         StarCatalog(const StarCatalog &starCatalog);
-        StarCatalog(StarCatalog &&starCatalog);
         ~StarCatalog();
 
         long size();

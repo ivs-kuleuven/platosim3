@@ -36,24 +36,6 @@ StarCatalog::StarCatalog(const StarCatalog &starCatalog)
 
 
 
-/**
- * \brief Move constructor
- */
-
-StarCatalog::StarCatalog(StarCatalog &&starCatalog)
-: starID(move(starCatalog.starID)), RA(move(starCatalog.RA)), dec(move(starCatalog.dec)), Vmag(move(starCatalog.Vmag))
-{
-
-}
-
-
-
-
-
-
-
-
-
 
 /**
  * \brief Destructor
