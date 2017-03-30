@@ -58,7 +58,7 @@ class StarCatalog
 
     protected:
 
-        long Nstars;
+        //long Nstars;
         vector<unsigned int> starID;        // Star identification number
         vector<double> RA;                  // Right Ascension [rad]
         vector<double> dec;                 // Declination [rad]
