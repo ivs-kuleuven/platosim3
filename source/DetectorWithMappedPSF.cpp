@@ -510,11 +510,11 @@ void DetectorWithMappedPSF::addFlux(double flux)
 void DetectorWithMappedPSF::applyFlatfield()
 {
     const unsigned int numEdgeSubPixels = numEdgePixels * numSubPixelsPerPixel;
-    const unsigned int beginRow = numEdgePixels;
-    const unsigned int beginCol = numEdgePixels;
+    const unsigned int beginRow = numEdgeSubPixels;
+    const unsigned int beginCol = numEdgeSubPixels;
     const unsigned int endRow = numRowsSubPixelMap - numEdgeSubPixels - 1;
     const unsigned int endCol = numColumnsSubPixelMap - numEdgeSubPixels - 1;
-
+    
     subPixelMap.submat(beginRow, beginCol, endRow, endCol) = subPixelMap.submat(beginRow, beginCol, endRow, endCol) % flatfieldMap;
 }
 
