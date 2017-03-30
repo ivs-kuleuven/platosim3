@@ -83,6 +83,7 @@ class Camera : public HDF5Writer
         Polynomial1D polynomial;
         Polynomial1D inversePolynomial;
 
+        bool includeAberrationCorrection; // Wheter or not (differential) aberration correction should be included
         bool includeFieldDistortion;      // Wheter or not field distortion should be included
 
         double userGivenSkyBackground;    // User-set zodiacal + stellar sky background.                        [phot/pix/s]

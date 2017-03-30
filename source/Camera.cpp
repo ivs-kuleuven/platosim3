@@ -240,6 +240,7 @@ void Camera::configure(ConfigurationParameters &configParam)
     polynomialCoefficients = configParam.getDoubleVector("Camera/FieldDistortion/Coefficients");
     inversePolynomialCoefficients = configParam.getDoubleVector("Camera/FieldDistortion/InverseCoefficients");
 
+    includeAberrationCorrection = configParam.getBoolean("Camera/IncludeAberrationCorrection");
     includeFieldDistortion = configParam.getBoolean("Camera/IncludeFieldDistortion");
 
     fluxOfV0Star           = configParam.getDouble("ObservingParameters/Fluxm0");                 // [phot/s/m^2/nm]
@@ -354,14 +355,19 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     // Get a catalog of stars that fall on the subfield. Take the radius a bit larger so that the 
     // queried area includes possible small shifts of the projected subfield because of jitter.
 
-    auto starCatalog = sky.getStarsWithinRadiusFrom(centerRA, centerDec, radius * 1.1, Angle::radians);
+    StarCatalog starCatalog = sky.getStarsWithinRadiusFrom(centerRA, centerDec, radius * 1.1, Angle::radians);
 
     Log.info("Camera: Found " + to_string(starCatalog.size()) + " stars on and near the subfield");  
 
-    // Get the apparent position of the stars, i.e. apply the differential aberration correction to
-    // all the star positions in this starCatalog.
+    if (includeAberrationCorrection)
+    {
+        Log.info("Camera: applying differential aberration correction to the selected stars in the subfield.");
 
-    auto aberratedStarCatalog = starCatalog.aberate(platform);
+        // Get the apparent position of the stars, i.e. apply the differential aberration correction to
+        // all the star positions in this starCatalog.
+    
+        starCatalog = starCatalog.aberate(platform);
+    }
 
 
     // If the telescope and/or platform show small variations (e.g. due to jitter) during the exposure,
@@ -394,11 +400,11 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
         // Loop over all stars in the catalog, and add their flux to the subfield
 
-        for (int n = 0; n < aberratedStarCatalog.size(); n++)
+        for (int n = 0; n < starCatalog.size(); n++)
         {
             // Get the focal plane coordinates (in [mm]) of this particular star
             
-            auto star = aberratedStarCatalog[n];
+            auto star = starCatalog[n];
             
             double Xmm, Ymm;
             tie(Xmm, Ymm) = skyToFocalPlaneCoordinates(star.RA, star.dec);
