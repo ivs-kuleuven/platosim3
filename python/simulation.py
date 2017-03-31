@@ -689,7 +689,7 @@ class Simulation(object):
 
         # Get the sky position of the Sun (ra, dec) in the middle of the time series [rad]
 
-        raSun, decSun = rf.sunSkyCoordinatesAwayfromPlatformPointing(radPlatform, decPlatform)
+        raSun, decSun = rf.sunSkyCoordinatesAwayfromPlatformPointing(raPlatform, decPlatform)
 
         # Convert the pixel coordinates to focal plane coordinates [mm]
         
@@ -702,7 +702,7 @@ class Simulation(object):
 
         # Convert the focal plane coordinates to equatorial sky coordinates [rad]
 
-        ra, dec = rf.focalPlaneToSkyCoordinates(xFPmm, yFPmm, raSun, decSun, raPlatform, decPlatform, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength)
+        ra, dec = rf.focalPlaneToSkyCoordinates(xFPmm, yFPmm, raPlatform, decPlatform, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength)
 
         # Save the sky coordinates (in [deg]) to the star catalog file
 
