@@ -366,7 +366,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
         // Get the apparent position of the stars, i.e. apply the differential aberration correction to
         // all the star positions in this starCatalog.
     
-        starCatalog = starCatalog.aberate(platform);
+        starCatalog = starCatalog.aberrate(platform);
     }
 
 

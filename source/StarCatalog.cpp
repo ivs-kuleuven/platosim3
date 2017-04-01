@@ -193,7 +193,7 @@ StarCatalog StarCatalog::getStarsWithinRadiusFrom(double RA0, double dec0, doubl
  * \return            A StarCatalog with all the aberration corrected stars.
  */
 
-StarCatalog StarCatalog::aberate(Platform &platform)
+StarCatalog StarCatalog::aberrate(Platform &platform)
 {
 
     // Create an empty star catalog
