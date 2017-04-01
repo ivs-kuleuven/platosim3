@@ -687,10 +687,6 @@ class Simulation(object):
         includeFieldDistortion = self["Camera/IncludeFieldDistortion"]
         inverseDistortionCoefficients = self["Camera/FieldDistortion/InverseCoefficients"]
 
-        # Get the sky position of the Sun (ra, dec) in the middle of the time series [rad]
-
-        raSun, decSun = rf.sunSkyCoordinatesAwayfromPlatformPointing(raPlatform, decPlatform)
-
         # Convert the pixel coordinates to focal plane coordinates [mm]
         
         xFPmm, yFPmm = rf.pixelToFocalPlaneCoordinates(cols, rows, pixelSize, ccdZeroPointX, ccdZeroPointY, CCDangle)
