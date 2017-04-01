@@ -200,16 +200,7 @@ def h5get(item,sel,verbose=True,caseSensitive=False,getNames=False,cs=False):
             return result
 
  
-
-
-
-
-
-
-
-    
-def h5ls(item, sel="",summary=True, s="",indent=" "*4,verbose=True,keepDeeper=False):
-    
+def h5ls(item, sel="",summary=True, s="",indent=" "*4,verbose=True,keepDeeper=False, baseString="",fullPath=False,fp=False):
     """
     SYNOPSIS
     h5ls(item, sel="",summary=True, s="",indent=" "*4,verbose=True,keepDeeper=False)
@@ -223,7 +214,9 @@ def h5ls(item, sel="",summary=True, s="",indent=" "*4,verbose=True,keepDeeper=Fa
     s        : base string, prepended to any output. This variable is primarily used in the internal recursion
     indent   : incremental indentation for any sub-level in the structure
     verbose  : if True, the attribue values are displayed on the output as well
-    keepDeeper : private variable used in the recursion. Must be False!
+    keepDeeper : private variable used in the recursion. Must be False.
+    fullPath or fp [synomymous] : if at least one is True, the full path is displayed instead of just the item name
+    baseString : private variable used in the recursion when full=True. Must be left empty.
 
     OUTPUT
     Recursively prints the structure of an hdf5 file,or a group from an hdf5 file
@@ -255,10 +248,10 @@ def h5ls(item, sel="",summary=True, s="",indent=" "*4,verbose=True,keepDeeper=Fa
             maxlength = max([len(k) for k in groupkeys])
             if verbose:
               for key in groupkeys:
-                print("[a] " + s + "{0}".format(key).rjust(maxlength), indent, item.attrs[key])
+                print("[a] " + s + baseString+'/'+"{0}".format(key).rjust(maxlength), indent, item.attrs[key])
             else:
               for key in groupkeys:
-                print(s + key)
+                print(s + baseString+key)
     except:
             pass
     
@@ -315,13 +308,15 @@ def h5ls(item, sel="",summary=True, s="",indent=" "*4,verbose=True,keepDeeper=Fa
         
         if not sel or (sel and ((i[0].lower().find(sel)>=0) or keepDeeper)):
             if keep: 
-                print({h5py._hl.group.Group:"[G] ",h5py._hl.dataset.Dataset:"[D] "}[i[1].__class__] + s + i[0])
+                print({h5py._hl.group.Group:"[G] ",h5py._hl.dataset.Dataset:"[D] "}[i[1].__class__] + s + baseString+'/'+i[0])
             elif shortenHere:
                 print("    " + s + "...")
     
         # If this node is a group => recurse on lower level (unless it's skipped due to 'summary')
         
         if isinstance(i[1], h5py._hl.group.Group) and keep:
-            h5ls(i[1], sel=sel, summary=summary, s=s+indent, verbose=verbose, keepDeeper=keepDeeper)
-    
+            if fullPath or fp:
+                h5ls(i[1], sel=sel, summary=summary, s=s+indent, verbose=verbose, keepDeeper=keepDeeper,fullPath=True,baseString=baseString+'/'+i[0])
+            else:
+                h5ls(i[1], sel=sel, summary=summary, s=s+indent, verbose=verbose, keepDeeper=keepDeeper,fullPath=False,baseString=baseString)
     return
