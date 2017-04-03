@@ -50,7 +50,7 @@ General:
 
 #### <a name="projectLocation"></a>ProjectLocation
 
-<i>Allowed values:</i> name of an existing directory on disk or environment variable in the format <dfn>ENV['PLATO_PROJECT_HOME']</dfn>
+<i>Allowed values:</i> name of an existing directory on disk or environment variable, in the format <dfn>ENV['PLATO_PROJECT_HOME']</dfn>.
 
 Full path of the directory in which you have checked out the PlatoSim3 project, or an environment variable, e.g. PLATO_PROJECT_HOME, containing the full path to that directory.  In the latter case, you must make sure you have exported this variable before initiating a simulation:
 
@@ -67,6 +67,8 @@ The <b>ObservingParameters</b> block of the configuration file contains the conf
 \code{.yaml}
 ObservingParameters:
 
+	MissionDuration:             6.0
+	BeginExposureNr:             0
 	NumExposures:                40              
     ExposureTime:                23              
     RApointing:                  180              
@@ -76,6 +78,22 @@ ObservingParameters:
     StarCatalogFile:             inputfiles/starcatalog.txt
 \endcode
 
+
+
+
+#### <a name="missionDuration"></a>MissionDuration
+<i>Allowed values:</i> > 0
+
+Current duration of the mission, expressed in years.  This will be used to model parameter degradation over time.
+
+
+
+#### <a>beginExposureNr</a>BeginExposureNr
+<i>Allowed values:</i> ≥ 0
+
+Sequential number of the first exposure. Useful for <a href="https://en.wikipedia.org/wiki/Slurm_Workload_Manager">Slurm</a> parallellisation.  In that case, long simulations (i.e. with a large number of exposures) will be chopped up into smaller simulations, covering [a small number of exposures](#NumExposures) (see Fig. 1).
+
+@image html /images/chopUpSimulation.png "Figure 1: Long simulations will be chopped up into smaller simulations that can be executed in parallel."
 
 
 #### <a name="numExposures"></a>NumExposures
