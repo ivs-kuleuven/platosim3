@@ -187,11 +187,11 @@ The Plato Simulator can also account for pointing variations of the spacecraft, 
 
 To ensure a realistic modelling of the jitter, the [time step of the jitter time series](#jitterTimeScale) must be smaller than the [exposure time](#exposureTime).
 
-The configuration of the jitter axes is depicted below.  The Euler angles that characterise the jitter are defined w.r.t. to the spacecraft coordinate system (see Fig. 1).  The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module.  The positive roll axis z<sub>SC</sub> points towards the operator-given mean payload line-of-sight, given by the equatorial coordinates ([RApointing](#raPointing), [DecPointing](#decPointing)).
+The configuration of the jitter axes is depicted below.  The Euler angles that characterise the jitter are defined w.r.t. to the spacecraft coordinate system (see Fig. 2).  The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module.  The positive roll axis z<sub>SC</sub> points towards the operator-given mean payload line-of-sight, given by the equatorial coordinates ([RApointing](#raPointing), [DecPointing](#decPointing)).
 
 The angles are defined such that they increase with a clockwise rotation, when looking along the positive axes. First a roll rotation is done around the z<sub>SC</sub> axis, then a pitch rotation is done around the rotated y<sub>SC</sub> axis, and finally a yaw rotation is done around the twice-rotated x<sub>SC</sub> axis.
 
-@image html /images/jitterConfiguration.png "Figure 1: Configuration of the jitter axes for the Plato Simulator, defined w.r.t. the spacecraft coordinate system (xSC, ySC, z<sub>SC</sub>).  The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module.  The positive zSC axis points towards the operator-given pointing coordinates. The xSC axis points in the direction of the highest point of the sunshield."
+@image html /images/jitterConfiguration.png "Figure 2: Configuration of the jitter axes for the Plato Simulator, defined w.r.t. the spacecraft coordinate system (xSC, ySC, z<sub>SC</sub>).  The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module.  The positive zSC axis points towards the operator-given pointing coordinates. The xSC axis points in the direction of the highest point of the sunshield."
 
 
 
@@ -247,14 +247,38 @@ The <b>Telescope</b> block of the configuration file contains all the informatio
 
 \code{.yaml}
 Telescope:
-    
+     
+    AzimuthAngle:                0.0
+    TiltAngle:                   0.0
     LightCollectingArea:         113.1         
-    TransmissionEfficiency:      0.757         
+    TransmissionEfficiency:      
+    UseDrift:                    yes
+    UseDriftFromFile:            no      
     DriftYawRms:                 2.3           
     DriftPitchRms:               2.3           
     DriftRollRms:                2.3           
-    DriftTimeScale:              3600.         
+    DriftTimeScale:              3600.
+    DriftFileName:               /inputfiles/drift.txt         
 \endcode
+
+
+
+#### <a name="tiltAngle"></a>TiltAngle
+<i>Allowed values:</i> > 0
+
+Tilt angle of the telescope, expressed in degrees. This angle, together with the [azimuth angle](#azimuthAngle), characterises the orientation of the telescope pointing (i.e. telescope optical axis) w.r.t. the spacecraft/platform pointing. 
+
+The tilt angle is the offset between the telescope optical axis and the platform pointing, i.e. the angle between the telescope line-of-sight (positive z<sub>telescope</sub>)-axis and the positive z<sub>PLM</sub>-axis (see Figs. 3 and 4).
+
+
+#### <a name="azimuthAngle"></a>
+<i>Allowed values:</i> Any
+
+Azimuth angle of the telescope, expressed in degrees. This angle, together with the [tilt angle](#tiltAngle), characterises the orientation of the telescope pointing (i.e. telescope optical axis) w.r.t. the spacecraft/platform pointing. 
+
+The azimuth angle is the position angle of the rotation of the telescope around the positive z<sub>PLM</sub>-axis (see Figs. 3 and 4).
+
+@image html /images/tiltAzimuth.png "Figure 3: Tilt and azimuth of a telescope."
 
 
 
@@ -265,10 +289,43 @@ Light-collecting area of one telescope, expressed in cm<sup>2</sup>.
 
 
 
-#### <a name="transmissionEfficiency"></a>TransmissionEfficiency
+#### <a name="transmissionEfficiencyBOL"></a>TransmissionEfficiency: BOL
 <i>Allowed values:</i> ∈ [0,1]
 
-Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the Fluxm0 parameter and the magnitudes in the star catalogue.
+Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the Fluxm0 parameter and the magnitudes in the star catalogue, at the beginning of the mission (beginning-of-life).  This parameter is used to model the (linear) degradation in transmission efficiency over the [mission lifetime](#missionDuration).
+
+
+
+#### <a name="transmissionEfficiencyEOL"></a>TransmissionEfficiency: EOL
+<i>Allowed values:</i> ∈ [0,1]
+
+Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the Fluxm0 parameter and the magnitudes in the star catalogue, at the end of the mission (end-of-life).  This parameter is used to model the (linear) degradation in transmission efficiency over the [mission lifetime](#missionDuration).
+
+
+
+#### <a name="useDrift"></a>UseDrift
+<i>Allowed values:</i> "yes" or "no"
+
+Indicates whether the thermo-elastic drift of the telescope (w.r.t. the platform) should be taken into account.
+
+Similar to the [UseJitter](#useJitter) parameter for the platform jitter.
+
+The Plato Simulator can also account for the thermo-elastic drift, of the telescope (w.r.t. the platform). A time series of displacement, expressed in Euler angles (yaw, pitch, roll), either has to be provided as a drift file or will be generated based on the given drift parameters (see further).
+
+The Euler angles (yaw, pitch, roll) are defined as the rotation angles around the z<sub>SC</sub>, y'<sub>SC</sub> and z<sub>telescope</sub> = z<sub>FP</sub> axes (see Fig. 4), such that the anges increase with a clockwise rotation when looking along the positive axes.
+
+
+
+@image html /images/TelescopeCoordinateSystem.png "Figure 4: The optical axis zFP can be obtained from the spacecraft/platform pointing axis zSC by first rotating the (xSC, ySC) plane around the pointing axis zSC over the azimuth angle (left-hand side) nad then rotating the resulting zSC' axis over the tilt angle (right-hand side)."
+
+
+#### <a name="useDriftFromFile"></a>UseDriftFromFile
+<i>Allowed values:</i> "yes" or "no"
+
+Indicates whether the thermo-elastic drift of the telescope (w.r.t. the platform) should be taken into account.
+
+Similar to the [UseJitterFromFile](#useJitterFromFile) parameter for the platform jitter.
+
 
 
 
@@ -277,12 +334,16 @@ Tranmission efficiency of the optical system, considering the passband and spect
 
 Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the yaw value from one thermo-elastic drift position to the next one.
 
+Similar to the [JitterYawRms](#jitterYawRms) parameter for the platform jitter.
+
 
 
 #### <a name="driftPitchRms"></a>DriftPitchRms
 <i>Allowed values:</i> ≥ 0
 
 Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the pitch value from one thermo-elastic drift position to the next one.
+
+Similar to the [JitterPitchRms](#jitterPitchRms) parameter for the platform jitter.
 
 
 
@@ -291,6 +352,8 @@ Standard deviation (expressed in arcsec) of the normal distribution (with zero m
 
 Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the roll value from one thermo-elastic drift position to the next one.
 
+Similar to the [JitterRollRms](#jitterRollRms) parameter for the platform jitter.
+
 
 
 #### <a name="driftTimeScale"></a>DriftTimeScale
@@ -298,6 +361,9 @@ Standard deviation (expressed in arcsec) of the normal distribution (with zero m
 
 Timescale of the thermo-elastic drift (i.e. time between two subsequent drift positions), expressed in seconds.
 
+
+#### <a name="driftFileName"></a>DriftFileName
+Path of the drift file, relative to the [project location](#projectLocation). This is only required if the drift positions must be read from a file ([UseDriftFromFile](#useDriftFromFile) = yes).
 
 
 
