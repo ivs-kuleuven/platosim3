@@ -75,7 +75,7 @@ To be able to install the dependencies and build the code, the following softwar
 *  <a href="https://cmake.org/">CMake</a>: cross-platform open-source build system to control the software compilation process (using simple platform and compiler independent configuration files)
 * <a href="http://www.openblas.net">BLAS</a> and <a href = "http://www.netlib.org/lapack/">LAPACK</a>. Without these, the simulator will likely be slower. These libraries come pre-installed on Mac OS X (so Mac users do not have to do anything). Many Linux distributions also standardly have these libraries installed or offer a package manager to easily install them.
         
-It is also possible to run the PLATO Simulator from within Python.  We recommend downloading a Python distribution such as <a href="https://docs.continuum.io/anaconda/install">Anaconda</a>.  More information on setting up your Python distribution and scripting PlatoSim3 using Python can be found @ref ScriptingInPython "here".
+It is also possible to run the PLATO Simulator from within Python (please, use Python 3).  We recommend downloading a Python distribution such as <a href="https://docs.continuum.io/anaconda/install">Anaconda</a>.  More information on setting up your Python distribution and scripting PlatoSim3 using Python can be found @ref ScriptingInPython "here".  We have also provided tutorials in the form of Python notebooks.  More information about those can be found @ref Tutorials "here".
 
 <!-- Dependencies -->
 <!-- ************ -->
@@ -90,6 +90,7 @@ python ./dependencies/installscripts/install_googletest.py
 python ./dependencies/installscripts/install_yaml.py
 python ./dependencies/installscripts/install_armadillo.py
 python ./dependencies/installscripts/install_fftw.py
+python ./dependencies/installscripts/install_faddeeva.py
 \endcode
 
 Alternatively, you can also install the required dependencies and build the code in one go by typing (also in the directory in which PlatoSim3 was downloaded): 
