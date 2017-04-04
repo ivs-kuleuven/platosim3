@@ -10,6 +10,7 @@ Any desired simulation can be obtained by modifying the following input:
 		- [telescope parameters](#telescopeParameters)
 		- [camera parameters](#cameraParameters)
 		- [PSF parameters](#psfParameters)
+		- [FEE parameters](#feeParameters)
 		- [CCD parameters](#ccdParameters)
 		- [sub-field parameters](#subFieldParameters)
 		- [seed parameters](#seedParameters)
@@ -50,7 +51,7 @@ General:
 
 #### <a name="projectLocation"></a>ProjectLocation
 
-<i>Allowed values:</i> name of an existing directory on disk or environment variable in the format <dfn>ENV['PLATO_PROJECT_HOME']</dfn>
+<i>Allowed values:</i> name of an existing directory on disk or environment variable, in the format <dfn>ENV['PLATO_PROJECT_HOME']</dfn>.
 
 Full path of the directory in which you have checked out the PlatoSim3 project, or an environment variable, e.g. PLATO_PROJECT_HOME, containing the full path to that directory.  In the latter case, you must make sure you have exported this variable before initiating a simulation:
 
@@ -67,6 +68,8 @@ The <b>ObservingParameters</b> block of the configuration file contains the conf
 \code{.yaml}
 ObservingParameters:
 
+	MissionDuration:             6.0
+	BeginExposureNr:             0
 	NumExposures:                40              
     ExposureTime:                23              
     RApointing:                  180              
@@ -76,6 +79,22 @@ ObservingParameters:
     StarCatalogFile:             inputfiles/starcatalog.txt
 \endcode
 
+
+
+
+#### <a name="missionDuration"></a>MissionDuration
+<i>Allowed values:</i> > 0
+
+Current duration of the mission, expressed in years.  This will be used to model parameter degradation over time.
+
+
+
+#### <a>beginExposureNr</a>BeginExposureNr
+<i>Allowed values:</i> ≥ 0
+
+Sequential number of the first exposure. Useful for <a href="https://en.wikipedia.org/wiki/Slurm_Workload_Manager">Slurm</a> parallellisation.  In that case, long simulations (i.e. with a large number of exposures) will be chopped up into smaller simulations, covering [a small number of exposures](#NumExposures) (see Fig. 1).
+
+@image html /images/chopUpSimulation.png "Figure 1: Long simulations will be chopped up into smaller simulations that can be executed in parallel."
 
 
 #### <a name="numExposures"></a>NumExposures
@@ -169,11 +188,11 @@ The Plato Simulator can also account for pointing variations of the spacecraft, 
 
 To ensure a realistic modelling of the jitter, the [time step of the jitter time series](#jitterTimeScale) must be smaller than the [exposure time](#exposureTime).
 
-The configuration of the jitter axes is depicted below.  The Euler angles that characterise the jitter are defined w.r.t. to the spacecraft coordinate system (see Fig. 1).  The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module.  The positive roll axis z<sub>SC</sub> points towards the operator-given mean payload line-of-sight, given by the equatorial coordinates ([RApointing](#raPointing), [DecPointing](#decPointing)).
+The configuration of the jitter axes is depicted below.  The Euler angles that characterise the jitter are defined w.r.t. to the spacecraft coordinate system (see Fig. 2).  The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module.  The positive roll axis z<sub>SC</sub> points towards the operator-given mean payload line-of-sight, given by the equatorial coordinates ([RApointing](#raPointing), [DecPointing](#decPointing)).
 
 The angles are defined such that they increase with a clockwise rotation, when looking along the positive axes. First a roll rotation is done around the z<sub>SC</sub> axis, then a pitch rotation is done around the rotated y<sub>SC</sub> axis, and finally a yaw rotation is done around the twice-rotated x<sub>SC</sub> axis.
 
-@image html /images/jitterConfiguration.png "Figure 1: Configuration of the jitter axes for the Plato Simulator, defined w.r.t. the spacecraft coordinate system (xSC, ySC, z<sub>SC</sub>).  The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module.  The positive zSC axis points towards the operator-given pointing coordinates. The xSC axis points in the direction of the highest point of the sunshield."
+@image html /images/jitterConfiguration.png "Figure 2: Configuration of the jitter axes for the Plato Simulator, defined w.r.t. the spacecraft coordinate system (xSC, ySC, z<sub>SC</sub>).  The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module.  The positive zSC axis points towards the operator-given pointing coordinates. The xSC axis points in the direction of the highest point of the sunshield."
 
 
 
@@ -229,14 +248,38 @@ The <b>Telescope</b> block of the configuration file contains all the informatio
 
 \code{.yaml}
 Telescope:
-    
+     
+    AzimuthAngle:                0.0
+    TiltAngle:                   0.0
     LightCollectingArea:         113.1         
-    TransmissionEfficiency:      0.757         
+    TransmissionEfficiency:      
+    UseDrift:                    yes
+    UseDriftFromFile:            no      
     DriftYawRms:                 2.3           
     DriftPitchRms:               2.3           
     DriftRollRms:                2.3           
-    DriftTimeScale:              3600.         
+    DriftTimeScale:              3600.
+    DriftFileName:               /inputfiles/drift.txt         
 \endcode
+
+
+
+#### <a name="tiltAngle"></a>TiltAngle
+<i>Allowed values:</i> > 0
+
+Tilt angle of the telescope, expressed in degrees. This angle, together with the [azimuth angle](#azimuthAngle), characterises the orientation of the telescope pointing (i.e. telescope optical axis) w.r.t. the spacecraft/platform pointing. 
+
+The tilt angle is the offset between the telescope optical axis and the platform pointing, i.e. the angle between the telescope line-of-sight (positive z<sub>telescope</sub>)-axis and the positive z<sub>PLM</sub>-axis (see Figs. 3 and 4).
+
+
+#### <a name="azimuthAngle"></a>
+<i>Allowed values:</i> Any
+
+Azimuth angle of the telescope, expressed in degrees. This angle, together with the [tilt angle](#tiltAngle), characterises the orientation of the telescope pointing (i.e. telescope optical axis) w.r.t. the spacecraft/platform pointing. 
+
+The azimuth angle is the position angle of the rotation of the telescope around the positive z<sub>PLM</sub>-axis (see Figs. 3 and 4).
+
+@image html /images/tiltAzimuth.png "Figure 3: Tilt and azimuth of a telescope."
 
 
 
@@ -247,10 +290,43 @@ Light-collecting area of one telescope, expressed in cm<sup>2</sup>.
 
 
 
-#### <a name="transmissionEfficiency"></a>TransmissionEfficiency
+#### <a name="transmissionEfficiencyBOL"></a>TransmissionEfficiency: BOL
 <i>Allowed values:</i> ∈ [0,1]
 
-Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the Fluxm0 parameter and the magnitudes in the star catalogue.
+Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the Fluxm0 parameter and the magnitudes in the [star catalogue](#starCatalogue), at the beginning of the mission (beginning-of-life).  This parameter is used to model the (linear) degradation in transmission efficiency over the [mission lifetime](#missionDuration).
+
+
+
+#### <a name="transmissionEfficiencyEOL"></a>TransmissionEfficiency: EOL
+<i>Allowed values:</i> ∈ [0,1]
+
+Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the Fluxm0 parameter and the magnitudes in the [star catalogue](#starCatalogue), at the end of the mission (end-of-life).  This parameter is used to model the (linear) degradation in transmission efficiency over the [mission lifetime](#missionDuration).
+
+
+
+#### <a name="useDrift"></a>UseDrift
+<i>Allowed values:</i> "yes" or "no"
+
+Indicates whether the thermo-elastic drift of the telescope (w.r.t. the platform) should be taken into account.
+
+Similar to the [UseJitter](#useJitter) parameter for the platform jitter.
+
+The Plato Simulator can also account for the thermo-elastic drift, of the telescope (w.r.t. the platform). A time series of displacement, expressed in Euler angles (yaw, pitch, roll), either has to be provided as a drift file or will be generated based on the given drift parameters (see further).
+
+The Euler angles (yaw, pitch, roll) are defined as the rotation angles around the z<sub>SC</sub>, y'<sub>SC</sub> and z<sub>telescope</sub> = z<sub>FP</sub> axes (see Fig. 4), such that the anges increase with a clockwise rotation when looking along the positive axes.
+
+
+
+@image html /images/TelescopeCoordinateSystem.png "Figure 4: The optical axis zFP can be obtained from the spacecraft/platform pointing axis zSC by first rotating the (xSC, ySC) plane around the pointing axis zSC over the azimuth angle (left-hand side) nad then rotating the resulting zSC' axis over the tilt angle (right-hand side)."
+
+
+#### <a name="useDriftFromFile"></a>UseDriftFromFile
+<i>Allowed values:</i> "yes" or "no"
+
+Indicates whether the thermo-elastic drift of the telescope (w.r.t. the platform) should be taken into account.
+
+Similar to the [UseJitterFromFile](#useJitterFromFile) parameter for the platform jitter.
+
 
 
 
@@ -259,12 +335,16 @@ Tranmission efficiency of the optical system, considering the passband and spect
 
 Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the yaw value from one thermo-elastic drift position to the next one.
 
+Similar to the [JitterYawRms](#jitterYawRms) parameter for the platform jitter.
+
 
 
 #### <a name="driftPitchRms"></a>DriftPitchRms
 <i>Allowed values:</i> ≥ 0
 
 Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the pitch value from one thermo-elastic drift position to the next one.
+
+Similar to the [JitterPitchRms](#jitterPitchRms) parameter for the platform jitter.
 
 
 
@@ -273,6 +353,8 @@ Standard deviation (expressed in arcsec) of the normal distribution (with zero m
 
 Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the roll value from one thermo-elastic drift position to the next one.
 
+Similar to the [JitterRollRms](#jitterRollRms) parameter for the platform jitter.
+
 
 
 #### <a name="driftTimeScale"></a>DriftTimeScale
@@ -280,6 +362,9 @@ Standard deviation (expressed in arcsec) of the normal distribution (with zero m
 
 Timescale of the thermo-elastic drift (i.e. time between two subsequent drift positions), expressed in seconds.
 
+
+#### <a name="driftFileName"></a>DriftFileName
+Path of the drift file, relative to the [project location](#projectLocation). This is only required if the drift positions must be read from a file ([UseDriftFromFile](#useDriftFromFile) = yes).
 
 
 
@@ -298,7 +383,8 @@ Camera:
     PlateScale:                  0.8333          
     FocalLength:                 0.24712595      
     ThroughputBandwidth:         400             
-    ThroughputLambdaC:           600             
+    ThroughputLambdaC:           600        
+    IncludeAberrationCorrection: yes     
     IncludeFieldDistortion:      yes             
     FieldDistortion:                             
         Type:                    Polynomial1D
@@ -362,8 +448,21 @@ Indicates whether or not the field distortion must be taken into account.
 
 
 
+#### <a name=includeAberrationCorrection></a>IncludeAberrationCorrection
+<i>Allowed values:</i> "yes" and "no"
 
-#### <a name="fieldDistortionType"></a>FieldDistortionType
+Indicates whether or not to apply the differential aberration correction to all star positions in the [star catalogue](#starCatalogue).  This calculation is an approximation based on a circular earth orbit around the sun and does not take the Lissajous orbit of the satellite around L2 into account. We do calculate the differential aberration, however, which takes into account the aberration correction done for the spacecraft pointing.
+
+
+
+#### <a name=includeAberrationCorrection></a>IncludeAberrationCorrection
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to apply the differential aberration correction to all star positions in the [star catalogue](#starCatalogue).  This calculation is an approximation based on a circular earth orbit around the sun and does not take the Lissajous orbit of the satellite around L2 into account. We do calculate the differential aberration, however, which takes into account the aberration correction done for the spacecraft pointing.
+
+
+
+#### <a name="fieldDistortionType"></a>FieldDistortion: Type
 <i>Allowed values:</i> "Polynomial1D" or "Polynomial2D"
 
 Indicates that the field distortion is calculated by means of either a 1D or a 2D polynomial.
@@ -385,7 +484,7 @@ Degree \f$n\f$ of the polynomial describing the field distortion.
 
 
 
-#### <a name="fieldDistortionCoefficients"></a>FieldDistortion
+#### <a name="fieldDistortionCoefficients"></a>FieldDistortion: Coefficients
 
 Coefficients of the polynomial describing the field distortion.  For a 1D polynomial the coefficients are specified as \f$ [c_0, c_1,..., c_n] \f$, whilst for a 2D polynomial as \f$ [[c_{00}, c_{01},..., c_{0n}], [c_{10}, c_{11},..., c_{1n}],..., [c_{n0}, c_{n1},..., c_{nn}]] \f$.
 
@@ -412,52 +511,63 @@ The <b>PSF</b> block of the configuration file contains all the information that
 PSF:
 
     Model:                       Gaussian 
-    Gaussian:                             
+    MappedGaussian:                             
       Sigma:                     0.25     
       NumberOfPixels:            8        
-    FromFile:                             
+    MappedFromFile:                             
       Filename:                  inputfiles/psf.hdf5 
       DistanceToOA:              10       
       RotationAngle:             45         
-      NumberOfPixels:            8          
+      NumberOfPixels:            8
+    AnalyticGaussian:
+      Sigma00:                   1.0
+      SigmaX18:                  5.0
+      SigmaY18:                  2.0
+    AnalyticNonGaussian:
+      ParameterFileName:         inputfiles/parameters.txt
 \endcode
 
 
 
 
 #### <a name="psfModel"></a>Model
-<i>Allowed values:</i> "Gaussian" and "FromFile"
+<i>Allowed values:</i> "MappedGaussian", "MappedFromFile", "AnalyticGaussian", "AnalyticNonGaussian
 
-Indicates whether to use a Gaussian PSF or to read the PSF from an HDF5 file.
+Indicates whether to use a Gaussian PSF, to read the PSF from an HDF5 file, or to use an analytical model (Gaussian or non-Gaussian):
 
-
-
-
-#### <a name="gaussSigma"></a>Gaussian: Sigma
-<i>Allowed values:</i> > 0, only required if a Gaussian PSF must be used ([psfModel](#Model) = Gaussian).
-
-Width (σ) of the two-dimensional Gaussian PSF, expressed in pixels.
+- MappedGaussian: the PSF is a circular Gaussian, the size of which does not change over the FOV;
+- MappedFromFile: the PSF is selected from an HDF5 file with pre-computed PSFs, based on the angular distance to the optical axis;
+- AnalyticGaussian: the PSF is an elongated Gaussian (the symmetry axes being parallel to the x- and y-axis), for which the width and the height are given at the centre of the FOV and at 18 degrees from the optical axis;
+- AnalyticNonGaussian: the PSF is an analytical non-Gaussian model, the parameters of which are stored in a separate file.
 
 
 
 
-#### <a name="gaussNumPixels"></a>Gaussian: NumberOfPixels
-<i>Allowed values:</i> > 0, only required if a Gaussian PSF must be used ([Model](#psfModel) = Gaussian).
+#### <a name="gaussSigma"></a>MappedGaussian: Sigma
+<i>Allowed values:</i> > 0, only required if a Gaussian PSF must be used ([psfModel](#Model) = MappedGaussian).
+
+Width (σ) of the two-dimensional Gaussian PSF, expressed in pixels.  This Gaussian PSF does not vary in size over the FOV.
+
+
+
+
+#### <a name="gaussNumPixels"></a>MappedGaussian: NumberOfPixels
+<i>Allowed values:</i> > 0, only required if a Gaussian PSF must be used ([Model](#psfModel) = MappedGaussian).
 
 Number of pixels (in both directions) for which the Gaussian PSF must be generated.
 
 
 
 
-#### <a name="psfFilename"></a>FromFile: Filename
-<i>Allowed values:</i> only required if a pre-computed PSF must be used ([psfModel](#Model) = FromFile).
+#### <a name="psfFilename"></a>MappedFromFile: Filename
+<i>Allowed values:</i> only required if a pre-computed PSF must be used ([psfModel](#Model) = MappedFromFile).
 
 Path to the file, relative to the [project location](#projectLocation), holding the location independent [pre-computed PSF](#psfFile).
 
 
 
-#### <a name="psfDistance"></a>FromFile: DistanceToOA
-<i>Allowed values:</i> -1 for automatic calculation, ≥ 0 to use the input value; only required if a pre-computed PSF must be used ([Model](#psfModel) = FromFile).
+#### <a name="psfDistance"></a>MappedFromFile: DistanceToOA
+<i>Allowed values:</i> -1 for automatic calculation, ≥ 0 to use the input value; only required if a pre-computed PSF must be used ([Model](#psfModel) = MappedFromFile).
 
 In case a positive value is given the input value will be used for the angular distance to the optical axis.
 
@@ -466,19 +576,125 @@ In case a negative value is given, the angular distance to the optical axis will
 
 
 
-#### <a name="psfRotation"></a>FromFile: RotationAngle
-<i>Allowed values:</i> Any, only required if a pre-computed PSF must be used ([Model](#psfModel) = FromFile).
+#### <a name="psfRotation"></a>MappedFromFile: RotationAngle
+<i>Allowed values:</i> Any, only required if a pre-computed PSF must be used ([Model](#psfModel) = MappedFromFile).
 
 Arbitrary rotation angle of the PSF, expressed in degrees and measured counterclockwise.
 
 
 
 
-#### <a name="psfNumPixels"></a>FromFile: NumberOfPixels
-<i>Allowed values:</i> > 0, only required if a pre-computed PSF must be used ([Model](#psfModel) = FromFile).
+#### <a name="psfNumPixels"></a>MappedFromFile: NumberOfPixels
+<i>Allowed values:</i> > 0, only required if a pre-computed PSF must be used ([Model](#psfModel) = MappedFromFile).
 
 Number of pixels (in both directions) for which the PSF was generated.
 
+
+
+#### <a name=sigma00></a>AnalyticGaussian: Sigma00
+<i>Allowed values:</i> > 0, only required if a pre-computed PSF must be used ([Model](#psfModel) = AnalyticGaussian).
+
+Standard deviation of the analytical Gaussian PSF in the x- and y-direction at the optical axis, expressed in pixels.
+
+
+
+#### <a name=sigmaX18></a>AnalyticGaussian: SigmaX18
+<i>Allowed values:</i> > 0, only required if a pre-computed PSF must be used ([Model](#psfModel) = AnalyticGaussian).
+
+Standard deviation of the analytical PSF in the x-direction at 18 degrees from the optical axis, expressed in pixels.
+
+
+
+#### <a name=sigmaY18></a>AnalyticGaussian: SigmaY18
+<i>Allowed values:</i> > 0, only required if a pre-computed PSF must be used ([Model](#psfModel) = AnalyticGaussian).
+
+Standard deviation of the analytical PSF in the y-direction at 18 degrees from the optical axis, expressed in pixels.
+
+
+
+#### <a name=analyticPsfFile></a>AnalyticNonGaussian: ParameterFileName
+<i>Allowed values:</i> only required if a  ([psfModel](#Model) = AnalyticNonGaussian).
+
+Path to the file, relative to the [project location](#projectLocation), holding the parameters characterising the analytical model.
+
+
+
+
+
+<!-- FEE Parameters -->
+
+## <a name="feeParameters"></a>FEE Parameters
+
+The <b>FEE</b> block of the configuration file contains all the information that is specific to the front-end electronics (FEE).  The structure of this block is the following:
+
+\code{.yaml}
+FEE:
+
+    NominalOperatingTemp:        210.15     
+    ReadoutNoise:                40.5         
+    Gain:          
+    		RefValue:            11.1
+    		ThreeSigma:          0.0    
+    		Stability:           -100    		
+    ElectronicOffset:           
+    		RefValue:            100
+    		Stability:           18.8875 
+\endcode
+
+
+
+
+#### <a name="nominalTempFEE"></a>NominalOperatingTemp
+<i>Allowed values:</i> > 0
+
+Nominal operating temperature of the FEE, expressed in Kelvin.
+
+
+
+#### <a name=readoutNoiseFEE></a>ReadoutNoise
+
+<i>Allowed values:</i> ≥ 0
+
+Mean readout noise of the FEE, expressed in e<sup>-</sup>/pixel.  This is the same for both ADCs.
+
+
+
+#### <a name=gainRefValueFEE></a>Gain: RefValue
+
+<i>Allowed values:</i> > 0
+
+Reference value of the gain of the FEE at its [nominal operating temperature](#nominalTempFEE), expressed in ADU/µV.  The actually gain for the FEE will be different for both ADCs.  We generate a normal distribution, centred at [the reference value](#gainRefValueFEE) and with a width characterised by the [ThreeSigma](#gain3SigmaFEE) parameter, and make two random draws from this distribution.  The outcome will act as gain for ADC1 and ADC2 resp.
+
+
+
+#### <a name=gain3SigmaFEE></a>Gain: ThreeSigma
+
+<i>Allowed values:</i> ∈ [0,100]
+
+Percentage of the [reference value for the gain](#gainRefValueFEE) that will act as 3σ for the normal distribution, centred around the (reference value)[#gainRefValueFEE], from which to draw the gain for both ADCs.
+
+
+#### <a name=gainStabilityFEE></a>Gain: Stability
+
+<i>Allowed values:</i> Any
+
+Change in gain (for both ADCs) with temperature deviations from the nominal operating temperature, expressed in ADU/µV/K.
+
+
+
+#### <a name=electronicOffset></a>ElectronicOffset: RefValue
+
+<i>Allowed values:</i> ≥ 0
+
+Electronic offset or bias level at the nominal operating temperature of the FEE, expressed in ADU, that is added to the digital signal in order to avoid negative readout values. The electronic offset can be measured in a pre-scan strip, which essentially consists of a few additional rows of the CCD. These rows only contain the electronic offset and the readout noise. This pre-scan strip consisting of [NumPreScanRows](#numPreScanRows) rows will be stored in the output file.  This is the same for both ADCs.
+
+
+
+#### <a name=electronicOffsetStability></a>ElectronicOffset: Stability
+
+<i>Allowed values:</i> Any
+
+Change in electronic offset (for both ADCs) with temperature deviations from the nominal operating temperature, expressed in ADU/pixel/K.
 
 
 
@@ -498,7 +714,10 @@ CCD:
     NumColumns:                  4510      
     NumRows:                     4510      
     PixelSize:                   18        
-    Gain:                        16             
+    Gain:                        
+    		RefValue:            1.80
+    		ThreeSigma:          15.0   
+    		Stability:           -0.004    
     QuantumEfficiency:           
     		Efficiency:          0.925
     		RefAngle:            45.0
@@ -591,10 +810,26 @@ Nominal pixel size, expressed in micron.
 
 
         
-#### <a name="gain"></a>Gain
+#### <a name=gainRefValueCCD></a>Gain: RefValue
+
 <i>Allowed values:</i> > 0
 
-CCD gain, expressed in e<sup>-</sup> / ADU and assumed to be constant throughout a simulation. This parameter relates the number of electrons per pixel to the number of counts (i.e. ADU) per pixel.
+Reference value of the gain of the CCD at its [nominal operating temperature](#nominalTempCCD), expressed in µV/e<sup>-</sup>.  The actually gain for the CCD will be different for both CCD halves.  We generate a normal distribution, centred at [the reference value](#gainRefValueCCD) and with a width characterised by the [ThreeSigma](#gain3SigmaCCD) parameter, and make two random draws from this distribution.  The outcome will act as gain for the left and right CCD half resp.
+
+
+
+#### <a name=gain3SigmaCCD></a>Gain: ThreeSigma
+
+<i>Allowed values:</i> ∈ [0,100]
+
+Percentage of the [reference value for the gain](#gainRefValueCCD) that will act as 3σ for the normal distribution, centred around the (reference value)[#gainRefValueCCD], from which to draw the gain for both CCD halves.
+
+
+#### <a name=gainStabilityCCD></a>Gain: Stability
+
+<i>Allowed values:</i> Any
+
+Change in gain (for both CCD halves) with temperature deviations from the nominal operating temperature, expressed in µV/e<sup>-</sup>/K.
 
 
 
@@ -677,23 +912,17 @@ Full-well saturation limit of a single CCD pixel, expressed in e<sup>-</sup> / p
 
 Digital saturation limit of the CCD to which pixel values are topped off, expressed in ADU / pixel. This value depends on the A/D convertor of the detector. For a 16-bit convertor, the digital saturation limit is 65536 ADU.
 
-The [gain](#gain) of the detector should be such that the [full-well saturation](#fullWellSaturation) results in values below the digital saturation limit.
+The gain of the front-end electronics and detector should be such that the [full-well saturation](#fullWellSaturation) results in values below the digital saturation limit.
 
 
      
 
-#### <a name="readoutNoise"></a>ReadoutNoise <i>Allowed values:</i> ≥ 0
+#### <a name="readoutNoise"></a>ReadoutNoise
+<i>Allowed values:</i> ≥ 0
 
 Mean readout noise of the detector, expressed in e<sup>-</sup>.
 
-Readout noise occurs due to the imperfect nature of the CCD amplifiers. When the electrons are transferred to the amplifier, the induced voltage is measured. However, this measurement is not perfect, but gives a value which is on average too high by an amount of the readout noise, with the squareroot of the readout noise as standard deviation.
-       
-       
-       
-#### <a name="electronicOffset"></a>ElectronicOffset
-<i>Allowed values:</i> ≥ 0
-
-Electronic offset or bias level, expressed in ADU, that is added to the digital signal in order to avoid negative readout values. The electronic offset can be measured in a pre-scan strip, which essentially consists of a few additional rows of the CCD. These rows only contain the electronic offset and the readout noise. This pre-scan strip consisting of [NumPreScanRows](#numPreScanRows) rows will be stored in the output file.
+Readout noise occurs due to the imperfect nature of the CCD amplifiers. When the electrons are transferred to the amplifier, the induced voltage is measured. However, this measurement is not perfect, but gives a value which is on average too high by an amount of the readout noise, with the squareroot of the readout noise as standard deviation (we add the readout noise of the FEE and the CCD in quadrature).
        
        
         
@@ -794,6 +1023,15 @@ Array holding the trap capture cross-section <i>σ</i> for each of the considere
 <i>Allowed values:</i> Array holding one non-negative entry per trap species.
 
 Array holding the trap release time constants <i>τ<sub>r</sub></i> for each of the considered trap species, expressed in seconds.
+
+
+
+#### <a name="nominalTempCCD"></a>NominalOperatingTemp
+
+<i>Allowed values:</i> > 0
+
+Nominal operating temperature of the CCD, expressed in Kelvin.C
+
 
 
 #### <a name="inclFlatfield"></a>IncludeFlatfield
@@ -1002,12 +1240,16 @@ Number of sub-pixels per pixel in both directions.
 The <b>RandomSeeds</b> block of the configuration file contains all the seeds for random-number generation in the simulator.  The structure of this block is the following:
 
 \code{.yaml}
+RandomSeeds:
+
     ReadOutNoiseSeed:            1424949740 
     PhotonNoiseSeed:             1433320336 
     JitterSeed:                  1433320381 
     FlatFieldSeed:               1425284070 
     CTESeed:                     1424949740 
     DriftSeed:                   1433429158 
+    FeeGainSeed:                 1429485030
+    CcdGainSeed:                 1420450443
 \endcode
 
 
@@ -1051,6 +1293,18 @@ Seed for the random-number generator used for the CTE.
 <i>Allowed values:</i> > 0
 
 Seed for the random number generator used for the drift.
+
+
+#### FeeGainSeed
+<i>Allowed values:</i> > 0
+
+Seed for the random-number generator used for the FEE gain.
+
+
+#### CcdGainSeed
+<i>Allowed values:</i> > 0
+
+Seed for the random-number generator used for the CCD gain.
 
 
 

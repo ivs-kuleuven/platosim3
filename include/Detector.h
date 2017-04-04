@@ -121,11 +121,11 @@ class Detector: public HDF5Writer
     	double expectedValueQuantumEfficiency;   // Expected value of the throughput efficiency due to quantum efficiency
     	double readoutTime;                      // Readout time [s]
     	double readoutNoise;                     // Mean readout noise [electrons]
-        double refValueGain;                     // Detector gain [µV/e-]
-        double gainStability;                    // Gain stability [µV/e-]
-        double gainDelta;                        // Allowed difference in detector gain between the left and the right half of the detector
-        double refValueGainLeft;                 // Reference value for the gain on the ACD reading the left-hand side of the detector [µV/e-]
-        double refValueGainRight;                // Reference value for the gain on the ACD reading the right-hand side of the detector [µV/e-]
+    double refValueGain;                     // Detector gain [µV/e-]
+    double gainStability;                    // Gain stability [µV/e-]
+    double gainThreeSigma;					// Allowed difference (3 sigma) in gain between the left and the right half of the detector [% of the reference value]
+    double refValueGainLeft;                 // Reference value for the gain on the ACD reading the left-hand side of the detector [µV/e-]
+    double refValueGainRight;                // Reference value for the gain on the ACD reading the right-hand side of the detector [µV/e-]
     	unsigned long fullWellSaturationLimit;   // Full-well saturation limit [electrons/pixel]
     	unsigned int electronicOffset;           // Bias or electronic offset [ADU]
     	unsigned long digitalSaturationLimit; 	 // Digital saturation limit [ADU / pixel]

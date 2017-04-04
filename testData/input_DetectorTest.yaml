@@ -75,7 +75,7 @@ FEE:
     Gain:
         RefValue:                    11.1            # [ADU/µV] (Total gain = FFE gain * CCD gain = 20 e-/ADU)
         Stability:                   -100.0          # [ppm/K] = [ADU/µV/K]
-        Delta:                       0.0             # Difference in gain betwwen both ADCs [%]
+        ThreeSigma:                  0.0             # Difference (3 sigma) in gain between both ADCs [% of the reference value]
     ElectronicOffset: 
         RefValue:                    100             # Reference value for the electronic offset [ADU/pixel]
         Stability:                   1               # Offset stability [ADU/pixel/K]
@@ -91,7 +91,7 @@ CCD:
     Gain:                            #16         # [e-/ADU]
         RefValue:                     1.80       # [µV/e-]
         Stability:                   -0.004      # [µV/e-/K]
-        Delta:                       0.0         # Difference in gain between both CCD halves [%]
+        ThreeSigma:                  0.0         # Difference (3 sigma) in gain between both CCD halves [% of the reference value]
     QuantumEfficiency:
         Efficiency:              0.925           # Throughput efficiency due to quantum efficiency at the reference angle
         RefAngle:                45.0            # Reference angle for quantum efficiency [degrees]
