@@ -292,14 +292,14 @@ Light-collecting area of one telescope, expressed in cm<sup>2</sup>.
 #### <a name="transmissionEfficiencyBOL"></a>TransmissionEfficiency: BOL
 <i>Allowed values:</i> ∈ [0,1]
 
-Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the Fluxm0 parameter and the magnitudes in the star catalogue, at the beginning of the mission (beginning-of-life).  This parameter is used to model the (linear) degradation in transmission efficiency over the [mission lifetime](#missionDuration).
+Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the Fluxm0 parameter and the magnitudes in the [star catalogue](#starCatalogue), at the beginning of the mission (beginning-of-life).  This parameter is used to model the (linear) degradation in transmission efficiency over the [mission lifetime](#missionDuration).
 
 
 
 #### <a name="transmissionEfficiencyEOL"></a>TransmissionEfficiency: EOL
 <i>Allowed values:</i> ∈ [0,1]
 
-Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the Fluxm0 parameter and the magnitudes in the star catalogue, at the end of the mission (end-of-life).  This parameter is used to model the (linear) degradation in transmission efficiency over the [mission lifetime](#missionDuration).
+Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the Fluxm0 parameter and the magnitudes in the [star catalogue](#starCatalogue), at the end of the mission (end-of-life).  This parameter is used to model the (linear) degradation in transmission efficiency over the [mission lifetime](#missionDuration).
 
 
 
@@ -382,7 +382,8 @@ Camera:
     PlateScale:                  0.8333          
     FocalLength:                 0.24712595      
     ThroughputBandwidth:         400             
-    ThroughputLambdaC:           600             
+    ThroughputLambdaC:           600        
+    IncludeAberrationCorrection: yes     
     IncludeFieldDistortion:      yes             
     FieldDistortion:                             
         Type:                    Polynomial1D
@@ -446,8 +447,21 @@ Indicates whether or not the field distortion must be taken into account.
 
 
 
+#### <a name=includeAberrationCorrection></a>IncludeAberrationCorrection
+<i>Allowed values:</i> "yes" and "no"
 
-#### <a name="fieldDistortionType"></a>FieldDistortionType
+Indicates whether or not to apply the differential aberration correction to all star positions in the [star catalogue](#starCatalogue).  This calculation is an approximation based on a circular earth orbit around the sun and does not take the Lissajous orbit of the satellite around L2 into account. We do calculate the differential aberration, however, which takes into account the aberration correction done for the spacecraft pointing.
+
+
+
+#### <a name=includeAberrationCorrection></a>IncludeAberrationCorrection
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to apply the differential aberration correction to all star positions in the [star catalogue](#starCatalogue).  This calculation is an approximation based on a circular earth orbit around the sun and does not take the Lissajous orbit of the satellite around L2 into account. We do calculate the differential aberration, however, which takes into account the aberration correction done for the spacecraft pointing.
+
+
+
+#### <a name="fieldDistortionType"></a>FieldDistortion: Type
 <i>Allowed values:</i> "Polynomial1D" or "Polynomial2D"
 
 Indicates that the field distortion is calculated by means of either a 1D or a 2D polynomial.
@@ -469,7 +483,7 @@ Degree \f$n\f$ of the polynomial describing the field distortion.
 
 
 
-#### <a name="fieldDistortionCoefficients"></a>FieldDistortion
+#### <a name="fieldDistortionCoefficients"></a>FieldDistortion: Coefficients
 
 Coefficients of the polynomial describing the field distortion.  For a 1D polynomial the coefficients are specified as \f$ [c_0, c_1,..., c_n] \f$, whilst for a 2D polynomial as \f$ [[c_{00}, c_{01},..., c_{0n}], [c_{10}, c_{11},..., c_{1n}],..., [c_{n0}, c_{n1},..., c_{nn}]] \f$.
 
