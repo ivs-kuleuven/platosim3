@@ -510,52 +510,63 @@ The <b>PSF</b> block of the configuration file contains all the information that
 PSF:
 
     Model:                       Gaussian 
-    Gaussian:                             
+    MappedGaussian:                             
       Sigma:                     0.25     
       NumberOfPixels:            8        
-    FromFile:                             
+    MappedFromFile:                             
       Filename:                  inputfiles/psf.hdf5 
       DistanceToOA:              10       
       RotationAngle:             45         
-      NumberOfPixels:            8          
+      NumberOfPixels:            8
+    AnalyticGaussian:
+      Sigma00:                   1.0
+      SigmaX18:                  5.0
+      SigmaY18:                  2.0
+    AnalyticNonGaussian:
+      ParameterFileName:         inputfiles/parameters.txt
 \endcode
 
 
 
 
 #### <a name="psfModel"></a>Model
-<i>Allowed values:</i> "Gaussian" and "FromFile"
+<i>Allowed values:</i> "MappedGaussian", "MappedFromFile", "AnalyticGaussian", "AnalyticNonGaussian
 
-Indicates whether to use a Gaussian PSF or to read the PSF from an HDF5 file.
+Indicates whether to use a Gaussian PSF, to read the PSF from an HDF5 file, or to use an analytical model (Gaussian or non-Gaussian):
 
-
-
-
-#### <a name="gaussSigma"></a>Gaussian: Sigma
-<i>Allowed values:</i> > 0, only required if a Gaussian PSF must be used ([psfModel](#Model) = Gaussian).
-
-Width (σ) of the two-dimensional Gaussian PSF, expressed in pixels.
+- MappedGaussian: the PSF is a circular Gaussian, the size of which does not change over the FOV;
+- MappedFromFile: the PSF is selected from an HDF5 file with pre-computed PSFs, based on the angular distance to the optical axis;
+- AnalyticGaussian: the PSF is an elongated Gaussian (the symmetry axes being parallel to the x- and y-axis), for which the width and the height are given at the centre of the FOV and at 18 degrees from the optical axis;
+- AnalyticNonGaussian: the PSF is an analytical non-Gaussian model, the parameters of which are stored in a separate file.
 
 
 
 
-#### <a name="gaussNumPixels"></a>Gaussian: NumberOfPixels
-<i>Allowed values:</i> > 0, only required if a Gaussian PSF must be used ([Model](#psfModel) = Gaussian).
+#### <a name="gaussSigma"></a>MappedGaussian: Sigma
+<i>Allowed values:</i> > 0, only required if a Gaussian PSF must be used ([psfModel](#Model) = MappedGaussian).
+
+Width (σ) of the two-dimensional Gaussian PSF, expressed in pixels.  This Gaussian PSF does not vary in size over the FOV.
+
+
+
+
+#### <a name="gaussNumPixels"></a>MappedGaussian: NumberOfPixels
+<i>Allowed values:</i> > 0, only required if a Gaussian PSF must be used ([Model](#psfModel) = MappedGaussian).
 
 Number of pixels (in both directions) for which the Gaussian PSF must be generated.
 
 
 
 
-#### <a name="psfFilename"></a>FromFile: Filename
-<i>Allowed values:</i> only required if a pre-computed PSF must be used ([psfModel](#Model) = FromFile).
+#### <a name="psfFilename"></a>MappedFromFile: Filename
+<i>Allowed values:</i> only required if a pre-computed PSF must be used ([psfModel](#Model) = MappedFromFile).
 
 Path to the file, relative to the [project location](#projectLocation), holding the location independent [pre-computed PSF](#psfFile).
 
 
 
-#### <a name="psfDistance"></a>FromFile: DistanceToOA
-<i>Allowed values:</i> -1 for automatic calculation, ≥ 0 to use the input value; only required if a pre-computed PSF must be used ([Model](#psfModel) = FromFile).
+#### <a name="psfDistance"></a>MappedFromFile: DistanceToOA
+<i>Allowed values:</i> -1 for automatic calculation, ≥ 0 to use the input value; only required if a pre-computed PSF must be used ([Model](#psfModel) = MappedFromFile).
 
 In case a positive value is given the input value will be used for the angular distance to the optical axis.
 
@@ -564,18 +575,46 @@ In case a negative value is given, the angular distance to the optical axis will
 
 
 
-#### <a name="psfRotation"></a>FromFile: RotationAngle
-<i>Allowed values:</i> Any, only required if a pre-computed PSF must be used ([Model](#psfModel) = FromFile).
+#### <a name="psfRotation"></a>MappedFromFile: RotationAngle
+<i>Allowed values:</i> Any, only required if a pre-computed PSF must be used ([Model](#psfModel) = MappedFromFile).
 
 Arbitrary rotation angle of the PSF, expressed in degrees and measured counterclockwise.
 
 
 
 
-#### <a name="psfNumPixels"></a>FromFile: NumberOfPixels
-<i>Allowed values:</i> > 0, only required if a pre-computed PSF must be used ([Model](#psfModel) = FromFile).
+#### <a name="psfNumPixels"></a>MappedFromFile: NumberOfPixels
+<i>Allowed values:</i> > 0, only required if a pre-computed PSF must be used ([Model](#psfModel) = MappedFromFile).
 
 Number of pixels (in both directions) for which the PSF was generated.
+
+
+
+#### <a name=sigma00></a>AnalyticGaussian: Sigma00
+<i>Allowed values:</i> > 0, only required if a pre-computed PSF must be used ([Model](#psfModel) = AnalyticGaussian).
+
+Standard deviation of the analytical Gaussian PSF in the x- and y-direction at the optical axis, expressed in pixels.
+
+
+
+#### <a name=sigmaX18></a>AnalyticGaussian: SigmaX18
+<i>Allowed values:</i> > 0, only required if a pre-computed PSF must be used ([Model](#psfModel) = AnalyticGaussian).
+
+Standard deviation of the analytical PSF in the x-direction at 18 degrees from the optical axis, expressed in pixels.
+
+
+
+#### <a name=sigmaY18></a>AnalyticGaussian: SigmaY18
+<i>Allowed values:</i> > 0, only required if a pre-computed PSF must be used ([Model](#psfModel) = AnalyticGaussian).
+
+Standard deviation of the analytical PSF in the y-direction at 18 degrees from the optical axis, expressed in pixels.
+
+
+
+#### <a name=analyticPsfFile></a>AnalyticNonGaussian: ParameterFileName
+<i>Allowed values:</i> only required if a  ([psfModel](#Model) = AnalyticNonGaussian).
+
+Path to the file, relative to the [project location](#projectLocation), holding the parameters characterising the analytical model.
 
 
 
