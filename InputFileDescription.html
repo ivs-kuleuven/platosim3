@@ -155,12 +155,12 @@ Figure 1: Long simulations will be chopped up into smaller simulations that can 
 <p>Indicates whether pointing variations should be taken into account.</p>
 <p>The Plato Simulator can also account for pointing variations of the spacecraft, so-called jitter. A time series of pointing displacement, expressed in Euler angles (yaw, pitch, roll), either has to be provided as a jitter file or will be generated based on the given jitter parameters (see further).</p>
 <p>To ensure a realistic modelling of the jitter, the <a href="#jitterTimeScale">time step of the jitter time series</a> must be smaller than the <a href="#exposureTime">exposure time</a>.</p>
-<p>The configuration of the jitter axes is depicted below. The Euler angles that characterise the jitter are defined w.r.t. to the spacecraft coordinate system (see Fig. 1). The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module. The positive roll axis z<sub>SC</sub> points towards the operator-given mean payload line-of-sight, given by the equatorial coordinates (<a href="#raPointing">RApointing</a>, <a href="#decPointing">DecPointing</a>).</p>
+<p>The configuration of the jitter axes is depicted below. The Euler angles that characterise the jitter are defined w.r.t. to the spacecraft coordinate system (see Fig. 2). The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module. The positive roll axis z<sub>SC</sub> points towards the operator-given mean payload line-of-sight, given by the equatorial coordinates (<a href="#raPointing">RApointing</a>, <a href="#decPointing">DecPointing</a>).</p>
 <p>The angles are defined such that they increase with a clockwise rotation, when looking along the positive axes. First a roll rotation is done around the z<sub>SC</sub> axis, then a pitch rotation is done around the rotated y<sub>SC</sub> axis, and finally a yaw rotation is done around the twice-rotated x<sub>SC</sub> axis.</p>
 <div class="image">
 <img src="jitterConfiguration.png" alt="jitterConfiguration.png"/>
 <div class="caption">
-Figure 1: Configuration of the jitter axes for the Plato Simulator, defined w.r.t. the spacecraft coordinate system (xSC, ySC, z&lt;sub&gt;SC&lt;/sub&gt;). The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module. The positive zSC axis points towards the operator-given pointing coordinates. The xSC axis points in the direction of the highest point of the sunshield.</div></div>
+Figure 2: Configuration of the jitter axes for the Plato Simulator, defined w.r.t. the spacecraft coordinate system (xSC, ySC, z&lt;sub&gt;SC&lt;/sub&gt;). The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module. The positive zSC axis points towards the operator-given pointing coordinates. The xSC axis points in the direction of the highest point of the sunshield.</div></div>
 <h4><a class="anchor" id="useJitterFromFile"></a>UseJitterFromFile</h4>
 <p><em>Allowed values:</em> "yes" and "no"</p>
 <p>Indicates whether the jitter time series must be read from a jitter file ("yes") or the jitter positions must be generated from the jitter parameters ("no").</p>
@@ -180,24 +180,58 @@ Figure 1: Configuration of the jitter axes for the Plato Simulator, defined w.r.
 <p>Path of the jitter file, relative to the <a href="#projectLocation">project location</a>. This is only required if the jitter positions must be read from a file (<a href="#useJitterFromFile">UseJitterFromFile</a> = yes).</p>
 <h3><a class="anchor" id="telescopeParameters"></a>Telescope Parameters</h3>
 <p>The <b>Telescope</b> block of the configuration file contains all the information that is specific to the telescope. The structure of this block is the following:</p>
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;Telescope:</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;    </div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;    LightCollectingArea:         113.1         </div><div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;    TransmissionEfficiency:      0.757         </div><div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;    DriftYawRms:                 2.3           </div><div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;    DriftPitchRms:               2.3           </div><div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;    DriftRollRms:                2.3           </div><div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;    DriftTimeScale:              3600.         </div></div><!-- fragment --><h4><a class="anchor" id="lightCollectingArea"></a>LightCollectingArea</h4>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;Telescope:</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;     </div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;    AzimuthAngle:                0.0</div><div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;    TiltAngle:                   0.0</div><div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;    LightCollectingArea:         113.1         </div><div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;    TransmissionEfficiency:      </div><div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;    UseDrift:                    yes</div><div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;    UseDriftFromFile:            no      </div><div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;    DriftYawRms:                 2.3           </div><div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;    DriftPitchRms:               2.3           </div><div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;    DriftRollRms:                2.3           </div><div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;    DriftTimeScale:              3600.</div><div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;    DriftFileName:               /inputfiles/drift.txt         </div></div><!-- fragment --><h4><a class="anchor" id="tiltAngle"></a>TiltAngle</h4>
+<p><em>Allowed values:</em> &gt; 0</p>
+<p>Tilt angle of the telescope, expressed in degrees. This angle, together with the <a href="#azimuthAngle">azimuth angle</a>, characterises the orientation of the telescope pointing (i.e. telescope optical axis) w.r.t. the spacecraft/platform pointing.</p>
+<p>The tilt angle is the offset between the telescope optical axis and the platform pointing, i.e. the angle between the telescope line-of-sight (positive z<sub>telescope</sub>)-axis and the positive z<sub>PLM</sub>-axis (see Figs. 3 and 4).</p>
+<h4><a class="anchor" id="azimuthAngle"></a></h4>
+<p><em>Allowed values:</em> Any</p>
+<p>Azimuth angle of the telescope, expressed in degrees. This angle, together with the <a href="#tiltAngle">tilt angle</a>, characterises the orientation of the telescope pointing (i.e. telescope optical axis) w.r.t. the spacecraft/platform pointing.</p>
+<p>The azimuth angle is the position angle of the rotation of the telescope around the positive z<sub>PLM</sub>-axis (see Figs. 3 and 4).</p>
+<div class="image">
+<img src="tiltAzimuth.png" alt="tiltAzimuth.png"/>
+<div class="caption">
+Figure 3: Tilt and azimuth of a telescope.</div></div>
+<h4><a class="anchor" id="lightCollectingArea"></a>LightCollectingArea</h4>
 <p><em>Allowed values:</em> &gt; 0</p>
 <p>Light-collecting area of one telescope, expressed in cm<sup>2</sup>.</p>
-<h4><a class="anchor" id="transmissionEfficiency"></a>TransmissionEfficiency</h4>
+<h4><a class="anchor" id="transmissionEfficiencyBOL"></a>TransmissionEfficiency: BOL</h4>
 <p><em>Allowed values:</em> ∈ [0,1]</p>
-<p>Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the Fluxm0 parameter and the magnitudes in the star catalogue.</p>
+<p>Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the Fluxm0 parameter and the magnitudes in the star catalogue, at the beginning of the mission (beginning-of-life). This parameter is used to model the (linear) degradation in transmission efficiency over the <a href="#missionDuration">mission lifetime</a>.</p>
+<h4><a class="anchor" id="transmissionEfficiencyEOL"></a>TransmissionEfficiency: EOL</h4>
+<p><em>Allowed values:</em> ∈ [0,1]</p>
+<p>Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the Fluxm0 parameter and the magnitudes in the star catalogue, at the end of the mission (end-of-life). This parameter is used to model the (linear) degradation in transmission efficiency over the <a href="#missionDuration">mission lifetime</a>.</p>
+<h4><a class="anchor" id="useDrift"></a>UseDrift</h4>
+<p><em>Allowed values:</em> "yes" or "no"</p>
+<p>Indicates whether the thermo-elastic drift of the telescope (w.r.t. the platform) should be taken into account.</p>
+<p>Similar to the <a href="#useJitter">UseJitter</a> parameter for the platform jitter.</p>
+<p>The Plato Simulator can also account for the thermo-elastic drift, of the telescope (w.r.t. the platform). A time series of displacement, expressed in Euler angles (yaw, pitch, roll), either has to be provided as a drift file or will be generated based on the given drift parameters (see further).</p>
+<p>The Euler angles (yaw, pitch, roll) are defined as the rotation angles around the z<sub>SC</sub>, y'<sub>SC</sub> and z<sub>telescope</sub> = z<sub>FP</sub> axes (see Fig. 4), such that the anges increase with a clockwise rotation when looking along the positive axes.</p>
+<div class="image">
+<img src="TelescopeCoordinateSystem.png" alt="TelescopeCoordinateSystem.png"/>
+<div class="caption">
+Figure 4: The optical axis zFP can be obtained from the spacecraft/platform pointing axis zSC by first rotating the (xSC, ySC) plane around the pointing axis zSC over the azimuth angle (left-hand side) nad then rotating the resulting zSC' axis over the tilt angle (right-hand side).</div></div>
+<h4><a class="anchor" id="useDriftFromFile"></a>UseDriftFromFile</h4>
+<p><em>Allowed values:</em> "yes" or "no"</p>
+<p>Indicates whether the thermo-elastic drift of the telescope (w.r.t. the platform) should be taken into account.</p>
+<p>Similar to the <a href="#useJitterFromFile">UseJitterFromFile</a> parameter for the platform jitter.</p>
 <h4><a class="anchor" id="driftYawRms"></a>DriftYawRms</h4>
 <p><em>Allowed values:</em> ≥ 0</p>
 <p>Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the yaw value from one thermo-elastic drift position to the next one.</p>
+<p>Similar to the <a href="#jitterYawRms">JitterYawRms</a> parameter for the platform jitter.</p>
 <h4><a class="anchor" id="driftPitchRms"></a>DriftPitchRms</h4>
 <p><em>Allowed values:</em> ≥ 0</p>
 <p>Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the pitch value from one thermo-elastic drift position to the next one.</p>
+<p>Similar to the <a href="#jitterPitchRms">JitterPitchRms</a> parameter for the platform jitter.</p>
 <h4><a class="anchor" id="driftRollRms"></a>DriftRollRms</h4>
 <p><em>Allowed values:</em> ≥ 0</p>
 <p>Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the roll value from one thermo-elastic drift position to the next one.</p>
+<p>Similar to the <a href="#jitterRollRms">JitterRollRms</a> parameter for the platform jitter.</p>
 <h4><a class="anchor" id="driftTimeScale"></a>DriftTimeScale</h4>
 <p><em>Allowed values:</em> &gt; 0</p>
 <p>Timescale of the thermo-elastic drift (i.e. time between two subsequent drift positions), expressed in seconds.</p>
+<h4><a class="anchor" id="driftFileName"></a>DriftFileName</h4>
+<p>Path of the drift file, relative to the <a href="#projectLocation">project location</a>. This is only required if the drift positions must be read from a file (<a href="#useDriftFromFile">UseDriftFromFile</a> = yes).</p>
 <h2><a class="anchor" id="cameraParameters"></a>Camera Parameters</h2>
 <p>The <b>Camera</b> block of the configuration file contains all the information that is specific to the camera. The structure of this block is the following:</p>
 <div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;Camera:</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;    </div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;    FocalPlaneOrientation:       0.0             </div><div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;    PlateScale:                  0.8333          </div><div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;    FocalLength:                 0.24712595      </div><div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;    ThroughputBandwidth:         400             </div><div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;    ThroughputLambdaC:           600             </div><div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;    IncludeFieldDistortion:      yes             </div><div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;    FieldDistortion:                             </div><div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;        Type:                    Polynomial1D</div><div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;        Degree:                  3</div><div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;        Coefficients:            [-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06]</div><div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;        InverseCoefficients:     [-0.00458067036444, 1.00110311283, -5.61136295937e-05, -4.311925329e-06]</div></div><!-- fragment --><h4><a class="anchor" id="focalPlaneOrientation"></a>FocalPlaneOrientation</h4>
