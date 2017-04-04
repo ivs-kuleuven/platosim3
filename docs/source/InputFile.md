@@ -912,7 +912,7 @@ Full-well saturation limit of a single CCD pixel, expressed in e<sup>-</sup> / p
 
 Digital saturation limit of the CCD to which pixel values are topped off, expressed in ADU / pixel. This value depends on the A/D convertor of the detector. For a 16-bit convertor, the digital saturation limit is 65536 ADU.
 
-The [gain](#gain) of the detector should be such that the [full-well saturation](#fullWellSaturation) results in values below the digital saturation limit.
+The gain of the front-end electronics and detector should be such that the [full-well saturation](#fullWellSaturation) results in values below the digital saturation limit.
 
 
      
@@ -1240,12 +1240,16 @@ Number of sub-pixels per pixel in both directions.
 The <b>RandomSeeds</b> block of the configuration file contains all the seeds for random-number generation in the simulator.  The structure of this block is the following:
 
 \code{.yaml}
+RandomSeeds:
+
     ReadOutNoiseSeed:            1424949740 
     PhotonNoiseSeed:             1433320336 
     JitterSeed:                  1433320381 
     FlatFieldSeed:               1425284070 
     CTESeed:                     1424949740 
     DriftSeed:                   1433429158 
+    FeeGainSeed:                 1429485030
+    CcdGainSeed:                 1420450443
 \endcode
 
 
@@ -1289,6 +1293,18 @@ Seed for the random-number generator used for the CTE.
 <i>Allowed values:</i> > 0
 
 Seed for the random number generator used for the drift.
+
+
+#### FeeGainSeed
+<i>Allowed values:</i> > 0
+
+Seed for the random-number generator used for the FEE gain.
+
+
+#### CcdGainSeed
+<i>Allowed values:</i> > 0
+
+Seed for the random-number generator used for the CCD gain.
 
 
 

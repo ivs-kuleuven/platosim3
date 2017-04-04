@@ -406,7 +406,7 @@ Figure 2: A schematic overview of the focal plane with 4 CCDs. The optical axis 
 <h4><a class="anchor" id="digitalSaturation"></a>DigitalSaturation</h4>
 <p><em>Allowed values:</em> &gt; 0</p>
 <p>Digital saturation limit of the CCD to which pixel values are topped off, expressed in ADU / pixel. This value depends on the A/D convertor of the detector. For a 16-bit convertor, the digital saturation limit is 65536 ADU.</p>
-<p>The <a href="#gain">gain</a> of the detector should be such that the <a href="#fullWellSaturation">full-well saturation</a> results in values below the digital saturation limit.</p>
+<p>The gain of the front-end electronics and detector should be such that the <a href="#fullWellSaturation">full-well saturation</a> results in values below the digital saturation limit.</p>
 <h4><a class="anchor" id="readoutNoise"></a>ReadoutNoise</h4>
 <p><em>Allowed values:</em> ≥ 0</p>
 <p>Mean readout noise of the detector, expressed in e<sup>-</sup>.</p>
@@ -530,7 +530,7 @@ Figure 3: Schematic presentation of the modelled sub-field and the parameters re
 <p>Number of sub-pixels per pixel in both directions.</p>
 <h2><a class="anchor" id="seedParameters"></a>Seed Parameters</h2>
 <p>The <b>RandomSeeds</b> block of the configuration file contains all the seeds for random-number generation in the simulator. The structure of this block is the following:</p>
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;ReadOutNoiseSeed:            1424949740 </div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;PhotonNoiseSeed:             1433320336 </div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;JitterSeed:                  1433320381 </div><div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;FlatFieldSeed:               1425284070 </div><div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;CTESeed:                     1424949740 </div><div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;DriftSeed:                   1433429158 </div></div><!-- fragment --><h4>ReadOutNoiseSeed</h4>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;RandomSeeds:</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;</div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;    ReadOutNoiseSeed:            1424949740 </div><div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;    PhotonNoiseSeed:             1433320336 </div><div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;    JitterSeed:                  1433320381 </div><div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;    FlatFieldSeed:               1425284070 </div><div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;    CTESeed:                     1424949740 </div><div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;    DriftSeed:                   1433429158 </div><div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;    FeeGainSeed:                 1429485030</div><div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;    CcdGainSeed:                 1420450443</div></div><!-- fragment --><h4>ReadOutNoiseSeed</h4>
 <p><em>Allowed values:</em> &gt; 0</p>
 <p>Seed for the random-number generator used for the readout noise.</p>
 <h4>PhotonNoiseSeed</h4>
@@ -548,6 +548,12 @@ Figure 3: Schematic presentation of the modelled sub-field and the parameters re
 <h4>DriftSeed</h4>
 <p><em>Allowed values:</em> &gt; 0</p>
 <p>Seed for the random number generator used for the drift.</p>
+<h4>FeeGainSeed</h4>
+<p><em>Allowed values:</em> &gt; 0</p>
+<p>Seed for the random-number generator used for the FEE gain.</p>
+<h4>CcdGainSeed</h4>
+<p><em>Allowed values:</em> &gt; 0</p>
+<p>Seed for the random-number generator used for the CCD gain.</p>
 <h1><a class="anchor" id="starCatalogue"></a>Star Catalogue</h1>
 <p>A star catalogue must be provided in a file in ASCII format. This file should contain three columns, separated by a space, holding the following information:</p><ul>
 <li>right ascension of the stars [degrees]</li>
