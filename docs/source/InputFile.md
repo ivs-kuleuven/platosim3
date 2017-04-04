@@ -634,8 +634,8 @@ FEE:
     ReadoutNoise:                40.5         
     Gain:          
     		RefValue:            11.1
-    		Stability:           -100
-    		ThreeSigma:          15    
+    		ThreeSigma:          0.0    
+    		Stability:           -100    		
     ElectronicOffset:           
     		RefValue:            100
     		Stability:           18.8875 
@@ -714,7 +714,10 @@ CCD:
     NumColumns:                  4510      
     NumRows:                     4510      
     PixelSize:                   18        
-    Gain:                        16             
+    Gain:                        
+    		RefValue:            1.80
+    		ThreeSigma:          15.0   
+    		Stability:           -0.004    
     QuantumEfficiency:           
     		Efficiency:          0.925
     		RefAngle:            45.0
@@ -807,10 +810,26 @@ Nominal pixel size, expressed in micron.
 
 
         
-#### <a name="gain"></a>Gain
+#### <a name=gainRefValueCCD></a>Gain: RefValue
+
 <i>Allowed values:</i> > 0
 
-CCD gain, expressed in e<sup>-</sup> / ADU and assumed to be constant throughout a simulation. This parameter relates the number of electrons per pixel to the number of counts (i.e. ADU) per pixel.
+Reference value of the gain of the CCD at its [nominal operating temperature](#nominalTempCCD), expressed in µV/e<sup>-</sup>.  The actually gain for the CCD will be different for both CCD halves.  We generate a normal distribution, centred at [the reference value](#gainRefValueCCD) and with a width characterised by the [ThreeSigma](#gain3SigmaCCD) parameter, and make two random draws from this distribution.  The outcome will act as gain for the left and right CCD half resp.
+
+
+
+#### <a name=gain3SigmaCCD></a>Gain: ThreeSigma
+
+<i>Allowed values:</i> ∈ [0,100]
+
+Percentage of the [reference value for the gain](#gainRefValueCCD) that will act as 3σ for the normal distribution, centred around the (reference value)[#gainRefValueCCD], from which to draw the gain for both CCD halves.
+
+
+#### <a name=gainStabilityCCD></a>Gain: Stability
+
+<i>Allowed values:</i> Any
+
+Change in gain (for both CCD halves) with temperature deviations from the nominal operating temperature, expressed in µV/e<sup>-</sup>/K.
 
 
 
@@ -903,14 +922,7 @@ The [gain](#gain) of the detector should be such that the [full-well saturation]
 
 Mean readout noise of the detector, expressed in e<sup>-</sup>.
 
-Readout noise occurs due to the imperfect nature of the CCD amplifiers. When the electrons are transferred to the amplifier, the induced voltage is measured. However, this measurement is not perfect, but gives a value which is on average too high by an amount of the readout noise, with the squareroot of the readout noise as standard deviation.
-       
-       
-       
-#### <a name="electronicOffset"></a>ElectronicOffset
-<i>Allowed values:</i> ≥ 0
-
-Electronic offset or bias level, expressed in ADU, that is added to the digital signal in order to avoid negative readout values. The electronic offset can be measured in a pre-scan strip, which essentially consists of a few additional rows of the CCD. These rows only contain the electronic offset and the readout noise. This pre-scan strip consisting of [NumPreScanRows](#numPreScanRows) rows will be stored in the output file.
+Readout noise occurs due to the imperfect nature of the CCD amplifiers. When the electrons are transferred to the amplifier, the induced voltage is measured. However, this measurement is not perfect, but gives a value which is on average too high by an amount of the readout noise, with the squareroot of the readout noise as standard deviation (we add the readout noise of the FEE and the CCD in quadrature).
        
        
         
@@ -1011,6 +1023,15 @@ Array holding the trap capture cross-section <i>σ</i> for each of the considere
 <i>Allowed values:</i> Array holding one non-negative entry per trap species.
 
 Array holding the trap release time constants <i>τ<sub>r</sub></i> for each of the considered trap species, expressed in seconds.
+
+
+
+#### <a name="nominalTempCCD"></a>NominalOperatingTemp
+
+<i>Allowed values:</i> > 0
+
+Nominal operating temperature of the CCD, expressed in Kelvin.C
+
 
 
 #### <a name="inclFlatfield"></a>IncludeFlatfield
