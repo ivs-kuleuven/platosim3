@@ -47,9 +47,9 @@ class FrontEndElectronics: public HDF5Writer
 
 		double readoutNoise;                     // FEE readout noise [e-/pixel]
 
-		double refValueGain;					 // Reference value for the FEE gain [µV/e-]
-		double gainStability;					 // Gain stability for the FEE [µV/e-/K]
-		double gainDelta;						 // Allowed difference in gain between the left and the right half of the detector [%]
+		double refValueGain;					    // Reference value for the FEE gain [µV/e-]
+		double gainStability;					// Gain stability for the FEE [µV/e-/K]
+		double gainThreeSigma;					// Allowed difference (3 sigma) in gain between both ADCs [% of the reference value]
 
 		double refValueGainLeft;				 // Reference value for the gain on the ACD reading the left-hand side of the detector [µV/e-]
 		double refValueGainRight;				 // Reference value for the gain on the ACD reading the right-hand side of the detector [µV/e-]
