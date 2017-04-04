@@ -10,6 +10,7 @@ Any desired simulation can be obtained by modifying the following input:
 		- [telescope parameters](#telescopeParameters)
 		- [camera parameters](#cameraParameters)
 		- [PSF parameters](#psfParameters)
+		- [FEE parameters](#feeParameters)
 		- [CCD parameters](#ccdParameters)
 		- [sub-field parameters](#subFieldParameters)
 		- [seed parameters](#seedParameters)
@@ -620,6 +621,84 @@ Path to the file, relative to the [project location](#projectLocation), holding 
 
 
 
+<!-- FEE Parameters -->
+
+## <a name="feeParameters"></a>FEE Parameters
+
+The <b>FEE</b> block of the configuration file contains all the information that is specific to the front-end electronics (FEE).  The structure of this block is the following:
+
+\code{.yaml}
+FEE:
+
+    NominalOperatingTemp:        210.15     
+    ReadoutNoise:                40.5         
+    Gain:          
+    		RefValue:            11.1
+    		Stability:           -100
+    		ThreeSigma:          15    
+    ElectronicOffset:           
+    		RefValue:            100
+    		Stability:           18.8875 
+\endcode
+
+
+
+
+#### <a name="nominalTempFEE"></a>NominalOperatingTemp
+<i>Allowed values:</i> > 0
+
+Nominal operating temperature of the FEE, expressed in Kelvin.
+
+
+
+#### <a name=readoutNoiseFEE></a>ReadoutNoise
+
+<i>Allowed values:</i> ≥ 0
+
+Mean readout noise of the FEE, expressed in e<sup>-</sup>/pixel.  This is the same for both ADCs.
+
+
+
+#### <a name=gainRefValueFEE></a>Gain: RefValue
+
+<i>Allowed values:</i> > 0
+
+Reference value of the gain of the FEE at its [nominal operating temperature](#nominalTempFEE), expressed in ADU/µV.  The actually gain for the FEE will be different for both ADCs.  We generate a normal distribution, centred at [the reference value](#gainRefValueFEE) and with a width characterised by the [ThreeSigma](#gain3SigmaFEE) parameter, and make two random draws from this distribution.  The outcome will act as gain for ADC1 and ADC2 resp.
+
+
+
+#### <a name=gain3SigmaFEE></a>Gain: ThreeSigma
+
+<i>Allowed values:</i> ∈ [0,100]
+
+Percentage of the [reference value for the gain](#gainRefValueFEE) that will act as 3σ for the normal distribution, centred around the (reference value)[#gainRefValueFEE], from which to draw the gain for both ADCs.
+
+
+#### <a name=gainStabilityFEE></a>Gain: Stability
+
+<i>Allowed values:</i> Any
+
+Change in gain (for both ADCs) with temperature deviations from the nominal operating temperature, expressed in ADU/µV/K.
+
+
+
+#### <a name=electronicOffset></a>ElectronicOffset: RefValue
+
+<i>Allowed values:</i> ≥ 0
+
+Electronic offset or bias level at the nominal operating temperature of the FEE, expressed in ADU, that is added to the digital signal in order to avoid negative readout values. The electronic offset can be measured in a pre-scan strip, which essentially consists of a few additional rows of the CCD. These rows only contain the electronic offset and the readout noise. This pre-scan strip consisting of [NumPreScanRows](#numPreScanRows) rows will be stored in the output file.  This is the same for both ADCs.
+
+
+
+#### <a name=electronicOffsetStability></a>ElectronicOffset: Stability
+
+<i>Allowed values:</i> Any
+
+Change in electronic offset (for both ADCs) with temperature deviations from the nominal operating temperature, expressed in ADU/pixel/K.
+
+
+
+
 <!-- CCD Parameters -->
 
 ## <a name="ccdParameters"></a>CCD Parameters
@@ -819,7 +898,8 @@ The [gain](#gain) of the detector should be such that the [full-well saturation]
 
      
 
-#### <a name="readoutNoise"></a>ReadoutNoise <i>Allowed values:</i> ≥ 0
+#### <a name="readoutNoise"></a>ReadoutNoise
+<i>Allowed values:</i> ≥ 0
 
 Mean readout noise of the detector, expressed in e<sup>-</sup>.
 
