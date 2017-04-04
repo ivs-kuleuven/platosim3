@@ -46,7 +46,7 @@ void FrontEndElectronics::configure(ConfigurationParameters &configParam)
 
 	refValueGain  = configParam.getDouble("FEE/Gain/RefValue");
 	gainStability = configParam.getDouble("FEE/Gain/Stability");
-	gainDelta     = configParam.getDouble("FEE/Gain/Delta");
+	gainThreeSigma     = configParam.getDouble("FEE/Gain/ThreeSigma");
 	gainSeed      = configParam.getLong("RandomSeeds/FeeGainSeed");
 
 	refValueBias  = configParam.getInteger("FEE/ElectronicOffset/RefValue");

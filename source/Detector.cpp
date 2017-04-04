@@ -138,7 +138,7 @@ Detector::~Detector()
 
     refValueGain       = configParam.getDouble("CCD/Gain/RefValue");
     gainStability      = configParam.getDouble("CCD/Gain/Stability");
-    gainDelta          = configParam.getDouble("CCD/Gain/Delta");
+    gainThreeSigma     = configParam.getDouble("CCD/Gain/ThreeSigma");
     gainSeed           = configParam.getLong("RandomSeeds/CcdGainSeed");
 
     CTImodel                   = configParam.getString("CCD/CTI/Model");
@@ -371,7 +371,8 @@ void Detector::generateGain()
 	mt19937 gainGenerator;
 	gainGenerator.seed(gainSeed);
 
-	normal_distribution<double> gainDistribution = normal_distribution<double>(refValueGain, gainDelta * refValueGain);
+	double stdDevGain = (gainThreeSigma / 3.0 / 100.0) * refValueGain;
+	normal_distribution<double> gainDistribution = normal_distribution<double>(refValueGain, stdDevGain);
 
 	refValueGainLeft = gainDistribution(gainGenerator);
 	refValueGainRight = gainDistribution(gainGenerator);

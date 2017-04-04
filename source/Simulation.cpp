@@ -439,7 +439,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 	hdf5File.createGroup(parentGroup + "/" + subGroup);
 	addDouble("RefValue");
 	addDouble("Stability");
-	addDouble("Delta");
+	addDouble("ThreeSigma");
 
 	subGroup = "FEE/ElectronicOffset";
 	hdf5File.createGroup(parentGroup + "/" + subGroup);
@@ -479,7 +479,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 	hdf5File.createGroup(parentGroup + "/" + subGroup);
 	addDouble("RefValue");
 	addDouble("Stability");
-	addDouble("Delta");
+	addDouble("ThreeSigma");
 
     subGroup = "CCD/Vignetting";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
