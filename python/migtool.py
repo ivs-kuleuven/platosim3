@@ -126,6 +126,11 @@ class ActionBase(object):
     def action(self):
         pass
 
+# PrintToScreen:
+#
+# Key, value pairs are written to the screen in a clean and simpel way.
+# Boolean values are written as Yes/No.
+
 class PrintToScreen(ActionBase):
     def action(self, indent, key, parentKey, value, formatString=None):
         # when the parent key is the top key, add a blank line
@@ -139,8 +144,11 @@ class PrintToScreen(ActionBase):
             else:
                 print ("{}{}:".format(indent, key))
 
-# Key, value pairs are written to the fileObject in a way that closely matches the YAML inputfile
+# WriteToFile:
+#
+# Key, value pairs are written to the fileObject in a way that closely matches the YAML inputfile.
 # Values are aligned at a certain column (valuesColumn) and boolean values are written as Yes/No.
+# The 'root' keys are surrounded by a blank line.
 
 # The column at which the values should be written in the YAML file in order to align them properly.
 valuesColumn = 45
@@ -161,6 +169,9 @@ class WriteToFile(ActionBase):
             self.fileObject.write(keyString)
         self.fileObject.write("\n")
 
+        if len(parentKey.split('.')) == 1:
+            self.fileObject.write("\n")
+
 
 
 
@@ -169,6 +180,14 @@ class WriteToFile(ActionBase):
 
 
 # Operations on YAML files
+
+# The loading is altered from the normal YAML Loader, because it now preserves the order 
+# in which the key, value pairs were read.
+#
+# Unfortunately, the standard YAML library doesn't read comments, so they are lost in the 
+# round trip after saving/dumping. We could consider looking into ruamel.yaml as this library
+# preserves order and keeps coments (https://bitbucket.org/ruamel/yaml). We do not have any
+# experience with this library though.
 
 def load_yaml(filename):
     """
