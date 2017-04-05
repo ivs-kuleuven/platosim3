@@ -306,19 +306,9 @@ def whatIsOldInYaml(oldDict, newDict, parentKey=None, root=None):
         newParentKey = constructNewParentKey(parentKey, key)
 
         if key not in newDict:
-            # Check if the key has moved
-            foundKeys = findKeys(root, key)
-
-            if not foundKeys:
-                removeKeyFromDict(oldDict, key)
-                if verbose:
-                    print ("DONE - Obsolete key {} has been removed.".format(newParentKey))
-            else:
-                print ("CHECK - Key {} might have been moved to:".format(newParentKey))
-                for foundKey in foundKeys:
-                    print ("    {}".format(foundKey))
-                # Action might be to move the key, but we don't know if the foundKey already 
-                # exists in newDict
+            removeKeyFromDict(oldDict, key)
+            if verbose:
+                print ("DONE - Obsolete key {} has been removed.".format(newParentKey))
             continue
         
         if isinstance(value, OrderedDict):
