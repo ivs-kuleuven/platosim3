@@ -244,12 +244,15 @@ def drawStarInFocalPlane(sim, raStar, decStar):
 
     normal = True  # FIXME: where can we specify that we use the fast or normal Camera
 
+    distortionCoefficients = None
     if (sim["Camera/IncludeFieldDistortion"] == "yes")  or (sim["Camera/IncludeFieldDistortion"] == "1"):
         includeFieldDistortion = True
         FIELD_DISTORTION["Coeff"] = sim["Camera/FieldDistortion/Coefficients"]
         FIELD_DISTORTION["InverseCoeff"] = sim["Camera/FieldDistortion/InverseCoefficients"]
+        distortionCoefficients = sim["Camera/FieldDistortion/Coefficients"]
     else:
         includeFieldDistortion = False
+        
 
     pixelSize        = float(sim["CCD/PixelSize"])
     raPlatform       = np.radians(float(sim["ObservingParameters/RApointing"]))
@@ -268,8 +271,9 @@ def drawStarInFocalPlane(sim, raStar, decStar):
     if includeFieldDistortion:
         xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm)
 
-    ccdCode, xCCD, yCCD = getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, tiltTelescope, azimuthTelescope,  \
-                                                    focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, normal)
+    #ccdCode, xCCD, yCCD = getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, tiltTelescope, azimuthTelescope,  \
+    #                                                focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, FIELD_DISTORTION["Coeff"], normal)
+    ccdCode, xCCD, yCCD = getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, distortionCoefficients, normal)
 
     if ccdCode == None:
         print ("Warning: DrawStarInFocalPlane(): The star doesn't fall on any of the CCDs.")
