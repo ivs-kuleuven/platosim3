@@ -55,7 +55,7 @@ Camera:
     ThroughputBandwidth:             638             # FWHM [nm]
     ThroughputLambdaC:               550             # Central wavelength of the throughput passband [nm]
     IncludeAberrationCorrection:     yes             # Calculate the differential aberration correction and apply
-    IncludeFieldDistortion:          yes             # Wheter or not to include field distortion
+    IncludeFieldDistortion:          yes             # Whether or not to include field distortion
     FieldDistortion:                                 # Describe the model for the field distortion
         Type:                        Polynomial1D
         Degree:                      3
