@@ -21,7 +21,7 @@ ObservingParameters:
 
 Platform:
 
-    UseJitter:                   no               # yes or no
+    UseJitter:                   yes              # yes or no
     UseJitterFromFile:           yes              # yes or no
     JitterYawRms:                0.5              # [arcsec]
     JitterPitchRms:              0.5              # [arcsec]
