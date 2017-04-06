@@ -950,6 +950,7 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal):
         distortionCoefficients = sim["Camera/FieldDistortion/Coefficients"]
     else:
         includeFieldDistortion = False
+        distortionCoefficients = None
 
     pixelSize        = float(sim["CCD/PixelSize"])
     focalLength      = float(sim["Camera/FocalLength"]) * 1000.0                   # [m] -> [mm]
@@ -965,9 +966,9 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal):
 
     # Get the pixel coordinates on the CCD
 
-    ccdCode, xCCDpixel, yCCDpixel = getCCDandPixelCoordinates(raStar, decStar, raSun, decSun, raPlatform, decPlatform, tiltTelescope, azimuthTelescope,  \
+    ccdCode, xCCDpixel, yCCDpixel = getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, tiltTelescope, azimuthTelescope,  \
                                                               focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, distortionCoefficients, normal)
-
+    
     return ccdCode, xCCDpixel, yCCDpixel
 
 
@@ -1038,7 +1039,9 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
     
     # Get the corresponding sky coordinats
 
-    ra, dec = focalPlaneToSkyCoordinates(xFPmm, yFPmm, raSun, decSun, raPlatform, decPlatform, tiltTelescope, azimuthTelescope, \
-                                         focalPlaneAngle, focalLength)
+    ra, dec = focalPlaneToSkyCoordinates(xFPmm, yFPmm, raPlatform, decPlatform, tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength)
+
+    #ra, dec = focalPlaneToSkyCoordinates(xFPmm, yFPmm, raSun, decSun, raPlatform, decPlatform, tiltTelescope, azimuthTelescope, \
+    #                                     focalPlaneAngle, focalLength)
 
     return ra, dec
