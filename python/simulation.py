@@ -551,7 +551,33 @@ class Simulation(object):
 
 
 
+    def setSubfieldAroundPixelCoordinates(self, ccdCode, xCCDpixel, yCCDpixel, subfieldSizeX, subfieldSizeY):
+        """
+        PURPOSE:  Calculate the location of the subField such that it is centered on the star with 
+              the given pixel coordinates.
 
+        INPUTS: ccdCode:       for nominal camera: either 'A', 'B', 'C', 'D'
+                               for fast camera: either 'AF', 'BF', 'CF', 'DF'
+                xCCDpixel:     x-coordinate (column-number) of the star on the CCD  [pixel/float]
+                yCCDpixel:     y-coordinate (row-number) of the star on the CCD  [pixel/float]
+                subfieldSizeX: width (i.e. number of columns) of the sub-field [pixels]
+                subfieldSizeY: height (i.e. number of rows) of the sub-field [pixels]
+
+        OUTPUTS:  None
+        """
+
+        raStar, decStar = rf.pixelToSkyCoordinates(self, ccdCode, xCCDpixel, yCCDpixel)
+        
+        # TODO: determine nominal from the given ccdCode
+        
+        nominal = True
+        
+        success = self.setSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY, True)
+        
+        if not success:
+            print ("Warning: setSubfieldAroundPixelCoordinates() failed to set subField around the star.")
+            
+        return
 
     def setSubfieldAroundCoordinates(self, raStar, decStar, subfieldSizeX, subfieldSizeY, normal):
         
