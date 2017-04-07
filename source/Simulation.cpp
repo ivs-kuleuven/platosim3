@@ -428,6 +428,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "PSF/AnalyticNonGaussian";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("Sigma");
     addString("ParameterFileName");
 
 	subGroup = "FEE";
