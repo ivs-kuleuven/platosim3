@@ -219,7 +219,7 @@ void Platform::updatePointingCoordinates(double time)
             }
         }
 
-        // We're know in the case that we haven't processed the given time point yet.
+        // We're now in the case that we haven't processed the given time point yet.
         // Let the platfrom jitter until 'time'. Yaw, pitch, and roll are in [rad]
 
         tie(yaw, pitch, roll) = jitterGenerator.getNextYawPitchRoll(time);
@@ -243,7 +243,7 @@ void Platform::updatePointingCoordinates(double time)
         const bool useOriginalPointingCoordinates = true;
         const arma::colvec zUnitAfterJitterEQ = spacecraftToEquatorialCoordinates(zUnitAfterJitter, useOriginalPointingCoordinates);
 
-        // Convert from cartesian to celestial equatorial coordinates
+        // Convert from cartesian to sky coordinates
 
         const double x = zUnitAfterJitterEQ(0);
         const double y = zUnitAfterJitterEQ(1);
