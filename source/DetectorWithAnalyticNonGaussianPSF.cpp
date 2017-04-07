@@ -1,6 +1,111 @@
 #include "DetectorWithAnalyticNonGaussianPSF.h"
 
 
+
+/**
+ * \brief Add a part to the definite integral of the analytic PSF and adjust the normalization factor accordingly.
+ * 
+ * \param ox:    relative x offset
+ * \param oy:    relative y offset
+ * \param h:     relative height
+ * \param sigma: width of Gaussian term
+ * \param r:     strength and type of periodic term
+ * \param rho:   distance between Gaussian term and periodic term
+ * \param phi:   orientation of periodic term
+ * 
+ * \return reference to itself
+ **/
+
+IntegralOfAnalyticPSF& IntegralOfAnalyticPSF::addPart(double ox, double oy, double h, double sigma, double r, double rho, double phi) 
+{
+    using Faddeeva::erf;
+    
+    ox += (size - (size & 1)) / 2.;
+    oy += (size - (size & 1)) / 2.;
+
+    erfxr.emplace_back(size + 1);
+    erfyr.emplace_back(size + 1);
+    double sr = 1. / sqrt(2.) / sigma;
+    double fr1 = sqrt(M_PI * fabs(h) * sigma * sigma / (r != 0.? 4.: 2.)); 
+    double fr2 = h < 0.? -fr1: fr1; 
+
+    erfxr.back()[0] = erf(-sr * ox);
+    erfyr.back()[0] = erf(-sr * oy);
+    for (unsigned i = 0; i < size; i++) 
+    {
+        erfxr.back()[i] = ((erfxr.back()[i + 1] = erf(sr * (i + 1. - ox))) - erfxr.back()[i]) * fr1;
+        erfyr.back()[i] = ((erfyr.back()[i + 1] = erf(sr * (i + 1. - oy))) - erfyr.back()[i]) * fr2;
+    }
+    n += 4. * fr1 * fr2;
+
+    if (r != 0.) 
+    {
+        erfxc.emplace_back(size + 1);
+        erfyc.emplace_back(size + 1);
+        double delta = 2. * M_PI * sigma * sigma / r / r;
+        complex<double> sc = sr * sqrt(complex<double>(1., delta));
+        complex<double> xc = complex<double>(0., M_PI / fabs(r) * sqrt(rho) * cos(phi)) / sc;
+        complex<double> yc = complex<double>(0., M_PI / fabs(r) * sqrt(rho) * sin(phi)) / sc;
+        complex<double> fc = sqrt((r < 0.? -fr1: fr1) * fr2 * exp(-M_PI * rho / (1. + delta * delta) * complex<double>(delta, 1.)) / complex<double>(1., delta));
+
+        erfxc.back()[0] = erf(xc - sc * ox);
+        erfyc.back()[0] = erf(yc - sc * oy);
+        for (unsigned i = 0; i < size; i++) 
+        {
+            erfxc.back()[i] = ((erfxc.back()[i + 1] = erf(xc + sc * (i + 1. - ox))) - erfxc.back()[i]) * fc;
+            erfyc.back()[i] = ((erfyc.back()[i + 1] = erf(yc + sc * (i + 1. - oy))) - erfyc.back()[i]) * fc;
+        }
+        n -= 4. * (fc.real() * fc.real() - fc.imag() * fc.imag());
+    }
+    return *this;
+}
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Get integral of analytic PSF for a (sub)pixel.
+ * 
+ * \param i:    x direction 
+ * \param j:    y direction 
+ * \param norm: apply normalization 
+ * 
+ * \return normalized or unnormalized integral of analytic PSF for (sub)pixel (i, j)
+ **/
+
+double IntegralOfAnalyticPSF::operator()(unsigned i, unsigned j, bool norm) 
+{
+    if (i >= size || j >= size)
+    {
+        return 0.;
+    }
+    
+    double ret = 0.;
+    for (unsigned k = 0; k < erfxr.size() && k < erfyr.size(); k++)
+    {    
+        ret += erfxr[k][i] * erfyr[k][j];
+    }
+    
+    for (unsigned k = 0; k < erfxc.size() && k < erfyc.size(); k++)
+    {
+        ret -= erfxc[k][i].real() * erfyc[k][j].real() - erfxc[k][i].imag() * erfyc[k][j].imag();
+    }
+
+    return norm? ret / n: ret;
+}
+
+
+
+
+
+
+
+
 /**
  * \brief Constructor.
  * 
@@ -74,26 +179,92 @@ DetectorWithAnalyticNonGaussianPSF::~DetectorWithAnalyticNonGaussianPSF()
  * \param configParam: the configuration parameters 
  **/
 
- void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &configParam)
- {
-    // Get the file name of the parameters file
-
-    string inputFileName = configParam.getString("PSF/AnalyticNonGaussian/ParameterFileName");
-
-    // Read the coefficients in the parameter file 
-
-    // CARSTEN
-
-
-    // Get the configuration parameters for the PRNU
-
+void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &configParam)
+{
     flatfieldNoiseAmplitude   = configParam.getDouble("CCD/FlatfieldPtPNoise");
     includeFlatfield          = configParam.getBoolean("CCD/IncludeFlatfield");
     flatfieldSeed             = configParam.getLong("RandomSeeds/FlatFieldSeed");
- }
+
+
+    sigma = configParam.getDouble("PSF/AnalyticNonGaussian/Sigma");
+    string filename = configParam.getAbsoluteFilename("PSF/AnalyticNonGaussian/ParameterFileName");
+
+    ifstream file(filename);
+    if (!file)
+        return;
+
+    params.clear();
+    string line;
+    while (getline(file, line)) 
+    {
+        if (line == "" || line.find("#") == 0)
+            continue;
+
+        istringstream strs(line);
+        vector<double> vals((istream_iterator<double>(strs)), istream_iterator<double>());
+
+        if ((params.size() > 0 && params[0].size() == vals.size()) || (params.size() == 0 && vals.size() > 0))
+        {
+            params.emplace_back(vals);
+        }
+    }
+}
 
 
 
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Interpolate and rotate PSF parameters and sum up all parts to calculate the intergal of the analytic PSF.
+ * 
+ * \param psf:   container to hold the result of the integration
+ * \param x:     x position of the PSF
+ * \param y:     y position of the PSF
+ * \param r:     radial distance of the PSF to the optical axis
+ * \param p:     azimuth angle of the PSF
+ * \param scale: scale factor to resize the PSF
+ **/
+
+void DetectorWithAnalyticNonGaussianPSF::integrateAnalyticPSF(IntegralOfAnalyticPSF& psf, double x, double y, double r, double p, double scale) 
+{
+    double ox = x - floor(x);
+    double oy = y - floor(y);
+    double s = sigma * scale;
+    if (params.size() > 0 && params[0].size() > 6) 
+    {
+        r /= 1.4;
+        unsigned c1 = min(params[0].size() / 7 - 1, (size_t)r) * 7;
+        unsigned c2 = min(params[0].size() / 7 - 1, (size_t)r + 1) * 7;
+        double w = r - (unsigned)r;
+        w = 3. * w * w - 2. * w * w * w;
+
+        for (auto i = params.cbegin(); i != params.cend(); i++) 
+        {
+            double pr = s * ((1. - w) * (*i)[c1] + w * (*i)[c2]);
+            double pp = (1. - w) * (*i)[c1 + 1] + w * (*i)[c2 + 1];
+            double h = (1. - w) * (*i)[c1 + 2] + w * (*i)[c2 + 2];
+            double b = s * ((1. - w) * (*i)[c1 + 3] + w * (*i)[c2 + 3]);
+            double r = s * ((1. - w) * (*i)[c1 + 4] + w * (*i)[c2 + 4]);
+            double m = (1. - w) * (*i)[c1 + 5] + w * (*i)[c2 + 5];
+            double a = (1. - w) * (*i)[c1 + 6] + w * (*i)[c2 + 6];
+
+            psf.addPart(ox + pr * cos(p + pp), oy + pr * sin(p + pp), h, b, r, m, p + a);
+            psf.addPart(ox + pr * cos(p - pp), oy + pr * sin(p - pp), h, b, r, m, p - a);
+        }
+    } 
+    else 
+    {
+        psf.addPart(ox, oy, 1., s);
+    }
+}
 
 
 
@@ -326,8 +497,10 @@ void DetectorWithAnalyticNonGaussianPSF::integrateLight(int exposureNr, double s
 
 
 /**
- * \brief: TO BE FILLED
- *
+ * \brief: Add the PSF of the star with given focal plane coordinates and flux level to the pixel map.
+ *         Return the pixel coordinates of the barycenter of the PSF. As PSF we use an analytic non-Gaussian 
+ *         function.
+ *         
  * \param xFP   X-coordinate of the (fractional) pixel in the focal plane in the FP reference frame [mm].
  * \param yFP   Y-coordinate of the (fractional) pixel in the focal plane in the FP reference frame [mm].
  * \param flux  Flux to add to the pixel map [photons].
@@ -351,23 +524,22 @@ tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addFlux(double x
     row0 -= subFieldZeroPointRow;
     column0 -= subFieldZeroPointColumn;
 
-    // Check if the star falls in the subfield. If not, don't add any flux, but simply return.
+    int size = 2 * ((int)(8. * sigma) + 1) + 1;;
+    int sx = (int)floor(column0 - (size - 1.) / 2.);
+    int sy = (int)floor(row0 - (size - 1.) / 2.);
 
-    if (!isInPixelMap(row0, column0))
-    {
+    if (sx + size <= 0 || sx >= (int)numColumnsPixelMap || sy + size <= 0 || sy >= (int)numRowsPixelMap)
         return make_tuple(false, row0, column0);
-    }
 
+    IntegralOfAnalyticPSF psf(size);
+    double r = rad2deg(camera.getGnomonicRadialDistanceFromOpticalAxis(xFP, yFP));
+    double p = atan2(yFP, xFP);
+    integrateAnalyticPSF(psf, column0, row0, r, p);
 
-    // Insert the PSF into the pixel map
+    for (int y = max(0, sy); y < min((int)numRowsPixelMap, sy + size); y++)
+        for (int x = max(0, sx); x < min((int)numColumnsPixelMap, sx + size); x++)
+            pixelMap.at(y, x) += psf(x - sx, y - sy) * flux;
 
-    // CARSTEN
-
-    complex<double> z1(0.5, 0.5);
-    complex<double> z2 = Faddeeva::w(z1);
-
-    // That's it!
-    
     return make_tuple(true, row0, column0);
 }
 
