@@ -9,7 +9,10 @@ from referenceFrames import *
 
 
 
-def drawCCDsInSky(raPlatform, decPlatform, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength, pixelSize, normal=True):
+
+
+
+def drawCCDsInSkyMollweide(fig, raPlatform, decPlatform, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength, pixelSize, normal=True):
 
     """
     PURPOSE: Project and plot the 4 CCDs of 1 camera on the sky
@@ -42,6 +45,10 @@ def drawCCDsInSky(raPlatform, decPlatform, tiltAngle, azimuthAngle, focalPlaneAn
 
     color = {'A': 'b', 'AF': 'b', 'B': 'r', 'BF': 'r', 'C': 'g', 'CF': 'g', 'D': 'k', 'DF': 'k'}
 
+    # Set up the figure
+
+    axes = fig.add_subplot(111, projection="mollweide")
+    axes.grid(True)
 
     # Plot each of the 4 CCDs
 
@@ -59,15 +66,29 @@ def drawCCDsInSky(raPlatform, decPlatform, tiltAngle, azimuthAngle, focalPlaneAn
         # Repeat the coordinates of the 1st corner, to plot a nice closed loop
         # Convert from radians to degrees
 
-        ra  = append(ra, ra[0]) * 180 / pi
-        dec = append(dec, dec[0]) * 180 / pi
+        ra  = append(ra, ra[0]) 
+        dec = append(dec, dec[0]) 
+
+        # The sky projection expects a longitude in [-pi, +pi] rather than [0, 2* pi]
+        # Moreover, the longitude should be reversed so that East is to the left
         
-        plt.plot(ra, dec, c=color[ccdCode])
+        ra[ra>pi] -= 2*pi
+        ra = -ra 
+
+        axes.plot(ra, dec, c=color[ccdCode])
 
         # Overplot the row closest to the readout register with a thicker line
 
-        plt.plot([ra[0], ra[1]], [dec[0], dec[1]], c=color[ccdCode], linewidth=3)
+        axes.plot([ra[0], ra[1]], [dec[0], dec[1]], c=color[ccdCode], linewidth=3)
 
+
+    # Change the tick labels so that they are 0->360, rather than -180->+180
+
+    tickLabels = np.array([150, 120, 90, 60, 30, 0, 330, 300, 270, 240, 210])
+    tickLabels = np.remainder(tickLabels+360, 360)
+    axes.set_xticklabels(tickLabels)     
+
+    # Add axis labels
 
     plt.xlabel("RA [deg]")
     plt.ylabel("Dec [deg]")
@@ -75,7 +96,7 @@ def drawCCDsInSky(raPlatform, decPlatform, tiltAngle, azimuthAngle, focalPlaneAn
 
     # That's it
 
-    return
+    return axes
 
 
 
@@ -327,3 +348,57 @@ def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize):
     plt.draw()
 
     return
+
+
+
+
+
+
+
+
+def skyProjection(longitude, latitude, fig, origin=0, projection="mollweide"):
+    
+    """
+    Plot sources with coordinates longitude & latitude (equatorial, galactic,...)
+    in the projected sky.
+    
+    @param longitude:  longitude coordinate in [0, 360]                      [deg]
+    @param latitude:   latitude coordinate in [-90, +90]                     [deg]
+    @param fig:        matplotlib figure, the output of plt.figure()
+    @param origin:     longitude value in the center of the plot             [deg]
+    @param projection: either 'mollweide', 'aitoff', 'hammer', or 'lambert'
+    
+    @return axes: the output of plt.scatter() in the given figure.
+    
+    """
+    
+    # Shift the longitude values around the origin
+    
+    longitude = np.remainder(longitude+360-origin, 360) 
+    
+    # Rescale the range from [0,360] to [-180, +180]
+    
+    longitude[longitude>180] -=360
+
+    # Reverse the longitude so that East is to the left
+    
+    longitude = -longitude
+    
+    # Create the plot
+    
+    axes = fig.add_subplot(111, projection=projection)
+    axes.grid(True)
+    
+    # Adapt the tick labels on the x-axis to take into account the origin shift
+    
+    tickLabels = np.array([150, 120, 90, 60, 30, 0, 330, 300, 270, 240, 210])
+    tickLabels = np.remainder(tickLabels+360+origin, 360)
+    axes.set_xticklabels(tickLabels) 
+ 
+    # Plot the sources
+    
+    axes.scatter(np.radians(longitude), np.radians(latitude), s=3)
+    
+    # That's it!
+    
+    return axes
