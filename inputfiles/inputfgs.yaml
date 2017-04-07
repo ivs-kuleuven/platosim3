@@ -9,8 +9,8 @@ General:
 ObservingParameters:
 
     MissionDuration:             6.0              # Total duration of the mission in years [yr]
-    NumExposures:                10               # Number of exposures
-    BeginExposureNr:              0               # Sequential number of first exposure. useful for slurm parallellisation
+    NumExposures:                10               # Number of expsosures
+    BeginExposureNr:             0                # Sequential number of first exposure. useful for slurm parallellisation
     ExposureTime:                2.3              # [s]
     RApointing:                  86.79870         # Platform (not telescope) right ascension pointing coordinate      [deg] 
     DecPointing:                 -46.39595        # Platform (not telescope) declination pointing coordinate          [deg]
@@ -21,8 +21,8 @@ ObservingParameters:
 
 Platform:
 
-    UseJitter:                   yes              # yes or no. If no, ignore everything below.
-    UseJitterFromFile:           yes              # yes or no. If yes, ignore RMS and timescale below.
+    UseJitter:                   yes              # yes or no
+    UseJitterFromFile:           yes              # yes or no
     JitterYawRms:                0.5              # [arcsec]
     JitterPitchRms:              0.5              # [arcsec]
     JitterRollRms:               0.5              # [arcsec]
@@ -38,7 +38,6 @@ Telescope:
     TransmissionEfficiency:
         BOL:                     0.5             # beginning-of-life value in [0,1]
         EOL:                     0.5             # end-of-life value in [0,1]        KEPT FIXED FOR NOW
-    FOVSquareDegrees:            1072.0          # Sky area covered by the FOV of 1 telescope [deg^2]
     UseDrift:                    no              # yes or no. If no, ignore everything below.
     UseDriftFromFile:            no              # yes or no. If yes: ignore RMS and timescale below
     DriftYawRms:                 2.3             # RMS of thermo-elastic drift in yaw [arcsec]
@@ -66,7 +65,7 @@ Camera:
 
 PSF:
 
-    Model:                           MappedFromFile  # PSF model: MappedGaussian, MappedFromFile, or AnalyticGaussian
+    Model:                           MappedGaussian  # PSF model: MappedGaussian, MappedFromFile, or AnalyticGaussian
     MappedGaussian:                                  # Generate the PSF from a fixed 2D Gaussian function
         Sigma:                       0.50            # Standard deviation of Gaussian PSF [pix]
         NumberOfPixels:              8               # The number of pixels in the field for which the PSF is generated
@@ -107,7 +106,7 @@ CCD:
     Gain:                            
         RefValue:                1.80            # [microV/e-]
         Stability:               -0.004          # [microV/e-/K]
-        ThreeSigma:              15.0            # Difference in gain between both CCD halves [%]
+        ThreeSigma:              0.0            # Difference in gain between both CCD halves [%]
     QuantumEfficiency: 
         Efficiency:              0.925           # Throughput efficiency due to quantum efficiency at the reference angle
         RefAngle:                45.0            # Reference angle for quantum efficiency [degrees]
@@ -141,7 +140,7 @@ CCD:
     IncludeFlatfield:                yes             # Include flatfield [yes or no]
     IncludePhotonNoise:              yes             # Include photon noise [yes or no]
     IncludeReadoutNoise:             yes             # Include readout noise [yes or no]
-    IncludeCTIeffects:               yes             # Include charge transfer inefficiency effects [yes or no]
+    IncludeCTIeffects:               no             # Include charge transfer inefficiency effects [yes or no]
     IncludeOpenShutterSmearing:      no              # Include trails due reading out with an open shutter [yes or no]
     IncludeQuantumEfficiency:        yes             # Include loss of throughput due to quantum efficiency
     IncludeVignetting:               yes             # Include brightness attenuation towards the edge of the FOV due to vignetting

@@ -116,7 +116,7 @@ for group in range(numTelescopeGroups):
     
     for telescope in range(numTelescopesPerGroup):
         
-        print "Processing telescope " + str(telescope + 1) + " of group " + str(group + 1)
+        print("Processing telescope {0} of group {1}".format(telescope+1, group+1))
         
         telescopeIndex = numTelescopesPerGroup * group + telescope
         
@@ -128,11 +128,14 @@ for group in range(numTelescopeGroups):
         
         # Compute the telescope pointing, based on the platform pointing, and the tilt and azimuth angle of the telescope
         
-        raTelescope, decTelescope = platformToTelescopePointingCoordinates(math.radians(raPointing), math.radians(decPointing), math.radians(azimuthAngles[group]), math.radians(tiltAngle))
-
+        raSun, decSun = sunSkyCoordinatesAwayfromPlatformPointing(math.radians(raPlatform), math.radians(decPlatform))
+        raTelescope, decTelescope = platformToTelescopePointingCoordinates(math.radians(raPlatform), math.radians(decPlatform), raSun, decSun, math.radians(azimuthAngles[group]), math.radians(tiltAngle))
+        raTelescopePointings.append(math.degrees(raTelescope))
+        decTelescopePointings.append(math.degrees(decTelescope))
         
-        print "Platform pointing: " + str(raPointing) + ", " + str(decPointing)
-        print "Telescope pointing: " + str(math.degrees(raTelescope)) + ", " + str(math.degrees(decTelescope))
+        print("Platform pointing: {0}, {1}".format(raPlatform, decPlatform))
+        print("Telescope pointing: {0}, {1}".format(math.degrees(raTelescope), math.degrees(decTelescope)))
+        #print("Sun: {0}, {1}".format(math.degrees(raSun), math.degrees(decSun)))
         
         includeFieldDistortion = (str(sim["Camera/IncludeFieldDistortion"] == "yes"))  or (str(sim["Camera/IncludeFieldDistortion"] == "1"))        # Whether or not to include field distortion
         focalPlaneAngle = sim["Camera/FocalPlaneOrientation"]                                                                                       # Focal-plane orientation [degrees]
@@ -143,13 +146,13 @@ for group in range(numTelescopeGroups):
         # Determine on which CCD (A, B, C, or D) the coordinates (raCenter, decCenter) are positioned and at which location
         # (in pixel coordinates)
         
-        ccdCode, columnCenter, rowCenter = getCCDandPixelCoordinates(math.radians(raCenter), math.radians(decCenter), raTelescope, decTelescope, math.radians(focalPlaneAngle), focalLength, plateScale, pixelSize, includeFieldDistortion, nominal=True)
+        ccdCode, columnCenter, rowCenter = getCCDandPixelCoordinates(math.radians(raCenter), math.radians(decCenter), math.radians(raPlatform), math.radians(decPlatform), math.radians(tiltAngle), math.radians(azimuthAngles[group]), math.radians(focalPlaneAngle), focalLength, pixelSize, includeFieldDistortion, distortionCoefficients, normal = True)
         
         # Check whether the sub-field falls entirely on the detector
         
         if (ccdCode != None) and (rowCenter - numRowsSubField / 2 >= 0) and (rowCenter + numRowsSubField / 2 < CCD[ccdCode]["Nrows"]) and (columnCenter - numColumnsSubField / 2 >= 0) and (columnCenter + numColumnsSubField / 2 < CCD[ccdCode]["Ncols"]):
             
-            print "CCD " + ccdCode + " selected"
+            print("CCD {0} selected".format(ccdCode) +"\n")
             
             # Observing parameters
         
@@ -187,4 +190,4 @@ for group in range(numTelescopeGroups):
             simFile = sim.run()
             
         else:
-            print "Sub-field centred on (" + str(raCenter) + ", " + str(decCenter) + ") does not lay entirely on a CCD for telescope " + str(telescope + 1) + " of group " + str(group + 1)
+            print("Sub-field centred on ({0}, {1}) does not lay entirely on a CCD for telescope {2} of group {3}".format(raCenter, decCenter, telescope + 1, group + 1))
