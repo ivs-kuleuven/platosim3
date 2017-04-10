@@ -21,46 +21,46 @@ class Platform;  // Forward declaration
 
 class Telescope  : public Heartbeat, HDF5Writer
 {
-	
-	public:
+    
+    public:
 
-		Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File, Platform &platform, DriftGenerator &driftGenerator);
-		virtual ~Telescope();
+        Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File, Platform &platform, DriftGenerator &driftGenerator);
+        virtual ~Telescope();
 
-		virtual void configure(ConfigurationParameters &configParam);
+        virtual void configure(ConfigurationParameters &configParam);
 
         virtual void updateTelescopeOrientation(double time);
         tuple<double, double, double, double, double> getCurrentTelescopeOrientation();
         tuple<double, double, double, double, double> getInitialTelescopeOrientation();
 
         virtual double getHeartbeatInterval() override;
-		virtual double getTransmissionEfficiency(double time);
+        virtual double getTransmissionEfficiency(double time);
         
-		double getLightCollectingArea();
+        double getLightCollectingArea();
 
 
-		pair<double, double> platformToTelescopePointingCoordinates(double alphaPlatfrom, double deltaPlatform);
+        pair<double, double> platformToTelescopePointingCoordinates(double alphaPlatfrom, double deltaPlatform);
 
 
-	protected:
+    protected:
 
-		virtual void initHDF5Groups() override;
-		virtual void flushOutput() override;
+        virtual void initHDF5Groups() override;
+        virtual void flushOutput() override;
 
-		double originalAzimuthAngle;           // Original azimuth angle of telescope on platform in the inputfile  [rad]
-		double originalTiltAngle;              // Original tilt angle of telescope on platform in the inputfile     [rad]
+        double originalAzimuthAngle;           // Original azimuth angle of telescope on platform in the inputfile  [rad]
+        double originalTiltAngle;              // Original tilt angle of telescope on platform in the inputfile     [rad]
         double currentAzimuthAngle;            // Current azimuth angle of telescope on platform                    [rad]
         double currentTiltAngle;               // Current tilt angle of telescope on platform                       [rad]
-		double currentAlphaOpticalAxis;        // Current right ascension of the optical axis                       [rad]
-		double currentDeltaOpticalAxis;        // Current declination of the optical axis                           [rad]
-		double lightCollectingArea;            // Effective light collective area                                   [cm^2]
+        double currentAlphaOpticalAxis;        // Current right ascension of the optical axis                       [rad]
+        double currentDeltaOpticalAxis;        // Current declination of the optical axis                           [rad]
+        double lightCollectingArea;            // Effective light collective area                                   [cm^2]
         double transmissionEfficiencyBOL;      // Efficiency at Beginning Of Life in [0,1]
         double transmissionEfficiencyEOL;      // Efficiency at End Of Life in [0,1]
         double missionDuration;                // Duration of the PLATO Mission, used for degrading parameters      [s]
-		double driftYawRms;                    // RMS of thermo-elastic drift in yaw                                [rad]
-    	double driftPitchRms;                  // RMS of thermo-elastic drift in pitch                              [rad]
-    	double driftRollRms;                   // RMS of thermo-elastic drift in roll                               [rad]
-    	double driftTimeScale;                 // Timescale of thermo-elastic drift                                 [s]
+        double driftYawRms;                    // RMS of thermo-elastic drift in yaw                                [rad]
+        double driftPitchRms;                  // RMS of thermo-elastic drift in pitch                              [rad]
+        double driftRollRms;                   // RMS of thermo-elastic drift in roll                               [rad]
+        double driftTimeScale;                 // Timescale of thermo-elastic drift                                 [s]
         double raSun;                          // Right ascension of the direction of the sun shield during the run [rad]
         double decSun;                         // Declination of the direction of the sun shield during the run     [rad]
  
@@ -69,7 +69,7 @@ class Telescope  : public Heartbeat, HDF5Writer
         double originalFocalPlaneOrientation;  // As in the input file [rad]
         double currentFocalPlaneOrientation;   // Perturbed due to thermo-elastic drift [rad]
 
-    	vector<double> historyTime;            // The following vectors stores the telescope orientation angles and pointings
+        vector<double> historyTime;            // The following vectors stores the telescope orientation angles and pointings
         vector<double> historyRA;              //     to write in the HDF5 file
         vector<double> historyDec;
         vector<double> historyYaw; 
@@ -81,12 +81,12 @@ class Telescope  : public Heartbeat, HDF5Writer
 
 
 
-	private:
+    private:
 
-		double internalTime;               // Internal clock
+        double internalTime;               // Internal clock
 
         DriftGenerator &driftGenerator; 
-		Platform &platform;
+        Platform &platform;
 };
 
 #endif
