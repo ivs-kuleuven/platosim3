@@ -759,7 +759,8 @@ CCD:
     IncludeQuantumEfficiency:         yes
     IncludeConvolution:               yes            
     IncludeFullWellSaturation:        yes            
-    IncludeDigitalSaturation:         yes            
+    IncludeDigitalSaturation:         yes      
+    IncludeQuantisation:              yes      
     WriteSubPixelImagesToHDF5:        no              
 \endcode
 
@@ -1136,6 +1137,16 @@ Indicates whether or not to apply full-well saturation.
 
 Indicates whether or not to apply digital saturation.
 
+
+
+#### <a name="inclQuantisation"></a>IncludeQuantisation
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to apply quantisation.  This includes:
+	* applying gain (FEE and CCD), hence converting from electrons to ADUs
+	* adding electronic offset
+	* forcing the ADU values to be integers
+	* applying digital saturation (can be [switched off separately](#inclDigitalSaturation))
 
 
 
