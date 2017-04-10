@@ -68,6 +68,7 @@ class Detector: public HDF5Writer
     		virtual void applyCTI();
     		virtual void applyOpenShutterSmearing(float exposureTime);
     		virtual void addReadoutNoise();
+    		virtual void applyQuantisation();
     		virtual void applyGain();
     		virtual void addElectronicOffset();
     		virtual void applyDigitalSaturation();
