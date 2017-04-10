@@ -49,7 +49,7 @@ Camera:
     FocalLength:             0.24712595      # Focal length as recovered from ZEMAX model [m]
     ThroughputBandwidth:     650             # FWHM [nm]
     ThroughputLambdaC:       550             # Central wavelength of the throughput passband [nm]
-    IncludeFieldDistortion:  yes             # Wheter or not to include field distortion
+    IncludeFieldDistortion:  yes             # Whether or not to include field distortion
     FieldDistortion:                         # Describe the model for the field distortion
         Type:                Polynomial1D
         Degree:              3
@@ -132,9 +132,10 @@ CCD:
     IncludePolarization:             no              # Include polarisation
     IncludeParticulateContamination: no              # Include loss of throughput due to particulate contamination
     IncludeMolecularContamination:   no              # Include loss of throughput due to molecular contamination 
-    IncludeConvolution:              yes             # Wheter or not to convolve the subPixelMap with the PSF
-    IncludeFullWellSaturation:       no              # Wheter or not full well saturation should be applied
-    IncludeDigitalSaturation:        no              # Wheter or not digital saturation should be applied
+    IncludeConvolution:              yes             # Whether or not to convolve the subPixelMap with the PSF
+    IncludeFullWellSaturation:       no              # Whether or not full well saturation should be applied
+    IncludeDigitalSaturation:        no              # Whether or not digital saturation should be applied
+    IncludeQuantisation:             yes             # Whether or not to include quantisation
     WriteSubPixelImagesToHDF5:       no              # Only use this for a limited number of exposures. Takes a lot of space! 
 
 SubField:    

@@ -473,6 +473,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("IncludeQuantumEfficiency");
     addBoolean("IncludeConvolution");
     addBoolean("IncludeFullWellSaturation");
+    addBoolean("IncludeQuantisation");
     addBoolean("IncludeDigitalSaturation");
     addBoolean("WriteSubPixelImagesToHDF5");
 
