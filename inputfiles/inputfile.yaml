@@ -150,7 +150,8 @@ CCD:
     IncludeMolecularContamination:   yes             # Include loss of throughput due to molecular contamination
     IncludeConvolution:              yes             # Whether or not to convolve the subPixelMap with the PSF
     IncludeFullWellSaturation:       yes             # Whether or not full well saturation should be applied
-    IncludeDigitalSaturation:        yes             # Wheter or not digital saturation should be applied
+    IncludeDigitalSaturation:        yes             # Whether or not digital saturation should be applied
+    IncludeQuantisation:             yes             # Whether or not to include quantisation
     WriteSubPixelImagesToHDF5:       no              # Only use this for a limited number of exposures. Takes a lot of space! 
 
 
