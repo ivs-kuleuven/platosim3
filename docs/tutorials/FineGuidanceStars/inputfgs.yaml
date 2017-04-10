@@ -55,7 +55,7 @@ Camera:
     ThroughputBandwidth:         638             # FWHM [nm]
     ThroughputLambdaC:           550             # Central wavelength of the throughput passband [nm]
     IncludeAberrationCorrection: no              # Calculate the differential aberration correction and apply
-    IncludeFieldDistortion:      no              # Wheter or not to include field distortion
+    IncludeFieldDistortion:      no              # Whether or not to include field distortion
     FieldDistortion:                             # Describe the model for the field distortion
         Type:                    Polynomial1D
         Degree:                  3
@@ -147,9 +147,10 @@ CCD:
     IncludePolarization:             yes             # Include loss of throughput due to polarisation
     IncludeParticulateContamination: yes             # Include loss of throughput due to particulate contamination
     IncludeMolecularContamination:   yes             # Include loss of throughput due to molecular contamination
-    IncludeConvolution:              yes             # Wheter or not to convolve the subPixelMap with the PSF
-    IncludeFullWellSaturation:       yes             # Wheter or not full well saturation should be applied
-    IncludeDigitalSaturation:        yes             # Wheter or not digital saturation should be applied
+    IncludeConvolution:              yes             # Whether or not to convolve the subPixelMap with the PSF
+    IncludeFullWellSaturation:       yes             # Whether or not full well saturation should be applied
+    IncludeDigitalSaturation:        yes             # Whether or not digital saturation should be applied
+    IncludeQuantisation:             yes             # Whether or not to include quantisation
     WriteSubPixelImagesToHDF5:       no              # Only use this for a limited number of exposures. Takes a lot of space! 
 
 
