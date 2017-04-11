@@ -1,10 +1,3 @@
-/*
- * TemperatureFromFile.cpp
- *
- *  Created on: 10 Apr 2017
- *      Author: sara
- */
-
 #include "TemperatureFromFile.h"
 
 
@@ -43,8 +36,6 @@ TemperatureFromFile::TemperatureFromFile(ConfigurationParameters &configParams, 
         }
 
         temperatureFile.close();
-
-        // If there are less than two points, we can't even derive a heartbeat interval
 
         if (timeFromFile.size() < 2)
         {
