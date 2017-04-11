@@ -5,6 +5,9 @@
 
 #include "Logger.h"
 #include "HDF5File.h"
+#include "TemperatureGenerator.h"
+#include "TemperatureFromFile.h"
+#include "NominalTemperature.h"
 #include "Detector.h"
 #include "DetectorWithMappedPSF.h"
 #include "DetectorWithAnalyticGaussianPSF.h"
@@ -54,10 +57,16 @@ class Simulation
         bool useJitterFromFile;
         bool includeFieldDistortion;
         bool useDriftFromFile;
+        bool useFeeTemperatureFromFile;
+        bool useFeeNominalTemperature;
+        bool useDetectorTemperatureFromFile;
+        bool useDetectorNominalTemperature;
         string psfModel;
 
         JitterGenerator *jitterGenerator;
         DriftGenerator *driftGenerator;
+        TemperatureGenerator *feeTemperatureGenerator;
+        TemperatureGenerator *detectorTemperatureGenerator;
         Platform *platform;
         Telescope *telescope;
         Sky *sky;

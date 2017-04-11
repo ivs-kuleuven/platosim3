@@ -71,6 +71,24 @@ Simulation::Simulation(string inputFilename, string outputFilename)
         driftGenerator = new ThermoElasticDriftFromRedNoise(configParams);
     }
 
+    if(useFeeTemperatureFromFile)
+    {
+    		feeTemperatureGenerator = new TemperatureFromFile(configParams, "FEE");
+    }
+    else if(useFeeNominalTemperature)
+    {
+    		feeTemperatureGenerator = new NominalTemperature(configParams, "FEE");
+    }
+
+    if(useDetectorTemperatureFromFile)
+    {
+    		detectorTemperatureGenerator = new TemperatureFromFile(configParams, "CCD");
+    }
+    else if(useDetectorNominalTemperature)
+    {
+    		detectorTemperatureGenerator = new NominalTemperature(configParams, "CCD");
+    }
+
     // Initialise the spacecraft components
 
     platform   = new Platform(configParams, hdf5File, *jitterGenerator);
@@ -82,15 +100,15 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     if ((psfModel == "MappedGaussian") || (psfModel == "MappedFromFile"))
     {
-        detector = new DetectorWithMappedPSF(configParams, hdf5File, *camera);
+        detector = new DetectorWithMappedPSF(configParams, hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator);
     }
     else if (psfModel == "AnalyticGaussian")
     {
-        detector = new DetectorWithAnalyticGaussianPSF(configParams, hdf5File, *camera);
+        detector = new DetectorWithAnalyticGaussianPSF(configParams, hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator);
     }
     else if (psfModel == "AnalyticNonGaussian")
     {
-        detector = new DetectorWithAnalyticNonGaussianPSF(configParams, hdf5File, *camera);
+        detector = new DetectorWithAnalyticNonGaussianPSF(configParams, hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator);
     }
     else
     {
@@ -152,7 +170,11 @@ void Simulation::configure(ConfigurationParameters &configParams)
     useJitterFromFile = configParams.getBoolean("Platform/UseJitterFromFile");
     includeFieldDistortion = configParams.getBoolean("Camera/IncludeFieldDistortion"); // do we want to do this or should this be asked to Camera?
     useDriftFromFile  = configParams.getBoolean("Telescope/UseDriftFromFile");  
-    psfModel          = configParams.getString("PSF/Model");   
+    psfModel          = configParams.getString("PSF/Model");
+    useFeeTemperatureFromFile = configParams.getString("FEE/Temperature") == "FromFile";
+    useFeeNominalTemperature = configParams.getString("FEE/Temperature") == "Nominal";
+    useDetectorTemperatureFromFile = configParams.getString("CCD/Temperature") == "FromFile";
+    useDetectorNominalTemperature = configParams.getString("CCD/Temperature") == "Nominal";
     readoutTime       = configParams.getDouble("CCD/ReadoutTime"); 
 }
 
@@ -433,7 +455,9 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
 	subGroup = "FEE";
 	hdf5File.createGroup(parentGroup + "/" + subGroup);
-	addDouble("NominalOperatingTemp");
+	addDouble("NominalOperatingTemperature");
+	addString("Temperature");
+	addString("TemperatureFileName");
 	addDouble("ReadoutNoise");
 
 	subGroup = "FEE/Gain";
@@ -460,7 +484,9 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 	addDouble("ReadoutNoise");
     addDouble("ReadoutTime");
     addDouble("FlatfieldPtPNoise");
-	addDouble("NominalOperatingTemp");
+	addDouble("NominalOperatingTemperature");
+	addString("Temperature");
+	addString("TemperatureFileName");
     addBoolean("IncludeFlatfield");
     addBoolean("IncludePhotonNoise");
     addBoolean("IncludeReadoutNoise");
