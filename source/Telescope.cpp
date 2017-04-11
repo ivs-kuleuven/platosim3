@@ -18,12 +18,12 @@ Telescope::Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File, 
 
     initHDF5Groups();
 
-	// Retrieve the Telescope configuration parameters
+    // Retrieve the Telescope configuration parameters
 
-	configure(configParams);
+    configure(configParams);
 
-	// Initialise the heartbeat interval of the telescope.
-	// The Telescope properties (e.g. the coordinates of the optical axis) are evolving in time, 
+    // Initialise the heartbeat interval of the telescope.
+    // The Telescope properties (e.g. the coordinates of the optical axis) are evolving in time, 
     // for example because of thermo-elastic drift, or because of the jitter of the platform it 
     // is mounted on. To properly track these changes one has to use a small enough timestep, 
     // which is called the "heartbeat" interval of the Telescope. Because Telescope depends on 
@@ -82,12 +82,12 @@ Telescope::~Telescope()
 
  void Telescope::configure(ConfigurationParameters &configParams)
  {
- 	// Configuration parameters for the Telescope
+    // Configuration parameters for the Telescope
 
 
     originalAzimuthAngle      = deg2rad(configParams.getDouble("Telescope/AzimuthAngle"));                  // [rad]
     originalTiltAngle         = deg2rad(configParams.getDouble("Telescope/TiltAngle"));                     // [rad]
- 	lightCollectingArea       = configParams.getDouble("Telescope/LightCollectingArea") * 1.e-4;            // [m^2]  
+    lightCollectingArea       = configParams.getDouble("Telescope/LightCollectingArea") * 1.e-4;            // [m^2]  
     transmissionEfficiencyBOL = configParams.getDouble("Telescope/TransmissionEfficiency/BOL");
     transmissionEfficiencyEOL = configParams.getDouble("Telescope/TransmissionEfficiency/EOL");
     missionDuration           = configParams.getDouble("ObservingParameters/MissionDuration") * 31536000.0; // [s]
@@ -387,7 +387,7 @@ double Telescope::getHeartbeatInterval()
 
 double Telescope::getTransmissionEfficiency(double time)
 {
-	return transmissionEfficiencyBOL - (transmissionEfficiencyBOL - transmissionEfficiencyEOL) / missionDuration * time;
+    return transmissionEfficiencyBOL - (transmissionEfficiencyBOL - transmissionEfficiencyEOL) / missionDuration * time;
 }
 
 
@@ -409,7 +409,7 @@ double Telescope::getTransmissionEfficiency(double time)
 
 double Telescope::getLightCollectingArea()
 {
-	return lightCollectingArea;
+    return lightCollectingArea;
 }
 
 
