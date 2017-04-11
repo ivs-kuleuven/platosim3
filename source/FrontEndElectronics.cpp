@@ -1,7 +1,7 @@
 #include "FrontEndElectronics.h"
 
-FrontEndElectronics::FrontEndElectronics(ConfigurationParameters &configParam, HDF5File &hdf5file)
-: HDF5Writer(hdf5file)
+FrontEndElectronics::FrontEndElectronics(ConfigurationParameters &configParam, HDF5File &hdf5file, TemperatureGenerator &temperatureGenerator)
+: HDF5Writer(hdf5file), temperatureGenerator(temperatureGenerator)
 {
 	// Parse the parameters from the configuration file.
 
@@ -40,7 +40,7 @@ FrontEndElectronics::~FrontEndElectronics()
 
 void FrontEndElectronics::configure(ConfigurationParameters &configParam)
  {
-	nominalOperatingTemperature = configParam.getDouble("FEE/NominalOperatingTemp");
+	nominalOperatingTemperature = configParam.getDouble("FEE/NominalOperatingTemperature");
 
 	readoutNoise  = configParam.getDouble("FEE/ReadoutNoise");
 
@@ -91,9 +91,9 @@ void FrontEndElectronics::generateGain()
  * Returns the gain of the left ACD for the current operating temperature of the FEE.
  */
 
-double FrontEndElectronics::getGainLeftAdc()
+double FrontEndElectronics::getGainLeftAdc(double time)
 {
-	return refValueGainLeft + gainStability * (getTemperature() - nominalOperatingTemperature);
+	return refValueGainLeft + gainStability * (getTemperature(time) - nominalOperatingTemperature);
 }
 
 
@@ -108,9 +108,9 @@ double FrontEndElectronics::getGainLeftAdc()
  * Returns the gain of the right ACD for the current operating temperature of the FEE.
  */
 
-double FrontEndElectronics::getGainRightAdc()
+double FrontEndElectronics::getGainRightAdc(double time)
 {
-	return refValueGainRight + gainStability * (getTemperature() - nominalOperatingTemperature);
+	return refValueGainRight + gainStability * (getTemperature(time) - nominalOperatingTemperature);
 }
 
 
@@ -127,9 +127,9 @@ double FrontEndElectronics::getGainRightAdc()
  * Returns the electronic offset for the current operating temperature of the FEE.
  */
 
-double FrontEndElectronics::getElectronicOffset()
+double FrontEndElectronics::getElectronicOffset(double time)
 {
-	return refValueBias + biasStability * (getTemperature() - nominalOperatingTemperature);
+	return refValueBias + biasStability * (getTemperature(time) - nominalOperatingTemperature);
 }
 
 
@@ -149,7 +149,7 @@ double FrontEndElectronics::getElectronicOffset()
  *       the nominal operating temperature of the FEE.
  */
 
-double FrontEndElectronics::getTemperature()
+double FrontEndElectronics::getTemperature(double time)
 {
-	return nominalOperatingTemperature;
+	return temperatureGenerator.getNextTemperature(time);
 }
