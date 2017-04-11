@@ -428,6 +428,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "PSF/AnalyticNonGaussian";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("Sigma");
     addString("ParameterFileName");
 
 	subGroup = "FEE";
@@ -472,6 +473,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("IncludeQuantumEfficiency");
     addBoolean("IncludeConvolution");
     addBoolean("IncludeFullWellSaturation");
+    addBoolean("IncludeQuantisation");
     addBoolean("IncludeDigitalSaturation");
     addBoolean("WriteSubPixelImagesToHDF5");
 

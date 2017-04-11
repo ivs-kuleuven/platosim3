@@ -178,6 +178,7 @@ Detector::~Detector()
     includePolarization             = configParam.getBoolean("CCD/IncludePolarization");
     includeFullWellSaturation       = configParam.getBoolean("CCD/IncludeFullWellSaturation");
     includeDigitalSaturation        = configParam.getBoolean("CCD/IncludeDigitalSaturation");
+    includeQuantisation             = configParam.getBoolean("CCD/IncludeQuantisation");
 
     // Configuration parameters for the subfield
 
@@ -453,9 +454,10 @@ void Detector::applyThroughputEfficiency()
  * 	 		- CTE
  *   		- open-shutter smearing
  * 	 		- readout noise
- * 	 		- gain
- * 	 		- electronic offset (i.e. bias)
- * 	 		- digital saturation
+ * 	 		- quantisation:
+ *	 	 		- gain
+ * 		 		- electronic offset (i.e. bias)
+ * 	 			- digital saturation
  *
  * \param exposureTime: Exposure time [s].
  *
@@ -517,6 +519,8 @@ void Detector::readOut(float exposureTime)
 	// Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
 	// the pixels are still receiving photons from the sky, while they are being transfered towards
 	// the readout register.
+	// Pixel units before: [electrons]
+	// Pixel units after: [electrons]
 
 	if (includeOpenShutterSmearing)
 	{
@@ -543,45 +547,15 @@ void Detector::readOut(float exposureTime)
         Log.debug("Detector: no readout noise added.");
     }
 
-	// Apply the gain, to increase the dynamic range of the detector.
-	// Pixel units before: [electrons]
-	// Pixel units after: [ADU]
-
-	applyGain();
-
-	// Take into account the bias level (i.e. add the constant "zero" level
-	// introduced by the amplifier).
-	// Pixel units before: [ADU]
-	// Pixel units after: [ADU]
-
-	addElectronicOffset();
-
-
-    // At this point, because pixel values are floats, the previous steps may have
-    // resulted in fractional ADUs. Take care that pixel maps, bias maps, and smearing
-    // maps do not have fractional values.
-
-    pixelMap = arma::floor(pixelMap);
-    biasMap = arma::floor(biasMap);
-    smearingMap = arma::floor(smearingMap);
-    
-
-	// Take into account digital saturation. If even after dividing by the gain
-	// the number of ADUs in a pixel is still higher than the analogue-digital
-	// converter (ADC) can represent with its fixed amount of bits, clip all
-	// values that are too high to the saturation level of the ADC.
-	// Pixel units before: [ADU]
-	// Pixel units after: [ADU]
-
-    if (includeDigitalSaturation)
-    { 
-        Log.debug("Detector: applying digital saturation to pixelMap, biasMap and smearingMap (digitalSaturationLimit=" + to_string(digitalSaturationLimit) + ")");
-    	applyDigitalSaturation();
-    }
-    else
-    {
-        Log.debug("Detector: no digital saturation applied.");
-    }
+	if(includeQuantisation)
+	{
+		Log.debug("Detector: applying quantisation.");
+		applyQuantisation();
+	}
+	else
+	{
+		Log.debug("Detector: no quantisation applied.");
+	}
 }
 
 
@@ -1151,10 +1125,73 @@ void Detector::addReadoutNoise()
 
 
 
+/**
+ * \brief: Apply quantisation to the bias register, smearing, and smearing map.  This consists of
+ *         the following steps:
+ *         - applying FEE and CCD gain (converting from electrons to ADU)
+ *         - adding the electronic offset
+ *         - forcing the ADUs to be integers
+ *         - applying digital saturation
+ *
+ * \pre Pixel unit in the pixel, smearing, and bias register maps: [electrons].
+ *
+ * \post Pixel unit in the pixel, smearing, and bias register maps: [ADU].
+ */
+void Detector::applyQuantisation()
+{
+	// Apply the gain, to increase the dynamic range of the detector.
+	// Pixel units before: [electrons]
+	// Pixel units after: [ADU]
+
+	applyGain();
+
+	// Take into account the bias level (i.e. add the constant "zero" level
+	// introduced by the amplifier).
+	// Pixel units before: [ADU]
+	// Pixel units after: [ADU]
+
+	addElectronicOffset();
+
+
+	// At this point, because pixel values are floats, the previous steps may have
+	// resulted in fractional ADUs. Take care that pixel maps, bias maps, and smearing
+	// maps do not have fractional values.
+
+	pixelMap = arma::floor(pixelMap);
+	biasMap = arma::floor(biasMap);
+	smearingMap = arma::floor(smearingMap);
+
+
+	// Take into account digital saturation. If even after dividing by the gain
+	// the number of ADUs in a pixel is still higher than the analogue-digital
+	// converter (ADC) can represent with its fixed amount of bits, clip all
+	// values that are too high to the saturation level of the ADC.
+	// Pixel units before: [ADU]
+	// Pixel units after: [ADU]
+
+	if (includeDigitalSaturation)
+	{
+	    Log.debug("Detector: applying digital saturation to pixelMap, biasMap and smearingMap (digitalSaturationLimit=" + to_string(digitalSaturationLimit) + ")");
+	    	applyDigitalSaturation();
+	}
+	else
+	{
+	    Log.debug("Detector: no digital saturation applied.");
+	}
+}
+
+
+
+
+
+
+
+
+
 
 /**
  * \brief: Divide the bias register, smearing, and pixel map by the detector gain.
- *         This converts these three maps from electrons to ADU:
+ *         This converts these three maps from electrons to ADU.
  *
  * \pre Pixel unit in the pixel, smearing, and bias register maps: [electrons].
  *

@@ -55,7 +55,7 @@ Camera:
     ThroughputBandwidth:             638             # FWHM [nm]
     ThroughputLambdaC:               550             # Central wavelength of the throughput passband [nm]
     IncludeAberrationCorrection:     yes             # Calculate the differential aberration correction and apply
-    IncludeFieldDistortion:          yes             # Wheter or not to include field distortion
+    IncludeFieldDistortion:          yes             # Whether or not to include field distortion
     FieldDistortion:                                 # Describe the model for the field distortion
         Type:                        Polynomial1D
         Degree:                      3
@@ -65,7 +65,7 @@ Camera:
 
 PSF:
 
-    Model:                           MappedGaussian  # PSF model: MappedGaussian, MappedFromFile, AnalyticGaussian, AnalyticNonGaussian
+    Model:                           AnalyticNonGaussian # PSF model: MappedGaussian, MappedFromFile, AnalyticGaussian, AnalyticNonGaussian
     MappedGaussian:                                  # Generate the PSF from a fixed 2D Gaussian function
         Sigma:                       0.50            # Standard deviation of Gaussian PSF [pix]
         NumberOfPixels:              8               # The number of pixels in the field for which the PSF is generated
@@ -79,7 +79,8 @@ PSF:
         SigmaX18:                    5.0             # Stdev of Gaussian PSF in x-direction at 18 deg from the optical axis [pix]
         SigmaY18:                    2.0             # Stdev of Gaussian PSF in y-direction at 18 deg from the optical axis [pix]
     AnalyticNonGaussian:
-        ParameterFileName:           inputfiles/parameters.txt
+        Sigma:                       0.5             # Width of the analytic PSF, equal to sigma for a Gaussian PSF [pix]
+        ParameterFileName:           inputfiles/psfallv3.txt
 
 
 FEE:
@@ -149,7 +150,8 @@ CCD:
     IncludeMolecularContamination:   yes             # Include loss of throughput due to molecular contamination
     IncludeConvolution:              yes             # Whether or not to convolve the subPixelMap with the PSF
     IncludeFullWellSaturation:       yes             # Whether or not full well saturation should be applied
-    IncludeDigitalSaturation:        yes             # Wheter or not digital saturation should be applied
+    IncludeDigitalSaturation:        yes             # Whether or not digital saturation should be applied
+    IncludeQuantisation:             yes             # Whether or not to include quantisation
     WriteSubPixelImagesToHDF5:       no              # Only use this for a limited number of exposures. Takes a lot of space! 
 
 
@@ -157,8 +159,8 @@ SubField:
 
     ZeroPointRow:                    0               # Row of the (0,0) pixel of the subfield [pixels]
     ZeroPointColumn:                 0               # Column of the (0,0) pixel of the subfield [pixels]
-    NumColumns:                      100             # Number of columns, should be >= 8 [pixels]
-    NumRows:                         100             # Number of rows,    should be >= 8 [pixels]
+    NumColumns:                      2000             # Number of columns, should be >= 8 [pixels]
+    NumRows:                         2000             # Number of rows,    should be >= 8 [pixels]
     NumBiasPrescanRows:              5               # Nr of rows of the prescan strip to determine the bias [pixels]
     NumSmearingOverscanRows:         5               # Nr of rows of the overscan strip to determine the smearing [pixels]
     SubPixels:                       4               # (Sqrt of) nr of subpixels per CCD pixel. Should be 2^n <= 128.
