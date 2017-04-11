@@ -630,7 +630,9 @@ The <b>FEE</b> block of the configuration file contains all the information that
 \code{.yaml}
 FEE:
 
-    NominalOperatingTemp:        210.15     
+    NominalOperatingTemperature: 210.15
+    Temperature:                 Nominal
+    TemperatureFileName:         inputfiles/feeTemperature.txt     
     ReadoutNoise:                40.5         
     Gain:          
     		RefValue:            11.1
@@ -644,10 +646,22 @@ FEE:
 
 
 
-#### <a name="nominalTempFEE"></a>NominalOperatingTemp
+#### <a name="nominalTempFEE"></a>NominalOperatingTemperature
 <i>Allowed values:</i> > 0
 
 Nominal operating temperature of the FEE, expressed in Kelvin.
+
+
+
+#### <a name="tempFEE"></a>Temperature
+<i>Allowed values:</i>"Nominal" or "FromFile"
+
+Indicates whether the temperature of the FEE should be fixed at the nominal operating temperature or temperature variations should be read from a file.
+
+
+
+#### <a name=tempFileFEE></a>TemperatureFileName
+Path to the file, relative to the [project location](#projectLocation), holding the location of the file with the temperature variations of the FEE.
 
 
 
@@ -747,6 +761,9 @@ CCD:
     	          NumTrapSpecies:[9.8, 3.31, 1.56, 13.24]
     	          TrapDensity:   [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]
     	          ReleaseTime:   [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]
+    NominalOperatingTemperature: 203.15
+    Temperature:                 Nominal
+    TemperatureFileName:         inputfiles/ccdTemperature.txt     
     IncludeFlatfield:                 no             
     IncludePhotonNoise:               yes            
     IncludeReadoutNoise:              yes            
@@ -1027,11 +1044,25 @@ Array holding the trap release time constants <i>τ<sub>r</sub></i> for each of 
 
 
 
-#### <a name="nominalTempCCD"></a>NominalOperatingTemp
+#### <a name="nominalTempCCD"></a>NominalOperatingTemperature
 
 <i>Allowed values:</i> > 0
 
-Nominal operating temperature of the CCD, expressed in Kelvin.C
+Nominal operating temperature of the CCD, expressed in Kelvin.
+
+
+
+#### <a name="tempCCD"></a>Temperature
+<i>Allowed values:</i>"Nominal" or "FromFile"
+
+Indicates whether the temperature of the CCD should be fixed at the nominal operating temperature or temperature variations should be read from a file.
+
+
+
+#### <a name=tempFileCCD></a>TemperatureFileName
+Path to the file, relative to the [project location](#projectLocation), holding the location of the file with the temperature variations of the CCD.
+
+
 
 
 
