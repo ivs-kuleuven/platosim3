@@ -245,6 +245,8 @@ void Camera::configure(ConfigurationParameters &configParam)
 
     fluxOfV0Star           = configParam.getDouble("ObservingParameters/Fluxm0");                 // [phot/s/m^2/nm]
     userGivenSkyBackground = configParam.getDouble("ObservingParameters/SkyBackground");          // [phot/pix/s]
+
+    focalPlaneAngle        = deg2rad(configParam.getDouble("Camera/FocalPlaneOrientation"));      // [rad]
 }
 
 
@@ -585,8 +587,8 @@ double Camera::getGnomonicRadialDistanceFromOpticalAxis(double xFP, double yFP)
  * \brief      Computes the (x,y) coordinates in the focal plane, of a star with given equatorial 
  *             sky coordinates, assuming a pinhole camera.
  *             
- * \details    The transformation is with respect to the given pointing coordinates of the telescope.
- *
+ * \details    The transformation is done with the 'current' orientations of the telescope and the platform.
+ * 
  * \param raStar          Right ascension of the star [rad]
  * \param decStar         Declination of the star [rad]
  * \param useInitialOrientation  true: use initial orientation of telescope and platform (i.e. before first exposure)
@@ -598,51 +600,21 @@ double Camera::getGnomonicRadialDistanceFromOpticalAxis(double xFP, double yFP)
 
 pair<double, double> Camera::skyToFocalPlaneCoordinates(double raStar, double decStar, bool useInitialOrientation)
 {
-    // Retrieve the current telescope orientation angles
+    // Get the rotation matrices Equatorial -> Spacecraft and Spacecraft -> Telescope
 
-    double azimuthAngle, tiltAngle, focalPlaneAngle, raPlatform, decPlatform;
+    arma::mat rotEQ2SC;
+    arma::mat rotSC2TL;
+
     if (useInitialOrientation)
     {
-        tie(azimuthAngle, tiltAngle, focalPlaneAngle, raPlatform, decPlatform) = telescope.getInitialTelescopeOrientation();
+        rotEQ2SC = platform.getEquatorialToUnjitteredSpacecraftRotationMatrix();
+        rotSC2TL = telescope.getPlatformToUndriftedTelescopeRotationMatrix();
     }
     else
     {
-        tie(azimuthAngle, tiltAngle, focalPlaneAngle, raPlatform, decPlatform) = telescope.getCurrentTelescopeOrientation();
+        rotEQ2SC = platform.getEquatorialToJitteredSpacecraftRotationMatrix();
+        rotSC2TL = telescope.getPlatformToDriftedTelescopeRotationMatrix();
     }
-
-    // Compute the equatorial cartesian coordinates of the unit vectors along the platform's main axes. 
-    // The platform's z-axis is the roll = pointing axis. The x-axis of the platform points to the highest point
-    // of the sunshield, which is pointing to the (average) sky position of the Sun. The y-axis completes the right-handed
-    // reference frame.
-
-    double deltax = atan(-cos(raPlatform-raSun) / tan(decPlatform));
-    arma::colvec zSC = {cos(decPlatform)*cos(raPlatform), cos(decPlatform)*sin(raPlatform), sin(decPlatform)};
-    arma::colvec xSC = {cos(deltax)*cos(raSun), cos(deltax)*sin(raSun), sin(deltax)};
-    arma::colvec ySC = arma::cross(zSC, xSC);
-
-    // Compute the rotation matrix to convert cartesian coordinates in the equatorial reference frame to 
-    // cartesian coordinates in the spacecraft framework.
-
-    arma::mat rotEQ2SC;
-    rotEQ2SC << xSC[0] << xSC[1] << xSC[2] << arma::endr
-             << ySC[0] << ySC[1] << ySC[2] << arma::endr
-             << zSC[0] << zSC[1] << zSC[2] << arma::endr;
-
-    
-    // Compute the rotation matrix to convert cartesian coordinates in the spacecraft reference frame to 
-    // cartesian coordinates in the telescope reference frame
-
-    arma::mat rotAzimuth;
-    rotAzimuth << cos(azimuthAngle) << -sin(azimuthAngle) << 0 << arma::endr
-               << sin(azimuthAngle) <<  cos(azimuthAngle) << 0 << arma::endr
-               <<        0          <<         0          << 1 << arma::endr;
-
-    arma::mat rotTilt;
-    rotTilt << cos(tiltAngle) << 0 << -sin(tiltAngle) << arma::endr
-            <<       0        << 1 <<        0        << arma::endr
-            << sin(tiltAngle) << 0 <<  cos(tiltAngle) << arma:: endr;
-
-    arma::mat rotSC2TL = rotTilt * rotAzimuth;
 
     // Compute the rotation matrix to convert cartesian coordinates in the telescope reference frame to
     // cartesian coordinates in the focal plane reference frame
@@ -651,6 +623,7 @@ pair<double, double> Camera::skyToFocalPlaneCoordinates(double raStar, double de
     rotTL2FP <<  cos(focalPlaneAngle) << sin(focalPlaneAngle) << 0 << arma::endr
              << -sin(focalPlaneAngle) << cos(focalPlaneAngle) << 0 << arma::endr
              <<           0           <<           0          << 1 << arma::endr;
+
 
     // Combine all the rotation matrices
 
@@ -701,18 +674,6 @@ pair<double, double> Camera::skyToFocalPlaneCoordinates(double raStar, double de
 
 pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFP, double yFP, bool useInitialOrientation)
 {    
-    // Retrieve the current telescope orientation angles
-    
-    double azimuthAngle, tiltAngle, focalPlaneAngle, raPlatform, decPlatform;
-    if (useInitialOrientation)
-    {
-        tie(azimuthAngle, tiltAngle, focalPlaneAngle, raPlatform, decPlatform) = telescope.getInitialTelescopeOrientation();
-    }
-    else
-    {
-        tie(azimuthAngle, tiltAngle, focalPlaneAngle, raPlatform, decPlatform) = telescope.getCurrentTelescopeOrientation();
-    }
-
 
     // Undo the reverse-image projection effect of the pinhole
 
@@ -726,38 +687,21 @@ pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFP, double yFP, 
              << sin(focalPlaneAngle) <<  cos(focalPlaneAngle) << 0 << arma::endr
              <<           0          <<           0          <<  1 << arma::endr;
 
-    // Compute the rotation matrix to convert cartesian coordinates in the telescope reference frame to 
-    // cartesian coordinates in the spacecraft reference frame
-
-    arma::mat rotAzimuth;
-    rotAzimuth <<  cos(azimuthAngle) << sin(azimuthAngle) << 0 << arma::endr
-               << -sin(azimuthAngle) << cos(azimuthAngle) << 0 << arma::endr
-               <<         0          <<         0         << 1 << arma::endr;
-
-    arma::mat rotTilt;
-    rotTilt <<  cos(tiltAngle) << 0 << sin(tiltAngle) << arma::endr
-            <<        0        << 1 <<       0        << arma::endr
-            << -sin(tiltAngle) << 0 << cos(tiltAngle) << arma::endr;
-
-    arma::mat rotTL2SC = rotAzimuth * rotTilt;
-
-
-    // Compute the equatorial cartesian coordinates of the unit vector along the z-axis (= roll = pointing axis) of the platform.
-    // The x-axis of the platform points to the highest point fof the sunshield, which is pointing to the (average) sky position
-    // of the Sun.
-
-    double deltax = atan(- cos(raPlatform-raSun) / tan(decPlatform));
-    arma::colvec zSC = {cos(decPlatform)*cos(raPlatform), cos(decPlatform)*sin(raPlatform), sin(decPlatform)};
-    arma::colvec xSC = {cos(deltax)*cos(raSun), cos(deltax)*sin(raSun), sin(deltax)};
-    arma::colvec ySC = arma::cross(zSC, xSC);
-
-    // Compute the rotation matrix to convert cartesian coordinates in the equatorial reference frame to 
-    // cartesian coordinates in the spacecraft reference frame
+    // Get the rotation matrices Telescope -> Spacecraft and Spacecraft -> Equatorial
 
     arma::mat rotSC2EQ;
-    rotSC2EQ << xSC[0] << ySC[0] << zSC[0] << arma::endr
-             << xSC[1] << ySC[1] << zSC[1] << arma::endr
-             << xSC[2] << ySC[2] << zSC[2] << arma::endr;
+    arma::mat rotTL2SC;
+
+    if (useInitialOrientation)
+    {
+        rotSC2EQ = platform.getUnjitteredSpacecraftToEquatorialRotationMatrix();
+        rotTL2SC = telescope.getUndriftedTelescopeToPlatformRotationMatrix();
+    }
+    else
+    {
+        rotSC2EQ = platform.getJitteredSpacecraftToEquatorialRotationMatrix();
+        rotTL2SC = telescope.getDriftedTelescopeToPlatformRotationMatrix();
+    }
 
     // Combine all the rotation matrices
 
