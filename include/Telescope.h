@@ -30,16 +30,18 @@ class Telescope  : public Heartbeat, HDF5Writer
         virtual void configure(ConfigurationParameters &configParam);
 
         virtual void updateTelescopeOrientation(double time);
-        tuple<double, double, double, double, double> getCurrentTelescopeOrientation();
-        tuple<double, double, double, double, double> getInitialTelescopeOrientation();
+
+        arma::mat getPlatformToDriftedTelescopeRotationMatrix();
+        arma::mat getDriftedTelescopeToPlatformRotationMatrix();
+
+        arma::mat getPlatformToUndriftedTelescopeRotationMatrix();
+        arma::mat getUndriftedTelescopeToPlatformRotationMatrix();
+
 
         virtual double getHeartbeatInterval() override;
         virtual double getTransmissionEfficiency(double time);
         
         double getLightCollectingArea();
-
-
-        pair<double, double> platformToTelescopePointingCoordinates(double alphaPlatfrom, double deltaPlatform);
 
 
     protected:
@@ -49,8 +51,6 @@ class Telescope  : public Heartbeat, HDF5Writer
 
         double originalAzimuthAngle;           // Original azimuth angle of telescope on platform in the inputfile  [rad]
         double originalTiltAngle;              // Original tilt angle of telescope on platform in the inputfile     [rad]
-        double currentAzimuthAngle;            // Current azimuth angle of telescope on platform                    [rad]
-        double currentTiltAngle;               // Current tilt angle of telescope on platform                       [rad]
         double currentAlphaOpticalAxis;        // Current right ascension of the optical axis                       [rad]
         double currentDeltaOpticalAxis;        // Current declination of the optical axis                           [rad]
         double lightCollectingArea;            // Effective light collective area                                   [cm^2]
@@ -61,13 +61,10 @@ class Telescope  : public Heartbeat, HDF5Writer
         double driftPitchRms;                  // RMS of thermo-elastic drift in pitch                              [rad]
         double driftRollRms;                   // RMS of thermo-elastic drift in roll                               [rad]
         double driftTimeScale;                 // Timescale of thermo-elastic drift                                 [s]
-        double raSun;                          // Right ascension of the direction of the sun shield during the run [rad]
-        double decSun;                         // Declination of the direction of the sun shield during the run     [rad]
  
         bool useDrift;                         // If false, the yaw, pitch, and roll of the thermo-elastic drift are always zero.
 
         double originalFocalPlaneOrientation;  // As in the input file [rad]
-        double currentFocalPlaneOrientation;   // Perturbed due to thermo-elastic drift [rad]
 
         vector<double> historyTime;            // The following vectors stores the telescope orientation angles and pointings
         vector<double> historyRA;              //     to write in the HDF5 file
@@ -75,10 +72,11 @@ class Telescope  : public Heartbeat, HDF5Writer
         vector<double> historyYaw; 
         vector<double> historyPitch;
         vector<double> historyRoll;
-        vector<double> historyAzimuth; 
-        vector<double> historyTilt;
-        vector<double> historyFocalPlaneOrientation;
 
+        arma::mat rotDriftedTelescopeToSpacecraft;  // rotation matrix 
+        arma::mat rotSpacecraftToDriftedTelescope;  // rotation matrix 
+
+        arma::mat getUndriftedToDriftedRotationMatrix(const double yaw, const double pitch, const double roll);
 
 
     private:
