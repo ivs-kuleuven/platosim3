@@ -53,7 +53,7 @@ class StarCatalog
         StarRecord operator[](unsigned int index) const;
 
         StarCatalog getStarsWithinRadiusFrom(double RA0, double dec0, double radius, Unit angleUnit);
-        StarCatalog aberrate(Platform &platform);
+        StarCatalog aberrate(Platform &platform, string aberrationCorrectionType, double startTime, double timeMiddle);
 
     protected:
 
