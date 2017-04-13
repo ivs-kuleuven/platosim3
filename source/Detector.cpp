@@ -439,6 +439,15 @@ void Detector::applyThroughputEfficiency()
 
 
 
+/**
+ * \brief Return the CCD readout time [s].
+ */
+double Detector::getReadoutTime()
+{
+    return readoutTime;
+}
+
+
 
 
 

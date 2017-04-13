@@ -241,6 +241,8 @@ void Camera::configure(ConfigurationParameters &configParam)
     inversePolynomialCoefficients = configParam.getDoubleVector("Camera/FieldDistortion/InverseCoefficients");
 
     includeAberrationCorrection = configParam.getBoolean("Camera/IncludeAberrationCorrection");
+    aberrationCorrectionType    = configParam.getString("Camera/AberrationCorrection/Type");
+
     includeFieldDistortion = configParam.getBoolean("Camera/IncludeFieldDistortion");
 
     fluxOfV0Star           = configParam.getDouble("ObservingParameters/Fluxm0");                 // [phot/s/m^2/nm]
@@ -363,12 +365,18 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
     if (includeAberrationCorrection)
     {
-        Log.info("Camera: applying differential aberration correction to the selected stars in the subfield.");
+        Log.info("Camera: applying " + aberrationCorrectionType + " aberration correction to the selected stars in the subfield.");
+
+        // The time at the middle of the time series is the time when the Sun is defined to be 180 degrees away from platform pointing
+
+        double timeMiddle = numExposures * (exposureTime + detector.getReadoutTime()) / 2.0;
 
         // Get the apparent position of the stars, i.e. apply the differential aberration correction to
         // all the star positions in this starCatalog.
+
+        // We do this calcuation only once per exposure as the effect is negligible within the exposure time
     
-        starCatalog = starCatalog.aberrate(platform);
+        starCatalog = starCatalog.aberrate(platform, aberrationCorrectionType, startTime, timeMiddle);
     }
 
 
