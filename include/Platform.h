@@ -36,27 +36,31 @@ class Platform : public Heartbeat, HDF5Writer
         virtual void configure(ConfigurationParameters &configParams);
 
         void setPointingCoordinates(double rightAscencsion, double declination, Unit unit = Angle::degrees);
-        void updatePointingCoordinates(double time);
+        void updatePlatformOrientation(double time);
         pair<double, double> getCurrentPointingCoordinates();
         pair<double, double> getInitialPointingCoordinates();
 
+        arma::mat getJitteredSpacecraftToEquatorialRotationMatrix();
+        arma::mat getEquatorialToJitteredSpacecraftRotationMatrix();
+
+        arma::mat getUnjitteredSpacecraftToEquatorialRotationMatrix();
+        arma::mat getEquatorialToUnjitteredSpacecraftRotationMatrix();
 
         virtual double getHeartbeatInterval() override;
-
-        arma::colvec spacecraftToEquatorialCoordinates(arma::colvec &coordSC, bool useOriginalPointingCoordinates=false);
-
-        tuple<double, double, double> getNextYawPitchRoll(double time);
-
         tuple<double, double> getRADecSun();
         
 
     protected:
 
-        arma::colvec rotateYawPitchRoll(arma::colvec coord, const double yaw, const double pitch, const double roll);
+        arma::mat getUnjitteredToJitteredRotationMatrix(const double yaw, const double pitch, const double roll);
         
+        tuple<double, double, double> getNextYawPitchRoll(double time);
+
         virtual void initHDF5Groups() override;
         virtual void flushOutput() override;
 
+        arma::mat rotJitteredSpacecraftToEquatorial;  // rotation matrix 
+        arma::mat rotEquatorialToJitteredSpacecraft;  // rotation matrix 
 
         bool useJitter;                             // If false, the yaw, pitch, and roll, are always zero.
         double internalTime;                        // [s]

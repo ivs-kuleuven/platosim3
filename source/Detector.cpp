@@ -39,39 +39,39 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
   includeDigitalSaturation(true),
   internalTime(0.0), camera(camera)
 {
-	// Parse the parameters from the configuration file.
+    // Parse the parameters from the configuration file.
 
-	configure(configParam);
+    configure(configParam);
 
-	// Create the groups in the HDF5 file where the different maps (i.e. pixel map,
-	// bias register map, smearing map, etc.) will be saved. This needs to be done
-	// BEFORE other methods write arrays to HDF5.
+    // Create the groups in the HDF5 file where the different maps (i.e. pixel map,
+    // bias register map, smearing map, etc.) will be saved. This needs to be done
+    // BEFORE other methods write arrays to HDF5.
 
-	initHDF5Groups();
+    initHDF5Groups();
 
-	// Front-end electronics
+    // Front-end electronics
 
-	frontEndElectronics = new FrontEndElectronics(configParam, hdf5file);
+    frontEndElectronics = new FrontEndElectronics(configParam, hdf5file);
 
-	// Allocate memory for the different maps
+    // Allocate memory for the different maps
 
-	pixelMap.zeros(numRowsPixelMap, numColumnsPixelMap);
-	biasMap.zeros(numRowsBiasMap, numColumnsPixelMap);
-	smearingMap.zeros(numRowsSmearingMap, numColumnsPixelMap);
-	throughputMap.ones(numRowsPixelMap, numColumnsPixelMap);
+    pixelMap.zeros(numRowsPixelMap, numColumnsPixelMap);
+    biasMap.zeros(numRowsBiasMap, numColumnsPixelMap);
+    smearingMap.zeros(numRowsSmearingMap, numColumnsPixelMap);
+    throughputMap.ones(numRowsPixelMap, numColumnsPixelMap);
 
-	// Generate the throughput map (vignetting + polarisation + particulate & molecular contamination + quantum efficiency)
+    // Generate the throughput map (vignetting + polarisation + particulate & molecular contamination + quantum efficiency)
 
-	generateThroughputMap();
+    generateThroughputMap();
 
-	// Generate detector gain. The lefthand side of the detector has a different gain than the righthand side.
+    // Generate detector gain. The lefthand side of the detector has a different gain than the righthand side.
 
-	generateGain();
+    generateGain();
 
-	// Set the seeds of the random number generators
+    // Set the seeds of the random number generators
 
-	photonNoiseGenerator.seed(photonNoiseSeed);
-	readoutNoiseGenerator.seed(readoutNoiseSeed);
+    photonNoiseGenerator.seed(photonNoiseSeed);
+    readoutNoiseGenerator.seed(readoutNoiseSeed);
 
     // Fast forward the random number generators of the readout and the photon noise from 
     // exposure # 0 to exposure # beginExposureNr.
@@ -94,9 +94,9 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
  */
 Detector::~Detector()
 {
-	flushOutput();
+    flushOutput();
 
-	delete frontEndElectronics;
+    delete frontEndElectronics;
 }
 
 
@@ -117,23 +117,23 @@ Detector::~Detector()
 
  void Detector::configure(ConfigurationParameters &configParam)
  {
- 	// Configuration parameters for the CCD detector
+    // Configuration parameters for the CCD detector
 
-    originOffsetX              			= configParam.getDouble("CCD/OriginOffsetX");
-    originOffsetY              			= configParam.getDouble("CCD/OriginOffsetY");
-    orientationAngle           			= deg2rad(configParam.getDouble("CCD/Orientation"));
-    numRows                    			= configParam.getInteger("CCD/NumRows");
-    numColumns                 			= configParam.getInteger("CCD/NumColumns");
-    pixelSize                  			= configParam.getDouble("CCD/PixelSize");
-    quantumEfficiency          			= configParam.getDouble("CCD/QuantumEfficiency/Efficiency");
+    originOffsetX                       = configParam.getDouble("CCD/OriginOffsetX");
+    originOffsetY                       = configParam.getDouble("CCD/OriginOffsetY");
+    orientationAngle                    = deg2rad(configParam.getDouble("CCD/Orientation"));
+    numRows                             = configParam.getInteger("CCD/NumRows");
+    numColumns                          = configParam.getInteger("CCD/NumColumns");
+    pixelSize                           = configParam.getDouble("CCD/PixelSize");
+    quantumEfficiency                   = configParam.getDouble("CCD/QuantumEfficiency/Efficiency");
     refAngleQuantumEfficiency            = configParam.getDouble("CCD/QuantumEfficiency/RefAngle");
     expectedValueQuantumEfficiency       = configParam.getDouble("CCD/QuantumEfficiency/ExpectedValue");
-    fullWellSaturationLimit    			= configParam.getLong("CCD/FullWellSaturation");
-    digitalSaturationLimit     			= configParam.getLong("CCD/DigitalSaturation");
-    readoutNoise              			= configParam.getDouble("CCD/ReadoutNoise");
-    readoutTime                			= configParam.getDouble("CCD/ReadoutTime");
+    fullWellSaturationLimit             = configParam.getLong("CCD/FullWellSaturation");
+    digitalSaturationLimit              = configParam.getLong("CCD/DigitalSaturation");
+    readoutNoise                        = configParam.getDouble("CCD/ReadoutNoise");
+    readoutTime                         = configParam.getDouble("CCD/ReadoutTime");
     expectedValueVignetting              = configParam.getDouble("CCD/Vignetting/ExpectedValue");
-    particulateContaminationEfficiency 	= configParam.getDouble("CCD/Contamination/ParticulateContaminationEfficiency");
+    particulateContaminationEfficiency  = configParam.getDouble("CCD/Contamination/ParticulateContaminationEfficiency");
     molecularContaminationEfficiency     = configParam.getDouble("CCD/Contamination/MolecularContaminationEfficiency");
 
     refValueGain       = configParam.getDouble("CCD/Gain/RefValue");
@@ -184,21 +184,21 @@ Detector::~Detector()
 
     subFieldZeroPointRow    = configParam.getInteger("SubField/ZeroPointRow");
     subFieldZeroPointColumn = configParam.getInteger("SubField/ZeroPointColumn");
-	numRowsPixelMap         = configParam.getInteger("SubField/NumRows");
-	numColumnsPixelMap      = configParam.getInteger("SubField/NumColumns");
-	numRowsBiasMap          = configParam.getInteger("SubField/NumBiasPrescanRows");
-	numRowsSmearingMap      = configParam.getInteger("SubField/NumSmearingOverscanRows");
+    numRowsPixelMap         = configParam.getInteger("SubField/NumRows");
+    numColumnsPixelMap      = configParam.getInteger("SubField/NumColumns");
+    numRowsBiasMap          = configParam.getInteger("SubField/NumBiasPrescanRows");
+    numRowsSmearingMap      = configParam.getInteger("SubField/NumSmearingOverscanRows");
 
     // Configuration parameters for the noise source random seeds
 
-	readoutNoiseSeed        = configParam.getLong("RandomSeeds/ReadOutNoiseSeed");
-	photonNoiseSeed         = configParam.getLong("RandomSeeds/PhotonNoiseSeed");
+    readoutNoiseSeed        = configParam.getLong("RandomSeeds/ReadOutNoiseSeed");
+    photonNoiseSeed         = configParam.getLong("RandomSeeds/PhotonNoiseSeed");
 
     // Get the sequential number of the very first exposure (used for e.g. fast-forwarding the noise generators)
 
     beginExposureNr         = configParam.getInteger("ObservingParameters/BeginExposureNr");
 
-	numEdgePixels = 0;
+    numEdgePixels = 0;
  }
 
 
@@ -286,71 +286,71 @@ double Detector::takeExposure(int exposureNr, double startTime, double exposureT
 
 void Detector::generateThroughputMap()
 {
-	Log.info("Detector: generating throughput map.");
+    Log.info("Detector: generating throughput map.");
 
-	double xFPmm, yFPmm;
-	double angle;
+    double xFPmm, yFPmm;
+    double angle;
 
-	const double refAnglePolarizationRadians = deg2rad(refAnglePolarization);		// Reference angle for the polarisation efficiency [radians]
-	const double cosPolarizationEfficiency = cos(polarizationEfficiency);
+    const double refAnglePolarizationRadians = deg2rad(refAnglePolarization);       // Reference angle for the polarisation efficiency [radians]
+    const double cosPolarizationEfficiency = cos(polarizationEfficiency);
 
-	const double refAngleQuantumEfficiencyRadians = deg2rad(refAngleQuantumEfficiency);		// Reference angle for the quantum efficiency [radians]
-	const double cosQuantumEfficiency = cos(quantumEfficiency);
+    const double refAngleQuantumEfficiencyRadians = deg2rad(refAngleQuantumEfficiency);     // Reference angle for the quantum efficiency [radians]
+    const double cosQuantumEfficiency = cos(quantumEfficiency);
 
-	if (includeVignetting || includePolarization || includeQuantumEfficiency)
-	{
-		// Loop over all pixels in the pixel map
+    if (includeVignetting || includePolarization || includeQuantumEfficiency)
+    {
+        // Loop over all pixels in the pixel map
 
-		for (unsigned int row = 0; row < numRowsPixelMap; row++)
-		{
-			for (unsigned int column = 0; column < numColumnsPixelMap; column++)
-			{
-				// Pixel coordinates (in the detector) -> focal-plane coordinates
+        for (unsigned int row = 0; row < numRowsPixelMap; row++)
+        {
+            for (unsigned int column = 0; column < numColumnsPixelMap; column++)
+            {
+                // Pixel coordinates (in the detector) -> focal-plane coordinates
 
-				tie(xFPmm, yFPmm) = pixelToFocalPlaneCoordinates(row, column);
+                tie(xFPmm, yFPmm) = pixelToFocalPlaneCoordinates(row, column);
 
-				// Angular distance [radians] of the pixel from the optical axis
+                // Angular distance [radians] of the pixel from the optical axis
 
-				angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm);
+                angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm);
 
-				// Vignetting
+                // Vignetting
 
-				if (includeVignetting) throughputMap(row, column) *= pow(cos(angle), 2);
+                if (includeVignetting) throughputMap(row, column) *= pow(cos(angle), 2);
 
-				// Polarisation (Eq. 4-11 in PLATO-DLR-PL-RP-001)
+                // Polarisation (Eq. 4-11 in PLATO-DLR-PL-RP-001)
 
-				if (includePolarization)
-					throughputMap(row, column) *= cos(angle / refAnglePolarizationRadians * cosPolarizationEfficiency);
+                if (includePolarization)
+                    throughputMap(row, column) *= cos(angle / refAnglePolarizationRadians * cosPolarizationEfficiency);
 
-				// Quantum efficiency (Eq. 4-12 in PLATO-DLR-PL-RP-001)
-				// Pixel units before: [photons]
-				// Pixel units after: [electrons]
+                // Quantum efficiency (Eq. 4-12 in PLATO-DLR-PL-RP-001)
+                // Pixel units before: [photons]
+                // Pixel units after: [electrons]
 
-				if (includeQuantumEfficiency)
-					throughputMap(row, column) *= cos(angle / refAngleQuantumEfficiencyRadians * cosQuantumEfficiency);
-			}
-		}
-	}
+                if (includeQuantumEfficiency)
+                    throughputMap(row, column) *= cos(angle / refAngleQuantumEfficiencyRadians * cosQuantumEfficiency);
+            }
+        }
+    }
 
-	// Particulate contamination (Sect. 4.2.4.3 in PLATO-DLR-PL-RP-001)
+    // Particulate contamination (Sect. 4.2.4.3 in PLATO-DLR-PL-RP-001)
 
-	if (includeParticulateContamination)
-	{
-		throughputMap *= particulateContaminationEfficiency;
-	}
+    if (includeParticulateContamination)
+    {
+        throughputMap *= particulateContaminationEfficiency;
+    }
 
-	// Molecular contamination (Sect. 4.2.4.4 in PLATO-DLR-PL-RP-001)
+    // Molecular contamination (Sect. 4.2.4.4 in PLATO-DLR-PL-RP-001)
 
-	if (includeMolecularContamination)
-	{
-		throughputMap *= molecularContaminationEfficiency;
-	}
+    if (includeMolecularContamination)
+    {
+        throughputMap *= molecularContaminationEfficiency;
+    }
 
-	// Write the result to HDF5
+    // Write the result to HDF5
 
-	Log.debug("Detector: writing throughput map to HDF5");
+    Log.debug("Detector: writing throughput map to HDF5");
 
-	hdf5File.writeArray("/Throughput", "throughputMap", throughputMap);
+    hdf5File.writeArray("/Throughput", "throughputMap", throughputMap);
 }
 
 
@@ -369,14 +369,14 @@ void Detector::generateThroughputMap()
  */
 void Detector::generateGain()
 {
-	mt19937 gainGenerator;
-	gainGenerator.seed(gainSeed);
+    mt19937 gainGenerator;
+    gainGenerator.seed(gainSeed);
 
-	double stdDevGain = (gainThreeSigma / 3.0 / 100.0) * refValueGain;
-	normal_distribution<double> gainDistribution = normal_distribution<double>(refValueGain, stdDevGain);
+    double stdDevGain = (gainThreeSigma / 3.0 / 100.0) * refValueGain;
+    normal_distribution<double> gainDistribution = normal_distribution<double>(refValueGain, stdDevGain);
 
-	refValueGainLeft = gainDistribution(gainGenerator);
-	refValueGainRight = gainDistribution(gainGenerator);
+    refValueGainLeft = gainDistribution(gainGenerator);
+    refValueGainRight = gainDistribution(gainGenerator);
 }
 
 
@@ -405,10 +405,10 @@ bool Detector::isInSubfield(double xFP, double yFP)
     double row, column;
     tie(row, column) = focalPlaneToPixelCoordinates(xFP, yFP);
 
-	// Check wether these pixel coordinates falls on the subfield
+    // Check wether these pixel coordinates falls on the subfield
 
-	return    (column >= subFieldZeroPointColumn) && (column < subFieldZeroPointColumn + numColumnsPixelMap)
-	       && (row    >= subFieldZeroPointRow)    && (row < subFieldZeroPointRow + numRowsPixelMap);
+    return    (column >= subFieldZeroPointColumn) && (column < subFieldZeroPointColumn + numColumnsPixelMap)
+           && (row    >= subFieldZeroPointRow)    && (row < subFieldZeroPointRow + numRowsPixelMap);
 }
 
 
@@ -423,15 +423,15 @@ bool Detector::isInSubfield(double xFP, double yFP)
 
 /**
  * \brief Apply throughput efficiency. This is the combined effect of:
- * 			- vignetting (brightness attenuation towards the edges of the FOV);
- * 			- particulate contamination;
- * 			- molecular contamination;
- * 			- quantum efficiency.
+ *          - vignetting (brightness attenuation towards the edges of the FOV);
+ *          - particulate contamination;
+ *          - molecular contamination;
+ *          - quantum efficiency.
  */
 
 void Detector::applyThroughputEfficiency()
 {
-    pixelMap = pixelMap % throughputMap;		// Element-wise multiplication with the throughput map
+    pixelMap = pixelMap % throughputMap;        // Element-wise multiplication with the throughput map
 }
 
 
@@ -458,15 +458,15 @@ double Detector::getReadoutTime()
 
 /**
  * \brief: Reads out the detector and apply the following effects:
- * 	 		- photon noise
- *   		- full-well saturation (i.e. blooming)
- * 	 		- CTE
- *   		- open-shutter smearing
- * 	 		- readout noise
- * 	 		- quantisation:
- *	 	 		- gain
- * 		 		- electronic offset (i.e. bias)
- * 	 			- digital saturation
+ *          - photon noise
+ *          - full-well saturation (i.e. blooming)
+ *          - CTE
+ *          - open-shutter smearing
+ *          - readout noise
+ *          - quantisation:
+ *              - gain
+ *              - electronic offset (i.e. bias)
+ *              - digital saturation
  *
  * \param exposureTime: Exposure time [s].
  *
@@ -478,25 +478,25 @@ double Detector::getReadoutTime()
 void Detector::readOut(float exposureTime)
 {
 
-	// Apply poisson distributed photon noise
-	// Pixel units before: [electrons]
-	// Pixel units after: [electrons]
+    // Apply poisson distributed photon noise
+    // Pixel units before: [electrons]
+    // Pixel units after: [electrons]
 
-	if (includePhotonNoise)
-	{
+    if (includePhotonNoise)
+    {
         Log.debug("Detector: adding photon noise");
-		addPhotonNoise();
-	}
+        addPhotonNoise();
+    }
     else 
     {
         Log.debug("Detector: no photon noise added.");
     }
 
-	// Apply full-well saturation. A pixel has a maximum capacity of electrons (the full well capacity).
-	// If photons free more electrons, the pixel saturates, and the electrons flow in the pixels above and below in
-	// the same column (potential barriers are smallest in that direction).
-	// Pixel units before: [electrons]
-	// Pixel units after: [electrons]
+    // Apply full-well saturation. A pixel has a maximum capacity of electrons (the full well capacity).
+    // If photons free more electrons, the pixel saturates, and the electrons flow in the pixels above and below in
+    // the same column (potential barriers are smallest in that direction).
+    // Pixel units before: [electrons]
+    // Pixel units after: [electrons]
 
     if (includeFullWellSaturation)
     {
@@ -508,63 +508,63 @@ void Detector::readOut(float exposureTime)
         Log.debug("Detector: no full well saturation applied.");
     }
 
-	// Simulate the effects of the Charge Transfer Inefficiency (CTI). When the
-	// CCD is read out, row after row, a part of the charge is always left behind
-	// which then dribbles into the trailing pixels. This causes each star to have
-	// a small "tail". Only visible when the CTI = 1 - CTE is poor.
-	// Pixel units before: [electrons]
-	// Pixel units after: [electrons]
+    // Simulate the effects of the Charge Transfer Inefficiency (CTI). When the
+    // CCD is read out, row after row, a part of the charge is always left behind
+    // which then dribbles into the trailing pixels. This causes each star to have
+    // a small "tail". Only visible when the CTI = 1 - CTE is poor.
+    // Pixel units before: [electrons]
+    // Pixel units after: [electrons]
 
-	if (includeCTIeffects)
-	{
+    if (includeCTIeffects)
+    {
         Log.debug("Detector: applying charge transfer inefficiency");
-		applyCTI();
-	}
+        applyCTI();
+    }
     else
     {
         Log.debug("Detector: no charge transfer inefficiency applied.");
     }
 
-	// Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
-	// the pixels are still receiving photons from the sky, while they are being transfered towards
-	// the readout register.
-	// Pixel units before: [electrons]
-	// Pixel units after: [electrons]
+    // Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
+    // the pixels are still receiving photons from the sky, while they are being transfered towards
+    // the readout register.
+    // Pixel units before: [electrons]
+    // Pixel units after: [electrons]
 
-	if (includeOpenShutterSmearing)
-	{
+    if (includeOpenShutterSmearing)
+    {
         Log.debug("Detector: applying open shutter smearing.");
-		applyOpenShutterSmearing(exposureTime);
-	}
+        applyOpenShutterSmearing(exposureTime);
+    }
     else 
     {
         Log.debug("Detector: no open shutter smearing applied.");
     }
 
-	// Each time the amplifier reads out a pixel, a tiny bit of noise is added.
-	// Add the readout noise.
-	// Pixel units before: [electrons]
-	// Pixel units after: [electrons]
+    // Each time the amplifier reads out a pixel, a tiny bit of noise is added.
+    // Add the readout noise.
+    // Pixel units before: [electrons]
+    // Pixel units after: [electrons]
 
-	if (includeReadoutNoise)
-	{ 
+    if (includeReadoutNoise)
+    { 
         Log.debug("Detector: adding readout noise of CCD and FEE.");
-		addReadoutNoise();
-	}
+        addReadoutNoise();
+    }
     else
     {
         Log.debug("Detector: no readout noise added.");
     }
 
-	if(includeQuantisation)
-	{
-		Log.debug("Detector: applying quantisation.");
-		applyQuantisation();
-	}
-	else
-	{
-		Log.debug("Detector: no quantisation applied.");
-	}
+    if(includeQuantisation)
+    {
+        Log.debug("Detector: applying quantisation.");
+        applyQuantisation();
+    }
+    else
+    {
+        Log.debug("Detector: no quantisation applied.");
+    }
 }
 
 
@@ -590,27 +590,27 @@ void Detector::readOut(float exposureTime)
  */
 void Detector::addPhotonNoise()
 {
-	// Add photon noise to the pixel map
+    // Add photon noise to the pixel map
 
-	for (unsigned int row = 0; row < numRowsPixelMap; row++)
-	{
-		for (unsigned int column = 0; column < numColumnsPixelMap; column++)
-		{
-			photonNoiseDistribution = poisson_distribution<long>(pixelMap(row, column));
-			pixelMap(row, column) = photonNoiseDistribution(photonNoiseGenerator);
-		}
-	}
+    for (unsigned int row = 0; row < numRowsPixelMap; row++)
+    {
+        for (unsigned int column = 0; column < numColumnsPixelMap; column++)
+        {
+            photonNoiseDistribution = poisson_distribution<long>(pixelMap(row, column));
+            pixelMap(row, column) = photonNoiseDistribution(photonNoiseGenerator);
+        }
+    }
 
-	// Add photon noise to the smearing map
+    // Add photon noise to the smearing map
 
-	for (unsigned int row = 0; row < numRowsSmearingMap; row++)
-	{
-		for (unsigned int column = 0; column < numColumnsPixelMap; column++)
-		{
-			photonNoiseDistribution = poisson_distribution<long>(smearingMap(row, column));
-			smearingMap(row, column) = photonNoiseDistribution(photonNoiseGenerator);
-		}
-	}
+    for (unsigned int row = 0; row < numRowsSmearingMap; row++)
+    {
+        for (unsigned int column = 0; column < numColumnsPixelMap; column++)
+        {
+            photonNoiseDistribution = poisson_distribution<long>(smearingMap(row, column));
+            smearingMap(row, column) = photonNoiseDistribution(photonNoiseGenerator);
+        }
+    }
 }
 
 
@@ -642,26 +642,26 @@ void Detector::addPhotonNoise()
 
 void Detector::applyFullWellSaturation()
 {
-	double pixelValue, numExcessElectrons;
+    double pixelValue, numExcessElectrons;
 
-	int jmod;// Row coordinate where excess electrons are transferred from and to
+    int jmod;// Row coordinate where excess electrons are transferred from and to
 
-	for (unsigned int row = 0; row < numRowsPixelMap; row++)
-	{
-		for (unsigned int column = 0; column < numColumnsPixelMap; column++)
-		{
-			pixelValue = pixelMap(row, column);
+    for (unsigned int row = 0; row < numRowsPixelMap; row++)
+    {
+        for (unsigned int column = 0; column < numColumnsPixelMap; column++)
+        {
+            pixelValue = pixelMap(row, column);
 
-			// If the full-well saturation limit has been exceeded, distribute
-			// the electrons evenly in the wells above and below until the
-			// saturation has disappeared (stay in the same column!)
+            // If the full-well saturation limit has been exceeded, distribute
+            // the electrons evenly in the wells above and below until the
+            // saturation has disappeared (stay in the same column!)
 
-			if (pixelValue > fullWellSaturationLimit)
-			{
-				// Transfer excess electrons up
+            if (pixelValue > fullWellSaturationLimit)
+            {
+                // Transfer excess electrons up
 
-				jmod = row;
-				numExcessElectrons = (pixelValue - fullWellSaturationLimit) / 2.0;   // Move half of the excess electrons down...
+                jmod = row;
+                numExcessElectrons = (pixelValue - fullWellSaturationLimit) / 2.0;   // Move half of the excess electrons down...
 
                 // When we move half of the excess electrons down, the pixel below may also become saturated 
                 // (or was already saturated). When processing this pixel below, we need to avoid that it also 
@@ -672,78 +672,78 @@ void Detector::applyFullWellSaturation()
                 
                 bool transfer2Saturated = false;
 
-				while (numExcessElectrons > 0 && jmod < numRowsPixelMap)
-				{
-					if(!transfer2Saturated)
-					{
-						pixelMap(jmod, column) -= numExcessElectrons;
-					}
+                while (numExcessElectrons > 0 && jmod < numRowsPixelMap)
+                {
+                    if(!transfer2Saturated)
+                    {
+                        pixelMap(jmod, column) -= numExcessElectrons;
+                    }
 
-					jmod++;
+                    jmod++;
 
-					// Electrons reaching the edge of the CCD will not be detected
+                    // Electrons reaching the edge of the CCD will not be detected
 
-					if (jmod < numRowsPixelMap)
-					{
-						if(pixelMap(jmod, column) >= fullWellSaturationLimit)
-						{
-							transfer2Saturated= true;
-						}
+                    if (jmod < numRowsPixelMap)
+                    {
+                        if(pixelMap(jmod, column) >= fullWellSaturationLimit)
+                        {
+                            transfer2Saturated= true;
+                        }
 
-						else{
+                        else{
 
-							transfer2Saturated = false;
+                            transfer2Saturated = false;
 
-							pixelMap(jmod, column) += numExcessElectrons;
+                            pixelMap(jmod, column) += numExcessElectrons;
 
-							// Make sure the pixel you move the excess electrons to
-							// does not get saturated too
+                            // Make sure the pixel you move the excess electrons to
+                            // does not get saturated too
 
-							if (pixelMap(jmod, column) > fullWellSaturationLimit)
-							{
-								numExcessElectrons = pixelMap(jmod, column) - fullWellSaturationLimit;
-							}
+                            if (pixelMap(jmod, column) > fullWellSaturationLimit)
+                            {
+                                numExcessElectrons = pixelMap(jmod, column) - fullWellSaturationLimit;
+                            }
 
-							else
-							{
-								numExcessElectrons = 0;
-							}
-						}
-					}
-				}
+                            else
+                            {
+                                numExcessElectrons = 0;
+                            }
+                        }
+                    }
+                }
 
-				// Transfer excess electrons down
+                // Transfer excess electrons down
 
-				jmod = row;
-				numExcessElectrons = (pixelValue - fullWellSaturationLimit) / 2.0;    // ...and the rest of the excess electrons up
+                jmod = row;
+                numExcessElectrons = (pixelValue - fullWellSaturationLimit) / 2.0;    // ...and the rest of the excess electrons up
 
-				while (numExcessElectrons > 0 && jmod >= 0)
-				{
-					pixelMap(jmod, column) -= numExcessElectrons;
-					jmod--;
+                while (numExcessElectrons > 0 && jmod >= 0)
+                {
+                    pixelMap(jmod, column) -= numExcessElectrons;
+                    jmod--;
 
-					// Electrons reaching the edge of the CCD will not be detected
+                    // Electrons reaching the edge of the CCD will not be detected
 
-					if (jmod >= 0)
-					{
-						pixelMap(jmod, column) += numExcessElectrons;
+                    if (jmod >= 0)
+                    {
+                        pixelMap(jmod, column) += numExcessElectrons;
 
-						// Make sure the pixel you move the excess electrons to does not get saturated too
+                        // Make sure the pixel you move the excess electrons to does not get saturated too
 
-						if (pixelMap(jmod, column) > fullWellSaturationLimit)
-						{
-							numExcessElectrons = pixelMap(jmod, column) - fullWellSaturationLimit;
-						}
+                        if (pixelMap(jmod, column) > fullWellSaturationLimit)
+                        {
+                            numExcessElectrons = pixelMap(jmod, column) - fullWellSaturationLimit;
+                        }
 
-						else
-						{
-							numExcessElectrons = 0;
-						}
-					}
-				}
-			}
-		}
-	}
+                        else
+                        {
+                            numExcessElectrons = 0;
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 
@@ -815,67 +815,67 @@ void Detector::applyCTI()
 
 void Detector::applySimpleCTImodel()
 {
-	float cti = 1.0 - meanCte;
+    float cti = 1.0 - meanCte;
 
-	// Computing the effects of CTE requires the use of a binomial distribution.
-	// To speed up things, we first pre-compute some parts of this distribution.
+    // Computing the effects of CTE requires the use of a binomial distribution.
+    // To speed up things, we first pre-compute some parts of this distribution.
 
-	// Pre-compute the (natural) logarithms of the first N natural numbers
+    // Pre-compute the (natural) logarithms of the first N natural numbers
 
-	vector<double> logs(numRowsPixelMap + subFieldZeroPointRow);
-	iota(logs.begin(), logs.end(), 1.0);
-	transform(logs.begin(), logs.end(), logs.begin(), ptr_fun<double, double>(log));
+    vector<double> logs(numRowsPixelMap + subFieldZeroPointRow);
+    iota(logs.begin(), logs.end(), 1.0);
+    transform(logs.begin(), logs.end(), logs.begin(), ptr_fun<double, double>(log));
 
-	// Compute the partial sums of these logarithms
-	// sumOfLogsUpTo[i] contains log((i+1)!) = log(1) + ... + log(i+1)
+    // Compute the partial sums of these logarithms
+    // sumOfLogsUpTo[i] contains log((i+1)!) = log(1) + ... + log(i+1)
 
-	vector<double> sumOfLogsUpTo(numRowsPixelMap + subFieldZeroPointRow);
-	partial_sum(logs.begin(), logs.end(), sumOfLogsUpTo.begin());
+    vector<double> sumOfLogsUpTo(numRowsPixelMap + subFieldZeroPointRow);
+    partial_sum(logs.begin(), logs.end(), sumOfLogsUpTo.begin());
 
-	arma::Row<float> readout;	// Readout strip
+    arma::Row<float> readout;   // Readout strip
 
-	// Loop over all rows in the pixel map (starting at the row farthest away from
-	// the readout register)
+    // Loop over all rows in the pixel map (starting at the row farthest away from
+    // the readout register)
 
-	for (int row = numRowsPixelMap - 1; row >= 0; row--)
-	{
-		// Reset the readout register
+    for (int row = numRowsPixelMap - 1; row >= 0; row--)
+    {
+        // Reset the readout register
 
-		readout.zeros(numColumnsPixelMap);
+        readout.zeros(numColumnsPixelMap);
 
-		// Each row picks up flux that is left behind when transferring the rows
-		// that are closer to the readout register, row-by-row to the readout
-		// register (these rows are looped over via the "index" variable - note
-		// that the detector zeropoint is added to it!).
+        // Each row picks up flux that is left behind when transferring the rows
+        // that are closer to the readout register, row-by-row to the readout
+        // register (these rows are looped over via the "index" variable - note
+        // that the detector zeropoint is added to it!).
 
-		if (row + subFieldZeroPointRow == 0)
-		{
-			const double factor1 = meanCte;
-			readout += pixelMap(0, arma::span::all) * factor1;
-		}
-		else
-		{
-			for (unsigned int index = subFieldZeroPointRow; index <= row + subFieldZeroPointRow; index++)
-			{
-				const double cteFactor = pow(meanCte, index + 1) * pow(cti, row + subFieldZeroPointRow - index);
+        if (row + subFieldZeroPointRow == 0)
+        {
+            const double factor1 = meanCte;
+            readout += pixelMap(0, arma::span::all) * factor1;
+        }
+        else
+        {
+            for (unsigned int index = subFieldZeroPointRow; index <= row + subFieldZeroPointRow; index++)
+            {
+                const double cteFactor = pow(meanCte, index + 1) * pow(cti, row + subFieldZeroPointRow - index);
 
-				if ((index == 0) || (row - (index - subFieldZeroPointRow) == 0))
-				{
-					readout += pixelMap(index - subFieldZeroPointRow, arma::span::all) * cteFactor;
-				}
-				else
-				{
-					const double binomialFactor = exp(sumOfLogsUpTo[row + subFieldZeroPointRow - 1]
-									                  - sumOfLogsUpTo[row - (index - subFieldZeroPointRow) - 1]
-									                  - sumOfLogsUpTo[index - 1]);
+                if ((index == 0) || (row - (index - subFieldZeroPointRow) == 0))
+                {
+                    readout += pixelMap(index - subFieldZeroPointRow, arma::span::all) * cteFactor;
+                }
+                else
+                {
+                    const double binomialFactor = exp(sumOfLogsUpTo[row + subFieldZeroPointRow - 1]
+                                                      - sumOfLogsUpTo[row - (index - subFieldZeroPointRow) - 1]
+                                                      - sumOfLogsUpTo[index - 1]);
 
-					readout += pixelMap(index - subFieldZeroPointRow, arma::span::all) * cteFactor;
-				}
-			}
-		}
+                    readout += pixelMap(index - subFieldZeroPointRow, arma::span::all) * cteFactor;
+                }
+            }
+        }
 
-		pixelMap(row, arma::span::all) = readout(0, arma::span::all);
-	}
+        pixelMap(row, arma::span::all) = readout(0, arma::span::all);
+    }
 }
 
 
@@ -1005,51 +1005,51 @@ void Detector::applyShort2013CTImodel()
  */
 void Detector::applyOpenShutterSmearing(float exposureTime)
 {
-	// Average out the fluxes in the pixel map per column (of the whole CCD) and make sure it is
-	// scaled with the readout time instead of with the exposure time:
-	// - rows in the sub-field: use actual fluxes
-	// - rows outside the sub-field: use total sky background
+    // Average out the fluxes in the pixel map per column (of the whole CCD) and make sure it is
+    // scaled with the readout time instead of with the exposure time:
+    // - rows in the sub-field: use actual fluxes
+    // - rows outside the sub-field: use total sky background
 
-	arma::Row<float> openShutterSmearing = arma::sum(pixelMap, 0);
+    arma::Row<float> openShutterSmearing = arma::sum(pixelMap, 0);
 
-	float openShutterSmearingOutsideSubField = camera.getTotalSkyBackground() * (numRows - numRowsPixelMap + numRowsBiasMap + numRowsSmearingMap);
+    float openShutterSmearingOutsideSubField = camera.getTotalSkyBackground() * (numRows - numRowsPixelMap + numRowsBiasMap + numRowsSmearingMap);
 
-	// Apply all throughput efficiencies
+    // Apply all throughput efficiencies
 
-	if(includeVignetting)
-		openShutterSmearingOutsideSubField *= expectedValueVignetting;
+    if(includeVignetting)
+        openShutterSmearingOutsideSubField *= expectedValueVignetting;
 
-	if(includePolarization)
-		openShutterSmearingOutsideSubField *= expectedValuePolarization;
+    if(includePolarization)
+        openShutterSmearingOutsideSubField *= expectedValuePolarization;
 
-	if(includeParticulateContamination)
-		openShutterSmearingOutsideSubField *= particulateContaminationEfficiency;
+    if(includeParticulateContamination)
+        openShutterSmearingOutsideSubField *= particulateContaminationEfficiency;
 
-	if(includeMolecularContamination)
-		openShutterSmearingOutsideSubField *= molecularContaminationEfficiency;
+    if(includeMolecularContamination)
+        openShutterSmearingOutsideSubField *= molecularContaminationEfficiency;
 
-	if(includeQuantumEfficiency)
-		openShutterSmearingOutsideSubField *= expectedValueQuantumEfficiency;
+    if(includeQuantumEfficiency)
+        openShutterSmearingOutsideSubField *= expectedValueQuantumEfficiency;
 
 
-	openShutterSmearing += openShutterSmearingOutsideSubField;
+    openShutterSmearing += openShutterSmearingOutsideSubField;
 
-	float factor = (readoutTime / exposureTime) / numRows;
-	openShutterSmearing *= factor;
+    float factor = (readoutTime / exposureTime) / numRows;
+    openShutterSmearing *= factor;
 
-	// Add the effect of the open-shutter smearing to the pixel map
+    // Add the effect of the open-shutter smearing to the pixel map
 
-	for (unsigned int row = 0; row < numRowsPixelMap; row++)
-	{
-		pixelMap(row, arma::span::all) += openShutterSmearing;
-	}
+    for (unsigned int row = 0; row < numRowsPixelMap; row++)
+    {
+        pixelMap(row, arma::span::all) += openShutterSmearing;
+    }
 
-	// Add the effect of the open-shutter smearing to the smearing map
+    // Add the effect of the open-shutter smearing to the smearing map
 
-	for (unsigned int row = 0; row < numRowsSmearingMap; row++)
-	{
-		smearingMap(row, arma::span::all) += openShutterSmearing;
-	}
+    for (unsigned int row = 0; row < numRowsSmearingMap; row++)
+    {
+        smearingMap(row, arma::span::all) += openShutterSmearing;
+    }
 }
 
 
@@ -1089,31 +1089,31 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
 
 void Detector::addReadoutNoise()
 {
-	// Adding the readout noise in quadrature (CCD & FEE)
+    // Adding the readout noise in quadrature (CCD & FEE)
 
-	const double totalReadoutNoise = sqrt(pow(readoutNoise, 2) + pow(frontEndElectronics->getReadoutNoise(), 2));
+    const double totalReadoutNoise = sqrt(pow(readoutNoise, 2) + pow(frontEndElectronics->getReadoutNoise(), 2));
 
-	readoutNoiseDistribution = normal_distribution<double>(0.0, totalReadoutNoise);
+    readoutNoiseDistribution = normal_distribution<double>(0.0, totalReadoutNoise);
 
-	// Add readout noise to the pixel map
+    // Add readout noise to the pixel map
 
-	for (unsigned int row = 0; row < numRowsPixelMap; row++)
-	{
-		for (unsigned int column = 0; column < numColumnsPixelMap; column++)
-		{
-			pixelMap(row, column) += readoutNoiseDistribution(readoutNoiseGenerator);
-		}
-	}
+    for (unsigned int row = 0; row < numRowsPixelMap; row++)
+    {
+        for (unsigned int column = 0; column < numColumnsPixelMap; column++)
+        {
+            pixelMap(row, column) += readoutNoiseDistribution(readoutNoiseGenerator);
+        }
+    }
 
-	// Add readout noise to the bias prescan map
+    // Add readout noise to the bias prescan map
 
-	for (unsigned int row = 0; row < numRowsBiasMap; row++)
-	{
-		for (unsigned int column = 0; column < numColumnsPixelMap; column++)
-		{
-			biasMap(row, column) += readoutNoiseDistribution(readoutNoiseGenerator);
-		}
-	}
+    for (unsigned int row = 0; row < numRowsBiasMap; row++)
+    {
+        for (unsigned int column = 0; column < numColumnsPixelMap; column++)
+        {
+            biasMap(row, column) += readoutNoiseDistribution(readoutNoiseGenerator);
+        }
+    }
 
     // Add readout noise to the smearing overscan map
 
@@ -1148,45 +1148,45 @@ void Detector::addReadoutNoise()
  */
 void Detector::applyQuantisation()
 {
-	// Apply the gain, to increase the dynamic range of the detector.
-	// Pixel units before: [electrons]
-	// Pixel units after: [ADU]
+    // Apply the gain, to increase the dynamic range of the detector.
+    // Pixel units before: [electrons]
+    // Pixel units after: [ADU]
 
-	applyGain();
+    applyGain();
 
-	// Take into account the bias level (i.e. add the constant "zero" level
-	// introduced by the amplifier).
-	// Pixel units before: [ADU]
-	// Pixel units after: [ADU]
+    // Take into account the bias level (i.e. add the constant "zero" level
+    // introduced by the amplifier).
+    // Pixel units before: [ADU]
+    // Pixel units after: [ADU]
 
-	addElectronicOffset();
-
-
-	// At this point, because pixel values are floats, the previous steps may have
-	// resulted in fractional ADUs. Take care that pixel maps, bias maps, and smearing
-	// maps do not have fractional values.
-
-	pixelMap = arma::floor(pixelMap);
-	biasMap = arma::floor(biasMap);
-	smearingMap = arma::floor(smearingMap);
+    addElectronicOffset();
 
 
-	// Take into account digital saturation. If even after dividing by the gain
-	// the number of ADUs in a pixel is still higher than the analogue-digital
-	// converter (ADC) can represent with its fixed amount of bits, clip all
-	// values that are too high to the saturation level of the ADC.
-	// Pixel units before: [ADU]
-	// Pixel units after: [ADU]
+    // At this point, because pixel values are floats, the previous steps may have
+    // resulted in fractional ADUs. Take care that pixel maps, bias maps, and smearing
+    // maps do not have fractional values.
 
-	if (includeDigitalSaturation)
-	{
-	    Log.debug("Detector: applying digital saturation to pixelMap, biasMap and smearingMap (digitalSaturationLimit=" + to_string(digitalSaturationLimit) + ")");
-	    	applyDigitalSaturation();
-	}
-	else
-	{
-	    Log.debug("Detector: no digital saturation applied.");
-	}
+    pixelMap = arma::floor(pixelMap);
+    biasMap = arma::floor(biasMap);
+    smearingMap = arma::floor(smearingMap);
+
+
+    // Take into account digital saturation. If even after dividing by the gain
+    // the number of ADUs in a pixel is still higher than the analogue-digital
+    // converter (ADC) can represent with its fixed amount of bits, clip all
+    // values that are too high to the saturation level of the ADC.
+    // Pixel units before: [ADU]
+    // Pixel units after: [ADU]
+
+    if (includeDigitalSaturation)
+    {
+        Log.debug("Detector: applying digital saturation to pixelMap, biasMap and smearingMap (digitalSaturationLimit=" + to_string(digitalSaturationLimit) + ")");
+            applyDigitalSaturation();
+    }
+    else
+    {
+        Log.debug("Detector: no digital saturation applied.");
+    }
 }
 
 
@@ -1208,57 +1208,57 @@ void Detector::applyQuantisation()
  */
 void Detector::applyGain()
 {
-	Log.debug("Detector: applying gain to pixelMap, biasMap and smearingMap");
+    Log.debug("Detector: applying gain to pixelMap, biasMap and smearingMap");
 
-	const int lastIndexCcdLeft = numColumns / 2 - 1;
-	const int lastIndexSubFieldLeft = lastIndexCcdLeft - subFieldZeroPointColumn;
+    const int lastIndexCcdLeft = numColumns / 2 - 1;
+    const int lastIndexSubFieldLeft = lastIndexCcdLeft - subFieldZeroPointColumn;
 
-	// Detector gain (left & right)
+    // Detector gain (left & right)
 
-	const double ccdGainOverDeltaTemp = gainStability * (getTemperature() - nominalOperatingTemperature);
+    const double ccdGainOverDeltaTemp = gainStability * (getTemperature() - nominalOperatingTemperature);
 
-	const double ccdGainLeft = refValueGainLeft + ccdGainOverDeltaTemp;
-	const double ccdGainRight = refValueGainRight + ccdGainOverDeltaTemp;
+    const double ccdGainLeft = refValueGainLeft + ccdGainOverDeltaTemp;
+    const double ccdGainRight = refValueGainRight + ccdGainOverDeltaTemp;
 
-	// FEE gain (left & right)
+    // FEE gain (left & right)
 
-    //	const double feeGainOverDeltaTemp = frontEndElectronics->getGainStability()
-    //		   * (frontEndElectronics->getTemperature() - frontEndElectronics->getNominalOperatingTemperature());
+    //  const double feeGainOverDeltaTemp = frontEndElectronics->getGainStability()
+    //         * (frontEndElectronics->getTemperature() - frontEndElectronics->getNominalOperatingTemperature());
     //
-    //	const double feeGainLeft = frontEndElectronics->getGainRefValueLeft() + feeGainOverDeltaTemp;
-    //	const double feeGainRight = frontEndElectronics->getGainRefValueRight() + feeGainOverDeltaTemp;
+    //  const double feeGainLeft = frontEndElectronics->getGainRefValueLeft() + feeGainOverDeltaTemp;
+    //  const double feeGainRight = frontEndElectronics->getGainRefValueRight() + feeGainOverDeltaTemp;
 
-	// Combined gain (FEE & CCD)
+    // Combined gain (FEE & CCD)
 
-	const double combinedGainLeft = frontEndElectronics->getGainLeftAdc() * ccdGainLeft;
-	const double combinedGainRight = frontEndElectronics->getGainRightAdc() * ccdGainRight;
+    const double combinedGainLeft = frontEndElectronics->getGainLeftAdc() * ccdGainLeft;
+    const double combinedGainRight = frontEndElectronics->getGainRightAdc() * ccdGainRight;
 
-	if(lastIndexSubFieldLeft >= numColumnsPixelMap - 1)	  // Left ADC only
-	{
-		pixelMap /= combinedGainLeft;
-		biasMap /= combinedGainLeft;
-		smearingMap /= combinedGainLeft;
-	}
-	else if(lastIndexSubFieldLeft < 0)	                 // Right ADC only
-	{
-		pixelMap /= combinedGainRight;
-		biasMap /= combinedGainRight;
-		smearingMap /= combinedGainRight;
-	}
-	else
-	{
-		// 0 -> lastIndexSubFieldLeft: left ADC
+    if(lastIndexSubFieldLeft >= numColumnsPixelMap - 1)   // Left ADC only
+    {
+        pixelMap /= combinedGainLeft;
+        biasMap /= combinedGainLeft;
+        smearingMap /= combinedGainLeft;
+    }
+    else if(lastIndexSubFieldLeft < 0)                   // Right ADC only
+    {
+        pixelMap /= combinedGainRight;
+        biasMap /= combinedGainRight;
+        smearingMap /= combinedGainRight;
+    }
+    else
+    {
+        // 0 -> lastIndexSubFieldLeft: left ADC
 
-		pixelMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) /= combinedGainLeft;
-		biasMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) /= combinedGainLeft;
-		smearingMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) /= combinedGainLeft;
+        pixelMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) /= combinedGainLeft;
+        biasMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) /= combinedGainLeft;
+        smearingMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) /= combinedGainLeft;
 
-		// lastIndexSubFieldLeft + 1 -> numColumnsSubPixelMap -1: right ADC
+        // lastIndexSubFieldLeft + 1 -> numColumnsSubPixelMap -1: right ADC
 
-		pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) /= combinedGainRight;
-		biasMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) /= combinedGainRight;
-		smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) /= combinedGainRight;
-	}
+        pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) /= combinedGainRight;
+        biasMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) /= combinedGainRight;
+        smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) /= combinedGainRight;
+    }
 }
 
 
@@ -1284,15 +1284,15 @@ void Detector::applyGain()
 
 void Detector::addElectronicOffset()
 {
-	const double offset = frontEndElectronics->getElectronicOffset();
+    const double offset = frontEndElectronics->getElectronicOffset();
 
-	Log.debug("Detector: adding a bias to pixelMap, biasMap and smearingMap (electronicOffset=" + to_string(offset)+ ")");
+    Log.debug("Detector: adding a bias to pixelMap, biasMap and smearingMap (electronicOffset=" + to_string(offset)+ ")");
 
-	// Add the electronic offset to the pixel, bias register, and smearing maps
+    // Add the electronic offset to the pixel, bias register, and smearing maps
 
-	pixelMap += offset;
-	biasMap += offset;
-	smearingMap += offset;
+    pixelMap += offset;
+    biasMap += offset;
+    smearingMap += offset;
 }
 
 
@@ -1319,17 +1319,17 @@ void Detector::addElectronicOffset()
  */
 void Detector::applyDigitalSaturation()
 {
-	// Top off the values in the pixel map
+    // Top off the values in the pixel map
 
-	pixelMap(arma::find(pixelMap > digitalSaturationLimit)).fill(digitalSaturationLimit);
+    pixelMap(arma::find(pixelMap > digitalSaturationLimit)).fill(digitalSaturationLimit);
 
-	// Top off the values in the bias register map
+    // Top off the values in the bias register map
 
-	biasMap(arma::find(biasMap > digitalSaturationLimit)).fill(digitalSaturationLimit);
+    biasMap(arma::find(biasMap > digitalSaturationLimit)).fill(digitalSaturationLimit);
 
-	// Top off the values in the smearing map
+    // Top off the values in the smearing map
 
-	smearingMap(arma::find(smearingMap > digitalSaturationLimit)).fill(digitalSaturationLimit);
+    smearingMap(arma::find(smearingMap > digitalSaturationLimit)).fill(digitalSaturationLimit);
 }
 
 
@@ -1432,15 +1432,15 @@ pair<double, double> Detector::focalPlaneToPixelCoordinates(double xFP, double y
 
 pair<double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCenter()
 {
-	double centerRow = subFieldZeroPointRow + numRowsPixelMap / 2.0;
-	double centerCol = subFieldZeroPointColumn + numColumnsPixelMap / 2.0;
+    double centerRow = subFieldZeroPointRow + numRowsPixelMap / 2.0;
+    double centerCol = subFieldZeroPointColumn + numColumnsPixelMap / 2.0;
 
     // The columns correspond to the x-coordinate, the rows to the y-coordinate
 
     double xFP, yFP;
     tie(xFP, yFP) = pixelToFocalPlaneCoordinates(centerRow, centerCol);
 
-	return make_pair(xFP, yFP);
+    return make_pair(xFP, yFP);
 }
 
 
@@ -1465,34 +1465,34 @@ pair<double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCenter()
 
 tuple<double, double, double, double, double, double, double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCorners()
 {
-	double corner00Xmm, corner00Ymm, corner01Xmm, corner01Ymm, corner11Xmm, corner11Ymm, corner10Xmm, corner10Ymm;
-	double row, col;
+    double corner00Xmm, corner00Ymm, corner01Xmm, corner01Ymm, corner11Xmm, corner11Ymm, corner10Xmm, corner10Ymm;
+    double row, col;
 
-	// Lower left corner
+    // Lower left corner
 
-	row = subFieldZeroPointRow;
-	col = subFieldZeroPointColumn;
-	tie(corner00Xmm, corner00Ymm) = pixelToFocalPlaneCoordinates(row, col);
+    row = subFieldZeroPointRow;
+    col = subFieldZeroPointColumn;
+    tie(corner00Xmm, corner00Ymm) = pixelToFocalPlaneCoordinates(row, col);
 
-	// Lower right corner
+    // Lower right corner
 
-	row = subFieldZeroPointRow;
-	col = subFieldZeroPointColumn + numColumnsPixelMap;
-	tie(corner01Xmm, corner01Ymm) = pixelToFocalPlaneCoordinates(row, col);
+    row = subFieldZeroPointRow;
+    col = subFieldZeroPointColumn + numColumnsPixelMap;
+    tie(corner01Xmm, corner01Ymm) = pixelToFocalPlaneCoordinates(row, col);
 
-	// Upper right corner
+    // Upper right corner
 
-	row = subFieldZeroPointRow + numRowsPixelMap;
-	col = subFieldZeroPointColumn + numColumnsPixelMap;
-	tie(corner11Xmm, corner11Ymm) = pixelToFocalPlaneCoordinates(row, col);
+    row = subFieldZeroPointRow + numRowsPixelMap;
+    col = subFieldZeroPointColumn + numColumnsPixelMap;
+    tie(corner11Xmm, corner11Ymm) = pixelToFocalPlaneCoordinates(row, col);
 
-	// Upper left corner
+    // Upper left corner
 
-	row = subFieldZeroPointRow + numRowsPixelMap;
-	col = subFieldZeroPointColumn;
-	tie(corner10Xmm, corner10Ymm) = pixelToFocalPlaneCoordinates(row, col);
+    row = subFieldZeroPointRow + numRowsPixelMap;
+    col = subFieldZeroPointColumn;
+    tie(corner10Xmm, corner10Ymm) = pixelToFocalPlaneCoordinates(row, col);
 
-	return make_tuple(corner00Xmm, corner00Ymm, corner01Xmm, corner01Ymm, corner11Xmm, corner11Ymm, corner10Xmm, corner10Ymm);
+    return make_tuple(corner00Xmm, corner00Ymm, corner01Xmm, corner01Ymm, corner11Xmm, corner11Ymm, corner10Xmm, corner10Ymm);
 }
 
 
@@ -1516,7 +1516,7 @@ tuple<double, double, double, double, double, double, double, double> Detector::
 
 double Detector::getSolidAngleOfOnePixel(double plateScale)
 {
-	return sqDeg2sr(pow(pixelSize * plateScale / 3600.0, 2));
+    return sqDeg2sr(pow(pixelSize * plateScale / 3600.0, 2));
 }
 
 
@@ -1564,19 +1564,19 @@ double Detector::getOrientationAngle()
 
 void Detector::setSubfield(const arma::Mat<float> &subfield)
 {
-	// Check if the given matrix has the proper dimensions. If not complain, and exit.
+    // Check if the given matrix has the proper dimensions. If not complain, and exit.
 
-	if ((subfield.n_rows != pixelMap.n_rows) || (subfield.n_cols != pixelMap.n_cols))
-	{
-		Log.error("Detector: setSubfield with incompatible array shape: (" 
-		          + to_string(subfield.n_rows) + ", " + to_string(subfield.n_cols) + ") != ("
-		          + to_string(pixelMap.n_rows) + ", " + to_string(pixelMap.n_cols) + ")");
-		exit(1);
-	} 
+    if ((subfield.n_rows != pixelMap.n_rows) || (subfield.n_cols != pixelMap.n_cols))
+    {
+        Log.error("Detector: setSubfield with incompatible array shape: (" 
+                  + to_string(subfield.n_rows) + ", " + to_string(subfield.n_cols) + ") != ("
+                  + to_string(pixelMap.n_rows) + ", " + to_string(pixelMap.n_cols) + ")");
+        exit(1);
+    } 
 
-	// Copy the contents of the subfield array into our pixelMap
+    // Copy the contents of the subfield array into our pixelMap
 
-	pixelMap = subfield;
+    pixelMap = subfield;
 }
 
 
@@ -1601,7 +1601,7 @@ void Detector::setSubfield(const arma::Mat<float> &subfield)
 
  arma::Mat<float> Detector::getSubfield()
  {
- 	return pixelMap;
+    return pixelMap;
  }
 
 
@@ -1621,13 +1621,13 @@ void Detector::setSubfield(const arma::Mat<float> &subfield)
  */
 void Detector::initHDF5Groups()
 {
-	Log.debug("Detector: initialising HDF5 groups");
+    Log.debug("Detector: initialising HDF5 groups");
 
-	hdf5File.createGroup("/Images");
-	hdf5File.createGroup("/BiasMaps");
-	hdf5File.createGroup("/SmearingMaps");
-	hdf5File.createGroup("/Flatfield");
-	hdf5File.createGroup("/Throughput");
+    hdf5File.createGroup("/Images");
+    hdf5File.createGroup("/BiasMaps");
+    hdf5File.createGroup("/SmearingMaps");
+    hdf5File.createGroup("/Flatfield");
+    hdf5File.createGroup("/Throughput");
 }
 
 
@@ -1651,7 +1651,7 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
 {
     // Compose the image name
 
-	stringstream myStream;
+    stringstream myStream;
     myStream << "image" << setfill('0') << setw(6) << exposureNr;
     string imageName = myStream.str();
 
@@ -1811,6 +1811,6 @@ void Detector::fastForwardPhotonNoiseGeneratorToExposure(int beginExposureNr)
  */
 double Detector::getTemperature()
 {
-	return nominalOperatingTemperature;
+    return nominalOperatingTemperature;
 }
 

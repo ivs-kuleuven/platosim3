@@ -88,12 +88,14 @@ class Camera : public HDF5Writer
 
         bool includeFieldDistortion;      // Wheter or not field distortion should be included
 
-        double userGivenSkyBackground;    // User-set zodiacal + stellar sky background.                        [phot/pix/s]
+        double userGivenSkyBackground;    // User-set zodiacal + stellar sky background.                          [phot/pix/s]
                                           // If negative, computed by the Sky class
-        double fluxOfV0Star;              // Photon flux of a V=0 (G2V) star                                    [phot/s/m^2/nm]
+        double fluxOfV0Star;              // Photon flux of a V=0 (G2V) star                                      [phot/s/m^2/nm]
 
-        double raSun;                     // Right ascension of the direction of the sun shield during the run  [rad]
-        double decSun;                    // Declination of the direction of the sun shield during the run      [rad]
+        double raSun;                     // Right ascension of the direction of the sun shield during the run    [rad]
+        double decSun;                    // Declination of the direction of the sun shield during the run        [rad]
+
+        double focalPlaneAngle;           // Orientation of the focal plane, as an angle around the optical axis  [rad]
 
 
         // detectedStarInfo[startTime][starID] contains the values (xFPmean, yFPmean, rowPixMean, colPixmean, sumFlux, Ndetections)
