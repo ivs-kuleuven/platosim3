@@ -45,6 +45,7 @@ class Detector: public HDF5Writer
 
    		double getSolidAngleOfOnePixel(double plateScale);
    		double getOrientationAngle();
+        double getReadoutTime();
 
     		virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) = 0;
     		virtual void addFlux(double flux) = 0;

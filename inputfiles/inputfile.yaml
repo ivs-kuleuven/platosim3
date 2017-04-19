@@ -55,6 +55,8 @@ Camera:
     ThroughputBandwidth:             638             # FWHM [nm]
     ThroughputLambdaC:               550             # Central wavelength of the throughput passband [nm]
     IncludeAberrationCorrection:     yes             # Calculate the differential aberration correction and apply
+    AberrationCorrection:
+        Type:                        differential    # [differential, absolute]
     IncludeFieldDistortion:          yes             # Whether or not to include field distortion
     FieldDistortion:                                 # Describe the model for the field distortion
         Type:                        Polynomial1D
@@ -65,7 +67,7 @@ Camera:
 
 PSF:
 
-    Model:                           AnalyticNonGaussian # PSF model: MappedGaussian, MappedFromFile, AnalyticGaussian, AnalyticNonGaussian
+    Model:                           MappedFromFile  # PSF model: MappedGaussian, MappedFromFile, AnalyticGaussian, AnalyticNonGaussian
     MappedGaussian:                                  # Generate the PSF from a fixed 2D Gaussian function
         Sigma:                       0.50            # Standard deviation of Gaussian PSF [pix]
         NumberOfPixels:              8               # The number of pixels in the field for which the PSF is generated
@@ -122,9 +124,9 @@ CCD:
     Vignetting: 
         ExpectedValue:               0.945           # Expected value of the throughput efficiency due to vignetting
     Polarization:
-      Efficiency:                    0.978           # Throughput efficiency caused by polarisation at the reference angle
-      RefAngle:                     18.8875          # Reference angle for polarisation [degrees]
-      ExpectedValue:                 0.989           # Expected value (mean of all detector pixels)
+        Efficiency:                  0.978           # Throughput efficiency caused by polarisation at the reference angle
+        RefAngle:                    18.8875         # Reference angle for polarisation [degrees]
+        ExpectedValue:               0.989           # Expected value (mean of all detector pixels)
     Contamination:
         ParticulateContaminationEfficiency: 0.98     # Throughput efficiency due to particulate contamination
         MolecularContaminationEfficiency:   0.9566   # Throughput efficiency due to molecular contamination
@@ -163,8 +165,8 @@ SubField:
 
     ZeroPointRow:                    0               # Row of the (0,0) pixel of the subfield [pixels]
     ZeroPointColumn:                 0               # Column of the (0,0) pixel of the subfield [pixels]
-    NumColumns:                      2000             # Number of columns, should be >= 8 [pixels]
-    NumRows:                         2000             # Number of rows,    should be >= 8 [pixels]
+    NumColumns:                      100             # Number of columns, should be >= 8 [pixels]
+    NumRows:                         100             # Number of rows,    should be >= 8 [pixels]
     NumBiasPrescanRows:              5               # Nr of rows of the prescan strip to determine the bias [pixels]
     NumSmearingOverscanRows:         5               # Nr of rows of the overscan strip to determine the smearing [pixels]
     SubPixels:                       4               # (Sqrt of) nr of subpixels per CCD pixel. Should be 2^n <= 128.

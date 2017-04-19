@@ -193,8 +193,9 @@ StarCatalog StarCatalog::getStarsWithinRadiusFrom(double RA0, double dec0, doubl
  * \return            A StarCatalog with all the aberration corrected stars.
  */
 
-StarCatalog StarCatalog::aberrate(Platform &platform)
+StarCatalog StarCatalog::aberrate(Platform &platform, string aberrationCorrectionType, double startTime, double timeMiddle)
 {
+    using StringUtilities::dtos;
 
     // Create an empty star catalog
 
@@ -211,17 +212,35 @@ StarCatalog StarCatalog::aberrate(Platform &platform)
     double lambdaSun, betaSun;
     equatorial2ecliptic(raSun, decSun, lambdaSun, betaSun);
 
-    // Request the current platform pointing coordinates (i.e. pointing of the Fast Camera's)
+    // lambdaSunAtStartTime = lambdaSunAtTimeMiddle + 2.0 * PI / 365.0 / 86400 * (startTime - timeMiddle)
 
-    double raPlatform, decPlatform;
-    tie(raPlatform, decPlatform) = platform.getCurrentPointingCoordinates();
-
-    double lambdaPlatform, betaPlatform;
-    equatorial2ecliptic(raPlatform, decPlatform, lambdaPlatform, betaPlatform);
+    lambdaSun = lambdaSun + ( 6.283185307179586 * (startTime - timeMiddle) / 31536000 );
 
     double deltaLambdaPlatform, deltaBetaPlatform;
-    deltaLambdaPlatform = - amplitude * cos(lambdaPlatform - lambdaSun) / cos(betaPlatform);
-    deltaBetaPlatform   = - amplitude * sin(lambdaPlatform - lambdaSun) * sin(betaPlatform);
+    if (aberrationCorrectionType == "differential")
+    {
+        Log.info("StarCatalog::aberrate: applying differential aberration correction");
+
+        // Request the current platform pointing coordinates (i.e. pointing of the Fast Camera's)
+    
+        double raPlatform, decPlatform;
+        tie(raPlatform, decPlatform) = platform.getCurrentPointingCoordinates();
+    
+        double lambdaPlatform, betaPlatform;
+        equatorial2ecliptic(raPlatform, decPlatform, lambdaPlatform, betaPlatform);
+
+        deltaLambdaPlatform = - amplitude * cos(lambdaPlatform - lambdaSun) / cos(betaPlatform);
+        deltaBetaPlatform   = - amplitude * sin(lambdaPlatform - lambdaSun) * sin(betaPlatform);
+    }
+    else
+    {
+        Log.info("StarCatalog::aberrate: applying absolute aberration correction");
+
+        // Set the Platform aberration to zero = absolute aberration
+
+        deltaLambdaPlatform = 0.0;
+        deltaBetaPlatform   = 0.0;
+    }
 
     for (long n = 0; n < starID.size(); ++n)
     {
@@ -242,6 +261,13 @@ StarCatalog StarCatalog::aberrate(Platform &platform)
         ecliptic2equatorial(lambdaStar - deltaLambdaAberration, betaStar - deltaBetaAberration, raStarAberrated, decStarAberrated);
         
         newCatalog.addStar(starID[n], raStarAberrated, decStarAberrated, Vmag[n], Angle::radians);
+
+        // Write debugging info on the first star only
+
+        if (n == 0)
+        {
+            Log.debug("StarCatalog::aberrate: ra[0], dec[0] = " + dtos(raStarAberrated, false, 8) + ", " + dtos(decStarAberrated, false, 8));
+        }
     }
 
     return newCatalog;
