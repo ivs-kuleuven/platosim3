@@ -85,7 +85,7 @@ ObservingParameters:
 #### <a name="missionDuration"></a>MissionDuration
 <i>Allowed values:</i> > 0
 
-Current duration of the mission, expressed in years.  This will be used to model parameter degradation over time.
+Total duration of the mission (from BOL til EOL), expressed in years.  This will be used to model parameter degradation over time.
 
 
 
@@ -385,6 +385,8 @@ Camera:
     ThroughputBandwidth:         400             
     ThroughputLambdaC:           600        
     IncludeAberrationCorrection: yes     
+    AberrationCorrection:
+        Type:                    differential
     IncludeFieldDistortion:      yes             
     FieldDistortion:                             
         Type:                    Polynomial1D
@@ -451,14 +453,14 @@ Indicates whether or not the field distortion must be taken into account.
 #### <a name=includeAberrationCorrection></a>IncludeAberrationCorrection
 <i>Allowed values:</i> "yes" and "no"
 
-Indicates whether or not to apply the differential aberration correction to all star positions in the [star catalogue](#starCatalogue).  This calculation is an approximation based on a circular earth orbit around the sun and does not take the Lissajous orbit of the satellite around L2 into account. We do calculate the differential aberration, however, which takes into account the aberration correction done for the spacecraft pointing.
+Indicates whether or not to apply the aberration correction to all star positions in the [star catalogue](#starCatalogue).  This calculation is an approximation based on a circular earth orbit around the sun and does not take the Lissajous orbit of the satellite around L2 into account. We do calculate the aberration, however, which takes into account the aberration correction done for the spacecraft pointing.
 
 
 
-#### <a name=includeAberrationCorrection></a>IncludeAberrationCorrection
-<i>Allowed values:</i> "yes" and "no"
+#### <a name=aberrationCorrectionType></a>IncludeAberrationCorrection: Type
+<i>Allowed values:</i> "differential" and "absolute"
 
-Indicates whether or not to apply the differential aberration correction to all star positions in the [star catalogue](#starCatalogue).  This calculation is an approximation based on a circular earth orbit around the sun and does not take the Lissajous orbit of the satellite around L2 into account. We do calculate the differential aberration, however, which takes into account the aberration correction done for the spacecraft pointing.
+Indicates whether to apply either differential or absolute aberration correction (if ([IncludeAbberationCorrection](#includeAberrationCorrection) = yes).
 
 
 
