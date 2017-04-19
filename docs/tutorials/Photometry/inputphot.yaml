@@ -82,7 +82,9 @@ PSF:
 
 FEE:
 
-    NominalOperatingTemp:            210.15          # Nominal operating temperature of the FEE [K]
+    NominalOperatingTemperature:     210.15          # Nominal operating temperature of the FEE [K]
+    Temperature:                     Nominal         # Temperature fixed at the nominal operating temperature
+    TemperatureFileName:             inputfiles/feeTemperature.txt
     ReadoutNoise:                    40.5            # Readout noise for the FEE [e-/pixel] (same for both ADCs)
     Gain:
         RefValue:                    11.1            # [ADU/microV] (Total gain = FFE gain * CCD gain = 20 e-/ADU)
@@ -123,7 +125,9 @@ CCD:
     Contamination:
         ParticulateContaminationEfficiency: 0.98     # Throughput efficiency due to particulate contamination
         MolecularContaminationEfficiency:   0.9566   # Throughput efficiency due to molecular contamination
-    NominalOperatingTemp:            203.15          # Nominal operating temperature of the detector [K]
+    NominalOperatingTemperature:            203.15   # Nominal operating temperature of the detector [K]
+    Temperature:                     Nominal         # Temperature fixed at the nominal operating temperature
+    TemperatureFileName:             inputfiles/ccdTemperature.txt
     CTI:
         Model:                   Simple
         Simple:

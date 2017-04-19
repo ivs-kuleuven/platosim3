@@ -12,6 +12,7 @@
 #include "ArrayOperations.h"
 #include "Camera.h"
 #include "FrontEndElectronics.h"
+#include "TemperatureGenerator.h"
 #include "ConfigurationParameters.h"
 #include "PointSpreadFunction.h"
 #include "Convolver.h"
@@ -30,7 +31,7 @@ class Detector: public HDF5Writer
 {
     public:
 
-    		Detector(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera);
+    		Detector(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator);
     		virtual ~Detector();
 
     		virtual double takeExposure(int exposureNr, double startTime, double exposureTime);
@@ -174,6 +175,7 @@ class Detector: public HDF5Writer
 
     private:
 
+		TemperatureGenerator &temperatureGenerator;
 
 };
 

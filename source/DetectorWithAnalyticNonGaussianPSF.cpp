@@ -131,8 +131,8 @@ double IntegralOfAnalyticPSF::operator()(unsigned i, unsigned j, bool norm)
  * \param camera         Camera to which to attach the detector.
  */
 
-DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera)
-: Detector(configParam, hdf5file, camera)
+DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator)
+: Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator)
 {
     // Parse the parameters from the configuration file.
 

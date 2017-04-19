@@ -88,6 +88,8 @@ PSF:
 FEE:
 
     NominalOperatingTemp:        210.15          # Nominal operating temperature of the FEE [K]
+    Temperature:                 Nominal         # Temperature fixed at the nominal operating temperature
+    TemperatureFileName:         inputfiles/feeTemperature.txt
     ReadoutNoise:                 40.5           # Readout noise for the FEE [e-/pixel]
     Gain:
         RefValue:                 11.1           # [ADU/microV] (Total gain = FFE gain * CCD gain = 20 e-/ADU)
@@ -139,7 +141,9 @@ CCD:
             TrapDensity:             [9.8, 3.31, 1.56, 13.24]                     # for each trap species [traps/pixel]
             TrapCaptureCrossSection: [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]     # for each trap species [m^2]
             ReleaseTime:             [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]         # for each trap species [s]
-    NominalOperatingTemp:            203.15          # Nominal operating temperature of the detector [K]
+    NominalOperatingTemperature :    203.15          # Nominal operating temperature of the detector [K]
+    Temperature:                     Nominal         # Temperature fixed at the nominal operating temperature
+    TemperatureFileName:             inputfiles/ccdTemperature.txt
     IncludeFlatfield:                yes             # Include flatfield [yes or no]
     IncludePhotonNoise:              yes             # Include photon noise [yes or no]
     IncludeReadoutNoise:             yes             # Include readout noise [yes or no]
