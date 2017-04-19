@@ -25,7 +25,7 @@
  * \param camera         Camera to which to attach the detector.
  */
 
-Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera)
+Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator)
 : HDF5Writer(hdf5file), 
   includePhotonNoise(true), 
   includeReadoutNoise(true),
@@ -37,7 +37,8 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
   includeMolecularContamination(true),
   includeFullWellSaturation(true),
   includeDigitalSaturation(true),
-  internalTime(0.0), camera(camera)
+  internalTime(0.0), camera(camera),
+  temperatureGenerator(detectorTemperatureGenerator)
 {
     // Parse the parameters from the configuration file.
 
@@ -51,7 +52,7 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 
     // Front-end electronics
 
-    frontEndElectronics = new FrontEndElectronics(configParam, hdf5file);
+	frontEndElectronics = new FrontEndElectronics(configParam, hdf5file, feeTemperatureGenerator);
 
     // Allocate memory for the different maps
 
@@ -165,7 +166,7 @@ Detector::~Detector()
     refAnglePolarization            = configParam.getDouble("CCD/Polarization/RefAngle");
     expectedValuePolarization       = configParam.getDouble("CCD/Polarization/ExpectedValue");
 
-    nominalOperatingTemperature     = configParam.getDouble("CCD/NominalOperatingTemp");
+    nominalOperatingTemperature     = configParam.getDouble("CCD/NominalOperatingTemperature");
 
     includeParticulateContamination = configParam.getBoolean("CCD/IncludeParticulateContamination");
     includeMolecularContamination   = configParam.getBoolean("CCD/IncludeMolecularContamination");
@@ -1225,40 +1226,40 @@ void Detector::applyGain()
     //  const double feeGainOverDeltaTemp = frontEndElectronics->getGainStability()
     //         * (frontEndElectronics->getTemperature() - frontEndElectronics->getNominalOperatingTemperature());
     //
-    //  const double feeGainLeft = frontEndElectronics->getGainRefValueLeft() + feeGainOverDeltaTemp;
-    //  const double feeGainRight = frontEndElectronics->getGainRefValueRight() + feeGainOverDeltaTemp;
+    //	const double feeGainLeft = frontEndElectronics->getGainRefValueLeft() + feeGainOverDeltaTemp;
+    //	const double feeGainRight = frontEndElectronics->getGainRefValueRight() + feeGainOverDeltaTemp;
 
-    // Combined gain (FEE & CCD)
+	// Combined gain (FEE & CCD)
 
-    const double combinedGainLeft = frontEndElectronics->getGainLeftAdc() * ccdGainLeft;
-    const double combinedGainRight = frontEndElectronics->getGainRightAdc() * ccdGainRight;
+	const double combinedGainLeft = frontEndElectronics->getGainLeftAdc(internalTime) * ccdGainLeft;
+	const double combinedGainRight = frontEndElectronics->getGainRightAdc(internalTime) * ccdGainRight;
 
-    if(lastIndexSubFieldLeft >= numColumnsPixelMap - 1)   // Left ADC only
-    {
-        pixelMap /= combinedGainLeft;
-        biasMap /= combinedGainLeft;
-        smearingMap /= combinedGainLeft;
-    }
-    else if(lastIndexSubFieldLeft < 0)                   // Right ADC only
-    {
-        pixelMap /= combinedGainRight;
-        biasMap /= combinedGainRight;
-        smearingMap /= combinedGainRight;
-    }
-    else
-    {
-        // 0 -> lastIndexSubFieldLeft: left ADC
+	if(lastIndexSubFieldLeft >= numColumnsPixelMap - 1)	  // Left ADC only
+	{
+		pixelMap /= combinedGainLeft;
+		biasMap /= combinedGainLeft;
+		smearingMap /= combinedGainLeft;
+	}
+	else if(lastIndexSubFieldLeft < 0)	                 // Right ADC only
+	{
+		pixelMap /= combinedGainRight;
+		biasMap /= combinedGainRight;
+		smearingMap /= combinedGainRight;
+	}
+	else
+	{
+		// 0 -> lastIndexSubFieldLeft: left ADC
 
-        pixelMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) /= combinedGainLeft;
-        biasMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) /= combinedGainLeft;
-        smearingMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) /= combinedGainLeft;
+		pixelMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) /= combinedGainLeft;
+		biasMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) /= combinedGainLeft;
+		smearingMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) /= combinedGainLeft;
 
-        // lastIndexSubFieldLeft + 1 -> numColumnsSubPixelMap -1: right ADC
+		// lastIndexSubFieldLeft + 1 -> numColumnsSubPixelMap -1: right ADC
 
-        pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) /= combinedGainRight;
-        biasMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) /= combinedGainRight;
-        smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) /= combinedGainRight;
-    }
+		pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) /= combinedGainRight;
+		biasMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) /= combinedGainRight;
+		smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) /= combinedGainRight;
+	}
 }
 
 
@@ -1284,7 +1285,7 @@ void Detector::applyGain()
 
 void Detector::addElectronicOffset()
 {
-    const double offset = frontEndElectronics->getElectronicOffset();
+	const double offset = frontEndElectronics->getElectronicOffset(internalTime);
 
     Log.debug("Detector: adding a bias to pixelMap, biasMap and smearingMap (electronicOffset=" + to_string(offset)+ ")");
 
@@ -1811,6 +1812,6 @@ void Detector::fastForwardPhotonNoiseGeneratorToExposure(int beginExposureNr)
  */
 double Detector::getTemperature()
 {
-    return nominalOperatingTemperature;
+	return temperatureGenerator.getNextTemperature(internalTime);
 }
 
