@@ -98,24 +98,21 @@ Telescope::~Telescope()
 
     string groupID                = configParams.getString("Telescope/GroupID");
 
-    vector<double> azimuthAngles = configParams.getDoubleVector("CameraGroups/AzimuthAngle");
-    vector<double> tiltAngles    = configParams.getDoubleVector("CameraGroups/TiltAngle");
-
     if (groupID == "Custom")
     {
-        originalAzimuthAngle      = deg2rad(configParams.getDouble("Telescope/AzimuthAngle"));      // [rad]
-        originalTiltAngle         = deg2rad(configParams.getDouble("Telescope/TiltAngle"));         // [rad]
+        originalAzimuthAngle      = deg2rad(configParams.getDouble("Telescope/AzimuthAngle"));           // [rad]
+        originalTiltAngle         = deg2rad(configParams.getDouble("Telescope/TiltAngle"));              // [rad]
     }
     else if (groupID == "Fast")
     {
-        originalAzimuthAngle      = deg2rad(azimuthAngles.at(4));                                   // [rad]
-        originalTiltAngle         = deg2rad(tiltAngles.at(4));                                      // [rad]
+        originalAzimuthAngle      = deg2rad(configParams.getDoubleAt("CameraGroups/AzimuthAngle", 4));   // [rad]
+        originalTiltAngle         = deg2rad(configParams.getDoubleAt("CameraGroups/TiltAngle", 4));      // [rad]
     }
     else
     {
         int idx = stoi(groupID) - 1;  // Groups are named [1, 2, 3, 4] while the index into vector starts at 0
-        originalAzimuthAngle      = deg2rad(azimuthAngles.at(idx));                                   // [rad]
-        originalTiltAngle         = deg2rad(tiltAngles.at(idx));                                      // [rad]
+        originalAzimuthAngle      = deg2rad(configParams.getDoubleAt("CameraGroups/AzimuthAngle", idx)); // [rad]
+        originalTiltAngle         = deg2rad(configParams.getDoubleAt("CameraGroups/TiltAngle", idx));    // [rad]
     }
 
     Log.info("Telescope: selected groupID = " + groupID);
