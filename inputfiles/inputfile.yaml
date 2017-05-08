@@ -32,9 +32,12 @@ Platform:
 
 Telescope:
     
-    GroupID:                         Custom          # There are four camera groups: 1, 2, 3, 4, Fast, Custom (use Custom to specify the telescope angles yourself)
-    AzimuthAngle:                    0.0             # Azimuth angle of telescope on the platform [deg] - used when CameraGroupID = Custom
-    TiltAngle:                       0.0             # Tilt angle of the telescope on the platform [deg] - used when CameraGroupID = Custom
+    GroupID:                         Custom          # There are four camera groups: 1, 2, 3, 4, Fast, Custom
+                                                     # (use Custom to specify the telescope azimuth and tilt angles yourself)
+
+    AzimuthAngle:                    0.0             # Azimuth angle of telescope on the platform [deg]  - used when GroupID = Custom
+    TiltAngle:                       0.0             # Tilt angle of the telescope on the platform [deg] - used when GroupID = Custom
+
     LightCollectingArea:             113.1           # Effective area of 1 telescope [cm^2]
     TransmissionEfficiency:
         BOL:                         0.800           # Beginning of Life value in [0,1]
@@ -103,12 +106,15 @@ FEE:
 
 CCD:
 
-    CCDPosition:                     1               # one of [1, 2, 3, 4, Custom]
-    OriginOffsetX:                   0               # X Offset of CCD origin from center of focal plane [mm]
-    OriginOffsetY:                   0               # Y Offset of CCD origin from center of focal plane [mm]
-    Orientation:                     0               # Orientation of CCD w.r.t. focal plane orientation [deg]
-    NumColumns:                      4510            # Number of columns on the CCD [pixels]
-    NumRows:                         4510            # Number of rows on the CCD [pixels] (including non-exposed ones)
+    Position:                        1               # one of [1, 2, 3, 4, Custom]
+                                                     # (use Custom to specify the CCD position parameters yourself)
+                                                     
+    OriginOffsetX:                   0               # X Offset of CCD origin from center of focal plane [mm]  - use when CCDPosition = Custom
+    OriginOffsetY:                   0               # Y Offset of CCD origin from center of focal plane [mm]  - use when CCDPosition = Custom
+    Orientation:                     0               # Orientation of CCD w.r.t. focal plane orientation [deg] - use when CCDPosition = Custom
+    NumColumns:                      4510            # Number of columns on the CCD [pixels]                   - use when CCDPosition = Custom
+    NumRows:                         4510            # Number of rows on the CCD [pixels] (including non-exposed ones) - use when CCDPosition = Custom
+
     PixelSize:                       18              # [micron]
     Gain:                           
         RefValue:                    1.80            # [microV/e-]
@@ -189,8 +195,8 @@ RandomSeeds:
 
 # The parameters below are fixed type parameters that should not be changed. 
 # When you need to specify your own values, use the Custom type for the following parameters:
-# - GroupID
-# - CCDPosition
+# - Telescope/GroupID
+# - CCD/Position
 
 CameraGroups:                                                          # Four groups of six camera's with their azimuth and tilt as specified
                                                                        # The fifth value is for the Fast Camera's
