@@ -114,6 +114,7 @@ CCD:
     Orientation:                     0               # Orientation of CCD w.r.t. focal plane orientation [deg] - use when CCDPosition = Custom
     NumColumns:                      4510            # Number of columns on the CCD [pixels]                   - use when CCDPosition = Custom
     NumRows:                         4510            # Number of rows on the CCD [pixels] (including non-exposed ones) - use when CCDPosition = Custom
+    FirstRowExposed:             0               # The index of the first row that is exposed to light [pixels]
 
     PixelSize:                       18              # [micron]
     Gain:                           
@@ -211,5 +212,6 @@ CCDPositions:
     Orientation:                     [0, 90, 180, 270]              # Orientation of CCD w.r.t. focal plane orientation, counter-clockwise [deg]
     NumColumns:                      [4510, 4510, 4510, 4510]       # Number of columns on the CCD [pixels]
     NumRows:                         [4510, 4510, 4510, 4510]       # Number of rows on the CCD [pixels] (including non-exposed ones)
+    FirstRowForNormalCamera:         [0, 0, 0, 0]                   # The complete CCDs are active/illuminated for the Normal Camera's
     FirstRowForFastCamera:           [2255, 2255, 2255, 2255]       # Only the upper half of the CCDs is active/illuminated for the Fast Camera's
 

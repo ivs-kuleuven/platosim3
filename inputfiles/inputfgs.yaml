@@ -14,8 +14,8 @@ ObservingParameters:
     ExposureTime:                2.3              # [s]
     RApointing:                  86.79870         # Platform (not telescope) right ascension pointing coordinate      [deg] 
     DecPointing:                 -46.39595        # Platform (not telescope) declination pointing coordinate          [deg]
-    Fluxm0:                      1.00238e8        # Photon flux of a V=0 G2V-star                                 [phot/s/m^2/nm]
-    SkyBackground:               -1.              # Stellar + zodiacal background level. Set negative to compute. [phot/pix/s]
+    Fluxm0:                      1.00238e8        # Photon flux of a V=0 G2V-star                                     [phot/s/m^2/nm]
+    SkyBackground:               -1.              # Stellar + zodiacal background level. Set negative to compute.     [phot/pix/s]
     StarCatalogFile:             inputfiles/guide_stars_EQ.txt
 
 
@@ -107,11 +107,16 @@ FEE:
 
 CCD:
 
+    Position:                    1               # one of [1, 2, 3, 4, Custom]
+                                                 # (use Custom to specify the CCD position parameters yourself)
+                                                     
     OriginOffsetX:               0               # X Offset of CCD origin from center of focal plane [mm]
     OriginOffsetY:               0               # Y Offset of CCD origin from center of focal plane [mm]
     Orientation:                 0               # Orientation of CCD w.r.t. focal plane orientation [deg]
     NumColumns:                  4510            # Number of columns [pixels]
     NumRows:                     4510            # Number of rows [pixels]
+    FirstRowExposed:             0               # The index of the first row that is exposed to light [pixels]
+
     PixelSize:                   18              # [micron]
     Gain:                            
         RefValue:                1.80            # [microV/e-]
@@ -192,8 +197,8 @@ RandomSeeds:
 
 # The parameters below are fixed type parameters that should not be changed. 
 # When you need to specify your own values, use the Custom type for the following parameters:
-# - GroupID
-# - CCDPosition
+# - Telescope/GroupID
+# - CCD/Position
 
 CameraGroups:                                                          # Four groups of six camera's with their azimuth and tilt as specified
                                                                        # The fifth value is for the Fast Camera's
@@ -208,5 +213,6 @@ CCDPositions:
     Orientation:                     [0, 90, 180, 270]              # Orientation of CCD w.r.t. focal plane orientation, counter-clockwise [deg]
     NumColumns:                      [4510, 4510, 4510, 4510]       # Number of columns on the CCD [pixels]
     NumRows:                         [4510, 4510, 4510, 4510]       # Number of rows on the CCD [pixels] (including non-exposed ones)
+    FirstRowForNormalCamera:         [0, 0, 0, 0]                   # The complete CCDs are active/illuminated for the Normal Camera's
     FirstRowForFastCamera:           [2255, 2255, 2255, 2255]       # Only the upper half of the CCDs is active/illuminated for the Fast Camera's
 
