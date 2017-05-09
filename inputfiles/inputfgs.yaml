@@ -92,17 +92,17 @@ PSF:
 
 FEE:
 
-    NominalOperatingTemp:        210.15          # Nominal operating temperature of the FEE [K]
-    Temperature:                 Nominal         # Temperature fixed at the nominal operating temperature
-    TemperatureFileName:         inputfiles/feeTemperature.txt
-    ReadoutNoise:                 40.5           # Readout noise for the FEE [e-/pixel]
+    NominalOperatingTemperature:     210.15          # Nominal operating temperature of the FEE [K]
+    Temperature:                     Nominal         # Temperature fixed at the nominal operating temperature
+    TemperatureFileName:             inputfiles/feeTemperature.txt
+    ReadoutNoise:                     40.5           # Readout noise for the FEE [e-/pixel]
     Gain:
-        RefValue:                 11.1           # [ADU/microV] (Total gain = FFE gain * CCD gain = 20 e-/ADU)
-        Stability:              -100.0           # [ppm/K] = [ADU/microV/K]
-        ThreeSigma:                0.0           # Difference in gain betwwen both ADCs [%]
+        RefValue:                     11.1           # [ADU/microV] (Total gain = FFE gain * CCD gain = 20 e-/ADU)
+        Stability:                  -100.0           # [ppm/K] = [ADU/microV/K]
+        ThreeSigma:                    0.0           # Difference in gain betwwen both ADCs [%]
     ElectronicOffset: 
-        RefValue:                100             # Reference value for the electronic offset [ADU/pixel]
-        Stability:                 1             # Offset stability [ADU/pixel/K]
+        RefValue:                    100             # Reference value for the electronic offset [ADU/pixel]
+        Stability:                     1             # Offset stability [ADU/pixel/K]
 
 
 CCD:
