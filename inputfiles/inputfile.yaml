@@ -106,7 +106,7 @@ FEE:
 
 CCD:
 
-    Position:                        1               # one of [1, 2, 3, 4, Custom]
+    Position:                        Custom          # one of [1, 2, 3, 4, Custom]
                                                      # (use Custom to specify the CCD position parameters yourself)
                                                      
     OriginOffsetX:                   0               # X Offset of CCD origin from center of focal plane [mm]  - use when CCDPosition = Custom
@@ -114,7 +114,7 @@ CCD:
     Orientation:                     0               # Orientation of CCD w.r.t. focal plane orientation [deg] - use when CCDPosition = Custom
     NumColumns:                      4510            # Number of columns on the CCD [pixels]                   - use when CCDPosition = Custom
     NumRows:                         4510            # Number of rows on the CCD [pixels] (including non-exposed ones) - use when CCDPosition = Custom
-    FirstRowExposed:             0               # The index of the first row that is exposed to light [pixels]
+    FirstRowExposed:                 0               # The index of the first row that is exposed to light [pixels]
 
     PixelSize:                       18              # [micron]
     Gain:                           
