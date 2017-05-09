@@ -124,27 +124,39 @@ Detector::~Detector()
 
     if (ccdPosition == "Custom")
     {
-        originOffsetX                   = configParam.getDouble("CCD/OriginOffsetX");        // [mm]
-        originOffsetY                   = configParam.getDouble("CCD/OriginOffsetY");        // [mm]
-        orientationAngle                = deg2rad(configParam.getDouble("CCD/Orientation")); // [rad]
-        numRows                         = configParam.getInteger("CCD/NumRows");
-        numColumns                      = configParam.getInteger("CCD/NumColumns");        
+        originOffsetX         = configParam.getDouble("CCD/OriginOffsetX");        // [mm]
+        originOffsetY         = configParam.getDouble("CCD/OriginOffsetY");        // [mm]
+        orientationAngle      = deg2rad(configParam.getDouble("CCD/Orientation")); // [rad]
+        numRows               = configParam.getInteger("CCD/NumRows");             // [pixels]
+        numColumns            = configParam.getInteger("CCD/NumColumns");          // [pixels]
+        firstRowExposed       = configParam.getInteger("CCD/FirstRowExposed");     // [pixels]
     }
     else
     {
         int idx = stoi(ccdPosition) - 1;  // Positions are named [1, 2, 3, 4] while the index into vector starts at 0
 
-        originOffsetX    = configParam.getDoubleAt("CCDPositions/OriginOffsetX", idx);
-        originOffsetY    = configParam.getDoubleAt("CCDPositions/OriginOffsetY", idx);
-        orientationAngle = deg2rad(configParam.getDoubleAt("CCDPositions/Orientation", idx));
-        numRows          = configParam.getIntegerAt("CCDPositions/NumRows", idx);
-        numColumns       = configParam.getIntegerAt("CCDPositions/NumColumns", idx);
+        originOffsetX         = configParam.getDoubleAt("CCDPositions/OriginOffsetX", idx);
+        originOffsetY         = configParam.getDoubleAt("CCDPositions/OriginOffsetY", idx);
+        orientationAngle      = deg2rad(configParam.getDoubleAt("CCDPositions/Orientation", idx));
+        numRows               = configParam.getIntegerAt("CCDPositions/NumRows", idx);
+        numColumns            = configParam.getIntegerAt("CCDPositions/NumColumns", idx);
+
+        string groupID        = configParam.getString("Telescope/GroupID");
+        
+        if (groupID == "Fast")
+        {
+            firstRowExposed       = configParam.getIntegerAt("CCDPositions/FirstRowForFastCamera", idx);
+        }
+        else
+        {
+            firstRowExposed       = configParam.getIntegerAt("CCDPositions/FirstRowForNormalCamera", idx);
+        }
     }
 
     Log.debug("Detector: selected ccdPosition = " + ccdPosition);
     Log.debug("Detector: originOffsetX, originOffsetY = " + to_string(originOffsetX) + ", " + to_string(originOffsetY));
     Log.debug("Detector: orientationAngle = " + to_string(orientationAngle) );
-    Log.debug("Detector: numRows, numColumns = " + to_string(numRows) + ", " + to_string(numColumns));
+    Log.debug("Detector: numRows, numColumns, firstRow = " + to_string(numRows) + ", " + to_string(numColumns) + ", " + to_string(firstRowExposed));
 
     pixelSize                           = configParam.getDouble("CCD/PixelSize");
     quantumEfficiency                   = configParam.getDouble("CCD/QuantumEfficiency/Efficiency");
