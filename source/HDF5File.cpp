@@ -814,6 +814,102 @@ void HDF5File::writeAttribute(string groupName, string attributeName, vector<dou
 
 
 
+// HDF5File::writeAttribute() for an attribute of vector <int>
+//
+// PURPOSE: add an attribute of type vector <int> to the HDF5 file.
+//          The attribute is stored in "<GroupName>/<attributeName>".
+//          
+// INPUT: groupName:      string containing the full path of an existing group. Starts with "/".
+//        attributeName:  string containing the name of the attribute
+//        attributeValue: vector <int> containing the attribute values
+//
+// OUTPUT: None
+//
+// EXAMPLE: writeAttribute("/InputParameters/CCDPositions/", "NumRows", values)
+//
+
+void HDF5File::writeAttribute(string groupName, string attributeName, vector<int> attributeValue)
+{
+    // Complain if the file was not first opened
+    
+    if (!fileIsOpen)
+    {
+        throw H5FileException("HDF5File::writeAttribute(): file " + file->getFileName() + " is not open.");
+    }
+
+ 
+    // Open the proper group where the input parameter belongs
+
+    H5::Group group = file->openGroup(groupName.c_str());
+
+    // Check whether the attribute is not already in the group. If so, complain.
+    // The only way to do so, seems to try to access it and catch the exception
+    // if it does not yet exist.
+
+    bool attributeIsAlreadyInGroup = true;
+
+    try 
+    {  
+        // Turn off the auto-printing when an exception is raised
+
+        H5::Exception::dontPrint();
+
+        // Try to open the attribute
+
+        H5::Attribute attr = group.openAttribute(attributeName.c_str());
+    }
+    catch (H5::AttributeIException error)
+    {
+        attributeIsAlreadyInGroup = false;
+    }
+
+    if (attributeIsAlreadyInGroup)
+    {
+        throw H5AttributeException("HDF5File::writeAttribute(): attribute " + attributeName + " already in group " + groupName);
+    }
+
+
+    // Create and write the attribute to the group. The attribute is a vector <int> so we need
+    // to specify the rank and the dimension of the vector. Since a vector is guaranteed to store 
+    // their elements contiguously, we can just pass the pointer to the first element when writing 
+    // the attribute.
+
+    try
+    {
+        const int rank = 1;
+        hsize_t dimension[1];
+        dimension[0] = attributeValue.size();
+        H5::IntType intType(H5::PredType::NATIVE_INT);
+        H5::DataSpace attributeSpace(rank, dimension);
+        H5::Attribute attribute = group.createAttribute(attributeName.c_str(), intType, attributeSpace);
+        attribute.write(intType, &attributeValue[0]);
+        attribute.close();
+    }
+    catch(H5::AttributeIException error)
+    {
+        throw H5AttributeException("HDF5File::writeAttribute(): attribute " + attributeName + " write error " + error.getCDetailMsg());
+    }
+
+    // That's it
+
+    group.close();
+
+    return;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /**
  * \brief      read a double-valued attribute that is associated with groupName
  *

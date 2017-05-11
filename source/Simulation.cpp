@@ -370,6 +370,11 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
         hdf5File.writeAttribute(parentGroup + "/" + subGroup, attributeName, configParams.getDoubleVector(subGroup + "/" + attributeName));
     };
 
+    auto addIntegerVector = [&] (string attributeName) 
+    {
+        hdf5File.writeAttribute(parentGroup + "/" + subGroup, attributeName, configParams.getIntegerVector(subGroup + "/" + attributeName));
+    };
+
 
     // Copy the input parameters to the output HDF5 file
 
@@ -397,6 +402,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "Telescope";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addString("GroupID");
     addDouble("AzimuthAngle");
     addDouble("TiltAngle");
     addDouble("LightCollectingArea");
@@ -473,11 +479,13 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
 	subGroup = "CCD";
 	hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addString("Position");
 	addDouble("OriginOffsetX");
 	addDouble("OriginOffsetY");
 	addDouble("Orientation");
 	addInteger("NumColumns");
-	addInteger("NumRows");
+    addInteger("NumRows");
+    addInteger("FirstRowExposed");
 	addDouble("PixelSize");
 	addLong("FullWellSaturation");
 	addInteger("DigitalSaturation");
@@ -564,4 +572,21 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addLong("DriftSeed");
 	addLong("FeeGainSeed");
 	addLong("CcdGainSeed");
+
+    subGroup = "CameraGroups";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDoubleVector("AzimuthAngle");
+    addDoubleVector("TiltAngle");
+
+    subGroup = "CCDPositions";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDoubleVector("OriginOffsetX");
+    addDoubleVector("OriginOffsetY");
+    addDoubleVector("Orientation");
+    addIntegerVector("NumColumns");
+    addIntegerVector("NumRows");
+    addIntegerVector("FirstRowForNormalCamera");
+    addIntegerVector("FirstRowForFastCamera");
+
+
 }
