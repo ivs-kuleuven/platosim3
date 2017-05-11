@@ -293,6 +293,41 @@ vector <double> ConfigurationParameters::getDoubleVector(const string &key)
 
 
 /**
+ * \brief      Return a vector of integeres for the specified parameter.
+ *
+ * \details    
+ * 
+ * The key is the name of the input parameter. If the input parameter is part
+ * of a section or group, then the key is a combination of the group name and 
+ * the parameter name, separated by a '/' delimiter. E.g. if the parameter ExposureTime 
+ * is part of the group ObservingParameters, then the key to get the value for this
+ * parameter would be "ObservingParameters/ExposureTime".
+ * 
+ * \param[in]  key The name of a parameter used in the PLATO Simulator
+ *
+ * \returns    A vector of integer values for the given parameter
+ */
+vector <int> ConfigurationParameters::getIntegerVector(const string &key)
+{
+
+    YAML::Node valuesNode = getNode(key);
+
+    unsigned short nValues = valuesNode.size();
+
+    vector<int> values(nValues);
+
+    for (unsigned short idx = 0; idx < nValues; ++idx){
+            values[idx] = valuesNode[idx].as<int>();
+    }
+
+    return values;
+}
+
+
+
+
+
+/**
  * \brief      Return the double value at idx from the array for the specified parameter.
  *
  * \details    
