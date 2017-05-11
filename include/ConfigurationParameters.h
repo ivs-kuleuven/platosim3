@@ -35,6 +35,9 @@ class ConfigurationParameters
     
         vector <double> getDoubleVector(const string &key);
     
+        double getDoubleAt(const string &key, int idx);
+        int getIntegerAt(const string &key, int idx);
+
         void setParameter(const string &, const string &);
         bool hasParameter(const string & key);
     

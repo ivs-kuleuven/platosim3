@@ -291,6 +291,76 @@ vector <double> ConfigurationParameters::getDoubleVector(const string &key)
 
 
 
+
+/**
+ * \brief      Return the double value at idx from the array for the specified parameter.
+ *
+ * \details    
+ * 
+ * The key is the name of the input parameter. If the input parameter is part
+ * of a section or group, then the key is a combination of the group name and 
+ * the parameter name, separated by a '/' delimiter. E.g. if the parameter ExposureTime 
+ * is part of the group ObservingParameters, then the key to get the value for this
+ * parameter would be "ObservingParameters/ExposureTime".
+ * 
+ * \param[in]  key The name of a parameter used in the PLATO Simulator
+ * \param[in]  idx The index in the array of values
+ *
+ * \returns    The double value for the given parameter at the given index
+ */
+double ConfigurationParameters::getDoubleAt(const string &key, int idx)
+{
+
+    YAML::Node valuesNode = getNode(key);
+
+    unsigned short nValues = valuesNode.size();
+
+    if (idx >= nValues)
+    {
+        throw IllegalArgumentException("ConfigurationParameters: trying to read beyond array size (index=" + to_string(idx) + ") for " + key);
+    }
+    return valuesNode[idx].as<double>();
+
+}
+
+
+
+
+
+/**
+ * \brief      Return the integer value at idx from the array for the specified parameter.
+ *
+ * \details    
+ * 
+ * The key is the name of the input parameter. If the input parameter is part
+ * of a section or group, then the key is a combination of the group name and 
+ * the parameter name, separated by a '/' delimiter. E.g. if the parameter ExposureTime 
+ * is part of the group ObservingParameters, then the key to get the value for this
+ * parameter would be "ObservingParameters/ExposureTime".
+ * 
+ * \param[in]  key The name of a parameter used in the PLATO Simulator
+ * \param[in]  idx The index in the array of values
+ *
+ * \returns    The integer value for the given parameter at the given index
+ */
+int ConfigurationParameters::getIntegerAt(const string &key, int idx)
+{
+
+    YAML::Node valuesNode = getNode(key);
+
+    unsigned short nValues = valuesNode.size();
+
+    if (idx >= nValues)
+    {
+        throw IllegalArgumentException("ConfigurationParameters: trying to read beyond array size (index=" + to_string(idx) + ") for " + key);
+    }
+    return valuesNode[idx].as<int>();
+
+}
+
+
+
+
 /**
  * \brief      Return the string value for the specified parameter.
  *

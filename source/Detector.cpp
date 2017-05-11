@@ -120,22 +120,55 @@ Detector::~Detector()
  {
     // Configuration parameters for the CCD detector
 
-    originOffsetX                       = configParam.getDouble("CCD/OriginOffsetX");
-    originOffsetY                       = configParam.getDouble("CCD/OriginOffsetY");
-    orientationAngle                    = deg2rad(configParam.getDouble("CCD/Orientation"));
-    numRows                             = configParam.getInteger("CCD/NumRows");
-    numColumns                          = configParam.getInteger("CCD/NumColumns");
+    string ccdPosition                  = configParam.getString("CCD/Position");
+
+    if (ccdPosition == "Custom")
+    {
+        originOffsetX         = configParam.getDouble("CCD/OriginOffsetX");        // [mm]
+        originOffsetY         = configParam.getDouble("CCD/OriginOffsetY");        // [mm]
+        orientationAngle      = deg2rad(configParam.getDouble("CCD/Orientation")); // [rad]
+        numRows               = configParam.getInteger("CCD/NumRows");             // [pixels]
+        numColumns            = configParam.getInteger("CCD/NumColumns");          // [pixels]
+        firstRowExposed       = configParam.getInteger("CCD/FirstRowExposed");     // [pixels]
+    }
+    else
+    {
+        int idx = stoi(ccdPosition) - 1;  // Positions are named [1, 2, 3, 4] while the index into vector starts at 0
+
+        originOffsetX         = configParam.getDoubleAt("CCDPositions/OriginOffsetX", idx);
+        originOffsetY         = configParam.getDoubleAt("CCDPositions/OriginOffsetY", idx);
+        orientationAngle      = deg2rad(configParam.getDoubleAt("CCDPositions/Orientation", idx));
+        numRows               = configParam.getIntegerAt("CCDPositions/NumRows", idx);
+        numColumns            = configParam.getIntegerAt("CCDPositions/NumColumns", idx);
+
+        string groupID        = configParam.getString("Telescope/GroupID");
+        
+        if (groupID == "Fast")
+        {
+            firstRowExposed       = configParam.getIntegerAt("CCDPositions/FirstRowForFastCamera", idx);
+        }
+        else
+        {
+            firstRowExposed       = configParam.getIntegerAt("CCDPositions/FirstRowForNormalCamera", idx);
+        }
+    }
+
+    Log.debug("Detector: selected ccdPosition = " + ccdPosition);
+    Log.debug("Detector: originOffsetX, originOffsetY = " + to_string(originOffsetX) + ", " + to_string(originOffsetY));
+    Log.debug("Detector: orientationAngle = " + to_string(orientationAngle) );
+    Log.debug("Detector: numRows, numColumns, firstRow = " + to_string(numRows) + ", " + to_string(numColumns) + ", " + to_string(firstRowExposed));
+
     pixelSize                           = configParam.getDouble("CCD/PixelSize");
     quantumEfficiency                   = configParam.getDouble("CCD/QuantumEfficiency/Efficiency");
-    refAngleQuantumEfficiency            = configParam.getDouble("CCD/QuantumEfficiency/RefAngle");
-    expectedValueQuantumEfficiency       = configParam.getDouble("CCD/QuantumEfficiency/ExpectedValue");
+    refAngleQuantumEfficiency           = configParam.getDouble("CCD/QuantumEfficiency/RefAngle");
+    expectedValueQuantumEfficiency      = configParam.getDouble("CCD/QuantumEfficiency/ExpectedValue");
     fullWellSaturationLimit             = configParam.getLong("CCD/FullWellSaturation");
     digitalSaturationLimit              = configParam.getLong("CCD/DigitalSaturation");
     readoutNoise                        = configParam.getDouble("CCD/ReadoutNoise");
     readoutTime                         = configParam.getDouble("CCD/ReadoutTime");
-    expectedValueVignetting              = configParam.getDouble("CCD/Vignetting/ExpectedValue");
+    expectedValueVignetting             = configParam.getDouble("CCD/Vignetting/ExpectedValue");
     particulateContaminationEfficiency  = configParam.getDouble("CCD/Contamination/ParticulateContaminationEfficiency");
-    molecularContaminationEfficiency     = configParam.getDouble("CCD/Contamination/MolecularContaminationEfficiency");
+    molecularContaminationEfficiency    = configParam.getDouble("CCD/Contamination/MolecularContaminationEfficiency");
 
     refValueGain       = configParam.getDouble("CCD/Gain/RefValue");
     gainStability      = configParam.getDouble("CCD/Gain/Stability");
