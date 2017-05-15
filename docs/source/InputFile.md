@@ -249,6 +249,7 @@ The <b>Telescope</b> block of the configuration file contains all the informatio
 \code{.yaml}
 Telescope:
      
+    GroupID:                     Custom
     AzimuthAngle:                0.0
     TiltAngle:                   0.0
     LightCollectingArea:         113.1         
@@ -264,6 +265,13 @@ Telescope:
 
 
 
+#### <a name="groupID"></a>GroupID
+<i>Allowed values:</i> ∈ [1, 2, 3, 4, Fast, Custom]
+
+The telescope group identifier can be used to select a telescope group. There are four groups that have a tilt angle of 9.2º from the optical axis of the satellite, and one group for the fast camera's which is alligned with the satellite Z-axis. When you specify GroupID=Custom, the TiltAngle and AzimuthAngle below the GroupID in the inputfile are used, otherwise the angles are taken from predefined parameters in the CameraGroups group (see below).
+
+@image html /images/telescopeGroups.png "Figure: Field of View for the different telescope groups"
+
 #### <a name="tiltAngle"></a>TiltAngle
 <i>Allowed values:</i> > 0
 
@@ -271,6 +279,7 @@ Tilt angle of the telescope, expressed in degrees. This angle, together with the
 
 The tilt angle is the offset between the telescope optical axis and the platform pointing, i.e. the angle between the telescope line-of-sight (positive z<sub>telescope</sub>)-axis and the positive z<sub>PLM</sub>-axis (see Figs. 3 and 4).
 
+This parameter is only used when the GroupID is set to Custom.
 
 #### <a name="azimuthAngle"></a>
 <i>Allowed values:</i> Any
@@ -278,6 +287,8 @@ The tilt angle is the offset between the telescope optical axis and the platform
 Azimuth angle of the telescope, expressed in degrees. This angle, together with the [tilt angle](#tiltAngle), characterises the orientation of the telescope pointing (i.e. telescope optical axis) w.r.t. the spacecraft/platform pointing. 
 
 The azimuth angle is the position angle of the rotation of the telescope around the positive z<sub>PLM</sub>-axis (see Figs. 3 and 4).
+
+This parameter is only used when the GroupID is set to Custom.
 
 @image html /images/tiltAzimuth.png "Figure 3: Tilt and azimuth of a telescope."
 
@@ -724,11 +735,15 @@ The <b>CCD</b> block of the configuration file contains all the information that
 \code{.yaml}
 CCD:
 
+    Position:                    Custom
+
     OriginOffsetX:               0         
     OriginOffsetY:               0         
     Orientation:                 0         
     NumColumns:                  4510      
     NumRows:                     4510      
+    FirstRowExposed:             0
+
     PixelSize:                   18        
     Gain:                        
     		RefValue:            1.80
@@ -784,6 +799,12 @@ CCD:
 \endcode
 
 
+
+
+#### <a name="position"></a>Position
+<i>Allowed values:</i> ∈ [1, 2, 3, 4, Custom]
+
+The CCD Position is defined as in the figures below. 
 
 
 #### <a name="orginOffsetX"></a>OriginOffsetX
