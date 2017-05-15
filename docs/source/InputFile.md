@@ -248,11 +248,14 @@ The <b>Telescope</b> block of the configuration file contains all the informatio
 
 \code{.yaml}
 Telescope:
-     
+    
+    GroupID:                     Custom
     AzimuthAngle:                0.0
     TiltAngle:                   0.0
     LightCollectingArea:         113.1         
     TransmissionEfficiency:      
+        BOL:                     0.800
+        EOL:                     0.757
     UseDrift:                    yes
     UseDriftFromFile:            no      
     DriftYawRms:                 2.3           
@@ -264,6 +267,13 @@ Telescope:
 
 
 
+#### <a name="groupID"></a>GroupID
+<i>Allowed values:</i> ∈ [1, 2, 3, 4, Fast, Custom]
+
+The telescope group identifier can be used to select a telescope group. There are four groups that have a tilt angle of 9.2º from the optical axis of the satellite, and one group for the fast camera's which is alligned with the satellite Z-axis. When you specify GroupID=Custom, the TiltAngle and AzimuthAngle below the GroupID in the inputfile are used, otherwise the angles are taken from predefined parameters in the CameraGroups group (see below).
+
+@image html /images/telescopeGroups.png "Figure: Field of View for the different telescope groups"
+
 #### <a name="tiltAngle"></a>TiltAngle
 <i>Allowed values:</i> > 0
 
@@ -271,13 +281,16 @@ Tilt angle of the telescope, expressed in degrees. This angle, together with the
 
 The tilt angle is the offset between the telescope optical axis and the platform pointing, i.e. the angle between the telescope line-of-sight (positive z<sub>telescope</sub>)-axis and the positive z<sub>PLM</sub>-axis (see Figs. 3 and 4).
 
+This parameter is only used when the GroupID is set to Custom.
 
-#### <a name="azimuthAngle"></a>
+#### <a name="azimuthAngle"></a>AzimuthAngle
 <i>Allowed values:</i> Any
 
 Azimuth angle of the telescope, expressed in degrees. This angle, together with the [tilt angle](#tiltAngle), characterises the orientation of the telescope pointing (i.e. telescope optical axis) w.r.t. the spacecraft/platform pointing. 
 
 The azimuth angle is the position angle of the rotation of the telescope around the positive z<sub>PLM</sub>-axis (see Figs. 3 and 4).
+
+This parameter is only used when the GroupID is set to Custom.
 
 @image html /images/tiltAzimuth.png "Figure 3: Tilt and azimuth of a telescope."
 
@@ -403,7 +416,8 @@ Camera:
 
 Orientation angle of the focal plane, expressed in degrees. For an angle of 0°, the y-axis of the CCD (with an orientation angle of 0°) points towards the North. A positive angle corresponds to a counterclockwise rotation. Have a look at Fig. 2 for more details.
 
-@image html /images/orientation.png "Figure 2: A schematic overview of the focal plane with 4 CCDs. The optical axis zFP is the blue dot in the middle of the 4 CCDs and points in the positive direction towards the reader. The jitter roll axis zSC is the purple dot, and also points in the positive direction towards the reader.  The focal plane is rotated by the angle γFP w.r.t. to the North direction. The origin of the CCD in the focal plane is defined by its offset (ΔxCCD, ΔyCCD) in mm from the centre of the focal plane. It is then rotated by the angle γCCD round its origin."
+@image html /images/FocalPlaneCoordinateSystem.png "Figure 2: A schematic overview of the focal plane with 4 CCDs. The optical axis zFP is the blue dot in the middle of the 4 CCDs and points in the positive direction towards the reader. The jitter roll axis zSC is the purple dot, and also points in the positive direction towards the reader.  The focal plane is rotated by the angle γFP w.r.t. to the North direction. The origin of the CCD in the focal plane is defined by its offset (ΔxCCD, ΔyCCD) in mm from the centre of the focal plane. It is then rotated by the angle γCCD round its origin."
+
 
 
 
@@ -512,7 +526,7 @@ The <b>PSF</b> block of the configuration file contains all the information that
 \code{.yaml}
 PSF:
 
-    Model:                       Gaussian 
+    Model:                       MappedGaussian 
     MappedGaussian:                             
       Sigma:                     0.25     
       NumberOfPixels:            8        
@@ -724,11 +738,15 @@ The <b>CCD</b> block of the configuration file contains all the information that
 \code{.yaml}
 CCD:
 
+    Position:                    Custom
+
     OriginOffsetX:               0         
     OriginOffsetY:               0         
     Orientation:                 0         
     NumColumns:                  4510      
     NumRows:                     4510      
+    FirstRowExposed:             0
+
     PixelSize:                   18        
     Gain:                        
     		RefValue:            1.80
@@ -783,6 +801,16 @@ CCD:
     WriteSubPixelImagesToHDF5:        no              
 \endcode
 
+
+
+
+#### <a name="position"></a>Position
+<i>Allowed values:</i> ∈ [1, 2, 3, 4, Custom]
+
+The CCD Position is defined as in the figures below.
+
+@image html "/images/CCD Array Configuration - Normal Camera.png" "Figure: Layout of the CCDs for the normal camera's."
+@image html "/images/CCD Array Configuration - Fast Camera.png" "Figure: Layout of the CCDs for the fast camera's."
 
 
 
