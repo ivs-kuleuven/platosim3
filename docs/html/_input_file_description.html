@@ -170,7 +170,7 @@ Figure 2: Configuration of the jitter axes for the Plato Simulator, defined w.r.
 <p><em>Allowed values:</em> ∈ [1, 2, 3, 4, Fast, Custom]</p>
 <p>The telescope group identifier can be used to select a telescope group. There are four groups that have a tilt angle of 9.2º from the optical axis of the satellite, and one group for the fast camera's which is alligned with the satellite Z-axis. When you specify GroupID=Custom, the TiltAngle and AzimuthAngle below the GroupID in the inputfile are used, otherwise the angles are taken from predefined parameters in the CameraGroups group (see below).</p>
 <div class="image">
-<img src="/images/telescopeGroups.png" alt="telescopeGroups.png"/>
+<img src="telescopeGroups.png" alt="telescopeGroups.png"/>
 <div class="caption">
 Figure: Field of View for the different telescope groups</div></div>
  <h4><a class="anchor" id="tiltAngle"></a>TiltAngle</h4>
@@ -178,7 +178,7 @@ Figure: Field of View for the different telescope groups</div></div>
 <p>Tilt angle of the telescope, expressed in degrees. This angle, together with the <a href="#azimuthAngle">azimuth angle</a>, characterises the orientation of the telescope pointing (i.e. telescope optical axis) w.r.t. the spacecraft/platform pointing.</p>
 <p>The tilt angle is the offset between the telescope optical axis and the platform pointing, i.e. the angle between the telescope line-of-sight (positive z<sub>telescope</sub>)-axis and the positive z<sub>PLM</sub>-axis (see Figs. 3 and 4).</p>
 <p>This parameter is only used when the GroupID is set to Custom.</p>
-<h4><a class="anchor" id="azimuthAngle"></a></h4>
+<h4><a class="anchor" id="azimuthAngle"></a>AzimuthAngle</h4>
 <p><em>Allowed values:</em> Any</p>
 <p>Azimuth angle of the telescope, expressed in degrees. This angle, together with the <a href="#tiltAngle">tilt angle</a>, characterises the orientation of the telescope pointing (i.e. telescope optical axis) w.r.t. the spacecraft/platform pointing.</p>
 <p>The azimuth angle is the position angle of the rotation of the telescope around the positive z<sub>PLM</sub>-axis (see Figs. 3 and 4).</p>
