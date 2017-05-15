@@ -283,7 +283,7 @@ The tilt angle is the offset between the telescope optical axis and the platform
 
 This parameter is only used when the GroupID is set to Custom.
 
-#### <a name="azimuthAngle"></a>
+#### <a name="azimuthAngle"></a>AzimuthAngle
 <i>Allowed values:</i> Any
 
 Azimuth angle of the telescope, expressed in degrees. This angle, together with the [tilt angle](#tiltAngle), characterises the orientation of the telescope pointing (i.e. telescope optical axis) w.r.t. the spacecraft/platform pointing. 
