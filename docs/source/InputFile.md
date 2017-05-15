@@ -807,7 +807,11 @@ CCD:
 #### <a name="position"></a>Position
 <i>Allowed values:</i> ∈ [1, 2, 3, 4, Custom]
 
-The CCD Position is defined as in the figures below. 
+The CCD Position is defined as in the figures below.
+
+@image html "/images/CCD Array Configuration - Normal Camera.png" "Figure: Layout of the CCDs for the normal camera's."
+@image html "/images/CCD Array Configuration - Fast Camera.png" "Figure: Layout of the CCDs for the fast camera's."
+
 
 
 #### <a name="orginOffsetX"></a>OriginOffsetX
