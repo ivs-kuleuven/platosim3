@@ -248,7 +248,7 @@ The <b>Telescope</b> block of the configuration file contains all the informatio
 
 \code{.yaml}
 Telescope:
-     
+    
     GroupID:                     Custom
     AzimuthAngle:                0.0
     TiltAngle:                   0.0
