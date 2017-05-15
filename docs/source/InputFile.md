@@ -254,6 +254,8 @@ Telescope:
     TiltAngle:                   0.0
     LightCollectingArea:         113.1         
     TransmissionEfficiency:      
+        BOL:                     0.800
+        EOL:                     0.757
     UseDrift:                    yes
     UseDriftFromFile:            no      
     DriftYawRms:                 2.3           
@@ -524,7 +526,7 @@ The <b>PSF</b> block of the configuration file contains all the information that
 \code{.yaml}
 PSF:
 
-    Model:                       Gaussian 
+    Model:                       MappedGaussian 
     MappedGaussian:                             
       Sigma:                     0.25     
       NumberOfPixels:            8        
