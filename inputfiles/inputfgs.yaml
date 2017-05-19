@@ -107,7 +107,7 @@ FEE:
 
 CCD:
 
-    Position:                    1               # one of [1, 2, 3, 4, Custom]
+    Position:                    Custom          # one of [1, 2, 3, 4, Custom]
                                                  # (use Custom to specify the CCD position parameters yourself)
                                                      
     OriginOffsetX:               0               # X Offset of CCD origin from center of focal plane [mm]
