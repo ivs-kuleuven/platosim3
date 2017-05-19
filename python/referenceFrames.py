@@ -1037,11 +1037,8 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
     if includeFieldDistortion:
         xFPmm, yFPmm = distortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, inverseDistortionCoefficients)
     
-    # Get the corresponding sky coordinats
+    # Get the corresponding sky coordinates
 
     ra, dec = focalPlaneToSkyCoordinates(xFPmm, yFPmm, raPlatform, decPlatform, tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength)
-
-    #ra, dec = focalPlaneToSkyCoordinates(xFPmm, yFPmm, raSun, decSun, raPlatform, decPlatform, tiltTelescope, azimuthTelescope, \
-    #                                     focalPlaneAngle, focalLength)
 
     return ra, dec

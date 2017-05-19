@@ -32,7 +32,7 @@ print("\n")
 # Build and install package
 
 installProcedure = "cd {build};                                     \
-                    tar -xzvf {package}.tgz;                        \
+                    tar -xvf {package}.tgz;                         \
                     cd {package};                                   \
                     mkdir build;                                    \
                     cd build;                                       \
