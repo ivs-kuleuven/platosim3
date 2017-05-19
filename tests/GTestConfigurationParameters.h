@@ -289,6 +289,13 @@ TEST(ConfigurationParametersTest, Sequences)
         EXPECT_DOUBLE_EQ(expected[idx], values[idx]);
     }
 
+    EXPECT_DOUBLE_EQ(-0.5, cp.getDoubleAt("Sequences/Polynomial/Coefficients", 2));
+
+    EXPECT_EQ(1, cp.getIntegerAt("Sequences/Index", 0));
+    EXPECT_EQ(5, cp.getIntegerAt("Sequences/Index", 4));
+
+    ASSERT_THROW(cp.getIntegerAt("Sequences/Index", 10), IllegalArgumentException);
+
 }
 
 

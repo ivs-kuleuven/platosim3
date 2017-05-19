@@ -85,7 +85,7 @@ ObservingParameters:
 #### <a name="missionDuration"></a>MissionDuration
 <i>Allowed values:</i> > 0
 
-Current duration of the mission, expressed in years.  This will be used to model parameter degradation over time.
+Total duration of the mission (from BOL til EOL), expressed in years.  This will be used to model parameter degradation over time.
 
 
 
@@ -248,11 +248,14 @@ The <b>Telescope</b> block of the configuration file contains all the informatio
 
 \code{.yaml}
 Telescope:
-     
+    
+    GroupID:                     Custom
     AzimuthAngle:                0.0
     TiltAngle:                   0.0
     LightCollectingArea:         113.1         
     TransmissionEfficiency:      
+        BOL:                     0.800
+        EOL:                     0.757
     UseDrift:                    yes
     UseDriftFromFile:            no      
     DriftYawRms:                 2.3           
@@ -264,6 +267,13 @@ Telescope:
 
 
 
+#### <a name="groupID"></a>GroupID
+<i>Allowed values:</i> ∈ [1, 2, 3, 4, Fast, Custom]
+
+The telescope group identifier can be used to select a telescope group. There are four groups that have a tilt angle of 9.2º from the optical axis of the satellite, and one group for the fast camera's which is alligned with the satellite Z-axis. When you specify GroupID=Custom, the TiltAngle and AzimuthAngle below the GroupID in the inputfile are used, otherwise the angles are taken from predefined parameters in the CameraGroups group (see below).
+
+@image html /images/telescopeGroups.png "Figure: Field of View for the different telescope groups"
+
 #### <a name="tiltAngle"></a>TiltAngle
 <i>Allowed values:</i> > 0
 
@@ -271,13 +281,16 @@ Tilt angle of the telescope, expressed in degrees. This angle, together with the
 
 The tilt angle is the offset between the telescope optical axis and the platform pointing, i.e. the angle between the telescope line-of-sight (positive z<sub>telescope</sub>)-axis and the positive z<sub>PLM</sub>-axis (see Figs. 3 and 4).
 
+This parameter is only used when the GroupID is set to Custom.
 
-#### <a name="azimuthAngle"></a>
+#### <a name="azimuthAngle"></a>AzimuthAngle
 <i>Allowed values:</i> Any
 
 Azimuth angle of the telescope, expressed in degrees. This angle, together with the [tilt angle](#tiltAngle), characterises the orientation of the telescope pointing (i.e. telescope optical axis) w.r.t. the spacecraft/platform pointing. 
 
 The azimuth angle is the position angle of the rotation of the telescope around the positive z<sub>PLM</sub>-axis (see Figs. 3 and 4).
+
+This parameter is only used when the GroupID is set to Custom.
 
 @image html /images/tiltAzimuth.png "Figure 3: Tilt and azimuth of a telescope."
 
@@ -385,6 +398,8 @@ Camera:
     ThroughputBandwidth:         400             
     ThroughputLambdaC:           600        
     IncludeAberrationCorrection: yes     
+    AberrationCorrection:
+        Type:                    differential
     IncludeFieldDistortion:      yes             
     FieldDistortion:                             
         Type:                    Polynomial1D
@@ -401,7 +416,8 @@ Camera:
 
 Orientation angle of the focal plane, expressed in degrees. For an angle of 0°, the y-axis of the CCD (with an orientation angle of 0°) points towards the North. A positive angle corresponds to a counterclockwise rotation. Have a look at Fig. 2 for more details.
 
-@image html /images/orientation.png "Figure 2: A schematic overview of the focal plane with 4 CCDs. The optical axis zFP is the blue dot in the middle of the 4 CCDs and points in the positive direction towards the reader. The jitter roll axis zSC is the purple dot, and also points in the positive direction towards the reader.  The focal plane is rotated by the angle γFP w.r.t. to the North direction. The origin of the CCD in the focal plane is defined by its offset (ΔxCCD, ΔyCCD) in mm from the centre of the focal plane. It is then rotated by the angle γCCD round its origin."
+@image html /images/FocalPlaneCoordinateSystem.png "Figure 2: A schematic overview of the focal plane with 4 CCDs. The optical axis zFP is the blue dot in the middle of the 4 CCDs and points in the positive direction towards the reader. The jitter roll axis zSC is the purple dot, and also points in the positive direction towards the reader.  The focal plane is rotated by the angle γFP w.r.t. to the North direction. The origin of the CCD in the focal plane is defined by its offset (ΔxCCD, ΔyCCD) in mm from the centre of the focal plane. It is then rotated by the angle γCCD round its origin."
+
 
 
 
@@ -451,14 +467,14 @@ Indicates whether or not the field distortion must be taken into account.
 #### <a name=includeAberrationCorrection></a>IncludeAberrationCorrection
 <i>Allowed values:</i> "yes" and "no"
 
-Indicates whether or not to apply the differential aberration correction to all star positions in the [star catalogue](#starCatalogue).  This calculation is an approximation based on a circular earth orbit around the sun and does not take the Lissajous orbit of the satellite around L2 into account. We do calculate the differential aberration, however, which takes into account the aberration correction done for the spacecraft pointing.
+Indicates whether or not to apply the aberration correction to all star positions in the [star catalogue](#starCatalogue).  This calculation is an approximation based on a circular earth orbit around the sun and does not take the Lissajous orbit of the satellite around L2 into account. We do calculate the aberration, however, which takes into account the aberration correction done for the spacecraft pointing.
 
 
 
-#### <a name=includeAberrationCorrection></a>IncludeAberrationCorrection
-<i>Allowed values:</i> "yes" and "no"
+#### <a name=aberrationCorrectionType></a>IncludeAberrationCorrection: Type
+<i>Allowed values:</i> "differential" and "absolute"
 
-Indicates whether or not to apply the differential aberration correction to all star positions in the [star catalogue](#starCatalogue).  This calculation is an approximation based on a circular earth orbit around the sun and does not take the Lissajous orbit of the satellite around L2 into account. We do calculate the differential aberration, however, which takes into account the aberration correction done for the spacecraft pointing.
+Indicates whether to apply either differential or absolute aberration correction (if ([IncludeAbberationCorrection](#includeAberrationCorrection) = yes).
 
 
 
@@ -510,7 +526,7 @@ The <b>PSF</b> block of the configuration file contains all the information that
 \code{.yaml}
 PSF:
 
-    Model:                       Gaussian 
+    Model:                       MappedGaussian 
     MappedGaussian:                             
       Sigma:                     0.25     
       NumberOfPixels:            8        
@@ -630,7 +646,9 @@ The <b>FEE</b> block of the configuration file contains all the information that
 \code{.yaml}
 FEE:
 
-    NominalOperatingTemp:        210.15     
+    NominalOperatingTemperature: 210.15
+    Temperature:                 Nominal
+    TemperatureFileName:         inputfiles/feeTemperature.txt     
     ReadoutNoise:                40.5         
     Gain:          
     		RefValue:            11.1
@@ -644,10 +662,22 @@ FEE:
 
 
 
-#### <a name="nominalTempFEE"></a>NominalOperatingTemp
+#### <a name="nominalTempFEE"></a>NominalOperatingTemperature
 <i>Allowed values:</i> > 0
 
 Nominal operating temperature of the FEE, expressed in Kelvin.
+
+
+
+#### <a name="tempFEE"></a>Temperature
+<i>Allowed values:</i>"Nominal" or "FromFile"
+
+Indicates whether the temperature of the FEE should be fixed at the nominal operating temperature or temperature variations should be read from a file.
+
+
+
+#### <a name=tempFileFEE></a>TemperatureFileName
+Path to the file, relative to the [project location](#projectLocation), holding the location of the file with the temperature variations of the FEE.
 
 
 
@@ -708,11 +738,15 @@ The <b>CCD</b> block of the configuration file contains all the information that
 \code{.yaml}
 CCD:
 
+    Position:                    Custom
+
     OriginOffsetX:               0         
     OriginOffsetY:               0         
     Orientation:                 0         
     NumColumns:                  4510      
     NumRows:                     4510      
+    FirstRowExposed:             0
+
     PixelSize:                   18        
     Gain:                        
     		RefValue:            1.80
@@ -747,6 +781,9 @@ CCD:
     	          NumTrapSpecies:[9.8, 3.31, 1.56, 13.24]
     	          TrapDensity:   [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]
     	          ReleaseTime:   [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]
+    NominalOperatingTemperature: 203.15
+    Temperature:                 Nominal
+    TemperatureFileName:         inputfiles/ccdTemperature.txt     
     IncludeFlatfield:                 no             
     IncludePhotonNoise:               yes            
     IncludeReadoutNoise:              yes            
@@ -764,6 +801,16 @@ CCD:
     WriteSubPixelImagesToHDF5:        no              
 \endcode
 
+
+
+
+#### <a name="position"></a>Position
+<i>Allowed values:</i> ∈ [1, 2, 3, 4, Custom]
+
+The CCD Position is defined as in the figures below.
+
+@image html "/images/CCD Array Configuration - Normal Camera.png" "Figure: Layout of the CCDs for the normal camera's."
+@image html "/images/CCD Array Configuration - Fast Camera.png" "Figure: Layout of the CCDs for the fast camera's."
 
 
 
@@ -1027,11 +1074,25 @@ Array holding the trap release time constants <i>τ<sub>r</sub></i> for each of 
 
 
 
-#### <a name="nominalTempCCD"></a>NominalOperatingTemp
+#### <a name="nominalTempCCD"></a>NominalOperatingTemperature
 
 <i>Allowed values:</i> > 0
 
-Nominal operating temperature of the CCD, expressed in Kelvin.C
+Nominal operating temperature of the CCD, expressed in Kelvin.
+
+
+
+#### <a name="tempCCD"></a>Temperature
+<i>Allowed values:</i>"Nominal" or "FromFile"
+
+Indicates whether the temperature of the CCD should be fixed at the nominal operating temperature or temperature variations should be read from a file.
+
+
+
+#### <a name=tempFileCCD></a>TemperatureFileName
+Path to the file, relative to the [project location](#projectLocation), holding the location of the file with the temperature variations of the CCD.
+
+
 
 
 

@@ -96,8 +96,28 @@ Telescope::~Telescope()
     // Configuration parameters for the Telescope
 
 
-    originalAzimuthAngle      = deg2rad(configParams.getDouble("Telescope/AzimuthAngle"));                  // [rad]
-    originalTiltAngle         = deg2rad(configParams.getDouble("Telescope/TiltAngle"));                     // [rad]
+    string groupID                = configParams.getString("Telescope/GroupID");
+
+    if (groupID == "Custom")
+    {
+        originalAzimuthAngle      = deg2rad(configParams.getDouble("Telescope/AzimuthAngle"));           // [rad]
+        originalTiltAngle         = deg2rad(configParams.getDouble("Telescope/TiltAngle"));              // [rad]
+    }
+    else if (groupID == "Fast")
+    {
+        originalAzimuthAngle      = deg2rad(configParams.getDoubleAt("CameraGroups/AzimuthAngle", 4));   // [rad]
+        originalTiltAngle         = deg2rad(configParams.getDoubleAt("CameraGroups/TiltAngle", 4));      // [rad]
+    }
+    else
+    {
+        int idx = stoi(groupID) - 1;  // Groups are named [1, 2, 3, 4] while the index into vector starts at 0
+        originalAzimuthAngle      = deg2rad(configParams.getDoubleAt("CameraGroups/AzimuthAngle", idx)); // [rad]
+        originalTiltAngle         = deg2rad(configParams.getDoubleAt("CameraGroups/TiltAngle", idx));    // [rad]
+    }
+
+    Log.info("Telescope: selected groupID = " + groupID);
+    Log.debug("Telescope: azimuth, tilt = " + to_string(rad2deg(originalAzimuthAngle)) + ", " + to_string(rad2deg(originalTiltAngle)));
+
     lightCollectingArea       = configParams.getDouble("Telescope/LightCollectingArea") * 1.e-4;            // [m^2]  
     transmissionEfficiencyBOL = configParams.getDouble("Telescope/TransmissionEfficiency/BOL");
     transmissionEfficiencyEOL = configParams.getDouble("Telescope/TransmissionEfficiency/EOL");

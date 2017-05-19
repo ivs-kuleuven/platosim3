@@ -34,7 +34,11 @@ class ConfigurationParameters
         string getAbsoluteFilename(const string &);
     
         vector <double> getDoubleVector(const string &key);
+        vector <int> getIntegerVector(const string &key);
     
+        double getDoubleAt(const string &key, int idx);
+        int getIntegerAt(const string &key, int idx);
+
         void setParameter(const string &, const string &);
         bool hasParameter(const string & key);
     

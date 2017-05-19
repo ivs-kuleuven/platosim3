@@ -52,7 +52,7 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
 {
     public:
 
-        DetectorWithAnalyticNonGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera);
+        DetectorWithAnalyticNonGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator);
         virtual ~DetectorWithAnalyticNonGaussianPSF();
 
         virtual double takeExposure(int exposureNr, double startTime, double exposureTime) override;

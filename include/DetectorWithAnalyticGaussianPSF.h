@@ -21,7 +21,7 @@ class DetectorWithAnalyticGaussianPSF: public Detector
 {
     public:
 
-        DetectorWithAnalyticGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera);
+        DetectorWithAnalyticGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator);
         virtual ~DetectorWithAnalyticGaussianPSF();
 
         virtual double takeExposure(int exposureNr, double startTime, double exposureTime) override;
