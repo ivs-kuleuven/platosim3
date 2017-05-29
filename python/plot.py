@@ -35,15 +35,15 @@ def drawCCDsInSkyMollweide(fig, raPlatform, decPlatform, tiltAngle, azimuthAngle
     # Select the proper CCD codes depending on whether we're dealing with the nominal or the fast cams
     
     if normal == True:
-        ccdCodes = ['A', 'B', 'C', 'D']
+        ccdCodes = ['1', '2', '3', '4']
     else:
-        ccdCodes = ['AF', 'BF', 'CF', 'DF']
+        ccdCodes = ['1F', '2F', '3F', '4F']
 
 
     # Set up the colors to be used to draw each CCD. 
     # Different CCDs have different colors.
 
-    color = {'A': 'b', 'AF': 'b', 'B': 'r', 'BF': 'r', 'C': 'g', 'CF': 'g', 'D': 'k', 'DF': 'k'}
+    color = {'1': 'b', '1F': 'b', '2': 'r', '2F': 'r', '3': 'g', '3F': 'g', '4': 'k', '4F': 'k'}
 
     # Set up the figure
 
@@ -124,16 +124,15 @@ def drawCCDsInFocalPlane(pixelSize, normal=True):
     # Select the proper CCD codes depending on whether we're dealing with the nominal or the fast cams
     
     if normal == True:
-        ccdCodes = ['A', 'B', 'C', 'D']
+        ccdCodes = ['1', '2', '3', '4']
     else:
-        ccdCodes = ['AF', 'BF', 'CF', 'DF']
+        ccdCodes = ['1F', '2F', '3F', '4F']
 
 
     # Set up the colors to be used to draw each CCD. 
     # Different CCDs have different colors.
 
-    color = {'A': 'b', 'AF': 'b', 'B': 'r', 'BF': 'r', 'C': 'g', 'CF': 'g', 'D': 'k', 'DF': 'k'}
-
+    color = {'1': 'b', '1F': 'b', '2': 'r', '2F': 'r', '3': 'g', '3F': 'g', '4': 'k', '4F': 'k'}
 
     # Plot each of the 4 CCDs
 
@@ -321,8 +320,8 @@ def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize):
     PURPOSE: Plot a pixel from a particular CCD in the focal plane. The actual position in millimeter
              is shown as a red dot, while the pixel itself is drawn as a rectangle with edge pixelSize.
 
-    INPUTS:  ccdCode:   for nominal camera: either 'A', 'B', 'C', or 'D'
-                        for fast camer: either 'AF', 'BF', 'CF', 'DF'
+    INPUTS:  ccdCode:   for nominal camera: either '1', '2', '3', or '4'
+                        for fast camer: either '1F', '2F', '3F', '4F'
              xCCDpix:   x-coordinate (column number, zero-based) of the pixel on the CCD  [pix]
              yCCDpix:   y-coordinate (row number, zero-based) of the pixel on the CCD  [pix]
              pixelSize: the size of a pixel in micron
