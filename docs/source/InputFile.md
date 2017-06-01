@@ -17,10 +17,14 @@ Any desired simulation can be obtained by modifying the following input:
 	* file comprising a [star catalogue](#starCatalogue) of the region of the sky of interest
 	* optional file comprising [pre-computed PSFs](#psfFile)
 	* [jitter](#jitterFile) file (only required when the jitter option has been enabled in the configuration file)
+
+Additionally, there are two blocks that hold pre-defined settings (which you should NOT alter):
+ 	* [camera group 1, 2, 3, and 4, and fast cameras](#cameraGroups)
+ 	* [CCD 1, 2, 3, and 4](#ccdPositions)
  
 In the following sections we describe these parameters for the simulations in detail.
 
-
+For more details on the reference frames we are using (for the spacecraft, telescope, focal plane, and CCD), radial dependency of the PSF, and rotation angles for platform jitter and telescope drift, please, have a look at technical note [PLATO-KUL-PL-TN-0001](../technicalnotes/PLATO-KUL-PL-TN-0001.pdf).
 
 
 
@@ -270,7 +274,7 @@ Telescope:
 #### <a name="groupID"></a>GroupID
 <i>Allowed values:</i> ∈ [1, 2, 3, 4, Fast, Custom]
 
-The telescope group identifier can be used to select a telescope group. There are four groups that have a tilt angle of 9.2º from the optical axis of the satellite, and one group for the fast camera's which is alligned with the satellite Z-axis. When you specify GroupID=Custom, the TiltAngle and AzimuthAngle below the GroupID in the inputfile are used, otherwise the angles are taken from predefined parameters in the CameraGroups group (see below).
+The telescope group identifier can be used to select a telescope group. There are four groups that have a tilt angle of 9.2º from the optical axis of the satellite, and one group for the fast camera's which is aligned with the satellite Z-axis. When you specify GroupID=Custom, the [tilt angle](#tiltAngle) and [azimuth angle](#azimuthAngle) below the GroupID in the inputfile are used, otherwise the angles are taken from pre-defined parameters in the [CameraGroups](#cameraGroups) block of the configuration file.
 
 @image html /images/telescopeGroups.png "Figure: Field of View for the different telescope groups"
 
@@ -281,7 +285,7 @@ Tilt angle of the telescope, expressed in degrees. This angle, together with the
 
 The tilt angle is the offset between the telescope optical axis and the platform pointing, i.e. the angle between the telescope line-of-sight (positive z<sub>telescope</sub>)-axis and the positive z<sub>PLM</sub>-axis (see Figs. 3 and 4).
 
-This parameter is only used when the GroupID is set to Custom.
+This parameter is only used when the [GroupID](#groupID)=Custom.
 
 #### <a name="azimuthAngle"></a>AzimuthAngle
 <i>Allowed values:</i> Any
@@ -290,7 +294,7 @@ Azimuth angle of the telescope, expressed in degrees. This angle, together with 
 
 The azimuth angle is the position angle of the rotation of the telescope around the positive z<sub>PLM</sub>-axis (see Figs. 3 and 4).
 
-This parameter is only used when the GroupID is set to Custom.
+This parameter is only used when the [GroupID](#groupID)=Custom.
 
 @image html /images/tiltAzimuth.png "Figure 3: Tilt and azimuth of a telescope."
 
@@ -807,10 +811,26 @@ CCD:
 #### <a name="position"></a>Position
 <i>Allowed values:</i> ∈ [1, 2, 3, 4, Custom]
 
-The CCD Position is defined as in the figures below.
+The CCD position can be used to select a specific pre-defined CCD or a custom one.
+
+The pre-defined CCD positions are shown in the figures below.
 
 @image html "/images/CCD Array Configuration - Normal Camera.png" "Figure: Layout of the CCDs for the normal camera's."
 @image html "/images/CCD Array Configuration - Fast Camera.png" "Figure: Layout of the CCDs for the fast camera's."
+
+Note that we now use 1, 2, 3, and 4 rather than A, B, C, D, for the normal cameras as well as for the fast ones.
+
+|In the past|Now |
+|---|---|
+| A  | 3  |
+| B  | 2  |
+| C  | 4  |
+| D  | 1  |
+
+When you specify [Position](#position)=Custom, the origin offset ([OriginOffsetX](#originOffsetX) and [OriginOffsetY](#originOffsetY)), the [orientation](#ccdOrientation), [number of rows](#ccdNumRows) and [columns](#ccdNumColumns), and the [first exposed row](#firstRowExposed) of the CCD are read from the configuration parameters in the CCD block.
+
+In case a pre-defined position is used, these configuration parameters are read from the [CCDPositions](#ccdPositions) block (see below).
+
 
 
 
@@ -818,6 +838,8 @@ The CCD Position is defined as in the figures below.
 <i>Allowed values:</i> Any
 
 Offset of the CCD origin from the centre of the optical plane (i.e. the intersection of the optical axis with the focal plane) in the x-direction, expressed in mm. The origin of the CCD is defined as the point where the readout register is located. See Fig. 2 for more details (Δx<sub>CCD</sub>).
+
+This parameter is only used when the [Position](#position)=Custom.
 
 
 
@@ -827,11 +849,15 @@ Offset of the CCD origin from the centre of the optical plane (i.e. the intersec
 
 Offset of the CCD origin from the centre of the optical plane (i.e. the intersection of the optical axis with the focal plane) in the y-direction, expressed in mm. The origin of the CCD is defined as the point where the readout register is located. See Fig. 2 for more details (Δy<sub>CCD</sub>).
 
+This parameter is only used when the [Position](#position)=Custom.
+
 
 #### <a name="ccdOrientation"></a>Orientation
 <i>Allowed values:</i> Any
 
 Orientation angle of the CCD w.r.t. the orientation of the focal plane, measured counterclockwise and expressed in degrees. This rotation is performed around the offset origin of the CCD. See Fig. 2 for more details (γ<sub>CCD</sub>).
+
+This parameter is only used when the [Position](#position)=Custom.
 
 
 
@@ -841,6 +867,8 @@ Orientation angle of the CCD w.r.t. the orientation of the focal plane, measured
 
 Number of pixels of the CCD in the x-direction (i.e. number of columns).
 
+This parameter is only used when the [Position](#position)=Custom.
+
 
 
 
@@ -848,6 +876,17 @@ Number of pixels of the CCD in the x-direction (i.e. number of columns).
 <i>Allowed values:</i> > 0
 
 Number of pixels of the CCD in the y-direction (i.e. number of rows).
+
+This parameter is only used when the [Position](#position)=Custom.
+
+
+
+#### <a name="firstRowExposed"></a>FirstRowExposed
+<i>Allowed values:</i> > 0
+
+Row index of the first row in the CCD that is illuminated (the row closest to the readout register is row 0).
+
+This parameter is only used when the [Position](#position)=Custom.
 
 
 
@@ -1379,6 +1418,90 @@ Seed for the random-number generator used for the FEE gain.
 Seed for the random-number generator used for the CCD gain.
 
 
+
+
+<!-- Camera groups -->
+<!-- ************* -->
+
+### <a name="cameraGroups"></a>Camera groups
+
+The <b>CameraGroups</b> block in the configuration file is used in case a pre-defined camera groups (1, 2, 3, 4, or Fast) was selected via the [GroupID](#groupID) parameter in the [Telescope](#telescopeParameters) block in the configuration file.  The structure of this block is the following:
+
+\code{.yaml}
+CameraGroups:
+
+    AzimuthAngle:            [45.0, 135.0, -135.0, -45.0, 0.0] 
+    TiltAngle:               [9.2, 9.2, 9.2, 9.2, 0.0] 
+\endcode
+
+Mind you, you are NOT supposed to alter this section of the configuration file!
+
+
+
+#### AzimuthAngle
+
+Azimuth angle, expressed in degrees, for camera group 1, 2, 3 and 4, and for the fast camera.  Depending on the value of the [GroupID](#groupID) parameter in the [Telescope](#telescopeParameters) block, the appropriate value will be selected from the list.
+
+#### TiltAngle
+
+Tilt angle, expressed in degrees, for camera group 1, 2, 3 and 4, and for the fast camera.  Depending on the value of the [GroupID](#groupID) parameter in the [Telescope](#telescopeParameters) block, the appropriate value will be selected from the list.
+
+
+
+
+
+
+<!-- CCD Positions -->
+<!-- ************* -->
+### <a name="ccdPositions"></a>CCD Positions
+
+The <b>CCDPositions</b> block in the configuration file is used in case a pre-defined CCD position (1, 2, 3, or 4) was selected via the [Position](#position) parameter in the [CCD](#ccdParameters) block in the configuration file.  The structure of this block is the following:
+
+\code{.yaml}
+CCDPositions:
+
+    OriginOffsetX:                   [-1, -1, -1, -1]
+    OriginOffsetY:                   [82.18, 82.18, 82.18, 82.18]
+    Orientation:                     [0, 90, 180, 270]
+    NumColumns:                      [4510, 4510, 4510, 4510]
+    NumRows:                         [4510, 4510, 4510, 4510]
+    FirstRowForNormalCamera:         [0, 0, 0, 0]
+    FirstRowForFastCamera:           [2255, 2255, 2255, 2255]       
+\endcode
+
+Mind you, you are NOT supposed to alter this section of the configuration file!
+
+#### OriginOffsetX
+
+Offset of the CCD origin from the centre of the optical plane in the x-direction, expressed in mm, for CCD positions 1, 2, 3, and 4.  Depending on the value of the [Position](#position) parameter in the [CCD](#ccdParameters) block, the appropriate value will be selected from the list.
+
+#### OriginOffsetY
+
+Offset of the CCD origin from the centre of the optical plane in the y-direction, expressed in mm, for CCD positions 1, 2, 3, and 4.  Depending on the value of the [Position](#position) parameter in the [CCD](#ccdParameters) block, the appropriate value will be selected from the list.
+
+
+#### Orientation
+
+Orientation angle of the CCD w.r.t. the orientation of the focal plane, measured counterclockwise and expressed in degrees, for CCD positions 1, 2, 3, and 4.  Depending on the value of the [Position](#position) parameter in the [CCD](#ccdParameters) block, the appropriate value will be selected from the list.
+
+#### NumColumns
+
+Number of pixels of the CCD in the x-direction (i.e. number of columns), for CCD positions 1, 2, 3, and 4.  Depending on the value of the [Position](#position) parameter in the [CCD](#ccdParameters) block, the appropriate value will be selected from the list.
+
+#### NumRows
+
+Number of pixels of the CCD in the y-direction (i.e. number of rows), for CCD positions 1, 2, 3, and 4.  Depending on the value of the [Position](#position) parameter in the [CCD](#ccdParameters) block, the appropriate value will be selected from the list.
+
+
+#### FirstRowForNormalCamera
+
+Row index of the first row in the CCD that is illuminated (the row closest to the readout register is row 0), for CCD positions 1, 2, 3, and 4, in case of a normal camera ([GroupID](#groupID)=1, 2, 3, or 4).  For normal cameras, the whole CCD is illuminated.  Depending on the value of the [Position](#position) parameter in the [CCD](#ccdParameters) block, the appropriate value will be selected from the list.
+
+
+
+#### FirstRowForFastCamera
+
+Row index of the first row in the CCD that is illuminated (the row closest to the readout register is row 0), for CCD positions 1, 2, 3, and 4, in case of a fast camera ([GroupID](#groupID)=Fast).  For fast cameras, only the upper half of the CCD is illuminated.  Depending on the value of the [Position](#position) parameter in the [CCD](#ccdParameters) block, the appropriate value will be selected from the list.
 
 
 
