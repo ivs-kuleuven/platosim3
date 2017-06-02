@@ -155,7 +155,7 @@ for group in range(numTelescopeGroups):
         
         if (ccdCode != None) and (rowCenter - numRowsSubField / 2 >= 0) and (rowCenter + numRowsSubField / 2 < CCD[ccdCode]["Nrows"]) and (columnCenter - numColumnsSubField / 2 >= 0) and (columnCenter + numColumnsSubField / 2 < CCD[ccdCode]["Ncols"]):
             
-            print("CCD {0} selected".format(ccdCode) +"\n")
+            print("CCD #{0} selected".format(ccdCode) +"\n")
             
             # Observing parameters
         
