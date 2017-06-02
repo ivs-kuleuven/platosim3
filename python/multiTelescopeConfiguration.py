@@ -126,10 +126,13 @@ for group in range(numTelescopeGroups):
         sim = Simulation(outputFilePrefix, inputFile)
         sim.outputDir = outputDir
         
+        azimuthAngles = sim["CameraGroups/AzimuthAngle"]
+        tiltAngles = sim["CameraGroups/TiltAngle"]
+        
         # Compute the telescope pointing, based on the platform pointing, and the tilt and azimuth angle of the telescope
         
         raSun, decSun = sunSkyCoordinatesAwayfromPlatformPointing(math.radians(raPlatform), math.radians(decPlatform))
-        raTelescope, decTelescope = platformToTelescopePointingCoordinates(math.radians(raPlatform), math.radians(decPlatform), raSun, decSun, math.radians(azimuthAngles[group]), math.radians(tiltAngle))
+        raTelescope, decTelescope = platformToTelescopePointingCoordinates(math.radians(raPlatform), math.radians(decPlatform), raSun, decSun, math.radians(azimuthAngles[group]), math.radians(tiltAngles[group]))
         raTelescopePointings.append(math.degrees(raTelescope))
         decTelescopePointings.append(math.degrees(decTelescope))
         
@@ -146,7 +149,7 @@ for group in range(numTelescopeGroups):
         # Determine on which CCD (A, B, C, or D) the coordinates (raCenter, decCenter) are positioned and at which location
         # (in pixel coordinates)
         
-        ccdCode, columnCenter, rowCenter = getCCDandPixelCoordinates(math.radians(raCenter), math.radians(decCenter), math.radians(raPlatform), math.radians(decPlatform), math.radians(tiltAngle), math.radians(azimuthAngles[group]), math.radians(focalPlaneAngle), focalLength, pixelSize, includeFieldDistortion, distortionCoefficients, normal = True)
+        ccdCode, columnCenter, rowCenter = getCCDandPixelCoordinates(math.radians(raCenter), math.radians(decCenter), math.radians(raPlatform), math.radians(decPlatform), math.radians(tiltAngles[group]), math.radians(azimuthAngles[group]), math.radians(focalPlaneAngle), focalLength, pixelSize, includeFieldDistortion, distortionCoefficients, normal = True)
         
         # Check whether the sub-field falls entirely on the detector
         
@@ -160,17 +163,19 @@ for group in range(numTelescopeGroups):
             sim["ObservingParameters/DecPointing"] = decPointing
         
             # Telescope parameters
-                        
-            sim["Telescope/AzimuthAngle"] = azimuthAngles[group]
-            sim["Telescope/TiltAngle"] = tiltAngle
+            
+            sim["Telescope/GroupID"] = group + 1           
+            #sim["Telescope/AzimuthAngle"] = azimuthAngles[group]
+            #sim["Telescope/TiltAngle"] = tiltAngle
     
             # CCD parameters
-        
-            sim["CCD/OriginOffsetX"] = CCD[ccdCode]["zeroPointXmm"]
-            sim["CCD/OriginOffsetY"] = CCD[ccdCode]["zeroPointYmm"]
-            sim["CCD/Orientation"] = CCD[ccdCode]["angle"]
-            sim["CCD/NumColumns"] = CCD[ccdCode]["Ncols"]
-            sim["CCD/NumRows"] = CCD[ccdCode]["Nrows"]
+            
+            sim["CCD/Position"] =  ccdCode
+            #sim["CCD/OriginOffsetX"] = CCD[ccdCode]["zeroPointXmm"]
+            #sim["CCD/OriginOffsetY"] = CCD[ccdCode]["zeroPointYmm"]
+            #sim["CCD/Orientation"] = CCD[ccdCode]["angle"]
+            #sim["CCD/NumColumns"] = CCD[ccdCode]["Ncols"]
+            #sim["CCD/NumRows"] = CCD[ccdCode]["Nrows"]
             
             # Sub-field parameters
         
