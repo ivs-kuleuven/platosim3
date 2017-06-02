@@ -16,7 +16,7 @@ from matplotlib.path import Path
 
 # CCD configuration
 #
-# ccdCode:      A,B,C,D: nominal cameras; AF, BF, CF, DF: fast cameras
+# ccdCode:      1, 2, 3, 4: nominal cameras; 1F, 2F, 3F, 4F: fast cameras
 # Ncols:        Number of exposed columns (column number varies along x-coordinate)
 # Nrows:        Number of exposed rows (row number varies along y-coordinate)
 # firstRow:     First row that is exposed. For the nominal cams this is simply row 0.
@@ -28,14 +28,14 @@ from matplotlib.path import Path
 
 CCD = \
 {
-    'A'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': pi},
-    'B'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': 3*pi/2},
-    'C'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': pi/2},
-    'D'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': 0},
-    'AF' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': pi},
-    'BF' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': 3*pi/2},
-    'CF' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': pi/2},
-    'DF' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': 0}
+    '3'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': pi},
+    '2'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': 3*pi/2},
+    '4'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': pi/2},
+    '1'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': 0},
+    '3F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': pi},
+    '2F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': 3*pi/2},
+    '4F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': pi/2},
+    '1F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': 0}
 }
 
 
@@ -614,7 +614,7 @@ def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
     PURPOSE: Get the (x,y) coordinates of each of the 4 corners of the exposed part of the CCD
              in the FP' reference system
 
-    INPUT: ccdCode:   one of the following: 'A', 'B', 'C', 'D', 'AF', 'BF', 'CF', 'DF'
+    INPUT: ccdCode:   one of the following: '1', '2', '3', '4', '1F', '2F', '3F', '4F'
            pixelSize: size of 1 pixel (micron)
 
     OUTPUT: cornersXmm: x-coordinates of each of the corners in the FP' reference system [mm]
@@ -659,7 +659,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, tiltAngl
                               normal):
 
     """
-    PURPOSE: Given the equatorial coordinates of a star, find out on which CCD it falls ('A', 'B', ...)
+    PURPOSE: Given the equatorial coordinates of a star, find out on which CCD it falls ('1', '2', ...)
              and compute the pixel coordinates of the star on this CCD. If the star doesn't fall on any of the CCDs
              then (None, None, None) is given as output.
 
@@ -676,8 +676,8 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, tiltAngl
            distortionCoefficients: Coefficients of the polynomial describing the distortion 
            normal:                 True for the normal camera configuration, False for the fast cameras
 
-    OUTPUT: ccdCode: for normal camera: either 'A', 'B', 'C', or 'D'
-                     for fast camer: either 'AF', 'BF', 'CF', 'DF'
+    OUTPUT: ccdCode: for normal camera: either '1', '2', '3', or '4'
+                     for fast camera: either '1F', '2F', '3F', '4F'
                      if on no CCD: None    
             xCCDpix: x-coordinate (column number) of the star on the CCD  [pix]
                      if on no CCD: None
@@ -690,9 +690,9 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, tiltAngl
     # Select the proper CCD codes depending on whether we're dealing with the nominal or the fast cams
 
     if normal == True:
-        ccdCodes = ['A', 'B', 'C', 'D']
+        ccdCodes = ['1', '2', '3', '4']
     else:
-        ccdCodes = ['AF', 'BF', 'CF', 'DF']
+        ccdCodes = ['1F', '2F', '3F', '4F']
 
 
     # Compute the (x,y) coordinates in the FP reference system [mm]
@@ -869,7 +869,7 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
            distortionCoefficients: Coefficients of the polynomial describing the distortion
            normal:                 True for the normal camera configuration, False for the fast cameras
 
-    OUTPUT: ccdCode: "A", "B", "C" or "D" if nominal=True, "AF", "BF", "CF" or "DF" otherwise
+    OUTPUT: ccdCode: "1", "2", "3" or "4" if nominal=True, "1F", "2F", "3F" or "4F" otherwise
             xCCDpix: x-coordinate of the star in pixels (i.e. column number)
             yCCDpix: y-coordinate of the star in pixels (i.e. row number)
 
@@ -997,8 +997,8 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
             the switch to include distortion or not is set correctly.
             
     INPUT:  sim:        simulation for which the configuration file is adapted
-            ccdCode:    for nominal camera: either 'A', 'B', 'C', 'D'
-                        for fast camera: either 'AF', 'BF', 'CF', 'DF'
+            ccdCode:    for nominal camera: either '1', '2', '3', '4'
+                        for fast camera: either '1F', '2F', '3F', '4F'
             xCCDpixel:  x-coordinate (column-number) of the star on the CCD  [pix]
             yCCDpixel:  y-coordinate (row-number) of the star on the CCD     [pix]
     
