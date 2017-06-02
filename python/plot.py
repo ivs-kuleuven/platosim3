@@ -29,21 +29,21 @@ def drawCCDsInSkyMollweide(fig, raPlatform, decPlatform, tiltAngle, azimuthAngle
     OUTPUT: None
 
     TODO: - Does not work yet for the fast cams
-          - Does not take distoration into account yet
+          - Does not take distortion into account yet
     """
 
     # Select the proper CCD codes depending on whether we're dealing with the nominal or the fast cams
     
     if normal == True:
-        ccdCodes = ['A', 'B', 'C', 'D']
+        ccdCodes = ['1', '2', '3', '4']
     else:
-        ccdCodes = ['AF', 'BF', 'CF', 'DF']
+        ccdCodes = ['1F', '2F', '3F', '4F']
 
 
     # Set up the colors to be used to draw each CCD. 
     # Different CCDs have different colors.
 
-    color = {'A': 'b', 'AF': 'b', 'B': 'r', 'BF': 'r', 'C': 'g', 'CF': 'g', 'D': 'k', 'DF': 'k'}
+    color = {'1': 'b', '1F': 'b', '2': 'r', '2F': 'r', '3': 'g', '3F': 'g', '4': 'k', '4F': 'k'}
 
     # Set up the figure
 
@@ -104,6 +104,54 @@ def drawCCDsInSkyMollweide(fig, raPlatform, decPlatform, tiltAngle, azimuthAngle
 
 
 
+def drawStarsInSkyMollweide(fig, ra, dec ):
+
+    """
+    PURPOSE: Project and plot the stars with the given right ascension and declination on the sky
+
+    INPUT: ra:      right ascension of the stars             [rad]
+           dec:     declination of the areA                 [rad]
+
+    OUTPUT: None
+    """
+    
+    # Set up the figure
+
+    axes = fig.add_subplot(111, projection="mollweide")
+    axes.grid(True)
+
+    raRadians = []
+    decRadians = []
+    
+    for index in range(len(ra)):
+        raRadians.append(-ra[index] * pi / 180.0)
+        decRadians.append(dec[index] * pi / 180.0)
+
+    axes.plot(raRadians, decRadians, 'ko')
+
+
+    # Change the tick labels so that they are 0->360, rather than -180->+180
+
+    tickLabels = np.array([150, 120, 90, 60, 30, 0, 330, 300, 270, 240, 210])
+    tickLabels = np.remainder(tickLabels+360, 360)
+    axes.set_xticklabels(tickLabels)     
+
+    # Add axis labels
+
+    plt.xlabel("RA [deg]")
+    plt.ylabel("Dec [deg]")
+    plt.draw()
+
+    # That's it
+
+    return axes
+
+
+
+
+
+
+
 
 
 
@@ -124,15 +172,15 @@ def drawCCDsInFocalPlane(pixelSize, normal=True):
     # Select the proper CCD codes depending on whether we're dealing with the nominal or the fast cams
     
     if normal == True:
-        ccdCodes = ['A', 'B', 'C', 'D']
+        ccdCodes = ['1', '2', '3', '4']
     else:
-        ccdCodes = ['AF', 'BF', 'CF', 'DF']
+        ccdCodes = ['1F', '2F', '3F', '4F']
 
 
     # Set up the colors to be used to draw each CCD. 
     # Different CCDs have different colors.
 
-    color = {'A': 'b', 'AF': 'b', 'B': 'r', 'BF': 'r', 'C': 'g', 'CF': 'g', 'D': 'k', 'DF': 'k'}
+    color = {'1': 'b', '1F': 'b', '2': 'r', '2F': 'r', '3': 'g', '3F': 'g', '4': 'k', '4F': 'k'}
 
 
     # Plot each of the 4 CCDs
@@ -321,8 +369,8 @@ def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize):
     PURPOSE: Plot a pixel from a particular CCD in the focal plane. The actual position in millimeter
              is shown as a red dot, while the pixel itself is drawn as a rectangle with edge pixelSize.
 
-    INPUTS:  ccdCode:   for nominal camera: either 'A', 'B', 'C', or 'D'
-                        for fast camer: either 'AF', 'BF', 'CF', 'DF'
+    INPUTS:  ccdCode:   for nominal camera: either '1', '2', '3', or '4'
+                        for fast camer: either '1F', '2F', '3F', '4F'
              xCCDpix:   x-coordinate (column number, zero-based) of the pixel on the CCD  [pix]
              yCCDpix:   y-coordinate (row number, zero-based) of the pixel on the CCD  [pix]
              pixelSize: the size of a pixel in micron
