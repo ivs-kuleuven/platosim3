@@ -556,8 +556,8 @@ class Simulation(object):
         PURPOSE:  Calculate the location of the subField such that it is centered on the star with 
               the given pixel coordinates.
 
-        INPUTS: ccdCode:       for nominal camera: either 'A', 'B', 'C', 'D'
-                               for fast camera: either 'AF', 'BF', 'CF', 'DF'
+        INPUTS: ccdCode:       for nominal camera: either '1', '2', '3', '4'
+                               for fast camera: either '1F', '2F', '3F', '4F'
                 xCCDpixel:     x-coordinate (column-number) of the star on the CCD  [pixel/float]
                 yCCDpixel:     y-coordinate (row-number) of the star on the CCD  [pixel/float]
                 subfieldSizeX: width (i.e. number of columns) of the sub-field [pixels]
@@ -579,12 +579,20 @@ class Simulation(object):
             
         return
 
+
+
+
+
+
+
+
+
     def setSubfieldAroundCoordinates(self, raStar, decStar, subfieldSizeX, subfieldSizeY, normal):
         
         """
         PURPOSE: Set the location of the sub-field such that it is centred on the star 
                  with the given sky coordinates.  Depending on the CCD (in nomincal mode:
-                 "A", "B", "C", or "D"; in fast mode: "AF", "BF", "CF", or "DF"), the 
+                 "1", "2", "3", or "4"; in fast mode: "1F", "2F", "3F", or "4F"), the 
                  configuration file for the given simulation is adapted.  These include the
                  pre-defined CCD position, the dimensions of the CCD (and also of the sub-field,
                  although this is not affected by the calculations), the sub-field zeropoint
