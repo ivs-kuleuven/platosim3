@@ -31,7 +31,7 @@ print("\n")
 # Build and install package
 
 installProcedure = "cd {build};                                                      \
-                    tar -xzvf {package}.tgz;                                         \
+                    tar -xvf {package}.tgz;                                          \
                     cd {package};                                                    \
                     ./configure --prefix={install} --enable-threads --enable-float;  \
                     make;                                                            \

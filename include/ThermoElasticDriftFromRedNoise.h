@@ -9,6 +9,7 @@
 
 #include "Logger.h"
 #include "Units.h"
+#include "Exceptions.h"
 #include "Heartbeat.h"
 #include "HDF5Writer.h"
 #include "ConfigurationParameters.h"
@@ -27,7 +28,7 @@ class ThermoElasticDriftFromRedNoise : public DriftGenerator
         ~ThermoElasticDriftFromRedNoise();
 
         virtual void configure(ConfigurationParameters &configParams);
-        virtual tuple<double, double, double> getNextYawPitchRoll(double timeInterval) override;
+        virtual tuple<double, double, double> getNextYawPitchRoll(double time) override;
         virtual double getHeartbeatInterval() override;
 
     protected:
@@ -44,6 +45,8 @@ class ThermoElasticDriftFromRedNoise : public DriftGenerator
         double driftTimeInterval;   // [s]
 
         long driftNoiseSeed;
+
+        double internalTime;        // [s]
 
     private:
 

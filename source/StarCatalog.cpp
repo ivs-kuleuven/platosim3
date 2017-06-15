@@ -36,24 +36,6 @@ StarCatalog::StarCatalog(const StarCatalog &starCatalog)
 
 
 
-/**
- * \brief Move constructor
- */
-
-StarCatalog::StarCatalog(StarCatalog &&starCatalog)
-: starID(move(starCatalog.starID)), RA(move(starCatalog.RA)), dec(move(starCatalog.dec)), Vmag(move(starCatalog.Vmag))
-{
-
-}
-
-
-
-
-
-
-
-
-
 
 /**
  * \brief Destructor
@@ -195,5 +177,102 @@ StarCatalog StarCatalog::getStarsWithinRadiusFrom(double RA0, double dec0, doubl
 
     return newCatalog;
 }
+
+
+/**
+ * \brief  Calculate the apparent positions of the stars based on the current platform pointing coordinates.
+ *
+ * \detail
+ *
+ * This calculation is an approximation based on a circular earth orbit around the sun and *not* taking
+ * the Lissajous orbit of the satellite around L2 into account. We do calculate the differential aberration
+ * however which takes into account the aberration correction done for the Spacecraft pointing.
+ * 
+ * \param platform    the current platform from which the position of the Sun and the pointing coordinates are requested
+ * 
+ * \return            A StarCatalog with all the aberration corrected stars.
+ */
+
+StarCatalog StarCatalog::aberrate(Platform &platform, string aberrationCorrectionType, double startTime, double timeMiddle)
+{
+    using StringUtilities::dtos;
+
+    // Create an empty star catalog
+
+    StarCatalog newCatalog;
+
+    double amplitude = deg2rad(20.496 / 3600.0);
+
+    // Request the longitude of the Sun. This is known by the Platform, but it only returns the 
+    // equatorial coordinates while they were internally calculated as ecliptic. Platform should 
+    // maybe have a getLonLatSun().
+
+    double raSun, decSun;
+    tie(raSun, decSun) = platform.getRADecSun();
+    double lambdaSun, betaSun;
+    equatorial2ecliptic(raSun, decSun, lambdaSun, betaSun);
+
+    // lambdaSunAtStartTime = lambdaSunAtTimeMiddle + 2.0 * PI / 365.0 / 86400 * (startTime - timeMiddle)
+
+    lambdaSun = lambdaSun + ( 6.283185307179586 * (startTime - timeMiddle) / 31536000 );
+
+    double deltaLambdaPlatform, deltaBetaPlatform;
+    if (aberrationCorrectionType == "differential")
+    {
+        Log.info("StarCatalog::aberrate: applying differential aberration correction");
+
+        // Request the current platform pointing coordinates (i.e. pointing of the Fast Camera's)
+    
+        double raPlatform, decPlatform;
+        tie(raPlatform, decPlatform) = platform.getCurrentPointingCoordinates();
+    
+        double lambdaPlatform, betaPlatform;
+        equatorial2ecliptic(raPlatform, decPlatform, lambdaPlatform, betaPlatform);
+
+        deltaLambdaPlatform = - amplitude * cos(lambdaPlatform - lambdaSun) / cos(betaPlatform);
+        deltaBetaPlatform   = - amplitude * sin(lambdaPlatform - lambdaSun) * sin(betaPlatform);
+    }
+    else
+    {
+        Log.info("StarCatalog::aberrate: applying absolute aberration correction");
+
+        // Set the Platform aberration to zero = absolute aberration
+
+        deltaLambdaPlatform = 0.0;
+        deltaBetaPlatform   = 0.0;
+    }
+
+    for (long n = 0; n < starID.size(); ++n)
+    {
+        double raStar = RA[n];
+        double decStar = dec[n];
+    
+        double lambdaStar, betaStar;
+        equatorial2ecliptic(raStar, decStar, lambdaStar, betaStar);
+    
+        double deltaLambdaStar, deltaBetaStar;
+        deltaLambdaStar = - amplitude * cos(lambdaStar - lambdaSun) / cos(betaStar);
+        deltaBetaStar   = - amplitude * sin(lambdaStar - lambdaSun) * sin(betaStar);
+    
+        double deltaLambdaAberration = deltaLambdaStar - deltaLambdaPlatform;
+        double deltaBetaAberration   = deltaBetaStar   - deltaBetaPlatform;
+    
+        double raStarAberrated, decStarAberrated;
+        ecliptic2equatorial(lambdaStar - deltaLambdaAberration, betaStar - deltaBetaAberration, raStarAberrated, decStarAberrated);
+        
+        newCatalog.addStar(starID[n], raStarAberrated, decStarAberrated, Vmag[n], Angle::radians);
+
+        // Write debugging info on the first star only
+
+        if (n == 0)
+        {
+            Log.debug("StarCatalog::aberrate: ra[0], dec[0] = " + dtos(raStarAberrated, false, 8) + ", " + dtos(decStarAberrated, false, 8));
+        }
+    }
+
+    return newCatalog;
+}
+
+
 
 

@@ -4,6 +4,7 @@
 
 #include <string>
 #include <vector>
+#include <cmath>
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -43,6 +44,8 @@ class Sky
 
         pair<double, double> getCoordinatesOfStarWithID(int id, Unit outputAngleUnit = Angle::degrees);
         double getVmagnitudeOfStarWithID(int id);
+
+        pair<double, double> getSunCoordinates(double julianDate, Unit outputAngleUnit = Angle::degrees);
 
     protected:
 

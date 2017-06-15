@@ -7,7 +7,8 @@ import numpy as np
 
 from simfile import SimFile
 from simulation import Simulation
-from referenceFrames import setSubfieldAroundCoordinates
+
+
 
 # Specify the absolute paths of some of the input files and the output folder.
 # The following default values will always work, but we advice you not to use
@@ -38,14 +39,14 @@ for n in range(NguideStars):
 
     # Set up a Simulation object
 
-    sim = Simulation(outputFilePrefix + "{0:02d}".format(n), inputFile)
+    sim = Simulation(outputFilePrefix + "{0:04d}".format(n), inputFile)
     sim.outputDir = outputDir
 
     # Make sure it uses the right starCatalog, jitter file, and PSF file
 
     sim["ObservingParameters/StarCatalogFile"] = starCatalog
     sim["Platform/JitterFileName"] = jitterFile
-    sim["PSF/FromFile/Filename"] = psfFile 
+    sim["PSF/MappedFromFile/Filename"] = psfFile 
 
     # Center the subfield around the current guide star
     # First extract the required information from the yaml input file.
@@ -74,7 +75,7 @@ for n in range(NguideStars):
     subfieldSizeY = 9     # row width [pixels]
     normalCamera = False
 
-    hasCcdCode = setSubfieldAroundCoordinates(sim, np.deg2rad(ra[n]), np.deg2rad(dec[n]), subfieldSizeX, subfieldSizeY, normalCamera)
+    hasCcdCode = sim.setSubfieldAroundCoordinates(np.deg2rad(ra[n]), np.deg2rad(dec[n]), subfieldSizeX, subfieldSizeY, normalCamera)
 
     # If the star does not fall on a CCD, or is too close to the edge, skip it.
 
@@ -89,7 +90,6 @@ for n in range(NguideStars):
     sim["RandomSeeds/ReadOutNoiseSeed"] = 1424949740 + n
     sim["RandomSeeds/FlatFieldSeed"]    = 1425284070 + n
     sim["RandomSeeds/JitterSeed"]       = 1424967476 + n
-    sim["RandomSeeds/CTESeed"]          = 1424949740 + n
     sim["RandomSeeds/DriftSeed"]        = 1433826961 + n
 
 

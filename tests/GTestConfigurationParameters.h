@@ -220,6 +220,26 @@ TEST(ConfigurationParametersTest, testSetNode)
 
 
 
+
+TEST(ConfigurationParametersTest, testHasParameter)
+{
+    LOG_STARTING_OF_TEST
+
+    ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
+
+    EXPECT_TRUE(cp.hasParameter("Degradation/Efficiency"));
+    EXPECT_TRUE(cp.hasParameter("Degradation/Efficiency/BOL"));
+    EXPECT_TRUE(cp.hasParameter("Degradation/Efficiency/EOL"));
+    EXPECT_EQ(0.999, cp.getDouble("Degradation/Efficiency/BOL"));
+    EXPECT_EQ(0.777, cp.getDouble("Degradation/Efficiency/EOL"));
+
+    EXPECT_FALSE(cp.hasParameter("Degradation/NoDegradation/BOL"));
+}
+
+
+
+
+
 // This test checks that new fields can be set or added to a map.
 // The map doesn't exist initially.
 // 
@@ -268,6 +288,13 @@ TEST(ConfigurationParametersTest, Sequences)
     {
         EXPECT_DOUBLE_EQ(expected[idx], values[idx]);
     }
+
+    EXPECT_DOUBLE_EQ(-0.5, cp.getDoubleAt("Sequences/Polynomial/Coefficients", 2));
+
+    EXPECT_EQ(1, cp.getIntegerAt("Sequences/Index", 0));
+    EXPECT_EQ(5, cp.getIntegerAt("Sequences/Index", 4));
+
+    ASSERT_THROW(cp.getIntegerAt("Sequences/Index", 10), IllegalArgumentException);
 
 }
 

@@ -87,7 +87,6 @@ driftSeed = 1433429158                  # Random seed for telescope drift       
 readoutNoiseSeed =  1424949740          # Random seed for the readout noise                                         <--- different for each telescope!
 photonNoiseSeed = 1433320336            # Random seed for the photon noise                                          <--- different for each telescope!
 flatfieldSeed = 1433320381              # Random seed for the flatfield                                             <--- different for each telescope!
-cteSeed = 1424949740                    # Random seed for the CTE                                                   <--- different for each telescope!
 
 
 # Sub-field parameters
@@ -117,7 +116,7 @@ for group in range(numTelescopeGroups):
     
     for telescope in range(numTelescopesPerGroup):
         
-        print "Processing telescope " + str(telescope + 1) + " of group " + str(group + 1)
+        print("Processing telescope {0} of group {1}".format(telescope+1, group+1))
         
         telescopeIndex = numTelescopesPerGroup * group + telescope
         
@@ -127,13 +126,19 @@ for group in range(numTelescopeGroups):
         sim = Simulation(outputFilePrefix, inputFile)
         sim.outputDir = outputDir
         
+        azimuthAngles = sim["CameraGroups/AzimuthAngle"]
+        tiltAngles = sim["CameraGroups/TiltAngle"]
+        
         # Compute the telescope pointing, based on the platform pointing, and the tilt and azimuth angle of the telescope
         
-        raTelescope, decTelescope = platformToTelescopePointingCoordinates(math.radians(raPointing), math.radians(decPointing), math.radians(azimuthAngles[group]), math.radians(tiltAngle))
-
+        raSun, decSun = sunSkyCoordinatesAwayfromPlatformPointing(math.radians(raPlatform), math.radians(decPlatform))
+        raTelescope, decTelescope = platformToTelescopePointingCoordinates(math.radians(raPlatform), math.radians(decPlatform), raSun, decSun, math.radians(azimuthAngles[group]), math.radians(tiltAngles[group]))
+        raTelescopePointings.append(math.degrees(raTelescope))
+        decTelescopePointings.append(math.degrees(decTelescope))
         
-        print "Platform pointing: " + str(raPointing) + ", " + str(decPointing)
-        print "Telescope pointing: " + str(math.degrees(raTelescope)) + ", " + str(math.degrees(decTelescope))
+        print("Platform pointing: {0}, {1}".format(raPlatform, decPlatform))
+        print("Telescope pointing: {0}, {1}".format(math.degrees(raTelescope), math.degrees(decTelescope)))
+        #print("Sun: {0}, {1}".format(math.degrees(raSun), math.degrees(decSun)))
         
         includeFieldDistortion = (str(sim["Camera/IncludeFieldDistortion"] == "yes"))  or (str(sim["Camera/IncludeFieldDistortion"] == "1"))        # Whether or not to include field distortion
         focalPlaneAngle = sim["Camera/FocalPlaneOrientation"]                                                                                       # Focal-plane orientation [degrees]
@@ -144,13 +149,13 @@ for group in range(numTelescopeGroups):
         # Determine on which CCD (A, B, C, or D) the coordinates (raCenter, decCenter) are positioned and at which location
         # (in pixel coordinates)
         
-        ccdCode, columnCenter, rowCenter = getCCDandPixelCoordinates(math.radians(raCenter), math.radians(decCenter), raTelescope, decTelescope, math.radians(focalPlaneAngle), focalLength, plateScale, pixelSize, includeFieldDistortion, nominal=True)
+        ccdCode, columnCenter, rowCenter = getCCDandPixelCoordinates(math.radians(raCenter), math.radians(decCenter), math.radians(raPlatform), math.radians(decPlatform), math.radians(tiltAngles[group]), math.radians(azimuthAngles[group]), math.radians(focalPlaneAngle), focalLength, pixelSize, includeFieldDistortion, distortionCoefficients, normal = True)
         
         # Check whether the sub-field falls entirely on the detector
         
         if (ccdCode != None) and (rowCenter - numRowsSubField / 2 >= 0) and (rowCenter + numRowsSubField / 2 < CCD[ccdCode]["Nrows"]) and (columnCenter - numColumnsSubField / 2 >= 0) and (columnCenter + numColumnsSubField / 2 < CCD[ccdCode]["Ncols"]):
             
-            print "CCD " + ccdCode + " selected"
+            print("CCD #{0} selected".format(ccdCode) +"\n")
             
             # Observing parameters
         
@@ -158,17 +163,19 @@ for group in range(numTelescopeGroups):
             sim["ObservingParameters/DecPointing"] = decPointing
         
             # Telescope parameters
-                        
-            sim["Telescope/AzimuthAngle"] = azimuthAngles[group]
-            sim["Telescope/TiltAngle"] = tiltAngle
+            
+            sim["Telescope/GroupID"] = group + 1           
+            #sim["Telescope/AzimuthAngle"] = azimuthAngles[group]
+            #sim["Telescope/TiltAngle"] = tiltAngle
     
             # CCD parameters
-        
-            sim["CCD/OriginOffsetX"] = CCD[ccdCode]["zeroPointXmm"]
-            sim["CCD/OriginOffsetY"] = CCD[ccdCode]["zeroPointYmm"]
-            sim["CCD/Orientation"] = CCD[ccdCode]["angle"]
-            sim["CCD/NumColumns"] = CCD[ccdCode]["Ncols"]
-            sim["CCD/NumRows"] = CCD[ccdCode]["Nrows"]
+            
+            sim["CCD/Position"] =  ccdCode
+            #sim["CCD/OriginOffsetX"] = CCD[ccdCode]["zeroPointXmm"]
+            #sim["CCD/OriginOffsetY"] = CCD[ccdCode]["zeroPointYmm"]
+            #sim["CCD/Orientation"] = CCD[ccdCode]["angle"]
+            #sim["CCD/NumColumns"] = CCD[ccdCode]["Ncols"]
+            #sim["CCD/NumRows"] = CCD[ccdCode]["Nrows"]
             
             # Sub-field parameters
         
@@ -183,10 +190,9 @@ for group in range(numTelescopeGroups):
             sim["RandomSeeds/ReadOutNoiseSeed"] = readoutNoiseSeed + telescopeIndex
             sim["RandomSeeds/PhotonNoiseSeed"] = photonNoiseSeed + telescopeIndex
             sim["RandomSeeds/FlatFieldSeed"] = flatfieldSeed + telescopeIndex 
-            sim["RandomSeeds/CTESeed"] = cteSeed + telescopeIndex 
             sim["RandomSeeds/DriftSeed"] = driftSeed + telescopeIndex  
         
             simFile = sim.run()
             
         else:
-            print "Sub-field centred on (" + str(raCenter) + ", " + str(decCenter) + ") does not lay entirely on a CCD for telescope " + str(telescope + 1) + " of group " + str(group + 1)
+            print("Sub-field centred on ({0}, {1}) does not lay entirely on a CCD for telescope {2} of group {3}".format(raCenter, decCenter, telescope + 1, group + 1))

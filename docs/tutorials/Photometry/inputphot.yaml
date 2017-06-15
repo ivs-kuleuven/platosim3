@@ -8,7 +8,9 @@ General:
 
 ObservingParameters:
 
-    NumExposures:                10000            # Number of expsosures
+    MissionDuration:             6.0             # Total duration of the mission in years [yr]
+    NumExposures:                10000           # Number of expsosures
+    BeginExposureNr:             0               # Sequential number of first exposure
     ExposureTime:                23              # [s]
     RApointing:                  180             # Platform (not telescope) right ascension pointing coordinate  [deg] 
     DecPointing:                 -70             # Platform (not telescope) declination pointing coordinate      [deg]
@@ -33,8 +35,9 @@ Telescope:
     AzimuthAngle:                0.0           # Azimuth angle of telescope on the platform [deg]
     TiltAngle:                   0.0             # Tilt angle of the telescope on the platform [deg]
     LightCollectingArea:         113.1           # Effective area of 1 telescope [cm^2]
-    TransmissionEfficiency:      1.0             # in [0,1]
-    FOVSquareDegrees:            1072.0          # Sky area covered by the FOV of 1 telescope [deg^2]
+    TransmissionEfficiency:
+        BOL:                         0.800           # Beginning of Life value in [0,1]
+        EOL:                         0.757           # End of Life value in [0,1]
     UseDrift:                    no             # yes or no
     UseDriftFromFile:            no              # yes or no, if yes: ignore RMS and timescale below
     DriftYawRms:                 2.3             # RMS of thermo-elastic drift in yaw [arcsec]
@@ -51,7 +54,8 @@ Camera:
     FocalLength:                 0.24712595      # Focal length as recovered from ZEMAX model [m]
     ThroughputBandwidth:         400             # FWHM [nm]
     ThroughputLambdaC:           600             # Central wavelength of the throughput passband [nm]
-    IncludeFieldDistortion:      yes             # Wheter or not to include field distortion
+    IncludeAberrationCorrection:     no             # Calculate the differential aberration correction and apply
+    IncludeFieldDistortion:      yes             # Whether or not to include field distortion
     FieldDistortion:                             # Describe the model for the field distortion
         Type:                    Polynomial1D
         Degree:                  3
@@ -60,15 +64,35 @@ Camera:
 
 PSF:
 
-    Model:                       FromFile        # Select the model to be used for the PSF [Gaussian, FromFile]
-    Gaussian:                                    # Generate the PSF from a 2D Gaussian function
+    Model:                       MappedFromFile        # Select the model to be used for the PSF [Gaussian, FromFile]
+    MappedGaussian:                                    # Generate the PSF from a 2D Gaussian function
       Sigma:                     0.50            # Standard deviation of Gaussian PSF [pixels]
       NumberOfPixels:            8               # The number of pixels in the field for which the PSF is generated
-    FromFile:                                    # Read a pre-calculated PSF from an HDF5 file
+    MappedFromFile:                                    # Read a pre-calculated PSF from an HDF5 file
       Filename:                  inputfiles/psf.hdf5 
       DistanceToOA:              -1              # The angular distance to the optical axis. -1 to auto-compute. [deg]
       RotationAngle:             -1              # PSF rotation angle w.r.t the x-axis of the focal plane. -1 to auto-compute. [deg]
       NumberOfPixels:            8               # The number of pixels in the field for which the PSF is generated
+    AnalyticGaussian:                                # Generate the PSF analytically from a non-spherical Gaussian
+        Sigma00:                     1.0             # Stdev of Gaussian PSF in x- and y-direction at the optical axis      [pix]
+        SigmaX18:                    5.0             # Stdev of Gaussian PSF in x-direction at 18 deg from the optical axis [pix]
+        SigmaY18:                    2.0             # Stdev of Gaussian PSF in y-direction at 18 deg from the optical axis [pix]
+    AnalyticNonGaussian:
+        ParameterFileName:           inputfiles/parameters.txt
+
+FEE:
+
+    NominalOperatingTemperature:     210.15          # Nominal operating temperature of the FEE [K]
+    Temperature:                     Nominal         # Temperature fixed at the nominal operating temperature
+    TemperatureFileName:             inputfiles/feeTemperature.txt
+    ReadoutNoise:                    40.5            # Readout noise for the FEE [e-/pixel] (same for both ADCs)
+    Gain:
+        RefValue:                    11.1            # [ADU/microV] (Total gain = FFE gain * CCD gain = 20 e-/ADU)
+        Stability:                   -100.0          # [ppm/K] = [ADU/microV/K]
+        ThreeSigma:                  0.0             # Difference in gain between both ADCs [%]
+    ElectronicOffset:
+        RefValue:                    100             # Reference value for the electronic offset [ADU/pixel]
+        Stability:                   1               # Offset stability [ADU/pixel/K]
 
 
 CCD:
@@ -79,27 +103,57 @@ CCD:
     NumColumns:                  4510            # Number of columns [pixels]
     NumRows:                     4510            # Number of rows [pixels]
     PixelSize:                   18              # [micron]
-    Gain:                        10              # [e-/ADU]
-    QuantumEfficiency:           1.0             # in [0,1]
+    Gain:                           
+        RefValue:                    1.80            # [microV/e-]
+        Stability:                   -0.004          # [microV/e-/K]
+        ThreeSigma:                  15.0            # Difference in gain between both CCD halves [%]
+    QuantumEfficiency:
+        Efficiency:                  0.925           # Throughput efficiency due to quantum efficiency at the reference angle
+        RefAngle:                    45.0            # Reference angle for quantum efficiency [degrees]
+        ExpectedValue:               0.993           # Expected value (mean over all pixels of one detector)
     FullWellSaturation:          1000000         # [e-/pixel]
     DigitalSaturation:           65535           # E.g. 16 bit [ADU/pixel]
     ReadoutNoise:                28              # [e-/pixel]
-    ElectronicOffset:            100             # bias [ADU]
     ReadoutTime:                 2               # time to read out entire CCD [s]
     FlatfieldPtPNoise:           0.016           # peak-to-peak pixel noise
+    Vignetting: 
+        ExpectedValue:               0.945           # Expected value of the throughput efficiency due to vignetting
+    Polarization:
+      Efficiency:                    0.978           # Throughput efficiency caused by polarisation at the reference angle
+      RefAngle:                     18.8875          # Reference angle for polarisation [degrees]
+      ExpectedValue:                 0.989           # Expected value (mean of all detector pixels)
+    Contamination:
+        ParticulateContaminationEfficiency: 0.98     # Throughput efficiency due to particulate contamination
+        MolecularContaminationEfficiency:   0.9566   # Throughput efficiency due to molecular contamination
+    NominalOperatingTemperature:            203.15   # Nominal operating temperature of the detector [K]
+    Temperature:                     Nominal         # Temperature fixed at the nominal operating temperature
+    TemperatureFileName:             inputfiles/ccdTemperature.txt
     CTI:
         Model:                   Simple
         Simple:
             MeanCTE:                     0.99999         # Mean Charge Transfer Efficiency
+        Short2013:
+            Beta:                    0.37                                         # beta exponent in Short et al. (2013)
+            Temperature:             203.                                         # [K]
+            NumTrapSpecies:          4                                            # number of different trap species
+            TrapDensity:             [9.8, 3.31, 1.56, 13.24]                     # for each trap species [traps/pixel]
+            TrapCaptureCrossSection: [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]     # for each trap species [m^2]
+            ReleaseTime:             [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]         # for each trap species [s]
     IncludeFlatfield:            no              # Include flatfield [yes or no]
     IncludePhotonNoise:          yes             # Include photon noise [yes or no]
     IncludeReadoutNoise:         yes             # Include readout noise [yes or no]
     IncludeCTIeffects:           no             # Include charge transfer inefficiency effects [yes or no]
     IncludeOpenShutterSmearing:  no             # Include trails due reading out with an open shutter [yes or no]
+    IncludeQuantumEfficiency:        yes             # Include loss of throughput due to quantum efficiency
+    IncludeVignetting:               no             # Include brightness attenuation towards the edge of the FOV due to vignetting
+    IncludePolarization:             no             # Include loss of throughput due to polarisation
+    IncludeParticulateContamination: no             # Include loss of throughput due to particulate contamination
+    IncludeMolecularContamination:   no             # Include loss of throughput due to molecular contamination
     IncludeVignetting:           no             # Include brightness attenuation towards the edge of the FOV due to vignetting 
-    IncludeConvolution:          yes             # Wheter or not to convolve the subPixelMap with the PSF
-    IncludeFullWellSaturation:   yes             # Wheter or not full well saturation should be applied
-    IncludeDigitalSaturation:    yes             # Wheter or not digital saturation should be applied
+    IncludeConvolution:          yes             # Whether or not to convolve the subPixelMap with the PSF
+    IncludeFullWellSaturation:   yes             # Whether or not full well saturation should be applied
+    IncludeDigitalSaturation:    yes             # Whether or not digital saturation should be applied
+    IncludeQuantisation:         yes             # Whether or not to include quantisation
     WriteSubPixelImagesToHDF5:   no              # Only use this for a limited number of exposures. Takes a lot of space! 
 
 SubField:    
@@ -119,5 +173,7 @@ RandomSeeds:
     PhotonNoiseSeed:             1433320336      # Unique positive integer 
     JitterSeed:                  1433320381      # Unique positive integer 
     FlatFieldSeed:               1425284070      # Unique positive integer 
+    DriftSeed:                       1433429158      # Unique positive integer 
     CTESeed:                     1424949740      # Unique positive integer 
-    DriftSeed:                   1433429158      # Unique positive integer 
+    FeeGainSeed:                     1429485030      # Unique positive integer
+    CcdGainSeed:                     1420450443      # Unique positive integer

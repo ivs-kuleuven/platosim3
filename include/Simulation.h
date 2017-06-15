@@ -5,7 +5,13 @@
 
 #include "Logger.h"
 #include "HDF5File.h"
+#include "TemperatureGenerator.h"
+#include "TemperatureFromFile.h"
+#include "NominalTemperature.h"
 #include "Detector.h"
+#include "DetectorWithMappedPSF.h"
+#include "DetectorWithAnalyticGaussianPSF.h"
+#include "DetectorWithAnalyticNonGaussianPSF.h"
 #include "Camera.h"
 #include "Telescope.h"
 #include "Platform.h"
@@ -30,7 +36,7 @@ class Simulation
 
         Simulation(string inputFilename, string outputFilename);
         ~Simulation();
-        virtual void run(double startingTime = 0.0);
+        virtual void run();
         virtual void configure(ConfigurationParameters &configParams);
 
     protected:
@@ -43,13 +49,24 @@ class Simulation
 
         double currentTime;
         double exposureTime;
-        int Nexposures;
+        double readoutTime;
+
+        int beginExposureNr;                 // sequential number of first exposure. useful for slurm parallellisation
+        int numExposures;                    // Number of exposures
+
         bool useJitterFromFile;
         bool includeFieldDistortion;
         bool useDriftFromFile;
+        bool useFeeTemperatureFromFile;
+        bool useFeeNominalTemperature;
+        bool useDetectorTemperatureFromFile;
+        bool useDetectorNominalTemperature;
+        string psfModel;
 
         JitterGenerator *jitterGenerator;
         DriftGenerator *driftGenerator;
+        TemperatureGenerator *feeTemperatureGenerator;
+        TemperatureGenerator *detectorTemperatureGenerator;
         Platform *platform;
         Telescope *telescope;
         Sky *sky;
