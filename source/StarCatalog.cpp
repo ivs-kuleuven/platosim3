@@ -1,5 +1,6 @@
 
 #include "StarCatalog.h"
+#include <valarray>
 
 
 
@@ -201,64 +202,88 @@ StarCatalog StarCatalog::aberrate(Platform &platform, string aberrationCorrectio
 
     StarCatalog newCatalog;
 
-    double amplitude = deg2rad(20.496 / 3600.0);
+    //velocity direction of PLATO, assuming circular orbit in ecliptic plane with constant speed of 30 km/s, TODO: check the direction of rotation around the sun and adjust the sign of platoAngle accordingly
+    double platoAngle = 2. * M_PI / 365. / 24. / 3600. * startTime;
+    valarray<double> v = {cos(platoAngle), sin(platoAngle), 0.};
 
-    // Request the longitude of the Sun. This is known by the Platform, but it only returns the 
-    // equatorial coordinates while they were internally calculated as ecliptic. Platform should 
-    // maybe have a getLonLatSun().
+    //rotation matrix to compensate the aberration of light for the pointing direction, needed to calculate the differential aberration
+    valarray<double> rot0 = {1., 0., 0.};
+    valarray<double> rot1 = {0., 1., 0.};
+    valarray<double> rot2 = {0., 0., 1.};
 
-    double raSun, decSun;
-    tie(raSun, decSun) = platform.getRADecSun();
-    double lambdaSun, betaSun;
-    equatorial2ecliptic(raSun, decSun, lambdaSun, betaSun);
+    //ratio of the velocity of PLATO to the speed of light
+    constexpr double beta = 30. / 300000.;
 
-    // lambdaSunAtStartTime = lambdaSunAtTimeMiddle + 2.0 * PI / 365.0 / 86400 * (startTime - timeMiddle)
-
-    lambdaSun = lambdaSun + ( 6.283185307179586 * (startTime - timeMiddle) / 31536000 );
-
-    double deltaLambdaPlatform, deltaBetaPlatform;
     if (aberrationCorrectionType == "differential")
     {
         Log.info("StarCatalog::aberrate: applying differential aberration correction");
 
         // Request the current platform pointing coordinates (i.e. pointing of the Fast Camera's)
-    
+
         double raPlatform, decPlatform;
         tie(raPlatform, decPlatform) = platform.getCurrentPointingCoordinates();
-    
+
         double lambdaPlatform, betaPlatform;
         equatorial2ecliptic(raPlatform, decPlatform, lambdaPlatform, betaPlatform);
 
-        deltaLambdaPlatform = - amplitude * cos(lambdaPlatform - lambdaSun) / cos(betaPlatform);
-        deltaBetaPlatform   = - amplitude * sin(lambdaPlatform - lambdaSun) * sin(betaPlatform);
+        //direction of the pointing
+        valarray<double> p = {cos(lambdaPlatform) * cos(betaPlatform), sin(lambdaPlatform) * cos(betaPlatform), sin(betaPlatform)};
+
+        //angle between velocity direction and pointing
+        double pangle = acos((v * p).sum());
+
+        //relativistically aberrated angle between velocity direction and pointing
+        double oangle = atan2(sqrt(1. - beta * beta) * sin(pangle), cos(pangle) + beta);
+
+        //rotation axis between velocity direction and pointing
+        valarray<double> r = {p[1] * v[2] - p[2] * v[1], p[2] * v[0] - p[0] * v[2], p[0] * v[1] - p[1] * v[0]};
+        r /= sqrt((r * r).sum()); 
+
+        //rotation matrix for rotation axis r with angle difference after aberration, this reverses the aberration effect for the pointing direction
+        double c = cos(oangle - pangle);
+        double s = sin(oangle - pangle);
+        double x = r[0], y = r[1], z = r[2];
+        rot0 = {c + x * x * (1. - c), x * y * (1. - c) - z * s, x * z * (1. - c) + y * s};
+        rot1 = {y * x * (1. - c) + z * s, c + y * y * (1. - c), y * z * (1. - c) - x * s};
+        rot2 = {z * x * (1. - c) - y * s, z * y * (1. - c) + x * s, c + z * z * (1. - c)};
+
     }
     else
     {
         Log.info("StarCatalog::aberrate: applying absolute aberration correction");
 
-        // Set the Platform aberration to zero = absolute aberration
-
-        deltaLambdaPlatform = 0.0;
-        deltaBetaPlatform   = 0.0;
     }
 
     for (long n = 0; n < starID.size(); ++n)
     {
         double raStar = RA[n];
         double decStar = dec[n];
-    
+
         double lambdaStar, betaStar;
         equatorial2ecliptic(raStar, decStar, lambdaStar, betaStar);
-    
-        double deltaLambdaStar, deltaBetaStar;
-        deltaLambdaStar = - amplitude * cos(lambdaStar - lambdaSun) / cos(betaStar);
-        deltaBetaStar   = - amplitude * sin(lambdaStar - lambdaSun) * sin(betaStar);
-    
-        double deltaLambdaAberration = deltaLambdaStar - deltaLambdaPlatform;
-        double deltaBetaAberration   = deltaBetaStar   - deltaBetaPlatform;
-    
+
+        //direction of the star
+        valarray<double> s = {cos(lambdaStar) * cos(betaStar), sin(lambdaStar) * cos(betaStar), sin(betaStar)};
+
+        //angle between velocity direction and star direction
+        double sangle = acos((v * s).sum());
+
+        //relativistically aberrated angle between velocity direction and star direction
+        double oangle = atan2(sqrt(1. - beta * beta) * sin(sangle), cos(sangle) + beta);
+
+        //relativistically aberrated star direction
+        valarray<double> a = s - v * cos(sangle);
+        a = v * cos(oangle) + a / sqrt((a * a).sum()) * sin(oangle);
+
+        //rotate aberrated star direction to compensate for aberrated pointing to get the differential aberrated star direction
+        a = {(rot0 * a).sum(), (rot1 * a).sum(), (rot2 * a).sum()};
+
+        //calculate ecliptic coordinates of aberrated star direction
+        betaStar = atan(a[2] / sqrt(a[0] * a[0] + a[1] * a[1]));
+        lambdaStar = atan2(a[1], a[0]);
+
         double raStarAberrated, decStarAberrated;
-        ecliptic2equatorial(lambdaStar - deltaLambdaAberration, betaStar - deltaBetaAberration, raStarAberrated, decStarAberrated);
+        ecliptic2equatorial(lambdaStar, betaStar, raStarAberrated, decStarAberrated);
         
         newCatalog.addStar(starID[n], raStarAberrated, decStarAberrated, Vmag[n], Angle::radians);
 
@@ -272,7 +297,4 @@ StarCatalog StarCatalog::aberrate(Platform &platform, string aberrationCorrectio
 
     return newCatalog;
 }
-
-
-
 
