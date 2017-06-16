@@ -32,7 +32,9 @@ Platform:
 
 Telescope:
     
-    AzimuthAngle:                0.0           # Azimuth angle of telescope on the platform [deg]
+    GroupID:                     Custom          # There are four camera groups: 1, 2, 3, 4, Fast, Custom
+                                                 # (use Custom to specify the telescope azimuth and tilt angles yourself)
+    AzimuthAngle:                0.0             # Azimuth angle of telescope on the platform [deg]
     TiltAngle:                   0.0             # Tilt angle of the telescope on the platform [deg]
     LightCollectingArea:         113.1           # Effective area of 1 telescope [cm^2]
     TransmissionEfficiency:
@@ -54,6 +56,8 @@ Camera:
     FocalLength:                 0.24712595      # Focal length as recovered from ZEMAX model [m]
     ThroughputBandwidth:         400             # FWHM [nm]
     ThroughputLambdaC:           600             # Central wavelength of the throughput passband [nm]
+    AberrationCorrection:
+        Type:                        differential    # [differential, absolute]
     IncludeAberrationCorrection:     no             # Calculate the differential aberration correction and apply
     IncludeFieldDistortion:      yes             # Whether or not to include field distortion
     FieldDistortion:                             # Describe the model for the field distortion
@@ -78,6 +82,7 @@ PSF:
         SigmaX18:                    5.0             # Stdev of Gaussian PSF in x-direction at 18 deg from the optical axis [pix]
         SigmaY18:                    2.0             # Stdev of Gaussian PSF in y-direction at 18 deg from the optical axis [pix]
     AnalyticNonGaussian:
+        Sigma:                       0.5             # Width of the analytic PSF, equal to sigma for a Gaussian PSF [pix]
         ParameterFileName:           inputfiles/parameters.txt
 
 FEE:
@@ -97,11 +102,14 @@ FEE:
 
 CCD:
 
+    Position:                    Custom          # one of [1, 2, 3, 4, Custom]
+                                                 # (use Custom to specify the CCD position parameters yourself)
     OriginOffsetX:               0               # X Offset of CCD origin from center of focal plane [mm]
     OriginOffsetY:               0               # Y Offset of CCD origin from center of focal plane [mm]
     Orientation:                 0               # Orientation of CCD w.r.t. focal plane orientation [deg]
     NumColumns:                  4510            # Number of columns [pixels]
     NumRows:                     4510            # Number of rows [pixels]
+    FirstRowExposed:             0               # The index of the first row that is exposed to light [pixels]
     PixelSize:                   18              # [micron]
     Gain:                           
         RefValue:                    1.80            # [microV/e-]
@@ -177,3 +185,28 @@ RandomSeeds:
     CTESeed:                     1424949740      # Unique positive integer 
     FeeGainSeed:                     1429485030      # Unique positive integer
     CcdGainSeed:                     1420450443      # Unique positive integer
+    
+# ----- DO NOT MAKE CHANGES BELOW THIS LINE -----
+
+# The parameters below are fixed type parameters that should not be changed. 
+# When you need to specify your own values, use the Custom type for the following parameters:
+# - Telescope/GroupID
+# - CCD/Position
+
+CameraGroups:                                                          # Four groups of six camera's with their azimuth and tilt as specified
+                                                                       # The fifth value is for the Fast Camera's
+    AzimuthAngle:                    [45.0, 135.0, -135.0, -45.0, 0.0] # Azimuth angle of telescope on the platform [deg]
+    TiltAngle:                       [9.2, 9.2, 9.2, 9.2, 0.0]         # Tilt angle of the telescope on the platform [deg]
+
+
+CCDPositions:
+
+    OriginOffsetX:                   [-1, -1, -1, -1]               # X Offset of CCD origin from center of focal plane [mm]
+    OriginOffsetY:                   [82.18, 82.18, 82.18, 82.18]   # Y Offset of CCD origin from center of focal plane [mm]
+    Orientation:                     [0, 90, 180, 270]              # Orientation of CCD w.r.t. focal plane orientation, counter-clockwise [deg]
+    NumColumns:                      [4510, 4510, 4510, 4510]       # Number of columns on the CCD [pixels]
+    NumRows:                         [4510, 4510, 4510, 4510]       # Number of rows on the CCD [pixels] (including non-exposed ones)
+    FirstRowForNormalCamera:         [0, 0, 0, 0]                   # The complete CCDs are active/illuminated for the Normal Camera's
+    FirstRowForFastCamera:           [2255, 2255, 2255, 2255]       # Only the upper half of the CCDs is active/illuminated for the Fast Camera's
+
+

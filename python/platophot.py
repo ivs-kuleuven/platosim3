@@ -153,9 +153,11 @@ def photometry(inputFilePath, outputFilePath, sigmaPSF, verbose=False):
 
     # Collect the relevant input parameters from the HDF5 file
 
-    gain = inputFile["/InputParameters/CCD/"].attrs["Gain"]                             # [e-/ADU]
-    quantumEfficiency = inputFile["/InputParameters/CCD"].attrs["QuantumEfficiency"]    # [e-/phot]
-    sigmaRON = inputFile["/InputParameters/CCD"].attrs["ReadoutNoise"]                  # [e-/pix]
+    gain = inputFile["InputParameters/FEE/Gain"].attrs["RefValue"] * inputFile["InputParameters/CCD/Gain"].attrs["RefValue"]
+    #gain = inputFile["/InputParameters/CCD/"].attrs["Gain"]                             # [e-/ADU]
+    quantumEfficiency = inputFile["/InputParameters/CCD/QuantumEfficiency"].attrs["ExpectedValue"]    # [e-/phot]
+    sigmaRONsquared = inputFile["/InputParameters/FEE"].attrs["ReadoutNoise"]**2 + inputFile["/InputParameters/CCD"].attrs["ReadoutNoise"]**2
+    sigmaRON = sqrt(sigmaRONsquared)                  # [e-/pix]
     
 
     # Extract the sky background. Convert from [phot/pix/exposure] to [e-/pix/exposure]
