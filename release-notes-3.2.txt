@@ -1,0 +1,60 @@
+Release Notes for PlatoSim 3.2
+
+Version History:
+
+  * 15/05/2017: v3.2.0-RC1
+
+
+* Updated reference frames, following PLATO-DLR-PL-TN-016 and PLATO-OHB-PL-LI-009 (see PLATO-KUL-PL-TN-001)
+
+  * In particular: sunshield pointing towards the Sun
+
+* More detailed throughput specifications (following PLATO-DLR-PL-RP-001): in addition to vignetting:
+
+  * particulate and molecular contamination,
+  * angle-dependent quantum efficiency,
+  * and angle-dependent polarisation
+
+* Readout noise: contribution of the FEE and CCD added in quadrature
+
+* Gain: contribution from the CCD and the FEE (different for both detector halves and both ADCs)
+
+* Electronic offset: moved from CCD to FEE
+
+* Temperature dependency:
+
+  * Implemented for FEE and CCD gain, and for electronic offset
+  * Either fixed at the nominal operating temperature of the component or read from a file; similar to jitter and drift
+
+* Quantisation (i.e. combined effect of (1) gain, (2) electronic offset, (3) rounding pixel values, and (4) digital saturation) can be switched on/off
+
+* Performance optimisation:
+
+  * Split time series into chunks
+  * Distribution over nodes using Slurm
+
+* Angle-dependent analytic Gaussian PSF
+
+* Angle-dependent analytic non-Gaussian PSF
+
+* Kinematic aberration:
+
+  * Differential & absolute
+  * Baseline: circular Earth orbit
+
+* Ageing: linear degradation implemented for the transmission efficiency
+
+* Updated input files, incorporating the changes in configuration parameters
+
+* Updated documentation, describing the new configuration parameters (only available in alphaRelease currently)
+
+* Updated tutorials, incorporating the changes in configuration parameters
+
+* New dependency: Faddeeva (used by the analytical PSFs) 
+
+* Visualisation of the output with h5ls and h5get (Python functions)
+
+* Easy selection of requested camera group from the input file, use Telescope/GroupID = [1,2,3,4,Fast,Custom]
+
+* Easy selection of requested CCD position, use CCD/Position = [1,2,3,4,Custom]
+

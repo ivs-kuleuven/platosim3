@@ -12,8 +12,7 @@
  */
 
 SkyCoordinates::SkyCoordinates(double RA, double decl, Unit angleUnit)
-: RA(RA), decl(decl), obliquity(0.409087723), inclGalPlane(1.0925761117484503), 
-  alphaN(4.926191813753995), l0(0.5759586531581287)
+: RA(RA), decl(decl)
 {
     this->RA = RA / angleUnit;
     this->decl = decl / angleUnit;
@@ -88,6 +87,54 @@ pair<double, double> SkyCoordinates::toEcliptic(Unit angleUnit)
 
 
 
+
+
+
+
+/**
+ * \brief Convert ecliptic coordinates (lambda, beta) into equatorial coordinates (alpha, delta)
+ * 
+ * \note  Epoch=2000.0
+ * 
+ * \param lambda[in]:   ecliptic longitude        [rad]
+ * \param beta[in]:     ecliptic latitude         [rad]
+ * \param alpha[out]:   equtorial right ascension [rad]
+ * \param delta[out]:   equatorial declination    [rad]
+ */
+
+void ecliptic2equatorial(const double lambda, const double beta, double &alpha, double &delta)
+{
+    const double obliquity = 0.409087723;                    // Obliquity of the ecliptic = 23.439 deg  [rad]
+ 
+    double sindelta = sin(beta) * cos(obliquity) + cos(beta) * sin(obliquity) * sin(lambda);
+    delta = asin(sindelta);
+    double cosdelta = cos(delta);
+
+    if (cosdelta == 0.0)
+    {
+        Log.error("ecliptic2equatorial: pointing to equatorial pole.");
+        exit (1);
+    }
+
+    double sinalpha = (-sin(beta) * sin(obliquity) + cos(beta) * cos(obliquity) * sin(lambda)) / cosdelta;
+    double cosalpha = cos(lambda) * cos(beta) / cosdelta;
+
+    alpha = atan2(sinalpha, cosalpha);
+
+    if (alpha < 0.0) alpha += 2.0 * 3.141592653589793;
+}
+
+
+
+
+
+
+
+
+
+
+
+
 /**
  * \brief Convert equatorial coordinates (alpha, delta) into ecliptic coordinates (lambda, beta)
  * 
@@ -99,8 +146,10 @@ pair<double, double> SkyCoordinates::toEcliptic(Unit angleUnit)
  * \param beta[out]:   ecliptic latitude [rad]
  */
 
-void SkyCoordinates::equatorial2ecliptic(const double alpha, const double delta, double &lambda, double &beta)
+void equatorial2ecliptic(const double alpha, const double delta, double &lambda, double &beta)
 {
+    const double obliquity = 0.409087723;                    // Obliquity of the ecliptic = 23.439 deg  [rad]
+ 
     double sinbeta = sin(delta) * cos(obliquity) - cos(delta) * sin(obliquity) * sin(alpha);
     beta = asin(sinbeta);
     double cosbeta = cos(beta);
@@ -127,6 +176,9 @@ void SkyCoordinates::equatorial2ecliptic(const double alpha, const double delta,
 
 
 
+
+
+
 /**
  * \brief Convert equatorial coordinates (alpha, delta) into galactic coordinates (l, b)
  * 
@@ -138,8 +190,12 @@ void SkyCoordinates::equatorial2ecliptic(const double alpha, const double delta,
  * \param b[out]:    galactic latitude [rad]
  */
 
-void SkyCoordinates::equatorial2galactic(const double alpha, const double delta, double &l, double &b)
+void equatorial2galactic(const double alpha, const double delta, double &l, double &b)
 {
+    const double inclGalPlane = 1.0925761117484503;     // Inclination of the galactic plane = 62.6 deg in B1950 [rad]
+    const double alphaN = 4.926191813753995;            // Right ascension of the ascending node of the galactic plane = 282.25 deg in B1950 [rad]
+    const double l0 = 0.5759586531581287;               // Galactic longitude of the ascending node of the galactic plane = 33 deg in B1950 [rad]
+
     double sinb = sin(delta) * cos(inclGalPlane) - cos(delta) * sin(alpha - alphaN) * sin(inclGalPlane);
     b = asin(sinb);
     double cosb = cos(b);

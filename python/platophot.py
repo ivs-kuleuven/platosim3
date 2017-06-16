@@ -143,19 +143,21 @@ def photometry(inputFilePath, outputFilePath, sigmaPSF, verbose=False):
     # Compute the offset of the barycenter of the PSF
 
     psf = array(inputFile["/PSF/rotatedPSF"])                                           # [subpix]
-    if inputFile["/InputParameters/PSF"].attrs["Model"] == "FromFile":
-        Npixels = int(inputFile["/InputParameters/PSF/FromFile"].attrs["NumberOfPixels"])
+    if inputFile["/InputParameters/PSF"].attrs["Model"] == "MappedFromFile":
+        Npixels = int(inputFile["/InputParameters/PSF/MappedFromFile"].attrs["NumberOfPixels"])
     else:
-        Npixels = int(inputFile["/InputParameters/PSF/Gaussian"].attrs["NumberOfPixels"])
+        Npixels = int(inputFile["/InputParameters/PSF/MappedGaussian"].attrs["NumberOfPixels"])
 
     deltaRow, deltaCol = computePSFBarycenterOffset(psf, Npixels)                       # [pix]
 
 
     # Collect the relevant input parameters from the HDF5 file
 
-    gain = inputFile["/InputParameters/CCD/"].attrs["Gain"]                             # [e-/ADU]
-    quantumEfficiency = inputFile["/InputParameters/CCD"].attrs["QuantumEfficiency"]    # [e-/phot]
-    sigmaRON = inputFile["/InputParameters/CCD"].attrs["ReadoutNoise"]                  # [e-/pix]
+    gain = inputFile["InputParameters/FEE/Gain"].attrs["RefValue"] * inputFile["InputParameters/CCD/Gain"].attrs["RefValue"]
+    #gain = inputFile["/InputParameters/CCD/"].attrs["Gain"]                             # [e-/ADU]
+    quantumEfficiency = inputFile["/InputParameters/CCD/QuantumEfficiency"].attrs["ExpectedValue"]    # [e-/phot]
+    sigmaRONsquared = inputFile["/InputParameters/FEE"].attrs["ReadoutNoise"]**2 + inputFile["/InputParameters/CCD"].attrs["ReadoutNoise"]**2
+    sigmaRON = sqrt(sigmaRONsquared)                  # [e-/pix]
     
 
     # Extract the sky background. Convert from [phot/pix/exposure] to [e-/pix/exposure]
@@ -176,12 +178,14 @@ def photometry(inputFilePath, outputFilePath, sigmaPSF, verbose=False):
 
     # Loop over all exposure, and apply weighted mask photometry on each image
 
-    Nexposures = inputFile["/InputParameters/ObservingParameters/"].attrs["NumExposures"];
+    beginExposureNr = inputFile["/InputParameters/ObservingParameters/"].attrs["BeginExposureNr"]
+    Nexposures = inputFile["/InputParameters/ObservingParameters/"].attrs["NumExposures"]
+
 
     if verbose:
         print("Looping over all images in HDF5 file.")
 
-    for imageNr in range(Nexposures):
+    for imageNr in range(beginExposureNr, beginExposureNr + Nexposures):
 
         if verbose:
             print("Image # {0}".format(imageNr))

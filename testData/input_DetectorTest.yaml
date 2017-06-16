@@ -12,6 +12,8 @@ ObservingParameters:
 
     RApointing:              0.0             # [deg] 
     DecPointing:             0.0             # [deg]
+    RASun:                   166.0           # Right ascension of the direction of the sun shield during the run [deg]
+    DecSun:                  -46.0           # Declination of the direction of the sun shield during the run     [deg]
     Fluxm0:                  1.00238e8       # Photon flux of a V=0 G2V-star                                 [phot/s/m^2/nm]
     SkyBackground:           220.            # Stellar + zodiacal background level. Set negative to compute. [photons/s]
     StarCatalogFile:         testData/starcatalog.txt
@@ -48,6 +50,9 @@ Camera:
     ThroughputBandwidth:     650             # FWHM [nm]
     ThroughputLambdaC:       550             # Central wavelength of the throughput passband [nm]
     IncludeFieldDistortion:  yes             # Wheter or not to include field distortion
+    AberrationCorrection:
+        Type:                differential    # [differential, absolute]
+    IncludeFieldDistortion:  yes             # Whether or not to include field distortion
     FieldDistortion:                         # Describe the model for the field distortion
         Type:                Polynomial1D
         Degree:              3
@@ -66,6 +71,18 @@ PSF:
       RotationAngle:             45              # The rotation angle with respect to the x-axis orientation of the focal plane. -1 to auto-compute. [deg]
       NumberOfPixels:            8               # The number of pixels in the field for which the PSF is generated
 
+FEE:
+
+    NominalOperatingTemperature :    210.15          # Nominal operating temperature of the FEE [K]
+    ReadoutNoise:                    40.5            # Readout noise for the FEE [e-/pixel]
+    Gain:
+        RefValue:                    11.1            # [ADU/µV] (Total gain = FFE gain * CCD gain = 20 e-/ADU)
+        Stability:                   -100.0          # [ppm/K] = [ADU/µV/K]
+        ThreeSigma:                  0.0             # Difference (3 sigma) in gain between both ADCs [% of the reference value]
+    ElectronicOffset: 
+        RefValue:                    100             # Reference value for the electronic offset [ADU/pixel]
+        Stability:                   1               # Offset stability [ADU/pixel/K]
+
 CCD:
     # Settings for CCD 'B'
     OriginOffsetX:               82.180          # X Offset of CCD origin from center of focal plane [mm]
@@ -74,15 +91,17 @@ CCD:
     NumColumns:                  4510            # Number of columns [pixels]
     NumRows:                     4510            # Number of rows [pixels]
     PixelSize:                   18              # [micron]
-    Gain:                        16              # [e-/ADU]
+    Gain:                            #16         # [e-/ADU]
+        RefValue:                     1.80       # [µV/e-]
+        Stability:                   -0.004      # [µV/e-/K]
+        ThreeSigma:                  0.0         # Difference (3 sigma) in gain between both CCD halves [% of the reference value]
     QuantumEfficiency:
         Efficiency:              0.925           # Throughput efficiency due to quantum efficiency at the reference angle
         RefAngle:                45.0            # Reference angle for quantum efficiency [degrees]
         ExpectedValue:           0.993           # Expected value (mean over all pixels of one detector)
     FullWellSaturation:          1000000         # [e-/pixel]
     DigitalSaturation:           65535           # E.g. 16 bit [ADU/pixel]
-    ReadoutNoise:                28              # [e-/pixel]
-    ElectronicOffset:            100             # bias [ADU]
+    ReadoutNoise:                44.3            # Readout noise for the CCD [e-/pixel]
     ReadoutTime:                 2               # time to read out entire CCD [s]
     FlatfieldPtPNoise:           0.016           # peak-to-peak pixel noise
     Vignetting: 
@@ -105,6 +124,9 @@ CCD:
             TrapDensity:             [9.8, 3.31, 1.56, 13.24]                     # for each trap species [traps/pixel]
             TrapCaptureCrossSection: [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]     # for each trap species [m^2]
             ReleaseTime:             [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]         # for each trap species [s]
+    NominalOperatingTemperature:     203.15          # Nominal operating temperature of the detector [K]
+    Temperature:                     Nominal         # Temperature fixed at the nominal operating temperature
+    TemperatureFileName:             inputfiles/feeTemperature.txt
     IncludeFlatfield:                yes             # Include flatfield [yes or no]
     IncludePhotonNoise:              yes             # include photon noise [yes or no]
     IncludeReadoutNoise:             yes             # Include readout noise [yes or no]
@@ -115,9 +137,10 @@ CCD:
     IncludePolarization:             no              # Include polarisation
     IncludeParticulateContamination: no              # Include loss of throughput due to particulate contamination
     IncludeMolecularContamination:   no              # Include loss of throughput due to molecular contamination 
-    IncludeConvolution:              yes             # Wheter or not to convolve the subPixelMap with the PSF
-    IncludeFullWellSaturation:       no              # Wheter or not full well saturation should be applied
-    IncludeDigitalSaturation:        no              # Wheter or not digital saturation should be applied
+    IncludeConvolution:              yes             # Whether or not to convolve the subPixelMap with the PSF
+    IncludeFullWellSaturation:       no              # Whether or not full well saturation should be applied
+    IncludeDigitalSaturation:        no              # Whether or not digital saturation should be applied
+    IncludeQuantisation:             yes             # Whether or not to include quantisation
     WriteSubPixelImagesToHDF5:       no              # Only use this for a limited number of exposures. Takes a lot of space! 
 
 SubField:    
@@ -139,3 +162,5 @@ RandomSeeds:
     FlatFieldSeed:           1425284070      # Unique positive integer 
     CTESeed:                 1424949740      # Unique positive integer 
     DriftSeed:               1433429158      # Unique positive integer 
+    FeeGainSeed:             1429485030      # Unique positive integer
+    CcdGainSeed:             1420450443      # Unique positive integer

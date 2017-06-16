@@ -11,7 +11,10 @@
 #include "Constants.h"
 #include "ArrayOperations.h"
 #include "Camera.h"
+#include "FrontEndElectronics.h"
+#include "TemperatureGenerator.h"
 #include "ConfigurationParameters.h"
+#include "PointSpreadFunction.h"
 #include "Convolver.h"
 #include "HDF5File.h"
 #include "HDF5Writer.h"
@@ -20,163 +23,161 @@
 
 using namespace std;
 
-class Camera;
-// forward declaration
+class Camera;      // forward declaration
 
-class Detector: public HDF5Writer {
-public:
 
-	Detector(ConfigurationParameters &configParam, HDF5File &hdf5File,
-			Camera &camera);
-	virtual ~Detector();
 
-	virtual double takeExposure(double startTime, double exposureTime);
-	virtual void configure(ConfigurationParameters &configParam);
+class Detector: public HDF5Writer 
+{
+    public:
 
-	pair<double, double> pixelToFocalPlaneCoordinates(double row,
-			double column);
-	pair<double, double> focalPlaneToPixelCoordinates(double xFPprime,
-			double yFPprime);
+        Detector(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator);
+        virtual ~Detector();
 
-	pair<double, double> getFocalPlaneCoordinatesOfSubfieldCenter();
-	tuple<double, double, double, double, double, double, double, double> getFocalPlaneCoordinatesOfSubfieldCorners();
+        virtual double takeExposure(int exposureNr, double startTime, double exposureTime);
+        void configure(ConfigurationParameters &configParam);
 
-	double getSolidAngleOfOnePixel(double plateScale);
-	double getOrientationAngle();
+        pair<double, double> pixelToFocalPlaneCoordinates(double row, double column);
+        pair<double, double> focalPlaneToPixelCoordinates(double xFP, double yFP);
 
-	virtual tuple<bool, double, double> addFlux(double xFPprime,
-			double yFPprime, double flux);
-	virtual void addFlux(double flux);
+        pair<double, double> getFocalPlaneCoordinatesOfSubfieldCenter();
+        tuple<double, double, double, double, double, double, double, double> getFocalPlaneCoordinatesOfSubfieldCorners();
 
-	bool isInSubfield(const double xFPmm, const double yFPmm);
+        double getSolidAngleOfOnePixel(double plateScale);
+        double getOrientationAngle();
+        double getReadoutTime();
 
-	bool psfIsSet();
-	void setPsfForSubfield();
-	virtual void convolveWithPsf();
+        virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) = 0;
+        virtual void addFlux(double flux) = 0;
 
-protected:
 
-	virtual void reset();
-	virtual void generateFlatfieldMap();
-	virtual void generateThroughputMap();
+        bool isInSubfield(double xFPmm, double yFPmm);
 
-	virtual void integrateLight(double startTime, double exposureTime);
-	virtual bool isInSubPixelMap(double row, double column);
-	virtual void applyFlatfield();
-	virtual void rebin();
-	virtual void applyThroughputEfficiency();
 
-	virtual void readOut(float exposureTime);
-	virtual void addPhotonNoise();
-	virtual void applyFullWellSaturation();
-	virtual void applyCTI();
-	virtual void applyOpenShutterSmearing(float exposureTime);
-	virtual void addReadoutNoise();
-	virtual void applyGain();
-	virtual void addElectronicOffset();
-	virtual void applyDigitalSaturation();
+    protected:
 
-	void applySimpleCTImodel();
-	void applyShort2013CTImodel();
+        virtual void integrateLight(int exposureNr, double startTime, double exposureTime) = 0;
 
-	void applyParticulateContamination();
-	void applyMolecularContamination();
+        virtual void generateThroughputMap();
+        virtual void generateGain();
 
-	void setSubfield(const arma::Mat<float> &subfield);
-	arma::Mat<float> getSubfield();
+        virtual void applyFlatfield() = 0;
+        virtual void applyThroughputEfficiency();
 
-	virtual void initHDF5Groups() override;
-	void writePixelMapsToHDF5();
-	void writeSubPixelMapToHDF5();
+        virtual void readOut(float exposureTime);
+        virtual void addPhotonNoise();
+        virtual void applyFullWellSaturation();
+        virtual void applyCTI();
+        virtual void applyOpenShutterSmearing(float exposureTime);
+        virtual void addReadoutNoise();
+        virtual void applyQuantisation();
+        virtual void applyGain();
+        virtual void addElectronicOffset();
+        virtual void applyDigitalSaturation();
 
-	arma::Mat<float> pixelMap;               // Pixel map, excl. edge pixels
-	arma::Mat<float> subPixelMap;            // Sub-pixel map, incl. edge pixels
-	arma::Mat<float> smearingMap;            // Smearing map (i.e. over-scan strip)
-	arma::Mat<float> biasMap;                // Bias map (i.e. pre-scan strip)
-	arma::Mat<float> flatfieldMap;           // Intra-pixel flatfield map
-	arma::Mat<float> psfMap;     			// The PSF map that will be used for convolving
-	arma::Mat<float> throughputMap; 			// Throughput efficiency map, due to vignetting, particulate & molecular contamination, and quantum efficiency
+        void applySimpleCTImodel();
+        void applyShort2013CTImodel();
 
-	unsigned int numRows; 					// Nr of rows of the detector (= size in y-direction) including non-exposed ones [pixels]
-	unsigned int numColumns; 				// Nr of columns of the detector (= size in x-direction = readout direction) [pixels]
-	unsigned int numRowsPixelMap; 			// Nr of rows in the subfield excl. edge pixels (= size the y-direction) [pixels]
-	unsigned int numColumnsPixelMap; 		// Nr of columns in the subfield excl. edge pixels (= size in the x-direction = readout direction) [pixels]
-	unsigned int numRowsSubPixelMap; 		// Nr of subpixel rows in the subfield incl. edge pixels (= size in the y-direction) [subpixels]
-	unsigned int numColumnsSubPixelMap;   	// Nr of subpixel columns in the subfield incl. edge pixels (= size in the x-direction = readout direction) [subpixels]
-	unsigned int numRowsSmearingMap; 		// Nr of rows in the smearing overscan strip [pixels]
-	unsigned int numRowsBiasMap; 			// Nr of rows in the bias prescan strip [pixels]
+        void applyParticulateContamination();
+        void applyMolecularContamination();
 
-	double originOffsetY; 					// Y-coordinate of the detector origin from the centre of the optical plane [mm]
-	double originOffsetX; 					// X-coordinate of the detector origin from the centre of the optical plane [mm]
-	unsigned int subFieldZeroPointRow; 		// Position of the subfield zeropoint w.r.t. the complete detector in the row direction [pixels]
-	unsigned int subFieldZeroPointColumn; 	// Position of the subfield zeropoint w.r.t. the complete detector in the column direction [pixels]
-	double orientationAngle; 				// Orientation angle of the detector w.r.t. the orientation of the focal plane, measured counterclockwise [radians]
+        void setSubfield(const arma::Mat<float> &subfield);
+        arma::Mat<float> getSubfield();
 
-	double pixelSize;	                      // Pixel size [microns]
-	unsigned int numSubPixelsPerPixel;	     // Nr of sub-pixels per pixel
-	unsigned int numEdgePixels; 				 // Nr of pixels to extend the subfield on each side, to account for the edge effect
+        virtual void initHDF5Groups() override;
+        void writePixelMapsToHDF5(int exposureNr);
 
-	double flatfieldNoiseAmplitude;          // Peak-to-peak noise amplitude
+        void fastForwardReadoutNoiseGeneratorToExposure(int beginExposureNr);
+        void fastForwardPhotonNoiseGeneratorToExposure(int beginExposureNr);
 
-	double polarizationEfficiency;			// Efficiency due to polarisation at the reference angle (in [0,1])
-	double expectedValueVignetting;          // Expected value of the throughput efficiency due to vignetting (int [0,1])
-	double refAnglePolarization;				// Reference angle for the polarisation [degrees]
-	double expectedValuePolarization;		// Expected value of the throughput efficiency due to polarisation
-	double particulateContaminationEfficiency;	// Efficiency of particulate contamination (in [0,1])
-	double molecularContaminationEfficiency;		// Efficiency of molecular contamination (in [0,1])
-	double quantumEfficiency;	            // Quantum efficiency at the reference angle (in [0,1])
-	double refAngleQuantumEfficiency;        // Reference angle for quantum efficiency [degrees]
-	double expectedValueQuantumEfficiency;   // Expected value of the throughput efficiency due to quantum efficiency
-	double readoutTime;                      // Readout time [s]
-	double readoutNoise;                     // Mean readout noise [electrons]
-	double gain;                             // Detector gain [electrons / ADU]
-	unsigned long fullWellSaturationLimit;   // Full-well saturation limit [electrons/pixel]
-	unsigned int electronicOffset;           // Bias or electronic offset [ADU]
-	unsigned long digitalSaturationLimit; 	// Digital saturation limit [ADU / pixel]
+        virtual double getTemperature();
 
-	string CTImodel;
-	double meanCte;               			// Mean charge-transfer efficiency  (in [0,1])
-	double beta;  							// Beta exponent in Short et al., MNRAS 430, 3078-3085 (2010).
-	double temperature;                      // Temperature of the detector
-	unsigned int numTrapSpecies; 			// Number of different trap species included in the Short2010 model
-	vector<double> trapDensity;			 	// For each trap species: the trap density [traps/pixel]
-	vector<double> trapCaptureCrossSection;  // For each trap species: the trap capture cross section [m^2]
-	vector<double> releaseTime; 				// For each trap species: the electron release time [s]
+        arma::Mat<float> pixelMap;               // Pixel map, excl. edge pixels
+        arma::Mat<float> smearingMap;            // Smearing map (i.e. over-scan strip)
+        arma::Mat<float> biasMap;                // Bias map (i.e. pre-scan strip)
+        arma::Mat<float> throughputMap;          // Throughput efficiency map, due to vignetting, particulate & molecular contamination, and quantum efficiency
 
-	bool includeFlatfield;           		// Whether or not to include flat fielding
-	bool includePhotonNoise;           		// Whether or not to include photon noise
-	bool includeReadoutNoise;                // Include readout noise [yes or no]
-	bool includeCTIeffects;                  // Include CTI effects [yes or no]
-	bool includeOpenShutterSmearing; 		// Include trails due reading out with an open shutter
-	bool includeQuantumEfficiency;           // Include loss of throughput due to quantum efficiency
-	bool includeVignetting;  				// Include brightness attenuation due to vignetting
-	bool includePolarization;				// Include loss of throughput due to polarisation
-	bool includeParticulateContamination;	// Include loss of throughput due to particulate contamination
-	bool includeMolecularContamination;		// Include loss of throughput due to molecular contamination
-	bool writeSubPixelImagesToHDF5;       	// Write subpixel maps to HDF5 as well
-	bool includeConvolution; 				// Whether or not to convolve the subPixelMap with the PSF
-	bool includeFullWellSaturation; 			// Whether or not full well saturation should be applied
-	bool includeDigitalSaturation; 			// Whether or not digital saturation should be applied
-	bool psfWasSet; 							// True if PSF for subfield was already initialised. False otherwise.
+        unsigned int numRows;                    // Nr of rows of the detector (= size in y-direction) including non-exposed ones [pixels]
+        unsigned int numColumns;                 // Nr of columns of the detector (= size in x-direction = readout direction) [pixels]
+        unsigned int numRowsPixelMap;            // Nr of rows in the subfield excl. edge pixels (= size the y-direction) [pixels]
+        unsigned int numColumnsPixelMap;         // Nr of columns in the subfield excl. edge pixels (= size in the x-direction = readout direction) [pixels]
+        unsigned int numRowsSmearingMap;         // Nr of rows in the smearing overscan strip [pixels]
+        unsigned int numRowsBiasMap;             // Nr of rows in the bias prescan strip [pixels]
 
-	double internalTime;
+        unsigned int firstRowExposed;            // Index of the first row that is exposed to light (different for the Fast and Normal camera's) [pixels]
 
-	long flatfieldSeed;
-	long readoutNoiseSeed;
-	long photonNoiseSeed;
+        double originOffsetY;                    // Y-coordinate of the detector origin from the centre of the optical plane [mm]
+        double originOffsetX;                    // X-coordinate of the detector origin from the centre of the optical plane [mm]
+        unsigned int subFieldZeroPointRow;       // Position of the subfield zeropoint w.r.t. the complete detector in the row direction [pixels]
+        unsigned int subFieldZeroPointColumn;    // Position of the subfield zeropoint w.r.t. the complete detector in the column direction [pixels]
+        double orientationAngle;                 // Orientation angle of the detector w.r.t. the orientation of the focal plane, measured counterclockwise [radians]
 
-	mt19937 photonNoiseGenerator;
-	mt19937 readoutNoiseGenerator;
+        double pixelSize;                        // Pixel size [microns]
+        unsigned int numEdgePixels;              // Nr of pixels to extend the subfield on each side, to account for the edge effect
 
-	poisson_distribution<long> photonNoiseDistribution;
-	normal_distribution<double> readoutNoiseDistribution;
+        double polarizationEfficiency;           // Efficiency due to polarisation at the reference angle (in [0,1])
+        double expectedValueVignetting;          // Expected value of the throughput efficiency due to vignetting (int [0,1])
+        double refAnglePolarization;             // Reference angle for the polarisation [degrees]
+        double expectedValuePolarization;        // Expected value of the throughput efficiency due to polarisation
+        double particulateContaminationEfficiency;  // Efficiency of particulate contamination (in [0,1])
+        double molecularContaminationEfficiency; // Efficiency of molecular contamination (in [0,1])
+        double quantumEfficiency;                // Quantum efficiency at the reference angle (in [0,1])
+        double refAngleQuantumEfficiency;        // Reference angle for quantum efficiency [degrees]
+        double expectedValueQuantumEfficiency;   // Expected value of the throughput efficiency due to quantum efficiency
+        double readoutTime;                      // Readout time [s]
+        double readoutNoise;                     // Mean readout noise [electrons]
+        double refValueGain;                     // Detector gain [µV/e-]
+        double gainStability;                    // Gain stability [µV/e-]
+        double gainThreeSigma;                   // Allowed difference (3 sigma) in gain between the left and the right half of the detector [% of the reference value]
+        double refValueGainLeft;                 // Reference value for the gain on the ACD reading the left-hand side of the detector [µV/e-]
+        double refValueGainRight;                // Reference value for the gain on the ACD reading the right-hand side of the detector [µV/e-]
+        unsigned long fullWellSaturationLimit;   // Full-well saturation limit [electrons/pixel]
+        unsigned int electronicOffset;           // Bias or electronic offset [ADU]
+        unsigned long digitalSaturationLimit;    // Digital saturation limit [ADU / pixel]
 
-private:
+        string CTImodel;
+        double meanCte;                          // Mean charge-transfer efficiency  (in [0,1])
+        double beta;                             // Beta exponent in Short et al., MNRAS 430, 3078-3085 (2010).
+        double temperature;                      // Temperature of the detector
+        unsigned int numTrapSpecies;             // Number of different trap species included in the Short2010 model
+        vector<double> trapDensity;              // For each trap species: the trap density [traps/pixel]
+        vector<double> trapCaptureCrossSection;  // For each trap species: the trap capture cross section [m^2]
+        vector<double> releaseTime;              // For each trap species: the electron release time [s]
 
-	Camera &camera;
-	Convolver convolver;
-	int imageNr;
-	int subPixelImageNr;
+        bool includePhotonNoise;                 // Whether or not to include photon noise
+        bool includeReadoutNoise;                // Include readout noise [yes or no]
+        bool includeCTIeffects;                  // Include CTI effects [yes or no]
+        bool includeOpenShutterSmearing;         // Include trails due reading out with an open shutter
+        bool includeQuantumEfficiency;           // Include loss of throughput due to quantum efficiency
+        bool includeVignetting;                  // Include brightness attenuation due to vignetting
+        bool includePolarization;                // Include loss of throughput due to polarisation
+        bool includeParticulateContamination;    // Include loss of throughput due to particulate contamination
+        bool includeMolecularContamination;      // Include loss of throughput due to molecular contamination
+        bool includeFullWellSaturation;          // Whether or not full well saturation should be applied
+        bool includeDigitalSaturation;           // Whether or not digital saturation should be applied
+        bool includeQuantisation;                // Whether or not to include quantisation
+
+        int beginExposureNr;                     // Sequential number of the very first exposure. See yaml input file.
+
+        double nominalOperatingTemperature;
+        double internalTime;
+
+        long readoutNoiseSeed;
+        long photonNoiseSeed;
+        long gainSeed;
+
+        mt19937 photonNoiseGenerator;
+        mt19937 readoutNoiseGenerator;
+
+        poisson_distribution<long> photonNoiseDistribution;
+        normal_distribution<double> readoutNoiseDistribution;
+ 
+        Camera &camera;
+        FrontEndElectronics *frontEndElectronics;
+
+    private:
+
+        TemperatureGenerator &temperatureGenerator;
 
 };
 

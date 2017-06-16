@@ -7,6 +7,7 @@
 #include <sstream>
 #include <iterator>
 
+#include "Exceptions.h"
 #include "Logger.h"
 #include "Units.h"
 #include "Heartbeat.h"
@@ -37,10 +38,10 @@ class JitterFromFile : public JitterGenerator
         int timeIndex;
         double internalTime;
 
-        vector<double> time;
-        vector<double> yaw;      // [rad]
-        vector<double> pitch;    // [rad]
-        vector<double> roll;     // [rad]
+        vector<double> timeFromFile;  // [s]
+        vector<double> yaw;           // [rad]
+        vector<double> pitch;         // [rad]
+        vector<double> roll;          // [rad]
 
 
     private:

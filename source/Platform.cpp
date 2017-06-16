@@ -23,6 +23,11 @@ Platform::Platform(ConfigurationParameters configParams, HDF5File &hdf5File, Jit
     // Configure the Platfrom object
 
     configure(configParams);
+
+    // Initialise the rotation matrices (should be done after configuration) with the unjittered spacecraft
+
+    rotJitteredSpacecraftToEquatorial = getUnjitteredSpacecraftToEquatorialRotationMatrix();
+    rotEquatorialToJitteredSpacecraft = rotJitteredSpacecraftToEquatorial.t();
 }
 
 
@@ -47,6 +52,10 @@ Platform::~Platform()
 
 
 
+
+
+
+
 /**
  * \brief Configure the Platform object
  * 
@@ -57,9 +66,24 @@ void Platform::configure(ConfigurationParameters &configParams)
 {
     useJitter   = configParams.getBoolean("Platform/UseJitter");
     originalRA  = deg2rad(configParams.getDouble("ObservingParameters/RApointing"));            
-    originalDec = deg2rad(configParams.getDouble("ObservingParameters/DecPointing"));     
+    originalDec = deg2rad(configParams.getDouble("ObservingParameters/DecPointing"));
+         
     currentRA   = originalRA;
     currentDec  = originalDec;
+
+    // Derive the location of the Sun which we assume to always be 180 degrees away from the platform pointing
+    // in the middle of the total time series.
+
+    double lambdaPlatform;                                 // Ecliptic longitude of the platform pointing [rad]
+    double betaPlatform;                                   // Ecliptic latitude  of the platform pointing [rad]
+    equatorial2ecliptic(originalRA, originalDec, lambdaPlatform, betaPlatform);
+
+    double lambdaSun = lambdaPlatform - Constants::PI;
+    if (lambdaSun < 0.0) lambdaSun += 2.0 * Constants::PI;
+    ecliptic2equatorial(lambdaSun, 0.0, raSun, decSun);
+
+    Log.debug("Platform: (RA Sun, Dec Sun) = (" + to_string(rad2deg(raSun)) + ", " + to_string(rad2deg(decSun)) + ")");
+
 }
 
 
@@ -161,33 +185,17 @@ void Platform::setPointingCoordinates(double rightAscencsion, double declination
 
 
 
-/**
- * \brief Return the original pointing coordinates (of the roll axis) of the spacecraft
- * 
- * \return (alpha, delta)    RA & dec [rad] of the original pointing
- */
-
-pair<double, double> Platform::getInitialPointingCoordinates()
-{
-    return make_pair(originalRA, originalDec);
-}
-
-
-
-
-
-
 
 
 /**
- * \brief Return the pointing coordinates (of the roll axis) of the spacecraft
+ * \brief Update the pointing coordinates (of the roll axis) of the spacecraft
  * 
  * \param time [s]
  *  
- * \return (alpha, delta)    RA & dec [rad] of the current pointing
+ * \return Nothing
  */
 
-pair<double, double> Platform::getPointingCoordinates(double time)
+void Platform::updatePlatformOrientation(double time)
 {
     double yaw=0.0, pitch=0.0, roll=0.0;
 
@@ -195,12 +203,10 @@ pair<double, double> Platform::getPointingCoordinates(double time)
     {
         // Check if the request is going backwards in time. If so: complain.
 
-        double timeInterval = time - internalTime;
-
-        if (timeInterval < 0.0)
+        if (time < internalTime)
         {
-            Log.warning("Platform: getPointingCoordinates() at time before previous request: Not Implemented. Returning current pointing coordinates.");
-            return make_pair(currentRA, currentDec);
+            Log.warning("Platform: updatePlatformOrientation() at time before previous request: Not Implemented. ");
+            return;
         }
 
 
@@ -211,19 +217,18 @@ pair<double, double> Platform::getPointingCoordinates(double time)
         {
             if (time == historyTime.back())
             {
-                Log.debug("Platform: getPointingCoordinates: coordinates up-to-date for requested time " + to_string(time));
+                Log.debug("Platform: updatePlatformOrientation(): coordinates up-to-date for requested time " + to_string(time));
                 Log.debug("Platform: At time " + to_string(time) + ": (RA, dec) = (" 
                                                + to_string(historyRA.back()) + ", " 
                                                + to_string(historyDec.back()) + ")");
-
-                return make_pair(deg2rad(historyRA.back()), deg2rad(historyDec.back()));
+                return;
             }
         }
 
-        // We're know in the case that we haven't processed the given time point yet.
+        // We're now in the case that we haven't processed the given time point yet.
         // Let the platfrom jitter until 'time'. Yaw, pitch, and roll are in [rad]
 
-        tie(yaw, pitch, roll) = jitterGenerator.getNextYawPitchRoll(timeInterval);
+        tie(yaw, pitch, roll) = jitterGenerator.getNextYawPitchRoll(time);
 
         Log.debug("Platform: At time " + to_string(time) + ": (yaw, pitch, roll) = (" 
                                        + to_string(rad2deg(yaw)*3600.) + ", " 
@@ -231,27 +236,32 @@ pair<double, double> Platform::getPointingCoordinates(double time)
                                        + to_string(rad2deg(roll)*3600.) + ") arcsec");
 
 
-        // The roll axis (= unit vector in z-direction in SC reference frame) will have slightly 
-        // rotated due to jitter. Find out the cartesian coordinates of the _new_ jitter axis in 
-        // the SpaceCraft reference frame of the original pointing. 
+        // Get the rotation matrix to take into account the jitter.
 
-        arma::colvec zUnitBeforeJitter = {0.0, 0.0, 1.0};
-        arma::colvec zUnitAfterJitter = rotateYawPitchRoll(zUnitBeforeJitter, yaw, pitch, roll);
+        arma::mat rotUnjittered2Jittered = getUnjitteredToJitteredRotationMatrix(yaw, pitch, roll);
 
-        // Compute the celestial equatorial cartesian coordinates of the new roll axis
-        // This requires the original pointing coordinates of the platform.
+        // Get the matrix to rotate from the unjittered spacecraft (SC) reference frame to 
+        // the equatorial (EQ) reference frame
 
-        const bool useOriginalPointingCoordinates = true;
-        const arma::colvec zUnitAfterJitterEQ = spacecraftToEquatorialCoordinates(zUnitAfterJitter, useOriginalPointingCoordinates);
+        arma::mat rotSC2EQ = getUnjitteredSpacecraftToEquatorialRotationMatrix();
 
-        // Convert from cartesian to celestial equatorial coordinates
+        // Store the total rotation matrix and its inverse for later use
+
+        rotJitteredSpacecraftToEquatorial = rotSC2EQ * rotUnjittered2Jittered;
+        rotEquatorialToJitteredSpacecraft = rotJitteredSpacecraftToEquatorial.t();
+
+        // Before the jitter, the roll axis has coordinates (0,0,1) in the SC reference frame
+        // After jitter it will have slightly rotated. Afterwards, we convert from the SC to the EQ
+        // reference frame
+
+        arma::colvec zUnitBeforeJitterSC = {0.0, 0.0, 1.0};
+        arma::colvec zUnitAfterJitterEQ = rotJitteredSpacecraftToEquatorial * zUnitBeforeJitterSC;
+ 
+        // Convert from cartesian to sky coordinates
 
         const double x = zUnitAfterJitterEQ(0);
         const double y = zUnitAfterJitterEQ(1);
         const double z = zUnitAfterJitterEQ(2);
-
-        // Only now update the internal platform pointing coordinates to the ones after the jitter step
-        // Note: r should 1.0, as rotations don't change the length of the unit vector
 
         const double r = sqrt(x*x+y*y+z*z);
         currentDec = PI / 2.0 - acos(z/r);
@@ -260,12 +270,15 @@ pair<double, double> Platform::getPointingCoordinates(double time)
     }
     else
     {
-        Log.info("Platform: Ignoring jitter, platform (yaw, pitch, roll) = (0.0, 0.0, 0.0)");
+        Log.info("Platform: No jitter, platform (yaw, pitch, roll) = (0.0, 0.0, 0.0)");
         yaw = 0.0;
         pitch = 0.0;
         roll = 0.0;
         currentRA = originalRA;
         currentDec = originalDec;
+
+        // No need to change rotJitteredSpacecraftToEquatorial and rotEquatorialToJitteredSpacecraft
+        // because they were already set in the constructor.
     }
 
     Log.debug("Platform: At time " + to_string(time) + ": (RA, dec) = (" 
@@ -280,16 +293,119 @@ pair<double, double> Platform::getPointingCoordinates(double time)
     // RA & Dec are saved in degrees. Yaw, pitch, roll in arcsec.
 
     historyTime.push_back(time);
-    historyRA.push_back(rad2deg(currentRA));
-    historyDec.push_back(rad2deg(currentDec));
-    historyYaw.push_back(rad2deg(yaw) * 3600.);
-    historyPitch.push_back(rad2deg(pitch) * 3600.);
-    historyRoll.push_back(rad2deg(roll) * 3600.);
+    historyRA.push_back(rad2deg(currentRA));                 // [deg]
+    historyDec.push_back(rad2deg(currentDec));               // [deg]
+    historyYaw.push_back(rad2deg(yaw) * 3600.);              // [arcsec]
+    historyPitch.push_back(rad2deg(pitch) * 3600.);          // [arcsec]
+    historyRoll.push_back(rad2deg(roll) * 3600.);            // [arcsec]
 
     // That's it
 
+    return;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Return the current (RA, Dec) pointing coordinates of the spacecraft
+ * 
+ * \return (RA, Dec)  Right Ascension and declination [rad]
+ */
+
+pair<double, double> Platform::getCurrentPointingCoordinates()
+{
     return make_pair(currentRA, currentDec);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Return the current (RA, Dec) pointing coordinates of the spacecraft
+ * 
+ * \return (RA, Dec)  Right Ascension and declination [rad]
+ */
+
+pair<double, double> Platform::getInitialPointingCoordinates()
+{
+    return make_pair(originalRA, originalDec);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Return the rotation matrix to rotate from cartesian coordinates in the 
+ *        jittered spacecraft (SC) reference frame to the cartesian coordinates 
+ *        in the equatorial reference frame.
+ *        
+ * \note This matrix was computed in updateSpacecraftOrientation() with the latest
+ *       (yaw, pitch, roll) values.
+ *        
+ * \return 3x3 rotation matrix
+ */
+
+arma::mat Platform::getJitteredSpacecraftToEquatorialRotationMatrix()
+{
+    return rotJitteredSpacecraftToEquatorial;
+}
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Return the rotation matrix to rotate from cartesian coordinates in the 
+ *        equatorial reference frame to the cartesian coordinates in the jittered 
+ *        spacecraft (SC) reference frame.
+ *        
+ * \note This matrix was computed in updateSpacecraftOrientation() with the latest
+ *       (yaw, pitch, roll) values.
+ *         
+ * \return 3x3 rotation matrix
+ */
+
+arma::mat Platform::getEquatorialToJitteredSpacecraftRotationMatrix()
+{
+    return rotEquatorialToJitteredSpacecraft;
+}
+
+
+
+
 
 
 
@@ -326,59 +442,77 @@ double Platform::getHeartbeatInterval()
 
 
 /**
- * \brief Compute 3D cartesian coordinates in the celestial equatorial reference frame,
- *        given the 3D cartesian coordinates in the spacecraft (SC) reference frame
- * 
- * \param coordSC   (xSC, ySC, zSC): cartesian coordinates of the point in the spacecraft reference frame
- * \param useOriginalPointingCoordinates  If true: use original pointing coordinates (before jitter started)
- *                                        If false: use current pointing coordinates (affected by jitter)
+ * \brief Compute rotation matrix to tranform cartesian coordinates in the spacecraft reference frame to 
+ *        cartesian coordinates in the equatorial reference frame. That is, return the 3x3 matrix rotSC2EQ
+ *        so that 
+ *               vecEQ = rotSC2EQ * vecSC
+ *        where vecEQ are cartesian coordinates in the equatorial reference frame, and vecSC are the 
+ *        cartesian coordinates in the Spacecraft (platform) reference frame.
+ *        See PLATO-KUL-PL-TN-0001 for more details
  *
- * \return coordEQ  (xEQ, yEQ, zEQ): cartesian coordinates in the celestial equatorial reference frame
+ * \return rotSC2EQ : 3x3 rotation matrix 
  */
 
-arma::colvec Platform::spacecraftToEquatorialCoordinates(arma::colvec &coordSC, bool useOriginalPointingCoordinates)
+arma::mat Platform::getUnjitteredSpacecraftToEquatorialRotationMatrix()
 {
-    double RA, dec;
+    // Compute the equatorial coordinates of each of the unit vectors corresponding to the X, Y, and Z axis
+    // of the spacecraft reference frame. The z-axis is pointing towards the targets, the x-axis points towards
+    // the highest point of the sun shield which is pointing towards the Sun.
 
-    if (useOriginalPointingCoordinates)
-    {
-        RA = originalRA;
-        dec = originalDec;
-    }
-    else
-    {
-        RA = currentRA;
-        dec = currentDec;
-    }
+    double deltax = atan(- cos(originalRA-raSun) / tan(originalDec));
 
-    // Some handy abbreviations
+    arma::colvec unitzSC = {cos(originalDec)*cos(originalRA), cos(originalDec)*sin(originalRA), sin(originalDec)};
+    arma::colvec unitxSC = {cos(deltax)*cos(raSun), cos(deltax)*sin(raSun), sin(deltax)};
+    arma::colvec unitySC = arma::cross(unitzSC, unitxSC);
 
-    const double cosAlpha = cos(RA);
-    const double sinAlpha = sin(RA);
-    const double cosDelta = cos(dec);
-    const double sinDelta = sin(dec);
+    // Compute the rotation matrix to convert cartesian coordinates in the equatorial reference frame to 
+    // cartesian coordinates in the spacecraft reference frame
 
-    // The rotation matrices
-
-    arma::mat R1;
-    R1 << cosAlpha <<  -sinAlpha << 0.0 << arma::endr
-       << sinAlpha <<   cosAlpha << 0.0 << arma::endr
-       <<    0.0   <<      0.0   << 1.0 << arma::endr;
-
-
-    arma::mat R2;
-    R2 <<  sinDelta <<  0.0 <<  cosDelta << arma::endr
-       <<    0.0    <<  1.0 <<    0.0    << arma::endr
-       << -cosDelta <<  0.0 <<  sinDelta << arma::endr;
-
-    // The transformation
-
-    arma::colvec coordEQ = R1 * R2 * coordSC;
+    arma::mat rotSC2EQ;
+    rotSC2EQ << unitxSC[0] << unitySC[0] << unitzSC[0] << arma::endr
+             << unitxSC[1] << unitySC[1] << unitzSC[1] << arma::endr
+             << unitxSC[2] << unitySC[2] << unitzSC[2] << arma::endr;
+    
 
     // That's it
 
-    return coordEQ;
+    return rotSC2EQ;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Compute rotation matrix to tranform cartesian coordinates in the equatorial reference frame to
+ *        cartesian coordinates in the spacecraft reference frame. That is, return the 3x3 matrix rotSC2EQ
+ *        so that 
+ *               vecSC = rotEQ2SC * vecEQ
+ *        where vecEQ are cartesian coordinates in the equatorial reference frame, and vecSC are the 
+ *        cartesian coordinates in the Spacecraft (platform) reference frame.
+ *        See PLATO-KUL-PL-TN-0001 for more details.
+ *
+ * \return rotEQ2SC : 3x3 rotation matrix 
+ */
+
+arma::mat Platform::getEquatorialToUnjitteredSpacecraftRotationMatrix()
+{
+    arma::mat rotSC2EQ = getUnjitteredSpacecraftToEquatorialRotationMatrix();
+    arma::mat rotEQ2SC = rotSC2EQ.t();
+
+    return rotEQ2SC;
+}
+
 
 
 
@@ -408,14 +542,13 @@ arma::colvec Platform::spacecraftToEquatorialCoordinates(arma::colvec &coordSC, 
  *          
  * \note See also Technical Note PLATO-KUL-PL-TN-001
  * 
- * \param coord  Coordinates of the vector in the spacecraft reference frame before the rotation 
  * \param yaw    Yaw angle   [rad]
  * \param pitch  Pitch angle [rad]
  * \param roll   Roll angle  [rad]
- * \return       Coordinates of the vector in the (old) spacecraft reference frame after the rotations
+ * \return       3x3 rotation matrix 
  */
 
-arma::colvec Platform::rotateYawPitchRoll(arma::colvec coord, const double yaw, const double pitch, const double roll)
+arma::mat Platform::getUnjitteredToJitteredRotationMatrix(const double yaw, const double pitch, const double roll)
 {
     // Some handy abbreviations
 
@@ -443,10 +576,41 @@ arma::colvec Platform::rotateYawPitchRoll(arma::colvec coord, const double yaw, 
           << sinRoll  <<   cosRoll  <<  0.0  << arma::endr
           <<  0.0     <<     0.0    <<  1.0  << arma::endr; 
 
-    // Do the transformation
+    // That's it
 
-    return Ryaw  * Rpitch * Rroll * coord;
+    return Ryaw  * Rpitch * Rroll;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Return the right ascension and declination of the Sun in the middle of the time series
+ * \details It is assumed that the Sun is always 180 degrees away from platform pointing in the middle of the time series.
+ * 
+ * \return raSun:  Right Ascension of the Sun [rad]
+ *         decSun: Declination of the Sun [rad]
+ */
+
+tuple<double, double> Platform::getRADecSun()
+{
+    return make_pair(raSun, decSun);
+}
+
+
+
 
 
 
