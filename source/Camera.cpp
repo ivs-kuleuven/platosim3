@@ -481,11 +481,10 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
 
         // Update the clock. Normally with 'timeStep', but if adding timeStep would overstep
-        // the total exposure time, take the small rest time instead.
+        // the total exposure time, take the small rest time instead (but update the internal time first!).
 
-        timeStep = min(timeStep, startTime + exposureTime - internalTime);
         internalTime += timeStep;
-
+        timeStep = min(timeStep, startTime + exposureTime - internalTime);
     }
 
     // Take the flux of the stellar background and the zodiacal light into account. Use one value for the entire subfield.
