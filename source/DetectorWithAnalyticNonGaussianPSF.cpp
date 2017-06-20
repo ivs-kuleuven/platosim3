@@ -142,10 +142,12 @@ DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(Configura
 
     flatfieldMap.ones(numRowsPixelMap, numColumnsPixelMap);
 
-    // Generate the flatfield map 
+    if(includeFlatfield)
+    {
+    		// Generate the flatfield map
 
-    generateFlatfieldMap();
-
+    		generateFlatfieldMap();
+    }
 }
 
 
