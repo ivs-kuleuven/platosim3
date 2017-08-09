@@ -153,6 +153,56 @@ double Sky::getVmagnitudeOfStarWithID(int id)
 
 
 
+/**
+ *  \brief Compute the equatorial sky coordinates of the Sun given the julian date.
+ *  
+ *  \param julianDate         Julian date (floating point). The distinction between JD and BJD is neglected.
+ *  \param outputAngleUnit    Angle::radians if output angles should be in radians, Angle::degrees if in degrees
+ *  \return (RA, DEC)         Pair containing the equatorial sky coordinates of the Sun 
+ *  
+ *  \note Source: "Computing the solar vector", Blanco-Muriel et al., (2001), Solar Energy, Vol 70, pp 431-441
+ */
+
+pair<double, double> getSunCoordinates(double julianDate, Unit outputAngleUnit = Angle::degrees)
+{
+    // Compute the (fractional) number of days since 1 Jan 2000 at 12:00 noon.
+
+    const double elapsedJulianDays = julianDate - 2451545.0;
+
+    // In the following we assume that the solar ecliptic latitude is always exactly 0.0.
+
+    const double Omega = 2.1429 - 0.0010394594 * elapsedJulianDays;
+    const double meanLongitude = 4.8950630 + 0.017202791698 * elapsedJulianDays;
+    const double meanAnomaly = 6.2400600 + 0.0172019699 * elapsedJulianDays;
+
+    const double eclipticLongitude = meanLongitude + 0.03341607 * sin(meanAnomaly) + 0.00034894 * sin(2*meanAnomaly) - 0.0001134 - 0.0000203 * sin(Omega);
+    const double eclipticObliquity = 0.4090928 - 6.2140e-9 * elapsedJulianDays + 0.00003963 * cos(Omega); 
+
+    // Compute the RA, DEC of the Sun. Ensure that the RA is positive.
+
+    double rightAscensionSun = atan2(cos(eclipticObliquity) * sin(eclipticLongitude), cos(eclipticLongitude));
+    double declinationSun = asin(sin(eclipticObliquity) * sin(eclipticLongitude));
+
+    if (rightAscensionSun < 0.0) rightAscensionSun += 2.0 * 3.141592653589793;
+
+    // Convert the unit to radians or degrees, whatever the user requested
+
+    rightAscensionSun *= outputAngleUnit;
+    declinationSun *= outputAngleUnit;
+
+    // That's it
+
+    return make_pair(rightAscensionSun, declinationSun);
+}
+
+
+
+
+
+
+
+
+
 
 /**
  * \brief  Given a circle on the sky, return a catalog with all stars from the database within that circle.

@@ -12,6 +12,8 @@ ObservingParameters:
 
     RApointing:              0.0             # [deg] 
     DecPointing:             0.0             # [deg]
+    RASun:                   166.0           # Right ascension of the direction of the sun shield during the run [deg]
+    DecSun:                  -46.0           # Declination of the direction of the sun shield during the run     [deg]
     Fluxm0:                 1.00238e8        # Photon flux of a V=0 G2V-star                                 [phot/s/m^2/nm]
     SkyBackground:           220.            # Stellar + zodiacal background level. Set negative to compute. [photons/s]
     StarCatalogFile:         testData/starcatalog.txt
@@ -48,6 +50,8 @@ Camera:
     ThroughputBandwidth:     650             # FWHM [nm]
     ThroughputLambdaC:       550             # Central wavelength of the throughput passband [nm]
     IncludeFieldDistortion:  yes             # Wheter or not to include field distortion
+    AberrationCorrection:
+        Type:                differential    # [differential, absolute]
     FieldDistortion:                         # Describe the model for the field distortion
         Type:                Polynomial1D
         Degree:              3

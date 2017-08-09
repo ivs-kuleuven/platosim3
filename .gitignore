@@ -7,10 +7,15 @@ dependencies/Installs/*
 *.sublime-project
 *.sublime-workspace
 
+# Ignore some of the auto-generated files (during cmake)
+
+generated/version.h
+
 # Un-ignore some of the default input files in the inputfiles/ folder
 
 !inputfiles/inputfile.yaml
 !starField_RA180Dec-70.txt
+!psfallv3.txt
 
 # Ignore checkpoints of iPython notebooks
 

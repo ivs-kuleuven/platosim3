@@ -1,0 +1,93 @@
+# PlatoSim3 configuration file for the CameraTest
+# 
+# The input values in this file are specific for the CameraTest, create a new input file
+# for testing other components.
+---
+
+General:
+    
+    ProjectLocation:                 ../
+
+ObservingParameters:
+
+    MissionDuration:                 6.0             # Total duration of the mission in years [yr]
+    NumExposures:                    10              # Number of exposures
+    BeginExposureNr:                  0              # Sequential number of first exposure. useful for slurm parallellisation
+    ExposureTime:                    23              # [s]
+    RApointing:                      180             # Platform (not telescope) right ascension pointing coordinate      [deg] 
+    DecPointing:                     -70             # Platform (not telescope) declination pointing coordinate          [deg]
+    Fluxm0:                          1.00238e8       # Photon flux of a V=0 G2V-star                                     [phot/s/m^2/nm]
+    SkyBackground:                   220.            # Stellar + zodiacal background level. Set negative to compute.     [phot/pix/s]
+    StarCatalogFile:                 inputfiles/starcatalog.txt
+
+Platform:
+
+    UseJitter:                       no              # yes or no
+    UseJitterFromFile:               no              # yes or no
+    JitterYawRms:                    2.3             # [arcsec]
+    JitterPitchRms:                  2.3             # [arcsec]
+    JitterRollRms:                   2.3             # [arcsec]
+    JitterTimeScale:                 3600.           # [s]
+    JitterFileName:                  testData/jitter.txt
+
+Telescope:
+    
+    AzimuthAngle:                    135.0           # Azimuth angle of telescope on the platform [deg]
+    TiltAngle:                       9.2             # Tilt angle of the telescope on the platform [deg]
+    LightCollectingArea:             113.1           # Effective area of 1 telescope [cmˆ2]
+    TransmissionEfficiency:
+        BOL:                         0.800           # Beginning of Life value in [0,1]
+        EOL:                         0.757           # End of Life value in [0,1]
+    UseDrift:                        no              # yes or no
+    UseDriftFromFile:                no              # yes or no
+    DriftYawRms:                     2.3             # RMS of thermo-elastic drift in yaw [arcsec]
+    DriftPitchRms:                   2.3             # RMS of thermo-elastic drift in pitch [arcsec]
+    DriftRollRms:                    2.3             # RMS of thermo-elastic drift in roll [arcsec]
+    DriftTimeScale:                  3600.           # Timescale of thermo-elastic drift [s]
+    DriftFileName:                   inputfiles/drift.txt
+
+Camera:
+    
+    FocalPlaneOrientation:           0.0             # [degrees]
+    PlateScale:                      0.8333          # [arcsec/micron]
+    FocalLength:                     0.24712595      # [m]
+    ThroughputBandwidth:             650             # FWHM [nm]
+    ThroughputLambdaC:               550             # Central wavelength of the throughput passband [nm]
+    IncludeAberrationCorrection:     yes             # Calculate the differential aberration correction and apply
+    AberrationCorrection:
+        Type:                        differential    # [differential, absolute]
+    IncludeFieldDistortion:          yes             # Wheter or not to include field distortion
+    FieldDistortion:                                 # Describe the model for the field distortion
+        Type:                        Polynomial1D
+        Degree:                      3
+        Coefficients:                [-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06]
+        InverseCoefficients:         [-0.00458067036444, 1.00110311283, -5.61136295937e-05, -4.311925329e-06]
+
+PSF:
+
+    Model:                           MappedFromFile  # PSF model: MappedGaussian, MappedFromFile, AnalyticGaussian, AnalyticNonGaussian
+    MappedGaussian:                                  # Generate the PSF from a fixed 2D Gaussian function
+        Sigma:                       0.50            # Standard deviation of Gaussian PSF [pix]
+        NumberOfPixels:              8               # The number of pixels in the field for which the PSF is generated
+    MappedFromFile:                                  # Read a pre-calculated and fixed PSF from an HDF5 file
+        Filename:                    inputfiles/psf.hdf5 
+        DistanceToOA:               -1               # The angular distance to the optical axis. -1 to auto-compute.               [deg]
+        RotationAngle:              -1               # PSF rotation angle w.r.t the x-axis of the focal plane. -1 to auto-compute. [deg]
+        NumberOfPixels:              8               # The number of pixels in the field for which the PSF is generated
+    AnalyticGaussian:                                # Generate the PSF analytically from a non-spherical Gaussian
+        Sigma00:                     1.0             # Stdev of Gaussian PSF in x- and y-direction at the optical axis      [pix]
+        SigmaX18:                    5.0             # Stdev of Gaussian PSF in x-direction at 18 deg from the optical axis [pix]
+        SigmaY18:                    2.0             # Stdev of Gaussian PSF in y-direction at 18 deg from the optical axis [pix]
+    AnalyticNonGaussian:
+        Sigma:                       0.5             # Width of the analytic PSF, equal to sigma for a Gaussian PSF [pix]
+        ParameterFileName:           inputfiles/psfallv3.txt
+
+RandomSeeds:
+
+    ReadOutNoiseSeed:                1424949740      # Unique positive integer 
+    PhotonNoiseSeed:                 1433320336      # Unique positive integer 
+    JitterSeed:                      1433320381      # Unique positive integer 
+    FlatFieldSeed:                   1425284070      # Unique positive integer 
+    DriftSeed:                       1433429158      # Unique positive integer 
+    FeeGainSeed:                     1429485030      # Unique positive integer
+    CcdGainSeed:                     1420450443      # Unique positive integer

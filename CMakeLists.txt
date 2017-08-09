@@ -22,6 +22,8 @@ project(PlatoSim)
 
 cmake_minimum_required(VERSION 2.8)
 
+# Find out which version of the software is being compiled (through git commit hash)
+# so that we can include it in the output HDF5 file.
 
 if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
   execute_process(
@@ -42,11 +44,16 @@ else(EXISTS "${CMAKE_SOURCE_DIR}/.git")
   set(GIT_DESCRIBE "")
 endif(EXISTS "${CMAKE_SOURCE_DIR}/.git")
 
+# Output some variables during the cmake run for verification
+
 message(STATUS "Git current branch: ${GIT_BRANCH}")
 message(STATUS "Git describe: ${GIT_DESCRIBE}")
 message(STATUS "CMake source dir: ${CMAKE_SOURCE_DIR}")
 message(STATUS "CMake current source dir: ${CMAKE_CURRENT_SOURCE_DIR}")
 message(STATUS "CMake binary dir: ${CMAKE_BINARY_DIR}")
+
+# Generate the version.h file that contains the current version of the software
+# which will be copied in the HDF5 output file
 
 message(STATUS "Generating version.h")
 
@@ -65,6 +72,7 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/yaml-cpp/include
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/googletest/include
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/fftw-3.3.4/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/Faddeeva/include  
 )
 
 
@@ -104,7 +112,8 @@ link_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/armadillo-6.500.4/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/yaml-cpp/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/googletest/lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/fftw-3.3.4/lib   
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/fftw-3.3.4/lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/Faddeeva/lib   
 )
 
 
@@ -133,7 +142,7 @@ add_executable(testplatosim ${unitTestMain} ${unitTestSourceFiles})
 
 # Link the platosim and testplatosim executable with the required libraries
 
-target_link_libraries(platosim platosimLibrary hdf5 hdf5_cpp armadillo yaml-cpp fftw3f fftw3f_threads pthread)
+target_link_libraries(platosim platosimLibrary hdf5 hdf5_cpp armadillo yaml-cpp fftw3f fftw3f_threads pthread Faddeeva)
 target_link_libraries(testplatosim platosimLibrary hdf5 hdf5_cpp armadillo yaml-cpp fftw3f fftw3f_threads gtest gtest_main pthread)
 
 

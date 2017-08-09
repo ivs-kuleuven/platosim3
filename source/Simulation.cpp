@@ -71,13 +71,51 @@ Simulation::Simulation(string inputFilename, string outputFilename)
         driftGenerator = new ThermoElasticDriftFromRedNoise(configParams);
     }
 
+    if(useFeeTemperatureFromFile)
+    {
+    		feeTemperatureGenerator = new TemperatureFromFile(configParams, "FEE");
+    }
+    else if(useFeeNominalTemperature)
+    {
+    		feeTemperatureGenerator = new NominalTemperature(configParams, "FEE");
+    }
+
+    if(useDetectorTemperatureFromFile)
+    {
+    		detectorTemperatureGenerator = new TemperatureFromFile(configParams, "CCD");
+    }
+    else if(useDetectorNominalTemperature)
+    {
+    		detectorTemperatureGenerator = new NominalTemperature(configParams, "CCD");
+    }
+
     // Initialise the spacecraft components
 
     platform   = new Platform(configParams, hdf5File, *jitterGenerator);
     telescope  = new Telescope(configParams, hdf5File, *platform, *driftGenerator);
     sky        = new Sky(configParams);
-    camera     = new Camera(configParams, hdf5File, *telescope, *sky);
-    detector   = new Detector(configParams, hdf5File, *camera);
+    camera     = new Camera(configParams, hdf5File, *platform, *telescope, *sky);
+
+    // Depending on how the PSF is computed (analytically or pre-mapped) the Detector object is different.
+
+    if ((psfModel == "MappedGaussian") || (psfModel == "MappedFromFile"))
+    {
+        detector = new DetectorWithMappedPSF(configParams, hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator);
+    }
+    else if (psfModel == "AnalyticGaussian")
+    {
+        detector = new DetectorWithAnalyticGaussianPSF(configParams, hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator);
+    }
+    else if (psfModel == "AnalyticNonGaussian")
+    {
+        detector = new DetectorWithAnalyticNonGaussianPSF(configParams, hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator);
+    }
+    else
+    {
+        string errorMessage = "Simulation: PSF Model '" + psfModel + "' is not supported.";
+        Log.error(errorMessage);
+        throw IllegalArgumentException(errorMessage);
+    }
 
     // Write the input parameters to the output HDF5 file
 
@@ -127,10 +165,17 @@ Simulation::~Simulation()
 void Simulation::configure(ConfigurationParameters &configParams)
 {
     exposureTime      = configParams.getDouble("ObservingParameters/ExposureTime"); 
-    Nexposures        = configParams.getInteger("ObservingParameters/NumExposures"); 
+    beginExposureNr   = configParams.getInteger("ObservingParameters/BeginExposureNr");
+    numExposures      = configParams.getInteger("ObservingParameters/NumExposures");
     useJitterFromFile = configParams.getBoolean("Platform/UseJitterFromFile");
     includeFieldDistortion = configParams.getBoolean("Camera/IncludeFieldDistortion"); // do we want to do this or should this be asked to Camera?
     useDriftFromFile  = configParams.getBoolean("Telescope/UseDriftFromFile");  
+    psfModel          = configParams.getString("PSF/Model");
+    useFeeTemperatureFromFile = configParams.getString("FEE/Temperature") == "FromFile";
+    useFeeNominalTemperature = configParams.getString("FEE/Temperature") == "Nominal";
+    useDetectorTemperatureFromFile = configParams.getString("CCD/Temperature") == "FromFile";
+    useDetectorNominalTemperature = configParams.getString("CCD/Temperature") == "Nominal";
+    readoutTime       = configParams.getDouble("CCD/ReadoutTime"); 
 }
 
 
@@ -145,23 +190,20 @@ void Simulation::configure(ConfigurationParameters &configParams)
  *
  * \param[in]  startTime  begin time of the very first exposure. Time is expressed in seconds in the rest of the code.
  */
-void Simulation::run(double startTime)
+
+void Simulation::run()
 {
     // Update the internal clock
 
-    currentTime = startTime;
-
-    // Ensure that the proper PSF is set for the detector
-
-    detector->setPsfForSubfield();
+    currentTime = beginExposureNr * (exposureTime + readoutTime);
 
     // Loop over all exposures
 
-    for (int n = 0; n < Nexposures; n++)
+    for (int n = beginExposureNr; n < beginExposureNr + numExposures; n++)
     {
         Log.info("Simulation: Starting exposure " + to_string(n) + " at time " + to_string(currentTime) );
         
-        currentTime = detector->takeExposure(currentTime, exposureTime);
+        currentTime = detector->takeExposure(n, currentTime, exposureTime);
     }
 
     writeStarCatalogToHDF5();
@@ -169,6 +211,16 @@ void Simulation::run(double startTime)
 
 
 
+
+
+
+
+
+
+
+/**
+ * \brief Take care that the version of the simulator is included in the HDF5 file,.
+ */
 
 void Simulation::writeVersionInformationToHDF5()
 {
@@ -183,6 +235,13 @@ void Simulation::writeVersionInformationToHDF5()
     hdf5File.writeAttribute(parentGroup, "GitVersion", string(GIT_DESCRIBE));
 
 }
+
+
+
+
+
+
+
 
 
 /**
@@ -216,12 +275,6 @@ void Simulation::writeStarCatalogToHDF5()
     vector<double> xFPmm(Nstars);
     vector<double> yFPmm(Nstars);
 
-    double raOpticalAxis, decOpticalAxis;
-    tie(raOpticalAxis, decOpticalAxis) = telescope->getInitialPointingCoordinates();
-
-    double focalPlaneAngle = telescope->getInitialFocalPlaneOrientation();
-
-
     double xFPrad, yFPrad;
 
     if (!allStarIDs.empty())
@@ -232,7 +285,8 @@ void Simulation::writeStarCatalogToHDF5()
             starIDs[k] = starID;
             tie(RA[k], dec[k]) = sky->getCoordinatesOfStarWithID(starID, Angle::degrees);  // be careful, ra & dec returned in degrees!
             Vmag[k] = sky->getVmagnitudeOfStarWithID(starID);
-            tie(xFPmm[k], yFPmm[k]) = camera->skyToFocalPlaneCoordinates(deg2rad(RA[k]), deg2rad(dec[k]), raOpticalAxis, decOpticalAxis, focalPlaneAngle);
+            const bool useInitialOrientation = true;
+            tie(xFPmm[k], yFPmm[k]) = camera->skyToFocalPlaneCoordinates(deg2rad(RA[k]), deg2rad(dec[k]), useInitialOrientation);
             
             if (includeFieldDistortion)
             {
@@ -256,8 +310,16 @@ void Simulation::writeStarCatalogToHDF5()
     {
         Log.warning("Simulation: no information about detected stars to write to HDF5");
     }
-
 }
+
+
+
+
+
+
+
+
+
 
 
 /**
@@ -308,12 +370,19 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
         hdf5File.writeAttribute(parentGroup + "/" + subGroup, attributeName, configParams.getDoubleVector(subGroup + "/" + attributeName));
     };
 
+    auto addIntegerVector = [&] (string attributeName) 
+    {
+        hdf5File.writeAttribute(parentGroup + "/" + subGroup, attributeName, configParams.getIntegerVector(subGroup + "/" + attributeName));
+    };
+
 
     // Copy the input parameters to the output HDF5 file
 
     subGroup = "ObservingParameters";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("MissionDuration");
     addInteger("NumExposures");
+    addInteger("BeginExposureNr");
     addDouble("ExposureTime");
     addDouble("RApointing");
     addDouble("DecPointing");
@@ -333,10 +402,10 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "Telescope";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addString("GroupID");
     addDouble("AzimuthAngle");
     addDouble("TiltAngle");
     addDouble("LightCollectingArea");
-    addDouble("TransmissionEfficiency");
     addBoolean("UseDrift");
     addBoolean("UseDriftFromFile");
     addDouble("DriftYawRms");
@@ -344,6 +413,10 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("DriftRollRms");
     addDouble("DriftTimeScale");
     addString("DriftFileName");
+    subGroup = "Telescope/TransmissionEfficiency";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("BOL");
+    addDouble("EOL");
 
     subGroup = "Camera";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
@@ -363,33 +436,65 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     subGroup = "PSF";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addString("Model");
-    subGroup = "PSF/Gaussian";
+    subGroup = "PSF/MappedGaussian";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addDouble("Sigma");
     addInteger("NumberOfPixels");
 
-    subGroup = "PSF/FromFile";
+    subGroup = "PSF/MappedFromFile";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addString("Filename");
     addDouble("DistanceToOA");
     addDouble("RotationAngle");
     addInteger("NumberOfPixels");
 
-    subGroup = "CCD";
+    subGroup = "PSF/AnalyticGaussian";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
-    addDouble("OriginOffsetX");
-    addDouble("OriginOffsetY");
-    addDouble("Orientation");
-    addInteger("NumColumns");
+    addDouble("Sigma00");
+    addDouble("SigmaX18");
+    addDouble("SigmaY18");
+
+    subGroup = "PSF/AnalyticNonGaussian";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("Sigma");
+    addString("ParameterFileName");
+
+	subGroup = "FEE";
+	hdf5File.createGroup(parentGroup + "/" + subGroup);
+	addDouble("NominalOperatingTemperature");
+	addString("Temperature");
+	addString("TemperatureFileName");
+	addDouble("ReadoutNoise");
+
+	subGroup = "FEE/Gain";
+	hdf5File.createGroup(parentGroup + "/" + subGroup);
+	addDouble("RefValue");
+	addDouble("Stability");
+	addDouble("ThreeSigma");
+
+	subGroup = "FEE/ElectronicOffset";
+	hdf5File.createGroup(parentGroup + "/" + subGroup);
+	addInteger("RefValue");
+	addDouble("Stability");
+
+	subGroup = "CCD";
+	hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addString("Position");
+	addDouble("OriginOffsetX");
+	addDouble("OriginOffsetY");
+	addDouble("Orientation");
+	addInteger("NumColumns");
     addInteger("NumRows");
-    addDouble("PixelSize");
-    addInteger("Gain");
-    addLong("FullWellSaturation");
-    addInteger("DigitalSaturation");
-    addInteger("ReadoutNoise");
-    addInteger("ElectronicOffset");
+    addInteger("FirstRowExposed");
+	addDouble("PixelSize");
+	addLong("FullWellSaturation");
+	addInteger("DigitalSaturation");
+	addDouble("ReadoutNoise");
     addDouble("ReadoutTime");
     addDouble("FlatfieldPtPNoise");
+	addDouble("NominalOperatingTemperature");
+	addString("Temperature");
+	addString("TemperatureFileName");
     addBoolean("IncludeFlatfield");
     addBoolean("IncludePhotonNoise");
     addBoolean("IncludeReadoutNoise");
@@ -402,9 +507,16 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("IncludeQuantumEfficiency");
     addBoolean("IncludeConvolution");
     addBoolean("IncludeFullWellSaturation");
+    addBoolean("IncludeQuantisation");
     addBoolean("IncludeDigitalSaturation");
     addBoolean("WriteSubPixelImagesToHDF5");
-    
+
+	subGroup = "CCD/Gain";
+	hdf5File.createGroup(parentGroup + "/" + subGroup);
+	addDouble("RefValue");
+	addDouble("Stability");
+	addDouble("ThreeSigma");
+
     subGroup = "CCD/Vignetting";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addDouble("ExpectedValue");
@@ -457,6 +569,24 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addLong("PhotonNoiseSeed");
     addLong("JitterSeed");
     addLong("FlatFieldSeed");
-    addLong("CTESeed");
     addLong("DriftSeed");
+	addLong("FeeGainSeed");
+	addLong("CcdGainSeed");
+
+    subGroup = "CameraGroups";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDoubleVector("AzimuthAngle");
+    addDoubleVector("TiltAngle");
+
+    subGroup = "CCDPositions";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDoubleVector("OriginOffsetX");
+    addDoubleVector("OriginOffsetY");
+    addDoubleVector("Orientation");
+    addIntegerVector("NumColumns");
+    addIntegerVector("NumRows");
+    addIntegerVector("FirstRowForNormalCamera");
+    addIntegerVector("FirstRowForFastCamera");
+
+
 }

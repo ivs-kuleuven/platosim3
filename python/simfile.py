@@ -511,7 +511,7 @@ class SimFile (object):
         EXAMPLE:
 
             >>> file = SimFile("Simul01.hdf5")
-            >>> id, alpha, delta, Vmag = file.getStarCatalog()
+            >>> starIDs, RA, declination, Vmag, xFPmm, yFPmm, rowPix, colPix = file.getStarCatalog()
             >>> plt.scatter(alpha, delta, c=Vmag, alpha=0.5)
         """
 
@@ -1002,6 +1002,11 @@ class SimFile (object):
                  colPix: column coordinate (real-valued) of the average position of the star during the exposure 
                  xFPmm:  focal plane x-coordinate [mm] of the average position of the star during the exposure
                  yFPmm:  focal plane y-coordinate [mm] of the average position of the star during the exposure
+
+         EXAMPLE: 
+                >>> file = SimFile("Simul01.hdf5")
+                >>> starID = 15563
+                >>> time, row, col, xFP, yFP = file.getPositionTimeSeries(starID)
         """
 
         allTimePoints = np.array(self.hdf5file["/StarPositions/Time"])
