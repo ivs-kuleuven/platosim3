@@ -41,6 +41,7 @@ log.txt
 *.log
 *.sql
 *.sqlite
+*.swp
 
 # OSX generated files
 
