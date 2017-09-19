@@ -17,6 +17,14 @@ generated/version.h
 !starField_RA180Dec-70.txt
 !psfallv3.txt
 
+# Ignore output of ctags
+
+tags
+
+# Ignore vim related files
+
+.ycm_extra_conf.py
+
 # Ignore checkpoints of iPython notebooks
 
 docs/tutorials/.ipynb_checkpoints/*
