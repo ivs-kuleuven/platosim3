@@ -9,6 +9,10 @@ a * EXP(-b * magnitude) + c to it, and showing the resulting fit.
 - getMagnitudeDistribution: Plotting the magnitude histogram and the fit.
 """
 
+
+
+
+
 #########
 # Imports
 #########
