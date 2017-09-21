@@ -29,7 +29,7 @@ class Telescope  : public Heartbeat, HDF5Writer
 
         virtual void configure(ConfigurationParameters &configParam);
 
-        virtual void updateTelescopeOrientation(double time);
+        virtual void updateParameters(double time);
 
         arma::mat getPlatformToDriftedTelescopeRotationMatrix();
         arma::mat getDriftedTelescopeToPlatformRotationMatrix();
@@ -77,7 +77,7 @@ class Telescope  : public Heartbeat, HDF5Writer
         arma::mat rotSpacecraftToDriftedTelescope;  // rotation matrix 
 
         arma::mat getUndriftedToDriftedRotationMatrix(const double yaw, const double pitch, const double roll);
-
+        virtual void updateTelescopeOrientation(double time);
 
     private:
 

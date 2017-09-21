@@ -42,6 +42,7 @@ class Camera : public HDF5Writer
 
         virtual void configure(ConfigurationParameters &configParam);
         virtual void exposeDetector(Detector &detector, double startTime, double exposureTime);
+        virtual void updateParameters(double time);
 
         virtual void initHDF5Groups() override;
         virtual void flushOutput() override;

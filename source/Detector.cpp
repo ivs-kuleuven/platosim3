@@ -106,6 +106,26 @@ Detector::~Detector()
 
 
 
+/**
+ * \brief Update the time dependent parameters of the Detector to their 
+ *        value at the given time point
+ *
+ * \param time: current time
+ *
+ * \return 
+ */
+
+void Detector::updateParameters(double time)
+{
+
+}
+
+
+
+
+
+
+
 
 
 

@@ -279,6 +279,30 @@ void Camera::configure(ConfigurationParameters &configParam)
 
 
 
+
+/**
+ * \brief Update the time dependent parameters of the Camera to their 
+ *        value at the given time point
+ *
+ * \param time: current time
+ *
+ * \return 
+ */
+
+void Camera::updateParameters(double time)
+{
+    focalLength->updateValue(time);
+}
+
+
+
+
+
+
+
+
+
+
 /** 
  * \brief      Specify the type of fit function used to fit the distortion
  *
@@ -423,9 +447,12 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
     while (internalTime < startTime + exposureTime)
     {
-        // Let the telescope pointing evolve over a small time interval
+        // Update the time-dependent parameters (if any) of the Camera, Telescope and Detector
+        // to their value at the current time. 
 
-        telescope.updateTelescopeOrientation(internalTime);
+        this->updateParameters(internalTime);
+        telescope.updateParameters(internalTime);
+        detector.updateParameters(internalTime);
 
         // Loop over all stars in the catalog, and add their flux to the subfield
 
