@@ -422,7 +422,6 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addDouble("FocalPlaneOrientation");
     addDouble("PlateScale");
-    addDouble("FocalLength");
     addDouble("ThroughputBandwidth");
     addDouble("ThroughputLambdaC");
     addBoolean("IncludeFieldDistortion");
@@ -432,6 +431,11 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addInteger("Degree");
     addDoubleVector("Coefficients");
     addDoubleVector("InverseCoefficients");
+    subGroup = "Camera/FocalLength";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addString("Source");
+    addDouble("ConstantValue");
+    addString("FromFile");
 
     subGroup = "PSF";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
