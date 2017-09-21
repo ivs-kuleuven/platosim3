@@ -24,6 +24,7 @@
 #include "Platform.h"
 #include "Telescope.h"
 #include "Units.h"
+#include "Parameter.h"
 
 
 using namespace std;
@@ -67,8 +68,8 @@ class Camera : public HDF5Writer
         Telescope &telescope;
         Sky &sky;
 
+        Parameter<double> *focalLength;       // [mm]
         double plateScale;                    // [arcsec/micron]
-        double focalLength;                   // [mm]
         double throughputBandwidth;           // FWHM of the throughput passband [nm]
         double throughputLambdaC;             // Central wavelength of the throughput passband [nm]
 
