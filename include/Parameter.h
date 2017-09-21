@@ -28,6 +28,7 @@ class Parameter
         const T operator()(const double time);
         const T operator()();
         void updateValue(double time);
+        bool isTimeDependent();
 
     protected:
 
@@ -219,6 +220,29 @@ const T Parameter<T>::operator()()
     return currentValue;
 }
 
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Return false if the parameter was set to a fixed value with its constructor.
+ *        True otherwise.
+ *
+ * \param -
+ *
+ * \return See above.
+ */
+
+template <typename T>
+bool Parameter<T>::isTimeDependent()
+{
+    return !isFixedToValue;
+}
 
 
 
