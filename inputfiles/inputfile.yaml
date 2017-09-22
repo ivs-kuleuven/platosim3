@@ -74,7 +74,7 @@ Camera:
 
 PSF:
 
-    Model:                           MappedFromFile  # PSF model: MappedGaussian, MappedFromFile, AnalyticGaussian, AnalyticNonGaussian
+    Model:                           AnalyticNonGaussian # PSF model: MappedGaussian, MappedFromFile, AnalyticGaussian, AnalyticNonGaussian
     MappedGaussian:                                  # Generate the PSF from a fixed 2D Gaussian function
         Sigma:                       0.50            # Standard deviation of Gaussian PSF [pix]
         NumberOfPixels:              8               # The number of pixels in the field for which the PSF is generated
@@ -88,8 +88,11 @@ PSF:
         SigmaX18:                    5.0             # Stdev of Gaussian PSF in x-direction at 18 deg from the optical axis [pix]
         SigmaY18:                    2.0             # Stdev of Gaussian PSF in y-direction at 18 deg from the optical axis [pix]
     AnalyticNonGaussian:
-        Sigma:                       0.5             # Width of the analytic PSF, equal to sigma for a Gaussian PSF [pix]
         ParameterFileName:           inputfiles/psfallv3.txt
+        Sigma:                                       # Width of the analytic PSF, equal to sigma for a Gaussian PSF [pix]  
+            Source:                  ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
+            ConstantValue:           0.5             # Used in case Source is ConstantValue  [pix]
+            FromFile:                inputfiles/sigmaPSF.txt # Used in case Source is FromFile: time [s] & sigma_PSF [pix]
 
 
 FEE:
