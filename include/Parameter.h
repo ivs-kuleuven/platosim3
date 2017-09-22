@@ -21,13 +21,14 @@ class Parameter
 {
     public:
         
-        Parameter(T currentValue);
-        Parameter(string filePath);
+        Parameter(T fixedValue);
+        Parameter(string filePath, T unitConversionFactor);
         ~Parameter();
 
         const T operator()(const double time);
         const T operator()();
         void updateValue(double time);
+        bool isTimeDependent();
 
     protected:
 
@@ -37,9 +38,10 @@ class Parameter
     private:
 
         bool isFixedToValue;         // True if the parameter is constant in time, false otherwise.
-        T currentValue;              // The 
+        T currentValue;              // The parameter value for the last updated time point 
         string filePath;             // Name of time series file, if the parameter is not constant in time
         ifstream inputFile;          // Time series file
+        T unitConversionFactor;      // Unit conversion factor to multiply the values in the file with.
 
         double time1;                // Only two consecutive pairs (time1, value1) and (time2, value2)
         double time2;                //      are read and stored (rather than reading and storing the entire
@@ -84,8 +86,8 @@ Parameter<T>::Parameter(T fixedValue)
  */
 
 template <typename T>
-Parameter<T>::Parameter(string filePath)
-    : isFixedToValue(false), filePath(filePath)
+Parameter<T>::Parameter(string filePath, T unitConversionFactor)
+    : isFixedToValue(false), filePath(filePath), unitConversionFactor(unitConversionFactor)
 {
    openFile(filePath);
 
@@ -171,6 +173,7 @@ void Parameter<T>::updateValue(double time)
     const double weight1 = (time - time1) / (time2 - time1); 
     const double weight2 = (time2 - time) / (time2 - time1); 
     currentValue = value1 * weight2 + value2 * weight1;
+
 }
 
 
@@ -225,6 +228,29 @@ const T Parameter<T>::operator()()
 
 
 
+
+/**
+ * \brief Return false if the parameter was set to a fixed value with its constructor.
+ *        True otherwise.
+ *
+ * \param -
+ *
+ * \return See above.
+ */
+
+template <typename T>
+bool Parameter<T>::isTimeDependent()
+{
+    return !isFixedToValue;
+}
+
+
+
+
+
+
+
+
 /**
  * \brief Open the ascii file with the time series of the parameter.
  *
@@ -269,6 +295,11 @@ pair<double, T> Parameter<T>::readNextFromFile()
     stringstream reader(buffer);
     reader >> timeAndValue.first;
     reader >> timeAndValue.second;
+
+    // The values in the file might be SI units, while the code may need a different unit.
+    // Hence we allow the user the specify a unit conversion factor. 
+
+    timeAndValue.second *= unitConversionFactor;       
 
     // That's it!
 
