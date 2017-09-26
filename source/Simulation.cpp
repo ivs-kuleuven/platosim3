@@ -428,9 +428,11 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     subGroup = "Camera/FieldDistortion";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addString("Type");
-    addInteger("Degree");
-    addDoubleVector("Coefficients");
-    addDoubleVector("InverseCoefficients");
+    addString("Source");
+    addDoubleVector("ConstantCoefficients");
+    addDoubleVector("ConstantInverseCoefficients");
+    addString("CoefficientsFromFile");
+    addString("InverseCoefficientsFromFile");
     subGroup = "Camera/FocalLength";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addString("Source");
