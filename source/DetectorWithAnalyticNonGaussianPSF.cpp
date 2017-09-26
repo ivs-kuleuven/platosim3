@@ -132,7 +132,7 @@ double IntegralOfAnalyticPSF::operator()(unsigned i, unsigned j, bool norm)
  */
 
 DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator)
-: Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator)
+: Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator), sigma(nullptr)
 {
     // Parse the parameters from the configuration file.
 
@@ -164,6 +164,7 @@ DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(Configura
 DetectorWithAnalyticNonGaussianPSF::~DetectorWithAnalyticNonGaussianPSF()
 {
     flushOutput();
+    delete sigma;
 }
 
 
@@ -188,7 +189,6 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
     flatfieldSeed             = configParam.getLong("RandomSeeds/FlatFieldSeed");
 
 
-    sigma = configParam.getDouble("PSF/AnalyticNonGaussian/Sigma");
     string filename = configParam.getAbsoluteFilename("PSF/AnalyticNonGaussian/ParameterFileName");
 
     ifstream file(filename);
@@ -210,9 +210,50 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
             params.emplace_back(vals);
         }
     }
+    
+    // The sigma of the PSF can either be a fixed value, or given by a time series in a file
+    
+    string sigmaPSFSource = configParam.getString("PSF/AnalyticNonGaussian/Sigma/Source");
+    if (sigmaPSFSource == "ConstantValue")
+    {
+        double sigmaPSFValue = configParam.getDouble("PSF/AnalyticNonGaussian/Sigma/ConstantValue");     // [pix]
+        sigma = new Parameter<double>(sigmaPSFValue);
+    
+        Log.info("DetectorWithAnalyticNonGaussianPSF: Using a constant sigma: " + to_string(sigmaPSFValue) + " pix");
+    }
+    else if (sigmaPSFSource == "FromFile")
+    {
+        string sigmaPSFInputFile = configParam.getAbsoluteFilename("PSF/AnalyticNonGaussian/Sigma/FromFile");
+        sigma = new Parameter<double>(sigmaPSFInputFile, 1);                                            // [pix]
+    
+        Log.info("DetectorWithAnalyticNonGaussianPSF: Reading sigma PSF from " + sigmaPSFInputFile);
+    }
 }
 
 
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Update the time dependent parameters of the Detector to their 
+ *        value at the given time point
+ *
+ * \param time: current time
+ *
+ * \return 
+ */
+
+void DetectorWithAnalyticNonGaussianPSF::updateParameters(double time)
+{
+    sigma->updateValue(time);
+}
 
 
 
@@ -239,7 +280,7 @@ void DetectorWithAnalyticNonGaussianPSF::integrateAnalyticPSF(IntegralOfAnalytic
 {
     double ox = x - floor(x);
     double oy = y - floor(y);
-    double s = sigma * scale;
+    double s = (*sigma)() * scale;
     if (params.size() > 0 && params[0].size() > 6) 
     {
         r /= 1.4;
@@ -526,7 +567,7 @@ tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addFlux(double x
     row0 -= subFieldZeroPointRow;
     column0 -= subFieldZeroPointColumn;
 
-    int size = 2 * ((int)(8. * sigma) + 1) + 1;;
+    int size = 2 * ((int)(8. * (*sigma)()) + 1) + 1;;
     int sx = (int)floor(column0 - (size - 1.) / 2.);
     int sy = (int)floor(row0 - (size - 1.) / 2.);
 

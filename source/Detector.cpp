@@ -8,7 +8,7 @@
  * The constructor initializes the groups in the HDF5 file where the different maps (i.e. pixel map,
  * bias register map, smearing map, etc.) will be saved. 
  * 
- * The following maps are initialized to zero:
+ * The following maps are initialized:
  * 
  * pixelMap 
  * subPixelMap
@@ -61,10 +61,6 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
     smearingMap.zeros(numRowsSmearingMap, numColumnsPixelMap);
     throughputMap.ones(numRowsPixelMap, numColumnsPixelMap);
 
-    // Generate the throughput map (vignetting + polarisation + particulate & molecular contamination + quantum efficiency)
-
-    generateThroughputMap();
-
     // Generate detector gain. The lefthand side of the detector has a different gain than the righthand side.
 
     generateGain();
@@ -98,6 +94,26 @@ Detector::~Detector()
     flushOutput();
 
     delete frontEndElectronics;
+}
+
+
+
+
+
+
+
+/**
+ * \brief Update the time dependent parameters of the Detector to their 
+ *        value at the given time point
+ *
+ * \param time: current time
+ *
+ * \return 
+ */
+
+void Detector::updateParameters(double time)
+{
+
 }
 
 
@@ -283,7 +299,7 @@ double Detector::takeExposure(int exposureNr, double startTime, double exposureT
 
     // Write the CCD subfield, the bias map, and the smearing map to the HDF5 file
 
-    Log.debug("Detector: Writing PixelMap, smearing map, and bias map #" + to_string(exposureNr) + " to HDF5 file.");
+    Log.debug("Detector: Writing PixelMap, smearing map, bias map and throughputMap #" + to_string(exposureNr) + " to HDF5 file.");
 
     writePixelMapsToHDF5(exposureNr);
 
@@ -333,6 +349,8 @@ void Detector::generateThroughputMap()
 
     if (includeVignetting || includePolarization || includeQuantumEfficiency)
     {
+        throughputMap.fill(1.0);
+
         // Loop over all pixels in the pixel map
 
         for (unsigned int row = 0; row < numRowsPixelMap; row++)
@@ -380,11 +398,6 @@ void Detector::generateThroughputMap()
         throughputMap *= molecularContaminationEfficiency;
     }
 
-    // Write the result to HDF5
-
-    Log.debug("Detector: writing throughput map to HDF5");
-
-    hdf5File.writeArray("/Throughput", "throughputMap", throughputMap);
 }
 
 
@@ -465,7 +478,25 @@ bool Detector::isInSubfield(double xFP, double yFP)
 
 void Detector::applyThroughputEfficiency()
 {
-    pixelMap = pixelMap % throughputMap;        // Element-wise multiplication with the throughput map
+
+    // Generate the throughput map which includes vignetting, polarisation, 
+    // particulate & molecular contamination, and quantum efficiency. The 
+    // throughput may be time dependent and therefore needs to regenerated
+    // every exposure. We assume that during the jittering in Camera::exposeDetector()
+    // the time dependent parameters have been updated so that their current
+    // value corresponds to the very last jitter step, which are the same values
+    // that we need here.
+    // We also assume that the throughput does not change significantly _within_ 
+    // each exposure, so that we don't need to include the throughput generation
+    // in the jitter loop.
+
+    generateThroughputMap();
+
+    // Element-wise multiplication with the throughput map
+    // Beware of Armadillo's quirky notation...
+    
+    pixelMap = pixelMap % throughputMap;
+    
 }
 
 
@@ -1661,7 +1692,7 @@ void Detector::initHDF5Groups()
     hdf5File.createGroup("/BiasMaps");
     hdf5File.createGroup("/SmearingMaps");
     hdf5File.createGroup("/Flatfield");
-    hdf5File.createGroup("/Throughput");
+    hdf5File.createGroup("/ThroughputMaps");
 }
 
 
@@ -1713,9 +1744,21 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
     myStream << "biasMap" << setfill('0') << setw(6) << exposureNr;
     string biasMapName = myStream.str();
 
-    // Add the smearing map to the "SmearingMaps" group
+    // Add the bias map to the "BiasMaps" group
 
     hdf5File.writeArray("/BiasMaps", biasMapName, biasMap);
+
+    // Clear the string stream and compose the throughput map name
+
+    myStream.str(string());      // insert empty string
+    myStream.clear();            // clear eof bit
+
+    myStream << "throughputMap" << setfill('0') << setw(6) << exposureNr;
+    string throughputMapName = myStream.str();
+
+    // Add the bias map to the "BiasMaps" group
+
+    hdf5File.writeArray("/ThroughputMaps", throughputMapName, throughputMap);
 }
 
 

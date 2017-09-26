@@ -422,16 +422,22 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addDouble("FocalPlaneOrientation");
     addDouble("PlateScale");
-    addDouble("FocalLength");
     addDouble("ThroughputBandwidth");
     addDouble("ThroughputLambdaC");
     addBoolean("IncludeFieldDistortion");
     subGroup = "Camera/FieldDistortion";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addString("Type");
-    addInteger("Degree");
-    addDoubleVector("Coefficients");
-    addDoubleVector("InverseCoefficients");
+    addString("Source");
+    addDoubleVector("ConstantCoefficients");
+    addDoubleVector("ConstantInverseCoefficients");
+    addString("CoefficientsFromFile");
+    addString("InverseCoefficientsFromFile");
+    subGroup = "Camera/FocalLength";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addString("Source");
+    addDouble("ConstantValue");
+    addString("FromFile");
 
     subGroup = "PSF";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
@@ -456,8 +462,12 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "PSF/AnalyticNonGaussian";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
-    addDouble("Sigma");
     addString("ParameterFileName");
+    subGroup = "PSF/AnalyticNonGaussian/Sigma";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addString("Source");
+    addDouble("ConstantValue");
+    addString("FromFile");
 
 	subGroup = "FEE";
 	hdf5File.createGroup(parentGroup + "/" + subGroup);

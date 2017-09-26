@@ -46,9 +46,9 @@ DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configPara
 
     if(includeFlatfield)
     {
-    		// Generate the flatfield map
+        // Generate the flatfield map
 
-    		generateFlatfieldMap();
+        generateFlatfieldMap();
     }
 
     // Initialize and load the PSF. This will open the PSF HDF5 file and perform some basic checking, 

@@ -35,6 +35,7 @@ class Detector: public HDF5Writer
         virtual ~Detector();
 
         virtual double takeExposure(int exposureNr, double startTime, double exposureTime);
+        virtual void updateParameters(double time);
         void configure(ConfigurationParameters &configParam);
 
         pair<double, double> pixelToFocalPlaneCoordinates(double row, double column);

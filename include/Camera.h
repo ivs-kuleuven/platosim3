@@ -18,12 +18,14 @@
 #include "HDF5Writer.h"
 #include "Heartbeat.h"
 #include "Logger.h"
+#include "Exceptions.h"
 #include "Polynomial1D.h"
 #include "Sky.h"
 #include "StringUtilities.h"
 #include "Platform.h"
 #include "Telescope.h"
 #include "Units.h"
+#include "Parameter.h"
 
 
 using namespace std;
@@ -41,6 +43,7 @@ class Camera : public HDF5Writer
 
         virtual void configure(ConfigurationParameters &configParam);
         virtual void exposeDetector(Detector &detector, double startTime, double exposureTime);
+        virtual void updateParameters(double time);
 
         virtual void initHDF5Groups() override;
         virtual void flushOutput() override;
@@ -67,21 +70,16 @@ class Camera : public HDF5Writer
         Telescope &telescope;
         Sky &sky;
 
+        Parameter<double> *focalLength;       // [mm]
+        Parameter<double, 4> *distortionCoef; // distortion coefficients to map undistorted to distorted coordinates.
+        Parameter<double, 4> *inverseDistortionCoef; // inverse distortion coefficient to map distorted to undistorted coordinates.
+
+        string distortionModel;               // The model used to compute the distortion  
         double plateScale;                    // [arcsec/micron]
-        double focalLength;                   // [mm]
         double throughputBandwidth;           // FWHM of the throughput passband [nm]
         double throughputLambdaC;             // Central wavelength of the throughput passband [nm]
 
-        void setDistortionPolynomial(Polynomial1D &polynomial, Polynomial1D &inversePolynomial);
-
         double internalTime;
-        string polynomialType;
-        double polynomialDegree;
-        vector<double> polynomialCoefficients;
-        vector<double> inversePolynomialCoefficients;
-
-        Polynomial1D polynomial;
-        Polynomial1D inversePolynomial;
 
         bool includeAberrationCorrection; // Wheter or not (differential) aberration correction should be included
         string aberrationCorrectionType;  // [differential or absolute]

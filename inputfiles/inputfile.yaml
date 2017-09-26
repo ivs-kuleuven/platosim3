@@ -55,23 +55,28 @@ Camera:
     
     FocalPlaneOrientation:           0.0             # [degrees]
     PlateScale:                      0.8333          # [arcsec/micron]
-    FocalLength:                     0.24712595      # Focal length as recovered from ZEMAX model [m]
+    FocalLength: 
+        Source:                      FromFile        # Either ConstantValue (constant in time) or FromFile (time dependent) 
+        ConstantValue:               0.24712595      # Used in case Source is ConstantValue (from ZEMAX model) [m]
+        FromFile:                    inputfiles/focallength.txt # Used in case Source is FromFile: time [s] & focalLenght [m]
     ThroughputBandwidth:             638             # FWHM [nm]
     ThroughputLambdaC:               550             # Central wavelength of the throughput passband [nm]
     IncludeAberrationCorrection:     yes             # Calculate the differential aberration correction and apply
     AberrationCorrection:
         Type:                        differential    # [differential, absolute]
     IncludeFieldDistortion:          yes             # Whether or not to include field distortion
-    FieldDistortion:                                 # Describe the model for the field distortion
-        Type:                        Polynomial1D
-        Degree:                      3
-        Coefficients:                [-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06]
-        InverseCoefficients:         [-0.00458067036444, 1.00110311283, -5.61136295937e-05, -4.311925329e-06]
+    FieldDistortion:
+        Type:                        Polynomial1D    # The model for the field distortion
+        Source:                      FromFile        # Either ConstantValue (constant in time) or FromFile (time dependent) 
+        ConstantCoefficients:        [-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06]   # In case Source is ConstantValue
+        ConstantInverseCoefficients: [-0.00458067036444, 1.00110311283, -5.61136295937e-05, -4.311925329e-06] # In case Source is ConstantValue
+        CoefficientsFromFile:        inputfiles/distortioncoefficients.txt                                    # In case Source is FromFile
+        InverseCoefficientsFromFile: inputfiles/distortioninversecoefficients.txt                             # In case Source if FromFile
 
 
 PSF:
 
-    Model:                           MappedFromFile  # PSF model: MappedGaussian, MappedFromFile, AnalyticGaussian, AnalyticNonGaussian
+    Model:                           AnalyticNonGaussian # PSF model: MappedGaussian, MappedFromFile, AnalyticGaussian, AnalyticNonGaussian
     MappedGaussian:                                  # Generate the PSF from a fixed 2D Gaussian function
         Sigma:                       0.50            # Standard deviation of Gaussian PSF [pix]
         NumberOfPixels:              8               # The number of pixels in the field for which the PSF is generated
@@ -85,8 +90,11 @@ PSF:
         SigmaX18:                    5.0             # Stdev of Gaussian PSF in x-direction at 18 deg from the optical axis [pix]
         SigmaY18:                    2.0             # Stdev of Gaussian PSF in y-direction at 18 deg from the optical axis [pix]
     AnalyticNonGaussian:
-        Sigma:                       0.5             # Width of the analytic PSF, equal to sigma for a Gaussian PSF [pix]
         ParameterFileName:           inputfiles/psfallv3.txt
+        Sigma:                                       # Width of the analytic PSF, equal to sigma for a Gaussian PSF [pix]  
+            Source:                  ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
+            ConstantValue:           0.5             # Used in case Source is ConstantValue  [pix]
+            FromFile:                inputfiles/sigmaPSF.txt # Used in case Source is FromFile: time [s] & sigma_PSF [pix]
 
 
 FEE:
