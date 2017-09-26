@@ -24,6 +24,7 @@
 #include "Platform.h"
 #include "Telescope.h"
 #include "Units.h"
+#include "Parameter.h"
 
 
 using namespace std;
@@ -41,6 +42,7 @@ class Camera : public HDF5Writer
 
         virtual void configure(ConfigurationParameters &configParam);
         virtual void exposeDetector(Detector &detector, double startTime, double exposureTime);
+        virtual void updateParameters(double time);
 
         virtual void initHDF5Groups() override;
         virtual void flushOutput() override;
@@ -67,8 +69,8 @@ class Camera : public HDF5Writer
         Telescope &telescope;
         Sky &sky;
 
+        Parameter<double> *focalLength;       // [mm]
         double plateScale;                    // [arcsec/micron]
-        double focalLength;                   // [mm]
         double throughputBandwidth;           // FWHM of the throughput passband [nm]
         double throughputLambdaC;             // Central wavelength of the throughput passband [nm]
 

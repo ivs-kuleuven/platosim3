@@ -189,6 +189,30 @@ void Telescope::flushOutput()
 
 
 
+/**
+ * \brief The telescope has some parameters (orientation, temperature, ...)
+ *        that can be time dependent. This function updates these parameters
+ *        to their value at the given time.
+ *
+ *
+ * \param time: the time point for which the time dependent telescope parameters
+ *              need to be updated.
+ *
+ * \return -
+ */
+
+void Telescope::updateParameters(double time)
+{
+    // Update the orientation of the telescope:
+    
+    updateTelescopeOrientation(time);
+
+}
+
+
+
+
+
 
 
 

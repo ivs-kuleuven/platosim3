@@ -15,9 +15,10 @@
 #include "Constants.h"
 #include "Units.h"
 #include "Detector.h"
+#include "Parameter.h"
+
 
 using namespace std;
-
 
 
 
@@ -58,11 +59,13 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
         virtual double takeExposure(int exposureNr, double startTime, double exposureTime) override;
 
         void configure(ConfigurationParameters &configParam);
+        virtual void updateParameters(double time) override;
 
         virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) override;
         virtual void addFlux(double flux) override;
 
         void integrateAnalyticPSF(IntegralOfAnalyticPSF&, double, double, double, double, double = 1.);
+
 
     protected:
 
@@ -72,7 +75,7 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
         virtual void generateFlatfieldMap();
         virtual bool isInPixelMap(double row, double column);
 
-        double sigma;                       // Width of the analytic PSF, equal to sigma for a Gaussian PSF
+        Parameter<double> *sigma;           // Width of the analytic PSF, equal to sigma for a Gaussian PSF
         vector<vector<double>> params;      // Table of analytic PSF parameters
 
         arma::Mat<float> flatfieldMap;      // Pixel flatfield map
