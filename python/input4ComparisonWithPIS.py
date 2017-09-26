@@ -23,6 +23,7 @@ Simulation of different (100 x 100 pixels) sub-fields on CCD 2 with fake stars:
 
 from imp import reload
 import simulation
+from pyparsing import nums
 reload(simulation)
 from simulation import Simulation
 import referenceFrames
@@ -43,16 +44,42 @@ from magnitudeDistribution import *
 # Auxiliary methods
 ###################
 
-def getRandomPosition(numRows, numColumns, centerRow, centerColumn):
+# def getRandomPosition(numRows, numColumns, centerRow, centerColumn):
+#     
+#     """
+#     Generates random position (row, column) in the sub-field with the given dimensions,
+#     using a uniform distribution for row and column.
+#     
+#     INPUT: numRows: Number of rows in the sub-field, expressed in pixels.
+#     INPUT: numColumns: Number of columns in the sub-field, expressed in pixels.
+#     INPUT: centerRow: Row index of the centre of the sub-field.
+#     INPUT: centerColumn: Column index of the centre of the sub-field.
+#     
+#     OUTPUT: Randomly generated position (row, column) in the sub-field.  Note that these shoud NOT
+#             be integer values (i.e. stars don't necessarily fall in the centre of a pixel).
+#     """
+#     
+#     randomRow = random.uniform(0, numRows - 1)          # Not necessarily an integer value
+#     randomColumn = random.uniform(0, numColumns - 1)    # Not necessarily an integer value
+#     
+#     randomRow = randomRow + (centerRow - numRows / 2)
+#     randomColumn = randomColumn + (centerColumn - numColumns/ 2)
+#     
+#     return randomRow, randomColumn
+
+
+
+
+
+def getRandomPosition(numRows, numColumns):
     
     """
-    Generates random position (row, column) in the sub-field with the given dimensions,
-    using a uniform distribution for row and column.
+    Generates random position (row, column) in the sub-field with the given dimensions, 
+    using a uniform distribution for row and column.  This does not take the position of the
+    sub-field on the CCD into account.
     
     INPUT: numRows: Number of rows in the sub-field, expressed in pixels.
     INPUT: numColumns: Number of columns in the sub-field, expressed in pixels.
-    INPUT: centerRow: Row index of the centre of the sub-field.
-    INPUT: centerColumn: Column index of the centre of the sub-field.
     
     OUTPUT: Randomly generated position (row, column) in the sub-field.  Note that these shoud NOT
             be integer values (i.e. stars don't necessarily fall in the centre of a pixel).
@@ -61,11 +88,7 @@ def getRandomPosition(numRows, numColumns, centerRow, centerColumn):
     randomRow = random.uniform(0, numRows - 1)          # Not necessarily an integer value
     randomColumn = random.uniform(0, numColumns - 1)    # Not necessarily an integer value
     
-    randomRow = randomRow + (centerRow - numRows / 2)
-    randomColumn = randomColumn + (centerColumn - numColumns/ 2)
-    
     return randomRow, randomColumn
-    
 
 
 
@@ -131,19 +154,40 @@ def getRandomMagnitude(minMagnitude, maxMagnitude, a, b, c):
 #     plt.xlim([0, 100])
 #     plt.ylim([0, 100])
 #     plt.show()
+
+
+
+
+
+def getStarCatalog(numStars, subFieldDimensions):
     
+    filename = os.environ["PLATO_PROJECT_HOME"] + "/inputfiles/starField_RA180Dec-70.txt"
+    a, b, c = getMagnitudeDistribution(filename)
+    
+    rows = []
+    columns = []
+    magnitudes = []
+    
+    for starIndex in range(numStars - 1):
+    
+        randomRow, randomColumn = getRandomPosition(subFieldDimensions, subFieldDimensions)     # Random position in the sub-field (uniform distribution)
+        randomMagnitude = getRandomMagnitude(9, 15, a, b, c)
+    
+        rows.append(randomRow)
+        columns.append(randomColumn)
+        magnitudes.append(randomMagnitude)
+    
+    # Add star which shows blooming
+    
+    #bloomingRow, bloomingColumn = getRandomPosition(subFieldDimensions, subFieldDimensions)     # Random position in the sub-field (uniform distribution)
+    bloomingRow, bloomingColumn = 25, 25
+    rows.append(bloomingRow)
+    columns.append(bloomingColumn)
+    magnitudes.append(7.0)
+    
+    return np.array(rows), np.array(columns), np.array(magnitudes)
 
-
-
-
-#####################################
-# Plotting the magnitude distribution
-#####################################
-
-filename = os.environ["PLATO_PROJECT_HOME"] + "/inputfiles/starField_RA180Dec-70.txt"
-a, b, c = getMagnitudeDistribution(filename)
-
-
+    
 
 
 
@@ -180,6 +224,10 @@ subFieldCenterColumns = [subFieldDimensions / 2, ccdDimensions - subFieldDimensi
 # PSF related configuration parameters
 
 psfModel = "AnalyticNonGaussian"
+
+# Star catalogue
+
+rowsCatalog, columnsCatalog, magnitudesCatalog = getStarCatalog(numStars, subFieldDimensions)
 
 
 
@@ -223,7 +271,7 @@ for simulationIndex in range(numSubfields):
     #sim["CCD/IncludeParticulateContamination"] = 0
     #sim["CCD/IncludeMolecularContamination"] = 0
     #sim["CCD/IncludeConvolution"] = 1
-    #sim["CCD/IncludeFullWellSaturation"] = 0
+    #sim["CCD/IncludeFullWellSaturation"] = 1
     #sim["CCD/IncludeDigitalSaturation"] = 0
     #sim["CCD/IncludeQuantisation"] = 0
     
@@ -238,31 +286,28 @@ for simulationIndex in range(numSubfields):
     
     raCatalog = []
     decCatalog = []
-    magnitudeCatalog = []
-        
+    
     for starIndex in range(numStars):
         
-        randomRow, randomColumn = getRandomPosition(subFieldDimensions, subFieldDimensions, subFieldCenterRows[simulationIndex], subFieldCenterColumns[simulationIndex])     # Random position in the sub-field (uniform distribution)
+        #randomRow, randomColumn = getRandomPosition(subFieldDimensions, subFieldDimensions, subFieldCenterRows[simulationIndex], subFieldCenterColumns[simulationIndex])     # Random position in the sub-field (uniform distribution)
+        randomRow = rowsCatalog[starIndex] + subFieldCenterRows[simulationIndex] - subFieldDimensions / 2
+        randomColumn = columnsCatalog[starIndex] + subFieldCenterColumns[simulationIndex] - subFieldDimensions / 2
         randomRa, randomDec = pixelToSkyCoordinates(sim, ccdCode, randomColumn, randomRow)                                                                                   # (x, y) -> (RA, Dec) [radians]
         raCatalog.append(randomRa)
-        decCatalog.append(randomDec)        
-
-        randomMagnitude = getRandomMagnitude(9, 15, a, b, c)       # Random magnitude (distribution from real catalogue)
-        magnitudeCatalog.append(randomMagnitude)
+        decCatalog.append(randomDec)
     
     raCatalog = np.array(raCatalog)                     # Conversion to numpy array
     decCatalog = np.array(decCatalog)                   # Conversion to numpy array
-    magnitudeCatalog = np.array(magnitudeCatalog)       # Conversion to numpy array
     
     raCatalog[raCatalog > math.pi] = raCatalog[raCatalog > math.pi] - 2 * math.pi       # RA should be in range [-PI, PI]
     raCatalog = np.rad2deg(raCatalog)                                                   # RA [radians] -> [degrees]
     decCatalog = np.rad2deg(decCatalog)                                                 # Dec [radians] -> [degrees]
     
-    np.savetxt(starCatalogFilename, np.transpose([raCatalog, decCatalog, magnitudeCatalog]), fmt=['%11.6f', '%11.6f', '%8.4f'])     # Store the catalogue
+    np.savetxt(starCatalogFilename, np.transpose([raCatalog, decCatalog, magnitudesCatalog]), fmt=['%11.6f', '%11.6f', '%8.4f'])     # Store the catalogue
     sim["ObservingParameters/StarCatalogFile"] = starCatalogFilename
     
     configurationFilename = workDir + "config4" + subFieldNames[simulationIndex] + ".yaml"
     sim.writeYamlConfigurationFile(configurationFilename)
     
     simFile = sim.run()
-    #simFile.showImage(1)
+    simFile.showImage(1)
