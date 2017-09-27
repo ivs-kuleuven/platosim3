@@ -625,14 +625,14 @@ class Simulation(object):
         decPlatform      = np.deg2rad(float(self["ObservingParameters/DecPointing"]))
         azimuthTelescope = np.deg2rad(float(self["Telescope/AzimuthAngle"]))
         tiltTelescope    = np.deg2rad(float(self["Telescope/TiltAngle"]))
-        focalLength      = float(self["Camera/FocalLength"]) * 1000.0                     # [m] -> [mm]
+        focalLength      = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0                     # [m] -> [mm]
         plateScale       = float(self["Camera/PlateScale"])          
-        focalPlaneAngle  = np.deg2rad(float(self["Camera/FocalPlaneOrientation"]))
+        focalPlaneAngle  = np.deg2rad(float(self["Camera/FocalPlaneOrientation/ConstantValue"]))
         pixelSize        = float(self["CCD/PixelSize"]) 
 
         if (self["Camera/IncludeFieldDistortion"] == "yes")  or (self["Camera/IncludeFieldDistortion"] == "1"):
             includeFieldDistortion = True
-            distortionCoefficients = sim["Camera/FieldDistortion/Coefficients"]
+            distortionCoefficients = sim["Camera/FieldDistortion/ConstantCoefficients"]
         else:
             includeFieldDistortion = False
             distortionCoefficients = None
@@ -676,6 +676,12 @@ class Simulation(object):
         else:
             self["ObservingParameters/ExposureTime"] = 2.3
             self["CCD/ReadoutTime"] = 0.2
+
+        # Make sure that the focal length and the focal plane orientation are constant values
+        # and not read from a file.
+
+        self["Camera/FocalLength/Source"] = "ConstantValue"
+        self["Camera/FocalPlaneOrientation/Source"] = "ConstantValue"
         
         # That's it
 
@@ -716,10 +722,10 @@ class Simulation(object):
         decPlatform     = np.deg2rad(self["ObservingParameters/DecPointing"])
         azimuthAngle    = np.deg2rad(self["Telescope/AzimuthAngle"])
         tiltAngle       = np.deg2rad(self["Telescope/TiltAngle"])
-        focalPlaneAngle = np.deg2rad(self["Camera/FocalPlaneOrientation"])
-        focalLength     = self["Camera/FocalLength"] * 1000.0                     # [m] -> [mm]
+        focalPlaneAngle = np.deg2rad(self["Camera/FocalPlaneOrientation/ConstantValue"])
+        focalLength     = self["Camera/FocalLength/ConstantValue"] * 1000.0                     # [m] -> [mm]
         includeFieldDistortion = self["Camera/IncludeFieldDistortion"]
-        inverseDistortionCoefficients = self["Camera/FieldDistortion/InverseCoefficients"]
+        inverseDistortionCoefficients = self["Camera/FieldDistortion/ConstantInverseCoefficients"]
 
         # Convert the pixel coordinates to focal plane coordinates [mm]
         
