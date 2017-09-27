@@ -33,6 +33,7 @@ import math
 from simulation import Simulation
 from referenceFrames import getCCDandPixelCoordinates
 from referenceFrames import platformToTelescopePointingCoordinates
+from referenceFrames import sunSkyCoordinatesAwayfromPlatformPointing
 from referenceFrames import CCD
 
 
@@ -141,10 +142,10 @@ for group in range(numTelescopeGroups):
         #print("Sun: {0}, {1}".format(math.degrees(raSun), math.degrees(decSun)))
         
         includeFieldDistortion = (str(sim["Camera/IncludeFieldDistortion"] == "yes"))  or (str(sim["Camera/IncludeFieldDistortion"] == "1"))        # Whether or not to include field distortion
-        focalPlaneAngle = sim["Camera/FocalPlaneOrientation"]                                                                                       # Focal-plane orientation [degrees]
-        focalLength = sim["Camera/FocalLength"] * 1000                                                                                              # Focal length [mm]
-        plateScale = sim["Camera/PlateScale"]                                                                                                       # Plate scale [arcsec / micron]
-        pixelSize = sim["CCD/PixelSize"]                                                                                                            # Pixel size [micron / pixel]
+        focalPlaneAngle = sim["Camera/FocalPlaneOrientation/ConstantValue"]                                                                                       # Focal-plane orientation [degrees]
+        focalLength = sim["Camera/FocalLength/ConstantValue"] * 1000                                                                                              # Focal length [mm]
+        plateScale  = sim["Camera/PlateScale"]                                                                                                       # Plate scale [arcsec / micron]
+        pixelSize   = sim["CCD/PixelSize"]                                                                                                            # Pixel size [micron / pixel]
         
         # Determine on which CCD (A, B, C, or D) the coordinates (raCenter, decCenter) are positioned and at which location
         # (in pixel coordinates)

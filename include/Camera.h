@@ -71,6 +71,7 @@ class Camera : public HDF5Writer
         Sky &sky;
 
         Parameter<double> *focalLength;       // [mm]
+        Parameter<double> *focalPlaneAngle;   // Orientation of the focal plane, as an angle around the optical axis  [rad] 
         Parameter<double, 4> *distortionCoef; // distortion coefficients to map undistorted to distorted coordinates.
         Parameter<double, 4> *inverseDistortionCoef; // inverse distortion coefficient to map distorted to undistorted coordinates.
 
@@ -92,8 +93,6 @@ class Camera : public HDF5Writer
 
         double raSun;                     // Right ascension of the direction of the sun shield during the run    [rad]
         double decSun;                    // Declination of the direction of the sun shield during the run        [rad]
-
-        double focalPlaneAngle;           // Orientation of the focal plane, as an angle around the optical axis  [rad]
 
 
         // detectedStarInfo[startTime][starID] contains the values (xFPmean, yFPmean, rowPixMean, colPixmean, sumFlux, Ndetections)
