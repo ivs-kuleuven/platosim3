@@ -33,21 +33,23 @@ sim["PSF/Model"] = "MappedGaussian"
 # Specify the orientation of the platform, telescope, focal plane, etc.
 # Do this before creating the star catalog.
 
-sim["ObservingParameters/RApointing"]  = 180.0 
-sim["ObservingParameters/DecPointing"] = -70.0
-sim["Telescope/AzimuthAngle"]          =   0.0
-sim["Telescope/TiltAngle"]             =   0.0
-sim["Camera/FocalPlaneOrientation"]    =   5.0
-sim["CCD/OriginOffsetX"]               =   0.0
-sim["CCD/OriginOffsetY"]               =   0.0
-sim["CCD/Orientation"]                 =  90.0
-sim["Camera/IncludeFieldDistortion"]   =  "no"
-
+sim["ObservingParameters/RApointing"]             = 180.0 
+sim["ObservingParameters/DecPointing"]            = -70.0
+sim["Telescope/AzimuthAngle"]                     =   0.0
+sim["Telescope/TiltAngle"]                        =   0.0
+sim["Camera/FocalPlaneOrientation/Source"]        = "ConstantValue"
+sim["Camera/FocalPlaneOrientation/ConstantValue"] =   5.0
+sim["CCD/OriginOffsetX"]                          =   0.0
+sim["CCD/OriginOffsetY"]                          =   0.0
+sim["CCD/Orientation"]                            =  90.0
+sim["Camera/IncludeFieldDistortion"]              =  "no"
+sim["Camera/FocalLength/Source"]                  = "ConstantValue"
+sim["Camera/FocalLength/ConstantValue"]           = 0.24712595 
 
 # Specify the pixel coordinates (of the CCD, not of the subfield) of your stars
 
-row = np.array([10.0, 10.5, 11.0])
-col = np.array([40.8, 39.1, 38.0])
+row = np.array([7.0, 10.0, 15.0])
+col = np.array([40., 45.0, 50.0])
 magnitude = np.array([11.0, 10.0, 12.0])
 
 
@@ -66,8 +68,8 @@ sim["ObservingParameters/StarCatalogFile"] = starCatalogFileName
 
 sim["SubField/ZeroPointRow"]    = 5
 sim["SubField/ZeroPointColumn"] = 30
-sim["SubField/NumColumns"]      = 15
-sim["SubField/NumRows"]         = 15
+sim["SubField/NumColumns"]      = 25
+sim["SubField/NumRows"]         = 25
 
 
 # Run the simulation
