@@ -311,7 +311,7 @@ void Camera::configure(ConfigurationParameters &configParam)
         
             Log.info("Camera: Using a constant distortion law");
         }
-        else if (focalLengthSource == "FromFile")
+        else if (fieldDistortionSource == "FromFile")
         {
             string distortionInputFile = configParam.getAbsoluteFilename("Camera/FieldDistortion/CoefficientsFromFile");
             string invDistortionInputFile = configParam.getAbsoluteFilename("Camera/FieldDistortion/InverseCoefficientsFromFile");
