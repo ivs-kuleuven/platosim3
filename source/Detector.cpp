@@ -1093,6 +1093,9 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
     if(includeMolecularContamination)
         openShutterSmearingOutsideSubField *= molecularContaminationEfficiency;
 
+    // Sect. 4.2.4.5 of PLATO-DLR-PL-RP-001:
+    // The expected value E_ang is then the mean over all pixels and results in a value of 0.993
+
     if(includeQuantumEfficiency)
         openShutterSmearingOutsideSubField *= expectedValueQuantumEfficiency;
 
