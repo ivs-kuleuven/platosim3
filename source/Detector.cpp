@@ -342,10 +342,10 @@ void Detector::generateThroughputMap()
     double angle;
 
     const double refAnglePolarizationRadians = deg2rad(refAnglePolarization);       // Reference angle for the polarisation efficiency [radians]
-    const double cosPolarizationEfficiency = cos(polarizationEfficiency);
+    const double acosPolarizationEfficiency = acos(polarizationEfficiency);
 
     const double refAngleQuantumEfficiencyRadians = deg2rad(refAngleQuantumEfficiency);     // Reference angle for the quantum efficiency [radians]
-    const double cosQuantumEfficiency = cos(quantumEfficiency);
+    const double acosQuantumEfficiency = acos(quantumEfficiency);
 
     if (includeVignetting || includePolarization || includeQuantumEfficiency)
     {
@@ -372,14 +372,14 @@ void Detector::generateThroughputMap()
                 // Polarisation (Eq. 4-11 in PLATO-DLR-PL-RP-001)
 
                 if (includePolarization)
-                    throughputMap(row, column) *= cos(angle / refAnglePolarizationRadians * cosPolarizationEfficiency);
+                    throughputMap(row, column) *= cos(angle / refAnglePolarizationRadians * acosPolarizationEfficiency);
 
                 // Quantum efficiency (Eq. 4-12 in PLATO-DLR-PL-RP-001)
                 // Pixel units before: [photons]
                 // Pixel units after: [electrons]
 
                 if (includeQuantumEfficiency)
-                    throughputMap(row, column) *= cos(angle / refAngleQuantumEfficiencyRadians * cosQuantumEfficiency);
+                    throughputMap(row, column) *= cos(angle / refAngleQuantumEfficiencyRadians * acosQuantumEfficiency);
             }
         }
     }
