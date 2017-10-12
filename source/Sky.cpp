@@ -29,13 +29,13 @@ Sky::Sky(ConfigurationParameters &configParams)
         {
             istringstream buffer(temp);
             vector<double> numbers((istream_iterator<double>(buffer)), istream_iterator<double>());
-            starCatalog.addStar(n, numbers[0], numbers[1], numbers[2], Angle::degrees);
+            starDB.emplace(n, make_tuple(numbers[0] / Angle::degrees, numbers[1] / Angle::degrees, numbers[2]));    // (starID, (RA[rad], DEC[rad], Vmag)
             n++;
         }
 
         myfile.close();
 
-        Log.info("Sky: found " + to_string(starCatalog.size()) + " stars in file " + starInputfile);
+        Log.info("Sky: found " + to_string(starDB.size()) + " stars in file " + starInputfile);
     }
     else
     {
@@ -86,61 +86,20 @@ void Sky::configure(ConfigurationParameters &configParams)
 
 
 
-/**
- * \brief  Return the equatorial sky coordinates of the star with a given ID.
- * 
- * \param id               Sequential number of the star 
- * \param outputAngleUnit  Either Angle::degrees or Angle::radians
- * 
- * \return (RA, dec)  Equatorial coordinates of the star [rad]
- */
-
-pair<double, double> Sky::getCoordinatesOfStarWithID(int id, Unit outputAngleUnit)
-{
-    if ((id < 0) || (id >= starCatalog.size()))
-    {
-        string errorMessage = "Sky: getStarCoordinatesOfStarWithID(): id " + to_string(id) 
-                            + " is not in {0,.., " + to_string(starCatalog.size()-1) + "}";
-        Log.error(errorMessage);
-        throw IllegalArgumentException("errorMessage");
-    }
-    else
-    {
-        const auto star = starCatalog[id];
-        return make_pair(star.RA * outputAngleUnit, star.dec * outputAngleUnit);
-    }
-}
-
-
-
-
-
-
-
-
 
 
 /**
- * \brief  Return the V magnitude of the star with given ID
- * 
- * \param id       Sequential number of the star 
- * \return Vmag    V-magnitude of the star
+ * \brief Update the time dependent parameters of Sky (e.g. stellar variability) to their 
+ *        value at the given time point
+ *
+ * \param time: current time
+ *
+ * \return 
  */
 
-double Sky::getVmagnitudeOfStarWithID(int id)
+void Sky::updateParameters(double time)
 {
-    if ((id < 0) || (id >= starCatalog.size()))
-    {
-        string errorMessage = "Sky: getVmagnitudeOfStarWithID(): id " + to_string(id) 
-                            + " is not in {0,.., " + to_string(starCatalog.size()-1) + "}";
-        Log.error(errorMessage);
-        throw IllegalArgumentException("errorMessage");
-    }
-    else
-    {
-        const auto star = starCatalog[id];
-        return star.Vmag;
-    }
+
 }
 
 
@@ -205,7 +164,7 @@ pair<double, double> getSunCoordinates(double julianDate, Unit outputAngleUnit =
 
 
 /**
- * \brief  Given a circle on the sky, return a catalog with all stars from the database within that circle.
+ * \brief  Given a circle on the sky, select all stars from the database within that circle.
  * 
  * \note The stars right on the circle are also included in the catalog.
  * 
@@ -214,15 +173,255 @@ pair<double, double> getSunCoordinates(double julianDate, Unit outputAngleUnit =
  * \param radius     Radius of the circle on the sky
  * \param angleUnit  If the input angles are in degrees: Angle:degrees, if in radians: Angle::radians 
  * 
- * \return           A StarCatalog object containing the ID, RA, dec, and Vmag of each star within the circle.
+ * \return           The total number of selected stars
  */
 
-StarCatalog Sky::getStarsWithinRadiusFrom(double RA0, double dec0, double radius, Unit angleUnit)
+unsigned long Sky::selectStarsWithinRadiusFrom(double RA0, double dec0, double radius, Unit angleUnit)
 {
-    return starCatalog.getStarsWithinRadiusFrom(RA0, dec0, radius, angleUnit);
+    // All computations are done in radians, so if RA0, dec0, and radius are expressed in degrees,
+    // divide the degree unit away into radians.
+
+    double RACircleCenter  = RA0    / angleUnit;      // [rad]
+    double decCircleCenter = dec0   / angleUnit;      // [rad]
+    double radiusCircle    = radius / angleUnit;      // [rad]
+
+    // Reset possible previous selections
+    
+    selectedStarID.clear();
+    selectedRA.clear();
+    selectedDec.clear();
+    selectedVmag.clear();
+
+    // Copy the star ID, RA, Dec, and Vmag of the selected stars.
+    // It's not sufficient to simply keep the starIDs of the selected stars, because the coordinates
+    // of the selected stars may change due to aberration, or the magnitude may change due to variability.
+    // We don't want to apply such changes to the original database of stars.
+    
+    for (auto const& star: starDB)
+    {
+        unsigned int starID = star.first;
+        double RA, dec, Vmag;
+        tie(RA, dec, Vmag) = star.second;
+        double angularDistances = angularDistanceBetween(RACircleCenter, decCircleCenter, RA, dec, Angle::radians);  // [rad]
+ 
+        if (angularDistances <= radiusCircle)
+        {
+            selectedStarID.push_back(starID);
+            selectedRA.push_back(RA);
+            selectedDec.push_back(dec);
+            selectedVmag.push_back(Vmag);
+        }
+    }
+
+    return selectedStarID.size();
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief  Calculate the apparent positions of the previously selected stars based on the current platform 
+ *         pointing coordinates.
+ *
+ * \detail Important: first call selectStarsWithinRadiusFrom() to get a selection of stars, so that the 
+ *                    aberration does not need to be done on the entire database.
+ *
+ * This calculation is an approximation based on a circular earth orbit around the sun and *not* taking
+ * the Lissajous orbit of the satellite around L2 into account. We do calculate the differential aberration
+ * however which takes into account the aberration correction done for the Spacecraft pointing.
+ * 
+ * \param platform    the current platform from which the position of the Sun and the pointing coordinates are requested
+ * 
+ * \return            A StarCatalog with all the aberration corrected stars.
+ */
+
+void Sky::aberrateSelectedStarPositions(Platform &platform, string aberrationCorrectionType, double startTime, double timeMiddle)
+{
+    using StringUtilities::dtos;
+
+    //velocity direction of PLATO, assuming circular orbit in ecliptic plane with constant speed of 30 km/s, 
+    //TODO: check the direction of rotation around the sun and adjust the sign of platoAngle accordingly
+    
+    double platoAngle = 2. * M_PI / 365. / 24. / 3600. * startTime;
+    valarray<double> v = {cos(platoAngle), sin(platoAngle), 0.};
+
+    //rotation matrix to compensate the aberration of light for the pointing direction, needed to calculate the differential aberration
+    
+    valarray<double> rot0 = {1., 0., 0.};
+    valarray<double> rot1 = {0., 1., 0.};
+    valarray<double> rot2 = {0., 0., 1.};
+
+    //ratio of the velocity of PLATO to the speed of light
+    
+    constexpr double beta = 30. / 300000.;
+
+    if (aberrationCorrectionType == "differential")
+    {
+        Log.info("StarCatalog::aberrate: applying differential aberration correction");
+
+        // Request the current platform pointing coordinates (i.e. pointing of the Fast Camera's)
+
+        double raPlatform, decPlatform;
+        tie(raPlatform, decPlatform) = platform.getCurrentPointingCoordinates();
+
+        double lambdaPlatform, betaPlatform;
+        equatorial2ecliptic(raPlatform, decPlatform, lambdaPlatform, betaPlatform);
+
+        //direction of the pointing
+        
+        valarray<double> p = {cos(lambdaPlatform) * cos(betaPlatform), sin(lambdaPlatform) * cos(betaPlatform), sin(betaPlatform)};
+
+        //angle between velocity direction and pointing
+        
+        double pangle = acos((v * p).sum());
+
+        //relativistically aberrated angle between velocity direction and pointing
+        
+        double oangle = atan2(sqrt(1. - beta * beta) * sin(pangle), cos(pangle) + beta);
+
+        //rotation axis between velocity direction and pointing
+        
+        valarray<double> r = {p[1] * v[2] - p[2] * v[1], p[2] * v[0] - p[0] * v[2], p[0] * v[1] - p[1] * v[0]};
+        r /= sqrt((r * r).sum()); 
+
+        //rotation matrix for rotation axis r with angle difference after aberration, this reverses the aberration effect for the pointing direction
+        
+        double c = cos(oangle - pangle);
+        double s = sin(oangle - pangle);
+        double x = r[0], y = r[1], z = r[2];
+        rot0 = {c + x * x * (1. - c), x * y * (1. - c) - z * s, x * z * (1. - c) + y * s};
+        rot1 = {y * x * (1. - c) + z * s, c + y * y * (1. - c), y * z * (1. - c) - x * s};
+        rot2 = {z * x * (1. - c) - y * s, z * y * (1. - c) + x * s, c + z * z * (1. - c)};
+
+    }
+    else
+    {
+        Log.info("StarCatalog::aberrate: applying absolute aberration correction");
+
+    }
+
+    for (unsigned int n = 0; n < selectedStarID.size(); ++n)
+    {
+        double raStar, decStar, Vmag;
+        tie(raStar, decStar, Vmag) = starDB[selectedStarID[n]];       // ra & dec in [rad]
+
+        double lambdaStar, betaStar;
+        equatorial2ecliptic(raStar, decStar, lambdaStar, betaStar);
+
+        //direction of the star
+        
+        valarray<double> s = {cos(lambdaStar) * cos(betaStar), sin(lambdaStar) * cos(betaStar), sin(betaStar)};
+
+        //angle between velocity direction and star direction
+        
+        double sangle = acos((v * s).sum());
+
+        //relativistically aberrated angle between velocity direction and star direction
+        
+        double oangle = atan2(sqrt(1. - beta * beta) * sin(sangle), cos(sangle) + beta);
+
+        //relativistically aberrated star direction
+        
+        valarray<double> a = s - v * cos(sangle);
+        a = v * cos(oangle) + a / sqrt((a * a).sum()) * sin(oangle);
+
+        //rotate aberrated star direction to compensate for aberrated pointing to get the differential aberrated star direction
+        
+        a = {(rot0 * a).sum(), (rot1 * a).sum(), (rot2 * a).sum()};
+
+        //calculate ecliptic coordinates of aberrated star direction
+        
+        betaStar = atan(a[2] / sqrt(a[0] * a[0] + a[1] * a[1]));
+        lambdaStar = atan2(a[1], a[0]);
+
+        double raStarAberrated, decStarAberrated;
+        ecliptic2equatorial(lambdaStar, betaStar, raStarAberrated, decStarAberrated);
+        
+        selectedRA[n] = raStarAberrated;
+        selectedDec[n] = decStarAberrated;
+
+        // Write debugging info on the first star only
+
+        if (n == 0)
+        {
+            Log.debug("StarCatalog::aberrate: ra[0], dec[0] = " + dtos(raStarAberrated, false, 8) + ", " + dtos(decStarAberrated, false, 8));
+        }
+    }
+
+}
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Return the star ID, RA, Dec, and Vmag of selected star #n
+ *        
+ * \detail Important: first call selectStarsWithinRadiusFrom() to get a proper selection of stars.
+ *
+ * \param n: 0 <= n < number of selected stars
+ *
+ * \return starID: Identification number of the selected star.
+ *         RA:     Right ascension of the star. Aberrated if aberrateSelectedStarPositions() was called before.
+ *         Dec:    Declination of the star. Aberrated if aberrateSelectedStarPositions() was called before.
+ *         Vmag:   Johnson V magnitude. Possibly variable if updatedParameters() was called before.
+ *
+ *
+ */
+
+tuple<unsigned int, double, double, double> Sky::getSelectedStar(unsigned int n)
+{
+    if (n > selectedStarID.size()-1)
+    {
+        throw IllegalArgumentException("Sky::getSelectedStar(): star number is larger than " + to_string(selectedStarID.size()-1));
+    }
+    else
+    {
+        return make_tuple(selectedStarID[n], selectedRA[n], selectedDec[n], selectedVmag[n]);
+    }
+}
+
+
+
+
+
+
+
+
+/**
+ * \brief Return the RA [rad], dec [rad], and Vmag of the star with the given starID.  
+ *
+ * \detail If the starID is unknown, an IllegalArgumentException will be thrown. 
+ *
+ * \return RA, dec, Vmag
+ *
+ */
+
+tuple<double, double, double> Sky::getInfoOfStarWithID(unsigned int starID)
+{
+    if (starDB.count(starID) == 0)
+    {
+        throw IllegalArgumentException("Sky::GetInfoOfSelectedStarWithID(): starID " + to_string(starID) + " unknown");
+    }
+    else
+    {
+        return starDB[starID];
+    }
+}
 
 
 
