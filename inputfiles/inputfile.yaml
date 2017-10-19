@@ -192,6 +192,12 @@ SubField:
     SubPixels:                       4               # (Sqrt of) nr of subpixels per CCD pixel. Should be 2^n <= 128.
 
 
+Sky:
+
+    IncludeVariableSources:          yes                       # Include time series of variable stars or not
+    VariableSourceList:              inputfiles/varsource.txt  # Ascii file: Col 1: star ID, Col 2: path of time series file
+                                                               # Time series ascii file: Col 1: time [s],  Col 2: delta-magnitude
+
 RandomSeeds:
 
     ReadOutNoiseSeed:                1424949740      # Unique positive integer 
