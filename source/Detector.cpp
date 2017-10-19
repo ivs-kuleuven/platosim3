@@ -1281,52 +1281,49 @@ void Detector::applyGain()
     const int lastIndexCcdLeft = numColumns / 2 - 1;
     const int lastIndexSubFieldLeft = lastIndexCcdLeft - subFieldZeroPointColumn;
 
-    // Detector gain (left & right)
+    // Detector gain (left & right) [µV / e-]
 
     const double ccdGainOverDeltaTemp = gainStability * (getTemperature() - nominalOperatingTemperature);
 
     const double ccdGainLeft = refValueGainLeft + ccdGainOverDeltaTemp;
     const double ccdGainRight = refValueGainRight + ccdGainOverDeltaTemp;
 
-    // FEE gain (left & right)
+    // FEE gain (left & right) [ADU / µV]
 
-    //  const double feeGainOverDeltaTemp = frontEndElectronics->getGainStability()
-    //         * (frontEndElectronics->getTemperature() - frontEndElectronics->getNominalOperatingTemperature());
-    //
-    //	const double feeGainLeft = frontEndElectronics->getGainRefValueLeft() + feeGainOverDeltaTemp;
-    //	const double feeGainRight = frontEndElectronics->getGainRefValueRight() + feeGainOverDeltaTemp;
-
-	// Combined gain (FEE & CCD)
+	// Combined gain (FEE & CCD) [ADU / e-]
 
 	const double combinedGainLeft = frontEndElectronics->getGainLeftAdc(internalTime) * ccdGainLeft;
 	const double combinedGainRight = frontEndElectronics->getGainRightAdc(internalTime) * ccdGainRight;
 
 	if(lastIndexSubFieldLeft >= numColumnsPixelMap - 1)	  // Left ADC only
 	{
-		pixelMap /= combinedGainLeft;
-		biasMap /= combinedGainLeft;
-		smearingMap /= combinedGainLeft;
+		pixelMap *= combinedGainLeft;
+		biasMap *= combinedGainLeft;
+		smearingMap *= combinedGainLeft;
 	}
 	else if(lastIndexSubFieldLeft < 0)	                 // Right ADC only
 	{
-		pixelMap /= combinedGainRight;
-		biasMap /= combinedGainRight;
-		smearingMap /= combinedGainRight;
+		pixelMap *= combinedGainRight;
+		biasMap *= combinedGainRight;
+		smearingMap *= combinedGainRight;
 	}
 	else
 	{
 		// 0 -> lastIndexSubFieldLeft: left ADC
 
-		pixelMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) /= combinedGainLeft;
-		biasMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) /= combinedGainLeft;
-		smearingMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) /= combinedGainLeft;
+		pixelMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
+		biasMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
+		smearingMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
 
 		// lastIndexSubFieldLeft + 1 -> numColumnsSubPixelMap -1: right ADC
 
-		pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) /= combinedGainRight;
-		biasMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) /= combinedGainRight;
-		smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) /= combinedGainRight;
+		pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
+		biasMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
+		smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
 	}
+
+	Log.info("Detector: gain: " + to_string(combinedGainLeft));
+	Log.info("Detector: gain: " + to_string(combinedGainRight));
 }
 
 
