@@ -33,7 +33,7 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     if (fileExists(outputFilename))
     {
-        Log.error("Simulation: Output file name already exists. Aborting.");
+        Log.error("Simulation: Output file " + outputFilename + " already exists. Aborting.");
         exit(1);
     }
 
