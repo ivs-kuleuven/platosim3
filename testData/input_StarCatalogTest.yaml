@@ -16,58 +16,69 @@ ObservingParameters:
     ExposureTime:                    23              # [s]
     RApointing:                      180             # Platform (not telescope) right ascension pointing coordinate      [deg] 
     DecPointing:                     -70             # Platform (not telescope) declination pointing coordinate          [deg]
-    Fluxm0:                          1.00238e8       # Photon flux of a V=0 G2V-star                                     [phot/s/m^2/nm]
-    SkyBackground:                   220.            # Stellar + zodiacal background level. Set negative to compute.     [phot/pix/s]
+    Fluxm0:                          1.00179e8       # Photon flux of a V=0 G2V-star                                     [phot/s/m^2/nm]
+    SkyBackground:                   342.            # Stellar + zodiacal background level. Set negative to compute.     [phot/pix/s]
     StarCatalogFile:                 inputfiles/starcatalog.txt
 
 Platform:
 
     UseJitter:                       no              # yes or no
     UseJitterFromFile:               no              # yes or no
-    JitterYawRms:                    2.3             # [arcsec]
-    JitterPitchRms:                  2.3             # [arcsec]
-    JitterRollRms:                   2.3             # [arcsec]
+    JitterYawRms:                    1.0             # [arcsec]
+    JitterPitchRms:                  1.0             # [arcsec]
+    JitterRollRms:                   1.0             # [arcsec]
     JitterTimeScale:                 3600.           # [s]
     JitterFileName:                  testData/jitter.txt
 
 Telescope:
     
+    GroupID:                         Custom          # There are four camera groups: 1, 2, 3, 4, Fast, Custom
+                                                     # (use Custom to specify the telescope azimuth and tilt angles yourself)
     AzimuthAngle:                    135.0           # Azimuth angle of telescope on the platform [deg]
     TiltAngle:                       9.2             # Tilt angle of the telescope on the platform [deg]
     LightCollectingArea:             113.1           # Effective area of 1 telescope [cmˆ2]
     TransmissionEfficiency:
-        BOL:                         0.800           # Beginning of Life value in [0,1]
-        EOL:                         0.757           # End of Life value in [0,1]
+        BOL:                         0.7191          # Beginning of Life value in [0,1]
+        EOL:                         0.7191          # End of Life value in [0,1]
     UseDrift:                        no              # yes or no
     UseDriftFromFile:                no              # yes or no
-    DriftYawRms:                     2.3             # RMS of thermo-elastic drift in yaw [arcsec]
-    DriftPitchRms:                   2.3             # RMS of thermo-elastic drift in pitch [arcsec]
-    DriftRollRms:                    2.3             # RMS of thermo-elastic drift in roll [arcsec]
-    DriftTimeScale:                  3600.           # Timescale of thermo-elastic drift [s]
+    DriftYawRms:                     2.0             # RMS of thermo-elastic drift in yaw [arcsec]
+    DriftPitchRms:                   2.0             # RMS of thermo-elastic drift in pitch [arcsec]
+    DriftRollRms:                    2.0             # RMS of thermo-elastic drift in roll [arcsec]
+    DriftTimeScale:                  86400.          # Timescale of thermo-elastic drift [s]
     DriftFileName:                   inputfiles/drift.txt
 
 Camera:
     
-    FocalPlaneOrientation:           0.0             # [degrees]
+    FocalPlaneOrientation:
+        Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent)
+        ConstantValue:               0.0             # [degrees]. Used in case Source is ConstantValue. 
+        FromFile:                    inputfiles/fporientation.txt  # Used in case Source is FromFile. time [s] & FP orientation [deg]
     PlateScale:                      0.8333          # [arcsec/micron]
-    FocalLength:                     0.24712595      # [m]
-    ThroughputBandwidth:             650             # FWHM [nm]
+    FocalLength: 
+        Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
+        ConstantValue:               0.24752         # Used in case Source is ConstantValue (from ZEMAX model) [m]
+        FromFile:                    inputfiles/focallength.txt # Used in case Source is FromFile: time [s] & focalLenght [m]
+    ThroughputBandwidth:             638             # FWHM [nm]
     ThroughputLambdaC:               550             # Central wavelength of the throughput passband [nm]
     IncludeAberrationCorrection:     yes             # Calculate the differential aberration correction and apply
     AberrationCorrection:
         Type:                        differential    # [differential, absolute]
     IncludeFieldDistortion:          yes             # Wheter or not to include field distortion
-    FieldDistortion:                                 # Describe the model for the field distortion
-        Type:                        Polynomial1D
-        Degree:                      3
-        Coefficients:                [-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06]
-        InverseCoefficients:         [-0.00458067036444, 1.00110311283, -5.61136295937e-05, -4.311925329e-06]
+    FieldDistortion:
+        Type:                        Polynomial1D    # The model for the field distortion
+        Source:                      FromFile        # Either ConstantValue (constant in time) or FromFile (time dependent) 
+        ConstantCoefficients:        [-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06]   # In case Source is ConstantValue
+        ConstantInverseCoefficients: [-0.00458067036444, 1.00110311283, -5.61136295937e-05, -4.311925329e-06] # In case Source is ConstantValue
+        CoefficientsFromFile:        inputfiles/distortioncoefficients.txt                                    # In case Source is FromFile
+        InverseCoefficientsFromFile: inputfiles/distortioninversecoefficients.txt                             # In case Source if FromFile
+
 
 PSF:
 
     Model:                           MappedFromFile  # PSF model: MappedGaussian, MappedFromFile, AnalyticGaussian, AnalyticNonGaussian
     MappedGaussian:                                  # Generate the PSF from a fixed 2D Gaussian function
-        Sigma:                       0.50            # Standard deviation of Gaussian PSF [pix]
+        Sigma:                       0.638           # Standard deviation of Gaussian PSF [pix]
         NumberOfPixels:              8               # The number of pixels in the field for which the PSF is generated
     MappedFromFile:                                  # Read a pre-calculated and fixed PSF from an HDF5 file
         Filename:                    inputfiles/psf.hdf5 
@@ -79,7 +90,11 @@ PSF:
         SigmaX18:                    5.0             # Stdev of Gaussian PSF in x-direction at 18 deg from the optical axis [pix]
         SigmaY18:                    2.0             # Stdev of Gaussian PSF in y-direction at 18 deg from the optical axis [pix]
     AnalyticNonGaussian:
-        Sigma:                       0.5             # Width of the analytic PSF, equal to sigma for a Gaussian PSF [pix]
+        ParameterFileName:           inputfiles/psfallv3.txt
+        Sigma:                                       # Width of the analytic PSF, equal to sigma for a Gaussian PSF [pix]  
+            Source:                  ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
+            ConstantValue:           0.5             # Used in case Source is ConstantValue  [pix]
+            FromFile:                inputfiles/sigmaPSF.txt # Used in case Source is FromFile: time [s] & sigma_PSF [pix]
         ParameterFileName:           inputfiles/psfallv3.txt
 
 RandomSeeds:
@@ -91,3 +106,27 @@ RandomSeeds:
     DriftSeed:                       1433429158      # Unique positive integer 
     FeeGainSeed:                     1429485030      # Unique positive integer
     CcdGainSeed:                     1420450443      # Unique positive integer
+    
+# ----- DO NOT MAKE CHANGES BELOW THIS LINE -----
+
+# The parameters below are fixed type parameters that should not be changed. 
+# When you need to specify your own values, use the Custom type for the following parameters:
+# - Telescope/GroupID
+# - CCD/Position
+
+CameraGroups:                                                          # Four groups of six camera's with their azimuth and tilt as specified
+                                                                       # The fifth value is for the Fast Camera's
+    AzimuthAngle:                    [45.0, 135.0, -135.0, -45.0, 0.0] # Azimuth angle of telescope on the platform [deg]
+    TiltAngle:                       [9.2, 9.2, 9.2, 9.2, 0.0]         # Tilt angle of the telescope on the platform [deg]
+
+
+CCDPositions:
+
+    OriginOffsetX:                   [-1, -1, -1, -1]               # X Offset of CCD origin from center of focal plane [mm]
+    OriginOffsetY:                   [82.18, 82.18, 82.18, 82.18]   # Y Offset of CCD origin from center of focal plane [mm]
+    Orientation:                     [0, 90, 180, 270]              # Orientation of CCD w.r.t. focal plane orientation, counter-clockwise [deg]
+    NumColumns:                      [4510, 4510, 4510, 4510]       # Number of columns on the CCD [pixels]
+    NumRows:                         [4510, 4510, 4510, 4510]       # Number of rows on the CCD [pixels] (including non-exposed ones)
+    FirstRowForNormalCamera:         [0, 0, 0, 0]                   # The complete CCDs are active/illuminated for the Normal Camera's
+    FirstRowForFastCamera:           [2255, 2255, 2255, 2255]       # Only the upper half of the CCDs is active/illuminated for the Fast Camera's
+
