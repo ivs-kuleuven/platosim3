@@ -28,14 +28,14 @@ from matplotlib.path import Path
 
 CCD = \
 {
-    '1'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': 0},
-    '2'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': pi/2},
-    '3'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': pi},
-    '4'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': 3*pi/2},
-    '1F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': 0},
-    '2F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': pi/2},
-    '3F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': pi},
-    '4F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': 3*pi/2}
+    '1'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.18, 'angle': 0},
+    '2'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.18, 'angle': pi/2},
+    '3'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.18, 'angle': pi},
+    '4'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.18, 'angle': 3*pi/2},
+    '1F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.18, 'angle': 0},
+    '2F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.18, 'angle': pi/2},
+    '3F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.18, 'angle': pi},
+    '4F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.18, 'angle': 3*pi/2}
 }
 
 
@@ -953,10 +953,10 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal):
         distortionCoefficients = None
 
     pixelSize        = float(sim["CCD/PixelSize"])
-    focalLength      = float(sim["Camera/FocalLength"]) * 1000.0                   # [m] -> [mm]
+    focalLength      = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0                   # [m] -> [mm]
     raPlatform       = np.deg2rad(float(sim["ObservingParameters/RApointing"]))
     decPlatform      = np.deg2rad(float(sim["ObservingParameters/DecPointing"]))
-    focalPlaneAngle  = float(sim["Camera/FocalPlaneOrientation"])
+    focalPlaneAngle  = float(sim["Camera/FocalPlaneOrientation/ConstantValue"])
     azimuthTelescope = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
     tiltTelescope    = np.deg2rad(float(sim["Telescope/TiltAngle"]))
     
@@ -1012,10 +1012,10 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
         includeFieldDistortion = False
 
     pixelSize        = float(sim["CCD/PixelSize"])
-    focalLength      = float(sim["Camera/FocalLength"]) * 1000.0                     # [m] -> [mm]
+    focalLength      = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0                     # [m] -> [mm]
     raPlatform       = np.deg2rad(float(sim["ObservingParameters/RApointing"]))
     decPlatform      = np.deg2rad(float(sim["ObservingParameters/DecPointing"]))
-    focalPlaneAngle  = float(sim["Camera/FocalPlaneOrientation"])
+    focalPlaneAngle  = float(sim["Camera/FocalPlaneOrientation/ConstantValue"])
     azimuthTelescope = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
     tiltTelescope    = np.deg2rad(float(sim["Telescope/TiltAngle"]))
 

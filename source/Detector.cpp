@@ -175,9 +175,12 @@ void Detector::updateParameters(double time)
     Log.debug("Detector: numRows, numColumns, firstRow = " + to_string(numRows) + ", " + to_string(numColumns) + ", " + to_string(firstRowExposed));
 
     pixelSize                           = configParam.getDouble("CCD/PixelSize");
-    quantumEfficiency                   = configParam.getDouble("CCD/QuantumEfficiency/Efficiency");
-    refAngleQuantumEfficiency           = configParam.getDouble("CCD/QuantumEfficiency/RefAngle");
-    expectedValueQuantumEfficiency      = configParam.getDouble("CCD/QuantumEfficiency/ExpectedValue");
+//    quantumEfficiency                   = configParam.getDouble("CCD/QuantumEfficiency/Efficiency");
+    refAngleQE                          = configParam.getDouble("CCD/QuantumEfficiency/RefAngle");
+    relativeRefEfficiencyQE             = configParam.getDouble("CCD/QuantumEfficiency/RelativeRefEfficiency");
+    meanQE                              = configParam.getDouble("CCD/QuantumEfficiency/MeanQuantumEfficiency");
+//    meanAngleDependencyQE               = configParam.getDouble("CCD/QuantumEfficiency/MeanAngleDependency");
+//    expectedValueQuantumEfficiency      = configParam.getDouble("CCD/QuantumEfficiency/ExpectedValue");
     fullWellSaturationLimit             = configParam.getLong("CCD/FullWellSaturation");
     digitalSaturationLimit              = configParam.getLong("CCD/DigitalSaturation");
     readoutNoise                        = configParam.getDouble("CCD/ReadoutNoise");
@@ -344,8 +347,8 @@ void Detector::generateThroughputMap()
     const double refAnglePolarizationRadians = deg2rad(refAnglePolarization);       // Reference angle for the polarisation efficiency [radians]
     const double acosPolarizationEfficiency = acos(polarizationEfficiency);
 
-    const double refAngleQuantumEfficiencyRadians = deg2rad(refAngleQuantumEfficiency);     // Reference angle for the quantum efficiency [radians]
-    const double acosQuantumEfficiency = acos(quantumEfficiency);
+    const double refAngleQuantumEfficiencyRadians = deg2rad(refAngleQE);     // Reference angle for the quantum efficiency [radians]
+    const double acosQuantumEfficiency = acos(relativeRefEfficiencyQE);		// Relative efficiency due to the angle dependency of the QE at the reference angle
 
     if (includeVignetting || includePolarization || includeQuantumEfficiency)
     {
@@ -379,7 +382,7 @@ void Detector::generateThroughputMap()
                 // Pixel units after: [electrons]
 
                 if (includeQuantumEfficiency)
-                    throughputMap(row, column) *= cos(angle / refAngleQuantumEfficiencyRadians * acosQuantumEfficiency);
+                    throughputMap(row, column) *= (meanQE * cos(angle / refAngleQuantumEfficiencyRadians * acosQuantumEfficiency));
             }
         }
     }
@@ -1097,7 +1100,7 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
     // The expected value E_ang is then the mean over all pixels and results in a value of 0.993
 
     if(includeQuantumEfficiency)
-        openShutterSmearingOutsideSubField *= expectedValueQuantumEfficiency;
+        openShutterSmearingOutsideSubField *= meanQE;
 
 
     openShutterSmearing += openShutterSmearingOutsideSubField;
@@ -1281,52 +1284,49 @@ void Detector::applyGain()
     const int lastIndexCcdLeft = numColumns / 2 - 1;
     const int lastIndexSubFieldLeft = lastIndexCcdLeft - subFieldZeroPointColumn;
 
-    // Detector gain (left & right)
+    // Detector gain (left & right) [µV / e-]
 
     const double ccdGainOverDeltaTemp = gainStability * (getTemperature() - nominalOperatingTemperature);
 
     const double ccdGainLeft = refValueGainLeft + ccdGainOverDeltaTemp;
     const double ccdGainRight = refValueGainRight + ccdGainOverDeltaTemp;
 
-    // FEE gain (left & right)
+    // FEE gain (left & right) [ADU / µV]
 
-    //  const double feeGainOverDeltaTemp = frontEndElectronics->getGainStability()
-    //         * (frontEndElectronics->getTemperature() - frontEndElectronics->getNominalOperatingTemperature());
-    //
-    //	const double feeGainLeft = frontEndElectronics->getGainRefValueLeft() + feeGainOverDeltaTemp;
-    //	const double feeGainRight = frontEndElectronics->getGainRefValueRight() + feeGainOverDeltaTemp;
-
-	// Combined gain (FEE & CCD)
+	// Combined gain (FEE & CCD) [ADU / e-]
 
 	const double combinedGainLeft = frontEndElectronics->getGainLeftAdc(internalTime) * ccdGainLeft;
 	const double combinedGainRight = frontEndElectronics->getGainRightAdc(internalTime) * ccdGainRight;
 
 	if(lastIndexSubFieldLeft >= numColumnsPixelMap - 1)	  // Left ADC only
 	{
-		pixelMap /= combinedGainLeft;
-		biasMap /= combinedGainLeft;
-		smearingMap /= combinedGainLeft;
+		pixelMap *= combinedGainLeft;
+		biasMap *= combinedGainLeft;
+		smearingMap *= combinedGainLeft;
 	}
 	else if(lastIndexSubFieldLeft < 0)	                 // Right ADC only
 	{
-		pixelMap /= combinedGainRight;
-		biasMap /= combinedGainRight;
-		smearingMap /= combinedGainRight;
+		pixelMap *= combinedGainRight;
+		biasMap *= combinedGainRight;
+		smearingMap *= combinedGainRight;
 	}
 	else
 	{
 		// 0 -> lastIndexSubFieldLeft: left ADC
 
-		pixelMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) /= combinedGainLeft;
-		biasMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) /= combinedGainLeft;
-		smearingMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) /= combinedGainLeft;
+		pixelMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
+		biasMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
+		smearingMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
 
 		// lastIndexSubFieldLeft + 1 -> numColumnsSubPixelMap -1: right ADC
 
-		pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) /= combinedGainRight;
-		biasMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) /= combinedGainRight;
-		smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) /= combinedGainRight;
+		pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
+		biasMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
+		smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
 	}
+
+	Log.info("Detector: gain: " + to_string(combinedGainLeft));
+	Log.info("Detector: gain: " + to_string(combinedGainRight));
 }
 
 

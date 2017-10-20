@@ -153,9 +153,9 @@ def photometry(inputFilePath, outputFilePath, sigmaPSF, verbose=False):
 
     # Collect the relevant input parameters from the HDF5 file
 
-    gain = inputFile["InputParameters/FEE/Gain"].attrs["RefValue"] * inputFile["InputParameters/CCD/Gain"].attrs["RefValue"]
+    gain = inputFile["InputParameters/FEE/Gain"].attrs["RefValue"] * inputFile["InputParameters/CCD/Gain"].attrs["RefValue"]    # [ADU / µV] * [µV / e-] = [ADU / e-]
     #gain = inputFile["/InputParameters/CCD/"].attrs["Gain"]                             # [e-/ADU]
-    quantumEfficiency = inputFile["/InputParameters/CCD/QuantumEfficiency"].attrs["ExpectedValue"]    # [e-/phot]
+    quantumEfficiency = inputFile["/InputParameters/CCD/QuantumEfficiency"].attrs["MeanQuantumEfficiency"]    # [e-/phot]
     sigmaRONsquared = inputFile["/InputParameters/FEE"].attrs["ReadoutNoise"]**2 + inputFile["/InputParameters/CCD"].attrs["ReadoutNoise"]**2
     sigmaRON = sqrt(sigmaRONsquared)                  # [e-/pix]
     
@@ -217,10 +217,10 @@ def photometry(inputFilePath, outputFilePath, sigmaPSF, verbose=False):
 
         # Convert from [ADU] to [electrons] using the gain
 
-        image *= gain
+        image /= gain
 
         if verbose:
-            print("    Converted from [ADU] to [electrons] using a Gain of {0} e-/ADU".format(gain))
+            print("    Converted from [ADU] to [electrons] using a Gain of {0} e-/ADU".format(1.0 / gain))
 
         # Correct for geometrical vignetting
         # TODO
