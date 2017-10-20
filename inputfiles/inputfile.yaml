@@ -111,7 +111,7 @@ FEE:
         Stability:                   -100.0e-6       # [ppm/K] = [ADU/microV/K]
         ThreeSigma:                  0.0             # Difference in gain between both ADCs [%]
     ElectronicOffset:
-        RefValue:                    100             # Reference value for the electronic offset [ADU/pixel]
+        RefValue:                    1000            # Reference value for the electronic offset [ADU/pixel]
         Stability:                   1               # Offset stability [ADU/pixel/K]
  
 
@@ -133,9 +133,11 @@ CCD:
         Stability:                   -0.004          # [microV/e-/K]
         ThreeSigma:                  15.0            # Difference in gain between both CCD halves [%]
     QuantumEfficiency:
-        Efficiency:                  0.925           # Throughput efficiency due to quantum efficiency at the reference angle
+        RelativeRefEfficiency:       0.925           # Relative efficiency due to angle dependency of the QE at the reference angle
         RefAngle:                    45.0            # Reference angle for quantum efficiency [degrees]
-        ExpectedValue:               0.993           # Expected value (mean over all pixels of one detector)
+        MeanQuantumEfficiency:       0.5985          # Mean quantum efficiency
+        #MeanAngleDependency:         0.993           # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE at the reference angle
+        #ExpectedValue:               0.993 * 0.5895  # Expected value (mean over all pixels of one detector)
     FullWellSaturation:              900000          # [e-/pixel]
     DigitalSaturation:               65535           # E.g. 16 bit [ADU/pixel]
     ReadoutNoise:                    44.3            # [e-/pixel]
