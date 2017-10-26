@@ -387,8 +387,17 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("RApointing");
     addDouble("DecPointing");
     addDouble("Fluxm0");
-    addDouble("SkyBackground");
     addString("StarCatalogFile");
+
+    subGroup = "Sky";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("SkyBackground");
+    addBoolean("IncludeCosmics");
+    subGroup = "Sky/Cosmics";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("CosmicHitRate");
+    addDoubleVector("CosmicTrailLength");
+    addDoubleVector("CosmicIntensity");
 
     subGroup = "Platform";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
