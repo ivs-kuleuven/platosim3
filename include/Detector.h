@@ -67,6 +67,8 @@ class Detector: public HDF5Writer
 
         virtual void readOut(float exposureTime);
         virtual void addPhotonNoise();
+        virtual void addCosmics(float exposureTime);
+        virtual void addCosmics(float exposureTime, const arma::Mat<float> &map, int numRows, int numColumns);
         virtual void applyFullWellSaturation();
         virtual void applyCTI();
         virtual void applyOpenShutterSmearing(float exposureTime);
@@ -116,6 +118,10 @@ class Detector: public HDF5Writer
         double pixelSize;                        // Pixel size [microns]
         unsigned int numEdgePixels;              // Nr of pixels to extend the subfield on each side, to account for the edge effect
 
+        bool includeCosmics;                     // Whether or not to include cosmic hits
+        double cosmicHitRate;					// Cosmic hit rate [events / cm^2 / s]
+        vector<double> cosmicTrailLength;		// Interval of the length of the cosmic trails [pixels]
+        vector<double> cosmicIntensity; 			// Interval of the intensity of the cosmic trails [e-]
         double polarizationEfficiency;           // Efficiency due to polarisation at the reference angle (in [0,1])
         double expectedValueVignetting;          // Expected value of the throughput efficiency due to vignetting (int [0,1])
         double refAnglePolarization;             // Reference angle for the polarisation [degrees]
@@ -169,12 +175,25 @@ class Detector: public HDF5Writer
         long readoutNoiseSeed;
         long photonNoiseSeed;
         long gainSeed;
+        long cosmicSeed;
 
         mt19937 photonNoiseGenerator;
         mt19937 readoutNoiseGenerator;
+        mt19937 cosmicHitRateGenerator;
+        mt19937 cosmicEntryRowGenerator;
+        mt19937 cosmicEntryColumnGenerator;
+        mt19937 cosmicEntryAngleGenerator;
+        mt19937 cosmicTrailLengthGenerator;
+        mt19937 cosmicIntensityGenerator;
 
         poisson_distribution<long> photonNoiseDistribution;
         normal_distribution<double> readoutNoiseDistribution;
+        poisson_distribution<long> cosmicHitRateDistribution;
+        uniform_real_distribution<double> cosmicEntryRowDistribution;
+        uniform_real_distribution<double> cosmicEntryColumnDistribution;
+        uniform_real_distribution<double> cosmicEntryAngleDistribution;
+        uniform_real_distribution<double> cosmicTrailLengthDistribution;
+        uniform_real_distribution<double> cosmicIntensityDistribution;
  
         Camera &camera;
         FrontEndElectronics *frontEndElectronics;
