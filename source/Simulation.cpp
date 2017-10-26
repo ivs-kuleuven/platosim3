@@ -396,8 +396,8 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     subGroup = "Sky/Cosmics";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addDouble("CosmicHitRate");
-    addDoubleVector("CosmicTrailLength");
-    addDoubleVector("CosmicIntensity");
+    addDoubleVector("TrailLength");
+    addDoubleVector("Intensity");
 
     subGroup = "Platform";
     hdf5File.createGroup(parentGroup + "/" + subGroup);

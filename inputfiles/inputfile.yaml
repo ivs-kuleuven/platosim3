@@ -20,10 +20,11 @@ ObservingParameters:
 Sky:
 
     SkyBackground:                   342.            # Stellar + zodiacal background level. Set negative to compute.     [phot/pix/s]
+    IncludeCosmics:                  yes             # Whether or not to include cosmics
     Cosmics:
       CosmicHitRate:                 10              # Cosmic hit rate [events / cm^2 / s]
-      CosmicTrailLength:             [0, 15]         # Intervalof the length of the cosmic trails [pixels]
-      CosmicIntensity:               [2000, 4000]    # Interval of the total number of e- in a cosmic hit [e-]
+      TrailLength:             [0, 15]         # Intervalof the length of the cosmic trails [pixels]
+      Intensity:               [2000, 4000]    # Interval of the total number of e- in a cosmic hit [e-]
 
 Platform:
 
