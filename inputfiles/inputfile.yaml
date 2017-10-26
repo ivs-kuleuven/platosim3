@@ -24,7 +24,7 @@ Sky:
     Cosmics:
       CosmicHitRate:                 10              # Cosmic hit rate [events / cm^2 / s]
       TrailLength:             [0, 15]         # Intervalof the length of the cosmic trails [pixels]
-      Intensity:               [2000, 4000]    # Interval of the total number of e- in a cosmic hit [e-]
+      Intensity:               [2000, 40000]    # Interval of the total number of e- in a cosmic hit [e-]
 
 Platform:
 
@@ -210,6 +210,7 @@ RandomSeeds:
     DriftSeed:                       1433429158      # Unique positive integer 
     FeeGainSeed:                     1429485030      # Unique positive integer
     CcdGainSeed:                     1420450443      # Unique positive integer
+    CosmicSeed:                     1494750830      # Unique positive integer
 
 
 # ----- DO NOT MAKE CHANGES BELOW THIS LINE -----

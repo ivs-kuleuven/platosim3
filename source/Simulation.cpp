@@ -597,6 +597,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addLong("DriftSeed");
 	addLong("FeeGainSeed");
 	addLong("CcdGainSeed");
+	addLong("CosmicSeed");
 
     subGroup = "CameraGroups";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
