@@ -204,6 +204,7 @@ RandomSeeds:
     DriftSeed:                   1433429158      # Unique positive integer 
     FeeGainSeed:                 1429485030      # Unique positive integer
     CcdGainSeed:                 1420450443      # Unique positive integer
+    CosmicSeed:                     1494750830      # Unique positive integer
 
 
 # ----- DO NOT MAKE CHANGES BELOW THIS LINE -----

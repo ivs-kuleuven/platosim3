@@ -114,6 +114,8 @@ RandomSeeds:
     FlatFieldSeed:           1425284070      # Unique positive integer 
     CTESeed:                 1424949740      # Unique positive integer 
     DriftSeed:               1433429158      # Unique positive integer 
+    CosmicSeed:                     1494750830      # Unique positive integer
+    
 
     # ----- DO NOT MAKE CHANGES BELOW THIS LINE -----
 
