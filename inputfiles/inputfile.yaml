@@ -23,8 +23,8 @@ Sky:
     IncludeCosmics:                  yes             # Whether or not to include cosmics
     Cosmics:
       CosmicHitRate:                 10              # Cosmic hit rate [events / cm^2 / s]
-      TrailLength:             [0, 15]         # Intervalof the length of the cosmic trails [pixels]
-      Intensity:               [2000, 40000]    # Interval of the total number of e- in a cosmic hit [e-]
+      TrailLength:             [0, 15]               # Intervalof the length of the cosmic trails [pixels]
+      Intensity:               [2000, 40000]         # Interval of the total number of e- in a cosmic hit [e-]
 
 Platform:
 

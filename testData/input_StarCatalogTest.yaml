@@ -17,8 +17,17 @@ ObservingParameters:
     RApointing:                      180             # Platform (not telescope) right ascension pointing coordinate      [deg] 
     DecPointing:                     -70             # Platform (not telescope) declination pointing coordinate          [deg]
     Fluxm0:                          1.00179e8       # Photon flux of a V=0 G2V-star                                     [phot/s/m^2/nm]
-    SkyBackground:                   342.            # Stellar + zodiacal background level. Set negative to compute.     [phot/pix/s]
     StarCatalogFile:                 inputfiles/starcatalog.txt
+
+Sky:
+
+    SkyBackground:                   342.            # Stellar + zodiacal background level. Set negative to compute.     [phot/pix/s]
+    IncludeCosmics:                  yes             # Whether or not to include cosmics
+    Cosmics:
+      CosmicHitRate:                 10              # Cosmic hit rate [events / cm^2 / s]
+      TrailLength:             [0, 15]               # Intervalof the length of the cosmic trails [pixels]
+      Intensity:               [2000, 40000]         # Interval of the total number of e- in a cosmic hit [e-]
+
 
 Platform:
 
