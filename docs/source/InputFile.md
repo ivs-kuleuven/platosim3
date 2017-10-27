@@ -6,6 +6,7 @@ Any desired simulation can be obtained by modifying the following input:
 	*  [configuration parameters](#configurationParameters) (in the YAML file):
 		- [general parameters](#generalParameters)
 		- [observing parameters](#observingParameters)
+		- [sky parameters](#skyParameters)
 		- [platform parameters](#platformParameters)
 		- [telescope parameters](#telescopeParameters)
 		- [camera parameters](#cameraParameters)
@@ -78,8 +79,7 @@ ObservingParameters:
     ExposureTime:                23              
     RApointing:                  180              
     DecPointing:                 -70             
-    Fluxm0:                      1.00238e8       
-    SkyBackground:               220.            
+    Fluxm0:                      1.00238e8              
     StarCatalogFile:             inputfiles/starcatalog.txt
 \endcode
 
@@ -144,6 +144,31 @@ where the \f$\lambda\f$ subscript refers to the wavelength range in which the si
 
 
 
+####<a name="starCatalogFile"></a> StarCatalogFile
+
+Path to the [star catalogue file](#starCatalogFile), relative to the [project location](#projectLocation).
+
+
+
+<!-- Sky Parameters -->
+<!-- ************** -->
+
+### <a name="skyParameters"></a>Sky Parameters
+
+The <b>Sky</b> block of the configuration file contains all the information that is specific to the sky, i.e. sky background and cosmics.  The structure of this block is the following:
+
+\code{.yaml}
+Sky:
+
+	SkyBackground:               342.
+	IncludeCosmics:              yes
+	Cosmics:
+		CosmicHitRate:                      10
+		TrailLength:                   [0, 15]
+		Intensity:               [2000, 40000] 
+\endcode
+
+
 #### <a name="skyBackground"></a>SkyBackground
 <i>Allowed values:</i> < 0 for automatic calculation, ≥ 0 to use the input value
 
@@ -153,9 +178,27 @@ In case a negative value is given, the sky background is computed automatically 
 
 
 
-####<a name="starCatalogFile"></a> StarCatalogFile
+#### <a name="inclCosmics"></a>IncludeCosmics
+<i>Allowed values:</i> "yes" and "no"
 
-Path to the [star catalogue file](#starCatalogFile), relative to the [project location](#projectLocation).
+Indicates whether or not cosmics must be added (to the pixel, bias register, and smearing map).
+
+
+#### <a name="cosmicHitRate"></a>Cosmics: CosmicHitRate
+<i>Allowed values:</i> >= 0
+
+Mean cosmic hit rate, expressed in events / cm<sup>2</sup> / s.
+
+
+
+#### <a name="cosmicTrailLength"></a>Cosmics: TrailLength
+
+Interval for the allowed length of the cosmic trails, expressed in pixels.
+
+
+#### <a name="cosmicIntensity"></a>Cosmics: Intensity
+
+Interval for the allowed number of electrons comprised in a cosmic hit (that are to be spread over the trail).
 
 
 
