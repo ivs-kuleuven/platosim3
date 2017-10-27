@@ -92,6 +92,7 @@ class Detector: public HDF5Writer
 
         void fastForwardReadoutNoiseGeneratorToExposure(int beginExposureNr);
         void fastForwardPhotonNoiseGeneratorToExposure(int beginExposureNr);
+        void fastForwardCosmicsGeneratorToExposure(int beginExposureNr, float exposureTime);
 
         virtual double getTemperature();
 

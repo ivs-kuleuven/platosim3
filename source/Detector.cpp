@@ -27,7 +27,8 @@
 
 Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator)
 : HDF5Writer(hdf5file), 
-  includePhotonNoise(true), 
+  includeCosmics(true),
+  includePhotonNoise(true),
   includeReadoutNoise(true),
   includeCTIeffects(true), 
   includeOpenShutterSmearing(true), 
@@ -61,7 +62,7 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
     smearingMap.zeros(numRowsSmearingMap, numColumnsPixelMap);
     throughputMap.ones(numRowsPixelMap, numColumnsPixelMap);
 
-    // Generate detector gain. The lefthand side of the detector has a different gain than the righthand side.
+    // Generate detector gain. The left-hand side of the detector has a different gain than the right-hand side.
 
     generateGain();
 
@@ -80,9 +81,11 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
     // Fast forward the random number generators of the readout and the photon noise from 
     // exposure # 0 to exposure # beginExposureNr.
 
+    double exposureTime = configParam.getDouble("ObservingParameters/ExposureTime");
+
     fastForwardReadoutNoiseGeneratorToExposure(beginExposureNr);
     fastForwardPhotonNoiseGeneratorToExposure(beginExposureNr);
-
+    fastForwardCosmicsGeneratorToExposure(beginExposureNr, exposureTime);
 }
 
 
@@ -739,6 +742,12 @@ void Detector::addPhotonNoise()
  */
 void Detector::addCosmics(float exposureTime)
 {
+	cosmicHitRateDistribution = poisson_distribution<long>(cosmicHitRate);
+	cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumns - 1);
+	cosmicEntryAngleDistribution = uniform_real_distribution<double>(0, 2 * PI);
+	cosmicTrailLengthDistribution = uniform_real_distribution<double>(cosmicTrailLength[0], cosmicTrailLength[1]);
+	cosmicIntensityDistribution = uniform_real_distribution<double>(cosmicIntensity[0], cosmicIntensity[1]);
+
 	// Pixel map
 
 	addCosmics(exposureTime, pixelMap, numRowsPixelMap, numColumnsPixelMap);
@@ -800,12 +809,7 @@ void Detector::addCosmics(float exposureTime, const arma::Mat<float> &map, int n
 	arma::vec trailRows, trailColumns, trailWeights;	// All trail points: row, column, and weight
 	int trailRow, trailColumn;						// Individual trail point: row and column
 
-	cosmicHitRateDistribution = poisson_distribution<long>(cosmicHitRate);
 	cosmicEntryRowDistribution = uniform_real_distribution<double>(0, numRows - 1);
-	cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumns - 1);
-	cosmicEntryAngleDistribution = uniform_real_distribution<double>(0, 2 * PI);
-	cosmicTrailLengthDistribution = uniform_real_distribution<double>(cosmicTrailLength[0], cosmicTrailLength[1]);
-	cosmicIntensityDistribution = uniform_real_distribution<double>(cosmicIntensity[0], cosmicIntensity[1]);
 
 	// Number of cosmic hits
 	// - cosmic hit rate [events / cm^2 / s]
@@ -2049,6 +2053,84 @@ void Detector::fastForwardPhotonNoiseGeneratorToExposure(int beginExposureNr)
             }
         }
     }
+}
+
+
+
+
+
+
+/**
+ * \brief PlatoSim allows to generate e.g. exposures 0->99, and then a second run
+ *        from 100->199, which facilitates Slurming long time series. The results
+ *        should be the same as if we would generate 0->199 in one stretch. Therefore,
+ *        when generating exposures 100->199, we have to take care that all noise
+ *        generators start in the correct state. The way to do this, is to fast-forward
+ *        through all noise generations of exposures 0->99. This function is therefore
+ *        a skeleton version of addCosmics(), where cosmics are generated but further
+ *        ignored.
+ *
+ * \param beginExposureNr: fast forward from 0 to beginExposureNr-1
+ * \param exposureTime: Exposure time [s].
+ */
+void Detector::fastForwardCosmicsGeneratorToExposure(int beginExposureNr, float exposureTime)
+{
+	cosmicHitRateDistribution = poisson_distribution<long>(cosmicHitRate);
+	cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsPixelMap - 1);
+	cosmicEntryAngleDistribution = uniform_real_distribution<double>(0, 2 * PI);
+	cosmicTrailLengthDistribution = uniform_real_distribution<double>(cosmicTrailLength[0], cosmicTrailLength[1]);
+	cosmicIntensityDistribution = uniform_real_distribution<double>(cosmicIntensity[0], cosmicIntensity[1]);
+
+	if(includeCosmics)
+	{
+		int dummyNumOfCosmics;
+		double dummy;
+
+		for(unsigned int n = 0; n < beginExposureNr; n++)
+		{
+			// Pixel map
+
+			cosmicEntryRowDistribution = uniform_real_distribution<double>(0, numRowsPixelMap - 1);
+			dummyNumOfCosmics = cosmicHitRateDistribution(cosmicHitRateGenerator) * exposureTime * (numRowsPixelMap * pixelSize / 10000.0) * (numColumnsPixelMap * pixelSize / 10000.0);
+
+			for(unsigned int cosmicHit = 0; cosmicHit < dummyNumOfCosmics; cosmicHit++)
+			{
+				dummy = cosmicEntryRowDistribution(cosmicEntryRowGenerator);
+				dummy = cosmicEntryColumnDistribution(cosmicEntryColumnGenerator);
+				dummy = cosmicEntryAngleDistribution(cosmicEntryAngleGenerator);
+				dummy = cosmicTrailLengthDistribution(cosmicTrailLengthGenerator);
+				dummy = cosmicIntensityDistribution(cosmicIntensityGenerator);
+			}
+
+			// Bias register map
+
+			cosmicEntryRowDistribution = uniform_real_distribution<double>(0, numRowsBiasMap - 1);
+			dummyNumOfCosmics = cosmicHitRateDistribution(cosmicHitRateGenerator) * exposureTime * (numRowsBiasMap * pixelSize / 10000.0) * (numColumnsPixelMap * pixelSize / 10000.0);
+
+			for(unsigned int cosmicHit = 0; cosmicHit < dummyNumOfCosmics; cosmicHit++)
+			{
+				dummy = cosmicEntryRowDistribution(cosmicEntryRowGenerator);
+				dummy = cosmicEntryColumnDistribution(cosmicEntryColumnGenerator);
+				dummy = cosmicEntryAngleDistribution(cosmicEntryAngleGenerator);
+				dummy = cosmicTrailLengthDistribution(cosmicTrailLengthGenerator);
+				dummy = cosmicIntensityDistribution(cosmicIntensityGenerator);
+			}
+
+			// Smearing map
+
+			cosmicEntryRowDistribution = uniform_real_distribution<double>(0, numRowsBiasMap - 1);
+			dummyNumOfCosmics = cosmicHitRateDistribution(cosmicHitRateGenerator) * exposureTime * (numRowsBiasMap * pixelSize / 10000.0) * (numColumnsPixelMap * pixelSize / 10000.0);
+
+			for(unsigned int cosmicHit = 0; cosmicHit < dummyNumOfCosmics; cosmicHit++)
+			{
+				dummy = cosmicEntryRowDistribution(cosmicEntryRowGenerator);
+				dummy = cosmicEntryColumnDistribution(cosmicEntryColumnGenerator);
+				dummy = cosmicEntryAngleDistribution(cosmicEntryAngleGenerator);
+				dummy = cosmicTrailLengthDistribution(cosmicTrailLengthGenerator);
+				dummy = cosmicIntensityDistribution(cosmicIntensityGenerator);
+			}
+		}
+	}
 }
 
 
