@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.11"/>
-<title>PLATO Simulator: Main Page</title>
+<title>PLATO Simulator: Prerequisites for Running PlatoSim3</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -49,7 +49,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </script>
   <div id="navrow1" class="tabs">
     <ul class="tablist">
-      <li class="current"><a href="index.html"><span>Welcome</span></a></li>
+      <li><a href="index.html"><span>Welcome</span></a></li>
       <li><a href="DownloadUpdateBuild.html"><span>Installing/Updating&#160;PlatoSim3</span></a></li>
       <li><a href="Running.html"><span>Running&#160;PlatoSim3</span></a></li>
       <li><a href="IssueTracking.html"><span>Help&#160;(Issue&#160;Tracking)</span></a></li>
@@ -83,7 +83,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function(){initNavTree('index.html','');});
+$(document).ready(function(){initNavTree('ReqsRun.html','');});
 </script>
 <div id="doc-content">
 <!-- window showing the filter options -->
@@ -102,21 +102,26 @@ $(document).ready(function(){initNavTree('index.html','');});
 
 <div class="header">
   <div class="headertitle">
-<div class="title">PLATO Simulator Documentation</div>  </div>
+<div class="title">Prerequisites for Running PlatoSim3 </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2><a class="anchor" id="welcome"></a>Welcome to the PLATO Simulator Pages</h2>
-<p>The PLATO Simulator (PlatoSim) is an end-to-end software tool, designed to perform realistic simulations of the expected observations of the PLATO mission. It can, however, easily be adapted to similar types of missions.</p>
-<p>Our simulator models and simulates time series of CCD images by including models of the CCD and its electronics, the telescope optics, the stellar field, the jitter movements of the spacecraft, and all important natural sources of noise.</p>
-<p>Many aspects concerning the design trade-off of a space-based instrument and its performance can best be tackled through realistic simulations of the expected observations. The complex interplay of various noise sources in the course of the observations make such simulations an indispensable part of the assessment and design study of any space-based mission.</p>
-<hr/>
-<h2><a class="anchor" id="gettingStarted"></a>Getting Started</h2>
-<p>All information needed to install and update the PlatoSim3 software on your system is described <a class="el" href="DownloadUpdateBuild.html">here</a>. Please, follow these instructions carefully before running the simulator. How to simulate time series is described <a class="el" href="Running.html">here</a>.</p>
-<hr/>
-<h2><a class="anchor" id="inCaseOfProblems"></a>In Case of Problems</h2>
-<p>In case you would come across problems you cannot solve yourself, please, let us know! We would like you to use the issue tracking on GitHub rather than sending an email to the developers, as this helps to better keep track of the issues and their status. How raise issues (and which information you must provide us with) is described <a class="el" href="IssueTracking.html">here</a>. </p><hr/>
-<h2><a class="anchor" id="reference"></a>Reference</h2>
-<p>We kindly ask you to refer to <a href="http://arxiv.org/abs/1404.1886">this work</a> in any publication the PLATO Simulator software contributes to. </p>
+<div class="textblock"><h2>Data Package</h2>
+<p>If you want to use realistic PSF models instead of a Gaussian, you can download these from <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/psf.hdf5
+">our FTP server</a>. A convenient place to store this file is in the <code>/inputfiles</code> directory. </p><hr/>
+<h2>Environment Variables</h2>
+<p>After the installation of the software, the PLATO Simulator can be run from the <code>/build</code> directory (you will have to create). To avoid having to hardcode any path in configuration files, tutorials, etc., you must export three environment variables:</p>
+<ul>
+<li><code>PLATO_PROJECT_HOME</code>: to refer to the directory in which PlatoSim3 was installed,</li>
+<li><code>PLATO_WORKDIR</code>: to refer to the directory you want to write output or in which you want to store your own configuration files (preferably not within <code>/PlatoSim3</code>),</li>
+<li>and <code>PYTHONPATH</code>: to refer to the directory in which our Python scripts can be found.</li>
+</ul>
+<p>This can be done as follows:</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;PLATO_PROJECT_HOME=&lt;full path to /PlatoSim3&gt;</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;export PLATO_PROJECT_HOME</div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;</div><div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;PLATO_WORKDIR=&lt;full path to a preferred working directory&gt;</div><div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;export PLATO_WORKDIR</div><div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;</div><div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;PYTHONPATH=$PYTHONPATH:&lt;full path to /PlatoSim3/python&gt;</div><div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;export PYTHONPATH</div></div><!-- fragment --><p>If you want, you can copy this code to make your own little script to set up your environment (e.g. <code>setPlatoEnvironment</code>), or add it to your <code>.bash_profile</code>.</p>
+<p>To check the content of these variables (to see whether they are set to the proper location), type</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;echo $PLATO_PROJECT_HOME</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;</div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;echo $PLATO_WORKDIR</div><div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;</div><div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;echo $PYTHONPATH</div></div><!-- fragment --> <hr/>
+<h2><a class="anchor" id="yourOwnFiles"></a>Where to Store your own Files?</h2>
+<p>To avoid problems when updating the PlatoSim3 software, it is best to store your own input and output files in a designated working directory, (preferably) outside the installation directory of PlatoSim3. You can (but should not) add your input files to the <code>/inputfiles</code> directory, but under no circumstances change the original files in that directory!</p>
+<p>The path to the designated working directory must be exported as the <code>PLATO_WORKDIR</code> environment variable, as described above. </p>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

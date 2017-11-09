@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.11"/>
-<title>PLATO Simulator: Main Page</title>
+<title>PLATO Simulator: Branching Strategy for PlatoSim3</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -49,7 +49,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </script>
   <div id="navrow1" class="tabs">
     <ul class="tablist">
-      <li class="current"><a href="index.html"><span>Welcome</span></a></li>
+      <li><a href="index.html"><span>Welcome</span></a></li>
       <li><a href="DownloadUpdateBuild.html"><span>Installing/Updating&#160;PlatoSim3</span></a></li>
       <li><a href="Running.html"><span>Running&#160;PlatoSim3</span></a></li>
       <li><a href="IssueTracking.html"><span>Help&#160;(Issue&#160;Tracking)</span></a></li>
@@ -83,7 +83,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function(){initNavTree('index.html','');});
+$(document).ready(function(){initNavTree('Branching.html','');});
 </script>
 <div id="doc-content">
 <!-- window showing the filter options -->
@@ -102,21 +102,26 @@ $(document).ready(function(){initNavTree('index.html','');});
 
 <div class="header">
   <div class="headertitle">
-<div class="title">PLATO Simulator Documentation</div>  </div>
+<div class="title">Branching Strategy for PlatoSim3 </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2><a class="anchor" id="welcome"></a>Welcome to the PLATO Simulator Pages</h2>
-<p>The PLATO Simulator (PlatoSim) is an end-to-end software tool, designed to perform realistic simulations of the expected observations of the PLATO mission. It can, however, easily be adapted to similar types of missions.</p>
-<p>Our simulator models and simulates time series of CCD images by including models of the CCD and its electronics, the telescope optics, the stellar field, the jitter movements of the spacecraft, and all important natural sources of noise.</p>
-<p>Many aspects concerning the design trade-off of a space-based instrument and its performance can best be tackled through realistic simulations of the expected observations. The complex interplay of various noise sources in the course of the observations make such simulations an indispensable part of the assessment and design study of any space-based mission.</p>
+<div class="textblock"><p>We have adopted the <a href="http://nvie.com/posts/a-successful-git-branching-model/">branching strategy of Vincent Driessen</a>, which means that the following two branches will be used permanently:</p>
+<ul>
+<li>the <b>master</b> branch, with the stable (i.e. tested) code, which is considered safe to use</li>
+<li>and the <b>develop</b> branch, with the latest development, which might be (highly) experimental at times (use at your own risk).</li>
+</ul>
 <hr/>
-<h2><a class="anchor" id="gettingStarted"></a>Getting Started</h2>
-<p>All information needed to install and update the PlatoSim3 software on your system is described <a class="el" href="DownloadUpdateBuild.html">here</a>. Please, follow these instructions carefully before running the simulator. How to simulate time series is described <a class="el" href="Running.html">here</a>.</p>
-<hr/>
-<h2><a class="anchor" id="inCaseOfProblems"></a>In Case of Problems</h2>
-<p>In case you would come across problems you cannot solve yourself, please, let us know! We would like you to use the issue tracking on GitHub rather than sending an email to the developers, as this helps to better keep track of the issues and their status. How raise issues (and which information you must provide us with) is described <a class="el" href="IssueTracking.html">here</a>. </p><hr/>
-<h2><a class="anchor" id="reference"></a>Reference</h2>
-<p>We kindly ask you to refer to <a href="http://arxiv.org/abs/1404.1886">this work</a> in any publication the PLATO Simulator software contributes to. </p>
+<h2>Branches</h2>
+<p>To switch to a specific branch, use the command:</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;git checkout BRANCH_NAME</div></div><!-- fragment --><p>To grab all branches and get an overview, use the following commands:</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;git fetch</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;git branch</div></div><!-- fragment --><p>The first command pulls all remote branches (not only the one you are currently working on) and the second command gives you an overview of all branches you have on your system. </p><hr/>
+<h2>Release Candidates and Releases</h2>
+<p>Release candidates and releases correspond to tagged versions of the master branch. To start using a specific release or release candidate, you have to check out the version of the master branch with a specific tag to a new branch, like this:</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;git checkout -b NEW_BRANCH_NAME TAG_NAME</div></div><!-- fragment --><p>We will send around the tag name for new release candidates and releases once they become available. To get an overview of the available tags, use</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;git tag -l</div></div><!-- fragment --> <hr/>
+<h2>Switching between Branches</h2>
+<p>If you switch to another branch and want to run simulations with the current branch, you will have to re-build the software, as described <a class="el" href="Building.html">here</a>.</p>
+<p>It is of course always possible that you come across problems when using either of these branches! Please, tell use about them via the GitHub issue tracking system. </p>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

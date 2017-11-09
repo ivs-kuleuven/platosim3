@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.11"/>
-<title>PLATO Simulator: Main Page</title>
+<title>PLATO Simulator: Building PlatoSim3</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -49,7 +49,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </script>
   <div id="navrow1" class="tabs">
     <ul class="tablist">
-      <li class="current"><a href="index.html"><span>Welcome</span></a></li>
+      <li><a href="index.html"><span>Welcome</span></a></li>
       <li><a href="DownloadUpdateBuild.html"><span>Installing/Updating&#160;PlatoSim3</span></a></li>
       <li><a href="Running.html"><span>Running&#160;PlatoSim3</span></a></li>
       <li><a href="IssueTracking.html"><span>Help&#160;(Issue&#160;Tracking)</span></a></li>
@@ -83,7 +83,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function(){initNavTree('index.html','');});
+$(document).ready(function(){initNavTree('Building.html','');});
 </script>
 <div id="doc-content">
 <!-- window showing the filter options -->
@@ -102,21 +102,32 @@ $(document).ready(function(){initNavTree('index.html','');});
 
 <div class="header">
   <div class="headertitle">
-<div class="title">PLATO Simulator Documentation</div>  </div>
+<div class="title">Building PlatoSim3 </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2><a class="anchor" id="welcome"></a>Welcome to the PLATO Simulator Pages</h2>
-<p>The PLATO Simulator (PlatoSim) is an end-to-end software tool, designed to perform realistic simulations of the expected observations of the PLATO mission. It can, however, easily be adapted to similar types of missions.</p>
-<p>Our simulator models and simulates time series of CCD images by including models of the CCD and its electronics, the telescope optics, the stellar field, the jitter movements of the spacecraft, and all important natural sources of noise.</p>
-<p>Many aspects concerning the design trade-off of a space-based instrument and its performance can best be tackled through realistic simulations of the expected observations. The complex interplay of various noise sources in the course of the observations make such simulations an indispensable part of the assessment and design study of any space-based mission.</p>
+<div class="textblock"><h2>First-Time Installation</h2>
+<p>PlatoSim3 relies on a number of other packages, which are all included in the PlatoSim3 distribution for your convenience. Everything concerning the dependencies can be found in the <code>/dependencies</code> directory. The <code>/dependencyDownloads</code> sub-directory contains the tarball or zipball file of all required packages. In the <code>/installscripts</code> sub-directory you can find Python scripts that help you to unzip or untar these files into the <code>/dependencyInstalls</code> directory. You can do this for one dependency at a time, like this (in the directory in which PlatoSim3 was downloaded):</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;python ./dependencies/installscripts/install_hdf5.py</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;python ./dependencies/installscripts/install_googletest.py</div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;python ./dependencies/installscripts/install_yaml.py</div><div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;python ./dependencies/installscripts/install_armadillo.py</div><div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;python ./dependencies/installscripts/install_fftw.py</div><div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;python ./dependencies/installscripts/install_faddeeva.py</div></div><!-- fragment --><p>Alternatively, you can also install the required dependencies and build the code in one go by typing (also in the directory in which PlatoSim3 was downloaded):</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;./install.sh</div></div><!-- fragment --><p>If problems would arise when executing this command, it may be useful to tried to install the dependencies one-by-one to pinpoint the problem.</p>
+<p>Building the software will create two executables :</p>
+<ul>
+<li><code>platosim</code> to run simulations (see below)</li>
+<li>and <code>testplatosim</code> to run the test harnesses (without arguments).</li>
+</ul>
 <hr/>
-<h2><a class="anchor" id="gettingStarted"></a>Getting Started</h2>
-<p>All information needed to install and update the PlatoSim3 software on your system is described <a class="el" href="DownloadUpdateBuild.html">here</a>. Please, follow these instructions carefully before running the simulator. How to simulate time series is described <a class="el" href="Running.html">here</a>.</p>
+<h2>Software Changes</h2>
+<p>In case of code changes (after retrieving the latest version from GitHub or after introducing changes to the code yourself)</p>
+<p>In case you have updated the PlatoSim3 code but the dependencies remain unchanged, you only have to re-build the software but not resolve the dependencies again. This saves you a tremendous amount of time. The way to do this, is:</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;cmake ..</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;(make clean)</div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;make -j 4</div></div><!-- fragment --><hr/>
+<h2>Updated Dependencies</h2>
+<p>At some stage, we will want to update (some of) the dependencies. You will be notified by the developer team in case this happens. You will then have to:</p>
+<ul>
+<li>clear the <code>/dependencies/Installs</code> directory</li>
+<li>and run the install script again (as described above for the first-time installation).</li>
+</ul>
 <hr/>
-<h2><a class="anchor" id="inCaseOfProblems"></a>In Case of Problems</h2>
-<p>In case you would come across problems you cannot solve yourself, please, let us know! We would like you to use the issue tracking on GitHub rather than sending an email to the developers, as this helps to better keep track of the issues and their status. How raise issues (and which information you must provide us with) is described <a class="el" href="IssueTracking.html">here</a>. </p><hr/>
-<h2><a class="anchor" id="reference"></a>Reference</h2>
-<p>We kindly ask you to refer to <a href="http://arxiv.org/abs/1404.1886">this work</a> in any publication the PLATO Simulator software contributes to. </p>
+<h2>Switching between Branches</h2>
+<p>As you can read <a class="el" href="Branching.html">here</a>, we no longer only use the master branch. If you switch to another branch and want to run simulations with the current branch, you will have to re-build the software. </p>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
