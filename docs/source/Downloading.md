@@ -1,8 +1,8 @@
-# Downloading PlatoSim {#downloading}
+# Downloading PlatoSim3 {#downloading}
 
-To download the software, go to the <a href="https://github.com/IvS-KULeuven/PlatoSim3">PlatoSim3 repository on GitHub</a>. The GitHub web interface to download the PlatoSim3 software is shown in Fig. 1.
+To download the software, go to the <a href="https://github.com/IvS-KULeuven/PlatoSim3">PlatoSim3 repository on GitHub</a>. The GitHub web interface to download the PlatoSim3 software is shown below.
 
-@image html /images/gitHub.png "Figure 1: Screenshot of the GitHub web interface."
+@image html /images/gitHub.png "Screenshot of the GitHub web interface."
 
 If you are interested in contributing to the software, you must <code>fork</code> PlatoSim3, using the GitHub web interface.  Just press the <code>"Fork"</code> button and follow the instructions.
 

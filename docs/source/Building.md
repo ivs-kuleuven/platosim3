@@ -1,4 +1,4 @@
-# Building {#building}
+# Building PlatoSim3 {#building}
 
 ## First-Time Installation
 
@@ -27,7 +27,7 @@ Building the software will create two executables :
 * and <code>testplatosim</code> to run the test harnesses (without arguments).
 
 
-
+---
 
 
 ## Software Changes
@@ -43,12 +43,19 @@ make -j 4
 \endcode
 
 
-
+---
 
 
 ## Updated Dependencies
 
 At some stage, we will want to update (some of) the dependencies.  You will be notified by the developer team in case this happens.  You will then have to:
 
-* clear the /dependencies/Installs directory
+* clear the <code>/dependencies/Installs</code> directory
 * and run the install script again (as described above for the first-time installation).
+
+
+---
+
+## Switching between Branches
+
+As you can read @ref branching "here", we no longer only use the master branch.  If you switch to another branch and want to run simulations with the current branch, you will have to re-build the software.

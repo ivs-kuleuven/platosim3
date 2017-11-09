@@ -1,6 +1,11 @@
-# Prerequisites {#reqsBuild}
+# Prerequisites for Running PlatoSim3 {#reqsRun}
 
 ## Data Package
+
+If you want to use realistic PSF models instead of a Gaussian, you can download these from <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/psf.hdf5
+">our FTP server</a>.  A convenient place to store this file is in the <code>/inputfiles</code> directory.
+
+---
 
 ## Environment Variables
 
@@ -35,7 +40,9 @@ echo $PLATO_WORKDIR
 echo $PYTHONPATH
 \endcode
 
-### <a name="yourOwnFiles">Where to Store your own Files?
+---
+
+## <a name="yourOwnFiles">Where to Store your own Files?
 
 To avoid problems when updating the PlatoSim3 software, it is best to store your own input and output files in a designated working directory, (preferably) outside the installation directory of PlatoSim3.  You can (but should not) add your input files to the <code>/inputfiles</code> directory, but under no circumstances change the original files in that directory!
 

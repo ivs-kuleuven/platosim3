@@ -6,20 +6,43 @@
     <!-- <tab type="user" url="http://www.google.com" title="Install/Update"/> -->
     <!-- <tab type="user" url="http://www.google.com" title="Run"/> -->
     
-    <tab type="usergroup" url="@ref download-update-build" title="Install/Update PlatoSim">
+    <tab type="usergroup" url="@ref download-update-build" title="Installing/Updating PlatoSim3">
       <tab type="user" visible="yes" url="@ref reqsInstallUpdate" title="Prerequisites"/>
       <tab type="user" visible="yes" url="@ref downloading" title="Downloading"/>
       <tab type="user" visible="yes" url="@ref updating" title="Updating"/>
       <tab type="user" visible="yes" url="@ref building" title="Building"/>
+      <tab type="user" visible="yes" url="@ref branching" title="Branching Strategy"/>
     </tab>
     
-    <tab type="usergroup" title="Run PlatoSim">
-      <tab type="user" visible="yes" url="@ref reqsBuild" title="Prerequisites"/>
-      <tab type="user" visible="yes" url="@ref reqsRun" title="Input files"/>
-      <tab type="user" visible="yes" url="@ref mypage" title="Run PlatoSim"/>
-      <tab type="user" visible="yes" url="@ref mypage" title="Output files"/>
+    <tab type="usergroup" url="@ref run" title="Running PlatoSim3">
+      <tab type="user" visible="yes" url="@ref reqsRun" title="Prerequisites"/>
+      
+      <tab type="usergroup" visible="yes" url="@ref inputFileDescription" title="Input files">
+      	<tab type="user" visible="yes" url="@ref configurationParameters" title="Configuration Parameters"/>
+      	<tab type="user" visible="yes" url="@ref supplementaryFiles" title="Supplementary Files"/>
+      </tab>
+      
+      <tab type="usergroup" visible="yes" url="@ref simulating" title="Running Simulations">
+     	 <tab type="user" visible="yes" url="@ref scriptingInPython" title="Scripting in Python"/>
+     	 <tab type="user" visible="yes" url="@ref tutorials" title="Tutorials"/>
+      </tab>
+      <tab type="user" visible="yes" url="@ref simulationSteps" title="Simulation Steps"/>
+      <tab type="user" visible="yes" url="@ref outputFileDescription" title="Output files"/>
       
     </tab>
+    
+    <tab type="user" visible="yes" url="@ref issueTracking" title="Help (Issue Tracking)"/>
+      
+    </tab>
+    
+    <!-- <tab type="usergroup" url="@ref run" title="Running PlatoSim3">
+      <tab type="user" visible="yes" url="@ref reqsRun" title="Prerequisites"/>
+      <tab type="user" visible="yes" url="@ref InputFileDescription" title="Input files"/>
+      
+      <tab type="user" visible="yes" url="@ref simulating" title="Running Simulations"/>
+      <tab type="user" visible="yes" url="@ref OutputFileDescription" title="Output files"/>
+      
+    </tab> -->
     
     <tab type="pages" visible="no" title="" intro=""/>
     <tab type="modules" visible="yes" title="" intro=""/>

@@ -1,6 +1,6 @@
 # Updating PlatoSim3 {#updating}
 
-If you have [downloaded the software via a <code>git clone</code>](#downloading), you can update the software by executing the command
+If you have @ref downloading "downloaded" the software via a <code>git clone</code>, you can update the software by executing the command
 
 \code git pull origin master \endcode 
 
