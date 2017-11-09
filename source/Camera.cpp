@@ -339,7 +339,7 @@ void Camera::configure(ConfigurationParameters &configParam)
 
 
     fluxOfV0Star           = configParam.getDouble("ObservingParameters/Fluxm0");                 // [phot/s/m^2/nm]
-    userGivenSkyBackground = configParam.getDouble("ObservingParameters/SkyBackground");          // [phot/pix/s]
+    userGivenSkyBackground = configParam.getDouble("Sky/SkyBackground");          // [phot/pix/s]
 
 }
 
