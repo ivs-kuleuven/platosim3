@@ -1,4 +1,4 @@
-# Issue Tracking {#issueTracking}
+# Issue Tracking {#IssueTracking}
 
 Although we do our very best to limit problems to a minimum, this is - unfortunately - no guarantee that you will never run into troubles when trying to install/update/run PlatoSim3.  If you would have problems, questions, remarks,..., please, let us know!
 

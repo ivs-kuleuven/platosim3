@@ -1,4 +1,4 @@
-# Building PlatoSim3 {#building}
+# Building PlatoSim3 {#Building}
 
 ## First-Time Installation
 
@@ -58,4 +58,4 @@ At some stage, we will want to update (some of) the dependencies.  You will be n
 
 ## Switching between Branches
 
-As you can read @ref branching "here", we no longer only use the master branch.  If you switch to another branch and want to run simulations with the current branch, you will have to re-build the software.
+As you can read @ref Branching "here", we no longer only use the master branch.  If you switch to another branch and want to run simulations with the current branch, you will have to re-build the software.

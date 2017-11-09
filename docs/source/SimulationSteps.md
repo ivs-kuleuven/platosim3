@@ -1,4 +1,4 @@
-# Simulation Steps {#simulationSteps}
+# Simulation Steps {#SimulationSteps}
 
 The goal of the PlatoSim C++ code is to model a part (referred to as the "sub-field") of one CCD of 
 a single telescope on the platform.  On this page we describe the steps that are executed within a 
@@ -36,7 +36,7 @@ The more detailed design of PlatoSim3 is depicted in Fig. 2. The <code>Simulatio
 - <code>FrontEndElectronics</code> 
 - and <code>Detector</code> controls all the different (sub-)pixel maps. 
 
-The blue file icons attached to several boxes indicate that information about its responsibility is provided in the @ref configurationParameters "YAML configuration file", while the green file icons indicate that the component is writing information into the @ref OutputFileDescription "HDF5 output file". 
+The blue file icons attached to several boxes indicate that information about its responsibility is provided in the @ref ConfigurationParameters "YAML configuration file", while the green file icons indicate that the component is writing information into the @ref OutputFileDescription "HDF5 output file". 
 
 @image html "/images/PlatoSim3 Detailed Design.png" "Figure 2: Detailed design of PlatoSim3."
 
@@ -54,13 +54,13 @@ Figure 3 shows the initialisation steps of PlatoSim3.
 
 Figure 4 shows the control flow of PlatoSim3.
 
-The simulation is a loop over the number of exposures that is requested in the @ref configurationParameters "YAML configuration file". The two main steps in the simulation process are the integration of the light on the detector and the readout process. 
+The simulation is a loop over the number of exposures that is requested in the @ref ConfigurationParameters "YAML configuration file". The two main steps in the simulation process are the integration of the light on the detector and the readout process. 
 
 The flux of each star in the sub-field is added to the sub-pixel map with the time interval of the pointing jitter and the duration of the exposure time. The background flux is then added and the sub-pixel map is convolved with a re-binned point spread function. After applying the flatfield, the sub-pixel map is re-binned to a pixel map, and the (geometric) vignetting is applied.
 
-During the readout process all the noise features are applied on the pixel map. Many of the features can be switched on or off in the @ref inputFileDescription "YAML configuration file", some features need to get a value of 1.0 or 0.0 in order to be ignored.
+During the readout process all the noise features are applied on the pixel map. Many of the features can be switched on or off in the @ref InputFileDescription "YAML configuration file", some features need to get a value of 1.0 or 0.0 in order to be ignored.
 
-After processing each exposure, the pixel map is written to the @ref OutputFileDescription "output HDF5 file" and the option to write also the sub-pixel maps can be enabled in the @ref configurationParameters "YAML configuration file". Details about detected stars, their positions, and the pointing information is finally written to the @ref otputFileDescription "output HDF5 file".
+After processing each exposure, the pixel map is written to the @ref OutputFileDescription "output HDF5 file" and the option to write also the sub-pixel maps can be enabled in the @ref ConfigurationParameters "YAML configuration file". Details about detected stars, their positions, and the pointing information is finally written to the @ref OutputFileDescription "output HDF5 file".
 
 @image html "/images/PlatoSim3 Control Flow.png" "Figure 4:  Control flow for PlatoSim3."
 

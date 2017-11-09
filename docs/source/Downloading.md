@@ -1,4 +1,4 @@
-# Downloading PlatoSim3 {#downloading}
+# Downloading PlatoSim3 {#Downloading}
 
 To download the software, go to the <a href="https://github.com/IvS-KULeuven/PlatoSim3">PlatoSim3 repository on GitHub</a>. The GitHub web interface to download the PlatoSim3 software is shown below.
 
@@ -14,4 +14,4 @@ If you want to be able to update the software (without having to re-install the 
 
 Mind the dot at the end of the command!
 
-After you have downloaded the PlatoSim3 code, you first have to install a few packages (so-called dependencies) before you can actually build and run the PLATO Simulator.  How to do this, is described @ref building "here".
+After you have downloaded the PlatoSim3 code, you first have to install a few packages (so-called dependencies) before you can actually build and run the PLATO Simulator.  How to do this, is described @ref Building "here".

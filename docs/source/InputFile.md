@@ -1,4 +1,4 @@
-# Description of the Input Files {#inputFileDescription}
+# Description of the Input Files {#InputFileDescription}
 
 ## Configuration Parameters
 
@@ -17,7 +17,7 @@ To configure the Plato Simulator, a large set of input parameters is required.  
 * seed parameters,
 * and pre-defined settings for the camera groups and CCD positions (specific for PLATO).
 
-These are described in more detail @ref configurationParameters "here".
+These are described in more detail @ref ConfigurationParameters "here".
 
 ---
 
@@ -41,5 +41,5 @@ Additionally, depending on the configuration, some additional files may be requi
 * a file comprising a time series for the operating temperature of the FEE,
 * and a file comprising a time series for the operating temperature of the CCD.
 
-These are described @ref supplementaryFiles "here".
+These are described @ref SupplementaryFiles "here".
  

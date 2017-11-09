@@ -1,4 +1,4 @@
-# Prerequisites for Running PlatoSim3 {#reqsRun}
+# Prerequisites for Running PlatoSim3 {#ReqsRun}
 
 ## Data Package
 

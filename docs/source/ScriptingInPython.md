@@ -1,4 +1,4 @@
-# Scripting in Python {#scriptingInPython}
+# Scripting in Python {#ScriptingInPython}
 
 The basic functionality of the C++ code is to model a part (i.e. sub-field) of one of the four CCD that are attached to the normal camera (1, 2, 3, or 4) or to the fast camera (1F, 2F, 3F, or 4F) of one of the telescopes on the platform.  You can initiate PLATO simulations from within Python.
 

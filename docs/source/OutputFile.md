@@ -1,4 +1,4 @@
-# Description of the Output File {#outputFileDescription}
+# Description of the Output File {#OutputFileDescription}
 
 
 PlatoSim3 writes its output to an <a href="https://www.hdfgroup.org/HDF5/">HDF5</a> file. HDF stands for Hierarchical Data Format, and is a next generation file format that was specifically designed to store and organise large amounts of data.

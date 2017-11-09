@@ -1,4 +1,4 @@
-# Configuration Parameters {#configurationParameters}
+# Configuration Parameters {#ConfigurationParameters}
 
 To configure the Plato Simulator, a large set of configuration parameters is required.  The input file format used for PlatoSim3 is <a href="https://learnxinyminutes.com/docs/yaml/">YAML</a>, e.g. <code>inputfile.yaml</code>, in the <code>/inputfiles</code> directory.  The different blocks in the configuration files reflect their function in the simulation.
 
@@ -147,7 +147,7 @@ where the \f$\lambda\f$ subscript refers to the wavelength range in which the si
 
 ### <a name="starCatalogFile"></a> StarCatalogFile
 
-Path to the @ref starCatalogFile "star catalogue file", relative to the [project location](#projectLocation).
+Path to thebstar catalogue file, relative to the [project location](#projectLocation).
 
 ---
 
