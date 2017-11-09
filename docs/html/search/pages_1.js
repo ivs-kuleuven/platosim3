@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['issue_20tracking',['Issue Tracking',['../IssueTracking.html',1,'']]]
+  ['configuration_20parameters',['Configuration Parameters',['../ConfigurationParameters.html',1,'']]]
 ];
