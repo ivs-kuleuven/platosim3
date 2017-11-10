@@ -311,7 +311,7 @@ void Camera::configure(ConfigurationParameters &configParam)
         
             Log.info("Camera: Using a constant distortion law");
         }
-        else if (focalLengthSource == "FromFile")
+        else if (fieldDistortionSource == "FromFile")
         {
             string distortionInputFile = configParam.getAbsoluteFilename("Camera/FieldDistortion/CoefficientsFromFile");
             string invDistortionInputFile = configParam.getAbsoluteFilename("Camera/FieldDistortion/InverseCoefficientsFromFile");
@@ -339,7 +339,7 @@ void Camera::configure(ConfigurationParameters &configParam)
 
 
     fluxOfV0Star           = configParam.getDouble("ObservingParameters/Fluxm0");                 // [phot/s/m^2/nm]
-    userGivenSkyBackground = configParam.getDouble("ObservingParameters/SkyBackground");          // [phot/pix/s]
+    userGivenSkyBackground = configParam.getDouble("Sky/SkyBackground");          // [phot/pix/s]
 
 }
 

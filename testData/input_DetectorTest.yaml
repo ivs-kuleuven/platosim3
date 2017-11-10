@@ -10,100 +10,144 @@ General:
 
 ObservingParameters:
 
+    MissionDuration:                 6.0             # Total duration of the mission in years [yr]
+    NumExposures:                    10              # Number of exposures
+    BeginExposureNr:                  0              # Sequential number of first exposure. useful for slurm parallellisation
+    ExposureTime:                    22              # [s]
     RApointing:              0.0             # [deg] 
     DecPointing:             0.0             # [deg]
     RASun:                   166.0           # Right ascension of the direction of the sun shield during the run [deg]
     DecSun:                  -46.0           # Declination of the direction of the sun shield during the run     [deg]
-    Fluxm0:                  1.00238e8       # Photon flux of a V=0 G2V-star                                 [phot/s/m^2/nm]
-    SkyBackground:           220.            # Stellar + zodiacal background level. Set negative to compute. [photons/s]
+    Fluxm0:                  1.00179e8       # Photon flux of a V=0 G2V-star                                 [phot/s/m^2/nm]
     StarCatalogFile:         testData/starcatalog.txt
+
+Sky:
+
+    SkyBackground:                   342.            # Stellar + zodiacal background level. Set negative to compute.     [phot/pix/s]
+    IncludeCosmics:                  yes             # Whether or not to include cosmics
+    Cosmics:
+      CosmicHitRate:                 10              # Cosmic hit rate [events / cm^2 / s]
+      TrailLength:             [0, 15]               # Intervalof the length of the cosmic trails [pixels]
+      Intensity:               [2000, 40000]         # Interval of the total number of e- in a cosmic hit [e-]
+
 
 Platform:
 
     UseJitter:               yes             # yes or no
     UseJitterFromFile:       no              # yes or no
-    JitterYawRms:            2.3             # [arcsec]
-    JitterPitchRms:          2.3             # [arcsec]
-    JitterRollRms:           2.3             # [arcsec]
+    JitterYawRms:            1.0             # [arcsec]
+    JitterPitchRms:          1.0             # [arcsec]
+    JitterRollRms:           1.0             # [arcsec]
     JitterTimeScale:         3600.           # [s]
     JitterFileName:          testData/jitter.txt
 
 Telescope:
     
+    GroupID:                         Custom          # There are four camera groups: 1, 2, 3, 4, Fast, Custom
+                                                     # (use Custom to specify the telescope azimuth and tilt angles yourself)
     AzimuthAngle:            135.0           # Azimuth angle of telescope on the platform [deg]
     TiltAngle:               9.2             # Tilt angle of the telescope on the platform [deg]
     LightCollectingArea:     113.1           # Effective area of 1 telescope [cmˆ2]
-    TransmissionEfficiency:  0.757           # in [0,1]
+    TransmissionEfficiency:  0.7191           # in [0,1]
     UseDrift:                no              # yes or no
     UseDriftFromFile:        no              # yes or no
-    DriftYawRms:             2.3             # RMS of thermo-elastic drift in yaw [arcsec]
-    DriftPitchRms:           2.3             # RMS of thermo-elastic drift in pitch [arcsec]
-    DriftRollRms:            2.3             # RMS of thermo-elastic drift in roll [arcsec]
-    DriftTimeScale:          3600.           # Timescale of thermo-elastic drift [s]
+    DriftYawRms:             2.0             # RMS of thermo-elastic drift in yaw [arcsec]
+    DriftPitchRms:           2.0             # RMS of thermo-elastic drift in pitch [arcsec]
+    DriftRollRms:            2.0             # RMS of thermo-elastic drift in roll [arcsec]
+    DriftTimeScale:          86400           # Timescale of thermo-elastic drift [s]
     DriftFileName:           inputfiles/drift.txt
 
 Camera:
     
-    FocalPlaneOrientation:   0.0             # [degrees]
+    FocalPlaneOrientation:
+        Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent)
+        ConstantValue:               0.0             # [degrees]. Used in case Source is ConstantValue. 
+        FromFile:                    inputfiles/fporientation.txt  # Used in case Source is FromFile. time [s] & FP orientation [deg]
     PlateScale:              0.8333          # [arcsec/micron]
-    FocalLength:             0.24712595      # Focal length as recovered from ZEMAX model [m]
-    ThroughputBandwidth:     650             # FWHM [nm]
+    FocalLength: 
+        Source:                      ConstantValue        # Either ConstantValue (constant in time) or FromFile (time dependent) 
+        ConstantValue:               0.24752         # Used in case Source is ConstantValue (from ZEMAX model) [m]
+        FromFile:                    inputfiles/focallength.txt # Used in case Source is FromFile: time [s] & focalLenght [m]
+    ThroughputBandwidth:     638             # FWHM [nm]
     ThroughputLambdaC:       550             # Central wavelength of the throughput passband [nm]
     IncludeFieldDistortion:  yes             # Wheter or not to include field distortion
     AberrationCorrection:
         Type:                differential    # [differential, absolute]
+    IncludeAberrationCorrection:     yes             # Calculate the differential aberration correction and apply
     IncludeFieldDistortion:  yes             # Whether or not to include field distortion
-    FieldDistortion:                         # Describe the model for the field distortion
-        Type:                Polynomial1D
-        Degree:              3
-        Coefficients:        [-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06]
-        InverseCoefficients: [-0.00458067036444, 1.00110311283, -5.61136295937e-05, -4.311925329e-06]
+    FieldDistortion:
+        Type:                        Polynomial1D    # The model for the field distortion
+        Source:                      FromFile        # Either ConstantValue (constant in time) or FromFile (time dependent) 
+        ConstantCoefficients:        [-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06]   # In case Source is ConstantValue
+        ConstantInverseCoefficients: [-0.00458067036444, 1.00110311283, -5.61136295937e-05, -4.311925329e-06] # In case Source is ConstantValue
+        CoefficientsFromFile:        inputfiles/distortioncoefficients.txt                                    # In case Source is FromFile
+        InverseCoefficientsFromFile: inputfiles/distortioninversecoefficients.txt                             # In case Source if FromFile
 
 PSF:
 
-    Model:                       FromFile        # Select the model to be used for the PSF [Gaussian, FromFile]
-    Gaussian:                                    # Generate the PSF from a 2D Gaussian function
-      Sigma:                     0.025           # Standard deviation of Gaussian PSF [pixels]
-      NumberOfPixels:            8               # The number of pixels in the field for which the PSF is generated
-    FromFile:                                    # Read a pre-calculated PSF from an HDF5 file
-      Filename:                  inputfiles/psf.hdf5 
-      DistanceToOA:              10              # The angular distance to the optical axis. -1 to auto-compute. [deg]
-      RotationAngle:             45              # The rotation angle with respect to the x-axis orientation of the focal plane. -1 to auto-compute. [deg]
-      NumberOfPixels:            8               # The number of pixels in the field for which the PSF is generated
+    Model:                           MappedFromFile  # PSF model: MappedGaussian, MappedFromFile, AnalyticGaussian, AnalyticNonGaussian
+    MappedGaussian:                                  # Generate the PSF from a fixed 2D Gaussian function
+        Sigma:                       0.638           # Standard deviation of Gaussian PSF [pix]
+        NumberOfPixels:              8               # The number of pixels in the field for which the PSF is generated
+    MappedFromFile:                                  # Read a pre-calculated and fixed PSF from an HDF5 file
+        Filename:                    inputfiles/psf.hdf5 
+        DistanceToOA:               -1               # The angular distance to the optical axis. -1 to auto-compute.               [deg]
+        RotationAngle:              -1               # PSF rotation angle w.r.t the x-axis of the focal plane. -1 to auto-compute. [deg]
+        NumberOfPixels:              8               # The number of pixels in the field for which the PSF is generated
+    AnalyticGaussian:                                # Generate the PSF analytically from a non-spherical Gaussian
+        Sigma00:                     1.0             # Stdev of Gaussian PSF in x- and y-direction at the optical axis      [pix]
+        SigmaX18:                    5.0             # Stdev of Gaussian PSF in x-direction at 18 deg from the optical axis [pix]
+        SigmaY18:                    2.0             # Stdev of Gaussian PSF in y-direction at 18 deg from the optical axis [pix]
+    AnalyticNonGaussian:
+        ParameterFileName:           inputfiles/psfallv3.txt
+        Sigma:                                       # Width of the analytic PSF, equal to sigma for a Gaussian PSF [pix]  
+            Source:                  ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
+            ConstantValue:           0.5             # Used in case Source is ConstantValue  [pix]
+            FromFile:                inputfiles/sigmaPSF.txt # Used in case Source is FromFile: time [s] & sigma_PSF [pix]
+
 
 FEE:
 
-    NominalOperatingTemperature :    210.15          # Nominal operating temperature of the FEE [K]
-    ReadoutNoise:                    40.5            # Readout noise for the FEE [e-/pixel]
+    NominalOperatingTemperature:     210.15          # Nominal operating temperature of the FEE [K]
+    Temperature:                     Nominal         # Temperature fixed at the nominal operating temperature
+    TemperatureFileName:             inputfiles/feeTemperature.txt 
+    ReadoutNoise:                    40.5            # Readout noise for the FEE [e-/pixel] (same for both ADCs)
     Gain:
-        RefValue:                    11.1            # [ADU/µV] (Total gain = FFE gain * CCD gain = 20 e-/ADU)
-        Stability:                   -100.0          # [ppm/K] = [ADU/µV/K]
-        ThreeSigma:                  0.0             # Difference (3 sigma) in gain between both ADCs [% of the reference value]
-    ElectronicOffset: 
-        RefValue:                    100             # Reference value for the electronic offset [ADU/pixel]
+        RefValue:                    0.0278          # [ADU/microV] (1 / (Total gain) = FFE gain * CCD gain = 1 / (20 e-/ADU))
+        Stability:                   -100.0e-6       # [ppm/K] = [ADU/microV/K]
+        ThreeSigma:                  0.0             # Difference in gain between both ADCs [%]
+    ElectronicOffset:
+        RefValue:                    1000            # Reference value for the electronic offset [ADU/pixel]
         Stability:                   1               # Offset stability [ADU/pixel/K]
-
+        
+        
 CCD:
-    # Settings for CCD 'B'
-    OriginOffsetX:               82.180          # X Offset of CCD origin from center of focal plane [mm]
-    OriginOffsetY:                1.000          # Y Offset of CCD origin from center of focal plane [mm]
-    Orientation:                 90              # Orientation of CCD w.r.t. focal plane orientation [deg]
-    NumColumns:                  4510            # Number of columns [pixels]
-    NumRows:                     4510            # Number of rows [pixels]
+    Position:                        2          # one of [1, 2, 3, 4, Custom]
+                                                     # (use Custom to specify the CCD position parameters yourself)
+                                                     
+    OriginOffsetX:                   0               # X Offset of CCD origin from center of focal plane [mm]  - use when CCDPosition = Custom
+    OriginOffsetY:                   0               # Y Offset of CCD origin from center of focal plane [mm]  - use when CCDPosition = Custom
+    Orientation:                     0               # Orientation of CCD w.r.t. focal plane orientation [deg] - use when CCDPosition = Custom
+    NumColumns:                      4510            # Number of columns on the CCD [pixels]                   - use when CCDPosition = Custom
+    NumRows:                         4510            # Number of rows on the CCD [pixels] (including non-exposed ones) - use when CCDPosition = Custom
+    FirstRowExposed:                 0               # The index of the first row that is exposed to light [pixels]
+
     PixelSize:                   18              # [micron]
-    Gain:                            #16         # [e-/ADU]
-        RefValue:                     1.80       # [µV/e-]
-        Stability:                   -0.004      # [µV/e-/K]
-        ThreeSigma:                  0.0         # Difference (3 sigma) in gain between both CCD halves [% of the reference value]
+    Gain:                           
+        RefValue:                    1.80            # [microV/e-]
+        Stability:                   -0.004          # [microV/e-/K]
+        ThreeSigma:                  15.0            # Difference in gain between both CCD halves [%]
     QuantumEfficiency:
-        Efficiency:              0.925           # Throughput efficiency due to quantum efficiency at the reference angle
-        RefAngle:                45.0            # Reference angle for quantum efficiency [degrees]
-        ExpectedValue:           0.993           # Expected value (mean over all pixels of one detector)
+        RelativeRefEfficiency:       0.925           # Relative efficiency due to angle dependency of the QE at the reference angle
+        RefAngle:                    45.0            # Reference angle for quantum efficiency [degrees]
+        MeanQuantumEfficiency:       0.5985          # Mean quantum efficiency
+        #MeanAngleDependency:         0.993           # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE at the reference angle
+        #ExpectedValue:               0.993 * 0.5895  # Expected value (mean over all pixels of one detector)
     FullWellSaturation:          1000000         # [e-/pixel]
     DigitalSaturation:           65535           # E.g. 16 bit [ADU/pixel]
     ReadoutNoise:                44.3            # Readout noise for the CCD [e-/pixel]
     ReadoutTime:                 2               # time to read out entire CCD [s]
-    FlatfieldPtPNoise:           0.016           # peak-to-peak pixel noise
+    FlatfieldPtPNoise:           0.008           # peak-to-peak pixel noise
     Vignetting: 
         ExpectedValue:           0.945           # Expected value of the throughput efficiency due to vignetting
     Polarization:
@@ -164,3 +208,30 @@ RandomSeeds:
     DriftSeed:               1433429158      # Unique positive integer 
     FeeGainSeed:             1429485030      # Unique positive integer
     CcdGainSeed:             1420450443      # Unique positive integer
+    CosmicSeed:                     1494750830      # Unique positive integer
+    
+
+    
+    # ----- DO NOT MAKE CHANGES BELOW THIS LINE -----
+
+# The parameters below are fixed type parameters that should not be changed. 
+# When you need to specify your own values, use the Custom type for the following parameters:
+# - Telescope/GroupID
+# - CCD/Position
+
+CameraGroups:                                                          # Four groups of six camera's with their azimuth and tilt as specified
+                                                                       # The fifth value is for the Fast Camera's
+    AzimuthAngle:                    [45.0, 135.0, -135.0, -45.0, 0.0] # Azimuth angle of telescope on the platform [deg]
+    TiltAngle:                       [9.2, 9.2, 9.2, 9.2, 0.0]         # Tilt angle of the telescope on the platform [deg]
+
+
+CCDPositions:
+
+    OriginOffsetX:                   [-1, -1, -1, -1]               # X Offset of CCD origin from center of focal plane [mm]
+    OriginOffsetY:                   [82.18, 82.18, 82.18, 82.18]   # Y Offset of CCD origin from center of focal plane [mm]
+    Orientation:                     [0, 90, 180, 270]              # Orientation of CCD w.r.t. focal plane orientation, counter-clockwise [deg]
+    NumColumns:                      [4510, 4510, 4510, 4510]       # Number of columns on the CCD [pixels]
+    NumRows:                         [4510, 4510, 4510, 4510]       # Number of rows on the CCD [pixels] (including non-exposed ones)
+    FirstRowForNormalCamera:         [0, 0, 0, 0]                   # The complete CCDs are active/illuminated for the Normal Camera's
+    FirstRowForFastCamera:           [2255, 2255, 2255, 2255]       # Only the upper half of the CCDs is active/illuminated for the Fast Camera's
+    

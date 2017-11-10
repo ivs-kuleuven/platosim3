@@ -27,7 +27,8 @@
 
 Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator)
 : HDF5Writer(hdf5file), 
-  includePhotonNoise(true), 
+  includeCosmics(true),
+  includePhotonNoise(true),
   includeReadoutNoise(true),
   includeCTIeffects(true), 
   includeOpenShutterSmearing(true), 
@@ -61,7 +62,7 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
     smearingMap.zeros(numRowsSmearingMap, numColumnsPixelMap);
     throughputMap.ones(numRowsPixelMap, numColumnsPixelMap);
 
-    // Generate detector gain. The lefthand side of the detector has a different gain than the righthand side.
+    // Generate detector gain. The left-hand side of the detector has a different gain than the right-hand side.
 
     generateGain();
 
@@ -70,12 +71,21 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
     photonNoiseGenerator.seed(photonNoiseSeed);
     readoutNoiseGenerator.seed(readoutNoiseSeed);
 
+    cosmicHitRateGenerator.seed(cosmicSeed);
+    cosmicEntryRowGenerator.seed(cosmicSeed + 1);
+    cosmicEntryColumnGenerator.seed(cosmicSeed + 2);
+    cosmicEntryAngleGenerator.seed(cosmicSeed + 3);
+    cosmicTrailLengthGenerator.seed(cosmicSeed + 4);
+    cosmicIntensityGenerator.seed(cosmicSeed + 5);
+
     // Fast forward the random number generators of the readout and the photon noise from 
     // exposure # 0 to exposure # beginExposureNr.
 
+    double exposureTime = configParam.getDouble("ObservingParameters/ExposureTime");
+
     fastForwardReadoutNoiseGeneratorToExposure(beginExposureNr);
     fastForwardPhotonNoiseGeneratorToExposure(beginExposureNr);
-
+    fastForwardCosmicsGeneratorToExposure(beginExposureNr, exposureTime);
 }
 
 
@@ -175,9 +185,16 @@ void Detector::updateParameters(double time)
     Log.debug("Detector: numRows, numColumns, firstRow = " + to_string(numRows) + ", " + to_string(numColumns) + ", " + to_string(firstRowExposed));
 
     pixelSize                           = configParam.getDouble("CCD/PixelSize");
-    quantumEfficiency                   = configParam.getDouble("CCD/QuantumEfficiency/Efficiency");
-    refAngleQuantumEfficiency           = configParam.getDouble("CCD/QuantumEfficiency/RefAngle");
-    expectedValueQuantumEfficiency      = configParam.getDouble("CCD/QuantumEfficiency/ExpectedValue");
+//    quantumEfficiency                   = configParam.getDouble("CCD/QuantumEfficiency/Efficiency");
+    refAngleQE                          = configParam.getDouble("CCD/QuantumEfficiency/RefAngle");
+    relativeRefEfficiencyQE             = configParam.getDouble("CCD/QuantumEfficiency/RelativeRefEfficiency");
+    meanQE                              = configParam.getDouble("CCD/QuantumEfficiency/MeanQuantumEfficiency");
+//    meanAngleDependencyQE               = configParam.getDouble("CCD/QuantumEfficiency/MeanAngleDependency");
+//    expectedValueQuantumEfficiency      = configParam.getDouble("CCD/QuantumEfficiency/ExpectedValue");
+    includeCosmics                      = configParam.getBoolean("Sky/IncludeCosmics");
+    cosmicHitRate                       = configParam.getDouble("Sky/Cosmics/CosmicHitRate");
+    cosmicTrailLength                   = configParam.getDoubleVector("Sky/Cosmics/TrailLength");
+    cosmicIntensity                     = configParam.getDoubleVector("Sky/Cosmics/Intensity");
     fullWellSaturationLimit             = configParam.getLong("CCD/FullWellSaturation");
     digitalSaturationLimit              = configParam.getLong("CCD/DigitalSaturation");
     readoutNoise                        = configParam.getDouble("CCD/ReadoutNoise");
@@ -243,6 +260,7 @@ void Detector::updateParameters(double time)
 
     readoutNoiseSeed        = configParam.getLong("RandomSeeds/ReadOutNoiseSeed");
     photonNoiseSeed         = configParam.getLong("RandomSeeds/PhotonNoiseSeed");
+    cosmicSeed             = configParam.getLong("RandomSeeds/CosmicSeed");
 
     // Get the sequential number of the very first exposure (used for e.g. fast-forwarding the noise generators)
 
@@ -342,10 +360,10 @@ void Detector::generateThroughputMap()
     double angle;
 
     const double refAnglePolarizationRadians = deg2rad(refAnglePolarization);       // Reference angle for the polarisation efficiency [radians]
-    const double cosPolarizationEfficiency = cos(polarizationEfficiency);
+    const double acosPolarizationEfficiency = acos(polarizationEfficiency);
 
-    const double refAngleQuantumEfficiencyRadians = deg2rad(refAngleQuantumEfficiency);     // Reference angle for the quantum efficiency [radians]
-    const double cosQuantumEfficiency = cos(quantumEfficiency);
+    const double refAngleQuantumEfficiencyRadians = deg2rad(refAngleQE);     // Reference angle for the quantum efficiency [radians]
+    const double acosQuantumEfficiency = acos(relativeRefEfficiencyQE);		// Relative efficiency due to the angle dependency of the QE at the reference angle
 
     if (includeVignetting || includePolarization || includeQuantumEfficiency)
     {
@@ -372,14 +390,14 @@ void Detector::generateThroughputMap()
                 // Polarisation (Eq. 4-11 in PLATO-DLR-PL-RP-001)
 
                 if (includePolarization)
-                    throughputMap(row, column) *= cos(angle / refAnglePolarizationRadians * cosPolarizationEfficiency);
+                    throughputMap(row, column) *= cos(angle / refAnglePolarizationRadians * acosPolarizationEfficiency);
 
                 // Quantum efficiency (Eq. 4-12 in PLATO-DLR-PL-RP-001)
                 // Pixel units before: [photons]
                 // Pixel units after: [electrons]
 
                 if (includeQuantumEfficiency)
-                    throughputMap(row, column) *= cos(angle / refAngleQuantumEfficiencyRadians * cosQuantumEfficiency);
+                    throughputMap(row, column) *= (meanQE * cos(angle / refAngleQuantumEfficiencyRadians * acosQuantumEfficiency));
             }
         }
     }
@@ -549,12 +567,26 @@ void Detector::readOut(float exposureTime)
 
     if (includePhotonNoise)
     {
-        Log.debug("Detector: adding photon noise");
+        Log.debug("Detector: adding photon noise.");
         addPhotonNoise();
     }
     else 
     {
         Log.debug("Detector: no photon noise added.");
+    }
+
+    // Add cosmic hits
+    // Pixel units before: [electrons]
+    // Pixel units after: [electrons]
+
+    if(includeCosmics)
+    {
+    		Log.debug("Detector: adding cosmic hits.");
+    		addCosmics(exposureTime);
+    }
+    else
+    {
+    		Log.debug("Detector: no cosmic hits added.");
     }
 
     // Apply full-well saturation. A pixel has a maximum capacity of electrons (the full well capacity).
@@ -582,7 +614,7 @@ void Detector::readOut(float exposureTime)
 
     if (includeCTIeffects)
     {
-        Log.debug("Detector: applying charge transfer inefficiency");
+        Log.debug("Detector: applying charge transfer inefficiency.");
         applyCTI();
     }
     else
@@ -688,6 +720,153 @@ void Detector::addPhotonNoise()
 
 
 /**
+ * \brief: Add cosmic hits to the pixel, bias register, and smearing map.
+ *         - The number of cosmic hits is determined by a random sample from a Poisson
+ *           distribution with the configured mean cosmic hit rate, exposure time,
+ *           size of the map (number of rows and columns [pixels]), and pixel size.
+ *         - The entry points are uniformly distributed over the maps.
+ *         - The entry angles are uniformly distributed over the [0, 2π] interval.
+ *         - The length of the trails is uniformly distributed over the given interval.
+ *         - The total number of electrons in the trail is uniformly distributed over
+ *           the given interval.
+ *
+ * \param exposureTime: Exposure time [s].
+ *
+ * \pre Pixel unit in the pixel map: [electrons].
+ * \pre Pixel unit in the smearing map: [electrons].
+ * \pre No bias register map.
+ *
+ * \post Pixel unit in the pixel map: [electrons].
+ * \post Pixel unit in the smearing map: [electrons].
+ * \post Pixel unit in the bias register map: [electrons].
+ */
+void Detector::addCosmics(float exposureTime)
+{
+	cosmicHitRateDistribution = poisson_distribution<long>(cosmicHitRate);
+	cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumns - 1);
+	cosmicEntryAngleDistribution = uniform_real_distribution<double>(0, 2 * PI);
+	cosmicTrailLengthDistribution = uniform_real_distribution<double>(cosmicTrailLength[0], cosmicTrailLength[1]);
+	cosmicIntensityDistribution = uniform_real_distribution<double>(cosmicIntensity[0], cosmicIntensity[1]);
+
+	// Pixel map
+
+	addCosmics(exposureTime, pixelMap, numRowsPixelMap, numColumnsPixelMap);
+
+	// Bias register map
+
+	addCosmics(exposureTime, biasMap, numRowsBiasMap, numColumnsPixelMap);
+
+	// Smearing map
+
+	addCosmics(exposureTime, smearingMap, numRowsSmearingMap, numColumnsPixelMap);
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief: Add cosmic hits to the given map.
+ *         - The number of cosmic hits is determined by a random sample from a Poisson
+ *           distribution with the configured mean cosmic hit rate, exposure time,
+ *           size of the map (number of rows and columns [pixels]), and pixel size.
+ *         - The entry points are uniformly distributed over the maps.
+ *         - The entry angles are uniformly distributed over the [0, 2π] interval.
+ *         - The length of the trails is uniformly distributed over the given interval.
+ *         - The total number of electrons in the trail is uniformly distributed over
+ *           the given interval.
+ *
+ * \param exposureTime: Exposure time [s].
+ * \param map: Map affected by cosmics [e-].  Either the pixel, bias register, or
+ *             smearing map.
+ * \param numRows: Number of rows in the map [pixels].
+ * \param numColumns: Number of columns in the map [pixels].
+ *
+ * \pre Pixel unit in the pixel map: [electrons].
+ * \pre Pixel unit in the smearing map: [electrons].
+ * \pre No bias register map.
+ *
+ * \post Pixel unit in the pixel map: [electrons].
+ * \post Pixel unit in the smearing map: [electrons].
+ * \post Pixel unit in the bias register map: [electrons].
+ */
+void Detector::addCosmics(float exposureTime, const arma::Mat<float> &map, int numRows, int numColumns)
+{
+	// Characteristics of an individual trail
+
+	double entryRow, entryColumn, entryAngle, trailLength, intensity, sigma;
+
+	// Each trail consists of 200 "trail points"
+	/// (equally spaced points over the trail length)
+
+	int numTrailPoints = 200;
+	arma::vec trailRows, trailColumns, trailWeights;	// All trail points: row, column, and weight
+	int trailRow, trailColumn;						// Individual trail point: row and column
+
+	cosmicEntryRowDistribution = uniform_real_distribution<double>(0, numRows - 1);
+
+	// Number of cosmic hits
+	// - cosmic hit rate [events / cm^2 / s]
+	// - exposure time [s]
+	// - dimensions [pixels] -> [micron] -> [cm]
+
+	int numCosmicHits = cosmicHitRateDistribution(cosmicHitRateGenerator) * exposureTime * (numRows * pixelSize / 10000.0) * (numColumns * pixelSize / 10000.0);
+	Log.debug("Detector: number of cosmic hits: " + to_string(numCosmicHits));
+
+	for(unsigned int cosmicHit = 0; cosmicHit < numCosmicHits; cosmicHit++)
+	{
+		entryRow = cosmicEntryRowDistribution(cosmicEntryRowGenerator);			// Entry row [pixels] (uniform distribution over the rows of the sub-fields)
+		entryColumn = cosmicEntryColumnDistribution(cosmicEntryColumnGenerator);	// Entry column [pixels] (uniform distribution over the columns of the sub-field)
+		entryAngle = cosmicEntryAngleDistribution(cosmicEntryAngleGenerator);		// Entry angle [radians] (uniform distribution between 0 and 2π)
+		trailLength = cosmicTrailLengthDistribution(cosmicTrailLengthGenerator);	// Trail length [pixels] (uniform distribution over interval)
+		intensity = cosmicIntensityDistribution(cosmicIntensityGenerator);		// Number of e- in cosmic hit [e-] (uniform distribution over interval)
+
+		double trailStep = trailLength / numTrailPoints;		// Distance between two "trail points" (for the current trail)
+
+		trailWeights = arma::linspace(0, trailLength, numTrailPoints);
+		trailRows = entryRow + trailWeights * sin(entryAngle);
+		trailColumns = entryColumn + trailWeights* cos(entryAngle);
+
+		// Apply the decay function
+
+		sigma = arma::max(trailWeights) / 3.0;
+		trailWeights = arma::exp(-arma::pow(trailWeights, 2) / (2 * pow(sigma, 2)));
+		trailWeights /= arma::sum(trailWeights);
+
+		// Add the flux coming from the cosmic hit to all its trail points in the pixel map
+
+		for(unsigned int index = 0; index < numTrailPoints; index++)
+		{
+			trailRow = int(floor(trailRows(index)));
+			trailColumn = int(floor(trailColumns(index)));
+
+			if((trailRow >= 0) && (trailRow < numRowsPixelMap) && (trailColumn >= 0) && (trailColumn < numColumnsPixelMap))
+			{
+				pixelMap(trailRow, trailColumn) += (trailWeights(index) * intensity);
+			}
+		}
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
  * \brief: Apply the effect of full-well saturation (i.e. blooming) to the
  *         pixel map.  If a pixel receives more electrons than the full-well saturation
  *         limit (expressed in [electrons / pixel]), the additional electrons flow evenly
@@ -696,13 +875,13 @@ void Detector::addPhotonNoise()
  *
  * \pre Pixel unit in the pixel map: [electrons].
  * \pre Pixel unit in the smearing map: [electrons].
- * \pre No bias register map.
+ * \pre No bias register map, unless cosmics have been added to it.
  * \pre Full-well saturation limit expressed in [electrons].
  *
  * \post Pixel unit in the pixel map: [electrons].
  * \post Effect of full-well saturation (i.e. blooming) applied to the pixel map.
  * \post Pixel unit in the smearing map: [electrons].
- * \post No bias register map.
+ * \post No bias register map, unless cosmics have been added to it.
  */
 
 void Detector::applyFullWellSaturation()
@@ -830,11 +1009,11 @@ void Detector::applyFullWellSaturation()
  *  
  * \pre Pixel unit in the pixel map: [electrons]
  * \pre Pixel unit in the smearing map: [electrons].
- * \pre No bias register map.
+ * \pre No bias register map, unless cosmics have been added to it.
  *
  * \post Pixel unit in the pixel map: [electrons].
  * \post Pixel unit in the smearing map: [electrons].
- * \post No bias register map.              
+ * \post No bias register map, unless cosmics have been added to it.
  */
 
 void Detector::applyCTI()
@@ -871,11 +1050,11 @@ void Detector::applyCTI()
  *
  * \pre Pixel unit in the pixel map: [electrons].
  * \pre Pixel unit in the smearing map: [electrons].
- * \pre No bias register map.
+ * \pre No bias register map, unless cosmics have been added to it.
  *
  * \post Pixel unit in the pixel map: [electrons].
  * \post Pixel unit in the smearing map: [electrons].
- * \post No bias register map.
+ * \post No bias register map, unless cosmics have been added to it.
  */
 
 void Detector::applySimpleCTImodel()
@@ -963,11 +1142,11 @@ void Detector::applySimpleCTImodel()
  * 
  * \pre Pixel unit in the pixel map: [electrons].
  * \pre Pixel unit in the smearing map: [electrons].
- * \pre No bias register map.
+ * \pre No bias register map, unless cosmics have been added to it.
  *
  * \post Pixel unit in the pixel map: [electrons].
  * \post Pixel unit in the smearing map: [electrons].
- * \post No bias register map.
+ * \post No bias register map, unless cosmics have been added to it.
  */
  
 void Detector::applyShort2013CTImodel()
@@ -1062,11 +1241,11 @@ void Detector::applyShort2013CTImodel()
  *
  * \pre Pixel unit in the pixel map: [electrons].
  * \pre Pixel unit in the smearing map: [electrons].
- * \pre No bias register map.
+ * \pre No bias register map, unless cosmics have been added to it.
  *
  * \post Pixel unit in the pixel map: [electrons].
  * \post Pixel unit in the smearing map: [electrons].
- * \post No bias register map.
+ * \post No bias register map, unless cosmics have been added to it.
  */
 void Detector::applyOpenShutterSmearing(float exposureTime)
 {
@@ -1093,8 +1272,11 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
     if(includeMolecularContamination)
         openShutterSmearingOutsideSubField *= molecularContaminationEfficiency;
 
+    // Sect. 4.2.4.5 of PLATO-DLR-PL-RP-001:
+    // The expected value E_ang is then the mean over all pixels and results in a value of 0.993
+
     if(includeQuantumEfficiency)
-        openShutterSmearingOutsideSubField *= expectedValueQuantumEfficiency;
+        openShutterSmearingOutsideSubField *= meanQE;
 
 
     openShutterSmearing += openShutterSmearingOutsideSubField;
@@ -1143,13 +1325,13 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
  *
  * \pre Pixel unit in the pixel map: [electrons].
  * \pre Pixel unit in the smearing map: [electrons].
- * \pre Bias map not initialised.
+ * \pre No bias register map, unless cosmics have been added to it.
  * \pre Readout noise expressed in [electrons].
  *
  * \post Pixel unit in the pixel map: [electrons].
  * \post Pixel unit in the smearing map: [electrons].
  * \post Pixel unit in the bias register map: [electrons].
- * \post Initialised the bias and smearing maps with readout noise.
+ * \post Added readout noise to the bias and smearing maps.
  */
 
 void Detector::addReadoutNoise()
@@ -1278,52 +1460,49 @@ void Detector::applyGain()
     const int lastIndexCcdLeft = numColumns / 2 - 1;
     const int lastIndexSubFieldLeft = lastIndexCcdLeft - subFieldZeroPointColumn;
 
-    // Detector gain (left & right)
+    // Detector gain (left & right) [µV / e-]
 
     const double ccdGainOverDeltaTemp = gainStability * (getTemperature() - nominalOperatingTemperature);
 
     const double ccdGainLeft = refValueGainLeft + ccdGainOverDeltaTemp;
     const double ccdGainRight = refValueGainRight + ccdGainOverDeltaTemp;
 
-    // FEE gain (left & right)
+    // FEE gain (left & right) [ADU / µV]
 
-    //  const double feeGainOverDeltaTemp = frontEndElectronics->getGainStability()
-    //         * (frontEndElectronics->getTemperature() - frontEndElectronics->getNominalOperatingTemperature());
-    //
-    //	const double feeGainLeft = frontEndElectronics->getGainRefValueLeft() + feeGainOverDeltaTemp;
-    //	const double feeGainRight = frontEndElectronics->getGainRefValueRight() + feeGainOverDeltaTemp;
-
-	// Combined gain (FEE & CCD)
+	// Combined gain (FEE & CCD) [ADU / e-]
 
 	const double combinedGainLeft = frontEndElectronics->getGainLeftAdc(internalTime) * ccdGainLeft;
 	const double combinedGainRight = frontEndElectronics->getGainRightAdc(internalTime) * ccdGainRight;
 
 	if(lastIndexSubFieldLeft >= numColumnsPixelMap - 1)	  // Left ADC only
 	{
-		pixelMap /= combinedGainLeft;
-		biasMap /= combinedGainLeft;
-		smearingMap /= combinedGainLeft;
+		pixelMap *= combinedGainLeft;
+		biasMap *= combinedGainLeft;
+		smearingMap *= combinedGainLeft;
 	}
 	else if(lastIndexSubFieldLeft < 0)	                 // Right ADC only
 	{
-		pixelMap /= combinedGainRight;
-		biasMap /= combinedGainRight;
-		smearingMap /= combinedGainRight;
+		pixelMap *= combinedGainRight;
+		biasMap *= combinedGainRight;
+		smearingMap *= combinedGainRight;
 	}
 	else
 	{
 		// 0 -> lastIndexSubFieldLeft: left ADC
 
-		pixelMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) /= combinedGainLeft;
-		biasMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) /= combinedGainLeft;
-		smearingMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) /= combinedGainLeft;
+		pixelMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
+		biasMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
+		smearingMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
 
 		// lastIndexSubFieldLeft + 1 -> numColumnsSubPixelMap -1: right ADC
 
-		pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) /= combinedGainRight;
-		biasMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) /= combinedGainRight;
-		smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) /= combinedGainRight;
+		pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
+		biasMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
+		smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
 	}
+
+	Log.info("Detector: gain: " + to_string(combinedGainLeft));
+	Log.info("Detector: gain: " + to_string(combinedGainRight));
 }
 
 
@@ -1874,6 +2053,84 @@ void Detector::fastForwardPhotonNoiseGeneratorToExposure(int beginExposureNr)
             }
         }
     }
+}
+
+
+
+
+
+
+/**
+ * \brief PlatoSim allows to generate e.g. exposures 0->99, and then a second run
+ *        from 100->199, which facilitates Slurming long time series. The results
+ *        should be the same as if we would generate 0->199 in one stretch. Therefore,
+ *        when generating exposures 100->199, we have to take care that all noise
+ *        generators start in the correct state. The way to do this, is to fast-forward
+ *        through all noise generations of exposures 0->99. This function is therefore
+ *        a skeleton version of addCosmics(), where cosmics are generated but further
+ *        ignored.
+ *
+ * \param beginExposureNr: fast forward from 0 to beginExposureNr-1
+ * \param exposureTime: Exposure time [s].
+ */
+void Detector::fastForwardCosmicsGeneratorToExposure(int beginExposureNr, float exposureTime)
+{
+	cosmicHitRateDistribution = poisson_distribution<long>(cosmicHitRate);
+	cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsPixelMap - 1);
+	cosmicEntryAngleDistribution = uniform_real_distribution<double>(0, 2 * PI);
+	cosmicTrailLengthDistribution = uniform_real_distribution<double>(cosmicTrailLength[0], cosmicTrailLength[1]);
+	cosmicIntensityDistribution = uniform_real_distribution<double>(cosmicIntensity[0], cosmicIntensity[1]);
+
+	if(includeCosmics)
+	{
+		int dummyNumOfCosmics;
+		double dummy;
+
+		for(unsigned int n = 0; n < beginExposureNr; n++)
+		{
+			// Pixel map
+
+			cosmicEntryRowDistribution = uniform_real_distribution<double>(0, numRowsPixelMap - 1);
+			dummyNumOfCosmics = cosmicHitRateDistribution(cosmicHitRateGenerator) * exposureTime * (numRowsPixelMap * pixelSize / 10000.0) * (numColumnsPixelMap * pixelSize / 10000.0);
+
+			for(unsigned int cosmicHit = 0; cosmicHit < dummyNumOfCosmics; cosmicHit++)
+			{
+				dummy = cosmicEntryRowDistribution(cosmicEntryRowGenerator);
+				dummy = cosmicEntryColumnDistribution(cosmicEntryColumnGenerator);
+				dummy = cosmicEntryAngleDistribution(cosmicEntryAngleGenerator);
+				dummy = cosmicTrailLengthDistribution(cosmicTrailLengthGenerator);
+				dummy = cosmicIntensityDistribution(cosmicIntensityGenerator);
+			}
+
+			// Bias register map
+
+			cosmicEntryRowDistribution = uniform_real_distribution<double>(0, numRowsBiasMap - 1);
+			dummyNumOfCosmics = cosmicHitRateDistribution(cosmicHitRateGenerator) * exposureTime * (numRowsBiasMap * pixelSize / 10000.0) * (numColumnsPixelMap * pixelSize / 10000.0);
+
+			for(unsigned int cosmicHit = 0; cosmicHit < dummyNumOfCosmics; cosmicHit++)
+			{
+				dummy = cosmicEntryRowDistribution(cosmicEntryRowGenerator);
+				dummy = cosmicEntryColumnDistribution(cosmicEntryColumnGenerator);
+				dummy = cosmicEntryAngleDistribution(cosmicEntryAngleGenerator);
+				dummy = cosmicTrailLengthDistribution(cosmicTrailLengthGenerator);
+				dummy = cosmicIntensityDistribution(cosmicIntensityGenerator);
+			}
+
+			// Smearing map
+
+			cosmicEntryRowDistribution = uniform_real_distribution<double>(0, numRowsBiasMap - 1);
+			dummyNumOfCosmics = cosmicHitRateDistribution(cosmicHitRateGenerator) * exposureTime * (numRowsBiasMap * pixelSize / 10000.0) * (numColumnsPixelMap * pixelSize / 10000.0);
+
+			for(unsigned int cosmicHit = 0; cosmicHit < dummyNumOfCosmics; cosmicHit++)
+			{
+				dummy = cosmicEntryRowDistribution(cosmicEntryRowGenerator);
+				dummy = cosmicEntryColumnDistribution(cosmicEntryColumnGenerator);
+				dummy = cosmicEntryAngleDistribution(cosmicEntryAngleGenerator);
+				dummy = cosmicTrailLengthDistribution(cosmicTrailLengthGenerator);
+				dummy = cosmicIntensityDistribution(cosmicIntensityGenerator);
+			}
+		}
+	}
 }
 
 

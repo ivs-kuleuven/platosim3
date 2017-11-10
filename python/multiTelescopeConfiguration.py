@@ -46,7 +46,7 @@ from referenceFrames import CCD
 inputDir = os.getenv("PLATO_PROJECT_HOME") + "/inputfiles"
 inputFile   = inputDir + "/inputfile.yaml"
 
-outputDir   = os.getcwd()
+outputDir   = os.getenv("PLATO_WORKDIR")
 outputPrefix = "MultiTelescopeConfiguration"
 
 
@@ -61,18 +61,15 @@ outputPrefix = "MultiTelescopeConfiguration"
 # Observing parameters
 ######################
 
-raPointing = 180.0                      # Platform right ascension pointing coordinate [degrees]
-decPointing = -70.0                     # Platform declination pointing coordinate [degrees]
+raPlatform  = 10.0                       # Platform right ascension pointing coordinate [degrees]
+decPlatform = 10.0                       # Platform declination pointing coordinate [degrees]
 
 
-raCenter = 227.747586623                # Right ascension on which to centre the sub-field [degrees]
-decCenter = -63.9874188222              # Declination on which to centre the sub-field [degrees]
+raCenter = 7.0                # Right ascension on which to centre the sub-field [degrees]
+decCenter = 15.0              # Declination on which to centre the sub-field [degrees]
 
 # Telescope parameters
 ######################
-
-azimuthAngles = [45, 135, -135, -45]    # Azimuth angles of the telescopes (same within a group) [degrees]
-tiltAngle = 9.2                         # Tilt angle of the telescopes (same for the 4 groups) [degrees]
 
 driftSeed = 1433429158                  # Random seed for telescope drift                                           <--- different for each telescope!
 
@@ -84,6 +81,8 @@ driftSeed = 1433429158                  # Random seed for telescope drift       
 #    - origin offset (x, y)
 #    - orientation
 #    - size
+
+# Different for each telescope
 
 readoutNoiseSeed =  1424949740          # Random seed for the readout noise                                         <--- different for each telescope!
 photonNoiseSeed = 1433320336            # Random seed for the photon noise                                          <--- different for each telescope!
@@ -117,7 +116,7 @@ for group in range(numTelescopeGroups):
     
     for telescope in range(numTelescopesPerGroup):
         
-        print("Processing telescope {0} of group {1}".format(telescope+1, group+1))
+        print("Processing telescope {0} of group {1}".format(telescope + 1, group + 1))
         
         telescopeIndex = numTelescopesPerGroup * group + telescope
         
@@ -134,18 +133,17 @@ for group in range(numTelescopeGroups):
         
         raSun, decSun = sunSkyCoordinatesAwayfromPlatformPointing(math.radians(raPlatform), math.radians(decPlatform))
         raTelescope, decTelescope = platformToTelescopePointingCoordinates(math.radians(raPlatform), math.radians(decPlatform), raSun, decSun, math.radians(azimuthAngles[group]), math.radians(tiltAngles[group]))
-        raTelescopePointings.append(math.degrees(raTelescope))
-        decTelescopePointings.append(math.degrees(decTelescope))
-        
+
         print("Platform pointing: {0}, {1}".format(raPlatform, decPlatform))
         print("Telescope pointing: {0}, {1}".format(math.degrees(raTelescope), math.degrees(decTelescope)))
         #print("Sun: {0}, {1}".format(math.degrees(raSun), math.degrees(decSun)))
         
-        includeFieldDistortion = (str(sim["Camera/IncludeFieldDistortion"] == "yes"))  or (str(sim["Camera/IncludeFieldDistortion"] == "1"))        # Whether or not to include field distortion
-        focalPlaneAngle = sim["Camera/FocalPlaneOrientation/ConstantValue"]                                                                                       # Focal-plane orientation [degrees]
-        focalLength = sim["Camera/FocalLength/ConstantValue"] * 1000                                                                                              # Focal length [mm]
-        plateScale  = sim["Camera/PlateScale"]                                                                                                       # Plate scale [arcsec / micron]
-        pixelSize   = sim["CCD/PixelSize"]                                                                                                            # Pixel size [micron / pixel]
+        includeFieldDistortion = (sim["Camera/IncludeFieldDistortion"] == "no")  
+        distortionCoefficients = sim["Camera/FieldDistortion/ConstantCoefficients"]
+        focalPlaneAngle = sim["Camera/FocalPlaneOrientation/ConstantValue"]         # Focal-plane orientation [degrees]
+        focalLength = sim["Camera/FocalLength/ConstantValue"] * 1000                # Focal length [mm]
+        plateScale  = sim["Camera/PlateScale"]                                      # Plate scale [arcsec / micron]
+        pixelSize   = sim["CCD/PixelSize"]                                          # Pixel size [micron / pixel]
         
         # Determine on which CCD (A, B, C, or D) the coordinates (raCenter, decCenter) are positioned and at which location
         # (in pixel coordinates)
@@ -160,23 +158,15 @@ for group in range(numTelescopeGroups):
             
             # Observing parameters
         
-            sim["ObservingParameters/RApointing"] = raPointing
-            sim["ObservingParameters/DecPointing"] = decPointing
-        
+            sim["ObservingParameters/RApointing"] = raPlatform
+            sim["ObservingParameters/DecPointing"] = decPlatform
             # Telescope parameters
             
-            sim["Telescope/GroupID"] = group + 1           
-            #sim["Telescope/AzimuthAngle"] = azimuthAngles[group]
-            #sim["Telescope/TiltAngle"] = tiltAngle
+            sim["Telescope/GroupID"] = group + 1
     
             # CCD parameters
             
             sim["CCD/Position"] =  ccdCode
-            #sim["CCD/OriginOffsetX"] = CCD[ccdCode]["zeroPointXmm"]
-            #sim["CCD/OriginOffsetY"] = CCD[ccdCode]["zeroPointYmm"]
-            #sim["CCD/Orientation"] = CCD[ccdCode]["angle"]
-            #sim["CCD/NumColumns"] = CCD[ccdCode]["Ncols"]
-            #sim["CCD/NumRows"] = CCD[ccdCode]["Nrows"]
             
             # Sub-field parameters
         
