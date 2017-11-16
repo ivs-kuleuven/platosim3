@@ -335,9 +335,9 @@ void Detector::generateThroughputMap()
     {
         // Loop over all pixels in the pixel map
 
-        for (unsigned int row = 0; row < numRowsPixelMap; row++)
+        for (unsigned int row = subFieldZeroPointRow; row < subFieldZeroPointRow + numRowsPixelMap; row++)
         {
-            for (unsigned int column = 0; column < numColumnsPixelMap; column++)
+            for (unsigned int column = subFieldZeroPointColumn; column < subFieldZeroPointColumn + numColumnsPixelMap; column++)
             {
                 // Pixel coordinates (in the detector) -> focal-plane coordinates
 
