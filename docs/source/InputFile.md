@@ -1339,6 +1339,8 @@ Number of rows in the over-scan strip (see Fig. 3), expressed in normal pixel un
 
 Number of sub-pixels per pixel in both directions.
 
+If you want a pixel of 256 x 256 = 65536 sub-pixels, you should specify in the configuration file 256. The total number of sub-pixels per pixel will then be 65536. If you want 256 = 16 x 16 sub-pixels per pixel, then you should specify 16 in the configuration file.
+
 
 
 
