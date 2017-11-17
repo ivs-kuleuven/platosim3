@@ -8,6 +8,14 @@
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<script type="text/javascript">
+  $(document).ready(initResizable);
+  $(window).load(resizeHeight);
+</script>
 <link href="search/search.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="search/searchdata.js"></script>
 <script type="text/javascript" src="search/search.js"></script>
@@ -41,8 +49,10 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </script>
   <div id="navrow1" class="tabs">
     <ul class="tablist">
-      <li><a href="index.html"><span>Main&#160;Page</span></a></li>
-      <li class="current"><a href="pages.html"><span>Related&#160;Pages</span></a></li>
+      <li><a href="index.html"><span>Welcome</span></a></li>
+      <li><a href="DownloadUpdateBuild.html"><span>Installing/Updating&#160;PlatoSim3</span></a></li>
+      <li><a href="Running.html"><span>Running&#160;PlatoSim3</span></a></li>
+      <li><a href="IssueTracking.html"><span>Help&#160;(Issue&#160;Tracking)</span></a></li>
       <li>
         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
@@ -61,6 +71,21 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
       </li>
     </ul>
   </div>
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+$(document).ready(function(){initNavTree('SimulationSteps.html','');});
+</script>
+<div id="doc-content">
 <!-- window showing the filter options -->
 <div id="MSearchSelectWindow"
      onmouseover="return searchBox.OnSearchSelectShow()"
@@ -75,7 +100,6 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </iframe>
 </div>
 
-</div><!-- top -->
 <div class="header">
   <div class="headertitle">
 <div class="title">Simulation Steps </div>  </div>
@@ -83,46 +107,51 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="contents">
 <div class="textblock"><p>The goal of the PlatoSim C++ code is to model a part (referred to as the "sub-field") of one CCD of a single telescope on the platform. On this page we describe the steps that are executed within a simulation in more detail.</p>
 <p>The PlatoSim3 has been rewritten from scratch in order to get rid of historical baggage and inefficient code constructions that had been built up for years. The PlatoSim v2 became impossible to maintain and it was very hard to add new features with confidence.</p>
-<p>We therefore started from scratch with an object-oriented design and proper testing. We minimised the dependencies to external libraries and replaced inactive libraries with code that is still actively maintained.</p>
+<p>We therefore started from scratch with an object-oriented design and proper testing. We minimised the dependencies to external libraries and replaced inactive libraries with code that is still actively maintained. </p><hr/>
 <h2>Conceptual Design</h2>
 <p>The PLATO Simulator design started from the concept pictured below (see Fig. 1). The main hardware components that make up the PLATO spacecraft are the platform, telescope, camera, and detectors, all of which are represented by a separate class in PlatoSim3. Since we are simulating noise features on an image taken from the sky, we added the <code>Sky</code> class to the concept. All these components are controlled by a <code>Simulation</code> object.</p>
 <div class="image">
 <img src="PlatoSim3 Conceptual Design.png" alt="PlatoSim3 Conceptual Design.png"/>
 <div class="caption">
-Figure 1: Conceptual design of the PLATO Simulator PlatoSim3.</div></div>
-<p> The more detailed design of the PlatoSim3 is depicted in Fig. 2. The <code>Simulation</code> class in the middle controls the process and knows about all the main components in the system. Each of these main components has its own set of responsibilities:</p>
+Figure 1: Conceptual design of PlatoSim3.</div></div>
+<p> The more detailed design of PlatoSim3 is depicted in Fig. 2. The <code>Simulation</code> class in the middle controls the process and knows about all the main components in the system. Each of these main components has its own set of responsibilities:</p>
 <ul>
 <li><code>Platform</code> provides information about the jitter,</li>
 <li><code>Telescope</code> controls the thermo-elastic drift,</li>
 <li><code>Camera</code> provides information on the Point Spread Function (represented by the <code>PSF</code> clas),</li>
+<li><code>FrontEndElectronics</code></li>
 <li>and <code>Detector</code> controls all the different (sub-)pixel maps.</li>
 </ul>
-<p>The blue file icons attached to several boxes indicate that information about its responsibility is provided in the <a class="el" href="InputFileDescription.html">YAML configuration file</a>, while the green file icons indicate that the component is writing information into the <a class="el" href="OutputFileDescription.html">HDF5 output file</a>.</p>
+<p>The blue file icons attached to several boxes indicate that information about its responsibility is provided in the <a class="el" href="ConfigurationParameters.html">YAML configuration file</a>, while the green file icons indicate that the component is writing information into the <a class="el" href="OutputFileDescription.html">HDF5 output file</a>.</p>
 <div class="image">
 <img src="PlatoSim3 Detailed Design.png" alt="PlatoSim3 Detailed Design.png"/>
 <div class="caption">
-Figure 2: Detailed design of the PLATO Simulator PlatoSim3.</div></div>
+Figure 2: Detailed design of PlatoSim3.</div></div>
+<hr/>
 <h2>Control Flow</h2>
-<p>Figure 3 shows the initialisation steps of the PlatoSim3.</p>
+<p>Figure 3 shows the initialisation steps of PlatoSim3.</p>
 <div class="image">
 <img src="PlatoSim3 Initialisation.png" alt="PlatoSim3 Initialisation.png"/>
 <div class="caption">
-Figure 3: Initialisation steps for the PLATO Simulator PlatoSim3.</div></div>
-<p> Figure 4 shows the control flow of the PLATO Simulator PlatoSim3.</p>
-<p>The simulation is a loop over the number of exposures that is requested in the <a class="el" href="InputFileDescription.html">YAML configuration file</a>. The two main steps in the simulation process are the integration of the light on the detector and the readout process.</p>
-<p>The flux of each star in the sub-field is added to the sub-pixel map with the time interval of the pointing jitter and the duration of the exposure time. The background flux is then added and the sub-pixel map is convolved with a rebinned point spread function. After applying the flatfield, the sub-pixel map is rebinned to a pixel map, and the (geometric) vignetting is applied.</p>
+Figure 3: Initialisation steps for PlatoSim3.</div></div>
+<p> Figure 4 shows the control flow of PlatoSim3.</p>
+<p>The simulation is a loop over the number of exposures that is requested in the <a class="el" href="ConfigurationParameters.html">YAML configuration file</a>. The two main steps in the simulation process are the integration of the light on the detector and the readout process.</p>
+<p>The flux of each star in the sub-field is added to the sub-pixel map with the time interval of the pointing jitter and the duration of the exposure time. The background flux is then added and the sub-pixel map is convolved with a re-binned point spread function. After applying the flatfield, the sub-pixel map is re-binned to a pixel map, and the (geometric) vignetting is applied.</p>
 <p>During the readout process all the noise features are applied on the pixel map. Many of the features can be switched on or off in the <a class="el" href="InputFileDescription.html">YAML configuration file</a>, some features need to get a value of 1.0 or 0.0 in order to be ignored.</p>
-<p>After processing each exposure, the pixel map is written to the <a class="el" href="OutputFileDescription.html">output HDF5 file</a> and the option to write also the sub-pixel maps can be enabled in the <a class="el" href="InputFileDescription.html">YAML configuration file</a>. Details about detected stars, their positions, and the pointing information is finally written to the <a class="el" href="OutputFileDescription.html">output HDF5 file</a>.</p>
+<p>After processing each exposure, the pixel map is written to the <a class="el" href="OutputFileDescription.html">output HDF5 file</a> and the option to write also the sub-pixel maps can be enabled in the <a class="el" href="ConfigurationParameters.html">YAML configuration file</a>. Details about detected stars, their positions, and the pointing information is finally written to the <a class="el" href="OutputFileDescription.html">output HDF5 file</a>.</p>
 <div class="image">
 <img src="PlatoSim3 Control Flow.png" alt="PlatoSim3 Control Flow.png"/>
 <div class="caption">
-Figure 4: Control Flow for the PLATO Simulator PlatoSim3.</div></div>
+Figure 4: Control flow for PlatoSim3.</div></div>
 </div></div><!-- contents -->
+</div><!-- doc-content -->
 <!-- start footer part -->
-<hr class="footer"/><address class="footer"><small>
-Generated by &#160;<a href="http://www.doxygen.org/index.html">
-<img class="footer" src="doxygen.png" alt="doxygen"/>
-</a> 1.8.11
-</small></address>
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="footer">Generated by
+    <a href="http://www.doxygen.org/index.html">
+    <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.11 </li>
+  </ul>
+</div>
 </body>
 </html>

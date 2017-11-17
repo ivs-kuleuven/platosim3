@@ -1,5 +1,7 @@
 # Issue Tracking {#IssueTracking}
 
+Although we do our very best to limit problems to a minimum, this is - unfortunately - no guarantee that you will never run into troubles when trying to install/update/run PlatoSim3.  If you would have problems, questions, remarks,..., please, let us know!
+
 You are encouraged to use the issue tracking system of GitHub to report any problem you would come across, rather than sending one of the PlatoSim developers an email.  This helps you and us to better keep track of which problems arise and what their status is.
 
 Browse to the PlatoSim3 repository on GitHub and select the <code>Issues</code> tab (see Fig. 1).
