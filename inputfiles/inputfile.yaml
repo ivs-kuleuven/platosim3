@@ -187,7 +187,6 @@ CCD:
     IncludeFullWellSaturation:       yes             # Whether or not full well saturation should be applied
     IncludeDigitalSaturation:        yes             # Whether or not digital saturation should be applied
     IncludeQuantisation:             yes             # Whether or not to include quantisation
-    WriteSubPixelImagesToHDF5:       no              # Only use this for a limited number of exposures. Takes a lot of space! 
 
 
 SubField:    
@@ -210,7 +209,12 @@ RandomSeeds:
     DriftSeed:                       1433429158      # Unique positive integer 
     FeeGainSeed:                     1429485030      # Unique positive integer
     CcdGainSeed:                     1420450443      # Unique positive integer
-    CosmicSeed:                     1494750830      # Unique positive integer
+    CosmicSeed:                      1494750830      # Unique positive integer
+
+ControlHDF5Content:
+    WriteSubPixelImages:             no              # Only use this for a limited number of exposures. Takes a lot of space! 
+    WriteStarPositions:              yes             # StarPositions are written in pixel and focal plane coordinates + flux and
+                                                     # scales with the number of exposures and the number of stars in the field.
 
 
 # ----- DO NOT MAKE CHANGES BELOW THIS LINE -----
