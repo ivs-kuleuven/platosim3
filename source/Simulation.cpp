@@ -532,7 +532,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("IncludeFullWellSaturation");
     addBoolean("IncludeQuantisation");
     addBoolean("IncludeDigitalSaturation");
-    addBoolean("WriteSubPixelImagesToHDF5");
+    // addBoolean("WriteSubPixelImagesToHDF5"); - Moved into ControlHDF5Content group below
 
 	subGroup = "CCD/Gain";
 	hdf5File.createGroup(parentGroup + "/" + subGroup);
@@ -598,6 +598,11 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 	addLong("FeeGainSeed");
 	addLong("CcdGainSeed");
 	addLong("CosmicSeed");
+
+    subGroup = "ControlHDF5Content";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addBoolean("WriteSubPixelImages");
+    addBoolean("WriteStarPositions");
 
     subGroup = "CameraGroups";
     hdf5File.createGroup(parentGroup + "/" + subGroup);

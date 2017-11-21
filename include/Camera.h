@@ -82,10 +82,10 @@ class Camera : public HDF5Writer
 
         double internalTime;
 
-        bool includeAberrationCorrection; // Wheter or not (differential) aberration correction should be included
+        bool includeAberrationCorrection; // Whether or not (differential) aberration correction should be included
         string aberrationCorrectionType;  // [differential or absolute]
 
-        bool includeFieldDistortion;      // Wheter or not field distortion should be included
+        bool includeFieldDistortion;      // Whether or not field distortion should be included
 
         double userGivenSkyBackground;    // User-set zodiacal + stellar sky background.                          [phot/pix/s]
                                           // If negative, computed by the Sky class
@@ -94,6 +94,7 @@ class Camera : public HDF5Writer
         double raSun;                     // Right ascension of the direction of the sun shield during the run    [rad]
         double decSun;                    // Declination of the direction of the sun shield during the run        [rad]
 
+        bool writeStarPositions;          // Whether or not the star positions should be written to the output HDF5 file
 
         // detectedStarInfo[startTime][starID] contains the values (xFPmean, yFPmean, rowPixMean, colPixmean, sumFlux, Ndetections)
 

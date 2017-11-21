@@ -97,9 +97,9 @@ DetectorWithMappedPSF::~DetectorWithMappedPSF()
 
     flatfieldNoiseAmplitude   = configParam.getDouble("CCD/FlatfieldPtPNoise");
     includeFlatfield          = configParam.getBoolean("CCD/IncludeFlatfield");
-    writeSubPixelImagesToHDF5 = configParam.getBoolean("CCD/WriteSubPixelImagesToHDF5");
     includeConvolution        = configParam.getBoolean("CCD/IncludeConvolution");
-    writeSubPixelImagesToHDF5 = configParam.getBoolean("CCD/WriteSubPixelImagesToHDF5");
+
+    writeSubPixelImagesToHDF5 = configParam.getBoolean("ControlHDF5Content/WriteSubPixelImages");
 
     numSubPixelsPerPixel    = configParam.getInteger("SubField/SubPixels");
 
