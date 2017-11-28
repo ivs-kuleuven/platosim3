@@ -68,7 +68,7 @@ class Detector: public HDF5Writer
         virtual void readOut(float exposureTime);
         virtual void addPhotonNoise();
         virtual void addCosmics(float exposureTime);
-        virtual void addCosmics(float exposureTime, const arma::Mat<float> &map, int numRows, int numColumns);
+        virtual void addCosmics(float exposureTime, arma::Mat<float> &map, int numRows, int numColumns);
         virtual void applyFullWellSaturation();
         virtual void applyCTI();
         virtual void applyOpenShutterSmearing(float exposureTime);
