@@ -796,7 +796,7 @@ void Detector::addCosmics(float exposureTime)
  * \post Pixel unit in the smearing map: [electrons].
  * \post Pixel unit in the bias register map: [electrons].
  */
-void Detector::addCosmics(float exposureTime, const arma::Mat<float> &map, int numRows, int numColumns)
+void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, int numRows, int numColumns)
 {
 	// Characteristics of an individual trail
 
@@ -846,9 +846,9 @@ void Detector::addCosmics(float exposureTime, const arma::Mat<float> &map, int n
 			trailRow = int(floor(trailRows(index)));
 			trailColumn = int(floor(trailColumns(index)));
 
-			if((trailRow >= 0) && (trailRow < numRowsPixelMap) && (trailColumn >= 0) && (trailColumn < numColumnsPixelMap))
+			if((trailRow >= 0) && (trailRow < numRows) && (trailColumn >= 0) && (trailColumn < numColumns))
 			{
-				pixelMap(trailRow, trailColumn) += (trailWeights(index) * intensity);
+				map(trailRow, trailColumn) += (trailWeights(index) * intensity);
 			}
 		}
 	}
