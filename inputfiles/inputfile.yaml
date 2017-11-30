@@ -22,9 +22,9 @@ Sky:
     SkyBackground:                   342.            # Stellar + zodiacal background level. Set negative to compute.     [phot/pix/s]
     IncludeCosmics:                  yes             # Whether or not to include cosmics
     Cosmics:
-      CosmicHitRate:                 10000              # Cosmic hit rate [events / cm^2 / s]
+      CosmicHitRate:                 10              # Cosmic hit rate [events / cm^2 / s]
       TrailLength:             [0, 15]               # Intervalof the length of the cosmic trails [pixels]
-      Intensity:               [200000, 4000000]         # Interval of the total number of e- in a cosmic hit [e-]
+      Intensity:               [2000, 40000]         # Interval of the total number of e- in a cosmic hit [e-]
 
 Platform:
 
@@ -193,7 +193,7 @@ SubField:
 
     ZeroPointRow:                    0               # Row of the (0,0) pixel of the subfield [pixels]
     ZeroPointColumn:                 0               # Column of the (0,0) pixel of the subfield [pixels]
-    NumColumns:                      2255             # Number of columns, should be >= 8 [pixels]
+    NumColumns:                      100             # Number of columns, should be >= 8 [pixels]
     NumRows:                         100             # Number of rows,    should be >= 8 [pixels]
     NumBiasPrescanRows:              5               # Nr of rows of the prescan strip to determine the bias [pixels]
     NumSmearingOverscanRows:         5               # Nr of rows of the overscan strip to determine the smearing [pixels]
