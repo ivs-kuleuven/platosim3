@@ -356,6 +356,8 @@ void Detector::generateThroughputMap()
 {
     Log.info("Detector: generating throughput map.");
 
+    throughputMap.fill(1.0);
+
     double xFPmm, yFPmm;
     double angle;
 
@@ -367,8 +369,6 @@ void Detector::generateThroughputMap()
 
     if (includeVignetting || includePolarization || includeQuantumEfficiency)
     {
-        throughputMap.fill(1.0);
-
         // Loop over all pixels in the pixel map
 
         for (unsigned int row = 0; row < numRowsPixelMap; row++)
