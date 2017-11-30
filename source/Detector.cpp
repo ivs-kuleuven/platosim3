@@ -743,7 +743,7 @@ void Detector::addPhotonNoise()
 void Detector::addCosmics(float exposureTime)
 {
 	cosmicHitRateDistribution = poisson_distribution<long>(cosmicHitRate);
-	cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumns - 1);
+	cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsPixelMap - 1);
 	cosmicEntryAngleDistribution = uniform_real_distribution<double>(0, 2 * PI);
 	cosmicTrailLengthDistribution = uniform_real_distribution<double>(cosmicTrailLength[0], cosmicTrailLength[1]);
 	cosmicIntensityDistribution = uniform_real_distribution<double>(cosmicIntensity[0], cosmicIntensity[1]);
