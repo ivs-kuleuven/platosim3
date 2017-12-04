@@ -146,19 +146,18 @@ def photometry(inputFilePath, outputFilePath, sigmaPSF, useExactStarPosition=Tru
 
     # Compute the offset of the barycenter of the PSF
 
-    psf = array(inputFile["/PSF/rotatedPSF"])                                           # [subpix]
-    if inputFile["/InputParameters/PSF"].attrs["Model"] == "MappedFromFile":
-        Npixels = int(inputFile["/InputParameters/PSF/MappedFromFile"].attrs["NumberOfPixels"])
-    else:
-        Npixels = int(inputFile["/InputParameters/PSF/MappedGaussian"].attrs["NumberOfPixels"])
-
-    deltaRow, deltaCol = computePSFBarycenterOffset(psf, Npixels)                       # [pix]
-
+    #psf = array(inputFile["/PSF/rotatedPSF"])                                           # [subpix]
+    #if inputFile["/InputParameters/PSF"].attrs["Model"] == "MappedFromFile":
+    #    Npixels = int(inputFile["/InputParameters/PSF/MappedFromFile"].attrs["NumberOfPixels"])
+    #else:
+    #    Npixels = int(inputFile["/InputParameters/PSF/MappedGaussian"].attrs["NumberOfPixels"])
+    #
+    # deltaRow, deltaCol = computePSFBarycenterOffset(psf, Npixels)                       # [pix]
+    deltaRow, deltaCol = 0, 0
 
     # Collect the relevant input parameters from the HDF5 file
 
     gain = inputFile["InputParameters/FEE/Gain"].attrs["RefValue"] * inputFile["InputParameters/CCD/Gain"].attrs["RefValue"]
-    #gain = inputFile["/InputParameters/CCD/"].attrs["Gain"]                             # [e-/ADU]
     quantumEfficiency = inputFile["/InputParameters/CCD/QuantumEfficiency"].attrs["ExpectedValue"]    # [e-/phot]
     sigmaRONsquared = inputFile["/InputParameters/FEE"].attrs["ReadoutNoise"]**2 + inputFile["/InputParameters/CCD"].attrs["ReadoutNoise"]**2
     sigmaRON = sqrt(sigmaRONsquared)                  # [e-/pix]
