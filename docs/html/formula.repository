@@ -9,18 +9,13 @@
 \form#8:$Q$
 \form#9:$F_0$
 \form#10:$m_{\lambda} = 0$
-\form#11:\[ F_{phot} = t_{exp} \cdot F_0 \cdot T_{\lambda} \cdot Q \cdot A \cdot 10^{-0.4} m_{\lambda} \]
+\form#11:\[F_{phot} = t_{exp} \cdot F_0 \cdot T_{\lambda} \cdot Q \cdot A \cdot 10^{-0.4 \cdot m_{\lambda}}\]
 \form#12:$\lambda$
-\form#13:$n$
-\form#14:\[P(x) = c_{0} + c_{1} \cdot x + c_{2} \cdot x^{2} + ... + c_{n} \cdot x^{n}\]
-\form#15:\[P(x, y) = c_{00} + c_{10} \cdot x + ... + c_{n0} \cdot x^{n} + c_{01} \cdot y + ... + c_{0n} \cdot y^{n} + c_{11} \cdot x \cdot y + c_{12} \cdot x \cdot y^{2} + ... + c_{1(n - 1)} \cdot x \cdot y^{n - 1} + ... + c_{(n - 1)1} \cdot x^{n - 1} \cdot y \]
-\form#16:$ [c_0, c_1,..., c_n] $
-\form#17:$ [[c_{00}, c_{01},..., c_{0n}], [c_{10}, c_{11},..., c_{1n}],..., [c_{n0}, c_{n1},..., c_{nn}]] $
-\form#18:\[ F_{phot} = t_{exp} \cdot F_0 \cdot T_{\lambda} \cdot Q \cdot A \cdot 10^{-0.4 m_{\lambda}} \]
-\form#19:\[ F_{phot} = t_{exp} \cdot F_0 \cdot T_{\lambda} \cdot Q \cdot A \cdot 10^{-0.4 \cdot m_{\lambda}} \]
-\form#20:\[ \frac{V_c}{V_g} = \left( \frac{N_e}{FWC} \right)^{\beta}. \]
-\form#21:\[ v_t = \frac{3kT}{m_e^{*}}, \]
-\form#22:\[ v_t = \frac{3kT}{m_e^{\ast}}, \]
-\form#23:\[F_{phot} = t_{exp} \cdot F_0 \cdot T_{\lambda} \cdot Q \cdot A \cdot 10^{-0.4 \cdot m_{\lambda}}\]
-\form#24:\[\frac{V_c}{V_g} = \left( \frac{N_e}{FWC} \right)^{\beta}.\]
-\form#25:\[v_t = \frac{3kT}{m_e^{\ast}},\]
+\form#13:\[ f(t) = \exp{\left(\frac{-t^2}{2 * \sigma^2}\right)}. \]
+\form#14:$n$
+\form#15:\[P(x) = c_{0} + c_{1} \cdot x + c_{2} \cdot x^{2} + ... + c_{n} \cdot x^{n}\]
+\form#16:\[P(x, y) = c_{00} + c_{10} \cdot x + ... + c_{n0} \cdot x^{n} + c_{01} \cdot y + ... + c_{0n} \cdot y^{n} + c_{11} \cdot x \cdot y + c_{12} \cdot x \cdot y^{2} + ... + c_{1(n - 1)} \cdot x \cdot y^{n - 1} + ... + c_{(n - 1)1} \cdot x^{n - 1} \cdot y \]
+\form#17:$ [c_0, c_1,..., c_n] $
+\form#18:$ [[c_{00}, c_{01},..., c_{0n}], [c_{10}, c_{11},..., c_{1n}],..., [c_{n0}, c_{n1},..., c_{nn}]] $
+\form#19:\[\frac{V_c}{V_g} = \left( \frac{N_e}{FWC} \right)^{\beta}.\]
+\form#20:\[v_t = \frac{3kT}{m_e^{\ast}},\]

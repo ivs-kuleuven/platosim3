@@ -389,8 +389,17 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("RApointing");
     addDouble("DecPointing");
     addDouble("Fluxm0");
-    addDouble("SkyBackground");
     addString("StarCatalogFile");
+
+    subGroup = "Sky";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("SkyBackground");
+    addBoolean("IncludeCosmics");
+    subGroup = "Sky/Cosmics";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("CosmicHitRate");
+    addDoubleVector("TrailLength");
+    addDoubleVector("Intensity");
 
     subGroup = "Platform";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
@@ -525,7 +534,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("IncludeFullWellSaturation");
     addBoolean("IncludeQuantisation");
     addBoolean("IncludeDigitalSaturation");
-    addBoolean("WriteSubPixelImagesToHDF5");
+    // addBoolean("WriteSubPixelImagesToHDF5"); - Moved into ControlHDF5Content group below
 
 	subGroup = "CCD/Gain";
 	hdf5File.createGroup(parentGroup + "/" + subGroup);
@@ -539,9 +548,11 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "CCD/QuantumEfficiency";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
-    addDouble("Efficiency");
+//    addDouble("Efficiency");
     addDouble("RefAngle");
-    addDouble("ExpectedValue");
+    addDouble("RelativeRefEfficiency");
+    addDouble("MeanQuantumEfficiency");
+//    addDouble("ExpectedValue");
 
     subGroup = "CCD/Polarization";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
@@ -588,6 +599,12 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addLong("DriftSeed");
 	addLong("FeeGainSeed");
 	addLong("CcdGainSeed");
+	addLong("CosmicSeed");
+
+    subGroup = "ControlHDF5Content";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addBoolean("WriteSubPixelImages");
+    addBoolean("WriteStarPositions");
 
     subGroup = "CameraGroups";
     hdf5File.createGroup(parentGroup + "/" + subGroup);

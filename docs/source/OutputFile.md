@@ -1,12 +1,16 @@
 # Description of the Output File {#OutputFileDescription}
 
+
 PlatoSim3 writes its output to an <a href="https://www.hdfgroup.org/HDF5/">HDF5</a> file. HDF stands for Hierarchical Data Format, and is a next generation file format that was specifically designed to store and organise large amounts of data.
 
 HDF5 behaves much likes a Unix-like folder structure, but where folders are called groups.  Each group can contain other groups, array datasets, and scalar attributes. For example, the first subfield image is located in <code>/Images/image000000</code> in the HDF5 file.
 
 
+Note that the x-axis is defined along the serial readout register and corresponds to the columns of the detector (and therefore of the pixel and sub-pixel map).  The y-axis corresponds to the rows of the detector (and therefore of the pixel and sub-pixel map).  In Python, for example, the <code>imshow()</code> method of <code>matplotlib</code> transposes the image as it tries to mimic Matlab.
 
+The <code>Armadillo</code> arrays (that are used internally to store the maps) are column-major rather than row-major.
 
+---
 
 <!-- ********* -->
 <!-- Structure -->
@@ -23,7 +27,7 @@ The general structure of the output file if shown in Fig. 1.  The colour code in
 
 
 
-
+---
 
 <!-- ******************************************** -->
 <!-- Inspecting the Structure & Content in Python -->
@@ -336,7 +340,7 @@ The **Version** group contains two attributes:
 - **GitVersion**: version of the PlatoSim3 software that was used to generate the HDF5 file.
 
 
-
+---
 
 
 <!-- ********************** -->
