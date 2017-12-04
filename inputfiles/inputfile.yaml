@@ -61,7 +61,7 @@ Camera:
     FocalLength: 
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
         ConstantValue:               0.24712595      # Used in case Source is ConstantValue (from ZEMAX model) [m]
-        FromFile:                    inputfiles/focallength.txt # Used in case Source is FromFile: time [s] & focalLenght [m]
+        FromFile:                    inputfiles/focallength.txt # Used in case Source is FromFile: time [s] & focalLength [m]
     ThroughputBandwidth:             638             # FWHM [nm]
     ThroughputLambdaC:               550             # Central wavelength of the throughput passband [nm]
     IncludeAberrationCorrection:     yes             # Calculate the differential aberration correction and apply
