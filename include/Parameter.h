@@ -198,12 +198,26 @@ void Parameter<T,N>::updateValue(double time)
         time1 = time2;
         value1 = value2;
         tie(time2, value2) = readNextFromFile();
+
         if (!inputFile.good())
         {
             string msg = "Parameter::updateValue: not enough time points in file " + filePath;
             msg += " (time = " + to_string(time) + " goes beyond end of file)";
             throw FileException(msg);
         }
+
+        if (time1 == time2)
+        {
+            string msg = "Parameter::updateValue: Time " + to_string(time1) + " occurs more than once in file " + filePath;
+            throw FileException(msg);
+        }
+
+        if (time2 < time1)
+        {
+            string msg = "Parameter::updateValue: time values (col 0) are not ordered ascending in file " + filePath;
+            throw FileException(msg);
+        }
+
     }
 
 
@@ -629,10 +643,23 @@ void Parameter<T,1>::updateValue(double time)
         time1 = time2;
         value1 = value2;
         tie(time2, value2) = readNextFromFile();
+        
         if (!inputFile.good())
         {
             string msg = "Parameter::updateValue: not enough time points in file " + filePath;
             msg += " (time = " + to_string(time) + " goes beyond end of file)";
+            throw FileException(msg);
+        }
+
+        if (time1 == time2)
+        {
+            string msg = "Parameter::updateValue: Time " + to_string(time1) + " occurs more than once in file " + filePath;
+            throw FileException(msg);
+        }
+
+        if (time2 < time1)
+        {
+            string msg = "Parameter::updateValue: time values (col 0) are not ordered ascending in file " + filePath;
             throw FileException(msg);
         }
     }
