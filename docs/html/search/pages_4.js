@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['tutorials',['Tutorials',['../Tutorials.html',1,'']]]
+  ['mainpage',['MainPage',['../md_docs_source_MainPage.html',1,'']]]
 ];

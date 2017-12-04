@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['scripting_20in_20python',['Scripting in Python',['../ScriptingInPython.html',1,'']]],
-  ['simulation_20steps',['Simulation Steps',['../SimulationSteps.html',1,'']]]
+  ['issue_20tracking',['Issue Tracking',['../IssueTracking.html',1,'']]]
 ];

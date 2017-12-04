@@ -11,6 +11,8 @@ Simulation of different (100 x 100 pixels) sub-fields on CCD 2 with fake stars:
     (3) "upperLeft": in the upper left corner of the CCD (i.e. far from the readout register,
         large PSF)
     (4) "middle": in the centre of the CCD (sub-field overlaps with both detector halves)
+    (5) "upperRight": in the upper right corner of the CCD (i.e. far from the readout register,
+         large PSF)
 """
 
 
@@ -211,19 +213,21 @@ ccdDimensions = 4510
 # (3) "upperLeft": in the upper left corner of the CCD (i.e. far from the readout register,
 #     large PSF)
 # (4) "middle": in the centre of the CCD (sub-field overlaps with both detector halves)
+# (5) "upperRight": in the upper right corner of the CCD (i.e. far from the readout register,
+#      large PSF)
 
 numStars = 200
 
-numSubfields = 4
+numSubfields = 5
 subFieldDimensions = 100
 
-subFieldNames = ["lowerLeft", "lowerRight", "upperLeft", "middle"]
-subFieldCenterRows = [subFieldDimensions / 2, subFieldDimensions / 2, ccdDimensions - subFieldDimensions / 2 - 1, ccdDimensions / 2]
-subFieldCenterColumns = [subFieldDimensions / 2, ccdDimensions - subFieldDimensions / 2 - 1, subFieldDimensions / 2, ccdDimensions / 2]
+subFieldNames = ["lowerLeft", "lowerRight", "upperLeft", "middle", "upperRight"]
+subFieldCenterRows = [subFieldDimensions / 2, subFieldDimensions / 2, ccdDimensions - subFieldDimensions / 2, ccdDimensions / 2, ccdDimensions - subFieldDimensions / 2]
+subFieldCenterColumns = [subFieldDimensions / 2, ccdDimensions - subFieldDimensions / 2, subFieldDimensions / 2, ccdDimensions / 2, ccdDimensions - subFieldDimensions / 2]
 
 # PSF related configuration parameters
 
-psfModel = "AnalyticNonGaussian"
+psfModel = "MappedFromFile"
 
 # Star catalogue
 
@@ -237,9 +241,14 @@ for simulationIndex in range(numSubfields):
     
     sim = Simulation(subFieldNames[simulationIndex], outputDir = workDir)
     
+    # Platform related configuration parameters
+    
+    sim["Platform/UseJitterFromFile"] = 1
+    sim["Platform/JitterFileName"] = "inputfiles/AOCS_NM_pointing_7h.txt"
+    
     # PSF related configuration parameters
 
-    sim["PSF/Model"] = "AnalyticNonGaussian"
+    sim["PSF/Model"] = psfModel
     
     # CCD related configuration parameters    
     
@@ -249,10 +258,11 @@ for simulationIndex in range(numSubfields):
     # Camera related configuration parameters
     
     sim["Camera/IncludeFieldDistortion"] = 0
+    sim["Camera/FocalLength/Source"] = "ConstantValue"
     
     # Observing parameters    
-    
-    sim["ObservingParameters/NumExposures"] = 570 # 570 * (23s + 2.3s) ~ 4h
+
+    sim["ObservingParameters/NumExposures"] = 500 # 500 * (22s + 3s) ~ 3.5h #570 # 570 * (22s + 3s) ~ 4h
     sim["ObservingParameters/RApointing"] = 10.0
     sim["ObservingParameters/DecPointing"] = 10.0
     
@@ -279,6 +289,7 @@ for simulationIndex in range(numSubfields):
     
     subFieldCenterRa, subFieldCenterDec = pixelToSkyCoordinates(sim, ccdCode, subFieldCenterColumns[simulationIndex], subFieldCenterRows[simulationIndex])                  # (x, y) = (column, row) -> (RA, Dec) [radians]
     sim.setSubfieldAroundPixelCoordinates(ccdCode, subFieldCenterColumns[simulationIndex], subFieldCenterRows[simulationIndex], subFieldDimensions, subFieldDimensions)     # (x, y)
+    sim["SubField/SubPixels"] = 64 
 
     # Generate star catalogue
     
