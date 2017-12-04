@@ -33,7 +33,7 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     if (fileExists(outputFilename))
     {
-        Log.error("Simulation: Output file name already exists. Aborting.");
+        Log.error("Simulation: Output file " + outputFilename + " already exists. Aborting.");
         exit(1);
     }
 
@@ -283,11 +283,13 @@ void Simulation::writeStarCatalogToHDF5()
         for (auto starID: allStarIDs)
         {
             starIDs[k] = starID;
-            tie(RA[k], dec[k]) = sky->getCoordinatesOfStarWithID(starID, Angle::degrees);  // be careful, ra & dec returned in degrees!
-            Vmag[k] = sky->getVmagnitudeOfStarWithID(starID);
+            tie(RA[k], dec[k], Vmag[k]) = sky->getInfoOfStarWithID(starID);  // RA & dec returned in radians!
             const bool useInitialOrientation = true;
-            tie(xFPmm[k], yFPmm[k]) = camera->skyToFocalPlaneCoordinates(deg2rad(RA[k]), deg2rad(dec[k]), useInitialOrientation);
+            tie(xFPmm[k], yFPmm[k]) = camera->skyToFocalPlaneCoordinates(RA[k], dec[k], useInitialOrientation);
             
+            RA[k]  *= Angle::degrees;    // [rad] -> [deg]
+            dec[k] *= Angle::degrees;    // [rad] -> [deg]
+
             if (includeFieldDistortion)
             {
                tie(xFPmm[k], yFPmm[k]) = camera->undistortedToDistortedFocalPlaneCoordinates(xFPmm[k], yFPmm[k]);
@@ -392,6 +394,8 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     subGroup = "Sky";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addDouble("SkyBackground");
+    addBoolean("IncludeVariableSources");
+    addString("VariableSourceList");
     addBoolean("IncludeCosmics");
     subGroup = "Sky/Cosmics";
     hdf5File.createGroup(parentGroup + "/" + subGroup);

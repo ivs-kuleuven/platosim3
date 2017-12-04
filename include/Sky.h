@@ -8,16 +8,25 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <algorithm>
 #include <iterator>
+#include <valarray>
+#include <memory>
+#include <tuple>
+#include <map>
 
 #include "Logger.h"
+#include "Exceptions.h"
+#include "FileUtilities.h"
+#include "StringUtilities.h"
 #include "Units.h"
 #include "Constants.h"
 #include "SkyCoordinates.h"
 #include "TabulatedFunction.h"
 #include "Skydata.h"
-#include "StarCatalog.h"
+#include "Platform.h"
 #include "ConfigurationParameters.h"
+#include "Parameter.h"
 
 
 
@@ -34,16 +43,19 @@ class Sky
         virtual ~Sky();
 
         virtual void configure(ConfigurationParameters &configParams);
+        virtual void updateParameters(double time);
 
-        StarCatalog getStarsWithinRadiusFrom(double RA, double dec, double radius, Unit angleUnit = Angle::degrees);
+        unsigned long selectStarsWithinRadiusFrom(double RA, double dec, double radius, Unit angleUnit = Angle::degrees);
+        void aberrateSelectedStarPositions(Platform &platform, string aberrationCorrectionType, double startTime, double timeMiddle);
+        tuple<unsigned int, double, double, double> getSelectedStar(unsigned int n);
+
+        tuple<double, double, double> getInfoOfStarWithID(unsigned int starID);
+
 
         double zodiacalFlux(double RA, double dec, double lambda1, double lambda2);
         double zodiacalFlux(double RA, double dec, vector<double> &lambda, vector<double> &throughput);
         double stellarBackgroundFlux(double RA, double dec, double lambda1, double lambda2);
         double stellarBackgroundFlux(double RA, double decl, vector<double> &lambda, vector<double> &throughput);
-
-        pair<double, double> getCoordinatesOfStarWithID(int id, Unit outputAngleUnit = Angle::degrees);
-        double getVmagnitudeOfStarWithID(int id);
 
         pair<double, double> getSunCoordinates(double julianDate, Unit outputAngleUnit = Angle::degrees);
 
@@ -53,9 +65,21 @@ class Sky
         double solarRadiantFlux(double lambda1, double lambda2);
         double solarRadiantFlux(vector<double> &lambda, vector<double> &throughput);
 
+        map<unsigned int, unique_ptr<Parameter<double>>> deltaMagnitude;     // deltaMagnitude[starID] contains pointer to time series file.  
+
     private:
 
-        StarCatalog starCatalog;
+        map<unsigned int, tuple<double, double, double>> starDB;    // star database: starDB[stardID] contains (RA, dec, Vmag), 
+                                                                    // with (RA, dec) in radians, and Vmag = Johnson V magnitude,
+                                                                    // and starID the star identification number.
+       
+        vector<unsigned int> selectedStarID;  // IDs of the stars selected with selectStarsWithinRadiusFrom()
+        vector<double> selectedRA;            //      Corresponding selected Right Ascension [rad]
+        vector<double> selectedDec;           //      Corresponding Declination              [rad]
+        vector<double> selectedVmag;          //      Corresponding Johnson V magnitude
+
+        vector<unsigned int> selectedVariableStars;    // Indices of those selected stars that have an entry in deltaMagnitude.
+
         string starInputfile;
 
         vector<double> integrand;

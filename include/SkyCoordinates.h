@@ -25,7 +25,6 @@ class SkyCoordinates
 
  
         friend double angularDistanceBetween(SkyCoordinates &skyCoordinates1, SkyCoordinates &skyCoordinates2, Unit outputAngleUnit);
-        friend vector<double> angularDistanceBetween(const double RA0, const double dec0, const vector<double> &RA, const vector<double> &dec, Unit angleUnit);
 
     protected:
 
@@ -38,6 +37,8 @@ class SkyCoordinates
 
 
 
+double angularDistanceBetween(const double RA1, const double dec1, const double RA2, const double dec2, Unit outputAngleUnit);
+vector<double> angularDistanceBetween(const double RA0, const double dec0, const vector<double> &RA, const vector<double> &dec, Unit angleUnit);
 void ecliptic2equatorial(const double lambda, const double beta, double &alpha, double &delta);
 void equatorial2ecliptic(const double alpha, const double delta, double &lambda, double &beta);
 void equatorial2galactic(const double alpha, const double delta, double &l, double &b);

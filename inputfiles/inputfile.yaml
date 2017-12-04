@@ -20,11 +20,13 @@ ObservingParameters:
 Sky:
 
     SkyBackground:                   342.            # Stellar + zodiacal background level. Set negative to compute.     [phot/pix/s]
+    IncludeVariableSources:          no              # Include time series of variable stars or not
+    VariableSourceList:              inputfiles/varsource.txt  # Ascii file: Col 1: star ID, Col 2: path of time series file
     IncludeCosmics:                  yes             # Whether or not to include cosmics
     Cosmics:
       CosmicHitRate:                 10              # Cosmic hit rate [events / cm^2 / s]
-      TrailLength:             [0, 15]               # Intervalof the length of the cosmic trails [pixels]
-      Intensity:               [2000, 40000]         # Interval of the total number of e- in a cosmic hit [e-]
+      TrailLength:                   [0, 15]         # Intervalof the length of the cosmic trails [pixels]
+      Intensity:                     [2000, 40000]   # Interval of the total number of e- in a cosmic hit [e-]
 
 Platform:
 
@@ -66,9 +68,12 @@ Camera:
         ConstantValue:               0.0             # [degrees]. Used in case Source is ConstantValue. 
         FromFile:                    inputfiles/fporientation.txt  # Used in case Source is FromFile. time [s] & FP orientation [deg]
     FocalLength: 
-        Source:                      FromFile        # Either ConstantValue (constant in time) or FromFile (time dependent) 
+        Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
         ConstantValue:               0.24752         # Used in case Source is ConstantValue (from ZEMAX model) [m]
         FromFile:                    inputfiles/focallength.txt # Used in case Source is FromFile: time [s] & focalLenght [m]
+    ThroughputBandwidth:             638             # FWHM [nm]
+    ThroughputLambdaC:               550             # Central wavelength of the throughput passband [nm]
+    IncludeAberrationCorrection:     yes             # Calculate the differential aberration correction and apply
     ThroughputBandwidth:             638             # FWHM [nm]
     ThroughputLambdaC:               550             # Central wavelength of the throughput passband [nm]
     IncludeAberrationCorrection:     yes             # Calculate the differential aberration correction and apply
@@ -77,7 +82,7 @@ Camera:
     IncludeFieldDistortion:          yes             # Whether or not to include field distortion
     FieldDistortion:
         Type:                        Polynomial1D    # The model for the field distortion
-        Source:                      FromFile        # Either ConstantValue (constant in time) or FromFile (time dependent) 
+        Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
         ConstantCoefficients:        [-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06]   # In case Source is ConstantValue
         ConstantInverseCoefficients: [-0.00458067036444, 1.00110311283, -5.61136295937e-05, -4.311925329e-06] # In case Source is ConstantValue
         CoefficientsFromFile:        inputfiles/distortioncoefficients.txt                                    # In case Source is FromFile

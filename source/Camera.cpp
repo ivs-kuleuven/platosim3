@@ -489,9 +489,9 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     // Get a catalog of stars that fall on the subfield. Take the radius a bit larger so that the 
     // queried area includes possible small shifts of the projected subfield because of jitter.
 
-    StarCatalog starCatalog = sky.getStarsWithinRadiusFrom(centerRA, centerDec, radius * 1.1, Angle::radians);
+    const unsigned long Nstars = sky.selectStarsWithinRadiusFrom(centerRA, centerDec, radius * 1.1, Angle::radians);
 
-    Log.info("Camera: Found " + to_string(starCatalog.size()) + " stars on and near the subfield");  
+    Log.info("Camera: Found " + to_string(Nstars) + " stars on and near the subfield");  
 
     if (includeAberrationCorrection)
     {
@@ -506,7 +506,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
         // We do this calcuation only once per exposure as the effect is negligible within the exposure time
     
-        starCatalog = starCatalog.aberrate(platform, aberrationCorrectionType, startTime, timeMiddle);
+        sky.aberrateSelectedStarPositions(platform, aberrationCorrectionType, startTime, timeMiddle);
     }
 
 
@@ -534,23 +534,26 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
     while (internalTime < startTime + exposureTime)
     {
-        // Update the time-dependent parameters (if any) of the Camera, Telescope and Detector
-        // to their value at the current time. 
+        // Update the time-dependent parameters (if any) of some classes to to their value at the current time. 
 
         this->updateParameters(internalTime);
         telescope.updateParameters(internalTime);
         detector.updateParameters(internalTime);
+        sky.updateParameters(internalTime);
 
         // Loop over all stars in the catalog, and add their flux to the subfield
 
-        for (int n = 0; n < starCatalog.size(); n++)
+        for (unsigned int n = 0; n < Nstars; n++)
         {
-            // Get the focal plane coordinates (in [mm]) of this particular star
-            
-            auto star = starCatalog[n];
+            // Compute the focal plane coordinates (in [mm]) of this particular star
+           
+            unsigned long starID;
+            double RA, dec, Vmag;
+
+            tie(starID, RA, dec, Vmag) = sky.getSelectedStar(n);
             
             double Xmm, Ymm;
-            tie(Xmm, Ymm) = skyToFocalPlaneCoordinates(star.RA, star.dec);
+            tie(Xmm, Ymm) = skyToFocalPlaneCoordinates(RA, dec);
 
             // If required, include field distortion
 
@@ -562,7 +565,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
             // Compute the flux [photons] of this star
             // Photons are always an integer number, so round down.
 
-            double flux = round(fluxFactor * pow(10.0, -0.4 * star.Vmag) * timeStep);
+            double flux = round(fluxFactor * pow(10.0, -0.4 * Vmag) * timeStep);
 
             // Let the detector add the flux to the appropriate pixel. 
             // Detector.flux() returns the pixel coordinates to which the flux was added.
@@ -586,25 +589,25 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
                 if (detectedStarInfo.find(startTime) == detectedStarInfo.end())
                 {
-                    detectedStarInfo[startTime][star.ID] = {{Xmm, Ymm, rowPix, colPix, flux, 1.0}};
+                    detectedStarInfo[startTime][starID] = {{Xmm, Ymm, rowPix, colPix, flux, 1.0}};
                 }
                 else
                 {
                     // If this is the first time that we encounter this star ID associated with this startTime,
                     // initialise the information. If not, just update the info.
 
-                    if (detectedStarInfo[startTime].find(star.ID) == detectedStarInfo[startTime].end())
+                    if (detectedStarInfo[startTime].find(starID) == detectedStarInfo[startTime].end())
                     {
-                        detectedStarInfo[startTime][star.ID] = {{Xmm, Ymm, rowPix, colPix, flux, 1.0}};
+                        detectedStarInfo[startTime][starID] = {{Xmm, Ymm, rowPix, colPix, flux, 1.0}};
                     }
                     else
                     {
-                        detectedStarInfo[startTime][star.ID][0] += Xmm;      // Will be used to compute average Xmm during the exposure
-                        detectedStarInfo[startTime][star.ID][1] += Ymm;      // Will be used to compute average Ymm during the exposure
-                        detectedStarInfo[startTime][star.ID][2] += rowPix;   // Will be used to compute average pixel row during the exposure
-                        detectedStarInfo[startTime][star.ID][3] += colPix;   // Will be used to compute average pixel column during the exposure
-                        detectedStarInfo[startTime][star.ID][4] += flux;     // Total flux
-                        detectedStarInfo[startTime][star.ID][5] += 1;        // # of times a star was on the subfield during an exposure 
+                        detectedStarInfo[startTime][starID][0] += Xmm;      // Will be used to compute average Xmm during the exposure
+                        detectedStarInfo[startTime][starID][1] += Ymm;      // Will be used to compute average Ymm during the exposure
+                        detectedStarInfo[startTime][starID][2] += rowPix;   // Will be used to compute average pixel row during the exposure
+                        detectedStarInfo[startTime][starID][3] += colPix;   // Will be used to compute average pixel column during the exposure
+                        detectedStarInfo[startTime][starID][4] += flux;     // Total flux
+                        detectedStarInfo[startTime][starID][5] += 1;        // # of times a star was on the subfield during an exposure 
                     }
                 }
             }
