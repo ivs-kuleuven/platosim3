@@ -394,6 +394,8 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     subGroup = "Sky";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addDouble("SkyBackground");
+    addBoolean("IncludeVariableSources");
+    addString("VariableSourceList");
     addBoolean("IncludeCosmics");
     subGroup = "Sky/Cosmics";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
