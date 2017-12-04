@@ -20,11 +20,13 @@ ObservingParameters:
 Sky:
 
     SkyBackground:                   342.            # Stellar + zodiacal background level. Set negative to compute.     [phot/pix/s]
+    IncludeVariableSources:          no              # Include time series of variable stars or not
+    VariableSourceList:              inputfiles/varsource.txt  # Ascii file: Col 1: star ID, Col 2: path of time series file
     IncludeCosmics:                  yes             # Whether or not to include cosmics
     Cosmics:
       CosmicHitRate:                 10              # Cosmic hit rate [events / cm^2 / s]
-      TrailLength:             [0, 15]               # Intervalof the length of the cosmic trails [pixels]
-      Intensity:               [2000, 40000]         # Interval of the total number of e- in a cosmic hit [e-]
+      TrailLength:                   [0, 15]         # Intervalof the length of the cosmic trails [pixels]
+      Intensity:                     [2000, 40000]   # Interval of the total number of e- in a cosmic hit [e-]
 
 Platform:
 
@@ -202,12 +204,6 @@ SubField:
     NumSmearingOverscanRows:         5               # Nr of rows of the overscan strip to determine the smearing [pixels]
     SubPixels:                       4               # (Sqrt of) nr of subpixels per CCD pixel. Should be 2^n <= 128.
 
-
-Sky:
-
-    IncludeVariableSources:          yes                       # Include time series of variable stars or not
-    VariableSourceList:              inputfiles/varsource.txt  # Ascii file: Col 1: star ID, Col 2: path of time series file
-                                                               # Time series ascii file: Col 1: time [s],  Col 2: delta-magnitude
 
 RandomSeeds:
 
