@@ -74,7 +74,64 @@ Sky::~Sky()
 
 void Sky::configure(ConfigurationParameters &configParams)
 {
+    // Store the path of the general database of stars
+    
     starInputfile = configParams.getAbsoluteFilename("ObservingParameters/StarCatalogFile");
+
+    // If there variable stars, get their time series files
+    
+    bool includeVariableSources = configParams.getBoolean("Sky/IncludeVariableSources");
+    if (includeVariableSources)
+    {
+        // the VariableSourceListFile contains two columns:
+        // Col 1: star ID   (unsigned integer)
+        // Col 2: path to the file with the time series of that variable star.
+        //        This time series file should contain:
+        //        Col 1: time [d]
+        //        Col 2: delta-magnitude 
+        
+        string variableSourceListFile = configParams.getAbsoluteFilename("Sky/VariableSourceList");
+
+
+        // Open and read the file containing the list of variable stars
+
+        ifstream myfile(variableSourceListFile);
+        if (myfile.is_open())
+        {
+            unsigned int starID;
+            string timeSeriesPath;
+
+            unsigned int n = 0;
+            while (myfile >> starID >> timeSeriesPath)
+            {
+                // Parameter<double> requires an absolute path, so make sure the path specified in
+                // timeSeriesFile is absolute.
+                
+                if (FileUtilities::isRelative(timeSeriesPath))
+                {
+                    string projectLocation = configParams.getString("General/ProjectLocation");
+                    projectLocation = StringUtilities::replaceEnvironmentVariable(projectLocation);
+                    timeSeriesPath = projectLocation + "/" + timeSeriesPath;
+                }
+                
+                // Store the user specified time series of delta Magnitude for this star in a map<>.
+
+                deltaMagnitude.emplace(starID, make_unique<Parameter<double>>(timeSeriesPath, 1));
+                n++;
+            }
+
+            myfile.close();
+
+            Log.info("Sky: found " + to_string(deltaMagnitude.size()) + " variable stars in file " + variableSourceListFile);
+        }
+        else
+        {
+            Log.error("Sky: Cannot read the variable star source list file " + variableSourceListFile);
+            exit(1);
+        }
+    }
+
+
 }
 
 
@@ -99,8 +156,21 @@ void Sky::configure(ConfigurationParameters &configParams)
 
 void Sky::updateParameters(double time)
 {
+    // Update the delta-magnitude of each variable source and add the value to the magnitude of the star
 
+    for (unsigned int n = 0; n < selectedVariableStars.size(); n++)
+    {
+        const unsigned int index = selectedVariableStars[n];
+        const unsigned int starID = selectedStarID[index];
+
+        auto& deltaMag = deltaMagnitude[starID];      // deltaMag is a Parameter<double> pointing to a time series file
+        deltaMag->updateValue(time);
+
+        const double Vmag0 = get<2>(starDB[starID]);  // Tuple elements [0], [1], [2] contain RA, dec, Vmag
+        selectedVmag[index] = Vmag0 + (*deltaMag)();
+    }
 }
+
 
 
 
@@ -191,6 +261,7 @@ unsigned long Sky::selectStarsWithinRadiusFrom(double RA0, double dec0, double r
     selectedRA.clear();
     selectedDec.clear();
     selectedVmag.clear();
+    selectedVariableStars.clear();
 
     // Copy the star ID, RA, Dec, and Vmag of the selected stars.
     // It's not sufficient to simply keep the starIDs of the selected stars, because the coordinates
@@ -210,6 +281,14 @@ unsigned long Sky::selectStarsWithinRadiusFrom(double RA0, double dec0, double r
             selectedRA.push_back(RA);
             selectedDec.push_back(dec);
             selectedVmag.push_back(Vmag);
+
+            // Also keep track of which selected stars are variable. Saves us many search loops afterwards.
+            // selectedVariableStars contains the _indices_ (of selected*) of those stars that are variable.
+            
+            if (deltaMagnitude.find(starID) != deltaMagnitude.end())
+            {
+                selectedVariableStars.push_back(selectedStarID.size()-1);
+            }
         }
     }
 

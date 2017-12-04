@@ -8,12 +8,17 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <algorithm>
 #include <iterator>
 #include <valarray>
+#include <memory>
 #include <tuple>
+#include <map>
 
 #include "Logger.h"
 #include "Exceptions.h"
+#include "FileUtilities.h"
+#include "StringUtilities.h"
 #include "Units.h"
 #include "Constants.h"
 #include "SkyCoordinates.h"
@@ -21,6 +26,7 @@
 #include "Skydata.h"
 #include "Platform.h"
 #include "ConfigurationParameters.h"
+#include "Parameter.h"
 
 
 
@@ -59,17 +65,20 @@ class Sky
         double solarRadiantFlux(double lambda1, double lambda2);
         double solarRadiantFlux(vector<double> &lambda, vector<double> &throughput);
 
+        map<unsigned int, unique_ptr<Parameter<double>>> deltaMagnitude;     // deltaMagnitude[starID] contains pointer to time series file.  
+
     private:
 
         map<unsigned int, tuple<double, double, double>> starDB;    // star database: starDB[stardID] contains (RA, dec, Vmag), 
                                                                     // with (RA, dec) in radians, and Vmag = Johnson V magnitude,
                                                                     // and starID the star identification number.
        
-        vector<unsigned int> selectedStarID;  // Indices of the stars selected with selectStarsWithinRadiusFrom()
-                                              // E.g. starID[selectedStarIndex[0]] is the ID of the first selected star 
+        vector<unsigned int> selectedStarID;  // IDs of the stars selected with selectStarsWithinRadiusFrom()
         vector<double> selectedRA;            //      Corresponding selected Right Ascension [rad]
         vector<double> selectedDec;           //      Corresponding Declination              [rad]
         vector<double> selectedVmag;          //      Corresponding Johnson V magnitude
+
+        vector<unsigned int> selectedVariableStars;    // Indices of those selected stars that have an entry in deltaMagnitude.
 
         string starInputfile;
 
