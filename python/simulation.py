@@ -713,24 +713,38 @@ class Simulation(object):
         """
 
         # Extract the needed information from the yaml input file
+        # Note: groupIDs and ccdIDs start counting from 1... 
+        
+        if self["Telescope/GroupID"] == "Custom":
+            azimuthAngle    = np.deg2rad(self["Telescope/AzimuthAngle"])
+            tiltAngle       = np.deg2rad(self["Telescope/TiltAngle"])
+        else:
+            groupID = int(self["Telescope/GroupID"])
+            azimuthAngle    = np.deg2rad(self["CameraGroups/AzimuthAngle"][groupID-1])
+            tiltAngle       = np.deg2rad(self["CameraGroups/TiltAngle"][groupID-1])
 
-        pixelSize       = self["CCD/PixelSize"]
-        ccdZeroPointX   = self["CCD/OriginOffsetX"]
-        ccdZeroPointY   = self["CCD/OriginOffsetY"]
-        CCDangle        = np.deg2rad(self["CCD/Orientation"])
+        if self["CCD/Position"] == "Custom":
+            ccdZeroPointX   = self["CCD/OriginOffsetX"]
+            ccdZeroPointY   = self["CCD/OriginOffsetY"]
+            CCDangle        = np.deg2rad(self["CCD/Orientation"])
+        else:
+            ccdID = int(self["CCD/Position"])
+            ccdZeroPointX   = self["CCDPositions/OriginOffsetX"][ccdID-1]
+            ccdZeroPointY   = self["CCDPositions/OriginOffsetY"][ccdID-1]
+            CCDangle        = np.deg2rad(self["CCDPositions/Orientation"][ccdID-1])
+
+        pixelSize       = self["CCD/PixelSize"]                                                 # [micron]
         raPlatform      = np.deg2rad(self["ObservingParameters/RApointing"])
         decPlatform     = np.deg2rad(self["ObservingParameters/DecPointing"])
-        azimuthAngle    = np.deg2rad(self["Telescope/AzimuthAngle"])
-        tiltAngle       = np.deg2rad(self["Telescope/TiltAngle"])
         focalPlaneAngle = np.deg2rad(self["Camera/FocalPlaneOrientation/ConstantValue"])
         focalLength     = self["Camera/FocalLength/ConstantValue"] * 1000.0                     # [m] -> [mm]
         includeFieldDistortion = self["Camera/IncludeFieldDistortion"]
         inverseDistortionCoefficients = self["Camera/FieldDistortion/ConstantInverseCoefficients"]
 
         # Convert the pixel coordinates to focal plane coordinates [mm]
-        
+      
         xFPmm, yFPmm = rf.pixelToFocalPlaneCoordinates(cols, rows, pixelSize, ccdZeroPointX, ccdZeroPointY, CCDangle)
-        
+      
         # If distortion is required in the yaml input file, distort the focal plane coordinates [mm]
 
         if (includeFieldDistortion == "yes"):
