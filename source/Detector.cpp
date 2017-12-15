@@ -1501,8 +1501,8 @@ void Detector::applyGain()
 		smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
 	}
 
-	Log.info("Detector: gain: " + to_string(combinedGainLeft));
-	Log.info("Detector: gain: " + to_string(combinedGainRight));
+	Log.info("Detector: gain of left part of CCD: " + to_string(combinedGainLeft));
+	Log.info("Detector: gain of right part of CCD: " + to_string(combinedGainRight));
 }
 
 
