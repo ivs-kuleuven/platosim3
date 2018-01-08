@@ -577,6 +577,10 @@ tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addFlux(double x
     IntegralOfAnalyticPSF psf(size);
     double r = rad2deg(camera.getGnomonicRadialDistanceFromOpticalAxis(xFP, yFP));
     double p = atan2(yFP, xFP);
+
+    double ccdOrientation = getOrientationAngle();
+    p -= ccdOrientation;
+
     integrateAnalyticPSF(psf, column0, row0, r, p);
 
     for (int y = max(0, sy); y < min((int)numRowsPixelMap, sy + size); y++)
