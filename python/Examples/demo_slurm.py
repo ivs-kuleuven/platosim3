@@ -1,5 +1,5 @@
 
-# Example script on how to use slurm. 
+# Example script on how to compute long time series by splitting them up and slurm them separately.
 #
 # Don't run this script directly with Python, but launch the script demo_slurmscript.sh
 # which will in turn launch this python script. For example if you run on the prompt:
