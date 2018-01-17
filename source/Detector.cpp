@@ -552,7 +552,11 @@ void Detector::addDarkSignal(float exposureTime)
 		for(unsigned int column = 0; column < numColumnsPixelMap; column++)
 		{
 
-			darkSignal = darkSignalDistribution(darkSignalGenerator);		// Take DSNU into account
+			// Take DSNU into account
+
+			darkSignal = darkSignalDistribution(darkSignalGenerator);
+
+			// Add the noise
 
 			darkNoiseDistribution = normal_distribution<double>(darkSignal, sqrt(darkSignal));
 			darkSignal = darkNoiseDistribution(darkNoiseGenerator);
