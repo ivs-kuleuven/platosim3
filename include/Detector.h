@@ -64,6 +64,7 @@ class Detector: public HDF5Writer
 
         virtual void applyFlatfield() = 0;
         virtual void applyThroughputEfficiency();
+        virtual void addDark();
 
         virtual void readOut(float exposureTime);
         virtual void addPhotonNoise();
@@ -145,6 +146,8 @@ class Detector: public HDF5Writer
         unsigned long fullWellSaturationLimit;   // Full-well saturation limit [electrons/pixel]
         unsigned int electronicOffset;           // Bias or electronic offset [ADU]
         unsigned long digitalSaturationLimit;    // Digital saturation limit [ADU / pixel]
+        double darkCurrent;						// Dark current [e- / s]
+        double dsnu;								// Dark signal non-uniformity
 
         string CTImodel;
         double meanCte;                          // Mean charge-transfer efficiency  (in [0,1])
