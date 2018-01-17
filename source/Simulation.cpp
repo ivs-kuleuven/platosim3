@@ -567,6 +567,11 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("ParticulateContaminationEfficiency");
     addDouble("MolecularContaminationEfficiency");
 
+    subGroup = "CCD/Dark";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("DarkCurrent");
+    addDouble("DSNU");
+
     subGroup = "CCD/CTI";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addString("Model");

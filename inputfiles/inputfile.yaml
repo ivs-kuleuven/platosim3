@@ -164,6 +164,9 @@ CCD:
     Contamination:
         ParticulateContaminationEfficiency: 0.98     # Throughput efficiency due to particulate contamination
         MolecularContaminationEfficiency:   0.9566   # Throughput efficiency due to molecular contamination
+    Dark:
+      DarkCurrent:                  1.2              # Dark current [e- / s]
+      DSNU:                         10               # Dark signal non-uniformity [%]
     CTI:
         Model:                       Short2013       # The method used to generate the CTI, either "Simple" or "Short2013"
         Simple:
@@ -179,6 +182,7 @@ CCD:
     Temperature:                     Nominal         # Temperature fixed at the nominal operating temperature
     TemperatureFileName:             inputfiles/ccdTemperature.txt 
     IncludeFlatfield:                yes             # Include flatfield [yes or no]
+    IncludeDark:                     yes             # Include dark [yes or no]
     IncludePhotonNoise:              yes             # Include photon noise [yes or no]
     IncludeReadoutNoise:             yes             # Include readout noise [yes or no]
     IncludeCTIeffects:               yes             # Include charge transfer inefficiency effects [yes or no]
