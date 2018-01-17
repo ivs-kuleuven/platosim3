@@ -164,9 +164,9 @@ CCD:
     Contamination:
         ParticulateContaminationEfficiency: 0.98     # Throughput efficiency due to particulate contamination
         MolecularContaminationEfficiency:   0.9566   # Throughput efficiency due to molecular contamination
-    Dark:
+    DarkSignal:
       DarkCurrent:                  1.2              # Dark current [e- / s]
-      DSNU:                         10               # Dark signal non-uniformity [%]
+      DSNU:                         10.0             # Dark signal non-uniformity [%]
     CTI:
         Model:                       Short2013       # The method used to generate the CTI, either "Simple" or "Short2013"
         Simple:
@@ -182,7 +182,7 @@ CCD:
     Temperature:                     Nominal         # Temperature fixed at the nominal operating temperature
     TemperatureFileName:             inputfiles/ccdTemperature.txt 
     IncludeFlatfield:                yes             # Include flatfield [yes or no]
-    IncludeDark:                     yes             # Include dark [yes or no]
+    IncludeDSNU:                     yes             # Include dark signal non-uniformity [yes or no]
     IncludePhotonNoise:              yes             # Include photon noise [yes or no]
     IncludeReadoutNoise:             yes             # Include readout noise [yes or no]
     IncludeCTIeffects:               yes             # Include charge transfer inefficiency effects [yes or no]
@@ -219,6 +219,7 @@ RandomSeeds:
     FeeGainSeed:                     1429485030      # Unique positive integer
     CcdGainSeed:                     1420450443      # Unique positive integer
     CosmicSeed:                      1494750830      # Unique positive integer
+    DarkCurrentSeed:                 1468838669      # Unique positive integer
 
 ControlHDF5Content:
     WriteSubPixelImages:             no              # Only use this for a limited number of exposures. Takes a lot of space! 
