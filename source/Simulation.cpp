@@ -523,6 +523,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 	addString("Temperature");
 	addString("TemperatureFileName");
     addBoolean("IncludeFlatfield");
+    addBoolean("IncludeDark");
     addBoolean("IncludePhotonNoise");
     addBoolean("IncludeReadoutNoise");
     addBoolean("IncludeCTIeffects"); 
