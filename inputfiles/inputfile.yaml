@@ -182,7 +182,7 @@ CCD:
     Temperature:                     Nominal         # Temperature fixed at the nominal operating temperature
     TemperatureFileName:             inputfiles/ccdTemperature.txt 
     IncludeFlatfield:                yes             # Include flatfield [yes or no]
-    IncludeDSNU:                     yes             # Include dark signal non-uniformity [yes or no]
+    IncludeDarkSignal:               yes             # Include dark signal non-uniformity [yes or no]
     IncludePhotonNoise:              yes             # Include photon noise [yes or no]
     IncludeReadoutNoise:             yes             # Include readout noise [yes or no]
     IncludeCTIeffects:               yes             # Include charge transfer inefficiency effects [yes or no]
