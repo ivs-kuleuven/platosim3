@@ -64,7 +64,7 @@ class Detector: public HDF5Writer
 
         virtual void applyFlatfield() = 0;
         virtual void applyThroughputEfficiency();
-        virtual void addDark();
+        virtual void addDarkSignal(float exposureTime);
 
         virtual void readOut(float exposureTime);
         virtual void addPhotonNoise();
@@ -91,6 +91,7 @@ class Detector: public HDF5Writer
         virtual void initHDF5Groups() override;
         void writePixelMapsToHDF5(int exposureNr);
 
+        void fastForwardDarkSignalGeneratorToExposure(int beginExposureNr, float exposureTime);
         void fastForwardReadoutNoiseGeneratorToExposure(int beginExposureNr);
         void fastForwardPhotonNoiseGeneratorToExposure(int beginExposureNr);
         void fastForwardCosmicsGeneratorToExposure(int beginExposureNr, float exposureTime);
@@ -158,7 +159,7 @@ class Detector: public HDF5Writer
         vector<double> trapCaptureCrossSection;  // For each trap species: the trap capture cross section [m^2]
         vector<double> releaseTime;              // For each trap species: the electron release time [s]
 
-        bool includeDark;						// Whether or not to include dark
+        bool includeDarkSignal;	      			// Whether or not to include dark
         bool includePhotonNoise;                 // Whether or not to include photon noise
         bool includeReadoutNoise;                // Include readout noise [yes or no]
         bool includeCTIeffects;                  // Include CTI effects [yes or no]
@@ -177,11 +178,14 @@ class Detector: public HDF5Writer
         double nominalOperatingTemperature;
         double internalTime;
 
+        long darkSignalSeed;
         long readoutNoiseSeed;
         long photonNoiseSeed;
         long gainSeed;
         long cosmicSeed;
 
+        mt19937 darkSignalGenerator;
+        mt19937 darkNoiseGenerator;
         mt19937 photonNoiseGenerator;
         mt19937 readoutNoiseGenerator;
         mt19937 cosmicHitRateGenerator;
@@ -191,6 +195,8 @@ class Detector: public HDF5Writer
         mt19937 cosmicTrailLengthGenerator;
         mt19937 cosmicIntensityGenerator;
 
+        normal_distribution<double> darkSignalDistribution;
+        normal_distribution<double> darkNoiseDistribution;
         poisson_distribution<long> photonNoiseDistribution;
         normal_distribution<double> readoutNoiseDistribution;
         poisson_distribution<long> cosmicHitRateDistribution;
