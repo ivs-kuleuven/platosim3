@@ -372,6 +372,19 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
     // Apply throughput efficiency on the pixel map
 
     applyThroughputEfficiency();
+
+    // Add dark current
+
+    if(includeDarkSignal)
+    {
+    		Log.debug("Detector: adding dark current");
+
+    		addDarkSignal(exposureTime);
+    }
+    else
+    {
+    		Log.debug("Detector: no dark current added");
+    }
 }
 
 
