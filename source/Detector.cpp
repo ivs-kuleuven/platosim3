@@ -243,6 +243,7 @@ void Detector::updateParameters(double time)
 
     includeParticulateContamination = configParam.getBoolean("CCD/IncludeParticulateContamination");
     includeMolecularContamination   = configParam.getBoolean("CCD/IncludeMolecularContamination");
+    includeDarkSignal               = configParam.getBoolean("CCD/IncludeDarkSignal");
     includePhotonNoise              = configParam.getBoolean("CCD/IncludePhotonNoise");
     includeReadoutNoise             = configParam.getBoolean("CCD/IncludeReadoutNoise");
     includeCTIeffects               = configParam.getBoolean("CCD/IncludeCTIeffects");
