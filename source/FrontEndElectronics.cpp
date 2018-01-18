@@ -7,7 +7,7 @@ FrontEndElectronics::FrontEndElectronics(ConfigurationParameters &configParam, H
 
 	configure(configParam);
 
-	// Check gain
+	// Check whether the gain values for ADC1 and ADC2 are not too far apart
 
 	checkGain();
 }
@@ -59,6 +59,12 @@ void FrontEndElectronics::configure(ConfigurationParameters &configParam)
 
 
 
+
+/**
+ * Checks whether the gain values for ADC1 and ADC2 are not too far apart, according
+ * to the specified allowed difference.  In case the gain values are too far apart,
+ * a warning message is shown to the user.
+ */
 void FrontEndElectronics::checkGain()
 {
 	double allowedDifference = min(refValueGainLeft, refValueGainRight) * gainAllowedDifference / 100.0;
