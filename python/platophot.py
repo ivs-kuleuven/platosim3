@@ -157,7 +157,7 @@ def photometry(inputFilePath, outputFilePath, sigmaPSF, useExactStarPosition=Tru
 
     # Collect the relevant input parameters from the HDF5 file
 
-    gain = inputFile["InputParameters/FEE/Gain"].attrs["RefValue"] * inputFile["InputParameters/CCD/Gain"].attrs["RefValue"]    # [ADU / µV] * [µV / e-] = [ADU / e-]
+    gain = ((inputFile["InputParameters/FEE/Gain"].attrs["RefValueLeft"] * inputFile["InputParameters/CCD/GainLeft"].attrs["RefValue"]) + (inputFile["InputParameters/FEE/Gain"].attrs["RefValueLeftRight"] * inputFile["InputParameters/CCD/GainLeft"].attrs["RefValueRight"])) / 2.0    # [ADU / µV] * [µV / e-] = [ADU / e-]
     #gain = inputFile["/InputParameters/CCD/"].attrs["Gain"]                             # [e-/ADU]
     quantumEfficiency = inputFile["/InputParameters/CCD/QuantumEfficiency"].attrs["MeanQuantumEfficiency"]    # [e-/phot]
     sigmaRONsquared = inputFile["/InputParameters/FEE"].attrs["ReadoutNoise"]**2 + inputFile["/InputParameters/CCD"].attrs["ReadoutNoise"]**2
