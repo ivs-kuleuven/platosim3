@@ -198,7 +198,7 @@ Indicates whether or not stellar variability must be included.
 ### <a name="variableSourceList"></a>VariableSourceList
 <i>Allowed values:</i> only required if stellar variability is to be included ([IncludeVariableSources](#inclVariability) = "yes")
 
-Path to the file, relative to the [project location](#projectLocation), holding the time series of variable sources.
+Path to the file, relative to the [project location](#projectLocation), indicating how the magnitude of the sources varies over time.
 
 
 
