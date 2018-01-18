@@ -523,6 +523,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 	addString("Temperature");
 	addString("TemperatureFileName");
     addBoolean("IncludeFlatfield");
+    addBoolean("IncludeDarkSignal");
     addBoolean("IncludePhotonNoise");
     addBoolean("IncludeReadoutNoise");
     addBoolean("IncludeCTIeffects"); 
@@ -567,6 +568,11 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("ParticulateContaminationEfficiency");
     addDouble("MolecularContaminationEfficiency");
 
+    subGroup = "CCD/DarkSignal";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("DarkCurrent");
+    addDouble("DSNU");
+
     subGroup = "CCD/CTI";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addString("Model");
@@ -602,6 +608,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 	addLong("FeeGainSeed");
 	addLong("CcdGainSeed");
 	addLong("CosmicSeed");
+	addLong("DarkSignalSeed");
 
     subGroup = "ControlHDF5Content";
     hdf5File.createGroup(parentGroup + "/" + subGroup);

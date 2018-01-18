@@ -26,8 +26,9 @@
  */
 
 Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator)
-: HDF5Writer(hdf5file), 
+: HDF5Writer(hdf5file),
   includeCosmics(true),
+  includeDarkSignal(true),
   includePhotonNoise(true),
   includeReadoutNoise(true),
   includeCTIeffects(true), 
@@ -68,6 +69,9 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 
     // Set the seeds of the random number generators
 
+    darkSignalGenerator.seed(darkSignalSeed);
+    darkNoiseGenerator.seed(darkSignalSeed + 1);
+
     photonNoiseGenerator.seed(photonNoiseSeed);
     readoutNoiseGenerator.seed(readoutNoiseSeed);
 
@@ -83,6 +87,7 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 
     double exposureTime = configParam.getDouble("ObservingParameters/ExposureTime");
 
+    fastForwardDarkSignalGeneratorToExposure(beginExposureNr, exposureTime);
     fastForwardReadoutNoiseGeneratorToExposure(beginExposureNr);
     fastForwardPhotonNoiseGeneratorToExposure(beginExposureNr);
     fastForwardCosmicsGeneratorToExposure(beginExposureNr, exposureTime);
@@ -195,6 +200,8 @@ void Detector::updateParameters(double time)
     cosmicHitRate                       = configParam.getDouble("Sky/Cosmics/CosmicHitRate");
     cosmicTrailLength                   = configParam.getDoubleVector("Sky/Cosmics/TrailLength");
     cosmicIntensity                     = configParam.getDoubleVector("Sky/Cosmics/Intensity");
+    darkCurrent                         = configParam.getDouble("CCD/DarkSignal/DarkCurrent");
+    dsnu                                = configParam.getDouble("CCD/DarkSignal/DSNU");
     fullWellSaturationLimit             = configParam.getLong("CCD/FullWellSaturation");
     digitalSaturationLimit              = configParam.getLong("CCD/DigitalSaturation");
     readoutNoise                        = configParam.getDouble("CCD/ReadoutNoise");
@@ -236,6 +243,7 @@ void Detector::updateParameters(double time)
 
     includeParticulateContamination = configParam.getBoolean("CCD/IncludeParticulateContamination");
     includeMolecularContamination   = configParam.getBoolean("CCD/IncludeMolecularContamination");
+    includeDarkSignal               = configParam.getBoolean("CCD/IncludeDarkSignal");
     includePhotonNoise              = configParam.getBoolean("CCD/IncludePhotonNoise");
     includeReadoutNoise             = configParam.getBoolean("CCD/IncludeReadoutNoise");
     includeCTIeffects               = configParam.getBoolean("CCD/IncludeCTIeffects");
@@ -260,7 +268,8 @@ void Detector::updateParameters(double time)
 
     readoutNoiseSeed        = configParam.getLong("RandomSeeds/ReadOutNoiseSeed");
     photonNoiseSeed         = configParam.getLong("RandomSeeds/PhotonNoiseSeed");
-    cosmicSeed             = configParam.getLong("RandomSeeds/CosmicSeed");
+    cosmicSeed              = configParam.getLong("RandomSeeds/CosmicSeed");
+    darkSignalSeed          = configParam.getLong("RandomSeeds/DarkSignalSeed");
 
     // Get the sequential number of the very first exposure (used for e.g. fast-forwarding the noise generators)
 
@@ -521,6 +530,73 @@ void Detector::applyThroughputEfficiency()
 
 
 
+/**
+ *\brief Adds the dark signal to the pixel map and the smearing map.  This follows a
+ *       normal distribution, centered around the dark current and with the DSNU
+ *       (percentage of the dark signal) as standard deviation.  The noise of the
+ *       simulated dark signal is of the order of the sqrt of the dark signal
+ *       (simulated with a normal distribution).
+ *
+ * \param exposureTime: Exposure time [s].
+ *
+ * \pre Pixel unit in the pixel map: [electrons].
+ * \pre Bias register and smearing maps filled with zeroes.
+ *
+ * \post Pixel unit in the pixel map: [electrons].
+ * \post Pixel unit in the smearing map: [electrons].
+ * \post No bias register map.
+ */
+void Detector::addDarkSignal(float exposureTime)
+{
+	double darkSignalRef = darkCurrent * (exposureTime + readoutTime);
+	darkSignalDistribution = normal_distribution<double>(darkSignalRef, darkSignalRef * dsnu / 100.0);
+
+	double darkSignal;
+
+	// Add dark signal to the pixel map
+
+	for(unsigned int row = 0; row < numRowsPixelMap; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsPixelMap; column++)
+		{
+			// Take DSNU into account
+
+			darkSignal = darkSignalDistribution(darkSignalGenerator);
+
+			// Add the noise
+
+			darkNoiseDistribution = normal_distribution<double>(darkSignal, sqrt(darkSignal));
+			darkSignal = darkNoiseDistribution(darkNoiseGenerator);
+
+
+			pixelMap(row, column) += darkSignal;
+		}
+	}
+
+	// Add dark signal to the smearing map
+
+	for(unsigned int row = 0; row < numRowsSmearingMap; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsPixelMap; column++)
+		{
+			// Take DSNU into account
+
+			darkSignal = darkSignalDistribution(darkSignalGenerator);
+
+			// Add the noise
+
+			darkNoiseDistribution = normal_distribution<double>(darkSignal, sqrt(darkSignal));
+			darkSignal = darkNoiseDistribution(darkNoiseGenerator);
+
+			smearingMap(row, column) += darkSignal;
+		}
+	}
+}
+
+
+
+
+
 
 /**
  * \brief Return the CCD readout time [s].
@@ -553,8 +629,9 @@ double Detector::getReadoutTime()
  *
  * \param exposureTime: Exposure time [s].
  *
- * \pre Pixel unit in the pixel map: [photons].
- * \pre Bias register and smearing maps filled with zeroes.
+ * \pre Pixel unit in the pixel map: [electrons].
+ * \pre Pixel unit in the smearing map: [electrons].
+ * \pre Bias register map filled with zeroes.
  *
  * \post Pixel unit in the pixel, bias register, and smearing maps: [ADU].
  */
@@ -679,7 +756,8 @@ void Detector::readOut(float exposureTime)
  *         independently of the other pixels.
  *
  * \pre Pixel unit in the pixel map: [electrons].
- * \pre No bias register or smearing maps.
+ * \pre Pixel unit in the smearing map: [electrons].
+ * \pre No bias register maps
  *
  * \post Pixel unit in the pixel map: [electrons].
  * \post Pixel unit in the smearing map: [electrons].
@@ -1938,6 +2016,68 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
     // Add the bias map to the "BiasMaps" group
 
     hdf5File.writeArray("/ThroughputMaps", throughputMapName, throughputMap);
+}
+
+
+
+
+
+
+
+/**
+ * \brief PlatoSim allows to generate e.g. exposures 0->99, and then a second run
+ *        from 100->199, which facilitates Slurming long time series. The results
+ *        should be the same as if we would generate 0->199 in one stretch. Therefore,
+ *        when generating exposures 100->199, we have to take care that all noise
+ *        generators start in the correct state. The way to do this, is to fast-forward
+ *        through all noise generations of exposures 0->99. This function is therefore
+ *        a skeleton version of addDarkSignal(), where noise is generated but further
+ *        ignored.
+ */
+void Detector::fastForwardDarkSignalGeneratorToExposure(int beginExposureNr, float exposureTime)
+{
+	double dark = darkCurrent * (exposureTime + readoutTime);
+
+	darkSignalDistribution = normal_distribution<double>(dark, dark * dsnu / 100.0);
+
+	double dummy;
+
+	for (int n = 0; n < beginExposureNr; n++)
+	{
+	    // Dark signal generated for the pixel map
+
+	    for (unsigned int row = 0; row < numRowsPixelMap; row++)
+	    {
+	         for (unsigned int column = 0; column < numColumnsPixelMap; column++)
+	         {
+	        	 	 // Take DSNU into account
+
+	        	 	 dummy = darkSignalDistribution(darkSignalGenerator);
+
+	        	 	 // Add the noise
+
+	        	 	 darkNoiseDistribution = normal_distribution<double>(dummy, sqrt(dummy));
+	        	 	 dummy = darkNoiseDistribution(darkNoiseGenerator);
+	         }
+	    }
+
+	    // Dark signal generated for the smearing map
+
+	    for(unsigned int row = 0; row < numRowsSmearingMap; row++)
+	    {
+	    		for(unsigned int column = 0; column < numColumnsPixelMap; column++)
+	    		{
+	    			// Take DSNU into account
+
+	    			dummy = darkSignalDistribution(darkSignalGenerator);
+
+	    			// Add the noise
+
+	    			darkNoiseDistribution = normal_distribution<double>(dummy, sqrt(dummy));
+	    			dummy = darkNoiseDistribution(darkNoiseGenerator);
+	    		}
+	    }
+	}
 }
 
 
