@@ -990,6 +990,9 @@ CCD:
     Contamination:
     		ParticulateContaminationEfficiency:  0.98
     		MolecularContaminationEfficiency:    0.0566
+    DarkSignal:
+      		DarkCurrent:                  1.2
+      		DSNU:                         10.0
     FullWellSaturation:          1000000        
     DigitalSaturation:           65535          
     ReadoutNoise:                28             
@@ -1009,7 +1012,8 @@ CCD:
     NominalOperatingTemperature: 203.15
     Temperature:                 Nominal
     TemperatureFileName:         inputfiles/ccdTemperature.txt     
-    IncludeFlatfield:                 no             
+    IncludeFlatfield:                 no            
+    IncludeDarkSignal:                yes 
     IncludePhotonNoise:               yes            
     IncludeReadoutNoise:              yes            
     IncludeCTIeffects:                yes            
@@ -1237,6 +1241,24 @@ Throughput efficiency due to molecular contamination.
 
 
 
+### <a name="darkSignal"></a>DarkSignal
+
+Dark signal is the relatively small electric current that is generated in the CCD when no outside radiation is entering the device.
+
+#### <a name="darkCurrent"></a>DarkSignal: DarkCurrent
+<i>Allowed values:</i> > 0
+
+Dark current, expressed in e<sup>-</sup> / s.  This is the nominal value of the dark signal.
+
+
+
+#### <a name="dsnu"></a>DarkSignal: DSNU
+<i>Allowed values:</i> ∈ [0,100]
+
+Dark signal non-uniformity, expressed as a percentage of the [dark current](#darkCurrent).  This is the systematic (fixed-pattern) deviation of a pixel's dark current from its nominal value.
+
+
+
 
 
 ### <a name="fullWellSaturation"></a>FullWellSaturation
@@ -1401,6 +1423,12 @@ Path to the file, relative to the [project location](#projectLocation), holding 
 
 Indicates whether or not to include the flatfield.
 
+
+
+### <a name="inclDarkSignal"></a>IncludeDarkSignal
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to include dark signal.
 
 
 
@@ -1631,6 +1659,7 @@ RandomSeeds:
     FeeGainSeed:                 1429485030
     CcdGainSeed:                 1420450443
     CosmicSeed:                  1494750830
+    DarkCurrentSeed:             1468838669
 \endcode
 
 
@@ -1693,6 +1722,12 @@ Seed for the random-number generator used for the CCD gain.
 <i>Allowed values:</i> > 0
 
 Seed for the random-number generators for the cosmics.
+
+
+### DarkCurrentSeed
+<i>Allowed values:</i> > 0
+
+Seed for the random-number generators for the dark signal.
 
 ---
 
