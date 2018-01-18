@@ -147,7 +147,7 @@ where the \f$\lambda\f$ subscript refers to the wavelength range in which the si
 
 ### <a name="starCatalogFile"></a> StarCatalogFile
 
-Path to thebstar catalogue file, relative to the [project location](#projectLocation).
+Path to the star catalogue file, relative to the [project location](#projectLocation).
 
 ---
 
@@ -167,6 +167,8 @@ The <b>Sky</b> block of the configuration file contains all the information that
 Sky:
 
 	SkyBackground:               342.
+	IncludeVariableSources:      no
+    	VariableSourceList:          inputfiles/varsource.txt
 	IncludeCosmics:              yes
 	Cosmics:
 		CosmicHitRate:                      10
@@ -184,6 +186,20 @@ Sky:
 In case a positive value is given, the sky background (zodiacal + galactic), is set to the given value, expressed in photons \f$ \cdot \f$ s<sup>-1</sup> \f$ \cdot \f$ pixel<sup>-1</sup>.
 
 In case a negative value is given, the sky background is computed automatically from tabular values, interpolated to the central coordinates of the sub-field. A constant sky background is assumed for the whole sub-field. Note that for some regions in the sky the automatic computation of the sky background may fail due to the lack of tabulated values. In that case you can set the sky background manually.
+
+
+
+### <a name="inclVariability"></a>IncludeVariableSources
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not stellar variability must be included.
+
+
+### <a name="variableSourceList"></a>VariableSourceList
+<i>Allowed values:</i> only required if stellar variability is to be included ([IncludeVariableSources](#inclVariability) = "yes")
+
+Path to the file, relative to the [project location](#projectLocation), holding the time series of variable sources.
+
 
 
 
