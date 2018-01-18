@@ -142,9 +142,10 @@ CCD:
 
     PixelSize:                       18              # [micron]
     Gain:                           
-        RefValue:                    1.80            # [microV/e-]
+        RefValueLeft:                1.80            # [microV/e-]
+        RefValueRight:               1.80            # [microV/e-]
         Stability:                   -0.004          # [microV/e-/K]
-        ThreeSigma:                  15.0            # Difference in gain between both CCD halves [%]
+        AllowedDifference:           15.0            # Difference in gain between both CCD halves [%]
     QuantumEfficiency:
         RelativeRefEfficiency:       0.925           # Relative efficiency due to angle dependency of the QE at the reference angle
         RefAngle:                    45.0            # Reference angle for quantum efficiency [degrees]
@@ -217,7 +218,6 @@ RandomSeeds:
     JitterSeed:                      1433320381      # Unique positive integer 
     FlatFieldSeed:                   1425284070      # Unique positive integer 
     DriftSeed:                       1433429158      # Unique positive integer 
-    CcdGainSeed:                     1420450443      # Unique positive integer
     CosmicSeed:                      1494750830      # Unique positive integer
     DarkSignalSeed:                  1468838669      # Unique positive integer
 

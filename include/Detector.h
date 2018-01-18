@@ -60,7 +60,7 @@ class Detector: public HDF5Writer
         virtual void integrateLight(int exposureNr, double startTime, double exposureTime) = 0;
 
         virtual void generateThroughputMap();
-        virtual void generateGain();
+        virtual void checkGain();
 
         virtual void applyFlatfield() = 0;
         virtual void applyThroughputEfficiency();
@@ -139,11 +139,10 @@ class Detector: public HDF5Writer
         //double expectedValueQuantumEfficiency;   // Expected value of the throughput efficiency due to quantum efficiency
         double readoutTime;                      // Readout time [s]
         double readoutNoise;                     // Mean readout noise [electrons]
-        double refValueGain;                     // Detector gain [µV/e-]
-        double gainStability;                    // Gain stability [µV/e-]
-        double gainThreeSigma;                   // Allowed difference (3 sigma) in gain between the left and the right half of the detector [% of the reference value]
         double refValueGainLeft;                 // Reference value for the gain on the ACD reading the left-hand side of the detector [µV/e-]
         double refValueGainRight;                // Reference value for the gain on the ACD reading the right-hand side of the detector [µV/e-]
+        double gainStability;                    // Gain stability [µV/e-]
+        double gainAllowedDifference;            // Allowed difference in gain between the left and the right half of the detector [% of the reference values]
         unsigned long fullWellSaturationLimit;   // Full-well saturation limit [electrons/pixel]
         unsigned int electronicOffset;           // Bias or electronic offset [ADU]
         unsigned long digitalSaturationLimit;    // Digital saturation limit [ADU / pixel]
@@ -181,7 +180,6 @@ class Detector: public HDF5Writer
         long darkSignalSeed;
         long readoutNoiseSeed;
         long photonNoiseSeed;
-        long gainSeed;
         long cosmicSeed;
 
         mt19937 darkSignalGenerator;
