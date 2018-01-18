@@ -608,6 +608,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 	addLong("FeeGainSeed");
 	addLong("CcdGainSeed");
 	addLong("CosmicSeed");
+	addLong("DarkSignalSeed");
 
     subGroup = "ControlHDF5Content";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
