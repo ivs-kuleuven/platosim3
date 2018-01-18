@@ -119,11 +119,12 @@ FEE:
     TemperatureFileName:             inputfiles/feeTemperature.txt
     ReadoutNoise:                    106.0           # Readout noise for the FEE [e-/pixel]
     Gain:
-        RefValue:                    0.0069          # [ADU/microV] (Total gain = FFE gain * CCD gain = 20 e-/ADU)
-        Stability:                  -100.0e-6        # [ppm/K] = [ADU/microV/K]
-        ThreeSigma:                    0.0           # Difference in gain betwwen both ADCs [%]
+        RefValueLeft:                0.0069          # [ADU/microV] (Total gain = FFE gain * CCD gain = 20 e-/ADU)
+        RefValueRight:               0.0069          # [ADU/microV] (Total gain = FFE gain * CCD gain = 20 e-/ADU)
+        Stability:                   -100.0e-6       # [ppm/K] = [ADU/microV/K]
+        AllowedDifference:           0.0             # Difference in gain betwwen both ADCs [%]
     ElectronicOffset: 
-        RefValue:                    1000             # Reference value for the electronic offset [ADU/pixel]
+        RefValue:                    1000            # Reference value for the electronic offset [ADU/pixel]
         Stability:                     1             # Offset stability [ADU/pixel/K]
 
 
@@ -141,9 +142,10 @@ CCD:
 
     PixelSize:                   18              # [micron]
     Gain:                            
-        RefValue:                1.80            # [microV/e-]
+        RefValueLeft:            1.80            # [microV/e-]
+        RefValueRight:           1.80            # [microV/e-]
         Stability:               -0.004          # [microV/e-/K]
-        ThreeSigma:              0.0            # Difference in gain between both CCD halves [%]
+        AllowedDifference:       0.0             # Difference in gain between both CCD halves [%]
     QuantumEfficiency:
         RelativeRefEfficiency:       0.925           # Relative efficiency due to angle dependency of the QE at the reference angle
         RefAngle:                    45.0            # Reference angle for quantum efficiency [degrees]
@@ -216,8 +218,6 @@ RandomSeeds:
     JitterSeed:                  1433320381      # Unique positive integer 
     FlatFieldSeed:               1425284070      # Unique positive integer 
     DriftSeed:                   1433429158      # Unique positive integer 
-    FeeGainSeed:                 1429485030      # Unique positive integer
-    CcdGainSeed:                 1420450443      # Unique positive integer
     CosmicSeed:                  1494750830      # Unique positive integer
     DarkCurrentSeed:             1468838669      # Unique positive integer
     
