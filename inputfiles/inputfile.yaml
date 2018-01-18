@@ -119,9 +119,10 @@ FEE:
     TemperatureFileName:             inputfiles/feeTemperature.txt 
     ReadoutNoise:                    40.5            # Readout noise for the FEE [e-/pixel] (same for both ADCs)
     Gain:
-        RefValue:                    0.0278          # [ADU/microV] (1 / (Total gain) = FFE gain * CCD gain = 1 / (20 e-/ADU))
+        RefValueLeft:                0.0278          # [ADU/microV] (1 / (Total gain) = FFE gain * CCD gain = 1 / (20 e-/ADU))
+        RefValueRight:               0.0278          # [ADU/microV] (1 / (Total gain) = FFE gain * CCD gain = 1 / (20 e-/ADU))
         Stability:                   -100.0e-6       # [ppm/K] = [ADU/microV/K]
-        ThreeSigma:                  0.0             # Difference in gain between both ADCs [%]
+        AllowedDifference:           0.0             # Difference in gain between both ADCs [%]
     ElectronicOffset:
         RefValue:                    1000            # Reference value for the electronic offset [ADU/pixel]
         Stability:                   1               # Offset stability [ADU/pixel/K]
@@ -216,7 +217,6 @@ RandomSeeds:
     JitterSeed:                      1433320381      # Unique positive integer 
     FlatFieldSeed:                   1425284070      # Unique positive integer 
     DriftSeed:                       1433429158      # Unique positive integer 
-    FeeGainSeed:                     1429485030      # Unique positive integer
     CcdGainSeed:                     1420450443      # Unique positive integer
     CosmicSeed:                      1494750830      # Unique positive integer
     DarkSignalSeed:                  1468838669      # Unique positive integer
