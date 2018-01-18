@@ -531,11 +531,10 @@ void Detector::applyThroughputEfficiency()
 
 
 /**
- *\brief Adds the dark signal to the pixel map and the smearing map.  This follows a
- *       normal distribution, centered around the dark current and with the DSNU
- *       (percentage of the dark signal) as standard deviation.  The noise of the
- *       simulated dark signal is of the order of the sqrt of the dark signal
- *       (simulated with a normal distribution).
+ *\brief Adds the dark signal to the pixel map.  This follows a normal distribution,
+ *       centered around the dark current and with the DSNU (percentage of the dark signal)
+ *       as standard deviation.  The noise of the simulated dark signal is of the order
+ *       of the sqrt of the dark signal (simulated with a normal distribution).
  *
  * \param exposureTime: Exposure time [s].
  *
@@ -548,12 +547,13 @@ void Detector::applyThroughputEfficiency()
  */
 void Detector::addDarkSignal(float exposureTime)
 {
-	double darkSignalRef = darkCurrent * (exposureTime + readoutTime);
-	darkSignalDistribution = normal_distribution<double>(darkSignalRef, darkSignalRef * dsnu / 100.0);
-
 	double darkSignal;
 
 	// Add dark signal to the pixel map
+
+	double darkSignalRef = darkCurrent * (exposureTime + readoutTime);
+	darkSignalDistribution = normal_distribution<double>(darkSignalRef, darkSignalRef * dsnu / 100.0);
+
 
 	for(unsigned int row = 0; row < numRowsPixelMap; row++)
 	{
@@ -574,6 +574,9 @@ void Detector::addDarkSignal(float exposureTime)
 	}
 
 	// Add dark signal to the smearing map
+
+	darkSignalRef = darkCurrent * readoutTime;
+	darkSignalDistribution = normal_distribution<double>(darkSignalRef, darkSignalRef * dsnu / 100.0);
 
 	for(unsigned int row = 0; row < numRowsSmearingMap; row++)
 	{
@@ -756,8 +759,7 @@ void Detector::readOut(float exposureTime)
  *         independently of the other pixels.
  *
  * \pre Pixel unit in the pixel map: [electrons].
- * \pre Pixel unit in the smearing map: [electrons].
- * \pre No bias register maps
+ * \pre No bias register or smearing maps.
  *
  * \post Pixel unit in the pixel map: [electrons].
  * \post Pixel unit in the smearing map: [electrons].
@@ -2036,15 +2038,17 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
  */
 void Detector::fastForwardDarkSignalGeneratorToExposure(int beginExposureNr, float exposureTime)
 {
-	double dark = darkCurrent * (exposureTime + readoutTime);
 
-	darkSignalDistribution = normal_distribution<double>(dark, dark * dsnu / 100.0);
-
+	double dark;
 	double dummy;
 
 	for (int n = 0; n < beginExposureNr; n++)
 	{
 	    // Dark signal generated for the pixel map
+
+		dark = darkCurrent * (exposureTime + readoutTime);
+
+		darkSignalDistribution = normal_distribution<double>(dark, dark * dsnu / 100.0);
 
 	    for (unsigned int row = 0; row < numRowsPixelMap; row++)
 	    {
@@ -2063,6 +2067,10 @@ void Detector::fastForwardDarkSignalGeneratorToExposure(int beginExposureNr, flo
 
 	    // Dark signal generated for the smearing map
 
+	    dark = darkCurrent * readoutTime;
+
+	    	darkSignalDistribution = normal_distribution<double>(dark, dark * dsnu / 100.0);
+
 	    for(unsigned int row = 0; row < numRowsSmearingMap; row++)
 	    {
 	    		for(unsigned int column = 0; column < numColumnsPixelMap; column++)
@@ -2079,6 +2087,7 @@ void Detector::fastForwardDarkSignalGeneratorToExposure(int beginExposureNr, flo
 	    }
 	}
 }
+
 
 
 
