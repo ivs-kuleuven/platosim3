@@ -268,7 +268,8 @@ void Detector::updateParameters(double time)
 
     readoutNoiseSeed        = configParam.getLong("RandomSeeds/ReadOutNoiseSeed");
     photonNoiseSeed         = configParam.getLong("RandomSeeds/PhotonNoiseSeed");
-    cosmicSeed             = configParam.getLong("RandomSeeds/CosmicSeed");
+    cosmicSeed              = configParam.getLong("RandomSeeds/CosmicSeed");
+    darkSignalSeed          = configParam.getLong("RandomSeeds/DarkSignalSeed");
 
     // Get the sequential number of the very first exposure (used for e.g. fast-forwarding the noise generators)
 
