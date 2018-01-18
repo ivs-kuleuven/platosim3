@@ -531,15 +531,20 @@ void Detector::applyThroughputEfficiency()
 
 
 /**
- *\brief Adds the dark signal to the pixel map.  This follows a normal distribution,
- *       centered around the dark current and with the DSNU (percentage of the dark signal)
- *       as standard deviation.  The noise of the simulated dark signal is of the order
- *       of the sqrt of the dark signal (simulated with a normal distribution).
+ *\brief Adds the dark signal to the pixel map and the smearing map.  This follows a
+ *       normal distribution, centered around the dark current and with the DSNU
+ *       (percentage of the dark signal) as standard deviation.  The noise of the
+ *       simulated dark signal is of the order of the sqrt of the dark signal
+ *       (simulated with a normal distribution).
  *
  * \param exposureTime: Exposure time [s].
  *
  * \pre Pixel unit in the pixel map: [electrons].
  * \pre Bias register and smearing maps filled with zeroes.
+ *
+ * \post Pixel unit in the pixel map: [electrons].
+ * \post Pixel unit in the smearing map: [electrons].
+ * \post No bias register map.
  */
 void Detector::addDarkSignal(float exposureTime)
 {
@@ -548,11 +553,12 @@ void Detector::addDarkSignal(float exposureTime)
 
 	double darkSignal;
 
+	// Add dark signal to the pixel map
+
 	for(unsigned int row = 0; row < numRowsPixelMap; row++)
 	{
 		for(unsigned int column = 0; column < numColumnsPixelMap; column++)
 		{
-
 			// Take DSNU into account
 
 			darkSignal = darkSignalDistribution(darkSignalGenerator);
@@ -564,6 +570,25 @@ void Detector::addDarkSignal(float exposureTime)
 
 
 			pixelMap(row, column) += darkSignal;
+		}
+	}
+
+	// Add dark signal to the smearing map
+
+	for(unsigned int row = 0; row < numRowsSmearingMap; row++)
+	{
+		for(unsigned int column = 0; column < numColumnsPixelMap; column++)
+		{
+			// Take DSNU into account
+
+			darkSignal = darkSignalDistribution(darkSignalGenerator);
+
+			// Add the noise
+
+			darkNoiseDistribution = normal_distribution<double>(darkSignal, sqrt(darkSignal));
+			darkSignal = darkNoiseDistribution(darkNoiseGenerator);
+
+			smearingMap(row, column) += darkSignal;
 		}
 	}
 }
@@ -604,8 +629,9 @@ double Detector::getReadoutTime()
  *
  * \param exposureTime: Exposure time [s].
  *
- * \pre Pixel unit in the pixel map: [photons].
- * \pre Bias register and smearing maps filled with zeroes.
+ * \pre Pixel unit in the pixel map: [electrons].
+ * \pre Pixel unit in the smearing map: [electrons].
+ * \pre Bias register map filled with zeroes.
  *
  * \post Pixel unit in the pixel, bias register, and smearing maps: [ADU].
  */
@@ -730,7 +756,8 @@ void Detector::readOut(float exposureTime)
  *         independently of the other pixels.
  *
  * \pre Pixel unit in the pixel map: [electrons].
- * \pre No bias register or smearing maps.
+ * \pre Pixel unit in the smearing map: [electrons].
+ * \pre No bias register maps
  *
  * \post Pixel unit in the pixel map: [electrons].
  * \post Pixel unit in the smearing map: [electrons].
@@ -2017,17 +2044,38 @@ void Detector::fastForwardDarkSignalGeneratorToExposure(int beginExposureNr, flo
 
 	for (int n = 0; n < beginExposureNr; n++)
 	{
-	    // The readout noise generated for the pixel map
+	    // Dark signal generated for the pixel map
 
 	    for (unsigned int row = 0; row < numRowsPixelMap; row++)
 	    {
 	         for (unsigned int column = 0; column < numColumnsPixelMap; column++)
 	         {
-	        	 	 dummy = darkSignalDistribution(darkSignalGenerator);	// Take DSNU into account
+	        	 	 // Take DSNU into account
+
+	        	 	 dummy = darkSignalDistribution(darkSignalGenerator);
+
+	        	 	 // Add the noise
 
 	        	 	 darkNoiseDistribution = normal_distribution<double>(dummy, sqrt(dummy));
 	        	 	 dummy = darkNoiseDistribution(darkNoiseGenerator);
 	         }
+	    }
+
+	    // Dark signal generated for the smearing map
+
+	    for(unsigned int row = 0; row < numRowsSmearingMap; row++)
+	    {
+	    		for(unsigned int column = 0; column < numColumnsPixelMap; column++)
+	    		{
+	    			// Take DSNU into account
+
+	    			dummy = darkSignalDistribution(darkSignalGenerator);
+
+	    			// Add the noise
+
+	    			darkNoiseDistribution = normal_distribution<double>(dummy, sqrt(dummy));
+	    			dummy = darkNoiseDistribution(darkNoiseGenerator);
+	    		}
 	    }
 	}
 }
