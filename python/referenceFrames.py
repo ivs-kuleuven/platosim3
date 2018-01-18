@@ -576,6 +576,7 @@ def gnomonicRadialDistanceFromOpticalAxis(xFP, yFP, focalLength):
 
     INPUT: xFP  Focal plane x-coordinate [mm]
            yFP  Focal plane y-coordinate [mm]
+           focalLength focal length of the camera [mm]
  
     OUTPUT: the angular distance of the star w.r.t. the optical axis [rad]
 
@@ -584,10 +585,11 @@ def gnomonicRadialDistanceFromOpticalAxis(xFP, yFP, focalLength):
     tanx = xFP / focalLength
     tany = yFP / focalLength
 
-    angularDistance = arccos(1.0/sqrt(1.0 + tanx*tanx + tany*tany));
+    angularDistance = np.arccos(1.0/sqrt(1.0 + tanx*tanx + tany*tany));
 
     # Take care that the angle is between [0, 2*PI]
 
+    # could be simplified into "return angularDistance % (2*np.pi)"
     if angularDistance < 0.0:
         angularDistance += 2.0 * np.pi
     elif angularDistance > 2.0 * np.pi:
@@ -600,6 +602,27 @@ def gnomonicRadialDistanceFromOpticalAxis(xFP, yFP, focalLength):
 
 
 
+def focalPlaneCoordinatesFromGnomonicRadialDistance(angularDistance, focalLength, inPlaneRotation=0.):
+
+    """
+    Calculate the xFP,yFP focal plane coordinates from the gnomonic 
+    radial distance with respect to the optical axis in the focal plane
+
+    INPUT: angularDistance: angular distance of the star w.r.t. the optical axis [rad]
+           focalLength    : focal length of the camera [mm]
+           inPlaneRotation: angle from the xFP axis to the target (default=0)[rad]
+
+    OUTPUT: xFP  Focal plane x-coordinate [mm]
+            yFP  Focal plane y-coordinate [mm]
+ 
+    """
+
+    D = focalLength * np.tan(angularDistance)
+
+    xFP = D * np.cos(inPlaneRotation)
+    yFP = D * np.sin(inPlaneRotation)
+
+    return xFP,yFP
 
 
 
