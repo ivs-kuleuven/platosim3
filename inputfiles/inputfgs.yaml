@@ -219,7 +219,7 @@ RandomSeeds:
     FlatFieldSeed:               1425284070      # Unique positive integer 
     DriftSeed:                   1433429158      # Unique positive integer 
     CosmicSeed:                  1494750830      # Unique positive integer
-    DarkCurrentSeed:             1468838669      # Unique positive integer
+    DarkSignalSeed:             1468838669      # Unique positive integer
     
 
 ControlHDF5Content:
