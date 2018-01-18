@@ -3,6 +3,7 @@
 Depending on you @ref ConfigurationParameters "configuration", some additional files may be required:
 
 * a file comprising a [star catalogue](#starCatalogue) of the region of the sky of interest,
+* a file describing [stellar variability](#stellarVariability) of the sources in the [star catalogue](#starCatalogue),
 * a file comprising time series for the [jitter angles (yaw, pitch, roll)](#jitterFile),
 * a file comprising time series for the [drift angles (yaw, pitch, roll)](#driftFile),
 * a file comprising a time series for the [focal-plane orientation](#focalPlaneOrientationFile),
@@ -34,6 +35,27 @@ A star catalogue must be provided in a file in ASCII format. This file should co
 * stellar magnitude
 
 The path of this file, relative to the project location, must be provided via the <code>StarCatalogFile</code> parameter in the <code>ObservingParameters</code> block in the @ref ConfigurationParameters "configuration file". 
+
+---
+
+
+
+
+<!-- ******************* -->
+<!-- Stellar Variability -->
+<!-- ******************* -->
+
+## <a name="stellarVariability"></a>Stellar Variability
+
+In case you want to include stellar variability for the sources in the [star catalogue](#starCatalogue), you must provide an ASCII file with two columns, separated by a space:
+* the star identifier (the same as in the [star catalogue](#starCatalogue))
+* the path to the file, relative to the [project location](#projectLocation), indicating how the magnitude of this particular source varies over time.
+
+The latter files also consist of two comma-separated columns:
+* time, expressed in seconds
+* difference in magnitude w.r.t. the value in the [star catalogue](#starCatalogue).
+
+
 
 ---
 
