@@ -878,9 +878,10 @@ FEE:
     TemperatureFileName:         inputfiles/feeTemperature.txt     
     ReadoutNoise:                40.5         
     Gain:          
-    		RefValue:            11.1
+    		RefValueLeft:        11.1
+    		RefValueRight:       11.1
     		ThreeSigma:          0.0    
-    		Stability:           -100    		
+    		AllowedDifference:   -100    		
     ElectronicOffset:           
     		RefValue:            100
     		Stability:           18.8875 
@@ -918,23 +919,31 @@ Mean readout noise of the FEE, expressed in e<sup>-</sup>/pixel.  This is the sa
 
 ### <a name=gainFEE></a>Gain
 
-The actual gain for the FEE will be different for both ADCs.  We generate a normal distribution, centred at [the reference value](#gainRefValueFEE) and with a width characterised by the [ThreeSigma](#gain3SigmaFEE) parameter, and make two random draws from this distribution.  The outcome will act as gain for ADC1 and ADC2 resp.
+The actual gain for the FEE will be different for both ADCs.  A reference value is given for ADC1 and ADC2, and the difference should not exceed the [specified allowed difference](#gainAllowedDiffFEE).
 
 
 
-#### <a name=gainRefValueFEE></a>Gain: RefValue
+#### <a name=gainRefValueLeftFEE></a>Gain: RefValueLeft
 
 <i>Allowed values:</i> > 0
 
-Reference value of the gain of the FEE at its [nominal operating temperature](#nominalTempFEE), expressed in ADU/µV.  
+Reference value of the gain of ACD1 of the FEE at its [nominal operating temperature](#nominalTempFEE), expressed in ADU/µV. 
+
+
+#### <a name=gainRefValueRightFEE></a>Gain: RefValueRight
+
+<i>Allowed values:</i> > 0
+
+Reference value of the gain of ACD2 of the FEE at its [nominal operating temperature](#nominalTempFEE), expressed in ADU/µV.  
 
 
 
-#### <a name=gain3SigmaFEE></a>Gain: ThreeSigma
+#### <a name=gainAllowedDiffFEE></a>Gain: AllowedDifference
 
 <i>Allowed values:</i> ∈ [0,100]
 
-Percentage of the [reference value for the gain](#gainRefValueFEE) that will act as 3σ for the normal distribution, centred around the (reference value)[#gainRefValueFEE], from which to draw the gain for both ADCs.
+Percentage of the reference values for the gain of ADC1 and ADC2 that indicates the maximum allowed difference between these gain values.
+
 
 
 #### <a name=gainStabilityFEE></a>Gain: Stability
@@ -990,8 +999,9 @@ CCD:
 
     PixelSize:                   18        
     Gain:                        
-    		RefValue:            1.80
-    		ThreeSigma:          15.0   
+    		RefValueLeft:        1.80
+    		RefValueRight:       1.80
+    		AllowedDifference:   15.0   
     		Stability:           -0.004    
     QuantumEfficiency:
         RelativeRefEfficiency:       0.925
@@ -1142,25 +1152,31 @@ Nominal pixel size, expressed in micron.
 
 ### <a name=gainFEE></a> Gain
 
-
-    
-#### <a name=gainRefValueCCD></a>Gain: RefValue
-
-The actual gain for the CCD will be different for both CCD halves.  We generate a normal distribution, centred at [the reference value](#gainRefValueCCD) and with a width characterised by the [ThreeSigma](#gain3SigmaCCD) parameter, and make two random draws from this distribution.  The outcome will act as gain for the left and right CCD half resp.
+The actual gain for the CCD will be different for both detector halves.  A reference value is given for both halves, and the difference should not exceed the [specified allowed difference](#gainAllowedDiffCCD).
 
 
+
+#### <a name=gainRefValueLeftCCD></a>Gain: RefValueLeft
 
 <i>Allowed values:</i> > 0
 
-Reference value of the gain of the CCD at its [nominal operating temperature](#nominalTempCCD), expressed in µV/e<sup>-</sup>.  T
+Reference value of the gain of the left- and right-hand side of the CCD at its [nominal operating temperature](#nominalTempCCD), expressed in µV/e<sup>-</sup>.
+
+
+#### <a name=gainRefValueRightFEE></a>Gain: RefValueRight
+
+<i>Allowed values:</i> > 0
+
+Reference value of the gain of ACD2 of the FEE at its [nominal operating temperature](#nominalTempFEE), expressed in µV/e<sup>-</sup>.
 
 
 
-#### <a name=gain3SigmaCCD></a>Gain: ThreeSigma
+#### <a name=gainAllowedDiffCCD></a>Gain: AllowedDifference
 
 <i>Allowed values:</i> ∈ [0,100]
 
-Percentage of the [reference value for the gain](#gainRefValueCCD) that will act as 3σ for the normal distribution, centred around the (reference value)[#gainRefValueCCD], from which to draw the gain for both CCD halves.
+Percentage of the reference values for the gain of the left- and right-hand side of the CCD that indicates the maximum allowed difference between these gain values.
+
 
 
 #### <a name=gainStabilityCCD></a>Gain: Stability
@@ -1672,10 +1688,8 @@ RandomSeeds:
     FlatFieldSeed:               1425284070 
     CTESeed:                     1424949740 
     DriftSeed:                   1433429158 
-    FeeGainSeed:                 1429485030
-    CcdGainSeed:                 1420450443
     CosmicSeed:                  1494750830
-    DarkCurrentSeed:             1468838669
+    DarkSignalSeed:              1468838669
 \endcode
 
 
@@ -1721,26 +1735,13 @@ Seed for the random-number generator used for the CTE.
 Seed for the random number generator used for the drift.
 
 
-### FeeGainSeed
-<i>Allowed values:</i> > 0
-
-Seed for the random-number generator used for the FEE gain.
-
-
-### CcdGainSeed
-<i>Allowed values:</i> > 0
-
-Seed for the random-number generator used for the CCD gain.
-
-
-
 ### CosmicSeed
 <i>Allowed values:</i> > 0
 
 Seed for the random-number generators for the cosmics.
 
 
-### DarkCurrentSeed
+### DarkSignalSeed
 <i>Allowed values:</i> > 0
 
 Seed for the random-number generators for the dark signal.

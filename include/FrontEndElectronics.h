@@ -29,6 +29,7 @@ class FrontEndElectronics: public HDF5Writer
 		virtual ~FrontEndElectronics();
 
 		virtual void configure(ConfigurationParameters &configParam);
+		virtual void checkGain();
 
 		virtual double getNominalOperatingTemperature(){return nominalOperatingTemperature;}	// Nominal operating temperature of the FEE [K]
 		virtual double getTemperature(double time);                                			// FEE temperature at the given time
@@ -42,23 +43,17 @@ class FrontEndElectronics: public HDF5Writer
 
 	protected:
 
-		virtual void generateGain();
-
 		double nominalOperatingTemperature;		// Nominal operating temperature of the FEE [K]
 
 		double readoutNoise;                     // FEE readout noise [e-/pixel]
 
-		double refValueGain;					    // Reference value for the FEE gain [µV/e-]
-		double gainStability;					// Gain stability for the FEE [µV/e-/K]
-		double gainThreeSigma;					// Allowed difference (3 sigma) in gain between both ADCs [% of the reference value]
-
 		double refValueGainLeft;				 	// Reference value for the gain on the ACD reading the left-hand side of the detector [µV/e-]
 		double refValueGainRight;				// Reference value for the gain on the ACD reading the right-hand side of the detector [µV/e-]
+		double gainStability;					// Gain stability for the FEE [µV/e-/K]
+		double gainAllowedDifference;			// Allowed difference in gain between both ADCs [% of the gain values]
 
 		unsigned int refValueBias;				 // Reference value for the electronic offset [ADU/pixel]
 		double biasStability;					 // Bias stability [ADU/pixel/K]
-
-		long gainSeed;
 
 		TemperatureGenerator &temperatureGenerator;
 

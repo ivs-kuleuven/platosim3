@@ -63,9 +63,9 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
     smearingMap.zeros(numRowsSmearingMap, numColumnsPixelMap);
     throughputMap.ones(numRowsPixelMap, numColumnsPixelMap);
 
-    // Generate detector gain. The left-hand side of the detector has a different gain than the right-hand side.
+    // Check whether the gain values for left- and right-hand side of the CCD are not too far apart
 
-    generateGain();
+    checkGain();
 
     // Set the seeds of the random number generators
 
@@ -210,10 +210,10 @@ void Detector::updateParameters(double time)
     particulateContaminationEfficiency  = configParam.getDouble("CCD/Contamination/ParticulateContaminationEfficiency");
     molecularContaminationEfficiency    = configParam.getDouble("CCD/Contamination/MolecularContaminationEfficiency");
 
-    refValueGain       = configParam.getDouble("CCD/Gain/RefValue");
-    gainStability      = configParam.getDouble("CCD/Gain/Stability");
-    gainThreeSigma     = configParam.getDouble("CCD/Gain/ThreeSigma");
-    gainSeed           = configParam.getLong("RandomSeeds/CcdGainSeed");
+    refValueGainLeft          = configParam.getDouble("CCD/Gain/RefValueLeft");
+    refValueGainRight         = configParam.getDouble("CCD/Gain/RefValueRight");
+    gainStability             = configParam.getDouble("CCD/Gain/Stability");
+    gainAllowedDifference     = configParam.getDouble("CCD/Gain/AllowedDifference");
 
     CTImodel                   = configParam.getString("CCD/CTI/Model");
     if (CTImodel == "Simple")
@@ -439,18 +439,18 @@ void Detector::generateThroughputMap()
 
 
 /**
- * Generate detector gain for the left-hand and the right-hand side of the detector.
+ * Checks whether the gain values for left- and right-hand side of the detector are not
+ * too far apart, according to the specified allowed difference.  In case the gain values
+ * are too far apart, a warning message is shown to the user.
  */
-void Detector::generateGain()
+void Detector::checkGain()
 {
-    mt19937 gainGenerator;
-    gainGenerator.seed(gainSeed);
+	double allowedDifference = min(refValueGainLeft, refValueGainRight) * gainAllowedDifference / 100.0;
 
-    double stdDevGain = (gainThreeSigma / 3.0 / 100.0) * refValueGain;
-    normal_distribution<double> gainDistribution = normal_distribution<double>(refValueGain, stdDevGain);
-
-    refValueGainLeft = gainDistribution(gainGenerator);
-    refValueGainRight = gainDistribution(gainGenerator);
+	if(abs(refValueGainLeft - refValueGainRight) > allowedDifference)
+	{
+		Log.warning("Detector: Difference in gain between the left- and right-hand side of the detector too large.");
+	}
 }
 
 

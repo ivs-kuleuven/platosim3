@@ -495,9 +495,10 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
 	subGroup = "FEE/Gain";
 	hdf5File.createGroup(parentGroup + "/" + subGroup);
-	addDouble("RefValue");
+	addDouble("RefValueLeft");
+	addDouble("RefValueRight");
 	addDouble("Stability");
-	addDouble("ThreeSigma");
+	addDouble("AllowedDifference");
 
 	subGroup = "FEE/ElectronicOffset";
 	hdf5File.createGroup(parentGroup + "/" + subGroup);
@@ -541,9 +542,10 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
 	subGroup = "CCD/Gain";
 	hdf5File.createGroup(parentGroup + "/" + subGroup);
-	addDouble("RefValue");
+	addDouble("RefValueLeft");
+	addDouble("RefValueRight");
 	addDouble("Stability");
-	addDouble("ThreeSigma");
+	addDouble("AllowedDifference");
 
     subGroup = "CCD/Vignetting";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
@@ -605,8 +607,6 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addLong("JitterSeed");
     addLong("FlatFieldSeed");
     addLong("DriftSeed");
-	addLong("FeeGainSeed");
-	addLong("CcdGainSeed");
 	addLong("CosmicSeed");
 	addLong("DarkSignalSeed");
 
