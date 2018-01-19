@@ -25,16 +25,21 @@ CCD:
     Contamination:
         MolecularContaminationEfficiency: 0.9566
         ParticulateContaminationEfficiency: 0.98
+    DarkSignal:
+        DSNU: 10.0
+        DarkCurrent: 1.2
     DigitalSaturation: 65535
     FirstRowExposed: 0
     FlatfieldPtPNoise: 0.008
     FullWellSaturation: 900000
     Gain:
-        RefValue: 1.8
+        AllowedDifference: 15.0
+        RefValueLeft: 1.8
+        RefValueRight: 1.8
         Stability: -0.004
-        ThreeSigma: 15.0
     IncludeCTIeffects: false
     IncludeConvolution: true
+    IncludeDarkSignal: true
     IncludeDigitalSaturation: true
     IncludeFlatfield: true
     IncludeFullWellSaturation: true
@@ -69,7 +74,6 @@ CCD:
     TemperatureFileName: inputfiles/ccdTemperature.txt
     Vignetting:
         ExpectedValue: 0.945
-    WriteSubPixelImagesToHDF5: false
 CCDPositions:
     FirstRowForFastCamera:
         - 2255
@@ -150,14 +154,18 @@ CameraGroups:
         - 9.2
         - 9.2
         - 0.0
+ControlHDF5Content:
+    WriteStarPositions: true
+    WriteSubPixelImages: false
 FEE:
     ElectronicOffset:
         RefValue: 100
         Stability: 1
     Gain:
-        RefValue: 0.0278
+        AllowedDifference: 0.0
+        RefValueLeft: 0.0278
+        RefValueRight: 0.0278
         Stability: -0.0001
-        ThreeSigma: 0.0
     NominalOperatingTemperature: 210.15
     ReadoutNoise: 40.5
     Temperature: Nominal
@@ -203,10 +211,9 @@ Platform:
     UseJitterFromFile: true
 RandomSeeds:
     CTESeed: 1424949740
-    CcdGainSeed: 1420450443
     CosmicSeed: 1494750830
+    DarkSignalSeed: 1468838669
     DriftSeed: 1433429158
-    FeeGainSeed: 1429485030
     FlatFieldSeed: 1425284070
     JitterSeed: 1433320381
     PhotonNoiseSeed: 1433320336
@@ -221,7 +228,9 @@ Sky:
             - 0
             - 15
     IncludeCosmics: true
+    IncludeVariableSources: false
     SkyBackground: -1
+    VariableSourceList: inputfiles/varsource.txt
 SubField:
     NumBiasPrescanRows: 5
     NumColumns: 100
