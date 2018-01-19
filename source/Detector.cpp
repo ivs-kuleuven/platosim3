@@ -830,15 +830,15 @@ void Detector::addCosmics(float exposureTime)
 
 	// Pixel map
 
-	addCosmics(exposureTime, pixelMap, numRowsPixelMap, numColumnsPixelMap);
+	addCosmics(exposureTime + readoutTime, pixelMap, numRowsPixelMap, numColumnsPixelMap);
 
-	// Bias register map
-
-	addCosmics(exposureTime, biasMap, numRowsBiasMap, numColumnsPixelMap);
+//	// Bias register map
+//
+//	addCosmics(exposureTime, biasMap, numRowsBiasMap, numColumnsPixelMap);
 
 	// Smearing map
 
-	addCosmics(exposureTime, smearingMap, numRowsSmearingMap, numColumnsPixelMap);
+	addCosmics(readoutTime, smearingMap, numRowsSmearingMap, numColumnsPixelMap);
 }
 
 
