@@ -655,7 +655,7 @@ FEE:
     TemperatureFileName:         inputfiles/feeTemperature.txt     
     ReadoutNoise:                40.5         
     Gain:          
-    		RefValue:            11.1
+    		RefValue:            0.0278
     		ThreeSigma:          0.0    
     		Stability:           -100    		
     ElectronicOffset:           
