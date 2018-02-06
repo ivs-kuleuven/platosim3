@@ -10,6 +10,7 @@
 
 #include "Constants.h"
 #include "ArrayOperations.h"
+#include "Mathematics.h"
 #include "Camera.h"
 #include "FrontEndElectronics.h"
 #include "TemperatureGenerator.h"
@@ -65,6 +66,7 @@ class Detector: public HDF5Writer
         virtual void applyFlatfield() = 0;
         virtual void applyThroughputEfficiency();
         virtual void addDarkSignal(float exposureTime);
+        virtual void applyBFE();
 
         virtual void readOut(float exposureTime);
         virtual void addPhotonNoise();
@@ -120,6 +122,11 @@ class Detector: public HDF5Writer
 
         double pixelSize;                        // Pixel size [microns]
         unsigned int numEdgePixels;              // Nr of pixels to extend the subfield on each side, to account for the edge effect
+
+        bool includeBFE;							// Whether or not to include the BFE
+        double p0BFE;        					// Value for p0 parameter in Eq. (18) in Guyonnet et al. 2015
+        double p1BFE;						    // Value for p1 parameter in Eq. (18) in Guyonnet et al. 2015
+        unsigned int rangeBFE;					// How far pixels can be apart and still influence each other [pixels]
 
         bool includeCosmics;                     // Whether or not to include cosmic hits
         double cosmicHitRate;					// Cosmic hit rate [events / cm^2 / s]
