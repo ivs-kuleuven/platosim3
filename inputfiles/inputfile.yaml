@@ -139,8 +139,11 @@ CCD:
     NumColumns:                      4510            # Number of columns on the CCD [pixels]                   - use when CCDPosition = Custom
     NumRows:                         4510            # Number of rows on the CCD [pixels] (including non-exposed ones) - use when CCDPosition = Custom
     FirstRowExposed:                 0               # The index of the first row that is exposed to light [pixels]
-
     PixelSize:                       18              # [micron]
+    BFE:
+        Range:                       2               # How far pixels can be apart and still influence each other [pixels]
+        p0:                                          # Value for p0 parameter in Eq. (18) in Guyonnet et al. 2015
+        p1:                                          # Value for p1 parameter in Eq. (18) in Guyonnet et al. 2015
     Gain:                           
         RefValueLeft:                1.80            # [microV/e-]
         RefValueRight:               1.80            # [microV/e-]
@@ -185,6 +188,7 @@ CCD:
     TemperatureFileName:             inputfiles/ccdTemperature.txt 
     IncludeFlatfield:                yes             # Include flatfield [yes or no]
     IncludeDarkSignal:               yes             # Include dark signal non-uniformity [yes or no]
+    IncludeBFE:                      yes             # Include the BFE [yes or no]
     IncludePhotonNoise:              yes             # Include photon noise [yes or no]
     IncludeReadoutNoise:             yes             # Include readout noise [yes or no]
     IncludeCTIeffects:               yes             # Include charge transfer inefficiency effects [yes or no]
