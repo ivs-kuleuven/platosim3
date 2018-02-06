@@ -373,6 +373,15 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
 
     applyThroughputEfficiency();
 
+    // BFE
+
+    if(includeBFE)
+    {
+       	Log.debug("Detector: adding BFE");
+
+       	applyBFE();
+    }
+
     // Add dark current
 
     if(includeDarkSignal)

@@ -526,6 +526,15 @@ void DetectorWithAnalyticNonGaussianPSF::integrateLight(int exposureNr, double s
 
     applyThroughputEfficiency();
 
+    // BFE
+
+    if(includeBFE)
+    {
+    		Log.debug("Detector: adding BFE");
+
+       	applyBFE();
+    }
+
     // Add dark current
 
     if(includeDarkSignal)
