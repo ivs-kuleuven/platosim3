@@ -525,6 +525,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 	addString("TemperatureFileName");
     addBoolean("IncludeFlatfield");
     addBoolean("IncludeDarkSignal");
+    addBoolean("IncludeBFE");
     addBoolean("IncludePhotonNoise");
     addBoolean("IncludeReadoutNoise");
     addBoolean("IncludeCTIeffects"); 
@@ -574,6 +575,12 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addDouble("DarkCurrent");
     addDouble("DSNU");
+
+    subGroup = "CCD/BFE";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addInteger("Range");
+    addDouble("p0");
+    addDouble("p1");
 
     subGroup = "CCD/CTI";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
