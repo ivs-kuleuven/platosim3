@@ -62,11 +62,12 @@ class Detector: public HDF5Writer
 
         virtual void generateThroughputMap();
         virtual void checkGain();
+        virtual void generateGuyonnetCoefficients();
 
         virtual void applyFlatfield() = 0;
         virtual void applyThroughputEfficiency();
-        virtual void addDarkSignal(float exposureTime);
         virtual void applyBFE();
+        virtual void addDarkSignal(float exposureTime);
 
         virtual void readOut(float exposureTime);
         virtual void addPhotonNoise();
@@ -123,6 +124,7 @@ class Detector: public HDF5Writer
         double pixelSize;                        // Pixel size [microns]
         unsigned int numEdgePixels;              // Nr of pixels to extend the subfield on each side, to account for the edge effect
 
+        arma::Cube<float> guyonnetCoefficients;  // Coefficients a^X_ij for the BFE in Sect. 6.1 in Guyonnet et al. 2015
         bool includeBFE;							// Whether or not to include the BFE
         double p0BFE;        					// Value for p0 parameter in Eq. (18) in Guyonnet et al. 2015
         double p1BFE;						    // Value for p1 parameter in Eq. (18) in Guyonnet et al. 2015
