@@ -581,6 +581,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addInteger("Range");
     addDouble("p0");
     addDouble("p1");
+    addDouble("RefFlux");
 
     subGroup = "CCD/CTI";
     hdf5File.createGroup(parentGroup + "/" + subGroup);

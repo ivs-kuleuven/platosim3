@@ -128,7 +128,8 @@ class Detector: public HDF5Writer
         bool includeBFE;							// Whether or not to include the BFE
         double p0BFE;        					// Value for p0 parameter in Eq. (18) in Guyonnet et al. 2015
         double p1BFE;						    // Value for p1 parameter in Eq. (18) in Guyonnet et al. 2015
-        unsigned int rangeBFE;					// How far pixels can be apart and still influence each other [pixels]
+        int rangeBFE;							// How far pixels can be apart and still influence each other [pixels] (use window with dimensions 2 * range + 1)
+        double refFluxBFE;                       // Reference flux for the p0 and p1 parameters for BFE [e-]
 
         bool includeCosmics;                     // Whether or not to include cosmic hits
         double cosmicHitRate;					// Cosmic hit rate [events / cm^2 / s]
