@@ -76,7 +76,6 @@ include_directories(
 
 
 # Specify the simulator source files to be compiled, but exclude main.cpp.
-# Temporarily: remove some of the unfinished source files from the compilation list.
 
 file(GLOB platosimSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp)
 list(REMOVE_ITEM platosimSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/main.cpp)
@@ -113,6 +112,34 @@ link_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/googletest/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/fftw-3.3.4/lib
 )
+
+
+# Enable @rpath in the install name for any shared library being built
+# Note: in a future version of CMake this will be the default
+
+set(CMAKE_MACOSX_RPATH 1)
+
+# Always use full RPATH, i.e. don't skip the full RPATH for the build tree
+# See also: http://www.cmake.org/Wiki/CMake_RPATH_handling
+#           http://www.kitware.com/blog/home/post/510
+
+SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
+
+# When building, don't use the install RPATH already, only later on when installing
+
+SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+
+# Add the automatically determined parts of the RPATH which point to directories
+# outside the build tree to the install RPATH
+
+SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+# Find the RPATH to be used when installing, but only if it's not a system directory
+
+LIST(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
+IF("${isSystemDir}" STREQUAL "-1")
+   SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+ENDIF("${isSystemDir}" STREQUAL "-1")
 
 
 # Set the compiler flags
