@@ -9,7 +9,7 @@ General:
 ObservingParameters:
 
     MissionDuration:             6.0             # Total duration of the mission in years [yr]
-    NumExposures:                100           # Number of expsosures
+    NumExposures:                100           # Number of exposures
     BeginExposureNr:             0               # Sequential number of first exposure
     ExposureTime:                22              # [s]
     RApointing:                  180             # Platform (not telescope) right ascension pointing coordinate  [deg] 

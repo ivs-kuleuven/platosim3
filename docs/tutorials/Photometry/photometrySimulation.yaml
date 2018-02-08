@@ -1,4 +1,9 @@
 CCD:
+    BFE:
+        Range: 2
+        RefFlux: 1e6
+        p0: 0.05
+        p1: 0.15
     CTI:
         Model: Simple
         Short2013:
@@ -37,6 +42,7 @@ CCD:
         RefValueLeft: 1.8
         RefValueRight: 1.8
         Stability: -0.004
+    IncludeBFE: true
     IncludeCTIeffects: false
     IncludeConvolution: true
     IncludeDarkSignal: true
