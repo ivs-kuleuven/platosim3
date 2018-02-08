@@ -19,3 +19,9 @@
 \form#18:$ [[c_{00}, c_{01},..., c_{0n}], [c_{10}, c_{11},..., c_{1n}],..., [c_{n0}, c_{n1},..., c_{nn}]] $
 \form#19:\[\frac{V_c}{V_g} = \left( \frac{N_e}{FWC} \right)^{\beta}.\]
 \form#20:\[v_t = \frac{3kT}{m_e^{\ast}},\]
+\form#21:\[f(r) = \frac{2}{Q_0} \cdot p_0 \cdot Ei(p1 \cdot r). \]
+\form#22:$ p_0 $
+\form#23:$ f $
+\form#24:$ p_1 $
+\form#25:$ r $
+\form#26:$ Q_0 $
