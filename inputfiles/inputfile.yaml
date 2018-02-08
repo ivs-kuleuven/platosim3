@@ -141,7 +141,7 @@ CCD:
     FirstRowExposed:                 0               # The index of the first row that is exposed to light [pixels]
     PixelSize:                       18              # [micron]
     BFE:
-        Range:                       5               # How far pixels can be apart and still influence each other [pixels] (use window with dimensions 2 * range + 1)
+        Range:                       2               # How far pixels can be apart and still influence each other [pixels] (use window with dimensions 2 * range + 1)
         p0:                          0.05            # Value for p0 parameter in Eq. (18) in Guyonnet et al. 2015
         p1:                          0.15            # Value for p1 parameter in Eq. (18) in Guyonnet et al. 2015
         RefFlux:                     1e6             # Reference flux for BFE [e-]
