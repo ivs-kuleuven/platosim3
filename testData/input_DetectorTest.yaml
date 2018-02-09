@@ -136,6 +136,11 @@ CCD:
     FirstRowExposed:                 0               # The index of the first row that is exposed to light [pixels]
 
     PixelSize:                   18              # [micron]
+    BFE:                                             # Brighter-fatter effect
+        Range:                       2               # How far pixels can be apart and still influence each other [pixels] (use window with dimensions 2 * range + 1)
+        p0:                          0.05            # Value for p0 parameter in Eq. (18) in Guyonnet et al. 2015
+        p1:                          0.15            # Value for p1 parameter in Eq. (18) in Guyonnet et al. 2015
+        RefFlux:                     1e6             # Reference flux for the brighter-fatter effect [e-]
     Gain:                           
         RefValueLeft:                    1.80        # [microV/e-]
         RefValueRight:                   1.80        # [microV/e-]
@@ -176,12 +181,13 @@ CCD:
     Temperature:                     Nominal         # Temperature fixed at the nominal operating temperature
     TemperatureFileName:             inputfiles/feeTemperature.txt
     IncludeFlatfield:                yes             # Include flatfield [yes or no]
+    IncludeBFE:                      yes             # Include the brighter-fatter effect [yes or no]
     IncludePhotonNoise:              yes             # include photon noise [yes or no]
     IncludeReadoutNoise:             yes             # Include readout noise [yes or no]
     IncludeCTIeffects:               yes             # Include charge transfer inefficiency effects [yes or no]
     IncludeOpenShutterSmearing:      yes             # Include trails due reading out with an open shutter [yes or no]
     IncludeQuantumEfficiency:        yes             # Include loss of throughput due to quantum efficiency
-    IncludeVignetting:               no             # Include brightness attenuation towards the edge of the FOV due to vignetting
+    IncludeVignetting:               no              # Include brightness attenuation towards the edge of the FOV due to vignetting
     IncludePolarization:             no              # Include polarisation
     IncludeParticulateContamination: no              # Include loss of throughput due to particulate contamination
     IncludeMolecularContamination:   no              # Include loss of throughput due to molecular contamination 
