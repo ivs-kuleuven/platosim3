@@ -523,6 +523,8 @@ void DetectorWithAnalyticNonGaussianPSF::integrateLight(int exposureNr, double s
     }
 
     // Apply throughput efficiency on the pixel map
+    // This takes into account the QE, vignetting, polarisation, and particulate & molecular contamination.
+    // PixelMap units change from [photons] to [electrons] 
 
     applyThroughputEfficiency();
 
