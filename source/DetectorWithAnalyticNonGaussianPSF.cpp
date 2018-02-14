@@ -148,6 +148,13 @@ DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(Configura
 
     		generateFlatfieldMap();
     }
+
+    if(includeBFE)
+    {
+        // Generate Guyonnet coefficients
+
+       generateGuyonnetCoefficients();
+    }
 }
 
 
@@ -527,6 +534,15 @@ void DetectorWithAnalyticNonGaussianPSF::integrateLight(int exposureNr, double s
     // PixelMap units change from [photons] to [electrons] 
 
     applyThroughputEfficiency();
+
+    // BFE
+
+    if(includeBFE)
+    {
+    		Log.debug("Detector: adding BFE");
+
+       	applyBFE();
+    }
 
     // Add dark current
 
