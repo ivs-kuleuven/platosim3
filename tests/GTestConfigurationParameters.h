@@ -67,7 +67,7 @@ TEST(ConfigurationParametersTest, readObservingValues)
     ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
 
     int exposureTime = cp.getInteger("Observing/ExposureTime");
-    EXPECT_EQ(23, exposureTime);
+    EXPECT_EQ(21, exposureTime);
 
     string filename = cp.getString("Observing/StarCatalogueFilename");
     EXPECT_STREQ(filename.c_str(), "inputFiles/starField_RA180Dec-70.txt");
@@ -137,11 +137,11 @@ TEST(ConfigurationParametersTest, testConversions)
 
     // Can convert an integer value into a double
     double exposureTime = cp.getDouble("Observing/ExposureTime");
-    EXPECT_DOUBLE_EQ(23.0, exposureTime);
+    EXPECT_DOUBLE_EQ(21.0, exposureTime);
 
     // Can convert an integer value into a string
     string exposureTimeString = cp.getString("Observing/ExposureTime");
-    EXPECT_STREQ("23", exposureTimeString.c_str());
+    EXPECT_STREQ("21", exposureTimeString.c_str());
 
     // Can not convert a double value into an Integer
     ASSERT_ANY_THROW(cp.getInteger("Observing/LightCollectingArea"));
