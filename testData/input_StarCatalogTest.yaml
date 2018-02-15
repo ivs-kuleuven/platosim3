@@ -10,7 +10,7 @@ General:
 
 ObservingParameters:
 
-    MissionDuration:                 6.0             # Total duration of the mission in years [yr]
+    MissionDuration:                 6.5             # Total duration of the mission in years [yr]
     NumExposures:                    10              # Number of exposures
     BeginExposureNr:                  0              # Sequential number of first exposure. useful for slurm parallellisation
     ExposureTime:                    23              # [s]
@@ -49,8 +49,8 @@ Telescope:
     TiltAngle:                       9.2             # Tilt angle of the telescope on the platform [deg]
     LightCollectingArea:             113.1           # Effective area of 1 telescope [cmˆ2]
     TransmissionEfficiency:
-        BOL:                         0.7191          # Beginning of Life value in [0,1]
-        EOL:                         0.7191          # End of Life value in [0,1]
+        BOL:                         0.7821          # Beginning of Life value in [0,1]
+        EOL:                         0.7666          # End of Life value in [0,1]
     UseDrift:                        no              # yes or no
     UseDriftFromFile:                no              # yes or no
     DriftYawRms:                     2.0             # RMS of thermo-elastic drift in yaw [arcsec]
@@ -70,7 +70,7 @@ Camera:
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
         ConstantValue:               0.24752         # Used in case Source is ConstantValue (from ZEMAX model) [m]
         FromFile:                    inputfiles/focallength.txt # Used in case Source is FromFile: time [s] & focalLenght [m]
-    ThroughputBandwidth:             638             # FWHM [nm]
+    ThroughputBandwidth:             498             # FWHM [nm]
     ThroughputLambdaC:               550             # Central wavelength of the throughput passband [nm]
     IncludeAberrationCorrection:     yes             # Calculate the differential aberration correction and apply
     AberrationCorrection:
@@ -89,7 +89,7 @@ PSF:
 
     Model:                           MappedFromFile  # PSF model: MappedGaussian, MappedFromFile, AnalyticGaussian, AnalyticNonGaussian
     MappedGaussian:                                  # Generate the PSF from a fixed 2D Gaussian function
-        Sigma:                       0.638           # Standard deviation of Gaussian PSF [pix]
+        Sigma:                       0.641           # Standard deviation of Gaussian PSF [pix]
         NumberOfPixels:              8               # The number of pixels in the field for which the PSF is generated
     MappedFromFile:                                  # Read a pre-calculated and fixed PSF from an HDF5 file
         Filename:                    inputfiles/psf.hdf5 
@@ -133,8 +133,8 @@ CameraGroups:                                                          # Four gr
 
 CCDPositions:
 
-    OriginOffsetX:                   [-1, -1, -1, -1]               # X Offset of CCD origin from center of focal plane [mm]
-    OriginOffsetY:                   [82.18, 82.18, 82.18, 82.18]   # Y Offset of CCD origin from center of focal plane [mm]
+    OriginOffsetX:                   [-1.3, -1.3, -1.3, -1.3]       # X Offset of CCD origin from center of focal plane [mm]
+    OriginOffsetY:                   [82.48, 82.48, 82.48, 82.48]   # Y Offset of CCD origin from center of focal plane [mm]
     Orientation:                     [0, 90, 180, 270]              # Orientation of CCD w.r.t. focal plane orientation, counter-clockwise [deg]
     NumColumns:                      [4510, 4510, 4510, 4510]       # Number of columns on the CCD [pixels]
     NumRows:                         [4510, 4510, 4510, 4510]       # Number of rows on the CCD [pixels] (including non-exposed ones)
