@@ -154,7 +154,7 @@ CCD:
         #RelativeRefEfficiency:       0.925           # Relative efficiency due to angle dependency of the QE at the reference angle
         #RefAngle:                    45.0            # Reference angle for quantum efficiency [degrees]
         MeanQuantumEfficiency:       0.5985           # Mean quantum efficiency
-        MeanAngleDependency:         1.01             # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE at the reference angle
+        MeanAngleDependency:         1.01             # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE
         #ExpectedValue:               0.993 * 0.5895  # Expected value (mean over all pixels of one detector)
     FullWellSaturation:              900000          # [e-/pixel]
     DigitalSaturation:               65535           # E.g. 16 bit [ADU/pixel]
