@@ -554,11 +554,10 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "CCD/QuantumEfficiency";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
-//    addDouble("Efficiency");
-    addDouble("RefAngle");
-    addDouble("RelativeRefEfficiency");
+//    addDouble("RefAngle");
+//    addDouble("RelativeRefEfficiency");
     addDouble("MeanQuantumEfficiency");
-//    addDouble("ExpectedValue");
+    addDouble("MeanAngleDependency");
 
     subGroup = "CCD/Polarization";
     hdf5File.createGroup(parentGroup + "/" + subGroup);

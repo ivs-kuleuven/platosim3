@@ -141,12 +141,10 @@ class Detector: public HDF5Writer
         double expectedValuePolarization;        // Expected value of the throughput efficiency due to polarisation
         double particulateContaminationEfficiency;  // Efficiency of particulate contamination (in [0,1])
         double molecularContaminationEfficiency; // Efficiency of molecular contamination (in [0,1])
-        //double quantumEfficiency;                // Quantum efficiency at the reference angle (in [0,1])
-        double refAngleQE;        				// Reference angle for quantum efficiency [degrees]
-        double relativeRefEfficiencyQE;			// Relative efficiency due to the angle dependency of the QE
+//        double refAngleQE;        				// Reference angle for quantum efficiency [degrees]
+//        double relativeRefEfficiencyQE;			// Relative efficiency due to the angle dependency of the QE
         double meanQE;							// Mean QE (over all wavelengths)
         double meanAngleDependencyQE;			// Mean (over all pixels) of the relative efficiency due to the angle dependency of the QE
-        //double expectedValueQuantumEfficiency;   // Expected value of the throughput efficiency due to quantum efficiency
         double readoutTime;                      // Readout time [s]
         double readoutNoise;                     // Mean readout noise [electrons]
         double refValueGainLeft;                 // Reference value for the gain on the ACD reading the left-hand side of the detector [µV/e-]
