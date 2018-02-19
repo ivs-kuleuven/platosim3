@@ -10,7 +10,7 @@
 #include <valarray>
 
 #include "armadillo"
-#include "Faddeeva.hh"
+
 
 #include "Constants.h"
 #include "Units.h"
@@ -19,32 +19,6 @@
 
 
 using namespace std;
-
-
-
-class IntegralOfAnalyticPSF 
-{
-    public:
-
-        IntegralOfAnalyticPSF(size_t s) : size(s), n(0.) {}
-        IntegralOfAnalyticPSF& addPart(double, double, double, double, double = 0., double = 0., double = 0.);
-        double operator()(unsigned, unsigned, bool = true);
-
-    private:
-
-        size_t size;                              // number of (sub)pixels in one dimension
-        double n;                                 // normalization factor
-        vector<valarray<double>> erfxr;           // evaluated error functions for x
-        vector<valarray<double>> erfyr;           // evaluated error functions for y
-        vector<valarray<complex<double>>> erfxc;  // evaluated complex error functions for x
-        vector<valarray<complex<double>>> erfyc;  // evaluated complex error functions for y
-};
-
-
-
-
-
-
 
 
 
@@ -64,7 +38,7 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
         virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) override;
         virtual void addFlux(double flux) override;
 
-        void integrateAnalyticPSF(IntegralOfAnalyticPSF&, double, double, double, double, double = 1.);
+        void integrateAnalyticPSF(IntegralOfAnalyticSignalResponse&, double, double, double, double, double = 1.);
 
 
     protected:

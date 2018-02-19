@@ -539,6 +539,15 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("IncludeFullWellSaturation");
     addBoolean("IncludeQuantisation");
     addBoolean("IncludeDigitalSaturation");
+
+    //include parameters for charge diffusion and subpixelmap correction
+
+    addBoolean("IncludeChargeDiffusion");
+    addBoolean("IncludeSubPixelMapCorrection");
+
+    addDouble("ChargeDiffusionParameter");
+
+
     // addBoolean("WriteSubPixelImagesToHDF5"); - Moved into ControlHDF5Content group below
 
 	subGroup = "CCD/Gain";

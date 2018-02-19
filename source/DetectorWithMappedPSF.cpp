@@ -41,7 +41,7 @@ DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configPara
 
     // Allocate memory for the different maps
 
-    subPixelMap.zeros(numRowsSubPixelMap, numColumnsSubPixelMap);
+    //subPixelMap.zeros(numRowsSubPixelMap, numColumnsSubPixelMap);
     flatfieldMap.ones(numRowsSubPixelMap, numColumnsSubPixelMap);
 
     if(includeFlatfield)
@@ -108,7 +108,7 @@ DetectorWithMappedPSF::~DetectorWithMappedPSF()
 
     writeSubPixelImagesToHDF5 = configParam.getBoolean("ControlHDF5Content/WriteSubPixelImages");
 
-    numSubPixelsPerPixel    = configParam.getInteger("SubField/SubPixels");
+    //numSubPixelsPerPixel    = configParam.getInteger("SubField/SubPixels");
 
     // Configuration parameters for the noise source random seeds
 
@@ -116,8 +116,8 @@ DetectorWithMappedPSF::~DetectorWithMappedPSF()
 
     // Derive the dimensions of the sub-pixel map
 
-    numRowsSubPixelMap    = numRowsPixelMap    * numSubPixelsPerPixel;  // TODO Add edge pixels
-    numColumnsSubPixelMap = numColumnsPixelMap * numSubPixelsPerPixel;  // TODO Add edge pixels
+    //numRowsSubPixelMap    = numRowsPixelMap    * numSubPixelsPerPixel;  // TODO Add edge pixels
+    //numColumnsSubPixelMap = numColumnsPixelMap * numSubPixelsPerPixel;  // TODO Add edge pixels
 
  }
 
@@ -437,21 +437,31 @@ tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yF
     // (subpixRow, subpixColumn) are the indices of the star in the subpixelMap. So they are not 
     // subpixel coordinates in the CCD frame, but in the subfield reference frame.
 
-    const double subpixColumn = round((pixColumn - subFieldZeroPointColumn + numEdgePixels) * numSubPixelsPerPixel);
-    const double subpixRow    = round((pixRow    - subFieldZeroPointRow    + numEdgePixels) * numSubPixelsPerPixel);
+    const double subpixColumn = (pixColumn - subFieldZeroPointColumn + numEdgePixels) * numSubPixelsPerPixel;
+    const double subpixRow    = (pixRow    - subFieldZeroPointRow    + numEdgePixels) * numSubPixelsPerPixel;
 
     // Convert back the _rounded_ subpixel coordinates to pixel coordinates
     // E.g. if there are 4 subpixels per pixel, then the pixel coordinates should always end with
     //      0.0, 0.25, 0.5, or 0.75
 
-    pixRow    = subpixRow    / numSubPixelsPerPixel - numEdgePixels;
-    pixColumn = subpixColumn / numSubPixelsPerPixel - numEdgePixels;
+    pixRow    = round(subpixRow)    / numSubPixelsPerPixel - numEdgePixels;
+    pixColumn = round(subpixColumn) / numSubPixelsPerPixel - numEdgePixels;
 
     // Add the flux to the subPixelMap
 
-    if (isInSubPixelMap(subpixRow, subpixColumn))
+    if (isInSubPixelMap(round(subpixRow), round(subpixColumn)))
     {
-        subPixelMap((int) subpixRow, (int) subpixColumn) += flux;
+        //if charrge diffusion or subpixelmapcorrection is used, the flux is added as a gaussian signal response on the subpixelmap
+        if (includeChargeDiffusion || includeSubPixelMapCorrection)
+        {
+            //the calculation of the signal response is the same for charge diffusion and subpixelmap correction, only the parameter changes
+            subPixelMapCorrection(subpixColumn, subpixRow, correctionParameter, flux);
+        }
+        else
+        {
+            subPixelMap((int) subpixRow, (int) subpixColumn) += flux;
+        }
+
         return make_tuple(true, pixRow, pixColumn);
     }
     else
@@ -461,6 +471,31 @@ tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yF
 }
 
 
+// function to either include charge diffusion, or subpixelmap correction within the subpixelmap
+// it uses functions originally written for the analytic psf creation
+
+void DetectorWithMappedPSF::subPixelMapCorrection(double subpixColumn, double subpixRow, double correctionParameter, double flux)
+{
+    int size = 2 * (int)(8. * correctionParameter +1) + 1;
+
+    int sx = (int)floor(subpixColumn - (size - 1.) / 2.);
+    int sy = (int)floor(subpixRow - (size - 1.) / 2.);
+
+    IntegralOfAnalyticSignalResponse signalResponse(size);
+
+    double ox = subpixColumn - floor(subpixColumn);
+    double oy = subpixRow - floor(subpixRow);
+
+    signalResponse.addPart(ox, oy, 1., correctionParameter);
+
+    for(int y = max(0, sy); y < min((int)numRowsSubPixelMap, sy + size); y++)
+    {
+        for(int x = max(0, sx); x < min((int)numColumnsSubPixelMap, sx + size); x++)
+        {
+            subPixelMap.at(y, x) += signalResponse(x - sx, y - sy) * flux;
+        }
+    }
+}
 
 
 
@@ -729,7 +764,6 @@ void DetectorWithMappedPSF::writeSubPixelMapToHDF5(int exposureNr)
 
     hdf5File.writeArray("/SubPixelImages", imageName, subPixelMap);
 }
-
 
 
 
