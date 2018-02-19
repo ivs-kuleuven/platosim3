@@ -562,8 +562,8 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "CCD/Polarization";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
-    addDouble("Efficiency");
-    addDouble("RefAngle");
+//    addDouble("Efficiency");
+//    addDouble("RefAngle");
     addDouble("ExpectedValue");
 
     subGroup = "CCD/Contamination";

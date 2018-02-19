@@ -241,8 +241,8 @@ void Detector::updateParameters(double time)
         throw ConfigurationException("Detector: Unkown CTI model specification in configuration file");
     }
 
-    polarizationEfficiency          = configParam.getDouble("CCD/Polarization/Efficiency");
-    refAnglePolarization            = configParam.getDouble("CCD/Polarization/RefAngle");
+//    polarizationEfficiency          = configParam.getDouble("CCD/Polarization/Efficiency");
+//    refAnglePolarization            = configParam.getDouble("CCD/Polarization/RefAngle");
     expectedValuePolarization       = configParam.getDouble("CCD/Polarization/ExpectedValue");
 
     nominalOperatingTemperature     = configParam.getDouble("CCD/NominalOperatingTemperature");
@@ -376,8 +376,8 @@ void Detector::generateThroughputMap()
     double xFPmm, yFPmm;
     double angle;
 
-    const double refAnglePolarizationRadians = deg2rad(refAnglePolarization);       // Reference angle for the polarisation efficiency [radians]
-    const double acosPolarizationEfficiency = acos(polarizationEfficiency);
+//    const double refAnglePolarizationRadians = deg2rad(refAnglePolarization);       // Reference angle for the polarisation efficiency [radians]
+//    const double acosPolarizationEfficiency = acos(polarizationEfficiency);
 
     const double refAngleQuantumEfficiencyRadians = deg2rad(refAngleQE);     // Reference angle for the quantum efficiency [radians]
     const double acosQuantumEfficiency = acos(relativeRefEfficiencyQE);		// Relative efficiency due to the angle dependency of the QE at the reference angle
@@ -405,7 +405,7 @@ void Detector::generateThroughputMap()
                 // Polarisation (Eq. 4-11 in PLATO-DLR-PL-RP-001)
 
                 if (includePolarization)
-                    throughputMap(row, column) *= cos(angle / refAnglePolarizationRadians * acosPolarizationEfficiency);
+                    throughputMap(row, column) *= expectedValuePolarization; //cos(angle / refAnglePolarizationRadians * acosPolarizationEfficiency);
 
                 // Quantum efficiency (Eq. 4-12 in PLATO-DLR-PL-RP-001)
                 // Pixel units before: [photons]

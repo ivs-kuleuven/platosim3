@@ -153,8 +153,8 @@ CCD:
     Vignetting:
         ExpectedValue:           0.945           # Expected value of the throughput efficiency due to vignetting
     Polarization:
-        Efficiency:                  0.978           # Throughput efficiency caused by polarisation at the reference angle
-        RefAngle:                   18.8875          # Reference angle for polarisation [degrees]
+        #Efficiency:                  0.978           # Throughput efficiency caused by polarisation at the reference angle
+        #RefAngle:                   18.8875          # Reference angle for polarisation [degrees]
         ExpectedValue:                 0.989           # Expected value (mean of all detector pixels)
     Contamination:
         ParticulateContaminationEfficiency: 0.972     # Throughput efficiency due to particulate contamination
