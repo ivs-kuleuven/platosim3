@@ -1009,9 +1009,8 @@ CCD:
         AllowedDifference:   15.0   
         Stability:           -0.004    
     QuantumEfficiency:
-        RelativeRefEfficiency:       0.925
-        RefAngle:                    45.0
         MeanQuantumEfficiency:       0.5985
+        MeanAngleDependency:         1.01
     Polarization:
     		ExpectedValue:       0.989      
     Vignetting:
@@ -1217,11 +1216,11 @@ Change in gain (for both CCD halves) with temperature deviations from the nomina
 
 ### <a name=quantumEfficiency></a>QuantumEfficiency
 
-Quantum efficiency is the ratio of the number of collected electribs to the number of incident photons, considering the passband and the spectral energy distribution of the stars given the [Fluxm0](#fluxm0) parameter and the magnitude of the stars in the [star catalogue](#starCatalogue).
+Quantum efficiency is the ratio of the number of collected electrons to the number of incident photons, considering the passband and the spectral energy distribution of the stars given the [Fluxm0](#fluxm0) parameter and the magnitude of the stars in the [star catalogue](#starCatalogue).
 
 
 
-#### <a name="quantumEfficiencyRelRefEfficiency"></a>QuantumEfficiency: RelativeRefEfficiency
+<!-- #### <a name="quantumEfficiencyRelRefEfficiency"></a>QuantumEfficiency: RelativeRefEfficiency
 <i>Allowed values:</i> ∈ [0,1]
 
 Relative efficiency due to angle dependency of the quantum efficiency at the reference angle.
@@ -1231,7 +1230,7 @@ Relative efficiency due to angle dependency of the quantum efficiency at the ref
 #### <a name="quantumEfficiencyRefAngle"></a>QuantumEfficiency: RefAngle
 <i>Allowed values:</i> Any
 
-Reference angle for the throughput efficiency due to the quantum efficiency, expressed in degrees.
+Reference angle for the throughput efficiency due to the quantum efficiency, expressed in degrees. -->
 
 
 
@@ -1239,6 +1238,13 @@ Reference angle for the throughput efficiency due to the quantum efficiency, exp
 <i>Allowed values:</i> ∈ [0,1]
 
 Mean throughput efficiency due to quantum efficiency (i.e. the mean over all pixels of one detector).
+
+
+
+#### <a name="angleDependencyQE"></a>QuantumEfficiency: MeanAmgleDependency
+<i>Allowed values:</i> > 0
+
+Mean efficiency caused by the angle dependency of the quantum efficiency.
 
 
 
