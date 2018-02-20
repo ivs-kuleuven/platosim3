@@ -192,10 +192,10 @@ void Detector::updateParameters(double time)
 
     pixelSize                           = configParam.getDouble("CCD/PixelSize");
 //    quantumEfficiency                   = configParam.getDouble("CCD/QuantumEfficiency/Efficiency");
-    refAngleQE                          = configParam.getDouble("CCD/QuantumEfficiency/RefAngle");
-    relativeRefEfficiencyQE             = configParam.getDouble("CCD/QuantumEfficiency/RelativeRefEfficiency");
+//    refAngleQE                          = configParam.getDouble("CCD/QuantumEfficiency/RefAngle");
+//    relativeRefEfficiencyQE             = configParam.getDouble("CCD/QuantumEfficiency/RelativeRefEfficiency");
     meanQE                              = configParam.getDouble("CCD/QuantumEfficiency/MeanQuantumEfficiency");
-//    meanAngleDependencyQE               = configParam.getDouble("CCD/QuantumEfficiency/MeanAngleDependency");
+    meanAngleDependencyQE               = configParam.getDouble("CCD/QuantumEfficiency/MeanAngleDependency");
 //    expectedValueQuantumEfficiency      = configParam.getDouble("CCD/QuantumEfficiency/ExpectedValue");
     includeCosmics                      = configParam.getBoolean("Sky/IncludeCosmics");
     cosmicHitRate                       = configParam.getDouble("Sky/Cosmics/CosmicHitRate");
@@ -241,8 +241,8 @@ void Detector::updateParameters(double time)
         throw ConfigurationException("Detector: Unkown CTI model specification in configuration file");
     }
 
-    polarizationEfficiency          = configParam.getDouble("CCD/Polarization/Efficiency");
-    refAnglePolarization            = configParam.getDouble("CCD/Polarization/RefAngle");
+//    polarizationEfficiency          = configParam.getDouble("CCD/Polarization/Efficiency");
+//    refAnglePolarization            = configParam.getDouble("CCD/Polarization/RefAngle");
     expectedValuePolarization       = configParam.getDouble("CCD/Polarization/ExpectedValue");
 
     nominalOperatingTemperature     = configParam.getDouble("CCD/NominalOperatingTemperature");
@@ -376,11 +376,11 @@ void Detector::generateThroughputMap()
     double xFPmm, yFPmm;
     double angle;
 
-    const double refAnglePolarizationRadians = deg2rad(refAnglePolarization);       // Reference angle for the polarisation efficiency [radians]
-    const double acosPolarizationEfficiency = acos(polarizationEfficiency);
+//    const double refAnglePolarizationRadians = deg2rad(refAnglePolarization);       // Reference angle for the polarisation efficiency [radians]
+//    const double acosPolarizationEfficiency = acos(polarizationEfficiency);
 
-    const double refAngleQuantumEfficiencyRadians = deg2rad(refAngleQE);     // Reference angle for the quantum efficiency [radians]
-    const double acosQuantumEfficiency = acos(relativeRefEfficiencyQE);		// Relative efficiency due to the angle dependency of the QE at the reference angle
+//    const double refAngleQuantumEfficiencyRadians = deg2rad(refAngleQE);     // Reference angle for the quantum efficiency [radians]
+//    const double acosQuantumEfficiency = acos(relativeRefEfficiencyQE);		// Relative efficiency due to the angle dependency of the QE at the reference angle
 
     if (includeVignetting || includePolarization || includeQuantumEfficiency)
     {
@@ -405,14 +405,14 @@ void Detector::generateThroughputMap()
                 // Polarisation (Eq. 4-11 in PLATO-DLR-PL-RP-001)
 
                 if (includePolarization)
-                    throughputMap(row, column) *= cos(angle / refAnglePolarizationRadians * acosPolarizationEfficiency);
+                    throughputMap(row, column) *= expectedValuePolarization; //cos(angle / refAnglePolarizationRadians * acosPolarizationEfficiency);
 
                 // Quantum efficiency (Eq. 4-12 in PLATO-DLR-PL-RP-001)
                 // Pixel units before: [photons]
                 // Pixel units after: [electrons]
 
                 if (includeQuantumEfficiency)
-                    throughputMap(row, column) *= (meanQE * cos(angle / refAngleQuantumEfficiencyRadians * acosQuantumEfficiency));
+                    throughputMap(row, column) *= meanQE * meanAngleDependencyQE; //(meanQE * cos(angle / refAngleQuantumEfficiencyRadians * acosQuantumEfficiency));
             }
         }
     }

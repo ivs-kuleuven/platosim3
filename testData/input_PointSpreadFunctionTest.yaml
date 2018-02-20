@@ -11,7 +11,7 @@ PSF:
 
     Model:                           MappedFromFile  # PSF model: MappedGaussian, MappedFromFile, AnalyticGaussian, AnalyticNonGaussian
     MappedGaussian:                                  # Generate the PSF from a fixed 2D Gaussian function
-        Sigma:                       0.638           # Standard deviation of Gaussian PSF [pix]
+        Sigma:                       0.641           # Standard deviation of Gaussian PSF [pix]
         NumberOfPixels:              8               # The number of pixels in the field for which the PSF is generated
     MappedFromFile:                                  # Read a pre-calculated and fixed PSF from an HDF5 file
         Filename:                    inputfiles/psf.hdf5 

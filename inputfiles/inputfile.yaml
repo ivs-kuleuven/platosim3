@@ -8,10 +8,10 @@ General:
 
 ObservingParameters:
 
-    MissionDuration:                 6.0             # Total duration of the mission in years [yr]
-    NumExposures:                    30              # Number of exposures
+    MissionDuration:                 6.5             # Total duration of the mission in years [yr]
+    NumExposures:                    10              # Number of exposures
     BeginExposureNr:                  0              # Sequential number of first exposure. useful for slurm parallellisation
-    ExposureTime:                    22              # [s]
+    ExposureTime:                    21              # [s]
     RApointing:                      180             # Platform (not telescope) right ascension pointing coordinate      [deg] 
     DecPointing:                     -70             # Platform (not telescope) declination pointing coordinate          [deg]
     Fluxm0:                          1.00179e8       # Photon flux of a V=0 G2V-star                                     [phot/s/m^2/nm]
@@ -49,8 +49,8 @@ Telescope:
 
     LightCollectingArea:             113.1           # Effective area of 1 telescope [cm^2]
     TransmissionEfficiency:
-        BOL:                         0.7191          # Beginning of Life value in [0,1]
-        EOL:                         0.7191          # End of Life value in [0,1]
+        BOL:                         0.7821          # Beginning of Life value in [0,1]
+        EOL:                         0.7666          # End of Life value in [0,1]
     UseDrift:                        no              # yes or no. If no, ignore everything below.
     UseDriftFromFile:                no              # yes or no. If yes: ignore RMS and timescale below
     DriftYawRms:                     2.0             # RMS of thermo-elastic drift in yaw [arcsec]
@@ -71,7 +71,7 @@ Camera:
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
         ConstantValue:               0.24752         # Used in case Source is ConstantValue (from ZEMAX model) [m]
         FromFile:                    inputfiles/focallength.txt # Used in case Source is FromFile: time [s] & focalLenght [m]
-    ThroughputBandwidth:             638             # FWHM [nm]
+    ThroughputBandwidth:             498             # FWHM [nm]
     ThroughputLambdaC:               550             # Central wavelength of the throughput passband [nm]
     IncludeAberrationCorrection:     yes             # Calculate the differential aberration correction and apply
     ThroughputBandwidth:             638             # FWHM [nm]
@@ -83,8 +83,8 @@ Camera:
     FieldDistortion:
         Type:                        Polynomial1D    # The model for the field distortion
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
-        ConstantCoefficients:        [-0.0036696919678,  1.0008542317,  -4.12553764817e-05,  5.7201219949e-06] # In case Source is ConstantValue
-        ConstantInverseCoefficients: [-0.00458067036444, 1.00110311283, -5.61136295937e-05, -4.311925329e-06]  # In case Source is ConstantValue
+        ConstantCoefficients:        [0.316257210577,  0.066373219688,  0.372589221219] # In case Source is ConstantValue
+        ConstantInverseCoefficients: [-0.317143032936, 0.242638513347,-0.459260203502]  # In case Source is ConstantValue
         CoefficientsFromFile:        inputfiles/distortioncoefficients.txt                                     # In case Source is FromFile
         InverseCoefficientsFromFile: inputfiles/distortioninversecoefficients.txt                              # In case Source if FromFile
 
@@ -93,7 +93,7 @@ PSF:
 
     Model:                           AnalyticNonGaussian # PSF model: MappedGaussian, MappedFromFile, AnalyticGaussian, AnalyticNonGaussian
     MappedGaussian:                                  # Generate the PSF from a fixed 2D Gaussian function
-        Sigma:                       0.638           # Standard deviation of Gaussian PSF [pix]
+        Sigma:                       0.641           # Standard deviation of Gaussian PSF [pix]
         NumberOfPixels:              8               # The number of pixels in the field for which the PSF is generated
     MappedFromFile:                                  # Read a pre-calculated and fixed PSF from an HDF5 file
         Filename:                    inputfiles/psf.hdf5 
@@ -117,7 +117,7 @@ FEE:
     NominalOperatingTemperature:     210.15          # Nominal operating temperature of the FEE [K]
     Temperature:                     Nominal         # Temperature fixed at the nominal operating temperature
     TemperatureFileName:             inputfiles/feeTemperature.txt 
-    ReadoutNoise:                    40.5            # Readout noise for the FEE [e-/pixel] (same for both ADCs)
+    ReadoutNoise:                    35.2            # Readout noise for the FEE [e-/pixel] (same for both ADCs)
     Gain:
         RefValueLeft:                0.0278          # [ADU/microV] (1 / (Total gain) = FFE gain * CCD gain = 1 / (20 e-/ADU))
         RefValueRight:               0.0278          # [ADU/microV] (1 / (Total gain) = FFE gain * CCD gain = 1 / (20 e-/ADU))
@@ -151,25 +151,25 @@ CCD:
         Stability:                   -0.004          # [microV/e-/K]
         AllowedDifference:           15.0            # Difference in gain between both CCD halves [%]
     QuantumEfficiency:
-        RelativeRefEfficiency:       0.925           # Relative efficiency due to angle dependency of the QE at the reference angle
-        RefAngle:                    45.0            # Reference angle for quantum efficiency [degrees]
-        MeanQuantumEfficiency:       0.5985          # Mean quantum efficiency
-        #MeanAngleDependency:         0.993           # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE at the reference angle
+        #RelativeRefEfficiency:       0.925           # Relative efficiency due to angle dependency of the QE at the reference angle
+        #RefAngle:                    45.0            # Reference angle for quantum efficiency [degrees]
+        MeanQuantumEfficiency:       0.5985           # Mean quantum efficiency
+        MeanAngleDependency:         1.01             # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE
         #ExpectedValue:               0.993 * 0.5895  # Expected value (mean over all pixels of one detector)
     FullWellSaturation:              900000          # [e-/pixel]
     DigitalSaturation:               65535           # E.g. 16 bit [ADU/pixel]
-    ReadoutNoise:                    44.3            # [e-/pixel]
-    ReadoutTime:                     3.0             # time to read out entire CCD [s]
-    FlatfieldPtPNoise:               0.008           # peak-to-peak pixel noise
+    ReadoutNoise:                    33.5            # [e-/pixel]
+    ReadoutTime:                     4.0             # time to read out entire CCD [s]
+    FlatfieldPtPNoise:               0.010           # peak-to-peak pixel noise
     Vignetting: 
         ExpectedValue:               0.945           # Expected value of the throughput efficiency due to vignetting
     Polarization:
-        Efficiency:                  0.978           # Throughput efficiency caused by polarisation at the reference angle
-        RefAngle:                    18.8875         # Reference angle for polarisation [degrees]
+        #Efficiency:                  0.978           # Throughput efficiency caused by polarisation at the reference angle
+        #RefAngle:                    18.8875         # Reference angle for polarisation [degrees]
         ExpectedValue:               0.989           # Expected value (mean of all detector pixels)
     Contamination:
-        ParticulateContaminationEfficiency: 0.98     # Throughput efficiency due to particulate contamination
-        MolecularContaminationEfficiency:   0.9566   # Throughput efficiency due to molecular contamination
+        ParticulateContaminationEfficiency: 0.972    # Throughput efficiency due to particulate contamination
+        MolecularContaminationEfficiency:   0.9573   # Throughput efficiency due to molecular contamination
     DarkSignal:
       DarkCurrent:                  1.2              # Dark current [e- / s]
       DSNU:                         10.0             # Dark signal non-uniformity [%]
@@ -247,8 +247,8 @@ CameraGroups:                                                          # Four gr
 
 CCDPositions:
 
-    OriginOffsetX:                   [-1, -1, -1, -1]               # X Offset of CCD origin from center of focal plane [mm]
-    OriginOffsetY:                   [82.18, 82.18, 82.18, 82.18]   # Y Offset of CCD origin from center of focal plane [mm]
+    OriginOffsetX:                   [-1.3, -1.3, -1.3, -1.3]       # X Offset of CCD origin from center of focal plane [mm]
+    OriginOffsetY:                   [82.48, 82.48, 82.48, 82.48]   # Y Offset of CCD origin from center of focal plane [mm]
     Orientation:                     [0, 90, 180, 270]              # Orientation of CCD w.r.t. focal plane orientation, counter-clockwise [deg]
     NumColumns:                      [4510, 4510, 4510, 4510]       # Number of columns on the CCD [pixels]
     NumRows:                         [4510, 4510, 4510, 4510]       # Number of rows on the CCD [pixels] (including non-exposed ones)
