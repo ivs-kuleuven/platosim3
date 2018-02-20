@@ -514,8 +514,8 @@ Camera:
     FieldDistortion:
         Type:                        Polynomial1D
         Source:                      FromFile 
-        ConstantCoefficients:        [-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06]
-        ConstantInverseCoefficients: [-0.00458067036444, 1.00110311283, -5.61136295937e-05, -4.311925329e-06]
+        ConstantCoefficients:        [0.316257210577,  0.066373219688,  0.372589221219]
+        ConstantInverseCoefficients: [-0.317143032936, 0.242638513347, -0.459260203502]
         CoefficientsFromFile:        inputfiles/distortioncoefficients.txt
         InverseCoefficientsFromFile: inputfiles/distortioninversecoefficients.txt
 \endcode
@@ -638,37 +638,30 @@ The field distortion is represented by either a 1D or a 2D polynomial, the coeff
 
 
 #### <a name="fieldDistortionType"></a>FieldDistortion: Type
-<i>Allowed values:</i> "Polynomial1D" or "Polynomial2D"
+<i>Allowed values:</i> "Polynomial1D"
 
-Indicates that the field distortion is calculated by means of either a 1D or a 2D polynomial.
+Indicates that the field distortion is calculated by means of a 1D polynomial.
 
-A 1D polynomial of degrees \f$n\f$ can be written as 
+Assumed is that the distortion is radial and only depends on the radial distance _r_ in the focal plane.  This type of distortion can be modelled with a pincushion or barrel distortion:
 
-\f[P(x) = c_{0} + c_{1} \cdot x + c_{2} \cdot x^{2} + ... + c_{n} \cdot x^{n}\f]
-
-and a d polynomial as \f[P(x, y) = c_{00} + c_{10} \cdot x + ... + c_{n0} \cdot x^{n} + c_{01} \cdot y      + ... + c_{0n} \cdot y^{n} + c_{11} \cdot x \cdot y + c_{12} \cdot x \cdot y^{2}      + ... + c_{1(n - 1)} \cdot x \cdot y^{n - 1} + ... + c_{(n - 1)1} \cdot x^{n - 1} \cdot y \f]
-
+\f[P(r) = k_1 \cdot r^3 + k_2 \cdot r^5 + k_3 \cdot x^7.\f]
 
 
 #### <a name="fieldDistortionSource"></a>FieldDistortion: Source
 
 Indicates whether the coefficients for the polynomial describing the field distortion must be constant or are allowed to vary over time, according to the values in a user-provided file.
 
-For a 1D polynomial the coefficients are specified as \f$ [c_0, c_1,..., c_n] \f$, whilst for a 2D polynomial as \f$ [[c_{00}, c_{01},..., c_{0n}], [c_{10}, c_{11},..., c_{1n}],..., [c_{n0}, c_{n1},..., c_{nn}]] \f$.
-
-
 
 
 #### <a name="fieldDistortionCoefficientsConstant"></a>FieldDistortion: ConstantCoefficients
 
-Coefficients for inverse polynomial of the polynomial describing the field distortion, in case the coefficients must remain the same over the duration of the whole simulation ([FieldDistortion: Source](#fieldDistortionSource) = ConstantValue).
+Coefficients for the 1D polynomial that converts the normalised undistorted pixel coordinates (i.e. pixel coordinates divided by the focal length in pixels) to the distortion, expressed in normalised pixel coordinates, in case the coefficients must remain the same over the duration of the whole simulation ([FieldDistortion: Source](#fieldDistortionSource) = ConstantValue).
 
 
 
 #### <a name="fieldDistortionInverseCoefficientsConstant"></a>FieldDistortion: ConstantInverseCoefficients
 
-Inverse coefficients for inverse polynomial of the polynomial describing the field distortion, in case the coefficients must remain the same over the duration of the whole simulation ([FieldDistortion: Source](#fieldDistortionSource) = ConstantValue).
-
+Inverse coefficients for the 1D polynomial that converts the normalised distorted pixel coordinates (i.e. pixel coordinates divided by the focal length in pixels) to the (negative) distortion, expressed in normalised pixel coordinates, in case the inverse coefficients must remain the same over the duration of the whole simulation ([FieldDistortion: Source](#fieldDistortionSource) = ConstantValue).
 
 
 
