@@ -135,18 +135,16 @@ class Detector: public HDF5Writer
         double cosmicHitRate;					// Cosmic hit rate [events / cm^2 / s]
         vector<double> cosmicTrailLength;		// Interval of the length of the cosmic trails [pixels]
         vector<double> cosmicIntensity; 			// Interval of the intensity of the cosmic trails [e-]
-        double polarizationEfficiency;           // Efficiency due to polarisation at the reference angle (in [0,1])
+//        double polarizationEfficiency;           // Efficiency due to polarisation at the reference angle (in [0,1])
         double expectedValueVignetting;          // Expected value of the throughput efficiency due to vignetting (int [0,1])
-        double refAnglePolarization;             // Reference angle for the polarisation [degrees]
+//        double refAnglePolarization;             // Reference angle for the polarisation [degrees]
         double expectedValuePolarization;        // Expected value of the throughput efficiency due to polarisation
         double particulateContaminationEfficiency;  // Efficiency of particulate contamination (in [0,1])
         double molecularContaminationEfficiency; // Efficiency of molecular contamination (in [0,1])
-        //double quantumEfficiency;                // Quantum efficiency at the reference angle (in [0,1])
-        double refAngleQE;        				// Reference angle for quantum efficiency [degrees]
-        double relativeRefEfficiencyQE;			// Relative efficiency due to the angle dependency of the QE
+//        double refAngleQE;        				// Reference angle for quantum efficiency [degrees]
+//        double relativeRefEfficiencyQE;			// Relative efficiency due to the angle dependency of the QE
         double meanQE;							// Mean QE (over all wavelengths)
         double meanAngleDependencyQE;			// Mean (over all pixels) of the relative efficiency due to the angle dependency of the QE
-        //double expectedValueQuantumEfficiency;   // Expected value of the throughput efficiency due to quantum efficiency
         double readoutTime;                      // Readout time [s]
         double readoutNoise;                     // Mean readout noise [electrons]
         double refValueGainLeft;                 // Reference value for the gain on the ACD reading the left-hand side of the detector [µV/e-]

@@ -8,10 +8,10 @@ General:
 
 ObservingParameters:
 
-    MissionDuration:             6.0             # Total duration of the mission in years [yr]
+    MissionDuration:             6.5             # Total duration of the mission in years [yr]
     NumExposures:                100           # Number of exposures
     BeginExposureNr:             0               # Sequential number of first exposure
-    ExposureTime:                22              # [s]
+    ExposureTime:                21              # [s]
     RApointing:                  180             # Platform (not telescope) right ascension pointing coordinate  [deg] 
     DecPointing:                 -70             # Platform (not telescope) declination pointing coordinate      [deg]
     Fluxm0:                      1.00179e8       # Photon flux of a V=0 G2V-star                                 [phot/s/m^2/nm]
@@ -50,14 +50,14 @@ Telescope:
     TiltAngle:                   0.0             # Tilt angle of the telescope on the platform [deg]
     LightCollectingArea:         113.1           # Effective area of 1 telescope [cm^2]
     TransmissionEfficiency:
-        BOL:                         0.7191          # Beginning of Life value in [0,1]
-        EOL:                         0.7191          # End of Life value in [0,1]
-    UseDrift:                    no             # yes or no
+        BOL:                         0.7821      # Beginning of Life value in [0,1]
+        EOL:                         0.7666      # End of Life value in [0,1]
+    UseDrift:                    no              # yes or no
     UseDriftFromFile:            no              # yes or no, if yes: ignore RMS and timescale below
     DriftYawRms:                 2.3             # RMS of thermo-elastic drift in yaw [arcsec]
-    DriftPitchRms:               2.3            # RMS of thermo-elastic drift in pitch [arcsec]
+    DriftPitchRms:               2.3             # RMS of thermo-elastic drift in pitch [arcsec]
     DriftRollRms:                2.3             # RMS of thermo-elastic drift in roll [arcsec]
-    DriftTimeScale:              86400.0           # Timescale of thermo-elastic drift [s]
+    DriftTimeScale:              86400.0         # Timescale of thermo-elastic drift [s]
     DriftFileName:               inputfiles/drift.txt
 
 
@@ -67,22 +67,22 @@ Camera:
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent)
         ConstantValue:               0.0             # [degrees]. Used in case Source is ConstantValue. 
         FromFile:                    inputfiles/fporientation.txt  # Used in case Source is FromFile. time [s] & FP orientation [deg]
-    PlateScale:                  0.8333          # [arcsec/micron]
+    PlateScale:                      0.8333          # [arcsec/micron]
     FocalLength: 
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
         ConstantValue:               0.24752         # Used in case Source is ConstantValue (from ZEMAX model) [m]
         FromFile:                    inputfiles/focallength.txt # Used in case Source is FromFile: time [s] & focalLenght [m]
     ThroughputBandwidth:         550             # FWHM [nm]
-    ThroughputLambdaC:           638             # Central wavelength of the throughput passband [nm]
+    ThroughputLambdaC:           498             # Central wavelength of the throughput passband [nm]
     AberrationCorrection:
         Type:                        differential    # [differential, absolute]
-    IncludeAberrationCorrection:     no             # Calculate the differential aberration correction and apply
-    IncludeFieldDistortion:      yes             # Whether or not to include field distortion
+    IncludeAberrationCorrection:     no              # Calculate the differential aberration correction and apply
+    IncludeFieldDistortion:      yes                 # Whether or not to include field distortion
     FieldDistortion:
         Type:                        Polynomial1D    # The model for the field distortion
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
-        ConstantCoefficients:        [-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06]   # In case Source is ConstantValue
-        ConstantInverseCoefficients: [-0.00458067036444, 1.00110311283, -5.61136295937e-05, -4.311925329e-06] # In case Source is ConstantValue
+        ConstantCoefficients:        [0.316257210577,  0.066373219688,  0.372589221219] # In case Source is ConstantValue
+        ConstantInverseCoefficients: [-0.317143032936, 0.242638513347, -0.459260203502] # In case Source is ConstantValue
         CoefficientsFromFile:        inputfiles/distortioncoefficients.txt                                    # In case Source is FromFile
         InverseCoefficientsFromFile: inputfiles/distortioninversecoefficients.txt                             # In case Source if FromFile
 
@@ -90,8 +90,8 @@ PSF:
 
     Model:                       MappedFromFile        # Select the model to be used for the PSF [Gaussian, FromFile]
     MappedGaussian:                                    # Generate the PSF from a 2D Gaussian function
-      Sigma:                     0.638            # Standard deviation of Gaussian PSF [pixels]
-      NumberOfPixels:            8               # The number of pixels in the field for which the PSF is generated
+      Sigma:                     0.641                 # Standard deviation of Gaussian PSF [pixels]
+      NumberOfPixels:            8                     # The number of pixels in the field for which the PSF is generated
     MappedFromFile:                                    # Read a pre-calculated PSF from an HDF5 file
       Filename:                  inputfiles/psf.hdf5 
       DistanceToOA:              -1              # The angular distance to the optical axis. -1 to auto-compute. [deg]
@@ -119,7 +119,7 @@ FEE:
         Stability:                   -100.0e-6       # [ppm/K] = [ADU/microV/K]
         AllowedDifference:           0.0             # Difference in gain between both ADCs [%]
     ElectronicOffset:
-        RefValue:                    100             # Reference value for the electronic offset [ADU/pixel]
+        RefValue:                    1000            # Reference value for the electronic offset [ADU/pixel]
         Stability:                   1               # Offset stability [ADU/pixel/K]
 
 
@@ -145,25 +145,25 @@ CCD:
         Stability:                   -0.004          # [microV/e-/K]
         AllowedDifference:           15.0            # Difference in gain between both CCD halves [%]
     QuantumEfficiency:
-        RelativeRefEfficiency:       0.925            # Relative efficiency due to angle dependency of the QE at the reference angle
-        RefAngle:                    45.0             # Reference angle for quantum efficiency [degrees]
-        MeanQuantumEfficiency:       0.5985           # Mean quantum efficiency
-        #MeanAngleDependency:         0.993           # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE at the reference angle
-        #ExpectedValue:               0.993 * 0.5895  # Expected value (mean over all pixels of one detector)
+        #RelativeRefEfficiency:       0.925            # Relative efficiency due to angle dependency of the QE at the reference angle
+        #RefAngle:                    45.0             # Reference angle for quantum efficiency [degrees]
+        MeanQuantumEfficiency:        0.5985           # Mean quantum efficiency
+        MeanAngleDependency:          1.01             # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE at the reference angle
+        #ExpectedValue:               0.993 * 0.5895   # Expected value (mean over all pixels of one detector)
     FullWellSaturation:          900000          # [e-/pixel]
     DigitalSaturation:           65535           # E.g. 16 bit [ADU/pixel]
-    ReadoutNoise:                44.3            # [e-/pixel]
-    ReadoutTime:                 2               # time to read out entire CCD [s]
-    FlatfieldPtPNoise:           0.008           # peak-to-peak pixel noise
+    ReadoutNoise:                33.5            # [e-/pixel]
+    ReadoutTime:                 4               # time to read out entire CCD [s]
+    FlatfieldPtPNoise:           0.010           # peak-to-peak pixel noise
     Vignetting: 
         ExpectedValue:               0.945           # Expected value of the throughput efficiency due to vignetting
     Polarization:
-      Efficiency:                    0.978           # Throughput efficiency caused by polarisation at the reference angle
-      RefAngle:                     18.8875          # Reference angle for polarisation [degrees]
+      #Efficiency:                    0.978           # Throughput efficiency caused by polarisation at the reference angle
+      #RefAngle:                     18.8875          # Reference angle for polarisation [degrees]
       ExpectedValue:                 0.989           # Expected value (mean of all detector pixels)
     Contamination:
-        ParticulateContaminationEfficiency: 0.98     # Throughput efficiency due to particulate contamination
-        MolecularContaminationEfficiency:   0.9566   # Throughput efficiency due to molecular contamination
+        ParticulateContaminationEfficiency: 0.972     # Throughput efficiency due to particulate contamination
+        MolecularContaminationEfficiency:   0.9573   # Throughput efficiency due to molecular contamination
     NominalOperatingTemperature:            203.15   # Nominal operating temperature of the detector [K]
     Temperature:                     Nominal         # Temperature fixed at the nominal operating temperature
     TemperatureFileName:             inputfiles/ccdTemperature.txt
@@ -242,8 +242,8 @@ CameraGroups:                                                          # Four gr
 
 CCDPositions:
 
-    OriginOffsetX:                   [-1, -1, -1, -1]               # X Offset of CCD origin from center of focal plane [mm]
-    OriginOffsetY:                   [82.18, 82.18, 82.18, 82.18]   # Y Offset of CCD origin from center of focal plane [mm]
+    OriginOffsetX:                   [-1.3, -1.3, -1.3, -1.3]       # X Offset of CCD origin from center of focal plane [mm]
+    OriginOffsetY:                   [82.48, 82.48, 82.48, 82.48]   # Y Offset of CCD origin from center of focal plane [mm]
     Orientation:                     [0, 90, 180, 270]              # Orientation of CCD w.r.t. focal plane orientation, counter-clockwise [deg]
     NumColumns:                      [4510, 4510, 4510, 4510]       # Number of columns on the CCD [pixels]
     NumRows:                         [4510, 4510, 4510, 4510]       # Number of rows on the CCD [pixels] (including non-exposed ones)
