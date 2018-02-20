@@ -72,8 +72,8 @@ class Camera : public HDF5Writer
 
         Parameter<double> *focalLength;       // [mm]
         Parameter<double> *focalPlaneAngle;   // Orientation of the focal plane, as an angle around the optical axis  [rad] 
-        Parameter<double, 4> *distortionCoef; // distortion coefficients to map undistorted to distorted coordinates.
-        Parameter<double, 4> *inverseDistortionCoef; // inverse distortion coefficient to map distorted to undistorted coordinates.
+        Parameter<double, 3> *distortionCoef; // distortion coefficients to map undistorted to distorted coordinates.
+        Parameter<double, 3> *inverseDistortionCoef; // inverse distortion coefficient to map distorted to undistorted coordinates.
 
         string distortionModel;               // The model used to compute the distortion  
         double plateScale;                    // [arcsec/micron]
