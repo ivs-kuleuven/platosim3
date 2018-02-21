@@ -27,9 +27,27 @@ Sky::Sky(ConfigurationParameters &configParams)
         unsigned int n = 0;
         while (getline(myfile, temp))
         {
+            // Consider lines that start with '#' header lines. Ignore them.
+            
+            if (temp[0] == '#') continue;
+
             istringstream buffer(temp);
             vector<double> numbers((istream_iterator<double>(buffer)), istream_iterator<double>());
-            starDB.emplace(n, make_tuple(numbers[0] / Angle::degrees, numbers[1] / Angle::degrees, numbers[2]));    // (starID, (RA[rad], DEC[rad], Vmag)
+            
+            // If the line contains 4 numbers then the last one is the star ID. If not, then
+            // use the line number (starting from 0) as star ID.
+            
+            unsigned int starID;
+            if (numbers.size() == 3)
+            {
+                starID = n;
+            }
+            if (numbers.size() == 4)
+            {
+                starID = static_cast<unsigned int>(numbers[3]);
+            }
+
+            starDB.emplace(starID, make_tuple(numbers[0] / Angle::degrees, numbers[1] / Angle::degrees, numbers[2]));    // (starID, (RA[rad], DEC[rad], Vmag)
             n++;
         }
 

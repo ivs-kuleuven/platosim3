@@ -51,12 +51,13 @@ sim["Camera/FocalLength/ConstantValue"]           = 0.24712595
 row = np.array([7.0, 10.0, 15.0])
 col = np.array([40., 45.0, 50.0])
 magnitude = np.array([11.0, 10.0, 12.0])
+starID = [100, 101, 102]
 
 
 # Create the star catalog file: an ascii file will be written with the columns
 # ra, dec, and magnitude.
 
-sim.createStarCatalogFileFromPixelCoordinates(row, col, magnitude, starCatalogFileName)
+sim.createStarCatalogFileFromPixelCoordinates(row, col, magnitude, starID, starCatalogFileName)
 
 
 # Make sure the simulation object uses this star catalog
