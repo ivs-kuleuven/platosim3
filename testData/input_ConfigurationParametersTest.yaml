@@ -12,7 +12,7 @@ General:
 
 Observing:
     # Duration of one exposure in seconds [s]
-    ExposureTime: 23
+    ExposureTime: 21
 
     # Total number of exposures for the simulation
     NumberOfExposures: 100

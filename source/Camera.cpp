@@ -298,11 +298,11 @@ void Camera::configure(ConfigurationParameters &configParam)
             
             vector<double> distortionCoefVector        = configParam.getDoubleVector("Camera/FieldDistortion/ConstantCoefficients");
             vector<double> inverseDistortionCoefVector = configParam.getDoubleVector("Camera/FieldDistortion/ConstantInverseCoefficients");
-            array<double, 4> distortionCoefArray, inverseDistortionCoefArray;
+            array<double, 3> distortionCoefArray, inverseDistortionCoefArray;
             
-            if ((distortionCoefVector.size() != 4) || (inverseDistortionCoefVector.size() != 4))
+            if ((distortionCoefVector.size() != 3) || (inverseDistortionCoefVector.size() != 3))
             {
-                string msg = "Camera::configure(): number of (inverse) distortion coefficients in input yaml file != 4.";
+                string msg = "Camera::configure(): number of (inverse) distortion coefficients in input yaml file != 3.";
                 throw ConfigurationException(msg);
             }
             else
@@ -311,8 +311,8 @@ void Camera::configure(ConfigurationParameters &configParam)
                 copy(inverseDistortionCoefVector.begin(), inverseDistortionCoefVector.end(), inverseDistortionCoefArray.begin());
             }
 
-            distortionCoef        = new Parameter<double, 4>(distortionCoefArray);
-            inverseDistortionCoef = new Parameter<double, 4>(inverseDistortionCoefArray);
+            distortionCoef        = new Parameter<double, 3>(distortionCoefArray);
+            inverseDistortionCoef = new Parameter<double, 3>(inverseDistortionCoefArray);
         
             Log.info("Camera: Using a constant distortion law");
         }
@@ -320,8 +320,8 @@ void Camera::configure(ConfigurationParameters &configParam)
         {
             string distortionInputFile = configParam.getAbsoluteFilename("Camera/FieldDistortion/CoefficientsFromFile");
             string invDistortionInputFile = configParam.getAbsoluteFilename("Camera/FieldDistortion/InverseCoefficientsFromFile");
-            distortionCoef = new Parameter<double, 4>(distortionInputFile, 1);
-            inverseDistortionCoef = new Parameter<double, 4>(invDistortionInputFile, 1);
+            distortionCoef = new Parameter<double, 3>(distortionInputFile, 1);
+            inverseDistortionCoef = new Parameter<double, 3>(invDistortionInputFile, 1);
         
             Log.info("Camera: Reading distortion coefficients from " + distortionInputFile);
             Log.info("Camera: Reading inverse distortion coefficients from " + invDistortionInputFile);
@@ -894,16 +894,16 @@ pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFP, double yFP, 
  */
 pair<double, double> Camera::undistortedToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm)
 {
-    double alpha = atan2(yFPmm, xFPmm);  // [radians]
-    
-    double rFP = sqrt(xFPmm * xFPmm + yFPmm * yFPmm);
+	const array<double, 3> coefficients = (*distortionCoef)();
 
-    const array<double, 4> coef = (*distortionCoef)();
-    double rFPdist = coef[0] + coef[1] * rFP + coef[2] * rFP*rFP + coef[3] * rFP*rFP*rFP; 
+    double alpha = atan2(yFPmm, xFPmm);  // Position angle on the focal plane [radians]
     
-    double xFPdist = cos(alpha) * rFPdist;
-    double yFPdist = sin(alpha) * rFPdist;
-    
+    double rFP = sqrt(xFPmm * xFPmm + yFPmm * yFPmm) / (*focalLength)();	// Undistorted radial distance [normalised pixels]
+    double distortion = (coefficients[0] * pow(rFP, 3) + coefficients[1] * pow(rFP, 5) + coefficients[2] * pow(rFP, 7)) * (*focalLength)();	// Distortion [mm]
+
+    double xFPdist = xFPmm + cos(alpha) * distortion;
+    double yFPdist = yFPmm + sin(alpha) * distortion;
+
     return make_pair(xFPdist, yFPdist);
 }
 
@@ -927,15 +927,15 @@ pair<double, double> Camera::undistortedToDistortedFocalPlaneCoordinates(double 
  */
 pair<double, double> Camera::distortedToUndistortedFocalPlaneCoordinates(double xFPdist, double yFPdist)
 {
-    double alpha = atan2(yFPdist, xFPdist);  // [radians]
-    
-    double rFP   = sqrt(xFPdist * xFPdist + yFPdist * yFPdist);
+	const array<double, 3> inverseCoefficients = (*inverseDistortionCoef)();
 
-    const array<double, 4> coef = (*inverseDistortionCoef)();
-    double rFPmm = coef[0] + coef[1] * rFP + coef[2] * rFP*rFP + coef[3] * rFP*rFP*rFP; 
+    double alpha = atan2(yFPdist, xFPdist);  // Position angle on the focal plane [radians]
     
-    double xFPmm = cos(alpha) * rFPmm;
-    double yFPmm = sin(alpha) * rFPmm;
+    double rFP = sqrt(xFPdist * xFPdist + yFPdist * yFPdist) / (*focalLength)();	// Distorted radial distance [normalised pixels]
+    double distortion = (inverseCoefficients[0] * pow(rFP, 3) + inverseCoefficients[1] * pow(rFP, 5) + inverseCoefficients[2] * pow(rFP, 7)) * (*focalLength)();	// Distortion [mm] -> negative
+    
+    double xFPmm = xFPdist +  cos(alpha) * distortion;
+    double yFPmm = yFPdist + sin(alpha) * distortion;
     
     return make_pair(xFPmm, yFPmm);
 }
