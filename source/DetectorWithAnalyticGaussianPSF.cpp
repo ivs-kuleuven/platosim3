@@ -288,10 +288,12 @@ void DetectorWithAnalyticGaussianPSF::integrateLight(int exposureNr, double star
     reset();
 
     // Integration (incl. jitter): point sources + background
+    // PixelMap units after: [photons]
 
     camera.exposeDetector(*this, startTime, exposureTime);
 
     // Apply flatfield (at pixel level)
+    // PixelMap units after: [photons]
 
     if (includeFlatfield)
     {
@@ -304,8 +306,10 @@ void DetectorWithAnalyticGaussianPSF::integrateLight(int exposureNr, double star
         Log.debug("Detector: no flatfield applied.");
     }
 
-    // Apply throughput efficiency on the pixel map
-
+    // Apply throughput efficiency on the pixel map.
+    // This takes into account the QE, vignetting, polarisation, and particulate & molecular contamination.
+    // PixelMap units change from [photons] to [electrons] 
+    
     applyThroughputEfficiency();
 
     // BFE
@@ -321,13 +325,13 @@ void DetectorWithAnalyticGaussianPSF::integrateLight(int exposureNr, double star
 
     if(includeDarkSignal)
     {
-    		Log.debug("Detector: adding dark current");
+        Log.debug("Detector: adding dark current");
 
        	addDarkSignal(exposureTime);
     }
     else
     {
-    		Log.debug("Detector: no dark current added");
+        Log.debug("Detector: no dark current added");
     }
 }
 

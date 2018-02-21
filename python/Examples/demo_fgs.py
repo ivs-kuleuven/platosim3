@@ -27,14 +27,14 @@ outputFilePrefix = "/GuideStarThalesFine"
 
 # Read the guide star catalog
 
-ra, dec, V = np.loadtxt(starCatalog, unpack=True)
+ra, dec, V, starID = np.loadtxt(starCatalog, unpack=True)
 NguideStars = len(ra)
 
 # For each guide star, center a subfield around it, and run the simulator
 
 for n in range(NguideStars):
 
-    print("Running the simulator for guide star {0}".format(n))
+    print("Running the simulator for guide star {0}".format(starID[n]))
     print("Guide Star Coordinates [deg]: {}, {}".format(ra[n], dec[n]))
 
     # Set up a Simulation object

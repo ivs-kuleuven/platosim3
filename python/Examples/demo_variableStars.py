@@ -67,18 +67,21 @@ sim["SubField/NumColumns"]                        = 50
 col = [ 4.1,  4.6, 14.3, 15.3, 24.5, 27.5, 36.0, 42.0]
 row = [ 4.1,  4.1,  4.3,  4.3,  4.7,  4.7,  4.5,  4.5]
 mag = [12.0, 12.0, 12.0, 12.0, 12.0, 12.0, 12.0, 12.0]
+starID = [100, 101, 102, 103, 104, 105, 106, 107]
 
 # Two stars, mag diff of 4.0, separations of 0.5, 1, 3, and 4 pixels.
 
 col = col + [ 6.1,  6.6, 16.3, 17.3, 26.5, 29.5, 38.0, 44.0]
 row = row + [20.1, 20.1, 20.3, 20.3, 20.7, 20.7, 20.5, 20.5]
 mag = mag + [ 9.0, 13.0,  9.0, 13.0,  9.0, 13.0,  9.0, 13.0]
+starID = starID + [108, 109, 110, 111, 112, 113, 114, 115]
 
 # Two stars, mag diff of 7.0, separations of 0.5, 1, 3, and 4 pixels.
 
 col = col + [ 8.1,  8.6, 18.3, 19.3, 28.5, 31.5, 40.0, 46.0]
 row = row + [41.1, 41.1, 41.3, 41.3, 41.7, 41.7, 41.5, 41.5]
 mag = mag + [ 8.0, 15.0,  8.0, 15.0,  8.0, 15.0,  8.0, 15.0]
+starID = starID + [116, 117, 118, 119, 120, 121, 122, 123]
 
 # Convert from subfield to CCD pixel coordinates
  
@@ -90,7 +93,7 @@ mag = np.array(mag)
 # Create the star catalog file: an ascii file will be written with the columns
 # ra, dec, and magnitude.
 
-sim.createStarCatalogFileFromPixelCoordinates(row, col, mag, starCatalogFileName)
+sim.createStarCatalogFileFromPixelCoordinates(row, col, mag, starID, starCatalogFileName)
 
 
 # Run the simulation

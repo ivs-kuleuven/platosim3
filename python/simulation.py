@@ -697,7 +697,7 @@ class Simulation(object):
 
 
 
-    def createStarCatalogFileFromPixelCoordinates(self, rows, cols, magnitudes, starCatalogFileName):
+    def createStarCatalogFileFromPixelCoordinates(self, rows, cols, magnitudes, starIDs, starCatalogFileName):
 
         """
         PURPOSE: Create a star catalog ascii file given the pixel coordinates (row and column) of the stars.
@@ -707,6 +707,7 @@ class Simulation(object):
         INPUT: rows:       Numpy array with fractional row coordinates of the stars (CCD, not subfield) [pix]     
                cols:       Numpy array with fractional column coordinates of the stars (CCD, not subfield) [pix]  
                magnitudes: Johnson V magnitudes of the stars
+               starIDs:    IDs of the star (integers)
                starCatalogFileName: Path of the star catalog file that will be written.
 
         OUTPUT: None. A file will be saved, containing, ra, dec, and magnitude of the stars.
@@ -754,9 +755,18 @@ class Simulation(object):
 
         ra, dec = rf.focalPlaneToSkyCoordinates(xFPmm, yFPmm, raPlatform, decPlatform, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength)
 
+        # Convert sky coordinates to degrees
+        
+        ra = np.rad2deg(ra)
+        dec = np.rad2deg(dec)
+
         # Save the sky coordinates (in [deg]) to the star catalog file
 
-        np.savetxt(starCatalogFileName, np.transpose([np.rad2deg(ra), np.rad2deg(dec), magnitudes]))
+        myFile = open(starCatalogFileName, "w")
+        myFile.write("# RA DEC Vmag starID\n")
+        for n in range(len(ra)):
+            myFile.write("{0}  {1}  {2}  {3}\n".format(ra[n], dec[n], magnitudes[n], starIDs[n]))
+        myFile.close()
 
         # That's it
 

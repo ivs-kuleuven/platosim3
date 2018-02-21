@@ -377,6 +377,8 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
     rebin();
 
     // Apply throughput efficiency on the pixel map
+    // This takes into account the QE, vignetting, polarisation, and particulate & molecular contamination.
+    // PixelMap units change from [photons] to [electrons] 
 
     applyThroughputEfficiency();
 
