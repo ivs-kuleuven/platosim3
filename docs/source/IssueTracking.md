@@ -31,4 +31,4 @@ on the command line in your installation directory.
 	- gcc/clang (<code>gcc --version</code> or <code>clang --version</code>)
 	- CMake (<code>cmake --version</code>)
 - What have you tried to solve the problem?
-- Error and log messages.
+- Error and log messages (to extract these, place this behind the command that is causing problems: <code>> output.txt 2> errors.txt</code>).
