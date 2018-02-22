@@ -122,11 +122,14 @@ $(document).ready(function(){initNavTree('SupplementaryFiles.html','');});
 </ul>
 <p>In the following sections we describe these files in more detail. </p><hr/>
 <h2><a class="anchor" id="starCatalogue"></a>Star Catalogue</h2>
-<p>A star catalogue must be provided in a file in ASCII format. This file should contain three columns, separated by a space, holding the following information:</p><ul>
+<p>A star catalogue must be provided in a file in ASCII format. This file should contain three columns, separated by a space, holding the following information:</p>
+<ul>
 <li>right ascension of the stars [degrees]</li>
 <li>declination of the stars [degrees]</li>
 <li>stellar magnitude</li>
 </ul>
+<p>A fourth column is optional and should contain positive integers, serving as star identifier. If absent, the line number will act as star identifier (counting starts at 1).</p>
+<p>Lines preceded by <code>#</code> are considered header lines and will be ignored when reading in the file.</p>
 <p>The path of this file, relative to the project location, must be provided via the <code>StarCatalogFile</code> parameter in the <code>ObservingParameters</code> block in the <a class="el" href="ConfigurationParameters.html">configuration file</a>. </p><hr/>
 <h2><a class="anchor" id="stellarVariability"></a>Stellar Variability</h2>
 <p>In case you want to include stellar variability for the sources in the <a href="#starCatalogue">star catalogue</a>, you must provide an ASCII file with two columns, separated by a space:</p><ul>
