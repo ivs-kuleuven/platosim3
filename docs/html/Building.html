@@ -126,6 +126,13 @@ $(document).ready(function(){initNavTree('Building.html','');});
 <li>and run the install script again (as described above for the first-time installation).</li>
 </ul>
 <hr/>
+<h2>Troubleshooting</h2>
+<h3>Not Using the System Default Compiler</h3>
+<p>If you want to use a different compiler than the system default to execute the steps described above, you have to export two additional environment variables, <code>CCX</code> and <code>CC</code>, as follows:</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;export CXX=g++-5</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;export CC=gcc-5</div></div><!-- fragment --><p>where you may want to adapt the right-hand side of these two lines to the compiler (version) of your choice.</p>
+<h3>Still Experiencing Problems?</h3>
+<p>If you are still experiencing problems following the instructions above, please, <a class="el" href="IssueTracking.html">tell us about it</a>! It's convenient if you can send us the full error log, which you can get hold of as follows:</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;./install.sh &gt; output.txt 2&gt; errors.txt</div></div><!-- fragment --> <hr/>
 <h2>Switching between Branches</h2>
 <p>As you can read <a class="el" href="Branching.html">here</a>, we no longer only use the master branch. If you switch to another branch and want to run simulations with the current branch, you will have to re-build the software. </p>
 </div></div><!-- contents -->

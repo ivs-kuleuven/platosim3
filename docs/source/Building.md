@@ -56,6 +56,29 @@ At some stage, we will want to update (some of) the dependencies.  You will be n
 
 ---
 
+## Troubleshooting
+
+### Not Using the System Default Compiler
+
+If you want to use a different compiler than the system default to execute the steps described above, you have to export two additional environment variables, <code>CCX</code> and <code>CC</code>, as follows:
+
+\code
+export CXX=g++-5
+export CC=gcc-5
+\endcode
+
+where you may want to adapt the right-hand side of these two lines to the compiler (version) of your choice.
+
+### Still Experiencing Problems?
+
+If you are still experiencing problems following the instructions above, please, @ref IssueTracking "tell us about it"!  It's convenient if you can send us the full error log, which you can get hold of as follows:
+
+\code
+./install.sh > output.txt 2> errors.txt
+\endcode
+
+---
+
 ## Switching between Branches
 
 As you can read @ref Branching "here", we no longer only use the master branch.  If you switch to another branch and want to run simulations with the current branch, you will have to re-build the software.
