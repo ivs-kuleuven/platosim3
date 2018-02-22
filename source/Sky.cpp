@@ -23,15 +23,24 @@ Sky::Sky(ConfigurationParameters &configParams)
     ifstream myfile(starInputfile);
     if (myfile.is_open())
     {
-        string temp;
+        string line;
         unsigned int n = 0;
-        while (getline(myfile, temp))
+        while (getline(myfile, line))
         {
-            // Consider lines that start with '#' header lines. Ignore them.
+            // Skip empty lines
             
-            if (temp[0] == '#') continue;
+            if (line.size() == 0) continue;
 
-            istringstream buffer(temp);
+            // Skip lines that only contain white space
+           
+            const string whitespace = " \t\r\n";
+            if (line.find_first_not_of(whitespace) == string::npos) continue;
+
+            // Skip header lines starting with '#'.
+            
+            if (line[0] == '#') continue;
+
+            istringstream buffer(line);
             vector<double> numbers((istream_iterator<double>(buffer)), istream_iterator<double>());
             
             // If the line contains 4 numbers then the last one is the star ID. If not, then
