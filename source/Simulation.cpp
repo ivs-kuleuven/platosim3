@@ -51,24 +51,38 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     // Depending on what the user requested, define the proper platform jitter generator
 
-    if (useJitterFromFile)
+    if (!useJitter)
     {
-        jitterGenerator = new JitterFromFile(configParams);
+        jitterGenerator = new NoJitter();
     }
     else
     {
-        jitterGenerator = new JitterFromRedNoise(configParams);
+        if (useJitterFromFile)
+        {
+            jitterGenerator = new JitterFromFile(configParams);
+        }
+        else
+        {
+            jitterGenerator = new JitterFromRedNoise(configParams);
+        }
     }
 
     // Depending on what the user requested, define the proper telescope thermo-elastic drift generator
 
-    if (useDriftFromFile)
+    if (!useDrift)
     {
-        driftGenerator = new ThermoElasticDriftFromFile(configParams);
+        driftGenerator = new NoDrift();
     }
     else
     {
-        driftGenerator = new ThermoElasticDriftFromRedNoise(configParams);
+        if (useDriftFromFile)
+        {
+            driftGenerator = new ThermoElasticDriftFromFile(configParams);
+        }
+        else
+        {
+            driftGenerator = new ThermoElasticDriftFromRedNoise(configParams);
+        }
     }
 
     if(useFeeTemperatureFromFile)
@@ -167,8 +181,10 @@ void Simulation::configure(ConfigurationParameters &configParams)
     exposureTime      = configParams.getDouble("ObservingParameters/ExposureTime"); 
     beginExposureNr   = configParams.getInteger("ObservingParameters/BeginExposureNr");
     numExposures      = configParams.getInteger("ObservingParameters/NumExposures");
+    useJitter         = configParams.getBoolean("Platform/UseJitter");
     useJitterFromFile = configParams.getBoolean("Platform/UseJitterFromFile");
     includeFieldDistortion = configParams.getBoolean("Camera/IncludeFieldDistortion"); // do we want to do this or should this be asked to Camera?
+    useDrift          = configParams.getBoolean("Telescope/UseDrift");  
     useDriftFromFile  = configParams.getBoolean("Telescope/UseDriftFromFile");  
     psfModel          = configParams.getString("PSF/Model");
     useFeeTemperatureFromFile = configParams.getString("FEE/Temperature") == "FromFile";
