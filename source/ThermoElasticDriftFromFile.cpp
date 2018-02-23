@@ -20,16 +20,65 @@ ThermoElasticDriftFromFile::ThermoElasticDriftFromFile(ConfigurationParameters &
     // The path of the thermo-elastic drift file should have been set in configure().
 
     Log.info("ThermoElasticDriftFromFile: Opening input file " + pathToDriftFile + " to read");
+    Log.info("ThermoElasticDriftFromFile: Reading drift steps from t=" + to_string(beginTime) + " to t=" + to_string(endTime));
 
     ifstream driftFile(pathToDriftFile);
     if (driftFile.is_open())
     {
-        string temp;
-        while (getline(driftFile, temp))
+        double previousTime, previousYaw, previousPitch, previousRoll;
+        string line;
+        while (getline(driftFile, line))
         {
-            istringstream buffer(temp);
+            istringstream buffer(line);
             vector<double> numbers((istream_iterator<double>(buffer)), istream_iterator<double>());
-            timeFromFile.push_back(numbers[0]);              // [s]  
+            double time = numbers[0];
+
+            // Only read the part of the drift file that is relevant for this simulation.
+            // This saves a lot of time when the file is large but the simulation is short.
+            // If the time points in the drift file do not exactly coincide with the time range
+            // then include one point before, and one point after.
+            // E.g. if the time range is [10, 20], and the drift time points are 
+            //      ..., 9.5, 10.5, ..., 19.5, 20.5
+            //      then the points 9.5 until 20.5 should be read.
+            
+            if (time < beginTime)
+            {
+                // If the *next* line is within the simulation time range, then we should also keep
+                // the current one.
+                
+                previousTime  = time;
+                previousYaw   = deg2rad(numbers[1]/3600.);
+                previousPitch = deg2rad(numbers[2]/3600.);
+                previousRoll  = deg2rad(numbers[3]/3600.);
+                continue;
+            }
+            else
+            {
+                // Only add the previous line for the very first point that's within the simulation's time range
+                // Hence the check for the size of vector.
+
+                if (timeFromFile.size() == 0)
+                {
+                    timeFromFile.push_back(previousTime);   // [s]  
+                    yaw.push_back(previousYaw);             // [arcsec] -> [rad]
+                    pitch.push_back(previousPitch);         // [arcsec] -> [rad]
+                    roll.push_back(previousRoll);           // [arcsec] -> [rad]
+                }
+            }
+
+            // Check if we are beyond the simulation time range. If so, stop reading the drift file.
+            // By checking the last element of 'timeFromFile' rather than 'time', we ensure that we always
+            // read one point too many, as we intend.
+            
+            if (timeFromFile.size() != 0)
+            {
+                if (timeFromFile.back() > endTime) break;
+            }
+
+            // If we arrive here, we are within the simulation's time range. 
+            // Persist the drift steps in vectors.
+
+            timeFromFile.push_back(time);                    // [s]  
             yaw.push_back(deg2rad(numbers[1]/3600.));        // [arcsec] -> [rad]
             pitch.push_back(deg2rad(numbers[2]/3600.));      // [arcsec] -> [rad]
             roll.push_back(deg2rad(numbers[3]/3600.));       // [arcsec] -> [rad]
@@ -41,18 +90,18 @@ ThermoElasticDriftFromFile::ThermoElasticDriftFromFile(ConfigurationParameters &
 
         if (timeFromFile.size() < 2)
         {
-            string msg = "ThermoElasticDriftFromFile: Jitter file contains less than 2 time points";
+            string msg = "ThermoElasticDriftFromFile: Jitter file contains less than 2 time points in relevant time range";
             Log.error(msg);
             throw FileException(msg);
         }
         else
         {        
-            Log.info("ThermoElasticDriftFromFile: found " + to_string(timeFromFile.size()) + " time points in jitter input file");
+            Log.info("ThermoElasticDriftFromFile: found " + to_string(timeFromFile.size()) + " time points in drift input file in relevant time range");
         }
     }
     else
     {
-        string msg = "ThermoElasticDriftFromFile: Cannot open jitter file " + pathToDriftFile;
+        string msg = "ThermoElasticDriftFromFile: Cannot open drift file " + pathToDriftFile;
         Log.error(msg);
         throw FileException(msg);
     }
@@ -97,6 +146,17 @@ ThermoElasticDriftFromFile::~ThermoElasticDriftFromFile()
 void ThermoElasticDriftFromFile::configure(ConfigurationParameters &configParams)
 {
     pathToDriftFile = configParams.getAbsoluteFilename("Telescope/DriftFileName");
+    int numExposures      = configParams.getInteger("ObservingParameters/NumExposures");
+    int beginExposureNr   = configParams.getInteger("ObservingParameters/BeginExposureNr");
+    double exposureTime   = configParams.getInteger("ObservingParameters/ExposureTime");
+    double readoutTime    = configParams.getDouble("CCD/ReadoutTime");
+
+    //  Determine from when to when the simulation runs. Only for this time interval
+    //  we need to read the drift file into memory. This saves time when the drift
+    //  file is large but the simulation is short.
+    
+    beginTime = beginExposureNr * (exposureTime + readoutTime);
+    endTime   = (beginExposureNr + numExposures) * (exposureTime + readoutTime); 
 }
 
 

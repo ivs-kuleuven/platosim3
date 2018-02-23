@@ -55,7 +55,7 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 
     // Front-end electronics
 
-	frontEndElectronics = new FrontEndElectronics(configParam, hdf5file, feeTemperatureGenerator);
+    frontEndElectronics = new FrontEndElectronics(configParam, hdf5file, feeTemperatureGenerator);
 
     // Allocate memory for the different maps
 
@@ -380,7 +380,7 @@ void Detector::generateThroughputMap()
 //    const double acosPolarizationEfficiency = acos(polarizationEfficiency);
 
 //    const double refAngleQuantumEfficiencyRadians = deg2rad(refAngleQE);     // Reference angle for the quantum efficiency [radians]
-//    const double acosQuantumEfficiency = acos(relativeRefEfficiencyQE);		// Relative efficiency due to the angle dependency of the QE at the reference angle
+//    const double acosQuantumEfficiency = acos(relativeRefEfficiencyQE);        // Relative efficiency due to the angle dependency of the QE at the reference angle
 
     if (includeVignetting || includePolarization || includeQuantumEfficiency)
     {
@@ -451,12 +451,12 @@ void Detector::generateThroughputMap()
  */
 void Detector::checkGain()
 {
-	double allowedDifference = min(refValueGainLeft, refValueGainRight) * gainAllowedDifference / 100.0;
+    double allowedDifference = min(refValueGainLeft, refValueGainRight) * gainAllowedDifference / 100.0;
 
-	if(abs(refValueGainLeft - refValueGainRight) > allowedDifference)
-	{
-		Log.warning("Detector: Difference in gain between the left- and right-hand side of the detector too large.");
-	}
+    if(abs(refValueGainLeft - refValueGainRight) > allowedDifference)
+    {
+        Log.warning("Detector: Difference in gain between the left- and right-hand side of the detector too large.");
+    }
 }
 
 
@@ -479,75 +479,75 @@ void Detector::checkGain()
  */
 void Detector::generateGuyonnetCoefficients()
 {
-	Log.info("Detector: generating Guyonnet BFE coefficients.");
+    Log.info("Detector: generating Guyonnet BFE coefficients.");
 
-	// For each pixel (0, 0), we only account for the influence of pixels (i, j)
-	// that are within the given range (to evaluate Eq. (11) in Guyonnet et al.).  This
-	// range is defined by a window with dimensions 2 * rangeBFE + 1.
+    // For each pixel (0, 0), we only account for the influence of pixels (i, j)
+    // that are within the given range (to evaluate Eq. (11) in Guyonnet et al.).  This
+    // range is defined by a window with dimensions 2 * rangeBFE + 1.
 
-	int windowDim = 2 * rangeBFE + 1;
+    int windowDim = 2 * rangeBFE + 1;
 
-	// Consider the 4 directly adjacent pixels of pixel (0, 0)
-	// X = {(0, 1), (0, -1), (1, 0), (-1, 0)}
+    // Consider the 4 directly adjacent pixels of pixel (0, 0)
+    // X = {(0, 1), (0, -1), (1, 0), (-1, 0)}
 
-	unsigned constexpr int numNeighbors = 4;
-	int neighbors[numNeighbors][2] = { { 0, 1 }, { 0, -1 }, { 1, 0 }, { -1, 0 } };
+    unsigned constexpr int numNeighbors = 4;
+    int neighbors[numNeighbors][2] = { { 0, 1 }, { 0, -1 }, { 1, 0 }, { -1, 0 } };
 
-	// Calculate the coefficients a^X_ij in Eq. (11) using the Eqs. in Sect. 6.1
-	// in Guyonnet et al. 2015
+    // Calculate the coefficients a^X_ij in Eq. (11) using the Eqs. in Sect. 6.1
+    // in Guyonnet et al. 2015
 
-	guyonnetCoefficients = arma::zeros<arma::Cube<float>>(windowDim, windowDim, numNeighbors);	// a^X_ij
-	double rowij, columnij, r, cosTheta, f;
+    guyonnetCoefficients = arma::zeros<arma::Cube<float>>(windowDim, windowDim, numNeighbors);    // a^X_ij
+    double rowij, columnij, r, cosTheta, f;
 
-	// Loop over the boundaries with neighbours X
+    // Loop over the boundaries with neighbours X
 
-	for (unsigned int neighbor = 0; neighbor < numNeighbors; neighbor++) {
+    for (unsigned int neighbor = 0; neighbor < numNeighbors; neighbor++) {
 
-		// Loop over all "influential" pixels that are within the window
+        // Loop over all "influential" pixels that are within the window
 
-		for (int row = 0; row < windowDim; row++)
-		{
-			for (int column = 0; column < windowDim; column++)
-			{
-				rowij = (row - rangeBFE) - 0.5 * neighbors[neighbor][0];
-				columnij = (column - rangeBFE) - 0.5 * neighbors[neighbor][1];
+        for (int row = 0; row < windowDim; row++)
+        {
+            for (int column = 0; column < windowDim; column++)
+            {
+                rowij = (row - rangeBFE) - 0.5 * neighbors[neighbor][0];
+                columnij = (column - rangeBFE) - 0.5 * neighbors[neighbor][1];
 
-				// Distance from the source charge (Q_ij) to the considered boundary
+                // Distance from the source charge (Q_ij) to the considered boundary
 
-				r = sqrt(pow(rowij, 2) + pow(columnij, 2));
+                r = sqrt(pow(rowij, 2) + pow(columnij, 2));
 
-				// Cosine of the angle between the source-boundary vector and the
-				// normal to the boundary
+                // Cosine of the angle between the source-boundary vector and the
+                // normal to the boundary
 
-				cosTheta = (rowij * neighbors[neighbor][0]
-						+ columnij * neighbors[neighbor][1]) / r;
+                cosTheta = (rowij * neighbors[neighbor][0]
+                        + columnij * neighbors[neighbor][1]) / r;
 
-				// Eq. (18) in Guyonnet et al. 2015
+                // Eq. (18) in Guyonnet et al. 2015
 
-				f = p0BFE * Mathematics::expint(p1BFE * r);
+                f = p0BFE * Mathematics::expint(p1BFE * r);
 
-				guyonnetCoefficients(row, column, neighbor) = f * cosTheta;
-			}
-		}
-	}
+                guyonnetCoefficients(row, column, neighbor) = f * cosTheta;
+            }
+        }
+    }
 
-	// Enforcing Eq. (7) in Guyonnet et al.
+    // Enforcing Eq. (7) in Guyonnet et al.
 
-	for(unsigned int neighbor = 0; neighbor < numNeighbors; neighbor++)
-	{
-		double sumForNeighbor = arma::accu(guyonnetCoefficients.slice(neighbor)) / pow(windowDim, 2);
+    for(unsigned int neighbor = 0; neighbor < numNeighbors; neighbor++)
+    {
+        double sumForNeighbor = arma::accu(guyonnetCoefficients.slice(neighbor)) / pow(windowDim, 2);
 
-		for (unsigned int row = 0; row < windowDim; row++)
-		{
+        for (unsigned int row = 0; row < windowDim; row++)
+        {
 
-			for(unsigned int column = 0; column < windowDim; column++)
-			{
-				guyonnetCoefficients(row, column, neighbor) -= sumForNeighbor;
-			}
-		}
+            for(unsigned int column = 0; column < windowDim; column++)
+            {
+                guyonnetCoefficients(row, column, neighbor) -= sumForNeighbor;
+            }
+        }
 
-		// Accounting for the fact that (p0, p1) holds for the reference flux -> done in applyBFE()
-	}
+        // Accounting for the fact that (p0, p1) holds for the reference flux -> done in applyBFE()
+    }
 }
 
 
@@ -644,53 +644,53 @@ void Detector::applyThroughputEfficiency()
  */
 void Detector::addDarkSignal(float exposureTime)
 {
-	double darkSignal;
+    double darkSignal;
 
-	// Add dark signal to the pixel map
+    // Add dark signal to the pixel map
 
-	double darkSignalRef = darkCurrent * (exposureTime + readoutTime);
-	darkSignalDistribution = normal_distribution<double>(darkSignalRef, darkSignalRef * dsnu / 100.0);
-
-
-	for(unsigned int row = 0; row < numRowsPixelMap; row++)
-	{
-		for(unsigned int column = 0; column < numColumnsPixelMap; column++)
-		{
-			// Take DSNU into account
-
-			darkSignal = darkSignalDistribution(darkSignalGenerator);
-
-			// Add the noise
-
-			darkNoiseDistribution = normal_distribution<double>(darkSignal, sqrt(darkSignal));
-			darkSignal = darkNoiseDistribution(darkNoiseGenerator);
+    double darkSignalRef = darkCurrent * (exposureTime + readoutTime);
+    darkSignalDistribution = normal_distribution<double>(darkSignalRef, darkSignalRef * dsnu / 100.0);
 
 
-			pixelMap(row, column) += darkSignal;
-		}
-	}
+    for(unsigned int row = 0; row < numRowsPixelMap; row++)
+    {
+        for(unsigned int column = 0; column < numColumnsPixelMap; column++)
+        {
+            // Take DSNU into account
 
-	// Add dark signal to the smearing map
+            darkSignal = darkSignalDistribution(darkSignalGenerator);
 
-	darkSignalRef = darkCurrent * readoutTime;
-	darkSignalDistribution = normal_distribution<double>(darkSignalRef, darkSignalRef * dsnu / 100.0);
+            // Add the noise
 
-	for(unsigned int row = 0; row < numRowsSmearingMap; row++)
-	{
-		for(unsigned int column = 0; column < numColumnsPixelMap; column++)
-		{
-			// Take DSNU into account
+            darkNoiseDistribution = normal_distribution<double>(darkSignal, sqrt(darkSignal));
+            darkSignal = darkNoiseDistribution(darkNoiseGenerator);
 
-			darkSignal = darkSignalDistribution(darkSignalGenerator);
 
-			// Add the noise
+            pixelMap(row, column) += darkSignal;
+        }
+    }
 
-			darkNoiseDistribution = normal_distribution<double>(darkSignal, sqrt(darkSignal));
-			darkSignal = darkNoiseDistribution(darkNoiseGenerator);
+    // Add dark signal to the smearing map
 
-			smearingMap(row, column) += darkSignal;
-		}
-	}
+    darkSignalRef = darkCurrent * readoutTime;
+    darkSignalDistribution = normal_distribution<double>(darkSignalRef, darkSignalRef * dsnu / 100.0);
+
+    for(unsigned int row = 0; row < numRowsSmearingMap; row++)
+    {
+        for(unsigned int column = 0; column < numColumnsPixelMap; column++)
+        {
+            // Take DSNU into account
+
+            darkSignal = darkSignalDistribution(darkSignalGenerator);
+
+            // Add the noise
+
+            darkNoiseDistribution = normal_distribution<double>(darkSignal, sqrt(darkSignal));
+            darkSignal = darkNoiseDistribution(darkNoiseGenerator);
+
+            smearingMap(row, column) += darkSignal;
+        }
+    }
 }
 
 
@@ -763,12 +763,12 @@ void Detector::readOut(float exposureTime)
 
     if(includeCosmics)
     {
-    		Log.debug("Detector: adding cosmic hits.");
-    		addCosmics(exposureTime);
+        Log.debug("Detector: including cosmic hits.");
+        addCosmics(exposureTime);
     }
     else
     {
-    		Log.debug("Detector: no cosmic hits added.");
+            Log.debug("Detector: no cosmic hits included.");
     }
 
     // Apply full-well saturation. A pixel has a maximum capacity of electrons (the full well capacity).
@@ -866,76 +866,76 @@ void Detector::readOut(float exposureTime)
  */
 void Detector::applyBFE()
 {
-	// For each pixel (0, 0), we only account for the influence of pixels (i, j)
-	// that are within the given range (to evaluate Eq. (11) in Guyonnet et al.)
+    // For each pixel (0, 0), we only account for the influence of pixels (i, j)
+    // that are within the given range (to evaluate Eq. (11) in Guyonnet et al.)
 
-	int windowDim = 2 * rangeBFE + 1;
+    int windowDim = 2 * rangeBFE + 1;
 
-	// Consider the 4 directly adjacent pixels of pixel (0, 0)
-	// X = {(0, 1), (0, -1), (1, 0), (-1, 0)}
+    // Consider the 4 directly adjacent pixels of pixel (0, 0)
+    // X = {(0, 1), (0, -1), (1, 0), (-1, 0)}
 
-	unsigned constexpr int numNeighbors = 4;
-	int neighbors[numNeighbors][2] = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
+    unsigned constexpr int numNeighbors = 4;
+    int neighbors[numNeighbors][2] = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
 
-	// Charges Q_0,0, Q_X, and Q_i,j in Eq. (11) in Guyonnet et al. 2015
+    // Charges Q_0,0, Q_X, and Q_i,j in Eq. (11) in Guyonnet et al. 2015
 
-	double charge00, chargeX, bfeX00, bfe00;//, chargeij;
+    double charge00, chargeX, bfeX00, bfe00;//, chargeij;
 
-	// ∂Q_0,0 in Eq. (11) in Guyonnet et al. 2015
+    // ∂Q_0,0 in Eq. (11) in Guyonnet et al. 2015
 
-	arma::Mat<float> bfe = arma::zeros<arma::Mat<float>>(numRowsPixelMap, numColumnsPixelMap);
+    arma::Mat<float> bfe = arma::zeros<arma::Mat<float>>(numRowsPixelMap, numColumnsPixelMap);
 
-	// Loop over all pixels in the pixel map that are affected by the BFE
+    // Loop over all pixels in the pixel map that are affected by the BFE
 
-	for(unsigned int row = rangeBFE; row < numRowsPixelMap - rangeBFE; row++)
-	{
-		for(unsigned int column = rangeBFE; column < numColumnsPixelMap - rangeBFE; column++)
-		{
-			charge00 = pixelMap(row, column);	// Q_0,0
+    for(unsigned int row = rangeBFE; row < numRowsPixelMap - rangeBFE; row++)
+    {
+        for(unsigned int column = rangeBFE; column < numColumnsPixelMap - rangeBFE; column++)
+        {
+            charge00 = pixelMap(row, column);    // Q_0,0
 
-			bfe00 = 0;
+            bfe00 = 0;
 
-			for(unsigned int neighbor = 0; neighbor < numNeighbors; neighbor++)
-			{
-				chargeX = pixelMap(row + neighbors[neighbor][0], column + neighbors[neighbor][1]);	// Q_X
+            for(unsigned int neighbor = 0; neighbor < numNeighbors; neighbor++)
+            {
+                chargeX = pixelMap(row + neighbors[neighbor][0], column + neighbors[neighbor][1]);    // Q_X
 
-				// i = row - range,..., row + range
-				// j = column - range, column + range
+                // i = row - range,..., row + range
+                // j = column - range, column + range
 
-//				chargeij = pixelMap(row, column); //pixelMap(arma::span(row - rangeBFE, row + rangeBFE), arma::span(column - rangeBFE, column + rangeBFE));
+//                chargeij = pixelMap(row, column); //pixelMap(arma::span(row - rangeBFE, row + rangeBFE), arma::span(column - rangeBFE, column + rangeBFE));
 
-				// Eq. (11) in Guyonnet et al. 2015 (within dividing by 4)
-				// a^X_i,j * Q_i,j * (Q_0,0 + Q_X)
-				// Accounting for the fact that (p0, p1) holds for the reference flux
+                // Eq. (11) in Guyonnet et al. 2015 (within dividing by 4)
+                // a^X_i,j * Q_i,j * (Q_0,0 + Q_X)
+                // Accounting for the fact that (p0, p1) holds for the reference flux
 
-				bfeX00 = arma::accu(guyonnetCoefficients.slice(neighbor) % pixelMap(arma::span(row - rangeBFE, row + rangeBFE), arma::span(column - rangeBFE, column + rangeBFE)))  / (refFluxBFE / 2.0) * (charge00 + chargeX);
-				bfe00 += bfeX00;
+                bfeX00 = arma::accu(guyonnetCoefficients.slice(neighbor) % pixelMap(arma::span(row - rangeBFE, row + rangeBFE), arma::span(column - rangeBFE, column + rangeBFE)))  / (refFluxBFE / 2.0) * (charge00 + chargeX);
+                bfe00 += bfeX00;
 
-//				for(unsigned int i = 0; i < windowDim; i++)
-//				{
-//					for(unsigned int j = 0; j < windowDim; j++)
-//					{
-//						chargeij = pixelMap(row + (i - rangeBFE) , column + (j - rangeBFE));		// Q_i,j
+//                for(unsigned int i = 0; i < windowDim; i++)
+//                {
+//                    for(unsigned int j = 0; j < windowDim; j++)
+//                    {
+//                        chargeij = pixelMap(row + (i - rangeBFE) , column + (j - rangeBFE));        // Q_i,j
 //
-//						// Eq. (11) in Guyonnet et al. 2015 (within dividing by 4)
-//						// a^X_i,j * Q_i,j * (Q_0,0 + Q_X)
+//                        // Eq. (11) in Guyonnet et al. 2015 (within dividing by 4)
+//                        // a^X_i,j * Q_i,j * (Q_0,0 + Q_X)
 //
-//						bfe(row, column) += guyonnetCoefficients(i, j, neighbor) * chargeij / (refFluxBFE / 2.0) * (charge00 + chargeX);
+//                        bfe(row, column) += guyonnetCoefficients(i, j, neighbor) * chargeij / (refFluxBFE / 2.0) * (charge00 + chargeX);
 //
-//						Log.info("BFE: " + to_string(guyonnetCoefficients(i, j, neighbor)) + " " + to_string(chargeij) + " " + to_string(charge00) + " " + to_string(chargeX));
-//					}
-//				}
-			}
+//                        Log.info("BFE: " + to_string(guyonnetCoefficients(i, j, neighbor)) + " " + to_string(chargeij) + " " + to_string(charge00) + " " + to_string(chargeX));
+//                    }
+//                }
+            }
 
-			bfe(row, column) = bfe00;
-		}
-	}
+            bfe(row, column) = bfe00;
+        }
+    }
 
-	// Dividing by 4 in Eq. (11) in Guyonnet et al. 2015
+    // Dividing by 4 in Eq. (11) in Guyonnet et al. 2015
 
-	bfe /= 4.0;
+    bfe /= 4.0;
 
-	pixelMap += bfe;
+    pixelMap += bfe;
 }
 
 
@@ -1016,23 +1016,27 @@ void Detector::addPhotonNoise()
  */
 void Detector::addCosmics(float exposureTime)
 {
-	cosmicHitRateDistribution = poisson_distribution<long>(cosmicHitRate);
-	cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsPixelMap - 1);
-	cosmicEntryAngleDistribution = uniform_real_distribution<double>(0, 2 * PI);
-	cosmicTrailLengthDistribution = uniform_real_distribution<double>(cosmicTrailLength[0], cosmicTrailLength[1]);
-	cosmicIntensityDistribution = uniform_real_distribution<double>(cosmicIntensity[0], cosmicIntensity[1]);
+    cosmicHitRateDistribution = poisson_distribution<long>(cosmicHitRate);
+    cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsPixelMap - 1);
+    cosmicEntryAngleDistribution = uniform_real_distribution<double>(0, 2 * PI);
+    cosmicTrailLengthDistribution = uniform_real_distribution<double>(cosmicTrailLength[0], cosmicTrailLength[1]);
+    cosmicIntensityDistribution = uniform_real_distribution<double>(cosmicIntensity[0], cosmicIntensity[1]);
 
-	// Pixel map
+    // Pixel map
 
-	addCosmics(exposureTime + readoutTime, pixelMap, numRowsPixelMap, numColumnsPixelMap);
+    Log.debug("Detector: adding cosmic hits to pixel map");
 
-//	// Bias register map
+    addCosmics(exposureTime + readoutTime, pixelMap, numRowsPixelMap, numColumnsPixelMap);
+
+//    // Bias register map
 //
-//	addCosmics(exposureTime, biasMap, numRowsBiasMap, numColumnsPixelMap);
+//    addCosmics(exposureTime, biasMap, numRowsBiasMap, numColumnsPixelMap);
 
-	// Smearing map
+    // Smearing map
 
-	addCosmics(readoutTime, smearingMap, numRowsSmearingMap, numColumnsPixelMap);
+    Log.debug("Detector: adding cosmic hits to smearing map");
+
+    addCosmics(readoutTime, smearingMap, numRowsSmearingMap, numColumnsPixelMap);
 }
 
 
@@ -1072,60 +1076,60 @@ void Detector::addCosmics(float exposureTime)
  */
 void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, int numRows, int numColumns)
 {
-	// Characteristics of an individual trail
+    // Characteristics of an individual trail
 
-	double entryRow, entryColumn, entryAngle, trailLength, intensity, sigma;
+    double entryRow, entryColumn, entryAngle, trailLength, intensity, sigma;
 
-	// Each trail consists of 200 "trail points"
-	/// (equally spaced points over the trail length)
+    // Each trail consists of 200 "trail points"
+    /// (equally spaced points over the trail length)
 
-	int numTrailPoints = 200;
-	arma::vec trailRows, trailColumns, trailWeights;	// All trail points: row, column, and weight
-	int trailRow, trailColumn;						// Individual trail point: row and column
+    int numTrailPoints = 200;
+    arma::vec trailRows, trailColumns, trailWeights;    // All trail points: row, column, and weight
+    int trailRow, trailColumn;                        // Individual trail point: row and column
 
-	cosmicEntryRowDistribution = uniform_real_distribution<double>(0, numRows - 1);
+    cosmicEntryRowDistribution = uniform_real_distribution<double>(0, numRows - 1);
 
-	// Number of cosmic hits
-	// - cosmic hit rate [events / cm^2 / s]
-	// - exposure time [s]
-	// - dimensions [pixels] -> [micron] -> [cm]
+    // Number of cosmic hits
+    // - cosmic hit rate [events / cm^2 / s]
+    // - exposure time [s]
+    // - dimensions [pixels] -> [micron] -> [cm]
 
-	int numCosmicHits = cosmicHitRateDistribution(cosmicHitRateGenerator) * exposureTime * (numRows * pixelSize / 10000.0) * (numColumns * pixelSize / 10000.0);
-	Log.debug("Detector: number of cosmic hits: " + to_string(numCosmicHits));
+    int numCosmicHits = cosmicHitRateDistribution(cosmicHitRateGenerator) * exposureTime * (numRows * pixelSize / 10000.0) * (numColumns * pixelSize / 10000.0);
+    Log.debug("Detector: number of cosmic hits: " + to_string(numCosmicHits));
 
-	for(unsigned int cosmicHit = 0; cosmicHit < numCosmicHits; cosmicHit++)
-	{
-		entryRow = cosmicEntryRowDistribution(cosmicEntryRowGenerator);			// Entry row [pixels] (uniform distribution over the rows of the sub-fields)
-		entryColumn = cosmicEntryColumnDistribution(cosmicEntryColumnGenerator);	// Entry column [pixels] (uniform distribution over the columns of the sub-field)
-		entryAngle = cosmicEntryAngleDistribution(cosmicEntryAngleGenerator);		// Entry angle [radians] (uniform distribution between 0 and 2π)
-		trailLength = cosmicTrailLengthDistribution(cosmicTrailLengthGenerator);	// Trail length [pixels] (uniform distribution over interval)
-		intensity = cosmicIntensityDistribution(cosmicIntensityGenerator);		// Number of e- in cosmic hit [e-] (uniform distribution over interval)
+    for(unsigned int cosmicHit = 0; cosmicHit < numCosmicHits; cosmicHit++)
+    {
+        entryRow = cosmicEntryRowDistribution(cosmicEntryRowGenerator);                // Entry row [pixels] (uniform distribution over the rows of the sub-fields)
+        entryColumn = cosmicEntryColumnDistribution(cosmicEntryColumnGenerator);    // Entry column [pixels] (uniform distribution over the columns of the sub-field)
+        entryAngle = cosmicEntryAngleDistribution(cosmicEntryAngleGenerator);        // Entry angle [radians] (uniform distribution between 0 and 2π)
+        trailLength = cosmicTrailLengthDistribution(cosmicTrailLengthGenerator);    // Trail length [pixels] (uniform distribution over interval)
+        intensity = cosmicIntensityDistribution(cosmicIntensityGenerator);            // Number of e- in cosmic hit [e-] (uniform distribution over interval)
 
-		double trailStep = trailLength / numTrailPoints;		// Distance between two "trail points" (for the current trail)
+        double trailStep = trailLength / numTrailPoints;                            // Distance between two "trail points" (for the current trail)
 
-		trailWeights = arma::linspace(0, trailLength, numTrailPoints);
-		trailRows = entryRow + trailWeights * sin(entryAngle);
-		trailColumns = entryColumn + trailWeights* cos(entryAngle);
+        trailWeights = arma::linspace(0, trailLength, numTrailPoints);
+        trailRows = entryRow + trailWeights * sin(entryAngle);
+        trailColumns = entryColumn + trailWeights* cos(entryAngle);
 
-		// Apply the decay function
+        // Apply the decay function
 
-		sigma = arma::max(trailWeights) / 3.0;
-		trailWeights = arma::exp(-arma::pow(trailWeights, 2) / (2 * pow(sigma, 2)));
-		trailWeights /= arma::sum(trailWeights);
+        sigma = arma::max(trailWeights) / 3.0;
+        trailWeights = arma::exp(-arma::pow(trailWeights, 2) / (2 * pow(sigma, 2)));
+        trailWeights /= arma::sum(trailWeights);
 
-		// Add the flux coming from the cosmic hit to all its trail points in the pixel map
+        // Add the flux coming from the cosmic hit to all its trail points in the pixel map
 
-		for(unsigned int index = 0; index < numTrailPoints; index++)
-		{
-			trailRow = int(floor(trailRows(index)));
-			trailColumn = int(floor(trailColumns(index)));
+        for(unsigned int index = 0; index < numTrailPoints; index++)
+        {
+            trailRow = int(floor(trailRows(index)));
+            trailColumn = int(floor(trailColumns(index)));
 
-			if((trailRow >= 0) && (trailRow < numRows) && (trailColumn >= 0) && (trailColumn < numColumns))
-			{
-				map(trailRow, trailColumn) += (trailWeights(index) * intensity);
-			}
-		}
-	}
+            if((trailRow >= 0) && (trailRow < numRows) && (trailColumn >= 0) && (trailColumn < numColumns))
+            {
+                map(trailRow, trailColumn) += (trailWeights(index) * intensity);
+            }
+        }
+    }
 }
 
 
@@ -1743,40 +1747,40 @@ void Detector::applyGain()
 
     // FEE gain (left & right) [ADU / µV]
 
-	// Combined gain (FEE & CCD) [ADU / e-]
+    // Combined gain (FEE & CCD) [ADU / e-]
 
-	const double combinedGainLeft = frontEndElectronics->getGainLeftAdc(internalTime) * ccdGainLeft;
-	const double combinedGainRight = frontEndElectronics->getGainRightAdc(internalTime) * ccdGainRight;
+    const double combinedGainLeft = frontEndElectronics->getGainLeftAdc(internalTime) * ccdGainLeft;
+    const double combinedGainRight = frontEndElectronics->getGainRightAdc(internalTime) * ccdGainRight;
 
-	if(lastIndexSubFieldLeft >= numColumnsPixelMap - 1)	  // Left ADC only
-	{
-		pixelMap *= combinedGainLeft;
-		biasMap *= combinedGainLeft;
-		smearingMap *= combinedGainLeft;
-	}
-	else if(lastIndexSubFieldLeft < 0)	                 // Right ADC only
-	{
-		pixelMap *= combinedGainRight;
-		biasMap *= combinedGainRight;
-		smearingMap *= combinedGainRight;
-	}
-	else
-	{
-		// 0 -> lastIndexSubFieldLeft: left ADC
+    if(lastIndexSubFieldLeft >= numColumnsPixelMap - 1)      // Left ADC only
+    {
+        pixelMap *= combinedGainLeft;
+        biasMap *= combinedGainLeft;
+        smearingMap *= combinedGainLeft;
+    }
+    else if(lastIndexSubFieldLeft < 0)                     // Right ADC only
+    {
+        pixelMap *= combinedGainRight;
+        biasMap *= combinedGainRight;
+        smearingMap *= combinedGainRight;
+    }
+    else
+    {
+        // 0 -> lastIndexSubFieldLeft: left ADC
 
-		pixelMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
-		biasMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
-		smearingMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
+        pixelMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
+        biasMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
+        smearingMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
 
-		// lastIndexSubFieldLeft + 1 -> numColumnsSubPixelMap -1: right ADC
+        // lastIndexSubFieldLeft + 1 -> numColumnsSubPixelMap -1: right ADC
 
-		pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
-		biasMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
-		smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
-	}
+        pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
+        biasMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
+        smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
+    }
 
-	Log.info("Detector: gain of left part of CCD: " + to_string(combinedGainLeft));
-	Log.info("Detector: gain of right part of CCD: " + to_string(combinedGainRight));
+    Log.info("Detector: gain of left part of CCD: " + to_string(combinedGainLeft));
+    Log.info("Detector: gain of right part of CCD: " + to_string(combinedGainRight));
 }
 
 
@@ -1802,7 +1806,7 @@ void Detector::applyGain()
 
 void Detector::addElectronicOffset()
 {
-	const double offset = frontEndElectronics->getElectronicOffset(internalTime);
+    const double offset = frontEndElectronics->getElectronicOffset(internalTime);
 
     Log.debug("Detector: adding a bias to pixelMap, biasMap and smearingMap (electronicOffset=" + to_string(offset)+ ")");
 
@@ -2233,53 +2237,53 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
 void Detector::fastForwardDarkSignalGeneratorToExposure(int beginExposureNr, float exposureTime)
 {
 
-	double dark;
-	double dummy;
+    double dark;
+    double dummy;
 
-	for (int n = 0; n < beginExposureNr; n++)
-	{
-	    // Dark signal generated for the pixel map
+    for (int n = 0; n < beginExposureNr; n++)
+    {
+        // Dark signal generated for the pixel map
 
-		dark = darkCurrent * (exposureTime + readoutTime);
+        dark = darkCurrent * (exposureTime + readoutTime);
 
-		darkSignalDistribution = normal_distribution<double>(dark, dark * dsnu / 100.0);
+        darkSignalDistribution = normal_distribution<double>(dark, dark * dsnu / 100.0);
 
-	    for (unsigned int row = 0; row < numRowsPixelMap; row++)
-	    {
-	         for (unsigned int column = 0; column < numColumnsPixelMap; column++)
-	         {
-	        	 	 // Take DSNU into account
+        for (unsigned int row = 0; row < numRowsPixelMap; row++)
+        {
+             for (unsigned int column = 0; column < numColumnsPixelMap; column++)
+             {
+                      // Take DSNU into account
 
-	        	 	 dummy = darkSignalDistribution(darkSignalGenerator);
+                      dummy = darkSignalDistribution(darkSignalGenerator);
 
-	        	 	 // Add the noise
+                      // Add the noise
 
-	        	 	 darkNoiseDistribution = normal_distribution<double>(dummy, sqrt(dummy));
-	        	 	 dummy = darkNoiseDistribution(darkNoiseGenerator);
-	         }
-	    }
+                      darkNoiseDistribution = normal_distribution<double>(dummy, sqrt(dummy));
+                      dummy = darkNoiseDistribution(darkNoiseGenerator);
+             }
+        }
 
-	    // Dark signal generated for the smearing map
+        // Dark signal generated for the smearing map
 
-	    dark = darkCurrent * readoutTime;
+        dark = darkCurrent * readoutTime;
 
-	    	darkSignalDistribution = normal_distribution<double>(dark, dark * dsnu / 100.0);
+            darkSignalDistribution = normal_distribution<double>(dark, dark * dsnu / 100.0);
 
-	    for(unsigned int row = 0; row < numRowsSmearingMap; row++)
-	    {
-	    		for(unsigned int column = 0; column < numColumnsPixelMap; column++)
-	    		{
-	    			// Take DSNU into account
+        for(unsigned int row = 0; row < numRowsSmearingMap; row++)
+        {
+                for(unsigned int column = 0; column < numColumnsPixelMap; column++)
+                {
+                    // Take DSNU into account
 
-	    			dummy = darkSignalDistribution(darkSignalGenerator);
+                    dummy = darkSignalDistribution(darkSignalGenerator);
 
-	    			// Add the noise
+                    // Add the noise
 
-	    			darkNoiseDistribution = normal_distribution<double>(dummy, sqrt(dummy));
-	    			dummy = darkNoiseDistribution(darkNoiseGenerator);
-	    		}
-	    }
-	}
+                    darkNoiseDistribution = normal_distribution<double>(dummy, sqrt(dummy));
+                    dummy = darkNoiseDistribution(darkNoiseGenerator);
+                }
+        }
+    }
 }
 
 
@@ -2418,62 +2422,62 @@ void Detector::fastForwardPhotonNoiseGeneratorToExposure(int beginExposureNr)
  */
 void Detector::fastForwardCosmicsGeneratorToExposure(int beginExposureNr, float exposureTime)
 {
-	cosmicHitRateDistribution = poisson_distribution<long>(cosmicHitRate);
-	cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsPixelMap - 1);
-	cosmicEntryAngleDistribution = uniform_real_distribution<double>(0, 2 * PI);
-	cosmicTrailLengthDistribution = uniform_real_distribution<double>(cosmicTrailLength[0], cosmicTrailLength[1]);
-	cosmicIntensityDistribution = uniform_real_distribution<double>(cosmicIntensity[0], cosmicIntensity[1]);
+    cosmicHitRateDistribution = poisson_distribution<long>(cosmicHitRate);
+    cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsPixelMap - 1);
+    cosmicEntryAngleDistribution = uniform_real_distribution<double>(0, 2 * PI);
+    cosmicTrailLengthDistribution = uniform_real_distribution<double>(cosmicTrailLength[0], cosmicTrailLength[1]);
+    cosmicIntensityDistribution = uniform_real_distribution<double>(cosmicIntensity[0], cosmicIntensity[1]);
 
-	if(includeCosmics)
-	{
-		int dummyNumOfCosmics;
-		double dummy;
+    if(includeCosmics)
+    {
+        int dummyNumOfCosmics;
+        double dummy;
 
-		for(unsigned int n = 0; n < beginExposureNr; n++)
-		{
-			// Pixel map
+        for(unsigned int n = 0; n < beginExposureNr; n++)
+        {
+            // Pixel map
 
-			cosmicEntryRowDistribution = uniform_real_distribution<double>(0, numRowsPixelMap - 1);
-			dummyNumOfCosmics = cosmicHitRateDistribution(cosmicHitRateGenerator) * exposureTime * (numRowsPixelMap * pixelSize / 10000.0) * (numColumnsPixelMap * pixelSize / 10000.0);
+            cosmicEntryRowDistribution = uniform_real_distribution<double>(0, numRowsPixelMap - 1);
+            dummyNumOfCosmics = cosmicHitRateDistribution(cosmicHitRateGenerator) * exposureTime * (numRowsPixelMap * pixelSize / 10000.0) * (numColumnsPixelMap * pixelSize / 10000.0);
 
-			for(unsigned int cosmicHit = 0; cosmicHit < dummyNumOfCosmics; cosmicHit++)
-			{
-				dummy = cosmicEntryRowDistribution(cosmicEntryRowGenerator);
-				dummy = cosmicEntryColumnDistribution(cosmicEntryColumnGenerator);
-				dummy = cosmicEntryAngleDistribution(cosmicEntryAngleGenerator);
-				dummy = cosmicTrailLengthDistribution(cosmicTrailLengthGenerator);
-				dummy = cosmicIntensityDistribution(cosmicIntensityGenerator);
-			}
+            for(unsigned int cosmicHit = 0; cosmicHit < dummyNumOfCosmics; cosmicHit++)
+            {
+                dummy = cosmicEntryRowDistribution(cosmicEntryRowGenerator);
+                dummy = cosmicEntryColumnDistribution(cosmicEntryColumnGenerator);
+                dummy = cosmicEntryAngleDistribution(cosmicEntryAngleGenerator);
+                dummy = cosmicTrailLengthDistribution(cosmicTrailLengthGenerator);
+                dummy = cosmicIntensityDistribution(cosmicIntensityGenerator);
+            }
 
-			// Bias register map
+            // Bias register map
 
-			cosmicEntryRowDistribution = uniform_real_distribution<double>(0, numRowsBiasMap - 1);
-			dummyNumOfCosmics = cosmicHitRateDistribution(cosmicHitRateGenerator) * exposureTime * (numRowsBiasMap * pixelSize / 10000.0) * (numColumnsPixelMap * pixelSize / 10000.0);
+            cosmicEntryRowDistribution = uniform_real_distribution<double>(0, numRowsBiasMap - 1);
+            dummyNumOfCosmics = cosmicHitRateDistribution(cosmicHitRateGenerator) * exposureTime * (numRowsBiasMap * pixelSize / 10000.0) * (numColumnsPixelMap * pixelSize / 10000.0);
 
-			for(unsigned int cosmicHit = 0; cosmicHit < dummyNumOfCosmics; cosmicHit++)
-			{
-				dummy = cosmicEntryRowDistribution(cosmicEntryRowGenerator);
-				dummy = cosmicEntryColumnDistribution(cosmicEntryColumnGenerator);
-				dummy = cosmicEntryAngleDistribution(cosmicEntryAngleGenerator);
-				dummy = cosmicTrailLengthDistribution(cosmicTrailLengthGenerator);
-				dummy = cosmicIntensityDistribution(cosmicIntensityGenerator);
-			}
+            for(unsigned int cosmicHit = 0; cosmicHit < dummyNumOfCosmics; cosmicHit++)
+            {
+                dummy = cosmicEntryRowDistribution(cosmicEntryRowGenerator);
+                dummy = cosmicEntryColumnDistribution(cosmicEntryColumnGenerator);
+                dummy = cosmicEntryAngleDistribution(cosmicEntryAngleGenerator);
+                dummy = cosmicTrailLengthDistribution(cosmicTrailLengthGenerator);
+                dummy = cosmicIntensityDistribution(cosmicIntensityGenerator);
+            }
 
-			// Smearing map
+            // Smearing map
 
-			cosmicEntryRowDistribution = uniform_real_distribution<double>(0, numRowsBiasMap - 1);
-			dummyNumOfCosmics = cosmicHitRateDistribution(cosmicHitRateGenerator) * exposureTime * (numRowsBiasMap * pixelSize / 10000.0) * (numColumnsPixelMap * pixelSize / 10000.0);
+            cosmicEntryRowDistribution = uniform_real_distribution<double>(0, numRowsBiasMap - 1);
+            dummyNumOfCosmics = cosmicHitRateDistribution(cosmicHitRateGenerator) * exposureTime * (numRowsBiasMap * pixelSize / 10000.0) * (numColumnsPixelMap * pixelSize / 10000.0);
 
-			for(unsigned int cosmicHit = 0; cosmicHit < dummyNumOfCosmics; cosmicHit++)
-			{
-				dummy = cosmicEntryRowDistribution(cosmicEntryRowGenerator);
-				dummy = cosmicEntryColumnDistribution(cosmicEntryColumnGenerator);
-				dummy = cosmicEntryAngleDistribution(cosmicEntryAngleGenerator);
-				dummy = cosmicTrailLengthDistribution(cosmicTrailLengthGenerator);
-				dummy = cosmicIntensityDistribution(cosmicIntensityGenerator);
-			}
-		}
-	}
+            for(unsigned int cosmicHit = 0; cosmicHit < dummyNumOfCosmics; cosmicHit++)
+            {
+                dummy = cosmicEntryRowDistribution(cosmicEntryRowGenerator);
+                dummy = cosmicEntryColumnDistribution(cosmicEntryColumnGenerator);
+                dummy = cosmicEntryAngleDistribution(cosmicEntryAngleGenerator);
+                dummy = cosmicTrailLengthDistribution(cosmicTrailLengthGenerator);
+                dummy = cosmicIntensityDistribution(cosmicIntensityGenerator);
+            }
+        }
+    }
 }
 
 
@@ -2488,6 +2492,6 @@ void Detector::fastForwardCosmicsGeneratorToExposure(int beginExposureNr, float 
  */
 double Detector::getTemperature()
 {
-	return temperatureGenerator.getNextTemperature(internalTime);
+    return temperatureGenerator.getNextTemperature(internalTime);
 }
 

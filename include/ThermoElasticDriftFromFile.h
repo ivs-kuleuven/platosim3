@@ -34,6 +34,8 @@ class ThermoElasticDriftFromFile : public DriftGenerator
     protected:
 
         string pathToDriftFile;
+        double beginTime;                 // Only read the drift file from beginTime to endTime
+        double endTime;
 
         int timeIndex;
         double internalTime;

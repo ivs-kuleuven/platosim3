@@ -312,11 +312,11 @@ void DetectorWithAnalyticGaussianPSF::integrateLight(int exposureNr, double star
     
     applyThroughputEfficiency();
 
-    // BFE
+    // Brighter-fatter effect
 
     if(includeBFE)
     {
-   		Log.debug("Detector: adding BFE");
+   		Log.debug("Detector: adding Brighter-Fatter effect");
 
    		applyBFE();
     }
