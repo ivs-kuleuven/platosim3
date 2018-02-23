@@ -382,11 +382,11 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
 
     applyThroughputEfficiency();
 
-    // BFE
+    // Brighter-Fatter effect
 
     if(includeBFE)
     {
-       	Log.debug("Detector: adding BFE");
+       	Log.debug("Detector: adding Brighter-Fatter effect");
 
        	applyBFE();
     }
