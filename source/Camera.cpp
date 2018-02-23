@@ -543,6 +543,8 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
         // Loop over all stars in the catalog, and add their flux to the subfield
 
+        unsigned int NstarsInSubfield = 0;
+
         for (unsigned int n = 0; n < Nstars; n++)
         {
             // Compute the focal plane coordinates (in [mm]) of this particular star
@@ -585,6 +587,8 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
             if (isInSubfield)
             {
+                NstarsInSubfield++;
+
                 // If this is the first time we encounter this startTime, initialise the information
 
                 if (detectedStarInfo.find(startTime) == detectedStarInfo.end())
@@ -613,7 +617,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
             }
         }
 
-        Log.debug("Camera: Incremented flux of stars in subfield");
+        Log.debug("Camera: at time " + to_string(internalTime) + ": incremented flux of " + to_string(NstarsInSubfield) + " stars in subfield");
 
 
         // Update the clock. Normally with 'timeStep', but if adding timeStep would overstep
