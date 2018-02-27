@@ -142,6 +142,7 @@ CCD:
         p0:                          0.05            # Value for p0 parameter in Eq. (18) in Guyonnet et al. 2015
         p1:                          0.15            # Value for p1 parameter in Eq. (18) in Guyonnet et al. 2015
         RefFlux:                     1e6             # Reference flux for the brighter-fatter effect [e-]
+    ChargeDiffusionStrength:         0.2             # Charge diffusion strength (width of the Gaussian diffusion kernel) [pixels]
     Gain:                           
         RefValueLeft:                1.80            # [microV/e-]
         RefValueRight:               1.80            # [microV/e-]
@@ -186,6 +187,8 @@ CCD:
     TemperatureFileName:             inputfiles/feeTemperature.txt
     IncludeFlatfield:                yes             # Include flatfield [yes or no]
     IncludeBFE:                      yes             # Include the brighter-fatter effect [yes or no]
+    IncludeChargeDiffusion:          yes             # Include charge diffusion [yes or no]
+    IncludeSubPixelMapCorrection:    no              # Include sub-pixel map correction [yes or no] (only relevant if charge diffusion is deactivated)
     IncludeFlatfield:                yes             # Include flatfield [yes or no]
     IncludePhotonNoise:              yes             # include photon noise [yes or no]
     IncludeReadoutNoise:             yes             # Include readout noise [yes or no]
