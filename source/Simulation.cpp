@@ -536,6 +536,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 	addDouble("ReadoutNoise");
     addDouble("ReadoutTime");
     addDouble("FlatfieldPtPNoise");
+    addDouble("ChargeDiffusionStrength");
 	addDouble("NominalOperatingTemperature");
 	addString("Temperature");
 	addString("TemperatureFileName");
@@ -555,6 +556,8 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("IncludeFullWellSaturation");
     addBoolean("IncludeQuantisation");
     addBoolean("IncludeDigitalSaturation");
+    addBoolean("IncludeChargeDiffusion");
+    addBoolean("IncludeSubPixelCorrection");
     // addBoolean("WriteSubPixelImagesToHDF5"); - Moved into ControlHDF5Content group below
 
 	subGroup = "CCD/Gain";
