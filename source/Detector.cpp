@@ -1,6 +1,110 @@
 #include "Detector.h"
 
 /**
+ * \brief Add a part to the definite integral of the analytic PSF and adjust the normalization factor accordingly.
+ *
+ * \param ox:    relative x offset
+ * \param oy:    relative y offset
+ * \param h:     relative height
+ * \param sigma: width of Gaussian term
+ * \param r:     strength and type of periodic term
+ * \param rho:   distance between Gaussian term and periodic term
+ * \param phi:   orientation of periodic term
+ *
+ * \return reference to itself
+ **/
+
+IntegralOfAnalyticSignalResponse& IntegralOfAnalyticSignalResponse::addPart(double ox, double oy, double h, double sigma, double r, double rho, double phi)
+{
+    using Faddeeva::erf;
+
+    ox += (size - (size & 1)) / 2.;
+    oy += (size - (size & 1)) / 2.;
+
+    erfxr.emplace_back(size + 1);
+    erfyr.emplace_back(size + 1);
+    double sr = 1. / sqrt(2.) / sigma;
+    double fr1 = sqrt(M_PI * fabs(h) * sigma * sigma / (r != 0.? 4.: 2.));
+    double fr2 = h < 0.? -fr1: fr1;
+
+    erfxr.back()[0] = erf(-sr * ox);
+    erfyr.back()[0] = erf(-sr * oy);
+    for (unsigned i = 0; i < size; i++)
+    {
+        erfxr.back()[i] = ((erfxr.back()[i + 1] = erf(sr * (i + 1. - ox))) - erfxr.back()[i]) * fr1;
+        erfyr.back()[i] = ((erfyr.back()[i + 1] = erf(sr * (i + 1. - oy))) - erfyr.back()[i]) * fr2;
+    }
+    n += 4. * fr1 * fr2;
+
+    if (r != 0.)
+    {
+        erfxc.emplace_back(size + 1);
+        erfyc.emplace_back(size + 1);
+        double delta = 2. * M_PI * sigma * sigma / r / r;
+        complex<double> sc = sr * sqrt(complex<double>(1., delta));
+        complex<double> xc = complex<double>(0., M_PI / fabs(r) * sqrt(rho) * cos(phi)) / sc;
+        complex<double> yc = complex<double>(0., M_PI / fabs(r) * sqrt(rho) * sin(phi)) / sc;
+        complex<double> fc = sqrt((r < 0.? -fr1: fr1) * fr2 * exp(-M_PI * rho / (1. + delta * delta) * complex<double>(delta, 1.)) / complex<double>(1., delta));
+
+        erfxc.back()[0] = erf(xc - sc * ox);
+        erfyc.back()[0] = erf(yc - sc * oy);
+        for (unsigned i = 0; i < size; i++)
+        {
+            erfxc.back()[i] = ((erfxc.back()[i + 1] = erf(xc + sc * (i + 1. - ox))) - erfxc.back()[i]) * fc;
+            erfyc.back()[i] = ((erfyc.back()[i + 1] = erf(yc + sc * (i + 1. - oy))) - erfyc.back()[i]) * fc;
+        }
+        n -= 4. * (fc.real() * fc.real() - fc.imag() * fc.imag());
+    }
+    return *this;
+}
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Get integral of analytic PSF for a (sub)pixel.
+ *
+ * \param i:    x direction
+ * \param j:    y direction
+ * \param norm: apply normalization
+ *
+ * \return normalized or unnormalized integral of analytic PSF for (sub)pixel (i, j)
+ **/
+
+double IntegralOfAnalyticSignalResponse::operator()(unsigned i, unsigned j, bool norm)
+{
+    if (i >= size || j >= size)
+    {
+        return 0.;
+    }
+
+    double ret = 0.;
+    for (unsigned k = 0; k < erfxr.size() && k < erfyr.size(); k++)
+    {
+        ret += erfxr[k][i] * erfyr[k][j];
+    }
+
+    for (unsigned k = 0; k < erfxc.size() && k < erfyc.size(); k++)
+    {
+        ret -= erfxc[k][i].real() * erfyc[k][j].real() - erfxc[k][i].imag() * erfyc[k][j].imag();
+    }
+
+    return norm? ret / n: ret;
+}
+
+
+
+
+
+
+
+
+/**
  * \brief Constructor.
  * 
  * \details
@@ -208,6 +312,8 @@ void Detector::updateParameters(double time)
     p0BFE                               = configParam.getDouble("CCD/BFE/p0");
     p1BFE                               = configParam.getDouble("CCD/BFE/p1");
     refFluxBFE                          = configParam.getDouble("CCD/BFE/RefFlux");
+
+    chargeDiffusionStrength             = configParam.getDouble("CCD/ChargeDiffusionStrength");
     fullWellSaturationLimit             = configParam.getLong("CCD/FullWellSaturation");
     digitalSaturationLimit              = configParam.getLong("CCD/DigitalSaturation");
     readoutNoise                        = configParam.getDouble("CCD/ReadoutNoise");
@@ -247,6 +353,7 @@ void Detector::updateParameters(double time)
 
     nominalOperatingTemperature     = configParam.getDouble("CCD/NominalOperatingTemperature");
 
+    includeChargeDiffusion          = configParam.getBoolean("CCD/IncludeChargeDiffusion");
     includeParticulateContamination = configParam.getBoolean("CCD/IncludeParticulateContamination");
     includeMolecularContamination   = configParam.getBoolean("CCD/IncludeMolecularContamination");
     includeDarkSignal               = configParam.getBoolean("CCD/IncludeDarkSignal");

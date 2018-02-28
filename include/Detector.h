@@ -5,8 +5,11 @@
 #include <cmath>
 #include <random>
 #include <functional>
+#include <valarray>
 
 #include "armadillo"
+
+#include "Faddeeva.hh"
 
 #include "Constants.h"
 #include "ArrayOperations.h"
@@ -25,6 +28,35 @@
 using namespace std;
 
 class Camera;      // forward declaration
+
+
+
+class IntegralOfAnalyticSignalResponse
+{
+    public:
+
+		IntegralOfAnalyticSignalResponse(){};
+		IntegralOfAnalyticSignalResponse(size_t s) : size(s), n(0.) {}
+		virtual ~IntegralOfAnalyticSignalResponse(){};
+		IntegralOfAnalyticSignalResponse& addPart(double, double, double, double, double = 0., double = 0., double = 0.);
+        double operator()(unsigned, unsigned, bool = true);
+
+    private:
+
+        size_t size;                              // number of (sub)pixels in one dimension
+        double n;                                 // normalization factor
+        vector<valarray<double>> erfxr;           // evaluated error functions for x
+        vector<valarray<double>> erfyr;           // evaluated error functions for y
+        vector<valarray<complex<double>>> erfxc;  // evaluated complex error functions for x
+        vector<valarray<complex<double>>> erfyc;  // evaluated complex error functions for y
+};
+
+
+
+
+
+
+
 
 
 
@@ -125,11 +157,12 @@ class Detector: public HDF5Writer
         unsigned int numEdgePixels;              // Nr of pixels to extend the subfield on each side, to account for the edge effect
 
         arma::Cube<float> guyonnetCoefficients;  // Coefficients a^X_ij for the BFE in Sect. 6.1 in Guyonnet et al. 2015
-        bool includeBFE;							// Whether or not to include the BFE
         double p0BFE;        					// Value for p0 parameter in Eq. (18) in Guyonnet et al. 2015
         double p1BFE;						    // Value for p1 parameter in Eq. (18) in Guyonnet et al. 2015
         int rangeBFE;							// How far pixels can be apart and still influence each other [pixels] (use window with dimensions 2 * range + 1)
         double refFluxBFE;                       // Reference flux for the p0 and p1 parameters for BFE [e-]
+
+        double chargeDiffusionStrength;			// Strength of the charge diffusion (width of the Gaussian diffusion kernel) [pixels]
 
         bool includeCosmics;                     // Whether or not to include cosmic hits
         double cosmicHitRate;					// Cosmic hit rate [events / cm^2 / s]
@@ -166,6 +199,8 @@ class Detector: public HDF5Writer
         vector<double> trapCaptureCrossSection;  // For each trap species: the trap capture cross section [m^2]
         vector<double> releaseTime;              // For each trap species: the electron release time [s]
 
+        bool includeBFE;							// Whether or not to include the BFE
+        bool includeChargeDiffusion;				// Whether or not to include charge diffusion
         bool includeDarkSignal;	      			// Whether or not to include dark
         bool includePhotonNoise;                 // Whether or not to include photon noise
         bool includeReadoutNoise;                // Include readout noise [yes or no]
