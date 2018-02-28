@@ -44,6 +44,14 @@ DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configPara
     subPixelMap.zeros(numRowsSubPixelMap, numColumnsSubPixelMap);
     flatfieldMap.ones(numRowsSubPixelMap, numColumnsSubPixelMap);
 
+    if(includeChargeDiffusion)
+    {
+    		// Create the diffusion kernel
+
+    		diffusionKernelWidth = chargeDiffusionStrength * numSubPixelsPerPixel;
+    		diffusionKernel = IntegralOfAnalyticSignalResponse(diffusionKernelWidth);
+    }
+
     if(includeFlatfield)
     {
         // Generate the flatfield map
@@ -437,7 +445,9 @@ tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yF
 
     // Sub-field coordinates, taking into account the edge pixels 
     // (subpixRow, subpixColumn) are the indices of the star in the subpixelMap. So they are not 
-    // subpixel coordinates in the CCD frame, but in the subfield reference frame.
+    // sub-pixel coordinates in the CCD frame, but in the subfield reference frame.
+
+    // TODO
 
     const double subpixColumn = round((pixColumn - subFieldZeroPointColumn + numEdgePixels) * numSubPixelsPerPixel);
     const double subpixRow    = round((pixRow    - subFieldZeroPointRow    + numEdgePixels) * numSubPixelsPerPixel);
@@ -449,11 +459,20 @@ tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yF
     pixRow    = subpixRow    / numSubPixelsPerPixel - numEdgePixels;
     pixColumn = subpixColumn / numSubPixelsPerPixel - numEdgePixels;
 
-    // Add the flux to the subPixelMap
+    // Add the flux to the sub-pixel map
 
     if (isInSubPixelMap(subpixRow, subpixColumn))
     {
-        subPixelMap((int) subpixRow, (int) subpixColumn) += flux;
+    		if(includeChargeDiffusion){
+
+    			// Apply charge diffusion
+
+    			applyChargeDiffusion(subpixRow, subpixColumn, flux);
+    		}
+    		else {
+    			subPixelMap((int) subpixRow, (int) subpixColumn) += flux;
+    		}
+
         return make_tuple(true, pixRow, pixColumn);
     }
     else
@@ -461,6 +480,50 @@ tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yF
         return make_tuple(false, pixRow, pixColumn);
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief: Applies charge diffusion for the given flux at the given position in the sub-pixel map.
+ *
+ * \param subpixelRow: Row index [sub-pixels]. NOT a coordinate in the CCD frame, but in the subfield frame.
+ * \param subpixColumn: Column index [sub-pixels].  NOT a coordinate in the CCD frame, but in the subfield frame.
+ * \param flux: Flux for which to apply charge diffusion [photons].
+ */
+void DetectorWithMappedPSF::applyChargeDiffusion(int subpixRow, int subpixColumn, double flux)
+{
+	int size = 2 * (int) (diffusionKernelWidth + 1) + 1;
+
+	int sx = (int) floor(subpixColumn - (size - 1.) / 2.);
+	int sy = (int) floor(subpixRow - (size - 1.) / 2.);
+
+	// How far off from the centre of the pixel?
+	// In the diffusion kernel, size / 2 will be added to make sure the centre
+	// of the diffusion kernel is as far off from the centre of the diffusion image
+
+	double offsetInColumn = subpixColumn - floor(subpixColumn);
+	double offsetInRow = subpixRow - floor(subpixRow);
+
+	diffusionKernel.addPart(offsetInColumn, offsetInRow, 1., diffusionKernelWidth);
+
+	for(int row = max(0, sy); row < min((int) numRowsSubPixelMap, sy + size); row++)
+	{
+		for(int column = max(0, sx); column < min((int) numColumnsSubPixelMap, sx + size); column++)
+		{
+			subPixelMap.at(row, column) += diffusionKernel(column - sx, row - sy) * flux;
+		}
+	}
+}
+
 
 
 
