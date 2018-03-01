@@ -91,7 +91,7 @@ Camera:
 
 PSF:
 
-    Model:                           AnalyticNonGaussian # PSF model: MappedGaussian, MappedFromFile, AnalyticGaussian, AnalyticNonGaussian
+    Model:                           MappedFromFile # PSF model: MappedGaussian, MappedFromFile, AnalyticGaussian, AnalyticNonGaussian
     MappedGaussian:                                  # Generate the PSF from a fixed 2D Gaussian function
         Sigma:                       0.641           # Standard deviation of Gaussian PSF [pix]
         NumberOfPixels:              8               # The number of pixels in the field for which the PSF is generated
@@ -192,7 +192,6 @@ CCD:
     IncludeDarkSignal:               yes             # Include dark signal non-uniformity [yes or no]
     IncludeBFE:                      yes             # Include the brighter-fatter effect [yes or no]
     IncludeChargeDiffusion:          yes             # Include charge diffusion [yes or no]
-    IncludeSubPixelMapCorrection:    no              # Include sub-pixel map correction [yes or no] (only relevant if charge diffusion is deactivated)
     IncludePhotonNoise:              yes             # Include photon noise [yes or no]
     IncludeReadoutNoise:             yes             # Include readout noise [yes or no]
     IncludeCTIeffects:               yes             # Include charge transfer inefficiency effects [yes or no]

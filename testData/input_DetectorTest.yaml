@@ -188,7 +188,6 @@ CCD:
     IncludeFlatfield:                yes             # Include flatfield [yes or no]
     IncludeBFE:                      yes             # Include the brighter-fatter effect [yes or no]
     IncludeChargeDiffusion:          yes             # Include charge diffusion [yes or no]
-    IncludeSubPixelMapCorrection:    no              # Include sub-pixel map correction [yes or no] (only relevant if charge diffusion is deactivated)
     IncludeFlatfield:                yes             # Include flatfield [yes or no]
     IncludePhotonNoise:              yes             # include photon noise [yes or no]
     IncludeReadoutNoise:             yes             # Include readout noise [yes or no]

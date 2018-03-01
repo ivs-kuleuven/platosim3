@@ -181,7 +181,6 @@ CCD:
     IncludeDarkSignal:               yes             # Include dark signal non-uniformity [yes or no]
     IncludeBFE:                      yes             # Include the brighter-fatter effect [yes or no]
     IncludeChargeDiffusion:          yes             # Include charge diffusion [yes or no]
-    IncludeSubPixelMapCorrection:    no              # Include sub-pixel map correction [yes or no] (only relevant if charge diffusion is deactivated)
     IncludePhotonNoise:              yes             # Include photon noise [yes or no]
     IncludeReadoutNoise:             yes             # Include readout noise [yes or no]
     IncludeCTIeffects:               no              # Include charge transfer inefficiency effects [yes or no]
