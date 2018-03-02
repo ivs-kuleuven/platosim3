@@ -30,7 +30,7 @@ TEST(ConfigurationParametersTest, readGlobalValues)
 {
     LOG_STARTING_OF_TEST
 
-    ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
+    ConfigurationParameters cp = ConfigurationParameters(string(getenv("PLATO_PROJECT_HOME")) + "/testData/input_ConfigurationParametersTest.yaml");
 
     string description = cp.getString("Description");
     EXPECT_STREQ(description.c_str(), "YAML Input File for 3rd Generation PLATO Simulator");
@@ -47,7 +47,7 @@ TEST(ConfigurationParametersTest, readGeneralValues)
 {
     LOG_STARTING_OF_TEST
 
-    ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
+    ConfigurationParameters cp = ConfigurationParameters(string(getenv("PLATO_PROJECT_HOME")) + "/testData/input_ConfigurationParametersTest.yaml");
 
     string projectLocation = cp.getString("General/ProjectLocation");
     EXPECT_STREQ(projectLocation.c_str(), "/Users/rik/Work/PLATO");
@@ -64,7 +64,7 @@ TEST(ConfigurationParametersTest, readObservingValues)
 {
     LOG_STARTING_OF_TEST
 
-    ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
+    ConfigurationParameters cp = ConfigurationParameters(string(getenv("PLATO_PROJECT_HOME")) + "/testData/input_ConfigurationParametersTest.yaml");
 
     int exposureTime = cp.getInteger("Observing/ExposureTime");
     EXPECT_EQ(21, exposureTime);
@@ -90,7 +90,7 @@ TEST(ConfigurationParametersTest, readSpecialValues)
 {
     LOG_STARTING_OF_TEST
 
-    ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
+    ConfigurationParameters cp = ConfigurationParameters(string(getenv("PLATO_PROJECT_HOME")) + "/testData/input_ConfigurationParametersTest.yaml");
 
     int zeroValue = cp.getInteger("Special Values/zero");
     EXPECT_EQ(0, zeroValue);
@@ -133,7 +133,7 @@ TEST(ConfigurationParametersTest, testConversions)
 {
     LOG_STARTING_OF_TEST
 
-    ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
+    ConfigurationParameters cp = ConfigurationParameters(string(getenv("PLATO_PROJECT_HOME")) + "/testData/input_ConfigurationParametersTest.yaml");
 
     // Can convert an integer value into a double
     double exposureTime = cp.getDouble("Observing/ExposureTime");
@@ -156,7 +156,7 @@ TEST(ConfigurationParametersTest, testNonExistingKey)
 {
     LOG_STARTING_OF_TEST
 
-    ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
+    ConfigurationParameters cp = ConfigurationParameters(string(getenv("PLATO_PROJECT_HOME")) + "/testData/input_ConfigurationParametersTest.yaml");
 
     ASSERT_THROW(string unknown = cp.getString("UnknownNode"), IllegalArgumentException);
     ASSERT_THROW(string unknown = cp.getString("Special Values/UnknownSubNode"), IllegalArgumentException);
@@ -225,7 +225,7 @@ TEST(ConfigurationParametersTest, testHasParameter)
 {
     LOG_STARTING_OF_TEST
 
-    ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
+    ConfigurationParameters cp = ConfigurationParameters(string(getenv("PLATO_PROJECT_HOME")) + "/testData/input_ConfigurationParametersTest.yaml");
 
     EXPECT_TRUE(cp.hasParameter("Degradation/Efficiency"));
     EXPECT_TRUE(cp.hasParameter("Degradation/Efficiency/BOL"));
@@ -278,7 +278,7 @@ TEST(ConfigurationParametersTest, Sequences)
 {
     LOG_STARTING_OF_TEST
 
-    ConfigurationParameters cp = ConfigurationParameters("../testData/input_ConfigurationParametersTest.yaml");
+    ConfigurationParameters cp = ConfigurationParameters(string(getenv("PLATO_PROJECT_HOME")) + "/testData/input_ConfigurationParametersTest.yaml");
 
     vector<double> values = cp.getDoubleVector("Sequences/Polynomial/Coefficients");
 

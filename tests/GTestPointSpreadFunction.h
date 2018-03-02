@@ -32,7 +32,7 @@ class PointSpreadFunctionTest : public testing::Test
 
         virtual void SetUp()
         {
-            configParams = ConfigurationParameters("../testData/input_PointSpreadFunctionTest.yaml");
+            configParams = ConfigurationParameters(getenv("PLATO_PROJECT_HOME") + "/testData/input_PointSpreadFunctionTest.yaml");
         
             hdf5File.open(hdf5Filename);
         }
