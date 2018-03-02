@@ -313,7 +313,6 @@ void Detector::updateParameters(double time)
     p1BFE                               = configParam.getDouble("CCD/BFE/p1");
     refFluxBFE                          = configParam.getDouble("CCD/BFE/RefFlux");
 
-    chargeDiffusionStrength             = configParam.getDouble("CCD/ChargeDiffusionStrength");
     fullWellSaturationLimit             = configParam.getLong("CCD/FullWellSaturation");
     digitalSaturationLimit              = configParam.getLong("CCD/DigitalSaturation");
     readoutNoise                        = configParam.getDouble("CCD/ReadoutNoise");
@@ -353,7 +352,6 @@ void Detector::updateParameters(double time)
 
     nominalOperatingTemperature     = configParam.getDouble("CCD/NominalOperatingTemperature");
 
-    includeChargeDiffusion          = configParam.getBoolean("CCD/IncludeChargeDiffusion");
     includeParticulateContamination = configParam.getBoolean("CCD/IncludeParticulateContamination");
     includeMolecularContamination   = configParam.getBoolean("CCD/IncludeMolecularContamination");
     includeDarkSignal               = configParam.getBoolean("CCD/IncludeDarkSignal");
