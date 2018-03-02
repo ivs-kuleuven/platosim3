@@ -162,7 +162,6 @@ class Detector: public HDF5Writer
         int rangeBFE;							// How far pixels can be apart and still influence each other [pixels] (use window with dimensions 2 * range + 1)
         double refFluxBFE;                       // Reference flux for the p0 and p1 parameters for BFE [e-]
 
-        double chargeDiffusionStrength;			// Strength of the charge diffusion (width of the Gaussian diffusion kernel) [pixels]
 
         bool includeCosmics;                     // Whether or not to include cosmic hits
         double cosmicHitRate;					// Cosmic hit rate [events / cm^2 / s]
@@ -200,7 +199,6 @@ class Detector: public HDF5Writer
         vector<double> releaseTime;              // For each trap species: the electron release time [s]
 
         bool includeBFE;							// Whether or not to include the BFE
-        bool includeChargeDiffusion;				// Whether or not to include charge diffusion
         bool includeDarkSignal;	      			// Whether or not to include dark
         bool includePhotonNoise;                 // Whether or not to include photon noise
         bool includeReadoutNoise;                // Include readout noise [yes or no]
