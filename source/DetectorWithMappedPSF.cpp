@@ -46,10 +46,9 @@ DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configPara
 
     if(includeChargeDiffusion)
     {
-    		// Create the diffusion kernel
+    		// Generate the diffusion kernel
 
-    		diffusionKernelWidth = chargeDiffusionStrength * numSubPixelsPerPixel;
-    		diffusionKernel = IntegralOfAnalyticSignalResponse(diffusionKernelWidth);
+    		generateDiffusionKernel();
     }
 
     if(includeFlatfield)
@@ -128,6 +127,39 @@ DetectorWithMappedPSF::~DetectorWithMappedPSF()
     numColumnsSubPixelMap = numColumnsPixelMap * numSubPixelsPerPixel;  // TODO Add edge pixels
 
  }
+
+
+
+
+
+
+
+
+ /**
+  * \brief: Generate the diffusion kernel.  This is generated at sub-pixel level.
+  */
+ void DetectorWithMappedPSF::generateDiffusionKernel()
+ {
+	Log.info("Generate diffusion kernel");
+
+	 diffusionKernelWidth = chargeDiffusionStrength * numSubPixelsPerPixel;
+	 diffusionKernelImageSize = 2 * (int) (diffusionKernelWidth + 1) + 1;
+
+	 Log.info("Create signal response");
+
+	 IntegralOfAnalyticSignalResponse signalResponse = IntegralOfAnalyticSignalResponse(diffusionKernelImageSize);
+	 signalResponse.addPart(0.0, 0.0, 1.0, diffusionKernelWidth);
+
+	 diffusionKernel.zeros(diffusionKernelImageSize, diffusionKernelImageSize);
+
+	 for (unsigned int row = 0; row < diffusionKernelImageSize; row++)
+	 {
+		 for (unsigned int column = 0; column < diffusionKernelImageSize; column++)
+		 {
+			 diffusionKernel(row, column) = signalResponse(column, row);
+		 }
+	 }
+}
 
 
 
@@ -447,8 +479,6 @@ tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yF
     // (subpixRow, subpixColumn) are the indices of the star in the subpixelMap. So they are not 
     // sub-pixel coordinates in the CCD frame, but in the subfield reference frame.
 
-    // TODO
-
     const double subpixColumn = round((pixColumn - subFieldZeroPointColumn + numEdgePixels) * numSubPixelsPerPixel);
     const double subpixRow    = round((pixRow    - subFieldZeroPointRow    + numEdgePixels) * numSubPixelsPerPixel);
 
@@ -501,27 +531,43 @@ tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yF
  */
 void DetectorWithMappedPSF::applyChargeDiffusion(int subpixRow, int subpixColumn, double flux)
 {
-	int size = 2 * (int) (diffusionKernelWidth + 1) + 1;
+	Log.info("Apply charge diffusion");
 
-	int sx = (int) floor(subpixColumn - (size - 1.) / 2.);
-	int sy = (int) floor(subpixRow - (size - 1.) / 2.);
+	int sx = subpixColumn - (diffusionKernelImageSize - 1) / 2;
+	int sy = subpixRow - (diffusionKernelImageSize - 1) / 2;
 
 	// How far off from the centre of the pixel?
 	// In the diffusion kernel, size / 2 will be added to make sure the centre
 	// of the diffusion kernel is as far off from the centre of the diffusion image
 
-	double offsetInColumn = subpixColumn - floor(subpixColumn);
-	double offsetInRow = subpixRow - floor(subpixRow);
+//	double offsetInColumn = subpixColumn - floor(subpixColumn);
+//	double offsetInRow = subpixRow - floor(subpixRow);
+//
+//	diffusionKernel.addPart(offsetInColumn, offsetInRow, 1., diffusionKernelWidth);
 
-	diffusionKernel.addPart(offsetInColumn, offsetInRow, 1., diffusionKernelWidth);
+	Log.info("Row span");
+	arma::span rowSpan = arma::span(max(0, sy), min((int)numRowsSubPixelMap, sy + diffusionKernelImageSize) - 1);
+	Log.info("Column span");
+	arma::span columnSpan = arma::span(max(0, sx), min((int) numColumnsSubPixelMap, sx + diffusionKernelImageSize) - 1);
 
-	for(int row = max(0, sy); row < min((int) numRowsSubPixelMap, sy + size); row++)
-	{
-		for(int column = max(0, sx); column < min((int) numColumnsSubPixelMap, sx + size); column++)
-		{
-			subPixelMap.at(row, column) += diffusionKernel(column - sx, row - sy) * flux;
-		}
-	}
+	Log.info("X span");
+	arma::span xSpan = arma::span(max(0, sx) - sx, min((int) numColumnsSubPixelMap, sx + diffusionKernelImageSize) - sx - 1);
+	Log.info("Y span");
+	arma::span ySpan = arma::span(max(0, sy) - sy, min((int) numRowsSubPixelMap, sy + diffusionKernelImageSize) - sy - 1);
+
+	Log.info("Sub-pixel map");
+	subPixelMap(rowSpan, columnSpan) = subPixelMap(rowSpan, columnSpan) + 0; //+ diffusionKernel(xSpan, ySpan) * flux;
+	Log.info("Diffusion kernel");
+	diffusionKernel(xSpan, ySpan) = diffusionKernel(xSpan, ySpan) + 0;
+
+	Log.info("Yippee!");
+//	for(int row = max(0, sy); row < min((int) numRowsSubPixelMap, sy + size); row++)
+//	{
+//		for(int column = max(0, sx); column < min((int) numColumnsSubPixelMap, sx + size); column++)
+//		{
+//			subPixelMap.at(row, column) += diffusionKernel(column - sx, row - sy) * flux;
+//		}
+//	}
 }
 
 

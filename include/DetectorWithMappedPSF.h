@@ -34,8 +34,10 @@ class DetectorWithMappedPSF: public Detector
         virtual void initHDF5Groups() override;
         virtual void integrateLight(int exposureNr, double startTime, double exposureTime) override;
         virtual bool isInSubPixelMap(double row, double column);
+        virtual void applyChargeDiffusion(int row, int column, double flux);
         virtual void applyFlatfield() override;
         virtual void generateFlatfieldMap();
+        virtual void generateDiffusionKernel();
         virtual void rebin();
         void writeSubPixelMapToHDF5(int exposureNr);
 
@@ -54,6 +56,9 @@ class DetectorWithMappedPSF: public Detector
         bool writeSubPixelImagesToHDF5;         // Write subpixel maps to HDF5 as well
         bool includeConvolution;                // Whether or not to convolve the subPixelMap with the PSF
 
+        arma::Mat<float> diffusionKernel;		// Gaussian diffusion kernel
+        int diffusionKernelWidth;				// Width (sigma) of the Gaussian diffusion kernel [sub-pixels]
+        int diffusionKernelImageSize;            // Size of the diffusion kernel image [sub-pixels]
 
         unsigned int numRowsSubPixelMap;        // Nr of subpixel rows in the subfield incl. edge pixels (= size in the y-direction) [subpixels]
         unsigned int numColumnsSubPixelMap;     // Nr of subpixel columns in the subfield incl. edge pixels (= size in the x-direction = readout direction) [subpixels]

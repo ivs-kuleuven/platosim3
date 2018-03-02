@@ -35,7 +35,7 @@ class IntegralOfAnalyticSignalResponse
 {
     public:
 
-		IntegralOfAnalyticSignalResponse(){};
+		IntegralOfAnalyticSignalResponse() : size(0), n(0.) {};
 		IntegralOfAnalyticSignalResponse(size_t s) : size(s), n(0.) {}
 		virtual ~IntegralOfAnalyticSignalResponse(){};
 		IntegralOfAnalyticSignalResponse& addPart(double, double, double, double, double = 0., double = 0., double = 0.);
