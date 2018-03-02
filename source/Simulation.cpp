@@ -479,6 +479,8 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addDouble("Sigma");
     addInteger("NumberOfPixels");
+    addDouble("ChargeDiffusionStrength");
+    addBoolean("IncludeChargeDiffusion");
 
     subGroup = "PSF/MappedFromFile";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
@@ -486,6 +488,8 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("DistanceToOA");
     addDouble("RotationAngle");
     addInteger("NumberOfPixels");
+    addDouble("ChargeDiffusionStrength");
+    addBoolean("IncludeChargeDiffusion");
 
     subGroup = "PSF/AnalyticGaussian";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
@@ -536,7 +540,6 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 	addDouble("ReadoutNoise");
     addDouble("ReadoutTime");
     addDouble("FlatfieldPtPNoise");
-    addDouble("ChargeDiffusionStrength");
 	addDouble("NominalOperatingTemperature");
 	addString("Temperature");
 	addString("TemperatureFileName");
@@ -556,7 +559,6 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("IncludeFullWellSaturation");
     addBoolean("IncludeQuantisation");
     addBoolean("IncludeDigitalSaturation");
-    addBoolean("IncludeChargeDiffusion");
     // addBoolean("WriteSubPixelImagesToHDF5"); - Moved into ControlHDF5Content group below
 
 	subGroup = "CCD/Gain";
