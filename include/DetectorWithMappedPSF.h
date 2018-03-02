@@ -50,6 +50,9 @@ class DetectorWithMappedPSF: public Detector
         arma::Mat<float> psfMap;                // The PSF map that will be used for convolving
         arma::Mat<float> flatfieldMap;          // Intra-pixel flatfield map
 
+        double chargeDiffusionStrength;			// Strength of the charge diffusion (width of the Gaussian diffusion kernel) [pixels]
+        bool includeChargeDiffusion;				// Whether or not to include charge diffusion
+
         double flatfieldNoiseAmplitude;         // Peak-to-peak noise amplitude
 
         bool includeFlatfield;                  // Whether or not to include flat fielding
