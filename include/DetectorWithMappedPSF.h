@@ -60,7 +60,7 @@ class DetectorWithMappedPSF: public Detector
         bool includeConvolution;                // Whether or not to convolve the subPixelMap with the PSF
 
         arma::Mat<float> diffusionKernel;		// Gaussian diffusion kernel
-        int diffusionKernelWidth;				// Width (sigma) of the Gaussian diffusion kernel [sub-pixels]
+        double diffusionKernelWidth;				// Width (sigma) of the Gaussian diffusion kernel [sub-pixels]
         int diffusionKernelImageSize;            // Size of the diffusion kernel image [sub-pixels]
 
         unsigned int numRowsSubPixelMap;        // Nr of subpixel rows in the subfield incl. edge pixels (= size in the y-direction) [subpixels]
