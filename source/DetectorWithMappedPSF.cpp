@@ -159,18 +159,7 @@ DetectorWithMappedPSF::~DetectorWithMappedPSF()
 	Log.info(to_string(chargeDiffusionStrength) + " " + to_string(numSubPixelsPerPixel));
 
 	diffusionKernelWidth = chargeDiffusionStrength * numSubPixelsPerPixel;
-	diffusionKernelImageSize = 2 * (int) (diffusionKernelWidth + 1) + 1;
-
-	if(diffusionKernelWidth < 1)
-	{
-		Log.error(
-				"The width of the diffusion kernel (DiffusionStrength x SubPixels = "
-						+ to_string(diffusionKernelWidth)
-						+ ") should at least be one sub-pixel.  Either increase the charge diffusion strength to >= "
-						+ to_string(1. / numSubPixelsPerPixel)
-						+ " pixels or de-activate charge diffusion");
-		exit(1);
-	}
+	diffusionKernelImageSize = 2 * (int) (8 * diffusionKernelWidth + 1) + 1;
 
 	IntegralOfAnalyticSignalResponse signalResponse =
 			IntegralOfAnalyticSignalResponse(diffusionKernelImageSize);
