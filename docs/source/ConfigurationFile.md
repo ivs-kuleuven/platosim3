@@ -697,14 +697,16 @@ PSF:
       Sigma:                     0.638     
       NumberOfPixels:            8   
       ChargeDiffusionStrength:     0.2
-      IncludeChargeDiffusion:      yes     
+      IncludeChargeDiffusion:      no
+      IncludeJitterSmoothing:      no
     MappedFromFile:                             
       Filename:                  inputfiles/psf.hdf5 
       DistanceToOA:              -1       
       RotationAngle:             -1         
       NumberOfPixels:            8
       ChargeDiffusionStrength:     0.2
-      IncludeChargeDiffusion:      yes
+      IncludeChargeDiffusion:      no
+      IncludeJitterSmoothing:      no
     AnalyticGaussian:
       Sigma00:                   1.0
       SigmaX18:                  5.0
@@ -766,6 +768,13 @@ Charge diffusion has been modelled by a convolution with a Gaussian diffusion ke
 Indicates whether or not to include charge diffusion.
 
 
+#### <a name="inclJitterSmoothing"></a>MappedGaussian: IncludeJitterSmoothing
+
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to include jitter smoothing.  This is implemented as charge diffusion with a kernel width of 0.5 sub-pixels and alleviates the problem of jitter discontinuities.  Only applicable in case [IncludeChargeDiffusion](#inclChargeDiffusion) = False.
+
+
 
 ### <a name="mappedFromFile"></a>MappedFromFile
 
@@ -818,6 +827,15 @@ Charge diffusion has been modelled by a convolution with a Gaussian diffusion ke
 <i>Allowed values:</i> "yes" and "no"
 
 Indicates whether or not to include charge diffusion.
+
+
+
+
+#### <a name="inclJitterSmoothingFile"></a>MappedGaussian: IncludeJitterSmoothing
+
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to include jitter smoothing.  This is implemented as charge diffusion with a kernel width of 0.5 sub-pixels and alleviates the problem of jitter discontinuities.  Only applicable in case [IncludeChargeDiffusion](#inclChargeDiffusionFile) = False.
 
 
 
