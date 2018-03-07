@@ -34,10 +34,10 @@ class DetectorWithMappedPSF: public Detector
         virtual void initHDF5Groups() override;
         virtual void integrateLight(int exposureNr, double startTime, double exposureTime) override;
         virtual bool isInSubPixelMap(double row, double column);
-        virtual void applyChargeDiffusion(int row, int column, double flux);
+        virtual void applyDiffusionKernel(int row, int column, double flux);
         virtual void applyFlatfield() override;
         virtual void generateFlatfieldMap();
-        virtual void generateDiffusionKernel();
+        virtual void generateDiffusionKernel(double kernelWidth);
         virtual void rebin();
         void writeSubPixelMapToHDF5(int exposureNr);
 
@@ -52,6 +52,7 @@ class DetectorWithMappedPSF: public Detector
 
         double chargeDiffusionStrength;			// Strength of the charge diffusion (width of the Gaussian diffusion kernel) [pixels]
         bool includeChargeDiffusion;				// Whether or not to include charge diffusion
+        bool includeJitterSmoothing;             // Whether or not to include jitter smoothing
 
         double flatfieldNoiseAmplitude;         // Peak-to-peak noise amplitude
 
@@ -59,9 +60,9 @@ class DetectorWithMappedPSF: public Detector
         bool writeSubPixelImagesToHDF5;         // Write subpixel maps to HDF5 as well
         bool includeConvolution;                // Whether or not to convolve the subPixelMap with the PSF
 
-        arma::Mat<float> diffusionKernel;		// Gaussian diffusion kernel
-        double diffusionKernelWidth;				// Width (sigma) of the Gaussian diffusion kernel [sub-pixels]
-        int diffusionKernelImageSize;            // Size of the diffusion kernel image [sub-pixels]
+        IntegralOfAnalyticSignalResponse diffusionKernel;		// Gaussian diffusion kernel
+        double diffusionKernelWidth;				            // Width (sigma) of the Gaussian diffusion kernel [sub-pixels]
+        int diffusionKernelImageSize;             			// Size of the diffusion kernel image [sub-pixels]
 
         unsigned int numRowsSubPixelMap;        // Nr of subpixel rows in the subfield incl. edge pixels (= size in the y-direction) [subpixels]
         unsigned int numColumnsSubPixelMap;     // Nr of subpixel columns in the subfield incl. edge pixels (= size in the x-direction = readout direction) [subpixels]
