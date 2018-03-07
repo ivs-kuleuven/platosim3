@@ -44,7 +44,7 @@ class DetectorWithMappedPSF: public Detector
 
         PointSpreadFunction *psf;
 
-        arma::Mat<float> subPixelMap;           // Sub-pixel map, incl. edge pixels
+        //arma::Mat<float> subPixelMap;           // Sub-pixel map, incl. edge pixels
         arma::Mat<float> psfMap;                // The PSF map that will be used for convolving
         arma::Mat<float> flatfieldMap;          // Intra-pixel flatfield map
 
@@ -55,13 +55,13 @@ class DetectorWithMappedPSF: public Detector
         bool includeConvolution;                // Whether or not to convolve the subPixelMap with the PSF
 
 
-        unsigned int numRowsSubPixelMap;        // Nr of subpixel rows in the subfield incl. edge pixels (= size in the y-direction) [subpixels]
-        unsigned int numColumnsSubPixelMap;     // Nr of subpixel columns in the subfield incl. edge pixels (= size in the x-direction = readout direction) [subpixels]
-        unsigned int numSubPixelsPerPixel;      // Nr of sub-pixels per pixel
+        //unsigned int numRowsSubPixelMap;        // Nr of subpixel rows in the subfield incl. edge pixels (= size in the y-direction) [subpixels]
+        //unsigned int numColumnsSubPixelMap;     // Nr of subpixel columns in the subfield incl. edge pixels (= size in the x-direction = readout direction) [subpixels]
+        //unsigned int numSubPixelsPerPixel;      // Nr of sub-pixels per pixel
         
         long flatfieldSeed;
 
-
+        void subPixelMapCorrection(double subpixColumn, double subpixRow, double correctionParameter, double flux);
 
     private:
 

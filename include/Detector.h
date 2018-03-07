@@ -22,9 +22,48 @@
 #include "Logger.h"
 #include "Units.h"
 
+#include "Faddeeva.hh"
+
 using namespace std;
 
+
 class Camera;      // forward declaration
+
+
+// moved and renamed the class from DetectorWithAnalyticNonGaussianPSF.h to make it available 
+// for DetectorWithMappedPSF as well ~bert
+
+class IntegralOfAnalyticSignalResponse 
+{
+    public:
+
+        IntegralOfAnalyticSignalResponse(size_t s) : size(s), n(0.) {}
+        IntegralOfAnalyticSignalResponse& addPart(double, double, double, double, double = 0., double = 0., double = 0.);
+        double operator()(unsigned, unsigned, bool = true);
+
+    private:
+
+        size_t size;                              // number of (sub)pixels in one dimension
+        double n;                                 // normalization factor
+        vector<valarray<double>> erfxr;           // evaluated error functions for x
+        vector<valarray<double>> erfyr;           // evaluated error functions for y
+        vector<valarray<complex<double>>> erfxc;  // evaluated complex error functions for x
+        vector<valarray<complex<double>>> erfyc;  // evaluated complex error functions for y
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -214,6 +253,20 @@ class Detector: public HDF5Writer
  
         Camera &camera;
         FrontEndElectronics *frontEndElectronics;
+
+        // define the parameters used for charge diffusion and subpixel map correction
+
+        bool includeChargeDiffusion;
+        bool includeSubPixelMapCorrection;
+
+        double chargeDiffusionParameter;
+        double correctionParameter;
+
+        unsigned int numRowsSubPixelMap;
+        unsigned int numColumnsSubPixelMap;
+        unsigned int numSubPixelsPerPixel;
+
+        arma::Mat<float> subPixelMap;
 
     private:
 

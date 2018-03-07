@@ -205,6 +205,12 @@ CCD:
     IncludeDigitalSaturation:        yes             # Whether or not digital saturation should be applied
     IncludeQuantisation:             yes             # Whether or not to include quantisation
 
+    IncludeChargeDiffusion:          yes             # whether or not the effects of charge diffusion should be used
+    IncludeSubPixelMapCorrection:    no              # inluding the effects of SubPixelMapCorrection, this is only relevant, when Charge Diffuion is deactivated
+
+    ChargeDiffusionParameter:        0.2             # strength of the charge diffsuion
+
+
 
 SubField:    
 
