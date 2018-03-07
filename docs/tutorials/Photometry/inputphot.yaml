@@ -92,11 +92,17 @@ PSF:
     MappedGaussian:                                    # Generate the PSF from a 2D Gaussian function
       Sigma:                     0.641                 # Standard deviation of Gaussian PSF [pixels]
       NumberOfPixels:            8                     # The number of pixels in the field for which the PSF is generated
+      ChargeDiffusionStrength:     0.2             # Charge diffusion strength (width of the Gaussian diffusion kernel) [pixels]
+      IncludeChargeDiffusion:      no              # Include charge diffusion [yes or no]
+      IncludeJitterSmoothing:      no              # Include jitter smoothing [yes or no]
     MappedFromFile:                                    # Read a pre-calculated PSF from an HDF5 file
       Filename:                  inputfiles/psf.hdf5 
       DistanceToOA:              -1              # The angular distance to the optical axis. -1 to auto-compute. [deg]
       RotationAngle:             -1              # PSF rotation angle w.r.t the x-axis of the focal plane. -1 to auto-compute. [deg]
       NumberOfPixels:            8               # The number of pixels in the field for which the PSF is generated
+      ChargeDiffusionStrength:     0.2             # Charge diffusion strength (width of the Gaussian diffusion kernel) [pixels]
+      IncludeChargeDiffusion:      no              # Include charge diffusion [yes or no]
+      IncludeJitterSmoothing:      no              # Include jitter smoothing [yes or no]
     AnalyticGaussian:                                # Generate the PSF analytically from a non-spherical Gaussian
         Sigma00:                     1.0             # Stdev of Gaussian PSF in x- and y-direction at the optical axis      [pix]
         SigmaX18:                    5.0             # Stdev of Gaussian PSF in x-direction at 18 deg from the optical axis [pix]
@@ -160,9 +166,9 @@ CCD:
     Polarization:
       #Efficiency:                    0.978           # Throughput efficiency caused by polarisation at the reference angle
       #RefAngle:                     18.8875          # Reference angle for polarisation [degrees]
-      ExpectedValue:                 0.989           # Expected value (mean of all detector pixels)
+      ExpectedValue:                 0.989            # Expected value (mean of all detector pixels)
     Contamination:
-        ParticulateContaminationEfficiency: 0.972     # Throughput efficiency due to particulate contamination
+        ParticulateContaminationEfficiency: 0.972    # Throughput efficiency due to particulate contamination
         MolecularContaminationEfficiency:   0.9573   # Throughput efficiency due to molecular contamination
     NominalOperatingTemperature:            203.15   # Nominal operating temperature of the detector [K]
     Temperature:                     Nominal         # Temperature fixed at the nominal operating temperature
@@ -188,11 +194,11 @@ CCD:
     IncludeReadoutNoise:         yes             # Include readout noise [yes or no]
     IncludeCTIeffects:           no              # Include charge transfer inefficiency effects [yes or no]
     IncludeOpenShutterSmearing:  no              # Include trails due reading out with an open shutter [yes or no]
-    IncludeQuantumEfficiency:        yes            # Include loss of throughput due to quantum efficiency
-    IncludeVignetting:               no             # Include brightness attenuation towards the edge of the FOV due to vignetting
-    IncludePolarization:             no             # Include loss of throughput due to polarisation
-    IncludeParticulateContamination: no             # Include loss of throughput due to particulate contamination
-    IncludeMolecularContamination:   no             # Include loss of throughput due to molecular contamination
+    IncludeQuantumEfficiency:        yes         # Include loss of throughput due to quantum efficiency
+    IncludeVignetting:               no          # Include brightness attenuation towards the edge of the FOV due to vignetting
+    IncludePolarization:             no          # Include loss of throughput due to polarisation
+    IncludeParticulateContamination: no          # Include loss of throughput due to particulate contamination
+    IncludeMolecularContamination:   no          # Include loss of throughput due to molecular contamination
     IncludeVignetting:           no              # Include brightness attenuation towards the edge of the FOV due to vignetting 
     IncludeConvolution:          yes             # Whether or not to convolve the subPixelMap with the PSF
     IncludeFullWellSaturation:   yes             # Whether or not full well saturation should be applied
@@ -203,11 +209,11 @@ SubField:
 
     ZeroPointRow:                0               # Row of the (0,0) pixel of the subfield [pixels]
     ZeroPointColumn:             0               # Column of the (0,0) pixel of the subfield [pixels]
-    NumColumns:                  100            # Number of columns, should be >= 8 [pixels]
-    NumRows:                     100            # Number of rows,    should be >= 8 [pixels]
+    NumColumns:                  100             # Number of columns, should be >= 8 [pixels]
+    NumRows:                     100             # Number of rows,    should be >= 8 [pixels]
     NumBiasPrescanRows:          5               # Nr of rows of the prescan strip to determine the bias [pixels]
     NumSmearingOverscanRows:     5               # Nr of rows of the overscan strip to determine the smearing [pixels]
-    SubPixels:                   32               # (Sqrt of ) nr of subpixels per CCD pixel. Should be 2^n <= 128.
+    SubPixels:                   32              # (Sqrt of ) nr of subpixels per CCD pixel. Should be 2^n <= 128.
 
 
 RandomSeeds:
