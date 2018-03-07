@@ -481,6 +481,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addInteger("NumberOfPixels");
     addDouble("ChargeDiffusionStrength");
     addBoolean("IncludeChargeDiffusion");
+    	addBoolean("IncludeJitterSmoothing");
 
     subGroup = "PSF/MappedFromFile";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
@@ -490,6 +491,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addInteger("NumberOfPixels");
     addDouble("ChargeDiffusionStrength");
     addBoolean("IncludeChargeDiffusion");
+    addBoolean("IncludeJitterSmoothing");
 
     subGroup = "PSF/AnalyticGaussian";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
