@@ -60,7 +60,8 @@ class DetectorWithMappedPSF: public Detector
         bool writeSubPixelImagesToHDF5;         // Write subpixel maps to HDF5 as well
         bool includeConvolution;                // Whether or not to convolve the subPixelMap with the PSF
 
-        IntegralOfAnalyticSignalResponse diffusionKernel;		// Gaussian diffusion kernel
+        arma::Mat<float> diffusionKernel;                    // Diffusion kernel image
+        IntegralOfAnalyticSignalResponse signalResponse;		// Signal response
         double diffusionKernelWidth;				            // Width (sigma) of the Gaussian diffusion kernel [sub-pixels]
         int diffusionKernelImageSize;             			// Size of the diffusion kernel image [sub-pixels]
 

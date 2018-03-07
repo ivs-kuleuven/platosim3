@@ -153,39 +153,13 @@ DetectorWithMappedPSF::~DetectorWithMappedPSF()
   *
   * \param kernelWidth: Width (sigma) of the Gaussian diffusion kernel [sub-pixels].
   */
- void DetectorWithMappedPSF::generateDiffusionKernel(double kernelWidth)
- {
+void DetectorWithMappedPSF::generateDiffusionKernel(double kernelWidth)
+{
 	diffusionKernelWidth = kernelWidth;
 	diffusionKernelImageSize = 2 * (int) (8 * kernelWidth + 1) + 1;
 
-	diffusionKernel = IntegralOfAnalyticSignalResponse(diffusionKernelImageSize);
-
-//	Log.info(to_string(chargeDiffusionStrength) + " " + to_string(numSubPixelsPerPixel));
-//
-//	diffusionKernelWidth = chargeDiffusionStrength * numSubPixelsPerPixel;
-//	diffusionKernelImageSize = 2 * (int) (8 * diffusionKernelWidth + 1) + 1;
-//
-//	IntegralOfAnalyticSignalResponse signalResponse =
-//			IntegralOfAnalyticSignalResponse(diffusionKernelImageSize);
-//	signalResponse.addPart(0.0, 0.0, 1.0, diffusionKernelWidth);
-//
-//	diffusionKernel.zeros(diffusionKernelImageSize, diffusionKernelImageSize);
-//
-//	for (unsigned int row = 0; row < diffusionKernelImageSize; row++) {
-//		for (unsigned int column = 0; column < diffusionKernelImageSize;
-//				column++) {
-//			diffusionKernel(row, column) = signalResponse(column, row);
-//		}
-//	}
-//
-//	float s = arma::accu(diffusionKernel);
-//	Log.info("Diffusion kernel (sum): " + to_string(s));
-//	Log.info("Diffusion kernel (size): " + to_string(diffusionKernelWidth));
-//	Log.info("Diffusion kernel (size): " + to_string(diffusionKernelImageSize));
-//
-//	diffusionKernel /= arma::accu(diffusionKernel);
+	diffusionKernel.zeros(diffusionKernelImageSize, diffusionKernelImageSize);
 }
-
 
 
 
@@ -508,21 +482,11 @@ tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yF
     const double subpixColumn = (pixColumn - subFieldZeroPointColumn + numEdgePixels) * numSubPixelsPerPixel;
     const double subpixRow    = (pixRow    - subFieldZeroPointRow    + numEdgePixels) * numSubPixelsPerPixel;
 
-    const int roundedSubpixColumn = round(subpixColumn);
-    const int roundedSubpixRow = round(subpixRow);
-
-//    // Convert back the _rounded_ subpixel coordinates to pixel coordinates
-//    // E.g. if there are 4 subpixels per pixel, then the pixel coordinates should always end with
-//    //      0.0, 0.25, 0.5, or 0.75
-//
-//    pixRow    = subpixRow    / numSubPixelsPerPixel - numEdgePixels;
-//    pixColumn = subpixColumn / numSubPixelsPerPixel - numEdgePixels;
-
     // Add the flux to the sub-pixel map
 
-    if (isInSubPixelMap(roundedSubpixRow, roundedSubpixColumn))
+    if (isInSubPixelMap(subpixRow, subpixColumn))
     {
-    		if(includeChargeDiffusion || includeJitterSmoothing)
+    		if (includeChargeDiffusion || includeJitterSmoothing)
     		{
     			// Apply either charge diffusion or jitter smoothing
     			// - charge diffusion: kernel width -> configuration parameter "ChargeDiffusionStrength" [pixels]
@@ -530,8 +494,9 @@ tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yF
 
     			applyDiffusionKernel(subpixRow, subpixColumn, flux);
     		}
-    		else {
-    			subPixelMap(roundedSubpixRow, roundedSubpixColumn) += flux;
+    		else
+    		{
+    			subPixelMap((int) floor(subpixRow), (int) floor(subpixColumn)) += flux;
     		}
 
         return make_tuple(true, pixRow, pixColumn);
@@ -568,25 +533,33 @@ void DetectorWithMappedPSF::applyDiffusionKernel(int subpixRow, int subpixColumn
 	double ox = subpixColumn - floor(subpixColumn);
 	double oy = subpixRow - floor(subpixRow);
 
-	diffusionKernel.addPart(ox, oy, 1., diffusionKernelWidth);
+	// Establish diffusion kernel image
 
-//	arma::span rowSpan = arma::span(max(0, sy), min((int)numRowsSubPixelMap, sy + diffusionKernelImageSize) - 1);
-//	arma::span columnSpan = arma::span(max(0, sx), min((int) numColumnsSubPixelMap, sx + diffusionKernelImageSize) - 1);
-//
-//	arma::span xSpan = arma::span(max(0, sx) - sx, min((int) numColumnsSubPixelMap, sx + diffusionKernelImageSize) - sx - 1);
-//	arma::span ySpan = arma::span(max(0, sy) - sy, min((int) numRowsSubPixelMap, sy + diffusionKernelImageSize) - sy - 1);
-//
-//	subPixelMap(rowSpan, columnSpan) = subPixelMap(rowSpan, columnSpan) + diffusionKernel(ySpan, xSpan) * flux;
+	signalResponse = IntegralOfAnalyticSignalResponse(diffusionKernelImageSize);
+	signalResponse.addPart(ox, oy, 1., diffusionKernelWidth);
 
-	for(int row = max(0, sy); row < min((int) numRowsSubPixelMap, sy + diffusionKernelImageSize); row++)
+	for (unsigned int row = 0; row < diffusionKernelImageSize; row++)
 	{
-		for(int column = max(0, sx); column < min((int) numColumnsSubPixelMap, sx + diffusionKernelImageSize); column++)
+		for (unsigned int column = 0; column < diffusionKernelImageSize; column++)
 		{
-			subPixelMap.at(row, column) += diffusionKernel(column - sx, row - sy) * flux;
+			diffusionKernel(row, column) = signalResponse(column, row);
 		}
 	}
-}
 
+	// Normalisation
+
+	diffusionKernel /= arma::accu(diffusionKernel);
+
+	// Add the flux to the sub-pixel map
+
+	arma::span rowSpan = arma::span(max(0, sy), min((int) numRowsSubPixelMap, sy + diffusionKernelImageSize) - 1);
+	arma::span columnSpan = arma::span(max(0, sx), min((int) numColumnsSubPixelMap, sx + diffusionKernelImageSize) - 1);
+
+	arma::span xSpan = arma::span(max(0, sx) - sx, min((int) numColumnsSubPixelMap, sx + diffusionKernelImageSize) - sx - 1);
+	arma::span ySpan = arma::span(max(0, sy) - sy, min((int) numRowsSubPixelMap, sy + diffusionKernelImageSize) - sy - 1);
+
+	subPixelMap(rowSpan, columnSpan) += diffusionKernel(ySpan, xSpan) * flux;
+}
 
 
 
