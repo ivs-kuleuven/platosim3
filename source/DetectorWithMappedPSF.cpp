@@ -124,13 +124,9 @@ DetectorWithMappedPSF::~DetectorWithMappedPSF()
 		includeJitterSmoothing = configParam.getBoolean("PSF/" + psfModel + "/IncludeJitterSmoothing");
 		chargeDiffusionStrength = configParam.getDouble("PSF/" + psfModel + "/ChargeDiffusionStrength");
 
-		Log.info("Test: " + to_string(chargeDiffusionStrength) + " " + to_string(numSubPixelsPerPixel));
-
 		if(includeChargeDiffusion)
 		{
 			generateDiffusionKernel(chargeDiffusionStrength * numSubPixelsPerPixel);
-
-			Log.info("Kernel width: " + to_string(chargeDiffusionStrength * numSubPixelsPerPixel));
 		}
 		else if(includeJitterSmoothing)
 		{
@@ -162,11 +158,7 @@ DetectorWithMappedPSF::~DetectorWithMappedPSF()
 	diffusionKernelWidth = kernelWidth;
 	diffusionKernelImageSize = 2 * (int) (8 * kernelWidth + 1) + 1;
 
-	Log.info("Detector: generating diffusion kernel with a width of " + to_string(diffusionKernelWidth) + " sub-pixels");
-	Log.info("Diffusion kernel image size:" + to_string(diffusionKernelImageSize));
-
-
-	 diffusionKernel = IntegralOfAnalyticSignalResponse(diffusionKernelImageSize);
+	diffusionKernel = IntegralOfAnalyticSignalResponse(diffusionKernelImageSize);
 
 //	Log.info(to_string(chargeDiffusionStrength) + " " + to_string(numSubPixelsPerPixel));
 //
