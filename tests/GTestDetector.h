@@ -34,8 +34,7 @@ class DetectorTest: public testing::Test {
 protected:
 
 	virtual void SetUp() {
-		configParams = ConfigurationParameters(
-				"../testData/input_DetectorTest.yaml");
+		configParams = ConfigurationParameters(string(getenv("PLATO_PROJECT_HOME")) + "/testData/input_DetectorTest.yaml");
 		hdf5File.open(hdf5Filename);
 	}
 

@@ -31,7 +31,7 @@ class CameraTest : public testing::Test
 
         virtual void SetUp()
         {
-            configParams = ConfigurationParameters("../testData/input_CameraTest.yaml");
+            configParams = ConfigurationParameters(string(getenv("PLATO_PROJECT_HOME")) + "/testData/input_CameraTest.yaml");
         
             hdf5File.open(hdf5Filename);
         }
