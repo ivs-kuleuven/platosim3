@@ -7,12 +7,14 @@ The installation procedure will automatically detect which operating system your
 To install the latest successfully built version of the <code>master</code>, type:
 
 \code
+conda config --add channels conda-forge
 conda install -c http://www.miricle.org/platosim/ platosim
 \endcode
 
 For the develop branch, the latter command must be replaced by
 
 \code
+conda config --add channels conda-forge
 conda install -c http://www.miricle.org/platosim.devel/ platosim
 \endcode
 
