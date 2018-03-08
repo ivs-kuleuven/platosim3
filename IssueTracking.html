@@ -50,7 +50,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   <div id="navrow1" class="tabs">
     <ul class="tablist">
       <li><a href="index.html"><span>Welcome</span></a></li>
-      <li><a href="DownloadUpdateBuild.html"><span>Installing/Updating&#160;PlatoSim3</span></a></li>
+      <li><a href="InstallUsersDevelopers.html"><span>Installing/Updating&#160;PlatoSim3</span></a></li>
       <li><a href="Running.html"><span>Running&#160;PlatoSim3</span></a></li>
       <li><a href="IssueTracking.html"><span>Help&#160;(Issue&#160;Tracking)</span></a></li>
       <li>
@@ -126,12 +126,13 @@ Figure 2: Reporting a new issue on GitHub.</div></div>
 <li>In case the results are different than you expected, please explain us which numbers you expected and why.</li>
 <li>Which system are you using?<ul>
 <li>operating system</li>
-<li>gcc/clang (<code>gcc &ndash;version</code> or <code>clang &ndash;version</code>)</li>
-<li>CMake (<code>cmake &ndash;version</code>)</li>
+<li>gcc/clang <div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;gcc --version</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;clang --version</div></div><!-- fragment --></li>
+<li>CMake <div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;cmake --version</div></div><!-- fragment --></li>
 </ul>
 </li>
 <li>What have you tried to solve the problem?</li>
-<li>Error and log messages (to extract these, place this behind the command that is causing problems: <code>&gt; output.txt 2&gt; errors.txt</code>). </li>
+<li>Error and log messages. To extract these, place this behind the command that is causing problems: <div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;&gt; output.txt 2&gt; errors.txt</div></div><!-- fragment --></li>
+<li>Which installation procedure did you follow? </li>
 </ul>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
