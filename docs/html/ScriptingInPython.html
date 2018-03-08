@@ -50,7 +50,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   <div id="navrow1" class="tabs">
     <ul class="tablist">
       <li><a href="index.html"><span>Welcome</span></a></li>
-      <li><a href="DownloadUpdateBuild.html"><span>Installing/Updating&#160;PlatoSim3</span></a></li>
+      <li><a href="InstallUsersDevelopers.html"><span>Installing/Updating&#160;PlatoSim3</span></a></li>
       <li><a href="Running.html"><span>Running&#160;PlatoSim3</span></a></li>
       <li><a href="IssueTracking.html"><span>Help&#160;(Issue&#160;Tracking)</span></a></li>
       <li>
@@ -109,11 +109,12 @@ $(document).ready(function(){initNavTree('ScriptingInPython.html','');});
 <p>Under <code>/docs/tutorials/ScriptingInPython</code> you can find a basic tutorial on scripting PlatoSim3 in Python.</p>
 <p>We advise you to install <a href="https://docs.continuum.io/anaconda/install">Anaconda</a> as Python distribution, as this already has most of the required packages installed. It comes with a GUI, called Spyder, from which you can run your Python scripts. </p><hr/>
 <h2>Configuring Python</h2>
-<h3>Creating a Python Environment</h3>
+<h3>Creating a Python Environment (for Developers)</h3>
 <p>With <a href="http://conda.pydata.org/docs/index.html">conda</a> (which is included in <a href="https://docs.continuum.io/anaconda/install">Anaconda</a>), you can create, export, list, remove, and update environments that have different versions of Python and/or packages installed in them. Switching or moving between environments is called activating the environment.</p>
 <p>To create and activate such an environment, type</p>
 <div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;source /anaconda/bin/activate root</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;conda create -n platoSim python=3.5 anaconda</div></div><!-- fragment --><p>More information on managing environment with conda can be found <a href="http://conda.pydata.org/docs/using/envs.html#">here</a>.</p>
-<h3>Installing Extra Packages</h3>
+<p>Users only have to source the conda environment in which the desired version of the software has been installed in.</p>
+<h3>Installing Extra Packages (for Developers)</h3>
 <p>To be able to run the PLATO Simulator and inspect the output, you must install the following packages:</p>
 <ul>
 <li><a href="http://www.numpy.org/">numpy</a>, a fundamental package for scientific computing in Python,</li>
@@ -123,9 +124,12 @@ $(document).ready(function(){initNavTree('ScriptingInPython.html','');});
 </ul>
 <p>These packages can be installed with the following commands:</p>
 <div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;conda install numpy</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;conda install matplotlib</div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;conda install pytables</div><div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;pip install pyaml</div></div><!-- fragment --><p>As it comes to the choice between <code>conda install</code> and <code>pip install</code>: first try <code>conda install</code>, and - if that doesn't work - then try <code>pip install</code> (or <code>pip3 install</code> if you're using Python3).</p>
+<p>Users don't have to install these packages as they will be included in the distributions.</p>
 <h3>Managing your Python Path</h3>
 <p>The Python functionality that is offered in PlatoSim3 can be found in the <code>/python</code> directory. Make sure to add this directory to your Python path, as follows:</p>
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;PYTHONPATH=$PYTHONPATH:&lt;full path to the /Platosim3/python directory&gt;</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;export PYTHONPATH</div></div><!-- fragment --><p>In Spyder, click on the "Python Path Manager" button to add the path to this directory to your Python path. </p><hr/>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;PYTHONPATH=$PYTHONPATH:&lt;full path to the /Platosim3/python directory&gt;</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;export PYTHONPATH</div></div><!-- fragment --><p>In case you've installed PlatoSim3 <a class="el" href="ViaConda.html">via conda</a>, this environment variable should be exported as</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;export PLATO_PROJECT_HOME=$CONDA_PREFIX</div></div><!-- fragment --><p>(the <code>CONDA_PREFIX</code> environment variable is automatically known when you activate the appropriate conda environment)</p>
+<p>In <a href="https://pythonhosted.org/spyder/">Spyder</a> (the GUI that comes with Anaconda), click on the "Python Path Manager" button to add the path to this directory to your Python path. </p><hr/>
 <h2>Running PlatoSim3 in Python</h2>
 <h3>Creating a <code>Simulation</code> Object</h3>
 <p>To run PlatoSim from within Python, you have to import the <code>simulation</code> module:</p>
