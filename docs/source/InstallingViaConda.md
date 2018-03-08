@@ -2,6 +2,8 @@
 
 Before you install another version of PlatoSim3, you must activate the desired conda environment, as described @ref ReqsInstallViaConda "here".  It is not necessary to create a new conda environment every time you install a different version of the software, unless you want to use multiple version in parallel.
 
+The installation procedure will automatically detect which operating system your are running and will install the appropriate packages for you.
+
 To install the latest successfully built version of the <code>master</code>, type:
 
 \code
