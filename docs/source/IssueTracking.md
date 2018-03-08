@@ -28,7 +28,18 @@ on the command line in your installation directory.
 - In case the results are different than you expected, please explain us which numbers you expected and why.
 - Which system are you using?
 	- operating system
-	- gcc/clang (<code>gcc --version</code> or <code>clang --version</code>)
-	- CMake (<code>cmake --version</code>)
+	- gcc/clang
+		\code
+			gcc --version
+			clang --version
+		\endcode
+	- CMake
+		\code
+			cmake --version
+		\endcode
 - What have you tried to solve the problem?
-- Error and log messages (to extract these, place this behind the command that is causing problems: <code>> output.txt 2> errors.txt</code>).
+- Error and log messages.  To extract these, place this behind the command that is causing problems:
+	\code
+		> output.txt 2> errors.txt
+	\endcode
+- Which installation procedure did you follow?

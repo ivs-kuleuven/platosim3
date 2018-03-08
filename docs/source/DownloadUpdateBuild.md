@@ -1,6 +1,6 @@
-# Downloading, Updating, and Building PlatoSim3{#DownloadUpdateBuild}
+# Downloading, Updating, and Building PlatoSim3 for Developers{#DownloadUpdateBuild}
 
-The scheme below shows an overview of the procedure to download, update, and build the PlatoSim3 software on your system.
+The scheme below shows an overview of the procedure to download, update, and build the PlatoSim3 software on your system yourself, without using conda.  This scheme is valid for developers who may want to contribute to the code at some point (or for users who want to install the software without @ref InstallViaConda "using conda").
 
 We use Git as version control system for PlatoSim3, and the software can be forked and/or cloned from GitHub, depending on whether or not you plan to contribute to the software, as described @ref Downloading "here".  
 

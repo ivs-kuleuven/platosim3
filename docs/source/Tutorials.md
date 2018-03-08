@@ -17,7 +17,9 @@ The individual cells of the notebook can be run one-by-one by pressing the <code
 
 
 
-## Jupyter
+## Jupyter (for Developers)
+
+Developers may have to install Jupyter themselves; users can rely on the distributed builds to comprise it.
 
 If you have installed <a href="https://docs.continuum.io/anaconda/install">Anaconda</a>, you can install <code>Jupyter</code> by typing the following command:
 
@@ -25,7 +27,7 @@ If you have installed <a href="https://docs.continuum.io/anaconda/install">Anaco
 conda install jupyter
 \endcode
 
-Experience has learnt us that this command causes problems in using Spyder (the GUI that comes with Anaconda).  This can be solved by executing the following series of commands:
+Experience has learnt us that this command causes problems in using <a href="https://pythonhosted.org/spyder/">Spyder</a> (the GUI that comes with Anaconda).  This can be solved by executing the following series of commands:
 
 \code
 spyder --reset

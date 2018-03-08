@@ -6,12 +6,21 @@
     <!-- <tab type="user" url="http://www.google.com" title="Install/Update"/> -->
     <!-- <tab type="user" url="http://www.google.com" title="Run"/> -->
     
-    <tab type="usergroup" url="@ref DownloadUpdateBuild" title="Installing/Updating PlatoSim3">
-      <tab type="user" visible="yes" url="@ref ReqsInstallUpdate" title="Prerequisites"/>
-      <tab type="user" visible="yes" url="@ref Downloading" title="Downloading"/>
-      <tab type="user" visible="yes" url="@ref Updating" title="Updating"/>
-      <tab type="user" visible="yes" url="@ref Building" title="Building"/>
-      <tab type="user" visible="yes" url="@ref Branching" title="Branching Strategy"/>
+    <tab type="usergroup" url="@ref InstallUsersDevelopers" title="Installing/Updating PlatoSim3">
+    
+    		<tab type="usergroup" url="@ref ViaConda" title="For Users">
+      		<tab type="user" visible="yes" url="@ref ReqsInstallViaConda" title="Prerequisites"/>
+      		<tab type="user" visible="yes" url="@ref InstallViaConda" title="Installing"/>
+    		</tab>
+    
+    		<tab type="usergroup" url="@ref DownloadUpdateBuild" title="For Developers">
+      		<tab type="user" visible="yes" url="@ref ReqsInstallUpdate" title="Prerequisites"/>
+      		<tab type="user" visible="yes" url="@ref Downloading" title="Downloading"/>
+      		<tab type="user" visible="yes" url="@ref Updating" title="Updating"/>
+      		<tab type="user" visible="yes" url="@ref Building" title="Building"/>
+      		<tab type="user" visible="yes" url="@ref Branching" title="Branching Strategy"/>
+    		</tab>
+    		
     </tab>
     
     <tab type="usergroup" url="@ref Running" title="Running PlatoSim3">

@@ -3,13 +3,19 @@
 ## Data Package
 
 If you want to use realistic PSF models instead of a Gaussian, you can download these from <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/psf.hdf5
-">our FTP server</a>.  A convenient place to store this file is in the <code>/inputfiles</code> directory.
+">our FTP server</a>.  <!-- A convenient place to store this file is in the <code>/inputfiles</code> directory. -->
+
+---
+
+## Source the Conda Environment (Users Only)
+
+After the installation of the software, the PLATO Simulator can be run.  Developers will have built the code in the <code>/build</code> directory and run it from there.  For users it is sufficient to @ref ReqsInstallViaConda "activate the appropriate conda environment" (i.e. the conda environment in which they have installed the version of the software they want to use).
 
 ---
 
 ## Environment Variables
 
-After the installation of the software, the PLATO Simulator can be run from the <code>/build</code> directory (you will have to create).  To avoid having to hardcode any path in configuration files, tutorials, etc., you must export three environment variables:
+To avoid having to hardcode any path in configuration files, tutorials, etc., you must export three environment variables:
 
 - <code>PLATO_PROJECT_HOME</code>: to refer to the directory in which PlatoSim3 was installed,
 - <code>PLATO_WORKDIR</code>: to refer to the directory you want to write output or in which you want to store your own configuration files (preferably not within <code>/PlatoSim3</code>),
@@ -24,9 +30,17 @@ export PLATO_PROJECT_HOME
 PLATO_WORKDIR=<full path to a preferred working directory>
 export PLATO_WORKDIR
 
-PYTHONPATH=$PYTHONPATH:<full path to /PlatoSim3/python>
+PYTHONPATH=$PYTHONPATH:$PLATO_PROJECT_HOME/python
 export PYTHONPATH
 \endcode
+
+In case you've installed PlatoSim3 @ref ViaConda "via conda", the former environment variable should be exported as
+
+\code
+export PLATO_PROJECT_HOME=$CONDA_PREFIX
+\endcode 
+
+(the <code>CONDA_PREFIX</code> environment variable is automatically known when you activate the appropriate conda environment)
 
 If you want, you can copy this code to make your own little script to set up your environment (e.g. <code>setPlatoEnvironment</code>), or add it to your <code>.bash_profile</code>.
 
@@ -44,6 +58,6 @@ echo $PYTHONPATH
 
 ## <a name="yourOwnFiles">Where to Store your own Files?
 
-To avoid problems when updating the PlatoSim3 software, it is best to store your own input and output files in a designated working directory, (preferably) outside the installation directory of PlatoSim3.  You can (but should not) add your input files to the <code>/inputfiles</code> directory, but under no circumstances change the original files in that directory!
+To avoid problems when updating the PlatoSim3 software, it is best to store your own input and output files in a designated working directory, (preferably) outside the installation directory of PlatoSim3.  You can (but should not) add your input files to the <code>/inputfiles</code> directory, but under no circumstances change the original files in that directory!  In case - as a user - you install a new version of the software in an existing conda environment, all changes will be overwritten and newly added files will be removed from the intallation.  So better store them outside of the installation! 
 
 The path to the designated working directory must be exported as the <code>PLATO_WORKDIR</code> environment variable, as described above.
