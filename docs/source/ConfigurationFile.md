@@ -695,12 +695,18 @@ PSF:
     Model:                       MappedGaussian 
     MappedGaussian:                             
       Sigma:                     0.638     
-      NumberOfPixels:            8        
+      NumberOfPixels:            8   
+      ChargeDiffusionStrength:     0.2
+      IncludeChargeDiffusion:      no
+      IncludeJitterSmoothing:      no
     MappedFromFile:                             
       Filename:                  inputfiles/psf.hdf5 
       DistanceToOA:              -1       
       RotationAngle:             -1         
       NumberOfPixels:            8
+      ChargeDiffusionStrength:     0.2
+      IncludeChargeDiffusion:      no
+      IncludeJitterSmoothing:      no
     AnalyticGaussian:
       Sigma00:                   1.0
       SigmaX18:                  5.0
@@ -747,6 +753,29 @@ Number of pixels (in both directions) for which the Gaussian PSF must be generat
 
 
 
+#### <a name="chargeDiffusionStrength"></a>MappedGaussian: ChargeDiffusionStrength
+
+<i>Allowed values:</i> ≥ 1 / [SubPixels](#numSubPixelsl)
+
+Charge diffusion has been modelled by a convolution with a Gaussian diffusion kernel, of which this is the standard deviation.
+
+
+
+#### <a name="inclChargeDiffusion"></a>MappedGaussian: IncludeChargeDiffusion
+
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to include charge diffusion.
+
+
+#### <a name="inclJitterSmoothing"></a>MappedGaussian: IncludeJitterSmoothing
+
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to include jitter smoothing.  This is implemented as charge diffusion with a kernel width of 0.5 sub-pixels and alleviates the problem of jitter discontinuities.  Only applicable in case [IncludeChargeDiffusion](#inclChargeDiffusion) = False.
+
+
+
 ### <a name="mappedFromFile"></a>MappedFromFile
 
 The PSF is selected from an HDF5 file with pre-computed PSFs, based on the angular distance to the optical axis.
@@ -782,6 +811,32 @@ Arbitrary rotation angle of the PSF, expressed in degrees and measured countercl
 <i>Allowed values:</i> > 0, only required if a pre-computed PSF must be used ([Model](#psfModel) = MappedFromFile)
 
 Number of pixels (in both directions) for which the PSF was generated.
+
+
+
+#### <a name="chargeDiffusionStrengthFile"></a>MappedFromFile: ChargeDiffusionStrength
+
+<i>Allowed values:</i> ≥ 1 / [SubPixels](#numSubPixelsl)
+
+Charge diffusion has been modelled by a convolution with a Gaussian diffusion kernel, of which this is the standard deviation.
+
+
+
+#### <a name="inclChargeDiffusionFile"></a>MappedFromFile: IncludeChargeDiffusion
+
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to include charge diffusion.
+
+
+
+
+#### <a name="inclJitterSmoothingFile"></a>MappedGaussian: IncludeJitterSmoothing
+
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to include jitter smoothing.  This is implemented as charge diffusion with a kernel width of 0.5 sub-pixels and alleviates the problem of jitter discontinuities.  Only applicable in case [IncludeChargeDiffusion](#inclChargeDiffusionFile) = False.
+
 
 
 
@@ -848,6 +903,8 @@ Width of the analytic non-Gaussian PSF, equal to sigma for a Gaussian PSF (expre
 <i>Allowed values:</i> only required if a analytic non-Gaussian PSF must be used ([Model](#psfModel) = AnalyticNonGaussian) and [Sigma: Source] = ConstantValue
 
 Path to the file, relative to the [project location](#projectLocation), with the width of the analytic non-Gaussian PSF, in case it must be read from a file ([Sigma: Source] = FromFile).
+
+Charge diffusion can be switched on/off by reading the appropriate parameter file.  One will be provided with the parameters with charge diffusion and one without. 
 
 ---
 

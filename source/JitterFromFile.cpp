@@ -148,7 +148,7 @@ void JitterFromFile::configure(ConfigurationParameters &configParams)
     pathToJitterFile = configParams.getAbsoluteFilename("Platform/JitterFileName");
     int numExposures      = configParams.getInteger("ObservingParameters/NumExposures");
     int beginExposureNr   = configParams.getInteger("ObservingParameters/BeginExposureNr");
-    double exposureTime   = configParams.getInteger("ObservingParameters/ExposureTime");
+    double exposureTime   = configParams.getDouble("ObservingParameters/ExposureTime");
     double readoutTime    = configParams.getDouble("CCD/ReadoutTime");
 
     //  Determine from when to when the simulation runs. Only for this time interval
