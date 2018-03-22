@@ -642,11 +642,11 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
         const double lambda1 = (throughputLambdaC - throughputBandwidth/2.0) * 1.e-9;                                         // [m]
         const double lambda2 = (throughputLambdaC + throughputBandwidth/2.0) * 1.e-9;                                         // [m]
     
-        const double zodiacalFlux = sky.zodiacalFlux(centerRA, centerDec, lambda1, lambda2)                                                      // [phot/exposure]
+        const double zodiacalFlux = sky.zodiacalFlux(centerRA, centerDec, lambda1, lambda2)                                   // [phot/exposure]
                                     * exposureTime * transmissionEfficiency * telescope.getLightCollectingArea()
                                     * detector.getSolidAngleOfOnePixel(plateScale) / energyOfOnePhoton; 
 
-        const double stellarBackgroundFlux = sky.stellarBackgroundFlux(centerRA, centerDec, lambda1, lambda2)                                    // [phot/exposure]
+        const double stellarBackgroundFlux = sky.stellarBackgroundFlux(centerRA, centerDec, lambda1, lambda2)                 // [phot/exposure]
                                              * exposureTime * transmissionEfficiency * telescope.getLightCollectingArea()
                                              * detector.getSolidAngleOfOnePixel(plateScale) / energyOfOnePhoton;      
 

@@ -36,10 +36,14 @@ JitterFromFile::JitterFromFile(ConfigurationParameters &configParams)
             // Only read the part of the jitter file that is relevant for this simulation.
             // This saves a lot of time when the file is large but the simulation is short.
             // If the time points in the jitter file do not exactly coincide with the time range
-            // then include one point before, and one point after.
-            // E.g. if the time range is [10, 20], and the jitter time points are 
-            //      ..., 9.5, 10.5, ..., 19.5, 20.5
-            //      then the points 9.5 until 20.5 should be read.
+            // then include one point before, and one point after. This is needed for the 
+            // interpolation afterwards.
+            // E.g. If the time range is [10, 20], and the jitter time points are 
+            //           ..., 9.5, 10.5, ..., 19.5, 20.5
+            //      then the points 9.5 until 20.5 should be read. 
+            //      If the time range is [10, 20], and the jitter time points are
+            //           ..., 10, 11, 12, ..., 20, 21, ...
+            //      then the points 10 to 21 are read.
             
             if (time < beginTime)
             {
@@ -52,20 +56,7 @@ JitterFromFile::JitterFromFile(ConfigurationParameters &configParams)
                 previousRoll  = deg2rad(numbers[3]/3600.);
                 continue;
             }
-            else
-            {
-                // Only add the previous line for the very first point that's within the simulation's time range
-                // Hence the check for the size of vector.
-
-                if (timeFromFile.size() == 0)
-                {
-                    timeFromFile.push_back(previousTime);   // [s]  
-                    yaw.push_back(previousYaw);             // [arcsec] -> [rad]
-                    pitch.push_back(previousPitch);         // [arcsec] -> [rad]
-                    roll.push_back(previousRoll);           // [arcsec] -> [rad]
-                }
-            }
-
+            
             // Check if we are beyond the simulation time range. If so, stop reading the jitter file.
             // By checking the last element of 'timeFromFile' rather than 'time', we ensure that we always
             // read one point too many, as we intend.
@@ -76,7 +67,19 @@ JitterFromFile::JitterFromFile(ConfigurationParameters &configParams)
             }
 
             // If we arrive here, we are within the simulation's time range. 
-            // Persist the jitter steps in vectors.
+            // If it's our first point within the proper time range, also persist the previous point.
+            // Note: if the very first line contains the time == beginTime, then previousTime is not
+            //       defined. Hence below: time > beginTime, rather than time >= beginTime. 
+            
+            if ((timeFromFile.size() == 0) & (time > beginTime)) 
+            {
+                timeFromFile.push_back(previousTime);   // [s]  
+                yaw.push_back(previousYaw);             // [arcsec] -> [rad]
+                pitch.push_back(previousPitch);         // [arcsec] -> [rad]
+                roll.push_back(previousRoll);           // [arcsec] -> [rad]
+            }
+
+            // Persist the current jitter steps in vectors.
             
             timeFromFile.push_back(time);                    // [s]  
             yaw.push_back(deg2rad(numbers[1]/3600.));        // [arcsec] -> [rad]
@@ -110,6 +113,11 @@ JitterFromFile::JitterFromFile(ConfigurationParameters &configParams)
 
     timeIndex = 0;
     internalTime = timeFromFile[0];
+
+    // Log the heartbeat interval of this jitter generator
+    
+    double heartBeatInterval = getHeartbeatInterval();
+    Log.info("JitterFromFile: heartbeat interval: " + to_string(heartBeatInterval));
 
 }
 
