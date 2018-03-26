@@ -542,7 +542,7 @@ void DetectorWithMappedPSF::applyDiffusionKernel(double subpixRow, double subpix
 	{
 		for (unsigned int column = 0; column < diffusionKernelImageSize; column++)
 		{
-			diffusionKernel(row, column) = signalResponse(column, row);
+			diffusionKernel(row, column) = signalResponse(column, row);	// Normalisation done by ()-operator
 		}
 	}
 
