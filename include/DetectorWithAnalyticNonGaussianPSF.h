@@ -51,6 +51,9 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
 
         arma::Mat<float> flatfieldMap;      // Pixel flatfield map
 
+        double chargeDiffusionStrength;			// Strength of the charge diffusion (width of the Gaussian diffusion kernel) [pixels]
+        bool includeChargeDiffusion;				// Whether or not to include charge diffusion
+
         double flatfieldNoiseAmplitude;     // Peak-to-peak noise amplitude
 
         bool includeFlatfield;              // Whether or not to include flat fielding        

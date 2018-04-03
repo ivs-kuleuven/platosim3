@@ -35,16 +35,17 @@ class IntegralOfAnalyticSignalResponse
 {
     public:
 
-		IntegralOfAnalyticSignalResponse() : size(0), n(0.) {};
-		IntegralOfAnalyticSignalResponse(size_t s) : size(s), n(0.) {}
-		virtual ~IntegralOfAnalyticSignalResponse(){};
-		IntegralOfAnalyticSignalResponse& addPart(double, double, double, double, double = 0., double = 0., double = 0.);
+        IntegralOfAnalyticSignalResponse() : size(0), n(0.) {};
+        IntegralOfAnalyticSignalResponse(size_t s, double d = 0.) : size(s), n(0.), dsigma(d) {}
+        virtual ~IntegralOfAnalyticSignalResponse(){};
+        IntegralOfAnalyticSignalResponse& addPart(double, double, double, double, double = 0., double = 0., double = 0.);
         double operator()(unsigned, unsigned, bool = true);
 
     private:
 
         size_t size;                              // number of (sub)pixels in one dimension
         double n;                                 // normalization factor
+        double dsigma;                            // Gaussian diffusion kernel width
         vector<valarray<double>> erfxr;           // evaluated error functions for x
         vector<valarray<double>> erfyr;           // evaluated error functions for y
         vector<valarray<complex<double>>> erfxc;  // evaluated complex error functions for x

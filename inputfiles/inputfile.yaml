@@ -83,15 +83,15 @@ Camera:
     FieldDistortion:
         Type:                        Polynomial1D    # The model for the field distortion
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
-        ConstantCoefficients:        [0.316257210577,  0.066373219688,  0.372589221219] # In case Source is ConstantValue
-        ConstantInverseCoefficients: [-0.317143032936, 0.242638513347,-0.459260203502]  # In case Source is ConstantValue
-        CoefficientsFromFile:        inputfiles/distortioncoefficients.txt                                     # In case Source is FromFile
-        InverseCoefficientsFromFile: inputfiles/distortioninversecoefficients.txt                              # In case Source if FromFile
+        ConstantCoefficients:        [0.316257210577,  0.066373219688,  0.372589221219]      # In case Source is ConstantValue
+        ConstantInverseCoefficients: [-0.317143032936, 0.242638513347,-0.459260203502]       # In case Source is ConstantValue
+        CoefficientsFromFile:        inputfiles/distortioncoefficients.txt                   # In case Source is FromFile
+        InverseCoefficientsFromFile: inputfiles/distortioninversecoefficients.txt            # In case Source if FromFile
 
 
 PSF:
 
-    Model:                           MappedFromFile # PSF model: MappedGaussian, MappedFromFile, AnalyticGaussian, AnalyticNonGaussian
+    Model:                           AnalyticNonGaussian # PSF model: MappedGaussian, MappedFromFile, AnalyticGaussian, AnalyticNonGaussian
     MappedGaussian:                                  # Generate the PSF from a fixed 2D Gaussian function
         Sigma:                       0.641           # Standard deviation of Gaussian PSF [pix]
         NumberOfPixels:              8               # The number of pixels in the field for which the PSF is generated
@@ -112,6 +112,8 @@ PSF:
         SigmaY18:                    2.0             # Stdev of Gaussian PSF in y-direction at 18 deg from the optical axis [pix]
     AnalyticNonGaussian:
         ParameterFileName:           inputfiles/psfallv3.txt
+        ChargeDiffusionStrength:     0.2             # Charge diffusion strength (width of the Gaussian diffusion kernel) [pixels]
+        IncludeChargeDiffusion:      yes             # Include charge diffusion [yes or no]
         Sigma:                                       # Width of the analytic PSF, equal to sigma for a Gaussian PSF [pix]  
             Source:                  ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
             ConstantValue:           0.5             # Used in case Source is ConstantValue  [pix]
