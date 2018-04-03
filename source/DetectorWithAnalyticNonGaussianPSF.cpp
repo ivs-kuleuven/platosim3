@@ -113,6 +113,11 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
             params.emplace_back(vals);
         }
     }
+
+
+    includeChargeDiffusion = configParam.getBoolean("PSF/AnalyticNonGaussian/IncludeChargeDiffusion");
+    chargeDiffusionStrength = configParam.getDouble("PSF/AnalyticNonGaussian/ChargeDiffusionStrength");
+
     
     // The sigma of the PSF can either be a fixed value, or given by a time series in a file
     
@@ -494,14 +499,23 @@ tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addFlux(double x
     row0 -= subFieldZeroPointRow;
     column0 -= subFieldZeroPointColumn;
 
-    int size = 2 * ((int)(8. * (*sigma)()) + 1) + 1;;
+    double s = (*sigma)();
+    double d = 0.;
+
+    if (includeChargeDiffusion) 
+    {
+        d = chargeDiffusionStrength;
+        s = sqrt(s * s + d * d);
+    }
+
+    int size = 2 * (int)(8. * s + 1) + 1;;
     int sx = (int)floor(column0 - (size - 1.) / 2.);
     int sy = (int)floor(row0 - (size - 1.) / 2.);
 
     if (sx + size <= 0 || sx >= (int)numColumnsPixelMap || sy + size <= 0 || sy >= (int)numRowsPixelMap)
         return make_tuple(false, row0, column0);
 
-    IntegralOfAnalyticSignalResponse psf(size);
+    IntegralOfAnalyticSignalResponse psf(size, d);
     double r = rad2deg(camera.getGnomonicRadialDistanceFromOpticalAxis(xFP, yFP));
     double p = atan2(yFP, xFP);
 
