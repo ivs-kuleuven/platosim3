@@ -4,10 +4,18 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.11"/>
-<title>PLATO Simulator: &lt;a name=&quot;IssueTracking&quot;&gt;Issue Tracking</title>
+<title>PLATO Simulator: Running PlatoSim3</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<script type="text/javascript">
+  $(document).ready(initResizable);
+  $(window).load(resizeHeight);
+</script>
 <link href="search/search.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="search/searchdata.js"></script>
 <script type="text/javascript" src="search/search.js"></script>
@@ -26,7 +34,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLATO Simulator
-   &#160;<span id="projectnumber">3.0</span>
+   &#160;<span id="projectnumber">3.2</span>
    </div>
    <div id="projectbrief">An end-to-end simulator for the Plato mission.</div>
   </td>
@@ -41,8 +49,10 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </script>
   <div id="navrow1" class="tabs">
     <ul class="tablist">
-      <li><a href="index.html"><span>Main&#160;Page</span></a></li>
-      <li class="current"><a href="pages.html"><span>Related&#160;Pages</span></a></li>
+      <li><a href="index.html"><span>Welcome</span></a></li>
+      <li><a href="InstallUsersDevelopers.html"><span>Installing/Updating&#160;PlatoSim3</span></a></li>
+      <li><a href="Running.html"><span>Running&#160;PlatoSim3</span></a></li>
+      <li><a href="IssueTracking.html"><span>Help&#160;(Issue&#160;Tracking)</span></a></li>
       <li>
         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
@@ -61,6 +71,21 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
       </li>
     </ul>
   </div>
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+$(document).ready(function(){initNavTree('Running.html','');});
+</script>
+<div id="doc-content">
 <!-- window showing the filter options -->
 <div id="MSearchSelectWindow"
      onmouseover="return searchBox.OnSearchSelectShow()"
@@ -75,45 +100,29 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </iframe>
 </div>
 
-</div><!-- top -->
 <div class="header">
   <div class="headertitle">
-<div class="title"><a class="anchor" id="IssueTracking"></a>Issue Tracking </div>  </div>
+<div class="title">Running PlatoSim3 </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p>You are encouraged to use the issue tracking system of GitHub to report any problem you would come across, rather than sending one of the PlatoSim developers an email. This helps you and us to better keep track of which problems arise and what their status is.</p>
-<p>Browse to the PlatoSim3 repository on GitHub and select the <code>Issues</code> tab (see Fig. 1).</p>
+<div class="textblock"><p>The scheme below shows an overview of the procedure to run the PlatoSim3 software on your system.</p>
+<p>Once you have <a class="el" href="InstallUsersDevelopers.html">downloaded or updated</a> the software,</p>
+<p>If you followed the <a class="el" href="DownloadUpdateBuild.html">installation procedure for developers</a>, you have to <a class="el" href="Building.html">build</a> it in order to be able to run it. The first time you download the software and on the rare occasions we update the dependencies (i.e. software packages we use in the code and that are distributed together with the PlatoSim3 code), you will have to resolve the dependencies (as described together with the <a class="el" href="Building.html">build procedure</a>) .</p>
+<p>Please, note there are a number of <a class="el" href="ReqsRun.html">prerequisites</a> to be able to run PlatoSim3.</p>
+<p>An <a class="el" href="InputFileDescription.html">input file with all configuration parameters and a few supplementary files</a> are fed to PlatoSim3 to <a class="el" href="Running.html">simulate time series</a>. The structure of the resulting output files and how to inspect their content is described <a class="el" href="OutputFileDescription.html">here</a>.</p>
+<p>The individual steps in the simulation process are described <a class="el" href="SimulationSteps.html">here</a>.</p>
 <div class="image">
-<img src="issueTracking.png" alt="issueTracking.png"/>
-<div class="caption">
-Figure 1: Issue tracking on GitHub.</div></div>
-<p> The issue were are currently working on are listed on this page.</p>
-<p>You can raise a new issue by clicking the green <code>New issue</code> button. This will direct you to a page as shown in Fig. 2.</p>
-<div class="image">
-<img src="newIssue.png" alt="newIssue.png"/>
-<div class="caption">
-Figure 2: Reporting a new issue on GitHub.</div></div>
-<h2><a class="anchor" id="whichInformationToProvide"></a>Which Information to Provide?</h2>
-<p>In the upper part (where it says "Title") you can enter a concise description of the problem. A more elaborate description can be entered in the bottom part (where it says "Leave a comment"). In order to save some time, it is suggested to provide us with the following information in the issue:</p>
-<ul>
-<li>Which version of the PlatoSim software are you using? This can be easily retrieved by typing <code>git describe</code> on the command line in your installation directory.</li>
-<li>How can the problem be reproduced? You can, e.g., attach an example script to the issue.</li>
-<li>In case the results are different than you expected, please explain us which numbers you expected and why.</li>
-<li>Which system are you using?<ul>
-<li>operating system</li>
-<li>gcc/clang (<code>gcc &ndash;version</code> or <code>clang &ndash;version</code>)</li>
-<li>CMake (<code>cmake &ndash;version</code>)</li>
-</ul>
-</li>
-<li>What have you tried to solve the problem?</li>
-<li>Error and log messages. </li>
-</ul>
+<img src="howToRunPlatoSim.png" alt="howToRunPlatoSim.png"/>
+</div>
 </div></div><!-- contents -->
+</div><!-- doc-content -->
 <!-- start footer part -->
-<hr class="footer"/><address class="footer"><small>
-Generated by &#160;<a href="http://www.doxygen.org/index.html">
-<img class="footer" src="doxygen.png" alt="doxygen"/>
-</a> 1.8.11
-</small></address>
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="footer">Generated by
+    <a href="http://www.doxygen.org/index.html">
+    <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.11 </li>
+  </ul>
+</div>
 </body>
 </html>
