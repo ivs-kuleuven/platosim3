@@ -28,14 +28,14 @@ from matplotlib.path import Path
 
 CCD = \
 {
-    '1'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': 0},
-    '2'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': pi/2},
-    '3'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': pi},
-    '4'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': 3*pi/2},
-    '1F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': 0},
-    '2F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': pi/2},
-    '3F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': pi},
-    '4F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.0, 'zeroPointYmm': +82.162, 'angle': 3*pi/2}
+    '1'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': 0},
+    '2'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': pi/2},
+    '3'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': pi},
+    '4'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': 3*pi/2},
+    '1F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': 0},
+    '2F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': pi/2},
+    '3F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': pi},
+    '4F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': 3*pi/2}
 }
 
 
@@ -413,7 +413,7 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, tiltAngle, azi
 
 
 
-def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients):
+def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients, focalLength):
     
     """
     PURPOSE:      Convert from undistorted to distorted normalized focal plane coordinates
@@ -421,21 +421,23 @@ def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoeffici
     INPUTS:       xFPmm  undistorted normalized focal plane x-coordinate [mm]
                   yFPmm  undistorted normalized focal plane y-coordinate [mm]
                   distortionCoefficients  List of polynomial coefficients
+                  focalLength: Focal length [mm]
     
     OUTPUTS:      (xFPdist, yFPdist) distorted x and y coordinates [mm]
 
-    Note: Example of distortion coefficients: [-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06]
+    Note: Example of distortion coefficients: [0.316257210577,  0.066373219688,  0.372589221219]
     """
 
-    P = Polynomial(distortionCoefficients)
+    coefficients = [0, 0, 0, distortionCoefficients[0], 0, distortionCoefficients[1], 0, distortionCoefficients[2]]
+    distortionPolynomial = Polynomial(coefficients)
 
-    angle = arctan2(yFPmm, xFPmm)    # [radians]
+    angle = arctan2(yFPmm, xFPmm)    # Position angle on the focal plane [radians]
     
-    rFP = sqrt(xFPmm * xFPmm + yFPmm * yFPmm)
-    rFPdist = P(rFP)
+    rFP = sqrt(xFPmm**2 + yFPmm**2) / focalLength              # Undistorted radial distance [normalised pixels]
+    distortion = distortionPolynomial(rFP) * focalLength       # Distortion [mm]
     
-    xFPdist = cos(angle) * rFPdist
-    yFPdist = sin(angle) * rFPdist
+    xFPdist = xFPmm + cos(angle) * distortion
+    yFPdist = yFPmm + sin(angle) * distortion
     
     return xFPdist, yFPdist
 
@@ -448,7 +450,7 @@ def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoeffici
 
 
 
-def distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, inverseDistortionCoefficients):
+def distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, inverseDistortionCoefficients, focalLength):
     
     """
     PURPOSE:     Convert from distorted to undistorted normalized focal plane coordinates
@@ -456,21 +458,23 @@ def distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, inverseDistort
     INPUTS:      xFPdist  Distorted normalized focal plane x-coordinate [mm]
                  yFPdist  DIstorted normalized focal plane y-coordinate [mm]
                  inverseDistortionCoefficients  List of polynomial coefficients
+                 focalLength: Focal length [mm]
     
     OUTPUTS:     (xFPmm, yFPmm) distorted x and y coordinates [mm]
 
-    Note: Example of inverse distortion coefficients: [-0.00458067036444, 1.00110311283, -5.61136295937e-05, -4.311925329e-06]
+    Note: Example of inverse distortion coefficients: [-0.317143032936, 0.242638513347,-0.459260203502]
     """
     
-    IP = Polynomial(inverseDistortionCoefficients)
+    inverseCoefficients = [0, 0, 0, inverseDistortionCoefficients[0], 0, inverseDistortionCoefficients[1], 0, inverseDistortionCoefficients[2]]
+    inverseDistortionPolynomial = Polynomial(inverseCoefficients)
     
-    angle = arctan2(yFPdist, xFPdist)  # [radians]
+    angle = arctan2(yFPdist, xFPdist)     # Position angle on the focal plane [radians]
     
-    rFP   = sqrt(xFPdist * xFPdist + yFPdist * yFPdist)
-    rFPmm = IP(rFP)
+    rFP = sqrt(xFPdist**2 + yFPdist**2) / focalLength                   # Distorted radial distance [normalised pixels]
+    distortion = inverseDistortionPolynomial(rFP) * focalLength         # Distortion [mm] -> negative!
     
-    xFPmm = cos(angle) * rFPmm
-    yFPmm = sin(angle) * rFPmm
+    xFPmm = xFPdist + cos(angle) * distortion
+    yFPmm = yFPdist + sin(angle) * distortion
     
     return xFPmm, yFPmm
 
@@ -576,6 +580,7 @@ def gnomonicRadialDistanceFromOpticalAxis(xFP, yFP, focalLength):
 
     INPUT: xFP  Focal plane x-coordinate [mm]
            yFP  Focal plane y-coordinate [mm]
+           focalLength focal length of the camera [mm]
  
     OUTPUT: the angular distance of the star w.r.t. the optical axis [rad]
 
@@ -584,10 +589,11 @@ def gnomonicRadialDistanceFromOpticalAxis(xFP, yFP, focalLength):
     tanx = xFP / focalLength
     tany = yFP / focalLength
 
-    angularDistance = arccos(1.0/sqrt(1.0 + tanx*tanx + tany*tany));
+    angularDistance = np.arccos(1.0/sqrt(1.0 + tanx*tanx + tany*tany));
 
     # Take care that the angle is between [0, 2*PI]
 
+    # could be simplified into "return angularDistance % (2*np.pi)"
     if angularDistance < 0.0:
         angularDistance += 2.0 * np.pi
     elif angularDistance > 2.0 * np.pi:
@@ -600,6 +606,27 @@ def gnomonicRadialDistanceFromOpticalAxis(xFP, yFP, focalLength):
 
 
 
+def focalPlaneCoordinatesFromGnomonicRadialDistance(angularDistance, focalLength, inPlaneRotation=0.):
+
+    """
+    Calculate the xFP,yFP focal plane coordinates from the gnomonic 
+    radial distance with respect to the optical axis in the focal plane
+
+    INPUT: angularDistance: angular distance of the star w.r.t. the optical axis [rad]
+           focalLength    : focal length of the camera [mm]
+           inPlaneRotation: angle from the xFP axis to the target (default=0)[rad]
+
+    OUTPUT: xFP  Focal plane x-coordinate [mm]
+            yFP  Focal plane y-coordinate [mm]
+ 
+    """
+
+    D = focalLength * np.tan(angularDistance)
+
+    xFP = D * np.cos(inPlaneRotation)
+    yFP = D * np.sin(inPlaneRotation)
+
+    return xFP,yFP
 
 
 
@@ -700,7 +727,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, tiltAngl
     xFPmm, yFPmm = skyToFocalPlaneCoordinates(raStar, decStar, raPlatform, decPlatform, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength)
 
     if (includeFieldDistortion == True) or (includeFieldDistortion == "yes"):
-        xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients)
+        xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients, focalLength)
 
     # Concert to CCD pixel coordinates
     # Note that the pixel size is in [micron] not in [mm]
@@ -953,10 +980,10 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal):
         distortionCoefficients = None
 
     pixelSize        = float(sim["CCD/PixelSize"])
-    focalLength      = float(sim["Camera/FocalLength"]) * 1000.0                   # [m] -> [mm]
+    focalLength      = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0                   # [m] -> [mm]
     raPlatform       = np.deg2rad(float(sim["ObservingParameters/RApointing"]))
     decPlatform      = np.deg2rad(float(sim["ObservingParameters/DecPointing"]))
-    focalPlaneAngle  = float(sim["Camera/FocalPlaneOrientation"])
+    focalPlaneAngle  = float(sim["Camera/FocalPlaneOrientation/ConstantValue"])
     azimuthTelescope = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
     tiltTelescope    = np.deg2rad(float(sim["Telescope/TiltAngle"]))
     
@@ -1012,10 +1039,10 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
         includeFieldDistortion = False
 
     pixelSize        = float(sim["CCD/PixelSize"])
-    focalLength      = float(sim["Camera/FocalLength"]) * 1000.0                     # [m] -> [mm]
+    focalLength      = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0                     # [m] -> [mm]
     raPlatform       = np.deg2rad(float(sim["ObservingParameters/RApointing"]))
     decPlatform      = np.deg2rad(float(sim["ObservingParameters/DecPointing"]))
-    focalPlaneAngle  = float(sim["Camera/FocalPlaneOrientation"])
+    focalPlaneAngle  = float(sim["Camera/FocalPlaneOrientation/ConstantValue"])
     azimuthTelescope = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
     tiltTelescope    = np.deg2rad(float(sim["Telescope/TiltAngle"]))
 
@@ -1035,7 +1062,7 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
     # If required, undistort them
     
     if includeFieldDistortion:
-        xFPmm, yFPmm = distortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, inverseDistortionCoefficients)
+        xFPmm, yFPmm = distortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, inverseDistortionCoefficients, focalLength)
     
     # Get the corresponding sky coordinates
 

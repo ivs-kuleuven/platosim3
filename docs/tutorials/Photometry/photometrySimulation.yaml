@@ -1,0 +1,256 @@
+CCD:
+    CTI:
+        Model: Simple
+        Short2013:
+            Beta: 0.37
+            NumTrapSpecies: 4
+            ReleaseTime:
+                - 0.000237
+                - 0.0243
+                - 0.00203
+                - 0.14
+            Temperature: 203.0
+            TrapCaptureCrossSection:
+                - 2.46e-20
+                - 1.74e-22
+                - 7.05e-23
+                - 2.45e-23
+            TrapDensity:
+                - 9.8
+                - 3.31
+                - 1.56
+                - 13.24
+        Simple:
+            MeanCTE: 0.99999
+    Contamination:
+        MolecularContaminationEfficiency: 0.9566
+        ParticulateContaminationEfficiency: 0.98
+    DarkSignal:
+        DSNU: 10.0
+        DarkCurrent: 1.2
+    DigitalSaturation: 65535
+    FirstRowExposed: 0
+    FlatfieldPtPNoise: 0.008
+    FullWellSaturation: 900000
+    Gain:
+        AllowedDifference: 15.0
+        RefValueLeft: 1.8
+        RefValueRight: 1.8
+        Stability: -0.004
+    IncludeCTIeffects: false
+    IncludeConvolution: true
+    IncludeDarkSignal: true
+    IncludeDigitalSaturation: true
+    IncludeFlatfield: true
+    IncludeFullWellSaturation: true
+    IncludeMolecularContamination: false
+    IncludeOpenShutterSmearing: false
+    IncludeParticulateContamination: false
+    IncludePhotonNoise: true
+    IncludePolarization: false
+    IncludeQuantisation: true
+    IncludeQuantumEfficiency: true
+    IncludeReadoutNoise: true
+    IncludeVignetting: false
+    NominalOperatingTemperature: 203.15
+    NumColumns: 4510
+    NumRows: 4510
+    Orientation: 0
+    OriginOffsetX: 0
+    OriginOffsetY: 0
+    PixelSize: 18
+    Polarization:
+        Efficiency: 0.978
+        ExpectedValue: 0.989
+        RefAngle: 18.8875
+    Position: Custom
+    QuantumEfficiency:
+        MeanQuantumEfficiency: 0.5985
+        RefAngle: 45.0
+        RelativeRefEfficiency: 0.925
+    ReadoutNoise: 44.3
+    ReadoutTime: 2
+    Temperature: Nominal
+    TemperatureFileName: inputfiles/ccdTemperature.txt
+    Vignetting:
+        ExpectedValue: 0.945
+CCDPositions:
+    FirstRowForFastCamera:
+        - 2255
+        - 2255
+        - 2255
+        - 2255
+    FirstRowForNormalCamera:
+        - 0
+        - 0
+        - 0
+        - 0
+    NumColumns:
+        - 4510
+        - 4510
+        - 4510
+        - 4510
+    NumRows:
+        - 4510
+        - 4510
+        - 4510
+        - 4510
+    Orientation:
+        - 0
+        - 90
+        - 180
+        - 270
+    OriginOffsetX:
+        - -1
+        - -1
+        - -1
+        - -1
+    OriginOffsetY:
+        - 82.18
+        - 82.18
+        - 82.18
+        - 82.18
+Camera:
+    AberrationCorrection:
+        Type: differential
+    FieldDistortion:
+        CoefficientsFromFile: inputfiles/distortioncoefficients.txt
+        ConstantCoefficients:
+            - -0.0036696919678
+            - 1.0008542317
+            - -4.12553764817e-05
+            - 5.7201219949e-06
+        ConstantInverseCoefficients:
+            - -0.00458067036444
+            - 1.00110311283
+            - -5.61136295937e-05
+            - -4.311925329e-06
+        InverseCoefficientsFromFile: inputfiles/distortioninversecoefficients.txt
+        Source: ConstantValue
+        Type: Polynomial1D
+    FocalLength:
+        ConstantValue: 0.24752
+        FromFile: inputfiles/focallength.txt
+        Source: ConstantValue
+    FocalPlaneOrientation:
+        ConstantValue: 0.0
+        FromFile: inputfiles/fporientation.txt
+        Source: ConstantValue
+    IncludeAberrationCorrection: false
+    IncludeFieldDistortion: true
+    PlateScale: 0.8333
+    ThroughputBandwidth: 550
+    ThroughputLambdaC: 638
+CameraGroups:
+    AzimuthAngle:
+        - 45.0
+        - 135.0
+        - -135.0
+        - -45.0
+        - 0.0
+    TiltAngle:
+        - 9.2
+        - 9.2
+        - 9.2
+        - 9.2
+        - 0.0
+ControlHDF5Content:
+    WriteStarPositions: true
+    WriteSubPixelImages: false
+FEE:
+    ElectronicOffset:
+        RefValue: 100
+        Stability: 1
+    Gain:
+        AllowedDifference: 0.0
+        RefValueLeft: 0.0278
+        RefValueRight: 0.0278
+        Stability: -0.0001
+    NominalOperatingTemperature: 210.15
+    ReadoutNoise: 40.5
+    Temperature: Nominal
+    TemperatureFileName: inputfiles/feeTemperature.txt
+General:
+    ProjectLocation: ENV['PLATO_PROJECT_HOME']
+ObservingParameters:
+    BeginExposureNr: 0
+    DecPointing: -70
+    ExposureTime: 22
+    Fluxm0: 1.00179e8
+    MissionDuration: 6.0
+    NumExposures: 1000
+    RApointing: 180
+    StarCatalogFile: inputfiles/starcatalog.txt
+PSF:
+    AnalyticGaussian:
+        Sigma00: 1.0
+        SigmaX18: 5.0
+        SigmaY18: 2.0
+    AnalyticNonGaussian:
+        ParameterFileName: inputfiles/psfallv3.txt
+        Sigma:
+            ConstantValue: 0.5
+            FromFile: inputfiles/sigmaPSF.txt
+            Source: ConstantValue
+    MappedFromFile:
+        DistanceToOA: -1
+        Filename: inputfiles/psf.hdf5
+        NumberOfPixels: 8
+        RotationAngle: -1
+    MappedGaussian:
+        NumberOfPixels: 8
+        Sigma: 0.638
+    Model: MappedFromFile
+Platform:
+    JitterFileName: inputfiles/PlatoJitter_Airbus.txt
+    JitterPitchRms: 0.5
+    JitterRollRms: 0.5
+    JitterTimeScale: 180
+    JitterYawRms: 0.5
+    UseJitter: false
+    UseJitterFromFile: true
+RandomSeeds:
+    CTESeed: 1424949740
+    CosmicSeed: 1494750830
+    DarkSignalSeed: 1468838669
+    DriftSeed: 1433429158
+    FlatFieldSeed: 1425284070
+    JitterSeed: 1433320381
+    PhotonNoiseSeed: 1433320336
+    ReadOutNoiseSeed: 1424949740
+Sky:
+    Cosmics:
+        CosmicHitRate: 10
+        Intensity:
+            - 2000
+            - 40000
+        TrailLength:
+            - 0
+            - 15
+    IncludeCosmics: true
+    IncludeVariableSources: false
+    SkyBackground: -1
+    VariableSourceList: inputfiles/varsource.txt
+SubField:
+    NumBiasPrescanRows: 5
+    NumColumns: 100
+    NumRows: 100
+    NumSmearingOverscanRows: 5
+    SubPixels: 32
+    ZeroPointColumn: 0
+    ZeroPointRow: 0
+Telescope:
+    AzimuthAngle: 0.0
+    DriftFileName: inputfiles/drift.txt
+    DriftPitchRms: 2.3
+    DriftRollRms: 2.3
+    DriftTimeScale: 86400.0
+    DriftYawRms: 2.3
+    GroupID: Custom
+    LightCollectingArea: 113.1
+    TiltAngle: 0.0
+    TransmissionEfficiency:
+        BOL: 0.7191
+        EOL: 0.7191
+    UseDrift: false
+    UseDriftFromFile: false

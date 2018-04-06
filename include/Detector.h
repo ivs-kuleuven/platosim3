@@ -5,11 +5,15 @@
 #include <cmath>
 #include <random>
 #include <functional>
+#include <valarray>
 
 #include "armadillo"
 
+#include "Faddeeva.hh"
+
 #include "Constants.h"
 #include "ArrayOperations.h"
+#include "Mathematics.h"
 #include "Camera.h"
 #include "FrontEndElectronics.h"
 #include "TemperatureGenerator.h"
@@ -27,6 +31,36 @@ class Camera;      // forward declaration
 
 
 
+class IntegralOfAnalyticSignalResponse
+{
+    public:
+
+        IntegralOfAnalyticSignalResponse() : size(0), n(0.) {};
+        IntegralOfAnalyticSignalResponse(size_t s, double d = 0.) : size(s), n(0.), dsigma(d) {}
+        virtual ~IntegralOfAnalyticSignalResponse(){};
+        IntegralOfAnalyticSignalResponse& addPart(double, double, double, double, double = 0., double = 0., double = 0.);
+        double operator()(unsigned, unsigned, bool = true);
+
+    private:
+
+        size_t size;                              // number of (sub)pixels in one dimension
+        double n;                                 // normalization factor
+        double dsigma;                            // Gaussian diffusion kernel width
+        vector<valarray<double>> erfxr;           // evaluated error functions for x
+        vector<valarray<double>> erfyr;           // evaluated error functions for y
+        vector<valarray<complex<double>>> erfxc;  // evaluated complex error functions for x
+        vector<valarray<complex<double>>> erfyc;  // evaluated complex error functions for y
+};
+
+
+
+
+
+
+
+
+
+
 class Detector: public HDF5Writer 
 {
     public:
@@ -35,6 +69,7 @@ class Detector: public HDF5Writer
         virtual ~Detector();
 
         virtual double takeExposure(int exposureNr, double startTime, double exposureTime);
+        virtual void updateParameters(double time);
         void configure(ConfigurationParameters &configParam);
 
         pair<double, double> pixelToFocalPlaneCoordinates(double row, double column);
@@ -59,13 +94,18 @@ class Detector: public HDF5Writer
         virtual void integrateLight(int exposureNr, double startTime, double exposureTime) = 0;
 
         virtual void generateThroughputMap();
-        virtual void generateGain();
+        virtual void checkGain();
+        virtual void generateGuyonnetCoefficients();
 
         virtual void applyFlatfield() = 0;
         virtual void applyThroughputEfficiency();
+        virtual void applyBFE();
+        virtual void addDarkSignal(float exposureTime);
 
         virtual void readOut(float exposureTime);
         virtual void addPhotonNoise();
+        virtual void addCosmics(float exposureTime);
+        virtual void addCosmics(float exposureTime, arma::Mat<float> &map, int numRows, int numColumns);
         virtual void applyFullWellSaturation();
         virtual void applyCTI();
         virtual void applyOpenShutterSmearing(float exposureTime);
@@ -87,8 +127,10 @@ class Detector: public HDF5Writer
         virtual void initHDF5Groups() override;
         void writePixelMapsToHDF5(int exposureNr);
 
+        void fastForwardDarkSignalGeneratorToExposure(int beginExposureNr, float exposureTime);
         void fastForwardReadoutNoiseGeneratorToExposure(int beginExposureNr);
         void fastForwardPhotonNoiseGeneratorToExposure(int beginExposureNr);
+        void fastForwardCosmicsGeneratorToExposure(int beginExposureNr, float exposureTime);
 
         virtual double getTemperature();
 
@@ -115,25 +157,38 @@ class Detector: public HDF5Writer
         double pixelSize;                        // Pixel size [microns]
         unsigned int numEdgePixels;              // Nr of pixels to extend the subfield on each side, to account for the edge effect
 
-        double polarizationEfficiency;           // Efficiency due to polarisation at the reference angle (in [0,1])
+        arma::Cube<float> guyonnetCoefficients;  // Coefficients a^X_ij for the BFE in Sect. 6.1 in Guyonnet et al. 2015
+        double p0BFE;        					// Value for p0 parameter in Eq. (18) in Guyonnet et al. 2015
+        double p1BFE;						    // Value for p1 parameter in Eq. (18) in Guyonnet et al. 2015
+        int rangeBFE;							// How far pixels can be apart and still influence each other [pixels] (use window with dimensions 2 * range + 1)
+        double refFluxBFE;                       // Reference flux for the p0 and p1 parameters for BFE [e-]
+
+
+        bool includeCosmics;                     // Whether or not to include cosmic hits
+        double cosmicHitRate;					// Cosmic hit rate [events / cm^2 / s]
+        vector<double> cosmicTrailLength;		// Interval of the length of the cosmic trails [pixels]
+        vector<double> cosmicIntensity; 			// Interval of the intensity of the cosmic trails [e-]
+//        double polarizationEfficiency;           // Efficiency due to polarisation at the reference angle (in [0,1])
         double expectedValueVignetting;          // Expected value of the throughput efficiency due to vignetting (int [0,1])
-        double refAnglePolarization;             // Reference angle for the polarisation [degrees]
+//        double refAnglePolarization;             // Reference angle for the polarisation [degrees]
         double expectedValuePolarization;        // Expected value of the throughput efficiency due to polarisation
         double particulateContaminationEfficiency;  // Efficiency of particulate contamination (in [0,1])
         double molecularContaminationEfficiency; // Efficiency of molecular contamination (in [0,1])
-        double quantumEfficiency;                // Quantum efficiency at the reference angle (in [0,1])
-        double refAngleQuantumEfficiency;        // Reference angle for quantum efficiency [degrees]
-        double expectedValueQuantumEfficiency;   // Expected value of the throughput efficiency due to quantum efficiency
+//        double refAngleQE;        				// Reference angle for quantum efficiency [degrees]
+//        double relativeRefEfficiencyQE;			// Relative efficiency due to the angle dependency of the QE
+        double meanQE;							// Mean QE (over all wavelengths)
+        double meanAngleDependencyQE;			// Mean (over all pixels) of the relative efficiency due to the angle dependency of the QE
         double readoutTime;                      // Readout time [s]
         double readoutNoise;                     // Mean readout noise [electrons]
-        double refValueGain;                     // Detector gain [µV/e-]
-        double gainStability;                    // Gain stability [µV/e-]
-        double gainThreeSigma;                   // Allowed difference (3 sigma) in gain between the left and the right half of the detector [% of the reference value]
         double refValueGainLeft;                 // Reference value for the gain on the ACD reading the left-hand side of the detector [µV/e-]
         double refValueGainRight;                // Reference value for the gain on the ACD reading the right-hand side of the detector [µV/e-]
+        double gainStability;                    // Gain stability [µV/e-]
+        double gainAllowedDifference;            // Allowed difference in gain between the left and the right half of the detector [% of the reference values]
         unsigned long fullWellSaturationLimit;   // Full-well saturation limit [electrons/pixel]
         unsigned int electronicOffset;           // Bias or electronic offset [ADU]
         unsigned long digitalSaturationLimit;    // Digital saturation limit [ADU / pixel]
+        double darkCurrent;						// Dark current [e- / s]
+        double dsnu;								// Dark signal non-uniformity
 
         string CTImodel;
         double meanCte;                          // Mean charge-transfer efficiency  (in [0,1])
@@ -144,6 +199,8 @@ class Detector: public HDF5Writer
         vector<double> trapCaptureCrossSection;  // For each trap species: the trap capture cross section [m^2]
         vector<double> releaseTime;              // For each trap species: the electron release time [s]
 
+        bool includeBFE;							// Whether or not to include the BFE
+        bool includeDarkSignal;	      			// Whether or not to include dark
         bool includePhotonNoise;                 // Whether or not to include photon noise
         bool includeReadoutNoise;                // Include readout noise [yes or no]
         bool includeCTIeffects;                  // Include CTI effects [yes or no]
@@ -162,15 +219,32 @@ class Detector: public HDF5Writer
         double nominalOperatingTemperature;
         double internalTime;
 
+        long darkSignalSeed;
         long readoutNoiseSeed;
         long photonNoiseSeed;
-        long gainSeed;
+        long cosmicSeed;
 
+        mt19937 darkSignalGenerator;
+        mt19937 darkNoiseGenerator;
         mt19937 photonNoiseGenerator;
         mt19937 readoutNoiseGenerator;
+        mt19937 cosmicHitRateGenerator;
+        mt19937 cosmicEntryRowGenerator;
+        mt19937 cosmicEntryColumnGenerator;
+        mt19937 cosmicEntryAngleGenerator;
+        mt19937 cosmicTrailLengthGenerator;
+        mt19937 cosmicIntensityGenerator;
 
+        normal_distribution<double> darkSignalDistribution;
+        normal_distribution<double> darkNoiseDistribution;
         poisson_distribution<long> photonNoiseDistribution;
         normal_distribution<double> readoutNoiseDistribution;
+        poisson_distribution<long> cosmicHitRateDistribution;
+        uniform_real_distribution<double> cosmicEntryRowDistribution;
+        uniform_real_distribution<double> cosmicEntryColumnDistribution;
+        uniform_real_distribution<double> cosmicEntryAngleDistribution;
+        uniform_real_distribution<double> cosmicTrailLengthDistribution;
+        uniform_real_distribution<double> cosmicIntensityDistribution;
  
         Camera &camera;
         FrontEndElectronics *frontEndElectronics;

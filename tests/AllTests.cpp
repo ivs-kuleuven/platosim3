@@ -9,7 +9,6 @@
 //#include "GTestPointSpreadFunction.h"
 //#include "GTestCamera.h"
 //#include "GTestDetector.h"
-#include "GTestStarCatalog.h"
 #include "GTestUnits.h"
 #include "GTestArrayOperations.h"
 #include "GTestPolynomial.h"

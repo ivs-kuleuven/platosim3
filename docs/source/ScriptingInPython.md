@@ -1,15 +1,20 @@
 # Scripting in Python {#ScriptingInPython}
 
-The basic functionality of the C++ code is to model a part (i.e. sub-field) of one of the four CCD that are attached to the normal camera (A, B, C, or D) or to the fast camera (AF, BF, CF, or DF) of one of the telescopes on the platform.  You can initiate PLATO simulations from within Python, e.g. to automatically select the correct CCD or to combine multiple telescopes on the platform.
+The basic functionality of the C++ code is to model a part (i.e. sub-field) of one of the four CCD that are attached to the normal camera (1, 2, 3, or 4) or to the fast camera (1F, 2F, 3F, or 4F) of one of the telescopes on the platform.  You can initiate PLATO simulations from within Python.
 
 Under <code>/docs/tutorials/ScriptingInPython</code> you can find a basic tutorial on scripting PlatoSim3 in Python.
 
 We advise you to install <a href="https://docs.continuum.io/anaconda/install">Anaconda</a> as Python distribution, as this already has most of the required packages installed.  It comes with a GUI, called Spyder, from which you can run your Python scripts.
 
+---
+
+
+
+
 
 ## Configuring Python
 
-### Creating a Python Environment
+### Creating a Python Environment (for Developers)
 
 With <a href="http://conda.pydata.org/docs/index.html">conda</a> (which is included in <a href="https://docs.continuum.io/anaconda/install">Anaconda</a>), you can create, export, list, remove, and update environments that have different versions of Python and/or packages installed in them. Switching or moving between environments is called activating the environment.
 
@@ -22,7 +27,11 @@ conda create -n platoSim python=3.5 anaconda
 
 More information on managing environment with conda can be found <a href="http://conda.pydata.org/docs/using/envs.html#">here</a>.
 
-### Installing Extra Packages
+Users only have to source the conda environment in which the desired version of the software has been installed in.
+
+
+
+### Installing Extra Packages (for Developers)
 
 To be able to run the PLATO Simulator and inspect the output, you must install the following packages:
 
@@ -42,16 +51,32 @@ pip install pyaml
 
 As it comes to the choice between <code>conda install</code> and <code>pip install</code>: first try <code>conda install</code>, and - if that doesn't work - then try <code>pip install</code> (or <code>pip3 install</code> if you're using Python3).
 
+Users don't have to install these packages as they will be included in the distributions.
+
 ### Managing your Python Path
 
-The Python functionality that is offered in PlatoSim3 can be found in the <code>python</code>.  Make sure to add this directory to your Python path, as follows:
+The Python functionality that is offered in PlatoSim3 can be found in the <code>/python</code> directory.  Make sure to add this directory to your Python path, as follows:
 
 \code{.py}
 PYTHONPATH=$PYTHONPATH:<full path to the /Platosim3/python directory>
 export PYTHONPATH
 \endcode
 
-In Spyder, click on the "Python Path Manager" button to add the path to this directory to your Python path.
+In case you've installed PlatoSim3 @ref ViaConda "via conda", this environment variable should be exported as
+
+\code
+export PLATO_PROJECT_HOME=$CONDA_PREFIX
+\endcode 
+
+(the <code>CONDA_PREFIX</code> environment variable is automatically known when you activate the appropriate conda environment)
+
+
+In <a href="https://pythonhosted.org/spyder/">Spyder</a> (the GUI that comes with Anaconda), click on the "Python Path Manager" button to add the path to this directory to your Python path.
+
+---
+
+
+
 
 
 ## Running PlatoSim3 in Python
@@ -78,7 +103,7 @@ workDir = os.environ["PLATO_WORKDIR"]
 \endcode
 
 
-#### Input Configuration File
+### Input Configuration File
 
 The <code>configurationFile</code> parameter is optional and contains the full path to the configuration file that will be used as a reference.  A copy of this file will be stored in the output directory (with the name <code>runName.yaml</code>) and only the copy (and not the original file) will be modified.  We will show later how to do this.
 
@@ -90,7 +115,7 @@ sim.readConfigurationFile(<full path to the configuration file>)
 
 In that case, all changes to the configuration parameters you may have applied, will be overwritten.
 
-#### Output Directory
+### Output Directory
 
 Also the <code>outputDir</code> parameter is optional.  This contains the full path to the output directory.  This must be specified before you can start the simulation.  The output directory can be set can also be set as follows:
 

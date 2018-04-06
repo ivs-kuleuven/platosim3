@@ -42,6 +42,13 @@ DetectorWithAnalyticGaussianPSF::DetectorWithAnalyticGaussianPSF(ConfigurationPa
 
     		generateFlatfieldMap();
     }
+
+    if(includeBFE)
+    {
+        	// Generate Guyonnet coefficients
+
+        	generateGuyonnetCoefficients();
+    }
 }
 
 
@@ -281,10 +288,12 @@ void DetectorWithAnalyticGaussianPSF::integrateLight(int exposureNr, double star
     reset();
 
     // Integration (incl. jitter): point sources + background
+    // PixelMap units after: [photons]
 
     camera.exposeDetector(*this, startTime, exposureTime);
 
     // Apply flatfield (at pixel level)
+    // PixelMap units after: [photons]
 
     if (includeFlatfield)
     {
@@ -297,9 +306,33 @@ void DetectorWithAnalyticGaussianPSF::integrateLight(int exposureNr, double star
         Log.debug("Detector: no flatfield applied.");
     }
 
-    // Apply throughput efficiency on the pixel map
-
+    // Apply throughput efficiency on the pixel map.
+    // This takes into account the QE, vignetting, polarisation, and particulate & molecular contamination.
+    // PixelMap units change from [photons] to [electrons] 
+    
     applyThroughputEfficiency();
+
+    // Brighter-fatter effect
+
+    if(includeBFE)
+    {
+   		Log.debug("Detector: adding Brighter-Fatter effect");
+
+   		applyBFE();
+    }
+
+    // Add dark current
+
+    if(includeDarkSignal)
+    {
+        Log.debug("Detector: adding dark current");
+
+       	addDarkSignal(exposureTime);
+    }
+    else
+    {
+        Log.debug("Detector: no dark current added");
+    }
 }
 
 

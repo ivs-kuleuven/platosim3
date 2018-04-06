@@ -3,110 +3,6 @@
 
 
 /**
- * \brief Add a part to the definite integral of the analytic PSF and adjust the normalization factor accordingly.
- * 
- * \param ox:    relative x offset
- * \param oy:    relative y offset
- * \param h:     relative height
- * \param sigma: width of Gaussian term
- * \param r:     strength and type of periodic term
- * \param rho:   distance between Gaussian term and periodic term
- * \param phi:   orientation of periodic term
- * 
- * \return reference to itself
- **/
-
-IntegralOfAnalyticPSF& IntegralOfAnalyticPSF::addPart(double ox, double oy, double h, double sigma, double r, double rho, double phi) 
-{
-    using Faddeeva::erf;
-    
-    ox += (size - (size & 1)) / 2.;
-    oy += (size - (size & 1)) / 2.;
-
-    erfxr.emplace_back(size + 1);
-    erfyr.emplace_back(size + 1);
-    double sr = 1. / sqrt(2.) / sigma;
-    double fr1 = sqrt(M_PI * fabs(h) * sigma * sigma / (r != 0.? 4.: 2.)); 
-    double fr2 = h < 0.? -fr1: fr1; 
-
-    erfxr.back()[0] = erf(-sr * ox);
-    erfyr.back()[0] = erf(-sr * oy);
-    for (unsigned i = 0; i < size; i++) 
-    {
-        erfxr.back()[i] = ((erfxr.back()[i + 1] = erf(sr * (i + 1. - ox))) - erfxr.back()[i]) * fr1;
-        erfyr.back()[i] = ((erfyr.back()[i + 1] = erf(sr * (i + 1. - oy))) - erfyr.back()[i]) * fr2;
-    }
-    n += 4. * fr1 * fr2;
-
-    if (r != 0.) 
-    {
-        erfxc.emplace_back(size + 1);
-        erfyc.emplace_back(size + 1);
-        double delta = 2. * M_PI * sigma * sigma / r / r;
-        complex<double> sc = sr * sqrt(complex<double>(1., delta));
-        complex<double> xc = complex<double>(0., M_PI / fabs(r) * sqrt(rho) * cos(phi)) / sc;
-        complex<double> yc = complex<double>(0., M_PI / fabs(r) * sqrt(rho) * sin(phi)) / sc;
-        complex<double> fc = sqrt((r < 0.? -fr1: fr1) * fr2 * exp(-M_PI * rho / (1. + delta * delta) * complex<double>(delta, 1.)) / complex<double>(1., delta));
-
-        erfxc.back()[0] = erf(xc - sc * ox);
-        erfyc.back()[0] = erf(yc - sc * oy);
-        for (unsigned i = 0; i < size; i++) 
-        {
-            erfxc.back()[i] = ((erfxc.back()[i + 1] = erf(xc + sc * (i + 1. - ox))) - erfxc.back()[i]) * fc;
-            erfyc.back()[i] = ((erfyc.back()[i + 1] = erf(yc + sc * (i + 1. - oy))) - erfyc.back()[i]) * fc;
-        }
-        n -= 4. * (fc.real() * fc.real() - fc.imag() * fc.imag());
-    }
-    return *this;
-}
-
-
-
-
-
-
-
-
-
-/**
- * \brief Get integral of analytic PSF for a (sub)pixel.
- * 
- * \param i:    x direction 
- * \param j:    y direction 
- * \param norm: apply normalization 
- * 
- * \return normalized or unnormalized integral of analytic PSF for (sub)pixel (i, j)
- **/
-
-double IntegralOfAnalyticPSF::operator()(unsigned i, unsigned j, bool norm) 
-{
-    if (i >= size || j >= size)
-    {
-        return 0.;
-    }
-    
-    double ret = 0.;
-    for (unsigned k = 0; k < erfxr.size() && k < erfyr.size(); k++)
-    {    
-        ret += erfxr[k][i] * erfyr[k][j];
-    }
-    
-    for (unsigned k = 0; k < erfxc.size() && k < erfyc.size(); k++)
-    {
-        ret -= erfxc[k][i].real() * erfyc[k][j].real() - erfxc[k][i].imag() * erfyc[k][j].imag();
-    }
-
-    return norm? ret / n: ret;
-}
-
-
-
-
-
-
-
-
-/**
  * \brief Constructor.
  * 
  * \details
@@ -132,7 +28,7 @@ double IntegralOfAnalyticPSF::operator()(unsigned i, unsigned j, bool norm)
  */
 
 DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator)
-: Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator)
+: Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator), sigma(nullptr)
 {
     // Parse the parameters from the configuration file.
 
@@ -147,6 +43,13 @@ DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(Configura
     		// Generate the flatfield map
 
     		generateFlatfieldMap();
+    }
+
+    if(includeBFE)
+    {
+        // Generate Guyonnet coefficients
+
+       generateGuyonnetCoefficients();
     }
 }
 
@@ -164,6 +67,7 @@ DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(Configura
 DetectorWithAnalyticNonGaussianPSF::~DetectorWithAnalyticNonGaussianPSF()
 {
     flushOutput();
+    delete sigma;
 }
 
 
@@ -188,7 +92,6 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
     flatfieldSeed             = configParam.getLong("RandomSeeds/FlatFieldSeed");
 
 
-    sigma = configParam.getDouble("PSF/AnalyticNonGaussian/Sigma");
     string filename = configParam.getAbsoluteFilename("PSF/AnalyticNonGaussian/ParameterFileName");
 
     ifstream file(filename);
@@ -210,9 +113,55 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
             params.emplace_back(vals);
         }
     }
+
+
+    includeChargeDiffusion = configParam.getBoolean("PSF/AnalyticNonGaussian/IncludeChargeDiffusion");
+    chargeDiffusionStrength = configParam.getDouble("PSF/AnalyticNonGaussian/ChargeDiffusionStrength");
+
+    
+    // The sigma of the PSF can either be a fixed value, or given by a time series in a file
+    
+    string sigmaPSFSource = configParam.getString("PSF/AnalyticNonGaussian/Sigma/Source");
+    if (sigmaPSFSource == "ConstantValue")
+    {
+        double sigmaPSFValue = configParam.getDouble("PSF/AnalyticNonGaussian/Sigma/ConstantValue");     // [pix]
+        sigma = new Parameter<double>(sigmaPSFValue);
+    
+        Log.info("DetectorWithAnalyticNonGaussianPSF: Using a constant sigma: " + to_string(sigmaPSFValue) + " pix");
+    }
+    else if (sigmaPSFSource == "FromFile")
+    {
+        string sigmaPSFInputFile = configParam.getAbsoluteFilename("PSF/AnalyticNonGaussian/Sigma/FromFile");
+        sigma = new Parameter<double>(sigmaPSFInputFile, 1);                                            // [pix]
+    
+        Log.info("DetectorWithAnalyticNonGaussianPSF: Reading sigma PSF from " + sigmaPSFInputFile);
+    }
 }
 
 
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Update the time dependent parameters of the Detector to their 
+ *        value at the given time point
+ *
+ * \param time: current time
+ *
+ * \return 
+ */
+
+void DetectorWithAnalyticNonGaussianPSF::updateParameters(double time)
+{
+    sigma->updateValue(time);
+}
 
 
 
@@ -235,11 +184,11 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
  * \param scale: scale factor to resize the PSF
  **/
 
-void DetectorWithAnalyticNonGaussianPSF::integrateAnalyticPSF(IntegralOfAnalyticPSF& psf, double x, double y, double r, double p, double scale) 
+void DetectorWithAnalyticNonGaussianPSF::integrateAnalyticPSF(IntegralOfAnalyticSignalResponse& psf, double x, double y, double r, double p, double scale)
 {
     double ox = x - floor(x);
     double oy = y - floor(y);
-    double s = sigma * scale;
+    double s = (*sigma)() * scale;
     if (params.size() > 0 && params[0].size() > 6) 
     {
         r /= 1.4;
@@ -482,8 +431,32 @@ void DetectorWithAnalyticNonGaussianPSF::integrateLight(int exposureNr, double s
     }
 
     // Apply throughput efficiency on the pixel map
+    // This takes into account the QE, vignetting, polarisation, and particulate & molecular contamination.
+    // PixelMap units change from [photons] to [electrons] 
 
     applyThroughputEfficiency();
+
+    // Brighter-Fatter effect
+
+    if(includeBFE)
+    {
+    		Log.debug("Detector: adding Brighter-Fatter effect");
+
+       	applyBFE();
+    }
+
+    // Add dark current
+
+    if(includeDarkSignal)
+    {
+    		Log.debug("Detector: adding dark current");
+
+       	addDarkSignal(exposureTime);
+    }
+    else
+    {
+    		Log.debug("Detector: no dark current added");
+    }
 }
 
 
@@ -526,16 +499,29 @@ tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addFlux(double x
     row0 -= subFieldZeroPointRow;
     column0 -= subFieldZeroPointColumn;
 
-    int size = 2 * ((int)(8. * sigma) + 1) + 1;;
+    double s = (*sigma)();
+    double d = 0.;
+
+    if (includeChargeDiffusion) 
+    {
+        d = chargeDiffusionStrength;
+        s = sqrt(s * s + d * d);
+    }
+
+    int size = 2 * (int)(8. * s + 1) + 1;;
     int sx = (int)floor(column0 - (size - 1.) / 2.);
     int sy = (int)floor(row0 - (size - 1.) / 2.);
 
     if (sx + size <= 0 || sx >= (int)numColumnsPixelMap || sy + size <= 0 || sy >= (int)numRowsPixelMap)
         return make_tuple(false, row0, column0);
 
-    IntegralOfAnalyticPSF psf(size);
+    IntegralOfAnalyticSignalResponse psf(size, d);
     double r = rad2deg(camera.getGnomonicRadialDistanceFromOpticalAxis(xFP, yFP));
     double p = atan2(yFP, xFP);
+
+    double ccdOrientation = getOrientationAngle();
+    p -= ccdOrientation;
+
     integrateAnalyticPSF(psf, column0, row0, r, p);
 
     for (int y = max(0, sy); y < min((int)numRowsPixelMap, sy + size); y++)
