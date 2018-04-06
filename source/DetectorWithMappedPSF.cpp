@@ -525,7 +525,7 @@ tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yF
  * \param subpixColumn: Column index [sub-pixels].  NOT a coordinate in the CCD frame, but in the subfield frame.
  * \param flux: Flux for which to apply charge diffusion or jitter smoothing [photons].
  */
-void DetectorWithMappedPSF::applyDiffusionKernel(int subpixRow, int subpixColumn, double flux)
+void DetectorWithMappedPSF::applyDiffusionKernel(double subpixRow, double subpixColumn, double flux)
 {
 	int sx = subpixColumn - (diffusionKernelImageSize - 1) / 2;
 	int sy = subpixRow - (diffusionKernelImageSize - 1) / 2;
@@ -542,13 +542,9 @@ void DetectorWithMappedPSF::applyDiffusionKernel(int subpixRow, int subpixColumn
 	{
 		for (unsigned int column = 0; column < diffusionKernelImageSize; column++)
 		{
-			diffusionKernel(row, column) = signalResponse(column, row);
+			diffusionKernel(row, column) = signalResponse(column, row);	// Normalisation done by ()-operator
 		}
 	}
-
-	// Normalisation
-
-	diffusionKernel /= arma::accu(diffusionKernel);
 
 	// Add the flux to the sub-pixel map
 

@@ -34,7 +34,7 @@ class DetectorWithMappedPSF: public Detector
         virtual void initHDF5Groups() override;
         virtual void integrateLight(int exposureNr, double startTime, double exposureTime) override;
         virtual bool isInSubPixelMap(double row, double column);
-        virtual void applyDiffusionKernel(int row, int column, double flux);
+        virtual void applyDiffusionKernel(double row, double column, double flux);
         virtual void applyFlatfield() override;
         virtual void generateFlatfieldMap();
         virtual void generateDiffusionKernel(double kernelWidth);

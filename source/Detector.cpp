@@ -27,6 +27,11 @@ IntegralOfAnalyticSignalResponse& IntegralOfAnalyticSignalResponse::addPart(doub
     double fr1 = sqrt(M_PI * fabs(h) * sigma * sigma / (r != 0.? 4.: 2.));
     double fr2 = h < 0.? -fr1: fr1;
 
+    // dsigma is the Gaussian diffusion kernel width
+
+    if (dsigma != 0.)
+        sr /= sqrt(2. * sr * sr * dsigma * dsigma + 1.);
+
     erfxr.back()[0] = erf(-sr * ox);
     erfyr.back()[0] = erf(-sr * oy);
     for (unsigned i = 0; i < size; i++)
@@ -41,10 +46,17 @@ IntegralOfAnalyticSignalResponse& IntegralOfAnalyticSignalResponse::addPart(doub
         erfxc.emplace_back(size + 1);
         erfyc.emplace_back(size + 1);
         double delta = 2. * M_PI * sigma * sigma / r / r;
-        complex<double> sc = sr * sqrt(complex<double>(1., delta));
+        complex<double> sc = 1. / sqrt(2.) / sigma * sqrt(complex<double>(1., delta));
         complex<double> xc = complex<double>(0., M_PI / fabs(r) * sqrt(rho) * cos(phi)) / sc;
         complex<double> yc = complex<double>(0., M_PI / fabs(r) * sqrt(rho) * sin(phi)) / sc;
         complex<double> fc = sqrt((r < 0.? -fr1: fr1) * fr2 * exp(-M_PI * rho / (1. + delta * delta) * complex<double>(delta, 1.)) / complex<double>(1., delta));
+
+        if (dsigma != 0.) {
+            complex<double> dc = sqrt(2. * sc * sc * dsigma * dsigma + 1.);
+            sc /= dc;
+            xc /= dc;
+            yc /= dc;
+        }
 
         erfxc.back()[0] = erf(xc - sc * ox);
         erfyc.back()[0] = erf(yc - sc * oy);
@@ -131,8 +143,8 @@ double IntegralOfAnalyticSignalResponse::operator()(unsigned i, unsigned j, bool
 
 Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator)
 : HDF5Writer(hdf5file),
-  includeBFE(true),
   includeCosmics(true),
+  includeBFE(true),
   includeDarkSignal(true),
   includePhotonNoise(true),
   includeReadoutNoise(true),
