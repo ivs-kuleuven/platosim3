@@ -4,7 +4,7 @@ var NAVTREE =
     [ "Installing/Updating PlatoSim3", "InstallUsersDevelopers.html", [
       [ "For Users", "ViaConda.html", [
         [ "Prerequisites", "ReqsInstallViaConda.html", null ],
-        [ "Installing", "InstallViaConda.html", null ],
+        [ "Installing (and Updating)", "InstallViaConda.html", null ],
         [ "A Word about Jenkins", "AboutJenkins.html", null ]
       ] ],
       [ "For Developers", "DownloadUpdateBuild.html", [
