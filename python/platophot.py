@@ -105,7 +105,7 @@ def computePSFBarycenterOffset(psf, Npixels):
 
 
 
-def photometry(inputFilePath, outputFilePath, sigmaPSF, verbose=False):
+def photometry(inputFilePath, outputFilePath, sigmaPSF, useExactStarPosition=True, verbose=False):
 
     """
     PURPOSE: Given a platosim simulation output file, this function loops over all
@@ -114,6 +114,10 @@ def photometry(inputFilePath, outputFilePath, sigmaPSF, verbose=False):
     INPUT: inputFilePath:  path of the input hdf5 file
            outputFilePath: path of the output hdf5 file
            sigmaPSF: the standard deviation of the PSF (assumed to be symmetrical) [pix]
+           useExactStarPosition: If True, the exact star positions will be used to extract the photometry.
+                                 This is kind cheating because in reality you don't know these exact positions.
+                                 If False, the star position of the very first image will be used, which is
+                                 a better approximation of reality.
            verbose: if False, do not print info messages on screen
 
     OUTPUT: None
@@ -142,20 +146,20 @@ def photometry(inputFilePath, outputFilePath, sigmaPSF, verbose=False):
 
     # Compute the offset of the barycenter of the PSF
 
-    psf = array(inputFile["/PSF/rotatedPSF"])                                           # [subpix]
-    if inputFile["/InputParameters/PSF"].attrs["Model"] == "MappedFromFile":
-        Npixels = int(inputFile["/InputParameters/PSF/MappedFromFile"].attrs["NumberOfPixels"])
-    else:
-        Npixels = int(inputFile["/InputParameters/PSF/MappedGaussian"].attrs["NumberOfPixels"])
-
-    deltaRow, deltaCol = computePSFBarycenterOffset(psf, Npixels)                       # [pix]
-
+    #psf = array(inputFile["/PSF/rotatedPSF"])                                           # [subpix]
+    #if inputFile["/InputParameters/PSF"].attrs["Model"] == "MappedFromFile":
+    #    Npixels = int(inputFile["/InputParameters/PSF/MappedFromFile"].attrs["NumberOfPixels"])
+    #else:
+    #    Npixels = int(inputFile["/InputParameters/PSF/MappedGaussian"].attrs["NumberOfPixels"])
+    #
+    # deltaRow, deltaCol = computePSFBarycenterOffset(psf, Npixels)                       # [pix]
+    deltaRow, deltaCol = 0, 0
 
     # Collect the relevant input parameters from the HDF5 file
 
-    gain = inputFile["InputParameters/FEE/Gain"].attrs["RefValue"] * inputFile["InputParameters/CCD/Gain"].attrs["RefValue"]
+    gain = ((inputFile["InputParameters/FEE/Gain"].attrs["RefValueLeft"] * inputFile["InputParameters/CCD/Gain"].attrs["RefValueLeft"]) + (inputFile["InputParameters/FEE/Gain"].attrs["RefValueRight"] * inputFile["InputParameters/CCD/Gain"].attrs["RefValueRight"])) / 2.0    # [ADU / µV] * [µV / e-] = [ADU / e-]
     #gain = inputFile["/InputParameters/CCD/"].attrs["Gain"]                             # [e-/ADU]
-    quantumEfficiency = inputFile["/InputParameters/CCD/QuantumEfficiency"].attrs["ExpectedValue"]    # [e-/phot]
+    quantumEfficiency = inputFile["/InputParameters/CCD/QuantumEfficiency"].attrs["MeanQuantumEfficiency"]    # [e-/phot]
     sigmaRONsquared = inputFile["/InputParameters/FEE"].attrs["ReadoutNoise"]**2 + inputFile["/InputParameters/CCD"].attrs["ReadoutNoise"]**2
     sigmaRON = sqrt(sigmaRONsquared)                  # [e-/pix]
     
@@ -217,10 +221,10 @@ def photometry(inputFilePath, outputFilePath, sigmaPSF, verbose=False):
 
         # Convert from [ADU] to [electrons] using the gain
 
-        image *= gain
+        image /= gain
 
         if verbose:
-            print("    Converted from [ADU] to [electrons] using a Gain of {0} e-/ADU".format(gain))
+            print("    Converted from [ADU] to [electrons] using a Gain of {0} e-/ADU".format(1.0 / gain))
 
         # Correct for geometrical vignetting
         # TODO
@@ -239,10 +243,16 @@ def photometry(inputFilePath, outputFilePath, sigmaPSF, verbose=False):
         exposureGroupName = "/Photometry/Exposure{0:06d}".format(imageNr)
         exposureGroup = outputFile.create_group(exposureGroupName)
 
-        starID    = array(inputFile["StarPositions/Exposure{0:06d}/starID".format(imageNr)])
-        colPix    = array(inputFile["StarPositions/Exposure{0:06d}/colPix".format(imageNr)])
-        rowPix    = array(inputFile["StarPositions/Exposure{0:06d}/rowPix".format(imageNr)])
-        inputFlux = array(inputFile["StarPositions/Exposure{0:06d}/flux".format(imageNr)]) 
+        if useExactStarPosition:
+            starID    = array(inputFile["StarPositions/Exposure{0:06d}/starID".format(imageNr)])
+            colPix    = array(inputFile["StarPositions/Exposure{0:06d}/colPix".format(imageNr)])
+            rowPix    = array(inputFile["StarPositions/Exposure{0:06d}/rowPix".format(imageNr)])
+            inputFlux = array(inputFile["StarPositions/Exposure{0:06d}/flux".format(imageNr)]) 
+        else:
+            starID    = array(inputFile["StarPositions/Exposure{0:06d}/starID".format(0)])
+            colPix    = array(inputFile["StarPositions/Exposure{0:06d}/colPix".format(0)])
+            rowPix    = array(inputFile["StarPositions/Exposure{0:06d}/rowPix".format(0)])
+            inputFlux = array(inputFile["StarPositions/Exposure{0:06d}/flux".format(0)]) 
 
         # The input flux stored in the HDF5 file, are expressed in [phot/exposure],
         # and the passband and the transmission efficiency of the telescope are already included

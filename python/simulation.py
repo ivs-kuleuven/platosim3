@@ -625,14 +625,14 @@ class Simulation(object):
         decPlatform      = np.deg2rad(float(self["ObservingParameters/DecPointing"]))
         azimuthTelescope = np.deg2rad(float(self["Telescope/AzimuthAngle"]))
         tiltTelescope    = np.deg2rad(float(self["Telescope/TiltAngle"]))
-        focalLength      = float(self["Camera/FocalLength"]) * 1000.0                     # [m] -> [mm]
+        focalLength      = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0                     # [m] -> [mm]
         plateScale       = float(self["Camera/PlateScale"])          
-        focalPlaneAngle  = np.deg2rad(float(self["Camera/FocalPlaneOrientation"]))
+        focalPlaneAngle  = np.deg2rad(float(self["Camera/FocalPlaneOrientation/ConstantValue"]))
         pixelSize        = float(self["CCD/PixelSize"]) 
 
         if (self["Camera/IncludeFieldDistortion"] == "yes")  or (self["Camera/IncludeFieldDistortion"] == "1"):
             includeFieldDistortion = True
-            distortionCoefficients = sim["Camera/FieldDistortion/Coefficients"]
+            distortionCoefficients = sim["Camera/FieldDistortion/ConstantCoefficients"]
         else:
             includeFieldDistortion = False
             distortionCoefficients = None
@@ -676,6 +676,12 @@ class Simulation(object):
         else:
             self["ObservingParameters/ExposureTime"] = 2.3
             self["CCD/ReadoutTime"] = 0.2
+
+        # Make sure that the focal length and the focal plane orientation are constant values
+        # and not read from a file.
+
+        self["Camera/FocalLength/Source"] = "ConstantValue"
+        self["Camera/FocalPlaneOrientation/Source"] = "ConstantValue"
         
         # That's it
 
@@ -691,7 +697,7 @@ class Simulation(object):
 
 
 
-    def createStarCatalogFileFromPixelCoordinates(self, rows, cols, magnitudes, starCatalogFileName):
+    def createStarCatalogFileFromPixelCoordinates(self, rows, cols, magnitudes, starIDs, starCatalogFileName):
 
         """
         PURPOSE: Create a star catalog ascii file given the pixel coordinates (row and column) of the stars.
@@ -701,42 +707,66 @@ class Simulation(object):
         INPUT: rows:       Numpy array with fractional row coordinates of the stars (CCD, not subfield) [pix]     
                cols:       Numpy array with fractional column coordinates of the stars (CCD, not subfield) [pix]  
                magnitudes: Johnson V magnitudes of the stars
+               starIDs:    IDs of the star (integers)
                starCatalogFileName: Path of the star catalog file that will be written.
 
         OUTPUT: None. A file will be saved, containing, ra, dec, and magnitude of the stars.
         """
 
         # Extract the needed information from the yaml input file
+        # Note: groupIDs and ccdIDs start counting from 1... 
+        
+        if self["Telescope/GroupID"] == "Custom":
+            azimuthAngle    = np.deg2rad(self["Telescope/AzimuthAngle"])
+            tiltAngle       = np.deg2rad(self["Telescope/TiltAngle"])
+        else:
+            groupID = int(self["Telescope/GroupID"])
+            azimuthAngle    = np.deg2rad(self["CameraGroups/AzimuthAngle"][groupID-1])
+            tiltAngle       = np.deg2rad(self["CameraGroups/TiltAngle"][groupID-1])
 
-        pixelSize       = self["CCD/PixelSize"]
-        ccdZeroPointX   = self["CCD/OriginOffsetX"]
-        ccdZeroPointY   = self["CCD/OriginOffsetY"]
-        CCDangle        = np.deg2rad(self["CCD/Orientation"])
+        if self["CCD/Position"] == "Custom":
+            ccdZeroPointX   = self["CCD/OriginOffsetX"]
+            ccdZeroPointY   = self["CCD/OriginOffsetY"]
+            CCDangle        = np.deg2rad(self["CCD/Orientation"])
+        else:
+            ccdID = int(self["CCD/Position"])
+            ccdZeroPointX   = self["CCDPositions/OriginOffsetX"][ccdID-1]
+            ccdZeroPointY   = self["CCDPositions/OriginOffsetY"][ccdID-1]
+            CCDangle        = np.deg2rad(self["CCDPositions/Orientation"][ccdID-1])
+
+        pixelSize       = self["CCD/PixelSize"]                                                 # [micron]
         raPlatform      = np.deg2rad(self["ObservingParameters/RApointing"])
         decPlatform     = np.deg2rad(self["ObservingParameters/DecPointing"])
-        azimuthAngle    = np.deg2rad(self["Telescope/AzimuthAngle"])
-        tiltAngle       = np.deg2rad(self["Telescope/TiltAngle"])
-        focalPlaneAngle = np.deg2rad(self["Camera/FocalPlaneOrientation"])
-        focalLength     = self["Camera/FocalLength"] * 1000.0                     # [m] -> [mm]
+        focalPlaneAngle = np.deg2rad(self["Camera/FocalPlaneOrientation/ConstantValue"])
+        focalLength     = self["Camera/FocalLength/ConstantValue"] * 1000.0                     # [m] -> [mm]
         includeFieldDistortion = self["Camera/IncludeFieldDistortion"]
-        inverseDistortionCoefficients = self["Camera/FieldDistortion/InverseCoefficients"]
+        inverseDistortionCoefficients = self["Camera/FieldDistortion/ConstantInverseCoefficients"]
 
         # Convert the pixel coordinates to focal plane coordinates [mm]
-        
+      
         xFPmm, yFPmm = rf.pixelToFocalPlaneCoordinates(cols, rows, pixelSize, ccdZeroPointX, ccdZeroPointY, CCDangle)
-        
+      
         # If distortion is required in the yaml input file, distort the focal plane coordinates [mm]
 
         if (includeFieldDistortion == "yes"):
-            xFPmm, yFPmm = rf.distortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, inverseDistortionCoefficients)
+            xFPmm, yFPmm = rf.distortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, inverseDistortionCoefficients, focalLength)
 
         # Convert the focal plane coordinates to equatorial sky coordinates [rad]
 
         ra, dec = rf.focalPlaneToSkyCoordinates(xFPmm, yFPmm, raPlatform, decPlatform, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength)
 
+        # Convert sky coordinates to degrees
+        
+        ra = np.rad2deg(ra)
+        dec = np.rad2deg(dec)
+
         # Save the sky coordinates (in [deg]) to the star catalog file
 
-        np.savetxt(starCatalogFileName, np.transpose([np.rad2deg(ra), np.rad2deg(dec), magnitudes]))
+        myFile = open(starCatalogFileName, "w")
+        myFile.write("# RA DEC Vmag starID\n")
+        for n in range(len(ra)):
+            myFile.write("{0}  {1}  {2}  {3}\n".format(ra[n], dec[n], magnitudes[n], starIDs[n]))
+        myFile.close()
 
         # That's it
 

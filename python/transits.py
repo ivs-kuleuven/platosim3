@@ -22,13 +22,14 @@ def simpleTransit(time, t0, flatPartDuration, transitDuration, orbitalPeriod, re
 
     INPUT: time:             Time points for which the signal needs to be constructed [Ms]             
            t0:               Reference time [Ms]            
-           flatPartDuration: Duration of the time when a  [Ms] 
+           flatPartDuration: Duration of the flat part of a transit [Ms] 
            transitDuration:  Duration of the whole transit = ingress + flat part + egress [Ms]
            orbitalPeriod:    Time span between two transits [Ms]
            relativeDepth:    Relative depth of the transit in [0,1]         
 
-    OUTPUT: relativeFlux:    delta F / F0   lightcurve
-
+    OUTPUT: phase:           orbital phase in [0, orbitalPeriod]
+            relativeFlux:    delta F / F0   lightcurve
+            deltaMagnitude:  magnitude = magnitude0 + deltaMagnitude
     """
 
     phase = np.fmod(time - t0, orbitalPeriod)   # in [0, orbitalPeriod]
@@ -58,6 +59,10 @@ def simpleTransit(time, t0, flatPartDuration, transitDuration, orbitalPeriod, re
     egress = (phase >= egressStart) & (phase < egressStart + egressDuration)
     relativeFlux[egress] = 1.0-relativeDepth + relativeDepth / egressDuration * (phase[egress] - egressStart)
 
+    # Convert to magnitude differences
+
+    deltaMagnitude = -0.4 * np.log(10.0) * relativeFlux
+
     # That's it!
 
-    return phase, relativeFlux
+    return phase, relativeFlux, deltaMagnitude

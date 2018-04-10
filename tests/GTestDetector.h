@@ -122,13 +122,13 @@ protected:
  * 
  */
 
-class MyDetector: public Detector {
+class MyDetector: public DetectorWithMappedPSF {
 
 public:
 
 	MyDetector(ConfigurationParameters &configParam, HDF5File &hdf5File,
-			Camera &camera) :
-			Detector(configParam, hdf5File, camera) {
+			Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator) :
+				DetectorWithMappedPSF(configParam, hdf5File, camera, feeTemperatureGenerator, detectorTemperatureGenerator) {
 	}
 
 	pair<double, double> test_pixelToFocalPlaneCoordinates(double row,
@@ -315,7 +315,7 @@ double	row, column;
 
 		Platform platform(configParams, hdf5File, jitterGenerator);
 		Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-		Camera camera(configParams, hdf5File, telescope, sky);
+		Camera camera(configParams, hdf5File, platform, telescope, sky);
 		MyDetector detector(configParams, hdf5File, camera);
 
 		row = data["yCCD"];
@@ -338,7 +338,7 @@ JitterFromRedNoise	jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
 	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
+	Camera camera(configParams, hdf5File, platform, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
 	// Find out what size of subfield we specified in the input yaml file
@@ -382,7 +382,7 @@ JitterFromRedNoise	jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
 	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
+	Camera camera(configParams, hdf5File, platform, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
 	// Configuration parameters
@@ -434,7 +434,7 @@ JitterFromRedNoise	jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
 	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
+	Camera camera(configParams, hdf5File, platform, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
 	// Configuration parameters
@@ -477,7 +477,7 @@ JitterFromRedNoise	jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
 	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
+	Camera camera(configParams, hdf5File, platform, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
 	// Configuration parameters
@@ -550,7 +550,7 @@ JitterFromRedNoise	jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
 	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
+	Camera camera(configParams, hdf5File, platform, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
 	for(unsigned int detectorZeroPointRow = 0; detectorZeroPointRow <= 15; detectorZeroPointRow += 10)
@@ -641,7 +641,7 @@ JitterFromRedNoise	jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
 	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
+	Camera camera(configParams, hdf5File, platform, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
 	// Configuration parameters
@@ -720,7 +720,7 @@ configParams	.setParameter("CCD/IncludeVignetting", "no");
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
 	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
+	Camera camera(configParams, hdf5File, platform, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
 	// Configuration parameters
@@ -770,7 +770,7 @@ configParams	.setParameter("CCD/IncludeVignetting", "no");
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
 	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
+	Camera camera(configParams, hdf5File, platform, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
 	// Configuration parameters
@@ -814,7 +814,7 @@ JitterFromRedNoise	jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
 	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
+	Camera camera(configParams, hdf5File, platform, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
 	// Configuration parameters
@@ -906,7 +906,7 @@ JitterFromRedNoise	jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
 	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
+	Camera camera(configParams, hdf5File, platform, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
 	// Configuration parameters
@@ -987,7 +987,7 @@ JitterFromRedNoise	jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
 	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
+	Camera camera(configParams, hdf5File, platform, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
 	// Configuration parameters
@@ -1023,7 +1023,7 @@ JitterFromRedNoise	jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
 	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
+	Camera camera(configParams, hdf5File, platform, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
 	// Configuration parameters
@@ -1074,8 +1074,8 @@ JitterFromRedNoise	jitterGenerator(configParams);
 	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
 
 	for(unsigned int column = 0; column < numColumnsSubField; column++)
-	{
 		for(unsigned int row = 0; row < numRowsSubField; row++)
+	{
 		{
 
 			if(column == 7)
@@ -1186,7 +1186,7 @@ JitterFromRedNoise	jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
 	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
+	Camera camera(configParams, hdf5File, platform, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
 	// Configuration parameters
@@ -1310,7 +1310,7 @@ configParams	.setParameter("SubField/NumRows", "100");
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
 	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
+	Camera camera(configParams, hdf5File, platform, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
 	// Configuration parameters
@@ -1399,7 +1399,7 @@ TEST_F(DetectorTest, applyGain) {
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
 	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
+	Camera camera(configParams, hdf5File, platform, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
 	// Configuration parameters
@@ -1444,21 +1444,21 @@ TEST_F(DetectorTest, applyGain) {
 	ASSERT_EQ(numRowsSubField, detector.test_getSubfield().n_rows);
 	ASSERT_EQ(numColumnsSubField, detector.test_getSubfield().n_cols);
 
-	EXPECT_TRUE(arma::all(arma::vectorise(subField / gain) == arma::vectorise(detector.test_getSubfield())));
+	EXPECT_TRUE(arma::all(arma::vectorise(subField * gain) == arma::vectorise(detector.test_getSubfield())));
 
 	// Bias register map: check dimensions and content (divided by gain)
 
 	ASSERT_EQ(numBiasPreScanRows, detector.test_getBiasRegisterMap().n_rows);
 	ASSERT_EQ(numColumnsSubField, detector.test_getBiasRegisterMap().n_cols);
 
-	EXPECT_TRUE(arma::all(arma::vectorise(biasMap / gain) == arma::vectorise(detector.test_getBiasRegisterMap())));
+	EXPECT_TRUE(arma::all(arma::vectorise(biasMap * gain) == arma::vectorise(detector.test_getBiasRegisterMap())));
 
 	// Smearing map: check dimensions and content (divided by gain)
 
 	ASSERT_EQ(numSmearingOverScanRows, detector.test_getSmearingMap().n_rows);
 	ASSERT_EQ(numColumnsSubField, detector.test_getSmearingMap().n_cols);
 
-	EXPECT_TRUE(arma::all(arma::vectorise(smearingMap / gain) == arma::vectorise(detector.test_getSmearingMap())));
+	EXPECT_TRUE(arma::all(arma::vectorise(smearingMap * gain) == arma::vectorise(detector.test_getSmearingMap())));
 }
 
 /**
@@ -1476,7 +1476,7 @@ JitterFromRedNoise	jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
 	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
+	Camera camera(configParams, hdf5File, platform, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
 	// Configuration parameters
@@ -1551,7 +1551,7 @@ JitterFromRedNoise	jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
 	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
+	Camera camera(configParams, hdf5File, platform, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
 	// Configuration parameters
@@ -1715,7 +1715,7 @@ JitterFromRedNoise	jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
 	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
+	Camera camera(configParams, hdf5File, platform, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
 	// Configuration parameters
@@ -1853,7 +1853,7 @@ JitterFromRedNoise	jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
 	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
+	Camera camera(configParams, hdf5File, platform, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
 	// Configuration parameters
@@ -1894,7 +1894,7 @@ JitterFromRedNoise	jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
 	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
+	Camera camera(configParams, hdf5File, platform, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
 	// Configuration parameters
@@ -1922,7 +1922,7 @@ JitterFromRedNoise	jitterGenerator(configParams);
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
 	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
+	Camera camera(configParams, hdf5File, platform, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
 	// Configuration parameters
@@ -1960,7 +1960,7 @@ configParams	.setParameter("SubField/NumRows", "4510");
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
 	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
+	Camera camera(configParams, hdf5File, platform, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
 	const int numBiasPreScanRows = configParams.getInteger("SubField/NumBiasPrescanRows");
@@ -2009,7 +2009,7 @@ configParams	.setParameter("SubField/NumRows", "4510");
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
 	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
+	Camera camera(configParams, hdf5File, platform, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
 	// Configuration parameters
@@ -2063,7 +2063,7 @@ configParams	.setParameter("SubField/NumRows", "4510");
 	Platform platform(configParams, hdf5File, jitterGenerator);
 	Sky sky(configParams);
 	Telescope telescope(configParams, hdf5File, platform, driftGenerator);
-	Camera camera(configParams, hdf5File, telescope, sky);
+	Camera camera(configParams, hdf5File, platform, telescope, sky);
 	MyDetector detector(configParams, hdf5File, camera);
 
 	// Initialise sub-pixel map, pixel map, bias register map, and smearing map

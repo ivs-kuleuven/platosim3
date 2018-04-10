@@ -17,9 +17,11 @@
 #include "Platform.h"
 #include "Sky.h"
 #include "JitterGenerator.h"
+#include "NoJitter.h"
 #include "JitterFromFile.h"
 #include "JitterFromRedNoise.h"
 #include "DriftGenerator.h"
+#include "NoDrift.h"
 #include "ThermoElasticDriftFromFile.h"
 #include "ThermoElasticDriftFromRedNoise.h"
 #include "ConfigurationParameters.h"
@@ -54,8 +56,10 @@ class Simulation
         int beginExposureNr;                 // sequential number of first exposure. useful for slurm parallellisation
         int numExposures;                    // Number of exposures
 
+        bool useJitter;
         bool useJitterFromFile;
         bool includeFieldDistortion;
+        bool useDrift;
         bool useDriftFromFile;
         bool useFeeTemperatureFromFile;
         bool useFeeNominalTemperature;

@@ -287,12 +287,14 @@ class SimFile (object):
 
 
 
-    def showImage(self, imageNr, showStarPositions=False, useTitle=True):
+    def showImage(self, imageNr, clipPercentile=5.0, showStarPositions=False, useTitle=True):
 
         """
         PURPOSE: make a plot of the requested image 
 
         INPUT: imageNr:           Integer sequential number of the image in the HDF5 file
+               clipPercentile:    In [0,49]. Intensities will be clipped between [value, 100-value]
+                                             to improve the image contrast. 
                showStarPositions: True if the average star positions (averaged over the exposure)
                                   should be shown with a small green cross. False otherwise.
                useTitle:          True is an image title should be plotted, False otherwise
@@ -318,7 +320,7 @@ class SimFile (object):
         # The large dynamic range of the pixel values often results in images where only
         # the brightest stars are visible. To improve the contrast, clip the color mapping.
 
-        imagePlot.set_clim(np.percentile(image, 2), np.percentile(image, 98))
+        imagePlot.set_clim(np.percentile(image, clipPercentile), np.percentile(image, 100-clipPercentile))
 
         # If required, overplot the true averaged star positions
 

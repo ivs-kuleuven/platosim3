@@ -103,15 +103,6 @@ void Convolver::initialise(int Nrows, int Ncols, matrix &kernel)
         throw IllegalArgumentException(errorMessage);
     }
 
-    if ((kernel.n_rows > Nrows) || (kernel.n_cols > Ncols))
-    {
-        string errorMessage = "Convolver: kernel dimensions (" + to_string(kernel.n_rows) + "," 
-                            + to_string(kernel.n_cols) + ") should be smaller than input matrix dimensions "
-                            + "(" + to_string(Nrows) + "," + to_string(Ncols) + ")";
-        Log.error(errorMessage);
-        throw IllegalArgumentException(errorMessage);
-    }
-
     if ((kernel.n_rows < 2) || (kernel.n_cols < 2))
     {
         string errorMessage = "Convolver: kernel has a dimension < 2";

@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['outputfile_2emd',['OutputFile.md',['../_output_file_8md.html',1,'']]]
+  ['configurationfile_2emd',['ConfigurationFile.md',['../_configuration_file_8md.html',1,'']]]
 ];

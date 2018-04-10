@@ -7,9 +7,9 @@ FrontEndElectronics::FrontEndElectronics(ConfigurationParameters &configParam, H
 
 	configure(configParam);
 
-	// Generate FEE gain
+	// Check whether the gain values for ADC1 and ADC2 are not too far apart
 
-	generateGain();
+	checkGain();
 }
 
 
@@ -44,10 +44,10 @@ void FrontEndElectronics::configure(ConfigurationParameters &configParam)
 
 	readoutNoise  = configParam.getDouble("FEE/ReadoutNoise");
 
-	refValueGain  = configParam.getDouble("FEE/Gain/RefValue");
-	gainStability = configParam.getDouble("FEE/Gain/Stability");
-	gainThreeSigma     = configParam.getDouble("FEE/Gain/ThreeSigma");
-	gainSeed      = configParam.getLong("RandomSeeds/FeeGainSeed");
+	refValueGainLeft          = configParam.getDouble("FEE/Gain/RefValueLeft");
+	refValueGainRight         = configParam.getDouble("FEE/Gain/RefValueRight");
+	gainStability             = configParam.getDouble("FEE/Gain/Stability");
+	gainAllowedDifference     = configParam.getDouble("FEE/Gain/AllowedDifference");
 
 	refValueBias  = configParam.getInteger("FEE/ElectronicOffset/RefValue");
 	biasStability = configParam.getDouble("FEE/ElectronicOffset/Stability");
@@ -60,24 +60,20 @@ void FrontEndElectronics::configure(ConfigurationParameters &configParam)
 
 
 
-
-
 /**
- * Generate FEE gain for the left and the right ADC.
+ * Checks whether the gain values for ADC1 and ADC2 are not too far apart, according
+ * to the specified allowed difference.  In case the gain values are too far apart,
+ * a warning message is shown to the user.
  */
-
-void FrontEndElectronics::generateGain()
+void FrontEndElectronics::checkGain()
 {
-	mt19937 gainGenerator;
-	gainGenerator.seed(gainSeed);
+	double allowedDifference = min(refValueGainLeft, refValueGainRight) * gainAllowedDifference / 100.0;
 
-	double stdDevGain = (gainThreeSigma / 3.0 / 100.0) * refValueGain;
-	normal_distribution<double> gainDistribution = normal_distribution<double>(refValueGain, stdDevGain);
-
-	refValueGainLeft  = gainDistribution(gainGenerator);
-	refValueGainRight = gainDistribution(gainGenerator);
+	if(abs(refValueGainLeft - refValueGainRight) > allowedDifference)
+	{
+		Log.warning("FrontEndElectornics: Difference in gain between ADC1 and ADC2 too large.");
+	}
 }
-
 
 
 

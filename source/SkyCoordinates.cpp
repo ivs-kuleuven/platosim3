@@ -255,6 +255,39 @@ double angularDistanceBetween(SkyCoordinates &coordinates1, SkyCoordinates &coor
 
 
 
+/**
+ * \brief Compute the angular separation on a great-circle between two coordinate pairs
+ * 
+ * \details The haversine formula is used to get better numerical accuracy.
+ * 
+ * \param RA1: right ascencsion of the first point [rad]
+ * \param dec1: declination of the first point     [rad]
+ * \param RA2: right ascencsion of the 2nd point   [rad]
+ * \param dec2: declination of the 2nd point       [rad]
+ * \param angleUnit: Angle::radians if output angle should be in radians, Angle::degrees if in degrees
+ *   
+ * \return angular separation [rad]
+ */
+
+double angularDistanceBetween(const double RA1, const double dec1, const double RA2, const double dec2, Unit outputAngleUnit)
+{
+    const double sinHalfDeltaLong = sin((RA1 - RA2)/2.0);
+    const double sinHalfDeltaLat = sin((dec1 - dec2)/2.0);
+    const double a = sinHalfDeltaLat*sinHalfDeltaLat + cos(dec1) * cos(dec2) * sinHalfDeltaLong*sinHalfDeltaLong;
+
+    const double angle = 2.0 * atan2(sqrt(a), sqrt(1.0-a)) * outputAngleUnit;
+
+    return angle;
+}
+
+
+
+
+
+
+
+
+
 
 
 /**

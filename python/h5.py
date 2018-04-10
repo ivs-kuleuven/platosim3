@@ -102,18 +102,21 @@ def h5get(item,sel,verbose=True,caseSensitive=False,getNames=False,cs=False):
     
     EXAMPLES
     
-    bias = h5get(hfile,["bias","27"])
+    >>> import h5py
+    >>> hfile = h5py.File("myfile.hdf5", 'r')
+    
+    >>> bias = h5get(hfile,["bias","27"])
     OR    
-    bias = h5get(hfile,["27","Bias"])
+    >>> bias = h5get(hfile,["27","Bias"])
         matching items:
             Dataset         /BiasMaps/biasMap000027
         bias.__class__  : numpy.ndarray
         bias.shape      : (5, 100)
 
 
-    versions        = h5get(hfile,"Version")  
+    >>> versions        = h5get(hfile,"Version")  
     OR
-    versions, names = h5get(hfile,"version",getNames=1)  
+    >>> versions, names = h5get(hfile,"version",getNames=1)  
         matching items:
             Attribute       /Version/Application
             Attribute       /Version/GitVersion

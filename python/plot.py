@@ -328,8 +328,8 @@ def drawStarInFocalPlane(sim, raStar, decStar):
     decPlatform      = np.radians(float(sim["ObservingParameters/DecPointing"]))
     azimuthTelescope = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
     tiltTelescope    = np.deg2rad(float(sim["Telescope/TiltAngle"]))
-    focalPlaneAngle  = np.radians(float(sim["Camera/FocalPlaneOrientation"]))
-    focalLength      = float(sim["Camera/FocalLength"]) * 1000.0  # [m] -> [mm]
+    focalPlaneAngle  = np.radians(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
+    focalLength      = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
     ccdZeroPointX    = float(sim["CCD/OriginOffsetX"])
     ccdZeroPointY    = float(sim["CCD/OriginOffsetY"])
     ccdAngle         = np.radians(float(sim["CCD/Orientation"]))
@@ -338,7 +338,7 @@ def drawStarInFocalPlane(sim, raStar, decStar):
                                               focalPlaneAngle, focalLength)
 
     if includeFieldDistortion:
-        xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm)
+        xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients, focalLength)
 
     #ccdCode, xCCD, yCCD = getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, tiltTelescope, azimuthTelescope,  \
     #                                                focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, FIELD_DISTORTION["Coeff"], normal)

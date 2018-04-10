@@ -1,5 +1,7 @@
 # Issue Tracking {#IssueTracking}
 
+Although we do our very best to limit problems to a minimum, this is - unfortunately - no guarantee that you will never run into troubles when trying to install/update/run PlatoSim3.  If you would have problems, questions, remarks,..., please, let us know!
+
 You are encouraged to use the issue tracking system of GitHub to report any problem you would come across, rather than sending one of the PlatoSim developers an email.  This helps you and us to better keep track of which problems arise and what their status is.
 
 Browse to the PlatoSim3 repository on GitHub and select the <code>Issues</code> tab (see Fig. 1).
@@ -26,7 +28,18 @@ on the command line in your installation directory.
 - In case the results are different than you expected, please explain us which numbers you expected and why.
 - Which system are you using?
 	- operating system
-	- gcc/clang (<code>gcc --version</code> or <code>clang --version</code>)
-	- CMake (<code>cmake --version</code>)
+	- gcc/clang
+		\code
+			gcc --version
+			clang --version
+		\endcode
+	- CMake
+		\code
+			cmake --version
+		\endcode
 - What have you tried to solve the problem?
-- Error and log messages.
+- Error and log messages.  To extract these, place this behind the command that is causing problems:
+	\code
+		> output.txt 2> errors.txt
+	\endcode
+- Which installation procedure did you follow?

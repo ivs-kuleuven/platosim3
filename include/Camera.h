@@ -18,12 +18,14 @@
 #include "HDF5Writer.h"
 #include "Heartbeat.h"
 #include "Logger.h"
+#include "Exceptions.h"
 #include "Polynomial1D.h"
 #include "Sky.h"
 #include "StringUtilities.h"
 #include "Platform.h"
 #include "Telescope.h"
 #include "Units.h"
+#include "Parameter.h"
 
 
 using namespace std;
@@ -41,6 +43,7 @@ class Camera : public HDF5Writer
 
         virtual void configure(ConfigurationParameters &configParam);
         virtual void exposeDetector(Detector &detector, double startTime, double exposureTime);
+        virtual void updateParameters(double time);
 
         virtual void initHDF5Groups() override;
         virtual void flushOutput() override;
@@ -67,26 +70,22 @@ class Camera : public HDF5Writer
         Telescope &telescope;
         Sky &sky;
 
+        Parameter<double> *focalLength;       // [mm]
+        Parameter<double> *focalPlaneAngle;   // Orientation of the focal plane, as an angle around the optical axis  [rad] 
+        Parameter<double, 3> *distortionCoef; // distortion coefficients to map undistorted to distorted coordinates.
+        Parameter<double, 3> *inverseDistortionCoef; // inverse distortion coefficient to map distorted to undistorted coordinates.
+
+        string distortionModel;               // The model used to compute the distortion  
         double plateScale;                    // [arcsec/micron]
-        double focalLength;                   // [mm]
         double throughputBandwidth;           // FWHM of the throughput passband [nm]
         double throughputLambdaC;             // Central wavelength of the throughput passband [nm]
 
-        void setDistortionPolynomial(Polynomial1D &polynomial, Polynomial1D &inversePolynomial);
-
         double internalTime;
-        string polynomialType;
-        double polynomialDegree;
-        vector<double> polynomialCoefficients;
-        vector<double> inversePolynomialCoefficients;
 
-        Polynomial1D polynomial;
-        Polynomial1D inversePolynomial;
-
-        bool includeAberrationCorrection; // Wheter or not (differential) aberration correction should be included
+        bool includeAberrationCorrection; // Whether or not (differential) aberration correction should be included
         string aberrationCorrectionType;  // [differential or absolute]
 
-        bool includeFieldDistortion;      // Wheter or not field distortion should be included
+        bool includeFieldDistortion;      // Whether or not field distortion should be included
 
         double userGivenSkyBackground;    // User-set zodiacal + stellar sky background.                          [phot/pix/s]
                                           // If negative, computed by the Sky class
@@ -95,8 +94,7 @@ class Camera : public HDF5Writer
         double raSun;                     // Right ascension of the direction of the sun shield during the run    [rad]
         double decSun;                    // Declination of the direction of the sun shield during the run        [rad]
 
-        double focalPlaneAngle;           // Orientation of the focal plane, as an angle around the optical axis  [rad]
-
+        bool writeStarPositions;          // Whether or not the star positions should be written to the output HDF5 file
 
         // detectedStarInfo[startTime][starID] contains the values (xFPmean, yFPmean, rowPixMean, colPixmean, sumFlux, Ndetections)
 

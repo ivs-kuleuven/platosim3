@@ -34,6 +34,8 @@ class JitterFromFile : public JitterGenerator
     protected:
 
         string pathToJitterFile;
+        double beginTime;                 // Only read the jitter file from beginTime to endTime
+        double endTime;
 
         int timeIndex;
         double internalTime;

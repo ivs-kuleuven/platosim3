@@ -33,7 +33,7 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     if (fileExists(outputFilename))
     {
-        Log.error("Simulation: Output file name already exists. Aborting.");
+        Log.error("Simulation: Output file " + outputFilename + " already exists. Aborting.");
         exit(1);
     }
 
@@ -51,24 +51,38 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     // Depending on what the user requested, define the proper platform jitter generator
 
-    if (useJitterFromFile)
+    if (!useJitter)
     {
-        jitterGenerator = new JitterFromFile(configParams);
+        jitterGenerator = new NoJitter();
     }
     else
     {
-        jitterGenerator = new JitterFromRedNoise(configParams);
+        if (useJitterFromFile)
+        {
+            jitterGenerator = new JitterFromFile(configParams);
+        }
+        else
+        {
+            jitterGenerator = new JitterFromRedNoise(configParams);
+        }
     }
 
     // Depending on what the user requested, define the proper telescope thermo-elastic drift generator
 
-    if (useDriftFromFile)
+    if (!useDrift)
     {
-        driftGenerator = new ThermoElasticDriftFromFile(configParams);
+        driftGenerator = new NoDrift();
     }
     else
     {
-        driftGenerator = new ThermoElasticDriftFromRedNoise(configParams);
+        if (useDriftFromFile)
+        {
+            driftGenerator = new ThermoElasticDriftFromFile(configParams);
+        }
+        else
+        {
+            driftGenerator = new ThermoElasticDriftFromRedNoise(configParams);
+        }
     }
 
     if(useFeeTemperatureFromFile)
@@ -167,8 +181,10 @@ void Simulation::configure(ConfigurationParameters &configParams)
     exposureTime      = configParams.getDouble("ObservingParameters/ExposureTime"); 
     beginExposureNr   = configParams.getInteger("ObservingParameters/BeginExposureNr");
     numExposures      = configParams.getInteger("ObservingParameters/NumExposures");
+    useJitter         = configParams.getBoolean("Platform/UseJitter");
     useJitterFromFile = configParams.getBoolean("Platform/UseJitterFromFile");
     includeFieldDistortion = configParams.getBoolean("Camera/IncludeFieldDistortion"); // do we want to do this or should this be asked to Camera?
+    useDrift          = configParams.getBoolean("Telescope/UseDrift");  
     useDriftFromFile  = configParams.getBoolean("Telescope/UseDriftFromFile");  
     psfModel          = configParams.getString("PSF/Model");
     useFeeTemperatureFromFile = configParams.getString("FEE/Temperature") == "FromFile";
@@ -283,11 +299,13 @@ void Simulation::writeStarCatalogToHDF5()
         for (auto starID: allStarIDs)
         {
             starIDs[k] = starID;
-            tie(RA[k], dec[k]) = sky->getCoordinatesOfStarWithID(starID, Angle::degrees);  // be careful, ra & dec returned in degrees!
-            Vmag[k] = sky->getVmagnitudeOfStarWithID(starID);
+            tie(RA[k], dec[k], Vmag[k]) = sky->getInfoOfStarWithID(starID);  // RA & dec returned in radians!
             const bool useInitialOrientation = true;
-            tie(xFPmm[k], yFPmm[k]) = camera->skyToFocalPlaneCoordinates(deg2rad(RA[k]), deg2rad(dec[k]), useInitialOrientation);
+            tie(xFPmm[k], yFPmm[k]) = camera->skyToFocalPlaneCoordinates(RA[k], dec[k], useInitialOrientation);
             
+            RA[k]  *= Angle::degrees;    // [rad] -> [deg]
+            dec[k] *= Angle::degrees;    // [rad] -> [deg]
+
             if (includeFieldDistortion)
             {
                tie(xFPmm[k], yFPmm[k]) = camera->undistortedToDistortedFocalPlaneCoordinates(xFPmm[k], yFPmm[k]);
@@ -387,8 +405,19 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("RApointing");
     addDouble("DecPointing");
     addDouble("Fluxm0");
-    addDouble("SkyBackground");
     addString("StarCatalogFile");
+
+    subGroup = "Sky";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("SkyBackground");
+    addBoolean("IncludeVariableSources");
+    addString("VariableSourceList");
+    addBoolean("IncludeCosmics");
+    subGroup = "Sky/Cosmics";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("CosmicHitRate");
+    addDoubleVector("TrailLength");
+    addDoubleVector("Intensity");
 
     subGroup = "Platform";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
@@ -420,18 +449,28 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "Camera";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
-    addDouble("FocalPlaneOrientation");
     addDouble("PlateScale");
-    addDouble("FocalLength");
     addDouble("ThroughputBandwidth");
     addDouble("ThroughputLambdaC");
     addBoolean("IncludeFieldDistortion");
     subGroup = "Camera/FieldDistortion";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addString("Type");
-    addInteger("Degree");
-    addDoubleVector("Coefficients");
-    addDoubleVector("InverseCoefficients");
+    addString("Source");
+    addDoubleVector("ConstantCoefficients");
+    addDoubleVector("ConstantInverseCoefficients");
+    addString("CoefficientsFromFile");
+    addString("InverseCoefficientsFromFile");
+    subGroup = "Camera/FocalPlaneOrientation";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addString("Source");
+    addDouble("ConstantValue");
+    addString("FromFile");
+    subGroup = "Camera/FocalLength";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addString("Source");
+    addDouble("ConstantValue");
+    addString("FromFile");
 
     subGroup = "PSF";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
@@ -440,6 +479,9 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addDouble("Sigma");
     addInteger("NumberOfPixels");
+    addDouble("ChargeDiffusionStrength");
+    addBoolean("IncludeChargeDiffusion");
+    	addBoolean("IncludeJitterSmoothing");
 
     subGroup = "PSF/MappedFromFile";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
@@ -447,6 +489,9 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("DistanceToOA");
     addDouble("RotationAngle");
     addInteger("NumberOfPixels");
+    addDouble("ChargeDiffusionStrength");
+    addBoolean("IncludeChargeDiffusion");
+    addBoolean("IncludeJitterSmoothing");
 
     subGroup = "PSF/AnalyticGaussian";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
@@ -456,8 +501,12 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "PSF/AnalyticNonGaussian";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
-    addDouble("Sigma");
     addString("ParameterFileName");
+    subGroup = "PSF/AnalyticNonGaussian/Sigma";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addString("Source");
+    addDouble("ConstantValue");
+    addString("FromFile");
 
 	subGroup = "FEE";
 	hdf5File.createGroup(parentGroup + "/" + subGroup);
@@ -468,9 +517,10 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
 	subGroup = "FEE/Gain";
 	hdf5File.createGroup(parentGroup + "/" + subGroup);
-	addDouble("RefValue");
+	addDouble("RefValueLeft");
+	addDouble("RefValueRight");
 	addDouble("Stability");
-	addDouble("ThreeSigma");
+	addDouble("AllowedDifference");
 
 	subGroup = "FEE/ElectronicOffset";
 	hdf5File.createGroup(parentGroup + "/" + subGroup);
@@ -496,6 +546,8 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 	addString("Temperature");
 	addString("TemperatureFileName");
     addBoolean("IncludeFlatfield");
+    addBoolean("IncludeDarkSignal");
+    addBoolean("IncludeBFE");
     addBoolean("IncludePhotonNoise");
     addBoolean("IncludeReadoutNoise");
     addBoolean("IncludeCTIeffects"); 
@@ -509,13 +561,14 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("IncludeFullWellSaturation");
     addBoolean("IncludeQuantisation");
     addBoolean("IncludeDigitalSaturation");
-    addBoolean("WriteSubPixelImagesToHDF5");
+    // addBoolean("WriteSubPixelImagesToHDF5"); - Moved into ControlHDF5Content group below
 
 	subGroup = "CCD/Gain";
 	hdf5File.createGroup(parentGroup + "/" + subGroup);
-	addDouble("RefValue");
+	addDouble("RefValueLeft");
+	addDouble("RefValueRight");
 	addDouble("Stability");
-	addDouble("ThreeSigma");
+	addDouble("AllowedDifference");
 
     subGroup = "CCD/Vignetting";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
@@ -523,20 +576,33 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "CCD/QuantumEfficiency";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
-    addDouble("Efficiency");
-    addDouble("RefAngle");
-    addDouble("ExpectedValue");
+//    addDouble("RefAngle");
+//    addDouble("RelativeRefEfficiency");
+    addDouble("MeanQuantumEfficiency");
+    addDouble("MeanAngleDependency");
 
     subGroup = "CCD/Polarization";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
-    addDouble("Efficiency");
-    addDouble("RefAngle");
+//    addDouble("Efficiency");
+//    addDouble("RefAngle");
     addDouble("ExpectedValue");
 
     subGroup = "CCD/Contamination";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addDouble("ParticulateContaminationEfficiency");
     addDouble("MolecularContaminationEfficiency");
+
+    subGroup = "CCD/DarkSignal";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("DarkCurrent");
+    addDouble("DSNU");
+
+    subGroup = "CCD/BFE";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addInteger("Range");
+    addDouble("p0");
+    addDouble("p1");
+    addDouble("RefFlux");
 
     subGroup = "CCD/CTI";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
@@ -570,8 +636,13 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addLong("JitterSeed");
     addLong("FlatFieldSeed");
     addLong("DriftSeed");
-	addLong("FeeGainSeed");
-	addLong("CcdGainSeed");
+	addLong("CosmicSeed");
+	addLong("DarkSignalSeed");
+
+    subGroup = "ControlHDF5Content";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addBoolean("WriteSubPixelImages");
+    addBoolean("WriteStarPositions");
 
     subGroup = "CameraGroups";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
