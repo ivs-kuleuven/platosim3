@@ -1,4 +1,4 @@
-# Installing PlatoSim3 Via Conda {#InstallViaConda}
+# Installing (and Updating) PlatoSim3 Via Conda {#InstallViaConda}
 
 Before you install another version of PlatoSim3, you must activate the desired conda environment, as described @ref ReqsInstallViaConda "here".  It is not necessary to create a new conda environment every time you install a different version of the software, unless you want to use multiple version in parallel.
 
@@ -24,4 +24,7 @@ conda install -c http://www.miricle.org/platosim.devel/ platosim
 
 To install a specific version (only for the <code>master</code> branch), just append <code>=<version></code> to this command.
 
+To update an installed version to the latest one, replace <code>conda install</code> by <code>conda update</code>.
+
 Please, contact the developer team for the username and password.
+
