@@ -1,5 +1,112 @@
 # Changelog for PlatoSim
 
+
+
+<!-- 3.3.0 -->
+<!-- ***** -->
+
+## 9/04/2018: 3.3.0
+
+### Added
+
+* Charge diffusion + jitter smoothing
+
+* Documented installation via conda
+
+* Use an external defined star ID in input star catalogues (GitHub issue #229)
+
+* Dark current
+
+* Brighter-fatter effect (BFE)
+
+* Possibility of header lines and custom star IDs in the star catalogue ASCII files
+    
+* Stellar variability
+
+* Created an <code>Examples</code> folder (in the <code>python</code> directory) where demo scripts show how to use the simulator from Python
+
+* Safety checks in <code>Parameter.h</code> to ensure that the time series from a file has time points in strictly increasing order
+
+* Flag to limit size of HDF5 output files
+
+* Group in the input files (<code>ControlHDF5Content</code>) to control the content of the HDF5 output file
+
+    - <code>WriteSubPixelImages</code> (moved from the <code>CCD</code> group: Boolean flag for writing the sub-pixel images to the HDF5 file [default=no]
+    - <code>WriteStarPositions</code> (new): Boolean flag for writing the star positions to the HDF5 file [default=yes]
+
+* Cosmics
+
+* <code>Sky</code> section in the input file with the configuration parameters for the sky background and cosmics
+
+* Added scripts for comparison with PIS
+
+* Time dependency for:
+
+	- PSF sigma (analytic non-Gaussian PSF)
+	- focal length 
+	- throughput maps
+
+
+
+### Fixed
+
+* Bug in jitter from file that caused negative heartbeat intervals in some specific cases
+
+* Kernel dimension restrictions (GitHub issue #211)
+
+* Number of cosmics too high (GitHub issue #206)
+
+* Bug in <code>DetectorWithAnalyticNonGaussianPSF:addFlux()</code> that caused the CCD orientation angle to be ignored when the analytic non-Gaussian PSF was chosen
+
+* Bug in <code>createStarCatalogFileFromPixelCoordinates()</code> so that it now also works when in the input yaml file the telescope group ID and/or CCD position is not "Custom"
+
+* ThroughputMap reset? (GitHub issue # 202)
+
+
+
+### Changed
+
+* Project number in the documentation (3.2 -> 3.3)
+
+* Removed relative paths in tests (required for automatic testing in Jenkins)
+
+* Reading in exposure time as double (instead of integer)
+
+* <code>JitterFromFile</code> and <code>ThermoElasticDriftFromFile</code> now only read in the relevant parts of the files
+
+* Improved comments in the default input file
+
+* If <code>UseJitter == no</code>, then the jitter file is no longer read, even when <code>UseJitterFromFile == yes</code> (idem for drift)
+
+* Parameter review -> update of configuration parameter values
+
+* Update of the field distortion polynomial
+
+* Update of the documentation pages:
+
+	- re-structuring
+	- added information about new configuration parameters and (optional) input files
+	- improved the description of configuration parameters and procedures
+
+* Updated <code>CMakeLists.txt</code> to use C++14 rather than C++11
+
+* Incorporated <code>StarCatalog</code> in <code>Sky</code> so that the former becomes obsolete
+
+* Extended <code>Parameter<T,N></code>  such that it can accommodate arrays of scalars (such as the distortion coefficients)
+
+
+
+### Removed
+
+* Unnecessary log messages
+
+
+
+
+
+<!-- 3.2.1 -->
+<!-- ***** -->
+
 ## 06/04/2018: 3.2.1
 
 ### Added
@@ -7,6 +114,8 @@
 * Clarification of the <code>SubPixel</code> parameter in the configuration file (GitHub issue #175)
 
 * Added parameters for camera groups and pre-defined CCD positions
+
+
 
 ### Fixed
 
@@ -20,6 +129,8 @@
 
 * Corrected orientation angles for CCD 2 and 4
 
+
+
 ### Changed
 
 * Updated version number in the documentation
@@ -32,11 +143,16 @@
 
 
 
+<!-- 3.2.0 -->
+<!-- ***** -->
+
 ## 05/07/2017: 3.2.0
 
 ### Fixed
 
 * Flux values calculated in Camera (expressed in photons) are now rounded instead of floored
+
+
 
 ### Changed
 
@@ -45,6 +161,9 @@
 
 
 
+
+<!-- 3.2.0 RC2 -->
+<!-- ********* -->
 
 ## 16/06/2017: 3.2.0-RC2
 
@@ -62,6 +181,9 @@
 
 
 
+
+<!-- 3.2.0 RC1 -->
+<!-- ********* -->
 
 ## 15/05/2017: 3.2.0-RC1
 
@@ -105,6 +227,8 @@
 * Easy selection of requested camera group from the input file, use <code>Telescope/GroupID</code> = [1,2,3,4,Fast,Custom]
 
 * Easy selection of requested CCD position, use <code>CCD/Position</code> = [1,2,3,4,Custom]
+
+
 
 ### Changed
 
