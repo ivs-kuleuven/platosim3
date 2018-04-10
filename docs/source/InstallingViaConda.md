@@ -4,20 +4,24 @@ Before you install another version of PlatoSim3, you must activate the desired c
 
 The installation procedure will automatically detect which operating system your are running and will install the appropriate packages for you.
 
+Before you install PlatoSim via conda for the first time in this environment, type:
+
+\code
+conda config --add channels conda-forge
+\endcode
+
 To install the latest successfully built version of the <code>master</code>, type:
 
 \code
-conda config --add channels conda-forge
 conda install -c http://www.miricle.org/platosim/ platosim
 \endcode
 
-For the develop branch, the latter command must be replaced by
+For the <code>develop</code> branch, the latter command must be replaced by
 
 \code
-conda config --add channels conda-forge
 conda install -c http://www.miricle.org/platosim.devel/ platosim
 \endcode
 
-Please, contact the developer team for the username and password.
+To install a specific version (only for the <code>master</code> branch), just append <code>=<version></code> to this command.
 
-We will, at a later stage, at information on how to install a specific version (rather than the latest one).
+Please, contact the developer team for the username and password.
