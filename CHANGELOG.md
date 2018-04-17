@@ -2,6 +2,17 @@
 
 
 
+<!-- 3.3.1 -->
+<!-- ***** -->
+
+## 17/04/2018: 3.3.1
+
+### Fixed
+
+* Path to executable set to /build in simulation.py (GitHub issue #257)
+
+
+
 <!-- 3.3.0 -->
 <!-- ***** -->
 
