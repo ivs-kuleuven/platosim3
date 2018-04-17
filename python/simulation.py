@@ -131,18 +131,22 @@ class Simulation(object):
         # Find the absolute path of the simfile.py. This will allow us to located the other
         # default project directories. Build in a test to check that the build sub-directory 
         # exists, otherwise this is probably not a correct default installation.
-
-        path = inspect.getabsfile(simfile)
-        path = os.path.dirname(path)  # strip off filename of the simfile module: simfile.py
-        path = os.path.dirname(path)  # strip off python sub-directory
-        if not os.path.isdir(path + "/build"):
-            raise Exception("Unexpected directory structure for this PLATO Simulator distribution: no build sub-directory")
+        
+        path = os.environ["PLATO_PROJECT_HOME"]
         
         self.platosimLocation = path
-
-        # This is the location of the platosim executable
-
-        self.platosimBuildLocation = self.platosimLocation + "/build"
+        
+        if os.path.exists(path + "/build"):
+            self.platosimBuildLocation = self.platosimLocation + "/build"
+            
+        elif os.path.exists(path + "/bin"):
+            self.platosimBuildLocation = self.platosimLocation + "/bin"
+            
+        else:
+            raise Exception("Unexpected directory structure for this PLATO Simulator distribution: no build nor bin sub-directory in PLATO_PROJECT_HOME")
+        
+            
+        
 
         # This is the location of the original input files as distributed by the PLATO Simulator
         
