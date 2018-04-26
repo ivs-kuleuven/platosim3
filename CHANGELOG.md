@@ -1,6 +1,21 @@
 # Changelog for PlatoSim
 
 
+### Added
+
+* Documented h5ls and h5get
+
+* Documented output control parameters
+
+
+
+### Changed
+
+* Parameter values after release of v1.4 of the data package
+
+
+
+
 
 <!-- 3.3.1 -->
 <!-- ***** -->
