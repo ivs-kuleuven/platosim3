@@ -10,6 +10,8 @@ Note that the x-axis is defined along the serial readout register and correspond
 
 The <code>Armadillo</code> arrays (that are used internally to store the maps) are column-major rather than row-major.
 
+PlatoSim's output is configurable in the input file. Depending on whether the quantum efficiency, gain, saturation, etc. are taken into account, the units of the output can be photons, electrons, or ADU.
+
 ---
 
 <!-- ********* -->
@@ -89,24 +91,57 @@ You can use <a href="http://matplotlib.org/users/image_tutorial.html">matplotlib
 
 To get an overview of the groups and attributes, you can use the following commands:
 
-<!-- \code{.py}
-simFile.hdf5file.keys()								# Main groups
-simFile.hdf5file.attrs.keys()						# Main attributes (None)
-simFile.hdf5file["<group name>"].keys()				# Sub-groups in the given group
-simFile.hdf5file["<group name>"].attrs.keys()		# Attributes in the given group
+\code{.py}
+simFile.hdf5file.keys()                          # Main groups
+simFile.hdf5file.attrs.keys()                    # Main attributes (None)
+simFile.hdf5file["<group name>"]                 # Group
+simFile.hdf5file["<group name>"].keys()          # Sub-groups in the given group
+simFile.hdf5file["<group name>"].attrs.keys()    # Attributes in the given group
 
-h5pyFile.hdf5file.keys()								# Main groups
-h5pyFile.hdf5file.attrs.keys()						# Main attributes (None)
-h5pyFile.hdf5file["<group name>"].keys()				# Sub-groups in the given group
-h5pyFile.hdf5file["<group name>"].attrs.keys()		# Attributes in the given group
+h5pyFile.hdf5file.keys()                         # Main groups
+h5pyFile.hdf5file.attrs.keys()                   # Main attributes (None)
+h5pyFile.hdf5file["<group name>"]                # Group
+h5pyFile.hdf5file["<group name>"].keys()         # Sub-groups in the given group
+h5pyFile.hdf5file["<group name>"].attrs.keys()   # Attributes in the given group
 
-pytables.root										# Main groups
-pytables.root._v_attrs								# Main attributes (None)
-pytables.root.<group name>							# Sub-groups in the given group
-pytables.<group name>._v_attrs						# Attributes in the given group
-\endcode -->
+pytables.root                                    # Main groups
+pytables.root._v_attrs                           # Main attributes (None)
+pytables.root.<group name>                       # Sub-groups in the given group
+pytables.<group name>._v_attrs                   # Attributes in the given group
+\endcode
 
 
+Alternatively, you can use <code>h5py</code> and <code>h5get</code> from the PlatoSim package <code>h5</code>, to get an overview of the file structure and to extract dataset and attributes from it:
+
+
+\code{.py}
+import h5py
+import h5.py
+
+hfile = h5py.File("myFile.hdf5", "r")
+h5ls(hfile)
+h5ls(hfile["InputParameters/ObservingParameters"])
+h5ls(hfile["InputParameters/ObservingParameters"],"gain") 
+h5ls(hfile["InputParameters"],"psf")    
+h5ls(hfile["InputParameters/PSF")
+
+bias = h5get(hfile,["bias","27"])
+bias = h5get(hfile,["27","Bias"])
+        matching items:
+            Dataset         /BiasMaps/biasMap000027
+        bias.__class__  : numpy.ndarray
+        bias.shape      : (5, 100)
+
+versions = h5get(hfile,"Version")  
+versions, names = h5get(hfile,"version", getNames=1)  
+        matching items:
+            Attribute       /Version/Application
+            Attribute       /Version/GitVersion
+        versions        :  ['PlatoSim3', '3.1.0-460-g39cef00']
+        names           :  ['/Version/Application', '/Version/GitVersion']    
+\endcode
+
+Both methods can be made verbose or mute by setting the optional input parameter <code>verbose</code> to <code>True</code> or <code>False</code>.
 
 <!-- Configuration Parameters -->
 <!-- *********************** -->
