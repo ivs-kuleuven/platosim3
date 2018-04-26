@@ -34,7 +34,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">PLATO Simulator
-   &#160;<span id="projectnumber">3.2</span>
+   &#160;<span id="projectnumber">3.3</span>
    </div>
    <div id="projectbrief">An end-to-end simulator for the Plato mission.</div>
   </td>
@@ -112,7 +112,7 @@ $(document).ready(function(){initNavTree('ScriptingInPython.html','');});
 <h3>Creating a Python Environment (for Developers)</h3>
 <p>With <a href="http://conda.pydata.org/docs/index.html">conda</a> (which is included in <a href="https://docs.continuum.io/anaconda/install">Anaconda</a>), you can create, export, list, remove, and update environments that have different versions of Python and/or packages installed in them. Switching or moving between environments is called activating the environment.</p>
 <p>To create and activate such an environment, type</p>
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;source /anaconda/bin/activate root</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;conda create -n platoSim python=3.5 anaconda</div></div><!-- fragment --><p>More information on managing environment with conda can be found <a href="http://conda.pydata.org/docs/using/envs.html#">here</a>.</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;source /anaconda/bin/activate root</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;conda create -n platosim python=3.5 anaconda</div></div><!-- fragment --><p>More information on managing environment with conda can be found <a href="http://conda.pydata.org/docs/using/envs.html#">here</a>.</p>
 <p>Users only have to source the conda environment in which the desired version of the software has been installed in.</p>
 <h3>Installing Extra Packages (for Developers)</h3>
 <p>To be able to run the PLATO Simulator and inspect the output, you must install the following packages:</p>
@@ -120,10 +120,12 @@ $(document).ready(function(){initNavTree('ScriptingInPython.html','');});
 <li><a href="http://www.numpy.org/">numpy</a>, a fundamental package for scientific computing in Python,</li>
 <li><a href="http://matplotlib.org/">matplotlib</a>, a 2D plotting package,</li>
 <li><a href="https://pypi.python.org/pypi/pyaml">pyaml</a>, to deal with the configuration files in <a href="https://learnxinyminutes.com/docs/yaml/">YAML</a> format,</li>
-<li>and <a href="http://www.pytables.org/">pytables</a>, to inspect the output files in <a href="https://www.hdfgroup.org/HDF5/">HDF5</a> format.</li>
+<li><a href="http://www.pytables.org/">pytables</a>, to inspect the output files in <a href="https://www.hdfgroup.org/HDF5/">HDF5</a> format,</li>
+<li><a href="https://www.scipy.org/">scipy</a>, for mathematical operations,</li>
+<li>and <a href="https://www.h5py.org/">h5py</a>, to interface to the HDF binary data format.</li>
 </ul>
 <p>These packages can be installed with the following commands:</p>
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;conda install numpy</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;conda install matplotlib</div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;conda install pytables</div><div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;pip install pyaml</div></div><!-- fragment --><p>As it comes to the choice between <code>conda install</code> and <code>pip install</code>: first try <code>conda install</code>, and - if that doesn't work - then try <code>pip install</code> (or <code>pip3 install</code> if you're using Python3).</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;conda install numpy</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;conda install matplotlib</div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;conda install pytables</div><div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;pip install pyaml</div><div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;conda install scipy</div><div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;conda install h5py</div></div><!-- fragment --><p>As it comes to the choice between <code>conda install</code> and <code>pip install</code>: first try <code>conda install</code>, and - if that doesn't work - then try <code>pip install</code> (or <code>pip3 install</code> if you're using Python3).</p>
 <p>Users don't have to install these packages as they will be included in the distributions.</p>
 <h3>Managing your Python Path</h3>
 <p>The Python functionality that is offered in PlatoSim3 can be found in the <code>/python</code> directory. Make sure to add this directory to your Python path, as follows:</p>
