@@ -15,6 +15,7 @@ To configure the Plato Simulator, a large set of input parameters is required.  
 * CCD parameters,
 * sub-field parameters,
 * seed parameters,
+* content control parameters,
 * and pre-defined settings for the camera groups and CCD positions (specific for PLATO).
 
 These are described in more detail @ref ConfigurationParameters "here".

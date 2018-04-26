@@ -50,8 +50,8 @@ Telescope:
     TiltAngle:                   0.0             # Tilt angle of the telescope on the platform [deg]
     LightCollectingArea:         113.1           # Effective area of 1 telescope [cm^2]
     TransmissionEfficiency:
-        BOL:                         0.7821      # Beginning of Life value in [0,1]
-        EOL:                         0.7666      # End of Life value in [0,1]
+        BOL:                         0.8162      # Beginning of Life value in [0,1]
+        EOL:                         0.7975      # End of Life value in [0,1]
     UseDrift:                    no              # yes or no
     UseDriftFromFile:            no              # yes or no, if yes: ignore RMS and timescale below
     DriftYawRms:                 2.3             # RMS of thermo-elastic drift in yaw [arcsec]
@@ -90,7 +90,7 @@ PSF:
 
     Model:                       MappedFromFile        # Select the model to be used for the PSF [Gaussian, FromFile]
     MappedGaussian:                                    # Generate the PSF from a 2D Gaussian function
-      Sigma:                     0.641                 # Standard deviation of Gaussian PSF [pixels]
+      Sigma:                     0.639                 # Standard deviation of Gaussian PSF [pixels]
       NumberOfPixels:            8                     # The number of pixels in the field for which the PSF is generated
       ChargeDiffusionStrength:     0.2             # Charge diffusion strength (width of the Gaussian diffusion kernel) [pixels]
       IncludeChargeDiffusion:      no              # Include charge diffusion [yes or no]
@@ -118,11 +118,11 @@ FEE:
     NominalOperatingTemperature:     210.15          # Nominal operating temperature of the FEE [K]
     Temperature:                     Nominal         # Temperature fixed at the nominal operating temperature
     TemperatureFileName:             inputfiles/feeTemperature.txt
-    ReadoutNoise:                    40.5            # Readout noise for the FEE [e-/pixel] (same for both ADCs)
+    ReadoutNoise:                    32.0            # Readout noise for the FEE [e-/pixel] (same for both ADCs)
     Gain:
-        RefValueLeft:                0.0278          # [ADU/microV] (1 / (Total gain) = FFE gain * CCD gain = 1 / (20 e-/ADU))
-        RefValueRight:               0.0278          # [ADU/microV] (1 / (Total gain) = FFE gain * CCD gain = 1 / (20 e-/ADU))
-        Stability:                   -100.0e-6       # [ppm/K] = [ADU/microV/K]
+        RefValueLeft:                0.0222          # [ADU/microV] (1 / (Total gain) = FFE gain * CCD gain = 1 / (20 e-/ADU))
+        RefValueRight:               0.0222          # [ADU/microV] (1 / (Total gain) = FFE gain * CCD gain = 1 / (20 e-/ADU))
+        Stability:                   -300.0e-6       # [ppm/K] = [ADU/microV/K]
         AllowedDifference:           0.0             # Difference in gain between both ADCs [%]
     ElectronicOffset:
         RefValue:                    1000            # Reference value for the electronic offset [ADU/pixel]
@@ -158,11 +158,11 @@ CCD:
         #ExpectedValue:               0.993 * 0.5895   # Expected value (mean over all pixels of one detector)
     FullWellSaturation:          900000          # [e-/pixel]
     DigitalSaturation:           65535           # E.g. 16 bit [ADU/pixel]
-    ReadoutNoise:                33.5            # [e-/pixel]
+    ReadoutNoise:                38.7            # [e-/pixel]
     ReadoutTime:                 4               # time to read out entire CCD [s]
     FlatfieldPtPNoise:           0.010           # peak-to-peak pixel noise
     Vignetting: 
-        ExpectedValue:               0.945           # Expected value of the throughput efficiency due to vignetting
+        ExpectedValue:               0.904           # Expected value of the throughput efficiency due to vignetting
     Polarization:
       #Efficiency:                    0.978           # Throughput efficiency caused by polarisation at the reference angle
       #RefAngle:                     18.8875          # Reference angle for polarisation [degrees]
@@ -175,7 +175,7 @@ CCD:
     TemperatureFileName:             inputfiles/ccdTemperature.txt
     DarkSignal:
       DarkCurrent:                  1.2              # Dark current [e- / s]
-      DSNU:                         10.0             # Dark signal non-uniformity [%]
+      DSNU:                         15.0             # Dark signal non-uniformity [%]
     CTI:
         Model:                   Simple
         Simple:

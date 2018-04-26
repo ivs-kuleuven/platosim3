@@ -34,7 +34,7 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
   )
 
   execute_process(
-    COMMAND git describe
+    COMMAND git describe --tag
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE GIT_DESCRIBE
     OUTPUT_STRIP_TRAILING_WHITESPACE
