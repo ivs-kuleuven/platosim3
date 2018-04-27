@@ -1,11 +1,22 @@
 # Changelog for PlatoSim
 
 
+<!-- 3.3.2 -->
+<!-- ***** -->
+
+## 27/04/2018: 3.3.2
+
+### Fixed
+
+* Images datasets output dataype and specification (GitHub issue # 167)
+
 ### Added
 
 * Documented h5ls and h5get
 
 * Documented output control parameters
+
+* Documented how to install via conda when no pop-up window would appear, asking for the credentials
 
 
 
