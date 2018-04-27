@@ -50,8 +50,8 @@ Telescope:
     TiltAngle:               9.2             # Tilt angle of the telescope on the platform [deg]
     LightCollectingArea:     113.1           # Effective area of 1 telescope [cmˆ2]
     TransmissionEfficiency:
-        BOL:                         0.7821          # Beginning of Life value in [0,1]
-        EOL:                         0.7666          # End of Life value in [0,1]
+        BOL:                         0.8162          # Beginning of Life value in [0,1]
+        EOL:                         0.7975          # End of Life value in [0,1]
     UseDrift:                no              # yes or no
     UseDriftFromFile:        no              # yes or no
     DriftYawRms:             2.0             # RMS of thermo-elastic drift in yaw [arcsec]
@@ -89,7 +89,7 @@ PSF:
 
     Model:                           MappedFromFile  # PSF model: MappedGaussian, MappedFromFile, AnalyticGaussian, AnalyticNonGaussian
     MappedGaussian:                                  # Generate the PSF from a fixed 2D Gaussian function
-        Sigma:                       0.641           # Standard deviation of Gaussian PSF [pix]
+        Sigma:                       0.639           # Standard deviation of Gaussian PSF [pix]
         NumberOfPixels:              8               # The number of pixels in the field for which the PSF is generated
         ChargeDiffusionStrength:     0.2             # Charge diffusion strength (width of the Gaussian diffusion kernel) [pixels]
         IncludeChargeDiffusion:      yes             # Include charge diffusion [yes or no]

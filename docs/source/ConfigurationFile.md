@@ -1836,6 +1836,41 @@ Seed for the random-number generators for the dark signal.
 
 
 
+<!-- ************************** -->
+<!-- Content Control Parameters -->
+<!-- *************************** -->
+
+## <a name="contentControlParameters"></a>Content Control Parameters
+
+The <b>ControlHDF5Content</b> block of the configuration file contains all the seeds for random-number generation in the simulator.  The structure of this block is the following:
+
+\code{.yaml}
+ControlHDF5Content:
+
+    WriteSubPixelImages:             no 
+    WriteStarPositions:              yes
+\endcode
+
+
+
+### WriteSubPixelImages
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the sub-pixel maps must be stored in the output file.  Only do this for a small number of exposures, as this takes up a lot of space.  Note that this only takes into account the effects that are applied until right before the re-binning (see @ref SimulationSteps "here").
+
+
+### WriteStarPositions
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the star positions should be stored in pixel and focal plane coordinates in the output file.  This scales with the number of exposures and the number of stars in the sub-field.
+
+
+---
+
+
+
+
+
 <!-- ************* -->
 <!-- Camera groups -->
 <!-- ************* -->
