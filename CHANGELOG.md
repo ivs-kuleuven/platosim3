@@ -1,5 +1,20 @@
 # Changelog for PlatoSim
 
+<!-- 3.3.3 -->
+<!-- ***** -->
+
+## 17/05/2018: 3.3.3
+
+### Fixed
+
+* Dark edge seen at bottom of the sub-field due to CTI by Short et al. (GitHub issue # 263)
+
+* User-given sky background not multiplied with the transmissivity of the optics (GitHub issue #265)
+
+* Photon flux of stars should be floored instead of rounded (in the jitter steps) (GitHub issue #267)
+
+* Open-shutter smearing outside sub-field should not take numRowsBiasMap into account (GitHub issue #269)
+
 
 <!-- 3.3.2 -->
 <!-- ***** -->
