@@ -28,3 +28,5 @@ To update an installed version to the latest one, replace <code>conda install</c
 
 Please, contact the developer team for the username and password.
 
+If no pop-up window, asking for the credentials, would appear, you can adapt the <code>conda install</code> commands from above, by placing <code><username>:<password></code>@ between the <code>http://</code> and the <code>www</code>. 
+
