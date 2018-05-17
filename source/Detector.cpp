@@ -1661,7 +1661,7 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
 
     arma::Row<float> openShutterSmearing = arma::sum(pixelMap, 0);
 
-    float openShutterSmearingOutsideSubField = camera.getTotalSkyBackground() * (numRows - numRowsPixelMap + numRowsBiasMap + numRowsSmearingMap);
+    float openShutterSmearingOutsideSubField = camera.getTotalSkyBackground() * (numRows - numRowsPixelMap + numRowsSmearingMap);
 
     // Apply all throughput efficiencies
 

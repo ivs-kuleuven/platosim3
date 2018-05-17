@@ -8,6 +8,8 @@
 
 * Photon flux of stars should be floored instead of rounded (in the jitter steps) (GitHub issue #267)
 
+* Open-shutter smearing outside sub-field should not take numRowsBiasMap into account (GitHub issue #269)
+
 
 <!-- 3.3.2 -->
 <!-- ***** -->
