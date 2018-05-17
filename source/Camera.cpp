@@ -659,7 +659,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     }
     else
     {
-        totalSkyBackground = floor(userGivenSkyBackground * exposureTime);
+        totalSkyBackground = floor(userGivenSkyBackground * exposureTime * transmissionEfficiency);
         detector.addFlux(totalSkyBackground);
 
         Log.debug("Camera: user-given sky background flux = " + to_string(userGivenSkyBackground * exposureTime) + " photons/pixel/exposure");
