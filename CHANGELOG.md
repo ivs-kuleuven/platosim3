@@ -1,5 +1,10 @@
 # Changelog for PlatoSim
 
+<!-- 3.3.3 -->
+<!-- ***** -->
+
+## 17/05/2018: 3.3.3
+
 ### Fixed
 
 * Dark edge seen at bottom of the sub-field due to CTI by Short et al. (GitHub issue # 263)
