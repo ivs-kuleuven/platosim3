@@ -567,7 +567,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
             // Compute the flux [photons] of this star
             // Photons are always an integer number, so round down.
 
-            double flux = round(fluxFactor * pow(10.0, -0.4 * Vmag) * timeStep);
+            double flux = floor(fluxFactor * pow(10.0, -0.4 * Vmag) * timeStep);
 
             // Let the detector add the flux to the appropriate pixel. 
             // Detector.flux() returns the pixel coordinates to which the flux was added.
