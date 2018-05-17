@@ -6,6 +6,8 @@
 
 * User-given sky background not multiplied with the transmissivity of the optics (GitHub issue #265)
 
+* Photon flux of stars should be floored instead of rounded (in the jitter steps) (GitHub issue #267)
+
 
 <!-- 3.3.2 -->
 <!-- ***** -->
