@@ -1550,42 +1550,52 @@ void Detector::applyShort2013CTImodel()
     // I.e. the volume of the electron cloud when the capacity of the full well is maxed out.
     // E.g if the pixel size is 18 micron, then the volume is 18e-6 * 18e-6 * 1.e-6 / 2.0
 
-    const double maxVolumePerPixel = pixelSize * pixelSize * 1.e-18  / 2.0;                                  // [m^3]
+    const double maxVolumePerPixel = pixelSize * pixelSize * 1.e-18  / 2.0;                                  // Vg [m^3]
 
     // Compute the time it takes to transfer 1 row during readout
 
-    const double chargeTransferTime = readoutTime / numRows;                                                 // [s] 
+    const double chargeTransferTime = readoutTime / numRows;                                                 // t [s]
 
     // Compute the thermal velocity of the electrons in the silicon
 
-    const double effectiveElectronMass = 0.5 * Constants::FREEELECTRONMASS;                                  // [kg]
-    const double thermalVelocity = sqrt(3.0 * Constants::KBOLTZMANN * temperature / effectiveElectronMass);  // [m/s]
+    const double effectiveElectronMass = 0.5 * Constants::FREEELECTRONMASS;                                  // me [kg]
+    const double thermalVelocity = sqrt(3.0 * Constants::KBOLTZMANN * temperature / effectiveElectronMass);  // vt [m/s]
 
     // Arrays to keep track of the number of occupied traps in a column
 
-    arma::Mat<float> numberOfOccupiedTraps = arma::zeros<arma::Mat<float>>(numTrapSpecies, numColumnsPixelMap);
+    arma::Mat<float> numberOfOccupiedTraps = arma::zeros<arma::Mat<float>>(numTrapSpecies, numColumnsPixelMap);	// No
 
     // Arrays to keep track of the captured and released electrons, for each column in a particular row.
 
-    arma::Row<float> numberOfCapturedElectrons(numColumnsPixelMap);
-    arma::Row<float> numberOfReleasedElectrons(numColumnsPixelMap);
+    arma::Row<float> numberOfCapturedElectrons(numColumnsPixelMap);		// Nc
+    arma::Row<float> numberOfReleasedElectrons(numColumnsPixelMap);		// Nr
+
+    arma::Row<float> alpha(numTrapSpecies, arma::fill::zeros);
+
+    // Eq. (23) of Short et al. 2013
+
+    for (int k = 0; k < numTrapSpecies; k++)
+    {
+    		alpha(k) = chargeTransferTime * trapCaptureCrossSection[k] * thermalVelocity * pow(fullWellSaturationLimit, beta) / (2.0 * maxVolumePerPixel);
+    }
 
     // Loop over all rows of the pixelMap, and over all trap species.
     // For each row, the computations are done for all columns simultaneously.
 
     for (int rowNumber = 0; rowNumber < numRowsPixelMap; rowNumber++)
     {
+
         for (int k = 0; k < numTrapSpecies; k++)
         {
+
             // Compute the number of electrons captured in a trap, according to Eq. (22)-(23) of Short et al. (2013).
             // Note that Armadillo uses % for elementwise multiplication.
 
-            const double alpha = chargeTransferTime * trapCaptureCrossSection[k] * thermalVelocity * pow(fullWellSaturationLimit, beta) / 2.0 / maxVolumePerPixel;
-            const double gamma = trapDensity[k] * (subFieldZeroPointRow + rowNumber) / pow(fullWellSaturationLimit, beta);
+            const double gamma = 2 * trapDensity[k] * maxVolumePerPixel / pow(fullWellSaturationLimit, beta) * (subFieldZeroPointRow + rowNumber + 1);	// +1 as row = 0 also has to be transferred once
 
             numberOfCapturedElectrons =   (gamma * arma::pow(pixelMap.row(rowNumber), beta) - numberOfOccupiedTraps.row(k)) \
                                         / (gamma * arma::pow(pixelMap.row(rowNumber), beta-1) + 1)                          \
-                                        % (1 - arma::exp(-alpha * arma::pow(pixelMap.row(rowNumber), 1-beta)));
+                                        % (1 - arma::exp(-alpha(k) * arma::pow(pixelMap.row(rowNumber), 1-beta)));
 
             // Captured electron numbers can't be negative, so clip negative value to zero.
 
