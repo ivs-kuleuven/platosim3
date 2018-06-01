@@ -9,8 +9,14 @@
 #include "Logger.h"
 #include "StringUtilities.h"
 #include "version.h"
+#include "Clock.h"
+
 
 #include "vector"
+
+#include "JitterGenerator.h"
+
+#include "DriftGenerator.h"
 
 using namespace std;
 
@@ -117,7 +123,7 @@ int main(int Narguments, char* arguments[])
             while(getline(inputFileList, line))
             {
                 // fill the inputFiles vector with the file names within the given folder
-                inputFiles.push_back(line);
+                inputFiles.emplace_back(line);
 
                 // crop the ending from the filename
                 size_t lastindex = line.find_last_of(".");
@@ -126,7 +132,7 @@ int main(int Narguments, char* arguments[])
                 // create an outputfile name from the inputfilename and save it within the vector
                 string outputName = rawName + ".hdf5";
 
-                outputFiles.push_back(outputName);
+                outputFiles.emplace_back(outputName);
             }
         }
         else
@@ -135,30 +141,40 @@ int main(int Narguments, char* arguments[])
             exit(EXIT_FAILURE);
         }
 
-
-
         // create a clock instance which dictates the cycle time for the simulations
-        Clock* clockInstance = new Clock();
+        Clock* clockInstance = new Clock(inputFiles.at(0));
+
+        std::vector<Simulation*> simulationInstanceVec;
 
         // create Simulation objects as long as you have valid input- and output files
         for (int n = 0; n < inputFiles.size(); n++)
         {
             // create a new Simulation object
-            ParaSimulation* simulationInstance = new ParaSimulation(inputFiles.at(n), outputFiles.at(n), jitterInstance);
+            Simulation* simulationInstance = new Simulation(inputFiles.at(n), outputFiles.at(n));
+
+            clockInstance->attach(simulationInstance);
 
             // put the object handler in the respective vector
             simulationInstanceVec.emplace_back(simulationInstance);
         }
 
         // start the Simulation
-        jitterInstance->startSimulation();
+        clockInstance->startSimulation();
 
-        // detach all Simulation Objects from the Jitter object and delete all class intances
+        //detach all Simulation Objects from the Jitter object and delete all class intances
         for (auto &i : simulationInstanceVec)
         {
-            jitterInstance->detach(i);
-            delete i;
+           clockInstance->detach(i);
+           delete i;
         }
+
+        // for (int i = 0; i < simulationInstanceVec.size(); i++) //   auto &i : simulationInstanceVec)
+        // {
+        //     std::cout << "detach simulation object from jitter thread" << std::endl;
+        //     clockInstance->detach(simulationInstanceVec.at(i));
+        //     std::cout << "delete the simulation object" << std::endl;
+        //     delete simulationInstanceVec.at(i);
+        // }
 
     }
 
@@ -168,3 +184,14 @@ int main(int Narguments, char* arguments[])
     logFile.close();
     return EXIT_SUCCESS;
 }
+
+
+/**
+ * \brief lazy initialization of the jitter instance
+ */
+JitterGenerator* JitterGenerator::_instance = 0;
+
+ /**
+ * \brief lazy initialization of the drift instance
+ */
+DriftGenerator* DriftGenerator::_instance = 0;

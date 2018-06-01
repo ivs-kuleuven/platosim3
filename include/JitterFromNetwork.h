@@ -1,5 +1,5 @@
-#ifndef JITTERFROMREDNOISE_H
-#define JITTERFROMREDNOISE_H
+#ifndef JITTERFROMNETWORK_H
+#define JITTERFROMNETWORK_H
 
 #include <string>
 #include <vector>
@@ -19,13 +19,13 @@ using namespace std;
 
 
 
-class JitterFromRedNoise : public JitterGenerator
+class JitterFromNetwork : public JitterGenerator
 {
     public:
 
         static JitterGenerator* Instance(ConfigurationParameters &configParams);
-
-        ~JitterFromRedNoise();
+        
+        ~JitterFromNetwork();
 
         virtual void configure(ConfigurationParameters &configParams);
         virtual tuple<double, double, double> getNextYawPitchRoll(double time) override;
@@ -33,7 +33,7 @@ class JitterFromRedNoise : public JitterGenerator
 
     protected:
 
-        JitterFromRedNoise(ConfigurationParameters &configurationParameters);
+        JitterFromNetwork(ConfigurationParameters &configurationParameters);
 
         double yawRMS;              // [rad] 
         double pitchRMS;            // [rad]

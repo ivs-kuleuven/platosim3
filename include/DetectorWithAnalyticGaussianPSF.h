@@ -31,10 +31,11 @@ class DetectorWithAnalyticGaussianPSF: public Detector
         virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) override;
         virtual void addFlux(double flux) override;
 
+        virtual void integrateLight(int exposureNr, double startTime, double exposureTime, bool parallelSimulation) override;
+
     protected:
 
         virtual void reset();
-        virtual void integrateLight(int exposureNr, double startTime, double exposureTime) override;
         virtual void applyFlatfield() override;
         virtual void generateFlatfieldMap();
         virtual bool isInPixelMap(double row, double column);

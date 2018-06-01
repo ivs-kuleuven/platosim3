@@ -32,6 +32,9 @@ Clock::Clock(string inputFilename)
 	configure(configParams);
 
 	endSimulation = false;
+
+	simulationTime = 0;
+
 }
 
 /**
@@ -45,11 +48,11 @@ Clock::~Clock()
 /**
  * \function that links an object to the observer list
  */
-void Clock::attach(Observer* o)
+void Clock::attach(Observer* observerInstance)
 {
     std::cout << "attach observer to jitter thread" << std::endl;
 
-    observers.push_back(o);
+    observers.push_back(observerInstance);
 }
 
 /**
@@ -68,7 +71,7 @@ void Clock::notify()
     #pragma omp parallel for
     for (int i = 0; i < observers.size(); i++)
     {
-        observers.at(i)->update(this, currentJitterStep);
+        observers.at(i)->update(simulationTime);
     }
 }
 
@@ -79,11 +82,13 @@ void Clock::notify()
  */
 void Clock::startSimulation()
 {
+	// jitterInstance = simulationInstance->getJitterInstance();
+	// driftInstance = simulationInstance->getDriftInstance();
+
 	// process simulation steps, until there 
 	while(endSimulation != true)
 	{
-		// update the jitter
-		if (!updateJitter())
+		if (!waitForNextStep())
 		{
 			// whenever there is new input, trigger the next simulation 
 			// step in all observing simualtion instance
@@ -92,9 +97,19 @@ void Clock::startSimulation()
 	}
 }
 
-void Clock::updateJitter()
+
+/**
+ * \brief function that waits for new jitter values to be available 
+ *        it returns false, when there are no more exposures to be processed
+ */
+bool Clock::waitForNextStep()
 {
-	int currentExposures = simualtionTime/(exposureTime + readoutTime);
+	double timeStep = min(exposureTime, min(jitterInstance->getHeartbeatInterval(), driftInstance->getHeartbeatInterval()));
+
+	simulationTime += timeStep;
+
+
+	int currentExposures = simulationTime/(exposureTime + readoutTime);
 
 	if (currentExposures >= numExposures)
 	{
@@ -116,15 +131,6 @@ void Clock::configure(ConfigurationParameters &configParams)
     exposureTime      = configParams.getDouble("ObservingParameters/ExposureTime"); 
     beginExposureNr   = configParams.getInteger("ObservingParameters/BeginExposureNr");
     numExposures      = configParams.getInteger("ObservingParameters/NumExposures");
-    useJitter         = configParams.getBoolean("Platform/UseJitter");
-    useJitterFromFile = configParams.getBoolean("Platform/UseJitterFromFile");
-    includeFieldDistortion = configParams.getBoolean("Camera/IncludeFieldDistortion"); // do we want to do this or should this be asked to Camera?
-    useDrift          = configParams.getBoolean("Telescope/UseDrift");  
-    useDriftFromFile  = configParams.getBoolean("Telescope/UseDriftFromFile");  
-    psfModel          = configParams.getString("PSF/Model");
-    useFeeTemperatureFromFile = configParams.getString("FEE/Temperature") == "FromFile";
-    useFeeNominalTemperature = configParams.getString("FEE/Temperature") == "Nominal";
-    useDetectorTemperatureFromFile = configParams.getString("CCD/Temperature") == "FromFile";
-    useDetectorNominalTemperature = configParams.getString("CCD/Temperature") == "Nominal";
     readoutTime       = configParams.getDouble("CCD/ReadoutTime"); 
 }
+

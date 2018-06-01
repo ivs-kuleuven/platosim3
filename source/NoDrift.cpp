@@ -1,6 +1,20 @@
 #include "NoDrift.h"
 
 
+/**
+ * \brief function to acces the protected constructor, if there is no drift instance yet
+ */
+DriftGenerator* NoDrift::Instance()
+{
+    if(_instance == 0)
+    {
+        _instance = new NoDrift();
+    }
+    return _instance;
+}
+
+
+
 
 /**
  * \brief Constructor

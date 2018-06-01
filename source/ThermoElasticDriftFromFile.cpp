@@ -1,6 +1,18 @@
 
 #include "ThermoElasticDriftFromFile.h"
 
+/**
+ * \brief function to acces the protected constructor, if there is no drift instance yet
+ */
+DriftGenerator* ThermoElasticDriftFromFile::Instance(ConfigurationParameters &configParams)
+{
+    if(_instance == 0)
+    {
+        _instance = new ThermoElasticDriftFromFile(configParams);
+    }
+    return _instance;
+}
+
 
 
 /**

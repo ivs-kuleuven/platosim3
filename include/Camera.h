@@ -60,6 +60,8 @@ class Camera : public HDF5Writer
 
         double getTotalSkyBackground();
 
+        void processNextStep(Detector* detectorInstance, double jitterStep);
+
 
     protected:
 
@@ -105,6 +107,16 @@ class Camera : public HDF5Writer
 
     private:
 
+        double imagetteTime;
+        int exposureCounter;
+
+        double exposureTime;
+        double readoutTime;
+        
+        void prepareNewExposure(Detector* detector, double startTime, double exposureTime);
+        void addFluxToExposure(Detector* detector, double startTime, double timeStep);
+
+        unsigned long Nstars;
         
 };
 

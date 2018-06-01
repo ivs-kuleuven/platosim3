@@ -20,6 +20,7 @@
 #include "NoJitter.h"
 #include "JitterFromFile.h"
 #include "JitterFromRedNoise.h"
+#include "JitterFromNetwork.h"
 #include "DriftGenerator.h"
 #include "NoDrift.h"
 #include "ThermoElasticDriftFromFile.h"
@@ -27,12 +28,12 @@
 #include "ConfigurationParameters.h"
 #include "version.h"
 
+#include "Clock.h"
+
 
 using namespace std;
 
-
-
-class Simulation
+class Simulation : public Observer
 {
     public:
 
@@ -40,6 +41,11 @@ class Simulation
         ~Simulation();
         virtual void run();
         virtual void configure(ConfigurationParameters &configParams);
+
+        JitterGenerator* getJitterInstance();
+        DriftGenerator* getDriftInstance();
+
+        void update(double jitterStep);
 
     protected:
 
@@ -57,7 +63,9 @@ class Simulation
         int numExposures;                    // Number of exposures
 
         bool useJitter;
-        bool useJitterFromFile;
+        string jitterSource;
+
+
         bool includeFieldDistortion;
         bool useDrift;
         bool useDriftFromFile;
@@ -80,6 +88,8 @@ class Simulation
         HDF5File hdf5File;
 
 };
+
+
 
 
 

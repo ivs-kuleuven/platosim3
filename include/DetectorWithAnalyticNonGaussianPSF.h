@@ -37,11 +37,11 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
 
         void integrateAnalyticPSF(IntegralOfAnalyticSignalResponse&, double, double, double, double, double = 1.);
 
+	virtual void integrateLight(int exposureNr, double startTime, double exposureTime, bool parallelSimulation) override;
 
     protected:
 
         virtual void reset();
-        virtual void integrateLight(int exposureNr, double startTime, double exposureTime) override;
         virtual void applyFlatfield() override;
         virtual void generateFlatfieldMap();
         virtual bool isInPixelMap(double row, double column);

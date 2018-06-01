@@ -28,11 +28,12 @@ class DetectorWithMappedPSF: public Detector
         virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) override;
         virtual void addFlux(double flux) override;
 
+        virtual void integrateLight(int exposureNr, double startTime, double exposureTime, bool parallelSimulation) override;
+
     protected:
 
         virtual void reset();
         virtual void initHDF5Groups() override;
-        virtual void integrateLight(int exposureNr, double startTime, double exposureTime) override;
         virtual bool isInSubPixelMap(double row, double column);
         virtual void applyDiffusionKernel(double row, double column, double flux);
         virtual void applyFlatfield() override;

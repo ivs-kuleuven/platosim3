@@ -4,6 +4,19 @@
 
 
 /**
+ * \brief function to acces the protected constructor, if there is no jitter instance yet
+ */
+JitterGenerator* JitterFromFile::Instance(ConfigurationParameters &configParams)
+{
+    if(_instance == 0)
+    {
+        _instance = new JitterFromFile(configParams);
+    }
+    return _instance;
+}
+
+
+/**
  * \brief Constructor
  * 
  * \param configParams The configuration parameters from the input parameters file

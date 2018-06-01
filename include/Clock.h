@@ -21,6 +21,15 @@
 
 #include "ConfigurationParameters.h"
 
+#include "JitterGenerator.h"
+#include "NoJitter.h"
+#include "JitterFromFile.h"
+#include "JitterFromRedNoise.h"
+#include "JitterFromNetwork.h"
+#include "DriftGenerator.h"
+#include "NoDrift.h"
+#include "ThermoElasticDriftFromFile.h"
+#include "ThermoElasticDriftFromRedNoise.h"
 
 class Clock;
 
@@ -28,7 +37,7 @@ class Observer
 {
     public:
         virtual ~Observer();
-        virtual void update(ParaJitter* newJitter, double currentJitterStep) = 0;
+        virtual void update(double simulationTime) = 0;
 
     protected:
         Observer();
@@ -38,15 +47,17 @@ class Clock
 {
 	public:
 
-		Clock();
+		Clock(string inputFilename);
 		~Clock();
 
 		void startSimulation();
-		void updateJitter();
+		bool waitForNextStep();
 
 		void attach(Observer*);
 		void detach(Observer*);
 		void notify();
+
+		virtual void configure(ConfigurationParameters &configParam);
 
 	protected:
 
@@ -54,6 +65,17 @@ class Clock
 
     private:
 
+     	double simulationTime;
+
     	std::vector<Observer*> observers;
 
-}
+    	JitterGenerator *jitterInstance;
+    	DriftGenerator *driftInstance;
+
+    	double exposureTime; 
+	    int beginExposureNr;
+	    int numExposures;
+	    double readoutTime; 
+};
+
+#endif

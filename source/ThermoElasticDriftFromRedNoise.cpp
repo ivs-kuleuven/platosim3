@@ -2,6 +2,22 @@
 
 
 
+
+/**
+ * \brief function to acces the protected constructor, if there is no drift instance yet
+ */
+DriftGenerator* ThermoElasticDriftFromRedNoise::Instance(ConfigurationParameters &configParams)
+{
+    if(_instance == 0)
+    {
+        _instance = new ThermoElasticDriftFromRedNoise(configParams);
+    }
+    return _instance;
+}
+
+
+
+
 /**
  * \brief Constructor
  * 

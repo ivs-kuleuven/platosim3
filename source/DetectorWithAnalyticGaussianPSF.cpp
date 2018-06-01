@@ -226,7 +226,7 @@ double DetectorWithAnalyticGaussianPSF::takeExposure(int exposureNr, double star
 
     Log.info("Detector: Integrating light for exposure " + to_string(exposureNr) + " with exposure time = " + to_string(exposureTime));
 
-    integrateLight(exposureNr, startTime, exposureTime);
+    integrateLight(exposureNr, startTime, exposureTime, false);
 
     // Include noise effects like readout noise, photon noise, full well saturation, etc.
     // Note: readOut() needs the exposure time to compute the open shutter smearing.
@@ -278,19 +278,22 @@ double DetectorWithAnalyticGaussianPSF::takeExposure(int exposureNr, double star
  * \post Pixel, bias register, and smearing map filled with zeroes.
  */
 
-void DetectorWithAnalyticGaussianPSF::integrateLight(int exposureNr, double startTime, double exposureTime)
+void DetectorWithAnalyticGaussianPSF::integrateLight(int exposureNr, double startTime, double exposureTime, bool parallelSimulation)
 {
 
     // Reset the subfield (i.e. get rid of the previous exposure, by zeroing the entire sub-field)
 
-    Log.debug("Detector: resetting subfield array for new exposure.");
+    if (!parallelSimulation)
+    {
+        Log.debug("Detector: resetting subfield array for new exposure.");
 
-    reset();
+        reset();
 
-    // Integration (incl. jitter): point sources + background
-    // PixelMap units after: [photons]
+        // Integration (incl. jitter): point sources + background
+        // PixelMap units after: [photons]
 
-    camera.exposeDetector(*this, startTime, exposureTime);
+        camera.exposeDetector(*this, startTime, exposureTime);
+    }
 
     // Apply flatfield (at pixel level)
     // PixelMap units after: [photons]

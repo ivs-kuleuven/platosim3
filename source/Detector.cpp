@@ -438,7 +438,7 @@ double Detector::takeExposure(int exposureNr, double startTime, double exposureT
 
     Log.info("Detector: Integrating light for exposure " + to_string(exposureNr) + " with exposure time = " + to_string(exposureTime));
 
-    integrateLight(exposureNr, startTime, exposureTime);
+    integrateLight(exposureNr, startTime, exposureTime, false);
 
     // Include noise effects like readout noise, photon noise, full well saturation, etc.
     // Note: readOut() needs the exposure time to compute the open shutter smearing.

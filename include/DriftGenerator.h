@@ -18,13 +18,15 @@ class DriftGenerator : public Heartbeat
 {
     public:
 
-        DriftGenerator(){};
         virtual ~DriftGenerator(){};
 
         virtual tuple<double, double, double> getNextYawPitchRoll(double time) = 0;
 
     protected:
 
+    	DriftGenerator(){};
+
+		static DriftGenerator* _instance;
 
     private:
 

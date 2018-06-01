@@ -49,21 +49,32 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     configure(configParams);
 
+
     // Depending on what the user requested, define the proper platform jitter generator
 
     if (!useJitter)
     {
-        jitterGenerator = new NoJitter();
+        jitterGenerator = NoJitter::Instance();
     }
     else
     {
-        if (useJitterFromFile)
+        if (jitterSource == "FromFile")
         {
-            jitterGenerator = new JitterFromFile(configParams);
+            jitterGenerator = JitterFromFile::Instance(configParams);
+        }
+        else if (jitterSource == "FromRedNoise")
+        {
+            jitterGenerator = JitterFromRedNoise::Instance(configParams);
+        }
+        else if (jitterSource == "FromNetwork")
+        {
+            jitterGenerator = JitterFromNetwork::Instance(configParams);
         }
         else
         {
-            jitterGenerator = new JitterFromRedNoise(configParams);
+            string errorMessage = "Simulation: Jitter Source '" + jitterSource + "' is not supported.";
+            Log.error(errorMessage);
+            throw IllegalArgumentException(errorMessage);
         }
     }
 
@@ -71,17 +82,17 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     if (!useDrift)
     {
-        driftGenerator = new NoDrift();
+        driftGenerator = NoDrift::Instance();
     }
     else
     {
         if (useDriftFromFile)
         {
-            driftGenerator = new ThermoElasticDriftFromFile(configParams);
+            driftGenerator = ThermoElasticDriftFromFile::Instance(configParams);
         }
         else
         {
-            driftGenerator = new ThermoElasticDriftFromRedNoise(configParams);
+            driftGenerator = ThermoElasticDriftFromRedNoise::Instance(configParams);
         }
     }
 
@@ -182,7 +193,7 @@ void Simulation::configure(ConfigurationParameters &configParams)
     beginExposureNr   = configParams.getInteger("ObservingParameters/BeginExposureNr");
     numExposures      = configParams.getInteger("ObservingParameters/NumExposures");
     useJitter         = configParams.getBoolean("Platform/UseJitter");
-    useJitterFromFile = configParams.getBoolean("Platform/UseJitterFromFile");
+    jitterSource      = configParams.getString("Platform/JitterSource");
     includeFieldDistortion = configParams.getBoolean("Camera/IncludeFieldDistortion"); // do we want to do this or should this be asked to Camera?
     useDrift          = configParams.getBoolean("Telescope/UseDrift");  
     useDriftFromFile  = configParams.getBoolean("Telescope/UseDriftFromFile");  
@@ -331,14 +342,26 @@ void Simulation::writeStarCatalogToHDF5()
 }
 
 
+/**
+ * \brief notify the respective camera instance of this simulation object to process the next simulation step
+ *
+ */
+void Simulation::update(double jitterStep)
+{
+    camera->processNextStep(detector, jitterStep);
+}
 
 
 
+JitterGenerator* Simulation::getJitterInstance()
+{
+    return jitterGenerator;
+}
 
-
-
-
-
+DriftGenerator* Simulation::getDriftInstance()
+{
+    return driftGenerator;
+}
 
 /**
  * \brief [brief description]
@@ -422,7 +445,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     subGroup = "Platform";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addBoolean("UseJitter");
-    addBoolean("UseJitterFromFile");
+    addString("JitterSource");
     addDouble("JitterYawRms");
     addDouble("JitterPitchRms");
     addDouble("JitterRollRms");

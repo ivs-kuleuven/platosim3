@@ -88,10 +88,16 @@ class Detector: public HDF5Writer
 
         bool isInSubfield(double xFPmm, double yFPmm);
 
+ 	virtual void integrateLight(int exposureNr, double startTime, double exposureTime, bool parallelSimulation) = 0;
+
+	void writePixelMapsToHDF5(int exposureNr);
+
+	virtual void readOut(float exposureTime);
+
+	virtual void reset() = 0;
+
 
     protected:
-
-        virtual void integrateLight(int exposureNr, double startTime, double exposureTime) = 0;
 
         virtual void generateThroughputMap();
         virtual void checkGain();
@@ -102,7 +108,6 @@ class Detector: public HDF5Writer
         virtual void applyBFE();
         virtual void addDarkSignal(float exposureTime);
 
-        virtual void readOut(float exposureTime);
         virtual void addPhotonNoise();
         virtual void addCosmics(float exposureTime);
         virtual void addCosmics(float exposureTime, arma::Mat<float> &map, int numRows, int numColumns);
@@ -125,7 +130,6 @@ class Detector: public HDF5Writer
         arma::Mat<float> getSubfield();
 
         virtual void initHDF5Groups() override;
-        void writePixelMapsToHDF5(int exposureNr);
 
         void fastForwardDarkSignalGeneratorToExposure(int beginExposureNr, float exposureTime);
         void fastForwardReadoutNoiseGeneratorToExposure(int beginExposureNr);

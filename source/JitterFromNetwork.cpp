@@ -1,15 +1,15 @@
-#include "JitterFromRedNoise.h"
+#include "JitterFromNetwork.h"
 
 
 
 /**
  * \brief function to acces the protected constructor, if there is no jitter instance yet
  */
-JitterGenerator* JitterFromRedNoise::Instance(ConfigurationParameters &configParams)
+JitterGenerator* JitterFromNetwork::Instance(ConfigurationParameters &configParams)
 {
     if(_instance == 0)
     {
-        _instance = new JitterFromRedNoise(configParams);
+        _instance = new JitterFromNetwork(configParams);
     }
     return _instance;
 }
@@ -22,7 +22,7 @@ JitterGenerator* JitterFromRedNoise::Instance(ConfigurationParameters &configPar
  * \param configParams The configuration parameters from the input parameters file
  */
 
-JitterFromRedNoise::JitterFromRedNoise(ConfigurationParameters &configParams)
+JitterFromNetwork::JitterFromNetwork(ConfigurationParameters &configParams)
 : lastYaw(0.0), lastPitch(0.0), lastRoll(0.0), internalTime(0.0)
 {
     // Set the configuration parameters
@@ -49,7 +49,7 @@ JitterFromRedNoise::JitterFromRedNoise(ConfigurationParameters &configParams)
  * \brief Destructor
  */
 
-JitterFromRedNoise::~JitterFromRedNoise()
+JitterFromNetwork::~JitterFromNetwork()
 {
 
 }
@@ -66,7 +66,7 @@ JitterFromRedNoise::~JitterFromRedNoise()
  * \param configParams  The configuration parameters
  */
 
-void JitterFromRedNoise::configure(ConfigurationParameters &configParams)
+void JitterFromNetwork::configure(ConfigurationParameters &configParams)
 {
     // Note that the inputfile lists the jitter RMS values in [arcsec]
 
@@ -103,7 +103,7 @@ void JitterFromRedNoise::configure(ConfigurationParameters &configParams)
  * \return (newYaw, newPitch, newRoll)  [rad]
  */
 
-tuple<double, double, double> JitterFromRedNoise::getNextYawPitchRoll(double time)
+tuple<double, double, double> JitterFromNetwork::getNextYawPitchRoll(double time)
 {
     // If the time interval is zero, return the last computed values
 
@@ -185,7 +185,7 @@ tuple<double, double, double> JitterFromRedNoise::getNextYawPitchRoll(double tim
  * \return  heartbeatInterval [s]
  */
 
-double JitterFromRedNoise::getHeartbeatInterval()
+double JitterFromNetwork::getHeartbeatInterval()
 {
     return jitterTimeInterval;
 }
