@@ -35,6 +35,9 @@ Camera::Camera(ConfigurationParameters &configParam, HDF5File &hdf5file, Platfor
     // Get the equatorial sky coordinates of the Sun, which is know by platform since it's pointing its sunshield towards it.
 
     tie(raSun, decSun) = platform.getRADecSun();
+
+    imagetteTime = 0.0;
+    exposureCounter = 0;
 }
 
 
@@ -347,6 +350,9 @@ void Camera::configure(ConfigurationParameters &configParam)
     userGivenSkyBackground = configParam.getDouble("Sky/SkyBackground");          // [phot/pix/s]
 
     writeStarPositions     = configParam.getBoolean("ControlHDF5Content/WriteStarPositions");
+
+    readoutTime       = configParam.getDouble("CCD/ReadoutTime"); 
+    exposureTime      = configParam.getDouble("ObservingParameters/ExposureTime");
 
 }
 
@@ -993,8 +999,6 @@ void Camera::processNextStep(Detector* detectorInstance, double jitterStep)
     detectorInstance->updateParameters(jitterStep);
     sky.updateParameters(jitterStep);
 
-    //std::cout << "test5" << std::endl;
-
     while(fluxToIntegrate)
     {
         if (imagetteTime == 0)
@@ -1031,6 +1035,8 @@ void Camera::processNextStep(Detector* detectorInstance, double jitterStep)
             #pragma omp critical
             detectorInstance->writePixelMapsToHDF5(exposureCounter);
 
+            std::cout << "exposures: " << exposureCounter << std::endl;
+
             imagetteTime = 0.0;
 
             exposureCounter++;
@@ -1045,7 +1051,7 @@ void Camera::processNextStep(Detector* detectorInstance, double jitterStep)
             fluxToIntegrate = false;
         }
 
-    }  
+    } 
 }
 
 
@@ -1153,12 +1159,12 @@ void Camera::addFluxToExposure(Detector* detector, double startTime, double time
     for (unsigned int n = 0; n < Nstars; n++)
     {
         // Compute the focal plane coordinates (in [mm]) of this particular star
-               
+
         unsigned long starID;
         double RA, dec, Vmag;
 
         tie(starID, RA, dec, Vmag) = sky.getSelectedStar(n);
-                
+   
         double Xmm, Ymm;
         tie(Xmm, Ymm) = skyToFocalPlaneCoordinates(RA, dec);
 

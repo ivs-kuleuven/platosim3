@@ -166,8 +166,8 @@ Simulation::~Simulation()
     delete telescope;
     delete sky;
     delete platform;
-    delete jitterGenerator;
-    delete driftGenerator;
+    //delete jitterGenerator;
+    //delete driftGenerator;
     
     // Close the output hdf5 file
 

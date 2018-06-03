@@ -39,6 +39,9 @@ class Observer
         virtual ~Observer();
         virtual void update(double simulationTime) = 0;
 
+        virtual JitterGenerator* getJitterInstance() = 0;
+        virtual DriftGenerator* getDriftInstance() = 0;
+
     protected:
         Observer();
 };
@@ -66,6 +69,7 @@ class Clock
     private:
 
      	double simulationTime;
+     	double timeStep;
 
     	std::vector<Observer*> observers;
 

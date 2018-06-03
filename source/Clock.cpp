@@ -50,8 +50,6 @@ Clock::~Clock()
  */
 void Clock::attach(Observer* observerInstance)
 {
-    std::cout << "attach observer to jitter thread" << std::endl;
-
     observers.push_back(observerInstance);
 }
 
@@ -73,6 +71,8 @@ void Clock::notify()
     {
         observers.at(i)->update(simulationTime);
     }
+
+    simulationTime += timeStep;
 }
 
 
@@ -82,8 +82,8 @@ void Clock::notify()
  */
 void Clock::startSimulation()
 {
-	// jitterInstance = simulationInstance->getJitterInstance();
-	// driftInstance = simulationInstance->getDriftInstance();
+	jitterInstance = observers.at(0)->getJitterInstance();
+	driftInstance = observers.at(0)->getDriftInstance();
 
 	// process simulation steps, until there 
 	while(endSimulation != true)
@@ -92,9 +92,14 @@ void Clock::startSimulation()
 		{
 			// whenever there is new input, trigger the next simulation 
 			// step in all observing simualtion instance
+
 			notify();
 		}	
 	}
+
+	// delete the drift- and jitter generator
+    delete jitterInstance;
+    delete driftInstance;
 }
 
 
@@ -104,10 +109,7 @@ void Clock::startSimulation()
  */
 bool Clock::waitForNextStep()
 {
-	double timeStep = min(exposureTime, min(jitterInstance->getHeartbeatInterval(), driftInstance->getHeartbeatInterval()));
-
-	simulationTime += timeStep;
-
+	timeStep = min(exposureTime, min(jitterInstance->getHeartbeatInterval(), driftInstance->getHeartbeatInterval()));
 
 	int currentExposures = simulationTime/(exposureTime + readoutTime);
 

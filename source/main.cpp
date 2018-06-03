@@ -158,8 +158,12 @@ int main(int Narguments, char* arguments[])
             simulationInstanceVec.emplace_back(simulationInstance);
         }
 
+        std::cout << "Start Simulation" << std::endl;
+
         // start the Simulation
         clockInstance->startSimulation();
+
+        std::cout << "End Simulation" << std::endl;
 
         //detach all Simulation Objects from the Jitter object and delete all class intances
         for (auto &i : simulationInstanceVec)
@@ -168,16 +172,8 @@ int main(int Narguments, char* arguments[])
            delete i;
         }
 
-        // for (int i = 0; i < simulationInstanceVec.size(); i++) //   auto &i : simulationInstanceVec)
-        // {
-        //     std::cout << "detach simulation object from jitter thread" << std::endl;
-        //     clockInstance->detach(simulationInstanceVec.at(i));
-        //     std::cout << "delete the simulation object" << std::endl;
-        //     delete simulationInstanceVec.at(i);
-        // }
-
+        delete clockInstance;
     }
-
 
     // That's it!
 

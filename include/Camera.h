@@ -117,6 +117,8 @@ class Camera : public HDF5Writer
         void addFluxToExposure(Detector* detector, double startTime, double timeStep);
 
         unsigned long Nstars;
+
+        
         
 };
 
