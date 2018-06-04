@@ -66,6 +66,7 @@ void Clock::detach(Observer* o)
  */
 void Clock::notify()
 {
+	// this uses all usable cores of the processor to speed up the simulations
     #pragma omp parallel for
     for (int i = 0; i < observers.size(); i++)
     {
@@ -131,7 +132,6 @@ bool Clock::waitForNextStep()
 void Clock::configure(ConfigurationParameters &configParams)
 {
     exposureTime      = configParams.getDouble("ObservingParameters/ExposureTime"); 
-    beginExposureNr   = configParams.getInteger("ObservingParameters/BeginExposureNr");
     numExposures      = configParams.getInteger("ObservingParameters/NumExposures");
     readoutTime       = configParams.getDouble("CCD/ReadoutTime"); 
 }

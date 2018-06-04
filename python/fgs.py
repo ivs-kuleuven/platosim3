@@ -19,7 +19,7 @@ inputDir    = os.getenv("PLATO_PROJECT_HOME") + "/inputfiles"
 
 inputFile   = inputDir + "/inputfgs.yaml"
 starCatalog = inputDir + "/complete_cat.txt"
-jitterFile  = inputDir + "/PlatoJitter_Airbus.txt"
+jitterFile  = inputDir + "/airbusJitter.txt"
 psfFile     = inputDir + "/psf.hdf5"
 
 outputDir   = os.getenv("PLATO_WORKDIR") + "/test"

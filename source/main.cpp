@@ -84,7 +84,6 @@ int main(int Narguments, char* arguments[])
         logFilename = arguments[3];
     }
 
-
     // Set up the log file
 
     ofstream logFile(logFilename);
@@ -152,18 +151,15 @@ int main(int Narguments, char* arguments[])
             // create a new Simulation object
             Simulation* simulationInstance = new Simulation(inputFiles.at(n), outputFiles.at(n));
 
+            // attach the simulation instance as observer to the clock instance
             clockInstance->attach(simulationInstance);
 
             // put the object handler in the respective vector
             simulationInstanceVec.emplace_back(simulationInstance);
         }
 
-        std::cout << "Start Simulation" << std::endl;
-
         // start the Simulation
         clockInstance->startSimulation();
-
-        std::cout << "End Simulation" << std::endl;
 
         //detach all Simulation Objects from the Jitter object and delete all class intances
         for (auto &i : simulationInstanceVec)
@@ -183,11 +179,11 @@ int main(int Narguments, char* arguments[])
 
 
 /**
- * \brief lazy initialization of the jitter instance
+ * \brief needed for the lazy initialization of the jitter instance
  */
 JitterGenerator* JitterGenerator::_instance = 0;
 
  /**
- * \brief lazy initialization of the drift instance
+ * \brief needed for the lazy initialization of the drift instance
  */
 DriftGenerator* DriftGenerator::_instance = 0;

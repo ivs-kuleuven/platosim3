@@ -10,12 +10,8 @@
 #include <iostream>
 
 #include <vector>
-#include <ctime>
 
-#include <chrono>
 #include <thread>
-
-#include <time.h>
 
 #include <omp.h>
 
@@ -77,9 +73,8 @@ class Clock
     	DriftGenerator *driftInstance;
 
     	double exposureTime; 
-	    int beginExposureNr;
+        double readoutTime; 
 	    int numExposures;
-	    double readoutTime; 
 };
 
 #endif

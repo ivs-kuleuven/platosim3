@@ -162,7 +162,6 @@ void Camera::flushOutput()
         // Because some stars at the edge may jitter in and out of the subfield from one exposure to the other,
         // the written arrays may not be equally long for each exposure.
     
-    
         for (int n = 0; n < time.size(); n++)
         {
             // Make the subgroup group
@@ -171,7 +170,7 @@ void Camera::flushOutput()
             myStream << "Exposure" << setfill('0') << setw(6) << beginExposureNr + n;
             const string exposureGroupName = "/StarPositions/" + myStream.str();
             hdf5File.createGroup(exposureGroupName);
-    
+
             // Collect the different time series. For the positions, we only compute the sum, so we still need
             // to divide by N to compute the average, where N is the number of times the star was detected to be
             // in the subfield during an exposure.
@@ -972,11 +971,15 @@ double Camera::getTotalSkyBackground()
 
 /**
  * \brief function that gets the current jitter step writes flux to the respective imagette in the timeline
+ *        this is only used, if a parallel simulation is executed
  */
 void Camera::processNextStep(Detector* detectorInstance, double jitterStep)
 {
     // calculate the current time step
     double timeStep = jitterStep - (exposureCounter * (exposureTime + readoutTime)) - imagetteTime;
+
+    // time of the start of the exposure
+    double exposureStartTime = exposureCounter * (exposureTime + readoutTime);
 
     double fluxIntegrationTime;
     double overTime;
@@ -1001,12 +1004,14 @@ void Camera::processNextStep(Detector* detectorInstance, double jitterStep)
 
     while(fluxToIntegrate)
     {
+        // a new imagette is prepared, when the imagetteTime is zero
         if (imagetteTime == 0)
         {
             prepareNewExposure(detectorInstance, jitterStep, exposureTime);
             detectorInstance->reset();
         }
 
+        // calculate how long the flux has to be integrated
         if (imagetteTime + timeStep <= exposureTime)
         {
             fluxIntegrationTime = timeStep;
@@ -1020,7 +1025,7 @@ void Camera::processNextStep(Detector* detectorInstance, double jitterStep)
             overTime = timeStep - fluxIntegrationTime;
         }
 
-        addFluxToExposure(detectorInstance, jitterStep, fluxIntegrationTime);
+        addFluxToExposure(detectorInstance, exposureStartTime, fluxIntegrationTime);
 
         if (imagetteTime + fluxIntegrationTime == exposureTime)
         {
@@ -1031,17 +1036,16 @@ void Camera::processNextStep(Detector* detectorInstance, double jitterStep)
             // apply readout effects;
             detectorInstance->readOut(exposureTime);
 
-            // write imagette to hdf5
+            // write imagette to hdf5 - this could cause problems when done parallel so it is marked as critical
             #pragma omp critical
             detectorInstance->writePixelMapsToHDF5(exposureCounter);
-
-            std::cout << "exposures: " << exposureCounter << std::endl;
 
             imagetteTime = 0.0;
 
             exposureCounter++;
         }
 
+        // if the time step exceeds the readout time start the cycle again with the now reduced timestep
         if (overTime > readoutTime)
         {
             timeStep = overTime - readoutTime;
@@ -1050,13 +1054,14 @@ void Camera::processNextStep(Detector* detectorInstance, double jitterStep)
         {
             fluxToIntegrate = false;
         }
-
     } 
 }
 
 
 
-
+/**
+ * \brief this is mostly just copied code from the exposeDetector function
+ */
 void Camera::prepareNewExposure(Detector* detector, double startTime, double exposureTime)
 {
     // Get the value for the degrading TransmissionEfficiency parameter at the startTime of this exposure
@@ -1145,7 +1150,9 @@ void Camera::prepareNewExposure(Detector* detector, double startTime, double exp
 }
 
 
-
+/**
+ * \brief this is mostly just copied code from the exposeDetector function
+ */
 void Camera::addFluxToExposure(Detector* detector, double startTime, double timeStep)
 {
     double transmissionEfficiency = telescope.getTransmissionEfficiency(startTime);
@@ -1227,4 +1234,7 @@ void Camera::addFluxToExposure(Detector* detector, double startTime, double time
             }
         }
     }
+
+    Log.debug("Camera: at time " + to_string(startTime) + ": incremented flux of " + to_string(NstarsInSubfield) + " stars in subfield");
+
 }

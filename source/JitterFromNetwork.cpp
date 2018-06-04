@@ -19,7 +19,7 @@ JitterGenerator* JitterFromNetwork::Instance(ConfigurationParameters &configPara
 /**
  * \brief Constructor
  * 
- * \param configParams The configuration parameters from the input parameters file
+ * \      jitterFromNetwork is just a copy of jitterfromnetwork with a little delay built in to simulate the closed loop test
  */
 
 JitterFromNetwork::JitterFromNetwork(ConfigurationParameters &configParams)
@@ -162,6 +162,8 @@ tuple<double, double, double> JitterFromNetwork::getNextYawPitchRoll(double time
     // Update the internal clock
 
     internalTime = time;
+
+    int timeStepInMs = timeStep * 1000;
 
     // That's it!
 
