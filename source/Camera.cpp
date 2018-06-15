@@ -1004,11 +1004,16 @@ void Camera::processNextStep(Detector* detectorInstance, double jitterStep)
 
     while(fluxToIntegrate)
     {
+        std::cout << "imagetteTime: " << imagetteTime << std::endl;
+
         // a new imagette is prepared, when the imagetteTime is zero
         if (imagetteTime == 0)
         {
-            prepareNewExposure(detectorInstance, jitterStep, exposureTime);
             detectorInstance->reset();
+
+            prepareNewExposure(detectorInstance, jitterStep, exposureTime);
+
+            std::cout << "imagette prepared" << std::endl;
         }
 
         // calculate how long the flux has to be integrated
@@ -1027,7 +1032,10 @@ void Camera::processNextStep(Detector* detectorInstance, double jitterStep)
 
         addFluxToExposure(detectorInstance, exposureStartTime, fluxIntegrationTime);
 
-        if (imagetteTime + fluxIntegrationTime == exposureTime)
+        imagetteTime += fluxIntegrationTime;
+
+
+        if (imagetteTime == exposureTime)
         {
             // finish the imagette
 
@@ -1146,6 +1154,49 @@ void Camera::prepareNewExposure(Detector* detector, double startTime, double exp
     
         sky.aberrateSelectedStarPositions(platform, aberrationCorrectionType, startTime, timeMiddle);
     }
+
+    // add sky background
+
+    totalSkyBackground = 0.0;
+
+
+    if (userGivenSkyBackground < 0.0)
+    {
+        const double energyOfOnePhoton = Constants::CLIGHT * Constants::HPLANCK / (throughputLambdaC * 1.e-9);                // [J]
+        const double lambda1 = (throughputLambdaC - throughputBandwidth/2.0) * 1.e-9;                                         // [m]
+        const double lambda2 = (throughputLambdaC + throughputBandwidth/2.0) * 1.e-9;                                         // [m]
+    
+        const double zodiacalFlux = sky.zodiacalFlux(centerRA, centerDec, lambda1, lambda2)                                   // [phot/exposure]
+                                    * exposureTime * transmissionEfficiency * telescope.getLightCollectingArea()
+                                    * detector->getSolidAngleOfOnePixel(plateScale) / energyOfOnePhoton; 
+
+        const double stellarBackgroundFlux = sky.stellarBackgroundFlux(centerRA, centerDec, lambda1, lambda2)                 // [phot/exposure]
+                                             * exposureTime * transmissionEfficiency * telescope.getLightCollectingArea()
+                                             * detector->getSolidAngleOfOnePixel(plateScale) / energyOfOnePhoton;      
+
+
+        totalSkyBackground = floor(zodiacalFlux + stellarBackgroundFlux);
+        detector->addFlux(totalSkyBackground);
+
+        Log.debug("Camera: zodiacal flux level in subfield = " + to_string(zodiacalFlux) + " photons/pixel/exposure");
+        Log.debug("Camera: stellar background flux level in subfield = " + to_string(stellarBackgroundFlux) + " photons/pixel/exposure");
+    }
+    else
+    {
+        totalSkyBackground = floor(userGivenSkyBackground * exposureTime * transmissionEfficiency);
+        detector->addFlux(totalSkyBackground);
+
+        Log.debug("Camera: user-given sky background flux = " + to_string(userGivenSkyBackground * exposureTime) + " photons/pixel/exposure");
+    }
+
+    // Save the sky background value that we added. [photons/pix/exposure]
+
+    skyBackgroundValues.push_back(totalSkyBackground);
+
+    // Save the transmissionEfficiency value that was calculated for this exposure.
+
+    transmissionEfficiencyValues.push_back(transmissionEfficiency);
+
 
 }
 
