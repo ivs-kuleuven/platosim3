@@ -885,24 +885,9 @@ void Detector::readOut(float exposureTime)
     }
     else
     {
-            Log.debug("Detector: no cosmic hits included.");
+        Log.debug("Detector: no cosmic hits included.");
     }
 
-    // Apply full-well saturation. A pixel has a maximum capacity of electrons (the full well capacity).
-    // If photons free more electrons, the pixel saturates, and the electrons flow in the pixels above and below in
-    // the same column (potential barriers are smallest in that direction).
-    // Pixel units before: [electrons]
-    // Pixel units after: [electrons]
-
-    if (includeFullWellSaturation)
-    {
-        Log.debug("Detector: applying full well saturation.");
-        applyFullWellSaturation();
-    }
-    else
-    {
-        Log.debug("Detector: no full well saturation applied.");
-    }
 
     // Simulate the effects of the Charge Transfer Inefficiency (CTI). When the
     // CCD is read out, row after row, a part of the charge is always left behind
@@ -952,6 +937,30 @@ void Detector::readOut(float exposureTime)
         Log.debug("Detector: no readout noise added.");
     }
 
+    // Apply full-well saturation. A pixel has a maximum capacity of electrons (the full well capacity).
+    // If photons free more electrons, the pixel saturates, and the electrons flow in the pixels above and below in
+    // the same column (potential barriers are smallest in that direction).
+    // Pixel units before: [electrons]
+    // Pixel units after: [electrons]
+
+    if (includeFullWellSaturation)
+    {
+        Log.debug("Detector: applying full well saturation.");
+        applyFullWellSaturation();
+    }
+    else
+    {
+        Log.debug("Detector: no full well saturation applied.");
+    }
+
+    //  Apply quantisation. This consists of: 
+    //         - applying FEE and CCD gain (converting from electrons to ADU)
+    //         - adding the electronic offset
+    //         - applying digital saturation
+    // Pixel units before: [electrons]
+    // Pixel units after: [ADU]
+ 
+    
     if(includeQuantisation)
     {
         Log.debug("Detector: applying quantisation.");
