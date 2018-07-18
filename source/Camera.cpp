@@ -1004,16 +1004,12 @@ void Camera::processNextStep(Detector* detectorInstance, double jitterStep)
 
     while(fluxToIntegrate)
     {
-        std::cout << "imagetteTime: " << imagetteTime << std::endl;
-
         // a new imagette is prepared, when the imagetteTime is zero
         if (imagetteTime == 0)
         {
             detectorInstance->reset();
 
             prepareNewExposure(detectorInstance, jitterStep, exposureTime);
-
-            std::cout << "imagette prepared" << std::endl;
         }
 
         // calculate how long the flux has to be integrated
