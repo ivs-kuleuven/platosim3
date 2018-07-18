@@ -8,6 +8,8 @@
 #include <iterator>
 #include <unistd.h>
 #include <iostream>
+#include <mutex>
+#include <condition_variable>
 
 #include <vector>
 
@@ -38,6 +40,10 @@ class Observer
         virtual JitterGenerator* getJitterInstance() = 0;
         virtual DriftGenerator* getDriftInstance() = 0;
 
+        virtual bool isClient(){return false;};
+
+        virtual bool simulationEnd(){return true;};
+
     protected:
         Observer();
 };
@@ -49,8 +55,8 @@ class Clock
 		Clock(string inputFilename);
 		~Clock();
 
-		void startSimulation();
-		bool waitForNextStep();
+		void startSimulation(std::condition_variable* cond_var, bool* notified, bool* newStep, std::mutex* m);
+		//bool waitForNextStep();
 
 		void attach(Observer*);
 		void detach(Observer*);
