@@ -33,12 +33,13 @@ Sky:
 Platform:
 
     UseJitter:                   yes              # yes or no
-    JitterSource:                FromFile         # Source: FromFile, FromRedNoise, FromNetwork 
+    JitterSource:                FromNetwork      # Source: FromFile, FromRedNoise, FromNetwork 
     JitterYawRms:                0.5              # [arcsec]
     JitterPitchRms:              0.5              # [arcsec]
     JitterRollRms:               0.5              # [arcsec]
     JitterTimeScale:             2.5              # [s]
-    JitterFileName:              inputfiles/airbusJitter.txt 
+    JitterFileName:              inputfiles/airbusJitter.txt
+    TcpAddress:                  tcp://localhost:5555
 
 
 Telescope:
