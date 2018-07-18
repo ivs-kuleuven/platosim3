@@ -5,6 +5,8 @@
 
 #include <string>
 
+#include <condition_variable>
+
 #include "Simulation.h"
 #include "Logger.h"
 #include "StringUtilities.h"
@@ -17,6 +19,8 @@
 #include "JitterGenerator.h"
 
 #include "DriftGenerator.h"
+
+#include "TcpConnection.h"
 
 using namespace std;
 
@@ -32,7 +36,6 @@ int main(int Narguments, char* arguments[])
     bool invalidInput = false;
 
     string firstArgument;
-
 
     // check for valid input arguments and derive which kind of simulation is to be started
     if(Narguments >= 2)
@@ -103,7 +106,8 @@ int main(int Narguments, char* arguments[])
 
         // Initialise the simulation, and loop over all exposures using run()
 
-        Simulation simulation(inputFilename, outputFilename);
+        Simulation simulation(inputFilename, outputFilename, paraSimulation);
+
         simulation.run();
     }
     else
@@ -143,13 +147,19 @@ int main(int Narguments, char* arguments[])
         // create a clock instance which dictates the cycle time for the simulations
         Clock* clockInstance = new Clock(inputFiles.at(0));
 
+        // create tcp connection instances for a server and a client object
+        TcpConnection* serverInstance = new TcpConnection(inputFiles.at(0));
+
+        TcpConnection* clientInstance = new TcpConnection(inputFiles.at(0));
+
+
         std::vector<Simulation*> simulationInstanceVec;
 
         // create Simulation objects as long as you have valid input- and output files
         for (int n = 0; n < inputFiles.size(); n++)
         {
             // create a new Simulation object
-            Simulation* simulationInstance = new Simulation(inputFiles.at(n), outputFiles.at(n));
+            Simulation* simulationInstance = new Simulation(inputFiles.at(n), outputFiles.at(n), paraSimulation);
 
             // attach the simulation instance as observer to the clock instance
             clockInstance->attach(simulationInstance);
@@ -158,8 +168,30 @@ int main(int Narguments, char* arguments[])
             simulationInstanceVec.emplace_back(simulationInstance);
         }
 
-        // start the Simulation
-        clockInstance->startSimulation();
+        // create a conditional variable object instance
+        std::condition_variable cond_var;
+        std::condition_variable* conPtr = &cond_var;
+
+        bool notified = false;
+        bool* pNotified = &notified;
+
+        bool newStep = false;
+        bool* pNewStep = &newStep;
+
+        std::mutex m;
+        std::mutex* pM = &m;
+
+        std::thread simulationThread(&Clock::startSimulation, clockInstance, conPtr, pNotified, pNewStep, pM);
+
+        std::thread serverThread(&TcpConnection::connectToClient, serverInstance);
+
+        std::thread clientThread(&TcpConnection::connectToServer, clientInstance, conPtr, pNotified, pNewStep, pM);
+
+        serverThread.join();
+
+        clientThread.join(); 
+
+        simulationThread.join();
 
         //detach all Simulation Objects from the Jitter object and delete all class intances
         for (auto &i : simulationInstanceVec)
