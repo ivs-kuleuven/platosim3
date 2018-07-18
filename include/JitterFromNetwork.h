@@ -6,6 +6,11 @@
 #include <algorithm>
 #include <random>
 #include <functional>
+#include <condition_variable>
+
+#include "zmq.hpp"
+#include <chrono>
+#include <thread>
 
 #include "Logger.h"
 #include "Units.h"
@@ -15,15 +20,17 @@
 #include "JitterGenerator.h"
 
 
+
 using namespace std;
 
-
+class TcpConnection;
 
 class JitterFromNetwork : public JitterGenerator
 {
     public:
 
         static JitterGenerator* Instance(ConfigurationParameters &configParams);
+        static JitterGenerator* Instance(ConfigurationParameters &configParams, TcpConnection* tcpConnection);
         
         ~JitterFromNetwork();
 
@@ -31,9 +38,16 @@ class JitterFromNetwork : public JitterGenerator
         virtual tuple<double, double, double> getNextYawPitchRoll(double time) override;
         virtual double getHeartbeatInterval() override;
 
+        virtual void setCurrentJitterStep(double endSimulation, double timeStep, double yaw, double pitch, double roll) override;
+
+        virtual bool isClient() override;
+
+        virtual bool simulationEnd() override;
+
     protected:
 
         JitterFromNetwork(ConfigurationParameters &configurationParameters);
+        JitterFromNetwork(ConfigurationParameters &configurationParameters, TcpConnection* tcpConnection);
 
         double yawRMS;              // [rad] 
         double pitchRMS;            // [rad]
@@ -44,17 +58,34 @@ class JitterFromNetwork : public JitterGenerator
         double lastPitch;
         double lastRoll;
 
-        double jitterTimeInterval;  // [s]
-
         long jitterNoiseSeed;
 
         double internalTime;        // [s]
+
+        string serverAddress;
+
+
 
     private:
 
         mt19937 jitterNoiseGenerator;
         normal_distribution<double> normalDistribution;
 
+        TcpConnection* tcpConnectionInstance;
+
+        double oldTimeStep;
+        double oldYaw;
+        double oldPitch;
+        double oldRoll;
+
+        double currentTimeStep;
+        double currentYaw;
+        double currentPitch;
+        double currentRoll;
+
+        double jitterTimeInterval;  // [s]
+
+        bool endSimulation;
  };
 
 
