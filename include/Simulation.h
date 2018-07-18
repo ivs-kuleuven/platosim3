@@ -37,7 +37,7 @@ class Simulation : public Observer
 {
     public:
 
-        Simulation(string inputFilename, string outputFilename);
+        Simulation(string inputFilename, string outputFilename, bool paraSimulation);
         ~Simulation();
         virtual void run();
         virtual void configure(ConfigurationParameters &configParams);
@@ -45,6 +45,8 @@ class Simulation : public Observer
         JitterGenerator* getJitterInstance();
         DriftGenerator* getDriftInstance();
 
+/*        bool isClient(){};
+        bool simulationEnd(){};*/
         void update(double jitterStep);
 
     protected:

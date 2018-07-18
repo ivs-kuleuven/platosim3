@@ -21,7 +21,7 @@
  * \param[in]  outputFilename  the HDF5 output file
  */
 
-Simulation::Simulation(string inputFilename, string outputFilename)
+Simulation::Simulation(string inputFilename, string outputFilename, bool paraSimulation)
 {
     // Parse the configuration parameters file
 
@@ -52,7 +52,8 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     // Depending on what the user requested, define the proper platform jitter generator
 
-    if (!useJitter)
+    // if this is not a parallel simulation and jitter from network is requested, act as if there is no jitter, since this is not implemented yet
+    if (!useJitter || (!paraSimulation && (jitterSource == "FromNetwork")))
     {
         jitterGenerator = NoJitter::Instance();
     }
@@ -350,7 +351,6 @@ void Simulation::update(double jitterStep)
 {
     camera->processNextStep(detector, jitterStep);
 }
-
 
 
 JitterGenerator* Simulation::getJitterInstance()
