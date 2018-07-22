@@ -1216,11 +1216,11 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, int numRows
 
     for(unsigned int cosmicHit = 0; cosmicHit < numCosmicHits; cosmicHit++)
     {
-        entryRow = cosmicEntryRowDistribution(cosmicEntryRowGenerator);                // Entry row [pixels] (uniform distribution over the rows of the sub-fields)
+        entryRow = cosmicEntryRowDistribution(cosmicEntryRowGenerator);             // Entry row [pixels] (uniform distribution over the rows of the sub-fields)
         entryColumn = cosmicEntryColumnDistribution(cosmicEntryColumnGenerator);    // Entry column [pixels] (uniform distribution over the columns of the sub-field)
-        entryAngle = cosmicEntryAngleDistribution(cosmicEntryAngleGenerator);        // Entry angle [radians] (uniform distribution between 0 and 2π)
+        entryAngle = cosmicEntryAngleDistribution(cosmicEntryAngleGenerator);       // Entry angle [radians] (uniform distribution between 0 and 2π)
         trailLength = cosmicTrailLengthDistribution(cosmicTrailLengthGenerator);    // Trail length [pixels] (uniform distribution over interval)
-        intensity = cosmicIntensityDistribution(cosmicIntensityGenerator);            // Number of e- in cosmic hit [e-] (uniform distribution over interval)
+        intensity = cosmicIntensityDistribution(cosmicIntensityGenerator);          // Number of e- in cosmic hit [e-] (uniform distribution over interval)
 
         double trailStep = trailLength / numTrailPoints;                            // Distance between two "trail points" (for the current trail)
 
