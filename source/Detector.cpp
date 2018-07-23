@@ -1236,7 +1236,8 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, int numRows
 
     int numCosmicHits = cosmicHitRateDistribution(cosmicHitRateGenerator) * exposureTime * (numRows * pixelSize / 10000.0) * (numColumns * pixelSize / 10000.0);
     Log.debug("Detector: number of cosmic hits: " + to_string(numCosmicHits));
-
+    if (numCosmicHits == 0) return;
+    
     double meanEntryAngle = 0.0;
     double meanTrailLength = 0.0;
     double meanIntensity = 0.0;
