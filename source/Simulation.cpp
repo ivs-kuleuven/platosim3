@@ -412,7 +412,9 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("SkyBackground");
     addBoolean("IncludeVariableSources");
     addString("VariableSourceList");
-    addBoolean("IncludeCosmics");
+    addBoolean("IncludeCosmicsInSubField");
+    addBoolean("IncludeCosmicsInSmearingMap");
+    addBoolean("IncludeCosmicsInBiasMap");
     subGroup = "Sky/Cosmics";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addDouble("CosmicHitRate");
