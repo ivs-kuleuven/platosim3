@@ -1237,13 +1237,21 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, int numRows
     int numCosmicHits = cosmicHitRateDistribution(cosmicHitRateGenerator) * exposureTime * (numRows * pixelSize / 10000.0) * (numColumns * pixelSize / 10000.0);
     Log.debug("Detector: number of cosmic hits: " + to_string(numCosmicHits));
 
+    double meanEntryAngle = 0.0;
+    double meanTrailLength = 0.0;
+    double meanIntensity = 0.0;
+
     for(unsigned int cosmicHit = 0; cosmicHit < numCosmicHits; cosmicHit++)
     {
-        entryRow = cosmicEntryRowDistribution(cosmicEntryRowGenerator);             // Entry row [pixels] (uniform distribution over the rows of the sub-fields)
+        entryRow    = cosmicEntryRowDistribution(cosmicEntryRowGenerator);          // Entry row [pixels] (uniform distribution over the rows of the sub-fields)
         entryColumn = cosmicEntryColumnDistribution(cosmicEntryColumnGenerator);    // Entry column [pixels] (uniform distribution over the columns of the sub-field)
-        entryAngle = cosmicEntryAngleDistribution(cosmicEntryAngleGenerator);       // Entry angle [radians] (uniform distribution between 0 and 2π)
+        entryAngle  = cosmicEntryAngleDistribution(cosmicEntryAngleGenerator);      // Entry angle [radians] (uniform distribution between 0 and 2π)
         trailLength = cosmicTrailLengthDistribution(cosmicTrailLengthGenerator);    // Trail length [pixels] (uniform distribution over interval)
-        intensity = cosmicIntensityDistribution(cosmicIntensityGenerator);          // Number of e- in cosmic hit [e-] (uniform distribution over interval)
+        intensity   = cosmicIntensityDistribution(cosmicIntensityGenerator);        // Number of e- in cosmic hit [e-] (uniform distribution over interval)
+
+        meanEntryAngle += entryAngle;
+        meanTrailLength += trailLength;
+        meanIntensity += intensity;
 
         double trailStep = trailLength / numTrailPoints;                            // Distance between two "trail points" (for the current trail)
 
@@ -1270,6 +1278,14 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, int numRows
             }
         }
     }
+
+    meanEntryAngle /= numCosmicHits;
+    meanTrailLength /= numCosmicHits;
+    meanIntensity /= numCosmicHits;
+
+    Log.info("Detector: mean cosmic entry angle: " + to_string(meanEntryAngle) + " rad");
+    Log.info("Detector: mean cosmic trail length: " + to_string(meanTrailLength) + " pix");
+    Log.info("Detector: mean cosmic hit intensity: " + to_string(meanIntensity) + " e-");
 }
 
 
