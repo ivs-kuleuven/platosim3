@@ -72,6 +72,8 @@ import numpy as np
 import h5py
 from matplotlib import pyplot as plt
 import matplotlib.cm as cm
+from astropy.io import fits
+
 
 
 class SimFile (object):
@@ -1038,3 +1040,52 @@ class SimFile (object):
                np.array(xFPmm).flatten(), np.array(yFPmm).flatten()
 
 
+
+
+
+    def saveImagesToFITS(self, fileName):
+        """
+        Save all subfield images in the HDF5 file to a FITS file with the given file name.
+        This will go horribly wrong when the number of images is too large or when the images 
+        themselves are too large.
+        """
+
+        hduList = []
+        Nimages = self.getInputParameter("ObservingParameters", "NumExposures")
+        for imageNr in range(Nimages):
+            image = self.getImage(imageNr)
+            imageName = "Image{0:06d}".format(imageNr)
+            if imageNr == 0:
+                hdu = fits.PrimaryHDU(image)
+            else:
+                hdu = fits.ImageHDU(image, name=imageName)
+            hduList.append(hdu)
+        
+        myFits = fits.HDUList(hduList)
+        myFits.writeto(fileName)
+
+
+
+
+
+
+    def saveSmearingMapsToFITS(self, fileName):
+            """
+            Save all smearing map in the HDF5 file to a FITS file with the given file name.
+            This will go horribly wrong when the number of exposures is too large or when the maps 
+            themselves are too large.
+            """
+
+            hduList = []
+            Nimages = self.getInputParameter("ObservingParameters", "NumExposures")
+            for imageNr in range(Nimages):
+                image = self.getSmearingMap(imageNr)
+                imageName = "SmearingMap{0:06d}".format(imageNr)
+                if imageNr == 0:
+                    hdu = fits.PrimaryHDU(image)
+                else:
+                    hdu = fits.ImageHDU(image, name=imageName)
+                hduList.append(hdu)
+            
+            myFits = fits.HDUList(hduList)
+            myFits.writeto(fileName)
