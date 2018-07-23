@@ -1071,7 +1071,7 @@ class SimFile (object):
 
     def saveSmearingMapsToFITS(self, fileName):
             """
-            Save all smearing map in the HDF5 file to a FITS file with the given file name.
+            Save all smearing maps in the HDF5 file to a FITS file with the given file name.
             This will go horribly wrong when the number of exposures is too large or when the maps 
             themselves are too large.
             """
@@ -1081,6 +1081,31 @@ class SimFile (object):
             for imageNr in range(Nimages):
                 image = self.getSmearingMap(imageNr)
                 imageName = "SmearingMap{0:06d}".format(imageNr)
+                if imageNr == 0:
+                    hdu = fits.PrimaryHDU(image)
+                else:
+                    hdu = fits.ImageHDU(image, name=imageName)
+                hduList.append(hdu)
+            
+            myFits = fits.HDUList(hduList)
+            myFits.writeto(fileName)
+
+
+
+
+
+    def saveBiasMapsToFITS(self, fileName):
+            """
+            Save all bias maps in the HDF5 file to a FITS file with the given file name.
+            This will go horribly wrong when the number of exposures is too large or when the maps 
+            themselves are too large.
+            """
+
+            hduList = []
+            Nimages = self.getInputParameter("ObservingParameters", "NumExposures")
+            for imageNr in range(Nimages):
+                image = self.getBiasMap(imageNr)
+                imageName = "BiasMap{0:06d}".format(imageNr)
                 if imageNr == 0:
                     hdu = fits.PrimaryHDU(image)
                 else:

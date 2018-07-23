@@ -158,26 +158,24 @@ class Detector: public HDF5Writer
         unsigned int numEdgePixels;              // Nr of pixels to extend the subfield on each side, to account for the edge effect
 
         arma::Cube<float> guyonnetCoefficients;  // Coefficients a^X_ij for the BFE in Sect. 6.1 in Guyonnet et al. 2015
-        double p0BFE;        					// Value for p0 parameter in Eq. (18) in Guyonnet et al. 2015
-        double p1BFE;						    // Value for p1 parameter in Eq. (18) in Guyonnet et al. 2015
-        int rangeBFE;							// How far pixels can be apart and still influence each other [pixels] (use window with dimensions 2 * range + 1)
+        double p0BFE;        					 // Value for p0 parameter in Eq. (18) in Guyonnet et al. 2015
+        double p1BFE;						     // Value for p1 parameter in Eq. (18) in Guyonnet et al. 2015
+        int rangeBFE;							 // How far pixels can be apart and still influence each other [pixels] (use window with dimensions 2 * range + 1)
         double refFluxBFE;                       // Reference flux for the p0 and p1 parameters for BFE [e-]
 
 
-        bool includeCosmics;                     // Whether or not to include cosmic hits
-        double cosmicHitRate;					// Cosmic hit rate [events / cm^2 / s]
-        vector<double> cosmicTrailLength;		// Interval of the length of the cosmic trails [pixels]
-        vector<double> cosmicIntensity; 			// Interval of the intensity of the cosmic trails [e-]
-//        double polarizationEfficiency;           // Efficiency due to polarisation at the reference angle (in [0,1])
+        bool includeCosmicsInSubField;           // Whether or not to include cosmic hits in the subfield
+        bool includeCosmicsInSmearingMap;        // Whether or not to include cosmic hits in the (physical) overscan region
+        bool includeCosmicsInBiasMap;            // Whether or not to include cosmic hits in the (virtual) prescan region
+        double cosmicHitRate;					 // Cosmic hit rate [events / cm^2 / s]
+        vector<double> cosmicTrailLength;		 // Interval of the length of the cosmic trails [pixels]
+        vector<double> cosmicIntensity; 		 // Interval of the intensity of the cosmic trails [e-]
         double expectedValueVignetting;          // Expected value of the throughput efficiency due to vignetting (int [0,1])
-//        double refAnglePolarization;             // Reference angle for the polarisation [degrees]
         double expectedValuePolarization;        // Expected value of the throughput efficiency due to polarisation
         double particulateContaminationEfficiency;  // Efficiency of particulate contamination (in [0,1])
-        double molecularContaminationEfficiency; // Efficiency of molecular contamination (in [0,1])
-//        double refAngleQE;        				// Reference angle for quantum efficiency [degrees]
-//        double relativeRefEfficiencyQE;			// Relative efficiency due to the angle dependency of the QE
-        double meanQE;							// Mean QE (over all wavelengths)
-        double meanAngleDependencyQE;			// Mean (over all pixels) of the relative efficiency due to the angle dependency of the QE
+        double molecularContaminationEfficiency;    // Efficiency of molecular contamination (in [0,1])
+        double meanQE;							 // Mean QE (over all wavelengths)
+        double meanAngleDependencyQE;			 // Mean (over all pixels) of the relative efficiency due to the angle dependency of the QE
         double readoutTime;                      // Readout time [s]
         double readoutNoise;                     // Mean readout noise [electrons]
         double refValueGainLeft;                 // Reference value for the gain on the ACD reading the left-hand side of the detector [µV/e-]
@@ -187,8 +185,8 @@ class Detector: public HDF5Writer
         unsigned long fullWellSaturationLimit;   // Full-well saturation limit [electrons/pixel]
         unsigned int electronicOffset;           // Bias or electronic offset [ADU]
         unsigned long digitalSaturationLimit;    // Digital saturation limit [ADU / pixel]
-        double darkCurrent;						// Dark current [e- / s]
-        double dsnu;								// Dark signal non-uniformity
+        double darkCurrent;						 // Dark current [e- / s]
+        double dsnu;							 // Dark signal non-uniformity
 
         string CTImodel;
         double meanCte;                          // Mean charge-transfer efficiency  (in [0,1])
@@ -199,8 +197,8 @@ class Detector: public HDF5Writer
         vector<double> trapCaptureCrossSection;  // For each trap species: the trap capture cross section [m^2]
         vector<double> releaseTime;              // For each trap species: the electron release time [s]
 
-        bool includeBFE;							// Whether or not to include the BFE
-        bool includeDarkSignal;	      			// Whether or not to include dark
+        bool includeBFE;						 // Whether or not to include the BFE
+        bool includeDarkSignal;	      			 // Whether or not to include dark
         bool includePhotonNoise;                 // Whether or not to include photon noise
         bool includeReadoutNoise;                // Include readout noise [yes or no]
         bool includeCTIeffects;                  // Include CTI effects [yes or no]
