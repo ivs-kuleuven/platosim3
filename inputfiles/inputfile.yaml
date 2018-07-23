@@ -156,11 +156,8 @@ CCD:
         Stability:                   -0.004          # [microV/e-/K]
         AllowedDifference:           15.0            # Difference in gain between both CCD halves [%]
     QuantumEfficiency:
-        #RelativeRefEfficiency:       0.925           # Relative efficiency due to angle dependency of the QE at the reference angle
-        #RefAngle:                    45.0            # Reference angle for quantum efficiency [degrees]
         MeanQuantumEfficiency:       0.5985           # Mean quantum efficiency
         MeanAngleDependency:         1.01             # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE
-        #ExpectedValue:               0.993 * 0.5895  # Expected value (mean over all pixels of one detector)
     FullWellSaturation:              900000          # [e-/pixel]
     DigitalSaturation:               65535           # E.g. 16 bit [ADU/pixel]
     ReadoutNoise:                    38.7            # [e-/pixel]
@@ -169,8 +166,6 @@ CCD:
     Vignetting: 
         ExpectedValue:               0.904           # Expected value of the throughput efficiency due to vignetting
     Polarization:
-        #Efficiency:                  0.978           # Throughput efficiency caused by polarisation at the reference angle
-        #RefAngle:                    18.8875         # Reference angle for polarisation [degrees]
         ExpectedValue:               0.989           # Expected value (mean of all detector pixels)
     Contamination:
         ParticulateContaminationEfficiency: 0.972    # Throughput efficiency due to particulate contamination
