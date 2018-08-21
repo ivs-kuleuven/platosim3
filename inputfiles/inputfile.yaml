@@ -158,8 +158,8 @@ CCD:
         Stability:                   -0.004          # [microV/e-/K]
         AllowedDifference:           15.0            # Difference in gain between both CCD halves [%]
     QuantumEfficiency:
-        MeanQuantumEfficiency:       0.5985           # Mean quantum efficiency
-        MeanAngleDependency:         1.01             # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE
+        MeanQuantumEfficiency:       0.5985          # Mean quantum efficiency
+        MeanAngleDependency:         1.01            # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE
     FullWellSaturation:              900000          # [e-/pixel]
     DigitalSaturation:               65535           # E.g. 16 bit [ADU/pixel]
     ReadoutNoise:                    38.7            # [e-/pixel]
