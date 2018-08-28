@@ -525,7 +525,7 @@ void ConfigurationParameters::setParameter(const string &key, const string &valu
         {
             YAML::Node subnode = node[fields[1]];
             if (subnode)
-                Log.warning("ConfigurationParameters: setParameter() overwrites subnode \"" + fields[1] + "\" of node \"" + fields[0]);
+                Log.info("ConfigurationParameters: setParameter() overwrites subnode \"" + fields[1] + "\" of node \"" + fields[0]);
 
             node[fields[1]] = value;
         }
@@ -537,11 +537,14 @@ void ConfigurationParameters::setParameter(const string &key, const string &valu
     else
     {
         if (config[key])
-            Log.warning("ConfigurationParameters: setParameter() overwrites node \"" + key);
+            Log.info("ConfigurationParameters: setParameter() overwrites node \"" + key);
             
         config[key] = value;
     }
 }
+
+
+
 
 
 
