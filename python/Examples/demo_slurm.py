@@ -16,6 +16,10 @@ from math import ceil
 from simfile import SimFile
 from simulation import Simulation
 
+# Specify the total number of exposures of the entire unpartitioned time series.
+
+totalNumberOfExposures = 105  
+
 # Slurm sets some environment variables for each job, which we can use. 
 # The slurm script specifies an array of jobs, for which we can derive 
 # the total number of jobs, and the sequential number of the current job.
@@ -45,9 +49,19 @@ sim["ObservingParameters/DecPointing"] = -70.0
 sim["Telescope/AzimuthAngle"]          =   0.0
 sim["Telescope/TiltAngle"]             =   0.0
 
-# Specify the number of exposures and the nr of the begin exposure for this job
+# Set the random seeds so that every segment of the partitioned
+# time series uses different jitter noise, different readout noise, etc.
 
-totalNumberOfExposures = 105
+sim["RandomSeeds/ReadOutNoiseSeed"]  = 1424949740 + jobNr * 11111
+sim["RandomSeeds/PhotonNoiseSeed"]   = 1433320336 + jobNr * 11111
+sim["RandomSeeds/JitterSeed"]        = 1433320381 + jobNr * 11111
+sim["RandomSeeds/FlatFieldSeed"]     = 1425284070 + jobNr * 11111
+sim["RandomSeeds/DriftSeed"]         = 1433429158 + jobNr * 11111
+sim["RandomSeeds/CosmicSeed"]        = 1494750830 + jobNr * 11111
+sim["RandomSeeds/DarkSignalSeed"]    = 1468838669 + jobNr * 11111
+
+# Calculate the nr of the begin exposure for this job
+
 numExposuresPerJob = int(ceil(float(totalNumberOfExposures) / Njobs))
 beginExposureNrOfThisJob = jobNr * numExposuresPerJob
 
