@@ -634,9 +634,9 @@ class Simulation(object):
         focalPlaneAngle  = np.deg2rad(float(self["Camera/FocalPlaneOrientation/ConstantValue"]))
         pixelSize        = float(self["CCD/PixelSize"]) 
 
-        if (self["Camera/IncludeFieldDistortion"] == "yes")  or (self["Camera/IncludeFieldDistortion"] == "1"):
+        if (self["Camera/IncludeFieldDistortion"] == "yes")  or (self["Camera/IncludeFieldDistortion"] == "1" or (self["Camera/IncludeFieldDistortion"] == True)):
             includeFieldDistortion = True
-            distortionCoefficients = sim["Camera/FieldDistortion/ConstantCoefficients"]
+            distortionCoefficients = self["Camera/FieldDistortion/ConstantCoefficients"]
         else:
             includeFieldDistortion = False
             distortionCoefficients = None
