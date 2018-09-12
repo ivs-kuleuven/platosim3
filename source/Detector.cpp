@@ -1122,6 +1122,9 @@ void Detector::addPhotonNoise()
  *         - The length of the trails is uniformly distributed over the given interval.
  *         - The total number of electrons in the trail is uniformly distributed over
  *           the given interval.
+ * 
+ * This function is a wrapper function for Detector::addCosmics(exposureTime, map, numRows, numColumns)
+ * that does the actual work but which is not called directly.
  *
  * \param exposureTime: Exposure time [s].
  *
@@ -1191,6 +1194,9 @@ void Detector::addCosmics(float exposureTime)
  *         - The total number of electrons in the trail is uniformly distributed over
  *           the given interval.
  *
+ * This function is not called directly in Detector, but only through the method
+ *      Detector::addCosmics(exposureTime)
+ * 
  * \param exposureTime: amount of time exposed to cosmic particle influx [s].
  * \param map: Map affected by cosmics [e-].  Either the pixel, bias register, or
  *             smearing map.
