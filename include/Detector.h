@@ -105,7 +105,7 @@ class Detector: public HDF5Writer
         virtual void readOut(float exposureTime);
         virtual void addPhotonNoise();
         virtual void addCosmics(float exposureTime);
-        virtual void addCosmics(float exposureTime, arma::Mat<float> &map, int numRows, int numColumns);
+        virtual void addCosmics(float exposureTime, arma::Mat<float> &map, int numRows, int numColumns, string area);
         virtual void applyFullWellSaturation();
         virtual void applyCTI();
         virtual void applyOpenShutterSmearing(float exposureTime);
@@ -227,6 +227,7 @@ class Detector: public HDF5Writer
         mt19937 cosmicEntryAngleGenerator;
         mt19937 cosmicTrailLengthGenerator;
         mt19937 cosmicIntensityGenerator;
+        mt19937 decimalNumCosmicHitsGenerator;
 
         normal_distribution<double> darkSignalDistribution;
         normal_distribution<double> darkNoiseDistribution;
@@ -238,6 +239,7 @@ class Detector: public HDF5Writer
         uniform_real_distribution<double> cosmicEntryAngleDistribution;
         uniform_real_distribution<double> cosmicTrailLengthDistribution;
         uniform_real_distribution<double> cosmicIntensityDistribution;
+        uniform_real_distribution<double> decimalNumCosmicHitsDistribution;
  
         Camera &camera;
         FrontEndElectronics *frontEndElectronics;
