@@ -1,5 +1,15 @@
 # Changelog for PlatoSim
 
+<!-- 3.3.4 -->
+<!-- ***** -->
+
+## ??/??/2018: 3.3.4
+
+### Fixed
+
+* bug when using demo_fgs.py with field distortion (GitHub issue #280)
+* Wrong number of cosmics for small images (GitHub issue #283)
+
 <!-- 3.3.3 -->
 <!-- ***** -->
 
@@ -7,7 +17,7 @@
 
 ### Fixed
 
-* Dark edge seen at bottom of the sub-field due to CTI by Short et al. (GitHub issue # 263)
+* Dark edge seen at bottom of the sub-field due to CTI by Short et al. (GitHub issue #263)
 
 * User-given sky background not multiplied with the transmissivity of the optics (GitHub issue #265)
 
