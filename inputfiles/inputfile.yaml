@@ -19,7 +19,7 @@ ObservingParameters:
 
 Sky:
 
-    SkyBackground:                   342.            # Stellar + zodiacal background level. Set negative to compute.     [phot/pix/s]
+    SkyBackground:                   342.            # Stellar + zodiacal background level (excl. transmission efficiency). Set negative to compute.     [phot/pix/s]
     IncludeVariableSources:          no              # Include time series of variable stars or not
     VariableSourceList:              inputfiles/varsource.txt  # Ascii file: Col 1: star ID, Col 2: path of time series file
     IncludeCosmicsInSubField:        yes             # Whether or not to include cosmics in the subfield on the CCD

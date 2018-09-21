@@ -172,9 +172,9 @@ Figure 1: Long simulations will be chopped up into smaller simulations that can 
 <p>Path to the star catalogue file, relative to the <a href="#projectLocation">project location</a>. </p><hr/>
 <h2><a class="anchor" id="skyParameters"></a>Sky Parameters</h2>
 <p>The <b>Sky</b> block of the configuration file contains all the information that is specific to the sky, i.e. sky background and cosmics. The structure of this block is the following:</p>
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;Sky:</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;</div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;    SkyBackground:               342.</div><div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;    IncludeVariableSources:      no</div><div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;        VariableSourceList:          inputfiles/varsource.txt</div><div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;    IncludeCosmics:              yes</div><div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;    Cosmics:</div><div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;        CosmicHitRate:                      10</div><div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;        TrailLength:                   [0, 15]</div><div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;        Intensity:               [2000, 40000] </div></div><!-- fragment --><h3><a class="anchor" id="skyBackground"></a>SkyBackground</h3>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;Sky:</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;</div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;    SkyBackground:               342.</div><div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;    IncludeVariableSources:      no</div><div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;        VariableSourceList:          inputfiles/varsource.txt</div><div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;    IncludeCosmics:              yes</div><div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;    IncludeCosmicsInSubField:        yes</div><div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;       IncludeCosmicsInSmearingMap:     yes</div><div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;       IncludeCosmicsInBiasMap:         yes    </div><div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;    Cosmics:</div><div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;        CosmicHitRate:                      10</div><div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;        TrailLength:                   [0, 15]</div><div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;        Intensity:               [2000, 40000] </div></div><!-- fragment --><h3><a class="anchor" id="skyBackground"></a>SkyBackground</h3>
 <p><em>Allowed values:</em> &lt; 0 for automatic calculation, ≥ 0 to use the input value</p>
-<p>In case a positive value is given, the sky background (zodiacal + galactic), is set to the given value, expressed in photons <img class="formulaInl" alt="$ \cdot $" src="form_2.png"/> s<sup>-1</sup> <img class="formulaInl" alt="$ \cdot $" src="form_2.png"/> pixel<sup>-1</sup>.</p>
+<p>In case a positive value is given, the sky background (zodiacal + galactic), is set to the given value, expressed in photons <img class="formulaInl" alt="$ \cdot $" src="form_2.png"/> s<sup>-1</sup> <img class="formulaInl" alt="$ \cdot $" src="form_2.png"/> pixel<sup>-1</sup>. Note that this value has not been multiplied with the tranmission efficiency yet.</p>
 <p>In case a negative value is given, the sky background is computed automatically from tabular values, interpolated to the central coordinates of the sub-field. A constant sky background is assumed for the whole sub-field. Note that for some regions in the sky the automatic computation of the sky background may fail due to the lack of tabulated values. In that case you can set the sky background manually.</p>
 <h3><a class="anchor" id="inclVariability"></a>IncludeVariableSources</h3>
 <p><em>Allowed values:</em> "yes" and "no"</p>
@@ -182,9 +182,15 @@ Figure 1: Long simulations will be chopped up into smaller simulations that can 
 <h3><a class="anchor" id="variableSourceList"></a>VariableSourceList</h3>
 <p><em>Allowed values:</em> only required if stellar variability is to be included (<a href="#inclVariability">IncludeVariableSources</a> = "yes")</p>
 <p>Path to the file, relative to the <a href="#projectLocation">project location</a>, indicating how the magnitude of the sources varies over time.</p>
-<h3><a class="anchor" id="inclCosmics"></a>IncludeCosmics</h3>
+<h3><a class="anchor" id="inclCosmicsInSubField"></a>IncludeCosmicsInSubField</h3>
 <p><em>Allowed values:</em> "yes" and "no"</p>
-<p>Indicates whether or not cosmics must be added (to the pixel, bias register, and smearing map).</p>
+<p>Indicates whether or not cosmics must be added to the pixel map.</p>
+<h3><a class="anchor" id="inclCosmicsInBiasMap"></a>IncludeCosmicsInBiasMap</h3>
+<p><em>Allowed values:</em> "yes" and "no"</p>
+<p>Indicates whether or not cosmics must be added to the bias register map.</p>
+<h3><a class="anchor" id="inclCosmicsInSmearingMap"></a>IncludeCosmicsInSmearingMap</h3>
+<p><em>Allowed values:</em> "yes" and "no"</p>
+<p>Indicates whether or not cosmics must be added to the smearing map.</p>
 <h3><a class="anchor" id="cosmics"></a>Cosmics</h3>
 <p>The configuration parameters in the <b>Cosmics</b> section are the parameters characterising the cosmic hits. The excess electrons of the cosmic hits are distributed over a trail, characterised by a decay function of the form:</p>
 <p class="formulaDsp">
@@ -751,29 +757,37 @@ Figure 9: Schematic presentation of the modelled sub-field and the parameters re
 <h2><a class="anchor" id="seedParameters"></a>Seed Parameters</h2>
 <p>The <b>RandomSeeds</b> block of the configuration file contains all the seeds for random-number generation in the simulator. The structure of this block is the following:</p>
 <div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;RandomSeeds:</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;</div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;    ReadOutNoiseSeed:            1424949740 </div><div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;    PhotonNoiseSeed:             1433320336 </div><div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;    JitterSeed:                  1433320381 </div><div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;    FlatFieldSeed:               1425284070 </div><div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;    CTESeed:                     1424949740 </div><div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;    DriftSeed:                   1433429158 </div><div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;    CosmicSeed:                  1494750830</div><div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;    DarkSignalSeed:              1468838669</div></div><!-- fragment --><h3>ReadOutNoiseSeed</h3>
-<p><em>Allowed values:</em> &gt; 0</p>
+<p><em>Allowed values:</em> &gt; 0 or -1</p>
 <p>Seed for the random-number generator used for the readout noise.</p>
+<p>In case a value of -1 is given as input, the computer time at the start of the simulation will be used instead. That way, the fast-forward of the random generator when using Slurm is no longer needed (which is better for performance reasons). The actual value that is used, will be written to the output HDF5 file.</p>
 <h3>PhotonNoiseSeed</h3>
-<p><em>Allowed values:</em> &gt; 0</p>
+<p><em>Allowed values:</em> &gt; 0 or -1</p>
 <p>Seed for the random-number generator used for the photon noise.</p>
+<p>In case a value of -1 is given as input, the computer time at the start of the simulation will be used instead. That way, the fast-forward of the random generator when when chopping up the simulation in chunks (Slurm) is no longer needed (which is better for performance reasons).</p>
 <h3>JitterSeed</h3>
-<p><em>Allowed values:</em> &gt; 0</p>
+<p><em>Allowed values:</em> &gt; 0 or -1</p>
 <p>Seed for the random-number generator used for the jitter.</p>
+<p>In case a value of -1 is given as input, the computer time at the start of the simulation will be used instead. That way, the fast-forward of the random generator when when chopping up the simulation in chunks (Slurm) is no longer needed (which is better for performance reasons). The actual value that is used, will be written to the output HDF5 file. To avoid jumps in the power spectrum when using auto-generated jitter values, it is advised to generate the jitter values for the whole simulation beforehand, write these values to a file, and reading in that file when simulating the different chunks.</p>
 <h3>FlatFieldSeed</h3>
-<p><em>Allowed values:</em> &gt; 0</p>
+<p><em>Allowed values:</em> &gt; 0 or -1</p>
 <p>Seed for the random-number generator used for the flatfield.</p>
+<p>In case a value of -1 is given as input, the computer time at the start of the simulation will be used instead. That way, the fast-forward of the random generator when when chopping up the simulation in chunks (Slurm) is no longer needed (which is better for performance reasons).</p>
 <h3>CTESeed</h3>
-<p><em>Allowed values:</em> &gt; 0</p>
+<p><em>Allowed values:</em> &gt; 0 or -1</p>
 <p>Seed for the random-number generator used for the CTE.</p>
+<p>In case a value of -1 is given as input, the computer time at the start of the simulation will be used instead. That way, the fast-forward of the random generator when when chopping up the simulation in chunks (Slurm) is no longer needed (which is better for performance reasons).</p>
 <h3>DriftSeed</h3>
-<p><em>Allowed values:</em> &gt; 0</p>
+<p><em>Allowed values:</em> &gt; 0 or -1</p>
 <p>Seed for the random number generator used for the drift.</p>
+<p>In case a value of -1 is given as input, the computer time at the start of the simulation will be used instead. That way, the fast-forward of the random generator when when chopping up the simulation in chunks (Slurm) is no longer needed (which is better for performance reasons). To avoid jumps in the power spectrum when using auto-generated drift values, it is advised to generate the drift values for the whole simulation beforehand, write these values to a file, and reading in that file when simulating the different chunks.</p>
 <h3>CosmicSeed</h3>
-<p><em>Allowed values:</em> &gt; 0</p>
+<p><em>Allowed values:</em> &gt; 0 or -1</p>
 <p>Seed for the random-number generators for the cosmics.</p>
+<p>In case a value of -1 is given as input, the computer time at the start of the simulation will be used instead. That way, the fast-forward of the random generator when when chopping up the simulation in chunks (Slurm) is no longer needed (which is better for performance reasons).</p>
 <h3>DarkSignalSeed</h3>
-<p><em>Allowed values:</em> &gt; 0</p>
-<p>Seed for the random-number generators for the dark signal. </p><hr/>
+<p><em>Allowed values:</em> &gt; 0 or -1</p>
+<p>Seed for the random-number generators for the dark signal.</p>
+<p>In case a value of -1 is given as input, the computer time at the start of the simulation will be used instead. That way, the fast-forward of the random generator when when chopping up the simulation in chunks (Slurm) is no longer needed (which is better for performance reasons). </p><hr/>
 <h2><a class="anchor" id="contentControlParameters"></a>Content Control Parameters</h2>
 <p>The <b>ControlHDF5Content</b> block of the configuration file contains all the seeds for random-number generation in the simulator. The structure of this block is the following:</p>
 <div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;ControlHDF5Content:</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;</div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;    WriteSubPixelImages:             no </div><div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;    WriteStarPositions:              yes</div></div><!-- fragment --><h3>WriteSubPixelImages</h3>

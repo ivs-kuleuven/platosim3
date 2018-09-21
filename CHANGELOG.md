@@ -3,12 +3,32 @@
 <!-- 3.3.4 -->
 <!-- ***** -->
 
-## ??/??/2018: 3.3.4
+## 21/09/2018: 3.3.4
 
 ### Fixed
 
 * bug when using demo_fgs.py with field distortion (GitHub issue #280)
 * Wrong number of cosmics for small images (GitHub issue #283)
+
+
+
+### Changed
+
+* Cosmics can be enabled/disabled per area (image area / bias map / smearing map)
+
+* Random seeds = -1 => use computer time instead (no longer fast-forward random distributions)
+
+
+
+### Added
+
+* Configurable log level
+
+* Updated documentation
+
+
+
+
 
 <!-- 3.3.3 -->
 <!-- ***** -->
@@ -24,6 +44,9 @@
 * Photon flux of stars should be floored instead of rounded (in the jitter steps) (GitHub issue #267)
 
 * Open-shutter smearing outside sub-field should not take numRowsBiasMap into account (GitHub issue #269)
+
+
+
 
 
 <!-- 3.3.2 -->

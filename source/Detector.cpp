@@ -1234,6 +1234,17 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, int numRows
     // - cosmic hit rate [events / cm^2 / s]
     // - exposure time [s]
     // - dimensions [pixels] -> [micron] -> [cm]
+    //
+    // See GitHub issue #283
+	// To make sure the number of cosmics is as expected when considering a large number
+    // of exposures, we have to account for the decimal part of the number of cosmic hits
+    // per exposure too, instead of rounding down this value. E.g. if you have 1.5 cosmics
+    // per exposure, you want 1500 cosmics for 1000 exposures, instead of 1000 cosmics.
+    // The solution is to add as many cosmics as denoted by the integer part, and add one
+    // extra cosmic, with a chance equal to the decimal part.  This is handled by the
+    // uniform random distribution in [0,1]:
+    // 	- random number < decimal part => add one extra cosmic
+    //  - random number >= decimal part => don't add an extra cosmic
 
     double numCosmicHitsAsDouble = cosmicHitRateDistribution(
 			cosmicHitRateGenerator) * exposureTime
