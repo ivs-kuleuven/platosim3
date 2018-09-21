@@ -1235,6 +1235,7 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, int numRows
     // - exposure time [s]
     // - dimensions [pixels] -> [micron] -> [cm]
     //
+    // See GitHub issue #283
 	// To make sure the number of cosmics is as expected when considering a large number
     // of exposures, we have to account for the decimal part of the number of cosmic hits
     // per exposure too, instead of rounding down this value. E.g. if you have 1.5 cosmics
