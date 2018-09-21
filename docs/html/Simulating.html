@@ -109,7 +109,13 @@ $(document).ready(function(){initNavTree('Simulating.html','');});
 <p>Note that - before running PlatoSim3 - you must have an environment variable <code>PLATO_PROJECT_HOME</code>, set to the base folder of PlatoSim3, as described <a class="el" href="ReqsRun.html">here</a>. </p><hr/>
 <h2><a class="anchor" id="commandLine"></a>Command Line</h2>
 <p>To initiate a simulation on the command line, <code>cd</code> to the <code>/build</code> directory and type:</p>
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;./platosim &lt;input file&gt; &lt;non-existing output file&gt; [&lt;log file&gt;]</div></div><!-- fragment --> <hr/>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;./platosim &lt;input file&gt; &lt;non-existing output file&gt; [&lt;log file&gt; &lt;log level&gt;]</div></div><!-- fragment --><p>The log level is an integer value that allows to configure what kind of log messages is written to the log file:</p>
+<ul>
+<li>1: only error and warning messages;</li>
+<li>2: error, warning, and info messages;</li>
+<li>3: all messages (error, warning, info, and debug).</li>
+</ul>
+<hr/>
 <h2><a class="anchor" id="pythonWrapper"></a>Python</h2>
 <p>Alternatively, you can make use of our Python wrapper to configure and run PlatoSim3. How to do this and how to set up you Python environment is described <a class="el" href="ScriptingInPython.html">here</a>.</p>
 <p>Under <code>/docs/tutorials</code> you can find a number of tutorials (in the form of <a href="http://jupyter.org/">Jupyter Notebooks</a>) to get you going. Have a look <a class="el" href="Tutorials.html">here</a> to find out how to configure your Python environment to be able to get started. </p>

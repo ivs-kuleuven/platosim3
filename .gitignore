@@ -6,6 +6,8 @@ dependencies/Installs/*
 *.xcodeproj/*
 *.sublime-project
 *.sublime-workspace
+PlatoSim3.code-workspace
+.vscode/*
 
 # Ignore some of the auto-generated files (during cmake)
 
