@@ -1,6 +1,7 @@
 #ifndef CONFIGURATION_PARAMETERS_H_
 #define CONFIGURATION_PARAMETERS_H_
 
+#include <vector>
 #include <string>
 #include <regex>
 #include <list>
@@ -26,6 +27,8 @@ class ConfigurationParameters
         ConfigurationParameters(const string &);
         ~ConfigurationParameters();
     
+
+        vector<string> getKeys(const string nodeName);
         bool getBoolean(const string &);
         int getInteger(const string &);
         long getLong(const string &);

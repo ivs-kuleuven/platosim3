@@ -170,6 +170,9 @@ Sky:
 	IncludeVariableSources:      no
     	VariableSourceList:          inputfiles/varsource.txt
 	IncludeCosmics:              yes
+	IncludeCosmicsInSubField:        yes
+       IncludeCosmicsInSmearingMap:     yes
+       IncludeCosmicsInBiasMap:         yes    
 	Cosmics:
 		CosmicHitRate:                      10
 		TrailLength:                   [0, 15]
@@ -202,11 +205,27 @@ Path to the file, relative to the [project location](#projectLocation), indicati
 
 
 
-
-### <a name="inclCosmics"></a>IncludeCosmics
+### <a name="inclCosmicsInSubField"></a>IncludeCosmicsInSubField
 <i>Allowed values:</i> "yes" and "no"
 
-Indicates whether or not cosmics must be added (to the pixel, bias register, and smearing map).
+Indicates whether or not cosmics must be added to the pixel map.
+
+
+
+
+### <a name="inclCosmicsInBiasMap"></a>IncludeCosmicsInBiasMap
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not cosmics must be added to the bias register map.
+
+
+
+
+### <a name="inclCosmicsInSmearingMap"></a>IncludeCosmicsInSmearingMap
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not cosmics must be added to the smearing map.
+
 
 
 
@@ -1778,57 +1797,75 @@ RandomSeeds:
 
 
 
+
+
 ### ReadOutNoiseSeed
-<i>Allowed values:</i> > 0
+<i>Allowed values:</i> > 0 or -1
 
 Seed for the random-number generator used for the readout noise.
+
+In case a value of -1 is given as input, the computer time at the start of the simulation will be used instead.  That way, the fast-forward of the random generator when using Slurm is no longer needed (which is better for performance reasons).  The actual value that is used, will be written to the output HDF5 file.
 
 
 
 ### PhotonNoiseSeed
-<i>Allowed values:</i> > 0
+<i>Allowed values:</i> > 0 or -1
 
 Seed for the random-number generator used for the photon noise.
+
+In case a value of -1 is given as input, the computer time at the start of the simulation will be used instead.  That way, the fast-forward of the random generator when when chopping up the simulation in chunks (Slurm) is no longer needed (which is better for performance reasons).
 
 
 
 ### JitterSeed
-<i>Allowed values:</i> > 0
+<i>Allowed values:</i> > 0 or -1
 
 Seed for the random-number generator used for the jitter.
+
+In case a value of -1 is given as input, the computer time at the start of the simulation will be used instead.  That way, the fast-forward of the random generator when when chopping up the simulation in chunks (Slurm) is no longer needed (which is better for performance reasons).  The actual value that is used, will be written to the output HDF5 file.  To avoid jumps in the power spectrum when using auto-generated jitter values, it is advised to generate the jitter values for the whole simulation beforehand, write these values to a file, and reading in that file when simulating the different chunks.
 
 
 
 ### FlatFieldSeed
-<i>Allowed values:</i> > 0
+<i>Allowed values:</i> > 0 or -1
 
 Seed for the random-number generator used for the flatfield.
+
+In case a value of -1 is given as input, the computer time at the start of the simulation will be used instead.  That way, the fast-forward of the random generator when when chopping up the simulation in chunks (Slurm) is no longer needed (which is better for performance reasons).
 
 
 
 ### CTESeed
-<i>Allowed values:</i> > 0
+<i>Allowed values:</i> > 0 or -1
 
 Seed for the random-number generator used for the CTE.
+
+In case a value of -1 is given as input, the computer time at the start of the simulation will be used instead.  That way, the fast-forward of the random generator when when chopping up the simulation in chunks (Slurm) is no longer needed (which is better for performance reasons).
 
 
 
 ### DriftSeed
-<i>Allowed values:</i> > 0
+<i>Allowed values:</i> > 0 or -1
 
 Seed for the random number generator used for the drift.
 
+In case a value of -1 is given as input, the computer time at the start of the simulation will be used instead.  That way, the fast-forward of the random generator when when chopping up the simulation in chunks (Slurm) is no longer needed (which is better for performance reasons).  To avoid jumps in the power spectrum when using auto-generated drift values, it is advised to generate the drift values for the whole simulation beforehand, write these values to a file, and reading in that file when simulating the different chunks.
+
 
 ### CosmicSeed
-<i>Allowed values:</i> > 0
+<i>Allowed values:</i> > 0 or -1
 
 Seed for the random-number generators for the cosmics.
 
+In case a value of -1 is given as input, the computer time at the start of the simulation will be used instead.  That way, the fast-forward of the random generator when when chopping up the simulation in chunks (Slurm) is no longer needed (which is better for performance reasons).
+
 
 ### DarkSignalSeed
-<i>Allowed values:</i> > 0
+<i>Allowed values:</i> > 0 or -1
 
 Seed for the random-number generators for the dark signal.
+
+In case a value of -1 is given as input, the computer time at the start of the simulation will be used instead.  That way, the fast-forward of the random generator when when chopping up the simulation in chunks (Slurm) is no longer needed (which is better for performance reasons).
 
 ---
 

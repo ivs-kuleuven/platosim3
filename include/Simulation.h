@@ -1,6 +1,7 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
+#include <ctime>
 #include <string>
 
 #include "Logger.h"
@@ -46,6 +47,7 @@ class Simulation
         virtual void writeInputParametersToHDF5(ConfigurationParameters &configParams);
         virtual void writeVersionInformationToHDF5();
         virtual void writeStarCatalogToHDF5();
+        virtual void setRandomSeeds(ConfigurationParameters &configParams);
 
     private:
 
