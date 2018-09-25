@@ -1,5 +1,15 @@
 # Changelog for PlatoSim
 
+<!-- 3.3.5 -->
+<!-- ***** -->
+
+## ??/??/2018: 3.3.5
+
+### Fixed
+
+* Bias register map expressed as additional columns (rather than as additional rows)
+
+
 <!-- 3.3.4 -->
 <!-- ***** -->
 

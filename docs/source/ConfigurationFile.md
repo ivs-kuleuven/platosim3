@@ -1700,7 +1700,8 @@ SubField:
     ZeroPointColumn:             0
     NumColumns:                  10
     NumRows:                     10
-    NumBiasPrescanRows:          5
+    NumBiasPrescanRows:          10
+    NumBiasPrescanColumns:       5
     NumSmearingOverscanRows:     5
     SubPixels:                   4
 \endcode
@@ -1744,11 +1745,20 @@ Number of rows in the sub-field, expressed in pixels.
 
 
 
-
 ### <a name="numPreScanRows"></a>NumBiasPrescanRows
 <i>Allowed values:</i> ≥ 0
 
-Number of rows in the pre-scan strip (see Fig. 9), expressed in normal pixel units.   This strip is located at the bottom of the sub-field that is modelled in detail and contains the electronic offset and readout noise.
+Number of rows in the pre-scan strip (see Fig. 9), expressed in normal pixel units.  There are two such strips, on either side of the detector image, and they contain the electronic offset and readout noise of the adjacent detector half.
+
+This parameter is configurable (and not fixed to the number of rows in the detector or the sub-field), because we want (1) to avoid the bias maps to take up too much space in the output file and (2) be able to do accurate bias correction for the photometric reduction (thus want to avoid small noisy bias maps).
+
+
+
+
+### <a name="numPreScanColumns"></a>NumBiasPrescanColumns
+<i>Allowed values:</i> ≥ 0
+
+Number of columns in the pre-scan strip (see Fig. 9), expressed in normal pixel units.  There are two such strips, on either side of the detector image, and they contain the electronic offset and readout noise of the adjacent detector half.
 
 
 

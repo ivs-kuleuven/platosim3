@@ -13,7 +13,7 @@ To get the subfield image of the 10th exposure:
 
 Similarly, the corresponding smearing and bias maps can be obtained through:
 
->>> biasMap = f.getBiasMap(10)
+>>> biasMapLeft = f.getBiasMapLeft(10)
 >>> smearingMap = f.getSmearingMap(10)
 
 
@@ -177,10 +177,10 @@ class SimFile (object):
 
 
 
-    def getBiasMap(self, exposureNr):
+    def getBiasMapLeft(self, exposureNr):
 
         """
-        PURPOSE: extract the bias map of the given exposure # from the HDF5 file (if present)
+        PURPOSE: extract the bias map of the given exposure # from the HDF5 file (if present) for the left detector half
 
         INPUT: exposureNr: integer sequential number of the bias map
 
@@ -193,11 +193,47 @@ class SimFile (object):
 
         # Check if the bias map is in the file. If not: complain, if yes: copy the contents into a numpy array.
 
-        if biasMapName not in self.hdf5file["BiasMaps"].keys():
-            print("Error: SimfFile.getBiasMap(): {0} not in hdf5 file".format(biasMapName))
+        if biasMapName not in self.hdf5file["BiasMapsLeft"].keys():
+            print("Error: SimfFile.getBiasMapLeft(): {0} not in hdf5 file".format(biasMapName))
             return
         else:
-            dataset = self.hdf5file["BiasMaps"][biasMapName]
+            dataset = self.hdf5file["BiasMapsLeft"][biasMapName]
+            biasMap = np.zeros(dataset.shape, dataset.dtype)
+            dataset.read_direct(biasMap)
+            return biasMap 
+        
+
+
+
+
+
+
+
+
+
+
+
+    def getBiasMapRight(self, exposureNr):
+
+        """
+        PURPOSE: extract the bias map of the given exposure # from the HDF5 file (if present) for the left detector half
+
+        INPUT: exposureNr: integer sequential number of the bias map
+
+        OUTPUT: biasMap: 2D numpy array containing the bias map
+        """
+
+        # Construct the bias map name that was used to store the map
+
+        biasMapName = "biasMap{0:06d}".format(exposureNr)
+
+        # Check if the bias map is in the file. If not: complain, if yes: copy the contents into a numpy array.
+
+        if biasMapName not in self.hdf5file["BiasMapsRight"].keys():
+            print("Error: SimfFile.getBiasMapRight(): {0} not in hdf5 file".format(biasMapName))
+            return
+        else:
+            dataset = self.hdf5file["BiasMapsRight"][biasMapName]
             biasMap = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(biasMap)
             return biasMap 
@@ -1094,7 +1130,7 @@ class SimFile (object):
 
 
 
-    def saveBiasMapsToFITS(self, fileName):
+    def saveBiasMapsLeftToFITS(self, fileName):
             """
             Save all bias maps in the HDF5 file to a FITS file with the given file name.
             This will go horribly wrong when the number of exposures is too large or when the maps 
@@ -1104,7 +1140,39 @@ class SimFile (object):
             hduList = []
             Nimages = self.getInputParameter("ObservingParameters", "NumExposures")
             for imageNr in range(Nimages):
-                image = self.getBiasMap(imageNr)
+                image = self.getBiasMapLeft(imageNr)
+                imageName = "BiasMap{0:06d}".format(imageNr)
+                if imageNr == 0:
+                    hdu = fits.PrimaryHDU(image)
+                else:
+                    hdu = fits.ImageHDU(image, name=imageName)
+                hduList.append(hdu)
+            
+            myFits = fits.HDUList(hduList)
+            myFits.writeto(fileName)
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+    def saveBiasMapRightToFITS(self, fileName):
+            """
+            Save all bias maps in the HDF5 file to a FITS file with the given file name.
+            This will go horribly wrong when the number of exposures is too large or when the maps 
+            themselves are too large.
+            """
+
+            hduList = []
+            Nimages = self.getInputParameter("ObservingParameters", "NumExposures")
+            for imageNr in range(Nimages):
+                image = self.getBiasMapRight(imageNr)
                 imageName = "BiasMap{0:06d}".format(imageNr)
                 if imageNr == 0:
                     hdu = fits.PrimaryHDU(image)

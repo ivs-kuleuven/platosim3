@@ -214,7 +214,8 @@ SubField:
     ZeroPointColumn:         0               # Column of the (0,0) pixel of the subfield [pixels]
     NumColumns:              10              # Number of columns [pixels]
     NumRows:                 10              # Number of rows [pixels]
-    NumBiasPrescanRows:      5               # Nr of rows of the prescan strip to determine the bias [pixels]
+    NumBiasPrescanRows:      30              # Nr of rows of the prescan strip to determine the bias [pixels]
+    NumBiasPrescanColumns:   5               # Nr of columns of the prescan strip to determine the bias [pixels]
     NumSmearingOverscanRows: 5               # Nr of rows of the overscan strip to determine the smearing [pixels]
     SubPixels:               4               # Nr of subpixels per CCD pixel. E.g. 4 -> 4x4 subpix/pix
 

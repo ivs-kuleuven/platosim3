@@ -276,7 +276,8 @@ void DetectorWithMappedPSF::generateFlatfieldMap()
 void DetectorWithMappedPSF::reset()
 {
     pixelMap.zeros();
-    biasMap.zeros();
+    biasMapLeft.zeros();
+    biasMapRight.zeros();
     smearingMap.zeros();
     subPixelMap.zeros();
 }
