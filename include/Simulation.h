@@ -53,7 +53,7 @@ class Simulation
 
         double currentTime;
         double exposureTime;
-        double readoutTime;
+        double readoutTime;					 // Readout time before the next exposure starts
 
         int beginExposureNr;                 // sequential number of first exposure. useful for slurm parallellisation
         int numExposures;                    // Number of exposures
@@ -80,6 +80,8 @@ class Simulation
         Detector *detector;
 
         HDF5File hdf5File;
+
+        virtual void configureReadoutTime(ConfigurationParameters &configParams);
 
 };
 

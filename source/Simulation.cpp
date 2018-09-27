@@ -198,7 +198,105 @@ void Simulation::configure(ConfigurationParameters &configParams)
     useFeeNominalTemperature = configParams.getString("FEE/Temperature") == "Nominal";
     useDetectorTemperatureFromFile = configParams.getString("CCD/Temperature") == "FromFile";
     useDetectorNominalTemperature = configParams.getString("CCD/Temperature") == "Nominal";
-    readoutTime       = configParams.getDouble("CCD/ReadoutTime"); 
+
+    configureReadoutTime(configParams);
+}
+
+
+
+
+
+
+/**
+ * \brief Configure how much of the readout time cannot be done during the next exposure
+ *
+ * \param configParams  Contains all configuration parameters from the input file
+ */
+
+void Simulation::configureReadoutTime(ConfigurationParameters &configParams)
+{
+	double parallelTransferTimeFast = configParams.getDouble("CCD/ParallelTransferTimeFast") * 1E-6;  // [µs] -> [s]
+
+	// -----------
+	// Fast camera
+	// -----------
+
+	if(configParams.getBoolean("Telescope/GroupID") == "Fast")
+	{
+		// Move the upper half of the CCD down to the lower half, row-by-row
+		// The actual readout of the lower half of the CCD (after frame transfer) is done
+		// while the next exposure has already started
+
+		int numRowsFrameTransfer = configParams.getInteger("CCD/NumColumns") / 2;
+		readoutTime = numRowsFrameTransfer * parallelTransferTimeFast;
+	}
+
+	// -------------
+	// Normal camera
+	// -------------
+
+	else
+	{
+
+		double serialTransferTime = configParams.getDouble("CCD/SerialTransferTime") * 1E-9;			  // [ns] -> [s]
+		double parallelTransferTime = configParams.getDouble("CCD/ParallelTransferTime") * 1E-6;		  // [µs] -> [s]
+
+		// How many rows will be actually read out by the FEE?
+		// 	- nominal mode: image area + parallel over-scan
+		//	- partial readout: configurable
+		// The rest of the image area will be dumped
+
+		int numRowsReadout, numRowsDump;
+
+		// Both detector halves are read out simultaneously
+		// -> columns read out by the FEE:
+		// 		- half of the image area
+		// 		- serial pre-scan
+		// 		- (serial over-scan)
+
+		int numColumnsReadout = configParams.getInteger("CCD/NumColumns") / 2
+				+ configParams.getInteger("CCD/NumBiasPrescanColumns"); // + numRowsSerialOverScan
+
+		// Readout mode (should be Nominal or Partial)
+
+		string readoutMode = configParams.getString("CCD/ReadoutMode/ReadoutMode");
+
+		// Nominal mode (full-frame readout)
+
+		if (readoutMode == "Nominal") {
+
+			// Rows read out by the FEE:
+			// 		- rows of image area
+			// 		- parallel over-scan
+
+			numRowsReadout = configParams.getInteger("CCD/NumRows")
+					+ configParams.getInteger("Subfield/NumSmearingOverscanRows");
+
+			// No rows dumped
+
+			numRowsDump = 0;
+		}
+
+		// Partial readout
+
+		else if (readoutMode == "Partial") {
+
+			// Rows read out by the FEE: rows in the block (other rows in image area are dumped)
+			// Note: no parallel over-scan
+
+			numRowsReadout = configParams.getInteger("CCD/NumRowsReadout");
+			numRowsDump = configParams.getInteger("CCD/NumRows") - numRowsReadout;
+		}
+		else
+		{
+			Log.error("Simulation::configure(): Unkown readout mode specification in configuration file: "  + readoutMode);
+			throw ConfigurationException("Detector: Unkown readout mode specification in configuration file");
+		}
+
+		readoutTime = numRowsReadout
+				* (numColumnsReadout * serialTransferTime + parallelTransferTime)
+				+ numRowsDump * parallelTransferTimeFast;
+	}
 }
 
 
@@ -549,7 +647,9 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 	addLong("FullWellSaturation");
 	addInteger("DigitalSaturation");
 	addDouble("ReadoutNoise");
-    addDouble("ReadoutTime");
+    addDouble("SerialTransferTime");
+    addDouble("ParallelTransferTime");
+    addDouble("ParallelTransferTimeFast");
     addDouble("FlatfieldPtPNoise");
 	addDouble("NominalOperatingTemperature");
 	addString("Temperature");
@@ -571,6 +671,14 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("IncludeQuantisation");
     addBoolean("IncludeDigitalSaturation");
     // addBoolean("WriteSubPixelImagesToHDF5"); - Moved into ControlHDF5Content group below
+
+    subGroup = "CCD/ReadoutMode";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addString("ReadoutMode");
+    subGroup = "CCD/ReadoutMode/Partial";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addInteger("FirstRowReadout");
+    addInteger("NumRowsReadout");
 
 	subGroup = "CCD/Gain";
 	hdf5File.createGroup(parentGroup + "/" + subGroup);
