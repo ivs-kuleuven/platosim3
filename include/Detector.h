@@ -131,15 +131,17 @@ class Detector: public HDF5Writer
 
         arma::Mat<float> pixelMap;               // Pixel map, excl. edge pixels
         arma::Mat<float> smearingMap;            // Smearing map (i.e. over-scan strip)
-        arma::Mat<float> biasMap;                // Bias map (i.e. pre-scan strip)
+        arma::Mat<float> biasMapLeft;            // Bias map (i.e. pre-scan strip) for the left detector half
+        arma::Mat<float> biasMapRight;            // Bias map (i.e. pre-scan strip) for the right detector half
         arma::Mat<float> throughputMap;          // Throughput efficiency map, due to vignetting, particulate & molecular contamination, and quantum efficiency
 
         unsigned int numRows;                    // Nr of rows of the detector (= size in y-direction) including non-exposed ones [pixels]
         unsigned int numColumns;                 // Nr of columns of the detector (= size in x-direction = readout direction) [pixels]
         unsigned int numRowsPixelMap;            // Nr of rows in the subfield excl. edge pixels (= size the y-direction) [pixels]
         unsigned int numColumnsPixelMap;         // Nr of columns in the subfield excl. edge pixels (= size in the x-direction = readout direction) [pixels]
-        unsigned int numRowsSmearingMap;         // Nr of rows in the smearing overscan strip [pixels]
-        unsigned int numRowsBiasMap;             // Nr of rows in the bias prescan strip [pixels]
+        unsigned int numRowsSmearingMap;         // Nr of rows in the smearing over-scan strip [pixels]
+        unsigned int numRowsBiasMap;             // Nr of rows in the bias pre-scan strip [pixels]
+        unsigned int numColumnsBiasMap;          // Nr of columns in the bias pre-scan strip [pixels]
 
         unsigned int firstRowExposed;            // Index of the first row that is exposed to light (different for the Fast and Normal camera's) [pixels]
 

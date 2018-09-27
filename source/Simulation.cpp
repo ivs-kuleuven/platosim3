@@ -635,6 +635,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addInteger("NumColumns");
     addInteger("NumRows");
     addInteger("NumBiasPrescanRows");
+    addInteger("NumBiasPrescanColumns");
     addInteger("NumSmearingOverscanRows");
     addInteger("SubPixels");
 

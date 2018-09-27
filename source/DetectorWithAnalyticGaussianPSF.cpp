@@ -185,7 +185,8 @@ void DetectorWithAnalyticGaussianPSF::generateFlatfieldMap()
 void DetectorWithAnalyticGaussianPSF::reset()
 {
     pixelMap.zeros();
-    biasMap.zeros();
+    biasMapLeft.zeros();
+    biasMapRight.zeros();
     smearingMap.zeros();
 }
 

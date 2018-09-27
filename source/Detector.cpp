@@ -176,7 +176,9 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
     // Allocate memory for the different maps
 
     pixelMap.zeros(numRowsPixelMap, numColumnsPixelMap);
-    biasMap.zeros(numRowsBiasMap, numColumnsPixelMap);
+    biasMapLeft.zeros(numRowsBiasMap, numColumnsBiasMap);
+    biasMapRight.zeros(numRowsBiasMap, numColumnsBiasMap);
+
     smearingMap.zeros(numRowsSmearingMap, numColumnsPixelMap);
     throughputMap.ones(numRowsPixelMap, numColumnsPixelMap);
 
@@ -381,6 +383,7 @@ void Detector::updateParameters(double time)
     numRowsPixelMap         = configParam.getInteger("SubField/NumRows");
     numColumnsPixelMap      = configParam.getInteger("SubField/NumColumns");
     numRowsBiasMap          = configParam.getInteger("SubField/NumBiasPrescanRows");
+    numColumnsBiasMap       = configParam.getInteger("SubField/NumBiasPrescanColumns");
     numRowsSmearingMap      = configParam.getInteger("SubField/NumSmearingOverscanRows");
 
     // Configuration parameters for the noise source random seeds
@@ -1171,8 +1174,10 @@ void Detector::addCosmics(float exposureTime)
     {
         Log.debug("Detector: adding cosmic hits to bias map");
         cosmicTrailLengthDistribution = uniform_real_distribution<double>(0.0, 1.e-6);    // Only hot pixels, no trails
-        const double biasMapReadoutTime = readoutTime / numRows * numRowsBiasMap; 
-        addCosmics(biasMapReadoutTime, biasMap, numRowsBiasMap, numColumnsPixelMap, "bias map");
+        // TODO
+        const double biasMapReadoutTime = readoutTime / numRows * numRowsPixelMap;
+        addCosmics(biasMapReadoutTime, biasMapLeft, numRowsBiasMap, numColumnsBiasMap, "bias map (left half)");
+        addCosmics(biasMapReadoutTime, biasMapRight, numRowsBiasMap, numColumnsBiasMap, "bias map (right half)");
     }
 }
 
@@ -1823,12 +1828,13 @@ void Detector::addReadoutNoise()
 
     // Add readout noise to the bias prescan map
 
-    for (unsigned int row = 0; row < numRowsBiasMap; row++)
+    for(unsigned int row = 0; row < numRowsBiasMap; row++)
     {
-        for (unsigned int column = 0; column < numColumnsPixelMap; column++)
-        {
-            biasMap(row, column) += readoutNoiseDistribution(readoutNoiseGenerator);
-        }
+    	for(unsigned int column = 0; column < numColumnsBiasMap; column++)
+    	{
+    		biasMapLeft(row, column) += readoutNoiseDistribution(readoutNoiseGenerator);
+    		biasMapRight(row, column) += readoutNoiseDistribution(readoutNoiseGenerator);
+    	}
     }
 
     // Add readout noise to the smearing overscan map
@@ -1883,7 +1889,8 @@ void Detector::applyQuantisation()
     // maps do not have fractional values.
 
     pixelMap = arma::floor(pixelMap);
-    biasMap = arma::floor(biasMap);
+    biasMapLeft = arma::floor(biasMapLeft);
+    biasMapRight = arma::floor(biasMapRight);
     smearingMap = arma::floor(smearingMap);
 
 
@@ -1946,13 +1953,11 @@ void Detector::applyGain()
     if(lastIndexSubFieldLeft >= numColumnsPixelMap - 1)      // Left ADC only
     {
         pixelMap *= combinedGainLeft;
-        biasMap *= combinedGainLeft;
         smearingMap *= combinedGainLeft;
     }
     else if(lastIndexSubFieldLeft < 0)                     // Right ADC only
     {
         pixelMap *= combinedGainRight;
-        biasMap *= combinedGainRight;
         smearingMap *= combinedGainRight;
     }
     else
@@ -1960,15 +1965,16 @@ void Detector::applyGain()
         // 0 -> lastIndexSubFieldLeft: left ADC
 
         pixelMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
-        biasMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
         smearingMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
 
         // lastIndexSubFieldLeft + 1 -> numColumnsSubPixelMap -1: right ADC
 
         pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
-        biasMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
         smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
     }
+
+    biasMapLeft *= combinedGainLeft;
+    biasMapRight *= combinedGainRight;
 
     Log.info("Detector: gain of left part of CCD: " + to_string(combinedGainLeft));
     Log.info("Detector: gain of right part of CCD: " + to_string(combinedGainRight));
@@ -2004,7 +2010,8 @@ void Detector::addElectronicOffset()
     // Add the electronic offset to the pixel, bias register, and smearing maps
 
     pixelMap += offset;
-    biasMap += offset;
+    biasMapLeft += offset;
+    biasMapRight += offset;
     smearingMap += offset;
 }
 
@@ -2038,7 +2045,8 @@ void Detector::applyDigitalSaturation()
 
     // Top off the values in the bias register map
 
-    biasMap(arma::find(biasMap > digitalSaturationLimit)).fill(digitalSaturationLimit);
+    biasMapLeft(arma::find(biasMapLeft > digitalSaturationLimit)).fill(digitalSaturationLimit);
+    biasMapRight(arma::find(biasMapRight > digitalSaturationLimit)).fill(digitalSaturationLimit);
 
     // Top off the values in the smearing map
 
@@ -2337,7 +2345,8 @@ void Detector::initHDF5Groups()
     Log.debug("Detector: initialising HDF5 groups");
 
     hdf5File.createGroup("/Images");
-    hdf5File.createGroup("/BiasMaps");
+    hdf5File.createGroup("/BiasMapsLeft");
+    hdf5File.createGroup("/BiasMapsRight");
     hdf5File.createGroup("/SmearingMaps");
     hdf5File.createGroup("/Flatfield");
     hdf5File.createGroup("/ThroughputMaps");
@@ -2394,7 +2403,8 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
 
     // Add the bias map to the "BiasMaps" group
 
-    hdf5File.writeArray("/BiasMaps", biasMapName, biasMap);
+    hdf5File.writeArray("/BiasMapsLeft", biasMapName, biasMapLeft);
+    hdf5File.writeArray("/BiasMapsRight", biasMapName, biasMapRight);
 
     // Clear the string stream and compose the throughput map name
 
@@ -2404,7 +2414,7 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
     myStream << "throughputMap" << setfill('0') << setw(6) << exposureNr;
     string throughputMapName = myStream.str();
 
-    // Add the bias map to the "BiasMaps" group
+    // Add the throughput map to the "ThroughputMaps" group
 
     hdf5File.writeArray("/ThroughputMaps", throughputMapName, throughputMap);
 }

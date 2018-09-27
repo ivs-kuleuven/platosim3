@@ -221,6 +221,7 @@ SubField:
     NumColumns:                  9               # Number of columns, should be >= 8 [pixels]
     NumRows:                     9               # Number of rows,    should be >= 8 [pixels]
     NumBiasPrescanRows:          0               # Nr of rows of the prescan strip to determine the bias [pixels]
+    NumBiasPrescanColumns:       0               # Nr of columns of the prescan strip to determine the bias [pixels]
     NumSmearingOverscanRows:     0               # Nr of rows of the overscan strip to determine the smearing [pixels]
     SubPixels:                   32              # (Sqrt of ) nr of subpixels per CCD pixel. Should be 2^n <= 128.
 
