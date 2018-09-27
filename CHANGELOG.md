@@ -7,7 +7,7 @@
 
 ### Fixed
 
-* Bias register map expressed as additional columns (rather than as additional rows)
+* Bias register map expressed as additional columns (GitHub issue #290)
 
 
 <!-- 3.3.4 -->
