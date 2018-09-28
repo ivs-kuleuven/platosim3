@@ -53,10 +53,10 @@ class Simulation
 
         double currentTime;
         double exposureTime;
-        double readoutTime;					 // Readout time before the next exposure starts
+        double readoutTimeBeforeNextExposure;	// Readout time before the next exposure starts
 
-        int beginExposureNr;                 // sequential number of first exposure. useful for slurm parallellisation
-        int numExposures;                    // Number of exposures
+        int beginExposureNr;                    // sequential number of first exposure. useful for slurm parallellisation
+        int numExposures;                       // Number of exposures
 
         bool useJitter;
         bool useJitterFromFile;
