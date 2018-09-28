@@ -257,7 +257,7 @@ void Detector::updateParameters(double time)
 /**
  * \brief Configure the Detector object using the ConfigurationParameters
  * 
- * \param configParam: the configuration parameters 
+ * \param configParam: Configuration parameters
  **/
 
  void Detector::configure(ConfigurationParameters &configParam)
@@ -326,7 +326,6 @@ void Detector::updateParameters(double time)
     fullWellSaturationLimit             = configParam.getLong("CCD/FullWellSaturation");
     digitalSaturationLimit              = configParam.getLong("CCD/DigitalSaturation");
     readoutNoise                        = configParam.getDouble("CCD/ReadoutNoise");
-    readoutTime                         = configParam.getDouble("CCD/ReadoutTime");
     expectedValueVignetting             = configParam.getDouble("CCD/Vignetting/ExpectedValue");
     particulateContaminationEfficiency  = configParam.getDouble("CCD/Contamination/ParticulateContaminationEfficiency");
     molecularContaminationEfficiency    = configParam.getDouble("CCD/Contamination/MolecularContaminationEfficiency");
@@ -335,6 +334,23 @@ void Detector::updateParameters(double time)
     refValueGainRight         = configParam.getDouble("CCD/Gain/RefValueRight");
     gainStability             = configParam.getDouble("CCD/Gain/Stability");
     gainAllowedDifference     = configParam.getDouble("CCD/Gain/AllowedDifference");
+
+    readoutMode               = configParam.getString("CCD/ReadoutMode/ReadoutMode");
+
+    if(readoutMode == "Partial")
+    {
+    	firstRowPartialReadout = configParam.getInteger("CCD/ReadoutMode/Partial/FirstRowReadout");
+    	numRowsPartialReadout = configParam.getInteger("CCD/ReadoutModel/Partial/NumRowsReadout");
+    }
+    else if (readoutMode != "Nominal")
+    {
+    	Log.error("Detector::configure(): Unkown readout mode specification in configuration file: "  + readoutMode);
+    	throw ConfigurationException("Detector: Unkown readout mode specification in configuration file");
+    }
+
+    serialTransferTime = configParam.getDouble("CCD/SerialTransferTime") * 1E-9;			  // [ns] -> [s]
+    parallelTransferTime = configParam.getDouble("CCD/ParallelTransferTime") * 1E-6;		  // [µs] -> [s]
+    parallelTransferTimeFast = configParam.getDouble("CCD/ParallelTransferTimeFast") * 1E-6;  // [µs] -> [s]
 
     CTImodel                   = configParam.getString("CCD/CTI/Model");
     if (CTImodel == "Simple")
@@ -393,11 +409,126 @@ void Detector::updateParameters(double time)
     cosmicSeed              = configParam.getLong("RandomSeeds/CosmicSeed");
     darkSignalSeed          = configParam.getLong("RandomSeeds/DarkSignalSeed");
 
+    configureReadoutTime(configParam);
+
     // Get the sequential number of the very first exposure
 
     beginExposureNr         = configParam.getInteger("ObservingParameters/BeginExposureNr");
 
     numEdgePixels = 0;
+ }
+
+
+
+
+
+
+
+ /**
+  * \brief Configure the readout times for Detector object using the ConfigurationParameters
+  *
+  * \param configParam: Configuration parameters
+  **/
+void Detector::configureReadoutTime(ConfigurationParameters &configParam)
+{
+	// Both detector halves are read out simultaneously
+	// -> columns read out by the FEE:
+	// 		- half of the CCD
+	// 		- serial pre-scan
+	// 		- (serial over-scan)
+
+	int numColumnsReadout = numColumns / 2 + numColumnsBiasMap; // + numRowsSerialOverScan
+
+	// How many rows will be actually read out by the FEE?
+	// 	- nominal mode: image area + parallel over-scan
+	//      normal camera: image area = whole CCD
+	//      fast camera: image area = lower half of the CCD
+	//	- partial readout: configurable
+	// The rest of the image area will be dumped
+
+	int numRowsReadout, numRowsDump;
+
+	// -----------
+	// Fast camera
+	// -----------
+
+	if (configParam.getString("Telescope/GroupID") == "Fast") {
+
+		// Move the upper half of the CCD down to the lower half, row-by-row
+
+		int numRowsFrameTransfer = numRows - firstRowExposed;
+
+		readoutTimeBeforeNextExposure = numRowsFrameTransfer
+						* parallelTransferTimeFast;
+
+		// The actual readout of the lower half of the CCD (after frame transfer) is done
+		// while the next exposure has already started
+
+		// Nominal mode
+
+		if (readoutMode == "Nominal")
+		{
+			numRowsReadout = firstRowExposed + numRowsSmearingMap;
+			numRowsDump = 0;
+
+		}
+
+		// Partial readout
+
+		else if (readoutMode == "Partial")
+		{
+			numRowsReadout = configParam.getInteger("CCD/NumRowsReadout");
+			numRowsDump = firstRowExposed - numRowsReadout;
+		}
+
+
+		readoutTimeDuringNextExposure = numRowsDump * parallelTransferTimeFast
+				+ numRowsReadout * (parallelTransferTime + numColumnsReadout * serialTransferTime);
+	}
+
+	// -------------
+	// Normal camera
+	// -------------
+
+	else
+	{
+
+		// Nominal mode (full-frame readout)
+
+		if (readoutMode == "Nominal")
+		{
+
+			// Rows read out by the FEE:
+			// 		- rows of image area
+			// 		- parallel over-scan
+
+			numRowsReadout = numRows + numRowsSmearingMap;
+
+			// No rows dumped
+
+			numRowsDump = 0;
+		}
+
+		// Partial readout
+
+		else if (readoutMode == "Partial") {
+
+			// Rows read out by the FEE: rows in the block (other rows in image area are dumped)
+			// Note: no parallel over-scan
+
+			numRowsReadout = configParam.getInteger("CCD/NumRowsReadout");
+			numRowsDump = numRows - numRowsReadout;
+
+		}
+
+		readoutTimeBeforeNextExposure =
+				numRowsReadout
+						* (numColumnsReadout * serialTransferTime
+								+ parallelTransferTime)
+						+ numRowsDump * parallelTransferTimeFast;
+
+		readoutTimeDuringNextExposure = 0;
+	}
  }
 
 
@@ -454,7 +585,7 @@ double Detector::takeExposure(int exposureNr, double startTime, double exposureT
 
     // Advance the internal clock
 
-    internalTime += exposureTime + readoutTime;
+    internalTime += exposureTime + readoutTimeBeforeNextExposure;
 
     return internalTime;
 }
@@ -764,6 +895,8 @@ void Detector::addDarkSignal(float exposureTime)
 
     // Add dark signal to the pixel map
 
+    // TODO
+
     double darkSignalRef = darkCurrent * (exposureTime + readoutTime);
     darkSignalDistribution = normal_distribution<double>(darkSignalRef, darkSignalRef * dsnu / 100.0);
 
@@ -788,6 +921,10 @@ void Detector::addDarkSignal(float exposureTime)
 
     // Add dark signal to the smearing map
 
+    // TODO
+    // - partial readout: no smearing map
+    // - fast cam, nominal mode: readout time while next exposure has already started
+
     darkSignalRef = darkCurrent * readoutTime;
     darkSignalDistribution = normal_distribution<double>(darkSignalRef, darkSignalRef * dsnu / 100.0);
 
@@ -807,24 +944,6 @@ void Detector::addDarkSignal(float exposureTime)
             smearingMap(row, column) += darkSignal;
         }
     }
-}
-
-
-
-
-
-
-
-
-
-
-
-/**
- * \brief Return the CCD readout time [s].
- */
-double Detector::getReadoutTime()
-{
-    return readoutTime;
 }
 
 
@@ -1144,10 +1263,10 @@ void Detector::addPhotonNoise()
  */
 void Detector::addCosmics(float exposureTime)
 {
-    cosmicHitRateDistribution     = poisson_distribution<long>(cosmicHitRate);                                       // [hits/cm^2/s]
+	cosmicHitRateDistribution     = poisson_distribution<long>(cosmicHitRate);                                       // [hits/cm^2/s]
     cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsPixelMap - 1);                    // []
     cosmicEntryAngleDistribution  = uniform_real_distribution<double>(0, 2 * PI);                                    // [rad]
-    cosmicTrailLengthDistribution = uniform_real_distribution<double>(cosmicTrailLength[0], cosmicTrailLength[1]);   // [pix]
+    cosmicTrailLengthDistribution = uniform_real_distribution<double>(cosmicTrailLength[0], cosmicTrailLength[1]);   // [pixel]
     cosmicIntensityDistribution   = uniform_real_distribution<double>(cosmicIntensity[0], cosmicIntensity[1]);       // [e-/hit]
 
     // Cosmics in the subfield
@@ -1175,7 +1294,8 @@ void Detector::addCosmics(float exposureTime)
         Log.debug("Detector: adding cosmic hits to bias map");
         cosmicTrailLengthDistribution = uniform_real_distribution<double>(0.0, 1.e-6);    // Only hot pixels, no trails
         // TODO
-        const double biasMapReadoutTime = readoutTime / numRows * numRowsPixelMap;
+        const double biasMapReadoutTime = (numColumns / 2 + numColumnsBiasMap) * serialTransferTime;
+//        const double biasMapReadoutTime = readoutTime / numRows * numRowsPixelMap;
         addCosmics(biasMapReadoutTime, biasMapLeft, numRowsBiasMap, numColumnsBiasMap, "bias map (left half)");
         addCosmics(biasMapReadoutTime, biasMapRight, numRowsBiasMap, numColumnsBiasMap, "bias map (right half)");
     }
@@ -2434,3 +2554,21 @@ double Detector::getTemperature()
     return temperatureGenerator.getNextTemperature(internalTime);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Returns the duration of the readout before the next exposure can start [s].
+ */
+double Detector::getReadoutTimeBeforeNextExposure()
+{
+	return readoutTimeBeforeNextExposure;
+}
