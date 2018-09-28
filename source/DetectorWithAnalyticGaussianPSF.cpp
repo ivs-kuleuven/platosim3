@@ -244,7 +244,7 @@ double DetectorWithAnalyticGaussianPSF::takeExposure(int exposureNr, double star
 
     // Advance the internal clock
 
-    internalTime += exposureTime + readoutTime;
+    internalTime += exposureTime + readoutTimeBeforeNextExposure;
 
     return internalTime;
 }

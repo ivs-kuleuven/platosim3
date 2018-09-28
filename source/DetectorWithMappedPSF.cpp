@@ -345,7 +345,7 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
 
     // Advance the internal clock
 
-    internalTime += exposureTime + readoutTime;
+    internalTime += exposureTime + readoutTimeBeforeNextExposure;
 
     return internalTime;
 }
