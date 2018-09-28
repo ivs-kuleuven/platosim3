@@ -285,9 +285,9 @@ void Detector::updateParameters(double time)
         numRows               = configParam.getIntegerAt("CCDPositions/NumRows", idx);
         numColumns            = configParam.getIntegerAt("CCDPositions/NumColumns", idx);
 
-        string groupID        = configParam.getString("Telescope/GroupID");
+        isFastCamera =        configParam.getString("Telescope/GroupID") == "Fast";
         
-        if (groupID == "Fast")
+        if (isFastCamera)
         {
             firstRowExposed       = configParam.getIntegerAt("CCDPositions/FirstRowForFastCamera", idx);
         }
@@ -452,7 +452,7 @@ void Detector::configureReadoutTime(ConfigurationParameters &configParam)
 	// Fast camera
 	// -----------
 
-	if (configParam.getString("Telescope/GroupID") == "Fast") {
+	if (isFastCamera) {
 
 		// Move the upper half of the CCD down to the lower half, row-by-row
 
@@ -477,7 +477,7 @@ void Detector::configureReadoutTime(ConfigurationParameters &configParam)
 
 		else if (readoutMode == "Partial")
 		{
-			numRowsReadout = configParam.getInteger("CCD/NumRowsReadout");
+			numRowsReadout = numRowsPartialReadout;
 			numRowsDump = firstRowExposed - numRowsReadout;
 		}
 
@@ -516,7 +516,7 @@ void Detector::configureReadoutTime(ConfigurationParameters &configParam)
 			// Rows read out by the FEE: rows in the block (other rows in image area are dumped)
 			// Note: no parallel over-scan
 
-			numRowsReadout = configParam.getInteger("CCD/NumRowsReadout");
+			numRowsReadout = numRowsPartialReadout;
 			numRowsDump = numRows - numRowsReadout;
 
 		}
@@ -895,9 +895,10 @@ void Detector::addDarkSignal(float exposureTime)
 
     // Add dark signal to the pixel map
 
-    // TODO
+    // When is dark current accumulated for the pixel map?
+	// 	-  exposure + readout
 
-    double darkSignalRef = darkCurrent * (exposureTime + readoutTime);
+    double darkSignalRef = darkCurrent * (exposureTime + readoutTimeBeforeNextExposure + readoutTimeDuringNextExposure);
     darkSignalDistribution = normal_distribution<double>(darkSignalRef, darkSignalRef * dsnu / 100.0);
 
 
@@ -921,11 +922,13 @@ void Detector::addDarkSignal(float exposureTime)
 
     // Add dark signal to the smearing map
 
-    // TODO
-    // - partial readout: no smearing map
-    // - fast cam, nominal mode: readout time while next exposure has already started
+    // When is dark current accumulated for the smearing map?
+    // 	- normal camera, nominal mode: whole readout
+    //  - fast camera, nominal mode: readout during the next exposure
+    //  - partial readout: no smearing map
 
-    darkSignalRef = darkCurrent * readoutTime;
+	darkSignalRef = darkCurrent
+			* (isFastCamera ? readoutTimeDuringNextExposure : readoutTimeBeforeNextExposure);
     darkSignalDistribution = normal_distribution<double>(darkSignalRef, darkSignalRef * dsnu / 100.0);
 
     for(unsigned int row = 0; row < numRowsSmearingMap; row++)
