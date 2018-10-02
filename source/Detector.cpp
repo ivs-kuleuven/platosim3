@@ -139,9 +139,10 @@ double IntegralOfAnalyticSignalResponse::operator()(unsigned i, unsigned j, bool
  * \param configParam    Configuration parameters for the detector.
  * \param hdf5file       HFD5 file to write the detector images to.
  * \param camera         Camera to which to attach the detector.
+ * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start.
  */
 
-Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator)
+Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
 : HDF5Writer(hdf5file),
   includeCosmicsInSubField(true), includeCosmicsInSmearingMap(true), includeCosmicsInBiasMap(true),
   includeBFE(true),
@@ -162,6 +163,9 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
     // Parse the parameters from the configuration file.
 
     configure(configParam);
+
+    this->readoutTimeBeforeNextExposure = readoutTimeBeforeNextExposure;
+    this->readoutTimeDuringNextExposure = readoutTimeDuringNextExposure;
 
     // Create the groups in the HDF5 file where the different maps (i.e. pixel map,
     // bias register map, smearing map, etc.) will be saved. This needs to be done
@@ -285,7 +289,7 @@ void Detector::updateParameters(double time)
         numRows               = configParam.getIntegerAt("CCDPositions/NumRows", idx);
         numColumns            = configParam.getIntegerAt("CCDPositions/NumColumns", idx);
 
-        isFastCamera =        configParam.getString("Telescope/GroupID") == "Fast";
+        isFastCamera          = configParam.getString("Telescope/GroupID") == "Fast";
         
         if (isFastCamera)
         {
@@ -340,7 +344,7 @@ void Detector::updateParameters(double time)
     if(readoutMode == "Partial")
     {
     	firstRowPartialReadout = configParam.getInteger("CCD/ReadoutMode/Partial/FirstRowReadout");
-    	numRowsPartialReadout = configParam.getInteger("CCD/ReadoutModel/Partial/NumRowsReadout");
+    	numRowsPartialReadout = configParam.getInteger("CCD/ReadoutMode/Partial/NumRowsReadout");
     }
     else if (readoutMode != "Nominal")
     {
@@ -402,6 +406,12 @@ void Detector::updateParameters(double time)
     numColumnsBiasMap       = configParam.getInteger("SubField/NumBiasPrescanColumns");
     numRowsSmearingMap      = configParam.getInteger("SubField/NumSmearingOverscanRows");
 
+    if(readoutMode == "Partial")
+    {
+    	Log.info("No smearing map for partial readout");
+    	numRowsSmearingMap = 0;
+    }
+
     // Configuration parameters for the noise source random seeds
 
     readoutNoiseSeed        = configParam.getLong("RandomSeeds/ReadOutNoiseSeed");
@@ -409,7 +419,6 @@ void Detector::updateParameters(double time)
     cosmicSeed              = configParam.getLong("RandomSeeds/CosmicSeed");
     darkSignalSeed          = configParam.getLong("RandomSeeds/DarkSignalSeed");
 
-    configureReadoutTime(configParam);
 
     // Get the sequential number of the very first exposure
 
@@ -424,112 +433,112 @@ void Detector::updateParameters(double time)
 
 
 
- /**
-  * \brief Configure the readout times for Detector object using the ConfigurationParameters
-  *
-  * \param configParam: Configuration parameters
-  **/
-void Detector::configureReadoutTime(ConfigurationParameters &configParam)
-{
-	// Both detector halves are read out simultaneously
-	// -> columns read out by the FEE:
-	// 		- half of the CCD
-	// 		- serial pre-scan
-	// 		- (serial over-scan)
-
-	int numColumnsReadout = numColumns / 2 + numColumnsBiasMap; // + numRowsSerialOverScan
-
-	// How many rows will be actually read out by the FEE?
-	// 	- nominal mode: image area + parallel over-scan
-	//      normal camera: image area = whole CCD
-	//      fast camera: image area = lower half of the CCD
-	//	- partial readout: configurable
-	// The rest of the image area will be dumped
-
-	int numRowsReadout, numRowsDump;
-
-	// -----------
-	// Fast camera
-	// -----------
-
-	if (isFastCamera) {
-
-		// Move the upper half of the CCD down to the lower half, row-by-row
-
-		int numRowsFrameTransfer = numRows - firstRowExposed;
-
-		readoutTimeBeforeNextExposure = numRowsFrameTransfer
-						* parallelTransferTimeFast;
-
-		// The actual readout of the lower half of the CCD (after frame transfer) is done
-		// while the next exposure has already started
-
-		// Nominal mode
-
-		if (readoutMode == "Nominal")
-		{
-			numRowsReadout = firstRowExposed + numRowsSmearingMap;
-			numRowsDump = 0;
-
-		}
-
-		// Partial readout
-
-		else if (readoutMode == "Partial")
-		{
-			numRowsReadout = numRowsPartialReadout;
-			numRowsDump = firstRowExposed - numRowsReadout;
-		}
-
-
-		readoutTimeDuringNextExposure = numRowsDump * parallelTransferTimeFast
-				+ numRowsReadout * (parallelTransferTime + numColumnsReadout * serialTransferTime);
-	}
-
-	// -------------
-	// Normal camera
-	// -------------
-
-	else
-	{
-
-		// Nominal mode (full-frame readout)
-
-		if (readoutMode == "Nominal")
-		{
-
-			// Rows read out by the FEE:
-			// 		- rows of image area
-			// 		- parallel over-scan
-
-			numRowsReadout = numRows + numRowsSmearingMap;
-
-			// No rows dumped
-
-			numRowsDump = 0;
-		}
-
-		// Partial readout
-
-		else if (readoutMode == "Partial") {
-
-			// Rows read out by the FEE: rows in the block (other rows in image area are dumped)
-			// Note: no parallel over-scan
-
-			numRowsReadout = numRowsPartialReadout;
-			numRowsDump = numRows - numRowsReadout;
-
-		}
-
-		readoutTimeBeforeNextExposure =
-				numRowsReadout
-						* (numColumnsReadout * serialTransferTime
-								+ parallelTransferTime)
-						+ numRowsDump * parallelTransferTimeFast;
-
-		readoutTimeDuringNextExposure = 0;
-	}
- }
+// /**
+//  * \brief Configure the readout times for Detector object using the ConfigurationParameters
+//  *
+//  * \param configParam: Configuration parameters
+//  **/
+//void Detector::configureReadoutTime(ConfigurationParameters &configParam)
+//{
+//	// Both detector halves are read out simultaneously
+//	// -> columns read out by the FEE:
+//	// 		- half of the CCD
+//	// 		- serial pre-scan
+//	// 		- (serial over-scan)
+//
+//	int numColumnsReadout = numColumns / 2 + numColumnsBiasMap; // + numRowsSerialOverScan
+//
+//	// How many rows will be actually read out by the FEE?
+//	// 	- nominal mode: image area + parallel over-scan
+//	//      normal camera: image area = whole CCD
+//	//      fast camera: image area = lower half of the CCD
+//	//	- partial readout: configurable
+//	// The rest of the image area will be dumped
+//
+//	int numRowsReadout, numRowsDump;
+//
+//	// -----------
+//	// Fast camera
+//	// -----------
+//
+//	if (isFastCamera) {
+//
+//		// Move the upper half of the CCD down to the lower half, row-by-row
+//
+//		int numRowsFrameTransfer = numRows - firstRowExposed;
+//
+//		readoutTimeBeforeNextExposure = numRowsFrameTransfer
+//						* parallelTransferTimeFast;
+//
+//		// The actual readout of the lower half of the CCD (after frame transfer) is done
+//		// while the next exposure has already started
+//
+//		// Nominal mode
+//
+//		if (readoutMode == "Nominal")
+//		{
+//			numRowsReadout = firstRowExposed + numRowsSmearingMap;
+//			numRowsDump = 0;
+//
+//		}
+//
+//		// Partial readout
+//
+//		else if (readoutMode == "Partial")
+//		{
+//			numRowsReadout = numRowsPartialReadout;
+//			numRowsDump = firstRowExposed - numRowsReadout;
+//		}
+//
+//
+//		readoutTimeDuringNextExposure = numRowsDump * parallelTransferTimeFast
+//				+ numRowsReadout * (parallelTransferTime + numColumnsReadout * serialTransferTime);
+//	}
+//
+//	// -------------
+//	// Normal camera
+//	// -------------
+//
+//	else
+//	{
+//
+//		// Nominal mode (full-frame readout)
+//
+//		if (readoutMode == "Nominal")
+//		{
+//
+//			// Rows read out by the FEE:
+//			// 		- rows of image area
+//			// 		- parallel over-scan
+//
+//			numRowsReadout = numRows + numRowsSmearingMap;
+//
+//			// No rows dumped
+//
+//			numRowsDump = 0;
+//		}
+//
+//		// Partial readout
+//
+//		else if (readoutMode == "Partial") {
+//
+//			// Rows read out by the FEE: rows in the block (other rows in image area are dumped)
+//			// Note: no parallel over-scan
+//
+//			numRowsReadout = numRowsPartialReadout;
+//			numRowsDump = numRows - numRowsReadout;
+//
+//		}
+//
+//		readoutTimeBeforeNextExposure =
+//				numRowsReadout
+//						* (numColumnsReadout * serialTransferTime
+//								+ parallelTransferTime)
+//						+ numRowsDump * parallelTransferTimeFast;
+//
+//		readoutTimeDuringNextExposure = 0;
+//	}
+// }
 
 
 
@@ -1277,7 +1286,7 @@ void Detector::addCosmics(float exposureTime)
     if (includeCosmicsInSubField)
     {
         Log.debug("Detector: adding cosmic hits to the sub-field");
-        addCosmics(exposureTime + readoutTime, pixelMap, numRowsPixelMap, numColumnsPixelMap, "image area");
+        addCosmics(exposureTime + readoutTimeBeforeNextExposure + readoutTimeDuringNextExposure, pixelMap, numRowsPixelMap, numColumnsPixelMap, "image area");
     }
 
     // Cosmics in the over-scan
@@ -1285,7 +1294,14 @@ void Detector::addCosmics(float exposureTime)
     if (includeCosmicsInSmearingMap)
     {
         Log.debug("Detector: adding cosmic hits to smearing map");
-        addCosmics(readoutTime, smearingMap, numRowsSmearingMap, numColumnsPixelMap, "smearing map");
+
+        if(isFastCamera)
+        {
+        	addCosmics(readoutTimeDuringNextExposure, smearingMap, numRowsSmearingMap, numColumnsPixelMap, "smearing map");
+        } else
+        {
+        	addCosmics(readoutTimeBeforeNextExposure, smearingMap, numRowsSmearingMap, numColumnsPixelMap, "smearing map");
+        }
     }
 
     // Cosmics in the pre-scan
@@ -1296,11 +1312,9 @@ void Detector::addCosmics(float exposureTime)
     {
         Log.debug("Detector: adding cosmic hits to bias map");
         cosmicTrailLengthDistribution = uniform_real_distribution<double>(0.0, 1.e-6);    // Only hot pixels, no trails
-        // TODO
-        const double biasMapReadoutTime = (numColumns / 2 + numColumnsBiasMap) * serialTransferTime;
-//        const double biasMapReadoutTime = readoutTime / numRows * numRowsPixelMap;
-        addCosmics(biasMapReadoutTime, biasMapLeft, numRowsBiasMap, numColumnsBiasMap, "bias map (left half)");
-        addCosmics(biasMapReadoutTime, biasMapRight, numRowsBiasMap, numColumnsBiasMap, "bias map (right half)");
+        const double biasMapRowLifeTime = (numColumns / 2 + numColumnsBiasMap) * serialTransferTime + parallelTransferTime;
+        addCosmics(biasMapRowLifeTime, biasMapLeft, numRowsBiasMap, numColumnsBiasMap, "bias map (left half)");
+        addCosmics(biasMapRowLifeTime, biasMapRight, numRowsBiasMap, numColumnsBiasMap, "bias map (right half)");
     }
 }
 
@@ -1738,76 +1752,76 @@ void Detector::applySimpleCTImodel()
  
 void Detector::applyShort2013CTImodel()
 {
-    // Compute the maximum geometrical volume that electrons can occupy within a pixel.
-    // I.e. the volume of the electron cloud when the capacity of the full well is maxed out.
-    // E.g if the pixel size is 18 micron, then the volume is 18e-6 * 18e-6 * 1.e-6 / 2.0
-
-    const double maxVolumePerPixel = pixelSize * pixelSize * 1.e-18  / 2.0;                                  // Vg [m^3]
-
-    // Compute the time it takes to transfer 1 row during readout
-
-    const double chargeTransferTime = readoutTime / numRows;                                                 // t [s]
-
-    // Compute the thermal velocity of the electrons in the silicon
-
-    const double effectiveElectronMass = 0.5 * Constants::FREEELECTRONMASS;                                  // me [kg]
-    const double thermalVelocity = sqrt(3.0 * Constants::KBOLTZMANN * temperature / effectiveElectronMass);  // vt [m/s]
-
-    // Arrays to keep track of the number of occupied traps in a column
-
-    arma::Mat<float> numberOfOccupiedTraps = arma::zeros<arma::Mat<float>>(numTrapSpecies, numColumnsPixelMap);	// No
-
-    // Arrays to keep track of the captured and released electrons, for each column in a particular row.
-
-    arma::Row<float> numberOfCapturedElectrons(numColumnsPixelMap);		// Nc
-    arma::Row<float> numberOfReleasedElectrons(numColumnsPixelMap);		// Nr
-
-    arma::Row<float> alpha(numTrapSpecies, arma::fill::zeros);
-
-    // Eq. (23) of Short et al. 2013
-
-    for (int k = 0; k < numTrapSpecies; k++)
-    {
-    		alpha(k) = chargeTransferTime * trapCaptureCrossSection[k] * thermalVelocity * pow(fullWellSaturationLimit, beta) / (2.0 * maxVolumePerPixel);
-    }
-
-    // Loop over all rows of the pixelMap, and over all trap species.
-    // For each row, the computations are done for all columns simultaneously.
-
-    for (int rowNumber = 0; rowNumber < numRowsPixelMap; rowNumber++)
-    {
-
-        for (int k = 0; k < numTrapSpecies; k++)
-        {
-
-            // Compute the number of electrons captured in a trap, according to Eq. (22)-(23) of Short et al. (2013).
-            // Note that Armadillo uses % for elementwise multiplication.
-
-            const double gamma = 2 * trapDensity[k] * maxVolumePerPixel / pow(fullWellSaturationLimit, beta) * (subFieldZeroPointRow + rowNumber + 1);	// +1 as row = 0 also has to be transferred once
-
-            numberOfCapturedElectrons =   (gamma * arma::pow(pixelMap.row(rowNumber), beta) - numberOfOccupiedTraps.row(k)) \
-                                        / (gamma * arma::pow(pixelMap.row(rowNumber), beta-1) + 1)                          \
-                                        % (1 - arma::exp(-alpha(k) * arma::pow(pixelMap.row(rowNumber), 1-beta)));
-
-            // Captured electron numbers can't be negative, so clip negative value to zero.
-
-            arma::Col<arma::uword> isNegative = arma::find(numberOfCapturedElectrons < 0.0);
-            numberOfCapturedElectrons(isNegative).zeros();
-
-            // Update the number of occupied traps with the estimated number of captured electrons
-
-            numberOfOccupiedTraps.row(k) += numberOfCapturedElectrons;
-            
-            // Correct the number of occupied traps with the electrons that were released again during the charge transfer time.
-
-            numberOfReleasedElectrons = numberOfOccupiedTraps.row(k) * (1-exp(-chargeTransferTime/releaseTime[k]));
-            numberOfOccupiedTraps.row(k) -= numberOfReleasedElectrons;
-
-            // Add the electron excess to the current pixel value
-
-            pixelMap.row(rowNumber) += numberOfReleasedElectrons - numberOfCapturedElectrons;
-        }
-    }
+//    // Compute the maximum geometrical volume that electrons can occupy within a pixel.
+//    // I.e. the volume of the electron cloud when the capacity of the full well is maxed out.
+//    // E.g if the pixel size is 18 micron, then the volume is 18e-6 * 18e-6 * 1.e-6 / 2.0
+//
+//    const double maxVolumePerPixel = pixelSize * pixelSize * 1.e-18  / 2.0;                                  // Vg [m^3]
+//
+//    // Compute the time it takes to transfer 1 row during readout
+//
+//    const double chargeTransferTime = readoutTime / numRows;                                                 // t [s]
+//
+//    // Compute the thermal velocity of the electrons in the silicon
+//
+//    const double effectiveElectronMass = 0.5 * Constants::FREEELECTRONMASS;                                  // me [kg]
+//    const double thermalVelocity = sqrt(3.0 * Constants::KBOLTZMANN * temperature / effectiveElectronMass);  // vt [m/s]
+//
+//    // Arrays to keep track of the number of occupied traps in a column
+//
+//    arma::Mat<float> numberOfOccupiedTraps = arma::zeros<arma::Mat<float>>(numTrapSpecies, numColumnsPixelMap);	// No
+//
+//    // Arrays to keep track of the captured and released electrons, for each column in a particular row.
+//
+//    arma::Row<float> numberOfCapturedElectrons(numColumnsPixelMap);		// Nc
+//    arma::Row<float> numberOfReleasedElectrons(numColumnsPixelMap);		// Nr
+//
+//    arma::Row<float> alpha(numTrapSpecies, arma::fill::zeros);
+//
+//    // Eq. (23) of Short et al. 2013
+//
+//    for (int k = 0; k < numTrapSpecies; k++)
+//    {
+//    		alpha(k) = chargeTransferTime * trapCaptureCrossSection[k] * thermalVelocity * pow(fullWellSaturationLimit, beta) / (2.0 * maxVolumePerPixel);
+//    }
+//
+//    // Loop over all rows of the pixelMap, and over all trap species.
+//    // For each row, the computations are done for all columns simultaneously.
+//
+//    for (int rowNumber = 0; rowNumber < numRowsPixelMap; rowNumber++)
+//    {
+//
+//        for (int k = 0; k < numTrapSpecies; k++)
+//        {
+//
+//            // Compute the number of electrons captured in a trap, according to Eq. (22)-(23) of Short et al. (2013).
+//            // Note that Armadillo uses % for elementwise multiplication.
+//
+//            const double gamma = 2 * trapDensity[k] * maxVolumePerPixel / pow(fullWellSaturationLimit, beta) * (subFieldZeroPointRow + rowNumber + 1);	// +1 as row = 0 also has to be transferred once
+//
+//            numberOfCapturedElectrons =   (gamma * arma::pow(pixelMap.row(rowNumber), beta) - numberOfOccupiedTraps.row(k)) \
+//                                        / (gamma * arma::pow(pixelMap.row(rowNumber), beta-1) + 1)                          \
+//                                        % (1 - arma::exp(-alpha(k) * arma::pow(pixelMap.row(rowNumber), 1-beta)));
+//
+//            // Captured electron numbers can't be negative, so clip negative value to zero.
+//
+//            arma::Col<arma::uword> isNegative = arma::find(numberOfCapturedElectrons < 0.0);
+//            numberOfCapturedElectrons(isNegative).zeros();
+//
+//            // Update the number of occupied traps with the estimated number of captured electrons
+//
+//            numberOfOccupiedTraps.row(k) += numberOfCapturedElectrons;
+//
+//            // Correct the number of occupied traps with the electrons that were released again during the charge transfer time.
+//
+//            numberOfReleasedElectrons = numberOfOccupiedTraps.row(k) * (1-exp(-chargeTransferTime/releaseTime[k]));
+//            numberOfOccupiedTraps.row(k) -= numberOfReleasedElectrons;
+//
+//            // Add the electron excess to the current pixel value
+//
+//            pixelMap.row(rowNumber) += numberOfReleasedElectrons - numberOfCapturedElectrons;
+//        }
+//    }
 }
 
 
@@ -1853,7 +1867,8 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
 
     arma::Row<float> openShutterSmearing = arma::sum(pixelMap, 0);
 
-    float openShutterSmearingOutsideSubField = camera.getTotalSkyBackground() * (numRows - numRowsPixelMap + numRowsSmearingMap);
+    int numRowsExposedDuringReadout = numRows - firstRowExposed - numRowsPixelMap + numRowsSmearingMap;
+    float openShutterSmearingOutsideSubField = camera.getTotalSkyBackground() * numRowsExposedDuringReadout;
 
     // Apply all throughput efficiencies
 
@@ -1878,7 +1893,10 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
 
     openShutterSmearing += openShutterSmearingOutsideSubField;
 
-    float factor = (readoutTime / exposureTime) / numRows;
+    // Fast camera: lower half of the CCD is shielded off -> no contribution to open-shutter smearing here
+
+    float factor = readoutTimeBeforeNextExposure / exposureTime / (numRows - firstRowExposed);
+
     openShutterSmearing *= factor;
 
     // Add the effect of the open-shutter smearing to the pixel map
