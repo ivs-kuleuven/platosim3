@@ -65,13 +65,12 @@ class Detector: public HDF5Writer
 {
     public:
 
-        Detector(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator);
+        Detector(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure);
         virtual ~Detector();
 
         virtual double takeExposure(int exposureNr, double startTime, double exposureTime);
         virtual void updateParameters(double time);
         void configure(ConfigurationParameters &configParam);
-        void configureReadoutTime(ConfigurationParameters &configParam);
 
         pair<double, double> pixelToFocalPlaneCoordinates(double row, double column);
         pair<double, double> focalPlaneToPixelCoordinates(double xFP, double yFP);
@@ -178,6 +177,7 @@ class Detector: public HDF5Writer
         double serialTransferTime;				 // Time to shift the content of the readout register by one pixel [s]
         double parallelTransferTime;			 // Time to shift the charges one row down in case the readout register will be read out [s]
         double parallelTransferTimeFast;	     // Time to shift the charges one row down in case the readout register will not be read out [s]
+        bool isFastCamera;                       // Indicates whether or not the camera is a fast camera
         int firstRowPartialReadout;			     // First row that will be read out by the FEE in partial readout mode
         int numRowsPartialReadout;			     // Number of rows that will be read out by the FEE, starting at firstRowReadout, in partial readout mode
         double readoutNoise;                     // Mean readout noise [electrons]
