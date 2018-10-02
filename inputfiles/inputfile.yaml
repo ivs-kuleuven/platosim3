@@ -167,7 +167,7 @@ CCD:
     ParallelTransferTime:            110             # Time to shift the charges one row down in case the readout register will be read out [µs]
     ParallelTransferTimeFast:        90              # Time to shift the charges one row down in case the readout register will not be read out [µs]
     ReadoutMode:
-       Mode:                         Nominal         # Nominal (normal camera: full frame; fast camera: frame transfer) / Partial (read contiguous block of entire rows)
+       ReadoutMode:                  Nominal         # Nominal (normal camera: full frame; fast camera: frame transfer) / Partial (read contiguous block of entire rows)
        Partial:
           FirstRowReadout:           0               # First row that will be read out by the FEE in partial-readout mode
           NumRowsReadout:            4510            # Number of rows that will be read out by the FEE, in partial-readout mode
