@@ -41,6 +41,7 @@ class Simulation
         ~Simulation();
         virtual void run();
         virtual void configure(ConfigurationParameters &configParams);
+        virtual pair<double, double> configureReadoutTime(ConfigurationParameters &configParams);
 
     protected:
 
@@ -80,8 +81,6 @@ class Simulation
         Detector *detector;
 
         HDF5File hdf5File;
-
-        virtual void configureReadoutTime(ConfigurationParameters &configParams);
 
 };
 
