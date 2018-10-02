@@ -24,10 +24,10 @@ class ThermoElasticDriftFromRedNoise : public DriftGenerator
 {
     public:
 
-        ThermoElasticDriftFromRedNoise(ConfigurationParameters &configurationParameters);
+        ThermoElasticDriftFromRedNoise(ConfigurationParameters &configurationParameters, double readoutTimeBeforeNextExposure);
         ~ThermoElasticDriftFromRedNoise();
 
-        virtual void configure(ConfigurationParameters &configParams);
+        virtual void configure(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure);
         virtual tuple<double, double, double> getNextYawPitchRoll(double time) override;
         virtual double getHeartbeatInterval() override;
 
