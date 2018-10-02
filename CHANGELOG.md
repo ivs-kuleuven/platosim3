@@ -9,6 +9,8 @@
 
 * Bias register map expressed as additional columns (GitHub issue #290)
 
+* Implement partial readout (GitHub issue #285)
+
 
 <!-- 3.3.4 -->
 <!-- ***** -->
