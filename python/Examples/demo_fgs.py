@@ -61,7 +61,6 @@ for n in range(NguideStars):
     # CCD/Orientation
     # CCD/NumColumns
     # CCD/NumRows
-    # CCD/ReadoutTime
     # 
     # SubField/ZeroPointRow
     # SubField/ZeroPointColumn
