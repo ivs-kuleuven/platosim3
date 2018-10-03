@@ -20,7 +20,7 @@ ObservingParameters:
 
 Sky:
 
-    SkyBackground:                342.            # Stellar + zodiacal background level. Set negative to compute.     [phot/pix/s]
+    SkyBackground:                342.            # Stellar + zodiacal background level (excl. transmission efficiency). Set negative to compute.     [phot/pix/s]
     IncludeVariableSources:       no              # Include time series of variable stars or not
     VariableSourceList:           inputfiles/varsource.txt  # Ascii file: Col 1: star ID, Col 2: path of time series file
     IncludeCosmics:               yes             # Whether or not to include cosmics
@@ -221,6 +221,7 @@ SubField:
     NumColumns:                  9               # Number of columns, should be >= 8 [pixels]
     NumRows:                     9               # Number of rows,    should be >= 8 [pixels]
     NumBiasPrescanRows:          0               # Nr of rows of the prescan strip to determine the bias [pixels]
+    NumBiasPrescanColumns:       0               # Nr of columns of the prescan strip to determine the bias [pixels]
     NumSmearingOverscanRows:     0               # Nr of rows of the overscan strip to determine the smearing [pixels]
     SubPixels:                   32              # (Sqrt of ) nr of subpixels per CCD pixel. Should be 2^n <= 128.
 

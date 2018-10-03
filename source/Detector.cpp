@@ -176,7 +176,9 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
     // Allocate memory for the different maps
 
     pixelMap.zeros(numRowsPixelMap, numColumnsPixelMap);
-    biasMap.zeros(numRowsBiasMap, numColumnsPixelMap);
+    biasMapLeft.zeros(numRowsBiasMap, numColumnsBiasMap);
+    biasMapRight.zeros(numRowsBiasMap, numColumnsBiasMap);
+
     smearingMap.zeros(numRowsSmearingMap, numColumnsPixelMap);
     throughputMap.ones(numRowsPixelMap, numColumnsPixelMap);
 
@@ -198,16 +200,10 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
     cosmicEntryAngleGenerator.seed(cosmicSeed + 3);
     cosmicTrailLengthGenerator.seed(cosmicSeed + 4);
     cosmicIntensityGenerator.seed(cosmicSeed + 5);
+    decimalNumCosmicHitsGenerator.seed(cosmicSeed + 6);
 
-    // Fast forward the random number generators of the readout and the photon noise from 
-    // exposure # 0 to exposure # beginExposureNr.
+    decimalNumCosmicHitsDistribution = uniform_real_distribution<double>(0, 1);
 
-    double exposureTime = configParam.getDouble("ObservingParameters/ExposureTime");
-
-    fastForwardDarkSignalGeneratorToExposure(beginExposureNr, exposureTime);
-    fastForwardReadoutNoiseGeneratorToExposure(beginExposureNr);
-    fastForwardPhotonNoiseGeneratorToExposure(beginExposureNr);
-    fastForwardCosmicsGeneratorToExposure(beginExposureNr, exposureTime);
 }
 
 
@@ -387,6 +383,7 @@ void Detector::updateParameters(double time)
     numRowsPixelMap         = configParam.getInteger("SubField/NumRows");
     numColumnsPixelMap      = configParam.getInteger("SubField/NumColumns");
     numRowsBiasMap          = configParam.getInteger("SubField/NumBiasPrescanRows");
+    numColumnsBiasMap       = configParam.getInteger("SubField/NumBiasPrescanColumns");
     numRowsSmearingMap      = configParam.getInteger("SubField/NumSmearingOverscanRows");
 
     // Configuration parameters for the noise source random seeds
@@ -396,7 +393,7 @@ void Detector::updateParameters(double time)
     cosmicSeed              = configParam.getLong("RandomSeeds/CosmicSeed");
     darkSignalSeed          = configParam.getLong("RandomSeeds/DarkSignalSeed");
 
-    // Get the sequential number of the very first exposure (used for e.g. fast-forwarding the noise generators)
+    // Get the sequential number of the very first exposure
 
     beginExposureNr         = configParam.getInteger("ObservingParameters/BeginExposureNr");
 
@@ -1131,6 +1128,9 @@ void Detector::addPhotonNoise()
  *         - The length of the trails is uniformly distributed over the given interval.
  *         - The total number of electrons in the trail is uniformly distributed over
  *           the given interval.
+ * 
+ * This function is a wrapper function for Detector::addCosmics(exposureTime, map, numRows, numColumns)
+ * that does the actual work but which is not called directly.
  *
  * \param exposureTime: Exposure time [s].
  *
@@ -1154,19 +1154,19 @@ void Detector::addCosmics(float exposureTime)
 
     if (includeCosmicsInSubField)
     {
-        Log.debug("Detector: adding cosmic hits to the subfield");
-        addCosmics(exposureTime + readoutTime, pixelMap, numRowsPixelMap, numColumnsPixelMap);
+        Log.debug("Detector: adding cosmic hits to the sub-field");
+        addCosmics(exposureTime + readoutTime, pixelMap, numRowsPixelMap, numColumnsPixelMap, "image area");
     }
 
-    // Cosmics in the overscan
+    // Cosmics in the over-scan
 
     if (includeCosmicsInSmearingMap)
     {
         Log.debug("Detector: adding cosmic hits to smearing map");
-        addCosmics(readoutTime, smearingMap, numRowsSmearingMap, numColumnsPixelMap);
+        addCosmics(readoutTime, smearingMap, numRowsSmearingMap, numColumnsPixelMap, "smearing map");
     }
 
-    // Cosmics in the prescan
+    // Cosmics in the pre-scan
     // This is a special case because the rows of the prescan are all virtual. 
     // The following is only approximative. 
 
@@ -1174,8 +1174,10 @@ void Detector::addCosmics(float exposureTime)
     {
         Log.debug("Detector: adding cosmic hits to bias map");
         cosmicTrailLengthDistribution = uniform_real_distribution<double>(0.0, 1.e-6);    // Only hot pixels, no trails
-        const double biasMapReadoutTime = readoutTime / numRows * numRowsBiasMap; 
-        addCosmics(biasMapReadoutTime, biasMap, numRowsBiasMap, numColumnsPixelMap);
+        // TODO
+        const double biasMapReadoutTime = readoutTime / numRows * numRowsPixelMap;
+        addCosmics(biasMapReadoutTime, biasMapLeft, numRowsBiasMap, numColumnsBiasMap, "bias map (left half)");
+        addCosmics(biasMapReadoutTime, biasMapRight, numRowsBiasMap, numColumnsBiasMap, "bias map (right half)");
     }
 }
 
@@ -1200,11 +1202,15 @@ void Detector::addCosmics(float exposureTime)
  *         - The total number of electrons in the trail is uniformly distributed over
  *           the given interval.
  *
+ * This function is not called directly in Detector, but only through the method
+ *      Detector::addCosmics(exposureTime)
+ * 
  * \param exposureTime: amount of time exposed to cosmic particle influx [s].
  * \param map: Map affected by cosmics [e-].  Either the pixel, bias register, or
  *             smearing map.
  * \param numRows: Number of rows in the map [pixels].
  * \param numColumns: Number of columns in the map [pixels].
+ * \param area: Name of the area to which the cosmics are added ("image area", "smearing map", "bias map").
  *
  * \pre Pixel unit in the pixel map: [electrons].
  * \pre Pixel unit in the smearing map: [electrons].
@@ -1214,7 +1220,7 @@ void Detector::addCosmics(float exposureTime)
  * \post Pixel unit in the smearing map: [electrons].
  * \post Pixel unit in the bias register map: [electrons].
  */
-void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, int numRows, int numColumns)
+void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, int numRows, int numColumns, string area)
 {
     // Characteristics of an individual trail
 
@@ -1233,9 +1239,32 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, int numRows
     // - cosmic hit rate [events / cm^2 / s]
     // - exposure time [s]
     // - dimensions [pixels] -> [micron] -> [cm]
+    //
+    // See GitHub issue #283
+	// To make sure the number of cosmics is as expected when considering a large number
+    // of exposures, we have to account for the decimal part of the number of cosmic hits
+    // per exposure too, instead of rounding down this value. E.g. if you have 1.5 cosmics
+    // per exposure, you want 1500 cosmics for 1000 exposures, instead of 1000 cosmics.
+    // The solution is to add as many cosmics as denoted by the integer part, and add one
+    // extra cosmic, with a chance equal to the decimal part.  This is handled by the
+    // uniform random distribution in [0,1]:
+    // 	- random number < decimal part => add one extra cosmic
+    //  - random number >= decimal part => don't add an extra cosmic
 
-    int numCosmicHits = cosmicHitRateDistribution(cosmicHitRateGenerator) * exposureTime * (numRows * pixelSize / 10000.0) * (numColumns * pixelSize / 10000.0);
-    Log.debug("Detector: number of cosmic hits: " + to_string(numCosmicHits));
+    double numCosmicHitsAsDouble = cosmicHitRateDistribution(
+			cosmicHitRateGenerator) * exposureTime
+			* (numRows * pixelSize / 10000.0)
+			* (numColumns * pixelSize / 10000.0);
+    double decimalPartNumCosmicHits = numCosmicHitsAsDouble - (int) numCosmicHitsAsDouble;
+    int numCosmicHits = (int) numCosmicHitsAsDouble;
+
+    if(decimalNumCosmicHitsDistribution(decimalNumCosmicHitsGenerator) < decimalPartNumCosmicHits)
+    {
+    	// See GitHub issue #283
+    	numCosmicHits += 1;
+    }
+
+    Log.debug("Detector: number of cosmic hits for the " + area + ": "  + to_string(numCosmicHits));
     if (numCosmicHits == 0) return;
     
     double meanEntryAngle = 0.0;
@@ -1284,9 +1313,9 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, int numRows
     meanTrailLength /= numCosmicHits;
     meanIntensity /= numCosmicHits;
 
-    Log.info("Detector: mean cosmic entry angle: " + to_string(meanEntryAngle) + " rad");
-    Log.info("Detector: mean cosmic trail length: " + to_string(meanTrailLength) + " pix");
-    Log.info("Detector: mean cosmic hit intensity: " + to_string(meanIntensity) + " e-");
+    Log.info("Detector: mean cosmic entry angle (" + area + "): " + to_string(meanEntryAngle) + " rad");
+    Log.info("Detector: mean cosmic trail length (" + area + "): " + to_string(meanTrailLength) + " pix");
+    Log.info("Detector: mean cosmic hit intensity (" + area + "): " + to_string(meanIntensity) + " e-");
 }
 
 
@@ -1799,12 +1828,13 @@ void Detector::addReadoutNoise()
 
     // Add readout noise to the bias prescan map
 
-    for (unsigned int row = 0; row < numRowsBiasMap; row++)
+    for(unsigned int row = 0; row < numRowsBiasMap; row++)
     {
-        for (unsigned int column = 0; column < numColumnsPixelMap; column++)
-        {
-            biasMap(row, column) += readoutNoiseDistribution(readoutNoiseGenerator);
-        }
+    	for(unsigned int column = 0; column < numColumnsBiasMap; column++)
+    	{
+    		biasMapLeft(row, column) += readoutNoiseDistribution(readoutNoiseGenerator);
+    		biasMapRight(row, column) += readoutNoiseDistribution(readoutNoiseGenerator);
+    	}
     }
 
     // Add readout noise to the smearing overscan map
@@ -1859,7 +1889,8 @@ void Detector::applyQuantisation()
     // maps do not have fractional values.
 
     pixelMap = arma::floor(pixelMap);
-    biasMap = arma::floor(biasMap);
+    biasMapLeft = arma::floor(biasMapLeft);
+    biasMapRight = arma::floor(biasMapRight);
     smearingMap = arma::floor(smearingMap);
 
 
@@ -1922,13 +1953,11 @@ void Detector::applyGain()
     if(lastIndexSubFieldLeft >= numColumnsPixelMap - 1)      // Left ADC only
     {
         pixelMap *= combinedGainLeft;
-        biasMap *= combinedGainLeft;
         smearingMap *= combinedGainLeft;
     }
     else if(lastIndexSubFieldLeft < 0)                     // Right ADC only
     {
         pixelMap *= combinedGainRight;
-        biasMap *= combinedGainRight;
         smearingMap *= combinedGainRight;
     }
     else
@@ -1936,15 +1965,16 @@ void Detector::applyGain()
         // 0 -> lastIndexSubFieldLeft: left ADC
 
         pixelMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
-        biasMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
         smearingMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
 
         // lastIndexSubFieldLeft + 1 -> numColumnsSubPixelMap -1: right ADC
 
         pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
-        biasMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
         smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
     }
+
+    biasMapLeft *= combinedGainLeft;
+    biasMapRight *= combinedGainRight;
 
     Log.info("Detector: gain of left part of CCD: " + to_string(combinedGainLeft));
     Log.info("Detector: gain of right part of CCD: " + to_string(combinedGainRight));
@@ -1980,7 +2010,8 @@ void Detector::addElectronicOffset()
     // Add the electronic offset to the pixel, bias register, and smearing maps
 
     pixelMap += offset;
-    biasMap += offset;
+    biasMapLeft += offset;
+    biasMapRight += offset;
     smearingMap += offset;
 }
 
@@ -2014,7 +2045,8 @@ void Detector::applyDigitalSaturation()
 
     // Top off the values in the bias register map
 
-    biasMap(arma::find(biasMap > digitalSaturationLimit)).fill(digitalSaturationLimit);
+    biasMapLeft(arma::find(biasMapLeft > digitalSaturationLimit)).fill(digitalSaturationLimit);
+    biasMapRight(arma::find(biasMapRight > digitalSaturationLimit)).fill(digitalSaturationLimit);
 
     // Top off the values in the smearing map
 
@@ -2313,7 +2345,8 @@ void Detector::initHDF5Groups()
     Log.debug("Detector: initialising HDF5 groups");
 
     hdf5File.createGroup("/Images");
-    hdf5File.createGroup("/BiasMaps");
+    hdf5File.createGroup("/BiasMapsLeft");
+    hdf5File.createGroup("/BiasMapsRight");
     hdf5File.createGroup("/SmearingMaps");
     hdf5File.createGroup("/Flatfield");
     hdf5File.createGroup("/ThroughputMaps");
@@ -2370,7 +2403,8 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
 
     // Add the bias map to the "BiasMaps" group
 
-    hdf5File.writeArray("/BiasMaps", biasMapName, biasMap);
+    hdf5File.writeArray("/BiasMapsLeft", biasMapName, biasMapLeft);
+    hdf5File.writeArray("/BiasMapsRight", biasMapName, biasMapRight);
 
     // Clear the string stream and compose the throughput map name
 
@@ -2380,271 +2414,9 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
     myStream << "throughputMap" << setfill('0') << setw(6) << exposureNr;
     string throughputMapName = myStream.str();
 
-    // Add the bias map to the "BiasMaps" group
+    // Add the throughput map to the "ThroughputMaps" group
 
     hdf5File.writeArray("/ThroughputMaps", throughputMapName, throughputMap);
-}
-
-
-
-
-
-
-
-/**
- * \brief PlatoSim allows to generate e.g. exposures 0->99, and then a second run
- *        from 100->199, which facilitates Slurming long time series. The results
- *        should be the same as if we would generate 0->199 in one stretch. Therefore,
- *        when generating exposures 100->199, we have to take care that all noise
- *        generators start in the correct state. The way to do this, is to fast-forward
- *        through all noise generations of exposures 0->99. This function is therefore
- *        a skeleton version of addDarkSignal(), where noise is generated but further
- *        ignored.
- */
-void Detector::fastForwardDarkSignalGeneratorToExposure(int beginExposureNr, float exposureTime)
-{
-
-    double dark;
-    double dummy;
-
-    for (int n = 0; n < beginExposureNr; n++)
-    {
-        // Dark signal generated for the pixel map
-
-        dark = darkCurrent * (exposureTime + readoutTime);
-
-        darkSignalDistribution = normal_distribution<double>(dark, dark * dsnu / 100.0);
-
-        for (unsigned int row = 0; row < numRowsPixelMap; row++)
-        {
-             for (unsigned int column = 0; column < numColumnsPixelMap; column++)
-             {
-                      // Take DSNU into account
-
-                      dummy = darkSignalDistribution(darkSignalGenerator);
-
-                      // Add the noise
-
-                      darkNoiseDistribution = normal_distribution<double>(dummy, sqrt(dummy));
-                      dummy = darkNoiseDistribution(darkNoiseGenerator);
-             }
-        }
-
-        // Dark signal generated for the smearing map
-
-        dark = darkCurrent * readoutTime;
-
-            darkSignalDistribution = normal_distribution<double>(dark, dark * dsnu / 100.0);
-
-        for(unsigned int row = 0; row < numRowsSmearingMap; row++)
-        {
-                for(unsigned int column = 0; column < numColumnsPixelMap; column++)
-                {
-                    // Take DSNU into account
-
-                    dummy = darkSignalDistribution(darkSignalGenerator);
-
-                    // Add the noise
-
-                    darkNoiseDistribution = normal_distribution<double>(dummy, sqrt(dummy));
-                    dummy = darkNoiseDistribution(darkNoiseGenerator);
-                }
-        }
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * \brief PlatoSim allows to generate e.g. exposures 0->99, and then a second run
- *        from 100->199, which facilitates Slurming long time series. The results
- *        should be the same as if we would generate 0->199 in one stretch. Therefore,
- *        when generating exposures 100->199, we have to take care that all noise 
- *        generators start in the correct state. The way to do this, is to fast-forward
- *        through all noise generations of exposures 0->99. This function is therefore
- *        a skeleton version of addReadoutNoise(), where noise is generated but further
- *        ignored.
- *        
- * \param beginExposureNr: fast forward from 0 to beginExposureNr-1
- */
-
-void Detector::fastForwardReadoutNoiseGeneratorToExposure(int beginExposureNr)
-{
-
-    readoutNoiseDistribution = normal_distribution<double>(0.0, readoutNoise);
-
-    double dummy;
-
-    for (int n = 0; n < beginExposureNr; n++)
-    {
-        // The readout noise generated for the pixel map
-
-        for (unsigned int row = 0; row < numRowsPixelMap; row++)
-        {
-            for (unsigned int column = 0; column < numColumnsPixelMap; column++)
-            {
-                dummy = readoutNoiseDistribution(readoutNoiseGenerator);
-            }
-        }
-
-        // The readout noise generated for the bias prescan map
-
-        for (unsigned int row = 0; row < numRowsBiasMap; row++)
-        {
-            for (unsigned int column = 0; column < numColumnsPixelMap; column++)
-            {
-                dummy = readoutNoiseDistribution(readoutNoiseGenerator);
-            }
-        }
-
-        // The readout noise generated for the smearing overscan map
-
-        for (unsigned int row = 0; row < numRowsSmearingMap; row++)
-        {
-            for (unsigned int column = 0; column < numColumnsPixelMap; column++)
-            {
-                dummy = readoutNoiseDistribution(readoutNoiseGenerator);
-            }
-        }
-    }
-}
-
-
-
-
-
-
-
-
-
-/**
- * \brief PlatoSim allows to generate e.g. exposures 0->99, and then a second run
- *        from 100->199, which facilitates Slurming long time series. The results
- *        should be the same as if we would generate 0->199 in one stretch. Therefore,
- *        when generating exposures 100->199, we have to take care that all noise 
- *        generators start in the correct state. The way to do this, is to fast-forward
- *        through all noise generations of exposures 0->99. This function is therefore
- *        a skeleton version of addPhotonNoise(), where noise is generated but further
- *        ignored.
- * 
- * \param beginExposureNr: fast forward from 0 to beginExposureNr-1
- */
-
-void Detector::fastForwardPhotonNoiseGeneratorToExposure(int beginExposureNr)
-{
-    double dummy;
-
-    for (int n = 0; n < beginExposureNr; n++)
-    {
-        // The photon noise generated for the pixel map
-
-        for (unsigned int row = 0; row < numRowsPixelMap; row++)
-        {
-            for (unsigned int column = 0; column < numColumnsPixelMap; column++)
-            {
-                photonNoiseDistribution = poisson_distribution<long>(pixelMap(row, column));
-                dummy = photonNoiseDistribution(photonNoiseGenerator);
-            }
-        }
-
-        // The photon noise for the smearing map
-
-        for (unsigned int row = 0; row < numRowsSmearingMap; row++)
-        {
-            for (unsigned int column = 0; column < numColumnsPixelMap; column++)
-            {
-                photonNoiseDistribution = poisson_distribution<long>(smearingMap(row, column));
-                dummy = photonNoiseDistribution(photonNoiseGenerator);
-            }
-        }
-    }
-}
-
-
-
-
-
-
-/**
- * \brief PlatoSim allows to generate e.g. exposures 0->99, and then a second run
- *        from 100->199, which facilitates Slurming long time series. The results
- *        should be the same as if we would generate 0->199 in one stretch. Therefore,
- *        when generating exposures 100->199, we have to take care that all noise
- *        generators start in the correct state. The way to do this, is to fast-forward
- *        through all noise generations of exposures 0->99. This function is therefore
- *        a skeleton version of addCosmics(), where cosmics are generated but further
- *        ignored.
- *
- * \param beginExposureNr: fast forward from 0 to beginExposureNr-1
- * \param exposureTime: Exposure time [s].
- */
-void Detector::fastForwardCosmicsGeneratorToExposure(int beginExposureNr, float exposureTime)
-{
-    cosmicHitRateDistribution = poisson_distribution<long>(cosmicHitRate);
-    cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsPixelMap - 1);
-    cosmicEntryAngleDistribution = uniform_real_distribution<double>(0, 2 * PI);
-    cosmicTrailLengthDistribution = uniform_real_distribution<double>(cosmicTrailLength[0], cosmicTrailLength[1]);
-    cosmicIntensityDistribution = uniform_real_distribution<double>(cosmicIntensity[0], cosmicIntensity[1]);
-
-    if(includeCosmicsInSubField | includeCosmicsInSmearingMap | includeCosmicsInBiasMap)
-    {
-        int dummyNumOfCosmics;
-        double dummy;
-
-        for(unsigned int n = 0; n < beginExposureNr; n++)
-        {
-            // Pixel map
-
-            cosmicEntryRowDistribution = uniform_real_distribution<double>(0, numRowsPixelMap - 1);
-            dummyNumOfCosmics = cosmicHitRateDistribution(cosmicHitRateGenerator) * exposureTime * (numRowsPixelMap * pixelSize / 10000.0) * (numColumnsPixelMap * pixelSize / 10000.0);
-
-            for(unsigned int cosmicHit = 0; cosmicHit < dummyNumOfCosmics; cosmicHit++)
-            {
-                dummy = cosmicEntryRowDistribution(cosmicEntryRowGenerator);
-                dummy = cosmicEntryColumnDistribution(cosmicEntryColumnGenerator);
-                dummy = cosmicEntryAngleDistribution(cosmicEntryAngleGenerator);
-                dummy = cosmicTrailLengthDistribution(cosmicTrailLengthGenerator);
-                dummy = cosmicIntensityDistribution(cosmicIntensityGenerator);
-            }
-
-            // Bias map
-
-            cosmicEntryRowDistribution = uniform_real_distribution<double>(0, numRowsBiasMap - 1);
-            dummyNumOfCosmics = cosmicHitRateDistribution(cosmicHitRateGenerator) * exposureTime * (numRowsBiasMap * pixelSize / 10000.0) * (numColumnsPixelMap * pixelSize / 10000.0);
-
-            for(unsigned int cosmicHit = 0; cosmicHit < dummyNumOfCosmics; cosmicHit++)
-            {
-                dummy = cosmicEntryRowDistribution(cosmicEntryRowGenerator);
-                dummy = cosmicEntryColumnDistribution(cosmicEntryColumnGenerator);
-                dummy = cosmicEntryAngleDistribution(cosmicEntryAngleGenerator);
-                dummy = cosmicTrailLengthDistribution(cosmicTrailLengthGenerator);
-                dummy = cosmicIntensityDistribution(cosmicIntensityGenerator);
-            }
-
-            // Smearing map
-
-            cosmicEntryRowDistribution = uniform_real_distribution<double>(0, numRowsBiasMap - 1);
-            dummyNumOfCosmics = cosmicHitRateDistribution(cosmicHitRateGenerator) * exposureTime * (numRowsBiasMap * pixelSize / 10000.0) * (numColumnsPixelMap * pixelSize / 10000.0);
-
-            for(unsigned int cosmicHit = 0; cosmicHit < dummyNumOfCosmics; cosmicHit++)
-            {
-                dummy = cosmicEntryRowDistribution(cosmicEntryRowGenerator);
-                dummy = cosmicEntryColumnDistribution(cosmicEntryColumnGenerator);
-                dummy = cosmicEntryAngleDistribution(cosmicEntryAngleGenerator);
-                dummy = cosmicTrailLengthDistribution(cosmicTrailLengthGenerator);
-                dummy = cosmicIntensityDistribution(cosmicIntensityGenerator);
-            }
-        }
-    }
 }
 
 

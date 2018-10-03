@@ -105,7 +105,7 @@ class Detector: public HDF5Writer
         virtual void readOut(float exposureTime);
         virtual void addPhotonNoise();
         virtual void addCosmics(float exposureTime);
-        virtual void addCosmics(float exposureTime, arma::Mat<float> &map, int numRows, int numColumns);
+        virtual void addCosmics(float exposureTime, arma::Mat<float> &map, int numRows, int numColumns, string area);
         virtual void applyFullWellSaturation();
         virtual void applyCTI();
         virtual void applyOpenShutterSmearing(float exposureTime);
@@ -127,24 +127,21 @@ class Detector: public HDF5Writer
         virtual void initHDF5Groups() override;
         void writePixelMapsToHDF5(int exposureNr);
 
-        void fastForwardDarkSignalGeneratorToExposure(int beginExposureNr, float exposureTime);
-        void fastForwardReadoutNoiseGeneratorToExposure(int beginExposureNr);
-        void fastForwardPhotonNoiseGeneratorToExposure(int beginExposureNr);
-        void fastForwardCosmicsGeneratorToExposure(int beginExposureNr, float exposureTime);
-
         virtual double getTemperature();
 
         arma::Mat<float> pixelMap;               // Pixel map, excl. edge pixels
         arma::Mat<float> smearingMap;            // Smearing map (i.e. over-scan strip)
-        arma::Mat<float> biasMap;                // Bias map (i.e. pre-scan strip)
+        arma::Mat<float> biasMapLeft;            // Bias map (i.e. pre-scan strip) for the left detector half
+        arma::Mat<float> biasMapRight;            // Bias map (i.e. pre-scan strip) for the right detector half
         arma::Mat<float> throughputMap;          // Throughput efficiency map, due to vignetting, particulate & molecular contamination, and quantum efficiency
 
         unsigned int numRows;                    // Nr of rows of the detector (= size in y-direction) including non-exposed ones [pixels]
         unsigned int numColumns;                 // Nr of columns of the detector (= size in x-direction = readout direction) [pixels]
         unsigned int numRowsPixelMap;            // Nr of rows in the subfield excl. edge pixels (= size the y-direction) [pixels]
         unsigned int numColumnsPixelMap;         // Nr of columns in the subfield excl. edge pixels (= size in the x-direction = readout direction) [pixels]
-        unsigned int numRowsSmearingMap;         // Nr of rows in the smearing overscan strip [pixels]
-        unsigned int numRowsBiasMap;             // Nr of rows in the bias prescan strip [pixels]
+        unsigned int numRowsSmearingMap;         // Nr of rows in the smearing over-scan strip [pixels]
+        unsigned int numRowsBiasMap;             // Nr of rows in the bias pre-scan strip [pixels]
+        unsigned int numColumnsBiasMap;          // Nr of columns in the bias pre-scan strip [pixels]
 
         unsigned int firstRowExposed;            // Index of the first row that is exposed to light (different for the Fast and Normal camera's) [pixels]
 
@@ -232,6 +229,7 @@ class Detector: public HDF5Writer
         mt19937 cosmicEntryAngleGenerator;
         mt19937 cosmicTrailLengthGenerator;
         mt19937 cosmicIntensityGenerator;
+        mt19937 decimalNumCosmicHitsGenerator;
 
         normal_distribution<double> darkSignalDistribution;
         normal_distribution<double> darkNoiseDistribution;
@@ -243,6 +241,7 @@ class Detector: public HDF5Writer
         uniform_real_distribution<double> cosmicEntryAngleDistribution;
         uniform_real_distribution<double> cosmicTrailLengthDistribution;
         uniform_real_distribution<double> cosmicIntensityDistribution;
+        uniform_real_distribution<double> decimalNumCosmicHitsDistribution;
  
         Camera &camera;
         FrontEndElectronics *frontEndElectronics;

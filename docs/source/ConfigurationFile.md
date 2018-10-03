@@ -170,6 +170,9 @@ Sky:
 	IncludeVariableSources:      no
     	VariableSourceList:          inputfiles/varsource.txt
 	IncludeCosmics:              yes
+	IncludeCosmicsInSubField:        yes
+       IncludeCosmicsInSmearingMap:     yes
+       IncludeCosmicsInBiasMap:         yes    
 	Cosmics:
 		CosmicHitRate:                      10
 		TrailLength:                   [0, 15]
@@ -183,7 +186,7 @@ Sky:
 ### <a name="skyBackground"></a>SkyBackground
 <i>Allowed values:</i> < 0 for automatic calculation, ≥ 0 to use the input value
 
-In case a positive value is given, the sky background (zodiacal + galactic), is set to the given value, expressed in photons \f$ \cdot \f$ s<sup>-1</sup> \f$ \cdot \f$ pixel<sup>-1</sup>.
+In case a positive value is given, the sky background (zodiacal + galactic), is set to the given value, expressed in photons \f$ \cdot \f$ s<sup>-1</sup> \f$ \cdot \f$ pixel<sup>-1</sup>.  Note that this value has not been multiplied with the tranmission efficiency yet.
 
 In case a negative value is given, the sky background is computed automatically from tabular values, interpolated to the central coordinates of the sub-field. A constant sky background is assumed for the whole sub-field. Note that for some regions in the sky the automatic computation of the sky background may fail due to the lack of tabulated values. In that case you can set the sky background manually.
 
@@ -202,11 +205,27 @@ Path to the file, relative to the [project location](#projectLocation), indicati
 
 
 
-
-### <a name="inclCosmics"></a>IncludeCosmics
+### <a name="inclCosmicsInSubField"></a>IncludeCosmicsInSubField
 <i>Allowed values:</i> "yes" and "no"
 
-Indicates whether or not cosmics must be added (to the pixel, bias register, and smearing map).
+Indicates whether or not cosmics must be added to the pixel map.
+
+
+
+
+### <a name="inclCosmicsInBiasMap"></a>IncludeCosmicsInBiasMap
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not cosmics must be added to the bias register map.
+
+
+
+
+### <a name="inclCosmicsInSmearingMap"></a>IncludeCosmicsInSmearingMap
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not cosmics must be added to the smearing map.
+
 
 
 
@@ -1681,7 +1700,8 @@ SubField:
     ZeroPointColumn:             0
     NumColumns:                  10
     NumRows:                     10
-    NumBiasPrescanRows:          5
+    NumBiasPrescanRows:          10
+    NumBiasPrescanColumns:       5
     NumSmearingOverscanRows:     5
     SubPixels:                   4
 \endcode
@@ -1725,11 +1745,20 @@ Number of rows in the sub-field, expressed in pixels.
 
 
 
-
 ### <a name="numPreScanRows"></a>NumBiasPrescanRows
 <i>Allowed values:</i> ≥ 0
 
-Number of rows in the pre-scan strip (see Fig. 9), expressed in normal pixel units.   This strip is located at the bottom of the sub-field that is modelled in detail and contains the electronic offset and readout noise.
+Number of rows in the pre-scan strip (see Fig. 9), expressed in normal pixel units.  There are two such strips, on either side of the detector image, and they contain the electronic offset and readout noise of the adjacent detector half.
+
+This parameter is configurable (and not fixed to the number of rows in the detector or the sub-field), because we want (1) to avoid the bias maps to take up too much space in the output file and (2) be able to do accurate bias correction for the photometric reduction (thus want to avoid small noisy bias maps).
+
+
+
+
+### <a name="numPreScanColumns"></a>NumBiasPrescanColumns
+<i>Allowed values:</i> ≥ 0
+
+Number of columns in the pre-scan strip (see Fig. 9), expressed in normal pixel units.  There are two such strips, on either side of the detector image, and they contain the electronic offset and readout noise of the adjacent detector half.
 
 
 
@@ -1778,57 +1807,75 @@ RandomSeeds:
 
 
 
+
+
 ### ReadOutNoiseSeed
-<i>Allowed values:</i> > 0
+<i>Allowed values:</i> > 0 or -1
 
 Seed for the random-number generator used for the readout noise.
+
+In case a value of -1 is given as input, the computer time at the start of the simulation will be used instead.  That way, the fast-forward of the random generator when using Slurm is no longer needed (which is better for performance reasons).  The actual value that is used, will be written to the output HDF5 file.
 
 
 
 ### PhotonNoiseSeed
-<i>Allowed values:</i> > 0
+<i>Allowed values:</i> > 0 or -1
 
 Seed for the random-number generator used for the photon noise.
+
+In case a value of -1 is given as input, the computer time at the start of the simulation will be used instead.  That way, the fast-forward of the random generator when when chopping up the simulation in chunks (Slurm) is no longer needed (which is better for performance reasons).
 
 
 
 ### JitterSeed
-<i>Allowed values:</i> > 0
+<i>Allowed values:</i> > 0 or -1
 
 Seed for the random-number generator used for the jitter.
+
+In case a value of -1 is given as input, the computer time at the start of the simulation will be used instead.  That way, the fast-forward of the random generator when when chopping up the simulation in chunks (Slurm) is no longer needed (which is better for performance reasons).  The actual value that is used, will be written to the output HDF5 file.  To avoid jumps in the power spectrum when using auto-generated jitter values, it is advised to generate the jitter values for the whole simulation beforehand, write these values to a file, and reading in that file when simulating the different chunks.
 
 
 
 ### FlatFieldSeed
-<i>Allowed values:</i> > 0
+<i>Allowed values:</i> > 0 or -1
 
 Seed for the random-number generator used for the flatfield.
+
+In case a value of -1 is given as input, the computer time at the start of the simulation will be used instead.  That way, the fast-forward of the random generator when when chopping up the simulation in chunks (Slurm) is no longer needed (which is better for performance reasons).
 
 
 
 ### CTESeed
-<i>Allowed values:</i> > 0
+<i>Allowed values:</i> > 0 or -1
 
 Seed for the random-number generator used for the CTE.
+
+In case a value of -1 is given as input, the computer time at the start of the simulation will be used instead.  That way, the fast-forward of the random generator when when chopping up the simulation in chunks (Slurm) is no longer needed (which is better for performance reasons).
 
 
 
 ### DriftSeed
-<i>Allowed values:</i> > 0
+<i>Allowed values:</i> > 0 or -1
 
 Seed for the random number generator used for the drift.
 
+In case a value of -1 is given as input, the computer time at the start of the simulation will be used instead.  That way, the fast-forward of the random generator when when chopping up the simulation in chunks (Slurm) is no longer needed (which is better for performance reasons).  To avoid jumps in the power spectrum when using auto-generated drift values, it is advised to generate the drift values for the whole simulation beforehand, write these values to a file, and reading in that file when simulating the different chunks.
+
 
 ### CosmicSeed
-<i>Allowed values:</i> > 0
+<i>Allowed values:</i> > 0 or -1
 
 Seed for the random-number generators for the cosmics.
 
+In case a value of -1 is given as input, the computer time at the start of the simulation will be used instead.  That way, the fast-forward of the random generator when when chopping up the simulation in chunks (Slurm) is no longer needed (which is better for performance reasons).
+
 
 ### DarkSignalSeed
-<i>Allowed values:</i> > 0
+<i>Allowed values:</i> > 0 or -1
 
 Seed for the random-number generators for the dark signal.
+
+In case a value of -1 is given as input, the computer time at the start of the simulation will be used instead.  That way, the fast-forward of the random generator when when chopping up the simulation in chunks (Slurm) is no longer needed (which is better for performance reasons).
 
 ---
 

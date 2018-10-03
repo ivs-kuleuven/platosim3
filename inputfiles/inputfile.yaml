@@ -19,7 +19,7 @@ ObservingParameters:
 
 Sky:
 
-    SkyBackground:                   342.            # Stellar + zodiacal background level. Set negative to compute.     [phot/pix/s]
+    SkyBackground:                   342.            # Stellar + zodiacal background level (excl. transmission efficiency). Set negative to compute.     [phot/pix/s]
     IncludeVariableSources:          no              # Include time series of variable stars or not
     VariableSourceList:              inputfiles/varsource.txt  # Ascii file: Col 1: star ID, Col 2: path of time series file
     IncludeCosmicsInSubField:        yes             # Whether or not to include cosmics in the subfield on the CCD
@@ -158,8 +158,8 @@ CCD:
         Stability:                   -0.004          # [microV/e-/K]
         AllowedDifference:           15.0            # Difference in gain between both CCD halves [%]
     QuantumEfficiency:
-        MeanQuantumEfficiency:       0.5985           # Mean quantum efficiency
-        MeanAngleDependency:         1.01             # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE
+        MeanQuantumEfficiency:       0.5985          # Mean quantum efficiency
+        MeanAngleDependency:         1.01            # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE
     FullWellSaturation:              900000          # [e-/pixel]
     DigitalSaturation:               65535           # E.g. 16 bit [ADU/pixel]
     ReadoutNoise:                    38.7            # [e-/pixel]
@@ -214,19 +214,20 @@ SubField:
     NumColumns:                      100             # Number of columns, should be >= 8 [pixels]
     NumRows:                         100             # Number of rows,    should be >= 8 [pixels]
     NumBiasPrescanRows:              30              # Nr of rows of the prescan strip to determine the bias [pixels]
+    NumBiasPrescanColumns:           30              # Nr of columns of the prescan strip to determine the bias [pixels]
     NumSmearingOverscanRows:         30              # Nr of rows of the overscan strip to determine the smearing [pixels]
     SubPixels:                       8               # (Sqrt of) nr of subpixels per CCD pixel. Should be 2^n <= 128.
 
 
 RandomSeeds:
 
-    ReadOutNoiseSeed:                1424949740      # Unique positive integer 
-    PhotonNoiseSeed:                 1433320336      # Unique positive integer 
-    JitterSeed:                      1433320381      # Unique positive integer 
-    FlatFieldSeed:                   1425284070      # Unique positive integer 
-    DriftSeed:                       1433429158      # Unique positive integer 
-    CosmicSeed:                      1494750830      # Unique positive integer
-    DarkSignalSeed:                  1468838669      # Unique positive integer
+    ReadOutNoiseSeed:                1424949740      # Unique positive integer, or -1 to auto-set using clock 
+    PhotonNoiseSeed:                 1433320336      # Unique positive integer, or -1 to auto-set using clock
+    JitterSeed:                      1433320381      # Unique positive integer, or -1 to auto-set using clock
+    FlatFieldSeed:                   1425284070      # Unique positive integer, or -1 to auto-set using clock
+    DriftSeed:                       1433429158      # Unique positive integer, or -1 to auto-set using clock
+    CosmicSeed:                      1494750830      # Unique positive integer, or -1 to auto-set using clock
+    DarkSignalSeed:                  1468838669      # Unique positive integer, or -1 to auto-set using clock
 
 ControlHDF5Content:
     WriteSubPixelImages:             no              # Only use this for a limited number of exposures. Takes a lot of space! 

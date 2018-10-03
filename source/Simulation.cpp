@@ -45,6 +45,13 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     writeVersionInformationToHDF5();
 
+    // Set the random seeds of the simulation. Seeds are set in the input yaml file using long integers. 
+    // If they are set to -1, the following functions resets them using the system clock. This is useful 
+    // when the simulated time series is partitioned in segments so that each segment has a different
+    // seed. The seeds that are actually used are written to the HDF5 file.
+
+    setRandomSeeds(configParams);
+
     // Configure the Simulation object using the configuration parameters file
 
     configure(configParams);
@@ -628,6 +635,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addInteger("NumColumns");
     addInteger("NumRows");
     addInteger("NumBiasPrescanRows");
+    addInteger("NumBiasPrescanColumns");
     addInteger("NumSmearingOverscanRows");
     addInteger("SubPixels");
 
@@ -661,5 +669,38 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addIntegerVector("FirstRowForNormalCamera");
     addIntegerVector("FirstRowForFastCamera");
 
-
 }
+
+
+
+
+
+
+/**
+ * @brief Set the random seeds of the simulation. 
+ * 
+ * If the user set a random seed to -1, use the system's clock to set it. This is useful
+ * to simulate time series that were partitioned in several segments, so that each 
+ * segment has a different random seed.
+ * 
+ * @param configParams 
+ * 
+ * @return configParams will have adapted seeds if they were set to -1.
+ */
+
+void Simulation::setRandomSeeds(ConfigurationParameters &configParams)
+{
+    vector<string> seedNames = configParams.getKeys("RandomSeeds");
+
+    for (unsigned int n = 0; n < seedNames.size(); n++)
+    {
+        const string seedPath = "RandomSeeds/" + seedNames[n];
+        long originalSeed = configParams.getLong(seedPath);
+        if (originalSeed == -1)
+        {
+            long newSeed = long(std::time(nullptr) + n * 11111);
+            configParams.setParameter(seedPath, to_string(newSeed));
+        }
+    }
+}
+
