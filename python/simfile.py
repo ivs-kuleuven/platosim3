@@ -158,7 +158,12 @@ class SimFile (object):
         # Check if the smearing map is in the file. If not: complain, if yes: copy the contents into a numpy array.
 
         if smearingMapName not in self.hdf5file["SmearingMaps"].keys():
-            print("Error: SimfFile.getSmearingMap(): {0} not in hdf5 file".format(smearingMapName))
+            
+            readoutMode = self["CCD/ReadoutMode/ReadoutMode"]
+            if(readoutMode == "Partial"):
+                print("Warning: No smearing map created in case of partial readout")
+            else:
+                print("Error: SimfFile.getSmearingMap(): {0} not in hdf5 file".format(smearingMapName))
             return
         else:
             dataset = self.hdf5file["SmearingMaps"][smearingMapName]
