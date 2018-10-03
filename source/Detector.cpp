@@ -2513,7 +2513,7 @@ void Detector::initHDF5Groups()
 
 void Detector::writePixelMapsToHDF5(int exposureNr)
 {
-    // Compose the image name
+	// Compose the image name
 
     stringstream myStream;
     myStream << "image" << setfill('0') << setw(6) << exposureNr;
@@ -2523,19 +2523,23 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
 
     hdf5File.writeArray("/Images", imageName, pixelMap);
 
-    // Clear the string stream and compose the smearing map name
+    if(numRowsSmearingMap != 0)
+    {
+    	// Clear the string stream and compose the smearing map name
 
-    myStream.str(string());      // insert empty string
-    myStream.clear();            // clear eof bit
+    	myStream.str(string());      // insert empty string
+    	myStream.clear();            // clear eof bit
 
-    myStream << "smearingMap" << setfill('0') << setw(6) << exposureNr;
-    string smearingMapName = myStream.str();
+    	myStream << "smearingMap" << setfill('0') << setw(6) << exposureNr;
+    	string smearingMapName = myStream.str();
 
-    // Add the smearing map to the "SmearingMaps" group
 
-    hdf5File.writeArray("/SmearingMaps", smearingMapName, smearingMap);
+    	// Add the smearing map to the "SmearingMaps" group
 
-    // Clear the string stream and compose the bias map name
+    	hdf5File.writeArray("/SmearingMaps", smearingMapName, smearingMap);
+    }
+
+   // Clear the string stream and compose the bias map name
 
     myStream.str(string());      // insert empty string
     myStream.clear();            // clear eof bit
