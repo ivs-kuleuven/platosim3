@@ -218,18 +218,19 @@ void Simulation::configure(ConfigurationParameters &configParams)
 pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &configParams)
 {
 
-	int numRows, numColumns, firstRowExposed, numColumnsBiasMap,
-			numRowsSmearingMap;
+	int numRows, numColumns, firstRowExposed, numColumnsBiasMap,numRowsSmearingMap;
 	bool isFastCamera = configParams.getString("Telescope/GroupID") == "Fast";
 	string ccdPosition = configParams.getString("CCD/Position");
 
-	if (ccdPosition == "Custom") {
+	if (ccdPosition == "Custom")
+	{
 		numRows = configParams.getInteger("CCD/NumRows");            // [pixels]
 		numColumns = configParams.getInteger("CCD/NumColumns");      // [pixels]
 		firstRowExposed = configParams.getInteger("CCD/FirstRowExposed"); // [pixels]
 	}
 
-	else {
+	else
+	{
 		int idx = stoi(ccdPosition) - 1; // Positions are named [1, 2, 3, 4] while the index into vector starts at 0
 
 		numRows = configParams.getIntegerAt("CCDPositions/NumRows", idx);
@@ -238,29 +239,22 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
 		isFastCamera = configParams.getString("Telescope/GroupID") == "Fast";
 
 		if (isFastCamera)
-			firstRowExposed = configParams.getIntegerAt(
-					"CCDPositions/FirstRowForFastCamera", idx);
+			firstRowExposed = configParams.getIntegerAt("CCDPositions/FirstRowForFastCamera", idx);
 
 		else
-			firstRowExposed = configParams.getIntegerAt(
-					"CCDPositions/FirstRowForNormalCamera", idx);
+			firstRowExposed = configParams.getIntegerAt("CCDPositions/FirstRowForNormalCamera", idx);
 	}
 
 	string readoutMode = configParams.getString("CCD/ReadoutMode/ReadoutMode");
 
-	double serialTransferTime = configParams.getDouble("CCD/SerialTransferTime")
-			* 1E-9;			  // [ns] -> [s]
-	double parallelTransferTime = configParams.getDouble(
-			"CCD/ParallelTransferTime") * 1E-6;		  // [µs] -> [s]
-	double parallelTransferTimeFast = configParams.getDouble(
-			"CCD/ParallelTransferTimeFast") * 1E-6;  // [µs] -> [s]
-
+	double serialTransferTime = configParams.getDouble("CCD/SerialTransferTime") * 1E-9;			  // [ns] -> [s]
+	double parallelTransferTime = configParams.getDouble("CCD/ParallelTransferTime") * 1E-6;		  // [µs] -> [s]
+	double parallelTransferTimeFast = configParams.getDouble("CCD/ParallelTransferTimeFast") * 1E-6;  // [µs] -> [s]
 
 
 
 	int numRowsPartialReadout;
 	double readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure;
-
 
 
 
@@ -280,6 +274,8 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
 	// The rest of the image area will be dumped
 
 	int numRowsReadout, numRowsDump;
+
+
 
 	// -----------
 	// Fast camera
@@ -318,6 +314,8 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
 		readoutTimeDuringNextExposure = numRowsDump * parallelTransferTimeFast
 				+ numRowsReadout * (parallelTransferTime + numColumnsReadout * serialTransferTime);
 	}
+
+
 
 	// -------------
 	// Normal camera
