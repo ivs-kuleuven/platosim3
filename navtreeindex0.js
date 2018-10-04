@@ -10,6 +10,7 @@ var NAVTREEINDEX0 =
 "InstallUsersDevelopers.html":[0],
 "InstallViaConda.html":[0,0,1],
 "IssueTracking.html":[2],
+"MigrationTool.html":[1,1,2],
 "OutputFileDescription.html":[1,4],
 "ReqsInstallUpdate.html":[0,1,0],
 "ReqsInstallViaConda.html":[0,0,0],
