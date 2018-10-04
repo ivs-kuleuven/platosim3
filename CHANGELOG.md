@@ -11,6 +11,8 @@
 
 * Inconsistency in star position output (GitHub issue #294)
 
+* Backward compatibility to the configuration files? (GitHub issue #292)
+
 
 <!-- 3.3.4 -->
 <!-- ***** -->
