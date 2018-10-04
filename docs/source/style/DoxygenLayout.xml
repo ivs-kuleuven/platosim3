@@ -30,6 +30,7 @@
       <tab type="usergroup" visible="yes" url="@ref InputFileDescription" title="Input files">
       	<tab type="user" visible="yes" url="@ref ConfigurationParameters" title="Configuration Parameters"/>
       	<tab type="user" visible="yes" url="@ref SupplementaryFiles" title="Supplementary Files"/>
+      	<tab type="user" visible="yes" url="@ref MigrationTool" title="Migration Tool"/>
       </tab>
       
       <tab type="usergroup" visible="yes" url="@ref Simulating" title="Running Simulations">

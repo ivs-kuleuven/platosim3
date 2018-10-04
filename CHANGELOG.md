@@ -10,6 +10,8 @@
 * Bias register map expressed as additional columns (GitHub issue #290)
 
 * Implement partial readout (GitHub issue #285)
+* Inconsistency in star position output (GitHub issue #294)
+* Backward compatibility to the configuration files? (GitHub issue #292)
 
 
 <!-- 3.3.4 -->
