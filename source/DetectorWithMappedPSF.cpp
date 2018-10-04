@@ -474,14 +474,16 @@ tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yF
 
     double pixRow, pixColumn;
     tie(pixRow, pixColumn) = focalPlaneToPixelCoordinates(xFP, yFP);
+    pixRow -= subFieldZeroPointRow;
+    pixColumn -= subFieldZeroPointColumn;
 
     // Sub-field coordinates, taking into account the edge pixels 
     // (subpixRow, subpixColumn) are the indices of the star in the subpixelMap. So they are not 
     // sub-pixel coordinates in the CCD frame, but in the subfield reference frame.
     // (no longer rounded since the implementation of charge diffusion and jitter smoothing)
 
-    const double subpixColumn = (pixColumn - subFieldZeroPointColumn + numEdgePixels) * numSubPixelsPerPixel;
-    const double subpixRow    = (pixRow    - subFieldZeroPointRow    + numEdgePixels) * numSubPixelsPerPixel;
+    const double subpixColumn = (pixColumn + numEdgePixels) * numSubPixelsPerPixel;
+    const double subpixRow    = (pixRow + numEdgePixels) * numSubPixelsPerPixel;
 
     // Add the flux to the sub-pixel map
 
