@@ -500,11 +500,11 @@ tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yF
     			subPixelMap((int) floor(subpixRow), (int) floor(subpixColumn)) += flux;
     		}
 
-        return make_tuple(true, pixRow, pixColumn);
+        return make_tuple(true, pixRow - subFieldZeroPointRow, pixColumn - subFieldZeroPointColumn);
     }
     else
     {
-        return make_tuple(false, pixRow, pixColumn);
+        return make_tuple(false, pixRow - subFieldZeroPointRow, pixColumn - subFieldZeroPointColumn);
     }
 }
 

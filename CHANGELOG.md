@@ -9,6 +9,8 @@
 
 * Bias register map expressed as additional columns (GitHub issue #290)
 
+* Inconsistency in star position output (GitHub issue #294)
+
 
 <!-- 3.3.4 -->
 <!-- ***** -->
