@@ -6,14 +6,16 @@
  * \brief Constructor
  * 
  * \param configParams The configuration parameters from the input parameters file
+ *
+ * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start
  */
 
-ThermoElasticDriftFromRedNoise::ThermoElasticDriftFromRedNoise(ConfigurationParameters &configParams)
+ThermoElasticDriftFromRedNoise::ThermoElasticDriftFromRedNoise(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure)
 : lastYaw(0.0), lastPitch(0.0), lastRoll(0.0), internalTime(0.0)
 {
     // Set the configuration parameters
 
-    configure(configParams);
+    configure(configParams, readoutTimeBeforeNextExposure);
 
     // Seed the random generator. The seed should have been set by configure().
     // Initialise the standard normal distribution with mu=0, and sigma=1.0.
@@ -50,9 +52,11 @@ ThermoElasticDriftFromRedNoise::~ThermoElasticDriftFromRedNoise()
  * \brief Configure this object using the parameters from the input parameters file
  * 
  * \param configParams  The configuration parameters
+ *
+ * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start
  */
 
-void ThermoElasticDriftFromRedNoise::configure(ConfigurationParameters &configParams)
+void ThermoElasticDriftFromRedNoise::configure(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure)
 {
     // Note that the inputfile lists the drift RMS values in [arcsec]
 
@@ -73,9 +77,8 @@ void ThermoElasticDriftFromRedNoise::configure(ConfigurationParameters &configPa
     
     int beginExposureNr = configParams.getInteger("ObservingParameters/BeginExposureNr");
     double exposureTime = configParams.getDouble("ObservingParameters/ExposureTime");
-    double readoutTime  = configParams.getDouble("CCD/ReadoutTime");
 
-    internalTime = beginExposureNr * (exposureTime + readoutTime);
+    internalTime = beginExposureNr * (exposureTime + readoutTimeBeforeNextExposure);
 }
 
 

@@ -7,13 +7,15 @@
  * \brief Constructor
  * 
  * \param configParams The configuration parameters from the input parameters file
+ *
+ * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start
  */
 
-ThermoElasticDriftFromFile::ThermoElasticDriftFromFile(ConfigurationParameters &configParams)
+ThermoElasticDriftFromFile::ThermoElasticDriftFromFile(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure)
 {
     // Set the configuration parameters
 
-    configure(configParams);
+    configure(configParams, readoutTimeBeforeNextExposure);
 
     // Open the thermo-elastic drift file, and read time yaw, pitch, roll time series.
     // The time is assumed to be in [s], pitch, yaw, and roll in [arcsec].
@@ -141,22 +143,23 @@ ThermoElasticDriftFromFile::~ThermoElasticDriftFromFile()
  * \brief Configure this object using the parameters from the input parameters file
  * 
  * \param configParams  The configuration parameters
+ *
+ * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start
  */
 
-void ThermoElasticDriftFromFile::configure(ConfigurationParameters &configParams)
+void ThermoElasticDriftFromFile::configure(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure)
 {
     pathToDriftFile = configParams.getAbsoluteFilename("Telescope/DriftFileName");
     int numExposures      = configParams.getInteger("ObservingParameters/NumExposures");
     int beginExposureNr   = configParams.getInteger("ObservingParameters/BeginExposureNr");
     double exposureTime   = configParams.getDouble("ObservingParameters/ExposureTime");
-    double readoutTime    = configParams.getDouble("CCD/ReadoutTime");
 
     //  Determine from when to when the simulation runs. Only for this time interval
     //  we need to read the drift file into memory. This saves time when the drift
     //  file is large but the simulation is short.
     
-    beginTime = beginExposureNr * (exposureTime + readoutTime);
-    endTime   = (beginExposureNr + numExposures) * (exposureTime + readoutTime); 
+    beginTime = beginExposureNr * (exposureTime + readoutTimeBeforeNextExposure);
+    endTime   = (beginExposureNr + numExposures) * (exposureTime + readoutTimeBeforeNextExposure);
 }
 
 

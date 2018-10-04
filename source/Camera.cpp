@@ -499,7 +499,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
         // The time at the middle of the time series is the time when the Sun is defined to be 180 degrees away from platform pointing
 
-        double timeMiddle = numExposures * (exposureTime + detector.getReadoutTime()) / 2.0;
+        double timeMiddle = numExposures * (exposureTime + detector.getReadoutTimeBeforeNextExposure()) / 2.0;
 
         // Get the apparent position of the stars, i.e. apply the differential aberration correction to
         // all the star positions in this starCatalog.
