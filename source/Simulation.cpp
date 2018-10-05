@@ -213,8 +213,22 @@ void Simulation::configure(ConfigurationParameters &configParams)
  *        depending on the camera type (normal / fast) and the readout mode
  *        (nominal / partial readout).
  *
+ * For the normal cameras the entire CCD is read out (with open shutter) after 
+ * the exposure during a time interval called 'readoutTimeBeforeNextExposure'. 
+ * Only after this readout, a new exposure is started.
+ * For the fast camera, half of the CCD is first quickly frame-transferred, 
+ * after which it is read out slowly. In this case a new exposure is already
+ * started after the quick frame-transfer, and starts thus during the slow readout 
+ * of the previous exposure. 
+ * Hence the need for two parameters 'readoutTimeBeforeNextExposure' and
+ * 'readoutTimeDuringNextExposure'.
+ *
  * \param configParams Contains all configuration parameters from the input file
+ *
+ * \return (readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure)
+ *
  */
+
 pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &configParams)
 {
 
