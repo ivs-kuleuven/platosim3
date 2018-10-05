@@ -65,7 +65,7 @@ class Detector: public HDF5Writer
 {
     public:
 
-        Detector(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator);
+        Detector(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure);
         virtual ~Detector();
 
         virtual double takeExposure(int exposureNr, double startTime, double exposureTime);
@@ -80,13 +80,14 @@ class Detector: public HDF5Writer
 
         double getSolidAngleOfOnePixel(double plateScale);
         double getOrientationAngle();
-        double getReadoutTime();
 
         virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) = 0;
         virtual void addFlux(double flux) = 0;
 
 
         bool isInSubfield(double xFPmm, double yFPmm);
+
+        double getReadoutTimeBeforeNextExposure();
 
 
     protected:
@@ -131,15 +132,17 @@ class Detector: public HDF5Writer
 
         arma::Mat<float> pixelMap;               // Pixel map, excl. edge pixels
         arma::Mat<float> smearingMap;            // Smearing map (i.e. over-scan strip)
-        arma::Mat<float> biasMap;                // Bias map (i.e. pre-scan strip)
+        arma::Mat<float> biasMapLeft;            // Bias map (i.e. pre-scan strip) for the left detector half
+        arma::Mat<float> biasMapRight;            // Bias map (i.e. pre-scan strip) for the right detector half
         arma::Mat<float> throughputMap;          // Throughput efficiency map, due to vignetting, particulate & molecular contamination, and quantum efficiency
 
         unsigned int numRows;                    // Nr of rows of the detector (= size in y-direction) including non-exposed ones [pixels]
         unsigned int numColumns;                 // Nr of columns of the detector (= size in x-direction = readout direction) [pixels]
         unsigned int numRowsPixelMap;            // Nr of rows in the subfield excl. edge pixels (= size the y-direction) [pixels]
         unsigned int numColumnsPixelMap;         // Nr of columns in the subfield excl. edge pixels (= size in the x-direction = readout direction) [pixels]
-        unsigned int numRowsSmearingMap;         // Nr of rows in the smearing overscan strip [pixels]
-        unsigned int numRowsBiasMap;             // Nr of rows in the bias prescan strip [pixels]
+        unsigned int numRowsSmearingMap;         // Nr of rows in the smearing over-scan strip [pixels]
+        unsigned int numRowsBiasMap;             // Nr of rows in the bias pre-scan strip [pixels]
+        unsigned int numColumnsBiasMap;          // Nr of columns in the bias pre-scan strip [pixels]
 
         unsigned int firstRowExposed;            // Index of the first row that is exposed to light (different for the Fast and Normal camera's) [pixels]
 
@@ -171,7 +174,12 @@ class Detector: public HDF5Writer
         double molecularContaminationEfficiency;    // Efficiency of molecular contamination (in [0,1])
         double meanQE;							 // Mean QE (over all wavelengths)
         double meanAngleDependencyQE;			 // Mean (over all pixels) of the relative efficiency due to the angle dependency of the QE
-        double readoutTime;                      // Readout time [s]
+        double serialTransferTime;				 // Time to shift the content of the readout register by one pixel [s]
+        double parallelTransferTime;			 // Time to shift the charges one row down in case the readout register will be read out [s]
+        double parallelTransferTimeFast;	     // Time to shift the charges one row down in case the readout register will not be read out [s]
+        bool isFastCamera;                       // Indicates whether or not the camera is a fast camera
+        int firstRowPartialReadout;			     // First row that will be read out by the FEE in partial readout mode
+        int numRowsPartialReadout;			     // Number of rows that will be read out by the FEE, starting at firstRowReadout, in partial readout mode
         double readoutNoise;                     // Mean readout noise [electrons]
         double refValueGainLeft;                 // Reference value for the gain on the ACD reading the left-hand side of the detector [µV/e-]
         double refValueGainRight;                // Reference value for the gain on the ACD reading the right-hand side of the detector [µV/e-]
@@ -191,6 +199,10 @@ class Detector: public HDF5Writer
         vector<double> trapDensity;              // For each trap species: the trap density [traps/pixel]
         vector<double> trapCaptureCrossSection;  // For each trap species: the trap capture cross section [m^2]
         vector<double> releaseTime;              // For each trap species: the electron release time [s]
+
+        string readoutMode;                      // Readout mode (Nominal / Partial)
+        double readoutTimeBeforeNextExposure;    // Duration of the readout before the next exposure can start [s]
+        double readoutTimeDuringNextExposure;    // Duration of the readout when the next exposure has already started [s]
 
         bool includeBFE;						 // Whether or not to include the BFE
         bool includeDarkSignal;	      			 // Whether or not to include dark

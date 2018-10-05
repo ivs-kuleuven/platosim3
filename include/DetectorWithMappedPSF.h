@@ -18,7 +18,7 @@ class DetectorWithMappedPSF: public Detector
 {
     public:
 
-        DetectorWithMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator);
+        DetectorWithMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure);
         virtual ~DetectorWithMappedPSF();
 
         virtual double takeExposure(int exposureNr, double startTime, double exposureTime) override;

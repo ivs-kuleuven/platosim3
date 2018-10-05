@@ -56,6 +56,9 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     configure(configParams);
 
+    double readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure;
+    tie(readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure) = configureReadoutTime(configParams);
+
     // Depending on what the user requested, define the proper platform jitter generator
 
     if (!useJitter)
@@ -66,11 +69,11 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     {
         if (useJitterFromFile)
         {
-            jitterGenerator = new JitterFromFile(configParams);
+            jitterGenerator = new JitterFromFile(configParams, readoutTimeBeforeNextExposure);
         }
         else
         {
-            jitterGenerator = new JitterFromRedNoise(configParams);
+            jitterGenerator = new JitterFromRedNoise(configParams, readoutTimeBeforeNextExposure);
         }
     }
 
@@ -84,11 +87,11 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     {
         if (useDriftFromFile)
         {
-            driftGenerator = new ThermoElasticDriftFromFile(configParams);
+            driftGenerator = new ThermoElasticDriftFromFile(configParams, readoutTimeBeforeNextExposure);
         }
         else
         {
-            driftGenerator = new ThermoElasticDriftFromRedNoise(configParams);
+            driftGenerator = new ThermoElasticDriftFromRedNoise(configParams, readoutTimeBeforeNextExposure);
         }
     }
 
@@ -121,15 +124,15 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     if ((psfModel == "MappedGaussian") || (psfModel == "MappedFromFile"))
     {
-        detector = new DetectorWithMappedPSF(configParams, hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator);
+        detector = new DetectorWithMappedPSF(configParams, hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
     }
     else if (psfModel == "AnalyticGaussian")
     {
-        detector = new DetectorWithAnalyticGaussianPSF(configParams, hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator);
+        detector = new DetectorWithAnalyticGaussianPSF(configParams, hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
     }
     else if (psfModel == "AnalyticNonGaussian")
     {
-        detector = new DetectorWithAnalyticNonGaussianPSF(configParams, hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator);
+        detector = new DetectorWithAnalyticNonGaussianPSF(configParams, hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
     }
     else
     {
@@ -141,7 +144,6 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     // Write the input parameters to the output HDF5 file
 
     writeInputParametersToHDF5(configParams);
-
 }
 
 
@@ -198,9 +200,169 @@ void Simulation::configure(ConfigurationParameters &configParams)
     useFeeNominalTemperature = configParams.getString("FEE/Temperature") == "Nominal";
     useDetectorTemperatureFromFile = configParams.getString("CCD/Temperature") == "FromFile";
     useDetectorNominalTemperature = configParams.getString("CCD/Temperature") == "Nominal";
-    readoutTime       = configParams.getDouble("CCD/ReadoutTime"); 
 }
 
+
+
+
+
+/**
+ * \brief Determines the duration of
+ *        - the readout that takes place before the next exposure starts,
+ *        - and the readout that takes place during the next exposure,
+ *        depending on the camera type (normal / fast) and the readout mode
+ *        (nominal / partial readout).
+ *
+ * \param configParams Contains all configuration parameters from the input file
+ */
+pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &configParams)
+{
+
+	int numRows, numColumns, firstRowExposed, numColumnsBiasMap,numRowsSmearingMap;
+	bool isFastCamera = configParams.getString("Telescope/GroupID") == "Fast";
+	string ccdPosition = configParams.getString("CCD/Position");
+
+	if (ccdPosition == "Custom")
+	{
+		numRows = configParams.getInteger("CCD/NumRows");            // [pixels]
+		numColumns = configParams.getInteger("CCD/NumColumns");      // [pixels]
+		firstRowExposed = configParams.getInteger("CCD/FirstRowExposed"); // [pixels]
+	}
+
+	else
+	{
+		int idx = stoi(ccdPosition) - 1; // Positions are named [1, 2, 3, 4] while the index into vector starts at 0
+
+		numRows = configParams.getIntegerAt("CCDPositions/NumRows", idx);
+		numColumns = configParams.getIntegerAt("CCDPositions/NumColumns", idx);
+
+		isFastCamera = configParams.getString("Telescope/GroupID") == "Fast";
+
+		if (isFastCamera)
+			firstRowExposed = configParams.getIntegerAt("CCDPositions/FirstRowForFastCamera", idx);
+
+		else
+			firstRowExposed = configParams.getIntegerAt("CCDPositions/FirstRowForNormalCamera", idx);
+	}
+
+	string readoutMode = configParams.getString("CCD/ReadoutMode/ReadoutMode");
+
+	double serialTransferTime = configParams.getDouble("CCD/SerialTransferTime") * 1E-9;			  // [ns] -> [s]
+	double parallelTransferTime = configParams.getDouble("CCD/ParallelTransferTime") * 1E-6;		  // [µs] -> [s]
+	double parallelTransferTimeFast = configParams.getDouble("CCD/ParallelTransferTimeFast") * 1E-6;  // [µs] -> [s]
+
+
+
+	int numRowsPartialReadout;
+	double readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure;
+
+
+
+	// Both detector halves are read out simultaneously
+	// -> columns read out by the FEE:
+	// 		- half of the CCD
+	// 		- serial pre-scan
+	// 		- (serial over-scan)
+
+	int numColumnsReadout = numColumns / 2 + numColumnsBiasMap; // + numRowsSerialOverScan
+
+	// How many rows will be actually read out by the FEE?
+	// 	- nominal mode: image area + parallel over-scan
+	//      normal camera: image area = whole CCD
+	//      fast camera: image area = lower half of the CCD
+	//	- partial readout: configurable
+	// The rest of the image area will be dumped
+
+	int numRowsReadout, numRowsDump;
+
+
+
+	// -----------
+	// Fast camera
+	// -----------
+
+	if (isFastCamera) {
+
+		// Move the upper half of the CCD down to the lower half, row-by-row
+
+		int numRowsFrameTransfer = numRows - firstRowExposed;
+
+		readoutTimeBeforeNextExposure = numRowsFrameTransfer
+							* parallelTransferTimeFast;
+
+		// The actual readout of the lower half of the CCD (after frame transfer) is done
+		// while the next exposure has already started
+
+		// Nominal mode
+
+		if (readoutMode == "Nominal")
+		{
+			numRowsReadout = firstRowExposed + numRowsSmearingMap;
+			numRowsDump = 0;
+
+		}
+
+		// Partial readout
+
+		else if (readoutMode == "Partial")
+		{
+			numRowsReadout = numRowsPartialReadout;
+			numRowsDump = firstRowExposed - numRowsReadout;
+		}
+
+
+		readoutTimeDuringNextExposure = numRowsDump * parallelTransferTimeFast
+				+ numRowsReadout * (parallelTransferTime + numColumnsReadout * serialTransferTime);
+	}
+
+
+
+	// -------------
+	// Normal camera
+	// -------------
+
+	else
+	{
+
+		// Nominal mode (full-frame readout)
+
+		if (readoutMode == "Nominal")
+		{
+
+			// Rows read out by the FEE:
+			// 		- rows of image area
+			// 		- parallel over-scan
+
+			numRowsReadout = numRows + numRowsSmearingMap;
+
+			// No rows dumped
+
+			numRowsDump = 0;
+		}
+
+		// Partial readout
+
+		else if (readoutMode == "Partial") {
+
+			// Rows read out by the FEE: rows in the block (other rows in image area are dumped)
+			// Note: no parallel over-scan
+
+			numRowsReadout = numRowsPartialReadout;
+			numRowsDump = numRows - numRowsReadout;
+
+		}
+
+		readoutTimeBeforeNextExposure =
+				numRowsReadout
+						* (numColumnsReadout * serialTransferTime
+								+ parallelTransferTime)
+						+ numRowsDump * parallelTransferTimeFast;
+
+		readoutTimeDuringNextExposure = 0;
+	}
+
+	return make_pair(readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
+}
 
 
 
@@ -218,14 +380,14 @@ void Simulation::run()
 {
     // Update the internal clock
 
-    currentTime = beginExposureNr * (exposureTime + readoutTime);
+    currentTime = beginExposureNr * (exposureTime + readoutTimeBeforeNextExposure);
 
     // Loop over all exposures
 
     for (int n = beginExposureNr; n < beginExposureNr + numExposures; n++)
     {
         Log.info("Simulation: Starting exposure " + to_string(n) + " at time " + to_string(currentTime) );
-        
+
         currentTime = detector->takeExposure(n, currentTime, exposureTime);
     }
 
@@ -549,7 +711,9 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 	addLong("FullWellSaturation");
 	addInteger("DigitalSaturation");
 	addDouble("ReadoutNoise");
-    addDouble("ReadoutTime");
+    addDouble("SerialTransferTime");
+    addDouble("ParallelTransferTime");
+    addDouble("ParallelTransferTimeFast");
     addDouble("FlatfieldPtPNoise");
 	addDouble("NominalOperatingTemperature");
 	addString("Temperature");
@@ -571,6 +735,14 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("IncludeQuantisation");
     addBoolean("IncludeDigitalSaturation");
     // addBoolean("WriteSubPixelImagesToHDF5"); - Moved into ControlHDF5Content group below
+
+    subGroup = "CCD/ReadoutMode";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addString("ReadoutMode");
+    subGroup = "CCD/ReadoutMode/Partial";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addInteger("FirstRowReadout");
+    addInteger("NumRowsReadout");
 
 	subGroup = "CCD/Gain";
 	hdf5File.createGroup(parentGroup + "/" + subGroup);
@@ -635,6 +807,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addInteger("NumColumns");
     addInteger("NumRows");
     addInteger("NumBiasPrescanRows");
+    addInteger("NumBiasPrescanColumns");
     addInteger("NumSmearingOverscanRows");
     addInteger("SubPixels");
 

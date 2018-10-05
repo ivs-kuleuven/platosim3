@@ -1092,9 +1092,16 @@ CCD:
       		DSNU:                         10.0
     FullWellSaturation:          1000000        
     DigitalSaturation:           65535          
-    ReadoutNoise:                28             
-    ElectronicOffset:            100            
-    ReadoutTime:                 2              
+    ReadoutNoise:                28
+    SerialTransferTime:              340
+    ParallelTransferTime:            110
+    ParallelTransferTimeFast:        90
+    ReadoutMode:
+       ReadoutMode:                  Nominal
+       Partial:
+          FirstRowReadout:           0
+          NumRowsReadout:            4510
+    ElectronicOffset:            100 
     FlatfieldPtPNoise:           0.016      
     CTI:
     		Model:			 Simple
@@ -1419,6 +1426,30 @@ The gain of the front-end electronics and detector should be such that the [full
 Mean readout noise of the detector, expressed in e<sup>-</sup>.
 
 Readout noise occurs due to the imperfect nature of the CCD amplifiers. When the electrons are transferred to the amplifier, the induced voltage is measured. However, this measurement is not perfect, but gives a value which is on average too high by an amount of the readout noise, with the squareroot of the readout noise as standard deviation (we add the readout noise of the FEE and the CCD in quadrature).
+
+
+
+### <a name="serialTransferTime"></a>SerialTransferTime
+<i>Allowed values:</i> ≥ 0
+
+Time required to shift the content of the readout register over one pixel, towards the output node.  This is not only relevant for the image area but also for the serial pre-scan (i.e. bias register map) and the serial over-scan (which has not been implemented).
+
+
+
+### <a name="parallelTransferTime"></a>ParallelTransferTime
+<i>Allowed values:</i> ≥ 0
+
+Time required to shift the charges one row down (towards the readout register) in case the readout register will be read out by the FEE.
+
+The difference with [ParallelTransferTimeFast](#parallelTransferTimeFast) is due to two delay parameters recommended by Teledyne e2v for clock settling.  Settling times are to ensure one clock has reached its low level before another clock starts to rise.  It ensures good charge transfer, as without it you could cause charge to be lost.  This is particularly the case when dealing with the (parallel) transfer into the readout register, as the rise and fall times of the image clocks are a lot slower than those of the register clocks.
+
+
+
+### <a name="parallelTransferTimeFast"></a>ParallelTransferTimeFast
+<i>Allowed values:</i> ≥ 0
+
+Time required to shift the charges one row down (towards the readout register) in case the readout register will not be read out by the FEE.  In that case clock settling is not needed, hence the difference with [ParallelTransferTime](#parallelTransferTime).
+
        
        
         
@@ -1700,7 +1731,8 @@ SubField:
     ZeroPointColumn:             0
     NumColumns:                  10
     NumRows:                     10
-    NumBiasPrescanRows:          5
+    NumBiasPrescanRows:          10
+    NumBiasPrescanColumns:       5
     NumSmearingOverscanRows:     5
     SubPixels:                   4
 \endcode
@@ -1744,11 +1776,20 @@ Number of rows in the sub-field, expressed in pixels.
 
 
 
-
 ### <a name="numPreScanRows"></a>NumBiasPrescanRows
 <i>Allowed values:</i> ≥ 0
 
-Number of rows in the pre-scan strip (see Fig. 9), expressed in normal pixel units.   This strip is located at the bottom of the sub-field that is modelled in detail and contains the electronic offset and readout noise.
+Number of rows in the pre-scan strip (see Fig. 9), expressed in normal pixel units.  There are two such strips, on either side of the detector image, and they contain the electronic offset and readout noise of the adjacent detector half.
+
+This parameter is configurable (and not fixed to the number of rows in the detector or the sub-field), because we want (1) to avoid the bias maps to take up too much space in the output file and (2) be able to do accurate bias correction for the photometric reduction (thus want to avoid small noisy bias maps).
+
+
+
+
+### <a name="numPreScanColumns"></a>NumBiasPrescanColumns
+<i>Allowed values:</i> ≥ 0
+
+Number of columns in the pre-scan strip (see Fig. 9), expressed in normal pixel units.  There are two such strips, on either side of the detector image, and they contain the electronic offset and readout noise of the adjacent detector half.
 
 
 

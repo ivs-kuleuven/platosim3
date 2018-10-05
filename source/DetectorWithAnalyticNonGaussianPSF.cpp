@@ -25,10 +25,11 @@
  * \param configParam    Configuration parameters for the detector.
  * \param hdf5file       HFD5 file to write the detector images to.
  * \param camera         Camera to which to attach the detector.
+ * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start.
  */
 
-DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator)
-: Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator), sigma(nullptr)
+DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
+: Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure), sigma(nullptr)
 {
     // Parse the parameters from the configuration file.
 
@@ -311,7 +312,8 @@ void DetectorWithAnalyticNonGaussianPSF::generateFlatfieldMap()
 void DetectorWithAnalyticNonGaussianPSF::reset()
 {
     pixelMap.zeros();
-    biasMap.zeros();
+    biasMapLeft.zeros();
+    biasMapRight.zeros();
     smearingMap.zeros();
 }
 
@@ -369,7 +371,7 @@ double DetectorWithAnalyticNonGaussianPSF::takeExposure(int exposureNr, double s
 
     // Advance the internal clock
 
-    internalTime += exposureTime + readoutTime;
+    internalTime += exposureTime + readoutTimeBeforeNextExposure;
 
     return internalTime;
 }
