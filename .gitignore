@@ -59,3 +59,4 @@ log.txt
 .DS_Store*
 Icon?
 Thumbs.db
+Pipfile*
