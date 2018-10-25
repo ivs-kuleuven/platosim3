@@ -24,10 +24,11 @@
  * \param configParam    Configuration parameters for the detector.
  * \param hdf5file       HFD5 file to write the detector images to.
  * \param camera         Camera to which to attach the detector.
+ * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start.
  */
 
-DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator)
-: Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator), includeFlatfield(true), writeSubPixelImagesToHDF5(false)
+DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
+: Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure), includeFlatfield(true), writeSubPixelImagesToHDF5(false)
 {
     // Parse the parameters from the configuration file.
 
@@ -345,7 +346,7 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
 
     // Advance the internal clock
 
-    internalTime += exposureTime + readoutTime;
+    internalTime += exposureTime + readoutTimeBeforeNextExposure;
 
     return internalTime;
 }
@@ -474,14 +475,16 @@ tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yF
 
     double pixRow, pixColumn;
     tie(pixRow, pixColumn) = focalPlaneToPixelCoordinates(xFP, yFP);
+    pixRow -= subFieldZeroPointRow;
+    pixColumn -= subFieldZeroPointColumn;
 
     // Sub-field coordinates, taking into account the edge pixels 
     // (subpixRow, subpixColumn) are the indices of the star in the subpixelMap. So they are not 
     // sub-pixel coordinates in the CCD frame, but in the subfield reference frame.
     // (no longer rounded since the implementation of charge diffusion and jitter smoothing)
 
-    const double subpixColumn = (pixColumn - subFieldZeroPointColumn + numEdgePixels) * numSubPixelsPerPixel;
-    const double subpixRow    = (pixRow    - subFieldZeroPointRow    + numEdgePixels) * numSubPixelsPerPixel;
+    const double subpixColumn = (pixColumn + numEdgePixels) * numSubPixelsPerPixel;
+    const double subpixRow    = (pixRow + numEdgePixels) * numSubPixelsPerPixel;
 
     // Add the flux to the sub-pixel map
 

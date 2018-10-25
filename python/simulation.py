@@ -676,10 +676,8 @@ class Simulation(object):
 
         if normal:
             self["ObservingParameters/ExposureTime"] = 23
-            self["CCD/ReadoutTime"] = 2.5
         else:
             self["ObservingParameters/ExposureTime"] = 2.3
-            self["CCD/ReadoutTime"] = 0.2
 
         # Make sure that the focal length and the focal plane orientation are constant values
         # and not read from a file.
