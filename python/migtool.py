@@ -1,12 +1,16 @@
 """
 YAML Migration Tool
 
-usage: migtool <old-inputfile.yaml> <new-inputfile.yaml>
+usage: migtool [-h] [-o outputFilename] old-inputfile.yaml
+
+If no outputFilename is given, the output will be printed to stdout.
 
 Use Python 3.X to process.
 """
 import argparse
 import yaml
+import os
+import pathlib
 
 from collections import OrderedDict
 
@@ -216,6 +220,16 @@ def save_yaml(filename, data):
         traverseDict(data, WriteToFile(fileObject=f))
 
 
+def print_yaml(data):
+    """
+    Print an ordered dictionary to the screen.
+    """
+    print("# PlatoSim3 configuration file")
+    print("---")
+    
+    traverseDict(data, PrintToScreen())
+
+
 
 
 
@@ -334,7 +348,8 @@ def whatIsOldInYaml(oldDict, newDict, parentKey=None, root=None):
             if isinstance(newDict[key], OrderedDict):
                 whatIsOldInYaml(value, newDict[key], newParentKey, root)
             else:
-                print ("CHECK - Key {} no longer contains sub-keys.".format(newParentKey))
+                if verbose:
+                    print ("CHECK - Key {} no longer contains sub-keys.".format(newParentKey))
         else:
             if isinstance(newDict[key], OrderedDict):
                 # This option is handled in the whatIsNewInYaml part.
@@ -367,39 +382,67 @@ def whatIsNewInYaml(oldDict, newDict, parentKey=None, root=None):
                 replaceKeyInDict(oldDict, key, value)
 
         else:
-            if value != oldDict[key]:
+            if value != oldDict[key] and verbose:
                 print ("CHECK - Value changed for {} from {} to {}".format(newParentKey, oldDict[key], value))
 
         previousKey = key
 
-            
+def findNewYamlFile():
+    project_home = os.getenv('PLATO_PROJECT_HOME')
+    if project_home is None:
+        print ("Environment variable PLATO_PROJECT_HOME is not set.")
+        return None
+
+    filename = pathlib.Path(project_home) / 'inputfiles' / 'inputfile.yaml'
+    if filename.exists():
+        return filename
+    
+    return None
 
 
 def parse_arguments():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("oldFile", type=str, help="The old YAML file")
-    parser.add_argument("newFile", type=str, help="The new YAML file")
+    parser = argparse.ArgumentParser(description='Migrate an old version of a YAML file to the latest version.')
+    parser.add_argument("inputFilename", type=str, help="The old YAML file that needs to be migrated")
+    parser.add_argument('-o', metavar='outputFilename', type=str, help="migrated file")
+    parser.add_argument('-v', action='store_true', help="verbose")
     args = parser.parse_args()
     return args
 
 
  
 def main():
-    """
-    newFile = "/Users/rik/Desktop/inputfiles-alphaRelease.yaml"
-    oldFile = "/Users/rik/Desktop/inputfiles-master.yaml"
-    """
-
     args = parse_arguments()
 
-    newDict= load_yaml(args.newFile)
-    oldDict = load_yaml(args.oldFile)
+    global verbose
+    verbose = args.v
+    
+    oldFilename = pathlib.Path(args.inputFilename).resolve()
+
+    newFilename = findNewYamlFile()
+    if newFilename is None:
+        print("Couldn't find the latest version of the YAML input file.")
+        return
+
+    if args.o is None:
+        outputFilename = None
+    else:
+        outputFilename = pathlib.Path(args.o).resolve()
+
+    # print (f"newFilename = {newFilename}")
+    # print (f"inputFilename = {oldFilename}")
+    # print (f"outputFilename = {outputFilename}")
+    
+    newDict= load_yaml(newFilename)
+    oldDict = load_yaml(oldFilename)
 
     whatIsOldInYaml(oldDict, newDict, root=newDict)
 
     whatIsNewInYaml(oldDict, newDict, root=newDict)
 
-    save_yaml(args.oldFile.strip(".yaml")+"-changed.yaml", oldDict)
+    if outputFilename is None:
+        print_yaml(oldDict)
+    else:
+        save_yaml(outputFilename, oldDict)
 
 
 
