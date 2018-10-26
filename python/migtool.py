@@ -32,6 +32,10 @@ from collections import OrderedDict
 
 verbose = False
 
+# Print extra information about new/added keys and groups
+
+DEBUG = False
+
 # The number of spaces used to indent subkeys when printing or writing to a file
 
 tabSize = 4
@@ -383,7 +387,7 @@ def whatIsNewInYaml(oldDict, newDict, parentKey=None, root=None):
         if key not in oldDict:
             if verbose:
                 print ("DONE - New key {} has been added.".format(newParentKey))
-                if isinstance(value, OrderedDict):
+                if DEBUG and isinstance(value, OrderedDict):
                     traverseDict(value, parentKey=newParentKey, indent=" "*tabSize)
             insertKeyToDict(oldDict, previousKey, key, value)
             previousKey = key
@@ -395,7 +399,7 @@ def whatIsNewInYaml(oldDict, newDict, parentKey=None, root=None):
             else:
                 if verbose:
                     print ("DONE - New subkeys for {} have been added.".format(newParentKey))
-                    traverseDict(value, parentKey=newParentKey, indent=" "*tabSize)
+                    if DEBUG: traverseDict(value, parentKey=newParentKey, indent=" "*tabSize)
                 replaceKeyInDict(oldDict, key, value)
 
         else:
