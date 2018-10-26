@@ -348,8 +348,8 @@ void Detector::updateParameters(double time)
     }
     else if (readoutMode != "Nominal")
     {
-    	Log.error("Detector::configure(): Unkown readout mode specification in configuration file: "  + readoutMode);
-    	throw ConfigurationException("Detector: Unkown readout mode specification in configuration file");
+    	Log.error("Detector::configure(): Unknown readout mode specification in configuration file: "  + readoutMode);
+    	throw ConfigurationException("Detector: Unknown readout mode specification in configuration file");
     }
 
     serialTransferTime = configParam.getDouble("CCD/SerialTransferTime") * 1E-9;			  // [ns] -> [s]

@@ -1,17 +1,33 @@
 # Changelog for PlatoSim
 
-<!-- 3.3.5 -->
+
+
+<!-- 3.3.6 -->
 <!-- ***** -->
 
-## ??/??/2018: 3.3.5
+## ??/??/2018: 3.3.6
 
 ### Fixed
 
 * Bias register map expressed as additional columns (GitHub issue #290)
 
 * Implement partial readout (GitHub issue #285)
-* Inconsistency in star position output (GitHub issue #294)
+
 * Backward compatibility to the configuration files? (GitHub issue #292)
+
+
+
+<!-- 3.3.5 -->
+<!-- ***** -->
+
+## 26/10/2018: 3.3.5
+
+### Fixed
+
+* Inconsistency in star position output (GitHub issue #294)
+
+
+
 
 
 <!-- 3.3.4 -->
