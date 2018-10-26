@@ -44,26 +44,3 @@ Additionally, depending on the configuration, some additional files may be requi
 
 These are described @ref SupplementaryFiles "here".
 
-
-
-
-## Migration of Input Files
-
-When new versions of PlatoSim are released, there might be some changes in the configuration or input files. New parameters might have been added or parameters or groups might have been restructured. In the PlatoSim distribution we provide a helper tool (``migtool.py``) to migrate your YAML inputfiles to the new format. This tool will compare your (old) YAML inputfile with the default YAML inputfile that is on your local system, i.e. in the folder ``$PLATO_PROJECT_HOME/inputfiles``. The command can be used as follows (asuming your are located in the PlatoSim project home folder):
-
-```
-usage: python python/migtool.py [-hv] [-o outputFilename] inputFilename
-```
-
-The ``-h`` option prints an instructive help message. The ``inputFilename`` is your (old) YAML inputfile. The ``-o`` option let's you specify the name of the output file in which the migrated configuration will be saved. When no output file is given, the result will be printed on the screen (``stdout``).
-
-The ``-v`` option prints the changes that will be applied on the screen. That might be useful, because it will signal changes in parameter values. An example is shown below. ``CHECK`` means you will have to check manually. The value is your input file was ``0.016`` and the value in the new input file is ``0.01``. Your value will be retained after the migration. The reason is that you probably have good reasons to have this value different from the default value, and you don't want to loose that during the migration.
-
-```
-CHECK - Value changed for CCD.FlatfieldPtPNoise from 0.016 to 0.01
-```
-
-Other possible output when using the ``-v`` option is signaled with ``DONE``, i.e. when a new key or subkey has been added or when an obsolete key has been removed.
-
-Unfortunately, the python module that we use to parse the YAML files does not retain the comments that are in the files. Those comments will be lost after migration.
-
