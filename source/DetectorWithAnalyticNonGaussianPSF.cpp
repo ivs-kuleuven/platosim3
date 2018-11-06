@@ -96,8 +96,10 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
     string filename = configParam.getAbsoluteFilename("PSF/AnalyticNonGaussian/ParameterFileName");
 
     ifstream file(filename);
-    if (!file)
-        return;
+    if (!file) {
+        Log.error("DetectorWithAnalyticNonGaussianPSF::configure(): Parameter file doesn't exist or is not readable: "  + filename);
+        throw ConfigurationException("DetectorWithAnalyticNonGaussianPSF: wrong parameter filename in configuration file");
+    }
 
     params.clear();
     string line;
