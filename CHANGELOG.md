@@ -15,6 +15,8 @@
 
 * Backward compatibility to the configuration files? (GitHub issue #292)
 
+* Problems with thermo elastic drift from file (GitHub issue # 293)
+
 
 
 ### Added

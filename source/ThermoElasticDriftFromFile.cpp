@@ -54,19 +54,6 @@ ThermoElasticDriftFromFile::ThermoElasticDriftFromFile(ConfigurationParameters &
                 previousRoll  = deg2rad(numbers[3]/3600.);
                 continue;
             }
-            else
-            {
-                // Only add the previous line for the very first point that's within the simulation's time range
-                // Hence the check for the size of vector.
-
-                if (timeFromFile.size() == 0)
-                {
-                    timeFromFile.push_back(previousTime);   // [s]  
-                    yaw.push_back(previousYaw);             // [arcsec] -> [rad]
-                    pitch.push_back(previousPitch);         // [arcsec] -> [rad]
-                    roll.push_back(previousRoll);           // [arcsec] -> [rad]
-                }
-            }
 
             // Check if we are beyond the simulation time range. If so, stop reading the drift file.
             // By checking the last element of 'timeFromFile' rather than 'time', we ensure that we always
@@ -78,7 +65,19 @@ ThermoElasticDriftFromFile::ThermoElasticDriftFromFile(ConfigurationParameters &
             }
 
             // If we arrive here, we are within the simulation's time range. 
-            // Persist the drift steps in vectors.
+            // If it's our first point within the proper time range, also persist the previous point.
+            // Note: if the very first line contains the time == beginTime, then previousTime is not
+            //       defined. Hence below: time > beginTime, rather than time >= beginTime. 
+
+            if ((timeFromFile.size() == 0) & (time > beginTime))
+            {
+				timeFromFile.push_back(previousTime);   // [s]
+				yaw.push_back(previousYaw);             // [arcsec] -> [rad]
+				pitch.push_back(previousPitch);         // [arcsec] -> [rad]
+				roll.push_back(previousRoll);           // [arcsec] -> [rad]
+			}
+			
+			// Persist the drift steps in vectors.
 
             timeFromFile.push_back(time);                    // [s]  
             yaw.push_back(deg2rad(numbers[1]/3600.));        // [arcsec] -> [rad]
