@@ -1090,6 +1090,7 @@ CCD:
     DarkSignal:
       		DarkCurrent:                  1.2
       		DSNU:                         10.0
+      		Stability:                    5.0
     FullWellSaturation:          1000000        
     DigitalSaturation:           65535          
     ReadoutNoise:                28
@@ -1398,6 +1399,13 @@ Dark current, expressed in e<sup>-</sup> / s.  This is the nominal value of the 
 <i>Allowed values:</i> ∈ [0,100]
 
 Dark signal non-uniformity, expressed as a percentage of the [dark current](#darkCurrent).  This is the systematic (fixed-pattern) deviation of a pixel's dark current from its nominal value.
+
+
+
+#### <a name="darkCurrentStability"></a>DarkSignal: Stability
+<i>Allowed values:</i> ≥ 0
+
+Temperature stability of the dark current, expressed in in e<sup>-</sup> / K / s.
 
 
 
