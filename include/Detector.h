@@ -190,6 +190,7 @@ class Detector: public HDF5Writer
         unsigned long digitalSaturationLimit;    // Digital saturation limit [ADU / pixel]
         double darkCurrent;						 // Dark current [e- / s]
         double dsnu;							 // Dark signal non-uniformity
+        double darkCurrentStability;             // Temperature stability of the dark current [e / K / s]
 
         string CTImodel;
         double meanCte;                          // Mean charge-transfer efficiency  (in [0,1])

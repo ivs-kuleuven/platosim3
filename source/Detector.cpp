@@ -321,6 +321,7 @@ void Detector::updateParameters(double time)
     cosmicIntensity                     = configParam.getDoubleVector("Sky/Cosmics/Intensity");
     darkCurrent                         = configParam.getDouble("CCD/DarkSignal/DarkCurrent");
     dsnu                                = configParam.getDouble("CCD/DarkSignal/DSNU");
+    darkCurrentStability                = configParam.getDouble("CCD/DarkSignal/Stability");
     includeBFE                          = configParam.getBoolean("CCD/IncludeBFE");
     rangeBFE                            = configParam.getInteger("CCD/BFE/Range");
     p0BFE                               = configParam.getDouble("CCD/BFE/p0");
@@ -907,7 +908,8 @@ void Detector::addDarkSignal(float exposureTime)
     // When is dark current accumulated for the pixel map?
 	// 	-  exposure + readout
 
-    double darkSignalRef = darkCurrent * (exposureTime + readoutTimeBeforeNextExposure + readoutTimeDuringNextExposure);
+    const double darkCurrentOverDeltaTemp = darkCurrentStability * (getTemperature() - nominalOperatingTemperature);
+    double darkSignalRef = (darkCurrent + darkCurrentOverDeltaTemp) * (exposureTime + readoutTimeBeforeNextExposure + readoutTimeDuringNextExposure);
     darkSignalDistribution = normal_distribution<double>(darkSignalRef, darkSignalRef * dsnu / 100.0);
 
 
