@@ -40,7 +40,9 @@ To be able to run the PLATO Simulator and inspect the output, you must install t
 - <a href="https://pypi.python.org/pypi/pyaml">pyaml</a>, to deal with the configuration files in <a href="https://learnxinyminutes.com/docs/yaml/">YAML</a> format,
 - <a href="http://www.pytables.org/">pytables</a>, to inspect the output files in <a href="https://www.hdfgroup.org/HDF5/">HDF5</a> format,
 - <a href="https://www.scipy.org/">scipy</a>, for mathematical operations,
-- and <a href="https://www.h5py.org/">h5py</a>, to interface to the HDF binary data format.
+- <a href="https://www.h5py.org/">h5py</a>, to interface to the HDF binary data format,
+- and <a href="https://http://www.astropy.org/">astropy</a>, a core package for astronomy in Python.
+
 
 These packages can be installed with the following commands:
 
@@ -51,6 +53,7 @@ conda install pytables
 pip install pyaml
 conda install scipy
 conda install h5py
+conda install astropy
 \endcode
 
 As it comes to the choice between <code>conda install</code> and <code>pip install</code>: first try <code>conda install</code>, and - if that doesn't work - then try <code>pip install</code> (or <code>pip3 install</code> if you're using Python3).

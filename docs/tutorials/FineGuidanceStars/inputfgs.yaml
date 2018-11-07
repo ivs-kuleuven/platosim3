@@ -177,6 +177,7 @@ CCD:
     DarkSignal:
       DarkCurrent:                  1.2              # Dark current [e- / s]
       DSNU:                         15.0             # Dark signal non-uniformity [%]
+      Stability:                    5.0              # Temperature stability of the dark current [[e- / K / s ]
     CTI:
         Model:                       Short2013       # The method used to generate the CTI, either "Simple" or "Short2013"
         Simple:
