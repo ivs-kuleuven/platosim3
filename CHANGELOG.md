@@ -15,6 +15,8 @@
 
 * Backward compatibility to the configuration files? (GitHub issue #292)
 
+* Update HDF5 dependency to 1.10.2 (GitHub issue #322)
+
 
 
 ### Added
