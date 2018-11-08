@@ -5,10 +5,11 @@
 To be able to install PlatoSim via conda, you have to have the Python distribution <a href="https://docs.continuum.io/anaconda/install">Anaconda</a> installed.  You have to create an <a href ="https://conda.io/docs/user-guide/tasks/manage-environments.html">conda environments</a>, here called <code>platosim</code>, as follows:
 
 \code
-conda create -n platosim python=3.5 anaconda
+conda create -n platosim python=<Python version> anaconda
 \endcode
 
-but it is advisable to use multiple conda environments if you want to be able to switch between version and/or branches in a smooth way (e.g. <code>platosimMaster</code> and <code>platosimDevel</code>).
+but it is advisable to use multiple conda environments if you want to be able to switch between version and/or branches in a smooth way (e.g. <code>platosimMaster</code> and <code>platosimDevel</code>).  Supported Python versions are 3.5, 3.6, and 3.7.  Please, note that - when you switch to a different version of Python - it is advised to create a new conda environment rather than trying to update your existing one.  It will save you a lot of trouble if you do it like this.
+
 
 To get an overview of all your conda environments, type
 
