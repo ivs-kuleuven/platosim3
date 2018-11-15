@@ -419,7 +419,7 @@ void DetectorWithAnalyticNonGaussianPSF::integrateLight(int exposureNr, double s
 
     // Integration (incl. jitter): point sources + background
 
-    camera.exposeDetector(*this, startTime, exposureTime);
+    camera.exposeDetector(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
 
     // Apply flatfield (at pixel level)
 

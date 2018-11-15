@@ -25,6 +25,8 @@
 
 * Improved error trapping for CCD/ReadoutMode/ReadoutMode (GitHub issue #302)
 
+* Incorrect sky background level (GitHub issue #325)
+
 
 
 ### Added
