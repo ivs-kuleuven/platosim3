@@ -247,6 +247,12 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
 
 	string readoutMode = configParams.getString("CCD/ReadoutMode/ReadoutMode");
 
+	if((readoutMode != "Nominal") && (readoutMode != "Partial"))
+	{
+		Log.error("Simulation::configureReadoutTime(): Unknown readout mode specification in configuration file: "  + readoutMode);
+		throw ConfigurationException("Simulation: Unknown readout mode specification in configuration file");
+	}
+
 	double serialTransferTime = configParams.getDouble("CCD/SerialTransferTime") * 1E-9;			  // [ns] -> [s]
 	double parallelTransferTime = configParams.getDouble("CCD/ParallelTransferTime") * 1E-6;		  // [µs] -> [s]
 	double parallelTransferTimeFast = configParams.getDouble("CCD/ParallelTransferTimeFast") * 1E-6;  // [µs] -> [s]
@@ -309,7 +315,6 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
 			numRowsReadout = numRowsPartialReadout;
 			numRowsDump = firstRowExposed - numRowsReadout;
 		}
-
 
 		readoutTimeDuringNextExposure = numRowsDump * parallelTransferTimeFast
 				+ numRowsReadout * (parallelTransferTime + numColumnsReadout * serialTransferTime);
