@@ -27,10 +27,6 @@
 
 
 
-
-
-
-
 ### Added
 
 * Temperature dependency of the dark current (space environment)
