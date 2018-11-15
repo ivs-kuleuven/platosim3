@@ -15,7 +15,15 @@
 
 * Backward compatibility to the configuration files? (GitHub issue #292)
 
-* Problems with thermo elastic drift from file (GitHub issue # 293)
+* Improve documentation on supplementary input files of PlatoSim (GitHub issue #308)
+
+* Migtool error (GitHub issue #307)
+
+* Update HDF5 dependency to 1.10.2 (GitHub issue #322)
+
+* Remove python 3.5 dependency (GitHub issue #318)
+
+* Improved error trapping for CCD/ReadoutMode/ReadoutMode (GitHub issue #302)
 
 
 
