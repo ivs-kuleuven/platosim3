@@ -350,7 +350,7 @@ void Camera::configure(ConfigurationParameters &configParam)
 
     writeStarPositions     = configParam.getBoolean("ControlHDF5Content/WriteStarPositions");
 
-    readoutTime       = configParam.getDouble("CCD/ReadoutTime"); 
+    //readoutTime       = configParam.getDouble("CCD/ReadoutTime"); 
     exposureTime      = configParam.getDouble("ObservingParameters/ExposureTime");
 
 }
@@ -427,9 +427,10 @@ void Camera::updateParameters(double time)
  * \param[in]  detector      the Detector class
  * \param[in]  startTime     start time of the exposure [seconds]
  * \param[in]  exposureTime  duration of one exposure [seconds]
+ * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start [seconds]
  */
 
-void Camera::exposeDetector(Detector &detector, double startTime, double exposureTime)
+void Camera::exposeDetector(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure)
 {
     // Get the value for the degrading TransmissionEfficiency parameter at the startTime of this exposure
 
@@ -504,7 +505,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
         // The time at the middle of the time series is the time when the Sun is defined to be 180 degrees away from platform pointing
 
-        double timeMiddle = numExposures * (exposureTime + detector.getReadoutTime()) / 2.0;
+        double timeMiddle = numExposures * (exposureTime + readoutTimeBeforeNextExposure) / 2.0;
 
         // Get the apparent position of the stars, i.e. apply the differential aberration correction to
         // all the star positions in this starCatalog.
@@ -648,11 +649,11 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
         const double lambda2 = (throughputLambdaC + throughputBandwidth/2.0) * 1.e-9;                                         // [m]
     
         const double zodiacalFlux = sky.zodiacalFlux(centerRA, centerDec, lambda1, lambda2)                                   // [phot/exposure]
-                                    * exposureTime * transmissionEfficiency * telescope.getLightCollectingArea()
+                                    * (exposureTime + readoutTimeBeforeNextExposure) * transmissionEfficiency * telescope.getLightCollectingArea()
                                     * detector.getSolidAngleOfOnePixel(plateScale) / energyOfOnePhoton; 
 
         const double stellarBackgroundFlux = sky.stellarBackgroundFlux(centerRA, centerDec, lambda1, lambda2)                 // [phot/exposure]
-                                             * exposureTime * transmissionEfficiency * telescope.getLightCollectingArea()
+                                             * (exposureTime + readoutTimeBeforeNextExposure) * transmissionEfficiency * telescope.getLightCollectingArea()
                                              * detector.getSolidAngleOfOnePixel(plateScale) / energyOfOnePhoton;      
 
 
@@ -664,10 +665,11 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     }
     else
     {
-        totalSkyBackground = floor(userGivenSkyBackground * exposureTime * transmissionEfficiency);
+        totalSkyBackground = floor(userGivenSkyBackground * (exposureTime + readoutTimeBeforeNextExposure) * transmissionEfficiency);
         detector.addFlux(totalSkyBackground);
 
-        Log.debug("Camera: user-given sky background flux = " + to_string(userGivenSkyBackground * exposureTime) + " photons/pixel/exposure");
+        Log.debug("Camera: user-given sky background flux over exposure= " + to_string(userGivenSkyBackground * exposureTime) + " photons/pixel/exposure");
+        Log.debug("Camera: user-given sky background flux over readout= " + to_string(userGivenSkyBackground * readoutTimeBeforeNextExposure) + " photons/pixel/readout");
     }
 
     // Save the sky background value that we added. [photons/pix/exposure]
@@ -973,13 +975,13 @@ double Camera::getTotalSkyBackground()
  * \brief function that gets the current jitter step writes flux to the respective imagette in the timeline
  *        this is only used, if a parallel simulation is executed
  */
-void Camera::processNextStep(Detector* detectorInstance, double jitterStep)
+void Camera::processNextStep(Detector* detectorInstance, double jitterStep, double readoutTimeBeforeNextExposure)
 {
     // calculate the current time step
-    double timeStep = jitterStep - (exposureCounter * (exposureTime + readoutTime)) - imagetteTime;
+    double timeStep = jitterStep - (exposureCounter * (exposureTime + readoutTimeBeforeNextExposure)) - imagetteTime;
 
     // time of the start of the exposure
-    double exposureStartTime = exposureCounter * (exposureTime + readoutTime);
+    double exposureStartTime = exposureCounter * (exposureTime + readoutTimeBeforeNextExposure);
 
     double fluxIntegrationTime;
     double overTime;
@@ -1050,9 +1052,9 @@ void Camera::processNextStep(Detector* detectorInstance, double jitterStep)
         }
 
         // if the time step exceeds the readout time start the cycle again with the now reduced timestep
-        if (overTime > readoutTime)
+        if (overTime > readoutTimeBeforeNextExposure)
         {
-            timeStep = overTime - readoutTime;
+            timeStep = overTime - readoutTimeBeforeNextExposure;
         }
         else
         {
@@ -1141,7 +1143,7 @@ void Camera::prepareNewExposure(Detector* detector, double startTime, double exp
 
         // The time at the middle of the time series is the time when the Sun is defined to be 180 degrees away from platform pointing
 
-        double timeMiddle = numExposures * (exposureTime + detector->getReadoutTime()) / 2.0;
+        double timeMiddle = numExposures * (exposureTime + detector->getReadoutTimeBeforeNextExposure()) / 2.0;
 
         // Get the apparent position of the stars, i.e. apply the differential aberration correction to
         // all the star positions in this starCatalog.

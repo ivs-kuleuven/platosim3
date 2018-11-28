@@ -24,12 +24,11 @@ class JitterFromFile : public JitterGenerator
 {
     public:
 
-
-        static JitterGenerator* Instance(ConfigurationParameters &configParams);
+        static JitterGenerator* Instance(ConfigurationParameters &configurationParameters, double readoutTimeBeforeNextExposure);
 
         ~JitterFromFile();
 
-        virtual void configure(ConfigurationParameters &configParams);
+        virtual void configure(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure);
         virtual tuple<double, double, double> getNextYawPitchRoll(double timeInterval) override;
         virtual double getHeartbeatInterval() override;
 
@@ -37,7 +36,7 @@ class JitterFromFile : public JitterGenerator
 
         // the constructor was moved to be protected to make sure, that only one 
         // jitter instance can exist at the same time
-        JitterFromFile(ConfigurationParameters &configurationParameters);
+        JitterFromFile(ConfigurationParameters &configurationParameters, double readoutTimeBeforeNextExposure);
 
         string pathToJitterFile;
         double beginTime;                 // Only read the jitter file from beginTime to endTime

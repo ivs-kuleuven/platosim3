@@ -23,17 +23,17 @@ class JitterFromRedNoise : public JitterGenerator
 {
     public:
 
-        static JitterGenerator* Instance(ConfigurationParameters &configParams);
+        static JitterGenerator* Instance(ConfigurationParameters &configurationParameters, double readoutTimeBeforeNextExposure);
 
         ~JitterFromRedNoise();
 
-        virtual void configure(ConfigurationParameters &configParams);
+        virtual void configure(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure);
         virtual tuple<double, double, double> getNextYawPitchRoll(double time) override;
         virtual double getHeartbeatInterval() override;
 
     protected:
 
-        JitterFromRedNoise(ConfigurationParameters &configurationParameters);
+        JitterFromRedNoise(ConfigurationParameters &configurationParameters, double readoutTimeBeforeNextExposure);
 
         double yawRMS;              // [rad] 
         double pitchRMS;            // [rad]

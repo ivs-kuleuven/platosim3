@@ -71,8 +71,8 @@ for n in range(NguideStars):
     # ObservingParameters/ExposureTime
     # 
 
-    subfieldSizeX = 7     # column width [pixels]
-    subfieldSizeY = 7     # row width [pixels]
+    subfieldSizeX = 9     # column width [pixels]
+    subfieldSizeY = 9     # row width [pixels]
     normalCamera = False
 
     hasCcdCode = sim.setSubfieldAroundCoordinates(np.deg2rad(ra[n]), np.deg2rad(dec[n]), subfieldSizeX, subfieldSizeY, normalCamera)

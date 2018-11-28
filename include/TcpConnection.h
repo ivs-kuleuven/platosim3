@@ -13,6 +13,7 @@
 #include "JitterFromRedNoise.h"
 #include "JitterFromNetwork.h"
 
+#include "Simulation.h"
 
 class TcpConnection
 {
@@ -20,7 +21,7 @@ class TcpConnection
 		TcpConnection(string inputFilename);
 		~TcpConnection();
 
-		void connectToServer(std::condition_variable* cond_var, bool *notified, bool* newStep, std::mutex* m);
+		void connectToServer(Simulation* simulationInstance, std::condition_variable* cond_var, bool *notified, bool* newStep, std::mutex* m);
 		void connectToClient();
 
 	protected:
@@ -33,8 +34,6 @@ class TcpConnection
 
 		bool useJitter;
 		string jitterSource;
-
-		JitterGenerator *jitterGenerator;
 
 		double internalTime;
 

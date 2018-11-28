@@ -1,3 +1,10 @@
-See the [PlatoSim3 Documentation Pages](https://ivs-kuleuven.github.io/PlatoSim3/)
+# Where to find the documentation?
 
-Within the software package itself, documentation can be found in the /docs/html folder.
+See the [PlatoSim3 Documentation Pages](https://ivs-kuleuven.github.io/PlatoSim3/).
+
+Within the software package itself, documentation can be found in the <code>/docs/html</code> folder.
+
+# Installation Procedures
+
+* [conda installation procedure](http://ivs-kuleuven.github.io/PlatoSim3/ViaConda.html) (recommended!)
+* [straight from GitHub](http://ivs-kuleuven.github.io/PlatoSim3/DownloadUpdateBuild.html)

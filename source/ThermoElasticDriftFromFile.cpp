@@ -4,11 +4,11 @@
 /**
  * \brief function to acces the protected constructor, if there is no drift instance yet
  */
-DriftGenerator* ThermoElasticDriftFromFile::Instance(ConfigurationParameters &configParams)
+DriftGenerator* ThermoElasticDriftFromFile::Instance(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure)
 {
     if(_instance == 0)
     {
-        _instance = new ThermoElasticDriftFromFile(configParams);
+        _instance = new ThermoElasticDriftFromFile(configParams, readoutTimeBeforeNextExposure);
     }
     return _instance;
 }
@@ -19,13 +19,15 @@ DriftGenerator* ThermoElasticDriftFromFile::Instance(ConfigurationParameters &co
  * \brief Constructor
  * 
  * \param configParams The configuration parameters from the input parameters file
+ *
+ * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start
  */
 
-ThermoElasticDriftFromFile::ThermoElasticDriftFromFile(ConfigurationParameters &configParams)
+ThermoElasticDriftFromFile::ThermoElasticDriftFromFile(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure)
 {
     // Set the configuration parameters
 
-    configure(configParams);
+    configure(configParams, readoutTimeBeforeNextExposure);
 
     // Open the thermo-elastic drift file, and read time yaw, pitch, roll time series.
     // The time is assumed to be in [s], pitch, yaw, and roll in [arcsec].
@@ -64,19 +66,6 @@ ThermoElasticDriftFromFile::ThermoElasticDriftFromFile(ConfigurationParameters &
                 previousRoll  = deg2rad(numbers[3]/3600.);
                 continue;
             }
-            else
-            {
-                // Only add the previous line for the very first point that's within the simulation's time range
-                // Hence the check for the size of vector.
-
-                if (timeFromFile.size() == 0)
-                {
-                    timeFromFile.push_back(previousTime);   // [s]  
-                    yaw.push_back(previousYaw);             // [arcsec] -> [rad]
-                    pitch.push_back(previousPitch);         // [arcsec] -> [rad]
-                    roll.push_back(previousRoll);           // [arcsec] -> [rad]
-                }
-            }
 
             // Check if we are beyond the simulation time range. If so, stop reading the drift file.
             // By checking the last element of 'timeFromFile' rather than 'time', we ensure that we always
@@ -88,7 +77,19 @@ ThermoElasticDriftFromFile::ThermoElasticDriftFromFile(ConfigurationParameters &
             }
 
             // If we arrive here, we are within the simulation's time range. 
-            // Persist the drift steps in vectors.
+            // If it's our first point within the proper time range, also persist the previous point.
+            // Note: if the very first line contains the time == beginTime, then previousTime is not
+            //       defined. Hence below: time > beginTime, rather than time >= beginTime. 
+
+            if ((timeFromFile.size() == 0) & (time > beginTime))
+            {
+				timeFromFile.push_back(previousTime);   // [s]
+				yaw.push_back(previousYaw);             // [arcsec] -> [rad]
+				pitch.push_back(previousPitch);         // [arcsec] -> [rad]
+				roll.push_back(previousRoll);           // [arcsec] -> [rad]
+			}
+			
+			// Persist the drift steps in vectors.
 
             timeFromFile.push_back(time);                    // [s]  
             yaw.push_back(deg2rad(numbers[1]/3600.));        // [arcsec] -> [rad]
@@ -153,22 +154,23 @@ ThermoElasticDriftFromFile::~ThermoElasticDriftFromFile()
  * \brief Configure this object using the parameters from the input parameters file
  * 
  * \param configParams  The configuration parameters
+ *
+ * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start
  */
 
-void ThermoElasticDriftFromFile::configure(ConfigurationParameters &configParams)
+void ThermoElasticDriftFromFile::configure(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure)
 {
     pathToDriftFile = configParams.getAbsoluteFilename("Telescope/DriftFileName");
     int numExposures      = configParams.getInteger("ObservingParameters/NumExposures");
     int beginExposureNr   = configParams.getInteger("ObservingParameters/BeginExposureNr");
     double exposureTime   = configParams.getDouble("ObservingParameters/ExposureTime");
-    double readoutTime    = configParams.getDouble("CCD/ReadoutTime");
 
     //  Determine from when to when the simulation runs. Only for this time interval
     //  we need to read the drift file into memory. This saves time when the drift
     //  file is large but the simulation is short.
     
-    beginTime = beginExposureNr * (exposureTime + readoutTime);
-    endTime   = (beginExposureNr + numExposures) * (exposureTime + readoutTime); 
+    beginTime = beginExposureNr * (exposureTime + readoutTimeBeforeNextExposure);
+    endTime   = (beginExposureNr + numExposures) * (exposureTime + readoutTimeBeforeNextExposure);
 }
 
 

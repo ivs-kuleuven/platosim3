@@ -24,17 +24,17 @@ class ThermoElasticDriftFromFile : public DriftGenerator
 {
     public:
 
-        static DriftGenerator* Instance(ConfigurationParameters &configParams);
+        static DriftGenerator* Instance(ConfigurationParameters &configurationParameters, double readoutTimeBeforeNextExposure);
 
         ~ThermoElasticDriftFromFile();
 
-        virtual void configure(ConfigurationParameters &configParams);
+        virtual void configure(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure);
         virtual tuple<double, double, double> getNextYawPitchRoll(double time) override;
         virtual double getHeartbeatInterval() override;
 
     protected:
 
-        ThermoElasticDriftFromFile(ConfigurationParameters &configurationParameters);
+        ThermoElasticDriftFromFile(ConfigurationParameters &configurationParameters, double readoutTimeBeforeNextExposure);
 
         string pathToDriftFile;
         double beginTime;                 // Only read the drift file from beginTime to endTime

@@ -1,5 +1,83 @@
 # Changelog for PlatoSim
 
+
+
+<!-- 3.3.6 -->
+<!-- ***** -->
+
+## ??/??/2018: 3.3.6
+
+### Fixed
+
+* Bias register map expressed as additional columns (GitHub issue #290)
+
+* Implement partial readout (GitHub issue #285)
+
+* Backward compatibility to the configuration files? (GitHub issue #292)
+
+* Improve documentation on supplementary input files of PlatoSim (GitHub issue #308)
+
+* Migtool error (GitHub issue #307)
+
+* Update HDF5 dependency to 1.10.2 (GitHub issue #322)
+
+* Remove python 3.5 dependency (GitHub issue #318)
+
+* Improved error trapping for CCD/ReadoutMode/ReadoutMode (GitHub issue #302)
+
+* Incorrect sky background level (GitHub issue #325)
+
+
+
+### Added
+
+* Temperature dependency of the dark current (space environment)
+
+
+
+<!-- 3.3.5 -->
+<!-- ***** -->
+
+## 26/10/2018: 3.3.5
+
+### Fixed
+
+* Inconsistency in star position output (GitHub issue #294)
+
+
+
+
+
+<!-- 3.3.4 -->
+<!-- ***** -->
+
+## 21/09/2018: 3.3.4
+
+### Fixed
+
+* bug when using demo_fgs.py with field distortion (GitHub issue #280)
+* Wrong number of cosmics for small images (GitHub issue #283)
+
+
+
+### Changed
+
+* Cosmics can be enabled/disabled per area (image area / bias map / smearing map)
+
+* Random seeds = -1 => use computer time instead (no longer fast-forward random distributions)
+
+
+
+### Added
+
+* Configurable log level
+
+* Updated documentation
+
+
+
+
+
 <!-- 3.3.3 -->
 <!-- ***** -->
 
@@ -7,13 +85,16 @@
 
 ### Fixed
 
-* Dark edge seen at bottom of the sub-field due to CTI by Short et al. (GitHub issue # 263)
+* Dark edge seen at bottom of the sub-field due to CTI by Short et al. (GitHub issue #263)
 
 * User-given sky background not multiplied with the transmissivity of the optics (GitHub issue #265)
 
 * Photon flux of stars should be floored instead of rounded (in the jitter steps) (GitHub issue #267)
 
 * Open-shutter smearing outside sub-field should not take numRowsBiasMap into account (GitHub issue #269)
+
+
+
 
 
 <!-- 3.3.2 -->

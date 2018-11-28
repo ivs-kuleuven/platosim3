@@ -29,8 +29,8 @@ class JitterFromNetwork : public JitterGenerator
 {
     public:
 
-        static JitterGenerator* Instance(ConfigurationParameters &configParams);
-        static JitterGenerator* Instance(ConfigurationParameters &configParams, TcpConnection* tcpConnection);
+        static JitterGenerator* Instance(ConfigurationParameters &configurationParameters, double readoutTimeBeforeNextExposure);
+        static JitterGenerator* Instance(ConfigurationParameters &configurationParameters, double readoutTimeBeforeNextExposure, TcpConnection* tcpConnection);
         
         ~JitterFromNetwork();
 
@@ -46,8 +46,8 @@ class JitterFromNetwork : public JitterGenerator
 
     protected:
 
-        JitterFromNetwork(ConfigurationParameters &configurationParameters);
-        JitterFromNetwork(ConfigurationParameters &configurationParameters, TcpConnection* tcpConnection);
+        JitterFromNetwork(ConfigurationParameters &configurationParameters, double readoutTimeBeforeNextExposure);
+        JitterFromNetwork(ConfigurationParameters &configurationParameters, double readoutTimeBeforeNextExposure, TcpConnection* tcpConnection);
 
         double yawRMS;              // [rad] 
         double pitchRMS;            // [rad]

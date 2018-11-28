@@ -22,7 +22,9 @@ Sky:
     SkyBackground:                   342.            # Stellar + zodiacal background level (excl. transmission efficiency). Set negative to compute.     [phot/pix/s]
     IncludeVariableSources:          no              # Include time series of variable stars or not
     VariableSourceList:              inputfiles/varsource.txt  # Ascii file: Col 1: star ID, Col 2: path of time series file
-    IncludeCosmics:                  yes             # Whether or not to include cosmics
+    IncludeCosmicsInSubField:        yes             # Whether or not to include cosmics in the subfield on the CCD
+    IncludeCosmicsInSmearingMap:     yes             # Whether or not to include cosmics in the overscan map
+    IncludeCosmicsInBiasMap:         yes             # Whether or not to include cosmics in the prescan map
     Cosmics:
       CosmicHitRate:                 10              # Cosmic hit rate [events / cm^2 / s]
       TrailLength:                   [0, 15]         # Intervalof the length of the cosmic trails [pixels]
@@ -72,9 +74,6 @@ Camera:
         ConstantValue:               0.24752         # Used in case Source is ConstantValue (from ZEMAX model) [m]
         FromFile:                    inputfiles/focallength.txt # Used in case Source is FromFile: time [s] & focalLenght [m]
     ThroughputBandwidth:             498             # FWHM [nm]
-    ThroughputLambdaC:               550             # Central wavelength of the throughput passband [nm]
-    IncludeAberrationCorrection:     yes             # Calculate the differential aberration correction and apply
-    ThroughputBandwidth:             638             # FWHM [nm]
     ThroughputLambdaC:               550             # Central wavelength of the throughput passband [nm]
     IncludeAberrationCorrection:     yes             # Calculate the differential aberration correction and apply
     AberrationCorrection:
@@ -159,21 +158,23 @@ CCD:
         Stability:                   -0.004          # [microV/e-/K]
         AllowedDifference:           15.0            # Difference in gain between both CCD halves [%]
     QuantumEfficiency:
-        #RelativeRefEfficiency:       0.925           # Relative efficiency due to angle dependency of the QE at the reference angle
-        #RefAngle:                    45.0            # Reference angle for quantum efficiency [degrees]
-        MeanQuantumEfficiency:       0.5985           # Mean quantum efficiency
-        MeanAngleDependency:         1.01             # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE
-        #ExpectedValue:               0.993 * 0.5895  # Expected value (mean over all pixels of one detector)
+        MeanQuantumEfficiency:       0.5985          # Mean quantum efficiency
+        MeanAngleDependency:         1.01            # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE
     FullWellSaturation:              900000          # [e-/pixel]
     DigitalSaturation:               65535           # E.g. 16 bit [ADU/pixel]
     ReadoutNoise:                    38.7            # [e-/pixel]
-    ReadoutTime:                     4.0             # time to read out entire CCD [s]
+    SerialTransferTime:              340             # Time to shift the content of the readout register by one pixel [ns]
+    ParallelTransferTime:            110             # Time to shift the charges one row down in case the readout register will be read out [µs]
+    ParallelTransferTimeFast:        90              # Time to shift the charges one row down in case the readout register will not be read out [µs]
+    ReadoutMode:
+       ReadoutMode:                  Nominal         # Nominal (normal camera: full frame; fast camera: frame transfer) / Partial (read contiguous block of entire rows)
+       Partial:
+          FirstRowReadout:           0               # First row that will be read out by the FEE in partial-readout mode
+          NumRowsReadout:            4510            # Number of rows that will be read out by the FEE, in partial-readout mode
     FlatfieldPtPNoise:               0.010           # peak-to-peak pixel noise
     Vignetting: 
         ExpectedValue:               0.904           # Expected value of the throughput efficiency due to vignetting
     Polarization:
-        #Efficiency:                  0.978           # Throughput efficiency caused by polarisation at the reference angle
-        #RefAngle:                    18.8875         # Reference angle for polarisation [degrees]
         ExpectedValue:               0.989           # Expected value (mean of all detector pixels)
     Contamination:
         ParticulateContaminationEfficiency: 0.972    # Throughput efficiency due to particulate contamination
@@ -181,6 +182,7 @@ CCD:
     DarkSignal:
       DarkCurrent:                  1.2              # Dark current [e- / s]
       DSNU:                         15.0             # Dark signal non-uniformity [%]
+      Stability:                    5.0              # Temperature stability of the dark current [[e- / K / s ]
     CTI:
         Model:                       Short2013       # The method used to generate the CTI, either "Simple" or "Short2013"
         Simple:
@@ -219,20 +221,21 @@ SubField:
     ZeroPointColumn:                 0               # Column of the (0,0) pixel of the subfield [pixels]
     NumColumns:                      100             # Number of columns, should be >= 8 [pixels]
     NumRows:                         100             # Number of rows,    should be >= 8 [pixels]
-    NumBiasPrescanRows:              5               # Nr of rows of the prescan strip to determine the bias [pixels]
-    NumSmearingOverscanRows:         5               # Nr of rows of the overscan strip to determine the smearing [pixels]
+    NumBiasPrescanRows:              30              # Nr of rows of the prescan strip to determine the bias [pixels]
+    NumBiasPrescanColumns:           30              # Nr of columns of the prescan strip to determine the bias [pixels]
+    NumSmearingOverscanRows:         30              # Nr of rows of the overscan strip to determine the smearing [pixels]
     SubPixels:                       8               # (Sqrt of) nr of subpixels per CCD pixel. Should be 2^n <= 128.
 
 
 RandomSeeds:
 
-    ReadOutNoiseSeed:                1424949740      # Unique positive integer 
-    PhotonNoiseSeed:                 1433320336      # Unique positive integer 
-    JitterSeed:                      1433320381      # Unique positive integer 
-    FlatFieldSeed:                   1425284070      # Unique positive integer 
-    DriftSeed:                       1433429158      # Unique positive integer 
-    CosmicSeed:                      1494750830      # Unique positive integer
-    DarkSignalSeed:                  1468838669      # Unique positive integer
+    ReadOutNoiseSeed:                1424949740      # Unique positive integer, or -1 to auto-set using clock 
+    PhotonNoiseSeed:                 1433320336      # Unique positive integer, or -1 to auto-set using clock
+    JitterSeed:                      1433320381      # Unique positive integer, or -1 to auto-set using clock
+    FlatFieldSeed:                   1425284070      # Unique positive integer, or -1 to auto-set using clock
+    DriftSeed:                       1433429158      # Unique positive integer, or -1 to auto-set using clock
+    CosmicSeed:                      1494750830      # Unique positive integer, or -1 to auto-set using clock
+    DarkSignalSeed:                  1468838669      # Unique positive integer, or -1 to auto-set using clock
 
 ControlHDF5Content:
     WriteSubPixelImages:             no              # Only use this for a limited number of exposures. Takes a lot of space! 

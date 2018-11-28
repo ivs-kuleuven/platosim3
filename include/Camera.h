@@ -42,7 +42,7 @@ class Camera : public HDF5Writer
         virtual ~Camera();
 
         virtual void configure(ConfigurationParameters &configParam);
-        virtual void exposeDetector(Detector &detector, double startTime, double exposureTime);
+        virtual void exposeDetector(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure);
         virtual void updateParameters(double time);
 
         virtual void initHDF5Groups() override;
@@ -60,7 +60,7 @@ class Camera : public HDF5Writer
 
         double getTotalSkyBackground();
 
-        void processNextStep(Detector* detectorInstance, double jitterStep);
+        void processNextStep(Detector* detectorInstance, double jitterStep, double readoutTimeBeforeNextExposure);
 
 
     protected:
@@ -111,7 +111,7 @@ class Camera : public HDF5Writer
         int exposureCounter;
 
         double exposureTime;
-        double readoutTime;
+        //double readoutTime;
         
         void prepareNewExposure(Detector* detector, double startTime, double exposureTime);
         void addFluxToExposure(Detector* detector, double startTime, double timeStep);

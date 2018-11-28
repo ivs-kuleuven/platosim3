@@ -6,6 +6,9 @@ dependencies/Installs/*
 *.xcodeproj/*
 *.sublime-project
 *.sublime-workspace
+PlatoSim3.code-workspace
+.vscode/*
+PlatoSim3.code-workspace
 
 # Ignore some of the auto-generated files (during cmake)
 
@@ -56,3 +59,4 @@ log.txt
 .DS_Store*
 Icon?
 Thumbs.db
+Pipfile*

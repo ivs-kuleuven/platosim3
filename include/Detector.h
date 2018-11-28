@@ -65,7 +65,7 @@ class Detector: public HDF5Writer
 {
     public:
 
-        Detector(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator);
+        Detector(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure);
         virtual ~Detector();
 
         virtual double takeExposure(int exposureNr, double startTime, double exposureTime);
@@ -80,7 +80,6 @@ class Detector: public HDF5Writer
 
         double getSolidAngleOfOnePixel(double plateScale);
         double getOrientationAngle();
-        double getReadoutTime();
 
         virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) = 0;
         virtual void addFlux(double flux) = 0;
@@ -88,13 +87,15 @@ class Detector: public HDF5Writer
 
         bool isInSubfield(double xFPmm, double yFPmm);
 
- 	virtual void integrateLight(int exposureNr, double startTime, double exposureTime, bool parallelSimulation) = 0;
+ 	    virtual void integrateLight(int exposureNr, double startTime, double exposureTime, bool parallelSimulation) = 0;
 
-	void writePixelMapsToHDF5(int exposureNr);
+        double getReadoutTimeBeforeNextExposure();
 
-	virtual void readOut(float exposureTime);
+	    void writePixelMapsToHDF5(int exposureNr);
 
-	virtual void reset() = 0;
+	    virtual void readOut(float exposureTime);
+
+	    virtual void reset() = 0;
 
 
     protected:
@@ -110,7 +111,7 @@ class Detector: public HDF5Writer
 
         virtual void addPhotonNoise();
         virtual void addCosmics(float exposureTime);
-        virtual void addCosmics(float exposureTime, arma::Mat<float> &map, int numRows, int numColumns);
+        virtual void addCosmics(float exposureTime, arma::Mat<float> &map, int numRows, int numColumns, string area);
         virtual void applyFullWellSaturation();
         virtual void applyCTI();
         virtual void applyOpenShutterSmearing(float exposureTime);
@@ -131,24 +132,21 @@ class Detector: public HDF5Writer
 
         virtual void initHDF5Groups() override;
 
-        void fastForwardDarkSignalGeneratorToExposure(int beginExposureNr, float exposureTime);
-        void fastForwardReadoutNoiseGeneratorToExposure(int beginExposureNr);
-        void fastForwardPhotonNoiseGeneratorToExposure(int beginExposureNr);
-        void fastForwardCosmicsGeneratorToExposure(int beginExposureNr, float exposureTime);
-
         virtual double getTemperature();
 
         arma::Mat<float> pixelMap;               // Pixel map, excl. edge pixels
         arma::Mat<float> smearingMap;            // Smearing map (i.e. over-scan strip)
-        arma::Mat<float> biasMap;                // Bias map (i.e. pre-scan strip)
+        arma::Mat<float> biasMapLeft;            // Bias map (i.e. pre-scan strip) for the left detector half
+        arma::Mat<float> biasMapRight;            // Bias map (i.e. pre-scan strip) for the right detector half
         arma::Mat<float> throughputMap;          // Throughput efficiency map, due to vignetting, particulate & molecular contamination, and quantum efficiency
 
         unsigned int numRows;                    // Nr of rows of the detector (= size in y-direction) including non-exposed ones [pixels]
         unsigned int numColumns;                 // Nr of columns of the detector (= size in x-direction = readout direction) [pixels]
         unsigned int numRowsPixelMap;            // Nr of rows in the subfield excl. edge pixels (= size the y-direction) [pixels]
         unsigned int numColumnsPixelMap;         // Nr of columns in the subfield excl. edge pixels (= size in the x-direction = readout direction) [pixels]
-        unsigned int numRowsSmearingMap;         // Nr of rows in the smearing overscan strip [pixels]
-        unsigned int numRowsBiasMap;             // Nr of rows in the bias prescan strip [pixels]
+        unsigned int numRowsSmearingMap;         // Nr of rows in the smearing over-scan strip [pixels]
+        unsigned int numRowsBiasMap;             // Nr of rows in the bias pre-scan strip [pixels]
+        unsigned int numColumnsBiasMap;          // Nr of columns in the bias pre-scan strip [pixels]
 
         unsigned int firstRowExposed;            // Index of the first row that is exposed to light (different for the Fast and Normal camera's) [pixels]
 
@@ -162,27 +160,30 @@ class Detector: public HDF5Writer
         unsigned int numEdgePixels;              // Nr of pixels to extend the subfield on each side, to account for the edge effect
 
         arma::Cube<float> guyonnetCoefficients;  // Coefficients a^X_ij for the BFE in Sect. 6.1 in Guyonnet et al. 2015
-        double p0BFE;        					// Value for p0 parameter in Eq. (18) in Guyonnet et al. 2015
-        double p1BFE;						    // Value for p1 parameter in Eq. (18) in Guyonnet et al. 2015
-        int rangeBFE;							// How far pixels can be apart and still influence each other [pixels] (use window with dimensions 2 * range + 1)
+        double p0BFE;        					 // Value for p0 parameter in Eq. (18) in Guyonnet et al. 2015
+        double p1BFE;						     // Value for p1 parameter in Eq. (18) in Guyonnet et al. 2015
+        int rangeBFE;							 // How far pixels can be apart and still influence each other [pixels] (use window with dimensions 2 * range + 1)
         double refFluxBFE;                       // Reference flux for the p0 and p1 parameters for BFE [e-]
 
 
-        bool includeCosmics;                     // Whether or not to include cosmic hits
-        double cosmicHitRate;					// Cosmic hit rate [events / cm^2 / s]
-        vector<double> cosmicTrailLength;		// Interval of the length of the cosmic trails [pixels]
-        vector<double> cosmicIntensity; 			// Interval of the intensity of the cosmic trails [e-]
-//        double polarizationEfficiency;           // Efficiency due to polarisation at the reference angle (in [0,1])
+        bool includeCosmicsInSubField;           // Whether or not to include cosmic hits in the subfield
+        bool includeCosmicsInSmearingMap;        // Whether or not to include cosmic hits in the (physical) overscan region
+        bool includeCosmicsInBiasMap;            // Whether or not to include cosmic hits in the (virtual) prescan region
+        double cosmicHitRate;					 // Cosmic hit rate [events / cm^2 / s]
+        vector<double> cosmicTrailLength;		 // Interval of the length of the cosmic trails [pixels]
+        vector<double> cosmicIntensity; 		 // Interval of the intensity of the cosmic trails [e-]
         double expectedValueVignetting;          // Expected value of the throughput efficiency due to vignetting (int [0,1])
-//        double refAnglePolarization;             // Reference angle for the polarisation [degrees]
         double expectedValuePolarization;        // Expected value of the throughput efficiency due to polarisation
         double particulateContaminationEfficiency;  // Efficiency of particulate contamination (in [0,1])
-        double molecularContaminationEfficiency; // Efficiency of molecular contamination (in [0,1])
-//        double refAngleQE;        				// Reference angle for quantum efficiency [degrees]
-//        double relativeRefEfficiencyQE;			// Relative efficiency due to the angle dependency of the QE
-        double meanQE;							// Mean QE (over all wavelengths)
-        double meanAngleDependencyQE;			// Mean (over all pixels) of the relative efficiency due to the angle dependency of the QE
-        double readoutTime;                      // Readout time [s]
+        double molecularContaminationEfficiency;    // Efficiency of molecular contamination (in [0,1])
+        double meanQE;							 // Mean QE (over all wavelengths)
+        double meanAngleDependencyQE;			 // Mean (over all pixels) of the relative efficiency due to the angle dependency of the QE
+        double serialTransferTime;				 // Time to shift the content of the readout register by one pixel [s]
+        double parallelTransferTime;			 // Time to shift the charges one row down in case the readout register will be read out [s]
+        double parallelTransferTimeFast;	     // Time to shift the charges one row down in case the readout register will not be read out [s]
+        bool isFastCamera;                       // Indicates whether or not the camera is a fast camera
+        int firstRowPartialReadout;			     // First row that will be read out by the FEE in partial readout mode
+        int numRowsPartialReadout;			     // Number of rows that will be read out by the FEE, starting at firstRowReadout, in partial readout mode
         double readoutNoise;                     // Mean readout noise [electrons]
         double refValueGainLeft;                 // Reference value for the gain on the ACD reading the left-hand side of the detector [µV/e-]
         double refValueGainRight;                // Reference value for the gain on the ACD reading the right-hand side of the detector [µV/e-]
@@ -191,8 +192,9 @@ class Detector: public HDF5Writer
         unsigned long fullWellSaturationLimit;   // Full-well saturation limit [electrons/pixel]
         unsigned int electronicOffset;           // Bias or electronic offset [ADU]
         unsigned long digitalSaturationLimit;    // Digital saturation limit [ADU / pixel]
-        double darkCurrent;						// Dark current [e- / s]
-        double dsnu;								// Dark signal non-uniformity
+        double darkCurrent;						 // Dark current [e- / s]
+        double dsnu;							 // Dark signal non-uniformity
+        double darkCurrentStability;             // Temperature stability of the dark current [e / K / s]
 
         string CTImodel;
         double meanCte;                          // Mean charge-transfer efficiency  (in [0,1])
@@ -203,8 +205,12 @@ class Detector: public HDF5Writer
         vector<double> trapCaptureCrossSection;  // For each trap species: the trap capture cross section [m^2]
         vector<double> releaseTime;              // For each trap species: the electron release time [s]
 
-        bool includeBFE;							// Whether or not to include the BFE
-        bool includeDarkSignal;	      			// Whether or not to include dark
+        string readoutMode;                      // Readout mode (Nominal / Partial)
+        double readoutTimeBeforeNextExposure;    // Duration of the readout before the next exposure can start [s]
+        double readoutTimeDuringNextExposure;    // Duration of the readout when the next exposure has already started [s]
+
+        bool includeBFE;						 // Whether or not to include the BFE
+        bool includeDarkSignal;	      			 // Whether or not to include dark
         bool includePhotonNoise;                 // Whether or not to include photon noise
         bool includeReadoutNoise;                // Include readout noise [yes or no]
         bool includeCTIeffects;                  // Include CTI effects [yes or no]
@@ -238,6 +244,7 @@ class Detector: public HDF5Writer
         mt19937 cosmicEntryAngleGenerator;
         mt19937 cosmicTrailLengthGenerator;
         mt19937 cosmicIntensityGenerator;
+        mt19937 decimalNumCosmicHitsGenerator;
 
         normal_distribution<double> darkSignalDistribution;
         normal_distribution<double> darkNoiseDistribution;
@@ -249,6 +256,7 @@ class Detector: public HDF5Writer
         uniform_real_distribution<double> cosmicEntryAngleDistribution;
         uniform_real_distribution<double> cosmicTrailLengthDistribution;
         uniform_real_distribution<double> cosmicIntensityDistribution;
+        uniform_real_distribution<double> decimalNumCosmicHitsDistribution;
  
         Camera &camera;
         FrontEndElectronics *frontEndElectronics;

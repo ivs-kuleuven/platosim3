@@ -23,7 +23,9 @@ Sky:
     SkyBackground:                342.            # Stellar + zodiacal background level (excl. transmission efficiency). Set negative to compute.     [phot/pix/s]
     IncludeVariableSources:       no              # Include time series of variable stars or not
     VariableSourceList:           inputfiles/varsource.txt  # Ascii file: Col 1: star ID, Col 2: path of time series file
-    IncludeCosmics:               yes             # Whether or not to include cosmics
+    IncludeCosmicsInSubField:        yes          # Whether or not to include cosmics in the subfield on the CCD
+    IncludeCosmicsInSmearingMap:     yes          # Whether or not to include cosmics in the overscan map
+    IncludeCosmicsInBiasMap:         yes          # Whether or not to include cosmics in the prescan map
     Cosmics:
       CosmicHitRate:              10              # Cosmic hit rate [events / cm^2 / s]
       TrailLength:                [0, 15]         # Intervalof the length of the cosmic trails [pixels]
@@ -33,7 +35,7 @@ Sky:
 Platform:
 
     UseJitter:                   yes              # yes or no
-    JitterSource:                FromNetwork      # Source: FromFile, FromRedNoise, FromNetwork 
+    JitterSource:                FromFile      # Source: FromFile, FromRedNoise, FromNetwork 
     JitterYawRms:                0.5              # [arcsec]
     JitterPitchRms:              0.5              # [arcsec]
     JitterRollRms:               0.5              # [arcsec]
@@ -169,7 +171,14 @@ CCD:
     FullWellSaturation:          900000         # [e-/pixel]
     DigitalSaturation:           16383           # E.g. 16 bit [ADU/pixel]
     ReadoutNoise:                44.3            # Readout noise for the CCD [e-/pixel]
-    ReadoutTime:                 0.2             # time to read out entire CCD [s]
+    SerialTransferTime:              340         # Time to shift the content of the readout register by one pixel [ns]
+    ParallelTransferTime:            110         # Time to shift the charges one row down in case the readout register will be read out [µs]
+    ParallelTransferTimeFast:        90          # Time to shift the charges one row down in case the readout register will not be read out [µs]
+    ReadoutMode:
+       ReadoutMode:                  Nominal     # Nominal (normal camera: full frame; fast camera: frame transfer) / Partial (read contiguous block of entire rows)
+       Partial:
+          FirstRowReadout:           0           # First row that will be read out by the FEE in partial-readout mode
+          NumRowsReadout:            4510        # Number of rows that will be read out by the FEE, in partial-readout mode
     FlatfieldPtPNoise:           0.010           # peak-to-peak pixel noise
     Vignetting:
         ExpectedValue:           0.904           # Expected value of the throughput efficiency due to vignetting
@@ -183,6 +192,7 @@ CCD:
     DarkSignal:
       DarkCurrent:                  1.2              # Dark current [e- / s]
       DSNU:                         15.0             # Dark signal non-uniformity [%]
+      Stability:                    5.0              # Temperature stability of the dark current [[e- / K / s ]
     CTI:
         Model:                       Short2013       # The method used to generate the CTI, either "Simple" or "Short2013"
         Simple:
@@ -219,10 +229,13 @@ SubField:
 
     ZeroPointRow:                0               # Row of the (0,0) pixel of the subfield [pixels]
     ZeroPointColumn:             0               # Column of the (0,0) pixel of the subfield [pixels]
-    NumColumns:                  7               # Number of columns, should be >= 8 [pixels]
-    NumRows:                     7               # Number of rows,    should be >= 8 [pixels]
-    NumBiasPrescanRows:          0               # Nr of rows of the prescan strip to determine the bias [pixels]
-    NumSmearingOverscanRows:     0               # Nr of rows of the overscan strip to determine the smearing [pixels]
+
+    NumColumns:                  9               # Number of columns, should be >= 8 [pixels]
+    NumRows:                     9               # Number of rows,    should be >= 8 [pixels]
+    NumBiasPrescanRows:          30              # Nr of rows of the prescan strip to determine the bias [pixels]
+    NumBiasPrescanColumns:       30              # Nr of columns of the prescan strip to determine the bias [pixels]
+    NumSmearingOverscanRows:     30              # Nr of rows of the overscan strip to determine the smearing [pixels]
+
     SubPixels:                   32              # (Sqrt of ) nr of subpixels per CCD pixel. Should be 2^n <= 128.
 
 

@@ -40,6 +40,8 @@ class Observer
         virtual JitterGenerator* getJitterInstance() = 0;
         virtual DriftGenerator* getDriftInstance() = 0;
 
+        virtual double getReadoutTimeBeforeNextExposure() = 0;
+
         virtual bool isClient(){return false;};
 
         virtual bool simulationEnd(){return true;};
@@ -79,7 +81,7 @@ class Clock
     	DriftGenerator *driftInstance;
 
     	double exposureTime; 
-        double readoutTime; 
+
 	    int numExposures;
 };
 

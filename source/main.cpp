@@ -55,7 +55,7 @@ int main(int Narguments, char* arguments[])
         {
             paraSimulation = false;
 
-            if (Narguments < 3)
+            if (Narguments < 3 || (Narguments > 5))
             {
                 invalidInput = true;
 
@@ -74,7 +74,7 @@ int main(int Narguments, char* arguments[])
 
     if (invalidInput)
     {
-        cerr << "Usage: platosim <inputfile> <outputfile> [<logfile>]" << endl;
+        cerr << "Usage: platosim <inputfile> <outputfile> [<logfile>] [<logLevel>]" << endl;
         cerr << "       platosim -version" << endl;
         cerr << "       platosim <path_to_inputfile_list>" << endl;
         exit(EXIT_FAILURE); 
@@ -82,18 +82,39 @@ int main(int Narguments, char* arguments[])
 
 
     string logFilename = "log.txt";
-    if (Narguments == 4)
+    if (Narguments >= 4)
     {
         logFilename = arguments[3];
     }
 
+    int logLevel = 3;
+    if (Narguments == 5)
+    {
+        logLevel = atoi(arguments[4]);
+        if ((logLevel < 1) || (logLevel > 3)) 
+        {
+            cerr << "Error: logLevel should be either 1 (least verbose), 2, or 3 (most verbose)" << endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+
     // Set up the log file
 
+    Log.addOutputStream(cerr, ERROR | WARNING);
+
     ofstream logFile(logFilename);
-    Log.addOutputStream(cerr,    WARNING | ERROR);
-    Log.addOutputStream(logFile, WARNING | ERROR | DEBUG | INFO);
+    switch (logLevel)
+    {
+        case 1: Log.addOutputStream(logFile, ERROR | WARNING);
+                break;
+        case 2: Log.addOutputStream(logFile, ERROR | WARNING | INFO); 
+                break;
+        case 3: Log.addOutputStream(logFile, ERROR | WARNING | INFO | DEBUG);
+                break;   
+    }
+    
     Log.info(string("PlatoSim ") + GIT_DESCRIBE);
-    Log.info("Main: Log file includes 'warning', 'error', 'debug', and 'info'");
+    Log.info("Main: Log file includes 'error', 'warning', 'info', and 'debug'");
 
     
     string inputFilename = firstArgument;
@@ -185,7 +206,7 @@ int main(int Narguments, char* arguments[])
 
         std::thread serverThread(&TcpConnection::connectToClient, serverInstance);
 
-        std::thread clientThread(&TcpConnection::connectToServer, clientInstance, conPtr, pNotified, pNewStep, pM);
+        std::thread clientThread(&TcpConnection::connectToServer, clientInstance, simulationInstanceVec.at(0), conPtr, pNotified, pNewStep, pM);
 
         serverThread.join();
 

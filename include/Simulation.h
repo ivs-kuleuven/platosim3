@@ -1,6 +1,7 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
+#include <ctime>
 #include <string>
 
 #include "Logger.h"
@@ -41,9 +42,12 @@ class Simulation : public Observer
         ~Simulation();
         virtual void run();
         virtual void configure(ConfigurationParameters &configParams);
+        virtual pair<double, double> configureReadoutTime(ConfigurationParameters &configParams);
 
         JitterGenerator* getJitterInstance();
         DriftGenerator* getDriftInstance();
+
+        double getReadoutTimeBeforeNextExposure();
 
 /*        bool isClient(){};
         bool simulationEnd(){};*/
@@ -54,15 +58,16 @@ class Simulation : public Observer
         virtual void writeInputParametersToHDF5(ConfigurationParameters &configParams);
         virtual void writeVersionInformationToHDF5();
         virtual void writeStarCatalogToHDF5();
+        virtual void setRandomSeeds(ConfigurationParameters &configParams);
 
     private:
 
         double currentTime;
         double exposureTime;
-        double readoutTime;
+        double readoutTimeBeforeNextExposure;	// Readout time before the next exposure starts
 
-        int beginExposureNr;                 // sequential number of first exposure. useful for slurm parallellisation
-        int numExposures;                    // Number of exposures
+        int beginExposureNr;                    // sequential number of first exposure. useful for slurm parallellisation
+        int numExposures;                       // Number of exposures
 
         bool useJitter;
         string jitterSource;

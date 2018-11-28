@@ -22,37 +22,15 @@ TcpConnection::TcpConnection(string inputFilename)
 
     client = false;
 
+
     // Depending on what the user requested, define the proper platform jitter generator
 
-    if (!useJitter)
+    if (jitterSource == "FromNetwork")
     {
-        jitterGenerator = NoJitter::Instance();
-    }
-    else
-    {
-        if (jitterSource == "FromFile")
-        {
-            jitterGenerator = JitterFromFile::Instance(configParams);
-        }
-        else if (jitterSource == "FromRedNoise")
-        {
-            jitterGenerator = JitterFromRedNoise::Instance(configParams);
-        }
-        else if (jitterSource == "FromNetwork")
-        {
-            jitterGenerator = JitterFromNetwork::Instance(configParams, this);
+        client = true;
 
-            client = true;
-
-            // this is to make sure, that the end of the simulation is determined by the server and not by platosim
-            endOfSimulation = false;
-        }
-        else
-        {
-            string errorMessage = "Simulation: Jitter Source '" + jitterSource + "' is not supported.";
-            Log.error(errorMessage);
-            throw IllegalArgumentException(errorMessage);
-        }
+        // this is to make sure, that the end of the simulation is determined by the server and not by platosim
+        endOfSimulation = false;
     }
 
     // whether or not, PlatoSim should send created imagettes to a client
@@ -92,11 +70,13 @@ TcpConnection::~TcpConnection()
 * \brief function that runs in a seperate thread parallel to the simulator
 * 		 which entertains an ongoing connection to a sender or receiver of data
 */
-void TcpConnection::connectToServer(std::condition_variable* cond_var, bool* notified, bool* newStep, std::mutex* m)
+void TcpConnection::connectToServer(Simulation* simulationInstance, std::condition_variable* cond_var, bool* notified, bool* newStep, std::mutex* m)
 {
     // only execute this thread, if platosim gets its jitter steps from a server
     if (client)
     {
+        JitterGenerator* jitterGenerator = simulationInstance->getJitterInstance();
+
         zmq::context_t context(1);
         zmq::socket_t socket(context, ZMQ_REQ);
 

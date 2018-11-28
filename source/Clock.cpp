@@ -85,6 +85,7 @@ void Clock::startSimulation(std::condition_variable* cond_var, bool* notified, b
 	jitterInstance = observers.at(0)->getJitterInstance();
 	driftInstance = observers.at(0)->getDriftInstance();
 
+	double readoutTimeBeforeNextExposure = observers.at(0)->getReadoutTimeBeforeNextExposure();
 	// process simulation steps, until there 
 	while(!endSimulation)
 	{
@@ -115,7 +116,7 @@ void Clock::startSimulation(std::condition_variable* cond_var, bool* notified, b
 		timeStep = min(exposureTime, min(jitterInstance->getHeartbeatInterval(), driftInstance->getHeartbeatInterval()));
 
 		// check, whether the intended number of imagettes is already reached
-		int currentExposures = simulationTime/(exposureTime + readoutTime);
+		int currentExposures = simulationTime/(exposureTime + readoutTimeBeforeNextExposure);
 
 		if (currentExposures >= numExposures)
 		{
@@ -161,5 +162,5 @@ void Clock::configure(ConfigurationParameters &configParams)
 {
     exposureTime      = configParams.getDouble("ObservingParameters/ExposureTime"); 
     numExposures      = configParams.getInteger("ObservingParameters/NumExposures");
-    readoutTime       = configParams.getDouble("CCD/ReadoutTime"); 
+    //readoutTime       = configParams.getDouble("CCD/ReadoutTime"); 
 }

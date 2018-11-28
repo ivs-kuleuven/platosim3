@@ -15,8 +15,16 @@ Note that - before running PlatoSim3 - you must have an environment variable <co
 To initiate a simulation on the command line, <code>cd</code> to the <code>/build</code> directory and type:
 
 \code
-./platosim <input file> <non-existing output file> [<log file>]
+./platosim <input file> <non-existing output file> [<log file> <log level>]
 \endcode
+
+The log level is an integer value that allows to configure what kind of log messages is written to the log file:
+
+* 1: only error and warning messages;
+* 2: error, warning, and info messages;
+* 3: all messages (error, warning, info, and debug).
+
+
 
 ---
 

@@ -5,11 +5,11 @@
 /**
  * \brief function to acces the protected constructor, if there is no jitter instance yet
  */
-JitterGenerator* JitterFromRedNoise::Instance(ConfigurationParameters &configParams)
+JitterGenerator* JitterFromRedNoise::Instance(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure)
 {
     if(_instance == 0)
     {
-        _instance = new JitterFromRedNoise(configParams);
+        _instance = new JitterFromRedNoise(configParams, readoutTimeBeforeNextExposure);
     }
     return _instance;
 }
@@ -22,12 +22,12 @@ JitterGenerator* JitterFromRedNoise::Instance(ConfigurationParameters &configPar
  * \param configParams The configuration parameters from the input parameters file
  */
 
-JitterFromRedNoise::JitterFromRedNoise(ConfigurationParameters &configParams)
+JitterFromRedNoise::JitterFromRedNoise(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure)
 : lastYaw(0.0), lastPitch(0.0), lastRoll(0.0), internalTime(0.0)
 {
     // Set the configuration parameters
 
-    configure(configParams);
+    configure(configParams, readoutTimeBeforeNextExposure);
 
     // Seed the random generator. The seed should have been set by configure().
     // Initialise the standard normal distribution with mu=0, and sigma=1.0.
@@ -64,9 +64,11 @@ JitterFromRedNoise::~JitterFromRedNoise()
  * \brief Configure this object using the parameters from the input parameters file
  * 
  * \param configParams  The configuration parameters
+ *
+ * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start
  */
 
-void JitterFromRedNoise::configure(ConfigurationParameters &configParams)
+void JitterFromRedNoise::configure(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure)
 {
     // Note that the inputfile lists the jitter RMS values in [arcsec]
 
@@ -80,6 +82,16 @@ void JitterFromRedNoise::configure(ConfigurationParameters &configParams)
     // so that the changes in (yaw, pitch, roll) can still be reliably tracked.
 
     jitterTimeInterval = jitterTimeScale / 20.0;
+
+    // Set the internal time to the time of the first exposure of the series
+    // The alternative, setting internalTime to 0., has the disadvantage that the jittering
+    // needs to fast-forward a lot when beginExposureNr is very large, which is slow.
+    
+    int beginExposureNr = configParams.getInteger("ObservingParameters/BeginExposureNr");
+    double exposureTime = configParams.getDouble("ObservingParameters/ExposureTime");
+
+    internalTime = beginExposureNr * (exposureTime + readoutTimeBeforeNextExposure);
+    
 }
 
 
