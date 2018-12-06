@@ -157,9 +157,9 @@ void DetectorWithAnalyticGaussianPSF::generateFlatfieldMap()
     float maxPinkNoise = flatfieldMap.max();
 
     flatfieldMap -= minPinkNoise;
-    flatfieldMap /= (maxPinkNoise - minPinkNoise); // [0, 1]
-    flatfieldMap *= flatfieldNoiseAmplitude;    // [0, flatfialdNoiseAmplitude]
-    flatfieldMap += (1.0 - flatfieldNoiseAmplitude);
+    flatfieldMap /= (maxPinkNoise - minPinkNoise);      // [0, 1]
+    flatfieldMap *= flatfieldNoiseAmplitude;            // [0, flatfieldNoiseAmplitude]
+    flatfieldMap += (1.0 - flatfieldNoiseAmplitude);    // [1-flatfieldNoiseAmplitude, 1]
 
     // Write the result to the HDF5 output file
 
