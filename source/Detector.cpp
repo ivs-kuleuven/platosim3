@@ -1379,7 +1379,6 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, int numRows
     // - exposure time [s]
     // - dimensions [pixels] -> [micron] -> [cm]
     //
-    // See GitHub issue #283
 	// To make sure the number of cosmics is as expected when considering a large number
     // of exposures, we have to account for the decimal part of the number of cosmic hits
     // per exposure too, instead of rounding down this value. E.g. if you have 1.5 cosmics
@@ -1395,11 +1394,15 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, int numRows
 			* (numRows * pixelSize / 10000.0)
 			* (numColumns * pixelSize / 10000.0);
     double decimalPartNumCosmicHits = numCosmicHitsAsDouble - (int) numCosmicHitsAsDouble;
+
+    // Round down the number of cosmic hits to an integer, possibly zero.
+
     int numCosmicHits = (int) numCosmicHitsAsDouble;
 
-    if(decimalNumCosmicHitsDistribution(decimalNumCosmicHitsGenerator) < decimalPartNumCosmicHits)
+  	// Add 1 cosmic with a chance equal to the decimal part.
+
+    if (decimalNumCosmicHitsDistribution(decimalNumCosmicHitsGenerator) < decimalPartNumCosmicHits)
     {
-    	// See GitHub issue #283
     	numCosmicHits += 1;
     }
 
@@ -1410,7 +1413,7 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, int numRows
     double meanTrailLength = 0.0;
     double meanIntensity = 0.0;
 
-    for(unsigned int cosmicHit = 0; cosmicHit < numCosmicHits; cosmicHit++)
+    for (unsigned int cosmicHit = 0; cosmicHit < numCosmicHits; cosmicHit++)
     {
         entryRow    = cosmicEntryRowDistribution(cosmicEntryRowGenerator);          // Entry row [pixels] (uniform distribution over the rows of the sub-fields)
         entryColumn = cosmicEntryColumnDistribution(cosmicEntryColumnGenerator);    // Entry column [pixels] (uniform distribution over the columns of the sub-field)
@@ -1436,12 +1439,12 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, int numRows
 
         // Add the flux coming from the cosmic hit to all its trail points in the pixel map
 
-        for(unsigned int index = 0; index < numTrailPoints; index++)
+        for (unsigned int index = 0; index < numTrailPoints; index++)
         {
             trailRow = int(floor(trailRows(index)));
             trailColumn = int(floor(trailColumns(index)));
 
-            if((trailRow >= 0) && (trailRow < numRows) && (trailColumn >= 0) && (trailColumn < numColumns))
+            if ((trailRow >= 0) && (trailRow < numRows) && (trailColumn >= 0) && (trailColumn < numColumns))
             {
                 map(trailRow, trailColumn) += (trailWeights(index) * intensity);
             }
