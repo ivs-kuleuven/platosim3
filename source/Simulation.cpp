@@ -733,7 +733,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("SerialTransferTime");
     addDouble("ParallelTransferTime");
     addDouble("ParallelTransferTimeFast");
-    addDouble("FlatfieldPtPNoise");
+    addDouble("FlatfieldNoiseRMS");
 	addDouble("NominalOperatingTemperature");
 	addString("Temperature");
 	addString("TemperatureFileName");
