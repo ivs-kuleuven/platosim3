@@ -27,6 +27,8 @@
 
 * Incorrect sky background level (GitHub issue #325)
 
+* Incorrect flatfield level (GitHub issue #326)
+
 
 
 ### Added

@@ -60,3 +60,4 @@ log.txt
 Icon?
 Thumbs.db
 Pipfile*
+/Debug/

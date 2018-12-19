@@ -169,7 +169,7 @@ CCD:
        Partial:
           FirstRowReadout:           0           # First row that will be read out by the FEE in partial-readout mode
           NumRowsReadout:            4510        # Number of rows that will be read out by the FEE, in partial-readout mode
-    FlatfieldPtPNoise:           0.010           # peak-to-peak pixel noise
+    FlatfieldNoiseRMS:           0.010           # Flatfield noise RMS (local PRNU)
     Vignetting: 
         ExpectedValue:               0.904           # Expected value of the throughput efficiency due to vignetting
     Polarization:
