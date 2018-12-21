@@ -30,6 +30,9 @@ TEST(ConfigurationParametersTest, readGlobalValues)
 {
     LOG_STARTING_OF_TEST
 
+    char * env = getenv("PLATO_PROJECT_HOME");
+    ASSERT_FALSE(env == NULL);
+
     ConfigurationParameters cp = ConfigurationParameters(string(getenv("PLATO_PROJECT_HOME")) + "/testData/input_ConfigurationParametersTest.yaml");
 
     string description = cp.getString("Description");
@@ -47,6 +50,9 @@ TEST(ConfigurationParametersTest, readGeneralValues)
 {
     LOG_STARTING_OF_TEST
 
+    char * env = getenv("PLATO_PROJECT_HOME");
+    ASSERT_FALSE(env == NULL);
+
     ConfigurationParameters cp = ConfigurationParameters(string(getenv("PLATO_PROJECT_HOME")) + "/testData/input_ConfigurationParametersTest.yaml");
 
     string projectLocation = cp.getString("General/ProjectLocation");
@@ -63,6 +69,9 @@ TEST(ConfigurationParametersTest, readGeneralValues)
 TEST(ConfigurationParametersTest, readObservingValues)
 {
     LOG_STARTING_OF_TEST
+
+    char * env = getenv("PLATO_PROJECT_HOME");
+    ASSERT_FALSE(env == NULL);
 
     ConfigurationParameters cp = ConfigurationParameters(string(getenv("PLATO_PROJECT_HOME")) + "/testData/input_ConfigurationParametersTest.yaml");
 
@@ -89,6 +98,9 @@ TEST(ConfigurationParametersTest, readObservingValues)
 TEST(ConfigurationParametersTest, readSpecialValues)
 {
     LOG_STARTING_OF_TEST
+
+    char * env = getenv("PLATO_PROJECT_HOME");
+    ASSERT_FALSE(env == NULL);
 
     ConfigurationParameters cp = ConfigurationParameters(string(getenv("PLATO_PROJECT_HOME")) + "/testData/input_ConfigurationParametersTest.yaml");
 
@@ -133,6 +145,9 @@ TEST(ConfigurationParametersTest, testConversions)
 {
     LOG_STARTING_OF_TEST
 
+    char * env = getenv("PLATO_PROJECT_HOME");
+    ASSERT_FALSE(env == NULL);
+
     ConfigurationParameters cp = ConfigurationParameters(string(getenv("PLATO_PROJECT_HOME")) + "/testData/input_ConfigurationParametersTest.yaml");
 
     // Can convert an integer value into a double
@@ -155,6 +170,9 @@ TEST(ConfigurationParametersTest, testConversions)
 TEST(ConfigurationParametersTest, testNonExistingKey)
 {
     LOG_STARTING_OF_TEST
+
+    char * env = getenv("PLATO_PROJECT_HOME");
+    ASSERT_FALSE(env == NULL);
 
     ConfigurationParameters cp = ConfigurationParameters(string(getenv("PLATO_PROJECT_HOME")) + "/testData/input_ConfigurationParametersTest.yaml");
 
@@ -225,6 +243,9 @@ TEST(ConfigurationParametersTest, testHasParameter)
 {
     LOG_STARTING_OF_TEST
 
+    char * env = getenv("PLATO_PROJECT_HOME");
+    ASSERT_FALSE(env == NULL);
+
     ConfigurationParameters cp = ConfigurationParameters(string(getenv("PLATO_PROJECT_HOME")) + "/testData/input_ConfigurationParametersTest.yaml");
 
     EXPECT_TRUE(cp.hasParameter("Degradation/Efficiency"));
@@ -277,6 +298,9 @@ TEST(ConfigurationParametersTest, testSetSubNode)
 TEST(ConfigurationParametersTest, Sequences)
 {
     LOG_STARTING_OF_TEST
+
+    char * env = getenv("PLATO_PROJECT_HOME");
+    ASSERT_FALSE(env == NULL);
 
     ConfigurationParameters cp = ConfigurationParameters(string(getenv("PLATO_PROJECT_HOME")) + "/testData/input_ConfigurationParametersTest.yaml");
 
