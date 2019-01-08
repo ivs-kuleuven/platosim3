@@ -168,7 +168,8 @@ class Detector: public HDF5Writer
         double cosmicHitRate;					 // Cosmic hit rate [events / cm^2 / s]
         vector<double> cosmicTrailLength;		 // Interval of the length of the cosmic trails [pixels]
         vector<double> cosmicIntensity; 		 // Interval of the intensity of the cosmic trails [e-]
-        double expectedValueVignetting;          // Expected value of the throughput efficiency due to vignetting (int [0,1])
+        double expectedValueNaturalVignetting;   // Expected value of the throughput efficiency due to vignetting (int [0,1])
+        double radiusFOV;                        // Radius of the FOV [radians]
         double expectedValuePolarization;        // Expected value of the throughput efficiency due to polarisation
         double particulateContaminationEfficiency;  // Efficiency of particulate contamination (in [0,1])
         double molecularContaminationEfficiency;    // Efficiency of molecular contamination (in [0,1])
@@ -212,7 +213,8 @@ class Detector: public HDF5Writer
         bool includeCTIeffects;                  // Include CTI effects [yes or no]
         bool includeOpenShutterSmearing;         // Include trails due reading out with an open shutter
         bool includeQuantumEfficiency;           // Include loss of throughput due to quantum efficiency
-        bool includeVignetting;                  // Include brightness attenuation due to vignetting
+        bool includeNaturalVignetting;           // Include brightness attenuation due to natural vignetting
+        bool includeMechanicalVignetting;        // Include blockage of incoming flux during exposure at the edge of the FOV due to mechanical vignetting
         bool includePolarization;                // Include loss of throughput due to polarisation
         bool includeParticulateContamination;    // Include loss of throughput due to particulate contamination
         bool includeMolecularContamination;      // Include loss of throughput due to molecular contamination
