@@ -660,11 +660,10 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     }
     else
     {
-        totalSkyBackground = floor(userGivenSkyBackground * (exposureTime + readoutTimeBeforeNextExposure) * transmissionEfficiency);
+        totalSkyBackground = floor(userGivenSkyBackground * exposureTime * transmissionEfficiency);
         detector.addFlux(totalSkyBackground);
 
         Log.debug("Camera: user-given sky background flux over exposure= " + to_string(userGivenSkyBackground * exposureTime) + " photons/pixel/exposure");
-        Log.debug("Camera: user-given sky background flux over readout= " + to_string(userGivenSkyBackground * readoutTimeBeforeNextExposure) + " photons/pixel/readout");
     }
 
     // Save the sky background value that we added. [photons/pix/exposure]
