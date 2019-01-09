@@ -232,31 +232,31 @@ void Simulation::configure(ConfigurationParameters &configParams)
 pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &configParams)
 {
 
-	int numRows, numColumns, firstRowExposed, numColumnsBiasMap,numRowsSmearingMap;
+	int numRows, numColumns, firstRowExposed;
 	bool isFastCamera = configParams.getString("Telescope/GroupID") == "Fast";
 	string ccdPosition = configParams.getString("CCD/Position");
 
 	if (ccdPosition == "Custom")
 	{
-		numRows = configParams.getInteger("CCD/NumRows");            // [pixels]
-		numColumns = configParams.getInteger("CCD/NumColumns");      // [pixels]
-		firstRowExposed = configParams.getInteger("CCD/FirstRowExposed"); // [pixels]
+		numRows = configParams.getInteger("CCD/NumRows");                   // [pixels]
+		numColumns = configParams.getInteger("CCD/NumColumns");             // [pixels]
+		firstRowExposed = configParams.getInteger("CCD/FirstRowExposed");   // [pixels]
 	}
 
 	else
 	{
 		int idx = stoi(ccdPosition) - 1; // Positions are named [1, 2, 3, 4] while the index into vector starts at 0
 
-		numRows = configParams.getIntegerAt("CCDPositions/NumRows", idx);
-		numColumns = configParams.getIntegerAt("CCDPositions/NumColumns", idx);
+		numRows = configParams.getIntegerAt("CCDPositions/NumRows", idx);           // [pixels]
+		numColumns = configParams.getIntegerAt("CCDPositions/NumColumns", idx);     // [pixels]
 
 		isFastCamera = configParams.getString("Telescope/GroupID") == "Fast";
 
 		if (isFastCamera)
-			firstRowExposed = configParams.getIntegerAt("CCDPositions/FirstRowForFastCamera", idx);
+			firstRowExposed = configParams.getIntegerAt("CCDPositions/FirstRowForFastCamera", idx);     // [pixels]
 
 		else
-			firstRowExposed = configParams.getIntegerAt("CCDPositions/FirstRowForNormalCamera", idx);
+			firstRowExposed = configParams.getIntegerAt("CCDPositions/FirstRowForNormalCamera", idx);   // [pixels]
 	}
 
 	string readoutMode = configParams.getString("CCD/ReadoutMode/ReadoutMode");
@@ -270,6 +270,11 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
 	double serialTransferTime = configParams.getDouble("CCD/SerialTransferTime") * 1E-9;			  // [ns] -> [s]
 	double parallelTransferTime = configParams.getDouble("CCD/ParallelTransferTime") * 1E-6;		  // [µs] -> [s]
 	double parallelTransferTimeFast = configParams.getDouble("CCD/ParallelTransferTimeFast") * 1E-6;  // [µs] -> [s]
+
+
+
+    int numColumnsBiasMap =  configParams.getInteger("SubField/NumBiasPrescanColumns");     // [pixels]
+    int numRowsSmearingMap = configParams.getInteger("SubField/NumSmearingOverscanRows");   // [pixels]
 
 
 
@@ -301,14 +306,13 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
 	// Fast camera
 	// -----------
 
-	if (isFastCamera) {
-
+	if (isFastCamera) 
+    {
 		// Move the upper half of the CCD down to the lower half, row-by-row
 
 		int numRowsFrameTransfer = numRows - firstRowExposed;
 
-		readoutTimeBeforeNextExposure = numRowsFrameTransfer
-							* parallelTransferTimeFast;
+		readoutTimeBeforeNextExposure = numRowsFrameTransfer * parallelTransferTimeFast;
 
 		// The actual readout of the lower half of the CCD (after frame transfer) is done
 		// while the next exposure has already started
@@ -322,7 +326,8 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
 
 		}
 
-		// Partial readout
+		// Rows read out by the FEE: rows in the block (other rows in image area are dumped)
+		// Note: no parallel over-scan
 
 		else if (readoutMode == "Partial")
 		{
@@ -371,11 +376,8 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
 
 		}
 
-		readoutTimeBeforeNextExposure =
-				numRowsReadout
-						* (numColumnsReadout * serialTransferTime
-								+ parallelTransferTime)
-						+ numRowsDump * parallelTransferTimeFast;
+		readoutTimeBeforeNextExposure = numRowsDump * parallelTransferTimeFast
+				+ numRowsReadout * (numColumnsReadout * serialTransferTime + parallelTransferTime);
 
 		readoutTimeDuringNextExposure = 0;
 	}
@@ -671,7 +673,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addInteger("NumberOfPixels");
     addDouble("ChargeDiffusionStrength");
     addBoolean("IncludeChargeDiffusion");
-    	addBoolean("IncludeJitterSmoothing");
+    addBoolean("IncludeJitterSmoothing");
 
     subGroup = "PSF/MappedFromFile";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
@@ -744,7 +746,8 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("IncludeReadoutNoise");
     addBoolean("IncludeCTIeffects"); 
     addBoolean("IncludeOpenShutterSmearing");
-    addBoolean("IncludeVignetting");
+    addBoolean("IncludeNaturalVignetting");
+    addBoolean("IncludeMechanicalVignetting");
     addBoolean("IncludePolarization");
     addBoolean("IncludeParticulateContamination");
     addBoolean("IncludeMolecularContamination");
@@ -772,7 +775,14 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "CCD/Vignetting";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
+    
+    subGroup = "CCD/Vignetting/NaturalVignetting";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
     addDouble("ExpectedValue");
+    
+    subGroup = "CCD/Vignetting/MechanicalVignetting";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("RadiusFOV");
 
     subGroup = "CCD/QuantumEfficiency";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
