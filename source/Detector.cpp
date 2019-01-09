@@ -152,7 +152,8 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
   includeCTIeffects(true), 
   includeOpenShutterSmearing(true), 
   includeQuantumEfficiency(true),
-  includeVignetting(true),
+  includeNaturalVignetting(true),
+  includeMechanicalVignetting(true),
   includeParticulateContamination(true),
   includeMolecularContamination(true),
   includeFullWellSaturation(true),
@@ -331,7 +332,8 @@ void Detector::updateParameters(double time)
     fullWellSaturationLimit             = configParam.getLong("CCD/FullWellSaturation");
     digitalSaturationLimit              = configParam.getLong("CCD/DigitalSaturation");
     readoutNoise                        = configParam.getDouble("CCD/ReadoutNoise");
-    expectedValueVignetting             = configParam.getDouble("CCD/Vignetting/ExpectedValue");
+    expectedValueNaturalVignetting      = configParam.getDouble("CCD/Vignetting/NaturalVignetting/ExpectedValue");
+    radiusFOV                           = deg2rad(configParam.getDouble("CCD/Vignetting/MechanicalVignetting/RadiusFOV"));
     particulateContaminationEfficiency  = configParam.getDouble("CCD/Contamination/ParticulateContaminationEfficiency");
     molecularContaminationEfficiency    = configParam.getDouble("CCD/Contamination/MolecularContaminationEfficiency");
 
@@ -391,7 +393,8 @@ void Detector::updateParameters(double time)
     includeCTIeffects               = configParam.getBoolean("CCD/IncludeCTIeffects");
     includeOpenShutterSmearing      = configParam.getBoolean("CCD/IncludeOpenShutterSmearing");
     includeQuantumEfficiency        = configParam.getBoolean("CCD/IncludeQuantumEfficiency");
-    includeVignetting               = configParam.getBoolean("CCD/IncludeVignetting");
+    includeNaturalVignetting        = configParam.getBoolean("CCD/IncludeNaturalVignetting");
+    includeMechanicalVignetting     = configParam.getBoolean("CCD/IncludeMechanicalVignetting");
     includePolarization             = configParam.getBoolean("CCD/IncludePolarization");
     includeFullWellSaturation       = configParam.getBoolean("CCD/IncludeFullWellSaturation");
     includeDigitalSaturation        = configParam.getBoolean("CCD/IncludeDigitalSaturation");
@@ -639,7 +642,7 @@ void Detector::generateThroughputMap()
 //    const double refAngleQuantumEfficiencyRadians = deg2rad(refAngleQE);     // Reference angle for the quantum efficiency [radians]
 //    const double acosQuantumEfficiency = acos(relativeRefEfficiencyQE);        // Relative efficiency due to the angle dependency of the QE at the reference angle
 
-    if (includeVignetting || includePolarization || includeQuantumEfficiency)
+    if (includeNaturalVignetting || includeMechanicalVignetting || includePolarization || includeQuantumEfficiency)
     {
         // Loop over all pixels in the pixel map
 
@@ -655,9 +658,15 @@ void Detector::generateThroughputMap()
 
                 angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm);
 
-                // Vignetting
+                // Mechanical vignetting
 
-                if (includeVignetting) throughputMap(row, column) *= pow(cos(angle), 2);
+                if (includeMechanicalVignetting && angle >= radiusFOV)
+                    throughputMap(row, column) = 0.0;
+
+                // Natural vignetting
+
+                if (includeNaturalVignetting) 
+                    throughputMap(row, column) *= pow(cos(angle), 2);
 
                 // Polarisation (Eq. 4-11 in PLATO-DLR-PL-RP-001)
 
@@ -1878,8 +1887,8 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
 
     // Apply all throughput efficiencies
 
-    if(includeVignetting)
-        openShutterSmearingOutsideSubField *= expectedValueVignetting;
+    if(includeNaturalVignetting)
+        openShutterSmearingOutsideSubField *= expectedValueNaturalVignetting;
 
     if(includePolarization)
         openShutterSmearingOutsideSubField *= expectedValuePolarization;
@@ -1908,16 +1917,12 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
     // Add the effect of the open-shutter smearing to the pixel map
 
     for (unsigned int row = 0; row < numRowsPixelMap; row++)
-    {
         pixelMap(row, arma::span::all) += openShutterSmearing;
-    }
 
     // Add the effect of the open-shutter smearing to the smearing map
 
     for (unsigned int row = 0; row < numRowsSmearingMap; row++)
-    {
         smearingMap(row, arma::span::all) += openShutterSmearing;
-    }
 }
 
 
@@ -2051,7 +2056,7 @@ void Detector::applyQuantisation()
     if (includeDigitalSaturation)
     {
         Log.debug("Detector: applying digital saturation to pixelMap, biasMap and smearingMap (digitalSaturationLimit=" + to_string(digitalSaturationLimit) + ")");
-            applyDigitalSaturation();
+        applyDigitalSaturation();
     }
     else
     {
