@@ -187,6 +187,63 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
     smearingMap.zeros(numRowsSmearingMap, numColumnsPixelMap);
     throughputMap.ones(numRowsPixelMap, numColumnsPixelMap);
 
+    // If we are going to apply open-shutter smearing, we have to know which pixels are within
+    // the FOV (relevant only in case of mechanical vignetting).  When mechanical vignetting is
+    // disabled, all pixels of the detector are inside the FOV.
+
+    if(includeOpenShutterSmearing)
+    {
+        // Mechanical vignetting map:
+        //  - no mechanical vignetting: all pixels of the sub-field inside FOV -> all values set to one
+        //  - mechanical vignetting: set value of the pixels in the sub-field outside FOV to zero (others remain at one) -> on creation of the throughput map
+
+        mechanicalVignettingMask.ones(numRowsPixelMap, numColumnsPixelMap);
+
+        // Number of exposed rows in each column:
+        // - no mechanical vignetting: all exposed rows inside FOV (numRows - firstRowExposed)
+        // - mechanical vignetting: count the exposed rows (i.e. from firstRowExposed) that are inside FOV
+
+        numExposedRowsInFOV.zeros(numColumnsPixelMap);
+
+        if(!includeMechanicalVignetting)
+            numExposedRowsInFOV += (numRows - firstRowExposed);
+
+        double xFPmmFirst, yFPmmFirst, xFPmmLast, yFPmmLast, angleFirst, angleLast;
+
+        for(unsigned int column = 0; column < numColumnsPixelMap; column++)
+        {
+            // First exposed row
+
+            tie(xFPmmFirst, yFPmmFirst) = pixelToFocalPlaneCoordinates(firstRowExposed, column + subFieldZeroPointColumn);  // detector [pixels] -> focal plane [mm]
+            angleFirst = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmmFirst, yFPmmFirst);                           // focal plane -> radial distance [radians]
+
+            // Last exposed row
+
+            tie(xFPmmLast, yFPmmLast) = pixelToFocalPlaneCoordinates(numRows - 1, column + subFieldZeroPointColumn);        // detector [pixels] -> focal plane [mm]
+            angleLast = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmmLast, yFPmmLast);                              // focal plane [mm] -> radial distance [radians]
+
+            // If the first and last exposed pixel in the current column are inside the FOV, 
+            // the entire column is inside the FOV
+
+            if((angleFirst <= radiusFOV) && (angleLast <= radiusFOV))
+                numExposedRowsInFOV(column) = numRows - firstRowExposed;
+
+            else
+            {
+                double xFPmm, yFPmm, angle;
+
+                for(unsigned int row = firstRowExposed; row < numRows; row++)
+                {
+                    tie(xFPmm, yFPmm) = pixelToFocalPlaneCoordinates(row, column + subFieldZeroPointColumn);  // detector [pixels] -> focal plane [mm]
+                    angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm);                    // focal plane [mm] -> radial distance [radians]
+
+                    if (angle <= radiusFOV)
+                        numExposedRowsInFOV(column) += 1;
+                }
+            }
+        }
+    }
+
     // Check whether the gain values for left- and right-hand side of the CCD are not too far apart
 
     checkGain();
@@ -410,6 +467,10 @@ void Detector::updateParameters(double time)
     numColumnsBiasMap       = configParam.getInteger("SubField/NumBiasPrescanColumns");
     numRowsSmearingMap      = configParam.getInteger("SubField/NumSmearingOverscanRows");
 
+
+
+    // No parallel over-scan in case of partial readout
+
     if(readoutMode == "Partial")
     {
     	Log.info("No smearing map for partial readout");
@@ -431,118 +492,6 @@ void Detector::updateParameters(double time)
     numEdgePixels = 0;
  }
 
-
-
-
-
-
-
-// /**
-//  * \brief Configure the readout times for Detector object using the ConfigurationParameters
-//  *
-//  * \param configParam: Configuration parameters
-//  **/
-//void Detector::configureReadoutTime(ConfigurationParameters &configParam)
-//{
-//	// Both detector halves are read out simultaneously
-//	// -> columns read out by the FEE:
-//	// 		- half of the CCD
-//	// 		- serial pre-scan
-//	// 		- (serial over-scan)
-//
-//	int numColumnsReadout = numColumns / 2 + numColumnsBiasMap; // + numRowsSerialOverScan
-//
-//	// How many rows will be actually read out by the FEE?
-//	// 	- nominal mode: image area + parallel over-scan
-//	//      normal camera: image area = whole CCD
-//	//      fast camera: image area = lower half of the CCD
-//	//	- partial readout: configurable
-//	// The rest of the image area will be dumped
-//
-//	int numRowsReadout, numRowsDump;
-//
-//	// -----------
-//	// Fast camera
-//	// -----------
-//
-//	if (isFastCamera) {
-//
-//		// Move the upper half of the CCD down to the lower half, row-by-row
-//
-//		int numRowsFrameTransfer = numRows - firstRowExposed;
-//
-//		readoutTimeBeforeNextExposure = numRowsFrameTransfer
-//						* parallelTransferTimeFast;
-//
-//		// The actual readout of the lower half of the CCD (after frame transfer) is done
-//		// while the next exposure has already started
-//
-//		// Nominal mode
-//
-//		if (readoutMode == "Nominal")
-//		{
-//			numRowsReadout = firstRowExposed + numRowsSmearingMap;
-//			numRowsDump = 0;
-//
-//		}
-//
-//		// Partial readout
-//
-//		else if (readoutMode == "Partial")
-//		{
-//			numRowsReadout = numRowsPartialReadout;
-//			numRowsDump = firstRowExposed - numRowsReadout;
-//		}
-//
-//
-//		readoutTimeDuringNextExposure = numRowsDump * parallelTransferTimeFast
-//				+ numRowsReadout * (parallelTransferTime + numColumnsReadout * serialTransferTime);
-//	}
-//
-//	// -------------
-//	// Normal camera
-//	// -------------
-//
-//	else
-//	{
-//
-//		// Nominal mode (full-frame readout)
-//
-//		if (readoutMode == "Nominal")
-//		{
-//
-//			// Rows read out by the FEE:
-//			// 		- rows of image area
-//			// 		- parallel over-scan
-//
-//			numRowsReadout = numRows + numRowsSmearingMap;
-//
-//			// No rows dumped
-//
-//			numRowsDump = 0;
-//		}
-//
-//		// Partial readout
-//
-//		else if (readoutMode == "Partial") {
-//
-//			// Rows read out by the FEE: rows in the block (other rows in image area are dumped)
-//			// Note: no parallel over-scan
-//
-//			numRowsReadout = numRowsPartialReadout;
-//			numRowsDump = numRows - numRowsReadout;
-//
-//		}
-//
-//		readoutTimeBeforeNextExposure =
-//				numRowsReadout
-//						* (numColumnsReadout * serialTransferTime
-//								+ parallelTransferTime)
-//						+ numRowsDump * parallelTransferTimeFast;
-//
-//		readoutTimeDuringNextExposure = 0;
-//	}
-// }
 
 
 
@@ -658,10 +607,20 @@ void Detector::generateThroughputMap()
 
                 angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm);
 
+                Log.info(to_string(angle) + " vs. " + to_string(radiusFOV));
+
                 // Mechanical vignetting
 
-                if (includeMechanicalVignetting && angle >= radiusFOV)
-                    throughputMap(row, column) = 0.0;
+                if(includeMechanicalVignetting)
+                {
+                    if (angle > radiusFOV)
+                    {
+                        throughputMap(row, column) = 0.0;
+
+                        if(includeOpenShutterSmearing)
+                            mechanicalVignettingMask(row, column) = 0;
+                    }
+                }
 
                 // Natural vignetting
 
@@ -1876,16 +1835,20 @@ void Detector::applyShort2013CTImodel()
 void Detector::applyOpenShutterSmearing(float exposureTime)
 {
     // Average out the fluxes in the pixel map per column (of the whole CCD) and make sure it is
-    // scaled with the readout time instead of with the exposure time:
-    // - rows in the sub-field: use actual fluxes
-    // - rows outside the sub-field: use total sky background
+    // scaled with the readout time (during which the detector is susceptible to open-shutter smearing) 
+    // instead of with the exposure time:
+    // - rows in the sub-field (in the exposed part of the detector and in the FOV): use actual fluxes (accumulated during exposure)
+    // - rows outside the sub-field (in the exposed part of the detector and in the FOV): use total sky background
+    // - rows outside the FOV and/or not exposed are not considered (as these rows are shielded off against incoming radiation)
 
-    arma::Row<float> openShutterSmearing = arma::sum(pixelMap, 0);
+    arma::Row<float> openShutterSmearing = arma::sum(pixelMap % mechanicalVignettingMask, 0);   // Flux in the exposed part of the sub-field that is inside the FOV (per column)
+    arma::Row<int> numExposedSubFieldRowsInFOV = arma::sum(mechanicalVignettingMask, 0);        // Number of pixels in the exposed part of the sub-field that are inside the FOV (per column)
 
-    int numRowsExposedDuringReadout = numRows - firstRowExposed - numRowsPixelMap + numRowsSmearingMap;
-    float openShutterSmearingOutsideSubField = camera.getTotalSkyBackground() * numRowsExposedDuringReadout;
+    arma::Row<int> numExposedNonSubFieldRowShifts = numExposedRowsInFOV - numExposedSubFieldRowsInFOV + numRowsSmearingMap; // Number of pixels in the exposed part of the detector that do not reside in the sub-field + parallel over-scan
+    arma::Row<float> openShutterSmearingOutsideSubField = arma::conv_to<arma::Row<float>>::from(numExposedNonSubFieldRowShifts) * camera.getTotalSkyBackground();
 
-    // Apply all throughput efficiencies
+   // Apply all throughput efficiencies (these have not been applied to the total sky background yet)
+   // Note that mechanical vignetting has already been taken into account (if applicable)
 
     if(includeNaturalVignetting)
         openShutterSmearingOutsideSubField *= expectedValueNaturalVignetting;
@@ -1905,14 +1868,16 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
     if(includeQuantumEfficiency)
         openShutterSmearingOutsideSubField *= meanQE;
 
-
     openShutterSmearing += openShutterSmearingOutsideSubField;
 
     // Fast camera: lower half of the CCD is shielded off -> no contribution to open-shutter smearing here
 
-    float factor = readoutTimeBeforeNextExposure / exposureTime / (numRows - firstRowExposed);
+    arma::Row<float> openShutterSmearingTime = arma::conv_to<arma::Row<float>>::from(numExposedRowsInFOV + numRowsSmearingMap) / 
+        (numRows - firstRowExposed + numRowsSmearingMap) * readoutTimeBeforeNextExposure;
 
-    openShutterSmearing *= factor;
+    arma::Row<float> factor = openShutterSmearingTime / arma::pow(arma::conv_to<arma::Row<float>>::from(numExposedRowsInFOV), -1) / exposureTime;
+
+    openShutterSmearing %= factor;
 
     // Add the effect of the open-shutter smearing to the pixel map
 
@@ -2181,7 +2146,7 @@ void Detector::addElectronicOffset()
 /**
  * \brief: Apply the effect of digital saturation to the pixel map,
  *         smearing map, and bias register map. This means that the pixel values in
- *         these maps (expressed in [ADU / pixel]) are topped off to the digital saturation
+ *         these maps (expressed in [ADU / pixel]) are Lastped off to the digital saturation
  *         limit of the detector (also expressed in [ADU / pixel]).
  *
  * \pre Pixel unit in the pixel, smearing, and bias maps: [ADU].
@@ -2191,16 +2156,16 @@ void Detector::addElectronicOffset()
  */
 void Detector::applyDigitalSaturation()
 {
-    // Top off the values in the pixel map
+    // Last off the values in the pixel map
 
     pixelMap(arma::find(pixelMap > digitalSaturationLimit)).fill(digitalSaturationLimit);
 
-    // Top off the values in the bias register map
+    // Last off the values in the bias register map
 
     biasMapLeft(arma::find(biasMapLeft > digitalSaturationLimit)).fill(digitalSaturationLimit);
     biasMapRight(arma::find(biasMapRight > digitalSaturationLimit)).fill(digitalSaturationLimit);
 
-    // Top off the values in the smearing map
+    // Last off the values in the smearing map
 
     smearingMap(arma::find(smearingMap > digitalSaturationLimit)).fill(digitalSaturationLimit);
 }

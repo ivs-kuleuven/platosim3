@@ -133,8 +133,11 @@ class Detector: public HDF5Writer
         arma::Mat<float> pixelMap;               // Pixel map, excl. edge pixels
         arma::Mat<float> smearingMap;            // Smearing map (i.e. over-scan strip)
         arma::Mat<float> biasMapLeft;            // Bias map (i.e. pre-scan strip) for the left detector half
-        arma::Mat<float> biasMapRight;            // Bias map (i.e. pre-scan strip) for the right detector half
+        arma::Mat<float> biasMapRight;           // Bias map (i.e. pre-scan strip) for the right detector half
         arma::Mat<float> throughputMap;          // Throughput efficiency map, due to vignetting, particulate & molecular contamination, and quantum efficiency
+
+        arma::Mat<int> mechanicalVignettingMask; // Mask for the sub-field showing which pixels are within the FOV (1) and which aren't (0)   
+        arma::Row<int> numExposedRowsInFOV;      // How many pixels in the exposed part of the detector for each column are within the FOV (only for columns showing overlap with the sub-field)
 
         unsigned int numRows;                    // Nr of rows of the detector (= size in y-direction) including non-exposed ones [pixels]
         unsigned int numColumns;                 // Nr of columns of the detector (= size in x-direction = readout direction) [pixels]

@@ -9,7 +9,7 @@ General:
 ObservingParameters:
 
     MissionDuration:                 6.5             # Total duration of the mission [yr], relevant for BOL->EOL degradation
-    NumExposures:                    10              # Number of exposures
+    NumExposures:                    1              # Number of exposures
     BeginExposureNr:                  0              # Sequential number of first exposure. useful for slurm parallellisation
     ExposureTime:                    21              # [s]
     RApointing:                      180             # Platform (not telescope) right ascension pointing coordinate      [deg] 
@@ -22,7 +22,7 @@ Sky:
     SkyBackground:                   342.            # Stellar + zodiacal background level (excl. transmission efficiency). Set negative to compute.     [phot/pix/s]
     IncludeVariableSources:          no              # Include time series of variable stars or not
     VariableSourceList:              inputfiles/varsource.txt  # Ascii file: Col 1: star ID, Col 2: path of time series file
-    IncludeCosmicsInSubField:        yes             # Whether or not to include cosmics in the subfield on the CCD
+    IncludeCosmicsInSubField:        no             # Whether or not to include cosmics in the subfield on the CCD
     IncludeCosmicsInSmearingMap:     yes             # Whether or not to include cosmics in the overscan map
     IncludeCosmicsInBiasMap:         yes             # Whether or not to include cosmics in the prescan map
     Cosmics:
@@ -131,7 +131,7 @@ FEE:
         Stability:                   -300.0e-6       # [ppm/K] = [ADU/microV/K]
         AllowedDifference:           0.0             # Difference in gain between both ADCs [%]
     ElectronicOffset:
-        RefValue:                    0            # Reference value for the electronic offset [ADU/pixel]
+        RefValue:                    1000            # Reference value for the electronic offset [ADU/pixel]
         Stability:                   1               # Offset stability [ADU/pixel/K]
  
 
@@ -206,16 +206,16 @@ CCD:
     IncludePhotonNoise:              no             # Include photon noise [yes or no]
     IncludeReadoutNoise:             no             # Include readout noise [yes or no]
     IncludeCTIeffects:               no             # Include charge transfer inefficiency effects [yes or no]
-    IncludeOpenShutterSmearing:      yes             # Include trails due reading out with an open shutter [yes or no]
+    IncludeOpenShutterSmearing:      no             # Include trails due reading out with an open shutter [yes or no]
     IncludeQuantumEfficiency:        yes             # Include loss of throughput due to quantum efficiency
     IncludeNaturalVignetting:        no             # Include brightness attenuation towards the edge of the FOV due to natural vignetting
     IncludeMechanicalVignetting:     no             # Include blockage of incoming flux during exposure at the edge of the FOV due to mechanical vignetting
     IncludePolarization:             yes             # Include loss of throughput due to polarisation
     IncludeParticulateContamination: yes             # Include loss of throughput due to particulate contamination
     IncludeMolecularContamination:   yes             # Include loss of throughput due to molecular contamination
-    IncludeConvolution:              no             # Whether or not to convolve the subPixelMap with the PSF
-    IncludeFullWellSaturation:       no             # Whether or not full well saturation should be applied
-    IncludeDigitalSaturation:        no             # Whether or not digital saturation should be applied
+    IncludeConvolution:              yes             # Whether or not to convolve the subPixelMap with the PSF
+    IncludeFullWellSaturation:       yes             # Whether or not full well saturation should be applied
+    IncludeDigitalSaturation:        yes             # Whether or not digital saturation should be applied
     IncludeQuantisation:             yes             # Whether or not to include quantisation
 
 
@@ -223,8 +223,8 @@ SubField:
 
     ZeroPointRow:                    0               # Row of the (0,0) pixel of the subfield [pixels]
     ZeroPointColumn:                 0               # Column of the (0,0) pixel of the subfield [pixels]
-    NumColumns:                      100             # Number of columns, should be >= 8 [pixels]
-    NumRows:                         100             # Number of rows,    should be >= 8 [pixels]
+    NumColumns:                      1000             # Number of columns, should be >= 8 [pixels]
+    NumRows:                         1000             # Number of rows,    should be >= 8 [pixels]
     NumBiasPrescanRows:              30              # Nr of rows of the prescan strip to determine the bias [pixels]
     NumBiasPrescanColumns:           30              # Nr of columns of the prescan strip to determine the bias [pixels]
     NumSmearingOverscanRows:         30              # Nr of rows of the overscan strip to determine the smearing [pixels]
