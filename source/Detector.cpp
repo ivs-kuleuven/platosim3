@@ -195,7 +195,7 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
     {
         // Mechanical vignetting map:
         //  - no mechanical vignetting: all pixels of the sub-field inside FOV -> all values set to one
-        //  - mechanical vignetting: set value of the pixels in the sub-field outside FOV to zero (others remain at one) -> on creation of the throughput map
+        //  - mechanical vignetting: set value of the pixels in the sub-field outside FOV to zero (others should be one) -> on creation of the throughput map
 
         mechanicalVignettingMask.ones(numRowsPixelMap, numColumnsPixelMap);
 
@@ -206,42 +206,7 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
         numExposedRowsInFOV.zeros(numColumnsPixelMap);
 
         if(!includeMechanicalVignetting)
-            numExposedRowsInFOV += (numRows - firstRowExposed);
-
-        double xFPmmFirst, yFPmmFirst, xFPmmLast, yFPmmLast, angleFirst, angleLast;
-
-        for(unsigned int column = 0; column < numColumnsPixelMap; column++)
-        {
-            // First exposed row
-
-            tie(xFPmmFirst, yFPmmFirst) = pixelToFocalPlaneCoordinates(firstRowExposed, column + subFieldZeroPointColumn);  // detector [pixels] -> focal plane [mm]
-            angleFirst = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmmFirst, yFPmmFirst);                           // focal plane -> radial distance [radians]
-
-            // Last exposed row
-
-            tie(xFPmmLast, yFPmmLast) = pixelToFocalPlaneCoordinates(numRows - 1, column + subFieldZeroPointColumn);        // detector [pixels] -> focal plane [mm]
-            angleLast = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmmLast, yFPmmLast);                              // focal plane [mm] -> radial distance [radians]
-
-            // If the first and last exposed pixel in the current column are inside the FOV, 
-            // the entire column is inside the FOV
-
-            if((angleFirst <= radiusFOV) && (angleLast <= radiusFOV))
-                numExposedRowsInFOV(column) = numRows - firstRowExposed;
-
-            else
-            {
-                double xFPmm, yFPmm, angle;
-
-                for(unsigned int row = firstRowExposed; row < numRows; row++)
-                {
-                    tie(xFPmm, yFPmm) = pixelToFocalPlaneCoordinates(row, column + subFieldZeroPointColumn);  // detector [pixels] -> focal plane [mm]
-                    angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm);                    // focal plane [mm] -> radial distance [radians]
-
-                    if (angle <= radiusFOV)
-                        numExposedRowsInFOV(column) += 1;
-                }
-            }
-        }
+            numExposedRowsInFOV.fill(numRows - firstRowExposed);
     }
 
     // Check whether the gain values for left- and right-hand side of the CCD are not too far apart
@@ -297,8 +262,6 @@ Detector::~Detector()
  *        value at the given time point
  *
  * \param time: current time
- *
- * \return 
  */
 
 void Detector::updateParameters(double time)
@@ -320,7 +283,7 @@ void Detector::updateParameters(double time)
  * \brief Configure the Detector object using the ConfigurationParameters
  * 
  * \param configParam: Configuration parameters
- **/
+ */
 
  void Detector::configure(ConfigurationParameters &configParam)
  {
@@ -582,6 +545,9 @@ void Detector::generateThroughputMap()
 
     throughputMap.fill(1.0);
 
+    if(includeMechanicalVignetting  && includeOpenShutterSmearing)
+        mechanicalVignettingMask.fill(1);
+
     double xFPmm, yFPmm;
     double angle;
 
@@ -606,8 +572,6 @@ void Detector::generateThroughputMap()
                 // Angular distance [radians] of the pixel from the optical axis
 
                 angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm);
-
-                Log.info(to_string(angle) + " vs. " + to_string(radiusFOV));
 
                 // Mechanical vignetting
 
@@ -1246,9 +1210,9 @@ void Detector::addPhotonNoise()
 void Detector::addCosmics(float exposureTime)
 {
 	cosmicHitRateDistribution     = poisson_distribution<long>(cosmicHitRate);                                       // [hits/cm^2/s]
-    cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsPixelMap - 1);                    // []
-    cosmicEntryAngleDistribution  = uniform_real_distribution<double>(0, 2 * PI);                                    // [rad]
-    cosmicTrailLengthDistribution = uniform_real_distribution<double>(cosmicTrailLength[0], cosmicTrailLength[1]);   // [pixel]
+    cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsPixelMap - 1);                    // [pixels]
+    cosmicEntryAngleDistribution  = uniform_real_distribution<double>(0, 2 * PI);                                    // [radians]
+    cosmicTrailLengthDistribution = uniform_real_distribution<double>(cosmicTrailLength[0], cosmicTrailLength[1]);   // [pixels]
     cosmicIntensityDistribution   = uniform_real_distribution<double>(cosmicIntensity[0], cosmicIntensity[1]);       // [e-/hit]
 
     // Cosmics in the subfield
@@ -1834,6 +1798,57 @@ void Detector::applyShort2013CTImodel()
  */
 void Detector::applyOpenShutterSmearing(float exposureTime)
 {
+    if (includeMechanicalVignetting)
+    {
+        // The mask indicating which pixels in the sub-field are within the FOV and which
+        // ones not, has already been created upon construction of the throughput map.
+
+        double rowFOV, xFPmmFirstExposed, yFPmmFirstExposed, xFPmmTop, yFPmmTop, angleFirstExposed, angleTop;
+
+        // Loop over all columns in the sub-field
+
+        for(unsigned int column = 0; column < numColumnsPixelMap; column++) //[pixels in sub-field]
+        {
+            // Intersection of the current column of the detector with the circle representing the FOV:
+            // (rowFOV, column).  If no intersection can be found, this is NaN.
+            rowFOV = getRowEdgeFOV(column);
+
+            if(isnan(rowFOV))
+            {
+                // All exposed rows are within the FOV
+
+                numExposedRowsInFOV(column) = numRows - firstRowExposed;
+            }
+            else
+            {
+                tie(xFPmmFirstExposed, yFPmmFirstExposed) = pixelToFocalPlaneCoordinates(firstRowExposed, column + subFieldZeroPointColumn);    // detector [pixels] -> focal plane [mm]
+                angleFirstExposed = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmmFirstExposed, yFPmmFirstExposed);
+
+                tie(xFPmmTop, yFPmmTop) = pixelToFocalPlaneCoordinates(numRows - 1, column + subFieldZeroPointColumn);
+                angleTop = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmmTop, yFPmmTop);
+
+                if (angleFirstExposed > radiusFOV)
+                {
+                    if (angleTop > radiusFOV)
+                        numExposedRowsInFOV(column) = 0;
+                    
+                    else
+                        numExposedRowsInFOV(column) = numRows - (int) rowFOV;
+                }
+
+                else
+                {
+                    if (angleTop > radiusFOV)
+                        numExposedRowsInFOV(column) = (int) rowFOV - firstRowExposed + 1;
+                    else
+                        numExposedRowsInFOV(column) = numRows - firstRowExposed;
+                }
+            }
+        }
+    }
+
+
+
     // Average out the fluxes in the pixel map per column (of the whole CCD) and make sure it is
     // scaled with the readout time (during which the detector is susceptible to open-shutter smearing) 
     // instead of with the exposure time:
@@ -1875,7 +1890,7 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
     arma::Row<float> openShutterSmearingTime = arma::conv_to<arma::Row<float>>::from(numExposedRowsInFOV + numRowsSmearingMap) / 
         (numRows - firstRowExposed + numRowsSmearingMap) * readoutTimeBeforeNextExposure;
 
-    arma::Row<float> factor = openShutterSmearingTime / arma::pow(arma::conv_to<arma::Row<float>>::from(numExposedRowsInFOV), -1) / exposureTime;
+    arma::Row<float> factor = openShutterSmearingTime % arma::pow(arma::conv_to<arma::Row<float>>::from(numExposedRowsInFOV), -1) / exposureTime;
 
     openShutterSmearing %= factor;
 
@@ -1888,6 +1903,68 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
 
     for (unsigned int row = 0; row < numRowsSmearingMap; row++)
         smearingMap(row, arma::span::all) += openShutterSmearing;
+}
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Find the intersection of the circle representing the FOV and the given column of the
+ *        detector.  In case this circle does intersect with the detector, the row coordinate
+ *        is returned; if not, NaN is returned.
+ * 
+ * \param column: Column (coordinate) [pixels], for which to find the intersection with the
+ *                circle representing the FOV.
+ * 
+ * \return In case this circle does intersect with the detector, the row coordinate
+ *         is returned; if not, NaN is returned.
+ **/ 
+double Detector::getRowEdgeFOV(int column)
+{
+    double pixelSizeMm = pixelSize / 1000.0;    // Pixel size [µm] -> [mm]
+
+    // Quadratic equation: a * x**2 + b * x + c  = 0
+    // Find intersection between circle representing the FOV and the given column
+
+    double a = pow(pixelSizeMm, 2);
+    double b = - 2 * pixelSizeMm * subFieldZeroPointRow;
+    double c = pow(subFieldZeroPointRow, 2) + pow(column * pixelSizeMm - subFieldZeroPointColumn , 2) -  pow(camera.getFocalLength() * tan(radiusFOV), 2);
+
+    // Discriminant (should be positive)
+
+    double discriminant = pow(b, 2) - 4 * a * c;
+
+    if (discriminant < 0)
+        return nan("");
+    
+    double discriminantSqrt = sqrt(discriminant);
+
+    // First solution of the equation
+    // Check whether it intersects with the detector (if not, try the other solution)
+
+    double solutionRow = (-b + discriminantSqrt) / (2 * a);
+
+    if ((solutionRow >= 0) && (solutionRow < numRows))
+        return solutionRow;
+
+    // Second solution of the equation
+    // Check whther it intersects with the detector (if not, the whole row is within the FOV)
+
+    solutionRow = (-b - discriminantSqrt) / (2 * a);
+    
+    if ((solutionRow >= 0) && (solutionRow < numRows))
+        return solutionRow;
+
+    // No proper solution found (i.e. circle of FOV does not intersect
+    // with the detector in the given column)
+
+    return nan("");
 }
 
 
@@ -2485,7 +2562,6 @@ void Detector::initHDF5Groups()
  * 
  * \param exposureNr:   Sequential number of the exposure
  */
-
 void Detector::writePixelMapsToHDF5(int exposureNr)
 {
 	// Compose the image name

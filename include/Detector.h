@@ -128,6 +128,8 @@ class Detector: public HDF5Writer
         virtual void initHDF5Groups() override;
         void writePixelMapsToHDF5(int exposureNr);
 
+        double getRowEdgeFOV(int column);
+
         virtual double getTemperature();
 
         arma::Mat<float> pixelMap;               // Pixel map, excl. edge pixels
