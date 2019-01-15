@@ -1085,7 +1085,10 @@ CCD:
     Polarization:
     		ExpectedValue:       0.989      
     Vignetting:
+        NaturalVignetting:
     		ExpectedValue:       0.945 
+        MechanicalVignetting:
+            RadiusFOV:           18.8876
     Contamination:
     		ParticulateContaminationEfficiency:  0.98
     		MolecularContaminationEfficiency:    0.0566
@@ -1125,7 +1128,8 @@ CCD:
     IncludeReadoutNoise:              yes            
     IncludeCTIeffects:                yes            
     IncludeOpenShutterSmearing:       yes            
-    IncludeVignetting:                yes   
+    IncludeNaturalVignetting:         yes   
+    IncludeMechanicalVignetting:      yes
     IncludePolarization:              yes
     IncludeParticulateContamination:  yes
     IncludeMolecularContamination:    yes
@@ -1320,7 +1324,7 @@ Mean throughput efficiency due to quantum efficiency (i.e. the mean over all pix
 
 
 
-#### <a name="angleDependencyQE"></a>QuantumEfficiency: MeanAmgleDependency
+#### <a name="angleDependencyQE"></a>QuantumEfficiency: MeanAngleDependency
 <i>Allowed values:</i> > 0
 
 Mean efficiency caused by the angle dependency of the quantum efficiency.
@@ -1355,14 +1359,23 @@ Expected value of the throughput efficiency due to polarisation (i.e. the mean o
 
 ### <a name=vignetting></a>Vignetting
 
-Vignetting is the brightness attenuation towars the edges of the FOV.
+The overall vignetting can be computed by summing the contributions of natural an mechanical vignetting.
+
+Natural vignetting is the brightness attenuation towards the edges of the FOV, introduced by the view factor of the entrance pupil.  Mechanical vignetting is due to the introduced downsizing of the lenses clear apertures.
 
 
 
-#### <a name="vignettingExpectedValue"></a>Vignetting: ExpectedValue
+#### <a name="naturalVignettingExpectedValue"></a>Vignetting: NaturalVignetting: ExpectedValue
 <i>Allowed values:</i> \f$\in \f$ [0,1]
 
-Expected value of the throughput efficiency due to vignetting (i.e. the mean over all pixels of one detector).
+Expected value of the throughput efficiency due to natural vignetting (i.e. the mean over all pixels of one detector).
+
+
+
+#### <a name="mechanicalVignettingRadiusFOV"></a>Vignetting: MechanicalVignetting: RadiusFOV
+<i>Allowed values:</i> > 0
+
+Radius of the FOV, expressed in degrees.  Beyond this radius all incoming flux (apart from the cosmic hits) is shielded off.
 
 
 ### <a name=contamination></a>Contamination
@@ -1642,10 +1655,17 @@ Indicates whether or not to include open-shutter smearing effects.
 
 
 
-### <a name="inclVignetting"></a>IncludeVignetting
+### <a name="inclNaturalVignetting"></a>IncludeNaturalVignetting
 <i>Allowed values:</i> "yes" and "no"
 
-Indicates whether or not to include brightness attenuation towards the edge of the FOV due to vignetting.
+Indicates whether or not to include brightness attenuation towards the edge of the FOV due to natural vignetting.
+
+
+
+### <a name="inclMechanicalVignetting"></a>IncludeMechanicalVignetting
+<i>Allowed values:</i> "yes" and "no"
+
+Whether or not to include blockage of incoming radiation due to mechanical vignetting.
 
 
         
