@@ -31,6 +31,8 @@
 
 * Segfault on running test harness (GitHub issue # 329)
 
+* Implement mechanical vignetting (GitHub issue #334)
+
 
 
 ### Added
