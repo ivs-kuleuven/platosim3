@@ -959,3 +959,24 @@ double Camera::getTotalSkyBackground()
 {
 	return totalSkyBackground;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Returns the focal length of the camera, expressed in mm.
+ * 
+ * \return Focal length of the camera, expressed in mm.
+ */ 
+double Camera::getFocalLength()
+{
+    return (*focalLength)();
+}
