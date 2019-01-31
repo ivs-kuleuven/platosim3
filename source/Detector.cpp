@@ -1908,16 +1908,12 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
     // Add the effect of the open-shutter smearing to the pixel map
 
     for (unsigned int row = 0; row < numRowsPixelMap; row++)
-    {
         pixelMap(row, arma::span::all) += openShutterSmearing;
-    }
 
     // Add the effect of the open-shutter smearing to the smearing map
 
     for (unsigned int row = 0; row < numRowsSmearingMap; row++)
-    {
         smearingMap(row, arma::span::all) += openShutterSmearing;
-    }
 }
 
 

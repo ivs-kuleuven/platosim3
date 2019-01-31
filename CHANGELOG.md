@@ -29,6 +29,8 @@
 
 * Incorrect flatfield level (GitHub issue #326)
 
+* Segfault on running test harness (GitHub issue # 329)
+
 
 
 ### Added
