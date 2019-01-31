@@ -960,5 +960,12 @@ pair<double, double> Camera::distortedToUndistortedFocalPlaneCoordinates(double 
  */
 double Camera::getTotalSkyBackground()
 {
-	return totalSkyBackground;
+    if (skyBackgroundValues.size() != 0)
+    {
+        return skyBackgroundValues.back();
+    }
+    else
+    {
+        throw std::runtime_error( "Camera::getTotalSkyBackground() was called with a skybackground being available");
+    }
 }
