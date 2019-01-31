@@ -27,6 +27,10 @@
 
 * Incorrect sky background level (GitHub issue #325)
 
+* Incorrect flatfield level (GitHub issue #326)
+
+* Segfault on running test harness (GitHub issue # 329)
+
 
 
 ### Added

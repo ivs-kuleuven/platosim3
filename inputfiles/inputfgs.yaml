@@ -178,7 +178,7 @@ CCD:
        Partial:
           FirstRowReadout:           0           # First row that will be read out by the FEE in partial-readout mode
           NumRowsReadout:            4510        # Number of rows that will be read out by the FEE, in partial-readout mode
-    FlatfieldPtPNoise:           0.010           # peak-to-peak pixel noise
+    FlatfieldNoiseRMS:           0.010           # Flatfield noise RMS (local PRNU)
     Vignetting:
         ExpectedValue:           0.904           # Expected value of the throughput efficiency due to vignetting
     Polarization:
@@ -191,6 +191,7 @@ CCD:
     DarkSignal:
       DarkCurrent:                  1.2              # Dark current [e- / s]
       DSNU:                         15.0             # Dark signal non-uniformity [%]
+      Stability:                    5.0              # Temperature stability of the dark current [[e- / K / s ]
     CTI:
         Model:                       Short2013       # The method used to generate the CTI, either "Simple" or "Short2013"
         Simple:

@@ -45,7 +45,7 @@ class DetectorWithAnalyticGaussianPSF: public Detector
         double sigmaX18;                    // Stdev of Gaussian PSF in x-direction at 18 deg from the optical axis [pix]
         double sigmaY18;                    // Stdev of Gaussian PSF in y-direction at 18 deg from the optical axis [pix]
 
-        double flatfieldNoiseAmplitude;     // Peak-to-peak noise amplitude
+        double flatfieldNoiseRMS;     // Peak-to-peak noise amplitude
 
         bool includeFlatfield;              // Whether or not to include flat fielding        
         long flatfieldSeed;

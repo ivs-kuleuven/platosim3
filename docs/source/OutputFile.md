@@ -20,12 +20,12 @@ PlatoSim's output is configurable in the input file. Depending on whether the qu
 
 ## Structure
 
-The general structure of the output file if shown in Fig. 1.  The colour code in this diagram is as follows:
+The general structure of the output file if shown in the figure below.  The colour code in this diagram is as follows:
 - purple: groups (which contain other groups and/or datasets and/or attributes)
 - green: datasets
 - orange: attributes
 
-@image html /images/outputStructure.png "Figure 1: Structure of the HDF5 output file."
+@image html /images/outputStructure.png "Structure of the HDF5 output file."
 
 
 
