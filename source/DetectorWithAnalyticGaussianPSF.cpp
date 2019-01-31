@@ -136,7 +136,6 @@ void DetectorWithAnalyticGaussianPSF::generateFlatfieldMap()
         for(unsigned int column = 0; column < Ncolumns; column++)
         {
             // Fourier space: generate white noise and include 1/f dependency
-            // (Note: see https://en.wikipedia.org/wiki/Pink_noise#Generalization_to_more_than_one_dimension)
 
             evenMap(row, column) = flatfieldDistribution(flatfieldGenerator) / (pow(row, 2) + std::pow(column, 2) + 1);
         }
