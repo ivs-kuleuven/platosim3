@@ -633,6 +633,9 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     // Note: - The output of sky.zodiacalFlux() is in [J s^{-1} m^{-2} sr^{-1} m^{-1}]
     //       - As wavelength range we take the entire throughput band.
     //       - Photons are always an integer number, thus round down.
+    //
+    // The small sky background contribution during the readout with open shutter is not taken into account here
+    // but in the function Detector::applyOpenShutterSmearing().
 
     totalSkyBackground = 0.0;
 
