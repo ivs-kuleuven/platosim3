@@ -34,9 +34,9 @@ Platform:
 
     UseJitter:                       yes             # yes or no. If no, ignore everything below.
     UseJitterFromFile:               no              # yes or no. If yes, ignore RMS and timescale below.
-    JitterYawRms:                    1.0             # [arcsec]
-    JitterPitchRms:                  1.0             # [arcsec]
-    JitterRollRms:                   1.0             # [arcsec]
+    JitterYawRms:                    0.04            # [arcsec]
+    JitterPitchRms:                  0.04            # [arcsec]
+    JitterRollRms:                   0.08            # [arcsec]
     JitterTimeScale:                 3600.           # [s]
     JitterFileName:                  inputfiles/PlatoJitter_Airbus.txt
 
