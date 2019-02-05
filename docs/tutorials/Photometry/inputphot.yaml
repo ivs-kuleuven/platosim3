@@ -171,9 +171,9 @@ CCD:
           NumRowsReadout:            4510        # Number of rows that will be read out by the FEE, in partial-readout mode
     FlatfieldNoiseRMS:           0.010           # Flatfield noise RMS (local PRNU)
     Vignetting:
-        NaturalVignetting: 
+        NaturalVignetting:                           # Brightness attenuation from the optical axis to the edge of the FOV
             ExpectedValue:           0.945           # Expected value of the throughput efficiency due to natural vignetting
-        MechanicalVignetting:
+        MechanicalVignetting:                        # Blocking of the light due to mechanical obstruction at the edge of the FOV
             RadiusFOV:               18.8876         # Radius of the FOV [degrees]
     Polarization:
       #Efficiency:                    0.978           # Throughput efficiency caused by polarisation at the reference angle
@@ -213,7 +213,8 @@ CCD:
     IncludePolarization:             no          # Include loss of throughput due to polarisation
     IncludeParticulateContamination: no          # Include loss of throughput due to particulate contamination
     IncludeMolecularContamination:   no          # Include loss of throughput due to molecular contamination
-    IncludeVignetting:           no              # Include brightness attenuation towards the edge of the FOV due to vignetting 
+    IncludeNaturalVignetting:        no          # Include brightness attenuation towards the edge of the FOV due to vignetting
+    IncludeMechanicalVignetting:     no          # Include blockage of incoming flux due to mechanical vignetting
     IncludeConvolution:          yes             # Whether or not to convolve the subPixelMap with the PSF
     IncludeFullWellSaturation:   yes             # Whether or not full well saturation should be applied
     IncludeDigitalSaturation:    yes             # Whether or not digital saturation should be applied

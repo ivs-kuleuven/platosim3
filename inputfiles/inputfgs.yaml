@@ -36,11 +36,11 @@ Platform:
 
     UseJitter:                   yes              # yes or no
     UseJitterFromFile:           yes              # yes or no
-    JitterYawRms:                0.5              # [arcsec]
-    JitterPitchRms:              0.5              # [arcsec]
-    JitterRollRms:               0.5              # [arcsec]
+    JitterYawRms:                0.04             # [arcsec]
+    JitterPitchRms:              0.04             # [arcsec]
+    JitterRollRms:               0.08             # [arcsec]
     JitterTimeScale:             180              # [s]
-    JitterFileName:              inputfiles/PlatoJitter_Airbus.txt 
+    JitterFileName:              inputfiles/PlatoJitter_OHB.txt 
 
 
 Telescope:
@@ -180,9 +180,9 @@ CCD:
           NumRowsReadout:            4510        # Number of rows that will be read out by the FEE, in partial-readout mode
     FlatfieldNoiseRMS:           0.010           # Flatfield noise RMS (local PRNU)
     Vignetting:
-        NaturalVignetting: 
+        NaturalVignetting:                           # Brightness attenuation from the optical axis to the edge of the FOV
             ExpectedValue:           0.945           # Expected value of the throughput efficiency due to natural vignetting
-        MechanicalVignetting:
+        MechanicalVignetting:                        # Blocking of the light due to mechanical obstruction at the edge of the FOV
             RadiusFOV:               18.8876         # Radius of the FOV [degrees]
     Polarization:
         #Efficiency:                  0.978           # Throughput efficiency caused by polarisation at the reference angle

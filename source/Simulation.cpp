@@ -278,7 +278,6 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
 
 
 
-	int numRowsPartialReadout;
 	double readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure;
 
 
@@ -329,9 +328,9 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
 		// Rows read out by the FEE: rows in the block (other rows in image area are dumped)
 		// Note: no parallel over-scan
 
-		else if (readoutMode == "Partial")
+		else
 		{
-			numRowsReadout = numRowsPartialReadout;
+            numRowsReadout = configParams.getInteger("ReadoutMode/Partial/NumRowsReadout");
 			numRowsDump = firstRowExposed - numRowsReadout;
 		}
 
@@ -366,12 +365,11 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
 
 		// Partial readout
 
-		else if (readoutMode == "Partial") {
-
+		else if (readoutMode == "Partial")
+        {
 			// Rows read out by the FEE: rows in the block (other rows in image area are dumped)
 			// Note: no parallel over-scan
-
-			numRowsReadout = numRowsPartialReadout;
+            numRowsReadout = configParams.getInteger("ReadoutMode/Partial/NumRowsReadout");
 			numRowsDump = numRows - numRowsReadout;
 
 		}

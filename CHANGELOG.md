@@ -29,7 +29,9 @@
 
 * Incorrect flatfield level (GitHub issue #326)
 
-* Segfault on running test harness (GitHub issue # 329)
+* Segfault on running test harness (GitHub issue #329)
+
+* Open-shutter smearing not accounted for (GitHub issue #339)
 
 * Implement mechanical vignetting (GitHub issue #334)
 
