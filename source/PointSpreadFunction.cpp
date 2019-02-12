@@ -349,7 +349,7 @@ void PointSpreadFunction::select(double radius)
     }
 
     radius = rad2deg(radius);
-    
+
     // Convert radius into the string angularRadiusGroup that identifies the psf dataset in the HDF5 file.
     // We work with a lookup table psfdata::radius which contains fixed radius values for which PSF data
     // was generated. The algorithm is to select the PSF with radius closest to the given radius by 
@@ -496,6 +496,9 @@ void PointSpreadFunction::rotate(double angle)
  */
 arma::fmat PointSpreadFunction::rebinToSubPixels(unsigned int targetSubPixels)
 {
+    if (targetSubPixels == numberOfSubPixelsPerPixel)
+        return psfMap;
+
     unsigned int binSize = psfMap.n_rows / numberOfSubPixelsPerPixel * targetSubPixels;
 
     arma::fmat rebinnedMap = ArrayOperations::rebin(psfMap, binSize, binSize);
