@@ -35,6 +35,8 @@
 
 * Implement mechanical vignetting (GitHub issue #334)
 
+* Partial-readout parameters not read out correctly (GitHub issue #346)
+
 
 
 ### Added
