@@ -298,7 +298,19 @@ def smearingTimeAveraging(smearing_pattern_fc):
         - smearing _pattern_lc: Smearing pattern averaged over 600s.
     """
 
-    return None
+    numSamplesToAverage = 24
+
+    numRowsOld = smearing_pattern_fc.shape[0]
+    numRowsNew = numRowsOld // numSamplesToAverage
+    numColumns = smearing_pattern_fc.shape[1]
+
+    shape = (numRowsNew, numSamplesToAverage, numColumns, 1)
+    smearing_pattern_lc = smearing_pattern_fc.reshape(shape).mean(-1).mean(1)
+
+    # TODO Use time stamp of the 1st exposure of the time averaging cycle
+
+    return smearing_pattern_lc
+
 
 
 
