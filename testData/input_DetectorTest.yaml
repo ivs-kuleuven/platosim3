@@ -171,8 +171,11 @@ CCD:
           FirstRowReadout:           0           # First row that will be read out by the FEE in partial-readout mode
           NumRowsReadout:            4510        # Number of rows that will be read out by the FEE, in partial-readout mode
     FlatfieldNoiseRMS:           0.010           # Flatfield noise RMS (local PRNU)
-    Vignetting: 
-        ExpectedValue:           0.904           # Expected value of the throughput efficiency due to vignetting
+    Vignetting:
+        NaturalVignetting: 
+            ExpectedValue:           0.945           # Expected value of the throughput efficiency due to natural vignetting
+        MechanicalVignetting:
+            RadiusFOV:               18.8876         # Radius of the FOV [degrees]
     Polarization:
       #Efficiency:                    0.978           # Throughput efficiency caused by polarisation at the reference angle
       #RefAngle:                     18.8875          # Reference angle for polarisation [degrees]
@@ -205,7 +208,8 @@ CCD:
     IncludeCTIeffects:               yes             # Include charge transfer inefficiency effects [yes or no]
     IncludeOpenShutterSmearing:      yes             # Include trails due reading out with an open shutter [yes or no]
     IncludeQuantumEfficiency:        yes             # Include loss of throughput due to quantum efficiency
-    IncludeVignetting:               no              # Include brightness attenuation towards the edge of the FOV due to vignetting
+    IncludeNaturalVignetting:        yes             # Include brightness attenuation towards the edge of the FOV due to natural vignetting
+    IncludeMechanicalVignetting:     yes             # Include blockage of incoming flux during exposure at the edge of the FOV due to mechanical vignetting
     IncludePolarization:             no              # Include polarisation
     IncludeParticulateContamination: no              # Include loss of throughput due to particulate contamination
     IncludeMolecularContamination:   no              # Include loss of throughput due to molecular contamination 

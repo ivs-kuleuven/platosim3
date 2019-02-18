@@ -969,3 +969,24 @@ double Camera::getTotalSkyBackground()
         throw std::runtime_error( "Camera::getTotalSkyBackground() was called with a skybackground being available");
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Returns the focal length of the camera, expressed in mm.
+ * 
+ * \return Focal length of the camera, expressed in mm.
+ */ 
+double Camera::getFocalLength()
+{
+    return (*focalLength)();
+}

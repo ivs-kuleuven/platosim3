@@ -173,7 +173,10 @@ CCD:
           NumRowsReadout:            4510            # Number of rows that will be read out by the FEE, in partial-readout mode
     FlatfieldNoiseRMS:               0.010           # Flatfield noise RMS (local PRNU)
     Vignetting: 
-        ExpectedValue:               0.904           # Expected value of the throughput efficiency due to vignetting
+        NaturalVignetting:                           # Brightness attenuation from the optical axis to the edge of the FOV
+            ExpectedValue:          0.945            # Expected value of the throughput efficiency due to vignetting
+        MechanicalVignetting:                        # Blocking of the light due to mechanical obstruction at the edge of the FOV
+            RadiusFOV:              18.8876          # Radius of the FOV [degrees]
     Polarization:
         ExpectedValue:               0.989           # Expected value (mean of all detector pixels)
     Contamination:
@@ -205,7 +208,8 @@ CCD:
     IncludeCTIeffects:               yes             # Include charge transfer inefficiency effects [yes or no]
     IncludeOpenShutterSmearing:      yes             # Include trails due reading out with an open shutter [yes or no]
     IncludeQuantumEfficiency:        yes             # Include loss of throughput due to quantum efficiency
-    IncludeVignetting:               yes             # Include brightness attenuation towards the edge of the FOV due to vignetting
+    IncludeNaturalVignetting:        yes             # Include brightness attenuation towards the edge of the FOV due to vignetting
+    IncludeMechanicalVignetting:     yes             # Include blockage of incoming flux due to mechanical vignetting
     IncludePolarization:             yes             # Include loss of throughput due to polarisation
     IncludeParticulateContamination: yes             # Include loss of throughput due to particulate contamination
     IncludeMolecularContamination:   yes             # Include loss of throughput due to molecular contamination

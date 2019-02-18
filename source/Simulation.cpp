@@ -328,9 +328,9 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
 		// Rows read out by the FEE: rows in the block (other rows in image area are dumped)
 		// Note: no parallel over-scan
 
-		else
+		else if (readoutMode == "Partial")
 		{
-            numRowsReadout = configParams.getInteger("ReadoutMode/Partial/NumRowsReadout");
+            numRowsReadout = configParams.getInteger("CCD/ReadoutMode/Partial/NumRowsReadout");
 			numRowsDump = firstRowExposed - numRowsReadout;
 		}
 
@@ -365,13 +365,12 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
 
 		// Partial readout
 
-		else
+		else if (readoutMode == "Partial")
         {
 			// Rows read out by the FEE: rows in the block (other rows in image area are dumped)
 			// Note: no parallel over-scan
-            numRowsReadout = configParams.getInteger("ReadoutMode/Partial/NumRowsReadout");
+            numRowsReadout = configParams.getInteger("CCD/ReadoutMode/Partial/NumRowsReadout");
 			numRowsDump = numRows - numRowsReadout;
-
 		}
 
 		readoutTimeBeforeNextExposure = numRowsDump * parallelTransferTimeFast
@@ -671,7 +670,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addInteger("NumberOfPixels");
     addDouble("ChargeDiffusionStrength");
     addBoolean("IncludeChargeDiffusion");
-    	addBoolean("IncludeJitterSmoothing");
+    addBoolean("IncludeJitterSmoothing");
 
     subGroup = "PSF/MappedFromFile";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
@@ -744,7 +743,8 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("IncludeReadoutNoise");
     addBoolean("IncludeCTIeffects"); 
     addBoolean("IncludeOpenShutterSmearing");
-    addBoolean("IncludeVignetting");
+    addBoolean("IncludeNaturalVignetting");
+    addBoolean("IncludeMechanicalVignetting");
     addBoolean("IncludePolarization");
     addBoolean("IncludeParticulateContamination");
     addBoolean("IncludeMolecularContamination");
@@ -772,7 +772,14 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "CCD/Vignetting";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
+    
+    subGroup = "CCD/Vignetting/NaturalVignetting";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
     addDouble("ExpectedValue");
+    
+    subGroup = "CCD/Vignetting/MechanicalVignetting";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("RadiusFOV");
 
     subGroup = "CCD/QuantumEfficiency";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
