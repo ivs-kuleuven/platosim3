@@ -774,3 +774,133 @@ class Simulation(object):
 
         return
 
+
+
+
+
+    def getReadoutTime(self):
+        """
+        PURPOSE: Determine the duration of
+                - the readout that takes place before the next exposure starts,
+                - and the readout that takes place during the next exposure,
+                depending on the camera type (normal / fast) and the readout mode
+                (nominal / partial readout).
+    
+                For the normal cameras the entire CCD is read out (with open shutter) after 
+                the exposure during a time interval called 'readoutTimeBeforeNextExposure'. 
+                Only after this readout, a new exposure is started.
+                For the fast camera, half of the CCD is first quickly frame-transferred, 
+                after which it is read out slowly. In this case a new exposure is already
+                started after the quick frame-transfer, and starts thus during the slow readout 
+                of the previous exposure. Hence the need for two parameters 'readoutTimeBeforeNextExposure' 
+                and 'readoutTimeDuringNextExposure'.
+    
+        RETURN readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure
+        """
+
+        isFastCamera = self["Telescope/GroupID"] == "Fast"
+        ccdPosition = self["CCD/Position"]
+
+        if ccdPosition == "Custom":
+            numRows = self["CCD/NumRows"]                                               # [pixels]
+            numColumns = self["CCD/NumColumns"]                                         # [pixels]
+            firstRowExposed = self["CCD/FirstRowExposed"]                               # [pixels]
+        else:
+            idx = ccdPosition - 1                                                       # Positions start with 1, while the index starts at 0
+
+            numRows = self["CCDPositions/NumRows"][idx]                                 # [pixels]
+            numColumns = self["CCDPositions/NumColumns"][idx]                           # [pixels]
+
+            if isFastCamera:
+                firstRowExposed = self["CCDPositions/FirstRowForFastCamera"][idx]       # [pixels]
+            else:
+                firstRowExposed = self["CCDPositions/FirstRowForNormalCamera"][idx]     # [pixels]
+        
+        readoutMode = self["CCD/ReadoutMode/ReadoutMode"]
+
+        if (readoutMode != "Nominal") and (readoutMode != "Partial"):
+            raise ValueError("Simulation::getReadoutTime() Unknown readout mode specification in configuration file: {0}".format(readoutMode))
+
+            
+        serialTransferTime = self["CCD/SerialTransferTime"] * 1E-9			            # [ns] -> [s]
+        parallelTransferTime = self["CCD/ParallelTransferTime"] * 1E-6		            # [µs] -> [s]
+        parallelTransferTimeFast = self["CCD/ParallelTransferTimeFast"] * 1E-6          # [µs] -> [s]
+
+        numColumnsBiasMap =  self["SubField/NumBiasPrescanColumns"]                     # [pixels]
+        numRowsSmearingMap = self["SubField/NumSmearingOverscanRows"]                   # [pixels]
+
+        # Both detector halves are read out simultaneously
+        # -> columns read out by the FEE:
+        # 		- half of the CCD
+        # 		- serial pre-scan
+        # 		- (serial over-scan)
+
+        numColumnsReadout = numColumns / 2 + numColumnsBiasMap                          # + numRowsSerialOverScan
+
+        # How many rows will be actually read out by the FEE?
+        # 	- nominal mode: image area + parallel over-scan
+        #      normal camera: image area = whole CCD
+        #      fast camera: image area = lower half of the CCD
+        #	- partial readout: configurable
+        # The rest of the image area will be dumped
+
+        #--- Fast camera
+       
+        if isFastCamera: 
+            # Move the upper half of the CCD down to the lower half, row-by-row
+
+            numRowsFrameTransfer = numRows - firstRowExposed
+
+            readoutTimeBeforeNextExposure = numRowsFrameTransfer * parallelTransferTimeFast
+
+            # The actual readout of the lower half of the CCD (after frame transfer) is done
+            # while the next exposure has already started
+
+            # Nominal mode
+
+            if readoutMode == "Nominal":
+                numRowsReadout = firstRowExposed + numRowsSmearingMap
+                numRowsDump = 0
+
+            # Rows read out by the FEE: rows in the block (other rows in image area are dumped)
+            # Note: no parallel over-scan
+
+            elif readoutMode == "Partial":
+                numRowsReadout = self["CCD/ReadoutMode/Partial/NumRowsReadout"]
+                numRowsDump = firstRowExposed - numRowsReadout
+
+            readoutTimeDuringNextExposure = numRowsDump * parallelTransferTimeFast + numRowsReadout * (parallelTransferTime + numColumnsReadout * serialTransferTime)
+        
+        #--- Normal camera
+        
+        else:
+            # Nominal mode (full-frame readout)
+
+            if readoutMode == "Nominal":
+                # Rows read out by the FEE:
+                #  - rows of image area
+                #  - parallel over-scan
+
+                numRowsReadout = numRows + numRowsSmearingMap
+
+                # No rows dumped
+
+                numRowsDump = 0;
+            
+            # Partial readout
+
+            elif readoutMode == "Partial":
+                # Rows read out by the FEE: rows in the block (other rows in image area are dumped)
+                # Note: no parallel over-scan
+                
+                numRowsReadout = self["CCD/ReadoutMode/Partial/NumRowsReadout"]
+                numRowsDump = numRows - numRowsReadout
+
+
+            readoutTimeBeforeNextExposure = numRowsDump * parallelTransferTimeFast + numRowsReadout * (numColumnsReadout * serialTransferTime + parallelTransferTime)
+            readoutTimeDuringNextExposure = 0
+
+        return readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure
+
+
+
