@@ -729,12 +729,6 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, tiltAngl
     if (includeFieldDistortion == True) or (includeFieldDistortion == "yes"):
         xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients, focalLength)
 
-    # Concert to CCD pixel coordinates
-    # Note that the pixel size is in [micron] not in [mm]
-
-    xCCDpixel = xFPmm / pixelSize * 1000.0
-    yCCDpixel = yFPmm / pixelSize * 1000.0
-
     # Find out if this falls on a CCD, and if yes which one.
     # Our approach: try each of the CCDs. Not elegant, but robust...  
 
@@ -793,8 +787,8 @@ def platformToTelescopePointingCoordinates(raPlatform, decPlatform, raSun, decSu
            azimuthAngle: Azimuth of the telescope on the platform                [rad]
            tiltAngle:    Tilt angle between platform and telescope pointing axes [rad]
 
-    OUTPUT: raTelescope: right ascension of the optical axis of the telescope [rad]
-            decTelescope: declination of the optical axis of the telescope [rad]
+    OUTPUT: raTelescope: right ascension of the optical axis of the telescope    [rad]
+            decTelescope: declination of the optical axis of the telescope       [rad]
 
     """
 
