@@ -591,7 +591,7 @@ class Simulation(object):
 
 
 
-    def setSubfieldAroundCoordinates(self, raStar, decStar, subfieldSizeX, subfieldSizeY, normal):
+    def setSubfieldAroundCoordinates(self, raStar, decStar, subfieldSizeX, subfieldSizeY, normal=True):
         
         """
         PURPOSE: Set the location of the sub-field such that it is centred on the star 
@@ -609,17 +609,16 @@ class Simulation(object):
               a valid values for the focal length, the plate scale, the pixel size, and that
               the switch to include distortion or not is set correctly
 
+        NOTE: The function does not set the exposure time, nor the focal length source, etc.
+
         INPUT:  raStar:                 right ascension of the star [radians]
                 decStar:                declination [radians]
                 subfieldSizeX:          width (i.e. number of columns) of the subiield [pixels]
                 subfieldSizeY:          height (i.e. number of rows) of the sub-field [pixels]
                 normal:                 True for the normal camera configuration, False for the fast cameras
 
-        OUTPUT: True if the CCD code (i.e. the pre-defined CCD position) could be determined, False otherwise 
+        OUTPUT: True if the entire subfield fit on one of the 4 (pre-defined) CCDs, False otherwise 
 
-        REMARKS: - If the coordinates do not fall on any CCD, an error message is shown, followed by an exit(1)
-                 - If the star is too close to the edge for the given subfield size, and error message is shown,
-                   followed by an exit(1)
         """
         
 
@@ -627,10 +626,19 @@ class Simulation(object):
 
         raPlatform       = np.deg2rad(float(self["ObservingParameters/RApointing"]))
         decPlatform      = np.deg2rad(float(self["ObservingParameters/DecPointing"]))
-        azimuthTelescope = np.deg2rad(float(self["Telescope/AzimuthAngle"]))
-        tiltTelescope    = np.deg2rad(float(self["Telescope/TiltAngle"]))
-        focalLength      = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0                     # [m] -> [mm]
-        plateScale       = float(self["Camera/PlateScale"])          
+
+        telescopeGroupID = self["Telescope/GroupID"]
+        if telescopeGroupID == "Custom":
+            azimuthTelescope = np.deg2rad(float(self["Telescope/AzimuthAngle"]))
+            tiltTelescope    = np.deg2rad(float(self["Telescope/TiltAngle"]))
+        elif telescopeGroupID == "Fast":
+            azimuthTelescope = np.deg2rad(self["CameraGroups/AzimuthAngle"][4])
+            tiltTelescope = np.deg2rad(self["CameraGroups/TiltAngle"][4])
+        else:
+            azimuthTelescope = np.deg2rad(self["CameraGroups/AzimuthAngle"][telescopeGroupID-1])
+            tiltTelescope = np.deg2rad(self["CameraGroups/TiltAngle"][telescopeGroupID-1])
+
+        focalLength      = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0                     # [m] -> [mm]     
         focalPlaneAngle  = np.deg2rad(float(self["Camera/FocalPlaneOrientation/ConstantValue"]))
         pixelSize        = float(self["CCD/PixelSize"]) 
 
@@ -644,6 +652,7 @@ class Simulation(object):
 
         # Compute the position of the subfield.
         # xPix and yPix are the CCD coordinates of the star, given a 4510x4510 CCD [colNumber, rowNumber].
+        # The function below also checks if the subfield fits entirely on the CCD. If not: ccdCode is None.
 
         ccdCode, xPix, yPix = rf.calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, decStar, raPlatform, decPlatform, \
                                                                     tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength, pixelSize,              \
@@ -660,6 +669,7 @@ class Simulation(object):
 
         # If we arrive here, there is no problem accommodating the entire sufield on the CCD
 
+        self["CCD/Position"] = str(ccdCode)
         self["CCD/OriginOffsetX"] = str(CCDOriginOffsetX)
         self["CCD/OriginOffsetY"] = str(CCDOriginOffsetY)
         self["CCD/Orientation"] = str(np.rad2deg(CCDOrientation))
@@ -667,24 +677,16 @@ class Simulation(object):
         self["CCD/NumColumns"] = CCDSizeX
         self["CCD/NumRows"] = CCDSizeY
 
+        if telescopeGroupID == "Fast":
+            self["CCD/FirstRowExposed"] = str(2255)
+        else:
+            self["CCD/FirstRowExposed"] = str(0)
+
         self["SubField/ZeroPointRow"] = str(int(yPix - subfieldSizeY/2))
         self["SubField/ZeroPointColumn"] = str(int(xPix - subfieldSizeX/2))
         self["SubField/NumRows"] = str(subfieldSizeY)
         self["SubField/NumColumns"] = str(subfieldSizeX)
 
-        # Set the exposure and the readout time, depending on fast vs nominal cams
-
-        if normal:
-            self["ObservingParameters/ExposureTime"] = 23
-        else:
-            self["ObservingParameters/ExposureTime"] = 2.3
-
-        # Make sure that the focal length and the focal plane orientation are constant values
-        # and not read from a file.
-
-        self["Camera/FocalLength/Source"] = "ConstantValue"
-        self["Camera/FocalPlaneOrientation/Source"] = "ConstantValue"
-        
         # That's it
 
         return True
