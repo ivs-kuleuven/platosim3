@@ -518,7 +518,7 @@ tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addFlux(double x
         s = sqrt(s * s + d * d);
     }
 
-    int size = 2 * (int)(8. * s + 1) + 1;;
+    int size = 2 * (int)(8. * s + 1) + 1;
     int sx = (int)floor(column0 - (size - 1.) / 2.);
     int sy = (int)floor(row0 - (size - 1.) / 2.);
 
