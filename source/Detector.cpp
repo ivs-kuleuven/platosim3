@@ -324,11 +324,11 @@ void Detector::updateParameters(double time)
 
     Log.debug("Detector: selected ccdPosition = " + ccdPosition);
     Log.debug("Detector: originOffsetX, originOffsetY = " + to_string(originOffsetX) + ", " + to_string(originOffsetY));
-    Log.debug("Detector: orientationAngle = " + to_string(orientationAngle) );
+    Log.debug("Detector: orientationAngle = " + to_string(rad2deg(orientationAngle)) + " deg");
     Log.debug("Detector: numRows, numColumns, firstRow = " + to_string(numRows) + ", " + to_string(numColumns) + ", " + to_string(firstRowExposed));
 
     pixelSize                           = configParam.getDouble("CCD/PixelSize");
-//    quantumEfficiency                   = configParam.getDouble("CCD/QuantumEfficiency/Efficiency");
+//    quantumEfficiency                   = configParam.getDouble("CCD/QuantumEfficiency/Efficiency");                  // FIXME: No commented out lines of code. To be removed or not?
 //    refAngleQE                          = configParam.getDouble("CCD/QuantumEfficiency/RefAngle");
 //    relativeRefEfficiencyQE             = configParam.getDouble("CCD/QuantumEfficiency/RelativeRefEfficiency");
     meanQE                              = configParam.getDouble("CCD/QuantumEfficiency/MeanQuantumEfficiency");
