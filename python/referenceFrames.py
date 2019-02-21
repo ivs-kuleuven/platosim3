@@ -909,10 +909,7 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
     # If the CCD code is None, the star does not fall on any ccd -> error
 
     if ccdCode == None:
-        print("Error: coordinates do not fall on any CCD")
-        print("raStar, decStar = {0}, {1}".format(raStar, decStar))
         return None, None, None
-
 
     # If the star does fall on a CCD, check if it's not too close to the edge for the subfield to
     # be completely on the CCD.
@@ -925,9 +922,6 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
 
     if     (xCCDpix - subfieldSizeX/2 < 0)        or (xCCDpix + subfieldSizeX/2 - 1 > Ncols-1)   \
         or (yCCDpix - subfieldSizeY/2 < firstRow) or (yCCDpix + subfieldSizeY/2 - 1 > Nrows-1): 
-
-        print("Error: pixel coordinates (row, col) = ({0},{1}) too close to the edge to accommodate subfield with size {2}x{3}" \
-           .format(yCCDpix,xCCDpix,subfieldSizeX, subfieldSizeY))
         return None, None, None
 
     # That's it!
