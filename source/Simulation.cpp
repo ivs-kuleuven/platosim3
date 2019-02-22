@@ -610,7 +610,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "Platform";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
-    addDouble("SolarPanelOrientation");
+    addBoolean("IncludeQuarterlyRoll");
     addBoolean("UseJitter");
     addBoolean("UseJitterFromFile");
     addDouble("JitterYawRms");
