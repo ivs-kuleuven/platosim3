@@ -297,7 +297,8 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
 	//	- partial readout: configurable
 	// The rest of the image area will be dumped
 
-	int numRowsReadout, numRowsDump;
+	int numRowsReadout=0;
+    int numRowsDump=0;
 
 
 
