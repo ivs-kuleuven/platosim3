@@ -35,7 +35,7 @@ Sky:
 
 Platform:
 
-    SolarPanelOrientation:        0               # 0, 90, 180, or 270 degrees for the different quarters of a year [deg]
+    IncludeQuarterlyRoll:        yes              # Include a 90 degrees roll every 90 days to repoint the solar panels to the Sun
     UseJitter:                   yes              # yes or no
     UseJitterFromFile:           yes              # yes or no
     JitterYawRms:                0.5              # [arcsec]
