@@ -67,7 +67,7 @@ void Platform::configure(ConfigurationParameters &configParams)
     useJitter   = configParams.getBoolean("Platform/UseJitter");
     originalRA  = deg2rad(configParams.getDouble("ObservingParameters/RApointing"));            
     originalDec = deg2rad(configParams.getDouble("ObservingParameters/DecPointing"));
-    includeQuarterlyRoll = configParams.getBoolean("Platform/IncludeQuarteryRoll");
+    double solarPanelOrientation = deg2rad(configParams.getDouble("ObservingParameters/SolarPanelOrientation"));
          
     currentRA   = originalRA;
     currentDec  = originalDec;
@@ -79,20 +79,11 @@ void Platform::configure(ConfigurationParameters &configParams)
     double betaPlatform;                                   // Ecliptic latitude  of the platform pointing [rad]
     equatorial2ecliptic(originalRA, originalDec, lambdaPlatform, betaPlatform);
 
-    double lambdaSun = lambdaPlatform - Constants::PI;
+    double lambdaSun = lambdaPlatform - Constants::PI + solarPanelOrientation;
     if (lambdaSun < 0.0) lambdaSun += 2.0 * Constants::PI;
     ecliptic2equatorial(lambdaSun, 0.0, raSun, decSun);
 
     Log.debug("Platform: (RA Sun, Dec Sun) = (" + to_string(rad2deg(raSun)) + ", " + to_string(rad2deg(decSun)) + ")");
-    if (includeQuarterlyRoll)
-    {
-        Log.info("Platform: include quarterly roll: yes");
-    }
-    else
-    {
-        Log.info("Platform: include quarterly roll: no");
-    }
-    
 
 }
 
