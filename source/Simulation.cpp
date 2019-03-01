@@ -56,8 +56,12 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     configure(configParams);
 
-    double readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure;
+    double readoutTimeDuringNextExposure;
     tie(readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure) = configureReadoutTime(configParams);
+
+    Log.debug("Simulation: Exposure time: " + to_string(exposureTime));
+    Log.debug("Simulation: Readout time before next exposure: " + to_string(readoutTimeBeforeNextExposure));
+
 
     // Depending on what the user requested, define the proper platform jitter generator
 
@@ -400,6 +404,11 @@ void Simulation::run()
     // Update the internal clock
 
     currentTime = beginExposureNr * (exposureTime + readoutTimeBeforeNextExposure);
+
+    Log.debug("Simulation: Run(): beginExposureNr = " + to_string(beginExposureNr));
+    Log.debug("Simulation: Run(): exposureTime = " + to_string(exposureTime));
+    Log.debug("Simulation: Run(): readoutTimeBeforeNextExposure = " + to_string(readoutTimeBeforeNextExposure));
+
 
     // Loop over all exposures
 
