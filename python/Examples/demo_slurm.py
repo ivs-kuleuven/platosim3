@@ -46,6 +46,7 @@ sim.outputDir = outputDir
 sim["PSF/Model"] = "MappedGaussian"
 sim["ObservingParameters/RApointing"]  = 180.0 
 sim["ObservingParameters/DecPointing"] = -70.0
+sim["Platform/SolarPanelOrientation"]  =   0.0
 sim["Telescope/AzimuthAngle"]          =   0.0
 sim["Telescope/TiltAngle"]             =   0.0
 
