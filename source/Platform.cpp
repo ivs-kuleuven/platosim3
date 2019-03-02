@@ -67,7 +67,7 @@ void Platform::configure(ConfigurationParameters &configParams)
     useJitter   = configParams.getBoolean("Platform/UseJitter");
     originalRA  = deg2rad(configParams.getDouble("ObservingParameters/RApointing"));            
     originalDec = deg2rad(configParams.getDouble("ObservingParameters/DecPointing"));
-    double solarPanelOrientation = deg2rad(configParams.getDouble("ObservingParameters/SolarPanelOrientation"));
+    double solarPanelOrientation = deg2rad(configParams.getDouble("Platform/SolarPanelOrientation"));
          
     currentRA   = originalRA;
     currentDec  = originalDec;
@@ -83,6 +83,7 @@ void Platform::configure(ConfigurationParameters &configParams)
     if (lambdaSun < 0.0) lambdaSun += 2.0 * Constants::PI;
     ecliptic2equatorial(lambdaSun, 0.0, raSun, decSun);
 
+    Log.debug("Platform: solar panel orientation = " + to_string(rad2deg(solarPanelOrientation)) + " deg");
     Log.debug("Platform: (RA Sun, Dec Sun) = (" + to_string(rad2deg(raSun)) + ", " + to_string(rad2deg(decSun)) + ")");
 
 }
