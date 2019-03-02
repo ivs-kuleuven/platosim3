@@ -12,19 +12,20 @@ from referenceFrames import *
 
 
 
-def drawCCDsInSkyMollweide(fig, raPlatform, decPlatform, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength, pixelSize, normal=True):
+def drawCCDsInSkyMollweide(fig, raPlatform, decPlatform, solarPanelOrientation, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength, pixelSize, normal=True):
 
     """
     PURPOSE: Project and plot the 4 CCDs of 1 camera on the sky
 
-    INPUT: raPlatform:      right ascension of the platform pointing axis             [rad]
-           decPlatform:     declination of the platform pointing axis                 [rad]
-           tiltAngle:       tilt angle of the telescope w.r.t. platform z-axis        [rad]                   
-           azimuthAngle:    azimuth angle of the telescope on the platform            [rad]
-           focalPlaneAngle: angle between the Y_TL axis and the Y_FP axis: gamma_FP   [rad]
-           focalLength:     focal length of the camera                                [mm]
-           pixelSize:       pixel size                                                [micron]
-           normal:         True for the normal camera configuration, False for the fast cameras
+    INPUT: raPlatform:            right ascension of the platform pointing axis             [rad]
+           decPlatform:           declination of the platform pointing axis                 [rad]
+           solarPanelOrientation: (0,pi/2,pi,3pi/2) for quarters (Q1,Q2,Q3,Q4)              [rad]
+           tiltAngle:             tilt angle of the telescope w.r.t. platform z-axis        [rad]                   
+           azimuthAngle:          azimuth angle of the telescope on the platform            [rad]
+           focalPlaneAngle:       angle between the Y_TL axis and the Y_FP axis: gamma_FP   [rad]
+           focalLength:           focal length of the camera                                [mm]
+           pixelSize:             pixel size                                                [micron]
+           normal:                True for the normal camera configuration, False for the fast cameras
 
     OUTPUT: None
 
@@ -60,7 +61,7 @@ def drawCCDsInSkyMollweide(fig, raPlatform, decPlatform, tiltAngle, azimuthAngle
 
         # Compute the equatorial sky coordinates [rad] from the the focal plane FP' coordinates [mm] of the corners
 
-        ra, dec = focalPlaneToSkyCoordinates(cornersXmm, cornersYmm, raPlatform, decPlatform,   \
+        ra, dec = focalPlaneToSkyCoordinates(cornersXmm, cornersYmm, raPlatform, decPlatform, solarPanelOrientation,  \
                                              tiltAngle, azimuthAngle, focalPlaneAngle, focalLength)
 
         # Repeat the coordinates of the 1st corner, to plot a nice closed loop
@@ -323,18 +324,19 @@ def drawStarInFocalPlane(sim, raStar, decStar):
         includeFieldDistortion = False
         
 
-    pixelSize        = float(sim["CCD/PixelSize"])
-    raPlatform       = np.radians(float(sim["ObservingParameters/RApointing"]))
-    decPlatform      = np.radians(float(sim["ObservingParameters/DecPointing"]))
-    azimuthTelescope = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
-    tiltTelescope    = np.deg2rad(float(sim["Telescope/TiltAngle"]))
-    focalPlaneAngle  = np.radians(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
-    focalLength      = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
-    ccdZeroPointX    = float(sim["CCD/OriginOffsetX"])
-    ccdZeroPointY    = float(sim["CCD/OriginOffsetY"])
-    ccdAngle         = np.radians(float(sim["CCD/Orientation"]))
+    pixelSize             = float(sim["CCD/PixelSize"])
+    raPlatform            = np.radians(float(sim["ObservingParameters/RApointing"]))
+    decPlatform           = np.radians(float(sim["ObservingParameters/DecPointing"]))
+    solarPanelOrientation = np.deg2rad(float(sim["Platform/SolarPanelOrientation"]))
+    azimuthTelescope      = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
+    tiltTelescope         = np.deg2rad(float(sim["Telescope/TiltAngle"]))
+    focalPlaneAngle       = np.radians(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
+    focalLength           = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
+    ccdZeroPointX         = float(sim["CCD/OriginOffsetX"])
+    ccdZeroPointY         = float(sim["CCD/OriginOffsetY"])
+    ccdAngle              = np.radians(float(sim["CCD/Orientation"]))
 
-    xFPmm, yFPmm = skyToFocalPlaneCoordinates(raStar, decStar, raPlatform, decPlatform, tiltTelescope, azimuthTelescope, \
+    xFPmm, yFPmm = skyToFocalPlaneCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation, tiltTelescope, azimuthTelescope, \
                                               focalPlaneAngle, focalLength)
 
     if includeFieldDistortion:
@@ -342,7 +344,7 @@ def drawStarInFocalPlane(sim, raStar, decStar):
 
     #ccdCode, xCCD, yCCD = getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, tiltTelescope, azimuthTelescope,  \
     #                                                focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, FIELD_DISTORTION["Coeff"], normal)
-    ccdCode, xCCD, yCCD = getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, distortionCoefficients, normal)
+    ccdCode, xCCD, yCCD = getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation, tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, distortionCoefficients, normal)
 
     if ccdCode == None:
         print ("Warning: DrawStarInFocalPlane(): The star doesn't fall on any of the CCDs.")
