@@ -405,11 +405,6 @@ void Simulation::run()
 
     currentTime = beginExposureNr * (exposureTime + readoutTimeBeforeNextExposure);
 
-    Log.debug("Simulation: Run(): beginExposureNr = " + to_string(beginExposureNr));
-    Log.debug("Simulation: Run(): exposureTime = " + to_string(exposureTime));
-    Log.debug("Simulation: Run(): readoutTimeBeforeNextExposure = " + to_string(readoutTimeBeforeNextExposure));
-
-
     // Loop over all exposures
 
     for (int n = beginExposureNr; n < beginExposureNr + numExposures; n++)
