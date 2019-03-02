@@ -611,10 +611,10 @@ class Simulation(object):
 
         NOTE: The function does not set the exposure time, nor the focal length source, etc.
 
-        INPUT:  raStar:                 right ascension of the star [radians]
-                decStar:                declination [radians]
-                subfieldSizeX:          width (i.e. number of columns) of the subiield [pixels]
-                subfieldSizeY:          height (i.e. number of rows) of the sub-field [pixels]
+        INPUT:  raStar:                 right ascension of the star                     [radians]
+                decStar:                declination                                     [radians]
+                subfieldSizeX:          width (i.e. number of columns) of the subiield  [pixels]
+                subfieldSizeY:          height (i.e. number of rows) of the sub-field   [pixels]
                 normal:                 True for the normal camera configuration, False for the fast cameras
 
         OUTPUT: True if the entire subfield fit on one of the 4 (pre-defined) CCDs, False otherwise 
@@ -649,14 +649,15 @@ class Simulation(object):
             includeFieldDistortion = False
             distortionCoefficients = None
 
+        solarPanelOrientation = np.deg2rad(float(self["Platform/SolarPanelOrientation"]))               # [rad]
 
         # Compute the position of the subfield.
         # xPix and yPix are the CCD coordinates of the star, given a 4510x4510 CCD [colNumber, rowNumber].
         # The function below also checks if the subfield fits entirely on the CCD. If not: ccdCode is None.
 
-        ccdCode, xPix, yPix = rf.calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, decStar, raPlatform, decPlatform, \
-                                                                    tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength, pixelSize,              \
-                                                                    includeFieldDistortion, distortionCoefficients, normal)
+        ccdCode, xPix, yPix = rf.calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, decStar, raPlatform, decPlatform,           \
+                                                                    solarPanelOrientation, tiltTelescope, azimuthTelescope, focalPlaneAngle,          \
+                                                                    focalLength, pixelSize, includeFieldDistortion, distortionCoefficients, normal)
         
         if ccdCode == None:
             return False
