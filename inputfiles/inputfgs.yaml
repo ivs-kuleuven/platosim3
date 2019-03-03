@@ -34,6 +34,7 @@ Sky:
 
 Platform:
 
+    SolarPanelOrientation:        0               # 0, 90, 180, or 270 degrees for the different quarters of a year [deg]
     UseJitter:                   yes              # yes or no
     UseJitterFromFile:           yes              # yes or no
     JitterYawRms:                0.04             # [arcsec]

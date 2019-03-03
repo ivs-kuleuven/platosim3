@@ -35,12 +35,13 @@ Sky:
 
 Platform:
 
-    UseJitter:                   no             # yes or no
-    UseJitterFromFile:           yes              # yes or no
+    SolarPanelOrientation:        0              # 0, 90, 180, or 270 degrees for the different quarters of a year [deg]
+    UseJitter:                   no              # yes or no
+    UseJitterFromFile:           yes             # yes or no
     JitterYawRms:                0.5             # [arcsec]
     JitterPitchRms:              0.5             # [arcsec]
     JitterRollRms:               0.5             # [arcsec]
-    JitterTimeScale:             180           # [s]
+    JitterTimeScale:             180             # [s]
     JitterFileName:              inputfiles/PlatoJitter_Airbus.txt 
 
 

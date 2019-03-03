@@ -259,7 +259,6 @@ void DetectorWithAnalyticNonGaussianPSF::generateFlatfieldMap()
         for(unsigned int column = 0; column < Ncolumns; column++)
         {
             // Fourier space: generate white noise and include 1/f dependency
-            // (Note: see https://en.wikipedia.org/wiki/Pink_noise#Generalization_to_more_than_one_dimension)
 
             evenMap(row, column) = flatfieldDistribution(flatfieldGenerator) / (pow(row, 2) + std::pow(column, 2) + 1);
         }
@@ -519,7 +518,7 @@ tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addFlux(double x
         s = sqrt(s * s + d * d);
     }
 
-    int size = 2 * (int)(8. * s + 1) + 1;;
+    int size = 2 * (int)(8. * s + 1) + 1;
     int sx = (int)floor(column0 - (size - 1.) / 2.);
     int sy = (int)floor(row0 - (size - 1.) / 2.);
 
