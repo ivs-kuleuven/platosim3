@@ -8,8 +8,6 @@ num_exposures_lc = 24
 
 def processLeft(simFile, starID, window_dim):
 
-    imagetteRadius = (window_dim - 1) / 2
-
     smearing_pattern_fc_array = np.array([])      # Smearing pattern for the different columns at fast cadence (25s)
     smearing_pattern_lc_array = np.array([])      # Smearing pattern for the difference columns at long cadence (600s)
 
@@ -34,13 +32,21 @@ def processLeft(simFile, starID, window_dim):
 
 
     numExposures = simFile.getInputParameter("ObservingParameters", "NumExposures")
+    subfield_zp_row = simFile.getInputParameter("SubField", "ZeroPointRow")
+    subfield_zp_column = simFile.getInputParameter("SubField", "ZeroPointColumn")
+
+
+    window_zp_row = 100             # Arbitrary (should be read from configuration file)
+    window_zp_column = 100          # Arbitrary (should be read from configuration file)
+    window_num_rows = 6             # Should be read from configuration file
+    window_num_columns = 6          # Should be read from configuration file
 
     for exposure in range(numExposures):
 
         # Calculate the offset for the current exposure (fast cadence)
 
         serialPreScan = simFile.getBiasMapLeft(exposure)
-        outlier_detection_k = 10
+        outlier_detection_k = 10                            # Should be read from configuration file
 
         offset_value_fc = offset_calculation(serialPreScan, outlier_detection_k)[0]
 
@@ -52,13 +58,13 @@ def processLeft(simFile, starID, window_dim):
 
         half_ccd_gain = 1.0 / (simFile.getInputParameter("FEE", "Gain", "RefValueLeft") * simFile.getInputParameter("CCD", "Gain", "RefValueLeft")) # [e- / ADU]
         a0_array = np.empty(parallelOverScan.shape[1])
-        a0_array.fill(101.3463)
-        a_coefficients = np.array([0.9695, 4.6004, 5.9211])
-        b_coefficients = np.array([2.1641, 0.2750, 0.0218, 0.0039])
-        n0 = 10
-        outlier_detection_threshold = 4.0
-        epsilon = 0.01
-        std_dev_previous = 9999
+        a0_array.fill(101.3463)                                         # Should be read from configuration file
+        a_coefficients = np.array([0.9695, 4.6004, 5.9211])             # Should be read from configuration file
+        b_coefficients = np.array([2.1641, 0.2750, 0.0218, 0.0039])     # Should be read from configuration file
+        n0 = 10                                                         # Should be read from configuration file
+        outlier_detection_threshold = 4.0                               # Should be read from configuration file
+        epsilon = 0.01                                                  # Should be read from configuration file
+        std_dev_previous = 9999                                         # Should be read from configuration file?
 
         smearing_pattern_fc, a0_array, std_dev_previous = smearing_calculation(parallelOverScan, offset_value_fc, half_ccd_gain, a0_array, a_coefficients, b_coefficients, n0, outlier_detection_threshold, std_dev_previous, epsilon)
         smearing_pattern_fc_array = np.append(smearing_pattern_fc_array, smearing_pattern_fc)
@@ -87,7 +93,7 @@ def processLeft(simFile, starID, window_dim):
         # ncob_fc (COB as obtained in the nominal mask), and ecob_fc (COB as
         # obtained in the extended mask).
 
-        star_window = simFile.getImagette(starID, exposure, imagetteRadius)
+        star_window = simFile.getImage(exposure)[window_zp_row - subfield_zp_row : window_zp_row + window_num_rows - subfield_zp_row][window_zp_column - subfield_zp_column : window_zp_column + window_num_columns - subfield_zp_column]
         fx_fc, dfx_fc, ncob_fc, ecob_fc = flux_cob_calculation(star_window, offset_value_fc, smearing_pattern_fc, half_ccd_gain, nmask, emask)
         fx_fc_array = np.append(fx_fc_array, fx_fc)
         dfx_fc_array = np.append(dfx_fc_array, dfx_fc)
@@ -107,7 +113,7 @@ def processLeft(simFile, starID, window_dim):
         # Light curve outlier detection
         # Note that you need b datapoints in the past and b datapoints in the future!
 
-        outlier_detection_threshold = 5
+        outlier_detection_threshold = 5     # Should be read from configuration file
 
         if (exposure + 1) > 2 * outlier_detection_b:
             
