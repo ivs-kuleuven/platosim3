@@ -2576,8 +2576,23 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
 
     // Add the image to the "Images" group
 
-    hdf5File.writeArray("/Images", imageName, pixelMap);
+    if (!includeQuantisation)
+    {
+        // Write the float array to HDF5
+        
+        hdf5File.writeArray("/Images", imageName, pixelMap);
+    }
+    else
+    {
+        // Convert the float matrix to an unsigned int matrix.
+        // Since a float is 32 bytes, and an unsigned int 16 bytes, it saves half the space.
+        
+        arma::Mat<unsigned int> uintMap = arma::conv_to<arma::Mat<unsigned int>>::from(pixelMap);
+        hdf5File.writeArray("/Images", imageName, uintMap);
+    }
 
+    // Write the Smearing map to the HDF5 file
+    
     if(numRowsSmearingMap != 0)
     {
     	// Clear the string stream and compose the smearing map name
@@ -2588,10 +2603,21 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
     	myStream << "smearingMap" << setfill('0') << setw(6) << exposureNr;
     	string smearingMapName = myStream.str();
 
-
     	// Add the smearing map to the "SmearingMaps" group
 
-    	hdf5File.writeArray("/SmearingMaps", smearingMapName, smearingMap);
+        if (!includeQuantisation)
+        {
+            // Write the float array to HDF5
+            
+            hdf5File.writeArray("/SmearingMaps", smearingMapName, smearingMap);
+        }
+        else
+        {
+            // Convert the float matrix to an unsigned int matrix.
+            
+            arma::Mat<unsigned int> uintMap = arma::conv_to<arma::Mat<unsigned int>>::from(smearingMap);
+            hdf5File.writeArray("/SmearingMaps", smearingMapName, uintMap);
+        }
     }
 
    // Clear the string stream and compose the bias map name
@@ -2604,10 +2630,27 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
 
     // Add the bias map to the "BiasMaps" group
 
-    hdf5File.writeArray("/BiasMapsLeft", biasMapName, biasMapLeft);
-    hdf5File.writeArray("/BiasMapsRight", biasMapName, biasMapRight);
+    if (!includeQuantisation)
+    {
+        // Write the float array to HDF5
+        
+        hdf5File.writeArray("/BiasMapsLeft", biasMapName, biasMapLeft);
+        hdf5File.writeArray("/BiasMapsRight", biasMapName, biasMapRight);
+    }
+    else
+    {
+        // Convert the float matrix to an unsigned int matrix.
+        
+        arma::Mat<unsigned int> uintMap = arma::conv_to<arma::Mat<unsigned int>>::from(biasMapLeft);
+        hdf5File.writeArray("/BiasMapsLeft", biasMapName, uintMap);
+        
+        uintMap = arma::conv_to<arma::Mat<unsigned int>>::from(biasMapRight);
+        hdf5File.writeArray("/BiasMapsRight", biasMapName, uintMap);
+    }
+
 
     // Clear the string stream and compose the throughput map name
+
 
     myStream.str(string());      // insert empty string
     myStream.clear();            // clear eof bit
