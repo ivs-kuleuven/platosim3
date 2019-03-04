@@ -805,16 +805,16 @@ class SimFile (object):
 
         # Get the pixel coordinates of our star, and use it to construct the imagette borders
 
-        xcoord = int(np.floor(row[IDs==starID])[0])
-        ycoord = int(np.floor(col[IDs==starID])[0])
-        xbegin = max(0, xcoord - radius) 
-        xend   = min(xcoord + radius + 1, image.shape[1])
-        ybegin = max(0, ycoord - radius)
-        yend   = min(ycoord + radius + 1, image.shape[0])
+        rowStar     = row[IDs == starID][0]
+        columnStar  = col[IDs == starID][0]
+        rowBegin    = max(0, int(np.round(rowStar - radius)))
+        columnBegin = max(0, int(np.round(columnStar - radius)))
+        rowEnd      = min(image.shape[0], int(np.round(rowStar + radius + 1)))
+        columnEnd   = min(image.shape[1], int(np.round(columnStar + radius + 1)))
 
         # Extract the imagette
 
-        imagette = image[xbegin:xend, ybegin:yend]
+        imagette = image[rowBegin:rowEnd, columnBegin:columnEnd]
 
         # That's it!
 
