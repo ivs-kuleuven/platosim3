@@ -31,3 +31,6 @@ LightCurve:
         Threshold:                       5
     TimeAveraging:        
         Cadence:                         Long     # "Short" (50s) or "Long" (600s)
+        NumSamples:
+          Short:                         2        # Short cadence: 50s (i.e. 2 samples)
+          Long:                          24       # Long cadence: 600s (i.e. 24 samples)
