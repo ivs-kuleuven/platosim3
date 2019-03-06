@@ -1,6 +1,6 @@
 Offset:
     OutlierDetection:
-        Enabled:                         True/False
+        Enabled:                         True
         k:                               10
 
 Smearing:
@@ -10,7 +10,7 @@ Smearing:
     NumRowsSkipped:                      10
     Regularization:                      0.01
     OutlierDetection:
-        Enabled:                         True/False
+        Enabled:                         True
         Threshold:                       2
 
 StarWindow:
@@ -21,12 +21,12 @@ StarWindow:
 
 BackgroundWindow:
     OutlierDetection:
-        Enabled:                         True/False
+        Enabled:                         True
         Threshold:                       5
 
 LightCurve:
     OutlierDetection:
-        Enabled:                         True/False
+        Enabled:                         True
         b:                               10
         Threshold:                       5
     TimeAveraging:        
