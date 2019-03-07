@@ -9,6 +9,7 @@ import os
 import sys
 import ast
 import numpy as np
+import h5py
 
 
 
@@ -600,6 +601,9 @@ class PhotometricPipeline(object):
         self.offset_outlier_detection_enabled = self["Offset/OutlierDetection/Enabled"]                 # Enable/disable outlier detection
         self.offset_outlier_detection_k = self["Offset/OutlierDetection/k"]                             # Number of largest and smallest values to flag as outliers
 
+        self.offset_value_fc_array = np.array([])
+        self.offset_variance_fc_array = np.array([])
+
 
 
         # Parameters that are specific for the smearing pattern calculations
@@ -656,9 +660,21 @@ class PhotometricPipeline(object):
             
             self.num_exposures_time_averaging = self.num_exposures_sc
 
+            self.fx_sc_array = np.array([])
+            self.dfx_sc_array = np.array([])
+            self.ncob_sc_array = np.array([])
+            self.ecob_sc_array = np.array([])
+            self.fx_exposure_error_sc_array = np.array([])
+
         elif self.time_averaging_cadence == "Long":
             
             self.num_exposures_time_averaging = self.num_exposures_sc
+
+            self.fx_lc_array = np.array([])
+            self.dfx_lc_array = np.array([])
+            self.fxvar_lc_array = np.array([])
+            self.dfxvar_lc_array = np.array([])
+            self.fx_exposure_error_lc_array = np.array([])
 
 
 
@@ -690,7 +706,8 @@ class PhotometricPipeline(object):
         elif self.detector_half == "Right":
             serialPreScan = self.simFile.getBiasMapRight(exposure)
 
-        offset_value_fc = self.offset_calculation(serialPreScan)[0]
+        offset_value_fc, offset_variance_fc = self.offset_calculation(serialPreScan)[:2]
+        self.offset_value_fc_array = np.append(self.offset_value_fc_array, offset_variance_fc)
 
 
 
@@ -771,30 +788,67 @@ class PhotometricPipeline(object):
             - filename: Name of the output file
         """
 
-        # OFFSET_VALUE_FC
-        # OFFSET_VARIANCE_FC
-        # SMEARING_PATTERN_FC
-        # BKG_WINDOWS
-        # TARGET_STARS  -> long cadence
-        # REFERENCE_STARS
+        outputFile = h5py.File(self.outputDir + "/" + filename,"w")
 
-        # {background window ID}_VALUE_FC
+        # Offset
+
+        offsetGroup = outputFile.create_group("OFFSET_FC")
+        offsetGroup.create_dataset("OFFSET_VALUE_FC", dtype = "float32", data = self.offset_value_fc_array)
+        offsetGroup.create_dataset("OFFSET_VARIANCE_FC", dtype = "float32", data = self.offset_variance_fc_array)
+
+        # Smearing pattern, fast cadence
+
+        smearingGroup_fc = outputFile.create_group("SMEARING_PATTERN_FC")
+        smearingGroup_fc.create_dataset("SMEARING_PATTERN_FC", dtype = "float32", data = self.smearing_pattern_fc_array)
+
+        # Background windows TODO
+        # {background window ID}_VALUE_FC   
         # {background window ID}_VARIANCE_FC
         # {background window ID}_ERROR_NUMBER_FC
-        # {star window ID}-FX_FC
-        # {star window ID}-DFX_FC
-        # {star window ID}-NCOB_FC
-        # {star window ID}-ECOB_FC
-        # -FX_SC
-        # -DFX_SC
-        # -NCOB_SC
-        # -ECOB_SC
-        # -FX_EXPOSURE_ERROR_SC
-        # -FX_LC
-        # -FXVAR_LC
-        # -FX_EXPOSURE_ERROR_LC
 
+        # Smearing pattern, long cadence
+
+        smearingGroup_lc = outputFile.create_group("SMEARING_PATTERN_LC")
+        smearingGroup_lc.create_dataset("SMEARING_PATTERN_LC", dtype = "float32", data = self.smearing_pattern_lc_array)
+
+        # Star window, fast cadence
+
+        starWindowGroup_fc = outputFile.create_group("STAR_WINDOW_FC")
+        starWindowGroup_fc.create_dataset("FX_FC", dtype = "float32", data = self.fx_fc_array)
+        starWindowGroup_fc.create_dataset("DFX_FC", dtype = "float32", data = self.dfx_fc_array)
+        starWindowGroup_fc.create_dataset("NCOB_FC", dtype = "float32", data = self.ncob_fc_array)
+        starWindowGroup_fc.create_dataset("ECOB_FC", dtype = "float32", data = self.ecob_fc_array)
+
+        # Star window, short cadence
+
+        if self.time_averaging_cadence == "Short":
+
+            starWindowGroup_sc = outputFile.create_group("STAR_WINDOW_SC")
+            starWindowGroup_sc.create_dataset("FX_SC", dtype = "float32", data = self.fx_sc_array)
+            starWindowGroup_sc.create_dataset("DFX_SC", dtype = "float32", data = self.dfx_sc_array)
+            starWindowGroup_sc.create_dataset("NCOB_SC", dtype = "float32", data = self.ncob_sc_array)
+            starWindowGroup_sc.create_dataset("ECOB_SC", dtype = "float32", data = self.ecob_sc_array)
+            starWindowGroup_sc.create_dataset("FX_EXPOSURE_ERROR_SC_ARRAY", dtype = "float32", data = self.fx_exposure_error_sc_array)
+
+        
+        elif self.time_averaging_cadence == "Long":
+
+            starWindowGroup_lc = outputFile.create_group("STAR_WINDOW_LC")
+            starWindowGroup_lc.create_dataset("FX_LC", dtype = "float32", data = self.fx_lc_array)
+            starWindowGroup_lc.create_dataset("DFX_LC", dtype = "float32", data = self.dfx_lc_array)
+            starWindowGroup_lc.create_dataset("FXVAR_LC", dtype = "float32", data = self.fxvar_lc_array)
+            starWindowGroup_lc.create_dataset("DFXVAR_LC", dtype = "float32", data = self.dfxvar_lc_array)
+            starWindowGroup_lc.create_dataset("FX_EXPOSURE_ERROR_LC_ARRAY", dtype = "float32", data = self.fx_exposure_error_lc_array)
+
+
+
+        outputFile.close()
+    
         return None
+
+
+
+
 
     ####################
     # Offset calculation
@@ -1202,18 +1256,19 @@ class PhotometricPipeline(object):
             
             # Nominal mask
 
-            fx_sc, ncob_sc, n_useful = self.flux_cob_time_averaging_sc(self.fx_fc_array, self.ncob_fc_array, self.nflag_fc)           # Select duration of short cadence (50s)
+            fx_sc, ncob_sc, n_useful_sc, n_error_sc = self.flux_cob_time_averaging_sc(self.fx_fc_array, self.ncob_fc_array, self.nflag_fc)           # Select duration of short cadence (50s)
 
-            if n_useful != 0:
+            if n_useful_sc != 0:
 
                 self.fx_sc_array = np.append(self.fx_sc_array, fx_sc)
                 self.ncob_sc_array = np.append(self.ncob_sc_array, ncob_sc)
+                self.fx_exposure_error_sc_array = np.append(self.fx_exposure_error_lc_array, n_error_sc)
 
             # Extended mask
 
-            dfx_sc, ecob_sc, n_useful = self.flux_cob_time_averaging_sc(self.dfx_fc_array, self.ecob_fc_array, self.eflag_fc)         # Select duration of short cadence (50s)
+            dfx_sc, ecob_sc, n_useful_sc, n_error_sc = self.flux_cob_time_averaging_sc(self.dfx_fc_array, self.ecob_fc_array, self.eflag_fc)         # Select duration of short cadence (50s)
 
-            if n_useful != 0:
+            if n_useful_sc != 0:
 
                 self.dfx_sc_array = np.append(self.dfx_sc_array, dfx_sc)
                 self.ecob_sc_array = np.append(self.ecob_sc_array, ecob_sc)
@@ -1226,18 +1281,19 @@ class PhotometricPipeline(object):
 
             # Nominal mask
 
-            fx_lc, fxvar_lc, n_useful = self.flux_cob_time_averaging_lc(self.fx_fc_array, self.nflag_fc)         # Select duration of long cadence (600s)
+            fx_lc, fxvar_lc, n_useful_lc, n_error_lc = self.flux_cob_time_averaging_lc(self.fx_fc_array, self.nflag_fc)         # Select duration of long cadence (600s)
 
-            if n_useful != 0:
+            if n_useful_lc != 0:
             
                 self.fx_lc_array = np.append(self.fx_lc_array, fx_lc)
                 self.fxvar_lc_array = np.append(self.fxvar_lc_array, fxvar_lc)
+                self.fx_exposure_error_lc_array = np.append(self.fx_exposure_error_lc_array, n_error_lc)
             
             # Extended mask
 
-            dfx_lc, dfxvar_lc, n_useful = self.flux_cob_time_averaging_lc(self.dfx_fc_array, self.eflag_fc)      # Select duration of long cadence (600s)
+            dfx_lc, dfxvar_lc, n_useful_lc, n_error_lc = self.flux_cob_time_averaging_lc(self.dfx_fc_array, self.eflag_fc)      # Select duration of long cadence (600s)
             
-            if n_useful != 0:
+            if n_useful_lc != 0:
 
                 self.dfx_lc_array = np.append(self.dfx_lc_array, dfx_lc)
                 self.dfxvar_lc_array = np.array(self.dfxvar_lc_array, dfxvar_lc)
@@ -1266,7 +1322,8 @@ class PhotometricPipeline(object):
         OUTPUT:
             - fx_sc: Mean of the given flux time series over the last 50s, calculated with the non-flagged datapoints only
             - cob_sc: Mean of the given COB time series over the last 50s, calculated with the non-flagged datapoints only
-            - n_useful_sc: Number of non-flagged datapoints in the time series
+            - n_useful_sc: Number of non-flagged datapoints over the last 50s
+            - n_error_sc: Number of flagged datapoints over the last 50s
         """
 
         # Select the last 50s (i.e. duration of short cadence)
@@ -1279,7 +1336,8 @@ class PhotometricPipeline(object):
         if self.lc_outlier_detection_enabled:
 
             fx_exposure_error_array_last = fx_exposure_error_array[-int(self.num_exposures_sc) :]
-            n_useful_sc = len(fx_exposure_error_array_last) - np.sum(fx_exposure_error_array_last)
+            n_error_sc = np.sum(fx_exposure_error_array_last)
+            n_useful_sc = len(fx_exposure_error_array_last) - n_error_sc
 
             fx_sc = np.sum(fx_fc_array_last[~fx_exposure_error_array_last]) / n_useful_sc 
 
@@ -1291,6 +1349,7 @@ class PhotometricPipeline(object):
 
         else:
 
+            n_error_sc = 0
             n_useful_sc = self.num_exposures_sc
 
             fx_sc = np.sum(fx_fc_array_last) / n_useful_sc
@@ -1299,7 +1358,7 @@ class PhotometricPipeline(object):
             cob_sc_y = np.sum(cob_fc_array_last[1]) / n_useful_sc
             cob_sc = [cob_sc_x, cob_sc_y]
 
-        return fx_sc, cob_sc, n_useful_sc
+        return fx_sc, cob_sc, n_useful_sc, n_error_sc
 
 
 
@@ -1322,7 +1381,8 @@ class PhotometricPipeline(object):
         OUTPUT:
             - fx_lc: Mean of the given flux time series over the last 600s, calculated with the non-flagged datapoints only
             - fxvar_lc: Variance of the given flux time series over the last 600s, calculated with the non-flagged datapoints only
-            - n_useful_lc: Number of non-flagged datapoints in the time series
+            - n_useful_lc: Number of non-flagged datapoints over the last 600s
+            - n_error_lc: Number of flagged datapoints over the last 600s
         """
 
         # Select the last 600s (i.e. duration of long cadence)
@@ -1336,11 +1396,13 @@ class PhotometricPipeline(object):
             fx_exposure_error_array_last = fx_exposure_error_array[-int(self.num_exposures_lc) :]
             
             fx_lc, fxvar_lc, n_useful_lc = shifted_data_algorithm(fx_fc_array_last[~fx_exposure_error_array_last])
+            n_error_lc = np.sum(fx_exposure_error_array_last)
 
         # Outlier detection disabled
 
         else:
             
             fx_lc, fxvar_lc, n_useful_lc = shifted_data_algorithm(fx_fc_array_last)
+            n_error_lc = 0
 
-        return fx_lc, fxvar_lc, n_useful_lc
+        return fx_lc, fxvar_lc, n_useful_lc, n_error_lc
