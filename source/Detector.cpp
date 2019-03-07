@@ -2574,9 +2574,25 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
     myStream << "image" << setfill('0') << setw(6) << exposureNr;
     string imageName = myStream.str();
 
-    // Add the image to the "Images" group
 
-    hdf5File.writeArray("/Images", imageName, pixelMap);
+    // if quantisation is applied the pixelmap is written to a int mat - this should save space
+
+    if ((arma::accu(arma::floor(pixelMap) - pixelMap) == 0) && (pixelMap.max() <= 65535) && (pixelMap.min() >= 0))
+    {
+        arma::Mat<unsigned int> intPixelMap;
+        intPixelMap = arma::conv_to<arma::Mat<unsigned int>>::from(pixelMap);
+
+        // Add the image to the "Images" group
+
+        hdf5File.writeArray("/Images", imageName, intPixelMap);
+    }
+    else
+    {
+        // Add the image to the "Images" group
+
+        hdf5File.writeArray("/Images", imageName, pixelMap);
+    }
+
 
     if(numRowsSmearingMap != 0)
     {
