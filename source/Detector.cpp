@@ -2576,7 +2576,24 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
 
     // Add the image to the "Images" group
 
-    hdf5File.writeArray("/Images", imageName, pixelMap);
+    if(includeQuantisation)
+    {
+        // Write the float array to HDF5
+
+        hdf5File.writeArray("/Images", imageName, pixelMap);
+    }
+    else
+    {
+        if((pixelMap.min() < 0) || (pixelMap.max() >= std::pow(2, 16)))
+        {
+            throw ConfigurationException("If quantisation has not been applied, the values in the pixel map must be >= 0 and < 2^16");
+        }
+
+        // Convert the float matrix to an unsigned uint16_t matrix
+
+        arma::Mat<uint16_t> uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(pixelMap);
+        hdf5File.writeArray("/Images", imageName, uintMap);
+    }
 
     if(numRowsSmearingMap != 0)
     {
@@ -2591,7 +2608,25 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
 
     	// Add the smearing map to the "SmearingMaps" group
 
-    	hdf5File.writeArray("/SmearingMaps", smearingMapName, smearingMap);
+        if(includeQuantisation)
+        {
+            // Write the float array to HDF5
+
+    	    hdf5File.writeArray("/SmearingMaps", smearingMapName, smearingMap);
+        }
+        else
+        {
+            if((smearingMap.min() < 0) || (smearingMap.max() >= std::pow(2, 16)))
+            {
+            throw ConfigurationException("If quantisation has not been applied, the values in the smearing map must be >= 0 and < 2^16");
+            }
+
+            // Convert the float matrix to an unsigned uint16_t matrix
+
+            arma::Mat<uint16_t> uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(smearingMap);
+            hdf5File.writeArray("/SmearingMaps", smearingMapName, uintMap);
+        }
+        
     }
 
    // Clear the string stream and compose the bias map name
@@ -2604,8 +2639,34 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
 
     // Add the bias map to the "BiasMaps" group
 
-    hdf5File.writeArray("/BiasMapsLeft", biasMapName, biasMapLeft);
-    hdf5File.writeArray("/BiasMapsRight", biasMapName, biasMapRight);
+    if(includeQuantisation)
+    {
+        // Write the float array to HDF5
+
+        hdf5File.writeArray("/BiasMapsLeft", biasMapName, biasMapLeft);
+        hdf5File.writeArray("/BiasMapsRight", biasMapName, biasMapRight);
+    }
+    else
+    {
+        if((biasMapLeft.min() < 0) || (biasMapLeft.max() >= std::pow(2, 16)))
+        {
+            throw ConfigurationException("If quantisation has not been applied, the values in the left bias map must be >= 0 and < 2^16");
+        }
+
+        if((biasMapRight.min() < 0) || (biasMapRight.max() >= std::pow(2, 16)))
+        {
+            throw ConfigurationException("If quantisation has not been applied, the values in the right bias map must be >= 0 and < 2^16");
+        }
+
+        // Convert the float matrix to an unsigned uint16_t matrix
+
+        arma::Mat<uint16_t> uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(biasMapLeft);
+        hdf5File.writeArray("/BiasMapsLeft", biasMapName, uintMap);
+
+        uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(biasMapRight);
+        hdf5File.writeArray("/BiasMapsRight", biasMapName, uintMap);
+    }
+    
 
     // Clear the string stream and compose the throughput map name
 

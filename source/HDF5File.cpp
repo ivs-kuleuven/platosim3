@@ -1438,8 +1438,8 @@ void HDF5File::writeArray(string groupName, string arrayName, double* array, int
 //        arrayName: unique name of the array in the group, e.g. "image000001"
 //
 // OUTPUT: None
-
-void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<float>& A)
+template<typename T>
+void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<T>& A)
 {
     // Sanity check on the shape of the array
 
@@ -1447,6 +1447,8 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<float>& 
     {
         throw H5FileException("HDF5File::writeArray(): encountered array with shape (0,0)");
     }
+
+    H5::PredType predType = getPredType(A);
 
     // Create a DataSpace defining the shape and type of the data 
 
@@ -1485,12 +1487,12 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<float>& 
 
     // Inside the Images group, make room for the image array
 
-    H5::DataSet arrayDataset = file->createDataSet(arrayPath.c_str(), H5::PredType::NATIVE_FLOAT, arraySpace);
+    H5::DataSet arrayDataset = file->createDataSet(arrayPath.c_str(), predType, arraySpace);
     
     // Copy the Armadillo array to a vector, because the internally Armadillo stores the data column-major
     // while HDF5 assumes data to be stored row-major
 
-    vector<float> temp(A.n_rows * A.n_cols);
+    vector<T> temp(A.n_rows * A.n_cols);
     for (int n = 0; n < A.n_rows; n++)
     {
         for(int k = 0; k < A.n_cols; k++)
@@ -1502,16 +1504,33 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<float>& 
 
     // Copy the data from our image into the HDF5 file
 
-    arrayDataset.write(temp.data(), H5::PredType::NATIVE_FLOAT);
+    arrayDataset.write(temp.data(), predType);
 
     // That's it
 
     return;
 }
 
+template void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<float>& A);
+template void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<uint16_t>& A);
 
 
 
+
+
+
+template <class T>
+H5::PredType HDF5File::getPredType(arma::Mat<T>& A)
+{
+    cout << "Type ID: " << typeid(T).name();
+
+    if(typeid(T) == typeid(float))
+        return H5::PredType::NATIVE_FLOAT;
+    if(typeid(T) == typeid(uint16_t))
+        return H5::PredType::NATIVE_UINT16;
+
+   throw H5FileException("HDF5File::getPredType(): supported datatypes are float and uint16_t");
+}
 
 
 
@@ -1528,7 +1547,6 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<float>& 
 //        arrayName: unique name of the array in the group, e.g. "image000001"
 //
 // OUTPUT: None
-
 void HDF5File::readArray(string groupName, string arrayName, arma::Mat<float>& A)
 {
     // Construct the path of the dataset in the HDF5 file
@@ -1590,6 +1608,8 @@ void HDF5File::readArray(string groupName, string arrayName, arma::Mat<float>& A
 
     return;
 }
+
+
 
 
 
