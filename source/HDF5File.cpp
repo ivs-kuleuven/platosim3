@@ -1500,8 +1500,6 @@ template void HDF5File::writeArray(string groupName, string arrayName, arma::Mat
 template <class T>
 H5::PredType HDF5File::getPredType(arma::Mat<T>& A)
 {
-    cout << "Type ID: " << typeid(T).name();
-
     if(typeid(T) == typeid(float))
         return H5::PredType::NATIVE_FLOAT;
     if(typeid(T) == typeid(uint16_t))
