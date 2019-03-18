@@ -88,7 +88,7 @@ DetectorWithAnalyticNonGaussianPSF::~DetectorWithAnalyticNonGaussianPSF()
 
 void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &configParam)
 {
-    flatfieldNoiseAmplitude   = configParam.getDouble("CCD/FlatfieldPtPNoise");
+    flatfieldNoiseRMS         = configParam.getDouble("CCD/FlatfieldNoiseRMS");
     includeFlatfield          = configParam.getBoolean("CCD/IncludeFlatfield");
     flatfieldSeed             = configParam.getLong("RandomSeeds/FlatFieldSeed");
 
@@ -259,7 +259,6 @@ void DetectorWithAnalyticNonGaussianPSF::generateFlatfieldMap()
         for(unsigned int column = 0; column < Ncolumns; column++)
         {
             // Fourier space: generate white noise and include 1/f dependency
-            // (Note: see https://en.wikipedia.org/wiki/Pink_noise#Generalization_to_more_than_one_dimension)
 
             evenMap(row, column) = flatfieldDistribution(flatfieldGenerator) / (pow(row, 2) + std::pow(column, 2) + 1);
         }
@@ -272,17 +271,24 @@ void DetectorWithAnalyticNonGaussianPSF::generateFlatfieldMap()
 
     // Cut out the appropriate part
 
-    flatfieldMap(arma::span::all, arma::span::all) = realMap(arma::span(0, Nrows / 2 - 1), arma::span(0, Ncolumns / 2 - 1));
+    unsigned int numRowsFlatfield = Nrows / 2;
+    unsigned int numColumnsFlatfield = Ncolumns / 2;
+    
+    flatfieldMap(arma::span::all, arma::span::all) = realMap(arma::span(0, numRowsFlatfield - 1), arma::span(0, numColumnsFlatfield - 1));
+    flatfieldMap.reshape(numRowsFlatfield * numColumnsFlatfield, 1);
 
-    // Normalise
+    // Normalisation
+    //  - divide by mean and subtract 1.0 -> mean = 0.0
+    //  - scale such that std.dev. = flatfield RMS and mean = 0.0
+    //  - add 1.0
 
-    float minPinkNoise = flatfieldMap.min();
-    float maxPinkNoise = flatfieldMap.max();
+    flatfieldMap /= arma::mean(flatfieldMap.col(0));
+    flatfieldMap -= 1;
+    double scale = flatfieldNoiseRMS / arma::stddev(flatfieldMap.col(0));
+    flatfieldMap *= scale;
+    flatfieldMap += 1;
 
-    flatfieldMap -= minPinkNoise;
-    flatfieldMap /= (maxPinkNoise - minPinkNoise); // [0, 1]
-    flatfieldMap *= flatfieldNoiseAmplitude;    // [0, flatfialdNoiseAmplitude]
-    flatfieldMap += (1.0 - flatfieldNoiseAmplitude);
+    flatfieldMap.reshape(numRowsFlatfield, numColumnsFlatfield);
 
     // Write the result to the HDF5 output file
 
@@ -516,7 +522,7 @@ tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addFlux(double x
         s = sqrt(s * s + d * d);
     }
 
-    int size = 2 * (int)(8. * s + 1) + 1;;
+    int size = 2 * (int)(8. * s + 1) + 1;
     int sx = (int)floor(column0 - (size - 1.) / 2.);
     int sy = (int)floor(row0 - (size - 1.) / 2.);
 

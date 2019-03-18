@@ -638,6 +638,9 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     // Note: - The output of sky.zodiacalFlux() is in [J s^{-1} m^{-2} sr^{-1} m^{-1}]
     //       - As wavelength range we take the entire throughput band.
     //       - Photons are always an integer number, thus round down.
+    //
+    // The small sky background contribution during the readout with open shutter is not taken into account here
+    // but in the function Detector::applyOpenShutterSmearing().
 
     totalSkyBackground = 0.0;
 
@@ -665,11 +668,10 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     }
     else
     {
-        totalSkyBackground = floor(userGivenSkyBackground * (exposureTime + readoutTimeBeforeNextExposure) * transmissionEfficiency);
+        totalSkyBackground = floor(userGivenSkyBackground * exposureTime * transmissionEfficiency);
         detector.addFlux(totalSkyBackground);
 
         Log.debug("Camera: user-given sky background flux over exposure= " + to_string(userGivenSkyBackground * exposureTime) + " photons/pixel/exposure");
-        Log.debug("Camera: user-given sky background flux over readout= " + to_string(userGivenSkyBackground * readoutTimeBeforeNextExposure) + " photons/pixel/readout");
     }
 
     // Save the sky background value that we added. [photons/pix/exposure]
@@ -963,8 +965,16 @@ pair<double, double> Camera::distortedToUndistortedFocalPlaneCoordinates(double 
  */
 double Camera::getTotalSkyBackground()
 {
-	return totalSkyBackground;
+    if (skyBackgroundValues.size() != 0)
+    {
+        return skyBackgroundValues.back();
+    }
+    else
+    {
+        throw std::runtime_error( "Camera::getTotalSkyBackground() was called with a skybackground being available");
+    }
 }
+
 
 
 
@@ -1286,4 +1296,19 @@ void Camera::addFluxToExposure(Detector* detector, double startTime, double time
 
     Log.debug("Camera: at time " + to_string(startTime) + ": incremented flux of " + to_string(NstarsInSubfield) + " stars in subfield");
 
+}
+
+
+
+
+
+
+/**
+ * \brief Returns the focal length of the camera, expressed in mm.
+ * 
+ * \return Focal length of the camera, expressed in mm.
+ */ 
+double Camera::getFocalLength()
+{
+    return (*focalLength)();
 }

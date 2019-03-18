@@ -35,12 +35,13 @@ Sky:
 
 Platform:
 
-    UseJitter:                   no             # yes or no
-    UseJitterFromFile:           yes              # yes or no
+    SolarPanelOrientation:        0              # 0, 90, 180, or 270 degrees for the different quarters of a year [deg]
+    UseJitter:                   no              # yes or no
+    UseJitterFromFile:           yes             # yes or no
     JitterYawRms:                0.5             # [arcsec]
     JitterPitchRms:              0.5             # [arcsec]
     JitterRollRms:               0.5             # [arcsec]
-    JitterTimeScale:             180           # [s]
+    JitterTimeScale:             180             # [s]
     JitterFileName:              inputfiles/PlatoJitter_Airbus.txt 
 
 
@@ -169,9 +170,12 @@ CCD:
        Partial:
           FirstRowReadout:           0           # First row that will be read out by the FEE in partial-readout mode
           NumRowsReadout:            4510        # Number of rows that will be read out by the FEE, in partial-readout mode
-    FlatfieldPtPNoise:           0.010           # peak-to-peak pixel noise
-    Vignetting: 
-        ExpectedValue:               0.904           # Expected value of the throughput efficiency due to vignetting
+    FlatfieldNoiseRMS:           0.010           # Flatfield noise RMS (local PRNU)
+    Vignetting:
+        NaturalVignetting:                           # Brightness attenuation from the optical axis to the edge of the FOV
+            ExpectedValue:           0.945           # Expected value of the throughput efficiency due to natural vignetting
+        MechanicalVignetting:                        # Blocking of the light due to mechanical obstruction at the edge of the FOV
+            RadiusFOV:               18.8876         # Radius of the FOV [degrees]
     Polarization:
       #Efficiency:                    0.978           # Throughput efficiency caused by polarisation at the reference angle
       #RefAngle:                     18.8875          # Reference angle for polarisation [degrees]
@@ -205,11 +209,13 @@ CCD:
     IncludeCTIeffects:           no              # Include charge transfer inefficiency effects [yes or no]
     IncludeOpenShutterSmearing:  no              # Include trails due reading out with an open shutter [yes or no]
     IncludeQuantumEfficiency:        yes         # Include loss of throughput due to quantum efficiency
-    IncludeVignetting:               no          # Include brightness attenuation towards the edge of the FOV due to vignetting
+    IncludeNaturalVignetting:        no          # Include brightness attenuation towards the edge of the FOV due to natural vignetting
+    IncludeMechanicalVignetting:     no          # Include blockage of incoming flux during exposure at the edge of the FOV due to mechanical vignetting
     IncludePolarization:             no          # Include loss of throughput due to polarisation
     IncludeParticulateContamination: no          # Include loss of throughput due to particulate contamination
     IncludeMolecularContamination:   no          # Include loss of throughput due to molecular contamination
-    IncludeVignetting:           no              # Include brightness attenuation towards the edge of the FOV due to vignetting 
+    IncludeNaturalVignetting:        no          # Include brightness attenuation towards the edge of the FOV due to vignetting
+    IncludeMechanicalVignetting:     no          # Include blockage of incoming flux due to mechanical vignetting
     IncludeConvolution:          yes             # Whether or not to convolve the subPixelMap with the PSF
     IncludeFullWellSaturation:   yes             # Whether or not full well saturation should be applied
     IncludeDigitalSaturation:    yes             # Whether or not digital saturation should be applied

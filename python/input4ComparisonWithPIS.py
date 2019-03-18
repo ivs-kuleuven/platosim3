@@ -276,7 +276,8 @@ for simulationIndex in range(numSubfields):
     #sim["CCD/IncludeCTIeffects"] = 0
     #sim["CCD/IncludeOpenShutterSmearing"] = 0
     #sim["CCD/IncludeQuantumEfficiency"] = 0
-    #sim["CCD/IncludeVignetting"] = 0
+    #sim["CCD/IncludeNaturalVignetting"] = 0
+    #sim["CCD/IncludeMechanicalVignetting"] = 0
     #sim["CCD/IncludePolarization"] = 0
     #sim["CCD/IncludeParticulateContamination"] = 0
     #sim["CCD/IncludeMolecularContamination"] = 0

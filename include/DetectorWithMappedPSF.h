@@ -55,7 +55,7 @@ class DetectorWithMappedPSF: public Detector
         bool includeChargeDiffusion;				// Whether or not to include charge diffusion
         bool includeJitterSmoothing;             // Whether or not to include jitter smoothing
 
-        double flatfieldNoiseAmplitude;         // Peak-to-peak noise amplitude
+        double flatfieldNoiseRMS;         // Peak-to-peak noise amplitude
 
         bool includeFlatfield;                  // Whether or not to include flat fielding
         bool writeSubPixelImagesToHDF5;         // Write subpixel maps to HDF5 as well

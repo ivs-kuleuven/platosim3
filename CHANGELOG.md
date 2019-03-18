@@ -27,6 +27,18 @@
 
 * Incorrect sky background level (GitHub issue #325)
 
+* Incorrect flatfield level (GitHub issue #326)
+
+* Segfault on running test harness (GitHub issue #329)
+
+* Open-shutter smearing not accounted for (GitHub issue #339)
+
+* Implement mechanical vignetting (GitHub issue #334)
+
+* Partial-readout parameters not read out correctly (GitHub issue #346)
+
+* Conserving disc space by writing the images as int matrices into the .hdf5 files (GitHub issue #348)
+
 
 
 ### Added

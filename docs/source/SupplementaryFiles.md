@@ -207,7 +207,7 @@ If required (<code>Temperature</code> = <code>FromFile</code> in the <code>FEE</
 * time [s]
 * and operating temperature of the FEE [K].
 
-The path of this file, relative to the project location, must be provided via the  <code>TemperatureFileName</code> parameter in the </code>FEE</code> block in the @ref ConfigurationParameters "configuration file".
+The path of this file, relative to the project location, must be provided via the  <code>TemperatureFileName</code> parameter in the <code>FEE</code> block in the @ref ConfigurationParameters "configuration file".
 
 ---
 
@@ -226,4 +226,4 @@ If required (<code>Temperature</code> = <code>FromFile</code> in the <code>CCD</
 * time [s]
 * and operating temperature of the CCD [K].
 
-The path of this file, relative to the project location, must be provided via the  <code>TemperatureFileName</code> parameter in the </code>CCD</code> block in the @ref ConfigurationParameters "configuration file".
+The path of this file, relative to the project location, must be provided via the  <code>TemperatureFileName</code> parameter in the <code>CCD</code> block in the @ref ConfigurationParameters "configuration file".

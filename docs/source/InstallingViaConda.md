@@ -22,7 +22,7 @@ For the <code>develop</code> branch, the latter command must be replaced by
 conda install -c http://www.miricle.org/platosim.devel/ platosim
 \endcode
 
-To install a specific version (only for the <code>master</code> branch), just append <code>=<version></code> to this command.
+To install a specific version (only for the <code>master</code> branch), just append <code><version>=</code> to this command.
 
 To update an installed version to the latest one, replace <code>conda install</code> by <code>conda update</code>.
 

@@ -59,6 +59,7 @@ class Camera : public HDF5Writer
         set<unsigned int> getAllStarIDs();
 
         double getTotalSkyBackground();
+        double getFocalLength();
 
         void processNextStep(Detector* detectorInstance, double jitterStep, double readoutTimeBeforeNextExposure);
 
