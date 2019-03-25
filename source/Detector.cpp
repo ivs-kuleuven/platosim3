@@ -323,12 +323,12 @@ void Detector::updateParameters(double time)
     }
 
     Log.debug("Detector: selected ccdPosition = " + ccdPosition);
-    Log.debug("Detector: originOffsetX, originOffsetY = " + to_string(originOffsetX) + ", " + to_string(originOffsetY));
-    Log.debug("Detector: orientationAngle = " + to_string(orientationAngle) );
-    Log.debug("Detector: numRows, numColumns, firstRow = " + to_string(numRows) + ", " + to_string(numColumns) + ", " + to_string(firstRowExposed));
+    Log.debug("Detector: CCD originOffsetX, originOffsetY = " + to_string(originOffsetX) + ", " + to_string(originOffsetY) + " mm");
+    Log.debug("Detector: CCD orientationAngle = " + to_string(rad2deg(orientationAngle)) + " deg");
+    Log.debug("Detector: CCD numRows, numColumns, firstRow = " + to_string(numRows) + ", " + to_string(numColumns) + ", " + to_string(firstRowExposed));
 
     pixelSize                           = configParam.getDouble("CCD/PixelSize");
-//    quantumEfficiency                   = configParam.getDouble("CCD/QuantumEfficiency/Efficiency");
+//    quantumEfficiency                   = configParam.getDouble("CCD/QuantumEfficiency/Efficiency");                  // FIXME: No commented out lines of code. To be removed or not?
 //    refAngleQE                          = configParam.getDouble("CCD/QuantumEfficiency/RefAngle");
 //    relativeRefEfficiencyQE             = configParam.getDouble("CCD/QuantumEfficiency/RelativeRefEfficiency");
     meanQE                              = configParam.getDouble("CCD/QuantumEfficiency/MeanQuantumEfficiency");
@@ -430,7 +430,11 @@ void Detector::updateParameters(double time)
     numColumnsBiasMap       = configParam.getInteger("SubField/NumBiasPrescanColumns");
     numRowsSmearingMap      = configParam.getInteger("SubField/NumSmearingOverscanRows");
 
-
+    Log.debug("Detector: Subfield zero point (row, col) = (" + to_string(subFieldZeroPointRow) + ", " + to_string(subFieldZeroPointColumn) + ")");
+    Log.debug("Detector: Subfield center point (row, col) = (" + to_string(subFieldZeroPointRow + numRowsPixelMap/2) 
+                                                               + ", " + to_string(subFieldZeroPointColumn + numColumnsPixelMap/2) + ")");
+    Log.debug("Detector: Subfield nr of rows = " + to_string(numRowsPixelMap));
+    Log.debug("Detector: Subfield nr of columns = " + to_string(numColumnsPixelMap));
 
     // No parallel over-scan in case of partial readout
 
@@ -2572,9 +2576,26 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
 
     // Add the image to the "Images" group
 
-    hdf5File.writeArray("/Images", imageName, pixelMap);
+    if (!includeQuantisation)
+    {
+        // Write the float array to HDF5
 
-    if(numRowsSmearingMap != 0)
+        hdf5File.writeArray("/Images", imageName, pixelMap);
+    }
+    else
+    {
+        if((pixelMap.min() < 0) || (pixelMap.max() >= std::pow(2, 16)))
+        {
+            throw ConfigurationException("If quantisation has not been applied, the values in the pixel map must be >= 0 and < 2^16");
+        }
+
+        // Convert the float matrix to an unsigned uint16_t matrix
+
+        arma::Mat<uint16_t> uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(pixelMap);
+        hdf5File.writeArray("/Images", imageName, uintMap);
+    }
+
+    if (numRowsSmearingMap != 0)
     {
     	// Clear the string stream and compose the smearing map name
 
@@ -2587,7 +2608,25 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
 
     	// Add the smearing map to the "SmearingMaps" group
 
-    	hdf5File.writeArray("/SmearingMaps", smearingMapName, smearingMap);
+        if (!includeQuantisation)
+        {
+            // Write the float array to HDF5
+
+    	    hdf5File.writeArray("/SmearingMaps", smearingMapName, smearingMap);
+        }
+        else
+        {
+            if ((smearingMap.min() < 0) || (smearingMap.max() >= std::pow(2, 16)))
+            {
+                throw ConfigurationException("If quantisation has not been applied, the values in the smearing map must be >= 0 and < 2^16");
+            }
+
+            // Convert the float matrix to an unsigned uint16_t matrix
+
+            arma::Mat<uint16_t> uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(smearingMap);
+            hdf5File.writeArray("/SmearingMaps", smearingMapName, uintMap);
+        }
+        
     }
 
    // Clear the string stream and compose the bias map name
@@ -2600,8 +2639,34 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
 
     // Add the bias map to the "BiasMaps" group
 
-    hdf5File.writeArray("/BiasMapsLeft", biasMapName, biasMapLeft);
-    hdf5File.writeArray("/BiasMapsRight", biasMapName, biasMapRight);
+    if (!includeQuantisation)
+    {
+        // Write the float array to HDF5
+
+        hdf5File.writeArray("/BiasMapsLeft", biasMapName, biasMapLeft);
+        hdf5File.writeArray("/BiasMapsRight", biasMapName, biasMapRight);
+    }
+    else
+    {
+        if ((biasMapLeft.min() < 0) || (biasMapLeft.max() >= std::pow(2, 16)))
+        {
+            throw ConfigurationException("If quantisation has not been applied, the values in the left bias map must be >= 0 and < 2^16");
+        }
+
+        if ((biasMapRight.min() < 0) || (biasMapRight.max() >= std::pow(2, 16)))
+        {
+            throw ConfigurationException("If quantisation has not been applied, the values in the right bias map must be >= 0 and < 2^16");
+        }
+
+        // Convert the float matrix to an unsigned uint16_t matrix
+
+        arma::Mat<uint16_t> uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(biasMapLeft);
+        hdf5File.writeArray("/BiasMapsLeft", biasMapName, uintMap);
+
+        uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(biasMapRight);
+        hdf5File.writeArray("/BiasMapsRight", biasMapName, uintMap);
+    }
+    
 
     // Clear the string stream and compose the throughput map name
 
