@@ -201,19 +201,19 @@ void DetectorWithAnalyticNonGaussianPSF::integrateAnalyticPSF(IntegralOfAnalytic
         unsigned c2 = min(params[0].size() / 7 - 1, (size_t)r + 1) * 7;
         double w = r - (unsigned)r;
         w = 3. * w * w - 2. * w * w * w;
-
+        
         for (auto i = params.cbegin(); i != params.cend(); i++) 
         {
             double pr = s * ((1. - w) * (*i)[c1] + w * (*i)[c2]);
             double pp = (1. - w) * (*i)[c1 + 1] + w * (*i)[c2 + 1];
-            double h = (1. - w) * (*i)[c1 + 2] + w * (*i)[c2 + 2];
-            double b = s * ((1. - w) * (*i)[c1 + 3] + w * (*i)[c2 + 3]);
-            double r = s * ((1. - w) * (*i)[c1 + 4] + w * (*i)[c2 + 4]);
-            double m = (1. - w) * (*i)[c1 + 5] + w * (*i)[c2 + 5];
-            double a = (1. - w) * (*i)[c1 + 6] + w * (*i)[c2 + 6];
+            double h  = (1. - w) * (*i)[c1 + 2] + w * (*i)[c2 + 2];
+            double b  = s * ((1. - w) * (*i)[c1 + 3] + w * (*i)[c2 + 3]);
+            double rr = s * ((1. - w) * (*i)[c1 + 4] + w * (*i)[c2 + 4]);
+            double m  = (1. - w) * (*i)[c1 + 5] + w * (*i)[c2 + 5];
+            double a  = (1. - w) * (*i)[c1 + 6] + w * (*i)[c2 + 6];
 
-            psf.addPart(ox + pr * cos(p + pp), oy + pr * sin(p + pp), h, b, r, m, p + a);
-            psf.addPart(ox + pr * cos(p - pp), oy + pr * sin(p - pp), h, b, r, m, p - a);
+            psf.addPart(ox + pr * cos(p + pp), oy + pr * sin(p + pp), h, b, rr, m, p + a);
+            psf.addPart(ox + pr * cos(p - pp), oy + pr * sin(p - pp), h, b, rr, m, p - a);
         }
     } 
     else 
