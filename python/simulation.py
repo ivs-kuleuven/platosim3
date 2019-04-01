@@ -470,11 +470,10 @@ class Simulation(object):
             completedProcess = subprocess.run([self.platosimBuildLocation + "/platosim", inputFilename, outputFilename, logFilename], 
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
+            print (str(completedProcess.stdout.decode("utf-8")))
+            print (str(completedProcess.stderr.decode("utf-8")))
+            
             if completedProcess.returncode:
-                if completedProcess.stdout:
-                    print (str(completedProcess.stdout.decode("utf-8")))
-                if completedProcess.stderr:
-                    print (str(completedProcess.stderr.decode("utf-8")))
                 raise Exception("Simulation.run(): PlatoSim returned with exit code {}.".format(completedProcess.returncode))
 
         simFile = SimFile(outputFilename)
