@@ -21,7 +21,7 @@
  * \param[in]  outputFilename  the HDF5 output file
  */
 
-Simulation::Simulation(string inputFilename, string outputFilename, bool paraSimulation)
+Simulation::Simulation(string inputFilename, string outputFilename)
 {
     // Parse the configuration parameters file
 

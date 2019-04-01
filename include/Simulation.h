@@ -38,7 +38,7 @@ class Simulation : public Observer
 {
     public:
 
-        Simulation(string inputFilename, string outputFilename, bool paraSimulation);
+        Simulation(string inputFilename, string outputFilename);
         ~Simulation();
         virtual void run();
         virtual void configure(ConfigurationParameters &configParams);

@@ -127,7 +127,7 @@ int main(int Narguments, char* arguments[])
 
         // Initialise the simulation, and loop over all exposures using run()
 
-        Simulation simulation(inputFilename, outputFilename, paraSimulation);
+        Simulation simulation(inputFilename, outputFilename);
 
         simulation.run();
     }
@@ -180,7 +180,7 @@ int main(int Narguments, char* arguments[])
         for (int n = 0; n < inputFiles.size(); n++)
         {
             // create a new Simulation object
-            Simulation* simulationInstance = new Simulation(inputFiles.at(n), outputFiles.at(n), paraSimulation);
+            Simulation* simulationInstance = new Simulation(inputFiles.at(n), outputFiles.at(n));
 
             // attach the simulation instance as observer to the clock instance
             clockInstance->attach(simulationInstance);
