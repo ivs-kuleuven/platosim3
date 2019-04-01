@@ -121,6 +121,8 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
     includeChargeDiffusion = configParam.getBoolean("PSF/AnalyticNonGaussian/IncludeChargeDiffusion");
     chargeDiffusionStrength = configParam.getDouble("PSF/AnalyticNonGaussian/ChargeDiffusionStrength");
 
+    Log.info("DetectorWithAnalyticNonGaussianPSF: sigma of charge diffusion: " + to_string(chargeDiffusionStrength) + " pix");
+
     
     // The sigma of the PSF can either be a fixed value, or given by a time series in a file
     
@@ -130,7 +132,7 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
         double sigmaPSFValue = configParam.getDouble("PSF/AnalyticNonGaussian/Sigma/ConstantValue");     // [pix]
         sigma = new Parameter<double>(sigmaPSFValue);
     
-        Log.info("DetectorWithAnalyticNonGaussianPSF: Using a constant sigma: " + to_string(sigmaPSFValue) + " pix");
+        Log.info("DetectorWithAnalyticNonGaussianPSF: Using a constant PSF sigma: " + to_string(sigmaPSFValue) + " pix");
     }
     else if (sigmaPSFSource == "FromFile")
     {
