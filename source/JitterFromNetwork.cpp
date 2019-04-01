@@ -4,25 +4,16 @@
 /**
  * \brief function to acces the protected constructor, if there is no jitter instance yet
  */
-JitterGenerator* JitterFromNetwork::Instance(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure, TcpConnection* tcpConnection)
+JitterGenerator* JitterFromNetwork::Instance(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure)
 {
     if(_instance == 0)
     {
-        _instance = new JitterFromNetwork(configParams, readoutTimeBeforeNextExposure, tcpConnection);
+        _instance = new JitterFromNetwork(configParams, readoutTimeBeforeNextExposure);
     }
 
     return _instance;
 }
 
-
-/**
- * \brief this is a variant of the intance function called by the simulation instances. this is, so the tcp connection object
- * \      does not need to be known by the simulation class
- */
-JitterGenerator* JitterFromNetwork::Instance(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure)
-{
-    return _instance;
-}
 
 
 /**
@@ -30,14 +21,12 @@ JitterGenerator* JitterFromNetwork::Instance(ConfigurationParameters &configPara
  * 
  * \      
  */
-JitterFromNetwork::JitterFromNetwork(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure, TcpConnection* tcpConnection)
+JitterFromNetwork::JitterFromNetwork(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure)
 : lastYaw(0.0), lastPitch(0.0), lastRoll(0.0), internalTime(0.0)
 {
     // Set the configuration parameters
 
     configure(configParams);
-
-    tcpConnectionInstance = tcpConnection;
 
     jitterTimeInterval = 0.0;
 
