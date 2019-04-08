@@ -21,6 +21,7 @@
 #include "NoJitter.h"
 #include "JitterFromFile.h"
 #include "JitterFromRedNoise.h"
+#include "JitterFromNetwork.h"
 #include "DriftGenerator.h"
 #include "NoDrift.h"
 #include "ThermoElasticDriftFromFile.h"
@@ -60,7 +61,7 @@ class Simulation
         int numExposures;                       // Number of exposures
 
         bool useJitter;
-        bool useJitterFromFile;
+        string jitterSource;
         bool includeFieldDistortion;
         bool useDrift;
         bool useDriftFromFile;

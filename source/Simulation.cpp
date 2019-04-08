@@ -71,13 +71,23 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     }
     else
     {
-        if (useJitterFromFile)
+        if (jitterSource == "FromFile")
         {
             jitterGenerator = new JitterFromFile(configParams, readoutTimeBeforeNextExposure);
         }
-        else
+        else if (jitterSource == "FromRedNoise")
         {
             jitterGenerator = new JitterFromRedNoise(configParams, readoutTimeBeforeNextExposure);
+        }
+        else if (jitterSource == "FromNetwork")
+        {
+            jitterGenerator = new JitterFromNetwork(configParams, readoutTimeBeforeNextExposure);
+        }
+        else
+        {
+            string errorMessage = "Simulation: Jitter Source '" + jitterSource + "' is not supported.";
+            Log.error(errorMessage);
+            throw IllegalArgumentException(errorMessage);
         }
     }
 
@@ -195,7 +205,7 @@ void Simulation::configure(ConfigurationParameters &configParams)
     beginExposureNr   = configParams.getInteger("ObservingParameters/BeginExposureNr");
     numExposures      = configParams.getInteger("ObservingParameters/NumExposures");
     useJitter         = configParams.getBoolean("Platform/UseJitter");
-    useJitterFromFile = configParams.getBoolean("Platform/UseJitterFromFile");
+    jitterSource = configParams.getBoolean("Platform/JitterSource");
     includeFieldDistortion = configParams.getBoolean("Camera/IncludeFieldDistortion"); // do we want to do this or should this be asked to Camera?
     useDrift          = configParams.getBoolean("Telescope/UseDrift");  
     useDriftFromFile  = configParams.getBoolean("Telescope/UseDriftFromFile");  
