@@ -8,6 +8,8 @@
 #include "StringUtilities.h"
 #include "version.h"
 
+#include "TcpConnection.h"
+
 
 using namespace std;
 
@@ -76,7 +78,35 @@ int main(int Narguments, char* arguments[])
     // Initialise the simulation, and loop over all exposures using run()
 
     Simulation simulation(inputFilename, outputFilename);
-    simulation.run();
+
+    // check whether the simulation uses jitter from network
+
+    if (simulation.isJitterFromNetwork())
+    {
+	// if jitter comes from network declare server and client instances
+
+        TcpConnection serverInstance(inputFilename);
+        TcpConnection clientInstance(inputFilename);
+
+	// the tcp connections have to run alongside the simulation so some threads have to be declared
+
+	std::thread simulationThread(&Simulation::run, simulation);
+        std::thread serverThread(&TcpConnection::connectToClient, serverInstance);
+        std::thread clientThread(&TcpConnection::connectToServer, clientInstance);
+
+	// gather the threads after completion and rejoin them
+
+	simulationThread.join();
+	serverThread.join();
+	clientThread.join();
+
+    }
+    else
+    {
+        simulation.run();
+    }
+
+    
 
 
     // That's it!
