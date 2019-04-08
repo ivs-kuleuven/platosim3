@@ -19,4 +19,4 @@ class TcpConnection
 	private:
 
 		void configure(ConfigurationParameters &configParams);
-}
+};
