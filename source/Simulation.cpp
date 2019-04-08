@@ -627,7 +627,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addDouble("SolarPanelOrientation");
     addBoolean("UseJitter");
-    addBoolean("UseJitterFromFile");
+    addString("JitterSource");
     addDouble("JitterYawRms");
     addDouble("JitterPitchRms");
     addDouble("JitterRollRms");
@@ -916,5 +916,18 @@ void Simulation::setRandomSeeds(ConfigurationParameters &configParams)
             configParams.setParameter(seedPath, to_string(newSeed));
         }
     }
+}
+
+bool Simulation::isJitterFromNetwork()
+{
+    if (jitterSource == "FromNetwork")
+    {
+	return true;
+    }
+    else
+    {
+	return false;
+    }
+
 }
 
