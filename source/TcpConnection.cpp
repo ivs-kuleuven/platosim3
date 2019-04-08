@@ -33,3 +33,25 @@ TcpConnection::~TcpConnection()
 {
 	
 }
+
+
+
+/**
+ * \brief Function to be carried out in a thread parallel to the simulation thread. It connects to a server and gets jitter data from it.
+ *  
+ */
+void TcpConnection::connectToServer()
+{
+
+}
+
+
+
+/**
+ * \brief Function to be carried out in a thread parallel to the simulation thread. It connects to a client and send imagette data to it.
+ *  
+ */
+void TcpConnection::connectToClient()
+{
+
+}

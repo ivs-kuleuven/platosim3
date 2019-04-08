@@ -14,6 +14,9 @@ class TcpConnection
 		TcpConnection(string inputFileName);
 		~TcpConnection();
 
+		void connectToServer();
+		void connectToClient();
+
 	protected:
 
 	private:
