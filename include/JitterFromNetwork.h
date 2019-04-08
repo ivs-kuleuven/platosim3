@@ -26,7 +26,7 @@ class JitterFromNetwork:public JitterGenerator
 {
 	public:
 
-		static JitterGenerator* Instance(ConfigurationParameters &configurationParameters);
+		JitterFromNetwork(ConfigurationParameters &configurationParameters, double readoutTimeBeforeNextExposure);
 
         	~JitterFromNetwork();
 
@@ -39,4 +39,7 @@ class JitterFromNetwork:public JitterGenerator
 
 	private:
 
-}
+};
+
+#endif
+

@@ -7,7 +7,7 @@
  * 
  *       
  */
-JitterFromNetwork::JitterFromNetwork(ConfigurationParameters &configParams)
+JitterFromNetwork::JitterFromNetwork(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure)
 {
     // Set the configuration parameters
 
@@ -51,4 +51,16 @@ tuple<double, double, double> JitterFromNetwork::getNextYawPitchRoll(double time
 	const double roll = 0.0;
 
 	return make_tuple(yaw, pitch, roll);
+}
+
+
+/**
+ * \brief returns the jitter step (yaw, pitch, roll) at the given time value
+ * 
+ * \
+ */
+double JitterFromNetwork::getHeartbeatInterval()
+{
+	double hearbeatInterval = 0.0;
+	return heartbeatInterval;
 }
