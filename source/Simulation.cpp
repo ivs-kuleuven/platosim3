@@ -62,6 +62,9 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     Log.debug("Simulation: Exposure time: " + to_string(exposureTime));
     Log.debug("Simulation: Readout time before next exposure: " + to_string(readoutTimeBeforeNextExposure));
 
+    // declare the tcpconnection variable a null pointer
+
+    serverInstance = NULL;
 
     // Depending on what the user requested, define the proper platform jitter generator
 
@@ -78,10 +81,16 @@ Simulation::Simulation(string inputFilename, string outputFilename)
         else if (jitterSource == "FromRedNoise")
         {
             jitterGenerator = new JitterFromRedNoise(configParams, readoutTimeBeforeNextExposure);
+
+	    
         }
         else if (jitterSource == "FromNetwork")
         {
             jitterGenerator = new JitterFromNetwork(configParams, readoutTimeBeforeNextExposure);
+
+	    // declare a tcpConnection object as server instance
+
+	    serverInstance = new TcpConnection(configParams, jitterGenerator);
         }
         else
         {
@@ -918,16 +927,9 @@ void Simulation::setRandomSeeds(ConfigurationParameters &configParams)
     }
 }
 
-bool Simulation::isJitterFromNetwork()
-{
-    if (jitterSource == "FromNetwork")
-    {
-	return true;
-    }
-    else
-    {
-	return false;
-    }
 
+TcpConnection* Simulation::getServerInstance()
+{
+    return serverInstance;
 }
 

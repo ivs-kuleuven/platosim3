@@ -28,6 +28,7 @@
 #include "ThermoElasticDriftFromRedNoise.h"
 #include "ConfigurationParameters.h"
 #include "version.h"
+#include "TcpConnection.h"
 
 
 using namespace std;
@@ -43,7 +44,8 @@ class Simulation
         virtual void run();
         virtual void configure(ConfigurationParameters &configParams);
         virtual pair<double, double> configureReadoutTime(ConfigurationParameters &configParams);
-        virtual bool isJitterFromNetwork();
+
+	TcpConnection* getServerInstance();
 
     protected:
 
@@ -81,6 +83,8 @@ class Simulation
         Sky *sky;
         Camera *camera;
         Detector *detector;
+
+	TcpConnection* serverInstance;
 
         HDF5File hdf5File;
 
