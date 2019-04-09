@@ -73,6 +73,7 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/googletest/include
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/fftw-3.3.4/include
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/Faddeeva/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/zeromq-4.1.4/include
 )
 
 
@@ -113,6 +114,7 @@ link_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/googletest/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/fftw-3.3.4/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/Faddeeva/lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/zeromq-4.1.4/lib
 )
 
 
@@ -169,8 +171,7 @@ add_executable(testplatosim ${unitTestMain} ${unitTestSourceFiles})
 
 # Link the platosim and testplatosim executable with the required libraries
 
-target_link_libraries(platosim platosimLibrary hdf5 hdf5_cpp armadillo yaml-cpp fftw3f fftw3f_threads pthread)
 target_link_libraries(testplatosim platosimLibrary hdf5 hdf5_cpp armadillo yaml-cpp fftw3f fftw3f_threads gtest gtest_main pthread)
-target_link_libraries(platosim platosimLibrary hdf5 hdf5_cpp armadillo yaml-cpp fftw3f fftw3f_threads pthread Faddeeva)
+target_link_libraries(platosim platosimLibrary hdf5 hdf5_cpp armadillo yaml-cpp fftw3f fftw3f_threads pthread Faddeeva zmq)
 
 
