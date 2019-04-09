@@ -6,12 +6,12 @@
 #include <string>
 
 #include "ConfigurationParameters.h"
-
+#include "JitterGenerator.h"
 
 class TcpConnection
 {
 	public:
-		TcpConnection(string inputFileName);
+		TcpConnection(ConfigurationParameters &configParam, JitterGenerator* jitterFromNetwork);
 		~TcpConnection();
 
 		void connectToServer();
@@ -22,4 +22,8 @@ class TcpConnection
 	private:
 
 		void configure(ConfigurationParameters &configParams);
+
+		bool endOfSimulation;
+
+		JitterGenerator* jitterInstance;
 };
