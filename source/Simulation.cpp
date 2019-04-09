@@ -81,16 +81,19 @@ Simulation::Simulation(string inputFilename, string outputFilename)
         else if (jitterSource == "FromRedNoise")
         {
             jitterGenerator = new JitterFromRedNoise(configParams, readoutTimeBeforeNextExposure);
-
-	    
         }
         else if (jitterSource == "FromNetwork")
         {
-            jitterGenerator = new JitterFromNetwork(configParams, readoutTimeBeforeNextExposure);
+            	std::mutex m;
+		std::condition_variable cond_var;
+		bool notified;
+		bool newStep;
 
-	    // declare a tcpConnection object as server instance
+		jitterGenerator = new JitterFromNetwork(configParams, readoutTimeBeforeNextExposure, &cond_var, &m, &notified, &newStep);
 
-	    serverInstance = new TcpConnection(configParams, jitterGenerator);
+	   	 // declare a tcpConnection object as server instance
+
+	    serverInstance = new TcpConnection(configParams, jitterGenerator, &cond_var, &m, &notified, &newStep);
         }
         else
         {
@@ -223,6 +226,10 @@ void Simulation::configure(ConfigurationParameters &configParams)
     useFeeNominalTemperature = configParams.getString("FEE/Temperature") == "Nominal";
     useDetectorTemperatureFromFile = configParams.getString("CCD/Temperature") == "FromFile";
     useDetectorNominalTemperature = configParams.getString("CCD/Temperature") == "Nominal";
+
+    bool notified = false;
+    bool newStep = false;
+
 }
 
 

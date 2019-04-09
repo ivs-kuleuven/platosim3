@@ -47,6 +47,10 @@ class Simulation
 
 	TcpConnection* getServerInstance();
 
+	
+	
+	
+
     protected:
 
         virtual void writeInputParametersToHDF5(ConfigurationParameters &configParams);
@@ -87,6 +91,8 @@ class Simulation
 	TcpConnection* serverInstance;
 
         HDF5File hdf5File;
+
+		
 
 };
 
