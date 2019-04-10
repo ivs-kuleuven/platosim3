@@ -48,4 +48,4 @@ git tag -l
 
 If you switch to another branch and want to run simulations with the current branch, you will have to re-build the software, as described @ref Building "here".
 
-It is of course always possible that you come across problems when using either of these branches!  Please, tell use about them via the GitHub @ref #IssueTracking "issue tracking" system. 
+It is of course always possible that you come across problems when using either of these branches!  Please, tell use about them via the GitHub @ref IssueTracking "issue tracking" system. 

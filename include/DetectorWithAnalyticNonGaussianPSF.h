@@ -24,7 +24,7 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
 {
     public:
 
-        DetectorWithAnalyticNonGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator);
+        DetectorWithAnalyticNonGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure);
         virtual ~DetectorWithAnalyticNonGaussianPSF();
 
         virtual double takeExposure(int exposureNr, double startTime, double exposureTime) override;
@@ -54,7 +54,7 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
         double chargeDiffusionStrength;			// Strength of the charge diffusion (width of the Gaussian diffusion kernel) [pixels]
         bool includeChargeDiffusion;				// Whether or not to include charge diffusion
 
-        double flatfieldNoiseAmplitude;     // Peak-to-peak noise amplitude
+        double flatfieldNoiseRMS;     // Peak-to-peak noise amplitude
 
         bool includeFlatfield;              // Whether or not to include flat fielding        
         long flatfieldSeed;

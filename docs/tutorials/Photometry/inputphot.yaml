@@ -23,7 +23,9 @@ Sky:
     SkyBackground:                    -1             # Stellar + zodiacal background level (excl. transmission efficiency). Set negative to compute.     [phot/pix/s]
     IncludeVariableSources:          no              # Include time series of variable stars or not
     VariableSourceList:              inputfiles/varsource.txt  # Ascii file: Col 1: star ID, Col 2: path of time series file
-    IncludeCosmics:                  yes             # Whether or not to include cosmics
+    IncludeCosmicsInSubField:        yes             # Whether or not to include cosmics in the subfield on the CCD
+    IncludeCosmicsInSmearingMap:     yes             # Whether or not to include cosmics in the overscan map
+    IncludeCosmicsInBiasMap:         yes             # Whether or not to include cosmics in the prescan map
     Cosmics:
       CosmicHitRate:                 10              # Cosmic hit rate [events / cm^2 / s]
       TrailLength:             [0, 15]               # Intervalof the length of the cosmic trails [pixels]
@@ -33,12 +35,13 @@ Sky:
 
 Platform:
 
-    UseJitter:                   no             # yes or no
-    UseJitterFromFile:           yes              # yes or no
+    SolarPanelOrientation:        0              # 0, 90, 180, or 270 degrees for the different quarters of a year [deg]
+    UseJitter:                   no              # yes or no
+    UseJitterFromFile:           yes             # yes or no
     JitterYawRms:                0.5             # [arcsec]
     JitterPitchRms:              0.5             # [arcsec]
     JitterRollRms:               0.5             # [arcsec]
-    JitterTimeScale:             180           # [s]
+    JitterTimeScale:             180             # [s]
     JitterFileName:              inputfiles/PlatoJitter_Airbus.txt 
 
 
@@ -159,10 +162,20 @@ CCD:
     FullWellSaturation:          900000          # [e-/pixel]
     DigitalSaturation:           65535           # E.g. 16 bit [ADU/pixel]
     ReadoutNoise:                38.7            # [e-/pixel]
-    ReadoutTime:                 4               # time to read out entire CCD [s]
-    FlatfieldPtPNoise:           0.010           # peak-to-peak pixel noise
-    Vignetting: 
-        ExpectedValue:               0.904           # Expected value of the throughput efficiency due to vignetting
+    SerialTransferTime:              340         # Time to shift the content of the readout register by one pixel [ns]
+    ParallelTransferTime:            110         # Time to shift the charges one row down in case the readout register will be read out [µs]
+    ParallelTransferTimeFast:        90          # Time to shift the charges one row down in case the readout register will not be read out [µs]
+    ReadoutMode:
+       ReadoutMode:                  Nominal     # Nominal (normal camera: full frame; fast camera: frame transfer) / Partial (read contiguous block of entire rows)
+       Partial:
+          FirstRowReadout:           0           # First row that will be read out by the FEE in partial-readout mode
+          NumRowsReadout:            4510        # Number of rows that will be read out by the FEE, in partial-readout mode
+    FlatfieldNoiseRMS:           0.010           # Flatfield noise RMS (local PRNU)
+    Vignetting:
+        NaturalVignetting:                           # Brightness attenuation from the optical axis to the edge of the FOV
+            ExpectedValue:           0.945           # Expected value of the throughput efficiency due to natural vignetting
+        MechanicalVignetting:                        # Blocking of the light due to mechanical obstruction at the edge of the FOV
+            RadiusFOV:               18.8876         # Radius of the FOV [degrees]
     Polarization:
       #Efficiency:                    0.978           # Throughput efficiency caused by polarisation at the reference angle
       #RefAngle:                     18.8875          # Reference angle for polarisation [degrees]
@@ -176,6 +189,7 @@ CCD:
     DarkSignal:
       DarkCurrent:                  1.2              # Dark current [e- / s]
       DSNU:                         15.0             # Dark signal non-uniformity [%]
+      Stability:                    5.0              # Temperature stability of the dark current [[e- / K / s ]
     CTI:
         Model:                   Simple
         Simple:
@@ -195,11 +209,13 @@ CCD:
     IncludeCTIeffects:           no              # Include charge transfer inefficiency effects [yes or no]
     IncludeOpenShutterSmearing:  no              # Include trails due reading out with an open shutter [yes or no]
     IncludeQuantumEfficiency:        yes         # Include loss of throughput due to quantum efficiency
-    IncludeVignetting:               no          # Include brightness attenuation towards the edge of the FOV due to vignetting
+    IncludeNaturalVignetting:        no          # Include brightness attenuation towards the edge of the FOV due to natural vignetting
+    IncludeMechanicalVignetting:     no          # Include blockage of incoming flux during exposure at the edge of the FOV due to mechanical vignetting
     IncludePolarization:             no          # Include loss of throughput due to polarisation
     IncludeParticulateContamination: no          # Include loss of throughput due to particulate contamination
     IncludeMolecularContamination:   no          # Include loss of throughput due to molecular contamination
-    IncludeVignetting:           no              # Include brightness attenuation towards the edge of the FOV due to vignetting 
+    IncludeNaturalVignetting:        no          # Include brightness attenuation towards the edge of the FOV due to vignetting
+    IncludeMechanicalVignetting:     no          # Include blockage of incoming flux due to mechanical vignetting
     IncludeConvolution:          yes             # Whether or not to convolve the subPixelMap with the PSF
     IncludeFullWellSaturation:   yes             # Whether or not full well saturation should be applied
     IncludeDigitalSaturation:    yes             # Whether or not digital saturation should be applied
@@ -211,7 +227,8 @@ SubField:
     ZeroPointColumn:             0               # Column of the (0,0) pixel of the subfield [pixels]
     NumColumns:                  100             # Number of columns, should be >= 8 [pixels]
     NumRows:                     100             # Number of rows,    should be >= 8 [pixels]
-    NumBiasPrescanRows:          5               # Nr of rows of the prescan strip to determine the bias [pixels]
+    NumBiasPrescanRows:          30              # Nr of rows of the prescan strip to determine the bias [pixels]
+    NumBiasPrescanColumns:       5               # Nr of columns of the prescan strip to determine the bias [pixels]
     NumSmearingOverscanRows:     5               # Nr of rows of the overscan strip to determine the smearing [pixels]
     SubPixels:                   32              # (Sqrt of ) nr of subpixels per CCD pixel. Should be 2^n <= 128.
 

@@ -422,9 +422,10 @@ void Camera::updateParameters(double time)
  * \param[in]  detector      the Detector class
  * \param[in]  startTime     start time of the exposure [seconds]
  * \param[in]  exposureTime  duration of one exposure [seconds]
+ * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start [seconds]
  */
 
-void Camera::exposeDetector(Detector &detector, double startTime, double exposureTime)
+void Camera::exposeDetector(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure)
 {
     // Get the value for the degrading TransmissionEfficiency parameter at the startTime of this exposure
 
@@ -499,7 +500,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
         // The time at the middle of the time series is the time when the Sun is defined to be 180 degrees away from platform pointing
 
-        double timeMiddle = numExposures * (exposureTime + detector.getReadoutTime()) / 2.0;
+        double timeMiddle = numExposures * (exposureTime + readoutTimeBeforeNextExposure) / 2.0;
 
         // Get the apparent position of the stars, i.e. apply the differential aberration correction to
         // all the star positions in this starCatalog.
@@ -632,6 +633,9 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     // Note: - The output of sky.zodiacalFlux() is in [J s^{-1} m^{-2} sr^{-1} m^{-1}]
     //       - As wavelength range we take the entire throughput band.
     //       - Photons are always an integer number, thus round down.
+    //
+    // The small sky background contribution during the readout with open shutter is not taken into account here
+    // but in the function Detector::applyOpenShutterSmearing().
 
     totalSkyBackground = 0.0;
 
@@ -643,11 +647,11 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
         const double lambda2 = (throughputLambdaC + throughputBandwidth/2.0) * 1.e-9;                                         // [m]
     
         const double zodiacalFlux = sky.zodiacalFlux(centerRA, centerDec, lambda1, lambda2)                                   // [phot/exposure]
-                                    * exposureTime * transmissionEfficiency * telescope.getLightCollectingArea()
+                                    * (exposureTime + readoutTimeBeforeNextExposure) * transmissionEfficiency * telescope.getLightCollectingArea()
                                     * detector.getSolidAngleOfOnePixel(plateScale) / energyOfOnePhoton; 
 
         const double stellarBackgroundFlux = sky.stellarBackgroundFlux(centerRA, centerDec, lambda1, lambda2)                 // [phot/exposure]
-                                             * exposureTime * transmissionEfficiency * telescope.getLightCollectingArea()
+                                             * (exposureTime + readoutTimeBeforeNextExposure) * transmissionEfficiency * telescope.getLightCollectingArea()
                                              * detector.getSolidAngleOfOnePixel(plateScale) / energyOfOnePhoton;      
 
 
@@ -662,7 +666,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
         totalSkyBackground = floor(userGivenSkyBackground * exposureTime * transmissionEfficiency);
         detector.addFlux(totalSkyBackground);
 
-        Log.debug("Camera: user-given sky background flux = " + to_string(userGivenSkyBackground * exposureTime) + " photons/pixel/exposure");
+        Log.debug("Camera: user-given sky background flux over exposure= " + to_string(userGivenSkyBackground * exposureTime) + " photons/pixel/exposure");
     }
 
     // Save the sky background value that we added. [photons/pix/exposure]
@@ -956,5 +960,33 @@ pair<double, double> Camera::distortedToUndistortedFocalPlaneCoordinates(double 
  */
 double Camera::getTotalSkyBackground()
 {
-	return totalSkyBackground;
+    if (skyBackgroundValues.size() != 0)
+    {
+        return skyBackgroundValues.back();
+    }
+    else
+    {
+        throw std::runtime_error( "Camera::getTotalSkyBackground() was called with a skybackground being available");
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Returns the focal length of the camera, expressed in mm.
+ * 
+ * \return Focal length of the camera, expressed in mm.
+ */ 
+double Camera::getFocalLength()
+{
+    return (*focalLength)();
 }

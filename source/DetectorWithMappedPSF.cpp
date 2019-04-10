@@ -24,10 +24,11 @@
  * \param configParam    Configuration parameters for the detector.
  * \param hdf5file       HFD5 file to write the detector images to.
  * \param camera         Camera to which to attach the detector.
+ * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start.
  */
 
-DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator)
-: Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator), includeFlatfield(true), writeSubPixelImagesToHDF5(false)
+DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
+: Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure), includeFlatfield(true), writeSubPixelImagesToHDF5(false)
 {
     // Parse the parameters from the configuration file.
 
@@ -101,7 +102,7 @@ DetectorWithMappedPSF::~DetectorWithMappedPSF()
  void DetectorWithMappedPSF::configure(ConfigurationParameters &configParam)
  {
 
-	flatfieldNoiseAmplitude = configParam.getDouble("CCD/FlatfieldPtPNoise");
+	flatfieldNoiseRMS = configParam.getDouble("CCD/FlatfieldNoiseRMS");
 	includeFlatfield = configParam.getBoolean("CCD/IncludeFlatfield");
 	includeConvolution = configParam.getBoolean("CCD/IncludeConvolution");
 
@@ -189,14 +190,14 @@ void DetectorWithMappedPSF::generateFlatfieldMap()
     // Double the dimensions (this is necessary because of the behaviour of the Fourier transforms)
     // (this is a bit inconvenient as we are working at sub-pixel level -> to be investigated)
 
-    int numRows = 2 * numRowsPixelMap * numSubPixelsPerPixel;
-    int numColumns = 2 * numColumnsPixelMap * numSubPixelsPerPixel;
+    int Nrows = 2 * numRowsPixelMap * numSubPixelsPerPixel;
+    int Ncolumns = 2 * numColumnsPixelMap * numSubPixelsPerPixel;
 
-    arma::cx_fmat evenMap = arma::cx_fmat(numRows, numColumns);
+    arma::cx_fmat evenMap = arma::cx_fmat(Nrows, Ncolumns);
 
-    for(unsigned int row = 0; row < numRows; row++)
+    for(unsigned int row = 0; row < Nrows; row++)
     {
-        for(unsigned int column = 0; column < numColumns; column++)
+        for(unsigned int column = 0; column < Ncolumns; column++)
         {
             // Fourier space: generate white noise and include 1/f dependency
             // (Note: see https://en.wikipedia.org/wiki/Pink_noise#Generalization_to_more_than_one_dimension)
@@ -212,22 +213,26 @@ void DetectorWithMappedPSF::generateFlatfieldMap()
 
     // Cut out the appropriate part
 
-    flatfieldMap(arma::span::all, arma::span::all) = realMap(arma::span(0, numRows / 2 - 1), arma::span(0, numColumns / 2 - 1));
+    unsigned int numRowsFlatfield = Nrows / 2;
+    unsigned int numColumnsFlatfield = Ncolumns / 2;
+    
+    flatfieldMap(arma::span::all, arma::span::all) = realMap(arma::span(0, numRowsFlatfield - 1), arma::span(0, numColumnsFlatfield - 1));
+    flatfieldMap.reshape(numRowsFlatfield * numColumnsFlatfield, 1);
 
-    // Normalise
+    // Normalisation
+    //  - divide by mean and subtract 1.0 -> mean = 0.0
+    //  - scale such that std.dev. = flatfield RMS and mean = 0.0
+    //  - add 1.0
 
-    float minPinkNoise = flatfieldMap.min();
-    float maxPinkNoise = flatfieldMap.max();
+    flatfieldMap /= arma::mean(flatfieldMap.col(0));
+    flatfieldMap -= 1;
+    double scale = flatfieldNoiseRMS / arma::stddev(flatfieldMap.col(0));
+    flatfieldMap *= scale;
+    flatfieldMap += 1;
 
+    flatfieldMap.reshape(numRowsFlatfield, numColumnsFlatfield);
 
-    flatfieldMap -= minPinkNoise;
-    flatfieldMap /= (maxPinkNoise - minPinkNoise); // [0, 1]
-    flatfieldMap *= flatfieldNoiseAmplitude;    // [0, flatfialdNoiseAmplitude]
-    flatfieldMap += (1.0 - flatfieldNoiseAmplitude);
-
-    // Save the intra-pixel flatfield in the HDF5 file
-
-    Log.debug("Detector: writing IRNU to HDF5");
+    // Write the result to the HDF5 output file
 
     hdf5File.writeArray("/Flatfield", "IRNU", flatfieldMap);
 
@@ -276,7 +281,8 @@ void DetectorWithMappedPSF::generateFlatfieldMap()
 void DetectorWithMappedPSF::reset()
 {
     pixelMap.zeros();
-    biasMap.zeros();
+    biasMapLeft.zeros();
+    biasMapRight.zeros();
     smearingMap.zeros();
     subPixelMap.zeros();
 }
@@ -344,7 +350,7 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
 
     // Advance the internal clock
 
-    internalTime += exposureTime + readoutTime;
+    internalTime += exposureTime + readoutTimeBeforeNextExposure;
 
     return internalTime;
 }
@@ -390,7 +396,7 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
 
     // Integration (incl. jitter): point sources + background
 
-    camera.exposeDetector(*this, startTime, exposureTime);
+    camera.exposeDetector(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
 
     // Convolve with the point spread function
 

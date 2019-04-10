@@ -139,7 +139,7 @@ $(document).ready(function(){initNavTree('ConfigurationParameters.html','');});
 <p><em>Allowed values:</em> &gt; 0</p>
 <p>Total duration of the mission (from BOL till EOL), expressed in years. This will be used to model parameter degradation over time.</p>
 <h3><a class="anchor" id="beginExposureNr"></a>BeginExposureNr</h3>
-<p><em>Allowed values:</em> ≥ 0</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\ge $" src="form_36.png"/> 0</p>
 <p>Sequential number of the first exposure. Useful for <a href="https://en.wikipedia.org/wiki/Slurm_Workload_Manager">Slurm</a> parallelisation. In that case, long simulations (i.e. with a large number of exposures) will be chopped up into smaller simulations, covering <a href="#NumExposures">a small number of exposures</a> (see Fig. 1).</p>
 <div class="image">
 <img src="chopUpSimulation.png" alt="chopUpSimulation.png"/>
@@ -155,10 +155,10 @@ Figure 1: Long simulations will be chopped up into smaller simulations that can 
 <img class="formulaDsp" alt="\[ t_{integration} = t_{exposure} + t_{readout}.\]" src="form_0.png"/>
 </p>
 <h3><a class="anchor" id="raPointing"></a>RApointing</h3>
-<p><em>Allowed values:</em> ∈ [0, 360]</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\in $" src="form_43.png"/> [0, 360]</p>
 <p>Right ascension of the pointing, expressed in degrees.</p>
 <h3><a class="anchor" id="decPointing"></a>DecPointing</h3>
-<p><em>Allowed values:</em> ∈ [-90, 90]</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\in $" src="form_43.png"/> [-90, 90]</p>
 <p>Declination of the pointing, expressed in degrees.</p>
 <h3><a class="anchor" id="fluxm0"></a>Fluxm0</h3>
 <p><em>Allowed values:</em> &gt; 0</p>
@@ -172,8 +172,8 @@ Figure 1: Long simulations will be chopped up into smaller simulations that can 
 <p>Path to the star catalogue file, relative to the <a href="#projectLocation">project location</a>. </p><hr/>
 <h2><a class="anchor" id="skyParameters"></a>Sky Parameters</h2>
 <p>The <b>Sky</b> block of the configuration file contains all the information that is specific to the sky, i.e. sky background and cosmics. The structure of this block is the following:</p>
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;Sky:</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;</div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;    SkyBackground:               342.</div><div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;    IncludeVariableSources:      no</div><div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;        VariableSourceList:          inputfiles/varsource.txt</div><div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;    IncludeCosmics:              yes</div><div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;    IncludeCosmicsInSubField:        yes</div><div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;       IncludeCosmicsInSmearingMap:     yes</div><div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;       IncludeCosmicsInBiasMap:         yes    </div><div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;    Cosmics:</div><div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;        CosmicHitRate:                      10</div><div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;        TrailLength:                   [0, 15]</div><div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;        Intensity:               [2000, 40000] </div></div><!-- fragment --><h3><a class="anchor" id="skyBackground"></a>SkyBackground</h3>
-<p><em>Allowed values:</em> &lt; 0 for automatic calculation, ≥ 0 to use the input value</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;Sky:</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;</div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;    SkyBackground:               342.</div><div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;    IncludeVariableSources:      no</div><div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;        VariableSourceList:          inputfiles/varsource.txt</div><div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;    IncludeCosmicsInSubField:        yes</div><div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;    IncludeCosmicsInSmearingMap:     yes</div><div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;    IncludeCosmicsInBiasMap:         yes    </div><div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;    Cosmics:</div><div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;        CosmicHitRate:                      10</div><div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;        TrailLength:                   [0, 15]</div><div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;        Intensity:               [2000, 40000] </div></div><!-- fragment --><h3><a class="anchor" id="skyBackground"></a>SkyBackground</h3>
+<p><em>Allowed values:</em> &lt; 0 for automatic calculation, <img class="formulaInl" alt="$\ge $" src="form_36.png"/> 0 to use the input value</p>
 <p>In case a positive value is given, the sky background (zodiacal + galactic), is set to the given value, expressed in photons <img class="formulaInl" alt="$ \cdot $" src="form_2.png"/> s<sup>-1</sup> <img class="formulaInl" alt="$ \cdot $" src="form_2.png"/> pixel<sup>-1</sup>. Note that this value has not been multiplied with the tranmission efficiency yet.</p>
 <p>In case a negative value is given, the sky background is computed automatically from tabular values, interpolated to the central coordinates of the sub-field. A constant sky background is assumed for the whole sub-field. Note that for some regions in the sky the automatic computation of the sky background may fail due to the lack of tabulated values. In that case you can set the sky background manually.</p>
 <h3><a class="anchor" id="inclVariability"></a>IncludeVariableSources</h3>
@@ -205,28 +205,36 @@ Figure 1: Long simulations will be chopped up into smaller simulations that can 
 <p>Interval for the allowed number of electrons comprised in a cosmic hit (that are to be spread over the trail). </p><hr/>
 <h2><a class="anchor" id="platformParameters"></a>Platform Parameters</h2>
 <p>The <b>Platform</b> block of the configuration file contains all the information that is specific to the platform of the satellite. The structure of this block is the following:</p>
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;Platform:</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;</div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;    UseJitter:                   yes             </div><div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;    UseJitterFromFile:           no              </div><div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;    JitterYawRms:                1.0             </div><div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;    JitterPitchRms:              1.0             </div><div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;    JitterRollRms:               1.0             </div><div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;    JitterTimeScale:             3600.           </div><div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;    JitterFileName:              /inputfiles/jitter.txt</div></div><!-- fragment --><h3><a class="anchor" id="useJitter"></a>UseJitter</h3>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;Platform:</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;</div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;    SolarPanelOrientation:       0</div><div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;    UseJitter:                   yes             </div><div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;    UseJitterFromFile:           no              </div><div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;    JitterYawRms:                1.0             </div><div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;    JitterPitchRms:              1.0             </div><div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;    JitterRollRms:               1.0             </div><div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;    JitterTimeScale:             3600.           </div><div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;    JitterFileName:              /inputfiles/jitter.txt</div></div><!-- fragment --><h3><a class="anchor" id="solarPanelOrientation"></a>SolarPanelOrientation</h3>
+<p><em>Allowed values:</em> 0, 90, 180, and 270</p>
+<p>Orientation angle of the solar panel, expressed in degrees. This is the roll angle of the platform, which enables orienting the solar panels towards the Sun each quarter, i.e. at the beginning of each quarter the roll angle must be increased by 90 degrees. By convention the roll angle must be set to zero degrees at the beginning of the first quarter.</p>
+<p>Note that - to properly account for the re-orientation of the solar panels - simulations must be chopped up in chunks of maximum three months.</p>
+<h3><a class="anchor" id="useJitter"></a>UseJitter</h3>
 <p><em>Allowed values:</em> "yes" and "no"</p>
 <p>Indicates whether pointing variations should be taken into account.</p>
 <p>The Plato Simulator can also account for pointing variations of the spacecraft, so-called jitter. A time series of pointing displacement, expressed in Euler angles (yaw, pitch, roll), either has to be provided as a jitter file or will be generated based on the given jitter parameters (see further).</p>
 <p>To ensure a realistic modelling of the jitter, the <a href="#jitterTimeScale">time step of the jitter time series</a> must be smaller than the <a href="#exposureTime">exposure time</a>.</p>
-<p>The configuration of the jitter axes is depicted below. The Euler angles that characterise the jitter are defined w.r.t. to the spacecraft coordinate system (see Fig. 2). The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module. The positive roll axis z<sub>SC</sub> points towards the operator-given mean payload line-of-sight, given by the equatorial coordinates (<a href="#raPointing">RApointing</a>, <a href="#decPointing">DecPointing</a>).</p>
-<p>The angles are defined such that they increase with a clockwise rotation, when looking along the positive axes. First a roll rotation is done around the z<sub>SC</sub> axis, then a pitch rotation is done around the rotated y<sub>SC</sub> axis, and finally a yaw rotation is done around the twice-rotated x<sub>SC</sub> axis.</p>
+<p>The configuration of the jitter axes is depicted below. The Euler angles that characterise the jitter are defined w.r.t. to the spacecraft coordinate system (see Fig. 2). The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module. The positive roll axis <img class="formulaInl" alt="$z_{\rm SC} $" src="form_44.png"/> points towards the operator-given mean payload line-of-sight, given by the equatorial coordinates (<a href="#raPointing">RApointing</a>, <a href="#decPointing">DecPointing</a>).</p>
+<p>The angles are defined such that they increase with a clockwise rotation, when looking along the positive axes. First a roll rotation is done around the <img class="formulaInl" alt="$z_{\rm SC} $" src="form_44.png"/> axis, then a pitch rotation is done around the rotated <img class="formulaInl" alt="$y_{\rm SC} $" src="form_45.png"/> axis, and finally a yaw rotation is done around the twice-rotated <img class="formulaInl" alt="$x_{\rm SC} $" src="form_46.png"/> axis.</p>
 <div class="image">
 <img src="jitterConfiguration.png" alt="jitterConfiguration.png"/>
 <div class="caption">
-Figure 2: Configuration of the jitter axes for the Plato Simulator, defined w.r.t. the spacecraft coordinate system (xSC, ySC, z&lt;sub&gt;SC&lt;/sub&gt;). The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module. The positive zSC axis points towards the operator-given pointing coordinates. The xSC axis points in the direction of the highest point of the sunshield.</div></div>
+Figure 2: Configuration of the jitter axes for the Plato Simulator, defined w.r.t. the spacecraft coordinate system ($xSC $, $y_{ SC} $, $z_{ SC} $). The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module. The positive $z_{ SC} $ axis points towards the operator-given pointing coordinates. The xSC axis points in the direction of the highest point of the sunshield.</div></div>
+ <div class="image">
+<img src="jitterConfiguration.png" alt="jitterConfiguration.png"/>
+<div class="caption">
+Figure 2: Configuration of the jitter axes for the Plato Simulator, defined w.r.t. the spacecraft coordinate system (x&lt;sub&gt;SC&lt;/sub&gt;, y&lt;sub&gt;SC&lt;/sub&gt;, z&lt;sub&gt;SC&lt;/sub&gt;). The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module. The positive z&lt;sub&gt;SC&lt;/sub&gt; axis points towards the operator-given pointing coordinates. The x&lt;sub&gt;SC&lt;/sub&gt; axis points in the direction of the highest point of the sunshield.</div></div>
 <h3><a class="anchor" id="useJitterFromFile"></a>UseJitterFromFile</h3>
 <p><em>Allowed values:</em> "yes" and "no"</p>
 <p>Indicates whether the jitter time series must be read from a jitter file ("yes") or the jitter positions must be generated from the jitter parameters ("no").</p>
 <h3><a class="anchor" id="jitterYawRms"></a>JitterYawRms</h3>
-<p><em>Allowed values:</em> ≥ 0, only required if the jitter positions must be generated from jitter parameters (<a href="#useJitterFromFile">useJitterFromFile</a> = no)</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\ge $" src="form_36.png"/> 0, only required if the jitter positions must be generated from jitter parameters (<a href="#useJitterFromFile">useJitterFromFile</a> = no)</p>
 <p>Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the yaw value from one jitter position to the next one.</p>
 <h3><a class="anchor" id="jitterPitchRms"></a>JitterPitchRms</h3>
-<p><em>Allowed values:</em> ≥ 0, only required if the jitter positions must be generated from jitter parameters (<a href="#useJitterFromFile">useJitterFromFile</a> = no)</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\ge $" src="form_36.png"/> 0, only required if the jitter positions must be generated from jitter parameters (<a href="#useJitterFromFile">useJitterFromFile</a> = no)</p>
 <p>Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the pitch value from one jitter position to the next one.</p>
 <h3><a class="anchor" id="jitterRollRms"></a>JitterRollRms</h3>
-<p><em>Allowed values:</em> ≥ 0, only required if the jitter positions must be generated from jitter parameters (<a href="#useJitterFromFile">useJitterFromFile</a> = no)</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\ge $" src="form_36.png"/> 0, only required if the jitter positions must be generated from jitter parameters (<a href="#useJitterFromFile">useJitterFromFile</a> = no)</p>
 <p>Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the roll value from one jitter position to the next one.</p>
 <h3><a class="anchor" id="jitterTimeScale"></a>JitterTimeScale</h3>
 <p><em>Allowed values:</em> &gt; 0</p>
@@ -236,8 +244,8 @@ Figure 2: Configuration of the jitter axes for the Plato Simulator, defined w.r.
 <h2><a class="anchor" id="telescopeParameters"></a>Telescope Parameters</h2>
 <p>The <b>Telescope</b> block of the configuration file contains all the information that is specific to the telescope. The structure of this block is the following:</p>
 <div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;Telescope:</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;    </div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;    GroupID:                     Custom</div><div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;    AzimuthAngle:                0.0</div><div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;    TiltAngle:                   0.0</div><div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;    LightCollectingArea:         113.1         </div><div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;    TransmissionEfficiency:      </div><div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;        BOL:                     0.7191</div><div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;        EOL:                     0.7191</div><div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;    UseDrift:                    yes</div><div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;    UseDriftFromFile:            no      </div><div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;    DriftYawRms:                 2.3           </div><div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;    DriftPitchRms:               2.3           </div><div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;    DriftRollRms:                2.3           </div><div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;    DriftTimeScale:              3600.</div><div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;    DriftFileName:               /inputfiles/drift.txt         </div></div><!-- fragment --><h3><a class="anchor" id="groupID"></a>GroupID</h3>
-<p><em>Allowed values:</em> ∈ [1, 2, 3, 4, Fast, Custom]</p>
-<p>The telescope group identifier can be used to select a telescope group. There are four groups that have a tilt angle of 9.2º from the optical axis of the satellite, and one group for the fast camera's which is aligned with the satellite Z-axis. When you specify GroupID=Custom, the <a href="#tiltAngle">tilt angle</a> and <a href="#azimuthAngle">azimuth angle</a> below the GroupID in the inputfile are used, otherwise the angles are taken from pre-defined parameters in the <a href="#cameraGroups">CameraGroups</a> block of the configuration file.</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\in $" src="form_43.png"/> [1, 2, 3, 4, Fast, Custom]</p>
+<p>The telescope group identifier can be used to select a telescope group. There are four groups that have a tilt angle of <img class="formulaInl" alt="$9.2^{\circ} $" src="form_47.png"/>- from the optical axis of the satellite, and one group for the fast camera's which is aligned with the satellite Z-axis. When you specify GroupID=Custom, the <a href="#tiltAngle">tilt angle</a> and <a href="#azimuthAngle">azimuth angle</a> below the GroupID in the inputfile are used, otherwise the angles are taken from pre-defined parameters in the <a href="#cameraGroups">CameraGroups</a> block of the configuration file.</p>
 <div class="image">
 <img src="telescopeGroups.png" alt="telescopeGroups.png"/>
 <div class="caption">
@@ -245,12 +253,12 @@ Figure 3: Field of View for the different telescope groups</div></div>
 <h3><a class="anchor" id="tiltAngle"></a>TiltAngle</h3>
 <p><em>Allowed values:</em> &gt; 0</p>
 <p>Tilt angle of the telescope, expressed in degrees. This angle, together with the <a href="#azimuthAngle">azimuth angle</a>, characterises the orientation of the telescope pointing (i.e. telescope optical axis) w.r.t. the spacecraft/platform pointing.</p>
-<p>The tilt angle is the offset between the telescope optical axis and the platform pointing, i.e. the angle between the telescope line-of-sight (positive z<sub>telescope</sub>)-axis and the positive z<sub>PLM</sub>-axis (see Figs. 4 and 5).</p>
+<p>The tilt angle is the offset between the telescope optical axis and the platform pointing, i.e. the angle between the telescope line-of-sight (positive <img class="formulaInl" alt="$z_{\rm telescope} $" src="form_48.png"/>-axis and the positive <img class="formulaInl" alt="$z_{\rm PLM} $" src="form_49.png"/>-axis (see Figs. 4 and 5).</p>
 <p>This parameter is only used when the <a href="#groupID">GroupID</a>=Custom.</p>
 <h3><a class="anchor" id="azimuthAngle"></a>AzimuthAngle</h3>
 <p><em>Allowed values:</em> Any</p>
 <p>Azimuth angle of the telescope, expressed in degrees. This angle, together with the <a href="#tiltAngle">tilt angle</a>, characterises the orientation of the telescope pointing (i.e. telescope optical axis) w.r.t. the spacecraft/platform pointing.</p>
-<p>The azimuth angle is the position angle of the rotation of the telescope around the positive z<sub>PLM</sub>-axis (see Figs. 3 and 4).</p>
+<p>The azimuth angle is the position angle of the rotation of the telescope around the positive <img class="formulaInl" alt="$z_{\rm PLM} $" src="form_49.png"/>-axis (see Figs. 3 and 4).</p>
 <p>This parameter is only used when the <a href="#groupID">GroupID</a>=Custom.</p>
 <div class="image">
 <img src="tiltAzimuth.png" alt="tiltAzimuth.png"/>
@@ -262,35 +270,35 @@ Figure 4: Tilt and azimuth of a telescope.</div></div>
 <h3><a class="anchor" id="transmissionEfficiency"></a>TransmissionEfficiency</h3>
 <p>The transmission efficiency of the optical system, considering the passband and the spectral energy distribution of the stars, given the <a href="#fluxm0">Fluxm0</a> parameter and the magnitudes in the <a href="#starCatalogue">star catalogue</a> degrades linearly over the <a href="#missionDuration">mission lifetime</a>.</p>
 <h4><a class="anchor" id="transmissionEfficiencyBOL"></a>TransmissionEfficiency: BOL</h4>
-<p><em>Allowed values:</em> ∈ [0,1]</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\in $" src="form_43.png"/> [0,1]</p>
 <p>Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the <a href="#fluxm0">Fluxm0</a> parameter and the magnitudes in the <a href="#starCatalogue">star catalogue</a>, at the beginning of the mission (beginning-of-life). This parameter is used to model the (linear) degradation in transmission efficiency over the <a href="#missionDuration">mission lifetime</a>.</p>
 <h4><a class="anchor" id="transmissionEfficiencyEOL"></a>TransmissionEfficiency: EOL</h4>
-<p><em>Allowed values:</em> ∈ [0,1]</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\in $" src="form_43.png"/> [0,1]</p>
 <p>Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the Fluxm0 parameter and the magnitudes in the <a href="#starCatalogue">star catalogue</a>, at the end of the mission (end-of-life). This parameter is used to model the (linear) degradation in transmission efficiency over the <a href="#missionDuration">mission lifetime</a>.</p>
 <h3><a class="anchor" id="useDrift"></a>UseDrift</h3>
 <p><em>Allowed values:</em> "yes" or "no"</p>
 <p>Indicates whether the thermo-elastic drift of the telescope (w.r.t. the platform) should be taken into account.</p>
 <p>Similar to the <a href="#useJitter">UseJitter</a> parameter for the platform jitter.</p>
 <p>The Plato Simulator can also account for the thermo-elastic drift, of the telescope (w.r.t. the platform). A time series of displacement, expressed in Euler angles (yaw, pitch, roll), either has to be provided as a drift file or will be generated based on the given drift parameters (see further).</p>
-<p>The Euler angles (yaw, pitch, roll) are defined as the rotation angles around the z<sub>SC</sub>, y'<sub>SC</sub> and z<sub>telescope</sub> = z<sub>FP</sub> axes (see Fig. 5), such that the anges increase with a clockwise rotation when looking along the positive axes.</p>
+<p>The Euler angles (yaw, pitch, roll) are defined as the rotation angles around the <img class="formulaInl" alt="$z_{\rm SC} $" src="form_44.png"/>, <img class="formulaInl" alt="$y'_{\rm SC} $" src="form_50.png"/> and <img class="formulaInl" alt="$z_{\rm telescope} = z_{\rm FP} $" src="form_51.png"/> axes (see Fig. 5), such that the anges increase with a clockwise rotation when looking along the positive axes.</p>
 <div class="image">
 <img src="TelescopeCoordinateSystem.png" alt="TelescopeCoordinateSystem.png"/>
 <div class="caption">
-Figure 5: The optical axis zFP can be obtained from the spacecraft/platform pointing axis zSC by first rotating the (xSC, ySC) plane around the pointing axis zSC over the azimuth angle (left-hand side) nad then rotating the resulting zSC' axis over the tilt angle (right-hand side).</div></div>
+Figure 5: The optical axis zFP can be obtained from the spacecraft/platform pointing axis z&lt;sub&gt;SC&lt;/sub&gt; by first rotating the (x&lt;sub&gt;SC&lt;/sub&gt;, y&lt;sub&gt;SC&lt;/sub&gt;) plane around the pointing axis z&lt;sub&gt;SC&lt;/sub&gt;&lt;sub&gt;SC&lt;/sub&gt; over the azimuth angle (left-hand side) nad then rotating the resulting zSC' axis over the tilt angle (right-hand side).</div></div>
 <h3><a class="anchor" id="useDriftFromFile"></a>UseDriftFromFile</h3>
 <p><em>Allowed values:</em> "yes" or "no"</p>
 <p>Indicates whether the thermo-elastic drift of the telescope (w.r.t. the platform) should be taken into account.</p>
 <p>Similar to the <a href="#useJitterFromFile">UseJitterFromFile</a> parameter for the platform jitter.</p>
 <h3><a class="anchor" id="driftYawRms"></a>DriftYawRms</h3>
-<p><em>Allowed values:</em> ≥ 0</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\ge $" src="form_36.png"/> 0</p>
 <p>Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the yaw value from one thermo-elastic drift position to the next one.</p>
 <p>Similar to the <a href="#jitterYawRms">JitterYawRms</a> parameter for the platform jitter.</p>
 <h3><a class="anchor" id="driftPitchRms"></a>DriftPitchRms</h3>
-<p><em>Allowed values:</em> ≥ 0</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\ge $" src="form_36.png"/> 0</p>
 <p>Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the pitch value from one thermo-elastic drift position to the next one.</p>
 <p>Similar to the <a href="#jitterPitchRms">JitterPitchRms</a> parameter for the platform jitter.</p>
 <h3><a class="anchor" id="driftRollRms"></a>DriftRollRms</h3>
-<p><em>Allowed values:</em> ≥ 0</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\ge $" src="form_36.png"/> 0</p>
 <p>Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the roll value from one thermo-elastic drift position to the next one.</p>
 <p>Similar to the <a href="#jitterRollRms">JitterRollRms</a> parameter for the platform jitter.</p>
 <h3><a class="anchor" id="driftTimeScale"></a>DriftTimeScale</h3>
@@ -306,8 +314,8 @@ Figure 5: The optical axis zFP can be obtained from the spacecraft/platform poin
 <div class="image">
 <img src="FocalPlaneCoordinateSystem.png" alt="FocalPlaneCoordinateSystem.png"/>
 <div class="caption">
-Figure 6: A schematic overview of the focal plane with 4 CCDs. The optical axis zFP is the blue dot in the middle of the 4 CCDs and points in the positive direction towards the reader. The jitter roll axis zSC is the purple dot, and also points in the positive direction towards the reader. The focal plane is rotated by the angle γFP w.r.t. to the North direction. The origin of the CCD in the focal plane is defined by its offset (ΔxCCD, ΔyCCD) in mm from the centre of the focal plane. It is then rotated by the angle γCCD round its origin.</div></div>
-<h4><a class="anchor" id="focalPlaneOrientationSource"></a>FocalPlaneOrientation: Source</h4>
+Figure 6: A schematic overview of the focal plane with 4 CCDs. The optical axis zFP is the blue dot in the middle of the 4 CCDs and points in the positive direction towards the reader. The jitter roll axis zSC is the purple dot, and also points in the positive direction towards the reader. The focal plane is rotated by the angle $ $FP w.r.t. to the North direction. The origin of the CCD in the focal plane is defined by its offset ($ $xCCD, $ $yCCD) in mm from the centre of the focal plane. It is then rotated by the angle $ $CCD round its origin.</div></div>
+ <h4><a class="anchor" id="focalPlaneOrientationSource"></a>FocalPlaneOrientation: Source</h4>
 <p><em>Allowed values:</em> "ConstantValue" and "FromFile".</p>
 <p>Indicates whether the value of the focal-plane orientation angle must be constant or is allowed to vary over time, according to the values in a user-provided file.</p>
 <h4><a class="anchor" id="focalPlaneOrientationConstant"></a>FocalPlaneOrientation: ConstantValue</h4>
@@ -380,12 +388,12 @@ Figure 6: A schematic overview of the focal plane with 4 CCDs. The optical axis 
 <p>The PSF is a circular Gaussian, the size of which does not change over the FOV.</p>
 <h4><a class="anchor" id="gaussSigma"></a>MappedGaussian: Sigma</h4>
 <p><em>Allowed values:</em> &gt; 0, only required if a Gaussian PSF must be used (<a href="#Model">psfModel</a> = MappedGaussian)</p>
-<p>Width (σ) of the two-dimensional Gaussian PSF, expressed in pixels. This Gaussian PSF does not vary in size over the FOV.</p>
+<p>Width ( <img class="formulaInl" alt="$\sigma $" src="form_52.png"/>) of the two-dimensional Gaussian PSF, expressed in pixels. This Gaussian PSF does not vary in size over the FOV.</p>
 <h4><a class="anchor" id="gaussNumPixels"></a>MappedGaussian: NumberOfPixels</h4>
 <p><em>Allowed values:</em> &gt; 0, only required if a Gaussian PSF with a fixed size over the FOV must be used (<a href="#psfModel">Model</a> = MappedGaussian)</p>
 <p>Number of pixels (in both directions) for which the Gaussian PSF must be generated.</p>
 <h4><a class="anchor" id="chargeDiffusionStrength"></a>MappedGaussian: ChargeDiffusionStrength</h4>
-<p><em>Allowed values:</em> ≥ 1 / <a href="#numSubPixelsl">SubPixels</a></p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\ge $" src="form_36.png"/> 1 / <a href="#numSubPixelsl">SubPixels</a></p>
 <p>Charge diffusion has been modelled by a convolution with a Gaussian diffusion kernel, of which this is the standard deviation.</p>
 <h4><a class="anchor" id="inclChargeDiffusion"></a>MappedGaussian: IncludeChargeDiffusion</h4>
 <p><em>Allowed values:</em> "yes" and "no"</p>
@@ -399,7 +407,7 @@ Figure 6: A schematic overview of the focal plane with 4 CCDs. The optical axis 
 <p><em>Allowed values:</em> only required if a pre-computed PSF must be used (<a href="#Model">psfModel</a> = MappedFromFile)</p>
 <p>Path to the file, relative to the <a href="#projectLocation">project location</a>, holding the location independent <a href="#psfFile">pre-computed PSF</a>.</p>
 <h4><a class="anchor" id="psfDistance"></a>MappedFromFile: DistanceToOA</h4>
-<p><em>Allowed values:</em> -1 for automatic calculation, ≥ 0 to use the input value; only required if a pre-computed PSF must be used (<a href="#psfModel">Model</a> = MappedFromFile)</p>
+<p><em>Allowed values:</em> -1 for automatic calculation, <img class="formulaInl" alt="$\ge $" src="form_36.png"/> 0 to use the input value; only required if a pre-computed PSF must be used (<a href="#psfModel">Model</a> = MappedFromFile)</p>
 <p>In case a positive value is given the input value will be used for the angular distance to the optical axis.</p>
 <p>In case a negative value is given, the angular distance to the optical axis will be calculated automatically.</p>
 <h4><a class="anchor" id="psfRotation"></a>MappedFromFile: RotationAngle</h4>
@@ -409,7 +417,7 @@ Figure 6: A schematic overview of the focal plane with 4 CCDs. The optical axis 
 <p><em>Allowed values:</em> &gt; 0, only required if a pre-computed PSF must be used (<a href="#psfModel">Model</a> = MappedFromFile)</p>
 <p>Number of pixels (in both directions) for which the PSF was generated.</p>
 <h4><a class="anchor" id="chargeDiffusionStrengthFile"></a>MappedFromFile: ChargeDiffusionStrength</h4>
-<p><em>Allowed values:</em> ≥ 1 / <a href="#numSubPixelsl">SubPixels</a></p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\ge $" src="form_36.png"/> 1 / <a href="#numSubPixels">SubPixels</a></p>
 <p>Charge diffusion has been modelled by a convolution with a Gaussian diffusion kernel, of which this is the standard deviation.</p>
 <h4><a class="anchor" id="inclChargeDiffusionFile"></a>MappedFromFile: IncludeChargeDiffusion</h4>
 <p><em>Allowed values:</em> "yes" and "no"</p>
@@ -456,7 +464,7 @@ Figure 6: A schematic overview of the focal plane with 4 CCDs. The optical axis 
 <h3><a class="anchor" id="tempFileFEE"></a>TemperatureFileName</h3>
 <p>Path to the file, relative to the <a href="#projectLocation">project location</a>, holding the location of the file with the temperature variations of the FEE.</p>
 <h3><a class="anchor" id="readoutNoiseFEE"></a>ReadoutNoise</h3>
-<p><em>Allowed values:</em> ≥ 0</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\ge $" src="form_36.png"/> 0</p>
 <p>Mean readout noise of the FEE, expressed in e<sup>-</sup>/pixel. This is the same for both ADCs.</p>
 <h3><a class="anchor" id="gainFEE"></a>Gain</h3>
 <p>The actual gain for the FEE will be different for both ADCs. A reference value is given for ADC1 and ADC2, and the difference should not exceed the <a href="#gainAllowedDiffFEE">specified allowed difference</a>.</p>
@@ -467,7 +475,7 @@ Figure 6: A schematic overview of the focal plane with 4 CCDs. The optical axis 
 <p><em>Allowed values:</em> &gt; 0</p>
 <p>Reference value of the gain of ACD2 of the FEE at its <a href="#nominalTempFEE">nominal operating temperature</a>, expressed in ADU/µV.</p>
 <h4><a class="anchor" id="gainAllowedDiffFEE"></a>Gain: AllowedDifference</h4>
-<p><em>Allowed values:</em> ∈ [0,100]</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\in $" src="form_43.png"/> [0,100]</p>
 <p>Percentage of the reference values for the gain of ADC1 and ADC2 that indicates the maximum allowed difference between these gain values.</p>
 <h4><a class="anchor" id="gainStabilityFEE"></a>Gain: Stability</h4>
 <p><em>Allowed values:</em> Any</p>
@@ -475,15 +483,15 @@ Figure 6: A schematic overview of the focal plane with 4 CCDs. The optical axis 
 <h3><a class="anchor" id="electronicOffset"></a>ElectronicOffset</h3>
 <p>The electronic offset or bias level is added to the digital signal in order to avoid negative readout values. The electronic offset can be measured in a pre-scan strip, which essentially consists of a few additional rows of the CCD. These rows only contain the electronic offset and the readout noise. This pre-scan strip consisting of <a href="#numPreScanRows">NumPreScanRows</a> rows will be stored in the output file. This is the same for both ADCs.</p>
 <h4><a class="anchor" id="electronicOffsetRefValue"></a>ElectronicOffset: RefValue</h4>
-<p><em>Allowed values:</em> ≥ 0</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\ge $" src="form_36.png"/> 0</p>
 <p>Electronic offset or bias level at the nominal operating temperature of the FEE, expressed in ADU.</p>
 <h4><a class="anchor" id="electronicOffsetStability"></a>ElectronicOffset: Stability</h4>
 <p><em>Allowed values:</em> Any</p>
 <p>Change in electronic offset (for both ADCs) with temperature deviations from the nominal operating temperature, expressed in ADU/pixel/K. </p><hr/>
 <h2><a class="anchor" id="ccdParameters"></a>CCD Parameters</h2>
 <p>The <b>CCD</b> block of the configuration file contains all the information that is specific to the CCD. The structure of this block is the following:</p>
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;CCD:</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;</div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;    Position:                    Custom</div><div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;</div><div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;    OriginOffsetX:               0         </div><div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;    OriginOffsetY:               0         </div><div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;    Orientation:                 0         </div><div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;    NumColumns:                  4510      </div><div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;    NumRows:                     4510      </div><div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;    FirstRowExposed:             0</div><div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;</div><div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;    PixelSize:                   18      </div><div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;    BFE:</div><div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;        Range:                       2</div><div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;        p0:                          0.05</div><div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;        p1:                          0.15</div><div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;        RefFlux:                     1e6  </div><div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;    Gain:                        </div><div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;        RefValueLeft:        1.80</div><div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;        RefValueRight:       1.80</div><div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;        AllowedDifference:   15.0   </div><div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160;        Stability:           -0.004    </div><div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;    QuantumEfficiency:</div><div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;        MeanQuantumEfficiency:       0.5985</div><div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;        MeanAngleDependency:         1.01</div><div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;    Polarization:</div><div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;            ExpectedValue:       0.989      </div><div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;    Vignetting:</div><div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;            ExpectedValue:       0.945 </div><div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;    Contamination:</div><div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;            ParticulateContaminationEfficiency:  0.98</div><div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;            MolecularContaminationEfficiency:    0.0566</div><div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;    DarkSignal:</div><div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;            DarkCurrent:                  1.2</div><div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;            DSNU:                         10.0</div><div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;    FullWellSaturation:          1000000        </div><div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;    DigitalSaturation:           65535          </div><div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;    ReadoutNoise:                28             </div><div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;    ElectronicOffset:            100            </div><div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;    ReadoutTime:                 2              </div><div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;    FlatfieldPtPNoise:           0.016      </div><div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;    CTI:</div><div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;            Model:           Simple</div><div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;            Simple:</div><div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;               CTEMean:        0.99999</div><div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;              Short2013:</div><div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;                  Beta:     0.37</div><div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;                  Temperature:  203.0</div><div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;                  NumTrapSpecies:[9.8, 3.31, 1.56, 13.24]</div><div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;                  TrapDensity:   [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]</div><div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;                  ReleaseTime:   [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]</div><div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;    NominalOperatingTemperature: 203.15</div><div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;    Temperature:                 Nominal</div><div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;    TemperatureFileName:         inputfiles/ccdTemperature.txt     </div><div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;    IncludeFlatfield:                 no            </div><div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;    IncludeDarkSignal:                yes </div><div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;    IncludePhotonNoise:               yes            </div><div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;    IncludeReadoutNoise:              yes            </div><div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;    IncludeCTIeffects:                yes            </div><div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;    IncludeOpenShutterSmearing:       yes            </div><div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;    IncludeVignetting:                yes   </div><div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;    IncludePolarization:              yes</div><div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;    IncludeParticulateContamination:  yes</div><div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;    IncludeMolecularContamination:    yes</div><div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;    IncludeQuantumEfficiency:         yes</div><div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;    IncludeConvolution:               yes            </div><div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;    IncludeFullWellSaturation:        yes            </div><div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;    IncludeDigitalSaturation:         yes      </div><div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;    IncludeQuantisation:              yes      </div><div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;    WriteSubPixelImagesToHDF5:        no              </div></div><!-- fragment --><h3><a class="anchor" id="position"></a>Position</h3>
-<p><em>Allowed values:</em> ∈ [1, 2, 3, 4, Custom]</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;CCD:</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;</div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;    Position:                    Custom</div><div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;</div><div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;    OriginOffsetX:               0         </div><div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;    OriginOffsetY:               0         </div><div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;    Orientation:                 0         </div><div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;    NumColumns:                  4510      </div><div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;    NumRows:                     4510      </div><div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;    FirstRowExposed:             0</div><div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;</div><div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;    PixelSize:                   18      </div><div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;    BFE:</div><div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;        Range:                       2</div><div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;        p0:                          0.05</div><div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;        p1:                          0.15</div><div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;        RefFlux:                     1e6  </div><div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;    Gain:                        </div><div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;        RefValueLeft:        1.80</div><div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;        RefValueRight:       1.80</div><div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;        AllowedDifference:   15.0   </div><div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160;        Stability:           -0.004    </div><div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;    QuantumEfficiency:</div><div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;        MeanQuantumEfficiency:       0.5985</div><div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;        MeanAngleDependency:         1.01</div><div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;    Polarization:</div><div class="line"><a name="l00027"></a><span class="lineno">   27</span>&#160;            ExpectedValue:       0.989      </div><div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;    Vignetting:</div><div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;        NaturalVignetting:</div><div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;            ExpectedValue:       0.945 </div><div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;        MechanicalVignetting:</div><div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;            RadiusFOV:           18.8876</div><div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;    Contamination:</div><div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;            ParticulateContaminationEfficiency:  0.98</div><div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;            MolecularContaminationEfficiency:    0.0566</div><div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;    DarkSignal:</div><div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;            DarkCurrent:                  1.2</div><div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;            DSNU:                         10.0</div><div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;            Stability:                    5.0</div><div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;    FullWellSaturation:          1000000        </div><div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;    DigitalSaturation:           65535          </div><div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;    ReadoutNoise:                28</div><div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;    SerialTransferTime:              340</div><div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;    ParallelTransferTime:            110</div><div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;    ParallelTransferTimeFast:        90</div><div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;    ReadoutMode:</div><div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;       ReadoutMode:                  Nominal</div><div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;       Partial:</div><div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;          FirstRowReadout:           0</div><div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;          NumRowsReadout:            4510</div><div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;    ElectronicOffset:            100 </div><div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;    FlatfieldNoiseRMS:           0.010      </div><div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;    CTI:</div><div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;            Model:           Simple</div><div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;            Simple:</div><div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;               CTEMean:        0.99999</div><div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;              Short2013:</div><div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;                  Beta:     0.37</div><div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;                  Temperature:  203.0</div><div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;                  NumTrapSpecies:[9.8, 3.31, 1.56, 13.24]</div><div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;                  TrapDensity:   [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]</div><div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;                  ReleaseTime:   [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]</div><div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;    NominalOperatingTemperature: 203.15</div><div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;    Temperature:                 Nominal</div><div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;    TemperatureFileName:         inputfiles/ccdTemperature.txt     </div><div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;    IncludeFlatfield:                 no            </div><div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;    IncludeDarkSignal:                yes </div><div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;    IncludePhotonNoise:               yes            </div><div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;    IncludeReadoutNoise:              yes            </div><div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;    IncludeCTIeffects:                yes            </div><div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;    IncludeOpenShutterSmearing:       yes            </div><div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;    IncludeNaturalVignetting:         yes   </div><div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;    IncludeMechanicalVignetting:      yes</div><div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;    IncludePolarization:              yes</div><div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;    IncludeParticulateContamination:  yes</div><div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;    IncludeMolecularContamination:    yes</div><div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;    IncludeQuantumEfficiency:         yes</div><div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;    IncludeConvolution:               yes            </div><div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;    IncludeFullWellSaturation:        yes            </div><div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;    IncludeDigitalSaturation:         yes      </div><div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;    IncludeQuantisation:              yes      </div></div><!-- fragment --><h3><a class="anchor" id="position"></a>Position</h3>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\in $" src="form_43.png"/> [1, 2, 3, 4, Custom]</p>
 <p>The CCD position can be used to select a specific pre-defined CCD or a custom one.</p>
 <p>The pre-defined CCD positions are shown in the figures below.</p>
 <div class="image">
@@ -511,15 +519,15 @@ Figure 8: Layout of the CCDs for the fast camera's.</div></div>
 <p>In case a pre-defined position is used, these configuration parameters are read from the <a href="#ccdPositions">CCDPositions</a> block (see below).</p>
 <h3><a class="anchor" id="orginOffsetX"></a>OriginOffsetX</h3>
 <p><em>Allowed values:</em> Any</p>
-<p>Offset of the CCD origin from the centre of the optical plane (i.e. the intersection of the optical axis with the focal plane) in the x-direction, expressed in mm. The origin of the CCD is defined as the point where the readout register is located. See Fig. 6 for more details (Δx<sub>CCD</sub>).</p>
+<p>Offset of the CCD origin from the centre of the optical plane (i.e. the intersection of the optical axis with the focal plane) in the x-direction, expressed in mm. The origin of the CCD is defined as the point where the readout register is located. See Fig. 6 for more details ( <img class="formulaInl" alt="$\Delta x_{\rm CCD} $" src="form_53.png"/>).</p>
 <p>This parameter is only used when the <a href="#position">Position</a>=Custom.</p>
 <h3><a class="anchor" id="originOffsetY"></a>OriginOffsetY</h3>
 <p><em>Allowed values:</em> Any</p>
-<p>Offset of the CCD origin from the centre of the optical plane (i.e. the intersection of the optical axis with the focal plane) in the y-direction, expressed in mm. The origin of the CCD is defined as the point where the readout register is located. See Fig. 6 for more details (Δy<sub>CCD</sub>).</p>
+<p>Offset of the CCD origin from the centre of the optical plane (i.e. the intersection of the optical axis with the focal plane) in the y-direction, expressed in mm. The origin of the CCD is defined as the point where the readout register is located. See Fig. 6 for more details ( <img class="formulaInl" alt="$\Delta y_{\rm CCD} $" src="form_54.png"/>).</p>
 <p>This parameter is only used when the <a href="#position">Position</a>=Custom.</p>
 <h3><a class="anchor" id="ccdOrientation"></a>Orientation</h3>
 <p><em>Allowed values:</em> Any</p>
-<p>Orientation angle of the CCD w.r.t. the orientation of the focal plane, measured counterclockwise and expressed in degrees. This rotation is performed around the offset origin of the CCD. See Fig. 6 for more details (γ<sub>CCD</sub>).</p>
+<p>Orientation angle of the CCD w.r.t. the orientation of the focal plane, measured counterclockwise and expressed in degrees. This rotation is performed around the offset origin of the CCD. See Fig. 6 for more details ( <img class="formulaInl" alt="$\gamma_{\rm CCD} $" src="form_55.png"/>).</p>
 <p>This parameter is only used when the <a href="#position">Position</a>=Custom.</p>
 <h3><a class="anchor" id="ccdNumColumns"></a>NumColumns</h3>
 <p><em>Allowed values:</em> &gt; 0</p>
@@ -561,7 +569,7 @@ Figure 8: Layout of the CCDs for the fast camera's.</div></div>
 <p><em>Allowed values:</em> &gt; 0</p>
 <p>Reference value of the gain of ACD2 of the FEE at its <a href="#nominalTempFEE">nominal operating temperature</a>, expressed in µV/e<sup>-</sup>.</p>
 <h4><a class="anchor" id="gainAllowedDiffCCD"></a>Gain: AllowedDifference</h4>
-<p><em>Allowed values:</em> ∈ [0,100]</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\in $" src="form_43.png"/> [0,100]</p>
 <p>Percentage of the reference values for the gain of the left- and right-hand side of the CCD that indicates the maximum allowed difference between these gain values.</p>
 <h4><a class="anchor" id="gainStabilityCCD"></a>Gain: Stability</h4>
 <p><em>Allowed values:</em> Any</p>
@@ -569,21 +577,25 @@ Figure 8: Layout of the CCDs for the fast camera's.</div></div>
 <h3><a class="anchor" id="quantumEfficiency"></a>QuantumEfficiency</h3>
 <p>Quantum efficiency is the ratio of the number of collected electrons to the number of incident photons, considering the passband and the spectral energy distribution of the stars given the <a href="#fluxm0">Fluxm0</a> parameter and the magnitude of the stars in the <a href="#starCatalogue">star catalogue</a>.</p>
 <h4><a class="anchor" id="quantumEfficiencyMean"></a>QuantumEfficiency: MeanQuantumEfficiency</h4>
-<p><em>Allowed values:</em> ∈ [0,1]</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\in $" src="form_43.png"/> [0,1]</p>
 <p>Mean throughput efficiency due to quantum efficiency (i.e. the mean over all pixels of one detector).</p>
-<h4><a class="anchor" id="angleDependencyQE"></a>QuantumEfficiency: MeanAmgleDependency</h4>
+<h4><a class="anchor" id="angleDependencyQE"></a>QuantumEfficiency: MeanAngleDependency</h4>
 <p><em>Allowed values:</em> &gt; 0</p>
 <p>Mean efficiency caused by the angle dependency of the quantum efficiency.</p>
 <h3><a class="anchor" id="polarization"></a>Polarization</h3>
 <p>Optical elements induce a preferred direction for the propagation of light. This effect is called polarisation.</p>
 <h4><a class="anchor" id="polarizationExpectedValue"></a>Polarization: ExpectedValue</h4>
-<p><em>Allowed values:</em> ∈ [0,1]</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\in $" src="form_43.png"/> [0,1]</p>
 <p>Expected value of the throughput efficiency due to polarisation (i.e. the mean over all pixels of one detector). Currently no information on the angle dependency of polarisation is available and hence this value will be used for the whole FOV, until further notice.</p>
 <h3><a class="anchor" id="vignetting"></a>Vignetting</h3>
-<p>Vignetting is the brightness attenuation towars the edges of the FOV.</p>
-<h4><a class="anchor" id="vignettingExpectedValue"></a>Vignetting: ExpectedValue</h4>
-<p><em>Allowed values:</em> ∈ [0,1]</p>
-<p>Expected value of the throughput efficiency due to vignetting (i.e. the mean over all pixels of one detector).</p>
+<p>The overall vignetting can be computed by summing the contributions of natural an mechanical vignetting.</p>
+<p>Natural vignetting is the brightness attenuation towards the edges of the FOV, introduced by the view factor of the entrance pupil. Mechanical vignetting is due to the introduced downsizing of the lenses clear apertures.</p>
+<h4><a class="anchor" id="naturalVignettingExpectedValue"></a>Vignetting: NaturalVignetting: ExpectedValue</h4>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\in $" src="form_43.png"/> [0,1]</p>
+<p>Expected value of the throughput efficiency due to natural vignetting (i.e. the mean over all pixels of one detector).</p>
+<h4><a class="anchor" id="mechanicalVignettingRadiusFOV"></a>Vignetting: MechanicalVignetting: RadiusFOV</h4>
+<p><em>Allowed values:</em> &gt; 0</p>
+<p>Radius of the FOV, expressed in degrees. Beyond this radius all incoming flux (apart from the cosmic hits) is shielded off.</p>
 <h3><a class="anchor" id="contamination"></a>Contamination</h3>
 <p>The contribution to contamination is two-fold:</p>
 <ul>
@@ -591,10 +603,10 @@ Figure 8: Layout of the CCDs for the fast camera's.</div></div>
 <li>molecular contamination is caused chiefly by outgassing of materials in the first phase of the mission and affects all surfaces (the down side of L2 and the CCD will be affected the most).</li>
 </ul>
 <h4><a class="anchor" id="particulateContamination"></a>Contamination: ParticulateContaminationEfficiency</h4>
-<p><em>Allowed values:</em> ∈ [0,1]</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\in $" src="form_43.png"/> [0,1]</p>
 <p>Throughput efficiency due to particulate contamination.</p>
 <h4><a class="anchor" id="molecularContamination"></a>Contamination: MolecularContaminationEfficiency</h4>
-<p><em>Allowed values:</em> ∈ [0,1]</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\in $" src="form_43.png"/> [0,1]</p>
 <p>Throughput efficiency due to molecular contamination.</p>
 <h3><a class="anchor" id="darkSignal"></a>DarkSignal</h3>
 <p>Dark signal is the relatively small electric current that is generated in the CCD when no outside radiation is entering the device.</p>
@@ -602,8 +614,11 @@ Figure 8: Layout of the CCDs for the fast camera's.</div></div>
 <p><em>Allowed values:</em> &gt; 0</p>
 <p>Dark current, expressed in e<sup>-</sup> / s. This is the nominal value of the dark signal.</p>
 <h4><a class="anchor" id="dsnu"></a>DarkSignal: DSNU</h4>
-<p><em>Allowed values:</em> ∈ [0,100]</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\in $" src="form_43.png"/> [0,100]</p>
 <p>Dark signal non-uniformity, expressed as a percentage of the <a href="#darkCurrent">dark current</a>. This is the systematic (fixed-pattern) deviation of a pixel's dark current from its nominal value.</p>
+<h4><a class="anchor" id="darkCurrentStability"></a>DarkSignal: Stability</h4>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\ge $" src="form_36.png"/> 0</p>
+<p>Temperature stability of the dark current, expressed in in e<sup>-</sup> / K / s.</p>
 <h3><a class="anchor" id="fullWellSaturation"></a>FullWellSaturation</h3>
 <p><em>Allowed values:</em> &gt; 0</p>
 <p>Full-well saturation limit of a single CCD pixel, expressed in e<sup>-</sup> / pixel. If a pixels receives more electrons than its full-well saturation limit, the additional electrons flow evenly distributed in positive and negative charge-transfer direction, a phenomenon called <em>blooming</em>. The electrons reaching the edge of the CCD will not be detected..</p>
@@ -612,16 +627,25 @@ Figure 8: Layout of the CCDs for the fast camera's.</div></div>
 <p>Digital saturation limit of the CCD to which pixel values are topped off, expressed in ADU / pixel. This value depends on the A/D convertor of the detector. For a 16-bit convertor, the digital saturation limit is 65536 ADU.</p>
 <p>The gain of the front-end electronics and detector should be such that the <a href="#fullWellSaturation">full-well saturation</a> results in values below the digital saturation limit.</p>
 <h3><a class="anchor" id="readoutNoise"></a>ReadoutNoise</h3>
-<p><em>Allowed values:</em> ≥ 0</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\ge $" src="form_36.png"/> 0</p>
 <p>Mean readout noise of the detector, expressed in e<sup>-</sup>.</p>
 <p>Readout noise occurs due to the imperfect nature of the CCD amplifiers. When the electrons are transferred to the amplifier, the induced voltage is measured. However, this measurement is not perfect, but gives a value which is on average too high by an amount of the readout noise, with the squareroot of the readout noise as standard deviation (we add the readout noise of the FEE and the CCD in quadrature).</p>
-<h3><a class="anchor" id="readoutTime"></a>ReadoutTime</h3>
+<h3><a class="anchor" id="serialTransferTime"></a>SerialTransferTime</h3>
 <p><em>Allowed values:</em> ≥ 0</p>
-<p>Time required to read out an entire CCD working in frame transfer mode, and the pre-scan and the over-scan strips (to estimate the bias and the smearing resp.), expressed in seconds. Because of the absence of a shutter (which is common in space-based instruments), the CCD still receives light during frame transfer. The flux of each sub-pixel is affected by the flux of the sub-pixels in the same column. Because the CCD is exposed during the whole readout and multiple exposures are created, also the sub-pixels further away from the readout register have their influence.</p>
-<p>For non-frame-transfer CCDs the readout time should be set to zero.</p>
-<h3><a class="anchor" id="flatfieldPtPNoise"></a>FlatfieldPtPNoise</h3>
-<p><em>Allowed values:</em> ∈ [0,1]]</p>
-<p>Fractional peak-to-peak amplitude of the pixel non-uniform sensitivity response..</p>
+<p>Time required to shift the content of the readout register over one pixel, towards the output node. This is not only relevant for the image area but also for the serial pre-scan (i.e. bias register map) and the serial over-scan (which has not been implemented).</p>
+<h3><a class="anchor" id="parallelTransferTime"></a>ParallelTransferTime</h3>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\ge $" src="form_36.png"/> 0</p>
+<p>Time required to shift the charges one row down (towards the readout register) in case the readout register will be read out by the FEE.</p>
+<p>The difference with <a href="#parallelTransferTimeFast">ParallelTransferTimeFast</a> is due to two delay parameters recommended by Teledyne e2v for clock settling. Settling times are to ensure one clock has reached its low level before another clock starts to rise. It ensures good charge transfer, as without it you could cause charge to be lost. This is particularly the case when dealing with the (parallel) transfer into the readout register, as the rise and fall times of the image clocks are a lot slower than those of the register clocks.</p>
+<h3><a class="anchor" id="parallelTransferTimeFast"></a>ParallelTransferTimeFast</h3>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\ge $" src="form_36.png"/> 0</p>
+<p>Time required to shift the charges one row down (towards the readout register) in case the readout register will not be read out by the FEE. In that case clock settling is not needed, hence the difference with <a href="#parallelTransferTime">ParallelTransferTime</a>.</p>
+<h3><a class="anchor" id="flatfieldPtPNoise"></a>FlatfieldNoiseRMS</h3>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\ge $" src="form_36.png"/> 0</p>
+<p>Local PRNU (Pixel Response Non-Uniformity), defined as the standard deviation in the signal level ( <img class="formulaInl" alt="$S_i $" src="form_38.png"/>), divided by the mean signal ( <img class="formulaInl" alt="$ \overline{S}$" src="form_39.png"/>):</p>
+<p class="formulaDsp">
+<img class="formulaDsp" alt="\[PRNU = \frac{\sqrt{\frac{1}{N} \sum_{i=1}^{N} (S_i - \overline{S})^2}}{\overline{S}}\]" src="form_76.png"/>
+</p>
 <h3><a class="anchor" id="cti"></a>CTI</h3>
 <p>Because of detector defects, electrons can get trapped in the readout process. The trapped charge ends up getting dissociated from its original pixel and eventually gets released into another pixel. The result is that the original image gets smeared out in the direction away from the readout amplifier (visible in the appearance of "charge trails"). This is known as imperfect CTE (Charge-Transfer Efficiency) or alternatively as CTI (Charge-Transfer Inefficiency).</p>
 <p>The charge trails impact photometry, noise, and astrometry of sources. CTI removes flux from the central pixel and thus degrades the expected S/N for an observation. CTI trails bias measurements of source along the trail direction, which can severely impact high-precision astrometry.</p>
@@ -637,34 +661,34 @@ A more sophisticated implementation ("Short2013") is based on <a href="http://mn
 <h4><a class="anchor" id="simpleCTI"></a>CTI: Simple</h4>
 <p>The simple implementation ("Simple") assumes that for each row transfer (in the direction of the readout register) a fraction of the charge is not transferred to the next row, but stays behind. It will be released by later row transfers.</p>
 <h5><a class="anchor" id="MeanCTE"></a>CTI: Simple: MeanCTE</h5>
-<p><em>Allowed values:</em> ∈ [0,1]</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\in $" src="form_43.png"/> [0,1]</p>
 <p>Mean charge-transfer efficiency (CTE) of the detector. The fraction of the charge that is successfully transferred from one row to the next row is expressed by this parameter.</p>
 <h4><a class="anchor" id="ShortCTI"></a>CTI: Short</h4>
 <p>A more sophisticated implementation ("Short2013") is based on <a href="http://mnras.oxfordjournals.org/content/430/4/3078.full.pdf">Short et al., MNRAS 430, 3078-3085 (2013)</a>, in which only parallel readout is taken into account.</p>
 <h5><a class="anchor" id="beta"></a>CTI: Short2013: Beta</h5>
-<p>Exponent β in Eq. (1) of Short et al. 2013 describing the relationship between the volume of the charge cloud (<em>V<sub>c</sub></em>), the number of electrons in a pixel (<em>N<sub>e</sub></em>), the full-well capacity in electrons (<em>FWC</em>), and the assumed maximum geometrical volume that electrons can occupy within a pixel (<em>V<sub>g</sub></em>):</p>
+<p>Exponent <img class="formulaInl" alt="$\beta $" src="form_56.png"/> in Eq. (1) of Short et al. 2013 describing the relationship between the volume of the charge cloud ( <img class="formulaInl" alt="$V_c $" src="form_57.png"/>), the number of electrons in a pixel ( <img class="formulaInl" alt="$N_e $" src="form_58.png"/>), the full-well capacity in electrons ( <img class="formulaInl" alt="$FWC $" src="form_59.png"/>), and the assumed maximum geometrical volume that electrons can occupy within a pixel ( <img class="formulaInl" alt="$V_g $" src="form_60.png"/>):</p>
 <p class="formulaDsp">
 <img class="formulaDsp" alt="\[\frac{V_c}{V_g} = \left( \frac{N_e}{FWC} \right)^{\beta}.\]" src="form_19.png"/>
 </p>
 <h5><a class="anchor" id="temperature"></a>CTI: Short2013: Temperature</h5>
-<p><em>Allowed values:</em> ≥ 0</p>
-<p>Temperature <em>T</em> that is used to calculated the thermal velocity <em>v<sub>t</sub></em> of the electrons:</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\ge $" src="form_36.png"/> 0</p>
+<p>Temperature <img class="formulaInl" alt="$T $" src="form_61.png"/> that is used to calculated the thermal velocity <img class="formulaInl" alt="$v_t $" src="form_62.png"/> of the electrons:</p>
 <p class="formulaDsp">
 <img class="formulaDsp" alt="\[v_t = \frac{3kT}{m_e^{\ast}},\]" src="form_20.png"/>
 </p>
-<p>where <em>k</em> is the Boltzmann constant and <em>m<sub>e</sub><sup>*</sup></em> is the effective electron mass in silicon, which we approximate by half the free electron rest mass.</p>
+<p>where <img class="formulaInl" alt="$k $" src="form_63.png"/> is the Boltzmann constant and <img class="formulaInl" alt="$m_e^* $" src="form_64.png"/> is the effective electron mass in silicon, which we approximate by half the free electron rest mass.</p>
 <h5><a class="anchor" id="numTrapSpecies"></a>CTI: Short2013: NumTrapSpecies</h5>
 <p><em>Allowed values:</em> &gt; 0</p>
 <p>Number of trap species that is used in the CTI model by Short et al. 2013.</p>
 <h5><a class="anchor" id="trapDensity"></a>CTI: Short2013: TrapDensity</h5>
 <p><em>Allowed values:</em> Array holding one non-negative entry per trap species.</p>
-<p>Array holding the trap density <em>n<sub>t</sub></em> for each of the considered trap species, expressed in number of traps per pixel. This is used to calculate the γ-value in Eq. (22) of Short et al. 2013.</p>
+<p>Array holding the trap density <img class="formulaInl" alt="$n_t $" src="form_65.png"/> for each of the considered trap species, expressed in number of traps per pixel. This is used to calculate the <img class="formulaInl" alt="$\gamma $" src="form_66.png"/>-value in Eq. (22) of Short et al. 2013.</p>
 <h5><a class="anchor" id="trapCaptureCrossSection"></a>CTI: Short2013: TrapCaptureCrossSection</h5>
 <p><em>Allowed values:</em> Array holding one non-negative entry per trap species.</p>
-<p>Array holding the trap capture cross-section <em>σ</em> for each of the considered trap species, expressed in m<sup>2</sup>. This is used to calculated the α-value in Eq. (22) of Short et al. 2013. In this formula, the charge transfer time is used as value for <em>t</em>.</p>
+<p>Array holding the trap capture cross-section <img class="formulaInl" alt="$\sigma$" src="form_67.png"/> for each of the considered trap species, expressed in m<sup>2</sup>. This is used to calculated the <img class="formulaInl" alt="$\alpha$" src="form_68.png"/>-value in Eq. (22) of Short et al. 2013. In this formula, the charge transfer time is used as value for <img class="formulaInl" alt="$t $" src="form_69.png"/>.</p>
 <h5><a class="anchor" id="releaseTime"></a>CTI: Short2013: ReleaseTime</h5>
 <p><em>Allowed values:</em> Array holding one non-negative entry per trap species.</p>
-<p>Array holding the trap release time constants <em>τ<sub>r</sub></em> for each of the considered trap species, expressed in seconds.</p>
+<p>Array holding the trap release time constants <img class="formulaInl" alt="$\tau_r$" src="form_70.png"/> for each of the considered trap species, expressed in seconds.</p>
 <h3><a class="anchor" id="nominalTempCCD"></a>NominalOperatingTemperature</h3>
 <p><em>Allowed values:</em> &gt; 0</p>
 <p>Nominal operating temperature of the CCD, expressed in Kelvin.</p>
@@ -691,9 +715,12 @@ A more sophisticated implementation ("Short2013") is based on <a href="http://mn
 <h3><a class="anchor" id="inclOpenShutterSmearing"></a>IncludeOpenShutterSmearing</h3>
 <p><em>Allowed values:</em> "yes" and "no"</p>
 <p>Indicates whether or not to include open-shutter smearing effects.</p>
-<h3><a class="anchor" id="inclVignetting"></a>IncludeVignetting</h3>
+<h3><a class="anchor" id="inclNaturalVignetting"></a>IncludeNaturalVignetting</h3>
 <p><em>Allowed values:</em> "yes" and "no"</p>
-<p>Indicates whether or not to include brightness attenuation towards the edge of the FOV due to vignetting.</p>
+<p>Indicates whether or not to include brightness attenuation towards the edge of the FOV due to natural vignetting.</p>
+<h3><a class="anchor" id="inclMechanicalVignetting"></a>IncludeMechanicalVignetting</h3>
+<p><em>Allowed values:</em> "yes" and "no"</p>
+<p>Whether or not to include blockage of incoming radiation due to mechanical vignetting.</p>
 <h3><a class="anchor" id="inclPolarization"></a>IncludePolarization</h3>
 <p><em>Allowed values:</em> "yes" and "no"</p>
 <p>Indicates whether or not to include loss of throughput efficiency due to polarisation.</p>
@@ -728,30 +755,34 @@ A more sophisticated implementation ("Short2013") is based on <a href="http://mn
 <p>Indicates whether or not the sub-pixel images must be written to the HDF5-file. Use this for a limited number of exposures, as it takes a lot of space. </p><hr/>
 <h2><a class="anchor" id="subFieldParameters"></a>Sub-Field Parameters</h2>
 <p>The <b>SubField</b> block of the configuration file contains all the information about the sub-field of the CCD that is modelled by the simulation. The structure of this block is the following:</p>
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;SubField:</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;</div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;    ZeroPointRow:                0</div><div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;    ZeroPointColumn:             0</div><div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;    NumColumns:                  10</div><div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;    NumRows:                     10</div><div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;    NumBiasPrescanRows:          5</div><div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;    NumSmearingOverscanRows:     5</div><div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;    SubPixels:                   4</div></div><!-- fragment --><div class="image">
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;SubField:</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;</div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;    ZeroPointRow:                0</div><div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;    ZeroPointColumn:             0</div><div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;    NumColumns:                  10</div><div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;    NumRows:                     10</div><div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;    NumBiasPrescanRows:          10</div><div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;    NumBiasPrescanColumns:       5</div><div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;    NumSmearingOverscanRows:     5</div><div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;    SubPixels:                   4</div></div><!-- fragment --><div class="image">
 <img src="subField.png" alt="subField.png"/>
 <div class="caption">
 Figure 9: Schematic presentation of the modelled sub-field and the parameters required to define it. The pixel coordinates of the origin of the sub-field relative to the CCD are xs and ys.</div></div>
 <h3><a class="anchor" id="zeroPointRow"></a>ZeroPointRow</h3>
 <p><em>Allowed values:</em> &gt; 0</p>
-<p>Row of the origin of the sub-field in the detector, expressed in pixels. See Fig. 9 for more details (y<sub>s</sub>).</p>
+<p>Row of the origin of the sub-field in the detector, expressed in pixels. See Fig. 9 for more details ( <img class="formulaInl" alt="$y_s $" src="form_71.png"/>).</p>
 <h3><a class="anchor" id="zeroPointColumn"></a>ZeroPointColumn</h3>
 <p><em>Allowed values:</em> &gt; 0</p>
-<p>Column of the origin of the sub-field in the detector, expressed in pixels. See Fig. 9 for more details (x<sub>s</sub>).</p>
+<p>Column of the origin of the sub-field in the detector, expressed in pixels. See Fig. 9 for more details ( <img class="formulaInl" alt="$x_s $" src="form_72.png"/>).</p>
 <h3><a class="anchor" id="numColumns"></a>NumColumns</h3>
-<p><em>Allowed values:</em> ≥ 8</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\ge $" src="form_36.png"/> 8</p>
 <p>Number of columns in the sub-field, expressed in pixels.</p>
 <h3><a class="anchor" id="numRows"></a>NumColumns</h3>
-<p><em>Allowed values:</em> ≥ 8</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\ge $" src="form_36.png"/> 8</p>
 <p>Number of rows in the sub-field, expressed in pixels.</p>
 <h3><a class="anchor" id="numPreScanRows"></a>NumBiasPrescanRows</h3>
-<p><em>Allowed values:</em> ≥ 0</p>
-<p>Number of rows in the pre-scan strip (see Fig. 9), expressed in normal pixel units. This strip is located at the bottom of the sub-field that is modelled in detail and contains the electronic offset and readout noise.</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\ge $" src="form_36.png"/> 0</p>
+<p>Number of rows in the pre-scan strip (see Fig. 9), expressed in normal pixel units. There are two such strips, on either side of the detector image, and they contain the electronic offset and readout noise of the adjacent detector half.</p>
+<p>This parameter is configurable (and not fixed to the number of rows in the detector or the sub-field), because we want (1) to avoid the bias maps to take up too much space in the output file and (2) be able to do accurate bias correction for the photometric reduction (thus want to avoid small noisy bias maps).</p>
+<h3><a class="anchor" id="numPreScanColumns"></a>NumBiasPrescanColumns</h3>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\ge $" src="form_36.png"/> 0</p>
+<p>Number of columns in the pre-scan strip (see Fig. 9), expressed in normal pixel units. There are two such strips, on either side of the detector image, and they contain the electronic offset and readout noise of the adjacent detector half.</p>
 <h3><a class="anchor" id="numOverScanRows"></a>NumSmearingOverscanRows</h3>
-<p><em>Allowed values:</em> ≥ 0</p>
+<p><em>Allowed values:</em> <img class="formulaInl" alt="$\ge $" src="form_36.png"/> 0</p>
 <p>Number of rows in the over-scan strip (see Fig. 9), expressed in normal pixel units. This strip is located at the top of the sub-field that is modelled in detail and contains the star smearing due to the absence of a shutter. This flux in this strip is also affected by the electronic offset, readout noise, and shot noise. Not included are the PRNU, cosmic hits, and charge-transfer efficiency (CTE).</p>
 <h3><a class="anchor" id="numSubPixels"></a>SubPixels</h3>
-<p><em>Allowed values:</em> power of 2 (≤ 128)</p>
+<p><em>Allowed values:</em> power of 2 ( <img class="formulaInl" alt="$\le $" src="form_73.png"/> 128)</p>
 <p>Number of sub-pixels per pixel in both directions.</p>
 <p>If you want a pixel of 256 x 256 = 65536 sub-pixels you should specify in the configuration file 256. The total number of subpixels per pixel will then be 65536. If you want 256 = 16 x 16 sub-pixels per pixel, then you should specify 16 in the configuration file. </p><hr/>
 <h2><a class="anchor" id="seedParameters"></a>Seed Parameters</h2>

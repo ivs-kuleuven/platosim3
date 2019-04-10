@@ -25,10 +25,11 @@
  * \param configParam    Configuration parameters for the detector.
  * \param hdf5file       HFD5 file to write the detector images to.
  * \param camera         Camera to which to attach the detector.
+ * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start.
  */
 
-DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator)
-: Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator), sigma(nullptr)
+DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
+: Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure), sigma(nullptr)
 {
     // Parse the parameters from the configuration file.
 
@@ -87,7 +88,7 @@ DetectorWithAnalyticNonGaussianPSF::~DetectorWithAnalyticNonGaussianPSF()
 
 void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &configParam)
 {
-    flatfieldNoiseAmplitude   = configParam.getDouble("CCD/FlatfieldPtPNoise");
+    flatfieldNoiseRMS         = configParam.getDouble("CCD/FlatfieldNoiseRMS");
     includeFlatfield          = configParam.getBoolean("CCD/IncludeFlatfield");
     flatfieldSeed             = configParam.getLong("RandomSeeds/FlatFieldSeed");
 
@@ -95,8 +96,10 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
     string filename = configParam.getAbsoluteFilename("PSF/AnalyticNonGaussian/ParameterFileName");
 
     ifstream file(filename);
-    if (!file)
-        return;
+    if (!file) {
+        Log.error("DetectorWithAnalyticNonGaussianPSF::configure(): Parameter file doesn't exist or is not readable: "  + filename);
+        throw ConfigurationException("DetectorWithAnalyticNonGaussianPSF: wrong parameter filename in configuration file");
+    }
 
     params.clear();
     string line;
@@ -118,6 +121,8 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
     includeChargeDiffusion = configParam.getBoolean("PSF/AnalyticNonGaussian/IncludeChargeDiffusion");
     chargeDiffusionStrength = configParam.getDouble("PSF/AnalyticNonGaussian/ChargeDiffusionStrength");
 
+    Log.info("DetectorWithAnalyticNonGaussianPSF: sigma of charge diffusion: " + to_string(chargeDiffusionStrength) + " pix");
+
     
     // The sigma of the PSF can either be a fixed value, or given by a time series in a file
     
@@ -127,7 +132,7 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
         double sigmaPSFValue = configParam.getDouble("PSF/AnalyticNonGaussian/Sigma/ConstantValue");     // [pix]
         sigma = new Parameter<double>(sigmaPSFValue);
     
-        Log.info("DetectorWithAnalyticNonGaussianPSF: Using a constant sigma: " + to_string(sigmaPSFValue) + " pix");
+        Log.info("DetectorWithAnalyticNonGaussianPSF: Using a constant PSF sigma: " + to_string(sigmaPSFValue) + " pix");
     }
     else if (sigmaPSFSource == "FromFile")
     {
@@ -196,19 +201,19 @@ void DetectorWithAnalyticNonGaussianPSF::integrateAnalyticPSF(IntegralOfAnalytic
         unsigned c2 = min(params[0].size() / 7 - 1, (size_t)r + 1) * 7;
         double w = r - (unsigned)r;
         w = 3. * w * w - 2. * w * w * w;
-
+        
         for (auto i = params.cbegin(); i != params.cend(); i++) 
         {
             double pr = s * ((1. - w) * (*i)[c1] + w * (*i)[c2]);
             double pp = (1. - w) * (*i)[c1 + 1] + w * (*i)[c2 + 1];
-            double h = (1. - w) * (*i)[c1 + 2] + w * (*i)[c2 + 2];
-            double b = s * ((1. - w) * (*i)[c1 + 3] + w * (*i)[c2 + 3]);
-            double r = s * ((1. - w) * (*i)[c1 + 4] + w * (*i)[c2 + 4]);
-            double m = (1. - w) * (*i)[c1 + 5] + w * (*i)[c2 + 5];
-            double a = (1. - w) * (*i)[c1 + 6] + w * (*i)[c2 + 6];
+            double h  = (1. - w) * (*i)[c1 + 2] + w * (*i)[c2 + 2];
+            double b  = s * ((1. - w) * (*i)[c1 + 3] + w * (*i)[c2 + 3]);
+            double rr = s * ((1. - w) * (*i)[c1 + 4] + w * (*i)[c2 + 4]);
+            double m  = (1. - w) * (*i)[c1 + 5] + w * (*i)[c2 + 5];
+            double a  = (1. - w) * (*i)[c1 + 6] + w * (*i)[c2 + 6];
 
-            psf.addPart(ox + pr * cos(p + pp), oy + pr * sin(p + pp), h, b, r, m, p + a);
-            psf.addPart(ox + pr * cos(p - pp), oy + pr * sin(p - pp), h, b, r, m, p - a);
+            psf.addPart(ox + pr * cos(p + pp), oy + pr * sin(p + pp), h, b, rr, m, p + a);
+            psf.addPart(ox + pr * cos(p - pp), oy + pr * sin(p - pp), h, b, rr, m, p - a);
         }
     } 
     else 
@@ -256,7 +261,6 @@ void DetectorWithAnalyticNonGaussianPSF::generateFlatfieldMap()
         for(unsigned int column = 0; column < Ncolumns; column++)
         {
             // Fourier space: generate white noise and include 1/f dependency
-            // (Note: see https://en.wikipedia.org/wiki/Pink_noise#Generalization_to_more_than_one_dimension)
 
             evenMap(row, column) = flatfieldDistribution(flatfieldGenerator) / (pow(row, 2) + std::pow(column, 2) + 1);
         }
@@ -269,17 +273,24 @@ void DetectorWithAnalyticNonGaussianPSF::generateFlatfieldMap()
 
     // Cut out the appropriate part
 
-    flatfieldMap(arma::span::all, arma::span::all) = realMap(arma::span(0, Nrows / 2 - 1), arma::span(0, Ncolumns / 2 - 1));
+    unsigned int numRowsFlatfield = Nrows / 2;
+    unsigned int numColumnsFlatfield = Ncolumns / 2;
+    
+    flatfieldMap(arma::span::all, arma::span::all) = realMap(arma::span(0, numRowsFlatfield - 1), arma::span(0, numColumnsFlatfield - 1));
+    flatfieldMap.reshape(numRowsFlatfield * numColumnsFlatfield, 1);
 
-    // Normalise
+    // Normalisation
+    //  - divide by mean and subtract 1.0 -> mean = 0.0
+    //  - scale such that std.dev. = flatfield RMS and mean = 0.0
+    //  - add 1.0
 
-    float minPinkNoise = flatfieldMap.min();
-    float maxPinkNoise = flatfieldMap.max();
+    flatfieldMap /= arma::mean(flatfieldMap.col(0));
+    flatfieldMap -= 1;
+    double scale = flatfieldNoiseRMS / arma::stddev(flatfieldMap.col(0));
+    flatfieldMap *= scale;
+    flatfieldMap += 1;
 
-    flatfieldMap -= minPinkNoise;
-    flatfieldMap /= (maxPinkNoise - minPinkNoise); // [0, 1]
-    flatfieldMap *= flatfieldNoiseAmplitude;    // [0, flatfialdNoiseAmplitude]
-    flatfieldMap += (1.0 - flatfieldNoiseAmplitude);
+    flatfieldMap.reshape(numRowsFlatfield, numColumnsFlatfield);
 
     // Write the result to the HDF5 output file
 
@@ -311,7 +322,8 @@ void DetectorWithAnalyticNonGaussianPSF::generateFlatfieldMap()
 void DetectorWithAnalyticNonGaussianPSF::reset()
 {
     pixelMap.zeros();
-    biasMap.zeros();
+    biasMapLeft.zeros();
+    biasMapRight.zeros();
     smearingMap.zeros();
 }
 
@@ -369,7 +381,7 @@ double DetectorWithAnalyticNonGaussianPSF::takeExposure(int exposureNr, double s
 
     // Advance the internal clock
 
-    internalTime += exposureTime + readoutTime;
+    internalTime += exposureTime + readoutTimeBeforeNextExposure;
 
     return internalTime;
 }
@@ -415,7 +427,7 @@ void DetectorWithAnalyticNonGaussianPSF::integrateLight(int exposureNr, double s
 
     // Integration (incl. jitter): point sources + background
 
-    camera.exposeDetector(*this, startTime, exposureTime);
+    camera.exposeDetector(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
 
     // Apply flatfield (at pixel level)
 
@@ -508,7 +520,7 @@ tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addFlux(double x
         s = sqrt(s * s + d * d);
     }
 
-    int size = 2 * (int)(8. * s + 1) + 1;;
+    int size = 2 * (int)(8. * s + 1) + 1;
     int sx = (int)floor(column0 - (size - 1.) / 2.);
     int sy = (int)floor(row0 - (size - 1.) / 2.);
 

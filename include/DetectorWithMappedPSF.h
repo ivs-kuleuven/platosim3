@@ -18,7 +18,7 @@ class DetectorWithMappedPSF: public Detector
 {
     public:
 
-        DetectorWithMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator);
+        DetectorWithMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure);
         virtual ~DetectorWithMappedPSF();
 
         virtual double takeExposure(int exposureNr, double startTime, double exposureTime) override;
@@ -54,7 +54,7 @@ class DetectorWithMappedPSF: public Detector
         bool includeChargeDiffusion;				// Whether or not to include charge diffusion
         bool includeJitterSmoothing;             // Whether or not to include jitter smoothing
 
-        double flatfieldNoiseAmplitude;         // Peak-to-peak noise amplitude
+        double flatfieldNoiseRMS;         // Peak-to-peak noise amplitude
 
         bool includeFlatfield;                  // Whether or not to include flat fielding
         bool writeSubPixelImagesToHDF5;         // Write subpixel maps to HDF5 as well

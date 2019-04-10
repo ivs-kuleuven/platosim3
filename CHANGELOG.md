@@ -1,5 +1,54 @@
 # Changelog for PlatoSim
 
+
+
+<!-- 3.3.6 -->
+<!-- ***** -->
+
+## 10/04/2019: 3.3.6
+
+### Fixed
+
+* Bias register map expressed as additional columns (GitHub issue #290)
+
+* Implement partial readout (GitHub issue #285)
+
+* Backward compatibility to the configuration files? (GitHub issue #292)
+
+* Improve documentation on supplementary input files of PlatoSim (GitHub issue #308)
+
+* Migtool error (GitHub issue #307)
+
+* Update HDF5 dependency to 1.10.2 (GitHub issue #322)
+
+* Remove python 3.5 dependency (GitHub issue #318)
+
+* Improved error trapping for CCD/ReadoutMode/ReadoutMode (GitHub issue #302)
+
+* Incorrect sky background level (GitHub issue #325)
+
+* Incorrect flatfield level (GitHub issue #326)
+
+* Segfault on running test harness (GitHub issue #329)
+
+* Open-shutter smearing not accounted for (GitHub issue #339)
+
+* Implement mechanical vignetting (GitHub issue #334)
+
+* Partial-readout parameters not read out correctly (GitHub issue #346)
+
+* Conserving disc space by writing the images as int matrices into the .hdf5 files (GitHub issue #348)
+
+* Bug fix in the createStarCatalogFileFromPixelCoordinates() method.
+
+
+
+### Added
+
+* Temperature dependency of the dark current (space environment)
+
+
+
 <!-- 3.3.5 -->
 <!-- ***** -->
 
@@ -8,6 +57,9 @@
 ### Fixed
 
 * Inconsistency in star position output (GitHub issue #294)
+
+
+
 
 
 <!-- 3.3.4 -->
