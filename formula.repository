@@ -26,3 +26,52 @@
 \form#25:$ r $
 \form#26:$ Q_0 $
 \form#27:\[P(r) = k_1 \cdot r^3 + k_2 \cdot r^5 + k_3 \cdot x^7.\]
+\form#28:$S_i$
+\form#29:$\overline{S}$
+\form#30:\[PRNU = \frac{\sqrt{\frac{1}{N} \sum_{i=1}^N (S_i - \overline{S})^2}}{\overline{S}} \]
+\form#31:\[PRNU = \frac{3kT}{m_e^{\ast}},\]
+\form#32:\[\frac{\frac{V_c}{V_g}}{V_g} = \left( \frac{N_e}{FWC} \right)^{\beta}.\]
+\form#33:\[\frac{1/N}{V_g} = \left( \frac{N_e}{FWC} \right)^{\beta}.\]
+\form#34:\[\frac{1}{V_g} = \left( \frac{N_e}{FWC} \right)^{\beta}.\]
+\form#35:\[\frac{V_n}{V_g} = \left( \frac{N_e}{FWC} \right)^{\beta}.\]
+\form#36:$\ge $
+\form#37:$ S_i $
+\form#38:$S_i $
+\form#39:$ \overline{S}$
+\form#40:\[PRNU = \frac{1}{N} t_{exp} \cdot F_0 \cdot T_{\lambda} \cdot Q \cdot A \cdot 10^{-0.4 \cdot m_{\lambda}}\]
+\form#41:\[PRNU = \frac{\frac{1}{N}}{\overline{S}} t_{exp} \cdot F_0 \cdot T_{\lambda} \cdot Q \cdot A \cdot 10^{-0.4 \cdot m_{\lambda}}\]
+\form#42:\[PRNU = \frac{\frac{1}{N}}{\overline{S}}\]
+\form#43:$\in $
+\form#44:$z_{\rm SC} $
+\form#45:$y_{\rm SC} $
+\form#46:$x_{\rm SC} $
+\form#47:$9.2^{\circ} $
+\form#48:$z_{\rm telescope} $
+\form#49:$z_{\rm PLM} $
+\form#50:$y'_{\rm SC} $
+\form#51:$z_{\rm telescope} = z_{\rm FP} $
+\form#52:$\sigma $
+\form#53:$\Delta x_{\rm CCD} $
+\form#54:$\Delta y_{\rm CCD} $
+\form#55:$\gamma_{\rm CCD} $
+\form#56:$\beta $
+\form#57:$V_c $
+\form#58:$N_e $
+\form#59:$FWC $
+\form#60:$V_g $
+\form#61:$T $
+\form#62:$v_t $
+\form#63:$k $
+\form#64:$m_e^* $
+\form#65:$n_t $
+\form#66:$\gamma $
+\form#67:$\sigma$
+\form#68:$\alpha$
+\form#69:$t $
+\form#70:$\tau_r$
+\form#71:$y_s $
+\form#72:$x_s $
+\form#73:$\le $
+\form#74:\[PRNU = \frac{\frac{1}{N} \sqrt{\sum_{i=1}^{N}}}{\overline{S}}\]
+\form#75:\[PRNU = \frac{\frac{1}{N} \sqrt{\sum_{i=1}^{N} (S_i - \overline{S})^2}}{\overline{S}}\]
+\form#76:\[PRNU = \frac{\sqrt{\frac{1}{N} \sum_{i=1}^{N} (S_i - \overline{S})^2}}{\overline{S}}\]
