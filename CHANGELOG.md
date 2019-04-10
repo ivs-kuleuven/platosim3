@@ -39,6 +39,8 @@
 
 * Conserving disc space by writing the images as int matrices into the .hdf5 files (GitHub issue #348)
 
+* Bug fix in the createStarCatalogFileFromPixelCoordinates() method.
+
 
 
 ### Added
