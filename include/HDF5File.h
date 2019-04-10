@@ -46,7 +46,10 @@ class HDF5File
         void writeArray(string groupName, string arrayName, unsigned int* array, int size);
         void writeArray(string groupName, string arrayName, float*        array, int size);
         void writeArray(string groupName, string arrayName, double*       array, int size);
-        void writeArray(string groupName, string arrayName, arma::Mat<float>& A);
+        template<typename T>
+        void writeArray(string groupName, string arrayName, arma::Mat<T>& A);
+        template<typename T>
+        static H5::PredType getPredType(arma::Mat<T>& A);
 
         double readDoubleGroupAttribute(string groupName, string attributeName);
         int readIntegerGroupAttribute(string groupName, string attributeName);

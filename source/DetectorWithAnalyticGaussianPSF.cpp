@@ -23,10 +23,11 @@
  * \param configParam    Configuration parameters for the detector.
  * \param hdf5file       HFD5 file to write the detector images to.
  * \param camera         Camera to which to attach the detector.
+ * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start.
  */
 
-DetectorWithAnalyticGaussianPSF::DetectorWithAnalyticGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator)
-: Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator)
+DetectorWithAnalyticGaussianPSF::DetectorWithAnalyticGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
+: Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure)
 {
     // Parse the parameters from the configuration file.
 
@@ -92,7 +93,7 @@ DetectorWithAnalyticGaussianPSF::~DetectorWithAnalyticGaussianPSF()
 
     // Get the configuration parameters for the PRNU
 
-    flatfieldNoiseAmplitude   = configParam.getDouble("CCD/FlatfieldPtPNoise");
+    flatfieldNoiseRMS         = configParam.getDouble("CCD/FlatfieldNoiseRMS");
     includeFlatfield          = configParam.getBoolean("CCD/IncludeFlatfield");
     flatfieldSeed             = configParam.getLong("RandomSeeds/FlatFieldSeed");
  }
@@ -148,17 +149,24 @@ void DetectorWithAnalyticGaussianPSF::generateFlatfieldMap()
 
     // Cut out the appropriate part
 
-    flatfieldMap(arma::span::all, arma::span::all) = realMap(arma::span(0, Nrows / 2 - 1), arma::span(0, Ncolumns / 2 - 1));
+    unsigned int numRowsFlatfield = Nrows / 2;
+    unsigned int numColumnsFlatfield = Ncolumns / 2;
+    
+    flatfieldMap(arma::span::all, arma::span::all) = realMap(arma::span(0, numRowsFlatfield - 1), arma::span(0, numColumnsFlatfield - 1));
+    flatfieldMap.reshape(numRowsFlatfield * numColumnsFlatfield, 1);
 
-    // Normalise
+    // Normalisation
+    //  - divide by mean and subtract 1.0 -> mean = 0.0
+    //  - scale such that std.dev. = flatfield RMS and mean = 0.0
+    //  - add 1.0
 
-    float minPinkNoise = flatfieldMap.min();
-    float maxPinkNoise = flatfieldMap.max();
+    flatfieldMap /= arma::mean(flatfieldMap.col(0));
+    flatfieldMap -= 1;
+    double scale = flatfieldNoiseRMS / arma::stddev(flatfieldMap.col(0));
+    flatfieldMap *= scale;
+    flatfieldMap += 1;
 
-    flatfieldMap -= minPinkNoise;
-    flatfieldMap /= (maxPinkNoise - minPinkNoise); // [0, 1]
-    flatfieldMap *= flatfieldNoiseAmplitude;    // [0, flatfialdNoiseAmplitude]
-    flatfieldMap += (1.0 - flatfieldNoiseAmplitude);
+    flatfieldMap.reshape(numRowsFlatfield, numColumnsFlatfield);
 
     // Write the result to the HDF5 output file
 
@@ -185,7 +193,8 @@ void DetectorWithAnalyticGaussianPSF::generateFlatfieldMap()
 void DetectorWithAnalyticGaussianPSF::reset()
 {
     pixelMap.zeros();
-    biasMap.zeros();
+    biasMapLeft.zeros();
+    biasMapRight.zeros();
     smearingMap.zeros();
 }
 
@@ -243,7 +252,7 @@ double DetectorWithAnalyticGaussianPSF::takeExposure(int exposureNr, double star
 
     // Advance the internal clock
 
-    internalTime += exposureTime + readoutTime;
+    internalTime += exposureTime + readoutTimeBeforeNextExposure;
 
     return internalTime;
 }
@@ -290,7 +299,7 @@ void DetectorWithAnalyticGaussianPSF::integrateLight(int exposureNr, double star
     // Integration (incl. jitter): point sources + background
     // PixelMap units after: [photons]
 
-    camera.exposeDetector(*this, startTime, exposureTime);
+    camera.exposeDetector(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
 
     // Apply flatfield (at pixel level)
     // PixelMap units after: [photons]

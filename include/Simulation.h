@@ -41,6 +41,7 @@ class Simulation
         ~Simulation();
         virtual void run();
         virtual void configure(ConfigurationParameters &configParams);
+        virtual pair<double, double> configureReadoutTime(ConfigurationParameters &configParams);
 
     protected:
 
@@ -53,10 +54,10 @@ class Simulation
 
         double currentTime;
         double exposureTime;
-        double readoutTime;
+        double readoutTimeBeforeNextExposure;	// Readout time before the next exposure starts
 
-        int beginExposureNr;                 // sequential number of first exposure. useful for slurm parallellisation
-        int numExposures;                    // Number of exposures
+        int beginExposureNr;                    // sequential number of first exposure. useful for slurm parallellisation
+        int numExposures;                       // Number of exposures
 
         bool useJitter;
         bool useJitterFromFile;

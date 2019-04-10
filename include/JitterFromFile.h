@@ -24,10 +24,10 @@ class JitterFromFile : public JitterGenerator
 {
     public:
 
-        JitterFromFile(ConfigurationParameters &configurationParameters);
+        JitterFromFile(ConfigurationParameters &configurationParameters, double readoutTimeBeforeNextExposure);
         ~JitterFromFile();
 
-        virtual void configure(ConfigurationParameters &configParams);
+        virtual void configure(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure);
         virtual tuple<double, double, double> getNextYawPitchRoll(double timeInterval) override;
         virtual double getHeartbeatInterval() override;
 

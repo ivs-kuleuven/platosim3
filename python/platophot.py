@@ -198,12 +198,13 @@ def photometry(inputFilePath, outputFilePath, sigmaPSF, useExactStarPosition=Tru
 
         image = array(inputFile["/Images/image{0:06d}".format(imageNr)])
         smearingMap = array(inputFile["/SmearingMaps/smearingMap{0:06d}".format(imageNr)])
-        biasMap = array(inputFile["/BiasMaps/biasMap{0:06d}".format(imageNr)])
+        biasMapLeft = array(inputFile["/BiasMapsLeft/biasMap{0:06d}".format(imageNr)])
+        biasMapRight = array(inputFile["/BiasMapsRight/biasMap{0:06d}".format(imageNr)])
 
 
         # Estimate the bias [ADU] and subtract it from the image and the smearing map
 
-        bias = floor(biasMap.mean())
+        bias = floor((biasMapLeft.mean() + biasMapRight.mean()) / 2.0)
         image -= bias
         smearingMap -= bias
 

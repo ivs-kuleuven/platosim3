@@ -139,9 +139,10 @@ double IntegralOfAnalyticSignalResponse::operator()(unsigned i, unsigned j, bool
  * \param configParam    Configuration parameters for the detector.
  * \param hdf5file       HFD5 file to write the detector images to.
  * \param camera         Camera to which to attach the detector.
+ * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start.
  */
 
-Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator)
+Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
 : HDF5Writer(hdf5file),
   includeCosmicsInSubField(true), includeCosmicsInSmearingMap(true), includeCosmicsInBiasMap(true),
   includeBFE(true),
@@ -151,7 +152,8 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
   includeCTIeffects(true), 
   includeOpenShutterSmearing(true), 
   includeQuantumEfficiency(true),
-  includeVignetting(true),
+  includeNaturalVignetting(true),
+  includeMechanicalVignetting(true),
   includeParticulateContamination(true),
   includeMolecularContamination(true),
   includeFullWellSaturation(true),
@@ -162,6 +164,9 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
     // Parse the parameters from the configuration file.
 
     configure(configParam);
+
+    this->readoutTimeBeforeNextExposure = readoutTimeBeforeNextExposure;
+    this->readoutTimeDuringNextExposure = readoutTimeDuringNextExposure;
 
     // Create the groups in the HDF5 file where the different maps (i.e. pixel map,
     // bias register map, smearing map, etc.) will be saved. This needs to be done
@@ -176,9 +181,33 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
     // Allocate memory for the different maps
 
     pixelMap.zeros(numRowsPixelMap, numColumnsPixelMap);
-    biasMap.zeros(numRowsBiasMap, numColumnsPixelMap);
+    biasMapLeft.zeros(numRowsBiasMap, numColumnsBiasMap);
+    biasMapRight.zeros(numRowsBiasMap, numColumnsBiasMap);
+
     smearingMap.zeros(numRowsSmearingMap, numColumnsPixelMap);
     throughputMap.ones(numRowsPixelMap, numColumnsPixelMap);
+
+    // If we are going to apply open-shutter smearing, we have to know which pixels are within
+    // the FOV (relevant only in case of mechanical vignetting).  When mechanical vignetting is
+    // disabled, all pixels of the detector are inside the FOV.
+
+    if(includeOpenShutterSmearing)
+    {
+        // Mechanical vignetting map:
+        //  - no mechanical vignetting: all pixels of the sub-field inside FOV -> all values set to one
+        //  - mechanical vignetting: set value of the pixels in the sub-field outside FOV to zero (others should be one) -> on creation of the throughput map
+
+        mechanicalVignettingMask.ones(numRowsPixelMap, numColumnsPixelMap);
+
+        // Number of exposed rows in each column:
+        // - no mechanical vignetting: all exposed rows inside FOV (numRows - firstRowExposed)
+        // - mechanical vignetting: count the exposed rows (i.e. from firstRowExposed) that are inside FOV
+
+        numExposedRowsInFOV.zeros(numColumnsPixelMap);
+
+        if(!includeMechanicalVignetting)
+            numExposedRowsInFOV.fill(numRows - firstRowExposed);
+    }
 
     // Check whether the gain values for left- and right-hand side of the CCD are not too far apart
 
@@ -233,8 +262,6 @@ Detector::~Detector()
  *        value at the given time point
  *
  * \param time: current time
- *
- * \return 
  */
 
 void Detector::updateParameters(double time)
@@ -255,8 +282,8 @@ void Detector::updateParameters(double time)
 /**
  * \brief Configure the Detector object using the ConfigurationParameters
  * 
- * \param configParam: the configuration parameters 
- **/
+ * \param configParam: Configuration parameters
+ */
 
  void Detector::configure(ConfigurationParameters &configParam)
  {
@@ -283,9 +310,9 @@ void Detector::updateParameters(double time)
         numRows               = configParam.getIntegerAt("CCDPositions/NumRows", idx);
         numColumns            = configParam.getIntegerAt("CCDPositions/NumColumns", idx);
 
-        string groupID        = configParam.getString("Telescope/GroupID");
+        isFastCamera          = configParam.getString("Telescope/GroupID") == "Fast";
         
-        if (groupID == "Fast")
+        if (isFastCamera)
         {
             firstRowExposed       = configParam.getIntegerAt("CCDPositions/FirstRowForFastCamera", idx);
         }
@@ -296,12 +323,12 @@ void Detector::updateParameters(double time)
     }
 
     Log.debug("Detector: selected ccdPosition = " + ccdPosition);
-    Log.debug("Detector: originOffsetX, originOffsetY = " + to_string(originOffsetX) + ", " + to_string(originOffsetY));
-    Log.debug("Detector: orientationAngle = " + to_string(orientationAngle) );
-    Log.debug("Detector: numRows, numColumns, firstRow = " + to_string(numRows) + ", " + to_string(numColumns) + ", " + to_string(firstRowExposed));
+    Log.debug("Detector: CCD originOffsetX, originOffsetY = " + to_string(originOffsetX) + ", " + to_string(originOffsetY) + " mm");
+    Log.debug("Detector: CCD orientationAngle = " + to_string(rad2deg(orientationAngle)) + " deg");
+    Log.debug("Detector: CCD numRows, numColumns, firstRow = " + to_string(numRows) + ", " + to_string(numColumns) + ", " + to_string(firstRowExposed));
 
     pixelSize                           = configParam.getDouble("CCD/PixelSize");
-//    quantumEfficiency                   = configParam.getDouble("CCD/QuantumEfficiency/Efficiency");
+//    quantumEfficiency                   = configParam.getDouble("CCD/QuantumEfficiency/Efficiency");                  // FIXME: No commented out lines of code. To be removed or not?
 //    refAngleQE                          = configParam.getDouble("CCD/QuantumEfficiency/RefAngle");
 //    relativeRefEfficiencyQE             = configParam.getDouble("CCD/QuantumEfficiency/RelativeRefEfficiency");
     meanQE                              = configParam.getDouble("CCD/QuantumEfficiency/MeanQuantumEfficiency");
@@ -315,6 +342,7 @@ void Detector::updateParameters(double time)
     cosmicIntensity                     = configParam.getDoubleVector("Sky/Cosmics/Intensity");
     darkCurrent                         = configParam.getDouble("CCD/DarkSignal/DarkCurrent");
     dsnu                                = configParam.getDouble("CCD/DarkSignal/DSNU");
+    darkCurrentStability                = configParam.getDouble("CCD/DarkSignal/Stability");
     includeBFE                          = configParam.getBoolean("CCD/IncludeBFE");
     rangeBFE                            = configParam.getInteger("CCD/BFE/Range");
     p0BFE                               = configParam.getDouble("CCD/BFE/p0");
@@ -324,8 +352,8 @@ void Detector::updateParameters(double time)
     fullWellSaturationLimit             = configParam.getLong("CCD/FullWellSaturation");
     digitalSaturationLimit              = configParam.getLong("CCD/DigitalSaturation");
     readoutNoise                        = configParam.getDouble("CCD/ReadoutNoise");
-    readoutTime                         = configParam.getDouble("CCD/ReadoutTime");
-    expectedValueVignetting             = configParam.getDouble("CCD/Vignetting/ExpectedValue");
+    expectedValueNaturalVignetting      = configParam.getDouble("CCD/Vignetting/NaturalVignetting/ExpectedValue");
+    radiusFOV                           = deg2rad(configParam.getDouble("CCD/Vignetting/MechanicalVignetting/RadiusFOV"));
     particulateContaminationEfficiency  = configParam.getDouble("CCD/Contamination/ParticulateContaminationEfficiency");
     molecularContaminationEfficiency    = configParam.getDouble("CCD/Contamination/MolecularContaminationEfficiency");
 
@@ -333,6 +361,23 @@ void Detector::updateParameters(double time)
     refValueGainRight         = configParam.getDouble("CCD/Gain/RefValueRight");
     gainStability             = configParam.getDouble("CCD/Gain/Stability");
     gainAllowedDifference     = configParam.getDouble("CCD/Gain/AllowedDifference");
+
+    readoutMode               = configParam.getString("CCD/ReadoutMode/ReadoutMode");
+
+    if(readoutMode == "Partial")
+    {
+    	firstRowPartialReadout = configParam.getInteger("CCD/ReadoutMode/Partial/FirstRowReadout");
+    	numRowsPartialReadout = configParam.getInteger("CCD/ReadoutMode/Partial/NumRowsReadout");
+    }
+    else if (readoutMode != "Nominal")
+    {
+    	Log.error("Detector::configure(): Unknown readout mode specification in configuration file: "  + readoutMode);
+    	throw ConfigurationException("Detector: Unknown readout mode specification in configuration file");
+    }
+
+    serialTransferTime = configParam.getDouble("CCD/SerialTransferTime") * 1E-9;			  // [ns] -> [s]
+    parallelTransferTime = configParam.getDouble("CCD/ParallelTransferTime") * 1E-6;		  // [µs] -> [s]
+    parallelTransferTimeFast = configParam.getDouble("CCD/ParallelTransferTimeFast") * 1E-6;  // [µs] -> [s]
 
     CTImodel                   = configParam.getString("CCD/CTI/Model");
     if (CTImodel == "Simple")
@@ -368,7 +413,8 @@ void Detector::updateParameters(double time)
     includeCTIeffects               = configParam.getBoolean("CCD/IncludeCTIeffects");
     includeOpenShutterSmearing      = configParam.getBoolean("CCD/IncludeOpenShutterSmearing");
     includeQuantumEfficiency        = configParam.getBoolean("CCD/IncludeQuantumEfficiency");
-    includeVignetting               = configParam.getBoolean("CCD/IncludeVignetting");
+    includeNaturalVignetting        = configParam.getBoolean("CCD/IncludeNaturalVignetting");
+    includeMechanicalVignetting     = configParam.getBoolean("CCD/IncludeMechanicalVignetting");
     includePolarization             = configParam.getBoolean("CCD/IncludePolarization");
     includeFullWellSaturation       = configParam.getBoolean("CCD/IncludeFullWellSaturation");
     includeDigitalSaturation        = configParam.getBoolean("CCD/IncludeDigitalSaturation");
@@ -381,7 +427,22 @@ void Detector::updateParameters(double time)
     numRowsPixelMap         = configParam.getInteger("SubField/NumRows");
     numColumnsPixelMap      = configParam.getInteger("SubField/NumColumns");
     numRowsBiasMap          = configParam.getInteger("SubField/NumBiasPrescanRows");
+    numColumnsBiasMap       = configParam.getInteger("SubField/NumBiasPrescanColumns");
     numRowsSmearingMap      = configParam.getInteger("SubField/NumSmearingOverscanRows");
+
+    Log.debug("Detector: Subfield zero point (row, col) = (" + to_string(subFieldZeroPointRow) + ", " + to_string(subFieldZeroPointColumn) + ")");
+    Log.debug("Detector: Subfield center point (row, col) = (" + to_string(subFieldZeroPointRow + numRowsPixelMap/2) 
+                                                               + ", " + to_string(subFieldZeroPointColumn + numColumnsPixelMap/2) + ")");
+    Log.debug("Detector: Subfield nr of rows = " + to_string(numRowsPixelMap));
+    Log.debug("Detector: Subfield nr of columns = " + to_string(numColumnsPixelMap));
+
+    // No parallel over-scan in case of partial readout
+
+    if(readoutMode == "Partial")
+    {
+    	Log.info("No smearing map for partial readout");
+    	numRowsSmearingMap = 0;
+    }
 
     // Configuration parameters for the noise source random seeds
 
@@ -390,12 +451,14 @@ void Detector::updateParameters(double time)
     cosmicSeed              = configParam.getLong("RandomSeeds/CosmicSeed");
     darkSignalSeed          = configParam.getLong("RandomSeeds/DarkSignalSeed");
 
+
     // Get the sequential number of the very first exposure
 
     beginExposureNr         = configParam.getInteger("ObservingParameters/BeginExposureNr");
 
     numEdgePixels = 0;
  }
+
 
 
 
@@ -451,7 +514,7 @@ double Detector::takeExposure(int exposureNr, double startTime, double exposureT
 
     // Advance the internal clock
 
-    internalTime += exposureTime + readoutTime;
+    internalTime += exposureTime + readoutTimeBeforeNextExposure;
 
     return internalTime;
 }
@@ -486,6 +549,9 @@ void Detector::generateThroughputMap()
 
     throughputMap.fill(1.0);
 
+    if(includeMechanicalVignetting  && includeOpenShutterSmearing)
+        mechanicalVignettingMask.fill(1);
+
     double xFPmm, yFPmm;
     double angle;
 
@@ -495,7 +561,7 @@ void Detector::generateThroughputMap()
 //    const double refAngleQuantumEfficiencyRadians = deg2rad(refAngleQE);     // Reference angle for the quantum efficiency [radians]
 //    const double acosQuantumEfficiency = acos(relativeRefEfficiencyQE);        // Relative efficiency due to the angle dependency of the QE at the reference angle
 
-    if (includeVignetting || includePolarization || includeQuantumEfficiency)
+    if (includeNaturalVignetting || includeMechanicalVignetting || includePolarization || includeQuantumEfficiency)
     {
         // Loop over all pixels in the pixel map
 
@@ -511,9 +577,23 @@ void Detector::generateThroughputMap()
 
                 angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm);
 
-                // Vignetting
+                // Mechanical vignetting
 
-                if (includeVignetting) throughputMap(row, column) *= pow(cos(angle), 2);
+                if(includeMechanicalVignetting)
+                {
+                    if (angle > radiusFOV)
+                    {
+                        throughputMap(row, column) = 0.0;
+
+                        if(includeOpenShutterSmearing)
+                            mechanicalVignettingMask(row, column) = 0;
+                    }
+                }
+
+                // Natural vignetting
+
+                if (includeNaturalVignetting) 
+                    throughputMap(row, column) *= pow(cos(angle), 2);
 
                 // Polarisation (Eq. 4-11 in PLATO-DLR-PL-RP-001)
 
@@ -761,7 +841,11 @@ void Detector::addDarkSignal(float exposureTime)
 
     // Add dark signal to the pixel map
 
-    double darkSignalRef = darkCurrent * (exposureTime + readoutTime);
+    // When is dark current accumulated for the pixel map?
+	// 	-  exposure + readout
+
+    const double darkCurrentOverDeltaTemp = darkCurrentStability * (getTemperature() - nominalOperatingTemperature);
+    double darkSignalRef = (darkCurrent + darkCurrentOverDeltaTemp) * (exposureTime + readoutTimeBeforeNextExposure + readoutTimeDuringNextExposure);
     darkSignalDistribution = normal_distribution<double>(darkSignalRef, darkSignalRef * dsnu / 100.0);
 
 
@@ -785,7 +869,13 @@ void Detector::addDarkSignal(float exposureTime)
 
     // Add dark signal to the smearing map
 
-    darkSignalRef = darkCurrent * readoutTime;
+    // When is dark current accumulated for the smearing map?
+    // 	- normal camera, nominal mode: whole readout
+    //  - fast camera, nominal mode: readout during the next exposure
+    //  - partial readout: no smearing map
+
+	darkSignalRef = darkCurrent
+			* (isFastCamera ? readoutTimeDuringNextExposure : readoutTimeBeforeNextExposure);
     darkSignalDistribution = normal_distribution<double>(darkSignalRef, darkSignalRef * dsnu / 100.0);
 
     for(unsigned int row = 0; row < numRowsSmearingMap; row++)
@@ -804,24 +894,6 @@ void Detector::addDarkSignal(float exposureTime)
             smearingMap(row, column) += darkSignal;
         }
     }
-}
-
-
-
-
-
-
-
-
-
-
-
-/**
- * \brief Return the CCD readout time [s].
- */
-double Detector::getReadoutTime()
-{
-    return readoutTime;
 }
 
 
@@ -1141,10 +1213,10 @@ void Detector::addPhotonNoise()
  */
 void Detector::addCosmics(float exposureTime)
 {
-    cosmicHitRateDistribution     = poisson_distribution<long>(cosmicHitRate);                                       // [hits/cm^2/s]
-    cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsPixelMap - 1);                    // []
-    cosmicEntryAngleDistribution  = uniform_real_distribution<double>(0, 2 * PI);                                    // [rad]
-    cosmicTrailLengthDistribution = uniform_real_distribution<double>(cosmicTrailLength[0], cosmicTrailLength[1]);   // [pix]
+	cosmicHitRateDistribution     = poisson_distribution<long>(cosmicHitRate);                                       // [hits/cm^2/s]
+    cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsPixelMap - 1);                    // [pixels]
+    cosmicEntryAngleDistribution  = uniform_real_distribution<double>(0, 2 * PI);                                    // [radians]
+    cosmicTrailLengthDistribution = uniform_real_distribution<double>(cosmicTrailLength[0], cosmicTrailLength[1]);   // [pixels]
     cosmicIntensityDistribution   = uniform_real_distribution<double>(cosmicIntensity[0], cosmicIntensity[1]);       // [e-/hit]
 
     // Cosmics in the subfield
@@ -1152,7 +1224,7 @@ void Detector::addCosmics(float exposureTime)
     if (includeCosmicsInSubField)
     {
         Log.debug("Detector: adding cosmic hits to the sub-field");
-        addCosmics(exposureTime + readoutTime, pixelMap, numRowsPixelMap, numColumnsPixelMap, "image area");
+        addCosmics(exposureTime + readoutTimeBeforeNextExposure + readoutTimeDuringNextExposure, pixelMap, numRowsPixelMap, numColumnsPixelMap, "image area");
     }
 
     // Cosmics in the over-scan
@@ -1160,7 +1232,14 @@ void Detector::addCosmics(float exposureTime)
     if (includeCosmicsInSmearingMap)
     {
         Log.debug("Detector: adding cosmic hits to smearing map");
-        addCosmics(readoutTime, smearingMap, numRowsSmearingMap, numColumnsPixelMap, "smearing map");
+
+        if(isFastCamera)
+        {
+        	addCosmics(readoutTimeDuringNextExposure, smearingMap, numRowsSmearingMap, numColumnsPixelMap, "smearing map");
+        } else
+        {
+        	addCosmics(readoutTimeBeforeNextExposure, smearingMap, numRowsSmearingMap, numColumnsPixelMap, "smearing map");
+        }
     }
 
     // Cosmics in the pre-scan
@@ -1171,8 +1250,9 @@ void Detector::addCosmics(float exposureTime)
     {
         Log.debug("Detector: adding cosmic hits to bias map");
         cosmicTrailLengthDistribution = uniform_real_distribution<double>(0.0, 1.e-6);    // Only hot pixels, no trails
-        const double biasMapReadoutTime = readoutTime / numRows * numRowsBiasMap; 
-        addCosmics(biasMapReadoutTime, biasMap, numRowsBiasMap, numColumnsPixelMap, "bias map");
+        const double biasMapRowLifeTime = (numColumns / 2 + numColumnsBiasMap) * serialTransferTime + parallelTransferTime;
+        addCosmics(biasMapRowLifeTime, biasMapLeft, numRowsBiasMap, numColumnsBiasMap, "bias map (left half)");
+        addCosmics(biasMapRowLifeTime, biasMapRight, numRowsBiasMap, numColumnsBiasMap, "bias map (right half)");
     }
 }
 
@@ -1235,7 +1315,6 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, int numRows
     // - exposure time [s]
     // - dimensions [pixels] -> [micron] -> [cm]
     //
-    // See GitHub issue #283
 	// To make sure the number of cosmics is as expected when considering a large number
     // of exposures, we have to account for the decimal part of the number of cosmic hits
     // per exposure too, instead of rounding down this value. E.g. if you have 1.5 cosmics
@@ -1251,11 +1330,15 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, int numRows
 			* (numRows * pixelSize / 10000.0)
 			* (numColumns * pixelSize / 10000.0);
     double decimalPartNumCosmicHits = numCosmicHitsAsDouble - (int) numCosmicHitsAsDouble;
+
+    // Round down the number of cosmic hits to an integer, possibly zero.
+
     int numCosmicHits = (int) numCosmicHitsAsDouble;
 
-    if(decimalNumCosmicHitsDistribution(decimalNumCosmicHitsGenerator) < decimalPartNumCosmicHits)
+  	// Add 1 cosmic with a chance equal to the decimal part.
+
+    if (decimalNumCosmicHitsDistribution(decimalNumCosmicHitsGenerator) < decimalPartNumCosmicHits)
     {
-    	// See GitHub issue #283
     	numCosmicHits += 1;
     }
 
@@ -1266,7 +1349,7 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, int numRows
     double meanTrailLength = 0.0;
     double meanIntensity = 0.0;
 
-    for(unsigned int cosmicHit = 0; cosmicHit < numCosmicHits; cosmicHit++)
+    for (unsigned int cosmicHit = 0; cosmicHit < numCosmicHits; cosmicHit++)
     {
         entryRow    = cosmicEntryRowDistribution(cosmicEntryRowGenerator);          // Entry row [pixels] (uniform distribution over the rows of the sub-fields)
         entryColumn = cosmicEntryColumnDistribution(cosmicEntryColumnGenerator);    // Entry column [pixels] (uniform distribution over the columns of the sub-field)
@@ -1292,12 +1375,12 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, int numRows
 
         // Add the flux coming from the cosmic hit to all its trail points in the pixel map
 
-        for(unsigned int index = 0; index < numTrailPoints; index++)
+        for (unsigned int index = 0; index < numTrailPoints; index++)
         {
             trailRow = int(floor(trailRows(index)));
             trailColumn = int(floor(trailColumns(index)));
 
-            if((trailRow >= 0) && (trailRow < numRows) && (trailColumn >= 0) && (trailColumn < numColumns))
+            if ((trailRow >= 0) && (trailRow < numRows) && (trailColumn >= 0) && (trailColumn < numColumns))
             {
                 map(trailRow, trailColumn) += (trailWeights(index) * intensity);
             }
@@ -1618,7 +1701,8 @@ void Detector::applyShort2013CTImodel()
 
     // Compute the time it takes to transfer 1 row during readout
 
-    const double chargeTransferTime = readoutTime / numRows;                                                 // t [s]
+    const double chargeTransferTime = parallelTransferTime;		// t[s]
+//    const double chargeTransferTime = readoutTime / numRows;                                                 // t [s]
 
     // Compute the thermal velocity of the electrons in the silicon
 
@@ -1669,7 +1753,7 @@ void Detector::applyShort2013CTImodel()
             // Update the number of occupied traps with the estimated number of captured electrons
 
             numberOfOccupiedTraps.row(k) += numberOfCapturedElectrons;
-            
+
             // Correct the number of occupied traps with the electrons that were released again during the charge transfer time.
 
             numberOfReleasedElectrons = numberOfOccupiedTraps.row(k) * (1-exp(-chargeTransferTime/releaseTime[k]));
@@ -1718,19 +1802,75 @@ void Detector::applyShort2013CTImodel()
  */
 void Detector::applyOpenShutterSmearing(float exposureTime)
 {
+    if (includeMechanicalVignetting)
+    {
+        // The mask indicating which pixels in the sub-field are within the FOV and which
+        // ones not, has already been created upon construction of the throughput map.
+
+        double rowFOV, xFPmmFirstExposed, yFPmmFirstExposed, xFPmmTop, yFPmmTop, angleFirstExposed, angleTop;
+
+        // Loop over all columns in the sub-field
+
+        for(unsigned int column = 0; column < numColumnsPixelMap; column++) //[pixels in sub-field]
+        {
+            // Intersection of the current column of the detector with the circle representing the FOV:
+            // (rowFOV, column).  If no intersection can be found, this is NaN.
+            rowFOV = getRowEdgeFOV(column);
+
+            if(isnan(rowFOV))
+            {
+                // All exposed rows are within the FOV
+
+                numExposedRowsInFOV(column) = numRows - firstRowExposed;
+            }
+            else
+            {
+                tie(xFPmmFirstExposed, yFPmmFirstExposed) = pixelToFocalPlaneCoordinates(firstRowExposed, column + subFieldZeroPointColumn);    // detector [pixels] -> focal plane [mm]
+                angleFirstExposed = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmmFirstExposed, yFPmmFirstExposed);
+
+                tie(xFPmmTop, yFPmmTop) = pixelToFocalPlaneCoordinates(numRows - 1, column + subFieldZeroPointColumn);
+                angleTop = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmmTop, yFPmmTop);
+
+                if (angleFirstExposed > radiusFOV)
+                {
+                    if (angleTop > radiusFOV)
+                        numExposedRowsInFOV(column) = 0;
+                    
+                    else
+                        numExposedRowsInFOV(column) = numRows - (int) rowFOV;
+                }
+
+                else
+                {
+                    if (angleTop > radiusFOV)
+                        numExposedRowsInFOV(column) = (int) rowFOV - firstRowExposed + 1;
+                    else
+                        numExposedRowsInFOV(column) = numRows - firstRowExposed;
+                }
+            }
+        }
+    }
+
+
+
     // Average out the fluxes in the pixel map per column (of the whole CCD) and make sure it is
-    // scaled with the readout time instead of with the exposure time:
-    // - rows in the sub-field: use actual fluxes
-    // - rows outside the sub-field: use total sky background
+    // scaled with the readout time (during which the detector is susceptible to open-shutter smearing) 
+    // instead of with the exposure time:
+    // - rows in the sub-field (in the exposed part of the detector and in the FOV): use actual fluxes (accumulated during exposure)
+    // - rows outside the sub-field (in the exposed part of the detector and in the FOV): use total sky background
+    // - rows outside the FOV and/or not exposed are not considered (as these rows are shielded off against incoming radiation)
 
-    arma::Row<float> openShutterSmearing = arma::sum(pixelMap, 0);
+    arma::Row<float> openShutterSmearing = arma::sum(pixelMap % mechanicalVignettingMask, 0);   // Flux in the exposed part of the sub-field that is inside the FOV (per column)
+    arma::Row<int> numExposedSubFieldRowsInFOV = arma::sum(mechanicalVignettingMask, 0);        // Number of pixels in the exposed part of the sub-field that are inside the FOV (per column)
 
-    float openShutterSmearingOutsideSubField = camera.getTotalSkyBackground() * (numRows - numRowsPixelMap + numRowsSmearingMap);
+    arma::Row<int> numExposedNonSubFieldRowShifts = numExposedRowsInFOV - numExposedSubFieldRowsInFOV + numRowsSmearingMap; // Number of pixels in the exposed part of the detector that do not reside in the sub-field + parallel over-scan
+    arma::Row<float> openShutterSmearingOutsideSubField = arma::conv_to<arma::Row<float>>::from(numExposedNonSubFieldRowShifts) * camera.getTotalSkyBackground();
 
-    // Apply all throughput efficiencies
+   // Apply all throughput efficiencies (these have not been applied to the total sky background yet)
+   // Note that mechanical vignetting has already been taken into account (if applicable)
 
-    if(includeVignetting)
-        openShutterSmearingOutsideSubField *= expectedValueVignetting;
+    if(includeNaturalVignetting)
+        openShutterSmearingOutsideSubField *= expectedValueNaturalVignetting;
 
     if(includePolarization)
         openShutterSmearingOutsideSubField *= expectedValuePolarization;
@@ -1747,25 +1887,88 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
     if(includeQuantumEfficiency)
         openShutterSmearingOutsideSubField *= meanQE;
 
-
     openShutterSmearing += openShutterSmearingOutsideSubField;
 
-    float factor = (readoutTime / exposureTime) / numRows;
-    openShutterSmearing *= factor;
+    // Fast camera: lower half of the CCD is shielded off -> no contribution to open-shutter smearing here
+
+    arma::Row<float> openShutterSmearingTime = arma::conv_to<arma::Row<float>>::from(numExposedRowsInFOV + numRowsSmearingMap) / 
+        (numRows - firstRowExposed + numRowsSmearingMap) * readoutTimeBeforeNextExposure;
+
+    arma::Row<float> factor = openShutterSmearingTime % arma::pow(arma::conv_to<arma::Row<float>>::from(numExposedRowsInFOV), -1) / exposureTime;
+
+    openShutterSmearing %= factor;
 
     // Add the effect of the open-shutter smearing to the pixel map
 
     for (unsigned int row = 0; row < numRowsPixelMap; row++)
-    {
         pixelMap(row, arma::span::all) += openShutterSmearing;
-    }
 
     // Add the effect of the open-shutter smearing to the smearing map
 
     for (unsigned int row = 0; row < numRowsSmearingMap; row++)
-    {
         smearingMap(row, arma::span::all) += openShutterSmearing;
-    }
+}
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Find the intersection of the circle representing the FOV and the given column of the
+ *        detector.  In case this circle does intersect with the detector, the row coordinate
+ *        is returned; if not, NaN is returned.
+ * 
+ * \param column: Column (coordinate) [pixels], for which to find the intersection with the
+ *                circle representing the FOV.
+ * 
+ * \return In case this circle does intersect with the detector, the row coordinate
+ *         is returned; if not, NaN is returned.
+ **/ 
+double Detector::getRowEdgeFOV(int column)
+{
+    double pixelSizeMm = pixelSize / 1000.0;    // Pixel size [µm] -> [mm]
+
+    // Quadratic equation: a * x**2 + b * x + c  = 0
+    // Find intersection between circle representing the FOV and the given column
+
+    double a = pow(pixelSizeMm, 2);
+    double b = - 2 * pixelSizeMm * subFieldZeroPointRow;
+    double c = pow(subFieldZeroPointRow, 2) + pow(column * pixelSizeMm - subFieldZeroPointColumn , 2) -  pow(camera.getFocalLength() * tan(radiusFOV), 2);
+
+    // Discriminant (should be positive)
+
+    double discriminant = pow(b, 2) - 4 * a * c;
+
+    if (discriminant < 0)
+        return nan("");
+    
+    double discriminantSqrt = sqrt(discriminant);
+
+    // First solution of the equation
+    // Check whether it intersects with the detector (if not, try the other solution)
+
+    double solutionRow = (-b + discriminantSqrt) / (2 * a);
+
+    if ((solutionRow >= 0) && (solutionRow < numRows))
+        return solutionRow;
+
+    // Second solution of the equation
+    // Check whther it intersects with the detector (if not, the whole row is within the FOV)
+
+    solutionRow = (-b - discriminantSqrt) / (2 * a);
+    
+    if ((solutionRow >= 0) && (solutionRow < numRows))
+        return solutionRow;
+
+    // No proper solution found (i.e. circle of FOV does not intersect
+    // with the detector in the given column)
+
+    return nan("");
 }
 
 
@@ -1823,12 +2026,13 @@ void Detector::addReadoutNoise()
 
     // Add readout noise to the bias prescan map
 
-    for (unsigned int row = 0; row < numRowsBiasMap; row++)
+    for(unsigned int row = 0; row < numRowsBiasMap; row++)
     {
-        for (unsigned int column = 0; column < numColumnsPixelMap; column++)
-        {
-            biasMap(row, column) += readoutNoiseDistribution(readoutNoiseGenerator);
-        }
+    	for(unsigned int column = 0; column < numColumnsBiasMap; column++)
+    	{
+    		biasMapLeft(row, column) += readoutNoiseDistribution(readoutNoiseGenerator);
+    		biasMapRight(row, column) += readoutNoiseDistribution(readoutNoiseGenerator);
+    	}
     }
 
     // Add readout noise to the smearing overscan map
@@ -1883,7 +2087,8 @@ void Detector::applyQuantisation()
     // maps do not have fractional values.
 
     pixelMap = arma::floor(pixelMap);
-    biasMap = arma::floor(biasMap);
+    biasMapLeft = arma::floor(biasMapLeft);
+    biasMapRight = arma::floor(biasMapRight);
     smearingMap = arma::floor(smearingMap);
 
 
@@ -1897,7 +2102,7 @@ void Detector::applyQuantisation()
     if (includeDigitalSaturation)
     {
         Log.debug("Detector: applying digital saturation to pixelMap, biasMap and smearingMap (digitalSaturationLimit=" + to_string(digitalSaturationLimit) + ")");
-            applyDigitalSaturation();
+        applyDigitalSaturation();
     }
     else
     {
@@ -1946,13 +2151,11 @@ void Detector::applyGain()
     if(lastIndexSubFieldLeft >= numColumnsPixelMap - 1)      // Left ADC only
     {
         pixelMap *= combinedGainLeft;
-        biasMap *= combinedGainLeft;
         smearingMap *= combinedGainLeft;
     }
     else if(lastIndexSubFieldLeft < 0)                     // Right ADC only
     {
         pixelMap *= combinedGainRight;
-        biasMap *= combinedGainRight;
         smearingMap *= combinedGainRight;
     }
     else
@@ -1960,15 +2163,16 @@ void Detector::applyGain()
         // 0 -> lastIndexSubFieldLeft: left ADC
 
         pixelMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
-        biasMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
         smearingMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
 
         // lastIndexSubFieldLeft + 1 -> numColumnsSubPixelMap -1: right ADC
 
         pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
-        biasMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
         smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
     }
+
+    biasMapLeft *= combinedGainLeft;
+    biasMapRight *= combinedGainRight;
 
     Log.info("Detector: gain of left part of CCD: " + to_string(combinedGainLeft));
     Log.info("Detector: gain of right part of CCD: " + to_string(combinedGainRight));
@@ -2004,7 +2208,8 @@ void Detector::addElectronicOffset()
     // Add the electronic offset to the pixel, bias register, and smearing maps
 
     pixelMap += offset;
-    biasMap += offset;
+    biasMapLeft += offset;
+    biasMapRight += offset;
     smearingMap += offset;
 }
 
@@ -2022,7 +2227,7 @@ void Detector::addElectronicOffset()
 /**
  * \brief: Apply the effect of digital saturation to the pixel map,
  *         smearing map, and bias register map. This means that the pixel values in
- *         these maps (expressed in [ADU / pixel]) are topped off to the digital saturation
+ *         these maps (expressed in [ADU / pixel]) are Lastped off to the digital saturation
  *         limit of the detector (also expressed in [ADU / pixel]).
  *
  * \pre Pixel unit in the pixel, smearing, and bias maps: [ADU].
@@ -2032,15 +2237,16 @@ void Detector::addElectronicOffset()
  */
 void Detector::applyDigitalSaturation()
 {
-    // Top off the values in the pixel map
+    // Last off the values in the pixel map
 
     pixelMap(arma::find(pixelMap > digitalSaturationLimit)).fill(digitalSaturationLimit);
 
-    // Top off the values in the bias register map
+    // Last off the values in the bias register map
 
-    biasMap(arma::find(biasMap > digitalSaturationLimit)).fill(digitalSaturationLimit);
+    biasMapLeft(arma::find(biasMapLeft > digitalSaturationLimit)).fill(digitalSaturationLimit);
+    biasMapRight(arma::find(biasMapRight > digitalSaturationLimit)).fill(digitalSaturationLimit);
 
-    // Top off the values in the smearing map
+    // Last off the values in the smearing map
 
     smearingMap(arma::find(smearingMap > digitalSaturationLimit)).fill(digitalSaturationLimit);
 }
@@ -2337,7 +2543,8 @@ void Detector::initHDF5Groups()
     Log.debug("Detector: initialising HDF5 groups");
 
     hdf5File.createGroup("/Images");
-    hdf5File.createGroup("/BiasMaps");
+    hdf5File.createGroup("/BiasMapsLeft");
+    hdf5File.createGroup("/BiasMapsRight");
     hdf5File.createGroup("/SmearingMaps");
     hdf5File.createGroup("/Flatfield");
     hdf5File.createGroup("/ThroughputMaps");
@@ -2359,10 +2566,9 @@ void Detector::initHDF5Groups()
  * 
  * \param exposureNr:   Sequential number of the exposure
  */
-
 void Detector::writePixelMapsToHDF5(int exposureNr)
 {
-    // Compose the image name
+	// Compose the image name
 
     stringstream myStream;
     myStream << "image" << setfill('0') << setw(6) << exposureNr;
@@ -2370,21 +2576,64 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
 
     // Add the image to the "Images" group
 
-    hdf5File.writeArray("/Images", imageName, pixelMap);
+    if (!includeQuantisation)
+    {
+        // Write the float array to HDF5
 
-    // Clear the string stream and compose the smearing map name
+        hdf5File.writeArray("/Images", imageName, pixelMap);
+    }
+    else
+    {
+        // Write the pixel maps as 2-byte (16 bit) unsigned short integers.
+        // As a safety check, first check that the extrema of the map are indeed
+        // within the boundaries of such a data type.
+       
+        if((pixelMap.min() < 0) || (pixelMap.max() >= (1 << 16)))
+        {
+            throw ConfigurationException("Detector: quantisation was applied but pixel map values are not in [0, 2^16[");
+        }
 
-    myStream.str(string());      // insert empty string
-    myStream.clear();            // clear eof bit
+        // Convert the float matrix to an unsigned uint16_t matrix
 
-    myStream << "smearingMap" << setfill('0') << setw(6) << exposureNr;
-    string smearingMapName = myStream.str();
+        arma::Mat<uint16_t> uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(pixelMap);
+        hdf5File.writeArray("/Images", imageName, uintMap);
+    }
 
-    // Add the smearing map to the "SmearingMaps" group
+    if (numRowsSmearingMap != 0)
+    {
+    	// Clear the string stream and compose the smearing map name
 
-    hdf5File.writeArray("/SmearingMaps", smearingMapName, smearingMap);
+    	myStream.str(string());      // insert empty string
+    	myStream.clear();            // clear eof bit
 
-    // Clear the string stream and compose the bias map name
+    	myStream << "smearingMap" << setfill('0') << setw(6) << exposureNr;
+    	string smearingMapName = myStream.str();
+
+
+    	// Add the smearing map to the "SmearingMaps" group
+
+        if (!includeQuantisation)
+        {
+            // Write the float array to HDF5
+
+    	    hdf5File.writeArray("/SmearingMaps", smearingMapName, smearingMap);
+        }
+        else
+        {
+            if ((smearingMap.min() < 0) || (smearingMap.max() >= (1 << 16)))
+            {
+                throw ConfigurationException("Detector: quantisation was applied but smearing map values are not in [0, 2^16[");
+            }
+
+            // Convert the float matrix to an unsigned uint16_t matrix
+
+            arma::Mat<uint16_t> uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(smearingMap);
+            hdf5File.writeArray("/SmearingMaps", smearingMapName, uintMap);
+        }
+        
+    }
+
+   // Clear the string stream and compose the bias map name
 
     myStream.str(string());      // insert empty string
     myStream.clear();            // clear eof bit
@@ -2394,7 +2643,34 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
 
     // Add the bias map to the "BiasMaps" group
 
-    hdf5File.writeArray("/BiasMaps", biasMapName, biasMap);
+    if (!includeQuantisation)
+    {
+        // Write the float array to HDF5
+
+        hdf5File.writeArray("/BiasMapsLeft", biasMapName, biasMapLeft);
+        hdf5File.writeArray("/BiasMapsRight", biasMapName, biasMapRight);
+    }
+    else
+    {
+        if ((biasMapLeft.min() < 0) || (biasMapLeft.max() >= (1 << 16)))
+        {
+            throw ConfigurationException("Detector: quantisation was applied but pixel values in the left bias map are not in [0, 2^16[");
+        }
+
+        if ((biasMapRight.min() < 0) || (biasMapRight.max() >= (1 << 16)))
+        {
+            throw ConfigurationException("Detector: quantisation was applied but pixel values in the right bias map are not in [0,2^16[");
+        }
+
+        // Convert the float matrix to an unsigned uint16_t matrix
+
+        arma::Mat<uint16_t> uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(biasMapLeft);
+        hdf5File.writeArray("/BiasMapsLeft", biasMapName, uintMap);
+
+        uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(biasMapRight);
+        hdf5File.writeArray("/BiasMapsRight", biasMapName, uintMap);
+    }
+    
 
     // Clear the string stream and compose the throughput map name
 
@@ -2404,7 +2680,7 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
     myStream << "throughputMap" << setfill('0') << setw(6) << exposureNr;
     string throughputMapName = myStream.str();
 
-    // Add the bias map to the "BiasMaps" group
+    // Add the throughput map to the "ThroughputMaps" group
 
     hdf5File.writeArray("/ThroughputMaps", throughputMapName, throughputMap);
 }
@@ -2424,3 +2700,21 @@ double Detector::getTemperature()
     return temperatureGenerator.getNextTemperature(internalTime);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Returns the duration of the readout before the next exposure can start [s].
+ */
+double Detector::getReadoutTimeBeforeNextExposure()
+{
+	return readoutTimeBeforeNextExposure;
+}

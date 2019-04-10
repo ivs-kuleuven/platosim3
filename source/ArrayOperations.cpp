@@ -34,6 +34,9 @@ arma::fmat rotateArrayBilinear(arma::fmat arr, double angle);
  */
 arma::fmat rotateArray(arma::fmat arr, double angle)
 {
+    if (fmod(angle, 2 * M_PI) == 0.0)
+        return arr;
+
     return rotateArrayBilinear(arr, angle);
 }
 

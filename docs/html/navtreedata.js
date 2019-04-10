@@ -19,7 +19,8 @@ var NAVTREE =
       [ "Prerequisites", "ReqsRun.html", null ],
       [ "Input files", "InputFileDescription.html", [
         [ "Configuration Parameters", "ConfigurationParameters.html", null ],
-        [ "Supplementary Files", "SupplementaryFiles.html", null ]
+        [ "Supplementary Files", "SupplementaryFiles.html", null ],
+        [ "Migration Tool", "MigrationTool.html", null ]
       ] ],
       [ "Running Simulations", "Simulating.html", [
         [ "Scripting in Python", "ScriptingInPython.html", null ],
