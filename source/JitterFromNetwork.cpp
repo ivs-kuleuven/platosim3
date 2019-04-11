@@ -11,6 +11,8 @@ JitterFromNetwork::JitterFromNetwork(ConfigurationParameters &configParams, doub
 {
     // Set the configuration parameters
 
+    Log.info("JitterFromNetwork: object created");
+  
     configure(configParams);
 
     condVarPointer = cond_var;
@@ -65,11 +67,16 @@ tuple<double, double, double> JitterFromNetwork::getNextYawPitchRoll(double time
 	{
 		*notifiedPointer = true;
 			
+		Log.info("JitterFromNetwork: notify jitter thread");
+
 		// notify the tcp connection thread
 		condVarPointer->notify_one();	
 
 		// declare a lock for this thread
 		std::unique_lock<std::mutex> lock(*mutexPointer);
+
+		Log.info("JitterFromNetwork: wait for new step");
+
 
 	    // wait for the tcp connection thread to notify this thread
 	    while(!*newStepPointer)
@@ -77,9 +84,13 @@ tuple<double, double, double> JitterFromNetwork::getNextYawPitchRoll(double time
 	        condVarPointer->wait(lock);
 	    }
 
+		Log.info("JitterFromNetwork: notification from jitter thread received");
+
 	    if (time == currentTimeStep)
 	    {
-	        return make_tuple(currentYaw, currentPitch, currentRoll);
+	        Log.info("JitterFromNetwork: yaw: " + to_string(currentYaw) + "; pitch: " + to_string(currentPitch)+ "; roll: " + to_string(currentRoll));
+
+		return make_tuple(currentYaw, currentPitch, currentRoll);
 	    }
 	    else
 	    {
@@ -90,6 +101,8 @@ tuple<double, double, double> JitterFromNetwork::getNextYawPitchRoll(double time
 	        const double newYaw   = oldYaw   * weight2 + currentYaw   * weight1;
 	        const double newPitch = oldPitch * weight2 + currentPitch * weight1;
 	        const double newRoll  = oldRoll  * weight2 + currentRoll  * weight1;
+
+	        Log.info("JitterFromNetwork: yaw: " + to_string(newYaw) + "; pitch: " + to_string(newPitch)+ "; roll: " + to_string(newRoll));
 
 	        return make_tuple(newYaw, newPitch, newRoll);
 	    }
@@ -113,7 +126,7 @@ void JitterFromNetwork::setCurrentJitterStep(double endOfSimulation, double time
     currentPitch = deg2rad(pitch/3600.);
     currentRoll = deg2rad(roll/3600.);
 
-
+	Log.info("JitterFromNetwork: jitter step set");
 }
 
 

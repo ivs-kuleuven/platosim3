@@ -8,7 +8,6 @@
 #include "StringUtilities.h"
 #include "version.h"
 
-
 using namespace std;
 
 
@@ -72,19 +71,24 @@ int main(int Narguments, char* arguments[])
     Log.info(string("PlatoSim ") + GIT_DESCRIBE);
     Log.info("Main: Log file includes 'error', 'warning', 'info', and 'debug'");
 
+    std::mutex m;
+    std::condition_variable condVar;
 
     // Initialise the simulation, and loop over all exposures using run()
 
-    Simulation simulation(inputFilename, outputFilename);
+    Simulation simulation(inputFilename, outputFilename, &m, &condVar);
 
     // check whether the simulation uses jitter from network
 
     if (simulation.getServerInstance() != NULL)
     {
+	
+	Log.info("main: check");
+	
 	// the tcp connections have to run alongside the simulation so some threads have to be declared
 
+	std::thread serverThread(&TcpConnection::connectToServer, simulation.getServerInstance());
 	std::thread simulationThread(&Simulation::run, simulation);
-        std::thread serverThread(&TcpConnection::connectToClient, simulation.getServerInstance());
 
 	// gather the threads after completion and rejoin them
 

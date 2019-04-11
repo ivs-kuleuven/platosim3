@@ -3,6 +3,7 @@
 
 #include <ctime>
 #include <string>
+#include <condition_variable>
 
 #include "Logger.h"
 #include "HDF5File.h"
@@ -39,7 +40,7 @@ class Simulation
 {
     public:
 
-        Simulation(string inputFilename, string outputFilename);
+        Simulation(string inputFilename, string outputFilename, std::mutex* mPointer, std::condition_variable* condVarPointer);
         ~Simulation();
         virtual void run();
         virtual void configure(ConfigurationParameters &configParams);
@@ -47,9 +48,10 @@ class Simulation
 
 	TcpConnection* getServerInstance();
 
+	bool notified;
+	bool newStep;
 	
-	
-	
+
 
     protected:
 
@@ -92,7 +94,6 @@ class Simulation
 
         HDF5File hdf5File;
 
-		
 
 };
 

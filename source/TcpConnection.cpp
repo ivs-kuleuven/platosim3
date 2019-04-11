@@ -18,6 +18,8 @@ TcpConnection::TcpConnection(ConfigurationParameters &configParam, JitterGenerat
 	mutexPointer = m;
 	notifiedPointer = notified;
 	newStepPointer = newStep;
+
+	
 }
 
 
@@ -54,6 +56,8 @@ TcpConnection::~TcpConnection()
  */
 void TcpConnection::connectToServer()
 {
+	Log.info("TcpConnection: jitter thread created");
+
 	// declare socket
 
 	zmq::context_t context(1);
@@ -74,6 +78,8 @@ void TcpConnection::connectToServer()
 
 		// wait for a notification from the simulation
 
+		Log.info("TcpConnection: wait for notification from simulation thread");
+
 		while(!*notifiedPointer)
             	{
                 	condVarPointer->wait(lock);
@@ -86,6 +92,8 @@ void TcpConnection::connectToServer()
                	lock.unlock();
 		bool validStep = false;
 
+		Log.info("TcpConnection: request jitter step");
+	
 		// request new jitter steps until a valid step is send
 		while(!validStep)
 		{

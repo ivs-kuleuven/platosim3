@@ -21,7 +21,7 @@
  * \param[in]  outputFilename  the HDF5 output file
  */
 
-Simulation::Simulation(string inputFilename, string outputFilename)
+Simulation::Simulation(string inputFilename, string outputFilename, std::mutex* mPointer, std::condition_variable* condVarPointer)
 {
     // Parse the configuration parameters file
 
@@ -84,16 +84,15 @@ Simulation::Simulation(string inputFilename, string outputFilename)
         }
         else if (jitterSource == "FromNetwork")
         {
-            	std::mutex m;
-		std::condition_variable cond_var;
-		bool notified;
-		bool newStep;
+ 		
+		notified = false;
+		newStep = false;
 
-		jitterGenerator = new JitterFromNetwork(configParams, readoutTimeBeforeNextExposure, &cond_var, &m, &notified, &newStep);
+		jitterGenerator = new JitterFromNetwork(configParams, readoutTimeBeforeNextExposure, condVarPointer, mPointer, &notified, &newStep);
 
 	   	 // declare a tcpConnection object as server instance
 
-	    serverInstance = new TcpConnection(configParams, jitterGenerator, &cond_var, &m, &notified, &newStep);
+	    serverInstance = new TcpConnection(configParams, jitterGenerator, condVarPointer, mPointer, &notified, &newStep);
         }
         else
         {
@@ -217,7 +216,7 @@ void Simulation::configure(ConfigurationParameters &configParams)
     beginExposureNr   = configParams.getInteger("ObservingParameters/BeginExposureNr");
     numExposures      = configParams.getInteger("ObservingParameters/NumExposures");
     useJitter         = configParams.getBoolean("Platform/UseJitter");
-    jitterSource = configParams.getBoolean("Platform/JitterSource");
+    jitterSource = configParams.getString("Platform/JitterSource");
     includeFieldDistortion = configParams.getBoolean("Camera/IncludeFieldDistortion"); // do we want to do this or should this be asked to Camera?
     useDrift          = configParams.getBoolean("Telescope/UseDrift");  
     useDriftFromFile  = configParams.getBoolean("Telescope/UseDriftFromFile");  
@@ -427,6 +426,8 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
 
 void Simulation::run()
 {
+	Log.info("Simulation: simulation thread created");
+
     // Update the internal clock
 
     currentTime = beginExposureNr * (exposureTime + readoutTimeBeforeNextExposure);
