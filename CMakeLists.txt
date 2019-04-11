@@ -88,6 +88,11 @@ list(REMOVE_ITEM platosimSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/main.cpp
 set(platosimMain ${CMAKE_CURRENT_SOURCE_DIR}/source/main.cpp)
 
 
+# Define the server.cpp of server
+
+set(serverMain ${CMAKE_CURRENT_SOURCE_DIR}/testServer.cpp)
+
+
 # Add a platosim library. This way we need to compile the platosim source files
 # only once, when using them for platosim as well as testplatosim.
 
@@ -167,11 +172,11 @@ endif()
 
 add_executable(platosim ${platosimMain})
 add_executable(testplatosim ${unitTestMain} ${unitTestSourceFiles})
-
+add_executable(testServer ${serverMain})
 
 # Link the platosim and testplatosim executable with the required libraries
 
 target_link_libraries(testplatosim platosimLibrary hdf5 hdf5_cpp armadillo yaml-cpp fftw3f fftw3f_threads gtest gtest_main pthread)
 target_link_libraries(platosim platosimLibrary hdf5 hdf5_cpp armadillo yaml-cpp fftw3f fftw3f_threads pthread Faddeeva zmq)
-
+target_link_libraries(testServer zmq)
 
