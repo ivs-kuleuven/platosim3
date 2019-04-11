@@ -169,10 +169,9 @@ Sky:
 	SkyBackground:               342.
 	IncludeVariableSources:      no
     	VariableSourceList:          inputfiles/varsource.txt
-	IncludeCosmics:              yes
 	IncludeCosmicsInSubField:        yes
-       IncludeCosmicsInSmearingMap:     yes
-       IncludeCosmicsInBiasMap:         yes    
+    IncludeCosmicsInSmearingMap:     yes
+    IncludeCosmicsInBiasMap:         yes    
 	Cosmics:
 		CosmicHitRate:                      10
 		TrailLength:                   [0, 15]
@@ -272,6 +271,7 @@ The <b>Platform</b> block of the configuration file contains all the information
 \code{.yaml}
 Platform:
 
+    SolarPanelOrientation:       0
     UseJitter:                   yes             
     UseJitterFromFile:           no              
     JitterYawRms:                1.0             
@@ -280,6 +280,15 @@ Platform:
     JitterTimeScale:             3600.           
     JitterFileName:              /inputfiles/jitter.txt
 \endcode
+
+
+
+### <a name="solarPanelOrientation"></a>SolarPanelOrientation
+<i>Allowed values:</i> 0, 90, 180, and 270
+
+Orientation angle of the solar panel, expressed in degrees.  This is the roll angle of the platform, which enables orienting the solar panels towards the Sun each quarter, i.e. at the beginning of each quarter the roll angle must be increased by 90 degrees.  By convention the roll angle must be set to zero degrees at the beginning of the first quarter.
+
+Note that - to properly account for the re-orientation of the solar panels - simulations must be chopped up in chunks of maximum three months.
 
 
 
@@ -1138,7 +1147,6 @@ CCD:
     IncludeFullWellSaturation:        yes            
     IncludeDigitalSaturation:         yes      
     IncludeQuantisation:              yes      
-    WriteSubPixelImagesToHDF5:        no              
 \endcode
 
 
@@ -1472,16 +1480,6 @@ The difference with [ParallelTransferTimeFast](#parallelTransferTimeFast) is due
 <i>Allowed values:</i> \f$\ge \f$ 0
 
 Time required to shift the charges one row down (towards the readout register) in case the readout register will not be read out by the FEE.  In that case clock settling is not needed, hence the difference with [ParallelTransferTime](#parallelTransferTime).
-
-       
-       
-        
-### <a name="readoutTime"></a>ReadoutTime
-<i>Allowed values:</i> \f$\ge \f$ 0
-
-Time required to read out an entire CCD working in frame transfer mode, and the pre-scan and the over-scan strips (to estimate the bias and the smearing resp.), expressed in seconds. Because of the absence of a shutter (which is common in space-based instruments), the CCD still receives light during frame transfer. The flux of each sub-pixel is affected by the flux of the sub-pixels in the same column. Because the CCD is exposed during the whole readout and multiple exposures are created, also the sub-pixels further away from the readout register have their influence.
-
-For non-frame-transfer CCDs the readout time should be set to zero.
 
 
 

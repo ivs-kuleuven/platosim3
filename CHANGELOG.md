@@ -5,7 +5,7 @@
 <!-- 3.3.6 -->
 <!-- ***** -->
 
-## ??/??/2018: 3.3.6
+## 10/04/2019: 3.3.6
 
 ### Fixed
 
@@ -36,6 +36,10 @@
 * Implement mechanical vignetting (GitHub issue #334)
 
 * Partial-readout parameters not read out correctly (GitHub issue #346)
+
+* Conserving disc space by writing the images as int matrices into the .hdf5 files (GitHub issue #348)
+
+* Bug fix in the createStarCatalogFileFromPixelCoordinates() method.
 
 
 

@@ -56,8 +56,12 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     configure(configParams);
 
-    double readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure;
+    double readoutTimeDuringNextExposure;
     tie(readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure) = configureReadoutTime(configParams);
+
+    Log.debug("Simulation: Exposure time: " + to_string(exposureTime));
+    Log.debug("Simulation: Readout time before next exposure: " + to_string(readoutTimeBeforeNextExposure));
+
 
     // Depending on what the user requested, define the proper platform jitter generator
 
@@ -297,7 +301,8 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
 	//	- partial readout: configurable
 	// The rest of the image area will be dumped
 
-	int numRowsReadout, numRowsDump;
+	int numRowsReadout=0;
+    int numRowsDump=0;
 
 
 
@@ -610,6 +615,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "Platform";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("SolarPanelOrientation");
     addBoolean("UseJitter");
     addBoolean("UseJitterFromFile");
     addDouble("JitterYawRms");
