@@ -39,7 +39,15 @@ JitterFromNetwork::~JitterFromNetwork()
 
 void JitterFromNetwork::configure(ConfigurationParameters &configParams)
 {
-   
+	oldTimeStep = 0.0;
+    oldYaw = 0.0;
+    oldPitch = 0.0;
+    oldRoll = 0.0;
+
+    currentTimeStep = -1.0;
+    currentYaw = 0.0;
+    currentPitch = 0.0;
+    currentRoll = 0.0;
 }
 
 
@@ -51,11 +59,43 @@ void JitterFromNetwork::configure(ConfigurationParameters &configParams)
  */
 tuple<double, double, double> JitterFromNetwork::getNextYawPitchRoll(double time)
 {
-	const double yaw = 0.0;
-	const double pitch = 0.0;
-	const double roll = 0.0;
+	// ask for the server thread to get a new jitter step until the new step has a larger time stamp than time
 
-	return make_tuple(yaw, pitch, roll);
+	while(time > currentTimeStep)
+	{
+		*notifiedPointer = true;
+			
+		// notify the tcp connection thread
+		condVarPointer->notify_one();	
+
+		// declare a lock for this thread
+		std::unique_lock<std::mutex> lock(*mutexPointer);
+
+	    // wait for the tcp connection thread to notify this thread
+	    while(!*newStepPointer)
+	    {    	
+	        condVarPointer->wait(lock);
+	    }
+
+	    if (time == currentTimeStep)
+	    {
+	        return make_tuple(currentYaw, currentPitch, currentRoll);
+	    }
+	    else
+	    {
+	        // interpolate the jitterstep dependent on the old and new jitterstep and the currentTime
+
+	        const double weight1 = (time - oldTimeStep) / (currentTimeStep - oldTimeStep);
+	        const double weight2 = (currentTimeStep - time) / (currentTimeStep - oldTimeStep);
+	        const double newYaw   = oldYaw   * weight2 + currentYaw   * weight1;
+	        const double newPitch = oldPitch * weight2 + currentPitch * weight1;
+	        const double newRoll  = oldRoll  * weight2 + currentRoll  * weight1;
+
+	        return make_tuple(newYaw, newPitch, newRoll);
+	    }
+
+	}
+
 }
 
 
@@ -72,6 +112,8 @@ void JitterFromNetwork::setCurrentJitterStep(double endOfSimulation, double time
     currentYaw = deg2rad(yaw/3600.);
     currentPitch = deg2rad(pitch/3600.);
     currentRoll = deg2rad(roll/3600.);
+
+
 }
 
 
