@@ -15,7 +15,7 @@ ObservingParameters:
     RApointing:                  86.79870         # Platform (not telescope) right ascension pointing coordinate      [deg] 
     DecPointing:                 -46.39595        # Platform (not telescope) declination pointing coordinate          [deg]
     Fluxm0:                      1.00179e8        # Photon flux of a V=0 G2V-star                                     [phot/s/m^2/nm]
-    StarCatalogFile:             inputfiles/guide_stars_EQ.txt
+    StarCatalogFile:             inputfiles/catalog.txt
 
 
 Sky:
@@ -36,12 +36,13 @@ Platform:
 
     SolarPanelOrientation:        0               # 0, 90, 180, or 270 degrees for the different quarters of a year [deg]
     UseJitter:                   yes              # yes or no
-    JitterSource:               JitterFromNetwork              # JitterFromFile, JitterFromRedNoise, or JitterFromNetwork
+    JitterSource:               FromNetwork              # FromFile, FromRedNoise, or FromNetwork
     JitterYawRms:                0.04             # [arcsec]
     JitterPitchRms:              0.04             # [arcsec]
     JitterRollRms:               0.08             # [arcsec]
     JitterTimeScale:             180              # [s]
     JitterFileName:              inputfiles/PlatoJitter_OHB.txt 
+    TcpAddress: tcp://localhost:5555
 
 
 Telescope:
@@ -231,8 +232,8 @@ CCD:
 
 SubField:    
 
-    ZeroPointRow:                0               # Row of the (0,0) pixel of the subfield [pixels]
-    ZeroPointColumn:             0               # Column of the (0,0) pixel of the subfield [pixels]
+    ZeroPointRow:                4420               # Row of the (0,0) pixel of the subfield [pixels]
+    ZeroPointColumn:             3523               # Column of the (0,0) pixel of the subfield [pixels]
     NumColumns:                  9               # Number of columns, should be >= 8 [pixels]
     NumRows:                     9               # Number of rows,    should be >= 8 [pixels]
     NumBiasPrescanRows:          30              # Nr of rows of the prescan strip to determine the bias [pixels]
