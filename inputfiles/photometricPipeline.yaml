@@ -17,7 +17,8 @@ StarWindow:
     ZeroPointRow:                        100    # Row coordinate of the pixel of the star window on the CCD closest to its origin [pixels]
     ZeroPointColumn:                     100    # Column coordinate of the pixel of the star window on the CCD closest to its origin [pixels]
     NumRows:                             6      # Number of rows in the star window [pixels]
-    NumColumns:                          6      # Number of columns in the star window [pixels] 
+    NumColumns:                          6      # Number of columns in the star window [pixels]
+    MaskUpdateInterval:                  7      # Number of days after which to update the mask [days]
 
 BackgroundWindow:
     OutlierDetection:
