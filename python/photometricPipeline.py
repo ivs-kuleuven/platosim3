@@ -1,3 +1,16 @@
+"""
+Photometric pipeline.
+
+Example usage:
+
+    photometricPipeline = PhotometricPipeline(runName, configurationFile, simulationFile, outputDir, debug = False)
+    photometricPipeline.run()
+"""
+
+#########
+# Imports
+#########
+
 from simfile import SimFile
 import numpy as np
 import math
@@ -10,82 +23,7 @@ import sys
 import ast
 import numpy as np
 import h5py
-
-
-
-###############################
-# Background window calculation
-###############################
-
-# def processBackgroundWindow(background_window, offset_value_fc, smearing_pattern_fc, half_ccd_gain, outlier_detection_threshold):
-
-#     """
-#     PURPOSE: Background calculation as explained in PLATO-LESIA-PDC-DD-011 (PLATO Onboard Background
-#              Window Calculation ATBD).
-#              Algorithm name: ONB-BKGCAL-010.
-
-#     INPUT:
-#         - background_window: values in the background window [ADU]
-#         - offset_value:_fc Electronic offset as calculated from the serial pre-scan
-#         - smearing_pattern_fc: Smearing as calculated from the parallel over-scan
-#         - half_ccd_gain: CCD gain for the detector half to which the given parallel over-scan
-#                          corresponds
-#         - outlier_detection_threshold: Threshold for outlier detection
-    
-#     OUTPUT:
-#         - background_value_fc: Mean of the values in the background window [e-]
-#         - background_variance_fc: Variance of the values in the background window [e-]
-#     """
-
-#     window_smearing_pattern_fc = window_smearing_pattern(smearing_pattern_fc)
-
-#     # Subtract offset, multiply with gain, and subtract smearing pattern
-
-#     background_window = background_window - offset_value_fc
-
-#     background_window *= half_ccd_gain
-
-#     for column in range(background_window.shape[1]):
-
-#         background_window[:][column] = background_window[:][column] - window_smearing_pattern_fc[column]
-    
-
-
-#     # Outlier detection
-
-#     flag = background_outlier_detection(background_window, outlier_detection_threshold)[0]
-
-#     # Shifted data algorithm
-
-#     background_value_fc, background_variance_fc, n_useful = shifted_data_algorithm(background_window[~flag])
-
-#     return background_value_fc, background_variance_fc
-
-
-
-
-
-# # def background_outlier_detection(background_window, threshold):
-
-#     """
-#     PURPOSE: Detection of outliers in the background window as explained in PLATO-MPSSR-PDC-DD-004
-#              (PLATO On-board Background Window Outlier Detection Algorithm Theoretical Baseline
-#              Document).
-#              Algorithm name: ONB-BACKOUTDET-010.
-
-#     INPUT:
-#         - background_window: Array of background window pixels [-e]
-#         - threshold: Threshold for outlier detection (number of median absolute deviations used to flag
-#                      outliers)
-
-#     OUTPUT:
-#         - raw_back_flags: Boolean truth values, where 0 means "no outlier" and 1 means "outlier".  The
-#                           truth value 1 is equivalent to a flag
-#     """
-
-#     raw_back_flags = mad_median_clipping(background_window, threshold)
-
-#     return raw_back_flags
+import astropy
 
 
 
@@ -95,76 +33,80 @@ import h5py
 # Auxiliary functions
 #####################
 
-def shifted_data_algorithm(data):
+def applyShiftedDataAlgorithm(data, flag = None):
 
     """
-    PURPOSE: Shifted data algorithm to compute the mean and variance for the given data.  This method
-             avoids loss of significance with big numbers when computing the variance.
+    PURPOSE: Shifted data algorithm to compute the mean and variance for the given data, discarding the
+             outliers denoted by the given flag.  This method avoids loss of significance with big numbers 
+             when computing the variance.
 
     INPUT:
-        - data: Data array for which to calculated the mean and the variance
+        - data: Data array for which to calculate the mean and the variance
+        - flag: Boolean truth values, where 0 means "no outlier" and 1 means
+                "outlier".  The truth value 1 is equivalent to a flag.
 
     OUTPUT:
-        - mean: Mean value of the given data array, as computed with the shifted data algorithm
-        - variance: Variance of the given data array, as computed with the shifted data algorithm
-        - n_useful: Number of non-flagged datapoints
+        - mean: Mean value of the given data array, after flagging the outliers, as computed with the 
+                shifted data algorithm
+        - variance: Variance of the given data array, after flagging the outlier, as computed with the 
+                    shifted data algorithm
+        - numUsefulDatapoints: Number of non-flagged datapoints
     """
 
-    k = data[0]         # Use the 1st non-flagged value as approximation of the mean (arbitrary choice)
-    data = data - k     # Shift the data
+    # Discard flagged data (if any)
 
-    data_shifted_sum = np.sum(data)                             # Sum of the shifted data
-    data_shifted_squared_sum = np.sum(np.power(data, 2))        # Sum of the squares of the shifted data
+    if flag == None:
+        dataAfterFlagging = data
+    else:
+        dataAfterFlagging = data[~flag]
 
-    n_useful = len(data)
+    # Shifted data algorithm
 
-    mean = (data_shifted_sum + n_useful * k) / n_useful                                                 # Mean
-    variance = (data_shifted_squared_sum - (pow(data_shifted_sum, 2) / n_useful)) / (n_useful - 1)      # Variance
+    approximationOfMean = dataAfterFlagging[0]                            # Use the 1st non-flagged value as approximation of the mean (arbitrary choice)
+    dataAfterFlagging = dataAfterFlagging - approximationOfMean           # Shift the data (by subtracting the approximation of the mean)
 
-    return (mean, variance, n_useful)
+    sumShiftedData = np.sum(dataAfterFlagging)                            # Sum of the shifted data
+    squaredSumShiftedData = np.sum(np.power(dataAfterFlagging, 2))        # Sum of the squares of the shifted data
+
+    numUsefulDatapoints = len(dataAfterFlagging)                          # Number of non-flagged (i.e. useful) datapoints
+
+    mean = (sumShiftedData + numUsefulDatapoints * approximationOfMean) / numUsefulDatapoints                            # Mean
+    variance = (squaredSumShiftedData - (pow(sumShiftedData, 2) / numUsefulDatapoints)) / (numUsefulDatapoints - 1)      # Variance
+
+    return mean, variance, numUsefulDatapoints
 
 
 
 
 
-def mad_median_clipping(data, threshold, index = None):
+def applyMadClippingAroundMedian(data, threshold, index = None):
 
     """
-    PURPOSE: Outlier detection, based on Median Absolute Deviation (MAD) clipping around the median.
-
+    PURPOSE: Outlier detection, based on Median Absolute Deviation (MAD) clipping around the median. In
+             case an index is specified, a boolean is returned, indicating whether or not the datapoint
+             with the specified index is an outlier.  Otherwise an outlier flag for the given data is 
+             returned.
     INPUT:
         - data: Data for which to flag outliers
         - threshold: Threshold for MAD clipping around the median
-        - index: If specified, it is calculated whether the datapoint at this position is an outlier.
+        - index: If specified, it is calculated whether the datapoint at this position is an outlier
 
     OUTPUT:
         - in case index was specified: boolean indicating whether or not the datapoint at the given
-          position is an outlier; otherwise: boolean truth values, where 0 means "no outlier" and 1 means
-                                 "outlier".  The truth value 1 is equivalent to a flag.
+          position is an outlier
+        - otherwise: boolean truth values, where 0 means "no outlier" and 1 means "outlier".  The truth 
+          value 1 is equivalent to a flag.
     """
 
-    median = np.median(data)         # Median
-    y = np.fabs(data - median)       # Subtract median from background window
-    mad = np.median(y)               # MAD
+    mad = astropy.stats.median_absolute_deviation(data)       # MAD
 
     if index == None:
 
-        flag = np.where(y > threshold * mad)
-        return flag
+        return np.where(data > threshold * mad)               # Outlier flag for all datapoints
 
     else:
-        return y[index] / mad > threshold
 
-
-
-
-
-def window_smearing_pattern(smearing_pattern_fc):
-
-    # TODO We will need extra parameters (spanned columns) to extract the required smearing
-    # pattern for the window.
-
-    return smearing_pattern_fc
+        return data[index] / mad > threshold                  # Is the datapoint at the given index an outlier?
 
 
 
@@ -230,7 +172,7 @@ class PhotometricPipeline(object):
     def outputDir(self):
 
         """
-        PURPOSE: Return location of the output file.
+        PURPOSE: Return the location of the output file.
 
         OUTPUT: 
             - Location of the output file
@@ -250,10 +192,11 @@ class PhotometricPipeline(object):
                  doesn't exist, it is created.
         
         INPUT: 
-            - Path to the directory to use as output directory
+            - path: Path to the directory to use as output directory
         """
 
         if not os.path.exists(path):
+
             if self.debug:
 
                 print("DEBUG: creating output directory {}.".format(path))
@@ -277,7 +220,7 @@ class PhotometricPipeline(object):
         PURPOSE: Read the YAML input configuration file. 
 
         INPUT:
-            - Path to the configuration file
+            - filename: Path to the configuration file
         """
 
         self.configurationFilename = filename
@@ -289,9 +232,11 @@ class PhotometricPipeline(object):
         with open(filename, 'r') as stream:
 
             try:
+
                 self.yamlDocument = yaml.load(stream)
 
             except yaml.YAMLError as exc:
+                
                 print(exc)
 
 
@@ -340,8 +285,11 @@ class PhotometricPipeline(object):
             print("> {}, {}".format(nodeName, type(node)))
 
             try:
+
                 node = node[nodeName]
+            
             except:
+            
                 return False
 
         return True
@@ -367,12 +315,14 @@ class PhotometricPipeline(object):
 
         if key.find('/') == -1:
 
-            parentNodeName, nodeName = key, None
+            # parentNodeName, nodeName = key, None
             print ("usage: the given parameter name (key) should include the group name of the group that contains the parameter.")
             print ("       E.g in 'Camera/PlateScale', Camera is the group, PlateScale is the parameter.")
+
             return None
 
         else:
+
             nodeNames = key.split("/")
 
         # Navigate to the deepest node, starting from the document root
@@ -382,17 +332,23 @@ class PhotometricPipeline(object):
         for nodeName in nodeNames:
 
             if nodeName in node:
+
                 node = node[nodeName]
             
             else:
+
                 print("ERROR: The group '{}' was not found in the yaml inputfile '{}'.".format(key, self.configurationFilename))
+
                 return None
 
         # node is a string, so cast it to its proper value
 
         try:
+
             value = ast.literal_eval(node)
+
         except ValueError:
+            
             value = node
         
         # Return the value of the deepest node
@@ -427,9 +383,11 @@ class PhotometricPipeline(object):
 
             print ("usage: the given parameter name (key) should include the group name of the group that contains the parameter.")
             print ("       E.g in 'Camera/PlateScale', Camera is the group, PlatScale is the parameter.")
+
             return None
         
         else:
+
             nodeNames = key.split("/")
 
         # Check whether the parent node is in the document. If not, complain
@@ -437,6 +395,7 @@ class PhotometricPipeline(object):
         if nodeNames[0] not in self.yamlDocument:
 
              print("Error: no node with the name {0} found in input yaml file".format(nodeNames[0]))
+
              return False
 
         # If there is only 1 node in the path, we're finished after setting its value
@@ -444,6 +403,7 @@ class PhotometricPipeline(object):
         if len(nodeNames) == 1:
 
             self.yamlDocument[nodeNames[0]] = item
+
             return True
 
         # If we arrive here, there are at least 2 node in the path, check if 2nd parent node exists
@@ -451,6 +411,7 @@ class PhotometricPipeline(object):
         if nodeNames[1] not in self.yamlDocument[nodeNames[0]]:
 
              print("Error: no node with the name {0} found in input yaml file".format(nodeNames[0]+"/"+nodeNames[1]))
+
              return False
 
         # If there are only 2 nodes in the path, we're finished after setting its value
@@ -458,6 +419,7 @@ class PhotometricPipeline(object):
         if len(nodeNames) == 2:
 
             self.yamlDocument[nodeNames[0]][nodeNames[1]] = item
+
             return True
 
         # If we arrive here, there are at least 3 nodes in the path, check if 3rd parent node exists
@@ -465,6 +427,7 @@ class PhotometricPipeline(object):
         if nodeNames[2] not in self.yamlDocument[nodeNames[0]][nodeNames[1]]:
 
              print("Error: no node with the name {0} found in input yaml file".format(nodeNames[0]+"/"+nodeNames[1]+"/"+nodeNames[2]))
+
              return False
 
         # If there are only 3 nodes in the path, we're finished after setting its value
@@ -472,6 +435,7 @@ class PhotometricPipeline(object):
         if len(nodeNames) == 3:
 
             self.yamlDocument[nodeNames[0]][nodeNames[1]][nodeNames[2]] = item
+
             return True
 
         print("Error: detected more than 3 nodes in the path {0}".format(key))
@@ -518,8 +482,11 @@ class PhotometricPipeline(object):
         """
     
         if self.debug:
+
             print ("Writing the Yaml configuration file {}.".format(filename))
+
         with open(filename, 'w') as outfile:
+
             outfile.write( pyaml.dump(self.yamlDocument, indent=4, width=120) )
 
 
@@ -553,7 +520,10 @@ class PhotometricPipeline(object):
                                 already exists before the run started
         """
 
+
+
         if not self.hasTargetLocation:
+
             raise Exception("Output location not set for this Simulation. Set the outputDir before executing the run() method.")
 
         inputFilename = "{}/{}.yaml".format(self.targetOutputFilesLocation, self.runName)
@@ -563,118 +533,22 @@ class PhotometricPipeline(object):
         if removeOutputFile:
         
             try:
+
                 os.remove(outputFilename)
+            
             except OSError:
+            
                 pass
         
         self.writeYamlConfigurationFile(inputFilename)
 
-        
-
-        # Parameters that are specific for the star window
-
-        self.window_zp_row = self["StarWindow/ZeropointRow"]            # Row coordinate of the star window zeropoint on the detector [pixels]
-        self.window_zp_column = self["StarWindow/ZeropointColumn"]      # Column coordinate of the star window zeropoint on the detector [pixels]
-        self.window_num_rows = self["StarWindow/NumRows"]               # Height of the star window [pixels]
-        self.window_num_columns = self["StarWindow/NumColumns"]         # Width of the star window [pixels]
 
 
+        # Configuration:
+        #   - read the required input parameters
+        #   - make placeholders for all arrays that will be stored
 
-        # Parameters that are specific for the detector half on which the star window is located
-
-        self.subfield_zp_row = self.simFile.getInputParameter("SubField", "ZeroPointRow")           # Row coordinate of the sub-field zeropoint on the detector [pixels]
-        self.subfield_zp_column = self.simFile.getInputParameter("SubField", "ZeroPointColumn")     # Column coordinate of the sub-field zeropoint on the detector [pixels]
-
-        self.detector_half = "Left"
-        if self.window_zp_column >= self.simFile.getInputParameter("CCD", "NumColumns") / 2:
-            self.detector_half = "Right"
-
-        if self.detector_half == "Left":
-            self.half_ccd_gain = 1.0 / (self.simFile.getInputParameter("FEE/Gain", "RefValueLeft") * self.simFile.getInputParameter("CCD/Gain", "RefValueLeft"))    # Total gain for the left detector half [e- / ADU]
-        elif self.detector_half == "Right":
-            self.half_ccd_gain = 1.0 / (self.simFile.getInputParameter("FEE/Gain", "RefValueRight") * self.simFile.getInputParameter("CCD/Gain", "RefValueRight"))  # Total gain for the left detector half [e- / ADU]
-
-
-
-        # Parameters that are specific for the offset calculation
-
-        self.offset_outlier_detection_enabled = self["Offset/OutlierDetection/Enabled"]                 # Enable/disable outlier detection
-        self.offset_outlier_detection_k = self["Offset/OutlierDetection/k"]                             # Number of largest and smallest values to flag as outliers
-
-        self.offset_value_fc_array = np.array([])
-        self.offset_variance_fc_array = np.array([])
-
-
-
-        # Parameters that are specific for the smearing pattern calculations
-        
-        self.smearing_a0_array = np.empty(self.simFile.getInputParameter("SubField", "NumColumns")) 
-        self.smearing_a0_array.fill(np.array(self["Smearing/Coefficients/a"])[0])
-        self.smearing_a_coefficients = np.array(self["Smearing/Coefficients/a"])[1:]                    # Coefficients [a1, a2, a3]
-        self.smearing_b_coefficients = np.array(self["Smearing/Coefficients/b"])                        # Coefficients [b0, b1, b2, b3]
-        self.smearing_n0 = self["Smearing/NumRowsSkipped"]                                              # Number of rows to skip for CTI correction (1st rows may be affected by bright stars at the top of the detector) 
-        self.smearing_outlier_detection_enabled = self["Smearing/OutlierDetection/Enabled"]             # Enable/disable outlier detection
-        self.smearing_outlier_detection_threshold = self["Smearing/OutlierDetection/Threshold"]         # Threshold for outlier detection
-        self.smearing_epsilon = self["Smearing/Regularization"]                                         # Epsilon
-
-        self.smearing_pattern_fc_array = np.array([])                                                   # Smearing pattern for the different columns at fast cadence (25s)
-        self.smearing_pattern_lc_array = np.array([])                                                   # Smearing pattern for the difference columns at long cadence (600s)
-
-
-
-        # Parameters that are specific for the flux and COB calculation
-
-        self.fx_fc_array = np.array([])         # Flux calculated with the nominal mask at fast cadence (25s)
-        self.dfx_fc_array = np.array([])        # Difference in flux between the extended and the nominal mask at fast cadence (25s)
-        self.ncob_fc_array = np.array([])       # COB calculated with the nominal mask at fast cadence (25s)
-        self.ecob_fc_array = np.array([])       # COB calculated with the extende mask at fast cadence (25s)
-
-
-
-        # Parameters that are specific for light curve outlier detection
-
-        self.lc_outlier_detection_enabled = self["LightCurve/OutlierDetection/Enabled"]         # Enable/disable outlier detection
-        self.lc_outlier_detection_b = self["LightCurve/OutlierDetection/b"]                     # Number of past and future datapoints needed to decide whether or not a datapoint is an outlier
-        self.lc_outlier_detection_threshold = self["LightCurve/OutlierDetection/Threshold"]     # Outlier detection threshold
-
-
-        if self.lc_outlier_detection_enabled:
-
-            self.nflag_fc = np.zeros(self.lc_outlier_detection_b)
-            self.eflag_fc = np.zeros(self.lc_outlier_detection_b)
-        
-        else:
-            self.nflag_fc = None
-            self.eflag_fc = None
-
-
-
-        # Parameters that are specific for time averaging
-
-        self.time_averaging_cadence = self["LightCurve/TimeAveraging/Cadence"]                  # Choose between short and long cadence
-
-        self.num_exposures_sc = self["LightCurve/TimeAveraging/NumSamples/Short"]               # Short cadence: 50s (i.e. 2 samples)
-        self.num_exposures_lc = self["LightCurve/TimeAveraging/NumSamples/Long"]                # Long cadence: 600s (i.e. 24 samples)
-
-        if self.time_averaging_cadence == "Short":
-            
-            self.num_exposures_time_averaging = self.num_exposures_sc
-
-            self.fx_sc_array = np.array([])
-            self.dfx_sc_array = np.array([])
-            self.ncob_sc_array = np.array([])
-            self.ecob_sc_array = np.array([])
-            self.fx_exposure_error_sc_array = np.array([])
-
-        elif self.time_averaging_cadence == "Long":
-            
-            self.num_exposures_time_averaging = self.num_exposures_sc
-
-            self.fx_lc_array = np.array([])
-            self.dfx_lc_array = np.array([])
-            self.fxvar_lc_array = np.array([])
-            self.dfxvar_lc_array = np.array([])
-            self.fx_exposure_error_lc_array = np.array([])
+        self.configure()
 
 
 
@@ -684,40 +558,160 @@ class PhotometricPipeline(object):
 
         for exposure in range(numExposures):
 
-            self.process_exposure(exposure)
+            self.processExposure(exposure)
 
         
 
         # Write results to HDF5 file
 
-        self.write_output(outputFilename)
+        self.writeOutput(outputFilename)
     
 
 
 
 
-    def process_exposure(self, exposure):
+    def configure(self):
+
+        """
+        PURPOSE: Configuration:
+                    - read all required input parameters
+                    - make placeholders for all arrays that will be stored
+        """
+
+        # Parameters that are specific for the star window
+
+        self.windowZeropointRow = self["StarWindow/ZeropointRow"]            # Row coordinate of the star window zeropoint on the detector [pixels]
+        self.windowZeropointColumn = self["StarWindow/ZeropointColumn"]      # Column coordinate of the star window zeropoint on the detector [pixels]
+        self.windowNumRows = self["StarWindow/NumRows"]                      # Height (i.e. number of rows) of the star window [pixels]
+        self.windowNumColumns = self["StarWindow/NumColumns"]                # Width (i.e. number of columns) of the star window [pixels]
+
+
+
+        # Parameters that are specific for the detector half on which the star window is located
+
+        self.subfieldZeropointRow = self.simFile.getInputParameter("SubField", "ZeroPointRow")           # Row coordinate of the sub-field zeropoint on the detector [pixels]
+        self.subfieldZeropointColumn = self.simFile.getInputParameter("SubField", "ZeroPointColumn")     # Column coordinate of the sub-field zeropoint on the detector [pixels]
+
+        self.detectorHalf = "Left"
+        if self.windowZeropointColumn >= self.simFile.getInputParameter("CCD", "NumColumns") / 2:
+            self.detectorHalf = "Right"
+
+        if self.detectorHalf == "Left":
+            self.gain = 1.0 / (self.simFile.getInputParameter("FEE/Gain", "RefValueLeft") * self.simFile.getInputParameter("CCD/Gain", "RefValueLeft"))    # Total gain for the left detector half [e- / ADU]
+        elif self.detectorHalf == "Right":
+            self.gain = 1.0 / (self.simFile.getInputParameter("FEE/Gain", "RefValueRight") * self.simFile.getInputParameter("CCD/Gain", "RefValueRight"))  # Total gain for the left detector half [e- / ADU]
+
+
+
+        # Parameters that are specific for the offset calculation
+
+        self.includeOffsetOutlierDetection = self["Offset/IncludeOutlierDetection"]                                       # Enable/disable outlier detection
+        self.offsetOutlierDetectionNumSkippedElementsBothEnds = self["Offset/OutlierDetection/approximationOfMean"]       # Number of largest and smallest values to flag as outliers
+
+        self.offsetValueArrayFastCadence = np.array([])
+        # self.offsetVarianceArrayFastCadence_array = np.array([])
+
+
+
+        # Parameters that are specific for the smearing pattern calculation
+        
+        self.smearingCoefficientA0Array = np.empty(self.simFile.getInputParameter("SubField", "NumColumns")) 
+        self.smearingCoefficientA0Array.fill(np.array(self["Smearing/Coefficients/a"])[0])                      # Coefficient a0 (one entry per column)
+        self.smearingCoefficientsA = np.array(self["Smearing/Coefficients/a"])[1:]                              # Coefficients [a1, a2, a3]
+        self.smearingCoefficientsB = np.array(self["Smearing/Coefficients/b"])                                  # Coefficients [b0, b1, b2, b3]
+        self.smearingNumRowsSkipped = self["Smearing/NumRowsSkipped"]                                           # Number of rows to skip for CTI correction (1st rows may be affected by bright stars at the top of the detector) 
+        self.includeSmearingOutlierDetection = self["Smearing/IncludeOutlierDetection"]                         # Enable/disable outlier detection
+        self.smearingOutlierDetectionThreshold = self["Smearing/OutlierDetection/Threshold"]                    # Threshold for outlier detection
+        self.smearingRegularization = self["Smearing/Regularization"]                                           # Epsilon regularisation parameter
+
+        self.smearingPatternArrayFastCadence = np.array([])                                                     # Smearing pattern for the different columns at fast cadence (25s)
+        self.smearingPatternArrayLongCadence = np.array([])                                                     # Smearing pattern for the difference columns at long cadence (600s)
+
+
+
+        # Parameters that are specific for the flux and COB calculation
+
+        self.numExposuresMaskUpdate = self["StarWindow/MaskUpdateInterval"] * 24 * 60 * 60 / 25         # Number of exposures after which the mask needs to be updated 
+
+        self.fluxArrayFastCadence = np.array([])                                                        # Flux calculated with the (nominal) mask at fast cadence (25s)
+        self.cobArrayFastCadence = np.array([])                                                         # Centre-of-brightness CCalculated with the (nominal) mask at fast cadence (25s)
+
+        self.cobOffsetX = np.arange(0.5, self.windowNumColumns).repeat(self.windowNumRows).reshape(self.windowNumColumns, self.windowNumRows).transpose()   # Matrix to account for the pixel offset in the x-direction when calculating the COB
+        self.cobOffsetY = np.arange(0.5, self.windowNumRows).repeat(self.windowNumColumns).reshape(self.windowNumRows, self.windowNumColumns)               # Matrix to account for the pixel offset in the y-direction when calculating the COB
+
+
+        # Parameters that are specific for light curve outlier detection
+
+        self.includeLightCurveOutlierDetection = self["LightCurve/IncludeOutlierDetection"]          # Enable/disable outlier detection
+        self.fluxOutlierDetectionHalfBinWidth = self["LightCurve/OutlierDetection/b"]                # Number of past and future datapoints needed to decide whether or not a datapoint is an outlier
+        self.lightCurveOutlierDetectionThreshold = self["LightCurve/OutlierDetection/Threshold"]     # Outlier detection threshold
+
+
+        if self.includeLightCurveOutlierDetection:
+
+            self.fluxFlagFastCadence = np.zeros(self.fluxOutlierDetectionHalfBinWidth)
+        
+        else:
+            self.fluxFlagFastCadence = None
+
+
+        
+        # Parameters that are specific for time averaging
+
+        self.timeAveragingCadence = self["LightCurve/TimeAveraging/Cadence"]                  # Choose between short and long cadence
+
+        self.numExposuresShortCadence = self["LightCurve/TimeAveraging/NumSamples/Short"]     # Short cadence: 50s (i.e. 2 samples)
+        self.numExposuresLongCadence = self["LightCurve/TimeAveraging/NumSamples/Long"]       # Long cadence: 600s (i.e. 24 samples)
+
+        if self.timeAveragingCadence == "Short":
+            
+            self.numExposuresTimeAveraging = self.numExposuresShortCadence
+
+            self.fluxArrayShortCadence = np.array([])
+            self.cobArrayShortCadence = np.array([])
+            self.fluxOutlierFlagShortCadence = np.array([])
+
+        elif self.timeAveragingCadence == "Long":
+            
+            self.numExposuresTimeAveraging = self.numExposuresShortCadence
+
+            self.fluxArrayLongCadence = np.array([])
+            self.fluxVarianceLongCadence = np.array([])
+            self.fluxOutlierFlagLongCadence = np.array([])
+
+
+
+
+
+    def processExposure(self, exposure):
+
+        """
+        PURPOSE: Process the exposure with the given index.
+
+        INPUT:
+            - exposure: Index of the exposure to process
+        """
 
         # Calculate the offset for the current exposure (fast cadence)
 
-        if self.detector_half == "Left":
+        if self.detectorHalf == "Left":
             serialPreScan = self.simFile.getBiasMapLeft(exposure)
 
-        elif self.detector_half == "Right":
+        elif self.detectorHalf == "Right":
             serialPreScan = self.simFile.getBiasMapRight(exposure)
 
-        offset_value_fc, offset_variance_fc = self.offset_calculation(serialPreScan)[:2]
-        self.offset_value_fc_array = np.append(self.offset_value_fc_array, offset_variance_fc)
+        offsetValueFastCadence, offsetVarianceFastCadence = self.calculateOffset(serialPreScan)[:2]
+        self.offsetValueArrayFastCadence = np.append(self.offsetValueArrayFastCadence, offsetVarianceFastCadence)
 
 
 
         # Calculate the smearing pattern for the current exposure (fast cadence)
 
         parallelOverScan = self.simFile.getSmearingMap(exposure)
-        std_dev_previous = 9999
+        stdDevPrevious = 9999
 
-        smearing_pattern_fc, std_dev_previous = self.smearing_calculation(parallelOverScan, offset_value_fc, std_dev_previous)
-        self.smearing_pattern_fc_array = np.append(self.smearing_pattern_fc_array, smearing_pattern_fc)
+        smearingPatternFastCadence, stdDevPrevious = self.calculateSmearing(parallelOverScan, offsetValueFastCadence, stdDevPrevious)
+        self.smearingPatternArrayFastCadence = np.append(self.smearingPatternArrayFastCadence, smearingPatternFastCadence)
 
 
 
@@ -726,7 +720,7 @@ class PhotometricPipeline(object):
         # Real photometric pipeline: ~100 background windows (nominally 4x4) per CCD half,
         # for which we know the fluxes and the position on the CCD.  The latter is needed to 
         # subtract the correct smearing pattern from each background window.  For each of the
-        # background windows the mean and variance are calculated, which are used in an
+        # background windows the mean and variance are Calculated, which are used in an
         # interpolation schema (based on radial basis functions) to determine the background
         # at the position of the target star.
         # It seems unfeasible to make (long-term) simulations for all these background windows, so
@@ -735,51 +729,52 @@ class PhotometricPipeline(object):
 
 
 
+        # Update the mask when required
+
+        if exposure % self.numExposuresMaskUpdate == 0:
+
+            mask = self.calculateMask()
+
+
         # Calculate the flux & COB (nominal & extended mask) for the current exposure
         # -> add new datapoint to the light curve (fast cadence)
-        # TODO
-        # This will fill fx_fc (flux in the nominal window at fast cadence), 
-        # dfx_fc (flux difference between the extended and the nominal mask), 
-        # ncob_fc (COB as obtained in the nominal mask), and ecob_fc (COB as
-        # obtained in the extended mask).
 
-        self.flux_cob_calculation(exposure, offset_value_fc,smearing_pattern_fc, nmask, emask)  # TODO Where do we get the masks from?
+        self.calculateFluxAndCob(exposure, offsetValueFastCadence,smearingPatternFastCadence, mask)
 
 
 
         # Smearing time averaging (fast -> long cadence)
 
-        if (exposure + 1) % self.num_exposures_lc == 0:
+        if (exposure + 1) % self.numExposuresLongCadence == 0:
 
-            smearing_pattern_lc = self.smearing_time_averaging()
-            self.smearing_pattern_lc_array = np.append(self.smearing_pattern_lc_array, smearing_pattern_lc)
+            smearingPatternLongCadence = self.timeAverageSmearing()
+            self.smearingPatternArrayLongCadence = np.append(self.smearingPatternArrayLongCadence, smearingPatternLongCadence)
 
 
 
         # Light curve outlier detection
         # Note that you need b datapoints in the past and b datapoints in the future!
 
-        if self.lc_outlier_detection_enabled:
+        if self.includeLightCurveOutlierDetection:
 
-            if (exposure + 1) > 2 * self.lc_outlier_detection_b:
+            if (exposure + 1) > 2 * self.fluxFlagFastCadence:
             
-                self.nflag_fc = self.flux_cob_outlier_detection(self.fx_fc_array, self.nflag_fc)
-                self.eflag_fc = self.flux_cob_outlier_detection(self.dfx_fc_array, self.eflag_fc)       # TODO Is this what we want to do?
+                self.fluxFlagFastCadence = self.detectFluxOutliers(self.fluxArrayFastCadence, self.fluxFlagFastCadence)
                 # TODO What at the end of the time series (when there are no future datapoints)?
 
 
 
         # Flux & COB time averaging
 
-        if (exposure + 1) % self.num_exposures_time_averaging == 0:
+        if (exposure + 1) % self.numExposuresTimeAveraging == 0:
 
-            self.flux_cob_time_averaging()
-
-
+            self.timeAverageFluxAndCob()
 
 
 
-    def write_output(self, filename):
+
+
+    def writeOutput(self, filename):
 
         """
         PURPOSE: Write results of the photometric pipeline to an HDF5 file with the given name.
@@ -792,14 +787,14 @@ class PhotometricPipeline(object):
 
         # Offset
 
-        offsetGroup = outputFile.create_group("OFFSET_FC")
-        offsetGroup.create_dataset("OFFSET_VALUE_FC", dtype = "float32", data = self.offset_value_fc_array)
-        offsetGroup.create_dataset("OFFSET_VARIANCE_FC", dtype = "float32", data = self.offset_variance_fc_array)
+        offsetGroup = outputFile.create_group("offset")
+        offsetGroup.create_dataset("offsetValueFastCadence", dtype = "float32", data = self.offsetValueArrayFastCadence)
+        # offsetGroup.create_dataset("offsetVarianceFastCadence", dtype = "float32", data = self.offsetVarianceArrayFastCadence)
 
         # Smearing pattern, fast cadence
 
-        smearingGroup_fc = outputFile.create_group("SMEARING_PATTERN_FC")
-        smearingGroup_fc.create_dataset("SMEARING_PATTERN_FC", dtype = "float32", data = self.smearing_pattern_fc_array)
+        smearingGroup = outputFile.create_group("smearingPattern")
+        smearingGroup.create_dataset("smearingPatternFastCadence", dtype = "float32", data = self.smearingPatternArrayFastCadence)
 
         # Background windows TODO
         # {background window ID}_VALUE_FC   
@@ -808,37 +803,30 @@ class PhotometricPipeline(object):
 
         # Smearing pattern, long cadence
 
-        smearingGroup_lc = outputFile.create_group("SMEARING_PATTERN_LC")
-        smearingGroup_lc.create_dataset("SMEARING_PATTERN_LC", dtype = "float32", data = self.smearing_pattern_lc_array)
+        smearingGroup.create_dataset("smearingPatternLongCadence", dtype = "float32", data = self.smearingPatternArrayLongCadence)
 
         # Star window, fast cadence
 
-        starWindowGroup_fc = outputFile.create_group("STAR_WINDOW_FC")
-        starWindowGroup_fc.create_dataset("FX_FC", dtype = "float32", data = self.fx_fc_array)
-        starWindowGroup_fc.create_dataset("DFX_FC", dtype = "float32", data = self.dfx_fc_array)
-        starWindowGroup_fc.create_dataset("NCOB_FC", dtype = "float32", data = self.ncob_fc_array)
-        starWindowGroup_fc.create_dataset("ECOB_FC", dtype = "float32", data = self.ecob_fc_array)
+        starWindowGroupFastCadence = outputFile.create_group("starWindowFastCadence")
+        starWindowGroupFastCadence.create_dataset("fluxFastCadence", dtype = "float32", data = self.fluxArrayFastCadence)
+        starWindowGroupFastCadence.create_dataset("cobFastCadence", dtype = "float32", data = self.cobArrayFastCadence)
 
         # Star window, short cadence
 
-        if self.time_averaging_cadence == "Short":
+        if self.timeAveragingCadence == "Short":
 
-            starWindowGroup_sc = outputFile.create_group("STAR_WINDOW_SC")
-            starWindowGroup_sc.create_dataset("FX_SC", dtype = "float32", data = self.fx_sc_array)
-            starWindowGroup_sc.create_dataset("DFX_SC", dtype = "float32", data = self.dfx_sc_array)
-            starWindowGroup_sc.create_dataset("NCOB_SC", dtype = "float32", data = self.ncob_sc_array)
-            starWindowGroup_sc.create_dataset("ECOB_SC", dtype = "float32", data = self.ecob_sc_array)
-            starWindowGroup_sc.create_dataset("FX_EXPOSURE_ERROR_SC_ARRAY", dtype = "float32", data = self.fx_exposure_error_sc_array)
+            starWindowGroupShortCadence = outputFile.create_group("starWindowShortCadence")
+            starWindowGroupShortCadence.create_dataset("flux", dtype = "float32", data = self.fluxArrayShortCadence)
+            starWindowGroupShortCadence.create_dataset("cob", dtype = "float32", data = self.cobArrayShortCadence)
+            # starWindowGroupShortCadence.create_dataset("FX_EXPOSURE_ERROR_SC_ARRAY", dtype = "float32", data = self.fluxOutlierFlagShortCadence)
 
         
-        elif self.time_averaging_cadence == "Long":
+        elif self.timeAveragingCadence == "Long":
 
-            starWindowGroup_lc = outputFile.create_group("STAR_WINDOW_LC")
-            starWindowGroup_lc.create_dataset("FX_LC", dtype = "float32", data = self.fx_lc_array)
-            starWindowGroup_lc.create_dataset("DFX_LC", dtype = "float32", data = self.dfx_lc_array)
-            starWindowGroup_lc.create_dataset("FXVAR_LC", dtype = "float32", data = self.fxvar_lc_array)
-            starWindowGroup_lc.create_dataset("DFXVAR_LC", dtype = "float32", data = self.dfxvar_lc_array)
-            starWindowGroup_lc.create_dataset("FX_EXPOSURE_ERROR_LC_ARRAY", dtype = "float32", data = self.fx_exposure_error_lc_array)
+            starWindowGroupLongCadence = outputFile.create_group("starWindowLongCadence")
+            starWindowGroupLongCadence.create_dataset("flux", dtype = "float32", data = self.fluxArrayLongCadence)
+            starWindowGroupLongCadence.create_dataset("fluxVariance", dtype = "float32", data = self.fluxVarianceArrayLongCadence)
+            # starWindowGroupLongCadence.create_dataset("FX_EXPOSURE_ERRORLongCadence_ARRAY", dtype = "float32", data = self.fluxOutlierFlagLongCadence)
 
 
 
@@ -854,7 +842,7 @@ class PhotometricPipeline(object):
     # Offset calculation
     ####################
 
-    def offset_calculation(self, offset_rows):
+    def calculateOffset(self, biasMap):
 
         """
         PURPOSE: Offset calculation as explained in PLATO-LESIA-PDC-DD-005 
@@ -862,65 +850,73 @@ class PhotometricPipeline(object):
                  Algorithm name: ONB-OFFCAL-010.
 
         INPUT:
-            - offset_rows: Serial pre-scan that is used to calculate the offset [ADU]
+            - biasMap: Serial pre-scan (i.e. bias register map) that is used to calculate the offset [ADU]
     
         OUTPUT:
-            - offset_value_fc: Mean of the values in the serial pre-scan after discarding the 
-                               outliers [ADU]
-            - offset_variance_fc: Variance of the values in the serial pre-scan after discarding 
-                                  the outliers [ADU]
+            - offsetValueFastCadence: Mean of the values in the serial pre-scan after discarding the 
+                                      outliers [ADU]
+            - offsetVarianceFastCadence: Variance of the values in the serial pre-scan after discarding 
+                                         the outliers [ADU]
         """
 
-        if self.offset_outlier_detection_enabled:
+        # Outlier detection
 
-            # Outlier detection
+        if self.includeOffsetOutlierDetection:
 
-            flag = self.offset_outliers_detection(self.offset_outliers_detection)
+            # Flag: 
+            #   - 0 means "no outlier"
+            #   - 1 means "outlier"
+
+            offsetFlag = self.detectOffsetOutliers(biasMap)
     
             # Shifted data algorithm
 
-            offset_value_fc, offset_variance_fc = shifted_data_algorithm(offset_rows[~flag])[:2]
+            offsetValueFastCadence, offsetVarianceFastCadence = applyShiftedDataAlgorithm(biasMap, offsetFlag)[:2]
         
+
+
+        # No outlier detection
+
         else:
 
-            offset_value_fc, offset_variance_fc = shifted_data_algorithm(offset_rows)[:2]
+            offsetValueFastCadence, offsetVarianceFastCadence = applyShiftedDataAlgorithm(biasMap)[:2]
 
-        return offset_value_fc, offset_variance_fc
+        return offsetValueFastCadence, offsetVarianceFastCadence
 
 
     
 
 
-    def offset_outliers_detection(self, offset_rows):
+    def detectOffsetOutliers(self, biasMap):
   
         """
         PURPOSE: Outlier detection in the serial pre-scan as explained in PLATO-MPSSR-PDC-DD-0002
                  (PLATO On-Board Offset & Prescan Outlier Detection Algorithm Theoretical Baseline
                  Document).
-                Algorithm name: ONB-OFFOUTDET-010.
+                 Algorithm name: ONB-OFFOUTDET-010.
     
         INPUT:
-            - offset_rows: Serial pre-scan that is used to calculate the offset [ADU]
+            - biasMap: Serial pre-scan that is used to calculate the offset [ADU]
     
         OUTPUT:
-            - outliers_offset_array: Boolean truth values, where 0 means "no outlier" and 1 means
-                                     "outlier".  The truth value 1 is equivalent to a flag.
+            - offsetFlag: Boolean truth values, where 0 means "no outlier" and 1 means
+                          "outlier".  The truth value 1 is equivalent to a flag.
         """
 
-        offset_rows_1d = np.ravel(offset_rows)      # 2D -> 1D
-        np.sort(offset_rows_1d)                     # Sort
+        biasMap1d = np.ravel(biasMap)      # 2D -> 1D
+        np.sort(biasMap1d)                 # Sort
 
-        if len(offset_rows) < 2 * self.offset_outlier_detection_k:
-            raise Exception("Number of entries, {0}, in the serial pre-scan (bias register map) should exceed 2k = {1}".format(len(offset_rows_1d), 2 * self.offset_outlier_detection_k))
+        if len(biasMap) < 2 * self.offsetOutlierDetectionNumSkippedElementsBothEnds:
+            raise Exception("Number of entries, {0}, in the serial pre-scan (bias register map) should exceed 2k = {1}".format(len(biasMap1d), 2 * self.offsetOutlierDetectionNumSkippedElementsBothEnds))
 
-        # Flag the k smallest values and the k largest values
+        # Flag the approximationOfMean smallest values and the approximationOfMean largest values
 
-        minOffset = offset_rows_1d[self.offset_outlier_detection_k]
-        maxOffset = offset_rows_1d[-(self.offset_outlier_detection_k + 1)]
+        minOffset = biasMap1d[self.offsetOutlierDetectionNumSkippedElementsBothEnds]
+        maxOffset = biasMap1d[-(self.offsetOutlierDetectionNumSkippedElementsBothEnds + 1)]
 
-        outliers_offset_array = np.logical_or(offset_rows < minOffset, offset_rows > maxOffset)
+        offsetFlag = np.logical_or(biasMap < minOffset, biasMap > maxOffset)
 
-        return outliers_offset_array
+        return offsetFlag
 
 
 
@@ -930,52 +926,64 @@ class PhotometricPipeline(object):
     # Smearing calculation
     ######################
 
-    def smearing_calculation(self, smearing_rows, offset_value_fc, std_dev_previous):
+    def calculateSmearing(self, smearingMap, offsetValueFastCadence, stdDevPrevious):
 
         """
         PURPOSE: Smearing calculation as explained in PLATO-LESIA-PDC-TN- (Parallel overscan rows:
                  correction of the CTI) and PLATO-LESIA-PDC-DD-006 (PLATO: N-DPU Onboard Smearing
-                 Calculation ATBD). Coefficient a0 will be updated for the next exposure
+                 Calculation ATBD). Coefficient a0 will be updated.
                  Algorithm name: ONB-SMRCAL-010.
 
         INPUT:
-            - smearing_rows: Parallel over-scan that is used to calculate the smearing [ADU]
-            - offset_value_fc: Electronic offset as calculated from the serial pre-scan [ADU]
-            - std_dev_previous: Standard deviation of the previous measurement of the parallel over-scan
-                                (one entry per column of the parallel over-scan) [e-]
+            - smearingMap: Parallel over-scan that is used to calculate the smearing [ADU]
+            - offsetValueFastCadence: Electronic offset as calculated from the serial pre-scan [ADU]
+            - stdDevPrevious: Standard deviation of the previous measurement of the parallel over-scan
+                              (one entry per column of the parallel over-scan) [e-]
 
         OUTPUT:
-            - smearing_pattern_fc: One smearing row for this CCD half [e-]
-            
-            - std_dev_previous: Standard deviation of the current measurement of this column of the parallel 
-                               over-scan
+            - smearingPatternFastCadence: One smearing row for this CCD half [e-]
+            - stdDevPrevious: Standard deviation of the current measurement of this column of the parallel 
+                              over-scan
         """
 
-        n1 = smearing_rows.shape[0]
+        numRowsSmearingMap = smearingMap.shape[0]
+        smearingMap = (smearingMap - offsetValueFastCadence) * self.gain   # [ADU] -> [e-]
 
-        smearing_rows = (smearing_rows - offset_value_fc) * self.half_ccd_gain   # [ADU] -> [e-]
+        # Placeholders for:
+        #   - the smearing map after correction of the CTI (note that the first couple of rows will not be corrected (see further))
+        #   - the smearing pattern (one entry per column in the sub-field)
 
-        Ic = np.zeros(smearing_rows.shape)
-        smearing_pattern_fc = np.zeros(smearing_rows.shape[1])
+        ctiCorrectedSmearingMap = np.zeros(smearingMap.shape)
+        smearingPatternFastCadence = np.zeros(smearingMap.shape[1])
     
-        a1, a2, a3 = self.smearing_a_coefficients[0], self.smearing_a_coefficients[1], self.smearing_a_coefficients[2]                            # a0 is not in the array (will be updated)
-        b0, b1, b2, b3 = self.smearing_b_coefficients[0], self.smearing_b_coefficients[1], self.smearing_b_coefficients[2], self.smearing_b_coefficients[3]
+        # Smearing map at pixel (i,j) after correction for the CTI:
+        #   Ic(i,j) = I(i,j) - a0(i,j) * [exp(-b0 * i) + a1 * exp(-b1 * i) + a2 * exp(-b2 * i) + a3 * exp(-b3 * i)]
+        #           = I(i,j) - a0(i,j) * tau(i)
+        #           = I(i,j) - a0(i,j) * [exp(-b0)^i + a1 * exp(-b1)^i + a2 * exp(-b2)^i + a3 * exp(-b3)^i]
+        #           = I(i,j) - a0(i,j) * [u0^i + (a1 * u1^i) + (a2 * u2^i) + (a3 * u3^i)]
+        #           = I(i,j) - a0(i,j) * [(c0 * f0(i)) + (c1 * f1(i)) +  (c2 * f2(i)) + (c3 * f3(i))]
+        #   with
+        #       uk = exp(-bk)
+        #       fk(i) = uk^i        
+
+        a1, a2, a3 = self.smearingCoefficientsA[0], self.smearingCoefficientsA[1], self.smearingCoefficientsA[2]                            # a0 is not in the array (will be updated)
+        b0, b1, b2, b3 = self.smearingCoefficientsB[0], self.smearingCoefficientsB[1], self.smearingCoefficientsB[2], self.smearingCoefficientsB[3]
         u0, u1, u2, u3 = math.exp(-b0), math.exp(-b1), math.exp(-b2), math.exp(-b3)                     # Eq. (12) in PLATO-LESIA-PDC-TN-
 
-        for column in range(smearing_rows.shape[1]):
+        for column in range(smearingMap.shape[1]):
         
             # CTI correction
 
             f0, f1, f2, f3 = 1, 1, 1, 1     # Will be updated iteratively -> initialisation for i = 0
             tau = (1 + a1 + a2 + a3)        # Will be updated iteratively -> initialisation for i = 0 -> Eq. (3) in PLATO-LESIA-PDC-TN-
 
-            for i in range(n1):
+            for row in range(numRowsSmearingMap):
 
-                if i >= self.smearing_n0:
+                if row >= self.smearingNumRowsSkipped:
 
                     # Correct the value
 
-                    Ic[i][column] = smearing_rows[i][column] - self.smearing_a0_array[column] * tau
+                    ctiCorrectedSmearingMap[row][column] = smearingMap[row][column] - self.smearingCoefficientA0Array[column] * tau
                 
                 # Update f0, f1, f2, f3, and tau
             
@@ -988,31 +996,36 @@ class PhotometricPipeline(object):
 
             # Outlier detection
         
-            if self.smearing_outlier_detection_enabled:
+            if self.includeSmearingOutlierDetection:
                 
-                flag = self.smearing_outlier_detection(Ic[self.smearing_n0:n1][column], std_dev_previous[column])
-                smearing_pattern_fc[column], std_dev_previous[column] = shifted_data_algorithm(Ic[self.smearing_n0:][column][~flag])[:2]
+                smearingFlag = self.detectSmearingOutliers(ctiCorrectedSmearingMap[self.smearingNumRowsSkipped:numRowsSmearingMap][column], stdDevPrevious[column])
+                smearingPatternFastCadence[column], stdDevPrevious[column] = applyShiftedDataAlgorithm(ctiCorrectedSmearingMap[self.smearingNumRowsSkipped:][column], smearingFlag)[:2]
 
-                if(np.sum(flag) == np.size(flag)):
+                if(np.sum(smearingFlag) == np.size(smearingFlag)):
 
-                    smearing_pattern_fc[column] = 0
+                    smearingPatternFastCadence[column] = 0
                     continue
             else:
 
                 # Calculation of the mean smearing (first n0 measurements are excluded)
                 
-                smearing_pattern_fc[column], std_dev_previous[column] = shifted_data_algorithm(Ic[self.smearing_n0:][column])[:2]
+                smearingPatternFastCadence[column], stdDevPrevious[column] = applyShiftedDataAlgorithm(ctiCorrectedSmearingMap[self.smearingNumRowsSkipped:][column])[:2]
 
-            # Update a0 for the current column
+            # Update a0 for the current column and exposure n:
+            #       a0(j; n) = [chi + epsilon * rho * ao(j; n - 1)] / [rho * (1 + epsilon)]
+            # with
+            #       chi = sum_i [I(i,j) - S(j)] * tau(i)
+            #       rho = sum_i [tau(i)]^2
 
             chi, rho = 0, 0
             f0, f1, f2, f3 = 1, 1, 1, 1 # Will be updated iteratively -> initialisation for i = 0
             tau = (1 + a1 + a2 + a3)    # Will be updated iteratively -> initialisation for i = 0 -> Eq. (3) in PLATO-LESIA-PDC-TN-
 
-            for i in range(n1):
+            for row in range(numRowsSmearingMap):
             
-                if (i >= self.smearing_n0) and (flag[i - self.smearing_n0] == 0):
-                    chi += (smearing_rows[i][column] - smearing_pattern_fc[column]) * tau
+                if (row >= self.smearingNumRowsSkipped) and (smearingFlag[row - self.smearingNumRowsSkipped] == 0):
+
+                    chi += (smearingMap[row][column] - smearingPatternFastCadence[column]) * tau
                     rho += pow(tau, 2)
 
                 # Update f0, f1, f2, f3, and tau
@@ -1024,15 +1037,15 @@ class PhotometricPipeline(object):
 
                 tau = f0 + a1 * f1 + a2 * f2 + a3 * f3
 
-            self.smearing_a0_array[column] = (chi + self.smearing_epsilon * rho * self.smearing_a0_array[column]) / (rho * (1 + self.smearing_epsilon))
+            self.smearingCoefficientA0Array[column] = (chi + self.smearingRegularization * rho * self.smearingCoefficientA0Array[column]) / (rho * (1 + self.smearingRegularization)) 
     
-        return smearing_pattern_fc, std_dev_previous
+        return smearingPatternFastCadence, stdDevPrevious
 
 
 
 
 
-    def smearing_outlier_detection(self, cti_corrected_column, std_dev_previous):
+    def detectSmearingOutliers(self, ctiCorrectedSmearingColumn, stdDev):
 
         """
         PURPOSE: Outlier detection in the parallel over-scan as explained in PLATO-MPSSR-PDC-PT-0003
@@ -1040,125 +1053,87 @@ class PhotometricPipeline(object):
                  Algorithm name: ONB-OVEROUTDET-010.
     
         INPUT:
-            - cti_corrected_column: Column from the parallel over-scan, after CTI correction (and discarding
-                                    rows to avoid contamination by bright sources at the top of the detector)
-            - std_dev_previous: Standard deviation of the previous measurement of this column of the parallel 
-                                over-scan
+            - ctiCorrectedSmearingColumn: Column from the parallel over-scan, after CTI correction (and discarding
+                                          rows to avoid contamination by bright sources at the top of the detector)
+            - stdDev: Standard deviation of the previous measurement of this column of the parallel over-scan
     
         OUTPUT:
-            - raw_overscan_flags: Boolean truth values, where 0 means "no outlier" and 1 means "outlier".  The 
-                                  truth value 1 is equivalent to a flag.
+            - smearingFlag: Boolean truth values, where 0 means "no outlier" and 1 means "outlier".  The 
+                            truth value 1 is equivalent to a flag.
         """
 
-        median = np.median(cti_corrected_column)
+        median = np.median(ctiCorrectedSmearingColumn)
 
-        raw_overscan_flags = np.ones(len(cti_corrected_column))
-        raw_overscan_flags[cti_corrected_column - median >= self.smearing_outlier_detection_threshold * std_dev_previous]
+        # Sigma-clipping around the median (we use the standard deviation of the previous measurement
+        # of this column as sigma)
 
-        return raw_overscan_flags                                           
+        smearingFlag = np.zeros(len(ctiCorrectedSmearingColumn))
+        smearingFlag[ctiCorrectedSmearingColumn - median >= self.smearingOutlierDetectionThreshold * stdDev] = 0
+
+        return smearingFlag      
 
 
 
 
 
-    ########################################################
-    # Flux & COB calculations using nominal & extended masks
-    ########################################################
+    ###################################
+    # Calculation of the (nominal) mask
+    ####################################                                     
 
-    def flux_cob_calculation(self, exposure, offset_value_fc,smearing_pattern_fc, nmask, emask):
+    def calculateMask(self):
+
+        """
+        PURPOSE: Calculation of the (nominal) mask.
+
+        OUTPUT:
+            - mask: Nominal mask
+        """
+
+        # TODO
+        return None
+
+
+
+
+
+
+    #############################################
+    # Flux & COB calculation using (nominal) mask
+    #############################################
+
+    def calculateFluxAndCob(self, exposure, offsetValueFastCadence, smearingPatternFastCadence, mask):
 
         """
         PURPOSE: Flux and COB calculation as explained in PLATO-LESIA-PDC-DD-008 
-                (PLATO Onboards Flux & COB Calculation ATBD).
-                Algorithm name: ONB-FXCOBCAL-010.
+                 (PLATO Onboards Flux & COB Calculation ATBD).
+                 Algorithm name: ONB-FXCOBCAL-010.
 
         INPUT:
-            - offset_value_fc: Electronic offset as calculated from the serial pre-scan
-            - smearing_pattern_fc: Smearing as calculated from the parallel over-scan
-            - nmask: Nominal mask (computed on-ground and uploaded)
-            - emask: Extended mask (computed on-ground and uploaded)
+            - exposure: Index of the exposure to process
+            - offsetValueFastCadence: Electronic offset as calculated from the serial pre-scan
+            - windowSmearingPatternFastCadence: Smearing pattern for the window as calculated from the parallel over-scan
+            - mask: Mask (nominal)
 
         OUTPUT:
-            - fx_fc: Flux computed using the nominal mask
-            - dfx_fc: Flux difference between the extended and the nominal mask
-            - ncob_fc: COB computed using the nominal mask
-            - ecob_fc: COB computed using the extended mask
+            - fluxFastCadence: Flux computed using the (nominal) mask
+            - cobFastCadence: COB computed using the (nominal) mask
         """
 
-        star_window = self.simFile.getImage(exposure)[self.window_zp_row - self.subfield_zp_row : self.window_zp_row + self.window_num_rows - self.subfield_zp_row][self.window_zp_column - self.subfield_zp_column : self.window_zp_column + self.window_num_columns - self.subfield_zp_column]
-        window_smearing_pattern_fc = window_smearing_pattern(smearing_pattern_fc)
+        # Extract the star window and the corresponding smearing pattern
 
-        rowRange = np.arange(star_window.shape[0])
-        columnRange = np.arange(star_window.shape[1])
+        starWindow = self.simFile.getImage(exposure)[self.windowZeropointRow - self.subfieldZeropointRow : self.windowZeropointRow + self.windowNumRows - self.subfieldZeropointRow][self.windowZeropointColumn - self.subfieldZeropointColumn : self.windowZeropointColumn + self.windowNumColumns - self.subfieldZeropointColumn]
+        windowSmearingPatternFastCadence = smearingPatternFastCadence[:][self.windowZeropointColumn - self.subfieldZeropointColumn : self.windowZeropointColumn + self.windowNumColumns - self.subfieldZeropointColumn]
 
-        pixel_center_offset = 0.5
+        maskedWindow = starWindow - offsetValueFastCadence                                            # Subtract the offset
+        maskedWindow = maskedWindow * self.gain                                                       # Multiply with gain [ADU] -> [e]
+        maskedWindow = (maskedWindow.transpose() - windowSmearingPatternFastCadence).transpose()      # Subtract smearing pattern (per column)
+        maskedWindow = np.multiply(maskedWindow, mask)                                                # Multiply with mask (element-wise)
 
-        # Variable name conventions from Sect. 3.6.1 in PLATO-LESIA-PDC-DD-008
+        fluxFastCadence = np.sum(maskedWindow)
 
-        nmask_column_integral = np.sum(nmask, axis = 0)
-        emask_column_integral = np.sum(emask, axis = 0)
-
-        nmask_integral = np.sum(nmask_column_integral)
-        emask_integral = np.sum(emask_column_integral)
-
-        nmask_smearing_integral = np.dot(window_smearing_pattern_fc, nmask_column_integral)
-        emask_smearing_integral = np.dot(window_smearing_pattern_fc, emask_column_integral)
-
-        nmasked_flux_pixel = np.multiply(star_window, nmask)
-        emasked_flux_pixel = np.multiply(star_window, emask)
-
-        nmask_flux_column_integral = np.sum(nmasked_flux_pixel, axis = 0)
-        emask_flux_column_integral = np.sum(emasked_flux_pixel, axis = 0)
-
-        nmasked_flux_integral = np.sum(nmask_flux_column_integral)
-        emasked_flux_integral = np.sum(emask_flux_column_integral)
-
-        nmasked_Xcob_sum = np.dot(columnRange, nmask_flux_column_integral)
-        emasked_Xcob_sum = np.dot(columnRange, emask_flux_column_integral)
-
-        nmasked_Ycob_sum = np.dot(np.sum(nmasked_flux_pixel, axis = 1), rowRange)
-        emasked_Ycob_sum = np.dot(np.sum(emasked_flux_pixel, axis = 1), rowRange)
-
-        nmask_column_Xweighted = np.multiply(columnRange, nmask_column_integral)
-        emask_column_Xweighted = np.multiply(columnRange, emask_column_integral)
-
-        nmask_column_Yweighted = np.sum(np.multiply(nmask, columnRange), axis = 0)
-        emask_column_Yweighted = np.sum(np.multiply(emask, columnRange), axis = 0)
-
-        nmask_Xweighted_integral = np.sum(nmask_column_Xweighted)
-        emask_Xweighted_integral = np.sum(emask_column_Xweighted)
-
-        nmask_Yweighted_integral = np.sum(nmask_column_Yweighted)
-        emask_Yweighted_integral = np.sum(emask_column_Yweighted)
-
-        nmask_smearing_Xweighted_integral = np.dot(window_smearing_pattern, nmask_column_Xweighted)
-        emask_smearing_Xweighted_integral = np.dot(window_smearing_pattern, emask_column_Xweighted)
-
-        nmask_smearing_Yweighted_integral = np.dot(window_smearing_pattern, nmask_column_Yweighted)
-        emask_smearing_Yweighted_integral = np.dot(window_smearing_pattern, emask_column_Yweighted)
-
-        # Calculate the flux in the nominal mask & the difference in flux between the extended and the nominal mask
-
-        fx_fc = (nmasked_flux_integral - offset_value_fc * nmask_integral) * self.half_ccd_gain - nmask_smearing_integral    # Flux in nominal mask
-        dfx_fc = (emasked_flux_integral - offset_value_fc * emask_integral) * self.half_ccd_gain - emask_smearing_integral   # Flux difference between extended & nominal mask
-
-        # Calculate the COB for the nominal and for the extended mask
-
-        nmasked_Xcob_sum_corrected = (nmasked_Xcob_sum - offset_value_fc * nmask_Xweighted_integral) * self.half_ccd_gain - nmask_smearing_Xweighted_integral
-        nmasked_Ycob_sum_corrected = (nmasked_Ycob_sum - offset_value_fc * nmask_Yweighted_integral) * self.half_ccd_gain - nmask_smearing_Yweighted_integral
-
-        ncob_fc = [nmasked_Xcob_sum_corrected / fx_fc + pixel_center_offset, nmasked_Ycob_sum_corrected / fx_fc + pixel_center_offset]
-
-        emasked_Xcob_sum_corrected = (emasked_Xcob_sum - offset_value_fc * emask_Xweighted_integral) * self.half_ccd_gain - emask_smearing_Xweighted_integral
-        emasked_Ycob_sum_corrected = (emasked_Ycob_sum - offset_value_fc * emask_Yweighted_integral) * self.half_ccd_gain - emask_smearing_Yweighted_integral
-
-        masked_Xcob_sum_corrected = nmasked_Xcob_sum_corrected + emasked_Xcob_sum_corrected
-        masked_Ycob_sum_crrected = nmasked_Ycob_sum_corrected + emasked_Ycob_sum_corrected
-        efx_fc = fx_fc + dfx_fc
-
-        ecob_fc = [masked_Xcob_sum_corrected / efx_fc + pixel_center_offset, masked_Ycob_sum_crrected / efx_fc + pixel_center_offset]
-    
-        return fx_fc, dfx_fc, ncob_fc, ecob_fc
+        cobFastCadence = [np.multiply(mask, self.cobOffsetX) / fluxFastCadence, np.multiply(mask, self.cobOffsetY) / fluxFastCadence]
+        
+        return fluxFastCadence, cobFastCadence
 
 
 
@@ -1168,7 +1143,7 @@ class PhotometricPipeline(object):
     # Smearing time averaging
     #########################
 
-    def smearing_time_averaging(self):
+    def timeAverageSmearing(self):
 
         """
         PURPOSE: Smearing time averaging for long cadence as explained in PLATO-LESIA-PDC-DD-007
@@ -1176,15 +1151,17 @@ class PhotometricPipeline(object):
                  Algorithm name: ONB-SMRAVG-010
     
         OUTPUT:
-            - smearing _pattern_lc: Smearing pattern averaged over the last 24 samples (i.e. 600s) [e-]
+            - smearing _patternLongCadence: Smearing pattern averaged over the last 24 samples (i.e. 600s) [e-]
         """
 
-        smearing_pattern_fc_array_last = self.smearing_pattern_fc_array[-int(self.num_exposures_lc) :]     # Last 24 samples
+        # Average out the last 24 samples per column
 
-        shape = (1, self.num_exposures_lc, smearing_pattern_fc_array_last.shape[1], 1)
-        smearing_pattern_lc = smearing_pattern_fc_array_last.reshape(shape).mean(-1).mean(1)
+        smearingPatternArrayLastLongCadence = self.smearingPatternArrayFastCadence[-int(self.numExposuresLongCadence) :]     # Last 24 samples
 
-        return smearing_pattern_lc
+        shape = (1, self.numExposuresLongCadence, smearingPatternArrayLastLongCadence.shape[1], 1)
+        smearingPatternLongCadence = smearingPatternArrayLastLongCadence.reshape(shape).mean(-1).mean(1)
+
+        return smearingPatternLongCadence
 
 
 
@@ -1194,44 +1171,44 @@ class PhotometricPipeline(object):
     # Outlier detection over light curve
     ####################################
 
-    def flux_cob_outlier_detection(self, fx_fc_array, fx_exposure_error_array):
+    def detectFluxOutliers(self, fluxArrayFastCadence, fluxFlagShortCadence):
 
         """
         PURPOSE: Outlier detection over light curve as explained in PLATO-MPSSR-PDC-DD-0001
-                 (PLATO Onboard LC Outlier Detection ATBD).
-                 Algorithm name: ONB-LCOUTDET-010.
+                 (PLATO OnboardLongCadence Outlier Detection ATBD).
+                 Algorithm name: ONBLongCadenceOUTDET-010.
 
         INPUT:
-            - flux_fc_array: Flux time series processed so far. This can either be the flux 
-                             obtained in the nominal mask (fx_fc) or the difference in flux 
-                             between the extended and the nominal mask (dfx_fc).
-            - fx_exposure_error_array: Flag for the time series processed so far, apart from
+            - fluxArrayFastCadence: Flux time series processed so far. This can either be the flux 
+                                    obtained in the nominal mask (fx_fc) or the difference in flux 
+                                    between the extended and the nominal mask (dfx_fc).
+            - fluxFlagShortCadence: Flag for the time series processed so far, apart from
                                        the last 2 * b + 1 samples
         
         OUTPUT:
-            - fx_exposure_error_array: Flag for the time series processed so far, including
-                                       the last 2 * b + 1
+            - fluxFlagShortCadence: Flag for the time series processed so far, including
+                                    the last 2 * b + 1
         """
 
-        fx_fc_array_last = fx_fc_array[-2 * self.lc_outlier_detection_b - 1:]
+        fluxArrayLastBin = fluxArrayFastCadence[-2 * self.fluxOutlierDetectionHalfBinWidth - 1:]
 
         # Step 1 - 4
 
-        is_outlier = mad_median_clipping(fx_fc_array_last, self.lc_outlier_detection_threshold, self.lc_outlier_detection_b)
+        isOutlier = applyMadClippingAroundMedian(fluxArrayLastBin, self.lightCurveOutlierDetectionThreshold, self.fluxOutlierDetectionHalfBinWidth)
 
         # Step 5
 
-        if fx_exposure_error_array[-2] and fx_exposure_error_array[-1]:
+        if fluxFlagShortCadence[-2] and fluxFlagShortCadence[-1]:
 
-            fx_exposure_error_array[-2] = False
+            fluxFlagShortCadence[-2] = False
 
-            if not is_outlier:
+            if not isOutlier:
 
-                fx_exposure_error_array[-1] = False
+                fluxFlagShortCadence[-1] = False
 
-        fx_exposure_error_array = np.append(fx_exposure_error_array, is_outlier)
+        fluxFlagShortCadence = np.append(fluxFlagShortCadence, isOutlier)
 
-        return fx_exposure_error_array
+        return fluxFlagShortCadence
 
 
 
@@ -1241,7 +1218,7 @@ class PhotometricPipeline(object):
     # Flux & COB time averaging
     ###########################
 
-    def flux_cob_time_averaging(self):
+    def timeAverageFluxAndCob(self):
 
         """
         PURPOSE: Flux time averaging for short cadence (50s) as explained in PLATO-LESIA-PDC-DD-009
@@ -1252,57 +1229,35 @@ class PhotometricPipeline(object):
 
         # Short cadence
 
-        if(self.time_averaging_cadence == "Short"):
+        if(self.timeAveragingCadence == "Short"):
             
-            # Nominal mask
+            fluxValueShortCadence, cobShortCadence, numUsefulDatapointsShortCadence, numFlaggedDatapointsShortCadence = self.timeAverageFluxAndCobShortCadence(self.fluxArrayFastCadence, self.cobArrayFastCadence, self.fluxFlagFastCadence)           # Select duration of short cadence (50s)
 
-            fx_sc, ncob_sc, n_useful_sc, n_error_sc = self.flux_cob_time_averaging_sc(self.fx_fc_array, self.ncob_fc_array, self.nflag_fc)           # Select duration of short cadence (50s)
+            if numUsefulDatapointsShortCadence != 0:
 
-            if n_useful_sc != 0:
-
-                self.fx_sc_array = np.append(self.fx_sc_array, fx_sc)
-                self.ncob_sc_array = np.append(self.ncob_sc_array, ncob_sc)
-                self.fx_exposure_error_sc_array = np.append(self.fx_exposure_error_lc_array, n_error_sc)
-
-            # Extended mask
-
-            dfx_sc, ecob_sc, n_useful_sc, n_error_sc = self.flux_cob_time_averaging_sc(self.dfx_fc_array, self.ecob_fc_array, self.eflag_fc)         # Select duration of short cadence (50s)
-
-            if n_useful_sc != 0:
-
-                self.dfx_sc_array = np.append(self.dfx_sc_array, dfx_sc)
-                self.ecob_sc_array = np.append(self.ecob_sc_array, ecob_sc)
+                self.fluxArrayShortCadence = np.append(self.fluxArrayShortCadence, fluxValueShortCadence)
+                self.cobArrayShortCadence = np.append(self.cobArrayShortCadence, cobShortCadence)
+                self.fluxOutlierFlagShortCadence = np.append(self.fluxOutlierFlagShortCadence, numFlaggedDatapointsShortCadence)
 
         
 
         # Long cadence
 
-        elif self.time_averaging_cadence == "Long":
+        elif self.timeAveragingCadence == "Long":
 
-            # Nominal mask
+            fluxValueLongCadence, fluxVarianceLongCadence, numUsefulDatapointsLongCadence, numFlaggedDatapointsLongCadence = self.timeAverageFluxAndCobLongCadence(self.fluxArrayFastCadence, self.fluxFlagFastCadence)         # Select duration of long cadence (600s)
 
-            fx_lc, fxvar_lc, n_useful_lc, n_error_lc = self.flux_cob_time_averaging_lc(self.fx_fc_array, self.nflag_fc)         # Select duration of long cadence (600s)
-
-            if n_useful_lc != 0:
+            if numUsefulDatapointsLongCadence != 0:
             
-                self.fx_lc_array = np.append(self.fx_lc_array, fx_lc)
-                self.fxvar_lc_array = np.append(self.fxvar_lc_array, fxvar_lc)
-                self.fx_exposure_error_lc_array = np.append(self.fx_exposure_error_lc_array, n_error_lc)
-            
-            # Extended mask
-
-            dfx_lc, dfxvar_lc, n_useful_lc, n_error_lc = self.flux_cob_time_averaging_lc(self.dfx_fc_array, self.eflag_fc)      # Select duration of long cadence (600s)
-            
-            if n_useful_lc != 0:
-
-                self.dfx_lc_array = np.append(self.dfx_lc_array, dfx_lc)
-                self.dfxvar_lc_array = np.array(self.dfxvar_lc_array, dfxvar_lc)
+                self.fluxArrayLongCadence = np.append(self.fluxArrayLongCadence, fluxValueLongCadence)
+                self.fluxVarianceArrayLongCadence = np.append(self.fluxVarianceArrayLongCadence, fluxVarianceLongCadence)
+                self.fluxOutlierFlagLongCadence = np.append(self.fluxOutlierFlagLongCadence, numFlaggedDatapointsLongCadence)
 
 
 
 
 
-    def flux_cob_time_averaging_sc(self, fx_fc_array, cob_fc_array, fx_exposure_error_array = None):
+    def timeAverageFluxAndCobShortCadence(self, fluxArrayFastCadence, cobArrayFastCadence, fluxFlagShortCadence = None):
 
         """
         PURPOSE: Flux time averaging for short cadence (50s) as explained in PLATO-LESIA-PDC-DD-009
@@ -1310,61 +1265,65 @@ class PhotometricPipeline(object):
                  Algorithm name: ONB-FXAGV-011.
 
         INPUT:
-            - fx_fc_array: Flux time series processed so far. This can either be the flux 
-                           obtained in the nominal mask (fx_fc) or the difference in flux 
-                           between the extended and the nominal mask (dfx_fc).
-            - cob_fc_array: COB time series processed so far.  This can either be the COB
-                            obtained from the nominal mask or from the extended mask.
-            - fx_exposure_error_array: Outlier detection flags for the flux time series 
-                                       processed so far.  If None, outlier detection on the 
-                                       light curve was disabled.
+            - fluxArrayFastCadence: Flux time series processed so far. This can either be the flux 
+                                    obtained in the nominal mask (fx_fc) or the difference in flux 
+                                    between the extended and the nominal mask (dfx_fc).
+            - cobArrayFastCadence: COB time series processed so far.  This can either be the COB
+                                   obtained from the nominal mask or from the extended mask.
+            - fluxFlagShortCadence: Outlier detection flags for the flux time series processed so far.  If None, 
+                                   outlier detection on the light curve was disabled.
 
         OUTPUT:
-            - fx_sc: Mean of the given flux time series over the last 50s, calculated with the non-flagged datapoints only
-            - cob_sc: Mean of the given COB time series over the last 50s, calculated with the non-flagged datapoints only
-            - n_useful_sc: Number of non-flagged datapoints over the last 50s
-            - n_error_sc: Number of flagged datapoints over the last 50s
+            - fluxValueShortCadence: Mean of the given flux time series over the last 50s, Calculated with the non-flagged datapoints only
+            - cobShortCadence: Mean of the given COB time series over the last 50s, Calculated with the non-flagged datapoints only
+            - numUsefulDatapointsShortCadence: Number of non-flagged datapoints over the last 50s
+            - numFlaggedDatapointsShortCadence: Number of flagged datapoints over the last 50s
         """
 
-        # Select the last 50s (i.e. duration of short cadence)
+        # Select the last 50s (i.e. duration of short cadence) in the flux and COB time series
 
-        fx_fc_array_last = fx_fc_array[-int(self.num_exposures_sc) :]
-        cob_fc_array_last = cob_fc_array[-int(self.num_exposures_sc) :]
+        fluxArrayLastShortCadence = fluxArrayFastCadence[-int(self.numExposuresShortCadence) :]
+        cobArrayLastShortCadence = cobArrayFastCadence[-int(self.numExposuresShortCadence) :]
 
         # Outlier detection enabled
 
-        if self.lc_outlier_detection_enabled:
+        if self.includeLightCurveOutlierDetection:
 
-            fx_exposure_error_array_last = fx_exposure_error_array[-int(self.num_exposures_sc) :]
-            n_error_sc = np.sum(fx_exposure_error_array_last)
-            n_useful_sc = len(fx_exposure_error_array_last) - n_error_sc
+            # The flag that has been derived during the outlier detection on the flux values will also
+            # be used as flag for the COB here
 
-            fx_sc = np.sum(fx_fc_array_last[~fx_exposure_error_array_last]) / n_useful_sc 
+            flagLastShortCadence = fluxFlagShortCadence[-int(self.numExposuresShortCadence) :]                       # Flag for the last 50s
+            numFlaggedDatapointsShortCadence = np.sum(flagLastShortCadence)                                          # Number of flagged datapoints over the last 50s
+            numUsefulDatapointsShortCadence = self.numExposuresShortCadence - numFlaggedDatapointsShortCadence       # Number of non-flagged datapoints over the last 50s
 
-            cob_sc_x = np.sum(cob_fc_array_last[~fx_exposure_error_array_last][0]) / n_useful_sc
-            cob_sc_y = np.sum(cob_fc_array_last[~fx_exposure_error_array_last][1]) / n_useful_sc
-            cob_sc = [cob_sc_x, cob_sc_y]
+            fluxValueShortCadence = np.sum(fluxArrayLastShortCadence[~flagLastShortCadence]) / numUsefulDatapointsShortCadence      # Mean of the non-flagged flux values over the last 50s 
+
+            cobShortCadenceX = np.sum(cobArrayLastShortCadence[~flagLastShortCadence][0]) / numUsefulDatapointsShortCadence         # Mean of the non-flagged x-coordinates of the COB over the last 50s
+            cobShortCadenceY = np.sum(cobArrayLastShortCadence[~flagLastShortCadence][1]) / numUsefulDatapointsShortCadence         # Mean of the non-flagged y-coordnates of the COB over the last 50s
+            cobShortCadence = [cobShortCadenceX, cobShortCadenceY]                                                                  # Couple the x- and y-coordinates
 
         # Outlier detection disabled
 
         else:
 
-            n_error_sc = 0
-            n_useful_sc = self.num_exposures_sc
+            # No flagging
 
-            fx_sc = np.sum(fx_fc_array_last) / n_useful_sc
+            numFlaggedDatapointsShortCadence = 0
+            numUsefulDatapointsShortCadence = self.numExposuresShortCadence
 
-            cob_sc_x = np.sum(cob_fc_array_last[0]) / n_useful_sc
-            cob_sc_y = np.sum(cob_fc_array_last[1]) / n_useful_sc
-            cob_sc = [cob_sc_x, cob_sc_y]
+            fluxValueShortCadence = np.sum(fluxArrayLastShortCadence) / numUsefulDatapointsShortCadence         # Mean of the flux values over the last 50s
 
-        return fx_sc, cob_sc, n_useful_sc, n_error_sc
+            cobShortCadenceX = np.sum(cobArrayLastShortCadence[0]) / numUsefulDatapointsShortCadence            # Mean over the x-coordinates of the COB over the last 50s
+            cobShortCadenceY = np.sum(cobArrayLastShortCadence[1]) / numUsefulDatapointsShortCadence            # Mean over the y-coordinates of the COB over the last 50s
+            cobShortCadence = [cobShortCadenceX, cobShortCadenceY]                                              # Couple the x- and y-coordinates
+
+        return fluxValueShortCadence, cobShortCadence, numUsefulDatapointsShortCadence, numFlaggedDatapointsShortCadence
 
 
 
 
 
-    def flux_cob_time_averaging_lc(self, fx_fc_array, fx_exposure_error_array = None):
+    def timeAverageFluxAndCobLongCadence(self, fluxArrayFastCadence, fluxFlagShortCadence = None):
 
         """
         PURPOSE: Flux time averaging for long cadence (600s) as explained in PLATO-LESIA-PDC-DD-010
@@ -1372,37 +1331,36 @@ class PhotometricPipeline(object):
                  Algorithm name: ONB-FXAGV-012.
 
         INPUT:
-            - fx_fc_array: Flux time series processed so far. This can either be the flux 
-                           obtained in the nominal mask (fx_fc) or the difference in flux 
-                           between the extended and the nominal mask (dfx_fc).
-            - fx_exposure_error_array: Outlier detection flags for the flux time series 
-                                       processed so far.  If None, outlier detection on the 
-                                       light curve was disabled.
+            - fluxArrayFastCadence: Flux time series processed so far. This can either be the flux 
+                                    obtained in the nominal mask (fx_fc) or the difference in flux 
+                                    between the extended and the nominal mask (dfx_fc).
+            - fluxFlagShortCadence: Outlier detection flags for the flux time series processed so far.  If None, 
+                                    outlier detection on the light curve was disabled.
         OUTPUT:
-            - fx_lc: Mean of the given flux time series over the last 600s, calculated with the non-flagged datapoints only
-            - fxvar_lc: Variance of the given flux time series over the last 600s, calculated with the non-flagged datapoints only
-            - n_useful_lc: Number of non-flagged datapoints over the last 600s
-            - n_error_lc: Number of flagged datapoints over the last 600s
+            - fluxValueLongCadence: Mean of the given flux time series over the last 600s, Calculated with the non-flagged datapoints only
+            - fluxVarianceLongCadence: Variance of the given flux time series over the last 600s, Calculated with the non-flagged datapoints only
+            - numUsefulDatapointsLongCadence: Number of non-flagged datapoints over the last 600s
+            - numFlaggedDatapointsLongCadence: Number of flagged datapoints over the last 600s
         """
 
-        # Select the last 600s (i.e. duration of long cadence)
+        # Select the last 600s (i.e. duration of long cadence) in the flux time series
 
-        fx_fc_array_last = fx_fc_array[-int(self.num_exposures_lc) :]
+        fluxArrayLastLongCadence = fluxArrayFastCadence[-int(self.numExposuresLongCadence) :]
 
         # Outlier detection enabled
 
-        if self.lc_outlier_detection_enabled:
+        if self.includeLightCurveOutlierDetection:
 
-            fx_exposure_error_array_last = fx_exposure_error_array[-int(self.num_exposures_lc) :]
+            flagLastLongCadence = fluxFlagShortCadence[-int(self.numExposuresLongCadence) :]        # Flag for the last 600s
             
-            fx_lc, fxvar_lc, n_useful_lc = shifted_data_algorithm(fx_fc_array_last[~fx_exposure_error_array_last])
-            n_error_lc = np.sum(fx_exposure_error_array_last)
+            fluxValueLongCadence, fluxVarianceLongCadence, numUsefulDatapointsLongCadence = applyShiftedDataAlgorithm(fluxArrayLastLongCadence, flagLastLongCadence)
+            numFlaggedDatapointsLongCadence = np.sum(flagLastLongCadence)
 
         # Outlier detection disabled
 
         else:
             
-            fx_lc, fxvar_lc, n_useful_lc = shifted_data_algorithm(fx_fc_array_last)
-            n_error_lc = 0
+            fluxValueLongCadence, fluxVarianceLongCadence, numUsefulDatapointsLongCadence = applyShiftedDataAlgorithm(fluxArrayLastLongCadence)
+            numFlaggedDatapointsLongCadence = 0
 
-        return fx_lc, fxvar_lc, n_useful_lc, n_error_lc
+        return fluxValueLongCadence, fluxVarianceLongCadence, numUsefulDatapointsLongCadence, numFlaggedDatapointsLongCadence
