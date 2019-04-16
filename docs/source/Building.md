@@ -56,6 +56,19 @@ At some stage, we will want to update (some of) the dependencies.  You will be n
 
 ---
 
+## Running the Test Harnesses
+
+In order to be able to run the test harnesses, you must first build the code (see above) and export the required environment variables, as explained @ref ReqsRun "here".
+
+The actual command to run the tests must be executed in the <code>/build</code> directory:
+
+\code
+./testplatosim
+\endcode
+
+
+---
+
 ## Troubleshooting
 
 ### Not Using the System Default Compiler
