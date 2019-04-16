@@ -994,7 +994,9 @@ class PhotometricPipeline(object):
 
                 tau = f0 + a1 * f1 + a2 * f2 + a3 * f3
 
-            # Outlier detection
+
+
+            # Calculation of the mean smearing (first n0 measurements are excluded) 
         
             if self.includeSmearingOutlierDetection:
                 
@@ -1005,11 +1007,12 @@ class PhotometricPipeline(object):
 
                     smearingPatternFastCadence[column] = 0
                     continue
-            else:
 
-                # Calculation of the mean smearing (first n0 measurements are excluded)
+            else:
                 
                 smearingPatternFastCadence[column], stdDevPrevious[column] = applyShiftedDataAlgorithm(ctiCorrectedSmearingMap[self.smearingNumRowsSkipped:][column])[:2]
+
+
 
             # Update a0 for the current column and exposure n:
             #       a0(j; n) = [chi + epsilon * rho * ao(j; n - 1)] / [rho * (1 + epsilon)]
