@@ -20,6 +20,8 @@ JitterFromNetwork::JitterFromNetwork(ConfigurationParameters &configParams, doub
     notifiedPointer = notified;
     newStepPointer = newStep;
 
+    heartbeatInterval = 0.01;
+
 }
 
 
@@ -41,12 +43,12 @@ JitterFromNetwork::~JitterFromNetwork()
 
 void JitterFromNetwork::configure(ConfigurationParameters &configParams)
 {
-	oldTimeStep = 0.0;
+	oldTimeStep = -0.1;
     oldYaw = 0.0;
     oldPitch = 0.0;
     oldRoll = 0.0;
 
-    currentTimeStep = -1.0;
+    currentTimeStep = 0.0;
     currentYaw = 0.0;
     currentPitch = 0.0;
     currentRoll = 0.0;
@@ -63,9 +65,14 @@ tuple<double, double, double> JitterFromNetwork::getNextYawPitchRoll(double time
 {
 	// ask for the server thread to get a new jitter step until the new step has a larger time stamp than time
 
-	while(time > currentTimeStep)
+	while(time >= currentTimeStep)
 	{
+		Log.info("JitterFromNetwork: time: " + to_string(time));
+		Log.info("JitterFromNetwork: currentTime: " + to_string(currentTimeStep));
+
 		*notifiedPointer = true;
+
+		*newStepPointer = false;
 			
 		Log.info("JitterFromNetwork: notify jitter thread");
 
@@ -77,7 +84,6 @@ tuple<double, double, double> JitterFromNetwork::getNextYawPitchRoll(double time
 
 		Log.info("JitterFromNetwork: wait for new step");
 
-
 	    // wait for the tcp connection thread to notify this thread
 	    while(!*newStepPointer)
 	    {    	
@@ -86,13 +92,13 @@ tuple<double, double, double> JitterFromNetwork::getNextYawPitchRoll(double time
 
 		Log.info("JitterFromNetwork: notification from jitter thread received");
 
-	    if (time == currentTimeStep)
+	    if (abs(time - currentTimeStep) < 0.000001)
 	    {
-	        Log.info("JitterFromNetwork: yaw: " + to_string(currentYaw) + "; pitch: " + to_string(currentPitch)+ "; roll: " + to_string(currentRoll));
+	        Log.info("JitterFromNetwork: time: " + to_string(currentTimeStep) + "; yaw: " + to_string(currentYaw*1000) + "x10^-3; pitch: " + to_string(currentPitch*1000) + "x10^-3; roll: " + to_string(currentRoll*1000) + "x10^-3");
 
-		return make_tuple(currentYaw, currentPitch, currentRoll);
+			return make_tuple(currentYaw, currentPitch, currentRoll);
 	    }
-	    else
+	    else if (currentTimeStep > time)
 	    {
 	        // interpolate the jitterstep dependent on the old and new jitterstep and the currentTime
 
@@ -102,13 +108,11 @@ tuple<double, double, double> JitterFromNetwork::getNextYawPitchRoll(double time
 	        const double newPitch = oldPitch * weight2 + currentPitch * weight1;
 	        const double newRoll  = oldRoll  * weight2 + currentRoll  * weight1;
 
-	        Log.info("JitterFromNetwork: yaw: " + to_string(newYaw) + "; pitch: " + to_string(newPitch)+ "; roll: " + to_string(newRoll));
+	        Log.info("JitterFromNetwork: time: " + to_string(currentTimeStep) + "; yaw: " + to_string(newYaw*1000) + "x10^-3; pitch: " + to_string(newPitch*1000)+ "x10^-3; roll: " + to_string(newRoll*1000) + "x10^-3");
 
 	        return make_tuple(newYaw, newPitch, newRoll);
 	    }
-
 	}
-
 }
 
 
@@ -130,7 +134,6 @@ void JitterFromNetwork::setCurrentJitterStep(double endOfSimulation, double time
 }
 
 
-
 /**
  * \brief returns the jitter step (yaw, pitch, roll) at the given time value
  * 
@@ -138,6 +141,7 @@ void JitterFromNetwork::setCurrentJitterStep(double endOfSimulation, double time
  */
 double JitterFromNetwork::getHeartbeatInterval()
 {
-	double hearbeatInterval = 0.0;
+	heartbeatInterval = currentTimeStep - oldTimeStep;
+
 	return heartbeatInterval;
 }

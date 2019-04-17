@@ -83,17 +83,17 @@ int main(int Narguments, char* arguments[])
     if (simulation.getServerInstance() != NULL)
     {
 	
-	Log.info("main: check");
-	
-	// the tcp connections have to run alongside the simulation so some threads have to be declared
+    	Log.info("main: check");
+    	
+    	// the tcp connections have to run alongside the simulation so some threads have to be declared
 
-	std::thread serverThread(&TcpConnection::connectToServer, simulation.getServerInstance());
-	std::thread simulationThread(&Simulation::run, simulation);
+    	std::thread serverThread(&TcpConnection::connectToServer, simulation.getServerInstance());
+    	std::thread simulationThread(&Simulation::run, &simulation);
 
-	// gather the threads after completion and rejoin them
+    	// gather the threads after completion and rejoin them
 
-	simulationThread.join();
-	serverThread.join();
+    	simulationThread.join();
+    	serverThread.join();
 
     }
     else

@@ -72,6 +72,8 @@ void TcpConnection::connectToServer()
 	while(!endOfSimulation)
 	{
 
+		//*newStepPointer = false;
+
 		// declare a lock
 
 		 std::unique_lock<std::mutex> lock(*mutexPointer);
@@ -81,15 +83,15 @@ void TcpConnection::connectToServer()
 		Log.info("TcpConnection: wait for notification from simulation thread");
 
 		while(!*notifiedPointer)
-            	{
-                	condVarPointer->wait(lock);
-            	}
+        {
+           	condVarPointer->wait(lock);
+        }
 
-                // if the thread is notified, a request to the server should be send
+        // if the thread is notified, a request to the server should be send
 
-               	// reset to the initial parameters
-               	*notifiedPointer = false;
-               	lock.unlock();
+        // reset to the initial parameters
+        *notifiedPointer = false;
+        lock.unlock();
 		bool validStep = false;
 
 		Log.info("TcpConnection: request jitter step");
@@ -99,13 +101,13 @@ void TcpConnection::connectToServer()
 		{
 			// send a request to the server for the next jitter step
 	
-	                zmq::message_t request (5);
-	                memcpy(request.data(), "New Jitter step, please.", 5);
+	        zmq::message_t request (5);
+	        memcpy(request.data(), "New Jitter step, please.", 5);
 			socket.send(request);
 			
 			// get the reply from server
 			zmq::message_t reply;
-	                socket.recv(&reply);
+	        socket.recv(&reply);
 			
 			// process the jitter data
 
@@ -116,27 +118,32 @@ void TcpConnection::connectToServer()
 
 			// set the jitter step in the jitter generator object if its time stamp is higher than the internal time
 	
-	            	if (currentJitterStepVec.at(1) > internalTime)
-	            	{
-	                	jitterInstance->setCurrentJitterStep(currentJitterStepVec.at(0), currentJitterStepVec.at(1), currentJitterStepVec.at(2), currentJitterStepVec.at(3), currentJitterStepVec.at(4));
+	        if (currentJitterStepVec.at(1) > internalTime)
+	        {
+	           	jitterInstance->setCurrentJitterStep(currentJitterStepVec.at(0), currentJitterStepVec.at(1), currentJitterStepVec.at(2), currentJitterStepVec.at(3), currentJitterStepVec.at(4));
 	
-	                	*newStepPointer = true;
+	           	Log.info("TcpConnection: jitter time step: " + to_string(currentJitterStepVec.at(1)));
+
+	           	*newStepPointer = true;
+
+	           	Log.info("TcpConnection: got new jitter step");
 	
-	                	condVarPointer->notify_one();
+	           	condVarPointer->notify_one();
 
 				validStep = true;     
-	            	}
+	        }
 			
 			// check whether the simulation is at its end
 	
 			if (currentJitterStepVec.at(0) != 0)
-	           	{
-	                	endOfSimulation = true;
-	            	}	
-	            	else
-	            	{
-	                	endOfSimulation = false;
-            		}
+	        {
+	           	endOfSimulation = true;
+	        }	
+	        else
+	        {
+	           	endOfSimulation = false;
+            }
+
 		}
 	}
 }
