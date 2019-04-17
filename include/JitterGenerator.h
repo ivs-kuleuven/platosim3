@@ -23,7 +23,7 @@ class JitterGenerator : public Heartbeat
 
         virtual tuple<double, double, double> getNextYawPitchRoll(double time) = 0;
 
-	virtual void setCurrentJitterStep(double endSimulation, double timeStep, double yaw, double pitch, double roll){};
+	virtual void setCurrentJitterStep(bool endSimulation, double timeStep, double yaw, double pitch, double roll){};
 
 
     protected:

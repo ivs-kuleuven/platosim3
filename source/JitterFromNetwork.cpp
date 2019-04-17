@@ -22,6 +22,8 @@ JitterFromNetwork::JitterFromNetwork(ConfigurationParameters &configParams, doub
 
     heartbeatInterval = 0.01;
 
+    endOfSimulation = false;
+
 }
 
 
@@ -70,54 +72,66 @@ tuple<double, double, double> JitterFromNetwork::getNextYawPitchRoll(double time
 		Log.info("JitterFromNetwork: time: " + to_string(time));
 		Log.info("JitterFromNetwork: currentTime: " + to_string(currentTimeStep));
 
-		*notifiedPointer = true;
+		if (!endOfSimulation)
+		{	
 
-		*newStepPointer = false;
+			*notifiedPointer = true;
+
+			*newStepPointer = false;		
 			
-		Log.info("JitterFromNetwork: notify jitter thread");
+			Log.info("JitterFromNetwork: notify jitter thread");
 
-		// notify the tcp connection thread
-		condVarPointer->notify_one();	
+			// notify the tcp connection thread
+			condVarPointer->notify_one();	
 
-		// declare a lock for this thread
-		std::unique_lock<std::mutex> lock(*mutexPointer);
+			// declare a lock for this thread
+			std::unique_lock<std::mutex> lock(*mutexPointer);
 
-		Log.info("JitterFromNetwork: wait for new step");
+			Log.info("JitterFromNetwork: wait for new step");
 
-	    // wait for the tcp connection thread to notify this thread
-	    while(!*newStepPointer)
-	    {    	
-	        condVarPointer->wait(lock);
-	    }
+		    // wait for the tcp connection thread to notify this thread
+		    while(!*newStepPointer)
+		    {    	
+		        condVarPointer->wait(lock);
+		    }
 
-		Log.info("JitterFromNetwork: notification from jitter thread received");
+			Log.info("JitterFromNetwork: notification from jitter thread received");
 
-	    if (abs(time - currentTimeStep) < 0.000001)
-	    {
-	        Log.info("JitterFromNetwork: time: " + to_string(currentTimeStep) + "; yaw: " + to_string(currentYaw*1000) + "x10^-3; pitch: " + to_string(currentPitch*1000) + "x10^-3; roll: " + to_string(currentRoll*1000) + "x10^-3");
+		    if (abs(time - currentTimeStep) < 0.000001)
+		    {
+		        Log.info("JitterFromNetwork: time: " + to_string(currentTimeStep) + "; yaw: " + to_string(currentYaw*1000) + "x10^-3; pitch: " + to_string(currentPitch*1000) + "x10^-3; roll: " + to_string(currentRoll*1000) + "x10^-3");
 
-			return make_tuple(currentYaw, currentPitch, currentRoll);
-	    }
-	    else if (currentTimeStep > time)
-	    {
-	        // interpolate the jitterstep dependent on the old and new jitterstep and the currentTime
+				return make_tuple(currentYaw, currentPitch, currentRoll);
+		    }
+		    else if (currentTimeStep > time)
+		    {
+		        // interpolate the jitterstep dependent on the old and new jitterstep and the currentTime
 
-	        const double weight1 = (time - oldTimeStep) / (currentTimeStep - oldTimeStep);
-	        const double weight2 = (currentTimeStep - time) / (currentTimeStep - oldTimeStep);
-	        const double newYaw   = oldYaw   * weight2 + currentYaw   * weight1;
-	        const double newPitch = oldPitch * weight2 + currentPitch * weight1;
-	        const double newRoll  = oldRoll  * weight2 + currentRoll  * weight1;
+		        const double weight1 = (time - oldTimeStep) / (currentTimeStep - oldTimeStep);
+		        const double weight2 = (currentTimeStep - time) / (currentTimeStep - oldTimeStep);
+		        const double newYaw   = oldYaw   * weight2 + currentYaw   * weight1;
+		        const double newPitch = oldPitch * weight2 + currentPitch * weight1;
+		        const double newRoll  = oldRoll  * weight2 + currentRoll  * weight1;
 
-	        Log.info("JitterFromNetwork: time: " + to_string(currentTimeStep) + "; yaw: " + to_string(newYaw*1000) + "x10^-3; pitch: " + to_string(newPitch*1000)+ "x10^-3; roll: " + to_string(newRoll*1000) + "x10^-3");
+		        Log.info("JitterFromNetwork: time: " + to_string(currentTimeStep) + "; yaw: " + to_string(newYaw*1000) + "x10^-3; pitch: " + to_string(newPitch*1000)+ "x10^-3; roll: " + to_string(newRoll*1000) + "x10^-3");
 
-	        return make_tuple(newYaw, newPitch, newRoll);
-	    }
+		        return make_tuple(newYaw, newPitch, newRoll);
+		    }
+		}
+		else
+		{
+			// just return empty jitter steps, if there are no more steps from network, but still imagettes to write
+
+			return make_tuple(0.0, 0.0, 0.0);
+		}
 	}
 }
 
 
-void JitterFromNetwork::setCurrentJitterStep(double endOfSimulation, double timeStep, double yaw, double pitch, double roll)
+void JitterFromNetwork::setCurrentJitterStep(bool endSimulation, double timeStep, double yaw, double pitch, double roll)
 {
+
+	endOfSimulation = endSimulation;
 
     // the old values are the new values from the last jitter step
     oldTimeStep = currentTimeStep;

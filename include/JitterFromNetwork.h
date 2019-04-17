@@ -34,7 +34,7 @@ class JitterFromNetwork:public JitterGenerator
 		virtual tuple<double, double, double> getNextYawPitchRoll(double time) override;
         	virtual double getHeartbeatInterval() override;
 
-		virtual void setCurrentJitterStep(double endSimulation, double timeStep, double yaw, double pitch, double roll) override;
+		virtual void setCurrentJitterStep(bool endSimulation, double timeStep, double yaw, double pitch, double roll) override;
 
 
 	protected:
@@ -56,6 +56,8 @@ class JitterFromNetwork:public JitterGenerator
 		double currentYaw;
 		double currentPitch;
 		double currentRoll;
+
+		bool endOfSimulation;
 
 };
 
