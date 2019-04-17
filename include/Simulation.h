@@ -4,6 +4,8 @@
 #include <ctime>
 #include <string>
 #include <condition_variable>
+#include <thread>
+#include <mutex>
 
 #include "Logger.h"
 #include "HDF5File.h"
@@ -46,11 +48,11 @@ class Simulation
         virtual void configure(ConfigurationParameters &configParams);
         virtual pair<double, double> configureReadoutTime(ConfigurationParameters &configParams);
 
-	TcpConnection* getServerInstance();
+    	TcpConnection* getServerInstance();
 
-	bool notified;
-	bool newStep;
-	
+    	bool notified;
+    	bool newStep;
+    	
 
 
     protected:
@@ -90,7 +92,7 @@ class Simulation
         Camera *camera;
         Detector *detector;
 
-	TcpConnection* serverInstance;
+	    TcpConnection* serverInstance;
 
         HDF5File hdf5File;
 
