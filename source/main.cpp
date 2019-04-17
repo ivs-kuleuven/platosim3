@@ -8,6 +8,9 @@
 #include "StringUtilities.h"
 #include "version.h"
 
+#include <thread>
+#include <omp.h>
+
 
 using namespace std;
 
@@ -19,21 +22,51 @@ int main(int Narguments, char* arguments[])
 {
     using StringUtilities::ends_with;
 
-    if (Narguments == 2 && ends_with(arguments[1], "-version"))
+    bool multipleSimulations;
+    bool invalidInput = false;
+
+    string firstArgument;
+
+    if (Narguments >= 2) 
     {
-        cout << "PlatoSim " << GIT_DESCRIBE << endl;
-        exit(EXIT_SUCCESS);
+        firstArgument = arguments[1];
+
+        if (ends_with(arguments[1], "-version"))
+        {
+            cout << "PlatoSim " << GIT_DESCRIBE << endl;
+            exit(EXIT_SUCCESS);
+        }
+        else if (firstArgument.substr(firstArgument.find_last_of(".") + 1) == "txt")
+        {
+            multipleSimulations = true;
+        }
+        else if (firstArgument.substr(firstArgument.find_last_of(".") + 1) == "yaml")
+        {
+            multipleSimulations = false;
+
+            if (Narguments < 3 || (Narguments > 5))
+            {
+                invalidInput = true;
+            }
+        }
+        else
+        {
+            invalidInput = true;
+        }
+    }
+    else
+    {
+        invalidInput = true;    
     }
 
-    // Platosim expects the filename of the configuration parameters.
-    // Exit if this filename is not given.
-
-    if ((Narguments < 3) || (Narguments > 5))
+    if (invalidInput)
     {
         cerr << "Usage: platosim <inputfile> <outputfile> [<logfile>] [<logLevel>]" << endl;
         cerr << "       platosim -version" << endl;
-        exit(EXIT_FAILURE);
+        cerr << "       platosim <path_to_inputfile_list>" << endl;
+        exit(EXIT_FAILURE); 
     }
+
 
     string inputFilename(arguments[1]);
     string outputFilename(arguments[2]);
@@ -73,10 +106,88 @@ int main(int Narguments, char* arguments[])
     Log.info("Main: Log file includes 'error', 'warning', 'info', and 'debug'");
 
 
-    // Initialise the simulation, and loop over all exposures using run()
+    if (multipleSimulations == false)
+    {
+        string outputFilename(arguments[2]);
 
-    Simulation simulation(inputFilename, outputFilename);
-    simulation.run();
+        // Initialise the simulation, and loop over all exposures using run()
+
+        Simulation simulation(inputFilename, outputFilename);
+
+        simulation.run();
+    }
+    else
+    {
+        // create a vector of the inputfiles used (its length indicates, how many simulations will be conducted simulataniously)
+        std::vector<string> inputFiles;
+
+        // a vector of outputfile names respectively
+        std::vector<string> outputFiles;
+
+        // check, whether the path to the inputfile yields a usable result
+        ifstream inputFileList(inputFilename);
+        if (inputFileList.is_open())
+        {
+            string line;
+            while(getline(inputFileList, line))
+            {
+                // fill the inputFiles vector with the file names within the given folder
+                inputFiles.emplace_back(line);
+
+                // crop the ending from the filename
+                size_t lastindex = line.find_last_of(".");
+                string rawName = line.substr(0, lastindex);
+
+                // create an outputfile name from the inputfilename and save it within the vector
+                string outputName = rawName + ".hdf5";
+
+                outputFiles.emplace_back(outputName);
+            }
+        }
+        else
+        {
+            cerr << "<path_to_input_file> can't be opened" << endl;
+            exit(EXIT_FAILURE);
+        }
+
+        std::vector<Simulation*> simulationInstanceVec;
+
+        // create Simulation objects as long as you have valid input- and output files
+        for (int n = 0; n < inputFiles.size(); n++)
+        {
+            // create a new Simulation object
+            Simulation* simulationInstance = new Simulation(inputFiles.at(n), outputFiles.at(n));
+
+            // put the object handler in the respective vector
+            simulationInstanceVec.emplace_back(simulationInstance);
+        }
+
+        std::vector<std::thread> simulationThreadVec;
+
+        #pragma omp parallel for
+        for (int n = 0; n < simulationInstanceVec.size(); n++)
+        {        
+            std::cout << "used threads: " << omp_get_num_threads() << std::endl;
+    
+            std::cout << "max threads: " << omp_get_max_threads() << std::endl;
+
+            std::thread simulationThread(&Simulation::run, simulationInstanceVec.at(n));
+
+            // put the thread handler in the respective vector
+            simulationThreadVec.emplace_back(std::move(simulationThread));    
+        }
+
+        for (int n = 0; n < simulationThreadVec.size(); n++)
+        {
+            simulationThreadVec.at(n).join();
+        }
+
+        //detach all Simulation Objects from the Jitter object and delete all class intances
+        for (auto &i : simulationInstanceVec)
+        {
+           delete i;
+        }
+    }
 
 
     // That's it!
