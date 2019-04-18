@@ -19,7 +19,7 @@ Logger Log;
 
 
 int main(int Narguments, char* arguments[])
-{
+{   
     using StringUtilities::ends_with;
 
     bool multipleSimulations;
@@ -67,9 +67,11 @@ int main(int Narguments, char* arguments[])
         exit(EXIT_FAILURE); 
     }
 
+    std::cout << invalidInput << std::endl;
+    std::cout << multipleSimulations << std::endl;
 
     string inputFilename(arguments[1]);
-    string outputFilename(arguments[2]);
+    
     string logFilename = "log.txt";
     if (Narguments >= 4)
     {
@@ -182,6 +184,8 @@ int main(int Narguments, char* arguments[])
             simulationThreadVec.at(n).join();
         }
 
+        simulationInstanceVec.at(0)->deleteJitterAndDrift();
+
         //detach all Simulation Objects from the Jitter object and delete all class intances
         for (auto &i : simulationInstanceVec)
         {
@@ -195,3 +199,13 @@ int main(int Narguments, char* arguments[])
     logFile.close();
     return EXIT_SUCCESS;
 }
+
+/**
+ * \brief lazy initialization of the jitter instance
+ */
+JitterGenerator* JitterGenerator::_instance = 0;
+
+ /**
+ * \brief lazy initialization of the drift instance
+ */
+DriftGenerator* DriftGenerator::_instance = 0;

@@ -42,6 +42,7 @@ class Simulation
         virtual void run();
         virtual void configure(ConfigurationParameters &configParams);
         virtual pair<double, double> configureReadoutTime(ConfigurationParameters &configParams);
+        virtual void deleteJitterAndDrift();
 
     protected:
 

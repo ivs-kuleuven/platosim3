@@ -67,17 +67,17 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     if (!useJitter)
     {
-        jitterGenerator = new NoJitter();
+        jitterGenerator = NoJitter::Instance();
     }
     else
     {
         if (useJitterFromFile)
         {
-            jitterGenerator = new JitterFromFile(configParams, readoutTimeBeforeNextExposure);
+            jitterGenerator = JitterFromFile::Instance(configParams, readoutTimeBeforeNextExposure);
         }
         else
         {
-            jitterGenerator = new JitterFromRedNoise(configParams, readoutTimeBeforeNextExposure);
+            jitterGenerator = JitterFromRedNoise::Instance(configParams, readoutTimeBeforeNextExposure);
         }
     }
 
@@ -85,17 +85,17 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     if (!useDrift)
     {
-        driftGenerator = new NoDrift();
+        driftGenerator = NoDrift::Instance();
     }
     else
     {
         if (useDriftFromFile)
         {
-            driftGenerator = new ThermoElasticDriftFromFile(configParams, readoutTimeBeforeNextExposure);
+            driftGenerator = ThermoElasticDriftFromFile::Instance(configParams, readoutTimeBeforeNextExposure);
         }
         else
         {
-            driftGenerator = new ThermoElasticDriftFromRedNoise(configParams, readoutTimeBeforeNextExposure);
+            driftGenerator = ThermoElasticDriftFromRedNoise::Instance(configParams, readoutTimeBeforeNextExposure);
         }
     }
 
@@ -168,9 +168,7 @@ Simulation::~Simulation()
     delete telescope;
     delete sky;
     delete platform;
-    delete jitterGenerator;
-    delete driftGenerator;
-    
+
     // Close the output hdf5 file
 
     hdf5File.close();
@@ -178,7 +176,11 @@ Simulation::~Simulation()
 
 
 
-
+void Simulation::deleteJitterAndDrift()
+{
+    delete jitterGenerator;
+    delete driftGenerator;
+}
 
 
 
