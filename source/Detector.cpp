@@ -510,6 +510,7 @@ double Detector::takeExposure(int exposureNr, double startTime, double exposureT
 
     Log.debug("Detector: Writing PixelMap, smearing map, bias map and throughputMap #" + to_string(exposureNr) + " to HDF5 file.");
 
+    #pragma omp critical
     writePixelMapsToHDF5(exposureNr);
 
     // Advance the internal clock
