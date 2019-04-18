@@ -26,7 +26,8 @@ class NoJitter: public JitterGenerator
 {
     public:
 
-        NoJitter();
+    	static JitterGenerator* Instance();
+        
         ~NoJitter();
 
         virtual void configure(ConfigurationParameters &configParams);
@@ -34,6 +35,8 @@ class NoJitter: public JitterGenerator
         virtual double getHeartbeatInterval() override;
 
     protected:
+
+    	NoJitter();
 
     private:
 

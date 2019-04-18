@@ -18,13 +18,15 @@ class JitterGenerator : public Heartbeat
 {
     public:
 
-        JitterGenerator(){};
         virtual ~JitterGenerator(){};
 
         virtual tuple<double, double, double> getNextYawPitchRoll(double time) = 0;
 
     protected:
 
+    	JitterGenerator(){};
+
+    	static JitterGenerator* _instance;
 
     private:
 

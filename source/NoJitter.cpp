@@ -1,6 +1,18 @@
 #include "NoJitter.h"
 
 
+/**
+ * \brief function to acces the protected constructor, if there is no jitter instance yet
+ */
+JitterGenerator* NoJitter::Instance()
+{
+    if(_instance == 0)
+    {
+        _instance = new NoJitter();
+    }
+    return _instance;
+}
+
 
 /**
  * \brief Constructor

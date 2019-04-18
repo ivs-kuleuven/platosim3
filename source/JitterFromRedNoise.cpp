@@ -1,6 +1,18 @@
 #include "JitterFromRedNoise.h"
 
 
+/**
+ * \brief function to acces the protected constructor, if there is no jitter instance yet
+ */
+JitterGenerator* JitterFromRedNoise::Instance(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure)
+{
+    if(_instance == 0)
+    {
+        _instance = new JitterFromRedNoise(configParams, readoutTimeBeforeNextExposure);
+    }
+    return _instance;
+}
+
 
 /**
  * \brief Constructor

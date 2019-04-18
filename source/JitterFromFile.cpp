@@ -2,6 +2,19 @@
 #include "JitterFromFile.h"
 
 
+/**
+ * \brief function to acces the protected constructor, if there is no jitter instance yet
+ */
+JitterGenerator* JitterFromFile::Instance(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure)
+{
+    if(_instance == 0)
+    {
+        _instance = new JitterFromFile(configParams, readoutTimeBeforeNextExposure);
+    }
+    return _instance;
+}
+
+
 
 /**
  * \brief Constructor

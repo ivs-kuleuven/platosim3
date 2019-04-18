@@ -24,7 +24,8 @@ class JitterFromFile : public JitterGenerator
 {
     public:
 
-        JitterFromFile(ConfigurationParameters &configurationParameters, double readoutTimeBeforeNextExposure);
+        static JitterGenerator* Instance(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure);
+
         ~JitterFromFile();
 
         virtual void configure(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure);
@@ -32,6 +33,8 @@ class JitterFromFile : public JitterGenerator
         virtual double getHeartbeatInterval() override;
 
     protected:
+
+        JitterFromFile(ConfigurationParameters &configurationParameters, double readoutTimeBeforeNextExposure);
 
         string pathToJitterFile;
         double beginTime;                 // Only read the jitter file from beginTime to endTime
