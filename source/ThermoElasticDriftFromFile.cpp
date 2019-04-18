@@ -4,6 +4,18 @@
 
 
 /**
+ * \brief function to acces the protected constructor, if there is no drift instance yet
+ */
+DriftGenerator* ThermoElasticDriftFromFile::Instance(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure)
+{
+    if(_instance == 0)
+    {
+        _instance = new ThermoElasticDriftFromFile(configParams, readoutTimeBeforeNextExposure);
+    }
+    return _instance;
+}
+
+/**
  * \brief Constructor
  * 
  * \param configParams The configuration parameters from the input parameters file

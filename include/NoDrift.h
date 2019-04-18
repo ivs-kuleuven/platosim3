@@ -24,7 +24,8 @@ class NoDrift: public DriftGenerator
 {
     public:
 
-        NoDrift();
+    	static DriftGenerator* Instance();
+
         ~NoDrift();
 
         virtual void configure();
@@ -32,6 +33,8 @@ class NoDrift: public DriftGenerator
         virtual double getHeartbeatInterval() override;
 
     protected:
+
+        NoDrift();
 
     private:
 
