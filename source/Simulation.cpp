@@ -416,6 +416,7 @@ void Simulation::run()
         currentTime = detector->takeExposure(n, currentTime, exposureTime);
     }
 
+    #pragma omp critical
     writeStarCatalogToHDF5();
 }
 
