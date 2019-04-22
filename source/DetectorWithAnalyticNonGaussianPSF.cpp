@@ -377,6 +377,7 @@ double DetectorWithAnalyticNonGaussianPSF::takeExposure(int exposureNr, double s
 
     Log.debug("Detector: Writing PixelMap, smearing map, and bias map #" + to_string(exposureNr) + " to HDF5 file.");
 
+    #pragma omp critical
     writePixelMapsToHDF5(exposureNr);
 
     // Advance the internal clock

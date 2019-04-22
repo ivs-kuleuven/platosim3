@@ -338,6 +338,7 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
 
     Log.debug("Detector: Writing PixelMap, smearing map, and bias map #" + to_string(exposureNr) + " to HDF5 file.");
 
+    #pragma omp critical
     writePixelMapsToHDF5(exposureNr);
 
     // If required, also write the subpixel image to the HDF5 file
