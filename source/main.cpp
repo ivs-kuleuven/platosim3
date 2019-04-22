@@ -67,9 +67,6 @@ int main(int Narguments, char* arguments[])
         exit(EXIT_FAILURE); 
     }
 
-    std::cout << invalidInput << std::endl;
-    std::cout << multipleSimulations << std::endl;
-
     string inputFilename(arguments[1]);
     
     string logFilename = "log.txt";
@@ -169,10 +166,6 @@ int main(int Narguments, char* arguments[])
         #pragma omp parallel for
         for (int n = 0; n < simulationInstanceVec.size(); n++)
         {        
-            std::cout << "used threads: " << omp_get_num_threads() << std::endl;
-    
-            std::cout << "max threads: " << omp_get_max_threads() << std::endl;
-
             std::thread simulationThread(&Simulation::run, simulationInstanceVec.at(n));
 
             // put the thread handler in the respective vector
