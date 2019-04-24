@@ -276,6 +276,7 @@ void Telescope::updateTelescopeOrientation(double time)
     {
         // Let the telescope drift until 'time'. Yaw, pitch, and roll are in [rad]
 
+        #pragma omp critical
         tie(yaw, pitch, roll) = driftGenerator.getNextYawPitchRoll(time);
 
         Log.debug("Telescope: At time " + to_string(time) + ": (yaw, pitch, roll) = (" 

@@ -230,6 +230,7 @@ void Platform::updatePlatformOrientation(double time)
         // We're now in the case that we haven't processed the given time point yet.
         // Let the platfrom jitter until 'time'. Yaw, pitch, and roll are in [rad]
 
+        #pragma omp critical
         tie(yaw, pitch, roll) = jitterGenerator.getNextYawPitchRoll(time);
 
         Log.debug("Platform: At time " + to_string(time) + ": (yaw, pitch, roll) = (" 
