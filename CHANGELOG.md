@@ -1,6 +1,18 @@
 # Changelog for PlatoSim
 
 
+<!-- 3.3.7 -->
+<!-- ***** -->
+
+## ??/??/2019: 3.3.7
+
+## Fixed
+
+* Input file of the photometry tutorial needs to be updated (GitHub issue #368)
+
+
+
+
 
 <!-- 3.3.6 -->
 <!-- ***** -->
