@@ -955,9 +955,20 @@ void Simulation::setRandomSeeds(ConfigurationParameters &configParams)
     }
 }
 
-
+/**
+ * \brief return a pointer to the server instance
+ *
+ */
 TcpConnection* Simulation::getServerInstance()
 {
     return serverInstance;
 }
 
+/**
+ * \brief return a pointer to the client instance
+ *
+ */
+TcpConnection* Simulation::getClientInstance()
+{
+    return clientInstance;
+}
