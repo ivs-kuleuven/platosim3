@@ -30,7 +30,7 @@ class TcpConnection
 		const char* convertMatrixToChar(arma::Mat<float>* pixelMapPointer, bool endOfSimulation);
 
 		bool endOfSimulation;
-		string tcpAddress;
+		string tcpAddressServer;
 		string tcpAddressClient;
 
 		JitterGenerator* jitterInstance;
