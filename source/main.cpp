@@ -68,41 +68,65 @@ int main(int Narguments, char* arguments[])
                 break;   
     }
     
-    Log.info(string("PlatoSim ") + GIT_DESCRIBE);
-    Log.info("Main: Log file includes 'error', 'warning', 'info', and 'debug'");
-
-    std::mutex m;
-    std::condition_variable condVar;
+    // declare some variables for the inner thread communication
+    std::mutex mServer;
+    std::mutex mClient;
+    std::condition_variable condVarServer;
+    std::condition_variable condVarClient;
 
     // Initialise the simulation, and loop over all exposures using run()
 
-    Simulation simulation(inputFilename, outputFilename, &m, &condVar);
+    Simulation simulation(inputFilename, outputFilename, &mServer, &condVarServer, &mClient, &condVarClient);
 
-    // check whether the simulation uses jitter from network
 
-    if (simulation.getServerInstance() != NULL)
+    // declare and initialize the thread pointers
+    std::thread* serverThread = NULL;
+    std::thread* clientThread = NULL;
+    std::thread* simulationThread =NULL;
+
+    // declare a vector of pointers to the threads
+    std::vector<std::thread*> threadVec;
+
+    // depending on whether jitter from server or sending imagettes to client is active start the according threads
+
+    // jitterFromNetwork AND sendImagettes is true
+    if (simulation.getServerInstance() != NULL && simulation.getClientInstance() != NULL)
     {
-	
-    	Log.info("main: check");
-    	
-    	// the tcp connections have to run alongside the simulation so some threads have to be declared
+        // create a server and a client thread
 
-    	std::thread serverThread(&TcpConnection::connectToServer, simulation.getServerInstance());
-    	std::thread simulationThread(&Simulation::run, &simulation);
+        serverThread = new std::thread(&TcpConnection::connectToServer, simulation.getServerInstance());
+        threadVec.push_back(serverThread);
 
-    	// gather the threads after completion and rejoin them
-
-    	simulationThread.join();
-    	serverThread.join();
-
+        clientThread = new std::thread(&TcpConnection::connectToClient, simulation.getClientInstance());
+        threadVec.push_back(clientThread);
     }
-    else
+    // jitterFromNetwork is true
+    else if (simulation.getServerInstance() != NULL && simulation.getClientInstance() == NULL)
     {
-        simulation.run();
+        // create only the server thread
+
+        serverThread = new std::thread(&TcpConnection::connectToServer, simulation.getServerInstance());
+        threadVec.push_back(serverThread);
+    }
+    // sendImagettes is true
+    else if (simulation.getServerInstance() == NULL && simulation.getClientInstance() != NULL)
+    {
+        // create only the client thread
+
+        clientThread = new std::thread(&TcpConnection::connectToClient, simulation.getClientInstance());
+        threadVec.push_back(clientThread);
     }
 
-    
+    // create the simulation thread
+    simulationThread = new std::thread(&Simulation::run, &simulation);
+    threadVec.push_back(simulationThread);
 
+    // after the simulation join all threads and delete them
+    for (auto &i : threadVec)
+    {
+        i->join();
+        delete(i);
+    }
 
     // That's it!
 
