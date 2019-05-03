@@ -7,6 +7,10 @@
 #include <functional>
 #include <valarray>
 
+#include <condition_variable>
+#include <thread>
+#include <mutex>
+
 #include "armadillo"
 
 #include "Faddeeva.hh"
@@ -88,6 +92,10 @@ class Detector: public HDF5Writer
         bool isInSubfield(double xFPmm, double yFPmm);
 
         double getReadoutTimeBeforeNextExposure();
+
+        void setThreadCommunicationVariables(std::condition_variable* condVarClient, std::mutex* mClient, bool* notifiedClient, bool* newImagette);
+
+        arma::Mat<float>* getCurrentPixelMap();
 
 
     protected:
@@ -263,6 +271,15 @@ class Detector: public HDF5Writer
  
         Camera &camera;
         FrontEndElectronics *frontEndElectronics;
+
+        bool sendImagettesToClient;
+
+        std::condition_variable* condVarClientPointer;
+        std::mutex* mClientPointer;
+        bool* notifiedClientPointer;
+        bool* newImagettePointer;
+        bool  endOfSimulation;
+
 
     private:
 

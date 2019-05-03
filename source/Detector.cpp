@@ -2599,6 +2599,32 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
         hdf5File.writeArray("/Images", imageName, uintMap);
     }
 
+    if (sendImagettesToClient)
+    {
+        Log.info("Detector: notify client thread");
+
+        // give the signal to the client, that a new imagette is ready
+        *notifiedClientPointer = true;
+
+        *newImagettePointer = false;
+
+        // notify the tcp connection thread
+        condVarClientPointer->notify_one();
+
+        // declare a lock for this thread
+        std::unique_lock<std::mutex> lock(*mClientPointer);
+
+        Log.info("Detector: wait for message from client thread");
+
+        // wait for the tcp connection thread to notify this thread so that the simulation can continue
+        while(!*newImagettePointer)
+        {       
+            condVarClientPointer->wait(lock);
+        }
+
+        Log.info("Detector: got notified from client thread");
+    }
+
     if (numRowsSmearingMap != 0)
     {
     	// Clear the string stream and compose the smearing map name
@@ -2717,4 +2743,31 @@ double Detector::getTemperature()
 double Detector::getReadoutTimeBeforeNextExposure()
 {
 	return readoutTimeBeforeNextExposure;
+}
+
+
+
+
+/**
+ * \brief returns a pointer to the current pixelmap. this function is called by the tcp connection client
+ */
+arma::Mat<float>* Detector::getCurrentPixelMap()
+{
+    return &pixelMap;
+}
+
+
+
+
+/**
+ * \brief Sets the needed variables for the communication between the simulation and the client thread to send imagettes from the detector to a tcp connected client.
+ */
+void Detector::setThreadCommunicationVariables(std::condition_variable* condVarClient, std::mutex* mClient, bool* notifiedClient, bool* newImagette)
+{
+    sendImagettesToClient = true;
+
+    condVarClientPointer = condVarClient;
+    mClientPointer = mClient;
+    notifiedClientPointer = notifiedClient;
+    newImagettePointer = newImagette;
 }
