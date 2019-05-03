@@ -42,7 +42,8 @@ Platform:
     JitterRollRms:               0.08             # [arcsec]
     JitterTimeScale:             180              # [s]
     JitterFileName:              inputfiles/PlatoJitter_OHB.txt 
-    TcpAddress: tcp://localhost:5555
+    TcpAddressServer: tcp://localhost:5555
+    TcpAddressClient: tcp://localhost:5050
 
 
 Telescope:
@@ -232,8 +233,8 @@ CCD:
 
 SubField:    
 
-    ZeroPointRow:                4420               # Row of the (0,0) pixel of the subfield [pixels]
-    ZeroPointColumn:             3523               # Column of the (0,0) pixel of the subfield [pixels]
+    ZeroPointRow:                0               # Row of the (0,0) pixel of the subfield [pixels]
+    ZeroPointColumn:             0               # Column of the (0,0) pixel of the subfield [pixels]
     NumColumns:                  9               # Number of columns, should be >= 8 [pixels]
     NumRows:                     9               # Number of rows,    should be >= 8 [pixels]
     NumBiasPrescanRows:          30              # Nr of rows of the prescan strip to determine the bias [pixels]
@@ -254,9 +255,12 @@ RandomSeeds:
     
 
 ControlHDF5Content:
-    WriteSubPixelImages:         no              # Only use this for a limited number of exposures. Takes a lot of space! 
-    WriteStarPositions:          yes             # StarPositions are written in pixel and focal plane coordinates + flux and
+    WriteSubPixelImages:        no              # Only use this for a limited number of exposures. Takes a lot of space! 
+    WriteStarPositions:         yes             # StarPositions are written in pixel and focal plane coordinates + flux and
                                                  # scales with the number of exposures and the number of stars in the field.
+    SendImagettesToClients:     yes
+
+
 
 # ----- DO NOT MAKE CHANGES BELOW THIS LINE -----
 

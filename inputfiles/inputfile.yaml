@@ -40,6 +40,8 @@ Platform:
     JitterRollRms:                   0.08            # [arcsec]
     JitterTimeScale:                 3600.           # [s]
     JitterFileName:                  inputfiles/PlatoJitter_Airbus.txt
+    TcpAddressServer: tcp://localhost:5555
+    TcpAddressClient: tcp://localhost:5050
 
 
 Telescope:
@@ -246,7 +248,7 @@ ControlHDF5Content:
     WriteSubPixelImages:             no              # Only use this for a limited number of exposures. Takes a lot of space! 
     WriteStarPositions:              yes             # StarPositions are written in pixel and focal plane coordinates + flux and
                                                      # scales with the number of exposures and the number of stars in the field.
-
+    SendImagettesToClients:     yes
 
 # ----- DO NOT MAKE CHANGES BELOW THIS LINE -----
 
