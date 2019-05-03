@@ -6,11 +6,9 @@
  *		  
  */
 
-TcpConnection::TcpConnection(ConfigurationParameters &configParam, JitterGenerator* jitterFromNetwork, std::condition_variable* cond_var, std::mutex* m, bool* notified, bool* newStep)
+TcpConnection::TcpConnection(ConfigurationParameters &configParam, std::condition_variable* cond_var, std::mutex* m, bool* notified, bool* newStep)
 {
 	// set some starting parameters
-
-	jitterInstance = jitterFromNetwork;
 
 	configure(configParam);
 
@@ -148,27 +146,33 @@ void TcpConnection::connectToServer()
 	}
 }
 
+
+/**
+ * \brief The server reply is in a string format - this function converts it to a vector of doubles
+ * \	  TODO: build in some sanity checks
+ *  
+ */
 std::vector <double> TcpConnection::processServerReply(string replyString)
 {
 	// fracture the received string
 
-        std::stringstream ss(replyString);
+    std::stringstream ss(replyString);
 
 	std::vector<double> currentJitterStepVec;
 
-        double i;
+    double i;
 
 	// convert the string to double values
 
-        while (ss >> i)
-        {
-             currentJitterStepVec.push_back(i);
+    while (ss >> i)
+    {
+        currentJitterStepVec.push_back(i);
 
-             if (ss.peek() == ',' || ss.peek() == ' ')
-             {
-                 ss.ignore();
-             }
-         }
+        if (ss.peek() == ',' || ss.peek() == ' ')
+        {
+            ss.ignore();
+        }
+    }
 	
 	return currentJitterStepVec;
 
@@ -178,10 +182,113 @@ std::vector <double> TcpConnection::processServerReply(string replyString)
 
 
 /**
- * \brief Function to be carried out in a thread parallel to the simulation thread. It connects to a client and send imagette data to it.
+ * \brief Function to be carried out in a thread parallel to the simulation thread. It connects to a client and sends imagette data to it.
  *  
  */
 void TcpConnection::connectToClient()
 {
+	Log.info("TcpConnection: client thread created");
 
+	// declare socket
+
+	zmq::context_t context(1);
+	zmq::socket_t socket(context, ZMQ_REQ);
+
+	// connect to the client
+
+	socket.connect(tcpAddressClient);
+
+	// set the exposure counter
+	int exposureCounter = 0;
+	
+	// repeat until the simulation is over
+
+	while(!endOfSimulation)
+	{
+		// declare a lock
+
+		std::unique_lock<std::mutex> lock(*mutexPointer);
+
+		// wait for a notification from the simulation
+
+		Log.info("TcpConnection: wait for new imagette notification from simulation thread");
+
+		while(!*notifiedPointer)
+       	{	
+        	condVarPointer->wait(lock);
+        }
+
+        *notifiedPointer = false;
+       	lock.unlock();
+
+		// get the imagette from the detector object
+
+		Log.info("TcpConnection: get imagette from detector");
+
+		arma::Mat<float>* pixelMapPointer = detectorInstance->getCurrentPixelMap();
+
+		exposureCounter++;
+
+		if (exposureCounter == numExposures)
+		{
+			endOfSimulation = true;
+		}
+
+		// change the arma matrix to a more suitable format to send
+
+		Log.info("TcpConnection: convert imagette from mat to char*");
+
+		const char* imagetteString = convertMatrixToChar(pixelMapPointer, endOfSimulation);
+
+		// send it to the client with a time stamp / imagette number
+		
+		Log.info("TcpConnection: send imagette string to client");
+
+		zmq::message_t imagetteToSend (strlen(imagetteString));
+	    memcpy(imagetteToSend.data(), imagetteString, strlen(imagetteString));
+		socket.send(imagetteToSend);
+
+		// notify the simulation thread to carry on the simulation
+
+		Log.info("TcpConnection: notify simulation thread");
+
+		*newStepPointer = true;
+
+	   	condVarPointer->notify_one();
+
+		// get the reply from client (this has to be done or zeroMQ won't work)
+		zmq::message_t reply;
+	    socket.recv(&reply);
+	}
+}
+
+/**
+ * \brief converts the endOfSimulation, rows, cols and the pixelmap values to a char (seperated by a blank space) to be send to the client
+ *  
+ */
+const char* TcpConnection::convertMatrixToChar(arma::Mat<float>* pixelMapPointer, bool endOfSimulation)
+{
+	// declare whether the simulation is to end and get the rows and cols from the pixelMap
+
+	int end = endOfSimulation;
+
+	int rows = pixelMapPointer->n_rows;
+
+	int cols = pixelMapPointer->n_cols;
+
+	// write the values seperated by a white space to the string
+	std::string imagetteString = to_string(end) + " " + to_string(rows) + " " + to_string(cols) + " ";
+
+	// write every value of the pixelMap to the string
+	for(int i = 0; i < rows; i++)
+	{
+		for(int j = 0; j < cols; j++)
+		{
+			imagetteString = imagetteString + to_string(pixelMapPointer->at(i, j)) + " ";
+		}
+	}
+
+	const char* imagetteChar = imagetteString.c_str();
+
+	return imagetteChar;
 }

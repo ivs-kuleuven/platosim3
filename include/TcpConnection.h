@@ -7,15 +7,19 @@
 
 #include "ConfigurationParameters.h"
 #include "JitterGenerator.h"
+#include "Detector.h"
 
 class TcpConnection
 {
 	public:
-		TcpConnection(ConfigurationParameters &configParam, JitterGenerator* jitterFromNetwork, std::condition_variable* cond_var, std::mutex* m, bool* notified, bool* newStep);
+		TcpConnection(ConfigurationParameters &configParam, std::condition_variable* cond_var, std::mutex* m, bool* notified, bool* newStep);
 		~TcpConnection();
 
 		void connectToServer();
 		void connectToClient();
+
+		void setDetectorInstance(Detector* detector){detectorInstance = detector;};
+		void setJitterInstance(JitterGenerator* jitter){jitterInstance = jitter;};
 
 	protected:
 
@@ -23,11 +27,14 @@ class TcpConnection
 
 		void configure(ConfigurationParameters &configParams);
 		std::vector <double> processServerReply(string replyString);
+		const char* convertMatrixToChar(arma::Mat<float>* pixelMapPointer, bool endOfSimulation);
 
 		bool endOfSimulation;
 		string tcpAddress;
+		string tcpAddressClient;
 
 		JitterGenerator* jitterInstance;
+		Detector* detectorInstance;
 
 		double internalTime;
 
@@ -35,4 +42,6 @@ class TcpConnection
 		std::mutex* mutexPointer;
 		bool* notifiedPointer;
 		bool* newStepPointer;
+
+		int numExposures;
 };
