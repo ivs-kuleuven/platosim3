@@ -21,7 +21,7 @@
  * \param[in]  outputFilename  the HDF5 output file
  */
 
-Simulation::Simulation(string inputFilename, string outputFilename, std::mutex* mPointer, std::condition_variable* condVarPointer)
+Simulation::Simulation(string inputFilename, string outputFilename, std::mutex* mServerPointer, std::condition_variable* condVarServerPointer, std::mutex* mClientPointer, std::condition_variable* condVarClientPointer)
 {
     // Parse the configuration parameters file
 
@@ -62,9 +62,10 @@ Simulation::Simulation(string inputFilename, string outputFilename, std::mutex* 
     Log.debug("Simulation: Exposure time: " + to_string(exposureTime));
     Log.debug("Simulation: Readout time before next exposure: " + to_string(readoutTimeBeforeNextExposure));
 
-    // declare the tcpconnection variable a null pointer
+    // declare the tcpconnection variables as null pointers
 
     serverInstance = NULL;
+    clientInstance = NULL;
 
     // Depending on what the user requested, define the proper platform jitter generator
 
@@ -84,15 +85,15 @@ Simulation::Simulation(string inputFilename, string outputFilename, std::mutex* 
         }
         else if (jitterSource == "FromNetwork")
         {
- 		
-		notified = false;
-		newStep = false;
+            Log.debug("Simulation: Create TcpConnection Server");
 
-		jitterGenerator = new JitterFromNetwork(configParams, readoutTimeBeforeNextExposure, condVarPointer, mPointer, &notified, &newStep);
+		    jitterGenerator = new JitterFromNetwork(configParams, readoutTimeBeforeNextExposure, condVarServerPointer, mServerPointer, &notifiedServer, &newStep);
 
-	   	 // declare a tcpConnection object as server instance
+            // declare a tcpConnection object as server instance
 
-	    serverInstance = new TcpConnection(configParams, jitterGenerator, condVarPointer, mPointer, &notified, &newStep);
+            serverInstance = new TcpConnection(configParams, condVarServerPointer, mServerPointer, &notifiedServer, &newStep);
+
+            serverInstance->setJitterInstance(jitterGenerator);
         }
         else
         {
@@ -122,20 +123,20 @@ Simulation::Simulation(string inputFilename, string outputFilename, std::mutex* 
 
     if(useFeeTemperatureFromFile)
     {
-    		feeTemperatureGenerator = new TemperatureFromFile(configParams, "FEE");
+    	feeTemperatureGenerator = new TemperatureFromFile(configParams, "FEE");
     }
     else if(useFeeNominalTemperature)
     {
-    		feeTemperatureGenerator = new NominalTemperature(configParams, "FEE");
+    	feeTemperatureGenerator = new NominalTemperature(configParams, "FEE");
     }
 
     if(useDetectorTemperatureFromFile)
     {
-    		detectorTemperatureGenerator = new TemperatureFromFile(configParams, "CCD");
+    	detectorTemperatureGenerator = new TemperatureFromFile(configParams, "CCD");
     }
     else if(useDetectorNominalTemperature)
     {
-    		detectorTemperatureGenerator = new NominalTemperature(configParams, "CCD");
+    	detectorTemperatureGenerator = new NominalTemperature(configParams, "CCD");
     }
 
     // Initialise the spacecraft components
@@ -164,6 +165,20 @@ Simulation::Simulation(string inputFilename, string outputFilename, std::mutex* 
         string errorMessage = "Simulation: PSF Model '" + psfModel + "' is not supported.";
         Log.error(errorMessage);
         throw IllegalArgumentException(errorMessage);
+    }
+
+    // create a client instance if sendImagettes is true
+    if (sendImagettesToClient)
+    {
+        Log.debug("Simulation: Create TcpConnection Client");
+
+        clientInstance = new TcpConnection(configParams, condVarClientPointer, mClientPointer, &notifiedClient, &newImagette);
+
+        clientInstance->setDetectorInstance(detector);
+
+        // send the needed communication variables to the detector
+
+        detector->setThreadCommunicationVariables(condVarClientPointer, mClientPointer, &notifiedClient, &newImagette);
     }
 
     // Write the input parameters to the output HDF5 file
@@ -226,8 +241,13 @@ void Simulation::configure(ConfigurationParameters &configParams)
     useDetectorTemperatureFromFile = configParams.getString("CCD/Temperature") == "FromFile";
     useDetectorNominalTemperature = configParams.getString("CCD/Temperature") == "Nominal";
 
-    bool notified = false;
-    bool newStep = false;
+    sendImagettesToClient = configParams.getBoolean("ControlHDF5Content/SendImagettesToClients");
+
+    notifiedServer = false;
+    notifiedClient = false;
+
+    newStep = false;
+    newImagette = false;
 
 }
 

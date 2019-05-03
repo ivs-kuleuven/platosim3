@@ -42,16 +42,17 @@ class Simulation
 {
     public:
 
-        Simulation(string inputFilename, string outputFilename, std::mutex* mPointer, std::condition_variable* condVarPointer);
+        Simulation(string inputFilename, string outputFilename, std::mutex* mServerPointer, std::condition_variable* condVarServerPointer, std::mutex* mClientPointer, std::condition_variable* condVarClientPointer);
         ~Simulation();
         virtual void run();
         virtual void configure(ConfigurationParameters &configParams);
         virtual pair<double, double> configureReadoutTime(ConfigurationParameters &configParams);
 
     	TcpConnection* getServerInstance();
+        TcpConnection* getClientInstance();
 
-    	bool notified;
-    	bool newStep;
+        JitterGenerator* getJitterInstance(){return jitterGenerator;};
+        Detector* getDetectorInstance(){return detector;};
     	
 
 
@@ -93,6 +94,14 @@ class Simulation
         Detector *detector;
 
 	    TcpConnection* serverInstance;
+        TcpConnection* clientInstance;
+
+        bool notifiedServer;
+        bool notifiedClient;
+        bool newStep;
+        bool newImagette;
+
+        bool sendImagettesToClient;
 
         HDF5File hdf5File;
 
