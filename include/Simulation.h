@@ -54,7 +54,7 @@ class Simulation
         JitterGenerator* getJitterInstance(){return jitterGenerator;};
         Detector* getDetectorInstance(){return detector;};
     	
-
+        bool endOfSimulation;
 
     protected:
 
@@ -104,7 +104,6 @@ class Simulation
         bool sendImagettesToClient;
 
         HDF5File hdf5File;
-
 
 };
 

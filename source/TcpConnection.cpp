@@ -6,7 +6,7 @@
  *		  
  */
 
-TcpConnection::TcpConnection(ConfigurationParameters &configParam, std::condition_variable* cond_var, std::mutex* m, bool* notified, bool* newStep)
+TcpConnection::TcpConnection(ConfigurationParameters &configParam, std::condition_variable* cond_var, std::mutex* m, bool* notified, bool* newStep, bool* endSimulation)
 {
 	// set some starting parameters
 
@@ -17,7 +17,7 @@ TcpConnection::TcpConnection(ConfigurationParameters &configParam, std::conditio
 	notifiedPointer = notified;
 	newStepPointer = newStep;
 
-	
+	endOfSimulation = endSimulation;
 }
 
 
@@ -29,8 +29,6 @@ TcpConnection::TcpConnection(ConfigurationParameters &configParam, std::conditio
 
 void TcpConnection::configure(ConfigurationParameters &configParams)
 {
-	endOfSimulation = false;
-
 	internalTime = -1.0;
 
 	tcpAddressServer = configParams.getString("Platform/TcpAddressServer");
@@ -69,7 +67,7 @@ void TcpConnection::connectToServer()
 	
 	// repeat until the simulation is over
 
-	while(!endOfSimulation)
+	while(!*endOfSimulation)
 	{
 
 		//*newStepPointer = false;
@@ -137,12 +135,8 @@ void TcpConnection::connectToServer()
 	
 			if (currentJitterStepVec.at(0) != 0)
 		    {
-		       	endOfSimulation = true;
+		       	*endOfSimulation = true;
 		    }	
-		    else
-		    {
-		       	endOfSimulation = false;
-            }
 
 		}
 	}
@@ -205,7 +199,9 @@ void TcpConnection::connectToClient()
 	
 	// repeat until the simulation is over
 
-	while(!endOfSimulation)
+	bool endSimulation = false;
+
+	while(!endSimulation)
 	{
 		// declare a lock
 
@@ -215,13 +211,22 @@ void TcpConnection::connectToClient()
 
 		Log.info("TcpConnection: wait for new imagette notification from simulation thread");
 
-		while(!*notifiedPointer)
+	while(!*notifiedPointer)
        	{	
         	condVarPointer->wait(lock);
         }
 
+
         *notifiedPointer = false;
        	lock.unlock();
+		
+		// if the thread is notified by the detector and the end of the simulation has been declared (by jitterFromNetwork or the Simulation)
+		// this ends the loop and closes the thread as soon as the last imagette is sent
+		if (*endOfSimulation)
+		{
+			Log.info("TcpConnection: Simulation end");
+			endSimulation = true;
+		}
 
 		// get the imagette from the detector object
 
@@ -231,16 +236,13 @@ void TcpConnection::connectToClient()
 
 		exposureCounter++;
 
-		if (exposureCounter == numExposures)
-		{
-			endOfSimulation = true;
-		}
+
 
 		// change the arma matrix to a more suitable format to send
 
 		Log.info("TcpConnection: convert imagette from mat to char*");
 
-		const char* imagetteString = convertMatrixToChar(pixelMapPointer, endOfSimulation);
+		const char* imagetteString = convertMatrixToChar(pixelMapPointer);
 
 		// send it to the client with a time stamp / imagette number
 		
@@ -261,18 +263,21 @@ void TcpConnection::connectToClient()
 		// get the reply from client (this has to be done or zeroMQ won't work)
 		zmq::message_t reply;
 	    socket.recv(&reply);
+
+		
 	}
+	Log.info("TcpConnection: thread ends");
 }
 
 /**
  * \brief converts the endOfSimulation, rows, cols and the pixelmap values to a char (seperated by a blank space) to be send to the client
  *  
  */
-const char* TcpConnection::convertMatrixToChar(arma::Mat<float>* pixelMapPointer, bool endOfSimulation)
+const char* TcpConnection::convertMatrixToChar(arma::Mat<float>* pixelMapPointer)
 {
 	// declare whether the simulation is to end and get the rows and cols from the pixelMap
 
-	int end = endOfSimulation;
+	int end = *endOfSimulation;
 
 	int rows = pixelMapPointer->n_rows;
 

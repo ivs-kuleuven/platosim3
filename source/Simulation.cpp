@@ -91,7 +91,7 @@ Simulation::Simulation(string inputFilename, string outputFilename, std::mutex* 
 
             // declare a tcpConnection object as server instance
 
-            serverInstance = new TcpConnection(configParams, condVarServerPointer, mServerPointer, &notifiedServer, &newStep);
+            serverInstance = new TcpConnection(configParams, condVarServerPointer, mServerPointer, &notifiedServer, &newStep, &endOfSimulation);
 
             serverInstance->setJitterInstance(jitterGenerator);
         }
@@ -172,7 +172,7 @@ Simulation::Simulation(string inputFilename, string outputFilename, std::mutex* 
     {
         Log.debug("Simulation: Create TcpConnection Client");
 
-        clientInstance = new TcpConnection(configParams, condVarClientPointer, mClientPointer, &notifiedClient, &newImagette);
+        clientInstance = new TcpConnection(configParams, condVarClientPointer, mClientPointer, &notifiedClient, &newImagette, &endOfSimulation);
 
         clientInstance->setDetectorInstance(detector);
 
@@ -249,6 +249,7 @@ void Simulation::configure(ConfigurationParameters &configParams)
     newStep = false;
     newImagette = false;
 
+    endOfSimulation = false;
 }
 
 
@@ -454,11 +455,26 @@ void Simulation::run()
 
     // Loop over all exposures
 
-    for (int n = beginExposureNr; n < beginExposureNr + numExposures; n++)
-    {
-        Log.info("Simulation: Starting exposure " + to_string(n) + " at time " + to_string(currentTime) );
 
+
+    int n = beginExposureNr;
+
+    // continue the simulation until no more jittersteps are send from a tcp connection server
+    while (!endOfSimulation)
+    {
+	n++; 
+
+	// if no jitter from network is used, end the simulation, when the max number of exposures from the yaml file is reached
+	// this has to be declared before the last exposure, so that the tcp connection client thread can be notified and properly ended
+        if (jitterSource != "FromNetwork" && n >= beginExposureNr + numExposures)
+	{
+		Log.info("Simulation: end of simulation reached");
+		endOfSimulation = true;
+	} 
+
+        Log.info("Simulation: Starting exposure " + to_string(n) + " at time " + to_string(currentTime) );
         currentTime = detector->takeExposure(n, currentTime, exposureTime);
+
     }
 
     writeStarCatalogToHDF5();

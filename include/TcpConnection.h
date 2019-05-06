@@ -12,7 +12,7 @@
 class TcpConnection
 {
 	public:
-		TcpConnection(ConfigurationParameters &configParam, std::condition_variable* cond_var, std::mutex* m, bool* notified, bool* newStep);
+		TcpConnection(ConfigurationParameters &configParam, std::condition_variable* cond_var, std::mutex* m, bool* notified, bool* newStep, bool* endSimulation);
 		~TcpConnection();
 
 		void connectToServer();
@@ -27,9 +27,9 @@ class TcpConnection
 
 		void configure(ConfigurationParameters &configParams);
 		std::vector <double> processServerReply(string replyString);
-		const char* convertMatrixToChar(arma::Mat<float>* pixelMapPointer, bool endOfSimulation);
+		const char* convertMatrixToChar(arma::Mat<float>* pixelMapPointer);
 
-		bool endOfSimulation;
+		bool* endOfSimulation;
 		string tcpAddressServer;
 		string tcpAddressClient;
 
