@@ -1,6 +1,6 @@
 Offset:
+    IncludeOutlierDetection:             True
     OutlierDetection:
-        Enabled:                         True
         k:                               10
 
 Smearing:
@@ -9,15 +9,16 @@ Smearing:
         b:                               [2.1641, 0.2750, 0.0218, 0.0039]     # [b0, b1, b2, b3]
     NumRowsSkipped:                      10
     Regularization:                      0.01
+    IncludeOutlierDetection:             True
     OutlierDetection:
-        Enabled:                         True
         Threshold:                       2
 
 StarWindow:
     ZeroPointRow:                        100    # Row coordinate of the pixel of the star window on the CCD closest to its origin [pixels]
     ZeroPointColumn:                     100    # Column coordinate of the pixel of the star window on the CCD closest to its origin [pixels]
     NumRows:                             6      # Number of rows in the star window [pixels]
-    NumColumns:                          6      # Number of columns in the star window [pixels] 
+    NumColumns:                          6      # Number of columns in the star window [pixels]
+    MaskUpdateInterval:                  7      # Number of days after which to update the mask [days]
 
 BackgroundWindow:
     OutlierDetection:
@@ -25,8 +26,8 @@ BackgroundWindow:
         Threshold:                       5
 
 LightCurve:
+    IncludeOutlierDetection:             True
     OutlierDetection:
-        Enabled:                         True
         b:                               10
         Threshold:                       5
     TimeAveraging:        

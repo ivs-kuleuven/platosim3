@@ -470,11 +470,10 @@ class Simulation(object):
             completedProcess = subprocess.run([self.platosimBuildLocation + "/platosim", inputFilename, outputFilename, logFilename], 
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
+            print (str(completedProcess.stdout.decode("utf-8")))
+            print (str(completedProcess.stderr.decode("utf-8")))
+            
             if completedProcess.returncode:
-                if completedProcess.stdout:
-                    print (str(completedProcess.stdout.decode("utf-8")))
-                if completedProcess.stderr:
-                    print (str(completedProcess.stderr.decode("utf-8")))
                 raise Exception("Simulation.run(): PlatoSim returned with exit code {}.".format(completedProcess.returncode))
 
         simFile = SimFile(outputFilename)
@@ -746,6 +745,7 @@ class Simulation(object):
         focalLength     = self["Camera/FocalLength/ConstantValue"] * 1000.0                     # [m] -> [mm]
         includeFieldDistortion = self["Camera/IncludeFieldDistortion"]
         inverseDistortionCoefficients = self["Camera/FieldDistortion/ConstantInverseCoefficients"]
+        solarPanelOrientation = np.deg2rad(float(self["Platform/SolarPanelOrientation"]))
 
         # Convert the pixel coordinates to focal plane coordinates [mm]
       
@@ -758,7 +758,7 @@ class Simulation(object):
 
         # Convert the focal plane coordinates to equatorial sky coordinates [rad]
 
-        ra, dec = rf.focalPlaneToSkyCoordinates(xFPmm, yFPmm, raPlatform, decPlatform, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength)
+        ra, dec = rf.focalPlaneToSkyCoordinates(xFPmm, yFPmm, raPlatform, decPlatform, solarPanelOrientation, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength)
 
         # Convert sky coordinates to degrees
         

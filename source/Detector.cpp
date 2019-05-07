@@ -2584,9 +2584,13 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
     }
     else
     {
-        if((pixelMap.min() < 0) || (pixelMap.max() >= std::pow(2, 16)))
+        // Write the pixel maps as 2-byte (16 bit) unsigned short integers.
+        // As a safety check, first check that the extrema of the map are indeed
+        // within the boundaries of such a data type.
+       
+        if((pixelMap.min() < 0) || (pixelMap.max() >= (1 << 16)))
         {
-            throw ConfigurationException("If quantisation has not been applied, the values in the pixel map must be >= 0 and < 2^16");
+            throw ConfigurationException("Detector: quantisation was applied but pixel map values are not in [0, 2^16[");
         }
 
         // Convert the float matrix to an unsigned uint16_t matrix
@@ -2616,9 +2620,9 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
         }
         else
         {
-            if ((smearingMap.min() < 0) || (smearingMap.max() >= std::pow(2, 16)))
+            if ((smearingMap.min() < 0) || (smearingMap.max() >= (1 << 16)))
             {
-                throw ConfigurationException("If quantisation has not been applied, the values in the smearing map must be >= 0 and < 2^16");
+                throw ConfigurationException("Detector: quantisation was applied but smearing map values are not in [0, 2^16[");
             }
 
             // Convert the float matrix to an unsigned uint16_t matrix
@@ -2648,14 +2652,14 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
     }
     else
     {
-        if ((biasMapLeft.min() < 0) || (biasMapLeft.max() >= std::pow(2, 16)))
+        if ((biasMapLeft.min() < 0) || (biasMapLeft.max() >= (1 << 16)))
         {
-            throw ConfigurationException("If quantisation has not been applied, the values in the left bias map must be >= 0 and < 2^16");
+            throw ConfigurationException("Detector: quantisation was applied but pixel values in the left bias map are not in [0, 2^16[");
         }
 
-        if ((biasMapRight.min() < 0) || (biasMapRight.max() >= std::pow(2, 16)))
+        if ((biasMapRight.min() < 0) || (biasMapRight.max() >= (1 << 16)))
         {
-            throw ConfigurationException("If quantisation has not been applied, the values in the right bias map must be >= 0 and < 2^16");
+            throw ConfigurationException("Detector: quantisation was applied but pixel values in the right bias map are not in [0,2^16[");
         }
 
         // Convert the float matrix to an unsigned uint16_t matrix
