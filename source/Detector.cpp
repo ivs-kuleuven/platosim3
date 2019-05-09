@@ -596,6 +596,9 @@ void Detector::generateThroughputMap()
                     throughputMap(row, column) *= pow(cos(angle), 2);
 
                 // Polarisation (Eq. 4-11 in PLATO-DLR-PL-RP-001)
+               
+                // NOTE: the polarization is angle dependent, but since no info on this dependency is currently available,
+                //       we assume fow now it is fixed over the entire FOV.
 
                 if (includePolarization)
                     throughputMap(row, column) *= expectedValuePolarization; //cos(angle / refAnglePolarizationRadians * acosPolarizationEfficiency);
@@ -603,6 +606,9 @@ void Detector::generateThroughputMap()
                 // Quantum efficiency (Eq. 4-12 in PLATO-DLR-PL-RP-001)
                 // Pixel units before: [photons]
                 // Pixel units after: [electrons]
+               
+                // NOTE: the QE is angle dependent, but since no info on this dependency is currently available,
+                //       we assume for now it is fixed over the entire FOV.
 
                 if (includeQuantumEfficiency)
                     throughputMap(row, column) *= meanQE * meanAngleDependencyQE; //(meanQE * cos(angle / refAngleQuantumEfficiencyRadians * acosQuantumEfficiency));
