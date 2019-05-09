@@ -12,6 +12,7 @@
 #include <string>
 #include <iostream>
 #include <chrono>
+#include <algorithm>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -23,12 +24,13 @@
 
 std::string jitterFileName = std::getenv("PLATO_PROJECT_HOME") + std::string("/inputfiles/ohb18jun.txt");
 int numberOfSteps = 80;
+int numberOfSimulations = 2;
 
 int main () 
 {
     //  Prepare our context and socket
     zmq::context_t context (1);
-    zmq::socket_t socket (context, ZMQ_REP);
+    zmq::socket_t socket (context, ZMQ_ROUTER);
     socket.bind ("tcp://*:5555");
 
     //create an ifstream
@@ -63,7 +65,7 @@ int main ()
     }
 
     // get the time between steps (assuming it won't change) in milliseconds
-	
+    
     // default, if there is only one entry in the file
     int stepLength = 1;
 
@@ -72,39 +74,61 @@ int main ()
         stepLength = (stepVec.at(1) - stepVec.at(0)) * 1000;
     }
 
-    std::vector<double> timeVec;
-    double completeTime = 0;
 
-    for (int i = 0; i < numberOfSteps; i++)
+    bool lastStepToLastClient = false;
+
+    // this vector contains the identification of the client ,the step counter and whether the simulation is done
+    std::vector<std::tuple<std::string, int, bool> >identityVec;
+
+
+    while(!lastStepToLastClient)
     {
-	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-
         zmq::message_t request;
 
-        //  Wait for next request from client
-        socket.recv (&request);
-        std::cout << "Received request for next jitter step" << std::endl;
 
-        // Do some 'work'
-        std::this_thread::sleep_for(std::chrono::milliseconds(stepLength));
+        // get identity
+        socket.recv(&request);
 
-	if (i == stepVec.size()-1)
+        std::string identity = std::string(static_cast<char*>(request.data()), request.size());
+
+        // search for identity in identity vector
+        auto it = std::find_if(identityVec.begin(), identityVec.end(), [identity](const std::tuple<std::string, int, bool>& e) {return std::get<0>(e) == identity;});
+
+        // if the identy is unknown create a new entry, if it is known, increment the counter
+        if (it == identityVec.end())
+        {
+            identityVec.push_back(make_tuple(identity, 0, false));
+            it = (identityVec.end() - 1);
+        }
+        else
+        {
+            std::get<1>(*it)++; 
+        }
+        
+        // get delimiter
+        socket.recv(&request);
+
+        // get response from simulation
+        socket.recv(&request);
+
+        if (std::get<1>(*it) == stepVec.size()-1)
         {
             std::cout << "end of simulation" << std::endl; 
-            endOfSimulation = 1;
+            std::get<2>(*it) = true;
         }
 
+        // create the next message
         std::ostringstream strEos;
         std::ostringstream strJs;
         std::ostringstream strY;
         std::ostringstream strP;
         std::ostringstream strR;
 
-        strEos << endOfSimulation;
-        strJs << stepVec.at(i);
-        strY << yawVec.at(i);
-        strP << pitchVec.at(i);
-        strR << rollVec.at(i);
+        strEos << std::get<2>(*it);
+        strJs << stepVec.at(std::get<1>(*it));
+        strY << yawVec.at(std::get<1>(*it));
+        strP << pitchVec.at(std::get<1>(*it));
+        strR << rollVec.at(std::get<1>(*it));
 
         std::string message = strEos.str() + "," + strJs.str() + "," + strY.str() + "," + strP.str() + "," + strR.str();
 
@@ -112,29 +136,38 @@ int main ()
 
         int strLength = message.length();
 
-        //  Send reply back to client
+        // send identity
+
+        zmq::message_t identityMessage(identity.size());
+        memcpy (identityMessage.data(), identity.data(), identity.size());
+
+        socket.send(identityMessage, ZMQ_SNDMORE);
+
+        // send delimiter
+        std::string delimiter = "";
+        zmq::message_t delimiterMessage(delimiter.size());
+        memcpy (delimiterMessage.data(), delimiter.data(), delimiter.size());
+
+        socket.send(delimiterMessage, ZMQ_SNDMORE);
+
+        // send jitterStep
         zmq::message_t reply (strLength);
 
         const char *cMessage = message.c_str(); 
 
         memcpy (reply.data (), cMessage, strLength);
         socket.send (reply);
+        std::cout << "Sent next jitter step to: " << identity << std::endl;
 
-	std::chrono::steady_clock::time_point end= std::chrono::steady_clock::now();
-        
-        double timeDiff = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() /1000000.0;
+        // end the sending of data when all clients have gotten the maximum number of steps
+        auto boolIt = std::find_if(identityVec.begin(), identityVec.end(), [](const std::tuple<std::string, int, bool>& e) {return std::get<2>(e) == false;});
 
-	timeVec.push_back(timeDiff);
-
-        completeTime += timeDiff;
+        if (boolIt == identityVec.end())
+        {
+            lastStepToLastClient = true;
+        }
 
     }
-
-    
-
-    std::cout << *max_element(std::begin(timeVec), std::end(timeVec)) << std::endl;
-
-    std::cout << completeTime/timeVec.size() << std::endl;
 
     return 0;
 }
