@@ -590,7 +590,8 @@ void Detector::generateThroughputMap()
                     }
                 }
 
-                // Natural vignetting
+                // Natural vignetting.
+                // With a cos^2 law, the mean natural vignetting value over all pixels is 0.945. 
 
                 if (includeNaturalVignetting) 
                     throughputMap(row, column) *= pow(cos(angle), 2);
