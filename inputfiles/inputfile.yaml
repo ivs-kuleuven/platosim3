@@ -68,7 +68,7 @@ Camera:
     PlateScale:                      0.8333          # [arcsec/micron]
     FocalPlaneOrientation:
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent)
-        ConstantValue:               0.0             # [degrees]. Used in case Source is ConstantValue. 
+        ConstantValue:               45.0            # [degrees]. Used in case Source is ConstantValue. 
         FromFile:                    inputfiles/fporientation.txt  # Used in case Source is FromFile. time [s] & FP orientation [deg]
     FocalLength: 
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
@@ -111,7 +111,7 @@ PSF:
         SigmaX18:                    5.0             # Stdev of Gaussian PSF in x-direction at 18 deg from the optical axis [pix]
         SigmaY18:                    2.0             # Stdev of Gaussian PSF in y-direction at 18 deg from the optical axis [pix]
     AnalyticNonGaussian:
-        ParameterFileName:           inputfiles/psfallv3.txt
+       ParameterFileName:           inputfiles/psfallv3.txt
         ChargeDiffusionStrength:     0.2             # Charge diffusion strength (width of the Gaussian diffusion kernel) [pixels]
         IncludeChargeDiffusion:      yes             # Include charge diffusion [yes or no]
         Sigma:                                       # Width of the analytic PSF, equal to sigma for a Gaussian PSF [pix]  
