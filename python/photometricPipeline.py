@@ -24,6 +24,8 @@ import ast
 import numpy as np
 import h5py
 import astropy
+from analyticpsf import AnalyticPSF
+
 
 
 
@@ -551,20 +553,25 @@ class PhotometricPipeline(object):
         self.configure()
 
 
+        self.outputFile = h5py.File(self.outputDir + "/" + outputFilename,"w")
 
         # Process all exposures
 
-        numExposures = self.simFile.getInputParameter("ObservingParameters", "NumExposures")
+        self.beginExposureNr = self.simFile.getInputParameter("ObservingParameters/", "BeginExposureNr")
+        self.numExposures = self.simFile.getInputParameter("ObservingParameters", "NumExposures")
 
-        for exposure in range(numExposures):
+        for exposure in range(self.beginExposureNr, self.beginExposureNr + self.numExposures):
 
-            self.processExposure(exposure)
+            exposureGroupName = "/Photometry/Exposure{0:06d}".format(exposure)
+            exposureGroup = outputFile.create_group(exposureGroupName) 
+
+            self.processExposure(exposure, exposureGroup)
 
         
 
         # Write results to HDF5 file
 
-        self.writeOutput(outputFilename)
+        # self.writeOutput(outputFilename)
     
 
 
@@ -578,22 +585,67 @@ class PhotometricPipeline(object):
                     - make placeholders for all arrays that will be stored
         """
 
-        # Parameters that are specific for the star window
 
-        self.windowZeropointRow = self["StarWindow/ZeropointRow"]            # Row coordinate of the star window zeropoint on the detector [pixels]
-        self.windowZeropointColumn = self["StarWindow/ZeropointColumn"]      # Column coordinate of the star window zeropoint on the detector [pixels]
-        self.windowNumRows = self["StarWindow/NumRows"]                      # Height (i.e. number of rows) of the star window [pixels]
-        self.windowNumColumns = self["StarWindow/NumColumns"]                # Width (i.e. number of columns) of the star window [pixels]
+        self.time = self.simFile["/StarPositions/Time"]
+        self.numRowsSubField = self.simFile.getInputParameter("SubField", "NumRows")
+        self.numColumnsSubField = self.simFile.getInputParameter("SubField", "NumColumns")
+        self.flatfield = self.simFile.getPRNU()
+        self.varianceReadoutNoise = math.pow(self.simFile.getInputParameter("FEE", "ReadoutNoise"), 2) + math.pow(self.simFile.getInputParameter("CCD", "ReadoutNoise"), 2)
+
+        # Parameters that are specific for the detector half on which the star windows are located
+        # (we assume the whole sub-field is on the same detector half)
+
+        self.configureDetectorHalf()
+
+        # Parameters that are specific for the offset calculation
+
+        self.configureOffsetCalculation()
+
+        # Parameters that are specific for the smearing pattern calculation
+        
+        self.configureSmearingPatternCalculation()
+
+        # Parameters that are specific for the sky background
+
+        self.configureSkyBackground()
+
+        # Parameters that are specific for the mask
+
+        self.configureMaskUpdate()
+
+        # Parameters that are specific for the star windows
+
+        self.configureStarWindows()
+
+        # Parameters that are specific for the flux and COB calculation
+
+        self.configureFluxAndCobCalculation()
+
+        # Parameters that are specific for light curve outlier detection
+
+        self.configureLightCurveOutlierDetection()
+
+        # Parameters that are specific for time averaging
+        
+        self.configureTimeAveraging()
 
 
 
-        # Parameters that are specific for the detector half on which the star window is located
+
+
+    def configureDetectorHalf(self):
+
+        """
+        PURPOSE: Configuration of the parameters that are specific for the detector half 
+                 on which the star windows are located.  Assumed is that the whole sub-field
+                 is on the same detector half.
+        """
 
         self.subfieldZeropointRow = self.simFile.getInputParameter("SubField", "ZeroPointRow")           # Row coordinate of the sub-field zeropoint on the detector [pixels]
         self.subfieldZeropointColumn = self.simFile.getInputParameter("SubField", "ZeroPointColumn")     # Column coordinate of the sub-field zeropoint on the detector [pixels]
 
         self.detectorHalf = "Left"
-        if self.windowZeropointColumn >= self.simFile.getInputParameter("CCD", "NumColumns") / 2:
+        if self.subfieldZeropointColumn >= self.simFile.getInputParameter("CCD", "NumColumns") / 2:
             self.detectorHalf = "Right"
 
         if self.detectorHalf == "Left":
@@ -603,18 +655,34 @@ class PhotometricPipeline(object):
 
 
 
-        # Parameters that are specific for the offset calculation
 
+
+    def configureOffsetCalculation(self):
+
+        """
+        PURPOSE: Configuration of the parameters that are specific for the offset
+                 calculation (and the corresponding outlier detection) and making 
+                 placeholders for the information that will be stored.
+        """
+        
         self.includeOffsetOutlierDetection = self["Offset/IncludeOutlierDetection"]                                       # Enable/disable outlier detection
         self.offsetOutlierDetectionNumSkippedElementsBothEnds = self["Offset/OutlierDetection/approximationOfMean"]       # Number of largest and smallest values to flag as outliers
 
         self.offsetValueArrayFastCadence = np.array([])
         # self.offsetVarianceArrayFastCadence_array = np.array([])
+    
 
 
 
-        # Parameters that are specific for the smearing pattern calculation
-        
+
+    def configureSmearingPatternCalculation(self):
+
+        """
+        PURPOSE: Configuration of the parameters that are specific for the smearing
+                 pattern calculation (and the corresponding outlier detection) and
+                 making placeholders for the information that will be stored.
+        """
+
         self.smearingCoefficientA0Array = np.empty(self.simFile.getInputParameter("SubField", "NumColumns")) 
         self.smearingCoefficientA0Array.fill(np.array(self["Smearing/Coefficients/a"])[0])                      # Coefficient a0 (one entry per column)
         self.smearingCoefficientsA = np.array(self["Smearing/Coefficients/a"])[1:]                              # Coefficients [a1, a2, a3]
@@ -629,18 +697,109 @@ class PhotometricPipeline(object):
 
 
 
-        # Parameters that are specific for the flux and COB calculation
 
-        self.numExposuresMaskUpdate = self["StarWindow/MaskUpdateInterval"] * 24 * 60 * 60 / 25         # Number of exposures after which the mask needs to be updated 
+
+    def configureSkyBackground(self):
+
+        """
+        PURPOSE: Making placeholders for the information that will be stored
+                 when calculating the sky background.
+        """
+
+        self.skyBackgroundArrayFastCadence = np.array([])
+
+    
+
+
+
+    def configureStarWindows(self):
+
+        """
+        PURPOSE: Configuration of the parameters that are specific for the star windows.
+        """
+
+        self.contaminationRadius = self["StarWindows/ContaminationRadius"]
+        self.windowDimensions = self["StarWindows/Dimensions"]
+        self.windowOffset = self.windowDimensions // 2 + 1
+
+        self.targetIds = self["StarWindows/TargetIds"]
+        self.numTargets = len(self.targetIds)
+
+        self.targetRowsArray = np.empty(self.numTargets)
+        self.targetColumnsArray = np.empty(self.numTargets)
+        self.masks = np.empty(self.numTargets)
+
+        # self.targetMaskSizes = np.array([])
+        # self.targetMagnitude = np.array([])
+        # self.targetInputFlux = np.array([])
+        # self.targetEstimatedFlux = np.array([])
+        # self.targetFluxVariance = np.array([])
+        # self.targetNoiseToSignalRatio = np.array([])
+
+
+        # self.targetRows = np.array([])
+        # self.targetColumns = np.array([])
+        # self.targetNumContaminants = np.array([])
+
+
+
+
+
+    def configureMaskUpdate(self):
+
+        """
+        PURPOSE: Configuration of the parameters that are specific for updating
+                 the (nominal) mask.
+        """
+
+        self.numExposuresMaskUpdate = self["StarWindows/MaskUpdateInterval"] * 24 * 60 * 60 / 25         # Number of exposures after which the mask needs to be updated 
+        self.numMaskUpdates = math.ceil(self.numExposures / self.numExposuresMaskUpdate)
+
+        path                = "../inputfiles/psfallv3.txt"     
+        sigmaPSF            = self.simFile.getInputParameter("PSF/AnalyticNonGaussian", "Sigma")              # [pix]
+        sigmaDiffusion      = self.simFile.getInputParameter("PSF/AnalyticNonGaussian", "ChargeDiffusionStrength")          # [pix]
+        focalLength         = self.simFile.getInputParameter("Camera/FocalLength", "ConstantValue") * 1000                  # [mm]
+        ccdOrientation      = self.simFile.getInputParameter("CCD", "Orientation") / 180 * np.pi                            # [rad]
+        ccdZeropointRow     = self.simFile.getInputParameter("CCD", "OriginOffsetY")                                        # [mm]
+        ccdZeropointColumn  = self.simFile.getInputParameter("CCD", "OriginOffsetX")                                        # [mm]
+        pixelSize           = self.simFile.getInputParameter("CCD", "PixelSize")                                            # [micron]
+        #zeroPointRowSubfield = inputFile["InputParameters/SubField"].attrs["ZeroPointRow"] 
+        #zeroPointColSubfield = inputFile["InputParameters/SubField"].attrs["ZeroPointColumn"] 
+        
+        self.analyticPSF = AnalyticPSF(path, sigmaPSF, sigmaDiffusion, focalLength, ccdOrientation, ccdZeropointColumn, ccdZeropointRow, pixelSize)
+
+        
+
+    
+
+
+
+    def configureFluxAndCobCalculation(self):
+
+        """
+        PURPOSE: Making placeholders for the information that will be stored when 
+                 calculating the flux and the COB.
+        """
 
         self.fluxArrayFastCadence = np.array([])                                                        # Flux calculated with the (nominal) mask at fast cadence (25s)
-        self.cobArrayFastCadence = np.array([])                                                         # Centre-of-brightness CCalculated with the (nominal) mask at fast cadence (25s)
+        self.cobRowArrayFastCadence = np.array([])
+        self.cobColumnArrayFastCadence = np.array([])
+        #self.cobArrayFastCadence = np.array([])                                                         # Centre-of-brightness CCalculated with the (nominal) mask at fast cadence (25s)
 
-        self.cobOffsetX = np.arange(0.5, self.windowNumColumns).repeat(self.windowNumRows).reshape(self.windowNumColumns, self.windowNumRows).transpose()   # Matrix to account for the pixel offset in the x-direction when calculating the COB
-        self.cobOffsetY = np.arange(0.5, self.windowNumRows).repeat(self.windowNumColumns).reshape(self.windowNumRows, self.windowNumColumns)               # Matrix to account for the pixel offset in the y-direction when calculating the COB
+        self.cobOffsetX = np.arange(0.5, self.windowDimensions).repeat(self.windowDimensions).reshape(self.windowDimensions, self.windowDimensions).transpose()   # Matrix to account for the pixel offset in the x-direction when calculating the COB
+        self.cobOffsetY = np.arange(0.5, self.windowDimensions).repeat(self.windowDimensions).reshape(self.windowDimensions, self.windowDimensions)               # Matrix to account for the pixel offset in the y-direction when calculating the COB
 
 
-        # Parameters that are specific for light curve outlier detection
+
+
+        
+    def configureLightCurveOutlierDetection(self):
+
+        """
+        PURPOSE: Configuration of the parameters that are specific for the light curve
+                 outlier detection and making placeholders for the information that will
+                 be stored.
+        """
 
         self.includeLightCurveOutlierDetection = self["LightCurve/IncludeOutlierDetection"]          # Enable/disable outlier detection
         self.fluxOutlierDetectionHalfBinWidth = self["LightCurve/OutlierDetection/b"]                # Number of past and future datapoints needed to decide whether or not a datapoint is an outlier
@@ -655,8 +814,15 @@ class PhotometricPipeline(object):
             self.fluxFlagFastCadence = None
 
 
-        
-        # Parameters that are specific for time averaging
+
+
+
+    def configureTimeAveraging(self):
+
+        """
+        PURPOSE: Configuration of the parameters that are specific for time averaging
+                 and providing placeholders for the information that will be stored.
+        """
 
         self.timeAveragingCadence = self["LightCurve/TimeAveraging/Cadence"]                  # Choose between short and long cadence
 
@@ -683,7 +849,7 @@ class PhotometricPipeline(object):
 
 
 
-    def processExposure(self, exposure):
+    def processExposure(self, exposure, exposureGroup):
 
         """
         PURPOSE: Process the exposure with the given index.
@@ -700,8 +866,8 @@ class PhotometricPipeline(object):
         elif self.detectorHalf == "Right":
             serialPreScan = self.simFile.getBiasMapRight(exposure)
 
-        offsetValueFastCadence, offsetVarianceFastCadence = self.calculateOffset(serialPreScan)[:2]
-        self.offsetValueArrayFastCadence = np.append(self.offsetValueArrayFastCadence, offsetVarianceFastCadence)
+        offsetValueFastCadence = self.calculateOffset(serialPreScan)[0]
+        self.offsetValueArrayFastCadence = np.append(self.offsetValueArrayFastCadence, offsetValueFastCadence)
 
 
 
@@ -716,7 +882,6 @@ class PhotometricPipeline(object):
 
 
         # Calculate the background for the current exposure (fast cadence)
-        # TODO
         # Real photometric pipeline: ~100 background windows (nominally 4x4) per CCD half,
         # for which we know the fluxes and the position on the CCD.  The latter is needed to 
         # subtract the correct smearing pattern from each background window.  For each of the
@@ -728,18 +893,28 @@ class PhotometricPipeline(object):
         # location.
 
 
+        skyBackgroundFastCadence = (self.simFile["/Background/skyBackground"])[exposure - self.beginExposureNr]  # [Photons]
+        self.skyBackgroundArrayFastCadence = np.append(self.skyBackgroundArrayFastCadence, skyBackgroundFastCadence)
+        
+
+        image, throughput = self.getStarPhotons(exposure)
+
+
 
         # Update the mask when required
 
         if exposure % self.numExposuresMaskUpdate == 0:
 
-            mask = self.calculateMask()
+            self.calculateMask(exposure, image, throughput, exposureGroup)
 
 
         # Calculate the flux & COB (nominal & extended mask) for the current exposure
         # -> add new datapoint to the light curve (fast cadence)
 
-        self.calculateFluxAndCob(exposure, offsetValueFastCadence,smearingPatternFastCadence, mask)
+        for targetIndex in range(self.numTargets):
+
+            fluxFastCadence, cobFastCadence = self.calculateFluxAndCob(exposure, offsetValueFastCadence,smearingPatternFastCadence, exposureGroup)
+        
 
 
 
@@ -774,65 +949,65 @@ class PhotometricPipeline(object):
 
 
 
-    def writeOutput(self, filename):
+    # def writeOutput(self, filename):
 
-        """
-        PURPOSE: Write results of the photometric pipeline to an HDF5 file with the given name.
+    #     """
+    #     PURPOSE: Write results of the photometric pipeline to an HDF5 file with the given name.
 
-        INPUT:
-            - filename: Name of the output file
-        """
+    #     INPUT:
+    #         - filename: Name of the output file
+    #     """
 
-        outputFile = h5py.File(self.outputDir + "/" + filename,"w")
+    #     outputFile = h5py.File(self.outputDir + "/" + filename,"w")
 
-        # Offset
+    #     # Offset
 
-        offsetGroup = outputFile.create_group("offset")
-        offsetGroup.create_dataset("offsetValueFastCadence", dtype = "float32", data = self.offsetValueArrayFastCadence)
-        # offsetGroup.create_dataset("offsetVarianceFastCadence", dtype = "float32", data = self.offsetVarianceArrayFastCadence)
+    #     offsetGroup = outputFile.create_group("offset")
+    #     offsetGroup.create_dataset("offsetValueFastCadence", dtype = "float32", data = self.offsetValueArrayFastCadence)
+    #     # offsetGroup.create_dataset("offsetVarianceFastCadence", dtype = "float32", data = self.offsetVarianceArrayFastCadence)
 
-        # Smearing pattern, fast cadence
+    #     # Smearing pattern, fast cadence
 
-        smearingGroup = outputFile.create_group("smearingPattern")
-        smearingGroup.create_dataset("smearingPatternFastCadence", dtype = "float32", data = self.smearingPatternArrayFastCadence)
+    #     smearingGroup = outputFile.create_group("smearingPattern")
+    #     smearingGroup.create_dataset("smearingPatternFastCadence", dtype = "float32", data = self.smearingPatternArrayFastCadence)
 
-        # Background windows TODO
-        # {background window ID}_VALUE_FC   
-        # {background window ID}_VARIANCE_FC
-        # {background window ID}_ERROR_NUMBER_FC
+    #     # Background windows TODO
+    #     # {background window ID}_VALUE_FC   
+    #     # {background window ID}_VARIANCE_FC
+    #     # {background window ID}_ERROR_NUMBER_FC
 
-        # Smearing pattern, long cadence
+    #     # Smearing pattern, long cadence
 
-        smearingGroup.create_dataset("smearingPatternLongCadence", dtype = "float32", data = self.smearingPatternArrayLongCadence)
+    #     smearingGroup.create_dataset("smearingPatternLongCadence", dtype = "float32", data = self.smearingPatternArrayLongCadence)
 
-        # Star window, fast cadence
+    #     # Star window, fast cadence
 
-        starWindowGroupFastCadence = outputFile.create_group("starWindowFastCadence")
-        starWindowGroupFastCadence.create_dataset("fluxFastCadence", dtype = "float32", data = self.fluxArrayFastCadence)
-        starWindowGroupFastCadence.create_dataset("cobFastCadence", dtype = "float32", data = self.cobArrayFastCadence)
+    #     starWindowGroupFastCadence = outputFile.create_group("starWindowFastCadence")
+    #     starWindowGroupFastCadence.create_dataset("fluxFastCadence", dtype = "float32", data = self.fluxArrayFastCadence)
+    #     starWindowGroupFastCadence.create_dataset("cobFastCadence", dtype = "float32", data = self.cobArrayFastCadence)
 
-        # Star window, short cadence
+    #     # Star window, short cadence
 
-        if self.timeAveragingCadence == "Short":
+    #     if self.timeAveragingCadence == "Short":
 
-            starWindowGroupShortCadence = outputFile.create_group("starWindowShortCadence")
-            starWindowGroupShortCadence.create_dataset("flux", dtype = "float32", data = self.fluxArrayShortCadence)
-            starWindowGroupShortCadence.create_dataset("cob", dtype = "float32", data = self.cobArrayShortCadence)
-            # starWindowGroupShortCadence.create_dataset("FX_EXPOSURE_ERROR_SC_ARRAY", dtype = "float32", data = self.fluxOutlierFlagShortCadence)
+    #         starWindowGroupShortCadence = outputFile.create_group("starWindowShortCadence")
+    #         starWindowGroupShortCadence.create_dataset("flux", dtype = "float32", data = self.fluxArrayShortCadence)
+    #         starWindowGroupShortCadence.create_dataset("cob", dtype = "float32", data = self.cobArrayShortCadence)
+    #         # starWindowGroupShortCadence.create_dataset("FX_EXPOSURE_ERROR_SC_ARRAY", dtype = "float32", data = self.fluxOutlierFlagShortCadence)
 
         
-        elif self.timeAveragingCadence == "Long":
+    #     elif self.timeAveragingCadence == "Long":
 
-            starWindowGroupLongCadence = outputFile.create_group("starWindowLongCadence")
-            starWindowGroupLongCadence.create_dataset("flux", dtype = "float32", data = self.fluxArrayLongCadence)
-            starWindowGroupLongCadence.create_dataset("fluxVariance", dtype = "float32", data = self.fluxVarianceArrayLongCadence)
-            # starWindowGroupLongCadence.create_dataset("FX_EXPOSURE_ERRORLongCadence_ARRAY", dtype = "float32", data = self.fluxOutlierFlagLongCadence)
+    #         starWindowGroupLongCadence = outputFile.create_group("starWindowLongCadence")
+    #         starWindowGroupLongCadence.create_dataset("flux", dtype = "float32", data = self.fluxArrayLongCadence)
+    #         starWindowGroupLongCadence.create_dataset("fluxVariance", dtype = "float32", data = self.fluxVarianceArrayLongCadence)
+    #         # starWindowGroupLongCadence.create_dataset("FX_EXPOSURE_ERRORLongCadence_ARRAY", dtype = "float32", data = self.fluxOutlierFlagLongCadence)
 
 
 
-        outputFile.close()
+    #     outputFile.close()
     
-        return None
+    #     return None
 
 
 
@@ -1047,7 +1222,6 @@ class PhotometricPipeline(object):
 
 
 
-
     def detectSmearingOutliers(self, ctiCorrectedSmearingColumn, stdDev):
 
         """
@@ -1078,12 +1252,45 @@ class PhotometricPipeline(object):
 
 
 
+    def getStarPhotons(self, exposure):
+
+        """
+        PURPOSE: Extract the contribution of the photons coming from the stars
+                 in the simulated sub-field.
+    
+        INPUT:
+            - exposure: Index of the exposure to process
+
+        OUTPUT:
+            - image: Fluxes in the simulated sub-field for the given exposure, after correcting 
+                     for the offset and the smearing pattern, converting from ADU to photons, 
+                     and subtracting the sky background.
+            - throughput: Throughput map for the given exposure
+        """
+
+        image = self.simFile.getImage(exposure)                                 # [ADU]
+        image = image - self. offsetValueArrayFastCadence[-1]                                  # Subtract the offset [ADU]
+        image = image * self.gain                                               # Multiply with gain [ADU] -> [e-]
+        image = (image.transpose() - self.smearingPatternArrayFastCadence[-1]).transpose()    # Subtract smearing pattern (per column) -> was already multiplied with gain [e-]
+
+        # Divide the exposure by the throuhgput map and the flatfield map
+
+        throughput = np.array(self.simFile["/ThroughputMaps/throughputMap{0:06d}".format(exposure)])
+        
+        image = np.divide(image, throughput, out = np.zeros_like(image), where = (throughput != 0))      # [phot/exposure]
+        image /= self.flatfield
+
+        image -= self.skyBackgroundArrayFastCadence[-1]
+
+        return image, throughput
+
+
 
     ###################################
     # Calculation of the (nominal) mask
     ####################################                                     
 
-    def calculateMask(self):
+    def calculateMask(self, exposure, image, throughput, exposureGroup):
 
         """
         PURPOSE: Calculation of the (nominal) mask.
@@ -1092,8 +1299,148 @@ class PhotometricPipeline(object):
             - mask: Nominal mask
         """
 
-        # TODO
-        return None
+        # Foresee a group in the output HDF5 file for the masks (for all targets) for the current exposure
+        # (this will only done for the exposures for which the masks are updated!)
+
+        maskGroupName = "/Masks/Mask{0:06d}".format(exposure)
+        maskGroup = self.outputFile.create_group(maskGroupName)
+        maskGroup.create_dataset("TargetIDs", data = self.targetIds)
+
+
+
+        # Make placeholders for the information that will be stored (1st index = target index)
+
+        self.masks = np.zeros((self.numTargets, self.windowDimensions, self.windowDimensions), dtype = np.int)      # Store the (current) masks as array with zeroes and ones for each target to use for the flux & COB calculation
+        maskRowsInSubField = np.zeros((self.numTargets, math.pow(self.windowDimensions, 2)), dtype = np.int)        # Store the row coordinates of the pixels in the masks for each target in the output file (in the group for the current masks)
+        maskColumnsInSubField = np.zeros((self.numTargets, math.pow(self.windowDimensions, 2)), dtype = np.int)     # Store the column coordinates of the pixels in the masks for each target in the output file (in the group for the current masks)
+        maskSizes = np.zeros(self.numTargets)                                                                       # Store the size of the masks
+
+
+
+        # Information for *all* sources (not only the target stars)
+
+        starIds        = np.array(self.simFile["StarPositions/Exposure{0:06d}/starID".format(exposure)])    # Star IDs
+        starRows       = np.array(self.simFile["StarPositions/Exposure{0:06d}/rowPix".format(exposure)])    # Star row coordinates [pixels]
+        starColumns    = np.array(self.simFile["StarPositions/Exposure{0:06d}/colPix".format(exposure)])    # Star column coordinates [pixels]
+        inputFlux      = np.array(self.simFile["StarPositions/Exposure{0:06d}/flux".format(exposure)])      # Star fluxes as derived from the input magnitude [photons / exposure]
+    
+
+
+
+
+        # Loop over all target stars and update their mask
+
+        for targetIndex in self.numTargets:                                         # Index of the current target star in the list of target stars
+
+            starIndex = np.where(starIds == self.targetIds[targetIndex])            # Index of the current target star in the list with all stars
+            targetRow = starRows[starIndex]                                         # Row coordinate of the current target star in the simulated sub-field [pixels]
+            targetColumn = starColumns[starIndex]                                   # Column coordinate of the current target star in the simulated sub-field [pixels]
+            targetRowAsInt, targetColumnAsInt = int(targetRow), int(targetColumn)   # Round the target coordinates to the centre of the pixels
+
+            self.targetRowsArray[targetIndex] = targetRow
+            self.targetColumnsArray[targetIndex] = targetColumn
+
+
+            # We want to use a square mask, centred around the current target position.  We only want
+            # to include the pixels in the mask, such that they contribute (together) more to the 
+            # signal of the current target star than to the noise.  The noise consists of the contaminant 
+            # stars (within the specified distance), readout noise, and sky background.
+
+            # Create a theoretical sub-field image as if only the current target star was on the CCD
+
+            targetInputFlux = inputFlux[starIndex] * throughput[targetRowAsInt, targetColumnAsInt] * self.flatfield[targetRowAsInt, targetColumnAsInt]      # Flux of the current target star [e- / exposure]
+            targetMap = self.analyticPSF.getPSF(targetRow, targetColumn, targetInputFlux, self.subfieldZeropointRow, self.subfieldZeropointColumn, self.numRowsSubField, self.numColumnsSubField)
+
+            # Create a theoretical sub-field as if only the contaminants of the current target star were on the CCD
+            # (a star cannot not be its own contaminant!)
+            
+            contaminantIndices = np.where((np.abs(starRows - targetRow) <= self.contaminationRadius) and (np.abs(starColumns - targetColumn) <= self.contaminationRadius) and (starIds != self.targetIds[targetIndex]))
+            # numContaminants = len(contaminantIndices)
+
+            contaminantsMap = np.zeros_like(image)
+
+            for contaminantIndex in contaminantIndices:
+
+                inputFluxContaminant = inputFlux[contaminantIndex] * throughput[int(starRows[contaminantIndex]), int(starColumns[contaminantIndex])]    # Flux of gthge current contaminant [e- / exposure]
+                contaminantMap += self.analyticPSF.getPSF(starRows[contaminantIndex], starColumns[contaminantIndex], inputFluxContaminant, self.subfieldZeropointRow, self.subfieldZeropointColumn, self.numRowsSubField, self.numColumnsSubField)  # Add the current contaminant to the contaminants map
+            
+
+
+            # Given the contaminants map for the current target, decide which pixels 
+            # should be included in the mask for the current target
+
+            minRow = max(0, targetRowAsInt - self.windowOffset)                                 # Minimum row index of the mask
+            maxRow = min(self.numRowsSubField, targetRowAsInt + self.windowOffset)              # Maximum row index in the mask (incl.)
+            minColumn = max(0, targetColumnAsInt - self.windowOffset)                           # Minimum column index in the mask
+            maxColumn = min(self.numColumnsSubField, targetColumnAsInt + self.windowOffset)     # Maximum column index in the mask (incl.)
+
+            varianceMap = targetMap + contaminantsMap + self.varianceReadoutNoise + self.skyBackgroundArrayFastCadence[-1] * throughput * self.flatfield
+            noiseToSignalRatio = (np.sqrt(varianceMap) / targetMap)[minRow : maxRow + 1, minColumn : maxColumn + 1]
+
+            # Sort the pixels in the NSR map in ascending order
+
+            maskRows, maskColumns = np.unravel_index(np.argsort(noiseToSignalRatio.ravel()), noiseToSignalRatio.shape)  # Coordinates in the mask
+            #maskRowsInSubField = maskRows + minRow              # Row coordinate in the sub-field
+            #maskColumnsInSubField = maskColumns + minColumn     # Column coordinate in the sub-field
+
+            # Initialize with the first pixel (with the lowest NSR)
+
+            pixelRow, pixelColumn                 = maskRows[0], maskColumns[0]
+            maskRowsInSubField[targetIndex, 0]    = pixelRow
+            maskColumnsInSubField[targetIndex, 0] = pixelColumn
+            aggregatedVariance                    = varianceMap[pixelRow, pixelColumn]
+            aggregatedTheoreticalTargetFlux       = targetMap[pixelRow, pixelColumn]
+            aggregatedObservedTargetFlux          = image[pixelRow, pixelColumn]
+            aggregatedNSR                         = noiseToSignalRatio[pixelRow, pixelColumn]
+            maskSize = 1
+
+ 
+            # Then add other pixels
+
+            for maskPixelIndex in range(1, len(maskRows)):
+                
+                pixelRow, pixelColumn = maskRows[maskPixelIndex], maskColumns[maskPixelIndex]
+                
+                temp = np.sqrt(aggregatedVariance + varianceMap[pixelRow, pixelColumn]) / (aggregatedTheoreticalTargetFlux + targetMap[pixelRow, pixelColumn])
+                
+                if temp < aggregatedNSR:
+
+                    maskRowsInSubField[targetIndex, maskPixelIndex] = pixelRow
+                    maskColumnsInSubField[targetIndex, maskPixelIndex] = pixelColumn
+                    maskRowsInSubField[targetIndex, maskPixelIndex] = pixelRow
+                    maskColumnsInSubField[targetIndex, maskPixelIndex] = pixelColumn
+                    aggregatedVariance              += varianceMap[pixelRow, pixelColumn]
+                    aggregatedTheoreticalTargetFlux += targetMap[pixelRow, pixelColumn]
+                    aggregatedObservedTargetFlux    += image[pixelRow, pixelColumn]
+                    aggregatedNSR = temp
+                    maskSize += 1
+
+                else:
+
+                    #estimatedFluxTarget[k] = aggregatedObservedTargetFlux 
+                    #varFluxTarget[k] = aggregatedVariance 
+                    #NSRtarget[k] = aggregatedNSR
+
+                    # Copy the exact pixels of the mask, so that we can persist them in the HDF5 file
+
+                    targetMask = np.zeros((self.windowDimensions, self.windowDimensions))
+
+                    for index in range(maskSize):
+                        targetMask[maskRows[index]][maskColumns[index]] = 1                  
+
+                    # Disregard all other pixels of the window around the target star:
+                    # they all contribute more to the noise than to the signal.
+
+                    break
+
+            maskRowsInSubField += minRow
+            maskColumnsInSubField += minColumn
+
+            maskGroup.create_dataset("MaskPixelRows", data = maskRowsInSubField)
+            maskGroup.create_dataset("MaskPixelColumns", data = maskColumnsInSubField)
+            exposureGroup.create_dataset("maskSize", data = maskSizes)
+
+            self.masks[targetIndex] = targetMask
 
 
 
@@ -1104,7 +1451,7 @@ class PhotometricPipeline(object):
     # Flux & COB calculation using (nominal) mask
     #############################################
 
-    def calculateFluxAndCob(self, exposure, offsetValueFastCadence, smearingPatternFastCadence, mask):
+    def calculateFluxAndCob(self, exposure, offsetValueFastCadence, smearingPatternFastCadence, targetIndex):
 
         """
         PURPOSE: Flux and COB calculation as explained in PLATO-LESIA-PDC-DD-008 
@@ -1122,10 +1469,15 @@ class PhotometricPipeline(object):
             - cobFastCadence: COB computed using the (nominal) mask
         """
 
+        mask = self.masks[targetIndex]
+
         # Extract the star window and the corresponding smearing pattern
 
-        starWindow = self.simFile.getImage(exposure)[self.windowZeropointRow - self.subfieldZeropointRow : self.windowZeropointRow + self.windowNumRows - self.subfieldZeropointRow][self.windowZeropointColumn - self.subfieldZeropointColumn : self.windowZeropointColumn + self.windowNumColumns - self.subfieldZeropointColumn]
-        windowSmearingPatternFastCadence = smearingPatternFastCadence[:][self.windowZeropointColumn - self.subfieldZeropointColumn : self.windowZeropointColumn + self.windowNumColumns - self.subfieldZeropointColumn]
+        windowZeropointRow = self.targetRowsArray[targetIndex] - self.windowOffset
+        windowZeropointColumn = self.targetColumnsArray[targetIndex - self.windowOffset]
+
+        starWindow = self.simFile.getImage(exposure)[windowZeropointRow - self.subfieldZeropointRow : windowZeropointRow + self.windowNumRows - self.subfieldZeropointRow][windowZeropointColumn - self.subfieldZeropointColumn : windowZeropointColumn + self.windowNumColumns - self.subfieldZeropointColumn]
+        windowSmearingPatternFastCadence = smearingPatternFastCadence[:][windowZeropointColumn - self.subfieldZeropointColumn : windowZeropointColumn + self.windowNumColumns - self.subfieldZeropointColumn]
 
         maskedWindow = starWindow - offsetValueFastCadence                                            # Subtract the offset
         maskedWindow = maskedWindow * self.gain                                                       # Multiply with gain [ADU] -> [e]
