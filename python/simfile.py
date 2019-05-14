@@ -368,7 +368,7 @@ class SimFile (object):
         # If required, overplot the true averaged star positions
 
         if showStarPositions:
-            ID, row, col, Xmm, Ymm = self.getStarCoordinates(imageNr)
+            ID, row, col, Xmm, Ymm, flux = self.getStarCoordinates(imageNr)
             axis.scatter(col, row, marker='x', c='g')        
 
         # Ensure that the axis limits are properly set.
@@ -654,6 +654,7 @@ class SimFile (object):
                 col: The pixel column coordinates of each star in the image (float).
                 Xmm: The focal plane FP' x-coordinates of each star in the image
                 Ymm: The focal plane FP' y-coordinates of each star in the image
+                flux: The flux of each star in the image
 
 
         REMARKS: 
@@ -661,7 +662,7 @@ class SimFile (object):
             
             - To get the pixel with the higest flux of star #0, given its (row, col) coordinates:
               >>> im = file.getImage(0)
-              >>> ID, row, col, Xmm, Ymm = file.getStarCoordinates(4, minVmag=6.0, maxVmag=9.0)  
+              >>> ID, row, col, Xmm, Ymm, flux = file.getStarCoordinates(4, minVmag=6.0, maxVmag=9.0)  
               >>> im[int(row[0]), int(col[0])]
 
             - To use this function to overplot the positions of the stars on an image plotted by 
@@ -672,7 +673,7 @@ class SimFile (object):
 
             >>> file = SimFile("Simul01.hdf5")
             >>> file.showImage(4)
-            >>> ID, row, col, Xmm, Ymm = file.getStarCoordinates(4, minVmag=6.0, maxVmag=9.0)
+            >>> ID, row, col, Xmm, Ymm, flux = file.getStarCoordinates(4, minVmag=6.0, maxVmag=9.0)
             >>> plt.scatter(floor(col), floor(row), marker='x', c='g')
 
         """
@@ -686,7 +687,7 @@ class SimFile (object):
 
         if exposureGroupName not in self.hdf5file["StarPositions"].keys():
             print("Error: SimfFile.getStarCoordinates(): {0} not in hdf5 file".format(exposureGroupName))
-            return None, None, None, None, None
+            return None, None, None, None, None, None
 
         
         # Extract the arrays from the HDF5 file
@@ -711,6 +712,10 @@ class SimFile (object):
         Ymm = np.zeros(dataset.shape, dataset.dtype)
         dataset.read_direct(Ymm)
 
+        dataset = self.hdf5file["StarPositions"][exposureGroupName]["flux"]
+        flux = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(flux)
+
         
         # Make sure that the star IDs are sorted
 
@@ -720,12 +725,13 @@ class SimFile (object):
         col = col[sorted]
         Xmm = Xmm[sorted]
         Ymm = Ymm[sorted]
+        flux = flux[sorted]
 
 
         # If no cut in V magnitude is required, we're finished.
 
         if (minVmag == None) and (maxVmag == None):
-            return starIDs, row, col, Xmm, Ymm
+            return starIDs, row, col, Xmm, Ymm, flux
 
         # If a cut in magnitude is required, first get the magnitudes from the star input catalog.
 
@@ -745,7 +751,7 @@ class SimFile (object):
 
         # That's it!
        
-        return starIDs[selection], row[selection], col[selection], Xmm[selection], Ymm[selection]
+        return starIDs[selection], row[selection], col[selection], Xmm[selection], Ymm[selection], flux[selection]
 
 
 
@@ -798,7 +804,7 @@ class SimFile (object):
         # Get a list of the stars visible in the subimage and their coordinates
         # Check if our star is in this list. If not, complain.
 
-        IDs, row, col, Xmm, Ymm = self.getStarCoordinates(imageNr)
+        IDs, row, col, Xmm, Ymm, flux = self.getStarCoordinates(imageNr)
         if starID not in IDs:
             print("Error: SimfFile.getImagette(): star {0} not in image {1}".format(starID, imageName))
             return None
@@ -1079,6 +1085,40 @@ class SimFile (object):
 
         return np.array(time).flatten(), np.array(rowPix).flatten(), np.array(colPix).flatten(),  \
                np.array(xFPmm).flatten(), np.array(yFPmm).flatten()
+
+
+
+
+
+
+
+
+
+    def getSkyBackground(self, imageNr):
+
+        """
+        Return the sky background, expressed in photons / pixel, for the given exposure.
+        """
+
+        return self.hdf5file["/Background/skyBackground"][imageNr]
+
+
+
+
+
+
+
+
+
+
+
+    def getThroughputMap(self, imageNr):
+
+        """
+        Return the throughput map for the given exposure.
+        """
+        
+        return self.hdf5file["/ThroughputMaps/throughputMap{0:06d}".format(imageNr)]
 
 
 
