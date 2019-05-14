@@ -3,6 +3,7 @@ Photometric pipeline.
 
 Example usage:
 
+    >>> from photometricPipeline import *
     >>> photometricPipeline = PhotometricPipeline(runName, configurationFile, simulationFile, outputDir)
     >>> photometricPipeline.run()
 with
@@ -528,6 +529,10 @@ class PhotometricPipeline(object):
         self.outputFile = h5py.File(outputFilename,"w")
 
         # Process all exposures
+
+        photometryGroup = self.outputFile.create_group("/Photometry");
+        time = np.array(self.simFile.getTime())
+        photometryGroup.create_dataset("time", data=time)
 
 
         masks = []
@@ -1725,3 +1730,53 @@ class PhotometricPipeline(object):
     #         numFlaggedDatapointsLongCadence = 0
 
     #     return fluxValueLongCadence, fluxVarianceLongCadence, numUsefulDatapointsLongCadence, numFlaggedDatapointsLongCadence
+
+
+
+
+
+
+
+
+
+
+def getPhotometryTimeSeries(filename, targetId):
+
+    """
+     PURPOSE: Extract the flux time series of star with a given star ID.
+
+     INPUT: 
+        - filename: Name of the HDF5 output file written by the photometric pipeline
+        - targetId:  Target identifier (integer, e.g. 9789)
+
+     OUTPUT: time: a numpy np.array containing the time points [s]
+             flux: a numpy np.array containing the flux points [electrons/exposure]
+     REMARK: To find out which star identifiers are in the photometry file, look in the HDF5 simulation
+             output file of PlatoSim: 
+             allStarIDs = np.array(platosimOutputFile["StarCatalog/starIDs"])
+    """
+
+    photFile = h5py.File(filename)
+    allTimePoints =  np.array(photFile["/Photometry/time"])
+    numExposures = len(allTimePoints)
+
+    time = []
+    flux = []
+
+    for exposure in range(numExposures):
+
+        allStarIDsInImage = np.array(photFile["/Photometry/Exposure{0:06d}/starID".format(exposure)])
+        
+        if targetId in allStarIDsInImage:
+
+            time.append(np.array(photFile["/Photometry/time"])[exposure])
+            flux.append(flux[np.where(allStarIDsInImage == targetId)][0])
+            
+
+    flux = np.array(flux)
+    time = np.array(time)
+
+    photFile.close()
+
+    return time, flux
+ 
