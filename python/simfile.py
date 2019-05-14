@@ -1123,6 +1123,17 @@ class SimFile (object):
 
 
 
+    def getTime(self):
+
+        """
+        Returns time points.
+        """
+
+        return self.hdf5file["/StarPositions/Time"]
+
+
+
+
 
     def saveImagesToFITS(self, fileName):
         """
