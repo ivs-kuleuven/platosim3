@@ -902,7 +902,20 @@ class PhotometricPipeline(object):
             cobRowArrayFastCadence = np.append(cobRowArrayFastCadence, cobFastCadence[0])
             cobColumnArrayFastCadence = np.array(cobColumnArrayFastCadence, cobFastCadence[1])
 
+        starIds, starRows, starColumns, inputFlux = (self.simFile.getStarCoordinates(exposure)[index] for index in [0, 1, 2, 5])
+        inputFlux = inputFlux[starIds == self.targetIds]
+        targetRows = starRows[starIds == self.targetIds]
+        targetColumns = starColumns[starIds == self.targetIds]
+
+        for targetIndex in self.numTargets:
+
+            targetRowAsInt = int(targetRows[targetIndex])
+            targetColumnAsInt = int(targetColumns[targetIndex])
+            inputFlux[targetIndex] *= throughput[targetRowAsInt, targetColumnAsInt] * self.flatfield[targetRowAsInt, targetColumnAsInt]
+
+
         exposureGroup.create_dataset("FluxFastCadence", data = fluxArrayFastCadence)
+        exposureGroup.create_dataset("InputFlux", data = inputFlux)
         exposureGroup.create_dataset("CobRowFastCadence", data = cobRowArrayFastCadence)
         exposureGroup.create_dataset("CobColumnFastCadence", data = cobColumnArrayFastCadence)
         
@@ -1339,7 +1352,7 @@ class PhotometricPipeline(object):
         #   - focal-plane y-coordinates [mm] (not needed)
         #   - flux as derived from the catalogue magnitude [photons / exposure]
 
-        starIds, starRows, starColumns, starXmm, starYmm, inputFlux = self.simFile.getStarCoordinates(exposure)
+        starIds, starRows, starColumns, inputFlux = (self.simFile.getStarCoordinates(exposure)[index] for index in [0, 1, 2, 5])
     
 
 
@@ -1761,19 +1774,24 @@ def getPhotometryTimeSeries(filename, targetId):
         - filename: Name of the HDF5 output file written by the photometric pipeline
         - targetId:  Target identifier (integer, e.g. 9789)
 
-     OUTPUT: time: a numpy np.array containing the time points [s]
-             flux: a numpy np.array containing the flux points [electrons/exposure]
+     OUTPUT: 
+        - time: Time points [s]
+        - inputFlux: Input flux of the target star as derived from the input catalogue
+        - outputFlux: Flux of the target star as calculated by the photometric pipeline
+        
      REMARK: To find out which star identifiers are in the photometry file, look in the HDF5 simulation
              output file of PlatoSim: 
              allStarIDs = np.array(platosimOutputFile["StarCatalog/starIDs"])
     """
 
     photFile = h5py.File(filename)
-    allTimePoints =  np.array(photFile["/Photometry/time"])
-    numExposures = len(allTimePoints)
+    time =  np.array(photFile["/Photometry/time"])
+    numExposures = len(time)
 
-    time = []
-    flux = []
+    targetIds = photFile[""]
+
+    inputFlux = []
+    outputFlux = []
 
     for exposure in range(numExposures):
 
@@ -1781,14 +1799,16 @@ def getPhotometryTimeSeries(filename, targetId):
         
         if targetId in allStarIDsInImage:
 
-            time.append(np.array(photFile["/Photometry/Time"])[exposure])
-            flux.append(flux[np.where(allStarIDsInImage == targetId)][0])
-            
+            inputFluxAllTargets = np.array(photFile["Photometry/Exposure{0:06d}/InputFlux".format(exposure)])
+            outputFluxAllTargets = np.array(photFile["Photometry/Exposure{0:06d}/FluxFastCadence".format(exposure)])
 
-    flux = np.array(flux)
-    time = np.array(time)
+            inputFlux.append(inputFluxAllTargets[np.where(targetIds == targetId)][0])
+            outputFlux.append(outputFluxAllTargets[np.where(targetIds == targetId)][0])
+
+    inputFlux = np.array(inputFlux)
+    outputFlux = np.array(outputFlux)
 
     photFile.close()
 
-    return time, flux
+    return time, inputFlux, outputFlux
  
