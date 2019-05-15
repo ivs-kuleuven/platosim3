@@ -1,3 +1,4 @@
+import numpy as np
 from numpy import *
 from numpy.random import uniform
 import os
@@ -196,15 +197,15 @@ def photometry(inputFilePath, outputFilePath, sigmaPSF, useExactStarPosition=Tru
 
         # Read the bias and smearing map, and the image itself
 
-        image = array(inputFile["/Images/image{0:06d}".format(imageNr)])
-        smearingMap = array(inputFile["/SmearingMaps/smearingMap{0:06d}".format(imageNr)])
+        image = array(inputFile["/Images/image{0:06d}".format(imageNr)]).astype("float64")
+        smearingMap = array(inputFile["/SmearingMaps/smearingMap{0:06d}".format(imageNr)]).astype("float64")
         biasMapLeft = array(inputFile["/BiasMapsLeft/biasMap{0:06d}".format(imageNr)])
         biasMapRight = array(inputFile["/BiasMapsRight/biasMap{0:06d}".format(imageNr)])
 
 
         # Estimate the bias [ADU] and subtract it from the image and the smearing map
+        bias = np.floor((biasMapLeft.mean() + biasMapRight.mean()) / 2.0)
 
-        bias = floor((biasMapLeft.mean() + biasMapRight.mean()) / 2.0)
         image -= bias
         smearingMap -= bias
 
