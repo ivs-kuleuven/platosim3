@@ -24,13 +24,13 @@ StarWindows:
 #        Enabled:                         True
 #        Threshold:                       5
 
-LightCurve:
-    IncludeOutlierDetection:             True
-    OutlierDetection:
-        b:                               10
-        Threshold:                       5
-    TimeAveraging:        
-        Cadence:                         Long     # "Short" (50s) or "Long" (600s)
-        NumSamples:
-          Short:                         2        # Short cadence: 50s (i.e. 2 samples)
-          Long:                          24       # Long cadence: 600s (i.e. 24 samples)
+# LightCurve:
+#     IncludeOutlierDetection:             True
+#     OutlierDetection:
+#         b:                               10
+#         Threshold:                       5
+#     TimeAveraging:        
+#         Cadence:                         Long     # "Short" (50s) or "Long" (600s)
+#         NumSamples:
+#           Short:                         2        # Short cadence: 50s (i.e. 2 samples)
+#           Long:                          24       # Long cadence: 600s (i.e. 24 samples)
