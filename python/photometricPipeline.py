@@ -653,10 +653,14 @@ class PhotometricPipeline(object):
 
             numBiasElements = self.simFile.getInputParameter("SubField", "NumBiasPrescanRows") * self.simFile.getInputParameter("SubField", "NumBiasPrescanColumns")
 
+            if self.offsetOutlierDetectionNumSkippedElementsBothEnds < 0:
+
+                raise Exception("For the outlier detection in the offset calculation, the number of skipped pixel cannot be negative")
+
             if 2 * self.offsetOutlierDetectionNumSkippedElementsBothEnds >= numBiasElements:
 
                 raise Exception("For the outlier detection in the offset calculation, the number of skipped pixels must be larger than the number of pixels in the serial pre-scan (i.e. bias register map)")
-        
+
         self.offsetValueArrayFastCadence = np.array([])
         # self.offsetVarianceArrayFastCadence_array = np.array([])
     
@@ -683,6 +687,11 @@ class PhotometricPipeline(object):
 
         self.smearingPatternArrayFastCadence = np.array([])                                                     # Smearing pattern for the different columns at fast cadence (25s)
         self.smearingPatternArrayLongCadence = np.array([])                                                     # Smearing pattern for the difference columns at long cadence (600s)
+
+
+        if self.smearingNumRowsSkipped < 0:
+
+            raise Exception("The number of rows to skip in the parallel over-scan (i.e. smearing pattern) cannot be negative")
 
         if self.smearingNumRowsSkipped >= self.simFile.getInputParameter("SubField", "NumSmearingOverscanRows"):
 
@@ -717,7 +726,16 @@ class PhotometricPipeline(object):
         self.windowDimensions = self["StarWindows/WindowDimension"]
         self.windowOffset = self.windowDimensions // 2 + 1
 
+        if self.windowDimensions % 2 != 1:
+
+            raise Exception("The window dimensions should be odd")
+
         self.targetIds = self["StarWindows/TargetIds"]
+
+        if self.targetIds == None:
+
+            raise Exception("At least one target ID should be specified")
+
         self.numTargets = len(self.targetIds)
 
         self.targetRowsArray = np.empty(self.numTargets)
