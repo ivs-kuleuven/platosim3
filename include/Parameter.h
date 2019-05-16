@@ -322,7 +322,7 @@ void Parameter<T,N>::openFile(string filePath)
     inputFile.open(filePath, ifstream::in);
     if (!inputFile.good() || !inputFile.is_open())
     {
-        string msg = "Unable to open parameter time series from " + filePath;
+        string msg = "Parameter: Unable to open parameter time series from " + filePath;
         throw FileException(msg);
     }
 }
