@@ -712,6 +712,8 @@ class PhotometricPipeline(object):
         """
 
         self.contaminationRadius = self["StarWindows/ContaminationRadius"]
+        self.contaminantIds = self["StarWindows/ContaminantIds"]
+        self.hasKnownContaminants = (len(self.contaminantIds) > 0)
         self.windowDimensions = self["StarWindows/WindowDimension"]
         self.windowOffset = self.windowDimensions // 2 + 1
 
@@ -1392,7 +1394,13 @@ class PhotometricPipeline(object):
             # Create a theoretical sub-field as if only the contaminants of the current target star were on the CCD
             # (a star cannot not be its own contaminant!)
             
-            contaminantIndices = np.where((np.abs(starRows - targetRow) <= self.contaminationRadius) & (np.abs(starColumns - targetColumn) <= self.contaminationRadius) & (starIds != self.targetIds[targetIndex]))[0]
+            contaminantIndices = np.where((np.abs(starRows - targetRow) <= self.contaminationRadius) & (np.abs(starColumns - targetColumn) <= self.contaminationRadius) & (starIds != self.targetIds[targetIndex]))[0]  # Other stars within the contaminant radius
+
+            if self.hasKnownContaminants:
+
+                knowContaminantIndices = np.where(starIds == self.contaminantIds)[0]
+                contaminantIndices = np.intersect1d(contaminantIndices, knowContaminantIndices)     # Known contaminants within the contaminant radius
+
             # numContaminants = len(contaminantIndices)
 
             contaminantsMap = np.zeros_like(image)
@@ -1778,7 +1786,7 @@ def getPhotometryTimeSeries(filename, targetId):
         - time: Time points [s]
         - inputFlux: Input flux of the target star as derived from the input catalogue
         - outputFlux: Flux of the target star as calculated by the photometric pipeline
-        
+
      REMARK: To find out which star identifiers are in the photometry file, look in the HDF5 simulation
              output file of PlatoSim: 
              allStarIDs = np.array(platosimOutputFile["StarCatalog/starIDs"])
