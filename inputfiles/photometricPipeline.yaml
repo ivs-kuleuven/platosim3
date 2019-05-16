@@ -16,7 +16,7 @@ Smearing:
 StarWindows:
     TargetIds:                           [10]
     ContaminationRadius:                 4      # Radius around target inside which other stars contribute to the contamination [pixels]
-    ContaminantsIds:                     []
+    ContaminantIds:                     []
     WindowDimension:                     7      # Number of rows/columns in the star windows [pixels] (must be odd)
     MaskUpdateInterval:                  7      # Number of days after which to update the mask [days]
 
