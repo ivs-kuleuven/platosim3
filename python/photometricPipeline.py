@@ -532,7 +532,7 @@ class PhotometricPipeline(object):
 
         photometryGroup = self.outputFile.create_group("/Photometry");
         time = np.array(self.simFile.getTime())
-        photometryGroup.create_dataset("time", data=time)
+        photometryGroup.create_dataset("Time", data=time)
 
 
         masks = []
@@ -599,13 +599,13 @@ class PhotometricPipeline(object):
 
         self.configureFluxAndCobCalculation()
 
-        # Parameters that are specific for light curve outlier detection
+        # # Parameters that are specific for light curve outlier detection
 
-        self.configureLightCurveOutlierDetection()
+        # self.configureLightCurveOutlierDetection()
 
-        # Parameters that are specific for time averaging
+        # # Parameters that are specific for time averaging
         
-        self.configureTimeAveraging()
+        # self.configureTimeAveraging()
 
 
 
@@ -648,6 +648,14 @@ class PhotometricPipeline(object):
         
         self.includeOffsetOutlierDetection = self["Offset/IncludeOutlierDetection"]                     # Enable/disable outlier detection
         self.offsetOutlierDetectionNumSkippedElementsBothEnds = self["Offset/OutlierDetection/k"]       # Number of largest and smallest values to flag as outliers
+
+        if self.includeLightCurveOutlierDetection:
+
+            numBiasElements = self.simFile.getInputParameter("SubField", "NumBiasPrescanRows") * self.simFile.getInputParameter("SubField", "NumBiasPrescanColumns")
+
+            if 2 * self.offsetOutlierDetectionNumSkippedElementsBothEnds <= numBiasElements:
+
+                raise Exception("For the outlier detection in the offset calculation, the number of skipped pixels must be larger than the number of pixels in the serial pre-scan (i.e. bias register map)")
         
         self.offsetValueArrayFastCadence = np.array([])
         # self.offsetVarianceArrayFastCadence_array = np.array([])
@@ -676,6 +684,10 @@ class PhotometricPipeline(object):
         self.smearingPatternArrayFastCadence = np.array([])                                                     # Smearing pattern for the different columns at fast cadence (25s)
         self.smearingPatternArrayLongCadence = np.array([])                                                     # Smearing pattern for the difference columns at long cadence (600s)
 
+        if self.smearingNumRowsSkipped <= self.simFile.getInputParameter("SubField", "NumSmearingOverscanRows"):
+
+            raise Exception("You cannot skip all rows in the parallel over-scan (i.e. smearing map)")
+
 
 
 
@@ -700,6 +712,8 @@ class PhotometricPipeline(object):
         """
 
         self.contaminationRadius = self["StarWindows/ContaminationRadius"]
+        self.contaminantIds = self["StarWindows/ContaminantIds"]
+        self.hasKnownContaminants = (len(self.contaminantIds) > 0)
         self.windowDimensions = self["StarWindows/WindowDimension"]
         self.windowOffset = self.windowDimensions // 2 + 1
 
@@ -752,58 +766,58 @@ class PhotometricPipeline(object):
 
 
         
-    def configureLightCurveOutlierDetection(self):
+    # def configureLightCurveOutlierDetection(self):
 
-        """
-        PURPOSE: Configuration of the parameters that are specific for the light curve
-                 outlier detection and making placeholders for the information that will
-                 be stored.
-        """
+    #     """
+    #     PURPOSE: Configuration of the parameters that are specific for the light curve
+    #              outlier detection and making placeholders for the information that will
+    #              be stored.
+    #     """
 
-        self.includeLightCurveOutlierDetection = self["LightCurve/IncludeOutlierDetection"]          # Enable/disable outlier detection
-        self.fluxOutlierDetectionHalfBinWidth = self["LightCurve/OutlierDetection/b"]                # Number of past and future datapoints needed to decide whether or not a datapoint is an outlier
-        self.lightCurveOutlierDetectionThreshold = self["LightCurve/OutlierDetection/Threshold"]     # Outlier detection threshold
+    #     self.includeLightCurveOutlierDetection = self["LightCurve/IncludeOutlierDetection"]          # Enable/disable outlier detection
+    #     self.fluxOutlierDetectionHalfBinWidth = self["LightCurve/OutlierDetection/b"]                # Number of past and future datapoints needed to decide whether or not a datapoint is an outlier
+    #     self.lightCurveOutlierDetectionThreshold = self["LightCurve/OutlierDetection/Threshold"]     # Outlier detection threshold
 
 
-        if self.includeLightCurveOutlierDetection:
+    #     if self.includeLightCurveOutlierDetection:
 
-            self.fluxFlagFastCadence = np.zeros(self.fluxOutlierDetectionHalfBinWidth)
+    #         self.fluxFlagFastCadence = np.zeros(self.fluxOutlierDetectionHalfBinWidth)
         
-        else:
+    #     else:
 
-            self.fluxFlagFastCadence = None
-
-
+    #         self.fluxFlagFastCadence = None
 
 
 
-    def configureTimeAveraging(self):
 
-        """
-        PURPOSE: Configuration of the parameters that are specific for time averaging
-                 and providing placeholders for the information that will be stored.
-        """
 
-        self.timeAveragingCadence = self["LightCurve/TimeAveraging/Cadence"]                  # Choose between short and long cadence
+    # def configureTimeAveraging(self):
 
-        self.numExposuresShortCadence = self["LightCurve/TimeAveraging/NumSamples/Short"]     # Short cadence: 50s (i.e. 2 samples)
-        self.numExposuresLongCadence = self["LightCurve/TimeAveraging/NumSamples/Long"]       # Long cadence: 600s (i.e. 24 samples)
+    #     """
+    #     PURPOSE: Configuration of the parameters that are specific for time averaging
+    #              and providing placeholders for the information that will be stored.
+    #     """
 
-        if self.timeAveragingCadence == "Short":
+    #     self.timeAveragingCadence = self["LightCurve/TimeAveraging/Cadence"]                  # Choose between short and long cadence
+
+    #     self.numExposuresShortCadence = self["LightCurve/TimeAveraging/NumSamples/Short"]     # Short cadence: 50s (i.e. 2 samples)
+    #     self.numExposuresLongCadence = self["LightCurve/TimeAveraging/NumSamples/Long"]       # Long cadence: 600s (i.e. 24 samples)
+
+    #     if self.timeAveragingCadence == "Short":
             
-            self.numExposuresTimeAveraging = self.numExposuresShortCadence
+    #         self.numExposuresTimeAveraging = self.numExposuresShortCadence
 
-            self.fluxArrayShortCadence = np.array([])
-            self.cobArrayShortCadence = np.array([])
-            self.fluxOutlierFlagShortCadence = np.array([])
+    #         self.fluxArrayShortCadence = np.array([])
+    #         self.cobArrayShortCadence = np.array([])
+    #         self.fluxOutlierFlagShortCadence = np.array([])
 
-        elif self.timeAveragingCadence == "Long":
+    #     elif self.timeAveragingCadence == "Long":
             
-            self.numExposuresTimeAveraging = self.numExposuresShortCadence
+    #         self.numExposuresTimeAveraging = self.numExposuresShortCadence
 
-            self.fluxArrayLongCadence = np.array([])
-            self.fluxVarianceLongCadence = np.array([])
-            self.fluxOutlierFlagLongCadence = np.array([])
+    #         self.fluxArrayLongCadence = np.array([])
+    #         self.fluxVarianceLongCadence = np.array([])
+    #         self.fluxOutlierFlagLongCadence = np.array([])
 
 
 
@@ -890,7 +904,20 @@ class PhotometricPipeline(object):
             cobRowArrayFastCadence = np.append(cobRowArrayFastCadence, cobFastCadence[0])
             cobColumnArrayFastCadence = np.array(cobColumnArrayFastCadence, cobFastCadence[1])
 
+        starIds, starRows, starColumns, inputFlux = (self.simFile.getStarCoordinates(exposure)[index] for index in [0, 1, 2, 5])
+        inputFlux = inputFlux[starIds == self.targetIds]
+        targetRows = starRows[starIds == self.targetIds]
+        targetColumns = starColumns[starIds == self.targetIds]
+
+        for targetIndex in self.numTargets:
+
+            targetRowAsInt = int(targetRows[targetIndex])
+            targetColumnAsInt = int(targetColumns[targetIndex])
+            inputFlux[targetIndex] *= throughput[targetRowAsInt, targetColumnAsInt] * self.flatfield[targetRowAsInt, targetColumnAsInt]
+
+
         exposureGroup.create_dataset("FluxFastCadence", data = fluxArrayFastCadence)
+        exposureGroup.create_dataset("InputFlux", data = inputFlux)
         exposureGroup.create_dataset("CobRowFastCadence", data = cobRowArrayFastCadence)
         exposureGroup.create_dataset("CobColumnFastCadence", data = cobColumnArrayFastCadence)
         
@@ -1327,7 +1354,7 @@ class PhotometricPipeline(object):
         #   - focal-plane y-coordinates [mm] (not needed)
         #   - flux as derived from the catalogue magnitude [photons / exposure]
 
-        starIds, starRows, starColumns, starXmm, starYmm, inputFlux = self.simFile.getStarCoordinates(exposure)
+        starIds, starRows, starColumns, inputFlux = (self.simFile.getStarCoordinates(exposure)[index] for index in [0, 1, 2, 5])
     
 
 
@@ -1367,7 +1394,13 @@ class PhotometricPipeline(object):
             # Create a theoretical sub-field as if only the contaminants of the current target star were on the CCD
             # (a star cannot not be its own contaminant!)
             
-            contaminantIndices = np.where((np.abs(starRows - targetRow) <= self.contaminationRadius) & (np.abs(starColumns - targetColumn) <= self.contaminationRadius) & (starIds != self.targetIds[targetIndex]))[0]
+            contaminantIndices = np.where((np.abs(starRows - targetRow) <= self.contaminationRadius) & (np.abs(starColumns - targetColumn) <= self.contaminationRadius) & (starIds != self.targetIds[targetIndex]))[0]  # Other stars within the contaminant radius
+
+            if self.hasKnownContaminants:
+
+                knowContaminantIndices = np.where(starIds == self.contaminantIds)[0]
+                contaminantIndices = np.intersect1d(contaminantIndices, knowContaminantIndices)     # Known contaminants within the contaminant radius
+
             # numContaminants = len(contaminantIndices)
 
             contaminantsMap = np.zeros_like(image)
@@ -1749,19 +1782,24 @@ def getPhotometryTimeSeries(filename, targetId):
         - filename: Name of the HDF5 output file written by the photometric pipeline
         - targetId:  Target identifier (integer, e.g. 9789)
 
-     OUTPUT: time: a numpy np.array containing the time points [s]
-             flux: a numpy np.array containing the flux points [electrons/exposure]
+     OUTPUT: 
+        - time: Time points [s]
+        - inputFlux: Input flux of the target star as derived from the input catalogue
+        - outputFlux: Flux of the target star as calculated by the photometric pipeline
+
      REMARK: To find out which star identifiers are in the photometry file, look in the HDF5 simulation
              output file of PlatoSim: 
              allStarIDs = np.array(platosimOutputFile["StarCatalog/starIDs"])
     """
 
     photFile = h5py.File(filename)
-    allTimePoints =  np.array(photFile["/Photometry/time"])
-    numExposures = len(allTimePoints)
+    time =  np.array(photFile["/Photometry/time"])
+    numExposures = len(time)
 
-    time = []
-    flux = []
+    targetIds = photFile[""]
+
+    inputFlux = []
+    outputFlux = []
 
     for exposure in range(numExposures):
 
@@ -1769,14 +1807,16 @@ def getPhotometryTimeSeries(filename, targetId):
         
         if targetId in allStarIDsInImage:
 
-            time.append(np.array(photFile["/Photometry/time"])[exposure])
-            flux.append(flux[np.where(allStarIDsInImage == targetId)][0])
-            
+            inputFluxAllTargets = np.array(photFile["Photometry/Exposure{0:06d}/InputFlux".format(exposure)])
+            outputFluxAllTargets = np.array(photFile["Photometry/Exposure{0:06d}/FluxFastCadence".format(exposure)])
 
-    flux = np.array(flux)
-    time = np.array(time)
+            inputFlux.append(inputFluxAllTargets[np.where(targetIds == targetId)][0])
+            outputFlux.append(outputFluxAllTargets[np.where(targetIds == targetId)][0])
+
+    inputFlux = np.array(inputFlux)
+    outputFlux = np.array(outputFlux)
 
     photFile.close()
 
-    return time, flux
+    return time, inputFlux, outputFlux
  
