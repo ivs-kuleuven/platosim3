@@ -649,11 +649,11 @@ class PhotometricPipeline(object):
         self.includeOffsetOutlierDetection = self["Offset/IncludeOutlierDetection"]                     # Enable/disable outlier detection
         self.offsetOutlierDetectionNumSkippedElementsBothEnds = self["Offset/OutlierDetection/k"]       # Number of largest and smallest values to flag as outliers
 
-        if self.includeLightCurveOutlierDetection:
+        if self.includeOffsetOutlierDetection:
 
             numBiasElements = self.simFile.getInputParameter("SubField", "NumBiasPrescanRows") * self.simFile.getInputParameter("SubField", "NumBiasPrescanColumns")
 
-            if 2 * self.offsetOutlierDetectionNumSkippedElementsBothEnds <= numBiasElements:
+            if 2 * self.offsetOutlierDetectionNumSkippedElementsBothEnds >= numBiasElements:
 
                 raise Exception("For the outlier detection in the offset calculation, the number of skipped pixels must be larger than the number of pixels in the serial pre-scan (i.e. bias register map)")
         
@@ -684,7 +684,7 @@ class PhotometricPipeline(object):
         self.smearingPatternArrayFastCadence = np.array([])                                                     # Smearing pattern for the different columns at fast cadence (25s)
         self.smearingPatternArrayLongCadence = np.array([])                                                     # Smearing pattern for the difference columns at long cadence (600s)
 
-        if self.smearingNumRowsSkipped <= self.simFile.getInputParameter("SubField", "NumSmearingOverscanRows"):
+        if self.smearingNumRowsSkipped >= self.simFile.getInputParameter("SubField", "NumSmearingOverscanRows"):
 
             raise Exception("You cannot skip all rows in the parallel over-scan (i.e. smearing map)")
 
@@ -713,7 +713,7 @@ class PhotometricPipeline(object):
 
         self.contaminationRadius = self["StarWindows/ContaminationRadius"]
         self.contaminantIds = self["StarWindows/ContaminantIds"]
-        self.hasKnownContaminants = (len(self.contaminantIds) > 0)
+        self.hasKnownContaminants = (self.contaminantIds != None and len(self.contaminantIds) > 0)
         self.windowDimensions = self["StarWindows/WindowDimension"]
         self.windowOffset = self.windowDimensions // 2 + 1
 
@@ -909,7 +909,7 @@ class PhotometricPipeline(object):
         targetRows = starRows[starIds == self.targetIds]
         targetColumns = starColumns[starIds == self.targetIds]
 
-        for targetIndex in self.numTargets:
+        for targetIndex in range(self.numTargets):
 
             targetRowAsInt = int(targetRows[targetIndex])
             targetColumnAsInt = int(targetColumns[targetIndex])
@@ -1519,8 +1519,8 @@ class PhotometricPipeline(object):
         windowZeropointRow = int(self.targetRowsArray[targetIndex]) - self.windowOffset
         windowZeropointColumn = int(self.targetColumnsArray[targetIndex]) - self.windowOffset
 
-        starWindow = self.simFile.getImage(exposure)[windowZeropointRow - self.subfieldZeropointRow : windowZeropointRow + self.windowDimensions - self.subfieldZeropointRow, windowZeropointColumn - self.subfieldZeropointColumn : windowZeropointColumn + self.windowDimensions - self.subfieldZeropointColumn]
-        windowSmearingPatternFastCadence = smearingPatternFastCadence[windowZeropointColumn - self.subfieldZeropointColumn : windowZeropointColumn + self.windowDimensions - self.subfieldZeropointColumn]
+        starWindow = self.simFile.getImage(exposure)[windowZeropointRow : windowZeropointRow + self.windowDimensions, windowZeropointColumn : windowZeropointColumn + self.windowDimensions]
+        windowSmearingPatternFastCadence = smearingPatternFastCadence[windowZeropointColumn : windowZeropointColumn + self.windowDimensions]
 
         maskedWindow = starWindow - offsetValueFastCadence                                            # Subtract the offset
         maskedWindow = maskedWindow * self.gain                                                       # Multiply with gain [ADU] -> [e]
