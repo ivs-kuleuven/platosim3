@@ -1,5 +1,5 @@
 Offset:
-    IncludeOutlierDetection:             True
+    IncludeOutlierDetection:             False
     OutlierDetection:
         k:                               1
 
