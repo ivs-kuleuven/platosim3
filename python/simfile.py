@@ -654,7 +654,7 @@ class SimFile (object):
                 col: The pixel column coordinates of each star in the image (float).
                 Xmm: The focal plane FP' x-coordinates of each star in the image
                 Ymm: The focal plane FP' y-coordinates of each star in the image
-                flux: The flux of each star in the image
+                flux: The flux of each star in the image [photons]
 
 
         REMARKS: 
