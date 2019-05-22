@@ -6,7 +6,9 @@ Auxiliary scripts to facilitate the validation and verification of PlatoSim:
 """
 
 from astropy.coordinates import SkyCoord
-from math import sin, cos, degrees
+from math import sin, cos, degrees, pow
+import numpy as np
+from scipy import optimize
 
 def switchOffAllEffects(sim):
 
@@ -166,3 +168,58 @@ def aberration(lon, lat, lonSpacecraft):
     deltaLat   = - amplitude * sin(lon - lonSpacecraft) * sin(lat)
 
     return (lon + deltaLon, lat + deltaLat)
+
+
+
+
+
+def gaussian(amplitude, centerRow, centerColumn, sigmaRow, sigmaColumn):
+
+    """
+    PURPOSE: Return a 2D gaussian function with the given parameters.
+
+    INPUT:
+        - amplitude: Height/amplitude of the gaussian
+        - centerRow: Row coordinate of the centroid of the gaussian
+        - centerColumn: Column coordinate of the centroid of the gaussian
+        - sigmaRow: Width of the gaussian in the row direction
+        - sigmaColumn: Width of the gaussian in the column direction
+
+    OUTPUT:
+        - 2D gaussian function
+    """
+
+    return lambda row, column: amplitude * np.exp(-(((centerRow - row) / sigmaRow)**2 + ((centerColumn - column) / sigmaColumn)**2) / 2)
+
+
+
+
+
+def fitGaussian(data, amplitude, centerRow, centerColumn, sigmaRow, sigmaColumn, subtractConstant = True):
+
+    """
+    PURPOSE: Fit a 2D gaussian function with the given initial parameters to the given data.
+
+    INPUT:
+        - data: Data to which to fit a 2D gaussian function
+        - amplitude: Initial estimate for the amplitude of the gaussian
+        - centerRow: Initial estimate for the row coordinate of the centroid of the gaussian
+        - centerColumn: Initial estimate for the column coordinate of the centroid of the gaussian
+        - sigmaRow: Initial estimate for the width of the gaussian in the row direction
+        - sigmaColumn: Initial estimate for the width of the gaussian in the column direction
+        - subtractConstant: Boolean indicating whether a constant should be subtract.  This constant
+                            is the median value of the given data.
+    
+    OUTPUT:
+        - parameter: Optimised parameters for the 2D gaussian function
+    """
+
+    if subtractConstant:
+
+        data -= np.median(data)
+    
+    initialParameters = [amplitude, centerRow, centerColumn, sigmaRow, sigmaColumn]
+    errorfunction = lambda p: np.ravel(gaussian(*p)(*np.indices(data.shape)) - data)
+
+    parameters = optimize.leastsq(errorfunction, initialParameters)[0]
+    return parameters
