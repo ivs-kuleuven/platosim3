@@ -6,7 +6,7 @@ Auxiliary scripts to facilitate the validation and verification of PlatoSim:
 """
 
 from astropy.coordinates import SkyCoord
-from math import sin, cos, degrees, pow
+from math import sin, cos, radians, pow
 import numpy as np
 from scipy import optimize
 
@@ -112,7 +112,7 @@ def equatorial2galactic(ra, dec):
     
     OUTPUT:
         - galactic longitude [radians]
-        - galacti latitude [radians]
+        - galactic latitude [radians]
     """
     
     coordinates = SkyCoord(ra, dec, frame = 'icrs', unit = 'deg').transform_to('geocentrictrueecliptic')
@@ -162,10 +162,10 @@ def aberration(lon, lat, lonSpacecraft):
         - aberrated galactic latitude [radians]
     """
 
-    amplitude = degrees(20.496 / 3600.)
+    amplitude = radians(20.496 / 3600.)
 
-    deltaLon = - amplitude * cos(lon - lonSpacecraft) / cos(lat)
-    deltaLat   = - amplitude * sin(lon - lonSpacecraft) * sin(lat)
+    deltaLon = -amplitude * cos(lon - lonSpacecraft) / cos(lat)
+    deltaLat   = -amplitude * sin(lon - lonSpacecraft) * sin(lat)
 
     return (lon + deltaLon, lat + deltaLat)
 
