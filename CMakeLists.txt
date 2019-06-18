@@ -90,13 +90,16 @@ set(platosimMain ${CMAKE_CURRENT_SOURCE_DIR}/source/main.cpp)
 
 # Define the server.cpp of server
 
-set(serverMain ${CMAKE_CURRENT_SOURCE_DIR}/testServer.cpp)
+set(inputServerMain ${CMAKE_CURRENT_SOURCE_DIR}/testInputServer.cpp)
 
 
 # Define the client.cpp of server
 
-set(clientMain ${CMAKE_CURRENT_SOURCE_DIR}/testClient.cpp)
+set(jitterServerMain ${CMAKE_CURRENT_SOURCE_DIR}/testJitterServer.cpp)
 
+# Define the client.cpp of server
+
+set(imagetteClientMain ${CMAKE_CURRENT_SOURCE_DIR}/testImagetteClient.cpp)
 
 
 # Add a platosim library. This way we need to compile the platosim source files
@@ -178,13 +181,15 @@ endif()
 
 add_executable(platosim ${platosimMain})
 add_executable(testplatosim ${unitTestMain} ${unitTestSourceFiles})
-add_executable(testServer ${serverMain})
-add_executable(testClient ${clientMain})
+add_executable(testJitterServer ${jitterServerMain})
+add_executable(testInputServer ${inputServerMain})
+add_executable(testImagetteClient ${imagetteClientMain})
 
 # Link the platosim and testplatosim executable with the required libraries
 
 target_link_libraries(testplatosim platosimLibrary hdf5 hdf5_cpp armadillo yaml-cpp fftw3f fftw3f_threads gtest gtest_main pthread)
 target_link_libraries(platosim platosimLibrary hdf5 hdf5_cpp armadillo yaml-cpp fftw3f fftw3f_threads pthread Faddeeva zmq)
-target_link_libraries(testServer zmq)
-target_link_libraries(testClient zmq)
+target_link_libraries(testInputServer zmq)
+target_link_libraries(testJitterServer zmq)
+target_link_libraries(testImagetteClient zmq)
 
