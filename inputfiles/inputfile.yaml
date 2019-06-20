@@ -34,14 +34,12 @@ Platform:
 
     SolarPanelOrientation:           0               # 0, 90, 180, or 270 degrees for the different quarters of a year [deg]
     UseJitter:                       yes             # yes or no. If no, ignore everything below.
-    JitterSource:               JitterFromNetwork              # JitterFromFile, JitterFromRedNoise, or JitterFromNetwork
+    JitterSource:                    JitterFromNetwork              # JitterFromFile, JitterFromRedNoise, or JitterFromNetwork
     JitterYawRms:                    0.04            # [arcsec]
     JitterPitchRms:                  0.04            # [arcsec]
     JitterRollRms:                   0.08            # [arcsec]
     JitterTimeScale:                 3600.           # [s]
     JitterFileName:                  inputfiles/PlatoJitter_Airbus.txt
-    TcpAddressServer: tcp://localhost:5555
-    TcpAddressClient: tcp://localhost:5050
 
 
 Telescope:
@@ -248,7 +246,15 @@ ControlHDF5Content:
     WriteSubPixelImages:             no              # Only use this for a limited number of exposures. Takes a lot of space! 
     WriteStarPositions:              yes             # StarPositions are written in pixel and focal plane coordinates + flux and
                                                      # scales with the number of exposures and the number of stars in the field.
+
+ControlTcpConnection:
+
     SendImagettesToClients:     yes
+    GetStarPostionsFromServer:  yes
+
+    TcpAddressJitterServer: tcp://localhost:5555
+    TcpAddressImagetteClient: tcp://localhost:5050
+    TcpAddressInputServer: tcp://localhost:5000
 
 # ----- DO NOT MAKE CHANGES BELOW THIS LINE -----
 
