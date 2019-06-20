@@ -21,7 +21,7 @@
  * \param[in]  outputFilename  the HDF5 output file
  */
 
-Simulation::Simulation(string inputFilename, string outputFilename, std::mutex* mServerPointer, std::condition_variable* condVarServerPointer, std::mutex* mClientPointer, std::condition_variable* condVarClientPointer)
+Simulation::Simulation(string inputFilename, string outputFilename, std::vector<std::tuple<std::mutex*, std::condition_variable*>> threadCommunicationVec)
 {
     // Parse the configuration parameters file
 
@@ -64,8 +64,9 @@ Simulation::Simulation(string inputFilename, string outputFilename, std::mutex* 
 
     // declare the tcpconnection variables as null pointers
 
-    serverInstance = NULL;
-    clientInstance = NULL;
+    jitterServerInstance = NULL;
+    inputServerInstance = NULL;
+    imagetteClientInstance = NULL;
 
     // Depending on what the user requested, define the proper platform jitter generator
 
@@ -87,13 +88,16 @@ Simulation::Simulation(string inputFilename, string outputFilename, std::mutex* 
         {
             Log.debug("Simulation: Create TcpConnection Server");
 
-		    jitterGenerator = new JitterFromNetwork(configParams, readoutTimeBeforeNextExposure, condVarServerPointer, mServerPointer, &notifiedServer, &newStep);
+            std::mutex* mJitterServerPointer = std::get<0>(threadCommunicationVec.at(0));
+            std::condition_variable* condVarJitterServerPointer = std::get<1>(threadCommunicationVec.at(0));
+
+            jitterGenerator = new JitterFromNetwork(configParams, readoutTimeBeforeNextExposure, condVarJitterServerPointer, mJitterServerPointer, &notifiedJitterServer, &newStep);
 
             // declare a tcpConnection object as server instance
 
-            serverInstance = new TcpConnection(configParams, condVarServerPointer, mServerPointer, &notifiedServer, &newStep, &endOfSimulation);
+            jitterServerInstance = new TcpConnection(configParams, condVarJitterServerPointer, mJitterServerPointer, &notifiedJitterServer, &newStep, &endOfSimulation);
 
-            serverInstance->setJitterInstance(jitterGenerator);
+            jitterServerInstance->setJitterInstance(jitterGenerator);
         }
         else
         {
@@ -123,20 +127,20 @@ Simulation::Simulation(string inputFilename, string outputFilename, std::mutex* 
 
     if(useFeeTemperatureFromFile)
     {
-    	feeTemperatureGenerator = new TemperatureFromFile(configParams, "FEE");
+        feeTemperatureGenerator = new TemperatureFromFile(configParams, "FEE");
     }
     else if(useFeeNominalTemperature)
     {
-    	feeTemperatureGenerator = new NominalTemperature(configParams, "FEE");
+        feeTemperatureGenerator = new NominalTemperature(configParams, "FEE");
     }
 
     if(useDetectorTemperatureFromFile)
     {
-    	detectorTemperatureGenerator = new TemperatureFromFile(configParams, "CCD");
+        detectorTemperatureGenerator = new TemperatureFromFile(configParams, "CCD");
     }
     else if(useDetectorNominalTemperature)
     {
-    	detectorTemperatureGenerator = new NominalTemperature(configParams, "CCD");
+        detectorTemperatureGenerator = new NominalTemperature(configParams, "CCD");
     }
 
     // Initialise the spacecraft components
@@ -170,15 +174,32 @@ Simulation::Simulation(string inputFilename, string outputFilename, std::mutex* 
     // create a client instance if sendImagettes is true
     if (sendImagettesToClient)
     {
-        Log.debug("Simulation: Create TcpConnection Client");
+        std::mutex* mImagetteClientPointer = std::get<0>(threadCommunicationVec.at(1));
+        std::condition_variable* condVarImagetteClientPointer = std::get<1>(threadCommunicationVec.at(1));
 
-        clientInstance = new TcpConnection(configParams, condVarClientPointer, mClientPointer, &notifiedClient, &newImagette, &endOfSimulation);
+        Log.debug("Simulation: Create TcpConnection Imagette Client");
 
-        clientInstance->setDetectorInstance(detector);
+        imagetteClientInstance = new TcpConnection(configParams, condVarImagetteClientPointer, mImagetteClientPointer, &notifiedImagetteClient, &newImagette, &endOfSimulation);
+
+        imagetteClientInstance->setDetectorInstance(detector);
 
         // send the needed communication variables to the detector
 
-        detector->setThreadCommunicationVariables(condVarClientPointer, mClientPointer, &notifiedClient, &newImagette);
+        detector->setImagetteThreadCommunicationVariables(condVarImagetteClientPointer, mImagetteClientPointer, &notifiedImagetteClient, &newImagette);
+    }
+
+    if (getStarPositionFromServer)
+    {
+        std::mutex* mInputServerPointer = std::get<0>(threadCommunicationVec.at(2));
+        std::condition_variable* condVarInputServerPointer = std::get<1>(threadCommunicationVec.at(2));
+
+        Log.debug("Simulation: Create TcpConnection to input server");
+
+        inputServerInstance = new TcpConnection(configParams, condVarInputServerPointer, mInputServerPointer, &notifiedInputServer, &newInput, &endOfSimulation);
+    
+        detector->setInputThreadCommunicationVariables(condVarInputServerPointer, mInputServerPointer, &notifiedInputServer, &newInput);
+
+        inputServerInstance->setDetectorInstance(detector);
     }
 
     // Write the input parameters to the output HDF5 file
@@ -242,12 +263,14 @@ void Simulation::configure(ConfigurationParameters &configParams)
     useDetectorNominalTemperature = configParams.getString("CCD/Temperature") == "Nominal";
 
     sendImagettesToClient = configParams.getBoolean("ControlHDF5Content/SendImagettesToClients");
+    getStarPositionFromServer = configParams.getBoolean("ControlTcpConnection/GetStarPositionsFromServer");
 
-    notifiedServer = false;
-    notifiedClient = false;
+    notifiedJitterServer = false;
+    notifiedImagetteClient = false;
 
     newStep = false;
     newImagette = false;
+    newInput = false;
 
     endOfSimulation = false;
 }
@@ -972,19 +995,28 @@ void Simulation::setRandomSeeds(ConfigurationParameters &configParams)
 }
 
 /**
- * \brief return a pointer to the server instance
+ * \brief return a pointer to the jitter server instance
  *
  */
-TcpConnection* Simulation::getServerInstance()
+TcpConnection* Simulation::getJitterServerInstance()
 {
-    return serverInstance;
+    return jitterServerInstance;
 }
 
 /**
- * \brief return a pointer to the client instance
+ * \brief return a pointer to the imagette client instance
  *
  */
-TcpConnection* Simulation::getClientInstance()
+TcpConnection* Simulation::getImagetteClientInstance()
 {
-    return clientInstance;
+    return imagetteClientInstance;
+}
+
+/**
+ * \brief return a pointer to the input server instance
+ *
+ */
+TcpConnection* Simulation::getInputServerInstance()
+{
+    return inputServerInstance;
 }

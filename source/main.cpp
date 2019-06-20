@@ -68,54 +68,66 @@ int main(int Narguments, char* arguments[])
                 break;   
     }
     
-    // declare some variables for the inner thread communication
-    std::mutex mServer;
-    std::mutex mClient;
-    std::condition_variable condVarServer;
-    std::condition_variable condVarClient;
+    // declare some variables for the communication between threads 
 
-    // Initialise the simulation, and loop over all exposures using run()
+    std::mutex mJitterServer;
+    std::mutex mImagetteClient;
+    std::mutex mInputServer;
+    std::condition_variable condVarJitterServer;
+    std::condition_variable condVarImagetteClient;
+    std::condition_variable condVarInputServer;
 
-    Simulation simulation(inputFilename, outputFilename, &mServer, &condVarServer, &mClient, &condVarClient);
+    std::vector<std::tuple<std::mutex*, std::condition_variable*> > threadCommunicationVec;
 
+    threadCommunicationVec = { std::make_tuple( &mJitterServer, &condVarJitterServer), std::make_tuple( &mImagetteClient, &condVarImagetteClient), std::make_tuple( &mInputServer, &condVarInputServer) };
+
+    // Initialise the simulation object
+
+    Simulation simulation(inputFilename, outputFilename, threadCommunicationVec);
 
     // declare and initialize the thread pointers
-    std::thread* serverThread = NULL;
-    std::thread* clientThread = NULL;
-    std::thread* simulationThread =NULL;
+    std::thread* jitterServerThread = NULL;
+    std::thread* imagetteClientThread = NULL;
+    std::thread* inputServerThread = NULL;
+    std::thread* simulationThread = NULL;
 
     // declare a vector of pointers to the threads
     std::vector<std::thread*> threadVec;
 
-    // depending on whether jitter from server or sending imagettes to client is active start the according threads
+    // declare the attributes for the different thread methods
+    bool jitterServerActive = false;
+    bool inputServerActive = false;
+    bool imagetteClientActive = false;
 
-    // jitterFromNetwork AND sendImagettes is true
-    if (simulation.getServerInstance() != NULL && simulation.getClientInstance() != NULL)
+    // check whether the simulation is done with jitter from a server via tcp connection 
+    if (simulation.getJitterServerInstance() != NULL)
     {
-        // create a server and a client thread
-
-        serverThread = new std::thread(&TcpConnection::connectToServer, simulation.getServerInstance());
-        threadVec.push_back(serverThread);
-
-        clientThread = new std::thread(&TcpConnection::connectToClient, simulation.getClientInstance());
-        threadVec.push_back(clientThread);
+        jitterServerActive = true;
     }
-    // jitterFromNetwork is true
-    else if (simulation.getServerInstance() != NULL && simulation.getClientInstance() == NULL)
+
+    // check whether the simulation is done with input from a server via tcp connection
+    if (simulation.getInputServerInstance() != NULL)
     {
-        // create only the server thread
-
-        serverThread = new std::thread(&TcpConnection::connectToServer, simulation.getServerInstance());
-        threadVec.push_back(serverThread);
+        inputServerActive = true;
     }
-    // sendImagettes is true
-    else if (simulation.getServerInstance() == NULL && simulation.getClientInstance() != NULL)
+
+    // check whether the simulation sends the created imagettes to a client via a tcp connection
+    if (simulation.getImagetteClientInstance() != NULL)
     {
-        // create only the client thread
-
-        clientThread = new std::thread(&TcpConnection::connectToClient, simulation.getClientInstance());
-        threadVec.push_back(clientThread);
+        imagetteClientActive = true;
     }
+
+    // create the jitter server thread
+    jitterServerThread = new std::thread(&TcpConnection::connectToJitterServer, simulation.getJitterServerInstance(), jitterServerActive);
+    threadVec.push_back(jitterServerThread);
+
+    // create the input server thread
+    inputServerThread = new std::thread(&TcpConnection::connectToInputServer, simulation.getInputServerInstance(), inputServerActive);
+    threadVec.push_back(inputServerThread);
+
+    // create the imagette client thread
+    imagetteClientThread = new std::thread(&TcpConnection::connectToImagetteClient, simulation.getImagetteClientInstance(), imagetteClientActive);
+    threadVec.push_back(imagetteClientThread);
 
     // create the simulation thread
     simulationThread = new std::thread(&Simulation::run, &simulation);
@@ -131,5 +143,6 @@ int main(int Narguments, char* arguments[])
     // That's it!
 
     logFile.close();
+
     return EXIT_SUCCESS;
 }
