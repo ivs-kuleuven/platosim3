@@ -262,7 +262,7 @@ void Simulation::configure(ConfigurationParameters &configParams)
     useDetectorTemperatureFromFile = configParams.getString("CCD/Temperature") == "FromFile";
     useDetectorNominalTemperature = configParams.getString("CCD/Temperature") == "Nominal";
 
-    sendImagettesToClient = configParams.getBoolean("ControlHDF5Content/SendImagettesToClients");
+    sendImagettesToClient = configParams.getBoolean("ControlTcpConnection/SendImagettesToClients");
     getStarPositionFromServer = configParams.getBoolean("ControlTcpConnection/GetStarPositionsFromServer");
 
     notifiedJitterServer = false;
@@ -470,38 +470,38 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
 
 void Simulation::run()
 {
-	Log.info("Simulation: simulation thread created");
+    Log.info("Simulation: simulation thread created");
 
     // Update the internal clock
-
     currentTime = beginExposureNr * (exposureTime + readoutTimeBeforeNextExposure);
 
     // Loop over all exposures
-
-
-
     int n = beginExposureNr;
 
     // continue the simulation until no more jittersteps are send from a tcp connection server
     while (!endOfSimulation)
     {
-	n++; 
-
-	// if no jitter from network is used, end the simulation, when the max number of exposures from the yaml file is reached
-	// this has to be declared before the last exposure, so that the tcp connection client thread can be notified and properly ended
+        // if no jitter from network is used, end the simulation, when the max number of exposures from the yaml file is reached
+        // this has to be declared before the last exposure, so that the tcp connection client thread can be notified and properly ended
         if (jitterSource != "FromNetwork" && n >= beginExposureNr + numExposures)
-	{
-		Log.info("Simulation: end of simulation reached");
-		endOfSimulation = true;
-	} 
+        {
+            Log.info("Simulation: end of simulation reached");
+            endOfSimulation = true;
+        } 
+        else
+        {
+            Log.info("Simulation: Starting exposure " + to_string(n) + " at time " + to_string(currentTime) );
+            currentTime = detector->takeExposure(n, currentTime, exposureTime);
 
-        Log.info("Simulation: Starting exposure " + to_string(n) + " at time " + to_string(currentTime) );
-        currentTime = detector->takeExposure(n, currentTime, exposureTime);
-
+            n++;             
+        }
     }
 
     writeStarCatalogToHDF5();
+
+    Log.info("Simulation: end of simulation");
 }
+
 
 
 

@@ -2891,6 +2891,4 @@ void Detector::notifyInputServer()
     {       
         condVarInputServerPointer->wait(lock);
     }
-
-    notifyInputServer();
 }
