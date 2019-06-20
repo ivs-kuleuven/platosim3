@@ -93,11 +93,18 @@ class Detector: public HDF5Writer
 
         double getReadoutTimeBeforeNextExposure();
 
-        void setThreadCommunicationVariables(std::condition_variable* condVarClient, std::mutex* mClient, bool* notifiedClient, bool* newImagette);
+        void setImagetteThreadCommunicationVariables(std::condition_variable* condVarClient, std::mutex* mClient, bool* notifiedClient, bool* newImagette);
+
+        void setInputThreadCommunicationVariables(std::condition_variable* condVarClient, std::mutex* mClient, bool* notifiedClient, bool* newImagette);
 
         arma::Mat<float>* getCurrentPixelMap();
 
+        void notifyInputServer();
 
+        virtual void setInputParametersFromServer(int imagetteRows, int imagetteColumns, int startPointRow, int startPointCol, double offsetX, double offsetY, int orientation);
+
+        int getCurrentImagetteNumber();
+        
     protected:
 
         virtual void integrateLight(int exposureNr, double startTime, double exposureTime) = 0;
@@ -273,12 +280,21 @@ class Detector: public HDF5Writer
         FrontEndElectronics *frontEndElectronics;
 
         bool sendImagettesToClient;
+        bool getInputFromServer;
 
-        std::condition_variable* condVarClientPointer;
-        std::mutex* mClientPointer;
-        bool* notifiedClientPointer;
+        std::condition_variable* condVarImagetteClientPointer;
+        std::mutex* mImagetteClientPointer;
+        bool* notifiedImagetteClientPointer;
         bool* newImagettePointer;
         bool  endOfSimulation;
+
+
+        std::condition_variable* condVarInputServerPointer;
+        std::mutex* mInputServerPointer;
+        bool* notifiedInputServerPointer;
+        bool* newInputPointer;
+
+        int* exposureNumPointer;
 
 
     private:

@@ -37,6 +37,8 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
 
         void integrateAnalyticPSF(IntegralOfAnalyticSignalResponse&, double, double, double, double, double = 1.);
 
+        virtual void setInputParametersFromServer(int imagetteRows, int imagetteColumns, int startPointRow, int startPointCol, double offsetX, double offsetY, int orientation) override;
+
 
     protected:
 

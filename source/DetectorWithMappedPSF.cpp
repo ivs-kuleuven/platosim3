@@ -232,9 +232,11 @@ void DetectorWithMappedPSF::generateFlatfieldMap()
 
     flatfieldMap.reshape(numRowsFlatfield, numColumnsFlatfield);
 
-    // Write the result to the HDF5 output file
-
-    hdf5File.writeArray("/Flatfield", "IRNU", flatfieldMap);
+    // Write the result to the HDF5 output file if inputFromServer is not active, since this would lead to a bug, when the map is changed
+    if (!getInputFromServer)
+    {
+        hdf5File.writeArray("/Flatfield", "IRNU", flatfieldMap);
+    }
 
     // Rebin the intra-pixel flatfield to the pixel flatfield (IRNU -> PRNU)
     // and also write this array to the HDF5 outputfile. This PRNU array is not used
@@ -258,9 +260,13 @@ void DetectorWithMappedPSF::generateFlatfieldMap()
 
     // Write the result to the HDF5 output file
 
-    Log.debug("Detector: writing PRNU to HDF5");
+    // Write the result to the HDF5 output file if inputFromServer is not active, since this would lead to a bug, when the map is changed
+    if (!getInputFromServer)
+    {
+        Log.debug("Detector: writing PRNU to HDF5");
 
-    hdf5File.writeArray("/Flatfield", "PRNU", prnu);
+        hdf5File.writeArray("/Flatfield", "PRNU", prnu);
+    }
 }
 
 
@@ -321,6 +327,14 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
 
     internalTime = startTime;
 
+    exposureNumPointer = &exposureNr;
+
+    // notify the input server thread if input from server is active
+    if (getInputFromServer)
+    {
+        notifyInputServer();
+    }
+
     // Integration of point sources and background, taking into account jitter + drift.
 
     Log.info("Detector: Integrating light for exposure " + to_string(exposureNr) + " with exposure time = " + to_string(exposureTime));
@@ -351,6 +365,12 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
     // Advance the internal clock
 
     internalTime += exposureTime + readoutTimeBeforeNextExposure;
+
+    // notify the input server thread again, to shut down the server, when the end of the simulation is reached during this exposure
+    if (getInputFromServer)
+    {
+        notifyInputServer();
+    }
 
     return internalTime;
 }
@@ -838,3 +858,75 @@ void DetectorWithMappedPSF::writeSubPixelMapToHDF5(int exposureNr)
 
 
 
+/**
+ * \brief Sets input parameters and reinitializes the maps 
+ */
+void DetectorWithMappedPSF::setInputParametersFromServer(int imagetteRows, int imagetteColumns, int startPointRow, int startPointCol, double offsetX, double offsetY, int orientation)
+{
+    subFieldZeroPointRow    = startPointRow;
+    subFieldZeroPointColumn = startPointCol;
+    numRowsPixelMap         = imagetteRows;
+    numColumnsPixelMap      = imagetteColumns;
+
+    orientationAngle      = deg2rad(orientation);
+
+    originOffsetX         = offsetX;
+    originOffsetY         = offsetY;   
+
+    Log.info("Detector: changed subFieldZeroPointColumn " + to_string(subFieldZeroPointColumn));
+    Log.info("Detector: changed subFieldZeroPointRow " + to_string(subFieldZeroPointRow));
+
+    // Allocate memory for the different maps
+
+    pixelMap.set_size(numRowsPixelMap, numColumnsPixelMap);
+    biasMapLeft.set_size(numRowsBiasMap, numColumnsBiasMap);
+    biasMapRight.set_size(numRowsBiasMap, numColumnsBiasMap);
+
+    smearingMap.set_size(numRowsSmearingMap, numColumnsPixelMap);
+    throughputMap.set_size(numRowsPixelMap, numColumnsPixelMap);
+    throughputMap.ones(numRowsPixelMap, numColumnsPixelMap);
+
+    // If we are going to apply open-shutter smearing, we have to know which pixels are within
+    // the FOV (relevant only in case of mechanical vignetting).  When mechanical vignetting is
+    // disabled, all pixels of the detector are inside the FOV.
+
+    if(includeOpenShutterSmearing)
+    {
+        // Mechanical vignetting map:
+        //  - no mechanical vignetting: all pixels of the sub-field inside FOV -> all values set to one
+        //  - mechanical vignetting: set value of the pixels in the sub-field outside FOV to zero (others should be one) -> on creation of the throughput map
+
+        mechanicalVignettingMask.ones(numRowsPixelMap, numColumnsPixelMap);
+
+        // Number of exposed rows in each column:
+        // - no mechanical vignetting: all exposed rows inside FOV (numRows - firstRowExposed)
+        // - mechanical vignetting: count the exposed rows (i.e. from firstRowExposed) that are inside FOV
+
+        numExposedRowsInFOV.zeros(numColumnsPixelMap);
+
+        if(!includeMechanicalVignetting)
+        {
+            numExposedRowsInFOV.fill(numRows - firstRowExposed);
+        }
+
+    }
+
+    numRowsSubPixelMap = numRowsPixelMap * numSubPixelsPerPixel; // TODO Add edge pixels
+    numColumnsSubPixelMap = numColumnsPixelMap * numSubPixelsPerPixel; // TODO Add edge pixels
+
+    // Allocate memory for the different maps
+
+    subPixelMap.zeros(numRowsSubPixelMap, numColumnsSubPixelMap);
+    flatfieldMap.ones(numRowsSubPixelMap, numColumnsSubPixelMap);
+
+    if(includeFlatfield)
+    {
+        // Generate the flatfield map
+
+        generateFlatfieldMap();
+    }
+
+    // set the psf again for the new
+    setPsfForSubfield();
+
+}

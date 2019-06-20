@@ -456,6 +456,8 @@ void Detector::updateParameters(double time)
 
     beginExposureNr         = configParam.getInteger("ObservingParameters/BeginExposureNr");
 
+    exposureNumPointer = &beginExposureNr;
+
     numEdgePixels = 0;
  }
 
@@ -493,6 +495,14 @@ double Detector::takeExposure(int exposureNr, double startTime, double exposureT
 
     internalTime = startTime;
 
+    exposureNumPointer = &exposureNr;
+
+    // notify the input server thread if input from server is active
+    if (getInputFromServer)
+    {
+        notifyInputServer();
+    }
+
     // Integration of point sources and background, taking into account jitter + drift.
 
     Log.info("Detector: Integrating light for exposure " + to_string(exposureNr) + " with exposure time = " + to_string(exposureTime));
@@ -511,6 +521,12 @@ double Detector::takeExposure(int exposureNr, double startTime, double exposureT
     Log.debug("Detector: Writing PixelMap, smearing map, bias map and throughputMap #" + to_string(exposureNr) + " to HDF5 file.");
 
     writePixelMapsToHDF5(exposureNr);
+
+    // notify the input server thread again, to shut down the server, when the end of the simulation is reached during this exposure
+    if (getInputFromServer)
+    {
+        notifyInputServer();
+    }
 
     // Advance the internal clock
 
@@ -2604,22 +2620,22 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
         Log.info("Detector: notify client thread");
 
         // give the signal to the client, that a new imagette is ready
-        *notifiedClientPointer = true;
+        *notifiedImagetteClientPointer = true;
 
         *newImagettePointer = false;
 
         // notify the tcp connection thread
-        condVarClientPointer->notify_one();
+        condVarImagetteClientPointer->notify_one();
 
         // declare a lock for this thread
-        std::unique_lock<std::mutex> lock(*mClientPointer);
+        std::unique_lock<std::mutex> lock(*mImagetteClientPointer);
 
         Log.info("Detector: wait for message from client thread");
 
         // wait for the tcp connection thread to notify this thread so that the simulation can continue
         while(!*newImagettePointer)
         {       
-            condVarClientPointer->wait(lock);
+            condVarImagetteClientPointer->wait(lock);
         }
 
         Log.info("Detector: got notified from client thread");
@@ -2760,14 +2776,121 @@ arma::Mat<float>* Detector::getCurrentPixelMap()
 
 
 /**
- * \brief Sets the needed variables for the communication between the simulation and the client thread to send imagettes from the detector to a tcp connected client.
+ * \brief Sets the needed variables for the communication between the simulation and the imagette client thread to send imagettes from the detector to a tcp connected client.
  */
-void Detector::setThreadCommunicationVariables(std::condition_variable* condVarClient, std::mutex* mClient, bool* notifiedClient, bool* newImagette)
+void Detector::setImagetteThreadCommunicationVariables(std::condition_variable* condVarClient, std::mutex* mClient, bool* notifiedClient, bool* newImagette)
 {
     sendImagettesToClient = true;
 
-    condVarClientPointer = condVarClient;
-    mClientPointer = mClient;
-    notifiedClientPointer = notifiedClient;
+    condVarImagetteClientPointer = condVarClient;
+    mImagetteClientPointer = mClient;
+    notifiedImagetteClientPointer = notifiedClient;
     newImagettePointer = newImagette;
+}
+
+/**
+ * \brief Sets the needed variables for the communication between the simulation and the input server thread to get
+ */
+void Detector::setInputThreadCommunicationVariables(std::condition_variable* condVarClient, std::mutex* mClient, bool* notifiedClient, bool* newImagette)
+{
+    getInputFromServer = true;
+
+    condVarInputServerPointer = condVarClient;
+    mInputServerPointer = mClient;
+    notifiedInputServerPointer = notifiedClient;
+    newInputPointer = newImagette;
+}
+
+
+/**
+ * \brief Sets input parameters and reinitializes the maps 
+ */
+void Detector::setInputParametersFromServer(int imagetteRows, int imagetteColumns, int startPointRow, int startPointCol, double offsetX, double offsetY, int orientation)
+{
+    subFieldZeroPointRow    = startPointRow;
+    subFieldZeroPointColumn = startPointCol;
+    numRowsPixelMap         = imagetteRows;
+    numColumnsPixelMap      = imagetteColumns;
+
+    orientationAngle      = deg2rad(orientation);
+
+    originOffsetX         = offsetX;
+    originOffsetY         = offsetY; 
+
+    Log.info("Detector: subFieldZeroPointColumn " + to_string(subFieldZeroPointColumn));
+    Log.info("Detector: subFieldZeroPointRow " + to_string(subFieldZeroPointRow));
+
+    // Allocate memory for the different maps
+
+    pixelMap.set_size(numRowsPixelMap, numColumnsPixelMap);
+    biasMapLeft.set_size(numRowsBiasMap, numColumnsBiasMap);
+    biasMapRight.set_size(numRowsBiasMap, numColumnsBiasMap);
+
+    smearingMap.set_size(numRowsSmearingMap, numColumnsPixelMap);
+    throughputMap.set_size(numRowsPixelMap, numColumnsPixelMap);
+    throughputMap.ones(numRowsPixelMap, numColumnsPixelMap);
+
+    // If we are going to apply open-shutter smearing, we have to know which pixels are within
+    // the FOV (relevant only in case of mechanical vignetting).  When mechanical vignetting is
+    // disabled, all pixels of the detector are inside the FOV.
+
+    if(includeOpenShutterSmearing)
+    {
+        // Mechanical vignetting map:
+        //  - no mechanical vignetting: all pixels of the sub-field inside FOV -> all values set to one
+        //  - mechanical vignetting: set value of the pixels in the sub-field outside FOV to zero (others should be one) -> on creation of the throughput map
+
+        mechanicalVignettingMask.ones(numRowsPixelMap, numColumnsPixelMap);
+
+        // Number of exposed rows in each column:
+        // - no mechanical vignetting: all exposed rows inside FOV (numRows - firstRowExposed)
+        // - mechanical vignetting: count the exposed rows (i.e. from firstRowExposed) that are inside FOV
+
+        numExposedRowsInFOV.zeros(numColumnsPixelMap);
+
+        if(!includeMechanicalVignetting)
+        {
+            numExposedRowsInFOV.fill(numRows - firstRowExposed);
+        }
+
+    }
+}
+
+
+/**
+ * \brief Just returns the current exposure number. this is used by the input server tcpConnection object 
+ */
+int Detector::getCurrentImagetteNumber()
+{
+    Log.info("Detector: exposureNr: " + std::to_string(*exposureNumPointer));
+
+    return *exposureNumPointer;
+}
+
+
+/**
+ * \brief Notifies the input server tcpConnection object 
+ */
+void Detector::notifyInputServer()
+{
+    // give the signal to the input server, that new input can be send
+    *notifiedInputServerPointer = true;
+
+    *newInputPointer = false;
+
+    // notify the tcp connection thread
+    condVarInputServerPointer->notify_one();
+
+    // declare a lock for this thread
+    std::unique_lock<std::mutex> lock(*mInputServerPointer);
+
+    Log.info("Detector: wait for message from client thread");
+
+    // wait for the tcp connection thread to notify this thread so that the simulation can continue
+    while(!*newInputPointer)
+    {       
+        condVarInputServerPointer->wait(lock);
+    }
+
+    notifyInputServer();
 }

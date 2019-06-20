@@ -31,6 +31,9 @@ class DetectorWithAnalyticGaussianPSF: public Detector
         virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) override;
         virtual void addFlux(double flux) override;
 
+        virtual void setInputParametersFromServer(int imagetteRows, int imagetteColumns, int startPointRow, int startPointCol, double offsetX, double offsetY, int orientation) override;
+
+
     protected:
 
         virtual void reset();
