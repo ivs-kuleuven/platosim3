@@ -15,8 +15,9 @@ class TcpConnection
 		TcpConnection(ConfigurationParameters &configParam, std::condition_variable* cond_var, std::mutex* m, bool* notified, bool* newStep, bool* endSimulation);
 		~TcpConnection();
 
-		void connectToServer();
-		void connectToClient();
+		void connectToJitterServer(bool active);
+		void connectToImagetteClient(bool active);
+		void connectToInputServer(bool active);
 
 		void setDetectorInstance(Detector* detector){detectorInstance = detector;};
 		void setJitterInstance(JitterGenerator* jitter){jitterInstance = jitter;};
@@ -30,8 +31,9 @@ class TcpConnection
 		const char* convertMatrixToChar(arma::Mat<float>* pixelMapPointer);
 
 		bool* endOfSimulation;
-		string tcpAddressServer;
-		string tcpAddressClient;
+		string tcpAddressInputServer;
+		string tcpAddressJitterServer;
+		string tcpAddressImagetteClient;
 
 		JitterGenerator* jitterInstance;
 		Detector* detectorInstance;
