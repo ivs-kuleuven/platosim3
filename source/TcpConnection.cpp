@@ -332,9 +332,7 @@ void TcpConnection::connectToInputServer(bool active)
             // create a string composed of whether the simulation is at its end the current exposure number
 
             const char* imagetteNumberString = (std::to_string(int(endSimulation)) + " " + std::to_string(imagetteNumber)).c_str();
-
-            std::cout << imagetteNumberString << std::endl;
-
+            
             // send it to the client with a imagette number
             
             Log.info("TcpConnection: send imagette number string to client");
