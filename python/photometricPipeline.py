@@ -31,6 +31,7 @@ import numpy as np
 import h5py
 import astropy
 from analyticpsf import AnalyticPSF
+import time
 
 
 
@@ -53,23 +54,47 @@ def applyShiftedDataAlgorithm(data):
     OUTPUT:
         - mean: Mean value of the given data array, as computed with the shifted data algorithm
         - variance: Variance of the given data array, as computed with the hifted data algorithm
-        - numUsefulDatapoints: Number of datapoints
     """
 
-    # Discard flagged data (if any)
+    # try:
 
-    approximationOfMean = data[0]                            # Use the 1st value as approximation of the mean (arbitrary choice)
+    #     approximationOfMean = data[0][0]                     # Use the 1st value as approximation of the mean (arbitrary choice)
+    
+    # except:
+    
+    approximationOfMean = data[0]
+
     data = data - approximationOfMean                        # Shift the data (by subtracting the approximation of the mean)
 
     sumShiftedData = np.sum(data)                            # Sum of the shifted data
     squaredSumShiftedData = np.sum(np.power(data, 2))        # Sum of the squares of the shifted data
 
-    numUsefulDatapoints = len(data)                          # Number of datapoints
+    numDatapoints = len(data)                                # Number of datapoints
 
-    mean = (sumShiftedData + numUsefulDatapoints * approximationOfMean) / numUsefulDatapoints                            # Mean
-    variance = (squaredSumShiftedData - (pow(sumShiftedData, 2) / numUsefulDatapoints)) / (numUsefulDatapoints - 1)      # Variance
+    mean = (sumShiftedData + numDatapoints * approximationOfMean) / numDatapoints                            # Mean
+    variance = (squaredSumShiftedData - (pow(sumShiftedData, 2) / numDatapoints)) / (numDatapoints - 1)      # Variance
 
-    return mean, variance, numUsefulDatapoints
+    return mean, variance
+
+
+
+
+
+def applyShiftedDataAlgorithmPerColumn(data):
+
+    approximationOfMean = data[0]
+
+    data = data - approximationOfMean
+    
+    sumShiftedData = np.sum(data, axis = 0)
+    squaredSumShiftedData = np.sum(np.power(data, 2), axis = 0)
+
+    numDataPointsPerColumn = data.shape[0]
+
+    mean = (sumShiftedData + numDataPointsPerColumn * approximationOfMean) / numDataPointsPerColumn                            # Mean
+    variance = (squaredSumShiftedData - (pow(sumShiftedData, 2) / numDataPointsPerColumn)) / (numDataPointsPerColumn - 1)      # Variance
+
+    return mean, variance
 
 
 
@@ -530,13 +555,13 @@ class PhotometricPipeline(object):
 
         # Process all exposures
 
-        photometryGroup = self.outputFile.create_group("/Photometry");
-        time = np.array(self.simFile.getTime())
-        photometryGroup.create_dataset("Time", data=time)
+        photometryGroup = self.outputFile.create_group("/Photometry")
+        photometryGroup.create_dataset("Time", data = np.array(self.simFile.getTime()))
 
 
         masks = []
 
+        beginTime = time.time()
         for exposure in range(self.beginExposureNr, self.beginExposureNr + self.numExposures):
 
             exposureGroupName = "/Photometry/Exposure{0:06d}".format(exposure)
@@ -544,9 +569,11 @@ class PhotometricPipeline(object):
 
             masks = self.processExposure(exposure, exposureGroup, masks)
 
-        
+        endTime = time.time()
+        elapsedTime = (endTime - beginTime)
+        print("Took", elapsedTime, "seconds")
 
-        # Write results to HDF5 file
+        # # Write results to HDF5 file
 
         self.writeOutput()
         self.outputFile.close()
@@ -649,14 +676,18 @@ class PhotometricPipeline(object):
         self.includeOffsetOutlierDetection = self["Offset/IncludeOutlierDetection"]                     # Enable/disable outlier detection
         self.offsetOutlierDetectionNumSkippedElementsBothEnds = self["Offset/OutlierDetection/k"]       # Number of largest and smallest values to flag as outliers
 
-        if self.includeLightCurveOutlierDetection:
+        if self.includeOffsetOutlierDetection:
 
             numBiasElements = self.simFile.getInputParameter("SubField", "NumBiasPrescanRows") * self.simFile.getInputParameter("SubField", "NumBiasPrescanColumns")
 
-            if 2 * self.offsetOutlierDetectionNumSkippedElementsBothEnds <= numBiasElements:
+            if self.offsetOutlierDetectionNumSkippedElementsBothEnds < 0:
+
+                raise Exception("For the outlier detection in the offset calculation, the number of skipped pixel cannot be negative")
+
+            if 2 * self.offsetOutlierDetectionNumSkippedElementsBothEnds >= numBiasElements:
 
                 raise Exception("For the outlier detection in the offset calculation, the number of skipped pixels must be larger than the number of pixels in the serial pre-scan (i.e. bias register map)")
-        
+
         self.offsetValueArrayFastCadence = np.array([])
         # self.offsetVarianceArrayFastCadence_array = np.array([])
     
@@ -684,7 +715,12 @@ class PhotometricPipeline(object):
         self.smearingPatternArrayFastCadence = np.array([])                                                     # Smearing pattern for the different columns at fast cadence (25s)
         self.smearingPatternArrayLongCadence = np.array([])                                                     # Smearing pattern for the difference columns at long cadence (600s)
 
-        if self.smearingNumRowsSkipped <= self.simFile.getInputParameter("SubField", "NumSmearingOverscanRows"):
+
+        if self.smearingNumRowsSkipped < 0:
+
+            raise Exception("The number of rows to skip in the parallel over-scan (i.e. smearing pattern) cannot be negative")
+
+        if self.smearingNumRowsSkipped >= self.simFile.getInputParameter("SubField", "NumSmearingOverscanRows"):
 
             raise Exception("You cannot skip all rows in the parallel over-scan (i.e. smearing map)")
 
@@ -713,11 +749,20 @@ class PhotometricPipeline(object):
 
         self.contaminationRadius = self["StarWindows/ContaminationRadius"]
         self.contaminantIds = self["StarWindows/ContaminantIds"]
-        self.hasKnownContaminants = (len(self.contaminantIds) > 0)
+        self.hasKnownContaminants = (self.contaminantIds != None and len(self.contaminantIds) > 0)
         self.windowDimensions = self["StarWindows/WindowDimension"]
         self.windowOffset = self.windowDimensions // 2 + 1
 
+        if self.windowDimensions % 2 != 1:
+
+            raise Exception("The window dimensions should be odd")
+
         self.targetIds = self["StarWindows/TargetIds"]
+
+        if self.targetIds == None:
+
+            raise Exception("At least one target ID should be specified")
+
         self.numTargets = len(self.targetIds)
 
         self.targetRowsArray = np.empty(self.numTargets)
@@ -850,76 +895,76 @@ class PhotometricPipeline(object):
 
 
 
-        # Calculate the smearing pattern for the current exposure (fast cadence)
+        # # Calculate the smearing pattern for the current exposure (fast cadence)
 
-        parallelOverScan = self.simFile.getSmearingMap(exposure)
-        stdDevPrevious = np.empty(parallelOverScan.shape[1])
-        stdDevPrevious.fill(9999)
+        # parallelOverScan = self.simFile.getSmearingMap(exposure)
+        # stdDevPrevious = np.empty(parallelOverScan.shape[1])
+        # stdDevPrevious.fill(9999)
 
-        smearingPatternFastCadence, stdDevPrevious = self.calculateSmearing(parallelOverScan, offsetValueFastCadence, stdDevPrevious)
-        self.smearingPatternArrayFastCadence = np.append(self.smearingPatternArrayFastCadence, smearingPatternFastCadence)
-
-
-
-        # Calculate the background for the current exposure (fast cadence)
-        # Real photometric pipeline: ~100 background windows (nominally 4x4) per CCD half,
-        # for which we know the fluxes and the position on the CCD.  The latter is needed to 
-        # subtract the correct smearing pattern from each background window.  For each of the
-        # background windows the mean and variance are Calculated, which are used in an
-        # interpolation schema (based on radial basis functions) to determine the background
-        # at the position of the target star.
-        # It seems unfeasible to make (long-term) simulations for all these background windows, so
-        # we will have to look for an alternative way to estimate the background at the target
-        # location.
+        # smearingPatternFastCadence, stdDevPrevious = self.calculateSmearing(parallelOverScan, offsetValueFastCadence, stdDevPrevious)
+        # self.smearingPatternArrayFastCadence = np.append(self.smearingPatternArrayFastCadence, smearingPatternFastCadence)
 
 
-        skyBackgroundFastCadence = self.simFile.getSkyBackground(exposure - self.beginExposureNr)                       # [Photons]
-        self.skyBackgroundArrayFastCadence = np.append(self.skyBackgroundArrayFastCadence, skyBackgroundFastCadence)
+
+        # # Calculate the background for the current exposure (fast cadence)
+        # # Real photometric pipeline: ~100 background windows (nominally 4x4) per CCD half,
+        # # for which we know the fluxes and the position on the CCD.  The latter is needed to 
+        # # subtract the correct smearing pattern from each background window.  For each of the
+        # # background windows the mean and variance are Calculated, which are used in an
+        # # interpolation schema (based on radial basis functions) to determine the background
+        # # at the position of the target star.
+        # # It seems unfeasible to make (long-term) simulations for all these background windows, so
+        # # we will have to look for an alternative way to estimate the background at the target
+        # # location.
+
+
+        # skyBackgroundFastCadence = self.simFile.getSkyBackground(exposure - self.beginExposureNr)                       # [Photons]
+        # self.skyBackgroundArrayFastCadence = np.append(self.skyBackgroundArrayFastCadence, skyBackgroundFastCadence)
         
 
-        image, throughput = self.getStarPhotons(exposure)
+        # image, throughput = self.getStarPhotons(exposure)
 
 
 
         
 
-        # Update the mask when required
+        # # Update the mask when required
 
-        if exposure % self.numExposuresMaskUpdate == 0:
+        # if exposure % self.numExposuresMaskUpdate == 0:
 
-            masks = self.calculateMask(exposure, image, throughput)
-
-
-        # Calculate the flux & COB (nominal & extended mask) for the current exposure
-        # -> add new datapoint to the light curve (fast cadence)
-
-        fluxArrayFastCadence = np.array([])
-        cobRowArrayFastCadence = np.array([])
-        cobColumnArrayFastCadence = np.array([])
-
-        for targetIndex in range(self.numTargets):
-
-            fluxFastCadence, cobFastCadence = self.calculateFluxAndCob(exposure, offsetValueFastCadence, smearingPatternFastCadence, targetIndex, masks[targetIndex])
-            fluxArrayFastCadence = np.append(fluxArrayFastCadence, fluxFastCadence)
-            cobRowArrayFastCadence = np.append(cobRowArrayFastCadence, cobFastCadence[0])
-            cobColumnArrayFastCadence = np.array(cobColumnArrayFastCadence, cobFastCadence[1])
-
-        starIds, starRows, starColumns, inputFlux = (self.simFile.getStarCoordinates(exposure)[index] for index in [0, 1, 2, 5])
-        inputFlux = inputFlux[starIds == self.targetIds]
-        targetRows = starRows[starIds == self.targetIds]
-        targetColumns = starColumns[starIds == self.targetIds]
-
-        for targetIndex in self.numTargets:
-
-            targetRowAsInt = int(targetRows[targetIndex])
-            targetColumnAsInt = int(targetColumns[targetIndex])
-            inputFlux[targetIndex] *= throughput[targetRowAsInt, targetColumnAsInt] * self.flatfield[targetRowAsInt, targetColumnAsInt]
+        #     masks = self.calculateMask(exposure, image, throughput)
 
 
-        exposureGroup.create_dataset("FluxFastCadence", data = fluxArrayFastCadence)
-        exposureGroup.create_dataset("InputFlux", data = inputFlux)
-        exposureGroup.create_dataset("CobRowFastCadence", data = cobRowArrayFastCadence)
-        exposureGroup.create_dataset("CobColumnFastCadence", data = cobColumnArrayFastCadence)
+        # # Calculate the flux & COB (nominal & extended mask) for the current exposure
+        # # -> add new datapoint to the light curve (fast cadence)
+
+        # fluxArrayFastCadence = np.array([])
+        # cobRowArrayFastCadence = np.array([])
+        # cobColumnArrayFastCadence = np.array([])
+
+        # for targetIndex in range(self.numTargets):
+
+        #     fluxFastCadence, cobFastCadence = self.calculateFluxAndCob(exposure, offsetValueFastCadence, smearingPatternFastCadence, targetIndex, masks[targetIndex])
+        #     fluxArrayFastCadence = np.append(fluxArrayFastCadence, fluxFastCadence)
+        #     cobRowArrayFastCadence = np.append(cobRowArrayFastCadence, cobFastCadence[0])
+        #     cobColumnArrayFastCadence = np.array(cobColumnArrayFastCadence, cobFastCadence[1])
+
+        # starIds, starRows, starColumns, inputFlux = (self.simFile.getStarCoordinates(exposure)[index] for index in [0, 1, 2, 5])
+        # inputFlux = inputFlux[starIds == self.targetIds]
+        # targetRows = starRows[starIds == self.targetIds]
+        # targetColumns = starColumns[starIds == self.targetIds]
+
+        # for targetIndex in range(self.numTargets):
+
+        #     targetRowAsInt = int(targetRows[targetIndex])
+        #     targetColumnAsInt = int(targetColumns[targetIndex])
+        #     inputFlux[targetIndex] *= throughput[targetRowAsInt, targetColumnAsInt] * self.flatfield[targetRowAsInt, targetColumnAsInt]
+
+
+        # exposureGroup.create_dataset("FluxFastCadence", data = fluxArrayFastCadence)
+        # exposureGroup.create_dataset("InputFlux", data = inputFlux)
+        # exposureGroup.create_dataset("CobRowFastCadence", data = cobRowArrayFastCadence)
+        # exposureGroup.create_dataset("CobColumnFastCadence", data = cobColumnArrayFastCadence)
         
 
 
@@ -951,7 +996,8 @@ class PhotometricPipeline(object):
 
         #     self.timeAverageFluxAndCob()
 
-        return masks
+        return None
+        # return masks
 
 
 
@@ -1034,6 +1080,7 @@ class PhotometricPipeline(object):
                                          the outliers [ADU]
         """
 
+
         # Outlier detection
 
         if self.includeOffsetOutlierDetection:
@@ -1046,7 +1093,7 @@ class PhotometricPipeline(object):
     
             # Shifted data algorithm
 
-            offsetValueFastCadence, offsetVarianceFastCadence = applyShiftedDataAlgorithm(biasMap[~offsetFlag])[:2]
+            offsetValueFastCadence, offsetVarianceFastCadence = applyShiftedDataAlgorithm(biasMap[~offsetFlag])
         
 
 
@@ -1054,7 +1101,7 @@ class PhotometricPipeline(object):
 
         else:
 
-            offsetValueFastCadence, offsetVarianceFastCadence = applyShiftedDataAlgorithm(biasMap)[:2]
+            offsetValueFastCadence, offsetVarianceFastCadence = applyShiftedDataAlgorithm(biasMap.ravel())
 
         return offsetValueFastCadence, offsetVarianceFastCadence
 
@@ -1082,9 +1129,10 @@ class PhotometricPipeline(object):
         biasMap1dSorted = np.sort(biasMap1d)        # Sort
 
         if len(biasMap) < 2 * self.offsetOutlierDetectionNumSkippedElementsBothEnds:
+
             raise Exception("Number of entries, {0}, in the serial pre-scan (bias register map) should exceed 2k = {1}".format(len(biasMap1d), 2 * self.offsetOutlierDetectionNumSkippedElementsBothEnds))
 
-        # Flag the offsetOutlierDetectionNumSkippedElementsBothEnds smallest values and the offsetOutlierDetectionNumSkippedElementsBothEnds largest values
+        # Flag the smallest values and the largest values
 
         minOffset = biasMap1dSorted[self.offsetOutlierDetectionNumSkippedElementsBothEnds]
         maxOffset = biasMap1dSorted[-(self.offsetOutlierDetectionNumSkippedElementsBothEnds + 1)]
@@ -1100,6 +1148,74 @@ class PhotometricPipeline(object):
     ######################
     # Smearing calculation
     ######################
+
+    # def calculateSmearingPattern(self, smearingMap, offsetValueFastCadence, stdDevPrevious):
+
+    #     numRowsSmearingMap = smearingMap.shape[0]
+    #     smearingMap = (smearingMap - offsetValueFastCadence) * self.gain
+
+    #     ctiCorrectedSmearingMap = np.zeros(smearingMap.shape)
+    #     smearingPatternFastCadence = np.zeros(smearingMap.shape[1])
+
+    #     a1 = np.empty(self.numColumnsSubField)
+    #     a1.fill(self.smearingCoefficientsA[1])
+    #     a2 = np.empty(self.numColumnsSubField)
+    #     a2.fill(self.smearingCoefficientsA[2])
+    #     a3 = np.empty(self.numColumnsSubField)
+    #     a3.fill(self.smearingCoefficientsA[3])
+
+    #     b0 = np.empty(self.numColumnsSubField)
+    #     b0.fill(self.smearingCoefficientsB[0])
+    #     b1 = np.empty(self.numColumnsSubField)
+    #     b1.fill(self.smearingCoefficientsB[1])
+    #     b2 = np.empty(self.numColumnsSubField)
+    #     b2.fill(self.smearingCoefficientsB[2])
+    #     b3 = np.empty(self.numColumnsSubField)
+    #     b3.fill(self.smearingCoefficientsB[3])
+        
+
+    #     u0 = np.exp(-b0)
+    #     u1 = np.exp(-b1)
+    #     u2 = np.exp(-b2)
+    #     u3 = np.exp(-b3)
+
+    #     f0, f1, f2, f3 = np.ones(self.numColumnsSubField), np.ones(self.numColumnsSubField), np.ones(self.numColumnsSubField), np.ones(self.numColumnsSubField)     # Will be updated iteratively -> initialisation for i = 0
+    #     tau = (1 + a1 + a2 + a3)        # Will be updated iteratively -> initialisation for i = 0 -> Eq. (3) in PLATO-LESIA-PDC-TN-
+
+    #     for row in range(numRowsSmearingMap):
+
+    #         if row >= self.smearingNumRowsSkipped:
+
+    #             # Correct the value
+
+    #             ctiCorrectedSmearingMap[row] = smearingMap[row] - self.smearingCoefficientA0Array * tau
+                
+    #             # Update f0, f1, f2, f3, and tau
+            
+    #             f0 *= u0
+    #             f1 *= u1
+    #             f2 *= u2
+    #             f3 *= u3
+
+    #             tau = f0 + a1 * f1 + a2 * f2 + a3 * f3
+
+    #     if self.includeSmearingOutlierDetection:
+                
+    #         smearingFlag = self.detectSmearingOutliers(ctiCorrectedSmearingMap[self.smearingNumRowsSkipped:], stdDevPrevious)
+
+    #         if(np.sum(smearingFlag) == np.size(smearingFlag)):
+
+    #                 smearingPatternFastCadence[column] = 0
+    #                 continue
+                
+    #         else: 
+
+    #                 smearingPatternFastCadence, stdDevPrevious = applyShiftedDataAlgorithmPerColumn(ctiCorrectedSmearingMap[self.smearingNumRowsSkipped:, column][~smearingFlag])
+
+    #     else:
+
+    #             smearingPatternFastCadence, stdDevPrevious = applyShiftedDataAlgorithmPerColumn(ctiCorrectedSmearingMap[self.smearingNumRowsSkipped:])
+
 
     def calculateSmearing(self, smearingMap, offsetValueFastCadence, stdDevPrevious):
 
@@ -1186,11 +1302,11 @@ class PhotometricPipeline(object):
                 
                 else: 
 
-                    smearingPatternFastCadence[column], stdDevPrevious[column] = applyShiftedDataAlgorithm(ctiCorrectedSmearingMap[self.smearingNumRowsSkipped:, column][~smearingFlag])[:2]
+                    smearingPatternFastCadence[column], stdDevPrevious[column] = applyShiftedDataAlgorithm(ctiCorrectedSmearingMap[self.smearingNumRowsSkipped:, column][~smearingFlag])
 
             else:
 
-                smearingPatternFastCadence[column], stdDevPrevious[column] = applyShiftedDataAlgorithm(ctiCorrectedSmearingMap[self.smearingNumRowsSkipped:, column])[:2]
+                smearingPatternFastCadence[column], stdDevPrevious[column] = applyShiftedDataAlgorithm(ctiCorrectedSmearingMap[self.smearingNumRowsSkipped:, column])
 
 
 
@@ -1519,8 +1635,8 @@ class PhotometricPipeline(object):
         windowZeropointRow = int(self.targetRowsArray[targetIndex]) - self.windowOffset
         windowZeropointColumn = int(self.targetColumnsArray[targetIndex]) - self.windowOffset
 
-        starWindow = self.simFile.getImage(exposure)[windowZeropointRow - self.subfieldZeropointRow : windowZeropointRow + self.windowDimensions - self.subfieldZeropointRow, windowZeropointColumn - self.subfieldZeropointColumn : windowZeropointColumn + self.windowDimensions - self.subfieldZeropointColumn]
-        windowSmearingPatternFastCadence = smearingPatternFastCadence[windowZeropointColumn - self.subfieldZeropointColumn : windowZeropointColumn + self.windowDimensions - self.subfieldZeropointColumn]
+        starWindow = self.simFile.getImage(exposure)[windowZeropointRow : windowZeropointRow + self.windowDimensions, windowZeropointColumn : windowZeropointColumn + self.windowDimensions]
+        windowSmearingPatternFastCadence = smearingPatternFastCadence[windowZeropointColumn : windowZeropointColumn + self.windowDimensions]
 
         maskedWindow = starWindow - offsetValueFastCadence                                            # Subtract the offset
         maskedWindow = maskedWindow * self.gain                                                       # Multiply with gain [ADU] -> [e]
@@ -1773,50 +1889,50 @@ class PhotometricPipeline(object):
 
 
 
-def getPhotometryTimeSeries(filename, targetId):
+# def getPhotometryTimeSeries(filename, targetId):
 
-    """
-     PURPOSE: Extract the flux time series of star with a given star ID.
+#     """
+#      PURPOSE: Extract the flux time series of star with a given star ID.
 
-     INPUT: 
-        - filename: Name of the HDF5 output file written by the photometric pipeline
-        - targetId:  Target identifier (integer, e.g. 9789)
+#      INPUT: 
+#         - filename: Name of the HDF5 output file written by the photometric pipeline
+#         - targetId:  Target identifier (integer, e.g. 9789)
 
-     OUTPUT: 
-        - time: Time points [s]
-        - inputFlux: Input flux of the target star as derived from the input catalogue
-        - outputFlux: Flux of the target star as calculated by the photometric pipeline
+#      OUTPUT: 
+#         - time: Time points [s]
+#         - inputFlux: Input flux of the target star as derived from the input catalogue
+#         - outputFlux: Flux of the target star as calculated by the photometric pipeline
 
-     REMARK: To find out which star identifiers are in the photometry file, look in the HDF5 simulation
-             output file of PlatoSim: 
-             allStarIDs = np.array(platosimOutputFile["StarCatalog/starIDs"])
-    """
+#      REMARK: To find out which star identifiers are in the photometry file, look in the HDF5 simulation
+#              output file of PlatoSim: 
+#              allStarIDs = np.array(platosimOutputFile["StarCatalog/starIDs"])
+#     """
 
-    photFile = h5py.File(filename)
-    time =  np.array(photFile["/Photometry/time"])
-    numExposures = len(time)
+#     photFile = h5py.File(filename)
+#     time =  np.array(photFile["/Photometry/Time"])
+#     numExposures = len(time)
 
-    targetIds = photFile[""]
+#     targetIds = photFile[""]
 
-    inputFlux = []
-    outputFlux = []
+#     inputFlux = []
+#     outputFlux = []
 
-    for exposure in range(numExposures):
+#     for exposure in range(numExposures):
 
-        allStarIDsInImage = np.array(photFile["/Photometry/Exposure{0:06d}/starID".format(exposure)])
+#         allStarIDsInImage = np.array(photFile["/Photometry/Exposure{0:06d}/starID".format(exposure)])
         
-        if targetId in allStarIDsInImage:
+#         if targetId in allStarIDsInImage:
 
-            inputFluxAllTargets = np.array(photFile["Photometry/Exposure{0:06d}/InputFlux".format(exposure)])
-            outputFluxAllTargets = np.array(photFile["Photometry/Exposure{0:06d}/FluxFastCadence".format(exposure)])
+#             inputFluxAllTargets = np.array(photFile["Photometry/Exposure{0:06d}/InputFlux".format(exposure)])
+#             outputFluxAllTargets = np.array(photFile["Photometry/Exposure{0:06d}/FluxFastCadence".format(exposure)])
 
-            inputFlux.append(inputFluxAllTargets[np.where(targetIds == targetId)][0])
-            outputFlux.append(outputFluxAllTargets[np.where(targetIds == targetId)][0])
+#             inputFlux.append(inputFluxAllTargets[np.where(targetIds == targetId)][0])
+#             outputFlux.append(outputFluxAllTargets[np.where(targetIds == targetId)][0])
 
-    inputFlux = np.array(inputFlux)
-    outputFlux = np.array(outputFlux)
+#     inputFlux = np.array(inputFlux)
+#     outputFlux = np.array(outputFlux)
 
-    photFile.close()
+#     photFile.close()
 
-    return time, inputFlux, outputFlux
+#     return time, inputFlux, outputFlux
  
