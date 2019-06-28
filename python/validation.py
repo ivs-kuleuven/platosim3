@@ -172,8 +172,31 @@ def aberration(lon, lat, lonSpacecraft):
 
 
 
+def gaussian1D(amplitude, center, sigma):
 
-def gaussian(amplitude, centerRow, centerColumn, sigmaRow, sigmaColumn):
+    """
+    PURPOSE: Return a 1D gaussian funrction with the given parameters.
+
+    INPUT:
+        - amplitue: Height / amplitude of the gaussian
+        - center: Coordinate of the centre of the gaussian
+        - sigma: Width of the gaussian
+
+    OUTPUT:
+        - 1D gaussian function
+    """
+
+    return lambda x: amplitude * np.exp(-(((center - x) / sigma)**2))
+
+def oneOverF2(factor):
+
+    return lambda f: factor / f**2
+
+
+
+
+
+def gaussian2D(amplitude, centerRow, centerColumn, sigmaRow, sigmaColumn):
 
     """
     PURPOSE: Return a 2D gaussian function with the given parameters.
@@ -194,8 +217,22 @@ def gaussian(amplitude, centerRow, centerColumn, sigmaRow, sigmaColumn):
 
 
 
+def fitGaussian1D(data, amplitude, center, sigma, subtractConstant = True):
 
-def fitGaussian(data, amplitude, centerRow, centerColumn, sigmaRow, sigmaColumn, subtractConstant = True):
+    if subtractConstant:
+
+        data -= np.median(data)
+    
+    initialParameters = [amplitude, center, sigma]
+    errorfunction = lambda p: np.ravel(gaussian1D(*p)(*np.indices(data.shape)) - data)
+
+    parameters = optimize.leastsq(errorfunction, initialParameters)[0]
+    return parameters
+
+
+
+
+def fitGaussian2D(data, amplitude, centerRow, centerColumn, sigmaRow, sigmaColumn, subtractConstant = True):
 
     """
     PURPOSE: Fit a 2D gaussian function with the given initial parameters to the given data.
@@ -219,7 +256,19 @@ def fitGaussian(data, amplitude, centerRow, centerColumn, sigmaRow, sigmaColumn,
         data -= np.median(data)
     
     initialParameters = [amplitude, centerRow, centerColumn, sigmaRow, sigmaColumn]
-    errorfunction = lambda p: np.ravel(gaussian(*p)(*np.indices(data.shape)) - data)
+    errorfunction = lambda p: np.ravel(gaussian2D(*p)(*np.indices(data.shape)) - data)
+
+    parameters = optimize.leastsq(errorfunction, initialParameters)[0]
+    return parameters
+
+
+
+
+
+def fitOneOverF2(data, factor):
+
+    initialParameters = [factor]
+    errorfunction = lambda p: np.ravel(oneOverF(*p)(*np.indices(data.shape)) - data)
 
     parameters = optimize.leastsq(errorfunction, initialParameters)[0]
     return parameters

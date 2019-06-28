@@ -1122,6 +1122,8 @@ void Detector::applyBFE()
             }
 
             bfe(row, column) = bfe00;
+
+            
         }
     }
 
