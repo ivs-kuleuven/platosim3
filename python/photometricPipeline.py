@@ -42,37 +42,33 @@ import time
 # Auxiliary functions
 #####################
 
-def applyShiftedDataAlgorithm(data):
+
+def accurateMeanAndVariance(data, axis=None):
 
     """
     PURPOSE: Shifted data algorithm to compute the mean and variance for the given data.  This method avoids 
              loss of significance with big numbers when computing the variance.
 
     INPUT:
-        - data: Data array for which to calculate the mean and the variance
+        - data: numpy array for which to calculate the mean and the variance
+        - axis: None: if mean and variance need to be computed over all elements
+                0: if the mean/variance should be computed per column
 
     OUTPUT:
-        - mean: Mean value of the given data array, as computed with the shifted data algorithm
-        - variance: Variance of the given data array, as computed with the hifted data algorithm
+        - mean: accurate mean value of the given data array
+        - variance: accurate variance of the given data array
     """
 
-    # try:
+    approximatedMean = data[0]
+    data -= approximatedMean
 
-    #     approximationOfMean = data[0][0]                     # Use the 1st value as approximation of the mean (arbitrary choice)
-    
-    # except:
-    
-    approximationOfMean = data[0]
+    sumShiftedData = np.sum(data, axis=axis)                
+    squaredSumShiftedData = np.sum(data*data, axis=axis)
 
-    data = data - approximationOfMean                        # Shift the data (by subtracting the approximation of the mean)
+    numData = data.shape[0]
 
-    sumShiftedData = np.sum(data)                            # Sum of the shifted data
-    squaredSumShiftedData = np.sum(np.power(data, 2))        # Sum of the squares of the shifted data
-
-    numDatapoints = len(data)                                # Number of datapoints
-
-    mean = (sumShiftedData + numDatapoints * approximationOfMean) / numDatapoints                            # Mean
-    variance = (squaredSumShiftedData - (pow(sumShiftedData, 2) / numDatapoints)) / (numDatapoints - 1)      # Variance
+    mean = (sumShiftedData + numData * approximationOfMean) / numData
+    variance = (squaredSumShiftedData - (sumShiftedData * sumShiftedData / numData)) / (numData - 1)
 
     return mean, variance
 
@@ -80,21 +76,6 @@ def applyShiftedDataAlgorithm(data):
 
 
 
-def applyShiftedDataAlgorithmPerColumn(data):
-
-    approximationOfMean = data[0]
-
-    data = data - approximationOfMean
-    
-    sumShiftedData = np.sum(data, axis = 0)
-    squaredSumShiftedData = np.sum(np.power(data, 2), axis = 0)
-
-    numDataPointsPerColumn = data.shape[0]
-
-    mean = (sumShiftedData + numDataPointsPerColumn * approximationOfMean) / numDataPointsPerColumn                            # Mean
-    variance = (squaredSumShiftedData - (pow(sumShiftedData, 2) / numDataPointsPerColumn)) / (numDataPointsPerColumn - 1)      # Variance
-
-    return mean, variance
 
 
 
@@ -517,7 +498,7 @@ class PhotometricPipeline(object):
 
         INPUT:
             - removeOutputFile: Boolean indicating whether or not the output file should be delete in case it
-                                already exists before the run started
+                                already exists before the run starts
         """
 
         if not self.hasTargetLocation:
@@ -689,7 +670,6 @@ class PhotometricPipeline(object):
                 raise Exception("For the outlier detection in the offset calculation, the number of skipped pixels must be larger than the number of pixels in the serial pre-scan (i.e. bias register map)")
 
         self.offsetValueArrayFastCadence = np.array([])
-        # self.offsetVarianceArrayFastCadence_array = np.array([])
     
 
 
@@ -1093,7 +1073,7 @@ class PhotometricPipeline(object):
     
             # Shifted data algorithm
 
-            offsetValueFastCadence, offsetVarianceFastCadence = applyShiftedDataAlgorithm(biasMap[~offsetFlag])
+            offsetValueFastCadence, offsetVarianceFastCadence = accurateMeanAndVariance(biasMap[~offsetFlag])
         
 
 
@@ -1101,7 +1081,7 @@ class PhotometricPipeline(object):
 
         else:
 
-            offsetValueFastCadence, offsetVarianceFastCadence = applyShiftedDataAlgorithm(biasMap.ravel())
+            offsetValueFastCadence, offsetVarianceFastCadence = accurateMeanAndVariance(biasMap.ravel())
 
         return offsetValueFastCadence, offsetVarianceFastCadence
 
@@ -1210,11 +1190,11 @@ class PhotometricPipeline(object):
                 
     #         else: 
 
-    #                 smearingPatternFastCadence, stdDevPrevious = applyShiftedDataAlgorithmPerColumn(ctiCorrectedSmearingMap[self.smearingNumRowsSkipped:, column][~smearingFlag])
+    #                 smearingPatternFastCadence, stdDevPrevious = accurateMeanAndVariance(ctiCorrectedSmearingMap[self.smearingNumRowsSkipped:, column][~smearingFlag], axis=0)
 
     #     else:
 
-    #             smearingPatternFastCadence, stdDevPrevious = applyShiftedDataAlgorithmPerColumn(ctiCorrectedSmearingMap[self.smearingNumRowsSkipped:])
+    #             smearingPatternFastCadence, stdDevPrevious = accurateMeanAndVariane(ctiCorrectedSmearingMap[self.smearingNumRowsSkipped:], axis=0)
 
 
     def calculateSmearing(self, smearingMap, offsetValueFastCadence, stdDevPrevious):
@@ -1302,11 +1282,11 @@ class PhotometricPipeline(object):
                 
                 else: 
 
-                    smearingPatternFastCadence[column], stdDevPrevious[column] = applyShiftedDataAlgorithm(ctiCorrectedSmearingMap[self.smearingNumRowsSkipped:, column][~smearingFlag])
+                    smearingPatternFastCadence[column], stdDevPrevious[column] = accurateMeanAndVariance(ctiCorrectedSmearingMap[self.smearingNumRowsSkipped:, column][~smearingFlag])
 
             else:
 
-                smearingPatternFastCadence[column], stdDevPrevious[column] = applyShiftedDataAlgorithm(ctiCorrectedSmearingMap[self.smearingNumRowsSkipped:, column])
+                smearingPatternFastCadence[column], stdDevPrevious[column] = accurateMeanAndVariance(ctiCorrectedSmearingMap[self.smearingNumRowsSkipped:, column])
 
 
 
@@ -1868,14 +1848,14 @@ class PhotometricPipeline(object):
 
     #         flagLastLongCadence = fluxFlagShortCadence[-int(self.numExposuresLongCadence) :]        # Flag for the last 600s
             
-    #         fluxValueLongCadence, fluxVarianceLongCadence, numUsefulDatapointsLongCadence = applyShiftedDataAlgorithm(fluxArrayLastLongCadence, flagLastLongCadence)
+    #         fluxValueLongCadence, fluxVarianceLongCadence, numUsefulDatapointsLongCadence = accurateMeanAndVariance(fluxArrayLastLongCadence, flagLastLongCadence)
     #         numFlaggedDatapointsLongCadence = np.sum(flagLastLongCadence)
 
     #     # Outlier detection disabled
 
     #     else:
             
-    #         fluxValueLongCadence, fluxVarianceLongCadence, numUsefulDatapointsLongCadence = applyShiftedDataAlgorithm(fluxArrayLastLongCadence)
+    #         fluxValueLongCadence, fluxVarianceLongCadence, numUsefulDatapointsLongCadence = accurateMeanAndVariance(fluxArrayLastLongCadence)
     #         numFlaggedDatapointsLongCadence = 0
 
     #     return fluxValueLongCadence, fluxVarianceLongCadence, numUsefulDatapointsLongCadence, numFlaggedDatapointsLongCadence
