@@ -824,7 +824,7 @@ class PhotometricPipeline(object):
         offsetValueFastCadence = self.calculateOffset(serialPreScan)[0]
         self.offsetValueArrayFastCadence = np.append(self.offsetValueArrayFastCadence, offsetValueFastCadence)
 
-       return None
+        return None
 
 
 
