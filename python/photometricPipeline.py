@@ -113,7 +113,26 @@ def applyMadClippingAroundMedian(data, threshold, index = None):
 
 
 
+def createDirectory(path):
 
+    """
+    PURPOSE: Create the given directory.
+
+    INPUT:
+        - path: Directory to create
+    """
+
+    try: 
+        os.makedirs(path)
+
+    except OSError as ose:
+
+        print (ose)
+
+        if not os.path.isdir(path):
+            raise Exception("Couldn't create directory {}".format(path))
+
+    return
 
 
 
@@ -195,8 +214,7 @@ class PhotometricPipeline(object):
         """
 
         if not os.path.exists(path):
-
-            self.createDirectory(path)
+            createDirectory(path)
         
         self.targetOutputFilesLocation = path
         self.hasTargetLocation = True
@@ -431,28 +449,6 @@ class PhotometricPipeline(object):
 
 
 
-
-
-    def createDirectory(self, path):
-
-        """
-        PURPOSE: Create the given directory.
-
-        INPUT:
-            - path: Directory to create
-        """
-
-        try: 
-            os.makedirs(path)
-
-        except OSError as ose:
-
-            print (ose)
-
-            if not os.path.isdir(path):
-                raise Exception("Couldn't create directory {}".format(path))
-
-        return
 
 
 
