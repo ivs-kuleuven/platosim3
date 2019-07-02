@@ -4,18 +4,16 @@ Photometric pipeline.
 Example usage:
 
     >>> from photometricPipeline import *
-    >>> photometricPipeline = PhotometricPipeline(runName, configurationFile, simulationFile, outputDir)
-    >>> photometricPipeline.run()
+    >>> photPipe = PhotometricPipeline(runName, configurationFile, simulationFile, outputDir)
+    >>> photPipe.run()
+
 with
-    - runName: Arbitrary name for this run of the photometric pipeline (will be used as name for the output HDF5 file)
-    - configurationFile: Configuration file for the photometric pipeline (e.g. /inputfiles/photometricPipeline.yaml)
-    - simulationFile: Filename of the HDF5 output file of PlatoSim
-    - outputDir: Output directory
+    - runName:           Arbitrary name for this photometric extraction run (will be used as output file name)
+    - configurationFile: Photometric configuration file (e.g. /inputfiles/photometricPipeline.yaml)
+    - simulationFile:    PlatoSim HDF5 output filename
+    - outputDir:         Output directory for the results of the photometric extraction
 """
 
-#########
-# Imports
-#########
 
 from simfile import SimFile
 import numpy as np
@@ -119,19 +117,23 @@ def applyMadClippingAroundMedian(data, threshold, index = None):
 
 
 
+
+
+
+
+
 class PhotometricPipeline(object):
     
     def __init__(self, runName, configurationFile, simulationFile, outputDir = None):
 
         """
-        PURPOSE: Initialisation of the class variables and readong of the default input files.
+        PURPOSE: Initialisation of the class variables and reading of the default input files.
 
         INPUT:
-            - runName: Name of the run of the photometric pipeline (will be used as name for the output file)
-            - configurationFile: Name of the configuration file to run the photometric pipeline
-            - simulationFile: Name of the output file of PlatoSim (this file contains the serial pre-scan,
-                              parallel over-scan, and fluxes in a simulated sub-field on the CCD)
-            - outputDir: Directory in which the results of the photometric pipeline will be stored
+            - runName:           Arbitrary name for this photometric extraction run (will be used as output file name)
+            - configurationFile: Photometric configuration file (e.g. /inputfiles/photometricPipeline.yaml)
+            - simulationFile:    PlatoSim HDF5 output filename
+            - outputDir:         Output directory for the results of the photometric extraction
         """
 
         # Run name
