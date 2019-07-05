@@ -43,9 +43,6 @@ sim["Sky/IncludeCosmicsInBiasMap"]                = "no"
 
 sim["Platform/UseJitter"]                         = "yes"
 sim["Platform/UseJitterFromFile"]                 = "no"
-sim["Platform/JitterYawRms"]                      = 1.0 
-sim["Platform/JitterPitchRms"]                    = 1.0
-sim["Platform/JitterRollRms"]                     = 0.5
 
 sim["Telescope/GroupID"]                          = 1
 sim["Telescope/UseDrift"]                         = "no"
