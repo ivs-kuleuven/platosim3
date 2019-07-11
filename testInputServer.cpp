@@ -26,7 +26,7 @@
 std::string serverInputFileName = std::getenv("PLATO_PROJECT_HOME") + std::string("/starPositions.txt");
 
 // initialize after how many exposures the subfield size will change
-int changeSizeAtExposure = 2;
+int changeSizeAtExposure = 20000;
 
 int main () 
 {
@@ -130,23 +130,23 @@ int main ()
         // dependend on how many exposures are already done, take respective size and position of the vector entry
         if (std::get<1>(*it) < changeSizeAtExposure)
         {
-            strSubFieldCols = std::get<1>(starPositionVec.at(std::get<1>(*it)));
-            strSubFieldRows = std::get<2>(starPositionVec.at(std::get<1>(*it)));
-            strColPos = std::get<3>(starPositionVec.at(std::get<1>(*it)));
-            strRowPos = std::get<4>(starPositionVec.at(std::get<1>(*it)));
-            strOffsetX = std::get<9>(starPositionVec.at(std::get<1>(*it)));
-            strOffsetY = std::get<10>(starPositionVec.at(std::get<1>(*it)));
-            strOrientation = std::get<11>(starPositionVec.at(std::get<1>(*it)));
+            strSubFieldCols = std::get<1>(starPositionVec.at(std::distance(identityVec.begin(), it)));
+            strSubFieldRows = std::get<2>(starPositionVec.at(std::distance(identityVec.begin(), it)));
+            strColPos = std::get<3>(starPositionVec.at(std::distance(identityVec.begin(), it)));
+            strRowPos = std::get<4>(starPositionVec.at(std::distance(identityVec.begin(), it)));
+            strOffsetX = std::get<9>(starPositionVec.at(std::distance(identityVec.begin(), it)));
+            strOffsetY = std::get<10>(starPositionVec.at(std::distance(identityVec.begin(), it)));
+            strOrientation = std::get<11>(starPositionVec.at(std::distance(identityVec.begin(), it)));
         }
         else
         {
-            strSubFieldCols = std::get<5>(starPositionVec.at(std::get<1>(*it)));
-            strSubFieldRows = std::get<6>(starPositionVec.at(std::get<1>(*it)));
-            strColPos = std::get<7>(starPositionVec.at(std::get<1>(*it)));
-            strRowPos = std::get<8>(starPositionVec.at(std::get<1>(*it)));
-            strOffsetX = std::get<9>(starPositionVec.at(std::get<1>(*it)));
-            strOffsetY = std::get<10>(starPositionVec.at(std::get<1>(*it)));
-            strOrientation = std::get<11>(starPositionVec.at(std::get<1>(*it)));
+            strSubFieldCols = std::get<5>(starPositionVec.at(std::distance(identityVec.begin(), it)));
+            strSubFieldRows = std::get<6>(starPositionVec.at(std::distance(identityVec.begin(), it)));
+            strColPos = std::get<7>(starPositionVec.at(std::distance(identityVec.begin(), it)));
+            strRowPos = std::get<8>(starPositionVec.at(std::distance(identityVec.begin(), it)));
+            strOffsetX = std::get<9>(starPositionVec.at(std::distance(identityVec.begin(), it)));
+            strOffsetY = std::get<10>(starPositionVec.at(std::distance(identityVec.begin(), it)));
+            strOrientation = std::get<11>(starPositionVec.at(std::distance(identityVec.begin(), it)));
         }
 
         // compose a message to the simulation client
