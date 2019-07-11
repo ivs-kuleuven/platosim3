@@ -21,13 +21,31 @@
 
 #endif
 
-
 std::string jitterFileName = std::getenv("PLATO_PROJECT_HOME") + std::string("/inputfiles/ohb18jun.txt");
-int numberOfSteps = 80;
-int numberOfSimulations = 2;
+int numberOfSteps = 2000;
+
+int numberOfSimulations;
+
+double* elapsedTime;
+
+bool* endOfSimulation;
+
+int stepWitdthMilliSeconds = 125;
 
 
-int main () 
+void timeFunction()
+{
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
+    while(!*endOfSimulation)
+    {
+        std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+
+        *elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(now - begin).count();
+    }
+}
+
+void workFunction()
 {
     //  Prepare our context and socket
     zmq::context_t context (1);
@@ -44,8 +62,6 @@ int main ()
     std::vector<double> yawVec;
     std::vector<double> pitchVec;
     std::vector<double> rollVec;
-
-    int endOfSimulation = 0;
 
     // read the file line by line and save the values in the respective vector
     while (infile >> step >> yaw >> pitch >> roll)
@@ -82,7 +98,7 @@ int main ()
     std::vector<std::tuple<std::string, int, bool> >identityVec;
 
 
-    while(!lastStepToLastClient)
+    while(!*endOfSimulation)
     {
         zmq::message_t request;
 
@@ -142,6 +158,11 @@ int main ()
         zmq::message_t identityMessage(identity.size());
         memcpy (identityMessage.data(), identity.data(), identity.size());
 
+        while((*elapsedTime < (std::get<1>(*it) * stepWitdthMilliSeconds)))
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        
         socket.send(identityMessage, ZMQ_SNDMORE);
 
         // send delimiter
@@ -165,9 +186,37 @@ int main ()
 
         if (boolIt == identityVec.end())
         {
-            lastStepToLastClient = true;
+            *endOfSimulation = true;
         }
 
+    }
+
+}
+
+int main()
+{
+    *elapsedTime = 0;
+
+    *endOfSimulation = false;
+
+    // initialize the threads
+    std::thread* timeThread = NULL;
+    std::thread* workThread = NULL;
+
+    std::vector<std::thread*> threadVec;
+
+    // start the time measurement
+    timeThread = new std::thread(timeFunction);
+    threadVec.push_back(timeThread);
+
+    // start the 
+    workThread = new std::thread(workFunction);
+    threadVec.push_back(workThread);    
+
+    for (auto &i : threadVec)
+    {
+        i->join();
+        delete(i);
     }
 
     return 0;
