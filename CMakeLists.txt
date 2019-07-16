@@ -190,6 +190,6 @@ add_executable(testImagetteClient ${imagetteClientMain})
 target_link_libraries(testplatosim platosimLibrary hdf5 hdf5_cpp armadillo yaml-cpp fftw3f fftw3f_threads gtest gtest_main pthread)
 target_link_libraries(platosim platosimLibrary hdf5 hdf5_cpp armadillo yaml-cpp fftw3f fftw3f_threads pthread Faddeeva zmq)
 target_link_libraries(testInputServer zmq)
-target_link_libraries(testJitterServer zmq)
+target_link_libraries(testJitterServer zmq pthread)
 target_link_libraries(testImagetteClient zmq)
 
