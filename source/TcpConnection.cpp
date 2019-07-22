@@ -83,7 +83,6 @@ void TcpConnection::connectToJitterServer(bool active)
 
             // reset to the initial parameters
             *notifiedPointer = false;
-            lock.unlock();
             bool validStep = false;
 
             Log.info("TcpConnection: request jitter step");
@@ -201,7 +200,6 @@ void TcpConnection::connectToImagetteClient(bool active)
             }
 
             *notifiedPointer = false;
-            lock.unlock();
             
             // if the thread is notified by the detector and the end of the simulation has been declared (by jitterFromNetwork or the Simulation)
             // this ends the loop and closes the thread as soon as the last imagette is sent
@@ -324,7 +322,7 @@ void TcpConnection::connectToInputServer(bool active)
 
             // reset to the initial parameters
             *notifiedPointer = false;
-            lock.unlock();
+
             bool validStep = false;
 
             int imagetteNumber = detectorInstance->getCurrentImagetteNumber();
@@ -364,12 +362,11 @@ void TcpConnection::connectToInputServer(bool active)
 
             numRows = currentInputVec.at(1);
 
-
             Log.info("TcpConnection: got new input step");
             
             // notify the simulation thread
             *newStepPointer = true;
-            
+
             condVarPointer->notify_one();
 
         }
