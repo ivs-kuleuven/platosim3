@@ -2617,12 +2617,18 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
 
     if (sendImagettesToClient)
     {
-        Log.info("Detector: notify client thread");
+        Log.info("Detector: notify imagette thread");
 
-        // give the signal to the client, that a new imagette is ready
-        *notifiedImagetteClientPointer = true;
+        {
 
-        *newImagettePointer = false;
+            std::lock_guard<std::mutex> lck1(*mImagetteClientPointer);
+
+            // give the signal to the client, that a new imagette is ready
+            *notifiedImagetteClientPointer = true;
+
+            *newImagettePointer = false;
+
+        } 
 
         // notify the tcp connection thread
         condVarImagetteClientPointer->notify_one();
@@ -2630,7 +2636,7 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
         // declare a lock for this thread
         std::unique_lock<std::mutex> lock(*mImagetteClientPointer);
 
-        Log.info("Detector: wait for message from client thread");
+        Log.info("Detector: wait for message from imagette thread");
 
         // wait for the tcp connection thread to notify this thread so that the simulation can continue
         while(!*newImagettePointer)
@@ -2638,7 +2644,7 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
             condVarImagetteClientPointer->wait(lock);
         }
 
-        Log.info("Detector: got notified from client thread");
+        Log.info("Detector: got notified from imagette thread");
     }
 
     if (numRowsSmearingMap != 0)
@@ -2873,10 +2879,16 @@ int Detector::getCurrentImagetteNumber()
  */
 void Detector::notifyInputServer()
 {
-    // give the signal to the input server, that new input can be send
-    *notifiedInputServerPointer = true;
+    
+    {
+        std::lock_guard<std::mutex> lck1(*mInputServerPointer);
 
-    *newInputPointer = false;
+        // give the signal to the input server, that new input can be send
+        *notifiedInputServerPointer = true;
+
+        *newInputPointer = false;
+
+    }
 
     // notify the tcp connection thread
     condVarInputServerPointer->notify_one();
@@ -2884,11 +2896,26 @@ void Detector::notifyInputServer()
     // declare a lock for this thread
     std::unique_lock<std::mutex> lock(*mInputServerPointer);
 
-    Log.info("Detector: wait for message from client thread");
+    Log.info("Detector: wait for message from input thread");
+
+    std::chrono::steady_clock::time_point startTimeOut = std::chrono::steady_clock::now();
 
     // wait for the tcp connection thread to notify this thread so that the simulation can continue
     while(!*newInputPointer)
     {       
         condVarInputServerPointer->wait(lock);
+
+        std::chrono::steady_clock::time_point endTimeOut = std::chrono::steady_clock::now();
+
+        double timeOut = std::chrono::duration_cast<std::chrono::milliseconds>(endTimeOut-startTimeOut).count();
+
+        if(timeOut > 125)
+        {
+            Log.info("Detector: went over the time limit: " + std::to_string(timeOut));
+
+            *newInputPointer = true;
+        }
     }
+
+    Log.info("Detector: got notified by input server");
 }

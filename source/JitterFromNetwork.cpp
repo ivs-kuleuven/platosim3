@@ -75,9 +75,14 @@ tuple<double, double, double> JitterFromNetwork::getNextYawPitchRoll(double time
 		if (!endOfSimulation)
 		{	
 
-			*notifiedPointer = true;
+            {
+                std::lock_guard<std::mutex> lck1(*mutexPointer);
 
-			*newStepPointer = false;		
+			    *notifiedPointer = true;
+
+			    *newStepPointer = false;
+
+            }		
 			
 			Log.info("JitterFromNetwork: notify jitter thread");
 
