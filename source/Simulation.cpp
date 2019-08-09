@@ -405,6 +405,8 @@ void Simulation::run()
 
     currentTime = beginExposureNr * (exposureTime + readoutTimeBeforeNextExposure);
 
+    Log.info("Simulation: running exposures " + to_string(beginExposureNr) + " to " + to_string(beginExposureNr+numExposures-1));
+
     // Loop over all exposures
 
     for (int n = beginExposureNr; n < beginExposureNr + numExposures; n++)
