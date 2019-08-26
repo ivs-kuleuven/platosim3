@@ -52,8 +52,8 @@ Telescope:
 
     LightCollectingArea:             113.1           # Effective area of 1 telescope [cm^2]
     TransmissionEfficiency:
-        BOL:                         0.8162          # Beginning of Life value in [0,1]
-        EOL:                         0.7975          # End of Life value in [0,1]
+        BOL:                         0.8135          # Beginning of Life value in [0,1]
+        EOL:                         0.7945          # End of Life value in [0,1]
     UseDrift:                        no              # yes or no. If no, ignore everything below.
     UseDriftFromFile:                no              # yes or no. If yes: ignore RMS and timescale below
     DriftYawRms:                     2.0             # RMS of thermo-elastic drift in yaw [arcsec]
@@ -74,7 +74,7 @@ Camera:
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
         ConstantValue:               0.24752         # Used in case Source is ConstantValue (from ZEMAX model) [m]
         FromFile:                    inputfiles/focallength.txt # Used in case Source is FromFile: time [s] & focalLenght [m]
-    ThroughputBandwidth:             498             # FWHM [nm]
+    ThroughputBandwidth:             532             # FWHM [nm]
     ThroughputLambdaC:               550             # Central wavelength of the throughput passband [nm]
     IncludeAberrationCorrection:     yes             # Calculate the differential aberration correction and apply
     AberrationCorrection:
@@ -156,10 +156,10 @@ CCD:
     Gain:                           
         RefValueLeft:                1.80            # [microV/e-]
         RefValueRight:               1.80            # [microV/e-]
-        Stability:                   -0.004          # [microV/e-/K]
+        Stability:                   -0.001          # [microV/e-/K]
         AllowedDifference:           15.0            # Difference in gain between both CCD halves [%]
     QuantumEfficiency:
-        MeanQuantumEfficiency:       0.5985          # Mean quantum efficiency
+        MeanQuantumEfficiency:       0.6218          # Mean quantum efficiency
         MeanAngleDependency:         1.01            # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE
     FullWellSaturation:              900000          # [e-/pixel]
     DigitalSaturation:               65535           # E.g. 16 bit [ADU/pixel]
