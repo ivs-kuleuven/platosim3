@@ -53,8 +53,8 @@ Telescope:
     TiltAngle:                   0.0             # Tilt angle of the telescope on the platform [deg]
     LightCollectingArea:         113.1           # Effective area of 1 telescope [cm^2]
     TransmissionEfficiency:
-        BOL:                         0.8162      # Beginning of Life value in [0,1]
-        EOL:                         0.7975      # End of Life value in [0,1]
+        BOL:                         0.8135      # Beginning of Life value in [0,1]
+        EOL:                         0.7945      # End of Life value in [0,1]
     UseDrift:                    no              # yes or no
     UseDriftFromFile:            no              # yes or no, if yes: ignore RMS and timescale below
     DriftYawRms:                 2.3             # RMS of thermo-elastic drift in yaw [arcsec]
@@ -75,8 +75,8 @@ Camera:
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
         ConstantValue:               0.24752         # Used in case Source is ConstantValue (from ZEMAX model) [m]
         FromFile:                    inputfiles/focallength.txt # Used in case Source is FromFile: time [s] & focalLenght [m]
-    ThroughputBandwidth:         550             # FWHM [nm]
-    ThroughputLambdaC:           498             # Central wavelength of the throughput passband [nm]
+    ThroughputBandwidth:         532             # FWHM [nm]
+    ThroughputLambdaC:           550             # Central wavelength of the throughput passband [nm]
     AberrationCorrection:
         Type:                        differential    # [differential, absolute]
     IncludeAberrationCorrection:     no              # Calculate the differential aberration correction and apply
@@ -151,14 +151,11 @@ CCD:
     Gain:                           
         RefValueLeft:                1.80            # [microV/e-]
         RefValueRight:               1.80            # [microV/e-]
-        Stability:                   -0.004          # [microV/e-/K]
+        Stability:                   -0.001          # [microV/e-/K]
         AllowedDifference:           15.0            # Difference in gain between both CCD halves [%]
     QuantumEfficiency:
-        #RelativeRefEfficiency:       0.925            # Relative efficiency due to angle dependency of the QE at the reference angle
-        #RefAngle:                    45.0             # Reference angle for quantum efficiency [degrees]
-        MeanQuantumEfficiency:        0.5985           # Mean quantum efficiency
-        MeanAngleDependency:          1.01             # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE at the reference angle
-        #ExpectedValue:               0.993 * 0.5895   # Expected value (mean over all pixels of one detector)
+        MeanQuantumEfficiency:       0.6218          # Mean quantum efficiency
+        MeanAngleDependency:         1.01            # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE
     FullWellSaturation:          900000          # [e-/pixel]
     DigitalSaturation:           65535           # E.g. 16 bit [ADU/pixel]
     ReadoutNoise:                38.7            # [e-/pixel]
@@ -177,9 +174,7 @@ CCD:
         MechanicalVignetting:                        # Blocking of the light due to mechanical obstruction at the edge of the FOV
             RadiusFOV:               18.8876         # Radius of the FOV [degrees]
     Polarization:
-      #Efficiency:                    0.978           # Throughput efficiency caused by polarisation at the reference angle
-      #RefAngle:                     18.8875          # Reference angle for polarisation [degrees]
-      ExpectedValue:                 0.989            # Expected value (mean of all detector pixels)
+     ExpectedValue:                 0.989            # Expected value (mean of all detector pixels)
     Contamination:
         ParticulateContaminationEfficiency: 0.972    # Throughput efficiency due to particulate contamination
         MolecularContaminationEfficiency:   0.9573   # Throughput efficiency due to molecular contamination
