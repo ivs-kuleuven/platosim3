@@ -511,6 +511,11 @@ tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addFlux(double x
     row0 -= subFieldZeroPointRow;
     column0 -= subFieldZeroPointColumn;
 
+    if ((row0 < 0) || (column0 < 0) || (row0 >= int(numRowsPixelMap)) || (column0 >= int(numColumnsPixelMap)))
+        return make_tuple(false, row0, column0);
+
+    // Check if the star is far enough from the edge to fully take the PSF into account
+
     double s = (*sigma)();
     double d = 0.;
 
@@ -526,6 +531,8 @@ tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addFlux(double x
 
     if (sx + size <= 0 || sx >= (int)numColumnsPixelMap || sy + size <= 0 || sy >= (int)numRowsPixelMap)
         return make_tuple(false, row0, column0);
+
+    // Construct the PSF around the central pixel coordinates
 
     IntegralOfAnalyticSignalResponse psf(size, d);
     double r = rad2deg(camera.getGnomonicRadialDistanceFromOpticalAxis(xFP, yFP));
