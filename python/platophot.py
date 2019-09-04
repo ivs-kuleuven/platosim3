@@ -383,7 +383,10 @@ def getPhotometryTimeSeries(photometryFile, starID):
             starID:  star identifier (integer, e.g. 9789)
 
      OUTPUT: time: a numpy np.array containing the time points [s]
-             flux: a numpy np.array containing the flux points [electrons/exposure]
+             trueRow: the true (but in reality unknown) row positions (subfield not CCD) of the star [pix]
+             trueCol: the true (but in reality unknown) column positions (subfield not CCD) of the star [pix]
+             trueFlux: the true (but in reality unknown) fluxes of the stars [e-/exposure]
+             outputFlux: the estimated fluxes of the stars [e-/exposure]
 
      REMARK: To find out which star identifiers are in the photometry file, look in the HDF5 simulation
              output file of PlatoSim: 
