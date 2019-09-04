@@ -97,6 +97,9 @@ def photometry(inputFilePath, outputFilePath, targetIDs, maxNexposures = None, c
     beginExposureNr = inputFile["/InputParameters/ObservingParameters/"].attrs["BeginExposureNr"]
     Nexposures = inputFile["/InputParameters/ObservingParameters/"].attrs["NumExposures"]
 
+    photometryGroup.attrs["beginExposureNr"] = beginExposureNr
+    photometryGroup.attrs["Nexposures"] = Nexposures
+
     if (maxNexposures is not None):
         if maxNexposures < Nexposures:
             Nexposures = maxNexposures       # Cap the # exposures to a user-set limit
@@ -389,15 +392,17 @@ def getPhotometryTimeSeries(photometryFile, starID):
 
     photFile = h5py.File(photometryFile)
     allTimePoints = np.array(photFile["/Photometry/time"])
-    Nimages = len(allTimePoints)
 
+    beginExposureNr = photFile['Photometry'].attrs['beginExposureNr'] 
+    Nexposures = photFile['Photometry'].attrs['Nexposures']
+    
     time = []
     outputFlux = []
     trueFlux = []
     trueRow = []
     trueCol = []
 
-    for k in range(Nimages):
+    for k in range(beginExposureNr, beginExposureNr + Nexposures):
         allStarIDsInImage = np.array(photFile["/Photometry/Exposure{0:06d}/starID".format(k)])
         if starID in allStarIDsInImage:
             estimatedFlux = np.array(photFile["/Photometry/Exposure{0:06d}/estimatedFlux".format(k)])
@@ -410,7 +415,7 @@ def getPhotometryTimeSeries(photometryFile, starID):
             trueRow.append(inputRow[np.where(allStarIDsInImage==starID)][0])
             trueCol.append(inputCol[np.where(allStarIDsInImage==starID)][0])
             
-            time.append(np.array(photFile["/Photometry/time"])[k])
+            time.append(allTimePoints[k-beginExposureNr])
 
     outputFlux = np.array(outputFlux)
     trueRow = np.array(trueRow)
