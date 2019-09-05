@@ -482,6 +482,13 @@ tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yF
     pixRow -= subFieldZeroPointRow;
     pixColumn -= subFieldZeroPointColumn;
 
+    // Check if the star falls in the subfield. If not, don't add any flux, but simply return.
+
+    if (!isInPixelMap(pixRow, pixColumn))
+    {
+        return make_tuple(false, pixRow, pixColumn);
+    }
+
     // Sub-field coordinates, taking into account the edge pixels 
     // (subpixRow, subpixColumn) are the indices of the star in the subpixelMap. So they are not 
     // sub-pixel coordinates in the CCD frame, but in the subfield reference frame.

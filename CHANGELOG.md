@@ -10,6 +10,19 @@
 
 * Input file of the photometry tutorial needs to be updated (GitHub issue #368)
 
+## Changed
+
+* Input parameter update (GitHub issue #377):
+  + wavelength range
+  + irradiance over the PLATO wavelength range (PIS only; nothing changes for PlatoSim)
+  + added: orientation angle of the solar panels
+  + transmission efficiency
+  + throughput bandwidth
+  + FEE readout noise
+  + gain + stability of the CCD gain
+  + QE
+  + digital saturation for fast cameras (this is now the same as for the normal cameras)
+
 
 
 
