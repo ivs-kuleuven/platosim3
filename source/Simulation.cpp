@@ -700,10 +700,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addString("ParameterFileName");
     addDouble("ChargeDiffusionStrength");
-<<<<<<< HEAD
     addBoolean("IncludeChargeDiffusion");
-=======
->>>>>>> 8b6f42ec72e2b0c9664e4a973b4167d3a148ffa0
     subGroup = "PSF/AnalyticNonGaussian/Sigma";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addString("Source");
