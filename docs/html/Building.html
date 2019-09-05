@@ -126,6 +126,10 @@ $(document).ready(function(){initNavTree('Building.html','');});
 <li>and run the install script again (as described above for the first-time installation).</li>
 </ul>
 <hr/>
+<h2>Running the Test Harnesses</h2>
+<p>In order to be able to run the test harnesses, you must first build the code (see above) and export the required environment variables, as explained <a class="el" href="ReqsRun.html">here</a>.</p>
+<p>The actual command to run the tests must be executed in the <code>/build</code> directory:</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;./testplatosim</div></div><!-- fragment --><hr/>
 <h2>Troubleshooting</h2>
 <h3>Not Using the System Default Compiler</h3>
 <p>If you want to use a different compiler than the system default to execute the steps described above, you have to export two additional environment variables, <code>CCX</code> and <code>CC</code>, as follows:</p>

@@ -85,6 +85,7 @@ class Detector: public HDF5Writer
         virtual void addFlux(double flux) = 0;
 
 
+        bool isInPixelMap(double row, double column);
         bool isInSubfield(double xFPmm, double yFPmm);
 
         double getReadoutTimeBeforeNextExposure();
