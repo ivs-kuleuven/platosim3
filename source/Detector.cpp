@@ -785,6 +785,40 @@ bool Detector::isInSubfield(double xFP, double yFP)
 
 
 
+
+
+
+
+
+
+ /**
+ * \brief   Check whether the given (row, column) indices are within the array range of the pixel map.
+ *
+ * \details  The input parameters row & column come from a coordinate transformation
+ *           in the focal plane, and as a result are not necessarily integers. For this 
+ *           function it's not necessary to round them to the nearest integer. 
+ *
+ * \param  row:    Row index. NOT a coordinate in the CCD frame, but in the subfield frame.    [pixel].
+ * \param  column: Column index. NOT a coordinate in the CCD frame, but in the subfield frame. [pixel].
+ *
+ * \return  True if the given (row, column) coordinates are in the pixel map; false otherwise.
+ */
+
+bool Detector::isInPixelMap(double row, double column)
+{
+    return (column >= 0) && (row >= 0) && (column < numColumnsPixelMap) && (row < numRowsPixelMap);
+}
+
+
+
+
+
+
+
+
+
+
+
 /**
  * \brief Apply throughput efficiency. This is the combined effect of:
  *          - vignetting (brightness attenuation towards the edges of the FOV);
