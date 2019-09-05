@@ -405,6 +405,8 @@ void Simulation::run()
 
     currentTime = beginExposureNr * (exposureTime + readoutTimeBeforeNextExposure);
 
+    Log.info("Simulation: running exposures " + to_string(beginExposureNr) + " to " + to_string(beginExposureNr+numExposures-1));
+
     // Loop over all exposures
 
     for (int n = beginExposureNr; n < beginExposureNr + numExposures; n++)
@@ -697,6 +699,8 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     subGroup = "PSF/AnalyticNonGaussian";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addString("ParameterFileName");
+    addDouble("ChargeDiffusionStrength");
+    addBoolean("IncludeChargeDiffusion");
     subGroup = "PSF/AnalyticNonGaussian/Sigma";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addString("Source");

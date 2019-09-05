@@ -534,6 +534,8 @@ tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addFlux(double x
     if (sx + size <= 0 || sx >= (int)numColumnsPixelMap || sy + size <= 0 || sy >= (int)numRowsPixelMap)
         return make_tuple(false, row0, column0);
 
+    // Construct the PSF around the central pixel coordinates
+
     IntegralOfAnalyticSignalResponse psf(size, d);
     double r = rad2deg(camera.getGnomonicRadialDistanceFromOpticalAxis(xFP, yFP));
     double p = atan2(yFP, xFP);
