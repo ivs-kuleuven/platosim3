@@ -511,6 +511,13 @@ tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addFlux(double x
     row0 -= subFieldZeroPointRow;
     column0 -= subFieldZeroPointColumn;
 
+    // Check if the star falls in the subfield. If not, don't add any flux, but simply return.
+
+    if (!isInPixelMap(row0, column0))
+    {
+        return make_tuple(false, row0, column0);
+    }
+
     double s = (*sigma)();
     double d = 0.;
 
@@ -541,35 +548,6 @@ tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addFlux(double x
             pixelMap.at(y, x) += psf(x - sx, y - sy) * flux;
 
     return make_tuple(true, row0, column0);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * \brief   Check whether the given (row, column) indices are within the array range of the pixel map.
- *
- * \details  The input parameters row & column come from a coordinate transformation
- *           in the focal plane, and as a result are not necessarily integers. For this 
- *           function it's not necessary to round them to the nearest integer. 
- *
- * \param  row:    Row index. NOT a coordinate in the CCD frame, but in the subfield frame.    [pixel].
- * \param  column: Column index. NOT a coordinate in the CCD frame, but in the subfield frame. [pixel].
- *
- * \return  True if the given (row, column) coordinates are in the pixel map; false otherwise.
- */
-
-bool DetectorWithAnalyticNonGaussianPSF::isInPixelMap(double row, double column)
-{
-    return (column >= 0) && (row >= 0) && (column < numColumnsPixelMap) && (row < numRowsPixelMap);
 }
 
 
