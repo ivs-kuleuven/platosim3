@@ -3,6 +3,7 @@ import math
 import numpy as np
 
 from numpy import *
+from math import sin, cos, tan, arcsin, arccos, arctan2, sqrt, pi
 from numpy.polynomial import Polynomial
 
 import matplotlib.pyplot as plt
