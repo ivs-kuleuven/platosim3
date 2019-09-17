@@ -2,13 +2,14 @@
 import math
 import numpy as np
 
-from numpy import *
 from numpy.polynomial import Polynomial
+from numpy import array
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
 from matplotlib.path import Path
+from math import sin, cos, tan, sqrt, pi
 
 
 
@@ -107,7 +108,7 @@ def ecliptic2equatorial(lam, beta):
     obliquity = 0.409087723                  # Obliquity of the ecliptic = 23.439 deg  [rad]
  
     sindelta = sin(beta) * cos(obliquity) + cos(beta) * sin(obliquity) * sin(lam)
-    delta = arcsin(sindelta)
+    delta = np.arcsin(sindelta)
     cosdelta = cos(delta)
 
     if (cosdelta == 0.0):
@@ -117,7 +118,7 @@ def ecliptic2equatorial(lam, beta):
     sinalpha = (-sin(beta) * sin(obliquity) + cos(beta) * cos(obliquity) * sin(lam)) / cosdelta
     cosalpha = cos(lam) * cos(beta) / cosdelta
 
-    alpha = arctan2(sinalpha, cosalpha)
+    alpha = np.arctan2(sinalpha, cosalpha)
 
     if (alpha < 0.0): alpha += 2.0 * 3.141592653589793
 
@@ -152,7 +153,7 @@ def equatorial2ecliptic(alpha, delta):
     obliquity = 0.409087723                   # Obliquity of the ecliptic = 23.439 deg  [rad]
  
     sinbeta = sin(delta) * cos(obliquity) - cos(delta) * sin(obliquity) * sin(alpha)
-    beta = arcsin(sinbeta)
+    beta = np.arcsin(sinbeta)
     cosbeta = cos(beta)
 
     if (cosbeta == 0.0):
@@ -162,7 +163,7 @@ def equatorial2ecliptic(alpha, delta):
     sinlambda = (sin(delta) * sin(obliquity) + cos(delta) * cos(obliquity) * sin(alpha)) / cosbeta
     coslambda = cos(alpha) * cos(delta) / cosbeta
 
-    lam = arctan2(sinlambda, coslambda)
+    lam = np.arctan2(sinlambda, coslambda)
 
     if (lam < 0.0): lam += 2.0 * 3.141592653589793
 
@@ -387,8 +388,8 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, solarPanelOrie
     # Convert the cartesian equatorial coordinates to equatorial sky coordinates
 
     norm = sqrt(vecEQ[0]*vecEQ[0] + vecEQ[1]*vecEQ[1] + vecEQ[2]*vecEQ[2]) 
-    decStar = pi/2.0 - arccos(vecEQ[2]/norm);
-    raStar = arctan2(vecEQ[1], vecEQ[0]);
+    decStar = pi/2.0 - np.arccos(vecEQ[2]/norm);
+    raStar = np.arctan2(vecEQ[1], vecEQ[0]);
 
     # Ensure that the right ascension is positive
 
@@ -435,7 +436,7 @@ def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoeffici
     coefficients = [0, 0, 0, distortionCoefficients[0], 0, distortionCoefficients[1], 0, distortionCoefficients[2]]
     distortionPolynomial = Polynomial(coefficients)
 
-    angle = arctan2(yFPmm, xFPmm)    # Position angle on the focal plane [radians]
+    angle = np.arctan2(yFPmm, xFPmm)    # Position angle on the focal plane [radians]
     
     rFP = sqrt(xFPmm**2 + yFPmm**2) / focalLength              # Undistorted radial distance [normalised pixels]
     distortion = distortionPolynomial(rFP) * focalLength       # Distortion [mm]
@@ -472,7 +473,7 @@ def distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, inverseDistort
     inverseCoefficients = [0, 0, 0, inverseDistortionCoefficients[0], 0, inverseDistortionCoefficients[1], 0, inverseDistortionCoefficients[2]]
     inverseDistortionPolynomial = Polynomial(inverseCoefficients)
     
-    angle = arctan2(yFPdist, xFPdist)     # Position angle on the focal plane [radians]
+    angle = np.arctan2(yFPdist, xFPdist)     # Position angle on the focal plane [radians]
     
     rFP = sqrt(xFPdist**2 + yFPdist**2) / focalLength                   # Distorted radial distance [normalised pixels]
     distortion = inverseDistortionPolynomial(rFP) * focalLength         # Distortion [mm] -> negative!
@@ -659,9 +660,8 @@ def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
     Ncols = CCD[ccdCode]["Ncols"]
     firstRow = CCD[ccdCode]["firstRow"]
 
-    cornersXpix = array([0.0, Ncols-1, Ncols-1, 0.0])
-    cornersYpix = array([firstRow, firstRow, Nrows-1, Nrows-1])
-    
+    cornersXpix = array([0.0, Ncols, Ncols, 0.0])
+    cornersYpix = array([firstRow, firstRow, Nrows, Nrows])
     # Convert to the x,y coordinates in the FP' reference frame
 
     zeroPointXmm = CCD[ccdCode]["zeroPointXmm"]
@@ -844,8 +844,8 @@ def platformToTelescopePointingCoordinates(raPlatform, decPlatform, raSun, decSu
     # Convert the cartesian equatorial coordinates to equatorial sky coordinates
 
     norm = sqrt(vecEQ[0]*vecEQ[0] + vecEQ[1]*vecEQ[1] + vecEQ[2]*vecEQ[2]) 
-    decOpticalAxis = pi/2.0 - arccos(vecEQ[2]/norm)
-    raOpticalAxis = arctan2(vecEQ[1], vecEQ[0])
+    decOpticalAxis = pi/2.0 - np.arccos(vecEQ[2]/norm)
+    raOpticalAxis = np.arctan2(vecEQ[1], vecEQ[0])
 
     # Ensure that the right ascension is positive
 
