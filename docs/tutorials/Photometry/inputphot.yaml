@@ -116,6 +116,8 @@ PSF:
             Source:                  ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
             ConstantValue:           0.5             # Used in case Source is ConstantValue  [pix]
             FromFile:                inputfiles/sigmaPSF.txt # Used in case Source is FromFile: time [s] & sigma_PSF [pix]
+        ChargeDiffusionStrength:     0.2             # Charge diffusion strength (width of the Gaussian diffusion kernel) [pixels]
+        IncludeChargeDiffusion:      no              # Include charge diffusion [yes or no]
 FEE:
 
     NominalOperatingTemperature:     210.15          # Nominal operating temperature of the FEE [K]
