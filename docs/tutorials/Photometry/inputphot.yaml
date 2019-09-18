@@ -112,12 +112,12 @@ PSF:
         SigmaY18:                    2.0             # Stdev of Gaussian PSF in y-direction at 18 deg from the optical axis [pix]
     AnalyticNonGaussian:
         ParameterFileName:           inputfiles/psfallv3.txt
+        ChargeDiffusionStrength:     0.2             # Charge diffusion strength (width of the Gaussian diffusion kernel) [pixels]
+        IncludeChargeDiffusion:      yes             # Include charge diffusion [yes or no]
         Sigma:                                       # Width of the analytic PSF, equal to sigma for a Gaussian PSF [pix]  
             Source:                  ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
             ConstantValue:           0.5             # Used in case Source is ConstantValue  [pix]
             FromFile:                inputfiles/sigmaPSF.txt # Used in case Source is FromFile: time [s] & sigma_PSF [pix]
-        ChargeDiffusionStrength:     0.2             # Charge diffusion strength (width of the Gaussian diffusion kernel) [pixels]
-        IncludeChargeDiffusion:      no              # Include charge diffusion [yes or no]
 FEE:
 
     NominalOperatingTemperature:     210.15          # Nominal operating temperature of the FEE [K]
