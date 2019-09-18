@@ -181,7 +181,7 @@ CCD:
         NaturalVignetting:                           # Brightness attenuation from the optical axis to the edge of the FOV
             ExpectedValue:           0.945           # Expected value of the throughput efficiency due to natural vignetting
         MechanicalVignetting:                        # Blocking of the light due to mechanical obstruction at the edge of the FOV
-            RadiusFOV:               18.8876         # Radius of the FOV [degrees]
+            RadiusFOV:               18.8908         # Radius of the FOV [degrees]
     Polarization:
         ExpectedValue:               0.989           # Expected value (mean of all detector pixels)
     Contamination:
