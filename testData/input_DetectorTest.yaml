@@ -174,7 +174,7 @@ CCD:
         NaturalVignetting: 
             ExpectedValue:           0.945           # Expected value of the throughput efficiency due to natural vignetting
         MechanicalVignetting:
-            RadiusFOV:               18.8876         # Radius of the FOV [degrees]
+            RadiusFOV:               18.8908         # Radius of the FOV [degrees]
     Polarization:
       ExpectedValue:                 0.989           # Expected value (mean of all detector pixels)
     Contamination: 
