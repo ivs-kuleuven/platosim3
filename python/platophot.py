@@ -3,6 +3,7 @@ import os
 import sys
 import h5py
 from analyticpsf import AnalyticPSF
+from numpy.random import uniform
 
 
 
@@ -89,13 +90,14 @@ def photometry(inputFilePath, outputFilePath, targetIDs, maxNexposures = None, c
     colTarget = np.zeros(Ntargets)                                      # Subfield coordinate, not CCD
     numContaminantsOfTarget = np.zeros(Ntargets, dtype=np.int)
     rowIndexOfMaskOfTarget  = np.zeros((Ntargets,7*7), dtype=np.int)    # Mask is maximum (3+1)*(3+1) pixels large
-    colIndexOfMaskOfTarget  = np.zeros((Ntargets,7*7), dtype=np.int) 
+    colIndexOfMaskOfTarget  = np.zeros((Ntargets,7*7), dtype=np.int)
+    Vmag = np.zeros(Ntargets)
 
 
     # Find out how many exposures we should process
 
-    beginExposureNr = inputFile["/InputParameters/ObservingParameters/"].attrs["BeginExposureNr"]
-    Nexposures = inputFile["/InputParameters/ObservingParameters/"].attrs["NumExposures"]
+    beginExposureNr = int(inputFile["/InputParameters/ObservingParameters/"].attrs["BeginExposureNr"])
+    Nexposures = int(inputFile["/InputParameters/ObservingParameters/"].attrs["NumExposures"])
 
     photometryGroup.attrs["beginExposureNr"] = beginExposureNr
     photometryGroup.attrs["Nexposures"] = Nexposures
@@ -104,6 +106,8 @@ def photometry(inputFilePath, outputFilePath, targetIDs, maxNexposures = None, c
         if maxNexposures < Nexposures:
             Nexposures = maxNexposures       # Cap the # exposures to a user-set limit
 
+
+    print (beginExposureNr, Nexposures)
     # Copy the time points of the input HDF5 file to the output file.
 
     time = np.array(inputFile["/StarPositions/Time"])[:Nexposures]
@@ -184,7 +188,7 @@ def photometry(inputFilePath, outputFilePath, targetIDs, maxNexposures = None, c
         exposureGroup = outputFile.create_group(exposureGroupName) 
 
         # Use the exact star positions which differs for each exposure, although in reality we don't have them on-board.
-        
+
         starIDs   = np.array(inputFile["StarPositions/Exposure{0:06d}/starID".format(imageNr)])
         colPix    = np.array(inputFile["StarPositions/Exposure{0:06d}/colPix".format(imageNr)])
         rowPix    = np.array(inputFile["StarPositions/Exposure{0:06d}/rowPix".format(imageNr)])
@@ -228,6 +232,7 @@ def photometry(inputFilePath, outputFilePath, targetIDs, maxNexposures = None, c
 
                     inputFluxTarget[k] = inputFlux[n] * throughputMap[int(rowTarget[k]), int(colTarget[k])]
 
+            Vmag[k] = magnitude[starIDs[k]]
 
             # If this is the first exposure, generate the masks for each target.
             # These masks are not updated every exposure, but only once in a while.
@@ -261,9 +266,9 @@ def photometry(inputFilePath, outputFilePath, targetIDs, maxNexposures = None, c
                 # First, get the boundaries of the mask.
 
                 minRow = max(0, int(rowTarget[k])-3)
-                maxRow = min(image.shape[0], int(rowTarget[k])+3)             # maxRow inclusive
+                maxRow = min(image.shape[0] - 1, int(rowTarget[k])+3)             # maxRow inclusive
                 minCol = max(0, int(colTarget[k])-3)
-                maxCol = min(image.shape[1], int(colTarget[k])+3)             # maxCol inclusive
+                maxCol = min(image.shape[1] - 1, int(colTarget[k])+3)             # maxCol inclusive
                 
                 NSRmap = np.zeros_like(image)                                 # NSR = Noise-To-Signal Ratio
                 varianceMap = np.zeros_like(image) 
@@ -353,6 +358,7 @@ def photometry(inputFilePath, outputFilePath, targetIDs, maxNexposures = None, c
         exposureGroup.create_dataset("numContaminants",  data = numContaminantsOfTarget)
         exposureGroup.create_dataset("trueRow",         data = rowTarget)
         exposureGroup.create_dataset("trueCol",         data = colTarget)
+        exposureGroup.create_dataset("Vmag",             data=Vmag) 
         
         
 
@@ -430,3 +436,65 @@ def getPhotometryTimeSeries(photometryFile, starID):
     return time, trueRow, trueCol, trueFlux, outputFlux
     
 
+def computePSFsigma(psf, Nsubpixels, Nsamples=10000):
+
+    """
+    PURPOSE: Approximate the PSF with a 2D symmetric Gaussian distribution, to compute 
+             its standard deviation, assuming that the barycenter is in the middle of the image. 
+             This standard deviation will be used for the weighted mask photometry
+
+    INPUT: psf:        2D numpy image containing the rotated PSF at subpixel level
+           Nsubpixels: the number of subpixels per pixel (1D)
+           Nsamples:   the number of monte carlo samples of the PSF to fit a Gaussian
+
+    OUTPUT: sigma: the standard deviation of the symmetric PSF  [pix]
+
+    """
+
+    sumPSF = sum(sum(psf))
+    randomNumber = uniform(0.0, 1.0, Nsamples)
+
+    rows = []
+    cols = []
+
+    for n in range(Nsamples):
+
+        # Go through the PSF pixels <Nsamples> time, storing the pixel coordinates 
+        # with higher PSF values more often than those with low values. 
+
+        cumulative = 0.0;
+        skipRestOfPSF = False
+
+        # Sum up the PSF values until you exceed the generated random number
+        # Then keep the (row,col) value that made the sum exceed the threshold,
+        # and skip the rest of the PSF pixels.
+
+        for i in range(psf.shape[0]):
+
+            if skipRestOfPSF is True: break
+
+            for j in range(psf.shape[1]):
+
+                if skipRestOfPSF is True: break
+
+                cumulative = cumulative + psf[i,j];
+
+                if cumulative >= randomNumber[n] * sumPSF:
+
+                    rows.append(i)
+                    cols.append(i)
+                    skipRestOfPSF = True
+                    break
+
+    # Compute the standard deviation of the PSF as the average of the sigma in the row direction
+    # and the sigma in the colum  direction    
+    
+    sigmaPSF = (np.array(rows).std() + np.array(cols).std())/2.0                       # [supixels]
+    
+    # Convert the stdev of the PSF from subpixels to pixels
+
+    sigmaPSF = sigmaPSF / Nsubpixels                                             # [pixels]
+
+    # That's it!
+
+    return sigmaPSF
