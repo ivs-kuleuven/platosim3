@@ -206,7 +206,7 @@ class Simulation(object):
         
         with open(filename, 'r') as stream:
             try:
-                self.yamlDocument = yaml.load(stream)
+                self.yamlDocument = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
                 print(exc)
         
