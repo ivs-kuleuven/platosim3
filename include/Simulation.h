@@ -53,6 +53,7 @@ class Simulation
     private:
 
         double currentTime;
+        double cycleTime;
         double exposureTime;
         double readoutTimeBeforeNextExposure;	// Readout time before the next exposure starts
 
