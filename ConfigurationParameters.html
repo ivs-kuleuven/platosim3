@@ -135,7 +135,7 @@ $(document).ready(function(){initNavTree('ConfigurationParameters.html','');});
 <div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;export PLATO_PROJECT_HOME=&lt;full path to the PlatoSim3 directory&gt;</div></div><!-- fragment --> <hr/>
 <h2><a class="anchor" id="observingParameters"></a>Observing Parameters</h2>
 <p>The <b>ObservingParameters</b> block of the configuration file contains the configuration parameters that are specific to the simulated observation and are not specific for the hardware components of the satellite. The structure of this block is the following:</p>
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;ObservingParameters:</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;</div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;    MissionDuration:             6.0</div><div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;    BeginExposureNr:             0</div><div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;    NumExposures:                40              </div><div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;    ExposureTime:                22              </div><div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;    RApointing:                  180              </div><div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;    DecPointing:                 -70             </div><div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;    Fluxm0:                      1.00179e8 </div><div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;    StarCatalogFile:             inputfiles/starcatalog.txt</div></div><!-- fragment --><h3><a class="anchor" id="missionDuration"></a>MissionDuration</h3>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;ObservingParameters:</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;</div><div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;    MissionDuration:             6.0</div><div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;    BeginExposureNr:             0</div><div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;    NumExposures:                40              </div><div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;    CycleTime:                   25              </div><div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;    RApointing:                  180              </div><div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;    DecPointing:                 -70             </div><div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;    Fluxm0:                      1.00179e8 </div><div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;    StarCatalogFile:             inputfiles/starcatalog.txt</div></div><!-- fragment --><h3><a class="anchor" id="missionDuration"></a>MissionDuration</h3>
 <p><em>Allowed values:</em> &gt; 0</p>
 <p>Total duration of the mission (from BOL till EOL), expressed in years. This will be used to model parameter degradation over time.</p>
 <h3><a class="anchor" id="beginExposureNr"></a>BeginExposureNr</h3>
@@ -148,12 +148,13 @@ Figure 1: Long simulations will be chopped up into smaller simulations that can 
 <h3><a class="anchor" id="numExposures"></a>NumExposures</h3>
 <p><em>Allowed values:</em> &gt; 0</p>
 <p>Number of exposures to generate in the simulation.</p>
-<h3><a class="anchor" id="exposureTime"></a>ExposureTime</h3>
+<h3><a class="anchor" id="cycleTime"></a>CycleTime</h3>
 <p><em>Allowed values:</em> &gt; 0</p>
-<p>Integration time of one exposure, expressed in seconds. Note that the total integration time is the sum of the exposure and the readout time:</p>
+<p>Image cycle time, expressed in seconds. This is the sum of the integration time of one exposure and the duration of the readout of one exposure before the next exposure start:</p>
 <p class="formulaDsp">
-<img class="formulaDsp" alt="\[ t_{integration} = t_{exposure} + t_{readout}.\]" src="form_0.png"/>
+<img class="formulaDsp" alt="\[ t_{cycle} = t_{exposure} + t_{readout, before}.\]" src="form_77.png"/>
 </p>
+<p>For the normal cameras, the latter is the total readout time; for the fast cameras, it is the time for the frame transfer (i.e. to transfer the content of the upper CCD half to the lower CCD half).</p>
 <h3><a class="anchor" id="raPointing"></a>RApointing</h3>
 <p><em>Allowed values:</em> <img class="formulaInl" alt="$\in $" src="form_43.png"/> [0, 360]</p>
 <p>Right ascension of the pointing, expressed in degrees.</p>
@@ -198,7 +199,7 @@ Figure 1: Long simulations will be chopped up into smaller simulations that can 
 </p>
 <h4><a class="anchor" id="cosmicHitRate"></a>Cosmics: CosmicHitRate</h4>
 <p><em>Allowed values:</em> &gt;= 0</p>
-<p>Mean cosmic hit rate, expressed in events / cm<sup>2</sup> / s. The actual cosmic hit rate for any exposure is sampled randomly from a Poisson distribution with the mean cosmic hit rate as mean. The number of cosmic hits in the simulated sub-field is calculated by multiplying the actual cosmic hit rate with the size of the sub-field (expressed in cm<sup>2</sup>) and the <a href="#exposureTime">exposure time</a> (expressed in s).</p>
+<p>Mean cosmic hit rate, expressed in events / cm<sup>2</sup> / s. The actual cosmic hit rate for any exposure is sampled randomly from a Poisson distribution with the mean cosmic hit rate as mean. The number of cosmic hits in the simulated sub-field is calculated by multiplying the actual cosmic hit rate with the size of the sub-field (expressed in cm<sup>2</sup>) and the <a href="#cycleTime">cycle time</a> (expressed in s).</p>
 <h4><a class="anchor" id="cosmicTrailLength"></a>Cosmics: TrailLength</h4>
 <p>Interval for the allowed length of the cosmic trails, expressed in pixels.</p>
 <h4><a class="anchor" id="cosmicIntensity"></a>Cosmics: Intensity</h4>
@@ -213,7 +214,7 @@ Figure 1: Long simulations will be chopped up into smaller simulations that can 
 <p><em>Allowed values:</em> "yes" and "no"</p>
 <p>Indicates whether pointing variations should be taken into account.</p>
 <p>The Plato Simulator can also account for pointing variations of the spacecraft, so-called jitter. A time series of pointing displacement, expressed in Euler angles (yaw, pitch, roll), either has to be provided as a jitter file or will be generated based on the given jitter parameters (see further).</p>
-<p>To ensure a realistic modelling of the jitter, the <a href="#jitterTimeScale">time step of the jitter time series</a> must be smaller than the <a href="#exposureTime">exposure time</a>.</p>
+<p>To ensure a realistic modelling of the jitter, the <a href="#jitterTimeScale">time step of the jitter time series</a> must be smaller than the <a href="#cycleTime">exposure time</a>.</p>
 <p>The configuration of the jitter axes is depicted below. The Euler angles that characterise the jitter are defined w.r.t. to the spacecraft coordinate system (see Fig. 2). The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module. The positive roll axis <img class="formulaInl" alt="$z_{\rm SC} $" src="form_44.png"/> points towards the operator-given mean payload line-of-sight, given by the equatorial coordinates (<a href="#raPointing">RApointing</a>, <a href="#decPointing">DecPointing</a>).</p>
 <p>The angles are defined such that they increase with a clockwise rotation, when looking along the positive axes. First a roll rotation is done around the <img class="formulaInl" alt="$z_{\rm SC} $" src="form_44.png"/> axis, then a pitch rotation is done around the rotated <img class="formulaInl" alt="$y_{\rm SC} $" src="form_45.png"/> axis, and finally a yaw rotation is done around the twice-rotated <img class="formulaInl" alt="$x_{\rm SC} $" src="form_46.png"/> axis.</p>
 <div class="image">
