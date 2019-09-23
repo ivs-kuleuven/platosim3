@@ -61,7 +61,7 @@ To get the 2D flatfield at intra-pixel level:
 To inspect one of the input parameters that was used for the simulation
 The group name and parameter name are exactly the same as in the YAML file.
 
->>> f.getInputParameter("ObservingParameters", "ExposureTime")
+>>> f.getInputParameter("ObservingParameters", "CycleTime")
 
 """
 
@@ -1021,14 +1021,14 @@ class SimFile (object):
         PURPOSE: Get an input parameter that was read from the Yaml input file and copied into the HDF5 file.
 
         INPUT: groupName: a parameter group as present in the Yaml input file (e.g. "Platform", "Camera")
-               parameterName: name of the input parameter as present in the Yaml input file (e.g. "ExposureTime")
+               parameterName: name of the input parameter as present in the Yaml input file (e.g. "CycleTime")
 
         OUTPUT: value of the input parameter
 
         EXAMPLE: 
 
             >>> file = SimFile("Simul01.hdf5")
-            >>> file.getInputParameter("ObservingParameters", "ExposureTime")
+            >>> file.getInputParameter("ObservingParameters", "CycleTime")
             23.0
         """
 
@@ -1130,7 +1130,156 @@ class SimFile (object):
         """
 
         return self.hdf5file["/StarPositions/Time"]
+    
 
+
+
+    def getExposureTime(self):
+
+        """
+        Return exposure time.
+
+        OUTPUT:
+            - Exposure time [s]
+        """
+
+        cycleTime = self.getInputParameter("ObservingParameters", "CycleTime")
+        readoutTimeBeforeNextExposure = self.getReadoutTime()[0]
+
+        return cycleTime - readoutTimeBeforeNextExposure
+
+    def getReadoutTime(self):
+
+        """
+        Return the readout time before the next exposure starts and the readout time during the next exposure.
+
+        OUTPUT:
+            - readout time before the next exposure starts [s]
+            - readout time during the next exposure [s]
+        """
+
+        encoding = "utf-8"
+
+        isFastCamera = self.getInputParameter("Telescope", "GroupID").decode(encoding) == "Fast"
+        ccdPosition = self.getInputParameter("CCD", "Position").decode(encoding)
+
+
+        if ccdPosition == "Custom":
+
+            numRows = self.getInputParameter("CCD/NumRows")
+            numColumns = self.getInputParameter("CCD/NumColumns")
+            firstRowExposed = self.getInputParameter("CCD", "FirstRowExposed")
+
+        else:
+            if isFastCamera:
+                index = int(ccdPosition[0]) - 1
+            else:
+                index = int(ccdPosition) - 1
+            
+            numRows = self.getInputParameter("CCDPositions", "NumRows")[index]
+            numColumns = self.getInputParameter("CCDPositions", "NumColumns")[index]
+
+            if isFastCamera:
+                firstRowExposed = self.getInputParameter("CCDPositions", "FirstRowForFastCamera")[index]
+            else:
+                firstRowExposed = self.getInputParameter("CCDPositions", "FirstRowForNormalCamera")[index]
+
+        readoutMode = self.getInputParameter("CCD/ReadoutMode", "ReadoutMode").decode(encoding)
+
+        serialTransferTime = self.getInputParameter("CCD", "SerialTransferTime") * 1E-9			  # [ns] -> [s]
+        parallelTransferTime = self.getInputParameter("CCD", "ParallelTransferTime") * 1E-6		  # [µs] -> [s]
+        parallelTransferTimeFast = self.getInputParameter("CCD", "ParallelTransferTimeFast") * 1E-6  # [µs] -> [s]
+        
+        numColumnsBiasMap =  self.getInputParameter("SubField", "NumBiasPrescanColumns")
+        numRowsSmearingMap = self.getInputParameter("SubField", "NumSmearingOverscanRows")
+        
+        #Both detector halves are read out simultaneously
+        # -> columns read out by the FEE:
+        # 	- half of the CCD
+        # 	- serial pre-scan
+        # 	- (serial over-scan)
+        
+        numColumnsReadout = numColumns / 2 + numColumnsBiasMap # + numRowsSerialOverScan
+        
+        # How many rows will be actually read out by the FEE?
+        #  	- nominal mode: image area + parallel over-scan
+        #       normal camera: image area = whole CCD
+        #       fast camera: image area = lower half of the CCD
+        # 	- partial readout: configurable
+        # The rest of the image area will be dumped
+        
+        numRowsReadout = 0
+        numRowsDump = 0
+        
+        #############
+        # Fast camera
+        #############
+        
+        if (isFastCamera):
+            
+            # Move the upper half of the CCD down to the lower half, row-by-row
+            
+            numRowsFrameTransfer = numRows - firstRowExposed
+            
+            readoutTimeBeforeNextExposure = numRowsFrameTransfer * parallelTransferTimeFast
+            
+            # The actual readout of the lower half of the CCD (after frame transfer) is done
+            # while the next exposure has already started
+
+            # Nominal mode
+            
+            if (readoutMode == "Nominal"):
+                
+                numRowsReadout = firstRowExposed + numRowsSmearingMap
+                numRowsDump = 0
+
+            # Partial mode
+		    # Rows read out by the FEE: rows in the block (other rows in image area are dumped)
+		    # Note: no parallel over-scan
+
+            elif (readoutMode == "Partial"):
+
+                numRowsReadout = self.getInputParameter("CCD/ReadoutMode/Partial", "NumRowsReadout")
+                numRowsDump = firstRowExposed - numRowsReadout
+            
+            readoutTimeDuringNextExposure = numRowsDump * parallelTransferTimeFast \
+                + numRowsReadout * (parallelTransferTime + numColumnsReadout * serialTransferTime)
+        
+        ###############
+        # Normal camera
+        ###############
+
+        else:
+            
+            # Nominal mode (full-frame readout)
+            
+            if (readoutMode == "Nominal"):
+
+                # Rows read out by the FEE:
+                #  		- rows of image area
+                #  		- parallel over-scan
+                
+                numRowsReadout = numRows + numRowsSmearingMap
+                
+                # No rows dumped
+                
+                numRowsDump = 0
+            
+            # Partial readout
+            
+            elif(readoutMode == "Partial"):
+                
+                # Rows read out by the FEE: rows in the block (other rows in image area are dumped)
+                # Note: no parallel over-scan
+                
+                numRowsReadout = self.getInputParameter("CCD/ReadoutMode/Partial", "NumRowsReadout")
+                numRowsDump = numRows - numRowsReadout
+            
+            readoutTimeBeforeNextExposure = numRowsDump * parallelTransferTimeFast \
+				+ numRowsReadout * (numColumnsReadout * serialTransferTime + parallelTransferTime)
+            readoutTimeDuringNextExposure = 0
+
+        return readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure
 
 
 

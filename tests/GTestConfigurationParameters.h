@@ -75,8 +75,8 @@ TEST(ConfigurationParametersTest, readObservingValues)
 
     ConfigurationParameters cp = ConfigurationParameters(string(getenv("PLATO_PROJECT_HOME")) + "/testData/input_ConfigurationParametersTest.yaml");
 
-    int exposureTime = cp.getInteger("Observing/ExposureTime");
-    EXPECT_EQ(21, exposureTime);
+    int cycleTime = cp.getInteger("Observing/CycleTime");
+    EXPECT_EQ(25, cycleTime);
 
     string filename = cp.getString("Observing/StarCatalogueFilename");
     EXPECT_STREQ(filename.c_str(), "inputFiles/starField_RA180Dec-70.txt");
@@ -151,18 +151,18 @@ TEST(ConfigurationParametersTest, testConversions)
     ConfigurationParameters cp = ConfigurationParameters(string(getenv("PLATO_PROJECT_HOME")) + "/testData/input_ConfigurationParametersTest.yaml");
 
     // Can convert an integer value into a double
-    double exposureTime = cp.getDouble("Observing/ExposureTime");
-    EXPECT_DOUBLE_EQ(21.0, exposureTime);
+    double cycleTime = cp.getDouble("Observing/CycleTime");
+    EXPECT_DOUBLE_EQ(25.0, cycleTime);
 
     // Can convert an integer value into a string
-    string exposureTimeString = cp.getString("Observing/ExposureTime");
-    EXPECT_STREQ("21", exposureTimeString.c_str());
+    string cycleTimeString = cp.getString("Observing/CycleTime");
+    EXPECT_STREQ("25", cycleTimeString.c_str());
 
     // Can not convert a double value into an Integer
     ASSERT_ANY_THROW(cp.getInteger("Observing/LightCollectingArea"));
 
     // Conversion from Integer 23 to Boolean should also throw an exception
-    ASSERT_ANY_THROW(cp.getBoolean("Observing/ExposureTime"));
+    ASSERT_ANY_THROW(cp.getBoolean("Observing/CycleTime"));
 
 }
 
