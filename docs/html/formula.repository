@@ -75,3 +75,4 @@
 \form#74:\[PRNU = \frac{\frac{1}{N} \sqrt{\sum_{i=1}^{N}}}{\overline{S}}\]
 \form#75:\[PRNU = \frac{\frac{1}{N} \sqrt{\sum_{i=1}^{N} (S_i - \overline{S})^2}}{\overline{S}}\]
 \form#76:\[PRNU = \frac{\sqrt{\frac{1}{N} \sum_{i=1}^{N} (S_i - \overline{S})^2}}{\overline{S}}\]
+\form#77:\[ t_{cycle} = t_{exposure} + t_{readout, before}.\]
