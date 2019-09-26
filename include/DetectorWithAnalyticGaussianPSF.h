@@ -37,7 +37,6 @@ class DetectorWithAnalyticGaussianPSF: public Detector
         virtual void integrateLight(int exposureNr, double startTime, double exposureTime) override;
         virtual void applyFlatfield() override;
         virtual void generateFlatfieldMap();
-        virtual bool isInPixelMap(double row, double column);
 
         arma::Mat<float> flatfieldMap;      // Pixel flatfield map
 

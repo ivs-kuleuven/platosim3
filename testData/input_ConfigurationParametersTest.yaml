@@ -11,8 +11,8 @@ General:
     ProjectLocation: /Users/rik/Work/PLATO
 
 Observing:
-    # Duration of one exposure in seconds [s]
-    ExposureTime: 21
+    # Duration of one image cycle in seconds
+    CycleTime: 25
 
     # Total number of exposures for the simulation
     NumberOfExposures: 100

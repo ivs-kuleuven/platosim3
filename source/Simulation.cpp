@@ -58,7 +58,9 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     double readoutTimeDuringNextExposure;
     tie(readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure) = configureReadoutTime(configParams);
+    exposureTime = cycleTime - readoutTimeBeforeNextExposure;
 
+    Log.debug("Simulation: Cycle time: " + to_string(cycleTime));
     Log.debug("Simulation: Exposure time: " + to_string(exposureTime));
     Log.debug("Simulation: Readout time before next exposure: " + to_string(readoutTimeBeforeNextExposure));
 
@@ -73,11 +75,11 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     {
         if (useJitterFromFile)
         {
-            jitterGenerator = new JitterFromFile(configParams, readoutTimeBeforeNextExposure);
+            jitterGenerator = new JitterFromFile(configParams);
         }
         else
         {
-            jitterGenerator = new JitterFromRedNoise(configParams, readoutTimeBeforeNextExposure);
+            jitterGenerator = new JitterFromRedNoise(configParams);
         }
     }
 
@@ -91,11 +93,11 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     {
         if (useDriftFromFile)
         {
-            driftGenerator = new ThermoElasticDriftFromFile(configParams, readoutTimeBeforeNextExposure);
+            driftGenerator = new ThermoElasticDriftFromFile(configParams);
         }
         else
         {
-            driftGenerator = new ThermoElasticDriftFromRedNoise(configParams, readoutTimeBeforeNextExposure);
+            driftGenerator = new ThermoElasticDriftFromRedNoise(configParams);
         }
     }
 
@@ -191,7 +193,7 @@ Simulation::~Simulation()
 
 void Simulation::configure(ConfigurationParameters &configParams)
 {
-    exposureTime      = configParams.getDouble("ObservingParameters/ExposureTime"); 
+    cycleTime      = configParams.getDouble("ObservingParameters/CycleTime"); 
     beginExposureNr   = configParams.getInteger("ObservingParameters/BeginExposureNr");
     numExposures      = configParams.getInteger("ObservingParameters/NumExposures");
     useJitter         = configParams.getBoolean("Platform/UseJitter");
@@ -405,6 +407,8 @@ void Simulation::run()
 
     currentTime = beginExposureNr * (exposureTime + readoutTimeBeforeNextExposure);
 
+    Log.info("Simulation: running exposures " + to_string(beginExposureNr) + " to " + to_string(beginExposureNr+numExposures-1));
+
     // Loop over all exposures
 
     for (int n = beginExposureNr; n < beginExposureNr + numExposures; n++)
@@ -593,7 +597,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("MissionDuration");
     addInteger("NumExposures");
     addInteger("BeginExposureNr");
-    addDouble("ExposureTime");
+    addDouble("CycleTime");
     addDouble("RApointing");
     addDouble("DecPointing");
     addDouble("Fluxm0");
@@ -697,6 +701,8 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     subGroup = "PSF/AnalyticNonGaussian";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addString("ParameterFileName");
+    addDouble("ChargeDiffusionStrength");
+    addBoolean("IncludeChargeDiffusion");
     subGroup = "PSF/AnalyticNonGaussian/Sigma";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addString("Source");

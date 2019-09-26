@@ -61,3 +61,6 @@ Icon?
 Thumbs.db
 Pipfile*
 /Debug/
+/venv/
+/requirements.in
+/requirements.txt

@@ -659,8 +659,8 @@ def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
     Ncols = CCD[ccdCode]["Ncols"]
     firstRow = CCD[ccdCode]["firstRow"]
 
-    cornersXpix = array([0.0, Ncols-1, Ncols-1, 0.0])
-    cornersYpix = array([firstRow, firstRow, Nrows-1, Nrows-1])
+    cornersXpix = array([0.0, Ncols, Ncols, 0.0])
+    cornersYpix = array([firstRow, firstRow, Nrows, Nrows])
     
     # Convert to the x,y coordinates in the FP' reference frame
 

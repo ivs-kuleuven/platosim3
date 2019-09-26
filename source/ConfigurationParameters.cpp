@@ -111,9 +111,9 @@ vector<string> ConfigurationParameters::getKeys(const string nodeName)
  * 
  * The key is the name of the input parameter. If the input parameter is part
  * of a section or group, then the key is a combination of the group name and 
- * the parameter name, separated by a '/' delimiter. E.g. if the parameter ExposureTime 
+ * the parameter name, separated by a '/' delimiter. E.g. if the parameter CycleTime 
  * is part of the group ObservingParameters, then the key to get the value for this
- * parameter would be "ObservingParameters/ExposureTime".
+ * parameter would be "ObservingParameters/CycleTime".
  * 
  * \param[in]  key The name of a parameter used in the PLATO Simulator
  *
@@ -167,9 +167,9 @@ bool ConfigurationParameters::getBoolean(const string &key)
  * 
  * The key is the name of the input parameter. If the input parameter is part
  * of a section or group, then the key is a combination of the group name and 
- * the parameter name, separated by a '/' delimiter. E.g. if the parameter ExposureTime 
+ * the parameter name, separated by a '/' delimiter. E.g. if the parameter CycleTime 
  * is part of the group ObservingParameters, then the key to get the value for this
- * parameter would be "ObservingParameters/ExposureTime".
+ * parameter would be "ObservingParameters/CycleTime".
  * 
  * \param[in]  key The name of a parameter used in the PLATO Simulator
  *
@@ -253,9 +253,9 @@ long ConfigurationParameters::getLong(const string &key)
  * 
  * The key is the name of the input parameter. If the input parameter is part
  * of a section or group, then the key is a combination of the group name and 
- * the parameter name, separated by a '/' delimiter. E.g. if the parameter ExposureTime 
+ * the parameter name, separated by a '/' delimiter. E.g. if the parameter CycleTime 
  * is part of the group ObservingParameters, then the key to get the value for this
- * parameter would be "ObservingParameters/ExposureTime".
+ * parameter would be "ObservingParameters/CycleTime".
  * 
  * \param[in]  key The name of a parameter used in the PLATO Simulator
  *
@@ -291,9 +291,9 @@ double ConfigurationParameters::getDouble(const string &key)
  * 
  * The key is the name of the input parameter. If the input parameter is part
  * of a section or group, then the key is a combination of the group name and 
- * the parameter name, separated by a '/' delimiter. E.g. if the parameter ExposureTime 
+ * the parameter name, separated by a '/' delimiter. E.g. if the parameter CycleTime 
  * is part of the group ObservingParameters, then the key to get the value for this
- * parameter would be "ObservingParameters/ExposureTime".
+ * parameter would be "ObservingParameters/CycleTime".
  * 
  * \param[in]  key The name of a parameter used in the PLATO Simulator
  *
@@ -326,9 +326,9 @@ vector <double> ConfigurationParameters::getDoubleVector(const string &key)
  * 
  * The key is the name of the input parameter. If the input parameter is part
  * of a section or group, then the key is a combination of the group name and 
- * the parameter name, separated by a '/' delimiter. E.g. if the parameter ExposureTime 
+ * the parameter name, separated by a '/' delimiter. E.g. if the parameter CycleTime 
  * is part of the group ObservingParameters, then the key to get the value for this
- * parameter would be "ObservingParameters/ExposureTime".
+ * parameter would be "ObservingParameters/CycleTime".
  * 
  * \param[in]  key The name of a parameter used in the PLATO Simulator
  *
@@ -361,9 +361,9 @@ vector <int> ConfigurationParameters::getIntegerVector(const string &key)
  * 
  * The key is the name of the input parameter. If the input parameter is part
  * of a section or group, then the key is a combination of the group name and 
- * the parameter name, separated by a '/' delimiter. E.g. if the parameter ExposureTime 
+ * the parameter name, separated by a '/' delimiter. E.g. if the parameter CycleTime 
  * is part of the group ObservingParameters, then the key to get the value for this
- * parameter would be "ObservingParameters/ExposureTime".
+ * parameter would be "ObservingParameters/CycleTime".
  * 
  * \param[in]  key The name of a parameter used in the PLATO Simulator
  * \param[in]  idx The index in the array of values
@@ -396,9 +396,9 @@ double ConfigurationParameters::getDoubleAt(const string &key, int idx)
  * 
  * The key is the name of the input parameter. If the input parameter is part
  * of a section or group, then the key is a combination of the group name and 
- * the parameter name, separated by a '/' delimiter. E.g. if the parameter ExposureTime 
+ * the parameter name, separated by a '/' delimiter. E.g. if the parameter CycleTime 
  * is part of the group ObservingParameters, then the key to get the value for this
- * parameter would be "ObservingParameters/ExposureTime".
+ * parameter would be "ObservingParameters/CycleTime".
  * 
  * \param[in]  key The name of a parameter used in the PLATO Simulator
  * \param[in]  idx The index in the array of values
@@ -430,9 +430,9 @@ int ConfigurationParameters::getIntegerAt(const string &key, int idx)
  * 
  * The key is the name of the input parameter. If the input parameter is part
  * of a section or group, then the key is a combination of the group name and 
- * the parameter name, separated by a '/' delimiter. E.g. if the parameter ExposureTime 
+ * the parameter name, separated by a '/' delimiter. E.g. if the parameter CycleTime 
  * is part of the group ObservingParameters, then the key to get the value for this
- * parameter would be "ObservingParameters/ExposureTime".
+ * parameter would be "ObservingParameters/CycleTime".
  * 
  * \param[in]  key The name of a parameter used in the PLATO Simulator
  *
@@ -464,9 +464,9 @@ string ConfigurationParameters::getString(const string &key)
  *
  *             The key is the name of the input parameter. If the input parameter is part
  *             of a section or group, then the key is a combination of the group name and 
- *             the parameter name, separated by a '/' delimiter. E.g. if the parameter ExposureTime 
+ *             the parameter name, separated by a '/' delimiter. E.g. if the parameter CycleTime 
  *             is part of the group ObservingParameters, then the key to get the value for this
- *             parameter would be "ObservingParameters/ExposureTime".
+ *             parameter would be "ObservingParameters/CycleTime".
  * 
  * \param[in]  key The name of a parameter used in the PLATO Simulator
  *
@@ -558,9 +558,9 @@ void ConfigurationParameters::setParameter(const string &key, const string &valu
  * 
  * The key is the name of the input parameter. If the input parameter is part
  * of a section or group, then the key is a combination of the group name and 
- * the parameter name, separated by a '/' delimiter. E.g. if the parameter ExposureTime 
+ * the parameter name, separated by a '/' delimiter. E.g. if the parameter CycleTime 
  * is part of the group ObservingParameters, then the key to get the value for this
- * parameter would be "ObservingParameters/ExposureTime". 
+ * parameter would be "ObservingParameters/CycleTime". 
  * 
  * There can be multiple levels, e.g. "Camera/Distortion/Polynomial/Coefficients"
  * 
@@ -621,9 +621,9 @@ YAML::Node ConfigurationParameters::getNode(const string & key)
  *
  * The 'key' is the name of the configuration or input parameter. If the parameter is part
  * of a section or group, then the 'key' is a combination of the group name and 
- * the parameter name, separated by a '/' delimiter. E.g. if the parameter ExposureTime 
+ * the parameter name, separated by a '/' delimiter. E.g. if the parameter CycleTime 
  * is part of the group ObservingParameters, then the key to check the existance of this
- * parameter would be "ObservingParameters/ExposureTime". 
+ * parameter would be "ObservingParameters/CycleTime". 
  * 
  * There can be multiple levels, e.g. "Camera/Distortion/Polynomial/Coefficients"
  *

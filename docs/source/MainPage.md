@@ -21,7 +21,7 @@ Many aspects concerning the design trade-off of a space-based instrument and its
 
 ## <a name="gettingStarted"></a>Getting Started
 
-All information needed to install and update the PlatoSim3 software on your system is described @ref DownloadUpdateBuild "here".  Please, follow these instructions carefully before running the simulator.  How to simulate time series is described @ref Running "here".
+All information needed to install and update the PlatoSim3 software on your system is described @ref InstallUsersDevelopers "here".  Please, follow these instructions carefully before running the simulator.  How to simulate time series is described @ref Running "here".
 
 
 

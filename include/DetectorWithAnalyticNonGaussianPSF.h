@@ -44,7 +44,6 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
         virtual void integrateLight(int exposureNr, double startTime, double exposureTime) override;
         virtual void applyFlatfield() override;
         virtual void generateFlatfieldMap();
-        virtual bool isInPixelMap(double row, double column);
 
         Parameter<double> *sigma;           // Width of the analytic PSF, equal to sigma for a Gaussian PSF
         vector<vector<double>> params;      // Table of analytic PSF parameters
