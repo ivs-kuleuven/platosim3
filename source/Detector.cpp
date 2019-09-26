@@ -590,12 +590,16 @@ void Detector::generateThroughputMap()
                     }
                 }
 
-                // Natural vignetting
+                // Natural vignetting.
+                // With a cos^2 law, the mean natural vignetting value over all pixels is 0.945. 
 
                 if (includeNaturalVignetting) 
                     throughputMap(row, column) *= pow(cos(angle), 2);
 
                 // Polarisation (Eq. 4-11 in PLATO-DLR-PL-RP-001)
+               
+                // NOTE: the polarization is angle dependent, but since no info on this dependency is currently available,
+                //       we assume fow now it is fixed over the entire FOV.
 
                 if (includePolarization)
                     throughputMap(row, column) *= expectedValuePolarization; //cos(angle / refAnglePolarizationRadians * acosPolarizationEfficiency);
@@ -603,6 +607,9 @@ void Detector::generateThroughputMap()
                 // Quantum efficiency (Eq. 4-12 in PLATO-DLR-PL-RP-001)
                 // Pixel units before: [photons]
                 // Pixel units after: [electrons]
+               
+                // NOTE: the QE is angle dependent, but since no info on this dependency is currently available,
+                //       we assume for now it is fixed over the entire FOV.
 
                 if (includeQuantumEfficiency)
                     throughputMap(row, column) *= meanQE * meanAngleDependencyQE; //(meanQE * cos(angle / refAngleQuantumEfficiencyRadians * acosQuantumEfficiency));
@@ -773,6 +780,40 @@ bool Detector::isInSubfield(double xFP, double yFP)
 
     return    (column >= subFieldZeroPointColumn) && (column < subFieldZeroPointColumn + numColumnsPixelMap)
            && (row    >= subFieldZeroPointRow)    && (row < subFieldZeroPointRow + numRowsPixelMap);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ /**
+ * \brief   Check whether the given (row, column) indices are within the array range of the pixel map.
+ *
+ * \details  The input parameters row & column come from a coordinate transformation
+ *           in the focal plane, and as a result are not necessarily integers. For this 
+ *           function it's not necessary to round them to the nearest integer. 
+ *
+ * \param  row:    Row index. NOT a coordinate in the CCD frame, but in the subfield frame.    [pixel].
+ * \param  column: Column index. NOT a coordinate in the CCD frame, but in the subfield frame. [pixel].
+ *
+ * \return  True if the given (row, column) coordinates are in the pixel map; false otherwise.
+ */
+
+bool Detector::isInPixelMap(double row, double column)
+{
+    return (column >= 0) && (row >= 0) && (column < numColumnsPixelMap) && (row < numRowsPixelMap);
 }
 
 
@@ -1122,8 +1163,6 @@ void Detector::applyBFE()
             }
 
             bfe(row, column) = bfe00;
-
-            
         }
     }
 
