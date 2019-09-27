@@ -169,11 +169,15 @@ def photometry(inputFilePath, outputFilePath, targetIDs, maxNexposures = None, c
 
         # Correct for the flatfield
 
-        flatfield = np.array(inputFile["Flatfield/PRNU"])
-        image /= flatfield
+        if inputFile["/InputParameters/CCD/"].attrs["IncludeFlatfield"] and (inputFile["/InputParameters/PSF"].attrs["Model"] != "AnalyticNonGaussian"):
 
-        if verbose:
-            print("    Corrected for PRNU")
+            flatfield = np.array(inputFile["Flatfield/PRNU"])
+            image /= flatfield
+
+            if verbose:
+                print("    Corrected for PRNU")
+        elif verbose:
+            print("    PRNU not corrected for as it was not applied")
         
 
         # Subtract the sky background [phot/exposure]
@@ -214,6 +218,11 @@ def photometry(inputFilePath, outputFilePath, targetIDs, maxNexposures = None, c
 
 
         # Loop over all targets to do the photometry.
+
+        print("Number of targets: ", Ntargets)
+
+        print(starIDs)
+        print(targetIDs)
 
         for k in range(Ntargets):
 
