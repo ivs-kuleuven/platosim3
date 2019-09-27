@@ -67,7 +67,7 @@ for n in range(NguideStars):
     # SubField/NumRows
     # SubField/NumColumns
     # 
-    # ObservingParameters/ExposureTime
+    # ObservingParameters/CycleTime
     # 
 
     subfieldSizeX = 9     # column width [pixels]

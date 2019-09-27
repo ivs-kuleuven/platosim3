@@ -76,7 +76,7 @@ ObservingParameters:
 	MissionDuration:             6.0
 	BeginExposureNr:             0
 	NumExposures:                40              
-    ExposureTime:                22              
+    CycleTime:                   25              
     RApointing:                  180              
     DecPointing:                 -70             
     Fluxm0:                      1.00179e8 
@@ -109,12 +109,14 @@ Number of exposures to generate in the simulation.
 
 
 
-### <a name="exposureTime"></a>ExposureTime
+### <a name="cycleTime"></a>CycleTime
 <i>Allowed values:</i> > 0
 
-Integration time of one exposure, expressed in seconds. Note that the total integration time is the sum of the exposure and the readout time:
+Image cycle time, expressed in seconds.  This is the sum of the integration time of one exposure and the duration of the readout of one exposure before the next exposure start:
 
-	\f[ t_{integration} = t_{exposure} + t_{readout}.\f]
+	\f[ t_{cycle} = t_{exposure} + t_{readout, before}.\f]
+
+For the normal cameras, the latter is the total readout time; for the fast cameras, it is the time for the frame transfer (i.e. to transfer the content of the upper CCD half to the lower CCD half).
 
 
 
@@ -240,7 +242,7 @@ The configuration parameters in the <b>Cosmics</b> section are the parameters ch
 #### <a name="cosmicHitRate"></a>Cosmics: CosmicHitRate
 <i>Allowed values:</i> >= 0
 
-Mean cosmic hit rate, expressed in events / cm<sup>2</sup> / s.  The actual cosmic hit rate for any exposure is sampled randomly from a Poisson distribution with the mean cosmic hit rate as mean.  The number of cosmic hits in the simulated sub-field is calculated by multiplying the actual cosmic hit rate with the size of the sub-field (expressed in cm<sup>2</sup>) and the [exposure time](#exposureTime) (expressed in s).
+Mean cosmic hit rate, expressed in events / cm<sup>2</sup> / s.  The actual cosmic hit rate for any exposure is sampled randomly from a Poisson distribution with the mean cosmic hit rate as mean.  The number of cosmic hits in the simulated sub-field is calculated by multiplying the actual cosmic hit rate with the size of the sub-field (expressed in cm<sup>2</sup>) and the [cycle time](#cycleTime) (expressed in s).
 
 
 
@@ -299,7 +301,7 @@ Indicates whether pointing variations should be taken into account.
 
 The Plato Simulator can also account for pointing variations of the spacecraft, so-called jitter. A time series of pointing displacement, expressed in Euler angles (yaw, pitch, roll), either has to be provided as a jitter file or will be generated based on the given jitter parameters (see further).
 
-To ensure a realistic modelling of the jitter, the [time step of the jitter time series](#jitterTimeScale) must be smaller than the [exposure time](#exposureTime).
+To ensure a realistic modelling of the jitter, the [time step of the jitter time series](#jitterTimeScale) must be smaller than the [exposure time](#cycleTime).
 
 The configuration of the jitter axes is depicted below.  The Euler angles that characterise the jitter are defined w.r.t. to the spacecraft coordinate system (see Fig. 2).  The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module.  The positive roll axis \f$z_{\rm SC} \f$ points towards the operator-given mean payload line-of-sight, given by the equatorial coordinates ([RApointing](#raPointing), [DecPointing](#decPointing)).
 

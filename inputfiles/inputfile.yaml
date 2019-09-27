@@ -11,7 +11,7 @@ ObservingParameters:
     MissionDuration:                 6.5             # Total duration of the mission [yr], relevant for BOL->EOL degradation
     NumExposures:                    10              # Number of exposures
     BeginExposureNr:                  0              # Sequential number of first exposure. useful for slurm parallellisation
-    ExposureTime:                    21              # [s]
+    CycleTime:                       25              # Image cycle time (exposure + readout before next exposure starts)[s]
     RApointing:                      180             # Platform (not telescope) right ascension pointing coordinate      [deg] 
     DecPointing:                     -70             # Platform (not telescope) declination pointing coordinate          [deg]
     Fluxm0:                          1.00179e8       # Photon flux of a V=0 G2V-star                                     [phot/s/m^2/nm]
@@ -68,7 +68,7 @@ Camera:
     PlateScale:                      0.8333          # [arcsec/micron]
     FocalPlaneOrientation:
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent)
-        ConstantValue:               45.0            # [degrees]. Used in case Source is ConstantValue. 
+        ConstantValue:               0.0            # [degrees]. Used in case Source is ConstantValue. 
         FromFile:                    inputfiles/fporientation.txt  # Used in case Source is FromFile. time [s] & FP orientation [deg]
     FocalLength: 
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
@@ -177,7 +177,7 @@ CCD:
         NaturalVignetting:                           # Brightness attenuation from the optical axis to the edge of the FOV
             ExpectedValue:          0.945            # Expected value of the throughput efficiency due to vignetting
         MechanicalVignetting:                        # Blocking of the light due to mechanical obstruction at the edge of the FOV
-            RadiusFOV:              18.8876          # Radius of the FOV [degrees]
+            RadiusFOV:              18.8908          # Radius of the FOV [degrees]
     Polarization:
         ExpectedValue:               0.989           # Expected value (mean of all detector pixels)
     Contamination:

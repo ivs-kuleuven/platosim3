@@ -11,11 +11,11 @@
  * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start
  */
 
-JitterFromFile::JitterFromFile(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure)
+JitterFromFile::JitterFromFile(ConfigurationParameters &configParams)
 {
     // Set the configuration parameters
 
-    configure(configParams, readoutTimeBeforeNextExposure);
+    configure(configParams);
 
     // Open the jitter file, and read time yaw, pitch, roll time series.
     // The time is assumed to be in [s], pitch, yaw, and roll in [arcsec].
@@ -153,19 +153,19 @@ JitterFromFile::~JitterFromFile()
  * \param configParams  The configuration parameters
  */
 
-void JitterFromFile::configure(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure)
+void JitterFromFile::configure(ConfigurationParameters &configParams)
 {
     pathToJitterFile = configParams.getAbsoluteFilename("Platform/JitterFileName");
     int numExposures      = configParams.getInteger("ObservingParameters/NumExposures");
     int beginExposureNr   = configParams.getInteger("ObservingParameters/BeginExposureNr");
-    double exposureTime   = configParams.getDouble("ObservingParameters/ExposureTime");
+    double cycleTime   = configParams.getDouble("ObservingParameters/CycleTime");
 
     //  Determine from when to when the simulation runs. Only for this time interval
     //  we need to read the jitter file into memory. This saves time when the jitter
     //  file is large but the simulation is short.
     
-    beginTime = beginExposureNr * (exposureTime + readoutTimeBeforeNextExposure);
-    endTime   = (beginExposureNr + numExposures) * (exposureTime + readoutTimeBeforeNextExposure);
+    beginTime = beginExposureNr * cycleTime;
+    endTime   = (beginExposureNr + numExposures) * cycleTime;
 }
 
 

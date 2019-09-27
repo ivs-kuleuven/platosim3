@@ -81,9 +81,9 @@ sim["Telescope/GroupID"] = group
 sim["RandomSeeds/JitterSeed"] = 2033429158 + 100 * quarter
 sim["Platform/SolarPanelOrientation"] = math.fmod(quarter * 90., 360.)         # 0, 90, 180, and 270 degrees for Q1, Q2, Q3, and Q4
 
-exposureTime = sim["ObservingParameters/ExposureTime"]
+cycleTime = sim["ObservingParameters/CycleTime"]
 readoutTime, dummy = sim.getReadoutTime()
-numExposures = int(365.25/4*86400/(exposureTime + readoutTime))
+numExposures = int(365.25 / 4 * 86400 / cycleTime)
 sim["ObservingParameters/NumExposures"] = numExposures
 sim["ObservingParameters/BeginExposureNr"] = (quarter-1) * numExposures  
 

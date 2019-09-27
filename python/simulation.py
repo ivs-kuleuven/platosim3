@@ -206,7 +206,7 @@ class Simulation(object):
         
         with open(filename, 'r') as stream:
             try:
-                self.yamlDocument = yaml.load(stream)
+                self.yamlDocument = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
                 print(exc)
         
@@ -515,12 +515,12 @@ class Simulation(object):
 
                  CCD/NumColumns = 4510
                  CCD/NumRows = 4510
-                 ObservingParameters/ExposureTime = 23
+                 ObservingParameters/CycleTime = 25
         """
 
         self.__setitem__("CCD/NumColumns", "4510")
         self.__setitem__("CCD/NumRows",    "4510")
-        self.__setitem__("ObservingParameters/ExposureTime", "23")
+        self.__setitem__("ObservingParameters/CycleTime", "25")
 
         return
 
