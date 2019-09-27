@@ -2310,8 +2310,8 @@ void Detector::applyDigitalSaturation()
  * \note  The rows correspond to the y-direction, and the columns to the x-direction.
  *        Pixel (row, col) = (0,0) starts at (yFP, xFP) = (0, 0).
  *               
- * \param row     Row coordinate, real-valued (e.g. 3.5)    [pix]
- * \param column  Column coordinate, real-valued (e.g. 8.3) [pix]
+ * \param row     CCD row coordinate, real-valued (e.g. 3.5)    [pix]
+ * \param column  CCD column coordinate, real-valued (e.g. 8.3) [pix]
  * 
  * \return (xFP, yFP)  A pair of (x,y) coordinates in the FP reference system [mm]
  */
