@@ -697,7 +697,7 @@ void DetectorWithAnalyticNonGaussianPSF::flushOutput()
 
     // Create the group in the HDF5 file. We chose the same name as for DetectorWithMappedPSF
 
-    hdf5File.createGroup("/SubPixelImages");
+    hdf5File.createGroup("/PSF");
     
     // Generate the high-resolution map
 
@@ -706,6 +706,6 @@ void DetectorWithAnalyticNonGaussianPSF::flushOutput()
 
     // Save the map to HDF5
 
-    hdf5File.writeArray("/SubPixelImages", "HighResPSFmapCenterSubfield", highResMap);
+    hdf5File.writeArray("/PSF", "HighResPSFmapCenterSubfield", highResMap);
     
 }
