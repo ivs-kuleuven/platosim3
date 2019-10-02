@@ -209,8 +209,9 @@ def photometry(inputFilePath, outputFilePath, targetIDs, maxNexposures = None, c
         pixelSize      = inputFile["InputParameters/CCD"].attrs["PixelSize"]                                            # [micron]
         zeroPointRowSubfield = inputFile["InputParameters/SubField"].attrs["ZeroPointRow"] 
         zeroPointColSubfield = inputFile["InputParameters/SubField"].attrs["ZeroPointColumn"] 
+        # numSubPixels = inputFile["InputParameters/SubField"].attrs["SubPixels"]
         
-        analyticPSF = AnalyticPSF(path, sigmaPSF, sigmaDiffusion, focalLength, ccdOrientation, ccdZeroPointX, ccdZeroPointY, pixelSize)
+        analyticPSF = AnalyticPSF(path, sigmaPSF, sigmaDiffusion, focalLength, ccdOrientation, ccdZeroPointX, ccdZeroPointY, pixelSize, 1)
 
 
         # Loop over all targets to do the photometry.
