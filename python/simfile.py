@@ -1295,11 +1295,11 @@ class SimFile (object):
         """
 
         imageName = "HighResPSFmapCenterSubfield"
-        if imageName not in self.hdf5file["SubPixelImages"].keys():
-            print("Error: Could not find SubPixelImages/{0} in HDF5 file")
+        if imageName not in self.hdf5file["PSF"].keys():
+            print("Error: Could not find PSF/{0} in HDF5 file")
             return None
         else:
-            dataset = self.hdf5file["SubPixelImages"][imageName]
+            dataset = self.hdf5file["PSF"][imageName]
             image = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(image)
             hduList = [fits.PrimaryHDU(image)]

@@ -27,7 +27,6 @@ sim = Simulation(outputFile, inputFile)
 sim.outputDir = outputDir
 
 sim["Platform/UseJitter"] = "no"
-sim["PSF/Model"] = "MappedGaussian"
 
 
 # Specify the orientation of the platform, telescope, focal plane, etc.
@@ -48,7 +47,7 @@ sim["Camera/IncludeFieldDistortion"]                  =  "no"
 sim["Camera/FocalLength/Source"]                      = "ConstantValue"
 sim["Camera/FocalLength/ConstantValue"]               = 0.24712595 
 sim["PSF/Model"]                                      = "AnalyticNonGaussian"
-sim["PSF/AnalyticNonGaussian/IncludeChargeDiffusion"] = "yes"   
+sim["PSF/AnalyticNonGaussian/IncludeChargeDiffusion"] = "no"   
 
 # Specify the pixel coordinates (of the CCD, not of the subfield) of your stars
 
