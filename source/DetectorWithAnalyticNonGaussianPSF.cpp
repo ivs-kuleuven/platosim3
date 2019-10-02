@@ -448,15 +448,6 @@ void DetectorWithAnalyticNonGaussianPSF::integrateLight(int exposureNr, double s
 
     applyThroughputEfficiency();
 
-    // Brighter-Fatter effect
-
-    if(includeBFE)
-    {
-    		Log.debug("Detector: adding Brighter-Fatter effect");
-
-       	applyBFE();
-    }
-
     // Add dark current
 
     if(includeDarkSignal)
@@ -468,6 +459,19 @@ void DetectorWithAnalyticNonGaussianPSF::integrateLight(int exposureNr, double s
     else
     {
     		Log.debug("Detector: no dark current added");
+    }
+
+    // Brighter-Fatter effect
+
+    if(includeBFE)
+    {
+    		Log.debug("Detector: adding Brighter-Fatter effect");
+
+       	applyBFE();
+    }
+    else
+    {
+        Log.debug("Detector: no Brighter-Fatter effect added");
     }
 }
 

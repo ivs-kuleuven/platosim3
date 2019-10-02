@@ -427,15 +427,6 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
 
     applyThroughputEfficiency();
 
-    // Brighter-Fatter effect
-
-    if(includeBFE)
-    {
-       	Log.debug("Detector: adding Brighter-Fatter effect");
-
-       	applyBFE();
-    }
-
     // Add dark current
 
     if(includeDarkSignal)
@@ -447,6 +438,19 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
     else
     {
     		Log.debug("Detector: no dark current added");
+    }
+
+    // Brighter-Fatter effect
+
+    if(includeBFE)
+    {
+       	Log.debug("Detector: adding Brighter-Fatter effect");
+
+       	applyBFE();
+    }
+    else
+    {
+        Log.debug("Detector: no Brighter-Fatter effect added");
     }
 }
 

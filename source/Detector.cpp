@@ -969,20 +969,6 @@ void Detector::addDarkSignal(float exposureTime)
 void Detector::readOut(float exposureTime)
 {
 
-    // Apply poisson distributed photon noise
-    // Pixel units before: [electrons]
-    // Pixel units after: [electrons]
-
-    if (includePhotonNoise)
-    {
-        Log.debug("Detector: adding photon noise.");
-        addPhotonNoise();
-    }
-    else 
-    {
-        Log.debug("Detector: no photon noise added.");
-    }
-
     // Add cosmic hits
     // Pixel units before: [electrons]
     // Pixel units after: [electrons]
@@ -997,6 +983,21 @@ void Detector::readOut(float exposureTime)
         Log.debug("Detector: no cosmic hits included.");
     }
 
+    // Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
+    // the pixels are still receiving photons from the sky, while they are being transfered towards
+    // the readout register.
+    // Pixel units before: [electrons]
+    // Pixel units after: [electrons]
+
+    if (includeOpenShutterSmearing)
+    {
+        Log.debug("Detector: applying open shutter smearing.");
+        applyOpenShutterSmearing(exposureTime);
+    }
+    else 
+    {
+        Log.debug("Detector: no open shutter smearing applied.");
+    }
 
     // Simulate the effects of the Charge Transfer Inefficiency (CTI). When the
     // CCD is read out, row after row, a part of the charge is always left behind
@@ -1015,20 +1016,18 @@ void Detector::readOut(float exposureTime)
         Log.debug("Detector: no charge transfer inefficiency applied.");
     }
 
-    // Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
-    // the pixels are still receiving photons from the sky, while they are being transfered towards
-    // the readout register.
+    // Apply poisson distributed photon noise
     // Pixel units before: [electrons]
     // Pixel units after: [electrons]
 
-    if (includeOpenShutterSmearing)
+    if (includePhotonNoise)
     {
-        Log.debug("Detector: applying open shutter smearing.");
-        applyOpenShutterSmearing(exposureTime);
+        Log.debug("Detector: adding photon noise.");
+        addPhotonNoise();
     }
     else 
     {
-        Log.debug("Detector: no open shutter smearing applied.");
+        Log.debug("Detector: no photon noise added.");
     }
 
     // Each time the amplifier reads out a pixel, a tiny bit of noise is added.
@@ -1198,16 +1197,21 @@ void Detector::addPhotonNoise()
 {
     // Add photon noise to the pixel map
 
+    Log.debug("Adding photon noise to pixel map");
+
     for (unsigned int row = 0; row < numRowsPixelMap; row++)
     {
         for (unsigned int column = 0; column < numColumnsPixelMap; column++)
         {
+            Log.debug(to_string(row) + ", " + to_string(column) + ": " + to_string(pixelMap(row, column)));
             photonNoiseDistribution = poisson_distribution<long>(pixelMap(row, column));
             pixelMap(row, column) = photonNoiseDistribution(photonNoiseGenerator);
         }
     }
 
     // Add photon noise to the smearing map
+
+    Log.debug("Adding photon noise to smearing map");
 
     for (unsigned int row = 0; row < numRowsSmearingMap; row++)
     {
@@ -1776,6 +1780,7 @@ void Detector::applyShort2013CTImodel()
 
         for (int k = 0; k < numTrapSpecies; k++)
         {
+            Log.debug("Trap species: " + to_string(k));
 
             // Compute the number of electrons captured in a trap, according to Eq. (22)-(23) of Short et al. (2013).
             // Note that Armadillo uses % for elementwise multiplication.
@@ -1790,6 +1795,7 @@ void Detector::applyShort2013CTImodel()
 
             arma::Col<arma::uword> isNegative = arma::find(numberOfCapturedElectrons < 0.0);
             numberOfCapturedElectrons(isNegative).zeros();
+            numberOfCapturedElectrons.elem(find_nonfinite(numberOfCapturedElectrons)).zeros();
 
             // Update the number of occupied traps with the estimated number of captured electrons
 
