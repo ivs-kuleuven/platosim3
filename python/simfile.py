@@ -1284,6 +1284,35 @@ class SimFile (object):
 
 
 
+
+
+
+    def saveHighResolutionPSFtoFITS(self, FITSfileName):
+        """
+        In case of the analytic non-Gaussian PSF, a high-resolution PSF corresponding to the center
+        of the subfield is stored in the HDF5 file. Extract this image and save it to a FITS file
+        This function will fail when PlatoSim was not run with an analytic non-Gaussian PSF.
+        """
+
+        imageName = "HighResPSFmapCenterSubfield"
+        if imageName not in self.hdf5file["PSF"].keys():
+            print("Error: Could not find PSF/{0} in HDF5 file")
+            return None
+        else:
+            dataset = self.hdf5file["PSF"][imageName]
+            image = np.zeros(dataset.shape, dataset.dtype)
+            dataset.read_direct(image)
+            hduList = [fits.PrimaryHDU(image)]
+            myFits = fits.HDUList(hduList)
+            myFits.writeto(FITSfileName)
+
+
+
+
+
+
+
+
     def saveImagesToFITS(self, fileName):
         """
         Save all subfield images in the HDF5 file to a FITS file with the given file name.
