@@ -237,8 +237,8 @@ class AnalyticPSF:
             self.normFactor = 0.0
 
             rho = rho / 1.4
-            c1 = min(len(self.params[0]) / 7 - 1, int(rho)) * 7
-            c2 = min(len(self.params[0]) / 7 - 1, int(rho) + 1) * 7
+            c1 = int(min(len(self.params[0]) / 7 - 1, int(rho)) * 7)
+            c2 = int(min(len(self.params[0]) / 7 - 1, int(rho) + 1) * 7)
             w = rho - int(rho)
             w = 3. * w * w - 2. * w * w * w
 
