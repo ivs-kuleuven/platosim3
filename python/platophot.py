@@ -169,11 +169,11 @@ def photometry(inputFilePath, outputFilePath, targetIDs, maxNexposures = None, c
 
         # Correct for the flatfield
 
-        flatfield = np.array(inputFile["Flatfield/PRNU"])
-        image /= flatfield
-
-        if verbose:
-            print("    Corrected for PRNU")
+        if "PRNU" in inputFile["/Flatfield"].keys():
+            flatfield = np.array(inputFile["Flatfield/PRNU"])
+            image /= flatfield
+            if verbose:
+                print("    Corrected for PRNU")
         
 
         # Subtract the sky background [phot/exposure]
