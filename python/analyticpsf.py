@@ -65,7 +65,7 @@ class AnalyticPSF:
 
 
     def __init__(self, parameterFilePath, sigmaPSF, sigmaDiffusion, focalLength, ccdOrientation, 
-                       ccdZeroPointX, ccdZeroPointY, pixelSize, Nsubpixels):
+                       ccdZeroPointX, ccdZeroPointY, pixelSize, Nsubpixels=1):
 
         """
         Initialisation of the class, using the camera and CCD characteristics. 
