@@ -736,7 +736,7 @@ A more sophisticated implementation ("Short2013") is based on <a href="http://mn
 <p>Indicates whether or not to include loss of throughput efficiency due to quantum efficiency.</p>
 <h3><a class="anchor" id="inclConvolution"></a>IncludeConvolution</h3>
 <p><em>Allowed values:</em> "yes" and "no"</p>
-<p>Indicates whether or not the sub-pixel map must be convolved with the PSF.</p>
+<p>Indicates whether or not the sub-pixel map must be convolved with the PSF. This applies only to the Gaussian and the pre-computed PSF. When using the analytic PSF, the PSF is always applied (irrespective of the value of this configuration parameter)!</p>
 <h3><a class="anchor" id="inclFullWellSaturation"></a>IncludeFullWellSaturation</h3>
 <p><em>Allowed values:</em> "yes" and "no"</p>
 <p>Indicates whether or not to apply full-well saturation.</p>

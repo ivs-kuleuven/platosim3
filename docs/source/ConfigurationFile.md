@@ -1706,7 +1706,7 @@ Indicates whether or not to include loss of throughput efficiency due to quantum
 ### <a name="inclConvolution"></a>IncludeConvolution
 <i>Allowed values:</i> "yes" and "no"
 
-Indicates whether or not the sub-pixel map must be convolved with the PSF.
+Indicates whether or not the sub-pixel map must be convolved with the PSF.  This applies only to the Gaussian and the pre-computed PSF.  When using the analytic PSF, the PSF is always applied (irrespective of the value of this configuration parameter)!
 
 
 
