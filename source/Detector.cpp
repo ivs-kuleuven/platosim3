@@ -2207,15 +2207,15 @@ void Detector::applyGain()
     }
     else
     {
-        // 0 -> lastIndexSubFieldLeft: left ADC
+        // 0 -> lastIndexSubFieldLef (incl.): left ADC
 
         pixelMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
         smearingMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
 
-        // lastIndexSubFieldLeft + 1 -> numColumnsSubPixelMap -1: right ADC
+        // lastIndexSubFieldLeft + 1 -> numColumnsSubPixelMap - 1 (incl.): right ADC
 
-        pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
-        smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
+        pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft + 1, numColumnsPixelMap - 1)) *= combinedGainRight;
+        smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft + 1, numColumnsPixelMap - 1)) *= combinedGainRight;
     }
 
     biasMapLeft *= combinedGainLeft;
