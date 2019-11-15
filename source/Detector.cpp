@@ -224,7 +224,6 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
     cosmicHitRateGenerator.seed(cosmicSeed);
     cosmicEntryRowGenerator.seed(cosmicSeed + 1);
     cosmicEntryColumnGenerator.seed(cosmicSeed + 2);
-    cosmicEntryAngleGenerator.seed(cosmicSeed + 3);
     cosmicTrailLengthGenerator.seed(cosmicSeed + 4);
     cosmicIntensityGenerator.seed(cosmicSeed + 5);
     decimalNumCosmicHitsGenerator.seed(cosmicSeed + 6);
@@ -2184,6 +2183,8 @@ void Detector::applyGain()
     // Detector gain (left & right) [µV / e-]
 
     const double ccdGainOverDeltaTemp = gainStability * (getTemperature() - nominalOperatingTemperature);
+
+    Log.info("CCD temperature: " + to_string(getTemperature()) + " " + to_string(getTemperature() - nominalOperatingTemperature));
 
     const double ccdGainLeft = refValueGainLeft + ccdGainOverDeltaTemp;
     const double ccdGainRight = refValueGainRight + ccdGainOverDeltaTemp;
