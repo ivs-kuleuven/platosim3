@@ -76,3 +76,11 @@
 \form#75:\[PRNU = \frac{\frac{1}{N} \sqrt{\sum_{i=1}^{N} (S_i - \overline{S})^2}}{\overline{S}}\]
 \form#76:\[PRNU = \frac{\sqrt{\frac{1}{N} \sum_{i=1}^{N} (S_i - \overline{S})^2}}{\overline{S}}\]
 \form#77:\[ t_{cycle} = t_{exposure} + t_{readout, before}.\]
+\form#78:$\Delta x $
+\form#79:$\Delta S $
+\form#80:\[a \cdot \Delta S \cdot \exp{- \lambda \cdot \Delta x^b}\]
+\form#81:\[a \cdot \Delta S \cdot \exp{(- \lambda \cdot \Delta x^b)}\]
+\form#82:\[a \cdot \Delta S \cdot \exp{(- \lambda \cdot \Delta x^b)}.\]
+\form#83:$a $
+\form#84:$\lambda $
+\form#85:$b $
