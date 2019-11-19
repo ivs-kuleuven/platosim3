@@ -2339,6 +2339,9 @@ void Detector::applyOverAndUnderShoot()
         skyBackground *= molecularContaminationEfficiency;
     skyBackground *= meanQE * meanAngleDependencyQE;
 
+    arma::frowvec skyBackgroundExtraPixels(frontEndElectronics->getOverAndUnderShootRange());
+    skyBackgroundExtraPixels.fill(skyBackground);
+
     // At least partially on the left detector half
 
     if (subFieldZeroPointColumn < halfDectectorWidth)
@@ -2348,7 +2351,7 @@ void Detector::applyOverAndUnderShoot()
 
         lengthReadoutRegister = (lastIndexLeftHalf - firstIndexLeftHalf + 1) + frontEndElectronics->getOverAndUnderShootRange();
         readoutRegister.zeros(lengthReadoutRegister);
-        readoutRegister(arma::span(0, frontEndElectronics->getOverAndUnderShootRange() - 1)) = skyBackground;
+        readoutRegister.head(frontEndElectronics->getOverAndUnderShootRange()) = skyBackgroundExtraPixels;
 
         for (unsigned int row = 0; row < numRowsPixelMap; row++)
         {
@@ -2357,12 +2360,11 @@ void Detector::applyOverAndUnderShoot()
 
             for (int deltaX = 1; deltaX <= frontEndElectronics->getOverAndUnderShootRange(); deltaX++)
             {
-                difference = readoutRegister(deltaX, lengthReadoutRegister - 1) - readoutRegister(0, lengthReadoutRegister - deltaX - 1);
-
+                difference = readoutRegister.tail(lengthReadoutRegister - deltaX) - readoutRegister.tail(lengthReadoutRegister - deltaX);
                 totalContribution(arma::span(deltaX, lengthReadoutRegister - 1)) += frontEndElectronics->getOverAndUnderShootStrength() * difference * exp(-frontEndElectronics->getOverAndUnderShootDecayRate() * pow(deltaX, frontEndElectronics->getOverAndUnderShootDecaySpeed()));
             }
 
-            pixelMap(row, arma::span(firstIndexLeftHalf, lastIndexLeftHalf)) += totalContribution(frontEndElectronics->getOverAndUnderShootRange(), lengthReadoutRegister - 1);
+            pixelMap(row, arma::span(firstIndexLeftHalf, lastIndexLeftHalf)) += totalContribution.tail(lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange());
         }
     }
 
@@ -2375,7 +2377,7 @@ void Detector::applyOverAndUnderShoot()
 
         lengthReadoutRegister = (lastIndexRightHalf - firstIndexRightHalf + 1) + frontEndElectronics->getOverAndUnderShootRange();
         readoutRegister.zeros(lengthReadoutRegister);
-        readoutRegister(arma::span(lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange(), lengthReadoutRegister - 1)) = skyBackground;
+        readoutRegister.tail(frontEndElectronics->getOverAndUnderShootRange()) = skyBackgroundExtraPixels;
 
         for (unsigned int row = 0; row < numRowsPixelMap; row++)
         {
@@ -2384,12 +2386,11 @@ void Detector::applyOverAndUnderShoot()
 
             for (int deltaX = 1; deltaX <= frontEndElectronics->getOverAndUnderShootRange(); deltaX++)
             {
-                difference = readoutRegister(0, lengthReadoutRegister - deltaX - 1) - readoutRegister(deltaX, lengthReadoutRegister - 1);
-
+                difference = readoutRegister.head(lengthReadoutRegister - deltaX) - readoutRegister.tail(lengthReadoutRegister - deltaX);
                 totalContribution(arma::span(0, lengthReadoutRegister - deltaX - 1)) += frontEndElectronics->getOverAndUnderShootStrength() * difference * exp(-frontEndElectronics->getOverAndUnderShootDecayRate() * pow(deltaX, frontEndElectronics->getOverAndUnderShootDecaySpeed()));
             }
 
-            pixelMap(row, arma::span(firstIndexRightHalf, lastIndexRightHalf)) += totalContribution(0, lengthReadoutRegister - 1 - frontEndElectronics->getOverAndUnderShootRange());
+            pixelMap(row, arma::span(firstIndexRightHalf, lastIndexRightHalf)) += totalContribution.head(lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange());
         }
     }
 }
