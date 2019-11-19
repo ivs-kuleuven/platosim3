@@ -2272,10 +2272,10 @@ void Detector::addElectronicOffset()
 
 
 /**
- * \brief: Apply the effect of digital saturation to the pixel map,
- *         smearing map, and bias register map. This means that the pixel values in
- *         these maps (expressed in [ADU / pixel]) are Lastped off to the digital saturation
- *         limit of the detector (also expressed in [ADU / pixel]).
+ * \brief Apply the effect of digital saturation to the pixel map,
+ *        smearing map, and bias register map. This means that the pixel values in
+ *        these maps (expressed in [ADU / pixel]) are Lastped off to the digital saturation
+ *        limit of the detector (also expressed in [ADU / pixel]).
  *
  * \pre Pixel unit in the pixel, smearing, and bias maps: [ADU].
  * \pre Digital saturation limit expressed in [ADU / pixel].
@@ -2297,6 +2297,107 @@ void Detector::applyDigitalSaturation()
 
     smearingMap(arma::find(smearingMap > digitalSaturationLimit)).fill(digitalSaturationLimit);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Applies the F-FEE over-/undershoot to the pixel map.
+ * 
+ * \pre Pixel unit in the pixel, smearing, and bias maps: [ADU].
+ *
+ * \post Pixel unit in the pixel, smearing, and bias register maps: [ADU].
+ */ 
+void Detector::applyOverAndUnderShoot()
+{
+    const unsigned int halfDectectorWidth = numColumns / 2;
+
+    // NOTES
+    // - We apply this effect row per row, because otherwise, we will have to keep too much
+    //   data in memory
+    // - Both detector halves must be treated independently
+    // - The pixels between the bias map and the pixel map are assumed to contain the sky background
+
+    arma::frowvec readoutRegister;   // Placeholder
+    arma::frowvec difference;        // Placeholder
+    arma::frowvec totalContribution; // Has to be filled with zeroes for every row and every detector half
+    int lengthReadoutRegister;
+
+    double skyBackground = camera.getTotalSkyBackground();
+    if (includeNaturalVignetting)
+        skyBackground *= expectedValueNaturalVignetting;
+    if (includePolarization)
+        skyBackground *= expectedValuePolarization;
+    if (includeParticulateContamination)
+        skyBackground *= particulateContaminationEfficiency;
+    if (includeMolecularContamination)
+        skyBackground *= molecularContaminationEfficiency;
+    skyBackground *= meanQE * meanAngleDependencyQE;
+
+    // At least partially on the left detector half
+
+    if (subFieldZeroPointColumn < halfDectectorWidth)
+    {
+        const int firstIndexLeftHalf = subFieldZeroPointColumn;
+        const int lastIndexLeftHalf = min(halfDectectorWidth - 1, subFieldZeroPointColumn + numColumnsPixelMap - 1);
+
+        lengthReadoutRegister = (lastIndexLeftHalf - firstIndexLeftHalf + 1) + frontEndElectronics->getOverAndUnderShootRange();
+        readoutRegister.zeros(lengthReadoutRegister);
+        readoutRegister(arma::span(0, frontEndElectronics->getOverAndUnderShootRange() - 1)) = skyBackground;
+
+        for (unsigned int row = 0; row < numRowsPixelMap; row++)
+        {
+            readoutRegister(arma::span(frontEndElectronics->getOverAndUnderShootRange(), lengthReadoutRegister - 1)) = pixelMap(row, arma::span(firstIndexLeftHalf, lastIndexLeftHalf));
+            totalContribution.zeros(lengthReadoutRegister);
+
+            for (int deltaX = 1; deltaX <= frontEndElectronics->getOverAndUnderShootRange(); deltaX++)
+            {
+                difference = readoutRegister(deltaX, lengthReadoutRegister - 1) - readoutRegister(0, lengthReadoutRegister - deltaX - 1);
+
+                totalContribution(arma::span(deltaX, lengthReadoutRegister - 1)) += frontEndElectronics->getOverAndUnderShootStrength() * difference * exp(-frontEndElectronics->getOverAndUnderShootDecayRate() * pow(deltaX, frontEndElectronics->getOverAndUnderShootDecaySpeed()));
+            }
+
+            pixelMap(row, arma::span(firstIndexLeftHalf, lastIndexLeftHalf)) += totalContribution(frontEndElectronics->getOverAndUnderShootRange(), lengthReadoutRegister - 1);
+        }
+    }
+
+    // At least partially on the right detector half
+
+    if (subFieldZeroPointColumn + numColumnsPixelMap - 1 >= halfDectectorWidth)
+    {
+        const int firstIndexRightHalf = max(halfDectectorWidth, subFieldZeroPointColumn);
+        const int lastIndexRightHalf = subFieldZeroPointColumn + numColumnsPixelMap - 1;
+
+        lengthReadoutRegister = (lastIndexRightHalf - firstIndexRightHalf + 1) + frontEndElectronics->getOverAndUnderShootRange();
+        readoutRegister.zeros(lengthReadoutRegister);
+        readoutRegister(arma::span(lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange(), lengthReadoutRegister - 1)) = skyBackground;
+
+        for (unsigned int row = 0; row < numRowsPixelMap; row++)
+        {
+            readoutRegister(arma::span(0, lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange() - 1)) = pixelMap(row, arma::span(firstIndexRightHalf, lastIndexRightHalf));
+            totalContribution.zeros(lengthReadoutRegister);
+
+            for (int deltaX = 1; deltaX <= frontEndElectronics->getOverAndUnderShootRange(); deltaX++)
+            {
+                difference = readoutRegister(0, lengthReadoutRegister - deltaX - 1) - readoutRegister(deltaX, lengthReadoutRegister - 1);
+
+                totalContribution(arma::span(0, lengthReadoutRegister - deltaX - 1)) += frontEndElectronics->getOverAndUnderShootStrength() * difference * exp(-frontEndElectronics->getOverAndUnderShootDecayRate() * pow(deltaX, frontEndElectronics->getOverAndUnderShootDecaySpeed()));
+            }
+
+            pixelMap(row, arma::span(firstIndexRightHalf, lastIndexRightHalf)) += totalContribution(0, lengthReadoutRegister - 1 - frontEndElectronics->getOverAndUnderShootRange());
+        }
+    }
+}
+
+
 
 
 
