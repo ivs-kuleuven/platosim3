@@ -2357,23 +2357,24 @@ void Detector::applyOverAndUnderShoot()
     {
         const int firstIndexLeftHalf = subFieldZeroPointColumn;
         const int lastIndexLeftHalf = min(halfDectectorWidth - 1, subFieldZeroPointColumn + numColumnsPixelMap - 1);
-
-        lengthReadoutRegister = (lastIndexLeftHalf - firstIndexLeftHalf + 1) + frontEndElectronics->getOverAndUnderShootRange();
+        const int numCcdPixelsLeftHalf = lastIndexLeftHalf - firstIndexLeftHalf + 1;
+     
+        lengthReadoutRegister = numCcdPixelsLeftHalf + frontEndElectronics->getOverAndUnderShootRange();    // Pixels in sub-field on left CCD half + some extra pixels closest to the readout electronics
         readoutRegister.zeros(lengthReadoutRegister);
         readoutRegister.head(frontEndElectronics->getOverAndUnderShootRange()) = skyBackgroundExtraPixels;
 
         for (unsigned int row = 0; row < numRowsPixelMap; row++)
         {
-            readoutRegister(arma::span(frontEndElectronics->getOverAndUnderShootRange(), lengthReadoutRegister - 1)) = pixelMap(row, arma::span(firstIndexLeftHalf, lastIndexLeftHalf));
+            readoutRegister(arma::span(frontEndElectronics->getOverAndUnderShootRange(), lengthReadoutRegister - 1)) = pixelMap.row(row).head(numCcdPixelsLeftHalf);
             totalContribution.zeros(lengthReadoutRegister);
 
             for (int deltaX = 1; deltaX <= frontEndElectronics->getOverAndUnderShootRange(); deltaX++)
             {
                 difference = readoutRegister.tail(lengthReadoutRegister - deltaX) - readoutRegister.tail(lengthReadoutRegister - deltaX);
-                totalContribution(arma::span(deltaX, lengthReadoutRegister - 1)) += frontEndElectronics->getOverAndUnderShootStrength() * difference * exp(-frontEndElectronics->getOverAndUnderShootDecayRate() * pow(deltaX, frontEndElectronics->getOverAndUnderShootDecaySpeed()));
+                totalContribution.tail(lengthReadoutRegister - deltaX) += frontEndElectronics->getOverAndUnderShootStrength() * difference * exp(-frontEndElectronics->getOverAndUnderShootDecayRate() * pow(deltaX, frontEndElectronics->getOverAndUnderShootDecaySpeed()));
             }
 
-            pixelMap(row, arma::span(firstIndexLeftHalf, lastIndexLeftHalf)) += totalContribution.tail(lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange());
+            pixelMap.row(row).head(numCcdPixelsLeftHalf) += totalContribution.tail(lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange());
         }
     }
 
@@ -2383,23 +2384,24 @@ void Detector::applyOverAndUnderShoot()
     {
         const int firstIndexRightHalf = max(halfDectectorWidth, subFieldZeroPointColumn);
         const int lastIndexRightHalf = subFieldZeroPointColumn + numColumnsPixelMap - 1;
+        const int numCcdPixelsRightHalf = lastIndexRightHalf - firstIndexRightHalf + 1;
 
-        lengthReadoutRegister = (lastIndexRightHalf - firstIndexRightHalf + 1) + frontEndElectronics->getOverAndUnderShootRange();
+        lengthReadoutRegister = numCcdPixelsRightHalf + frontEndElectronics->getOverAndUnderShootRange();      // Pixels in sub-field on right CCD half + some extra pixels closest to the readout electronics
         readoutRegister.zeros(lengthReadoutRegister);
         readoutRegister.tail(frontEndElectronics->getOverAndUnderShootRange()) = skyBackgroundExtraPixels;
 
         for (unsigned int row = 0; row < numRowsPixelMap; row++)
         {
-            readoutRegister(arma::span(0, lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange() - 1)) = pixelMap(row, arma::span(firstIndexRightHalf, lastIndexRightHalf));
+            readoutRegister(arma::span(0, lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange() - 1)) = pixelMap.row(row).tail(numCcdPixelsRightHalf);
             totalContribution.zeros(lengthReadoutRegister);
 
             for (int deltaX = 1; deltaX <= frontEndElectronics->getOverAndUnderShootRange(); deltaX++)
             {
                 difference = readoutRegister.head(lengthReadoutRegister - deltaX) - readoutRegister.tail(lengthReadoutRegister - deltaX);
-                totalContribution(arma::span(0, lengthReadoutRegister - deltaX - 1)) += frontEndElectronics->getOverAndUnderShootStrength() * difference * exp(-frontEndElectronics->getOverAndUnderShootDecayRate() * pow(deltaX, frontEndElectronics->getOverAndUnderShootDecaySpeed()));
+                totalContribution.head(lengthReadoutRegister - deltaX) += frontEndElectronics->getOverAndUnderShootStrength() * difference * exp(-frontEndElectronics->getOverAndUnderShootDecayRate() * pow(deltaX, frontEndElectronics->getOverAndUnderShootDecaySpeed()));
             }
 
-            pixelMap(row, arma::span(firstIndexRightHalf, lastIndexRightHalf)) += totalContribution.head(lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange());
+            pixelMap.row(row).tail(numCcdPixelsRightHalf) += totalContribution.head(lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange());
         }
     }
 }
