@@ -44,7 +44,7 @@ Platform:
 
 Telescope:
     
-    GroupID:                         Fast          # There are four camera groups: 1, 2, 3, 4, Fast, Custom
+    GroupID:                         Custom          # There are four camera groups: 1, 2, 3, 4, Fast, Custom
                                                      # (use Custom to specify the telescope azimuth and tilt angles yourself)
 
     AzimuthAngle:                    0.0             # Azimuth angle of telescope on the platform [deg]  - used when GroupID = Custom
@@ -144,7 +144,7 @@ FEE:
 
 CCD:
 
-    Position:                        1          # one of [1, 2, 3, 4, Custom]
+    Position:                        Custom          # one of [1, 2, 3, 4, Custom]
                                                      # (use Custom to specify the CCD position parameters yourself)
                                                      
     OriginOffsetX:                   0               # X Offset of CCD origin from center of focal plane [mm]  - use when CCDPosition = Custom
