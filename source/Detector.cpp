@@ -1203,7 +1203,6 @@ void Detector::addPhotonNoise()
     {
         for (unsigned int column = 0; column < numColumnsPixelMap; column++)
         {
-            Log.debug(to_string(row) + ", " + to_string(column) + ": " + to_string(pixelMap(row, column)));
             photonNoiseDistribution = poisson_distribution<long>(pixelMap(row, column));
             pixelMap(row, column) = photonNoiseDistribution(photonNoiseGenerator);
         }
@@ -1780,8 +1779,6 @@ void Detector::applyShort2013CTImodel()
 
         for (int k = 0; k < numTrapSpecies; k++)
         {
-            Log.debug("Trap species: " + to_string(k));
-
             // Compute the number of electrons captured in a trap, according to Eq. (22)-(23) of Short et al. (2013).
             // Note that Armadillo uses % for elementwise multiplication.
 
