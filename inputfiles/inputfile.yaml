@@ -44,7 +44,7 @@ Platform:
 
 Telescope:
     
-    GroupID:                         Custom          # There are four camera groups: 1, 2, 3, 4, Fast, Custom
+    GroupID:                         Fast          # There are four camera groups: 1, 2, 3, 4, Fast, Custom
                                                      # (use Custom to specify the telescope azimuth and tilt angles yourself)
 
     AzimuthAngle:                    0.0             # Azimuth angle of telescope on the platform [deg]  - used when GroupID = Custom
@@ -137,14 +137,14 @@ FEE:
     OverAndUnderShoot:
         Strength:                    0.003867        # Strength of the over-/undershoot
         DecaySpeed:                  1.277           # Speed of the exponential decay function describing over-/undershoot
-        DecayRate:                   ßß1.277          # Rate of the exponential decay function describing over-/undershoot
+        DecayRate:                   1.277           # Rate of the exponential decay function describing over-/undershoot
         Range:                       5               # How far will in the readout register will pixels be affected by a signal change?
-    IncludeOverAndUnderShoot:        no              # Whether or not the over-/undershoot should be applied (for fast cameras only)
+    IncludeOverAndUnderShoot:        no             # Whether or not the over-/undershoot should be applied (for fast cameras only)
  
 
 CCD:
 
-    Position:                        Custom          # one of [1, 2, 3, 4, Custom]
+    Position:                        1          # one of [1, 2, 3, 4, Custom]
                                                      # (use Custom to specify the CCD position parameters yourself)
                                                      
     OriginOffsetX:                   0               # X Offset of CCD origin from center of focal plane [mm]  - use when CCDPosition = Custom
