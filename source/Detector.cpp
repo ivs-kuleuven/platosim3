@@ -1030,6 +1030,15 @@ void Detector::readOut(float exposureTime)
         Log.debug("Detector: no photon noise added.");
     }
 
+    if(isFastCamera && frontEndElectronics->getIncludeOverAndUnderShoot())
+    {
+        Log.debug("Detector: adding (F-)FEE over-/undershoot");
+        applyOverAndUnderShoot();
+    }
+    else{
+        Log.debug("Detector: (F-)FEE over-/undershoot not applied: " + to_string(isFastCamera) + " " + to_string(frontEndElectronics->getIncludeOverAndUnderShoot()));
+    }
+
     // Each time the amplifier reads out a pixel, a tiny bit of noise is added.
     // Add the readout noise.
     // Pixel units before: [electrons]
