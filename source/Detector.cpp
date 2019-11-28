@@ -2368,10 +2368,15 @@ void Detector::applyOverAndUnderShoot()
             readoutRegister(arma::span(frontEndElectronics->getOverAndUnderShootRange(), lengthReadoutRegister - 1)) = pixelMap.row(row).head(numCcdPixelsLeftHalf);
             totalContribution.zeros(lengthReadoutRegister);
 
-            for (int deltaX = 1; deltaX <= frontEndElectronics->getOverAndUnderShootRange(); deltaX++)
+            difference = readoutRegister.tail(lengthReadoutRegister - 1) - readoutRegister.head(lengthReadoutRegister - 1);
+
+            for (int deltaX = 0; deltaX < frontEndElectronics->getOverAndUnderShootRange(); deltaX++)
             {
-                difference = readoutRegister.tail(lengthReadoutRegister - deltaX) - readoutRegister.tail(lengthReadoutRegister - deltaX);
-                totalContribution.tail(lengthReadoutRegister - deltaX) += frontEndElectronics->getOverAndUnderShootStrength() * difference * exp(-frontEndElectronics->getOverAndUnderShootDecayRate() * pow(deltaX, frontEndElectronics->getOverAndUnderShootDecaySpeed()));
+                // Ditch last deltaX and tail(numCcdPixelsLeftHalf)
+
+                totalContribution.tail(lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange()) += frontEndElectronics->getOverAndUnderShootStrength() * difference.head(lengthReadoutRegister - 1 - deltaX).tail(numCcdPixelsLeftHalf) * exp(-frontEndElectronics->getOverAndUnderShootDecayRate() * pow(deltaX, frontEndElectronics->getOverAndUnderShootDecaySpeed()));
+                
+                // totalContribution.tail(lengthReadoutRegister - deltaX) += frontEndElectronics->getOverAndUnderShootStrength() * difference * exp(-frontEndElectronics->getOverAndUnderShootDecayRate() * pow(deltaX, frontEndElectronics->getOverAndUnderShootDecaySpeed()));
             }
 
             pixelMap.row(row).head(numCcdPixelsLeftHalf) += totalContribution.tail(lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange());
@@ -2395,10 +2400,13 @@ void Detector::applyOverAndUnderShoot()
             readoutRegister(arma::span(0, lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange() - 1)) = pixelMap.row(row).tail(numCcdPixelsRightHalf);
             totalContribution.zeros(lengthReadoutRegister);
 
-            for (int deltaX = 1; deltaX <= frontEndElectronics->getOverAndUnderShootRange(); deltaX++)
+            difference = readoutRegister.head(lengthReadoutRegister - 1) - readoutRegister.tail(lengthReadoutRegister - 1);
+
+            for (int deltaX = 0; deltaX < frontEndElectronics->getOverAndUnderShootRange(); deltaX++)
             {
-                difference = readoutRegister.head(lengthReadoutRegister - deltaX) - readoutRegister.tail(lengthReadoutRegister - deltaX);
-                totalContribution.head(lengthReadoutRegister - deltaX) += frontEndElectronics->getOverAndUnderShootStrength() * difference * exp(-frontEndElectronics->getOverAndUnderShootDecayRate() * pow(deltaX, frontEndElectronics->getOverAndUnderShootDecaySpeed()));
+                // Ditch first deltaX and head(numCcdPixelsRightHalf)
+
+                totalContribution.head(lengthReadoutRegister - deltaX) += frontEndElectronics->getOverAndUnderShootStrength() * difference.tail(lengthReadoutRegister - 1 - deltaX).head(numCcdPixelsRightHalf) * exp(-frontEndElectronics->getOverAndUnderShootDecayRate() * pow(deltaX, frontEndElectronics->getOverAndUnderShootDecaySpeed()));
             }
 
             pixelMap.row(row).tail(numCcdPixelsRightHalf) += totalContribution.head(lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange());
