@@ -2406,7 +2406,7 @@ void Detector::applyOverAndUnderShoot()
             {
                 // Ditch first deltaX and head(numCcdPixelsRightHalf)
 
-                totalContribution.head(lengthReadoutRegister - deltaX) += frontEndElectronics->getOverAndUnderShootStrength() * difference.tail(lengthReadoutRegister - 1 - deltaX).head(numCcdPixelsRightHalf) * exp(-frontEndElectronics->getOverAndUnderShootDecayRate() * pow(deltaX, frontEndElectronics->getOverAndUnderShootDecaySpeed()));
+                totalContribution.head(lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange()) += frontEndElectronics->getOverAndUnderShootStrength() * difference.tail(lengthReadoutRegister - 1 - deltaX).head(numCcdPixelsRightHalf) * exp(-frontEndElectronics->getOverAndUnderShootDecayRate() * pow(deltaX, frontEndElectronics->getOverAndUnderShootDecaySpeed()));
             }
 
             pixelMap.row(row).tail(numCcdPixelsRightHalf) += totalContribution.head(lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange());
