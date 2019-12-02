@@ -137,6 +137,13 @@ FEE:
     ElectronicOffset:
         RefValue:                    1000            # Reference value for the electronic offset [ADU/pixel]
         Stability:                   1               # Offset stability [ADU/pixel/K]
+    OverAndUnderShoot:
+        Strength:                    0.003867        # Strength of the over-/undershoot
+        DecaySpeed:                  0.755           # Speed of the exponential decay function describing over-/undershoot
+        DecayRate:                   1.277           # Rate of the exponential decay function describing over-/undershoot
+        Range:                       5               # How far will in the readout register will pixels be affected by a signal change?
+    IncludeOverAndUnderShoot:        yes             # Whether or not the over-/undershoot should be applied (for fast cameras only)
+ 
 
 
 CCD:

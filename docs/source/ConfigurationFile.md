@@ -966,7 +966,14 @@ FEE:
     		AllowedDifference:   -100    		
     ElectronicOffset:           
     		RefValue:            100
-    		Stability:           18.8875 
+    		Stability:           1
+    OverAndUnderShoot:
+        Strength:                    0.003867
+        DecaySpeed:                  0.755
+        DecayRate:                   1.277
+        Range:                       5
+    IncludeOverAndUnderShoot:        no
+
 \endcode
 
 
@@ -1054,6 +1061,57 @@ Electronic offset or bias level at the nominal operating temperature of the FEE,
 <i>Allowed values:</i> Any
 
 Change in electronic offset (for both ADCs) with temperature deviations from the nominal operating temperature, expressed in ADU/pixel/K.
+
+
+
+### <a name="overAndUnderShoot"></a>OverAndUnderShoot
+
+Over-/undershoot has been noticed in F-FEE measurements.  Looking at the content of a readout register at any given time, the charges in any pixels will affect the next pixels in the readout register, further away from the readout register, e.g. at a distance \f$\Delta x \f$.  For a difference in signal between two such pixels, \f$\Delta S \f$, the
+induced over-/undershoot will be
+
+\f[a \cdot \Delta S \cdot \exp{(- \lambda \cdot \Delta x^b)}.\f]
+
+Both detector halves are treated independently.
+
+
+
+#### <a name=""></a>OverAndUnderShoot: Strength
+
+<i>Allowed values:</i> > 0
+
+Parameter \f$a \f$ in the formula above.
+
+
+
+#### <a name=""></a>OverAndUnderShoot: DecayRate
+
+<i>Allowed values:</i> > 0
+
+Parameter \f$\lambda \f$ in the formula above.
+
+
+
+#### <a name=""></a>OverAndUnderShoot: DecaySpeed
+
+<i>Allowed values:</i> > 0
+
+Parameter \f$b \f$ in the formula above.
+
+
+
+#### <a name=""></a>OverAndUnderShoot: Range
+
+<i>Allowed values:</i> > 0
+
+Maximum distance \f$\Delta x \f$ over which a pixel in the readout register exerts over-/undershoot on other pixels in the readout register, further away from the readout electronics.
+
+
+
+### <a name="inclOverAndUnderShoot"></a>MappedGaussian: IncludeOverAndUnderShoot
+
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to include F-FEE over-/undershoot.  Only applicable in case [GroupID](#groupID) = Fast.
 
 ---
 
