@@ -77,6 +77,9 @@ class DetectorWithMappedPSF: public Detector
 
         Convolver convolver;
 
+        virtual bool checkWinPositionMessage(std::string messageString) override;
+
+
 };
 
 

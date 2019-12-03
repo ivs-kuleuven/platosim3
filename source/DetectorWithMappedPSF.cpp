@@ -233,9 +233,10 @@ void DetectorWithMappedPSF::generateFlatfieldMap()
     flatfieldMap.reshape(numRowsFlatfield, numColumnsFlatfield);
 
     // Write the result to the HDF5 output file
-
-    hdf5File.writeArray("/Flatfield", "IRNU", flatfieldMap);
-
+    if (!getWinPositionFromServer)
+    {
+        hdf5File.writeArray("/Flatfield", "IRNU", flatfieldMap);
+    }
     // Rebin the intra-pixel flatfield to the pixel flatfield (IRNU -> PRNU)
     // and also write this array to the HDF5 outputfile. This PRNU array is not used
     // in the remainder of the simulation.
@@ -257,10 +258,12 @@ void DetectorWithMappedPSF::generateFlatfieldMap()
     }
 
     // Write the result to the HDF5 output file
+    if (!getWinPositionFromServer)
+    {
+        Log.debug("Detector: writing PRNU to HDF5");
 
-    Log.debug("Detector: writing PRNU to HDF5");
-
-    hdf5File.writeArray("/Flatfield", "PRNU", prnu);
+        hdf5File.writeArray("/Flatfield", "PRNU", prnu);
+    }
 }
 
 
@@ -320,6 +323,13 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
     // Advance the internal clock until the given start time
 
     internalTime = startTime;
+
+    // check if there are new updates for the window position
+
+    if (getWinPositionFromServer)
+    {
+        setWinPosition();
+    }
 
     // Integration of point sources and background, taking into account jitter + drift.
 
@@ -849,3 +859,125 @@ void DetectorWithMappedPSF::writeSubPixelMapToHDF5(int exposureNr)
 
 
 
+/**
+ * \brief checks the message from server to change the window postion
+ *  
+ */
+bool DetectorWithMappedPSF::checkWinPositionMessage(std::string winPositionString)
+{
+    Log.info("Detector: positionMessage: " + winPositionString);
+        
+    // fracture the received string
+    std::stringstream ss(winPositionString);
+    
+    std::vector<double> winPositionVec;
+    
+    double i;
+    
+    // convert the string to double values
+    while (ss >> i)
+    {
+        winPositionVec.push_back(i);
+        
+        if (ss.peek() == ',' || ss.peek() == ' ')
+        {
+            ss.ignore();
+        }
+    }
+        
+    // set the window position to the new values from the server
+    if (winPositionVec.size() == 5)
+    {
+        numRowsPixelMap         = winPositionVec.at(0);
+        numColumnsPixelMap      = winPositionVec.at(1);
+
+        subFieldZeroPointRow    = winPositionVec.at(2);
+        subFieldZeroPointColumn = winPositionVec.at(3);
+        
+        orientationAngle      = deg2rad(winPositionVec.at(4));
+        
+        Log.info("Detector: " + to_string(winPositionVec.at(0))
+                        + " " + to_string(winPositionVec.at(1))
+                        + " " + to_string(winPositionVec.at(2))
+                        + " " + to_string(winPositionVec.at(3))
+                        + " " + to_string(winPositionVec.at(4)));
+
+                
+
+        Log.info("Detector: Changed subFieldZeroPointColumn to: " + to_string(subFieldZeroPointColumn));
+        Log.info("Detector: Changed subFieldZeroPointRow to: " + to_string(subFieldZeroPointRow));
+            
+        // Allocate memory for the different maps
+            
+        uint check = 0;
+
+        pixelMap.set_size(numRowsPixelMap, numColumnsPixelMap);
+
+        biasMapLeft.set_size(numRowsBiasMap, numColumnsBiasMap);
+
+        biasMapRight.set_size(numRowsBiasMap, numColumnsBiasMap);
+
+        smearingMap.set_size(numRowsSmearingMap, numColumnsPixelMap);
+
+        throughputMap.set_size(numRowsPixelMap, numColumnsPixelMap);
+
+        throughputMap.ones(numRowsPixelMap, numColumnsPixelMap);
+
+        // If we are going to apply open-shutter smearing, we have to know which pixels are within
+        // the FOV (relevant only in case of mechanical vignetting).  When mechanical vignetting is
+        // disabled, all pixels of the detector are inside the FOV.
+            
+        if(includeOpenShutterSmearing)
+        {
+            // Mechanical vignetting map:
+            //  - no mechanical vignetting: all pixels of the sub-field inside FOV -> all values set to one
+            //  - mechanical vignetting: set value of the pixels in the sub-field outside FOV to zero (others should be one) -> on creation of the throughput map
+            
+            mechanicalVignettingMask.ones(numRowsPixelMap, numColumnsPixelMap);
+
+            // Number of exposed rows in each column:
+            // - no mechanical vignetting: all exposed rows inside FOV (numRows - firstRowExposed)
+            // - mechanical vignetting: count the exposed rows (i.e. from firstRowExposed) that are inside FOV
+            
+            numExposedRowsInFOV.zeros(numColumnsPixelMap);
+
+            if(!includeMechanicalVignetting)
+            {
+                numExposedRowsInFOV.fill(numRows - firstRowExposed);
+            }
+
+            numRowsSubPixelMap = numRowsPixelMap * numSubPixelsPerPixel; // TODO Add edge pixels
+            numColumnsSubPixelMap = numColumnsPixelMap * numSubPixelsPerPixel; // TODO Add edge pixels
+            
+            // Allocate memory for the different maps
+
+            subPixelMap.zeros(numRowsSubPixelMap, numColumnsSubPixelMap);
+
+            flatfieldMap.ones(numRowsSubPixelMap, numColumnsSubPixelMap);
+
+            if(includeFlatfield)
+            {
+                // Generate the flatfield map
+
+                generateFlatfieldMap();
+            }
+
+            // set the psf again for the new
+            setPsfForSubfield();
+
+        }
+
+        return true;
+
+    }
+
+
+    else
+    {
+        // TODO: Include consequneces for received messages with the wrong number of arguments
+            
+        Log.info("Detector: Message from Window Position Server has not the needed number of arguments");
+        
+        return false;
+    }
+}
