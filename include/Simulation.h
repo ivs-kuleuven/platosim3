@@ -21,6 +21,7 @@
 #include "NoJitter.h"
 #include "JitterFromFile.h"
 #include "JitterFromRedNoise.h"
+#include "JitterFromNetwork.h"
 #include "DriftGenerator.h"
 #include "NoDrift.h"
 #include "ThermoElasticDriftFromFile.h"
@@ -61,7 +62,7 @@ class Simulation
         int numExposures;                       // Number of exposures
 
         bool useJitter;
-        bool useJitterFromFile;
+        std::string jitterSource;
         bool includeFieldDistortion;
         bool useDrift;
         bool useDriftFromFile;
@@ -80,6 +81,19 @@ class Simulation
         Sky *sky;
         Camera *camera;
         Detector *detector;
+
+        bool sendImagettesToClient;
+        bool getWindowPositionFromServer;
+
+        string jitterAddress;
+        string winPositionAddress;
+        string imagetteAddress;
+
+        zmq::context_t context;
+
+        zmq::socket_t jitterSocket;
+        zmq::socket_t imagetteSocket;
+        zmq::socket_t winPositionSocket;
 
         HDF5File hdf5File;
 

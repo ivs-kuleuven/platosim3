@@ -22,6 +22,10 @@
  */
 
 Simulation::Simulation(string inputFilename, string outputFilename)
+    : context(1)
+    , jitterSocket(context, ZMQ_SUB)
+    , imagetteSocket(context, ZMQ_DEALER)
+    , winPositionSocket(context, ZMQ_DEALER)
 {
     // Parse the configuration parameters file
 
@@ -56,6 +60,20 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     configure(configParams);
 
+    // generate an identity. to make sure it is unique for each simulation, take the outputfilename
+    
+    uint nameLen = outputFilename.length();
+
+    char identity[nameLen + 1];
+
+    strcpy(identity, outputFilename.c_str());
+
+    std::string idStr = identity;
+
+    Log.info("Simulation: Network Identity: " + idStr);
+
+
+
     double readoutTimeDuringNextExposure;
     tie(readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure) = configureReadoutTime(configParams);
     exposureTime = cycleTime - readoutTimeBeforeNextExposure;
@@ -73,14 +91,33 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     }
     else
     {
-        if (useJitterFromFile)
+        if (jitterSource == "FromFile")
         {
             jitterGenerator = new JitterFromFile(configParams);
         }
-        else
+        else if (jitterSource == "FromRedNoise")
         {
             jitterGenerator = new JitterFromRedNoise(configParams);
         }
+        else if (jitterSource == "FromNetwork")
+        {
+            // declare a zmq socket and connect it to the jitter server address
+
+            jitterSocket.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+
+            jitterSocket.connect(jitterAddress);
+
+            jitterGenerator = new JitterFromNetwork(configParams, &jitterSocket);
+        }
+        else
+        {
+            string errorMessage = "Simulation: Jitter Source '" + jitterSource + "' is not supported.";
+            
+            Log.error(errorMessage);
+            
+            throw IllegalArgumentException(errorMessage);
+        }
+
     }
 
     // Depending on what the user requested, define the proper telescope thermo-elastic drift generator
@@ -147,6 +184,41 @@ Simulation::Simulation(string inputFilename, string outputFilename)
         throw IllegalArgumentException(errorMessage);
     }
 
+
+    if (sendImagettesToClient)
+    {
+        // declare a zmq socket to send imagettes to
+
+        imagetteSocket.setsockopt(ZMQ_IDENTITY, identity, strlen(identity));
+
+        // connect to the given address
+
+        Log.info("Simulation: ImagetteClientAddress: " + imagetteAddress);  
+
+        imagetteSocket.connect(imagetteAddress);
+
+        detector->setImagetteSocket(&imagetteSocket);
+
+    }
+
+    if (getWindowPositionFromServer)
+    {
+        // declare a zmq socket to get a window position from 
+
+        winPositionSocket.setsockopt(ZMQ_IDENTITY, identity, strlen(identity));
+
+
+        // connect to the given address
+
+        Log.info("Simulation: WindowPositionServerAddress: " + winPositionAddress);        
+
+        winPositionSocket.connect(winPositionAddress);
+
+        // send a pointer to the calibrated socket to the detector instance 
+
+        detector->setWinPositionSocket(&winPositionSocket);
+    }
+
     // Write the input parameters to the output HDF5 file
 
     writeInputParametersToHDF5(configParams);
@@ -193,19 +265,24 @@ Simulation::~Simulation()
 
 void Simulation::configure(ConfigurationParameters &configParams)
 {
-    cycleTime      = configParams.getDouble("ObservingParameters/CycleTime"); 
-    beginExposureNr   = configParams.getInteger("ObservingParameters/BeginExposureNr");
-    numExposures      = configParams.getInteger("ObservingParameters/NumExposures");
-    useJitter         = configParams.getBoolean("Platform/UseJitter");
-    useJitterFromFile = configParams.getBoolean("Platform/UseJitterFromFile");
-    includeFieldDistortion = configParams.getBoolean("Camera/IncludeFieldDistortion"); // do we want to do this or should this be asked to Camera?
-    useDrift          = configParams.getBoolean("Telescope/UseDrift");  
-    useDriftFromFile  = configParams.getBoolean("Telescope/UseDriftFromFile");  
-    psfModel          = configParams.getString("PSF/Model");
-    useFeeTemperatureFromFile = configParams.getString("FEE/Temperature") == "FromFile";
-    useFeeNominalTemperature = configParams.getString("FEE/Temperature") == "Nominal";
-    useDetectorTemperatureFromFile = configParams.getString("CCD/Temperature") == "FromFile";
-    useDetectorNominalTemperature = configParams.getString("CCD/Temperature") == "Nominal";
+    cycleTime                           = configParams.getDouble("ObservingParameters/CycleTime"); 
+    beginExposureNr                     = configParams.getInteger("ObservingParameters/BeginExposureNr");
+    numExposures                        = configParams.getInteger("ObservingParameters/NumExposures");
+    useJitter                           = configParams.getBoolean("Platform/UseJitter");
+    jitterSource                        = configParams.getString("Platform/JitterSource");
+    includeFieldDistortion              = configParams.getBoolean("Camera/IncludeFieldDistortion"); // do we want to do this or should this be asked to Camera?
+    useDrift                            = configParams.getBoolean("Telescope/UseDrift");  
+    useDriftFromFile                    = configParams.getBoolean("Telescope/UseDriftFromFile");  
+    psfModel                            = configParams.getString("PSF/Model");
+    useFeeTemperatureFromFile           = configParams.getString("FEE/Temperature") == "FromFile";
+    useFeeNominalTemperature            = configParams.getString("FEE/Temperature") == "Nominal";
+    useDetectorTemperatureFromFile      = configParams.getString("CCD/Temperature") == "FromFile";
+    useDetectorNominalTemperature       = configParams.getString("CCD/Temperature") == "Nominal";
+    sendImagettesToClient               = configParams.getBoolean("ControlTcpConnection/SendImagettesToClients");
+    getWindowPositionFromServer         = configParams.getBoolean("ControlTcpConnection/GetWindowPositionsFromServer");
+    jitterAddress                       = configParams.getString("ControlTcpConnection/JitterServerAddress");
+    imagetteAddress                     = configParams.getString("ControlTcpConnection/ImagetteClientAddress");
+    winPositionAddress                  = configParams.getString("ControlTcpConnection/WindowPositionServerAddress");
 }
 
 
@@ -409,13 +486,26 @@ void Simulation::run()
 
     Log.info("Simulation: running exposures " + to_string(beginExposureNr) + " to " + to_string(beginExposureNr+numExposures-1));
 
-    // Loop over all exposures
-
-    for (int n = beginExposureNr; n < beginExposureNr + numExposures; n++)
+    // continue the simulation until no more jittersteps are send from a tcp connection server
+    while (!endOfSimulation)
     {
-        Log.info("Simulation: Starting exposure " + to_string(n) + " at time " + to_string(currentTime) );
+        // if no jitter from network is used, end the simulation, when the max number of exposures from the yaml file is reached
+        if (jitterSource != "FromNetwork" && n >= beginExposureNr + numExposures)
+        {
+            Log.info("Simulation: end of simulation reached");
 
-        currentTime = detector->takeExposure(n, currentTime, exposureTime);
+            endOfSimulation = true;
+        } 
+        else
+        {
+            Log.info("Simulation: Starting exposure " + to_string(n) + " at time " + to_string(currentTime));
+
+            currentTime = detector->takeExposure(n, currentTime, exposureTime);
+
+            endOfSimulation = jitterGenerator->getSimulationState();
+
+            n++;             
+        }
     }
 
     writeStarCatalogToHDF5();
@@ -621,7 +711,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addDouble("SolarPanelOrientation");
     addBoolean("UseJitter");
-    addBoolean("UseJitterFromFile");
+    addString("JitterSource");
     addDouble("JitterYawRms");
     addDouble("JitterPitchRms");
     addDouble("JitterRollRms");
@@ -885,6 +975,14 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addIntegerVector("NumRows");
     addIntegerVector("FirstRowForNormalCamera");
     addIntegerVector("FirstRowForFastCamera");
+
+    subGroup = "TcpConnections";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addBoolean("SendImagettesToClients");
+    addBoolean("GetWindowPositionsFromServer");
+    addString("WindowPositionServerAddress");
+    addString("JitterServerAddress");
+    addString("ImagetteClientAddress");
 
 }
 
