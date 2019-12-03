@@ -6,6 +6,7 @@
 #include <random>
 #include <functional>
 #include <valarray>
+#include "zmq.hpp"
 
 #include "armadillo"
 
@@ -90,6 +91,9 @@ class Detector: public HDF5Writer
 
         double getReadoutTimeBeforeNextExposure();
 
+        void setImagetteSocket(zmq::socket_t* socket);
+        void setWinPositionSocket(zmq::socket_t* socket);
+
 
     protected:
 
@@ -133,6 +137,14 @@ class Detector: public HDF5Writer
         double getRowEdgeFOV(int column);
 
         virtual double getTemperature();
+
+
+        virtual std::string convertMatrixToString(arma::Mat<float>* pixelMapPointer, uint imagetteCounter);
+
+        virtual void setWinPosition();
+
+        virtual bool checkWinPositionMessage(std::string messageString);
+    
 
         arma::Mat<float> pixelMap;               // Pixel map, excl. edge pixels
         arma::Mat<float> smearingMap;            // Smearing map (i.e. over-scan strip)
@@ -265,6 +277,13 @@ class Detector: public HDF5Writer
  
         Camera &camera;
         FrontEndElectronics *frontEndElectronics;
+
+        zmq::socket_t* imagetteSocket;
+        bool sendImagettesToClient; 
+
+        zmq::socket_t* winPositionSocket;
+        bool getWinPositionFromServer; 
+        bool firstExposure;
 
     private:
 

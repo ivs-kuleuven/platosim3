@@ -231,6 +231,7 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 
     decimalNumCosmicHitsDistribution = uniform_real_distribution<double>(0, 1);
 
+    firstExposure = true;
 }
 
 
@@ -457,6 +458,8 @@ void Detector::updateParameters(double time)
     beginExposureNr         = configParam.getInteger("ObservingParameters/BeginExposureNr");
 
     numEdgePixels = 0;
+
+    sendImagettesToClient = false;
  }
 
 
@@ -492,6 +495,13 @@ double Detector::takeExposure(int exposureNr, double startTime, double exposureT
     // Advance the internal clock until the given start time
 
     internalTime = startTime;
+
+    // check if there are new updates for the window position
+
+    if (getWinPositionFromServer)
+    {
+        setWinPosition();
+    }
 
     // Integration of point sources and background, taking into account jitter + drift.
 
@@ -2764,6 +2774,30 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
         hdf5File.writeArray("/Images", imageName, uintMap);
     }
 
+    // send the imagette to the client connected via tcp connection
+
+    if (sendImagettesToClient)
+    {
+        Log.info("Detector: attempt to send the imagette to the client");
+
+        // convert the imagette to const char*
+
+        std::string imagetteString = convertMatrixToString(&pixelMap, exposureNr);
+
+        const char* imagetteChar = imagetteString.c_str();
+
+        // declare the the outgoing zmq::message
+
+        zmq::message_t imagetteMessage (strlen(imagetteChar));
+
+        memcpy(imagetteMessage.data(), imagetteChar, strlen(imagetteChar));
+
+        // send the imagette to the client
+
+        imagetteSocket->send(imagetteMessage);
+    }
+
+
     if (numRowsSmearingMap != 0)
     {
     	// Clear the string stream and compose the smearing map name
@@ -2882,4 +2916,142 @@ double Detector::getTemperature()
 double Detector::getReadoutTimeBeforeNextExposure()
 {
 	return readoutTimeBeforeNextExposure;
+}
+
+
+
+
+/**
+ * \brief sets the imagette socket to clarify where imagettes are to be send, when finished.
+ */
+void Detector::setImagetteSocket(zmq::socket_t* socket)
+{
+    imagetteSocket = socket;
+    sendImagettesToClient = true;
+}
+
+
+/**
+ * \brief sets the window position socket to clarify where the input parameters are coming from
+ */
+void Detector::setWinPositionSocket(zmq::socket_t* socket)
+{
+    winPositionSocket = socket;
+    getWinPositionFromServer = true;
+}
+
+
+
+/**
+ * \brief converts the imagetteID, rows, cols and the pixelmap values to a char (seperated by a blank space) to be send to the client
+ *  
+ */
+std::string Detector::convertMatrixToString(arma::Mat<float>* pixelMapPointer, uint imagetteCounter)
+{
+    int rows = pixelMapPointer->n_rows;
+
+    int cols = pixelMapPointer->n_cols;
+
+    // write the values seperated by a white space to the string
+    std::string imagetteString = to_string(imagetteCounter) + " " + to_string(rows) + " " + to_string(cols) + " ";
+
+    // write every value of the pixelMap to the string
+    for(int i = 0; i < rows; i++)
+    {
+        for(int j = 0; j < cols; j++)
+        {
+            imagetteString += to_string(int(pixelMapPointer->at(i, j))) + " ";
+        }
+    }
+
+    return imagetteString;
+}
+
+
+/**
+ * \brief: checks whether there is a message to change the window postion
+ *         the first time the application reaches this point it waits for a message from the server
+ *         after that, it only checks, whether there is news and carries on with the old data if not
+ *  
+ */
+void Detector::setWinPosition()
+{
+
+    // send a handshake message to the position server and wait for a response before the simulation starts
+
+    if(firstExposure)
+    {
+        std::string messageString = "";
+
+        zmq::message_t message(messageString.length());
+
+        const char *cMessage = messageString.c_str(); 
+
+        memcpy (message.data (), cMessage, messageString.length());
+
+
+        winPositionSocket->send(message);
+
+
+        Log.info("DetectorWithMappedPSF: Wait for Message from window position server");
+
+        // wait for message from winListServer
+
+        zmq::message_t reply;
+
+        std::string replyString;
+
+        winPositionSocket->recv(&reply);
+
+        replyString = std::string(static_cast<char*>(reply.data()), reply.size());
+
+        std::cout << "replyString: " << replyString << std::endl;
+
+        // do a sanity check of the received message and set the window list
+
+        if(checkWinPositionMessage(replyString))
+        {
+            Log.info("DetectorWithMappedPSF: got first win position message");
+
+            // if the window position is set the simulation can start
+
+            firstExposure = false;
+
+            // set the socket to no longer wait for input from server
+
+            uint timeOut = 0;
+
+            winPositionSocket->setsockopt(ZMQ_RCVTIMEO, &timeOut, sizeof(timeOut));
+
+        }
+
+    }
+
+    Log.info("DetectorWithMappedPSF: Check whether there is a new Message from window position server");
+
+    // after the simulation is started by the reply of the server (and the corresponding setting of the window position)
+    // the platoSim instance should check whether there are new commands for each new imagette creation
+
+    // define a message
+    zmq::message_t winPositionMessage;
+  
+    // check whether there is a new message
+    if (winPositionSocket->recv(&winPositionMessage))
+    {
+        Log.info("DetectorWithMappedPSF: Got Message from window position server");
+
+        std::string messageString = std::string(static_cast<char*>(winPositionMessage.data()), winPositionMessage.size());
+
+        bool newPositionSet = checkWinPositionMessage(messageString);                
+    }
+    else
+    {
+        Log.info("Detector: no message received");
+    }
+
+}
+
+bool Detector::checkWinPositionMessage(std::string message)
+{
+    
 }
