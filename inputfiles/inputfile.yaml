@@ -34,7 +34,7 @@ Platform:
 
     SolarPanelOrientation:           0               # 0, 90, 180, or 270 degrees for the different quarters of a year [deg]
     UseJitter:                       yes             # yes or no. If no, ignore everything below.
-    UseJitterFromFile:               no              # yes or no. If yes, ignore RMS and timescale below.
+    JitterSource:                    FromNetwork     # FromFile, FromRedNoise, or FromNetwork
     JitterYawRms:                    0.04            # [arcsec]
     JitterPitchRms:                  0.04            # [arcsec]
     JitterRollRms:                   0.08            # [arcsec]
@@ -252,6 +252,15 @@ ControlHDF5Content:
     WriteSubPixelImages:             no              # Only use this for a limited number of exposures. Takes a lot of space! 
     WriteStarPositions:              yes             # StarPositions are written in pixel and focal plane coordinates + flux and
                                                      # scales with the number of exposures and the number of stars in the field.
+
+ControlTcpConnection:
+
+    SendImagettesToClients:        yes
+    GetWindowPositionsFromServer:  yes
+
+    WindowPositionServerAddress: tcp://localhost:5558
+    JitterServerAddress:         tcp://localhost:5559
+    ImagetteClientAddress:       tcp://localhost:5560
 
 
 # ----- DO NOT MAKE CHANGES BELOW THIS LINE -----
