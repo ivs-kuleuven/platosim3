@@ -433,7 +433,7 @@ void PointSpreadFunction::rotate(double angle)
     // Even if we do not rotate the Gaussian PSF, we do save the psfMap as a rotatedPSF.
     // This is to keep consistency in the output file where we do not save the selected PSF,
     // but we do save the rotated PSF.
-
+/*
     if (isGaussian)
     {
         hdf5File.writeArray("/PSF", "rotatedPSF", psfMap);
@@ -446,7 +446,14 @@ void PointSpreadFunction::rotate(double angle)
         Log.warning("PointSpreadFunction: Ignoring rotation: PSF was already rotated before.");
     }
     else
-    {
+    {*/
+
+        // with the introduction of the winPositionFromNetwork functionality it is possible, that the psf map
+        // can change during the simulation. therefore the possibility for other rotations after the initial 
+        // one has to be given. Furthermore the psf can not be written to the .hdf5 output file, since problems 
+        // will occure if this is attempted a second time
+
+
         // This part of the code currently assumes that the PSF has not been rotated yet.
         // The rotationAngle of the generated PSFs is 45 degrees, so the actual rotation should be
         // the requested angle minus the rotationAngle of the PSF.
@@ -461,12 +468,16 @@ void PointSpreadFunction::rotate(double angle)
 
         Log.debug("PointSpreadFunction: rotated current PSF over angle " + to_string(rad2deg(newAngle)) + " deg");
 
+
+
+
+
         // Write the psfMap of the rotated PSF to the HDF5 output file
 
-        hdf5File.writeArray("/PSF", "rotatedPSF", psfMap);
+/*        hdf5File.writeArray("/PSF", "rotatedPSF", psfMap);
         hdf5File.writeAttribute("/PSF", "rotationAngle", rotationAngle);
 
-    }
+    }*/
 }
 
 
