@@ -113,7 +113,8 @@ link_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/yaml-cpp/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/googletest/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/fftw-3.3.4/lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/Faddeeva/lib${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/zeromq-4.1.4/lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/Faddeeva/lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/zeromq-4.1.4/lib
 )
 
 
