@@ -3005,8 +3005,6 @@ void Detector::setWinPosition()
 
         replyString = std::string(static_cast<char*>(reply.data()), reply.size());
 
-        std::cout << "replyString: " << replyString << std::endl;
-
         // do a sanity check of the received message and set the window list
 
         if(checkWinPositionMessage(replyString))

@@ -486,6 +486,12 @@ void Simulation::run()
 
     Log.info("Simulation: running exposures " + to_string(beginExposureNr) + " to " + to_string(beginExposureNr+numExposures-1));
 
+    // declare the imagetteNumber and set the endOfSimulation variable to false
+
+    int n = beginExposureNr;
+
+    bool endOfSimulation;  
+
     // continue the simulation until no more jittersteps are send from a tcp connection server
     while (!endOfSimulation)
     {
@@ -976,7 +982,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addIntegerVector("FirstRowForNormalCamera");
     addIntegerVector("FirstRowForFastCamera");
 
-    subGroup = "TcpConnections";
+    subGroup = "ControlTcpConnection";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addBoolean("SendImagettesToClients");
     addBoolean("GetWindowPositionsFromServer");

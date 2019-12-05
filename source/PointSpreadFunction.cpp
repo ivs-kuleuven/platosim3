@@ -343,7 +343,7 @@ void PointSpreadFunction::select(double radius)
         isSelected = true;
         rotationAngle = 0.0;
 
-        hdf5File.writeAttribute("/PSF", "selectedPSF", "Gaussian PSF selected with sigma=" + to_string(sigma));
+        //hdf5File.writeAttribute("/PSF", "selectedPSF", "Gaussian PSF selected with sigma=" + to_string(sigma));
 
         return;
     }
@@ -406,7 +406,7 @@ void PointSpreadFunction::select(double radius)
 
     Log.debug("PointSpreadFunction: Selected PSF " + groupName + "/" + azimuthDataset + ", rotation set to " + dtos(angle) + " degrees.");
 
-    hdf5File.writeAttribute("/PSF", "selectedPSF", "Realistic PSF selected from group " + groupName + "/" + azimuthDataset + ".");
+    //hdf5File.writeAttribute("/PSF", "selectedPSF", "Realistic PSF selected from group " + groupName + "/" + azimuthDataset + ".");
 
     isSelected = true;
 }
@@ -520,7 +520,7 @@ arma::fmat PointSpreadFunction::rebinToSubPixels(unsigned int targetSubPixels)
 
     // Write the rebinned PSF to the output HDF5 file
 
-    hdf5File.writeArray("/PSF", "rebinnedPSFsubPixel", rebinnedMap);
+    //hdf5File.writeArray("/PSF", "rebinnedPSFsubPixel", rebinnedMap);
 
     return rebinnedMap;
 }
@@ -557,7 +557,7 @@ arma::fmat PointSpreadFunction::rebinToPixels()
 
     // Write the rebinned PSF to the output HDF5 file
 
-    hdf5File.writeArray("/PSF", "rebinnedPSFpixel", rebinnedMap);
+    //hdf5File.writeArray("/PSF", "rebinnedPSFpixel", rebinnedMap);
 
     return rebinnedMap;
 }
