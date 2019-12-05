@@ -23,8 +23,11 @@ class JitterGenerator : public Heartbeat
 
         virtual tuple<double, double, double> getNextYawPitchRoll(double time) = 0;
 
+        virtual bool getSimulationState(){return endOfSimulation;};
+
     protected:
 
+        bool endOfSimulation;
 
     private:
 

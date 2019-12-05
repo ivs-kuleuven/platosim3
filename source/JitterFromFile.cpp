@@ -166,6 +166,8 @@ void JitterFromFile::configure(ConfigurationParameters &configParams)
     
     beginTime = beginExposureNr * cycleTime;
     endTime   = (beginExposureNr + numExposures) * cycleTime;
+
+    endOfSimulation = false;
 }
 
 

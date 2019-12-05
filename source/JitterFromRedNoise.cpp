@@ -75,6 +75,8 @@ void JitterFromRedNoise::configure(ConfigurationParameters &configParams)
     double cycleTime = configParams.getDouble("ObservingParameters/CycleTime");
 
     internalTime = beginExposureNr * cycleTime;
+
+    endOfSimulation = false;
     
 }
 
