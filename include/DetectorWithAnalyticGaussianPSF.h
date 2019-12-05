@@ -51,6 +51,8 @@ class DetectorWithAnalyticGaussianPSF: public Detector
 
     private:
 
+        virtual bool checkWinPositionMessage(std::string messageString) override;
+
 };
 
 
