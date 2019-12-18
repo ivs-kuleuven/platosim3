@@ -57,6 +57,8 @@ class ClosedLoopDetectorWithAnalyticNonGaussianPSF: public DetectorWithAnalyticN
 
         virtual void writePixelMapsToHDF5(int exposureNr) override;
 
+        virtual void generateFlatfieldMap() override;
+
         void setNewWindowPosition(std::tuple<bool, uint, uint, uint, uint, double> windowPositionTuple);
 
     private:
@@ -83,6 +85,8 @@ class ClosedLoopDetectorWithAnalyticGaussianPSF: public DetectorWithAnalyticGaus
         virtual double takeExposure(int exposureNr, double startTime, double exposureTime) override;
 
         virtual void writePixelMapsToHDF5(int exposureNr) override;
+
+        virtual void generateFlatfieldMap() override;
 
         void setNewWindowPosition(std::tuple<bool, uint, uint, uint, uint, double> windowPositionTuple);
 
