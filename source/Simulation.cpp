@@ -22,8 +22,6 @@
  */
 
 Simulation::Simulation(string inputFilename, string outputFilename)
-    : context(1)
-    , jitterSocket(context, ZMQ_SUB)
 {
     // Parse the configuration parameters file
 
@@ -87,13 +85,7 @@ Simulation::Simulation(string inputFilename, string outputFilename)
         }
         else if (jitterSource == "FromNetwork")
         {
-            // declare a zmq socket and connect it to the jitter server address
-
-            jitterSocket.setsockopt(ZMQ_SUBSCRIBE, "", 0);
-
-            jitterSocket.connect(jitterAddress);
-
-            jitterGenerator = new JitterFromNetwork(configParams, &jitterSocket);
+            jitterGenerator = new JitterFromNetwork(configParams);
         }
         else
         {
@@ -254,10 +246,6 @@ void Simulation::configure(ConfigurationParameters &configParams)
     useDetectorNominalTemperature   = configParams.getString("CCD/Temperature") == "Nominal";
     sendImagettesToClient           = configParams.getBoolean("ControlTcpConnection/SendImagettesToClients");
     getWindowPositionFromServer     = configParams.getBoolean("ControlTcpConnection/GetWindowPositionsFromServer");
-    jitterAddress                   = configParams.getString("ControlTcpConnection/JitterServerAddress");
-    imagetteAddress                 = configParams.getString("ControlTcpConnection/ImagetteClientAddress");
-    winPositionAddress              = configParams.getString("ControlTcpConnection/WindowPositionServerAddress");
-
 }
 
 
@@ -620,15 +608,9 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     string parentGroup = "/InputParameters";
 
-    Log.info("Simulation: check 0");
-
     hdf5File->createGroup(parentGroup);
 
-    Log.info("Simulation: check 1");
-
     string subGroup;
-
-    Log.info("Simulation: check 2");
 
     // Define some Lambda functions that will make it much easier to add the input parameters
 
@@ -636,8 +618,6 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     { 
         hdf5File->writeAttribute(parentGroup + "/" + subGroup, attributeName, configParams.getDouble(subGroup + "/" + attributeName));
     };
-
-    Log.info("Simulation: check 3");
 
     auto addInteger = [&] (string attributeName) 
     { 

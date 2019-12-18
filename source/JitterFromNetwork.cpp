@@ -8,13 +8,19 @@
  * \param configParams The configuration parameters from the input parameters file
  */
 
-JitterFromNetwork::JitterFromNetwork(ConfigurationParameters &configParams, zmq::socket_t* socketPtr)
+JitterFromNetwork::JitterFromNetwork(ConfigurationParameters &configParams)
+    : context(1)
+    , jitterSocket(context, ZMQ_SUB)
 {
     // Set the configuration parameters
 
     configure(configParams);
 
-    jitterSocketPtr = socketPtr;
+    // declare a zmq socket and connect it to the jitter server address
+
+    jitterSocket.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+
+    jitterSocket.connect(jitterAddress);
 
 }
 
@@ -65,6 +71,8 @@ void JitterFromNetwork::configure(ConfigurationParameters &configParams)
     currentRoll = 0;
 
     endOfSimulation = false;
+
+    jitterAddress = configParams.getString("ControlTcpConnection/JitterServerAddress");
 }
 
 
@@ -106,7 +114,7 @@ tuple<double, double, double> JitterFromNetwork::getNextYawPitchRoll(double time
             zmq::message_t jitterMessage;
 
             // wait for a message from server (note: if there is no message, the simulation is stuck here. TODO: implement a timeout)
-            jitterSocketPtr->recv(&jitterMessage);
+            jitterSocket.recv(&jitterMessage);
 
             std::string jitterMessageString = std::string(static_cast<char*>(jitterMessage.data()), jitterMessage.size());
 

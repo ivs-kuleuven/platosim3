@@ -25,7 +25,7 @@ class JitterFromNetwork : public JitterGenerator
 {
     public:
 
-        JitterFromNetwork(ConfigurationParameters &configurationParameters, zmq::socket_t* socketPtr);
+        JitterFromNetwork(ConfigurationParameters &configurationParameters);
         ~JitterFromNetwork();
 
         virtual void configure(ConfigurationParameters &configParams);
@@ -52,7 +52,11 @@ class JitterFromNetwork : public JitterGenerator
 
         double internalTime;        // [s]
 
-        zmq::socket_t* jitterSocketPtr;
+        std::string jitterAddress;
+
+        zmq::context_t context;
+
+        zmq::socket_t jitterSocket;
 
     private:
 

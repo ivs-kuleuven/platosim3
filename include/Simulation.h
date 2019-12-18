@@ -90,13 +90,6 @@ class Simulation
         bool sendImagettesToClient;
         bool getWindowPositionFromServer;
 
-        string jitterAddress;
-        string winPositionAddress;
-        string imagetteAddress;
-
-        zmq::context_t context;
-
-        zmq::socket_t jitterSocket;
 };
 
 
