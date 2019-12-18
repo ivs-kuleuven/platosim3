@@ -23,6 +23,7 @@ python ./dependencies/installscripts/install_yaml.py
 python ./dependencies/installscripts/install_armadillo.py
 python ./dependencies/installscripts/install_fftw.py
 python ./dependencies/installscripts/install_faddeeva.py
+python ./dependencies/installscripts/install_zeromq.py
 
 
 # Build the simulator
