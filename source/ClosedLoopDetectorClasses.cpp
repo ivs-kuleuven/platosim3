@@ -183,6 +183,95 @@ void ClosedLoopDetectorWithMappedPSF::writePixelMapsToHDF5(int exposureNr)
     //hdf5File.writeArray("/ThroughputMaps", throughputMapName, throughputMap);
 }
 
+ /**
+ * \brief: variant of the generateFlatfieldMap without the writing of the maps to the hdf5 file - this is temporarity
+ */
+
+void ClosedLoopDetectorWithMappedPSF::generateFlatfieldMap()
+{
+
+    Log.info("Detector: generating flatfield map.");
+
+    // Random number generation
+
+    mt19937 flatfieldGenerator(flatfieldSeed);
+    normal_distribution<double> flatfieldDistribution(0.0, 1.0);
+
+    // Double the dimensions (this is necessary because of the behaviour of the Fourier transforms)
+    // (this is a bit inconvenient as we are working at sub-pixel level -> to be investigated)
+
+    int Nrows = 2 * numRowsPixelMap * numSubPixelsPerPixel;
+    int Ncolumns = 2 * numColumnsPixelMap * numSubPixelsPerPixel;
+
+    arma::cx_fmat evenMap = arma::cx_fmat(Nrows, Ncolumns);
+
+    for(unsigned int row = 0; row < Nrows; row++)
+    {
+        for(unsigned int column = 0; column < Ncolumns; column++)
+        {
+            // Fourier space: generate white noise and include 1/f dependency
+            // (Note: see https://en.wikipedia.org/wiki/Pink_noise#Generalization_to_more_than_one_dimension)
+
+            evenMap(row, column) = flatfieldDistribution(flatfieldGenerator) / (pow(row, 2) + std::pow(column, 2) + 1);
+        }
+    }
+
+    // Take the real part of the inverse Fourier transform
+
+    evenMap = arma::ifft2(evenMap);
+    arma::fmat realMap = arma::real(evenMap);
+
+    // Cut out the appropriate part
+
+    unsigned int numRowsFlatfield = Nrows / 2;
+    unsigned int numColumnsFlatfield = Ncolumns / 2;
+    
+    flatfieldMap(arma::span::all, arma::span::all) = realMap(arma::span(0, numRowsFlatfield - 1), arma::span(0, numColumnsFlatfield - 1));
+    flatfieldMap.reshape(numRowsFlatfield * numColumnsFlatfield, 1);
+
+    // Normalisation
+    //  - divide by mean and subtract 1.0 -> mean = 0.0
+    //  - scale such that std.dev. = flatfield RMS and mean = 0.0
+    //  - add 1.0
+
+    flatfieldMap /= arma::mean(flatfieldMap.col(0));
+    flatfieldMap -= 1;
+    double scale = flatfieldNoiseRMS / arma::stddev(flatfieldMap.col(0));
+    flatfieldMap *= scale;
+    flatfieldMap += 1;
+
+    flatfieldMap.reshape(numRowsFlatfield, numColumnsFlatfield);
+
+    // Write the result to the HDF5 output file
+
+    //hdf5File.writeArray("/Flatfield", "IRNU", flatfieldMap);
+
+    // Rebin the intra-pixel flatfield to the pixel flatfield (IRNU -> PRNU)
+    // and also write this array to the HDF5 outputfile. This PRNU array is not used
+    // in the remainder of the simulation.
+
+    arma::Mat<float> prnu(numRowsPixelMap, numColumnsPixelMap, arma::fill::zeros);
+
+    for (unsigned int row = 0; row < numRowsPixelMap; row++)
+    {
+        for (unsigned int column = 0; column < numColumnsPixelMap; column++)
+        {
+            const unsigned int beginRow = row * numSubPixelsPerPixel;
+            const unsigned int beginCol = column * numSubPixelsPerPixel;
+            const unsigned int endRow = (row + 1) * numSubPixelsPerPixel - 1;
+            const unsigned int endCol = (column + 1) * numSubPixelsPerPixel - 1;
+
+            prnu(row, column) = arma::accu(flatfieldMap.submat(beginRow, beginCol, endRow, endCol))
+                                / (numSubPixelsPerPixel * numSubPixelsPerPixel);
+        }
+    }
+
+    // Write the result to the HDF5 output file
+
+    Log.debug("Detector: writing PRNU to HDF5");
+
+    //hdf5File.writeArray("/Flatfield", "PRNU", prnu);
+}
 
 
 /**

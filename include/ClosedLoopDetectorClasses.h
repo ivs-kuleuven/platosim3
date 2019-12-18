@@ -28,6 +28,8 @@ class ClosedLoopDetectorWithMappedPSF: public DetectorWithMappedPSF, public Clos
 
         virtual void writePixelMapsToHDF5(int exposureNr) override;
 
+        virtual void generateFlatfieldMap() override;
+
         void setNewWindowPosition(std::tuple<bool, uint, uint, uint, uint, double> windowPositionTuple);
 
     private:
