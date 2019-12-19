@@ -245,7 +245,7 @@ void sendMessages(zmq::socket_t* jitterSocket, zmq::socket_t* winPositionSocket)
             {
                 sendMessageToSocket("6 6 0 0 0", identityVec.at(i), winPositionSocket);
 
-                sendMessageToSocket("1 " + std::to_string(stepVec.at(stepCounter)) + " 0.0 0.0 0.0", identityVec.at(i), jitterSocket);
+                sendMessageToSocket("", identityVec.at(i), jitterSocket);
             }
 
 
@@ -367,10 +367,10 @@ void sendMessages(zmq::socket_t* jitterSocket, zmq::socket_t* winPositionSocket)
                 
                     std::cout << "Step counter: " << stepCounter << std::endl;
                 
-                    std::string jitterString = "0 " + std::to_string(stepVec.at(stepCounter)) + " "
-                                                    + std::to_string(yawVec.at(stepCounter)) + " "
-                                                    + std::to_string(pitchVec.at(stepCounter)) + " "
-                                                    + std::to_string(rollVec.at(stepCounter));
+                    std::string jitterString =  std::to_string(stepVec.at(stepCounter)) + " "
+                                                + std::to_string(yawVec.at(stepCounter)) + " "
+                                                + std::to_string(pitchVec.at(stepCounter)) + " "
+                                                + std::to_string(rollVec.at(stepCounter));
                 
                     stepCounter++;
                 
@@ -434,7 +434,7 @@ void sendMessages(zmq::socket_t* jitterSocket, zmq::socket_t* winPositionSocket)
                 {
                     sendMessageToSocket("6 6 0 0 0", identityVec.at(i), winPositionSocket);
 
-                    sendMessageToSocket("1 " + std::to_string(stepVec.at(stepCounter)) + " 0.0 0.0 0.0", identityVec.at(i), jitterSocket);
+                    sendMessageToSocket("", identityVec.at(i), jitterSocket);
                 }
 
                 simsRunning = false;
