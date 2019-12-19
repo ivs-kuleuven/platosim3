@@ -23,16 +23,10 @@
 HDF5File::HDF5File()
 : file(NULL), fileIsOpen(false)
 {
-    noFile = false;
+
 }
 
 
-HDF5File::HDF5File(bool dontWrite)
-: file(NULL), fileIsOpen(false)
-{
-    Log.info("HDF5File: don't write to HDF5 file"); 
-    noFile = true;
-}
 
 
 
@@ -51,8 +45,6 @@ HDF5File::HDF5File(string filename, bool readonly)
 {
     H5::Exception::dontPrint();
     open(filename, readonly);
-
-    noFile = false;
 }
 
 
@@ -249,39 +241,37 @@ bool HDF5File::hasDataset(string groupName, string datasetName)
  */
 void HDF5File::createGroup(string groupName)
 {
-    if(!noFile)
-    {    // Make sure the path of the group starts with a "/" (i.e. the root folder)
+    // Make sure the path of the group starts with a "/" (i.e. the root folder)
 
-        if (!groupName.compare(0, 1, "/"))
-        {
-            groupName.insert(0, "/");
-        }
-
-        // Find the parent group. 
-        // E.g. if the groupName is "/my/path/to/group1" then the parent group is 
-        //      "/my/path/to" and the subgroup is "group1".
-
-        auto position = groupName.find_last_of("/");
-        string parentGroupName = groupName.substr(0, position);
-        string subGroupName = groupName.substr(position+1);
-
-        // If the parent group name is empty, it means that the group should be 
-        // placed in the root group. In that case, make sure that the parentGroupName
-        // is "/".
-
-        if (parentGroupName.empty())
-        {
-            parentGroupName = "/";
-        }
-
-        // Open the parent group
-
-        H5::Group parentGroup = file->openGroup(parentGroupName.c_str());
-
-        // Create the new subgroup inside the parent group.
-
-        H5::Group subGroup = parentGroup.createGroup(groupName.c_str());
+    if (!groupName.compare(0, 1, "/"))
+    {
+        groupName.insert(0, "/");
     }
+
+    // Find the parent group. 
+    // E.g. if the groupName is "/my/path/to/group1" then the parent group is 
+    //      "/my/path/to" and the subgroup is "group1".
+
+    auto position = groupName.find_last_of("/");
+    string parentGroupName = groupName.substr(0, position);
+    string subGroupName = groupName.substr(position+1);
+
+    // If the parent group name is empty, it means that the group should be 
+    // placed in the root group. In that case, make sure that the parentGroupName
+    // is "/".
+
+    if (parentGroupName.empty())
+    {
+        parentGroupName = "/";
+    }
+
+    // Open the parent group
+
+    H5::Group parentGroup = file->openGroup(parentGroupName.c_str());
+
+    // Create the new subgroup inside the parent group.
+
+    H5::Group subGroup = parentGroup.createGroup(groupName.c_str());
 }
 
 
@@ -307,59 +297,57 @@ void HDF5File::createGroup(string groupName)
  */
 void HDF5File::writeAttribute(string groupName, string attributeName, string attributeValue)
 {
-    if (!noFile)
-    {   // Complain if the file was not first opened
-        
-        if (!fileIsOpen)
-        {
-            throw H5FileException("HDF5File::writeAttribute(): file " + file->getFileName() + " is not open.");
-        }
-
-        // Open the proper group where the input parameter belongs
-
-        H5::Group group = file->openGroup(groupName.c_str());
-
-        // Check whether the attribute is not already in the group. If so, complain.
-        // The only way to do so, seems to try to access it and catch the exception
-        // if it does not yet exist.
-
-        bool attributeIsAlreadyInGroup = true;
-
-        try 
-        {  
-            // Turn off the auto-printing when an exception is raised
-
-            H5::Exception::dontPrint();
-
-            // Try to open the attribute
-
-            H5::Attribute attr = group.openAttribute(attributeName.c_str());
-        }
-        catch (H5::AttributeIException error)
-        {
-            attributeIsAlreadyInGroup = false;
-        }
-
-        if (attributeIsAlreadyInGroup)
-        {
-            throw H5AttributeException("HDF5File::writeAttribute(): attribute " + attributeName + " already in group " + groupName);
-        }
-
-
-        // Create and write the attribute to the group
-        // H5T_VARIABLE refers to a variable-length string
-        // H5S_SCALAR refers to a string scalar attribute
-
-        H5::StrType variableLengthStringType(0, H5T_VARIABLE);
-        H5::DataSpace attributeSpace(H5S_SCALAR);
-        H5::Attribute attribute = group.createAttribute(attributeName.c_str(), variableLengthStringType, attributeSpace);
-        attribute.write(variableLengthStringType, H5std_string(attributeValue.c_str()));
-
-        // That's it
-
-        attribute.close();
-        group.close();
+   // Complain if the file was not first opened
+    
+    if (!fileIsOpen)
+    {
+        throw H5FileException("HDF5File::writeAttribute(): file " + file->getFileName() + " is not open.");
     }
+
+    // Open the proper group where the input parameter belongs
+
+    H5::Group group = file->openGroup(groupName.c_str());
+
+    // Check whether the attribute is not already in the group. If so, complain.
+    // The only way to do so, seems to try to access it and catch the exception
+    // if it does not yet exist.
+
+    bool attributeIsAlreadyInGroup = true;
+
+    try 
+    {  
+        // Turn off the auto-printing when an exception is raised
+
+        H5::Exception::dontPrint();
+
+        // Try to open the attribute
+
+        H5::Attribute attr = group.openAttribute(attributeName.c_str());
+    }
+    catch (H5::AttributeIException error)
+    {
+        attributeIsAlreadyInGroup = false;
+    }
+
+    if (attributeIsAlreadyInGroup)
+    {
+        throw H5AttributeException("HDF5File::writeAttribute(): attribute " + attributeName + " already in group " + groupName);
+    }
+
+
+    // Create and write the attribute to the group
+    // H5T_VARIABLE refers to a variable-length string
+    // H5S_SCALAR refers to a string scalar attribute
+
+    H5::StrType variableLengthStringType(0, H5T_VARIABLE);
+    H5::DataSpace attributeSpace(H5S_SCALAR);
+    H5::Attribute attribute = group.createAttribute(attributeName.c_str(), variableLengthStringType, attributeSpace);
+    attribute.write(variableLengthStringType, H5std_string(attributeValue.c_str()));
+
+    // That's it
+
+    attribute.close();
+    group.close();
     
     return;
 }
@@ -389,59 +377,57 @@ void HDF5File::writeAttribute(string groupName, string attributeName, string att
 //
 void HDF5File::writeAttribute(string groupName, string attributeName, int attributeValue)
 {
-    if (!noFile)
-    {    // Complain if the file was not first opened
-        
-        if (!fileIsOpen)
-        {
-            throw H5FileException("HDF5File::writeAttribute(): file " + file->getFileName() + " is not open.");
-        }
-
-     
-        // Open the proper group where the input parameter belongs
-
-        H5::Group group = file->openGroup(groupName.c_str());
-
-        // Check whether the attribute is not already in the group. If so, complain.
-        // The only way to do so, seems to try to access it and catch the exception
-        // if it does not yet exist.
-
-        bool attributeIsAlreadyInGroup = true;
-
-        try 
-        {  
-            // Turn off the auto-printing when an exception is raised
-
-            H5::Exception::dontPrint();
-
-            // Try to open the attribute
-
-            H5::Attribute attr = group.openAttribute(attributeName.c_str());
-        }
-        catch (H5::AttributeIException error)
-        {
-            attributeIsAlreadyInGroup = false;
-        }
-
-        if (attributeIsAlreadyInGroup)
-        {
-            throw H5AttributeException("HDF5File::writeAttribute(): attribute " + attributeName + " already in group " + groupName);
-        }
-
-
-        // Create and write the attribute to the group
-
-        H5::IntType integerType(H5::PredType::NATIVE_INT);
-        H5::DataSpace attributeSpace(H5S_SCALAR);
-        H5::Attribute attribute = group.createAttribute(attributeName.c_str(), integerType, attributeSpace);
-        attribute.write(integerType, &attributeValue);
-        attribute.close();
-
-        // That's it
-
-        attribute.close();
-        group.close();
+    // Complain if the file was not first opened
+    
+    if (!fileIsOpen)
+    {
+        throw H5FileException("HDF5File::writeAttribute(): file " + file->getFileName() + " is not open.");
     }
+
+ 
+    // Open the proper group where the input parameter belongs
+
+    H5::Group group = file->openGroup(groupName.c_str());
+
+    // Check whether the attribute is not already in the group. If so, complain.
+    // The only way to do so, seems to try to access it and catch the exception
+    // if it does not yet exist.
+
+    bool attributeIsAlreadyInGroup = true;
+
+    try 
+    {  
+        // Turn off the auto-printing when an exception is raised
+
+        H5::Exception::dontPrint();
+
+        // Try to open the attribute
+
+        H5::Attribute attr = group.openAttribute(attributeName.c_str());
+    }
+    catch (H5::AttributeIException error)
+    {
+        attributeIsAlreadyInGroup = false;
+    }
+
+    if (attributeIsAlreadyInGroup)
+    {
+        throw H5AttributeException("HDF5File::writeAttribute(): attribute " + attributeName + " already in group " + groupName);
+    }
+
+
+    // Create and write the attribute to the group
+
+    H5::IntType integerType(H5::PredType::NATIVE_INT);
+    H5::DataSpace attributeSpace(H5S_SCALAR);
+    H5::Attribute attribute = group.createAttribute(attributeName.c_str(), integerType, attributeSpace);
+    attribute.write(integerType, &attributeValue);
+    attribute.close();
+
+    // That's it
+
+    attribute.close();
+    group.close();
 
     return;
 }
@@ -474,59 +460,57 @@ void HDF5File::writeAttribute(string groupName, string attributeName, int attrib
 
 void HDF5File::writeAttribute(string groupName, string attributeName, long attributeValue)
 {
-    if (!noFile)
-    {    // Complain if the file was not first opened
-        
-        if (!fileIsOpen)
-        {
-            throw H5FileException("HDF5File::writeAttribute(): file " + file-> getFileName() + " is not open.");
-        }
-
-
-        // Open the proper group where the input parameter belongs
-
-        H5::Group group = file->openGroup(groupName.c_str());
-
-        // Check whether the attribute is not already in the group. If so, complain.
-        // The only way to do so, seems to try to access it and catch the exception
-        // if it does not yet exist.
-
-        bool attributeIsAlreadyInGroup = true;
-
-        try 
-        {  
-            // Turn off the auto-printing when an exception is raised
-
-            H5::Exception::dontPrint();
-
-            // Try to open the attribute
-
-            H5::Attribute attr = group.openAttribute(attributeName.c_str());
-        }
-        catch (H5::AttributeIException error)
-        {
-            attributeIsAlreadyInGroup = false;
-        }
-
-        if (attributeIsAlreadyInGroup)
-        {
-            throw H5AttributeException("HDF5File::writeAttribute(): attribute " + attributeName + " already in group " + groupName);
-        }
-
-
-        // Create and write the attribute to the group
-
-        H5::IntType integerType(H5::PredType::NATIVE_LONG);
-        H5::DataSpace attributeSpace(H5S_SCALAR);
-        H5::Attribute attribute = group.createAttribute(attributeName.c_str(), integerType, attributeSpace);
-        attribute.write(integerType, &attributeValue);
-        attribute.close();
-
-        // That's it
-
-        attribute.close();
-        group.close();
+    // Complain if the file was not first opened
+    
+    if (!fileIsOpen)
+    {
+        throw H5FileException("HDF5File::writeAttribute(): file " + file-> getFileName() + " is not open.");
     }
+
+
+    // Open the proper group where the input parameter belongs
+
+    H5::Group group = file->openGroup(groupName.c_str());
+
+    // Check whether the attribute is not already in the group. If so, complain.
+    // The only way to do so, seems to try to access it and catch the exception
+    // if it does not yet exist.
+
+    bool attributeIsAlreadyInGroup = true;
+
+    try 
+    {  
+        // Turn off the auto-printing when an exception is raised
+
+        H5::Exception::dontPrint();
+
+        // Try to open the attribute
+
+        H5::Attribute attr = group.openAttribute(attributeName.c_str());
+    }
+    catch (H5::AttributeIException error)
+    {
+        attributeIsAlreadyInGroup = false;
+    }
+
+    if (attributeIsAlreadyInGroup)
+    {
+        throw H5AttributeException("HDF5File::writeAttribute(): attribute " + attributeName + " already in group " + groupName);
+    }
+
+
+    // Create and write the attribute to the group
+
+    H5::IntType integerType(H5::PredType::NATIVE_LONG);
+    H5::DataSpace attributeSpace(H5S_SCALAR);
+    H5::Attribute attribute = group.createAttribute(attributeName.c_str(), integerType, attributeSpace);
+    attribute.write(integerType, &attributeValue);
+    attribute.close();
+
+    // That's it
+
+    attribute.close();
+    group.close();
 
     return;
 }
@@ -554,58 +538,56 @@ void HDF5File::writeAttribute(string groupName, string attributeName, long attri
 */
 void HDF5File::writeAttribute(string groupName, string attributeName, double attributeValue)
 {
-    if (!noFile)
-    {    // Complain if the file was not first opened
-        
-        if (!fileIsOpen)
-        {
-            throw H5FileException("HDF5File::writeAttribute(): file " + file->getFileName() + " is not open.");
-        }
-
-        // Open the proper group where the input parameter belongs
-
-        H5::Group group = file->openGroup(groupName.c_str());
-
-        // Check whether the attribute is not already in the group. If so, complain.
-        // The only way to do so, seems to try to access it and catch the exception
-        // if it does not yet exist.
-
-        bool attributeIsAlreadyInGroup = true;
-
-        try 
-        {  
-            // Turn off the auto-printing when an exception is raised
-
-            H5::Exception::dontPrint();
-
-            // Try to open the attribute
-
-            H5::Attribute attr = group.openAttribute(attributeName.c_str());
-        }
-        catch (H5::AttributeIException error)
-        {
-            attributeIsAlreadyInGroup = false;
-        }
-
-        if (attributeIsAlreadyInGroup)
-        {
-            throw H5AttributeException("HDF5File::writeAttribute(): attribute " + attributeName + " already in group " + groupName);
-        }
-
-
-        // Create and write the attribute to the group
-
-        H5::FloatType floatType(H5::PredType::NATIVE_DOUBLE);
-        H5::DataSpace attributeSpace(H5S_SCALAR);
-        H5::Attribute attribute = group.createAttribute(attributeName.c_str(), floatType, attributeSpace);
-        attribute.write(floatType, &attributeValue);
-        attribute.close();
-
-        // That's it
-
-        attribute.close();
-        group.close();
+    // Complain if the file was not first opened
+    
+    if (!fileIsOpen)
+    {
+        throw H5FileException("HDF5File::writeAttribute(): file " + file->getFileName() + " is not open.");
     }
+
+    // Open the proper group where the input parameter belongs
+
+    H5::Group group = file->openGroup(groupName.c_str());
+
+    // Check whether the attribute is not already in the group. If so, complain.
+    // The only way to do so, seems to try to access it and catch the exception
+    // if it does not yet exist.
+
+    bool attributeIsAlreadyInGroup = true;
+
+    try 
+    {  
+        // Turn off the auto-printing when an exception is raised
+
+        H5::Exception::dontPrint();
+
+        // Try to open the attribute
+
+        H5::Attribute attr = group.openAttribute(attributeName.c_str());
+    }
+    catch (H5::AttributeIException error)
+    {
+        attributeIsAlreadyInGroup = false;
+    }
+
+    if (attributeIsAlreadyInGroup)
+    {
+        throw H5AttributeException("HDF5File::writeAttribute(): attribute " + attributeName + " already in group " + groupName);
+    }
+
+
+    // Create and write the attribute to the group
+
+    H5::FloatType floatType(H5::PredType::NATIVE_DOUBLE);
+    H5::DataSpace attributeSpace(H5S_SCALAR);
+    H5::Attribute attribute = group.createAttribute(attributeName.c_str(), floatType, attributeSpace);
+    attribute.write(floatType, &attributeValue);
+    attribute.close();
+
+    // That's it
+
+    attribute.close();
+    group.close();
 
     return;
 }
@@ -634,74 +616,73 @@ void HDF5File::writeAttribute(string groupName, string attributeName, double att
  */
 void HDF5File::writeAttribute(string groupName, string attributeName, bool attributeValue)
 {
-    if (!noFile)
-    {    // Complain if the file was not first opened
-        
-        if (!fileIsOpen)
-        {
-            string errorMessage = "HDF5File::writeAttribute(): file is not open.";
-            Log.error(errorMessage);
-            throw H5FileException(errorMessage);
-        }
-
-     
-        // Open the proper group where the input parameter belongs
-
-        H5::Group group = file->openGroup(groupName.c_str());
-
-        // Check whether the attribute is not already in the group. If so, complain.
-        // The only way to do so, seems to try to access it and catch the exception
-        // if it does not yet exist.
-
-        bool attributeIsAlreadyInGroup = true;
-
-        try 
-        {  
-            // Turn off the auto-printing when an exception is raised
-
-            H5::Exception::dontPrint();
-
-            // Try to open the attribute
-
-            H5::Attribute attr = group.openAttribute(attributeName.c_str());
-        }
-        catch (H5::AttributeIException error)
-        {
-            attributeIsAlreadyInGroup = false;
-        }
-
-        if (attributeIsAlreadyInGroup)
-        {
-            string errorMessage = "HDF5File::writeAttribute(): attribute " + attributeName + " already in group " + groupName;
-            Log.error(errorMessage);
-            throw H5FileException(errorMessage);
-        }
-
-
-        // Create and write the attribute to the group
-        // First convert from boolean (true/false) to integer (1/0)
-
-        int value;
-        if (attributeValue)
-        {
-            value = 1;
-        }
-        else
-        {
-            value = 0;
-        }
-
-        H5::IntType integerType(H5::PredType::NATIVE_INT);
-        H5::DataSpace attributeSpace(H5S_SCALAR);
-        H5::Attribute attribute = group.createAttribute(attributeName.c_str(), integerType, attributeSpace);
-        attribute.write(integerType, &value);
-        attribute.close();
-
-        // That's it
-
-        attribute.close();
-        group.close();
+    // Complain if the file was not first opened
+    
+    if (!fileIsOpen)
+    {
+        string errorMessage = "HDF5File::writeAttribute(): file is not open.";
+        Log.error(errorMessage);
+        throw H5FileException(errorMessage);
     }
+
+ 
+    // Open the proper group where the input parameter belongs
+
+    H5::Group group = file->openGroup(groupName.c_str());
+
+    // Check whether the attribute is not already in the group. If so, complain.
+    // The only way to do so, seems to try to access it and catch the exception
+    // if it does not yet exist.
+
+    bool attributeIsAlreadyInGroup = true;
+
+    try 
+    {  
+        // Turn off the auto-printing when an exception is raised
+
+        H5::Exception::dontPrint();
+
+        // Try to open the attribute
+
+        H5::Attribute attr = group.openAttribute(attributeName.c_str());
+    }
+    catch (H5::AttributeIException error)
+    {
+        attributeIsAlreadyInGroup = false;
+    }
+
+    if (attributeIsAlreadyInGroup)
+    {
+        string errorMessage = "HDF5File::writeAttribute(): attribute " + attributeName + " already in group " + groupName;
+        Log.error(errorMessage);
+        throw H5FileException(errorMessage);
+    }
+
+
+    // Create and write the attribute to the group
+    // First convert from boolean (true/false) to integer (1/0)
+
+    int value;
+    if (attributeValue)
+    {
+        value = 1;
+    }
+    else
+    {
+        value = 0;
+    }
+
+    H5::IntType integerType(H5::PredType::NATIVE_INT);
+    H5::DataSpace attributeSpace(H5S_SCALAR);
+    H5::Attribute attribute = group.createAttribute(attributeName.c_str(), integerType, attributeSpace);
+    attribute.write(integerType, &value);
+    attribute.close();
+
+    // That's it
+
+    attribute.close();
+    group.close();
+
     return;
 }
 
@@ -729,72 +710,69 @@ void HDF5File::writeAttribute(string groupName, string attributeName, bool attri
  */
 void HDF5File::writeAttribute(string groupName, string attributeName, vector<double> attributeValue)
 {
-    if (!noFile)
-    {    // Complain if the file was not first opened
-        
-        if (!fileIsOpen)
-        {
-            throw H5FileException("HDF5File::writeAttribute(): file " + file->getFileName() + " is not open.");
-        }
-
-     
-        // Open the proper group where the input parameter belongs
-
-        H5::Group group = file->openGroup(groupName.c_str());
-
-        // Check whether the attribute is not already in the group. If so, complain.
-        // The only way to do so, seems to try to access it and catch the exception
-        // if it does not yet exist.
-
-        bool attributeIsAlreadyInGroup = true;
-
-        try 
-        {  
-            // Turn off the auto-printing when an exception is raised
-
-            H5::Exception::dontPrint();
-
-            // Try to open the attribute
-
-            H5::Attribute attr = group.openAttribute(attributeName.c_str());
-        }
-        catch (H5::AttributeIException error)
-        {
-            attributeIsAlreadyInGroup = false;
-        }
-
-        if (attributeIsAlreadyInGroup)
-        {
-            throw H5AttributeException("HDF5File::writeAttribute(): attribute " + attributeName + " already in group " + groupName);
-        }
-
-
-        // Create and write the attribute to the group. The attribute is a vector <double> so we need
-        // to specify the rank and the dimension of the vector. Since a vector is guaranteed to store 
-        // their elements contiguously, we can just pass the pointer to the first element when writing 
-        // the attribute.
-
-        try
-        {
-            const int rank = 1;
-            hsize_t dimension[1];
-            dimension[0] = attributeValue.size();
-            H5::FloatType floatType(H5::PredType::NATIVE_DOUBLE);
-            H5::DataSpace attributeSpace(rank, dimension);
-            H5::Attribute attribute = group.createAttribute(attributeName.c_str(), floatType, attributeSpace);
-            attribute.write(floatType, &attributeValue[0]);
-            attribute.close();
-        }
-        catch(H5::AttributeIException error)
-        {
-            return;
-            //throw H5AttributeException("HDF5File::writeAttribute(): attribute " + attributeName + " write error " + error.getCDetailMsg());
-        }
-
-        // That's it
-
-        group.close();
+    // Complain if the file was not first opened
+    
+    if (!fileIsOpen)
+    {
+        throw H5FileException("HDF5File::writeAttribute(): file " + file->getFileName() + " is not open.");
     }
+
+ 
+    // Open the proper group where the input parameter belongs
+
+    H5::Group group = file->openGroup(groupName.c_str());
+
+    // Check whether the attribute is not already in the group. If so, complain.
+    // The only way to do so, seems to try to access it and catch the exception
+    // if it does not yet exist.
+
+    bool attributeIsAlreadyInGroup = true;
+
+    try 
+    {  
+        // Turn off the auto-printing when an exception is raised
+
+        H5::Exception::dontPrint();
+
+        // Try to open the attribute
+
+        H5::Attribute attr = group.openAttribute(attributeName.c_str());
+    }
+    catch (H5::AttributeIException error)
+    {
+        attributeIsAlreadyInGroup = false;
+    }
+
+    if (attributeIsAlreadyInGroup)
+    {
+        throw H5AttributeException("HDF5File::writeAttribute(): attribute " + attributeName + " already in group " + groupName);
+    }
+
+
+    // Create and write the attribute to the group. The attribute is a vector <double> so we need
+    // to specify the rank and the dimension of the vector. Since a vector is guaranteed to store 
+    // their elements contiguously, we can just pass the pointer to the first element when writing 
+    // the attribute.
+
+    try
+    {
+        const int rank = 1;
+        hsize_t dimension[1];
+        dimension[0] = attributeValue.size();
+        H5::FloatType floatType(H5::PredType::NATIVE_DOUBLE);
+        H5::DataSpace attributeSpace(rank, dimension);
+        H5::Attribute attribute = group.createAttribute(attributeName.c_str(), floatType, attributeSpace);
+        attribute.write(floatType, &attributeValue[0]);
+        attribute.close();
+    }
+    catch(H5::AttributeIException error)
+    {
+        throw H5AttributeException("HDF5File::writeAttribute(): attribute " + attributeName + " write error " + error.getCDetailMsg());
+    }
+
+    // That's it
+
+    group.close();
 
     return;
 }
@@ -824,72 +802,70 @@ void HDF5File::writeAttribute(string groupName, string attributeName, vector<dou
  */
 void HDF5File::writeAttribute(string groupName, string attributeName, vector<int> attributeValue)
 {
-    if (!noFile)
-    {    // Complain if the file was not first opened
-        
-        if (!fileIsOpen)
-        {
-            throw H5FileException("HDF5File::writeAttribute(): file " + file->getFileName() + " is not open.");
-        }
-
-     
-        // Open the proper group where the input parameter belongs
-
-        H5::Group group = file->openGroup(groupName.c_str());
-
-        // Check whether the attribute is not already in the group. If so, complain.
-        // The only way to do so, seems to try to access it and catch the exception
-        // if it does not yet exist.
-
-        bool attributeIsAlreadyInGroup = true;
-
-        try 
-        {  
-            // Turn off the auto-printing when an exception is raised
-
-            H5::Exception::dontPrint();
-
-            // Try to open the attribute
-
-            H5::Attribute attr = group.openAttribute(attributeName.c_str());
-        }
-        catch (H5::AttributeIException error)
-        {
-            attributeIsAlreadyInGroup = false;
-        }
-
-        if (attributeIsAlreadyInGroup)
-        {
-            return;
-            //throw H5AttributeException("HDF5File::writeAttribute(): attribute " + attributeName + " already in group " + groupName);
-        }
-
-
-        // Create and write the attribute to the group. The attribute is a vector <int> so we need
-        // to specify the rank and the dimension of the vector. Since a vector is guaranteed to store 
-        // their elements contiguously, we can just pass the pointer to the first element when writing 
-        // the attribute.
-
-        try
-        {
-            const int rank = 1;
-            hsize_t dimension[1];
-            dimension[0] = attributeValue.size();
-            H5::IntType intType(H5::PredType::NATIVE_INT);
-            H5::DataSpace attributeSpace(rank, dimension);
-            H5::Attribute attribute = group.createAttribute(attributeName.c_str(), intType, attributeSpace);
-            attribute.write(intType, &attributeValue[0]);
-            attribute.close();
-        }
-        catch(H5::AttributeIException error)
-        {
-            throw H5AttributeException("HDF5File::writeAttribute(): attribute " + attributeName + " write error " + error.getCDetailMsg());
-        }
-
-        // That's it
-
-        group.close();
+    // Complain if the file was not first opened
+    
+    if (!fileIsOpen)
+    {
+        throw H5FileException("HDF5File::writeAttribute(): file " + file->getFileName() + " is not open.");
     }
+
+ 
+    // Open the proper group where the input parameter belongs
+
+    H5::Group group = file->openGroup(groupName.c_str());
+
+    // Check whether the attribute is not already in the group. If so, complain.
+    // The only way to do so, seems to try to access it and catch the exception
+    // if it does not yet exist.
+
+    bool attributeIsAlreadyInGroup = true;
+
+    try 
+    {  
+        // Turn off the auto-printing when an exception is raised
+
+        H5::Exception::dontPrint();
+
+        // Try to open the attribute
+
+        H5::Attribute attr = group.openAttribute(attributeName.c_str());
+    }
+    catch (H5::AttributeIException error)
+    {
+        attributeIsAlreadyInGroup = false;
+    }
+
+    if (attributeIsAlreadyInGroup)
+    {
+        throw H5AttributeException("HDF5File::writeAttribute(): attribute " + attributeName + " already in group " + groupName);
+    }
+
+
+    // Create and write the attribute to the group. The attribute is a vector <int> so we need
+    // to specify the rank and the dimension of the vector. Since a vector is guaranteed to store 
+    // their elements contiguously, we can just pass the pointer to the first element when writing 
+    // the attribute.
+
+    try
+    {
+        const int rank = 1;
+        hsize_t dimension[1];
+        dimension[0] = attributeValue.size();
+        H5::IntType intType(H5::PredType::NATIVE_INT);
+        H5::DataSpace attributeSpace(rank, dimension);
+        H5::Attribute attribute = group.createAttribute(attributeName.c_str(), intType, attributeSpace);
+        attribute.write(intType, &attributeValue[0]);
+        attribute.close();
+    }
+    catch(H5::AttributeIException error)
+    {
+        throw H5AttributeException("HDF5File::writeAttribute(): attribute " + attributeName + " write error " + error.getCDetailMsg());
+    }
+
+    // That's it
+
+    group.close();
+
     return;
 }
 
@@ -1116,8 +1092,7 @@ double HDF5File::readDoubleDatasetAttribute(string groupName, string datasetName
     }
     catch (H5::AttributeIException error)
     {
-        return 0.0;
-        //throw H5AttributeException("HDF5File: Unknown Attribute (" + attributeName + ") in the group " + groupName + " for HDF5 file " + file->getFileName());
+        throw H5AttributeException("HDF5File: Unknown Attribute (" + attributeName + ") in the group " + groupName + " for HDF5 file " + file->getFileName());
     }
 
     double value = 0.0;
@@ -1151,52 +1126,51 @@ double HDF5File::readDoubleDatasetAttribute(string groupName, string datasetName
 
 void HDF5File::writeArray(string groupName, string arrayName, int* array, int size)
 {
-    if (!noFile)
-    {    // Create a DataSpace defining the shape and type of the data 
+    // Create a DataSpace defining the shape and type of the data 
 
-        unsigned int Ndimensions = 1;
-        unsigned long long shape[Ndimensions];
-        shape[0] = size;
-        H5::DataSpace arraySpace(Ndimensions, shape);
+    unsigned int Ndimensions = 1;
+    unsigned long long shape[Ndimensions];
+    shape[0] = size;
+    H5::DataSpace arraySpace(Ndimensions, shape);
 
-        // Check if the array is not already in the file.
-        // There seems to be only a dirty way of determining this:
-        // try to access the dataset, and check if an exception is thrown.
+    // Check if the array is not already in the file.
+    // There seems to be only a dirty way of determining this:
+    // try to access the dataset, and check if an exception is thrown.
 
-        bool arrayIsAlreadyInFile = true;
-        string arrayPath = groupName + "/" + arrayName;
+    bool arrayIsAlreadyInFile = true;
+    string arrayPath = groupName + "/" + arrayName;
 
-        try 
-        {  
-            // Turn off the auto-printing when an exception is raised
+    try 
+    {  
+        // Turn off the auto-printing when an exception is raised
 
-            H5::Exception::dontPrint();
+        H5::Exception::dontPrint();
 
-            // Try to open the dataset
+        // Try to open the dataset
 
-            H5::DataSet testDataset = file->openDataSet(arrayPath.c_str());
-        }
-        catch (H5::FileIException error)
-        {
-            arrayIsAlreadyInFile = false;
-        }
-
-        if (arrayIsAlreadyInFile)
-        {
-            throw H5GroupException("HDF5File::writeArray(): array " + groupName + "/" + arrayName + " already in file.");
-        }
-
-
-        // Inside the Images group, make room for the image array
-
-        H5::DataSet arrayDataset = file->createDataSet(arrayPath.c_str(), H5::PredType::NATIVE_INT, arraySpace);
-
-        // Copy the data from our image into the HDF5 file
-
-        arrayDataset.write(array, H5::PredType::NATIVE_INT);
-
-        // That's it
+        H5::DataSet testDataset = file->openDataSet(arrayPath.c_str());
     }
+    catch (H5::FileIException error)
+    {
+        arrayIsAlreadyInFile = false;
+    }
+
+    if (arrayIsAlreadyInFile)
+    {
+        throw H5GroupException("HDF5File::writeArray(): array " + groupName + "/" + arrayName + " already in file.");
+    }
+
+
+    // Inside the Images group, make room for the image array
+
+    H5::DataSet arrayDataset = file->createDataSet(arrayPath.c_str(), H5::PredType::NATIVE_INT, arraySpace);
+
+    // Copy the data from our image into the HDF5 file
+
+    arrayDataset.write(array, H5::PredType::NATIVE_INT);
+
+    // That's it
+
     return;
 }
 
@@ -1223,52 +1197,51 @@ void HDF5File::writeArray(string groupName, string arrayName, int* array, int si
 
 void HDF5File::writeArray(string groupName, string arrayName, unsigned int* array, int size)
 {
-    if (!noFile)
-    {    // Create a DataSpace defining the shape and type of the data 
+    // Create a DataSpace defining the shape and type of the data 
 
-        unsigned int Ndimensions = 1;
-        unsigned long long shape[Ndimensions];
-        shape[0] = size;
-        H5::DataSpace arraySpace(Ndimensions, shape);
+    unsigned int Ndimensions = 1;
+    unsigned long long shape[Ndimensions];
+    shape[0] = size;
+    H5::DataSpace arraySpace(Ndimensions, shape);
 
-        // Check if the array is not already in the file.
-        // There seems to be only a dirty way of determining this:
-        // try to access the dataset, and check if an exception is thrown.
+    // Check if the array is not already in the file.
+    // There seems to be only a dirty way of determining this:
+    // try to access the dataset, and check if an exception is thrown.
 
-        bool arrayIsAlreadyInFile = true;
-        string arrayPath = groupName + "/" + arrayName;
+    bool arrayIsAlreadyInFile = true;
+    string arrayPath = groupName + "/" + arrayName;
 
-        try 
-        {  
-            // Turn off the auto-printing when an exception is raised
+    try 
+    {  
+        // Turn off the auto-printing when an exception is raised
 
-            H5::Exception::dontPrint();
+        H5::Exception::dontPrint();
 
-            // Try to open the dataset
+        // Try to open the dataset
 
-            H5::DataSet testDataset = file->openDataSet(arrayPath.c_str());
-        }
-        catch (H5::FileIException error)
-        {
-            arrayIsAlreadyInFile = false;
-        }
+        H5::DataSet testDataset = file->openDataSet(arrayPath.c_str());
+    }
+    catch (H5::FileIException error)
+    {
+        arrayIsAlreadyInFile = false;
+    }
 
-        if (arrayIsAlreadyInFile)
-        {
-            string errorMessage = "HDF5File::writeArray(): array " + groupName + "/" + arrayName + " already in file.";
-            Log.error(errorMessage);
-            throw H5FileException(errorMessage);
-        }
+    if (arrayIsAlreadyInFile)
+    {
+        string errorMessage = "HDF5File::writeArray(): array " + groupName + "/" + arrayName + " already in file.";
+        Log.error(errorMessage);
+        throw H5FileException(errorMessage);
+    }
 
 
-        // Inside the Images group, make room for the image array
+    // Inside the Images group, make room for the image array
 
-        H5::DataSet arrayDataset = file->createDataSet(arrayPath.c_str(), H5::PredType::NATIVE_UINT, arraySpace);
+    H5::DataSet arrayDataset = file->createDataSet(arrayPath.c_str(), H5::PredType::NATIVE_UINT, arraySpace);
 
-        // Copy the data from our image into the HDF5 file
+    // Copy the data from our image into the HDF5 file
 
-        arrayDataset.write(array, H5::PredType::NATIVE_UINT);
-}
+    arrayDataset.write(array, H5::PredType::NATIVE_UINT);
+
     // That's it
 
     return;
@@ -1299,50 +1272,49 @@ void HDF5File::writeArray(string groupName, string arrayName, unsigned int* arra
 
 void HDF5File::writeArray(string groupName, string arrayName, float* array, int size)
 {
-    if (!noFile)
-    {     // Create a DataSpace defining the shape and type of the data 
+     // Create a DataSpace defining the shape and type of the data 
 
-        unsigned int Ndimensions = 1;
-        unsigned long long shape[Ndimensions];
-        shape[0] = size;
-        H5::DataSpace arraySpace(Ndimensions, shape);
+    unsigned int Ndimensions = 1;
+    unsigned long long shape[Ndimensions];
+    shape[0] = size;
+    H5::DataSpace arraySpace(Ndimensions, shape);
 
-        // Check if the array is not already in the file.
-        // There seems to be only a dirty way of determining this:
-        // try to access the dataset, and check if an exception is thrown.
+    // Check if the array is not already in the file.
+    // There seems to be only a dirty way of determining this:
+    // try to access the dataset, and check if an exception is thrown.
 
-        bool arrayIsAlreadyInFile = true;
-        string arrayPath = groupName + "/" + arrayName;
+    bool arrayIsAlreadyInFile = true;
+    string arrayPath = groupName + "/" + arrayName;
 
-        try 
-        {  
-            // Turn off the auto-printing when an exception is raised
+    try 
+    {  
+        // Turn off the auto-printing when an exception is raised
 
-            H5::Exception::dontPrint();
+        H5::Exception::dontPrint();
 
-            // Try to open the dataset
+        // Try to open the dataset
 
-            H5::DataSet testDataset = file->openDataSet(arrayPath.c_str());
-        }
-        catch (H5::FileIException error)
-        {
-            arrayIsAlreadyInFile = false;
-        }
+        H5::DataSet testDataset = file->openDataSet(arrayPath.c_str());
+    }
+    catch (H5::FileIException error)
+    {
+        arrayIsAlreadyInFile = false;
+    }
 
-        if (arrayIsAlreadyInFile)
-        {
-            throw H5GroupException("HDF5File::writeArray(): array " + groupName + "/" + arrayName + " already in file.");
-        }
+    if (arrayIsAlreadyInFile)
+    {
+        throw H5GroupException("HDF5File::writeArray(): array " + groupName + "/" + arrayName + " already in file.");
+    }
 
 
-        // Inside the Images group, make room for the image array
+    // Inside the Images group, make room for the image array
 
-        H5::DataSet arrayDataset = file->createDataSet(arrayPath.c_str(), H5::PredType::NATIVE_FLOAT, arraySpace);
+    H5::DataSet arrayDataset = file->createDataSet(arrayPath.c_str(), H5::PredType::NATIVE_FLOAT, arraySpace);
 
-        // Copy the data from our image into the HDF5 file
+    // Copy the data from our image into the HDF5 file
 
-        arrayDataset.write(array, H5::PredType::NATIVE_FLOAT);
-}
+    arrayDataset.write(array, H5::PredType::NATIVE_FLOAT);
+
     // That's it
 
     return;
@@ -1370,50 +1342,49 @@ void HDF5File::writeArray(string groupName, string arrayName, float* array, int 
 
 void HDF5File::writeArray(string groupName, string arrayName, double* array, int size)
 {
-    if (!noFile)
-    {    // Create a DataSpace defining the shape and type of the data 
+    // Create a DataSpace defining the shape and type of the data 
 
-        unsigned int Ndimensions = 1;
-        unsigned long long shape[Ndimensions];
-        shape[0] = size;
-        H5::DataSpace arraySpace(Ndimensions, shape);
+    unsigned int Ndimensions = 1;
+    unsigned long long shape[Ndimensions];
+    shape[0] = size;
+    H5::DataSpace arraySpace(Ndimensions, shape);
 
-        // Check if the array is not already in the file.
-        // There seems to be only a dirty way of determining this:
-        // try to access the dataset, and check if an exception is thrown.
+    // Check if the array is not already in the file.
+    // There seems to be only a dirty way of determining this:
+    // try to access the dataset, and check if an exception is thrown.
 
-        bool arrayIsAlreadyInFile = true;
-        string arrayPath = groupName + "/" + arrayName;
+    bool arrayIsAlreadyInFile = true;
+    string arrayPath = groupName + "/" + arrayName;
 
-        try 
-        {  
-            // Turn off the auto-printing when an exception is raised
+    try 
+    {  
+        // Turn off the auto-printing when an exception is raised
 
-            H5::Exception::dontPrint();
+        H5::Exception::dontPrint();
 
-            // Try to open the dataset
+        // Try to open the dataset
 
-            H5::DataSet testDataset = file->openDataSet(arrayPath.c_str());
-        }
-        catch (H5::FileIException error)
-        {
-            arrayIsAlreadyInFile = false;
-        }
+        H5::DataSet testDataset = file->openDataSet(arrayPath.c_str());
+    }
+    catch (H5::FileIException error)
+    {
+        arrayIsAlreadyInFile = false;
+    }
 
-        if (arrayIsAlreadyInFile)
-        {
-    throw H5GroupException("HDF5File::writeArray(): array " + groupName + "/" + arrayName + " already in file.");
-        }
+    if (arrayIsAlreadyInFile)
+    {
+        throw H5GroupException("HDF5File::writeArray(): array " + groupName + "/" + arrayName + " already in file.");
+    }
 
 
-        // Inside the Images group, make room for the image array
+    // Inside the Images group, make room for the image array
 
-        H5::DataSet arrayDataset = file->createDataSet(arrayPath.c_str(), H5::PredType::NATIVE_DOUBLE, arraySpace);
+    H5::DataSet arrayDataset = file->createDataSet(arrayPath.c_str(), H5::PredType::NATIVE_DOUBLE, arraySpace);
 
-        // Copy the data from our image into the HDF5 file
+    // Copy the data from our image into the HDF5 file
 
-        arrayDataset.write(array, H5::PredType::NATIVE_DOUBLE);
-}
+    arrayDataset.write(array, H5::PredType::NATIVE_DOUBLE);
+
     // That's it
 
     return;
@@ -1441,72 +1412,71 @@ void HDF5File::writeArray(string groupName, string arrayName, double* array, int
 template<typename T>
 void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<T>& A)
 {
-    if (!noFile)
-    {    // Sanity check on the shape of the array
+    // Sanity check on the shape of the array
 
-        if ((A.n_rows == 0) && (A.n_cols == 0))
+    if ((A.n_rows == 0) && (A.n_cols == 0))
+    {
+        throw H5FileException("HDF5File::writeArray(): encountered array with shape (0,0)");
+    }
+
+    H5::PredType predType = getPredType(A);
+
+    // Create a DataSpace defining the shape and type of the data 
+
+    unsigned int Ndimensions = 2;
+    unsigned long long shape[Ndimensions];
+    shape[0] = A.n_rows;
+    shape[1] = A.n_cols;
+    H5::DataSpace arraySpace(Ndimensions, shape);
+
+    // Check if the array is not already in the file.
+    // There seems to be only a dirty way of determining this:
+    // try to access the dataset, and check if an exception is thrown.
+
+    bool arrayIsAlreadyInFile = true;
+    string arrayPath = groupName + "/" + arrayName;
+
+    try 
+    {  
+        // Turn off the auto-printing when an exception is raised
+
+        H5::Exception::dontPrint();
+
+        // Try to open the dataset
+
+        H5::DataSet testDataset = file->openDataSet(arrayPath.c_str());
+    }
+    catch (H5::FileIException error)
+    {
+        arrayIsAlreadyInFile = false;
+    }
+
+    if (arrayIsAlreadyInFile)
+    {
+        throw H5GroupException("HDF5File::writeArray(): array " + groupName + "/" + arrayName + " already in file.");
+    }
+
+    // Inside the Images group, make room for the image array
+
+    H5::DataSet arrayDataset = file->createDataSet(arrayPath.c_str(), predType, arraySpace);
+    
+    // Copy the Armadillo array to a vector, because the internally Armadillo stores the data column-major
+    // while HDF5 assumes data to be stored row-major
+
+    vector<T> temp(A.n_rows * A.n_cols);
+    for (int n = 0; n < A.n_rows; n++)
+    {
+        for(int k = 0; k < A.n_cols; k++)
         {
-            throw H5FileException("HDF5File::writeArray(): encountered array with shape (0,0)");
+            const int nk = n * A.n_cols + k;
+            temp[nk] = A(n,k);
         }
+    }
 
-        H5::PredType predType = getPredType(A);
+    // Copy the data from our image into the HDF5 file
 
-        // Create a DataSpace defining the shape and type of the data 
+    arrayDataset.write(temp.data(), predType);
 
-        unsigned int Ndimensions = 2;
-        unsigned long long shape[Ndimensions];
-        shape[0] = A.n_rows;
-        shape[1] = A.n_cols;
-        H5::DataSpace arraySpace(Ndimensions, shape);
-
-        // Check if the array is not already in the file.
-        // There seems to be only a dirty way of determining this:
-        // try to access the dataset, and check if an exception is thrown.
-
-        bool arrayIsAlreadyInFile = true;
-        string arrayPath = groupName + "/" + arrayName;
-
-        try 
-        {  
-            // Turn off the auto-printing when an exception is raised
-
-            H5::Exception::dontPrint();
-
-            // Try to open the dataset
-
-            H5::DataSet testDataset = file->openDataSet(arrayPath.c_str());
-        }
-        catch (H5::FileIException error)
-        {
-            arrayIsAlreadyInFile = false;
-        }
-
-        if (arrayIsAlreadyInFile)
-        {
-            throw H5GroupException("HDF5File::writeArray(): array " + groupName + "/" + arrayName + " already in file.");
-        }
-
-        // Inside the Images group, make room for the image array
-
-        H5::DataSet arrayDataset = file->createDataSet(arrayPath.c_str(), predType, arraySpace);
-        
-        // Copy the Armadillo array to a vector, because the internally Armadillo stores the data column-major
-        // while HDF5 assumes data to be stored row-major
-
-        vector<T> temp(A.n_rows * A.n_cols);
-        for (int n = 0; n < A.n_rows; n++)
-        {
-            for(int k = 0; k < A.n_cols; k++)
-            {
-                const int nk = n * A.n_cols + k;
-                temp[nk] = A(n,k);
-            }
-        }
-
-        // Copy the data from our image into the HDF5 file
-
-        arrayDataset.write(temp.data(), predType);
-}
     // That's it
 
     return;
@@ -1540,6 +1510,148 @@ H5::PredType HDF5File::getPredType(arma::Mat<T>& A)
 
 
 
+
+void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<uint16_t>& A)
+{
+    // Sanity check on the shape of the array
+
+    if ((A.n_rows == 0) && (A.n_cols == 0))
+    {
+        throw H5FileException("HDF5File::writeArray(): encountered array with shape (0,0)");
+    }
+
+    // Create a DataSpace defining the shape and type of the data 
+
+    unsigned int Ndimensions = 2;
+    unsigned long long shape[Ndimensions];
+    shape[0] = A.n_rows;
+    shape[1] = A.n_cols;
+    H5::DataSpace arraySpace(Ndimensions, shape);
+
+    // Check if the array is not already in the file.
+    // There seems to be only a dirty way of determining this:
+    // try to access the dataset, and check if an exception is thrown.
+
+    bool arrayIsAlreadyInFile = true;
+    string arrayPath = groupName + "/" + arrayName;
+
+    try 
+    {  
+        // Turn off the auto-printing when an exception is raised
+
+        H5::Exception::dontPrint();
+
+        // Try to open the dataset
+
+        H5::DataSet testDataset = file->openDataSet(arrayPath.c_str());
+    }
+    catch (H5::FileIException error)
+    {
+        arrayIsAlreadyInFile = false;
+    }
+
+    if (arrayIsAlreadyInFile)
+    {
+        throw H5GroupException("HDF5File::writeArray(): array " + groupName + "/" + arrayName + " already in file.");
+    }
+
+    // Inside the Images group, make room for the image array
+
+    H5::DataSet arrayDataset = file->createDataSet(arrayPath.c_str(), H5::PredType::NATIVE_UINT16, arraySpace);
+    
+    // Copy the Armadillo array to a vector, because the internally Armadillo stores the data column-major
+    // while HDF5 assumes data to be stored row-major
+
+    vector<uint16_t> temp(A.n_rows * A.n_cols);
+    for (int n = 0; n < A.n_rows; n++)
+    {
+        for(int k = 0; k < A.n_cols; k++)
+        {
+            const int nk = n * A.n_cols + k;
+            temp[nk] = A(n,k);
+        }
+    }
+
+    // Copy the data from our image into the HDF5 file
+
+    arrayDataset.write(temp.data(), H5::PredType::NATIVE_UINT16);
+
+    // That's it
+
+    return;
+}
+
+
+
+void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<float>& A)
+{
+    // Sanity check on the shape of the array
+
+    if ((A.n_rows == 0) && (A.n_cols == 0))
+    {
+        throw H5FileException("HDF5File::writeArray(): encountered array with shape (0,0)");
+    }
+
+    // Create a DataSpace defining the shape and type of the data 
+
+    unsigned int Ndimensions = 2;
+    unsigned long long shape[Ndimensions];
+    shape[0] = A.n_rows;
+    shape[1] = A.n_cols;
+    H5::DataSpace arraySpace(Ndimensions, shape);
+
+    // Check if the array is not already in the file.
+    // There seems to be only a dirty way of determining this:
+    // try to access the dataset, and check if an exception is thrown.
+
+    bool arrayIsAlreadyInFile = true;
+    string arrayPath = groupName + "/" + arrayName;
+
+    try 
+    {  
+        // Turn off the auto-printing when an exception is raised
+
+        H5::Exception::dontPrint();
+
+        // Try to open the dataset
+
+        H5::DataSet testDataset = file->openDataSet(arrayPath.c_str());
+    }
+    catch (H5::FileIException error)
+    {
+        arrayIsAlreadyInFile = false;
+    }
+
+    if (arrayIsAlreadyInFile)
+    {
+        throw H5GroupException("HDF5File::writeArray(): array " + groupName + "/" + arrayName + " already in file.");
+    }
+
+    // Inside the Images group, make room for the image array
+
+    H5::DataSet arrayDataset = file->createDataSet(arrayPath.c_str(), H5::PredType::NATIVE_FLOAT, arraySpace);
+    
+    // Copy the Armadillo array to a vector, because the internally Armadillo stores the data column-major
+    // while HDF5 assumes data to be stored row-major
+
+    vector<float> temp(A.n_rows * A.n_cols);
+    for (int n = 0; n < A.n_rows; n++)
+    {
+        for(int k = 0; k < A.n_cols; k++)
+        {
+            const int nk = n * A.n_cols + k;
+            temp[nk] = A(n,k);
+        }
+    }
+
+    // Copy the data from our image into the HDF5 file
+
+    arrayDataset.write(temp.data(), H5::PredType::NATIVE_FLOAT);
+
+    // That's it
+
+    return;
+}
 
 
 
