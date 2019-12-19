@@ -19,23 +19,29 @@ class ClosedLoopUtility
 
     protected:
 
-        virtual void configure(ConfigurationParameters &configParams);
-
         std::tuple<bool, uint, uint, uint, uint, double> getNewWindowPosition(double exposureTime);
 
-        void sendMessageToSocket(std::string messageString, zmq::socket_t* socketPointer);
+        void sendImagetteToClient(arma::Mat<float>* imagette, uint exposureNumber);
+
+        bool firstExposure;
+        bool sendImagettesToClient;
+        bool getWindowPositionFromServer;
+
+
+    private:
+
+        virtual void configure(ConfigurationParameters &configParams);
+
+        void sendMessageToSocket(const std::string messageString, zmq::socket_t* socketPointer);
 
         std::string receiveMessageFromSocket(zmq::socket_t* socketPointer);
 
         std::vector<double> convertStringToDoubleVec(std::string message);
 
-        void sendImagetteToClient(arma::Mat<float>* imagette, uint exposureNumber);
 
-        std::string convertMatrixToString(arma::Mat<float>* pixelMapPointer, uint exposureNumber);
+        std::string convertMatrixToString(arma::Mat<float>* pixelMapPointer, const uint exposureNumber);
 
-        bool firstExposure;
-        bool sendImagettesToClient;
-        bool getWindowPositionFromServer;
+        int windowPositionSocketTimeout;
 
         string windowPositionAddress;
         string imagetteAddress;
@@ -44,10 +50,6 @@ class ClosedLoopUtility
 
         zmq::socket_t imagetteSocket;
         zmq::socket_t windowPositionSocket;
-
-    private:
-
-
 };
 
 

@@ -23,6 +23,8 @@ ClosedLoopUtility::ClosedLoopUtility(ConfigurationParameters &configParams)
     if (getWindowPositionFromServer)
     {
         windowPositionSocket.connect(windowPositionAddress);
+
+        windowPositionSocket.setsockopt(ZMQ_RCVTIMEO, &windowPositionSocketTimeout, sizeof(windowPositionSocketTimeout));
     }
 
     firstExposure = true;
@@ -43,13 +45,15 @@ void ClosedLoopUtility::configure(ConfigurationParameters &configParams)
     imagetteAddress                 = configParams.getString("ControlTcpConnection/ImagetteClientAddress");
     windowPositionAddress           = configParams.getString("ControlTcpConnection/WindowPositionServerAddress");
 
+    windowPositionSocketTimeout     = configParams.getInteger("ControlTcpConnection/WindowPositionSocketTimeout") * 1000;
+
 }
 
 /**
  * \brief send a specific string to a specific socket
  *        
  */
-void ClosedLoopUtility::sendMessageToSocket(std::string messageString, zmq::socket_t* socketPointer)
+void ClosedLoopUtility::sendMessageToSocket(const std::string messageString, zmq::socket_t* socketPointer)
 {
     // define the message which is to be send
     zmq::message_t message(messageString.length());
@@ -88,7 +92,7 @@ std::string ClosedLoopUtility::receiveMessageFromSocket(zmq::socket_t* socketPoi
  * \brief split a string at empty spaces or commas and return a vector of double with the content
  *        
  */
-std::vector<double> ClosedLoopUtility::convertStringToDoubleVec(std::string message)
+std::vector<double> ClosedLoopUtility::convertStringToDoubleVec(const std::string message)
 {
     // fracture the received string
     std::stringstream ss(message);
@@ -159,9 +163,9 @@ std::tuple<bool, uint, uint, uint, uint, double> ClosedLoopUtility::getNewWindow
         }
         else
         {
-            // TODO end the simulation
+            // end simulation
 
-            return std::make_tuple(false, 0, 0, 0, 0, 0.0);
+            exit(1);
         }
     }
     else
@@ -213,7 +217,7 @@ void ClosedLoopUtility::sendImagetteToClient(arma::Mat<float>* pixelMapPointer, 
  * \brief convert a arma mat to a linear, row major string seperated by empty spaces  
  *        the string starts with the imagette number, its rows and cols
  */
-std::string ClosedLoopUtility::convertMatrixToString(arma::Mat<float>* pixelMapPointer, uint exposureNumber)
+std::string ClosedLoopUtility::convertMatrixToString(arma::Mat<float>* pixelMapPointer, const uint exposureNumber)
 {
     int rows = pixelMapPointer->n_rows;
 
