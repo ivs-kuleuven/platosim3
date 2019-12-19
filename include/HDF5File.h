@@ -24,6 +24,7 @@ class HDF5File
 
         HDF5File();
         HDF5File(string filename, bool readonly=true);
+        HDF5File(bool noFile);
         ~HDF5File();
 
         void open(string filename, bool readonly=true);
@@ -66,7 +67,7 @@ class HDF5File
 
         H5::H5File *file;
         bool fileIsOpen;
-
+        bool noFile;
 };
 
 
