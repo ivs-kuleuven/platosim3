@@ -29,23 +29,6 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     ConfigurationParameters configParams(inputFilename);
 
-    // Check if the output HDF5 filename already exists. If so, complain.
-
-    if (fileExists(outputFilename))
-    {
-        Log.error("Simulation: Output file " + outputFilename + " already exists. Aborting.");
-        exit(1);
-    }
-
-    hdf5File = new HDF5File();
-
-    // Open the HDF5 output file where the images will be written
-
-    hdf5File->open(outputFilename);
-
-    // Write the version info to the output HDF5 file
-
-    writeVersionInformationToHDF5();
 
     // Set the random seeds of the simulation. Seeds are set in the input yaml file using long integers. 
     // If they are set to -1, the following functions resets them using the system clock. This is useful 
@@ -57,6 +40,45 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     // Configure the Simulation object using the configuration parameters file
 
     configure(configParams);
+
+    // Check if the output HDF5 filename already exists. If so, complain.
+
+    if (fileExists(outputFilename))
+    {
+        Log.error("Simulation: Output file " + outputFilename + " already exists. Aborting.");
+        exit(1);
+    }
+
+    // Depending on whether or not PlatoSim is used in a network environment create a new abstract detector factory
+
+    if (sendImagettesToClient || getWindowPositionFromServer)
+    {
+        detectorFactory = new ClosedLoopDetectorFactory;
+
+        Log.info("Simulation: create a connected detector factory instance");
+
+        // create a specific empty hdf5 output file
+
+        hdf5File = new HDF5File(true);
+ 
+    }
+    else
+    {
+        detectorFactory = new DetectorFactory;
+
+        hdf5File = new HDF5File();
+    }
+   
+
+
+    // Open the HDF5 output file where the images will be written
+
+    hdf5File->open(outputFilename);
+
+    // Write the version info to the output HDF5 file
+
+    writeVersionInformationToHDF5();
+
 
     double readoutTimeDuringNextExposure;
     tie(readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure) = configureReadoutTime(configParams);
@@ -143,24 +165,6 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     camera     = new Camera(configParams, *hdf5File, *platform, *telescope, *sky);
 
 
-
-    // Depending on whether or not PlatoSim is used in a network environment create a new abstract detector factory
-
-    if (true)
-    {
-        detectorFactory = new ClosedLoopDetectorFactory;
-
-        Log.info("Simulation: create a connected detector factory instance");   
-    }
-    else
-    {
-        detectorFactory = new DetectorFactory;
-    }
-
-
-
-
-
     // Depending on how the PSF is computed (analytically or pre-mapped) the Detector object is different.
 
     if ((psfModel == "MappedGaussian") || (psfModel == "MappedFromFile"))
@@ -207,7 +211,6 @@ Simulation::~Simulation()
     delete platform;
     delete jitterGenerator;
     delete driftGenerator;
-    //delete detectorFactory;
 
     // Close the output hdf5 file
 
