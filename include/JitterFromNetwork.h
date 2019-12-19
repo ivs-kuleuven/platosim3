@@ -32,7 +32,6 @@ class JitterFromNetwork : public JitterGenerator
         virtual tuple<double, double, double> getNextYawPitchRoll(double time) override;
         virtual double getHeartbeatInterval() override;
 
-        virtual std::tuple<bool, double, double, double, double> processJitterMessage(std::string message);
 
     protected:
 
@@ -52,14 +51,18 @@ class JitterFromNetwork : public JitterGenerator
 
         double internalTime;        // [s]
 
+
+    private:
+
+        std::tuple<double, double, double, double> processJitterMessage(const std::string message);
+
         std::string jitterAddress;
 
         zmq::context_t context;
 
         zmq::socket_t jitterSocket;
 
-    private:
-
+        int jitterSocketTimeout;
  };
 
 

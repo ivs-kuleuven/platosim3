@@ -20,6 +20,8 @@ JitterFromNetwork::JitterFromNetwork(ConfigurationParameters &configParams)
 
     jitterSocket.setsockopt(ZMQ_SUBSCRIBE, "", 0);
 
+    jitterSocket.setsockopt(ZMQ_RCVTIMEO, &jitterSocketTimeout, sizeof(jitterSocketTimeout));
+
     jitterSocket.connect(jitterAddress);
 
 }
@@ -73,6 +75,9 @@ void JitterFromNetwork::configure(ConfigurationParameters &configParams)
     endOfSimulation = false;
 
     jitterAddress = configParams.getString("ControlTcpConnection/JitterServerAddress");
+
+    jitterSocketTimeout = configParams.getInteger("ControlTcpConnection/JitterSocketTimeout") * 1000;
+
 }
 
 
@@ -118,15 +123,13 @@ tuple<double, double, double> JitterFromNetwork::getNextYawPitchRoll(double time
 
             std::string jitterMessageString = std::string(static_cast<char*>(jitterMessage.data()), jitterMessage.size());
 
-            tuple<bool, double, double, double, double> jitterStep = processJitterMessage(jitterMessageString);
+            tuple<double, double, double, double> jitterStep = processJitterMessage(jitterMessageString);
 
-            endOfSimulation = std::get<0>(jitterStep);
+            currentTimeStep = std::get<0>(jitterStep);
 
-            currentTimeStep = std::get<1>(jitterStep);
-
-            currentYaw = deg2rad((std::get<2>(jitterStep))/3600.);
-            currentPitch = deg2rad((std::get<3>(jitterStep))/3600.);
-            currentRoll = deg2rad((std::get<4>(jitterStep))/3600.);
+            currentYaw = deg2rad((std::get<1>(jitterStep))/3600.);
+            currentPitch = deg2rad((std::get<2>(jitterStep))/3600.);
+            currentRoll = deg2rad((std::get<3>(jitterStep))/3600.);
 
 
 
@@ -181,11 +184,12 @@ double JitterFromNetwork::getHeartbeatInterval()
 
 
 /**
- * \brief The server reply is in a string format - this function converts it to a vector of doubles
- * \      TODO: build in sanity checks
+ * \brief The jitter server message is in a string format - this function converts it to a vector of doubles
+ * \      the message consist either of a timestamp and a yaw -, pitch -, roll angle (all double)
+ * \      or an empty string, which indicates the end of the simulation
  *  
  */
-tuple<bool, double, double, double, double> JitterFromNetwork::processJitterMessage(string jitterString)
+tuple<double, double, double, double> JitterFromNetwork::processJitterMessage(const std::string jitterString)
 {
     // fracture the received string
     std::stringstream ss(jitterString);
@@ -213,27 +217,20 @@ tuple<bool, double, double, double, double> JitterFromNetwork::processJitterMess
 
     // check length of the jitter step
 
-    if (currentStepVec.size() == 5)
+    if (currentStepVec.size() == 4)
     {
-        if (currentStepVec.at(0) == 0)
-        {
-            endSimulation = false;    
-        }
-        else
-        {
-            endSimulation = true;
-        }
-
-        timeStep = currentStepVec.at(1);
-        yaw = currentStepVec.at(2);
-        pitch = currentStepVec.at(3);
-        roll = currentStepVec.at(4);
+        timeStep = currentStepVec.at(0);
+        yaw = currentStepVec.at(1);
+        pitch = currentStepVec.at(2);
+        roll = currentStepVec.at(3);
         
     }
     else
     {
-        // TODO: implement what should happen, if the message is to long or short
-        // at the moment, just use 0 as values
+        if(jitterString == "")
+        {
+            endOfSimulation = true;
+        }
 
         timeStep = 0;
         yaw = 0;
@@ -241,6 +238,6 @@ tuple<bool, double, double, double, double> JitterFromNetwork::processJitterMess
         roll = 0;
     }
 
-    return make_tuple(endSimulation, timeStep, yaw, pitch, roll);
+    return make_tuple(timeStep, yaw, pitch, roll);
 
 }
