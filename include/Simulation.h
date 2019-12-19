@@ -6,6 +6,7 @@
 
 #include "Logger.h"
 #include "HDF5File.h"
+#include "ClosedLoopHDF5File.h"
 #include "TemperatureGenerator.h"
 #include "TemperatureFromFile.h"
 #include "NominalTemperature.h"

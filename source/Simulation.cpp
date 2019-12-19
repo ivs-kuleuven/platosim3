@@ -24,7 +24,6 @@
 Simulation::Simulation(string inputFilename, string outputFilename)
 {
     // Parse the configuration parameters file
-
     Log.info("Simulation: reading the input parameters file");
 
     ConfigurationParameters configParams(inputFilename);
@@ -59,7 +58,7 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
         // create a specific empty hdf5 output file
 
-        hdf5File = new HDF5File(true);
+        hdf5File = new ClosedLoopHDF5File();
  
     }
     else
@@ -462,7 +461,7 @@ void Simulation::run()
     while (!endOfSimulation)
     {
         // if no jitter from network is used, end the simulation, when the max number of exposures from the yaml file is reached
-        if (jitterSource != "FromNetwork" && n >= beginExposureNr + numExposures)
+        if ((!useJitter || jitterSource != "FromNetwork") && n >= beginExposureNr + numExposures)
         {
             Log.info("Simulation: end of simulation reached");
 
