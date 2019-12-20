@@ -1029,6 +1029,15 @@ void Detector::readOut(float exposureTime)
         Log.debug("Detector: no photon noise added.");
     }
 
+    if(isFastCamera && frontEndElectronics->getIncludeOverAndUnderShoot())
+    {
+        Log.debug("Detector: adding (F-)FEE over-/undershoot");
+        applyOverAndUnderShoot();
+    }
+    else{
+        Log.debug("Detector: (F-)FEE over-/undershoot not applied: " + to_string(isFastCamera) + " " + to_string(frontEndElectronics->getIncludeOverAndUnderShoot()));
+    }
+
     // Each time the amplifier reads out a pixel, a tiny bit of noise is added.
     // Add the readout noise.
     // Pixel units before: [electrons]
@@ -1202,7 +1211,6 @@ void Detector::addPhotonNoise()
     {
         for (unsigned int column = 0; column < numColumnsPixelMap; column++)
         {
-            Log.debug(to_string(row) + ", " + to_string(column) + ": " + to_string(pixelMap(row, column)));
             photonNoiseDistribution = poisson_distribution<long>(pixelMap(row, column));
             pixelMap(row, column) = photonNoiseDistribution(photonNoiseGenerator);
         }
@@ -1779,8 +1787,6 @@ void Detector::applyShort2013CTImodel()
 
         for (int k = 0; k < numTrapSpecies; k++)
         {
-            Log.debug("Trap species: " + to_string(k));
-
             // Compute the number of electrons captured in a trap, according to Eq. (22)-(23) of Short et al. (2013).
             // Note that Armadillo uses % for elementwise multiplication.
 
@@ -2273,10 +2279,10 @@ void Detector::addElectronicOffset()
 
 
 /**
- * \brief: Apply the effect of digital saturation to the pixel map,
- *         smearing map, and bias register map. This means that the pixel values in
- *         these maps (expressed in [ADU / pixel]) are Lastped off to the digital saturation
- *         limit of the detector (also expressed in [ADU / pixel]).
+ * \brief Apply the effect of digital saturation to the pixel map,
+ *        smearing map, and bias register map. This means that the pixel values in
+ *        these maps (expressed in [ADU / pixel]) are Lastped off to the digital saturation
+ *        limit of the detector (also expressed in [ADU / pixel]).
  *
  * \pre Pixel unit in the pixel, smearing, and bias maps: [ADU].
  * \pre Digital saturation limit expressed in [ADU / pixel].
@@ -2298,6 +2304,118 @@ void Detector::applyDigitalSaturation()
 
     smearingMap(arma::find(smearingMap > digitalSaturationLimit)).fill(digitalSaturationLimit);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Applies the F-FEE over-/undershoot to the pixel map.
+ * 
+ * \pre Pixel unit in the pixel, smearing, and bias maps: [ADU].
+ *
+ * \post Pixel unit in the pixel, smearing, and bias register maps: [ADU].
+ */ 
+void Detector::applyOverAndUnderShoot()
+{
+    const unsigned int halfDectectorWidth = numColumns / 2;
+
+    // NOTES
+    // - We apply this effect row per row, because otherwise, we will have to keep too much
+    //   data in memory
+    // - Both detector halves must be treated independently
+    // - The pixels between the bias map and the pixel map are assumed to contain the sky background
+
+    arma::frowvec readoutRegister;   // Placeholder
+    arma::frowvec difference;        // Placeholder
+    arma::frowvec totalContribution; // Has to be filled with zeroes for every row and every detector half
+    int lengthReadoutRegister;
+
+    double skyBackground = camera.getTotalSkyBackground();
+    if (includeNaturalVignetting)
+        skyBackground *= expectedValueNaturalVignetting;
+    if (includePolarization)
+        skyBackground *= expectedValuePolarization;
+    if (includeParticulateContamination)
+        skyBackground *= particulateContaminationEfficiency;
+    if (includeMolecularContamination)
+        skyBackground *= molecularContaminationEfficiency;
+    skyBackground *= meanQE * meanAngleDependencyQE;
+
+    arma::frowvec skyBackgroundExtraPixels(frontEndElectronics->getOverAndUnderShootRange());
+    skyBackgroundExtraPixels.fill(skyBackground);
+
+    // At least partially on the left detector half
+
+    if (subFieldZeroPointColumn < halfDectectorWidth)
+    {
+        const int firstIndexLeftHalf = subFieldZeroPointColumn;
+        const int lastIndexLeftHalf = min(halfDectectorWidth - 1, subFieldZeroPointColumn + numColumnsPixelMap - 1);
+        const int numCcdPixelsLeftHalf = lastIndexLeftHalf - firstIndexLeftHalf + 1;
+     
+        lengthReadoutRegister = numCcdPixelsLeftHalf + frontEndElectronics->getOverAndUnderShootRange();    // Pixels in sub-field on left CCD half + some extra pixels closest to the readout electronics
+        readoutRegister.zeros(lengthReadoutRegister);
+        readoutRegister.head(frontEndElectronics->getOverAndUnderShootRange()) = skyBackgroundExtraPixels;
+
+        for (unsigned int row = 0; row < numRowsPixelMap; row++)
+        {
+            readoutRegister(arma::span(frontEndElectronics->getOverAndUnderShootRange(), lengthReadoutRegister - 1)) = pixelMap.row(row).head(numCcdPixelsLeftHalf);
+            totalContribution.zeros(lengthReadoutRegister);
+
+            difference = readoutRegister.tail(lengthReadoutRegister - 1) - readoutRegister.head(lengthReadoutRegister - 1);
+
+            for (int deltaX = 0; deltaX < frontEndElectronics->getOverAndUnderShootRange(); deltaX++)
+            {
+                // Ditch last deltaX and tail(numCcdPixelsLeftHalf)
+
+                totalContribution.tail(lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange()) += frontEndElectronics->getOverAndUnderShootStrength() * difference.head(lengthReadoutRegister - 1 - deltaX).tail(numCcdPixelsLeftHalf) * exp(-frontEndElectronics->getOverAndUnderShootDecayRate() * pow(deltaX, frontEndElectronics->getOverAndUnderShootDecaySpeed()));
+                
+                // totalContribution.tail(lengthReadoutRegister - deltaX) += frontEndElectronics->getOverAndUnderShootStrength() * difference * exp(-frontEndElectronics->getOverAndUnderShootDecayRate() * pow(deltaX, frontEndElectronics->getOverAndUnderShootDecaySpeed()));
+            }
+
+            pixelMap.row(row).head(numCcdPixelsLeftHalf) += totalContribution.tail(lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange());
+        }
+    }
+
+    // At least partially on the right detector half
+
+    if (subFieldZeroPointColumn + numColumnsPixelMap - 1 >= halfDectectorWidth)
+    {
+        const int firstIndexRightHalf = max(halfDectectorWidth, subFieldZeroPointColumn);
+        const int lastIndexRightHalf = subFieldZeroPointColumn + numColumnsPixelMap - 1;
+        const int numCcdPixelsRightHalf = lastIndexRightHalf - firstIndexRightHalf + 1;
+
+        lengthReadoutRegister = numCcdPixelsRightHalf + frontEndElectronics->getOverAndUnderShootRange();      // Pixels in sub-field on right CCD half + some extra pixels closest to the readout electronics
+        readoutRegister.zeros(lengthReadoutRegister);
+        readoutRegister.tail(frontEndElectronics->getOverAndUnderShootRange()) = skyBackgroundExtraPixels;
+
+        for (unsigned int row = 0; row < numRowsPixelMap; row++)
+        {
+            readoutRegister(arma::span(0, lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange() - 1)) = pixelMap.row(row).tail(numCcdPixelsRightHalf);
+            totalContribution.zeros(lengthReadoutRegister);
+
+            difference = readoutRegister.head(lengthReadoutRegister - 1) - readoutRegister.tail(lengthReadoutRegister - 1);
+
+            for (int deltaX = 0; deltaX < frontEndElectronics->getOverAndUnderShootRange(); deltaX++)
+            {
+                // Ditch first deltaX and head(numCcdPixelsRightHalf)
+
+                totalContribution.head(lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange()) += frontEndElectronics->getOverAndUnderShootStrength() * difference.tail(lengthReadoutRegister - 1 - deltaX).head(numCcdPixelsRightHalf) * exp(-frontEndElectronics->getOverAndUnderShootDecayRate() * pow(deltaX, frontEndElectronics->getOverAndUnderShootDecaySpeed()));
+            }
+
+            pixelMap.row(row).tail(numCcdPixelsRightHalf) += totalContribution.head(lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange());
+        }
+    }
+}
+
+
 
 
 

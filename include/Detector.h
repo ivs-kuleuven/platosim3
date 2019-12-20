@@ -116,6 +116,7 @@ class Detector: public HDF5Writer
         virtual void applyGain();
         virtual void addElectronicOffset();
         virtual void applyDigitalSaturation();
+        virtual void applyOverAndUnderShoot();
 
         void applySimpleCTImodel();
         void applyShort2013CTImodel();

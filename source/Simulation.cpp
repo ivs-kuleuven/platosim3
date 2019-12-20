@@ -728,6 +728,13 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 	addInteger("RefValue");
 	addDouble("Stability");
 
+    subGroup = "FEE/OverAndUnderShoot";
+    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    addDouble("Strength");
+    addDouble("DecaySpeed");
+    addDouble("DecayRate");
+    addInteger("Range");
+
 	subGroup = "CCD";
 	hdf5File.createGroup(parentGroup + "/" + subGroup);
     addString("Position");
