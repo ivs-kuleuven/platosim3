@@ -255,8 +255,8 @@ ControlHDF5Content:
 
 ControlTcpConnection:
 
-    SendImagettesToClients:        yes
-    GetWindowPositionsFromServer:  yes
+    SendImagettesToClients:        no
+    GetWindowPositionsFromServer:  no
 
     WindowPositionServerAddress: tcp://localhost:5558
     JitterServerAddress:         tcp://localhost:5559
