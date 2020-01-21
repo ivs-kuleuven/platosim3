@@ -1482,11 +1482,6 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<T>& A)
     return;
 }
 
-template void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<float>& A);
-template void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<uint16_t>& A);
-
-
-
 
 
 

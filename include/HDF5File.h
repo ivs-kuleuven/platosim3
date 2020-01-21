@@ -25,7 +25,7 @@ class HDF5File
         HDF5File();
         HDF5File(string filename, bool readonly=true);
         HDF5File(bool noFile);
-        ~HDF5File();
+        virtual ~HDF5File();
 
         void open(string filename, bool readonly=true);
         void close();
