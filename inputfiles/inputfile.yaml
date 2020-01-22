@@ -147,8 +147,13 @@ CCD:
     Position:                        Custom          # one of [1, 2, 3, 4, Custom]
                                                      # (use Custom to specify the CCD position parameters yourself)
                                                      
+<<<<<<< HEAD
     OriginOffsetX:                  -1.3             # X Offset of CCD origin from center of focal plane [mm]
     OriginOffsetY:                  82.48            # Y Offset of CCD origin from center of focal plane [mm]
+=======
+    OriginOffsetX:                   0               # X Offset of CCD origin from center of focal plane [mm]
+    OriginOffsetY:                   0               # Y Offset of CCD origin from center of focal plane [mm]
+>>>>>>> 721b641b759e007cc863f459c4ee356874a9b55d
     Orientation:                     0               # Orientation of CCD w.r.t. focal plane orientation [deg] - use when CCDPosition = Custom
     NumColumns:                      4510            # Number of columns on the CCD [pixels]                   - use when CCDPosition = Custom
     NumRows:                         4510            # Number of rows on the CCD [pixels] (including non-exposed ones) - use when CCDPosition = Custom
@@ -287,4 +292,3 @@ CCDPositions:
     NumRows:                         [4510, 4510, 4510, 4510]       # Number of rows on the CCD [pixels] (including non-exposed ones)
     FirstRowForNormalCamera:         [0, 0, 0, 0]                   # The complete CCDs are active/illuminated for the Normal Camera's
     FirstRowForFastCamera:           [2255, 2255, 2255, 2255]       # Only the upper half of the CCDs is active/illuminated for the Fast Camera's
-
