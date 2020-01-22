@@ -455,7 +455,7 @@ void Simulation::run()
 
     int n = beginExposureNr;
 
-    bool endOfSimulation;  
+    bool endOfSimulation = false;  
 
     // continue the simulation until no more jittersteps are send from a tcp connection server
     while (!endOfSimulation)

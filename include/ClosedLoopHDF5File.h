@@ -11,6 +11,8 @@ class ClosedLoopHDF5File : public HDF5File
 
         ClosedLoopHDF5File() {};
 
+        ~ClosedLoopHDF5File() {if(fileIsOpen){close();} delete file;};
+
         void writeAttribute(string groupName, string attributeName, string attributeValue) override {};
         void writeAttribute(string groupName, string attributeName, int attributeValue) override {};
         void writeAttribute(string groupName, string attributeName, long attributeValue) override {};
