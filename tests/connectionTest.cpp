@@ -20,9 +20,9 @@ std::string platoSimWinPositionAddress = "tcp://*:5558";
 std::string platoSimJitterAddress = "tcp://*:5559";
 std::string platoSimImagetteAddress = "tcp://*:5560";
 
-std::string jitterFileName = std::string(std::getenv("PLATO_PROJECT_HOME")) + "/shortJitter.txt";
+std::string jitterFileName = std::string(std::getenv("PLATO_PROJECT_HOME")) + "/testData/shortJitter.txt";
 
-std::string winPositionFileName = std::string(std::getenv("PLATO_PROJECT_HOME")) + "/windowPositions.txt";
+std::string winPositionFileName = std::string(std::getenv("PLATO_PROJECT_HOME")) + "/testData/windowPositions.txt";
 
 
 std::vector<std::tuple<int, int, int, int, int, int, int, int, int, int>> starPositionVec;
@@ -462,6 +462,16 @@ void sendMessages(zmq::socket_t* jitterSocket, zmq::socket_t* winPositionSocket)
     }
 }
 
+
+
+
+
+
+
+
+
+
+
 int main()
 {
 
@@ -539,11 +549,6 @@ int main()
     receivingThread.join();
 
     sendingThread.join();
-
-
-
-
-
 
 
     return 0;

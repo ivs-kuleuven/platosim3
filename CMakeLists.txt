@@ -90,7 +90,7 @@ set(platosimMain ${CMAKE_CURRENT_SOURCE_DIR}/source/main.cpp)
 
 # Define the connectionTest.cpp separately.
 
-set(connectionTestMain ${CMAKE_CURRENT_SOURCE_DIR}/connectionTest.cpp)
+set(connectionTestMain ${CMAKE_CURRENT_SOURCE_DIR}/tests/connectionTest.cpp)
 
 
 # Add a platosim library. This way we need to compile the platosim source files
@@ -99,10 +99,12 @@ set(connectionTestMain ${CMAKE_CURRENT_SOURCE_DIR}/connectionTest.cpp)
 add_library(platosimLibrary ${platosimSourceFiles})
 
 
-# Specify the simulator unittest files to be compiled, but exclude again the main().
+# Specify the simulator unittest files to be compiled, but exclude again the main()
+# and the non-Google tests
 
 file(GLOB unitTestSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
-list(REMOVE_ITEM unitTestSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/AllTests.cpp)
+list(REMOVE_ITEM unitTestSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/tests/AllTests.cpp)
+list(REMOVE_ITEM unitTestSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/tests/connectionTest.cpp)
 
 
 # Define the file with main() function for the unit tests separately. 
