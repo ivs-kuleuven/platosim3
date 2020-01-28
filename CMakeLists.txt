@@ -90,7 +90,7 @@ set(platosimMain ${CMAKE_CURRENT_SOURCE_DIR}/source/main.cpp)
 
 # Define the connectionTest.cpp separately.
 
-set(connectionTestMain ${CMAKE_CURRENT_SOURCE_DIR}/tests/connectionTest.cpp)
+set(connectionTestMain ${CMAKE_CURRENT_SOURCE_DIR}/tests/closedLoopTest/connectionTest.cpp)
 
 
 # Add a platosim library. This way we need to compile the platosim source files
@@ -104,7 +104,6 @@ add_library(platosimLibrary ${platosimSourceFiles})
 
 file(GLOB unitTestSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
 list(REMOVE_ITEM unitTestSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/tests/AllTests.cpp)
-list(REMOVE_ITEM unitTestSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/tests/connectionTest.cpp)
 
 
 # Define the file with main() function for the unit tests separately. 
