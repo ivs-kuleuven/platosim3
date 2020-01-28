@@ -93,6 +93,7 @@ rows = inputDataMap["SubField"]["NumRows"]
 # wait for messages from the platosim instance
 
 while (imagetteCounter != imagetteNumber):
+    
     print("wait for platosim message")
 
     socks = dict(poll.poll(10))
@@ -103,9 +104,9 @@ while (imagetteCounter != imagetteNumber):
         message = inputSocket.recv()
         print("received platosim ready message")
 
-	# set the reply string
+        # set the reply string
 
-	replyStr = str(rows) + " " + str(cols) + " " + str(zeroPointColumn) + " " + str(zeroPointRow) + " " + str(orientation)
+        replyStr = str(rows) + " " + str(cols) + " " + str(zeroPointColumn) + " " + str(zeroPointRow) + " " + str(orientation)
 
         # send a window postion to platosim
 
@@ -129,30 +130,31 @@ while (imagetteCounter != imagetteNumber):
 
         print ("received imagette")
 
-	imagetteList.append(imagette)
+        imagetteList.append(imagette)
 
         imagetteCounter += 1
 
-	if(imagetteCounter != imagetteNumber):
+        if(imagetteCounter != imagetteNumber):
 
-	    # send 20 jitter steps
+            # send 20 jitter steps
 
-	    print ("send 20 jitter steps")
+            print ("send 20 jitter steps")
 
-	    for i in range((imagetteCounter * 20), (imagetteCounter * 20 + 20)):
+            for i in range((imagetteCounter * 20), (imagetteCounter * 20 + 20)):
 
-		jitterStep = jitterLine[i].replace('\t', ' ')
+                jitterStep = jitterLine[i].replace('\t', ' ')
 
-		jitterSocket.send_multipart([identity, jitterStep])
+                jitterSocket.send_multipart([identity, jitterStep])
 
-	else:
-	    print ("send last jitter step")
-		
-	    jitterSocket.send_multipart([identity, ""])
+        else:
+            
+            print ("send last jitter step")
+            
+            jitterSocket.send_multipart([identity, ""])
 
-	    # receive the last imagette just to ignore it
+            # receive the last imagette just to ignore it
 
-	    identity = imagetteSocket.recv()
+            identity = imagetteSocket.recv()
             imagette = imagetteSocket.recv()
 
     time.sleep(1)
@@ -169,29 +171,31 @@ with h5py.File(offlineOutputFile, 'r') as f:
 
     for i in range(0, 10):
 
-	imagetteString = "image" + "%06d" % (i,)
+        imagetteString = "image" + "%06d" % (i,)
 
-    	imagette = np.array(f['Images'][imagetteString])
+        imagette = np.array(f['Images'][imagetteString])
 
-	intImagette = imagetteList[i].split()
+        intImagette = imagetteList[i].split()
 
-	for x in range(0, cols):
+        for x in range(0, cols):
 
-	    for y in range(0, rows):
+            for y in range(0, rows):
 
-		offInt = imagette[x][y]
+                offInt = imagette[x][y]
 
-		index = 3 + x * cols + y
+                index = 3 + x * cols + y
 
-		onInt = intImagette[index]
+                onInt = intImagette[index]
 
-		# set the error status to true and print out the wrong imagettes number
+                # set the error status to true and print out the wrong imagettes number
 
-		if int(onInt) != int(offInt):
-		   
-		    unEqual = True
+                if int(onInt) != int(offInt):
+                   
+                    unEqual = True
 
-		    print("Errors occured with imagette: " + i)
+                    print("Errors occured with imagette: ")
+
+            print(i)
 
 
 
