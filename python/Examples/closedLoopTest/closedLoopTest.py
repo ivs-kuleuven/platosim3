@@ -110,7 +110,7 @@ while (imagetteCounter != imagetteNumber):
 
         # send a window postion to platosim
 
-        inputSocket.send_multipart([identity, replyStr])
+        inputSocket.send_multipart([identity, replyStr.encode()])
 
         # send 20 jitter steps
 
@@ -120,7 +120,7 @@ while (imagetteCounter != imagetteNumber):
 
             jitterStep = jitterLine[i].replace('\t', ' ')
 
-            jitterSocket.send_multipart([identity, jitterStep])
+            jitterSocket.send_multipart([identity, jitterStep.encode()])
 
 
     if socks.get(imagetteSocket):
@@ -144,13 +144,13 @@ while (imagetteCounter != imagetteNumber):
 
                 jitterStep = jitterLine[i].replace('\t', ' ')
 
-                jitterSocket.send_multipart([identity, jitterStep])
+                jitterSocket.send_multipart([identity, jitterStep.encode()])
 
         else:
             
             print ("send last jitter step")
             
-            jitterSocket.send_multipart([identity, ""])
+            jitterSocket.send_multipart([identity, "".encode()])
 
             # receive the last imagette just to ignore it
 
