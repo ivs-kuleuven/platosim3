@@ -41,7 +41,7 @@ Platform:
     JitterPitchRms:              0.04             # [arcsec]
     JitterRollRms:               0.08             # [arcsec]
     JitterTimeScale:             180              # [s]
-    JitterFileName:              ./shortJitter.txt 
+    JitterFileName:              python/Examples/closedLoopTest/shortJitter.txt 
 
 
 Telescope:
