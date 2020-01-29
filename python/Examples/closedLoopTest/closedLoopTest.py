@@ -195,7 +195,7 @@ with h5py.File(offlineOutputFile, 'r') as f:
 
                     print("Errors occured with imagette: ")
 
-            print(i)
+                    print(i)
 
 
 
