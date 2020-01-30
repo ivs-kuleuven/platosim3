@@ -42,7 +42,7 @@ sim["Sky/IncludeCosmicsInSmearingMap"]            = "no"
 sim["Sky/IncludeCosmicsInBiasMap"]                = "no"   
 
 sim["Platform/UseJitter"]                         = "yes"
-sim["Platform/UseJitterFromFile"]                 = "no"
+sim["Platform/JitterSource"]                      = "FromRedNoise"
 
 sim["Telescope/GroupID"]                          = 1
 sim["Telescope/UseDrift"]                         = "no"
