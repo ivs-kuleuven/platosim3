@@ -25,7 +25,7 @@ def photometry(inputFilePath, outputFilePath, targetIDs, maxNexposures = None, c
         . verbose:             Whether to print info messages on the screen or not
 
     OUTPUT:
-        . The extracted fluxes will be written to the HDF5 file specified above.
+        . None. The extracted fluxes will be written to the HDF5 file specified above.
     """
 
     # Open the input and the output HDF5 files
@@ -121,7 +121,7 @@ def photometry(inputFilePath, outputFilePath, targetIDs, maxNexposures = None, c
 
     for imageNr in range(beginExposureNr, beginExposureNr + Nexposures):
 
-        if verbose:
+        if (imageNr % 100) == 0:
             print("Image # {0}".format(imageNr))
 
         # Read the bias and smearing map, and the image itself
