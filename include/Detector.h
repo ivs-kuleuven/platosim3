@@ -128,7 +128,7 @@ class Detector: public HDF5Writer
         arma::Mat<float> getSubfield();
 
         virtual void initHDF5Groups() override;
-        void writePixelMapsToHDF5(int exposureNr);
+        virtual void writePixelMapsToHDF5(int exposureNr);
 
         double getRowEdgeFOV(int column);
 

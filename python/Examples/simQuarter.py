@@ -6,7 +6,7 @@ cameraGroupNr: either 1,2,3, or 4
 cameraNr: either 1,2,3,4,5 or 6
 quarterNr: either 1,2,3,4,5,6,7 or 8
 
-Example: $ python simQuarter.py 2 5 6
+Example: $ python3 simQuarter.py 2 5 6
 """
 
 
@@ -34,8 +34,8 @@ outputPrefix = "Run1"
 print("Using " + inputFile + " as inputfile")
 print("Writing output to " + outputDir + outputPrefix + "_Q*_group*_camera*.hdf5")
 
-raPlatform  = np.deg2rad(165)           # Platform right ascension pointing coordinate 
-decPlatform = np.deg2rad(2.0)           # Platform declination pointing coordinate
+raPlatform  = np.deg2rad(171.675)       # Platform right ascension pointing coordinate 
+decPlatform = np.deg2rad(3.005)         # Platform declination pointing coordinate
 
 raCenter  = np.deg2rad(171.675)         # Right ascension on which to centre the subfield
 decCenter = np.deg2rad(3.005)           # Declination on which to centre the subfield
@@ -57,7 +57,7 @@ telescope = int(sys.argv[2])
 quarter = int(sys.argv[3])
 
 
-print("Processing quarter {0} of camera {1} of group {2}".format(quarter, telescope, group))
+print("Configuring PlatoSim for quarter {0} of camera {1} of group {2}".format(quarter, telescope, group))
 
 # Output will be stored in e.g. Run1_Q1_group2_camera7.hdf5
 
@@ -75,6 +75,14 @@ sim["SubField/NumRows"] = numRowsSubField
 # Set the telescope group ID, this is needed for the subfield calculations later on.
   
 sim["Telescope/GroupID"] = group
+
+# Set the focal plane angle different per group. 45.0 is to ensure that the platform pointing axis
+# falls on a CCD rather than just in between CCDs. The (group - 1) * 90.0 is convenient so that 
+# on the sky the left/right/top/down labeling of the different CCDs is the same for each group.
+
+sim["Camera/FocalPlaneOrientation/Source"] = "ConstantValue"
+sim["Camera/FocalPlaneOrientation/ConstantValue"] = 45.0 + (group - 1) * 90.0
+
 
 # Set the quarter specific parameters
 
@@ -108,6 +116,7 @@ if isSuccessful:
     # Run the PlatoSim simulator 
     # logLevel can 1 (least verbose) to 3 (most verbose)
 
+    print("Launching PlatoSim3 for {0} exposures".format(numExposures))
     simFile = sim.run(logLevel=1)
 
 else:

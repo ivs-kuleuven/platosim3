@@ -688,6 +688,9 @@ class Simulation(object):
         self["SubField/NumRows"] = str(subfieldSizeY)
         self["SubField/NumColumns"] = str(subfieldSizeX)
 
+        self["Telescope/AzimuthAngle"] = np.rad2deg(azimuthTelescope)
+        self["Telescope/TiltAngle"] = np.rad2deg(tiltTelescope)
+
         # That's it
 
         return True
@@ -826,9 +829,9 @@ class Simulation(object):
             raise ValueError("Simulation::getReadoutTime() Unknown readout mode specification in configuration file: {0}".format(readoutMode))
 
             
-        serialTransferTime = self["CCD/SerialTransferTime"] * 1E-9			            # [ns] -> [s]
-        parallelTransferTime = self["CCD/ParallelTransferTime"] * 1E-6		            # [µs] -> [s]
-        parallelTransferTimeFast = self["CCD/ParallelTransferTimeFast"] * 1E-6          # [µs] -> [s]
+        serialTransferTime = self["CCD/SerialTransferTime"] * 1E-9                      # [ns] -> [s]
+        parallelTransferTime = self["CCD/ParallelTransferTime"] * 1E-6                  # [micro s] -> [s]
+        parallelTransferTimeFast = self["CCD/ParallelTransferTimeFast"] * 1E-6          # [micro s] -> [s]
 
         numColumnsBiasMap =  self["SubField/NumBiasPrescanColumns"]                     # [pixels]
         numRowsSmearingMap = self["SubField/NumSmearingOverscanRows"]                   # [pixels]

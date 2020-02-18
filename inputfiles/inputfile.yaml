@@ -34,7 +34,7 @@ Platform:
 
     SolarPanelOrientation:           0               # 0, 90, 180, or 270 degrees for the different quarters of a year [deg]
     UseJitter:                       yes             # yes or no. If no, ignore everything below.
-    UseJitterFromFile:               no              # yes or no. If yes, ignore RMS and timescale below.
+    JitterSource:                    FromRedNoise    # FromFile, FromRedNoise, or FromNetwork
     JitterYawRms:                    0.04            # [arcsec]
     JitterPitchRms:                  0.04            # [arcsec]
     JitterRollRms:                   0.08            # [arcsec]
@@ -68,7 +68,7 @@ Camera:
     PlateScale:                      0.8333          # [arcsec/micron]
     FocalPlaneOrientation:
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent)
-        ConstantValue:               0.0            # [degrees]. Used in case Source is ConstantValue. 
+        ConstantValue:               45.0            # [degrees]. Used in case Source is ConstantValue. 
         FromFile:                    inputfiles/fporientation.txt  # Used in case Source is FromFile. time [s] & FP orientation [deg]
     FocalLength: 
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
@@ -147,8 +147,8 @@ CCD:
     Position:                        Custom          # one of [1, 2, 3, 4, Custom]
                                                      # (use Custom to specify the CCD position parameters yourself)
                                                      
-    OriginOffsetX:                   0               # X Offset of CCD origin from center of focal plane [mm]  - use when CCDPosition = Custom
-    OriginOffsetY:                   0               # Y Offset of CCD origin from center of focal plane [mm]  - use when CCDPosition = Custom
+    OriginOffsetX:                   0               # X Offset of CCD origin from center of focal plane [mm]
+    OriginOffsetY:                   0               # Y Offset of CCD origin from center of focal plane [mm]
     Orientation:                     0               # Orientation of CCD w.r.t. focal plane orientation [deg] - use when CCDPosition = Custom
     NumColumns:                      4510            # Number of columns on the CCD [pixels]                   - use when CCDPosition = Custom
     NumRows:                         4510            # Number of rows on the CCD [pixels] (including non-exposed ones) - use when CCDPosition = Custom
@@ -253,6 +253,17 @@ ControlHDF5Content:
     WriteStarPositions:              yes             # StarPositions are written in pixel and focal plane coordinates + flux and
                                                      # scales with the number of exposures and the number of stars in the field.
 
+ControlTcpConnection:
+
+    SendImagettesToClients:        no
+    GetWindowPositionsFromServer:  no
+
+    WindowPositionServerAddress: tcp://localhost:5558
+    JitterServerAddress:         tcp://localhost:5559
+    ImagetteClientAddress:       tcp://localhost:5560
+
+    WindowPositionSocketTimeout:    100  # seconds
+    JitterSocketTimeout:            100  # seconds
 
 # ----- DO NOT MAKE CHANGES BELOW THIS LINE -----
 
@@ -276,4 +287,3 @@ CCDPositions:
     NumRows:                         [4510, 4510, 4510, 4510]       # Number of rows on the CCD [pixels] (including non-exposed ones)
     FirstRowForNormalCamera:         [0, 0, 0, 0]                   # The complete CCDs are active/illuminated for the Normal Camera's
     FirstRowForFastCamera:           [2255, 2255, 2255, 2255]       # Only the upper half of the CCDs is active/illuminated for the Fast Camera's
-

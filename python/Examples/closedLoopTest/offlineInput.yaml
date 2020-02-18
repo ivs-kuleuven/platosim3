@@ -36,12 +36,12 @@ Platform:
 
     SolarPanelOrientation:        0               # 0, 90, 180, or 270 degrees for the different quarters of a year [deg]
     UseJitter:                   yes              # yes or no
-    JitterSource:                FromRedNoise     # FromFile, FromRedNoise, or FromNetwork
+    JitterSource:                FromFile      # FromFile, FromRedNoise, or FromNetwork
     JitterYawRms:                0.04             # [arcsec]
     JitterPitchRms:              0.04             # [arcsec]
     JitterRollRms:               0.08             # [arcsec]
     JitterTimeScale:             180              # [s]
-    JitterFileName:              inputfiles/PlatoJitter_OHB.txt 
+    JitterFileName:              python/Examples/closedLoopTest/shortJitter.txt 
 
 
 Telescope:
@@ -156,7 +156,7 @@ CCD:
     Orientation:                 0               # Orientation of CCD w.r.t. focal plane orientation [deg]
     NumColumns:                  4510            # Number of columns [pixels]
     NumRows:                     4510            # Number of rows [pixels]
-    FirstRowExposed:             0               # The index of the first row that is exposed to light [pixels]
+    FirstRowExposed:             2255            # The index of the first row that is exposed to light [pixels]
 
     PixelSize:                   18              # [micron]
     BFE:                                             # Brighter-fatter effect
@@ -235,8 +235,8 @@ SubField:
 
     ZeroPointRow:                0               # Row of the (0,0) pixel of the subfield [pixels]
     ZeroPointColumn:             0               # Column of the (0,0) pixel of the subfield [pixels]
-    NumColumns:                  9               # Number of columns, should be >= 8 [pixels]
-    NumRows:                     9               # Number of rows,    should be >= 8 [pixels]
+    NumColumns:                  6               # Number of columns, should be >= 8 [pixels]
+    NumRows:                     6               # Number of rows,    should be >= 8 [pixels]
     NumBiasPrescanRows:          30              # Nr of rows of the prescan strip to determine the bias [pixels]
     NumBiasPrescanColumns:       30              # Nr of columns of the prescan strip to determine the bias [pixels]
     NumSmearingOverscanRows:     30              # Nr of rows of the overscan strip to determine the smearing [pixels]
@@ -269,8 +269,8 @@ ControlTcpConnection:
     JitterServerAddress:         tcp://localhost:5559
     ImagetteClientAddress:       tcp://localhost:5560
 
-    WindowPositionSocketTimeout:    100  # seconds
-    JitterSocketTimeout:            100  # seconds
+    WindowPositionSocketTimeout:    10000  # seconds
+    JitterSocketTimeout:            10000  # seconds
 
 
 # ----- DO NOT MAKE CHANGES BELOW THIS LINE -----

@@ -24,7 +24,8 @@ class HDF5File
 
         HDF5File();
         HDF5File(string filename, bool readonly=true);
-        ~HDF5File();
+        HDF5File(bool noFile);
+        virtual ~HDF5File();
 
         void open(string filename, bool readonly=true);
         void close();
@@ -34,22 +35,25 @@ class HDF5File
 
         bool hasDataset(string groupName, string datasetName);
 
-        void writeAttribute(string groupName, string attributeName, string attributeValue);
-        void writeAttribute(string groupName, string attributeName, int attributeValue);
-        void writeAttribute(string groupName, string attributeName, long attributeValue);
-        void writeAttribute(string groupName, string attributeName, double attributeValue);
-        void writeAttribute(string groupName, string attributeName, bool attributeValue);
-        void writeAttribute(string groupName, string attributeName, vector<double> attributeValue);
-        void writeAttribute(string groupName, string attributeName, vector<int> attributeValue);
+        virtual void writeAttribute(string groupName, string attributeName, string attributeValue);
+        virtual void writeAttribute(string groupName, string attributeName, int attributeValue);
+        virtual void writeAttribute(string groupName, string attributeName, long attributeValue);
+        virtual void writeAttribute(string groupName, string attributeName, double attributeValue);
+        virtual void writeAttribute(string groupName, string attributeName, bool attributeValue);
+        virtual void writeAttribute(string groupName, string attributeName, vector<double> attributeValue);
+        virtual void writeAttribute(string groupName, string attributeName, vector<int> attributeValue);
         
-        void writeArray(string groupName, string arrayName, int*          array, int size);
-        void writeArray(string groupName, string arrayName, unsigned int* array, int size);
-        void writeArray(string groupName, string arrayName, float*        array, int size);
-        void writeArray(string groupName, string arrayName, double*       array, int size);
+        virtual void writeArray(string groupName, string arrayName, int*          array, int size);
+        virtual void writeArray(string groupName, string arrayName, unsigned int* array, int size);
+        virtual void writeArray(string groupName, string arrayName, float*        array, int size);
+        virtual void writeArray(string groupName, string arrayName, double*       array, int size);
         template<typename T>
         void writeArray(string groupName, string arrayName, arma::Mat<T>& A);
         template<typename T>
         static H5::PredType getPredType(arma::Mat<T>& A);
+
+        virtual void writeArray(string groupName, string arrayName, arma::Mat<float>& A);
+        virtual void writeArray(string groupName, string arrayName, arma::Mat<uint16_t>& A);
 
         double readDoubleGroupAttribute(string groupName, string attributeName);
         int readIntegerGroupAttribute(string groupName, string attributeName);
@@ -61,11 +65,12 @@ class HDF5File
 
     protected:
 
+        H5::H5File *file;
+        bool fileIsOpen;
+        bool noFile;
 
     private:
 
-        H5::H5File *file;
-        bool fileIsOpen;
 
 };
 

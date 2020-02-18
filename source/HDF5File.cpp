@@ -1482,11 +1482,6 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<T>& A)
     return;
 }
 
-template void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<float>& A);
-template void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<uint16_t>& A);
-
-
-
 
 
 
@@ -1510,6 +1505,148 @@ H5::PredType HDF5File::getPredType(arma::Mat<T>& A)
 
 
 
+
+void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<uint16_t>& A)
+{
+    // Sanity check on the shape of the array
+
+    if ((A.n_rows == 0) && (A.n_cols == 0))
+    {
+        throw H5FileException("HDF5File::writeArray(): encountered array with shape (0,0)");
+    }
+
+    // Create a DataSpace defining the shape and type of the data 
+
+    unsigned int Ndimensions = 2;
+    unsigned long long shape[Ndimensions];
+    shape[0] = A.n_rows;
+    shape[1] = A.n_cols;
+    H5::DataSpace arraySpace(Ndimensions, shape);
+
+    // Check if the array is not already in the file.
+    // There seems to be only a dirty way of determining this:
+    // try to access the dataset, and check if an exception is thrown.
+
+    bool arrayIsAlreadyInFile = true;
+    string arrayPath = groupName + "/" + arrayName;
+
+    try 
+    {  
+        // Turn off the auto-printing when an exception is raised
+
+        H5::Exception::dontPrint();
+
+        // Try to open the dataset
+
+        H5::DataSet testDataset = file->openDataSet(arrayPath.c_str());
+    }
+    catch (H5::FileIException error)
+    {
+        arrayIsAlreadyInFile = false;
+    }
+
+    if (arrayIsAlreadyInFile)
+    {
+        throw H5GroupException("HDF5File::writeArray(): array " + groupName + "/" + arrayName + " already in file.");
+    }
+
+    // Inside the Images group, make room for the image array
+
+    H5::DataSet arrayDataset = file->createDataSet(arrayPath.c_str(), H5::PredType::NATIVE_UINT16, arraySpace);
+    
+    // Copy the Armadillo array to a vector, because the internally Armadillo stores the data column-major
+    // while HDF5 assumes data to be stored row-major
+
+    vector<uint16_t> temp(A.n_rows * A.n_cols);
+    for (int n = 0; n < A.n_rows; n++)
+    {
+        for(int k = 0; k < A.n_cols; k++)
+        {
+            const int nk = n * A.n_cols + k;
+            temp[nk] = A(n,k);
+        }
+    }
+
+    // Copy the data from our image into the HDF5 file
+
+    arrayDataset.write(temp.data(), H5::PredType::NATIVE_UINT16);
+
+    // That's it
+
+    return;
+}
+
+
+
+void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<float>& A)
+{
+    // Sanity check on the shape of the array
+
+    if ((A.n_rows == 0) && (A.n_cols == 0))
+    {
+        throw H5FileException("HDF5File::writeArray(): encountered array with shape (0,0)");
+    }
+
+    // Create a DataSpace defining the shape and type of the data 
+
+    unsigned int Ndimensions = 2;
+    unsigned long long shape[Ndimensions];
+    shape[0] = A.n_rows;
+    shape[1] = A.n_cols;
+    H5::DataSpace arraySpace(Ndimensions, shape);
+
+    // Check if the array is not already in the file.
+    // There seems to be only a dirty way of determining this:
+    // try to access the dataset, and check if an exception is thrown.
+
+    bool arrayIsAlreadyInFile = true;
+    string arrayPath = groupName + "/" + arrayName;
+
+    try 
+    {  
+        // Turn off the auto-printing when an exception is raised
+
+        H5::Exception::dontPrint();
+
+        // Try to open the dataset
+
+        H5::DataSet testDataset = file->openDataSet(arrayPath.c_str());
+    }
+    catch (H5::FileIException error)
+    {
+        arrayIsAlreadyInFile = false;
+    }
+
+    if (arrayIsAlreadyInFile)
+    {
+        throw H5GroupException("HDF5File::writeArray(): array " + groupName + "/" + arrayName + " already in file.");
+    }
+
+    // Inside the Images group, make room for the image array
+
+    H5::DataSet arrayDataset = file->createDataSet(arrayPath.c_str(), H5::PredType::NATIVE_FLOAT, arraySpace);
+    
+    // Copy the Armadillo array to a vector, because the internally Armadillo stores the data column-major
+    // while HDF5 assumes data to be stored row-major
+
+    vector<float> temp(A.n_rows * A.n_cols);
+    for (int n = 0; n < A.n_rows; n++)
+    {
+        for(int k = 0; k < A.n_cols; k++)
+        {
+            const int nk = n * A.n_cols + k;
+            temp[nk] = A(n,k);
+        }
+    }
+
+    // Copy the data from our image into the HDF5 file
+
+    arrayDataset.write(temp.data(), H5::PredType::NATIVE_FLOAT);
+
+    // That's it
+
+    return;
+}
 
 
 

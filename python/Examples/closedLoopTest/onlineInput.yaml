@@ -36,7 +36,7 @@ Platform:
 
     SolarPanelOrientation:        0               # 0, 90, 180, or 270 degrees for the different quarters of a year [deg]
     UseJitter:                   yes              # yes or no
-    JitterSource:                FromRedNoise     # FromFile, FromRedNoise, or FromNetwork
+    JitterSource:                FromNetwork      # FromFile, FromRedNoise, or FromNetwork
     JitterYawRms:                0.04             # [arcsec]
     JitterPitchRms:              0.04             # [arcsec]
     JitterRollRms:               0.08             # [arcsec]
@@ -156,7 +156,7 @@ CCD:
     Orientation:                 0               # Orientation of CCD w.r.t. focal plane orientation [deg]
     NumColumns:                  4510            # Number of columns [pixels]
     NumRows:                     4510            # Number of rows [pixels]
-    FirstRowExposed:             0               # The index of the first row that is exposed to light [pixels]
+    FirstRowExposed:             2255            # The index of the first row that is exposed to light [pixels]
 
     PixelSize:                   18              # [micron]
     BFE:                                             # Brighter-fatter effect
@@ -262,15 +262,15 @@ ControlHDF5Content:
 
 ControlTcpConnection:
 
-    SendImagettesToClients:         no
-    GetWindowPositionsFromServer:   no
+    SendImagettesToClients:         yes
+    GetWindowPositionsFromServer:   yes
 
     WindowPositionServerAddress: tcp://localhost:5558
     JitterServerAddress:         tcp://localhost:5559
     ImagetteClientAddress:       tcp://localhost:5560
 
-    WindowPositionSocketTimeout:    100  # seconds
-    JitterSocketTimeout:            100  # seconds
+    WindowPositionSocketTimeout:    10000  # seconds
+    JitterSocketTimeout:            10000  # seconds
 
 
 # ----- DO NOT MAKE CHANGES BELOW THIS LINE -----

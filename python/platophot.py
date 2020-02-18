@@ -25,7 +25,7 @@ def photometry(inputFilePath, outputFilePath, targetIDs, maxNexposures = None, c
         . verbose:             Whether to print info messages on the screen or not
 
     OUTPUT:
-        . The extracted fluxes will be written to the HDF5 file specified above.
+        . None. The extracted fluxes will be written to the HDF5 file specified above.
     """
 
     # Open the input and the output HDF5 files
@@ -121,7 +121,7 @@ def photometry(inputFilePath, outputFilePath, targetIDs, maxNexposures = None, c
 
     for imageNr in range(beginExposureNr, beginExposureNr + Nexposures):
 
-        if verbose:
+        if (imageNr % 100) == 0:
             print("Image # {0}".format(imageNr))
 
         # Read the bias and smearing map, and the image itself
@@ -384,20 +384,23 @@ def photometry(inputFilePath, outputFilePath, targetIDs, maxNexposures = None, c
 def getPhotometryTimeSeries(photometryFile, starID):
 
     """
-     PURPOSE: extract the flux time series of star with a given identifier.
+    PURPOSE: extract the flux time series of star with a given identifier.
 
-     INPUT: photometryFile: an HDF5 output file written by the photometry() function above
-            starID:  star identifier (integer, e.g. 9789)
+    INPUT: photometryFile: an HDF5 output file written by the photometry() function above
+           starID:  star identifier (integer, e.g. 9789)
 
-     OUTPUT: time: a numpy np.array containing the time points [s]
-             trueRow: the true (but in reality unknown) row positions (subfield not CCD) of the star [pix]
-             trueCol: the true (but in reality unknown) column positions (subfield not CCD) of the star [pix]
-             trueFlux: the true (but in reality unknown) fluxes of the stars [e-/exposure]
-             outputFlux: the estimated fluxes of the stars [e-/exposure]
+    OUTPUT: time: a numpy np.array containing the time points [s]
+            trueRow: the true (but in reality unknown) row positions (subfield not CCD) of the star [pix]
+            trueCol: the true (but in reality unknown) column positions (subfield not CCD) of the star [pix]
+            trueFlux: the true (but in reality unknown) fluxes of the stars [e-/exposure]
+            outputFlux: the estimated fluxes of the stars [e-/exposure]
 
-     REMARK: To find out which star identifiers are in the photometry file, look in the HDF5 simulation
-             output file of PlatoSim: 
-             allStarIDs = np.array(platosimOutputFile["StarCatalog/starIDs"])
+    REMARK: To find out which star identifiers are in the photometry file, look in the HDF5 simulation
+            output file of PlatoSim: 
+            allStarIDs = np.array(platosimOutputFile["StarCatalog/starIDs"])
+
+    EXAMPLE: >>> time, trueRow, trueCol, trueFlux, outputFlux = getPhotometryTimeSeries("photoutput.hdf5", 124)
+
     """
 
     photFile = h5py.File(photometryFile)
@@ -435,7 +438,16 @@ def getPhotometryTimeSeries(photometryFile, starID):
     photFile.close()
 
     return time, trueRow, trueCol, trueFlux, outputFlux
-    
+   
+
+
+
+
+
+
+
+
+
 
 def computePSFsigma(psf, Nsubpixels, Nsamples=10000):
 
