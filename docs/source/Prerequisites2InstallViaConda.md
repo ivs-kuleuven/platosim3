@@ -24,11 +24,11 @@ The active environments will be marked with *.
 Each time you install a different version of PlatoSim or if you want to use a specific version of PlatoSim you have installed (via conda) on your system, you have to activate the appropriate conda environment, which is done as follows:
 
 \code
-source activate <environment name>
+conda activate <environment name>
 \endcode
 
 To de-activate the environment you are currently on, type
 
 \code
-source deactivate
+conda deactivate
 \endcode
