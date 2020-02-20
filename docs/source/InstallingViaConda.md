@@ -13,13 +13,13 @@ conda config --add channels conda-forge
 To install the latest successfully built version of the <code>master</code>, type:
 
 \code
-conda install -c http://www.miricle.org/platosim/ platosim
+conda install -c https://jenkins.miricle.org/platosim/ platosim
 \endcode
 
 For the <code>develop</code> branch, the latter command must be replaced by
 
 \code
-conda install -c http://www.miricle.org/platosim.devel/ platosim
+conda install -c https://jenkins.miricle.org/platosim.devel/ platosim
 \endcode
 
 To install a specific version (only for the <code>master</code> branch), just append <code><version>=</code> to this command.
@@ -28,5 +28,5 @@ To update an installed version to the latest one, replace <code>conda install</c
 
 Please, contact the developer team for the username and password.
 
-If no pop-up window, asking for the credentials, would appear, you can adapt the <code>conda install</code> commands from above, by placing <code><username>:<password></code>@ between the <code>http://</code> and the <code>www</code>. 
+If no pop-up window, asking for the credentials, would appear, you can adapt the <code>conda install</code> commands from above, by placing <code><username>:<password></code>@ between the <code>https://</code> and the <code>jenkins</code>. 
 
