@@ -45,6 +45,7 @@ for n in range(NguideStars):
     # Make sure it uses the right starCatalog, jitter file, and PSF file
 
     sim["ObservingParameters/StarCatalogFile"] = starCatalog
+    sim["Platform/JitterSource"] = "FromFile"
     sim["Platform/JitterFileName"] = jitterFile
     sim["PSF/MappedFromFile/Filename"] = psfFile 
 
