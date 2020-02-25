@@ -2066,8 +2066,8 @@ ControlTcpConnection:
     JitterServerAddress:         tcp://localhost:5559
     ImagetteClientAddress:       tcp://localhost:5560
 
-    WindowPositionSocketTimeout:    100  # seconds
-    JitterSocketTimeout:            100  # seconds
+    WindowPositionSocketTimeout:    100
+    JitterSocketTimeout:            100
 \endcode
 
 
