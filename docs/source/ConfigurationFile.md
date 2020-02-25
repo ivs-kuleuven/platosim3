@@ -16,6 +16,7 @@ Any desired simulation can be obtained by modifying the following input:
 		* [CCD parameters](#ccdParameters)
 		* [sub-field parameters](#subFieldParameters)
 		* [seed parameters](#seedParameters)
+        * [control TCP connection parameters](#controlTcpConnection)
 		* additionally, there are two blocks that hold pre-defined settings (which you should NOT alter):
 			- [camera group 1, 2, 3, and 4, and fast cameras](#cameraGroups)
 			- [CCD 1, 2, 3, and 4](#ccdPositions)
