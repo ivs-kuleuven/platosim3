@@ -35,12 +35,14 @@ Platform:
 
     SolarPanelOrientation:           0               # 0, 90, 180, or 270 degrees for the different quarters of a year [deg]
     UseJitter:                       no              # yes or no
-    UseJitterFromFile:               no              # yes or no
+    JitterSource:                    FromRedNoise    # FromFile, FromRedNoise, or FromNetwork
     JitterYawRms:                    1.0             # [arcsec]
     JitterPitchRms:                  1.0             # [arcsec]
     JitterRollRms:                   1.0             # [arcsec]
     JitterTimeScale:                 3600.           # [s]
     JitterFileName:                  testData/jitter.txt
+
+    
 
 Telescope:
     
@@ -123,6 +125,18 @@ RandomSeeds:
     FlatFieldSeed:                   1425284070      # Unique positive integer 
     DriftSeed:                       1433429158      # Unique positive integer 
     CosmicSeed:                      1494750830      # Unique positive integer
+
+ControlTcpConnection:
+
+    SendImagettesToClients:        no
+    GetWindowPositionsFromServer:  no
+
+    WindowPositionServerAddress: tcp://localhost:5558
+    JitterServerAddress:         tcp://localhost:5559
+    ImagetteClientAddress:       tcp://localhost:5560
+
+    WindowPositionSocketTimeout:    100  # seconds
+    JitterSocketTimeout:            100  # seconds
     
     
 # ----- DO NOT MAKE CHANGES BELOW THIS LINE -----

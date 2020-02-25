@@ -42,7 +42,7 @@ Platform:
     JitterRollRms:               0.08             # [arcsec]
     JitterTimeScale:             180              # [s]
     JitterFileName:              inputfiles/PlatoJitter_OHB.txt 
-
+    
 
 Telescope:
     
