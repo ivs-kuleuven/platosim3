@@ -85,6 +85,7 @@ class Detector: public HDF5Writer
         virtual void addFlux(double flux) = 0;
 
 
+        bool isInPixelMap(double row, double column);
         bool isInSubfield(double xFPmm, double yFPmm);
 
         double getReadoutTimeBeforeNextExposure();
@@ -115,6 +116,7 @@ class Detector: public HDF5Writer
         virtual void applyGain();
         virtual void addElectronicOffset();
         virtual void applyDigitalSaturation();
+        virtual void applyOverAndUnderShoot();
 
         void applySimpleCTImodel();
         void applyShort2013CTImodel();
@@ -126,7 +128,7 @@ class Detector: public HDF5Writer
         arma::Mat<float> getSubfield();
 
         virtual void initHDF5Groups() override;
-        void writePixelMapsToHDF5(int exposureNr);
+        virtual void writePixelMapsToHDF5(int exposureNr);
 
         double getRowEdgeFOV(int column);
 

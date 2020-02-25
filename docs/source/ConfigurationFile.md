@@ -16,6 +16,7 @@ Any desired simulation can be obtained by modifying the following input:
 		* [CCD parameters](#ccdParameters)
 		* [sub-field parameters](#subFieldParameters)
 		* [seed parameters](#seedParameters)
+        * [control TCP connection parameters](#controlTcpConnection)
 		* additionally, there are two blocks that hold pre-defined settings (which you should NOT alter):
 			- [camera group 1, 2, 3, and 4, and fast cameras](#cameraGroups)
 			- [CCD 1, 2, 3, and 4](#ccdPositions)
@@ -76,7 +77,7 @@ ObservingParameters:
 	MissionDuration:             6.0
 	BeginExposureNr:             0
 	NumExposures:                40              
-    ExposureTime:                22              
+    CycleTime:                   25              
     RApointing:                  180              
     DecPointing:                 -70             
     Fluxm0:                      1.00179e8 
@@ -109,12 +110,14 @@ Number of exposures to generate in the simulation.
 
 
 
-### <a name="exposureTime"></a>ExposureTime
+### <a name="cycleTime"></a>CycleTime
 <i>Allowed values:</i> > 0
 
-Integration time of one exposure, expressed in seconds. Note that the total integration time is the sum of the exposure and the readout time:
+Image cycle time, expressed in seconds.  This is the sum of the integration time of one exposure and the duration of the readout of one exposure before the next exposure start:
 
-	\f[ t_{integration} = t_{exposure} + t_{readout}.\f]
+	\f[ t_{cycle} = t_{exposure} + t_{readout, before}.\f]
+
+For the normal cameras, the latter is the total readout time; for the fast cameras, it is the time for the frame transfer (i.e. to transfer the content of the upper CCD half to the lower CCD half).
 
 
 
@@ -240,7 +243,7 @@ The configuration parameters in the <b>Cosmics</b> section are the parameters ch
 #### <a name="cosmicHitRate"></a>Cosmics: CosmicHitRate
 <i>Allowed values:</i> >= 0
 
-Mean cosmic hit rate, expressed in events / cm<sup>2</sup> / s.  The actual cosmic hit rate for any exposure is sampled randomly from a Poisson distribution with the mean cosmic hit rate as mean.  The number of cosmic hits in the simulated sub-field is calculated by multiplying the actual cosmic hit rate with the size of the sub-field (expressed in cm<sup>2</sup>) and the [exposure time](#exposureTime) (expressed in s).
+Mean cosmic hit rate, expressed in events / cm<sup>2</sup> / s.  The actual cosmic hit rate for any exposure is sampled randomly from a Poisson distribution with the mean cosmic hit rate as mean.  The number of cosmic hits in the simulated sub-field is calculated by multiplying the actual cosmic hit rate with the size of the sub-field (expressed in cm<sup>2</sup>) and the [cycle time](#cycleTime) (expressed in s).
 
 
 
@@ -273,7 +276,7 @@ Platform:
 
     SolarPanelOrientation:       0
     UseJitter:                   yes             
-    UseJitterFromFile:           no              
+    JitterSource:                FromRedNoise
     JitterYawRms:                1.0             
     JitterPitchRms:              1.0             
     JitterRollRms:               1.0             
@@ -299,7 +302,7 @@ Indicates whether pointing variations should be taken into account.
 
 The Plato Simulator can also account for pointing variations of the spacecraft, so-called jitter. A time series of pointing displacement, expressed in Euler angles (yaw, pitch, roll), either has to be provided as a jitter file or will be generated based on the given jitter parameters (see further).
 
-To ensure a realistic modelling of the jitter, the [time step of the jitter time series](#jitterTimeScale) must be smaller than the [exposure time](#exposureTime).
+To ensure a realistic modelling of the jitter, the [time step of the jitter time series](#jitterTimeScale) must be smaller than the [exposure time](#cycleTime).
 
 The configuration of the jitter axes is depicted below.  The Euler angles that characterise the jitter are defined w.r.t. to the spacecraft coordinate system (see Fig. 2).  The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module.  The positive roll axis \f$z_{\rm SC} \f$ points towards the operator-given mean payload line-of-sight, given by the equatorial coordinates ([RApointing](#raPointing), [DecPointing](#decPointing)).
 
@@ -311,29 +314,37 @@ The angles are defined such that they increase with a clockwise rotation, when l
 
 
 
-### <a name="useJitterFromFile"></a>UseJitterFromFile
+### <a name="jitterSource"></a>JitterSource
 <i>Allowed values:</i> "yes" and "no"
 
 Indicates whether the jitter time series must be read from a jitter file ("yes") or the jitter positions must be generated from the jitter parameters ("no").
+FromFile, FromRedNoise, or FromNetwork
 
+<i>Allowed values:</i> "FromRedNoise", "FromFile", and "FromNetwork"
+
+Indicates from where to read the jitter:
+
+- FromRedNoise: the jitter positions must be generator from the jitter parameters;
+- FromFile: the jitter time series must be read from a jitter file;
+- FromNetwork: the jitter positions must be read from a network (which is configured in the [ControlTcpConnection](#controlTcpConnection) block).
 
 
 ### <a name="jitterYawRms"></a>JitterYawRms
-<i>Allowed values:</i> \f$\ge \f$ 0, only required if the jitter positions must be generated from jitter parameters ([useJitterFromFile](#useJitterFromFile) = no)
+<i>Allowed values:</i> \f$\ge \f$ 0, only required if the jitter positions must be generated from jitter parameters ([JitterSource](#jitterSource) = FromRedNoise)
 
 Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the yaw value from one jitter position to the next one.
 
 
 
 ### <a name="jitterPitchRms"></a>JitterPitchRms
-<i>Allowed values:</i> \f$\ge \f$ 0, only required if the jitter positions must be generated from jitter parameters ([useJitterFromFile](#useJitterFromFile) = no)
+<i>Allowed values:</i> \f$\ge \f$ 0, only required if the jitter positions must be generated from jitter parameters ([JitterSource](#jitterSource) = FromRedNoise)
 
 Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the pitch value from one jitter position to the next one.
 
 
 
 ### <a name="jitterRollRms"></a>JitterRollRms
-<i>Allowed values:</i> \f$\ge \f$ 0, only required if the jitter positions must be generated from jitter parameters ([useJitterFromFile](#useJitterFromFile) = no)
+<i>Allowed values:</i> \f$\ge \f$ 0, only required if the jitter positions must be generated from jitter parameters ([JitterSource](#jitterSource) = FromRedNoise)
 
 Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the roll value from one jitter position to the next one.
 
@@ -348,7 +359,7 @@ Timescale of the jitter (i.e. time between two subsequent jitter positions), exp
 
 ### <a name="jitterFileName"></a>JitterFileName
 
-Path of the jitter file, relative to the [project location](#projectLocation). This is only required if the jitter positions must be read from a file ([UseJitterFromFile](#useJitterFromFile) = yes).
+Path of the jitter file, relative to the [project location](#projectLocation). This is only required if the jitter positions must be read from a file ([JitterSpirce](#jitterSource) = FromFile).
 
 ---
 
@@ -964,7 +975,14 @@ FEE:
     		AllowedDifference:   -100    		
     ElectronicOffset:           
     		RefValue:            100
-    		Stability:           18.8875 
+    		Stability:           1
+    OverAndUnderShoot:
+        Strength:                    0.003867
+        DecaySpeed:                  0.755
+        DecayRate:                   1.277
+        Range:                       5
+    IncludeOverAndUnderShoot:        no
+
 \endcode
 
 
@@ -1052,6 +1070,57 @@ Electronic offset or bias level at the nominal operating temperature of the FEE,
 <i>Allowed values:</i> Any
 
 Change in electronic offset (for both ADCs) with temperature deviations from the nominal operating temperature, expressed in ADU/pixel/K.
+
+
+
+### <a name="overAndUnderShoot"></a>OverAndUnderShoot
+
+Over-/undershoot has been noticed in F-FEE measurements.  Looking at the content of a readout register at any given time, the charges in any pixels will affect the next pixels in the readout register, further away from the readout register, e.g. at a distance \f$\Delta x \f$.  For a difference in signal between two such pixels, \f$\Delta S \f$, the
+induced over-/undershoot will be
+
+\f[a \cdot \Delta S \cdot \exp{(- \lambda \cdot \Delta x^b)}.\f]
+
+Both detector halves are treated independently.
+
+
+
+#### <a name=""></a>OverAndUnderShoot: Strength
+
+<i>Allowed values:</i> > 0
+
+Parameter \f$a \f$ in the formula above.
+
+
+
+#### <a name=""></a>OverAndUnderShoot: DecayRate
+
+<i>Allowed values:</i> > 0
+
+Parameter \f$\lambda \f$ in the formula above.
+
+
+
+#### <a name=""></a>OverAndUnderShoot: DecaySpeed
+
+<i>Allowed values:</i> > 0
+
+Parameter \f$b \f$ in the formula above.
+
+
+
+#### <a name=""></a>OverAndUnderShoot: Range
+
+<i>Allowed values:</i> > 0
+
+Maximum distance \f$\Delta x \f$ over which a pixel in the readout register exerts over-/undershoot on other pixels in the readout register, further away from the readout electronics.
+
+
+
+### <a name="inclOverAndUnderShoot"></a>MappedGaussian: IncludeOverAndUnderShoot
+
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to include F-FEE over-/undershoot.  Only applicable in case [GroupID](#groupID) = Fast.
 
 ---
 
@@ -1973,6 +2042,83 @@ Indicates whether or not the sub-pixel maps must be stored in the output file.  
 
 Indicates whether or not the star positions should be stored in pixel and focal plane coordinates in the output file.  This scales with the number of exposures and the number of stars in the sub-field.
 
+---
+
+
+
+
+
+<!-- ********************************* -->
+<!-- Control TCP connection parameters -->
+<!-- ********************************* -->
+
+## <a name="controlTcpConnection"></a>ControlTcpConnection
+
+The <b>ControlTcpConnection</b> block in the configuration file is used in case the jitter is read from a network ([JitterSource](#jitterSource) = FromNetwork).  The structure of this block is the following:
+
+\code{.yaml}
+ControlTcpConnection:
+
+    SendImagettesToClients:        no
+    GetWindowPositionsFromServer:  no
+
+    WindowPositionServerAddress: tcp://localhost:5558
+    JitterServerAddress:         tcp://localhost:5559
+    ImagetteClientAddress:       tcp://localhost:5560
+
+    WindowPositionSocketTimeout:    100
+    JitterSocketTimeout:            100
+\endcode
+
+
+
+### <a name="sendImagettesToClients"></a>SendImagettesToClients
+
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the simulated imagettes should be sent to the client.
+
+
+
+### <a name="getWindowPositionsFromServer"></a>GetWindowPositionsFromServer
+
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the window positions should be taken from a server and be updated in upcoming simulations.
+
+
+
+### <a name="windowPositionServerAddress"></a>WindowPositionServerAddress
+
+Address from which to read the window positions in case this is requested ([GetWindowPositionsFromServer](#getWindowPositionsFromServer) = yes).
+
+
+
+### <a name="jitterServerAddress"></a>JitterServerAddress
+
+Address from which to read the jitter positions.
+
+
+
+### ImagetteClientAddress
+
+Client address to which to send the simulated imagettes in case this is requested ([SendImagettesToClients](#sendImagettesToClients) = yes).
+
+
+
+### WindowPositionSocketTimeout
+
+<i>Allowed values:</i> > 0
+
+Number of seconds of not receiving window positions (from the [window position server](#windowPositionServerAddress)), after which the connection to that server is regarded as stalled / broken.
+
+
+
+### JitterSocketTimeout
+
+<i>Allowed values:</i> > 0
+
+Number of seconds of not receiving jitter positions (from the [jitter server](#jitterServerAddress)), after which the connection to that server is regarded as stalled / broken.
 
 ---
 

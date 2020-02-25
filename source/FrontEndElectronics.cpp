@@ -51,6 +51,12 @@ void FrontEndElectronics::configure(ConfigurationParameters &configParam)
 
 	refValueBias  = configParam.getInteger("FEE/ElectronicOffset/RefValue");
 	biasStability = configParam.getDouble("FEE/ElectronicOffset/Stability");
+
+	overAndUnderShootStrength = configParam.getDouble("FEE/OverAndUnderShoot/Strength");
+	overAndUnderShootDecaySpeed = configParam.getDouble("FEE/OverAndUnderShoot/DecaySpeed");
+	overAndUnderShootDecayRate = configParam.getDouble("FEE/OverAndUnderShoot/DecayRate");
+	overAndUnderShootRange = configParam.getInteger("FEE/OverAndUnderShoot/Range");
+	includeOverAndUnderShoot = configParam.getBoolean("FEE/IncludeOverAndUnderShoot");
  }
 
 

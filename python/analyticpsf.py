@@ -28,25 +28,28 @@ class AnalyticPSF:
         >>> ccdZeroPointX = -1.3              # [mm]
         >>> ccdZeroPointY = 82.48             # [mm]
         >>> pixelSize = 18                    # [micron]
-        
-        >>> analyticPSF = AnalyticPSF(path, sigmaPSF, sigmaDiffusion, focalLength, ccdOrientation, ccdZeroPointX, ccdZeroPointY, pixelSize)
+        >>> Nsubpixels = 128                  # (Sqrt of) number of subpixels per pixel
+
+        >>> analyticPSF = AnalyticPSF(path, sigmaPSF, sigmaDiffusion, focalLength, ccdOrientation, ccdZeroPointX, ccdZeroPointY, pixelSize, Nsubpixels)
 
         # Specify where the subfield is on the CCD, and how large it is.
 
         >>> zeroPointRow = 3666
         >>> zeroPointCol = 882
-        >>> Nrows = 20
-        >>> Ncols = 20
+        >>> Nrows = 5
+        >>> Ncols = 5
         
         # For each star, specify it's (subfield) row, column, and flux. The information can be found in the PlatoSim HDF5 outputfile.
 
-        >>> rowPix = [13.4345825986, 15.4183232293, 13.9170257418]               # [pix]
-        >>> colPix = [12.9271507625, 8.21225857782, 11.0628854438]               # [pix]
-        >>> flux   = [6993338.0, 85012.0, 2086817.0]                             # [photons/exposure]
+        >>> rowPix = [3.4345825986, 4.4183232293, 1.9170257418]               # [pix]
+        >>> colPix = [2.9271507625, 1.21225857782, 4.0628854438]              # [pix]
+        >>> flux   = [6993338.0, 1185012.0, 2086817.0]                        # [photons/exposure]
 
-        mypsf  = analyticPSF.getPSF(rowPix[0], colPix[0], flux[0], zeroPointRow, zeroPointCol, Nrows, Ncols)
-        for n in range(1, len(flux)):
-            mypsf += analyticPSF.getPSF(rowPix[n], colPix[n], flux[n], zeroPointRow, zeroPointCol, Nrows, Ncols)
+        >>> mypsf  = analyticPSF.getPSF(rowPix[0], colPix[0], flux[0], zeroPointRow, zeroPointCol, Nrows, Ncols)
+        >>> for n in range(1, len(flux)):
+        ...     mypsf += analyticPSF.getPSF(rowPix[n], colPix[n], flux[n], zeroPointRow, zeroPointCol, Nrows, Ncols)
+
+        
 
         # Plot the image
 
@@ -62,7 +65,7 @@ class AnalyticPSF:
 
 
     def __init__(self, parameterFilePath, sigmaPSF, sigmaDiffusion, focalLength, ccdOrientation, 
-                       ccdZeroPointX, ccdZeroPointY, pixelSize):
+                       ccdZeroPointX, ccdZeroPointY, pixelSize, Nsubpixels=1):
 
         """
         Initialisation of the class, using the camera and CCD characteristics. 
@@ -78,6 +81,7 @@ class AnalyticPSF:
             ccdZeroPointX:         X Offset of CCD origin from center of focal plane             [mm]  
             ccdZeroPointY:         Y Offset of CCD origin from center of focal plane             [mm]  
             pixelSize:             pixel size (in micron, not mm!)                               [micron] 
+            NsubPixels:            Number of subpixels per pixel (e.g. 1, 32, 128, ...)
 
         OUTPUT:
             None
@@ -98,7 +102,9 @@ class AnalyticPSF:
         else:
             sigmaTotal = sigmaPSF
         
-        self.size = 2 * int(8*sigmaTotal + 1) + 1
+        self.Npixels =  2 * int(8*sigmaTotal + 1) + 1
+        self.Nsubpixels = Nsubpixels
+        self.size = self.Npixels * self.Nsubpixels
 
         # Set the Camera and CCD properties
 
@@ -201,18 +207,17 @@ class AnalyticPSF:
 
 
 
-    def integratePSF(self, x, y, rho, phi, scale=1.0):
+    def integratePSF(self, x, y, rho, phi):
         
         """
         Interpolate and rotate PSF parameters and sum up all parts to calculate the integral over each
         pixel of the analytic PSF.
         
         INPUT:
-            x:     distorted x-position (column) of the star in the subfield  [pix]
-            y:     distorted y-position (row) of the star in the subfield     [pix]
-            rho:   radial distance of the star to the optical axis            [deg]
-            phi:   azimuth angle of the star                                  [rad]
-            scale: scale factor to resize the PSF
+            x:          distorted x-position (column) of the star in the subfield    [pix]
+            y:          distorted y-position (row) of the star in the subfield       [pix]
+            rho:        radial distance of the star to the optical axis              [deg]
+            phi:        azimuth angle of the star                                    [rad]
 
         OUTPUT: 
             None. Class variables are altered.
@@ -220,7 +225,7 @@ class AnalyticPSF:
 
         ox = x - floor(x)
         oy = y - floor(y)
-        s = self.sigmaPSF * scale
+        s = self.sigmaPSF * self.Nsubpixels
         if len(self.params[0]) > 6: 
 
             # Reset the matrices to build the PSF, and fill them
@@ -232,8 +237,8 @@ class AnalyticPSF:
             self.normFactor = 0.0
 
             rho = rho / 1.4
-            c1 = min(len(self.params[0]) / 7 - 1, int(rho)) * 7
-            c2 = min(len(self.params[0]) / 7 - 1, int(rho) + 1) * 7
+            c1 = int(min(len(self.params[0]) / 7 - 1, int(rho)) * 7)
+            c2 = int(min(len(self.params[0]) / 7 - 1, int(rho) + 1) * 7)
             w = rho - int(rho)
             w = 3. * w * w - 2. * w * w * w
 
@@ -298,8 +303,8 @@ class AnalyticPSF:
         # Determine the lower left starting pixel coordinates of the window in the PSF map that will
         # be filled with the PSF
 
-        sx = int(floor(column0Star - (self.size - 1.) / 2.))
-        sy = int(floor(row0Star - (self.size - 1.) / 2.))
+        sx = int(floor(column0Star*self.Nsubpixels - (self.size - 1.) / 2.))
+        sy = int(floor(row0Star*self.Nsubpixels - (self.size - 1.) / 2.))
 
         # Determine the radial distance angle rho of the star to the optical axis, and its azimuth angle phi
 
@@ -311,14 +316,14 @@ class AnalyticPSF:
 
         # Given the position on the CCD, set up the correct PSF
 
-        self.integratePSF(column0Star, row0Star, rho, phi, scale=1)
+        self.integratePSF(column0Star, row0Star, rho, phi)
 
         # Build the PSF map using the integrated error functions
 
-        PSFmap = np.zeros((NrowSubfield, NcolSubfield))
+        PSFmap = np.zeros((NrowSubfield*self.Nsubpixels, NcolSubfield*self.Nsubpixels))
 
-        for y in range(max(0, sy), min(NrowSubfield, sy + self.size)):
-            for x in range(max(0, sx), min(NcolSubfield, sx + self.size)):
+        for y in range(max(0, sy), min(NrowSubfield*self.Nsubpixels, sy + self.size)):
+            for x in range(max(0, sx), min(NcolSubfield*self.Nsubpixels, sx + self.size)):
                 
                 for k in range(0, min(len(self.erfxr), len(self.erfyr))):
                     PSFmap[y,x] += self.erfxr[k][x-sx] * self.erfyr[k][y-sy]

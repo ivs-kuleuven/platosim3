@@ -1,6 +1,39 @@
 # Changelog for PlatoSim
 
 
+<!-- 3.3.7 -->
+<!-- ***** -->
+
+## 25/02/2020: 3.3.7
+
+## Fixed
+
+* Input file of the photometry tutorial needs to be updated (GitHub issue #368)
+* Order of the effects (GitHub issue #394)
+
+## Changed
+
+* Input parameter update (GitHub issue #377):
+  + wavelength range
+  + irradiance over the PLATO wavelength range (PIS only; nothing changes for PlatoSim)
+  + added: orientation angle of the solar panels
+  + transmission efficiency
+  + throughput bandwidth
+  + FEE readout noise
+  + gain + stability of the CCD gain
+  + QE
+  + digital saturation for fast cameras (this is now the same as for the normal cameras)
+* Dynamic frame transfer times (GitHub issue #369)
+
+### Added
+
+* FEE over/undershoot (GitHub issue #376)
+* Dump Analytical PSF within hdf5 output file (GitHub issue #379)
+* Jitter from network
+
+
+
+
 
 <!-- 3.3.6 -->
 <!-- ***** -->

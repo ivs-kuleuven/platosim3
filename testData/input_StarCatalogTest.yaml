@@ -13,7 +13,7 @@ ObservingParameters:
     MissionDuration:                 6.5             # Total duration of the mission in years [yr]
     NumExposures:                    10              # Number of exposures
     BeginExposureNr:                  0              # Sequential number of first exposure. useful for slurm parallellisation
-    ExposureTime:                    23              # [s]
+    CycleTime:                       25              # Image cycle time (exposure + readout before next exposure starts)[s]
     RApointing:                      180             # Platform (not telescope) right ascension pointing coordinate      [deg] 
     DecPointing:                     -70             # Platform (not telescope) declination pointing coordinate          [deg]
     Fluxm0:                          1.00179e8       # Photon flux of a V=0 G2V-star                                     [phot/s/m^2/nm]
@@ -33,13 +33,16 @@ Sky:
 
 Platform:
 
+    SolarPanelOrientation:           0               # 0, 90, 180, or 270 degrees for the different quarters of a year [deg]
     UseJitter:                       no              # yes or no
-    UseJitterFromFile:               no              # yes or no
+    JitterSource:                    FromRedNoise    # FromFile, FromRedNoise, or FromNetwork
     JitterYawRms:                    1.0             # [arcsec]
     JitterPitchRms:                  1.0             # [arcsec]
     JitterRollRms:                   1.0             # [arcsec]
     JitterTimeScale:                 3600.           # [s]
     JitterFileName:                  testData/jitter.txt
+
+    
 
 Telescope:
     
@@ -49,8 +52,8 @@ Telescope:
     TiltAngle:                       9.2             # Tilt angle of the telescope on the platform [deg]
     LightCollectingArea:             113.1           # Effective area of 1 telescope [cmˆ2]
     TransmissionEfficiency:
-        BOL:                         0.8162          # Beginning of Life value in [0,1]
-        EOL:                         0.7975          # End of Life value in [0,1]
+        BOL:                         0.8135          # Beginning of Life value in [0,1]
+        EOL:                         0.7945          # End of Life value in [0,1]
     UseDrift:                        no              # yes or no
     UseDriftFromFile:                no              # yes or no
     DriftYawRms:                     2.0             # RMS of thermo-elastic drift in yaw [arcsec]
@@ -70,7 +73,7 @@ Camera:
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
         ConstantValue:               0.24752         # Used in case Source is ConstantValue (from ZEMAX model) [m]
         FromFile:                    inputfiles/focallength.txt # Used in case Source is FromFile: time [s] & focalLenght [m]
-    ThroughputBandwidth:             498             # FWHM [nm]
+    ThroughputBandwidth:             532             # FWHM [nm]
     ThroughputLambdaC:               550             # Central wavelength of the throughput passband [nm]
     IncludeAberrationCorrection:     yes             # Calculate the differential aberration correction and apply
     AberrationCorrection:
@@ -122,6 +125,18 @@ RandomSeeds:
     FlatFieldSeed:                   1425284070      # Unique positive integer 
     DriftSeed:                       1433429158      # Unique positive integer 
     CosmicSeed:                      1494750830      # Unique positive integer
+
+ControlTcpConnection:
+
+    SendImagettesToClients:        no
+    GetWindowPositionsFromServer:  no
+
+    WindowPositionServerAddress: tcp://localhost:5558
+    JitterServerAddress:         tcp://localhost:5559
+    ImagetteClientAddress:       tcp://localhost:5560
+
+    WindowPositionSocketTimeout:    100  # seconds
+    JitterSocketTimeout:            100  # seconds
     
     
 # ----- DO NOT MAKE CHANGES BELOW THIS LINE -----

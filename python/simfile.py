@@ -61,7 +61,7 @@ To get the 2D flatfield at intra-pixel level:
 To inspect one of the input parameters that was used for the simulation
 The group name and parameter name are exactly the same as in the YAML file.
 
->>> f.getInputParameter("ObservingParameters", "ExposureTime")
+>>> f.getInputParameter("ObservingParameters", "CycleTime")
 
 """
 
@@ -368,7 +368,7 @@ class SimFile (object):
         # If required, overplot the true averaged star positions
 
         if showStarPositions:
-            ID, row, col, Xmm, Ymm = self.getStarCoordinates(imageNr)
+            ID, row, col, Xmm, Ymm, flux = self.getStarCoordinates(imageNr)
             axis.scatter(col, row, marker='x', c='g')        
 
         # Ensure that the axis limits are properly set.
@@ -654,6 +654,7 @@ class SimFile (object):
                 col: The pixel column coordinates of each star in the image (float).
                 Xmm: The focal plane FP' x-coordinates of each star in the image
                 Ymm: The focal plane FP' y-coordinates of each star in the image
+                flux: The flux of each star in the image [photons]
 
 
         REMARKS: 
@@ -661,7 +662,7 @@ class SimFile (object):
             
             - To get the pixel with the higest flux of star #0, given its (row, col) coordinates:
               >>> im = file.getImage(0)
-              >>> ID, row, col, Xmm, Ymm = file.getStarCoordinates(4, minVmag=6.0, maxVmag=9.0)  
+              >>> ID, row, col, Xmm, Ymm, flux = file.getStarCoordinates(4, minVmag=6.0, maxVmag=9.0)  
               >>> im[int(row[0]), int(col[0])]
 
             - To use this function to overplot the positions of the stars on an image plotted by 
@@ -672,7 +673,7 @@ class SimFile (object):
 
             >>> file = SimFile("Simul01.hdf5")
             >>> file.showImage(4)
-            >>> ID, row, col, Xmm, Ymm = file.getStarCoordinates(4, minVmag=6.0, maxVmag=9.0)
+            >>> ID, row, col, Xmm, Ymm, flux = file.getStarCoordinates(4, minVmag=6.0, maxVmag=9.0)
             >>> plt.scatter(floor(col), floor(row), marker='x', c='g')
 
         """
@@ -686,7 +687,7 @@ class SimFile (object):
 
         if exposureGroupName not in self.hdf5file["StarPositions"].keys():
             print("Error: SimfFile.getStarCoordinates(): {0} not in hdf5 file".format(exposureGroupName))
-            return None, None, None, None, None
+            return None, None, None, None, None, None
 
         
         # Extract the arrays from the HDF5 file
@@ -711,6 +712,10 @@ class SimFile (object):
         Ymm = np.zeros(dataset.shape, dataset.dtype)
         dataset.read_direct(Ymm)
 
+        dataset = self.hdf5file["StarPositions"][exposureGroupName]["flux"]
+        flux = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(flux)
+
         
         # Make sure that the star IDs are sorted
 
@@ -720,12 +725,13 @@ class SimFile (object):
         col = col[sorted]
         Xmm = Xmm[sorted]
         Ymm = Ymm[sorted]
+        flux = flux[sorted]
 
 
         # If no cut in V magnitude is required, we're finished.
 
         if (minVmag == None) and (maxVmag == None):
-            return starIDs, row, col, Xmm, Ymm
+            return starIDs, row, col, Xmm, Ymm, flux
 
         # If a cut in magnitude is required, first get the magnitudes from the star input catalog.
 
@@ -745,7 +751,7 @@ class SimFile (object):
 
         # That's it!
        
-        return starIDs[selection], row[selection], col[selection], Xmm[selection], Ymm[selection]
+        return starIDs[selection], row[selection], col[selection], Xmm[selection], Ymm[selection], flux[selection]
 
 
 
@@ -798,23 +804,23 @@ class SimFile (object):
         # Get a list of the stars visible in the subimage and their coordinates
         # Check if our star is in this list. If not, complain.
 
-        IDs, row, col, Xmm, Ymm = self.getStarCoordinates(imageNr)
+        IDs, row, col, Xmm, Ymm, flux = self.getStarCoordinates(imageNr)
         if starID not in IDs:
             print("Error: SimfFile.getImagette(): star {0} not in image {1}".format(starID, imageName))
             return None
 
         # Get the pixel coordinates of our star, and use it to construct the imagette borders
 
-        xcoord = int(np.floor(row[IDs==starID])[0])
-        ycoord = int(np.floor(col[IDs==starID])[0])
-        xbegin = max(0, xcoord - radius) 
-        xend   = min(xcoord + radius + 1, image.shape[1])
-        ybegin = max(0, ycoord - radius)
-        yend   = min(ycoord + radius + 1, image.shape[0])
+        rowStar     = row[IDs == starID][0]
+        columnStar  = col[IDs == starID][0]
+        rowBegin    = max(0, int(np.round(rowStar - radius)))
+        columnBegin = max(0, int(np.round(columnStar - radius)))
+        rowEnd      = min(image.shape[0], int(np.round(rowStar + radius + 1)))
+        columnEnd   = min(image.shape[1], int(np.round(columnStar + radius + 1)))
 
         # Extract the imagette
 
-        imagette = image[xbegin:xend, ybegin:yend]
+        imagette = image[rowBegin:rowEnd, columnBegin:columnEnd]
 
         # That's it!
 
@@ -1015,14 +1021,14 @@ class SimFile (object):
         PURPOSE: Get an input parameter that was read from the Yaml input file and copied into the HDF5 file.
 
         INPUT: groupName: a parameter group as present in the Yaml input file (e.g. "Platform", "Camera")
-               parameterName: name of the input parameter as present in the Yaml input file (e.g. "ExposureTime")
+               parameterName: name of the input parameter as present in the Yaml input file (e.g. "CycleTime")
 
         OUTPUT: value of the input parameter
 
         EXAMPLE: 
 
             >>> file = SimFile("Simul01.hdf5")
-            >>> file.getInputParameter("ObservingParameters", "ExposureTime")
+            >>> file.getInputParameter("ObservingParameters", "CycleTime")
             23.0
         """
 
@@ -1079,6 +1085,229 @@ class SimFile (object):
 
         return np.array(time).flatten(), np.array(rowPix).flatten(), np.array(colPix).flatten(),  \
                np.array(xFPmm).flatten(), np.array(yFPmm).flatten()
+
+
+
+
+
+
+
+
+
+    def getSkyBackground(self, imageNr):
+
+        """
+        Return the sky background, expressed in photons / pixel, for the given exposure.
+        """
+
+        return self.hdf5file["/Background/skyBackground"][imageNr]
+
+
+
+
+
+
+
+
+
+
+
+    def getThroughputMap(self, imageNr):
+
+        """
+        Return the throughput map for the given exposure.
+        """
+        
+        return self.hdf5file["/ThroughputMaps/throughputMap{0:06d}".format(imageNr)]
+
+
+
+
+    def getTime(self):
+
+        """
+        Returns time points.
+        """
+
+        return self.hdf5file["/StarPositions/Time"]
+    
+
+
+
+    def getExposureTime(self):
+
+        """
+        Return exposure time.
+
+        OUTPUT:
+            - Exposure time [s]
+        """
+
+        cycleTime = self.getInputParameter("ObservingParameters", "CycleTime")
+        readoutTimeBeforeNextExposure = self.getReadoutTime()[0]
+
+        return cycleTime - readoutTimeBeforeNextExposure
+
+    def getReadoutTime(self):
+
+        """
+        Return the readout time before the next exposure starts and the readout time during the next exposure.
+
+        OUTPUT:
+            - readout time before the next exposure starts [s]
+            - readout time during the next exposure [s]
+        """
+
+        encoding = "utf-8"
+
+        isFastCamera = self.getInputParameter("Telescope", "GroupID").decode(encoding) == "Fast"
+        ccdPosition = self.getInputParameter("CCD", "Position").decode(encoding)
+
+
+        if ccdPosition == "Custom":
+
+            numRows = self.getInputParameter("CCD/NumRows")
+            numColumns = self.getInputParameter("CCD/NumColumns")
+            firstRowExposed = self.getInputParameter("CCD", "FirstRowExposed")
+
+        else:
+            if isFastCamera:
+                index = int(ccdPosition[0]) - 1
+            else:
+                index = int(ccdPosition) - 1
+            
+            numRows = self.getInputParameter("CCDPositions", "NumRows")[index]
+            numColumns = self.getInputParameter("CCDPositions", "NumColumns")[index]
+
+            if isFastCamera:
+                firstRowExposed = self.getInputParameter("CCDPositions", "FirstRowForFastCamera")[index]
+            else:
+                firstRowExposed = self.getInputParameter("CCDPositions", "FirstRowForNormalCamera")[index]
+
+        readoutMode = self.getInputParameter("CCD/ReadoutMode", "ReadoutMode").decode(encoding)
+
+        serialTransferTime = self.getInputParameter("CCD", "SerialTransferTime") * 1E-9			  # [ns] -> [s]
+        parallelTransferTime = self.getInputParameter("CCD", "ParallelTransferTime") * 1E-6		  # [µs] -> [s]
+        parallelTransferTimeFast = self.getInputParameter("CCD", "ParallelTransferTimeFast") * 1E-6  # [µs] -> [s]
+        
+        numColumnsBiasMap =  self.getInputParameter("SubField", "NumBiasPrescanColumns")
+        numRowsSmearingMap = self.getInputParameter("SubField", "NumSmearingOverscanRows")
+        
+        #Both detector halves are read out simultaneously
+        # -> columns read out by the FEE:
+        # 	- half of the CCD
+        # 	- serial pre-scan
+        # 	- (serial over-scan)
+        
+        numColumnsReadout = numColumns / 2 + numColumnsBiasMap # + numRowsSerialOverScan
+        
+        # How many rows will be actually read out by the FEE?
+        #  	- nominal mode: image area + parallel over-scan
+        #       normal camera: image area = whole CCD
+        #       fast camera: image area = lower half of the CCD
+        # 	- partial readout: configurable
+        # The rest of the image area will be dumped
+        
+        numRowsReadout = 0
+        numRowsDump = 0
+        
+        #############
+        # Fast camera
+        #############
+        
+        if (isFastCamera):
+            
+            # Move the upper half of the CCD down to the lower half, row-by-row
+            
+            numRowsFrameTransfer = numRows - firstRowExposed
+            
+            readoutTimeBeforeNextExposure = numRowsFrameTransfer * parallelTransferTimeFast
+            
+            # The actual readout of the lower half of the CCD (after frame transfer) is done
+            # while the next exposure has already started
+
+            # Nominal mode
+            
+            if (readoutMode == "Nominal"):
+                
+                numRowsReadout = firstRowExposed + numRowsSmearingMap
+                numRowsDump = 0
+
+            # Partial mode
+		    # Rows read out by the FEE: rows in the block (other rows in image area are dumped)
+		    # Note: no parallel over-scan
+
+            elif (readoutMode == "Partial"):
+
+                numRowsReadout = self.getInputParameter("CCD/ReadoutMode/Partial", "NumRowsReadout")
+                numRowsDump = firstRowExposed - numRowsReadout
+            
+            readoutTimeDuringNextExposure = numRowsDump * parallelTransferTimeFast \
+                + numRowsReadout * (parallelTransferTime + numColumnsReadout * serialTransferTime)
+        
+        ###############
+        # Normal camera
+        ###############
+
+        else:
+            
+            # Nominal mode (full-frame readout)
+            
+            if (readoutMode == "Nominal"):
+
+                # Rows read out by the FEE:
+                #  		- rows of image area
+                #  		- parallel over-scan
+                
+                numRowsReadout = numRows + numRowsSmearingMap
+                
+                # No rows dumped
+                
+                numRowsDump = 0
+            
+            # Partial readout
+            
+            elif(readoutMode == "Partial"):
+                
+                # Rows read out by the FEE: rows in the block (other rows in image area are dumped)
+                # Note: no parallel over-scan
+                
+                numRowsReadout = self.getInputParameter("CCD/ReadoutMode/Partial", "NumRowsReadout")
+                numRowsDump = numRows - numRowsReadout
+            
+            readoutTimeBeforeNextExposure = numRowsDump * parallelTransferTimeFast \
+				+ numRowsReadout * (numColumnsReadout * serialTransferTime + parallelTransferTime)
+            readoutTimeDuringNextExposure = 0
+
+        return readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure
+
+
+
+
+
+
+
+    def saveHighResolutionPSFtoFITS(self, FITSfileName):
+        """
+        In case of the analytic non-Gaussian PSF, a high-resolution PSF corresponding to the center
+        of the subfield is stored in the HDF5 file. Extract this image and save it to a FITS file
+        This function will fail when PlatoSim was not run with an analytic non-Gaussian PSF.
+        """
+
+        imageName = "HighResPSFmapCenterSubfield"
+        if imageName not in self.hdf5file["PSF"].keys():
+            print("Error: Could not find PSF/{0} in HDF5 file")
+            return None
+        else:
+            dataset = self.hdf5file["PSF"][imageName]
+            image = np.zeros(dataset.shape, dataset.dtype)
+            dataset.read_direct(image)
+            hduList = [fits.PrimaryHDU(image)]
+            myFits = fits.HDUList(hduList)
+            myFits.writeto(FITSfileName)
+
+
+
 
 
 

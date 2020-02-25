@@ -35,8 +35,10 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
         virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) override;
         virtual void addFlux(double flux) override;
 
-        void integrateAnalyticPSF(IntegralOfAnalyticSignalResponse&, double, double, double, double, double = 1.);
+        void integrateAnalyticPSF(IntegralOfAnalyticSignalResponse&, double, double, double, double, int = 1);
 
+        void makeHighResolutionPSF(arma::Mat<float> &highResMap, int Npixels, int Nsubpixels);
+        virtual void flushOutput() override;
 
     protected:
 
@@ -44,7 +46,6 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
         virtual void integrateLight(int exposureNr, double startTime, double exposureTime) override;
         virtual void applyFlatfield() override;
         virtual void generateFlatfieldMap();
-        virtual bool isInPixelMap(double row, double column);
 
         Parameter<double> *sigma;           // Width of the analytic PSF, equal to sigma for a Gaussian PSF
         vector<vector<double>> params;      // Table of analytic PSF parameters

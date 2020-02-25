@@ -41,6 +41,13 @@ class FrontEndElectronics: public HDF5Writer
 
 		virtual double getElectronicOffset(double time);
 
+		virtual double getOverAndUnderShootStrength(){return overAndUnderShootStrength;}
+		virtual double getOverAndUnderShootDecaySpeed(){return overAndUnderShootDecaySpeed;}
+		virtual double getOverAndUnderShootDecayRate(){return overAndUnderShootDecayRate;}
+		virtual int getOverAndUnderShootRange(){return overAndUnderShootRange;}
+		virtual bool getIncludeOverAndUnderShoot(){return includeOverAndUnderShoot;}
+
+
 	protected:
 
 		double nominalOperatingTemperature;		// Nominal operating temperature of the FEE [K]
@@ -54,6 +61,12 @@ class FrontEndElectronics: public HDF5Writer
 
 		unsigned int refValueBias;				 // Reference value for the electronic offset [ADU/pixel]
 		double biasStability;					 // Bias stability [ADU/pixel/K]
+
+		double overAndUnderShootStrength;		// Strength of the over-/undershoot
+		double overAndUnderShootDecaySpeed;	    // Speed of the decay function describing the over-/undershoot
+		double overAndUnderShootDecayRate;		// Rate of the decay function describing the over-/undershoot
+		int overAndUnderShootRange;				// Range of the over-/undershoot
+		bool includeOverAndUnderShoot;			// Whether or not to include over-/undershoot
 
 		TemperatureGenerator &temperatureGenerator;
 

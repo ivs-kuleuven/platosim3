@@ -427,15 +427,6 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
 
     applyThroughputEfficiency();
 
-    // Brighter-Fatter effect
-
-    if(includeBFE)
-    {
-       	Log.debug("Detector: adding Brighter-Fatter effect");
-
-       	applyBFE();
-    }
-
     // Add dark current
 
     if(includeDarkSignal)
@@ -447,6 +438,19 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
     else
     {
     		Log.debug("Detector: no dark current added");
+    }
+
+    // Brighter-Fatter effect
+
+    if(includeBFE)
+    {
+       	Log.debug("Detector: adding Brighter-Fatter effect");
+
+       	applyBFE();
+    }
+    else
+    {
+        Log.debug("Detector: no Brighter-Fatter effect added");
     }
 }
 
@@ -481,6 +485,13 @@ tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yF
     tie(pixRow, pixColumn) = focalPlaneToPixelCoordinates(xFP, yFP);
     pixRow -= subFieldZeroPointRow;
     pixColumn -= subFieldZeroPointColumn;
+
+    // Check if the star falls in the subfield. If not, don't add any flux, but simply return.
+
+    if (!isInPixelMap(pixRow, pixColumn))
+    {
+        return make_tuple(false, pixRow, pixColumn);
+    }
 
     // Sub-field coordinates, taking into account the edge pixels 
     // (subpixRow, subpixColumn) are the indices of the star in the subpixelMap. So they are not 
