@@ -25,7 +25,7 @@
   + digital saturation for fast cameras (this is now the same as for the normal cameras)
 * Dynamic frame transfer times (GitHub issue #369)
 
-### Added
+## Added
 
 * FEE over/undershoot (GitHub issue #376)
 * Dump Analytical PSF within hdf5 output file (GitHub issue #379)
