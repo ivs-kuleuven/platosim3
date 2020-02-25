@@ -181,19 +181,19 @@ void DetectorWithAnalyticNonGaussianPSF::updateParameters(double time)
 /**
  * \brief Interpolate and rotate PSF parameters and sum up all parts to calculate the intergal of the analytic PSF.
  * 
- * \param psf:   container to hold the result of the integration
- * \param x:     x position of the PSF
- * \param y:     y position of the PSF
- * \param r:     radial distance of the PSF to the optical axis
- * \param p:     azimuth angle of the PSF
- * \param scale: scale factor to resize the PSF
+ * \param psf:        container to hold the result of the integration
+ * \param x:          x position of the PSF
+ * \param y:          y position of the PSF
+ * \param r:          radial distance of the PSF to the optical axis
+ * \param p:          azimuth angle of the PSF
+ * \param Nsubpixels: number of subpixels per pixel (e.g. 128, set to 1 for no subpixels)
  **/
 
-void DetectorWithAnalyticNonGaussianPSF::integrateAnalyticPSF(IntegralOfAnalyticSignalResponse& psf, double x, double y, double r, double p, double scale)
+void DetectorWithAnalyticNonGaussianPSF::integrateAnalyticPSF(IntegralOfAnalyticSignalResponse& psf, double x, double y, double r, double p, int Nsubpixels)
 {
     double ox = x - floor(x);
     double oy = y - floor(y);
-    double s = (*sigma)() * scale;
+    double s = (*sigma)() * Nsubpixels;
     if (params.size() > 0 && params[0].size() > 6) 
     {
         r /= 1.4;
@@ -448,15 +448,6 @@ void DetectorWithAnalyticNonGaussianPSF::integrateLight(int exposureNr, double s
 
     applyThroughputEfficiency();
 
-    // Brighter-Fatter effect
-
-    if(includeBFE)
-    {
-    		Log.debug("Detector: adding Brighter-Fatter effect");
-
-       	applyBFE();
-    }
-
     // Add dark current
 
     if(includeDarkSignal)
@@ -468,6 +459,19 @@ void DetectorWithAnalyticNonGaussianPSF::integrateLight(int exposureNr, double s
     else
     {
     		Log.debug("Detector: no dark current added");
+    }
+
+    // Brighter-Fatter effect
+
+    if(includeBFE)
+    {
+    		Log.debug("Detector: adding Brighter-Fatter effect");
+
+       	applyBFE();
+    }
+    else
+    {
+        Log.debug("Detector: no Brighter-Fatter effect added");
     }
 }
 
@@ -511,13 +515,20 @@ tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addFlux(double x
     row0 -= subFieldZeroPointRow;
     column0 -= subFieldZeroPointColumn;
 
+    // Check if the star falls in the subfield. If not, don't add any flux, but simply return.
+
+    if (!isInPixelMap(row0, column0))
+    {
+        return make_tuple(false, row0, column0);
+    }
+
     double s = (*sigma)();
-    double d = 0.;
+    double diffusionKernelWidth = 0.;
 
     if (includeChargeDiffusion) 
     {
-        d = chargeDiffusionStrength;
-        s = sqrt(s * s + d * d);
+        diffusionKernelWidth = chargeDiffusionStrength;
+        s = sqrt(s * s + diffusionKernelWidth * diffusionKernelWidth);
     }
 
     int size = 2 * (int)(8. * s + 1) + 1;
@@ -527,7 +538,9 @@ tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addFlux(double x
     if (sx + size <= 0 || sx >= (int)numColumnsPixelMap || sy + size <= 0 || sy >= (int)numRowsPixelMap)
         return make_tuple(false, row0, column0);
 
-    IntegralOfAnalyticSignalResponse psf(size, d);
+    // Construct the PSF around the central pixel coordinates
+
+    IntegralOfAnalyticSignalResponse psf(size, diffusionKernelWidth);
     double r = rad2deg(camera.getGnomonicRadialDistanceFromOpticalAxis(xFP, yFP));
     double p = atan2(yFP, xFP);
 
@@ -548,29 +561,71 @@ tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addFlux(double x
 
 
 
-
-
-
-
-
-
 /**
- * \brief   Check whether the given (row, column) indices are within the array range of the pixel map.
+ * \brief: Create a high-resolution map of the PSF in the center of the subfield
+ *         
+ * \param map         The PSF will be written in this 2D array, the size need not be allocated.
+ * \param Npixels     Size of the high-res map in pixels
+ * \param Nsubpixels  (sqrt of the) number of subpixels per pixel 
  *
- * \details  The input parameters row & column come from a coordinate transformation
- *           in the focal plane, and as a result are not necessarily integers. For this 
- *           function it's not necessary to round them to the nearest integer. 
- *
- * \param  row:    Row index. NOT a coordinate in the CCD frame, but in the subfield frame.    [pixel].
- * \param  column: Column index. NOT a coordinate in the CCD frame, but in the subfield frame. [pixel].
- *
- * \return  True if the given (row, column) coordinates are in the pixel map; false otherwise.
+ * \return           'map' will be modified to contain the high-resolution PSF
+ *                   Its size will be  (Npixels * Nsubpixels) x  (Npixels * Nsubpixels)
  */
 
-bool DetectorWithAnalyticNonGaussianPSF::isInPixelMap(double row, double column)
+void DetectorWithAnalyticNonGaussianPSF::makeHighResolutionPSF(arma::Mat<float> &highResMap, int Npixels, int Nsubpixels)
 {
-    return (column >= 0) && (row >= 0) && (column < numColumnsPixelMap) && (row < numRowsPixelMap);
+    // Put the PSF right in the middle of the (high-res) (sub)pixel map
+
+    double row0 = Npixels / 2.0;
+    double column0 = Npixels / 2.0;
+
+    // The high-res (sub)pixel map will be placed in the middle of the regular subfield.
+    // Derive the focal plane coordinates of the middle of the subfield. These are needed
+    // to later on derive the angular distance from the optical axis.
+
+    double middleRowSubfield = subFieldZeroPointRow + numRowsPixelMap / 2.0;
+    double middleColSubfield = subFieldZeroPointColumn +  numColumnsPixelMap / 2.0;
+    double xFP, yFP;
+    tie(xFP, yFP) = pixelToFocalPlaneCoordinates(middleRowSubfield, middleColSubfield);
+
+
+    double s = (*sigma)();
+    double diffusionKernelWidth = 0.;
+
+    if (includeChargeDiffusion) 
+    {
+        diffusionKernelWidth = chargeDiffusionStrength;
+        s = sqrt(s * s + diffusionKernelWidth * diffusionKernelWidth);
+    }
+
+    int size = Npixels * Nsubpixels;
+    highResMap.set_size(size, size);
+
+    int sx = (int)floor(column0*Nsubpixels - (size - 1.) / 2.);
+    int sy = (int)floor(row0*Nsubpixels - (size - 1.) / 2.);
+
+    // Construct the PSF around the central pixel coordinates
+
+    IntegralOfAnalyticSignalResponse psf(size, diffusionKernelWidth*Nsubpixels);
+    double r = rad2deg(camera.getGnomonicRadialDistanceFromOpticalAxis(xFP, yFP));
+    double p = atan2(yFP, xFP);
+
+    double ccdOrientation = getOrientationAngle();
+    p -= ccdOrientation;
+
+    integrateAnalyticPSF(psf, column0, row0, r, p, Nsubpixels);
+
+    for (int y = max(0, sy); y < min((int)Npixels*Nsubpixels, sy + size); y++)
+        for (int x = max(0, sx); x < min((int)Npixels*Nsubpixels, sx + size); x++)
+            highResMap.at(y, x) += psf(x - sx, y - sy) * 1000.0;
+
+    // Normalize the PSF
+
+    highResMap /= arma::accu(highResMap);
 }
+
+
+
 
 
 
@@ -628,3 +683,33 @@ void DetectorWithAnalyticNonGaussianPSF::applyFlatfield()
     pixelMap.submat(beginRow, beginCol, endRow, endCol) = pixelMap.submat(beginRow, beginCol, endRow, endCol) % flatfieldMap;
 }
 
+
+
+
+
+
+
+/**
+ *  \brief Before destroying this object, save a high-resolution PSF to the HDF5 file
+ * 
+ */ 
+
+void DetectorWithAnalyticNonGaussianPSF::flushOutput()
+{
+    int Npixels = 8;
+    int Nsubpixels = 128;
+
+    // Create the group in the HDF5 file. We chose the same name as for DetectorWithMappedPSF
+
+    hdf5File.createGroup("/PSF");
+    
+    // Generate the high-resolution map
+
+    arma::Mat<float> highResMap;
+    makeHighResolutionPSF(highResMap, Npixels, Nsubpixels);
+
+    // Save the map to HDF5
+
+    hdf5File.writeArray("/PSF", "HighResPSFmapCenterSubfield", highResMap);
+    
+}

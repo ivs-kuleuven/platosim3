@@ -6,16 +6,14 @@
  * \brief Constructor
  * 
  * \param configParams The configuration parameters from the input parameters file
- *
- * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start
  */
 
-ThermoElasticDriftFromRedNoise::ThermoElasticDriftFromRedNoise(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure)
+ThermoElasticDriftFromRedNoise::ThermoElasticDriftFromRedNoise(ConfigurationParameters &configParams)
 : lastYaw(0.0), lastPitch(0.0), lastRoll(0.0), internalTime(0.0)
 {
     // Set the configuration parameters
 
-    configure(configParams, readoutTimeBeforeNextExposure);
+    configure(configParams);
 
     // Seed the random generator. The seed should have been set by configure().
     // Initialise the standard normal distribution with mu=0, and sigma=1.0.
@@ -52,11 +50,9 @@ ThermoElasticDriftFromRedNoise::~ThermoElasticDriftFromRedNoise()
  * \brief Configure this object using the parameters from the input parameters file
  * 
  * \param configParams  The configuration parameters
- *
- * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start
  */
 
-void ThermoElasticDriftFromRedNoise::configure(ConfigurationParameters &configParams, double readoutTimeBeforeNextExposure)
+void ThermoElasticDriftFromRedNoise::configure(ConfigurationParameters &configParams)
 {
     // Note that the inputfile lists the drift RMS values in [arcsec]
 
@@ -69,16 +65,16 @@ void ThermoElasticDriftFromRedNoise::configure(ConfigurationParameters &configPa
     // We determine the drift time interval as a fraction of the drift time scale.
     // so that the changes in (yaw, pitch, roll) can still be reliably tracked.
 
-    driftTimeInterval = driftTimeScale / 20.0;
+    driftTimeInterval = driftTimeScale / 10.0;
 
     // Set the internal time to the time of the first exposure of the series
     // The alternative, setting internalTime to 0., has the disadvantage that the jittering
     // needs to fast-forward a lot when beginExposureNr is very large, which is slow.
     
     int beginExposureNr = configParams.getInteger("ObservingParameters/BeginExposureNr");
-    double exposureTime = configParams.getDouble("ObservingParameters/ExposureTime");
+    double cycleTime = configParams.getDouble("ObservingParameters/CycleTime");
 
-    internalTime = beginExposureNr * (exposureTime + readoutTimeBeforeNextExposure);
+    internalTime = beginExposureNr * cycleTime;
 }
 
 

@@ -590,12 +590,16 @@ void Detector::generateThroughputMap()
                     }
                 }
 
-                // Natural vignetting
+                // Natural vignetting.
+                // With a cos^2 law, the mean natural vignetting value over all pixels is 0.945. 
 
                 if (includeNaturalVignetting) 
                     throughputMap(row, column) *= pow(cos(angle), 2);
 
                 // Polarisation (Eq. 4-11 in PLATO-DLR-PL-RP-001)
+               
+                // NOTE: the polarization is angle dependent, but since no info on this dependency is currently available,
+                //       we assume fow now it is fixed over the entire FOV.
 
                 if (includePolarization)
                     throughputMap(row, column) *= expectedValuePolarization; //cos(angle / refAnglePolarizationRadians * acosPolarizationEfficiency);
@@ -603,6 +607,9 @@ void Detector::generateThroughputMap()
                 // Quantum efficiency (Eq. 4-12 in PLATO-DLR-PL-RP-001)
                 // Pixel units before: [photons]
                 // Pixel units after: [electrons]
+               
+                // NOTE: the QE is angle dependent, but since no info on this dependency is currently available,
+                //       we assume for now it is fixed over the entire FOV.
 
                 if (includeQuantumEfficiency)
                     throughputMap(row, column) *= meanQE * meanAngleDependencyQE; //(meanQE * cos(angle / refAngleQuantumEfficiencyRadians * acosQuantumEfficiency));
@@ -785,6 +792,40 @@ bool Detector::isInSubfield(double xFP, double yFP)
 
 
 
+
+
+
+
+
+
+ /**
+ * \brief   Check whether the given (row, column) indices are within the array range of the pixel map.
+ *
+ * \details  The input parameters row & column come from a coordinate transformation
+ *           in the focal plane, and as a result are not necessarily integers. For this 
+ *           function it's not necessary to round them to the nearest integer. 
+ *
+ * \param  row:    Row index. NOT a coordinate in the CCD frame, but in the subfield frame.    [pixel].
+ * \param  column: Column index. NOT a coordinate in the CCD frame, but in the subfield frame. [pixel].
+ *
+ * \return  True if the given (row, column) coordinates are in the pixel map; false otherwise.
+ */
+
+bool Detector::isInPixelMap(double row, double column)
+{
+    return (column >= 0) && (row >= 0) && (column < numColumnsPixelMap) && (row < numRowsPixelMap);
+}
+
+
+
+
+
+
+
+
+
+
+
 /**
  * \brief Apply throughput efficiency. This is the combined effect of:
  *          - vignetting (brightness attenuation towards the edges of the FOV);
@@ -928,20 +969,6 @@ void Detector::addDarkSignal(float exposureTime)
 void Detector::readOut(float exposureTime)
 {
 
-    // Apply poisson distributed photon noise
-    // Pixel units before: [electrons]
-    // Pixel units after: [electrons]
-
-    if (includePhotonNoise)
-    {
-        Log.debug("Detector: adding photon noise.");
-        addPhotonNoise();
-    }
-    else 
-    {
-        Log.debug("Detector: no photon noise added.");
-    }
-
     // Add cosmic hits
     // Pixel units before: [electrons]
     // Pixel units after: [electrons]
@@ -956,6 +983,21 @@ void Detector::readOut(float exposureTime)
         Log.debug("Detector: no cosmic hits included.");
     }
 
+    // Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
+    // the pixels are still receiving photons from the sky, while they are being transfered towards
+    // the readout register.
+    // Pixel units before: [electrons]
+    // Pixel units after: [electrons]
+
+    if (includeOpenShutterSmearing)
+    {
+        Log.debug("Detector: applying open shutter smearing.");
+        applyOpenShutterSmearing(exposureTime);
+    }
+    else 
+    {
+        Log.debug("Detector: no open shutter smearing applied.");
+    }
 
     // Simulate the effects of the Charge Transfer Inefficiency (CTI). When the
     // CCD is read out, row after row, a part of the charge is always left behind
@@ -974,20 +1016,27 @@ void Detector::readOut(float exposureTime)
         Log.debug("Detector: no charge transfer inefficiency applied.");
     }
 
-    // Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
-    // the pixels are still receiving photons from the sky, while they are being transfered towards
-    // the readout register.
+    // Apply poisson distributed photon noise
     // Pixel units before: [electrons]
     // Pixel units after: [electrons]
 
-    if (includeOpenShutterSmearing)
+    if (includePhotonNoise)
     {
-        Log.debug("Detector: applying open shutter smearing.");
-        applyOpenShutterSmearing(exposureTime);
+        Log.debug("Detector: adding photon noise.");
+        addPhotonNoise();
     }
     else 
     {
-        Log.debug("Detector: no open shutter smearing applied.");
+        Log.debug("Detector: no photon noise added.");
+    }
+
+    if(isFastCamera && frontEndElectronics->getIncludeOverAndUnderShoot())
+    {
+        Log.debug("Detector: adding (F-)FEE over-/undershoot");
+        applyOverAndUnderShoot();
+    }
+    else{
+        Log.debug("Detector: (F-)FEE over-/undershoot not applied: " + to_string(isFastCamera) + " " + to_string(frontEndElectronics->getIncludeOverAndUnderShoot()));
     }
 
     // Each time the amplifier reads out a pixel, a tiny bit of noise is added.
@@ -1157,6 +1206,8 @@ void Detector::addPhotonNoise()
 {
     // Add photon noise to the pixel map
 
+    Log.debug("Adding photon noise to pixel map");
+
     for (unsigned int row = 0; row < numRowsPixelMap; row++)
     {
         for (unsigned int column = 0; column < numColumnsPixelMap; column++)
@@ -1167,6 +1218,8 @@ void Detector::addPhotonNoise()
     }
 
     // Add photon noise to the smearing map
+
+    Log.debug("Adding photon noise to smearing map");
 
     for (unsigned int row = 0; row < numRowsSmearingMap; row++)
     {
@@ -1735,7 +1788,6 @@ void Detector::applyShort2013CTImodel()
 
         for (int k = 0; k < numTrapSpecies; k++)
         {
-
             // Compute the number of electrons captured in a trap, according to Eq. (22)-(23) of Short et al. (2013).
             // Note that Armadillo uses % for elementwise multiplication.
 
@@ -1749,6 +1801,7 @@ void Detector::applyShort2013CTImodel()
 
             arma::Col<arma::uword> isNegative = arma::find(numberOfCapturedElectrons < 0.0);
             numberOfCapturedElectrons(isNegative).zeros();
+            numberOfCapturedElectrons.elem(find_nonfinite(numberOfCapturedElectrons)).zeros();
 
             // Update the number of occupied traps with the estimated number of captured electrons
 
@@ -2225,10 +2278,10 @@ void Detector::addElectronicOffset()
 
 
 /**
- * \brief: Apply the effect of digital saturation to the pixel map,
- *         smearing map, and bias register map. This means that the pixel values in
- *         these maps (expressed in [ADU / pixel]) are Lastped off to the digital saturation
- *         limit of the detector (also expressed in [ADU / pixel]).
+ * \brief Apply the effect of digital saturation to the pixel map,
+ *        smearing map, and bias register map. This means that the pixel values in
+ *        these maps (expressed in [ADU / pixel]) are Lastped off to the digital saturation
+ *        limit of the detector (also expressed in [ADU / pixel]).
  *
  * \pre Pixel unit in the pixel, smearing, and bias maps: [ADU].
  * \pre Digital saturation limit expressed in [ADU / pixel].
@@ -2263,14 +2316,126 @@ void Detector::applyDigitalSaturation()
 
 
 /**
+ * \brief Applies the F-FEE over-/undershoot to the pixel map.
+ * 
+ * \pre Pixel unit in the pixel, smearing, and bias maps: [ADU].
+ *
+ * \post Pixel unit in the pixel, smearing, and bias register maps: [ADU].
+ */ 
+void Detector::applyOverAndUnderShoot()
+{
+    const unsigned int halfDectectorWidth = numColumns / 2;
+
+    // NOTES
+    // - We apply this effect row per row, because otherwise, we will have to keep too much
+    //   data in memory
+    // - Both detector halves must be treated independently
+    // - The pixels between the bias map and the pixel map are assumed to contain the sky background
+
+    arma::frowvec readoutRegister;   // Placeholder
+    arma::frowvec difference;        // Placeholder
+    arma::frowvec totalContribution; // Has to be filled with zeroes for every row and every detector half
+    int lengthReadoutRegister;
+
+    double skyBackground = camera.getTotalSkyBackground();
+    if (includeNaturalVignetting)
+        skyBackground *= expectedValueNaturalVignetting;
+    if (includePolarization)
+        skyBackground *= expectedValuePolarization;
+    if (includeParticulateContamination)
+        skyBackground *= particulateContaminationEfficiency;
+    if (includeMolecularContamination)
+        skyBackground *= molecularContaminationEfficiency;
+    skyBackground *= meanQE * meanAngleDependencyQE;
+
+    arma::frowvec skyBackgroundExtraPixels(frontEndElectronics->getOverAndUnderShootRange());
+    skyBackgroundExtraPixels.fill(skyBackground);
+
+    // At least partially on the left detector half
+
+    if (subFieldZeroPointColumn < halfDectectorWidth)
+    {
+        const int firstIndexLeftHalf = subFieldZeroPointColumn;
+        const int lastIndexLeftHalf = min(halfDectectorWidth - 1, subFieldZeroPointColumn + numColumnsPixelMap - 1);
+        const int numCcdPixelsLeftHalf = lastIndexLeftHalf - firstIndexLeftHalf + 1;
+     
+        lengthReadoutRegister = numCcdPixelsLeftHalf + frontEndElectronics->getOverAndUnderShootRange();    // Pixels in sub-field on left CCD half + some extra pixels closest to the readout electronics
+        readoutRegister.zeros(lengthReadoutRegister);
+        readoutRegister.head(frontEndElectronics->getOverAndUnderShootRange()) = skyBackgroundExtraPixels;
+
+        for (unsigned int row = 0; row < numRowsPixelMap; row++)
+        {
+            readoutRegister(arma::span(frontEndElectronics->getOverAndUnderShootRange(), lengthReadoutRegister - 1)) = pixelMap.row(row).head(numCcdPixelsLeftHalf);
+            totalContribution.zeros(lengthReadoutRegister);
+
+            difference = readoutRegister.tail(lengthReadoutRegister - 1) - readoutRegister.head(lengthReadoutRegister - 1);
+
+            for (int deltaX = 0; deltaX < frontEndElectronics->getOverAndUnderShootRange(); deltaX++)
+            {
+                // Ditch last deltaX and tail(numCcdPixelsLeftHalf)
+
+                totalContribution.tail(lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange()) += frontEndElectronics->getOverAndUnderShootStrength() * difference.head(lengthReadoutRegister - 1 - deltaX).tail(numCcdPixelsLeftHalf) * exp(-frontEndElectronics->getOverAndUnderShootDecayRate() * pow(deltaX, frontEndElectronics->getOverAndUnderShootDecaySpeed()));
+                
+                // totalContribution.tail(lengthReadoutRegister - deltaX) += frontEndElectronics->getOverAndUnderShootStrength() * difference * exp(-frontEndElectronics->getOverAndUnderShootDecayRate() * pow(deltaX, frontEndElectronics->getOverAndUnderShootDecaySpeed()));
+            }
+
+            pixelMap.row(row).head(numCcdPixelsLeftHalf) += totalContribution.tail(lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange());
+        }
+    }
+
+    // At least partially on the right detector half
+
+    if (subFieldZeroPointColumn + numColumnsPixelMap - 1 >= halfDectectorWidth)
+    {
+        const int firstIndexRightHalf = max(halfDectectorWidth, subFieldZeroPointColumn);
+        const int lastIndexRightHalf = subFieldZeroPointColumn + numColumnsPixelMap - 1;
+        const int numCcdPixelsRightHalf = lastIndexRightHalf - firstIndexRightHalf + 1;
+
+        lengthReadoutRegister = numCcdPixelsRightHalf + frontEndElectronics->getOverAndUnderShootRange();      // Pixels in sub-field on right CCD half + some extra pixels closest to the readout electronics
+        readoutRegister.zeros(lengthReadoutRegister);
+        readoutRegister.tail(frontEndElectronics->getOverAndUnderShootRange()) = skyBackgroundExtraPixels;
+
+        for (unsigned int row = 0; row < numRowsPixelMap; row++)
+        {
+            readoutRegister(arma::span(0, lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange() - 1)) = pixelMap.row(row).tail(numCcdPixelsRightHalf);
+            totalContribution.zeros(lengthReadoutRegister);
+
+            difference = readoutRegister.head(lengthReadoutRegister - 1) - readoutRegister.tail(lengthReadoutRegister - 1);
+
+            for (int deltaX = 0; deltaX < frontEndElectronics->getOverAndUnderShootRange(); deltaX++)
+            {
+                // Ditch first deltaX and head(numCcdPixelsRightHalf)
+
+                totalContribution.head(lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange()) += frontEndElectronics->getOverAndUnderShootStrength() * difference.tail(lengthReadoutRegister - 1 - deltaX).head(numCcdPixelsRightHalf) * exp(-frontEndElectronics->getOverAndUnderShootDecayRate() * pow(deltaX, frontEndElectronics->getOverAndUnderShootDecaySpeed()));
+            }
+
+            pixelMap.row(row).tail(numCcdPixelsRightHalf) += totalContribution.head(lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange());
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
  * \brief Compute the (x,y) coordinates [mm] in the FP reference system 
  *        given the (real-valued) pixel row and column numbers on the CCD.
  *        
  * \note  The rows correspond to the y-direction, and the columns to the x-direction.
  *        Pixel (row, col) = (0,0) starts at (yFP, xFP) = (0, 0).
  *               
- * \param row     Row coordinate, real-valued (e.g. 3.5)    [pix]
- * \param column  Column coordinate, real-valued (e.g. 8.3) [pix]
+ * \param row     CCD row coordinate, real-valued (e.g. 3.5)    [pix]
+ * \param column  CCD column coordinate, real-valued (e.g. 8.3) [pix]
  * 
  * \return (xFP, yFP)  A pair of (x,y) coordinates in the FP reference system [mm]
  */

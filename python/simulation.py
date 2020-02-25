@@ -206,7 +206,7 @@ class Simulation(object):
         
         with open(filename, 'r') as stream:
             try:
-                self.yamlDocument = yaml.load(stream)
+                self.yamlDocument = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
                 print(exc)
         
@@ -436,11 +436,12 @@ class Simulation(object):
 
 
 
-    def run(self, removeOutputFile=False):
+    def run(self, removeOutputFile=False, logLevel=3):
         """
         Run the PLATO Simulator.
 
         param removeOutputFile: if the outputfile already exists before the run started, simply delete it.
+        param logLevel: 1 (least verbose) to 3 (most verbose)
 
         When PlatoSim fails for some reason and returns an error code (!= 0), an Exception is raised.
         """
@@ -463,12 +464,12 @@ class Simulation(object):
         # The run() method was only introduced with Python 3.5, use the older call() method when running e.g. Python 2.7
 
         if sys.version_info < (3, 5):   
-            rc = subprocess.call([self.platosimBuildLocation + "/platosim", inputFilename, outputFilename, logFilename])
+            rc = subprocess.call([self.platosimBuildLocation + "/platosim", inputFilename, outputFilename, logFilename, str(logLevel)])
             if rc:
                 raise Exception("Simulation.run(): PlatoSim returned with exit code {}.".format(rc))
         else:
-            completedProcess = subprocess.run([self.platosimBuildLocation + "/platosim", inputFilename, outputFilename, logFilename], 
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            completedProcess = subprocess.run([self.platosimBuildLocation + "/platosim", inputFilename, outputFilename, logFilename, str(logLevel)], 
+                                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             print (str(completedProcess.stdout.decode("utf-8")))
             print (str(completedProcess.stderr.decode("utf-8")))
@@ -514,12 +515,12 @@ class Simulation(object):
 
                  CCD/NumColumns = 4510
                  CCD/NumRows = 4510
-                 ObservingParameters/ExposureTime = 23
+                 ObservingParameters/CycleTime = 25
         """
 
         self.__setitem__("CCD/NumColumns", "4510")
         self.__setitem__("CCD/NumRows",    "4510")
-        self.__setitem__("ObservingParameters/ExposureTime", "23")
+        self.__setitem__("ObservingParameters/CycleTime", "25")
 
         return
 
@@ -687,6 +688,9 @@ class Simulation(object):
         self["SubField/NumRows"] = str(subfieldSizeY)
         self["SubField/NumColumns"] = str(subfieldSizeX)
 
+        self["Telescope/AzimuthAngle"] = np.rad2deg(azimuthTelescope)
+        self["Telescope/TiltAngle"] = np.rad2deg(tiltTelescope)
+
         # That's it
 
         return True
@@ -825,9 +829,9 @@ class Simulation(object):
             raise ValueError("Simulation::getReadoutTime() Unknown readout mode specification in configuration file: {0}".format(readoutMode))
 
             
-        serialTransferTime = self["CCD/SerialTransferTime"] * 1E-9			            # [ns] -> [s]
-        parallelTransferTime = self["CCD/ParallelTransferTime"] * 1E-6		            # [µs] -> [s]
-        parallelTransferTimeFast = self["CCD/ParallelTransferTimeFast"] * 1E-6          # [µs] -> [s]
+        serialTransferTime = self["CCD/SerialTransferTime"] * 1E-9                      # [ns] -> [s]
+        parallelTransferTime = self["CCD/ParallelTransferTime"] * 1E-6                  # [micro s] -> [s]
+        parallelTransferTimeFast = self["CCD/ParallelTransferTimeFast"] * 1E-6          # [micro s] -> [s]
 
         numColumnsBiasMap =  self["SubField/NumBiasPrescanColumns"]                     # [pixels]
         numRowsSmearingMap = self["SubField/NumSmearingOverscanRows"]                   # [pixels]

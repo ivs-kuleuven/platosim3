@@ -11,7 +11,7 @@ ObservingParameters:
     MissionDuration:             6.5              # Total duration of the mission in years [yr]
     NumExposures:                10               # Number of exposures
     BeginExposureNr:             0                # Sequential number of first exposure. useful for slurm parallellisation
-    ExposureTime:                2.3              # [s]
+    CycleTime:                   2.5              # Image cycle time (exposure + readout before next exposure starts)[s]
     RApointing:                  86.79870         # Platform (not telescope) right ascension pointing coordinate      [deg] 
     DecPointing:                 -46.39595        # Platform (not telescope) declination pointing coordinate          [deg]
     Fluxm0:                      1.00179e8        # Photon flux of a V=0 G2V-star                                     [phot/s/m^2/nm]
@@ -36,13 +36,13 @@ Platform:
 
     SolarPanelOrientation:        0               # 0, 90, 180, or 270 degrees for the different quarters of a year [deg]
     UseJitter:                   yes              # yes or no
-    UseJitterFromFile:           yes              # yes or no
+    JitterSource:                FromRedNoise     # FromFile, FromRedNoise, or FromNetwork
     JitterYawRms:                0.04             # [arcsec]
     JitterPitchRms:              0.04             # [arcsec]
     JitterRollRms:               0.08             # [arcsec]
     JitterTimeScale:             180              # [s]
     JitterFileName:              inputfiles/PlatoJitter_OHB.txt 
-
+    
 
 Telescope:
     
@@ -55,8 +55,8 @@ Telescope:
 
     LightCollectingArea:         113.1           # Effective area of 1 telescope [cm^2]
     TransmissionEfficiency:
-        BOL:                     0.8162          # beginning-of-life value in [0,1]
-        EOL:                     0.7975          # end-of-life value in [0,1]
+        BOL:                     0.8135          # Beginning of Life value in [0,1]
+        EOL:                     0.7945          # End of Life value in [0,1]
     UseDrift:                    no              # yes or no. If no, ignore everything below.
     UseDriftFromFile:            no              # yes or no. If yes: ignore RMS and timescale below
     DriftYawRms:                 2.3             # RMS of thermo-elastic drift in yaw [arcsec]
@@ -77,7 +77,7 @@ Camera:
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
         ConstantValue:               0.24712595      # Used in case Source is ConstantValue (from ZEMAX model) [m]
         FromFile:                    inputfiles/focallength.txt # Used in case Source is FromFile: time [s] & focalLenght [m]
-    ThroughputBandwidth:             498             # FWHM [nm]
+    ThroughputBandwidth:             532             # FWHM [nm]
     ThroughputLambdaC:               550             # Central wavelength of the throughput passband [nm]
     IncludeAberrationCorrection:     no              # Calculate the differential aberration correction and apply
     AberrationCorrection:
@@ -127,16 +127,23 @@ FEE:
 
     NominalOperatingTemperature:     210.15          # Nominal operating temperature of the FEE [K]
     Temperature:                     Nominal         # Temperature fixed at the nominal operating temperature
-    TemperatureFileName:             inputfiles/feeTemperature.txt
-    ReadoutNoise:                    122.0           # Readout noise for the FEE [e-/pixel]
+    TemperatureFileName:             inputfiles/feeTemperature.txt 
+    ReadoutNoise:                    32.0            # Readout noise for the FEE [e-/pixel] (same for both ADCs)
     Gain:
-        RefValueLeft:                0.0091          # [ADU/microV] (Total gain = FFE gain * CCD gain = 20 e-/ADU)
-        RefValueRight:               0.0091          # [ADU/microV] (Total gain = FFE gain * CCD gain = 20 e-/ADU)
+        RefValueLeft:                0.0222          # [ADU/microV] (1 / (Total gain) = FFE gain * CCD gain = 1 / (20 e-/ADU))
+        RefValueRight:               0.0222          # [ADU/microV] (1 / (Total gain) = FFE gain * CCD gain = 1 / (20 e-/ADU))
         Stability:                   -300.0e-6       # [ppm/K] = [ADU/microV/K]
-        AllowedDifference:           0.0             # Difference in gain betwwen both ADCs [%]
-    ElectronicOffset: 
+        AllowedDifference:           0.0             # Difference in gain between both ADCs [%]
+    ElectronicOffset:
         RefValue:                    1000            # Reference value for the electronic offset [ADU/pixel]
-        Stability:                     1             # Offset stability [ADU/pixel/K]
+        Stability:                   1               # Offset stability [ADU/pixel/K]
+    OverAndUnderShoot:
+        Strength:                    0.003867        # Strength of the over-/undershoot
+        DecaySpeed:                  0.755           # Speed of the exponential decay function describing over-/undershoot
+        DecayRate:                   1.277           # Rate of the exponential decay function describing over-/undershoot
+        Range:                       5               # How far will in the readout register will pixels be affected by a signal change?
+    IncludeOverAndUnderShoot:        yes             # Whether or not the over-/undershoot should be applied (for fast cameras only)
+ 
 
 
 CCD:
@@ -144,8 +151,8 @@ CCD:
     Position:                    Custom          # one of [1, 2, 3, 4, Custom]
                                                  # (use Custom to specify the CCD position parameters yourself)
                                                      
-    OriginOffsetX:               0               # X Offset of CCD origin from center of focal plane [mm]
-    OriginOffsetY:               0               # Y Offset of CCD origin from center of focal plane [mm]
+    OriginOffsetX:               -1.3               # X Offset of CCD origin from center of focal plane [mm]
+    OriginOffsetY:               82.48               # Y Offset of CCD origin from center of focal plane [mm]
     Orientation:                 0               # Orientation of CCD w.r.t. focal plane orientation [deg]
     NumColumns:                  4510            # Number of columns [pixels]
     NumRows:                     4510            # Number of rows [pixels]
@@ -163,13 +170,10 @@ CCD:
         Stability:               -0.004          # [microV/e-/K]
         AllowedDifference:       0.0             # Difference in gain between both CCD halves [%]
     QuantumEfficiency:
-        RelativeRefEfficiency:       0.925           # Relative efficiency due to angle dependency of the QE at the reference angle
-        RefAngle:                    45.0            # Reference angle for quantum efficiency [degrees]
-        MeanQuantumEfficiency:       0.5985          # Mean quantum efficiency
+        MeanQuantumEfficiency:       0.6218          # Mean quantum efficiency
         MeanAngleDependency:         1.01            # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE
-        #ExpectedValue:               0.993 * 0.5895  # Expected value (mean over all pixels of one detector)
     FullWellSaturation:          900000         # [e-/pixel]
-    DigitalSaturation:           16383           # E.g. 16 bit [ADU/pixel]
+    DigitalSaturation:          65535           # E.g. 16 bit [ADU/pixel]
     ReadoutNoise:                44.3            # Readout noise for the CCD [e-/pixel]
     SerialTransferTime:              340         # Time to shift the content of the readout register by one pixel [ns]
     ParallelTransferTime:            110         # Time to shift the charges one row down in case the readout register will be read out [µs]
@@ -184,10 +188,8 @@ CCD:
         NaturalVignetting:                           # Brightness attenuation from the optical axis to the edge of the FOV
             ExpectedValue:           0.945           # Expected value of the throughput efficiency due to natural vignetting
         MechanicalVignetting:                        # Blocking of the light due to mechanical obstruction at the edge of the FOV
-            RadiusFOV:               18.8876         # Radius of the FOV [degrees]
+            RadiusFOV:               18.8908         # Radius of the FOV [degrees]
     Polarization:
-        #Efficiency:                  0.978           # Throughput efficiency caused by polarisation at the reference angle
-        #RefAngle:                   18.8875          # Reference angle for polarisation [degrees]
         ExpectedValue:               0.989           # Expected value (mean of all detector pixels)
     Contamination:
         ParticulateContaminationEfficiency: 0.972    # Throughput efficiency due to particulate contamination
@@ -256,6 +258,20 @@ ControlHDF5Content:
     WriteSubPixelImages:         no              # Only use this for a limited number of exposures. Takes a lot of space! 
     WriteStarPositions:          yes             # StarPositions are written in pixel and focal plane coordinates + flux and
                                                  # scales with the number of exposures and the number of stars in the field.
+
+
+ControlTcpConnection:
+
+    SendImagettesToClients:         no
+    GetWindowPositionsFromServer:   no
+
+    WindowPositionServerAddress: tcp://localhost:5558
+    JitterServerAddress:         tcp://localhost:5559
+    ImagetteClientAddress:       tcp://localhost:5560
+
+    WindowPositionSocketTimeout:    100  # seconds
+    JitterSocketTimeout:            100  # seconds
+
 
 # ----- DO NOT MAKE CHANGES BELOW THIS LINE -----
 

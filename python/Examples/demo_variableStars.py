@@ -37,13 +37,12 @@ sim["ObservingParameters/StarCatalogFile"]        = starCatalogFileName
 
 sim["Sky/IncludeVariableSources"]                 = "yes"
 sim["Sky/VariableSourceList"]                     = "python/Examples/VariableStars/variableStarList.txt"
-sim["Sky/IncludeCosmics"]                         = "no"
+sim["Sky/IncludeCosmicsInSubField"]               = "no"
+sim["Sky/IncludeCosmicsInSmearingMap"]            = "no"
+sim["Sky/IncludeCosmicsInBiasMap"]                = "no"   
 
 sim["Platform/UseJitter"]                         = "yes"
-sim["Platform/UseJitterFromFile"]                 = "no"
-sim["Platform/JitterYawRms"]                      = 1.0 
-sim["Platform/JitterPitchRms"]                    = 1.0
-sim["Platform/JitterRollRms"]                     = 0.5
+sim["Platform/JitterSource"]                      = "FromRedNoise"
 
 sim["Telescope/GroupID"]                          = 1
 sim["Telescope/UseDrift"]                         = "no"

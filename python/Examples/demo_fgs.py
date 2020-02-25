@@ -45,6 +45,7 @@ for n in range(NguideStars):
     # Make sure it uses the right starCatalog, jitter file, and PSF file
 
     sim["ObservingParameters/StarCatalogFile"] = starCatalog
+    sim["Platform/JitterSource"] = "FromFile"
     sim["Platform/JitterFileName"] = jitterFile
     sim["PSF/MappedFromFile/Filename"] = psfFile 
 
@@ -67,7 +68,7 @@ for n in range(NguideStars):
     # SubField/NumRows
     # SubField/NumColumns
     # 
-    # ObservingParameters/ExposureTime
+    # ObservingParameters/CycleTime
     # 
 
     subfieldSizeX = 9     # column width [pixels]

@@ -321,15 +321,6 @@ void DetectorWithAnalyticGaussianPSF::integrateLight(int exposureNr, double star
     
     applyThroughputEfficiency();
 
-    // Brighter-fatter effect
-
-    if(includeBFE)
-    {
-   		Log.debug("Detector: adding Brighter-Fatter effect");
-
-   		applyBFE();
-    }
-
     // Add dark current
 
     if(includeDarkSignal)
@@ -341,6 +332,19 @@ void DetectorWithAnalyticGaussianPSF::integrateLight(int exposureNr, double star
     else
     {
         Log.debug("Detector: no dark current added");
+    }
+
+    // Brighter-fatter effect
+
+    if(includeBFE)
+    {
+   		Log.debug("Detector: adding Brighter-Fatter effect");
+
+   		applyBFE();
+    }
+    else
+    {
+        Log.debug("Detector: no Brighter-Fatter effect added");
     }
 }
 
@@ -456,35 +460,6 @@ tuple<bool, double, double> DetectorWithAnalyticGaussianPSF::addFlux(double xFP,
     // That's it!
     
     return make_tuple(true, row0, column0);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * \brief   Check whether the given (row, column) indices are within the array range of the pixel map.
- *
- * \details  The input parameters row & column come from a coordinate transformation
- *           in the focal plane, and as a result are not necessarily integers. For this 
- *           function it's not necessary to round them to the nearest integer. 
- *
- * \param  row:    Row index. NOT a coordinate in the CCD frame, but in the subfield frame.    [pixel].
- * \param  column: Column index. NOT a coordinate in the CCD frame, but in the subfield frame. [pixel].
- *
- * \return  True if the given (row, column) coordinates are in the pixel map; false otherwise.
- */
-
-bool DetectorWithAnalyticGaussianPSF::isInPixelMap(double row, double column)
-{
-    return (column >= 0) && (row >= 0) && (column < numColumnsPixelMap) && (row < numRowsPixelMap);
 }
 
 
