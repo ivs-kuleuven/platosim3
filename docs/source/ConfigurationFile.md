@@ -16,6 +16,7 @@ Any desired simulation can be obtained by modifying the following input:
 		* [CCD parameters](#ccdParameters)
 		* [sub-field parameters](#subFieldParameters)
 		* [seed parameters](#seedParameters)
+        * [control TCP connection parameters](#controlTcpConnection)
 		* additionally, there are two blocks that hold pre-defined settings (which you should NOT alter):
 			- [camera group 1, 2, 3, and 4, and fast cameras](#cameraGroups)
 			- [CCD 1, 2, 3, and 4](#ccdPositions)
@@ -2065,8 +2066,8 @@ ControlTcpConnection:
     JitterServerAddress:         tcp://localhost:5559
     ImagetteClientAddress:       tcp://localhost:5560
 
-    WindowPositionSocketTimeout:    100  # seconds
-    JitterSocketTimeout:            100  # seconds
+    WindowPositionSocketTimeout:    100
+    JitterSocketTimeout:            100
 \endcode
 
 
