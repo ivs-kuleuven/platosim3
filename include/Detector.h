@@ -193,6 +193,8 @@ class Detector: public HDF5Writer
         double refValueGainRight;                // Reference value for the gain on the ACD reading the right-hand side of the detector [µV/e-]
         double gainStability;                    // Gain stability [µV/e-]
         double gainAllowedDifference;            // Allowed difference in gain between the left and the right half of the detector [% of the reference values]
+        double combinedGainLeft;                 // Combined (CCD + FEE) gain for the left half of the CCD      [ADU / e-]
+        double combinedGainRight;                // Combined (CCD + FEE) gain for the right half of the CCD     [ADU / e-]
         unsigned long fullWellSaturationLimit;   // Full-well saturation limit [electrons/pixel]
         unsigned int electronicOffset;           // Bias or electronic offset [ADU]
         unsigned long digitalSaturationLimit;    // Digital saturation limit [ADU / pixel]

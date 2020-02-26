@@ -2198,8 +2198,8 @@ void Detector::applyGain()
 
     // Combined gain (FEE & CCD) [ADU / e-]
 
-    const double combinedGainLeft = frontEndElectronics->getGainLeftAdc(internalTime) * ccdGainLeft;
-    const double combinedGainRight = frontEndElectronics->getGainRightAdc(internalTime) * ccdGainRight;
+    combinedGainLeft = frontEndElectronics->getGainLeftAdc(internalTime) * ccdGainLeft;
+    combinedGainRight = frontEndElectronics->getGainRightAdc(internalTime) * ccdGainRight;
 
     if(lastIndexSubFieldLeft >= numColumnsPixelMap - 1)      // Left ADC only
     {
