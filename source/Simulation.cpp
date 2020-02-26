@@ -918,6 +918,13 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addInteger("NumSmearingOverscanRows");
     addInteger("SubPixels");
 
+    subGroup = "Photometry";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addBoolean("IncludePhotometry");
+    addInteger("ContaminationRadius");
+    addDouble("MaskUpdateInterval");
+    addString("TargetFileName");
+
     subGroup = "RandomSeeds";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addLong("ReadOutNoiseSeed");
@@ -930,6 +937,9 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "ControlHDF5Content";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addBoolean("WritePixelMaps");
+    addBoolean("WriteBiasMaps");
+    addBoolean("WriteSmearingMaps");          
     addBoolean("WriteSubPixelImages");
     addBoolean("WriteStarPositions");
 
