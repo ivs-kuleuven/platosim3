@@ -157,7 +157,7 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
     if (includePhotometry)
     {
         contaminationRadius = configParam.getInteger("Photometry/ContaminationRadius");                   // [pix]
-        maskUpdateInterval  = configParam.getDouble("Photometry/maskUpdateInterval") * 86400.;            // [s]                  
+        maskUpdateInterval  = configParam.getDouble("Photometry/MaskUpdateInterval") * 86400.;            // [s]                  
         filename            = configParam.getAbsoluteFilename("Photometry/TargetFileName");
 
         // Read and store the list of star IDs for which we want a lightcurve
@@ -1081,7 +1081,7 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
                 }
             }
 
-            // Update the exposure nr of this maks update to the current exposure number
+            // Update the exposure nr of this mask update to the current exposure number
 
             exposureNrOfMaskUpdate.at(starID).push_back(exposureNr);
         }
