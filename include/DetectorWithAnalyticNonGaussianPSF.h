@@ -7,12 +7,14 @@
 #include <algorithm>
 #include <functional>
 #include <complex>
+#include <string>
 
 #include "armadillo"
 
 #include "Constants.h"
 #include "Units.h"
 #include "Detector.h"
+#include "Camera.h"
 #include "Parameter.h"
 
 
@@ -32,6 +34,7 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
         void configure(ConfigurationParameters &configParam);
         virtual void updateParameters(double time) override;
 
+        bool addFluxToMap(arma::Mat<float>& map, double row0, double col0, double r, double p, double flux);
         virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) override;
         virtual void addFlux(double flux) override;
 
@@ -39,6 +42,8 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
 
         void makeHighResolutionPSF(arma::Mat<float> &highResMap, int Npixels, int Nsubpixels);
         virtual void flushOutput() override;
+
+        void applyPhotometry(const unsigned int exposureNr);
 
     protected:
 
@@ -52,13 +57,36 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
 
         arma::Mat<float> flatfieldMap;      // Pixel flatfield map
 
-        double chargeDiffusionStrength;			// Strength of the charge diffusion (width of the Gaussian diffusion kernel) [pixels]
-        bool includeChargeDiffusion;				// Whether or not to include charge diffusion
+        unsigned int numExposures;                  // Number of exposures
+        unsigned int beginExposureNr;       // Exposure nr of the first exposure in the time series
+        double cycleTime;                   // Image cycle time (exposure + readout before next exposure starts)  [s]
 
-        double flatfieldNoiseRMS;     // Peak-to-peak noise amplitude
+        double chargeDiffusionStrength;		// Strength of the charge diffusion (width of the Gaussian diffusion kernel) [pixels]
+        bool includeChargeDiffusion;		// Whether or not to include charge diffusion
+
+        double flatfieldNoiseRMS;           // Peak-to-peak noise amplitude
 
         bool includeFlatfield;              // Whether or not to include flat fielding        
         long flatfieldSeed;
+
+        bool includePhotometry;             // Whether or not to include on-the-fly photometry
+        int contaminationRadius;            // Stars outside the radius are never considered a contaminant of the main target [pix] 
+        double maskUpdateInterval;          // All photometric masks will be updated every xx days  [days]
+        vector<unsigned int> photStarIDs;   // Star IDs for which you need photometry
+
+        // The following maps contain for each star ID, a vector with the photometry information for each exposure.
+        // E.g. maskSizeTarget[1234][10] contains the nr of pixels of the mask of target 1234 for exposure 10.
+
+        map<unsigned int, vector<unsigned int>> exposureNrOfMaskUpdate;   // Photometric mask is updated once in a while
+        map<unsigned int, vector<unsigned int>> maskSizeTarget;                    // Nr of pixels within the mask for each target
+        map<unsigned int, vector<double>> inputFluxTarget;                // Flux of the target as computed from the (variable) Vmag
+        map<unsigned int, vector<double>> estimatedFluxTarget;            // Estimated flux for each target
+        map<unsigned int, vector<double>> varFluxTarget;                  //  Variance of the flux for each target
+        map<unsigned int, vector<double>> NSRtarget;                      // Noise/Signal ratio of the flux of each target
+    
+        // The indices of the masks are stored as [starID][exposureNr][index]
+        map<unsigned int, map<unsigned int, vector<unsigned int>>> rowIndexOfMaskOfTarget;  // The row indices of all mask pixels, for each target
+        map<unsigned int, map<unsigned int, vector<unsigned int>>> colIndexOfMaskOfTarget;  // The column indices of all mask pixels, for each target
 
     private:
 
