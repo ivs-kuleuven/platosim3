@@ -201,6 +201,10 @@ class Detector: public HDF5Writer
         double darkCurrent;						 // Dark current [e- / s]
         double dsnu;							 // Dark signal non-uniformity
         double darkCurrentStability;             // Temperature stability of the dark current [e / K / s]
+        bool writePixelMaps;                     // Whether or not to write the pixel maps of the subfield to the HDF5 file, for each exposure
+        bool writeBiasMaps;                      // Whether or not to write the bias maps (left and right) to the HDF5 file, for each exposure
+        bool writeSmearingMaps;                  // Whether or not to write the smearing maps to the HDF5 file, for each exposure 
+        bool writeThroughputMaps;                // Whether or not to write the throughput maps to the HDF5 file, for each exposure
 
         string CTImodel;
         double meanCte;                          // Mean charge-transfer efficiency  (in [0,1])
