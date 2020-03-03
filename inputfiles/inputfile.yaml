@@ -256,11 +256,13 @@ RandomSeeds:
     CosmicSeed:                      1494750830      # Unique positive integer, or -1 to auto-set using clock
     DarkSignalSeed:                  1468838669      # Unique positive integer, or -1 to auto-set using clock
 
+
 ControlHDF5Content:
     WritePixelMaps:                  yes             # The 2D subimages for each exposure 
     WriteBiasMaps:                   yes             # 2D bias maps for the left and right hand side of the CCD, for each exposure
     WriteSmearingMaps:               yes             # 2D smearing maps, for each exposure
     WriteThroughputMaps:             yes             # 2D throughput maps (QE, vignetting, contamination, ...), for each exposure
+    WriteFlatfieldMap:               yes             # 2D image of the flatfield (PRNU and/or IRNU)
     WriteSubPixelImages:             no              # Only use this for a limited number of exposures. Takes a lot of space! 
     WriteStarPositions:              yes             # StarPositions are written in pixel and focal plane coordinates + flux and
                                                      # scales with the number of exposures and the number of stars in the field.
@@ -276,6 +278,7 @@ ControlTcpConnection:
 
     WindowPositionSocketTimeout:    100  # seconds
     JitterSocketTimeout:            100  # seconds
+
 
 # ----- DO NOT MAKE CHANGES BELOW THIS LINE -----
 

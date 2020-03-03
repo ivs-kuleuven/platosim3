@@ -940,6 +940,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("WritePixelMaps");
     addBoolean("WriteBiasMaps");
     addBoolean("WriteSmearingMaps");          
+    addBoolean("WriteFlatfieldMap");          
     addBoolean("WriteSubPixelImages");
     addBoolean("WriteStarPositions");
 

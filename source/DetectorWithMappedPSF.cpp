@@ -140,6 +140,9 @@ DetectorWithMappedPSF::~DetectorWithMappedPSF()
 	numRowsSubPixelMap = numRowsPixelMap * numSubPixelsPerPixel; // TODO Add edge pixels
 	numColumnsSubPixelMap = numColumnsPixelMap * numSubPixelsPerPixel; // TODO Add edge pixels
 
+    // The configuration for the HDF5 contents
+    
+    writeFlatfieldMap = configParam.getBoolean("ControlHDF5Content/WriteFlatfieldMap");
 }
 
 
@@ -234,7 +237,11 @@ void DetectorWithMappedPSF::generateFlatfieldMap()
 
     // Write the result to the HDF5 output file
 
-    hdf5File.writeArray("/Flatfield", "IRNU", flatfieldMap);
+    if (writeFlatfieldMap)
+    {
+        Log.debug("DetectorWithMappedPSF: writing IRNU to HDF5");
+        hdf5File.writeArray("/Flatfield", "IRNU", flatfieldMap);
+    }
 
     // Rebin the intra-pixel flatfield to the pixel flatfield (IRNU -> PRNU)
     // and also write this array to the HDF5 outputfile. This PRNU array is not used
@@ -258,9 +265,11 @@ void DetectorWithMappedPSF::generateFlatfieldMap()
 
     // Write the result to the HDF5 output file
 
-    Log.debug("Detector: writing PRNU to HDF5");
-
-    hdf5File.writeArray("/Flatfield", "PRNU", prnu);
+    if (writeFlatfieldMap)
+    {
+        Log.debug("DetectorWithMappedPSF: writing PRNU to HDF5");
+        hdf5File.writeArray("/Flatfield", "PRNU", prnu);
+    }
 }
 
 

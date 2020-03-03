@@ -67,7 +67,8 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
         double flatfieldNoiseRMS;           // Peak-to-peak noise amplitude
 
         bool includeFlatfield;              // Whether or not to include flat fielding        
-        long flatfieldSeed;
+        long flatfieldSeed;                 // Seed dedicated to generate a random flatfield map
+        bool writeFlatfieldMap;             // Whether or not to write the flatfield map to the HDF5 file
 
         bool includePhotometry;             // Whether or not to include on-the-fly photometry
         int contaminationRadius;            // Stars outside the radius are never considered a contaminant of the main target [pix] 

@@ -196,6 +196,12 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
         }
     }
 
+
+    // The configuration for the HDF5 contents
+    
+    writeFlatfieldMap = configParam.getBoolean("ControlHDF5Content/WriteFlatfieldMap");
+
+
 } // end configure()
 
 
@@ -349,11 +355,12 @@ void DetectorWithAnalyticNonGaussianPSF::generateFlatfieldMap()
 
     // Write the result to the HDF5 output file
 
-    Log.debug("Detector: writing PRNU to HDF5");
-
-    hdf5File.writeArray("/Flatfield", "PRNU", flatfieldMap);
+    if (writeFlatfieldMap)
+    {
+        Log.debug("Detector: writing PRNU to HDF5");
+        hdf5File.writeArray("/Flatfield", "PRNU", flatfieldMap);
+    }
 }
-
 
 
 
