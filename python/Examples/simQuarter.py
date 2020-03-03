@@ -100,8 +100,8 @@ sim["Platform/SolarPanelOrientation"] = math.fmod(quarter * 90., 360.)         #
 
 cycleTime = sim["ObservingParameters/CycleTime"]
 readoutTime, dummy = sim.getReadoutTime()
-numExposures = 10
-#numExposures = int(365.25 / 4 * 86400 / cycleTime)
+numExposures = 10                                                              # for testing
+#numExposures = int(365.25 / 4 * 86400 / cycleTime)                            # the real stuff
 sim["ObservingParameters/NumExposures"] = numExposures
 sim["ObservingParameters/BeginExposureNr"] = (quarter-1) * numExposures  
 
