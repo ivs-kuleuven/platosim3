@@ -126,6 +126,71 @@ set<unsigned int> Camera::getAllStarIDs()
 
 
 
+/**
+ * \brief Return the mean position on the CCD, and flux of the star with given ID for the last exposure.
+ *
+ * \details Mean refers to the mean position during the jittering during the exposure. If the star ID 
+ *          is not found in the list, the value -1 is returned for each quantity.
+ * 
+ * \return A tuple with the following quantities: 
+ *    timeStamp: the time stamp of the last exposure                              [s]
+ *    xFPmean: mean (during the exposure) focal plane x-coordinate of the star    [mm]
+ *    yFPmean: mean focal plane y-coordinate of the star                          [mm]
+ *    rowPixMean: mean subfield (fractional) row coordinate                       [pix]
+ *    colPixMean: mean subfield (fractional) column coordinate                    [pix]
+ *    sumFlux: the integrated flux of the star during one exposure                [photons/exposure]
+ */
+
+tuple<double, double, double, double, double, double> Camera::getInfoForTheMostRecentExposureForStar(int starID)
+{
+    // The detected star info is stored in a map as:   map<double, map<unsigned int, array<double, 6>>> detectedStarInfo;
+    // so that  detectedStarInfo[startTime][starID] contains the values (xFPmean, yFPmean, rowPixMean, colPixmean, sumFlux, Ndetections)
+    // In C++ maps are sorted on key values (in ascending order). To find the time stamp of the most recent exposure, 
+    // we simply need to access the last element. rbegin() is a reverse-iterator, starting with the last element
+
+    double timeStamp = detectedStarInfo.rbegin()->first;
+
+    // Find the map item with the given starID
+
+    auto it = detectedStarInfo[timeStamp].find(starID);
+    if (it == detectedStarInfo[timeStamp].end())
+    {
+        // The starID couldn't be found in the map. 
+
+        return make_tuple(-1, -1, -1, -1, -1, -1);
+    }
+    else
+    {
+        double xFPmean    = detectedStarInfo[timeStamp][starID][0];
+        double yFPmean    = detectedStarInfo[timeStamp][starID][1];
+        double rowPixMean = detectedStarInfo[timeStamp][starID][2];
+        double colPixMean = detectedStarInfo[timeStamp][starID][3];
+        double sumFlux    = detectedStarInfo[timeStamp][starID][4];
+
+        return make_tuple(timeStamp, xFPmean, yFPmean, rowPixMean, colPixMean, sumFlux);
+    }
+
+}
+
+
+
+
+
+
+/**
+ *  \brief return the begin and end iterator of the star info of detectedStarInfo[most_recent_time];
+ */
+
+pair<starInfoIterator, starInfoIterator> Camera::getInfoForTheMostRecentExposureForAllStars()
+{
+   // The detected star info is stored in a map as:   map<double, map<unsigned int, array<double, 6>>> detectedStarInfo;
+    // so that  detectedStarInfo[startTime][starID] contains all the information.
+    // In C++ maps are sorted on key values (in ascending order). To find the time stamp of the most recent exposure, 
+    // we simply need to access the last element. rbegin() is a reverse-iterator, starting with the last element
+
+    double timeStamp = detectedStarInfo.rbegin()->first;
+    return make_pair(detectedStarInfo[timeStamp].begin(), detectedStarInfo[timeStamp].end());
+}
 
 
 
@@ -966,7 +1031,7 @@ double Camera::getTotalSkyBackground()
     }
     else
     {
-        throw std::runtime_error( "Camera::getTotalSkyBackground() was called with a skybackground being available");
+        throw std::runtime_error( "Camera::getTotalSkyBackground() was called with no skybackground being available");
     }
 }
 

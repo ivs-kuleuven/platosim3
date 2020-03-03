@@ -199,6 +199,48 @@ int ConfigurationParameters::getInteger(const string &key)
 
 
 
+/**
+ * \brief      Return the integer value for the specified parameter.
+ *
+ * \details    
+ * 
+ * The key is the name of the input parameter. If the input parameter is part
+ * of a section or group, then the key is a combination of the group name and 
+ * the parameter name, separated by a '/' delimiter. E.g. if the parameter CycleTime 
+ * is part of the group ObservingParameters, then the key to get the value for this
+ * parameter would be "ObservingParameters/CycleTime".
+ * 
+ * \param[in]  key The name of a parameter used in the PLATO Simulator
+ *
+ * \returns    An integer value for the given parameter
+ */
+unsigned int ConfigurationParameters::getUnsignedInteger(const string &key)
+{
+    int value;
+
+    YAML::Node node = getNode(key);
+
+    try
+    {
+        value = node.as<unsigned int>();
+    }
+    catch(YAML::Exception ex)
+    {
+        throw ConfigurationException("ConfigurationParameters: cannot convert key to unsigned integer: key=\"" + key + "\", value= " + node.as<string>());
+    }
+
+    return value;
+}
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -26,10 +26,19 @@ from referenceFrames import CCD
 inputDir = os.getenv("PLATO_PROJECT_HOME") + "/inputfiles"
 
 
+#--- Check the number of input arguments
+
+if len(sys.argv) != 4:
+    print("Usage:   $ python3 simQuarter.py <cameraGroupNr> <cameraNr> <quarterNr>")
+    print("Example: $ python3 simQuarter.py 2 5 6")
+    exit(1)
+
+
+
 #--- Configuration parameters
 
-inputFile   = inputDir + "/inputmagali.yaml"
-outputDir = "/STER/joris/Plato/PlatoSimulations/"
+inputFile = inputDir + "/inputmagali.yaml"
+outputDir = os.getenv("PLATO_PROJECT_HOME") 
 outputPrefix = "Run1"
 print("Using " + inputFile + " as inputfile")
 print("Writing output to " + outputDir + outputPrefix + "_Q*_group*_camera*.hdf5")
@@ -91,7 +100,8 @@ sim["Platform/SolarPanelOrientation"] = math.fmod(quarter * 90., 360.)         #
 
 cycleTime = sim["ObservingParameters/CycleTime"]
 readoutTime, dummy = sim.getReadoutTime()
-numExposures = int(365.25 / 4 * 86400 / cycleTime)
+numExposures = 10                                                              # for testing
+#numExposures = int(365.25 / 4 * 86400 / cycleTime)                            # the real stuff
 sim["ObservingParameters/NumExposures"] = numExposures
 sim["ObservingParameters/BeginExposureNr"] = (quarter-1) * numExposures  
 

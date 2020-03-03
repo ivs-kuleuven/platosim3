@@ -48,6 +48,7 @@ class DetectorWithAnalyticGaussianPSF: public Detector
 
         bool includeFlatfield;              // Whether or not to include flat fielding        
         long flatfieldSeed;
+        bool writeFlatfieldMap;             // Whether or not to write the flatfield map to the HDF5 file 
 
     private:
 

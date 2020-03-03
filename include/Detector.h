@@ -193,12 +193,18 @@ class Detector: public HDF5Writer
         double refValueGainRight;                // Reference value for the gain on the ACD reading the right-hand side of the detector [µV/e-]
         double gainStability;                    // Gain stability [µV/e-]
         double gainAllowedDifference;            // Allowed difference in gain between the left and the right half of the detector [% of the reference values]
+        double combinedGainLeft;                 // Combined (CCD + FEE) gain for the left half of the CCD      [ADU / e-]
+        double combinedGainRight;                // Combined (CCD + FEE) gain for the right half of the CCD     [ADU / e-]
         unsigned long fullWellSaturationLimit;   // Full-well saturation limit [electrons/pixel]
         unsigned int electronicOffset;           // Bias or electronic offset [ADU]
         unsigned long digitalSaturationLimit;    // Digital saturation limit [ADU / pixel]
         double darkCurrent;						 // Dark current [e- / s]
         double dsnu;							 // Dark signal non-uniformity
         double darkCurrentStability;             // Temperature stability of the dark current [e / K / s]
+        bool writePixelMaps;                     // Whether or not to write the pixel maps of the subfield to the HDF5 file, for each exposure
+        bool writeBiasMaps;                      // Whether or not to write the bias maps (left and right) to the HDF5 file, for each exposure
+        bool writeSmearingMaps;                  // Whether or not to write the smearing maps to the HDF5 file, for each exposure 
+        bool writeThroughputMaps;                // Whether or not to write the throughput maps to the HDF5 file, for each exposure
 
         string CTImodel;
         double meanCte;                          // Mean charge-transfer efficiency  (in [0,1])

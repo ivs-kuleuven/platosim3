@@ -51,19 +51,20 @@ class DetectorWithMappedPSF: public Detector
         arma::Mat<float> flatfieldMap;          // Intra-pixel flatfield map
 
         double chargeDiffusionStrength;			// Strength of the charge diffusion (width of the Gaussian diffusion kernel) [pixels]
-        bool includeChargeDiffusion;				// Whether or not to include charge diffusion
-        bool includeJitterSmoothing;             // Whether or not to include jitter smoothing
+        bool includeChargeDiffusion;			// Whether or not to include charge diffusion
+        bool includeJitterSmoothing;            // Whether or not to include jitter smoothing
 
-        double flatfieldNoiseRMS;         // Peak-to-peak noise amplitude
+        double flatfieldNoiseRMS;               // Peak-to-peak noise amplitude
 
         bool includeFlatfield;                  // Whether or not to include flat fielding
+        bool writeFlatfieldMap;                 // Whether or not to write the flatfield map to the HDF5 file
         bool writeSubPixelImagesToHDF5;         // Write subpixel maps to HDF5 as well
         bool includeConvolution;                // Whether or not to convolve the subPixelMap with the PSF
 
         arma::Mat<float> diffusionKernel;                    // Diffusion kernel image
-        IntegralOfAnalyticSignalResponse signalResponse;		// Signal response
-        double diffusionKernelWidth;				            // Width (sigma) of the Gaussian diffusion kernel [sub-pixels]
-        int diffusionKernelImageSize;             			// Size of the diffusion kernel image [sub-pixels]
+        IntegralOfAnalyticSignalResponse signalResponse;	 // Signal response
+        double diffusionKernelWidth;				         // Width (sigma) of the Gaussian diffusion kernel [sub-pixels]
+        int diffusionKernelImageSize;             		     // Size of the diffusion kernel image [sub-pixels]
 
         unsigned int numRowsSubPixelMap;        // Nr of subpixel rows in the subfield incl. edge pixels (= size in the y-direction) [subpixels]
         unsigned int numColumnsSubPixelMap;     // Nr of subpixel columns in the subfield incl. edge pixels (= size in the x-direction = readout direction) [subpixels]

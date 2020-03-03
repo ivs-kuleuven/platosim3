@@ -17,9 +17,9 @@ Similarly, the corresponding smearing and bias maps can be obtained through:
 >>> smearingMap = f.getSmearingMap(10)
 
 
-To plot the subfield image of the 10th exposure:
+To plot the subfield image of the 10th exposure with some annotation (photometry is assumed available):
 
->>> f.showImage(10, showStarPositions=True)
+>>> f.showImage(10, showStarPositions=True, showStarIDs=True, showMaskOfStarID=30, useTitle=False, clipPercentile=3)
 
 
 To get information of the stars that were detected on the subfield in at least one exposure.
@@ -36,6 +36,16 @@ To get the coordinates of all stars within a magnitude range [minVmag, maxVmag] 
 To get an imagette around star #13561 in image #2:
 
 >>> im = f.getImagette(13561, 10, radius = 2)
+
+
+To get a light curve of star with ID = 10. lctype can be 'estimated' or 'input'
+
+>>>  time, flux = f.getLightCurve(10, lctype="estimated") 
+
+
+To get the pixels of the photometric mask. exposureNr is when the mask was created, and afterwards reused for imageNr.
+
+>>> rowIndices, colIndices, exposureNr = f.getPhotometricMask(starID=10, imageNr=1000) 
 
 
 To get the time series of the yaw, pitch:
@@ -71,6 +81,7 @@ import os
 import numpy as np
 import h5py
 from matplotlib import pyplot as plt
+import matplotlib.patches as patches
 import matplotlib.cm as cm
 from astropy.io import fits
 
@@ -330,17 +341,22 @@ class SimFile (object):
 
 
 
-    def showImage(self, imageNr, clipPercentile=5.0, showStarPositions=False, useTitle=True):
+    def showImage(self, imageNr, clipPercentile=5.0, showStarPositions=False, showStarIDs=False, showMaskOfStarID=None, useTitle=True):
 
         """
         PURPOSE: make a plot of the requested image 
 
-        INPUT: imageNr:           Integer sequential number of the image in the HDF5 file
-               clipPercentile:    In [0,49]. Intensities will be clipped between [value, 100-value]
-                                             to improve the image contrast. 
-               showStarPositions: True if the average star positions (averaged over the exposure)
-                                  should be shown with a small green cross. False otherwise.
-               useTitle:          True is an image title should be plotted, False otherwise
+        INPUT:  imageNr:           Integer sequential number of the image in the HDF5 file
+                clipPercentile:    In [0,49]. Intensities will be clipped between [value, 100-value]
+                                              to improve the image contrast. 
+                showStarPositions: True if the average star positions (averaged over the exposure)
+                                   should be shown with a small green cross. False otherwise.
+                showStarIDs: Put small labels with the star IDs next to the star positions
+                             Will only be executed if showStarPositions=True is set.
+                showMaskOfStarID: draw rectangles around the pixels of the mask that is used to extract the flux
+                                  value of the star with the given ID. Only works if photometry was activated
+                                  in the yaml inputfile
+                useTitle:          True is an image title should be plotted, False otherwise
 
         OUTPUT: None
 
@@ -352,6 +368,9 @@ class SimFile (object):
         # Get the image from the HDF5 file
 
         image = self.getImage(imageNr)
+        if image is None:
+            print("Cannot extract image nr ", imageNr)
+        
         Nrows, Ncols = image.shape
 
         # Plot the image. Note that pixel coordinates start at the left bottom side of each pixel. 
@@ -369,7 +388,11 @@ class SimFile (object):
 
         if showStarPositions:
             ID, row, col, Xmm, Ymm, flux = self.getStarCoordinates(imageNr)
-            axis.scatter(col, row, marker='x', c='g')        
+            axis.scatter(col, row, marker='x', c='g') 
+            if showStarIDs:
+                for k in range(len(ID)):
+                    label = "{0}".format(ID[k])   
+                    axis.annotate(label, (col[k], row[k]), fontsize='small', fontweight='extra bold', color="black")    
 
         # Ensure that the axis limits are properly set.
         
@@ -400,6 +423,15 @@ class SimFile (object):
 
         plt.xticks(np.arange(0, Nrows, 10))
         plt.yticks(np.arange(0, Ncols, 10))
+
+        # Overplot rectangles over those pixels that are part of the mask
+        # Note: imshow reverses rows and columns
+
+        if showMaskOfStarID is not None:
+            rowIndices, colIndices, exposureNr = self.getPhotometricMask(showMaskOfStarID, imageNr)
+            for k in range(len(rowIndices)):
+                rect = patches.Rectangle((colIndices[k], rowIndices[k]), 1, 1, linewidth=2.0, edgecolor='b', facecolor='none')
+                axis.add_patch(rect)
 
         # Show the image
 
@@ -547,11 +579,11 @@ class SimFile (object):
 
         OUTPUT: starIDs:        Sequential number of those stars in the input catalog that were detected
                                 on the subfield in one or more exposures.
-                RA:             Right ascension in decimal degrees 
-                decl:           Declination in decimal degrees
+                RA:             Right ascension                                                       [deg]
+                decl:           Equatorial declination                                                [deg]
                 Vmag:           V magnitude
-                xFPmm, yFPmm:   Initial planar focal plane coordinates of the stars [mm]
-                rowPix, colPix: Initial pixel coordinates of the stars [pixels:float]
+                xFPmm, yFPmm:   Initial planar focal plane coordinates of the stars                   [mm]
+                rowPix, colPix: Initial CCD (not subfield) real-valued pixel coordinates of the stars [pix]
 
         EXAMPLE:
 
@@ -758,6 +790,121 @@ class SimFile (object):
 
 
 
+
+
+
+
+    def getPhotometricMask(self, starID, imageNr):
+        """
+        PURPOSE: return the subfield row and column indices of the mask that is used to extract
+                 the flux of star with the given ID for the given exposure number. This only makes
+                 sense if the photometry was activated in the configuration yaml file.
+
+        INPUT: starID:  ID of the star as mentioned in the last column of the star catalog file
+               imageNr: integer sequential number of the image in the HDF5 file
+
+        OUTPUT: rowIndices: subimage row indices for each of the mask pixels
+                colIndices: subimage column indices for each of the mask pixels
+                exposureNr: the image number in which the mask was derived.
+                            exposureNr <= imageNr
+
+        NOTE: Masks are not update continuously, but only once in a while. This function searches
+              for the most recent mask. This mask may have thus been derived from a previous image
+              rather than from the given image Nr.
+        """
+
+        if "Photometry" not in self.hdf5file["/"].keys():
+            print("Error: getPhotometricMask(): No photometry present in the HDF5 file")
+            return None, None
+
+        starIDgroupName = "starID{0}".format(starID)
+        if starIDgroupName not in self.hdf5file["Photometry"]["Masks"].keys():
+            print("Error: getPhotometricMask(): " + starIDgroupName + " not present in Photometry/Masks/ in the HDF5 file")
+            return None, None
+
+        # Masks are not updated for every exposure, so find the exposure Nr of the most recent mask
+
+        dataset = self.hdf5file["Photometry"]["Masks"]["exposureNrOfMaskUpdate"]
+        exposureNrOfMaskUpdate = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(exposureNrOfMaskUpdate)
+
+        idx = np.searchsorted(exposureNrOfMaskUpdate, imageNr, side='right') - 1
+        if idx < 0:
+            print("Error: getPhotometricMask(): requesting an imageNr that is too early for this HDF5 file")
+            return None, None
+
+        exposureNr = exposureNrOfMaskUpdate[idx]
+
+        # Extract the indices of the proper mask
+        
+        exposureGroupName = "Exposure{0:06d}".format(exposureNr)
+        
+        dataset = self.hdf5file["Photometry"]["Masks"][starIDgroupName][exposureGroupName]["maskRowIndices"]
+        rowIndices = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(rowIndices)
+
+        dataset = self.hdf5file["Photometry"]["Masks"][starIDgroupName][exposureGroupName]["maskColumnIndices"]
+        colIndices = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(colIndices)
+
+        return rowIndices, colIndices, exposureNr
+
+
+
+
+
+
+
+    def getLightCurve(self, starID, lctype="estimated"):
+
+        """
+        PURPOSE: Extract the light curve of the star with the given ID.
+
+        INPUT: starID: ID of the star as mentioned in the last column of the star catalog file
+               lctype: either "estimated" or "input". The estimated one is derived from a binary mask.
+                       the input one is derived from the mean input magnitude specified in the star catalog
+                       and (for variable stars) the delta-magnitude time series given as an input file.
+                       
+        OUTPUT: time: [s]
+                flux: [electrons/exposure]
+        """
+
+        # Verify if the necessary info is in the HDF5 file 
+        
+        if "Photometry" not in self.hdf5file["/"].keys():
+            print("Error: getLightCurve(): No photometry present in the HDF5 file")
+            return None, None
+
+        starIDgroupName = "starID{0}".format(starID)
+        if starIDgroupName not in self.hdf5file["Photometry"]["Lightcurves"].keys():
+            print("Error: getLightCurve(): " + starIDgroupName + " not present in Photometry/Lightcurves/ in the HDF5 file")
+            return None, None
+
+        if "Time" not in self.hdf5file["StarPositions"].keys():
+            print("Error: getLightCurve(): Time array not present in StarPositions group. Configure HDF5 output in yaml input file.")
+            return None, None
+
+        # Select the proper flux name
+
+        if lctype == "estimated":
+            datasetName = "estimatedFlux"
+        elif lctype == "input":
+            datasetName = "inputFlux"
+        else:
+            print("Error: getLightCurve(): lctype can only be 'estimated' or 'input'")
+            return None, None 
+
+        # Extract the flux and the time points
+
+        dataset = self.hdf5file["Photometry"]["Lightcurves"][starIDgroupName][datasetName]
+        flux = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(flux)
+
+        dataset = self.hdf5file["StarPositions"]["Time"]
+        time = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(time)       
+
+        return time, flux
 
 
 

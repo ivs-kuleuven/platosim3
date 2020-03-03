@@ -31,6 +31,7 @@ class ConfigurationParameters
         vector<string> getKeys(const string nodeName);
         bool getBoolean(const string &);
         int getInteger(const string &);
+        unsigned int getUnsignedInteger(const string &);
         long getLong(const string &);
         double getDouble(const string &);
         string getString(const string &);

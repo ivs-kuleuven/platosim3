@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <map>
 #include <array>
+#include <tuple>
 
 #include "armadillo"
 
@@ -33,6 +34,8 @@ using namespace std;
 
 class Detector;  // forward declaration
 
+typedef map<unsigned int, array<double, 6>>::iterator starInfoIterator;
+
 
 class Camera : public HDF5Writer
 {
@@ -57,6 +60,9 @@ class Camera : public HDF5Writer
         double getGnomonicRadialDistanceFromOpticalAxis(double xFP, double yFP);
 
         set<unsigned int> getAllStarIDs();
+
+        tuple<double, double, double, double, double, double> getInfoForTheMostRecentExposureForStar(int starID);
+        pair<starInfoIterator, starInfoIterator> getInfoForTheMostRecentExposureForAllStars();
 
         double getTotalSkyBackground();
         double getFocalLength();

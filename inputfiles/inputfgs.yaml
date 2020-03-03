@@ -243,6 +243,14 @@ SubField:
     SubPixels:                   32              # (Sqrt of ) nr of subpixels per CCD pixel. Should be 2^n <= 128.
 
 
+Photometry:                                          # Only possible when 'AnalyticNonGaussian' is selected as PSF
+
+    IncludePhotometry:               no
+    ContaminationRadius:             4               # Only consider contaminants that are within this number of pixels [integer pixels]
+    MaskUpdateInterval:              14.0            # Photometric masks will be updated every xx days  [days]
+    TargetFileName:                  inputfiles/photometryTargets.txt      # One column with star IDs for which you want to have photometry
+
+
 RandomSeeds:
 
     ReadOutNoiseSeed:            1424949740      # Unique positive integer 
@@ -255,9 +263,14 @@ RandomSeeds:
     
 
 ControlHDF5Content:
-    WriteSubPixelImages:         no              # Only use this for a limited number of exposures. Takes a lot of space! 
-    WriteStarPositions:          yes             # StarPositions are written in pixel and focal plane coordinates + flux and
-                                                 # scales with the number of exposures and the number of stars in the field.
+    WritePixelMaps:                  yes             # The 2D subimages for each exposure 
+    WriteBiasMaps:                   yes             # 2D bias maps for the left and right hand side of the CCD, for each exposure
+    WriteSmearingMaps:               yes             # 2D smearing maps, for each exposure
+    WriteThroughputMaps:             yes             # 2D throughput maps (QE, vignetting, contamination, ...), for each exposure
+    WriteFlatfieldMap:               yes             # 2D image of the flatfield (PRNU)
+    WriteSubPixelImages:             no              # Only use this for a limited number of exposures. Takes a lot of space! 
+    WriteStarPositions:              yes             # StarPositions are written in pixel and focal plane coordinates + flux and
+                                                     # scales with the number of exposures and the number of stars in the field.
 
 
 ControlTcpConnection:
