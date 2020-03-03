@@ -68,7 +68,7 @@ Camera:
     PlateScale:                      0.8333          # [arcsec/micron]
     FocalPlaneOrientation:
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent)
-        ConstantValue:               0.0            # [degrees]. Used in case Source is ConstantValue. 
+        ConstantValue:               45.0            # [degrees]. Used in case Source is ConstantValue. 
         FromFile:                    inputfiles/fporientation.txt  # Used in case Source is FromFile. time [s] & FP orientation [deg]
     FocalLength: 
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
