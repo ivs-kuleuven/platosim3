@@ -1,4 +1,7 @@
 """
+
+Usage: $ python3 demo_multiTelescopeConfiguration.py
+
 Example script showing how to run the Plato Simulator for a multi-telescope configuration.  The 32 telescopes are arranged in four groups of 8 telescopes.
 All telescopes in the same group have the same FOV and the lines of sight of the four groups are offset by an angle of 9.2 degrees from the PLM z-axis.
 
@@ -58,15 +61,6 @@ outputPrefix = "MultiTelescopeConfiguration"
 ##########################
 
 
-# Observing parameters
-######################
-
-raPlatform  = 10.0                       # Platform right ascension pointing coordinate [degrees]
-decPlatform = 10.0                       # Platform declination pointing coordinate [degrees]
-
-
-raCenter = 7.0                # Right ascension on which to centre the sub-field [degrees]
-decCenter = 15.0              # Declination on which to centre the sub-field [degrees]
 
 # Telescope parameters
 ######################
@@ -94,8 +88,8 @@ flatfieldSeed = 1433320381              # Random seed for the flatfield         
 
 # Zeropoint depends on the pointing of the telescope
 
-numColumnsSubField = 10                 # Number of columns in the modelled sub-field [pixels]
-numRowsSubField = 10                    # Number of rows in the modelled sub-field [pixels]
+numColumnsSubField = 40                 # Number of columns in the modelled sub-field [pixels]
+numRowsSubField = 40                    # Number of rows in the modelled sub-field [pixels]
 
 
 
@@ -128,7 +122,12 @@ for group in range(numTelescopeGroups):
         
         azimuthAngles = sim["CameraGroups/AzimuthAngle"]
         tiltAngles = sim["CameraGroups/TiltAngle"]
-        
+       
+        # Get the Platform pointing from the yaml file
+
+        raPlatform = sim["ObservingParameters/RApointing"]        # [deg]
+        decPlatform = sim["ObservingParameters/DecPointing"]      # [deg]
+
         # Compute the telescope pointing, based on the platform pointing, and the tilt and azimuth angle of the telescope
         
         raSun, decSun = sunSkyCoordinatesAwayfromPlatformPointing(math.radians(raPlatform), math.radians(decPlatform))
@@ -136,19 +135,27 @@ for group in range(numTelescopeGroups):
 
         print("Platform pointing: {0}, {1}".format(raPlatform, decPlatform))
         print("Telescope pointing: {0}, {1}".format(math.degrees(raTelescope), math.degrees(decTelescope)))
-        #print("Sun: {0}, {1}".format(math.degrees(raSun), math.degrees(decSun)))
         
         includeFieldDistortion = (sim["Camera/IncludeFieldDistortion"] == "no")  
         distortionCoefficients = sim["Camera/FieldDistortion/ConstantCoefficients"]
-        focalPlaneAngle = sim["Camera/FocalPlaneOrientation/ConstantValue"]         # Focal-plane orientation [degrees]
-        focalLength = sim["Camera/FocalLength/ConstantValue"] * 1000                # Focal length [mm]
-        plateScale  = sim["Camera/PlateScale"]                                      # Plate scale [arcsec / micron]
-        pixelSize   = sim["CCD/PixelSize"]                                          # Pixel size [micron / pixel]
-        
+        focalLength = sim["Camera/FocalLength/ConstantValue"] * 1000                   # Focal length [mm]
+        plateScale  = sim["Camera/PlateScale"]                                         # Plate scale [arcsec / micron]
+        pixelSize   = sim["CCD/PixelSize"]                                             # Pixel size [micron / pixel]
+       
+
+        focalPlaneAngle = 45.0 + group * 90.0                                                       # [deg]
+        solarPanelOrientation = math.radians(float(sim["Platform/SolarPanelOrientation"]))          # [rad]
+
+        # Set the subfield to the same pointing as the platform
+        # This alwas falls on a CCD, provided that you properly turn the focal plane (see below)
+
+        raCenter = raPlatform
+        decCenter = decPlatform
+
         # Determine on which CCD (A, B, C, or D) the coordinates (raCenter, decCenter) are positioned and at which location
         # (in pixel coordinates)
         
-        ccdCode, columnCenter, rowCenter = getCCDandPixelCoordinates(math.radians(raCenter), math.radians(decCenter), math.radians(raPlatform), math.radians(decPlatform), math.radians(tiltAngles[group]), math.radians(azimuthAngles[group]), math.radians(focalPlaneAngle), focalLength, pixelSize, includeFieldDistortion, distortionCoefficients, normal = True)
+        ccdCode, columnCenter, rowCenter = getCCDandPixelCoordinates(math.radians(raCenter), math.radians(decCenter), math.radians(raPlatform), math.radians(decPlatform), solarPanelOrientation, math.radians(tiltAngles[group]), math.radians(azimuthAngles[group]), math.radians(focalPlaneAngle), focalLength, pixelSize, includeFieldDistortion, distortionCoefficients, normal = True)
         
         # Check whether the sub-field falls entirely on the detector
         
@@ -160,9 +167,11 @@ for group in range(numTelescopeGroups):
         
             sim["ObservingParameters/RApointing"] = raPlatform
             sim["ObservingParameters/DecPointing"] = decPlatform
-            # Telescope parameters
+
+            # Camera & Telescope parameters
             
             sim["Telescope/GroupID"] = group + 1
+            sim["Camera/FocalPlaneOrientation/ConstantValue"] = focalPlaneAngle
     
             # CCD parameters
             

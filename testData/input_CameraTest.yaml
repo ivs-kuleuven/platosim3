@@ -35,7 +35,7 @@ Sky:
 Platform:
 
     UseJitter:               yes             # yes or no
-    UseJitterFromFile:       no              # yes or no
+    JitterSource:            FromRedNoise    # FromFile, FromRedNoise, or FromNetwork
     JitterYawRms:            2.3             # [arcsec]
     JitterPitchRms:          2.3             # [arcsec]
     JitterRollRms:           2.3             # [arcsec]

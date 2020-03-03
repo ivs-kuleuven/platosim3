@@ -15,7 +15,7 @@ ObservingParameters:
     RApointing:                  86.79870         # Platform (not telescope) right ascension pointing coordinate      [deg] 
     DecPointing:                 -46.39595        # Platform (not telescope) declination pointing coordinate          [deg]
     Fluxm0:                      1.00179e8        # Photon flux of a V=0 G2V-star                                     [phot/s/m^2/nm]
-    StarCatalogFile:             inputfiles/complete_cat.txt
+    StarCatalogFile:             inputfiles/guide_stars_EQ.txt
 
 
 Sky:
@@ -42,7 +42,7 @@ Platform:
     JitterRollRms:               0.08             # [arcsec]
     JitterTimeScale:             180              # [s]
     JitterFileName:              inputfiles/PlatoJitter_OHB.txt 
-
+    
 
 Telescope:
     

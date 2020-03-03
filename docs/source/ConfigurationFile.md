@@ -16,6 +16,7 @@ Any desired simulation can be obtained by modifying the following input:
 		* [CCD parameters](#ccdParameters)
 		* [sub-field parameters](#subFieldParameters)
 		* [seed parameters](#seedParameters)
+        * [control TCP connection parameters](#controlTcpConnection)
 		* additionally, there are two blocks that hold pre-defined settings (which you should NOT alter):
 			- [camera group 1, 2, 3, and 4, and fast cameras](#cameraGroups)
 			- [CCD 1, 2, 3, and 4](#ccdPositions)
@@ -275,7 +276,7 @@ Platform:
 
     SolarPanelOrientation:       0
     UseJitter:                   yes             
-    UseJitterFromFile:           no              
+    JitterSource:                FromRedNoise
     JitterYawRms:                1.0             
     JitterPitchRms:              1.0             
     JitterRollRms:               1.0             
@@ -313,29 +314,37 @@ The angles are defined such that they increase with a clockwise rotation, when l
 
 
 
-### <a name="useJitterFromFile"></a>UseJitterFromFile
+### <a name="jitterSource"></a>JitterSource
 <i>Allowed values:</i> "yes" and "no"
 
 Indicates whether the jitter time series must be read from a jitter file ("yes") or the jitter positions must be generated from the jitter parameters ("no").
+FromFile, FromRedNoise, or FromNetwork
 
+<i>Allowed values:</i> "FromRedNoise", "FromFile", and "FromNetwork"
+
+Indicates from where to read the jitter:
+
+- FromRedNoise: the jitter positions must be generator from the jitter parameters;
+- FromFile: the jitter time series must be read from a jitter file;
+- FromNetwork: the jitter positions must be read from a network (which is configured in the [ControlTcpConnection](#controlTcpConnection) block).
 
 
 ### <a name="jitterYawRms"></a>JitterYawRms
-<i>Allowed values:</i> \f$\ge \f$ 0, only required if the jitter positions must be generated from jitter parameters ([useJitterFromFile](#useJitterFromFile) = no)
+<i>Allowed values:</i> \f$\ge \f$ 0, only required if the jitter positions must be generated from jitter parameters ([JitterSource](#jitterSource) = FromRedNoise)
 
 Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the yaw value from one jitter position to the next one.
 
 
 
 ### <a name="jitterPitchRms"></a>JitterPitchRms
-<i>Allowed values:</i> \f$\ge \f$ 0, only required if the jitter positions must be generated from jitter parameters ([useJitterFromFile](#useJitterFromFile) = no)
+<i>Allowed values:</i> \f$\ge \f$ 0, only required if the jitter positions must be generated from jitter parameters ([JitterSource](#jitterSource) = FromRedNoise)
 
 Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the pitch value from one jitter position to the next one.
 
 
 
 ### <a name="jitterRollRms"></a>JitterRollRms
-<i>Allowed values:</i> \f$\ge \f$ 0, only required if the jitter positions must be generated from jitter parameters ([useJitterFromFile](#useJitterFromFile) = no)
+<i>Allowed values:</i> \f$\ge \f$ 0, only required if the jitter positions must be generated from jitter parameters ([JitterSource](#jitterSource) = FromRedNoise)
 
 Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the roll value from one jitter position to the next one.
 
@@ -350,7 +359,7 @@ Timescale of the jitter (i.e. time between two subsequent jitter positions), exp
 
 ### <a name="jitterFileName"></a>JitterFileName
 
-Path of the jitter file, relative to the [project location](#projectLocation). This is only required if the jitter positions must be read from a file ([UseJitterFromFile](#useJitterFromFile) = yes).
+Path of the jitter file, relative to the [project location](#projectLocation). This is only required if the jitter positions must be read from a file ([JitterSpirce](#jitterSource) = FromFile).
 
 ---
 
@@ -2033,6 +2042,83 @@ Indicates whether or not the sub-pixel maps must be stored in the output file.  
 
 Indicates whether or not the star positions should be stored in pixel and focal plane coordinates in the output file.  This scales with the number of exposures and the number of stars in the sub-field.
 
+---
+
+
+
+
+
+<!-- ********************************* -->
+<!-- Control TCP connection parameters -->
+<!-- ********************************* -->
+
+## <a name="controlTcpConnection"></a>ControlTcpConnection
+
+The <b>ControlTcpConnection</b> block in the configuration file is used in case the jitter is read from a network ([JitterSource](#jitterSource) = FromNetwork).  The structure of this block is the following:
+
+\code{.yaml}
+ControlTcpConnection:
+
+    SendImagettesToClients:        no
+    GetWindowPositionsFromServer:  no
+
+    WindowPositionServerAddress: tcp://localhost:5558
+    JitterServerAddress:         tcp://localhost:5559
+    ImagetteClientAddress:       tcp://localhost:5560
+
+    WindowPositionSocketTimeout:    100
+    JitterSocketTimeout:            100
+\endcode
+
+
+
+### <a name="sendImagettesToClients"></a>SendImagettesToClients
+
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the simulated imagettes should be sent to the client.
+
+
+
+### <a name="getWindowPositionsFromServer"></a>GetWindowPositionsFromServer
+
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the window positions should be taken from a server and be updated in upcoming simulations.
+
+
+
+### <a name="windowPositionServerAddress"></a>WindowPositionServerAddress
+
+Address from which to read the window positions in case this is requested ([GetWindowPositionsFromServer](#getWindowPositionsFromServer) = yes).
+
+
+
+### <a name="jitterServerAddress"></a>JitterServerAddress
+
+Address from which to read the jitter positions.
+
+
+
+### ImagetteClientAddress
+
+Client address to which to send the simulated imagettes in case this is requested ([SendImagettesToClients](#sendImagettesToClients) = yes).
+
+
+
+### WindowPositionSocketTimeout
+
+<i>Allowed values:</i> > 0
+
+Number of seconds of not receiving window positions (from the [window position server](#windowPositionServerAddress)), after which the connection to that server is regarded as stalled / broken.
+
+
+
+### JitterSocketTimeout
+
+<i>Allowed values:</i> > 0
+
+Number of seconds of not receiving jitter positions (from the [jitter server](#jitterServerAddress)), after which the connection to that server is regarded as stalled / broken.
 
 ---
 
