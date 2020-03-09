@@ -399,6 +399,29 @@ void Detector::updateParameters(double time)
         throw ConfigurationException("Detector: Unkown CTI model specification in configuration file");
     }
 
+
+    chargeInjectionLevel = configParam.getDouble("CCD/ChargeInjection/InjectionLevel");
+    injectionRowInterval = configParam.getInteger("CCD/ChargeInjection/RowInterval");
+    firstInjectedRow = configParam.getInteger("CCD/ChargeInjection/FirstRow");
+    if (chargeInjectionLevel < 0 || chargeInjectionLevel > 100.0)
+    {
+        string message = "Detector:configure(): ChargeInjection/InjectionLevel not between 0 and 100";
+        Log.error(message);
+        throw ConfigurationException(message);
+    }
+    if (injectionRowInterval < 1 || injectionRowInterval > numRows)
+    {
+        string message = "Detector:configure(): ChargeInjection/rowInterval not between 1 and # of CCD rows";
+        Log.error(message);
+        throw ConfigurationException(message);
+    }
+    if (firstInjectedRow < 0 || firstInjectedRow > numRows)
+    {
+        string message = "Detector:configure(): ChargeInjection/FirstRow not between 0 and # of CCD rows";
+        Log.error(message);
+        throw ConfigurationException(message);
+    }
+
 //    polarizationEfficiency          = configParam.getDouble("CCD/Polarization/Efficiency");
 //    refAnglePolarization            = configParam.getDouble("CCD/Polarization/RefAngle");
     expectedValuePolarization       = configParam.getDouble("CCD/Polarization/ExpectedValue");
@@ -411,6 +434,7 @@ void Detector::updateParameters(double time)
     includePhotonNoise              = configParam.getBoolean("CCD/IncludePhotonNoise");
     includeReadoutNoise             = configParam.getBoolean("CCD/IncludeReadoutNoise");
     includeCTIeffects               = configParam.getBoolean("CCD/IncludeCTIeffects");
+    includeChargeInjection          = configParam.getBoolean("CCD/IncludeChargeInjection");
     includeOpenShutterSmearing      = configParam.getBoolean("CCD/IncludeOpenShutterSmearing");
     includeQuantumEfficiency        = configParam.getBoolean("CCD/IncludeQuantumEfficiency");
     includeNaturalVignetting        = configParam.getBoolean("CCD/IncludeNaturalVignetting");
@@ -1660,6 +1684,32 @@ void Detector::applyCTI()
 }
 
 
+
+
+
+
+
+/**
+ * \brief Apply charge injection to mitigate the CTI effect. Only the PixelMap is affected.
+ *
+ * \pre Pixel unit in the pixel map: [electrons]
+ * \post Pixel unit in the pixel map: [electrons].
+ */
+
+void Detector::applyChargeInjection()
+{
+    const double chargeToInject = chargeInjectionLevel / 100.0 * fullWellSaturationLimit;   // [e-]
+
+    for (int rowNumber = 0; rowNumber < numRowsPixelMap; rowNumber++)
+    {
+        // rowNumber is the row number of the subfield. Add the zeropoint to get the CCD row number.
+
+        if ((rowNumber + subFieldZeroPointRow - firstInjectedRow) % injectionRowInterval == 0)
+        {
+            pixelMap.row(rowNumber) += chargeToInject;
+        }
+    }
+}
 
 
 

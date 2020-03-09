@@ -436,6 +436,18 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
 
     applyThroughputEfficiency();
 
+    // Apply the charge injection which will mitigate the CTI. The injection happens in electrons, 
+    // so the throughput efficiency should already have been applied. In principle, the injected charges do 
+    // feel the PRNU, but for the MappedPSF we first need to apply the PRNU on sub-pixel level and afterwards
+    // apply the throughputEfficiency() at pixel level, so there is no possibilty to respect the order
+    // (1) throughput (2) charge injection (3) PRNU.
+    
+    if (includeChargeInjection)
+    {
+        Log.debug("Detector: applying charge injection");
+        applyChargeInjection();
+    }
+
     // Add dark current
 
     if(includeDarkSignal)

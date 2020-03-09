@@ -284,6 +284,22 @@ void DetectorWithAnalyticGaussianPSF::integrateLight(int exposureNr, double star
 
     camera.exposeDetector(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
 
+    // Apply throughput efficiency on the pixel map.
+    // This takes into account the QE, vignetting, polarisation, and particulate & molecular contamination.
+    // PixelMap units change from [photons] to [electrons] 
+    
+    applyThroughputEfficiency();
+
+    // Apply the charge injection which will mitigate the CTI. The injection happens in electrons, 
+    // so the throughput efficiency should already have been applied. The injected charges do feel the PRNU, 
+    // so applying the flatfied should happen afterwards.
+    
+    if (includeChargeInjection)
+    {
+        Log.debug("Detector: applying charge injection");
+        applyChargeInjection();
+    }
+
     // Apply flatfield (at pixel level)
     // PixelMap units after: [photons]
 
@@ -298,11 +314,6 @@ void DetectorWithAnalyticGaussianPSF::integrateLight(int exposureNr, double star
         Log.debug("Detector: no flatfield applied.");
     }
 
-    // Apply throughput efficiency on the pixel map.
-    // This takes into account the QE, vignetting, polarisation, and particulate & molecular contamination.
-    // PixelMap units change from [photons] to [electrons] 
-    
-    applyThroughputEfficiency();
 
     // Add dark current
 
