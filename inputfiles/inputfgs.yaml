@@ -157,7 +157,7 @@ CCD:
     NumColumns:                  4510            # Number of columns [pixels]
     NumRows:                     4510            # Number of rows [pixels]
     FirstRowExposed:             0               # The index of the first row that is exposed to light [pixels]
-
+    TimeShift:                   0.0             # Extra time shift of the first exposure. Autoset when Position is in [1,2,3,4]. [s]
     PixelSize:                   18              # [micron]
     BFE:                                             # Brighter-fatter effect
         Range:                       2               # How far pixels can be apart and still influence each other [pixels] (use window with dimensions 2 * range + 1)
@@ -308,4 +308,4 @@ CCDPositions:
     NumRows:                         [4510, 4510, 4510, 4510]       # Number of rows on the CCD [pixels] (including non-exposed ones)
     FirstRowForNormalCamera:         [0, 0, 0, 0]                   # The complete CCDs are active/illuminated for the Normal Camera's
     FirstRowForFastCamera:           [2255, 2255, 2255, 2255]       # Only the upper half of the CCDs is active/illuminated for the Fast Camera's
-
+    TimeShift:                       [0.0, 6.25, 12.5, 18.75]       # Time shift for readout w.r.t. CCD #1.  [s]

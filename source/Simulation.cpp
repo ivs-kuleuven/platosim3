@@ -248,6 +248,22 @@ void Simulation::configure(ConfigurationParameters &configParams)
     useDetectorNominalTemperature   = configParams.getString("CCD/Temperature") == "Nominal";
     sendImagettesToClient           = configParams.getBoolean("ControlTcpConnection/SendImagettesToClients");
     getWindowPositionFromServer     = configParams.getBoolean("ControlTcpConnection/GetWindowPositionsFromServer");
+
+    // The readout of different CCDs are shifted in time because of the power budget.
+    // Find out the right time shift.
+
+    string ccdPosition              = configParams.getString("CCD/Position");
+    if (ccdPosition == "Custom")
+    {
+        timeShift = configParams.getDouble("CCD/TimeShift");
+    }
+    else
+    {
+        int index = stoi(ccdPosition) - 1;   // Position are named  [1, 2, 3, 4] while the index into vector starts at 0
+        timeShift = configParams.getDoubleAt("CCDPositions/TimeShift", index);
+    }
+
+    Log.debug("Simulation: configure(): time shift for current CCD configuration: " + to_string(timeShift));
 }
 
 
@@ -447,17 +463,18 @@ void Simulation::run()
 {
     // Update the internal clock
 
-    currentTime = beginExposureNr * (exposureTime + readoutTimeBeforeNextExposure);
+    currentTime = beginExposureNr * (exposureTime + readoutTimeBeforeNextExposure) + timeShift;
 
     Log.info("Simulation: running exposures " + to_string(beginExposureNr) + " to " + to_string(beginExposureNr+numExposures-1));
 
-    // declare the imagetteNumber and set the endOfSimulation variable to false
+    // Declare the imagetteNumber and set the endOfSimulation variable to false
 
     int n = beginExposureNr;
 
     bool endOfSimulation = false;  
 
-    // continue the simulation until no more jittersteps are send from a tcp connection server
+    // Continue the simulation until no more jittersteps are send from a tcp connection server
+
     while (!endOfSimulation)
     {
         // if no jitter from network is used, end the simulation, when the max number of exposures from the yaml file is reached
