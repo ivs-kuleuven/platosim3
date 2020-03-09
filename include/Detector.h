@@ -93,6 +93,7 @@ class Detector: public HDF5Writer
 
     protected:
 
+        virtual void reset();
         virtual void integrateLight(int exposureNr, double startTime, double exposureTime) = 0;
 
         virtual void generateThroughputMap();

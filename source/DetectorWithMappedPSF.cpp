@@ -330,6 +330,11 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
 
     internalTime = startTime;
 
+    // Clear all arrays
+    
+    Log.debug("Detector: resetting subfield array for new exposure.");
+    reset();
+
     // Integration of point sources and background, taking into account jitter + drift.
 
     Log.info("Detector: Integrating light for exposure " + to_string(exposureNr) + " with exposure time = " + to_string(exposureTime));
@@ -397,11 +402,6 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
 void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, double exposureTime)
 {
 
-    // Reset the sub-field (i.e. get rid of the previous exposure, by zeroing the entire sub-field)
-
-    Log.debug("Detector: resetting subfield array for new exposure.");
-
-    reset();
 
     // Integration (incl. jitter): point sources + background
 

@@ -30,7 +30,7 @@ class DetectorWithMappedPSF: public Detector
 
     protected:
 
-        virtual void reset();
+        virtual void reset() override;
         virtual void initHDF5Groups() override;
         virtual void integrateLight(int exposureNr, double startTime, double exposureTime) override;
         virtual bool isInSubPixelMap(double row, double column);

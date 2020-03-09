@@ -47,7 +47,6 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
 
     protected:
 
-        virtual void reset();
         virtual void integrateLight(int exposureNr, double startTime, double exposureTime) override;
         virtual void applyFlatfield() override;
         virtual void generateFlatfieldMap();

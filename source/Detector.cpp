@@ -473,6 +473,28 @@ void Detector::updateParameters(double time)
 
 
 
+/**
+ * \brief: Zeroes the pixel, bias register, and the smearing maps.
+ *
+ * \pre pixel, bias register, and smearing maps filled with values from previous exposure.
+ *
+ * \post pixel, bias register, and smearing maps filled with zeroes.
+ */
+
+void Detector::reset()
+{
+    pixelMap.zeros();
+    biasMapLeft.zeros();
+    biasMapRight.zeros();
+    smearingMap.zeros();
+}
+
+
+
+
+
+
+
 
 
 /**
@@ -499,6 +521,11 @@ double Detector::takeExposure(int exposureNr, double startTime, double exposureT
     // Advance the internal clock until the given start time
 
     internalTime = startTime;
+
+    // Clear all arrays
+
+    Log.debug("Detector: resetting subfield array for new exposure.");
+    reset();
 
     // Integration of point sources and background, taking into account jitter + drift.
 

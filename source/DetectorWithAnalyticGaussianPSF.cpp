@@ -187,26 +187,6 @@ void DetectorWithAnalyticGaussianPSF::generateFlatfieldMap()
 
 
 
-/**
- * \brief: Zeroes the pixel, bias register, and the smearing maps.
- *
- * \pre pixel, bias register, and smearing maps filled with values from previous exposure.
- *
- * \post pixel, bias register, and smearing maps filled with zeroes.
- */
-
-void DetectorWithAnalyticGaussianPSF::reset()
-{
-    pixelMap.zeros();
-    biasMapLeft.zeros();
-    biasMapRight.zeros();
-    smearingMap.zeros();
-}
-
-
-
-
-
 
 
 
@@ -235,6 +215,10 @@ double DetectorWithAnalyticGaussianPSF::takeExposure(int exposureNr, double star
     // Advance the internal clock until the given start time
 
     internalTime = startTime;
+
+    // Clear all arrays
+    
+    reset();
 
     // Integration of point sources and background, taking into account jitter + drift.
 
@@ -294,12 +278,6 @@ double DetectorWithAnalyticGaussianPSF::takeExposure(int exposureNr, double star
 
 void DetectorWithAnalyticGaussianPSF::integrateLight(int exposureNr, double startTime, double exposureTime)
 {
-
-    // Reset the subfield (i.e. get rid of the previous exposure, by zeroing the entire sub-field)
-
-    Log.debug("Detector: resetting subfield array for new exposure.");
-
-    reset();
 
     // Integration (incl. jitter): point sources + background
     // PixelMap units after: [photons]
