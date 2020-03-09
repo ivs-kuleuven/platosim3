@@ -278,9 +278,9 @@ void DetectorWithMappedPSF::generateFlatfieldMap()
 
 
 
-
 /**
  * \brief: Zeroes the pixel, bias register, and the smearing maps.
+ *         This differs from the normal Detector::reset() because it includes resetting the subPixelMap.
  *
  * \pre pixel, bias register, and smearing maps filled with values from previous exposure.
  *
@@ -295,8 +295,6 @@ void DetectorWithMappedPSF::reset()
     smearingMap.zeros();
     subPixelMap.zeros();
 }
-
-
 
 
 
@@ -452,13 +450,13 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
 
     if(includeDarkSignal)
     {
-    		Log.debug("Detector: adding dark current");
+        Log.debug("Detector: adding dark current");
 
-    		addDarkSignal(exposureTime);
+        addDarkSignal(exposureTime);
     }
     else
     {
-    		Log.debug("Detector: no dark current added");
+        Log.debug("Detector: no dark current added");
     }
 
     // Brighter-Fatter effect
