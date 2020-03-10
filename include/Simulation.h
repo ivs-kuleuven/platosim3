@@ -63,6 +63,8 @@ class Simulation
         int beginExposureNr;                    // sequential number of first exposure. useful for slurm parallellisation
         int numExposures;                       // Number of exposures
 
+        double timeShift;                       // Time shift between the different CCDs [s] 
+
         bool useJitter;
         string jitterSource;
         bool includeFieldDistortion;
