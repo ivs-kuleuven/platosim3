@@ -263,9 +263,9 @@ RandomSeeds:
 
 ControlHDF5Content:
     WritePixelMaps:                  yes             # The 2D subimages for each exposure 
-    WriteBiasMaps:                   no             # 2D bias maps for the left and right hand side of the CCD, for each exposure
-    WriteSmearingMaps:               no             # 2D smearing maps, for each exposure
-    WriteThroughputMaps:             no             # 2D throughput maps (QE, vignetting, contamination, ...), for each exposure
+    WriteBiasMaps:                   yes             # 2D bias maps for the left and right hand side of the CCD, for each exposure
+    WriteSmearingMaps:               yes             # 2D smearing maps, for each exposure
+    WriteThroughputMaps:             yes             # 2D throughput maps (QE, vignetting, contamination, ...), for each exposure
     WriteFlatfieldMap:               no             # 2D image of the flatfield (PRNU and/or IRNU)
     WriteSubPixelImages:             no              # Only use this for a limited number of exposures. Takes a lot of space! 
     WriteStarPositions:              yes             # StarPositions are written in pixel and focal plane coordinates + flux and
