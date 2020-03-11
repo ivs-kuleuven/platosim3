@@ -94,7 +94,7 @@ Camera:
 
 PSF:
 
-    Model:                           MappedGaussian  # PSF model: MappedGaussian, MappedFromFileSymmetrical, MappedFromFileAsymmetrical, or AnalyticGaussian
+    Model:                           MappedFromFileAsymmetrical  # PSF model: MappedGaussian, MappedFromFileSymmetrical, MappedFromFileAsymmetrical, or AnalyticGaussian
     MappedGaussian:                                  # Generate the PSF from a fixed 2D Gaussian function
         Sigma:                       0.639           # Standard deviation of Gaussian PSF [pix]
         NumberOfPixels:              8               # The number of pixels in the field for which the PSF is generated
