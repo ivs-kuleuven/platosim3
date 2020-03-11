@@ -170,6 +170,10 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     {
         detector = detectorFactory->createDetectorWithSymmetricalMappedPsfInstance(configParams, *hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
     }
+    else if (psfModel == "MappedFromFileAsymmetrical")
+    {
+        detector = detectorFactory->createDetectorWithAsymmetricalMappedPsfInstance(configParams, *hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
+    }
     else if (psfModel == "AnalyticGaussian")
     {
         detector = detectorFactory->createDetectorWithAnalyticGaussianPsfInstance(configParams, *hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
