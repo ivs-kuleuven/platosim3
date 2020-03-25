@@ -252,9 +252,9 @@ void DetectorWithMappedPSF::generateFlatfieldMap()
 
     arma::Mat<float> prnu(numRowsPixelMap2, numColumnsPixelMap2, arma::fill::zeros);  //%% Changed to pixelMap2 (large) for spectral dependency
 
-    for (unsigned int row = 0; row < numRowsPixelMap2; row++)
+    for (unsigned int row = 0; row < numRowsPixelMap2; row++)  //%%
     {
-        for (unsigned int column = 0; column < numColumnsPixelMap2; column++)
+        for (unsigned int column = 0; column < numColumnsPixelMap2; column++)  //%%
         {
             const unsigned int beginRow = row * numSubPixelsPerPixel;
             const unsigned int beginCol = column * numSubPixelsPerPixel;
@@ -729,8 +729,8 @@ void DetectorWithMappedPSF::applyFlatfield(int subsubfieldx, int subsubfieldy)  
     const unsigned int endRow = numRowsSubPixelMap - numEdgeSubPixels - 1;
     const unsigned int endCol = numColumnsSubPixelMap - numEdgeSubPixels - 1;
 
-    const unsigned int FFbeginRow = subsubfieldx * (numRowsPixelMap - 2 * overlapx) ;  //%% Only applying the FF of the corresponding subfield region
-    const unsigned int FFbeginCol = subsubfieldy * (numColumnsPixelMap - 2 * overlapy) ;
+    const unsigned int FFbeginRow = numSubPixelsPerPixel * subsubfieldx * (numRowsPixelMap - 2 * overlapx) ;  //%% Only applying the FF of the corresponding subfield region
+    const unsigned int FFbeginCol = numSubPixelsPerPixel * subsubfieldy * (numColumnsPixelMap - 2 * overlapy) ;
     const unsigned int FFendRow = FFbeginRow + numRowsSubPixelMap - numEdgeSubPixels - 1;
     const unsigned int FFendCol = FFbeginCol + numColumnsSubPixelMap - numEdgeSubPixels - 1;
     

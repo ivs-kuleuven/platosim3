@@ -921,7 +921,7 @@ bool Detector::isInSubfield(double xFP, double yFP)
 bool Detector::isInPixelMap(double row, double column, int subsubfieldx, int subsubfieldy)
 {
 
-//%% Multiple changes for spectral dependency: Is true if in core region f subsubfield (not overlap region). Core reion extends into overlap on edge field sides where no neighbouring subsubfield exists
+//%% Multiple changes for spectral dependency: Is true if in core region f subsubfield (not overlap region). Core region extends into overlap on edge field sides where no neighbouring subsubfield exists
     int collow = overlapy;
     int colhigh = numColumnsPixelMap - overlapy;
     int rowlow = overlapx;

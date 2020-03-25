@@ -28,14 +28,14 @@ class DetectorWithAnalyticGaussianPSF: public Detector
 
         void configure(ConfigurationParameters &configParam);
 
-        virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) override;
-        virtual void addFlux(double flux) override;
+        virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux, int subsubfieldx, int subsubfieldy) override;  //%% Added subsubfields for spectral dependency
+        virtual void addFlux(double flux, int subsubfieldx, int subsubfieldy) override;  //%% Added subsubfields for spectral dependency
 
     protected:
 
         virtual void reset();
-        virtual void integrateLight(int exposureNr, double startTime, double exposureTime) override;
-        virtual void applyFlatfield() override;
+        virtual void integrateLight(int exposureNr, double startTime, double exposureTime, int subsubfieldx, int subsubfieldy) override;  //%% Added subsubfields for spectral dependency
+        virtual void applyFlatfield(int subsubfieldx, int subsubfieldy) override;  //%% Added subsubfields for spectral dependency
         virtual void generateFlatfieldMap();
 
         arma::Mat<float> flatfieldMap;      // Pixel flatfield map
@@ -45,6 +45,8 @@ class DetectorWithAnalyticGaussianPSF: public Detector
         double sigmaY18;                    // Stdev of Gaussian PSF in y-direction at 18 deg from the optical axis [pix]
 
         double flatfieldNoiseRMS;     // Peak-to-peak noise amplitude
+
+        int wave_bins;  //%%  Number of wavelength bins to be processed, added for spectral dependency
 
         bool includeFlatfield;              // Whether or not to include flat fielding        
         long flatfieldSeed;
