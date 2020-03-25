@@ -35,7 +35,7 @@ DetectorWithAnalyticGaussianPSF::DetectorWithAnalyticGaussianPSF(ConfigurationPa
 
     // Allocate memory for the flatfield map
 
-    flatfieldMap.ones(numsubsubfieldsx * (numRowsSubPixelMap - 2*overlapx * numSubPixelsPerPixel) + 2*overlapx * numSubPixelsPerPixel, numsubsubfieldsy * (numColumnsSubPixelMap - 2*overlapy * numSubPixelsPerPixel) + 2*overlapy * numSubPixelsPerPixel);  //%% For spectral dependency, make flatfield map cover the full final stitched field
+    flatfieldMap.ones(numsubsubfieldsx * (numRowsPixelMap - 2*overlapx) + 2*overlapx, numsubsubfieldsy * (numColumnsPixelMap - 2*overlapy) + 2*overlapy);  //%% For spectral dependency, make flatfield map cover the full final stitched field
 
     if(includeFlatfield)
     {
@@ -128,8 +128,8 @@ void DetectorWithAnalyticGaussianPSF::generateFlatfieldMap()
 
     // Double the dimensions (this is necessary because of the behaviour of the Fourier transforms)
 
-    int Nrows = 2 * ((numsubsubfieldsx * (numRowsPixelMap - 2*overlapx) + 2*overlapx) * numSubPixelsPerPixel);  //%% For spectral dependency, FF map is size of large stutched map
-    int Ncolumns = 2 * ((numsubsubfieldsy * (numColumnsPixelMap - 2*overlapy) + 2*overlapy) * numSubPixelsPerPixel);  //%% For spectral dependency, FF map is size of large stutched map
+    int Nrows = 2 * ((numsubsubfieldsx * (numRowsPixelMap - 2*overlapx) + 2*overlapx));  //%% For spectral dependency, FF map is size of large stitched map
+    int Ncolumns = 2 * ((numsubsubfieldsy * (numColumnsPixelMap - 2*overlapy) + 2*overlapy));  //%% For spectral dependency, FF map is size of large stitched map
 
     arma::cx_fmat evenMap = arma::cx_fmat(Nrows, Ncolumns);
 
@@ -564,8 +564,8 @@ void DetectorWithAnalyticGaussianPSF::applyFlatfield(int subsubfieldx, int subsu
 
     const unsigned int FFbeginRow = subsubfieldx * (numRowsPixelMap - 2 * overlapx) ;  //%% Only applying the FF of the corresponding subfield region
     const unsigned int FFbeginCol = subsubfieldy * (numColumnsPixelMap - 2 * overlapy) ;
-    const unsigned int FFendRow = FFbeginRow + numRowsPixelMap - numEdgeSubPixels - 1;
-    const unsigned int FFendCol = FFbeginCol + numColumnsPixelMap - numEdgeSubPixels - 1;
+    const unsigned int FFendRow = FFbeginRow + numRowsPixelMap - numEdgePixels - 1;
+    const unsigned int FFendCol = FFbeginCol + numColumnsPixelMap - numEdgePixels - 1;
 
     pixelMap.submat(beginRow, beginCol, endRow, endCol) = pixelMap.submat(beginRow, beginCol, endRow, endCol) % flatfieldMap.submat(FFbeginRow, FFbeginCol, FFendRow, FFendCol);
 }
