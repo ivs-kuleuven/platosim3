@@ -724,7 +724,7 @@ void DetectorWithAnalyticNonGaussianPSF::addFlux(double flux, int subsubfieldx, 
  * \post Pixel, bias, and smearing maps filled with zeroes.
  */
 
-void DetectorWithAnalyticNonGaussianPSF::applyFlatfield(int subsubfieldx, int subsubfieldy  //%% Added subsubfield for spectral dependency)
+void DetectorWithAnalyticNonGaussianPSF::applyFlatfield(int subsubfieldx, int subsubfieldy)  //%% Added subsubfield for spectral dependency
 {
     const unsigned int beginRow = numEdgePixels;
     const unsigned int beginCol = numEdgePixels;
