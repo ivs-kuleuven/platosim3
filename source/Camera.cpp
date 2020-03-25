@@ -179,6 +179,8 @@ void Camera::flushOutput()
             vector<double> rowPix;
             vector<double> colPix;
             vector<double> flux;
+
+            vector<double> temp;  //%% Added temperature for spectral dependency
     
             for(auto keyValuePair: detectedStarInfo[time[n]])
             {
@@ -189,6 +191,8 @@ void Camera::flushOutput()
                 rowPix.push_back(detectedStarInfo[time[n]][starID][2] / detectedStarInfo[time[n]][starID][5]);
                 colPix.push_back(detectedStarInfo[time[n]][starID][3] / detectedStarInfo[time[n]][starID][5]);
                 flux.push_back(detectedStarInfo[time[n]][starID][4]);
+
+                temp.push_back(detectedStarInfo[time[n]][starID][6]);  //%% Added temperature for spectral dependency
             }
     
             // Write the time series to HDF5
@@ -200,7 +204,9 @@ void Camera::flushOutput()
                 hdf5File.writeArray(exposureGroupName, "yFPmm",  yFPmm.data(),   yFPmm.size());
                 hdf5File.writeArray(exposureGroupName, "rowPix", rowPix.data(),  rowPix.size());
                 hdf5File.writeArray(exposureGroupName, "colPix", colPix.data(),  colPix.size());
-                hdf5File.writeArray(exposureGroupName, "flux",   flux.data(),    flux.size());            
+                hdf5File.writeArray(exposureGroupName, "flux",   flux.data(),    flux.size());    
+
+                hdf5File.writeArray(exposureGroupName, "temp",   temp.data(),    temp.size());  //%% Added temperature for spectral dependency        
             }
         }
     }
@@ -210,11 +216,40 @@ void Camera::flushOutput()
 
     // Write the total sky background flux values [photons/pixel/exposure] to HDF5 in a custom group
 
-    hdf5File.writeArray("Background/", "skyBackground", skyBackgroundValues.data(), skyBackgroundValues.size());
+//%%	For spectral dependency: Convert one large 1D array (containing all wavebins for all exposures and all subsubfields) to a 2D Map, the axis being exposureNr all wavelengthBins and subsubfield
+//%%	so e1b1,f1 - e1b1,fx; e1b2,f1 - e1b2,fx; e2b1,f1 ... ; Field numeration is x1y1,x1y2,x1y3,x2y1,x2y2 ...
+    arma::Mat<float> skyBackground(numExposures * wavelengthBins, numsubsubfieldsx*numsubsubfieldsy);
+    int i = 0;
+    int k = 0;
+    while (i<numExposures*wavelengthBins)
+    {
+	for (int l=0; l<numsubsubfieldsx*numsubsubfieldsy; l++)
+	{
+		skyBackground(i,l) = skyBackgroundValues[k];
+		k = k+1; 
+	}
+	i = i+1;
+    }
+
+    hdf5File.writeArray("Background/", "skyBackground", skyBackground);  //%% Background is now an array due to above reasons
 
     // Write the transmissionEfficiency values for each exposureTime to HDF5 in a custom group
 
-    hdf5File.writeArray("TransmissionEfficiency/", "transmissionEfficiency", transmissionEfficiencyValues.data(), transmissionEfficiencyValues.size());
+//%%	For spectral dependency: Convert one large 1D array (containing all wavebins for all exposures and all subsubfields) to a 2D Map, the axis being exposureNr all wavelengthBins and subsubfield
+    arma::Mat<float> TransmissionEff(numExposures * wavelengthBins, numsubsubfieldsx*numsubsubfieldsy);
+    i = 0;
+    k = 0;
+    while (i<numExposures*wavelengthBins)
+    {
+	for (int l=0; l<numsubsubfieldsx*numsubsubfieldsy; l++)
+	{
+		TransmissionEff(i,l) = transmissionEfficiencyValues[k];
+		k = k+1; 
+	}
+	i = i+1;
+    }
+
+    hdf5File.writeArray("TransmissionEfficiency/", "transmissionEfficiency", TransmissionEff);  //%% TE is now an array due to above reasons
 
 }
 
@@ -336,8 +371,13 @@ void Camera::configure(ConfigurationParameters &configParam)
     
 
     plateScale             = configParam.getDouble("Camera/PlateScale");
-    throughputBandwidth    = configParam.getDouble("Camera/ThroughputBandwidth");
-    throughputLambdaC      = configParam.getDouble("Camera/ThroughputLambdaC");
+    throughputLambdaC      = configParam.getDouble("Camera/ThroughputLambdaC");  //%% Now used as reference wavelength for 0V mag with spectral dependency
+
+    wavelengthBins	   = configParam.getInteger("Camera/WavelengthBins");  //%% Added for spectral dependency, total number of wavelength bins
+    binWidth   		   = configParam.getDouble("Camera/BinWidth");  //%% Added for spectral dependency, width of wavebins
+    binOrigin      	   = configParam.getDouble("Camera/BinOrigin");  //%% Added for spectral dependency, lower wavelength limit
+    numsubsubfieldsx 	   = configParam.getInteger("SubField/NumSubSubFieldsRows");  //%% Added for spectral dependency, number of subsubfields in x direction 
+    numsubsubfieldsy 	   = configParam.getInteger("SubField/NumSubSubFieldsColumns");  //%% Added for spectral dependency, number of subsubfields in y direction
 
     includeAberrationCorrection = configParam.getBoolean("Camera/IncludeAberrationCorrection");
     aberrationCorrectionType    = configParam.getString("Camera/AberrationCorrection/Type");
@@ -425,11 +465,16 @@ void Camera::updateParameters(double time)
  * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start [seconds]
  */
 
-void Camera::exposeDetector(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure)
+pair<double, double> Camera::exposeDetector(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure, int binnumber, int subsubfieldx, int subsubfieldy)  //%% Changed to double pair for split
 {
     // Get the value for the degrading TransmissionEfficiency parameter at the startTime of this exposure
 
-    double transmissionEfficiency = telescope.getTransmissionEfficiency(startTime);
+    //double transmissionEfficiency = telescope.getTransmissionEfficiency(startTime);
+
+//%%	For wavelength dependency: Calculate the current wavelength being processed and select the according transmission efficiency
+    double wavelength = binOrigin + binnumber * binWidth;  //%% Current wavelength
+    vector<double> transmissionEfficiencyFull = telescope.getTransmissionEfficiency(startTime);  //%% Vector of all TE
+    double transmissionEfficiency = transmissionEfficiencyFull[binnumber];  //%% Correct TE
 
     Log.debug("Camera: TransmissionEfficiency at time "+to_string(startTime)+" is "+to_string(transmissionEfficiency));
 
@@ -439,10 +484,10 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     // and the upper right (X11, Y11) corner of the subfield.
 
     double centerXmm, centerYmm;
-    tie(centerXmm, centerYmm) = detector.getFocalPlaneCoordinatesOfSubfieldCenter();
+    tie(centerXmm, centerYmm) = detector.getFocalPlaneCoordinatesOfSubfieldCenter(subsubfieldx, subsubfieldy); //%% Added subsubfield for spectral dependency
 
     double corner00Xmm, corner00Ymm, corner11Xmm, corner11Ymm, dummy;
-    tie(corner00Xmm, corner00Ymm, dummy, dummy, corner11Xmm, corner11Ymm, dummy, dummy) = detector.getFocalPlaneCoordinatesOfSubfieldCorners();
+    tie(corner00Xmm, corner00Ymm, dummy, dummy, corner11Xmm, corner11Ymm, dummy, dummy) = detector.getFocalPlaneCoordinatesOfSubfieldCorners(subsubfieldx, subsubfieldy); //%% Added subsubfield for spectral dependency
 
     // Convert the undistorted [mm] to distorted [mm] focal plane coordinates
 
@@ -490,7 +535,12 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     // Get a catalog of stars that fall on the subfield. Take the radius a bit larger so that the 
     // queried area includes possible small shifts of the projected subfield because of jitter.
 
-    const unsigned long Nstars = sky.selectStarsWithinRadiusFrom(centerRA, centerDec, radius * 1.1, Angle::radians);
+
+//%% Spectral dependency: For the first wavebin get all stars 
+    unsigned long Nstars;
+    if (binnumber == 0)
+    {
+    Nstars = sky.selectStarsWithinRadiusFrom(centerRA, centerDec, radius * 1.1, Angle::radians);
 
     Log.info("Camera: Found " + to_string(Nstars) + " stars on and near the subfield");  
 
@@ -509,6 +559,12 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     
         sky.aberrateSelectedStarPositions(platform, aberrationCorrectionType, startTime, timeMiddle);
     }
+//%% No need to recompute for all other wavebins, just read the length of the same array
+    }
+    else
+    {
+        Nstars = sky.selectStarsWithinRadius();
+    }
 
 
     // If the telescope and/or platform show small variations (e.g. due to jitter) during the exposure,
@@ -524,11 +580,20 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     // fluxOfV0Star is the photon flux [photons/s/m^2/nm] for a V=0 G2V-star.
     // Units of fluxFactor: [photons/s]
   
-    const double fluxFactor = fluxOfV0Star * throughputBandwidth * transmissionEfficiency * telescope.getLightCollectingArea(); 
+//%% The prefactor is now also altered depending on the current wavelength, for spectral dependency 
+    double hc = Constants::CLIGHT * Constants::HPLANCK * 1.e9; 	// [J nm]
+    double Ephoton = hc / wavelength;
+    double ReferenceFlux = fluxOfV0Star * hc / throughputLambdaC;  //%% ThroughputLambdaC is used as reference wavelength
+    double FluxAtWavelength = ReferenceFlux * pow(throughputLambdaC / wavelength, 5) / Ephoton;
+
+    const double fluxFactor = FluxAtWavelength * binWidth * transmissionEfficiency * telescope.getLightCollectingArea(); 		
 
     // Update the internal clock
 
     internalTime = startTime;
+
+   bool subsubfield = subsubfieldx + subsubfieldy;		//%% For spectral dependency, check if first subsubfield
+   bool subsubfieldlast = ((subsubfieldx == numsubsubfieldsx-1) && (subsubfieldy == numsubsubfieldsy-1));  //%% For spectral dependency, check if last subsubfield
 
     // Take the flux of point sources (stars) into account.
     // Break up the exposure time in small intervals (hearbeat intervals) to track jitter while exposing.
@@ -538,7 +603,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
         // Update the time-dependent parameters (if any) of some classes to to their value at the current time. 
 
         this->updateParameters(internalTime);
-        telescope.updateParameters(internalTime);
+        telescope.updateParameters(internalTime, binnumber, subsubfield, subsubfieldlast);  //%% added wavebin and bool subsubfield for spectral dependency
         detector.updateParameters(internalTime);
         sky.updateParameters(internalTime);
 
@@ -551,9 +616,9 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
             // Compute the focal plane coordinates (in [mm]) of this particular star
            
             unsigned long starID;
-            double RA, dec, Vmag;
+            double RA, dec, Vmag, TempStar;  //%% Added Temperature for spectral dependency
 
-            tie(starID, RA, dec, Vmag) = sky.getSelectedStar(n);
+            tie(starID, RA, dec, Vmag, TempStar) = sky.getSelectedStar(n);  //%% Added Temperature for spectral dependency
             
             double Xmm, Ymm;
             tie(Xmm, Ymm) = skyToFocalPlaneCoordinates(RA, dec);
@@ -568,7 +633,9 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
             // Compute the flux [photons] of this star
             // Photons are always an integer number, so round down.
 
-            double flux = floor(fluxFactor * pow(10.0, -0.4 * Vmag) * timeStep);
+//%%	Added for wavelength dependency: Take into account the temperature of the star, modifying the shape of the spectrum (BlackBody)
+	    double tempFactor = (exp(hc/(throughputLambdaC*Constants::KBOLTZMANN*TempStar)) - 1) / (exp(Ephoton/(Constants::KBOLTZMANN*TempStar)) - 1);
+            double flux = floor(fluxFactor * pow(10.0, -0.4 * Vmag) * tempFactor * timeStep);  //%% TempFactor added for spectral dependency
 
             // Let the detector add the flux to the appropriate pixel. 
             // Detector.flux() returns the pixel coordinates to which the flux was added.
@@ -576,7 +643,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
             bool isInSubfield;
             double rowPix, colPix;    // subfield (not CCD) pixel coordinates
 
-            tie(isInSubfield, rowPix, colPix) = detector.addFlux(Xmm, Ymm, flux);
+            tie(isInSubfield, rowPix, colPix) = detector.addFlux(Xmm, Ymm, flux, subsubfieldx, subsubfieldy);  //%% Added subsubfield for spectral dependency
 
             // If the star is indeed in the subfield, collect the following information to later write to HDF5
             //    1) average (Xmm, Ymm) coordinates of the star during the exposure                   [mm]
@@ -594,7 +661,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
                 if (detectedStarInfo.find(startTime) == detectedStarInfo.end())
                 {
-                    detectedStarInfo[startTime][starID] = {{Xmm, Ymm, rowPix, colPix, flux, 1.0}};
+                    detectedStarInfo[startTime][starID] = {{Xmm, Ymm, rowPix, colPix, flux, 1.0, TempStar}};  //%% Added temperature for spectral dependency
                 }
                 else
                 {
@@ -603,7 +670,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
                     if (detectedStarInfo[startTime].find(starID) == detectedStarInfo[startTime].end())
                     {
-                        detectedStarInfo[startTime][starID] = {{Xmm, Ymm, rowPix, colPix, flux, 1.0}};
+                        detectedStarInfo[startTime][starID] = {{Xmm, Ymm, rowPix, colPix, flux, 1.0, TempStar}};  //%% Added temperature for spectral dependency
                     }
                     else
                     {
@@ -628,6 +695,16 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
         timeStep = min(timeStep, startTime + exposureTime - internalTime);
     }
 
+    return make_pair(centerRA, centerDec);  //%% Used for spectral dependency, return coordinates
+}
+
+
+
+
+
+//%% Separately calculate the background to apply it after the convolution, to prevent edge effects due to the splitting of the subfield
+void Camera::SkyBackground(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure, int binnumber, double centerRA, double centerDec, int subsubfieldx, int subsubfieldy)
+{
     // Take the flux of the stellar background and the zodiacal light into account. Use one value for the entire subfield.
     // A negative value for the user given sky background value [phot/pix/s] signals that we should compute it ourselves.
     // Note: - The output of sky.zodiacalFlux() is in [J s^{-1} m^{-2} sr^{-1} m^{-1}]
@@ -639,13 +716,22 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
     totalSkyBackground = 0.0;
 
+//%%Tae the wavelength into account
+    double wavelength = binOrigin + binnumber * binWidth;
+    vector<double> transmissionEfficiencyFull = telescope.getTransmissionEfficiency(startTime);
+    double transmissionEfficiency = transmissionEfficiencyFull[binnumber];
+
+    double hc = Constants::CLIGHT * Constants::HPLANCK * 1.e9;	// [J nm]
+    double Ephoton = hc / wavelength;
+
 
     if (userGivenSkyBackground < 0.0)
     {
-        const double energyOfOnePhoton = Constants::CLIGHT * Constants::HPLANCK / (throughputLambdaC * 1.e-9);                // [J]
-        const double lambda1 = (throughputLambdaC - throughputBandwidth/2.0) * 1.e-9;                                         // [m]
-        const double lambda2 = (throughputLambdaC + throughputBandwidth/2.0) * 1.e-9;                                         // [m]
-    
+//%%	The background is calculated within the same wavelength bin as the flux, so that the same throughput can be used
+	const double energyOfOnePhoton = Ephoton;	// [J]
+	const double lambda1 = wavelength * 1.e-9;	//[m]
+	const double lambda2 = (wavelength + binWidth) * 1.e-9;	//[m]
+
         const double zodiacalFlux = sky.zodiacalFlux(centerRA, centerDec, lambda1, lambda2)                                   // [phot/exposure]
                                     * (exposureTime + readoutTimeBeforeNextExposure) * transmissionEfficiency * telescope.getLightCollectingArea()
                                     * detector.getSolidAngleOfOnePixel(plateScale) / energyOfOnePhoton; 
@@ -656,26 +742,29 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
 
 
         totalSkyBackground = floor(zodiacalFlux + stellarBackgroundFlux);
-        detector.addFlux(totalSkyBackground);
+        detector.addFlux(totalSkyBackground, subsubfieldx, subsubfieldy);  //%% For spectral dependence added subsubfield
 
         Log.debug("Camera: zodiacal flux level in subfield = " + to_string(zodiacalFlux) + " photons/pixel/exposure");
         Log.debug("Camera: stellar background flux level in subfield = " + to_string(stellarBackgroundFlux) + " photons/pixel/exposure");
     }
     else
     {
-        totalSkyBackground = floor(userGivenSkyBackground * exposureTime * transmissionEfficiency);
-        detector.addFlux(totalSkyBackground);
+
+//%%	In case the background is constant, split it up evenly between the wavelength bins for ease of calculation
+	totalSkyBackground = floor(userGivenSkyBackground * exposureTime * transmissionEfficiency / wavelengthBins);	
+
+        detector.addFlux(totalSkyBackground, subsubfieldx, subsubfieldy);
 
         Log.debug("Camera: user-given sky background flux over exposure= " + to_string(userGivenSkyBackground * exposureTime) + " photons/pixel/exposure");
     }
 
     // Save the sky background value that we added. [photons/pix/exposure]
 
-    skyBackgroundValues.push_back(totalSkyBackground);
+    skyBackgroundValues.push_back(totalSkyBackground);  //%% Due to spectral dependency this vector has all bins and all subsubfields for all exposures
 
     // Save the transmissionEfficiency value that was calculated for this exposure.
 
-    transmissionEfficiencyValues.push_back(transmissionEfficiency);
+    transmissionEfficiencyValues.push_back(transmissionEfficiency);  //%% Due to spectral dependency this vector has all bins and all subsubfields for all exposures
 
     return;
 }
@@ -958,11 +1047,12 @@ pair<double, double> Camera::distortedToUndistortedFocalPlaneCoordinates(double 
  *
  * @ return  Total sky background [photons / pixel / exposure].
  */
-double Camera::getTotalSkyBackground()
+vector<double> Camera::getTotalSkyBackground()
 {
     if (skyBackgroundValues.size() != 0)
     {
-        return skyBackgroundValues.back();
+	vector<double > backgroundWave(skyBackgroundValues.end() - wavelengthBins, skyBackgroundValues.end());	//%% Spectral dependency: the vector contains all exposures with #wavelengthBins*#subsubfields values each, one for each bin and subsubfield. Use the last exposure and last subsubfield (NOT IDEAL - AVERAGE?)
+	return backgroundWave;
     }
     else
     {

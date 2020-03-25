@@ -75,17 +75,17 @@ class Detector: public HDF5Writer
         pair<double, double> pixelToFocalPlaneCoordinates(double row, double column);
         pair<double, double> focalPlaneToPixelCoordinates(double xFP, double yFP);
 
-        pair<double, double> getFocalPlaneCoordinatesOfSubfieldCenter();
-        tuple<double, double, double, double, double, double, double, double> getFocalPlaneCoordinatesOfSubfieldCorners();
+        pair<double, double> getFocalPlaneCoordinatesOfSubfieldCenter(int subsubfieldx, int subsubfieldy);  //%% Added subsubfield for subsubfields in spectral dependence
+        tuple<double, double, double, double, double, double, double, double> getFocalPlaneCoordinatesOfSubfieldCorners(int subsubfieldx, int subsubfieldy);  //%% Added subsubfield for subsubfields in spectral dependence
 
         double getSolidAngleOfOnePixel(double plateScale);
         double getOrientationAngle();
 
-        virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) = 0;
-        virtual void addFlux(double flux) = 0;
+        virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux, int subsubfieldx, int subsubfieldy) = 0;  //%% Added subsubfield for subsubfields in spectral dependence
+        virtual void addFlux(double flux, int subsubfieldx, int subsubfieldy) = 0;  //%% Added subsubfield for subsubfields in spectral dependence
 
 
-        bool isInPixelMap(double row, double column);
+        bool isInPixelMap(double row, double column, int subsubfieldx, int subsubfieldy);  //%% Added subsubfield for subsubfields in spectral dependence
         bool isInSubfield(double xFPmm, double yFPmm);
 
         double getReadoutTimeBeforeNextExposure();
@@ -93,14 +93,21 @@ class Detector: public HDF5Writer
 
     protected:
 
-        virtual void integrateLight(int exposureNr, double startTime, double exposureTime) = 0;
+        virtual void integrateLight(int exposureNr, double startTime, double exposureTime, int subsubfieldx, int subsubfieldy) = 0;
 
-        virtual void generateThroughputMap();
+//%%        virtual void calculateVignetting(int binnumber);
+	int numsubsubfieldsx;  //%% Number of SubSubFields in x
+	int numsubsubfieldsy;  //%% Number of SubSUbFields in y
+	int numRowsPixelMap2;  //%% Larger PixelMap, combining all subsubfields
+	int numColumnsPixelMap2;  //%% Larger PixelMap, combining all subsubfields
+	virtual void addSubSubField(int subsubfieldx, int subsubfieldy);  //%% Added for spectral dependency, stitch subsubfields together
+		
+        virtual void generateThroughputMap(int binnumber, int subsubfieldx, int subsubfieldy);  //%% Added subsubfield for subsubfields in spectral dependence
         virtual void checkGain();
         virtual void generateGuyonnetCoefficients();
 
-        virtual void applyFlatfield() = 0;
-        virtual void applyThroughputEfficiency();
+        virtual void applyFlatfield(int subsubfieldx, int subsubfieldy) = 0;  //%% Added subsubfield for subsubfields in spectral dependence
+        virtual void applyThroughputEfficiency(int binnumber, int subsubfieldx, int subsubfieldy);  //%% Added subsubfield for subsubfields in spectral dependence
         virtual void applyBFE();
         virtual void addDarkSignal(float exposureTime);
 
@@ -134,10 +141,13 @@ class Detector: public HDF5Writer
         virtual double getTemperature();
 
         arma::Mat<float> pixelMap;               // Pixel map, excl. edge pixels
+	arma::Mat<float> pixelMap2;  //%% Larger PixelMap, combining all subsubfields
         arma::Mat<float> smearingMap;            // Smearing map (i.e. over-scan strip)
         arma::Mat<float> biasMapLeft;            // Bias map (i.e. pre-scan strip) for the left detector half
         arma::Mat<float> biasMapRight;           // Bias map (i.e. pre-scan strip) for the right detector half
         arma::Mat<float> throughputMap;          // Throughput efficiency map, due to vignetting, particulate & molecular contamination, and quantum efficiency
+
+//%%        arma::Mat<float> vignettingMap;		//%%Map to store once vignetting values for entire subfield - see if need to recalculate due to jitter/drift;
 
         arma::Mat<int> mechanicalVignettingMask; // Mask for the sub-field showing which pixels are within the FOV (1) and which aren't (0)   
         arma::Row<int> numExposedRowsInFOV;      // How many pixels in the exposed part of the detector for each column are within the FOV (only for columns showing overlap with the sub-field)
@@ -179,7 +189,7 @@ class Detector: public HDF5Writer
         double expectedValuePolarization;        // Expected value of the throughput efficiency due to polarisation
         double particulateContaminationEfficiency;  // Efficiency of particulate contamination (in [0,1])
         double molecularContaminationEfficiency;    // Efficiency of molecular contamination (in [0,1])
-        double meanQE;							 // Mean QE (over all wavelengths)
+        vector<double> QE;  //%% QE for each wavelength bin, added replaces meanQE for spectral dependency
         double meanAngleDependencyQE;			 // Mean (over all pixels) of the relative efficiency due to the angle dependency of the QE
         double serialTransferTime;				 // Time to shift the content of the readout register by one pixel [s]
         double parallelTransferTime;			 // Time to shift the charges one row down in case the readout register will be read out [s]
@@ -232,6 +242,11 @@ class Detector: public HDF5Writer
 
         double nominalOperatingTemperature;
         double internalTime;
+
+	int wave_bins;  //%% Number of wavelength bins to be processed for spectral dependency
+//%%        vector<double> vignettingRadii;
+//%%        vector<double> vignettingValues;
+        int overlapx, overlapy;  //%% Overlap region for multiple subsubfields, introduced with spectral dependency
 
         long darkSignalSeed;
         long readoutNoiseSeed;

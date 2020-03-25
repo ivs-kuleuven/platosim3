@@ -34,17 +34,19 @@ class PointSpreadFunction : public HDF5Writer
         virtual void initHDF5Groups() override;
         virtual void flushOutput() override;
 
-        void rotate(double angle);
-        void select(double radius);
+        void rotate(double angle, int fieldnumber, int fieldmax);
+        void select(double radius, int fieldnumber, int fieldmax);
 
         double getRequestedDistanceToOpticalAxis();
         double getRequestedRotationAngle();
 
-        arma::fmat rebinToSubPixels(unsigned int targetSubPixels);
+	vector<arma::Mat<float>> rebinToSubPixels(unsigned int targetSubPixels, int fieldnumber);  //%% Made into vector for spectral dependency, as have multiple psf maps
 
     protected:
         void configure(ConfigurationParameters &);
-        arma::fmat rebinToPixels();
+
+	vector<arma::fmat> rebinToPixels();  //%% Made into vector for spectral dependency, as have multiple psf maps
+
         arma::fmat getGaussianPsf();
 
     private:
@@ -68,6 +70,10 @@ class PointSpreadFunction : public HDF5Writer
         // The selected psf is copied into this array
         arma::Mat<float> psfMap;
 
+	vector<arma::Mat<float>> psfVector;  //%% Added for spectral dependency, vector to save all possible psfs to be used
+	int wave_bins;  //%% Added for spectral dependency, total number of wavelength bins
+	int binnumber;	//%% Added for spectral dependency, current wavelength bin
+
         // The HDF5 file that holds the PSFs
         HDF5File psfFile;
 
@@ -88,6 +94,9 @@ class PointSpreadFunction : public HDF5Writer
 
         // The actual rotation angle of the PSF with respect to the x-axis orientation of the focal plane
         double rotationAngle = 0.0;    // [radians]
+
+	vector<double> rotationVector;  //%% Added for spectral dependency, vector of all rotation angles of all psfs stored
+	int numsubsubfieldsx, numsubsubfieldsy;  //%% Added for spectral dependency, number of subsubfields
 
         // The angular distance to the Optical Axis as requested by the user
         // A negative value indicates no user input,, i.e. auto-compute

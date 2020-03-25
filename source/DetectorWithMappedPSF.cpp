@@ -43,7 +43,8 @@ DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configPara
     // Allocate memory for the different maps
 
     subPixelMap.zeros(numRowsSubPixelMap, numColumnsSubPixelMap);
-    flatfieldMap.ones(numRowsSubPixelMap, numColumnsSubPixelMap);
+
+    flatfieldMap.ones(numsubsubfieldsx * (numRowsSubPixelMap - 2*overlapx * numSubPixelsPerPixel) + 2*overlapx * numSubPixelsPerPixel, numsubsubfieldsy * (numColumnsSubPixelMap - 2*overlapy * numSubPixelsPerPixel) + 2*overlapy * numSubPixelsPerPixel);  //%% For spectral dependency, make flatfield map cover the full final stitched field
 
     if(includeFlatfield)
     {
@@ -63,7 +64,14 @@ DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configPara
     // Then select the proper PSF for the given subfield. Should only be done after calling configure().
 
     psf = new PointSpreadFunction(configParam, hdf5file);
-    setPsfForSubfield();
+
+    for (int subsubfieldx = 0; subsubfieldx < numsubsubfieldsx; subsubfieldx++)  //%% Loop to select a different psf for each subsubfield
+    {
+        for (int subsubfieldy = 0; subsubfieldy < numsubsubfieldsy; subsubfieldy++)
+        {
+    setPsfForSubfield(subsubfieldx, subsubfieldy);  //%% Added subsubfield
+        }
+    }
 
 }
 
@@ -105,6 +113,8 @@ DetectorWithMappedPSF::~DetectorWithMappedPSF()
 	flatfieldNoiseRMS = configParam.getDouble("CCD/FlatfieldNoiseRMS");
 	includeFlatfield = configParam.getBoolean("CCD/IncludeFlatfield");
 	includeConvolution = configParam.getBoolean("CCD/IncludeConvolution");
+
+        wave_bins = configParam.getInteger("Camera/WavelengthBins");  //%% Read how many wavelength bins are to be processed, for spectral dependency
 
 	writeSubPixelImagesToHDF5 = configParam.getBoolean(
 			"ControlHDF5Content/WriteSubPixelImages");
@@ -190,9 +200,9 @@ void DetectorWithMappedPSF::generateFlatfieldMap()
     // Double the dimensions (this is necessary because of the behaviour of the Fourier transforms)
     // (this is a bit inconvenient as we are working at sub-pixel level -> to be investigated)
 
-    int Nrows = 2 * numRowsPixelMap * numSubPixelsPerPixel;
-    int Ncolumns = 2 * numColumnsPixelMap * numSubPixelsPerPixel;
-
+    int Nrows = 2 * ((numsubsubfieldsx * (numRowsPixelMap - 2*overlapx) + 2*overlapx) * numSubPixelsPerPixel);  //%% For spectral dependency, FF map is size of large stutched map
+    int Ncolumns = 2 * ((numsubsubfieldsy * (numColumnsPixelMap - 2*overlapy) + 2*overlapy) * numSubPixelsPerPixel);  //%% For spectral dependency, FF map is size of large stutched map
+  
     arma::cx_fmat evenMap = arma::cx_fmat(Nrows, Ncolumns);
 
     for(unsigned int row = 0; row < Nrows; row++)
@@ -240,11 +250,11 @@ void DetectorWithMappedPSF::generateFlatfieldMap()
     // and also write this array to the HDF5 outputfile. This PRNU array is not used
     // in the remainder of the simulation.
 
-    arma::Mat<float> prnu(numRowsPixelMap, numColumnsPixelMap, arma::fill::zeros);
+    arma::Mat<float> prnu(numRowsPixelMap2, numColumnsPixelMap2, arma::fill::zeros);  //%% Changed to pixelMap2 (large) for spectral dependency
 
-    for (unsigned int row = 0; row < numRowsPixelMap; row++)
+    for (unsigned int row = 0; row < numRowsPixelMap2; row++)
     {
-        for (unsigned int column = 0; column < numColumnsPixelMap; column++)
+        for (unsigned int column = 0; column < numColumnsPixelMap2; column++)
         {
             const unsigned int beginRow = row * numSubPixelsPerPixel;
             const unsigned int beginCol = column * numSubPixelsPerPixel;
@@ -317,6 +327,8 @@ void DetectorWithMappedPSF::reset()
 
 double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, double exposureTime)
 {
+    pixelMap2.zeros(); 	//%% Added for spectral dependency, larger map to add all subsubfields to
+
     // Advance the internal clock until the given start time
 
     internalTime = startTime;
@@ -325,7 +337,24 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
 
     Log.info("Detector: Integrating light for exposure " + to_string(exposureNr) + " with exposure time = " + to_string(exposureTime));
 
-    integrateLight(exposureNr, startTime, exposureTime);
+    for (int subsubfieldx = 0; subsubfieldx < numsubsubfieldsx; subsubfieldx++)  //%% For spectral dependency: loop over all subfields and bins
+    {
+        for (int subsubfieldy = 0; subsubfieldy < numsubsubfieldsy; subsubfieldy++)
+        {
+	integrateLight(exposureNr, startTime, exposureTime, subsubfieldx, subsubfieldy);
+        }
+    }
+
+    if(includeDarkSignal)	//%% Dark signal only applies once, not wavelength dependent
+    {
+	Log.debug("Detector: adding dark current");
+
+       	addDarkSignal(exposureTime);
+    }
+    else
+    {
+        Log.debug("Detector: no dark current added");
+    }
 
     // Include noise effects like readout noise, photon noise, full well saturation, etc.
     // Note: readOut() needs the exposure time to compute the open shutter smearing.
@@ -385,7 +414,7 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
  * \post Pixel, bias register, and smearing map filled with zeroes.
  */
 
-void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, double exposureTime)
+void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, double exposureTime, int subsubfieldx, int subsubfieldy)
 {
 
     // Reset the sub-field (i.e. get rid of the previous exposure, by zeroing the entire sub-field)
@@ -394,13 +423,23 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
 
     reset();
 
+    for (int binnumber=0; binnumber<wave_bins; binnumber++)  //%% Loop over different wavebins, for spectral dependency	
+    {
+            reset();
+
     // Integration (incl. jitter): point sources + background
 
-    camera.exposeDetector(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
+    double centerRA, centerDec;  //%%
+    tie(centerRA, centerDec) = camera.exposeDetector(*this, startTime, exposureTime, readoutTimeBeforeNextExposure, binnumber, subsubfieldx, subsubfieldy);	//%% added binnumber, subsubfield, ra/dec for spectral dependency
 
     // Convolve with the point spread function
 
-    convolveWithPsf();
+    int fieldnumber = subsubfieldx * numsubsubfieldsy + subsubfieldy;  //%% Unique subfield ID to find correct vector position of PSF etc
+    int psfnumber = binnumber + fieldnumber * wave_bins;  //%% unique psf number based on subfield and wavebin
+
+    convolveWithPsf(psfnumber);  //%% added psfnumber for spectral dependency
+
+    camera.SkyBackground(*this, startTime, exposureTime, readoutTimeBeforeNextExposure, binnumber, centerRA, centerDec, subsubfieldx, subsubfieldy);  //%% For spectral dependency - add the diffuse background separately after the convolution to eliminate edge effects
 
     // Apply flatfield (at sub-pixel level)
 
@@ -408,7 +447,7 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
     {
         Log.debug("Detector: applying Flatfield.");
 
-        applyFlatfield();
+        applyFlatfield(subsubfieldx, subsubfieldy);  //%% Added subsubfield for spectral dependence.
     }
     else
     {
@@ -425,20 +464,7 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
     // This takes into account the QE, vignetting, polarisation, and particulate & molecular contamination.
     // PixelMap units change from [photons] to [electrons] 
 
-    applyThroughputEfficiency();
-
-    // Add dark current
-
-    if(includeDarkSignal)
-    {
-    		Log.debug("Detector: adding dark current");
-
-    		addDarkSignal(exposureTime);
-    }
-    else
-    {
-    		Log.debug("Detector: no dark current added");
-    }
+    applyThroughputEfficiency(binnumber, subsubfieldx, subsubfieldy);
 
     // Brighter-Fatter effect
 
@@ -452,7 +478,16 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
     {
         Log.debug("Detector: no Brighter-Fatter effect added");
     }
+
+    addSubSubField(subsubfieldx, subsubfieldy);  //%% Stitch the smaller pixel map additively to the arger complete map
+
 }
+
+}
+
+
+
+
 
 
 
@@ -477,18 +512,18 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
  *                   col:          subfield (not CCD) column number of the pixel to which the flux was added  
  */
 
-tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yFP, double flux)
+tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yFP, double flux, int subsubfieldx, int subsubfieldy) //%% Added subsubfield for spectral dependence
 {
     // Convert from FP coordinates to CCD pixel coordinates
 
     double pixRow, pixColumn;
     tie(pixRow, pixColumn) = focalPlaneToPixelCoordinates(xFP, yFP);
-    pixRow -= subFieldZeroPointRow;
-    pixColumn -= subFieldZeroPointColumn;
+    pixRow -= subFieldZeroPointRow + subsubfieldx * (numRowsPixelMap - 2 * overlapx);  //%% Take subsubfield into account
+    pixColumn -= subFieldZeroPointColumn + subsubfieldy * (numColumnsPixelMap - 2 * overlapy);
 
     // Check if the star falls in the subfield. If not, don't add any flux, but simply return.
 
-    if (!isInPixelMap(pixRow, pixColumn))
+    if (!isInPixelMap(pixRow, pixColumn, subsubfieldx, subsubfieldy))  //%% Added subsubfield
     {
         return make_tuple(false, pixRow, pixColumn);
     }
@@ -622,13 +657,44 @@ bool DetectorWithMappedPSF::isInSubPixelMap(double row, double column)
  *
  */
 
-void DetectorWithMappedPSF::addFlux(double flux)
+void DetectorWithMappedPSF::addFlux(double flux, int subsubfieldx, int subsubfieldy)  //%% For spectral dependency: only add flux to the core regions of the subfield, is extended if at the edge
 {
     // The flux is expressed in [photons/pixel] but we need the quantity expressed 
     // in [photons/subpixel]. There are (numSubPixelsPerPixel)^2 per pixel (the
     // name is thus a bit of a misnomer.).
 
-    subPixelMap += flux / numSubPixelsPerPixel / numSubPixelsPerPixel;
+    double fluxsub = flux / numSubPixelsPerPixel / numSubPixelsPerPixel;
+
+    int colovlow = overlapy;
+    int colovhigh = overlapy;
+    int rowovlow = overlapx;
+    int rowovhigh = overlapx;
+
+    if (subsubfieldx == 0)
+    {
+        rowovlow = 0;
+    }
+    if (subsubfieldx == numsubsubfieldsx - 1)
+    {
+        rowovhigh = 0;
+    }
+
+    if (subsubfieldy == 0)
+    {
+        colovlow = 0;
+    }
+    if (subsubfieldy == numsubsubfieldsy - 1)
+    {
+        colovhigh = 0;
+    }
+
+    for (int i = numSubPixelsPerPixel * rowovlow; i < numRowsSubPixelMap - numSubPixelsPerPixel * rowovhigh; i++)
+    {
+        for (int j = numSubPixelsPerPixel * colovlow; j < numColumnsSubPixelMap - numSubPixelsPerPixel * colovhigh; j++)
+        {
+	    subPixelMap(i, j) += fluxsub;
+        }
+    }
 }
 
 
@@ -655,15 +721,20 @@ void DetectorWithMappedPSF::addFlux(double flux)
  * \post Pixel, bias, and smearing maps filled with zeroes.
  */
 
-void DetectorWithMappedPSF::applyFlatfield()
+void DetectorWithMappedPSF::applyFlatfield(int subsubfieldx, int subsubfieldy)  //%% Added subsubfield for spectral dependence
 {
     const unsigned int numEdgeSubPixels = numEdgePixels * numSubPixelsPerPixel;
     const unsigned int beginRow = numEdgeSubPixels;
     const unsigned int beginCol = numEdgeSubPixels;
     const unsigned int endRow = numRowsSubPixelMap - numEdgeSubPixels - 1;
     const unsigned int endCol = numColumnsSubPixelMap - numEdgeSubPixels - 1;
+
+    const unsigned int FFbeginRow = subsubfieldx * (numRowsPixelMap - 2 * overlapx) ;  //%% Only applying the FF of the corresponding subfield region
+    const unsigned int FFbeginCol = subsubfieldy * (numColumnsPixelMap - 2 * overlapy) ;
+    const unsigned int FFendRow = FFbeginRow + numRowsSubPixelMap - numEdgeSubPixels - 1;
+    const unsigned int FFendCol = FFbeginCol + numColumnsSubPixelMap - numEdgeSubPixels - 1;
     
-    subPixelMap.submat(beginRow, beginCol, endRow, endCol) = subPixelMap.submat(beginRow, beginCol, endRow, endCol) % flatfieldMap;
+    subPixelMap.submat(beginRow, beginCol, endRow, endCol) = subPixelMap.submat(beginRow, beginCol, endRow, endCol) % flatfieldMap.submat(FFbeginRow, FFbeginCol, FFendRow, FFendCol);
 }
 
 
@@ -717,13 +788,14 @@ void DetectorWithMappedPSF::rebin()
  * \details    The PSF that is selected is dependent on the user input.
  */
 
-void DetectorWithMappedPSF::setPsfForSubfield()
+void DetectorWithMappedPSF::setPsfForSubfield(int subsubfieldx, int subsubfieldy)
 {
     // There is one PSF for the entire subfield, which we take the one of the center 
     // of the subfield.
 
     double xFPmm, yFPmm;
-    tie(xFPmm, yFPmm) = getFocalPlaneCoordinatesOfSubfieldCenter();
+
+    tie(xFPmm, yFPmm) = getFocalPlaneCoordinatesOfSubfieldCenter(subsubfieldx, subsubfieldy);  //%% For spectral dependency, use correct subsubfield
 
     // Get the 'user specified' angular distance to the optical axis from the psf.
     // If the user didn't specify an angular distance, calculate it from the given
@@ -736,7 +808,10 @@ void DetectorWithMappedPSF::setPsfForSubfield()
         radius = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm);
     }
 
-    psf->select(radius);
+    int fieldnumber = subsubfieldx * numsubsubfieldsy + subsubfieldy; //%% unique number for subsubfield
+    int fieldmax = numsubsubfieldsx * numsubsubfieldsy -1; //%% total number of subsubfields -1 for counting start at 0
+
+    psf->select(radius, fieldnumber, fieldmax);  //%% added fieldnumber and max for spectral dependence
 
 
     // Get the 'user specified' orientation angle from the psf.
@@ -753,16 +828,19 @@ void DetectorWithMappedPSF::setPsfForSubfield()
     //  Compensate for the orientation of the CCD wrt focal plane orientation.
 
     angle -= orientationAngle;
-    psf->rotate(angle);
+    psf->rotate(angle, fieldnumber, fieldmax);  //%% added fieldnumber and max for spectral dependence
 
     // Rebin the psfMap to the number of sub-pixels per pixel used for the Detector
 
-    psfMap = psf->rebinToSubPixels(numSubPixelsPerPixel);
+    psfVector = psf->rebinToSubPixels(numSubPixelsPerPixel, fieldnumber); //%% fieldnumber to rebin the correct one
 
     // Allow the convolver to precompute some stuff given the PSF, so that it doesn't
     // need to be recomputed every convolution.
 
-    convolver.initialise(numRowsSubPixelMap, numColumnsSubPixelMap, psfMap);
+    for (int binnumber=0; binnumber<wave_bins; binnumber++)  //%% For spectral dependence: Loop over all wavebins and intialize all corresponding PSFs
+    {
+        convolver.initialise(numRowsSubPixelMap, numColumnsSubPixelMap, psfVector[binnumber], binnumber, wave_bins, fieldnumber, fieldmax);
+    }
 
 }
 
@@ -782,7 +860,7 @@ void DetectorWithMappedPSF::setPsfForSubfield()
  * \param psf: PSF.
  */
 
-void DetectorWithMappedPSF::convolveWithPsf()
+void DetectorWithMappedPSF::convolveWithPsf(int psfnumber)
 {
 
     if(includeConvolution)
@@ -791,7 +869,7 @@ void DetectorWithMappedPSF::convolveWithPsf()
 
         // subpixelMap serves here both as input as well as output matrix;
 
-        convolver.convolve(subPixelMap, subPixelMap);
+        convolver.convolve(subPixelMap, subPixelMap, psfnumber);  //%% Added psfnumber for spectral dependence
     }
     else
     {

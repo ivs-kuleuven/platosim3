@@ -38,6 +38,9 @@ class Platform : public Heartbeat, HDF5Writer
 
         void setPointingCoordinates(double rightAscencsion, double declination, Unit unit = Angle::degrees);
         void updatePlatformOrientation(double time);
+
+        void updatePlatformOrientationWave(double time, int binnumber, int wave_bins, bool subsubfieldlast);  //%% Added for spectral dependency - only use update for first bin/subfield, only read afterwards
+
         pair<double, double> getCurrentPointingCoordinates();
         pair<double, double> getInitialPointingCoordinates();
 
@@ -80,6 +83,12 @@ class Platform : public Heartbeat, HDF5Writer
         vector<double> historyYaw;
         vector<double> historyPitch;
         vector<double> historyRoll;
+
+	vector<double> yawWave;  //%% For spectral dependency, used to store values calculated for first bin
+	vector<double> pitchWave;  //%% For spectral dependency, used to store values calculated for first bin
+	vector<double> rollWave;  //%% For spectral dependency, used to store values calculated for first bin
+	int totalTimestepsWave;  //%% For spectral dependency, used to store values calculated for first bin
+	int timestepWave;  //%% For spectral dependency, used to store values calculated for first bin
 
     private:
 

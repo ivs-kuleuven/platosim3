@@ -44,13 +44,12 @@
 PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam, HDF5File &hdf5file)
 : HDF5Writer(hdf5file)
 {
-    // Create the groups in the HDF5 file where the different PSFs and their description will be saved.
-
-    initHDF5Groups();
-
     // Parse the parameters from the configuration file.
 
     configure(configParam);
+
+    // Create the groups in the HDF5 file where the different PSFs and their description will be saved. - Moved after configure for spectral dependency
+    initHDF5Groups();
 
     isSelected = false;
     isRotated = false;
@@ -74,7 +73,8 @@ PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam, H
             throw H5FileException("PointSpreadFunction: Could not open HDF5 file: " + absolutePath);
         }
     
-        string groupName = "T6000";
+        string groupName = "wave-1";  //%% Spectral dependency, wave-1 is the combined PSF of all wavelengths
+
         if ( ! psfFile.hasGroup(groupName) )
         {
             throw H5FileException("PointSpreadFunction: The HDF5 file (" + absolutePath + ") doesn't contain the expected group \"" + groupName + "\".");
@@ -126,7 +126,7 @@ void PointSpreadFunction::flushOutput()
     
     // Save the PSF subpixel map when it is rebinned to pixel level.
 
-    rebinToPixels();
+   // rebinToPixels();  //%% Needs addtional work for the subsubfields
 }
 
 
@@ -146,6 +146,20 @@ void PointSpreadFunction::initHDF5Groups()
     Log.debug("PointSpreadFunction: initialising HDF5 groups");
 
     hdf5File.createGroup("/PSF");
+
+    for (int binnumber=0; binnumber<wave_bins; binnumber++)  //%% Spectral dependency: create a group for each wavelength
+    {
+	string group;
+	if (wave_bins == 1)  //%% If only one wavelength is chosen use the multicolor PSF
+	{
+	group = "/PSF/wavebin" + to_string(binnumber-1);
+	}
+	else
+	{
+	group = "/PSF/wavebin" + to_string(binnumber);
+	}
+	hdf5File.createGroup(group);
+    }
 }
 
 
@@ -229,6 +243,8 @@ void PointSpreadFunction::configure(ConfigurationParameters &configParam)
 {
     string model = configParam.getString("PSF/Model");
 
+    wave_bins = configParam.getInteger("Camera/WavelengthBins");  //%% Spectral dependence: Read how many wavelength bins are to be processed
+
     if (model == "MappedGaussian")
     {
         // The user specified to use a Gaussian shape PSF
@@ -254,6 +270,9 @@ void PointSpreadFunction::configure(ConfigurationParameters &configParam)
         numberOfPixels            = configParam.getInteger("PSF/MappedFromFile/NumberOfPixels");
         requestedDistanceToOA     = deg2rad(configParam.getDouble("PSF/MappedFromFile/DistanceToOA"));
         requestedRotationAngle    = deg2rad(configParam.getDouble("PSF/MappedFromFile/RotationAngle"));
+
+    numsubsubfieldsx 	   = configParam.getInteger("SubField/NumSubSubFieldsRows");  //%% Multiple fields, for spectral dependence
+    numsubsubfieldsy 	   = configParam.getInteger("SubField/NumSubSubFieldsColumns");  //% Multiple fields, for spectral dependence
 
     }
     else
@@ -326,7 +345,7 @@ double PointSpreadFunction::getRequestedRotationAngle()
  * 
  * \param[in]  radius  angular separation of the source for which to select the PSF [radians]
  */
-void PointSpreadFunction::select(double radius)
+void PointSpreadFunction::select(double radius, int fieldnumber, int fieldmax)
 {
     using StringUtilities::dtos;
     
@@ -335,6 +354,9 @@ void PointSpreadFunction::select(double radius)
     if (isSelected)
     {
         Log.warning("PointSpreadFunction: Another PSF was previously selected.");
+
+psfVector.clear();  //%% Clear the vectors as we use append
+rotationVector.clear();
     }
 
     if (isGaussian)
@@ -350,29 +372,57 @@ void PointSpreadFunction::select(double radius)
 
     radius = rad2deg(radius);
 
+//%% Read radii from psf hdf5, added for spectral dependency
+    arma::vec radii;
+    int field = 1;  //%% Starting radii at 1 so use 0 as test case
+    while (field != 0)
+    {
+	string groupName = "wave-" +to_string(1) + "/radius" + to_string(field);  //%% Take the radii from the multicolor PSF which has to be there
+	if (psfFile.hasGroup(groupName))
+	{
+	    double rad = psfFile.readDoubleGroupAttribute(groupName, "radius[deg]");
+	    int sz = radii.size();
+	    radii.resize(sz+1);
+	    radii(sz) = rad;
+	    field = field+1;
+	}
+	else
+	{
+	    field = 0;
+	}
+    }
+
     // Convert radius into the string angularRadiusGroup that identifies the psf dataset in the HDF5 file.
     // We work with a lookup table psfdata::radius which contains fixed radius values for which PSF data
     // was generated. The algorithm is to select the PSF with radius closest to the given radius by 
     // subtracting the given radius from the tabulated radius and then selecting the lowest value to find the index.
     
-    arma::vec rads = psfdata::radius - radius;
+    arma::vec rads = radii - radius;  //%% Use radii, containing all radii read from the hdf5
+
     rads = abs(rads);
 
     arma::uword index;
     rads.min(index);
 
-    if (index > psfdata::radius.n_elem-1)
+    if (index > radii.n_elem-1)  //%% radii vector for spectral dependence
     {
         Log.warning("PointSpreadFunction: Radius index (" + to_string(index) + ") is out of bounds.");
-        index = psfdata::radius.n_elem-1;
+        index = radii.n_elem-1;  //%% radii vector for spectral dependence
     }
 
     stringstream myStream;
-    myStream << "ar" << setfill('0') << setw(5) << int(psfdata::radius(index) * 1000);
 
-    const string angularRadiusGroup = myStream.str();
-    const string temperatureGroup = "T6000";  // TODO: hardcoded value! 
-    const string azimuthDataset = "az0";      // TODO: hardcoded value!
+    const string angularRadiusGroup = "radius" + to_string(index+1);  //%% Changed string for spectral dependency
+
+    const string azimuthDataset = "0";  // TODO: hardcoded value!
+
+//%% Spectral dependency: Loop over all wavebins
+    for (int binnumber=0; binnumber<wave_bins; binnumber++)
+{
+
+    string temperatureGroup;
+    if (wave_bins == 1){temperatureGroup = "wave" + to_string(binnumber-1);}  //%% Use multicolor if only one wavebin
+    else{temperatureGroup = "wave" + to_string(binnumber);}  //% Otherwise use correct temperature, curretntly only works if identical to binpositions
 
     string groupName = temperatureGroup + "/" + angularRadiusGroup;
 
@@ -389,13 +439,29 @@ void PointSpreadFunction::select(double radius)
     // Load the psf array into the psfMap
     
     psfFile.readArray("/" + groupName, azimuthDataset, psfMap);
-    
+
+    psfVector.push_back(psfMap);  //%% Save the psf in a vector to keep all wavelengths
+
     // The PSFs that are currently used are rotated with respect to the focal plane x-axis.
     // The rotation angle is given as an attribute to the dataset that contains the PSF.
 
     double angle = psfFile.readDoubleDatasetAttribute(groupName, azimuthDataset, "orientation");
 
     rotationAngle = deg2rad(angle);
+
+    rotationVector.push_back(rotationAngle);  //%% keep the rotation angles of all bins
+    string group;
+    if (wave_bins == 1)
+    {
+	group = "/PSF/wavebin" + to_string(binnumber-1);
+    }
+    else
+    {
+	group = "/PSF/wavebin" + to_string(binnumber);
+    }
+    Log.debug("PointSpreadFunction: Selected PSF " + groupName + "/" + azimuthDataset + " for wavebin " + to_string(binnumber) + ", rotation set to " + dtos(angle) + " degrees.");
+    hdf5File.writeAttribute(group, "selectedPSFfield" + to_string(fieldnumber), "Realistic PSF selected from group " + groupName + "/" + azimuthDataset + ".");
+}
 
     // We should be able to read the number of sub-pixels per pixel that was used to generate the PSFs
     // from an attribute in the HDF5 file. Unfortunately, this is not available and we therefore derive 
@@ -404,11 +470,9 @@ void PointSpreadFunction::select(double radius)
 
     numberOfSubPixelsPerPixel = psfMap.n_rows / numberOfPixels;
 
-    Log.debug("PointSpreadFunction: Selected PSF " + groupName + "/" + azimuthDataset + ", rotation set to " + dtos(angle) + " degrees.");
-
-    hdf5File.writeAttribute("/PSF", "selectedPSF", "Realistic PSF selected from group " + groupName + "/" + azimuthDataset + ".");
-
-    isSelected = true;
+    if (fieldnumber == fieldmax){  //%% If processed the last subsubfield, then all psfs have been chosen, for spectral dependency
+      isSelected = true;
+    }
 }
 
 
@@ -426,7 +490,7 @@ void PointSpreadFunction::select(double radius)
  *
  * \param[in]  angle  angle by which the PSF should be rotated [radians]
  */
-void PointSpreadFunction::rotate(double angle)
+void PointSpreadFunction::rotate(double angle, int fieldnumber, int fieldmax)
 {
 
     // We do not need to rotate a Gaussian PSF
@@ -451,20 +515,39 @@ void PointSpreadFunction::rotate(double angle)
         // The rotationAngle of the generated PSFs is 45 degrees, so the actual rotation should be
         // the requested angle minus the rotationAngle of the PSF.
 
-        double newAngle = angle - rotationAngle;
-        psfMap = ArrayOperations::rotateArray(psfMap, newAngle);
+//%% Added loop for spectral dependence, rotate all bins
+        for (int binnumber=0; binnumber<wave_bins; binnumber++)
+{
+	double newAngle = angle - rotationVector[binnumber];
 
-        rotationAngle = newAngle;
-        isRotated = true;    
+	psfVector[binnumber] = ArrayOperations::rotateArray(psfVector[binnumber], newAngle);  //%% Changed to vector for spectral dependency
 
-        psfMap /= arma::accu(psfMap);
+        rotationAngle = newAngle;  
 
-        Log.debug("PointSpreadFunction: rotated current PSF over angle " + to_string(rad2deg(newAngle)) + " deg");
+	psfVector[binnumber] /= arma::accu(psfVector[binnumber]);		//NORMALIZING  //%% Changed to vector for spectral dependency
 
-        // Write the psfMap of the rotated PSF to the HDF5 output file
+    string group;
+    if (wave_bins == 1)
+    {
+	group = "/PSF/wavebin" + to_string(binnumber-1);
+    }
+    else
+    {
+	group = "/PSF/wavebin" + to_string(binnumber);
+    } 
+        hdf5File.writeArray(group, "rotatedPSFfield" + to_string(fieldnumber), psfVector[binnumber]);
+        hdf5File.writeAttribute(group, "rotationAnglefield" + to_string(fieldnumber), rotationAngle);
+	Log.debug("PointSpreadFunction: rotated current PSF over angle " + to_string(rad2deg(newAngle)) + " deg for wavebin " + to_string(binnumber));
+}
 
-        hdf5File.writeArray("/PSF", "rotatedPSF", psfMap);
-        hdf5File.writeAttribute("/PSF", "rotationAngle", rotationAngle);
+    if (fieldnumber == fieldmax){
+	isRotated = true;  //%% If processed the last subsubfield, then all psfs have been rotated, for spectral dependency
+    }
+
+        // Write the psfMap of the rotated PSF to the HDF5 output file  //%% Not done yet
+
+//        hdf5File.writeArray("/PSF", "rotatedPSF", psfMap);
+//        hdf5File.writeAttribute("/PSF", "rotationAngle", rotationAngle);
 
     }
 }
@@ -494,24 +577,41 @@ void PointSpreadFunction::rotate(double angle)
  *
  * @return     the rebinned PSF map
  */
-arma::fmat PointSpreadFunction::rebinToSubPixels(unsigned int targetSubPixels)
+vector<arma::Mat<float>> PointSpreadFunction::rebinToSubPixels(unsigned int targetSubPixels, int fieldnumber)  //%% Changed to vector for spectral dependency
 {
     if (targetSubPixels == numberOfSubPixelsPerPixel)
-        return psfMap;
+	return psfVector;    //%% Changed to vector for spectral dependency
 
-    unsigned int binSize = psfMap.n_rows / numberOfSubPixelsPerPixel * targetSubPixels;
-
-    arma::fmat rebinnedMap = ArrayOperations::rebin(psfMap, binSize, binSize);
-
-    isRebinned = true;
+//%% Added a loop over all wavelength bins
+    vector<arma::Mat<float>> rebinnedVector;
+    arma::fmat rebinnedMap;
+    for (int binnumber=0; binnumber<wave_bins; binnumber++)
+{
+    unsigned int binSize = psfVector[binnumber].n_rows / numberOfSubPixelsPerPixel * targetSubPixels;
+    rebinnedMap = ArrayOperations::rebin(psfVector[binnumber], binSize, binSize);  //%% Overwrite rebinned map
 
     rebinnedMap /= arma::accu(rebinnedMap);
 
-    // Write the rebinned PSF to the output HDF5 file
+    rebinnedVector.push_back(rebinnedMap);  //%% Keep the value of the bin in a vector
 
-    hdf5File.writeArray("/PSF", "rebinnedPSFsubPixel", rebinnedMap);
+    string group;
+    if (wave_bins == 1)
+    {
+	group = "/PSF/wavebin" + to_string(binnumber-1);
+    }
+    else
+    {
+	group = "/PSF/wavebin" + to_string(binnumber);
+    }
+    hdf5File.writeArray(group, "rebinnedPSFsubPixelfield" + to_string(fieldnumber), rebinnedMap);
+}
+    isRebinned = true;
 
-    return rebinnedMap;
+    // Write the rebinned PSF to the output HDF5 file  //%% Not done yet
+
+//    hdf5File.writeArray("/PSF", "rebinnedPSFsubPixel", rebinnedMap);
+
+    return rebinnedVector;  //%% Changed to vector for spectral dependency
 }
 
 
@@ -534,21 +634,37 @@ arma::fmat PointSpreadFunction::rebinToSubPixels(unsigned int targetSubPixels)
  * @return     the rebinned PSF map
  * 
  */
-arma::fmat PointSpreadFunction::rebinToPixels()
+
+vector<arma::fmat> PointSpreadFunction::rebinToPixels()  //%% Changed to vector for spectral dependency
 {
-    unsigned int binSize = psfMap.n_rows / numberOfSubPixelsPerPixel;
+    vector<arma::fmat> rebinnedVector;
+    for (int binnumber=0; binnumber<wave_bins; binnumber++)
+{
+    string group;
+    if (wave_bins == 1)
+    {
+	group = "/PSF/wavebin" + to_string(binnumber-1);
+    }
+    else
+    {
+	group = "/PSF/wavebin" + to_string(binnumber);
+    }
 
-    arma::fmat rebinnedMap = ArrayOperations::rebin(psfMap, binSize, binSize);
+    unsigned int binSize = psfVector[binnumber].n_rows / numberOfSubPixelsPerPixel;
 
-    isRebinned = true;
+    arma::fmat rebinnedMap = ArrayOperations::rebin(psfVector[binnumber], binSize, binSize);
 
     rebinnedMap /= arma::accu(rebinnedMap);
 
-    // Write the rebinned PSF to the output HDF5 file
+    rebinnedVector.push_back(rebinnedMap);
 
-    hdf5File.writeArray("/PSF", "rebinnedPSFpixel", rebinnedMap);
+    // Write the rebinned PSF to the output HDF5 file //%% Not Done yet
 
-    return rebinnedMap;
+    //hdf5File.writeArray(group, "rebinnedPSFpixel", rebinnedMap);
+}
+    isRebinned = true;
+
+    return rebinnedVector;
 }
 
 

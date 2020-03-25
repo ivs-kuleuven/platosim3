@@ -486,16 +486,16 @@ void Simulation::writeStarCatalogToHDF5()
     vector<double> colPix(Nstars);
     vector<double> xFPmm(Nstars);
     vector<double> yFPmm(Nstars);
+    vector<double> StarTemp(Nstars);  //%% Added Temperature to change the shape of the wavelength spectrum, for spectral dependency
 
     double xFPrad, yFPrad;
-
     if (!allStarIDs.empty())
     {
         int k = 0;
         for (auto starID: allStarIDs)
         {
             starIDs[k] = starID;
-            tie(RA[k], dec[k], Vmag[k]) = sky->getInfoOfStarWithID(starID);  // RA & dec returned in radians!
+            tie(RA[k], dec[k], Vmag[k], StarTemp[k]) = sky->getInfoOfStarWithID(starID);  // RA & dec returned in radians!  //%% Added Temperature for spectral dependency
             const bool useInitialOrientation = true;
             tie(xFPmm[k], yFPmm[k]) = camera->skyToFocalPlaneCoordinates(RA[k], dec[k], useInitialOrientation);
             
@@ -510,7 +510,6 @@ void Simulation::writeStarCatalogToHDF5()
             tie(rowPix[k], colPix[k]) = detector->focalPlaneToPixelCoordinates(xFPmm[k], yFPmm[k]);
             k++;
         }
-
         hdf5File.writeArray("StarCatalog/", "starIDs", starIDs.data(), starIDs.size());
         hdf5File.writeArray("StarCatalog/", "RA",      RA.data(), RA.size());
         hdf5File.writeArray("StarCatalog/", "Dec",     dec.data(), dec.size());
@@ -519,6 +518,8 @@ void Simulation::writeStarCatalogToHDF5()
         hdf5File.writeArray("StarCatalog/", "yFPmm",    yFPmm.data(), yFPmm.size());
         hdf5File.writeArray("StarCatalog/", "colPix",    colPix.data(), colPix.size());
         hdf5File.writeArray("StarCatalog/", "rowPix",    rowPix.data(), rowPix.size());
+
+	hdf5File.writeArray("StarCatalog/", "temp",    StarTemp.data(), StarTemp.size());  //%% Added temperature for spectral dependency
     }
     else
     {
@@ -643,14 +644,18 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addString("DriftFileName");
     subGroup = "Telescope/TransmissionEfficiency";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
-    addDouble("BOL");
-    addDouble("EOL");
+    addDoubleVector("BOL");  //%%changed for spectral dependency, is now vector with n different wavelength bin values
+    addDoubleVector("EOL");  //%%changed for spectral dependency, is now vector with n different wavelength bin values
 
     subGroup = "Camera";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
     addDouble("PlateScale");
-    addDouble("ThroughputBandwidth");
     addDouble("ThroughputLambdaC");
+
+    addDouble("BinWidth");  //%% Added for spectral dependency, width of the wavelength bins
+    addDouble("BinOrigin");  //%% Added for spectral dependency, lower liit of the wavelength bins
+    addInteger("WavelengthBins");  //%% Added for spectral dependency, total number of wavelength bins
+
     addBoolean("IncludeFieldDistortion");
     subGroup = "Camera/FieldDistortion";
     hdf5File.createGroup(parentGroup + "/" + subGroup);
@@ -797,7 +802,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     hdf5File.createGroup(parentGroup + "/" + subGroup);
 //    addDouble("RefAngle");
 //    addDouble("RelativeRefEfficiency");
-    addDouble("MeanQuantumEfficiency");
+    addDoubleVector("WaveQuantumEfficiency");  //%% Made into a vector for spectral dependency, with n wavebins		
     addDouble("MeanAngleDependency");
 
     subGroup = "CCD/Polarization";

@@ -61,6 +61,14 @@ void Convolver::free()
     fftwf_free(fourierIn);
     fftwf_free(fourierKern);
     fftwf_free(fourierOut);
+
+
+    for (int binnumber=fourierKernVector.size()-1; binnumber=0; binnumber--){
+    fftwf_free(fourierKernVector[binnumber]);  //%% Clear for all bins, added for spectral dependency
+    }
+
+    fourierKernVector.clear();  //%% Made vector for spectral dependency
+
 }
 
 
@@ -85,7 +93,7 @@ void Convolver::free()
  * \param kernel  Kernel matrix to convolve with. Should be smaller in shape than input matrix.
  */
 
-void Convolver::initialise(int Nrows, int Ncols, matrix &kernel)
+void Convolver::initialise(int Nrows, int Ncols, matrix &kernel, int binnumber, int wave_bins, int fieldnumber, int fieldmax)  //%% added bin and subsubfield for spectral dependency
 {
     // First free any array allocations from a previous initialisation
 
@@ -93,6 +101,8 @@ void Convolver::initialise(int Nrows, int Ncols, matrix &kernel)
     {
         free();
     }
+
+    int psfnumber = binnumber + fieldnumber * wave_bins;  //%% ID of the psf based on subsubfield and wavebin, added for spectral dependency
 
     // Do sanity checks on the matrix dimensions
 
@@ -114,13 +124,16 @@ void Convolver::initialise(int Nrows, int Ncols, matrix &kernel)
     //    Output = Input (x) kernel
     // where (x) denotes convolution.
 
+
+if ((binnumber == 0) && (fieldnumber == 0)){  //%% For spectral dependency: Only calculate for the very first bin/field
     NrowsInOut = Nrows;
     NcolsInOut = Ncols;
+}
 
     // To avoid boundary effects, the input and kernel matrices need to be zero-padded.
     // Make extended versions of the matrices that are large enough for zero-padding.
 
-    createExtendedMatrices(Nrows, Ncols, kernel);
+    createExtendedMatrices(Nrows, Ncols, kernel, binnumber, fieldnumber);  //%% For spectral dependency: added bin and fieldnumber
 
     // Create the FFTW plans. This can take some time, but needs to be done only once.
     // FFTW_ESTIMATE means that FFTW will try different algorithms, measure their performance,
@@ -129,9 +142,13 @@ void Convolver::initialise(int Nrows, int Ncols, matrix &kernel)
     // forwardPlanKern: 2D forward fourier transformation of the extended kernel matrix
     // backwardPlanOut: 2D inverse fourier transformation of the extended output matrix
 
+
+if ((binnumber == 0) && (fieldnumber == 0)){  //%% For spectral dependency: Only calculate for the very first bin/field
     forwardPlanIn   = fftwf_plan_dft_r2c_2d(NrowsExtended, NcolsExtended, extendedIn, fourierIn, FFTW_ESTIMATE);
-    forwardPlanKern = fftwf_plan_dft_r2c_2d(NrowsExtended, NcolsExtended, copyExtendedKern, fourierKern, FFTW_ESTIMATE);
     backwardPlanOut = fftwf_plan_dft_c2r_2d(NrowsExtended, NcolsExtended, fourierOut, extendedOut, FFTW_ESTIMATE);
+}
+
+    forwardPlanKern = fftwf_plan_dft_r2c_2d(NrowsExtended, NcolsExtended, copyExtendedKern, fourierKernVector[psfnumber], FFTW_ESTIMATE);  //%% Spectral dependency: the actual fourier is unique for all bins/fields
 
     // Compute the 2D fourier transform of the zero-padded wrap-around version of the kernel only once.
 
@@ -139,7 +156,10 @@ void Convolver::initialise(int Nrows, int Ncols, matrix &kernel)
  
     // Remember that all arrays and plans were initialised
 
+if ((binnumber == wave_bins - 1) && (fieldnumber == fieldmax))  //%% Is initialized if it was the last bin of the last field
+{
     isInitialised = true;
+}
 
 }
 
@@ -163,7 +183,7 @@ void Convolver::initialise(int Nrows, int Ncols, matrix &kernel)
  */
 
 
-void Convolver::createExtendedMatrices(int Nrows, int Ncols, matrix &kernel)
+void Convolver::createExtendedMatrices(int Nrows, int Ncols, matrix &kernel, int binnumber, int fieldnumber)  //%% added binnumber and fieldnumber for spectral dependency
 {
     // The amount of zero-padding we need is half the size of the kernel, in either direction
     // (NrowsExtended, NcolsExtended) will be the shape of the extended input, the extended
@@ -184,9 +204,12 @@ void Convolver::createExtendedMatrices(int Nrows, int Ncols, matrix &kernel)
     // copyExtendedKernel: 2D row-major copy of the column-major extendedKern.
     // extendedOut:        2D row-major convolution result of convolving zero-padded arrays
 
+
+if ((binnumber == 0) && (fieldnumber == 0)){  //%% For spectral dependency: Only calculate for the very first bin/field
     extendedIn       = (float*) fftwf_malloc(sizeof(float) * NrowsExtended * NcolsExtended);
-    copyExtendedKern = (float*) fftwf_malloc(sizeof(float) * NrowsExtended * NcolsExtended);
     extendedOut      = (float*) fftwf_malloc(sizeof(float) * NrowsExtended * NcolsExtended);
+    copyExtendedKern = (float*) fftwf_malloc(sizeof(float) * NrowsExtended * NcolsExtended);
+}
 
     // Copy the kernel from column-major to row-major format
     // Zero both the input and output arrays. 
@@ -198,8 +221,10 @@ void Convolver::createExtendedMatrices(int Nrows, int Ncols, matrix &kernel)
             const int ij = i*NcolsExtended + j;
             copyExtendedKern[ij] = extendedKern(i,j);
 
+if ((binnumber == 0) && (fieldnumber == 0)){  //%% For spectral dependency: Only calculate for the very first bin/field
             extendedIn[ij] = 0.0;
             extendedOut[ij] = 0.0;
+	    }
         }
     }
 
@@ -207,9 +232,14 @@ void Convolver::createExtendedMatrices(int Nrows, int Ncols, matrix &kernel)
     // fourierKern: Complex fourier transform of zero-padded and wrapped-around kernel
     // fourierOut:  Complex fourier transform of the convolution
 
+if ((binnumber == 0) && (fieldnumber == 0)){  //%% For spectral dependency: Only calculate for the very first bin/field
     fourierIn   = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex)*NrowsExtended *(NcolsExtended/2+1));
-    fourierKern = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex)*NrowsExtended *(NcolsExtended/2+1));
     fourierOut  = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex)*NrowsExtended *(NcolsExtended/2+1));
+}
+
+    fourierKern = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex)*NrowsExtended *(NcolsExtended/2+1));  //%% Spectral dependency: the actual fourier is unique for all bins/fields
+
+    fourierKernVector.push_back(fourierKern);  //%% Spectral dependency: save the unique fourier in an array
 }
 
 
@@ -304,6 +334,7 @@ void Convolver::createWrapAroundKernel(matrix &kernel)
     colEndIn   = colStartIn + Ncols-1;
 
     extendedKern.submat(rowStartIn, colStartIn, rowEndIn, colEndIn) = kernel.submat(rowStartOut, colStartOut, rowEndOut, colEndOut); 
+
 }
 
 
@@ -322,10 +353,9 @@ void Convolver::createWrapAroundKernel(matrix &kernel)
  * 
  */
 
-void Convolver::convolve(matrix &in, matrix &out, double zeroThreshold)
+void Convolver::convolve(matrix &in, matrix &out, int psfnumber, double zeroThreshold)  //%% Added psfnumber for spectral dependency, unique psf id for field and bin
 {
     // Check if both the input and output matrices have the same shape as was given in the constructor
-
     if ((out.n_rows != NrowsInOut) || (out.n_cols != NcolsInOut))
     {
         string errorMessage = "Convolver: output matrix shape (" + to_string(out.n_rows) + "," + to_string(out.n_cols)
@@ -362,11 +392,13 @@ void Convolver::convolve(matrix &in, matrix &out, double zeroThreshold)
 
     for (int i = 0; i < NrowsExtended; ++i)
     {
-        for (int j = 0; j < NcolsExtended/2+1; ++j) 
+        for (int j = 0; j < NcolsExtended/2+1; ++j)
         {
             const int ij = i*(NcolsExtended/2+1) + j;
-            fourierOut[ij][0] = (fourierIn[ij][0] * fourierKern[ij][0] - fourierIn[ij][1] * fourierKern[ij][1]);
-            fourierOut[ij][1] = (fourierIn[ij][0] * fourierKern[ij][1] + fourierIn[ij][1] * fourierKern[ij][0]);
+
+            fourierOut[ij][0] = (fourierIn[ij][0] * fourierKernVector[psfnumber][ij][0] - fourierIn[ij][1] * fourierKernVector[psfnumber][ij][1]);  //%% Spectral dependence: use correct psf for field and bin
+            fourierOut[ij][1] = (fourierIn[ij][0] * fourierKernVector[psfnumber][ij][1] + fourierIn[ij][1] * fourierKernVector[psfnumber][ij][0]);  //%% Spectral dependence: use correct psf for field and bin
+
         }
     }
 
@@ -398,6 +430,18 @@ void Convolver::convolve(matrix &in, matrix &out, double zeroThreshold)
             }
         }
     }
+
+//%% SPectral dependency: As convolution done mutliple times, zero the input array again
+    for (int i = 0; i < NrowsExtended; ++i)
+    {
+        for (int j = 0; j < NcolsExtended; ++j)
+        {
+            const int ij = i*NcolsExtended + j;
+            extendedIn[ij] = 0.0;
+            extendedOut[ij] = 0.0;
+        }
+    }
+
 }
 
 

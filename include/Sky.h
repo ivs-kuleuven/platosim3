@@ -47,9 +47,11 @@ class Sky
 
         unsigned long selectStarsWithinRadiusFrom(double RA, double dec, double radius, Unit angleUnit = Angle::degrees);
         void aberrateSelectedStarPositions(Platform &platform, string aberrationCorrectionType, double startTime, double timeMiddle);
-        tuple<unsigned int, double, double, double> getSelectedStar(unsigned int n);
+        tuple<unsigned int, double, double, double, double> getSelectedStar(unsigned int n);  //%% Added Temperature for spectral dependency
 
-        tuple<double, double, double> getInfoOfStarWithID(unsigned int starID);
+	unsigned long selectStarsWithinRadius();  //%% Added with spectral dependency, returns number of stars
+
+        tuple<double, double, double, double> getInfoOfStarWithID(unsigned int starID);  //%% Added Temperature for spectral dependency
 
 
         double zodiacalFlux(double RA, double dec, double lambda1, double lambda2);
@@ -69,14 +71,16 @@ class Sky
 
     private:
 
-        map<unsigned int, tuple<double, double, double>> starDB;    // star database: starDB[stardID] contains (RA, dec, Vmag), 
+        map<unsigned int, tuple<double, double, double, double>> starDB;    // star database: starDB[stardID] contains (RA, dec, Vmag), 
                                                                     // with (RA, dec) in radians, and Vmag = Johnson V magnitude,
                                                                     // and starID the star identification number.
+                                                                     //%% Added Temperature for spectral dependency
        
         vector<unsigned int> selectedStarID;  // IDs of the stars selected with selectStarsWithinRadiusFrom()
         vector<double> selectedRA;            //      Corresponding selected Right Ascension [rad]
         vector<double> selectedDec;           //      Corresponding Declination              [rad]
         vector<double> selectedVmag;          //      Corresponding Johnson V magnitude
+	vector<double> selectedTempStar;   //%% Added Temperature for spectral dependency
 
         vector<unsigned int> selectedVariableStars;    // Indices of those selected stars that have an entry in deltaMagnitude.
 

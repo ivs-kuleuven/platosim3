@@ -42,7 +42,8 @@ class Camera : public HDF5Writer
         virtual ~Camera();
 
         virtual void configure(ConfigurationParameters &configParam);
-        virtual void exposeDetector(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure);
+        virtual pair<double, double> exposeDetector(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure, int binnumber, int subsubfieldx, int subsubfieldy);	//%% changed for spectral dependence, added the wavelength bin, also added subsubfield for splitting, made pair of double
+	virtual void SkyBackground(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure, int binnumber, double centerRA, double centerDec, int subsubfieldx, int subsubfieldy);  //%% added for spectral dependence, apply sky BG separately
         virtual void updateParameters(double time);
 
         virtual void initHDF5Groups() override;
@@ -58,7 +59,7 @@ class Camera : public HDF5Writer
 
         set<unsigned int> getAllStarIDs();
 
-        double getTotalSkyBackground();
+        vector<double> getTotalSkyBackground();  //%% changed for spectral dependence, is now a vector with n wavelength bins
         double getFocalLength();
 
 
@@ -78,8 +79,13 @@ class Camera : public HDF5Writer
 
         string distortionModel;               // The model used to compute the distortion  
         double plateScale;                    // [arcsec/micron]
-        double throughputBandwidth;           // FWHM of the throughput passband [nm]
         double throughputLambdaC;             // Central wavelength of the throughput passband [nm]
+
+	int wavelengthBins;  //%% Added for spectral dependence, number of wavelength bins
+	double binWidth;  //%% width of one wavelength bin [nm]
+        double binOrigin;  //%% lower edge of first wavelength bin [nm]
+	int numsubsubfieldsx;  //%% Number of subsubfields to execute separately, x
+	int numsubsubfieldsy;  //%% Number of subsubfields to execute separately, x
 
         double internalTime;
 
@@ -97,9 +103,9 @@ class Camera : public HDF5Writer
 
         bool writeStarPositions;          // Whether or not the star positions should be written to the output HDF5 file
 
-        // detectedStarInfo[startTime][starID] contains the values (xFPmean, yFPmean, rowPixMean, colPixmean, sumFlux, Ndetections)
+        // detectedStarInfo[startTime][starID] contains the values (xFPmean, yFPmean, rowPixMean, colPixmean, sumFlux, Ndetections) + temp
 
-        map<double, map<unsigned int, array<double, 6>>> detectedStarInfo;
+        map<double, map<unsigned int, array<double, 6+1>>> detectedStarInfo;	//%% +1 for spetral dependence, as temperature is also tranferred
         vector<double> skyBackgroundValues;
         vector<double> transmissionEfficiencyValues;
         double totalSkyBackground;          // Total sky background [photons / pixel / exposure]

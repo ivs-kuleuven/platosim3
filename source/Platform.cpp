@@ -86,6 +86,9 @@ void Platform::configure(ConfigurationParameters &configParams)
     Log.debug("Platform: solar panel orientation = " + to_string(rad2deg(solarPanelOrientation)) + " deg");
     Log.debug("Platform: (RA Sun, Dec Sun) = (" + to_string(rad2deg(raSun)) + ", " + to_string(rad2deg(decSun)) + ")");
 
+    timestepWave = 0;  //%% Added for spectral dependence
+    totalTimestepsWave = 0;  //%% Added for spectral dependence
+
 }
 
 
@@ -207,7 +210,7 @@ void Platform::updatePlatformOrientation(double time)
 
         if (time < internalTime)
         {
-            Log.warning("Platform: updatePlatformOrientation() at time before previous request: Not Implemented. ");
+            Log.warning("Platform: updatePlatformOrientation() at time before previous request: Not Implemented. This might break jitter in other SubSubFields / Wavebins."); //%% Added note
             return;
         }
 
@@ -223,6 +226,12 @@ void Platform::updatePlatformOrientation(double time)
                 Log.debug("Platform: At time " + to_string(time) + ": (RA, dec) = (" 
                                                + to_string(historyRA.back()) + ", " 
                                                + to_string(historyDec.back()) + ")");
+
+	yawWave.push_back(yaw);  //%% Save the values so that they can be read for all other wavelength bins / fields  NOTE: Also save here when no time change, as read out by wave routine?
+	pitchWave.push_back(pitch);  //%% Save the values so that they can be read for all other wavelength bins / fields
+	rollWave.push_back(roll);  //%% Save the values so that they can be read for all other wavelength bins / fields
+	totalTimestepsWave = totalTimestepsWave + 1;  //%% Continue counting
+
                 return;
             }
         }
@@ -231,6 +240,11 @@ void Platform::updatePlatformOrientation(double time)
         // Let the platfrom jitter until 'time'. Yaw, pitch, and roll are in [rad]
 
         tie(yaw, pitch, roll) = jitterGenerator.getNextYawPitchRoll(time);
+
+	yawWave.push_back(yaw);  //%% Save the values so that they can be read for all other wavelength bins / fields, Added for spectral dependence
+	pitchWave.push_back(pitch);  //%% Save the values so that they can be read for all other wavelength bins / fields, Added for spectral dependence
+	rollWave.push_back(roll);  //%% Save the values so that they can be read for all other wavelength bins / fields, Added for spectral dependence
+	totalTimestepsWave = totalTimestepsWave + 1;  //%% Continue counting, Added for spectral dependence
 
         Log.debug("Platform: At time " + to_string(time) + ": (yaw, pitch, roll) = (" 
                                        + to_string(rad2deg(yaw)*3600.) + ", " 
@@ -307,6 +321,88 @@ void Platform::updatePlatformOrientation(double time)
 }
 
 
+//%% Added an additional routine to use the old, saved jitter values not to realculate them. Added for spectral dependence. Could maybe be merged into one routine with IF condition.
+void Platform::updatePlatformOrientationWave(double time, int binnumber, int wave_bins, bool subsubfieldlast)
+{
+    double yaw=0.0, pitch=0.0, roll=0.0;
+
+    if (useJitter)
+    {
+        yaw = yawWave[timestepWave];
+	pitch = pitchWave[timestepWave];
+	roll = rollWave[timestepWave];
+
+        Log.debug("Platform: At time " + to_string(time) + " for bin " + to_string(binnumber) + ": (yaw, pitch, roll) = (" 
+                                       + to_string(rad2deg(yaw)*3600.) + ", " 
+                                       + to_string(rad2deg(pitch)*3600.) + ", " 
+                                       + to_string(rad2deg(roll)*3600.) + ") arcsec");
+
+
+        // Get the rotation matrix to take into account the jitter.
+
+        arma::mat rotUnjittered2Jittered = getUnjitteredToJitteredRotationMatrix(yaw, pitch, roll);
+
+        // Get the matrix to rotate from the unjittered spacecraft (SC) reference frame to 
+        // the equatorial (EQ) reference frame
+
+        arma::mat rotSC2EQ = getUnjitteredSpacecraftToEquatorialRotationMatrix();
+
+        // Store the total rotation matrix and its inverse for later use
+
+        rotJitteredSpacecraftToEquatorial = rotSC2EQ * rotUnjittered2Jittered;
+        rotEquatorialToJitteredSpacecraft = rotJitteredSpacecraftToEquatorial.t();
+
+        // Before the jitter, the roll axis has coordinates (0,0,1) in the SC reference frame
+        // After jitter it will have slightly rotated. Afterwards, we convert from the SC to the EQ
+        // reference frame
+
+        arma::colvec zUnitBeforeJitterSC = {0.0, 0.0, 1.0};
+        arma::colvec zUnitAfterJitterEQ = rotJitteredSpacecraftToEquatorial * zUnitBeforeJitterSC;
+ 
+        // Convert from cartesian to sky coordinates
+
+        const double x = zUnitAfterJitterEQ(0);
+        const double y = zUnitAfterJitterEQ(1);
+        const double z = zUnitAfterJitterEQ(2);
+
+        const double r = sqrt(x*x+y*y+z*z);
+        currentDec = PI / 2.0 - acos(z/r);
+        currentRA = atan2(y, x);
+        if (currentRA < 0.0) currentRA += 2 * PI; 
+
+	    timestepWave = timestepWave + 1;
+	    if (timestepWave == totalTimestepsWave )
+	    {
+		timestepWave = 0;
+		if ((binnumber == wave_bins - 1) && subsubfieldlast )
+		{
+		    yawWave.clear();
+		    pitchWave.clear();
+		    rollWave.clear();
+		    totalTimestepsWave = 0; 
+		}
+	    }
+
+    }
+    else
+    {
+        Log.info("Platform: No jitter, platform (yaw, pitch, roll) = (0.0, 0.0, 0.0)");
+        yaw = 0.0;
+        pitch = 0.0;
+        roll = 0.0;
+        currentRA = originalRA;
+        currentDec = originalDec;
+
+        // No need to change rotJitteredSpacecraftToEquatorial and rotEquatorialToJitteredSpacecraft
+        // because they were already set in the constructor.
+    }
+
+    Log.debug("Platform: At time " + to_string(time) + ": (RA, dec) = (" 
+                                   + to_string(rad2deg(currentRA)) + ", " 
+                                   + to_string(rad2deg(currentDec)) + ")");
+
+    return;
+}
 
 
 
