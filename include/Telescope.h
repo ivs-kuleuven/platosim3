@@ -29,7 +29,7 @@ class Telescope  : public Heartbeat, HDF5Writer
 
         virtual void configure(ConfigurationParameters &configParam);
 
-        virtual void updateParameters(double time);
+        virtual void updateParameters(double time, int binnumber, bool subsubfield, bool subsubfieldlast);  //%% added wavebin and subsubfield checking bools for spectral dependency
 
         arma::mat getPlatformToDriftedTelescopeRotationMatrix();
         arma::mat getDriftedTelescopeToPlatformRotationMatrix();
@@ -39,7 +39,7 @@ class Telescope  : public Heartbeat, HDF5Writer
 
 
         virtual double getHeartbeatInterval() override;
-        virtual double getTransmissionEfficiency(double time);
+        virtual vector<double> getTransmissionEfficiency(double time);  //%% changed for spectral dependency, now returns vector of n wavelength bins
         
         double getLightCollectingArea();
 
@@ -54,8 +54,8 @@ class Telescope  : public Heartbeat, HDF5Writer
         double currentAlphaOpticalAxis;        // Current right ascension of the optical axis                       [rad]
         double currentDeltaOpticalAxis;        // Current declination of the optical axis                           [rad]
         double lightCollectingArea;            // Effective light collective area                                   [cm^2]
-        double transmissionEfficiencyBOL;      // Efficiency at Beginning Of Life in [0,1]
-        double transmissionEfficiencyEOL;      // Efficiency at End Of Life in [0,1]
+        vector<double> transmissionEfficiencyBOL;      // Efficiency at Beginning Of Life in [0,1]					//%% Changed for spectral dependency, is now vector with n bins
+        vector<double> transmissionEfficiencyEOL;      // Efficiency at End Of Life in [0,1]						//%% Changed for spectral dependency, is now vector with n bins
         double missionDuration;                // Duration of the PLATO Mission, used for degrading parameters      [s]
         double driftYawRms;                    // RMS of thermo-elastic drift in yaw                                [rad]
         double driftPitchRms;                  // RMS of thermo-elastic drift in pitch                              [rad]
@@ -77,7 +77,15 @@ class Telescope  : public Heartbeat, HDF5Writer
         arma::mat rotSpacecraftToDriftedTelescope;  // rotation matrix 
 
         arma::mat getUndriftedToDriftedRotationMatrix(const double yaw, const double pitch, const double roll);
-        virtual void updateTelescopeOrientation(double time);
+        virtual void updateTelescopeOrientation(double time, int binnumber, bool subsubfield, bool subsubfieldlast);  //%% added wavebin and subsubfield checking bools for spectral dependency
+
+
+	int wave_bins;  //%%  Number of wavelength bins to be processed, added for spectral dependency
+	vector<double> yawWave;  //%% Added for spectral dependency, compute only for bin 0 and keep for others
+	vector<double> pitchWave;  //%% Added for spectral dependency, compute only for bin 0 and keep for others
+	vector<double> rollWave;  //%% Added for spectral dependency, compute only for bin 0 and keep for others
+	int totalTimestepsWave;  //%% Added for spectral dependency, compute only for bin 0 and keep for others
+	int timestepWave;  //%% Added for spectral dependency, compute only for bin 0 and keep for others
 
     private:
 

@@ -47,16 +47,16 @@ Sky::Sky(ConfigurationParameters &configParams)
             // use the line number (starting from 0) as star ID.
             
             unsigned int starID;
-            if (numbers.size() == 3)
+            if (numbers.size() == 3+1)	//%% +1 for temperature, needed due to spectral dependence
             {
                 starID = n;
             }
-            if (numbers.size() == 4)
+            if (numbers.size() == 4+1)	//%% +1 for temperature, needed due to spectral dependence
             {
-                starID = static_cast<unsigned int>(numbers[3]);
+                starID = static_cast<unsigned int>(numbers[3+1]);  //%% +1 for temperature, needed due to spectral dependence
             }
 
-            starDB.emplace(starID, make_tuple(numbers[0] / Angle::degrees, numbers[1] / Angle::degrees, numbers[2]));    // (starID, (RA[rad], DEC[rad], Vmag)
+            starDB.emplace(starID, make_tuple(numbers[0] / Angle::degrees, numbers[1] / Angle::degrees, numbers[2], numbers[3]));    // (starID, (RA[rad], DEC[rad], Vmag)	//%% Added temperature for spectral dependence
             n++;
         }
 
@@ -289,6 +289,7 @@ unsigned long Sky::selectStarsWithinRadiusFrom(double RA0, double dec0, double r
     selectedDec.clear();
     selectedVmag.clear();
     selectedVariableStars.clear();
+    selectedTempStar.clear();  //%% Added temperature for spectral dependence
 
     // Copy the star ID, RA, Dec, and Vmag of the selected stars.
     // It's not sufficient to simply keep the starIDs of the selected stars, because the coordinates
@@ -298,8 +299,8 @@ unsigned long Sky::selectStarsWithinRadiusFrom(double RA0, double dec0, double r
     for (auto const& star: starDB)
     {
         unsigned int starID = star.first;
-        double RA, dec, Vmag;
-        tie(RA, dec, Vmag) = star.second;
+        double RA, dec, Vmag, TempStar;  //%% Added temperature for spectral dependence
+        tie(RA, dec, Vmag, TempStar) = star.second;  //%% Added temperature for spectral dependence
         double angularDistances = angularDistanceBetween(RACircleCenter, decCircleCenter, RA, dec, Angle::radians);  // [rad]
  
         if (angularDistances <= radiusCircle)
@@ -308,6 +309,7 @@ unsigned long Sky::selectStarsWithinRadiusFrom(double RA0, double dec0, double r
             selectedRA.push_back(RA);
             selectedDec.push_back(dec);
             selectedVmag.push_back(Vmag);
+            selectedTempStar.push_back(TempStar);  //%% Added temperature for spectral dependence
 
             // Also keep track of which selected stars are variable. Saves us many search loops afterwards.
             // selectedVariableStars contains the _indices_ (of selected*) of those stars that are variable.
@@ -323,6 +325,20 @@ unsigned long Sky::selectStarsWithinRadiusFrom(double RA0, double dec0, double r
 }
 
 
+
+
+
+
+
+
+
+
+
+
+unsigned long Sky::selectStarsWithinRadius()  //%% Added for spectral dependece - do not recalculate all the stars each bin, keep the old and simply return number
+{
+    return selectedStarID.size();
+}
 
 
 
@@ -418,8 +434,8 @@ void Sky::aberrateSelectedStarPositions(Platform &platform, string aberrationCor
 
     for (unsigned int n = 0; n < selectedStarID.size(); ++n)
     {
-        double raStar, decStar, Vmag;
-        tie(raStar, decStar, Vmag) = starDB[selectedStarID[n]];       // ra & dec in [rad]
+        double raStar, decStar, Vmag, TempStar;  //%% Added temperature for spectral dependence
+        tie(raStar, decStar, Vmag, TempStar) = starDB[selectedStarID[n]];       // ra & dec in [rad]  //%% Added temperature for spectral dependence
 
         double lambdaStar, betaStar;
         equatorial2ecliptic(raStar, decStar, lambdaStar, betaStar);
@@ -489,7 +505,7 @@ void Sky::aberrateSelectedStarPositions(Platform &platform, string aberrationCor
  *
  */
 
-tuple<unsigned int, double, double, double> Sky::getSelectedStar(unsigned int n)
+tuple<unsigned int, double, double, double, double> Sky::getSelectedStar(unsigned int n)  //%% Added temperature for spectral dependence
 {
     if (n > selectedStarID.size()-1)
     {
@@ -497,7 +513,7 @@ tuple<unsigned int, double, double, double> Sky::getSelectedStar(unsigned int n)
     }
     else
     {
-        return make_tuple(selectedStarID[n], selectedRA[n], selectedDec[n], selectedVmag[n]);
+        return make_tuple(selectedStarID[n], selectedRA[n], selectedDec[n], selectedVmag[n], selectedTempStar[n]);  //%% Added temperature for spectral dependence
     }
 }
 
@@ -517,7 +533,7 @@ tuple<unsigned int, double, double, double> Sky::getSelectedStar(unsigned int n)
  *
  */
 
-tuple<double, double, double> Sky::getInfoOfStarWithID(unsigned int starID)
+tuple<double, double, double, double> Sky::getInfoOfStarWithID(unsigned int starID)  //%% Added temperature for spectral dependence
 {
     if (starDB.count(starID) == 0)
     {

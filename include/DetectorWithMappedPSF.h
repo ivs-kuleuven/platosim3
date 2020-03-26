@@ -24,35 +24,38 @@ class DetectorWithMappedPSF : public Detector
 
         virtual double takeExposure(int exposureNr, double startTime, double exposureTime) override;
 
-        virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) override;
-        virtual void addFlux(double flux) override;
+
+        void configure(ConfigurationParameters &configParam);
+
+        virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux, int subsubfieldx, int subsubfieldy) override;  //%% Added subsubfields for spectral dependency
+        virtual void addFlux(double flux, int subsubfieldx, int subsubfieldy) override;  //%% Added subsubfields for spectral dependency
 
         virtual void configure(ConfigurationParameters &configParam){};
 
     protected:
 
         virtual void initHDF5Groups() override;
-        virtual void integrateLight(int exposureNr, double startTime, double exposureTime) override;
-
-        virtual bool isInSubPixelMap(double row, double column);
-
-        virtual void applyFlatfield() override;
 
         virtual void reset();
         
-        
+        virtual void integrateLight(int exposureNr, double startTime, double exposureTime, int susubfieldx, int subsubfieldy) override;  //%% Added subsubfields for spectral dependency
+        virtual bool isInSubPixelMap(double row, double column);
         virtual void applyDiffusionKernel(double row, double column, double flux);
+        virtual void applyFlatfield(int subsubfieldx, int subsubfieldy) override;  //%% Added subsubfields for spectral dependency
+
         virtual void generateFlatfieldMap();
         virtual void generateDiffusionKernel(double kernelWidth);
         virtual void rebin();
         void writeSubPixelMapToHDF5(int exposureNr);
 
-        virtual void setPsfForSubfield(){};
-
-        virtual void convolveWithPsf();
+        void setPsfForSubfield(int subsubfieldx, int subsubfieldy);  //%% Added subsubfields for spectral dependency
+        virtual void convolveWithPsf(int binnumber);  //%% Added wavelength bin for spectral dependency
 
         arma::Mat<float> subPixelMap;           // Sub-pixel map, incl. edge pixels
         arma::Mat<float> psfMap;                // The PSF map that will be used for convolving
+
+        vector<arma::Mat<float>> psfVector;  //%% Added for spectral dependency, vector of all psfMaps to be used
+
         arma::Mat<float> flatfieldMap;          // Intra-pixel flatfield map
 
         double chargeDiffusionStrength;			// Strength of the charge diffusion (width of the Gaussian diffusion kernel) [pixels]
@@ -60,6 +63,8 @@ class DetectorWithMappedPSF : public Detector
         bool includeJitterSmoothing;            // Whether or not to include jitter smoothing
 
         double flatfieldNoiseRMS;               // Peak-to-peak noise amplitude
+
+	int wave_bins;  //%%  Number of wavelength bins to be processed, added for spectral dependency
 
         bool includeFlatfield;                  // Whether or not to include flat fielding
         bool writeFlatfieldMap;                 // Whether or not to write the flatfield map to the HDF5 file

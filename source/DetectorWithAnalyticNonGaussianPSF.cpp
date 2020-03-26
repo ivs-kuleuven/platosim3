@@ -37,7 +37,7 @@ DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(Configura
 
     // Allocate memory for the flatfield map
 
-    flatfieldMap.ones(numRowsPixelMap, numColumnsPixelMap);
+    flatfieldMap.ones(numsubsubfieldsx * (numRowsPixelMap - 2*overlapx) + 2*overlapx, numsubsubfieldsy * (numColumnsPixelMap - 2*overlapy) + 2*overlapy);  //%% For spectral dependency, make flatfield map cover the full final stitched field
 
     if(includeFlatfield)
     {
@@ -97,6 +97,7 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
     flatfieldSeed       = configParam.getLong("RandomSeeds/FlatFieldSeed");
 
     // Read and configure the parameters used to calculate the PSF
+    wave_bins = configParam.getInteger("Camera/WavelengthBins");  //%% Read how many wavelength bins are to be processed, for spectral dependency
 
     string filename = configParam.getAbsoluteFilename("PSF/AnalyticNonGaussian/ParameterFileName");
 
@@ -312,8 +313,8 @@ void DetectorWithAnalyticNonGaussianPSF::generateFlatfieldMap()
 
     // Double the dimensions (this is necessary because of the behaviour of the Fourier transforms)
 
-    int Nrows = 2 * numRowsPixelMap;
-    int Ncolumns = 2 * numColumnsPixelMap;
+    int Nrows = 2 * ((numsubsubfieldsx * (numRowsPixelMap - 2*overlapx) + 2*overlapx));  //%% For spectral dependency, FF map is size of large stitched map
+    int Ncolumns = 2 * ((numsubsubfieldsy * (numColumnsPixelMap - 2*overlapy) + 2*overlapy));  //%% For spectral dependency, FF map is size of large stitched map
 
     arma::cx_fmat evenMap = arma::cx_fmat(Nrows, Ncolumns);
 
@@ -418,6 +419,8 @@ void DetectorWithAnalyticNonGaussianPSF::reset()
 
 double DetectorWithAnalyticNonGaussianPSF::takeExposure(int exposureNr, double startTime, double exposureTime)
 {
+    pixelMap2.zeros(); 	//%% Added for spectral dependency, larger map to add all subsubfields to
+
     // Advance the internal clock until the given start time
 
     internalTime = startTime;
@@ -426,7 +429,25 @@ double DetectorWithAnalyticNonGaussianPSF::takeExposure(int exposureNr, double s
 
     Log.info("Detector: Integrating light for exposure " + to_string(exposureNr) + " with exposure time = " + to_string(exposureTime));
 
-    integrateLight(exposureNr, startTime, exposureTime);
+    //integrateLight(exposureNr, startTime, exposureTime);
+
+    for (int subsubfieldx = 0; subsubfieldx < numsubsubfieldsx; subsubfieldx++)  //%% For spectral dependency: loop over all subfields and bi
+    {
+        for (int subsubfieldy = 0; subsubfieldy < numsubsubfieldsy; subsubfieldy++)
+        {
+	integrateLight(exposureNr, startTime, exposureTime, subsubfieldx, subsubfieldy);
+    }}
+
+    if(includeDarkSignal)	//%% Dark signal only applies once, not wavelength dependent
+    {
+	Log.debug("Detector: adding dark current");
+
+       	addDarkSignal(exposureTime);
+    }
+    else
+    {
+        Log.debug("Detector: no dark current added");
+    }
 
     // Include noise effects like readout noise, photon noise, full well saturation, etc.
     // Note: readOut() needs the exposure time to compute the open shutter smearing.
@@ -486,7 +507,7 @@ double DetectorWithAnalyticNonGaussianPSF::takeExposure(int exposureNr, double s
  * \post Pixel, bias register, and smearing map filled with zeroes.
  */
 
-void DetectorWithAnalyticNonGaussianPSF::integrateLight(int exposureNr, double startTime, double exposureTime)
+void DetectorWithAnalyticNonGaussianPSF::integrateLight(int exposureNr, double startTime, double exposureTime, int subsubfieldx, int subsubfieldy)
 {
 
     // Reset the subfield (i.e. get rid of the previous exposure, by zeroing the entire sub-field)
@@ -495,9 +516,17 @@ void DetectorWithAnalyticNonGaussianPSF::integrateLight(int exposureNr, double s
 
     reset();
 
-    // Integration (incl. jitter): point sources + background
+    for (int binnumber=0; binnumber<wave_bins; binnumber++)  //%% Loop over different wavebins, for spectral dependency	
+    {
+            reset();
 
-    camera.exposeDetector(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
+    // Integration (incl. jitter): point sources + background
+    // PixelMap units after: [photons]
+
+    double centerRA, centerDec;		//%%
+    tie(centerRA, centerDec) = camera.exposeDetector(*this, startTime, exposureTime, readoutTimeBeforeNextExposure, binnumber, subsubfieldx, subsubfieldy);	//%% added binnumber, subsubfield, ra/dec for spectral dependency
+
+    camera.SkyBackground(*this, startTime, exposureTime, readoutTimeBeforeNextExposure, binnumber, centerRA, centerDec, subsubfieldx, subsubfieldy);  //%% For spectral dependency - add the diffuse background separately after the convolution to eliminate edge effects
 
     // Apply flatfield (at pixel level)
 
@@ -505,7 +534,7 @@ void DetectorWithAnalyticNonGaussianPSF::integrateLight(int exposureNr, double s
     {
         Log.debug("Detector: applying Flatfield.");
 
-        applyFlatfield();
+        applyFlatfield(subsubfieldx, subsubfieldy);  //%% Added subsubfield for spectral dependence.
     }
     else
     {
@@ -516,20 +545,7 @@ void DetectorWithAnalyticNonGaussianPSF::integrateLight(int exposureNr, double s
     // This takes into account the QE, vignetting, polarisation, and particulate & molecular contamination.
     // PixelMap units change from [photons] to [electrons] 
 
-    applyThroughputEfficiency();
-
-    // Add dark current
-
-    if(includeDarkSignal)
-    {
-    		Log.debug("Detector: adding dark current");
-
-       	addDarkSignal(exposureTime);
-    }
-    else
-    {
-    		Log.debug("Detector: no dark current added");
-    }
+    applyThroughputEfficiency(binnumber, subsubfieldx, subsubfieldy);
 
     // Brighter-Fatter effect
 
@@ -543,6 +559,11 @@ void DetectorWithAnalyticNonGaussianPSF::integrateLight(int exposureNr, double s
     {
         Log.debug("Detector: no Brighter-Fatter effect added");
     }
+
+    addSubSubField(subsubfieldx, subsubfieldy);  //%% Stitch the smaller pixel map additively to the arger complete map
+
+}
+
 }
 
 
@@ -625,19 +646,19 @@ bool DetectorWithAnalyticNonGaussianPSF::addFluxToMap(arma::Mat<float>& map, dou
  *                   
  */
 
-tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addFlux(double xFP, double yFP, double flux)
+tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addFlux(double xFP, double yFP, double flux, int subsubfieldx, int subsubfieldy) //%% Added subsubfield for spectral dependence
 {
     // Convert the FP coordinates of the PSF barycenter to (real-valued) CCD pixel coordinates
     // Then convert from CCD pixel coordinates to subfield pixel coordinates.
 
     double row0, column0;
     tie(row0, column0) = focalPlaneToPixelCoordinates(xFP, yFP);
-    row0 -= subFieldZeroPointRow;
-    column0 -= subFieldZeroPointColumn;
+    row0 -= subFieldZeroPointRow + subsubfieldx * (numRowsPixelMap - 2 * overlapx);  //%% Take subsubfield into account
+    column0 -= subFieldZeroPointColumn + subsubfieldy * (numColumnsPixelMap - 2 * overlapy);
 
     // Check if the star falls in the subfield. If not, don't add any flux, but simply return.
 
-    if (!isInPixelMap(row0, column0))
+    if (!isInPixelMap(row0, column0, subsubfieldx, subsubfieldy))
     {
         return make_tuple(false, row0, column0);
     }
@@ -652,6 +673,7 @@ tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addFlux(double x
     bool success = addFluxToMap(pixelMap, row0, column0, r, p, flux);
 
     return  make_tuple(success, row0, column0);
+
 }
 
 
@@ -742,9 +764,38 @@ void DetectorWithAnalyticNonGaussianPSF::makeHighResolutionPSF(arma::Mat<float> 
  *
  */
 
-void DetectorWithAnalyticNonGaussianPSF::addFlux(double flux)
+void DetectorWithAnalyticNonGaussianPSF::addFlux(double flux, int subsubfieldx, int subsubfieldy)//%% For spectral dependency: only add flux to the core regions of the subfield, is extended if at the edge
 {
-    pixelMap += flux;
+    int colovlow = overlapy;
+    int colovhigh = overlapy;
+    int rowovlow = overlapx;
+    int rowovhigh = overlapx;
+
+    if (subsubfieldx == 0)
+    {
+        rowovlow = 0;
+    }
+    if (subsubfieldx == numsubsubfieldsx - 1)
+    {
+        rowovhigh = 0;
+    }
+
+    if (subsubfieldy == 0)
+    {
+        colovlow = 0;
+    }
+    if (subsubfieldy == numsubsubfieldsy - 1)
+    {
+        colovhigh = 0;
+    }
+
+    for (int i = rowovlow; i < numRowsPixelMap - rowovhigh; i++)
+    {
+        for (int j = colovlow; j < numColumnsPixelMap - colovhigh; j++)
+        {
+	    pixelMap(i, j) += flux;
+        }
+    }
 }
 
 
@@ -771,14 +822,19 @@ void DetectorWithAnalyticNonGaussianPSF::addFlux(double flux)
  * \post Pixel, bias, and smearing maps filled with zeroes.
  */
 
-void DetectorWithAnalyticNonGaussianPSF::applyFlatfield()
+void DetectorWithAnalyticNonGaussianPSF::applyFlatfield(int subsubfieldx, int subsubfieldy)  //%% Added subsubfield for spectral dependency
 {
     const unsigned int beginRow = numEdgePixels;
     const unsigned int beginCol = numEdgePixels;
     const unsigned int endRow = numRowsPixelMap - numEdgePixels - 1;
     const unsigned int endCol = numColumnsPixelMap - numEdgePixels - 1;
 
-    pixelMap.submat(beginRow, beginCol, endRow, endCol) = pixelMap.submat(beginRow, beginCol, endRow, endCol) % flatfieldMap;
+    const unsigned int FFbeginRow = subsubfieldx * (numRowsPixelMap - 2 * overlapx) ;  //%% Only applying the FF of the corresponding subfield region
+    const unsigned int FFbeginCol = subsubfieldy * (numColumnsPixelMap - 2 * overlapy) ;
+    const unsigned int FFendRow = FFbeginRow + numRowsPixelMap - numEdgePixels - 1;
+    const unsigned int FFendCol = FFbeginCol + numColumnsPixelMap - numEdgePixels - 1;
+
+    pixelMap.submat(beginRow, beginCol, endRow, endCol) = pixelMap.submat(beginRow, beginCol, endRow, endCol) % flatfieldMap.submat(FFbeginRow, FFbeginCol, FFendRow, FFendCol);
 }
 
 
@@ -1109,3 +1165,4 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
         }
     } // end loop over all targets for which we want light curves
 } // end applyPhotometry()
+

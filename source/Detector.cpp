@@ -73,6 +73,39 @@ IntegralOfAnalyticSignalResponse& IntegralOfAnalyticSignalResponse::addPart(doub
 
 
 
+//%% vignetting effects due to multiple sources, read from file
+/*
+void Detector::calculateVignetting(int binnumber)
+{
+    double vignettingValue = 1;
+    double xFPmm, yFPmm, angle;
+
+    for (int i = 0; i < numRowsPixelMap; i++)
+    {
+        for (int j = 0; j < numColumnsPixelMap; j++)
+        {
+            tie(xFPmm, yFPmm) = pixelToFocalPlaneCoordinates(i + subFieldZeroPointRow, j + subFieldZeroPointColumn);
+            angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm); //getRadialDistance
+            for (int k = 0; k < vignettingRadii.size(); k++)			//GetCorrectVignValue
+            {
+                if (vignettingRadii[k] > angle)
+                {
+                    vignettingValue = vignettingValues[k-1] + ((vignettingValues[k] - vignettingValues[k-1]) * (angle - vignettingRadii[k-1]) / (vignettingRadii[k] - vignettingRadii[k-1]));
+                    break;
+                }
+		else if (angle >= vignettingRadii.back())
+		{
+		    vignettingValue = vignettingValues.back();
+		    break;
+		}
+            }
+            vignettingMap(i,j) = vignettingValue;
+        }
+    }
+}
+*/
+
+
 
 
 
@@ -180,12 +213,15 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 
     // Allocate memory for the different maps
 
-    pixelMap.zeros(numRowsPixelMap, numColumnsPixelMap);
+    pixelMap.zeros(numRowsPixelMap, numColumnsPixelMap);  //%% Spectral dependency, pixelMap is a small subsubfield one
+    pixelMap2.zeros(numRowsPixelMap2, numColumnsPixelMap2);	//%% Added for spectral dependency - We need a second map to be able to stitch all subfields, is large one
     biasMapLeft.zeros(numRowsBiasMap, numColumnsBiasMap);
     biasMapRight.zeros(numRowsBiasMap, numColumnsBiasMap);
 
-    smearingMap.zeros(numRowsSmearingMap, numColumnsPixelMap);
+    smearingMap.zeros(numRowsSmearingMap, numColumnsPixelMap2);	 //%% changed to pixelmap2 for spectral dependency
     throughputMap.ones(numRowsPixelMap, numColumnsPixelMap);
+
+//    vignettingMap.ones(numRowsPixelMap, numColumnsPixelMap);
 
     // If we are going to apply open-shutter smearing, we have to know which pixels are within
     // the FOV (relevant only in case of mechanical vignetting).  When mechanical vignetting is
@@ -197,13 +233,13 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
         //  - no mechanical vignetting: all pixels of the sub-field inside FOV -> all values set to one
         //  - mechanical vignetting: set value of the pixels in the sub-field outside FOV to zero (others should be one) -> on creation of the throughput map
 
-        mechanicalVignettingMask.ones(numRowsPixelMap, numColumnsPixelMap);
+        mechanicalVignettingMask.ones(numRowsPixelMap2, numColumnsPixelMap2);	 //%% changed to pixelmap2 for spectral dependency
 
         // Number of exposed rows in each column:
         // - no mechanical vignetting: all exposed rows inside FOV (numRows - firstRowExposed)
         // - mechanical vignetting: count the exposed rows (i.e. from firstRowExposed) that are inside FOV
 
-        numExposedRowsInFOV.zeros(numColumnsPixelMap);
+        numExposedRowsInFOV.zeros(numColumnsPixelMap2);	 //%% changed to pixelmap2 for spectral dependency
 
         if(!includeMechanicalVignetting)
             numExposedRowsInFOV.fill(numRows - firstRowExposed);
@@ -328,12 +364,8 @@ void Detector::updateParameters(double time)
     Log.debug("Detector: CCD numRows, numColumns, firstRow = " + to_string(numRows) + ", " + to_string(numColumns) + ", " + to_string(firstRowExposed));
 
     pixelSize                           = configParam.getDouble("CCD/PixelSize");
-//    quantumEfficiency                   = configParam.getDouble("CCD/QuantumEfficiency/Efficiency");                  // FIXME: No commented out lines of code. To be removed or not?
-//    refAngleQE                          = configParam.getDouble("CCD/QuantumEfficiency/RefAngle");
-//    relativeRefEfficiencyQE             = configParam.getDouble("CCD/QuantumEfficiency/RelativeRefEfficiency");
-    meanQE                              = configParam.getDouble("CCD/QuantumEfficiency/MeanQuantumEfficiency");
+    QE                              = configParam.getDoubleVector("CCD/QuantumEfficiency/WaveQuantumEfficiency");  //%% Changed for spectral dependency, is now vector
     meanAngleDependencyQE               = configParam.getDouble("CCD/QuantumEfficiency/MeanAngleDependency");
-//    expectedValueQuantumEfficiency      = configParam.getDouble("CCD/QuantumEfficiency/ExpectedValue");
     includeCosmicsInSubField            = configParam.getBoolean("Sky/IncludeCosmicsInSubField");
     includeCosmicsInSmearingMap         = configParam.getBoolean("Sky/IncludeCosmicsInSmearingMap");
     includeCosmicsInBiasMap             = configParam.getBoolean("Sky/IncludeCosmicsInBiasMap");
@@ -352,6 +384,17 @@ void Detector::updateParameters(double time)
     fullWellSaturationLimit             = configParam.getLong("CCD/FullWellSaturation");
     digitalSaturationLimit              = configParam.getLong("CCD/DigitalSaturation");
     readoutNoise                        = configParam.getDouble("CCD/ReadoutNoise");
+
+//%% Read in array for given vignetting
+/*
+    vignettingRadii = configParam.getDoubleVector("CCD/Vignetting/NaturalVignetting/Radii");	//vignetting known values
+    for (int l = 0; l < vignettingRadii.size(); l++)
+    {
+        vignettingRadii[l] = vignettingRadii[l] * M_PI / 180;
+    }
+    vignettingValues = configParam.getDoubleVector("CCD/Vignetting/NaturalVignetting/Values");
+*/
+
     expectedValueNaturalVignetting      = configParam.getDouble("CCD/Vignetting/NaturalVignetting/ExpectedValue");
     radiusFOV                           = deg2rad(configParam.getDouble("CCD/Vignetting/MechanicalVignetting/RadiusFOV"));
     particulateContaminationEfficiency  = configParam.getDouble("CCD/Contamination/ParticulateContaminationEfficiency");
@@ -430,6 +473,14 @@ void Detector::updateParameters(double time)
     numColumnsBiasMap       = configParam.getInteger("SubField/NumBiasPrescanColumns");
     numRowsSmearingMap      = configParam.getInteger("SubField/NumSmearingOverscanRows");
 
+//%%
+    overlapx = configParam.getInteger("SubField/OverlapRows"); // For spectral dependency, overlap betwen subsubfields
+    overlapy = configParam.getInteger("SubField/OverlapColumns"); // For spectral dependency, overlap betwen subsubfields
+    numsubsubfieldsx 	   = configParam.getInteger("SubField/NumSubSubFieldsRows");
+    numsubsubfieldsy 	   = configParam.getInteger("SubField/NumSubSubFieldsColumns");
+    numRowsPixelMap2 = numsubsubfieldsx * (numRowsPixelMap - 2*overlapx) + 2*overlapx;  //%% Size of full covered field
+    numColumnsPixelMap2 = numsubsubfieldsy * (numColumnsPixelMap - 2*overlapy) + 2*overlapy;  //%% Size of full covered field
+
     Log.debug("Detector: Subfield zero point (row, col) = (" + to_string(subFieldZeroPointRow) + ", " + to_string(subFieldZeroPointColumn) + ")");
     Log.debug("Detector: Subfield center point (row, col) = (" + to_string(subFieldZeroPointRow + numRowsPixelMap/2) 
                                                                + ", " + to_string(subFieldZeroPointColumn + numColumnsPixelMap/2) + ")");
@@ -464,7 +515,40 @@ void Detector::updateParameters(double time)
     beginExposureNr     = configParam.getInteger("ObservingParameters/BeginExposureNr");
 
     numEdgePixels = 0;
+
+    wave_bins = configParam.getInteger("Camera/WavelengthBins");  //%%	Get the number of wavelength bins to be processed, for spectral dependency
  }
+
+
+
+
+
+
+
+
+
+
+//%% New function
+/**
+ * Stitches the subsubfields together
+*/
+
+void Detector::addSubSubField(int subsubfieldx, int subsubfieldy)
+{
+    const unsigned int beginRow = 0;
+    const unsigned int beginCol = 0;
+    const unsigned int endRow = numRowsPixelMap - 1;
+    const unsigned int endCol = numColumnsPixelMap - 1;
+
+    const unsigned int LbeginRow = subsubfieldx * (numRowsPixelMap - 2*overlapx);
+    const unsigned int LbeginCol = subsubfieldy * (numColumnsPixelMap - 2*overlapy);
+    const unsigned int LendRow = LbeginRow + numRowsPixelMap - 1;
+    const unsigned int LendCol = LbeginCol + numColumnsPixelMap - 1;
+
+    pixelMap2.submat(LbeginRow, LbeginCol, LendRow, LendCol) += pixelMap.submat(beginRow, beginCol, endRow, endCol);
+
+    return;
+}
 
 
 
@@ -496,6 +580,8 @@ void Detector::updateParameters(double time)
 
 double Detector::takeExposure(int exposureNr, double startTime, double exposureTime)
 {
+    pixelMap2.zeros(); 	//%% Added for spectral dependency, second pixel map to stitch individual subsubfields together
+
     // Advance the internal clock until the given start time
 
     internalTime = startTime;
@@ -504,7 +590,26 @@ double Detector::takeExposure(int exposureNr, double startTime, double exposureT
 
     Log.info("Detector: Integrating light for exposure " + to_string(exposureNr) + " with exposure time = " + to_string(exposureTime));
 
-    integrateLight(exposureNr, startTime, exposureTime);
+//%% For spectral dependency: Loop integrate light over subsubfields and wavebins
+    for (int subsubfieldx = 0; subsubfieldx < numsubsubfieldsx; subsubfieldx++)
+    {
+        for (int subsubfieldy = 0; subsubfieldy < numsubsubfieldsy; subsubfieldy++)
+        {
+	integrateLight(exposureNr, startTime, exposureTime, subsubfieldx, subsubfieldy);
+        }
+    }
+
+
+    if(includeDarkSignal)  //%% Dark signal only applies once, not wavelength dependent
+    {
+	Log.debug("Detector: adding dark current");
+
+       	addDarkSignal(exposureTime);
+    }
+    else
+    {
+        Log.debug("Detector: no dark current added");
+    }
 
     // Include noise effects like readout noise, photon noise, full well saturation, etc.
     // Note: readOut() needs the exposure time to compute the open shutter smearing.
@@ -533,9 +638,6 @@ double Detector::takeExposure(int exposureNr, double startTime, double exposureT
 
 
 
-
-
-
 /**
  *\brief Generate throughput map, containing for each sub-field pixel the combined throughput efficiency
  *       of vignetting, polarisation, particulate & molecular contamination, and quantum efficiency.  Each
@@ -550,13 +652,13 @@ double Detector::takeExposure(int exposureNr, double startTime, double exposureT
  * \note    The throughput map is written to the HDF5 map.
  */
 
-void Detector::generateThroughputMap()
+void Detector::generateThroughputMap(int binnumber, int subsubfieldx, int subsubfieldy)
 {
     Log.info("Detector: generating throughput map.");
 
     throughputMap.fill(1.0);
 
-    if(includeMechanicalVignetting  && includeOpenShutterSmearing)
+    if(includeMechanicalVignetting  && includeOpenShutterSmearing && subsubfieldx == 0 && subsubfieldy == 0)  //%% Only fill at first subsubfield, not to overwrite later on
         mechanicalVignettingMask.fill(1);
 
     double xFPmm, yFPmm;
@@ -570,6 +672,10 @@ void Detector::generateThroughputMap()
 
     if (includeNaturalVignetting || includeMechanicalVignetting || includePolarization || includeQuantumEfficiency)
     {
+//%%
+//        if (includeNaturalVignetting)
+//            calculateVignetting(binnumber);
+
         // Loop over all pixels in the pixel map
 
         for (unsigned int row = 0; row < numRowsPixelMap; row++)
@@ -593,7 +699,7 @@ void Detector::generateThroughputMap()
                         throughputMap(row, column) = 0.0;
 
                         if(includeOpenShutterSmearing)
-                            mechanicalVignettingMask(row, column) = 0;
+                            mechanicalVignettingMask(subsubfieldx * (numRowsPixelMap - 2*overlapx) + row, subsubfieldy * (numColumnsPixelMap - 2*overlapy) + column) = 0;  //%% Changed for spectral dependency, take subsubfield position on pixelMap2 into account
                     }
                 }
 
@@ -602,6 +708,7 @@ void Detector::generateThroughputMap()
 
                 if (includeNaturalVignetting) 
                     throughputMap(row, column) *= pow(cos(angle), 2);
+//                    throughputMap(row,column) *= vignettingMap(row,column);
 
                 // Polarisation (Eq. 4-11 in PLATO-DLR-PL-RP-001)
                
@@ -619,7 +726,7 @@ void Detector::generateThroughputMap()
                 //       we assume for now it is fixed over the entire FOV.
 
                 if (includeQuantumEfficiency)
-                    throughputMap(row, column) *= meanQE * meanAngleDependencyQE; //(meanQE * cos(angle / refAngleQuantumEfficiencyRadians * acosQuantumEfficiency));
+		    throughputMap(row, column) *= QE[binnumber] * meanAngleDependencyQE;  //%% Spectral dependency, the QE iswavelength dependent
             }
         }
     }
@@ -818,9 +925,35 @@ bool Detector::isInSubfield(double xFP, double yFP)
  * \return  True if the given (row, column) coordinates are in the pixel map; false otherwise.
  */
 
-bool Detector::isInPixelMap(double row, double column)
+bool Detector::isInPixelMap(double row, double column, int subsubfieldx, int subsubfieldy)
 {
-    return (column >= 0) && (row >= 0) && (column < numColumnsPixelMap) && (row < numRowsPixelMap);
+
+//%% Multiple changes for spectral dependency: Is true if in core region f subsubfield (not overlap region). Core region extends into overlap on edge field sides where no neighbouring subsubfield exists
+    int collow = overlapy;
+    int colhigh = numColumnsPixelMap - overlapy;
+    int rowlow = overlapx;
+    int rowhigh = numRowsPixelMap - overlapx;
+
+    if (subsubfieldx == 0)
+    {
+        rowlow = 0;
+    }
+    if (subsubfieldx == numsubsubfieldsx - 1)
+    {
+        rowhigh = numRowsPixelMap;
+    }
+
+    if (subsubfieldy == 0)
+    {
+        collow = 0;
+    }
+    if (subsubfieldy == numsubsubfieldsy - 1)
+    {
+        colhigh = numColumnsPixelMap;
+    }
+
+    return ((column >= collow) && (row >= rowlow) && (column < colhigh) && (row < rowhigh));
+
 }
 
 
@@ -841,7 +974,7 @@ bool Detector::isInPixelMap(double row, double column)
  *          - quantum efficiency.
  */
 
-void Detector::applyThroughputEfficiency()
+void Detector::applyThroughputEfficiency(int binnumber, int subsubfieldx, int subsubfieldy)
 {
 
     // Generate the throughput map which includes vignetting, polarisation, 
@@ -855,7 +988,7 @@ void Detector::applyThroughputEfficiency()
     // each exposure, so that we don't need to include the throughput generation
     // in the jitter loop.
 
-    generateThroughputMap();
+    generateThroughputMap(binnumber, subsubfieldx, subsubfieldy);
 
     // Element-wise multiplication with the throughput map
     // Beware of Armadillo's quirky notation...
@@ -897,9 +1030,9 @@ void Detector::addDarkSignal(float exposureTime)
     darkSignalDistribution = normal_distribution<double>(darkSignalRef, darkSignalRef * dsnu / 100.0);
 
 
-    for(unsigned int row = 0; row < numRowsPixelMap; row++)
+    for(unsigned int row = 0; row < numRowsPixelMap2; row++)  //%% Changed to pixelMap2 for spectral dependency
     {
-        for(unsigned int column = 0; column < numColumnsPixelMap; column++)
+        for(unsigned int column = 0; column < numColumnsPixelMap2; column++)  //%% Changed to pixelMap2 for spectral dependency
         {
             // Take DSNU into account
 
@@ -911,7 +1044,7 @@ void Detector::addDarkSignal(float exposureTime)
             darkSignal = darkNoiseDistribution(darkNoiseGenerator);
 
 
-            pixelMap(row, column) += darkSignal;
+            pixelMap2(row, column) += darkSignal;  //%% Add to Map2 so only once to stitched Map for all fields and wavelengths
         }
     }
 
@@ -928,7 +1061,7 @@ void Detector::addDarkSignal(float exposureTime)
 
     for(unsigned int row = 0; row < numRowsSmearingMap; row++)
     {
-        for(unsigned int column = 0; column < numColumnsPixelMap; column++)
+        for(unsigned int column = 0; column < numColumnsPixelMap2; column++)  //%% Changed to pixelMap2 for spectral dependency
         {
             // Take DSNU into account
 
@@ -1215,12 +1348,13 @@ void Detector::addPhotonNoise()
 
     Log.debug("Adding photon noise to pixel map");
 
-    for (unsigned int row = 0; row < numRowsPixelMap; row++)
+    for (unsigned int row = 0; row < numRowsPixelMap2; row++)  //%% Changed to pixelMap2 for spectral dependency
     {
-        for (unsigned int column = 0; column < numColumnsPixelMap; column++)
+        for (unsigned int column = 0; column < numColumnsPixelMap2; column++)  //%% Changed to pixelMap2 for spectral dependency
         {
-            photonNoiseDistribution = poisson_distribution<long>(pixelMap(row, column));
-            pixelMap(row, column) = photonNoiseDistribution(photonNoiseGenerator);
+            Log.debug(to_string(row) + ", " + to_string(column) + ": " + to_string(pixelMap2(row, column)));  //%% Changed to pixelMap2 for spectral dependency
+            photonNoiseDistribution = poisson_distribution<long>(pixelMap2(row, column));  //%% Changed to pixelMap2 for spectral dependency
+            pixelMap2(row, column) = photonNoiseDistribution(photonNoiseGenerator);  //%% Changed to pixelMap2 for spectral dependency
         }
     }
 
@@ -1230,7 +1364,7 @@ void Detector::addPhotonNoise()
 
     for (unsigned int row = 0; row < numRowsSmearingMap; row++)
     {
-        for (unsigned int column = 0; column < numColumnsPixelMap; column++)
+        for (unsigned int column = 0; column < numColumnsPixelMap2; column++)  //%% Changed to pixelMap2 for spectral dependency
         {
             photonNoiseDistribution = poisson_distribution<long>(smearingMap(row, column));
             smearingMap(row, column) = photonNoiseDistribution(photonNoiseGenerator);
@@ -1274,7 +1408,7 @@ void Detector::addPhotonNoise()
 void Detector::addCosmics(float exposureTime)
 {
 	cosmicHitRateDistribution     = poisson_distribution<long>(cosmicHitRate);                                       // [hits/cm^2/s]
-    cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsPixelMap - 1);                    // [pixels]
+    cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsPixelMap2 - 1);                    // [pixels]  //%% Changed to pixelMap2 for spectral dependency
     cosmicEntryAngleDistribution  = uniform_real_distribution<double>(0, 2 * PI);                                    // [radians]
     cosmicTrailLengthDistribution = uniform_real_distribution<double>(cosmicTrailLength[0], cosmicTrailLength[1]);   // [pixels]
     cosmicIntensityDistribution   = uniform_real_distribution<double>(cosmicIntensity[0], cosmicIntensity[1]);       // [e-/hit]
@@ -1284,7 +1418,7 @@ void Detector::addCosmics(float exposureTime)
     if (includeCosmicsInSubField)
     {
         Log.debug("Detector: adding cosmic hits to the sub-field");
-        addCosmics(exposureTime + readoutTimeBeforeNextExposure + readoutTimeDuringNextExposure, pixelMap, numRowsPixelMap, numColumnsPixelMap, "image area");
+        addCosmics(exposureTime + readoutTimeBeforeNextExposure + readoutTimeDuringNextExposure, pixelMap2, numRowsPixelMap2, numColumnsPixelMap2, "image area");  //%% Changed to pixelMap2 for spectral dependency
     }
 
     // Cosmics in the over-scan
@@ -1295,10 +1429,10 @@ void Detector::addCosmics(float exposureTime)
 
         if(isFastCamera)
         {
-        	addCosmics(readoutTimeDuringNextExposure, smearingMap, numRowsSmearingMap, numColumnsPixelMap, "smearing map");
+        	addCosmics(readoutTimeDuringNextExposure, smearingMap, numRowsSmearingMap, numColumnsPixelMap2, "smearing map");  //%% Changed to pixelMap2 for spectral dependency
         } else
         {
-        	addCosmics(readoutTimeBeforeNextExposure, smearingMap, numRowsSmearingMap, numColumnsPixelMap, "smearing map");
+        	addCosmics(readoutTimeBeforeNextExposure, smearingMap, numRowsSmearingMap, numColumnsPixelMap2, "smearing map");  //%% Changed to pixelMap2 for spectral dependency
         }
     }
 
@@ -1492,11 +1626,11 @@ void Detector::applyFullWellSaturation()
 
     int jmod;// Row coordinate where excess electrons are transferred from and to
 
-    for (unsigned int row = 0; row < numRowsPixelMap; row++)
+    for (unsigned int row = 0; row < numRowsPixelMap2; row++)  //%% Changed to pixelMap2 for spectral dependency
     {
-        for (unsigned int column = 0; column < numColumnsPixelMap; column++)
+        for (unsigned int column = 0; column < numColumnsPixelMap2; column++)  //%% Changed to pixelMap2 for spectral dependency
         {
-            pixelValue = pixelMap(row, column);
+            pixelValue = pixelMap2(row, column);  //%% Changed to pixelMap2 for spectral dependency
 
             // If the full-well saturation limit has been exceeded, distribute
             // the electrons evenly in the wells above and below until the
@@ -1518,20 +1652,20 @@ void Detector::applyFullWellSaturation()
                 
                 bool transfer2Saturated = false;
 
-                while (numExcessElectrons > 0 && jmod < numRowsPixelMap)
+                while (numExcessElectrons > 0 && jmod < numRowsPixelMap2)  //%% Changed to pixelMap2 for spectral dependency
                 {
                     if(!transfer2Saturated)
                     {
-                        pixelMap(jmod, column) -= numExcessElectrons;
+                        pixelMap2(jmod, column) -= numExcessElectrons;  //%% Changed to pixelMap2 for spectral dependency
                     }
 
                     jmod++;
 
                     // Electrons reaching the edge of the CCD will not be detected
 
-                    if (jmod < numRowsPixelMap)
+                    if (jmod < numRowsPixelMap2)  //%% Changed to pixelMap2 for spectral dependency
                     {
-                        if(pixelMap(jmod, column) >= fullWellSaturationLimit)
+                        if(pixelMap2(jmod, column) >= fullWellSaturationLimit)  //%% Changed to pixelMap2 for spectral dependency
                         {
                             transfer2Saturated= true;
                         }
@@ -1540,14 +1674,14 @@ void Detector::applyFullWellSaturation()
 
                             transfer2Saturated = false;
 
-                            pixelMap(jmod, column) += numExcessElectrons;
+                            pixelMap2(jmod, column) += numExcessElectrons;  //%% Changed to pixelMap2 for spectral dependency
 
                             // Make sure the pixel you move the excess electrons to
                             // does not get saturated too
 
-                            if (pixelMap(jmod, column) > fullWellSaturationLimit)
+                            if (pixelMap2(jmod, column) > fullWellSaturationLimit)  //%% Changed to pixelMap2 for spectral dependency
                             {
-                                numExcessElectrons = pixelMap(jmod, column) - fullWellSaturationLimit;
+                                numExcessElectrons = pixelMap2(jmod, column) - fullWellSaturationLimit;	  //%% Changed to pixelMap2 for spectral dependency
                             }
 
                             else
@@ -1565,20 +1699,20 @@ void Detector::applyFullWellSaturation()
 
                 while (numExcessElectrons > 0 && jmod >= 0)
                 {
-                    pixelMap(jmod, column) -= numExcessElectrons;
+                    pixelMap2(jmod, column) -= numExcessElectrons;  //%% Changed to pixelMap2 for spectral dependency
                     jmod--;
 
                     // Electrons reaching the edge of the CCD will not be detected
 
                     if (jmod >= 0)
                     {
-                        pixelMap(jmod, column) += numExcessElectrons;
+                        pixelMap2(jmod, column) += numExcessElectrons;  //%% Changed to pixelMap2 for spectral dependency
 
                         // Make sure the pixel you move the excess electrons to does not get saturated too
 
-                        if (pixelMap(jmod, column) > fullWellSaturationLimit)
+                        if (pixelMap2(jmod, column) > fullWellSaturationLimit)  //%% Changed to pixelMap2 for spectral dependency
                         {
-                            numExcessElectrons = pixelMap(jmod, column) - fullWellSaturationLimit;
+                            numExcessElectrons = pixelMap2(jmod, column) - fullWellSaturationLimit;  //%% Changed to pixelMap2 for spectral dependency
                         }
 
                         else
@@ -1668,14 +1802,14 @@ void Detector::applySimpleCTImodel()
 
     // Pre-compute the (natural) logarithms of the first N natural numbers
 
-    vector<double> logs(numRowsPixelMap + subFieldZeroPointRow);
+    vector<double> logs(numRowsPixelMap2 + subFieldZeroPointRow);  //%% Changed to pixelMap2 for spectral dependency
     iota(logs.begin(), logs.end(), 1.0);
     transform(logs.begin(), logs.end(), logs.begin(), ptr_fun<double, double>(log));
 
     // Compute the partial sums of these logarithms
     // sumOfLogsUpTo[i] contains log((i+1)!) = log(1) + ... + log(i+1)
 
-    vector<double> sumOfLogsUpTo(numRowsPixelMap + subFieldZeroPointRow);
+    vector<double> sumOfLogsUpTo(numRowsPixelMap2 + subFieldZeroPointRow);  //%% Changed to pixelMap2 for spectral dependency
     partial_sum(logs.begin(), logs.end(), sumOfLogsUpTo.begin());
 
     arma::Row<float> readout;   // Readout strip
@@ -1683,11 +1817,11 @@ void Detector::applySimpleCTImodel()
     // Loop over all rows in the pixel map (starting at the row farthest away from
     // the readout register)
 
-    for (int row = numRowsPixelMap - 1; row >= 0; row--)
+    for (int row = numRowsPixelMap2 - 1; row >= 0; row--)  //%% Changed to pixelMap2 for spectral dependency
     {
         // Reset the readout register
 
-        readout.zeros(numColumnsPixelMap);
+        readout.zeros(numColumnsPixelMap2);  //%% Changed to pixelMap2 for spectral dependency
 
         // Each row picks up flux that is left behind when transferring the rows
         // that are closer to the readout register, row-by-row to the readout
@@ -1697,7 +1831,7 @@ void Detector::applySimpleCTImodel()
         if (row + subFieldZeroPointRow == 0)
         {
             const double factor1 = meanCte;
-            readout += pixelMap(0, arma::span::all) * factor1;
+            readout += pixelMap2(0, arma::span::all) * factor1;  //%% Changed to pixelMap2 for spectral dependency
         }
         else
         {
@@ -1707,7 +1841,7 @@ void Detector::applySimpleCTImodel()
 
                 if ((index == 0) || (row - (index - subFieldZeroPointRow) == 0))
                 {
-                    readout += pixelMap(index - subFieldZeroPointRow, arma::span::all) * cteFactor;
+                    readout += pixelMap2(index - subFieldZeroPointRow, arma::span::all) * cteFactor;  //%% Changed to pixelMap2 for spectral dependency
                 }
                 else
                 {
@@ -1715,12 +1849,12 @@ void Detector::applySimpleCTImodel()
                                                       - sumOfLogsUpTo[row - (index - subFieldZeroPointRow) - 1]
                                                       - sumOfLogsUpTo[index - 1]);
 
-                    readout += pixelMap(index - subFieldZeroPointRow, arma::span::all) * cteFactor;
+                    readout += pixelMap2(index - subFieldZeroPointRow, arma::span::all) * cteFactor;  //%% Changed to pixelMap2 for spectral dependency
                 }
             }
         }
 
-        pixelMap(row, arma::span::all) = readout(0, arma::span::all);
+        pixelMap2(row, arma::span::all) = readout(0, arma::span::all);  //%% Changed to pixelMap2 for spectral dependency
     }
 }
 
@@ -1771,12 +1905,12 @@ void Detector::applyShort2013CTImodel()
 
     // Arrays to keep track of the number of occupied traps in a column
 
-    arma::Mat<float> numberOfOccupiedTraps = arma::zeros<arma::Mat<float>>(numTrapSpecies, numColumnsPixelMap);	// No
+    arma::Mat<float> numberOfOccupiedTraps = arma::zeros<arma::Mat<float>>(numTrapSpecies, numColumnsPixelMap2);	// No  //%% Changed to pixelMap2 for spectral dependency
 
     // Arrays to keep track of the captured and released electrons, for each column in a particular row.
 
-    arma::Row<float> numberOfCapturedElectrons(numColumnsPixelMap);		// Nc
-    arma::Row<float> numberOfReleasedElectrons(numColumnsPixelMap);		// Nr
+    arma::Row<float> numberOfCapturedElectrons(numColumnsPixelMap2);		// Nc  //%% Changed to pixelMap2 for spectral dependency
+    arma::Row<float> numberOfReleasedElectrons(numColumnsPixelMap2);		// Nr  //%% Changed to pixelMap2 for spectral dependency
 
     arma::Row<float> alpha(numTrapSpecies, arma::fill::zeros);
 
@@ -1790,7 +1924,7 @@ void Detector::applyShort2013CTImodel()
     // Loop over all rows of the pixelMap, and over all trap species.
     // For each row, the computations are done for all columns simultaneously.
 
-    for (int rowNumber = 0; rowNumber < numRowsPixelMap; rowNumber++)
+    for (int rowNumber = 0; rowNumber < numRowsPixelMap2; rowNumber++)  //%% Changed to pixelMap2 for spectral dependency
     {
 
         for (int k = 0; k < numTrapSpecies; k++)
@@ -1800,9 +1934,9 @@ void Detector::applyShort2013CTImodel()
 
             const double gamma = 2 * trapDensity[k] * maxVolumePerPixel / pow(fullWellSaturationLimit, beta) * (subFieldZeroPointRow + rowNumber + 1);	// +1 as row = 0 also has to be transferred once
 
-            numberOfCapturedElectrons =   (gamma * arma::pow(pixelMap.row(rowNumber), beta) - numberOfOccupiedTraps.row(k)) \
-                                        / (gamma * arma::pow(pixelMap.row(rowNumber), beta-1) + 1)                          \
-                                        % (1 - arma::exp(-alpha(k) * arma::pow(pixelMap.row(rowNumber), 1-beta)));
+            numberOfCapturedElectrons =   (gamma * arma::pow(pixelMap2.row(rowNumber), beta) - numberOfOccupiedTraps.row(k)) \
+                                        / (gamma * arma::pow(pixelMap2.row(rowNumber), beta-1) + 1)                          \
+                                        % (1 - arma::exp(-alpha(k) * arma::pow(pixelMap2.row(rowNumber), 1-beta)));  //%% Changed to pixelMap2 for spectral dependency
 
             // Captured electron numbers can't be negative, so clip negative value to zero.
 
@@ -1821,7 +1955,7 @@ void Detector::applyShort2013CTImodel()
 
             // Add the electron excess to the current pixel value
 
-            pixelMap.row(rowNumber) += numberOfReleasedElectrons - numberOfCapturedElectrons;
+            pixelMap2.row(rowNumber) += numberOfReleasedElectrons - numberOfCapturedElectrons;  //%% Changed to pixelMap2 for spectral dependency
         }
     }
 }
@@ -1871,7 +2005,7 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
 
         // Loop over all columns in the sub-field
 
-        for(unsigned int column = 0; column < numColumnsPixelMap; column++) //[pixels in sub-field]
+        for(unsigned int column = 0; column < numColumnsPixelMap2; column++) //[pixels in sub-field]  //%% Changed to pixelMap2 for spectral dependency
         {
             // Intersection of the current column of the detector with the circle representing the FOV:
             // (rowFOV, column).  If no intersection can be found, this is NaN.
@@ -1920,11 +2054,30 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
     // - rows outside the sub-field (in the exposed part of the detector and in the FOV): use total sky background
     // - rows outside the FOV and/or not exposed are not considered (as these rows are shielded off against incoming radiation)
 
-    arma::Row<float> openShutterSmearing = arma::sum(pixelMap % mechanicalVignettingMask, 0);   // Flux in the exposed part of the sub-field that is inside the FOV (per column)
+    arma::Row<float> openShutterSmearing = arma::sum(pixelMap2 % mechanicalVignettingMask, 0);   // Flux in the exposed part of the sub-field that is inside the FOV (per column)  //%% Changed to pixelMap2 for spectral dependency
     arma::Row<int> numExposedSubFieldRowsInFOV = arma::sum(mechanicalVignettingMask, 0);        // Number of pixels in the exposed part of the sub-field that are inside the FOV (per column)
 
     arma::Row<int> numExposedNonSubFieldRowShifts = numExposedRowsInFOV - numExposedSubFieldRowsInFOV + numRowsSmearingMap; // Number of pixels in the exposed part of the detector that do not reside in the sub-field + parallel over-scan
-    arma::Row<float> openShutterSmearingOutsideSubField = arma::conv_to<arma::Row<float>>::from(numExposedNonSubFieldRowShifts) * camera.getTotalSkyBackground();
+
+//%%	For spectral dependency: The backround returned is a vector with n wavelength bins. If necessery, apply the correct QE to each bin and sum all bins up ANGLE DEPENDENCY? (currently only using last field)
+    vector<double> backgroundWave = camera.getTotalSkyBackground();
+    double backgroundTotal = 0.;
+    if(includeQuantumEfficiency)
+    {
+	for (int i=0; i<QE.size(); i=i+1)
+	{
+	    backgroundTotal = backgroundTotal + backgroundWave[i] * QE[i];
+	}
+    }
+    else
+    {
+	for (int i=0; i<QE.size(); i=i+1)
+	{
+	    backgroundTotal = backgroundTotal + backgroundWave[i];
+	}
+    }
+
+    arma::Row<float> openShutterSmearingOutsideSubField = arma::conv_to<arma::Row<float>>::from(numExposedNonSubFieldRowShifts) * backgroundTotal;
 
    // Apply all throughput efficiencies (these have not been applied to the total sky background yet)
    // Note that mechanical vignetting has already been taken into account (if applicable)
@@ -1944,9 +2097,6 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
     // Sect. 4.2.4.5 of PLATO-DLR-PL-RP-001:
     // The expected value E_ang is then the mean over all pixels and results in a value of 0.993
 
-    if(includeQuantumEfficiency)
-        openShutterSmearingOutsideSubField *= meanQE;
-
     openShutterSmearing += openShutterSmearingOutsideSubField;
 
     // Fast camera: lower half of the CCD is shielded off -> no contribution to open-shutter smearing here
@@ -1960,8 +2110,8 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
 
     // Add the effect of the open-shutter smearing to the pixel map
 
-    for (unsigned int row = 0; row < numRowsPixelMap; row++)
-        pixelMap(row, arma::span::all) += openShutterSmearing;
+    for (unsigned int row = 0; row < numRowsPixelMap2; row++)  //%% Changed to pixelMap2 for spectral dependency
+        pixelMap2(row, arma::span::all) += openShutterSmearing;  //%% Changed to pixelMap2 for spectral dependency
 
     // Add the effect of the open-shutter smearing to the smearing map
 
@@ -2076,11 +2226,11 @@ void Detector::addReadoutNoise()
 
     // Add readout noise to the pixel map
 
-    for (unsigned int row = 0; row < numRowsPixelMap; row++)
+    for (unsigned int row = 0; row < numRowsPixelMap2; row++)  //%% Changed to pixelMap2 for spectral dependency
     {
-        for (unsigned int column = 0; column < numColumnsPixelMap; column++)
+        for (unsigned int column = 0; column < numColumnsPixelMap2; column++)  //%% Changed to pixelMap2 for spectral dependency
         {
-            pixelMap(row, column) += readoutNoiseDistribution(readoutNoiseGenerator);
+            pixelMap2(row, column) += readoutNoiseDistribution(readoutNoiseGenerator);  //%% Changed to pixelMap2 for spectral dependency
         }
     }
 
@@ -2099,7 +2249,7 @@ void Detector::addReadoutNoise()
 
     for (unsigned int row = 0; row < numRowsSmearingMap; row++)
     {
-        for (unsigned int column = 0; column < numColumnsPixelMap; column++)
+        for (unsigned int column = 0; column < numColumnsPixelMap2; column++)  //%% Changed to pixelMap2 for spectral dependency
         {
             smearingMap(row, column) += readoutNoiseDistribution(readoutNoiseGenerator);
         }
@@ -2146,10 +2296,10 @@ void Detector::applyQuantisation()
     // resulted in fractional ADUs. Take care that pixel maps, bias maps, and smearing
     // maps do not have fractional values.
 
-    pixelMap = arma::floor(pixelMap);
-    biasMapLeft = arma::floor(biasMapLeft);
-    biasMapRight = arma::floor(biasMapRight);
-    smearingMap = arma::floor(smearingMap);
+    pixelMap2 = arma::round(pixelMap2);  //%% Changed to pixelMap2 for spectral dependency - also changed floor to round
+    biasMapLeft = arma::round(biasMapLeft);
+    biasMapRight = arma::round(biasMapRight);
+    smearingMap = arma::round(smearingMap);
 
 
     // Take into account digital saturation. If even after dividing by the gain
@@ -2208,27 +2358,27 @@ void Detector::applyGain()
     combinedGainLeft = frontEndElectronics->getGainLeftAdc(internalTime) * ccdGainLeft;
     combinedGainRight = frontEndElectronics->getGainRightAdc(internalTime) * ccdGainRight;
 
-    if(lastIndexSubFieldLeft >= numColumnsPixelMap - 1)      // Left ADC only
+    if(lastIndexSubFieldLeft >= numColumnsPixelMap2 - 1)      // Left ADC only  //%% Changed to pixelMap2 for spectral dependency
     {
-        pixelMap *= combinedGainLeft;
+        pixelMap2 *= combinedGainLeft;  //%% Changed to pixelMap2 for spectral dependency
         smearingMap *= combinedGainLeft;
     }
     else if(lastIndexSubFieldLeft < 0)                     // Right ADC only
     {
-        pixelMap *= combinedGainRight;
+        pixelMap2 *= combinedGainRight;  //%% Changed to pixelMap2 for spectral dependency
         smearingMap *= combinedGainRight;
     }
     else
     {
         // 0 -> lastIndexSubFieldLeft: left ADC
 
-        pixelMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
+        pixelMap2.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;  //%% Changed to pixelMap2 for spectral dependency
         smearingMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
 
         // lastIndexSubFieldLeft + 1 -> numColumnsSubPixelMap -1: right ADC
 
-        pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
-        smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
+        pixelMap2.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap2 - 1)) *= combinedGainRight;  //%% Changed to pixelMap2 for spectral dependency
+        smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap2 - 1)) *= combinedGainRight;
     }
 
     biasMapLeft *= combinedGainLeft;
@@ -2267,7 +2417,7 @@ void Detector::addElectronicOffset()
 
     // Add the electronic offset to the pixel, bias register, and smearing maps
 
-    pixelMap += offset;
+    pixelMap2 += offset;  //%% Changed to pixelMap2 for spectral dependency
     biasMapLeft += offset;
     biasMapRight += offset;
     smearingMap += offset;
@@ -2299,7 +2449,7 @@ void Detector::applyDigitalSaturation()
 {
     // Last off the values in the pixel map
 
-    pixelMap(arma::find(pixelMap > digitalSaturationLimit)).fill(digitalSaturationLimit);
+    pixelMap2(arma::find(pixelMap2 > digitalSaturationLimit)).fill(digitalSaturationLimit);  //%% Changed to pixelMap2 for spectral dependency
 
     // Last off the values in the bias register map
 
@@ -2521,10 +2671,10 @@ pair<double, double> Detector::focalPlaneToPixelCoordinates(double xFP, double y
  * \return (xFP, yFP)   focal plane coordinates in the FP'reference system [mm]
  */
 
-pair<double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCenter()
+pair<double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCenter(int subsubfieldx, int subsubfieldy)  //%% Added subsubfield for spectral dependency
 {
-    double centerRow = subFieldZeroPointRow + numRowsPixelMap / 2.0;
-    double centerCol = subFieldZeroPointColumn + numColumnsPixelMap / 2.0;
+    double centerRow = subFieldZeroPointRow + numRowsPixelMap / 2.0 + subsubfieldx * (numRowsPixelMap - 2 * overlapx);		//%% Added subsubfield for spectral dependency
+    double centerCol = subFieldZeroPointColumn + numColumnsPixelMap / 2.0 + subsubfieldy * (numColumnsPixelMap - 2 * overlapy);	//%% Added subsubfield for spectral dependency
 
     // The columns correspond to the x-coordinate, the rows to the y-coordinate
 
@@ -2554,33 +2704,33 @@ pair<double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCenter()
  *                (X10, Y10) are the FP coordinates of the upper left corner of the subfield
  */
 
-tuple<double, double, double, double, double, double, double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCorners()
+tuple<double, double, double, double, double, double, double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCorners(int subsubfieldx, int subsubfieldy)	//%% Added subsubfield for spectral dependency
 {
     double corner00Xmm, corner00Ymm, corner01Xmm, corner01Ymm, corner11Xmm, corner11Ymm, corner10Xmm, corner10Ymm;
     double row, col;
 
     // Lower left corner
 
-    row = subFieldZeroPointRow;
-    col = subFieldZeroPointColumn;
+    row = subFieldZeroPointRow + subsubfieldx * (numRowsPixelMap - 2 * overlapx);	//%% Added subsubfield for spectral dependency
+    col = subFieldZeroPointColumn + subsubfieldy * (numColumnsPixelMap - 2 * overlapy);	//%% Added subsubfield for spectral dependency
     tie(corner00Xmm, corner00Ymm) = pixelToFocalPlaneCoordinates(row, col);
 
     // Lower right corner
 
-    row = subFieldZeroPointRow;
-    col = subFieldZeroPointColumn + numColumnsPixelMap;
+    row = subFieldZeroPointRow + subsubfieldx * (numRowsPixelMap - 2 * overlapx);	//%% Added subsubfield for spectral dependency
+    col = subFieldZeroPointColumn + numColumnsPixelMap + subsubfieldy * (numColumnsPixelMap - 2 * overlapy);	//%% Added subsubfield for spectral dependency
     tie(corner01Xmm, corner01Ymm) = pixelToFocalPlaneCoordinates(row, col);
 
     // Upper right corner
 
-    row = subFieldZeroPointRow + numRowsPixelMap;
-    col = subFieldZeroPointColumn + numColumnsPixelMap;
+    row = subFieldZeroPointRow + numRowsPixelMap + subsubfieldx * (numRowsPixelMap - 2 * overlapx);	//%% Added subsubfield for spectral dependency
+    col = subFieldZeroPointColumn + numColumnsPixelMap + subsubfieldy * (numColumnsPixelMap - 2 * overlapy);	//%% Added subsubfield for spectral dependency
     tie(corner11Xmm, corner11Ymm) = pixelToFocalPlaneCoordinates(row, col);
 
     // Upper left corner
 
-    row = subFieldZeroPointRow + numRowsPixelMap;
-    col = subFieldZeroPointColumn;
+    row = subFieldZeroPointRow + numRowsPixelMap + subsubfieldx * (numRowsPixelMap - 2 * overlapx);	//%% Added subsubfield for spectral dependency
+    col = subFieldZeroPointColumn + subsubfieldy * (numColumnsPixelMap - 2 * overlapy);	//%% Added subsubfield for spectral dependency
     tie(corner10Xmm, corner10Ymm) = pixelToFocalPlaneCoordinates(row, col);
 
     return make_tuple(corner00Xmm, corner00Ymm, corner01Xmm, corner01Ymm, corner11Xmm, corner11Ymm, corner10Xmm, corner10Ymm);
@@ -2755,22 +2905,22 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
         {
             // Write the float array to HDF5
 
-            hdf5File.writeArray("/Images", imageName, pixelMap);
+            hdf5File.writeArray("/Images", imageName, pixelMap2);	//%% Added subsubfield for spectral dependency
         }
         else
         {
             // Write the pixel maps as 2-byte (16 bit) unsigned short integers.
             // As a safety check, first check that the extrema of the map are indeed
             // within the boundaries of such a data type.
-        
-            if((pixelMap.min() < 0) || (pixelMap.max() >= (1 << 16)))
+       
+            if((pixelMap2.min() < 0) || (pixelMap2.max() >= (1 << 16)))	//%% Added subsubfield for spectral dependency
             {
                 throw ConfigurationException("Detector: quantisation was applied but pixel map values are not in [0, 2^16[");
             }
 
             // Convert the float matrix to an unsigned uint16_t matrix
-
-            arma::Mat<uint16_t> uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(pixelMap);
+    
+            arma::Mat<uint16_t> uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(pixelMap2);	//%% Added subsubfield for spectral dependency
             hdf5File.writeArray("/Images", imageName, uintMap);
         }
     }

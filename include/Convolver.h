@@ -24,13 +24,13 @@ class Convolver
 
         Convolver();
         ~Convolver();
-        void initialise(int Nrows, int Ncols, matrix &kernel);
-        void convolve(matrix &in, matrix &out, double zeroThreshold = 0.0);
+        void initialise(int Nrows, int Ncols, matrix &kernel, int binnumber, int wave_bins, int fieldnumber, int fieldmax);  //%% added binnumber & subsubfield for spectral dependency
+        void convolve(matrix &in, matrix &out, int binnumber, double zeroThreshold = 0.0);  //%% added binnumber for spectral dependency
 
     protected:
 
         void free();
-        void createExtendedMatrices(int Nrows, int Ncols, matrix &kernel);
+        void createExtendedMatrices(int Nrows, int Ncols, matrix &kernel, int binnumber, int fieldnumber);
         void createWrapAroundKernel(matrix &kernel);
 
     private:
@@ -44,6 +44,7 @@ class Convolver
         int NcolsExtended;             // Number of columns on the zero-padded input and kernel arrays
 
         matrix extendedKern;           // The zero-padded kernel in wrap-around format, column-major
+
         float *extendedOut;            // 2D row-major convolution result of convolving zero-padded arrays
 
         float *extendedIn;             // 2D zero-padded input array, row-major
@@ -56,6 +57,9 @@ class Convolver
         fftwf_plan forwardPlanIn;      // Fourier transformation of the zero-padded input array
         fftwf_plan forwardPlanKern;    // Fourier transformation of the zero-padded and wrapped-around kernel
         fftwf_plan backwardPlanOut;    // Inverse Fourier transformation of fourierOut
+
+	vector<fftwf_complex *> fourierKernVector;  //%% Made into a vector for spectral dependency, save all subsubfields and all wavelength bins
+
 };
 
 

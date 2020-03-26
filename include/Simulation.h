@@ -46,6 +46,8 @@ class Simulation
         virtual void configure(ConfigurationParameters &configParams);
         virtual pair<double, double> configureReadoutTime(ConfigurationParameters &configParams);
 
+        int numExposures;                       // Number of exposures		//%% Moved to public for spectral dependency
+
     protected:
 
         virtual void writeInputParametersToHDF5(ConfigurationParameters &configParams);
@@ -61,7 +63,6 @@ class Simulation
         double readoutTimeBeforeNextExposure;	// Readout time before the next exposure starts
 
         int beginExposureNr;                    // sequential number of first exposure. useful for slurm parallellisation
-        int numExposures;                       // Number of exposures
 
         double timeShift;                       // Time shift between the different CCDs [s] 
 

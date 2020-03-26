@@ -10,13 +10,12 @@ ObservingParameters:
 
     MissionDuration:                 6.5             # Total duration of the mission [yr], relevant for BOL->EOL degradation
     NumExposures:                    10              # Number of exposures
-    BeginExposureNr:                  0              # Sequential number of first exposure. useful for slurm parallellisation
+    BeginExposureNr:                 0              # Sequential number of first exposure. useful for slurm parallellisation
     CycleTime:                       25              # Image cycle time (exposure + readout before next exposure starts)[s]
     RApointing:                      180             # Platform (not telescope) right ascension pointing coordinate      [deg] 
     DecPointing:                     -70             # Platform (not telescope) declination pointing coordinate          [deg]
     Fluxm0:                          1.00179e8       # Photon flux of a V=0 G2V-star                                     [phot/s/m^2/nm]
-    StarCatalogFile:                 inputfiles/starcatalog.txt
-
+    StarCatalogFile:                 inputfiles/starcatalogTempExample.txt
 Sky:
 
     SkyBackground:                   342.            # Stellar + zodiacal background level (excl. transmission efficiency). Set negative to compute.     [phot/pix/s]
@@ -33,8 +32,10 @@ Sky:
 Platform:
 
     SolarPanelOrientation:           0               # 0, 90, 180, or 270 degrees for the different quarters of a year [deg]
+
     UseJitter:                       yes             # yes or no. If no, ignore everything below.
     JitterSource:                    FromRedNoise    # FromFile, FromRedNoise, or FromNetwork
+
     JitterYawRms:                    0.04            # [arcsec]
     JitterPitchRms:                  0.04            # [arcsec]
     JitterRollRms:                   0.08            # [arcsec]
@@ -44,7 +45,7 @@ Platform:
 
 Telescope:
     
-    GroupID:                         Custom          # There are four camera groups: 1, 2, 3, 4, Fast, Custom
+    GroupID:                         Custom               # There are four camera groups: 1, 2, 3, 4, Fast, Custom
                                                      # (use Custom to specify the telescope azimuth and tilt angles yourself)
 
     AzimuthAngle:                    0.0             # Azimuth angle of telescope on the platform [deg]  - used when GroupID = Custom
@@ -52,8 +53,8 @@ Telescope:
 
     LightCollectingArea:             113.1           # Effective area of 1 telescope [cm^2]
     TransmissionEfficiency:
-        BOL:                         0.8135          # Beginning of Life value in [0,1]
-        EOL:                         0.7945          # End of Life value in [0,1]
+        BOL:                         [0.831, 0.847, 0.845, 0.844, 0.85, 0.852, 0.854, 0.855, 0.855, 0.856, 0.857] #[0.7945]          # Beginning of Life value in [0,1]
+        EOL:                         [0.831, 0.847, 0.845, 0.844, 0.85, 0.852, 0.854, 0.855, 0.855, 0.856, 0.857] #[0.7945]          # End of Life value in [0,1]
     UseDrift:                        no              # yes or no. If no, ignore everything below.
     UseDriftFromFile:                no              # yes or no. If yes: ignore RMS and timescale below
     DriftYawRms:                     2.0             # RMS of thermo-elastic drift in yaw [arcsec]
@@ -68,14 +69,18 @@ Camera:
     PlateScale:                      0.8333          # [arcsec/micron]
     FocalPlaneOrientation:
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent)
+
         ConstantValue:               45.0            # [degrees]. Used in case Source is ConstantValue. 
+
         FromFile:                    inputfiles/fporientation.txt  # Used in case Source is FromFile. time [s] & FP orientation [deg]
     FocalLength: 
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
         ConstantValue:               0.24752         # Used in case Source is ConstantValue (from ZEMAX model) [m]
         FromFile:                    inputfiles/focallength.txt # Used in case Source is FromFile: time [s] & focalLenght [m]
-    ThroughputBandwidth:             532             # FWHM [nm]
-    ThroughputLambdaC:               550             # Central wavelength of the throughput passband [nm]
+    ThroughputLambdaC:               550.            # Reference wavelength of the 0V flux [nm]
+    BinWidth:                        50 #532.        # Width of the wavelength bins [nm]. For traditional multicolor approach, use the full spectral width of PLATO.
+    BinOrigin:                       500 #550.       # Central wavelength of the lowest wavelength bin [nm]. For traditional multicolor approach, use reference wavelength of 550nm.
+    WavelengthBins:                  11 #1           # Number of wavelength bins. Has to be the same as the length of BOL/EOL and QE vectors. For traditional multicolor approach, use a single bin.
     IncludeAberrationCorrection:     yes             # Calculate the differential aberration correction and apply
     AberrationCorrection:
         Type:                        differential    # [differential, absolute]
@@ -91,7 +96,9 @@ Camera:
 
 PSF:
 
+
     Model:                           AnalyticNonGaussian # PSF model: MappedGaussian, MappedFromFileSymmetrical, MappedFromFileAssymetrical, or AnalyticNonGaussian
+
     MappedGaussian:                                  # Generate the PSF from a fixed 2D Gaussian function
         Sigma:                       0.639           # Standard deviation of Gaussian PSF [pix]
         NumberOfPixels:              8               # The number of pixels in the field for which the PSF is generated
@@ -104,7 +111,7 @@ PSF:
         RotationAngle:              -1               # PSF rotation angle w.r.t the x-axis of the focal plane. -1 to auto-compute. [deg]
         NumberOfPixels:              8               # The number of pixels in the field for which the PSF is generated
         ChargeDiffusionStrength:     0.2             # Charge diffusion strength (width of the Gaussian diffusion kernel) [pixels]
-        IncludeChargeDiffusion:      no              # Include charge diffusion [yes or no]
+        IncludeChargeDiffusion:      yes              # Include charge diffusion [yes or no]
         IncludeJitterSmoothing:      no              # Include jitter smoothing [yes or no]
     MappedFromFileAsymmetrical:                       # Read a pre-calculated and fixed PSF from an HDF5 file
         Filename:                    inputfiles/blueRealPSF.hdf5 
@@ -119,7 +126,7 @@ PSF:
     AnalyticNonGaussian:
         ParameterFileName:           inputfiles/psfallv3.txt
         ChargeDiffusionStrength:     0.2             # Charge diffusion strength (width of the Gaussian diffusion kernel) [pixels]
-        IncludeChargeDiffusion:      yes             # Include charge diffusion [yes or no]
+        IncludeChargeDiffusion:      no             # Include charge diffusion [yes or no]
         Sigma:                                       # Width of the analytic PSF, equal to sigma for a Gaussian PSF [pix]  
             Source:                  ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
             ConstantValue:           0.5             # Used in case Source is ConstantValue  [pix]
@@ -131,7 +138,7 @@ FEE:
     NominalOperatingTemperature:     210.15          # Nominal operating temperature of the FEE [K]
     Temperature:                     Nominal         # Temperature fixed at the nominal operating temperature
     TemperatureFileName:             inputfiles/feeTemperature.txt 
-    ReadoutNoise:                    32.0            # Readout noise for the FEE [e-/pixel] (same for both ADCs)
+    ReadoutNoise:                    37.0            # Readout noise for the FEE [e-/pixel] (same for both ADCs)
     Gain:
         RefValueLeft:                0.0222          # [ADU/microV] (1 / (Total gain) = FFE gain * CCD gain = 1 / (20 e-/ADU))
         RefValueRight:               0.0222          # [ADU/microV] (1 / (Total gain) = FFE gain * CCD gain = 1 / (20 e-/ADU))
@@ -150,7 +157,7 @@ FEE:
 
 CCD:
 
-    Position:                        Custom          # one of [1, 2, 3, 4, Custom]
+    Position:                        Custom               # one of [1, 2, 3, 4, Custom]
                                                      # (use Custom to specify the CCD position parameters yourself)
                                                      
     OriginOffsetX:                   0               # X Offset of CCD origin from center of focal plane [mm]
@@ -169,14 +176,14 @@ CCD:
     Gain:                           
         RefValueLeft:                1.80            # [microV/e-]
         RefValueRight:               1.80            # [microV/e-]
-        Stability:                   -0.001          # [microV/e-/K]
+        Stability:                   -0.0018          # [microV/e-/K]
         AllowedDifference:           15.0            # Difference in gain between both CCD halves [%]
     QuantumEfficiency:
-        MeanQuantumEfficiency:       0.6218          # Mean quantum efficiency
+        WaveQuantumEfficiency:       [0.737, 0.807, 0.877, 0.867, 0.858, 0.757, 0.655, 0.485, 0.314, 0.165, 0.062] #[0.6218]    # QE at N different wavelenth bins, from [0,1]. Use a single average value for traditional, multicolor approach.                           
         MeanAngleDependency:         1.01            # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE
     FullWellSaturation:              900000          # [e-/pixel]
     DigitalSaturation:               65535           # E.g. 16 bit [ADU/pixel]
-    ReadoutNoise:                    38.7            # [e-/pixel]
+    ReadoutNoise:                    44.3            # [e-/pixel]
     SerialTransferTime:              340             # Time to shift the content of the readout register by one pixel [ns]
     ParallelTransferTime:            110             # Time to shift the charges one row down in case the readout register will be read out [µs]
     ParallelTransferTimeFast:        90              # Time to shift the charges one row down in case the readout register will not be read out [µs]
@@ -185,10 +192,12 @@ CCD:
        Partial:
           FirstRowReadout:           0               # First row that will be read out by the FEE in partial-readout mode
           NumRowsReadout:            4510            # Number of rows that will be read out by the FEE, in partial-readout mode
-    FlatfieldNoiseRMS:               0.010           # Flatfield noise RMS (local PRNU)
+    FlatfieldNoiseRMS:               0.001 #0.010           # Flatfield noise RMS (local PRNU)
     Vignetting: 
         NaturalVignetting:                           # Brightness attenuation from the optical axis to the edge of the FOV
-            ExpectedValue:          0.945            # Expected value of the throughput efficiency due to vignetting
+            ExpectedValue:          0.902            # Expected value of the throughput efficiency due to vignetting
+#            Radii:                  [0,2,4,6,8,10,12,14,16,18,19]                           # In degrees
+#            Values:                 [1,0.999,0.992,0.985,0.975,0.96,0.94,0.918,0.887,0.84,0.808]      # 0 to 1 transmittance (1 means all light passes)
         MechanicalVignetting:                        # Blocking of the light due to mechanical obstruction at the edge of the FOV
             RadiusFOV:              18.8908          # Radius of the FOV [degrees]
     Polarization:
@@ -197,7 +206,7 @@ CCD:
         ParticulateContaminationEfficiency: 0.972    # Throughput efficiency due to particulate contamination
         MolecularContaminationEfficiency:   0.9573   # Throughput efficiency due to molecular contamination
     DarkSignal:
-      DarkCurrent:                  1.2              # Dark current [e- / s]
+      DarkCurrent:                  4.5              # Dark current [e- / s]
       DSNU:                         15.0             # Dark signal non-uniformity [%]
       Stability:                    5.0              # Temperature stability of the dark current [[e- / K / s ]
     CTI:
@@ -216,7 +225,7 @@ CCD:
     TemperatureFileName:             inputfiles/ccdTemperature.txt 
     IncludeFlatfield:                yes             # Include flatfield [yes or no]
     IncludeDarkSignal:               yes             # Include dark signal non-uniformity [yes or no]
-    IncludeBFE:                      yes             # Include the brighter-fatter effect [yes or no]
+    IncludeBFE:                      no            # Include the brighter-fatter effect [yes or no]
     IncludePhotonNoise:              yes             # Include photon noise [yes or no]
     IncludeReadoutNoise:             yes             # Include readout noise [yes or no]
     IncludeCTIeffects:               yes             # Include charge transfer inefficiency effects [yes or no]
@@ -237,12 +246,16 @@ SubField:
 
     ZeroPointRow:                    0               # Row of the (0,0) pixel of the subfield [pixels]
     ZeroPointColumn:                 0               # Column of the (0,0) pixel of the subfield [pixels]
-    NumColumns:                      100             # Number of columns, should be >= 8 [pixels]
-    NumRows:                         100             # Number of rows,    should be >= 8 [pixels]
+    NumColumns:                      60              # Number of columns in each subfield, should be >= 8 [pixels]
+    NumRows:                         60              # Number of rows in each subfield, should be >= 8 [pixels]
     NumBiasPrescanRows:              30              # Nr of rows of the prescan strip to determine the bias [pixels]
     NumBiasPrescanColumns:           30              # Nr of columns of the prescan strip to determine the bias [pixels]
     NumSmearingOverscanRows:         30              # Nr of rows of the overscan strip to determine the smearing [pixels]
     SubPixels:                       8               # (Sqrt of) nr of subpixels per CCD pixel. Should be 2^n <= 128.
+    NumSubSubFieldsRows:             2               # number of Subsubfields to separate field in multiple ones - numColumns gives the size of a single subsubfield
+    NumSubSubFieldsColumns:          2
+    OverlapRows:                     10              # Overlap between subsubfields to account for the effect of nearby stars. Reduces te effective size of the single fields
+    OverlapColumns:                  10
 
 
 Photometry:                                          # Only possible when 'AnalyticNonGaussian' is selected as PSF

@@ -119,8 +119,14 @@ Telescope::~Telescope()
     Log.debug("Telescope: azimuth, tilt = " + to_string(rad2deg(originalAzimuthAngle)) + ", " + to_string(rad2deg(originalTiltAngle)));
 
     lightCollectingArea       = configParams.getDouble("Telescope/LightCollectingArea") * 1.e-4;            // [m^2]  
-    transmissionEfficiencyBOL = configParams.getDouble("Telescope/TransmissionEfficiency/BOL");
-    transmissionEfficiencyEOL = configParams.getDouble("Telescope/TransmissionEfficiency/EOL");
+
+    transmissionEfficiencyBOL = configParams.getDoubleVector("Telescope/TransmissionEfficiency/BOL");  //%% Changed for spectral dependency, now reads vector with n wavelength bins	
+    transmissionEfficiencyEOL = configParams.getDoubleVector("Telescope/TransmissionEfficiency/EOL");  //%% Changed for spectral dependency, now reads vector with n wavelength bins	
+    wave_bins = configParams.getInteger("Camera/WavelengthBins");
+
+    timestepWave = 0;  //%% Counting for wavebins and subsubfields not to have to recalculate the jitter
+    totalTimestepsWave = 0;  //%% Counting for wavebins and subsubfields not to have to recalculate the jitter
+
     missionDuration           = configParams.getDouble("ObservingParameters/MissionDuration") * 31536000.0; // [s]
     useDrift                  = configParams.getBoolean("Telescope/UseDrift");
 }
@@ -201,11 +207,11 @@ void Telescope::flushOutput()
  * \return -
  */
 
-void Telescope::updateParameters(double time)
+void Telescope::updateParameters(double time, int binnumber, bool subsubfield, bool subsubfieldlast)  //%% Added binnumber for spectral dependency
 {
     // Update the orientation of the telescope:
     
-    updateTelescopeOrientation(time);
+    updateTelescopeOrientation(time, binnumber, subsubfield, subsubfieldlast);  //%% Added binnumber for spectral dependency
 
 }
 
@@ -223,7 +229,7 @@ void Telescope::updateParameters(double time)
 
 
 
-void Telescope::updateTelescopeOrientation(double time)
+void Telescope::updateTelescopeOrientation(double time, int binnumber, bool subsubfield, bool subsubfieldlast)  //%% Added binnumber for spectral dependency
 {
     double yaw=0.0, pitch=0.0, roll=0.0;
 
@@ -232,8 +238,10 @@ void Telescope::updateTelescopeOrientation(double time)
 
     if (time < internalTime)
     {
+	if ((binnumber == 0) && (!subsubfield)) {  //%% internal time is only updated for first wavebin and field, so time will be smaller for all other cases - okay as calculation only for fist bin/field
         Log.warning("Telescope: updateTelescopeOrientation() at time before previous request: Not Implemented. ");
         return;
+	}
     }
 
 
@@ -244,11 +252,13 @@ void Telescope::updateTelescopeOrientation(double time)
     {
         if (time == historyTime.back())
         {
+	if ((binnumber == 0) && (!subsubfield)) {  //%% internal time is only updated for first wavebin and field, so time will be smaller for all other cases - okay as calculation only for fist bin/field
             Log.debug("Telescope: updateTelescopeOrientation: coordinates up-to-date for requested time " + to_string(time));
             Log.info("Telescope: At time " + to_string(time) + ": (RA, dec) = (" 
                                            + to_string(rad2deg(currentAlphaOpticalAxis)) + ", " 
                                            + to_string(rad2deg(currentDeltaOpticalAxis)) + ")");
             return;
+	}
         }
     }
 
@@ -260,7 +270,10 @@ void Telescope::updateTelescopeOrientation(double time)
     // Get the rotation matrix to transform the spacecraft coordinates of the (drifted) optical axis 
     // to equatorial coordinates, taking into account that the platform itself may have jittered meanwhile.
 
-    platform.updatePlatformOrientation(time);
+    if ((binnumber == 0) && (!subsubfield)) {
+      platform.updatePlatformOrientation(time);  //%% Only calculate for the first bin of first field, read afterwards
+    }
+    else { platform.updatePlatformOrientationWave(time, binnumber, wave_bins, subsubfieldlast); }  //%% Read old calculated values otherwise
     arma::mat rotSC2EQ = platform.getJitteredSpacecraftToEquatorialRotationMatrix();
 
     // Before any drift is involved, the optical axis has coordinates (0,0,1) in the TL reference frame
@@ -276,7 +289,32 @@ void Telescope::updateTelescopeOrientation(double time)
     {
         // Let the telescope drift until 'time'. Yaw, pitch, and roll are in [rad]
 
+    if ((binnumber == 0) && (!subsubfield)) {  //%% Only calculate for the first bin of first field, read afterwards
         tie(yaw, pitch, roll) = driftGenerator.getNextYawPitchRoll(time);
+	yawWave.push_back(yaw);  //%% save the values
+	pitchWave.push_back(pitch);
+	rollWave.push_back(roll);
+	totalTimestepsWave = totalTimestepsWave + 1;
+        }
+    else {  //%% all other bins/fields read the saved values
+        yaw = yawWave[timestepWave];
+	pitch = pitchWave[timestepWave];
+	roll = rollWave[timestepWave];
+
+	    timestepWave = timestepWave + 1;
+	    if (timestepWave == totalTimestepsWave )
+	    {
+		timestepWave = 0;
+		if ((binnumber == wave_bins - 1) && subsubfieldlast )
+		{
+		    yawWave.clear();
+		    pitchWave.clear();
+		    rollWave.clear();
+		    totalTimestepsWave = 0; 
+		}
+	    }
+
+         }
 
         Log.debug("Telescope: At time " + to_string(time) + ": (yaw, pitch, roll) = (" 
                                         + to_string(rad2deg(yaw)*3600.) + ", " 
@@ -335,6 +373,8 @@ void Telescope::updateTelescopeOrientation(double time)
 
     // Update the internal clock
 
+    if ((binnumber == 0) && (!subsubfield))  //%% Only save and update for first bin of first field
+    {
     internalTime = time;
 
     // Store the computed values so that they can later be saved to HDF5
@@ -346,6 +386,8 @@ void Telescope::updateTelescopeOrientation(double time)
     historyYaw.push_back(rad2deg(yaw) * 3600.);                                       // [arcsec]
     historyPitch.push_back(rad2deg(pitch) * 3600.);                                   // [arcsec]
     historyRoll.push_back(rad2deg(roll) * 3600.);                                     // [arcsec]
+
+    }
 
     // That's it
 
@@ -395,10 +437,17 @@ double Telescope::getHeartbeatInterval()
  * 
  */
 
-double Telescope::getTransmissionEfficiency(double time)
+vector<double> Telescope::getTransmissionEfficiency(double time)	//%% Changed for spectral dependency, now returns vector with n bins
 {
-    return transmissionEfficiencyBOL - (transmissionEfficiencyBOL - transmissionEfficiencyEOL) / missionDuration * time;
+    vector<double> calculateTransmissionEfficiency = transmissionEfficiencyBOL;
+    for (int i=0; i<calculateTransmissionEfficiency.size(); i=i+1) //%% every bin degrades independently
+    {
+	calculateTransmissionEfficiency[i] = transmissionEfficiencyBOL[i] - (transmissionEfficiencyBOL[i] - transmissionEfficiencyEOL[i]) / missionDuration * time;
+    }
+
+    return calculateTransmissionEfficiency;
 }
+
 
 
 
