@@ -22,9 +22,9 @@ class AsymmetricalPointSpreadFunction : public PointSpreadFunction
 
         AsymmetricalPointSpreadFunction(ConfigurationParameters &configParam, HDF5File &hdf5File);
 
-        void select(double xFP, double yFP);
+        void select(double xFP, double yFP, int fieldnumber, int fieldmax);
 
-        virtual void rotate(double angle);
+        virtual void rotate(double angle, int fieldnumber, int fieldmax);
 
     protected:
 

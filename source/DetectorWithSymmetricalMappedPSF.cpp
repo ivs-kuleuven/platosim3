@@ -61,7 +61,13 @@ DetectorWithSymmetricalMappedPSF::DetectorWithSymmetricalMappedPSF(Configuration
     // Then select the proper PSF for the given subfield. Should only be done after calling configure().
 
     psf = new SymmetricalPointSpreadFunction(configParam, hdf5file);
-    setPsfForSubfield();
+    for (int subsubfieldx = 0; subsubfieldx < numsubsubfieldsx; subsubfieldx++)  //%% Loop to select a different psf for each subsubfield
+    {
+        for (int subsubfieldy = 0; subsubfieldy < numsubsubfieldsy; subsubfieldy++)
+        {
+    setPsfForSubfield(subsubfieldx, subsubfieldy);  //%% Added subsubfield
+        }
+    }
 }
 
 /**
@@ -128,13 +134,15 @@ void DetectorWithSymmetricalMappedPSF::configure(ConfigurationParameters &config
 /**
  * \brief Set the PSF map for the sub-field.
  */
-void DetectorWithSymmetricalMappedPSF::setPsfForSubfield()
+void DetectorWithSymmetricalMappedPSF::setPsfForSubfield(int subsubfieldx, int subsubfieldy)
 {
     // There is one PSF for the entire subfield, which we take the one of the center
     // of the subfield.
 
     double xFPmm, yFPmm;
-    tie(xFPmm, yFPmm) = getFocalPlaneCoordinatesOfSubfieldCenter();
+    tie(xFPmm, yFPmm) = getFocalPlaneCoordinatesOfSubfieldCenter(subsubfieldx, subsubfieldy);
+    int fieldnumber = subsubfieldx * numsubsubfieldsy + subsubfieldy; //%% unique number for subsubfield
+    int fieldmax = numsubsubfieldsx * numsubsubfieldsy -1; //%% total number of subsubfields -1 for counting start at 0
 
     // Get the 'user specified' angular distance to the optical axis from the psf.
     // If the user didn't specify an angular distance, calculate it from the given
@@ -147,7 +155,7 @@ void DetectorWithSymmetricalMappedPSF::setPsfForSubfield()
         radius = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm);
     }
 
-    psf->select(radius);
+    psf->select(radius, fieldnumber, fieldmax);
 
     // Get the 'user specified' orientation angle from the psf.
     // if the user didn't specify a rotation angle, calculate it
@@ -163,14 +171,16 @@ void DetectorWithSymmetricalMappedPSF::setPsfForSubfield()
     //  Compensate for the orientation of the CCD wrt focal plane orientation.
 
     angle -= orientationAngle;
-    psf->rotate(angle);
+    psf->rotate(angle, fieldnumber, fieldmax);
 
     // Rebin the psfMap to the number of sub-pixels per pixel used for the Detector
 
-    psfMap = psf->rebinToSubPixels(numSubPixelsPerPixel);
+    psfVector = psf->rebinToSubPixels(numSubPixelsPerPixel, fieldnumber);
 
     // Allow the convolver to precompute some stuff given the PSF, so that it doesn't
     // need to be recomputed every convolution.
-
-    convolver.initialise(numRowsSubPixelMap, numColumnsSubPixelMap, psfMap);
+    for (int binnumber=0; binnumber<wave_bins; binnumber++)
+    {
+        convolver.initialise(numRowsSubPixelMap, numColumnsSubPixelMap, psfVector[binnumber], binnumber, wave_bins, fieldnumber, fieldmax);
+    }
 }

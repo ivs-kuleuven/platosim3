@@ -124,7 +124,13 @@ void ClosedLoopDetectorWithSymmetricalMappedPSF::setNewWindowPosition(std::tuple
             }
 
             // set the psf again for the new
-            setPsfForSubfield();
+                for (int subsubfieldx = 0; subsubfieldx < numsubsubfieldsx; subsubfieldx++)  //%% Loop to select a different psf for each subsubfield
+    {
+        for (int subsubfieldy = 0; subsubfieldy < numsubsubfieldsy; subsubfieldy++)
+        {
+    setPsfForSubfield(subsubfieldx, subsubfieldy);  //%% Added subsubfield
+        }
+    }
 
         }
     }
@@ -260,7 +266,13 @@ void ClosedLoopDetectorWithAsymmetricalMappedPSF::setNewWindowPosition(std::tupl
             }
 
             // set the psf again for the new
-            setPsfForSubfield();
+             for (int subsubfieldx = 0; subsubfieldx < numsubsubfieldsx; subsubfieldx++)  //%% Loop to select a different psf for each subsubfield
+    {
+        for (int subsubfieldy = 0; subsubfieldy < numsubsubfieldsy; subsubfieldy++)
+        {
+    setPsfForSubfield(subsubfieldx, subsubfieldy);  //%% Added subsubfield
+        }
+    }
 
         }
     }

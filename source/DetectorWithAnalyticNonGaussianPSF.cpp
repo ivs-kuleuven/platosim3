@@ -976,7 +976,13 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
     
     // Subtract the sky background
 
-    const double skyBackground = camera. getTotalSkyBackground();                // [photons/pixel/exposure]
+    vector<double> skyBackgroundwave = camera. getTotalSkyBackground();                // [photons/pixel/exposure]
+    double skyBackground = 0;
+
+    for (int binnumber=0; binnumber<wave_bins; binnumber++){
+       skyBackground += skyBackgroundwave[binnumber];// * QE[binnumber] * meanAngleDependencyQE;
+    }
+
     image -= throughputMap * skyBackground;                                      // [e-/pixel/exposure]
 
 

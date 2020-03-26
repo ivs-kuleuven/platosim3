@@ -34,7 +34,7 @@ using namespace std;
 
 class Detector;  // forward declaration
 
-typedef map<unsigned int, array<double, 6>>::iterator starInfoIterator;
+typedef map<unsigned int, array<double, 6+1>>::iterator starInfoIterator;
 
 
 class Camera : public HDF5Writer

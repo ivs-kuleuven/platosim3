@@ -30,7 +30,7 @@ class DetectorWithMappedPSF : public Detector
         virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux, int subsubfieldx, int subsubfieldy) override;  //%% Added subsubfields for spectral dependency
         virtual void addFlux(double flux, int subsubfieldx, int subsubfieldy) override;  //%% Added subsubfields for spectral dependency
 
-        virtual void configure(ConfigurationParameters &configParam){};
+//@        virtual void configure(ConfigurationParameters &configParam){};
 
     protected:
 

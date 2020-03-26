@@ -39,13 +39,13 @@
  */
 AsymmetricalPointSpreadFunction::AsymmetricalPointSpreadFunction(ConfigurationParameters &configParam, HDF5File &hdf5file) : PointSpreadFunction(configParam, hdf5file)
 {
-    // Create the groups in the HDF5 file where the different PSFs and their description will be saved.
-
-    initHDF5Groups();
-
     // Parse the parameters from the configuration file.
 
     configure(configParam);
+
+    // Create the groups in the HDF5 file where the different PSFs and their description will be saved.
+
+    initHDF5Groups();
 
     isSelected = false;
     isRotated = false;
@@ -84,6 +84,8 @@ void AsymmetricalPointSpreadFunction::configure(ConfigurationParameters &configP
 {
     string model = configParam.getString("PSF/Model");
 
+    wave_bins = configParam.getInteger("Camera/WavelengthBins");  //%% Spectral dependence: Read how many wavelength bins are to be processed
+
     if (model == "MappedFromFileAsymmetrical")
     {
         // The user specified to use the pre-calculated PSFs from file
@@ -92,6 +94,9 @@ void AsymmetricalPointSpreadFunction::configure(ConfigurationParameters &configP
 
         absolutePath = configParam.getAbsoluteFilename("PSF/MappedFromFileAsymmetrical/Filename");
         numberOfPixels = configParam.getInteger("PSF/MappedFromFileAsymmetrical/NumberOfPixels");
+
+    numsubsubfieldsx 	   = configParam.getInteger("SubField/NumSubSubFieldsRows");  //%% Multiple fields, for spectral dependence
+    numsubsubfieldsy 	   = configParam.getInteger("SubField/NumSubSubFieldsColumns");  //% Multiple fields, for spectral dependence
     }
     else
     {
@@ -113,7 +118,7 @@ void AsymmetricalPointSpreadFunction::configure(ConfigurationParameters &configP
  * 
  * \param[in] yFP: Focal-plane y-coordinate [mm].
  */
-void AsymmetricalPointSpreadFunction::select(double xFP, double yFP)
+void AsymmetricalPointSpreadFunction::select(double xFP, double yFP, int fieldnumber, int fieldmax)
 {
     using StringUtilities::dtos;
     
@@ -122,6 +127,8 @@ void AsymmetricalPointSpreadFunction::select(double xFP, double yFP)
     if (isSelected)
     {
         Log.warning("PointSpreadFunction: Another PSF was previously selected.");
+psfVector.clear();  //%% Clear the vectors as we use append
+rotationVector.clear();
     }
 
     unsigned int datasetIndex = 1;
@@ -157,7 +164,14 @@ void AsymmetricalPointSpreadFunction::select(double xFP, double yFP)
 
     psfFile.readArray("/", selectedDatasetName, psfMap);
 
+for (int binnumber=0; binnumber<wave_bins; binnumber++)
+{
+psfVector.push_back(psfMap);  //%% Save the psf in a vector to keep all wavelengths, quick and dirty fix
+
     rotationAngle = 0.0;
+
+rotationVector.push_back(rotationAngle);  //%% keep the rotation angles of all bins, quick and dirty fix
+}
 
     // We should be able to read the number of sub-pixels per pixel that was used to generate the PSFs
     // from an attribute in the HDF5 file. Unfortunately, this is not available and we therefore derive 
@@ -168,7 +182,9 @@ void AsymmetricalPointSpreadFunction::select(double xFP, double yFP)
 
     hdf5File.writeAttribute("/PSF", "selectedPSF", "Realistic PSF selected from dataset " + datasetName + ".");
 
-    isSelected = true;
+    if (fieldnumber == fieldmax){  //%% If processed the last subsubfield, then all psfs have been chosen, for spectral dependency
+      isSelected = true;
+    }
 }
 
 
@@ -181,7 +197,7 @@ void AsymmetricalPointSpreadFunction::select(double xFP, double yFP)
  *
  * \param[in] angle: Angle by which the PSF should be rotated [radians].
  */
-void AsymmetricalPointSpreadFunction::rotate(double angle)
+void AsymmetricalPointSpreadFunction::rotate(double angle, int fieldnumber, int fieldmax)
 {
     if (isRotated)
     {
@@ -193,18 +209,39 @@ void AsymmetricalPointSpreadFunction::rotate(double angle)
         // The rotationAngle of the generated PSFs is 45 degrees, so the actual rotation should be
         // the requested angle minus the rotationAngle of the PSF.
 
-        psfMap = ArrayOperations::rotateArray(psfMap, angle);
+//%% Added loop for spectral dependence, rotate all bins
+        for (int binnumber=0; binnumber<wave_bins; binnumber++)
+{
+	double newAngle = angle - rotationVector[binnumber];
 
-        rotationAngle = angle;
-        isRotated = true;    
+	psfVector[binnumber] = ArrayOperations::rotateArray(psfVector[binnumber], newAngle);  //%% Changed to vector for spectral dependency
 
-        psfMap /= arma::accu(psfMap);
+        rotationAngle = newAngle;  
 
-        Log.debug("AsymmetricalPointSpreadFunction: rotated current PSF over angle " + to_string(rad2deg(angle)) + " deg");
+	psfVector[binnumber] /= arma::accu(psfVector[binnumber]);		//NORMALIZING  //%% Changed to vector for spectral dependency
 
-        // Write the psfMap of the rotated PSF to the HDF5 output file
+    string group;
+    if (wave_bins == 1)
+    {
+	group = "/PSF/wavebin" + to_string(binnumber-1);
+    }
+    else
+    {
+	group = "/PSF/wavebin" + to_string(binnumber);
+    } 
+        hdf5File.writeArray(group, "rotatedPSFfield" + to_string(fieldnumber), psfVector[binnumber]);
+        hdf5File.writeAttribute(group, "rotationAnglefield" + to_string(fieldnumber), rotationAngle);
+	Log.debug("AsymmetricalPointSpreadFunction: rotated current PSF over angle " + to_string(rad2deg(newAngle)) + " deg for wavebin " + to_string(binnumber));
+}
 
-        hdf5File.writeArray("/PSF", "rotatedPSF", psfMap);
-        hdf5File.writeAttribute("/PSF", "rotationAngle", rotationAngle);
+    if (fieldnumber == fieldmax){
+	isRotated = true;  //%% If processed the last subsubfield, then all psfs have been rotated, for spectral dependency
+    }
+
+        // Write the psfMap of the rotated PSF to the HDF5 output file  //%% Not done yet
+
+//        hdf5File.writeArray("/PSF", "rotatedPSF", psfMap);
+//        hdf5File.writeAttribute("/PSF", "rotationAngle", rotationAngle);
+
     }
 }

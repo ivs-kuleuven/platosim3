@@ -593,16 +593,16 @@ void Simulation::writeStarCatalogToHDF5()
             k++;
         }
 
-        hdf5File.writeArray("StarCatalog/", "starIDs", starIDs.data(), starIDs.size());
-        hdf5File.writeArray("StarCatalog/", "RA",      RA.data(), RA.size());
-        hdf5File.writeArray("StarCatalog/", "Dec",     dec.data(), dec.size());
-        hdf5File.writeArray("StarCatalog/", "Vmag",    Vmag.data(), Vmag.size());
-        hdf5File.writeArray("StarCatalog/", "xFPmm",    xFPmm.data(), xFPmm.size());
-        hdf5File.writeArray("StarCatalog/", "yFPmm",    yFPmm.data(), yFPmm.size());
-        hdf5File.writeArray("StarCatalog/", "colPix",    colPix.data(), colPix.size());
-        hdf5File.writeArray("StarCatalog/", "rowPix",    rowPix.data(), rowPix.size());
+        hdf5File->writeArray("StarCatalog/", "starIDs", starIDs.data(), starIDs.size());
+        hdf5File->writeArray("StarCatalog/", "RA",      RA.data(), RA.size());
+        hdf5File->writeArray("StarCatalog/", "Dec",     dec.data(), dec.size());
+        hdf5File->writeArray("StarCatalog/", "Vmag",    Vmag.data(), Vmag.size());
+        hdf5File->writeArray("StarCatalog/", "xFPmm",    xFPmm.data(), xFPmm.size());
+        hdf5File->writeArray("StarCatalog/", "yFPmm",    yFPmm.data(), yFPmm.size());
+        hdf5File->writeArray("StarCatalog/", "colPix",    colPix.data(), colPix.size());
+        hdf5File->writeArray("StarCatalog/", "rowPix",    rowPix.data(), rowPix.size());
 
-	hdf5File.writeArray("StarCatalog/", "temp",    StarTemp.data(), StarTemp.size());  //%% Added temperature for spectral dependency
+	hdf5File->writeArray("StarCatalog/", "temp",    StarTemp.data(), StarTemp.size());  //%% Added temperature for spectral dependency
 
     }
     else
@@ -729,7 +729,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addString("DriftFileName");
     subGroup = "Telescope/TransmissionEfficiency";
 
-    hdf5File.createGroup(parentGroup + "/" + subGroup);
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
     addDoubleVector("BOL");  //%%changed for spectral dependency, is now vector with n different wavelength bin values
     addDoubleVector("EOL");  //%%changed for spectral dependency, is now vector with n different wavelength bin values
 

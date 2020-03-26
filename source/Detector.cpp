@@ -2494,16 +2494,32 @@ void Detector::applyOverAndUnderShoot()
     arma::frowvec totalContribution; // Has to be filled with zeroes for every row and every detector half
     int lengthReadoutRegister;
 
-    double skyBackground = camera.getTotalSkyBackground();
-    if (includeNaturalVignetting)
-        skyBackground *= expectedValueNaturalVignetting;
-    if (includePolarization)
-        skyBackground *= expectedValuePolarization;
-    if (includeParticulateContamination)
-        skyBackground *= particulateContaminationEfficiency;
-    if (includeMolecularContamination)
-        skyBackground *= molecularContaminationEfficiency;
-    skyBackground *= meanQE * meanAngleDependencyQE;
+    vector<double> skyBackgroundwave = camera.getTotalSkyBackground();
+    double skyBackground = 0;
+    if (includeNaturalVignetting){
+       for (int binnumber=0; binnumber<wave_bins; binnumber++){
+          skyBackgroundwave[binnumber] *= expectedValueNaturalVignetting;
+       }
+    }
+    if (includePolarization){
+       for (int binnumber=0; binnumber<wave_bins; binnumber++){
+          skyBackgroundwave[binnumber] *= expectedValuePolarization;
+       }
+    }
+    if (includeParticulateContamination){
+       for (int binnumber=0; binnumber<wave_bins; binnumber++){
+          skyBackgroundwave[binnumber] *= particulateContaminationEfficiency;
+       }
+    }
+    if (includeMolecularContamination){
+       for (int binnumber=0; binnumber<wave_bins; binnumber++){
+          skyBackgroundwave[binnumber] *= molecularContaminationEfficiency;
+       }
+    }
+
+    for (int binnumber=0; binnumber<wave_bins; binnumber++){
+       skyBackground += skyBackgroundwave[binnumber] * QE[binnumber] * meanAngleDependencyQE;
+    }
 
     arma::frowvec skyBackgroundExtraPixels(frontEndElectronics->getOverAndUnderShootRange());
     skyBackgroundExtraPixels.fill(skyBackground);

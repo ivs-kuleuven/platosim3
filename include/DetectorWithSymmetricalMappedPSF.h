@@ -28,7 +28,7 @@ class DetectorWithSymmetricalMappedPSF : public DetectorWithMappedPSF
 
         SymmetricalPointSpreadFunction *psf;
 
-        void setPsfForSubfield();
+        void setPsfForSubfield(int subsubfieldx, int subsubfieldy);
 
 };
 

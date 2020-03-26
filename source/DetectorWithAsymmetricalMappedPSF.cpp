@@ -62,7 +62,13 @@ DetectorWithAsymmetricalMappedPSF::DetectorWithAsymmetricalMappedPSF(Configurati
     // Then select the proper PSF for the given subfield. Should only be done after calling configure().
 
     psf = new AsymmetricalPointSpreadFunction(configParam, hdf5file);
-    setPsfForSubfield();
+    for (int subsubfieldx = 0; subsubfieldx < numsubsubfieldsx; subsubfieldx++)  //%% Loop to select a different psf for each subsubfield
+    {
+        for (int subsubfieldy = 0; subsubfieldy < numsubsubfieldsy; subsubfieldy++)
+        {
+    setPsfForSubfield(subsubfieldx, subsubfieldy);  //%% Added subsubfield
+        }
+    }
 }
 
 /**
@@ -130,26 +136,31 @@ void DetectorWithAsymmetricalMappedPSF::configure(ConfigurationParameters &confi
  * 
  * \details The PSF that is selected is dependent on the user input.
  */
-void DetectorWithAsymmetricalMappedPSF::setPsfForSubfield()
+void DetectorWithAsymmetricalMappedPSF::setPsfForSubfield(int subsubfieldx, int subsubfieldy)
 {
     // There is one PSF for the entire subfield, which we take the one of the center
     // of the subfield.
 
     double xFPmm, yFPmm;
-    tie(xFPmm, yFPmm) = getFocalPlaneCoordinatesOfSubfieldCenter();
+    tie(xFPmm, yFPmm) = getFocalPlaneCoordinatesOfSubfieldCenter(subsubfieldx, subsubfieldy);
+    int fieldnumber = subsubfieldx * numsubsubfieldsy + subsubfieldy; //%% unique number for subsubfield
+    int fieldmax = numsubsubfieldsx * numsubsubfieldsy -1; //%% total number of subsubfields -1 for counting start at 0
 
-    psf->select(xFPmm, yFPmm);
+    psf->select(xFPmm, yFPmm, fieldnumber, fieldmax);
 
     //  Compensate for the orientation of the CCD wrt focal plane orientation.
 
-    psf->rotate(-orientationAngle);
+    psf->rotate(-orientationAngle, fieldnumber, fieldmax);
 
     // Rebin the psfMap to the number of sub-pixels per pixel used for the Detector
 
-    psfMap = psf->rebinToSubPixels(numSubPixelsPerPixel);
+    psfVector = psf->rebinToSubPixels(numSubPixelsPerPixel, fieldnumber);
 
     // Allow the convolver to precompute some stuff given the PSF, so that it doesn't
     // need to be recomputed every convolution.
 
-    convolver.initialise(numRowsSubPixelMap, numColumnsSubPixelMap, psfMap);
+        for (int binnumber=0; binnumber<wave_bins; binnumber++)  //%% For spectral dependence: Loop over all wavebins and intialize all corresponding PSFs
+    {
+        convolver.initialise(numRowsSubPixelMap, numColumnsSubPixelMap, psfVector[binnumber], binnumber, wave_bins, fieldnumber, fieldmax);
+    }
 }

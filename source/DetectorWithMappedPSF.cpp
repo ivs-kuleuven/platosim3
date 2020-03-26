@@ -9,69 +9,7 @@
  */
 
 DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
-: Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure), includeFlatfield(true), writeSubPixelImagesToHDF5(false)
-{
-    // Parse the parameters from the configuration file.
-
-    configure(configParam);
-
-    // Create the groups in the HDF5 file where the different maps (i.e. pixel map,
-    // bias register map, smearing map, etc.) will be saved. This needs to be done
-    // BEFORE other methods write arrays to HDF5.
-
-    initHDF5Groups();
-
-    // Allocate memory for the different maps
-
-    subPixelMap.zeros(numRowsSubPixelMap, numColumnsSubPixelMap);
-
-    flatfieldMap.ones(numsubsubfieldsx * (numRowsSubPixelMap - 2*overlapx * numSubPixelsPerPixel) + 2*overlapx * numSubPixelsPerPixel, numsubsubfieldsy * (numColumnsSubPixelMap - 2*overlapy * numSubPixelsPerPixel) + 2*overlapy * numSubPixelsPerPixel);  //%% For spectral dependency, make flatfield map cover the full final stitched field
-
-    if(includeFlatfield)
-    {
-        // Generate the flatfield map
-
-        generateFlatfieldMap();
-    }
-
-    if(includeBFE)
-    {
-    		// Generate Guyonnet coefficients
-
-    		generateGuyonnetCoefficients();
-    }
-
-    // Initialize and load the PSF. This will open the PSF HDF5 file and perform some basic checking, 
-    // Then select the proper PSF for the given subfield. Should only be done after calling configure().
-
-    psf = new PointSpreadFunction(configParam, hdf5file);
-
-    for (int subsubfieldx = 0; subsubfieldx < numsubsubfieldsx; subsubfieldx++)  //%% Loop to select a different psf for each subsubfield
-    {
-        for (int subsubfieldy = 0; subsubfieldy < numsubsubfieldsy; subsubfieldy++)
-        {
-    setPsfForSubfield(subsubfieldx, subsubfieldy);  //%% Added subsubfield
-        }
-    }
-
-}
-
-
-
-
-
-
-
-
-/**
- * Destructor.
- *
- */
-DetectorWithMappedPSF::~DetectorWithMappedPSF()
-{
-    flushOutput();
-    delete psf;
-}
+: Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure), includeFlatfield(true), writeSubPixelImagesToHDF5(false) {}
 
 
 
@@ -82,65 +20,8 @@ DetectorWithMappedPSF::~DetectorWithMappedPSF()
 
 
 
-/**
- * \brief Configure the DetectorWithMappedPSF object using the ConfigurationParameters
- * 
- * \param configParam: the configuration parameters 
- **/
 
- void DetectorWithMappedPSF::configure(ConfigurationParameters &configParam)
- {
-
-	flatfieldNoiseRMS = configParam.getDouble("CCD/FlatfieldNoiseRMS");
-	includeFlatfield = configParam.getBoolean("CCD/IncludeFlatfield");
-	includeConvolution = configParam.getBoolean("CCD/IncludeConvolution");
-
-        wave_bins = configParam.getInteger("Camera/WavelengthBins");  //%% Read how many wavelength bins are to be processed, for spectral dependency
-
-	writeSubPixelImagesToHDF5 = configParam.getBoolean(
-			"ControlHDF5Content/WriteSubPixelImages");
-
-	numSubPixelsPerPixel = configParam.getInteger("SubField/SubPixels");
-
-	// Configuration parameters for the noise source random seeds
-
-	flatfieldSeed = configParam.getLong("RandomSeeds/FlatFieldSeed");
-
-	// Treat the specific configurations for a Mapped PSF
-
-	string psfModel = configParam.getString("PSF/Model");
-
-	if((psfModel == "MappedGaussian") || (psfModel == "MappedFromFile"))
-	{
-		includeChargeDiffusion = configParam.getBoolean("PSF/" + psfModel + "/IncludeChargeDiffusion");
-		includeJitterSmoothing = configParam.getBoolean("PSF/" + psfModel + "/IncludeJitterSmoothing");
-		chargeDiffusionStrength = configParam.getDouble("PSF/" + psfModel + "/ChargeDiffusionStrength");
-
-		if(includeChargeDiffusion)
-		{
-			generateDiffusionKernel(chargeDiffusionStrength * numSubPixelsPerPixel);
-		}
-		else if(includeJitterSmoothing)
-		{
-			generateDiffusionKernel(0.5);
-		}
-	}
-
-	// Derive the dimensions of the sub-pixel map
-
-	numRowsSubPixelMap = numRowsPixelMap * numSubPixelsPerPixel; // TODO Add edge pixels
-	numColumnsSubPixelMap = numColumnsPixelMap * numSubPixelsPerPixel; // TODO Add edge pixels
-
-}
-
-
-
-
-
-
-
-
-
+  /*
   * \brief: Generate the diffusion kernel.  This is generated at sub-pixel level.
   *
   * \param kernelWidth: Width (sigma) of the Gaussian diffusion kernel [sub-pixels].
@@ -434,6 +315,7 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
 
     addSubSubField(subsubfieldx, subsubfieldy);  //%% Stitch the smaller pixel map additively to the arger complete map
 
+    }
 }
 
 
@@ -677,74 +559,6 @@ void DetectorWithMappedPSF::rebin()
     }
 }
 
-
-
-
-
-
-
-
-/**
- * \brief      Set the Point Spread Function map for the subfield
- * 
- * \details    The PSF that is selected is dependent on the user input.
- */
-
-void DetectorWithMappedPSF::setPsfForSubfield(int subsubfieldx, int subsubfieldy)
-{
-    // There is one PSF for the entire subfield, which we take the one of the center 
-    // of the subfield.
-
-    double xFPmm, yFPmm;
-
-    tie(xFPmm, yFPmm) = getFocalPlaneCoordinatesOfSubfieldCenter(subsubfieldx, subsubfieldy);  //%% For spectral dependency, use correct subsubfield
-
-    // Get the 'user specified' angular distance to the optical axis from the psf.
-    // If the user didn't specify an angular distance, calculate it from the given
-    // focal plane coordinates.
-
-    double radius = psf->getRequestedDistanceToOpticalAxis();
-
-    if (radius < 0.0)
-    {
-        radius = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm);
-    }
-
-    int fieldnumber = subsubfieldx * numsubsubfieldsy + subsubfieldy; //%% unique number for subsubfield
-    int fieldmax = numsubsubfieldsx * numsubsubfieldsy -1; //%% total number of subsubfields -1 for counting start at 0
-
-    psf->select(radius, fieldnumber, fieldmax);  //%% added fieldnumber and max for spectral dependence
-
-
-    // Get the 'user specified' orientation angle from the psf.
-    // if the user didn't specify a rotation angle, calculate it 
-    // from the given focal plane coordinates.
-
-    double angle = psf->getRequestedRotationAngle();
-
-    if (angle < 0.0)
-    {
-        angle = atan2(yFPmm, xFPmm);
-    }
-
-    //  Compensate for the orientation of the CCD wrt focal plane orientation.
-
-    angle -= orientationAngle;
-    psf->rotate(angle, fieldnumber, fieldmax);  //%% added fieldnumber and max for spectral dependence
-
-    // Rebin the psfMap to the number of sub-pixels per pixel used for the Detector
-
-    psfVector = psf->rebinToSubPixels(numSubPixelsPerPixel, fieldnumber); //%% fieldnumber to rebin the correct one
-
-    // Allow the convolver to precompute some stuff given the PSF, so that it doesn't
-    // need to be recomputed every convolution.
-
-    for (int binnumber=0; binnumber<wave_bins; binnumber++)  //%% For spectral dependence: Loop over all wavebins and intialize all corresponding PSFs
-    {
-        convolver.initialise(numRowsSubPixelMap, numColumnsSubPixelMap, psfVector[binnumber], binnumber, wave_bins, fieldnumber, fieldmax);
-    }
-
-}
 
 
 

@@ -28,14 +28,14 @@ class SymmetricalPointSpreadFunction : public PointSpreadFunction
 
         SymmetricalPointSpreadFunction(ConfigurationParameters &configParam, HDF5File &hdf5File);
 
-        void select(double radius);
+        void select(double radius, int fieldnumber, int fieldmax);
 
         double getRequestedDistanceToOpticalAxis();
         double getRequestedRotationAngle();
 
         arma::fmat getGaussianPsf();
 
-        virtual void rotate(double angle);
+        virtual void rotate(double angle, int fieldnumber, int fieldmax);
 
     protected:
 
@@ -75,13 +75,5 @@ class SymmetricalPointSpreadFunction : public PointSpreadFunction
 };
 
 
-
-
-
-namespace psfdata
-{
-const arma::vec radius = {
-    0.0000, 1.4141, 2.8273, 4.2388, 5.6477, 7.0532, 8.4545, 9.8508, 11.2413, 12.6253, 14.0019, 15.3707, 16.7308, 18.0817, 18.8876};
-}
 
 #endif

@@ -49,13 +49,38 @@ class PointSpreadFunction : public HDF5Writer
 
         arma::fmat getGaussianPsf();
 
-    private:
-
         // Determine if a psf has been selected
         bool isSelected = false;
 
         // Determine if this psf has been rotated
         bool isRotated = false;
+
+        // Loaded from the configuration, i.e. PSF/Filename
+        string absolutePath;
+
+	vector<arma::Mat<float>> psfVector;  //%% Added for spectral dependency, vector to save all possible psfs to be used
+	int wave_bins;  //%% Added for spectral dependency, total number of wavelength bins
+
+	vector<double> rotationVector;  //%% Added for spectral dependency, vector of all rotation angles of all psfs stored
+	int numsubsubfieldsx, numsubsubfieldsy;  //%% Added for spectral dependency, number of subsubfields
+
+        // The HDF5 file that holds the PSFs
+        HDF5File psfFile;
+
+        // Number of pixels in the field that holds the PSF
+        unsigned int numberOfPixels;
+
+        // The actual rotation angle of the PSF with respect to the x-axis orientation of the focal plane
+        double rotationAngle = 0.0;    // [radians]
+
+        // Number of sub-pixels per pixel that was/is used to generate the PSF
+        unsigned int numberOfSubPixelsPerPixel;
+
+        // The selected psf is copied into this array
+        arma::Mat<float> psfMap;
+
+
+    private:
 
         // Determine if this psf has been rotated
         bool isRebinned = false;
@@ -67,36 +92,24 @@ class PointSpreadFunction : public HDF5Writer
         // This option can not be true if isGaussian is already true!
         bool isLoadedFromFile = false;
         
-        // The selected psf is copied into this array
-        arma::Mat<float> psfMap;
 
-	vector<arma::Mat<float>> psfVector;  //%% Added for spectral dependency, vector to save all possible psfs to be used
-	int wave_bins;  //%% Added for spectral dependency, total number of wavelength bins
+
+
 	int binnumber;	//%% Added for spectral dependency, current wavelength bin
 
-        // The HDF5 file that holds the PSFs
-        HDF5File psfFile;
 
-        // Loaded from the configuration, i.e. PSF/Filename
-        string absolutePath;
 
         // Name of the HDF5 group that contains the PSF datasets
         string groupName;
 
-        // Number of sub-pixels per pixel that was/is used to generate the PSF
-        unsigned int numberOfSubPixelsPerPixel;
 
-        // Number of pixels in the field that holds the PSF
-        unsigned int numberOfPixels;
+
 
         // Width (standard deviation) of the Gaussian PSF [pixels]
         double sigma;
 
-        // The actual rotation angle of the PSF with respect to the x-axis orientation of the focal plane
-        double rotationAngle = 0.0;    // [radians]
 
-	vector<double> rotationVector;  //%% Added for spectral dependency, vector of all rotation angles of all psfs stored
-	int numsubsubfieldsx, numsubsubfieldsy;  //%% Added for spectral dependency, number of subsubfields
+
 
         // The angular distance to the Optical Axis as requested by the user
         // A negative value indicates no user input,, i.e. auto-compute
@@ -121,3 +134,4 @@ namespace psfdata
     };
 }
 
+#endif
