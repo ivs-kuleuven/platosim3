@@ -91,7 +91,7 @@ Camera:
 
 PSF:
 
-    Model:                           MappedFromFileSymmetrical # PSF model: MappedGaussian, MappedFromFileSymmetrical, MappedFromFileAsymmetrical, or AnalyticNonGaussian
+    Model:                           AnalyticNonGaussian # PSF model: MappedGaussian, MappedFromFileSymmetrical, MappedFromFileAsymetrical, or AnalyticNonGaussian
     MappedGaussian:                                  # Generate the PSF from a fixed 2D Gaussian function
         Sigma:                       0.639           # Standard deviation of Gaussian PSF [pix]
         NumberOfPixels:              8               # The number of pixels in the field for which the PSF is generated
@@ -224,7 +224,7 @@ CCD:
     IncludePhotonNoise:              yes             # Include photon noise [yes or no]
     IncludeReadoutNoise:             yes             # Include readout noise [yes or no]
     IncludeCTIeffects:               yes             # Include charge transfer inefficiency effects [yes or no]
-    IncludeChargeInjection:          no              # Include charge injection to mitigate the CTI [yes or no]
+    IncludeChargeInjection:          yes             # Include charge injection to mitigate the CTI [yes or no]
     IncludeOpenShutterSmearing:      yes             # Include trails due reading out with an open shutter [yes or no]
     IncludeQuantumEfficiency:        yes             # Include loss of throughput due to quantum efficiency
     IncludeNaturalVignetting:        yes             # Include brightness attenuation towards the edge of the FOV due to vignetting
