@@ -2,7 +2,8 @@
 #define CLOSEDLOOPDETECTORCLASSES_H
 
 #include "Detector.h"
-#include "DetectorWithMappedPSF.h"
+#include "DetectorWithSymmetricalMappedPSF.h"
+#include "DetectorWithAsymmetricalMappedPSF.h"
 #include "DetectorWithAnalyticGaussianPSF.h"
 #include "DetectorWithAnalyticNonGaussianPSF.h"
 
@@ -10,17 +11,45 @@
 
 // variant of the detectorWithMappedPsf class
 
-class ClosedLoopDetectorWithMappedPSF: public DetectorWithMappedPSF, public ClosedLoopUtility
+class ClosedLoopDetectorWithSymmetricalMappedPSF: public DetectorWithSymmetricalMappedPSF, public ClosedLoopUtility
 {
 
     public:
 
-        ClosedLoopDetectorWithMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)       
-        : DetectorWithMappedPSF{configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure}
+        ClosedLoopDetectorWithSymmetricalMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)       
+        : DetectorWithSymmetricalMappedPSF{configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure}
         , ClosedLoopUtility{configParam}
         {}
 
-        ~ClosedLoopDetectorWithMappedPSF() {};
+        ~ClosedLoopDetectorWithSymmetricalMappedPSF() {};
+
+    protected:
+
+        virtual double takeExposure(int exposureNr, double startTime, double exposureTime) override;
+
+        virtual void writePixelMapsToHDF5(int exposureNr) override;
+
+        void setNewWindowPosition(std::tuple<bool, uint, uint, uint, uint, double> windowPositionTuple);
+
+    private:
+
+
+};
+
+
+// variant of the detectorWithMappedPsf class
+
+class ClosedLoopDetectorWithAsymmetricalMappedPSF: public DetectorWithAsymmetricalMappedPSF, public ClosedLoopUtility
+{
+
+    public:
+
+        ClosedLoopDetectorWithAsymmetricalMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)       
+        : DetectorWithAsymmetricalMappedPSF{configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure}
+        , ClosedLoopUtility{configParam}
+        {}
+
+        ~ClosedLoopDetectorWithAsymmetricalMappedPSF() {};
 
     protected:
 
