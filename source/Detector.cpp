@@ -114,28 +114,26 @@ double IntegralOfAnalyticSignalResponse::operator()(unsigned i, unsigned j, bool
 
 
 
-
-
 /**
  * \brief Constructor.
- * 
+ *
  * \details
- * 
+ *
  * The constructor initializes the groups in the HDF5 file where the different maps (i.e. pixel map,
- * bias register map, smearing map, etc.) will be saved. 
- * 
+ * bias register map, smearing map, etc.) will be saved.
+ *
  * The following maps are initialized:
- * 
- * pixelMap 
+ *
+ * pixelMap
  * subPixelMap
  * biasMap
  * smearingMap
  * flatfieldMap
  * throughputMap
  * cteMap
- * 
+ *
  * The flatfieldMap is filled at sub-pixel level, the throughputMap and cteMap are filled at pixel level.
- * 
+ *
  * \param configParam    Configuration parameters for the detector.
  * \param hdf5file       HFD5 file to write the detector images to.
  * \param camera         Camera to which to attach the detector.
@@ -149,8 +147,8 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
   includeDarkSignal(true),
   includePhotonNoise(true),
   includeReadoutNoise(true),
-  includeCTIeffects(true), 
-  includeOpenShutterSmearing(true), 
+  includeCTIeffects(true),
+  includeOpenShutterSmearing(true),
   includeQuantumEfficiency(true),
   includeNaturalVignetting(true),
   includeMechanicalVignetting(true),
@@ -258,7 +256,7 @@ Detector::~Detector()
 
 
 /**
- * \brief Update the time dependent parameters of the Detector to their 
+ * \brief Update the time dependent parameters of the Detector to their
  *        value at the given time point
  *
  * \param time: current time
@@ -281,7 +279,7 @@ void Detector::updateParameters(double time)
 
 /**
  * \brief Configure the Detector object using the ConfigurationParameters
- * 
+ *
  * \param configParam: Configuration parameters
  */
 
@@ -311,7 +309,7 @@ void Detector::updateParameters(double time)
         numColumns            = configParam.getIntegerAt("CCDPositions/NumColumns", idx);
 
         isFastCamera          = configParam.getString("Telescope/GroupID") == "Fast";
-        
+
         if (isFastCamera)
         {
             firstRowExposed       = configParam.getIntegerAt("CCDPositions/FirstRowForFastCamera", idx);
@@ -388,7 +386,7 @@ void Detector::updateParameters(double time)
     {
         beta                    = configParam.getDouble("CCD/CTI/Short2013/Beta");
         temperature             = configParam.getDouble("CCD/CTI/Short2013/Temperature");
-        numTrapSpecies          = configParam.getInteger("CCD/CTI/Short2013/NumTrapSpecies");   
+        numTrapSpecies          = configParam.getInteger("CCD/CTI/Short2013/NumTrapSpecies");
         trapDensity             = configParam.getDoubleVector("CCD/CTI/Short2013/TrapDensity");
         trapCaptureCrossSection = configParam.getDoubleVector("CCD/CTI/Short2013/TrapCaptureCrossSection");
         releaseTime             = configParam.getDoubleVector("CCD/CTI/Short2013/ReleaseTime");
@@ -397,6 +395,29 @@ void Detector::updateParameters(double time)
     {
         Log.error("Detector::configure(): Unkown CTI model specification in configuration file: "  + CTImodel);
         throw ConfigurationException("Detector: Unkown CTI model specification in configuration file");
+    }
+
+
+    chargeInjectionLevel = configParam.getDouble("CCD/ChargeInjection/InjectionLevel");
+    injectionRowInterval = configParam.getInteger("CCD/ChargeInjection/RowInterval");
+    firstInjectedRow = configParam.getInteger("CCD/ChargeInjection/FirstRow");
+    if (chargeInjectionLevel < 0 || chargeInjectionLevel > 100.0)
+    {
+        string message = "Detector:configure(): ChargeInjection/InjectionLevel not between 0 and 100";
+        Log.error(message);
+        throw ConfigurationException(message);
+    }
+    if (injectionRowInterval < 1 || injectionRowInterval > numRows)
+    {
+        string message = "Detector:configure(): ChargeInjection/rowInterval not between 1 and # of CCD rows";
+        Log.error(message);
+        throw ConfigurationException(message);
+    }
+    if (firstInjectedRow < 0 || firstInjectedRow > numRows)
+    {
+        string message = "Detector:configure(): ChargeInjection/FirstRow not between 0 and # of CCD rows";
+        Log.error(message);
+        throw ConfigurationException(message);
     }
 
 //    polarizationEfficiency          = configParam.getDouble("CCD/Polarization/Efficiency");
@@ -411,6 +432,7 @@ void Detector::updateParameters(double time)
     includePhotonNoise              = configParam.getBoolean("CCD/IncludePhotonNoise");
     includeReadoutNoise             = configParam.getBoolean("CCD/IncludeReadoutNoise");
     includeCTIeffects               = configParam.getBoolean("CCD/IncludeCTIeffects");
+    includeChargeInjection          = configParam.getBoolean("CCD/IncludeChargeInjection");
     includeOpenShutterSmearing      = configParam.getBoolean("CCD/IncludeOpenShutterSmearing");
     includeQuantumEfficiency        = configParam.getBoolean("CCD/IncludeQuantumEfficiency");
     includeNaturalVignetting        = configParam.getBoolean("CCD/IncludeNaturalVignetting");
@@ -431,7 +453,7 @@ void Detector::updateParameters(double time)
     numRowsSmearingMap      = configParam.getInteger("SubField/NumSmearingOverscanRows");
 
     Log.debug("Detector: Subfield zero point (row, col) = (" + to_string(subFieldZeroPointRow) + ", " + to_string(subFieldZeroPointColumn) + ")");
-    Log.debug("Detector: Subfield center point (row, col) = (" + to_string(subFieldZeroPointRow + numRowsPixelMap/2) 
+    Log.debug("Detector: Subfield center point (row, col) = (" + to_string(subFieldZeroPointRow + numRowsPixelMap/2)
                                                                + ", " + to_string(subFieldZeroPointColumn + numColumnsPixelMap/2) + ")");
     Log.debug("Detector: Subfield nr of rows = " + to_string(numRowsPixelMap));
     Log.debug("Detector: Subfield nr of columns = " + to_string(numColumnsPixelMap));
@@ -473,12 +495,34 @@ void Detector::updateParameters(double time)
 
 
 
+/**
+ * \brief: Zeroes the pixel, bias register, and the smearing maps.
+ *
+ * \pre pixel, bias register, and smearing maps filled with values from previous exposure.
+ *
+ * \post pixel, bias register, and smearing maps filled with zeroes.
+ */
+
+void Detector::reset()
+{
+    pixelMap.zeros();
+    biasMapLeft.zeros();
+    biasMapRight.zeros();
+    smearingMap.zeros();
+}
+
+
+
+
+
+
+
 
 
 /**
  * \brief: Take an exposure with the detector starting at the given time.
- *         The light is integrated during the given exposure time, during which 
- *         the detector experiences the effects of jitter and thermo-elastic telescope 
+ *         The light is integrated during the given exposure time, during which
+ *         the detector experiences the effects of jitter and thermo-elastic telescope
  *         drift. The background is assumed uniform for the whole subfield.
  *         Afterwards, the collected light is read out, convolving the image with the
  *         point spread function and adding various noise effects.
@@ -486,7 +530,7 @@ void Detector::updateParameters(double time)
  * \param exposureNr:   sequential number of the exposure
  * \param startTime:    Starting time of the exposure [s].
  * \param exposureTime: Duration of the exposure [s].
- * 
+ *
  * \return endTime:     Time after the exposure (startTime + exposureTime + readoutTime)
  *
  * \pre Sub-pixel, pixel, bias register, and smearing map filled with values from previous exposure.
@@ -499,6 +543,11 @@ double Detector::takeExposure(int exposureNr, double startTime, double exposureT
     // Advance the internal clock until the given start time
 
     internalTime = startTime;
+
+    // Clear all arrays
+
+    Log.debug("Detector: resetting subfield array for new exposure.");
+    reset();
 
     // Integration of point sources and background, taking into account jitter + drift.
 
@@ -540,13 +589,13 @@ double Detector::takeExposure(int exposureNr, double startTime, double exposureT
  *\brief Generate throughput map, containing for each sub-field pixel the combined throughput efficiency
  *       of vignetting, polarisation, particulate & molecular contamination, and quantum efficiency.  Each
  *       array value is a value between 0 and 1.
- * 
+ *
  * \details Because of vignetting, the stars at the edge of the FOV look dimmer than the stars close
- *          to the optical axis. If the incoming flux before vignetting at pixel (i,j) is F(i,j), 
+ *          to the optical axis. If the incoming flux before vignetting at pixel (i,j) is F(i,j),
  *          then the flux after vignetting taken into account is F(i,j) * vignettingMap(i,j).
  *          Because of contamination (both particulate and molecular) the throughput efficiency
  *          decreases over the entire FOV by the same factor.
- *          
+ *
  * \note    The throughput map is written to the HDF5 map.
  */
 
@@ -598,13 +647,13 @@ void Detector::generateThroughputMap()
                 }
 
                 // Natural vignetting.
-                // With a cos^2 law, the mean natural vignetting value over all pixels is 0.945. 
+                // With a cos^2 law, the mean natural vignetting value over all pixels is 0.945.
 
-                if (includeNaturalVignetting) 
+                if (includeNaturalVignetting)
                     throughputMap(row, column) *= pow(cos(angle), 2);
 
                 // Polarisation (Eq. 4-11 in PLATO-DLR-PL-RP-001)
-               
+
                 // NOTE: the polarization is angle dependent, but since no info on this dependency is currently available,
                 //       we assume fow now it is fixed over the entire FOV.
 
@@ -614,7 +663,7 @@ void Detector::generateThroughputMap()
                 // Quantum efficiency (Eq. 4-12 in PLATO-DLR-PL-RP-001)
                 // Pixel units before: [photons]
                 // Pixel units after: [electrons]
-               
+
                 // NOTE: the QE is angle dependent, but since no info on this dependency is currently available,
                 //       we assume for now it is fixed over the entire FOV.
 
@@ -771,10 +820,10 @@ void Detector::generateGuyonnetCoefficients()
 
 /**
  * \brief Verify if a point with given planar focal plane coordinates is in the subfield
- * 
+ *
  * \param xFP    Planar focal plane x-coordinate in the FP reference frame [mm]
  * \param yFP    Planar focal plane y-coordinate in the FP reference frame [mm]
- * 
+ *
  * \return true if the point is in the subfield on the CCD, false otherwise.
  */
 
@@ -809,8 +858,8 @@ bool Detector::isInSubfield(double xFP, double yFP)
  * \brief   Check whether the given (row, column) indices are within the array range of the pixel map.
  *
  * \details  The input parameters row & column come from a coordinate transformation
- *           in the focal plane, and as a result are not necessarily integers. For this 
- *           function it's not necessary to round them to the nearest integer. 
+ *           in the focal plane, and as a result are not necessarily integers. For this
+ *           function it's not necessary to round them to the nearest integer.
  *
  * \param  row:    Row index. NOT a coordinate in the CCD frame, but in the subfield frame.    [pixel].
  * \param  column: Column index. NOT a coordinate in the CCD frame, but in the subfield frame. [pixel].
@@ -844,14 +893,14 @@ bool Detector::isInPixelMap(double row, double column)
 void Detector::applyThroughputEfficiency()
 {
 
-    // Generate the throughput map which includes vignetting, polarisation, 
-    // particulate & molecular contamination, and quantum efficiency. The 
+    // Generate the throughput map which includes vignetting, polarisation,
+    // particulate & molecular contamination, and quantum efficiency. The
     // throughput may be time dependent and therefore needs to regenerated
     // every exposure. We assume that during the jittering in Camera::exposeDetector()
     // the time dependent parameters have been updated so that their current
     // value corresponds to the very last jitter step, which are the same values
     // that we need here.
-    // We also assume that the throughput does not change significantly _within_ 
+    // We also assume that the throughput does not change significantly _within_
     // each exposure, so that we don't need to include the throughput generation
     // in the jitter loop.
 
@@ -859,9 +908,9 @@ void Detector::applyThroughputEfficiency()
 
     // Element-wise multiplication with the throughput map
     // Beware of Armadillo's quirky notation...
-    
+
     pixelMap = pixelMap % throughputMap;
-    
+
 }
 
 
@@ -979,7 +1028,7 @@ void Detector::readOut(float exposureTime)
     // Add cosmic hits
     // Pixel units before: [electrons]
     // Pixel units after: [electrons]
-   
+
     if(includeCosmicsInSubField | includeCosmicsInBiasMap | includeCosmicsInSmearingMap)
     {
         Log.debug("Detector: including cosmic hits.");
@@ -1001,7 +1050,7 @@ void Detector::readOut(float exposureTime)
         Log.debug("Detector: applying open shutter smearing.");
         applyOpenShutterSmearing(exposureTime);
     }
-    else 
+    else
     {
         Log.debug("Detector: no open shutter smearing applied.");
     }
@@ -1032,7 +1081,7 @@ void Detector::readOut(float exposureTime)
         Log.debug("Detector: adding photon noise.");
         addPhotonNoise();
     }
-    else 
+    else
     {
         Log.debug("Detector: no photon noise added.");
     }
@@ -1052,7 +1101,7 @@ void Detector::readOut(float exposureTime)
     // Pixel units after: [electrons]
 
     if (includeReadoutNoise)
-    { 
+    {
         Log.debug("Detector: adding readout noise of CCD and FEE.");
         addReadoutNoise();
     }
@@ -1077,14 +1126,14 @@ void Detector::readOut(float exposureTime)
         Log.debug("Detector: no full well saturation applied.");
     }
 
-    //  Apply quantisation. This consists of: 
+    //  Apply quantisation. This consists of:
     //         - applying FEE and CCD gain (converting from electrons to ADU)
     //         - adding the electronic offset
     //         - applying digital saturation
     // Pixel units before: [electrons]
     // Pixel units after: [ADU]
- 
-    
+
+
     if(includeQuantisation)
     {
         Log.debug("Detector: applying quantisation.");
@@ -1198,8 +1247,8 @@ void Detector::applyBFE()
 
 
 /**
- * \brief: Add photon noise (i.e. shot noise) to the pixel and smearing maps. 
- *         It follows a Poisson distribution and each pixel is treated 
+ * \brief: Add photon noise (i.e. shot noise) to the pixel and smearing maps.
+ *         It follows a Poisson distribution and each pixel is treated
  *         independently of the other pixels.
  *
  * \pre Pixel unit in the pixel map: [electrons].
@@ -1257,7 +1306,7 @@ void Detector::addPhotonNoise()
  *         - The length of the trails is uniformly distributed over the given interval.
  *         - The total number of electrons in the trail is uniformly distributed over
  *           the given interval.
- * 
+ *
  * This function is a wrapper function for Detector::addCosmics(exposureTime, map, numRows, numColumns)
  * that does the actual work but which is not called directly.
  *
@@ -1303,8 +1352,8 @@ void Detector::addCosmics(float exposureTime)
     }
 
     // Cosmics in the pre-scan
-    // This is a special case because the rows of the prescan are all virtual. 
-    // The following is only approximative. 
+    // This is a special case because the rows of the prescan are all virtual.
+    // The following is only approximative.
 
     if (includeCosmicsInBiasMap)
     {
@@ -1339,7 +1388,7 @@ void Detector::addCosmics(float exposureTime)
  *
  * This function is not called directly in Detector, but only through the method
  *      Detector::addCosmics(exposureTime)
- * 
+ *
  * \param exposureTime: amount of time exposed to cosmic particle influx [s].
  * \param map: Map affected by cosmics [e-].  Either the pixel, bias register, or
  *             smearing map.
@@ -1404,7 +1453,7 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, int numRows
 
     Log.debug("Detector: number of cosmic hits for the " + area + ": "  + to_string(numCosmicHits));
     if (numCosmicHits == 0) return;
-    
+
     double meanEntryAngle = 0.0;
     double meanTrailLength = 0.0;
     double meanIntensity = 0.0;
@@ -1509,13 +1558,13 @@ void Detector::applyFullWellSaturation()
                 jmod = row;
                 numExcessElectrons = (pixelValue - fullWellSaturationLimit) / 2.0;   // Move half of the excess electrons down...
 
-                // When we move half of the excess electrons down, the pixel below may also become saturated 
-                // (or was already saturated). When processing this pixel below, we need to avoid that it also 
-                // sends its excess electrons up and down, and therefore sends part of its excess electrons 
-                // back up where they actually came from. The variable 'transfer2Saturated' is to keep track 
+                // When we move half of the excess electrons down, the pixel below may also become saturated
+                // (or was already saturated). When processing this pixel below, we need to avoid that it also
+                // sends its excess electrons up and down, and therefore sends part of its excess electrons
+                // back up where they actually came from. The variable 'transfer2Saturated' is to keep track
                 // whether the destination pixel is also saturated, so that it does not send back electrons
                 // where they came from.
-                
+
                 bool transfer2Saturated = false;
 
                 while (numExcessElectrons > 0 && jmod < numRowsPixelMap)
@@ -1606,9 +1655,9 @@ void Detector::applyFullWellSaturation()
  * \brief Apply the effect of the charge-transfer inefficiency to the
  *        pixel map. The exact model used depends on the configuration
  *        in the input file.
- *  
+ *
  *  \note The pixel map should be expressed in [e-] and not [ADU]
- *  
+ *
  * \pre Pixel unit in the pixel map: [electrons]
  * \pre Pixel unit in the smearing map: [electrons].
  * \pre No bias register map, unless cosmics have been added to it.
@@ -1638,6 +1687,32 @@ void Detector::applyCTI()
 
 
 
+/**
+ * \brief Apply charge injection to mitigate the CTI effect. Only the PixelMap is affected.
+ *
+ * \pre Pixel unit in the pixel map: [electrons]
+ * \post Pixel unit in the pixel map: [electrons].
+ */
+
+void Detector::applyChargeInjection()
+{
+    const double chargeToInject = chargeInjectionLevel / 100.0 * fullWellSaturationLimit;   // [e-]
+
+    for (int rowNumber = 0; rowNumber < numRowsPixelMap; rowNumber++)
+    {
+        // rowNumber is the row number of the subfield. Add the zeropoint to get the CCD row number.
+
+        if ((rowNumber + subFieldZeroPointRow - firstInjectedRow) % injectionRowInterval == 0)
+        {
+            pixelMap.row(rowNumber) += chargeToInject;
+        }
+    }
+}
+
+
+
+
+
 
 
 
@@ -1645,9 +1720,9 @@ void Detector::applyCTI()
 /**
  * \brief: Apply the effect of the charge-transfer inefficiency to the
  *         pixel map, using a simple CTI model. The CTI of this simple model
- *         has no dependence on the flux level, nor on the distance of the 
+ *         has no dependence on the flux level, nor on the distance of the
  *         readout register.
- *         
+ *
  * \note The serial register is assumed to have a CTE of 1.
  *
  * \pre Pixel unit in the pixel map: [electrons].
@@ -1738,10 +1813,10 @@ void Detector::applySimpleCTImodel()
  * \brief: Apply the effect of the charge-transfer inefficiency to the pixel map,
  *         using the model described in Short et al., MNRAS 430, 3078-3085 (2013).
  *         Only parallel readout is taken into account here.
- *         
+ *
  * \note The readout register is assumed to be right next to row [0] of the pixel map.
  *       The pixel map needs to be in [e-], not in [ADU]
- * 
+ *
  * \pre Pixel unit in the pixel map: [electrons].
  * \pre Pixel unit in the smearing map: [electrons].
  * \pre No bias register map, unless cosmics have been added to it.
@@ -1750,7 +1825,7 @@ void Detector::applySimpleCTImodel()
  * \post Pixel unit in the smearing map: [electrons].
  * \post No bias register map, unless cosmics have been added to it.
  */
- 
+
 void Detector::applyShort2013CTImodel()
 {
     // Compute the maximum geometrical volume that electrons can occupy within a pixel.
@@ -1761,8 +1836,7 @@ void Detector::applyShort2013CTImodel()
 
     // Compute the time it takes to transfer 1 row during readout
 
-    const double chargeTransferTime = parallelTransferTime;		// t[s]
-//    const double chargeTransferTime = readoutTime / numRows;                                                 // t [s]
+    const double chargeTransferTime = parallelTransferTime;                                                  // [s]
 
     // Compute the thermal velocity of the electrons in the silicon
 
@@ -1771,12 +1845,12 @@ void Detector::applyShort2013CTImodel()
 
     // Arrays to keep track of the number of occupied traps in a column
 
-    arma::Mat<float> numberOfOccupiedTraps = arma::zeros<arma::Mat<float>>(numTrapSpecies, numColumnsPixelMap);	// No
+    arma::Mat<float> numberOfOccupiedTraps = arma::zeros<arma::Mat<float>>(numTrapSpecies, numColumnsPixelMap);
 
     // Arrays to keep track of the captured and released electrons, for each column in a particular row.
 
-    arma::Row<float> numberOfCapturedElectrons(numColumnsPixelMap);		// Nc
-    arma::Row<float> numberOfReleasedElectrons(numColumnsPixelMap);		// Nr
+    arma::Row<float> numberOfCapturedElectrons(numColumnsPixelMap);		                                     // Nc
+    arma::Row<float> numberOfReleasedElectrons(numColumnsPixelMap);		                                     // Nr
 
     arma::Row<float> alpha(numTrapSpecies, arma::fill::zeros);
 
@@ -1784,21 +1858,23 @@ void Detector::applyShort2013CTImodel()
 
     for (int k = 0; k < numTrapSpecies; k++)
     {
-    		alpha(k) = chargeTransferTime * trapCaptureCrossSection[k] * thermalVelocity * pow(fullWellSaturationLimit, beta) / (2.0 * maxVolumePerPixel);
+        alpha(k) = chargeTransferTime * trapCaptureCrossSection[k] * thermalVelocity * pow(fullWellSaturationLimit, beta) / (2.0 * maxVolumePerPixel);
     }
 
-    // Loop over all rows of the pixelMap, and over all trap species.
+    // Loop over all rows of the pixelMap.
     // For each row, the computations are done for all columns simultaneously.
 
     for (int rowNumber = 0; rowNumber < numRowsPixelMap; rowNumber++)
     {
+        // Loop over all trap species
 
         for (int k = 0; k < numTrapSpecies; k++)
         {
             // Compute the number of electrons captured in a trap, according to Eq. (22)-(23) of Short et al. (2013).
             // Note that Armadillo uses % for elementwise multiplication.
+            // In the following line: +1 as row = 0 also has to be transferred once
 
-            const double gamma = 2 * trapDensity[k] * maxVolumePerPixel / pow(fullWellSaturationLimit, beta) * (subFieldZeroPointRow + rowNumber + 1);	// +1 as row = 0 also has to be transferred once
+            const double gamma = 2 * trapDensity[k] * maxVolumePerPixel / pow(fullWellSaturationLimit, beta) * (subFieldZeroPointRow + rowNumber + 1);
 
             numberOfCapturedElectrons =   (gamma * arma::pow(pixelMap.row(rowNumber), beta) - numberOfOccupiedTraps.row(k)) \
                                         / (gamma * arma::pow(pixelMap.row(rowNumber), beta-1) + 1)                          \
@@ -1840,14 +1916,14 @@ void Detector::applyShort2013CTImodel()
 
 /**
  * \brief: Apply the effect of readout smearing to the pixel and the smearing map.
- *         This effect is due to the absence of a shutter (common in space-based 
+ *         This effect is due to the absence of a shutter (common in space-based
  *         instruments) - the CCD still receives light during frame transfer.
  *         The flux of each pixel is affected by the flux of the pixels
- *         in the same column.  Because the CCD is exposed during the whole 
- *         readout and multiple exposures are created, also the pixels further 
+ *         in the same column.  Because the CCD is exposed during the whole
+ *         readout and multiple exposures are created, also the pixels further
  *         away from the readout register are affected.
  *
- * NOTES: A smearing map is created and will be used in photometry to remove 
+ * NOTES: A smearing map is created and will be used in photometry to remove
  *        the smearing effect from the pixel map.
  *
  * \param exposureTime: Exposure time [s].
@@ -1895,7 +1971,7 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
                 {
                     if (angleTop > radiusFOV)
                         numExposedRowsInFOV(column) = 0;
-                    
+
                     else
                         numExposedRowsInFOV(column) = numRows - (int) rowFOV;
                 }
@@ -1914,7 +1990,7 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
 
 
     // Average out the fluxes in the pixel map per column (of the whole CCD) and make sure it is
-    // scaled with the readout time (during which the detector is susceptible to open-shutter smearing) 
+    // scaled with the readout time (during which the detector is susceptible to open-shutter smearing)
     // instead of with the exposure time:
     // - rows in the sub-field (in the exposed part of the detector and in the FOV): use actual fluxes (accumulated during exposure)
     // - rows outside the sub-field (in the exposed part of the detector and in the FOV): use total sky background
@@ -1951,7 +2027,7 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
 
     // Fast camera: lower half of the CCD is shielded off -> no contribution to open-shutter smearing here
 
-    arma::Row<float> openShutterSmearingTime = arma::conv_to<arma::Row<float>>::from(numExposedRowsInFOV + numRowsSmearingMap) / 
+    arma::Row<float> openShutterSmearingTime = arma::conv_to<arma::Row<float>>::from(numExposedRowsInFOV + numRowsSmearingMap) /
         (numRows - firstRowExposed + numRowsSmearingMap) * readoutTimeBeforeNextExposure;
 
     arma::Row<float> factor = openShutterSmearingTime % arma::pow(arma::conv_to<arma::Row<float>>::from(numExposedRowsInFOV), -1) / exposureTime;
@@ -1982,13 +2058,13 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
  * \brief Find the intersection of the circle representing the FOV and the given column of the
  *        detector.  In case this circle does intersect with the detector, the row coordinate
  *        is returned; if not, NaN is returned.
- * 
+ *
  * \param column: Column (coordinate) [pixels], for which to find the intersection with the
  *                circle representing the FOV.
- * 
+ *
  * \return In case this circle does intersect with the detector, the row coordinate
  *         is returned; if not, NaN is returned.
- **/ 
+ **/
 double Detector::getRowEdgeFOV(int column)
 {
     double pixelSizeMm = pixelSize / 1000.0;    // Pixel size [µm] -> [mm]
@@ -2006,7 +2082,7 @@ double Detector::getRowEdgeFOV(int column)
 
     if (discriminant < 0)
         return nan("");
-    
+
     double discriminantSqrt = sqrt(discriminant);
 
     // First solution of the equation
@@ -2021,7 +2097,7 @@ double Detector::getRowEdgeFOV(int column)
     // Check whther it intersects with the detector (if not, the whole row is within the FOV)
 
     solutionRow = (-b - discriminantSqrt) / (2 * a);
-    
+
     if ((solutionRow >= 0) && (solutionRow < numRows))
         return solutionRow;
 
@@ -2046,13 +2122,13 @@ double Detector::getRowEdgeFOV(int column)
 /**
  * \brief Apply the readout noise to the pixel map, bias map, and smearing map.  The readout
  *        noise is contributed to by the detector and by the FEE.
- * 
- * \details Readout noise occurs due to the imperfect nature of the CCD amplifiers.  
+ *
+ * \details Readout noise occurs due to the imperfect nature of the CCD amplifiers.
  *          When the electrons are transferred to the amplifier, the induced voltage
- *          is measured. However, this measurement is not perfect, but gives a value 
+ *          is measured. However, this measurement is not perfect, but gives a value
  *          which is on average correct, with the readout noise as standard deviation.
  *          So readout noise is a measure of this scatter around the true value.
- *          Its value is expressed in electrons as the packet of charge is made up of 
+ *          Its value is expressed in electrons as the packet of charge is made up of
  *          electrons.
  *
  * \pre Pixel unit in the pixel map: [electrons].
@@ -2324,11 +2400,11 @@ void Detector::applyDigitalSaturation()
 
 /**
  * \brief Applies the F-FEE over-/undershoot to the pixel map.
- * 
+ *
  * \pre Pixel unit in the pixel, smearing, and bias maps: [ADU].
  *
  * \post Pixel unit in the pixel, smearing, and bias register maps: [ADU].
- */ 
+ */
 void Detector::applyOverAndUnderShoot()
 {
     const unsigned int halfDectectorWidth = numColumns / 2;
@@ -2365,7 +2441,7 @@ void Detector::applyOverAndUnderShoot()
         const int firstIndexLeftHalf = subFieldZeroPointColumn;
         const int lastIndexLeftHalf = min(halfDectectorWidth - 1, subFieldZeroPointColumn + numColumnsPixelMap - 1);
         const int numCcdPixelsLeftHalf = lastIndexLeftHalf - firstIndexLeftHalf + 1;
-     
+
         lengthReadoutRegister = numCcdPixelsLeftHalf + frontEndElectronics->getOverAndUnderShootRange();    // Pixels in sub-field on left CCD half + some extra pixels closest to the readout electronics
         readoutRegister.zeros(lengthReadoutRegister);
         readoutRegister.head(frontEndElectronics->getOverAndUnderShootRange()) = skyBackgroundExtraPixels;
@@ -2382,7 +2458,7 @@ void Detector::applyOverAndUnderShoot()
                 // Ditch last deltaX and tail(numCcdPixelsLeftHalf)
 
                 totalContribution.tail(lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange()) += frontEndElectronics->getOverAndUnderShootStrength() * difference.head(lengthReadoutRegister - 1 - deltaX).tail(numCcdPixelsLeftHalf) * exp(-frontEndElectronics->getOverAndUnderShootDecayRate() * pow(deltaX, frontEndElectronics->getOverAndUnderShootDecaySpeed()));
-                
+
                 // totalContribution.tail(lengthReadoutRegister - deltaX) += frontEndElectronics->getOverAndUnderShootStrength() * difference * exp(-frontEndElectronics->getOverAndUnderShootDecayRate() * pow(deltaX, frontEndElectronics->getOverAndUnderShootDecaySpeed()));
             }
 
@@ -2435,15 +2511,15 @@ void Detector::applyOverAndUnderShoot()
 
 
 /**
- * \brief Compute the (x,y) coordinates [mm] in the FP reference system 
+ * \brief Compute the (x,y) coordinates [mm] in the FP reference system
  *        given the (real-valued) pixel row and column numbers on the CCD.
- *        
+ *
  * \note  The rows correspond to the y-direction, and the columns to the x-direction.
  *        Pixel (row, col) = (0,0) starts at (yFP, xFP) = (0, 0).
- *               
+ *
  * \param row     CCD row coordinate, real-valued (e.g. 3.5)    [pix]
  * \param column  CCD column coordinate, real-valued (e.g. 8.3) [pix]
- * 
+ *
  * \return (xFP, yFP)  A pair of (x,y) coordinates in the FP reference system [mm]
  */
 
@@ -2475,15 +2551,15 @@ pair<double, double> Detector::pixelToFocalPlaneCoordinates(double row, double c
 
 
 /**
- * \brief Compute the (real-valued) pixel coordinates of the star on the CCD, given the 
+ * \brief Compute the (real-valued) pixel coordinates of the star on the CCD, given the
  *        (x,y) coordinates [mm] in the FP reference system
  *
  * \note  - The rows correspond to the y-direction, and the columns to the x-direction.
  *        - Pixel (row, col) = (0,0) starts at (yFP, xFP) = (0, 0).
- *        
+ *
  * \param xFP  x-coordinate of the point in the FP reference system  [mm]
  * \param yFP  y-coordinate of the point in the FP reference system  [mm]
- * 
+ *
  * \return (row, column)  row and column pixel coordinates of the point (real-valued) [pix]
  */
 
@@ -2517,7 +2593,7 @@ pair<double, double> Detector::focalPlaneToPixelCoordinates(double xFP, double y
 
 /**
  * \brief  Return the focal plane coordinates of the center pixel of the subfield
- * 
+ *
  * \return (xFP, yFP)   focal plane coordinates in the FP'reference system [mm]
  */
 
@@ -2546,7 +2622,7 @@ pair<double, double> Detector::getFocalPlaneCoordinatesOfSubfieldCenter()
 /**
  * \brief Return the (X,Y) coordinates in the FP' reference frame in [mm] of the 4 corners
  *        of the subfield
- *        
+ *
  * \return (X00, Y00, X01, Y01, X11, Y11, X10, Y10)  [mm]
  *         where: (X00, Y00) are the FP coordinates of the lower left corner of the subfield
  *                (X01, Y01) are the FP coordinates of the lower right corner of the subfield
@@ -2599,7 +2675,7 @@ tuple<double, double, double, double, double, double, double, double> Detector::
 
 /**
  * \brief Return the solid angle of 1 single pixel on the sky. [sr]
- * 
+ *
  * \param plateScale  The platescale of the camera [arcsec/micron]
  *
  * \return            Solid angle in [s]
@@ -2645,11 +2721,11 @@ double Detector::getOrientationAngle()
 
 
 /**
- * \brief     Set the subfield with a given array.  
- * 
+ * \brief     Set the subfield with a given array.
+ *
  * \details   This function is primarily used for testing the code. One should not first get the pixelMap
  *            perform an operation, and then setSubfield() again. Instead, let Detector do the operation.
- *  
+ *
  * \param subfield
  */
 
@@ -2659,11 +2735,11 @@ void Detector::setSubfield(const arma::Mat<float> &subfield)
 
     if ((subfield.n_rows != pixelMap.n_rows) || (subfield.n_cols != pixelMap.n_cols))
     {
-        Log.error("Detector: setSubfield with incompatible array shape: (" 
+        Log.error("Detector: setSubfield with incompatible array shape: ("
                   + to_string(subfield.n_rows) + ", " + to_string(subfield.n_cols) + ") != ("
                   + to_string(pixelMap.n_rows) + ", " + to_string(pixelMap.n_cols) + ")");
         exit(1);
-    } 
+    }
 
     // Copy the contents of the subfield array into our pixelMap
 
@@ -2683,10 +2759,10 @@ void Detector::setSubfield(const arma::Mat<float> &subfield)
 
 /**
  * \brief Return a copy of the pixelMap matrix
- * 
+ *
  * \details   This function is primarily used for testing the code. One should not first get the pixelMap
  *            perform an operation, and then setSubfield() again. Instead, let Detector do the operation.
- * 
+ *
  * \return pixelMap
  */
 
@@ -2735,7 +2811,7 @@ void Detector::initHDF5Groups()
 
 /**
  * \brief: Writes the pixel map for the HDF5 file.
- * 
+ *
  * \param exposureNr:   Sequential number of the exposure
  */
 void Detector::writePixelMapsToHDF5(int exposureNr)
@@ -2762,7 +2838,7 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
             // Write the pixel maps as 2-byte (16 bit) unsigned short integers.
             // As a safety check, first check that the extrema of the map are indeed
             // within the boundaries of such a data type.
-        
+
             if((pixelMap.min() < 0) || (pixelMap.max() >= (1 << 16)))
             {
                 throw ConfigurationException("Detector: quantisation was applied but pixel map values are not in [0, 2^16[");
@@ -2807,7 +2883,7 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
 
                 arma::Mat<uint16_t> uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(smearingMap);
                 hdf5File.writeArray("/SmearingMaps", smearingMapName, uintMap);
-            } 
+            }
         }
     }
 

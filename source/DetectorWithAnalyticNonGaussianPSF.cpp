@@ -371,33 +371,6 @@ void DetectorWithAnalyticNonGaussianPSF::generateFlatfieldMap()
 
 
 
-
-
-/**
- * \brief: Zeroes the pixel, bias register, and the smearing maps.
- *
- * \pre pixel, bias register, and smearing maps filled with values from previous exposure.
- *
- * \post pixel, bias register, and smearing maps filled with zeroes.
- */
-
-void DetectorWithAnalyticNonGaussianPSF::reset()
-{
-    pixelMap.zeros();
-    biasMapLeft.zeros();
-    biasMapRight.zeros();
-    smearingMap.zeros();
-}
-
-
-
-
-
-
-
-
-
-
 /**
  * \brief: Take an exposure with the detector starting at the given time.
  *         The light is integrated during the given exposure time, during which 
@@ -421,6 +394,11 @@ double DetectorWithAnalyticNonGaussianPSF::takeExposure(int exposureNr, double s
     // Advance the internal clock until the given start time
 
     internalTime = startTime;
+
+    // Clear all arrays
+    
+    Log.debug("Detector: resetting subfield array for new exposure.");
+    reset();
 
     // Integration of point sources and background, taking into account jitter + drift.
 
@@ -489,15 +467,25 @@ double DetectorWithAnalyticNonGaussianPSF::takeExposure(int exposureNr, double s
 void DetectorWithAnalyticNonGaussianPSF::integrateLight(int exposureNr, double startTime, double exposureTime)
 {
 
-    // Reset the subfield (i.e. get rid of the previous exposure, by zeroing the entire sub-field)
-
-    Log.debug("Detector: resetting subfield array for new exposure.");
-
-    reset();
-
     // Integration (incl. jitter): point sources + background
 
     camera.exposeDetector(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
+
+    // Apply throughput efficiency on the pixel map.
+    // This takes into account the QE, vignetting, polarisation, and particulate & molecular contamination.
+    // PixelMap units change from [photons] to [electrons] 
+    
+    applyThroughputEfficiency();
+
+    // Apply the charge injection which will mitigate the CTI. The injection happens in electrons, 
+    // so the throughput efficiency should already have been applied. The injected charges do feel the PRNU, 
+    // so applying the flatfied should happen afterwards.
+    
+    if (includeChargeInjection)
+    {
+        Log.debug("Detector: applying charge injection");
+        applyChargeInjection();
+    }
 
     // Apply flatfield (at pixel level)
 
@@ -511,12 +499,6 @@ void DetectorWithAnalyticNonGaussianPSF::integrateLight(int exposureNr, double s
     {
         Log.debug("Detector: no flatfield applied.");
     }
-
-    // Apply throughput efficiency on the pixel map
-    // This takes into account the QE, vignetting, polarisation, and particulate & molecular contamination.
-    // PixelMap units change from [photons] to [electrons] 
-
-    applyThroughputEfficiency();
 
     // Add dark current
 
@@ -877,7 +859,9 @@ void DetectorWithAnalyticNonGaussianPSF::flushOutput()
 
 /**
  * \brief Extract the photometric light curve for a specified list of stars
- * 
+ *
+ * TODO: - better error catching when the stars for which a lightcurve is requested are (sometimes) not in the subfield
+ *       - better treatment when there are no contaminants
  */
 
 void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int exposureNr)
@@ -943,6 +927,8 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
     
         tie(time, xFPtarget, yFPtarget, rowTarget, colTarget, fluxTarget) = camera.getInfoForTheMostRecentExposureForStar(starID);
 
+        Log.debug(to_string(starID) + ": " + to_string(rowTarget) + ", " + to_string(colTarget) + ", " + to_string(fluxTarget));
+
         inputFluxTarget.at(starID).at(zeroBasedExposureNr) = fluxTarget;
 
         // If this is the first exposure, or it's already 2 weeks ago that the mask was updated,
@@ -985,6 +971,8 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
                 double rowCont =  (it->second)[2];            // [pix]
                 double colCont =  (it->second)[3];            // [pix]
                 double fluxCont = (it->second)[4];            // [photons/exposure]
+
+                Log.debug(to_string(it->first) + ": " + to_string(rowCont) + ", " + to_string(colCont) + ", " + to_string(fluxCont));
 
                 // Skip the contaminants that are too distant from the target to have any effect
 

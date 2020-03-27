@@ -1,12 +1,14 @@
 
 """
-Usage: simQuarter.py <camaraGroupNr> <cameraNr> <quarterNr>
+Usage: simQuarter.py <inputfile> <camaraGroupNr> <cameraNr> <quarterNr> [<logLevel>]
 
+inputfile: Platosim yaml inputfile 
 cameraGroupNr: either 1,2,3, or 4
 cameraNr: either 1,2,3,4,5 or 6
 quarterNr: either 1,2,3,4,5,6,7 or 8
+logLevel: either 1,2, or 3. Least verbose: 1 (default), most verbose: 3.
 
-Example: $ python3 simQuarter.py 2 5 6
+Example: $ python3 simQuarter.py inputfile.yaml 2 5 6
 """
 
 
@@ -28,29 +30,27 @@ inputDir = os.getenv("PLATO_PROJECT_HOME") + "/inputfiles"
 
 #--- Check the number of input arguments
 
-if len(sys.argv) != 4:
-    print("Usage:   $ python3 simQuarter.py <cameraGroupNr> <cameraNr> <quarterNr>")
-    print("Example: $ python3 simQuarter.py 2 5 6")
+if (len(sys.argv) < 5) or (len(sys.argv) > 6):
+    print("Usage:   $ python3 simQuarter.py <inputfile> <cameraGroupNr> <cameraNr> <quarterNr> [<logLevel>]")
+    print("Example: $ python3 simQuarter.py inputfile.yaml 2 5 6")
+    print("Example: $ python3 simQuarter.py inputfile.yaml 2 4 5 3")
     exit(1)
 
+
+if len(sys.argv) == 6:
+    logLevel = int(sys.argv[5])
+else:
+    logLevel = 1
 
 
 #--- Configuration parameters
 
-inputFile = inputDir + "/inputmagali.yaml"
-outputDir = os.getenv("PLATO_PROJECT_HOME") 
+inputFile = sys.argv[1]
+outputDir = os.getcwd() + "/"
 outputPrefix = "Run1"
-print("Using " + inputFile + " as inputfile")
-print("Writing output to " + outputDir + outputPrefix + "_Q*_group*_camera*.hdf5")
 
-raPlatform  = np.deg2rad(171.675)       # Platform right ascension pointing coordinate 
-decPlatform = np.deg2rad(3.005)         # Platform declination pointing coordinate
-
-raCenter  = np.deg2rad(171.675)         # Right ascension on which to centre the subfield
-decCenter = np.deg2rad(3.005)           # Declination on which to centre the subfield
-
-numColumnsSubField = 20                 # Number of columns in the modelled sub-field [pixels]
-numRowsSubField = 20                    # Number of rows in the modelled sub-field [pixels]
+numColumnsSubField = 7                  # Number of columns in the modelled sub-field [pixels]
+numRowsSubField = 7                     # Number of rows in the modelled sub-field [pixels]
 
 #--- End configuration parameters
 
@@ -61,23 +61,30 @@ numRowsSubField = 20                    # Number of rows in the modelled sub-fie
 
 # Select which camera from the arguments with which the script is called 
 
-group = int(sys.argv[1])
-telescope = int(sys.argv[2])
-quarter = int(sys.argv[3])
+group = int(sys.argv[2])
+telescope = int(sys.argv[3])
+quarter = int(sys.argv[4])
 
-
+print("Using " + inputFile + " as inputfile")
 print("Configuring PlatoSim for quarter {0} of camera {1} of group {2}".format(quarter, telescope, group))
+print("Writing output to " + outputDir + outputPrefix + "_group{0}_camera{1}_Q{2}.hdf5".format(group, telescope, quarter))
+
 
 # Output will be stored in e.g. Run1_Q1_group2_camera7.hdf5
 
-outputFilePrefix = outputPrefix + "_Q{0:1d}_group{1:1d}_camera{2:1d}".format(quarter, group, telescope)
+outputFilePrefix = outputPrefix + "_group{0:1d}_camera{1:1d}_Q{2:1d}".format(group, telescope, quarter)
 sim = Simulation(outputFilePrefix, inputFile)
 sim.outputDir = outputDir
 
 # Set the simulation parameters that are the same for any quarter and for any telescope
+# The subfield will be selected so that it's right on the platform pointing axis.
+# This ensures that it's visible by all cameras.
 
-sim["ObservingParameters/RApointing"] = np.rad2deg(raPlatform)
-sim["ObservingParameters/DecPointing"] = np.rad2deg(decPlatform)
+raPlatform = sim["ObservingParameters/RApointing"]                      # [deg]
+decPlatform = sim["ObservingParameters/DecPointing"]                    # [deg]
+raCenter = np.deg2rad(raPlatform)                                       # [rad]
+decCenter = np.deg2rad(decPlatform)                                     # [rad]
+
 sim["SubField/NumColumns"] = numColumnsSubField
 sim["SubField/NumRows"] = numRowsSubField
 
@@ -99,11 +106,11 @@ sim["RandomSeeds/JitterSeed"] = 2033429158 + 100 * quarter
 sim["Platform/SolarPanelOrientation"] = math.fmod(quarter * 90., 360.)         # 0, 90, 180, and 270 degrees for Q1, Q2, Q3, and Q4
 
 cycleTime = sim["ObservingParameters/CycleTime"]
-readoutTime, dummy = sim.getReadoutTime()
-numExposures = 10                                                              # for testing
-#numExposures = int(365.25 / 4 * 86400 / cycleTime)                            # the real stuff
-sim["ObservingParameters/NumExposures"] = numExposures
-sim["ObservingParameters/BeginExposureNr"] = (quarter-1) * numExposures  
+numExposuresCoveringOneQuarter = 90. * 86400. / cycleTime                      # One quarter is 90 days
+numExposures = (90. - 2.) * 86400. / cycleTime                                 # Two days lost because of platform roll + thermal stabilisation
+#numExposures = 100                                                             # For testing only
+sim["ObservingParameters/NumExposures"] = int(numExposures)
+sim["ObservingParameters/BeginExposureNr"] = (quarter-1) * int(numExposuresCoveringOneQuarter)
 
 # Attempt to set a subfield around the specified coordinates on one of the 4 CCDs of the telescope.
 # This will fail (return value == False) if the subfield is not visible by any of the 4 CCDs or
@@ -127,7 +134,7 @@ if isSuccessful:
     # logLevel can 1 (least verbose) to 3 (most verbose)
 
     print("Launching PlatoSim3 for {0} exposures".format(numExposures))
-    simFile = sim.run(logLevel=1)
+    simFile = sim.run(logLevel=logLevel)
 
 else:
     print("Sub-field does not lay entirely on any of the CCDs of telescope {0} of group {1} in quarter Q{2}".format(telescope, group, quarter))
