@@ -39,16 +39,16 @@ DetectorWithAnalyticGaussianPSF::DetectorWithAnalyticGaussianPSF(ConfigurationPa
 
     if(includeFlatfield)
     {
-    		// Generate the flatfield map
+        // Generate the flatfield map
 
-    		generateFlatfieldMap();
+        generateFlatfieldMap();
     }
 
     if(includeBFE)
     {
-        	// Generate Guyonnet coefficients
+        // Generate Guyonnet coefficients
 
-        	generateGuyonnetCoefficients();
+        generateGuyonnetCoefficients();
     }
 }
 

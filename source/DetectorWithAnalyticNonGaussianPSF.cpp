@@ -859,7 +859,9 @@ void DetectorWithAnalyticNonGaussianPSF::flushOutput()
 
 /**
  * \brief Extract the photometric light curve for a specified list of stars
- * 
+ *
+ * TODO: - better error catching when the stars for which a lightcurve is requested are (sometimes) not in the subfield
+ *       - better treatment when there are no contaminants
  */
 
 void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int exposureNr)
@@ -925,6 +927,8 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
     
         tie(time, xFPtarget, yFPtarget, rowTarget, colTarget, fluxTarget) = camera.getInfoForTheMostRecentExposureForStar(starID);
 
+        Log.debug(to_string(starID) + ": " + to_string(rowTarget) + ", " + to_string(colTarget) + ", " + to_string(fluxTarget));
+
         inputFluxTarget.at(starID).at(zeroBasedExposureNr) = fluxTarget;
 
         // If this is the first exposure, or it's already 2 weeks ago that the mask was updated,
@@ -967,6 +971,8 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
                 double rowCont =  (it->second)[2];            // [pix]
                 double colCont =  (it->second)[3];            // [pix]
                 double fluxCont = (it->second)[4];            // [photons/exposure]
+
+                Log.debug(to_string(it->first) + ": " + to_string(rowCont) + ", " + to_string(colCont) + ", " + to_string(fluxCont));
 
                 // Skip the contaminants that are too distant from the target to have any effect
 
