@@ -41,7 +41,7 @@ DetectorWithSymmetricalMappedPSF::DetectorWithSymmetricalMappedPSF(Configuration
     // Allocate memory for the different maps
 
     subPixelMap.zeros(numRowsSubPixelMap, numColumnsSubPixelMap);
-    flatfieldMap.ones(numRowsSubPixelMap, numColumnsSubPixelMap);
+    flatfieldMap.ones((numsubsubfieldsx * (numRowsPixelMap - 2*overlapx) + 2*overlapx) * numSubPixelsPerPixel, (numsubsubfieldsy * (numColumnsPixelMap - 2*overlapy) + 2*overlapy) * numSubPixelsPerPixel);
 
     if (includeFlatfield)
     {

@@ -247,10 +247,16 @@ rotationVector.clear();
     if (isGaussian)
     {
         psfMap = getGaussianPsf();
-        isSelected = true;
+    for (int binnumber=0; binnumber<wave_bins; binnumber++)
+{
+	psfVector.push_back(psfMap);  //%% Save the psf in a vector to keep all wavelengths
         rotationAngle = 0.0;
-
-        hdf5File.writeAttribute("/PSF", "selectedPSF", "Gaussian PSF selected with sigma=" + to_string(sigma));
+        rotationVector.push_back(rotationAngle);  //%% keep the rotation angles of all bins
+}
+    if (fieldnumber == fieldmax){  //%% If processed the last subsubfield, then all psfs have been chosen, for spectral dependency
+      isSelected = true;
+      hdf5File.writeAttribute("/PSF", "selectedPSF", "Gaussian PSF selected with sigma=" + to_string(sigma));
+     }
 
         return;
     }
@@ -380,8 +386,10 @@ void SymmetricalPointSpreadFunction::rotate(double angle, int fieldnumber, int f
 
     if (isGaussian)
     {
+	if (fieldnumber == fieldmax){
         hdf5File.writeArray("/PSF", "rotatedPSF", psfMap);
         hdf5File.writeAttribute("/PSF", "rotationAngle", rotationAngle);
+        }
         return;
     }
 

@@ -9,10 +9,17 @@
  */
 
 DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
-: Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure), includeFlatfield(true), writeSubPixelImagesToHDF5(false) {}
+: Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure), includeFlatfield(true), writeSubPixelImagesToHDF5(false) 
+{
+    configure(configParam);
+}
 
 
 
+void DetectorWithMappedPSF::configure(ConfigurationParameters &configParam)
+{
+    wave_bins = configParam.getInteger("Camera/WavelengthBins");  //%% Read how many wavelength bins are to be processed, for spectral dependency
+}
 
 
 
@@ -255,7 +262,7 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
 
     Log.debug("DetectorWithMappedPSF: resetting subfield array for new exposure.");
 
-    reset();
+    //reset();
 
     for (int binnumber=0; binnumber<wave_bins; binnumber++)  //%% Loop over different wavebins, for spectral dependency	
     {
