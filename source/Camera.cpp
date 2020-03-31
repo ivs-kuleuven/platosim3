@@ -161,10 +161,10 @@ tuple<double, double, double, double, double, double> Camera::getInfoForTheMostR
     }
     else
     {
-        double xFPmean    = detectedStarInfo[timeStamp][starID][0];
-        double yFPmean    = detectedStarInfo[timeStamp][starID][1];
-        double rowPixMean = detectedStarInfo[timeStamp][starID][2];
-        double colPixMean = detectedStarInfo[timeStamp][starID][3];
+        double xFPmean    = detectedStarInfo[timeStamp][starID][0] / detectedStarInfo[timeStamp][starID][5];  //%% Added division by number to get real value
+        double yFPmean    = detectedStarInfo[timeStamp][starID][1] / detectedStarInfo[timeStamp][starID][5];  //%% Added division by number to get real value
+        double rowPixMean = detectedStarInfo[timeStamp][starID][2] / detectedStarInfo[timeStamp][starID][5];  //%% Added division by number to get real value
+        double colPixMean = detectedStarInfo[timeStamp][starID][3] / detectedStarInfo[timeStamp][starID][5];  //%% Added division by number to get real value
         double sumFlux    = detectedStarInfo[timeStamp][starID][4];
 
         return make_tuple(timeStamp, xFPmean, yFPmean, rowPixMean, colPixMean, sumFlux);

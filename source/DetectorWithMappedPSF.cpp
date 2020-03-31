@@ -178,6 +178,7 @@ void DetectorWithMappedPSF::reset()
 double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, double exposureTime)
 {
     pixelMap2.zeros(); 	//%% Added for spectral dependency, larger map to add all subsubfields to
+    throughputMap2.zeros();
 
     // Advance the internal clock until the given start time
 
@@ -355,6 +356,8 @@ tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yF
 
     double pixRow, pixColumn;
     tie(pixRow, pixColumn) = focalPlaneToPixelCoordinates(xFP, yFP);
+    double pixRowfull = pixRow - subFieldZeroPointRow;  //%% Added for spectral dep
+    double pixColumnfull = pixColumn - subFieldZeroPointColumn;  //%% Added for spectral dep
     pixRow -= subFieldZeroPointRow + subsubfieldx * (numRowsPixelMap - 2 * overlapx);  //%% Take subsubfield into account
     pixColumn -= subFieldZeroPointColumn + subsubfieldy * (numColumnsPixelMap - 2 * overlapy);
 
@@ -362,7 +365,7 @@ tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yF
 
     if (!isInPixelMap(pixRow, pixColumn, subsubfieldx, subsubfieldy))  //%% Added subsubfield
     {
-        return make_tuple(false, pixRow, pixColumn);
+        return make_tuple(false, pixRowfull, pixColumnfull);
     }
 
     // Sub-field coordinates, taking into account the edge pixels
@@ -390,11 +393,11 @@ tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yF
             subPixelMap((int)floor(subpixRow), (int)floor(subpixColumn)) += flux;
         }
 
-        return make_tuple(true, pixRow, pixColumn);
+        return make_tuple(true, pixRowfull, pixColumnfull);
     }
     else
     {
-        return make_tuple(false, pixRow, pixColumn);
+        return make_tuple(false, pixRowfull, pixColumnfull);
     }
 }
 

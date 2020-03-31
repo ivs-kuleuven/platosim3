@@ -420,6 +420,7 @@ void DetectorWithAnalyticNonGaussianPSF::reset()
 double DetectorWithAnalyticNonGaussianPSF::takeExposure(int exposureNr, double startTime, double exposureTime)
 {
     pixelMap2.zeros(); 	//%% Added for spectral dependency, larger map to add all subsubfields to
+    throughputMap2.zeros();  
 
     // Advance the internal clock until the given start time
 
@@ -653,6 +654,8 @@ tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addFlux(double x
 
     double row0, column0;
     tie(row0, column0) = focalPlaneToPixelCoordinates(xFP, yFP);
+    double row0full = row0 - subFieldZeroPointRow;  //%% Added for spectral dep
+    double column0full = column0 - subFieldZeroPointColumn;  //%% Added for spectral dep
     row0 -= subFieldZeroPointRow + subsubfieldx * (numRowsPixelMap - 2 * overlapx);  //%% Take subsubfield into account
     column0 -= subFieldZeroPointColumn + subsubfieldy * (numColumnsPixelMap - 2 * overlapy);
 
@@ -660,7 +663,7 @@ tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addFlux(double x
 
     if (!isInPixelMap(row0, column0, subsubfieldx, subsubfieldy))
     {
-        return make_tuple(false, row0, column0);
+        return make_tuple(false, row0full, column0full);
     }
 
     // Get the polar coordinates of the star in the focal plane. This determines the shape of the PSF.
@@ -672,7 +675,7 @@ tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addFlux(double x
 
     bool success = addFluxToMap(pixelMap, row0, column0, r, p, flux);
 
-    return  make_tuple(success, row0, column0);
+    return  make_tuple(success, row0full, column0full);
 
 }
 
@@ -944,7 +947,7 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
  
     // Make a (deep) copy of the pixelMap on which we can do some reductions without altering the original pixelMap
 
-    arma::Mat<float> image(pixelMap);
+    arma::Mat<float> image(pixelMap2);  //%% Changed to pixelMap2 for spectral dependence
 
     // Subtract the bias
 
@@ -983,7 +986,7 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
        skyBackground += skyBackgroundwave[binnumber];// * QE[binnumber] * meanAngleDependencyQE;
     }
 
-    image -= throughputMap * skyBackground;                                      // [e-/pixel/exposure]
+    image -= throughputMap2 * skyBackground;                                      // [e-/pixel/exposure]  //%% Changed to map2
 
 
     // Loop over all targets for which you need a lightcurve
@@ -1022,9 +1025,9 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
             Log.debug("Detector::applyPhotometry: updating mask of star ID " + to_string(starID) + " for exposure " + to_string(exposureNr));
             Log.debug("Detector::applyPhotometry: creating single-target and contamination maps");
 
-            arma::Mat<float> singleTargetMap(numRowsPixelMap, numColumnsPixelMap);
-            arma::Mat<float> contaminantMap(numRowsPixelMap, numColumnsPixelMap);
-
+            arma::Mat<float> singleTargetMap(numRowsPixelMap2, numColumnsPixelMap2);  //%% Changed to pixelMap2
+            arma::Mat<float> contaminantMap(numRowsPixelMap2, numColumnsPixelMap2);  //%% Changed to pixelMap2
+  
             // Create a noiseless subfield as if there was only the flux of this single target
 
             singleTargetMap.zeros();
@@ -1067,14 +1070,14 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
             // For the mask of our target will only consider a 7x7 area around the barycenter. Get the boundaries of that area.
 
             const int minRow = max(0, int(rowTarget)-3);
-            const int maxRow = min(int(numRowsPixelMap) - 1, int(rowTarget)+3);                         // maxRow inclusive
+            const int maxRow = min(int(numRowsPixelMap2) - 1, int(rowTarget)+3);                         // maxRow inclusive    //%% Changed to pixelMap2
             const int minCol = max(0, int(colTarget)-3);
-            const int maxCol = min(int(numColumnsPixelMap) - 1, int(colTarget)+3);                      // maxCol inclusive
+            const int maxCol = min(int(numColumnsPixelMap2) - 1, int(colTarget)+3);                      // maxCol inclusive    //%% Changed to pixelMap2
                 
             // For the pixels in the designated area around our target, compute the variance and the noise/signal ratio of the signal.
 
-            arma::Mat<float> NSRmap(numRowsPixelMap, numColumnsPixelMap, arma::fill::zeros); 
-            arma::Mat<float> varianceMap(numRowsPixelMap, numColumnsPixelMap, arma::fill::zeros);
+            arma::Mat<float> NSRmap(numRowsPixelMap2, numColumnsPixelMap2, arma::fill::zeros);  //%% Changed to pixelMap2
+            arma::Mat<float> varianceMap(numRowsPixelMap2, numColumnsPixelMap2, arma::fill::zeros);  //%% Changed to pixelMap2
             vector<double> flatNSRmap;   
             for (int irow = minRow; irow <= maxRow; irow++)
             {
@@ -1083,12 +1086,11 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
                     // We assume photon noise, so the variance equals the flux. We multiply by the throughput so that both terms
                     // are expressed in [e-/exposure]. 
 
-                    varianceMap(irow, icol) = (singleTargetMap(irow, icol) + contaminantMap(irow, icol) + skyBackground) * throughputMap(irow, icol) + varianceRON ;
+                    varianceMap(irow, icol) = (singleTargetMap(irow, icol) + contaminantMap(irow, icol) + skyBackground) * throughputMap2(irow, icol) + varianceRON ;  //%% Changed to map2
                     NSRmap(irow, icol) = sqrt(varianceMap(irow, icol)) / singleTargetMap(irow, icol); 
                     flatNSRmap.push_back(NSRmap(irow, icol));
                 }
             }
-
             // Order the pixels in the (flattened) NSR map from low to high N/S ratio (i.e. high to low S/N)
 
             vector<unsigned int> indices(flatNSRmap.size());
@@ -1102,7 +1104,6 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
                 rowIndex[i] = minRow + (unsigned int)(indices[i]) / N;
                 colIndex[i] = minCol + (unsigned int)(indices[i]) % N; 
             }
-
             // Build the mask, starting with the pixel with the best NSR, adding one pixel at the time,
             // with the condition that adding a pixel should contribute more to the aggregated signal than to the aggregated noise.
 
@@ -1113,12 +1114,10 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
             double aggregatedObservedTargetFlux  = image(rowIndex[0], colIndex[0]);
             double aggregatedNSR                 = NSRmap(rowIndex[0], colIndex[0]);
             maskSizeTarget[starID].push_back(1);
- 
             rowIndexOfMaskOfTarget[starID][exposureNr] = {rowIndex[0]}; 
             colIndexOfMaskOfTarget[starID][exposureNr] = {colIndex[0]};
 
             // Then add other pixels
-
             for (int i = 1; i < rowIndex.size(); i++)
             {
                 double temp = sqrt(aggregatedVariance + varianceMap(rowIndex[i], colIndex[i])) / (aggregatedSingleTargetFlux + singleTargetMap(rowIndex[i], colIndex[i]));

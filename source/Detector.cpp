@@ -220,6 +220,7 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 
     smearingMap.zeros(numRowsSmearingMap, numColumnsPixelMap2);	 //%% changed to pixelmap2 for spectral dependency
     throughputMap.ones(numRowsPixelMap, numColumnsPixelMap);
+    throughputMap2.zeros(numRowsPixelMap2, numColumnsPixelMap2);    //%% Added for spectral dependency - We need a second map to be able to stitch all subfields, is large one
 
 //    vignettingMap.ones(numRowsPixelMap, numColumnsPixelMap);
 
@@ -555,6 +556,55 @@ void Detector::addSubSubField(int subsubfieldx, int subsubfieldy)
 
 
 
+//%% New function
+/**
+ * Stitches the subsubfields together, throughputMap
+*/
+
+void Detector::addSubSubFieldThroughput(int subsubfieldx, int subsubfieldy)
+{
+    unsigned int beginRow = overlapx;
+    unsigned int beginCol = overlapy;
+    unsigned int endRow = numRowsPixelMap - 1 - overlapx;
+    unsigned int endCol = numColumnsPixelMap - 1 - overlapy;
+
+    unsigned int LbeginRow = subsubfieldx * (numRowsPixelMap - 2*overlapx) + overlapx;
+    unsigned int LbeginCol = subsubfieldy * (numColumnsPixelMap - 2*overlapy) + overlapy;
+    unsigned int LendRow = LbeginRow + numRowsPixelMap - 1 - 2*overlapx;
+    unsigned int LendCol = LbeginCol + numColumnsPixelMap - 1 - 2*overlapy;
+
+    if (subsubfieldx == 0)
+    {
+        beginRow -= overlapx;
+        LbeginRow -= overlapx;
+    }
+    if (subsubfieldx == numsubsubfieldsx - 1)
+    {
+        endRow +=overlapx;
+        LendRow += overlapx;
+    }
+
+    if (subsubfieldy == 0)
+    {
+        beginCol -= overlapy;
+        LbeginCol -= overlapy;
+    }
+    if (subsubfieldy == numsubsubfieldsy - 1)
+    {
+        endCol += overlapy;
+        LendCol += overlapy;
+    }
+
+    throughputMap2.submat(LbeginRow, LbeginCol, LendRow, LendCol) += throughputMap.submat(beginRow, beginCol, endRow, endCol) / wave_bins;
+
+    return;
+}
+
+
+
+
+
+
 
 
 
@@ -684,7 +734,7 @@ void Detector::generateThroughputMap(int binnumber, int subsubfieldx, int subsub
             {
                 // Pixel coordinates (in the detector) -> focal-plane coordinates
 
-                tie(xFPmm, yFPmm) = pixelToFocalPlaneCoordinates(row + subFieldZeroPointRow, column + subFieldZeroPointColumn);
+                tie(xFPmm, yFPmm) = pixelToFocalPlaneCoordinates(subsubfieldx * (numRowsPixelMap - 2*overlapx) + row + subFieldZeroPointRow, subsubfieldy * (numColumnsPixelMap - 2*overlapy) + column + subFieldZeroPointColumn);  //%% take subsubfield into account
 
                 // Angular distance [radians] of the pixel from the optical axis
 
@@ -744,6 +794,8 @@ void Detector::generateThroughputMap(int binnumber, int subsubfieldx, int subsub
     {
         throughputMap *= molecularContaminationEfficiency;
     }
+
+    addSubSubFieldThroughput(subsubfieldx, subsubfieldy);  //%% Added for spectral dependency
 
 }
 
@@ -2529,7 +2581,7 @@ void Detector::applyOverAndUnderShoot()
     if (subFieldZeroPointColumn < halfDectectorWidth)
     {
         const int firstIndexLeftHalf = subFieldZeroPointColumn;
-        const int lastIndexLeftHalf = min(halfDectectorWidth - 1, subFieldZeroPointColumn + numColumnsPixelMap - 1);
+        const int lastIndexLeftHalf = min(halfDectectorWidth - 1, subFieldZeroPointColumn + numColumnsPixelMap2 - 1);  //%% Changed to pixelMap2 for spectral dependency
         const int numCcdPixelsLeftHalf = lastIndexLeftHalf - firstIndexLeftHalf + 1;
      
         lengthReadoutRegister = numCcdPixelsLeftHalf + frontEndElectronics->getOverAndUnderShootRange();    // Pixels in sub-field on left CCD half + some extra pixels closest to the readout electronics
@@ -2538,7 +2590,7 @@ void Detector::applyOverAndUnderShoot()
 
         for (unsigned int row = 0; row < numRowsPixelMap; row++)
         {
-            readoutRegister(arma::span(frontEndElectronics->getOverAndUnderShootRange(), lengthReadoutRegister - 1)) = pixelMap.row(row).head(numCcdPixelsLeftHalf);
+            readoutRegister(arma::span(frontEndElectronics->getOverAndUnderShootRange(), lengthReadoutRegister - 1)) = pixelMap2.row(row).head(numCcdPixelsLeftHalf);  //%% Changed to pixelMap2 for spectral dependency
             totalContribution.zeros(lengthReadoutRegister);
 
             difference = readoutRegister.tail(lengthReadoutRegister - 1) - readoutRegister.head(lengthReadoutRegister - 1);
@@ -2552,7 +2604,7 @@ void Detector::applyOverAndUnderShoot()
                 // totalContribution.tail(lengthReadoutRegister - deltaX) += frontEndElectronics->getOverAndUnderShootStrength() * difference * exp(-frontEndElectronics->getOverAndUnderShootDecayRate() * pow(deltaX, frontEndElectronics->getOverAndUnderShootDecaySpeed()));
             }
 
-            pixelMap.row(row).head(numCcdPixelsLeftHalf) += totalContribution.tail(lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange());
+            pixelMap2.row(row).head(numCcdPixelsLeftHalf) += totalContribution.tail(lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange());  //%% Changed to pixelMap2 for spectral dependency
         }
     }
 
@@ -2561,7 +2613,7 @@ void Detector::applyOverAndUnderShoot()
     if (subFieldZeroPointColumn + numColumnsPixelMap - 1 >= halfDectectorWidth)
     {
         const int firstIndexRightHalf = max(halfDectectorWidth, subFieldZeroPointColumn);
-        const int lastIndexRightHalf = subFieldZeroPointColumn + numColumnsPixelMap - 1;
+        const int lastIndexRightHalf = subFieldZeroPointColumn + numColumnsPixelMap2 - 1;  //%% Changed to pixelMap2 for spectral dependency
         const int numCcdPixelsRightHalf = lastIndexRightHalf - firstIndexRightHalf + 1;
 
         lengthReadoutRegister = numCcdPixelsRightHalf + frontEndElectronics->getOverAndUnderShootRange();      // Pixels in sub-field on right CCD half + some extra pixels closest to the readout electronics
@@ -2570,7 +2622,7 @@ void Detector::applyOverAndUnderShoot()
 
         for (unsigned int row = 0; row < numRowsPixelMap; row++)
         {
-            readoutRegister(arma::span(0, lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange() - 1)) = pixelMap.row(row).tail(numCcdPixelsRightHalf);
+            readoutRegister(arma::span(0, lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange() - 1)) = pixelMap2.row(row).tail(numCcdPixelsRightHalf);  //%% Changed to pixelMap2 for spectral dependency
             totalContribution.zeros(lengthReadoutRegister);
 
             difference = readoutRegister.head(lengthReadoutRegister - 1) - readoutRegister.tail(lengthReadoutRegister - 1);
@@ -2582,7 +2634,7 @@ void Detector::applyOverAndUnderShoot()
                 totalContribution.head(lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange()) += frontEndElectronics->getOverAndUnderShootStrength() * difference.tail(lengthReadoutRegister - 1 - deltaX).head(numCcdPixelsRightHalf) * exp(-frontEndElectronics->getOverAndUnderShootDecayRate() * pow(deltaX, frontEndElectronics->getOverAndUnderShootDecaySpeed()));
             }
 
-            pixelMap.row(row).tail(numCcdPixelsRightHalf) += totalContribution.head(lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange());
+            pixelMap2.row(row).tail(numCcdPixelsRightHalf) += totalContribution.head(lengthReadoutRegister - frontEndElectronics->getOverAndUnderShootRange());  //%% Changed to pixelMap2 for spectral dependency
         }
     }
 }
@@ -3032,7 +3084,7 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
 
         // Add the throughput map to the "ThroughputMaps" group
 
-        hdf5File.writeArray("/ThroughputMaps", throughputMapName, throughputMap);
+        hdf5File.writeArray("/ThroughputMaps", throughputMapName, throughputMap2);  //%% Changed to 2 for larger
     }
 }
 

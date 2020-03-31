@@ -101,6 +101,7 @@ class Detector: public HDF5Writer
 	int numRowsPixelMap2;  //%% Larger PixelMap, combining all subsubfields
 	int numColumnsPixelMap2;  //%% Larger PixelMap, combining all subsubfields
 	virtual void addSubSubField(int subsubfieldx, int subsubfieldy);  //%% Added for spectral dependency, stitch subsubfields together
+        virtual void addSubSubFieldThroughput(int subsubfieldx, int subsubfieldy);  //%% Added for spectral dependency, stitch subsubfields together
 		
         virtual void generateThroughputMap(int binnumber, int subsubfieldx, int subsubfieldy);  //%% Added subsubfield for subsubfields in spectral dependence
         virtual void checkGain();
@@ -147,7 +148,7 @@ class Detector: public HDF5Writer
         arma::Mat<float> biasMapLeft;            // Bias map (i.e. pre-scan strip) for the left detector half
         arma::Mat<float> biasMapRight;           // Bias map (i.e. pre-scan strip) for the right detector half
         arma::Mat<float> throughputMap;          // Throughput efficiency map, due to vignetting, particulate & molecular contamination, and quantum efficiency
-
+        arma::Mat<float> throughputMap2;  //%% Added, larger one to stitch all small subsubfields
 //%%        arma::Mat<float> vignettingMap;		//%%Map to store once vignetting values for entire subfield - see if need to recalculate due to jitter/drift;
 
         arma::Mat<int> mechanicalVignettingMask; // Mask for the sub-field showing which pixels are within the FOV (1) and which aren't (0)   

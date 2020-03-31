@@ -236,6 +236,7 @@ void DetectorWithAnalyticGaussianPSF::reset()
 double DetectorWithAnalyticGaussianPSF::takeExposure(int exposureNr, double startTime, double exposureTime)
 {
     pixelMap2.zeros(); 	//%% Added for spectral dependency, larger map to add all subsubfields to
+    throughputMap2.zeros();
 
     // Advance the internal clock until the given start time
 
@@ -410,6 +411,8 @@ tuple<bool, double, double> DetectorWithAnalyticGaussianPSF::addFlux(double xFP,
 
     double row0, column0;
     tie(row0, column0) = focalPlaneToPixelCoordinates(xFP, yFP);
+    double row0full = row0 - subFieldZeroPointRow;  //%% Added for spectral dep
+    double column0full = column0 - subFieldZeroPointColumn;  //%% Added for spectral dep
     row0 -= subFieldZeroPointRow + subsubfieldx * (numRowsPixelMap - 2 * overlapx);  //%% Take subsubfield into account
     column0 -= subFieldZeroPointColumn + subsubfieldy * (numColumnsPixelMap - 2 * overlapy);
 
@@ -417,7 +420,7 @@ tuple<bool, double, double> DetectorWithAnalyticGaussianPSF::addFlux(double xFP,
 
     if (!isInPixelMap(row0, column0, subsubfieldx, subsubfieldy))
     {
-        return make_tuple(false, row0, column0);
+        return make_tuple(false, row0full, column0full);
     }
 
     // Depending on the angular distance from the optical axis, the PSF increases in size. 
@@ -483,7 +486,7 @@ tuple<bool, double, double> DetectorWithAnalyticGaussianPSF::addFlux(double xFP,
 
     // That's it!
     
-    return make_tuple(true, row0, column0);
+    return make_tuple(true, row0full, column0full);
 }
 
 
