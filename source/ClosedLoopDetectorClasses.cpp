@@ -70,8 +70,12 @@ void ClosedLoopDetectorWithSymmetricalMappedPSF::setNewWindowPosition(std::tuple
         Log.info("ClosedLoopDetectorWithSymmetricalMappedPSF: Changed subFieldZeroPointRow to: " + to_string(subFieldZeroPointRow));
 
         Log.info("ClosedLoopDetectorWithSymmetricalMappedPSF: Changed orientationAngle to: " + to_string(orientationAngle));
-            
 
+    numRowsPixelMap2 = numsubsubfieldsx * (numRowsPixelMap - 2*overlapx) + 2*overlapx;  //%% Size of full covered field
+    numColumnsPixelMap2 = numsubsubfieldsy * (numColumnsPixelMap - 2*overlapy) + 2*overlapy;  //%% Size of full covered field
+    throughputMap2.set_size(numRowsPixelMap2, numColumnsPixelMap2);
+    pixelMap2.set_size(numRowsPixelMap2, numColumnsPixelMap2);  //%% Added
+            
         pixelMap.set_size(numRowsPixelMap, numColumnsPixelMap);
 
         biasMapLeft.set_size(numRowsBiasMap, numColumnsBiasMap);
@@ -124,13 +128,13 @@ void ClosedLoopDetectorWithSymmetricalMappedPSF::setNewWindowPosition(std::tuple
             }
 
             // set the psf again for the new
-                for (int subsubfieldx = 0; subsubfieldx < numsubsubfieldsx; subsubfieldx++)  //%% Loop to select a different psf for each subsubfield
-    {
-        for (int subsubfieldy = 0; subsubfieldy < numsubsubfieldsy; subsubfieldy++)
-        {
-    setPsfForSubfield(subsubfieldx, subsubfieldy);  //%% Added subsubfield
-        }
-    }
+            for (int subsubfieldx = 0; subsubfieldx < numsubsubfieldsx; subsubfieldx++)  //%% Loop to select a different psf for each subsubfield
+            {
+                for (int subsubfieldy = 0; subsubfieldy < numsubsubfieldsy; subsubfieldy++)
+                {
+                   setPsfForSubfield(subsubfieldx, subsubfieldy);  //%% Added subsubfield
+                }
+            }
 
         }
     }
@@ -212,7 +216,11 @@ void ClosedLoopDetectorWithAsymmetricalMappedPSF::setNewWindowPosition(std::tupl
         Log.info("ClosedLoopDetectorWithAsymmetricalMappedPSF: Changed subFieldZeroPointRow to: " + to_string(subFieldZeroPointRow));
 
         Log.info("ClosedLoopDetectorWithAsymmetricalMappedPSF: Changed orientationAngle to: " + to_string(orientationAngle));
-            
+
+    numRowsPixelMap2 = numsubsubfieldsx * (numRowsPixelMap - 2*overlapx) + 2*overlapx;  //%% Size of full covered field
+    numColumnsPixelMap2 = numsubsubfieldsy * (numColumnsPixelMap - 2*overlapy) + 2*overlapy;  //%% Size of full covered field
+    throughputMap2.set_size(numRowsPixelMap2, numColumnsPixelMap2);
+    pixelMap2.set_size(numRowsPixelMap2, numColumnsPixelMap2);  //%% Added            
 
         pixelMap.set_size(numRowsPixelMap, numColumnsPixelMap);
 
@@ -266,13 +274,13 @@ void ClosedLoopDetectorWithAsymmetricalMappedPSF::setNewWindowPosition(std::tupl
             }
 
             // set the psf again for the new
-             for (int subsubfieldx = 0; subsubfieldx < numsubsubfieldsx; subsubfieldx++)  //%% Loop to select a different psf for each subsubfield
-    {
-        for (int subsubfieldy = 0; subsubfieldy < numsubsubfieldsy; subsubfieldy++)
-        {
-    setPsfForSubfield(subsubfieldx, subsubfieldy);  //%% Added subsubfield
-        }
-    }
+            for (int subsubfieldx = 0; subsubfieldx < numsubsubfieldsx; subsubfieldx++)  //%% Loop to select a different psf for each subsubfield
+            {
+               for (int subsubfieldy = 0; subsubfieldy < numsubsubfieldsy; subsubfieldy++)
+               {
+                  setPsfForSubfield(subsubfieldx, subsubfieldy);  //%% Added subsubfield
+               }
+            }
 
         }
     }
@@ -355,7 +363,11 @@ void ClosedLoopDetectorWithAnalyticNonGaussianPSF::setNewWindowPosition(std::tup
         Log.info("ClosedLoopDetectorWithMappedPSF: Changed subFieldZeroPointRow to: " + to_string(subFieldZeroPointRow));
 
         Log.info("ClosedLoopDetectorWithMappedPSF: Changed orientationAngle to: " + to_string(orientationAngle));
-            
+
+    numRowsPixelMap2 = numsubsubfieldsx * (numRowsPixelMap - 2*overlapx) + 2*overlapx;  //%% Size of full covered field
+    numColumnsPixelMap2 = numsubsubfieldsy * (numColumnsPixelMap - 2*overlapy) + 2*overlapy;  //%% Size of full covered field
+    throughputMap2.set_size(numRowsPixelMap2, numColumnsPixelMap2);
+    pixelMap2.set_size(numRowsPixelMap2, numColumnsPixelMap2);  //%% Added            
 
         pixelMap.set_size(numRowsPixelMap, numColumnsPixelMap);
 
@@ -482,7 +494,11 @@ void ClosedLoopDetectorWithAnalyticGaussianPSF::setNewWindowPosition(std::tuple<
         Log.info("ClosedLoopDetectorWithMappedPSF: Changed subFieldZeroPointRow to: " + to_string(subFieldZeroPointRow));
 
         Log.info("ClosedLoopDetectorWithMappedPSF: Changed orientationAngle to: " + to_string(orientationAngle));
-            
+
+    numRowsPixelMap2 = numsubsubfieldsx * (numRowsPixelMap - 2*overlapx) + 2*overlapx;  //%% Size of full covered field
+    numColumnsPixelMap2 = numsubsubfieldsy * (numColumnsPixelMap - 2*overlapy) + 2*overlapy;  //%% Size of full covered field
+    throughputMap2.set_size(numRowsPixelMap2, numColumnsPixelMap2);
+    pixelMap2.set_size(numRowsPixelMap2, numColumnsPixelMap2);  //%% Added            
 
         pixelMap.set_size(numRowsPixelMap, numColumnsPixelMap);
 
