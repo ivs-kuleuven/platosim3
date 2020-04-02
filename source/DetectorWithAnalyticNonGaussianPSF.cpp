@@ -90,7 +90,7 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
 {
     numExposures        = configParam.getUnsignedInteger("ObservingParameters/NumExposures");
     beginExposureNr     = configParam.getUnsignedInteger("ObservingParameters/BeginExposureNr");
-    cycleTime           = configParam.getLong("ObservingParameters/CycleTime");                 
+    cycleTime           = configParam.getDouble("ObservingParameters/CycleTime");                 
 
     flatfieldNoiseRMS   = configParam.getDouble("CCD/FlatfieldNoiseRMS");
     includeFlatfield    = configParam.getBoolean("CCD/IncludeFlatfield");

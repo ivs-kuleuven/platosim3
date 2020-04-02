@@ -166,9 +166,13 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     // Depending on how the PSF is computed (analytically or pre-mapped) the Detector object is different.
 
-    if ((psfModel == "MappedGaussian") || (psfModel == "MappedFromFile"))
+    if ((psfModel == "MappedGaussian") || (psfModel == "MappedFromFileSymmetrical"))
     {
-        detector = detectorFactory->createDetectorWithMappedPsfInstance(configParams, *hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
+        detector = detectorFactory->createDetectorWithSymmetricalMappedPsfInstance(configParams, *hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
+    }
+    else if (psfModel == "MappedFromFileAsymmetrical")
+    {
+        detector = detectorFactory->createDetectorWithAsymmetricalMappedPsfInstance(configParams, *hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
     }
     else if (psfModel == "AnalyticGaussian")
     {
@@ -761,11 +765,19 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("IncludeChargeDiffusion");
     addBoolean("IncludeJitterSmoothing");
 
-    subGroup = "PSF/MappedFromFile";
+    subGroup = "PSF/MappedFromFileSymmetrical";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addString("Filename");
     addDouble("DistanceToOA");
     addDouble("RotationAngle");
+    addInteger("NumberOfPixels");
+    addDouble("ChargeDiffusionStrength");
+    addBoolean("IncludeChargeDiffusion");
+    addBoolean("IncludeJitterSmoothing");
+
+    subGroup = "PSF/MappedFromFileAsymmetrical";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addString("Filename");
     addInteger("NumberOfPixels");
     addDouble("ChargeDiffusionStrength");
     addBoolean("IncludeChargeDiffusion");

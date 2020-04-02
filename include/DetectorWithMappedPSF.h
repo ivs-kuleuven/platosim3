@@ -9,42 +9,47 @@
 #include "armadillo"
 
 #include "Detector.h"
+#include "PointSpreadFunction.h"
 
 using namespace std;
 
 
 
-class DetectorWithMappedPSF: public Detector 
+class DetectorWithMappedPSF : public Detector 
 {
     public:
 
-        DetectorWithMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure);
-        virtual ~DetectorWithMappedPSF();
+        DetectorWithMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure);
+        virtual ~DetectorWithMappedPSF(){};
 
         virtual double takeExposure(int exposureNr, double startTime, double exposureTime) override;
-
-        void configure(ConfigurationParameters &configParam);
 
         virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) override;
         virtual void addFlux(double flux) override;
 
+        virtual void configure(ConfigurationParameters &configParam){};
+
     protected:
 
-        virtual void reset();
         virtual void initHDF5Groups() override;
         virtual void integrateLight(int exposureNr, double startTime, double exposureTime) override;
+
         virtual bool isInSubPixelMap(double row, double column);
-        virtual void applyDiffusionKernel(double row, double column, double flux);
+
         virtual void applyFlatfield() override;
+
+        virtual void reset();
+        
+        
+        virtual void applyDiffusionKernel(double row, double column, double flux);
         virtual void generateFlatfieldMap();
         virtual void generateDiffusionKernel(double kernelWidth);
         virtual void rebin();
         void writeSubPixelMapToHDF5(int exposureNr);
 
-        void setPsfForSubfield();
-        virtual void convolveWithPsf();
+        virtual void setPsfForSubfield(){};
 
-        PointSpreadFunction *psf;
+        virtual void convolveWithPsf();
 
         arma::Mat<float> subPixelMap;           // Sub-pixel map, incl. edge pixels
         arma::Mat<float> psfMap;                // The PSF map that will be used for convolving
@@ -72,13 +77,7 @@ class DetectorWithMappedPSF: public Detector
         
         long flatfieldSeed;
 
-
-
-    private:
-
         Convolver convolver;
-
 };
-
 
 #endif

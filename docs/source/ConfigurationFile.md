@@ -15,6 +15,7 @@ Any desired simulation can be obtained by modifying the following input:
 		* [FEE parameters](#feeParameters)
 		* [CCD parameters](#ccdParameters)
 		* [sub-field parameters](#subFieldParameters)
+        * [photometry parameters](#photometryParameters)
 		* [seed parameters](#seedParameters)
         * [control TCP connection parameters](#controlTcpConnection)
 		* additionally, there are two blocks that hold pre-defined settings (which you should NOT alter):
@@ -1145,7 +1146,7 @@ CCD:
     NumColumns:                  4510      
     NumRows:                     4510      
     FirstRowExposed:             0
-
+    TimeShift:                   0.0
     PixelSize:                   18      
     BFE:
         Range:                       2
@@ -1303,8 +1304,16 @@ This parameter is only used when the [Position](#position)=Custom.
 
 
 
+### <a name="timeShift"></a>TimeShift
 
-### <a name="pixelSize"></a>PixelSizeS
+<i>Allowed values:</i> > 0
+
+Time shift between the readout of the CCDs [s].  Will only be used if [Position](#position)=Custom.
+
+
+
+
+### <a name="pixelSize"></a>PixelSize
 
 <i>Allowed values:</i> > 0
 
@@ -1914,6 +1923,56 @@ If you want a pixel of 256 x 256 = 65536 sub-pixels you should specify in the co
 
 
 
+<!-- ********************* -->
+<!-- Photometry Parameters -->
+<!-- ********************** -->
+
+## <a name="photometryParameters"></a>Photometry Parameters
+
+The <b>Photometry</b> block of the configuration file contains all information to run photometry.  The structure of this block is the following:
+
+\code{.yaml}
+Photometry:
+
+    IncludePhotometry:               no
+    ContaminationRadius:             4
+    MaskUpdateInterval:              14.0
+    TargetFileName:                  inputfiles/photometryTargets.txt
+\endcode
+
+Note that photometry can only be performed if [Model](#psfModel)=AnalyticNonGaussian.
+
+
+### IncludePhotometry
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not photometry should be run.  Photometry can only be performed if [Model](#psfModel)=AnalyticNonGaussian.
+
+
+
+### ContaminationRadius
+<i>Allowed values:</i> > 0
+
+Radius [pixels] around a target within which sources are considered contaminants when calculating the photometry for that target.
+
+
+
+### MaskUpdateInterval
+<i>Allowed values:</i> > 0
+
+Update interval [days] to update the photometry mask.
+
+
+
+### TargetFileName
+
+Path of the file comprising the list of targets identifiers (as listed in the [star catalogue](#starCatalogue)) for which to calculate the photometry, relative to the [project location](#projectLocation).
+
+---
+
+
+
+
 
 <!-- *************** -->
 <!-- Seed Parameters -->
@@ -2025,9 +2084,49 @@ The <b>ControlHDF5Content</b> block of the configuration file contains all the s
 \code{.yaml}
 ControlHDF5Content:
 
-    WriteSubPixelImages:             no 
+    WritePixelMaps:                  yes
+    WriteBiasMaps:                   yes
+    WriteSmearingMaps:               yes
+    WriteThroughputMaps:             yes
+    WriteFlatfieldMap:               yes
+    WriteSubPixelImages:             no
     WriteStarPositions:              yes
 \endcode
+
+
+
+### WritePixelImages
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the pixel maps must be stored in the output file.
+
+
+
+### WriteBiasMaps
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the bias register maps must be stored in the output file.
+
+
+
+### WriteSmearingMaps
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the smearing maps must be stored in the output file.
+
+
+
+### WriteThroughputMaps
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the throughput maps must be stored in the output file.
+
+
+
+### WriteFlatfieldMap
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the flatfield maps must be stored in the output file.
 
 
 
@@ -2178,7 +2277,8 @@ CCDPositions:
     NumColumns:                      [4510, 4510, 4510, 4510]
     NumRows:                         [4510, 4510, 4510, 4510]
     FirstRowForNormalCamera:         [0, 0, 0, 0]
-    FirstRowForFastCamera:           [2255, 2255, 2255, 2255]       
+    FirstRowForFastCamera:           [2255, 2255, 2255, 2255]
+    TimeShift:                       [0.0, 6.25, 12.5, 18.75]
 \endcode
 
 Mind you, you are NOT supposed to alter this section of the configuration file!
@@ -2224,3 +2324,8 @@ Row index of the first row in the CCD that is illuminated (the row closest to th
 ### FirstRowForFastCamera
 
 Row index of the first row in the CCD that is illuminated (the row closest to the readout register is row 0), for CCD positions 1, 2, 3, and 4, in case of a fast camera ([GroupID](#groupID)=Fast).  For fast cameras, only the upper half of the CCD is illuminated.  Depending on the value of the [Position](#position) parameter in the [CCD](#ccdParameters) block, the appropriate value will be selected from the list.
+
+
+### TimeShift
+
+Time shift [s] of the readout of the individual CCDs, w.r.t. to readout of CCD1.  Will only be used if [Position](#position)=1, 2, 3, or 4.
