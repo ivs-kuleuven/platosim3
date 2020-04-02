@@ -1113,6 +1113,93 @@ double HDF5File::readDoubleDatasetAttribute(string groupName, string datasetName
 
 
 
+
+/**
+ * \brief      read a string-valued attribute that is associated with dataset
+ *
+ * \param[in]  groupName      string containing the full path of an existing group. Starts with "/".
+ * \param[in]  datasetName    string containing the name of the dataSet where the attribute is attached
+ * \param[in]  attributeName  string containing the name of the attribute
+ *
+ * \return     the value of the attribute
+ * 
+ * \exception  H5FileException      if the HDF5 file has not been opened
+ * \exception  H5GroupException     if the group is unknown to the HDF5 file
+ * \exception  H5DatasetException   if the dataset is not known to the group
+ * \exception  H5AttributeException if there is no attribute with the given name
+ */
+
+string HDF5File::readStringDatasetAttribute(string groupName, string datasetName, string attributeName)
+{
+    // Complain if the file was not first opened
+    
+    if (!fileIsOpen)
+    {
+        throw H5FileException("HDF5File: The file (" + file->getFileName() + ") has not been opened.");
+    }
+
+    // Open the proper group where the attribute is associated
+
+    H5::Group group;
+    if (hasGroup(groupName))
+    {
+        group = file->openGroup(groupName.c_str());
+    }
+    else 
+    {
+        throw H5GroupException("HDF5File: Unknown group (" + groupName + ") in HDF5 file " + file->getFileName());
+    }
+
+    H5::DataSet dataset;
+    if (hasDataset(groupName, datasetName))
+    {
+        dataset = group.openDataSet(datasetName);
+    }
+    else 
+    {
+        throw H5DatasetException("HDF5File: Unknown dataset (" + datasetName + ") in group (" + groupName + ") in HDF5 file " + file->getFileName());
+    }
+
+    // Check whether the attribute is in the group by trying to read it.
+    // If not, raise an exception.
+
+    H5::Attribute attr;
+
+    try 
+    {  
+        // Turn off the auto-printing when an exception is raised
+
+        H5::Exception::dontPrint();
+
+        // Try to open the attribute
+
+        attr = dataset.openAttribute(attributeName.c_str());
+    }
+    catch (H5::AttributeIException error)
+    {
+        throw H5AttributeException("HDF5File: Unknown Attribute (" + attributeName + ") in the group " + groupName + " for HDF5 file " + file->getFileName());
+    }
+
+
+    H5::StrType stringType = attr.getStrType();
+
+    string attributeValue;
+    attr.read(stringType, attributeValue);
+
+    return attributeValue;
+}
+
+
+
+
+
+
+
+
+
+
+
+
 // HDF5File::writeArray()  for 1D integer arrays
 //
 // PURPOSE: write a 1D array to a specified group in the HDF5 file.
