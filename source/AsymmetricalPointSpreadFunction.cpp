@@ -136,8 +136,11 @@ void AsymmetricalPointSpreadFunction::select(double xFP, double yFP)
 
         if(psfFile.hasDataset("/", datasetName))
         {
-            xPsf = psfFile.readDoubleDatasetAttribute("/", datasetName, "centerCoordinates1");
-            yPsf = psfFile.readDoubleDatasetAttribute("/", datasetName, "centerCoordinates2");
+            // The following two attributes are stored as strings in the HDF5 file rather than doubles,
+            // so we need to convert them.
+            
+            xPsf = stod(psfFile.readStringDatasetAttribute("/", datasetName, "centerCoordinates1"));
+            yPsf = stod(psfFile.readStringDatasetAttribute("/", datasetName, "centerCoordinates2"));
 
             distanceSquared = pow(xPsf - xFP, 2) + pow(yPsf - yFP, 2);
 
