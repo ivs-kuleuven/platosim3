@@ -134,10 +134,14 @@ void AsymmetricalPointSpreadFunction::select(double xFP, double yFP)
     {
         datasetName = to_string(datasetIndex);
 
+        Log.debug("AsymmetricalPointSpreadFunction: while true: " + datasetName + " " + to_string(psfFile.hasDataset("/", datasetName)));
+
         if(psfFile.hasDataset("/", datasetName))
         {
             xPsf = psfFile.readDoubleDatasetAttribute("/", datasetName, "centerCoordinates1");
             yPsf = psfFile.readDoubleDatasetAttribute("/", datasetName, "centerCoordinates2");
+
+            Log.debug("Center: (" + to_string(xPsf) + ", " + to_string(yPsf) + ")");
 
             distanceSquared = pow(xPsf - xFP, 2) + pow(yPsf - yFP, 2);
 
@@ -145,6 +149,7 @@ void AsymmetricalPointSpreadFunction::select(double xFP, double yFP)
             {
                 minDistanceSquared = distanceSquared;
                 selectedDatasetName = datasetName;
+                Log.debug(selectedDatasetName);
             }
         }
         else
