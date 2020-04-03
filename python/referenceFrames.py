@@ -969,7 +969,7 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal):
     
     if (sim["Camera/IncludeFieldDistortion"] == "yes")  or (sim["Camera/IncludeFieldDistortion"] == "1"):
         includeFieldDistortion = True
-        distortionCoefficients = sim["Camera/FieldDistortion/Coefficients"]
+        distortionCoefficients = sim["Camera/FieldDistortion/ConstantCoefficients"]
     else:
         includeFieldDistortion = False
         distortionCoefficients = None
@@ -1026,7 +1026,7 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
     
     if (sim["Camera/IncludeFieldDistortion"] == "yes")  or (sim["Camera/IncludeFieldDistortion"] == "1"):
         includeFieldDistortion = True
-        inverseDistortionCoefficients = sim["Camera/FieldDistortion/InverseCoefficients"]
+        inverseDistortionCoefficients = sim["Camera/FieldDistortion/ConstantInverseCoefficients"]
     else:
         includeFieldDistortion = False
 
