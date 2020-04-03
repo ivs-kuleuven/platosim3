@@ -134,8 +134,6 @@ void AsymmetricalPointSpreadFunction::select(double xFP, double yFP)
     {
         datasetName = to_string(datasetIndex);
 
-        Log.debug("AsymmetricalPointSpreadFunction: while true: " + datasetName + " " + to_string(psfFile.hasDataset("/", datasetName)));
-
         if(psfFile.hasDataset("/", datasetName))
         {
             // The following two attributes are stored as strings in the HDF5 file rather than doubles,
@@ -144,15 +142,13 @@ void AsymmetricalPointSpreadFunction::select(double xFP, double yFP)
             xPsf = stod(psfFile.readStringDatasetAttribute("/", datasetName, "centerCoordinates1"));
             yPsf = stod(psfFile.readStringDatasetAttribute("/", datasetName, "centerCoordinates2"));
 
-            Log.debug("Center: (" + to_string(xPsf) + ", " + to_string(yPsf) + ")");
-
             distanceSquared = pow(xPsf - xFP, 2) + pow(yPsf - yFP, 2);
 
             if(distanceSquared < minDistanceSquared)
             {
                 minDistanceSquared = distanceSquared;
                 selectedDatasetName = datasetName;
-                Log.debug(selectedDatasetName);
+                Log.debug(selectedDatasetName + " " + to_string(minDistanceSquared));
             }
         }
         else
