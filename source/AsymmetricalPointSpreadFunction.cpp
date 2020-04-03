@@ -148,7 +148,6 @@ void AsymmetricalPointSpreadFunction::select(double xFP, double yFP)
             {
                 minDistanceSquared = distanceSquared;
                 selectedDatasetName = datasetName;
-                Log.debug(selectedDatasetName + " " + to_string(minDistanceSquared));
             }
         }
         else
