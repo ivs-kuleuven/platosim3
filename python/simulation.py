@@ -571,7 +571,7 @@ class Simulation(object):
         """
 
         raStar, decStar = rf.pixelToSkyCoordinates(self, ccdCode, xCCDpixel, yCCDpixel)
-        
+
         # TODO: determine nominal from the given ccdCode
         
         nominal = True
@@ -658,7 +658,6 @@ class Simulation(object):
         ccdCode, xPix, yPix = rf.calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, decStar, raPlatform, decPlatform,           \
                                                                     solarPanelOrientation, tiltTelescope, azimuthTelescope, focalPlaneAngle,          \
                                                                     focalLength, pixelSize, includeFieldDistortion, distortionCoefficients, normal)
-        
         if ccdCode == None:
             return False
         
