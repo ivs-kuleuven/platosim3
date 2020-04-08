@@ -17,6 +17,20 @@ JitterFromFile::JitterFromFile(ConfigurationParameters &configParams)
 
     configure(configParams);
 
+    // Check whether the required time span is covered by the jitter file
+
+    double lastTimePoint = FileUtilities::getLastTimePoint(pathToJitterFile);
+    double requiredTimeRange = configParams.getDouble("ObservingParameters/CycleTime") * (configParams.getInteger("ObservingParameters/NumExposures") + configParams.getInteger("ObservingParameters/BeginExposureNr"));
+
+    if (lastTimePoint < requiredTimeRange)
+    {
+        int maxNumExposures = int(floor(lastTimePoint / configParams.getDouble("ObservingParameters/CycleTime")));
+        
+        string msg = "JitterFromFile: required time span of " + to_string(requiredTimeRange) + "s not covered by jitter file";
+        Log.error(msg + ".  Only " + to_string(maxNumExposures) + " exposures can be simulated.");
+        throw FileException(msg);
+    }
+
     // Open the jitter file, and read time yaw, pitch, roll time series.
     // The time is assumed to be in [s], pitch, yaw, and roll in [arcsec].
     // The path of the jitter file should have been set in configure().
