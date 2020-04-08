@@ -256,7 +256,6 @@ def skyToFocalPlaneCoordinates(raStar, decStar, raPlatform, decPlatform, solarPa
                            [ySC[0], ySC[1], ySC[2]], \
                            [zSC[0], zSC[1], zSC[2]]])
 
-    
     # Compute the rotation matrix to convert cartesian coordinates in the spacecraft reference frame to 
     # cartesian coordinates in the telescope reference frame
 
@@ -288,7 +287,7 @@ def skyToFocalPlaneCoordinates(raStar, decStar, raPlatform, decPlatform, solarPa
     # Transform these coordinates to the corresponding ones in the focal plane reference frame:
 
     starFP = np.dot(rotEQ2FP, starEQ)
-
+    
     # Convert the units to the one of focalLength (usually [mm]), and normalize the coordinates 
     # to take into account the pinhole camera projection.
 
@@ -354,7 +353,7 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, solarPanelOrie
                            [        0        ,          0,         1]])
 
     rotTilt = np.array([[ cos(tiltAngle), 0, sin(tiltAngle)], \
-                        [     0        , 1,        0       ], \
+                        [     0         , 1,        0      ], \
                         [-sin(tiltAngle), 0, cos(tiltAngle)]])
 
     rotTL2SC = np.dot(rotAzimuth, rotTilt)
@@ -379,7 +378,7 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, solarPanelOrie
     # Combine all the rotation matrices
 
     rotFP2EQ = np.dot(rotSC2EQ, np.dot(rotTL2SC, rotFP2TL))
-
+    
     # Transform the unnormalized focal plane coordinates to the corresponding ones in the equatorial reference frame
 
     vecEQ = np.dot(rotFP2EQ, vecFP)
@@ -735,6 +734,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
     if (includeFieldDistortion == True) or (includeFieldDistortion == "yes"):
         xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients, focalLength)
 
+
     # Find out if this falls on a CCD, and if yes which one.
     # Our approach: try each of the CCDs. Not elegant, but robust...  
 
@@ -979,7 +979,7 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal):
     raPlatform            = np.deg2rad(float(sim["ObservingParameters/RApointing"]))
     decPlatform           = np.deg2rad(float(sim["ObservingParameters/DecPointing"]))
     solarPanelOrientation = np.deg2rad(float(sim["Platform/SolarPanelOrientation"]))
-    focalPlaneAngle       = float(sim["Camera/FocalPlaneOrientation/ConstantValue"])
+    focalPlaneAngle       = np.deg2rad(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
     azimuthTelescope      = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
     tiltTelescope         = np.deg2rad(float(sim["Telescope/TiltAngle"]))
     
@@ -1035,7 +1035,7 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
     raPlatform            = np.deg2rad(float(sim["ObservingParameters/RApointing"]))
     decPlatform           = np.deg2rad(float(sim["ObservingParameters/DecPointing"]))
     solarPanelOrientation = np.deg2rad(float(sim["Platform/SolarPanelOrientation"]))
-    focalPlaneAngle       = float(sim["Camera/FocalPlaneOrientation/ConstantValue"])
+    focalPlaneAngle       = np.deg2rad(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
     azimuthTelescope      = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
     tiltTelescope         = np.deg2rad(float(sim["Telescope/TiltAngle"]))
 
@@ -1047,7 +1047,7 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
     # Get the focal plane coordinates
 
     xFPmm, yFPmm = pixelToFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX, ccdZeroPointY, ccdAngle)
-    
+
     # If required, undistort them
     
     if includeFieldDistortion:
@@ -1056,5 +1056,6 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
     # Get the corresponding sky coordinates
 
     ra, dec = focalPlaneToSkyCoordinates(xFPmm, yFPmm, raPlatform, decPlatform, solarPanelOrientation, tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength)
-
+    
     return ra, dec
+
