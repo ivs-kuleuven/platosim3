@@ -22,8 +22,10 @@ ThermoElasticDriftFromFile::ThermoElasticDriftFromFile(ConfigurationParameters &
 
     if (lastTimePoint < requiredTimeRange)
     {
+        int maxNumExposures = int(floor(lastTimePoint / configParams.getDouble("ObservingParameters/CycleTime")));
+        
         string msg = "ThermoElasticDriftFromFile: required time span of " + to_string(requiredTimeRange) + "s not covered by drift file";
-        Log.error(msg);
+        Log.error(msg + ".  Only " + to_string(maxNumExposures) + " exposures can be simulated.");
         throw FileException(msg);
     }
 

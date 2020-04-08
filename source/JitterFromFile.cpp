@@ -24,8 +24,10 @@ JitterFromFile::JitterFromFile(ConfigurationParameters &configParams)
 
     if (lastTimePoint < requiredTimeRange)
     {
+        int maxNumExposures = int(floor(lastTimePoint / configParams.getDouble("ObservingParameters/CycleTime")));
+        
         string msg = "JitterFromFile: required time span of " + to_string(requiredTimeRange) + "s not covered by jitter file";
-        Log.error(msg);
+        Log.error(msg + ".  Only " + to_string(maxNumExposures) + " exposures can be simulated.");
         throw FileException(msg);
     }
 
