@@ -15,6 +15,18 @@ ThermoElasticDriftFromFile::ThermoElasticDriftFromFile(ConfigurationParameters &
 
     configure(configParams);
 
+    // Check whether the required time span is covered by the jitter file
+
+    double lastTimePoint = FileUtilities::getLastTimePoint(pathToDriftFile);
+    double requiredTimeRange = configParams.getDouble("ObservingParameters/CycleTime") * (configParams.getInteger("ObservingParameters/NumExposures") + configParams.getInteger("ObservingParameters/BeginExposureNr"));
+
+    if (lastTimePoint < requiredTimeRange)
+    {
+        string msg = "ThermoElasticDriftFromFile: required time span of " + to_string(requiredTimeRange) + "s not covered by drift file";
+        Log.error(msg);
+        throw FileException(msg);
+    }
+
     // Open the thermo-elastic drift file, and read time yaw, pitch, roll time series.
     // The time is assumed to be in [s], pitch, yaw, and roll in [arcsec].
     // The path of the thermo-elastic drift file should have been set in configure().
