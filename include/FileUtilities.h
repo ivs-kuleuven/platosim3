@@ -3,6 +3,10 @@
 
 #include <string>
 #include <fstream>
+#include <sstream>
+#include <iterator>
+
+#include "Exceptions.h"
 
 using namespace std;
 
@@ -12,7 +16,8 @@ public:
     static bool fileExists(const string &filename);
     static bool isRelative(const string &filename);
     static void remove(const string &filename);
-
+    static string getLastLine(const string &filename);
+    static double getLastTimePoint(const string &filename);
 };
 
 
