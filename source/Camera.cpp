@@ -144,7 +144,7 @@ set<unsigned int> Camera::getAllStarIDs()
 tuple<double, double, double, double, double, double> Camera::getInfoForTheMostRecentExposureForStar(int starID)
 {
     // The detected star info is stored in a map as:   map<double, map<unsigned int, array<double, 6>>> detectedStarInfo;
-    // so that  detectedStarInfo[startTime][starID] contains the values (xFPmean, yFPmean, rowPixMean, colPixmean, sumFlux, Ndetections)
+    // so that  detectedStarInfo[startTime][starID] contains the values (xFPsum, yFPsum, rowPixSum, colPixSum, sumFlux, Ndetections)
     // In C++ maps are sorted on key values (in ascending order). To find the time stamp of the most recent exposure, 
     // we simply need to access the last element. rbegin() is a reverse-iterator, starting with the last element
 
@@ -161,10 +161,10 @@ tuple<double, double, double, double, double, double> Camera::getInfoForTheMostR
     }
     else
     {
-        double xFPmean    = detectedStarInfo[timeStamp][starID][0];
-        double yFPmean    = detectedStarInfo[timeStamp][starID][1];
-        double rowPixMean = detectedStarInfo[timeStamp][starID][2];
-        double colPixMean = detectedStarInfo[timeStamp][starID][3];
+        double xFPmean    = detectedStarInfo[timeStamp][starID][0] / detectedStarInfo[timeStamp][starID][5];
+        double yFPmean    = detectedStarInfo[timeStamp][starID][1] / detectedStarInfo[timeStamp][starID][5];
+        double rowPixMean = detectedStarInfo[timeStamp][starID][2] / detectedStarInfo[timeStamp][starID][5];
+        double colPixMean = detectedStarInfo[timeStamp][starID][3] / detectedStarInfo[timeStamp][starID][5];
         double sumFlux    = detectedStarInfo[timeStamp][starID][4];
 
         return make_tuple(timeStamp, xFPmean, yFPmean, rowPixMean, colPixMean, sumFlux);

@@ -945,8 +945,6 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
     
         tie(time, xFPtarget, yFPtarget, rowTarget, colTarget, fluxTarget) = camera.getInfoForTheMostRecentExposureForStar(starID);
 
-        Log.debug(to_string(starID) + ": " + to_string(rowTarget) + ", " + to_string(colTarget) + ", " + to_string(fluxTarget));
-
         inputFluxTarget.at(starID).at(zeroBasedExposureNr) = fluxTarget;
 
         // If this is the first exposure, or it's already 2 weeks ago that the mask was updated,
@@ -983,12 +981,12 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
             tie(begin, end) = camera.getInfoForTheMostRecentExposureForAllStars();
             for (auto it = begin; it != end; it++)
             {
-                if (it->first == starID) continue;            // A star is never its own contaminant 
-                double xFPcont =  (it->second)[0];            // [mm]
-                double yFPcont =  (it->second)[1];            // [mm]
-                double rowCont =  (it->second)[2];            // [pix]
-                double colCont =  (it->second)[3];            // [pix]
-                double fluxCont = (it->second)[4];            // [photons/exposure]
+                if (it->first == starID) continue;                        // A star is never its own contaminant 
+                double xFPcont =  (it->second)[0] / (it->second)[5];      // [mm]
+                double yFPcont =  (it->second)[1] / (it->second)[5];      // [mm]
+                double rowCont =  (it->second)[2] / (it->second)[5];      // [pix]
+                double colCont =  (it->second)[3] / (it->second)[5];      // [pix]
+                double fluxCont = (it->second)[4];                        // [photons/exposure]
 
                 Log.debug(to_string(it->first) + ": " + to_string(rowCont) + ", " + to_string(colCont) + ", " + to_string(fluxCont));
 
@@ -1005,8 +1003,8 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
                 numContaminants++;
             }
 
-           Log.debug("Detector::applyPhotometry: Found " + to_string(numContaminants) + " contaminants for star ID " + to_string(starID));
-           Log.debug("Detector::applyPhotometry: selecting which pixels belong to the mask");
+            Log.debug("Detector::applyPhotometry: Found " + to_string(numContaminants) + " contaminants for star ID " + to_string(starID));
+            Log.debug("Detector::applyPhotometry: selecting which pixels belong to the mask");
 
             // For the mask of our target will only consider a 7x7 area around the barycenter. Get the boundaries of that area.
 
@@ -1019,6 +1017,7 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
 
             arma::Mat<float> NSRmap(numRowsPixelMap, numColumnsPixelMap, arma::fill::zeros); 
             arma::Mat<float> varianceMap(numRowsPixelMap, numColumnsPixelMap, arma::fill::zeros);
+
             vector<double> flatNSRmap;   
             for (int irow = minRow; irow <= maxRow; irow++)
             {
@@ -1097,6 +1096,7 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
             // Update the exposure nr of this mask update to the current exposure number
 
             exposureNrOfMaskUpdate.at(starID).push_back(exposureNr);
+
         }
         else
         {
