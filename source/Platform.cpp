@@ -68,6 +68,7 @@ void Platform::configure(ConfigurationParameters &configParams)
     originalRA  = deg2rad(configParams.getDouble("ObservingParameters/RApointing"));            
     originalDec = deg2rad(configParams.getDouble("ObservingParameters/DecPointing"));
     double solarPanelOrientation = deg2rad(configParams.getDouble("Platform/SolarPanelOrientation"));
+    writeACS    = configParams.getBoolean("ControlHDF5Content/WriteACS");
          
     currentRA   = originalRA;
     currentDec  = originalDec;
@@ -127,28 +128,31 @@ void Platform::initHDF5Groups()
 
 void Platform::flushOutput()
 {
-    Log.info("Platform: Flushing output to HDf5 file.");
-
-    if ( ! hdf5File.hasGroup("ACS") )
+    if (writeACS)
     {
-        Log.warning("Platform.flushOutput: HDF5 file has no ACS group, cannot flush Platform information.");
-        return;
-    }
-    
+        Log.info("Platform: Flushing output to HDf5 file.");
 
-     if (!historyTime.empty())
-     {
-        hdf5File.writeArray("/ACS/", "Time",        historyTime.data(),  historyTime.size());
-        hdf5File.writeArray("/ACS/", "PlatformRA",  historyRA.data(),    historyRA.size());
-        hdf5File.writeArray("/ACS/", "PlatformDec", historyDec.data(),   historyDec.size());
-        hdf5File.writeArray("/ACS/", "Yaw",         historyYaw.data(),   historyYaw.size());
-        hdf5File.writeArray("/ACS/", "Pitch",       historyPitch.data(), historyPitch.size());
-        hdf5File.writeArray("/ACS/", "Roll",        historyRoll.data(),  historyRoll.size());
-     }
-     else
-     {
-        Log.warning("Platform: No ACS history to flush to HDF5 file.");
-     }
+        if ( ! hdf5File.hasGroup("ACS") )
+        {
+            Log.warning("Platform.flushOutput: HDF5 file has no ACS group, cannot flush Platform information.");
+            return;
+        }
+        
+
+         if (!historyTime.empty())
+         {
+            hdf5File.writeArray("/ACS/", "Time",        historyTime.data(),  historyTime.size());
+            hdf5File.writeArray("/ACS/", "PlatformRA",  historyRA.data(),    historyRA.size());
+            hdf5File.writeArray("/ACS/", "PlatformDec", historyDec.data(),   historyDec.size());
+            hdf5File.writeArray("/ACS/", "Yaw",         historyYaw.data(),   historyYaw.size());
+            hdf5File.writeArray("/ACS/", "Pitch",       historyPitch.data(), historyPitch.size());
+            hdf5File.writeArray("/ACS/", "Roll",        historyRoll.data(),  historyRoll.size());
+         }
+         else
+         {
+            Log.warning("Platform: No ACS history to flush to HDF5 file.");
+         }
+    }
 }
 
 
