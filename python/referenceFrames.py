@@ -206,6 +206,141 @@ def sunSkyCoordinatesAwayfromPlatformPointing(raPlatform, decPlatform, solarPane
 
 
 
+
+def skyToPlatformCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation):
+
+    """
+    PURPOSE: Convert the equatorial sky coordinates (alpha, delta) of a star to cartesian platform coordinates
+             (xSC, ySC, zSC)
+             
+    INPUT: raStar:                 right ascension of the star                               [rad]
+           decStar:                declination of the star                                   [rad]
+           raPlatform:             right ascension of the platform roll axis                 [rad]
+           decPlatform:            declination of the platform roll axis                     [rad]
+           solarPanelOrientation:  (0,pi/2,pi,3pi/2) for quarters (Q1,Q2,Q3,Q4)              [rad]
+    
+    OUTPUT: xSC, ySC, zSC: normalized cartesian coordinates of the direction of the star in the spacecraft reference frame.
+    
+    REMARK: Reference documents: PLATO-KUL-PL-TN-0001 
+
+    """
+
+    # Get the sky position of the Sun (ra, dec) [rad]
+
+    raSun, decSun = sunSkyCoordinatesAwayfromPlatformPointing(raPlatform, decPlatform, solarPanelOrientation)
+
+    # Compute the equatorial cartesian coordinates of the unit vector along the z-axis (= roll = pointing axis) of the platform.
+    # The x-axis of the platform points to the highest point fof the sunshield, which is pointing to the (average) sky position
+    # of the Sun.
+
+    zSC = np.array([cos(decPlatform)*cos(raPlatform), cos(decPlatform)*sin(raPlatform), sin(decPlatform)])
+    deltax = np.arctan(- cos(raPlatform-raSun) / tan(decPlatform))
+    xSC = np.array([cos(deltax)*cos(raSun), cos(deltax)*sin(raSun), sin(deltax)])
+    ySC = np.cross(zSC, xSC)
+
+    # Compute the rotation matrix to convert cartesian coordinates in the equatorial reference frame to 
+    # cartesian coordinates in the spacecraft framework.
+
+    rotEQ2SC   = np.array([[xSC[0], xSC[1], xSC[2]], \
+                           [ySC[0], ySC[1], ySC[2]], \
+                           [zSC[0], zSC[1], zSC[2]]])
+
+    # Compute the cartesian coordinates of the star in the equatorial reference frame
+
+    starEQ = np.array([cos(decStar)*cos(raStar), cos(decStar)*sin(raStar), sin(decStar)])
+
+    # Transform these coordinates to the corresponding ones in the focal plane reference frame:
+
+    starSC = np.dot(rotEQ2SC, starEQ)
+    
+    # That's it
+
+    return starSC[0], starSC[1], starSC[2]
+
+
+
+
+
+
+
+
+
+def platformToSkyCoordinates(xSC, ySC, zSC, raPlatform, decPlatform, solarPanelOrientation):
+
+    """
+    PURPOSE: Convert the cartesian platform coordinates (xSC, ySC, zSC) of a point to equatorial 
+             sky coordinates (alpha, delta). The units of the platform coordinates are arbitrary,
+             since the output of this function is only a sky _direction_.
+             
+    INPUT: xSC:                    x-coordinate in the spacecraft reference frame  [arbitrary]
+           ySC:                    y-coordinate in the spacecraft reference frame  [same unit as xSC]
+           zSC:                    z-coordinate in the spacecraft reference frame  [same unit as xSC]
+           raPlatform:             right ascension of the platform roll axis       [rad]
+           decPlatform:            declination of the platform roll axis           [rad]
+           solarPanelOrientation:  (0,pi/2,pi,3pi/2) for quarters (Q1,Q2,Q3,Q4)    [rad]
+    
+    OUTPUT: Equatorial coordinates of the direction of the vector (xSC, ySC, zSC)  [rad]
+    
+    REMARK: Reference documents: PLATO-KUL-PL-TN-0001 
+
+    """
+
+    vecSC = np.array([xSC, ySC, zSC])
+
+    # Get the sky position of the Sun (ra, dec) [rad]
+
+    raSun, decSun = sunSkyCoordinatesAwayfromPlatformPointing(raPlatform, decPlatform, solarPanelOrientation)
+
+    # Compute the equatorial cartesian coordinates of the unit vector along the z-axis (= roll = pointing axis) of the platform.
+    # The x-axis of the platform points to the highest point fof the sunshield, which is pointing to the (average) sky position
+    # of the Sun.
+
+    zSC = np.array([cos(decPlatform)*cos(raPlatform), cos(decPlatform)*sin(raPlatform), sin(decPlatform)])
+    deltax = np.arctan(- cos(raPlatform-raSun) / tan(decPlatform))
+    xSC = np.array([cos(deltax)*cos(raSun), cos(deltax)*sin(raSun), sin(deltax)])
+    ySC = np.cross(zSC, xSC)
+
+    # Compute the rotation matrix to convert cartesian coordinates in the equatorial reference frame to 
+    # cartesian coordinates in the spacecraft reference frame
+
+    rotSC2EQ   = np.array([[xSC[0], ySC[0], zSC[0]], \
+                           [xSC[1], ySC[1], zSC[1]], \
+                           [xSC[2], ySC[2], zSC[2]]])
+    
+    
+    # Transform the unnormalized focal plane coordinates to the corresponding ones in the equatorial reference frame
+
+    vecEQ = np.dot(rotSC2EQ, vecSC)
+
+    # Convert the cartesian equatorial coordinates to equatorial sky coordinates
+
+    norm = sqrt(vecEQ[0]*vecEQ[0] + vecEQ[1]*vecEQ[1] + vecEQ[2]*vecEQ[2]) 
+    decStar = pi/2.0 - arccos(vecEQ[2]/norm);
+    raStar = arctan2(vecEQ[1], vecEQ[0]);
+
+    # Ensure that the right ascension is positive
+
+    if isinstance(raStar, np.ndarray):
+        raStar[raStar < 0.0] += 2.*pi
+    else:
+        if (raStar < 0.0):
+            raStar += 2.*pi
+
+    # That's it!
+
+    return raStar, decStar
+
+
+
+
+
+
+
+
+
+
+
+
 def skyToFocalPlaneCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength):
 
     """
@@ -400,6 +535,81 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, solarPanelOrie
 
 
 
+
+
+
+
+
+
+def telescopeToUndistortedFocalPlaneCoordinates(xTL, yTL, zTL, focalLength, focalPlaneAngle):
+
+    """
+    PURPOSE: given cartesian coordinates in the telescope reference frame, compute the undistorted
+             coordinates in the focal plane reference frame.
+
+    INPUT: xTL:             x-coordinate in the focal plane reference frame      [arbitrary unit]
+           yTL:             y-coordinate in the focal plane reference frame      [  "         " ]
+           zTL:             z-coordinate in the focal plane reference frame      [  "         " ]
+           focalLength:     Focal length of the camera.                          [mm]
+           focalPlaneAngle: focal plane orientation angle                        [rad]
+
+    OUTPUT: xFP, yFP: cartesian coordinates in the focal plane reference frame.  [mm]
+    """
+
+    rotTL2FP = np.array([[ cos(focalPlaneAngle), sin(focalPlaneAngle), 0],  \
+                         [-sin(focalPlaneAngle), cos(focalPlaneAngle), 0],  \
+                         [          0          ,           0         , 1]])
+
+    vecTL = np.array([xTL, yTL, zTL])
+    vecFP = np.dot(rotTL2FP, vecTL)
+    
+    # Convert the units to the one of focalLength (usually [mm]), and normalize the coordinates 
+    # to take into account the pinhole camera projection.
+
+    xFPmm = focalLength * vecFP[0]/vecFP[2]
+    yFPmm = focalLength * vecFP[1]/vecFP[2]
+
+    return xFPmm, yFPmm
+
+
+
+
+
+
+
+
+
+
+def undistortedFocalPlaneToTelescopeCoordinates(xFP, yFP, focalLength, focalPlaneAngle):
+
+    """
+    PURPOSE: given cartesian coordinates in the focal plane reference frame, compute the 
+             coordinates in the telescope reference frame.
+
+    INPUT: xFP:             x-coordinate in the focal plane reference frame   [mm]
+           yFP:             y-coordinate in the focal plane reference frame   [mm]
+           focalLength:     Focal length of the camera.                       [mm]
+           focalPlaneAngle: focal plane orientation angle                     [rad]
+
+    OUTPUT: xTL, yTL, zTL: cartesian coordinates in the telescope reference frame.
+
+    REMARK: Because of the projection degeneracy, the telescope coordinates are computed on the unit sphere
+    """
+
+    
+    vecFP = np.array([xFP/focalLength, yFP/focalLength, 1.0])
+
+    # Compute the rotation matrix to convert cartesian coordinates in the focal plane reference frame to
+    # cartesian coordinates in the telescope reference frame
+
+    rotFP2TL = np.array([[cos(focalPlaneAngle), -sin(focalPlaneAngle), 0],  \
+                         [sin(focalPlaneAngle),  cos(focalPlaneAngle), 0],  \
+                         [          0          ,           0         , 1]])
+
+    vecTL = np.dot(rotFP2TL, vecFP)
+    vecTL /= norm(vecTL)
+
+    return vecTL[0], vecTL[1], vecTL[2]
 
 
 
