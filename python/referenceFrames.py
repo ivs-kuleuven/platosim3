@@ -349,8 +349,8 @@ def skyToFocalPlaneCoordinates(raStar, decStar, raPlatform, decPlatform, solarPa
 
     INPUT: raStar:                 right ascension of the star                               [rad]
            decStar:                declination of the star                                   [rad]
-           raPlatform:             right ascension of the optical axis                       [rad]
-           decPlatform:            declination of the optical axis                           [rad]
+           raPlatform:             right ascension of the platform roll axis                 [rad]
+           decPlatform:            declination of the platform roll axis                     [rad]
            solarPanelOrientation:  (0,pi/2,pi,3pi/2) for quarters (Q1,Q2,Q3,Q4)              [rad]
            tiltAngle:              tilt angle of the telescope w.r.t. platform z-axis        [rad]                   
            azimuthAngle:           azimuth angle of the telescope on the platform            [rad]
@@ -779,9 +779,6 @@ def focalPlaneToPixelCoordinates(xFP, yFP, pixelSize, ccdZeroPointX, ccdZeroPoin
 
 
 
-
-
-
 def gnomonicRadialDistanceFromOpticalAxis(xFP, yFP, focalLength):
 
     """
@@ -815,6 +812,11 @@ def gnomonicRadialDistanceFromOpticalAxis(xFP, yFP, focalLength):
 
 
 
+
+
+
+
+
 def focalPlaneCoordinatesFromGnomonicRadialDistance(angularDistance, focalLength, inPlaneRotation=0.):
 
     """
@@ -836,6 +838,10 @@ def focalPlaneCoordinatesFromGnomonicRadialDistance(angularDistance, focalLength
     yFP = D * np.sin(inPlaneRotation)
 
     return xFP,yFP
+
+
+
+
 
 
 
