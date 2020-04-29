@@ -92,14 +92,6 @@ sim["SubField/NumRows"] = numRowsSubField
   
 sim["Telescope/GroupID"] = group
 
-# Set the focal plane angle different per group. 45.0 is to ensure that the platform pointing axis
-# falls on a CCD rather than just in between CCDs. The (group - 1) * 90.0 is convenient so that 
-# on the sky the left/right/top/down labeling of the different CCDs is the same for each group.
-
-sim["Camera/FocalPlaneOrientation/Source"] = "ConstantValue"
-sim["Camera/FocalPlaneOrientation/ConstantValue"] = 45.0 + (group - 1) * 90.0
-
-
 # Set the quarter specific parameters
 
 sim["RandomSeeds/JitterSeed"] = 2033429158 + 100 * quarter
@@ -107,8 +99,8 @@ sim["Platform/SolarPanelOrientation"] = math.fmod(quarter * 90., 360.)         #
 
 cycleTime = sim["ObservingParameters/CycleTime"]
 numExposuresCoveringOneQuarter = 90. * 86400. / cycleTime                      # One quarter is 90 days
-numExposures = (90. - 2.) * 86400. / cycleTime                                 # Two days lost because of platform roll + thermal stabilisation
-#numExposures = 100                                                             # For testing only
+#numExposures = (90. - 2.) * 86400. / cycleTime                                 # Two days lost because of platform roll + thermal stabilisation
+numExposures = 100                                                             # For testing only
 sim["ObservingParameters/NumExposures"] = int(numExposures)
 sim["ObservingParameters/BeginExposureNr"] = (quarter-1) * int(numExposuresCoveringOneQuarter)
 

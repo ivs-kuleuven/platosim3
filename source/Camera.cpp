@@ -506,6 +506,7 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     double centerXmm, centerYmm;
     tie(centerXmm, centerYmm) = detector.getFocalPlaneCoordinatesOfSubfieldCenter();
 
+
     double corner00Xmm, corner00Ymm, corner11Xmm, corner11Ymm, dummy;
     tie(corner00Xmm, corner00Ymm, dummy, dummy, corner11Xmm, corner11Ymm, dummy, dummy) = detector.getFocalPlaneCoordinatesOfSubfieldCorners();
 
@@ -520,6 +521,12 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
         tie(corner11Xmm, corner11Ymm) = distortedToUndistortedFocalPlaneCoordinates(corner11Xmm, corner11Ymm);
     }
 
+    // After the distortion, compute the CCD pixel coordinates of the subfield center, just for logging purposes
+
+    double centerRow, centerCol; 
+    tie(centerRow, centerCol) = detector.focalPlaneToPixelCoordinates(centerXmm, centerYmm);
+
+    Log.debug("Camera: center of subfield at CCD (row, col) = (" + to_string(centerRow) + ", " + to_string(centerCol) + ") pix");
     Log.debug("Camera: center of subfield at (Xmm, Ymm) = (" + to_string(centerXmm) + ", " + to_string(centerYmm) + ") mm");
     Log.debug("Camera: lower left corner of subfield at (Xmm, Ymm) = (" + to_string(corner00Xmm) + ", " + to_string(corner00Ymm) + ") mm");
     Log.debug("Camera: upper right corner of subfield at (Xmm, Ymm) = (" + to_string(corner11Xmm) + ", " + to_string(corner11Ymm) + ") mm");
@@ -857,8 +864,8 @@ pair<double, double> Camera::skyToFocalPlaneCoordinates(double raStar, double de
     // Convert the units to the one of focalLength (usually [mm]), and normalize the coordinates 
     // to take into account the pinhole camera projection.
 
-    double xFP = - (*focalLength)() * starFP[0]/starFP[2];
-    double yFP = - (*focalLength)() * starFP[1]/starFP[2];
+    double xFP = (*focalLength)() * starFP[0]/starFP[2];
+    double yFP = (*focalLength)() * starFP[1]/starFP[2];
 
     // That's it
 
@@ -894,7 +901,7 @@ pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFP, double yFP, 
 
     // Undo the reverse-image projection effect of the pinhole
 
-    arma::colvec vecFP = {-xFP / (*focalLength)(), -yFP / (*focalLength)(), 1.0};
+    arma::colvec vecFP = {xFP / (*focalLength)(), yFP / (*focalLength)(), 1.0};
 
     // Compute the rotation matrix to convert cartesian coordinates in the focal plane reference frame to
     // cartesian coordinates in the telescope reference frame

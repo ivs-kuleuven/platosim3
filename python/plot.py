@@ -1,7 +1,9 @@
 from numpy import *
 import numpy as np
 from referenceFrames import *
-
+from matplotlib import pyplot as plt
+from matplotlib import patches
+from matplotlib.path import Path
 
 
 
@@ -157,7 +159,7 @@ def drawStarsInSkyMollweide(fig, ra, dec ):
 
 
 
-def drawCCDsInFocalPlane(pixelSize, normal=True):
+def drawCCDsInFocalPlane(pixelSize, plotCCDlabels=True, normal=True):
 
     """
     PURPOSE: Plot the 4 CCDs in the focal plane in the FP' reference frame.
@@ -186,6 +188,9 @@ def drawCCDsInFocalPlane(pixelSize, normal=True):
 
     # Plot each of the 4 CCDs
 
+    fig = plt.figure(figsize = (10,10))
+    ax = fig.add_subplot(111)
+
     for ccdCode in ccdCodes:
 
         # Get the corner coordinates in the FP' plane
@@ -196,17 +201,28 @@ def drawCCDsInFocalPlane(pixelSize, normal=True):
 
         x = append(cornersXmm, cornersXmm[0])
         y = append(cornersYmm, cornersYmm[0])
-        
-        plt.plot(x, y, c=color[ccdCode])
+       
+        ax.plot(x, y, c=color[ccdCode])
 
         # Overplot the row closest to the readout register with a thicker line
 
-        plt.plot([x[0], x[1]], [y[0], y[1]], c=color[ccdCode], linewidth=3)
+        ax.plot([x[0], x[1]], [y[0], y[1]], c=color[ccdCode], linewidth=4)
+
+        # If required, also plot the CCD labels
+
+        if plotCCDlabels:
+
+            minX = np.min(cornersXmm)
+            maxX = np.max(cornersXmm)
+            minY = np.min(cornersYmm)
+            maxY = np.max(cornersYmm)
+            middleX = minX + (maxX - minX) / 2.
+            middleY = minY + (maxY - minY) / 2.
+            ax.text(middleX, middleY, ccdCode, fontsize=45, color="gray")
 
 
-    plt.xlabel("x_FP [mm]")
-    plt.ylabel("y_FP [mm]")
-    plt.draw()
+    ax.set_xlabel("xFP [mm]")
+    ax.set_ylabel("yFP [mm]")
 
     # That's it
 
