@@ -857,8 +857,8 @@ pair<double, double> Camera::skyToFocalPlaneCoordinates(double raStar, double de
     // Convert the units to the one of focalLength (usually [mm]), and normalize the coordinates 
     // to take into account the pinhole camera projection.
 
-    double xFP = - (*focalLength)() * starFP[0]/starFP[2];
-    double yFP = - (*focalLength)() * starFP[1]/starFP[2];
+    double xFP = (*focalLength)() * starFP[0]/starFP[2];
+    double yFP = (*focalLength)() * starFP[1]/starFP[2];
 
     // That's it
 
@@ -894,7 +894,7 @@ pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFP, double yFP, 
 
     // Undo the reverse-image projection effect of the pinhole
 
-    arma::colvec vecFP = {-xFP / (*focalLength)(), -yFP / (*focalLength)(), 1.0};
+    arma::colvec vecFP = {xFP / (*focalLength)(), yFP / (*focalLength)(), 1.0};
 
     // Compute the rotation matrix to convert cartesian coordinates in the focal plane reference frame to
     // cartesian coordinates in the telescope reference frame
