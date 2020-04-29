@@ -143,7 +143,7 @@ for group in range(numTelescopeGroups):
         pixelSize   = sim["CCD/PixelSize"]                                             # Pixel size [micron / pixel]
        
 
-        focalPlaneAngle = 45.0 + group * 90.0                                                       # [deg]
+        focalPlaneAngle = 0.0                                                                       # [rad]
         solarPanelOrientation = math.radians(float(sim["Platform/SolarPanelOrientation"]))          # [rad]
 
         # Set the subfield to the same pointing as the platform
@@ -196,3 +196,4 @@ for group in range(numTelescopeGroups):
             
         else:
             print("Sub-field centred on ({0}, {1}) does not lay entirely on a CCD for telescope {2} of group {3}".format(raCenter, decCenter, telescope + 1, group + 1))
+
