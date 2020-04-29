@@ -4,11 +4,7 @@ import numpy as np
 
 from numpy import *
 from numpy.polynomial import Polynomial
-
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-
-from matplotlib.path import Path
+from numpy.linalg import norm
 
 
 
@@ -259,15 +255,15 @@ def skyToFocalPlaneCoordinates(raStar, decStar, raPlatform, decPlatform, solarPa
     # Compute the rotation matrix to convert cartesian coordinates in the spacecraft reference frame to 
     # cartesian coordinates in the telescope reference frame
 
-    rotAzimuth = np.array([[cos(azimuthAngle), -sin(azimuthAngle), 0],   \
-                           [sin(azimuthAngle),  cos(azimuthAngle), 0],   \
+    rotAzimuth = np.array([[ cos(azimuthAngle), sin(azimuthAngle), 0],   \
+                           [-sin(azimuthAngle), cos(azimuthAngle), 0],   \
                            [        0        ,          0,         1]])
 
     rotTilt = np.array([[cos(tiltAngle), 0, -sin(tiltAngle)], \
                         [     0        , 1,        0       ], \
                         [sin(tiltAngle), 0,  cos(tiltAngle)]])
 
-    rotSC2TL = np.dot(rotTilt, rotAzimuth)
+    rotSC2TL = np.dot(rotAzimuth.T, np.dot(rotTilt, rotAzimuth))
 
     # Compute the rotation matrix to convert cartesian coordinates in the telescope reference frame to
     # cartesian coordinates in the focal plane reference frame
@@ -348,15 +344,15 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, solarPanelOrie
     # Compute the rotation matrix to convert cartesian coordinates in the telescope reference frame to 
     # cartesian coordinates in the spacecraft reference frame
 
-    rotAzimuth = np.array([[ cos(azimuthAngle), sin(azimuthAngle), 0],   \
-                           [-sin(azimuthAngle), cos(azimuthAngle), 0],   \
+    rotAzimuth = np.array([[cos(azimuthAngle), -sin(azimuthAngle), 0],   \
+                           [sin(azimuthAngle),  cos(azimuthAngle), 0],   \
                            [        0        ,          0,         1]])
 
     rotTilt = np.array([[ cos(tiltAngle), 0, sin(tiltAngle)], \
                         [     0         , 1,        0      ], \
                         [-sin(tiltAngle), 0, cos(tiltAngle)]])
 
-    rotTL2SC = np.dot(rotAzimuth, rotTilt)
+    rotTL2SC = np.dot(rotAzimuth, np.dot(rotTilt, rotAzimuth.T))
 
 
     # Compute the equatorial cartesian coordinates of the unit vector along the z-axis (= roll = pointing axis) of the platform.
@@ -734,7 +730,6 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
     if (includeFieldDistortion == True) or (includeFieldDistortion == "yes"):
         xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients, focalLength)
 
-
     # Find out if this falls on a CCD, and if yes which one.
     # Our approach: try each of the CCDs. Not elegant, but robust...  
 
@@ -802,15 +797,15 @@ def platformToTelescopePointingCoordinates(raPlatform, decPlatform, raSun, decSu
     # Compute the rotation matrix to convert cartesian coordinates in the telescope reference frame to 
     # cartesian coordinates in the spacecraft reference frame
 
-    rotAzimuth = np.array([[ cos(azimuthAngle), sin(azimuthAngle), 0],   \
-                           [-sin(azimuthAngle), cos(azimuthAngle), 0],   \
+    rotAzimuth = np.array([[cos(azimuthAngle), -sin(azimuthAngle), 0],   \
+                           [sin(azimuthAngle),  cos(azimuthAngle), 0],   \
                            [        0        ,          0,         1]])
 
     rotTilt = np.array([[ cos(tiltAngle), 0, sin(tiltAngle)], \
                         [     0        , 1,        0       ], \
                         [-sin(tiltAngle), 0, cos(tiltAngle)]])
 
-    rotTL2SC = np.dot(rotAzimuth, rotTilt)
+    rotTL2SC = np.dot(rotAzimuth, np.dot(rotTilt, rotAzimuth.T))
 
 
     # Compute the equatorial cartesian coordinates of the unit vector along the z-axis (= roll = pointing axis) of the platform.
