@@ -18,7 +18,7 @@ ThermoElasticDriftFromFile::ThermoElasticDriftFromFile(ConfigurationParameters &
     // Check whether the required time span is covered by the jitter file
 
     double lastTimePoint = FileUtilities::getLastTimePoint(pathToDriftFile);
-    double requiredTimeRange = configParams.getDouble("ObservingParameters/CycleTime") * (configParams.getInteger("ObservingParameters/NumExposures") + configParams.getInteger("ObservingParameters/BeginExposureNr"));
+    double requiredTimeRange = endTime - beginTime;
 
     if (lastTimePoint < requiredTimeRange)
     {
@@ -158,17 +158,29 @@ ThermoElasticDriftFromFile::~ThermoElasticDriftFromFile()
 
 void ThermoElasticDriftFromFile::configure(ConfigurationParameters &configParams)
 {
-    pathToDriftFile = configParams.getAbsoluteFilename("Telescope/DriftFileName");
-    int numExposures      = configParams.getInteger("ObservingParameters/NumExposures");
-    int beginExposureNr   = configParams.getInteger("ObservingParameters/BeginExposureNr");
-    double cycleTime   = configParams.getDouble("ObservingParameters/CycleTime");
+    pathToDriftFile     = configParams.getAbsoluteFilename("Telescope/DriftFileName");
+    int numExposures    = configParams.getInteger("ObservingParameters/NumExposures");
+    int beginExposureNr = configParams.getInteger("ObservingParameters/BeginExposureNr");
+    double cycleTime    = configParams.getDouble("ObservingParameters/CycleTime");
+    string ccdPosition  = configParams.getString("CCD/Position");
+
+    double timeShift;
+    if (ccdPosition == "Custom")
+    {
+        timeShift = configParams.getDouble("CCD/TimeShift");
+    }
+    else
+    {
+        int index = stoi(ccdPosition) - 1;   // Position are named  [1, 2, 3, 4] while the index into vector starts at 0
+        timeShift = configParams.getDoubleAt("CCDPositions/TimeShift", index);
+    }
 
     //  Determine from when to when the simulation runs. Only for this time interval
-    //  we need to read the drift file into memory. This saves time when the drift
+    //  we need to read the jitter file into memory. This saves time when the jitter
     //  file is large but the simulation is short.
     
-    beginTime = beginExposureNr * cycleTime;
-    endTime   = (beginExposureNr + numExposures) * cycleTime;
+    beginTime = timeShift + beginExposureNr * cycleTime;
+    endTime   = beginTime + numExposures * cycleTime;
 }
 
 
