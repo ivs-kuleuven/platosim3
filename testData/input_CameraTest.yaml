@@ -140,5 +140,5 @@ RandomSeeds:
 
 CameraGroups:                                                          # Four groups of six camera's with their azimuth and tilt as specified
                                                                        # The fifth value is for the Fast Camera's
-    AzimuthAngle:                    [45.0, 135.0, -135.0, -45.0, 0.0] # Azimuth angle of telescope on the platform [deg]
+    AzimuthAngle:                    [45.0, 135.0, 255.0, 315.0, 0.0]  # Azimuth angle of telescope on the platform [deg]
     TiltAngle:                       [9.2, 9.2, 9.2, 9.2, 0.0]         # Tilt angle of the telescope on the platform [deg]
