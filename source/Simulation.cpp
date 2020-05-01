@@ -161,7 +161,15 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     platform   = new Platform(configParams, *hdf5File, *jitterGenerator);
     telescope  = new Telescope(configParams, *hdf5File, *platform, *driftGenerator);
     sky        = new Sky(configParams);
-    camera     = new Camera(configParams, *hdf5File, *platform, *telescope, *sky);
+
+    if (useStellarSpectra)
+    {
+        camera = new CameraSpectral(configParams, *hdf5File, *platform, *telescope, *sky);
+    }
+    else
+    {
+        camera = new Camera(configParams, *hdf5File, *platform, *telescope, *sky);
+    }
 
 
     // Depending on how the PSF is computed (analytically or pre-mapped) the Detector object is different.
@@ -252,6 +260,7 @@ void Simulation::configure(ConfigurationParameters &configParams)
     useDetectorNominalTemperature   = configParams.getString("CCD/Temperature") == "Nominal";
     sendImagettesToClient           = configParams.getBoolean("ControlTcpConnection/SendImagettesToClients");
     getWindowPositionFromServer     = configParams.getBoolean("ControlTcpConnection/GetWindowPositionsFromServer");
+    useStellarSpectra               = configParams.getBoolean("SpectralDependency/GenerateFluxBasedOnTemperature");
 
     // The readout of different CCDs are shifted in time because of the power budget.
     // Find out the right time shift.

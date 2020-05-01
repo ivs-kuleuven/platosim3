@@ -52,8 +52,8 @@ Telescope:
 
     LightCollectingArea:             113.1           # Effective area of 1 telescope [cm^2]
     TransmissionEfficiency:
-        BOL:                         0.8135          # Beginning of Life value in [0,1]
-        EOL:                         0.7945          # End of Life value in [0,1]
+        BOL:                         1. #0.8135          # Beginning of Life value in [0,1]
+        EOL:                         1. #0.7945          # End of Life value in [0,1]
     UseDrift:                        no              # yes or no. If no, ignore everything below.
     UseDriftFromFile:                no              # yes or no. If yes: ignore RMS and timescale below
     DriftYawRms:                     2.0             # RMS of thermo-elastic drift in yaw [arcsec]
@@ -285,6 +285,15 @@ ControlTcpConnection:
 
     WindowPositionSocketTimeout:    100  # seconds
     JitterSocketTimeout:            100  # seconds
+
+
+SpectralDependency:
+
+    GenerateFluxBasedOnTemperature: yes               # yes or no
+    SpectralBinWidth:               50               # in [nm]
+    LowerWavelengthLimit:           500              # in [nm]
+    NumberOfSpectralBins:           11               # integer
+    TransmissionEfficiencySpectral:         [1,1,1,1,1,1,1,1,1,1,1]
 
 
 # ----- DO NOT MAKE CHANGES BELOW THIS LINE -----

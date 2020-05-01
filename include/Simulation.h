@@ -12,6 +12,7 @@
 #include "NominalTemperature.h"
 
 #include "Camera.h"
+#include "CameraSpectral.h"
 #include "Telescope.h"
 #include "Platform.h"
 #include "Sky.h"
@@ -92,6 +93,8 @@ class Simulation
 
         bool sendImagettesToClient;
         bool getWindowPositionFromServer;
+
+        bool useStellarSpectra;
 
 };
 
