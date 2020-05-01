@@ -163,7 +163,7 @@ void CameraSpectral::exposeDetector(Detector &detector, double startTime, double
         double wavelength = lowerWavelength + i*binwidth + binwidth/2;
         double Ephoton = hc / wavelength;
         photonEnergies.push_back(Ephoton);
-        double fluxFactorWave = transmissionEfficiencySpectral[i] * pow(referenceWavelength / wavelength, 5);
+        double fluxFactorWave = transmissionEfficiencySpectral[i] * pow(referenceWavelength / wavelength, 5)/Ephoton;
         wavePrefactors.push_back(fluxFactorWave);
     } 
 
@@ -215,9 +215,10 @@ void CameraSpectral::exposeDetector(Detector &detector, double startTime, double
 
             for (int i=0; i<binnumber; i++)
             {
-            double tempFactor = (exp(hc/(referenceWavelength*Constants::KBOLTZMANN*tempStar)) - 1) / (exp(photonEnergies[i]/(Constants::KBOLTZMANN*tempStar)) - 1);
-            flux += floor(fluxFactor * wavePrefactors[i] * pow(10.0, -0.4 * Vmag) * timeStep * tempFactor) * QESpectral[i] / meanQE;
+                double tempFactor = (exp(hc/(referenceWavelength*Constants::KBOLTZMANN*tempStar)) - 1) / (exp(photonEnergies[i]/(Constants::KBOLTZMANN*tempStar)) - 1);
+                flux += floor(fluxFactor * wavePrefactors[i] * pow(10.0, -0.4 * Vmag) * timeStep * tempFactor) * QESpectral[i] / meanQE;
             } 
+
 
             // Let the detector add the flux to the appropriate pixel. 
             // Detector.flux() returns the pixel coordinates to which the flux was added.
