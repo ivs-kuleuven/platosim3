@@ -52,8 +52,8 @@ Telescope:
 
     LightCollectingArea:             113.1           # Effective area of 1 telescope [cm^2]
     TransmissionEfficiency:
-        BOL:                         1. #0.8135          # Beginning of Life value in [0,1]
-        EOL:                         1. #0.7945          # End of Life value in [0,1]
+        BOL:                         0.8135          # Beginning of Life value in [0,1]
+        EOL:                         0.7945          # End of Life value in [0,1]
     UseDrift:                        no              # yes or no. If no, ignore everything below.
     UseDriftFromFile:                no              # yes or no. If yes: ignore RMS and timescale below
     DriftYawRms:                     2.0             # RMS of thermo-elastic drift in yaw [arcsec]
@@ -289,11 +289,14 @@ ControlTcpConnection:
 
 SpectralDependency:
 
-    GenerateFluxBasedOnTemperature: yes               # yes or no
-    SpectralBinWidth:               50               # in [nm]
-    LowerWavelengthLimit:           500              # in [nm]
-    NumberOfSpectralBins:           11               # integer
-    TransmissionEfficiencySpectral:         [1,1,1,1,1,1,1,1,1,1,1]
+    StarCatalogueHasTemp:           no              # Whether or not the star catalogue has a comun for stellar temperature (RA/DEC/Mag/T?/ID?)
+    GenerateFluxBasedOnTemperature: yes              # [yes/no] Whether or not to use stellar Temperature to respect spectral dependency of PLATO - if 'yes' give info below
+    SpectralBinWidth:               50               # in [nm], width of an individual spectral bin to approximate the spectrum
+    LowerWavelengthLimit:           500              # in [nm], lower limit where to start the spectral bins
+    NumberOfSpectralBins:           11               # Total number of spectral bins
+    TransmissionEfficiencySpectralBOL: [0.831, 0.847, 0.845, 0.844, 0.850, 0.852, 0.854, 0.855, 0.855, 0.856, 0.857]  # Transmission Efficiency in every spectral bin BOL
+    TransmissionEfficiencySpectralEOL: [0.831, 0.847, 0.845, 0.844, 0.850, 0.852, 0.854, 0.855, 0.855, 0.856, 0.857]  # Transmission Efficiency in every spectral bin EOL
+    QuantumEfficiencySpectral:         [0.737, 0.807, 0.877, 0.867, 0.858, 0.757, 0.655, 0.485, 0.314, 0.165, 0.062]  # QE in every spectral bin - only applied in using QE
 
 
 # ----- DO NOT MAKE CHANGES BELOW THIS LINE -----
