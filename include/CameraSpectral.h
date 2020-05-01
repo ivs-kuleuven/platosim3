@@ -1,16 +1,6 @@
 #ifndef CAMERASPECTRAL_H
 #define CAMERASPECTRAL_H
 
-#include <string>
-#include <cmath>
-#include <vector>
-#include <algorithm>
-#include <map>
-#include <array>
-#include <tuple>
-
-#include "armadillo"
-
 #include "Camera.h"
 #include "SpectralDependenceUtility.h"
 
