@@ -577,6 +577,7 @@ void Simulation::writeStarCatalogToHDF5()
     vector<double> colPix(Nstars);
     vector<double> xFPmm(Nstars);
     vector<double> yFPmm(Nstars);
+    vector<double> temp(Nstars);
 
     double xFPrad, yFPrad;
 
@@ -586,7 +587,7 @@ void Simulation::writeStarCatalogToHDF5()
         for (auto starID: allStarIDs)
         {
             starIDs[k] = starID;
-            tie(RA[k], dec[k], Vmag[k]) = sky->getInfoOfStarWithID(starID);  // RA & dec returned in radians!
+            tie(RA[k], dec[k], Vmag[k], temp[k]) = sky->getInfoOfStarWithID(starID);  // RA & dec returned in radians!
             const bool useInitialOrientation = true;
             tie(xFPmm[k], yFPmm[k]) = camera->skyToFocalPlaneCoordinates(RA[k], dec[k], useInitialOrientation);
             
@@ -606,6 +607,7 @@ void Simulation::writeStarCatalogToHDF5()
         hdf5File->writeArray("StarCatalog/", "RA",      RA.data(), RA.size());
         hdf5File->writeArray("StarCatalog/", "Dec",     dec.data(), dec.size());
         hdf5File->writeArray("StarCatalog/", "Vmag",    Vmag.data(), Vmag.size());
+        hdf5File->writeArray("StarCatalog/", "Temp",    temp.data(), temp.size());
         hdf5File->writeArray("StarCatalog/", "xFPmm",    xFPmm.data(), xFPmm.size());
         hdf5File->writeArray("StarCatalog/", "yFPmm",    yFPmm.data(), yFPmm.size());
         hdf5File->writeArray("StarCatalog/", "colPix",    colPix.data(), colPix.size());

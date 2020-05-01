@@ -20,7 +20,17 @@ class SpectralDependenceUtility
         int binnumber;
         double lowerWavelength;
         double binwidth;
-        vector<double> transmissionEfficiencySpectral;
+        vector<double> transmissionEfficiencySpectralBOL;
+        vector<double> transmissionEfficiencySpectralEOL;
+        vector<double> QESpectral;
+
+        bool useQE;
+        double meanQE;
+        
+        bool fileHasTemp;
+        double missionDuration;
+
+        vector<double> getSpectralTransmissionEfficiency(double time);
 
     protected:
 

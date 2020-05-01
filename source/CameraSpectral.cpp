@@ -11,16 +11,39 @@
 
 CameraSpectral::CameraSpectral(ConfigurationParameters &configParam, HDF5File &hdf5file, Platform &platform, Telescope &telescope, Sky &sky) : Camera(configParam, hdf5file, platform, telescope, sky)
 {
-    SpectralDependenceUtility Spectral(configParam);
-    binnumber = Spectral.binnumber;
-    binwidth = Spectral.binwidth;
-    lowerWavelength = Spectral.lowerWavelength;
-    referenceWavelength = Spectral.referenceWavelength;
-    transmissionEfficiencySpectral = Spectral.transmissionEfficiencySpectral;
+    Spectral = new SpectralDependenceUtility(configParam);
+    getParameters(configParam);
 }
 
 
 
+/**
+ *
+ */
+void CameraSpectral::getParameters(ConfigurationParameters &configParam)
+{
+    //SpectralDependenceUtility Spectral(configParam);
+    binnumber = Spectral->binnumber;
+    binwidth = Spectral->binwidth;
+    lowerWavelength = Spectral->lowerWavelength;
+    referenceWavelength = Spectral->referenceWavelength;
+    useQE = Spectral->useQE;
+    if (useQE)
+    {
+        QESpectral = Spectral->QESpectral;
+        meanQE = Spectral->meanQE;
+    }
+    else
+    {
+        QESpectral.assign(binnumber,1.); 
+        meanQE = 1.;
+    }
+}
+
+
+/**
+ *
+ */
 void CameraSpectral::exposeDetector(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure)
 {
     // Get the value for the degrading TransmissionEfficiency parameter at the startTime of this exposure
@@ -28,6 +51,8 @@ void CameraSpectral::exposeDetector(Detector &detector, double startTime, double
     double transmissionEfficiency = telescope.getTransmissionEfficiency(startTime);
 
     Log.debug("Camera: TransmissionEfficiency at time "+to_string(startTime)+" is "+to_string(transmissionEfficiency));
+
+    vector<double> transmissionEfficiencySpectral = Spectral->getSpectralTransmissionEfficiency(startTime);
 
 
     // Get the focal plane coordinates of the center and the corners of the subfield (in [mm]).
@@ -120,7 +145,6 @@ void CameraSpectral::exposeDetector(Detector &detector, double startTime, double
     // fluxOfV0Star is the photon flux [photons/s/m^2/nm] for a V=0 G2V-star.
     // Units of fluxFactor: [photons/s]
   
-    //#const double fluxFactor = fluxOfV0Star * throughputBandwidth * transmissionEfficiency * telescope.getLightCollectingArea(); 
 
     const double hc = Constants::CLIGHT * Constants::HPLANCK * 1.e9;
     const double referenceFlux = fluxOfV0Star * hc / referenceWavelength; 
@@ -139,7 +163,7 @@ void CameraSpectral::exposeDetector(Detector &detector, double startTime, double
         double wavelength = lowerWavelength + i*binwidth + binwidth/2;
         double Ephoton = hc / wavelength;
         photonEnergies.push_back(Ephoton);
-        double fluxFactorWave = transmissionEfficiencySpectral[i] * pow(referenceWavelength / wavelength, 5) / Ephoton;
+        double fluxFactorWave = transmissionEfficiencySpectral[i] * pow(referenceWavelength / wavelength, 5);
         wavePrefactors.push_back(fluxFactorWave);
     } 
 
@@ -171,7 +195,7 @@ void CameraSpectral::exposeDetector(Detector &detector, double startTime, double
             double RA, dec, Vmag;
 
             tie(starID, RA, dec, Vmag) = sky.getSelectedStar(n);
-            double tempStar = 5700;
+            double tempStar = sky.getSelectedStarTemp(n);
             
             double Xmm, Ymm;
             tie(Xmm, Ymm) = skyToFocalPlaneCoordinates(RA, dec);
@@ -192,7 +216,7 @@ void CameraSpectral::exposeDetector(Detector &detector, double startTime, double
             for (int i=0; i<binnumber; i++)
             {
             double tempFactor = (exp(hc/(referenceWavelength*Constants::KBOLTZMANN*tempStar)) - 1) / (exp(photonEnergies[i]/(Constants::KBOLTZMANN*tempStar)) - 1);
-            flux += floor(fluxFactor * wavePrefactors[i] * pow(10.0, -0.4 * Vmag) * timeStep * tempFactor);
+            flux += floor(fluxFactor * wavePrefactors[i] * pow(10.0, -0.4 * Vmag) * timeStep * tempFactor) * QESpectral[i] / meanQE;
             } 
 
             // Let the detector add the flux to the appropriate pixel. 

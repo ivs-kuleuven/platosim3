@@ -49,7 +49,9 @@ class Sky
         void aberrateSelectedStarPositions(Platform &platform, string aberrationCorrectionType, double startTime, double timeMiddle);
         tuple<unsigned int, double, double, double> getSelectedStar(unsigned int n);
 
-        tuple<double, double, double> getInfoOfStarWithID(unsigned int starID);
+        tuple<double, double, double, double> getInfoOfStarWithID(unsigned int starID);
+
+        double getSelectedStarTemp(unsigned int n);
 
 
         double zodiacalFlux(double RA, double dec, double lambda1, double lambda2);
@@ -69,14 +71,15 @@ class Sky
 
     private:
 
-        map<unsigned int, tuple<double, double, double>> starDB;    // star database: starDB[stardID] contains (RA, dec, Vmag), 
-                                                                    // with (RA, dec) in radians, and Vmag = Johnson V magnitude,
-                                                                    // and starID the star identification number.
+        map<unsigned int, tuple<double, double, double, double>> starDB;    // star database: starDB[stardID] contains (RA, dec, Vmag, T), 
+                                                                            // with (RA, dec) in radians, and Vmag = Johnson V magnitude, T in K,
+                                                                            // and starID the star identification number.
        
         vector<unsigned int> selectedStarID;  // IDs of the stars selected with selectStarsWithinRadiusFrom()
         vector<double> selectedRA;            //      Corresponding selected Right Ascension [rad]
         vector<double> selectedDec;           //      Corresponding Declination              [rad]
         vector<double> selectedVmag;          //      Corresponding Johnson V magnitude
+        vector<double> selectedTemp;          //      Corresponding Stellar Temperature      [K]
 
         vector<unsigned int> selectedVariableStars;    // Indices of those selected stars that have an entry in deltaMagnitude.
 
@@ -86,6 +89,8 @@ class Sky
         TabulatedFunction<vector<double>> tabfunction;
 
         void locate(double x, const double *array, int N, int &index);
+
+        bool fileHasTemp;  // Does the star catalogue contain stellar temperature?
 
 };
 

@@ -43,20 +43,26 @@ Sky::Sky(ConfigurationParameters &configParams)
             istringstream buffer(line);
             vector<double> numbers((istream_iterator<double>(buffer)), istream_iterator<double>());
             
-            // If the line contains 4 numbers then the last one is the star ID. If not, then
+            // If the line contains 4 numbers then the last one is the star ID (+1 if Temperature is present). If not, then
             // use the line number (starting from 0) as star ID.
             
             unsigned int starID;
-            if (numbers.size() == 3)
+            if (numbers.size() == 3 + fileHasTemp)
             {
                 starID = n;
             }
-            if (numbers.size() == 4)
+            if (numbers.size() == 4 + fileHasTemp)
             {
-                starID = static_cast<unsigned int>(numbers[3]);
+                starID = static_cast<unsigned int>(numbers[3 + fileHasTemp]);
             }
 
-            starDB.emplace(starID, make_tuple(numbers[0] / Angle::degrees, numbers[1] / Angle::degrees, numbers[2]));    // (starID, (RA[rad], DEC[rad], Vmag)
+            double temp = 5980;  //G0V Star temperature
+            if (fileHasTemp)
+            {
+                temp = numbers[3];
+            }
+
+            starDB.emplace(starID, make_tuple(numbers[0] / Angle::degrees, numbers[1] / Angle::degrees, numbers[2], temp));    // (starID, (RA[rad], DEC[rad], Vmag)
             n++;
         }
 
@@ -104,6 +110,7 @@ void Sky::configure(ConfigurationParameters &configParams)
     // Store the path of the general database of stars
     
     starInputfile = configParams.getAbsoluteFilename("ObservingParameters/StarCatalogFile");
+    fileHasTemp   = configParams.getBoolean("SpectralDependency/StarCatalogueHasTemp");
 
     // If there variable stars, get their time series files
     
@@ -298,8 +305,8 @@ unsigned long Sky::selectStarsWithinRadiusFrom(double RA0, double dec0, double r
     for (auto const& star: starDB)
     {
         unsigned int starID = star.first;
-        double RA, dec, Vmag;
-        tie(RA, dec, Vmag) = star.second;
+        double RA, dec, Vmag, temp;
+        tie(RA, dec, Vmag, temp) = star.second;
         double angularDistances = angularDistanceBetween(RACircleCenter, decCircleCenter, RA, dec, Angle::radians);  // [rad]
  
         if (angularDistances <= radiusCircle)
@@ -308,6 +315,7 @@ unsigned long Sky::selectStarsWithinRadiusFrom(double RA0, double dec0, double r
             selectedRA.push_back(RA);
             selectedDec.push_back(dec);
             selectedVmag.push_back(Vmag);
+            selectedTemp.push_back(temp);
 
             // Also keep track of which selected stars are variable. Saves us many search loops afterwards.
             // selectedVariableStars contains the _indices_ (of selected*) of those stars that are variable.
@@ -418,8 +426,8 @@ void Sky::aberrateSelectedStarPositions(Platform &platform, string aberrationCor
 
     for (unsigned int n = 0; n < selectedStarID.size(); ++n)
     {
-        double raStar, decStar, Vmag;
-        tie(raStar, decStar, Vmag) = starDB[selectedStarID[n]];       // ra & dec in [rad]
+        double raStar, decStar, Vmag, temp;
+        tie(raStar, decStar, Vmag, temp) = starDB[selectedStarID[n]];       // ra & dec in [rad]
 
         double lambdaStar, betaStar;
         equatorial2ecliptic(raStar, decStar, lambdaStar, betaStar);
@@ -505,6 +513,27 @@ tuple<unsigned int, double, double, double> Sky::getSelectedStar(unsigned int n)
 
 
 
+/**
+ * \brief Return temperature of selected Star
+ *
+ * \detail is separated from getSelectedStar to declutter run without spectral dependency
+ *
+ * \param n: 0 <= n < number of selected stars 
+ *
+ * \return selectedTemp of starID
+ */
+double Sky::getSelectedStarTemp(unsigned int n)
+{
+    if (n > selectedStarID.size()-1)
+    {
+        throw IllegalArgumentException("Sky::getSelectedStarTemp(): star number is larger than " + to_string(selectedStarID.size()-1));
+    }
+    else
+    {
+        return selectedTemp[n];
+    }
+}
+
 
 
 
@@ -517,7 +546,7 @@ tuple<unsigned int, double, double, double> Sky::getSelectedStar(unsigned int n)
  *
  */
 
-tuple<double, double, double> Sky::getInfoOfStarWithID(unsigned int starID)
+tuple<double, double, double, double> Sky::getInfoOfStarWithID(unsigned int starID)
 {
     if (starDB.count(starID) == 0)
     {

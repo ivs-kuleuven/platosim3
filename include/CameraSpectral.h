@@ -34,13 +34,19 @@ class CameraSpectral : public Camera
 
     protected:
 
+        void getParameters(ConfigurationParameters &configParam);
+
     private:
+
+        SpectralDependenceUtility *Spectral;
 
         double referenceWavelength;
         int binnumber;
         double lowerWavelength;
         double binwidth;
-        vector<double> transmissionEfficiencySpectral;
+        vector<double> QESpectral;
+        double meanQE;
+        bool useQE;
 
         
 };
