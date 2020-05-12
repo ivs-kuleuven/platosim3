@@ -2236,7 +2236,7 @@ The <b>CameraGroups</b> block in the configuration file is used in case a pre-de
 \code{.yaml}
 CameraGroups:
 
-    AzimuthAngle:            [45.0, 135.0, -135.0, -45.0, 0.0] 
+    AzimuthAngle:            [45.0, 135.0, 225.0, 315.0, 0.0] 
     TiltAngle:               [9.2, 9.2, 9.2, 9.2, 0.0] 
 \endcode
 
@@ -2273,7 +2273,7 @@ CCDPositions:
 
     OriginOffsetX:                   [-1, -1, -1, -1]
     OriginOffsetY:                   [82.18, 82.18, 82.18, 82.18]
-    Orientation:                     [0, 90, 180, 270]
+    Orientation:                     [180, 270, 0, 90]
     NumColumns:                      [4510, 4510, 4510, 4510]
     NumRows:                         [4510, 4510, 4510, 4510]
     FirstRowForNormalCamera:         [0, 0, 0, 0]

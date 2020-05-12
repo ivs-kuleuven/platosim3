@@ -280,7 +280,7 @@ ControlTcpConnection:
 
 CameraGroups:                                                          # Four groups of six camera's with their azimuth and tilt as specified
                                                                        # The fifth value is for the Fast Camera's
-    AzimuthAngle:                    [45.0, 135.0, -135.0, -45.0, 0.0] # Azimuth angle of telescope on the platform [deg]
+    AzimuthAngle:                    [45.0, 135.0, 225.0, 315.0, 0.0]  # Azimuth angle of telescope on the platform [deg]
     TiltAngle:                       [9.2, 9.2, 9.2, 9.2, 0.0]         # Tilt angle of the telescope on the platform [deg]
 
 
@@ -288,7 +288,7 @@ CCDPositions:
 
     OriginOffsetX:                   [-1.3, -1.3, -1.3, -1.3]       # X Offset of CCD origin from center of focal plane [mm]
     OriginOffsetY:                   [82.48, 82.48, 82.48, 82.48]   # Y Offset of CCD origin from center of focal plane [mm]
-    Orientation:                     [0, 90, 180, 270]              # Orientation of CCD w.r.t. focal plane orientation, counter-clockwise [deg]
+    Orientation:                     [180, 270, 0, 90]              # Orientation of CCD w.r.t. focal plane orientation, counter-clockwise [deg]
     NumColumns:                      [4510, 4510, 4510, 4510]       # Number of columns on the CCD [pixels]
     NumRows:                         [4510, 4510, 4510, 4510]       # Number of rows on the CCD [pixels] (including non-exposed ones)
     FirstRowForNormalCamera:         [0, 0, 0, 0]                   # The complete CCDs are active/illuminated for the Normal Camera's
