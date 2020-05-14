@@ -224,7 +224,6 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
     cosmicHitRateGenerator.seed(cosmicSeed);
     cosmicEntryRowGenerator.seed(cosmicSeed + 1);
     cosmicEntryColumnGenerator.seed(cosmicSeed + 2);
-    cosmicEntryAngleGenerator.seed(cosmicSeed + 3);
     cosmicTrailLengthGenerator.seed(cosmicSeed + 4);
     cosmicIntensityGenerator.seed(cosmicSeed + 5);
     decimalNumCosmicHitsGenerator.seed(cosmicSeed + 6);
@@ -2198,6 +2197,8 @@ void Detector::applyGain()
 
     const double ccdGainOverDeltaTemp = gainStability * (getTemperature() - nominalOperatingTemperature);
 
+    Log.info("CCD temperature: " + to_string(getTemperature()) + " " + to_string(getTemperature() - nominalOperatingTemperature));
+
     const double ccdGainLeft = refValueGainLeft + ccdGainOverDeltaTemp;
     const double ccdGainRight = refValueGainRight + ccdGainOverDeltaTemp;
 
@@ -2220,15 +2221,15 @@ void Detector::applyGain()
     }
     else
     {
-        // 0 -> lastIndexSubFieldLeft: left ADC
+        // 0 -> lastIndexSubFieldLef (incl.): left ADC
 
         pixelMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
         smearingMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
 
-        // lastIndexSubFieldLeft + 1 -> numColumnsSubPixelMap -1: right ADC
+        // lastIndexSubFieldLeft + 1 -> numColumnsSubPixelMap - 1 (incl.): right ADC
 
-        pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
-        smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
+        pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft + 1, numColumnsPixelMap - 1)) *= combinedGainRight;
+        smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft + 1, numColumnsPixelMap - 1)) *= combinedGainRight;
     }
 
     biasMapLeft *= combinedGainLeft;

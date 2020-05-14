@@ -216,6 +216,11 @@ def photometry(inputFilePath, outputFilePath, targetIDs, maxNexposures = None, c
 
         # Loop over all targets to do the photometry.
 
+        print("Number of targets: ", Ntargets)
+
+        print(starIDs)
+        print(targetIDs)
+
         for k in range(Ntargets):
 
             # Collect information on the position and input flux of the target
