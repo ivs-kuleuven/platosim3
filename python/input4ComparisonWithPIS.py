@@ -252,7 +252,7 @@ for simulationIndex in range(numSubfields):
     
     # CCD related configuration parameters    
     
-    ccdCode = "2"
+    ccdCode = "4"
     sim["CCD/Position"] = ccdCode
 
     # Camera related configuration parameters
