@@ -541,6 +541,81 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, solarPanelOrie
 
 
 
+
+
+def pixelCoordinates2FocalPlaneAngles(xCCD, yCCD, ccdCode, pixelSize, focalLength):
+
+    """
+    PURPOSE: Given the real-valued CCD pixel coordinates, compute the location angles of the star in the focal plane
+
+    INPUT:
+        xCCD        : real-valued x-coordinate on the CCD (column)  [pix]
+        yCCD        : real-valued y-coordinates on the CCD (row)    [pix]
+        ccdCode     : one of: '1','2','3','4','1F','2F','3F','4F', depending on normal of fast cam
+        pixelSize   : size of one square pixel   [microns]
+        focalLength : focal length of the camera [mm]
+
+
+    OUTPUT:
+        angleFromOpticalAxis : angular distance from the optical axis               [rad]
+        azimuthFromXAxis     : azimuth angle from the X-axis of the reference CCD   [rad]
+    """
+
+    ccdZeroPointX = CCD[ccdCode]["zeroPointXmm"]
+    ccdZeroPointY = CCD[ccdCode]["zeroPointYmm"]
+    ccdAngle      = CCD[ccdCode]["angle"]
+
+    xmm, ymm = pixelToFocalPlaneCoordinates(xCCD, yCCD, pixelSize, ccdZeroPointX, ccdZeroPointY, ccdAngle)
+    angleFromOpticalAxis = gnomonicRadialDistanceFromOpticalAxis(xmm,ymm,focalLength)
+    azimuthFromXAxis = np.arctan2(ymm,xmm)
+
+    return angleFromOpticalAxis, azimuthFromXAxis
+
+
+
+
+
+
+
+
+
+
+
+
+def focalPlaneAngles2pixelCoordinates(angleFromOpticalAxis, azimuthFromXAxis, ccdCode, pixelSize, focalLength):
+    
+    """
+    PURPOSE: given the location angles of the star in the focal plane, compute the real-valued CCD pixel coordinates
+
+    INPUT:
+        angleFromOpticalAxis : angular distance from the optical axis             [rad]
+        azimuthFromXAxis     : azimuth angle from the X-axis of the reference CCD [rad]
+        ccdCode              : one of: '1','2','3','4','1F','2F','3F','4F', depending on normal of fast cam
+        pixelSize            : size of one square pixel   [microns]
+        focalLength          : focal length of the camera [mm]
+
+    OUTPUT:
+        xCCD : real-valued x-coordinate on the CCD (column)  [pix]
+        yCCD : real-valued y-coordinates on the CCD (row)    [pix]
+    """
+
+    ccdZeroPointX = CCD[ccdCode]["zeroPointXmm"]
+    ccdZeroPointY = CCD[ccdCode]["zeroPointYmm"]
+    ccdAngle      = CCD[ccdCode]["angle"]
+
+    xFPmm, yFPmm = focalPlaneCoordinatesFromGnomonicRadialDistance(angleFromOpticalAxis, focalLength, inPlaneRotation=azimuthFromXAxis)
+    xCCD, yCCD = focalPlaneToPixelCoordinates(xFPmm, yFPmm, pixelSize, ccdZeroPointX, ccdZeroPointY, ccdAngle)
+
+    return xCCD, yCCD
+
+
+
+
+
+
+
+
+
 def telescopeToUndistortedFocalPlaneCoordinates(xTL, yTL, zTL, focalLength, focalPlaneAngle):
 
     """
@@ -824,8 +899,8 @@ def focalPlaneCoordinatesFromGnomonicRadialDistance(angularDistance, focalLength
     radial distance with respect to the optical axis in the focal plane
 
     INPUT: angularDistance: angular distance of the star w.r.t. the optical axis [rad]
-           focalLength    : focal length of the camera [mm]
-           inPlaneRotation: angle from the xFP axis to the target (default=0)[rad]
+           focalLength    : focal length of the camera                           [mm]
+           inPlaneRotation: angle from the xFP axis to the target (default=0)    [rad]
 
     OUTPUT: xFP  Focal plane x-coordinate [mm]
             yFP  Focal plane y-coordinate [mm]
