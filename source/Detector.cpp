@@ -1795,7 +1795,7 @@ void Detector::applyShort2013CTImodel()
             // Compute the number of electrons captured in a trap, according to Eq. (22)-(23) of Short et al. (2013).
             // Note that Armadillo uses % for elementwise multiplication.
 
-            const double gamma = 2 * trapDensity[k] * (subFieldZeroPointRow + rowNumber + 1) / pow(fullWellSaturationLimit, beta) / (1 + beta);
+            const double gamma = 2 * trapDensity[k] * (subFieldZeroPointRow + rowNumber + 1) / pow(fullWellSaturationLimit, beta) / (1 + beta); // +1 as row = 0 also has to be transferred once
             
             numberOfCapturedElectrons =   (gamma * arma::pow(pixelMap.row(rowNumber), beta) - numberOfOccupiedTraps.row(k)) \
                                         / (gamma * arma::pow(pixelMap.row(rowNumber), beta-1) + 1)                          \
