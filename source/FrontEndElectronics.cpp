@@ -95,8 +95,6 @@ void FrontEndElectronics::checkGain()
 
 double FrontEndElectronics::getGainLeftAdc(double time)
 {
-	Log.info("FEE temperature (left): " + to_string(getTemperature(time)) + " " + to_string(getTemperature(time) - nominalOperatingTemperature));
-
 	return refValueGainLeft + gainStability * (getTemperature(time) - nominalOperatingTemperature);
 }
 
@@ -114,8 +112,6 @@ double FrontEndElectronics::getGainLeftAdc(double time)
 
 double FrontEndElectronics::getGainRightAdc(double time)
 {
-	Log.info("FEE temperature (right): " + to_string(getTemperature(time)) + " " + to_string(getTemperature(time) - nominalOperatingTemperature));
-
 	return refValueGainRight + gainStability * (getTemperature(time) - nominalOperatingTemperature);
 }
 
