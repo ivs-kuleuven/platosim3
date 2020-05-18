@@ -2188,14 +2188,14 @@ void Detector::applyGain()
 {
     Log.debug("Detector: applying gain to pixelMap, biasMap and smearingMap");
 
-    const int lastIndexCcdLeft = numColumns / 2 - 1;
-    const int lastIndexSubFieldLeft = lastIndexCcdLeft - subFieldZeroPointColumn;
+    // Index of the last column of the left detector half...
+
+    const int lastIndexCcdLeft = numColumns / 2 - 1;                                // in the CCD reference frame [pixels]
+    const int lastIndexSubFieldLeft = lastIndexCcdLeft - subFieldZeroPointColumn;   // in the sub-field reference frame [pixels]
 
     // Detector gain (left & right) [µV / e-]
 
     const double ccdGainOverDeltaTemp = gainStability * (getTemperature() - nominalOperatingTemperature);
-
-    Log.info("CCD temperature: " + to_string(getTemperature()) + " " + to_string(getTemperature() - nominalOperatingTemperature));
 
     const double ccdGainLeft = refValueGainLeft + ccdGainOverDeltaTemp;
     const double ccdGainRight = refValueGainRight + ccdGainOverDeltaTemp;
@@ -2219,15 +2219,15 @@ void Detector::applyGain()
     }
     else
     {
-        // 0 -> lastIndexSubFieldLef (incl.): left ADC
+        // 0 -> lastIndexSubFieldLeft (incl.): left ADC
 
         pixelMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
         smearingMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
 
         // lastIndexSubFieldLeft + 1 -> numColumnsSubPixelMap - 1 (incl.): right ADC
 
-        pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft + 1, numColumnsPixelMap - 1)) *= combinedGainRight;
-        smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft + 1, numColumnsPixelMap - 1)) *= combinedGainRight;
+        pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
+        smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
     }
 
     biasMapLeft *= combinedGainLeft;
