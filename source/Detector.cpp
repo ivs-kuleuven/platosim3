@@ -224,6 +224,7 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
     cosmicHitRateGenerator.seed(cosmicSeed);
     cosmicEntryRowGenerator.seed(cosmicSeed + 1);
     cosmicEntryColumnGenerator.seed(cosmicSeed + 2);
+    cosmicEntryAngleGenerator.seed(cosmicSeed + 3);
     cosmicTrailLengthGenerator.seed(cosmicSeed + 4);
     cosmicIntensityGenerator.seed(cosmicSeed + 5);
     decimalNumCosmicHitsGenerator.seed(cosmicSeed + 6);
