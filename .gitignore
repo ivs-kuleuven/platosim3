@@ -32,8 +32,16 @@ tags
 
 # Ignore checkpoints of iPython notebooks
 
+.ipynb_checkpoints/
 docs/tutorials/.ipynb_checkpoints/*
 docs/tutorials/*/.ipynb_checkpoints/*
+docs/validation/.ipynb_checkpoints/*
+docs/validation/*/.ipynb_checkpoints/*
+
+docs/tutorials/FineGuidanceStars/GuideStarSimulation00*
+docs/tutorials/Photometry/photometrySimulation*
+docs/tutorials/Photometry/photometryOutput.hdf5
+docs/validation/photometryOutput*
 
 # Compiled source 
 

@@ -1759,10 +1759,9 @@ void Detector::applyShort2013CTImodel()
 
     const double maxVolumePerPixel = pixelSize * pixelSize * 1.e-18  / 2.0;                                  // Vg [m^3]
 
-    // Compute the time it takes to transfer 1 row during readout
+    // Time it takes to transfer 1 row during readout
 
     const double chargeTransferTime = parallelTransferTime;		// t[s]
-//    const double chargeTransferTime = readoutTime / numRows;                                                 // t [s]
 
     // Compute the thermal velocity of the electrons in the silicon
 
@@ -1784,7 +1783,7 @@ void Detector::applyShort2013CTImodel()
 
     for (int k = 0; k < numTrapSpecies; k++)
     {
-    		alpha(k) = chargeTransferTime * trapCaptureCrossSection[k] * thermalVelocity * pow(fullWellSaturationLimit, beta) / (2.0 * maxVolumePerPixel);
+        alpha(k) = chargeTransferTime * trapCaptureCrossSection[k] * thermalVelocity * pow(fullWellSaturationLimit, beta) / (2.0 * maxVolumePerPixel);
     }
 
     // Loop over all rows of the pixelMap, and over all trap species.
@@ -1792,14 +1791,13 @@ void Detector::applyShort2013CTImodel()
 
     for (int rowNumber = 0; rowNumber < numRowsPixelMap; rowNumber++)
     {
-
         for (int k = 0; k < numTrapSpecies; k++)
         {
             // Compute the number of electrons captured in a trap, according to Eq. (22)-(23) of Short et al. (2013).
             // Note that Armadillo uses % for elementwise multiplication.
 
-            const double gamma = 2 * trapDensity[k] * maxVolumePerPixel / pow(fullWellSaturationLimit, beta) * (subFieldZeroPointRow + rowNumber + 1);	// +1 as row = 0 also has to be transferred once
-
+            const double gamma = 2 * trapDensity[k] * (subFieldZeroPointRow + rowNumber + 1) / pow(fullWellSaturationLimit, beta) / (1 + beta); // +1 as row = 0 also has to be transferred once
+            
             numberOfCapturedElectrons =   (gamma * arma::pow(pixelMap.row(rowNumber), beta) - numberOfOccupiedTraps.row(k)) \
                                         / (gamma * arma::pow(pixelMap.row(rowNumber), beta-1) + 1)                          \
                                         % (1 - arma::exp(-alpha(k) * arma::pow(pixelMap.row(rowNumber), 1-beta)));
@@ -2191,8 +2189,10 @@ void Detector::applyGain()
 {
     Log.debug("Detector: applying gain to pixelMap, biasMap and smearingMap");
 
-    const int lastIndexCcdLeft = numColumns / 2 - 1;
-    const int lastIndexSubFieldLeft = lastIndexCcdLeft - subFieldZeroPointColumn;
+    // Index of the last column of the left detector half...
+
+    const int lastIndexCcdLeft = numColumns / 2 - 1;                                // in the CCD reference frame [pixels]
+    const int lastIndexSubFieldLeft = lastIndexCcdLeft - subFieldZeroPointColumn;   // in the sub-field reference frame [pixels]
 
     // Detector gain (left & right) [µV / e-]
 
@@ -2220,15 +2220,15 @@ void Detector::applyGain()
     }
     else
     {
-        // 0 -> lastIndexSubFieldLeft: left ADC
+        // 0 -> lastIndexSubFieldLeft (incl.): left ADC
 
         pixelMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
         smearingMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
 
-        // lastIndexSubFieldLeft + 1 -> numColumnsSubPixelMap -1: right ADC
+        // lastIndexSubFieldLeft + 1 -> numColumnsSubPixelMap - 1 (incl.): right ADC
 
-        pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
-        smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft, numColumnsPixelMap - 1)) *= combinedGainRight;
+        pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft + 1, numColumnsPixelMap - 1)) *= combinedGainRight;
+        smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft + 1, numColumnsPixelMap - 1)) *= combinedGainRight;
     }
 
     biasMapLeft *= combinedGainLeft;
