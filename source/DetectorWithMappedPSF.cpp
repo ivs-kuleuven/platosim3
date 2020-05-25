@@ -227,13 +227,17 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
 
     reset();
 
-    // Integration (incl. jitter): point sources + background
+    // Integration (incl. jitter): point sources
 
-    camera.exposeDetector(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
-
+    camera.exposeDetectorWithStars(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
+    
     // Convolve with the point spread function
 
     convolveWithPsf();
+
+    // Integration: background
+
+    camera.exposeDetectorWithSkyBackground(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
 
     // Apply flatfield (at sub-pixel level)
 
