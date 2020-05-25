@@ -304,7 +304,8 @@ void DetectorWithAnalyticGaussianPSF::integrateLight(int exposureNr, double star
     // Integration (incl. jitter): point sources + background
     // PixelMap units after: [photons]
 
-    camera.exposeDetector(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
+    camera.exposeDetectorWithStars(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
+    camera.exposeDetectorWithSkyBackground(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
 
     // Apply flatfield (at pixel level)
     // PixelMap units after: [photons]

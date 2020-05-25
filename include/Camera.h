@@ -45,7 +45,8 @@ class Camera : public HDF5Writer
         virtual ~Camera();
 
         virtual void configure(ConfigurationParameters &configParam);
-        virtual void exposeDetector(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure);
+        virtual void exposeDetectorWithStars(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure);
+        virtual void exposeDetectorWithSkyBackground(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure);
         virtual void updateParameters(double time);
 
         virtual void initHDF5Groups() override;
