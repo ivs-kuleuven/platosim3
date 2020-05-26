@@ -889,6 +889,8 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     
     subGroup = "CCD/Vignetting/MechanicalVignetting";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addDouble("MinRadius");
+    addDouble("Slope");
     addDouble("RadiusFOV");
 
     subGroup = "CCD/QuantumEfficiency";
