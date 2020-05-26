@@ -354,6 +354,8 @@ void Detector::updateParameters(double time)
     readoutNoise                        = configParam.getDouble("CCD/ReadoutNoise");
     expectedValueNaturalVignetting      = configParam.getDouble("CCD/Vignetting/NaturalVignetting/ExpectedValue");
     radiusFOV                           = deg2rad(configParam.getDouble("CCD/Vignetting/MechanicalVignetting/RadiusFOV"));
+    minRadiusMechanicalVignetting       = deg2rad(configParam.getDouble("CCD/Vignetting/MechanicalVignetting/MinRadius"));
+    slopeMechanicalVignetting           = configParam.getDouble("CCD/Vignetting/MechanicalVignetting/Slope");
     particulateContaminationEfficiency  = configParam.getDouble("CCD/Contamination/ParticulateContaminationEfficiency");
     molecularContaminationEfficiency    = configParam.getDouble("CCD/Contamination/MolecularContaminationEfficiency");
 
@@ -594,6 +596,11 @@ void Detector::generateThroughputMap()
 
                         if(includeOpenShutterSmearing)
                             mechanicalVignettingMask(row, column) = 0;
+                    }
+                    
+                    else if (angle > minRadiusMechanicalVignetting)
+                    {
+                        throughputMap(row, column) *=  (1 - rad2deg(angle - minRadiusMechanicalVignetting) * slopeMechanicalVignetting);
                     }
                 }
 
