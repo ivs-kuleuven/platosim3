@@ -586,9 +586,26 @@ void Detector::generateThroughputMap()
 
                 angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm);
 
-                // Mechanical vignetting
+                // Mechanical vignetting + natural vignetting
 
-                if(includeMechanicalVignetting)
+                if (includeMechanicalVignetting && includeNaturalVignetting)
+                {
+                    if (angle > radiusFOV)
+                    {
+                        throughputMap(row, column) = 0.0;
+
+                        if (includeOpenShutterSmearing)
+                            mechanicalVignettingMask(row, column) = 0;
+                    }
+
+                    else if (angle > minRadiusMechanicalVignetting)
+                    {
+                        throughputMap(row, column) *= (rad2deg(angle - minRadiusMechanicalVignetting) * slopeMechanicalVignetting + pow(cos(angle), 2));
+                    }
+                }
+
+                // Mechanical vignetting only
+                else if(includeMechanicalVignetting)
                 {
                     if (angle > radiusFOV)
                     {
@@ -604,10 +621,9 @@ void Detector::generateThroughputMap()
                     }
                 }
 
-                // Natural vignetting.
-                // With a cos^2 law, the mean natural vignetting value over all pixels is 0.945. 
+                // Natural vignetting only
 
-                if (includeNaturalVignetting) 
+                else if (includeNaturalVignetting) 
                     throughputMap(row, column) *= pow(cos(angle), 2);
 
                 // Polarisation (Eq. 4-11 in PLATO-DLR-PL-RP-001)
