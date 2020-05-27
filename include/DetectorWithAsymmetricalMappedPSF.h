@@ -28,7 +28,7 @@ class DetectorWithAsymmetricalMappedPSF : public DetectorWithMappedPSF
 
         AsymmetricalPointSpreadFunction *psf;
 
-        void setPsfForSubfield();
+        virtual void setPsfForSubfield() override;
 
 };
 
