@@ -22,13 +22,13 @@ class DetectorWithAsymmetricalMappedPSF : public DetectorWithMappedPSF
         DetectorWithAsymmetricalMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure);
         virtual ~DetectorWithAsymmetricalMappedPSF();
 
-        void configure(ConfigurationParameters &configParam);
+        virtual void configure(ConfigurationParameters &configParam) override;
 
     protected:
 
         AsymmetricalPointSpreadFunction *psf;
 
-        void setPsfForSubfield();
+        virtual void setPsfForSubfield() override;
 
 };
 
