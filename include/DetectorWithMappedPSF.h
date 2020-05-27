@@ -31,6 +31,7 @@ class DetectorWithMappedPSF : public Detector
 
     protected:
 
+        virtual void reset() override;
         virtual void initHDF5Groups() override;
         virtual void integrateLight(int exposureNr, double startTime, double exposureTime) override;
 
@@ -38,8 +39,6 @@ class DetectorWithMappedPSF : public Detector
 
         virtual void applyFlatfield() override;
 
-        virtual void reset();
-        
         
         virtual void applyDiffusionKernel(double row, double column, double flux);
         virtual void generateFlatfieldMap();
