@@ -178,8 +178,6 @@ class Detector: public HDF5Writer
         vector<double> cosmicTrailLength;		 // Interval of the length of the cosmic trails [pixels]
         vector<double> cosmicIntensity; 		 // Interval of the intensity of the cosmic trails [e-]
         double expectedValueNaturalVignetting;   // Expected value of the throughput efficiency due to vignetting (int [0,1])
-        double minRadiusMechanicalVignetting;    // Distance from the optical axis at which the mechanical vignetting kicks in [degrees]
-        double slopeMechanicalVignetting;        // Slope of the linear relation between the distance from the OA and the inefficiency due to mechanical vignetting
         double radiusFOV;                        // Radius of the FOV [radians]
         double expectedValuePolarization;        // Expected value of the throughput efficiency due to polarisation
         double particulateContaminationEfficiency;  // Efficiency of particulate contamination (in [0,1])
