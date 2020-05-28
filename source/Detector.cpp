@@ -635,9 +635,9 @@ void Detector::generateThroughputMap()
 
                 angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm);
 
-                // Mechanical vignetting
+                // Mechanical + natural vignetting
 
-                if(includeMechanicalVignetting)
+                if(includeMechanicalVignetting && includeNaturalVignetting)
                 {
                     // All incoming radiation is blocked beyond the edge of the FOV
                   
@@ -650,11 +650,11 @@ void Detector::generateThroughputMap()
                     }
 
                     // Combined effect in the outer ring of the FOV
-                    // 1 - E_tot = (1 - E_mech) + (1 - E_nat) -> E_tot = E_mech + E_nat - 1
+                    // 1 - E_tot = (1 - E_mech) + (1 - E_nat) -> E_tot = E_nat - (1 - E_mech)
                   
                     else if (angle > minRadiusMechanicalVignetting)
                     {
-                        throughputMap(row, column) *= (rad2deg(angle - minRadiusMechanicalVignetting) * slopeMechanicalVignetting + pow(cos(angle), 2));
+                        throughputMap(row, column) *= (pow(cos(angle), 2) - rad2deg(angle - minRadiusMechanicalVignetting) * slopeMechanicalVignetting);
                     }
                   
                     // Natural vignetting in the central region of the FOV
@@ -678,12 +678,17 @@ void Detector::generateThroughputMap()
                         if(includeOpenShutterSmearing)
                             mechanicalVignettingMask(row, column) = 0;
                     }
+
+                    else if(angle > minRadiusMechanicalVignetting)
+                    {
+                        throughputMap(row, column) *= (1 - rad2deg(angle - minRadiusMechanicalVignetting) * slopeMechanicalVignetting);
+                    }
                 }
 
                 // Natural vignetting.
                 // With a cos^2 law, the mean natural vignetting value over all pixels is 0.945.
 
-                if (includeNaturalVignetting)
+                else if (includeNaturalVignetting)
                     throughputMap(row, column) *= pow(cos(angle), 2);
 
                 // Polarisation (Eq. 4-11 in PLATO-DLR-PL-RP-001)
