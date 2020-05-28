@@ -635,9 +635,9 @@ void Detector::generateThroughputMap()
 
                 angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm);
 
-                // Mechanical vignetting + natural vignetting
+                // Mechanical vignetting
 
-                if (includeMechanicalVignetting && includeNaturalVignetting)
+                if(includeMechanicalVignetting)
                 {
                     // All incoming radiation is blocked beyond the edge of the FOV
                   
@@ -678,18 +678,12 @@ void Detector::generateThroughputMap()
                         if(includeOpenShutterSmearing)
                             mechanicalVignettingMask(row, column) = 0;
                     }
-                  
-                    // Loss in efficiency in the outer ring of the FOV
-                    
-                    else if (angle > minRadiusMechanicalVignetting)
-                    {
-                        throughputMap(row, column) *=  (1 - rad2deg(angle - minRadiusMechanicalVignetting) * slopeMechanicalVignetting);
-                    }
                 }
 
-                // Natural vignetting only
+                // Natural vignetting.
+                // With a cos^2 law, the mean natural vignetting value over all pixels is 0.945.
 
-                else if (includeNaturalVignetting)
+                if (includeNaturalVignetting)
                     throughputMap(row, column) *= pow(cos(angle), 2);
 
                 // Polarisation (Eq. 4-11 in PLATO-DLR-PL-RP-001)
@@ -1362,7 +1356,7 @@ void Detector::addPhotonNoise()
  */
 void Detector::addCosmics(float exposureTime)
 {
-	  cosmicHitRateDistribution     = poisson_distribution<long>(cosmicHitRate);                                       // [hits/cm^2/s]
+	cosmicHitRateDistribution     = poisson_distribution<long>(cosmicHitRate);                                       // [hits/cm^2/s]
     cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsPixelMap - 1);                    // [pixels]
     cosmicEntryAngleDistribution  = uniform_real_distribution<double>(0, 2 * PI);                                    // [radians]
     cosmicTrailLengthDistribution = uniform_real_distribution<double>(cosmicTrailLength[0], cosmicTrailLength[1]);   // [pixels]
