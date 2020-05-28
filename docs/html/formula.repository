@@ -84,3 +84,11 @@
 \form#83:$a $
 \form#84:$\lambda $
 \form#85:$b $
+\form#86:\[1 - E = (theta - MinRadius) \cdot slope\]
+\form#87:\[1 - E = (\theta - MinRadius) \cdot slope\]
+\form#88:\[1 - E = (\theta - \theta_{min}) \cdot slope\]
+\form#89:$\Delta $
+\form#90:$\theta$
+\form#91:$\theta_{min}$
+\form#92:$1 - E$
+\form#93:$1 - E = 0$

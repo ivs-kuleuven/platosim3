@@ -352,6 +352,8 @@ void Detector::updateParameters(double time)
     readoutNoise                        = configParam.getDouble("CCD/ReadoutNoise");
     expectedValueNaturalVignetting      = configParam.getDouble("CCD/Vignetting/NaturalVignetting/ExpectedValue");
     radiusFOV                           = deg2rad(configParam.getDouble("CCD/Vignetting/MechanicalVignetting/RadiusFOV"));
+    minRadiusMechanicalVignetting       = deg2rad(configParam.getDouble("CCD/Vignetting/MechanicalVignetting/MinRadius"));
+    slopeMechanicalVignetting           = configParam.getDouble("CCD/Vignetting/MechanicalVignetting/Slope");
     particulateContaminationEfficiency  = configParam.getDouble("CCD/Contamination/ParticulateContaminationEfficiency");
     molecularContaminationEfficiency    = configParam.getDouble("CCD/Contamination/MolecularContaminationEfficiency");
 
@@ -633,10 +635,42 @@ void Detector::generateThroughputMap()
 
                 angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm);
 
-                // Mechanical vignetting
+                // Mechanical vignetting + natural vignetting
 
-                if(includeMechanicalVignetting)
+                if (includeMechanicalVignetting && includeNaturalVignetting)
                 {
+                    // All incoming radiation is blocked beyond the edge of the FOV
+                  
+                    if (angle > radiusFOV)
+                    {
+                        throughputMap(row, column) = 0.0;
+
+                        if (includeOpenShutterSmearing)
+                            mechanicalVignettingMask(row, column) = 0;
+                    }
+
+                    // Combined effect in the outer ring of the FOV
+                    // 1 - E_tot = (1 - E_mech) + (1 - E_nat) -> E_tot = E_mech + E_nat - 1
+                  
+                    else if (angle > minRadiusMechanicalVignetting)
+                    {
+                        throughputMap(row, column) *= (rad2deg(angle - minRadiusMechanicalVignetting) * slopeMechanicalVignetting + pow(cos(angle), 2));
+                    }
+                  
+                    // Natural vignetting in the central region of the FOV
+                  
+                    else
+                    {
+                        throughputMap(row, column) *=  (1 - rad2deg(angle - minRadiusMechanicalVignetting) * slopeMechanicalVignetting);
+                    }
+                }
+
+                // Mechanical vignetting only
+              
+                else if(includeMechanicalVignetting)
+                {
+                    // All incoming radiation is blocked beyond the edge of the FOV
+                  
                     if (angle > radiusFOV)
                     {
                         throughputMap(row, column) = 0.0;
@@ -644,12 +678,18 @@ void Detector::generateThroughputMap()
                         if(includeOpenShutterSmearing)
                             mechanicalVignettingMask(row, column) = 0;
                     }
+                  
+                    // Loss in efficiency in the outer ring of the FOV
+                    
+                    else if (angle > minRadiusMechanicalVignetting)
+                    {
+                        throughputMap(row, column) *=  (1 - rad2deg(angle - minRadiusMechanicalVignetting) * slopeMechanicalVignetting);
+                    }
                 }
 
-                // Natural vignetting.
-                // With a cos^2 law, the mean natural vignetting value over all pixels is 0.945.
+                // Natural vignetting only
 
-                if (includeNaturalVignetting)
+                else if (includeNaturalVignetting)
                     throughputMap(row, column) *= pow(cos(angle), 2);
 
                 // Polarisation (Eq. 4-11 in PLATO-DLR-PL-RP-001)
@@ -1322,7 +1362,7 @@ void Detector::addPhotonNoise()
  */
 void Detector::addCosmics(float exposureTime)
 {
-	cosmicHitRateDistribution     = poisson_distribution<long>(cosmicHitRate);                                       // [hits/cm^2/s]
+	  cosmicHitRateDistribution     = poisson_distribution<long>(cosmicHitRate);                                       // [hits/cm^2/s]
     cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsPixelMap - 1);                    // [pixels]
     cosmicEntryAngleDistribution  = uniform_real_distribution<double>(0, 2 * PI);                                    // [radians]
     cosmicTrailLengthDistribution = uniform_real_distribution<double>(cosmicTrailLength[0], cosmicTrailLength[1]);   // [pixels]

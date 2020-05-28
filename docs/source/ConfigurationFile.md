@@ -402,7 +402,7 @@ Telescope:
 ### <a name="groupID"></a>GroupID
 <i>Allowed values:</i> \f$\in \f$ [1, 2, 3, 4, Fast, Custom]
 
-The telescope group identifier can be used to select a telescope group. There are four groups that have a tilt angle of \f$9.2^{\circ} \f$- from the optical axis of the satellite, and one group for the fast camera's which is aligned with the satellite Z-axis. When you specify GroupID=Custom, the [tilt angle](#tiltAngle) and [azimuth angle](#azimuthAngle) below the GroupID in the inputfile are used, otherwise the angles are taken from pre-defined parameters in the [CameraGroups](#cameraGroups) block of the configuration file.
+The telescope group identifier can be used to select a telescope group. There are four groups that have a tilt angle of \f$9.2^{\circ} \f$ from the optical axis of the satellite, and one group for the fast camera's which is aligned with the satellite Z-axis. When you specify GroupID=Custom, the [tilt angle](#tiltAngle) and [azimuth angle](#azimuthAngle) below the GroupID in the inputfile are used, otherwise the angles are taken from pre-defined parameters in the [CameraGroups](#cameraGroups) block of the configuration file.
 
 @image html /images/telescopeGroups.png "Figure 3: Field of View for the different telescope groups"
 
@@ -1167,6 +1167,8 @@ CCD:
         NaturalVignetting:
     		ExpectedValue:       0.945 
         MechanicalVignetting:
+            MinRadius:           16.0
+            Slope:               0.0075
             RadiusFOV:           18.8876
     Contamination:
     		ParticulateContaminationEfficiency:  0.98
@@ -1232,14 +1234,14 @@ The pre-defined CCD positions are shown in the figures below.
 @image html "/images/CCD Array Configuration - Normal Camera.png" "Figure 7: Layout of the CCDs for the normal camera's."
 @image html "/images/CCD Array Configuration - Fast Camera.png" "Figure 8: Layout of the CCDs for the fast camera's."
 
-Note that we now use 1, 2, 3, and 4 rather than A, B, C, D, for the normal cameras as well as for the fast ones.
+<!-- Note that we now use 1, 2, 3, and 4 rather than A, B, C, D, for the normal cameras as well as for the fast ones.
 
 |In the past|Now |
 |---|---|
 | A  | 3  |
 | B  | 2  |
 | C  | 4  |
-| D  | 1  |
+| D  | 1  | -->
 
 When you specify [Position](#position)=Custom, the origin offset ([OriginOffsetX](#originOffsetX) and [OriginOffsetY](#originOffsetY)), the [orientation](#ccdOrientation), [number of rows](#ccdNumRows) and [columns](#ccdNumColumns), and the [first exposed row](#firstRowExposed) of the CCD are read from the configuration parameters in the CCD block.
 
@@ -1455,6 +1457,24 @@ Natural vignetting is the brightness attenuation towards the edges of the FOV, i
 <i>Allowed values:</i> \f$\in \f$ [0,1]
 
 Expected value of the throughput efficiency due to natural vignetting (i.e. the mean over all pixels of one detector).
+
+
+
+#### <a name="mechanicalVignettingMinRadius"></a>Vignetting: MechanicalVignetting: MinRadius
+<i>Allowed values:</i> > 0
+
+Radius \f$\theta_{min}\f$, expressed in degrees, from which onwards, the mechanical vignetting kicks in.  Between this distance from the optical axis to the edge of the FOV, the loss in efficiency due to mechanical vignetting is characterised as:
+
+    \f[1 - E = (\theta - \theta_{min}) \cdot slope\f]
+
+Closer to the optical axis this will be zero.  Beyond the edge of the FOV, all incoming radiation is shielded off (\f$1 - E = 0\f$).
+
+
+
+#### <a name="mechanicalVignettingSlope"></a>Vignetting: MechanicalVignetting: Slope
+<i>Allowed values:</i> ≥ 0
+
+Slope of the linear relation between the distance from the optical axis, \f$\theta\f$, and the loss in efficiency due to mechanical vignetting, \f$1 - E\f$.
 
 
 
