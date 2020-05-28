@@ -352,6 +352,8 @@ void Detector::updateParameters(double time)
     readoutNoise                        = configParam.getDouble("CCD/ReadoutNoise");
     expectedValueNaturalVignetting      = configParam.getDouble("CCD/Vignetting/NaturalVignetting/ExpectedValue");
     radiusFOV                           = deg2rad(configParam.getDouble("CCD/Vignetting/MechanicalVignetting/RadiusFOV"));
+    minRadiusMechanicalVignetting       = deg2rad(configParam.getDouble("CCD/Vignetting/MechanicalVignetting/MinRadius"));
+    slopeMechanicalVignetting           = configParam.getDouble("CCD/Vignetting/MechanicalVignetting/Slope");
     particulateContaminationEfficiency  = configParam.getDouble("CCD/Contamination/ParticulateContaminationEfficiency");
     molecularContaminationEfficiency    = configParam.getDouble("CCD/Contamination/MolecularContaminationEfficiency");
 
@@ -637,6 +639,38 @@ void Detector::generateThroughputMap()
 
                 if(includeMechanicalVignetting)
                 {
+                    // All incoming radiation is blocked beyond the edge of the FOV
+                  
+                    if (angle > radiusFOV)
+                    {
+                        throughputMap(row, column) = 0.0;
+
+                        if (includeOpenShutterSmearing)
+                            mechanicalVignettingMask(row, column) = 0;
+                    }
+
+                    // Combined effect in the outer ring of the FOV
+                    // 1 - E_tot = (1 - E_mech) + (1 - E_nat) -> E_tot = E_mech + E_nat - 1
+                  
+                    else if (angle > minRadiusMechanicalVignetting)
+                    {
+                        throughputMap(row, column) *= (rad2deg(angle - minRadiusMechanicalVignetting) * slopeMechanicalVignetting + pow(cos(angle), 2));
+                    }
+                  
+                    // Natural vignetting in the central region of the FOV
+                  
+                    else
+                    {
+                        throughputMap(row, column) *= pow(cos(angle), 2);
+                    }
+                }
+
+                // Mechanical vignetting only
+              
+                else if(includeMechanicalVignetting)
+                {
+                    // All incoming radiation is blocked beyond the edge of the FOV
+                  
                     if (angle > radiusFOV)
                     {
                         throughputMap(row, column) = 0.0;
