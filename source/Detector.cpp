@@ -661,7 +661,7 @@ void Detector::generateThroughputMap()
                   
                     else
                     {
-                        throughputMap(row, column) *=  (1 - rad2deg(angle - minRadiusMechanicalVignetting) * slopeMechanicalVignetting);
+                        throughputMap(row, column) *= pow(cos(angle), 2);
                     }
                 }
 
