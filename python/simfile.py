@@ -30,7 +30,7 @@ The starIDs are the line number (starting with 0) of the original stellar input 
 
 To get the coordinates of all stars within a magnitude range [minVmag, maxVmag] in image #10.
 
->>> ID, row, col, Xmm, Ymm = f.getStarCoordinates(10, minVmag=None, maxVmag=12.0)
+>>> ID, row, col, Xmm, Ymm, flux = f.getStarCoordinates(10, minVmag=None, maxVmag=12.0)
 
 
 To get an imagette around star #13561 in image #2:

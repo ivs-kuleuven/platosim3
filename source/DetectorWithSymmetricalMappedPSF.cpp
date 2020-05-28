@@ -64,6 +64,14 @@ DetectorWithSymmetricalMappedPSF::DetectorWithSymmetricalMappedPSF(Configuration
     setPsfForSubfield();
 }
 
+
+
+
+
+
+
+
+
 /**
  * Destructor.
  *
@@ -73,6 +81,13 @@ DetectorWithSymmetricalMappedPSF::~DetectorWithSymmetricalMappedPSF()
     flushOutput();
     delete psf;
 }
+
+
+
+
+
+
+
 
 /**
  * \brief Configure the DetectorWithSymmetricalMappedPSF object using the given
@@ -124,6 +139,18 @@ void DetectorWithSymmetricalMappedPSF::configure(ConfigurationParameters &config
 
     writeFlatfieldMap = configParam.getBoolean("ControlHDF5Content/WriteFlatfieldMap");
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 /**
  * \brief Set the PSF map for the sub-field.

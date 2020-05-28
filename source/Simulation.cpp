@@ -140,20 +140,20 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     if(useFeeTemperatureFromFile)
     {
-    		feeTemperatureGenerator = new TemperatureFromFile(configParams, "FEE");
+    	feeTemperatureGenerator = new TemperatureFromFile(configParams, "FEE");
     }
     else if(useFeeNominalTemperature)
     {
-    		feeTemperatureGenerator = new NominalTemperature(configParams, "FEE");
+    	feeTemperatureGenerator = new NominalTemperature(configParams, "FEE");
     }
 
     if(useDetectorTemperatureFromFile)
     {
-    		detectorTemperatureGenerator = new TemperatureFromFile(configParams, "CCD");
+    	detectorTemperatureGenerator = new TemperatureFromFile(configParams, "CCD");
     }
     else if(useDetectorNominalTemperature)
     {
-    		detectorTemperatureGenerator = new NominalTemperature(configParams, "CCD");
+    	detectorTemperatureGenerator = new NominalTemperature(configParams, "CCD");
     }
 
     // Initialise the spacecraft components
@@ -852,6 +852,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("IncludePhotonNoise");
     addBoolean("IncludeReadoutNoise");
     addBoolean("IncludeCTIeffects"); 
+    addBoolean("IncludeChargeInjection");
     addBoolean("IncludeOpenShutterSmearing");
     addBoolean("IncludeNaturalVignetting");
     addBoolean("IncludeMechanicalVignetting");
@@ -937,6 +938,12 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDoubleVector("TrapDensity");
     addDoubleVector("TrapCaptureCrossSection");
     addDoubleVector("ReleaseTime");
+
+    subGroup = "CCD/ChargeInjection";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addDouble("InjectionLevel");
+    addInteger("RowInterval");
+    addInteger("FirstRow");
 
     subGroup = "SubField";
     hdf5File->createGroup(parentGroup + "/" + subGroup);

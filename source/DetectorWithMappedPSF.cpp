@@ -121,8 +121,14 @@ void DetectorWithMappedPSF::generateFlatfieldMap()
     }
 }
 
+
+
+
+
+
 /**
  * \brief: Zeroes the pixel, bias register, and the smearing maps.
+ *         This differs from the normal Detector::reset() because it includes resetting the subPixelMap.
  *
  * \pre pixel, bias register, and smearing maps filled with values from previous exposure.
  *
@@ -137,6 +143,14 @@ void DetectorWithMappedPSF::reset()
     smearingMap.zeros();
     subPixelMap.zeros();
 }
+
+
+
+
+
+
+
+
 
 /**
  * \brief: Take an exposure with the detector starting at the given time.
@@ -163,6 +177,11 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
     // Advance the internal clock until the given start time
 
     internalTime = startTime;
+
+    // Clear all arrays
+    
+    Log.debug("Detector: resetting subfield array for new exposure.");
+    reset();
 
     // Integration of point sources and background, taking into account jitter + drift.
 
@@ -263,6 +282,18 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
     // PixelMap units change from [photons] to [electrons]
 
     applyThroughputEfficiency();
+
+    // Apply the charge injection which will mitigate the CTI. The injection happens in electrons, 
+    // so the throughput efficiency should already have been applied. In principle, the injected charges do 
+    // feel the PRNU, but for the MappedPSF we first need to apply the PRNU on sub-pixel level and afterwards
+    // apply the throughputEfficiency() at pixel level, so there is no possibilty to respect the order
+    // (1) throughput (2) charge injection (3) PRNU.
+    
+    if (includeChargeInjection)
+    {
+        Log.debug("Detector: applying charge injection");
+        applyChargeInjection();
+    }
 
     // Add dark current
 

@@ -65,6 +65,14 @@ DetectorWithAsymmetricalMappedPSF::DetectorWithAsymmetricalMappedPSF(Configurati
     setPsfForSubfield();
 }
 
+
+
+
+
+
+
+
+
 /**
  * Destructor.
  */
@@ -74,12 +82,19 @@ DetectorWithAsymmetricalMappedPSF::~DetectorWithAsymmetricalMappedPSF()
     delete psf;
 }
 
+
+
+
+
+
+
+
 /**
  * \brief Configure the DetectorWithAsymmetricalMappedPSF object using the given
  *        configuration parameters.
  * 
  * \param configParam: Configuration parameters.
- **/
+ */
 void DetectorWithAsymmetricalMappedPSF::configure(ConfigurationParameters &configParam)
 {
     flatfieldNoiseRMS = configParam.getDouble("CCD/FlatfieldNoiseRMS");
@@ -124,6 +139,17 @@ void DetectorWithAsymmetricalMappedPSF::configure(ConfigurationParameters &confi
 
     writeFlatfieldMap = configParam.getBoolean("ControlHDF5Content/WriteFlatfieldMap");
 }
+
+
+
+
+
+
+
+
+
+
+
 
 /**
  * \brief Set the PSF map for the sub-field.

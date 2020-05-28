@@ -22,13 +22,13 @@ class DetectorWithSymmetricalMappedPSF : public DetectorWithMappedPSF
         DetectorWithSymmetricalMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure);
         virtual ~DetectorWithSymmetricalMappedPSF();
 
-        void configure(ConfigurationParameters &configParam);
+        virtual void configure(ConfigurationParameters &configParam) override;
 
     protected:
 
         SymmetricalPointSpreadFunction *psf;
 
-        void setPsfForSubfield();
+        virtual void setPsfForSubfield() override;
 
 };
 

@@ -93,6 +93,7 @@ class Detector: public HDF5Writer
 
     protected:
 
+        virtual void reset();
         virtual void integrateLight(int exposureNr, double startTime, double exposureTime) = 0;
 
         virtual void generateThroughputMap();
@@ -110,6 +111,7 @@ class Detector: public HDF5Writer
         virtual void addCosmics(float exposureTime, arma::Mat<float> &map, int numRows, int numColumns, string area);
         virtual void applyFullWellSaturation();
         virtual void applyCTI();
+        virtual void applyChargeInjection();
         virtual void applyOpenShutterSmearing(float exposureTime);
         virtual void addReadoutNoise();
         virtual void applyQuantisation();
@@ -217,6 +219,10 @@ class Detector: public HDF5Writer
         vector<double> trapCaptureCrossSection;  // For each trap species: the trap capture cross section [m^2]
         vector<double> releaseTime;              // For each trap species: the electron release time [s]
 
+        double chargeInjectionLevel;             // Percentage of the full well to be filled by charge injection [0-100]
+        int injectionRowInterval;                // Charge will be injected every XX CCD row [integer: in 1 - numrows] starting from firstInjectedRow.
+        int firstInjectedRow;                    // First CCD row that will be injected. 0 is the row closest to the readout register.
+
         string readoutMode;                      // Readout mode (Nominal / Partial)
         double readoutTimeBeforeNextExposure;    // Duration of the readout before the next exposure can start [s]
         double readoutTimeDuringNextExposure;    // Duration of the readout when the next exposure has already started [s]
@@ -226,6 +232,7 @@ class Detector: public HDF5Writer
         bool includePhotonNoise;                 // Whether or not to include photon noise
         bool includeReadoutNoise;                // Include readout noise [yes or no]
         bool includeCTIeffects;                  // Include CTI effects [yes or no]
+        bool includeChargeInjection;             // Include charge injection to mitigate the CTI [yes or no]
         bool includeOpenShutterSmearing;         // Include trails due reading out with an open shutter
         bool includeQuantumEfficiency;           // Include loss of throughput due to quantum efficiency
         bool includeNaturalVignetting;           // Include brightness attenuation due to natural vignetting
