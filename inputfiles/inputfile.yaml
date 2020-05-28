@@ -162,10 +162,7 @@ CCD:
     TimeShift:                       0.0             # Extra time shift of the first exposure. Autoset when Position is in [1,2,3,4]. [s]
     PixelSize:                       18              # [micron]
     BFE:                                             # Brighter-fatter effect
-        Range:                       2               # How far pixels can be apart and still influence each other [pixels] (use window with dimensions 2 * range + 1)
-        p0:                          0.05            # Value for p0 parameter in Eq. (18) in Guyonnet et al. 2015
-        p1:                          0.15            # Value for p1 parameter in Eq. (18) in Guyonnet et al. 2015
-        RefFlux:                     1e6             # Reference flux for the brighter-fatter effect [e-]
+        CoefficientsFileName:        inputfiles/a_bfe.hdf5  # File with the BFE coefficients, calculated by P. Astier
     Gain:                           
         RefValueLeft:                1.80            # [microV/e-]
         RefValueRight:               1.80            # [microV/e-]

@@ -917,10 +917,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "CCD/BFE";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
-    addInteger("Range");
-    addDouble("p0");
-    addDouble("p1");
-    addDouble("RefFlux");
+    addString("CoefficientsFileName");
 
     subGroup = "CCD/CTI";
     hdf5File->createGroup(parentGroup + "/" + subGroup);

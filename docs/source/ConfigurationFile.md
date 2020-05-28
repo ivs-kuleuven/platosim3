@@ -1149,10 +1149,7 @@ CCD:
     TimeShift:                   0.0
     PixelSize:                   18      
     BFE:
-        Range:                       2
-        p0:                          0.05
-        p1:                          0.15
-        RefFlux:                     1e6  
+        CoefficientsFileName:
     Gain:                        
         RefValueLeft:        1.80
         RefValueRight:       1.80
@@ -1321,31 +1318,11 @@ Nominal pixel size, expressed in micron.
 
 ### <a name=BFE></a>BFE
 
-The brighter-fatter effect (BFE) is modelled following the method proposed in [Guyonnet et al. 2015](https://arxiv.org/abs/1501.01577).  The model from Eq. (18) has been adapted to 
+The brighter-fatter effect (BFE) is modelled following the method proposed in [Guyonnet et al. 2015](https://arxiv.org/abs/1501.01577).
 
-\f[f(r) = \frac{2}{Q_0} \cdot p_0 \cdot Ei(p1 \cdot r). \f]
+#### <a name=coefficientsBFE></a>BFE: CoefficientsFileName
 
-#### <a name=rangeBFE></a>BFE: Range
-
-<i>Allowed values:</i> > 0
-
-Maximum distance in the row and column direction for a pixel (i,j) from considered pixel (0,0) to be considered in Eq. (11) in [Guyonnet et al. 2015](https://arxiv.org/abs/1501.01577).
-
-#### <a name=p0BFE></a>BFE: p0
-
-<i>Allowed values:</i> > 0
-
-Scalar \f$ p_0 \f$ in the model for \f$ f \f$.
-
-#### <a name=p0BFE></a>BFE: p1
-
-<i>Allowed values:</i> > 0
-
-Parameter \f$ p_1 \f$ in the model for \f$ f \f$, assuming \f$ r \f$ is expressed in pixels.
-
-#### <a name=refFluxBFE></a>BFE: RefFlux
-
-Parameter \f$ Q_0 \f$ in the model for \f$ f \f$.  This is a reference charge, expressed in electrons.
+Path to the HDF5 file comprising the coefficients _a_ for the BFE.
 
 ### <a name=gainFEE></a> Gain
 

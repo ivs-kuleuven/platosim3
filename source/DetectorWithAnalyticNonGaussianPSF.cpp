@@ -45,13 +45,6 @@ DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(Configura
 
     		generateFlatfieldMap();
     }
-
-    if(includeBFE)
-    {
-        // Generate Guyonnet coefficients
-
-       generateGuyonnetCoefficients();
-    }
 }
 
 
