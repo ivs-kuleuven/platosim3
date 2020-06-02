@@ -1179,7 +1179,8 @@ void Detector::readOut(float exposureTime)
 
 /**
  * \brief Adds the Brighter-Fatter Effect (BFE) to the pixel map, following the method
- *        proposed by Guyonnet et al. 2015 (https://arxiv.org/abs/1501.01577).
+ *        proposed by Guyonnet et al. 2015 (https://arxiv.org/abs/1501.01577).  This 
+ *        implementation is valid only for shallow PSFs.
  *
  * \pre Pixel unit in the pixel map: [electrons].
  * \pre No bias register or smearing maps.
