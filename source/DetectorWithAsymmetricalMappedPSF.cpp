@@ -51,13 +51,6 @@ DetectorWithAsymmetricalMappedPSF::DetectorWithAsymmetricalMappedPSF(Configurati
         generateFlatfieldMap();
     }
 
-    if (includeBFE)
-    {
-        // Generate Guyonnet coefficients
-
-        generateGuyonnetCoefficients();
-    }
-
     // Initialize and load the PSF. This will open the PSF HDF5 file and perform some basic checking,
     // Then select the proper PSF for the given subfield. Should only be done after calling configure().
 
