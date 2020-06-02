@@ -1217,7 +1217,7 @@ void Detector::applyBFE()
 
                  // Eq. (11) in Guyonnet et al. 2015
 
-                deltaQ(row, column) = arma::accu(bfeCoefficients.slice(neighbor) % pixelMap(arma::span(row - bfeRange, row + bfeRange), arma::span(column - bfeRange, column + bfeRange))) * 0.25 * (charge00 + chargeX);
+                deltaQ(row, column) += arma::accu(bfeCoefficients.slice(neighbor) % pixelMap(arma::span(row - bfeRange, row + bfeRange), arma::span(column - bfeRange, column + bfeRange))) * 0.25 * (charge00 + chargeX);
             }
         }
     }
