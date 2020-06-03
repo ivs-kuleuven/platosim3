@@ -657,12 +657,12 @@ void Detector::generateThroughputMap()
                     else
                     {
                         angle = rad2deg(angle); // [degrees]
-                        relativeTransmissivityVariation = (relTransmissivityCoefVector[0] * pow(angle, 2) + relTransmissivityCoefVector[1] * pow(angle, 4) + relTransmissivityCoefVector[2] * pow(angle, 4)) / 100.;
+                        relativeTransmissivityVariation = (relTransmissivityCoefVector[0] * pow(angle, 2) + relTransmissivityCoefVector[1] * pow(angle, 4) + relTransmissivityCoefVector[2] * pow(angle, 6)) / 100.;
 
                         throughputMap(row, column) *= (1 - relativeTransmissivityVariation);
                     }
                 }
-                
+
                 // Polarisation (Eq. 4-11 in PLATO-DLR-PL-RP-001)
 
                 // NOTE: the polarization is angle dependent, but since no info on this dependency is currently available,
