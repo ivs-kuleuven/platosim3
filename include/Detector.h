@@ -98,7 +98,7 @@ class Detector: public HDF5Writer
 
         virtual void generateThroughputMap();
         virtual void checkGain();
-        virtual void generateGuyonnetCoefficients();
+        virtual void readBfeCoefficients(string filename);
 
         virtual void applyFlatfield() = 0;
         virtual void applyThroughputEfficiency();
@@ -164,12 +164,9 @@ class Detector: public HDF5Writer
         double pixelSize;                        // Pixel size [microns]
         unsigned int numEdgePixels;              // Nr of pixels to extend the subfield on each side, to account for the edge effect
 
-        arma::Cube<float> guyonnetCoefficients;  // Coefficients a^X_ij for the BFE in Sect. 6.1 in Guyonnet et al. 2015
-        double p0BFE;        					 // Value for p0 parameter in Eq. (18) in Guyonnet et al. 2015
-        double p1BFE;						     // Value for p1 parameter in Eq. (18) in Guyonnet et al. 2015
-        int rangeBFE;							 // How far pixels can be apart and still influence each other [pixels] (use window with dimensions 2 * range + 1)
-        double refFluxBFE;                       // Reference flux for the p0 and p1 parameters for BFE [e-]
-
+        arma::Cube<float> bfeCoefficients;       // Coefficients a^X_ij for the BFE in Sect. 6.1 in Guyonnet et al. 2015
+        int bfeNeighbors[4][2];                  // Neighbours X for the BFE in Sect. 5.2 in Guyonnet et al. 2015
+        int bfeRange;                            // How far pixels can be apart and still influence each other [pixels] (use window with dimensions 2 * range + 1)
 
         bool includeCosmicsInSubField;           // Whether or not to include cosmic hits in the subfield
         bool includeCosmicsInSmearingMap;        // Whether or not to include cosmic hits in the (physical) overscan region
@@ -283,6 +280,67 @@ class Detector: public HDF5Writer
 
         TemperatureGenerator &temperatureGenerator;
 
+};
+
+#endif
+
+
+
+
+
+
+#ifndef DETECTOR_H
+#define DETECTOR_H
+
+#include <string>
+#include <cmath>
+#include <random>
+#include <functional>
+#include <valarray>
+
+#include "armadillo"
+
+#include "Faddeeva.hh"
+
+#include "Constants.h"
+#include "ArrayOperations.h"
+#include "Mathematics.h"
+#include "Camera.h"
+#include "FrontEndElectronics.h"
+#include "TemperatureGenerator.h"
+#include "ConfigurationParameters.h"
+#include "SymmetricalPointSpreadFunction.h"
+#include "Convolver.h"
+#include "HDF5File.h"
+#include "HDF5Writer.h"
+#include "Logger.h"
+#include "Units.h"
+
+using namespace std;
+
+class Camera;      // forward declaration
+
+
+
+class IntegralOfAnalyticSignalResponse
+{
+    public:
+
+        IntegralOfAnalyticSignalResponse() : size(0), n(0.) {};
+        IntegralOfAnalyticSignalResponse(size_t s, double d = 0.) : size(s), n(0.), dsigma(d) {}
+        virtual ~IntegralOfAnalyticSignalResponse(){};
+        IntegralOfAnalyticSignalResponse& addPart(double, double, double, double, double = 0., double = 0., double = 0.);
+        double operator()(unsigned, unsigned, bool = true);
+
+    private:
+
+        size_t size;                              // number of (sub)pixels in one dimension
+        double n;                                 // normalization factor
+        double dsigma;                            // Gaussian diffusion kernel width
+        vector<valarray<double>> erfxr;           // evaluated error functions for x
+        vector<valarray<double>> erfyr;           // evaluated error functions for y
+        vector<valarray<complex<double>>> erfxc;  // evaluated complex error functions for x
+        vector<valarray<complex<double>>> erfyc;  // evaluated complex error functions for y
 };
 
 #endif

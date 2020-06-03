@@ -341,10 +341,8 @@ void Detector::updateParameters(double time)
     dsnu                                = configParam.getDouble("CCD/DarkSignal/DSNU");
     darkCurrentStability                = configParam.getDouble("CCD/DarkSignal/Stability");
     includeBFE                          = configParam.getBoolean("CCD/IncludeBFE");
-    rangeBFE                            = configParam.getInteger("CCD/BFE/Range");
-    p0BFE                               = configParam.getDouble("CCD/BFE/p0");
-    p1BFE                               = configParam.getDouble("CCD/BFE/p1");
-    refFluxBFE                          = configParam.getDouble("CCD/BFE/RefFlux");
+    if(includeBFE)
+        readBfeCoefficients(configParam.getAbsoluteFilename("CCD/BFE/CoefficientsFileName"));
 
     fullWellSaturationLimit             = configParam.getLong("CCD/FullWellSaturation");
     digitalSaturationLimit              = configParam.getLong("CCD/DigitalSaturation");
@@ -664,7 +662,7 @@ void Detector::generateThroughputMap()
                         throughputMap(row, column) *= (1 - relativeTransmissivityVariation);
                     }
                 }
-
+                
                 // Polarisation (Eq. 4-11 in PLATO-DLR-PL-RP-001)
 
                 // NOTE: the polarization is angle dependent, but since no info on this dependency is currently available,
@@ -738,85 +736,73 @@ void Detector::checkGain()
 
 
 /**
- *\brief Calculates the coefficients a^X_ij for the brighter-fatter effect,
- *       following the method proposed in Sect. 6.1 in Guyonnet et al. 2015.
+ *\brief Reads the coefficients a^X_ij for the brighter-fatter effect,
+ *       from the file with the given name..
  *
  *       These parameters will be the same for all pixels (0, 0) and will only
- *       be calculated for the pixels (i, j) that are within a window centred
+ *       be available for the pixels (i, j) that are within a window centred
  *       at pixel (0, 0).  This can be done because the influence of pixels (i, j)
  *       rapidly decreases with distance from pixel (0, 0).
+ * 
+ * \param filename: Name of the HDF5 file from which to read the BFE coefficients.
  */
-void Detector::generateGuyonnetCoefficients()
+void Detector::readBfeCoefficients(string filename)
 {
-    Log.info("Detector: generating Guyonnet BFE coefficients.");
+    Log.info("Detector: reading BFE coefficients.");
 
-    // For each pixel (0, 0), we only account for the influence of pixels (i, j)
-    // that are within the given range (to evaluate Eq. (11) in Guyonnet et al.).  This
-    // range is defined by a window with dimensions 2 * rangeBFE + 1.
+    // Basic checks on the file with BFE coefficients
 
-    int windowDim = 2 * rangeBFE + 1;
+    HDF5File coefficientsFile;
 
-    // Consider the 4 directly adjacent pixels of pixel (0, 0)
-    // X = {(0, 1), (0, -1), (1, 0), (-1, 0)}
+    if(!FileUtilities::fileExists(filename))
 
-    unsigned constexpr int numNeighbors = 4;
-    int neighbors[numNeighbors][2] = { { 0, 1 }, { 0, -1 }, { 1, 0 }, { -1, 0 } };
+        throw FileException("Detector: trying to load the BFE coefficients HDF5 file (" + filename + "), but file doesn't exist.");
 
-    // Calculate the coefficients a^X_ij in Eq. (11) using the Eqs. in Sect. 6.1
-    // in Guyonnet et al. 2015
-
-    guyonnetCoefficients = arma::zeros<arma::Cube<float>>(windowDim, windowDim, numNeighbors);    // a^X_ij
-    double rowij, columnij, r, cosTheta, f;
-
-    // Loop over the boundaries with neighbours X
-
-    for (unsigned int neighbor = 0; neighbor < numNeighbors; neighbor++) {
-
-        // Loop over all "influential" pixels that are within the window
-
-        for (int row = 0; row < windowDim; row++)
-        {
-            for (int column = 0; column < windowDim; column++)
-            {
-                rowij = (row - rangeBFE) - 0.5 * neighbors[neighbor][0];
-                columnij = (column - rangeBFE) - 0.5 * neighbors[neighbor][1];
-
-                // Distance from the source charge (Q_ij) to the considered boundary
-
-                r = sqrt(pow(rowij, 2) + pow(columnij, 2));
-
-                // Cosine of the angle between the source-boundary vector and the
-                // normal to the boundary
-
-                cosTheta = (rowij * neighbors[neighbor][0]
-                        + columnij * neighbors[neighbor][1]) / r;
-
-                // Eq. (18) in Guyonnet et al. 2015
-
-                f = p0BFE * Mathematics::expint(p1BFE * r);
-
-                guyonnetCoefficients(row, column, neighbor) = f * cosTheta;
-            }
-        }
-    }
-
-    // Enforcing Eq. (7) in Guyonnet et al.
-
-    for(unsigned int neighbor = 0; neighbor < numNeighbors; neighbor++)
+    try
     {
-        double sumForNeighbor = arma::accu(guyonnetCoefficients.slice(neighbor)) / pow(windowDim, 2);
-
-        for (unsigned int row = 0; row < windowDim; row++)
-        {
-
-            for(unsigned int column = 0; column < windowDim; column++)
-            {
-                guyonnetCoefficients(row, column, neighbor) -= sumForNeighbor;
-            }
-        }
-
-        // Accounting for the fact that (p0, p1) holds for the reference flux -> done in applyBFE()
+         coefficientsFile.open(filename);
     }
+    catch(H5::FileIException ex)
+    {
+        Log.error("H5::FileIException: " + string(ex.getCDetailMsg()));
+        throw H5FileException("Detector: Could not open HDF5 file: " + filename);
+    }
+
+    // Prepare to read X and a_ij^X from the file
+
+    unsigned constexpr int numNeighbors = 4;    // Number of neighbours X
+    bfeRange = coefficientsFile.readIntegerGroupAttribute("Neighbors", "range"); // Range over which to consider source charges Q_ij
+    int windowDim = 2 * bfeRange + 1;   // Window in which to consider source charges Q_ij
+
+    string neighborNames[numNeighbors] = {"East", "North", "West", "South"};
+    
+    bfeCoefficients.zeros(windowDim, windowDim, numNeighbors);  // (row, column, X)
+    
+    string neighborName;
+    arma::fmat slice = arma::fmat(windowDim, windowDim, arma::fill::zeros); // Temporary storage of the BFE coefficients for given neighbour
+
+    // Loop over all neighbours (groups)
+
+    for(int index = 0; index < numNeighbors; index++)
+    {
+        neighborName = neighborNames[index];
+
+        if(!coefficientsFile.hasGroup("Neighbors/" + neighborName))
+            throw H5FileException("Detector: The HDF5 file (" + filename + ") doesn't contain the expected group \"" + neighborName + "\".");
+
+        if(!coefficientsFile.hasDataset("Neighbors/" + neighborName, "aX"))
+            throw H5FileException("Detector: The HDF5 file (" + filename + ") doesn't contain the expected dataset aX in group \"" + neighborName + "\".");
+
+        // Read the BFE coefficients for the current neighbour
+
+        coefficientsFile.readArray("/Neighbors/" + neighborName, "aX", slice);
+        bfeCoefficients.slice(index) = slice;
+
+        bfeNeighbors[index][0] = coefficientsFile.readIntegerGroupAttribute("Neighbors/" + neighborName, "row");
+        bfeNeighbors[index][1] = coefficientsFile.readIntegerGroupAttribute("Neighbors/" + neighborName, "column");
+    }
+
+    coefficientsFile.close();
 }
 
 
@@ -1168,7 +1154,8 @@ void Detector::readOut(float exposureTime)
 
 /**
  * \brief Adds the Brighter-Fatter Effect (BFE) to the pixel map, following the method
- *        proposed by Guyonnet et al. 2015 (https://arxiv.org/abs/1501.01577).
+ *        proposed by Guyonnet et al. 2015 (https://arxiv.org/abs/1501.01577).  This 
+ *        implementation is valid only for shallow PSFs.
  *
  * \pre Pixel unit in the pixel map: [electrons].
  * \pre No bias register or smearing maps.
@@ -1181,73 +1168,37 @@ void Detector::applyBFE()
     // For each pixel (0, 0), we only account for the influence of pixels (i, j)
     // that are within the given range (to evaluate Eq. (11) in Guyonnet et al.)
 
-    int windowDim = 2 * rangeBFE + 1;
+    arma::fmat deltaQ = arma::fmat(numRowsPixelMap, numColumnsPixelMap, arma::fill::zeros); // δQ_00 for whole sub-field
 
-    // Consider the 4 directly adjacent pixels of pixel (0, 0)
-    // X = {(0, 1), (0, -1), (1, 0), (-1, 0)}
+    double charge00, chargeX;           // Q_00, Q_X
+    int neighborRow, neighborColumn;    // X
 
-    unsigned constexpr int numNeighbors = 4;
-    int neighbors[numNeighbors][2] = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
+    // Loop over all pixels (stay away from the edges)
+    // -> current pixel correponds to (0, 0) in Guyonnet et al. 2015
 
-    // Charges Q_0,0, Q_X, and Q_i,j in Eq. (11) in Guyonnet et al. 2015
-
-    double charge00, chargeX, bfeX00, bfe00;//, chargeij;
-
-    // ∂Q_0,0 in Eq. (11) in Guyonnet et al. 2015
-
-    arma::Mat<float> bfe = arma::zeros<arma::Mat<float>>(numRowsPixelMap, numColumnsPixelMap);
-
-    // Loop over all pixels in the pixel map that are affected by the BFE
-
-    for(unsigned int row = rangeBFE; row < numRowsPixelMap - rangeBFE; row++)
+    for(int row = bfeRange; row < numRowsPixelMap - bfeRange; row++)
     {
-        for(unsigned int column = rangeBFE; column < numColumnsPixelMap - rangeBFE; column++)
+        for(int column = bfeRange; column < numColumnsPixelMap - bfeRange; column++)
         {
-            charge00 = pixelMap(row, column);    // Q_0,0
+            charge00 = pixelMap(row, column); // Charge in the current pixel -> Q_00
 
-            bfe00 = 0;
+            // Loop over all neighbours X
 
-            for(unsigned int neighbor = 0; neighbor < numNeighbors; neighbor++)
+            for(int neighbor = 0; neighbor < 4; neighbor++)
             {
-                chargeX = pixelMap(row + neighbors[neighbor][0], column + neighbors[neighbor][1]);    // Q_X
+                neighborRow = bfeNeighbors[neighbor][0];        // Row offset w.r.t. current pixel [pixels]
+                neighborColumn = bfeNeighbors[neighbor][1];     // Column offset w.r.t. current pixel [pixels]
 
-                // i = row - range,..., row + range
-                // j = column - range, column + range
+                chargeX = pixelMap(row + neighborRow, column + neighborColumn);     // Charge includeMechanicalVignetting neighbor X -> Q_X
 
-//                chargeij = pixelMap(row, column); //pixelMap(arma::span(row - rangeBFE, row + rangeBFE), arma::span(column - rangeBFE, column + rangeBFE));
+                 // Eq. (11) in Guyonnet et al. 2015
 
-                // Eq. (11) in Guyonnet et al. 2015 (within dividing by 4)
-                // a^X_i,j * Q_i,j * (Q_0,0 + Q_X)
-                // Accounting for the fact that (p0, p1) holds for the reference flux
-
-                bfeX00 = arma::accu(guyonnetCoefficients.slice(neighbor) % pixelMap(arma::span(row - rangeBFE, row + rangeBFE), arma::span(column - rangeBFE, column + rangeBFE)))  / (refFluxBFE / 2.0) * (charge00 + chargeX);
-                bfe00 += bfeX00;
-
-//                for(unsigned int i = 0; i < windowDim; i++)
-//                {
-//                    for(unsigned int j = 0; j < windowDim; j++)
-//                    {
-//                        chargeij = pixelMap(row + (i - rangeBFE) , column + (j - rangeBFE));        // Q_i,j
-//
-//                        // Eq. (11) in Guyonnet et al. 2015 (within dividing by 4)
-//                        // a^X_i,j * Q_i,j * (Q_0,0 + Q_X)
-//
-//                        bfe(row, column) += guyonnetCoefficients(i, j, neighbor) * chargeij / (refFluxBFE / 2.0) * (charge00 + chargeX);
-//
-//                        Log.info("BFE: " + to_string(guyonnetCoefficients(i, j, neighbor)) + " " + to_string(chargeij) + " " + to_string(charge00) + " " + to_string(chargeX));
-//                    }
-//                }
+                deltaQ(row, column) += arma::accu(bfeCoefficients.slice(neighbor) % pixelMap(arma::span(row - bfeRange, row + bfeRange), arma::span(column - bfeRange, column + bfeRange))) * 0.25 * (charge00 + chargeX);
             }
-
-            bfe(row, column) = bfe00;
         }
     }
 
-    // Dividing by 4 in Eq. (11) in Guyonnet et al. 2015
-
-    bfe /= 4.0;
-
-    pixelMap += bfe;
+    pixelMap += deltaQ;
 }
 
 
