@@ -166,10 +166,7 @@ CCD:
     TimeShift:                       0.0             # Extra time shift of the first exposure. Autoset when Position is in [1,2,3,4]. [s]
     PixelSize:                   18              # [micron]
     BFE:                                             # Brighter-fatter effect
-        Range:                       2               # How far pixels can be apart and still influence each other [pixels] (use window with dimensions 2 * range + 1)
-        p0:                          0.05            # Value for p0 parameter in Eq. (18) in Guyonnet et al. 2015
-        p1:                          0.15            # Value for p1 parameter in Eq. (18) in Guyonnet et al. 2015
-        RefFlux:                     1e6             # Reference flux for the brighter-fatter effect [e-]
+        CoefficientsFileName:        inputfiles/a_bfe.hdf5  # File with the BFE coefficients, calculated by P. Astier
     Gain:                            
         RefValueLeft:            1.80            # [microV/e-]
         RefValueRight:           1.80            # [microV/e-]
@@ -190,11 +187,10 @@ CCD:
           FirstRowReadout:           0           # First row that will be read out by the FEE in partial-readout mode
           NumRowsReadout:            4510        # Number of rows that will be read out by the FEE, in partial-readout mode
     FlatfieldNoiseRMS:           0.010           # Flatfield noise RMS (local PRNU)
-    Vignetting:
-        NaturalVignetting:                           # Brightness attenuation from the optical axis to the edge of the FOV
-            ExpectedValue:           0.945           # Expected value of the throughput efficiency due to natural vignetting
-        MechanicalVignetting:                        # Blocking of the light due to mechanical obstruction at the edge of the FOV
-            RadiusFOV:               18.8908         # Radius of the FOV [degrees]
+        RelativeTransmissivity:
+        Coefficients:           [4.18e-2, -5.65e-5, 2.37e-7]    # Coefficients of the polynomial fit to the variation in overall relative transmissivity
+        RadiusFOV:              18.8908                         # Radius of the FOV [degrees]
+        ExpectedValue:          0.920                           # Expected value of the efficiency (mean of all detector pixels within FOV)
     Polarization:
         ExpectedValue:               0.989           # Expected value (mean of all detector pixels)
     Contamination:
@@ -226,8 +222,7 @@ CCD:
     IncludeCTIeffects:               yes             # Include charge transfer inefficiency effects [yes or no]
     IncludeOpenShutterSmearing:      yes             # Include trails due reading out with an open shutter [yes or no]
     IncludeQuantumEfficiency:        yes             # Include loss of throughput due to quantum efficiency
-    IncludeNaturalVignetting:        yes             # Include brightness attenuation towards the edge of the FOV due to natural vignetting
-    IncludeMechanicalVignetting:     yes             # Include blockage of incoming flux during exposure at the edge of the FOV due to mechanical vignetting
+    IncludeRelativeTransmissivity:   yes             # Include the overall relative transmissitiy (natural + mechanical vignetting, glass absorption, and anti-reflective coating)
     IncludePolarization:             yes             # Include loss of throughput due to polarisation
     IncludeParticulateContamination: yes             # Include loss of throughput due to particulate contamination
     IncludeMolecularContamination:   yes             # Include loss of throughput due to molecular contamination
