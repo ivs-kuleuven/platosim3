@@ -177,10 +177,9 @@ class Detector: public HDF5Writer
         double cosmicHitRate;					 // Cosmic hit rate [events / cm^2 / s]
         vector<double> cosmicTrailLength;		 // Interval of the length of the cosmic trails [pixels]
         vector<double> cosmicIntensity; 		 // Interval of the intensity of the cosmic trails [e-]
-        double expectedValueNaturalVignetting;   // Expected value of the throughput efficiency due to vignetting (int [0,1])
-        double minRadiusMechanicalVignetting;    // Distance from the optical axis at which the mechanical vignetting kicks in [degrees]
-        double slopeMechanicalVignetting;        // Slope of the linear relation between the distance from the OA and the inefficiency due to mechanical vignetting
+        vector<double> relTransmissivityCoefVector;
         double radiusFOV;                        // Radius of the FOV [radians]
+        double expectedValueRelativeTransmissivity;   // Expected value of the relative transmissivity for the sub-field
         double expectedValuePolarization;        // Expected value of the throughput efficiency due to polarisation
         double particulateContaminationEfficiency;  // Efficiency of particulate contamination (in [0,1])
         double molecularContaminationEfficiency;    // Efficiency of molecular contamination (in [0,1])
@@ -235,8 +234,7 @@ class Detector: public HDF5Writer
         bool includeChargeInjection;             // Include charge injection to mitigate the CTI [yes or no]
         bool includeOpenShutterSmearing;         // Include trails due reading out with an open shutter
         bool includeQuantumEfficiency;           // Include loss of throughput due to quantum efficiency
-        bool includeNaturalVignetting;           // Include brightness attenuation due to natural vignetting
-        bool includeMechanicalVignetting;        // Include blockage of incoming flux during exposure at the edge of the FOV due to mechanical vignetting
+        bool includeRelativeTransmissivity;      // Include overall relative transmissivity
         bool includePolarization;                // Include loss of throughput due to polarisation
         bool includeParticulateContamination;    // Include loss of throughput due to particulate contamination
         bool includeMolecularContamination;      // Include loss of throughput due to molecular contamination

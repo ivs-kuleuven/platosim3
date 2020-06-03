@@ -854,8 +854,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("IncludeCTIeffects"); 
     addBoolean("IncludeChargeInjection");
     addBoolean("IncludeOpenShutterSmearing");
-    addBoolean("IncludeNaturalVignetting");
-    addBoolean("IncludeMechanicalVignetting");
+    addBoolean("IncludeRelativeTransmissivity");
     addBoolean("IncludePolarization");
     addBoolean("IncludeParticulateContamination");
     addBoolean("IncludeMolecularContamination");
@@ -881,16 +880,11 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 	addDouble("Stability");
 	addDouble("AllowedDifference");
 
-    subGroup = "CCD/Vignetting";
-    hdf5File->createGroup(parentGroup + "/" + subGroup);
-    
-    subGroup = "CCD/Vignetting/NaturalVignetting";
+    subGroup = "CCD/RelativeTransmissivity";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addDouble("ExpectedValue");
-    
-    subGroup = "CCD/Vignetting/MechanicalVignetting";
-    hdf5File->createGroup(parentGroup + "/" + subGroup);
     addDouble("RadiusFOV");
+    addDoubleVector("Coefficients");
 
     subGroup = "CCD/QuantumEfficiency";
     hdf5File->createGroup(parentGroup + "/" + subGroup);

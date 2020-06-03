@@ -150,8 +150,7 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
   includeCTIeffects(true),
   includeOpenShutterSmearing(true),
   includeQuantumEfficiency(true),
-  includeNaturalVignetting(true),
-  includeMechanicalVignetting(true),
+  includeRelativeTransmissivity(true),
   includeParticulateContamination(true),
   includeMolecularContamination(true),
   includeFullWellSaturation(true),
@@ -203,7 +202,7 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 
         numExposedRowsInFOV.zeros(numColumnsPixelMap);
 
-        if(!includeMechanicalVignetting)
+        if(!includeRelativeTransmissivity)
             numExposedRowsInFOV.fill(numRows - firstRowExposed);
     }
 
@@ -350,10 +349,6 @@ void Detector::updateParameters(double time)
     fullWellSaturationLimit             = configParam.getLong("CCD/FullWellSaturation");
     digitalSaturationLimit              = configParam.getLong("CCD/DigitalSaturation");
     readoutNoise                        = configParam.getDouble("CCD/ReadoutNoise");
-    expectedValueNaturalVignetting      = configParam.getDouble("CCD/Vignetting/NaturalVignetting/ExpectedValue");
-    radiusFOV                           = deg2rad(configParam.getDouble("CCD/Vignetting/MechanicalVignetting/RadiusFOV"));
-    minRadiusMechanicalVignetting       = deg2rad(configParam.getDouble("CCD/Vignetting/MechanicalVignetting/MinRadius"));
-    slopeMechanicalVignetting           = configParam.getDouble("CCD/Vignetting/MechanicalVignetting/Slope");
     particulateContaminationEfficiency  = configParam.getDouble("CCD/Contamination/ParticulateContaminationEfficiency");
     molecularContaminationEfficiency    = configParam.getDouble("CCD/Contamination/MolecularContaminationEfficiency");
 
@@ -437,12 +432,26 @@ void Detector::updateParameters(double time)
     includeChargeInjection          = configParam.getBoolean("CCD/IncludeChargeInjection");
     includeOpenShutterSmearing      = configParam.getBoolean("CCD/IncludeOpenShutterSmearing");
     includeQuantumEfficiency        = configParam.getBoolean("CCD/IncludeQuantumEfficiency");
-    includeNaturalVignetting        = configParam.getBoolean("CCD/IncludeNaturalVignetting");
-    includeMechanicalVignetting     = configParam.getBoolean("CCD/IncludeMechanicalVignetting");
+    includeRelativeTransmissivity   = configParam.getBoolean("CCD/IncludeRelativeTransmissivity");
     includePolarization             = configParam.getBoolean("CCD/IncludePolarization");
     includeFullWellSaturation       = configParam.getBoolean("CCD/IncludeFullWellSaturation");
     includeDigitalSaturation        = configParam.getBoolean("CCD/IncludeDigitalSaturation");
     includeQuantisation             = configParam.getBoolean("CCD/IncludeQuantisation");
+
+    if(includeRelativeTransmissivity)
+    {
+        // expectedValueNaturalVignetting      = configParam.getDouble("CCD/Vignetting/NaturalVignetting/ExpectedValue");
+        relTransmissivityCoefVector = configParam.getDoubleVector("CCD/RelativeTransmissivity/Coefficients");
+
+        if (relTransmissivityCoefVector.size() != 3)
+            {
+                string msg = "Detector::configure(): number of coefficients for the relative transmissivity in input yaml file != 3.";
+                throw ConfigurationException(msg);
+            }
+
+        radiusFOV                           = deg2rad(configParam.getDouble("CCD/RelativeTransmissivity/RadiusFOV"));
+        expectedValueRelativeTransmissivity =  configParam.getDouble("CCD/RelativeTransmissivity/ExpectedValue");
+    }
 
     // Configuration parameters for the subfield
 
@@ -607,11 +616,13 @@ void Detector::generateThroughputMap()
 
     throughputMap.fill(1.0);
 
-    if(includeMechanicalVignetting  && includeOpenShutterSmearing)
+    if(includeRelativeTransmissivity  && includeOpenShutterSmearing)
         mechanicalVignettingMask.fill(1);
 
     double xFPmm, yFPmm;
     double angle;
+    double relativeTransmissivityVariation;
+    
 
 //    const double refAnglePolarizationRadians = deg2rad(refAnglePolarization);       // Reference angle for the polarisation efficiency [radians]
 //    const double acosPolarizationEfficiency = acos(polarizationEfficiency);
@@ -619,7 +630,7 @@ void Detector::generateThroughputMap()
 //    const double refAngleQuantumEfficiencyRadians = deg2rad(refAngleQE);     // Reference angle for the quantum efficiency [radians]
 //    const double acosQuantumEfficiency = acos(relativeRefEfficiencyQE);        // Relative efficiency due to the angle dependency of the QE at the reference angle
 
-    if (includeNaturalVignetting || includeMechanicalVignetting || includePolarization || includeQuantumEfficiency)
+    if (includeRelativeTransmissivity || includePolarization || includeQuantumEfficiency)
     {
         // Loop over all pixels in the pixel map
 
@@ -633,15 +644,11 @@ void Detector::generateThroughputMap()
 
                 // Angular distance [radians] of the pixel from the optical axis
 
-                angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm);
+                angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm);  // [radians]
 
-                // Mechanical + natural vignetting
-
-                if(includeMechanicalVignetting && includeNaturalVignetting)
+                if (includeRelativeTransmissivity)
                 {
-                    // All incoming radiation is blocked beyond the edge of the FOV
-                  
-                    if (angle > radiusFOV)
+                    if (angle >= radiusFOV)
                     {
                         throughputMap(row, column) = 0.0;
 
@@ -649,47 +656,14 @@ void Detector::generateThroughputMap()
                             mechanicalVignettingMask(row, column) = 0;
                     }
 
-                    // Combined effect in the outer ring of the FOV
-                    // 1 - E_tot = (1 - E_mech) + (1 - E_nat) -> E_tot = E_nat - (1 - E_mech)
-                  
-                    else if (angle > minRadiusMechanicalVignetting)
-                    {
-                        throughputMap(row, column) *= (pow(cos(angle), 2) - rad2deg(angle - minRadiusMechanicalVignetting) * slopeMechanicalVignetting);
-                    }
-                  
-                    // Natural vignetting in the central region of the FOV
-                  
                     else
                     {
-                        throughputMap(row, column) *= pow(cos(angle), 2);
+                        angle = rad2deg(angle); // [degrees]
+                        relativeTransmissivityVariation = (relTransmissivityCoefVector[0] * pow(angle, 2) + relTransmissivityCoefVector[1] * pow(angle, 4) + relTransmissivityCoefVector[2] * pow(angle, 4)) / 100.;
+
+                        throughputMap(row, column) *= (1 - relativeTransmissivityVariation);
                     }
                 }
-
-                // Mechanical vignetting only
-              
-                else if(includeMechanicalVignetting)
-                {
-                    // All incoming radiation is blocked beyond the edge of the FOV
-                  
-                    if (angle > radiusFOV)
-                    {
-                        throughputMap(row, column) = 0.0;
-
-                        if(includeOpenShutterSmearing)
-                            mechanicalVignettingMask(row, column) = 0;
-                    }
-
-                    else if(angle > minRadiusMechanicalVignetting)
-                    {
-                        throughputMap(row, column) *= (1 - rad2deg(angle - minRadiusMechanicalVignetting) * slopeMechanicalVignetting);
-                    }
-                }
-
-                // Natural vignetting.
-                // With a cos^2 law, the mean natural vignetting value over all pixels is 0.945.
-
-                else if (includeNaturalVignetting)
-                    throughputMap(row, column) *= pow(cos(angle), 2);
 
                 // Polarisation (Eq. 4-11 in PLATO-DLR-PL-RP-001)
 
@@ -1977,7 +1951,7 @@ void Detector::applyShort2013CTImodel()
  */
 void Detector::applyOpenShutterSmearing(float exposureTime)
 {
-    if (includeMechanicalVignetting)
+    if (includeRelativeTransmissivity)
     {
         // The mask indicating which pixels in the sub-field are within the FOV and which
         // ones not, has already been created upon construction of the throughput map.
@@ -2044,8 +2018,8 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
    // Apply all throughput efficiencies (these have not been applied to the total sky background yet)
    // Note that mechanical vignetting has already been taken into account (if applicable)
 
-    if(includeNaturalVignetting)
-        openShutterSmearingOutsideSubField *= expectedValueNaturalVignetting;
+    if(includeRelativeTransmissivity)
+        openShutterSmearingOutsideSubField *= expectedValueRelativeTransmissivity;
 
     if(includePolarization)
         openShutterSmearingOutsideSubField *= expectedValuePolarization;
@@ -2462,8 +2436,9 @@ void Detector::applyOverAndUnderShoot()
     int lengthReadoutRegister;
 
     double skyBackground = camera.getTotalSkyBackground();
-    if (includeNaturalVignetting)
-        skyBackground *= expectedValueNaturalVignetting;
+    
+    if (includeRelativeTransmissivity)
+        skyBackground *= expectedValueRelativeTransmissivity;
     if (includePolarization)
         skyBackground *= expectedValuePolarization;
     if (includeParticulateContamination)
