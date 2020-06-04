@@ -84,11 +84,12 @@ class Detector: public HDF5Writer
         virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) = 0;
         virtual void addFlux(double flux) = 0;
 
-
         bool isInPixelMap(double row, double column);
         bool isInSubfield(double xFPmm, double yFPmm);
 
         double getReadoutTimeBeforeNextExposure();
+
+        virtual double getTrapDensity(double time, int trapSpecies);
 
 
     protected:
@@ -141,6 +142,8 @@ class Detector: public HDF5Writer
         arma::Mat<float> biasMapLeft;            // Bias map (i.e. pre-scan strip) for the left detector half
         arma::Mat<float> biasMapRight;           // Bias map (i.e. pre-scan strip) for the right detector half
         arma::Mat<float> throughputMap;          // Throughput efficiency map, due to vignetting, particulate & molecular contamination, and quantum efficiency
+
+        double missionDuration;                  // Duration of the PLATO Mission, used for degrading parameters      [s]
 
         arma::Mat<int> mechanicalVignettingMask; // Mask for the sub-field showing which pixels are within the FOV (1) and which aren't (0)   
         arma::Row<int> numExposedRowsInFOV;      // How many pixels in the exposed part of the detector for each column are within the FOV (only for columns showing overlap with the sub-field)
@@ -211,7 +214,8 @@ class Detector: public HDF5Writer
         double beta;                             // Beta exponent in Short et al., MNRAS 430, 3078-3085 (2010).
         double temperature;                      // Temperature of the detector
         unsigned int numTrapSpecies;             // Number of different trap species included in the Short2010 model
-        vector<double> trapDensity;              // For each trap species: the trap density [traps/pixel]
+        vector<double> trapDensityBOL;           // For each trap species: the trap density at BOL [traps/pixel]
+        vector<double> trapDensityEOL;           // For each trap species: the trap density at EOL [traps/pixel]
         vector<double> trapCaptureCrossSection;  // For each trap species: the trap capture cross section [m^2]
         vector<double> releaseTime;              // For each trap species: the electron release time [s]
 
@@ -280,67 +284,6 @@ class Detector: public HDF5Writer
 
         TemperatureGenerator &temperatureGenerator;
 
-};
-
-#endif
-
-
-
-
-
-
-#ifndef DETECTOR_H
-#define DETECTOR_H
-
-#include <string>
-#include <cmath>
-#include <random>
-#include <functional>
-#include <valarray>
-
-#include "armadillo"
-
-#include "Faddeeva.hh"
-
-#include "Constants.h"
-#include "ArrayOperations.h"
-#include "Mathematics.h"
-#include "Camera.h"
-#include "FrontEndElectronics.h"
-#include "TemperatureGenerator.h"
-#include "ConfigurationParameters.h"
-#include "SymmetricalPointSpreadFunction.h"
-#include "Convolver.h"
-#include "HDF5File.h"
-#include "HDF5Writer.h"
-#include "Logger.h"
-#include "Units.h"
-
-using namespace std;
-
-class Camera;      // forward declaration
-
-
-
-class IntegralOfAnalyticSignalResponse
-{
-    public:
-
-        IntegralOfAnalyticSignalResponse() : size(0), n(0.) {};
-        IntegralOfAnalyticSignalResponse(size_t s, double d = 0.) : size(s), n(0.), dsigma(d) {}
-        virtual ~IntegralOfAnalyticSignalResponse(){};
-        IntegralOfAnalyticSignalResponse& addPart(double, double, double, double, double = 0., double = 0., double = 0.);
-        double operator()(unsigned, unsigned, bool = true);
-
-    private:
-
-        size_t size;                              // number of (sub)pixels in one dimension
-        double n;                                 // normalization factor
-        double dsigma;                            // Gaussian diffusion kernel width
-        vector<valarray<double>> erfxr;           // evaluated error functions for x
-        vector<valarray<double>> erfyr;           // evaluated error functions for y
-        vector<valarray<complex<double>>> erfxc;  // evaluated complex error functions for x
-        vector<valarray<complex<double>>> erfyc;  // evaluated complex error functions for y
 };
 
 #endif

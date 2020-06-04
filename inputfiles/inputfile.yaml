@@ -184,7 +184,7 @@ CCD:
           NumRowsReadout:            4510            # Number of rows that will be read out by the FEE, in partial-readout mode
     FlatfieldNoiseRMS:               0.010           # Flatfield noise RMS (local PRNU)
     RelativeTransmissivity:
-        Coefficients:           [4.18e-2, -5.65e-5, 2.37e-7]    # Coefficients of the polynomial fit (k1 * x^2 + k2 * x^4 + k3 * x^6) to the variation in overall relative transmissivity
+        Coefficients:           [4.18e-2, -5.65e-5, 2.37e-7]    # Coefficients of the polynomial fit (k1 * x^2 + k2 * x^4 + k3 * x^6) to the variation in overall relative transmissivity w.r.t. angular distance from the OA
         RadiusFOV:              18.8908                         # Radius of the FOV [degrees]
         ExpectedValue:          0.920                           # Expected value of the efficiency (mean of all detector pixels within FOV)
     Polarization:
@@ -204,7 +204,9 @@ CCD:
             Beta:                    0.37                                         # beta exponent in Short et al. (2013)
             Temperature:             203.                                         # [K]
             NumTrapSpecies:          4                                            # number of different trap species
-            TrapDensity:             [9.8, 3.31, 1.56, 13.24]                     # for each trap species [traps/pixel]
+            TrapDensity:             # for each trap species [traps/pixel]
+                BOL:                 [0.0, 0.0, 0.0, 0.0]
+                EOL:                 [9.8, 3.31, 1.56, 13.24]   
             TrapCaptureCrossSection: [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]     # for each trap species [m^2]
             ReleaseTime:             [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]         # for each trap species [s]
     ChargeInjection:                                 # Inject charge once per exposure to mitigate the CTI effect

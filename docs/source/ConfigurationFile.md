@@ -1192,7 +1192,9 @@ CCD:
     	          Beta:		0.37
     	          Temperature:	203.0
     	          NumTrapSpecies:[9.8, 3.31, 1.56, 13.24]
-    	          TrapDensity:   [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]
+    	          TrapDensity:   
+                        BOL:    [0.0, 0.0, 0.0, 0.0]
+                        EOL:    [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]
     	          ReleaseTime:   [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]
     NominalOperatingTemperature: 203.15
     Temperature:                 Nominal
@@ -1227,14 +1229,14 @@ The pre-defined CCD positions are shown in the figures below.
 @image html "/images/CCD Array Configuration - Normal Camera.png" "Figure 7: Layout of the CCDs for the normal camera's."
 @image html "/images/CCD Array Configuration - Fast Camera.png" "Figure 8: Layout of the CCDs for the fast camera's."
 
-Note that we now use 1, 2, 3, and 4 rather than A, B, C, D, for the normal cameras as well as for the fast ones.
+<!-- Note that we now use 1, 2, 3, and 4 rather than A, B, C, D, for the normal cameras as well as for the fast ones.
 
 |In the past|Now |
 |---|---|
 | A  | 3  |
 | B  | 2  |
 | C  | 4  |
-| D  | 1  |
+| D  | 1  | -->
 
 When you specify [Position](#position)=Custom, the origin offset ([OriginOffsetX](#originOffsetX) and [OriginOffsetY](#originOffsetY)), the [orientation](#ccdOrientation), [number of rows](#ccdNumRows) and [columns](#ccdNumColumns), and the [first exposed row](#firstRowExposed) of the CCD are read from the configuration parameters in the CCD block.
 
@@ -1622,12 +1624,25 @@ Number of trap species that is used in the CTI model by Short et al. 2013.
 
 
 
-
 ##### <a name="trapDensity"></a>CTI: Short2013: TrapDensity
+
+We assume the trap density for each of the considered trap densities to increase linearly over time (in absence of charge injection).
+
+
+
+###### <a name="trapDensityBOL"></a>CTI: Short2013: TrapDensity: BOL
 
 <i>Allowed values:</i> Array holding one non-negative entry per trap species. 
 
-Array holding the trap density \f$n_t \f$ for each of the considered trap species, expressed in number of traps per pixel.  This is used to calculate the \f$\gamma \f$-value in Eq. (22) of Short et al. 2013.
+Array holding the trap density \f$n_t \f$ at BOL for each of the considered trap species, expressed in number of traps per pixel.  This is used to calculate the \f$\gamma \f$-value in Eq. (22) of Short et al. 2013.
+
+
+
+###### <a name="trapDensityEOL"></a>CTI: Short2013: TrapDensity: EOL
+
+<i>Allowed values:</i> Array holding one non-negative entry per trap species. 
+
+Array holding the trap density \f$n_t \f$ at EOL for each of the considered trap species, expressed in number of traps per pixel.  This is used to calculate the \f$\gamma \f$-value in Eq. (22) of Short et al. 2013.
 
 
 

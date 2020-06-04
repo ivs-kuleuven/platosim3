@@ -22,6 +22,7 @@
 * Replaced natural & mechanical vignetting with overall relative transmissivity (GitHub issue #478)
 * Read BFE coefficients from file instead of calculating them (GitHub issue #434)
 * CCD ID new standard (GitHub issue #416)
+* Implemented time-dependent CTI (GitHub issue #476)
 
 ## Added
 
@@ -33,6 +34,17 @@
 * Transmission variation as a function of FOV (GitHub issue #415)
 * Validation & verification notebooks
 * Group all contributions to the overall relative transmissivity (GitHub issue #478)
+
+
+
+<!-- 3.3.8 -->
+<!-- ***** -->
+
+## ??/&&/2020: 3.3.8
+
+## Changed
+
+* Implemented time-dependent CTI (GitHub issue #476)
 
 
 

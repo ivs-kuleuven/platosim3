@@ -924,9 +924,13 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("Beta");
     addDouble("Temperature");
     addInteger("NumTrapSpecies");
-    addDoubleVector("TrapDensity");
     addDoubleVector("TrapCaptureCrossSection");
     addDoubleVector("ReleaseTime");
+    subGroup = "CCD/CTI/Short2013/TrapDensity";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addDoubleVector("BOL");
+    addDoubleVector("EOL");
+
 
     subGroup = "CCD/ChargeInjection";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
