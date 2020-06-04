@@ -1,6 +1,17 @@
 # Changelog for PlatoSim
 
 
+<!-- 3.3.8 -->
+<!-- ***** -->
+
+## ??/&&/2020: 3.3.8
+
+## Changed
+
+* Implemented time-dependent CTI (GitHub issue #476)
+
+
+
 <!-- 3.3.7 -->
 <!-- ***** -->
 
