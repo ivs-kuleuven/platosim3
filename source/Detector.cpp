@@ -387,7 +387,9 @@ void Detector::updateParameters(double time)
         beta                    = configParam.getDouble("CCD/CTI/Short2013/Beta");
         temperature             = configParam.getDouble("CCD/CTI/Short2013/Temperature");
         numTrapSpecies          = configParam.getInteger("CCD/CTI/Short2013/NumTrapSpecies");
-        trapDensity             = configParam.getDoubleVector("CCD/CTI/Short2013/TrapDensity");
+        trapDensityBOL          = configParam.getDoubleVector("CCD/CTI/Short2013/TrapDensity/BOL");
+        trapDensityEOL          = configParam.getDoubleVector("CCD/CTI/Short2013/TrapDensity/EOL");
+        missionDuration         = configParam.getDouble("ObservingParameters/MissionDuration") * 31536000.0; // [s]
         trapCaptureCrossSection = configParam.getDoubleVector("CCD/CTI/Short2013/TrapCaptureCrossSection");
         releaseTime             = configParam.getDoubleVector("CCD/CTI/Short2013/ReleaseTime");
     }
@@ -1797,6 +1799,21 @@ void Detector::applySimpleCTImodel()
 
 
 
+double Detector::getTrapDensity(double time, int trapSpecies)
+{
+    double densityBOL = trapDensityBOL[trapSpecies];
+    double densityEOL = trapDensityEOL[trapSpecies];
+
+    return densityBOL - (densityBOL - densityEOL) / missionDuration * time;
+}
+
+
+
+
+
+
+
+
 
 /**
  * \brief: Apply the effect of the charge-transfer inefficiency to the pixel map,
@@ -1863,7 +1880,7 @@ void Detector::applyShort2013CTImodel()
             // Note that Armadillo uses % for elementwise multiplication.
             // In the following line: +1 as row = 0 also has to be transferred once
 
-            const double gamma = 2 * trapDensity[k] * (subFieldZeroPointRow + rowNumber + 1) / pow(fullWellSaturationLimit, beta) / (1 + beta); // +1 as row = 0 also has to be transferred once
+            const double gamma = 2 * getTrapDensity(internalTime, k) * (subFieldZeroPointRow + rowNumber + 1) / pow(fullWellSaturationLimit, beta) / (1 + beta); // +1 as row = 0 also has to be transferred once
             
             numberOfCapturedElectrons =   (gamma * arma::pow(pixelMap.row(rowNumber), beta) - numberOfOccupiedTraps.row(k)) \
                                         / (gamma * arma::pow(pixelMap.row(rowNumber), beta-1) + 1)                          \
