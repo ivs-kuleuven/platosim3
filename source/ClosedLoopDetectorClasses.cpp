@@ -102,7 +102,7 @@ void ClosedLoopDetectorWithSymmetricalMappedPSF::setNewWindowPosition(std::tuple
             
             numExposedRowsInFOV.zeros(numColumnsPixelMap);
 
-            if(!includeMechanicalVignetting)
+            if(!includeRelativeTransmissivity)
             {
                 numExposedRowsInFOV.fill(numRows - firstRowExposed);
             }
@@ -238,7 +238,7 @@ void ClosedLoopDetectorWithAsymmetricalMappedPSF::setNewWindowPosition(std::tupl
             
             numExposedRowsInFOV.zeros(numColumnsPixelMap);
 
-            if(!includeMechanicalVignetting)
+            if(!includeRelativeTransmissivity)
             {
                 numExposedRowsInFOV.fill(numRows - firstRowExposed);
             }
@@ -375,7 +375,7 @@ void ClosedLoopDetectorWithAnalyticNonGaussianPSF::setNewWindowPosition(std::tup
             
             numExposedRowsInFOV.zeros(numColumnsPixelMap);
 
-            if(!includeMechanicalVignetting)
+            if(!includeRelativeTransmissivity)
             {
                 numExposedRowsInFOV.fill(numRows - firstRowExposed);
             }
@@ -502,7 +502,7 @@ void ClosedLoopDetectorWithAnalyticGaussianPSF::setNewWindowPosition(std::tuple<
             
             numExposedRowsInFOV.zeros(numColumnsPixelMap);
 
-            if(!includeMechanicalVignetting)
+            if(!includeRelativeTransmissivity)
             {
                 numExposedRowsInFOV.fill(numRows - firstRowExposed);
             }

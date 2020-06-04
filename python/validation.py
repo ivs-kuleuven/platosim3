@@ -30,8 +30,7 @@ def switchOffAllEffects(sim):
                 - charge transfer inefficiency (CTI);
                 - open-shutter smearing;
                 - quantum efficiency;
-                - natural vignetting;
-                - mechanical vignetting;
+                - overall relative transmissivity;
                 - polarisation;
                 - particulate contamination;
                 - molecular contamination;
@@ -87,8 +86,7 @@ def switchOffAllEffects(sim):
     sim["CCD/IncludeCTIeffects"] = "no"
     sim["CCD/IncludeOpenShutterSmearing"] = "no"
     sim["CCD/IncludeQuantumEfficiency"] = "no"
-    sim["CCD/IncludeNaturalVignetting"] = "no"
-    sim["CCD/IncludeMechanicalVignetting"] = "no"
+    sim["CCD/IncludeRelativeTransmissivity"] = "no"
     sim["CCD/IncludePolarization"] = "no"
     sim["CCD/IncludeParticulateContamination"] = "no"
     sim["CCD/IncludeMolecularContamination"] = "no"

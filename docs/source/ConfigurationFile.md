@@ -141,7 +141,7 @@ Declination of the pointing, expressed in degrees.
 
 Flux of a star of zero magnitude (\f$ m_{\lambda} = 0 \f$), expressed in photons \f$ \cdot \f$  s<sup>-1</sup> \f$  \cdot \f$  cm<sup>-2</sup> in the passband of the magnitudes that are listed in the [star catalogue](#starCatalogue).
 
-For an exposure of \f$t_{exp}\f$ seconds, the measured flux \f$F_{phot}\f$ of a star, expressed in photons, is computed from its catalogue magnitude \f$m_{\lambda}\f$, the [effective light-collecting area](#lightCollectingArea) \f$A\f$ (in cm<sup>2</sup>) of the telescope, the  [transmission efficiency](#transmissionEfficiency) \f$T_{\lambda}\f$ of the optical system, the [quantum efficiency](#quantumEfficiency) \f$Q\f$ of the detector, and the flux per second \f$F_0\f$ of a star with zero magnitude (\f$m_{\lambda} = 0\f$) from the equation
+For an exposure of \f$t_{exp}\f$ seconds, the measured flux \f$F_{phot}\f$ of a star, expressed in photons, is computed from its catalogue magnitude \f$m_{\lambda}\f$, the [effective light-collecting area](#lightCollectingArea) \f$A\f$ (in cm<sup>2</sup>) of the telescope, the [transmission efficiency](#transmissionEfficiency) \f$T_{\lambda}\f$ of the optical system, the [quantum efficiency](#quantumEfficiency) \f$Q\f$ of the detector, and the flux per second \f$F_0\f$ of a star with zero magnitude (\f$m_{\lambda} = 0\f$) from the equation
 
 \f[F_{phot} = t_{exp} \cdot F_0 \cdot T_{\lambda} \cdot Q \cdot A \cdot 10^{-0.4 \cdot m_{\lambda}}\f]
 
@@ -1160,11 +1160,10 @@ CCD:
         MeanAngleDependency:         1.01
     Polarization:
     		ExpectedValue:       0.989      
-    Vignetting:
-        NaturalVignetting:
-    		ExpectedValue:       0.945 
-        MechanicalVignetting:
-            RadiusFOV:           18.8876
+    RelativeTransmissivity:
+        Coefficients:           [4.18e-2, -5.65e-5, 2.37e-7]
+        RadiusFOV:              18.8908
+        ExpectedValue:          0.920
     Contamination:
     		ParticulateContaminationEfficiency:  0.98
     		MolecularContaminationEfficiency:    0.0566
@@ -1204,8 +1203,7 @@ CCD:
     IncludeReadoutNoise:              yes            
     IncludeCTIeffects:                yes            
     IncludeOpenShutterSmearing:       yes            
-    IncludeNaturalVignetting:         yes   
-    IncludeMechanicalVignetting:      yes
+    IncludeRelativeTransmissivity:    yes   
     IncludePolarization:              yes
     IncludeParticulateContamination:  yes
     IncludeMolecularContamination:    yes
@@ -1420,25 +1418,36 @@ Expected value of the throughput efficiency due to polarisation (i.e. the mean o
 
 
 
-### <a name=vignetting></a>Vignetting
+### <a name="relativeTransmissivity"></a>RelativeTransmissivity
 
-The overall vignetting can be computed by summing the contributions of natural an mechanical vignetting.
+On top of the (time-dependent) [transmission efficiency](#transmissionEfficiency), the overall relative transmissivity should be taken into account.  This decrease in efficiency with distance to the optical axis, comprises the following contributions:
 
-Natural vignetting is the brightness attenuation towards the edges of the FOV, introduced by the view factor of the entrance pupil.  Mechanical vignetting is due to the introduced downsizing of the lenses clear apertures.
-
-
-
-#### <a name="naturalVignettingExpectedValue"></a>Vignetting: NaturalVignetting: ExpectedValue
-<i>Allowed values:</i> \f$\in \f$ [0,1]
-
-Expected value of the throughput efficiency due to natural vignetting (i.e. the mean over all pixels of one detector).
+* natural vignetting (brightness attenuation towards the edges of the FOV, introduced by the view factor of the entrance pupil);
+* mechanical vignetting (due to the undersized mask at the entrance pupil), incl. total blockage of all incoming radiation beyond the edge of the FOV;
+* glass absorption + anti-reflective coating;
 
 
 
-#### <a name="mechanicalVignettingRadiusFOV"></a>Vignetting: MechanicalVignetting: RadiusFOV
+#### <a name="relativeTransmissivityCoefficients"></a>RelativeTransmissivity: Coefficients
+<i>Allowed values:</i> > 0
+
+Coefficients \f$k_1, k_2, k_3 \f$ for the polynomial that converts the distance from the optical axis, \f$\theta \f$ (expressed in degrees), to the variation in the overall relative transmissivity (expressed in percentage):
+
+\f[P(\theta) = k_1 \cdot \theta^2 + k_2 \cdot \theta^4 + k_3 \cdot \theta^6.\f]
+
+
+
+#### <a name="mechanicalVignettingRadiusFOV"></a>RelativeTransmissivity: RadiusFOV
 <i>Allowed values:</i> > 0
 
 Radius of the FOV, expressed in degrees.  Beyond this radius all incoming flux (apart from the cosmic hits) is shielded off.
+
+
+
+#### <a name="relativeTransmissivityExpectedValue"></a>RelativeTransmissivity: ExpectedValue
+<i>Allowed values:</i> \f$\in \f$ [0,1]
+
+Expected value of the throughput efficiency due to the overall relative transmissivity (i.e. the mean over all pixels of one detector, within the FOV).
 
 
 ### <a name=contamination></a>Contamination
@@ -1708,18 +1717,10 @@ Indicates whether or not to include open-shutter smearing effects.
 
 
 
-### <a name="inclNaturalVignetting"></a>IncludeNaturalVignetting
+### <a name="inclRelativeTransmissivity"></a>IncludeRelativeTransmissivity
 <i>Allowed values:</i> "yes" and "no"
 
-Indicates whether or not to include brightness attenuation towards the edge of the FOV due to natural vignetting.
-
-
-
-### <a name="inclMechanicalVignetting"></a>IncludeMechanicalVignetting
-<i>Allowed values:</i> "yes" and "no"
-
-Whether or not to include blockage of incoming radiation due to mechanical vignetting.
-
+Indicates whether or not to include the overall relative transmissivity.
 
         
 
