@@ -184,7 +184,7 @@ CCD:
           NumRowsReadout:            4510            # Number of rows that will be read out by the FEE, in partial-readout mode
     FlatfieldNoiseRMS:               0.010           # Flatfield noise RMS (local PRNU)
     RelativeTransmissivity:
-        Coefficients:           [4.18e-2, -5.65e-5, 2.37e-7]    # Coefficients of the polynomial fit to the variation in overall relative transmissivity
+        Coefficients:           [4.18e-2, -5.65e-5, 2.37e-7]    # Coefficients of the polynomial fit (k1 * x^2 + k2 * x^4 + k3 * x^6) to the variation in overall relative transmissivity
         RadiusFOV:              18.8908                         # Radius of the FOV [degrees]
         ExpectedValue:          0.920                           # Expected value of the efficiency (mean of all detector pixels within FOV)
     Polarization:
