@@ -118,19 +118,19 @@ def getImageHeader(simFile: SimFile):
         
         ccdCode = int(ccdCode)
 
-        header["CCDNAME"] = (ccdCode, "CCD code")
+        header["CCD_ID"] = (ccdCode, "CCD code")
         
         ccdOffsetX = simFile.getInputParameter("CCDPositions", "OriginOffsetX")[ccdCode - 1]
         ccdOffsetY = simFile.getInputParameter("CCDPositions", "OriginOffsetY")[ccdCode - 1]
-        ccdOrientationAngleDegrees = simFile.getInputParameter("Orientation", "OriginOffsetX")[ccdCode - 1]
+        ccdOrientationAngleDegrees = simFile.getInputParameter("CCDPositions", "Orientation")[ccdCode - 1]
 
     except ValueError:
 
-        header["CCDNAME"] = ("Custom", "CCD code")
+        header["CCD_ID"] = ("Custom", "CCD code")
 
         ccdOffsetX = simFile.getInputParameter("CCD", "OriginOffsetX")
         ccdOffsetY = simFile.getInputParameter("CCD", "OriginOffsetY")
-        ccdOrientationAngleDegrees = simFile.getInputParameter("CCD", "OriginOffsetX")
+        ccdOrientationAngleDegrees = simFile.getInputParameter("CCD", "Orientation")
 
     ccdOrientationAngleRadians = math.radians(ccdOrientationAngleDegrees)
 
