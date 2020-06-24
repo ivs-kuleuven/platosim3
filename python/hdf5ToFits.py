@@ -3,6 +3,7 @@ from astropy.io import fits
 import referenceFrames as rf
 import math
 from pathlib import Path
+from datetime import datetime, timedelta
 
 def hdf5ToFits(inputFilename, outputFilename):
 
@@ -22,20 +23,26 @@ def hdf5ToFits(inputFilename, outputFilename):
     # The primary HDU contains only a header and no image data
     # (if the output filename is already in use, an exception will be thrown)
 
-    primaryHDU = fits.PrimaryHDU()                  # Primary HDU
-    primaryHDU.header = getPrimaryHeader(simFile)   # Header of the primary HDU
+    primaryHDU = fits.PrimaryHDU()                             # Primary HDU
+    primaryHDU.header, timestamp = getPrimaryHeader(simFile)   # Header of the primary HDU, timestamp of the start of the conversion
 
     primaryHDU.writeto(outputFilePath)              # Creation of the file
 
     # Write the exposure to individual layers in the FITS file
 
-    imageHeader = getImageHeader(simFile)   # Use the same header for all images
+    imageHeader = getImageHeader(simFile)   # Use the same header for all images, except for the timestamp
+
     numExposures = simFile.getInputParameter("ObservingParameters", "NumExposures")
 
     for exposure in range(numExposures):
 
         image = simFile.getImage(exposure)
-        
+
+        imageHeader["DATE-OBS"] = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+
+        cycleTime = simFile.getInputParameter("ObservingParameters", "CycleTime") 
+        timestamp += timedelta(seconds = cycleTime)
+
         fits.append(outputFilePath, image, imageHeader)
 
     # Only one window is stored in the FITS file
@@ -192,4 +199,7 @@ def getPrimaryHeader(simFile: SimFile):
 
     primaryHeader["NWINDOWS"] = (0, "Number of windows")
 
-    return primaryHeader
+    timestamp = datetime.now()
+    primaryHeader["DATE-OBS "] = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+
+    return primaryHeader, timestamp
