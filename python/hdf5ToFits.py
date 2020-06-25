@@ -4,6 +4,7 @@ import referenceFrames as rf
 import math
 from pathlib import Path
 from datetime import datetime, timedelta
+import os
 
 def hdf5ToFits(inputFilename, outputFilename):
 
@@ -16,6 +17,14 @@ def hdf5ToFits(inputFilename, outputFilename):
         - outputFilename: Filename of the FITS file comprising the given exposure 
                           and a header that contains the sub-field information.
     """
+
+    cwd = os.getcwd()
+    outputDir = os.path.dirname(outputFilename)
+
+    # If you don't do this, appending will fail when the output directory is
+    # not the same as the directory you are running the script from
+
+    os.chdir(outputDir)
 
     simFile = SimFile(inputFilename)
     outputFilePath = Path(outputFilename)
@@ -78,6 +87,10 @@ def hdf5ToFits(inputFilename, outputFilename):
     # Only one window is stored in the FITS file
 
     fits.setval(outputFilePath, "NWINDOWS", value=1)
+
+    # Go back to the directory you were at the start
+
+    os.chdir(cwd)
 
 
 def getImageHeader(simFile: SimFile):
