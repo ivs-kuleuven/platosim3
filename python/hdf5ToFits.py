@@ -28,26 +28,57 @@ def hdf5ToFits(inputFilename, outputFilename):
 
     primaryHDU.writeto(outputFilePath)              # Creation of the file
 
-    # Write the exposure to individual layers in the FITS file
+    # Write the exposures, bias register maps (serial pre-scan), and smearing maps (parallel over-scan)
+    # to individual layers in the FITS file
+    # Make sure to adapt the timestamp!
 
-    imageHeader = getImageHeader(simFile)   # Use the same header for all images, except for the timestamp
+    imageHeader = getImageHeader(simFile)
+    biasHeader = getSerialPreScanHeader(simFile)    
+    smearingHeader = getParallelOverScanHeader(simFile)
 
     numExposures = simFile.getInputParameter("ObservingParameters", "NumExposures")
 
     for exposure in range(numExposures):
 
-        image = simFile.getImage(exposure)
+        formattedTimestamp = timestamp.strftime("%Y-%m-%d %H:%M:%S")
 
-        imageHeader["DATE-OBS"] = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        # Image data
+
+        imageHeader["DATE-OBS"] = formattedTimestamp
+
+        image = simFile.getImage(exposure)
+        fits.append(outputFilePath, image, imageHeader)
+
+        # Serial pre-scan (bias register maps)
+
+        if simFile.getInputParameter("CCD/ReadoutMode", "ReadoutMode").decode("utf-8") == "Nominal":
+
+            biasHeader["DATE-OBS"] = formattedTimestamp
+
+            biasMapLeft = simFile.getBiasMapLeft(exposure)
+            biasHeader["EXTNAME"] = "SPRESCANE"
+            fits.append(outputFilePath, biasMapLeft, biasHeader)
+            
+            biasMapRight = simFile.getBiasMapRight(exposure)
+            biasHeader["EXTNAME"] = "SPRESCANF"
+            fits.append(outputFilePath, biasMapRight, biasHeader)
+
+        # Parallel over-scan (smearing map)
+
+        smearingHeader["DATE-OBS"] = formattedTimestamp
+
+        smearingMap = simFile.getSmearingMap(exposure)
+        fits.append(outputFilePath, smearingMap, smearingHeader)
+
+        # Update timestamp for the next exposure
 
         cycleTime = simFile.getInputParameter("ObservingParameters", "CycleTime") 
         timestamp += timedelta(seconds = cycleTime)
 
-        fits.append(outputFilePath, image, imageHeader)
-
     # Only one window is stored in the FITS file
 
     fits.setval(outputFilePath, "NWINDOWS", value=1)
+
 
 def getImageHeader(simFile: SimFile):
 
@@ -114,7 +145,7 @@ def getImageHeader(simFile: SimFile):
     #     (i.e. in the focal-plane reference frame) need to go in the CRVALi
     #     keywords.
 
-    ccdCode = (simFile.getInputParameter("CCD", "Position"))
+    ccdCode = simFile.getInputParameter("CCD", "Position")
     subfieldZeropointRow = int(simFile.getInputParameter("SubField", "ZeroPointRow"))           # Sub-field zeropoint row [pixels]
     subfieldZeropointColumn = int(simFile.getInputParameter("SubField", "ZeroPointColumn"))     # Sub-field zeropoint column [pixels]
 
@@ -161,15 +192,91 @@ def getImageHeader(simFile: SimFile):
     # header["INSTRUME"] = (setup["camera_id"], "Camera ID")
     # header["SITENAME"] = (setup["site_id"], "Name of the test site")
     # header["EXPOSURE"] = (exposureTime, "Exposure time [s]")
-    # header["DATE-LOC"] = (datetime.datetime.now.strftime("%Y-%m-%d %H:%M:%S"), "Local time of observation")
 
     # Using this keyword, the image will end up in the correct extension
 
     header["EXTNAME"] = "WINDOW1"
 
-    # Additional keywords
+    return header
 
-    # header["DATE-LOC"] = (datetime.datetime.now.strftime("%Y-%m-%d %H:%M:%S"), "Local time of observation")
+
+def getSerialPreScanHeader(simFile: SimFile):
+
+    """
+    PURPOSE: Creates and returns a FITS header with the information on the serial pre-scan
+             of the given simulation. 
+
+    INPUT:
+        - simFile: File with the PlatoSim simulation.
+
+    OUTPUT:
+        - FITS header with the information on the serial pre-scan of the given simulation.
+    """
+
+    header = fits.Header()
+
+    header["SIMPLE"] = "T"
+
+    # Dimensionality of the serial pre-scan
+
+    header["NAXIS"] = (2, "Dimensionality of the sub-field")
+
+    header["NAXIS1"] = (simFile.getInputParameter("SubField", "NumBiasPrescanColumns"), "Number of columns in the serial pre-scan")
+    header["NAXIS2"] = (simFile.getInputParameter("SubField", "NumBiasPrescanRows"), "Number of rows in the serial pre-scan")
+
+    # CCD
+
+    try:
+        
+        ccdCode = int(simFile.getInputParameter("CCD", "Position"))
+        header["CCD_ID"] = (ccdCode, "CCD code")
+
+    except ValueError:
+
+        header["CCD_ID"] = ("Custom", "CCD code")
+
+    return header
+
+
+def getParallelOverScanHeader(simFile: SimFile):
+
+    """
+    PURPOSE: Creates and returns a FITS header with the information on the parallel over-scan
+             of the given simulation.  Note that this will only be included in case of
+             nominal readout mode.
+
+    INPUT:
+        - simFile: File with the PlatoSim simulation.
+
+    OUTPUT:
+        - FITS header with the information on the parallel over-scan of the given simulation.
+    """
+
+    header = fits.Header()
+
+    header["SIMPLE"] = "T"
+
+    # Dimensionality of the parallel over-scan
+
+    header["NAXIS"] = (2, "Dimensionality of the sub-field")
+
+    header["NAXIS1"] = (simFile.getInputParameter("SubField", "NumColumns"), "Number of columns in the parallel over-scan")
+    header["NAXIS2"] = (simFile.getInputParameter("SubField", "NumSmearingOverscanRows"), "Number of rows in the parallel over-scan")
+
+    # CCD
+
+    try:
+        
+        ccdCode = int(simFile.getInputParameter("CCD", "Position"))
+        header["CCD_ID"] = (ccdCode, "CCD code")
+
+    except ValueError:
+
+        header["CCD_ID"] = ("Custom", "CCD code")
+
+    # Using this keyword, the parallel over-scan will end up in the correct extension
+
+    header["EXTNAME"] = "POVERSCAN"
 
     return header
 
