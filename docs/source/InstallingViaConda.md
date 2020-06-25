@@ -10,23 +10,36 @@ Before you install PlatoSim via conda for the first time in this environment, ty
 conda config --add channels conda-forge
 \endcode
 
-To install the latest successfully built version of the <code>master</code>, type:
+## `master`
+
+To install the latest successfully built version of the <code>master</code> branch, type:
 
 \code
 conda install -c https://jenkins.miricle.org/platosim/ platosim
 \endcode
 
-For the <code>develop</code> branch, the latter command must be replaced by
+To install a specific version (only for the <code>master</code> branch), just append <code><version>=</code> to this command.
+
+To update an installed version to the latest one, replace `conda install` by `conda update`.
+
+## `develop`
+
+For the <code>develop</code> branch, these commands must be replaced by
 
 \code
 conda install -c https://jenkins.miricle.org/platosim.devel/ platosim
 \endcode
 
-To install a specific version (only for the <code>master</code> branch), just append <code><version>=</code> to this command.
+and
 
-To update an installed version to the latest one, replace <code>conda install</code> by <code>conda update</code>.
+\code
+conda update --force-reinstall -c  https://jenkins.miricle.org/platosim.devel/ platosim
+\endcode
+
+respectively.
+
+## Credentials
 
 Please, contact the developer team for the username and password.
 
 If no pop-up window, asking for the credentials, would appear, you can adapt the <code>conda install</code> commands from above, by placing <code><username>:<password></code>@ between the <code>https://</code> and the <code>jenkins</code>. 
-
