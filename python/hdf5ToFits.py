@@ -65,11 +65,11 @@ def hdf5ToFits(inputFilename, outputFilename):
             biasHeader["DATE-OBS"] = formattedTimestamp
 
             biasMapLeft = simFile.getBiasMapLeft(exposure)
-            biasHeader["EXTNAME"] = "SPRESCANE"
+            biasHeader["EXTNAME"] = "SPRESCANE1"
             fits.append(outputFilePath, biasMapLeft, biasHeader)
             
             biasMapRight = simFile.getBiasMapRight(exposure)
-            biasHeader["EXTNAME"] = "SPRESCANF"
+            biasHeader["EXTNAME"] = "SPRESCANF1"
             fits.append(outputFilePath, biasMapRight, biasHeader)
 
         # Parallel over-scan (smearing map)
@@ -289,7 +289,7 @@ def getParallelOverScanHeader(simFile: SimFile):
 
     # Using this keyword, the parallel over-scan will end up in the correct extension
 
-    header["EXTNAME"] = "POVERSCAN"
+    header["EXTNAME"] = "POVERSCAN1"
 
     return header
 
