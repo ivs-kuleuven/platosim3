@@ -24,6 +24,7 @@
 #include "HDF5Writer.h"
 #include "Logger.h"
 #include "Units.h"
+#include "Parameter.h"
 
 using namespace std;
 
@@ -79,7 +80,6 @@ class Detector: public HDF5Writer
         tuple<double, double, double, double, double, double, double, double> getFocalPlaneCoordinatesOfSubfieldCorners();
 
         double getSolidAngleOfOnePixel(double plateScale);
-        double getOrientationAngle();
 
         virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) = 0;
         virtual void addFlux(double flux) = 0;
@@ -158,11 +158,13 @@ class Detector: public HDF5Writer
 
         unsigned int firstRowExposed;            // Index of the first row that is exposed to light (different for the Fast and Normal camera's) [pixels]
 
-        double originOffsetY;                    // Y-coordinate of the detector origin from the centre of the optical plane [mm]
-        double originOffsetX;                    // X-coordinate of the detector origin from the centre of the optical plane [mm]
+        string ccdPosition;
+        Parameter<double, 12> *ccdPositions;      // Pre-defined CCD positions (either fixed or time-dependent (from file))
+        double customOriginOffsetY;              // Y-coordinate of the detector origin from the centre of the optical plane [mm]
+        double customOriginOffsetX;              // X-coordinate of the detector origin from the centre of the optical plane [mm]
         unsigned int subFieldZeroPointRow;       // Position of the subfield zeropoint w.r.t. the complete detector in the row direction [pixels]
         unsigned int subFieldZeroPointColumn;    // Position of the subfield zeropoint w.r.t. the complete detector in the column direction [pixels]
-        double orientationAngle;                 // Orientation angle of the detector w.r.t. the orientation of the focal plane, measured counterclockwise [radians]
+        double customOrientationAngle;           // Orientation angle of the detector w.r.t. the orientation of the focal plane, measured counterclockwise [radians]
 
         double pixelSize;                        // Pixel size [microns]
         unsigned int numEdgePixels;              // Nr of pixels to extend the subfield on each side, to account for the edge effect
