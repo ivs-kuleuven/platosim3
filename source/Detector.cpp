@@ -263,7 +263,8 @@ Detector::~Detector()
 
 void Detector::updateParameters(double time)
 {
-
+    if (ccdPosition != "Custom")
+        ccdPositions->updateValue(time);
 }
 
 
@@ -286,26 +287,53 @@ void Detector::updateParameters(double time)
  {
     // Configuration parameters for the CCD detector
 
-    string ccdPosition                  = configParam.getString("CCD/Position");
+    ccdPosition                  = configParam.getString("CCD/Position");
 
     if (ccdPosition == "Custom")
     {
-        originOffsetX         = configParam.getDouble("CCD/OriginOffsetX");        // [mm]
-        originOffsetY         = configParam.getDouble("CCD/OriginOffsetY");        // [mm]
-        orientationAngle      = deg2rad(configParam.getDouble("CCD/Orientation")); // [rad]
+        customOriginOffsetX         = configParam.getDouble("CCD/OriginOffsetX");        // [mm]
+        customOriginOffsetY         = configParam.getDouble("CCD/OriginOffsetY");        // [mm]
+        customOrientationAngle      = deg2rad(configParam.getDouble("CCD/Orientation")); // [rad]
         numRows               = configParam.getInteger("CCD/NumRows");             // [pixels]
         numColumns            = configParam.getInteger("CCD/NumColumns");          // [pixels]
         firstRowExposed       = configParam.getInteger("CCD/FirstRowExposed");     // [pixels]
+
+        rotationAnglePsf = customOrientationAngle;  // Angle over which the PSF should be rotated
     }
     else
     {
+        vector<double> orientation = configParam.getDoubleVector("CCDPositions/Orientation");
+
+        if(configParam.getBoolean("CCDPositions/UsePositionsFromFile"))
+        {
+            string ccdPositionsInputFile = configParam.getAbsoluteFilename("CCDPositions/PositionsFileName");
+            ccdPositions = new Parameter<double, 12>(ccdPositionsInputFile, 1);
+        }
+
+        else
+        {
+            vector<double> originOffsetX = configParam.getDoubleVector("CCDPositions/OriginOffsetX");
+            vector<double> originOffsetY = configParam.getDoubleVector("CCDPositions/OriginOffsetY");
+            
+            array<double, 12> ccdPositionsArray;
+
+            for (unsigned int ccd = 0; ccd < 4; ccd++)
+            {
+                ccdPositionsArray[ccd * 3] = originOffsetX[ccd];
+                ccdPositionsArray[ccd * 3 + 1] = originOffsetY[ccd];
+                ccdPositionsArray[ccd * 3 + 2] = orientation[ccd];
+            }
+            
+
+            ccdPositions = new Parameter<double, 12>(ccdPositionsArray);
+        }
+     
         int idx = stoi(ccdPosition) - 1;  // Positions are named [1, 2, 3, 4] while the index into vector starts at 0
 
-        originOffsetX         = configParam.getDoubleAt("CCDPositions/OriginOffsetX", idx);
-        originOffsetY         = configParam.getDoubleAt("CCDPositions/OriginOffsetY", idx);
-        orientationAngle      = deg2rad(configParam.getDoubleAt("CCDPositions/Orientation", idx));
         numRows               = configParam.getIntegerAt("CCDPositions/NumRows", idx);
         numColumns            = configParam.getIntegerAt("CCDPositions/NumColumns", idx);
+
+        rotationAnglePsf = deg2rad(orientation[idx]);  // Angle over which the PSF should be rotated
 
         isFastCamera          = configParam.getString("Telescope/GroupID") == "Fast";
 
@@ -317,11 +345,12 @@ void Detector::updateParameters(double time)
         {
             firstRowExposed       = configParam.getIntegerAt("CCDPositions/FirstRowForNormalCamera", idx);
         }
+
     }
 
     Log.debug("Detector: selected ccdPosition = " + ccdPosition);
-    Log.debug("Detector: CCD originOffsetX, originOffsetY = " + to_string(originOffsetX) + ", " + to_string(originOffsetY) + " mm");
-    Log.debug("Detector: CCD orientationAngle = " + to_string(rad2deg(orientationAngle)) + " deg");
+    // Log.debug("Detector: CCD originOffsetX, originOffsetY = " + to_string(originOffsetX) + ", " + to_string(originOffsetY) + " mm");
+    // Log.debug("Detector: CCD orientationAngle = " + to_string(rad2deg(orientationAngle)) + " deg");
     Log.debug("Detector: CCD numRows, numColumns, firstRow = " + to_string(numRows) + ", " + to_string(numColumns) + ", " + to_string(firstRowExposed));
 
     pixelSize                           = configParam.getDouble("CCD/PixelSize");
@@ -2516,9 +2545,27 @@ pair<double, double> Detector::pixelToFocalPlaneCoordinates(double row, double c
     const double yCCDmm = row * pixelSize / 1000.0;
 
     // Convert the CCD coordinates into FP coordinates [mm]
+    double xFP, yFP;
 
-    const double xFP = (xCCDmm - originOffsetX) * cos(orientationAngle) - (yCCDmm - originOffsetY) * sin(orientationAngle);
-    const double yFP = (xCCDmm - originOffsetX) * sin(orientationAngle) + (yCCDmm - originOffsetY) * cos(orientationAngle);
+    if (ccdPosition == "Custom")
+    {
+        xFP = (xCCDmm - customOriginOffsetX) * cos(customOrientationAngle) - (yCCDmm - customOriginOffsetY) * sin(customOrientationAngle);
+        yFP = (xCCDmm - customOriginOffsetX) * sin(customOrientationAngle) + (yCCDmm - customOriginOffsetY) * cos(customOrientationAngle);
+    }
+
+    else
+    {   
+        int ccd = stoi(ccdPosition) - 1;
+
+        array<double, 12> currentCcdPositions = (*ccdPositions)();
+
+        double originOffsetX = currentCcdPositions[ccd * 3];
+        double originOffsetY = currentCcdPositions[ccd * 3 + 1];
+        double orientationAngle = deg2rad(currentCcdPositions[ccd * 3 + 2]);
+
+        xFP = (xCCDmm - originOffsetX) * cos(orientationAngle) - (yCCDmm - originOffsetY) * sin(orientationAngle);
+        yFP = (xCCDmm - originOffsetX) * sin(orientationAngle) + (yCCDmm - originOffsetY) * cos(orientationAngle);
+    }
 
     // That's it
 
@@ -2549,11 +2596,30 @@ pair<double, double> Detector::pixelToFocalPlaneCoordinates(double row, double c
 
 pair<double, double> Detector::focalPlaneToPixelCoordinates(double xFP, double yFP)
 {
+    double xCCDmm, yCCDmm;
+
     // Convert the FP coordinates into CCD coordinates [mm]
 
-    const double xCCDmm = originOffsetX + xFP * cos(orientationAngle) + yFP * sin(orientationAngle);
-    const double yCCDmm = originOffsetY - xFP * sin(orientationAngle) + yFP * cos(orientationAngle);
+    if (ccdPosition == "Custom")
+    {
+        xCCDmm = customOriginOffsetX + xFP * cos(customOrientationAngle) + yFP * sin(customOrientationAngle);
+        yCCDmm = customOriginOffsetY - xFP * sin(customOrientationAngle) + yFP * cos(customOrientationAngle); 
+    }
 
+    else
+    {
+        int ccd = stoi(ccdPosition) - 1;
+
+        array<double, 12> currentCcdPositions = (*ccdPositions)();
+
+        double originOffsetX = currentCcdPositions[ccd * 3];
+        double originOffsetY = currentCcdPositions[ccd * 3 + 1];
+        double orientationAngle = deg2rad(currentCcdPositions[ccd * 3 + 2]);
+
+        xCCDmm = originOffsetX + xFP * cos(orientationAngle) + yFP * sin(orientationAngle);
+        yCCDmm = originOffsetY - xFP * sin(orientationAngle) + yFP * cos(orientationAngle);
+    }
+    
     // Convert the [mm] coordinates into pixel coordinates
 
     const double column = xCCDmm / pixelSize * 1000.0;
@@ -2681,17 +2747,17 @@ double Detector::getSolidAngleOfOnePixel(double plateScale)
 
 
 
-/**
- * \brief      Return the orientation of the CCD with respect to the orientation
- *             of the focal plane. The rotations of the CCD are counter
- *             clockwise.
- *
- * \return     the orientation of the CCD [radians]
- */
-double Detector::getOrientationAngle()
-{
-    return orientationAngle;
-}
+// /**
+//  * \brief      Return the orientation of the CCD with respect to the orientation
+//  *             of the focal plane. The rotations of the CCD are counter
+//  *             clockwise.
+//  *
+//  * \return     the orientation of the CCD [radians]
+//  */
+// double Detector::getOrientationAnglePsf()
+// {
+//     return orientationAngle;
+// }
 
 
 
@@ -2963,7 +3029,6 @@ double Detector::getReadoutTimeBeforeNextExposure()
 {
 	return readoutTimeBeforeNextExposure;
 }
-
 
 
 
