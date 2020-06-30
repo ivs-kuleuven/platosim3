@@ -165,6 +165,7 @@ class Detector: public HDF5Writer
         unsigned int subFieldZeroPointRow;       // Position of the subfield zeropoint w.r.t. the complete detector in the row direction [pixels]
         unsigned int subFieldZeroPointColumn;    // Position of the subfield zeropoint w.r.t. the complete detector in the column direction [pixels]
         double customOrientationAngle;           // Orientation angle of the detector w.r.t. the orientation of the focal plane, measured counterclockwise [radians]
+        double rotationAnglePsf;                 // Angle over which to rotate the PSF
 
         double pixelSize;                        // Pixel size [microns]
         unsigned int numEdgePixels;              // Nr of pixels to extend the subfield on each side, to account for the edge effect
