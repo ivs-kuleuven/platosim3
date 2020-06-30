@@ -563,8 +563,9 @@ bool DetectorWithAnalyticNonGaussianPSF::addFluxToMap(arma::Mat<float>& map, dou
 
     IntegralOfAnalyticSignalResponse psf(size, diffusionKernelWidth);
 
-    double ccdOrientation = getOrientationAngle();
-    p -= ccdOrientation;
+    // FIXME
+    // double ccdOrientation = getOrientationAngle();
+    // p -= ccdOrientation;
 
     integrateAnalyticPSF(psf, column0, row0, r, p);
 
@@ -684,7 +685,7 @@ void DetectorWithAnalyticNonGaussianPSF::makeHighResolutionPSF(arma::Mat<float> 
     double r = rad2deg(camera.getGnomonicRadialDistanceFromOpticalAxis(xFP, yFP));
     double p = atan2(yFP, xFP);
 
-    double ccdOrientation = getOrientationAngle();
+    double ccdOrientation = rotationAnglePsf;
     p -= ccdOrientation;
 
     integrateAnalyticPSF(psf, column0, row0, r, p, Nsubpixels);
