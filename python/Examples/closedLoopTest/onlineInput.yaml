@@ -187,7 +187,7 @@ CCD:
           FirstRowReadout:           0           # First row that will be read out by the FEE in partial-readout mode
           NumRowsReadout:            4510        # Number of rows that will be read out by the FEE, in partial-readout mode
     FlatfieldNoiseRMS:           0.010           # Flatfield noise RMS (local PRNU)
-        RelativeTransmissivity:
+    RelativeTransmissivity:
         Coefficients:           [4.18e-2, -5.65e-5, 2.37e-7]    # Coefficients of the polynomial fit (k1 * x^2 + k2 * x^4 + k3 * x^6) to the variation in overall relative transmissivity w.r.t. angular distance from the OA
         RadiusFOV:              18.8908                         # Radius of the FOV [degrees]
         ExpectedValue:          0.920                           # Expected value of the efficiency (mean of all detector pixels within FOV)
@@ -213,6 +213,10 @@ CCD:
                 EOL:                 [9.8, 3.31, 1.56, 13.24]   
             TrapCaptureCrossSection: [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]     # for each trap species [m^2]
             ReleaseTime:             [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]         # for each trap species [s]
+    ChargeInjection:                                 # Inject charge once per exposure to mitigate the CTI effect
+        InjectionLevel:              90.0            # Percentage of the full well to be filled [percentage: 0-100]
+        RowInterval:                 100             # The charge is injected every XX-th row of the CCD [integer in 1-CCD:numRows]
+        FirstRow:                    50              # First CCD row that will be injected with charge. 0 is row closest to readout register.
     NominalOperatingTemperature :    203.15          # Nominal operating temperature of the detector [K]
     Temperature:                     Nominal         # Temperature fixed at the nominal operating temperature
     TemperatureFileName:             inputfiles/ccdTemperature.txt
@@ -222,6 +226,7 @@ CCD:
     IncludePhotonNoise:              yes             # Include photon noise [yes or no]
     IncludeReadoutNoise:             yes             # Include readout noise [yes or no]
     IncludeCTIeffects:               yes             # Include charge transfer inefficiency effects [yes or no]
+    IncludeChargeInjection:          no              # Include charge injection to mitigate the CTI [yes or no]
     IncludeOpenShutterSmearing:      yes             # Include trails due reading out with an open shutter [yes or no]
     IncludeQuantumEfficiency:        yes             # Include loss of throughput due to quantum efficiency
     IncludeRelativeTransmissivity:   yes             # Include the overall relative transmissitiy (natural + mechanical vignetting, glass absorption, and anti-reflective coating)
@@ -246,6 +251,15 @@ SubField:
     SubPixels:                   32              # (Sqrt of ) nr of subpixels per CCD pixel. Should be 2^n <= 128.
 
 
+Photometry:                                          # Only possible when 'AnalyticNonGaussian' is selected as PSF
+
+    IncludePhotometry:               no
+    ContaminationRadius:             4               # Only consider contaminants that are within this number of pixels [integer pixels]
+    MaskUpdateInterval:              14.0            # Photometric masks will be updated every xx days  [days]
+    TargetFileName:                  inputfiles/photometryTargets.txt      # One column with star IDs for which you want to have photometry
+
+
+
 RandomSeeds:
 
     ReadOutNoiseSeed:            1424949740      # Unique positive integer 
@@ -258,9 +272,14 @@ RandomSeeds:
     
 
 ControlHDF5Content:
-    WriteSubPixelImages:         no              # Only use this for a limited number of exposures. Takes a lot of space! 
-    WriteStarPositions:          yes             # StarPositions are written in pixel and focal plane coordinates + flux and
-                                                 # scales with the number of exposures and the number of stars in the field.
+    WritePixelMaps:                  yes             # The 2D subimages for each exposure 
+    WriteBiasMaps:                   yes             # 2D bias maps for the left and right hand side of the CCD, for each exposure
+    WriteSmearingMaps:               yes             # 2D smearing maps, for each exposure
+    WriteThroughputMaps:             yes             # 2D throughput maps (QE, vignetting, contamination, ...), for each exposure
+    WriteFlatfieldMap:               yes             # 2D image of the flatfield (PRNU and/or IRNU)
+    WriteSubPixelImages:             no              # Only use this for a limited number of exposures. Takes a lot of space! 
+    WriteStarPositions:              yes             # StarPositions are written in pixel and focal plane coordinates 
+    WriteACS:                        yes             # Whether to write the yaw, pitch, roll to the HDF5 file 
 
 
 ControlTcpConnection:

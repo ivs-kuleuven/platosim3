@@ -2107,10 +2107,7 @@ double Detector::getRowEdgeFOV(int column)
  * \details Readout noise occurs due to the imperfect nature of the CCD amplifiers.
  *          When the electrons are transferred to the amplifier, the induced voltage
  *          is measured. However, this measurement is not perfect, but gives a value
- *          which is on average correct, with the readout noise as standard deviation.
- *          So readout noise is a measure of this scatter around the true value.
- *          Its value is expressed in electrons as the packet of charge is made up of
- *          electrons.
+ *          which is on average correct, with the readout noise as variance.
  *
  * \pre Pixel unit in the pixel map: [electrons].
  * \pre Pixel unit in the smearing map: [electrons].
