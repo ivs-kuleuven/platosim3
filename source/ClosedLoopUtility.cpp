@@ -13,15 +13,25 @@ ClosedLoopUtility::ClosedLoopUtility(ConfigurationParameters &configParams)
 {
     configure(configParams);
 
+    // set pid as unique zmq-identity for both sockets in order to establish a relation 
+    // between window position and imagette on the receiver side
+
+    pid_t simulationPid = getpid();
+    std::string identity = std::to_string(simulationPid);
+
     // connect to the imagette client, if it is specified in the inputfile
+
     if (sendImagettesToClient)
     {
+        imagetteSocket.setsockopt(ZMQ_IDENTITY, identity.c_str(), identity.length());
         imagetteSocket.connect(imagetteAddress);
     }
 
     // connect to the window position server, if it is specified in the inputfile
+
     if (getWindowPositionFromServer)
-    {
+    {  
+      	windowPositionSocket.setsockopt(ZMQ_IDENTITY, identity.c_str(), identity.length());
         windowPositionSocket.connect(windowPositionAddress);
 
         windowPositionSocket.setsockopt(ZMQ_RCVTIMEO, &windowPositionSocketTimeout, sizeof(windowPositionSocketTimeout));
@@ -44,7 +54,6 @@ void ClosedLoopUtility::configure(ConfigurationParameters &configParams)
     getWindowPositionFromServer     = configParams.getBoolean("ControlTcpConnection/GetWindowPositionsFromServer");
     imagetteAddress                 = configParams.getString("ControlTcpConnection/ImagetteClientAddress");
     windowPositionAddress           = configParams.getString("ControlTcpConnection/WindowPositionServerAddress");
-
     windowPositionSocketTimeout     = configParams.getInteger("ControlTcpConnection/WindowPositionSocketTimeout") * 1000;
 
 }
