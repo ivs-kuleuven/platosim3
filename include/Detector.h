@@ -84,11 +84,12 @@ class Detector: public HDF5Writer
         virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) = 0;
         virtual void addFlux(double flux) = 0;
 
-
         bool isInPixelMap(double row, double column);
         bool isInSubfield(double xFPmm, double yFPmm);
 
         double getReadoutTimeBeforeNextExposure();
+
+        virtual double getTrapDensity(double time, int trapSpecies);
 
 
     protected:
@@ -98,7 +99,7 @@ class Detector: public HDF5Writer
 
         virtual void generateThroughputMap();
         virtual void checkGain();
-        virtual void generateGuyonnetCoefficients();
+        virtual void readBfeCoefficients(string filename);
 
         virtual void applyFlatfield() = 0;
         virtual void applyThroughputEfficiency();
@@ -142,6 +143,8 @@ class Detector: public HDF5Writer
         arma::Mat<float> biasMapRight;           // Bias map (i.e. pre-scan strip) for the right detector half
         arma::Mat<float> throughputMap;          // Throughput efficiency map, due to vignetting, particulate & molecular contamination, and quantum efficiency
 
+        double missionDuration;                  // Duration of the PLATO Mission, used for degrading parameters      [s]
+
         arma::Mat<int> mechanicalVignettingMask; // Mask for the sub-field showing which pixels are within the FOV (1) and which aren't (0)   
         arma::Row<int> numExposedRowsInFOV;      // How many pixels in the exposed part of the detector for each column are within the FOV (only for columns showing overlap with the sub-field)
 
@@ -164,12 +167,9 @@ class Detector: public HDF5Writer
         double pixelSize;                        // Pixel size [microns]
         unsigned int numEdgePixels;              // Nr of pixels to extend the subfield on each side, to account for the edge effect
 
-        arma::Cube<float> guyonnetCoefficients;  // Coefficients a^X_ij for the BFE in Sect. 6.1 in Guyonnet et al. 2015
-        double p0BFE;        					 // Value for p0 parameter in Eq. (18) in Guyonnet et al. 2015
-        double p1BFE;						     // Value for p1 parameter in Eq. (18) in Guyonnet et al. 2015
-        int rangeBFE;							 // How far pixels can be apart and still influence each other [pixels] (use window with dimensions 2 * range + 1)
-        double refFluxBFE;                       // Reference flux for the p0 and p1 parameters for BFE [e-]
-
+        arma::Cube<float> bfeCoefficients;       // Coefficients a^X_ij for the BFE in Sect. 6.1 in Guyonnet et al. 2015
+        int bfeNeighbors[4][2];                  // Neighbours X for the BFE in Sect. 5.2 in Guyonnet et al. 2015
+        int bfeRange;                            // How far pixels can be apart and still influence each other [pixels] (use window with dimensions 2 * range + 1)
 
         bool includeCosmicsInSubField;           // Whether or not to include cosmic hits in the subfield
         bool includeCosmicsInSmearingMap;        // Whether or not to include cosmic hits in the (physical) overscan region
@@ -177,8 +177,9 @@ class Detector: public HDF5Writer
         double cosmicHitRate;					 // Cosmic hit rate [events / cm^2 / s]
         vector<double> cosmicTrailLength;		 // Interval of the length of the cosmic trails [pixels]
         vector<double> cosmicIntensity; 		 // Interval of the intensity of the cosmic trails [e-]
-        double expectedValueNaturalVignetting;   // Expected value of the throughput efficiency due to vignetting (int [0,1])
+        vector<double> relTransmissivityCoefVector;
         double radiusFOV;                        // Radius of the FOV [radians]
+        double expectedValueRelativeTransmissivity;   // Expected value of the relative transmissivity for the sub-field
         double expectedValuePolarization;        // Expected value of the throughput efficiency due to polarisation
         double particulateContaminationEfficiency;  // Efficiency of particulate contamination (in [0,1])
         double molecularContaminationEfficiency;    // Efficiency of molecular contamination (in [0,1])
@@ -213,7 +214,8 @@ class Detector: public HDF5Writer
         double beta;                             // Beta exponent in Short et al., MNRAS 430, 3078-3085 (2010).
         double temperature;                      // Temperature of the detector
         unsigned int numTrapSpecies;             // Number of different trap species included in the Short2010 model
-        vector<double> trapDensity;              // For each trap species: the trap density [traps/pixel]
+        vector<double> trapDensityBOL;           // For each trap species: the trap density at BOL [traps/pixel]
+        vector<double> trapDensityEOL;           // For each trap species: the trap density at EOL [traps/pixel]
         vector<double> trapCaptureCrossSection;  // For each trap species: the trap capture cross section [m^2]
         vector<double> releaseTime;              // For each trap species: the electron release time [s]
 
@@ -233,8 +235,7 @@ class Detector: public HDF5Writer
         bool includeChargeInjection;             // Include charge injection to mitigate the CTI [yes or no]
         bool includeOpenShutterSmearing;         // Include trails due reading out with an open shutter
         bool includeQuantumEfficiency;           // Include loss of throughput due to quantum efficiency
-        bool includeNaturalVignetting;           // Include brightness attenuation due to natural vignetting
-        bool includeMechanicalVignetting;        // Include blockage of incoming flux during exposure at the edge of the FOV due to mechanical vignetting
+        bool includeRelativeTransmissivity;      // Include overall relative transmissivity
         bool includePolarization;                // Include loss of throughput due to polarisation
         bool includeParticulateContamination;    // Include loss of throughput due to particulate contamination
         bool includeMolecularContamination;      // Include loss of throughput due to molecular contamination

@@ -1,5 +1,52 @@
 # Changelog for PlatoSim
 
+<!-- 3.3.8 -->
+<!-- ***** -->
+
+## ??/??/2020: 3.3.8
+
+## Fixed
+
+* Photon noise applied after CTI (GitHub issue #431)
+* CTI by Short et al. has no effect on the maximum value (GitHub issue #403)
+* CTI Short2013 model has no effect (GitHub issue #446)
+* Incorrect FEE temperature, from file (GitHub issue #413)
+* BFE seems to increase total flux (GitHub issue #397)
+* Simulation with too short external jitter file (GitHub issue #327)
+* Input file of the photometry tutorial needs to be updated (GitHub issue #368)
+* Edge effects introduced by convolution with non-analytical PSF (GitHub issue #357)
+* Full-image smearing strange value for column 2254 (GitHub issue #450)
+
+## Changed
+
+* Replaced natural & mechanical vignetting with overall relative transmissivity (GitHub issue #478)
+* Read BFE coefficients from file instead of calculating them (GitHub issue #434)
+* CCD ID new standard (GitHub issue #416)
+* Implemented time-dependent CTI (GitHub issue #476)
+
+## Added
+
+* 6.25s time-shift between CCDs (GitHub issue #401)
+* Using non-rotationally symmetrical PSF from file (GitHub issue #407)
+* Access methods for datasets at top level in HDF5 file (GitHub issue #437)
+* Conversion between CCD coordinates & field angles (GitHub issue #460)
+* Mechanical vignetting < edge of FOV (GitHub issue #435)
+* Transmission variation as a function of FOV (GitHub issue #415)
+* Validation & verification notebooks
+* Group all contributions to the overall relative transmissivity (GitHub issue #478)
+
+
+
+<!-- 3.3.8 -->
+<!-- ***** -->
+
+## ??/&&/2020: 3.3.8
+
+## Changed
+
+* Implemented time-dependent CTI (GitHub issue #476)
+
+
 
 <!-- 3.3.7 -->
 <!-- ***** -->

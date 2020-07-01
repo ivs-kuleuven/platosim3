@@ -45,13 +45,6 @@ DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(Configura
 
     		generateFlatfieldMap();
     }
-
-    if(includeBFE)
-    {
-        // Generate Guyonnet coefficients
-
-       generateGuyonnetCoefficients();
-    }
 }
 
 
@@ -469,7 +462,8 @@ void DetectorWithAnalyticNonGaussianPSF::integrateLight(int exposureNr, double s
 
     // Integration (incl. jitter): point sources + background
 
-    camera.exposeDetector(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
+    camera.exposeDetectorWithStars(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
+    camera.exposeDetectorWithSkyBackground(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
 
     // Apply throughput efficiency on the pixel map.
     // This takes into account the QE, vignetting, polarisation, and particulate & molecular contamination.

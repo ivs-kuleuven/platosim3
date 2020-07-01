@@ -854,8 +854,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("IncludeCTIeffects"); 
     addBoolean("IncludeChargeInjection");
     addBoolean("IncludeOpenShutterSmearing");
-    addBoolean("IncludeNaturalVignetting");
-    addBoolean("IncludeMechanicalVignetting");
+    addBoolean("IncludeRelativeTransmissivity");
     addBoolean("IncludePolarization");
     addBoolean("IncludeParticulateContamination");
     addBoolean("IncludeMolecularContamination");
@@ -881,16 +880,11 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 	addDouble("Stability");
 	addDouble("AllowedDifference");
 
-    subGroup = "CCD/Vignetting";
-    hdf5File->createGroup(parentGroup + "/" + subGroup);
-    
-    subGroup = "CCD/Vignetting/NaturalVignetting";
+    subGroup = "CCD/RelativeTransmissivity";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addDouble("ExpectedValue");
-    
-    subGroup = "CCD/Vignetting/MechanicalVignetting";
-    hdf5File->createGroup(parentGroup + "/" + subGroup);
     addDouble("RadiusFOV");
+    addDoubleVector("Coefficients");
 
     subGroup = "CCD/QuantumEfficiency";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
@@ -917,10 +911,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "CCD/BFE";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
-    addInteger("Range");
-    addDouble("p0");
-    addDouble("p1");
-    addDouble("RefFlux");
+    addString("CoefficientsFileName");
 
     subGroup = "CCD/CTI";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
@@ -933,9 +924,13 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("Beta");
     addDouble("Temperature");
     addInteger("NumTrapSpecies");
-    addDoubleVector("TrapDensity");
     addDoubleVector("TrapCaptureCrossSection");
     addDoubleVector("ReleaseTime");
+    subGroup = "CCD/CTI/Short2013/TrapDensity";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addDoubleVector("BOL");
+    addDoubleVector("EOL");
+
 
     subGroup = "CCD/ChargeInjection";
     hdf5File->createGroup(parentGroup + "/" + subGroup);

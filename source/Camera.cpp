@@ -481,16 +481,14 @@ void Camera::updateParameters(double time)
 
 
 /**
- * \brief      Expose the subField to the Sky, i.e. add flux to the detector,
- *             add the sky background, and convolve with the PSF.
+ * \brief Expose the sub-field to the stars.
  *
  * \param[in]  detector      the Detector class
  * \param[in]  startTime     start time of the exposure [seconds]
  * \param[in]  exposureTime  duration of one exposure [seconds]
  * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start [seconds]
  */
-
-void Camera::exposeDetector(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure)
+void Camera::exposeDetectorWithStars(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure)
 {
     // Get the value for the degrading TransmissionEfficiency parameter at the startTime of this exposure
 
@@ -699,6 +697,42 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
         internalTime += timeStep;
         timeStep = min(timeStep, startTime + exposureTime - internalTime);
     }
+}
+
+
+
+
+
+
+
+/**
+ * \brief Expose the sub-field to the sky background.
+ *
+ * \param[in]  detector      the Detector class
+ * \param[in]  startTime     start time of the exposure [seconds]
+ * \param[in]  exposureTime  duration of one exposure [seconds]
+ * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start [seconds]
+ */
+void Camera::exposeDetectorWithSkyBackground(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure)
+{
+    // Get the value for the degrading TransmissionEfficiency parameter at the startTime of this exposure
+
+    double transmissionEfficiency = telescope.getTransmissionEfficiency(startTime);
+
+    double centerXmm, centerYmm;
+    tie(centerXmm, centerYmm) = detector.getFocalPlaneCoordinatesOfSubfieldCenter();
+
+    if (includeFieldDistortion)
+    {
+        Log.info("Camera: including field distortion");
+
+        tie(centerXmm, centerYmm) = distortedToUndistortedFocalPlaneCoordinates(centerXmm, centerYmm);
+    }
+
+    // Convert the focal plane coordinates [mm] to (alpha, delta) equatorial sky coordinates [rad]
+
+    double centerRA, centerDec;
+    tie(centerRA, centerDec) = focalPlaneToSkyCoordinates(centerXmm, centerYmm);
 
     // Take the flux of the stellar background and the zodiacal light into account. Use one value for the entire subfield.
     // A negative value for the user given sky background value [phot/pix/s] signals that we should compute it ourselves.
@@ -710,7 +744,6 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     // but in the function Detector::applyOpenShutterSmearing().
 
     totalSkyBackground = 0.0;
-
 
     if (userGivenSkyBackground < 0.0)
     {
@@ -748,8 +781,6 @@ void Camera::exposeDetector(Detector &detector, double startTime, double exposur
     // Save the transmissionEfficiency value that was calculated for this exposure.
 
     transmissionEfficiencyValues.push_back(transmissionEfficiency);
-
-    return;
 }
 
 
