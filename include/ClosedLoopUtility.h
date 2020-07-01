@@ -1,9 +1,17 @@
 #ifndef CLOSEDLOOPUTILITY_H
 #define CLOSEDLOOPUTILITY_H
 
+
+#include <string>
+
 #include "zmq.hpp"
 #include "ConfigurationParameters.h"
 #include "armadillo"
+#include "Logger.h"
+
+
+
+
 
 // this class governs the sending and receiving of messages between the used 
 // detector class and the imagette client and window position server

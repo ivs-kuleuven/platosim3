@@ -18,6 +18,8 @@ ClosedLoopUtility::ClosedLoopUtility(ConfigurationParameters &configParams)
 
     pid_t simulationPid = getpid();
     std::string identity = std::to_string(simulationPid);
+    
+    Log.info("ClosedLoopUtility: ZMQ socket identity string: " + identity);
 
     // connect to the imagette client, if it is specified in the inputfile
 
@@ -33,7 +35,6 @@ ClosedLoopUtility::ClosedLoopUtility(ConfigurationParameters &configParams)
     {  
       	windowPositionSocket.setsockopt(ZMQ_IDENTITY, identity.c_str(), identity.length());
         windowPositionSocket.connect(windowPositionAddress);
-
         windowPositionSocket.setsockopt(ZMQ_RCVTIMEO, &windowPositionSocketTimeout, sizeof(windowPositionSocketTimeout));
     }
 
