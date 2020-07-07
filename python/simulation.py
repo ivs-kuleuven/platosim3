@@ -704,7 +704,7 @@ class Simulation(object):
 
 
 
-    def createStarCatalogFileFromPixelCoordinates(self, rows, cols, magnitudes, starIDs, starCatalogFileName):
+    def createStarCatalogFileFromPixelCoordinates(self, rows, cols, magnitudes, starIDs, starCatalogPath):
 
         """
         PURPOSE: Create a star catalog ascii file given the pixel coordinates (row and column) of the stars.
@@ -715,9 +715,10 @@ class Simulation(object):
                cols:       Numpy array with fractional column coordinates of the stars (CCD, not subfield) [pix]  
                magnitudes: Johnson V magnitudes of the stars
                starIDs:    IDs of the star (integers)
-               starCatalogFileName: Path of the star catalog file that will be written.
+               starCatalogPath: Path of the star catalog file that will be written.
 
-        OUTPUT: None. A file will be saved, containing, ra, dec, and magnitude of the stars.
+        OUTPUT: A file will be saved, containing, ra, dec, and magnitude of the stars.
+                The "ObservingParameters/StarCatalogFile" tag in the yaml tree will be changed to the given starCatalogPath
         """
 
         # Extract the needed information from the yaml input file
@@ -770,15 +771,23 @@ class Simulation(object):
 
         # Save the sky coordinates (in [deg]) to the star catalog file
 
-        myFile = open(starCatalogFileName, "w")
+        myFile = open(starCatalogPath, "w")
         myFile.write("# RA DEC Vmag starID\n")
         for n in range(len(ra)):
             myFile.write("{0}  {1}  {2}  {3}\n".format(ra[n], dec[n], magnitudes[n], starIDs[n]))
         myFile.close()
 
+        # Set the "ObservingParameters/StarCatalogFile" tag in the yaml tree
+
+        self["ObservingParameters/StarCatalogFile"] = starCatalogPath
+
         # That's it
 
         return
+
+
+
+
 
 
 
