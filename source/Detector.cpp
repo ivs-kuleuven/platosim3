@@ -1934,7 +1934,12 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
             // (rowFOV, column).  If no intersection can be found, this is NaN.
             rowFOV = getRowEdgeFOV(column);
 
-            if(isnan(rowFOV))
+            // The std:: construct is to avoid a gcc & libstdc++ bug with older gcc versions.
+            // Cf: Github issue #492
+            //     https://gcc.gnu.org/bugzilla/show_bug.cgi?id=48891
+            //     https://stackoverflow.com/questions/33770374/why-is-isnan-ambiguous-and-how-to-avoid-it
+
+            if(std::isnan(rowFOV))
             {
                 // All exposed rows are within the FOV
 
