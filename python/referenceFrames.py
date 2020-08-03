@@ -546,7 +546,8 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, solarPanelOrie
 def pixelCoordinates2FocalPlaneAngles(xCCD, yCCD, ccdCode, pixelSize, focalLength):
 
     """
-    PURPOSE: Given the real-valued CCD pixel coordinates, compute the location angles of the star in the focal plane
+    PURPOSE: Given the real-valued CCD pixel coordinates, compute the location angles of the star in the focal plane. These 
+             calculations are based on the custom CCD position and orientation angle (so not from file!).
 
     INPUT:
         xCCD        : real-valued x-coordinate on the CCD (column)  [pix]
@@ -585,7 +586,8 @@ def pixelCoordinates2FocalPlaneAngles(xCCD, yCCD, ccdCode, pixelSize, focalLengt
 def focalPlaneAngles2pixelCoordinates(angleFromOpticalAxis, azimuthFromXAxis, ccdCode, pixelSize, focalLength):
     
     """
-    PURPOSE: given the location angles of the star in the focal plane, compute the real-valued CCD pixel coordinates
+    PURPOSE: given the location angles of the star in the focal plane, compute the real-valued CCD pixel coordinates. These 
+             calculations are based on the custom CCD position and orientation angle (so not from file!).
 
     INPUT:
         angleFromOpticalAxis : angular distance from the optical axis             [rad]
@@ -929,7 +931,8 @@ def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
 
     """
     PURPOSE: Get the (x,y) coordinates of each of the 4 corners of the exposed part of the CCD
-             in the FP' reference system
+             in the FP' reference system.  These calculations are based on the custom 
+             CCD position and orientation angle (so not from file!).
 
     INPUT: ccdCode:   one of the following: '1', '2', '3', '4', '1F', '2F', '3F', '4F'
            pixelSize: size of 1 pixel (micron)
@@ -978,7 +981,8 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
     """
     PURPOSE: Given the equatorial coordinates of a star, find out on which CCD it falls ('1', '2', ...)
              and compute the pixel coordinates of the star on this CCD. If the star doesn't fall on any of the CCDs
-             then (None, None, None) is given as output.
+             then (None, None, None) is given as output.  These calculations use the custom CCD positions and 
+             orientation angle (so not from file!).
 
     INPUT: raStar:                 right ascension of the star                               [rad]
            decStar:                declination of the star                                   [rad]      
@@ -1163,7 +1167,8 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
     """
     PURPOSE: Calculates the location of the subfield such that the star with coordinates (raStar, decStar)
              is centered in the subfield. The function also checks if there is enough space around the pixel
-             to accommodate a subfield of the specified size. 
+             to accommodate a subfield of the specified size. These calculations are based on the custom 
+             CCD position and orientation angle (so not from file!).
 
     NOTE:    This function is used by setSubfieldAroundCoordinates() and usually does not need to be called by the user. 
 
@@ -1234,7 +1239,8 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
 
 def skyToPixelCoordinates(sim, raStar, decStar, normal):
     """
-    PURPOSE: Convert sky coordinates to pixel coordinates
+    PURPOSE: Convert sky coordinates to pixel coordinates. These calculations are based on the custom 
+             CCD position and orientation angle (so not from file!).
     
     NOTE:   It is assumed that the configuration parameters in the sim object contains
             a correct (ra, dec) of the platform, a correct (azimuth, tilt) of the telescope,
@@ -1294,7 +1300,8 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal):
 def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
 
     """
-    PURPOSE: Convert pixel coordinates to equatorial sky coordinates (ra,dec)
+    PURPOSE: Convert pixel coordinates to equatorial sky coordinates (ra,dec).  These calculations are based on the custom 
+             CCD position and orientation angle (so not from file!).
     
     NOTE:   It is assumed that the configuration parameters in the sim object contains
             a correct (ra, dec) of the platform, a correct (azimuth, tilt) of the telescope,
