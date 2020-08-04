@@ -219,6 +219,9 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
 
 void DetectorWithAnalyticNonGaussianPSF::updateParameters(double time)
 {
+    if (ccdPosition != "Custom")
+        ccdPositions->updateValue(time);
+
     sigma->updateValue(time);
 }
 
