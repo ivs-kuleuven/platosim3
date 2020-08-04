@@ -2,6 +2,7 @@
 
 build/*
 inputfiles/*
+outputfiles/*
 dependencies/Installs/*
 *.xcodeproj/*
 *.sublime-project
