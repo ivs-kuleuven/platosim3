@@ -21,6 +21,7 @@ generated/version.h
 !inputfiles/photometryTargets.txt
 !starField_RA180Dec-70.txt
 !psfallv3.txt
+!inputfiles/cl2bCcds.txt
 
 # Ignore output of ctags
 
