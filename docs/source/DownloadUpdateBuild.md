@@ -8,6 +8,6 @@ Please, note there are a number of  @ref ReqsInstallUpdate "prerequisites" to be
 
 The described procedure enables you to @ref Updating "update" your PlatoSim3 installation to the latest version on GitHub in a straightforward way, even without being (or having to become) a Git expert.
 
-Once you have downloaded or updated the software, you have to @ref Building "build" it in order to be able to @ref Running "run" it.  The first time you download the software and on the rare occasions we update the dependencies (i.e. software packages we use in the code and that are distributed together with the PlatoSim3 code), you will have to resolve the dependencies (as described together with the build procedure). 
+Once you have downloaded or updated the software, you have to @ref Building "build" it in order to be able to @ref Running "run" it.  The first time you download the software and on the rare occasions we update the dependencies (i.e. software packages we use in the code and that are distributed together with the PlatoSim3 code), you will have to resolve the dependencies (as described together with the build procedure).
 
 @image html /images/download-update-build.png ""

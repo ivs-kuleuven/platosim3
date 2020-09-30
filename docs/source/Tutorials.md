@@ -1,4 +1,4 @@
-# Tutorials {#Tutorials}
+# Tutorials {#tutorials}
 
 Under <code>/docs/tutorials</code> you can find a number of <a href="http://jupyter.org/">Jupyter Notebooks</a> (previously iPython Notebooks), each of which serves as a (documented) tutorial for a specific use case.  To view such a tutorial, <code>cd</code> to the <code>/docs/tutorial</code> directory (or one of its sub-directories) and type
 
@@ -36,7 +36,6 @@ conda update matplotlib
 conda update pytables
 conda update h5py
 \endcode
-
 
 Launching <code>Jupyter</code> while having <code>Spyder</code> open in the same environment crashed the kernel in <code>Spyder</code>.  This can be solved by cloning the <code>platosim</code> environment and launching <code>Jupyter</code> and <code>Spyder</code> in two different environments:
 

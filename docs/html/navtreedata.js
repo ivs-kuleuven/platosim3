@@ -7,35 +7,39 @@ var NAVTREE =
         [ "Installing (and Updating)", "InstallViaConda.html", null ],
         [ "A Word about Jenkins", "AboutJenkins.html", null ]
       ] ],
-      [ "For Developers", "DownloadUpdateBuild.html", [
-        [ "Prerequisites", "ReqsInstallUpdate.html", null ],
-        [ "Downloading", "Downloading.html", null ],
-        [ "Updating", "Updating.html", null ],
-        [ "Building", "Building.html", null ],
-        [ "Branching Strategy", "Branching.html", null ]
-      ] ]
-    ] ],
-    [ "Running PlatoSim3", "Running.html", [
-      [ "Prerequisites", "ReqsRun.html", null ],
-      [ "Input files", "InputFileDescription.html", [
-        [ "Configuration Parameters", "ConfigurationParameters.html", null ],
-        [ "Supplementary Files", "SupplementaryFiles.html", null ],
-        [ "Migration Tool", "MigrationTool.html", null ]
+      [ "For Developers", "dev-overview.html", [
+        [ "Prerequisites", "dev-reqs.html", null ],
+        [ "Forking and Cloning", "dev-fork-clone.html", null ],
+        [ "Dependencies", "dev-dependencies.html", null ],
+        [ "Building the Code", "@ref dev-build", null ],
+        [ "Remote Repositories", "@ref dev-remote-repo", null ],
+        [ "Update Procedure", "@ref dev-pull", null ],
+        [ "Contributing to the Code", "@ref dev-push", null ],
+        [ "Branching Strategy", "dev-branching.html", null ],
+        [ "Wrap-Up", "dev-wrap-up.html", null ]
       ] ],
-      [ "Running Simulations", "Simulating.html", [
-        [ "Scripting in Python", "ScriptingInPython.html", null ],
-        [ "Tutorials", "Tutorials.html", null ]
+      [ "Running PlatoSim3", "Running.html", [
+        [ "Prerequisites", "ReqsRun.html", null ],
+        [ "Input files", "InputFileDescription.html", [
+          [ "Configuration Parameters", "ConfigurationParameters.html", null ],
+          [ "Supplementary Files", "SupplementaryFiles.html", null ],
+          [ "Migration Tool", "MigrationTool.html", null ]
+        ] ],
+        [ "Running Simulations", "Simulating.html", [
+          [ "Scripting in Python", "ScriptingInPython.html", null ],
+          [ "Tutorials", "tutorials.html", null ]
+        ] ],
+        [ "Simulation Steps", "SimulationSteps.html", null ],
+        [ "Output files", "OutputFileDescription.html", null ]
       ] ],
-      [ "Simulation Steps", "SimulationSteps.html", null ],
-      [ "Output files", "OutputFileDescription.html", null ]
-    ] ],
-    [ "Help (Issue Tracking)", "IssueTracking.html", null ]
+      [ "Help (Issue Tracking)", "IssueTracking.html", null ]
+    ] ]
   ] ]
 ];
 
 var NAVTREEINDEX =
 [
-"AboutJenkins.html"
+"@ref dev-build"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
