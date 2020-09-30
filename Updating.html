@@ -51,8 +51,6 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
     <ul class="tablist">
       <li><a href="index.html"><span>Welcome</span></a></li>
       <li><a href="InstallUsersDevelopers.html"><span>Installing/Updating&#160;PlatoSim3</span></a></li>
-      <li><a href="Running.html"><span>Running&#160;PlatoSim3</span></a></li>
-      <li><a href="IssueTracking.html"><span>Help&#160;(Issue&#160;Tracking)</span></a></li>
       <li>
         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
@@ -105,10 +103,31 @@ $(document).ready(function(){initNavTree('Updating.html','');});
 <div class="title">Updating PlatoSim3 </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p>If you have <a class="el" href="Downloading.html">downloaded</a> the software via a <code>git clone</code>, you can update the software by executing the command</p>
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;git pull origin master </div></div><!-- fragment --><p>in the directory in which you installed PlatoSim3.</p>
+<div class="textblock"><p>In the course of the development process, the code in the <code>upstream</code> repository will be updated. The <code>develop</code> branch will always contain the latest version of the code, whereas the <code>master</code> branch is (supposed to be) stable and well-tested.</p>
+<p>To be able to update the code on your local machine in a smooth way, it is convenient to configure the remote repositories first, as explained below. You will only have to do this once. From then onwards, you can use the updating procedure, described below. </p><hr/>
+<h2>Remote Repositories</h2>
+<p>To be able to "pull" the latest version of the upstream software into your local copy (we'll come back to this), we advise you to add <code>upstream</code> to your list of remote repositories. To check your list of remote repositories, execute the following command in the the installation folder (or one of its sub-folders): </p><pre class="fragment">$ git remote -v
+</pre><p>This should give output, similar to this: </p><pre class="fragment">$ origin    https://github.com/&lt;your GitHub username&gt;/PlatoSim3.git (fetch)
+$ origin    https://github.com/&lt;your GitHub username&gt;/PlatoSim3.git (push)
+$ upstream  https://github.com/IvS-KULeuven/PlatoSim3.git (fetch)
+$ upstream  https://github.com/IvS-KULeuven/PlatoSim3.git (push)
+</pre><p>If there's no sign of the <code>upstream</code> (the last two lines), you can add it with the following command: </p><pre class="fragment">$ git remote add upstream https://github.com/IvS-KULeuven/PlatoSim3.git
+</pre><p>In case you pointed <code>upstream</code> to the wrong location (i.e. you used the command from above with the wrong link), you can undo this by executing the following command in the the installation folder (or one of its sub-folders): </p><pre class="fragment">$ git remote rm upstream
+</pre><hr/>
+<h2>Updating Procedure</h2>
+<p>To get the latest version on your local machine, execute the following command: </p><pre class="fragment">$ git pull upstream/develop
+</pre><p>for the <code>develop</code> branch or </p><pre class="fragment">$ git pull upstream/master
+</pre><p>for the <code>master</code> branch.</p>
+<p>To incorporate these changes in the <code>origin</code> repository, execute the following command: </p><pre class="fragment">$ git push origin develop
+</pre><p>for the <code>develop</code> branch</p>
+<p>and </p><pre class="fragment">$ git push master
+</pre><p>for the <code>master</code> branch.</p>
+<p>This is shown schematically in the figure below.</p>
+<div class="image">
+<img src="../img/pull-push.png" />
+</div>
 <p>However, this will only work smoothly if you did not change any of the PlatoSim3 files or added files to the PlatoSim3 folders. The only exceptions are the <code>/inputfiles</code> and the <code>/build</code> folder, where you can add files. Please, do not modify the original files in the <code>/inputfiles</code> folder, as this might cause problems when updating the software. We recommend that you copy the <code>inputfile.yaml</code> file and modify the copy rather than the original file.</p>
-<p>Please note that you have to re-build the code each time you fetch software changes. How to do this is explained <a class="el" href="Building.html">here</a>. </p>
+<p>Please note that you have to re-build the code each time you fetch software changes. How to do this is explained here. </p>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

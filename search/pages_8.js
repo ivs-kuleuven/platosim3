@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['scripting_20in_20python',['Scripting in Python',['../ScriptingInPython.html',1,'']]],
-  ['simulation_20steps',['Simulation Steps',['../SimulationSteps.html',1,'']]],
-  ['supplementary_20files',['Supplementary Files',['../SupplementaryFiles.html',1,'']]]
+  ['remote_20repositories',['Remote Repositories',['../remote-repo.html',1,'']]],
+  ['running_20platosim3',['Running PlatoSim3',['../Running.html',1,'']]],
+  ['running_20simulations_20with_20platosim3',['Running Simulations with PlatoSim3',['../Simulating.html',1,'']]]
 ];
