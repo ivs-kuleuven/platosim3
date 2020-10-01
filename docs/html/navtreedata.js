@@ -21,6 +21,7 @@ var NAVTREE =
       ] ]
     ] ],
     [ "Running PlatoSim3", "Running.html", [
+      [ "Prerequisites", "ReqsRun.html", null ],
       [ "Input Files", "InputFileDescription.html", [
         [ "Configuration Parameters", "ConfigurationParameters.html", null ],
         [ "Supplementary Files", "SupplementaryFiles.html", null ],
@@ -28,16 +29,17 @@ var NAVTREE =
       ] ],
       [ "Running Simulations", "Simulating.html", [
         [ "Scripting in Python", "ScriptingInPython.html", null ],
-        [ "Tutorials", "@ref tutorials", null ]
+        [ "Tutorials", "Tutorials.html", null ]
       ] ],
       [ "Simulation Steps", "SimulationSteps.html", null ]
-    ] ]
+    ] ],
+    [ "Help (Issue Tracking)", "IssueTracking.html", null ]
   ] ]
 ];
 
 var NAVTREEINDEX =
 [
-"@ref tutorials"
+"ConfigurationParameters.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

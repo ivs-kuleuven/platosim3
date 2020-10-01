@@ -30,7 +30,7 @@
 
     <tab type="usergroup" url="@ref Running" title="Running PlatoSim3">
 
-      <tab type="userg" url="@ref ReqsRun" title="Prerequisites">
+      <tab type="user" url="@ref ReqsRun" title="Prerequisites">
       </tab>
 
       <tab type="usergroup" url="@ref InputFileDescription" title="Input Files">
@@ -41,25 +41,15 @@
 
       <tab type="usergroup" visible="yes" url="@ref Simulating" title="Running Simulations">
         <tab type="user" visible="yes" url="@ref ScriptingInPython" title="Scripting in Python"/>
-        <tab type="user" visible="yes" url="@ref tutorials" title="Tutorials"/>
+        <tab type="user" visible="yes" url="@ref Tutorials" title="Tutorials"/>
       </tab>
 
       <tab type="user" visible="yes" url="@ref SimulationSteps" title="Simulation Steps"/>
     </tab>
+
+    <tab type="user" visible="yes" url="@ref IssueTracking" title="Help (Issue Tracking)"/>
   </tab>
-
-  <tab type="user" visible="yes" url="@ref IssueTracking" title="Help (Issue Tracking)"/>
-
 </tab>
-
-<!-- <tab type="usergroup" url="@ref run" title="Running PlatoSim3">
-      <tab type="user" visible="yes" url="@ref reqsRun" title="Prerequisites"/>
-      <tab type="user" visible="yes" url="@ref InputFileDescription" title="Input files"/>
-      
-      <tab type="user" visible="yes" url="@ref simulating" title="Running Simulations"/>
-      <tab type="user" visible="yes" url="@ref OutputFileDescription" title="Output files"/>
-      
-    </tab> -->
 
 <tab type="pages" visible="no" title="" intro=""/>
 <tab type="modules" visible="yes" title="" intro=""/>
