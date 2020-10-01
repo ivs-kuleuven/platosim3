@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.11"/>
-<title>PLATO Simulator: Installing/Updating PlatoSim3</title>
+<title>PLATO Simulator: Installing/Updating PlatoSim3 for Developers</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -83,7 +83,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function(){initNavTree('InstallUsersDevelopers.html','');});
+$(document).ready(function(){initNavTree('dev-overview.html','');});
 </script>
 <div id="doc-content">
 <!-- window showing the filter options -->
@@ -102,13 +102,28 @@ $(document).ready(function(){initNavTree('InstallUsersDevelopers.html','');});
 
 <div class="header">
   <div class="headertitle">
-<div class="title">Installing/Updating PlatoSim3 </div>  </div>
+<div class="title">Installing/Updating PlatoSim3 for Developers </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p>We now offer the choice to either install pre-built versions of PlatoSim3 <a class="el" href="user-overview.html">via conda</a> or to download and build the software <a class="el" href="dev-overview.html">yourself</a>. The latter option gives you the freedom to make changes to the code yourself, but it is a more complex procedure and in most cases this is not needed.</p>
+<div class="textblock"><p>The scheme below shows an overview of the procedure to download, update, and build the PlatoSim3 software on your system yourself, without using conda. This scheme is valid for developers who may want to contribute to the code at some point (or for users who want to install the software without <a class="el" href="InstallViaConda.html">using conda</a>). Also the procedure to make your own modifications to the code available for others is described.</p>
 <div class="image">
-<img src="usersVsDevelopers.png" alt="usersVsDevelopers.png"/>
+<img src="download-update-build.png" alt="download-update-build.png"/>
 </div>
+<hr/>
+<h2>Overview</h2>
+<p>The following installation guides are available:</p>
+<ul>
+<li><a class="el" href="dev-prerequisites.html">Prerequisites</a>: Describes the prerequisites that must be fulfilled to be able to download, update, and build PlatoSim3.</li>
+<li><a class="el" href="dev-fork-clone.html">Forking &amp; Cloning the Repository</a>: Describes the first-time installation of the software on your local machine.</li>
+<li><a class="el" href="dev-dependencies.html">Dependencies</a>: Describes how to install required dependencies.</li>
+<li><a class="el" href="dev-build.html">Building the Code</a>: Describes how to build the code.</li>
+<li><a class="el" href="dev-add-upstream.html">Remote Repositories</a>: Describes how to configure your GitHub setup, so that you will be able to get hold of any changes to the code by others.</li>
+<li><a class="el" href="dev-pull.html">Update Procedure</a>: Describes how to get the latest version of the code (from the <code>upstream</code>) on your local machine.</li>
+<li><a class="el" href="dev-push.html">Contributing to the Code</a>: Describes how to transfer your local changes to the <code>origin</code> repository and how to transfer these changes from the <code>origin</code> repository to the <code>upstream</code> repository.</li>
+<li><a class="el" href="dev-branching.html">Branching Strategy</a>: Describes the branching strategy we will be following.</li>
+</ul>
+<hr/>
+<p>A wrap-up describing what you should know after you went through the instructions on how to install and update PlatoSim via GitHub, and how to contribute to the code, can be found <a class="el" href="dev-wrap-up.html">here</a>. </p>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

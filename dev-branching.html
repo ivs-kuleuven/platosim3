@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.11"/>
-<title>PLATO Simulator: Installing/Updating PlatoSim3</title>
+<title>PLATO Simulator: Branching Strategy for PlatoSim3</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -83,7 +83,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function(){initNavTree('InstallUsersDevelopers.html','');});
+$(document).ready(function(){initNavTree('dev-branching.html','');});
 </script>
 <div id="doc-content">
 <!-- window showing the filter options -->
@@ -102,13 +102,27 @@ $(document).ready(function(){initNavTree('InstallUsersDevelopers.html','');});
 
 <div class="header">
   <div class="headertitle">
-<div class="title">Installing/Updating PlatoSim3 </div>  </div>
+<div class="title">Branching Strategy for PlatoSim3 </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p>We now offer the choice to either install pre-built versions of PlatoSim3 <a class="el" href="user-overview.html">via conda</a> or to download and build the software <a class="el" href="dev-overview.html">yourself</a>. The latter option gives you the freedom to make changes to the code yourself, but it is a more complex procedure and in most cases this is not needed.</p>
-<div class="image">
-<img src="usersVsDevelopers.png" alt="usersVsDevelopers.png"/>
-</div>
+<div class="textblock"><p>We have adopted the <a href="http://nvie.com/posts/a-successful-git-branching-model/">branching strategy of Vincent Driessen</a>, which means that the following two branches will be used permanently:</p>
+<ul>
+<li>the <b>master</b> branch, with the stable (i.e. tested) code, which is considered safe to use</li>
+<li>and the <b>develop</b> branch, with the latest development, which might be (highly) experimental at times (use at your own risk).</li>
+</ul>
+<hr/>
+<h2>Branches</h2>
+<p>To switch to a specific branch, use the command: </p><pre class="fragment">$ git checkout BRANCH_NAME
+</pre><p>To grab all branches and get an overview, use the following commands: </p><pre class="fragment">$ git fetch
+$ git branch
+</pre><p>The first command pulls all remote branches (not only the one you are currently working on) and the second command gives you an overview of all branches you have on your system. </p><hr/>
+<h2>Release Candidates and Releases</h2>
+<p>Release candidates and releases correspond to tagged versions of the master branch. To start using a specific release or release candidate, you have to check out the version of the master branch with a specific tag to a new branch, like this: </p><pre class="fragment">$ git checkout -b NEW_BRANCH_NAME TAG_NAME
+</pre><p>We will send around the tag name for new release candidates and releases once they become available. To get an overview of the available tags, use </p><pre class="fragment">$ git tag -l
+</pre><hr/>
+<h2>Switching between Branches</h2>
+<p>If you switch to another branch and want to run simulations with the current branch, you will have to re-build the software, as described <a class="el" href="dev-build.html">Building the Code</a> here.</p>
+<p>It is of course always possible that you come across problems when using either of these branches! Please, tell use about them via the GitHub <a class="el" href="IssueTracking.html">issue tracking</a> system. </p>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

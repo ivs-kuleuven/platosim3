@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.11"/>
-<title>PLATO Simulator: Installing/Updating PlatoSim3</title>
+<title>PLATO Simulator: Update Procedure</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -83,7 +83,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function(){initNavTree('InstallUsersDevelopers.html','');});
+$(document).ready(function(){initNavTree('dev-pull.html','');});
 </script>
 <div id="doc-content">
 <!-- window showing the filter options -->
@@ -102,13 +102,23 @@ $(document).ready(function(){initNavTree('InstallUsersDevelopers.html','');});
 
 <div class="header">
   <div class="headertitle">
-<div class="title">Installing/Updating PlatoSim3 </div>  </div>
+<div class="title">Update Procedure </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p>We now offer the choice to either install pre-built versions of PlatoSim3 <a class="el" href="user-overview.html">via conda</a> or to download and build the software <a class="el" href="dev-overview.html">yourself</a>. The latter option gives you the freedom to make changes to the code yourself, but it is a more complex procedure and in most cases this is not needed.</p>
+<div class="textblock"><p>In the course of the development process, the code in the <code>upstream</code> repository will be updated. The <code>develop</code> branch will always contain the latest version of the code, whereas the <code>master</code> branch is (supposed to be) stable and well-tested.</p>
+<p>To get the latest version on your local machine, execute the following command: </p><pre class="fragment">$ git pull upstream/develop
+</pre><p>for the <code>develop</code> branch or </p><pre class="fragment">$ git pull upstream/master
+</pre><p>for the <code>master</code> branch.</p>
+<p>To incorporate these changes in the <code>origin</code> repository, execute the following command: </p><pre class="fragment">$ git push origin develop
+</pre><p>for the <code>develop</code> branch</p>
+<p>and </p><pre class="fragment">$ git push master
+</pre><p>for the <code>master</code> branch.</p>
+<p>This is shown schematically in the figure below.</p>
 <div class="image">
-<img src="usersVsDevelopers.png" alt="usersVsDevelopers.png"/>
+<img src="pull-push.png" alt="pull-push.png"/>
 </div>
+<p>However, this will only work smoothly if you did not change any of the PlatoSim3 files or added files to the PlatoSim3 folders. The only exceptions are the <code>/inputfiles</code> and the <code>/build</code> folder, where you can add files. Please, do not modify the original files in the <code>/inputfiles</code> folder, as this might cause problems when updating the software. We recommend that you copy the <code>inputfile.yaml</code> file and modify the copy rather than the original file.</p>
+<p>Please note that you have to re-build the code each time you fetch software changes. How to do this is explained here. </p>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

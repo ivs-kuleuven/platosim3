@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.11"/>
-<title>PLATO Simulator: Installing/Updating PlatoSim3</title>
+<title>PLATO Simulator: Building the Code</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -83,7 +83,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function(){initNavTree('InstallUsersDevelopers.html','');});
+$(document).ready(function(){initNavTree('dev-build.html','');});
 </script>
 <div id="doc-content">
 <!-- window showing the filter options -->
@@ -102,13 +102,36 @@ $(document).ready(function(){initNavTree('InstallUsersDevelopers.html','');});
 
 <div class="header">
   <div class="headertitle">
-<div class="title">Installing/Updating PlatoSim3 </div>  </div>
+<div class="title">Building the Code </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p>We now offer the choice to either install pre-built versions of PlatoSim3 <a class="el" href="user-overview.html">via conda</a> or to download and build the software <a class="el" href="dev-overview.html">yourself</a>. The latter option gives you the freedom to make changes to the code yourself, but it is a more complex procedure and in most cases this is not needed.</p>
-<div class="image">
-<img src="usersVsDevelopers.png" alt="usersVsDevelopers.png"/>
-</div>
+<div class="textblock"><h2>Software Changes</h2>
+<p>In case of code changes (after retrieving the latest version from GitHub or after introducing changes to the code yourself)</p>
+<p>In case you have updated the PlatoSim3 code but the dependencies remain unchanged, you only have to re-build the software but not resolve the dependencies again. This saves you a tremendous amount of time. The way to do this, is: </p><pre class="fragment">$ cmake ..
+$ (make clean)
+$ make -j 4
+</pre><hr/>
+<h2>Updated Dependencies</h2>
+<p>At some stage, we will want to update (some of) the dependencies. You will be notified by the developer team in case this happens. You will then have to:</p>
+<ul>
+<li>clear the <code>/dependencies/Installs</code> directory</li>
+<li>and run the install script again (as described above for the first-time installation).</li>
+</ul>
+<hr/>
+<h2>Running the Test Harnesses</h2>
+<p>In order to be able to run the test harnesses, you must first build the code (see above) and export the required environment variables, as explained <a class="el" href="ReqsRun.html">here</a>.</p>
+<p>The actual command to run the tests must be executed in the <code>/build</code> directory: </p><pre class="fragment">$ ./testplatosim
+</pre><hr/>
+<h2>Troubleshooting</h2>
+<h3>Not Using the System Default Compiler</h3>
+<p>If you want to use a different compiler than the system default to execute the steps described above, you have to export two additional environment variables, <code>CCX</code> and <code>CC</code>, as follows: </p><pre class="fragment">$ export CXX=g++-5
+$ export CC=gcc-5
+</pre><p>where you may want to adapt the right-hand side of these two lines to the compiler (version) of your choice.</p>
+<h3>Still Experiencing Problems?</h3>
+<p>If you are still experiencing problems following the instructions above, please, <a class="el" href="IssueTracking.html">tell us about it</a>! It's convenient if you can send us the full error log, which you can get hold of as follows: </p><pre class="fragment">$ ./install.sh &gt; output.txt 2&gt; errors.txt
+</pre><hr/>
+<h2>Switching between Branches</h2>
+<p>As you can read <a class="el" href="dev-branching.html">here</a>, we don't just use the master branch. If you switch to another branch and want to run simulations with the current branch, you will have to re-build the software. </p>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

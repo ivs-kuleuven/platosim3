@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.11"/>
-<title>PLATO Simulator: Installing/Updating PlatoSim3</title>
+<title>PLATO Simulator: A Word about Jenkins</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -83,7 +83,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function(){initNavTree('InstallUsersDevelopers.html','');});
+$(document).ready(function(){initNavTree('user-jenkins.html','');});
 </script>
 <div id="doc-content">
 <!-- window showing the filter options -->
@@ -102,12 +102,14 @@ $(document).ready(function(){initNavTree('InstallUsersDevelopers.html','');});
 
 <div class="header">
   <div class="headertitle">
-<div class="title">Installing/Updating PlatoSim3 </div>  </div>
+<div class="title">A Word about Jenkins </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p>We now offer the choice to either install pre-built versions of PlatoSim3 <a class="el" href="user-overview.html">via conda</a> or to download and build the software <a class="el" href="dev-overview.html">yourself</a>. The latter option gives you the freedom to make changes to the code yourself, but it is a more complex procedure and in most cases this is not needed.</p>
+<div class="textblock"><p>We have started using <a href="https://jenkins.io/">Jenkins</a> to automatically build PlatoSim and make pre-built software available for a myriad of operating systems. The figure below summarises how we want to use it.</p>
+<p>Each time code is pushed to the repository (either to the <code>master</code> or the <code>develop</code> branch) or a pull request is merged in GitHub, Jenkins will start building the new code, resolves the dependencies for you, and makes it available via the conda installation command. In case the build was successful, users can install this build on their system.</p>
+<p>To monitor the status of the PlatoSim builds, check <a href="https://jenkins.miricle.org/view/Platosim/">here</a>.</p>
 <div class="image">
-<img src="usersVsDevelopers.png" alt="usersVsDevelopers.png"/>
+<img src="jenkins.png" alt="jenkins.png"/>
 </div>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
