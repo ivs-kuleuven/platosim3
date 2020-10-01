@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.11"/>
-<title>PLATO Simulator: Installing PlatoSim3 via Conda</title>
+<title>PLATO Simulator: Dependencies</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -83,7 +83,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function(){initNavTree('ViaConda.html','');});
+$(document).ready(function(){initNavTree('dev-dependencies.html','');});
 </script>
 <div id="doc-content">
 <!-- window showing the filter options -->
@@ -102,14 +102,22 @@ $(document).ready(function(){initNavTree('ViaConda.html','');});
 
 <div class="header">
   <div class="headertitle">
-<div class="title">Installing PlatoSim3 via Conda </div>  </div>
+<div class="title">Dependencies </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p>To make life easier on the people who want to use PlatoSim without ever wanting to touch the code, we have started using <a href="https://jenkins.io/">Jenkins</a> to automatically build PlatoSim, enabling you to download the latest successfully built version or the <a class="el" href="Branching.html">master or develop branch</a>, or any specific version(s) of these. The flowchart below summarises the steps you have to take.</p>
-<p>To be able to <a class="el" href="InstallViaConda.html">install</a> PlatoSim3 via conda, have a look at the <a class="el" href="ReqsInstallViaConda.html">prerequisites</a> first.</p>
-<div class="image">
-<img src="howToInstallPlatoSimViaConda.png" alt="howToInstallPlatoSimViaConda.png"/>
-</div>
+<div class="textblock"><p>PlatoSim3 relies on a number of other packages, which are all included in the PlatoSim3 distribution for your convenience. Everything concerning the dependencies can be found in the <code>/dependencies</code> directory. The <code>/dependencyDownloads</code> sub-directory contains the tarball or zipball file of all required packages. In the <code>/installscripts</code> sub-directory you can find Python scripts that help you to unzip or untar these files into the <code>/dependencyInstalls</code> directory. You can do this for one dependency at a time, like this (in the directory in which PlatoSim3 was downloaded): </p><pre class="fragment">$ python ./dependencies/installscripts/install_hdf5.py
+$ python ./dependencies/installscripts/install_googletest.py
+$ python ./dependencies/installscripts/install_yaml.py
+$ python ./dependencies/installscripts/install_armadillo.py
+$ python ./dependencies/installscripts/install_fftw.py
+$ python ./dependencies/installscripts/install_faddeeva.py
+</pre><p>Alternatively, you can also install the required dependencies and build the code in one go by typing (also in the directory in which PlatoSim3 was downloaded): </p><pre class="fragment">$ ./install.sh
+</pre><p>If problems would arise when executing this command, it may be useful to tried to install the dependencies one-by-one to pinpoint the problem.</p>
+<p>Running this script will create two executables :</p>
+<ul>
+<li><code>platosim</code> to run simulations (see below)</li>
+<li>and <code>testplatosim</code> to run the test harnesses (without arguments). </li>
+</ul>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

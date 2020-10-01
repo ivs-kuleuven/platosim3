@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.11"/>
-<title>PLATO Simulator: Updating PlatoSim3</title>
+<title>PLATO Simulator: A Word about Jenkins</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -83,7 +83,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function(){initNavTree('Updating.html','');});
+$(document).ready(function(){initNavTree('user-jenkins.html','');});
 </script>
 <div id="doc-content">
 <!-- window showing the filter options -->
@@ -102,13 +102,15 @@ $(document).ready(function(){initNavTree('Updating.html','');});
 
 <div class="header">
   <div class="headertitle">
-<div class="title">Updating PlatoSim3 </div>  </div>
+<div class="title">A Word about Jenkins </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p>If you have <a class="el" href="Downloading.html">downloaded</a> the software via a <code>git clone</code>, you can update the software by executing the command</p>
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;git pull origin master </div></div><!-- fragment --><p>in the directory in which you installed PlatoSim3.</p>
-<p>However, this will only work smoothly if you did not change any of the PlatoSim3 files or added files to the PlatoSim3 folders. The only exceptions are the <code>/inputfiles</code> and the <code>/build</code> folder, where you can add files. Please, do not modify the original files in the <code>/inputfiles</code> folder, as this might cause problems when updating the software. We recommend that you copy the <code>inputfile.yaml</code> file and modify the copy rather than the original file.</p>
-<p>Please note that you have to re-build the code each time you fetch software changes. How to do this is explained <a class="el" href="Building.html">here</a>. </p>
+<div class="textblock"><p>We have started using <a href="https://jenkins.io/">Jenkins</a> to automatically build PlatoSim and make pre-built software available for a myriad of operating systems. The figure below summarises how we want to use it.</p>
+<p>Each time code is pushed to the repository (either to the <code>master</code> or the <code>develop</code> branch) or a pull request is merged in GitHub, Jenkins will start building the new code, resolves the dependencies for you, and makes it available via the conda installation command. In case the build was successful, users can install this build on their system.</p>
+<p>To monitor the status of the PlatoSim builds, check <a href="https://jenkins.miricle.org/view/Platosim/">here</a>.</p>
+<div class="image">
+<img src="jenkins.png" alt="jenkins.png"/>
+</div>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

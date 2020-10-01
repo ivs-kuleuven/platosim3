@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.11"/>
-<title>PLATO Simulator: Downloading PlatoSim3</title>
+<title>PLATO Simulator: Wrap-Up</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -83,7 +83,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function(){initNavTree('Downloading.html','');});
+$(document).ready(function(){initNavTree('dev-wrap-up.html','');});
 </script>
 <div id="doc-content">
 <!-- window showing the filter options -->
@@ -102,19 +102,23 @@ $(document).ready(function(){initNavTree('Downloading.html','');});
 
 <div class="header">
   <div class="headertitle">
-<div class="title">Downloading PlatoSim3 </div>  </div>
+<div class="title">Wrap-Up </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p>To download the software, go to the <a href="https://github.com/IvS-KULeuven/PlatoSim3">PlatoSim3 repository on GitHub</a>. The GitHub web interface to download the PlatoSim3 software is shown below.</p>
-<div class="image">
-<img src="gitHub.png" alt="gitHub.png"/>
-<div class="caption">
-Screenshot of the GitHub web interface.</div></div>
-<p> If you are interested in contributing to the software, you must <code>fork</code> PlatoSim3, using the GitHub web interface. Just press the <code>"Fork"</code> button and follow the instructions.</p>
-<p>Although GitHub allows downloading the code as a ZIP file (by pressing the <code>"Download ZIP"</code> button in the GitHub web interface), we strongly discourage this, as this makes the process of updating to a more recent version of the software more complex and tedious.</p>
-<p>If you want to be able to update the software (without having to re-install the dependencies each time), it is better to <code>clone</code> PlatoSim3 by executing the following command in a designated directory (you have to do this only once!):</p>
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;git clone https://github.com/IvS-KULeuven/PlatoSim3.git .</div></div><!-- fragment --><p>Mind the dot at the end of the command!</p>
-<p>After you have downloaded the PlatoSim3 code, you first have to install a few packages (so-called dependencies) before you can actually build and run the PLATO Simulator. How to do this, is described <a class="el" href="Building.html">here</a>. </p>
+<div class="textblock"><p>After following the instructions on how to install, build, and update PlatoSim3, you should have the following:</p>
+<ul>
+<li>on your personal GitHub page: the forked repository;</li>
+<li>on your local machine: a local copy (i.e. clone) of the repository;</li>
+<li><code>upstream</code> and <code>origin</code> in the list of remote repositories.</li>
+</ul>
+<p>Additionally, you should be able to:</p>
+<ul>
+<li>resolve the dependencies;</li>
+<li>build the code, after a change in dependencies or in the code itself;</li>
+<li>get the latest version of the software (from the <code>upstream</code>) on your local machine</li>
+<li>send the code from your local machine to the <code>origin</code>;</li>
+<li>open a pull request to have your changes (reviewed and) incorporated in the <code>upstream</code>. </li>
+</ul>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

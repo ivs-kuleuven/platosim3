@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.11"/>
-<title>PLATO Simulator: Prerequisites for Installing PlatoSim3: Conda Environments</title>
+<title>PLATO Simulator: Update Procedure</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -83,7 +83,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function(){initNavTree('ReqsInstallViaConda.html','');});
+$(document).ready(function(){initNavTree('dev-pull.html','');});
 </script>
 <div id="doc-content">
 <!-- window showing the filter options -->
@@ -102,18 +102,24 @@ $(document).ready(function(){initNavTree('ReqsInstallViaConda.html','');});
 
 <div class="header">
   <div class="headertitle">
-<div class="title">Prerequisites for Installing PlatoSim3: Conda Environments </div>  </div>
+<div class="title">Update Procedure </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2>Creating Conda Environments</h2>
-<p>To be able to install PlatoSim via conda, you have to have the Python distribution <a href="https://docs.continuum.io/anaconda/install">Anaconda</a> installed. You have to create an <a href="https://conda.io/docs/user-guide/tasks/manage-environments.html">conda environments</a>, here called <code>platosim</code>, as follows:</p>
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;conda create -n platosim python=&lt;Python version&gt; anaconda</div></div><!-- fragment --><p>but it is advisable to use multiple conda environments if you want to be able to switch between version and/or branches in a smooth way (e.g. <code>platosimMaster</code> and <code>platosimDevel</code>). Supported Python versions are 3.5, 3.6, and 3.7. Please, note that - when you switch to a different version of Python - it is advised to create a new conda environment rather than trying to update your existing one. It will save you a lot of trouble if you do it like this.</p>
-<p>To get an overview of all your conda environments, type</p>
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;conda env list</div></div><!-- fragment --><p>The active environments will be marked with *.</p>
-<h2>Activating and De-activating Conda Environments</h2>
-<p>Each time you install a different version of PlatoSim or if you want to use a specific version of PlatoSim you have installed (via conda) on your system, you have to activate the appropriate conda environment, which is done as follows:</p>
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;conda activate &lt;environment name&gt;</div></div><!-- fragment --><p>To de-activate the environment you are currently on, type</p>
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;conda deactivate</div></div><!-- fragment --> </div></div><!-- contents -->
+<div class="textblock"><p>In the course of the development process, the code in the <code>upstream</code> repository will be updated. The <code>develop</code> branch will always contain the latest version of the code, whereas the <code>master</code> branch is (supposed to be) stable and well-tested.</p>
+<p>To get the latest version on your local machine, execute the following command: </p><pre class="fragment">$ git pull upstream/develop
+</pre><p>for the <code>develop</code> branch or </p><pre class="fragment">$ git pull upstream/master
+</pre><p>for the <code>master</code> branch.</p>
+<p>To incorporate these changes in the <code>origin</code> repository, execute the following command: </p><pre class="fragment">$ git push origin develop
+</pre><p>for the <code>develop</code> branch</p>
+<p>and </p><pre class="fragment">$ git push master
+</pre><p>for the <code>master</code> branch.</p>
+<p>This is shown schematically in the figure below.</p>
+<div class="image">
+<img src="pull-push.png" alt="pull-push.png"/>
+</div>
+<p>However, this will only work smoothly if you did not change any of the PlatoSim3 files or added files to the PlatoSim3 folders. The only exceptions are the <code>/inputfiles</code> and the <code>/build</code> folder, where you can add files. Please, do not modify the original files in the <code>/inputfiles</code> folder, as this might cause problems when updating the software. We recommend that you copy the <code>inputfile.yaml</code> file and modify the copy rather than the original file.</p>
+<p>Please note that you have to re-build the code each time you fetch software changes. How to do this is explained here. </p>
+</div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->

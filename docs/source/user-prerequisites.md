@@ -1,4 +1,4 @@
-# Prerequisites for Installing PlatoSim3: Conda Environments {#ReqsInstallViaConda}
+# Prerequisites for Installing PlatoSim3: Conda Environments {#user-prerequisites}
 
 ## Creating Conda Environments
 
@@ -13,22 +13,18 @@ but it is advisable to use multiple conda environments if you want to be able to
 
 To get an overview of all your conda environments, type
 
-\code
-conda env list
-\endcode
+    $ conda env list
 
 The active environments will be marked with *.
+
+---
 
 ## Activating and De-activating Conda Environments
 
 Each time you install a different version of PlatoSim or if you want to use a specific version of PlatoSim you have installed (via conda) on your system, you have to activate the appropriate conda environment, which is done as follows:
 
-\code
-conda activate <environment name>
-\endcode
+    $ conda activate <environment name>
 
 To de-activate the environment you are currently on, type
 
-\code
-conda deactivate
-\endcode
+    $ conda deactivate

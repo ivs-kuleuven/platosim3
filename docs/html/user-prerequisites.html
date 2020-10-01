@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.11"/>
-<title>PLATO Simulator: Installing (and Updating) PlatoSim3 Via Conda</title>
+<title>PLATO Simulator: Prerequisites for Installing PlatoSim3: Conda Environments</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -83,7 +83,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function(){initNavTree('InstallViaConda.html','');});
+$(document).ready(function(){initNavTree('user-prerequisites.html','');});
 </script>
 <div id="doc-content">
 <!-- window showing the filter options -->
@@ -102,24 +102,17 @@ $(document).ready(function(){initNavTree('InstallViaConda.html','');});
 
 <div class="header">
   <div class="headertitle">
-<div class="title">Installing (and Updating) PlatoSim3 Via Conda </div>  </div>
+<div class="title">Prerequisites for Installing PlatoSim3: Conda Environments </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p>Before you install another version of PlatoSim3, you must activate the desired conda environment, as described <a class="el" href="ReqsInstallViaConda.html">here</a>. It is not necessary to create a new conda environment every time you install a different version of the software, unless you want to use multiple version in parallel.</p>
-<p>The installation procedure will automatically detect which operating system your are running and will install the appropriate packages for you.</p>
-<p>Before you install PlatoSim via conda for the first time in this environment, type:</p>
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;conda config --add channels conda-forge</div></div><!-- fragment --><h2><code>master</code></h2>
-<p>To install the latest successfully built version of the <code>master</code> branch, type:</p>
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;conda install -c https://jenkins.miricle.org/platosim/ platosim</div></div><!-- fragment --><p>To install a specific version (only for the <code>master</code> branch), just append <code>&lt;version&gt;=</code> to this command.</p>
-<p>To update an installed version to the latest one, replace <code>conda install</code> by <code>conda update</code>.</p>
-<h2><code>develop</code></h2>
-<p>For the <code>develop</code> branch, these commands must be replaced by</p>
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;conda install -c https://jenkins.miricle.org/platosim.devel/ platosim</div></div><!-- fragment --><p>and</p>
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;conda update --force-reinstall -c  https://jenkins.miricle.org/platosim.devel/ platosim</div></div><!-- fragment --><p>respectively.</p>
-<h2>Credentials</h2>
-<p>Please, contact the developer team for the username and password.</p>
-<p>If no pop-up window, asking for the credentials, would appear, you can adapt the <code>conda install</code> commands from above, by placing <code>&lt;username&gt;:&lt;password&gt;</code>@ between the <code><a href="https://">https://</a></code> and the <code>jenkins</code>. </p>
-</div></div><!-- contents -->
+<div class="textblock"><h2>Creating Conda Environments</h2>
+<p>To be able to install PlatoSim via conda, you have to have the Python distribution <a href="https://docs.continuum.io/anaconda/install">Anaconda</a> installed. You have to create an <a href="https://conda.io/docs/user-guide/tasks/manage-environments.html">conda environments</a>, here called <code>platosim</code>, as follows:</p>
+<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;conda create -n platosim python=&lt;Python version&gt; anaconda</div></div><!-- fragment --><p>but it is advisable to use multiple conda environments if you want to be able to switch between version and/or branches in a smooth way (e.g. <code>platosimMaster</code> and <code>platosimDevel</code>). Supported Python versions are 3.5, 3.6, and 3.7. Please, note that - when you switch to a different version of Python - it is advised to create a new conda environment rather than trying to update your existing one. It will save you a lot of trouble if you do it like this.</p>
+<p>To get an overview of all your conda environments, type </p><pre class="fragment">$ conda env list
+</pre><p>The active environments will be marked with *. </p><hr/>
+<h2>Activating and De-activating Conda Environments</h2>
+<p>Each time you install a different version of PlatoSim or if you want to use a specific version of PlatoSim you have installed (via conda) on your system, you have to activate the appropriate conda environment, which is done as follows: </p><pre class="fragment">$ conda activate &lt;environment name&gt;
+</pre><p>To de-activate the environment you are currently on, type </p><pre class="fragment">$ conda deactivate</pre> </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
