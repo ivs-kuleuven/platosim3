@@ -37,7 +37,6 @@ conda update pytables
 conda update h5py
 \endcode
 
-
 Launching <code>Jupyter</code> while having <code>Spyder</code> open in the same environment crashed the kernel in <code>Spyder</code>.  This can be solved by cloning the <code>platosim</code> environment and launching <code>Jupyter</code> and <code>Spyder</code> in two different environments:
 
 \code

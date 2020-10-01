@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['updating_20platosim3',['Updating PlatoSim3',['../Updating.html',1,'']]],
-  ['updating_2emd',['Updating.md',['../_updating_8md.html',1,'']]]
+  ['tutorials',['Tutorials',['../Tutorials.html',1,'']]],
+  ['tutorials_2emd',['Tutorials.md',['../_tutorials_8md.html',1,'']]]
 ];
