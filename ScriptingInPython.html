@@ -51,6 +51,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
     <ul class="tablist">
       <li><a href="index.html"><span>Welcome</span></a></li>
       <li><a href="InstallUsersDevelopers.html"><span>Installing/Updating&#160;PlatoSim3</span></a></li>
+      <li><a href="Running.html"><span>Running&#160;PlatoSim3</span></a></li>
       <li>
         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
@@ -111,7 +112,7 @@ $(document).ready(function(){initNavTree('ScriptingInPython.html','');});
 <p>With <a href="http://conda.pydata.org/docs/index.html">conda</a> (which is included in <a href="https://docs.continuum.io/anaconda/install">Anaconda</a>), you can create, export, list, remove, and update environments that have different versions of Python and/or packages installed in them. Switching or moving between environments is called activating the environment.</p>
 <p>To create and activate such an environment, type</p>
 <div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;source /anaconda/bin/activate root</div><div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;conda create -n platosim python=&lt;Python version&gt; anaconda</div></div><!-- fragment --><p>Supported Python versions are 3.5, 3.6, and 3.7. More information on managing environment with conda can be found <a href="http://conda.pydata.org/docs/using/envs.html#">here</a>. Please, note that - when you switch to a different version of Python - it is advised to create a new conda environment rather than trying to update your existing one. This means you (as a developer) will have to re-install a couple of Python packages (see below), but is will save you a lot of trouble if you do it like this.</p>
-<p>Users only have to source the conda environment in which the desired version of the software has been installed in. Also they are advised to create a new conda environment when they want to switch to a different version of Python. After a <a class="el" href="InstallViaConda.html">conda update</a> or a <a class="el" href="InstallViaConda.html">conda install</a> of the PlatoSim software, everything will be configured appropriately, without further action.</p>
+<p>Users only have to source the conda environment in which the desired version of the software has been installed in. Also they are advised to create a new conda environment when they want to switch to a different version of Python. After a conda update or a conda install of the PlatoSim software, everything will be configured appropriately, without further action.</p>
 <h3>Installing Extra Packages (for Developers)</h3>
 <p>To be able to run the PLATO Simulator and inspect the output, you must install the following packages:</p>
 <ul>

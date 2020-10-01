@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.11"/>
-<title>PLATO Simulator: Wrap-Up</title>
+<title>PLATO Simulator: Installing PlatoSim3 via Conda</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -82,7 +82,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function(){initNavTree('dev-wrap-up.html','');});
+$(document).ready(function(){initNavTree('user-overview.html','');});
 </script>
 <div id="doc-content">
 <!-- window showing the filter options -->
@@ -101,23 +101,24 @@ $(document).ready(function(){initNavTree('dev-wrap-up.html','');});
 
 <div class="header">
   <div class="headertitle">
-<div class="title">Wrap-Up </div>  </div>
+<div class="title">Installing PlatoSim3 via Conda </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p>After following the instructions on how to install, build, and update PlatoSim3, you should have the following:</p>
+<div class="textblock"><p>To make life easier on the people who want to use PlatoSim without ever wanting to touch the code, we have started using <a href="https://jenkins.io/">Jenkins</a> to automatically build PlatoSim, enabling you to download the latest successfully built version or the <a class="el" href="dev-branching.html">master or develop branch</a>, or any specific version(s) of these. The flowchart below summarises the steps you have to take.</p>
+<p>To be able to <a class="el" href="user-install.html">install</a> PlatoSim3 via conda, have a look at the <a class="el" href="user-prerequisites.html">prerequisites</a> first.</p>
+<div class="image">
+<img src="howToInstallPlatoSimViaConda.png" alt="howToInstallPlatoSimViaConda.png"/>
+</div>
+ <hr/>
+<h2>Overview</h2>
+<p>The following installation guides are available:</p>
 <ul>
-<li>on your personal GitHub page: the forked repository;</li>
-<li>on your local machine: a local copy (i.e. clone) of the repository;</li>
-<li><code>upstream</code> and <code>origin</code> in the list of remote repositories.</li>
+<li><a class="el" href="user-prerequisites.html">Prerequisites</a>: Describes the prerequisites that must be fulfilled to be able to download and update PlatoSim3.</li>
+<li><a class="el" href="user-install.html">Installing (and Updating)</a>: Describes the procedure to install and update PlatoSim in a dedicated Conda environment.</li>
+<li><a class="el" href="user-jenkins.html">A Word about Jenkins</a>: Describes how you can monitor the status of the PlatoSim builds.</li>
 </ul>
-<p>Additionally, you should be able to:</p>
-<ul>
-<li>resolve the dependencies;</li>
-<li>build the code, after a change in dependencies or in the code itself;</li>
-<li>get the latest version of the software (from the <code>upstream</code>) on your local machine</li>
-<li>send the code from your local machine to the <code>origin</code>;</li>
-<li>open a pull request to have your changes (reviewed and) incorporated in the <code>upstream</code>. </li>
-</ul>
+<hr/>
+<p>A wrap-up describing what you should know after you went through the Conda installation instructions, can be found <a class="el" href="user-wrap-up.html">here</a>. </p>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

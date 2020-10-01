@@ -106,12 +106,11 @@ $(document).ready(function(){initNavTree('ReqsInstallViaConda.html','');});
 <div class="textblock"><h2>Creating Conda Environments</h2>
 <p>To be able to install PlatoSim via conda, you have to have the Python distribution <a href="https://docs.continuum.io/anaconda/install">Anaconda</a> installed. You have to create an <a href="https://conda.io/docs/user-guide/tasks/manage-environments.html">conda environments</a>, here called <code>platosim</code>, as follows:</p>
 <div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;conda create -n platosim python=&lt;Python version&gt; anaconda</div></div><!-- fragment --><p>but it is advisable to use multiple conda environments if you want to be able to switch between version and/or branches in a smooth way (e.g. <code>platosimMaster</code> and <code>platosimDevel</code>). Supported Python versions are 3.5, 3.6, and 3.7. Please, note that - when you switch to a different version of Python - it is advised to create a new conda environment rather than trying to update your existing one. It will save you a lot of trouble if you do it like this.</p>
-<p>To get an overview of all your conda environments, type</p>
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;conda env list</div></div><!-- fragment --><p>The active environments will be marked with *.</p>
+<p>To get an overview of all your conda environments, type </p><pre class="fragment">$ conda env list
+</pre><p>The active environments will be marked with *. </p><hr/>
 <h2>Activating and De-activating Conda Environments</h2>
-<p>Each time you install a different version of PlatoSim or if you want to use a specific version of PlatoSim you have installed (via conda) on your system, you have to activate the appropriate conda environment, which is done as follows:</p>
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;conda activate &lt;environment name&gt;</div></div><!-- fragment --><p>To de-activate the environment you are currently on, type</p>
-<div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;conda deactivate</div></div><!-- fragment --> </div></div><!-- contents -->
+<p>Each time you install a different version of PlatoSim or if you want to use a specific version of PlatoSim you have installed (via conda) on your system, you have to activate the appropriate conda environment, which is done as follows: </p><pre class="fragment">$ conda activate &lt;environment name&gt;
+</pre><p>To de-activate the environment you are currently on, type </p><pre class="fragment">$ conda deactivate</pre> </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
