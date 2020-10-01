@@ -7,6 +7,5 @@ var searchData=
   ['issue_20tracking',['Issue Tracking',['../IssueTracking.html',1,'']]],
   ['issuetracking_2emd',['IssueTracking.md',['../_issue_tracking_8md.html',1,'']]],
   ['installing_20_28and_20updating_29_20platosim3_20via_20conda',['Installing (and Updating) PlatoSim3 Via Conda',['../user-install.html',1,'']]],
-  ['installing_20platosim3_20via_20conda',['Installing PlatoSim3 via Conda',['../user-overview.html',1,'']]],
-  ['installing_20platosim3_20via_20conda',['Installing PlatoSim3 via Conda',['../ViaConda.html',1,'']]]
+  ['installing_20platosim3_20via_20conda',['Installing PlatoSim3 via Conda',['../user-overview.html',1,'']]]
 ];
