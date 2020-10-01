@@ -1,9 +1,6 @@
 var NAVTREEINDEX0 =
 {
-"@ref dev-build":[0,1,3],
-"@ref dev-pull":[0,1,5],
-"@ref dev-push":[0,1,6],
-"@ref dev-remote-repo":[0,1,4],
+"@ref tutorials":[0,2,2,1],
 "AboutJenkins.html":[0,0,2],
 "ConfigurationParameters.html":[0,2,1,0],
 "InputFileDescription.html":[0,2,1],
@@ -20,13 +17,16 @@ var NAVTREEINDEX0 =
 "SimulationSteps.html":[0,2,3],
 "SupplementaryFiles.html":[0,2,1,1],
 "ViaConda.html":[0,0],
+"dev-add-upstream.html":[0,1,4],
 "dev-branching.html":[0,1,7],
+"dev-build.html":[0,1,3],
 "dev-dependencies.html":[0,1,2],
 "dev-fork-clone.html":[0,1,1],
 "dev-overview.html":[0,1],
-"dev-reqs.html":[0,1,0],
+"dev-prerequisites.html":[0,1,0],
+"dev-pull.html":[0,1,5],
+"dev-push.html":[0,1,6],
 "dev-wrap-up.html":[0,1,8],
 "index.html":[],
-"pages.html":[],
-"tutorials.html":[0,2,2,1]
+"pages.html":[]
 };
