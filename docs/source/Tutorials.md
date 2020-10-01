@@ -1,4 +1,4 @@
-# Tutorials {#tutorials}
+# Tutorials {#Tutorials}
 
 Under <code>/docs/tutorials</code> you can find a number of <a href="http://jupyter.org/">Jupyter Notebooks</a> (previously iPython Notebooks), each of which serves as a (documented) tutorial for a specific use case.  To view such a tutorial, <code>cd</code> to the <code>/docs/tutorial</code> directory (or one of its sub-directories) and type
 

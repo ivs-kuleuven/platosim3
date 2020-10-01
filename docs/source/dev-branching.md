@@ -13,7 +13,7 @@ We have adopted the <a href="http://nvie.com/posts/a-successful-git-branching-mo
 
 To switch to a specific branch, use the command:
 
-    $ git checkout < branch name >
+    $ git checkout BRANCH_NAME
 
 To grab all branches and get an overview, use the following commands:
 
@@ -38,6 +38,6 @@ We will send around the tag name for new release candidates and releases once th
 
 ## Switching between Branches
 
-If you switch to another branch and want to run simulations with the current branch, you will have to re-build the software, as described [here](#dev-building).
+If you switch to another branch and want to run simulations with the current branch, you will have to re-build the software, as described @ref dev-build here.
 
-It is of course always possible that you come across problems when using either of these branches!  Please, tell use about them via the GitHub [issue tracking](#IssueTracking) system.
+It is of course always possible that you come across problems when using either of these branches!  Please, tell use about them via the GitHub @ref IssueTracking "issue tracking" system.

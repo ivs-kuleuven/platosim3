@@ -1,4 +1,5 @@
-# Remote Repositories{#remote-repo}
+# Remote Repositories {#dev-add-upstream}
+
 To be able to "pull" the latest version of the upstream software into your local copy (we'll come back to this), we advise you to add upstream to your list of remote repositories. To check your list of remote repositories, execute the following command in the the installation folder (or one of its sub-folders):
 
     $ git remote -v

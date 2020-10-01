@@ -15,11 +15,11 @@
     		</tab>
 
         <tab type="usergroup" url="@ref dev-overview" title="For Developers">
-        <tab type="user" visible="yes" url="@ref dev-reqs" title="Prerequisites"/>
+        <tab type="user" visible="yes" url="@ref dev-prerequisites" title="Prerequisites"/>
         <tab type="user" visible="yes" url="@ref dev-fork-clone" title="Forking and Cloning"/>
         <tab type="user" visible="yes" url="@ref dev-dependencies" title="Dependencies"/>
         <tab type="user" visible="yes" url="@ref dev-build" title="Building the Code"/>
-        <tab type="user" visible="yes" url="@ref dev-remote-repo" title="Remote Repositories"/>
+        <tab type="user" visible="yes" url="@ref dev-add-upstream" title="Remote Repositories"/>
         <tab type="user" visible="yes" url="@ref dev-pull" title="Update Procedure"/>
         <tab type="user" visible="yes" url="@ref dev-push" title="Contributing to the Code"/>
         <tab type="user" visible="yes" url="@ref dev-branching" title="Branching Strategy"/>

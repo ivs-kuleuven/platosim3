@@ -1,4 +1,4 @@
-# Building the Code{#dev-building}
+# Building the Code {#dev-build}
 
 ## Software Changes
 
@@ -18,6 +18,7 @@ At some stage, we will want to update (some of) the dependencies.  You will be n
 
 * clear the <code>/dependencies/Installs</code> directory
 * and run the install script again (as described above for the first-time installation).
+
 
 ---
 
@@ -53,4 +54,4 @@ If you are still experiencing problems following the instructions above, please,
 
 ## Switching between Branches
 
-As you can read [here](#dev-branching), we don't just use the master branch.  If you switch to another branch and want to run simulations with the current branch, you will have to re-build the software.
+As you can read @ref dev-branching "here", we don't just use the master branch.  If you switch to another branch and want to run simulations with the current branch, you will have to re-build the software.
