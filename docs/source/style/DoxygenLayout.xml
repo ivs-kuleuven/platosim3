@@ -30,7 +30,7 @@
 
     <tab type="usergroup" url="@ref Running" title="Running PlatoSim3">
 
-      <tab type="user" url="@ref ReqsRun" title="Prerequisites">
+      <tab type="usergroup" url="@ref ReqsRun" title="Prerequisites">
       </tab>
 
       <tab type="usergroup" url="@ref InputFileDescription" title="Input Files">
@@ -47,7 +47,7 @@
       <tab type="user" visible="yes" url="@ref SimulationSteps" title="Simulation Steps"/>
     </tab>
 
-    <tab type="user" visible="yes" url="@ref IssueTracking" title="Help (Issue Tracking)"/>
+    <tab type="usergroup" visible="yes" url="@ref IssueTracking" title="Help (Issue Tracking)"/>
   </tab>
 </tab>
 

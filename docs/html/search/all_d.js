@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['viaconda_2emd',['ViaConda.md',['../_via_conda_8md.html',1,'']]]
+  ['wrap_2dup',['Wrap-Up',['../dev-wrap-up.html',1,'']]],
+  ['wrap_2dup',['Wrap-Up',['../user-wrap-up.html',1,'']]]
 ];
