@@ -1,4 +1,4 @@
-# Updating Procedure {#dev-pull}
+# Update Procedure {#dev-pull}
 
 In the course of the development process, the code in the `upstream` repository will be updated.  The `develop` branch will always contain the latest version of the code, whereas the `master` branch is (supposed to be) stable and well-tested.
 

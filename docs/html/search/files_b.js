@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['updating_2emd',['Updating.md',['../_updating_8md.html',1,'']]]
+  ['viaconda_2emd',['ViaConda.md',['../_via_conda_8md.html',1,'']]]
 ];

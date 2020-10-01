@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['updating_20procedure',['Updating Procedure',['../dev-pull.html',1,'']]]
+  ['update_20procedure',['Update Procedure',['../dev-pull.html',1,'']]]
 ];

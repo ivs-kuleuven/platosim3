@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.11"/>
-<title>PLATO Simulator: Wrap-Up</title>
+<title>PLATO Simulator: Installing (and Updating) PlatoSim3 Via Conda</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -82,7 +82,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function(){initNavTree('dev-wrap-up.html','');});
+$(document).ready(function(){initNavTree('user-install.html','');});
 </script>
 <div id="doc-content">
 <!-- window showing the filter options -->
@@ -101,23 +101,23 @@ $(document).ready(function(){initNavTree('dev-wrap-up.html','');});
 
 <div class="header">
   <div class="headertitle">
-<div class="title">Wrap-Up </div>  </div>
+<div class="title">Installing (and Updating) PlatoSim3 Via Conda </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p>After following the instructions on how to install, build, and update PlatoSim3, you should have the following:</p>
-<ul>
-<li>on your personal GitHub page: the forked repository;</li>
-<li>on your local machine: a local copy (i.e. clone) of the repository;</li>
-<li><code>upstream</code> and <code>origin</code> in the list of remote repositories.</li>
-</ul>
-<p>Additionally, you should be able to:</p>
-<ul>
-<li>resolve the dependencies;</li>
-<li>build the code, after a change in dependencies or in the code itself;</li>
-<li>get the latest version of the software (from the <code>upstream</code>) on your local machine</li>
-<li>send the code from your local machine to the <code>origin</code>;</li>
-<li>open a pull request to have your changes (reviewed and) incorporated in the <code>upstream</code>. </li>
-</ul>
+<div class="textblock"><p>Before you install another version of PlatoSim3, you must activate the desired conda environment, as described <a class="el" href="user-prerequisites.html">here</a>. It is not necessary to create a new conda environment every time you install a different version of the software, unless you want to use multiple version in parallel.</p>
+<p>The installation procedure will automatically detect which operating system your are running and will install the appropriate packages for you.</p>
+<p>Before you install PlatoSim via conda for the first time in this environment, type: </p><pre class="fragment">$ conda config --add channels conda-forge
+</pre><hr/>
+<h2><code>master</code></h2>
+<p>To install the latest successfully built version of the <code>master</code> branch, type: </p><pre class="fragment">$ conda install -c https://jenkins.miricle.org/platosim/ platosim
+</pre><p>To install a specific version (only for the <code>master</code> branch), just append <code>&lt;version&gt;=</code> to this command. </p><hr/>
+<h2><code>develop</code></h2>
+<p>For the <code>develop</code> branch, these commands must be replaced by </p><pre class="fragment">$ conda install -c https://jenkins.miricle.org/platosim.devel/ platosim
+</pre><p>and </p><pre class="fragment">$ conda update --force-reinstall -c  https://jenkins.miricle.org/platosim.devel/ platosim
+</pre><p>respectively. </p><hr/>
+<h2>Credentials</h2>
+<p>Please, contact the developer team for the username and password.</p>
+<p>If no pop-up window, asking for the credentials, would appear, you can adapt the <code>conda install</code> commands from above, by placing <code>&lt;username&gt;:&lt;password&gt;</code>@ between the <code><a href="https://">https://</a></code> and the <code>jenkins</code>. </p>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

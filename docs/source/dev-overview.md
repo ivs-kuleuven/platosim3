@@ -10,23 +10,23 @@ The scheme below shows an overview of the procedure to download, update, and bui
 
 The following installation guides are available:
 
-- @ref dev-prerequisites "**Prerequisites**": Describes the prerequisites that must be fulfilled to be able to download, update, and build PlatoSim3.
+- @ref dev-prerequisites "Prerequisites": Describes the prerequisites that must be fulfilled to be able to download, update, and build PlatoSim3.
 
-- @ref dev-fork-clone "**Forking & Cloning the Repository**": Describes the first-time installation of the software on your local machine.
+- @ref dev-fork-clone "Forking & Cloning the Repository": Describes the first-time installation of the software on your local machine.
 
-- @ref dev-dependencies "**Installing Dependencies**": Describes how to install required dependencies.
+- @ref dev-dependencies "Dependencies": Describes how to install required dependencies.
 
-- @ref dev-build "**Building**": Describes how to build the code.
+- @ref dev-build "Building the Code": Describes how to build the code.
 
-- @ref dev-add-upstream "**Remote Repositories**": Describes how to configure your GitHub setup, so that you will be able to get hold of any changes to the code by others.
+- @ref dev-add-upstream "Remote Repositories": Describes how to configure your GitHub setup, so that you will be able to get hold of any changes to the code by others.
 
-- @ref dev-pull "**Update procedure**": Describes how to get the latest version of the code (from the `upstream`) on your local machine.
+- @ref dev-pull "Update Procedure": Describes how to get the latest version of the code (from the `upstream`) on your local machine.
 
-- @ref dev-push "**Contributing**": Describes how to transfer your local changes to the `origin` repository and how to transfer these changes from the `origin` repository to the `upstream` repository.
+- @ref dev-push "Contributing to the Code": Describes how to transfer your local changes to the `origin` repository and how to transfer these changes from the `origin` repository to the `upstream` repository.
 
-- @ref dev-branching "**Branching Strategy**": Describes the branching strategy we will be following.
+- @ref dev-branching "Branching Strategy": Describes the branching strategy we will be following.
 
 
 ---
 
-A wrap-up describing what you should know after you went through the instructions on how to contribute to the code, can be found @ref dev-wrap-up "here".
+A wrap-up describing what you should know after you went through the instructions on how to install and update PlatoSim via GitHub, and how to contribute to the code, can be found @ref dev-wrap-up "here".
