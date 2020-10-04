@@ -1,6 +1,6 @@
 
 """
-Usage: simQuarter.py <inputfile> <camaraGroupNr> <cameraNr> <quarterNr> [<logLevel>]
+Usage: simQuarter.py <inputfile> <cameraGroupNr> <cameraNr> <quarterNr> [<logLevel>]
 
 inputfile: Platosim yaml inputfile 
 cameraGroupNr: either 1,2,3, or 4
@@ -49,8 +49,8 @@ inputFile = sys.argv[1]
 outputDir = os.getcwd() + "/"
 outputPrefix = "Run1"
 
-numColumnsSubField = 7                  # Number of columns in the modelled sub-field [pixels]
-numRowsSubField = 7                     # Number of rows in the modelled sub-field [pixels]
+numColumnsSubField = 8                  # Number of columns in the modelled sub-field [pixels]
+numRowsSubField = 8                     # Number of rows in the modelled sub-field [pixels]
 
 #--- End configuration parameters
 
@@ -86,7 +86,7 @@ raCenter = np.deg2rad(raPlatform)                                       # [rad]
 decCenter = np.deg2rad(decPlatform)                                     # [rad]
 
 sim["SubField/NumColumns"] = numColumnsSubField
-sim["SubField/NumRows"] = numRowsSubField
+sim["SubField/NumRows"]    = numRowsSubField
 
 # Set the telescope group ID, this is needed for the subfield calculations later on.
   
@@ -99,8 +99,8 @@ sim["Platform/SolarPanelOrientation"] = math.fmod(quarter * 90., 360.)         #
 
 cycleTime = sim["ObservingParameters/CycleTime"]
 numExposuresCoveringOneQuarter = 90. * 86400. / cycleTime                      # One quarter is 90 days
-#numExposures = (90. - 2.) * 86400. / cycleTime                                 # Two days lost because of platform roll + thermal stabilisation
-numExposures = 100                                                             # For testing only
+numExposures = (90. - 2.) * 86400. / cycleTime                                 # Two days lost because of platform roll + thermal stabilisation
+#numExposures = 100                                                             # For testing only
 sim["ObservingParameters/NumExposures"] = int(numExposures)
 sim["ObservingParameters/BeginExposureNr"] = (quarter-1) * int(numExposuresCoveringOneQuarter)
 

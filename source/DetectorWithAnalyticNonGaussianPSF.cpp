@@ -909,6 +909,11 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
     // Loop over all targets for which you need a lightcurve
 
     const int Ntargets = photStarIDs.size();                                     // Nr of stars for which we want a lightcurve
+    if (Ntargets == 0)
+    {
+        Log.warning("Detector:applyPhotometry: no stars found for which photometry is requested. Skipping applyPhotometry()."); 
+        return;
+    }
 
     for (int n = 0; n < Ntargets; n++)
     {
@@ -924,6 +929,12 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
         double fluxTarget;                                                // Total flux during the exposure          [photons/exposure]
     
         tie(time, xFPtarget, yFPtarget, rowTarget, colTarget, fluxTarget) = camera.getInfoForTheMostRecentExposureForStar(starID);
+
+        if (fluxTarget == -1.0)
+        {
+            Log.warning("Detector:applyPhotometry: no info found for star " + to_string(starID) + " for which photometry is requested");
+            continue;
+        }
 
         inputFluxTarget.at(starID).at(zeroBasedExposureNr) = fluxTarget;
 
@@ -992,7 +1003,16 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
             const int maxRow = min(int(numRowsPixelMap) - 1, int(rowTarget)+3);                         // maxRow inclusive
             const int minCol = max(0, int(colTarget)-3);
             const int maxCol = min(int(numColumnsPixelMap) - 1, int(colTarget)+3);                      // maxCol inclusive
-                
+            
+            Log.debug("Detector::applyPhotometry: determining mask within the area: pixelMap rows: ["
+                      + to_string(minRow) + ", " + to_string(maxRow) + "], cols: ["
+                      + to_string(minCol) + ", " + to_string(maxCol) + "]. End points inclusive");
+           
+            if ((numRowsPixelMap <= 7) || (numColumnsPixelMap <= 7))
+            {
+                Log.warning("Detector::applyPhotometry: size of pixel map is smaller than 8x8");
+            }
+
             // For the pixels in the designated area around our target, compute the variance and the noise/signal ratio of the signal.
 
             arma::Mat<float> NSRmap(numRowsPixelMap, numColumnsPixelMap, arma::fill::zeros); 
