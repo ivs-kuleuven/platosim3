@@ -247,7 +247,7 @@ SubField:
     SubPixels:                       8               # (Sqrt of) nr of subpixels per CCD pixel. Should be 2^n <= 128.
 
 
-Photometry:                                          # Only possible when 'AnalyticNonGaussian' is selected as PSF
+Photometry:                                          # Only possible when 'AnalyticNonGaussian' is selected as PSF. Minimum size of pixel map is 8x8.
 
     IncludePhotometry:               no
     ContaminationRadius:             4               # Only consider contaminants that are within this number of pixels [integer pixels]
