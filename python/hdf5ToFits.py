@@ -76,8 +76,11 @@ def hdf5ToFits(inputFilename, outputFilename):
 
         smearingHeader["DATE-OBS"] = formattedTimestamp
 
-        smearingMap = simFile.getSmearingMap(exposure)
-        fits.append(outputFilePath, smearingMap, smearingHeader)
+        try:
+            smearingMap = simFile.getSmearingMap(exposure)
+            fits.append(outputFilePath, smearingMap, smearingHeader)
+        except:
+            pass
 
         # Update timestamp for the next exposure
 
