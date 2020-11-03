@@ -161,7 +161,7 @@ void DetectorWithAsymmetricalMappedPSF::setPsfForSubfield()
 
     //  Compensate for the orientation of the CCD wrt focal plane orientation.
 
-    psf->rotate(-orientationAngle);
+    psf->rotate(-rotationAnglePsf);
 
     // Rebin the psfMap to the number of sub-pixels per pixel used for the Detector
 
