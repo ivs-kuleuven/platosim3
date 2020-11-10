@@ -10,7 +10,7 @@ following the description of the OGSE spot masks for camera tests (PLATO-DLR-PL-
 ##########
 
 from simulation import Simulation
-from math import pow, log10, radians, sin, cos
+from math import pow, log10, radians, sin, cos, pi
 import numpy as np
 import os
 import matplotlib.pyplot as plt
@@ -22,14 +22,16 @@ MASK_COORDINATES_SMALL_SPOTS = \
         "2": {"x": -1.350, "y": 1.800},
         "3": {"x": 1.845, "y": 1.305},
         "4": {"x": 1.350, "y": -0.495},
-    }  # [mm]
+    }   # [mm]
+
+MASK_DIAMETER_SMALL_SPOTS = 0.05    # [mm]
 
 MASK_COORDINATES_LARGE_SPOTS = \
     {
         "1": {"x": 0.000, "y": -2.000},
-    }  # [mm]
+    }   # [mm]
 
-MASK_DIAMETER_LARGE_SPOTS = 1.5  # [mm]
+MASK_DIAMETER_LARGE_SPOTS = 1.5     # [mm]
 
 PROJECTION_RATIO = 5.0
 
@@ -124,7 +126,7 @@ def mask_to_ccd_coordinates(sim, x_mask, y_mask, rotation_angle_mask):
     return x_ccd, y_ccd
 
 
-def insert_ogse_spot_mask(sim, magnitude_point_source, rotation_angle_mask=30):
+def insert_ogse_spot_mask(sim, magnitude_point_source, rotation_angle_mask=30, include_large_spot=True):
     """ Apply OGSE spot mask for camera tests.
 
     A set of sources (point + extended) is injected in the given simulation object,
@@ -154,9 +156,13 @@ def insert_ogse_spot_mask(sim, magnitude_point_source, rotation_angle_mask=30):
 
     rotation_angle_mask_radians = radians(rotation_angle_mask)
 
+    flux_point_source = magnitude2flux(sim, magnitude_point_source)
+
     #############################
     # Small spots (point sources)
     #############################
+
+    radius_small_source = MASK_DIAMETER_SMALL_SPOTS / PROJECTION_RATIO * 1000 / sim["CCD/PixelSize"] / 2  # [pixels]
 
     small_spot_rows = np.array([])
     small_spot_columns = np.array([])
@@ -169,8 +175,10 @@ def insert_ogse_spot_mask(sim, magnitude_point_source, rotation_angle_mask=30):
         small_spot_rows = np.append(small_spot_rows, y_ccd)
         small_spot_columns = np.append(small_spot_columns, x_ccd)
 
+    flux_small_spot = flux_point_source * pi * pow(radius_small_source, 2)
+    
     small_spot_magnitudes = np.empty(len(MASK_COORDINATES_SMALL_SPOTS))
-    small_spot_magnitudes.fill(magnitude_point_source)
+    small_spot_magnitudes.fill(flux2magnitude(sim, flux_small_spot))
 
     ###########################################
     # Large sources (circular extended sources)
@@ -181,34 +189,39 @@ def insert_ogse_spot_mask(sim, magnitude_point_source, rotation_angle_mask=30):
 
     large_spot_rows = np.array([])
     large_spot_columns = np.array([])
+    large_spot_magnitudes = np.array([])
 
-    for spot_id, spot_coordinates in MASK_COORDINATES_LARGE_SPOTS.items():
+    if include_large_spot:
 
-        x_mask, y_mask = spot_coordinates["x"], spot_coordinates["y"]
-        x_ccd, y_ccd = mask_to_ccd_coordinates(sim, x_mask, y_mask, rotation_angle_mask_radians)
+        for spot_id, spot_coordinates in MASK_COORDINATES_LARGE_SPOTS.items():
 
-        # The extended source is approximated by placing proportionally fainter stars
-        # in each of the sub-pixels, seen by this source.
+            x_mask, y_mask = spot_coordinates["x"], spot_coordinates["y"]
+            x_ccd, y_ccd = mask_to_ccd_coordinates(sim, x_mask, y_mask, rotation_angle_mask_radians)
 
-        for row in np.arange(y_ccd - radius_large_source, y_ccd + radius_large_source + 1, 1 / num_subpixels):
+            # The extended source is approximated by placing proportionally fainter stars
+            # in each of the sub-pixels, seen by this source.
 
-            for column in np.arange(x_ccd - radius_large_source, x_ccd + radius_large_source + 1, 1 / num_subpixels):
+            for row in np.arange(y_ccd - radius_large_source, y_ccd + radius_large_source + 1, 1 / num_subpixels):
 
-                if pow(row - y_ccd, 2) + pow(column - x_ccd, 2) <= pow(radius_large_source, 2):
-                    large_spot_rows = np.append(large_spot_rows, row)
-                    large_spot_columns = np.append(large_spot_columns, column)
+                for column in np.arange(x_ccd - radius_large_source, x_ccd + radius_large_source + 1, 1 / num_subpixels):
 
-    # Calculate the magnitude to insert in the sub-pixels to simulate the extended source:
-    #   - magnitude of point source -> total flux in single pixel (in absence of PSF);
-    #   - distribute flux evenly over the sub-pixels;
-    #   - flux per sub-pixel -> magnitude
-    flux_point_source = magnitude2flux(sim, magnitude_point_source)
-    flux_sub_pixel = flux_point_source / pow(num_subpixels, 2)
-    magnitude_sub_pixel = flux2magnitude(sim, flux_sub_pixel)
+                    if pow(row - y_ccd, 2) + pow(column - x_ccd, 2) <= pow(radius_large_source, 2):
 
-    num_subpixels_extended_source = len(large_spot_rows)
-    large_spot_magnitudes = np.empty(num_subpixels_extended_source)
-    large_spot_magnitudes.fill(magnitude_sub_pixel)
+                        large_spot_rows = np.append(large_spot_rows, row)
+                        large_spot_columns = np.append(large_spot_columns, column)
+
+        # Calculate the magnitude to insert in the sub-pixels to simulate the extended source:
+        #   - magnitude of point source -> total flux in single pixel (in absence of PSF);
+        #   - distribute flux evenly over the sub-pixels;
+        #   - flux per sub-pixel -> magnitude
+
+        flux_sub_pixel = flux_point_source / pow(num_subpixels, 2)
+
+        magnitude_sub_pixel = flux2magnitude(sim, flux_sub_pixel)
+
+        num_subpixels_extended_source = len(large_spot_rows)
+        large_spot_magnitudes = np.empty(num_subpixels_extended_source)
+        large_spot_magnitudes.fill(magnitude_sub_pixel)
 
     ########################################################
     # Concatenate the small and large spots in one catalogue
