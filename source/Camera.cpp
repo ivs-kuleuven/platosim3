@@ -798,7 +798,136 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
     }
 }
 
+/**
+ * \brief Make a rough selection of stars in the star catalogue, that are on or near the sub-field,
+ *        and the are on or near the field that produces symmetric point-like ghosts on or near the
+ *        sub-field (without accounting for the distance cut-off).  The latter stars are only selected
+ *        if ghosts are to be included in the simulation.
+ * 
+ * To make a rough selection of the stars from the input catalogue that are on or near the sub-field, 
+ * consider all stars that are within a certain distance from the centre of the sub-field:
+ *      - calculate the sky coordinates of the centre of the sub-field (taking field distortion into account, if enabled);
+ *      - the distance between the lower left (00) and the upper right (11) corner of the sub-field will be a 1st-order
+ *        estimate of the diameter of the circle around the centre of the sub-field -> we will enlarge this a bit to be
+ *        on the safe side.
+ * Take a similar approach to select the stars on the opposite side of the optical axis as potential originators of
+ * symmetric point-like ghosts.
+ * 
+ * \param detector: Detector for which to make a rough selection of stars.
+ * \param startTime: Start time of the exposure [s].
+ * \param exposureTime: Duration of one exposure [s].
+ * \param readoutTimeBeforeNextExposure: Duration of the readout that takes place before the next exposure starts [s].
+ * 
+ * \return: Number of selected stars that are on or near the sub-field, and number of selected stars that produces
+ *          symmetric point-like ghosts on or near the sub-field (without accounting for the distance cut-off).  The
+ *          latter is zero if ghosts are not to be included in the simulation.
+ */
+tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure)
+{
+    // Undistorted focal-plane coordinates of the centre, and the lower left and upper right corner
+    // of the sub-field
 
+    double centerSubFieldXmm, centerSubFieldYmm;
+    tie(centerSubFieldXmm, centerSubFieldYmm) = detector.getFocalPlaneCoordinatesOfSubfieldCenter();
+
+    double corner00Xmm, corner00Ymm, corner11Xmm, corner11Ymm, dummy;
+    tie(corner00Xmm, corner00Ymm, dummy, dummy, corner11Xmm, corner11Ymm, dummy, dummy) = detector.getFocalPlaneCoordinatesOfSubfieldCorners();
+
+    // Apply field distortion (if enabled)
+
+    if (includeFieldDistortion)
+    {
+        Log.info("Camera: including field distortion");
+
+        tie(centerSubFieldXmm, centerSubFieldYmm) = distortedToUndistortedFocalPlaneCoordinates(centerSubFieldXmm, centerSubFieldYmm);
+        tie(corner00Xmm, corner00Ymm) = distortedToUndistortedFocalPlaneCoordinates(corner00Xmm, corner00Ymm);
+        tie(corner11Xmm, corner11Ymm) = distortedToUndistortedFocalPlaneCoordinates(corner11Xmm, corner11Ymm);
+    }
+
+    // Calculate the pixel coordinates of the sub-field centre in the CCD reference frame
+    // (just for logging purposes)
+
+    double centerRow, centerCol;
+    tie(centerRow, centerCol) = detector.focalPlaneToPixelCoordinates(centerSubFieldXmm, centerSubFieldYmm);
+
+    Log.debug("Camera: center of subfield at CCD (row, col) = (" + to_string(centerRow) + ", " + to_string(centerCol) + ") pix");
+    Log.debug("Camera: center of subfield at (Xmm, Ymm) = (" + to_string(centerSubFieldXmm) + ", " + to_string(centerSubFieldYmm) + ") mm");
+    Log.debug("Camera: lower left corner of subfield at (Xmm, Ymm) = (" + to_string(corner00Xmm) + ", " + to_string(corner00Ymm) + ") mm");
+    Log.debug("Camera: upper right corner of subfield at (Xmm, Ymm) = (" + to_string(corner11Xmm) + ", " + to_string(corner11Ymm) + ") mm");
+
+    // Conversion to equatorial sky coordinates (alpha, delta) [radians]
+
+    double centerSubFieldRA, centerSubFieldDec;
+    tie(centerSubFieldRA, centerSubFieldDec) = focalPlaneToSkyCoordinates(centerSubFieldXmm, centerSubFieldYmm);
+
+    double corner00RA, corner00Dec;
+    tie(corner00RA, corner00Dec) = focalPlaneToSkyCoordinates(corner00Xmm, corner00Ymm);
+
+    double corner11RA, corner11Dec;
+    tie(corner11RA, corner11Dec) = focalPlaneToSkyCoordinates(corner11Xmm, corner11Ymm);
+
+    Log.debug("Camera: center of subfield at (alpha, delta) = (" + to_string(rad2deg(centerSubFieldRA)) + ", " + to_string(rad2deg(centerSubFieldDec)) + ") deg");
+    Log.debug("Camera: lower left corner of subfield at (alpha, delta) = (" + to_string(rad2deg(corner00RA)) + ", " + to_string(rad2deg(corner00Dec)) + ") deg");
+    Log.debug("Camera: upper right corner of subfield at (alpha, delta) = (" + to_string(rad2deg(corner11RA)) + ", " + to_string(rad2deg(corner11Dec)) + ") deg");
+
+    // Compute the angular distance on the sky between the lower left and the upper right corner
+    // of the sub-field, to estimate the "radius" of the sub-field.
+
+    SkyCoordinates skyCoordinates00(corner00RA, corner00Dec, Angle::radians);
+    SkyCoordinates skyCoordinates11(corner11RA, corner11Dec, Angle::radians);
+
+    double radius = angularDistanceBetween(skyCoordinates00, skyCoordinates11, Angle::radians) / 2.0;   // [radians]
+
+    Log.debug("Camera: semi-diagonal of subfield = " + to_string(rad2deg(radius)) + " deg");
+
+    // Select the stars from the catalogue that are on or near the sub-field (i.e. in a radius 
+    // around the centre of the sub-field). Take the radius a bit larger so that the queried area includes 
+    // possible small shifts of the projected subfield because of jitter.
+
+    const unsigned long numStars = sky.selectStarsWithinRadiusFrom(centerSubFieldRA, centerSubFieldDec, radius * 1.1, Angle::radians);
+    Log.info("Camera: Found " + to_string(numStars) + " stars on and near the sub-field");
+
+    // Select the stars on the opposite side of the optical axis that potentially cause symmetric point-like
+    // ghosts on or near the sub-field.  The cut-off on the distance to the OA is not considered yet.
+
+    unsigned long numPointLikeGhosts = 0;
+
+    if(includeGhosts)
+    {
+        // Apply the same procedure for the originators of symmetric point-like ghosts on or near
+        // the sub-field
+
+        double centerGhostFieldRA, centerGhostFieldDec;
+        tie(centerGhostFieldRA, centerGhostFieldDec) = focalPlaneToSkyCoordinates(-centerSubFieldXmm, -centerSubFieldYmm);
+
+        numPointLikeGhosts = sky.selectGhostOrigsWithinRadiusFrom(centerGhostFieldRA, centerGhostFieldDec, radius * 1.1, Angle::radians);
+        Log.info("Camera: Found " + to_string(numPointLikeGhosts) + " point-like ghosts on and near the sub-field (not distance cut-off incl. yet)");
+    }
+
+    // Apply aberration correction
+
+    if (includeAberrationCorrection)
+    {
+        // The time at the middle of the time series is the time when the Sun is defined to be 180 degrees away from platform pointing
+
+        double timeMiddle = numExposures * (exposureTime + readoutTimeBeforeNextExposure) / 2.0;
+
+        // Get the apparent position of the stars, i.e. apply the differential aberration correction to
+        // the positions of the selected stars and originators of symmetrical point-like ghosts
+        // We do this calcuation only once per exposure as the effect is negligible within the exposure time
+
+        Log.info("Camera: applying " + aberrationCorrectionType + " aberration correction to the selected stars.");
+        sky.aberrateSelectedStarPositions(platform, aberrationCorrectionType, startTime, timeMiddle);
+
+        if(includeGhosts)
+        {
+            Log.info("Camera: applying " + aberrationCorrectionType + " aberration correction to the selected originators of symmetrical point-like ghosts.");
+            sky.aberrateSelectedGhostOrigPositions(platform, aberrationCorrectionType, startTime, timeMiddle);
+        }
+    }
+
+    return tie(numStars, numPointLikeGhosts);
+}
 
 
 
