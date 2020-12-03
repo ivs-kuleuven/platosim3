@@ -97,19 +97,43 @@ void Camera::initHDF5Groups()
 
 
 /**
- * \brief      Collect and return the IDs of all stars that fall within the subField
+ * \brief Collect and returns the IDs of all stars that fall on the sub-field or produce a ghost
+ *        that falls on the sub-field (if ghosts are to be included in the simulation).
  *
- * \details    Note that this method pulls the detected stars from a map that is filled by
- *             exposeDetector for each exposure. So, depending on when this method is called,
- *             the returned set might be empty or incomplete.
+ * \details Note that this method pulls the detected stars from a map that is filled by
+ *          exposeDetector for each exposure. So, depending on when this method is called,
+ *          the returned set might be empty or incomplete.
  *
- * \return     a set of unique star IDs that were detected in the subField
+ * \return Set of unique IDs for stars that fall on the sub-field or produce a ghost on the
+ *         sub-field (if ghosts are to be included in the simulation).
  */
 set<unsigned int> Camera::getAllStarIDs()
 {
     set<unsigned int> allStarIDs;            // A set<> stores only unique members
 
+    // Stars on the sub-field
+
     for(auto timeMapPair: detectedStarInfo)
+    {
+        for (auto idArrayPair: timeMapPair.second)
+        {
+            allStarIDs.insert(idArrayPair.first);
+        }
+    }
+
+    // Originators of extended ghosts on the sub-field
+
+    for (auto timeMapPair: detectedExtendedGhostInfo)
+    {
+        for (auto idArrayPair: timeMapPair.second)
+        {
+            allStarIDs.insert(idArrayPair.first);
+        }
+    }
+
+    // Originators of symmetric point-like ghosts on the sub-field
+
+    for (auto timeMapPair: detectedPointLikeGhostInfo)
     {
         for (auto idArrayPair: timeMapPair.second)
         {
