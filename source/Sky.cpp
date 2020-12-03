@@ -673,10 +673,7 @@ void Sky::aberrateSelectedGhostOrigPositions(Platform &platform, string aberrati
  *         RA:     Right ascension of the star. Aberrated if aberrateSelectedStarPositions() was called before.
  *         Dec:    Declination of the star. Aberrated if aberrateSelectedStarPositions() was called before.
  *         Vmag:   Johnson V magnitude. Possibly variable if updatedParameters() was called before.
- *
- *
  */
-
 tuple<unsigned int, double, double, double> Sky::getSelectedStar(unsigned int n)
 {
     if (n > selectedStarID.size()-1)
@@ -686,6 +683,30 @@ tuple<unsigned int, double, double, double> Sky::getSelectedStar(unsigned int n)
     else
     {
         return make_tuple(selectedStarID[n], selectedRA[n], selectedDec[n], selectedVmag[n]);
+    }
+}
+
+/**
+ * \brief Return the star ID, RA, Dec, and Vmag of selected ghost originator #n
+ *        
+ * \detail Important: first call selectStarsWithinRadiusFrom() to get a proper selection of stars.
+ *
+ * \param n: 0 <= n < number of selected stars
+ *
+ * \return starID: Identification number of the selected star.
+ *         RA:     Right ascension of the star. Aberrated if aberrateSelectedStarPositions() was called before.
+ *         Dec:    Declination of the star. Aberrated if aberrateSelectedStarPositions() was called before.
+ *         Vmag:   Johnson V magnitude. Possibly variable if updatedParameters() was called before.
+ */
+tuple<unsigned int, double, double, double> Sky::getSelectedGhostOrig(unsigned int n)
+{
+    if (n > selectedGhostOrigID.size()-1)
+    {
+        throw IllegalArgumentException("Sky::getSelectedGhostOrig(): ghost originator number is larger than " + to_string(selectedGhostOrigID.size()-1));
+    }
+    else
+    {
+        return make_tuple(selectedGhostOrigID[n], selectedGhostOrigRA[n], selectedGhostOrigDec[n], selectedGhostOrigVmag[n]);
     }
 }
 
