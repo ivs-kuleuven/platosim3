@@ -422,6 +422,25 @@ void Camera::configure(ConfigurationParameters &configParam)
     }
 
 
+    includeGhosts = configParam.getBoolean("Camera/IncludeGhosts");
+
+    if(includeGhosts)
+    {
+        distanceCutOffPointLikeGhosts = deg2rad(configParam.getDouble("Camera/Ghosts/PointLike/DistanceCutOff"));
+        fluxRatioPointLikeGhosts = configParam.getDouble("Camera/Ghosts/PointLike/FluxRatio") / 100.0;
+        distanceRatioExtendedGhosts = configParam.getDouble("Camera/Ghosts/Extended/DistanceRatio");
+        fluxRatioExtendedGhosts = configParam.getDouble("Camera/Ghosts/Extended/FluxRatio") / 100.0;
+
+        vector<double> extendedGhostRadiusCoefVector = configParam.getDoubleVector("Camera/Ghosts/Extended/RadiusCoefficients");
+        array<double, 3> extendedGhostRadiusCoefArray;
+        copy(extendedGhostRadiusCoefVector.begin(), extendedGhostRadiusCoefVector.end(), extendedGhostRadiusCoefArray.begin());
+
+        extendedGhostRadiusCoefficients = new Parameter<double, 3>(extendedGhostRadiusCoefArray);
+    }
+    else
+    {
+        Log.info("Camera: Ignoring ghosts");
+    }
 
 
     plateScale             = configParam.getDouble("Camera/PlateScale");
@@ -436,7 +455,7 @@ void Camera::configure(ConfigurationParameters &configParam)
     userGivenSkyBackground = configParam.getDouble("Sky/SkyBackground");          // [phot/pix/s]
 
     writeStarPositions     = configParam.getBoolean("ControlHDF5Content/WriteStarPositions");
-
+    writeGhostPositions    = configParam.getBoolean("ControlHDF5Content/WriteGhostPositions");
 }
 
 
