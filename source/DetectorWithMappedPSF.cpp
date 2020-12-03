@@ -388,6 +388,58 @@ tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yF
 }
 
 /**
+ * \brief Insert the extended ghost with the given radius and flux at the given focal-plane position.
+ * 
+ * Note that the extended source will be convolved with the PSF in a next step.
+ * 
+ * \param x0: Focal-plane x-coordinate of the centre of the extended ghost [mm].
+ * \param y0: Focal-plane y-coordinate of the centre of the extended ghost [mm].
+ * \param radius: Radius of the extended ghost [mm].
+ * \param flux: Flux of the extended ghost [photons].
+ * 
+ * \return: Whether or not the extended source falls (at least partially) on the sub-field, and the
+ *          (row, column) coordinates of the centre of the extended ghost in the pixel map.
+ */
+tuple<bool, double, double> DetectorWithMappedPSF::addExtendedGhost(double x0, double y0, double radius, double flux)
+{
+    // Calculate the number of sub-pixels in the extended ghost
+
+    double radiusSubPixels = radius * 1000 / pixelSize * numSubPixelsPerPixel;    // Radius [sub-pixels]
+    double radiusSubPixelsSquared = pow(radiusSubPixels, 2);                      // Squared radius [sub-pixels^2]
+
+    double numSubPixels = PI * pow(radiusSubPixels, 2);       // Area of the extended ghost [sub-pixels]
+    double fluxPerSubPixel = flux / numSubPixels;             // Flux [photons / sub-pixel]
+
+    // Calculate the (row, column) coordinates of the centre of the extended source in the sub-pixel map
+
+    double row0, column0;
+    tie(row0, column0) = focalPlaneToPixelCoordinates(x0, y0);
+    row0 -= subFieldZeroPointRow;
+    column0 -= subFieldZeroPointColumn;
+
+    row0 *= numSubPixelsPerPixel;
+    column0 *= numSubPixelsPerPixel;
+
+    bool ghostInSubPixelMap = false;
+
+    // Try to add flux to all pixels covered by the extended ghosts
+
+    for(int row = row0 - radiusSubPixels; row <= row0 + radiusSubPixels; row++)
+    {
+        for(int column = column0 - radiusSubPixels; column <= column0 + radiusSubPixels; column++)
+        {
+            if (isInSubPixelMap(row, column) && pow(column - column0, 2) + pow(row - row0, 2) <= radiusSubPixelsSquared)
+            {
+                ghostInSubPixelMap = true;
+                subPixelMap(row, column) += fluxPerSubPixel;
+            }
+        }
+    }
+
+    return  make_tuple(ghostInSubPixelMap, row0 / numSubPixelsPerPixel, column0 / numSubPixelsPerPixel);
+}
+
+/**
  * \brief: Applies charge diffusion or jitter smoothing for the given flux at the given position in the sub-pixel map.
  *
  * \param subpixelRow: Row index [sub-pixels]. NOT a coordinate in the CCD frame, but in the subfield frame.
