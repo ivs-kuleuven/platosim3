@@ -48,8 +48,11 @@ class Sky
         unsigned long selectStarsWithinRadiusFrom(double RA, double dec, double radius, Unit angleUnit = Angle::degrees);
         void aberrateSelectedStarPositions(Platform &platform, string aberrationCorrectionType, double startTime, double timeMiddle);
         tuple<unsigned int, double, double, double> getSelectedStar(unsigned int n);
-
         tuple<double, double, double> getInfoOfStarWithID(unsigned int starID);
+
+        unsigned long selectGhostOrigsWithinRadiusFrom(double RA, double dec, double radius, Unit angleUnit = Angle::degrees);
+        void aberrateSelectedGhostOrigPositions(Platform &platform, string aberrationCorrectionType, double startTime, double timeMiddle);
+        tuple<unsigned int, double, double, double> getSelectedGhostOrig(unsigned int n);
 
 
         double zodiacalFlux(double RA, double dec, double lambda1, double lambda2);
@@ -77,8 +80,14 @@ class Sky
         vector<double> selectedRA;            //      Corresponding selected Right Ascension [rad]
         vector<double> selectedDec;           //      Corresponding Declination              [rad]
         vector<double> selectedVmag;          //      Corresponding Johnson V magnitude
-
         vector<unsigned int> selectedVariableStars;    // Indices of those selected stars that have an entry in deltaMagnitude.
+
+        vector<unsigned int> selectedGhostOrigID;
+        vector<double> selectedGhostOrigRA;
+        vector<double> selectedGhostOrigDec;
+        vector<double> selectedGhostOrigVmag;
+        vector<unsigned int> selectedVariableGhostOrigs;
+
 
         string starInputfile;
 
