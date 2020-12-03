@@ -261,26 +261,25 @@ pair<double, double> getSunCoordinates(double julianDate, Unit outputAngleUnit =
 
 
 /**
- * \brief  Given a circle on the sky, select all stars from the database within that circle.
+ * \brief Given a circle on the sky, select all stars from the database within that circle.
  * 
- * \note The stars right on the circle are also included in the catalog.
+ * \note The stars right on the circle are also included in the catalogue (in the output file).
  * 
- * \param RA0        Right Ascencsion of the center point of the circle on the sky
- * \param dec0       Declination of the center point of the circle on the sky
- * \param radius     Radius of the circle on the sky
- * \param angleUnit  If the input angles are in degrees: Angle:degrees, if in radians: Angle::radians 
+ * \param RA0 Right ascencsion of the centre point of the circle on the sky [degrees or radians (see further)].
+ * \param dec0 Declination of the centre point of the circle on the sky [degrees or radians (see further)].
+ * \param radius Radius of the circle on the sky [degrees or radians (see further)].
+ * \param angleUnit If the input angles are in degrees: Angle:degrees, if in radians: Angle::radians.
  * 
- * \return           The total number of selected stars
+ * \return Total number of selected stars.
  */
-
 unsigned long Sky::selectStarsWithinRadiusFrom(double RA0, double dec0, double radius, Unit angleUnit)
 {
     // All computations are done in radians, so if RA0, dec0, and radius are expressed in degrees,
     // divide the degree unit away into radians.
 
-    double RACircleCenter  = RA0    / angleUnit;      // [rad]
-    double decCircleCenter = dec0   / angleUnit;      // [rad]
-    double radiusCircle    = radius / angleUnit;      // [rad]
+    double RACircleCenter  = RA0    / angleUnit;      // [radians]
+    double decCircleCenter = dec0   / angleUnit;      // [radians]
+    double radiusCircle    = radius / angleUnit;      // [radians]
 
     // Reset possible previous selections
     
@@ -322,6 +321,67 @@ unsigned long Sky::selectStarsWithinRadiusFrom(double RA0, double dec0, double r
     return selectedStarID.size();
 }
 
+
+/**
+ * \brief Given a circle on the sky, select all stars from the database within that circle.
+ * 
+ * \note The stars right on the circle are also included in the catalogue (in the output file).
+ * 
+ * \param RA0 Right ascencsion of the centre point of the circle on the sky [degrees or radians (see further)].
+ * \param dec0 Declination of the centre point of the circle on the sky [degrees or radians (see further)].
+ * \param radius Radius of the circle on the sky [degrees or radians (see further)].
+ * \param angleUnit If the input angles are in degrees: Angle:degrees, if in radians: Angle::radians.
+ * 
+ * \return Total number of selected stars.
+ */
+unsigned long Sky::selectGhostOrigsWithinRadiusFrom(double RA0, double dec0, double radius, Unit angleUnit)
+{
+    // All computations are done in radians, so if RA0, dec0, and radius are expressed in degrees,
+    // divide the degree unit away into radians.
+
+    double RACircleCenter  = RA0    / angleUnit;      // [radians]
+    double decCircleCenter = dec0   / angleUnit;      // [radians]
+    double radiusCircle    = radius / angleUnit;      // [radians]
+
+    // Reset possible previous selections
+    
+    selectedGhostOrigID.clear();
+    selectedGhostOrigRA.clear();
+    selectedGhostOrigDec.clear();
+    selectedGhostOrigVmag.clear();
+    selectedVariableGhostOrigs.clear();
+
+    // Copy the star ID, RA, Dec, and Vmag of the selected ghost originators.
+    // It's not sufficient to simply keep the starIDs of the selected stars, because the coordinates
+    // of the selected stars may change due to aberration, or the magnitude may change due to variability.
+    // We don't want to apply such changes to the original database of stars.
+    
+    for (auto const& star: starDB)
+    {
+        unsigned int starID = star.first;
+        double RA, dec, Vmag;
+        tie(RA, dec, Vmag) = star.second;
+        double angularDistances = angularDistanceBetween(RACircleCenter, decCircleCenter, RA, dec, Angle::radians);  // [radians]
+ 
+        if (angularDistances <= radiusCircle)
+        {
+            selectedGhostOrigID.push_back(starID);
+            selectedGhostOrigRA.push_back(RA);
+            selectedGhostOrigDec.push_back(dec);
+            selectedGhostOrigVmag.push_back(Vmag);
+
+            // Also keep track of which selected stars are variable. Saves us many search loops afterwards.
+            // selectedVariableStars contains the _indices_ (of selected*) of those stars that are variable.
+            
+            if (deltaMagnitude.find(starID) != deltaMagnitude.end())
+            {
+                selectedVariableGhostOrigs.push_back(selectedGhostOrigID.size()-1);
+            }
+        }
+    }
+
+    return selectedGhostOrigID.size();
+}
 
 
 
