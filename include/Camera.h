@@ -71,7 +71,9 @@ class Camera : public HDF5Writer
 
     protected:
 
-        int beginExposureNr;                 // sequential number of first exposure. useful for slurm parallellisation
+        virtual tuple<unsigned long, unsigned long> makeStarCatalogSelection(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure);
+
+        int beginExposureNr;                 // Sequential number of first exposure. useful for slurm parallellisation
         int numExposures;                    // Number of exposures
 
         Platform &platform;
