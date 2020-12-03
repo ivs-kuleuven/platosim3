@@ -87,6 +87,12 @@ void Camera::initHDF5Groups()
     hdf5File.createGroup("/StarPositions");
     hdf5File.createGroup("/Background");
     hdf5File.createGroup("/TransmissionEfficiency");
+
+    if(includeGhosts)
+    {
+        hdf5File.createGroup("/PointLikeGhostPositions");
+        hdf5File.createGroup("/ExtendedGhostPositions");
+    }
 }
 
 
@@ -248,10 +254,9 @@ void Camera::flushOutput()
         // Because some stars at the edge may jitter in and out of the subfield from one exposure to the other,
         // the written arrays may not be equally long for each exposure.
 
-
         for (int n = 0; n < time.size(); n++)
         {
-            // Make the subgroup group
+            // Make the sub-group
 
             stringstream myStream;
             myStream << "Exposure" << setfill('0') << setw(6) << beginExposureNr + n;
@@ -295,6 +300,11 @@ void Camera::flushOutput()
     }
     else {
         Log.warning("Camera: No star positions written to HDF5 file by user demand (see input file).");
+    }
+
+    if (writeGhostPositions)
+    {
+        // TODO
     }
 
     // Write the total sky background flux values [photons/pixel/exposure] to HDF5 in a custom group
