@@ -757,7 +757,7 @@ class Simulation(object):
       
         # If distortion is required in the yaml input file, distort the focal plane coordinates [mm]
 
-        if (includeFieldDistortion == "yes"):
+        if (includeFieldDistortion == "yes")  or (includeFieldDistortion == "1") or (includeFieldDistortion == True):
             xFPmm, yFPmm = rf.distortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, inverseDistortionCoefficients, focalLength)
 
         # Convert the focal plane coordinates to equatorial sky coordinates [rad]
