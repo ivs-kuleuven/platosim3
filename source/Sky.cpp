@@ -708,7 +708,7 @@ double Sky::solarRadiantFlux(double lambda1, double lambda2)
  * \details This function uses the Wehrli (1985) solar irradiance table
  *          plus the SolarRadiantFlux(lambda) function.
  * 
- * \param lambda     Wavelengths of the passband [m], should be in [199.5 nm, 100075 nm]
+ * \param lambda     Ordered wavelengths of the passband [m], should be in [199.5 nm, 100075 nm]
  * \param throughput Throughput of the passband
  * 
  * \return Solar radiant flux  [\f$J s^{-1} m^{-2}\f$]
@@ -1228,7 +1228,7 @@ double Sky::stellarBackgroundFlux (double RA, double dec, vector<double> &lambda
 
 
 /**
- * \brief Given an array[0..N-1] of ascending values, and a value x,
+ * \brief Given an array[0..N-1] of strictly ascending values, and a value x,
  *        return an index so that array[index] <= x <= array[index+1]
  *        If the value x is out of the array boundaries, index will be set to -1.
  * 
