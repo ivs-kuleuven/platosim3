@@ -88,11 +88,8 @@ void Camera::initHDF5Groups()
     hdf5File.createGroup("/Background");
     hdf5File.createGroup("/TransmissionEfficiency");
 
-    if(includeGhosts)
-    {
-        hdf5File.createGroup("/PointLikeGhostPositions");
-        hdf5File.createGroup("/ExtendedGhostPositions");
-    }
+    hdf5File.createGroup("/PointLikeGhostPositions");
+    hdf5File.createGroup("/ExtendedGhostPositions");
 }
 
 
