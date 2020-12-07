@@ -566,9 +566,8 @@ bool DetectorWithAnalyticNonGaussianPSF::addFluxToMap(arma::Mat<float>& map, dou
 
     IntegralOfAnalyticSignalResponse psf(size, diffusionKernelWidth);
 
-    // FIXME
-    // double ccdOrientation = getOrientationAngle();
-    // p -= ccdOrientation;
+    double ccdOrientation = rotationAnglePsf;
+    p -= ccdOrientation;
 
     integrateAnalyticPSF(psf, column0, row0, r, p);
 
