@@ -37,6 +37,7 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
         bool addFluxToMap(arma::Mat<float>& map, double row0, double col0, double r, double p, double flux);
         virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) override;
         virtual void addFlux(double flux) override;
+        virtual tuple<bool, double, double> addExtendedGhost(double xFP, double yFP, double radius, double flux) override;
 
         void integrateAnalyticPSF(IntegralOfAnalyticSignalResponse&, double, double, double, double, int = 1);
 
