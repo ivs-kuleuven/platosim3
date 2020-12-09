@@ -83,6 +83,7 @@ class Detector: public HDF5Writer
 
         virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) = 0;
         virtual void addFlux(double flux) = 0;
+        virtual tuple<bool, double, double> addExtendedGhost(double xFP, double yFP, double radius, double flux) = 0;
 
         bool isInPixelMap(double row, double column);
         bool isInSubfield(double xFPmm, double yFPmm);

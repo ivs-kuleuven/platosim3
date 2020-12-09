@@ -236,7 +236,7 @@ void DetectorWithAnalyticNonGaussianPSF::updateParameters(double time)
 
 
 /**
- * \brief Interpolate and rotate PSF parameters and sum up all parts to calculate the intergal of the analytic PSF.
+ * \brief Interpolate and rotate PSF parameters and sum up all parts to calculate the integral of the analytic PSF.
  * 
  * \param psf:        container to hold the result of the integration
  * \param x:          x position of the PSF
@@ -632,6 +632,57 @@ tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addFlux(double x
 
     return  make_tuple(success, row0, column0);
 }
+
+/**
+ * \brief Insert the extended ghost with the given radius and flux at the given focal-plane position.
+ * 
+ * Note that the extended source will not be convolved with the PSF, for practical reasons (but since the
+ * extended ghosts are so large, the influence of the PSF is negligible).
+ * 
+ * \param x0: Focal-plane x-coordinate of the centre of the extended ghost [mm].
+ * \param y0: Focal-plane y-coordinate of the centre of the extended ghost [mm].
+ * \param radius: Radius of the extended ghost [mm].
+ * \param flux: Flux of the extended ghost [photons].
+ * 
+ * \return: Whether or not the extended source falls (at least partially) on the sub-field, and the
+ *          (row, column) coordinates of the centre of the extended ghost in the pixel map.
+ */
+tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addExtendedGhost(double x0, double y0, double radius, double flux)
+{
+    // Calculate the number of pixels in the extended ghost
+
+    double radiusPixels = radius * 1000 / pixelSize;    // Radius [pixels]
+    double radiusPixelsSquared = pow(radiusPixels, 2);  // Squared radius [pixels^2]
+
+    double numPixels = PI * pow(radiusPixels, 2);       // Area of the extended ghost [pixels]
+    double fluxPerPixel = flux / numPixels;             // Flux [photons / pixel]
+
+    // Calculate the (row, column) coordinates of the centre of the extended source in the pixel map
+
+    double row0, column0;
+    tie(row0, column0) = focalPlaneToPixelCoordinates(x0, y0);
+    row0 -= subFieldZeroPointRow;
+    column0 -= subFieldZeroPointColumn;
+
+    bool ghostInPixelMap = false;
+
+    // Try to add flux to all pixels covered by the extended ghosts
+
+    for(int row = row0 - radiusPixels; row <= row0 + radiusPixels; row++)
+    {
+        for(int column = column0 - radiusPixels; column <= column0 + radiusPixels; column++)
+        {
+            if (isInPixelMap(row, column) && pow(column - column0, 2) + pow(row - row0, 2) <= radiusPixelsSquared)
+            {
+                ghostInPixelMap = true;
+                pixelMap(row, column) += fluxPerPixel;
+            }
+        }
+    }
+
+    return  make_tuple(ghostInPixelMap, row0, column0);
+}
+
 
 
 

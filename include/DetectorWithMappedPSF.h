@@ -26,6 +26,7 @@ class DetectorWithMappedPSF : public Detector
 
         virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) override;
         virtual void addFlux(double flux) override;
+        virtual tuple<bool, double, double> addExtendedGhost(double xFP, double yFP, double radius, double flux) override;
 
         virtual void configure(ConfigurationParameters &configParam){};
 
