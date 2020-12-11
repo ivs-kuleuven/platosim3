@@ -713,12 +713,6 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
 
             fluxStar = floor(fluxFactor * pow(10.0, -0.4 * magStar) * timeStep);
 
-            // Account for the flux loss when ghosts are produced by the star
-
-            if(includeGhosts)
-            
-                fluxStar *= (1 - fluxRatioExtendedGhosts - fluxRatioPointLikeGhosts);
-
             // Try to add the flux at the appropriate pixel in the sub-field
             // Returned:
             //      - whether or not the source falls in the sub-field
