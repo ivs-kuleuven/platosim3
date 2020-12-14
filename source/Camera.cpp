@@ -862,8 +862,11 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
             // Consider the distance cut-off
             // (only sources that are close enough to the OA will produce a symmetric point-like ghost)
             
-            if(this->getGnomonicRadialDistanceFromOpticalAxis(xGhost, yGhost) < distanceCutOffPointLikeGhosts)
+            if(this->getGnomonicRadialDistanceFromOpticalAxis(xStar, yStar) < distanceCutOffPointLikeGhosts)
             {
+
+                Log.info("Made it through the distance cut-off: " + to_string(-xStar) + ", " + to_string(-yStar));
+
                 // Focal-plane coordinates of the centre of the symmetric point-like ghost
 
                 xGhost = -xStar;     // Symmetry w.r.t. OA
@@ -872,7 +875,7 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
                 // Total flux of the originator acquired over the time step [photons]
                 // (photons are always an integer number, so round down)
 
-                fluxStar = floor(fluxFactor * pow(10.0, -0.4 * magStar) * timeStep);
+                // fluxStar = floor(fluxFactor * pow(10.0, -0.4 * magStar) * timeStep);
 
                 // Total flux of the symmetric point-like source ghost acquired over the time step [photons]
                 //  -> fraction of the flux of the originating star
@@ -916,7 +919,9 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
             }
         }
 
-        Log.debug("Camera: at time " + to_string(internalTime) + ": incremented flux of " + to_string(numStarsInSubField) + " stars in subfield");
+        Log.debug("Camera: at time " + to_string(internalTime) + ": incremented flux of " + to_string(numStarsInSubField) + " stars in sub-field");
+        Log.debug("Camera: at time " + to_string(internalTime) + ": incremented flux of " + to_string(numPointLikeGhostsInSubField) + " point-like ghosts in sub-field");
+        Log.debug("Camera: at time " + to_string(internalTime) + ": incremented flux of " + to_string(numExtendedGhostsInSubField) + " extended ghosts in sub-field");
 
 
         // Update the clock. Normally with 'timeStep', but if adding timeStep would overstep
