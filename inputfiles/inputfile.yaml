@@ -87,7 +87,7 @@ Camera:
         ConstantInverseCoefficients: [-0.317143032936, 0.242638513347,-0.459260203502]       # In case Source is ConstantValue
         CoefficientsFromFile:        inputfiles/distortioncoefficients.txt                   # In case Source is FromFile
         InverseCoefficientsFromFile: inputfiles/distortioninversecoefficients.txt            # In case Source if FromFile
-    IncludeGhosts:                   True
+    IncludeGhosts:                   yes
     Ghosts:
         PointLike:
             FluxRatio:               0.08                       # Flux ratio between the point-like ghost and the originating source [%]
@@ -283,7 +283,7 @@ ControlHDF5Content:
     WriteFlatfieldMap:               yes             # 2D image of the flatfield (PRNU and/or IRNU)
     WriteSubPixelImages:             no              # Only use this for a limited number of exposures. Takes a lot of space!
     WriteStarPositions:              yes             # Star positions are written in pixel and focal plane coordinates
-    WriteGhostPositions:             yes            # Ghost positions are written in pixel and focal plane coordinates
+    WriteGhostPositions:             yes             # Ghost positions are written in pixel and focal plane coordinates
     WriteACS:                        yes             # Whether to write the yaw, pitch, roll to the HDF5 file
 
 
