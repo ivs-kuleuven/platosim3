@@ -1029,8 +1029,6 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
                 double colCont =  (it->second)[3] / (it->second)[5];      // [pix]
                 double fluxCont = (it->second)[4];                        // [photons/exposure]
 
-                Log.debug(to_string(it->first) + ": " + to_string(rowCont) + ", " + to_string(colCont) + ", " + to_string(fluxCont));
-
                 // Skip the contaminants that are too distant from the target to have any effect
 
                 if ((abs(colCont - colTarget) > contaminationRadius) or (abs(rowCont - rowTarget) > contaminationRadius))
@@ -1054,9 +1052,9 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
             const int minCol = max(0, int(colTarget)-3);
             const int maxCol = min(int(numColumnsPixelMap) - 1, int(colTarget)+3);                      // maxCol inclusive
             
-            Log.debug("Detector::applyPhotometry: determining mask within the area: pixelMap rows: ["
-                      + to_string(minRow) + ", " + to_string(maxRow) + "], cols: ["
-                      + to_string(minCol) + ", " + to_string(maxCol) + "]. End points inclusive");
+            Log.debug("Detector::applyPhotometry: determining mask within the area: pixelMap rows: "
+                      + to_string(minRow) + " -> " + to_string(maxRow) + ", cols: "
+                      + to_string(minCol) + " -> " + to_string(maxCol) + ". End points inclusive");
            
             if ((numRowsPixelMap <= 7) || (numColumnsPixelMap <= 7))
             {
@@ -1064,6 +1062,8 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
             }
 
             // For the pixels in the designated area around our target, compute the variance and the noise/signal ratio of the signal.
+            // Example size: if the pixelMap is 100x100 pixels, and we consider a mask of 4x4 pixels, then NSRmap is a 2D array of size
+            //               100x100, but flatNSRmap is a 1D array of size 16. 
 
             arma::Mat<float> NSRmap(numRowsPixelMap, numColumnsPixelMap, arma::fill::zeros); 
             arma::Mat<float> varianceMap(numRowsPixelMap, numColumnsPixelMap, arma::fill::zeros);
@@ -1076,11 +1076,12 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
                     // We assume photon noise, so the variance equals the flux. We multiply by the throughput so that both terms
                     // are expressed in [e-/exposure]. 
 
-                    varianceMap(irow, icol) = (singleTargetMap(irow, icol) + contaminantMap(irow, icol) + skyBackground) * throughputMap(irow, icol) + varianceRON ;
+                    varianceMap(irow, icol) = (singleTargetMap(irow, icol) + contaminantMap(irow, icol) + skyBackground) * throughputMap(irow, icol) + varianceRON;
                     NSRmap(irow, icol) = sqrt(varianceMap(irow, icol)) / singleTargetMap(irow, icol); 
                     flatNSRmap.push_back(NSRmap(irow, icol));
                 }
             }
+
 
             // Order the pixels in the (flattened) NSR map from low to high N/S ratio (i.e. high to low S/N)
 
@@ -1089,11 +1090,12 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
             stable_sort(indices.begin(), indices.end(), [&flatNSRmap](unsigned int i, unsigned int j) {return flatNSRmap[i] < flatNSRmap[j];});
             vector<unsigned int> rowIndex(flatNSRmap.size());           
             vector<unsigned int> colIndex(flatNSRmap.size());
-            const int N = maxRow-minRow +1; 
+            const int NcolsMask = maxCol-minCol +1; 
+
             for (int i = 0; i < rowIndex.size(); i++)          // Transform from indices in flatNSRmap to indices in NSRmap
             {
-                rowIndex[i] = minRow + (unsigned int)(indices[i]) / N;
-                colIndex[i] = minCol + (unsigned int)(indices[i]) % N; 
+                rowIndex[i] = minRow + (unsigned int)(indices[i]) / NcolsMask;
+                colIndex[i] = minCol + (unsigned int)(indices[i]) % NcolsMask; 
             }
 
             // Build the mask, starting with the pixel with the best NSR, adding one pixel at the time,
