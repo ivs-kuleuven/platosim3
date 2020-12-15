@@ -800,7 +800,7 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
 
                 // The radius of the extended ghost is described by a 2nd-degree polynomial
 
-                distanceOA = this->getGnomonicRadialDistanceFromOpticalAxis(xGhost, yGhost);    // [radians]
+                distanceOA = rad2deg(this->getGnomonicRadialDistanceFromOpticalAxis(xGhost, yGhost));    // [degrees]
                 radiusExtendedGhost = coefficients[0] * pow(distanceOA, 2) + coefficients[1] * distanceOA + coefficients[2];    // [mm]
 
                 // Try to add the flux at the appropriate pixels in the sub-field
