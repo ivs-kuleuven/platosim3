@@ -313,11 +313,10 @@ void Camera::flushOutput()
         if (!time.empty())
         {
             hdf5File.writeArray("PointLikeGhostPositions/", "Time", time.data(), time.size());
-            hdf5File.writeArray("ExtendedGhostPositions/", "Time", time.data(), time.size());
         }
         else
         {
-            Log.warning("Camera: No ghost positions to write to HDF5 file.");
+            Log.warning("Camera: No point-like ghost positions to write to HDF5 file.");
         }
 
         for (int n = 0; n < time.size(); n++)
@@ -325,8 +324,7 @@ void Camera::flushOutput()
             stringstream myStream;
             myStream << "Exposure" << setfill('0') << setw(6) << beginExposureNr + n;
 
-
-            // Write the info for the pointlike ghost star positions to HDF5
+            // Write the info for the point-like ghost star positions to HDF5
 
             vector<unsigned int> starIDs;
             vector<double> xFPmm;
@@ -335,7 +333,6 @@ void Camera::flushOutput()
             vector<double> colPix;
             vector<double> flux;
             vector<double> ghostRadius;
-
 
             for(auto keyValuePair: detectedPointLikeGhostInfo[time[n]])
             {
@@ -373,8 +370,36 @@ void Camera::flushOutput()
             colPix.clear();
             flux.clear();
             ghostRadius.clear();
+        }
 
-        
+        time.clear();
+        for(auto keyValuePair: detectedExtendedGhostInfo) time.push_back(keyValuePair.first);
+        if (!time.empty())
+        {
+            hdf5File.writeArray("ExtendedGhostPositions/", "Time", time.data(), time.size());
+        }
+        else
+        {
+            Log.warning("Camera: No extended ghost positions to write to HDF5 file.");
+        }
+
+        for (int n = 0; n < time.size(); n++)
+        {
+            stringstream myStream;
+            myStream << "Exposure" << setfill('0') << setw(6) << beginExposureNr + n;
+
+
+            // Write the info for the extended ghost star positions to HDF5
+
+            vector<unsigned int> starIDs;
+            vector<double> xFPmm;
+            vector<double> yFPmm;
+            vector<double> rowPix;
+            vector<double> colPix;
+            vector<double> flux;
+            vector<double> ghostRadius;
+
+
             for(auto keyValuePair: detectedExtendedGhostInfo[time[n]])
             {
                 const unsigned int starID = keyValuePair.first;
@@ -402,6 +427,8 @@ void Camera::flushOutput()
             }
         }
     } 
+
+    
 
     // Write the total sky background flux values [photons/pixel/exposure] to HDF5 in a custom group
 
@@ -835,8 +862,11 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
             // Consider the distance cut-off
             // (only sources that are close enough to the OA will produce a symmetric point-like ghost)
             
-            if(this->getGnomonicRadialDistanceFromOpticalAxis(xGhost, yGhost) < distanceCutOffPointLikeGhosts)
+            if(this->getGnomonicRadialDistanceFromOpticalAxis(xStar, yStar) < distanceCutOffPointLikeGhosts)
             {
+
+                Log.info("Made it through the distance cut-off: " + to_string(-xStar) + ", " + to_string(-yStar));
+
                 // Focal-plane coordinates of the centre of the symmetric point-like ghost
 
                 xGhost = -xStar;     // Symmetry w.r.t. OA
@@ -845,7 +875,7 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
                 // Total flux of the originator acquired over the time step [photons]
                 // (photons are always an integer number, so round down)
 
-                fluxStar = floor(fluxFactor * pow(10.0, -0.4 * magStar) * timeStep);
+                // fluxStar = floor(fluxFactor * pow(10.0, -0.4 * magStar) * timeStep);
 
                 // Total flux of the symmetric point-like source ghost acquired over the time step [photons]
                 //  -> fraction of the flux of the originating star
@@ -889,7 +919,9 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
             }
         }
 
-        Log.debug("Camera: at time " + to_string(internalTime) + ": incremented flux of " + to_string(numStarsInSubField) + " stars in subfield");
+        Log.debug("Camera: at time " + to_string(internalTime) + ": incremented flux of " + to_string(numStarsInSubField) + " stars in sub-field");
+        Log.debug("Camera: at time " + to_string(internalTime) + ": incremented flux of " + to_string(numPointLikeGhostsInSubField) + " point-like ghosts in sub-field");
+        Log.debug("Camera: at time " + to_string(internalTime) + ": incremented flux of " + to_string(numExtendedGhostsInSubField) + " extended ghosts in sub-field");
 
 
         // Update the clock. Normally with 'timeStep', but if adding timeStep would overstep

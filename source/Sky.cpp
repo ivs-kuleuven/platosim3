@@ -608,7 +608,7 @@ void Sky::aberrateSelectedGhostOrigPositions(Platform &platform, string aberrati
     for (unsigned int n = 0; n < selectedGhostOrigID.size(); ++n)
     {
         double raStar, decStar, Vmag;
-        tie(raStar, decStar, Vmag) = starDB[selectedStarID[n]];       // ra & dec in [rad]
+        tie(raStar, decStar, Vmag) = starDB[selectedGhostOrigID[n]];       // ra & dec in [rad]
 
         double lambdaStar, betaStar;
         equatorial2ecliptic(raStar, decStar, lambdaStar, betaStar);
