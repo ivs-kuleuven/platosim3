@@ -1116,6 +1116,10 @@ void Detector::readOut(float exposureTime)
         Log.debug("Detector: no photon noise added.");
     }
 
+    // Apply the F-FEE over-/undershoot to the pixel map.
+    // Pixel units before of pixel, smearing and bias maps: [ADU]
+    // Pixel units after of  pixel, smearing and bias maps: [ADU]
+
     if(isFastCamera && frontEndElectronics->getIncludeOverAndUnderShoot())
     {
         Log.debug("Detector: adding (F-)FEE over-/undershoot");
@@ -2547,6 +2551,7 @@ pair<double, double> Detector::pixelToFocalPlaneCoordinates(double row, double c
     const double yCCDmm = row * pixelSize / 1000.0;
 
     // Convert the CCD coordinates into FP coordinates [mm]
+
     double xFP, yFP;
 
     if (ccdPosition == "Custom")
