@@ -71,7 +71,9 @@ class Camera : public HDF5Writer
 
     protected:
 
-        int beginExposureNr;                 // sequential number of first exposure. useful for slurm parallellisation
+        virtual tuple<unsigned long, unsigned long> makeStarCatalogSelection(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure);
+
+        int beginExposureNr;                 // Sequential number of first exposure. useful for slurm parallellisation
         int numExposures;                    // Number of exposures
 
         Platform &platform;
@@ -103,13 +105,23 @@ class Camera : public HDF5Writer
         double decSun;                    // Declination of the direction of the sun shield during the run        [rad]
 
         bool writeStarPositions;          // Whether or not the star positions should be written to the output HDF5 file
+        bool writeGhostPositions;          // Whether or not the ghost positions should be written to the output HDF5 file
 
         // detectedStarInfo[startTime][starID] contains the values (xFPmean, yFPmean, rowPixMean, colPixmean, sumFlux, Ndetections)
 
         map<double, map<unsigned int, array<double, 6>>> detectedStarInfo;
+        map<double, map<unsigned int, array<double, 7>>> detectedExtendedGhostInfo;
+        map<double, map<unsigned int, array<double, 6>>> detectedPointLikeGhostInfo;
         vector<double> skyBackgroundValues;
         vector<double> transmissionEfficiencyValues;
         double totalSkyBackground;          // Total sky background [photons / pixel / exposure]
+
+        bool includeGhosts;
+        double distanceCutOffPointLikeGhosts;
+        double fluxRatioPointLikeGhosts;
+        double distanceRatioExtendedGhosts;
+        double fluxRatioExtendedGhosts;
+        Parameter<double, 3> *extendedGhostRadiusCoefficients;
 
     private:
 

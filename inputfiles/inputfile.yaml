@@ -87,6 +87,15 @@ Camera:
         ConstantInverseCoefficients: [-0.317143032936, 0.242638513347,-0.459260203502]       # In case Source is ConstantValue
         CoefficientsFromFile:        inputfiles/distortioncoefficients.txt                   # In case Source is FromFile
         InverseCoefficientsFromFile: inputfiles/distortioninversecoefficients.txt            # In case Source if FromFile
+    IncludeGhosts:                   yes
+    Ghosts:
+        PointLike:
+            FluxRatio:               0.08                       # Flux ratio between the point-like ghost and the originating source [%]
+            DistanceCutOff:          8                          # Sources within this radius from the optical axis produce a point-like ghost [degrees]
+        Extended:
+            FluxRatio:               0.00003                    # Flux ratio between the extended ghost and the originating source [%]
+            RadiusCoefficients:      [0.0062, -0.0251, 1.8402]  # Coefficients of the 2nd-degree polynomial (in distance from the optical axis), describing the radius of the (circular) extended source
+            DistanceRatio:           1.065                      # Ratio of the distance of the (centroid of the) extended ghost to the optical axis, w.r.t. the distance of the originating source to the optical axis
 
 
 PSF:
@@ -273,7 +282,8 @@ ControlHDF5Content:
     WriteThroughputMaps:             yes             # 2D throughput maps (QE, vignetting, contamination, ...), for each exposure
     WriteFlatfieldMap:               yes             # 2D image of the flatfield (PRNU and/or IRNU)
     WriteSubPixelImages:             no              # Only use this for a limited number of exposures. Takes a lot of space!
-    WriteStarPositions:              yes             # StarPositions are written in pixel and focal plane coordinates
+    WriteStarPositions:              yes             # Star positions are written in pixel and focal plane coordinates
+    WriteGhostPositions:             yes             # Ghost positions are written in pixel and focal plane coordinates
     WriteACS:                        yes             # Whether to write the yaw, pitch, roll to the HDF5 file
 
 

@@ -49,9 +49,6 @@ inputFile = sys.argv[1]
 outputDir = os.getcwd() + "/"
 outputPrefix = "Run1"
 
-numColumnsSubField = 8                  # Number of columns in the modelled sub-field [pixels]
-numRowsSubField = 8                     # Number of rows in the modelled sub-field [pixels]
-
 #--- End configuration parameters
 
 
@@ -85,8 +82,8 @@ decPlatform = sim["ObservingParameters/DecPointing"]                    # [deg]
 raCenter = np.deg2rad(raPlatform)                                       # [rad]
 decCenter = np.deg2rad(decPlatform)                                     # [rad]
 
-sim["SubField/NumColumns"] = numColumnsSubField
-sim["SubField/NumRows"]    = numRowsSubField
+numColumnsSubField = sim["SubField/NumColumns"]
+numRowsSubField = sim["SubField/NumRows"]
 
 # Set the telescope group ID, this is needed for the subfield calculations later on.
   

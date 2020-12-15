@@ -87,6 +87,9 @@ void Camera::initHDF5Groups()
     hdf5File.createGroup("/StarPositions");
     hdf5File.createGroup("/Background");
     hdf5File.createGroup("/TransmissionEfficiency");
+
+    hdf5File.createGroup("/PointLikeGhostPositions");
+    hdf5File.createGroup("/ExtendedGhostPositions");
 }
 
 
@@ -97,19 +100,43 @@ void Camera::initHDF5Groups()
 
 
 /**
- * \brief      Collect and return the IDs of all stars that fall within the subField
+ * \brief Collect and returns the IDs of all stars that fall on the sub-field or produce a ghost
+ *        that falls on the sub-field (if ghosts are to be included in the simulation).
  *
- * \details    Note that this method pulls the detected stars from a map that is filled by
- *             exposeDetector for each exposure. So, depending on when this method is called,
- *             the returned set might be empty or incomplete.
+ * \details Note that this method pulls the detected stars from a map that is filled by
+ *          exposeDetector for each exposure. So, depending on when this method is called,
+ *          the returned set might be empty or incomplete.
  *
- * \return     a set of unique star IDs that were detected in the subField
+ * \return Set of unique IDs for stars that fall on the sub-field or produce a ghost on the
+ *         sub-field (if ghosts are to be included in the simulation).
  */
 set<unsigned int> Camera::getAllStarIDs()
 {
     set<unsigned int> allStarIDs;            // A set<> stores only unique members
 
+    // Stars on the sub-field
+
     for(auto timeMapPair: detectedStarInfo)
+    {
+        for (auto idArrayPair: timeMapPair.second)
+        {
+            allStarIDs.insert(idArrayPair.first);
+        }
+    }
+
+    // Originators of extended ghosts on the sub-field
+
+    for (auto timeMapPair: detectedExtendedGhostInfo)
+    {
+        for (auto idArrayPair: timeMapPair.second)
+        {
+            allStarIDs.insert(idArrayPair.first);
+        }
+    }
+
+    // Originators of symmetric point-like ghosts on the sub-field
+
+    for (auto timeMapPair: detectedPointLikeGhostInfo)
     {
         for (auto idArrayPair: timeMapPair.second)
         {
@@ -202,13 +229,14 @@ pair<starInfoIterator, starInfoIterator> Camera::getInfoForTheMostRecentExposure
 
 void Camera::flushOutput()
 {
-    Log.info("Camera: Flushing output to HDf5 file.");
 
     // Extract and save the time points of all exposures
     // Note: keyValuePair is (key, value) pair, where key is also a pair consisting of the startTime and StarID
 
     if (writeStarPositions)
     {
+        Log.info("Camera: writing star positions to HDF5 file");
+
         vector<double> time;
         for(auto keyValuePair: detectedStarInfo) time.push_back(keyValuePair.first);
         if (!time.empty())
@@ -224,10 +252,9 @@ void Camera::flushOutput()
         // Because some stars at the edge may jitter in and out of the subfield from one exposure to the other,
         // the written arrays may not be equally long for each exposure.
 
-
         for (int n = 0; n < time.size(); n++)
         {
-            // Make the subgroup group
+            // Make the sub-group
 
             stringstream myStream;
             myStream << "Exposure" << setfill('0') << setw(6) << beginExposureNr + n;
@@ -269,9 +296,139 @@ void Camera::flushOutput()
             }
         }
     }
-    else {
+    else 
+    {
         Log.warning("Camera: No star positions written to HDF5 file by user demand (see input file).");
     }
+
+
+    // If the ghost option was set, also write for each exposure the info of the ghost stars to the HDF5 file.
+
+    if (includeGhosts && writeGhostPositions)
+    {
+        Log.info("Camera: writing pointlike ghost positions to HDF5 file");
+
+        vector<double> time;
+        for(auto keyValuePair: detectedPointLikeGhostInfo) time.push_back(keyValuePair.first);
+        if (!time.empty())
+        {
+            hdf5File.writeArray("PointLikeGhostPositions/", "Time", time.data(), time.size());
+        }
+        else
+        {
+            Log.warning("Camera: No point-like ghost positions to write to HDF5 file.");
+        }
+
+        for (int n = 0; n < time.size(); n++)
+        {
+            stringstream myStream;
+            myStream << "Exposure" << setfill('0') << setw(6) << beginExposureNr + n;
+
+            // Write the info for the point-like ghost star positions to HDF5
+
+            vector<unsigned int> starIDs;
+            vector<double> xFPmm;
+            vector<double> yFPmm;
+            vector<double> rowPix;
+            vector<double> colPix;
+            vector<double> flux;
+            vector<double> ghostRadius;
+
+            for(auto keyValuePair: detectedPointLikeGhostInfo[time[n]])
+            {
+                const unsigned int starID = keyValuePair.first;
+                starIDs.push_back(starID);                       // list of starIDs for this exposure only
+                xFPmm.push_back(detectedPointLikeGhostInfo[time[n]][starID][0] / detectedPointLikeGhostInfo[time[n]][starID][5]);
+                yFPmm.push_back(detectedPointLikeGhostInfo[time[n]][starID][1] / detectedPointLikeGhostInfo[time[n]][starID][5]);
+                rowPix.push_back(detectedPointLikeGhostInfo[time[n]][starID][2] / detectedPointLikeGhostInfo[time[n]][starID][5]);
+                colPix.push_back(detectedPointLikeGhostInfo[time[n]][starID][3] / detectedPointLikeGhostInfo[time[n]][starID][5]);
+                flux.push_back(detectedPointLikeGhostInfo[time[n]][starID][4]);
+            }
+
+            const string pointLikeGhostGroupName = "/PointLikeGhostPositions/" + myStream.str();
+            hdf5File.createGroup(pointLikeGhostGroupName);
+
+            if(!starIDs.empty())
+            {
+                hdf5File.writeArray(pointLikeGhostGroupName, "starID", starIDs.data(), starIDs.size());
+                hdf5File.writeArray(pointLikeGhostGroupName, "xFPmm",  xFPmm.data(),   xFPmm.size());
+                hdf5File.writeArray(pointLikeGhostGroupName, "yFPmm",  yFPmm.data(),   yFPmm.size());
+                hdf5File.writeArray(pointLikeGhostGroupName, "rowPix", rowPix.data(),  rowPix.size());
+                hdf5File.writeArray(pointLikeGhostGroupName, "colPix", colPix.data(),  colPix.size());
+                hdf5File.writeArray(pointLikeGhostGroupName, "flux",   flux.data(),    flux.size());
+            }
+
+
+            // Write the info for the extended ghost star positions to HDF5
+
+            Log.info("Camera: writing extended ghost positions to HDF5 file");
+
+            starIDs.clear();
+            xFPmm.clear();
+            yFPmm.clear();
+            rowPix.clear();
+            colPix.clear();
+            flux.clear();
+            ghostRadius.clear();
+        }
+
+        time.clear();
+        for(auto keyValuePair: detectedExtendedGhostInfo) time.push_back(keyValuePair.first);
+        if (!time.empty())
+        {
+            hdf5File.writeArray("ExtendedGhostPositions/", "Time", time.data(), time.size());
+        }
+        else
+        {
+            Log.warning("Camera: No extended ghost positions to write to HDF5 file.");
+        }
+
+        for (int n = 0; n < time.size(); n++)
+        {
+            stringstream myStream;
+            myStream << "Exposure" << setfill('0') << setw(6) << beginExposureNr + n;
+
+
+            // Write the info for the extended ghost star positions to HDF5
+
+            vector<unsigned int> starIDs;
+            vector<double> xFPmm;
+            vector<double> yFPmm;
+            vector<double> rowPix;
+            vector<double> colPix;
+            vector<double> flux;
+            vector<double> ghostRadius;
+
+
+            for(auto keyValuePair: detectedExtendedGhostInfo[time[n]])
+            {
+                const unsigned int starID = keyValuePair.first;
+                starIDs.push_back(starID);                       // list of starIDs for this exposure only
+                xFPmm.push_back(detectedExtendedGhostInfo[time[n]][starID][0] / detectedExtendedGhostInfo[time[n]][starID][5]);
+                yFPmm.push_back(detectedExtendedGhostInfo[time[n]][starID][1] / detectedExtendedGhostInfo[time[n]][starID][5]);
+                rowPix.push_back(detectedExtendedGhostInfo[time[n]][starID][2] / detectedExtendedGhostInfo[time[n]][starID][5]);
+                colPix.push_back(detectedExtendedGhostInfo[time[n]][starID][3] / detectedExtendedGhostInfo[time[n]][starID][5]);
+                flux.push_back(detectedExtendedGhostInfo[time[n]][starID][4]);
+                ghostRadius.push_back(detectedExtendedGhostInfo[time[n]][starID][6] / detectedExtendedGhostInfo[time[n]][starID][5]);
+            }
+        
+            const string extendedGhostGroupName = "/ExtendedGhostPositions/" + myStream.str();
+            hdf5File.createGroup(extendedGhostGroupName);
+        
+            if(!starIDs.empty())
+            {
+                hdf5File.writeArray(extendedGhostGroupName, "starID", starIDs.data(), starIDs.size());
+                hdf5File.writeArray(extendedGhostGroupName, "xFPmm",  xFPmm.data(),   xFPmm.size());
+                hdf5File.writeArray(extendedGhostGroupName, "yFPmm",  yFPmm.data(),   yFPmm.size());
+                hdf5File.writeArray(extendedGhostGroupName, "rowPix", rowPix.data(),  rowPix.size());
+                hdf5File.writeArray(extendedGhostGroupName, "colPix", colPix.data(),  colPix.size());
+                hdf5File.writeArray(extendedGhostGroupName, "flux",   flux.data(),    flux.size());
+                hdf5File.writeArray(extendedGhostGroupName, "radius", ghostRadius.data(), ghostRadius.size());
+            }
+        }
+    } 
+
+    
 
     // Write the total sky background flux values [photons/pixel/exposure] to HDF5 in a custom group
 
@@ -398,6 +555,27 @@ void Camera::configure(ConfigurationParameters &configParam)
     }
 
 
+    // Configure the ghost star parameters 
+
+    includeGhosts = configParam.getBoolean("Camera/IncludeGhosts");
+
+    if(includeGhosts)
+    {
+        distanceCutOffPointLikeGhosts = deg2rad(configParam.getDouble("Camera/Ghosts/PointLike/DistanceCutOff"));
+        fluxRatioPointLikeGhosts = configParam.getDouble("Camera/Ghosts/PointLike/FluxRatio") / 100.0;
+        distanceRatioExtendedGhosts = configParam.getDouble("Camera/Ghosts/Extended/DistanceRatio");
+        fluxRatioExtendedGhosts = configParam.getDouble("Camera/Ghosts/Extended/FluxRatio") / 100.0;
+
+        vector<double> extendedGhostRadiusCoefVector = configParam.getDoubleVector("Camera/Ghosts/Extended/RadiusCoefficients");
+        array<double, 3> extendedGhostRadiusCoefArray;
+        copy(extendedGhostRadiusCoefVector.begin(), extendedGhostRadiusCoefVector.end(), extendedGhostRadiusCoefArray.begin());
+
+        extendedGhostRadiusCoefficients = new Parameter<double, 3>(extendedGhostRadiusCoefArray);
+    }
+    else
+    {
+        Log.info("Camera: Ignoring ghosts");
+    }
 
 
     plateScale             = configParam.getDouble("Camera/PlateScale");
@@ -412,7 +590,7 @@ void Camera::configure(ConfigurationParameters &configParam)
     userGivenSkyBackground = configParam.getDouble("Sky/SkyBackground");          // [phot/pix/s]
 
     writeStarPositions     = configParam.getBoolean("ControlHDF5Content/WriteStarPositions");
-
+    writeGhostPositions    = configParam.getBoolean("ControlHDF5Content/WriteGhostPositions");
 }
 
 
@@ -483,103 +661,20 @@ void Camera::updateParameters(double time)
 /**
  * \brief Expose the sub-field to the stars.
  *
- * \param[in]  detector      the Detector class
- * \param[in]  startTime     start time of the exposure [seconds]
- * \param[in]  exposureTime  duration of one exposure [seconds]
- * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start [seconds]
+ * \param detector: Detector for which to make a rough selection of stars.
+ * \param startTime: Start time of the exposure [s].
+ * \param exposureTime: Duration of one exposure [s].
+ * \param readoutTimeBeforeNextExposure: Duration of the readout that takes place before the next exposure starts [s].
  */
 void Camera::exposeDetectorWithStars(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure)
 {
-    // Get the value for the degrading TransmissionEfficiency parameter at the startTime of this exposure
+    // Make a rough selection of:
+    //  - stars that are on or near the sub-field (or will produce an extended ghost on or near the sub-field)
+    //  - stars that produce a symmetric point-like ghost on or near the sub-field the sub-field (without 
+    //    accounting for the distance cut-off)
 
-    double transmissionEfficiency = telescope.getTransmissionEfficiency(startTime);
-
-    Log.debug("Camera: TransmissionEfficiency at time "+to_string(startTime)+" is "+to_string(transmissionEfficiency));
-
-
-    // Get the focal plane coordinates of the center and the corners of the subfield (in [mm]).
-    // To compute the diagonal length of the subfield, we only need the lower left (X00, Y00)
-    // and the upper right (X11, Y11) corner of the subfield.
-
-    double centerXmm, centerYmm;
-    tie(centerXmm, centerYmm) = detector.getFocalPlaneCoordinatesOfSubfieldCenter();
-
-
-    double corner00Xmm, corner00Ymm, corner11Xmm, corner11Ymm, dummy;
-    tie(corner00Xmm, corner00Ymm, dummy, dummy, corner11Xmm, corner11Ymm, dummy, dummy) = detector.getFocalPlaneCoordinatesOfSubfieldCorners();
-
-    // Convert the undistorted [mm] to distorted [mm] focal plane coordinates
-
-    if (includeFieldDistortion)
-    {
-        Log.info("Camera: including field distortion");
-
-        tie(centerXmm, centerYmm) = distortedToUndistortedFocalPlaneCoordinates(centerXmm, centerYmm);
-        tie(corner00Xmm, corner00Ymm) = distortedToUndistortedFocalPlaneCoordinates(corner00Xmm, corner00Ymm);
-        tie(corner11Xmm, corner11Ymm) = distortedToUndistortedFocalPlaneCoordinates(corner11Xmm, corner11Ymm);
-    }
-
-    // After the distortion, compute the CCD pixel coordinates of the subfield center, just for logging purposes
-
-    double centerRow, centerCol;
-    tie(centerRow, centerCol) = detector.focalPlaneToPixelCoordinates(centerXmm, centerYmm);
-
-    Log.debug("Camera: center of subfield at CCD (row, col) = (" + to_string(centerRow) + ", " + to_string(centerCol) + ") pix");
-    Log.debug("Camera: center of subfield at (Xmm, Ymm) = (" + to_string(centerXmm) + ", " + to_string(centerYmm) + ") mm");
-    Log.debug("Camera: lower left corner of subfield at (Xmm, Ymm) = (" + to_string(corner00Xmm) + ", " + to_string(corner00Ymm) + ") mm");
-    Log.debug("Camera: upper right corner of subfield at (Xmm, Ymm) = (" + to_string(corner11Xmm) + ", " + to_string(corner11Ymm) + ") mm");
-
-
-    // Convert the focal plane coordinates [mm] to (alpha, delta) equatorial sky coordinates [rad]
-
-    double centerRA, centerDec;
-    tie(centerRA, centerDec) = focalPlaneToSkyCoordinates(centerXmm, centerYmm);
-
-    double corner00RA, corner00Dec;
-    tie(corner00RA, corner00Dec) = focalPlaneToSkyCoordinates(corner00Xmm, corner00Ymm);
-
-    double corner11RA, corner11Dec;
-    tie(corner11RA, corner11Dec) = focalPlaneToSkyCoordinates(corner11Xmm, corner11Ymm);
-
-    Log.debug("Camera: center of subfield at (alpha, delta) = (" + to_string(rad2deg(centerRA)) + ", " + to_string(rad2deg(centerDec)) + ") deg");
-    Log.debug("Camera: lower left corner of subfield at (alpha, delta) = (" + to_string(rad2deg(corner00RA)) + ", " + to_string(rad2deg(corner00Dec)) + ") deg");
-    Log.debug("Camera: upper right corner of subfield at (alpha, delta) = (" + to_string(rad2deg(corner11RA)) + ", " + to_string(rad2deg(corner11Dec)) + ") deg");
-
-
-    // Compute the angular distance on the sky between the lower left and the upper right corner
-    // of the subfield, to estimate the "radius" of the subfield.
-
-    SkyCoordinates skyCoordinates00(corner00RA, corner00Dec, Angle::radians);
-    SkyCoordinates skyCoordinates11(corner11RA, corner11Dec, Angle::radians);
-
-    double radius = angularDistanceBetween(skyCoordinates00, skyCoordinates11, Angle::radians) / 2.0;
-
-    Log.debug("Camera: semi-diagonal of subfield = " + to_string(rad2deg(radius)) + " deg");
-
-
-    // Get a catalog of stars that fall on the subfield. Take the radius a bit larger so that the
-    // queried area includes possible small shifts of the projected subfield because of jitter.
-
-    const unsigned long Nstars = sky.selectStarsWithinRadiusFrom(centerRA, centerDec, radius * 1.1, Angle::radians);
-
-    Log.info("Camera: Found " + to_string(Nstars) + " stars on and near the subfield");
-
-    if (includeAberrationCorrection)
-    {
-        Log.info("Camera: applying " + aberrationCorrectionType + " aberration correction to the selected stars in the subfield.");
-
-        // The time at the middle of the time series is the time when the Sun is defined to be 180 degrees away from platform pointing
-
-        double timeMiddle = numExposures * (exposureTime + readoutTimeBeforeNextExposure) / 2.0;
-
-        // Get the apparent position of the stars, i.e. apply the differential aberration correction to
-        // all the star positions in this starCatalog.
-
-        // We do this calcuation only once per exposure as the effect is negligible within the exposure time
-
-        sky.aberrateSelectedStarPositions(platform, aberrationCorrectionType, startTime, timeMiddle);
-    }
-
+    unsigned long numStars, numPointLikeGhosts;
+    tie(numStars, numPointLikeGhosts) = makeStarCatalogSelection(detector, startTime, exposureTime, readoutTimeBeforeNextExposure);
 
     // If the telescope and/or platform show small variations (e.g. due to jitter) during the exposure,
     // the exposure time is split up in many small intervals, to track the effect of these variations
@@ -589,19 +684,29 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
 
     double timeStep = min(telescope.getHeartbeatInterval(), exposureTime);
 
+    // Later we will have to convert the magnitudes from the star catalogues to fluxes.  Here we
+    // pre-compute a constant flux factor [photons / s] that we will need for the conversion of 
+    // all stars.
+    // The value of the degrading transmission efficiency that is used here, is the one at the start
+    // of the current exposure.
 
-    // Later on we will have to convert from magnitudes to fluxes. Precompute a constant prefactor.
-    // fluxOfV0Star is the photon flux [photons/s/m^2/nm] for a V=0 G2V-star.
-    // Units of fluxFactor: [photons/s]
-
+    double transmissionEfficiency = telescope.getTransmissionEfficiency(startTime);
     const double fluxFactor = fluxOfV0Star * throughputBandwidth * transmissionEfficiency * telescope.getLightCollectingArea();
 
     // Update the internal clock
 
     internalTime = startTime;
 
-    // Take the flux of point sources (stars) into account.
-    // Break up the exposure time in small intervals (hearbeat intervals) to track jitter while exposing.
+    // Placeholders
+
+    unsigned int numStarsInSubField, numExtendedGhostsInSubField, numPointLikeGhostsInSubField;
+    unsigned long starID;
+    double raStar, decStar, magStar, rowStar, columnStar, xStar, yStar, fluxStar;
+    double rowGhost, columnGhost, xGhost, yGhost, fluxGhost, radiusExtendedGhost, distanceOA;
+    bool isStarInSubField, isGhostInSubField;
+    
+    // Take the flux of the stars and ghosts (if enabled) into account, breaking up the
+    // exposure time in small (heartbeat) intervals to track jitter during exposure
 
     while (internalTime < startTime + exposureTime)
     {
@@ -612,83 +717,213 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
         detector.updateParameters(internalTime);
         sky.updateParameters(internalTime);
 
-        // Loop over all stars in the catalog, and add their flux to the subfield
+        const array<double, 3> coefficients = (*extendedGhostRadiusCoefficients)();
 
-        unsigned int NstarsInSubfield = 0;
+        // Loop over the selected stars and add their flux to the sub-fild
+        // Also add the extended ghosts (if enabled)
 
-        for (unsigned int n = 0; n < Nstars; n++)
+        numStarsInSubField = 0;
+        numExtendedGhostsInSubField = 0;
+
+        for (unsigned int starIndex = 0; starIndex < numStars; starIndex++)
         {
-            // Compute the focal plane coordinates (in [mm]) of this particular star
+            // Calculate the focal-plane coordinates of the current star
+            // (apply field distortion, if enabled)
 
-            unsigned long starID;
-            double RA, dec, Vmag;
-
-            tie(starID, RA, dec, Vmag) = sky.getSelectedStar(n);
-
-            double Xmm, Ymm;
-            tie(Xmm, Ymm) = skyToFocalPlaneCoordinates(RA, dec);
-
-            // If required, include field distortion
+            tie(starID, raStar, decStar, magStar) = sky.getSelectedStar(starIndex);     // Sky coordinates in radians
+            tie(xStar, yStar) = skyToFocalPlaneCoordinates(raStar, decStar);            // [mm]
 
             if (includeFieldDistortion)
+
+                tie(xStar, yStar) = undistortedToDistortedFocalPlaneCoordinates(xStar, yStar);
+
+            // Total flux of the star acquired over the time step [photons]
+            // (photons are always an integer number, so round down)
+
+            fluxStar = floor(fluxFactor * pow(10.0, -0.4 * magStar) * timeStep);
+
+            // Try to add the flux at the appropriate pixel in the sub-field
+            // Returned:
+            //      - whether or not the source falls in the sub-field
+            //      - sub-field (not CCD) row and column number at which the flux was added
+
+            tie(isStarInSubField, rowStar, columnStar) = detector.addFlux(xStar, yStar, fluxStar);
+
+            // If the star is indeed in the sub-field, collect the following information to later write to HDF5:
+            //    1) average focal-plane coordinates (x, y) of the star during the exposure [mm]
+            //    2) average pixel coordinates (row, column) of the star on the CCD during the exposure [pixels]
+            //    3) the total number of photons gathered of this star during the exposure [photons]
+            //    4) the total number of times that the star was in the sub-field during the exposure
+            // Note: Due to jitter, the star can move in and out the sub-field during the exposure
+
+            if (isStarInSubField)
             {
-                tie(Xmm, Ymm) = undistortedToDistortedFocalPlaneCoordinates(Xmm, Ymm);
-            }
-
-            // Compute the flux [photons] of this star
-            // Photons are always an integer number, so round down.
-
-            double flux = floor(fluxFactor * pow(10.0, -0.4 * Vmag) * timeStep);
-
-            // Let the detector add the flux to the appropriate pixel.
-            // Detector.flux() returns the pixel coordinates to which the flux was added.
-
-            bool isInSubfield;
-            double rowPix, colPix;    // subfield (not CCD) pixel coordinates
-
-            tie(isInSubfield, rowPix, colPix) = detector.addFlux(Xmm, Ymm, flux);
-
-            // If the star is indeed in the subfield, collect the following information to later write to HDF5
-            //    1) average (Xmm, Ymm) coordinates of the star during the exposure                   [mm]
-            //    2) average (row, col) pixel coordinates of the star on the CCD during the exposure  [pix]
-            //    3) the total number of photons gathered of this star during the exposure            [photons]
-            //    4) the total number of times that the star was in the subfield during the exposure
-            //
-            // Note: Due to jitter, the star can move in and out the subfield during the exposure
-
-            if (isInSubfield)
-            {
-                NstarsInSubfield++;
+                numStarsInSubField++;
 
                 // If this is the first time we encounter this startTime, initialise the information
 
                 if (detectedStarInfo.find(startTime) == detectedStarInfo.end())
                 {
-                    detectedStarInfo[startTime][starID] = {{Xmm, Ymm, rowPix, colPix, flux, 1.0}};
+                    detectedStarInfo[startTime][starID] = {{xStar, yStar, rowStar, columnStar, fluxStar, 1.0}};
                 }
                 else
                 {
-                    // If this is the first time that we encounter this star ID associated with this startTime,
+                    // If this is the first time that we encounter this star ID associated with this start time,
                     // initialise the information. If not, just update the info.
 
                     if (detectedStarInfo[startTime].find(starID) == detectedStarInfo[startTime].end())
                     {
-                        detectedStarInfo[startTime][starID] = {{Xmm, Ymm, rowPix, colPix, flux, 1.0}};
+                        detectedStarInfo[startTime][starID] = {{xStar, yStar, rowStar, columnStar, fluxStar, 1.0}};
                     }
                     else
                     {
-                        detectedStarInfo[startTime][starID][0] += Xmm;      // Will be used to compute average Xmm during the exposure
-                        detectedStarInfo[startTime][starID][1] += Ymm;      // Will be used to compute average Ymm during the exposure
-                        detectedStarInfo[startTime][starID][2] += rowPix;   // Will be used to compute average pixel row during the exposure
-                        detectedStarInfo[startTime][starID][3] += colPix;   // Will be used to compute average pixel column during the exposure
-                        detectedStarInfo[startTime][starID][4] += flux;     // Total flux
-                        detectedStarInfo[startTime][starID][5] += 1;        // # of times a star was on the subfield during an exposure
+                        detectedStarInfo[startTime][starID][0] += xStar;        // Will be used to compute average focal-plane x-coordinate during the exposure
+                        detectedStarInfo[startTime][starID][1] += yStar;        // Will be used to compute average focal-plane y-cooridnate during the exposure
+                        detectedStarInfo[startTime][starID][2] += rowStar;      // Will be used to compute average pixel row coordinate during the exposure
+                        detectedStarInfo[startTime][starID][3] += columnStar;   // Will be used to compute average pixel column coodinate during the exposure
+                        detectedStarInfo[startTime][starID][4] += fluxStar;     // Total flux [photons]
+                        detectedStarInfo[startTime][starID][5] += 1;            // # of times a star was on the subfield during an exposure
+                    }
+                }
+            }
+
+            if(includeGhosts)
+            {
+                // Focal-plane coordinates of the centre of the extended ghost
+
+                xGhost = distanceRatioExtendedGhosts * xStar;
+                yGhost = distanceRatioExtendedGhosts * yStar;
+
+                // Total flux of the extended ghost acquired over the time step [photons]
+                //  -> fraction of the flux of the originating star
+                // (photons are always an integer number, so round down)
+
+                fluxGhost = floor(fluxFactor * pow(10.0, -0.4 * magStar) * timeStep * fluxRatioExtendedGhosts);
+
+                // The radius of the extended ghost is described by a 2nd-degree polynomial
+
+                distanceOA = rad2deg(this->getGnomonicRadialDistanceFromOpticalAxis(xGhost, yGhost));    // [degrees]
+                radiusExtendedGhost = coefficients[0] * pow(distanceOA, 2) + coefficients[1] * distanceOA + coefficients[2];    // [mm]
+
+                // Try to add the flux at the appropriate pixels in the sub-field
+                // Returned:
+                //      - whether or not the extended ghost falls in the sub-field (at least part of it)
+                //      - sub-field (not CCD) row and column number of the centre of the extended ghost
+
+                tie(isGhostInSubField, rowGhost, columnGhost) = detector.addExtendedGhost(xGhost, yGhost, radiusExtendedGhost, fluxGhost);
+
+                // If the extended ghosts is indeed in the sub-field, collect the following information to later write to HDF5:
+                //    1) average focal-plane coordinates (x, y) of the centre of the extended ghost during the exposure [mm]
+                //    2) average pixel coordinates (row, column) of the extended ghost on the CCD during the exposure [pixels]
+                //    3) the total number of photons gathered of this extended ghost during the exposure [photons]
+                //    4) the total number of times that the extended ghost was in the sub-field during the exposure
+                //    5) the average size of the extended ghost during the exposure [mm]
+                // Note: Due to jitter, the extended ghost can move in and out the sub-field during the exposure
+
+                if(isGhostInSubField)
+                {
+                    numExtendedGhostsInSubField++;
+
+                    if(detectedExtendedGhostInfo.find(startTime) == detectedExtendedGhostInfo.end())
+                    {   
+                        detectedExtendedGhostInfo[startTime][starID] = {{xGhost, yGhost, rowGhost, columnGhost, fluxGhost, 1.0, radiusExtendedGhost}};
+                    }
+
+                    else
+                    {
+                        detectedExtendedGhostInfo[startTime][starID][0] += xGhost;        // Will be used to compute average focal-plane x-coordinate during the exposure
+                        detectedExtendedGhostInfo[startTime][starID][1] += yGhost;        // Will be used to compute average focal-plane y-coorindate during the exposure
+                        detectedExtendedGhostInfo[startTime][starID][2] += rowGhost;      // Will be used to compute average pixel row coordinate during the exposure
+                        detectedExtendedGhostInfo[startTime][starID][3] += columnGhost;   // Will be used to compute average pixel column coordinate during the exposure
+                        detectedExtendedGhostInfo[startTime][starID][4] += fluxGhost;     // Total flux [photons]
+                        detectedExtendedGhostInfo[startTime][starID][5] += 1;             // # of times a star was on the subfield during an exposure
+                        detectedExtendedGhostInfo[startTime][starID][6] += radiusExtendedGhost;     // Radius of the extended ghost [mm]
                     }
                 }
             }
         }
 
-        Log.debug("Camera: at time " + to_string(internalTime) + ": incremented flux of " + to_string(NstarsInSubfield) + " stars in subfield");
+        // Loop over the selected originators of symmetric point-like ghosts and
+        // add their flux to the sub-field (if enabled)
+
+        numPointLikeGhostsInSubField = 0;
+
+        for (unsigned int starIndex = 0; starIndex < numPointLikeGhosts; starIndex++)
+        {
+            // Calculate the focal-plane coordinates of the ghost produced by the current star
+            // (apply field distortion, if enabled)
+
+            tie(starID, raStar, decStar, magStar) = sky.getSelectedGhostOrig(starIndex);    // Sky coordinates of the originator [radians]
+            tie(xStar, yStar) = skyToFocalPlaneCoordinates(raStar, decStar);                // Focal-plane coordinate of the originator [mm]
+
+            if (includeFieldDistortion)
+            {
+                tie(xStar, xStar) = undistortedToDistortedFocalPlaneCoordinates(xStar, xStar);
+            }
+
+            // Consider the distance cut-off
+            // (only sources that are close enough to the OA will produce a symmetric point-like ghost)
+            
+            if(this->getGnomonicRadialDistanceFromOpticalAxis(xStar, yStar) < distanceCutOffPointLikeGhosts)
+            {
+
+                Log.info("Made it through the distance cut-off: " + to_string(-xStar) + ", " + to_string(-yStar));
+
+                // Focal-plane coordinates of the centre of the symmetric point-like ghost
+
+                xGhost = -xStar;     // Symmetry w.r.t. OA
+                yGhost = -yStar;     // Symmetry w.r.t. OA
+
+                // Total flux of the originator acquired over the time step [photons]
+                // (photons are always an integer number, so round down)
+
+                // fluxStar = floor(fluxFactor * pow(10.0, -0.4 * magStar) * timeStep);
+
+                // Total flux of the symmetric point-like source ghost acquired over the time step [photons]
+                //  -> fraction of the flux of the originating star
+                // (photons are always an integer number, so round down)
+
+                fluxGhost = floor(fluxFactor * pow(10.0, -0.4 * magStar) * timeStep * fluxRatioPointLikeGhosts);
+
+                // Try to add the flux at the appropriate pixel in the sub-field
+                // Returned:
+                //      - whether or not the source falls in the sub-field
+                //      - sub-field (not CCD) row and column number at which the flux was added
+
+                tie(isGhostInSubField, rowGhost, columnGhost) = detector.addFlux(xGhost, yGhost, fluxGhost);
+
+                // If the symmetric point-like ghosts is indeed in the sub-field, collect the following information to later write to HDF5:
+                //    1) average focal-plane coordinates (x, y) of the symmetric point-like during the exposure [mm]
+                //    2) average pixel coordinates (row, column) of the symmetric point-like on the CCD during the exposure [pixels]
+                //    3) the total number of photons gathered of this symmetric point-like during the exposure [photons]
+                //    4) the total number of times that the symmetric point-like was in the sub-field during the exposure
+                // Note: Due to jitter, the symmetric point-like can move in and out the sub-field during the exposure
+
+                if(isGhostInSubField)
+                {
+                    numPointLikeGhostsInSubField++;
+
+                    if(detectedPointLikeGhostInfo.find(startTime) == detectedPointLikeGhostInfo.end())
+                    {
+                        detectedPointLikeGhostInfo[startTime][starID] = {{xGhost, yGhost, rowGhost, columnGhost, fluxGhost, 1.0}};
+                    }
+
+                    else
+                    {
+                        detectedPointLikeGhostInfo[startTime][starID][0] += xGhost;        // Will be used to compute average focal-plane x-coordinate during the exposure
+                        detectedPointLikeGhostInfo[startTime][starID][1] += yGhost;        // Will be used to compute average focal-plane y-coordinate during the exposure
+                        detectedPointLikeGhostInfo[startTime][starID][2] += rowGhost;      // Will be used to compute average pixel row coordinate during the exposure
+                        detectedPointLikeGhostInfo[startTime][starID][3] += columnGhost;   // Will be used to compute average pixel column coordinate during the exposure
+                        detectedPointLikeGhostInfo[startTime][starID][4] += fluxGhost;     // Total flux [photons]
+                        detectedPointLikeGhostInfo[startTime][starID][5] += 1;             // # of times a star was on the sub-field during an exposure
+                    }
+                }
+            }
+        }
+
+        Log.debug("Camera: at time " + to_string(internalTime) + ": incremented flux of " + to_string(numStarsInSubField) + " stars in sub-field");
+        Log.debug("Camera: at time " + to_string(internalTime) + ": incremented flux of " + to_string(numPointLikeGhostsInSubField) + " point-like ghosts in sub-field");
+        Log.debug("Camera: at time " + to_string(internalTime) + ": incremented flux of " + to_string(numExtendedGhostsInSubField) + " extended ghosts in sub-field");
 
 
         // Update the clock. Normally with 'timeStep', but if adding timeStep would overstep
@@ -699,7 +934,136 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
     }
 }
 
+/**
+ * \brief Make a rough selection of stars in the star catalogue, that are on or near the sub-field,
+ *        and the are on or near the field that produces symmetric point-like ghosts on or near the
+ *        sub-field (without accounting for the distance cut-off).  The latter stars are only selected
+ *        if ghosts are to be included in the simulation.
+ * 
+ * To make a rough selection of the stars from the input catalogue that are on or near the sub-field, 
+ * consider all stars that are within a certain distance from the centre of the sub-field:
+ *      - calculate the sky coordinates of the centre of the sub-field (taking field distortion into account, if enabled);
+ *      - the distance between the lower left (00) and the upper right (11) corner of the sub-field will be a 1st-order
+ *        estimate of the diameter of the circle around the centre of the sub-field -> we will enlarge this a bit to be
+ *        on the safe side.
+ * Take a similar approach to select the stars on the opposite side of the optical axis as potential originators of
+ * symmetric point-like ghosts.
+ * 
+ * \param detector: Detector for which to make a rough selection of stars.
+ * \param startTime: Start time of the exposure [s].
+ * \param exposureTime: Duration of one exposure [s].
+ * \param readoutTimeBeforeNextExposure: Duration of the readout that takes place before the next exposure starts [s].
+ * 
+ * \return: Number of selected stars that are on or near the sub-field, and number of selected stars that produces
+ *          symmetric point-like ghosts on or near the sub-field (without accounting for the distance cut-off).  The
+ *          latter is zero if ghosts are not to be included in the simulation.
+ */
+tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure)
+{
+    // Undistorted focal-plane coordinates of the centre, and the lower left and upper right corner
+    // of the sub-field
 
+    double centerSubFieldXmm, centerSubFieldYmm;
+    tie(centerSubFieldXmm, centerSubFieldYmm) = detector.getFocalPlaneCoordinatesOfSubfieldCenter();
+
+    double corner00Xmm, corner00Ymm, corner11Xmm, corner11Ymm, dummy;
+    tie(corner00Xmm, corner00Ymm, dummy, dummy, corner11Xmm, corner11Ymm, dummy, dummy) = detector.getFocalPlaneCoordinatesOfSubfieldCorners();
+
+    // Apply field distortion (if enabled)
+
+    if (includeFieldDistortion)
+    {
+        Log.info("Camera: including field distortion");
+
+        tie(centerSubFieldXmm, centerSubFieldYmm) = distortedToUndistortedFocalPlaneCoordinates(centerSubFieldXmm, centerSubFieldYmm);
+        tie(corner00Xmm, corner00Ymm) = distortedToUndistortedFocalPlaneCoordinates(corner00Xmm, corner00Ymm);
+        tie(corner11Xmm, corner11Ymm) = distortedToUndistortedFocalPlaneCoordinates(corner11Xmm, corner11Ymm);
+    }
+
+    // Calculate the pixel coordinates of the sub-field centre in the CCD reference frame
+    // (just for logging purposes)
+
+    double centerRow, centerCol;
+    tie(centerRow, centerCol) = detector.focalPlaneToPixelCoordinates(centerSubFieldXmm, centerSubFieldYmm);
+
+    Log.debug("Camera: center of subfield at CCD (row, col) = (" + to_string(centerRow) + ", " + to_string(centerCol) + ") pix");
+    Log.debug("Camera: center of subfield at (Xmm, Ymm) = (" + to_string(centerSubFieldXmm) + ", " + to_string(centerSubFieldYmm) + ") mm");
+    Log.debug("Camera: lower left corner of subfield at (Xmm, Ymm) = (" + to_string(corner00Xmm) + ", " + to_string(corner00Ymm) + ") mm");
+    Log.debug("Camera: upper right corner of subfield at (Xmm, Ymm) = (" + to_string(corner11Xmm) + ", " + to_string(corner11Ymm) + ") mm");
+
+    // Conversion to equatorial sky coordinates (alpha, delta) [radians]
+
+    double centerSubFieldRA, centerSubFieldDec;
+    tie(centerSubFieldRA, centerSubFieldDec) = focalPlaneToSkyCoordinates(centerSubFieldXmm, centerSubFieldYmm);
+
+    double corner00RA, corner00Dec;
+    tie(corner00RA, corner00Dec) = focalPlaneToSkyCoordinates(corner00Xmm, corner00Ymm);
+
+    double corner11RA, corner11Dec;
+    tie(corner11RA, corner11Dec) = focalPlaneToSkyCoordinates(corner11Xmm, corner11Ymm);
+
+    Log.debug("Camera: center of subfield at (alpha, delta) = (" + to_string(rad2deg(centerSubFieldRA)) + ", " + to_string(rad2deg(centerSubFieldDec)) + ") deg");
+    Log.debug("Camera: lower left corner of subfield at (alpha, delta) = (" + to_string(rad2deg(corner00RA)) + ", " + to_string(rad2deg(corner00Dec)) + ") deg");
+    Log.debug("Camera: upper right corner of subfield at (alpha, delta) = (" + to_string(rad2deg(corner11RA)) + ", " + to_string(rad2deg(corner11Dec)) + ") deg");
+
+    // Compute the angular distance on the sky between the lower left and the upper right corner
+    // of the sub-field, to estimate the "radius" of the sub-field.
+
+    SkyCoordinates skyCoordinates00(corner00RA, corner00Dec, Angle::radians);
+    SkyCoordinates skyCoordinates11(corner11RA, corner11Dec, Angle::radians);
+
+    double radius = angularDistanceBetween(skyCoordinates00, skyCoordinates11, Angle::radians) / 2.0;   // [radians]
+
+    Log.debug("Camera: semi-diagonal of subfield = " + to_string(rad2deg(radius)) + " deg");
+
+    // Select the stars from the catalogue that are on or near the sub-field (i.e. in a radius 
+    // around the centre of the sub-field). Take the radius a bit larger so that the queried area includes 
+    // possible small shifts of the projected subfield because of jitter.
+
+    const unsigned long numStars = sky.selectStarsWithinRadiusFrom(centerSubFieldRA, centerSubFieldDec, radius * 1.1, Angle::radians);
+    Log.info("Camera: Found " + to_string(numStars) + " stars on and near the sub-field");
+
+    // Select the stars on the opposite side of the optical axis that potentially cause symmetric point-like
+    // ghosts on or near the sub-field.  The cut-off on the distance to the OA is not considered yet.
+
+    unsigned long numPointLikeGhosts = 0;
+
+    if(includeGhosts)
+    {
+        // Apply the same procedure for the originators of symmetric point-like ghosts on or near
+        // the sub-field
+
+        double centerGhostFieldRA, centerGhostFieldDec;
+        tie(centerGhostFieldRA, centerGhostFieldDec) = focalPlaneToSkyCoordinates(-centerSubFieldXmm, -centerSubFieldYmm);
+
+        numPointLikeGhosts = sky.selectGhostOrigsWithinRadiusFrom(centerGhostFieldRA, centerGhostFieldDec, radius * 1.1, Angle::radians);
+        Log.info("Camera: Found " + to_string(numPointLikeGhosts) + " point-like ghosts on and near the sub-field (not distance cut-off incl. yet)");
+    }
+
+    // Apply aberration correction
+
+    if (includeAberrationCorrection)
+    {
+        // The time at the middle of the time series is the time when the Sun is defined to be 180 degrees away from platform pointing
+
+        double timeMiddle = numExposures * (exposureTime + readoutTimeBeforeNextExposure) / 2.0;
+
+        // Get the apparent position of the stars, i.e. apply the differential aberration correction to
+        // the positions of the selected stars and originators of symmetrical point-like ghosts
+        // We do this calcuation only once per exposure as the effect is negligible within the exposure time
+
+        Log.info("Camera: applying " + aberrationCorrectionType + " aberration correction to the selected stars.");
+        sky.aberrateSelectedStarPositions(platform, aberrationCorrectionType, startTime, timeMiddle);
+
+        if(includeGhosts)
+        {
+            Log.info("Camera: applying " + aberrationCorrectionType + " aberration correction to the selected originators of symmetrical point-like ghosts.");
+            sky.aberrateSelectedGhostOrigPositions(platform, aberrationCorrectionType, startTime, timeMiddle);
+        }
+    }
+
+    return tie(numStars, numPointLikeGhosts);
+}
 
 
 
@@ -724,7 +1088,7 @@ void Camera::exposeDetectorWithSkyBackground(Detector &detector, double startTim
 
     if (includeFieldDistortion)
     {
-        Log.info("Camera: including field distortion");
+        Log.info("Camera: correct FP coordinates of subfield center for field distortion");
 
         tie(centerXmm, centerYmm) = distortedToUndistortedFocalPlaneCoordinates(centerXmm, centerYmm);
     }
@@ -935,7 +1299,7 @@ pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFP, double yFP, 
     arma::colvec vecFP = {-xFP / (*focalLength)(), -yFP / (*focalLength)(), 1.0};
 
     // Compute the rotation matrix to convert cartesian coordinates in the focal plane reference frame to
-    // cartesian coordinates in the telescope reference frame
+    // cartesian coordinates in the telescope (TL) reference frame
 
     arma::mat rotFP2TL;
     const double fpAngle = (*focalPlaneAngle)();
@@ -943,7 +1307,7 @@ pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFP, double yFP, 
              << sin(fpAngle) <<  cos(fpAngle) << 0 << arma::endr
              <<     0        <<       0       << 1 << arma::endr;
 
-    // Get the rotation matrices Telescope -> Spacecraft and Spacecraft -> Equatorial
+    // Get the rotation matrices Telescope (TL) -> Spacecraft (SC) and Spacecraft -> Equatorial (EQ)
 
     arma::mat rotSC2EQ;
     arma::mat rotTL2SC;
