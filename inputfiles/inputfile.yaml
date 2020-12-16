@@ -95,7 +95,7 @@ Camera:
         Extended:
             FluxRatio:               0.00003                    # Flux ratio between the extended ghost and the originating source [%]
             RadiusCoefficients:      [0.0062, -0.0251, 1.8402]  # Coefficients of the 2nd-degree polynomial (in distance from the optical axis), describing the radius of the (circular) extended source
-            DistanceRatio:           1.065                      # Ratio of the distance of the (centroid of the) extended ghost to the optical axis, w.r.t. the distance of the originating source to the optical axis
+            DistanceRatio:           1.065                      # For a star at FP-coordinates (x, y), the centre of the extended ghost will be at (distanceRatio * x, distanceRatio * y)
 
 
 PSF:
