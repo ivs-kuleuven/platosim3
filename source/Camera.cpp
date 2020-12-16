@@ -555,6 +555,8 @@ void Camera::configure(ConfigurationParameters &configParam)
     }
 
 
+    // Configure the ghost star parameters 
+
     includeGhosts = configParam.getBoolean("Camera/IncludeGhosts");
 
     if(includeGhosts)
@@ -1096,7 +1098,7 @@ void Camera::exposeDetectorWithSkyBackground(Detector &detector, double startTim
 
     if (includeFieldDistortion)
     {
-        Log.info("Camera: including field distortion");
+        Log.info("Camera: correct FP coordinates of subfield center for field distortion");
 
         tie(centerXmm, centerYmm) = distortedToUndistortedFocalPlaneCoordinates(centerXmm, centerYmm);
     }
@@ -1307,7 +1309,7 @@ pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFP, double yFP, 
     arma::colvec vecFP = {-xFP / (*focalLength)(), -yFP / (*focalLength)(), 1.0};
 
     // Compute the rotation matrix to convert cartesian coordinates in the focal plane reference frame to
-    // cartesian coordinates in the telescope reference frame
+    // cartesian coordinates in the telescope (TL) reference frame
 
     arma::mat rotFP2TL;
     const double fpAngle = (*focalPlaneAngle)();
@@ -1315,7 +1317,7 @@ pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFP, double yFP, 
              << sin(fpAngle) <<  cos(fpAngle) << 0 << arma::endr
              <<     0        <<       0       << 1 << arma::endr;
 
-    // Get the rotation matrices Telescope -> Spacecraft and Spacecraft -> Equatorial
+    // Get the rotation matrices Telescope (TL) -> Spacecraft (SC) and Spacecraft -> Equatorial (EQ)
 
     arma::mat rotSC2EQ;
     arma::mat rotTL2SC;
