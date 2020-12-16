@@ -735,6 +735,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("ThroughputBandwidth");
     addDouble("ThroughputLambdaC");
     addBoolean("IncludeFieldDistortion");
+    addBoolean("IncludeGhosts");
     subGroup = "Camera/FieldDistortion";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addString("Type");
@@ -753,6 +754,18 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addString("Source");
     addDouble("ConstantValue");
     addString("FromFile");
+
+    subGroup = "Camera/Ghosts";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    subGroup = "Camera/Ghosts/PointLike";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addDouble("FluxRatio");
+    addDouble("DistanceCutOff");
+    subGroup = "Camera/Ghosts/Extended";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addDouble("FluxRatio");
+    addDouble("DistanceRatio");
+    addDoubleVector("RadiusCoefficients");
 
     subGroup = "PSF";
     hdf5File->createGroup(parentGroup + "/" + subGroup);

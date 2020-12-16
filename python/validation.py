@@ -65,6 +65,7 @@ def switchOffAllEffects(sim):
 
     sim["Camera/IncludeAberrationCorrection"] = "no"
     sim["Camera/IncludeFieldDistortion"] = "no"
+    sim["Camera/IncludeGhosts"] = "no"
     
     # PSF parameters
 
