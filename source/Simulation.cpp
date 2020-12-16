@@ -754,6 +754,9 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addString("Source");
     addDouble("ConstantValue");
     addString("FromFile");
+
+    subGroup = "Camera/Ghosts";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
     subGroup = "Camera/Ghosts/PointLike";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addDouble("FluxRatio");
