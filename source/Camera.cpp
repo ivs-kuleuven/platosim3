@@ -561,7 +561,7 @@ void Camera::configure(ConfigurationParameters &configParam)
 
     if(includeGhosts)
     {
-        distanceCutOffPointLikeGhosts = deg2rad(configParam.getDouble("Camera/Ghosts/PointLike/DistanceCutOff"));
+        distanceCutOffPointLikeGhosts = deg2rad(configParam.getDouble("Camera/Ghosts/PointLike/DistanceCutOff"));   // [radians]
         fluxRatioPointLikeGhosts = configParam.getDouble("Camera/Ghosts/PointLike/FluxRatio") / 100.0;
         distanceRatioExtendedGhosts = configParam.getDouble("Camera/Ghosts/Extended/DistanceRatio");
         fluxRatioExtendedGhosts = configParam.getDouble("Camera/Ghosts/Extended/FluxRatio") / 100.0;
@@ -704,6 +704,7 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
     double raStar, decStar, magStar, rowStar, columnStar, xStar, yStar, fluxStar;
     double rowGhost, columnGhost, xGhost, yGhost, fluxGhost, radiusExtendedGhost, distanceOA;
     bool isStarInSubField, isGhostInSubField;
+    array<double, 3> coefficients;
     
     // Take the flux of the stars and ghosts (if enabled) into account, breaking up the
     // exposure time in small (heartbeat) intervals to track jitter during exposure
@@ -717,7 +718,8 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
         detector.updateParameters(internalTime);
         sky.updateParameters(internalTime);
 
-        const array<double, 3> coefficients = (*extendedGhostRadiusCoefficients)();
+        if(includeGhosts)
+            coefficients = (*extendedGhostRadiusCoefficients)();
 
         // Loop over the selected stars and add their flux to the sub-fild
         // Also add the extended ghosts (if enabled)
@@ -843,83 +845,87 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
             }
         }
 
-        // Loop over the selected originators of symmetric point-like ghosts and
-        // add their flux to the sub-field (if enabled)
-
-        numPointLikeGhostsInSubField = 0;
-
-        for (unsigned int starIndex = 0; starIndex < numPointLikeGhosts; starIndex++)
+        if(includeGhosts)
         {
-            // Calculate the focal-plane coordinates of the ghost produced by the current star
-            // (apply field distortion, if enabled)
+            // Loop over the selected originators of symmetric point-like ghosts and
+            // add their flux to the sub-field (if enabled)
 
-            tie(starID, raStar, decStar, magStar) = sky.getSelectedGhostOrig(starIndex);    // Sky coordinates of the originator [radians]
-            tie(xStar, yStar) = skyToFocalPlaneCoordinates(raStar, decStar);                // Focal-plane coordinate of the originator [mm]
+            numPointLikeGhostsInSubField = 0;
 
-            if (includeFieldDistortion)
+            for (unsigned int starIndex = 0; starIndex < numPointLikeGhosts; starIndex++)
             {
-                tie(xStar, xStar) = undistortedToDistortedFocalPlaneCoordinates(xStar, xStar);
-            }
+                // Calculate the focal-plane coordinates of the ghost produced by the current star
+                // (apply field distortion, if enabled)
 
-            // Consider the distance cut-off
-            // (only sources that are close enough to the OA will produce a symmetric point-like ghost)
-            
-            if(this->getGnomonicRadialDistanceFromOpticalAxis(xStar, yStar) < distanceCutOffPointLikeGhosts)
-            {
+                tie(starID, raStar, decStar, magStar) = sky.getSelectedGhostOrig(starIndex);    // Sky coordinates of the originator [radians]
+                tie(xStar, yStar) = skyToFocalPlaneCoordinates(raStar, decStar);                // Focal-plane coordinate of the originator [mm]
 
-                Log.info("Made it through the distance cut-off: " + to_string(-xStar) + ", " + to_string(-yStar));
-
-                // Focal-plane coordinates of the centre of the symmetric point-like ghost
-
-                xGhost = -xStar;     // Symmetry w.r.t. OA
-                yGhost = -yStar;     // Symmetry w.r.t. OA
-
-                // Total flux of the originator acquired over the time step [photons]
-                // (photons are always an integer number, so round down)
-
-                // fluxStar = floor(fluxFactor * pow(10.0, -0.4 * magStar) * timeStep);
-
-                // Total flux of the symmetric point-like source ghost acquired over the time step [photons]
-                //  -> fraction of the flux of the originating star
-                // (photons are always an integer number, so round down)
-
-                fluxGhost = floor(fluxFactor * pow(10.0, -0.4 * magStar) * timeStep * fluxRatioPointLikeGhosts);
-
-                // Try to add the flux at the appropriate pixel in the sub-field
-                // Returned:
-                //      - whether or not the source falls in the sub-field
-                //      - sub-field (not CCD) row and column number at which the flux was added
-
-                tie(isGhostInSubField, rowGhost, columnGhost) = detector.addFlux(xGhost, yGhost, fluxGhost);
-
-                // If the symmetric point-like ghosts is indeed in the sub-field, collect the following information to later write to HDF5:
-                //    1) average focal-plane coordinates (x, y) of the symmetric point-like during the exposure [mm]
-                //    2) average pixel coordinates (row, column) of the symmetric point-like on the CCD during the exposure [pixels]
-                //    3) the total number of photons gathered of this symmetric point-like during the exposure [photons]
-                //    4) the total number of times that the symmetric point-like was in the sub-field during the exposure
-                // Note: Due to jitter, the symmetric point-like can move in and out the sub-field during the exposure
-
-                if(isGhostInSubField)
+                if (includeFieldDistortion)
                 {
-                    numPointLikeGhostsInSubField++;
+                    tie(xStar, xStar) = undistortedToDistortedFocalPlaneCoordinates(xStar, xStar);
+                }
 
-                    if(detectedPointLikeGhostInfo.find(startTime) == detectedPointLikeGhostInfo.end())
-                    {
-                        detectedPointLikeGhostInfo[startTime][starID] = {{xGhost, yGhost, rowGhost, columnGhost, fluxGhost, 1.0}};
-                    }
+                // Consider the distance cut-off
+                // (only sources that are close enough to the OA will produce a symmetric point-like ghost)
+                
+                if(this->getGnomonicRadialDistanceFromOpticalAxis(xStar, yStar) < distanceCutOffPointLikeGhosts)
+                {
 
-                    else
+                    Log.info("Made it through the distance cut-off: " + to_string(-xStar) + ", " + to_string(-yStar));
+
+                    // Focal-plane coordinates of the centre of the symmetric point-like ghost
+
+                    xGhost = -xStar;     // Symmetry w.r.t. OA
+                    yGhost = -yStar;     // Symmetry w.r.t. OA
+
+                    // Total flux of the originator acquired over the time step [photons]
+                    // (photons are always an integer number, so round down)
+
+                    // fluxStar = floor(fluxFactor * pow(10.0, -0.4 * magStar) * timeStep);
+
+                    // Total flux of the symmetric point-like source ghost acquired over the time step [photons]
+                    //  -> fraction of the flux of the originating star
+                    // (photons are always an integer number, so round down)
+
+                    fluxGhost = floor(fluxFactor * pow(10.0, -0.4 * magStar) * timeStep * fluxRatioPointLikeGhosts);
+
+                    // Try to add the flux at the appropriate pixel in the sub-field
+                    // Returned:
+                    //      - whether or not the source falls in the sub-field
+                    //      - sub-field (not CCD) row and column number at which the flux was added
+
+                    tie(isGhostInSubField, rowGhost, columnGhost) = detector.addFlux(xGhost, yGhost, fluxGhost);
+
+                    // If the symmetric point-like ghosts is indeed in the sub-field, collect the following information to later write to HDF5:
+                    //    1) average focal-plane coordinates (x, y) of the symmetric point-like during the exposure [mm]
+                    //    2) average pixel coordinates (row, column) of the symmetric point-like on the CCD during the exposure [pixels]
+                    //    3) the total number of photons gathered of this symmetric point-like during the exposure [photons]
+                    //    4) the total number of times that the symmetric point-like was in the sub-field during the exposure
+                    // Note: Due to jitter, the symmetric point-like can move in and out the sub-field during the exposure
+
+                    if(isGhostInSubField)
                     {
-                        detectedPointLikeGhostInfo[startTime][starID][0] += xGhost;        // Will be used to compute average focal-plane x-coordinate during the exposure
-                        detectedPointLikeGhostInfo[startTime][starID][1] += yGhost;        // Will be used to compute average focal-plane y-coordinate during the exposure
-                        detectedPointLikeGhostInfo[startTime][starID][2] += rowGhost;      // Will be used to compute average pixel row coordinate during the exposure
-                        detectedPointLikeGhostInfo[startTime][starID][3] += columnGhost;   // Will be used to compute average pixel column coordinate during the exposure
-                        detectedPointLikeGhostInfo[startTime][starID][4] += fluxGhost;     // Total flux [photons]
-                        detectedPointLikeGhostInfo[startTime][starID][5] += 1;             // # of times a star was on the sub-field during an exposure
+                        numPointLikeGhostsInSubField++;
+
+                        if(detectedPointLikeGhostInfo.find(startTime) == detectedPointLikeGhostInfo.end())
+                        {
+                            detectedPointLikeGhostInfo[startTime][starID] = {{xGhost, yGhost, rowGhost, columnGhost, fluxGhost, 1.0}};
+                        }
+
+                        else
+                        {
+                            detectedPointLikeGhostInfo[startTime][starID][0] += xGhost;        // Will be used to compute average focal-plane x-coordinate during the exposure
+                            detectedPointLikeGhostInfo[startTime][starID][1] += yGhost;        // Will be used to compute average focal-plane y-coordinate during the exposure
+                            detectedPointLikeGhostInfo[startTime][starID][2] += rowGhost;      // Will be used to compute average pixel row coordinate during the exposure
+                            detectedPointLikeGhostInfo[startTime][starID][3] += columnGhost;   // Will be used to compute average pixel column coordinate during the exposure
+                            detectedPointLikeGhostInfo[startTime][starID][4] += fluxGhost;     // Total flux [photons]
+                            detectedPointLikeGhostInfo[startTime][starID][5] += 1;             // # of times a star was on the sub-field during an exposure
+                        }
                     }
                 }
             }
         }
+
 
         Log.debug("Camera: at time " + to_string(internalTime) + ": incremented flux of " + to_string(numStarsInSubField) + " stars in sub-field");
         Log.debug("Camera: at time " + to_string(internalTime) + ": incremented flux of " + to_string(numPointLikeGhostsInSubField) + " point-like ghosts in sub-field");
@@ -1033,8 +1039,12 @@ tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &d
         // Apply the same procedure for the originators of symmetric point-like ghosts on or near
         // the sub-field
 
+        Log.debug("Camera: center of ghost field at (Xmm, Ymm) = (" + to_string(-centerSubFieldXmm) + ", " + to_string(-centerSubFieldYmm) + ") mm");
+
         double centerGhostFieldRA, centerGhostFieldDec;
         tie(centerGhostFieldRA, centerGhostFieldDec) = focalPlaneToSkyCoordinates(-centerSubFieldXmm, -centerSubFieldYmm);
+
+        Log.debug("Camera: center of ghost field at (alpha, delta) = (" + to_string(rad2deg(centerGhostFieldRA)) + ", " + to_string(rad2deg(centerGhostFieldDec)) + ") deg");
 
         numPointLikeGhosts = sky.selectGhostOrigsWithinRadiusFrom(centerGhostFieldRA, centerGhostFieldDec, radius * 1.1, Angle::radians);
         Log.info("Camera: Found " + to_string(numPointLikeGhosts) + " point-like ghosts on and near the sub-field (not distance cut-off incl. yet)");
