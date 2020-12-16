@@ -561,7 +561,7 @@ void Camera::configure(ConfigurationParameters &configParam)
 
     if(includeGhosts)
     {
-        distanceCutOffPointLikeGhosts = deg2rad(configParam.getDouble("Camera/Ghosts/PointLike/DistanceCutOff"));
+        distanceCutOffPointLikeGhosts = deg2rad(configParam.getDouble("Camera/Ghosts/PointLike/DistanceCutOff"));   // [radians]
         fluxRatioPointLikeGhosts = configParam.getDouble("Camera/Ghosts/PointLike/FluxRatio") / 100.0;
         distanceRatioExtendedGhosts = configParam.getDouble("Camera/Ghosts/Extended/DistanceRatio");
         fluxRatioExtendedGhosts = configParam.getDouble("Camera/Ghosts/Extended/FluxRatio") / 100.0;
