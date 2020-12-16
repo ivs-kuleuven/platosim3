@@ -341,7 +341,8 @@ class SimFile (object):
 
 
 
-    def showImage(self, imageNr, clipPercentile=5.0, showStarPositions=False, showStarIDs=False, showMaskOfStarID=None, useTitle=True):
+    def showImage(self, imageNr, clipPercentile=5.0, showStarPositions=False, showPointLikeGhostPositions=False, 
+                  minVmag=None, maxVmag=None, showStarIDs=False, showMaskOfStarID=None, useTitle=True):
 
         """
         PURPOSE: make a plot of the requested image 
@@ -351,6 +352,12 @@ class SimFile (object):
                                               to improve the image contrast. 
                 showStarPositions: True if the average star positions (averaged over the exposure)
                                    should be shown with a small green cross. False otherwise.
+                showPointLikeGhostPositions: True if the average pointlike ghost position (averaged over the exposure)
+                                             should be shown with a small blue cross. False otherwisse.
+                minVmag: the minimum V magnitude of the stars/ghosts for which the position should be marked on the image
+                         only relevant if either showStarPositions or showPointLikeGhostPositions is True.
+                maxVmag: the maximum V magnitude of the stars/ghosts for which the position should be marked on the image
+                         only relevant if either showStarPositions or showPointLikeGhostPositions is True.
                 showStarIDs: Put small labels with the star IDs next to the star positions
                              Will only be executed if showStarPositions=True is set.
                 showMaskOfStarID: draw rectangles around the pixels of the mask that is used to extract the flux
@@ -387,8 +394,18 @@ class SimFile (object):
         # If required, overplot the true averaged star positions
 
         if showStarPositions:
-            ID, row, col, Xmm, Ymm, flux = self.getStarCoordinates(imageNr)
+            ID, row, col, Xmm, Ymm, flux = self.getStarCoordinates(imageNr, minVmag=minVmag, maxVmag=maxVmag)
             axis.scatter(col, row, marker='x', c='g') 
+            if showStarIDs:
+                for k in range(len(ID)):
+                    label = "{0}".format(ID[k])   
+                    axis.annotate(label, (col[k], row[k]), fontsize='small', fontweight='extra bold', color="black")    
+
+        # If required, overplot the true averaged pointlike ghost positions
+
+        if showPointLikeGhostPositions:
+            ID, row, col, Xmm, Ymm, flux = self.getPointLikeGhostCoordinates(imageNr, minVmag=minVmag, maxVmag=maxVmag)
+            axis.scatter(col, row, marker='o', s=6, c='b') 
             if showStarIDs:
                 for k in range(len(ID)):
                     label = "{0}".format(ID[k])   
