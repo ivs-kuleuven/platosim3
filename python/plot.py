@@ -112,8 +112,8 @@ def drawStarsInSkyMollweide(fig, ra, dec ):
     """
     PURPOSE: Project and plot the stars with the given right ascension and declination on the sky
 
-    INPUT: ra:      right ascension of the stars             [rad]
-           dec:     declination of the areA                 [rad]
+    INPUT: ra:      right ascension of the stars             [degrees]
+           dec:     declination of the areA                 [degrees]
 
     OUTPUT: None
     """
