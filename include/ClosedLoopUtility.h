@@ -10,7 +10,7 @@
 #include "Logger.h"
 
 
-
+typedef unsigned int uint;
 
 
 // this class governs the sending and receiving of messages between the used 
