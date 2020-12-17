@@ -386,6 +386,10 @@ tuple<bool, double, double> DetectorWithAnalyticGaussianPSF::addFlux(double xFP,
 
     // Depending on the angular distance from the optical axis, the PSF increases in size. 
     // Determine the standard deviations in both directions.
+    // Recall:
+    //    sigma00:    Stdev of Gaussian PSF in x- and y-direction at the optical axis      [pix]
+    //    sigmaX18:   Stdev of Gaussian PSF in x-direction at 18 deg from the optical axis [pix]
+    //    sigmaY18;   Stdev of Gaussian PSF in y-direction at 18 deg from the optical axis [pix]
 
     const double theta = rad2deg(camera.getGnomonicRadialDistanceFromOpticalAxis(xFP, yFP));
     const double sigmaX = sigma00 + theta/18.0  * (sigmaX18 - sigma00);
