@@ -118,7 +118,7 @@ class Camera : public HDF5Writer
 
         bool includeGhosts;                                         // Whether or not to include ghosts
         double distanceCutOffPointLikeGhosts;                       // Beyond this distance from the optical axis [degrees], sources don't produce point-like ghosts anymore
-        double fluxRatioPointLikeGhosts;                            // Flux ratio between the point-like ghost and the originating source [%]
+        double fluxRatioOnAxisPointLikeGhosts;                      // Flux ratio between the point-like ghost and the originating source on-axis [%] -> linear decrease
         double distanceRatioExtendedGhosts;                         // For a star at FP-coordinates (x, y), the centre of the extended ghost will be at (distanceRatio * x, distanceRatio * y)
         double fluxRatioExtendedGhosts;                             // Flux ratio between the extended ghost and the originating source [%]
         Parameter<double, 3> *extendedGhostRadiusCoefficients;      // Coefficients of the 2nd-degree polynomial (in distance from the optical axis), describing the radius of the (circular) extended source
