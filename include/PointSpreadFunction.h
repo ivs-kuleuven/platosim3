@@ -29,6 +29,7 @@ class PointSpreadFunction : public HDF5Writer
 
         virtual void rotate(double angle){};
 
+        int getNumSubPixelsPerPixel(){return numberOfSubPixelsPerPixel;};
         arma::fmat rebinToSubPixels(unsigned int targetSubPixels);
 
     protected:
