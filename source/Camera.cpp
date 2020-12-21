@@ -562,7 +562,7 @@ void Camera::configure(ConfigurationParameters &configParam)
     if(includeGhosts)
     {
         distanceCutOffPointLikeGhosts = deg2rad(configParam.getDouble("Camera/Ghosts/PointLike/DistanceCutOff"));   // [radians]
-        fluxRatioPointLikeGhosts = configParam.getDouble("Camera/Ghosts/PointLike/FluxRatio") / 100.0;
+        fluxRatioOnAxisPointLikeGhosts = configParam.getDouble("Camera/Ghosts/PointLike/FluxRatio") / 100.0;
         distanceRatioExtendedGhosts = configParam.getDouble("Camera/Ghosts/Extended/DistanceRatio");
         fluxRatioExtendedGhosts = configParam.getDouble("Camera/Ghosts/Extended/FluxRatio") / 100.0;
 
@@ -702,7 +702,7 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
     unsigned int numStarsInSubField, numExtendedGhostsInSubField, numPointLikeGhostsInSubField;
     unsigned long starID;
     double raStar, decStar, magStar, rowStar, columnStar, xStar, yStar, fluxStar;
-    double rowGhost, columnGhost, xGhost, yGhost, fluxGhost, radiusExtendedGhost, distanceOA;
+    double rowGhost, columnGhost, xGhost, yGhost, fluxGhost, radiusExtendedGhost, distanceOA, fluxRatioPointLikeGhosts;
     bool isStarInSubField, isGhostInSubField;
     array<double, 3> coefficients;
     
@@ -867,11 +867,17 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
 
                 // Consider the distance cut-off
                 // (only sources that are close enough to the OA will produce a symmetric point-like ghost)
-                
-                if(this->getGnomonicRadialDistanceFromOpticalAxis(xStar, yStar) < distanceCutOffPointLikeGhosts)
-                {
 
-                    Log.info("Made it through the distance cut-off: " + to_string(-xStar) + ", " + to_string(-yStar));
+                distanceOA = this->getGnomonicRadialDistanceFromOpticalAxis(xStar, yStar);      // [radians]
+                
+                if(distanceOA < distanceCutOffPointLikeGhosts)
+                {
+                    // Linear decrease in flux ratio from on-axis (fluxRatioOnAxisPointLikeGhosts) to the distance
+                    // cut-off (distanceCutOffPointLikeGhosts), where the fluxRatio is zero.  Beyond the distance
+                    // cut-off no point-like ghosts will occur (as the reflected rays will not make it through the
+                    // pupil around L3)
+    
+                    fluxRatioPointLikeGhosts = (-fluxRatioOnAxisPointLikeGhosts * distanceOA / distanceCutOffPointLikeGhosts) + fluxRatioOnAxisPointLikeGhosts;
 
                     // Focal-plane coordinates of the centre of the symmetric point-like ghost
 
