@@ -159,6 +159,13 @@ void DetectorWithAsymmetricalMappedPSF::setPsfForSubfield()
 
     psf->select(xFPmm, yFPmm);
 
+    if(psf->getNumSubPixelsPerPixel() < numSubPixelsPerPixel)
+    {
+        throw IllegalArgumentException(string("DetectorWithAsymmetricalMappedPSF.setPsfForSubfield: ") + 
+            "The sub-pixel resolution of the PSF (" + to_string(psf->getNumSubPixelsPerPixel()) +
+                    ") must be at least that of the sub-field (" + to_string(numSubPixelsPerPixel) + ")");
+    }
+
     //  Compensate for the orientation of the CCD wrt focal plane orientation.
 
     psf->rotate(-rotationAnglePsf);
