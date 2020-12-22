@@ -561,6 +561,15 @@ Camera:
         ConstantInverseCoefficients: [-0.317143032936, 0.242638513347, -0.459260203502]
         CoefficientsFromFile:        inputfiles/distortioncoefficients.txt
         InverseCoefficientsFromFile: inputfiles/distortioninversecoefficients.txt
+    IncludeGhosts:                   yes
+    Ghosts:
+        PointLike:
+            FluxRatio:               0.08
+            DistanceCutOff:          8
+        Extended:
+            FluxRatio:               0.00003
+            RadiusCoefficients:      [0.0062, -0.0251, 1.8402]
+            DistanceRatio:           1.065
 \endcode
 
 
@@ -716,6 +725,51 @@ Coefficients for inverse polynomial of the polynomial describing the field disto
 #### <a name="fieldDistortionInverseCoefficientsConstant"></a>FieldDistortion: InverseCoefficientsFromFile
 
 Inverse coefficients for inverse polynomial of the polynomial describing the field distortion, in case the coefficients must be read from a file ([FieldDistortion: Source](#fieldDistortionSource) = ConstantValue).
+
+
+### <a name="includeGhosts"></a>IncludeGhosts
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not ghosts must be added to the simulated images.
+
+
+### <a name="ghosts"></a>Ghosts
+
+Sources in the FOV can produces two types of ghosts:
+
+1. an extended ghost, further away from the optical axis, caused by reflections on the CCD surface and the back surface of L6;
+2. a point-like ghosts, at the opposite side of the optical axis, caused by reflections on the CCD surface and both window surfaces.
+
+Note that the flux loss of the sources (due to reflection off the CCD surface) is included in the [quantum efficiency](#quantumEfficiency).
+
+
+#### <a name="pointLikeGhosts"></a>Ghosts: PointLike
+
+A star at focal-plane coordinates $(x, y)$ will produce a point-like ghost at focal-plane coordinates $(-x, -y)$, as long as it is within the [distance cut-off](#pointLikeGhostsDistanceCutOff) from the optical axis.
+
+##### <a name="pointLikeGhostsFluxRatio"></a>Ghosts: PointLike: FluxRatio
+
+Irradiance ratio of the point-like ghost w.r.t. the source producing it, expressed in %, measured on-axis.  The flux ratio off-axis decreases linearly from the optical axis to the [distance cut-off](#pointLikeGhostsDistanceCutOff) (where it drops to zero), due to vignetting by the pupil around L3.
+
+##### <a name="pointLikeGhostsDistanceCutOff"></a>Ghosts: PointLike: DistanceCutOff
+
+Distance from the optical axis beyond which sources no longer produce point-like ghosts, expressed in degrees.  At this distance, the flux ratio has dropped to zero.
+
+#### <a name="extendedGhosts"></a>Ghosts: Extended
+
+A star at focal-plane coordinates $(x, y)$ will produce an extended ghost further away from the optical axis.
+
+##### <a name="extendedGhostsFluxRatio"></a>Ghosts: Extended: FluxRatio
+
+Irradiance ratio of the extended ghost w.r.t. the source producing it, expressed in %.
+
+##### <a name="extendedGhostsRadius"></a>Ghosts: Extended: RadiusCoefficients
+
+Coefficients of the 2nd-degree polynomial (in distance from the optical axis), describing the radius of the (circular) extended source.
+
+##### <a name="extendedGhostsDistanceRatio"></a>Ghosts: Extended: DistanceRatio
+
+A star at focal-plane coordinates $(x, y)$ will produce a ghost at focal-plane coordinates $(distanceRatio \cdot x, distanceRatio \cdot y)$.
 
 ---
 
