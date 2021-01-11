@@ -16,6 +16,10 @@
 * Input file of the photometry tutorial needs to be updated (GitHub issue #368)
 * Edge effects introduced by convolution with non-analytical PSF (GitHub issue #357)
 * Full-image smearing strange value for column 2254 (GitHub issue #450)
+* isnan ambiguous in Detector.cpp (GitHub issue #492)
+* Some trouble with the routine createStarCatalogFileFromPixelCoordinates (GitHub issue #506)
+* Analytical Non Gaussian PSF: strange orientation of the PSF on the CCD (GitHub issue #511)
+* Use of a MappedFromFileAsymmetrical PSF with sub-pixel resolution is 1/64 generates an error (GitHub issue #530)
 
 ## Changed
 
@@ -23,6 +27,7 @@
 * Read BFE coefficients from file instead of calculating them (GitHub issue #434)
 * CCD ID new standard (GitHub issue #416)
 * Implemented time-dependent CTI (GitHub issue #476)
+* Unique ID needed in ClosedLoopUtility and Log-File (GitHub issue #488)
 
 ## Added
 
@@ -34,6 +39,8 @@
 * Transmission variation as a function of FOV (GitHub issue #415)
 * Validation & verification notebooks
 * Group all contributions to the overall relative transmissivity (GitHub issue #478)
+* Implement ghosts (GitHub issue #515)
+* Add linear irradiance ratio decrease of point-like ghosts (GitHub issue #526)
 
 
 
