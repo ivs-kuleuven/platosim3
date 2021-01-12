@@ -816,34 +816,39 @@ class SimFile (object):
     def getPointLikeGhostCoordinates(self, imageNr, minVmag = None, maxVmag = None):
 
         """
-        PURPOSE: get the (fractional) pixel coordinates of all pointlike ghost stars in the given image
+        PURPOSE: Get the star ID, pixel and focal-plane coordinates, and flux of all point-like ghosts
+                 in the given image.
 
-        INPUT: imageNr: integer sequential number of the image in the HDF5 file
-               minVmag: minimum V magnitiude. Only return ghost stars fainter than minVmag.
-                        Should be 'None' if no cut in minimum magnitude should be made.
-               maxVmag: maximum V magnitude. Only return ghost stars brighter than maxVmag.
-                        Should be 'None' if no cut in minimum magnitude should be made.
+        INPUT:
+            - imageNr: Integer sequential number of the image in the HDF5 file.
+            - minVmag: Minimum V magnitude of the stars causing the point-like ghosts. Only return ghosts for which
+                       the originating star is fainter than minVmag.
+                       Should be 'None' if no cut in minimum magnitude should be made.
+            - maxVmag: Maximum V magnitude of the stars causing the point-like ghosts. Only return ghosts for which
+                       the originating star is brighter than maxVmag.
+                       Should be 'None' if no cut in maximum magnitude should be made.
 
-        OUTPUT: starIDs: integer numpy array containing the ghost star identifiers of those
-                         stars visible in the current image (subfield). If no star IDs was
-                         given in the input star catalog file, the identifier equals the line number 
-                         of the star in the input star catalog (counting from 0). 
-                row: The pixel row coordinates of each star in the image (float).
-                col: The pixel column coordinates of each star in the image (float).
-                Xmm: The focal plane FP' x-coordinates of each star in the image
-                Ymm: The focal plane FP' y-coordinates of each star in the image
-                flux: The flux of each star in the image [photons]
+        OUTPUT: 
+            - starIDs: Integer numpy array containing the star IDs of the stars (as mentioned in the
+                       input catalogue) that cause point-like ghosts in the current image.  If no star ID
+                       was given in the input star catalogue file, the identifier equals the line number 
+                       of the star in the input star catalogue (counting from 0). 
+            - row: Pixel row coordinates of each star in the image (float).
+            - col: Pixel column coordinates of each star in the image (float).
+            - Xmm: Focal-plane x-coordinates of each star in the image.
+            - Ymm: Focal plane y-coordinates of each star in the image.
+            - flux: Flux of each point-like ghost in the image [photons].
 
 
         REMARKS: 
-            - The coordinates returned are the time-averaged coordinates of the stars during the exposure.
+            - The coordinates returned are the time-averaged coordinates of the point-like ghosts during the exposure.
             
             - To get the pixel with the higest flux of star #0, given its (row, col) coordinates:
               >>> im = file.getImage(0)
               >>> ID, row, col, Xmm, Ymm, flux = file.getPointLikeGhostCoordinates(4, minVmag=6.0, maxVmag=9.0)  
               >>> im[int(row[0]), int(col[0])]
 
-            - To use this function to overplot the positions of the pointlike ghost stars on an image plotted by 
+            - To use this function to overplot the positions of the point-like ghost on an image plotted by 
               showImage(), use plt.scatter(floor(col), floor(row)) because showImage uses 
               matplotlib.imshow() which switches rows and columns.
 
@@ -853,12 +858,12 @@ class SimFile (object):
             >>> file.showImage(4)
             >>> ID, row, col, Xmm, Ymm, flux = file.getPointLikeGhostCoordinates(4, minVmag=6.0, maxVmag=9.0)
             >>> plt.scatter(floor(col), floor(row), marker='x', c='g')
-
         """
 
-        # Check if the pointlike ghost info was saved to the HDF5 file
+        # Check if the point-like ghost info was saved to the HDF5 file
 
         if "PointLikeGhostPositions" not in self.hdf5file["/"].keys():
+
             print("Error: no group PointLikeGhostPositions in the HDF5 file.")
             return None, None, None, None, None, None
 
@@ -871,6 +876,7 @@ class SimFile (object):
         # Check if the arrays are in the file. If not: complain, if yes: copy the contents into a numpy array.
 
         if exposureGroupName not in self.hdf5file["PointLikeGhostPositions"].keys():
+
             print("Error: SimfFile.getPointLikeGhostCoordinates(): {0} not in hdf5 file".format(exposureGroupName))
             return None, None, None, None, None, None
 
@@ -902,7 +908,7 @@ class SimFile (object):
         dataset.read_direct(flux)
 
         
-        # Make sure that the pointlike ghost star IDs are sorted
+        # Make sure that the point-like ghost star IDs are sorted
 
         sorted = np.argsort(starIDs)
         starIDs = starIDs[sorted]
@@ -918,7 +924,7 @@ class SimFile (object):
         if (minVmag == None) and (maxVmag == None):
             return starIDs, row, col, Xmm, Ymm, flux
 
-        # If a cut in magnitude is required, first get the magnitudes from the star input catalog.
+        # If a cut in magnitude is required, first get the magnitudes from the star input catalogue
 
         inputStarIDs, RA, decl, Vmag, xFPmm, yFPmm, rowPix, colPix = self.getStarCatalog()
         subFieldVmag = Vmag[np.in1d(inputStarIDs, starIDs)]
@@ -937,6 +943,150 @@ class SimFile (object):
         # That's it!
        
         return starIDs[selection], row[selection], col[selection], Xmm[selection], Ymm[selection], flux[selection]
+
+
+    
+
+
+
+
+
+    def getExtendedGhostCoordinates(self, imageNr, minVmag = None, maxVmag = None):
+
+        """
+        PURPOSE: Get the star ID, pixel and focal-plane coordinates, flux, and radius of all extended ghosts
+                 in the given image.
+
+        INPUT:
+            - imageNr: Integer sequential number of the image in the HDF5 file.
+            - minVmag: Minimum V magnitude of the stars causing the extended ghosts. Only return ghosts for which
+                       the originating star is fainter than minVmag.
+                       Should be 'None' if no cut in minimum magnitude should be made.
+            - maxVmag: Maximum V magnitude of the stars causing the extended ghosts. Only return ghosts for which
+                       the originating star is brighter than maxVmag.
+                       Should be 'None' if no cut in maximum magnitude should be made.
+
+        OUTPUT: 
+            - starIDs: Integer numpy array containing the star IDs of the stars (as mentioned in the
+                       input catalogue) that cause extended ghosts in the current image.  If no star ID
+                       was given in the input star catalogue file, the identifier equals the line number 
+                       of the star in the input star catalogue (counting from 0). 
+            - row: Pixel row coordinates of each star in the image (float).
+            - col: Pixel column coordinates of each star in the image (float).
+            - Xmm: Focal-plane x-coordinates of each star in the image.
+            - Ymm: Focal plane y-coordinates of each star in the image.
+            - flux: Flux of each extended ghost in the image [photons].
+            - radius: Radius of the extended ghost [mm].
+
+
+        REMARKS: 
+            - The coordinates returned are the time-averaged coordinates of the extended ghosts during the exposure.
+            
+            - To get the pixel with the higest flux of star #0, given its (row, col) coordinates:
+              >>> im = file.getImage(0)
+              >>> ID, row, col, Xmm, Ymm, flux, radius = file.getExtendedGhostCoordinates(4, minVmag=6.0, maxVmag=9.0)  
+              >>> im[int(row[0]), int(col[0])]
+
+            - To use this function to overplot the positions of the extended ghost on an image plotted by 
+              showImage(), use plt.scatter(floor(col), floor(row)) because showImage uses 
+              matplotlib.imshow() which switches rows and columns.
+
+        EXAMPLE:
+
+            >>> file = SimFile("Simul01.hdf5")
+            >>> file.showImage(4)
+            >>> ID, row, col, Xmm, Ymm, flux, radius = file.getExtendedCoordinates(4, minVmag=6.0, maxVmag=9.0)
+            >>> plt.scatter(floor(col), floor(row), marker='x', c='g')
+        """
+
+        # Check if the extended ghost info was saved to the HDF5 file
+
+        if "ExtendedGhostPositions" not in self.hdf5file["/"].keys():
+
+            print("Error: no group ExtendedGhostPositions in the HDF5 file.")
+            return None, None, None, None, None, None, None
+
+
+        # Construct the exposure name that was used to store the image
+
+        exposureGroupName = "Exposure{0:06d}".format(imageNr)
+
+
+        # Check if the arrays are in the file. If not: complain, if yes: copy the contents into a numpy array.
+
+        if exposureGroupName not in self.hdf5file["ExtendedGhostPositions"].keys():
+            
+            print("Error: SimfFile.getExtendedGhostCoordinates(): {0} not in hdf5 file".format(exposureGroupName))
+            return None, None, None, None, None, None, None
+
+        
+        # Extract the arrays from the HDF5 file
+
+        dataset = self.hdf5file["ExtendedGhostPositions"][exposureGroupName]["starID"]
+        starIDs = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(starIDs)
+
+        dataset = self.hdf5file["ExtendedGhostPositions"][exposureGroupName]["rowPix"]
+        row = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(row)
+        
+        dataset = self.hdf5file["ExtendedGhostPositions"][exposureGroupName]["colPix"]
+        col = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(col)
+
+        dataset = self.hdf5file["ExtendedGhostPositions"][exposureGroupName]["xFPmm"]
+        Xmm = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(Xmm)
+
+        dataset = self.hdf5file["ExtendedGhostPositions"][exposureGroupName]["yFPmm"]
+        Ymm = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(Ymm)
+
+        dataset = self.hdf5file["ExtendedGhostPositions"][exposureGroupName]["flux"]
+        flux = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(flux)
+
+        dataset = self.hdf5file["ExtendedGhostPositions"][exposureGroupName]["radius"]
+        radius = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(radius)
+
+        
+        # Make sure that the extended ghost star IDs are sorted
+
+        sorted = np.argsort(starIDs)
+        starIDs = starIDs[sorted]
+        row = row[sorted]
+        col = col[sorted]
+        Xmm = Xmm[sorted]
+        Ymm = Ymm[sorted]
+        flux = flux[sorted]
+        radius = radius[sorted]
+
+
+        # If no cut in V magnitude is required, we're finished.
+
+        if (minVmag == None) and (maxVmag == None):
+            return starIDs, row, col, Xmm, Ymm, flux, radius
+
+        # If a cut in magnitude is required, first get the magnitudes from the star input catalogue
+
+        inputStarIDs, RA, decl, Vmag, xFPmm, yFPmm, rowPix, colPix = self.getStarCatalog()
+        subFieldVmag = Vmag[np.in1d(inputStarIDs, starIDs)]
+
+        # If the min or max V magnitude is set to None, use the default values
+
+        if minVmag == None:
+            minVmag = subFieldVmag.min()
+        if maxVmag == None:
+            maxVmag = subFieldVmag.max()
+
+        # Make the magnitude cut
+
+        selection = (subFieldVmag >= minVmag) & (subFieldVmag <= maxVmag)
+
+        # That's it!
+       
+        return starIDs[selection], row[selection], col[selection], Xmm[selection], Ymm[selection], flux[selection], radius[selection]
 
 
 
