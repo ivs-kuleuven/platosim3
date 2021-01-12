@@ -41,6 +41,7 @@
 * Group all contributions to the overall relative transmissivity (GitHub issue #478)
 * Implement ghosts (GitHub issue #515)
 * Add linear irradiance ratio decrease of point-like ghosts (GitHub issue #526)
+* Added getPointLikeGhostCoordinates() and getExtendedGhostCoordinates() methods to SimFile class
 
 
 
