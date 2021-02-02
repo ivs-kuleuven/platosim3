@@ -102,13 +102,13 @@ add_library(platosimLibrary ${platosimSourceFiles})
 # Specify the simulator unittest files to be compiled, but exclude again the main()
 # and the non-Google tests
 
-file(GLOB unitTestSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
-list(REMOVE_ITEM unitTestSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/tests/AllTests.cpp)
+file(GLOB unitTestSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/tests/unitTests/*.cpp)
+list(REMOVE_ITEM unitTestSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/tests/unitTests/AllTests.cpp)
 
 
 # Define the file with main() function for the unit tests separately. 
 
-set(unitTestMain ${CMAKE_CURRENT_SOURCE_DIR}/tests/AllTests.cpp)
+set(unitTestMain ${CMAKE_CURRENT_SOURCE_DIR}/tests/unitTests/AllTests.cpp)
 
 
 # Specify the location of the dependency libraries
