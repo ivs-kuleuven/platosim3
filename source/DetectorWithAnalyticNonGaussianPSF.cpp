@@ -728,6 +728,7 @@ void DetectorWithAnalyticNonGaussianPSF::makeHighResolutionPSF(arma::Mat<float> 
 
     int size = Npixels * Nsubpixels;
     highResMap.set_size(size, size);
+    highResMap.fill(0.0);
 
     int sx = (int)floor(column0*Nsubpixels - (size - 1.) / 2.);
     int sy = (int)floor(row0*Nsubpixels - (size - 1.) / 2.);
