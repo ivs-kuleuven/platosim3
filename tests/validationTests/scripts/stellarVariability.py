@@ -1,8 +1,12 @@
 import math
 import numpy             as np
 import matplotlib.pyplot as plt
+
 from test       import Test
 from validation import switchOffAllEffects
+
+
+
 
 class StellarVariability(Test):
 
@@ -87,3 +91,8 @@ class StellarVariability(Test):
 
         RMS             = math.sqrt(sum(((out - theo )**2 for out, theo in zip(outputMagnitude, theoryMagnitude))))
         return RMS < 0.001
+
+
+if __name__ == "__main__":
+    t = StellarVariability()
+    print(t.run())

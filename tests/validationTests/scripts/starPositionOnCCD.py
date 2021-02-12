@@ -6,6 +6,22 @@ from math import radians, degrees
 from test import Test
 
 
+
+"""
+This test checks the position of a star on the CCD. It generates a random point on the CCD and based on that point
+als a star map with a star that should fall onto this point. The test check weather the output file generates a
+star on that position on the CCD +-1 pixel.
+"""
+
+
+
+
+
+
+
+
+
+
 class StarPositionOnCCD(Test):
 
     def setNr(self):
@@ -53,3 +69,8 @@ class StarPositionOnCCD(Test):
         succes = (row[0] <= self.pRows + 1 <= row[0] + 2) and (col[0] <= self.pColumns + 1 <= col[0] + 2)
 
         return succes
+
+
+if __name__ == "__main__":
+    t = StarPositionOnCCD()
+    print(t.run())

@@ -5,7 +5,7 @@ from math       import radians
 from validation import equatorial2galactic, galactic2equatorial, aberration
 import math
 
-import matplotlib.pyplot as plt
+
 
 
 class AbsoluteAberration(Test):
@@ -110,6 +110,6 @@ class AbsoluteAberration(Test):
 
 
 
-
-#t3 = AbsoluteAberration()
-#t3.run()
+if __name__ == "__main__":
+    t = AbsoluteAberration()
+    print(t.run())
