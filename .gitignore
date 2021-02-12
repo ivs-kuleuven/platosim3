@@ -76,3 +76,6 @@ Pipfile*
 /venv/
 /requirements.in
 /requirements.txt
+
+# Validation tests
+tests/validationTests/ioFiles/
