@@ -467,7 +467,7 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, solarPanelOrie
 
     # Undo the reverse-image projection effect of the pinhole
 
-    vecFP = np.array([-xFP/focalLength, -yFP/focalLength, 1.0])
+    vecFP = np.array([-xFP/focalLength, -yFP/focalLength, 1.0], dtype=object)
 
     # Compute the rotation matrix to convert cartesian coordinates in the focal plane reference frame to
     # cartesian coordinates in the telescope reference frame
