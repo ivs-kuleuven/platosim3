@@ -1,13 +1,21 @@
-from starPositionOnCCD                    import StarPositionOnCCD
-from stellarVariability                   import StellarVariability
-from StellarAberration.absoluteAberration import AbsoluteAberration
-from fieldDistortion                      import FieldDistortion
-from ThermoElasticDrift.tedFromFile       import TedFromFile
-from ThermoElasticDrift.tedYawPitchRoll   import TedYawPitchRoll
-from Jitter.jitterYawPitchRoll            import JitterYawPitchRoll
-from Jitter.jitterFromFile                import JitterFromFile
-from skyBackground                        import SkyBackGround
-from Convolution.mappedGaussianPSF        import MappedGaussianPSF
+from starPositionOnCCD                           import StarPositionOnCCD
+from stellarVariability                          import StellarVariability
+from StellarAberration.absoluteAberration        import AbsoluteAberration
+from fieldDistortion                             import FieldDistortion
+from ThermoElasticDrift.tedFromFile              import TedFromFile
+from ThermoElasticDrift.tedYawPitchRoll          import TedYawPitchRoll
+from Jitter.jitterYawPitchRoll                   import JitterYawPitchRoll
+from Jitter.jitterFromFile                       import JitterFromFile
+from skyBackground                               import SkyBackGround
+from Convolution.mappedGaussianPSF               import MappedGaussianPSF
+from Convolution.analyticNonGaussian             import AnalyticNonGaussianPSF
+from Convolution.analyticGaussian                import AnalyticGaussianPSF
+from prnu                                        import PRNU
+from rebinning                                   import Rebinning
+from ThroughputEfficiency.transmissionEfficiency import TransmissionEfficiency
+from ThroughputEfficiency.vignetting             import Vignetting
+from ThroughputEfficiency.polarization           import Polarization
+
 
 from contextlib import contextmanager
 import sys, os
@@ -119,6 +127,74 @@ with suppress_stdout():
 name = "Mapped Gaussian PSF"
 L.append("{:<9}  {:^36}:{}\n".format("Test8.1:", name, succes[out8_1]))
 print("{:<9}  {:^36}:{}".format("Test8.1:", name, succes[out8_1]))
+
+
+with suppress_stdout():
+    test8_2 = AnalyticNonGaussianPSF()
+    out8_2  = test8_2.run()
+
+name = "Analytic non Gaussian PSF"
+L.append("{:<9}  {:^36}:{}\n".format("Test8.2:", name, succes[out8_2]))
+print("{:<9}  {:^36}:{}".format("Test8.2:", name, succes[out8_2]))
+
+
+with suppress_stdout():
+    test8_3 = AnalyticGaussianPSF()
+    out8_3  = test8_3.run()
+
+name = "Analytic Gaussian PSF"
+L.append("{:<9}  {:^36}:{}\n".format("Test8.3:", name, succes[out8_3]))
+print("{:<9}  {:^36}:{}".format("Test8.3:", name, succes[out8_3]))
+
+
+with suppress_stdout():
+    test9 = PRNU()
+    out9  = test9.run()
+
+name = "Pixel-Responsivity Non Uniformity"
+L.append("{:<9}  {:^36}:{}\n".format("Test9:", name, succes[out9]))
+print("{:<9}  {:^36}:{}".format("Test9:", name, succes[out9]))
+
+
+with suppress_stdout():
+    test10 = Rebinning()
+    out10  = test10.run()
+
+name = "Rebinning Subpixel"
+L.append("{:<9}  {:^36}:{}\n".format("Test10:", name, succes[out10]))
+print("{:<9}  {:^36}:{}".format("Test10:", name, succes[out10]))
+
+
+with suppress_stdout():
+    test11_1 = TransmissionEfficiency()
+    out11_1  = test11_1.run()
+
+name = "Transmission Efficiency"
+L.append("{:<9}  {:^36}:{}\n".format("Test11.1:", name, succes[out11_1]))
+print("{:<9}  {:^36}:{}".format("Test11.1:", name, succes[out11_1]))
+
+with suppress_stdout():
+    test11_2 = Vignetting()
+    out11_2  = test11_2.run()
+
+name = "Vignetting"
+L.append("{:<9}  {:^36}:{}\n".format("Test11.2:", name, succes[out11_2]))
+print("{:<9}  {:^36}:{}".format("Test11.2:", name, succes[out11_2]))
+
+with suppress_stdout():
+    test11_3 = Polarization()
+    out11_3  = test11_3.run()
+
+name = "Polarization"
+L.append("{:<9}  {:^36}:{}\n".format("Test11.3:", name, succes[out11_3]))
+print("{:<9}  {:^36}:{}".format("Test11.3:", name, succes[out11_3]))
+
+
+
+
+
+
+
 
 
 
