@@ -144,7 +144,7 @@ class TedFromFile(Test):
 
         self.sim["Telescope/GroupID"]      = "Custom"
         self.sim["Telescope/AzimuthAngle"] = 0
-        self.sim["Telescope/TiltAngle"]   = 0
+        self.sim["Telescope/TiltAngle"]    = 0
         self.sim["CCD/Position"]           = "Custom"
 
         self.sim["ObservingParameters/NumExposures"]      = 50

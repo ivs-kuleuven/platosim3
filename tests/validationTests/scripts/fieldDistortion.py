@@ -141,9 +141,9 @@ class FieldDistortion(Test):
         corrA    = corrAngN / corrAngD
 
         # The test passes if the correlation between the distortion and the radial distance is > 0.70 (strong
-        # correlation) and the correlation between the distortion and the angular position < 0.15 (low correlation)
-
-        return (abs(corrR) > 0.7) and (abs(corrA) < 0.15)
+        # correlation) and the correlation between the distortion and the angular position < 0.3 (low correlation)
+        #print(corrR, corrA)
+        return (abs(corrR) > 0.7) and (corrA < 0.3)
 
 
 

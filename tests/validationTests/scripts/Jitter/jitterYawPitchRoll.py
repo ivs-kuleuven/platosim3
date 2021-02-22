@@ -38,9 +38,10 @@ class JitterYawPitchRoll(Test):
         nColumns = self.sim["SubField/NumColumns"]
 
 
-        pRows    = random.randint(10, nRows-10)
-        pColumns = random.randint(10, nColumns-10)
-
+        #pRows    = random.randint(10, nRows-10)
+        #pColumns = random.randint(10, nColumns-10)
+        pRows    = nRows / 2
+        pColumns = nColumns / 2
 
         # Create a SkyMap with a star that would fall onto that point in the sub field.
         raIn, decIn = rf.pixelToSkyCoordinates(self.sim, "2", pColumns, pRows)
@@ -123,6 +124,9 @@ class JitterYawPitchRoll(Test):
         # are small enough. ==> These values are approximately constant.
         return(all(self.resultMean) and all(self.resultSdf))
 
+
+
+    
 
 if __name__ == "__main__":
     t = JitterYawPitchRoll()
