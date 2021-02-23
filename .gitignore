@@ -10,6 +10,7 @@ dependencies/Installs/*
 PlatoSim3.code-workspace
 .vscode/*
 PlatoSim3.code-workspace
+.idea
 
 # Ignore some of the auto-generated files (during cmake)
 
