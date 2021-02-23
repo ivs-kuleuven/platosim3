@@ -14,7 +14,7 @@ have to do with:
     - the platform pointing (i.e. sim["ObservingParameters/RApointing"] and sim["ObservingParameters/DecPointing"]);
     - the star catalogue (i.e. sim["ObservingParameters/StarCatalogFile"]);
     - the telescope group (i.e. sim["Telescope/GroupID"]);
-    - field distortion (i.e. sim["Camera/IncludeFieldDistortion"] and sim["Camera/FieldDistortion"]).
+    - field distortion (i.e. sim["Camera/IncludeFieldDistortion"]).
 
 Assumed are:
 
@@ -49,7 +49,11 @@ def insertSourceFieldAngles(sim: Simulation, theta: float, phi: float, magnitude
         - filename: Filename to use for the star catalogue.
     """
 
-    focalLength = sim["Camera/FocalLength/ConstantValue"]
+    # Switch off field distortion
+
+    sim["Camera/IncludeFieldDistortion"] = "no"
+
+    focalLength = sim["Camera/FocalLength/ConstantValue"] * 1000
 
     # Conversion: field angles -> focal-plane coordinates
 
@@ -74,13 +78,17 @@ def insertSourceFP(sim: Simulation, xFP: float, yFP: float, magnitude: float, fi
         - filename: Filename to use for the star catalogue.
     """
 
+    # Switch off field distortion
+
+    sim["Camera/IncludeFieldDistortion"] = "no"
+
     printCCD(sim, xFP, yFP)
 
-    focalLength = sim["Camera/FocalLength/ConstantValue"]                                  # [mm]
+    focalLength = sim["Camera/FocalLength/ConstantValue"] * 1000                           # [mm]
     raPlatform = radians(sim["ObservingParameters/RApointing"])                            # [radians]
     decPlatform = radians(sim["ObservingParameters/DecPointing"])                          # [radians]
     solarPanelOrientation = radians(sim["Platform/SolarPanelOrientation"])                 # [radians]
-    angleFP = radians(sim["Camera/FocalPlaneAngle/ConstantValue"])                         # [radians]
+    angleFP = radians(sim["Camera/FocalPlaneOrientation/ConstantValue"])                   # [radians]
 
     telescopeGroup = sim["Telescope/GroupID"]
 
@@ -117,11 +125,15 @@ def insertSourceCCD(sim: Simulation, row: float, column: float, ccdCode: int, ma
         - filename: Filename to use for the star catalogue.
     """
 
+    # Switch off field distortion
+
+    sim["Camera/IncludeFieldDistortion"] = "no"
+
     print(f"The source will be located on CCD {ccdCode} on pixel (row, column) = ({row}, {column})")
 
     # Conversion: pixel coordinates -> sky coordinates
 
-    raStar, decStar = pixelToSkyCoordinates(sim, ccdCode, column, row)   # [radians]
+    raStar, decStar = pixelToSkyCoordinates(sim, str(ccdCode), column, row)   # [radians]
 
     makeStarCatalog(sim, raStar, decStar, magnitude, filename)
 
@@ -166,6 +178,8 @@ def printCCD(sim: Simulation, xFP: float, yFP: float):
     ccdZeroPointX = sim["CCDPositions/OriginOffsetX"][ccdCode - 1]
     ccdZeroPointY = sim["CCDPositions/OriginOffsetY"][ccdCode - 1]
     ccd_angle = radians(sim["CCDPositions/Orientation"][ccdCode - 1])
+
+    print(ccdZeroPointX, ccdZeroPointY, ccd_angle)
 
     column, row = focalPlaneToPixelCoordinates(xFP, yFP, pixelSize, ccdZeroPointX, ccdZeroPointY, ccd_angle)
 
