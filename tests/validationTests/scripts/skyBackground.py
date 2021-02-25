@@ -7,7 +7,7 @@ from test import Test
 
 
 
-"""This test is designed the check the sky background. The test runs the simulation when no stars are exposed to it. From the output file of the simulation, the theoretically predicted sky background is then subtracted. The resulting image should be filled with values around zero.   """
+"""This test is designed to check the sky background. The test runs the simulation when no stars are exposed to it. From the output file of the simulation, the theoretically predicted sky background is then subtracted. The resulting image should be filled with values around zero.   """
 
 
 
