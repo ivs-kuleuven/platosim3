@@ -1,20 +1,27 @@
-from starPositionOnCCD                           import StarPositionOnCCD
-from stellarVariability                          import StellarVariability
-from StellarAberration.absoluteAberration        import AbsoluteAberration
-from fieldDistortion                             import FieldDistortion
-from ThermoElasticDrift.tedFromFile              import TedFromFile
-from ThermoElasticDrift.tedYawPitchRoll          import TedYawPitchRoll
-from Jitter.jitterYawPitchRoll                   import JitterYawPitchRoll
-from Jitter.jitterFromFile                       import JitterFromFile
-from skyBackground                               import SkyBackGround
-from Convolution.mappedGaussianPSF               import MappedGaussianPSF
-from Convolution.analyticNonGaussian             import AnalyticNonGaussianPSF
-from Convolution.analyticGaussian                import AnalyticGaussianPSF
-from prnu                                        import PRNU
-from rebinning                                   import Rebinning
-from ThroughputEfficiency.transmissionEfficiency import TransmissionEfficiency
-from ThroughputEfficiency.vignetting             import Vignetting
-from ThroughputEfficiency.polarization           import Polarization
+from starPositionOnCCD                             import StarPositionOnCCD
+from stellarVariability                            import StellarVariability
+from StellarAberration.absoluteAberration          import AbsoluteAberration
+from fieldDistortion                               import FieldDistortion
+from ThermoElasticDrift.tedFromFile                import TedFromFile
+from ThermoElasticDrift.tedYawPitchRoll            import TedYawPitchRoll
+from Jitter.jitterYawPitchRoll                     import JitterYawPitchRoll
+from Jitter.jitterFromFile                         import JitterFromFile
+from skyBackground                                 import SkyBackGround
+from Convolution.mappedGaussianPSF                 import MappedGaussianPSF
+from Convolution.analyticNonGaussian               import AnalyticNonGaussianPSF
+from Convolution.analyticGaussian                  import AnalyticGaussianPSF
+from prnu                                          import PRNU
+from rebinning                                     import Rebinning
+from ThroughputEfficiency.transmissionEfficiency   import TransmissionEfficiency
+from ThroughputEfficiency.vignetting               import Vignetting
+from ThroughputEfficiency.polarization             import Polarization
+from ThroughputEfficiency.quantumEfficiency        import QuantumEfficiency
+from ThroughputEfficiency.particulateContamination import ParticulateContamination
+from ThroughputEfficiency.molecularContamination   import MolecularContamination
+from DarkSignal.shotNoise                          import ShotNoise
+from DarkSignal.darkSignalNonUniformity            import DarkSignalNonUniformity
+from DarkSignal.tempVariationOfCCD                 import TempVariationOfCCD 
+
 
 
 from contextlib import contextmanager
@@ -173,6 +180,7 @@ name = "Transmission Efficiency"
 L.append("{:<9}  {:^36}:{}\n".format("Test11.1:", name, succes[out11_1]))
 print("{:<9}  {:^36}:{}".format("Test11.1:", name, succes[out11_1]))
 
+
 with suppress_stdout():
     test11_2 = Vignetting()
     out11_2  = test11_2.run()
@@ -180,6 +188,7 @@ with suppress_stdout():
 name = "Vignetting"
 L.append("{:<9}  {:^36}:{}\n".format("Test11.2:", name, succes[out11_2]))
 print("{:<9}  {:^36}:{}".format("Test11.2:", name, succes[out11_2]))
+
 
 with suppress_stdout():
     test11_3 = Polarization()
@@ -190,7 +199,57 @@ L.append("{:<9}  {:^36}:{}\n".format("Test11.3:", name, succes[out11_3]))
 print("{:<9}  {:^36}:{}".format("Test11.3:", name, succes[out11_3]))
 
 
+with suppress_stdout():
+    test11_4 = QuantumEfficiency()
+    out11_4  = test11_4.run()
 
+name = "Quantum Efficiency"
+L.append("{:<9}  {:^36}:{}\n".format("Test11.4:", name, succes[out11_4]))
+print("{:<9}  {:^36}:{}".format("Test11.4:", name, succes[out11_4]))
+
+with suppress_stdout():
+    test11_5 = ParticulateContamination()
+    out11_5  = test11_5.run()
+
+name = "Particulate Contamination"
+L.append("{:<9}  {:^36}:{}\n".format("Test11.5:", name, succes[out11_5]))
+print("{:<9}  {:^36}:{}".format("Test11.5:", name, succes[out11_5]))
+
+
+with suppress_stdout():
+    test11_6 = MolecularContamination()
+    out11_6  = test11_6.run()
+
+name = "Molecular Contamination"
+L.append("{:<9}  {:^36}:{}\n".format("Test11.6:", name, succes[out11_6]))
+print("{:<9}  {:^36}:{}".format("Test11.6:", name, succes[out11_6]))
+
+
+with suppress_stdout():
+    test12_1 = ShotNoise()
+    out12_1  = test12_1.run()
+
+name = "Shot Noise"
+L.append("{:<9}  {:^36}:{}\n".format("Test12.1:", name, succes[out12_1]))
+print("{:<9}  {:^36}:{}".format("Test12.1:", name, succes[out12_1]))
+
+
+with suppress_stdout():
+    test12_2 = DarkSignalNonUniformity()
+    out12_2  = test12_2.run()
+
+name = "Dark Signal Non Uniformity"
+L.append("{:<9}  {:^36}:{}\n".format("Test12.2:", name, succes[out12_2]))
+print("{:<9}  {:^36}:{}".format("Test12.2:", name, succes[out12_2]))
+
+
+with suppress_stdout():
+    test12_3 = TempVariationOfCCD()
+    out12_3  = test12_3.run()
+
+name = "Temperature Variation of CCD"
+L.append("{:<9}  {:^36}:{}\n".format("Test12.3:", name, succes[out12_3]))
+print("{:<9}  {:^36}:{}".format("Test12.3:", name, succes[out12_3]))
 
 
 
