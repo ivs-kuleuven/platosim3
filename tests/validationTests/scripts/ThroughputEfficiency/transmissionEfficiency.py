@@ -1,9 +1,18 @@
 from test import Test
 import numpy as np
-import matplotlib.pyplot as plt
 
 import h5py
 import h5
+
+
+
+
+
+"""
+This test to check the transmission efficiency. The test checks that the transmission efficiency decreases linearly during the lifetime of the mission. 
+The fits uses the BOL and EOL transmission efficiency obtained from the input file. The test passes of the RMS difference between the fit and the obtained
+values is smaller then 0.01.
+"""
 
 
 class TransmissionEfficiency(Test):
@@ -34,6 +43,9 @@ class TransmissionEfficiency(Test):
 
         
     def runSimulation(self):
+
+        # The simulation of run at equal spaced time intervales, so that there are 8 exposures in one year.
+        # The obtained flux and time is then added to an np.array. 
         secondsInYear = 60 * 60 * 24 * 365
         
         time          = np.array([])
@@ -62,8 +74,8 @@ class TransmissionEfficiency(Test):
         
     def compare(self):
 
-
-
+        # The obtained transmission eficiency is compared versus a linear predicted curve.The test passes of the root mean square difference
+        # is smaller then 0.01.
         tmeBOL   = self.sim["Telescope/TransmissionEfficiency/BOL"]
         tmeEOL   = self.sim["Telescope/TransmissionEfficiency/EOL"]
         endTime  = self.years
@@ -90,5 +102,4 @@ class TransmissionEfficiency(Test):
 
 if __name__ == "__main__":
     t = TransmissionEfficiency()
-    t.runSimulation()
     print(t.run())
