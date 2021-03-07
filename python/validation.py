@@ -54,19 +54,19 @@ def switchOffAllEffects(sim):
     sim["Sky/IncludeCosmicsInBiasMap"] = "no"
 
     # Platform parameters
-    
+
     sim["Platform/UseJitter"] = "no"
-    
+
     # Telescope parameters
 
     sim["Telescope/UseDrift"] = "no"
-    
+
     # Camera parameters
 
     sim["Camera/IncludeAberrationCorrection"] = "no"
     sim["Camera/IncludeFieldDistortion"] = "no"
     sim["Camera/IncludeGhosts"] = "no"
-    
+
     # PSF parameters
 
     sim["PSF/MappedGaussian/IncludeChargeDiffusion"] = "no"
@@ -76,7 +76,7 @@ def switchOffAllEffects(sim):
     sim["PSF/MappedGaussian/IncludeJitterSmoothing"] = "no"
     sim["PSF/MappedFromFileSymmetrical/IncludeJitterSmoothing"] = "no"
     sim["PSF/MappedFromFileAsymmetrical/IncludeJitterSmoothing"] = "no"
-    
+
     # CCD parameters
 
     sim["CCD/IncludeFlatfield"] = "no"
@@ -95,7 +95,7 @@ def switchOffAllEffects(sim):
     sim["CCD/IncludeFullWellSaturation"] = "no"
     sim["CCD/IncludeDigitalSaturation"] = "no"
     sim["CCD/IncludeQuantisation"] = "no"
-    
+
     return sim
 
 
@@ -110,12 +110,12 @@ def equatorial2galactic(ra, dec):
     INPUT:
         - ra: Right ascension [degrees]
         - dec: Declination [degrees]
-    
+
     OUTPUT:
         - galactic longitude [radians]
         - galactic latitude [radians]
     """
-    
+
     coordinates = SkyCoord(ra, dec, frame = 'icrs', unit = 'deg').transform_to('geocentrictrueecliptic')
 
     return (coordinates.lon.radian, coordinates.lat.radian)
@@ -132,7 +132,7 @@ def galactic2equatorial(lon, lat):
     INPUT:
         - lon: Galactic longitude [radians]
         - dec: Galactic latitude [radians]
-    
+
     OUTPUT:
         - right ascension [degrees]
         - declination [degrees]
