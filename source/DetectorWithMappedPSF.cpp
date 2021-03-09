@@ -209,6 +209,11 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
         Log.debug("DetectorWithMappedPSF: Writing SubPixelMap " + to_string(exposureNr) + " to HDF5 file.");
         writeSubPixelMapToHDF5(exposureNr);
     }
+    // Write the cosmic hits to the HDF5 file
+    
+        Log.debug("Detector: Writing Cosmics of the PixelMap, smearing map, bias map #" + to_string(exposureNr) + " to HDF5 file.");
+
+    writeCosmicHitsToHDF5(exposureNr);
 
     // Advance the internal clock
 
