@@ -827,7 +827,7 @@ class SimFile (object):
         EXAMPLE:
 
             >>> file = SimFile("Simul01.hdf5")
-            >>> row, col, flux = file.getCosmicsCoordinates(4, minVmag=6.0, maxVmag=9.0)
+            >>> row, col, flux = file.getCosmicsCoordinates(4)
             
         """
         # Check if the field variables matches the allowed values
