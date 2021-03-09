@@ -1,7 +1,7 @@
 import random
-import referenceFrames   as rf
-import numpy             as np
-import scipy.constants   as constants
+import platosim.referenceFrames   as rf
+import numpy                      as np
+import scipy.constants            as constants
 
 from test import Test
 from math import degrees

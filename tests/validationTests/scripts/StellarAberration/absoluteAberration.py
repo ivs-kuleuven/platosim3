@@ -1,8 +1,8 @@
 import numpy           as np
-import referenceFrames as rf
+import platosim.referenceFrames as rf
 from test       import Test
 from math       import radians
-from validation import equatorial2galactic, galactic2equatorial, aberration
+from platosim.validation import equatorial2galactic, galactic2equatorial, aberration
 import math
 
 

@@ -2,7 +2,7 @@ import numpy as np
 import os
 import sys
 import h5py
-from analyticpsf import AnalyticPSF
+from platosim.analyticpsf import AnalyticPSF
 from numpy.random import uniform
 
 

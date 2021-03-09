@@ -2,7 +2,7 @@ from test import Test
 import numpy as np
 
 import h5py
-import h5
+import platosim.h5   as h5
 
 
 
