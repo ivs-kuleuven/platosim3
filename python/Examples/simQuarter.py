@@ -17,11 +17,11 @@ import sys
 import math
 
 import numpy as np
-from simulation import Simulation
-from referenceFrames import getCCDandPixelCoordinates
-from referenceFrames import platformToTelescopePointingCoordinates
-from referenceFrames import sunSkyCoordinatesAwayfromPlatformPointing
-from referenceFrames import CCD
+from platosim.simulation import Simulation
+from platosim.referenceFrames import getCCDandPixelCoordinates
+from platosim.referenceFrames import platformToTelescopePointingCoordinates
+from platosim.referenceFrames import sunSkyCoordinatesAwayfromPlatformPointing
+from platosim.referenceFrames import CCD
 
 
 

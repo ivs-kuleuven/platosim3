@@ -1,8 +1,8 @@
 import os
 import random
 
-from simulation import Simulation
-from validation import switchOffAllEffects
+from platosim.simulation import Simulation
+from platosim.validation import switchOffAllEffects
 
 
 class Test:

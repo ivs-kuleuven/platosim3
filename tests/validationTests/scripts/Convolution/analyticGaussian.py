@@ -1,9 +1,9 @@
-import referenceFrames as rf
-import numpy           as np
+import platosim.referenceFrames as rf
+import numpy                    as np
 
-from test import Test
-from math import degrees
-from validation import fitGaussian1D
+from test                import Test
+from math                import degrees
+from platosim.validation import fitGaussian1D
 
 
 

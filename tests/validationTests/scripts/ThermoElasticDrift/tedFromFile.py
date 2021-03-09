@@ -1,10 +1,10 @@
 import random
 import numpy as np
-import referenceFrames as rf
+import platosim.referenceFrames as rf
 
-from test import Test
-from math import degrees
-from validation import switchOffAllEffects
+from test                import Test
+from math                import degrees
+from platosim.validation import switchOffAllEffects
 
 
 """This test is designed the check the Thermo-Elastic drift from a given file. The test first generated three files, with only a change in  pitch, yaw or roll.  For a linear drift in the pitch or yaw direction, the path that the star follows should be a straight line. For a change in roll, we the path should follow a circle around the optical axis. """
