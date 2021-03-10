@@ -539,7 +539,9 @@ void DetectorWithAnalyticNonGaussianPSF::integrateLight(int exposureNr, double s
 
 /**
  * \brief: Add the PSF of the star with given focal plane coordinates and flux level to the given map.
- *         As PSF we use an analytic non-Gaussian function.
+ *         As PSF we use an analytic non-Gaussian function. This function gets called in the addFlux() 
+ *         method to add the flux to the pixelMap, and in the applyPhotometry() function. This method 
+ *         does not exist in any other child class of the detector class.
  *         
  * \param map      matrix with the same dimensions as pixelMap
  * \param row0     real-valued subfield row index of the star position               [pix]
@@ -598,7 +600,7 @@ bool DetectorWithAnalyticNonGaussianPSF::addFluxToMap(arma::Mat<float>& map, dou
 /**
  * \brief: Add the PSF of the star with given focal plane coordinates and flux level to the pixel map.
  *         Return the pixel coordinates of the barycenter of the PSF. As PSF we use an analytic non-Gaussian 
- *         function.
+ *         function. The flux gets added to the pixelMap using the fuction addFluxToMap().
  *         
  * \param xFP   X-coordinate of the (fractional) pixel in the focal plane in the FP reference frame [mm].
  * \param yFP   Y-coordinate of the (fractional) pixel in the focal plane in the FP reference frame [mm].
