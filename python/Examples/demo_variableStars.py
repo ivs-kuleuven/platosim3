@@ -7,8 +7,8 @@
 import os
 import numpy as np
 
-from simfile import SimFile
-from simulation import Simulation
+from platosim.simfile    import SimFile
+from platosim.simulation import Simulation
 
 
 

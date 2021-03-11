@@ -1,8 +1,8 @@
 from test import Test
-import referenceFrames   as rf
-import numpy             as np
-import matplotlib.pyplot as plt
-import pandas            as pd
+import platosim.referenceFrames   as rf
+import numpy                      as np
+import matplotlib.pyplot          as plt
+import pandas                     as pd
 
 
 """

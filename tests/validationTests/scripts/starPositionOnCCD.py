@@ -1,5 +1,5 @@
 import random
-import referenceFrames as rf
+import platosim.referenceFrames as rf
 import numpy as np
 
 from math import radians, degrees

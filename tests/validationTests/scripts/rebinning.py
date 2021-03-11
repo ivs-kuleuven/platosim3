@@ -1,5 +1,5 @@
-import numpy as np
-import referenceFrames as rf
+import numpy                    as np
+import platosim.referenceFrames as rf
 from test import Test
 from math import degrees
 
