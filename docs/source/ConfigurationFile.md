@@ -309,10 +309,7 @@ The configuration of the jitter axes is depicted below.  The Euler angles that c
 
 The angles are defined such that they increase with a clockwise rotation, when looking along the positive axes. First a roll rotation is done around the \f$z_{\rm SC} \f$ axis, then a pitch rotation is done around the rotated \f$y_{\rm SC} \f$ axis, and finally a yaw rotation is done around the twice-rotated \f$x_{\rm SC} \f$ axis.
 
-@image html /images/jitterConfiguration.png "Figure 2: Configuration of the jitter axes for the Plato Simulator, defined w.r.t. the spacecraft coordinate system (\f$xSC \f$, \f$y_{\rm SC} \f$, \f$z_{\rm SC} \f$).  The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module.  The positive \f$z_{\rm SC} \f$ axis points towards the operator-given pointing coordinates. The xSC axis points in the direction of the highest point of the sunshield."
-
 @image html /images/jitterConfiguration.png "Figure 2: Configuration of the jitter axes for the Plato Simulator, defined w.r.t. the spacecraft coordinate system (x<sub>SC</sub>, y<sub>SC</sub>, z<sub>SC</sub>).  The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module.  The positive z<sub>SC</sub> axis points towards the operator-given pointing coordinates. The x<sub>SC</sub> axis points in the direction of the highest point of the sunshield."
-
 
 
 ### <a name="jitterSource"></a>JitterSource

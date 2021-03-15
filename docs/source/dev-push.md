@@ -2,7 +2,7 @@
 
 This section contains all information that is needed to be able to contribute to PlatoSim3. If something is missing from these guides, or you have a different system / installation, let us know with all the details so we can enhance these guides. We assume you already went through the procedure to use the code.
 
-Do not forget to bring you local repository in line with the upstream, as explained here. The full cycle is depicted below.
+Do not forget to bring you local repository in line with the upstream, as explained @ref dev-pull "here". The full cycle is depicted below.
 
 ![](images/push-pullrequest.png)
 
