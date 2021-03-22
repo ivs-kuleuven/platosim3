@@ -67,7 +67,7 @@ configure_file(
 include_directories(
 	${CMAKE_BINARY_DIR}/generated
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/hdf5-1.10.2/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/hdf5-1.12.0/include
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/armadillo-6.500.4/include
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/yaml-cpp/include
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/googletest/include
@@ -114,7 +114,7 @@ set(unitTestMain ${CMAKE_CURRENT_SOURCE_DIR}/tests/unitTests/AllTests.cpp)
 # Specify the location of the dependency libraries
 
 link_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/hdf5-1.10.2/lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/hdf5-1.12.0/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/armadillo-6.500.4/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/yaml-cpp/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/googletest/lib
