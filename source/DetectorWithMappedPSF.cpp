@@ -11,6 +11,13 @@ DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configPara
                                                                                                                                                                                                                                                                                                         includeFlatfield(true),
                                                                                                                                                                                                                                                                                                         writeSubPixelImagesToHDF5(false) {}
 
+
+
+
+
+
+
+
 /**
   * \brief: Generate the diffusion kernel.  This is generated at sub-pixel level.
   *
@@ -23,6 +30,16 @@ void DetectorWithMappedPSF::generateDiffusionKernel(double kernelWidth)
 
     diffusionKernel.zeros(diffusionKernelImageSize, diffusionKernelImageSize);
 }
+
+
+
+
+
+
+
+
+
+
 
 /**
  * \brief: Generate the (random) flatfield variations.  This map is generated
@@ -327,6 +344,16 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
     }
 }
 
+
+
+
+
+
+
+
+
+
+
 /**
  * \brief: Add the given flux value to the value of the sub-pixel that corresponds to the given coordinates 
  *         in the focal plane. Return the pixel coordinates of the pixel to which the flux was added.
@@ -392,6 +419,17 @@ tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yF
     }
 }
 
+
+
+
+
+
+
+
+
+
+
+
 /**
  * \brief Insert the extended ghost with the given radius and flux at the given focal-plane position.
  * 
@@ -444,6 +482,15 @@ tuple<bool, double, double> DetectorWithMappedPSF::addExtendedGhost(double x0, d
     return  make_tuple(ghostInSubPixelMap, row0 / numSubPixelsPerPixel, column0 / numSubPixelsPerPixel);
 }
 
+
+
+
+
+
+
+
+
+
 /**
  * \brief: Applies charge diffusion or jitter smoothing for the given flux at the given position in the sub-pixel map.
  *
@@ -485,6 +532,16 @@ void DetectorWithMappedPSF::applyDiffusionKernel(double subpixRow, double subpix
     subPixelMap(rowSpan, columnSpan) += diffusionKernel(ySpan, xSpan) * flux;
 }
 
+
+
+
+
+
+
+
+
+
+
 /**
  * \brief Check whether the given (row, column) indices are within the array range of the subpixel map.
  *
@@ -517,6 +574,14 @@ void DetectorWithMappedPSF::addFlux(double flux)
     subPixelMap += flux / numSubPixelsPerPixel / numSubPixelsPerPixel;
 }
 
+
+
+
+
+
+
+
+
 /**
  * \brief: Multiply the sub-pixel map with the flatfield.
  * 
@@ -544,6 +609,14 @@ void DetectorWithMappedPSF::applyFlatfield()
 
     subPixelMap.submat(beginRow, beginCol, endRow, endCol) = subPixelMap.submat(beginRow, beginCol, endRow, endCol) % flatfieldMap;
 }
+
+
+
+
+
+
+
+
 
 /**
  * \brief Rebin the sub-pixel map to pixel level and crop the edge pixels.
@@ -574,6 +647,11 @@ void DetectorWithMappedPSF::rebin()
     }
 }
 
+
+
+
+
+
 /**
  * \brief: Convolve the sub-pixel map with the PSF, keeping the same dimensions.
  *
@@ -596,6 +674,14 @@ void DetectorWithMappedPSF::convolveWithPsf()
     }
 }
 
+
+
+
+
+
+
+
+
 /**
  * \brief: Creates the group(s) in the HDF5 file where the detector specific
  *         information will be stored.  These groups have to be created once,
@@ -611,6 +697,13 @@ void DetectorWithMappedPSF::initHDF5Groups()
     }
 }
 
+
+
+
+
+
+
+
 /**
  * \brief: Writes the subpixel map for the HDF5 file.
  */
@@ -625,3 +718,8 @@ void DetectorWithMappedPSF::writeSubPixelMapToHDF5(int exposureNr)
 
     hdf5File.writeArray("/SubPixelImages", imageName, subPixelMap);
 }
+
+
+
+
+
