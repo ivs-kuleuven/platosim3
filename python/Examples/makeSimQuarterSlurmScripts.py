@@ -44,7 +44,7 @@ for groupNr in [1,2,3,4]:
             #SBATCH --partition=normal
             #         (partitions: high, normal, low, desktops, longjobs)
 
-            python3 {4}/python/simQuarter.py {0} {1} {2} {3}
+            python3 {4}/python/Examples/simQuarter.py {0} {1} {2} {3}
             """.format(inputfile, groupNr, cameraNr, quarterNr, platoDir)
 
             path = slurmScriptOutputFolder + "/slurm_" + simulationPrefix + "_group{0}_camera{1}_Q{2}.sh".format(groupNr, cameraNr, quarterNr)
