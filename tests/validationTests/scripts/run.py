@@ -21,8 +21,17 @@ from ThroughputEfficiency.molecularContamination   import MolecularContamination
 from DarkSignal.shotNoise                          import ShotNoise
 from DarkSignal.darkSignalNonUniformity            import DarkSignalNonUniformity
 from DarkSignal.tempVariationOfCCD                 import TempVariationOfCCD 
-
-
+from brighterFatterEffect                          import BrighterFatterEffect
+from cosmics                                       import Cosmics
+from openShutterSmearing                           import OpenShutterSmearing
+from ChargeTransferInefficiency.simpleCTI          import SimpleCTI
+from photonNoise                                   import PhotonNoise
+from readOutNoise                                  import ReadoutNoise
+from fullWellSaturation                            import FullWellSaturation
+from Quantisation.gain                             import Gain
+from Quantisation.electronicOffset                 import ElectronicOffset
+from Quantisation.flooring                         import Flooring
+from Quantisation.digitalSaturation                import DigitalSaturation
 
 from contextlib import contextmanager
 import sys, os
@@ -252,6 +261,93 @@ L.append("{:<9}  {:^36}:{}\n".format("Test12.3:", name, succes[out12_3]))
 print("{:<9}  {:^36}:{}".format("Test12.3:", name, succes[out12_3]))
 
 
+with suppress_stdout():
+    test13 = BrighterFatterEffect()
+    out13  = test13.run()
+
+name = "Brighter-Fatter Effect"
+L.append("{:<9}  {:^36}:{}\n".format("Test13:", name, succes[out13]))
+print("{:<9}  {:^36}:{}".format("Test13:", name, succes[out13]))
+
+with suppress_stdout():
+    test14 = Cosmics()
+    out14  = test14.run()
+
+name = "Cosmics"
+L.append("{:<9}  {:^36}:{}\n".format("Test14:", name, succes[out14]))
+print("{:<9}  {:^36}:{}".format("Test14:", name, succes[out14]))
+
+with suppress_stdout():
+    test15 = OpenShutterSmearing()
+    out15  = test15.run()
+
+name = "Open-Shutter Smearing"
+L.append("{:<9}  {:^36}:{}\n".format("Test15:", name, succes[out15]))
+print("{:<9}  {:^36}:{}".format("Test15:", name, succes[out15]))
+
+with suppress_stdout():
+    test16_1 = SimpleCTI()
+    out16_1  = test16_1.run()
+
+name = "Simple CTI model"
+L.append("{:<9}  {:^36}:{}\n".format("Test16.1:", name, succes[out16_1]))
+print("{:<9}  {:^36}:{}".format("Test16.1:", name, succes[out16_1]))
+
+with suppress_stdout():
+    test17 = PhotonNoise()
+    out17  = test17.run()
+
+name = "Photon Noise"
+L.append("{:<9}  {:^36}:{}\n".format("Test17:", name, succes[out17]))
+print("{:<9}  {:^36}:{}".format("Test17:", name, succes[out17]))
+
+with suppress_stdout():
+    test18 = ReadoutNoise()
+    out18  = test18.run()
+
+name = "Readout Noise"
+L.append("{:<9}  {:^36}:{}\n".format("Test18:", name, succes[out18]))
+print("{:<9}  {:^36}:{}".format("Test18:", name, succes[out18]))
+
+with suppress_stdout():
+    test19 = FullWellSaturation()
+    out19  = test19.run()
+
+name = "Full-Well Saturation"
+L.append("{:<9}  {:^36}:{}\n".format("Test19:", name, succes[out19]))
+print("{:<9}  {:^36}:{}".format("Test19:", name, succes[out19]))
+
+with suppress_stdout():
+    test20_1 = Gain()
+    out20_1  = test20_1.run()
+
+name = "Gain"
+L.append("{:<9}  {:^36}:{}\n".format("Test20.1:", name, succes[out20_1]))
+print("{:<9}  {:^36}:{}".format("Test20.1:", name, succes[out20_1]))
+
+with suppress_stdout():
+    test20_2 = ElectronicOffset()
+    out20_2  = test20_2.run()
+
+name = "Electronic Offset"
+L.append("{:<9}  {:^36}:{}\n".format("Test20.2:", name, succes[out20_2]))
+print("{:<9}  {:^36}:{}".format("Test20.2:", name, succes[out20_2]))
+
+with suppress_stdout():
+    test20_3 = Flooring()
+    out20_3  = test20_3.run()
+
+name = "Flooring"
+L.append("{:<9}  {:^36}:{}\n".format("Test20.3:", name, succes[out20_3]))
+print("{:<9}  {:^36}:{}".format("Test20.3:", name, succes[out20_3]))
+
+with suppress_stdout():
+    test20_4 = DigitalSaturation()
+    out20_4  = test20_4.run()
+
+name = "Digital Saturation"
+L.append("{:<9}  {:^36}:{}\n".format("Test20.4:", name, succes[out20_4]))
+print("{:<9}  {:^36}:{}".format("Test20.4:", name, succes[out20_4]))
 
 
 
