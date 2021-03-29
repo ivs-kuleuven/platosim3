@@ -17,6 +17,9 @@ class Test:
         self.outputDir = os.environ["PLATO_PROJECT_HOME"] + "/tests/validationTests/ioFiles/test" + self.nr
         self.inputDir  = os.environ["PLATO_PROJECT_HOME"] + "/inputfiles"
         self.ioPath   = os.environ["PLATO_PROJECT_HOME"] + "/tests/validationTests/ioFiles"
+        if not os.path.isdir(self.ioPath):
+            os.mkdir(self.ioPath)
+            
         if not os.path.isdir(self.outputDir):
             os.mkdir(self.outputDir)
 
