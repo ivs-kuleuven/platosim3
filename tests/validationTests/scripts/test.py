@@ -15,6 +15,8 @@ class Test:
 
         self.setNr()
         self.outputDir = os.environ["PLATO_PROJECT_HOME"] + "/tests/validationTests/ioFiles/test" + self.nr
+        self.inputDir  = os.environ["PLATO_PROJECT_HOME"] + "/inputfiles"
+        self.ioPath   = os.environ["PLATO_PROJECT_HOME"] + "/tests/validationTests/ioFiles"
         if not os.path.isdir(self.outputDir):
             os.mkdir(self.outputDir)
 
@@ -33,6 +35,7 @@ class Test:
         self.sim["Telescope/GroupID"] = "2"
         self.sim["CCD/Position"]      = "2"
         self.sim["PSF/Model"]         = "AnalyticNonGaussian"
+        
 
         # Configure the angles of the input file
 
