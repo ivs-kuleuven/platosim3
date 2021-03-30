@@ -28,8 +28,8 @@ class PhotonNoise(Test):
         super().setAllEffects()
         self.numExposures = 2000
         self.sim["ObservingParameters/NumExposures"] = self.numExposures
-        self.sim["SubField/NumRows"]    = 1
-        self.sim["SubField/NumColumns"] = 1
+        self.sim["SubField/NumRows"]    = 100
+        self.sim["SubField/NumColumns"] = 100
 
         # Make sure no stars are on the subfield.
         self.sim["ObservingParameters/DecPointing"] = - self.sim["ObservingParameters/DecPointing"]
@@ -46,11 +46,11 @@ class PhotonNoise(Test):
         expectedSkyBackground = self.simFile.getInputParameter("Sky", "SkyBackground") * exposureTime * self.simFile.getInputParameter("Telescope/TransmissionEfficiency", "BOL")
 
         # Flux obtained from PlatoSim
-        flux = np.array([self.simFile.getImage(exposure)[0][0] for exposure in range(self.numExposures)])
-
+        flux = np.array([self.simFile.getImage(exposure) for exposure in range(self.numExposures)])
         
         condition1 = abs((np.mean(flux)) / expectedSkyBackground - 1) < 0.01
         condition2 = abs(np.std(flux) / np.sqrt(expectedSkyBackground) - 1) < 0.01
+
 
         return condition1 and condition2
 

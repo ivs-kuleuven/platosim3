@@ -34,7 +34,7 @@ from Quantisation.flooring                         import Flooring
 from Quantisation.digitalSaturation                import DigitalSaturation
 
 from contextlib import contextmanager
-import sys, os
+import sys, os, os
 
 
 @contextmanager
@@ -50,7 +50,7 @@ def suppress_stdout():
 
 
 L = []
-succes = {True: "Success", False: "Failure"}
+succes = {True: "Success", False: "FAILURE"}
 
 
 
@@ -358,6 +358,6 @@ print("{:<9}  {:^36}:{}".format("Test20.4:", name, succes[out20_4]))
 
 
 
-f = open('../ioFiles/result.txt', 'w')
+f = open(os.environ["PLATO_PROJECT_HOME"] + '/tests/validationTests/ioFiles/result.txt', 'w')
 f.writelines(L)
 f.close
