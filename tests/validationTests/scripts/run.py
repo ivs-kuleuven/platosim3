@@ -34,7 +34,7 @@ from Quantisation.flooring                         import Flooring
 from Quantisation.digitalSaturation                import DigitalSaturation
 
 from contextlib import contextmanager
-import sys, os, os
+import sys, os
 
 
 @contextmanager
