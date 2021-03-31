@@ -13,8 +13,8 @@ import sys
 import numpy as np
 from math import ceil
 
-from simfile import SimFile
-from simulation import Simulation
+from platosim.simfile import SimFile
+from platosim.simulation import Simulation
 
 # Specify the total number of exposures of the entire unpartitioned time series.
 

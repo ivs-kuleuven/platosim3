@@ -140,20 +140,20 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     if(useFeeTemperatureFromFile)
     {
-    		feeTemperatureGenerator = new TemperatureFromFile(configParams, "FEE");
+    	feeTemperatureGenerator = new TemperatureFromFile(configParams, "FEE");
     }
     else if(useFeeNominalTemperature)
     {
-    		feeTemperatureGenerator = new NominalTemperature(configParams, "FEE");
+    	feeTemperatureGenerator = new NominalTemperature(configParams, "FEE");
     }
 
     if(useDetectorTemperatureFromFile)
     {
-    		detectorTemperatureGenerator = new TemperatureFromFile(configParams, "CCD");
+    	detectorTemperatureGenerator = new TemperatureFromFile(configParams, "CCD");
     }
     else if(useDetectorNominalTemperature)
     {
-    		detectorTemperatureGenerator = new NominalTemperature(configParams, "CCD");
+    	detectorTemperatureGenerator = new NominalTemperature(configParams, "CCD");
     }
 
     // Initialise the spacecraft components
@@ -166,9 +166,13 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     // Depending on how the PSF is computed (analytically or pre-mapped) the Detector object is different.
 
-    if ((psfModel == "MappedGaussian") || (psfModel == "MappedFromFile"))
+    if ((psfModel == "MappedGaussian") || (psfModel == "MappedFromFileSymmetrical"))
     {
-        detector = detectorFactory->createDetectorWithMappedPsfInstance(configParams, *hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
+        detector = detectorFactory->createDetectorWithSymmetricalMappedPsfInstance(configParams, *hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
+    }
+    else if (psfModel == "MappedFromFileAsymmetrical")
+    {
+        detector = detectorFactory->createDetectorWithAsymmetricalMappedPsfInstance(configParams, *hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
     }
     else if (psfModel == "AnalyticGaussian")
     {
@@ -248,6 +252,22 @@ void Simulation::configure(ConfigurationParameters &configParams)
     useDetectorNominalTemperature   = configParams.getString("CCD/Temperature") == "Nominal";
     sendImagettesToClient           = configParams.getBoolean("ControlTcpConnection/SendImagettesToClients");
     getWindowPositionFromServer     = configParams.getBoolean("ControlTcpConnection/GetWindowPositionsFromServer");
+
+    // The readout of different CCDs are shifted in time because of the power budget.
+    // Find out the right time shift.
+
+    string ccdPosition              = configParams.getString("CCD/Position");
+    if (ccdPosition == "Custom")
+    {
+        timeShift = configParams.getDouble("CCD/TimeShift");
+    }
+    else
+    {
+        int index = stoi(ccdPosition) - 1;   // Position are named  [1, 2, 3, 4] while the index into vector starts at 0
+        timeShift = configParams.getDoubleAt("CCDPositions/TimeShift", index);
+    }
+
+    Log.debug("Simulation: configure(): time shift for current CCD configuration: " + to_string(timeShift));
 }
 
 
@@ -447,17 +467,18 @@ void Simulation::run()
 {
     // Update the internal clock
 
-    currentTime = beginExposureNr * (exposureTime + readoutTimeBeforeNextExposure);
+    currentTime = beginExposureNr * (exposureTime + readoutTimeBeforeNextExposure) + timeShift;
 
     Log.info("Simulation: running exposures " + to_string(beginExposureNr) + " to " + to_string(beginExposureNr+numExposures-1));
 
-    // declare the imagetteNumber and set the endOfSimulation variable to false
+    // Declare the imagetteNumber and set the endOfSimulation variable to false
 
     int n = beginExposureNr;
 
     bool endOfSimulation = false;  
 
-    // continue the simulation until no more jittersteps are send from a tcp connection server
+    // Continue the simulation until no more jittersteps are send from a tcp connection server
+
     while (!endOfSimulation)
     {
         // if no jitter from network is used, end the simulation, when the max number of exposures from the yaml file is reached
@@ -714,6 +735,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("ThroughputBandwidth");
     addDouble("ThroughputLambdaC");
     addBoolean("IncludeFieldDistortion");
+    addBoolean("IncludeGhosts");
     subGroup = "Camera/FieldDistortion";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addString("Type");
@@ -733,6 +755,18 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("ConstantValue");
     addString("FromFile");
 
+    subGroup = "Camera/Ghosts";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    subGroup = "Camera/Ghosts/PointLike";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addDouble("FluxRatio");
+    addDouble("DistanceCutOff");
+    subGroup = "Camera/Ghosts/Extended";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addDouble("FluxRatio");
+    addDouble("DistanceRatio");
+    addDoubleVector("RadiusCoefficients");
+
     subGroup = "PSF";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addString("Model");
@@ -744,11 +778,19 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("IncludeChargeDiffusion");
     addBoolean("IncludeJitterSmoothing");
 
-    subGroup = "PSF/MappedFromFile";
+    subGroup = "PSF/MappedFromFileSymmetrical";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addString("Filename");
     addDouble("DistanceToOA");
     addDouble("RotationAngle");
+    addInteger("NumberOfPixels");
+    addDouble("ChargeDiffusionStrength");
+    addBoolean("IncludeChargeDiffusion");
+    addBoolean("IncludeJitterSmoothing");
+
+    subGroup = "PSF/MappedFromFileAsymmetrical";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addString("Filename");
     addInteger("NumberOfPixels");
     addDouble("ChargeDiffusionStrength");
     addBoolean("IncludeChargeDiffusion");
@@ -823,9 +865,9 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("IncludePhotonNoise");
     addBoolean("IncludeReadoutNoise");
     addBoolean("IncludeCTIeffects"); 
+    addBoolean("IncludeChargeInjection");
     addBoolean("IncludeOpenShutterSmearing");
-    addBoolean("IncludeNaturalVignetting");
-    addBoolean("IncludeMechanicalVignetting");
+    addBoolean("IncludeRelativeTransmissivity");
     addBoolean("IncludePolarization");
     addBoolean("IncludeParticulateContamination");
     addBoolean("IncludeMolecularContamination");
@@ -851,16 +893,11 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 	addDouble("Stability");
 	addDouble("AllowedDifference");
 
-    subGroup = "CCD/Vignetting";
-    hdf5File->createGroup(parentGroup + "/" + subGroup);
-    
-    subGroup = "CCD/Vignetting/NaturalVignetting";
+    subGroup = "CCD/RelativeTransmissivity";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addDouble("ExpectedValue");
-    
-    subGroup = "CCD/Vignetting/MechanicalVignetting";
-    hdf5File->createGroup(parentGroup + "/" + subGroup);
     addDouble("RadiusFOV");
+    addDoubleVector("Coefficients");
 
     subGroup = "CCD/QuantumEfficiency";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
@@ -887,10 +924,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "CCD/BFE";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
-    addInteger("Range");
-    addDouble("p0");
-    addDouble("p1");
-    addDouble("RefFlux");
+    addString("CoefficientsFileName");
 
     subGroup = "CCD/CTI";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
@@ -903,9 +937,19 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("Beta");
     addDouble("Temperature");
     addInteger("NumTrapSpecies");
-    addDoubleVector("TrapDensity");
     addDoubleVector("TrapCaptureCrossSection");
     addDoubleVector("ReleaseTime");
+    subGroup = "CCD/CTI/Short2013/TrapDensity";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addDoubleVector("BOL");
+    addDoubleVector("EOL");
+
+
+    subGroup = "CCD/ChargeInjection";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addDouble("InjectionLevel");
+    addInteger("RowInterval");
+    addInteger("FirstRow");
 
     subGroup = "SubField";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
@@ -917,6 +961,13 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addInteger("NumBiasPrescanColumns");
     addInteger("NumSmearingOverscanRows");
     addInteger("SubPixels");
+
+    subGroup = "Photometry";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addBoolean("IncludePhotometry");
+    addInteger("ContaminationRadius");
+    addDouble("MaskUpdateInterval");
+    addString("TargetFileName");
 
     subGroup = "RandomSeeds";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
@@ -930,6 +981,10 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "ControlHDF5Content";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addBoolean("WritePixelMaps");
+    addBoolean("WriteBiasMaps");
+    addBoolean("WriteSmearingMaps");          
+    addBoolean("WriteFlatfieldMap");          
     addBoolean("WriteSubPixelImages");
     addBoolean("WriteStarPositions");
 

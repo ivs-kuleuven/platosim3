@@ -24,6 +24,7 @@ class TemperatureFromFile : public TemperatureGenerator
         string pathToTemperatureFile;
 
         int timeIndex;
+        double currentTemperature;
 
         vector<double> timeFromFile;    // [s]
         vector<double> temperature;     // [K]

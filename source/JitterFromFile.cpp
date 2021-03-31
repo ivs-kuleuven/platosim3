@@ -17,6 +17,20 @@ JitterFromFile::JitterFromFile(ConfigurationParameters &configParams)
 
     configure(configParams);
 
+    // Check whether the required time span is covered by the jitter file
+
+    double lastTimePoint = FileUtilities::getLastTimePoint(pathToJitterFile);
+    double requiredTimeRange = endTime - beginTime;
+
+    if (lastTimePoint < requiredTimeRange)
+    {
+        int maxNumExposures = int(floor(lastTimePoint / configParams.getDouble("ObservingParameters/CycleTime")));
+        
+        string msg = "JitterFromFile: required time span of " + to_string(requiredTimeRange) + "s not covered by jitter file";
+        Log.error(msg + ".  Only " + to_string(maxNumExposures) + " exposures can be simulated.");
+        throw FileException(msg);
+    }
+
     // Open the jitter file, and read time yaw, pitch, roll time series.
     // The time is assumed to be in [s], pitch, yaw, and roll in [arcsec].
     // The path of the jitter file should have been set in configure().
@@ -155,17 +169,29 @@ JitterFromFile::~JitterFromFile()
 
 void JitterFromFile::configure(ConfigurationParameters &configParams)
 {
-    pathToJitterFile = configParams.getAbsoluteFilename("Platform/JitterFileName");
-    int numExposures      = configParams.getInteger("ObservingParameters/NumExposures");
-    int beginExposureNr   = configParams.getInteger("ObservingParameters/BeginExposureNr");
-    double cycleTime   = configParams.getDouble("ObservingParameters/CycleTime");
+    pathToJitterFile    = configParams.getAbsoluteFilename("Platform/JitterFileName");
+    int numExposures    = configParams.getInteger("ObservingParameters/NumExposures");
+    int beginExposureNr = configParams.getInteger("ObservingParameters/BeginExposureNr");
+    double cycleTime    = configParams.getDouble("ObservingParameters/CycleTime");
+    string ccdPosition  = configParams.getString("CCD/Position");
+
+    double timeShift;
+    if (ccdPosition == "Custom")
+    {
+        timeShift = configParams.getDouble("CCD/TimeShift");
+    }
+    else
+    {
+        int index = stoi(ccdPosition) - 1;   // Position are named  [1, 2, 3, 4] while the index into vector starts at 0
+        timeShift = configParams.getDoubleAt("CCDPositions/TimeShift", index);
+    }
 
     //  Determine from when to when the simulation runs. Only for this time interval
     //  we need to read the jitter file into memory. This saves time when the jitter
     //  file is large but the simulation is short.
     
-    beginTime = beginExposureNr * cycleTime;
-    endTime   = (beginExposureNr + numExposures) * cycleTime;
+    beginTime = timeShift + beginExposureNr * cycleTime;
+    endTime   = beginTime + numExposures * cycleTime;
 }
 
 
@@ -208,7 +234,7 @@ tuple<double, double, double> JitterFromFile::getNextYawPitchRoll(double time)
         timeIndex++;
         if (timeIndex >= timeFromFile.size())
         {
-            Log.error("JitterFromFile: jitter file not large enough");
+            Log.error("JitterFromFile: jitter file not large enough (time = " + to_string(time) + ")" );
             exit(1);
         }
     }

@@ -442,7 +442,7 @@ double Telescope::getLightCollectingArea()
  *        and vecTL are the cartesian coordinates in the Telescope reference frame.
  *        See PLATO-KUL-PL-TN-0001 for more details.
  *
- * \return rotSC2TL : 3x3 rotation matrix 
+ * \return rotTL2SC : 3x3 rotation matrix 
  */
 
 arma::mat Telescope::getUndriftedTelescopeToPlatformRotationMatrix()
@@ -450,18 +450,18 @@ arma::mat Telescope::getUndriftedTelescopeToPlatformRotationMatrix()
     // Rotating over an azimuth angle around the Z-axis of the platform
 
     arma::mat rotAzimuth;
-    rotAzimuth <<  cos(originalAzimuthAngle) << sin(originalAzimuthAngle) << 0 << arma::endr
-               << -sin(originalAzimuthAngle) << cos(originalAzimuthAngle) << 0 << arma::endr
-               <<           0               <<           0              << 1 << arma::endr;
+    rotAzimuth << cos(originalAzimuthAngle) << -sin(originalAzimuthAngle) << 0 << arma::endr
+               << sin(originalAzimuthAngle) <<  cos(originalAzimuthAngle) << 0 << arma::endr
+               <<          0                <<          0                 << 1 << arma::endr;
 
     // Rotating over a tilt angle around teh Y-axis of the telescope
 
     arma::mat rotTilt;
-    rotTilt <<  cos(originalTiltAngle) << 0 << sin(originalTiltAngle) << arma::endr
-            <<          0             << 1 <<            0          << arma::endr
-            << -sin(originalTiltAngle) << 0 << cos(originalTiltAngle) << arma::endr;
+    rotTilt <<  cos(originalTiltAngle)  << 0 << sin(originalTiltAngle)  << arma::endr
+            <<           0              << 1 <<            0            << arma::endr
+            <<  -sin(originalTiltAngle) << 0 << cos(originalTiltAngle)  << arma::endr;
 
-    return rotAzimuth * rotTilt;
+    return rotAzimuth * rotTilt * rotAzimuth.t();
 }
 
 

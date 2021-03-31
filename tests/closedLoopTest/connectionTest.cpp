@@ -9,6 +9,9 @@
 #include <thread>
 #include <unistd.h>
 
+
+typedef unsigned int uint;
+
 bool endTest = false;
 bool simsStarted = false;
 bool simsRunning = false;

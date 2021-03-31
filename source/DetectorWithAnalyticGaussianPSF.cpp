@@ -39,16 +39,9 @@ DetectorWithAnalyticGaussianPSF::DetectorWithAnalyticGaussianPSF(ConfigurationPa
 
     if(includeFlatfield)
     {
-    		// Generate the flatfield map
+        // Generate the flatfield map
 
-    		generateFlatfieldMap();
-    }
-
-    if(includeBFE)
-    {
-        	// Generate Guyonnet coefficients
-
-        	generateGuyonnetCoefficients();
+        generateFlatfieldMap();
     }
 }
 
@@ -96,6 +89,10 @@ DetectorWithAnalyticGaussianPSF::~DetectorWithAnalyticGaussianPSF()
     flatfieldNoiseRMS         = configParam.getDouble("CCD/FlatfieldNoiseRMS");
     includeFlatfield          = configParam.getBoolean("CCD/IncludeFlatfield");
     flatfieldSeed             = configParam.getLong("RandomSeeds/FlatFieldSeed");
+    
+    // The configuration for the HDF5 contents
+    
+    writeFlatfieldMap = configParam.getBoolean("ControlHDF5Content/WriteFlatfieldMap");
  }
 
 
@@ -170,33 +167,14 @@ void DetectorWithAnalyticGaussianPSF::generateFlatfieldMap()
 
     // Write the result to the HDF5 output file
 
-    Log.debug("Detector: writing PRNU to HDF5");
-
-    hdf5File.writeArray("/Flatfield", "PRNU", flatfieldMap);
+    if (writeFlatfieldMap)
+    {
+        Log.debug("Detector: writing PRNU to HDF5");
+        hdf5File.writeArray("/Flatfield", "PRNU", flatfieldMap);
+    }
 }
 
 
-
-
-
-
-
-
-/**
- * \brief: Zeroes the pixel, bias register, and the smearing maps.
- *
- * \pre pixel, bias register, and smearing maps filled with values from previous exposure.
- *
- * \post pixel, bias register, and smearing maps filled with zeroes.
- */
-
-void DetectorWithAnalyticGaussianPSF::reset()
-{
-    pixelMap.zeros();
-    biasMapLeft.zeros();
-    biasMapRight.zeros();
-    smearingMap.zeros();
-}
 
 
 
@@ -231,6 +209,10 @@ double DetectorWithAnalyticGaussianPSF::takeExposure(int exposureNr, double star
 
     internalTime = startTime;
 
+    // Clear all arrays
+    
+    reset();
+
     // Integration of point sources and background, taking into account jitter + drift.
 
     Log.info("Detector: Integrating light for exposure " + to_string(exposureNr) + " with exposure time = " + to_string(exposureTime));
@@ -250,6 +232,11 @@ double DetectorWithAnalyticGaussianPSF::takeExposure(int exposureNr, double star
 
     writePixelMapsToHDF5(exposureNr);
 
+    // Write the cosmic hits to the HDF5 file
+
+    Log.debug("Detector: Writing Cosmics of the PixelMap, smearing map, bias map #" + to_string(exposureNr) + " to HDF5 file.");
+
+    writeCosmicHitsToHDF5(exposureNr);
     // Advance the internal clock
 
     internalTime += exposureTime + readoutTimeBeforeNextExposure;
@@ -290,16 +277,27 @@ double DetectorWithAnalyticGaussianPSF::takeExposure(int exposureNr, double star
 void DetectorWithAnalyticGaussianPSF::integrateLight(int exposureNr, double startTime, double exposureTime)
 {
 
-    // Reset the subfield (i.e. get rid of the previous exposure, by zeroing the entire sub-field)
-
-    Log.debug("Detector: resetting subfield array for new exposure.");
-
-    reset();
-
     // Integration (incl. jitter): point sources + background
     // PixelMap units after: [photons]
 
-    camera.exposeDetector(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
+    camera.exposeDetectorWithStars(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
+    camera.exposeDetectorWithSkyBackground(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
+
+    // Apply throughput efficiency on the pixel map.
+    // This takes into account the QE, vignetting, polarisation, and particulate & molecular contamination.
+    // PixelMap units change from [photons] to [electrons] 
+    
+    applyThroughputEfficiency();
+
+    // Apply the charge injection which will mitigate the CTI. The injection happens in electrons, 
+    // so the throughput efficiency should already have been applied. The injected charges do feel the PRNU, 
+    // so applying the flatfied should happen afterwards.
+    
+    if (includeChargeInjection)
+    {
+        Log.debug("Detector: applying charge injection");
+        applyChargeInjection();
+    }
 
     // Apply flatfield (at pixel level)
     // PixelMap units after: [photons]
@@ -315,11 +313,6 @@ void DetectorWithAnalyticGaussianPSF::integrateLight(int exposureNr, double star
         Log.debug("Detector: no flatfield applied.");
     }
 
-    // Apply throughput efficiency on the pixel map.
-    // This takes into account the QE, vignetting, polarisation, and particulate & molecular contamination.
-    // PixelMap units change from [photons] to [electrons] 
-    
-    applyThroughputEfficiency();
 
     // Add dark current
 
@@ -398,6 +391,10 @@ tuple<bool, double, double> DetectorWithAnalyticGaussianPSF::addFlux(double xFP,
 
     // Depending on the angular distance from the optical axis, the PSF increases in size. 
     // Determine the standard deviations in both directions.
+    // Recall:
+    //    sigma00:    Stdev of Gaussian PSF in x- and y-direction at the optical axis      [pix]
+    //    sigmaX18:   Stdev of Gaussian PSF in x-direction at 18 deg from the optical axis [pix]
+    //    sigmaY18;   Stdev of Gaussian PSF in y-direction at 18 deg from the optical axis [pix]
 
     const double theta = rad2deg(camera.getGnomonicRadialDistanceFromOpticalAxis(xFP, yFP));
     const double sigmaX = sigma00 + theta/18.0  * (sigmaX18 - sigma00);
@@ -463,7 +460,55 @@ tuple<bool, double, double> DetectorWithAnalyticGaussianPSF::addFlux(double xFP,
 }
 
 
+/**
+ * \brief Insert the extended ghost with the given radius and flux at the given focal-plane position.
+ * 
+ * Note that the extended source will not be convolved with the PSF, for practical reasons (but since the
+ * extended ghosts are so large, the influence of the PSF is negligible).
+ * 
+ * \param x0: Focal-plane x-coordinate of the centre of the extended ghost [mm].
+ * \param y0: Focal-plane y-coordinate of the centre of the extended ghost [mm].
+ * \param radius: Radius of the extended ghost [mm].
+ * \param flux: Flux of the extended ghost [photons].
+ * 
+ * \return: Whether or not the extended source falls (at least partially) on the sub-field, and the
+ *          (row, column) coordinates of the centre of the extended ghost in the pixel map.
+ */
+tuple<bool, double, double> DetectorWithAnalyticGaussianPSF::addExtendedGhost(double x0, double y0, double radius, double flux)
+{
+    // Calculate the number of pixels in the extended ghost
 
+    double radiusPixels = radius * 1000 / pixelSize;    // Radius [pixels]
+    double radiusPixelsSquared = pow(radiusPixels, 2);  // Squared radius [pixels^2]
+
+    double numPixels = PI * pow(radiusPixels, 2);       // Area of the extended ghost [pixels]
+    double fluxPerPixel = flux / numPixels;             // Flux [photons / pixel]
+
+    // Calculate the (row, column) coordinates of the centre of the extended source in the pixel map
+
+    double row0, column0;
+    tie(row0, column0) = focalPlaneToPixelCoordinates(x0, y0);
+    row0 -= subFieldZeroPointRow;
+    column0 -= subFieldZeroPointColumn;
+
+    bool ghostInPixelMap = false;
+
+    // Try to add flux to all pixels covered by the extended ghosts
+
+    for(int row = row0 - radiusPixels; row <= row0 + radiusPixels; row++)
+    {
+        for(int column = column0 - radiusPixels; column <= column0 + radiusPixels; column++)
+        {
+            if (isInPixelMap(row, column) && pow(column - column0, 2) + pow(row - row0, 2) <= radiusPixelsSquared)
+            {
+                ghostInPixelMap = true;
+                pixelMap(row, column) += fluxPerPixel;
+            }
+        }
+    }
+
+    return  make_tuple(ghostInPixelMap, row0, column0);
+}
 
 
 
