@@ -1,4 +1,4 @@
-* Release Notes PlatoSIM 3.4.0
+* Release Notes PlatoSim 3.4.0
 
 
 ** Improvements
