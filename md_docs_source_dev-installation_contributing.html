@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.11"/>
-<title>PLATO Simulator: Main Page</title>
+<title>PLATO Simulator: Contributing to the Code</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -49,10 +49,8 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </script>
   <div id="navrow1" class="tabs">
     <ul class="tablist">
-      <li class="current"><a href="index.html"><span>Welcome</span></a></li>
+      <li><a href="index.html"><span>Welcome</span></a></li>
       <li><a href="InstallUsersDevelopers.html"><span>Installing/Updating&#160;PlatoSim3</span></a></li>
-      <li><a href="Running.html"><span>Running&#160;PlatoSim3</span></a></li>
-      <li><a href="IssueTracking.html"><span>Help&#160;(Issue&#160;Tracking)</span></a></li>
       <li>
         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
@@ -83,7 +81,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function(){initNavTree('index.html','');});
+$(document).ready(function(){initNavTree('md_docs_source_dev-installation_contributing.html','');});
 </script>
 <div id="doc-content">
 <!-- window showing the filter options -->
@@ -102,21 +100,36 @@ $(document).ready(function(){initNavTree('index.html','');});
 
 <div class="header">
   <div class="headertitle">
-<div class="title">PLATO Simulator Documentation</div>  </div>
+<div class="title">Contributing to the Code </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2><a class="anchor" id="welcome"></a>Welcome to the PLATO Simulator Pages</h2>
-<p>The PLATO Simulator (PlatoSim) is an end-to-end software tool, designed to perform realistic simulations of the expected observations of the PLATO mission. It can, however, easily be adapted to similar types of missions.</p>
-<p>Our simulator models and simulates time series of CCD images by including models of the CCD and its electronics, the telescope optics, the stellar field, the jitter movements of the spacecraft, and all important natural sources of noise.</p>
-<p>Many aspects concerning the design trade-off of a space-based instrument and its performance can best be tackled through realistic simulations of the expected observations. The complex interplay of various noise sources in the course of the observations make such simulations an indispensable part of the assessment and design study of any space-based mission.</p>
-<hr/>
-<h2><a class="anchor" id="gettingStarted"></a>Getting Started</h2>
-<p>All information needed to install and update the PlatoSim3 software on your system is described <a class="el" href="InstallUsersDevelopers.html">here</a>. Please, follow these instructions carefully before running the simulator. How to simulate time series is described <a class="el" href="Running.html">here</a>.</p>
-<hr/>
-<h2><a class="anchor" id="inCaseOfProblems"></a> In Case of Problems</h2>
-<p>In case you would come across problems you cannot solve yourself, please, let us know! We would like you to use the issue tracking on GitHub rather than sending an email to the developers, as this helps to better keep track of the issues and their status. How raise issues (and which information you must provide us with) is described <a class="el" href="IssueTracking.html">here</a>. </p><hr/>
-<h2><a class="anchor" id="reference"></a>Reference</h2>
-<p>We kindly ask you to refer to <a href="http://arxiv.org/abs/1404.1886">this work</a> in any publication the PLATO Simulator software contributes to. </p>
+<div class="textblock"><p>This section contains all information that is needed to be able to contribute to PlatoSim3. If something is missing from these guides, or you have a different system / installation, let us know with all the details so we can enhance these guides. We assume you already went through the procedure to use the code.</p>
+<p>Do not forget to bring you local repository in line with the upstream, as explained here. The full cycle is depicted below.</p>
+<div class="image">
+<img src="../img/push-pullrequest.png" />
+</div>
+ <hr/>
+<h1>Pushing your Changes</h1>
+<p>If you have made local changes to some files that are already under version control or you have added new files, and you want to transfer these changes to the <code>origin</code> repository, you must first "stage" these files and then "commit" them.</p>
+<p>Staging a file can be done with the command </p><pre class="fragment">$ git add &lt;relative path to the file&gt;
+</pre><p>To inspect the status of the files in your local repository, execute the following command: </p><pre class="fragment">$ git status
+</pre><p>To "commit" all staged files, execute the following command: </p><pre class="fragment">$ git commit -m "&lt;commit message&gt;"
+</pre><p>We advise you not to squeeze to much into one commit and to write clear commit messages.</p>
+<p>You can now transfer the committed changes to the <code>origin</code> repository with the command </p><pre class="fragment">$ git push origin develop
+</pre><p>To further transfer these changes to the <code>upstream</code> repository, you must open a pull request (see below).</p>
+<h3>Graphical Git Clients</h3>
+<p>Alternatively, you can use a graphic git client to perform the steps described above. An overview of the possibilities can be found <a href="https://git-scm.com/downloads/guis">here</a>. </p><hr/>
+<h2>Pull Requests</h2>
+<p>Now that you have "pushed" your changes to the <code>origin</code> repository, you want your changes to be incorporated into the <code>upstream</code> repository, so other people can benefit from your efforts.</p>
+<p>To do this, go to the <a href="https://github.com/IvS-KULeuven/PlatoSim3">upstream GitHub page</a>.</p>
+<div class="image">
+<img src="../img/pull-request.png" />
+</div>
+<p>Just select the <code>"Pull requests"</code> tab at the top (encircled in red in the screenshot above). From there you can open a new pull request by pressing the green <code>"New pull request"</code> button. Select <code>"compare across forks"</code>, and then you can compare the <code>upstream</code> repository (on the left-hand side in the screenshot below) and the <code>origin</code> repository (on the right-hand side in the screenshot below). You will get an overview of the differences between the two.</p>
+<div class="image">
+<img src="../img/compare-across-forks.png" />
+</div>
+<p>To confirm you want to open a pull request, press the green <code>"Create pull request"</code> button and fill out the required information. The development team will review the changes, and accept or reject the request. </p>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

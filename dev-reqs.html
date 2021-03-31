@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.11"/>
-<title>PLATO Simulator: Main Page</title>
+<title>PLATO Simulator: Prerequisites for Installing and Updating PlatoSim3</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -49,10 +49,8 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </script>
   <div id="navrow1" class="tabs">
     <ul class="tablist">
-      <li class="current"><a href="index.html"><span>Welcome</span></a></li>
+      <li><a href="index.html"><span>Welcome</span></a></li>
       <li><a href="InstallUsersDevelopers.html"><span>Installing/Updating&#160;PlatoSim3</span></a></li>
-      <li><a href="Running.html"><span>Running&#160;PlatoSim3</span></a></li>
-      <li><a href="IssueTracking.html"><span>Help&#160;(Issue&#160;Tracking)</span></a></li>
       <li>
         <div id="MSearchBox" class="MSearchBoxInactive">
         <span class="left">
@@ -83,7 +81,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function(){initNavTree('index.html','');});
+$(document).ready(function(){initNavTree('dev-reqs.html','');});
 </script>
 <div id="doc-content">
 <!-- window showing the filter options -->
@@ -102,21 +100,33 @@ $(document).ready(function(){initNavTree('index.html','');});
 
 <div class="header">
   <div class="headertitle">
-<div class="title">PLATO Simulator Documentation</div>  </div>
+<div class="title">Prerequisites for Installing and Updating PlatoSim3 </div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h2><a class="anchor" id="welcome"></a>Welcome to the PLATO Simulator Pages</h2>
-<p>The PLATO Simulator (PlatoSim) is an end-to-end software tool, designed to perform realistic simulations of the expected observations of the PLATO mission. It can, however, easily be adapted to similar types of missions.</p>
-<p>Our simulator models and simulates time series of CCD images by including models of the CCD and its electronics, the telescope optics, the stellar field, the jitter movements of the spacecraft, and all important natural sources of noise.</p>
-<p>Many aspects concerning the design trade-off of a space-based instrument and its performance can best be tackled through realistic simulations of the expected observations. The complex interplay of various noise sources in the course of the observations make such simulations an indispensable part of the assessment and design study of any space-based mission.</p>
-<hr/>
-<h2><a class="anchor" id="gettingStarted"></a>Getting Started</h2>
-<p>All information needed to install and update the PlatoSim3 software on your system is described <a class="el" href="InstallUsersDevelopers.html">here</a>. Please, follow these instructions carefully before running the simulator. How to simulate time series is described <a class="el" href="Running.html">here</a>.</p>
-<hr/>
-<h2><a class="anchor" id="inCaseOfProblems"></a> In Case of Problems</h2>
-<p>In case you would come across problems you cannot solve yourself, please, let us know! We would like you to use the issue tracking on GitHub rather than sending an email to the developers, as this helps to better keep track of the issues and their status. How raise issues (and which information you must provide us with) is described <a class="el" href="IssueTracking.html">here</a>. </p><hr/>
-<h2><a class="anchor" id="reference"></a>Reference</h2>
-<p>We kindly ask you to refer to <a href="http://arxiv.org/abs/1404.1886">this work</a> in any publication the PLATO Simulator software contributes to. </p>
+<div class="textblock"><h2>Git</h2>
+<p>The PlatoSim code is under version control in GitHub. To be able to get the latest version of the code on your local machine and to share possible contributions with other people in the project, you need to install Git on your computer. Installation instructions can be found in the <a href="https://git-scm.com/book/en/v2/Getting-Started-Installing-Git">Git reference documentation</a>.</p>
+<div class="image">
+<img src="https://git-scm.com/images/logo@2x.png" />
+</div>
+ <hr/>
+<h2>GitHub</h2>
+<p>The PlatoSim code is located in a <a href="https://github.com/IvS-KULeuven/PlatoSim3">private repository in GitHub</a>. To be able to access it, we have to grant you access explicitly. Please, send your GitHub username to the development team and you will be granted read access to the repository. You will then get an invitation by email to join.</p>
+<p>If you have not done so already, you can make an <a href="https://github.com/join">account on GitHub</a> for free.</p>
+<div class="image">
+<img src="octocat.png" alt="octocat.png"/>
+</div>
+ <hr/>
+<h2>Operating System</h2>
+<p>PlatoSim3 has been tested on recent Mac OS X and recent Linux (Fedora, Ubuntu, Debian) systems. We cannot support Windows systems at the moment, so we advise Windows users to install a Virtual Machine (VM), and run the PLATO Simulator inside the VM. Alternatively, if you're using Windows 10, you can use <a href="https://docs.microsoft.com/en-us/windows/wsl/install-win10">Windows Subsystems for Linux (WSL)</a> instead. </p><hr/>
+<h2>Installed Software Packages</h2>
+<p>To be able to install the dependencies and build the code, the following software must be installed on your computer:</p>
+<ul>
+<li>Python: for the installation of the dependencies</li>
+<li><a href="https://gcc.gnu.org/">gcc</a> v5.1 or more recent, or <a href="http://clang.llvm.org/">clang</a> v3.3 or more recent</li>
+<li><a href="https://cmake.org/">CMake</a>: cross-platform open-source build system to control the software compilation process (using simple platform and compiler independent configuration files)</li>
+<li><a href="http://www.openblas.net">BLAS</a> and <a href="http://www.netlib.org/lapack/">LAPACK</a>. Without these, the simulator will likely be slower. These libraries come pre-installed on Mac OS X (so Mac users do not have to do anything). Many Linux distributions also standardly have these libraries installed or offer a package manager to easily install them.</li>
+</ul>
+<p>It is also possible to run the PLATO Simulator from within Python (please, use Python 3). We recommend downloading a Python distribution such as <a href="https://docs.continuum.io/anaconda/install">Anaconda</a>. More information on setting up your Python distribution and scripting PlatoSim3 using Python can be found <a href="#ScriptingInPython">here</a>. We have also provided tutorials in the form of Python notebooks. More information about those can be found <a href="#tutorials">here</a>. </p>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
