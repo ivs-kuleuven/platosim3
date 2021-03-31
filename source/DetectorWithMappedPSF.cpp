@@ -310,12 +310,47 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
     // feel the PRNU, but for the MappedPSF we first need to apply the PRNU on sub-pixel level and afterwards
     // apply the throughputEfficiency() at pixel level, so there is no possibilty to respect the order
     // (1) throughput (2) charge injection (3) PRNU.
-    
+
     if (includeChargeInjection)
     {
         Log.debug("Detector: applying charge injection");
         applyChargeInjection();
     }
+
+
+
+    // Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
+    // the pixels are still receiving photons from the sky, while they are being transfered towards
+    // the readout register.
+    // Pixel units before: [electrons]
+    // Pixel units after: [electrons]
+
+
+    if (includeOpenShutterSmearing)
+    {
+        Log.debug("Detector: applying open shutter smearing.");
+        applyOpenShutterSmearing(exposureTime);
+    }
+    else
+    {
+         Log.debug("Detector: no open shutter smearing applied.");
+    }
+
+    // Apply poisson distributed photon noise
+    // Pixel units before: [electrons]
+    // Pixel units after: [electrons]
+    
+
+    if (includePhotonNoise)
+    {
+        Log.debug("Detector: adding photon noise.");
+        addPhotonNoise();
+    }
+    else
+    {
+        Log.debug("Detector: no photon noise added.");
+    }
+
 
     // Add dark current
 
@@ -330,18 +365,6 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
         Log.debug("Detector: no dark current added");
     }
 
-    // Brighter-Fatter effect
-
-    if (includeBFE)
-    {
-        Log.debug("DetectorWithMappedPSF: adding Brighter-Fatter effect");
-
-        applyBFE();
-    }
-    else
-    {
-        Log.debug("DetectorWithMappedPSF: no Brighter-Fatter effect added");
-    }
 }
 
 
