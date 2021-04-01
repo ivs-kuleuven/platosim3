@@ -24,6 +24,8 @@ At some stage, we will want to update (some of) the dependencies.  You will be n
 
 ## Running the Test Harnesses
 
+As a good practice software building, PlatoSim3 has an automated test framework, a test harnesses, consisting of a collection of modules and test data configured to test the software unit. Hence, the test harnesses is a first sanity check post your installation.
+
 In order to be able to run the test harnesses, you must first build the code (see above) and export the required environment variables, as explained @ref ReqsRun "here".
 
 The actual command to run the tests must be executed in the <code>/build</code> directory:
@@ -33,6 +35,10 @@ The actual command to run the tests must be executed in the <code>/build</code> 
 ---
 
 ## Troubleshooting
+
+### Not Using Python3 as Default Installation
+
+Depending on the Pyhton installation on your local machine, you might need to check that the naming of the Python3 installation is in fact commanded by <code>python</code>. Make the appropriate name change on your unit system or while building the code on the command line. 
 
 ### Not Using the System Default Compiler
 

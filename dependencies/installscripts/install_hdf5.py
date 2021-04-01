@@ -9,7 +9,7 @@ import os,shutil,subprocess
 
 # Specify the dependency package name
 
-packageName = "hdf5-1.10.2"
+packageName = "hdf5-1.12.0"
 
 # Specify build and install folders
 

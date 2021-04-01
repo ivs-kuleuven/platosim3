@@ -34,8 +34,37 @@ arma::fmat rotateArrayBilinear(arma::fmat arr, double angle);
  */
 arma::fmat rotateArray(arma::fmat arr, double angle)
 {
-    if (fmod(angle, 2 * M_PI) == 0.0)
+    double remainder = fmod(angle, 2 * M_PI);
+
+    if (remainder == 0)
+    {
         return arr;
+    }
+
+    if (remainder == -M_PI / 2.0)
+    {
+        arma::fmat rotatedArray = arma::trans(arr);     // Transpose
+        rotatedArray = arma::flipud(rotatedArray);      // Flip up-down§
+
+        return rotatedArray;
+    }
+
+    if (remainder == -M_PI)
+    {
+        arma::fmat rotatedArray = arma::fliplr(arr);    // Flip left-right
+        rotatedArray = arma::flipud(rotatedArray);      // Flip up-down
+
+        return rotatedArray;
+    }
+
+    if (remainder == -1.5 * M_PI)
+    {
+        arma::fmat rotatedArray = arma::trans(arr);     // Transpose
+        rotatedArray = arma::fliplr(rotatedArray);      // Flip left-right
+
+        return rotatedArray;
+    }
+
 
     return rotateArrayBilinear(arr, angle);
 }

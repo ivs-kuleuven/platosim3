@@ -15,6 +15,7 @@ Any desired simulation can be obtained by modifying the following input:
 		* [FEE parameters](#feeParameters)
 		* [CCD parameters](#ccdParameters)
 		* [sub-field parameters](#subFieldParameters)
+        * [photometry parameters](#photometryParameters)
 		* [seed parameters](#seedParameters)
         * [control TCP connection parameters](#controlTcpConnection)
 		* additionally, there are two blocks that hold pre-defined settings (which you should NOT alter):
@@ -140,7 +141,7 @@ Declination of the pointing, expressed in degrees.
 
 Flux of a star of zero magnitude (\f$ m_{\lambda} = 0 \f$), expressed in photons \f$ \cdot \f$  s<sup>-1</sup> \f$  \cdot \f$  cm<sup>-2</sup> in the passband of the magnitudes that are listed in the [star catalogue](#starCatalogue).
 
-For an exposure of \f$t_{exp}\f$ seconds, the measured flux \f$F_{phot}\f$ of a star, expressed in photons, is computed from its catalogue magnitude \f$m_{\lambda}\f$, the [effective light-collecting area](#lightCollectingArea) \f$A\f$ (in cm<sup>2</sup>) of the telescope, the  [transmission efficiency](#transmissionEfficiency) \f$T_{\lambda}\f$ of the optical system, the [quantum efficiency](#quantumEfficiency) \f$Q\f$ of the detector, and the flux per second \f$F_0\f$ of a star with zero magnitude (\f$m_{\lambda} = 0\f$) from the equation
+For an exposure of \f$t_{exp}\f$ seconds, the measured flux \f$F_{phot}\f$ of a star, expressed in photons, is computed from its catalogue magnitude \f$m_{\lambda}\f$, the [effective light-collecting area](#lightCollectingArea) \f$A\f$ (in cm<sup>2</sup>) of the telescope, the [transmission efficiency](#transmissionEfficiency) \f$T_{\lambda}\f$ of the optical system, the [quantum efficiency](#quantumEfficiency) \f$Q\f$ of the detector, and the flux per second \f$F_0\f$ of a star with zero magnitude (\f$m_{\lambda} = 0\f$) from the equation
 
 \f[F_{phot} = t_{exp} \cdot F_0 \cdot T_{\lambda} \cdot Q \cdot A \cdot 10^{-0.4 \cdot m_{\lambda}}\f]
 
@@ -308,10 +309,7 @@ The configuration of the jitter axes is depicted below.  The Euler angles that c
 
 The angles are defined such that they increase with a clockwise rotation, when looking along the positive axes. First a roll rotation is done around the \f$z_{\rm SC} \f$ axis, then a pitch rotation is done around the rotated \f$y_{\rm SC} \f$ axis, and finally a yaw rotation is done around the twice-rotated \f$x_{\rm SC} \f$ axis.
 
-@image html /images/jitterConfiguration.png "Figure 2: Configuration of the jitter axes for the Plato Simulator, defined w.r.t. the spacecraft coordinate system (\f$xSC \f$, \f$y_{\rm SC} \f$, \f$z_{\rm SC} \f$).  The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module.  The positive \f$z_{\rm SC} \f$ axis points towards the operator-given pointing coordinates. The xSC axis points in the direction of the highest point of the sunshield."
-
 @image html /images/jitterConfiguration.png "Figure 2: Configuration of the jitter axes for the Plato Simulator, defined w.r.t. the spacecraft coordinate system (x<sub>SC</sub>, y<sub>SC</sub>, z<sub>SC</sub>).  The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module.  The positive z<sub>SC</sub> axis points towards the operator-given pointing coordinates. The x<sub>SC</sub> axis points in the direction of the highest point of the sunshield."
-
 
 
 ### <a name="jitterSource"></a>JitterSource
@@ -560,6 +558,15 @@ Camera:
         ConstantInverseCoefficients: [-0.317143032936, 0.242638513347, -0.459260203502]
         CoefficientsFromFile:        inputfiles/distortioncoefficients.txt
         InverseCoefficientsFromFile: inputfiles/distortioninversecoefficients.txt
+    IncludeGhosts:                   yes
+    Ghosts:
+        PointLike:
+            FluxRatio:               0.08
+            DistanceCutOff:          8
+        Extended:
+            FluxRatio:               0.00003
+            RadiusCoefficients:      [0.0062, -0.0251, 1.8402]
+            DistanceRatio:           1.065
 \endcode
 
 
@@ -715,6 +722,51 @@ Coefficients for inverse polynomial of the polynomial describing the field disto
 #### <a name="fieldDistortionInverseCoefficientsConstant"></a>FieldDistortion: InverseCoefficientsFromFile
 
 Inverse coefficients for inverse polynomial of the polynomial describing the field distortion, in case the coefficients must be read from a file ([FieldDistortion: Source](#fieldDistortionSource) = ConstantValue).
+
+
+### <a name="includeGhosts"></a>IncludeGhosts
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not ghosts must be added to the simulated images.
+
+
+### <a name="ghosts"></a>Ghosts
+
+Sources in the FOV can produces two types of ghosts:
+
+1. an extended ghost, further away from the optical axis, caused by reflections on the CCD surface and the back surface of L6;
+2. a point-like ghosts, at the opposite side of the optical axis, caused by reflections on the CCD surface and both window surfaces.
+
+Note that the flux loss of the sources (due to reflection off the CCD surface) is included in the [quantum efficiency](#quantumEfficiency).
+
+
+#### <a name="pointLikeGhosts"></a>Ghosts: PointLike
+
+A star at focal-plane coordinates $(x, y)$ will produce a point-like ghost at focal-plane coordinates $(-x, -y)$, as long as it is within the [distance cut-off](#pointLikeGhostsDistanceCutOff) from the optical axis.
+
+##### <a name="pointLikeGhostsFluxRatio"></a>Ghosts: PointLike: FluxRatio
+
+Irradiance ratio of the point-like ghost w.r.t. the source producing it, expressed in %, measured on-axis.  The flux ratio off-axis decreases linearly from the optical axis to the [distance cut-off](#pointLikeGhostsDistanceCutOff) (where it drops to zero), due to vignetting by the pupil around L3.
+
+##### <a name="pointLikeGhostsDistanceCutOff"></a>Ghosts: PointLike: DistanceCutOff
+
+Distance from the optical axis beyond which sources no longer produce point-like ghosts, expressed in degrees.  At this distance, the flux ratio has dropped to zero.
+
+#### <a name="extendedGhosts"></a>Ghosts: Extended
+
+A star at focal-plane coordinates $(x, y)$ will produce an extended ghost further away from the optical axis.
+
+##### <a name="extendedGhostsFluxRatio"></a>Ghosts: Extended: FluxRatio
+
+Irradiance ratio of the extended ghost w.r.t. the source producing it, expressed in %.
+
+##### <a name="extendedGhostsRadius"></a>Ghosts: Extended: RadiusCoefficients
+
+Coefficients of the 2nd-degree polynomial (in distance from the optical axis), describing the radius of the (circular) extended source.
+
+##### <a name="extendedGhostsDistanceRatio"></a>Ghosts: Extended: DistanceRatio
+
+A star at focal-plane coordinates $(x, y)$ will produce a ghost at focal-plane coordinates $(distanceRatio \cdot x, distanceRatio \cdot y)$.
 
 ---
 
@@ -1145,13 +1197,10 @@ CCD:
     NumColumns:                  4510      
     NumRows:                     4510      
     FirstRowExposed:             0
-
+    TimeShift:                   0.0
     PixelSize:                   18      
     BFE:
-        Range:                       2
-        p0:                          0.05
-        p1:                          0.15
-        RefFlux:                     1e6  
+        CoefficientsFileName:
     Gain:                        
         RefValueLeft:        1.80
         RefValueRight:       1.80
@@ -1162,11 +1211,10 @@ CCD:
         MeanAngleDependency:         1.01
     Polarization:
     		ExpectedValue:       0.989      
-    Vignetting:
-        NaturalVignetting:
-    		ExpectedValue:       0.945 
-        MechanicalVignetting:
-            RadiusFOV:           18.8876
+    RelativeTransmissivity:
+        Coefficients:           [4.18e-2, -5.65e-5, 2.37e-7]
+        RadiusFOV:              18.8908
+        ExpectedValue:          0.920
     Contamination:
     		ParticulateContaminationEfficiency:  0.98
     		MolecularContaminationEfficiency:    0.0566
@@ -1195,7 +1243,9 @@ CCD:
     	          Beta:		0.37
     	          Temperature:	203.0
     	          NumTrapSpecies:[9.8, 3.31, 1.56, 13.24]
-    	          TrapDensity:   [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]
+    	          TrapDensity:   
+                        BOL:    [0.0, 0.0, 0.0, 0.0]
+                        EOL:    [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]
     	          ReleaseTime:   [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]
     NominalOperatingTemperature: 203.15
     Temperature:                 Nominal
@@ -1206,8 +1256,7 @@ CCD:
     IncludeReadoutNoise:              yes            
     IncludeCTIeffects:                yes            
     IncludeOpenShutterSmearing:       yes            
-    IncludeNaturalVignetting:         yes   
-    IncludeMechanicalVignetting:      yes
+    IncludeRelativeTransmissivity:    yes   
     IncludePolarization:              yes
     IncludeParticulateContamination:  yes
     IncludeMolecularContamination:    yes
@@ -1231,14 +1280,14 @@ The pre-defined CCD positions are shown in the figures below.
 @image html "/images/CCD Array Configuration - Normal Camera.png" "Figure 7: Layout of the CCDs for the normal camera's."
 @image html "/images/CCD Array Configuration - Fast Camera.png" "Figure 8: Layout of the CCDs for the fast camera's."
 
-Note that we now use 1, 2, 3, and 4 rather than A, B, C, D, for the normal cameras as well as for the fast ones.
+<!-- Note that we now use 1, 2, 3, and 4 rather than A, B, C, D, for the normal cameras as well as for the fast ones.
 
 |In the past|Now |
 |---|---|
 | A  | 3  |
 | B  | 2  |
 | C  | 4  |
-| D  | 1  |
+| D  | 1  | -->
 
 When you specify [Position](#position)=Custom, the origin offset ([OriginOffsetX](#originOffsetX) and [OriginOffsetY](#originOffsetY)), the [orientation](#ccdOrientation), [number of rows](#ccdNumRows) and [columns](#ccdNumColumns), and the [first exposed row](#firstRowExposed) of the CCD are read from the configuration parameters in the CCD block.
 
@@ -1303,8 +1352,16 @@ This parameter is only used when the [Position](#position)=Custom.
 
 
 
+### <a name="timeShift"></a>TimeShift
 
-### <a name="pixelSize"></a>PixelSizeS
+<i>Allowed values:</i> > 0
+
+Time shift between the readout of the CCDs [s].  Will only be used if [Position](#position)=Custom.
+
+
+
+
+### <a name="pixelSize"></a>PixelSize
 
 <i>Allowed values:</i> > 0
 
@@ -1312,31 +1369,11 @@ Nominal pixel size, expressed in micron.
 
 ### <a name=BFE></a>BFE
 
-The brighter-fatter effect (BFE) is modelled following the method proposed in [Guyonnet et al. 2015](https://arxiv.org/abs/1501.01577).  The model from Eq. (18) has been adapted to 
+The brighter-fatter effect (BFE) is modelled following the method proposed in [Guyonnet et al. 2015](https://arxiv.org/abs/1501.01577).
 
-\f[f(r) = \frac{2}{Q_0} \cdot p_0 \cdot Ei(p1 \cdot r). \f]
+#### <a name=coefficientsBFE></a>BFE: CoefficientsFileName
 
-#### <a name=rangeBFE></a>BFE: Range
-
-<i>Allowed values:</i> > 0
-
-Maximum distance in the row and column direction for a pixel (i,j) from considered pixel (0,0) to be considered in Eq. (11) in [Guyonnet et al. 2015](https://arxiv.org/abs/1501.01577).
-
-#### <a name=p0BFE></a>BFE: p0
-
-<i>Allowed values:</i> > 0
-
-Scalar \f$ p_0 \f$ in the model for \f$ f \f$.
-
-#### <a name=p0BFE></a>BFE: p1
-
-<i>Allowed values:</i> > 0
-
-Parameter \f$ p_1 \f$ in the model for \f$ f \f$, assuming \f$ r \f$ is expressed in pixels.
-
-#### <a name=refFluxBFE></a>BFE: RefFlux
-
-Parameter \f$ Q_0 \f$ in the model for \f$ f \f$.  This is a reference charge, expressed in electrons.
+Path to the HDF5 file comprising the coefficients _a_ for the BFE.
 
 ### <a name=gainFEE></a> Gain
 
@@ -1434,25 +1471,36 @@ Expected value of the throughput efficiency due to polarisation (i.e. the mean o
 
 
 
-### <a name=vignetting></a>Vignetting
+### <a name="relativeTransmissivity"></a>RelativeTransmissivity
 
-The overall vignetting can be computed by summing the contributions of natural an mechanical vignetting.
+On top of the (time-dependent) [transmission efficiency](#transmissionEfficiency), the overall relative transmissivity should be taken into account.  This decrease in efficiency with distance to the optical axis, comprises the following contributions:
 
-Natural vignetting is the brightness attenuation towards the edges of the FOV, introduced by the view factor of the entrance pupil.  Mechanical vignetting is due to the introduced downsizing of the lenses clear apertures.
-
-
-
-#### <a name="naturalVignettingExpectedValue"></a>Vignetting: NaturalVignetting: ExpectedValue
-<i>Allowed values:</i> \f$\in \f$ [0,1]
-
-Expected value of the throughput efficiency due to natural vignetting (i.e. the mean over all pixels of one detector).
+* natural vignetting (brightness attenuation towards the edges of the FOV, introduced by the view factor of the entrance pupil);
+* mechanical vignetting (due to the undersized mask at the entrance pupil), incl. total blockage of all incoming radiation beyond the edge of the FOV;
+* glass absorption + anti-reflective coating;
 
 
 
-#### <a name="mechanicalVignettingRadiusFOV"></a>Vignetting: MechanicalVignetting: RadiusFOV
+#### <a name="relativeTransmissivityCoefficients"></a>RelativeTransmissivity: Coefficients
+<i>Allowed values:</i> > 0
+
+Coefficients \f$k_1, k_2, k_3 \f$ for the polynomial that converts the distance from the optical axis, \f$\theta \f$ (expressed in degrees), to the variation in the overall relative transmissivity (expressed in percentage):
+
+\f[P(\theta) = k_1 \cdot \theta^2 + k_2 \cdot \theta^4 + k_3 \cdot \theta^6.\f]
+
+
+
+#### <a name="mechanicalVignettingRadiusFOV"></a>RelativeTransmissivity: RadiusFOV
 <i>Allowed values:</i> > 0
 
 Radius of the FOV, expressed in degrees.  Beyond this radius all incoming flux (apart from the cosmic hits) is shielded off.
+
+
+
+#### <a name="relativeTransmissivityExpectedValue"></a>RelativeTransmissivity: ExpectedValue
+<i>Allowed values:</i> \f$\in \f$ [0,1]
+
+Expected value of the throughput efficiency due to the overall relative transmissivity (i.e. the mean over all pixels of one detector, within the FOV).
 
 
 ### <a name=contamination></a>Contamination
@@ -1627,12 +1675,25 @@ Number of trap species that is used in the CTI model by Short et al. 2013.
 
 
 
-
 ##### <a name="trapDensity"></a>CTI: Short2013: TrapDensity
+
+We assume the trap density for each of the considered trap densities to increase linearly over time (in absence of charge injection).
+
+
+
+###### <a name="trapDensityBOL"></a>CTI: Short2013: TrapDensity: BOL
 
 <i>Allowed values:</i> Array holding one non-negative entry per trap species. 
 
-Array holding the trap density \f$n_t \f$ for each of the considered trap species, expressed in number of traps per pixel.  This is used to calculate the \f$\gamma \f$-value in Eq. (22) of Short et al. 2013.
+Array holding the trap density \f$n_t \f$ at BOL for each of the considered trap species, expressed in number of traps per pixel.  This is used to calculate the \f$\gamma \f$-value in Eq. (22) of Short et al. 2013.
+
+
+
+###### <a name="trapDensityEOL"></a>CTI: Short2013: TrapDensity: EOL
+
+<i>Allowed values:</i> Array holding one non-negative entry per trap species. 
+
+Array holding the trap density \f$n_t \f$ at EOL for each of the considered trap species, expressed in number of traps per pixel.  This is used to calculate the \f$\gamma \f$-value in Eq. (22) of Short et al. 2013.
 
 
 
@@ -1722,18 +1783,10 @@ Indicates whether or not to include open-shutter smearing effects.
 
 
 
-### <a name="inclNaturalVignetting"></a>IncludeNaturalVignetting
+### <a name="inclRelativeTransmissivity"></a>IncludeRelativeTransmissivity
 <i>Allowed values:</i> "yes" and "no"
 
-Indicates whether or not to include brightness attenuation towards the edge of the FOV due to natural vignetting.
-
-
-
-### <a name="inclMechanicalVignetting"></a>IncludeMechanicalVignetting
-<i>Allowed values:</i> "yes" and "no"
-
-Whether or not to include blockage of incoming radiation due to mechanical vignetting.
-
+Indicates whether or not to include the overall relative transmissivity.
 
         
 
@@ -1773,7 +1826,7 @@ Indicates whether or not to include loss of throughput efficiency due to quantum
 ### <a name="inclConvolution"></a>IncludeConvolution
 <i>Allowed values:</i> "yes" and "no"
 
-Indicates whether or not the sub-pixel map must be convolved with the PSF.
+Indicates whether or not the sub-pixel map must be convolved with the PSF.  This applies only to the Gaussian and the pre-computed PSF.  When using the analytic PSF, the PSF is always applied (irrespective of the value of this configuration parameter)!
 
 
 
@@ -1914,6 +1967,56 @@ If you want a pixel of 256 x 256 = 65536 sub-pixels you should specify in the co
 
 
 
+<!-- ********************* -->
+<!-- Photometry Parameters -->
+<!-- ********************** -->
+
+## <a name="photometryParameters"></a>Photometry Parameters
+
+The <b>Photometry</b> block of the configuration file contains all information to run photometry.  The structure of this block is the following:
+
+\code{.yaml}
+Photometry:
+
+    IncludePhotometry:               no
+    ContaminationRadius:             4
+    MaskUpdateInterval:              14.0
+    TargetFileName:                  inputfiles/photometryTargets.txt
+\endcode
+
+Note that photometry can only be performed if [Model](#psfModel)=AnalyticNonGaussian.
+
+
+### IncludePhotometry
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not photometry should be run.  Photometry can only be performed if [Model](#psfModel)=AnalyticNonGaussian.
+
+
+
+### ContaminationRadius
+<i>Allowed values:</i> > 0
+
+Radius [pixels] around a target within which sources are considered contaminants when calculating the photometry for that target.
+
+
+
+### MaskUpdateInterval
+<i>Allowed values:</i> > 0
+
+Update interval [days] to update the photometry mask.
+
+
+
+### TargetFileName
+
+Path of the file comprising the list of targets identifiers (as listed in the [star catalogue](#starCatalogue)) for which to calculate the photometry, relative to the [project location](#projectLocation).
+
+---
+
+
+
+
 
 <!-- *************** -->
 <!-- Seed Parameters -->
@@ -2025,9 +2128,49 @@ The <b>ControlHDF5Content</b> block of the configuration file contains all the s
 \code{.yaml}
 ControlHDF5Content:
 
-    WriteSubPixelImages:             no 
+    WritePixelMaps:                  yes
+    WriteBiasMaps:                   yes
+    WriteSmearingMaps:               yes
+    WriteThroughputMaps:             yes
+    WriteFlatfieldMap:               yes
+    WriteSubPixelImages:             no
     WriteStarPositions:              yes
 \endcode
+
+
+
+### WritePixelImages
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the pixel maps must be stored in the output file.
+
+
+
+### WriteBiasMaps
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the bias register maps must be stored in the output file.
+
+
+
+### WriteSmearingMaps
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the smearing maps must be stored in the output file.
+
+
+
+### WriteThroughputMaps
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the throughput maps must be stored in the output file.
+
+
+
+### WriteFlatfieldMap
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the flatfield maps must be stored in the output file.
 
 
 
@@ -2137,7 +2280,7 @@ The <b>CameraGroups</b> block in the configuration file is used in case a pre-de
 \code{.yaml}
 CameraGroups:
 
-    AzimuthAngle:            [45.0, 135.0, -135.0, -45.0, 0.0] 
+    AzimuthAngle:            [45.0, 135.0, 225.0, 315.0, 0.0] 
     TiltAngle:               [9.2, 9.2, 9.2, 9.2, 0.0] 
 \endcode
 
@@ -2174,11 +2317,12 @@ CCDPositions:
 
     OriginOffsetX:                   [-1, -1, -1, -1]
     OriginOffsetY:                   [82.18, 82.18, 82.18, 82.18]
-    Orientation:                     [0, 90, 180, 270]
+    Orientation:                     [180, 270, 0, 90]
     NumColumns:                      [4510, 4510, 4510, 4510]
     NumRows:                         [4510, 4510, 4510, 4510]
     FirstRowForNormalCamera:         [0, 0, 0, 0]
-    FirstRowForFastCamera:           [2255, 2255, 2255, 2255]       
+    FirstRowForFastCamera:           [2255, 2255, 2255, 2255]
+    TimeShift:                       [0.0, 6.25, 12.5, 18.75]
 \endcode
 
 Mind you, you are NOT supposed to alter this section of the configuration file!
@@ -2224,3 +2368,8 @@ Row index of the first row in the CCD that is illuminated (the row closest to th
 ### FirstRowForFastCamera
 
 Row index of the first row in the CCD that is illuminated (the row closest to the readout register is row 0), for CCD positions 1, 2, 3, and 4, in case of a fast camera ([GroupID](#groupID)=Fast).  For fast cameras, only the upper half of the CCD is illuminated.  Depending on the value of the [Position](#position) parameter in the [CCD](#ccdParameters) block, the appropriate value will be selected from the list.
+
+
+### TimeShift
+
+Time shift [s] of the readout of the individual CCDs, w.r.t. to readout of CCD1.  Will only be used if [Position](#position)=1, 2, 3, or 4.

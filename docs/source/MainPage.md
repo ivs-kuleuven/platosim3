@@ -31,7 +31,7 @@ All information needed to install and update the PlatoSim3 software on your syst
 <!-- In Case of Problems -->
 <!-- ******************* -->
 
-## <a name=inCaseOfProblems>In Case of Problems
+## <a name=inCaseOfProblems> In Case of Problems
 
 In case you would come across problems you cannot solve yourself, please, let us know!  We would like you to use the issue tracking on GitHub rather than sending an email to the developers, as this helps to better keep track of the issues and their status.  How raise issues (and which information you must provide us with) is described @ref IssueTracking "here".
 

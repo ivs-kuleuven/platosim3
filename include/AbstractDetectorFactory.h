@@ -8,7 +8,8 @@
 #include <valarray>
 
 #include "Detector.h"
-#include "DetectorWithMappedPSF.h"
+#include "DetectorWithSymmetricalMappedPSF.h"
+#include "DetectorWithAsymmetricalMappedPSF.h"
 #include "DetectorWithAnalyticGaussianPSF.h"
 #include "DetectorWithAnalyticNonGaussianPSF.h"
 
@@ -23,13 +24,13 @@ class AbstractDetectorFactory
 {
     public:
 
-        virtual Detector* createDetectorWithMappedPsfInstance(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure) = 0;
+        virtual Detector* createDetectorWithSymmetricalMappedPsfInstance(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure) = 0;
+
+        virtual Detector* createDetectorWithAsymmetricalMappedPsfInstance(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure) = 0;
 
         virtual Detector* createDetectorWithAnalyticGaussianPsfInstance(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure) = 0;
 
         virtual Detector* createDetectorWithAnalyticNonGaussianPsfInstance(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure) = 0;
-
-    
 };
 
 // this is the factory that creates the usual detector variants (Mapped, AnalyticNonGaussian, AnalyticGaussian) 
@@ -38,9 +39,14 @@ class DetectorFactory : public AbstractDetectorFactory
 {
     public:
 
-        Detector* createDetectorWithMappedPsfInstance(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
+        Detector* createDetectorWithSymmetricalMappedPsfInstance(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
         {
-            return new DetectorWithMappedPSF(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
+            return new DetectorWithSymmetricalMappedPSF(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
+        };
+
+        Detector* createDetectorWithAsymmetricalMappedPsfInstance(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
+        {
+            return new DetectorWithAsymmetricalMappedPSF(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
         };
 
         Detector* createDetectorWithAnalyticGaussianPsfInstance(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
@@ -52,7 +58,6 @@ class DetectorFactory : public AbstractDetectorFactory
         {
             return new DetectorWithAnalyticNonGaussianPSF(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
         };
-
 };
 
 
@@ -62,9 +67,14 @@ class ClosedLoopDetectorFactory : public AbstractDetectorFactory
 {
     public:
 
-        Detector* createDetectorWithMappedPsfInstance(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
+        Detector* createDetectorWithSymmetricalMappedPsfInstance(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
         {
-            return new ClosedLoopDetectorWithMappedPSF(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
+            return new ClosedLoopDetectorWithSymmetricalMappedPSF(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
+        };
+
+        Detector* createDetectorWithAsymmetricalMappedPsfInstance(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
+        {
+            return new ClosedLoopDetectorWithAsymmetricalMappedPSF(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
         };
 
         Detector* createDetectorWithAnalyticGaussianPsfInstance(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
@@ -76,7 +86,6 @@ class ClosedLoopDetectorFactory : public AbstractDetectorFactory
         {
             return new ClosedLoopDetectorWithAnalyticNonGaussianPSF(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
         };
-
 };
 
 #endif

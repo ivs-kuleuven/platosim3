@@ -7,8 +7,8 @@
 import os
 import numpy as np
 
-from simfile import SimFile
-from simulation import Simulation
+from platosim.simfile    import SimFile
+from platosim.simulation import Simulation
 
 
 
@@ -51,7 +51,7 @@ sim["Camera/IncludeFieldDistortion"]              = "yes"
 
 sim["PSF/Model"]                                  = "AnalyticNonGaussian"
 
-sim["CCD/Position"]                               = 1
+sim["CCD/Position"]                               = 3
 sim["CCD/IncludeConvolution"]                     = "no"
 
 sim["SubField/ZeroPointRow"]                      = 2000
