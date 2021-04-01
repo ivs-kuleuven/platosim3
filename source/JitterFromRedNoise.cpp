@@ -65,17 +65,16 @@ void JitterFromRedNoise::configure(ConfigurationParameters &configParams)
     // We determine the jitter time interval as a fraction of the jitter time scale.
     // so that the changes in (yaw, pitch, roll) can still be reliably tracked.
 
-    jitterTimeInterval = jitterTimeScale / 20.0;
+    jitterTimeInterval = jitterTimeScale / 10.0;
 
     // Set the internal time to the time of the first exposure of the series
     // The alternative, setting internalTime to 0., has the disadvantage that the jittering
     // needs to fast-forward a lot when beginExposureNr is very large, which is slow.
     
     int beginExposureNr = configParams.getInteger("ObservingParameters/BeginExposureNr");
-    double exposureTime = configParams.getDouble("ObservingParameters/ExposureTime");
-    double readoutTime  = configParams.getDouble("CCD/ReadoutTime");
+    double cycleTime = configParams.getDouble("ObservingParameters/CycleTime");
 
-    internalTime = beginExposureNr * (exposureTime + readoutTime);
+    internalTime = beginExposureNr * cycleTime;
     
 }
 

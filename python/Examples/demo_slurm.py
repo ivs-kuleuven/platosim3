@@ -13,8 +13,8 @@ import sys
 import numpy as np
 from math import ceil
 
-from simfile import SimFile
-from simulation import Simulation
+from platosim.simfile import SimFile
+from platosim.simulation import Simulation
 
 # Specify the total number of exposures of the entire unpartitioned time series.
 
@@ -46,6 +46,7 @@ sim.outputDir = outputDir
 sim["PSF/Model"] = "MappedGaussian"
 sim["ObservingParameters/RApointing"]  = 180.0 
 sim["ObservingParameters/DecPointing"] = -70.0
+sim["Platform/SolarPanelOrientation"]  =   0.0
 sim["Telescope/AzimuthAngle"]          =   0.0
 sim["Telescope/TiltAngle"]             =   0.0
 

@@ -5,8 +5,8 @@
 import os
 import numpy as np
 
-from simfile import SimFile
-from simulation import Simulation
+from platosim.simfile import SimFile
+from platosim.simulation import Simulation
 
 
 
@@ -17,13 +17,13 @@ from simulation import Simulation
 
 inputDir    = os.getenv("PLATO_PROJECT_HOME") + "/inputfiles"
 
-inputFile   = inputDir + "/inputfgs.yaml"
+inputFile   = inputDir + "/inputfile.yaml"
 starCatalog = inputDir + "/guide_stars_EQ.txt"
 jitterFile  = inputDir + "/PlatoJitter_Airbus.txt"
 psfFile     = inputDir + "/psf.hdf5"
 
 outputDir   = os.getcwd()
-outputFilePrefix = "/GuideStarThalesFine"
+outputFilePrefix = "/FGS_"
 
 # Read the guide star catalog
 
@@ -42,11 +42,17 @@ for n in range(NguideStars):
     sim = Simulation(outputFilePrefix + "{0:04d}".format(n), inputFile)
     sim.outputDir = outputDir
 
-    # Make sure it uses the right starCatalog, jitter file, and PSF file
+    # Set the simulation parameters
 
     sim["ObservingParameters/StarCatalogFile"] = starCatalog
+    sim["Platform/JitterSource"] = "FromFile"
     sim["Platform/JitterFileName"] = jitterFile
-    sim["PSF/MappedFromFile/Filename"] = psfFile 
+    sim["PSF/MappedFromFileSymmetrical/Filename"] = psfFile 
+    sim["ObservingParameters/RApointing"] = 86.79870
+    sim["ObservingParameters/DecPointing"] = -46.39595
+    sim["ObservingParameters/CycleTime"] = 2.5 
+    sim["Camera/IncludeFieldDistortion"] = False
+    sim["Telescope/GroupID"] = "Fast"
 
     # Center the subfield around the current guide star
     # First extract the required information from the yaml input file.
@@ -54,26 +60,23 @@ for n in range(NguideStars):
     #
     # This function sets the following configuration parameters:
     # 
-    # Camera/FieldDistortion/IncludeFieldDistortion = True
-    # 
     # CCD/OriginOffsetX
     # CCD/OriginOffsetY
     # CCD/Orientation
     # CCD/NumColumns
     # CCD/NumRows
-    # CCD/ReadoutTime
     # 
     # SubField/ZeroPointRow
     # SubField/ZeroPointColumn
     # SubField/NumRows
     # SubField/NumColumns
     # 
-    # ObservingParameters/ExposureTime
+    # ObservingParameters/CycleTime
     # 
 
     subfieldSizeX = 9     # column width [pixels]
     subfieldSizeY = 9     # row width [pixels]
-    normalCamera = False
+    normalCamera = False  # fast camera
 
     hasCcdCode = sim.setSubfieldAroundCoordinates(np.deg2rad(ra[n]), np.deg2rad(dec[n]), subfieldSizeX, subfieldSizeY, normalCamera)
 

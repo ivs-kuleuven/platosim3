@@ -13,6 +13,7 @@
 #include "Heartbeat.h"
 #include "HDF5Writer.h"
 #include "ConfigurationParameters.h"
+#include "FileUtilities.h"
 #include "JitterGenerator.h"
 
 

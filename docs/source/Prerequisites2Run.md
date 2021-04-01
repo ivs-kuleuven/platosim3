@@ -23,22 +23,18 @@ To avoid having to hardcode any path in configuration files, tutorials, etc., yo
 
 This can be done as follows:
 
-\code
-PLATO_PROJECT_HOME=<full path to /PlatoSim3>
-export PLATO_PROJECT_HOME
+    $ PLATO_PROJECT_HOME=<full path to /PlatoSim3>
+    $ export PLATO_PROJECT_HOME
 
-PLATO_WORKDIR=<full path to a preferred working directory>
-export PLATO_WORKDIR
+    $ PLATO_WORKDIR=<full path to a preferred working directory>
+    $ export PLATO_WORKDIR
 
-PYTHONPATH=$PYTHONPATH:$PLATO_PROJECT_HOME/python
-export PYTHONPATH
-\endcode
+    $ PYTHONPATH=$PYTHONPATH:$PLATO_PROJECT_HOME/python
+    $ export PYTHONPATH
 
 In case you've installed PlatoSim3 @ref ViaConda "via conda", the former environment variable should be exported as
 
-\code
-export PLATO_PROJECT_HOME=$CONDA_PREFIX
-\endcode 
+    $ export PLATO_PROJECT_HOME=$CONDA_PREFIX
 
 (the <code>CONDA_PREFIX</code> environment variable is automatically known when you activate the appropriate conda environment)
 
@@ -46,13 +42,11 @@ If you want, you can copy this code to make your own little script to set up you
 
 To check the content of these variables (to see whether they are set to the proper location), type
 
-\code
-echo $PLATO_PROJECT_HOME
+    $ echo $PLATO_PROJECT_HOME
 
-echo $PLATO_WORKDIR
-
-echo $PYTHONPATH
-\endcode
+    $ echo $PLATO_WORKDIR
+    
+    $ echo $PYTHONPATH
 
 ---
 

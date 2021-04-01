@@ -43,4 +43,4 @@ Additionally, depending on the configuration, some additional files may be requi
 * and a file comprising a time series for the operating temperature of the CCD.
 
 These are described @ref SupplementaryFiles "here".
- 
+

@@ -2,12 +2,15 @@
 
 build/*
 inputfiles/*
+outputfiles/*
 dependencies/Installs/*
 *.xcodeproj/*
 *.sublime-project
 *.sublime-workspace
 PlatoSim3.code-workspace
 .vscode/*
+PlatoSim3.code-workspace
+.idea
 
 # Ignore some of the auto-generated files (during cmake)
 
@@ -16,8 +19,10 @@ generated/version.h
 # Un-ignore some of the default input files in the inputfiles/ folder
 
 !inputfiles/inputfile.yaml
+!inputfiles/photometryTargets.txt
 !starField_RA180Dec-70.txt
 !psfallv3.txt
+!inputfiles/cl2bCcds.txt
 
 # Ignore output of ctags
 
@@ -26,11 +31,20 @@ tags
 # Ignore vim related files
 
 .ycm_extra_conf.py
+.local.vimrc
 
 # Ignore checkpoints of iPython notebooks
 
+.ipynb_checkpoints/
 docs/tutorials/.ipynb_checkpoints/*
 docs/tutorials/*/.ipynb_checkpoints/*
+docs/validation/.ipynb_checkpoints/*
+docs/validation/*/.ipynb_checkpoints/*
+
+docs/tutorials/FineGuidanceStars/GuideStarSimulation00*
+docs/tutorials/Photometry/photometrySimulation*
+docs/tutorials/Photometry/photometryOutput.hdf5
+docs/validation/photometryOutput*
 
 # Compiled source 
 
@@ -52,9 +66,18 @@ log.txt
 *.sql
 *.sqlite
 *.swp
-
+*~
+*#
 # OSX generated files
 
 .DS_Store*
 Icon?
 Thumbs.db
+Pipfile*
+/Debug/
+/venv/
+/requirements.in
+/requirements.txt
+
+# Validation tests
+tests/validationTests/ioFiles/

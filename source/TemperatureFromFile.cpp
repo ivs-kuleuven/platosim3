@@ -59,6 +59,7 @@ TemperatureFromFile::TemperatureFromFile(ConfigurationParameters &configParams, 
 
     timeIndex = 0;
     internalTime = timeFromFile[0];
+    currentTemperature = temperature[0];
 }
 
 
@@ -128,7 +129,7 @@ double TemperatureFromFile::getNextTemperature(double time)
 
     if (time == internalTime)
     {
-        return temperature[timeIndex];
+        return currentTemperature;
     }
 
     // If timeInterval is larger than zero, Advance the pointer 'timeIndex' in our pre-defined
@@ -151,7 +152,7 @@ double TemperatureFromFile::getNextTemperature(double time)
     const double weight1 = (time - timeFromFile[timeIndex]) / (timeFromFile[timeIndex+1] - timeFromFile[timeIndex]);
     const double weight2 = (timeFromFile[timeIndex+1] - time) / (timeFromFile[timeIndex+1] - timeFromFile[timeIndex]);
 
-    const double newTemperature   = temperature[timeIndex]   * weight2 + temperature[timeIndex+1]   * weight1;
+    currentTemperature = temperature[timeIndex] * weight2 + temperature[timeIndex+1] * weight1;
 
     // Update the internal time
 
@@ -159,5 +160,5 @@ double TemperatureFromFile::getNextTemperature(double time)
 
     // That's it!
 
-    return newTemperature;
+    return currentTemperature;
 }

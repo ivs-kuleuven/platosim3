@@ -24,19 +24,19 @@ Simulation of different (100 x 100 pixels) sub-fields on CCD 2 with fake stars:
 #########
 
 from imp import reload
-import simulation
+import platosim.simulation
 from pyparsing import nums
-reload(simulation)
-from simulation import Simulation
-import referenceFrames
-reload(referenceFrames)
-from referenceFrames import pixelToSkyCoordinates, skyToPixelCoordinates
+reload(platosim.simulation)
+from platosim.simulation import Simulation
+import platosim.referenceFrames
+reload(platosim.referenceFrames)
+from platosim.referenceFrames import pixelToSkyCoordinates, skyToPixelCoordinates
 import random
 import os
 import matplotlib.pyplot as plt
 import numpy as np
 import math
-from magnitudeDistribution import *
+from platosim.magnitudeDistribution import *
 
 
 
@@ -108,9 +108,10 @@ def getRandomMagnitude(minMagnitude, maxMagnitude, a, b, c):
     INPUT: c: Constant to add to the exponential function.
     """
 
-    # Inverse transform sampling method
-    
+    # Inverse transform sampling method   
     magnitude = inverseExpFunction(random.random(), a, b, c)
+    print(a, b, c)
+    
     
     # Make sure the generated magnitude is withing the allowed range
     # (keep on generating new values until it is)
@@ -252,7 +253,7 @@ for simulationIndex in range(numSubfields):
     
     # CCD related configuration parameters    
     
-    ccdCode = "2"
+    ccdCode = "4"
     sim["CCD/Position"] = ccdCode
 
     # Camera related configuration parameters
@@ -276,7 +277,8 @@ for simulationIndex in range(numSubfields):
     #sim["CCD/IncludeCTIeffects"] = 0
     #sim["CCD/IncludeOpenShutterSmearing"] = 0
     #sim["CCD/IncludeQuantumEfficiency"] = 0
-    #sim["CCD/IncludeVignetting"] = 0
+    #sim["CCD/IncludeNaturalVignetting"] = 0
+    #sim["CCD/IncludeMechanicalVignetting"] = 0
     #sim["CCD/IncludePolarization"] = 0
     #sim["CCD/IncludeParticulateContamination"] = 0
     #sim["CCD/IncludeMolecularContamination"] = 0

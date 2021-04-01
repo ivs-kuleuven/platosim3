@@ -1,5 +1,150 @@
 # Changelog for PlatoSim
 
+<!-- 3.4.0 -->
+<!-- ***** -->
+
+## 31/03/2021: 3.3.8
+
+## Fixed
+* HighResMap matrix is now initialized with zeros (GitHub issue #543)
+* Photon noise applied after CTI (GitHub issue #431)
+* CTI by Short et al. has no effect on the maximum value (GitHub issue #403)
+* CTI Short2013 model has no effect (GitHub issue #446)
+* Incorrect FEE temperature, from file (GitHub issue #413)
+* BFE seems to increase total flux (GitHub issue #397)
+* Simulation with too short external jitter file (GitHub issue #327)
+* Input file of the photometry tutorial needs to be updated (GitHub issue #368)
+* Edge effects introduced by convolution with non-analytical PSF (GitHub issue #357)
+* Full-image smearing strange value for column 2254 (GitHub issue #450)
+* isnan ambiguous in Detector.cpp (GitHub issue #492)
+* Some trouble with the routine createStarCatalogFileFromPixelCoordinates (GitHub issue #506)
+* Analytical Non Gaussian PSF: strange orientation of the PSF on the CCD (GitHub issue #511)
+* Use of a MappedFromFileAsymmetrical PSF with sub-pixel resolution is 1/64 generates an error (GitHub issue #530)
+
+## Changed
+* Provide package acces to python scipts (GitHub feature request #548)
+* Updated HDF5 library from v10.2 to v12.0 	
+* Replaced natural & mechanical vignetting with overall relative transmissivity (GitHub issue #478)
+* Read BFE coefficients from file instead of calculating them (GitHub issue #434)
+* CCD ID new standard (GitHub issue #416)
+* Implemented time-dependent CTI (GitHub issue #476)
+* Unique ID needed in ClosedLoopUtility and Log-File (GitHub issue #488)
+* Implemented time-dependent CTI (GitHub issue #476)
+	
+## Added
+* Validation & verification notebooks
+* Validation & verification scripts
+* Added a method to create a single point source
+* Record cosmic particle hits in output HDF5 file (GitHub feature request #553)
+* Added method to obtain cosmics into SimFile class
+* 6.25s time-shift between CCDs (GitHub issue #401)
+* Using non-rotationally symmetrical PSF from file (GitHub issue #407)
+* Access methods for datasets at top level in HDF5 file (GitHub issue #437)
+* Conversion between CCD coordinates & field angles (GitHub issue #460)
+* Mechanical vignetting < edge of FOV (GitHub issue #435)
+* Transmission variation as a function of FOV (GitHub issue #415)
+* Group all contributions to the overall relative transmissivity (GitHub issue #478)
+* Implement ghosts (GitHub issue #515)
+* Add linear irradiance ratio decrease of point-like ghosts (GitHub issue #526)
+* Added getPointLikeGhostCoordinates() and getExtendedGhostCoordinates() methods to SimFile class
+
+	
+
+
+<!-- 3.3.7 -->
+<!-- ***** -->
+
+## 25/02/2020: 3.3.7
+
+## Fixed
+
+* Input file of the photometry tutorial needs to be updated (GitHub issue #368)
+* Order of the effects (GitHub issue #394)
+
+## Changed
+
+* Input parameter update (GitHub issue #377):
+  + wavelength range
+  + irradiance over the PLATO wavelength range (PIS only; nothing changes for PlatoSim)
+  + added: orientation angle of the solar panels
+  + transmission efficiency
+  + throughput bandwidth
+  + FEE readout noise
+  + gain + stability of the CCD gain
+  + QE
+  + digital saturation for fast cameras (this is now the same as for the normal cameras)
+* Dynamic frame transfer times (GitHub issue #369)
+
+## Added
+
+* FEE over/undershoot (GitHub issue #376)
+* Dump Analytical PSF within hdf5 output file (GitHub issue #379)
+* Jitter from network
+
+
+
+
+
+<!-- 3.3.6 -->
+<!-- ***** -->
+
+## 10/04/2019: 3.3.6
+
+### Fixed
+
+* Bias register map expressed as additional columns (GitHub issue #290)
+
+* Implement partial readout (GitHub issue #285)
+
+* Backward compatibility to the configuration files? (GitHub issue #292)
+
+* Improve documentation on supplementary input files of PlatoSim (GitHub issue #308)
+
+* Migtool error (GitHub issue #307)
+
+* Update HDF5 dependency to 1.10.2 (GitHub issue #322)
+
+* Remove python 3.5 dependency (GitHub issue #318)
+
+* Improved error trapping for CCD/ReadoutMode/ReadoutMode (GitHub issue #302)
+
+* Incorrect sky background level (GitHub issue #325)
+
+* Incorrect flatfield level (GitHub issue #326)
+
+* Segfault on running test harness (GitHub issue #329)
+
+* Open-shutter smearing not accounted for (GitHub issue #339)
+
+* Implement mechanical vignetting (GitHub issue #334)
+
+* Partial-readout parameters not read out correctly (GitHub issue #346)
+
+* Conserving disc space by writing the images as int matrices into the .hdf5 files (GitHub issue #348)
+
+* Bug fix in the createStarCatalogFileFromPixelCoordinates() method.
+
+
+
+### Added
+
+* Temperature dependency of the dark current (space environment)
+
+
+
+<!-- 3.3.5 -->
+<!-- ***** -->
+
+## 26/10/2018: 3.3.5
+
+### Fixed
+
+* Inconsistency in star position output (GitHub issue #294)
+
+
+
+
+
 <!-- 3.3.4 -->
 <!-- ***** -->
 

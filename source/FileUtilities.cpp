@@ -54,3 +54,69 @@ void FileUtilities::remove(const string &filename)
         }
     }
 }
+
+/**
+ * @brief Return the last line in the file.
+ * 
+ * @param filename: Filename.
+ * 
+ * @return Last line in the file.
+ */
+string FileUtilities::getLastLine(const string &filename)
+{
+    Log.info("FileUtilities: Opening jitter file " + filename);
+
+    ifstream fs(filename);
+    string lastLine;
+
+    if (fs.is_open())
+    {
+        fs.seekg(-1, std::ios_base::end);
+        if (fs.peek() == '\n')
+        {
+            // Start searching for \n occurrences
+            fs.seekg(-1, std::ios_base::cur);
+            for (int i = fs.tellg(); i > 0; i--)
+            {
+                if (fs.peek() == '\n')
+                {
+                    // Found
+                    fs.get();
+                    break;
+                }
+                // Move one character back
+                fs.seekg(i, std::ios_base::beg);
+            }
+        }
+        getline(fs, lastLine);
+    }
+    else
+    {
+        string msg = "FileUtilities: Cannot open file " + filename;
+
+        Log.error(msg);
+        throw FileException(msg);
+    }
+
+    fs.close();
+
+    return lastLine;
+}
+
+/**
+ * Extract the last timepoint in the file.  Assumed is that the file consists of columns
+ * and the first column is the time.
+ * 
+ * @param filename: Filename.
+ * 
+ * @return Last timepoint in the file.
+ */
+double FileUtilities::getLastTimePoint(const string &filename)
+{
+    string lastLine = getLastLine(filename);
+
+    istringstream buffer(lastLine);
+    vector<double> numbers((istream_iterator<double>(buffer)), istream_iterator<double>());
+    
+    return numbers[0];
+}

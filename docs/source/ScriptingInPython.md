@@ -11,7 +11,6 @@ We advise you to install <a href="https://docs.continuum.io/anaconda/install">An
 
 
 
-
 ## Configuring Python
 
 ### Creating a Python Environment (for Developers)
@@ -20,15 +19,13 @@ With <a href="http://conda.pydata.org/docs/index.html">conda</a> (which is inclu
 
 To create and activate such an environment, type
 
-\code
-source /anaconda/bin/activate root
-conda create -n platosim python=3.5 anaconda
-\endcode
+    source /anaconda/bin/activate root
+    conda create -n platosim python=<Python version> anaconda
 
-More information on managing environment with conda can be found <a href="http://conda.pydata.org/docs/using/envs.html#">here</a>.
+Supported Python versions are 3.5, 3.6, and 3.7.  More information on managing environment with conda can be found <a href="http://conda.pydata.org/docs/using/envs.html#">here</a>.  Please, note that - when you switch to a different version of Python - it is advised to create a new conda environment rather than trying to update your existing one.  This means you (as a developer) will have to re-install a couple of Python packages (see below), but is will save you a lot of trouble if you do it like this.
 
-Users only have to source the conda environment in which the desired version of the software has been installed in.
-
+Users only have to source the conda environment in which the desired version of the software has been installed in.  Also they are advised to create a new conda environment when they want to switch to a different version of Python.  After a @ref InstallViaConda "conda update" or a
+@ref InstallViaConda "conda install" of the PlatoSim software, everything will be configured appropriately, without further action.
 
 
 ### Installing Extra Packages (for Developers)
@@ -40,18 +37,19 @@ To be able to run the PLATO Simulator and inspect the output, you must install t
 - <a href="https://pypi.python.org/pypi/pyaml">pyaml</a>, to deal with the configuration files in <a href="https://learnxinyminutes.com/docs/yaml/">YAML</a> format,
 - <a href="http://www.pytables.org/">pytables</a>, to inspect the output files in <a href="https://www.hdfgroup.org/HDF5/">HDF5</a> format,
 - <a href="https://www.scipy.org/">scipy</a>, for mathematical operations,
-- and <a href="https://www.h5py.org/">h5py</a>, to interface to the HDF binary data format.
+- <a href="https://www.h5py.org/">h5py</a>, to interface to the HDF binary data format,
+- and <a href="https://http://www.astropy.org/">astropy</a>, a core package for astronomy in Python.
+
 
 These packages can be installed with the following commands:
 
-\code
-conda install numpy
-conda install matplotlib
-conda install pytables
-pip install pyaml
-conda install scipy
-conda install h5py
-\endcode
+    conda install numpy
+    conda install matplotlib
+    conda install pytables
+    pip install pyaml
+    conda install scipy
+    conda install h5py
+    conda install astropy
 
 As it comes to the choice between <code>conda install</code> and <code>pip install</code>: first try <code>conda install</code>, and - if that doesn't work - then try <code>pip install</code> (or <code>pip3 install</code> if you're using Python3).
 
@@ -61,24 +59,18 @@ Users don't have to install these packages as they will be included in the distr
 
 The Python functionality that is offered in PlatoSim3 can be found in the <code>/python</code> directory.  Make sure to add this directory to your Python path, as follows:
 
-\code{.py}
-PYTHONPATH=$PYTHONPATH:<full path to the /Platosim3/python directory>
-export PYTHONPATH
-\endcode
+    PYTHONPATH=$PYTHONPATH:<full path to the /Platosim3/python directory>
+    export PYTHONPATH
 
 In case you've installed PlatoSim3 @ref ViaConda "via conda", this environment variable should be exported as
 
-\code
-export PLATO_PROJECT_HOME=$CONDA_PREFIX
-\endcode 
+    export PLATO_PROJECT_HOME=$CONDA_PREFIX
 
 (the <code>CONDA_PREFIX</code> environment variable is automatically known when you activate the appropriate conda environment)
-
 
 In <a href="https://pythonhosted.org/spyder/">Spyder</a> (the GUI that comes with Anaconda), click on the "Python Path Manager" button to add the path to this directory to your Python path.
 
 ---
-
 
 
 

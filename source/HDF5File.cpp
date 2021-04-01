@@ -137,15 +137,9 @@ void HDF5File::open(string filename, bool readonly)
 
 
 
-// HDF5File::close()
-//
-// PURPOSE: close the HDF5 file in case it was open. 
-//          It's safe to close a file that wasn't even open.
-//
-// INPUT: None
-//
-// OUTPUT: None
-
+/**
+ * \brief Close the HDF5 file in case it was open. It's safe to close a file that wasn't even open.
+ */
 void HDF5File::close()
 {
     if (fileIsOpen)
@@ -202,7 +196,6 @@ bool HDF5File::hasGroup(string groupName)
  * 
  * \exception  H5GroupException thrown when the group is unknown to the HDF5 file
  */
- 
 bool HDF5File::hasDataset(string groupName, string datasetName)
 {
     if (hasGroup(groupName))
@@ -231,24 +224,21 @@ bool HDF5File::hasDataset(string groupName, string datasetName)
 
 
 
-// HDF5File::createGroup()
-//
-// PURPOSE: Create a group in an HDF5 file.
-//
-// INPUT: groupName: full path of the group. Should always start with "/".
-//
-// OUTPUT: None
-// 
-// EXAMPLE: createGroup("/my/path/to/subgroup1") will create "subgroup1"
-//          in the parent group "/my/path/to". 
-//          Note that the parent group is assumed to already exist. 
-//          If not, an error will be given. So, to create "/my/path/to/subgroup1" 
-//          from scratch, you should call:
-//             createGroup("/my");
-//             createGroup("/my/path");
-//             createGroup("/my/path/to");
-//             createGroup("/my/path/to/subgroup1");
-
+/**
+ * \brief Create a group in an HDF5 file.
+ * 
+ * \param groupName: Full path of the group. Should always start with "/".
+ * 
+ * \example createGroup("/my/path/to/subgroup1") will create "subgroup1"
+ *          in the parent group "/my/path/to". 
+ *          Note that the parent group is assumed to already exist. 
+ *          If not, an error will be given. So, to create "/my/path/to/subgroup1" 
+ *          from scratch, you should call:
+ *             createGroup("/my");
+ *             createGroup("/my/path");
+ *             createGroup("/my/path/to");
+ *             createGroup("/my/path/to/subgroup1");
+ */
 void HDF5File::createGroup(string groupName)
 {
     // Make sure the path of the group starts with a "/" (i.e. the root folder)
@@ -295,20 +285,16 @@ void HDF5File::createGroup(string groupName)
 
 
 
-// HDF5File::writeAttribute()  for string-valued attributes
-//
-// PURPOSE: add a string attribute to the HDF5 file.
-//          The attribute is stored in "<GroupName>/<attributeName>".
-//          
-// INPUT: groupName:      string containing the full path of an existing group. Starts with "/".
-//        attributeName:  string containing the name of the attribute
-//        attributeValue: string containing the attribute value
-//
-// OUTPUT: None
-//
-// EXAMPLE: writeAttribute("/InputParameters/ObservingParameters", "CCDPredefinedPosition", "User")
-//
-
+ /**
+ * \brief Add a string attribute to the HDF5 file.  The attribute is stored in 
+ *        "<GroupName>/<attributeName>".
+ *          
+ * \param groupName: String containing the full path of an existing group. Starts with "/".
+ * \param attributeName: String containing the name of the attribute
+ * \param attributeValue: String containing the attribute value
+ *
+ * \example: writeAttribute("/InputParameters/ObservingParameters", "CCDPredefinedPosition", "User")
+ */
 void HDF5File::writeAttribute(string groupName, string attributeName, string attributeValue)
 {
    // Complain if the file was not first opened
@@ -389,7 +375,6 @@ void HDF5File::writeAttribute(string groupName, string attributeName, string att
 //
 // EXAMPLE: writeAttribute("/InputParameters/CCD", "CCDSizeX", 4510)
 //
-
 void HDF5File::writeAttribute(string groupName, string attributeName, int attributeValue)
 {
     // Complain if the file was not first opened
@@ -541,20 +526,16 @@ void HDF5File::writeAttribute(string groupName, string attributeName, long attri
 
 
 
-// HDF5File::writeAttribute() for double-valued attributes
-//
-// PURPOSE: add a double-valued attribute to the HDF5 file.
-//          The attribute is stored in "<GroupName>/<attributeName>".
-//          
-// INPUT: groupName:      string containing the full path of an existing group. Starts with "/".
-//        attributeName:  string containing the name of the attribute
-//        attributeValue: double containing the attribute value
-//
-// OUTPUT: None
-//
-// EXAMPLE: writeAttribute("/InputParameters/JitterParameters", "JitterYawRms", 0.01)
-//
-
+/**
+ * \brief  Add a double-valued attribute to the HDF5 file.
+ *         The attribute is stored in "<GroupName>/<attributeName>".
+ *          
+ * \param groupName: String containing the full path of an existing group. Starts with "/".
+ * \param attributeName: String containing the name of the attribute
+ * \param attributeValue: Double containing the attribute value
+ * 
+ * \example writeAttribute("/InputParameters/JitterParameters", "JitterYawRms", 0.01)
+*/
 void HDF5File::writeAttribute(string groupName, string attributeName, double attributeValue)
 {
     // Complain if the file was not first opened
@@ -624,16 +605,15 @@ void HDF5File::writeAttribute(string groupName, string attributeName, double att
  * \brief Add a boolean attribute to the HDF5 file. 
  *        The attribute is stored in "<GroupName>/<attributeName>".
  *        
- * \param groupName        String containing the full path of an existing group. Starts with "/".
- * \param attributeName    String containing the name of the attribute
- * \param attributeValue   Integer containing the attribute value
+ * \param groupName: String containing the full path of an existing group. Starts with "/".
+ * \param attributeName: String containing the name of the attribute
+ * \param attributeValue: Integer containing the attribute value
  * 
  * \example  writeAttribute("/InputParameters/Platform", "UseJitter", true) 
  * 
- * \exception  H5FileException   If the HDF5 file has not been opened
- * \exception  H5FileException   If the attribute already existed in the HDF5 file
+ * \exception  H5FileException: If the HDF5 file has not been opened
+ * \exception  H5FileException: If the attribute already existed in the HDF5 file
  */
-
 void HDF5File::writeAttribute(string groupName, string attributeName, bool attributeValue)
 {
     // Complain if the file was not first opened
@@ -718,20 +698,16 @@ void HDF5File::writeAttribute(string groupName, string attributeName, bool attri
 
 
 
-// HDF5File::writeAttribute() for an attribute of vector <double>
-//
-// PURPOSE: add an attribute of type vector <double> to the HDF5 file.
-//          The attribute is stored in "<GroupName>/<attributeName>".
-//          
-// INPUT: groupName:      string containing the full path of an existing group. Starts with "/".
-//        attributeName:  string containing the name of the attribute
-//        attributeValue: vector <double> containing the attribute values
-//
-// OUTPUT: None
-//
-// EXAMPLE: writeAttribute("/InputParameters/Camera/FieldDistortion", "Coefficients", values)
-//
-
+/**
+ * \brief Add an attribute of type vector <double> to the HDF5 file.
+ *        The attribute is stored in "<GroupName>/<attributeName>".
+ *          
+ * \param groupName: String containing the full path of an existing group. Starts with "/".
+ * \param attributeName: String containing the name of the attribute
+ * \param attributeValue: Vector <double> containing the attribute values
+ * 
+ * \example writeAttribute("/InputParameters/Camera/FieldDistortion", "Coefficients", values)
+ */
 void HDF5File::writeAttribute(string groupName, string attributeName, vector<double> attributeValue)
 {
     // Complain if the file was not first opened
@@ -814,20 +790,16 @@ void HDF5File::writeAttribute(string groupName, string attributeName, vector<dou
 
 
 
-// HDF5File::writeAttribute() for an attribute of vector <int>
-//
-// PURPOSE: add an attribute of type vector <int> to the HDF5 file.
-//          The attribute is stored in "<GroupName>/<attributeName>".
-//          
-// INPUT: groupName:      string containing the full path of an existing group. Starts with "/".
-//        attributeName:  string containing the name of the attribute
-//        attributeValue: vector <int> containing the attribute values
-//
-// OUTPUT: None
-//
-// EXAMPLE: writeAttribute("/InputParameters/CCDPositions/", "NumRows", values)
-//
-
+/**
+ * \brief Add an attribute of type vector <int> to the HDF5 file.
+ *        The attribute is stored in "<GroupName>/<attributeName>".
+ *          
+ * \param groupName: String containing the full path of an existing group. Starts with "/".
+ * \param attributeName: String containing the name of the attribute
+ * \param attributeValue: Vector <int> containing the attribute values
+ * 
+ * \example writeAttribute("/InputParameters/CCDPositions/", "NumRows", values)
+ */
 void HDF5File::writeAttribute(string groupName, string attributeName, vector<int> attributeValue)
 {
     // Complain if the file was not first opened
@@ -922,7 +894,6 @@ void HDF5File::writeAttribute(string groupName, string attributeName, vector<int
  * \exception  H5GroupException     if the group is unknown to the HDF5 file
  * \exception  H5AttributeException if there is no attribute with the given name
  */
-
 double HDF5File::readDoubleGroupAttribute(string groupName, string attributeName)
 {
     // Complain if the file was not first opened
@@ -1131,6 +1102,93 @@ double HDF5File::readDoubleDatasetAttribute(string groupName, string datasetName
 
     return value;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief      read a string-valued attribute that is associated with dataset
+ *
+ * \param[in]  groupName      string containing the full path of an existing group. Starts with "/".
+ * \param[in]  datasetName    string containing the name of the dataSet where the attribute is attached
+ * \param[in]  attributeName  string containing the name of the attribute
+ *
+ * \return     the value of the attribute
+ * 
+ * \exception  H5FileException      if the HDF5 file has not been opened
+ * \exception  H5GroupException     if the group is unknown to the HDF5 file
+ * \exception  H5DatasetException   if the dataset is not known to the group
+ * \exception  H5AttributeException if there is no attribute with the given name
+ */
+
+string HDF5File::readStringDatasetAttribute(string groupName, string datasetName, string attributeName)
+{
+    // Complain if the file was not first opened
+    
+    if (!fileIsOpen)
+    {
+        throw H5FileException("HDF5File: The file (" + file->getFileName() + ") has not been opened.");
+    }
+
+    // Open the proper group where the attribute is associated
+
+    H5::Group group;
+    if (hasGroup(groupName))
+    {
+        group = file->openGroup(groupName.c_str());
+    }
+    else 
+    {
+        throw H5GroupException("HDF5File: Unknown group (" + groupName + ") in HDF5 file " + file->getFileName());
+    }
+
+    H5::DataSet dataset;
+    if (hasDataset(groupName, datasetName))
+    {
+        dataset = group.openDataSet(datasetName);
+    }
+    else 
+    {
+        throw H5DatasetException("HDF5File: Unknown dataset (" + datasetName + ") in group (" + groupName + ") in HDF5 file " + file->getFileName());
+    }
+
+    // Check whether the attribute is in the group by trying to read it.
+    // If not, raise an exception.
+
+    H5::Attribute attr;
+
+    try 
+    {  
+        // Turn off the auto-printing when an exception is raised
+
+        H5::Exception::dontPrint();
+
+        // Try to open the attribute
+
+        attr = dataset.openAttribute(attributeName.c_str());
+    }
+    catch (H5::AttributeIException error)
+    {
+        throw H5AttributeException("HDF5File: Unknown Attribute (" + attributeName + ") in the group " + groupName + " for HDF5 file " + file->getFileName());
+    }
+
+
+    H5::StrType stringType = attr.getStrType();
+
+    string attributeValue;
+    attr.read(stringType, attributeValue);
+
+    return attributeValue;
+}
+
 
 
 
@@ -1438,6 +1496,174 @@ void HDF5File::writeArray(string groupName, string arrayName, double* array, int
 //        arrayName: unique name of the array in the group, e.g. "image000001"
 //
 // OUTPUT: None
+template<typename T>
+void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<T>& A)
+{
+    // Sanity check on the shape of the array
+
+    if ((A.n_rows == 0) && (A.n_cols == 0))
+    {
+        throw H5FileException("HDF5File::writeArray(): encountered array with shape (0,0)");
+    }
+
+    H5::PredType predType = getPredType(A);
+
+    // Create a DataSpace defining the shape and type of the data 
+
+    unsigned int Ndimensions = 2;
+    unsigned long long shape[Ndimensions];
+    shape[0] = A.n_rows;
+    shape[1] = A.n_cols;
+    H5::DataSpace arraySpace(Ndimensions, shape);
+
+    // Check if the array is not already in the file.
+    // There seems to be only a dirty way of determining this:
+    // try to access the dataset, and check if an exception is thrown.
+
+    bool arrayIsAlreadyInFile = true;
+    string arrayPath = groupName + "/" + arrayName;
+
+    try 
+    {  
+        // Turn off the auto-printing when an exception is raised
+
+        H5::Exception::dontPrint();
+
+        // Try to open the dataset
+
+        H5::DataSet testDataset = file->openDataSet(arrayPath.c_str());
+    }
+    catch (H5::FileIException error)
+    {
+        arrayIsAlreadyInFile = false;
+    }
+
+    if (arrayIsAlreadyInFile)
+    {
+        throw H5GroupException("HDF5File::writeArray(): array " + groupName + "/" + arrayName + " already in file.");
+    }
+
+    // Inside the Images group, make room for the image array
+
+    H5::DataSet arrayDataset = file->createDataSet(arrayPath.c_str(), predType, arraySpace);
+    
+    // Copy the Armadillo array to a vector, because the internally Armadillo stores the data column-major
+    // while HDF5 assumes data to be stored row-major
+
+    vector<T> temp(A.n_rows * A.n_cols);
+    for (int n = 0; n < A.n_rows; n++)
+    {
+        for(int k = 0; k < A.n_cols; k++)
+        {
+            const int nk = n * A.n_cols + k;
+            temp[nk] = A(n,k);
+        }
+    }
+
+    // Copy the data from our image into the HDF5 file
+
+    arrayDataset.write(temp.data(), predType);
+
+    // That's it
+
+    return;
+}
+
+
+
+
+/**
+ * \brief Check which PredType to use two write the given matrix to an HDF5 file.
+ * 
+ * \param A: 2D armadillo array
+ * 
+ * \return PredType to use to write the given matrix to an HDF5file
+ */
+template <class T>
+H5::PredType HDF5File::getPredType(arma::Mat<T>& A)
+{
+    if(typeid(T) == typeid(float))
+        return H5::PredType::NATIVE_FLOAT;
+    if(typeid(T) == typeid(uint16_t))
+        return H5::PredType::NATIVE_UINT16;
+
+   throw H5FileException("HDF5File::getPredType(): supported datatypes are float and uint16_t");
+}
+
+
+
+
+void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<uint16_t>& A)
+{
+    // Sanity check on the shape of the array
+
+    if ((A.n_rows == 0) && (A.n_cols == 0))
+    {
+        throw H5FileException("HDF5File::writeArray(): encountered array with shape (0,0)");
+    }
+
+    // Create a DataSpace defining the shape and type of the data 
+
+    unsigned int Ndimensions = 2;
+    unsigned long long shape[Ndimensions];
+    shape[0] = A.n_rows;
+    shape[1] = A.n_cols;
+    H5::DataSpace arraySpace(Ndimensions, shape);
+
+    // Check if the array is not already in the file.
+    // There seems to be only a dirty way of determining this:
+    // try to access the dataset, and check if an exception is thrown.
+
+    bool arrayIsAlreadyInFile = true;
+    string arrayPath = groupName + "/" + arrayName;
+
+    try 
+    {  
+        // Turn off the auto-printing when an exception is raised
+
+        H5::Exception::dontPrint();
+
+        // Try to open the dataset
+
+        H5::DataSet testDataset = file->openDataSet(arrayPath.c_str());
+    }
+    catch (H5::FileIException error)
+    {
+        arrayIsAlreadyInFile = false;
+    }
+
+    if (arrayIsAlreadyInFile)
+    {
+        throw H5GroupException("HDF5File::writeArray(): array " + groupName + "/" + arrayName + " already in file.");
+    }
+
+    // Inside the Images group, make room for the image array
+
+    H5::DataSet arrayDataset = file->createDataSet(arrayPath.c_str(), H5::PredType::NATIVE_UINT16, arraySpace);
+    
+    // Copy the Armadillo array to a vector, because the internally Armadillo stores the data column-major
+    // while HDF5 assumes data to be stored row-major
+
+    vector<uint16_t> temp(A.n_rows * A.n_cols);
+    for (int n = 0; n < A.n_rows; n++)
+    {
+        for(int k = 0; k < A.n_cols; k++)
+        {
+            const int nk = n * A.n_cols + k;
+            temp[nk] = A(n,k);
+        }
+    }
+
+    // Copy the data from our image into the HDF5 file
+
+    arrayDataset.write(temp.data(), H5::PredType::NATIVE_UINT16);
+
+    // That's it
+
+    return;
+}
+
+
 
 void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<float>& A)
 {
@@ -1511,13 +1737,6 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<float>& 
 
 
 
-
-
-
-
-
-
-
 // HDF5File::readArray() for 2D float armadillo arrays
 //
 // PURPOSE: read a 2D array from a specified group in the HDF5 file into an
@@ -1528,7 +1747,6 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<float>& 
 //        arrayName: unique name of the array in the group, e.g. "image000001"
 //
 // OUTPUT: None
-
 void HDF5File::readArray(string groupName, string arrayName, arma::Mat<float>& A)
 {
     // Construct the path of the dataset in the HDF5 file
@@ -1590,6 +1808,8 @@ void HDF5File::readArray(string groupName, string arrayName, arma::Mat<float>& A
 
     return;
 }
+
+
 
 
 

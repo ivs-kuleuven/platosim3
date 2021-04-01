@@ -6,13 +6,11 @@
 
 #include "Logger.h"
 #include "HDF5File.h"
+#include "ClosedLoopHDF5File.h"
 #include "TemperatureGenerator.h"
 #include "TemperatureFromFile.h"
 #include "NominalTemperature.h"
-#include "Detector.h"
-#include "DetectorWithMappedPSF.h"
-#include "DetectorWithAnalyticGaussianPSF.h"
-#include "DetectorWithAnalyticNonGaussianPSF.h"
+
 #include "Camera.h"
 #include "Telescope.h"
 #include "Platform.h"
@@ -21,12 +19,17 @@
 #include "NoJitter.h"
 #include "JitterFromFile.h"
 #include "JitterFromRedNoise.h"
+#include "JitterFromNetwork.h"
 #include "DriftGenerator.h"
 #include "NoDrift.h"
 #include "ThermoElasticDriftFromFile.h"
 #include "ThermoElasticDriftFromRedNoise.h"
 #include "ConfigurationParameters.h"
 #include "version.h"
+
+#include "AbstractDetectorFactory.h"
+#include "ClosedLoopUtility.h"
+#include "ClosedLoopDetectorClasses.h"
 
 
 using namespace std;
@@ -41,6 +44,7 @@ class Simulation
         ~Simulation();
         virtual void run();
         virtual void configure(ConfigurationParameters &configParams);
+        virtual pair<double, double> configureReadoutTime(ConfigurationParameters &configParams);
 
     protected:
 
@@ -52,14 +56,17 @@ class Simulation
     private:
 
         double currentTime;
+        double cycleTime;
         double exposureTime;
-        double readoutTime;
+        double readoutTimeBeforeNextExposure;	// Readout time before the next exposure starts
 
-        int beginExposureNr;                 // sequential number of first exposure. useful for slurm parallellisation
-        int numExposures;                    // Number of exposures
+        int beginExposureNr;                    // sequential number of first exposure. useful for slurm parallellisation
+        int numExposures;                       // Number of exposures
+
+        double timeShift;                       // Time shift between the different CCDs [s] 
 
         bool useJitter;
-        bool useJitterFromFile;
+        string jitterSource;
         bool includeFieldDistortion;
         bool useDrift;
         bool useDriftFromFile;
@@ -79,7 +86,12 @@ class Simulation
         Camera *camera;
         Detector *detector;
 
-        HDF5File hdf5File;
+        HDF5File *hdf5File;
+
+        AbstractDetectorFactory* detectorFactory;
+
+        bool sendImagettesToClient;
+        bool getWindowPositionFromServer;
 
 };
 

@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <cmath>
 
 #include "armadillo"
 
@@ -79,6 +80,8 @@ class Platform : public Heartbeat, HDF5Writer
         vector<double> historyYaw;
         vector<double> historyPitch;
         vector<double> historyRoll;
+
+        bool writeACS;                              // If true write jitter info to the HDF5 file. Don't if false.
 
     private:
 

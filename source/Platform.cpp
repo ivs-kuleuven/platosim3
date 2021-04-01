@@ -67,21 +67,24 @@ void Platform::configure(ConfigurationParameters &configParams)
     useJitter   = configParams.getBoolean("Platform/UseJitter");
     originalRA  = deg2rad(configParams.getDouble("ObservingParameters/RApointing"));            
     originalDec = deg2rad(configParams.getDouble("ObservingParameters/DecPointing"));
+    double solarPanelOrientation = deg2rad(configParams.getDouble("Platform/SolarPanelOrientation"));
+    writeACS    = configParams.getBoolean("ControlHDF5Content/WriteACS");
          
     currentRA   = originalRA;
     currentDec  = originalDec;
 
-    // Derive the location of the Sun which we assume to always be 180 degrees away from the platform pointing
-    // in the middle of the total time series.
-
+    // Derive the location of the Sun. This depends on where the platform is pointing and
+    // on the solar panel orientatin, which is specified in the yaml input file.
+    
     double lambdaPlatform;                                 // Ecliptic longitude of the platform pointing [rad]
     double betaPlatform;                                   // Ecliptic latitude  of the platform pointing [rad]
     equatorial2ecliptic(originalRA, originalDec, lambdaPlatform, betaPlatform);
 
-    double lambdaSun = lambdaPlatform - Constants::PI;
+    double lambdaSun = lambdaPlatform - Constants::PI + solarPanelOrientation;
     if (lambdaSun < 0.0) lambdaSun += 2.0 * Constants::PI;
     ecliptic2equatorial(lambdaSun, 0.0, raSun, decSun);
 
+    Log.debug("Platform: solar panel orientation = " + to_string(rad2deg(solarPanelOrientation)) + " deg");
     Log.debug("Platform: (RA Sun, Dec Sun) = (" + to_string(rad2deg(raSun)) + ", " + to_string(rad2deg(decSun)) + ")");
 
 }
@@ -125,28 +128,31 @@ void Platform::initHDF5Groups()
 
 void Platform::flushOutput()
 {
-    Log.info("Platform: Flushing output to HDf5 file.");
-
-    if ( ! hdf5File.hasGroup("ACS") )
+    if (writeACS)
     {
-        Log.warning("Platform.flushOutput: HDF5 file has no ACS group, cannot flush Platform information.");
-        return;
-    }
-    
+        Log.info("Platform: Flushing output to HDf5 file.");
 
-     if (!historyTime.empty())
-     {
-        hdf5File.writeArray("/ACS/", "Time",        historyTime.data(),  historyTime.size());
-        hdf5File.writeArray("/ACS/", "PlatformRA",  historyRA.data(),    historyRA.size());
-        hdf5File.writeArray("/ACS/", "PlatformDec", historyDec.data(),   historyDec.size());
-        hdf5File.writeArray("/ACS/", "Yaw",         historyYaw.data(),   historyYaw.size());
-        hdf5File.writeArray("/ACS/", "Pitch",       historyPitch.data(), historyPitch.size());
-        hdf5File.writeArray("/ACS/", "Roll",        historyRoll.data(),  historyRoll.size());
-     }
-     else
-     {
-        Log.warning("Platform: No ACS history to flush to HDF5 file.");
-     }
+        if ( ! hdf5File.hasGroup("ACS") )
+        {
+            Log.warning("Platform.flushOutput: HDF5 file has no ACS group, cannot flush Platform information.");
+            return;
+        }
+        
+
+         if (!historyTime.empty())
+         {
+            hdf5File.writeArray("/ACS/", "Time",        historyTime.data(),  historyTime.size());
+            hdf5File.writeArray("/ACS/", "PlatformRA",  historyRA.data(),    historyRA.size());
+            hdf5File.writeArray("/ACS/", "PlatformDec", historyDec.data(),   historyDec.size());
+            hdf5File.writeArray("/ACS/", "Yaw",         historyYaw.data(),   historyYaw.size());
+            hdf5File.writeArray("/ACS/", "Pitch",       historyPitch.data(), historyPitch.size());
+            hdf5File.writeArray("/ACS/", "Roll",        historyRoll.data(),  historyRoll.size());
+         }
+         else
+         {
+            Log.warning("Platform: No ACS history to flush to HDF5 file.");
+         }
+    }
 }
 
 
@@ -457,7 +463,8 @@ arma::mat Platform::getUnjitteredSpacecraftToEquatorialRotationMatrix()
 {
     // Compute the equatorial coordinates of each of the unit vectors corresponding to the X, Y, and Z axis
     // of the spacecraft reference frame. The z-axis is pointing towards the targets, the x-axis points towards
-    // the highest point of the sun shield which is pointing towards the Sun.
+    // the highest point of the sun shield which is pointing towards the Sun. The coordinates of the Sun were
+    // computed in Platform::configure()
 
     double deltax = atan(- cos(originalRA-raSun) / tan(originalDec));
 

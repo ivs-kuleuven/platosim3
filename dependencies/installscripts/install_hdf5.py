@@ -9,7 +9,7 @@ import os,shutil,subprocess
 
 # Specify the dependency package name
 
-packageName = "hdf5-1.8.16"
+packageName = "hdf5-1.12.0"
 
 # Specify build and install folders
 
@@ -33,7 +33,7 @@ print("\n")
 # Build and install package
 
 installProcedure = "cd {build};                                     \
-					tar -xzvf {package}.tgz;                        \
+					tar -xzvf {package}.tar.gz;                        \
 					cd {package};                                   \
                     ./configure --prefix={install} --enable-cxx;    \
                     make;                                           \

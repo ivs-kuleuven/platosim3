@@ -21,7 +21,7 @@ class DetectorWithAnalyticGaussianPSF: public Detector
 {
     public:
 
-        DetectorWithAnalyticGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator);
+        DetectorWithAnalyticGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure);
         virtual ~DetectorWithAnalyticGaussianPSF();
 
         virtual double takeExposure(int exposureNr, double startTime, double exposureTime) override;
@@ -30,14 +30,13 @@ class DetectorWithAnalyticGaussianPSF: public Detector
 
         virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) override;
         virtual void addFlux(double flux) override;
+        virtual tuple<bool, double, double> addExtendedGhost(double xFP, double yFP, double radius, double flux) override;
 
     protected:
 
-        virtual void reset();
         virtual void integrateLight(int exposureNr, double startTime, double exposureTime) override;
         virtual void applyFlatfield() override;
         virtual void generateFlatfieldMap();
-        virtual bool isInPixelMap(double row, double column);
 
         arma::Mat<float> flatfieldMap;      // Pixel flatfield map
 
@@ -45,10 +44,11 @@ class DetectorWithAnalyticGaussianPSF: public Detector
         double sigmaX18;                    // Stdev of Gaussian PSF in x-direction at 18 deg from the optical axis [pix]
         double sigmaY18;                    // Stdev of Gaussian PSF in y-direction at 18 deg from the optical axis [pix]
 
-        double flatfieldNoiseAmplitude;     // Peak-to-peak noise amplitude
+        double flatfieldNoiseRMS;     // Peak-to-peak noise amplitude
 
         bool includeFlatfield;              // Whether or not to include flat fielding        
         long flatfieldSeed;
+        bool writeFlatfieldMap;             // Whether or not to write the flatfield map to the HDF5 file 
 
     private:
 

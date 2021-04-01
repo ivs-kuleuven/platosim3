@@ -15,7 +15,9 @@ Any desired simulation can be obtained by modifying the following input:
 		* [FEE parameters](#feeParameters)
 		* [CCD parameters](#ccdParameters)
 		* [sub-field parameters](#subFieldParameters)
+        * [photometry parameters](#photometryParameters)
 		* [seed parameters](#seedParameters)
+        * [control TCP connection parameters](#controlTcpConnection)
 		* additionally, there are two blocks that hold pre-defined settings (which you should NOT alter):
 			- [camera group 1, 2, 3, and 4, and fast cameras](#cameraGroups)
 			- [CCD 1, 2, 3, and 4](#ccdPositions)
@@ -76,7 +78,7 @@ ObservingParameters:
 	MissionDuration:             6.0
 	BeginExposureNr:             0
 	NumExposures:                40              
-    ExposureTime:                22              
+    CycleTime:                   25              
     RApointing:                  180              
     DecPointing:                 -70             
     Fluxm0:                      1.00179e8 
@@ -94,7 +96,7 @@ Total duration of the mission (from BOL till EOL), expressed in years.  This wil
 
 
 ### <a name="beginExposureNr"></a>BeginExposureNr
-<i>Allowed values:</i> ≥ 0
+<i>Allowed values:</i> \f$\ge \f$ 0
 
 Sequential number of the first exposure. Useful for <a href="https://en.wikipedia.org/wiki/Slurm_Workload_Manager">Slurm</a> parallelisation.  In that case, long simulations (i.e. with a large number of exposures) will be chopped up into smaller simulations, covering [a small number of exposures](#NumExposures) (see Fig. 1).
 
@@ -109,24 +111,26 @@ Number of exposures to generate in the simulation.
 
 
 
-### <a name="exposureTime"></a>ExposureTime
+### <a name="cycleTime"></a>CycleTime
 <i>Allowed values:</i> > 0
 
-Integration time of one exposure, expressed in seconds. Note that the total integration time is the sum of the exposure and the readout time:
+Image cycle time, expressed in seconds.  This is the sum of the integration time of one exposure and the duration of the readout of one exposure before the next exposure start:
 
-	\f[ t_{integration} = t_{exposure} + t_{readout}.\f]
+	\f[ t_{cycle} = t_{exposure} + t_{readout, before}.\f]
+
+For the normal cameras, the latter is the total readout time; for the fast cameras, it is the time for the frame transfer (i.e. to transfer the content of the upper CCD half to the lower CCD half).
 
 
 
 ### <a name="raPointing"></a>RApointing
-<i>Allowed values:</i>  ∈ [0, 360]
+<i>Allowed values:</i>  \f$\in \f$ [0, 360]
 
 Right ascension of the pointing, expressed in degrees.
 
 
 
 ### <a name="decPointing"></a>DecPointing
-<i>Allowed values:</i> ∈ [-90, 90]
+<i>Allowed values:</i> \f$\in \f$ [-90, 90]
 
 Declination of the pointing, expressed in degrees.
 
@@ -137,7 +141,7 @@ Declination of the pointing, expressed in degrees.
 
 Flux of a star of zero magnitude (\f$ m_{\lambda} = 0 \f$), expressed in photons \f$ \cdot \f$  s<sup>-1</sup> \f$  \cdot \f$  cm<sup>-2</sup> in the passband of the magnitudes that are listed in the [star catalogue](#starCatalogue).
 
-For an exposure of \f$t_{exp}\f$ seconds, the measured flux \f$F_{phot}\f$ of a star, expressed in photons, is computed from its catalogue magnitude \f$m_{\lambda}\f$, the [effective light-collecting area](#lightCollectingArea) \f$A\f$ (in cm<sup>2</sup>) of the telescope, the  [transmission efficiency](#transmissionEfficiency) \f$T_{\lambda}\f$ of the optical system, the [quantum efficiency](#quantumEfficiency) \f$Q\f$ of the detector, and the flux per second \f$F_0\f$ of a star with zero magnitude (\f$m_{\lambda} = 0\f$) from the equation
+For an exposure of \f$t_{exp}\f$ seconds, the measured flux \f$F_{phot}\f$ of a star, expressed in photons, is computed from its catalogue magnitude \f$m_{\lambda}\f$, the [effective light-collecting area](#lightCollectingArea) \f$A\f$ (in cm<sup>2</sup>) of the telescope, the [transmission efficiency](#transmissionEfficiency) \f$T_{\lambda}\f$ of the optical system, the [quantum efficiency](#quantumEfficiency) \f$Q\f$ of the detector, and the flux per second \f$F_0\f$ of a star with zero magnitude (\f$m_{\lambda} = 0\f$) from the equation
 
 \f[F_{phot} = t_{exp} \cdot F_0 \cdot T_{\lambda} \cdot Q \cdot A \cdot 10^{-0.4 \cdot m_{\lambda}}\f]
 
@@ -169,10 +173,9 @@ Sky:
 	SkyBackground:               342.
 	IncludeVariableSources:      no
     	VariableSourceList:          inputfiles/varsource.txt
-	IncludeCosmics:              yes
 	IncludeCosmicsInSubField:        yes
-       IncludeCosmicsInSmearingMap:     yes
-       IncludeCosmicsInBiasMap:         yes    
+    IncludeCosmicsInSmearingMap:     yes
+    IncludeCosmicsInBiasMap:         yes    
 	Cosmics:
 		CosmicHitRate:                      10
 		TrailLength:                   [0, 15]
@@ -184,7 +187,7 @@ Sky:
 
 
 ### <a name="skyBackground"></a>SkyBackground
-<i>Allowed values:</i> < 0 for automatic calculation, ≥ 0 to use the input value
+<i>Allowed values:</i> < 0 for automatic calculation, \f$\ge \f$ 0 to use the input value
 
 In case a positive value is given, the sky background (zodiacal + galactic), is set to the given value, expressed in photons \f$ \cdot \f$ s<sup>-1</sup> \f$ \cdot \f$ pixel<sup>-1</sup>.  Note that this value has not been multiplied with the tranmission efficiency yet.
 
@@ -241,7 +244,7 @@ The configuration parameters in the <b>Cosmics</b> section are the parameters ch
 #### <a name="cosmicHitRate"></a>Cosmics: CosmicHitRate
 <i>Allowed values:</i> >= 0
 
-Mean cosmic hit rate, expressed in events / cm<sup>2</sup> / s.  The actual cosmic hit rate for any exposure is sampled randomly from a Poisson distribution with the mean cosmic hit rate as mean.  The number of cosmic hits in the simulated sub-field is calculated by multiplying the actual cosmic hit rate with the size of the sub-field (expressed in cm<sup>2</sup>) and the [exposure time](#exposureTime) (expressed in s).
+Mean cosmic hit rate, expressed in events / cm<sup>2</sup> / s.  The actual cosmic hit rate for any exposure is sampled randomly from a Poisson distribution with the mean cosmic hit rate as mean.  The number of cosmic hits in the simulated sub-field is calculated by multiplying the actual cosmic hit rate with the size of the sub-field (expressed in cm<sup>2</sup>) and the [cycle time](#cycleTime) (expressed in s).
 
 
 
@@ -272,14 +275,24 @@ The <b>Platform</b> block of the configuration file contains all the information
 \code{.yaml}
 Platform:
 
+    SolarPanelOrientation:       0
     UseJitter:                   yes             
-    UseJitterFromFile:           no              
+    JitterSource:                FromRedNoise
     JitterYawRms:                1.0             
     JitterPitchRms:              1.0             
     JitterRollRms:               1.0             
     JitterTimeScale:             3600.           
     JitterFileName:              /inputfiles/jitter.txt
 \endcode
+
+
+
+### <a name="solarPanelOrientation"></a>SolarPanelOrientation
+<i>Allowed values:</i> 0, 90, 180, and 270
+
+Orientation angle of the solar panel, expressed in degrees.  This is the roll angle of the platform, which enables orienting the solar panels towards the Sun each quarter, i.e. at the beginning of each quarter the roll angle must be increased by 90 degrees.  By convention the roll angle must be set to zero degrees at the beginning of the first quarter.
+
+Note that - to properly account for the re-orientation of the solar panels - simulations must be chopped up in chunks of maximum three months.
 
 
 
@@ -290,39 +303,46 @@ Indicates whether pointing variations should be taken into account.
 
 The Plato Simulator can also account for pointing variations of the spacecraft, so-called jitter. A time series of pointing displacement, expressed in Euler angles (yaw, pitch, roll), either has to be provided as a jitter file or will be generated based on the given jitter parameters (see further).
 
-To ensure a realistic modelling of the jitter, the [time step of the jitter time series](#jitterTimeScale) must be smaller than the [exposure time](#exposureTime).
+To ensure a realistic modelling of the jitter, the [time step of the jitter time series](#jitterTimeScale) must be smaller than the [exposure time](#cycleTime).
 
-The configuration of the jitter axes is depicted below.  The Euler angles that characterise the jitter are defined w.r.t. to the spacecraft coordinate system (see Fig. 2).  The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module.  The positive roll axis z<sub>SC</sub> points towards the operator-given mean payload line-of-sight, given by the equatorial coordinates ([RApointing](#raPointing), [DecPointing](#decPointing)).
+The configuration of the jitter axes is depicted below.  The Euler angles that characterise the jitter are defined w.r.t. to the spacecraft coordinate system (see Fig. 2).  The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module.  The positive roll axis \f$z_{\rm SC} \f$ points towards the operator-given mean payload line-of-sight, given by the equatorial coordinates ([RApointing](#raPointing), [DecPointing](#decPointing)).
 
-The angles are defined such that they increase with a clockwise rotation, when looking along the positive axes. First a roll rotation is done around the z<sub>SC</sub> axis, then a pitch rotation is done around the rotated y<sub>SC</sub> axis, and finally a yaw rotation is done around the twice-rotated x<sub>SC</sub> axis.
+The angles are defined such that they increase with a clockwise rotation, when looking along the positive axes. First a roll rotation is done around the \f$z_{\rm SC} \f$ axis, then a pitch rotation is done around the rotated \f$y_{\rm SC} \f$ axis, and finally a yaw rotation is done around the twice-rotated \f$x_{\rm SC} \f$ axis.
 
-@image html /images/jitterConfiguration.png "Figure 2: Configuration of the jitter axes for the Plato Simulator, defined w.r.t. the spacecraft coordinate system (xSC, ySC, z<sub>SC</sub>).  The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module.  The positive zSC axis points towards the operator-given pointing coordinates. The xSC axis points in the direction of the highest point of the sunshield."
+@image html /images/jitterConfiguration.png "Figure 2: Configuration of the jitter axes for the Plato Simulator, defined w.r.t. the spacecraft coordinate system (x<sub>SC</sub>, y<sub>SC</sub>, z<sub>SC</sub>).  The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module.  The positive z<sub>SC</sub> axis points towards the operator-given pointing coordinates. The x<sub>SC</sub> axis points in the direction of the highest point of the sunshield."
 
 
-
-### <a name="useJitterFromFile"></a>UseJitterFromFile
+### <a name="jitterSource"></a>JitterSource
 <i>Allowed values:</i> "yes" and "no"
 
 Indicates whether the jitter time series must be read from a jitter file ("yes") or the jitter positions must be generated from the jitter parameters ("no").
+FromFile, FromRedNoise, or FromNetwork
 
+<i>Allowed values:</i> "FromRedNoise", "FromFile", and "FromNetwork"
+
+Indicates from where to read the jitter:
+
+- FromRedNoise: the jitter positions must be generator from the jitter parameters;
+- FromFile: the jitter time series must be read from a jitter file;
+- FromNetwork: the jitter positions must be read from a network (which is configured in the [ControlTcpConnection](#controlTcpConnection) block).
 
 
 ### <a name="jitterYawRms"></a>JitterYawRms
-<i>Allowed values:</i> ≥ 0, only required if the jitter positions must be generated from jitter parameters ([useJitterFromFile](#useJitterFromFile) = no)
+<i>Allowed values:</i> \f$\ge \f$ 0, only required if the jitter positions must be generated from jitter parameters ([JitterSource](#jitterSource) = FromRedNoise)
 
 Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the yaw value from one jitter position to the next one.
 
 
 
 ### <a name="jitterPitchRms"></a>JitterPitchRms
-<i>Allowed values:</i> ≥ 0, only required if the jitter positions must be generated from jitter parameters ([useJitterFromFile](#useJitterFromFile) = no)
+<i>Allowed values:</i> \f$\ge \f$ 0, only required if the jitter positions must be generated from jitter parameters ([JitterSource](#jitterSource) = FromRedNoise)
 
 Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the pitch value from one jitter position to the next one.
 
 
 
 ### <a name="jitterRollRms"></a>JitterRollRms
-<i>Allowed values:</i> ≥ 0, only required if the jitter positions must be generated from jitter parameters ([useJitterFromFile](#useJitterFromFile) = no)
+<i>Allowed values:</i> \f$\ge \f$ 0, only required if the jitter positions must be generated from jitter parameters ([JitterSource](#jitterSource) = FromRedNoise)
 
 Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the roll value from one jitter position to the next one.
 
@@ -337,7 +357,7 @@ Timescale of the jitter (i.e. time between two subsequent jitter positions), exp
 
 ### <a name="jitterFileName"></a>JitterFileName
 
-Path of the jitter file, relative to the [project location](#projectLocation). This is only required if the jitter positions must be read from a file ([UseJitterFromFile](#useJitterFromFile) = yes).
+Path of the jitter file, relative to the [project location](#projectLocation). This is only required if the jitter positions must be read from a file ([JitterSpirce](#jitterSource) = FromFile).
 
 ---
 
@@ -377,9 +397,9 @@ Telescope:
 
 
 ### <a name="groupID"></a>GroupID
-<i>Allowed values:</i> ∈ [1, 2, 3, 4, Fast, Custom]
+<i>Allowed values:</i> \f$\in \f$ [1, 2, 3, 4, Fast, Custom]
 
-The telescope group identifier can be used to select a telescope group. There are four groups that have a tilt angle of 9.2º from the optical axis of the satellite, and one group for the fast camera's which is aligned with the satellite Z-axis. When you specify GroupID=Custom, the [tilt angle](#tiltAngle) and [azimuth angle](#azimuthAngle) below the GroupID in the inputfile are used, otherwise the angles are taken from pre-defined parameters in the [CameraGroups](#cameraGroups) block of the configuration file.
+The telescope group identifier can be used to select a telescope group. There are four groups that have a tilt angle of \f$9.2^{\circ} \f$- from the optical axis of the satellite, and one group for the fast camera's which is aligned with the satellite Z-axis. When you specify GroupID=Custom, the [tilt angle](#tiltAngle) and [azimuth angle](#azimuthAngle) below the GroupID in the inputfile are used, otherwise the angles are taken from pre-defined parameters in the [CameraGroups](#cameraGroups) block of the configuration file.
 
 @image html /images/telescopeGroups.png "Figure 3: Field of View for the different telescope groups"
 
@@ -390,7 +410,7 @@ The telescope group identifier can be used to select a telescope group. There ar
 
 Tilt angle of the telescope, expressed in degrees. This angle, together with the [azimuth angle](#azimuthAngle), characterises the orientation of the telescope pointing (i.e. telescope optical axis) w.r.t. the spacecraft/platform pointing. 
 
-The tilt angle is the offset between the telescope optical axis and the platform pointing, i.e. the angle between the telescope line-of-sight (positive z<sub>telescope</sub>)-axis and the positive z<sub>PLM</sub>-axis (see Figs. 4 and 5).
+The tilt angle is the offset between the telescope optical axis and the platform pointing, i.e. the angle between the telescope line-of-sight (positive \f$z_{\rm telescope} \f$-axis and the positive \f$z_{\rm PLM} \f$-axis (see Figs. 4 and 5).
 
 This parameter is only used when the [GroupID](#groupID)=Custom.
 
@@ -401,7 +421,7 @@ This parameter is only used when the [GroupID](#groupID)=Custom.
 
 Azimuth angle of the telescope, expressed in degrees. This angle, together with the [tilt angle](#tiltAngle), characterises the orientation of the telescope pointing (i.e. telescope optical axis) w.r.t. the spacecraft/platform pointing. 
 
-The azimuth angle is the position angle of the rotation of the telescope around the positive z<sub>PLM</sub>-axis (see Figs. 3 and 4).
+The azimuth angle is the position angle of the rotation of the telescope around the positive \f$z_{\rm PLM} \f$-axis (see Figs. 3 and 4).
 
 This parameter is only used when the [GroupID](#groupID)=Custom.
 
@@ -423,14 +443,14 @@ The transmission efficiency of the optical system, considering the passband and 
 
 #### <a name="transmissionEfficiencyBOL"></a>TransmissionEfficiency: BOL
 
-<i>Allowed values:</i> ∈ [0,1]
+<i>Allowed values:</i> \f$\in \f$ [0,1]
 
 Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the [Fluxm0](#fluxm0) parameter and the magnitudes in the [star catalogue](#starCatalogue), at the beginning of the mission (beginning-of-life).  This parameter is used to model the (linear) degradation in transmission efficiency over the [mission lifetime](#missionDuration).
 
 
 
 #### <a name="transmissionEfficiencyEOL"></a>TransmissionEfficiency: EOL
-<i>Allowed values:</i> ∈ [0,1]
+<i>Allowed values:</i> \f$\in \f$ [0,1]
 
 Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the Fluxm0 parameter and the magnitudes in the [star catalogue](#starCatalogue), at the end of the mission (end-of-life).  This parameter is used to model the (linear) degradation in transmission efficiency over the [mission lifetime](#missionDuration).
 
@@ -445,11 +465,12 @@ Similar to the [UseJitter](#useJitter) parameter for the platform jitter.
 
 The Plato Simulator can also account for the thermo-elastic drift, of the telescope (w.r.t. the platform). A time series of displacement, expressed in Euler angles (yaw, pitch, roll), either has to be provided as a drift file or will be generated based on the given drift parameters (see further).
 
-The Euler angles (yaw, pitch, roll) are defined as the rotation angles around the z<sub>SC</sub>, y'<sub>SC</sub> and z<sub>telescope</sub> = z<sub>FP</sub> axes (see Fig. 5), such that the anges increase with a clockwise rotation when looking along the positive axes.
+The Euler angles (yaw, pitch, roll) are defined as the rotation angles around the \f$z_{\rm SC} \f$, \f$y'_{\rm SC} \f$ and 
+\f$z_{\rm telescope} = z_{\rm FP} \f$ axes (see Fig. 5), such that the anges increase with a clockwise rotation when looking along the positive axes.
 
 
 
-@image html /images/TelescopeCoordinateSystem.png "Figure 5: The optical axis zFP can be obtained from the spacecraft/platform pointing axis zSC by first rotating the (xSC, ySC) plane around the pointing axis zSC over the azimuth angle (left-hand side) nad then rotating the resulting zSC' axis over the tilt angle (right-hand side)."
+@image html /images/TelescopeCoordinateSystem.png "Figure 5: The optical axis zFP can be obtained from the spacecraft/platform pointing axis z<sub>SC</sub> by first rotating the (x<sub>SC</sub>, y<sub>SC</sub>) plane around the pointing axis z<sub>SC</sub><sub>SC</sub> over the azimuth angle (left-hand side) nad then rotating the resulting zSC' axis over the tilt angle (right-hand side)."
 
 
 ### <a name="useDriftFromFile"></a>UseDriftFromFile
@@ -463,7 +484,7 @@ Similar to the [UseJitterFromFile](#useJitterFromFile) parameter for the platfor
 
 
 ### <a name="driftYawRms"></a>DriftYawRms
-<i>Allowed values:</i> ≥ 0
+<i>Allowed values:</i> \f$\ge \f$ 0
 
 Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the yaw value from one thermo-elastic drift position to the next one.
 
@@ -472,7 +493,7 @@ Similar to the [JitterYawRms](#jitterYawRms) parameter for the platform jitter.
 
 
 ### <a name="driftPitchRms"></a>DriftPitchRms
-<i>Allowed values:</i> ≥ 0
+<i>Allowed values:</i> \f$\ge \f$ 0
 
 Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the pitch value from one thermo-elastic drift position to the next one.
 
@@ -481,7 +502,7 @@ Similar to the [JitterPitchRms](#jitterPitchRms) parameter for the platform jitt
 
 
 ### <a name="driftRollRms"></a>DriftRollRms
-<i>Allowed values:</i> ≥ 0
+<i>Allowed values:</i> \f$\ge \f$ 0
 
 Standard deviation (expressed in arcsec) of the normal distribution (with zero mean) describing the roll value from one thermo-elastic drift position to the next one.
 
@@ -537,6 +558,15 @@ Camera:
         ConstantInverseCoefficients: [-0.317143032936, 0.242638513347, -0.459260203502]
         CoefficientsFromFile:        inputfiles/distortioncoefficients.txt
         InverseCoefficientsFromFile: inputfiles/distortioninversecoefficients.txt
+    IncludeGhosts:                   yes
+    Ghosts:
+        PointLike:
+            FluxRatio:               0.08
+            DistanceCutOff:          8
+        Extended:
+            FluxRatio:               0.00003
+            RadiusCoefficients:      [0.0062, -0.0251, 1.8402]
+            DistanceRatio:           1.065
 \endcode
 
 
@@ -550,8 +580,7 @@ The orientation of the focal plane can either be kept constant over the simulati
 
 For an angle of 0°, the y-axis of the CCD (with an orientation angle of 0°) points towards the North. A positive angle corresponds to a counterclockwise rotation. Have a look at Fig. 6 for more details.
 
-@image html /images/FocalPlaneCoordinateSystem.png "Figure 6: A schematic overview of the focal plane with 4 CCDs. The optical axis zFP is the blue dot in the middle of the 4 CCDs and points in the positive direction towards the reader. The jitter roll axis zSC is the purple dot, and also points in the positive direction towards the reader.  The focal plane is rotated by the angle γFP w.r.t. to the North direction. The origin of the CCD in the focal plane is defined by its offset (ΔxCCD, ΔyCCD) in mm from the centre of the focal plane. It is then rotated by the angle γCCD round its origin."
-
+@image html /images/FocalPlaneCoordinateSystem.png "Figure 6: A schematic overview of the focal plane with 4 CCDs. The optical axis zFP is the blue dot in the middle of the 4 CCDs and points in the positive direction towards the reader. The jitter roll axis zSC is the purple dot, and also points in the positive direction towards the reader.  The focal plane is rotated by the angle \f$\gamma \f$FP w.r.t. to the North direction. The origin of the CCD in the focal plane is defined by its offset (\f$\Delta \f$xCCD, \f$\Delta \f$yCCD) in mm from the centre of the focal plane. It is then rotated by the angle \f$\gamma \f$CCD round its origin."
 
 #### <a name="focalPlaneOrientationSource"></a>FocalPlaneOrientation: Source
 <i>Allowed values:</i> "ConstantValue" and "FromFile".
@@ -694,6 +723,51 @@ Coefficients for inverse polynomial of the polynomial describing the field disto
 
 Inverse coefficients for inverse polynomial of the polynomial describing the field distortion, in case the coefficients must be read from a file ([FieldDistortion: Source](#fieldDistortionSource) = ConstantValue).
 
+
+### <a name="includeGhosts"></a>IncludeGhosts
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not ghosts must be added to the simulated images.
+
+
+### <a name="ghosts"></a>Ghosts
+
+Sources in the FOV can produces two types of ghosts:
+
+1. an extended ghost, further away from the optical axis, caused by reflections on the CCD surface and the back surface of L6;
+2. a point-like ghosts, at the opposite side of the optical axis, caused by reflections on the CCD surface and both window surfaces.
+
+Note that the flux loss of the sources (due to reflection off the CCD surface) is included in the [quantum efficiency](#quantumEfficiency).
+
+
+#### <a name="pointLikeGhosts"></a>Ghosts: PointLike
+
+A star at focal-plane coordinates $(x, y)$ will produce a point-like ghost at focal-plane coordinates $(-x, -y)$, as long as it is within the [distance cut-off](#pointLikeGhostsDistanceCutOff) from the optical axis.
+
+##### <a name="pointLikeGhostsFluxRatio"></a>Ghosts: PointLike: FluxRatio
+
+Irradiance ratio of the point-like ghost w.r.t. the source producing it, expressed in %, measured on-axis.  The flux ratio off-axis decreases linearly from the optical axis to the [distance cut-off](#pointLikeGhostsDistanceCutOff) (where it drops to zero), due to vignetting by the pupil around L3.
+
+##### <a name="pointLikeGhostsDistanceCutOff"></a>Ghosts: PointLike: DistanceCutOff
+
+Distance from the optical axis beyond which sources no longer produce point-like ghosts, expressed in degrees.  At this distance, the flux ratio has dropped to zero.
+
+#### <a name="extendedGhosts"></a>Ghosts: Extended
+
+A star at focal-plane coordinates $(x, y)$ will produce an extended ghost further away from the optical axis.
+
+##### <a name="extendedGhostsFluxRatio"></a>Ghosts: Extended: FluxRatio
+
+Irradiance ratio of the extended ghost w.r.t. the source producing it, expressed in %.
+
+##### <a name="extendedGhostsRadius"></a>Ghosts: Extended: RadiusCoefficients
+
+Coefficients of the 2nd-degree polynomial (in distance from the optical axis), describing the radius of the (circular) extended source.
+
+##### <a name="extendedGhostsDistanceRatio"></a>Ghosts: Extended: DistanceRatio
+
+A star at focal-plane coordinates $(x, y)$ will produce a ghost at focal-plane coordinates $(distanceRatio \cdot x, distanceRatio \cdot y)$.
+
 ---
 
 
@@ -760,7 +834,7 @@ The PSF is a circular Gaussian, the size of which does not change over the FOV.
 #### <a name="gaussSigma"></a>MappedGaussian: Sigma
 <i>Allowed values:</i> > 0, only required if a Gaussian PSF must be used ([psfModel](#Model) = MappedGaussian)
 
-Width (σ) of the two-dimensional Gaussian PSF, expressed in pixels.  This Gaussian PSF does not vary in size over the FOV.
+Width (\f$\sigma \f$) of the two-dimensional Gaussian PSF, expressed in pixels.  This Gaussian PSF does not vary in size over the FOV.
 
 
 
@@ -774,7 +848,7 @@ Number of pixels (in both directions) for which the Gaussian PSF must be generat
 
 #### <a name="chargeDiffusionStrength"></a>MappedGaussian: ChargeDiffusionStrength
 
-<i>Allowed values:</i> ≥ 1 / [SubPixels](#numSubPixelsl)
+<i>Allowed values:</i> \f$\ge \f$ 1 / [SubPixels](#numSubPixelsl)
 
 Charge diffusion has been modelled by a convolution with a Gaussian diffusion kernel, of which this is the standard deviation.
 
@@ -809,7 +883,7 @@ Path to the file, relative to the [project location](#projectLocation), holding 
 
 
 #### <a name="psfDistance"></a>MappedFromFile: DistanceToOA
-<i>Allowed values:</i> -1 for automatic calculation, ≥ 0 to use the input value; only required if a pre-computed PSF must be used ([Model](#psfModel) = MappedFromFile)
+<i>Allowed values:</i> -1 for automatic calculation, \f$\ge \f$ 0 to use the input value; only required if a pre-computed PSF must be used ([Model](#psfModel) = MappedFromFile)
 
 In case a positive value is given the input value will be used for the angular distance to the optical axis.
 
@@ -835,7 +909,7 @@ Number of pixels (in both directions) for which the PSF was generated.
 
 #### <a name="chargeDiffusionStrengthFile"></a>MappedFromFile: ChargeDiffusionStrength
 
-<i>Allowed values:</i> ≥ 1 / [SubPixels](#numSubPixelsl)
+<i>Allowed values:</i> \f$\ge \f$ 1 / [SubPixels](#numSubPixels)
 
 Charge diffusion has been modelled by a convolution with a Gaussian diffusion kernel, of which this is the standard deviation.
 
@@ -953,7 +1027,14 @@ FEE:
     		AllowedDifference:   -100    		
     ElectronicOffset:           
     		RefValue:            100
-    		Stability:           18.8875 
+    		Stability:           1
+    OverAndUnderShoot:
+        Strength:                    0.003867
+        DecaySpeed:                  0.755
+        DecayRate:                   1.277
+        Range:                       5
+    IncludeOverAndUnderShoot:        no
+
 \endcode
 
 
@@ -980,7 +1061,7 @@ Path to the file, relative to the [project location](#projectLocation), holding 
 
 ### <a name=readoutNoiseFEE></a>ReadoutNoise
 
-<i>Allowed values:</i> ≥ 0
+<i>Allowed values:</i> \f$\ge \f$ 0
 
 Mean readout noise of the FEE, expressed in e<sup>-</sup>/pixel.  This is the same for both ADCs.
 
@@ -1009,7 +1090,7 @@ Reference value of the gain of ACD2 of the FEE at its [nominal operating tempera
 
 #### <a name=gainAllowedDiffFEE></a>Gain: AllowedDifference
 
-<i>Allowed values:</i> ∈ [0,100]
+<i>Allowed values:</i> \f$\in \f$ [0,100]
 
 Percentage of the reference values for the gain of ADC1 and ADC2 that indicates the maximum allowed difference between these gain values.
 
@@ -1030,7 +1111,7 @@ The electronic offset or bias level is added  to the digital signal in order to 
 
 #### <a name=electronicOffsetRefValue></a>ElectronicOffset: RefValue
 
-<i>Allowed values:</i> ≥ 0
+<i>Allowed values:</i> \f$\ge \f$ 0
 
 Electronic offset or bias level at the nominal operating temperature of the FEE, expressed in ADU.
 
@@ -1041,6 +1122,57 @@ Electronic offset or bias level at the nominal operating temperature of the FEE,
 <i>Allowed values:</i> Any
 
 Change in electronic offset (for both ADCs) with temperature deviations from the nominal operating temperature, expressed in ADU/pixel/K.
+
+
+
+### <a name="overAndUnderShoot"></a>OverAndUnderShoot
+
+Over-/undershoot has been noticed in F-FEE measurements.  Looking at the content of a readout register at any given time, the charges in any pixels will affect the next pixels in the readout register, further away from the readout register, e.g. at a distance \f$\Delta x \f$.  For a difference in signal between two such pixels, \f$\Delta S \f$, the
+induced over-/undershoot will be
+
+\f[a \cdot \Delta S \cdot \exp{(- \lambda \cdot \Delta x^b)}.\f]
+
+Both detector halves are treated independently.
+
+
+
+#### <a name=""></a>OverAndUnderShoot: Strength
+
+<i>Allowed values:</i> > 0
+
+Parameter \f$a \f$ in the formula above.
+
+
+
+#### <a name=""></a>OverAndUnderShoot: DecayRate
+
+<i>Allowed values:</i> > 0
+
+Parameter \f$\lambda \f$ in the formula above.
+
+
+
+#### <a name=""></a>OverAndUnderShoot: DecaySpeed
+
+<i>Allowed values:</i> > 0
+
+Parameter \f$b \f$ in the formula above.
+
+
+
+#### <a name=""></a>OverAndUnderShoot: Range
+
+<i>Allowed values:</i> > 0
+
+Maximum distance \f$\Delta x \f$ over which a pixel in the readout register exerts over-/undershoot on other pixels in the readout register, further away from the readout electronics.
+
+
+
+### <a name="inclOverAndUnderShoot"></a>MappedGaussian: IncludeOverAndUnderShoot
+
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to include F-FEE over-/undershoot.  Only applicable in case [GroupID](#groupID) = Fast.
 
 ---
 
@@ -1065,13 +1197,10 @@ CCD:
     NumColumns:                  4510      
     NumRows:                     4510      
     FirstRowExposed:             0
-
+    TimeShift:                   0.0
     PixelSize:                   18      
     BFE:
-        Range:                       2
-        p0:                          0.05
-        p1:                          0.15
-        RefFlux:                     1e6  
+        CoefficientsFileName:
     Gain:                        
         RefValueLeft:        1.80
         RefValueRight:       1.80
@@ -1082,20 +1211,30 @@ CCD:
         MeanAngleDependency:         1.01
     Polarization:
     		ExpectedValue:       0.989      
-    Vignetting:
-    		ExpectedValue:       0.945 
+    RelativeTransmissivity:
+        Coefficients:           [4.18e-2, -5.65e-5, 2.37e-7]
+        RadiusFOV:              18.8908
+        ExpectedValue:          0.920
     Contamination:
     		ParticulateContaminationEfficiency:  0.98
     		MolecularContaminationEfficiency:    0.0566
     DarkSignal:
       		DarkCurrent:                  1.2
       		DSNU:                         10.0
+      		Stability:                    5.0
     FullWellSaturation:          1000000        
     DigitalSaturation:           65535          
-    ReadoutNoise:                28             
-    ElectronicOffset:            100            
-    ReadoutTime:                 2              
-    FlatfieldPtPNoise:           0.016      
+    ReadoutNoise:                28
+    SerialTransferTime:              340
+    ParallelTransferTime:            110
+    ParallelTransferTimeFast:        90
+    ReadoutMode:
+       ReadoutMode:                  Nominal
+       Partial:
+          FirstRowReadout:           0
+          NumRowsReadout:            4510
+    ElectronicOffset:            100 
+    FlatfieldNoiseRMS:           0.010      
     CTI:
     		Model:			 Simple
     		Simple:
@@ -1104,7 +1243,9 @@ CCD:
     	          Beta:		0.37
     	          Temperature:	203.0
     	          NumTrapSpecies:[9.8, 3.31, 1.56, 13.24]
-    	          TrapDensity:   [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]
+    	          TrapDensity:   
+                        BOL:    [0.0, 0.0, 0.0, 0.0]
+                        EOL:    [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]
     	          ReleaseTime:   [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]
     NominalOperatingTemperature: 203.15
     Temperature:                 Nominal
@@ -1115,7 +1256,7 @@ CCD:
     IncludeReadoutNoise:              yes            
     IncludeCTIeffects:                yes            
     IncludeOpenShutterSmearing:       yes            
-    IncludeVignetting:                yes   
+    IncludeRelativeTransmissivity:    yes   
     IncludePolarization:              yes
     IncludeParticulateContamination:  yes
     IncludeMolecularContamination:    yes
@@ -1124,14 +1265,13 @@ CCD:
     IncludeFullWellSaturation:        yes            
     IncludeDigitalSaturation:         yes      
     IncludeQuantisation:              yes      
-    WriteSubPixelImagesToHDF5:        no              
 \endcode
 
 
 
 
 ### <a name="position"></a>Position
-<i>Allowed values:</i> ∈ [1, 2, 3, 4, Custom]
+<i>Allowed values:</i> \f$\in \f$ [1, 2, 3, 4, Custom]
 
 The CCD position can be used to select a specific pre-defined CCD or a custom one.
 
@@ -1140,14 +1280,14 @@ The pre-defined CCD positions are shown in the figures below.
 @image html "/images/CCD Array Configuration - Normal Camera.png" "Figure 7: Layout of the CCDs for the normal camera's."
 @image html "/images/CCD Array Configuration - Fast Camera.png" "Figure 8: Layout of the CCDs for the fast camera's."
 
-Note that we now use 1, 2, 3, and 4 rather than A, B, C, D, for the normal cameras as well as for the fast ones.
+<!-- Note that we now use 1, 2, 3, and 4 rather than A, B, C, D, for the normal cameras as well as for the fast ones.
 
 |In the past|Now |
 |---|---|
 | A  | 3  |
 | B  | 2  |
 | C  | 4  |
-| D  | 1  |
+| D  | 1  | -->
 
 When you specify [Position](#position)=Custom, the origin offset ([OriginOffsetX](#originOffsetX) and [OriginOffsetY](#originOffsetY)), the [orientation](#ccdOrientation), [number of rows](#ccdNumRows) and [columns](#ccdNumColumns), and the [first exposed row](#firstRowExposed) of the CCD are read from the configuration parameters in the CCD block.
 
@@ -1159,7 +1299,7 @@ In case a pre-defined position is used, these configuration parameters are read 
 ### <a name="orginOffsetX"></a>OriginOffsetX
 <i>Allowed values:</i> Any
 
-Offset of the CCD origin from the centre of the optical plane (i.e. the intersection of the optical axis with the focal plane) in the x-direction, expressed in mm. The origin of the CCD is defined as the point where the readout register is located. See Fig. 6 for more details (Δx<sub>CCD</sub>).
+Offset of the CCD origin from the centre of the optical plane (i.e. the intersection of the optical axis with the focal plane) in the x-direction, expressed in mm. The origin of the CCD is defined as the point where the readout register is located. See Fig. 6 for more details (\f$\Delta x_{\rm CCD} \f$).
 
 This parameter is only used when the [Position](#position)=Custom.
 
@@ -1169,7 +1309,7 @@ This parameter is only used when the [Position](#position)=Custom.
 ### <a name="originOffsetY"></a>OriginOffsetY
 <i>Allowed values:</i> Any
 
-Offset of the CCD origin from the centre of the optical plane (i.e. the intersection of the optical axis with the focal plane) in the y-direction, expressed in mm. The origin of the CCD is defined as the point where the readout register is located. See Fig. 6 for more details (Δy<sub>CCD</sub>).
+Offset of the CCD origin from the centre of the optical plane (i.e. the intersection of the optical axis with the focal plane) in the y-direction, expressed in mm. The origin of the CCD is defined as the point where the readout register is located. See Fig. 6 for more details (\f$\Delta y_{\rm CCD} \f$).
 
 This parameter is only used when the [Position](#position)=Custom.
 
@@ -1177,7 +1317,7 @@ This parameter is only used when the [Position](#position)=Custom.
 ### <a name="ccdOrientation"></a>Orientation
 <i>Allowed values:</i> Any
 
-Orientation angle of the CCD w.r.t. the orientation of the focal plane, measured counterclockwise and expressed in degrees. This rotation is performed around the offset origin of the CCD. See Fig. 6 for more details (γ<sub>CCD</sub>).
+Orientation angle of the CCD w.r.t. the orientation of the focal plane, measured counterclockwise and expressed in degrees. This rotation is performed around the offset origin of the CCD. See Fig. 6 for more details (\f$\gamma_{\rm CCD} \f$).
 
 This parameter is only used when the [Position](#position)=Custom.
 
@@ -1212,8 +1352,16 @@ This parameter is only used when the [Position](#position)=Custom.
 
 
 
+### <a name="timeShift"></a>TimeShift
 
-### <a name="pixelSize"></a>PixelSizeS
+<i>Allowed values:</i> > 0
+
+Time shift between the readout of the CCDs [s].  Will only be used if [Position](#position)=Custom.
+
+
+
+
+### <a name="pixelSize"></a>PixelSize
 
 <i>Allowed values:</i> > 0
 
@@ -1221,31 +1369,11 @@ Nominal pixel size, expressed in micron.
 
 ### <a name=BFE></a>BFE
 
-The brighter-fatter effect (BFE) is modelled following the method proposed in [Guyonnet et al. 2015](https://arxiv.org/abs/1501.01577).  The model from Eq. (18) has been adapted to 
+The brighter-fatter effect (BFE) is modelled following the method proposed in [Guyonnet et al. 2015](https://arxiv.org/abs/1501.01577).
 
-\f[f(r) = \frac{2}{Q_0} \cdot p_0 \cdot Ei(p1 \cdot r). \f]
+#### <a name=coefficientsBFE></a>BFE: CoefficientsFileName
 
-#### <a name=rangeBFE></a>BFE: Range
-
-<i>Allowed values:</i> > 0
-
-Maximum distance in the row and column direction for a pixel (i,j) from considered pixel (0,0) to be considered in Eq. (11) in [Guyonnet et al. 2015](https://arxiv.org/abs/1501.01577).
-
-#### <a name=p0BFE></a>BFE: p0
-
-<i>Allowed values:</i> > 0
-
-Scalar \f$ p_0 \f$ in the model for \f$ f \f$.
-
-#### <a name=p0BFE></a>BFE: p1
-
-<i>Allowed values:</i> > 0
-
-Parameter \f$ p_1 \f$ in the model for \f$ f \f$, assuming \f$ r \f$ is expressed in pixels.
-
-#### <a name=refFluxBFE></a>BFE: RefFlux
-
-Parameter \f$ Q_0 \f$ in the model for \f$ f \f$.  This is a reference charge, expressed in electrons.
+Path to the HDF5 file comprising the coefficients _a_ for the BFE.
 
 ### <a name=gainFEE></a> Gain
 
@@ -1270,7 +1398,7 @@ Reference value of the gain of ACD2 of the FEE at its [nominal operating tempera
 
 #### <a name=gainAllowedDiffCCD></a>Gain: AllowedDifference
 
-<i>Allowed values:</i> ∈ [0,100]
+<i>Allowed values:</i> \f$\in \f$ [0,100]
 
 Percentage of the reference values for the gain of the left- and right-hand side of the CCD that indicates the maximum allowed difference between these gain values.
 
@@ -1290,7 +1418,7 @@ Quantum efficiency is the ratio of the number of collected electrons to the numb
 
 
 <!-- #### <a name="quantumEfficiencyRelRefEfficiency"></a>QuantumEfficiency: RelativeRefEfficiency
-<i>Allowed values:</i> ∈ [0,1]
+<i>Allowed values:</i> \f$\in \f$ [0,1]
 
 Relative efficiency due to angle dependency of the quantum efficiency at the reference angle.
 
@@ -1304,13 +1432,13 @@ Reference angle for the throughput efficiency due to the quantum efficiency, exp
 
 
 #### <a name="quantumEfficiencyMean"></a>QuantumEfficiency: MeanQuantumEfficiency
-<i>Allowed values:</i> ∈ [0,1]
+<i>Allowed values:</i> \f$\in \f$ [0,1]
 
 Mean throughput efficiency due to quantum efficiency (i.e. the mean over all pixels of one detector).
 
 
 
-#### <a name="angleDependencyQE"></a>QuantumEfficiency: MeanAmgleDependency
+#### <a name="angleDependencyQE"></a>QuantumEfficiency: MeanAngleDependency
 <i>Allowed values:</i> > 0
 
 Mean efficiency caused by the angle dependency of the quantum efficiency.
@@ -1323,7 +1451,7 @@ Optical elements induce a preferred direction for the propagation of light.  Thi
 
 
 <!-- #### <a name="polarizationEfficiency"></a>Polarization: Efficiency
-<i>Allowed values:</i> ∈ [0,1]
+<i>Allowed values:</i> \f$\in \f$ [0,1]
 
 Throughput efficiency due to the polarisation at the given reference angle.
 
@@ -1337,22 +1465,42 @@ Reference angle for the throughput efficiency due to the polarisation, expressed
 
 
 #### <a name="polarizationExpectedValue"></a>Polarization: ExpectedValue
-<i>Allowed values:</i> ∈ [0,1]
+<i>Allowed values:</i> \f$\in \f$ [0,1]
 
 Expected value of the throughput efficiency due to polarisation (i.e. the mean over all pixels of one detector).  Currently no information on the angle dependency of polarisation is available and hence this value will be used for the whole FOV, until further notice.
 
 
 
-### <a name=vignetting></a>Vignetting
+### <a name="relativeTransmissivity"></a>RelativeTransmissivity
 
-Vignetting is the brightness attenuation towars the edges of the FOV.
+On top of the (time-dependent) [transmission efficiency](#transmissionEfficiency), the overall relative transmissivity should be taken into account.  This decrease in efficiency with distance to the optical axis, comprises the following contributions:
+
+* natural vignetting (brightness attenuation towards the edges of the FOV, introduced by the view factor of the entrance pupil);
+* mechanical vignetting (due to the undersized mask at the entrance pupil), incl. total blockage of all incoming radiation beyond the edge of the FOV;
+* glass absorption + anti-reflective coating;
 
 
 
-#### <a name="vignettingExpectedValue"></a>Vignetting: ExpectedValue
-<i>Allowed values:</i> ∈ [0,1]
+#### <a name="relativeTransmissivityCoefficients"></a>RelativeTransmissivity: Coefficients
+<i>Allowed values:</i> > 0
 
-Expected value of the throughput efficiency due to vignetting (i.e. the mean over all pixels of one detector).
+Coefficients \f$k_1, k_2, k_3 \f$ for the polynomial that converts the distance from the optical axis, \f$\theta \f$ (expressed in degrees), to the variation in the overall relative transmissivity (expressed in percentage):
+
+\f[P(\theta) = k_1 \cdot \theta^2 + k_2 \cdot \theta^4 + k_3 \cdot \theta^6.\f]
+
+
+
+#### <a name="mechanicalVignettingRadiusFOV"></a>RelativeTransmissivity: RadiusFOV
+<i>Allowed values:</i> > 0
+
+Radius of the FOV, expressed in degrees.  Beyond this radius all incoming flux (apart from the cosmic hits) is shielded off.
+
+
+
+#### <a name="relativeTransmissivityExpectedValue"></a>RelativeTransmissivity: ExpectedValue
+<i>Allowed values:</i> \f$\in \f$ [0,1]
+
+Expected value of the throughput efficiency due to the overall relative transmissivity (i.e. the mean over all pixels of one detector, within the FOV).
 
 
 ### <a name=contamination></a>Contamination
@@ -1363,14 +1511,14 @@ The contribution to contamination is two-fold:
 * molecular contamination is caused chiefly by outgassing of materials in the first phase of the mission and affects all surfaces (the down side of L2 and the CCD will be affected the most).
 
 #### <a name="particulateContamination"></a>Contamination: ParticulateContaminationEfficiency
-<i>Allowed values:</i> ∈ [0,1]
+<i>Allowed values:</i> \f$\in \f$ [0,1]
 
 Throughput efficiency due to particulate contamination.
 
 
 
 #### <a name="molecularContamination"></a>Contamination: MolecularContaminationEfficiency
-<i>Allowed values:</i> ∈ [0,1]
+<i>Allowed values:</i> \f$\in \f$ [0,1]
 
 Throughput efficiency due to molecular contamination.
 
@@ -1388,9 +1536,16 @@ Dark current, expressed in e<sup>-</sup> / s.  This is the nominal value of the 
 
 
 #### <a name="dsnu"></a>DarkSignal: DSNU
-<i>Allowed values:</i> ∈ [0,100]
+<i>Allowed values:</i> \f$\in \f$ [0,100]
 
 Dark signal non-uniformity, expressed as a percentage of the [dark current](#darkCurrent).  This is the systematic (fixed-pattern) deviation of a pixel's dark current from its nominal value.
+
+
+
+#### <a name="darkCurrentStability"></a>DarkSignal: Stability
+<i>Allowed values:</i> \f$\ge \f$ 0
+
+Temperature stability of the dark current, expressed in in e<sup>-</sup> / K / s.
 
 
 
@@ -1414,28 +1569,44 @@ The gain of the front-end electronics and detector should be such that the [full
      
 
 ### <a name="readoutNoise"></a>ReadoutNoise
-<i>Allowed values:</i> ≥ 0
+<i>Allowed values:</i> \f$\ge \f$ 0
 
 Mean readout noise of the detector, expressed in e<sup>-</sup>.
 
 Readout noise occurs due to the imperfect nature of the CCD amplifiers. When the electrons are transferred to the amplifier, the induced voltage is measured. However, this measurement is not perfect, but gives a value which is on average too high by an amount of the readout noise, with the squareroot of the readout noise as standard deviation (we add the readout noise of the FEE and the CCD in quadrature).
-       
-       
-        
-### <a name="readoutTime"></a>ReadoutTime
+
+
+
+### <a name="serialTransferTime"></a>SerialTransferTime
 <i>Allowed values:</i> ≥ 0
 
-Time required to read out an entire CCD working in frame transfer mode, and the pre-scan and the over-scan strips (to estimate the bias and the smearing resp.), expressed in seconds. Because of the absence of a shutter (which is common in space-based instruments), the CCD still receives light during frame transfer. The flux of each sub-pixel is affected by the flux of the sub-pixels in the same column. Because the CCD is exposed during the whole readout and multiple exposures are created, also the sub-pixels further away from the readout register have their influence.
-
-For non-frame-transfer CCDs the readout time should be set to zero.
+Time required to shift the content of the readout register over one pixel, towards the output node.  This is not only relevant for the image area but also for the serial pre-scan (i.e. bias register map) and the serial over-scan (which has not been implemented).
 
 
 
+### <a name="parallelTransferTime"></a>ParallelTransferTime
+<i>Allowed values:</i> \f$\ge \f$ 0
 
-### <a name="flatfieldPtPNoise"></a>FlatfieldPtPNoise
-<i>Allowed values:</i> ∈ [0,1]]
+Time required to shift the charges one row down (towards the readout register) in case the readout register will be read out by the FEE.
 
-Fractional peak-to-peak amplitude of the pixel non-uniform sensitivity response..
+The difference with [ParallelTransferTimeFast](#parallelTransferTimeFast) is due to two delay parameters recommended by Teledyne e2v for clock settling.  Settling times are to ensure one clock has reached its low level before another clock starts to rise.  It ensures good charge transfer, as without it you could cause charge to be lost.  This is particularly the case when dealing with the (parallel) transfer into the readout register, as the rise and fall times of the image clocks are a lot slower than those of the register clocks.
+
+
+
+### <a name="parallelTransferTimeFast"></a>ParallelTransferTimeFast
+<i>Allowed values:</i> \f$\ge \f$ 0
+
+Time required to shift the charges one row down (towards the readout register) in case the readout register will not be read out by the FEE.  In that case clock settling is not needed, hence the difference with [ParallelTransferTime](#parallelTransferTime).
+
+
+
+
+### <a name="flatfieldPtPNoise"></a>FlatfieldNoiseRMS
+<i>Allowed values:</i> \f$\ge \f$ 0
+
+Local PRNU (Pixel Response Non-Uniformity), defined as the standard deviation in the signal level (\f$S_i \f$), divided by the mean signal (\f$ \overline{S}\f$):
+
+\f[PRNU = \frac{\sqrt{\frac{1}{N} \sum_{i=1}^{N} (S_i - \overline{S})^2}}{\overline{S}}\f]
 
 
 
@@ -1465,7 +1636,7 @@ The simple implementation ("Simple") assumes that for each row transfer (in the 
 
   
 ##### <a name="MeanCTE"></a>CTI: Simple: MeanCTE
-<i>Allowed values:</i> ∈ [0,1]
+<i>Allowed values:</i> \f$\in \f$ [0,1]
 
 Mean charge-transfer efficiency (CTE) of the detector.  The fraction of the charge that is successfully transferred from one row to the next row is expressed by this parameter.
 
@@ -1476,7 +1647,7 @@ A more sophisticated implementation ("Short2013") is based on <a href="http://mn
 
 ##### <a name="beta"></a>CTI: Short2013: Beta
 
-Exponent β in Eq. (1) of Short et al. 2013 describing the relationship between the volume of the charge cloud (<i>V<sub>c</sub></i>), the number of electrons in a pixel (<i>N<sub>e</sub></i>), the full-well capacity in electrons (<i>FWC</i>), and the assumed maximum geometrical volume that electrons can occupy within a pixel (<i>V<sub>g</sub></i>):
+Exponent \f$\beta \f$ in Eq. (1) of Short et al. 2013 describing the relationship between the volume of the charge cloud ( \f$V_c \f$), the number of electrons in a pixel (\f$N_e \f$), the full-well capacity in electrons (\f$FWC \f$), and the assumed maximum geometrical volume that electrons can occupy within a pixel (\f$V_g \f$):
 
 \f[\frac{V_c}{V_g} = \left( \frac{N_e}{FWC} \right)^{\beta}.\f]
 
@@ -1485,13 +1656,13 @@ Exponent β in Eq. (1) of Short et al. 2013 describing the relationship between 
 
 ##### <a name="temperature"></a>CTI: Short2013: Temperature
 
-<i>Allowed values:</i> ≥ 0
+<i>Allowed values:</i> \f$\ge \f$ 0
 
-Temperature <i>T</i> that is used to calculated the thermal velocity <i>v<sub>t</sub></i> of the electrons:
+Temperature \f$T \f$ that is used to calculated the thermal velocity \f$v_t \f$ of the electrons:
 
 \f[v_t = \frac{3kT}{m_e^{\ast}},\f]
 
-where <i>k</i> is the Boltzmann constant and <i>m<sub>e</sub><sup>*</sup></i> is the effective electron mass in silicon, which we approximate by half the free electron rest mass.
+where \f$k \f$ is the Boltzmann constant and \f$m_e^* \f$ is the effective electron mass in silicon, which we approximate by half the free electron rest mass.
 
 
 
@@ -1504,12 +1675,25 @@ Number of trap species that is used in the CTI model by Short et al. 2013.
 
 
 
-
 ##### <a name="trapDensity"></a>CTI: Short2013: TrapDensity
+
+We assume the trap density for each of the considered trap densities to increase linearly over time (in absence of charge injection).
+
+
+
+###### <a name="trapDensityBOL"></a>CTI: Short2013: TrapDensity: BOL
 
 <i>Allowed values:</i> Array holding one non-negative entry per trap species. 
 
-Array holding the trap density <i>n<sub>t</sub></i> for each of the considered trap species, expressed in number of traps per pixel.  This is used to calculate the γ-value in Eq. (22) of Short et al. 2013.
+Array holding the trap density \f$n_t \f$ at BOL for each of the considered trap species, expressed in number of traps per pixel.  This is used to calculate the \f$\gamma \f$-value in Eq. (22) of Short et al. 2013.
+
+
+
+###### <a name="trapDensityEOL"></a>CTI: Short2013: TrapDensity: EOL
+
+<i>Allowed values:</i> Array holding one non-negative entry per trap species. 
+
+Array holding the trap density \f$n_t \f$ at EOL for each of the considered trap species, expressed in number of traps per pixel.  This is used to calculate the \f$\gamma \f$-value in Eq. (22) of Short et al. 2013.
 
 
 
@@ -1518,7 +1702,7 @@ Array holding the trap density <i>n<sub>t</sub></i> for each of the considered t
 
 <i>Allowed values:</i> Array holding one non-negative entry per trap species.
 
-Array holding the trap capture cross-section <i>σ</i> for each of the considered trap species, expressed in m<sup>2</sup>.  This is used to calculated the α-value in Eq. (22) of Short et al. 2013.  In this formula, the charge transfer time is used as value for <i>t</i>.
+Array holding the trap capture cross-section \f$\sigma\f$ for each of the considered trap species, expressed in m<sup>2</sup>.  This is used to calculated the \f$\alpha\f$-value in Eq. (22) of Short et al. 2013.  In this formula, the charge transfer time is used as value for \f$t \f$.
 
 
 
@@ -1527,7 +1711,7 @@ Array holding the trap capture cross-section <i>σ</i> for each of the considere
 
 <i>Allowed values:</i> Array holding one non-negative entry per trap species.
 
-Array holding the trap release time constants <i>τ<sub>r</sub></i> for each of the considered trap species, expressed in seconds.
+Array holding the trap release time constants \f$\tau_r\f$ for each of the considered trap species, expressed in seconds.
 
 
 
@@ -1599,11 +1783,10 @@ Indicates whether or not to include open-shutter smearing effects.
 
 
 
-### <a name="inclVignetting"></a>IncludeVignetting
+### <a name="inclRelativeTransmissivity"></a>IncludeRelativeTransmissivity
 <i>Allowed values:</i> "yes" and "no"
 
-Indicates whether or not to include brightness attenuation towards the edge of the FOV due to vignetting.
-
+Indicates whether or not to include the overall relative transmissivity.
 
         
 
@@ -1643,7 +1826,7 @@ Indicates whether or not to include loss of throughput efficiency due to quantum
 ### <a name="inclConvolution"></a>IncludeConvolution
 <i>Allowed values:</i> "yes" and "no"
 
-Indicates whether or not the sub-pixel map must be convolved with the PSF.
+Indicates whether or not the sub-pixel map must be convolved with the PSF.  This applies only to the Gaussian and the pre-computed PSF.  When using the analytic PSF, the PSF is always applied (irrespective of the value of this configuration parameter)!
 
 
 
@@ -1700,7 +1883,8 @@ SubField:
     ZeroPointColumn:             0
     NumColumns:                  10
     NumRows:                     10
-    NumBiasPrescanRows:          5
+    NumBiasPrescanRows:          10
+    NumBiasPrescanColumns:       5
     NumSmearingOverscanRows:     5
     SubPixels:                   4
 \endcode
@@ -1713,10 +1897,11 @@ SubField:
 
 
 
+
 ### <a name="zeroPointRow"></a>ZeroPointRow
 <i>Allowed values:</i> > 0
 
-Row of the origin of the sub-field in the detector, expressed in pixels.  See Fig. 9 for more details (y<sub>s</sub>).
+Row of the origin of the sub-field in the detector, expressed in pixels.  See Fig. 9 for more details ( \f$y_s \f$).
 
 
 
@@ -1724,13 +1909,13 @@ Row of the origin of the sub-field in the detector, expressed in pixels.  See Fi
 ### <a name="zeroPointColumn"></a>ZeroPointColumn
 <i>Allowed values:</i> > 0
 
-Column of the origin of the sub-field in the detector, expressed in pixels.  See Fig. 9 for more details (x<sub>s</sub>).
+Column of the origin of the sub-field in the detector, expressed in pixels.  See Fig. 9 for more details (\f$x_s \f$).
 
 
 
 
 ### <a name="numColumns"></a>NumColumns
-<i>Allowed values:</i> ≥ 8
+<i>Allowed values:</i> \f$\ge \f$ 8
 
 Number of columns in the sub-field, expressed in pixels.
 
@@ -1738,23 +1923,32 @@ Number of columns in the sub-field, expressed in pixels.
 
 
 ### <a name="numRows"></a>NumColumns
-<i>Allowed values:</i> ≥ 8
+<i>Allowed values:</i> \f$\ge \f$ 8
 
 Number of rows in the sub-field, expressed in pixels.
 
 
 
-
 ### <a name="numPreScanRows"></a>NumBiasPrescanRows
-<i>Allowed values:</i> ≥ 0
+<i>Allowed values:</i> \f$\ge \f$ 0
 
-Number of rows in the pre-scan strip (see Fig. 9), expressed in normal pixel units.   This strip is located at the bottom of the sub-field that is modelled in detail and contains the electronic offset and readout noise.
+Number of rows in the pre-scan strip (see Fig. 9), expressed in normal pixel units.  There are two such strips, on either side of the detector image, and they contain the electronic offset and readout noise of the adjacent detector half.
+
+This parameter is configurable (and not fixed to the number of rows in the detector or the sub-field), because we want (1) to avoid the bias maps to take up too much space in the output file and (2) be able to do accurate bias correction for the photometric reduction (thus want to avoid small noisy bias maps).
+
+
+
+
+### <a name="numPreScanColumns"></a>NumBiasPrescanColumns
+<i>Allowed values:</i> \f$\ge \f$ 0
+
+Number of columns in the pre-scan strip (see Fig. 9), expressed in normal pixel units.  There are two such strips, on either side of the detector image, and they contain the electronic offset and readout noise of the adjacent detector half.
 
 
 
 
 ### <a name="numOverScanRows"></a>NumSmearingOverscanRows
-<i>Allowed values:</i> ≥ 0
+<i>Allowed values:</i> \f$\ge \f$ 0
 
 Number of rows in the over-scan strip (see Fig. 9), expressed in normal pixel units. This strip is located at the top of the sub-field that is modelled in detail and contains the star smearing due to the absence of a shutter. This flux in this strip is also affected by the electronic offset, readout noise, and shot noise. Not included are the PRNU, cosmic hits, and charge-transfer efficiency (CTE).
 
@@ -1762,11 +1956,61 @@ Number of rows in the over-scan strip (see Fig. 9), expressed in normal pixel un
 
 
 ### <a name="numSubPixels"></a>SubPixels
-<i>Allowed values:</i> power of 2 (≤ 128)
+<i>Allowed values:</i> power of 2 (\f$\le \f$ 128)
 
 Number of sub-pixels per pixel in both directions.
 
 If you want a pixel of 256 x 256 = 65536 sub-pixels you should specify in the configuration file 256. The total number of subpixels per pixel will then be 65536. If you want 256 = 16 x 16 sub-pixels per pixel, then you should specify 16 in the configuration file.
+
+---
+
+
+
+
+<!-- ********************* -->
+<!-- Photometry Parameters -->
+<!-- ********************** -->
+
+## <a name="photometryParameters"></a>Photometry Parameters
+
+The <b>Photometry</b> block of the configuration file contains all information to run photometry.  The structure of this block is the following:
+
+\code{.yaml}
+Photometry:
+
+    IncludePhotometry:               no
+    ContaminationRadius:             4
+    MaskUpdateInterval:              14.0
+    TargetFileName:                  inputfiles/photometryTargets.txt
+\endcode
+
+Note that photometry can only be performed if [Model](#psfModel)=AnalyticNonGaussian.
+
+
+### IncludePhotometry
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not photometry should be run.  Photometry can only be performed if [Model](#psfModel)=AnalyticNonGaussian.
+
+
+
+### ContaminationRadius
+<i>Allowed values:</i> > 0
+
+Radius [pixels] around a target within which sources are considered contaminants when calculating the photometry for that target.
+
+
+
+### MaskUpdateInterval
+<i>Allowed values:</i> > 0
+
+Update interval [days] to update the photometry mask.
+
+
+
+### TargetFileName
+
+Path of the file comprising the list of targets identifiers (as listed in the [star catalogue](#starCatalogue)) for which to calculate the photometry, relative to the [project location](#projectLocation).
 
 ---
 
@@ -1884,9 +2128,49 @@ The <b>ControlHDF5Content</b> block of the configuration file contains all the s
 \code{.yaml}
 ControlHDF5Content:
 
-    WriteSubPixelImages:             no 
+    WritePixelMaps:                  yes
+    WriteBiasMaps:                   yes
+    WriteSmearingMaps:               yes
+    WriteThroughputMaps:             yes
+    WriteFlatfieldMap:               yes
+    WriteSubPixelImages:             no
     WriteStarPositions:              yes
 \endcode
+
+
+
+### WritePixelImages
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the pixel maps must be stored in the output file.
+
+
+
+### WriteBiasMaps
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the bias register maps must be stored in the output file.
+
+
+
+### WriteSmearingMaps
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the smearing maps must be stored in the output file.
+
+
+
+### WriteThroughputMaps
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the throughput maps must be stored in the output file.
+
+
+
+### WriteFlatfieldMap
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the flatfield maps must be stored in the output file.
 
 
 
@@ -1901,6 +2185,83 @@ Indicates whether or not the sub-pixel maps must be stored in the output file.  
 
 Indicates whether or not the star positions should be stored in pixel and focal plane coordinates in the output file.  This scales with the number of exposures and the number of stars in the sub-field.
 
+---
+
+
+
+
+
+<!-- ********************************* -->
+<!-- Control TCP connection parameters -->
+<!-- ********************************* -->
+
+## <a name="controlTcpConnection"></a>ControlTcpConnection
+
+The <b>ControlTcpConnection</b> block in the configuration file is used in case the jitter is read from a network ([JitterSource](#jitterSource) = FromNetwork).  The structure of this block is the following:
+
+\code{.yaml}
+ControlTcpConnection:
+
+    SendImagettesToClients:        no
+    GetWindowPositionsFromServer:  no
+
+    WindowPositionServerAddress: tcp://localhost:5558
+    JitterServerAddress:         tcp://localhost:5559
+    ImagetteClientAddress:       tcp://localhost:5560
+
+    WindowPositionSocketTimeout:    100
+    JitterSocketTimeout:            100
+\endcode
+
+
+
+### <a name="sendImagettesToClients"></a>SendImagettesToClients
+
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the simulated imagettes should be sent to the client.
+
+
+
+### <a name="getWindowPositionsFromServer"></a>GetWindowPositionsFromServer
+
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the window positions should be taken from a server and be updated in upcoming simulations.
+
+
+
+### <a name="windowPositionServerAddress"></a>WindowPositionServerAddress
+
+Address from which to read the window positions in case this is requested ([GetWindowPositionsFromServer](#getWindowPositionsFromServer) = yes).
+
+
+
+### <a name="jitterServerAddress"></a>JitterServerAddress
+
+Address from which to read the jitter positions.
+
+
+
+### ImagetteClientAddress
+
+Client address to which to send the simulated imagettes in case this is requested ([SendImagettesToClients](#sendImagettesToClients) = yes).
+
+
+
+### WindowPositionSocketTimeout
+
+<i>Allowed values:</i> > 0
+
+Number of seconds of not receiving window positions (from the [window position server](#windowPositionServerAddress)), after which the connection to that server is regarded as stalled / broken.
+
+
+
+### JitterSocketTimeout
+
+<i>Allowed values:</i> > 0
+
+Number of seconds of not receiving jitter positions (from the [jitter server](#jitterServerAddress)), after which the connection to that server is regarded as stalled / broken.
 
 ---
 
@@ -1919,7 +2280,7 @@ The <b>CameraGroups</b> block in the configuration file is used in case a pre-de
 \code{.yaml}
 CameraGroups:
 
-    AzimuthAngle:            [45.0, 135.0, -135.0, -45.0, 0.0] 
+    AzimuthAngle:            [45.0, 135.0, 225.0, 315.0, 0.0] 
     TiltAngle:               [9.2, 9.2, 9.2, 9.2, 0.0] 
 \endcode
 
@@ -1956,11 +2317,12 @@ CCDPositions:
 
     OriginOffsetX:                   [-1, -1, -1, -1]
     OriginOffsetY:                   [82.18, 82.18, 82.18, 82.18]
-    Orientation:                     [0, 90, 180, 270]
+    Orientation:                     [180, 270, 0, 90]
     NumColumns:                      [4510, 4510, 4510, 4510]
     NumRows:                         [4510, 4510, 4510, 4510]
     FirstRowForNormalCamera:         [0, 0, 0, 0]
-    FirstRowForFastCamera:           [2255, 2255, 2255, 2255]       
+    FirstRowForFastCamera:           [2255, 2255, 2255, 2255]
+    TimeShift:                       [0.0, 6.25, 12.5, 18.75]
 \endcode
 
 Mind you, you are NOT supposed to alter this section of the configuration file!
@@ -2006,3 +2368,8 @@ Row index of the first row in the CCD that is illuminated (the row closest to th
 ### FirstRowForFastCamera
 
 Row index of the first row in the CCD that is illuminated (the row closest to the readout register is row 0), for CCD positions 1, 2, 3, and 4, in case of a fast camera ([GroupID](#groupID)=Fast).  For fast cameras, only the upper half of the CCD is illuminated.  Depending on the value of the [Position](#position) parameter in the [CCD](#ccdParameters) block, the appropriate value will be selected from the list.
+
+
+### TimeShift
+
+Time shift [s] of the readout of the individual CCDs, w.r.t. to readout of CCD1.  Will only be used if [Position](#position)=1, 2, 3, or 4.

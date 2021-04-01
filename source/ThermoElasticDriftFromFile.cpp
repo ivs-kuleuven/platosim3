@@ -15,6 +15,20 @@ ThermoElasticDriftFromFile::ThermoElasticDriftFromFile(ConfigurationParameters &
 
     configure(configParams);
 
+    // Check whether the required time span is covered by the jitter file
+
+    double lastTimePoint = FileUtilities::getLastTimePoint(pathToDriftFile);
+    double requiredTimeRange = endTime - beginTime;
+
+    if (lastTimePoint < requiredTimeRange)
+    {
+        int maxNumExposures = int(floor(lastTimePoint / configParams.getDouble("ObservingParameters/CycleTime")));
+        
+        string msg = "ThermoElasticDriftFromFile: required time span of " + to_string(requiredTimeRange) + "s not covered by drift file";
+        Log.error(msg + ".  Only " + to_string(maxNumExposures) + " exposures can be simulated.");
+        throw FileException(msg);
+    }
+
     // Open the thermo-elastic drift file, and read time yaw, pitch, roll time series.
     // The time is assumed to be in [s], pitch, yaw, and roll in [arcsec].
     // The path of the thermo-elastic drift file should have been set in configure().
@@ -52,19 +66,6 @@ ThermoElasticDriftFromFile::ThermoElasticDriftFromFile(ConfigurationParameters &
                 previousRoll  = deg2rad(numbers[3]/3600.);
                 continue;
             }
-            else
-            {
-                // Only add the previous line for the very first point that's within the simulation's time range
-                // Hence the check for the size of vector.
-
-                if (timeFromFile.size() == 0)
-                {
-                    timeFromFile.push_back(previousTime);   // [s]  
-                    yaw.push_back(previousYaw);             // [arcsec] -> [rad]
-                    pitch.push_back(previousPitch);         // [arcsec] -> [rad]
-                    roll.push_back(previousRoll);           // [arcsec] -> [rad]
-                }
-            }
 
             // Check if we are beyond the simulation time range. If so, stop reading the drift file.
             // By checking the last element of 'timeFromFile' rather than 'time', we ensure that we always
@@ -76,7 +77,19 @@ ThermoElasticDriftFromFile::ThermoElasticDriftFromFile(ConfigurationParameters &
             }
 
             // If we arrive here, we are within the simulation's time range. 
-            // Persist the drift steps in vectors.
+            // If it's our first point within the proper time range, also persist the previous point.
+            // Note: if the very first line contains the time == beginTime, then previousTime is not
+            //       defined. Hence below: time > beginTime, rather than time >= beginTime. 
+
+            if ((timeFromFile.size() == 0) & (time > beginTime))
+            {
+				timeFromFile.push_back(previousTime);   // [s]
+				yaw.push_back(previousYaw);             // [arcsec] -> [rad]
+				pitch.push_back(previousPitch);         // [arcsec] -> [rad]
+				roll.push_back(previousRoll);           // [arcsec] -> [rad]
+			}
+			
+			// Persist the drift steps in vectors.
 
             timeFromFile.push_back(time);                    // [s]  
             yaw.push_back(deg2rad(numbers[1]/3600.));        // [arcsec] -> [rad]
@@ -145,18 +158,29 @@ ThermoElasticDriftFromFile::~ThermoElasticDriftFromFile()
 
 void ThermoElasticDriftFromFile::configure(ConfigurationParameters &configParams)
 {
-    pathToDriftFile = configParams.getAbsoluteFilename("Telescope/DriftFileName");
-    int numExposures      = configParams.getInteger("ObservingParameters/NumExposures");
-    int beginExposureNr   = configParams.getInteger("ObservingParameters/BeginExposureNr");
-    double exposureTime   = configParams.getDouble("ObservingParameters/ExposureTime");
-    double readoutTime    = configParams.getDouble("CCD/ReadoutTime");
+    pathToDriftFile     = configParams.getAbsoluteFilename("Telescope/DriftFileName");
+    int numExposures    = configParams.getInteger("ObservingParameters/NumExposures");
+    int beginExposureNr = configParams.getInteger("ObservingParameters/BeginExposureNr");
+    double cycleTime    = configParams.getDouble("ObservingParameters/CycleTime");
+    string ccdPosition  = configParams.getString("CCD/Position");
+
+    double timeShift;
+    if (ccdPosition == "Custom")
+    {
+        timeShift = configParams.getDouble("CCD/TimeShift");
+    }
+    else
+    {
+        int index = stoi(ccdPosition) - 1;   // Position are named  [1, 2, 3, 4] while the index into vector starts at 0
+        timeShift = configParams.getDoubleAt("CCDPositions/TimeShift", index);
+    }
 
     //  Determine from when to when the simulation runs. Only for this time interval
-    //  we need to read the drift file into memory. This saves time when the drift
+    //  we need to read the jitter file into memory. This saves time when the jitter
     //  file is large but the simulation is short.
     
-    beginTime = beginExposureNr * (exposureTime + readoutTime);
-    endTime   = (beginExposureNr + numExposures) * (exposureTime + readoutTime); 
+    beginTime = timeShift + beginExposureNr * cycleTime;
+    endTime   = beginTime + numExposures * cycleTime;
 }
 
 

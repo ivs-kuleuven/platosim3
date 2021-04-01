@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <map>
 #include <array>
+#include <tuple>
 
 #include "armadillo"
 
@@ -33,6 +34,8 @@ using namespace std;
 
 class Detector;  // forward declaration
 
+typedef map<unsigned int, array<double, 6>>::iterator starInfoIterator;
+
 
 class Camera : public HDF5Writer
 {
@@ -42,7 +45,8 @@ class Camera : public HDF5Writer
         virtual ~Camera();
 
         virtual void configure(ConfigurationParameters &configParam);
-        virtual void exposeDetector(Detector &detector, double startTime, double exposureTime);
+        virtual void exposeDetectorWithStars(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure);
+        virtual void exposeDetectorWithSkyBackground(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure);
         virtual void updateParameters(double time);
 
         virtual void initHDF5Groups() override;
@@ -58,12 +62,18 @@ class Camera : public HDF5Writer
 
         set<unsigned int> getAllStarIDs();
 
+        tuple<double, double, double, double, double, double> getInfoForTheMostRecentExposureForStar(int starID);
+        pair<starInfoIterator, starInfoIterator> getInfoForTheMostRecentExposureForAllStars();
+
         double getTotalSkyBackground();
+        double getFocalLength();
 
 
     protected:
 
-        int beginExposureNr;                 // sequential number of first exposure. useful for slurm parallellisation
+        virtual tuple<unsigned long, unsigned long> makeStarCatalogSelection(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure);
+
+        int beginExposureNr;                 // Sequential number of first exposure. useful for slurm parallellisation
         int numExposures;                    // Number of exposures
 
         Platform &platform;
@@ -95,13 +105,23 @@ class Camera : public HDF5Writer
         double decSun;                    // Declination of the direction of the sun shield during the run        [rad]
 
         bool writeStarPositions;          // Whether or not the star positions should be written to the output HDF5 file
+        bool writeGhostPositions;         // Whether or not the ghost positions should be written to the output HDF5 file
 
         // detectedStarInfo[startTime][starID] contains the values (xFPmean, yFPmean, rowPixMean, colPixmean, sumFlux, Ndetections)
 
         map<double, map<unsigned int, array<double, 6>>> detectedStarInfo;
+        map<double, map<unsigned int, array<double, 7>>> detectedExtendedGhostInfo;
+        map<double, map<unsigned int, array<double, 6>>> detectedPointLikeGhostInfo;
         vector<double> skyBackgroundValues;
         vector<double> transmissionEfficiencyValues;
         double totalSkyBackground;          // Total sky background [photons / pixel / exposure]
+
+        bool includeGhosts;                                         // Whether or not to include ghosts
+        double distanceCutOffPointLikeGhosts;                       // Beyond this distance from the optical axis [degrees], sources don't produce point-like ghosts anymore
+        double fluxRatioOnAxisPointLikeGhosts;                      // Flux ratio between the point-like ghost and the originating source on-axis [%] -> linear decrease
+        double distanceRatioExtendedGhosts;                         // For a star at FP-coordinates (x, y), the centre of the extended ghost will be at (distanceRatio * x, distanceRatio * y)
+        double fluxRatioExtendedGhosts;                             // Flux ratio between the extended ghost and the originating source [%]
+        Parameter<double, 3> *extendedGhostRadiusCoefficients;      // Coefficients of the 2nd-degree polynomial (in distance from the optical axis), describing the radius of the (circular) extended source
 
     private:
 

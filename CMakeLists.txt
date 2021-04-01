@@ -67,12 +67,13 @@ configure_file(
 include_directories(
 	${CMAKE_BINARY_DIR}/generated
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/hdf5-1.8.16/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/hdf5-1.12.0/include
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/armadillo-6.500.4/include
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/yaml-cpp/include
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/googletest/include
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/fftw-3.3.4/include
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/Faddeeva/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/zeromq-4.1.4/include
 )
 
 
@@ -87,32 +88,39 @@ list(REMOVE_ITEM platosimSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/main.cpp
 set(platosimMain ${CMAKE_CURRENT_SOURCE_DIR}/source/main.cpp)
 
 
+# Define the connectionTest.cpp separately.
+
+set(connectionTestMain ${CMAKE_CURRENT_SOURCE_DIR}/tests/closedLoopTest/connectionTest.cpp)
+
+
 # Add a platosim library. This way we need to compile the platosim source files
 # only once, when using them for platosim as well as testplatosim.
 
 add_library(platosimLibrary ${platosimSourceFiles})
 
 
-# Specify the simulator unittest files to be compiled, but exclude again the main().
+# Specify the simulator unittest files to be compiled, but exclude again the main()
+# and the non-Google tests
 
-file(GLOB unitTestSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
-list(REMOVE_ITEM unitTestSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/source/AllTests.cpp)
+file(GLOB unitTestSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/tests/unitTests/*.cpp)
+list(REMOVE_ITEM unitTestSourceFiles ${CMAKE_CURRENT_SOURCE_DIR}/tests/unitTests/AllTests.cpp)
 
 
 # Define the file with main() function for the unit tests separately. 
 
-set(unitTestMain ${CMAKE_CURRENT_SOURCE_DIR}/tests/AllTests.cpp)
+set(unitTestMain ${CMAKE_CURRENT_SOURCE_DIR}/tests/unitTests/AllTests.cpp)
 
 
 # Specify the location of the dependency libraries
 
 link_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/hdf5-1.8.16/lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/hdf5-1.12.0/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/armadillo-6.500.4/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/yaml-cpp/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/googletest/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/fftw-3.3.4/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/Faddeeva/lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Installs/zeromq-4.1.4/lib
 )
 
 
@@ -161,16 +169,15 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 endif()
 
 
-# Create the platosim and testplatosim executables
+# Create the platosim, testplatosim and connectionTest executables
 
 add_executable(platosim ${platosimMain})
 add_executable(testplatosim ${unitTestMain} ${unitTestSourceFiles})
+add_executable(connectionTest ${connectionTestMain})
 
 
 # Link the platosim and testplatosim executable with the required libraries
 
-target_link_libraries(platosim platosimLibrary hdf5 hdf5_cpp armadillo yaml-cpp fftw3f fftw3f_threads pthread)
 target_link_libraries(testplatosim platosimLibrary hdf5 hdf5_cpp armadillo yaml-cpp fftw3f fftw3f_threads gtest gtest_main pthread)
-target_link_libraries(platosim platosimLibrary hdf5 hdf5_cpp armadillo yaml-cpp fftw3f fftw3f_threads pthread Faddeeva)
-
-
+target_link_libraries(platosim platosimLibrary hdf5 hdf5_cpp armadillo yaml-cpp fftw3f fftw3f_threads pthread Faddeeva zmq)
+target_link_libraries(connectionTest zmq pthread)

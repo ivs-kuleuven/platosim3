@@ -136,7 +136,7 @@ $(document).ready(function(){initNavTree('SupplementaryFiles.html','');});
 <li>the star identifier (the same as in the <a href="#starCatalogue">star catalogue</a>)</li>
 <li>the path to the file, relative to the <a href="#projectLocation">project location</a>, indicating how the magnitude of this particular source varies over time.</li>
 </ul>
-<p>The latter files also consist of two comma-separated columns:</p><ul>
+<p>The latter files also consist of two columns separated by a space:</p><ul>
 <li>time, expressed in seconds</li>
 <li>difference in magnitude w.r.t. the value in the <a href="#starCatalogue">star catalogue</a>.</li>
 </ul>
@@ -199,14 +199,14 @@ $(document).ready(function(){initNavTree('SupplementaryFiles.html','');});
 <li>time [s]</li>
 <li>and operating temperature of the FEE [K].</li>
 </ul>
-<p>The path of this file, relative to the project location, must be provided via the <code>TemperatureFileName</code> parameter in the FEE block in the <a class="el" href="ConfigurationParameters.html">configuration file</a>. </p><hr/>
+<p>The path of this file, relative to the project location, must be provided via the <code>TemperatureFileName</code> parameter in the <code>FEE</code> block in the <a class="el" href="ConfigurationParameters.html">configuration file</a>. </p><hr/>
 <h2><a class="anchor" id="temperatureCcdFile"></a>Temperature File for the CCD (Optional)</h2>
 <p>If required (<code>Temperature</code> = <code>FromFile</code> in the <code>CCD</code> block), a temperature time series for the CCD must be provided in a file in ASCII format. This file should contain two columns, separated by a space, holding the following information:</p>
 <ul>
 <li>time [s]</li>
 <li>and operating temperature of the CCD [K].</li>
 </ul>
-<p>The path of this file, relative to the project location, must be provided via the <code>TemperatureFileName</code> parameter in the CCD block in the <a class="el" href="ConfigurationParameters.html">configuration file</a>. </p>
+<p>The path of this file, relative to the project location, must be provided via the <code>TemperatureFileName</code> parameter in the <code>CCD</code> block in the <a class="el" href="ConfigurationParameters.html">configuration file</a>. </p>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

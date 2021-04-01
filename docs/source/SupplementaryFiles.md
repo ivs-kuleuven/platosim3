@@ -56,7 +56,7 @@ In case you want to include stellar variability for the sources in the [star cat
 * the star identifier (the same as in the [star catalogue](#starCatalogue))
 * the path to the file, relative to the [project location](#projectLocation), indicating how the magnitude of this particular source varies over time.
 
-The latter files also consist of two comma-separated columns:
+The latter files also consist of two columns separated by a space:
 * time, expressed in seconds
 * difference in magnitude w.r.t. the value in the [star catalogue](#starCatalogue).
 
@@ -207,7 +207,7 @@ If required (<code>Temperature</code> = <code>FromFile</code> in the <code>FEE</
 * time [s]
 * and operating temperature of the FEE [K].
 
-The path of this file, relative to the project location, must be provided via the  <code>TemperatureFileName</code> parameter in the </code>FEE</code> block in the @ref ConfigurationParameters "configuration file".
+The path of this file, relative to the project location, must be provided via the  <code>TemperatureFileName</code> parameter in the <code>FEE</code> block in the @ref ConfigurationParameters "configuration file".
 
 ---
 
@@ -226,4 +226,4 @@ If required (<code>Temperature</code> = <code>FromFile</code> in the <code>CCD</
 * time [s]
 * and operating temperature of the CCD [K].
 
-The path of this file, relative to the project location, must be provided via the  <code>TemperatureFileName</code> parameter in the </code>CCD</code> block in the @ref ConfigurationParameters "configuration file".
+The path of this file, relative to the project location, must be provided via the  <code>TemperatureFileName</code> parameter in the <code>CCD</code> block in the @ref ConfigurationParameters "configuration file".
