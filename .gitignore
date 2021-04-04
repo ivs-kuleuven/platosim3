@@ -4,6 +4,7 @@ build/*
 inputfiles/*
 outputfiles/*
 dependencies/Installs/*
+dependencies/Downloads/._*
 *.xcodeproj/*
 *.sublime-project
 *.sublime-workspace
