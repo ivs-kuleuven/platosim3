@@ -149,24 +149,25 @@ def galactic2equatorial(lon, lat):
 def aberration(lon, lat, lonSpacecraft):
 
     """
-    PURPOSE: Aberrate the given galactic coordinates for the given galactic longitude 
+    PURPOSE: Aberrate the given ecliptic coordinates for the given ecliptic longitude 
              of the spacecraft in its (circular) orbit around the Sun.
     
     INPUT:
-        - lon: Galactic longitude [radians]
-        - lat: Galactic latitude [radians]
-        - lonSpacecraft: Galactic longitude of the spacecraft in its (circular) orbit
+        - lon: Ecliptic longitude [radians]
+        - lat: Ecliptic latitude [radians]
+        - lonSpacecraft: Ecliptic longitude of the spacecraft in its (circular) orbit
                          around the Sun [radians]
     
     OUTPUT:
-        - aberrated galactic longitude [radians]
-        - aberrated galactic latitude [radians]
+        - aberrated ecliptic longitude [radians]
+        - aberrated ecliptic latitude [radians]
     """
 
-    amplitude = radians(20.496 / 3600.)
 
-    deltaLon = -amplitude * cos(lon - lonSpacecraft) / cos(lat)
-    deltaLat   = -amplitude * sin(lon - lonSpacecraft) * sin(lat)
+    amplitude = 30 / 300000
+
+    deltaLon   = -amplitude * sin(lon - lonSpacecraft) / cos(lat)
+    deltaLat   = -amplitude * cos(lon - lonSpacecraft) * sin(lat)
 
     return (lon + deltaLon, lat + deltaLat)
 
