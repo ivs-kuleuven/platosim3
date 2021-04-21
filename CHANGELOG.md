@@ -1,9 +1,23 @@
 # Changelog for PlatoSim
 
+<!-- 3.4.1 -->
+<!-- ***** -->
+
+## **/**/2021: 3.4.1
+
+## Fixed
+* Corrected the implementation of the Jitter (GitHub issue #508)
+## Changed
+
+## Added
+
+
+
+	
 <!-- 3.4.0 -->
 <!-- ***** -->
 
-## 31/03/2021: 3.3.8
+## 31/03/2021: 3.4.0
 
 ## Fixed
 * HighResMap matrix is now initialized with zeros (GitHub issue #543)
