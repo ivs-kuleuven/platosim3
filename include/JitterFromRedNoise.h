@@ -46,7 +46,7 @@ class JitterFromRedNoise : public JitterGenerator
         long jitterNoiseSeed;
 
         double internalTime;        // [s]
-
+        double cycleTime;
     private:
 
         mt19937 jitterNoiseGenerator;

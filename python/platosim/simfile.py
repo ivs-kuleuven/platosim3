@@ -1360,12 +1360,12 @@ class SimFile (object):
 
 
 
-    def getYawPitchRoll(self):
+    def getYawPitchRoll(self, getTime = False):
     
         """
         PURPOSE: Get the yaw, pitch and roll angle values at the end of each exposure
 
-        INPUT: None
+        INPUT: set to False by defaut, if True the function also returns the jitter time
 
         OUTPUT: yaw:  [arcsec]
                 pitch: [arcsec]
@@ -1399,9 +1399,17 @@ class SimFile (object):
         roll = np.zeros(dataset.shape, dataset.dtype)
         dataset.read_direct(roll)
 
-        # That's it!
+        if (getTime):
+            # Extract the time values
+            
+            dataset = self.hdf5file["ACS"]["Time"]
+            time    = np.zeros(dataset.shape, dataset.dtype)
+            dataset.read_direct(time)
 
-        return yaw, pitch, roll
+            return yaw, pitch, roll, time
+
+        else:
+            return yaw, pitch, roll
 
 
 
