@@ -6,6 +6,8 @@ from ThermoElasticDrift.tedFromFile                import TedFromFile
 from ThermoElasticDrift.tedYawPitchRoll            import TedYawPitchRoll
 from Jitter.jitterYawPitchRoll                     import JitterYawPitchRoll
 from Jitter.jitterFromFile                         import JitterFromFile
+from Jitter.jitterOnCCDs                           import JitterOnCCDs
+from Jitter.jitterOnCameras                        import JitterOnCameras
 from skyBackground                                 import SkyBackGround
 from Convolution.mappedGaussianPSF                 import MappedGaussianPSF
 from Convolution.analyticNonGaussian               import AnalyticNonGaussianPSF
@@ -132,6 +134,24 @@ with suppress_stdout():
 
 name = "Jitter from file"
 testMessages.append("{:<9}  {:^36}:{}".format("Test6.2:", name, success[out6_2]))
+print(testMessages[-1])
+
+
+with suppress_stdout():
+    test6_3 = JitterOnCCDs()
+    out6_3  = test6_3.run()
+
+name = "Jitter on different CCDs"
+testMessages.append("{:<9}  {:^36}:{}".format("Test6.3:", name, success[out6_3]))
+print(testMessages[-1])
+
+
+with suppress_stdout():
+    test6_4 = JitterOnCameras()
+    out6_4 = test6_4.run()
+
+name = "Jitter on different cameras"
+testMessages.append("{:<9}  {:^36}:{}".format("Test6.4:", name, success[out6_4]))
 print(testMessages[-1])
 
 
