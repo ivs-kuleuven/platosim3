@@ -72,8 +72,9 @@ void JitterFromRedNoise::configure(ConfigurationParameters &configParams)
     // needs to fast-forward a lot when beginExposureNr is very large, which is slow.
     
     int beginExposureNr = configParams.getInteger("ObservingParameters/BeginExposureNr");
-    double cycleTime = configParams.getDouble("ObservingParameters/CycleTime");
+    cycleTime = configParams.getDouble("ObservingParameters/CycleTime");
 
+ 
     internalTime = beginExposureNr * cycleTime;
     
 }
@@ -101,24 +102,18 @@ void JitterFromRedNoise::configure(ConfigurationParameters &configParams)
 
 tuple<double, double, double> JitterFromRedNoise::getNextYawPitchRoll(double time)
 {
-    // If the time interval is zero, return the last computed values
-
+  // If the time interval is zero, return the last computed values
+  
     if (time == internalTime)
     {
-        make_tuple(lastYaw, lastPitch, lastRoll);
+      return make_tuple(lastYaw, lastPitch, lastRoll);
     }
 
     // Use bind() to get a shorter normal01() function to generate random numbers instead of 
-    // the cumbersome normalDistribition(jitterNoiseGenerator). Note: the std::ref() is needed, 
+    // the cumbersome normalDistribution(jitterNoiseGenerator). Note: the std::ref() is needed, 
     // otherwise a copy is passed and the generator would always return the same number.
 
     auto normal01 = std::bind(normalDistribution, ref(jitterNoiseGenerator));
-
-    // The time step with which the yaw, pitch and roll will be iteratively updated.
-    // Normally this time step is the jitterTimeInterval, but if the user-given timeInterval
-    // is actually smaller than, take the latter.
-
-    double timeStep = min(time - internalTime, jitterTimeInterval);
 
     // Initialise the (yaw, pitch, roll) values with the last computed ones
 
@@ -126,29 +121,32 @@ tuple<double, double, double> JitterFromRedNoise::getNextYawPitchRoll(double tim
     double newPitch = lastPitch;
     double newRoll = lastRoll;
 
+    // The time step with which the yaw, pitch and roll will be iteratively updated.
+    // Normally this time step is the jitterTimeInterval, but if the cycle time
+    // is actually smaller than, take the latter.
+
+    double timeStep = min(jitterTimeInterval, cycleTime);
+    
     // Move through the user-given timeInterval in steps of 'timeStep', 
     // each time updating the yaw, pitch, and roll.
-
+    
     int n = 0;
-    while (internalTime + n * timeStep < time)
+    while (internalTime + n * timeStep < time )
     {
+      
         newYaw   = exp(-timeStep/jitterTimeScale) * newYaw   + yawRMS   * sqrt(timeStep/jitterTimeScale) * normal01();
         newPitch = exp(-timeStep/jitterTimeScale) * newPitch + pitchRMS * sqrt(timeStep/jitterTimeScale) * normal01();
         newRoll  = exp(-timeStep/jitterTimeScale) * newRoll  + rollRMS  * sqrt(timeStep/jitterTimeScale) * normal01();
-    
+
+        // In order to generate the same jitter with different cameras (but with the same seed) every loop should generate an
+        // even amount of random numbers. This is a byproduct of the fact that the normal_distribution generates values in pairs.
+        normal01();
         n++;
     }
 
-    // In case that the user-given timeInterval cannot be covered with an integral number
-    // of 'timeSteps', there is a small time interval left which still needs to be covered
-
-    timeStep = time - internalTime - (n-1) * timeStep;
-
-    newYaw   = exp(-timeStep/jitterTimeScale) * newYaw   + yawRMS   * sqrt(timeStep/jitterTimeScale) * normal01();
-    newPitch = exp(-timeStep/jitterTimeScale) * newPitch + pitchRMS * sqrt(timeStep/jitterTimeScale) * normal01();
-    newRoll  = exp(-timeStep/jitterTimeScale) * newRoll  + rollRMS  * sqrt(timeStep/jitterTimeScale) * normal01();
-
-
+    
+    
+    
     // Save the (yaw, pitch, roll) values for the next request
 
     lastYaw = newYaw;
@@ -160,7 +158,7 @@ tuple<double, double, double> JitterFromRedNoise::getNextYawPitchRoll(double tim
     internalTime = time;
 
     // That's it!
-
+  
     return make_tuple(newYaw, newPitch, newRoll);
 }
 
