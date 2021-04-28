@@ -17,8 +17,8 @@ fi
 # If no arguments are given write usage message
 if [ -z "$1" ]; then
     echo "Usage: server-sshfs <option>"
-	echo "       mount    :   <option> = m"
-	echo "       dismount :   <option> = d"
+	echo "         mount    :   <option> = m"
+	echo "         dismount :   <option> = d"
 	exit 1
 
 else

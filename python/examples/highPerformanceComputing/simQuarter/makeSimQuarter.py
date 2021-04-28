@@ -52,7 +52,7 @@ limitSafe = 2
 # Help usage function:
 usage = \
 """
-Usage: {0} <cameraGroupNo> <cameraNo> <quarterNo>
+Usage: python {0} <cameraGroupNo> <cameraNo> <quarterNo>
 
 cameraGroupNo : [1, 2, 3, 4]        (Maximum 4 camera groups)
 cameraNo      : [1, 2, 3, 4, 5, 6]  (Maximum 6 cameras per group)
@@ -71,14 +71,14 @@ nodes, cores, and memory are rigthfully calculated.
 """.format(sys.argv[0])
 
 def error(): print(Fore.RED + Style.BRIGHT + '[ERROR]: Wrong input!' + Style.RESET_ALL)
-def help(): print(Fore.BLUE + Style.BRIGHT + usage + Style.RESET_ALL); exit()
+def help(): print(Fore.BLUE + Style.BRIGHT + usage + Style.RESET_ALL); exit(1)
 
-# Print usage if no arguments are given:
+# Print usage if no arguments are given
 if len(sys.argv) == 1: help()
 
 # Check for opvious mistakes
 if len(sys.argv) < 4 or len(sys.argv) > 4:
-    error(); help(); exit(1)
+    error(); help()
 
 # Simplify expression
 G = sys.argv[1]
