@@ -3,7 +3,10 @@ build/
 docs/
 dependencies/
 testData/
+tests/unitTests
 tests/closedLoopTest
+source/ClosedLoop*
+include/ClosedLoop*
 Doxyfile
 tags
 
