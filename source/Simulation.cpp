@@ -82,6 +82,10 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     double readoutTimeDuringNextExposure;
     tie(readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure) = configureReadoutTime(configParams);
     exposureTime = cycleTime - readoutTimeBeforeNextExposure;
+    if (cycleTime < readoutTimeBeforeNextExposure)
+      {
+	Log.warning("Simulation: exposure time is negative value: " + to_string(exposureTime));	
+      }
 
     Log.debug("Simulation: Cycle time: " + to_string(cycleTime));
     Log.debug("Simulation: Exposure time: " + to_string(exposureTime));
