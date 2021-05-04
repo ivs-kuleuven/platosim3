@@ -47,6 +47,7 @@ class ThermoElasticDriftFromRedNoise : public DriftGenerator
         long driftNoiseSeed;
 
         double internalTime;        // [s]
+        double cycleTime;           // [s]
 
     private:
 

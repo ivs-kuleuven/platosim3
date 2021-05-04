@@ -72,7 +72,7 @@ void ThermoElasticDriftFromRedNoise::configure(ConfigurationParameters &configPa
     // needs to fast-forward a lot when beginExposureNr is very large, which is slow.
     
     int beginExposureNr = configParams.getInteger("ObservingParameters/BeginExposureNr");
-    double cycleTime = configParams.getDouble("ObservingParameters/CycleTime");
+    cycleTime = configParams.getDouble("ObservingParameters/CycleTime");
 
     internalTime = beginExposureNr * cycleTime;
 }
@@ -104,7 +104,7 @@ tuple<double, double, double> ThermoElasticDriftFromRedNoise::getNextYawPitchRol
 
     if (time == internalTime)
     {
-        make_tuple(lastYaw, lastPitch, lastRoll);
+        return make_tuple(lastYaw, lastPitch, lastRoll);
     }
 
     // If the time interval is negative, complain
@@ -122,17 +122,17 @@ tuple<double, double, double> ThermoElasticDriftFromRedNoise::getNextYawPitchRol
 
     auto normal01 = std::bind(normalDistribution, ref(driftNoiseGenerator));
 
-    // The time step with which the yaw, pitch and roll will be iteratively updated.
-    // Normally this time step is the driftTimeInterval, but if the user-given timeInterval
-    // is actually smaller than, take the latter.
-
-    double timeStep = min(time - internalTime, driftTimeInterval);
-
     // Initialise the (yaw, pitch, roll) values with the last computed ones
 
     double newYaw = lastYaw;
     double newPitch = lastPitch;
     double newRoll = lastRoll;
+
+    // The time step with which the yaw, pitch and roll will be iteratively updated.
+    // Normally this time step is the driftTimeInterval, but if the user-given timeInterval
+    // is actually smaller than, take the latter.
+
+    double timeStep = min(cycleTime, driftTimeInterval);
 
     // Move from the internal time to the user-given time in steps of 'timeStep', 
     // each time updating the yaw, pitch, and roll.
@@ -143,19 +143,12 @@ tuple<double, double, double> ThermoElasticDriftFromRedNoise::getNextYawPitchRol
         newYaw   = exp(-timeStep/driftTimeScale) * newYaw   + yawRMS   * sqrt(timeStep/driftTimeScale) * normal01();
         newPitch = exp(-timeStep/driftTimeScale) * newPitch + pitchRMS * sqrt(timeStep/driftTimeScale) * normal01();
         newRoll  = exp(-timeStep/driftTimeScale) * newRoll  + rollRMS  * sqrt(timeStep/driftTimeScale) * normal01();
-    
+
+	// In order to generate the same drift for a camera on different CCDs (but with the same seed) every loop should generate and
+	// even amount of random numbers. This is a byproduct of the fact that the normal_distribution generates values in pairs.
+	normal01();
         n++;
     }
-
-    // In case that the user-given timeInterval cannot be covered with an integral number
-    // of 'timeSteps', there is a small time interval left which still needs to be covered
-
-    timeStep = time - internalTime - (n-1) * timeStep;
-
-    newYaw   = exp(-timeStep/driftTimeScale) * newYaw   + yawRMS   * sqrt(timeStep/driftTimeScale) * normal01();
-    newPitch = exp(-timeStep/driftTimeScale) * newPitch + pitchRMS * sqrt(timeStep/driftTimeScale) * normal01();
-    newRoll  = exp(-timeStep/driftTimeScale) * newRoll  + rollRMS  * sqrt(timeStep/driftTimeScale) * normal01();
-
 
     // Save the (yaw, pitch, roll) values for the next request
 

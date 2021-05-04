@@ -73,7 +73,6 @@ void JitterFromRedNoise::configure(ConfigurationParameters &configParams)
     
     int beginExposureNr = configParams.getInteger("ObservingParameters/BeginExposureNr");
     cycleTime = configParams.getDouble("ObservingParameters/CycleTime");
-
  
     internalTime = beginExposureNr * cycleTime;
     
@@ -102,11 +101,22 @@ void JitterFromRedNoise::configure(ConfigurationParameters &configParams)
 
 tuple<double, double, double> JitterFromRedNoise::getNextYawPitchRoll(double time)
 {
+
+
   // If the time interval is zero, return the last computed values
   
     if (time == internalTime)
     {
       return make_tuple(lastYaw, lastPitch, lastRoll);
+    }
+    
+    // If the time interval is negative, complain
+
+    if (time < internalTime)
+    {
+         string msg = "JitterFromRedNoise: requested time < internal time: "
+                      + to_string(time) + " < " + to_string(internalTime) + "Cannot rewind.";
+         throw IllegalArgumentException(msg);
     }
 
     // Use bind() to get a shorter normal01() function to generate random numbers instead of 
@@ -138,14 +148,11 @@ tuple<double, double, double> JitterFromRedNoise::getNextYawPitchRoll(double tim
         newPitch = exp(-timeStep/jitterTimeScale) * newPitch + pitchRMS * sqrt(timeStep/jitterTimeScale) * normal01();
         newRoll  = exp(-timeStep/jitterTimeScale) * newRoll  + rollRMS  * sqrt(timeStep/jitterTimeScale) * normal01();
 
-        // In order to generate the same jitter with different cameras (but with the same seed) every loop should generate an
+        // In order to generate the same jitter with different cameras/CCDs (but with the same seed) every loop should generate an
         // even amount of random numbers. This is a byproduct of the fact that the normal_distribution generates values in pairs.
         normal01();
         n++;
     }
-
-    
-    
     
     // Save the (yaw, pitch, roll) values for the next request
 
