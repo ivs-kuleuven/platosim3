@@ -1095,20 +1095,6 @@ void Detector::readOut(float exposureTime)
         Log.debug("Detector: no cosmic hits included.");
     }
 
-
-    // Brighter-Fatter effect
-
-    if (includeBFE)
-    {
-        Log.debug("DetectorWithMappedPSF: adding Brighter-Fatter effect");
-
-        applyBFE();
-    }
-    else
-    {
-        Log.debug("DetectorWithMappedPSF: no Brighter-Fatter effect added");
-    }
-
     // Simulate the effects of the Charge Transfer Inefficiency (CTI). When the
     // CCD is read out, row after row, a part of the charge is always left behind
     // which then dribbles into the trailing pixels. This causes each star to have
@@ -1142,6 +1128,20 @@ void Detector::readOut(float exposureTime)
         Log.debug("Detector: no full well saturation applied.");
     }
 
+
+
+    // Brighter-Fatter effect
+
+    if (includeBFE)
+    {
+        Log.debug("DetectorWithMappedPSF: adding Brighter-Fatter effect");
+
+        applyBFE();
+    }
+    else
+    {
+        Log.debug("DetectorWithMappedPSF: no Brighter-Fatter effect added");
+    }
 
     // Each time the amplifier reads out a pixel, a tiny bit of noise is added.
     // Add the readout noise.
@@ -1211,6 +1211,7 @@ void Detector::readOut(float exposureTime)
  */
 void Detector::applyBFE()
 {
+
     // For each pixel (0, 0), we only account for the influence of pixels (i, j)
     // that are within the given range (to evaluate Eq. (11) in Guyonnet et al.)
 
