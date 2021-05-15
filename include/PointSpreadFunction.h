@@ -31,6 +31,7 @@ class PointSpreadFunction : public HDF5Writer
 
         int getNumSubPixelsPerPixel(){return numberOfSubPixelsPerPixel;};
         arma::fmat rebinToSubPixels(unsigned int targetSubPixels);
+        arma::fmat getOriginalPSF();
 
     protected:
 

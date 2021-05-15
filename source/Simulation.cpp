@@ -560,9 +560,8 @@ void Simulation::writeStarCatalogToHDF5()
 
     // For all detected stars, copy the equatorial sky coordinates and the magnitude 
     // from the user-given star catalog to the output HDF5 file in a custom group.
-    
-    hdf5File->createGroup("/StarCatalog");
 
+    hdf5File->createGroup("/StarCatalog");
     const int Nstars = allStarIDs.size();
     vector<unsigned int> starIDs(Nstars);    // set<> is not contiguous, vector<> is. Needed for HDF5.
     vector<double> RA(Nstars);
