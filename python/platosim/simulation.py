@@ -588,7 +588,7 @@ class Simulation(object):
 
 
 
-    def setSubfieldAroundPixelRows(self, ccdCode, yCCDpixel, subfieldSizeY):
+    def setSubfieldAroundPixelRow(self, ccdCode, yCCDpixel, subfieldSizeY):
         """
         PURPOSE: Sets the location of the sub-field so that its rows are centered around the given pixel coordinate. 
 
