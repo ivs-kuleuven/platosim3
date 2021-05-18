@@ -620,7 +620,7 @@ class Simulation(object):
         self["SubField/NumRows"]    = subfieldSizeY
         
         self["SubField/ZeroPointColumn"] = subfieldRowZero
-        self["SubField/ZeroPointRow"] = min(max(0 , self["SubField/ZeroPointRow"] - deltaY), 4510 - subfieldSizeY)
+        self["SubField/ZeroPointRow"]    = min(max(0 , self["SubField/ZeroPointRow"] - deltaY), 4510 - subfieldSizeY)
 
 
 
