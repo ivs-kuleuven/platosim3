@@ -588,6 +588,43 @@ class Simulation(object):
         return
 
 
+    
+
+
+
+    def setSubfieldAroundPixelRow(self, ccdCode, yCCDpixel, subfieldSizeY):
+        """
+        PURPOSE: Sets the location of the sub-field so that its rows are centered around the given pixel coordinate. 
+
+        INPUTS: ccdCode:       for nominal camera: either '1', '2', '3', '4'
+                               for fast camera: either '1F', '2F', '3F', '4F'
+                yCCDpixel:     y-coordinate (row-number) around which to center the subField  [pixel/float]
+                subfieldSizeY: height (i.e. number of rows) of the sub-field [pixels]
+
+        OUTPUTS:  None
+        REMARKS:  If it is not possible to center the subfield around the row, because the row is too close the the edge, the subfield 
+                  will be set at that respective edge. 
+        """
+
+        subfieldSizeX = int(self["SubField/NumColumns"])
+        subfieldRowZero = int(self["SubField/ZeroPointColumn"])
+        xCCDpixel = subfieldRowZero + subfieldSizeX / 2
+
+        if not (0 <= yCCDpixel <  4510):
+            print("Error: we expect input row coordinate in [0,4510[, but value {} was given.".format(yCCDpixel))
+            return 
+        if not (1 <= subfieldSizeY <= 4510):
+            print("Error: we expect size of the row subfield in [1,4510], but value {} was given.".format(subfieldSizeY))
+            return
+        
+        self.setSubfieldAroundPixelCoordinates(ccdCode, xCCDpixel, yCCDpixel, 1, 1)
+        
+        deltaY = int(subfieldSizeY / 2)
+        self["SubField/NumColumns"] = subfieldSizeX
+        self["SubField/NumRows"]    = subfieldSizeY
+        
+        self["SubField/ZeroPointColumn"] = subfieldRowZero
+        self["SubField/ZeroPointRow"]    = min(max(0 , self["SubField/ZeroPointRow"] - deltaY), 4510 - subfieldSizeY)
 
 
 

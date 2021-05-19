@@ -4,6 +4,7 @@ from StellarAberration.absoluteAberration          import AbsoluteAberration
 from fieldDistortion                               import FieldDistortion
 from ThermoElasticDrift.tedFromFile                import TedFromFile
 from ThermoElasticDrift.tedYawPitchRoll            import TedYawPitchRoll
+from ThermoElasticDrift.tedOnCCDs                  import TedOnCCDs
 from Jitter.jitterYawPitchRoll                     import JitterYawPitchRoll
 from Jitter.jitterFromFile                         import JitterFromFile
 from Jitter.jitterOnCCDs                           import JitterOnCCDs
@@ -116,6 +117,15 @@ with suppress_stdout():
 
 name = "Thermo-Elastic drift from file"
 testMessages.append("{:<9}  {:^36}:{}".format("Test5.2:", name, success[out5_2]))
+print(testMessages[-1])
+
+
+with suppress_stdout():
+    test5_3 = TedOnCCDs()
+    out5_3 = test5_3.run()
+
+name = "TED on different CCDs"
+testMessages.append("{:<9}  {:^36}:{}".format("Test5.3:", name, success[out5_3]))
 print(testMessages[-1])
 
 

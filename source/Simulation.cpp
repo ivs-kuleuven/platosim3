@@ -82,6 +82,10 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     double readoutTimeDuringNextExposure;
     tie(readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure) = configureReadoutTime(configParams);
     exposureTime = cycleTime - readoutTimeBeforeNextExposure;
+    if (cycleTime < readoutTimeBeforeNextExposure)
+      {
+	Log.warning("Simulation: exposure time is negative value: " + to_string(exposureTime));	
+      }
 
     Log.debug("Simulation: Cycle time: " + to_string(cycleTime));
     Log.debug("Simulation: Exposure time: " + to_string(exposureTime));
@@ -556,9 +560,8 @@ void Simulation::writeStarCatalogToHDF5()
 
     // For all detected stars, copy the equatorial sky coordinates and the magnitude 
     // from the user-given star catalog to the output HDF5 file in a custom group.
-    
-    hdf5File->createGroup("/StarCatalog");
 
+    hdf5File->createGroup("/StarCatalog");
     const int Nstars = allStarIDs.size();
     vector<unsigned int> starIDs(Nstars);    // set<> is not contiguous, vector<> is. Needed for HDF5.
     vector<double> RA(Nstars);
