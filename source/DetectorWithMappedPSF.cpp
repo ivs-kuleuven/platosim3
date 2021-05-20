@@ -770,7 +770,6 @@ void DetectorWithMappedPSF::writeDiffusedPSFToHDF5(PointSpreadFunction *psf)
       for (int column=0; column < numColumns; column++)
       {
        	applyDiffusionKernelOnPSF(row, column, psfMap(row, column), diffusedPsf, psfSubPixelsPerPixel);
-	//	std::cout << "psfMap" << psfMap(row, column) << std::endl;
       }
     }
 

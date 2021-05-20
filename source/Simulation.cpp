@@ -256,6 +256,7 @@ void Simulation::configure(ConfigurationParameters &configParams)
     useDetectorNominalTemperature   = configParams.getString("CCD/Temperature") == "Nominal";
     sendImagettesToClient           = configParams.getBoolean("ControlTcpConnection/SendImagettesToClients");
     getWindowPositionFromServer     = configParams.getBoolean("ControlTcpConnection/GetWindowPositionsFromServer");
+    writeStarCatalog                = configParams.getBoolean("ControlHDF5Content/WriteStarCatalog");                
 
     // The readout of different CCDs are shifted in time because of the power budget.
     // Find out the right time shift.
@@ -503,8 +504,10 @@ void Simulation::run()
             n++;             
         }
     }
-
+    if (writeStarCatalog)
+    {
     writeStarCatalogToHDF5();
+    }
 }
 
 
@@ -595,7 +598,6 @@ void Simulation::writeStarCatalogToHDF5()
             tie(rowPix[k], colPix[k]) = detector->focalPlaneToPixelCoordinates(xFPmm[k], yFPmm[k]);
             k++;
         }
-
         hdf5File->writeArray("StarCatalog/", "starIDs", starIDs.data(), starIDs.size());
         hdf5File->writeArray("StarCatalog/", "RA",      RA.data(), RA.size());
         hdf5File->writeArray("StarCatalog/", "Dec",     dec.data(), dec.size());

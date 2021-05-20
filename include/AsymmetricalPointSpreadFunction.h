@@ -25,6 +25,7 @@ class AsymmetricalPointSpreadFunction : public PointSpreadFunction
         void select(double xFP, double yFP);
 
         virtual void rotate(double angle);
+        bool writeHighResolutionPSF;
 
     protected:
 

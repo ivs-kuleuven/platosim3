@@ -92,12 +92,14 @@ void AsymmetricalPointSpreadFunction::configure(ConfigurationParameters &configP
 
         absolutePath = configParam.getAbsoluteFilename("PSF/MappedFromFileAsymmetrical/Filename");
         numberOfPixels = configParam.getInteger("PSF/MappedFromFileAsymmetrical/NumberOfPixels");
+	writeHighResolutionPSF = configParam.getBoolean("ControlHDF5Content/WriteHighResolutionPSF");	
     }
     else
     {
         string errorMessage = "AsymmetricalPointSpreadFunction: Model '" + model + "' is not supported.";
         Log.error(errorMessage);
         throw IllegalArgumentException(errorMessage);
+	writeHighResolutionPSF = false;
     }
 }
 
@@ -206,8 +208,10 @@ void AsymmetricalPointSpreadFunction::rotate(double angle)
         Log.debug("AsymmetricalPointSpreadFunction: rotated current PSF over angle " + to_string(rad2deg(angle)) + " deg");
 
         // Write the psfMap of the rotated PSF to the HDF5 output file
-
+	if (writeHighResolutionPSF)
+	{
         hdf5File.writeArray("/PSF", "rotatedPSF", psfMap);
         hdf5File.writeAttribute("/PSF", "rotationAngle", rotationAngle);
+	}
     }
 }

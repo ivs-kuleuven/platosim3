@@ -158,6 +158,7 @@ void SymmetricalPointSpreadFunction::configure(ConfigurationParameters &configPa
         // The Gaussian PSF shall be created with a resolution equal to that of the sub-field
         
         numberOfSubPixelsPerPixel = configParam.getInteger("SubField/SubPixels");
+	writeHighResolutionPSF = configParam.getBoolean("ControlHDF5Content/WriteHighResolutionPSF");
     } 
     else if (model == "MappedFromFileSymmetrical")
     {
@@ -324,7 +325,7 @@ void SymmetricalPointSpreadFunction::rotate(double angle)
     // This is to keep consistency in the output file where we do not save the selected PSF,
     // but we do save the rotated PSF.
 
-    if (isGaussian)
+    if (isGaussian && writeHighResolutionPSF)
     {
         hdf5File.writeArray("/PSF", "rotatedPSF", psfMap);
         hdf5File.writeAttribute("/PSF", "rotationAngle", rotationAngle);
@@ -352,8 +353,10 @@ void SymmetricalPointSpreadFunction::rotate(double angle)
         Log.debug("PointSpreadFunction: rotated current PSF over angle " + to_string(rad2deg(newAngle)) + " deg");
 
         // Write the psfMap of the rotated PSF to the HDF5 output file
-
+	if (writeHighResolutionPSF)
+	{  
         hdf5File.writeArray("/PSF", "rotatedPSF", psfMap);
         hdf5File.writeAttribute("/PSF", "rotationAngle", rotationAngle);
+	}
     }
 }

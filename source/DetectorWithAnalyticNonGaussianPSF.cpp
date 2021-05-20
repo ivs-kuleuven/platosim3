@@ -193,7 +193,7 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
     // The configuration for the HDF5 contents
     
     writeFlatfieldMap = configParam.getBoolean("ControlHDF5Content/WriteFlatfieldMap");
-
+    writeHighResolutionPSF = configParam.getBoolean("ControlHDF5Content/WriteHighResolutionPSF");
 
 } // end configure()
 
@@ -866,8 +866,10 @@ void DetectorWithAnalyticNonGaussianPSF::flushOutput()
     makeHighResolutionPSF(highResMap, Npixels, Nsubpixels);
 
     // Save the map to HDF5
-
+    if (writeHighResolutionPSF)
+    {
     hdf5File.writeArray("/PSF", "HighResPSFmapCenterSubfield", highResMap);
+    }
 
     // Save the photometry info
 
