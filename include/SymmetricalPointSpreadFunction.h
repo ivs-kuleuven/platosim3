@@ -36,6 +36,7 @@ class SymmetricalPointSpreadFunction : public PointSpreadFunction
         arma::fmat getGaussianPsf();
 
         virtual void rotate(double angle);
+        bool writeHighResolutionPSF;
 
     protected:
 
