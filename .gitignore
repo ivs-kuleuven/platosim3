@@ -12,6 +12,7 @@ PlatoSim3.code-workspace
 .vscode/*
 PlatoSim3.code-workspace
 .idea
+.cache
 
 # Ignore some of the auto-generated files (during cmake)
 
@@ -24,6 +25,10 @@ generated/version.h
 !starField_RA180Dec-70.txt
 !psfallv3.txt
 !inputfiles/cl2bCcds.txt
+
+# Ignore compile command json file for neovim LSP
+
+compile_commands.json
 
 # Ignore output of ctags
 
