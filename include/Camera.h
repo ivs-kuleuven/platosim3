@@ -106,6 +106,7 @@ class Camera : public HDF5Writer
 
         bool writeStarPositions;          // Whether or not the star positions should be written to the output HDF5 file
         bool writeGhostPositions;         // Whether or not the ghost positions should be written to the output HDF5 file
+        bool writeTransmissionEfficiency;
 
         // detectedStarInfo[startTime][starID] contains the values (xFPmean, yFPmean, rowPixMean, colPixmean, sumFlux, Ndetections)
 

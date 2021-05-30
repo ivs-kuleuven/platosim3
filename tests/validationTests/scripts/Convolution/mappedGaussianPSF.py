@@ -39,7 +39,7 @@ class MappedGaussianPSF(Test):
         self.sim["SubField/NumRows"]    = 10
         self.sim["SubField/NumColumns"] = 10
 
-
+        self.sim["ControlHDF5Content/WriteHighResolutionPSF"] = "yes"
         # Create a SkyMap with a star that would fall onto that point in the sub field.
         nRows     = self.sim["SubField/NumRows"]
         nColumns  = self.sim["SubField/NumColumns"]
@@ -152,7 +152,6 @@ class MappedGaussianPSF(Test):
         test1 = self.compareMapped()
         test2 = self.compareDiffusion()
         test3 = self.compareJitterSmooting()
-
         return test1 and test2 and test3
 
 

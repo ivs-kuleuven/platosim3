@@ -1,9 +1,23 @@
 # Changelog for PlatoSim
 
-<!-- 3.3.8 -->
+<!-- 3.4.1 -->
 <!-- ***** -->
 
-## ??/??/2020: 3.3.8
+## **/**/2021: 3.4.1
+
+## Fixed
+* Corrected the implementation of the Jitter (GitHub issue #508)
+## Changed
+
+## Added
+
+
+
+	
+<!-- 3.4.0 -->
+<!-- ***** -->
+
+## 31/03/2021: 3.4.0
 
 ## Fixed
 * HighResMap matrix is now initialized with zeros (GitHub issue #543)
@@ -29,7 +43,8 @@
 * CCD ID new standard (GitHub issue #416)
 * Implemented time-dependent CTI (GitHub issue #476)
 * Unique ID needed in ClosedLoopUtility and Log-File (GitHub issue #488)
-
+* Implemented time-dependent CTI (GitHub issue #476)
+	
 ## Added
 * Validation & verification notebooks
 * Validation & verification scripts
@@ -47,17 +62,7 @@
 * Add linear irradiance ratio decrease of point-like ghosts (GitHub issue #526)
 * Added getPointLikeGhostCoordinates() and getExtendedGhostCoordinates() methods to SimFile class
 
-
-
-<!-- 3.3.8 -->
-<!-- ***** -->
-
-## ??/&&/2020: 3.3.8
-
-## Changed
-
-* Implemented time-dependent CTI (GitHub issue #476)
-
+	
 
 
 <!-- 3.3.7 -->

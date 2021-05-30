@@ -500,7 +500,7 @@ class SimFile (object):
         """
         PURPOSE: extract the PSF from the HDF5 file (if present)
 
-        INPUT:   the PSF name: "rebinnedPSFpixel", "rebinnedPSFsubPixel", or "rotatedPSF"
+        INPUT:   the PSF name: "rebinnedPSFpixel", "rebinnedPSFsubPixel", "rotatedPSF" or "diffusedPSF"
                  where rotatedPSF is at subpixel level.
                  
         OUTPUT:  psf: 2D numpy array containing the image
@@ -1388,12 +1388,12 @@ class SimFile (object):
 
 
 
-    def getYawPitchRoll(self):
+    def getYawPitchRoll(self, getTime = False):
     
         """
         PURPOSE: Get the yaw, pitch and roll angle values at the end of each exposure
 
-        INPUT: None
+        INPUT: set to False by defaut, if True the function also returns the jitter time
 
         OUTPUT: yaw:  [arcsec]
                 pitch: [arcsec]
@@ -1427,11 +1427,68 @@ class SimFile (object):
         roll = np.zeros(dataset.shape, dataset.dtype)
         dataset.read_direct(roll)
 
-        # That's it!
+        if (getTime):
+            # Extract the time values
+            
+            dataset = self.hdf5file["ACS"]["Time"]
+            time    = np.zeros(dataset.shape, dataset.dtype)
+            dataset.read_direct(time)
 
-        return yaw, pitch, roll
+            return yaw, pitch, roll, time
+
+        else:
+            return yaw, pitch, roll
 
 
+    def getYawPitchRollFromDrift(self, getTime = False):
+        """
+        PURPOSE: Get the telescop yaw, pitch and roll angle values at the end of each exposure 
+
+        INPUT: set to False by defaut, if True the function also returns the drift time
+
+        OUTPUT: yaw:  [arcsec]
+                pitch: [arcsec]
+                roll: [arcsec]
+
+        NOTE: The yaw, pitch, roll values at the end of an exposure are not the same as the ones at 
+              the beginning of the next exposure, because between two exposures there is the CCD readout time
+              during which the drift continues.
+
+        EXAMPLE:
+
+            >>> file = SimFile("Simul01.hdf5")
+            >>> yaw, pitch, roll = file.getYawPitchRollFromDrift()
+        """
+
+        # Extract the yaw values
+
+        dataset = self.hdf5file["Telescope"]["TelescopeYaw"]
+        yaw = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(yaw)
+
+        # Extract the pitch values
+
+        dataset = self.hdf5file["Telescope"]["TelescopePitch"]
+        pitch = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(pitch)
+
+        # Extract the roll values
+
+        dataset = self.hdf5file["Telescope"]["TelescopeRoll"]
+        roll = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(roll)
+
+        if (getTime):
+            # Extract the time values
+            
+            dataset = self.hdf5file["Telescope"]["Time"]
+            time    = np.zeros(dataset.shape, dataset.dtype)
+            dataset.read_direct(time)
+
+            return yaw, pitch, roll, time
+
+        else:
+            return yaw, pitch, roll
 
 
 

@@ -82,6 +82,10 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     double readoutTimeDuringNextExposure;
     tie(readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure) = configureReadoutTime(configParams);
     exposureTime = cycleTime - readoutTimeBeforeNextExposure;
+    if (cycleTime < readoutTimeBeforeNextExposure)
+      {
+	Log.warning("Simulation: exposure time is negative value: " + to_string(exposureTime));	
+      }
 
     Log.debug("Simulation: Cycle time: " + to_string(cycleTime));
     Log.debug("Simulation: Exposure time: " + to_string(exposureTime));
@@ -252,6 +256,7 @@ void Simulation::configure(ConfigurationParameters &configParams)
     useDetectorNominalTemperature   = configParams.getString("CCD/Temperature") == "Nominal";
     sendImagettesToClient           = configParams.getBoolean("ControlTcpConnection/SendImagettesToClients");
     getWindowPositionFromServer     = configParams.getBoolean("ControlTcpConnection/GetWindowPositionsFromServer");
+    writeStarCatalog                = configParams.getBoolean("ControlHDF5Content/WriteStarCatalog");                
 
     // The readout of different CCDs are shifted in time because of the power budget.
     // Find out the right time shift.
@@ -499,8 +504,10 @@ void Simulation::run()
             n++;             
         }
     }
-
+    if (writeStarCatalog)
+    {
     writeStarCatalogToHDF5();
+    }
 }
 
 
@@ -556,9 +563,8 @@ void Simulation::writeStarCatalogToHDF5()
 
     // For all detected stars, copy the equatorial sky coordinates and the magnitude 
     // from the user-given star catalog to the output HDF5 file in a custom group.
-    
-    hdf5File->createGroup("/StarCatalog");
 
+    hdf5File->createGroup("/StarCatalog");
     const int Nstars = allStarIDs.size();
     vector<unsigned int> starIDs(Nstars);    // set<> is not contiguous, vector<> is. Needed for HDF5.
     vector<double> RA(Nstars);
@@ -592,7 +598,6 @@ void Simulation::writeStarCatalogToHDF5()
             tie(rowPix[k], colPix[k]) = detector->focalPlaneToPixelCoordinates(xFPmm[k], yFPmm[k]);
             k++;
         }
-
         hdf5File->writeArray("StarCatalog/", "starIDs", starIDs.data(), starIDs.size());
         hdf5File->writeArray("StarCatalog/", "RA",      RA.data(), RA.size());
         hdf5File->writeArray("StarCatalog/", "Dec",     dec.data(), dec.size());

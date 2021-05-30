@@ -59,7 +59,7 @@ void PointSpreadFunction::initHDF5Groups()
 void PointSpreadFunction::flushOutput()
 {
     Log.info("PointSpreadFunction: Flushing output to HDf5 file.");
-
+    
     if (!isSelected)
         return;
     
@@ -131,3 +131,23 @@ arma::fmat PointSpreadFunction::rebinToSubPixels(unsigned int targetSubPixels)
 
     return rebinnedMap;
 }
+
+
+
+
+
+
+
+/*
+ * This function gets the selected psf
+ */
+
+arma::fmat PointSpreadFunction::getOriginalPSF()
+{
+  psfMap = ArrayOperations::rotateArray(psfMap, -rotationAngle);
+  psfMap /= arma::accu(psfMap);
+  return psfMap;
+}
+
+
+
