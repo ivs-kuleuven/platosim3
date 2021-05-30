@@ -402,7 +402,7 @@ class SimFile (object):
 
         if showStarPositions:
             ID, row, col, Xmm, Ymm, flux = self.getStarCoordinates(imageNr, minVmag=minVmag, maxVmag=maxVmag)
-            # Allow differentiate between a target and contaminants
+            # Allow differentiating between a target and its contaminants
             if showStarPositions == 'PIC':
                 axis.scatter(col[0], row[0], marker='*', c='g')
                 if len(col) > 1: axis.scatter(col[1:], row[1:], marker='x', c='r')
@@ -455,11 +455,11 @@ class SimFile (object):
 
         axis.format_coord = format_coord
 
-        # Show all ticks for smaller subfields or do
+        # Show all ticks for smaller subfields
 
-        if Ncols >= 10 or Nrows >= 10:
-            plt.xticks(np.arange(0, Nrows, 10))
-            plt.yticks(np.arange(0, Ncols, 10))
+        if Ncols < 10 and Nrows < 10:
+            plt.xticks(np.arange(0, Nrows+1))
+            plt.yticks(np.arange(0, Ncols+1))
 
         # Overplot rectangles over those pixels that are part of the mask
         # Note: imshow reverses rows and columns
@@ -470,7 +470,7 @@ class SimFile (object):
                 rect = patches.Rectangle((colIndices[k], rowIndices[k]), 1, 1, linewidth=2.0, edgecolor='b', facecolor='none')
                 axis.add_patch(rect)
 
-        # If requiered, overplot as grid
+        # If requiered, overplot a gray semi-transparent grid
         # Note: this is only meaningsful for smaller imagettes
 
         if showGrid is True:
