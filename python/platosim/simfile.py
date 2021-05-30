@@ -341,17 +341,19 @@ class SimFile (object):
 
 
 
-    def showImage(self, imageNr, clipPercentile=5.0, showStarPositions=False, showPointLikeGhostPositions=False, 
-                  minVmag=None, maxVmag=None, showStarIDs=False, showMaskOfStarID=None, useTitle=True):
+    def showImage(self, imageNr, clipPercentile=5.0, showStarPositions=False, showPointLikeGhostPositions=False,
+                  minVmag=None, maxVmag=None, showStarIDs=False, showMaskOfStarID=None, useTitle=True, colorMap="hot",
+                  showGrid=False):
 
         """
-        PURPOSE: make a plot of the requested image 
+        PURPOSE: make a plot of the requested image
 
         INPUT:  imageNr:           Integer sequential number of the image in the HDF5 file
                 clipPercentile:    In [0,49]. Intensities will be clipped between [value, 100-value]
-                                              to improve the image contrast. 
+                                              to improve the image contrast.
                 showStarPositions: True if the average star positions (averaged over the exposure)
                                    should be shown with a small green cross. False otherwise.
+                                   If showStarPositions="PIC", one can differentiate between a target and contaminants
                 showPointLikeGhostPositions: True if the average pointlike ghost position (averaged over the exposure)
                                              should be shown with a small blue cross. False otherwisse.
                 minVmag: the minimum V magnitude of the stars/ghosts for which the position should be marked on the image
@@ -365,9 +367,14 @@ class SimFile (object):
                                   in the yaml inputfile
                 useTitle:          True is an image title should be plotted, False otherwise
 
+                colorMap: option to select your preferred colormap from the matplotlib library.
+                          Default is the colormap "hot".
+
+                showGrid: option to select a dim gray grid for a higher visibility of teh pixel grid.
+                          Will only be executed if showGrid=True is set.
         OUTPUT: None
 
-        EXAMPLE: 
+        EXAMPLE:
             >>> file = SimFile("Simul01.hdf5")
             >>> file.showImage(23)
         """
@@ -377,14 +384,14 @@ class SimFile (object):
         image = self.getImage(imageNr)
         if image is None:
             print("Cannot extract image nr ", imageNr)
-        
+
         Nrows, Ncols = image.shape
 
-        # Plot the image. Note that pixel coordinates start at the left bottom side of each pixel. 
+        # Plot the image. Note that pixel coordinates start at the left bottom side of each pixel.
 
-        figure = plt.figure()
-        axis = figure.add_subplot(111)
-        imagePlot = axis.imshow(image, cmap=cm.hot, interpolation="nearest", origin='lower', extent=[0,Nrows,0,Ncols])
+        figure, axis = plt.subplots(1, 1)
+
+        imagePlot = axis.imshow(image, cmap=colorMap, interpolation="nearest", origin='lower', extent=[0,Nrows,0,Ncols])
 
         # The large dynamic range of the pixel values often results in images where only
         # the brightest stars are visible. To improve the contrast, clip the color mapping.
@@ -395,31 +402,41 @@ class SimFile (object):
 
         if showStarPositions:
             ID, row, col, Xmm, Ymm, flux = self.getStarCoordinates(imageNr, minVmag=minVmag, maxVmag=maxVmag)
-            axis.scatter(col, row, marker='x', c='g') 
+            # Allow differentiating between a target and its contaminants
+            if showStarPositions == 'PIC':
+                axis.scatter(col[0], row[0], marker='*', c='g')
+                if len(col) > 1: axis.scatter(col[1:], row[1:], marker='x', c='r')
+            # Or hightligth all stars the same
+            else:
+                axis.scatter(col, row, marker='x', c='g')
             if showStarIDs:
                 for k in range(len(ID)):
-                    label = "{0}".format(ID[k])   
-                    axis.annotate(label, (col[k], row[k]), fontsize='small', fontweight='extra bold', color="black")    
+                    label = "{0}".format(ID[k])
+                    axis.annotate(label, (col[k], row[k]), fontsize='small', fontweight='extra bold', color="black")
 
         # If required, overplot the true averaged pointlike ghost positions
 
         if showPointLikeGhostPositions:
             ID, row, col, Xmm, Ymm, flux = self.getPointLikeGhostCoordinates(imageNr, minVmag=minVmag, maxVmag=maxVmag)
-            axis.scatter(col, row, marker='o', s=6, c='b') 
+            axis.scatter(col, row, marker='o', s=6, c='b')
             if showStarIDs:
                 for k in range(len(ID)):
-                    label = "{0}".format(ID[k])   
-                    axis.annotate(label, (col[k], row[k]), fontsize='small', fontweight='extra bold', color="black")    
+                    label = "{0}".format(ID[k])
+                    axis.annotate(label, (col[k], row[k]), fontsize='small', fontweight='extra bold', color="black")
 
         # Ensure that the axis limits are properly set.
-        
+
         axis.set_xlim(0,Ncols)
         axis.set_ylim(0,Nrows)
 
         # If required, put the title
 
-        if useTitle:
-            fileBasename = os.path.splitext(self.filename)[0]                  # with the .hdf5
+        # User defined title-string
+        if isinstance(useTitle, str):
+            plt.title(useTitle)
+        # With the .hdf5
+        if useTitle is True:
+            fileBasename = os.path.splitext(self.filename)[0]
             title = fileBasename + " - image{0:06d}".format(imageNr)
             plt.title(title)
 
@@ -438,8 +455,14 @@ class SimFile (object):
 
         axis.format_coord = format_coord
 
-        plt.xticks(np.arange(0, Nrows, 10))
-        plt.yticks(np.arange(0, Ncols, 10))
+        # Show all ticks for smaller subfields or otherwise 10
+
+        if Ncols < 10 and Nrows < 10:
+            plt.xticks(np.arange(0, Nrows+1))
+            plt.yticks(np.arange(0, Ncols+1))
+        else:
+            plt.xticks(np.arange(0, Nrows, 10))
+            plt.yticks(np.arange(0, Ncols, 10))
 
         # Overplot rectangles over those pixels that are part of the mask
         # Note: imshow reverses rows and columns
@@ -449,6 +472,12 @@ class SimFile (object):
             for k in range(len(rowIndices)):
                 rect = patches.Rectangle((colIndices[k], rowIndices[k]), 1, 1, linewidth=2.0, edgecolor='b', facecolor='none')
                 axis.add_patch(rect)
+
+        # If requiered, overplot a gray semi-transparent grid
+        # Note: this is only meaningsful for smaller imagettes
+
+        if showGrid is True:
+            axis.grid(c='gray', ls='-', alpha=0.3)
 
         # Show the image
 
