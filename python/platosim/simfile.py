@@ -455,11 +455,14 @@ class SimFile (object):
 
         axis.format_coord = format_coord
 
-        # Show all ticks for smaller subfields
+        # Show all ticks for smaller subfields or otherwise 10
 
         if Ncols < 10 and Nrows < 10:
             plt.xticks(np.arange(0, Nrows+1))
             plt.yticks(np.arange(0, Ncols+1))
+        else:
+            plt.xticks(np.arange(0, Nrows, 10))
+            plt.yticks(np.arange(0, Ncols, 10))
 
         # Overplot rectangles over those pixels that are part of the mask
         # Note: imshow reverses rows and columns
@@ -474,8 +477,6 @@ class SimFile (object):
         # Note: this is only meaningsful for smaller imagettes
 
         if showGrid is True:
-            axis.set_xticks(np.arange(0, Ncols+1))
-            axis.set_yticks(np.arange(0, Nrows+1))
             axis.grid(c='gray', ls='-', alpha=0.3)
 
         # Show the image
