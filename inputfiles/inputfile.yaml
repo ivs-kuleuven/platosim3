@@ -59,7 +59,7 @@ Telescope:
     DriftYawRms:                     2.0             # RMS of thermo-elastic drift in yaw [arcsec]
     DriftPitchRms:                   2.0             # RMS of thermo-elastic drift in pitch [arcsec]
     DriftRollRms:                    2.0             # RMS of thermo-elastic drift in roll [arcsec]
-    DriftTimeScale:                  86400.          # Timescale of thermo-elastic drift [s]
+    DriftTimeScale:                  3600.          # Timescale of thermo-elastic drift [s]
     DriftFileName:                   inputfiles/drift.txt
 
 
