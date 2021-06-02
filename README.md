@@ -6,5 +6,6 @@ Within the software package itself, documentation can be found in the <code>/doc
 
 # Installation Procedures
 
-* [conda installation procedure](http://ivs-kuleuven.github.io/PlatoSim3/ViaConda.html) (recommended!)
-* [straight from GitHub](http://ivs-kuleuven.github.io/PlatoSim3/DownloadUpdateBuild.html)
+* [conda installation procedure](https://ivs-kuleuven.github.io/PlatoSim3/user-install.html) (recommended!)
+* [straight from GitHub](https://ivs-kuleuven.github.io/PlatoSim3/dev-fork-clone.html)
+
