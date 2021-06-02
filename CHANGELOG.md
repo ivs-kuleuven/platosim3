@@ -14,7 +14,6 @@
 * Added option to the method to include time in output of `getYawPitchRoll`
 * Apply the BFE after full-well saturation (GitHub issue #584)
 * Added the option to have conda install for python 3.6, 3.7, 3.8 and 3.9
-* Fixed links in the README.md file
 
 ## Added
 * Test that checks the Jitter on different CCD's
