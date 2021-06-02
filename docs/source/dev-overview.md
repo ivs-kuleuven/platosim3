@@ -1,6 +1,6 @@
 # Installing/Updating PlatoSim3 for Developers {#dev-overview}
 
-The scheme below shows an overview of the procedure to download, update, and build the PlatoSim3 software on your system yourself, without using conda.  This scheme is valid for developers who may want to contribute to the code at some point (or for users who want to install the software without @ref InstallViaConda "using conda").  Also the procedure to make your own modifications to the code available for others is described.
+The scheme below shows an overview of the procedure to download, update, and build the PlatoSim3 software on your system yourself, without using conda.  This scheme is valid for developers who may want to contribute to the code at some point (or for users who want to install the software without @ref user-install "using conda").  Also the procedure to make your own modifications to the code available for others is described.
 
 @image html /images/download-update-build.png ""
 
