@@ -12,8 +12,7 @@
 
 ## Changed
 * Added option to the method to include time in output of `getYawPitchRoll`
-* Apply the BFE after flooring (GitHub issue #584)
-* Added more option to manage what is written to the output HDF5 file
+* Apply the BFE after full-well saturation (GitHub issue #584)
 * Added the option to have conda install for python 3.6, 3.7, 3.8 and 3.9
 * Fixed links in the README.md file
 
