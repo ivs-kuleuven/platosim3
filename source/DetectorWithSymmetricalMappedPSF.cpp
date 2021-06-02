@@ -131,6 +131,7 @@ void DetectorWithSymmetricalMappedPSF::configure(ConfigurationParameters &config
     // The configuration for the HDF5 contents
 
     writeFlatfieldMap = configParam.getBoolean("ControlHDF5Content/WriteFlatfieldMap");
+    writeDiffusedPSF = configParam.getBoolean("ControlHDF5Content/WriteDiffusedPSF");
 }
 
 
@@ -185,6 +186,12 @@ void DetectorWithSymmetricalMappedPSF::setPsfForSubfield()
     if (angle < 0.0)
     {
         angle = atan2(yFPmm, xFPmm);
+    }
+
+    // If requested save the diffused PSF to the output file
+    if (writeDiffusedPSF)
+    {
+        writeDiffusedPSFToHDF5(psf);
     }
 
     //  Compensate for the orientation of the CCD wrt focal plane orientation.

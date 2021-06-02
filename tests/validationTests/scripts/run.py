@@ -4,8 +4,11 @@ from StellarAberration.absoluteAberration          import AbsoluteAberration
 from fieldDistortion                               import FieldDistortion
 from ThermoElasticDrift.tedFromFile                import TedFromFile
 from ThermoElasticDrift.tedYawPitchRoll            import TedYawPitchRoll
+from ThermoElasticDrift.tedOnCCDs                  import TedOnCCDs
 from Jitter.jitterYawPitchRoll                     import JitterYawPitchRoll
 from Jitter.jitterFromFile                         import JitterFromFile
+from Jitter.jitterOnCCDs                           import JitterOnCCDs
+from Jitter.jitterOnCameras                        import JitterOnCameras
 from skyBackground                                 import SkyBackGround
 from Convolution.mappedGaussianPSF                 import MappedGaussianPSF
 from Convolution.analyticNonGaussian               import AnalyticNonGaussianPSF
@@ -69,7 +72,7 @@ with suppress_stdout():
     out1  = test1.run()
 
 name = "Star position on CCD"
-testMessages.append("{:<9}  {:^36}:{}".format("Test1:", name, success[out1]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test1:", name, success[out1]))
 print(testMessages[-1])
 
 
@@ -78,7 +81,7 @@ with suppress_stdout():
     out2    = test2.run()
 
 name = "Stellar Variability"
-testMessages.append("{:<9}  {:^36}:{}".format("Test2:", name, success[out2]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test2:", name, success[out2]))
 print(testMessages[-1])
 
 
@@ -87,7 +90,7 @@ with suppress_stdout():
     out3    = test3.run()
 
 name = "Absolute Aberration"
-testMessages.append("{:<9}  {:^36}:{}".format("Test3:", name, success[out3]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test3:", name, success[out3]))
 print(testMessages[-1])
 
 with suppress_stdout():
@@ -95,7 +98,7 @@ with suppress_stdout():
     out4    = test4.run()
 
 name = "Field Distortion"
-testMessages.append("{:<9}  {:^36}:{}".format("Test4:", name, success[out4]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test4:", name, success[out4]))
 print(testMessages[-1])
 
 
@@ -104,7 +107,7 @@ with suppress_stdout():
     out5_1  = test5_1.run()
 
 name = "Thermo-Elastic drift from noise"
-testMessages.append("{:<9}  {:^36}:{}".format("Test5.1:", name, success[out5_1]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test5.1:", name, success[out5_1]))
 print(testMessages[-1])
 
 
@@ -113,7 +116,16 @@ with suppress_stdout():
     out5_2  = test5_2.run()
 
 name = "Thermo-Elastic drift from file"
-testMessages.append("{:<9}  {:^36}:{}".format("Test5.2:", name, success[out5_2]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test5.2:", name, success[out5_2]))
+print(testMessages[-1])
+
+
+with suppress_stdout():
+    test5_3 = TedOnCCDs()
+    out5_3 = test5_3.run()
+
+name = "TED on different CCDs"
+testMessages.append("{:<9}  {:^42}:{}".format("Test5.3:", name, success[out5_3]))
 print(testMessages[-1])
 
 
@@ -122,7 +134,7 @@ with suppress_stdout():
     out6_1  = test6_1.run()
 
 name = "Jitter from red noise"
-testMessages.append("{:<9}  {:^36}:{}".format("Test6.1:", name, success[out6_1]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test6.1:", name, success[out6_1]))
 print(testMessages[-1])
 
 
@@ -131,7 +143,25 @@ with suppress_stdout():
     out6_2  = test6_2.run()
 
 name = "Jitter from file"
-testMessages.append("{:<9}  {:^36}:{}".format("Test6.2:", name, success[out6_2]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test6.2:", name, success[out6_2]))
+print(testMessages[-1])
+
+
+with suppress_stdout():
+    test6_3 = JitterOnCCDs()
+    out6_3  = test6_3.run()
+
+name = "Jitter on different CCDs"
+testMessages.append("{:<9}  {:^42}:{}".format("Test6.3:", name, success[out6_3]))
+print(testMessages[-1])
+
+
+with suppress_stdout():
+    test6_4 = JitterOnCameras()
+    out6_4 = test6_4.run()
+
+name = "Jitter on different cameras"
+testMessages.append("{:<9}  {:^42}:{}".format("Test6.4:", name, success[out6_4]))
 print(testMessages[-1])
 
 
@@ -140,7 +170,7 @@ with suppress_stdout():
     out7    = test7.run()
 
 name = "Sky Background"
-testMessages.append("{:<9}  {:^36}:{}".format("Test7:", name, success[out7]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test7:", name, success[out7]))
 print(testMessages[-1])
 
 
@@ -148,8 +178,8 @@ with suppress_stdout():
     test8_1 = MappedGaussianPSF()
     out8_1  = test8_1.run()
 
-name = "Mapped Gaussian PSF"
-testMessages.append("{:<9}  {:^36}:{}".format("Test8.1:", name, success[out8_1]))
+name = "Mapped Gaussian PSF and Charge Diffusion"
+testMessages.append("{:<9}  {:^42}:{}".format("Test8.1:", name, success[out8_1]))
 print(testMessages[-1])
 
 
@@ -158,7 +188,7 @@ with suppress_stdout():
     out8_2  = test8_2.run()
 
 name = "Analytic non Gaussian PSF"
-testMessages.append("{:<9}  {:^36}:{}".format("Test8.2:", name, success[out8_2]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test8.2:", name, success[out8_2]))
 print(testMessages[-1])
 
 
@@ -167,7 +197,7 @@ with suppress_stdout():
     out8_3  = test8_3.run()
 
 name = "Analytic Gaussian PSF"
-testMessages.append("{:<9}  {:^36}:{}".format("Test8.3:", name, success[out8_3]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test8.3:", name, success[out8_3]))
 print(testMessages[-1])
 
 
@@ -176,7 +206,7 @@ with suppress_stdout():
     out9  = test9.run()
 
 name = "Pixel-Responsivity Non Uniformity"
-testMessages.append("{:<9}  {:^36}:{}".format("Test9:", name, success[out9]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test9:", name, success[out9]))
 print(testMessages[-1])
 
 
@@ -185,7 +215,7 @@ with suppress_stdout():
     out10  = test10.run()
 
 name = "Rebinning Subpixel"
-testMessages.append("{:<9}  {:^36}:{}".format("Test10:", name, success[out10]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test10:", name, success[out10]))
 print(testMessages[-1])
 
 
@@ -194,7 +224,7 @@ with suppress_stdout():
     out11_1  = test11_1.run()
 
 name = "Transmission Efficiency"
-testMessages.append("{:<9}  {:^36}:{}".format("Test11.1:", name, success[out11_1]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test11.1:", name, success[out11_1]))
 print(testMessages[-1])
 
 
@@ -203,7 +233,7 @@ with suppress_stdout():
     out11_2  = test11_2.run()
 
 name = "Vignetting"
-testMessages.append("{:<9}  {:^36}:{}".format("Test11.2:", name, success[out11_2]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test11.2:", name, success[out11_2]))
 print(testMessages[-1])
 
 
@@ -212,7 +242,7 @@ with suppress_stdout():
     out11_3  = test11_3.run()
 
 name = "Polarization"
-testMessages.append("{:<9}  {:^36}:{}".format("Test11.3:", name, success[out11_3]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test11.3:", name, success[out11_3]))
 print(testMessages[-1])
 
 
@@ -221,7 +251,7 @@ with suppress_stdout():
     out11_4  = test11_4.run()
 
 name = "Quantum Efficiency"
-testMessages.append("{:<9}  {:^36}:{}".format("Test11.4:", name, success[out11_4]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test11.4:", name, success[out11_4]))
 print(testMessages[-1])
 
 
@@ -230,7 +260,7 @@ with suppress_stdout():
     out11_5  = test11_5.run()
 
 name = "Particulate Contamination"
-testMessages.append("{:<9}  {:^36}:{}".format("Test11.5:", name, success[out11_5]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test11.5:", name, success[out11_5]))
 print(testMessages[-1])
 
 
@@ -239,7 +269,7 @@ with suppress_stdout():
     out11_6  = test11_6.run()
 
 name = "Molecular Contamination"
-testMessages.append("{:<9}  {:^36}:{}".format("Test11.6:", name, success[out11_6]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test11.6:", name, success[out11_6]))
 print(testMessages[-1])
 
 
@@ -248,7 +278,7 @@ with suppress_stdout():
     out12_1  = test12_1.run()
 
 name = "Shot Noise"
-testMessages.append("{:<9}  {:^36}:{}".format("Test12.1:", name, success[out12_1]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test12.1:", name, success[out12_1]))
 print(testMessages[-1])
 
 
@@ -257,7 +287,7 @@ with suppress_stdout():
     out12_2  = test12_2.run()
 
 name = "Dark Signal Non Uniformity"
-testMessages.append("{:<9}  {:^36}:{}".format("Test12.2:", name, success[out12_2]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test12.2:", name, success[out12_2]))
 print(testMessages[-1])
 
 
@@ -266,7 +296,7 @@ with suppress_stdout():
     out12_3  = test12_3.run()
 
 name = "Temperature Variation of CCD"
-testMessages.append("{:<9}  {:^36}:{}".format("Test12.3:", name, success[out12_3]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test12.3:", name, success[out12_3]))
 print(testMessages[-1])
 
 
@@ -275,7 +305,7 @@ with suppress_stdout():
     out13  = test13.run()
 
 name = "Brighter-Fatter Effect"
-testMessages.append("{:<9}  {:^36}:{}".format("Test13:", name, success[out13]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test13:", name, success[out13]))
 print(testMessages[-1])
 
 with suppress_stdout():
@@ -283,7 +313,7 @@ with suppress_stdout():
     out14  = test14.run()
 
 name = "Cosmics"
-testMessages.append("{:<9}  {:^36}:{}".format("Test14:", name, success[out14]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test14:", name, success[out14]))
 print(testMessages[-1])
 
 with suppress_stdout():
@@ -291,7 +321,7 @@ with suppress_stdout():
     out15  = test15.run()
 
 name = "Open-Shutter Smearing"
-testMessages.append("{:<9}  {:^36}:{}".format("Test15:", name, success[out15]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test15:", name, success[out15]))
 print(testMessages[-1])
 
 with suppress_stdout():
@@ -299,7 +329,7 @@ with suppress_stdout():
     out16_1  = test16_1.run()
 
 name = "Simple CTI model"
-testMessages.append("{:<9}  {:^36}:{}".format("Test16.1:", name, success[out16_1]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test16.1:", name, success[out16_1]))
 print(testMessages[-1])
 
 with suppress_stdout():
@@ -307,7 +337,7 @@ with suppress_stdout():
     out17  = test17.run()
 
 name = "Photon Noise"
-testMessages.append("{:<9}  {:^36}:{}".format("Test17:", name, success[out17]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test17:", name, success[out17]))
 print(testMessages[-1])
 
 with suppress_stdout():
@@ -315,7 +345,7 @@ with suppress_stdout():
     out18  = test18.run()
 
 name = "Readout Noise"
-testMessages.append("{:<9}  {:^36}:{}".format("Test18:", name, success[out18]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test18:", name, success[out18]))
 print(testMessages[-1])
 
 with suppress_stdout():
@@ -323,7 +353,7 @@ with suppress_stdout():
     out19  = test19.run()
 
 name = "Full-Well Saturation"
-testMessages.append("{:<9}  {:^36}:{}".format("Test19:", name, success[out19]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test19:", name, success[out19]))
 print(testMessages[-1])
 
 with suppress_stdout():
@@ -331,7 +361,7 @@ with suppress_stdout():
     out20_1  = test20_1.run()
 
 name = "Gain"
-testMessages.append("{:<9}  {:^36}:{}".format("Test20.1:", name, success[out20_1]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test20.1:", name, success[out20_1]))
 print(testMessages[-1])
 
 with suppress_stdout():
@@ -339,7 +369,7 @@ with suppress_stdout():
     out20_2  = test20_2.run()
 
 name = "Electronic Offset"
-testMessages.append("{:<9}  {:^36}:{}".format("Test20.2:", name, success[out20_2]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test20.2:", name, success[out20_2]))
 print(testMessages[-1])
 
 with suppress_stdout():
@@ -347,7 +377,7 @@ with suppress_stdout():
     out20_3  = test20_3.run()
 
 name = "Flooring"
-testMessages.append("{:<9}  {:^36}:{}".format("Test20.3:", name, success[out20_3]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test20.3:", name, success[out20_3]))
 print(testMessages[-1])
 
 with suppress_stdout():
@@ -355,7 +385,7 @@ with suppress_stdout():
     out20_4  = test20_4.run()
 
 name = "Digital Saturation"
-testMessages.append("{:<9}  {:^36}:{}".format("Test20.4:", name, success[out20_4]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test20.4:", name, success[out20_4]))
 print(testMessages[-1])
 
 

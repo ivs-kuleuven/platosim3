@@ -13,13 +13,16 @@ Telescope::Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File, 
 : HDF5Writer(hdf5File), originalAzimuthAngle(0.0), originalTiltAngle(0.0), useDrift(true), internalTime(0.0), 
   driftGenerator(driftGenerator), platform(platform)
 {
-    // Initialise the HDF5 group(s) in the output file
-
-    initHDF5Groups();
 
     // Retrieve the Telescope configuration parameters
 
     configure(configParams);
+
+    // Initialise the HDF5 group(s) in the output file
+    if (writeTelescopeACS)
+    {  
+    initHDF5Groups();
+    }
 
     // Initialise the heartbeat interval of the telescope.
     // The Telescope properties (e.g. the coordinates of the optical axis) are evolving in time, 
@@ -123,6 +126,7 @@ Telescope::~Telescope()
     transmissionEfficiencyEOL = configParams.getDouble("Telescope/TransmissionEfficiency/EOL");
     missionDuration           = configParams.getDouble("ObservingParameters/MissionDuration") * 31536000.0; // [s]
     useDrift                  = configParams.getBoolean("Telescope/UseDrift");
+    writeTelescopeACS         = configParams.getBoolean("ControlHDF5Content/WriteTelescopeACS");
 }
 
 
@@ -140,7 +144,6 @@ Telescope::~Telescope()
 void Telescope::initHDF5Groups()
 {
     Log.debug("Telescope: initialising HDF5 groups");
-
     hdf5File.createGroup("/Telescope");
 }
 
@@ -158,28 +161,31 @@ void Telescope::initHDF5Groups()
 
 void Telescope::flushOutput()
 {
-    Log.info("Telescope: Flushing output to HDf5 file.");
 
-    if ( ! hdf5File.hasGroup("Telescope") )
+    if (writeTelescopeACS)
     {
-        Log.warning("Telescope::flushOutput: HDF5 file has no Telescope group, cannot flush Telescope information.");
-        return;
-    }
+      Log.info("Telescope: Flushing output to HDf5 file.");
+      if ( ! hdf5File.hasGroup("Telescope") )
+	{
+	  Log.warning("Telescope::flushOutput: HDF5 file has no Telescope group, cannot flush Telescope information.");
+	  return;
+	}
     
 
-     if (!historyTime.empty())
-     {
-        hdf5File.writeArray("/Telescope/", "Time",           historyTime.data(),    historyTime.size());
-        hdf5File.writeArray("/Telescope/", "TelescopeRA",    historyRA.data(),      historyRA.size());         // [deg]
-        hdf5File.writeArray("/Telescope/", "TelescopeDec",   historyDec.data(),     historyDec.size());        // [deg]
-        hdf5File.writeArray("/Telescope/", "TelescopeYaw",   historyYaw.data(),     historyYaw.size());        // [arcsec]
-        hdf5File.writeArray("/Telescope/", "TelescopePitch", historyPitch.data(),   historyPitch.size());      // [arcsec]
-        hdf5File.writeArray("/Telescope/", "TelescopeRoll",  historyRoll.data(),    historyRoll.size());       // [arcsec]
-     }
-     else
-     {
-        Log.warning("Telescope: No telescope pointing history to flush to HDF5 file.");
-     }
+      if (!historyTime.empty() )
+	{
+	  hdf5File.writeArray("/Telescope/", "Time",           historyTime.data(),    historyTime.size());
+	  hdf5File.writeArray("/Telescope/", "TelescopeRA",    historyRA.data(),      historyRA.size());         // [deg]
+	  hdf5File.writeArray("/Telescope/", "TelescopeDec",   historyDec.data(),     historyDec.size());        // [deg]
+	  hdf5File.writeArray("/Telescope/", "TelescopeYaw",   historyYaw.data(),     historyYaw.size());        // [arcsec]
+	  hdf5File.writeArray("/Telescope/", "TelescopePitch", historyPitch.data(),   historyPitch.size());      // [arcsec]
+	  hdf5File.writeArray("/Telescope/", "TelescopeRoll",  historyRoll.data(),    historyRoll.size());       // [arcsec]
+	}
+      else
+	{
+	  Log.warning("Telescope: No telescope pointing history to flush to HDF5 file.");
+	}
+    }
 }
 
 
@@ -227,7 +233,6 @@ void Telescope::updateTelescopeOrientation(double time)
 {
     double yaw=0.0, pitch=0.0, roll=0.0;
 
-
     // Check if the request is going backwards in time. If so: complain.
 
     if (time < internalTime)
@@ -259,7 +264,6 @@ void Telescope::updateTelescopeOrientation(double time)
 
     // Get the rotation matrix to transform the spacecraft coordinates of the (drifted) optical axis 
     // to equatorial coordinates, taking into account that the platform itself may have jittered meanwhile.
-
     platform.updatePlatformOrientation(time);
     arma::mat rotSC2EQ = platform.getJitteredSpacecraftToEquatorialRotationMatrix();
 
