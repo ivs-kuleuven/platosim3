@@ -22,7 +22,7 @@
 * Added method ~getYawPitchRollFromDrift~ in the simfile.py file
 * Option to save diffused PSF in output HDF5 file (GitHub issue #564)
 * Added method ~setSubfieldAroundPixelRows~ to simulation.py
-* Added option to (not) include:
+* Added option to (not) include in output file:
     - High resolution PSF (if PSF is not Analytic Gaussian)
     - Star Catalog
     - Platoform Yaw, Pitch, Roll
