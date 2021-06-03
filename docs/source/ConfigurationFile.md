@@ -15,13 +15,15 @@ Any desired simulation can be obtained by modifying the following input:
 		* [FEE parameters](#feeParameters)
 		* [CCD parameters](#ccdParameters)
 		* [sub-field parameters](#subFieldParameters)
-        * [photometry parameters](#photometryParameters)
+		* [photometry parameters](#photometryParameters)
+		* [photometry sdfsparameters](#photometryParameters)
 		* [seed parameters](#seedParameters)
-        * [control TCP connection parameters](#controlTcpConnection)
+		* [control HDF5 content](#contentControlParameters)
+		* [control TCP connection parameters](#controlTcpConnection)
 		* additionally, there are two blocks that hold pre-defined settings (which you should NOT alter):
 			- [camera group 1, 2, 3, and 4, and fast cameras](#cameraGroups)
 			- [CCD 1, 2, 3, and 4](#ccdPositions)
- 
+
 In the following sections we describe these parameters for the simulations in detail.
 
 For more details on the reference frames we are using (for the spacecraft, telescope, focal plane, and CCD), radial dependency of the PSF, and rotation angles for platform jitter and telescope drift, please, have a look at technical note [PLATO-KUL-PL-TN-0001](../technicalnotes/PLATO-KUL-PL-TN-0001.pdf).
@@ -52,7 +54,7 @@ General:
 
 <i>Allowed values:</i> name of an existing directory on disk or environment variable, in the format <code>ENV['PLATO_PROJECT_HOME']</code>.
 
-Full path of the directory in which you have checked out the PlatoSim3 project, or an environment variable, e.g. <code>PLATO_PROJECT_HOME</code>, containing the full path to that directory.  In the latter case, you must make sure you have exported this variable before initiating a simulation:
+Full path of the directory in which you have checked out the PlatoSim3 project, or an environment variable, e.g. <code>PLATO_PROJECT_HOME</code>, containing the full path to that directory.  In the latter case, you must make sure you have @ref ReqsRun "exported this variable" before initiating a simulation:
 
 \code{.unparsed}
  export PLATO_PROJECT_HOME=<full path to the PlatoSim3 directory>
@@ -75,14 +77,14 @@ The <b>ObservingParameters</b> block of the configuration file contains the conf
 \code{.yaml}
 ObservingParameters:
 
-	MissionDuration:             6.0
-	BeginExposureNr:             0
-	NumExposures:                40              
-    CycleTime:                   25              
-    RApointing:                  180              
-    DecPointing:                 -70             
-    Fluxm0:                      1.00179e8 
-    StarCatalogFile:             inputfiles/starcatalog.txt
+    MissionDuration:                 6.5             
+    NumExposures:                    10              
+    BeginExposureNr:                  0              
+    CycleTime:                       25              
+    RApointing:                      180             
+    DecPointing:                     -70             
+    Fluxm0:                          1.00179e8       
+    StarCatalogFile:                 inputfiles/starcatalog.txt
 \endcode
 
 
@@ -95,6 +97,14 @@ Total duration of the mission (from BOL till EOL), expressed in years.  This wil
 
 
 
+### <a name="numExposures"></a>NumExposures
+<i>Allowed values:</i> > 0
+
+Number of exposures to generate in the simulation.
+
+
+
+
 ### <a name="beginExposureNr"></a>BeginExposureNr
 <i>Allowed values:</i> \f$\ge \f$ 0
 
@@ -103,11 +113,6 @@ Sequential number of the first exposure. Useful for <a href="https://en.wikipedi
 @image html /images/chopUpSimulation.png "Figure 1: Long simulations will be chopped up into smaller simulations that can be executed in parallel."
 
 
-
-### <a name="numExposures"></a>NumExposures
-<i>Allowed values:</i> > 0
-
-Number of exposures to generate in the simulation.
 
 
 
@@ -170,16 +175,16 @@ The <b>Sky</b> block of the configuration file contains all the information that
 \code{.yaml}
 Sky:
 
-	SkyBackground:               342.
-	IncludeVariableSources:      no
-    	VariableSourceList:          inputfiles/varsource.txt
-	IncludeCosmicsInSubField:        yes
-    IncludeCosmicsInSmearingMap:     yes
-    IncludeCosmicsInBiasMap:         yes    
-	Cosmics:
-		CosmicHitRate:                      10
-		TrailLength:                   [0, 15]
-		Intensity:               [2000, 40000] 
+    SkyBackground:                   342.            
+    IncludeVariableSources:          no              
+    VariableSourceList:              inputfiles/varsource.txt  
+    IncludeCosmicsInSubField:        yes             
+    IncludeCosmicsInSmearingMap:     yes             
+    IncludeCosmicsInBiasMap:         yes             
+    Cosmics:
+      CosmicHitRate:                 10              
+      TrailLength:                   [0, 15]         
+      Intensity:                     [2000, 40000]   
 \endcode
 
 
@@ -309,7 +314,7 @@ The configuration of the jitter axes is depicted below.  The Euler angles that c
 
 The angles are defined such that they increase with a clockwise rotation, when looking along the positive axes. First a roll rotation is done around the \f$z_{\rm SC} \f$ axis, then a pitch rotation is done around the rotated \f$y_{\rm SC} \f$ axis, and finally a yaw rotation is done around the twice-rotated \f$x_{\rm SC} \f$ axis.
 
-@image html /images/jitterConfiguration.png "Figure 2: Configuration of the jitter axes for the Plato Simulator, defined w.r.t. the spacecraft coordinate system (x<sub>SC</sub>, y<sub>SC</sub>, z<sub>SC</sub>).  The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module.  The positive z<sub>SC</sub> axis points towards the operator-given pointing coordinates. The x<sub>SC</sub> axis points in the direction of the highest point of the sunshield."
+@image html /images/jitterConfiguration.png "Figure 2: Configuration of the jitter axes for the Plato Simulator, defined w.r.t. the spacecraft coordinate system (X_SC, Y_SC, Z_SC). The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module.  The positive Z_SC axis points towards the operator-given pointing coordinates. The X_SC axis points in the direction of the highest point of the sunshield."
 
 
 ### <a name="jitterSource"></a>JitterSource
@@ -381,13 +386,13 @@ Telescope:
     TiltAngle:                   0.0
     LightCollectingArea:         113.1         
     TransmissionEfficiency:      
-        BOL:                     0.7191
-        EOL:                     0.7191
-    UseDrift:                    yes
+        BOL:                     0.8135
+        EOL:                     0.7945
+    UseDrift:                    no
     UseDriftFromFile:            no      
-    DriftYawRms:                 2.3           
-    DriftPitchRms:               2.3           
-    DriftRollRms:                2.3           
+    DriftYawRms:                 2.0           
+    DriftPitchRms:               2.0           
+    DriftRollRms:                2.0           
     DriftTimeScale:              3600.
     DriftFileName:               /inputfiles/drift.txt         
 \endcode
@@ -470,7 +475,7 @@ The Euler angles (yaw, pitch, roll) are defined as the rotation angles around th
 
 
 
-@image html /images/TelescopeCoordinateSystem.png "Figure 5: The optical axis zFP can be obtained from the spacecraft/platform pointing axis z<sub>SC</sub> by first rotating the (x<sub>SC</sub>, y<sub>SC</sub>) plane around the pointing axis z<sub>SC</sub><sub>SC</sub> over the azimuth angle (left-hand side) nad then rotating the resulting zSC' axis over the tilt angle (right-hand side)."
+@image html /images/TelescopeCoordinateSystem.png "Figure 5: The optical axis Z_FP can be obtained from the spacecraft/platform pointing axis Z_SC by first rotating the (X_SC, Y_SC) plane around the pointing axis Z_SC over the azimuth angle (left-hand side) nad then rotating the resulting Z_SC' axis over the tilt angle (right-hand side)."
 
 
 ### <a name="useDriftFromFile"></a>UseDriftFromFile
@@ -535,25 +540,25 @@ The <b>Camera</b> block of the configuration file contains all the information t
 
 \code{.yaml}
 Camera:
-    
+
+    PlateScale:                      0.8333          
     FocalPlaneOrientation:
         Source:                      ConstantValue
         ConstantValue:               0.0 
         FromFile:                    inputfiles/fporientation.txt           
-    PlateScale:                  0.8333          
     FocalLength: 
-        Source:                      FromFile 
+        Source:                      ConstantValue 
         ConstantValue:               0.24752
         FromFile:                    inputfiles/focallength.txt   
-    ThroughputBandwidth:         550             
-    ThroughputLambdaC:           638        
+    ThroughputBandwidth:         532             
+    ThroughputLambdaC:           550        
     IncludeAberrationCorrection: yes     
     AberrationCorrection:
         Type:                    differential
     IncludeFieldDistortion:      yes             
     FieldDistortion:
         Type:                        Polynomial1D
-        Source:                      FromFile 
+        Source:                      ConstantValue 
         ConstantCoefficients:        [0.316257210577,  0.066373219688,  0.372589221219]
         ConstantInverseCoefficients: [-0.317143032936, 0.242638513347, -0.459260203502]
         CoefficientsFromFile:        inputfiles/distortioncoefficients.txt
@@ -564,7 +569,7 @@ Camera:
             FluxRatio:               0.08
             DistanceCutOff:          8
         Extended:
-            FluxRatio:               0.00003
+            FluxRatio:               0.06
             RadiusCoefficients:      [0.0062, -0.0251, 1.8402]
             DistanceRatio:           1.065
 \endcode
@@ -572,7 +577,13 @@ Camera:
 
 
 
-### <a name="focalPlaneOrientation"></a> FocalPlaneOrientation
+### <a name="plateScale"></a>PlateScale
+<i>Allowed values:</i> > 0
+
+Nominal plate scale in arcsec / micron. This value affects the visible FOV of the CCD.
+
+
+### <a name="focalPlaneOrientation"></a>FocalPlaneOrientation
 
 
 
@@ -580,7 +591,7 @@ The orientation of the focal plane can either be kept constant over the simulati
 
 For an angle of 0°, the y-axis of the CCD (with an orientation angle of 0°) points towards the North. A positive angle corresponds to a counterclockwise rotation. Have a look at Fig. 6 for more details.
 
-@image html /images/FocalPlaneCoordinateSystem.png "Figure 6: A schematic overview of the focal plane with 4 CCDs. The optical axis zFP is the blue dot in the middle of the 4 CCDs and points in the positive direction towards the reader. The jitter roll axis zSC is the purple dot, and also points in the positive direction towards the reader.  The focal plane is rotated by the angle \f$\gamma \f$FP w.r.t. to the North direction. The origin of the CCD in the focal plane is defined by its offset (\f$\Delta \f$xCCD, \f$\Delta \f$yCCD) in mm from the centre of the focal plane. It is then rotated by the angle \f$\gamma \f$CCD round its origin."
+@image html /images/FocalPlaneCoordinateSystem.png "Figure 6: A schematic overview of the focal plane with 4 CCDs. The optical axis zFP is the blue dot in the middle of the 4 CCDs and points in the positive direction towards the reader. The jitter roll axis zSC is the purple dot, and also points in the positive direction towards the reader.  The focal plane is rotated by the angle &gamma;FP  w.r.t. to the North direction. The origin of the CCD in the focal plane is defined by its offset ( &Delta; xCCD, &Delta; yCCD ) in mm from the centre of the focal plane. It is then rotated by the angle &gamma;CCD round its origin."
 
 #### <a name="focalPlaneOrientationSource"></a>FocalPlaneOrientation: Source
 <i>Allowed values:</i> "ConstantValue" and "FromFile".
@@ -599,14 +610,6 @@ Orientation angle of the focal plane, expressed in degrees, in case the focal-pl
 #### <a name="focalPlaneOrientationFromFile"></a>FocalPlaneOrientation: FromFile
 Path of the file with the focal-plane orientation angle as it varies over time, in case the focal-plane orientation angle must be read from a file ([FocalPlaneOrientation: Source](#focalPlaneOrientationSource) = FromFile).
 
-
-
-
-
-### <a name="plateScale"></a>PlateScale
-<i>Allowed values:</i> > 0
-
-Nominal plate scale in arcsec / micron. This value affects the visible FOV of the CCD.
 
 
 
@@ -754,7 +757,7 @@ Distance from the optical axis beyond which sources no longer produce point-like
 
 #### <a name="extendedGhosts"></a>Ghosts: Extended
 
-A star at focal-plane coordinates $(x, y)$ will produce an extended ghost further away from the optical axis.
+A star at focal-plane coordinates \f$(x, y)\f$ will produce an extended ghost further away from the optical axis.
 
 ##### <a name="extendedGhostsFluxRatio"></a>Ghosts: Extended: FluxRatio
 
@@ -766,7 +769,7 @@ Coefficients of the 2nd-degree polynomial (in distance from the optical axis), d
 
 ##### <a name="extendedGhostsDistanceRatio"></a>Ghosts: Extended: DistanceRatio
 
-A star at focal-plane coordinates $(x, y)$ will produce a ghost at focal-plane coordinates $(distanceRatio \cdot x, distanceRatio \cdot y)$.
+A star at focal-plane coordinates \f$(x, y)\f$ will produce a ghost at focal-plane coordinates (distanceRatio \f$ \cdot \f$ x, distanceRatio \f$ \cdot \f$ y).
 
 ---
 
@@ -785,43 +788,52 @@ The <b>PSF</b> block of the configuration file contains all the information that
 \code{.yaml}
 PSF:
 
-    Model:                       MappedGaussian 
-    MappedGaussian:                             
-      Sigma:                     0.638     
-      NumberOfPixels:            8   
-      ChargeDiffusionStrength:     0.2
-      IncludeChargeDiffusion:      no
-      IncludeJitterSmoothing:      no
-    MappedFromFile:                             
-      Filename:                  inputfiles/psf.hdf5 
-      DistanceToOA:              -1       
-      RotationAngle:             -1         
-      NumberOfPixels:            8
-      ChargeDiffusionStrength:     0.2
-      IncludeChargeDiffusion:      no
-      IncludeJitterSmoothing:      no
-    AnalyticGaussian:
-      Sigma00:                   1.0
-      SigmaX18:                  5.0
-      SigmaY18:                  2.0
+    Model:                           AnalyticNonGaussian 
+    MappedGaussian:                                  
+        Sigma:                       0.639           
+        NumberOfPixels:              8               
+        ChargeDiffusionStrength:     0.2             
+        IncludeChargeDiffusion:      no              
+        IncludeJitterSmoothing:      no              
+    MappedFromFileSymmetrical:                       
+        Filename:                    inputfiles/psf.hdf5
+        DistanceToOA:               -1               
+        RotationAngle:              -1               
+        NumberOfPixels:              8               
+        ChargeDiffusionStrength:     0.2             
+        IncludeChargeDiffusion:      no              
+        IncludeJitterSmoothing:      no              
+    MappedFromFileAsymmetrical:                      
+        Filename:                    inputfiles/blueRealPSF.hdf5
+        NumberOfPixels:              8               
+        ChargeDiffusionStrength:     0.2             
+        IncludeChargeDiffusion:      no              
+        IncludeJitterSmoothing:      no              
+    AnalyticGaussian:                                
+        Sigma00:                     1.0             
+        SigmaX18:                    5.0             
+        SigmaY18:                    2.0             
     AnalyticNonGaussian:
-      ParameterFileName:         inputfiles/parameters.txt
-      Sigma:  
-            Source:                  ConstantValue 
-            ConstantValue:           0.5
-            FromFile:                inputfiles/sigmaPSF.txt
+        ParameterFileName:           inputfiles/psfallv3.txt
+        ChargeDiffusionStrength:     0.2             
+        IncludeChargeDiffusion:      yes             
+        Sigma:                                       
+            Source:                  ConstantValue   
+            ConstantValue:           0.5             
+            FromFile:                inputfiles/sigmaPSF.txt 
 \endcode
 
 
 
 
 ### <a name="psfModel"></a>Model
-<i>Allowed values:</i> "MappedGaussian", "MappedFromFile", "AnalyticGaussian", and "AnalyticNonGaussian
+<i>Allowed values:</i> "MappedGaussian", "MappedFromFileSymmetrical", "MappedFromFileAsymmetrical", "AnalyticGaussian" and "AnalyticNonGaussian
 
 Indicates whether to use a Gaussian PSF, to read the PSF from an HDF5 file, or to use an analytical model (Gaussian or non-Gaussian):
 
 - MappedGaussian: the PSF is a circular Gaussian, the size of which does not change over the FOV;
-- MappedFromFile: the PSF is selected from an HDF5 file with pre-computed PSFs, based on the angular distance to the optical axis;
+- MappedFromFileSymmetrical: the PSF is selected from an HDF5 file with pre-computed PSFs, based on the angular distance to the optical axis;
+- MappedFromFileAsymmetrical: the PSF is selected from an HDF5 file with pre-computed PSFs, based on the angular distance to the optical axis and the angle with respect to the x-axis of the focal plane. 
 - AnalyticGaussian: the PSF is an elongated Gaussian (the symmetry axes being parallel to the x- and y-axis), for which the width and the height are given at the centre of the FOV and at 18 degrees from the optical axis;
 - AnalyticNonGaussian: the PSF is an analytical non-Gaussian model, the parameters of which are stored in a separate file.
 
@@ -832,7 +844,7 @@ Indicates whether to use a Gaussian PSF, to read the PSF from an HDF5 file, or t
 The PSF is a circular Gaussian, the size of which does not change over the FOV.
 
 #### <a name="gaussSigma"></a>MappedGaussian: Sigma
-<i>Allowed values:</i> > 0, only required if a Gaussian PSF must be used ([psfModel](#Model) = MappedGaussian)
+<i>Allowed values:</i> > 0, only required if a Gaussian PSF must be used ([Model](#psfModel) = MappedGaussian)
 
 Width (\f$\sigma \f$) of the two-dimensional Gaussian PSF, expressed in pixels.  This Gaussian PSF does not vary in size over the FOV.
 
@@ -869,21 +881,21 @@ Indicates whether or not to include jitter smoothing.  This is implemented as ch
 
 
 
-### <a name="mappedFromFile"></a>MappedFromFile
+### <a name="mappedFromFile"></a>MappedFromFileSymmetrical
 
 The PSF is selected from an HDF5 file with pre-computed PSFs, based on the angular distance to the optical axis.
 
 
 
-#### <a name="psfFilename"></a>MappedFromFile: Filename
-<i>Allowed values:</i> only required if a pre-computed PSF must be used ([psfModel](#Model) = MappedFromFile)
+#### <a name="psfFilename"></a>MappedFromFileSymmetrical: Filename
+<i>Allowed values:</i> only required if a pre-computed PSF must be used ([Model](#psfModel) = MappedFromFileSymmetrical)
 
 Path to the file, relative to the [project location](#projectLocation), holding the location independent [pre-computed PSF](#psfFile).
 
 
 
-#### <a name="psfDistance"></a>MappedFromFile: DistanceToOA
-<i>Allowed values:</i> -1 for automatic calculation, \f$\ge \f$ 0 to use the input value; only required if a pre-computed PSF must be used ([Model](#psfModel) = MappedFromFile)
+#### <a name="psfDistance"></a>MappedFromFileSymmetrical: DistanceToOA
+<i>Allowed values:</i> -1 for automatic calculation, \f$\ge \f$ 0 to use the input value; only required if a pre-computed PSF must be used ([Model](#psfModel) = MappedFromFileSymmetrical)
 
 In case a positive value is given the input value will be used for the angular distance to the optical axis.
 
@@ -892,22 +904,22 @@ In case a negative value is given, the angular distance to the optical axis will
 
 
 
-#### <a name="psfRotation"></a>MappedFromFile: RotationAngle
-<i>Allowed values:</i> Any, only required if a pre-computed PSF must be used ([Model](#psfModel) = MappedFromFile)
+#### <a name="psfRotation"></a>MappedFromFileSymmetrical: RotationAngle
+<i>Allowed values:</i> Any, only required if a pre-computed PSF must be used ([Model](#psfModel) = MappedFromFileSymmetrical)
 
 Arbitrary rotation angle of the PSF, expressed in degrees and measured counterclockwise.
 
 
 
 
-#### <a name="psfNumPixels"></a>MappedFromFile: NumberOfPixels
+#### <a name="psfNumPixels"></a>MappedFromFileSymmetrical: NumberOfPixels
 <i>Allowed values:</i> > 0, only required if a pre-computed PSF must be used ([Model](#psfModel) = MappedFromFile)
 
 Number of pixels (in both directions) for which the PSF was generated.
 
 
 
-#### <a name="chargeDiffusionStrengthFile"></a>MappedFromFile: ChargeDiffusionStrength
+#### <a name="chargeDiffusionStrengthFile"></a>MappedFromFileSymmetrical: ChargeDiffusionStrength
 
 <i>Allowed values:</i> \f$\ge \f$ 1 / [SubPixels](#numSubPixels)
 
@@ -915,7 +927,41 @@ Charge diffusion has been modelled by a convolution with a Gaussian diffusion ke
 
 
 
-#### <a name="inclChargeDiffusionFile"></a>MappedFromFile: IncludeChargeDiffusion
+#### <a name="inclChargeDiffusionFile"></a>MappedFromFileSymmetrical: IncludeChargeDiffusion
+
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to include charge diffusion.
+
+
+
+### <a name="mappedFromFile"></a>MappedFromFileAsymmetrical
+
+The PSF is selected from an HDF5 file with pre-computed PSFs, based on the angular distance to the optical axis and the angle with respect to the x-axis of the focal plane. 
+
+#### <a name="psfFilename"></a>MappedFromFileAsymmetrical: Filename
+<i>Allowed values:</i> only required if a pre-computed PSF must be used ([Model](#psfModel) = MappedFromFile[Symmetrical/Asymmetrical].
+
+Path to the file, relative to the [project location](#projectLocation), holding the location independent [pre-computed PSF](#psfFile).
+
+
+
+#### <a name="psfNumPixels"></a>MappedFromFileAsymmetrical: NumberOfPixels
+<i>Allowed values:</i> > 0, only required if a pre-computed PSF must be used ([Model](#psfModel) = MappedFromFile)
+
+Number of pixels (in both directions) for which the PSF was generated.
+
+
+
+#### <a name="chargeDiffusionStrengthFile"></a>MappedFromFileAsymmetrical: ChargeDiffusionStrength
+
+<i>Allowed values:</i> \f$\ge \f$ 1 / [SubPixels](#numSubPixels)
+
+Charge diffusion has been modelled by a convolution with a Gaussian diffusion kernel, of which this is the standard deviation.
+
+
+
+#### <a name="inclChargeDiffusionFile"></a>MappedFromFileAsymmetrical: IncludeChargeDiffusion
 
 <i>Allowed values:</i> "yes" and "no"
 
@@ -983,7 +1029,7 @@ The width of the analytic non-Gaussian PSF, equal to sigma for a Gaussian PSF (e
 Indicates whether the value of the width of the analytic non-Gaussian PSF must be constant or is allowed to vary over time, according to the values in a user-provided file.
  
 
-##### <a name="analyticPsfSigmaConstant"></a>AnalyticNonGaussian: Sigma: ConstantValuee
+##### <a name="analyticPsfSigmaConstant"></a>AnalyticNonGaussian: Sigma: ConstantValue
 
 <i>Allowed values:</i> > 0, only required if a analytic non-Gaussian PSF must be used ([Model](#psfModel) = AnalyticNonGaussian) and [Sigma: Source] = ConstantValue
 
@@ -1016,24 +1062,24 @@ The <b>FEE</b> block of the configuration file contains all the information that
 \code{.yaml}
 FEE:
 
-    NominalOperatingTemperature: 210.15
-    Temperature:                 Nominal
-    TemperatureFileName:         inputfiles/feeTemperature.txt     
-    ReadoutNoise:                40.5         
-    Gain:          
-    		RefValueLeft:        11.1
-    		RefValueRight:       11.1
-    		ThreeSigma:          0.0    
-    		AllowedDifference:   -100    		
-    ElectronicOffset:           
-    		RefValue:            100
-    		Stability:           1
+    NominalOperatingTemperature:     210.15          
+    Temperature:                     Nominal         
+    TemperatureFileName:             inputfiles/feeTemperature.txt
+    ReadoutNoise:                    32.0            
+    Gain:
+        RefValueLeft:                0.0222          
+        RefValueRight:               0.0222          
+        Stability:                   -300.0e-6       
+        AllowedDifference:           0.0             
+    ElectronicOffset:
+        RefValue:                    1000            
+        Stability:                   1               
     OverAndUnderShoot:
-        Strength:                    0.003867
-        DecaySpeed:                  0.755
-        DecayRate:                   1.277
-        Range:                       5
-    IncludeOverAndUnderShoot:        no
+        Strength:                    0.003867        
+        DecaySpeed:                  0.755           
+        DecayRate:                   1.277           
+        Range:                       5               
+    IncludeOverAndUnderShoot:        no              
 
 \endcode
 
@@ -1054,12 +1100,12 @@ Indicates whether the temperature of the FEE should be fixed at the nominal oper
 
 
 
-### <a name=tempFileFEE></a>TemperatureFileName
+### <a name="tempFileFEE"></a>TemperatureFileName
 Path to the file, relative to the [project location](#projectLocation), holding the location of the file with the temperature variations of the FEE.
 
 
 
-### <a name=readoutNoiseFEE></a>ReadoutNoise
+### <a name="readoutNoiseFEE"></a>ReadoutNoise
 
 <i>Allowed values:</i> \f$\ge \f$ 0
 
@@ -1067,20 +1113,20 @@ Mean readout noise of the FEE, expressed in e<sup>-</sup>/pixel.  This is the sa
 
 
 
-### <a name=gainFEE></a>Gain
+### <a name="gainFEE"></a>Gain
 
 The actual gain for the FEE will be different for both ADCs.  A reference value is given for ADC1 and ADC2, and the difference should not exceed the [specified allowed difference](#gainAllowedDiffFEE).
 
 
 
-#### <a name=gainRefValueLeftFEE></a>Gain: RefValueLeft
+#### <a name="gainRefValueLeftFEE"></a>Gain: RefValueLeft
 
 <i>Allowed values:</i> > 0
 
 Reference value of the gain of ACD1 of the FEE at its [nominal operating temperature](#nominalTempFEE), expressed in ADU/µV. 
 
 
-#### <a name=gainRefValueRightFEE></a>Gain: RefValueRight
+#### <a name="gainRefValueRightFEE"></a>Gain: RefValueRight
 
 <i>Allowed values:</i> > 0
 
@@ -1088,15 +1134,7 @@ Reference value of the gain of ACD2 of the FEE at its [nominal operating tempera
 
 
 
-#### <a name=gainAllowedDiffFEE></a>Gain: AllowedDifference
-
-<i>Allowed values:</i> \f$\in \f$ [0,100]
-
-Percentage of the reference values for the gain of ADC1 and ADC2 that indicates the maximum allowed difference between these gain values.
-
-
-
-#### <a name=gainStabilityFEE></a>Gain: Stability
+#### <a name="gainStabilityFEE"></a>Gain: Stability
 
 <i>Allowed values:</i> Any
 
@@ -1104,12 +1142,20 @@ Change in gain (for both ADCs) with temperature deviations from the nominal oper
 
 
 
-### <a name=electronicOffset></a>ElectronicOffset
+#### <a name="gainAllowedDiffFEE"></a>Gain: AllowedDifference
+
+<i>Allowed values:</i> \f$\in \f$ [0,100]
+
+Percentage of the reference values for the gain of ADC1 and ADC2 that indicates the maximum allowed difference between these gain values.
+
+
+
+### <a name="electronicOffset"></a>ElectronicOffset
 
 The electronic offset or bias level is added  to the digital signal in order to avoid negative readout values. The electronic offset can be measured in a pre-scan strip, which essentially consists of a few additional rows of the CCD. These rows only contain the electronic offset and the readout noise. This pre-scan strip consisting of [NumPreScanRows](#numPreScanRows) rows will be stored in the output file.  This is the same for both ADCs.
 
 
-#### <a name=electronicOffsetRefValue></a>ElectronicOffset: RefValue
+#### <a name="electronicOffsetRefValue"></a>ElectronicOffset: RefValue
 
 <i>Allowed values:</i> \f$\ge \f$ 0
 
@@ -1117,7 +1163,7 @@ Electronic offset or bias level at the nominal operating temperature of the FEE,
 
 
 
-#### <a name=electronicOffsetStability></a>ElectronicOffset: Stability
+#### <a name="electronicOffsetStability"></a>ElectronicOffset: Stability
 
 <i>Allowed values:</i> Any
 
@@ -1136,7 +1182,7 @@ Both detector halves are treated independently.
 
 
 
-#### <a name=""></a>OverAndUnderShoot: Strength
+#### <a name="OverUnderShootStrength"></a>OverAndUnderShoot: Strength
 
 <i>Allowed values:</i> > 0
 
@@ -1144,7 +1190,7 @@ Parameter \f$a \f$ in the formula above.
 
 
 
-#### <a name=""></a>OverAndUnderShoot: DecayRate
+#### <a name="OverUnderShootDecayRate"></a>OverAndUnderShoot: DecayRate
 
 <i>Allowed values:</i> > 0
 
@@ -1152,7 +1198,7 @@ Parameter \f$\lambda \f$ in the formula above.
 
 
 
-#### <a name=""></a>OverAndUnderShoot: DecaySpeed
+#### <a name="OverUnderShootDecaySpeed"></a>OverAndUnderShoot: DecaySpeed
 
 <i>Allowed values:</i> > 0
 
@@ -1160,7 +1206,7 @@ Parameter \f$b \f$ in the formula above.
 
 
 
-#### <a name=""></a>OverAndUnderShoot: Range
+#### <a name="OverUnderShootRange"></a>OverAndUnderShoot: Range
 
 <i>Allowed values:</i> > 0
 
@@ -1189,82 +1235,87 @@ The <b>CCD</b> block of the configuration file contains all the information that
 \code{.yaml}
 CCD:
 
-    Position:                    Custom
-
-    OriginOffsetX:               0         
-    OriginOffsetY:               0         
-    Orientation:                 0         
-    NumColumns:                  4510      
-    NumRows:                     4510      
-    FirstRowExposed:             0
-    TimeShift:                   0.0
-    PixelSize:                   18      
+    Position:                                        Custom
+    OriginOffsetX:                                   0
+    OriginOffsetY:                                   0
+    Orientation:                                     0
+    NumColumns:                                      4510
+    NumRows:                                         4510
+    FirstRowExposed:                                 0
+    TimeShift:                                       0.0
+    PixelSize:                                       18
     BFE:
         CoefficientsFileName:
-    Gain:                        
-        RefValueLeft:        1.80
-        RefValueRight:       1.80
-        AllowedDifference:   15.0   
-        Stability:           -0.004    
+    Gain:
+        RefValueLeft:                                1.80
+        RefValueRight:                               1.80
+        Stability:                                   -0.001
+        AllowedDifference:                           15.0
     QuantumEfficiency:
-        MeanQuantumEfficiency:       0.5985
-        MeanAngleDependency:         1.01
-    Polarization:
-    		ExpectedValue:       0.989      
-    RelativeTransmissivity:
-        Coefficients:           [4.18e-2, -5.65e-5, 2.37e-7]
-        RadiusFOV:              18.8908
-        ExpectedValue:          0.920
-    Contamination:
-    		ParticulateContaminationEfficiency:  0.98
-    		MolecularContaminationEfficiency:    0.0566
-    DarkSignal:
-      		DarkCurrent:                  1.2
-      		DSNU:                         10.0
-      		Stability:                    5.0
-    FullWellSaturation:          1000000        
-    DigitalSaturation:           65535          
-    ReadoutNoise:                28
-    SerialTransferTime:              340
-    ParallelTransferTime:            110
-    ParallelTransferTimeFast:        90
+        MeanQuantumEfficiency:                       0.6218
+        MeanAngleDependency:                         1.01
+    FullWellSaturation:                              900000
+    DigitalSaturation:                               65535
+    ReadoutNoise:                                    38.7
+    SerialTransferTime:                              340
+    ParallelTransferTime:                            110
+    ParallelTransferTimeFast:                        90
     ReadoutMode:
-       ReadoutMode:                  Nominal
+       ReadoutMode:                                  Nominal
        Partial:
-          FirstRowReadout:           0
-          NumRowsReadout:            4510
-    ElectronicOffset:            100 
-    FlatfieldNoiseRMS:           0.010      
-    CTI:
-    		Model:			 Simple
-    		Simple:
-    		   CTEMean:        0.99999
-    	      Short2013:
-    	          Beta:		0.37
-    	          Temperature:	203.0
-    	          NumTrapSpecies:[9.8, 3.31, 1.56, 13.24]
-    	          TrapDensity:   
-                        BOL:    [0.0, 0.0, 0.0, 0.0]
-                        EOL:    [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]
-    	          ReleaseTime:   [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]
-    NominalOperatingTemperature: 203.15
-    Temperature:                 Nominal
-    TemperatureFileName:         inputfiles/ccdTemperature.txt     
-    IncludeFlatfield:                 no            
-    IncludeDarkSignal:                yes 
-    IncludePhotonNoise:               yes            
-    IncludeReadoutNoise:              yes            
-    IncludeCTIeffects:                yes            
-    IncludeOpenShutterSmearing:       yes            
-    IncludeRelativeTransmissivity:    yes   
-    IncludePolarization:              yes
-    IncludeParticulateContamination:  yes
-    IncludeMolecularContamination:    yes
-    IncludeQuantumEfficiency:         yes
-    IncludeConvolution:               yes            
-    IncludeFullWellSaturation:        yes            
-    IncludeDigitalSaturation:         yes      
-    IncludeQuantisation:              yes      
+          FirstRowReadout:                           0
+          NumRowsReadout:                            4510
+    FlatfieldNoiseRMS:                               0.010
+    RelativeTransmissivity:                          
+        Coefficients:                                [4.18e-2, -5.65e-5, 2.37e-7]
+        RadiusFOV:                                   18.8908
+        ExpectedValue:                               0.920
+    Polarization:                                    
+        ExpectedValue:                               0.989
+    Contamination:                                   
+        ParticulateContaminationEfficiency:          0.972
+        MolecularContaminationEfficiency:            0.9572
+    DarkSignal:                                      
+        DarkCurrent:                                 1.2
+        DSNU:                                        15.0
+        Stability:                                   5.0
+    CTI:                                             
+        Model:                                       Simple
+        Simple:                                      
+           CTEMean:                                  0.99999
+        Short2013:                                   
+          Beta:                                      0.37
+          Temperature:                               203.0
+          NumTrapSpecies:                            4
+          TrapDensity:                              
+            BOL:                                     [0.0, 0.0, 0.0, 0.0]
+            EOL:                                     [9.8, 3.31, 1.56, 13.24]
+          TrapCaptureCrossSection:                   [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]
+          ReleaseTime:                               [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]
+    ChargeInjection:                                 
+        InjectionLevel:                              90.0
+        RowInterval:                                 100
+        FirstRow:                                    50 
+    NominalOperatingTemperature:                     203.15
+    Temperature:                                     Nominal
+    TemperatureFileName:                             inputfiles/ccdTemperature.txt
+    IncludeFlatfield:                                no 
+    IncludeDarkSignal:                               yes
+    IncludeBFE:                                      yes
+    IncludePhotonNoise:                              yes
+    IncludeReadoutNoise:                             yes
+    IncludeCTIeffects:                               yes
+    IncludeChargeInjection:                          no 
+    IncludeOpenShutterSmearing:                      yes
+    IncludeQuantumEfficiency:                        yes
+    IncludeRelativeTransmissivity:                   yes
+    IncludePolarization:                             yes
+    IncludeParticulateContamination:                 yes
+    IncludeMolecularContamination:                   yes
+    IncludeConvolution:                              yes
+    IncludeFullWellSaturation:                       yes
+    IncludeDigitalSaturation:                        yes
+    IncludeQuantisation:                             yes
 \endcode
 
 
@@ -1284,10 +1335,10 @@ The pre-defined CCD positions are shown in the figures below.
 
 |In the past|Now |
 |---|---|
-| A  | 3  |
-| B  | 2  |
-| C  | 4  |
-| D  | 1  | -->
+| A  | 1  |
+| B  | 4  |
+| C  | 2  |
+| D  | 3  | -->
 
 When you specify [Position](#position)=Custom, the origin offset ([OriginOffsetX](#originOffsetX) and [OriginOffsetY](#originOffsetY)), the [orientation](#ccdOrientation), [number of rows](#ccdNumRows) and [columns](#ccdNumColumns), and the [first exposed row](#firstRowExposed) of the CCD are read from the configuration parameters in the CCD block.
 
@@ -1396,18 +1447,21 @@ Reference value of the gain of ACD2 of the FEE at its [nominal operating tempera
 
 
 
+#### <a name=gainStabilityCCD></a>Gain: Stability
+
+<i>Allowed values:</i> Any
+
+Change in gain (for both CCD halves) with temperature deviations from the nominal operating temperature, expressed in µV/e<sup>-</sup>/K.
+
+
+
+
 #### <a name=gainAllowedDiffCCD></a>Gain: AllowedDifference
 
 <i>Allowed values:</i> \f$\in \f$ [0,100]
 
 Percentage of the reference values for the gain of the left- and right-hand side of the CCD that indicates the maximum allowed difference between these gain values.
 
-
-#### <a name=gainStabilityCCD></a>Gain: Stability
-
-<i>Allowed values:</i> Any
-
-Change in gain (for both CCD halves) with temperature deviations from the nominal operating temperature, expressed in µV/e<sup>-</sup>/K.
 
 
 
@@ -1442,113 +1496,6 @@ Mean throughput efficiency due to quantum efficiency (i.e. the mean over all pix
 <i>Allowed values:</i> > 0
 
 Mean efficiency caused by the angle dependency of the quantum efficiency.
-
-
-
-### <a name=polarization></a>Polarization
-
-Optical elements induce a preferred direction for the propagation of light.  This effect is called polarisation.
-
-
-<!-- #### <a name="polarizationEfficiency"></a>Polarization: Efficiency
-<i>Allowed values:</i> \f$\in \f$ [0,1]
-
-Throughput efficiency due to the polarisation at the given reference angle.
-
-
-
-#### <a name="PolarizationRefAngle"></a>Polarization: RefAngle
-<i>Allowed values:</i> Any
-
-Reference angle for the throughput efficiency due to the polarisation, expressed in degrees. -->
-
-
-
-#### <a name="polarizationExpectedValue"></a>Polarization: ExpectedValue
-<i>Allowed values:</i> \f$\in \f$ [0,1]
-
-Expected value of the throughput efficiency due to polarisation (i.e. the mean over all pixels of one detector).  Currently no information on the angle dependency of polarisation is available and hence this value will be used for the whole FOV, until further notice.
-
-
-
-### <a name="relativeTransmissivity"></a>RelativeTransmissivity
-
-On top of the (time-dependent) [transmission efficiency](#transmissionEfficiency), the overall relative transmissivity should be taken into account.  This decrease in efficiency with distance to the optical axis, comprises the following contributions:
-
-* natural vignetting (brightness attenuation towards the edges of the FOV, introduced by the view factor of the entrance pupil);
-* mechanical vignetting (due to the undersized mask at the entrance pupil), incl. total blockage of all incoming radiation beyond the edge of the FOV;
-* glass absorption + anti-reflective coating;
-
-
-
-#### <a name="relativeTransmissivityCoefficients"></a>RelativeTransmissivity: Coefficients
-<i>Allowed values:</i> > 0
-
-Coefficients \f$k_1, k_2, k_3 \f$ for the polynomial that converts the distance from the optical axis, \f$\theta \f$ (expressed in degrees), to the variation in the overall relative transmissivity (expressed in percentage):
-
-\f[P(\theta) = k_1 \cdot \theta^2 + k_2 \cdot \theta^4 + k_3 \cdot \theta^6.\f]
-
-
-
-#### <a name="mechanicalVignettingRadiusFOV"></a>RelativeTransmissivity: RadiusFOV
-<i>Allowed values:</i> > 0
-
-Radius of the FOV, expressed in degrees.  Beyond this radius all incoming flux (apart from the cosmic hits) is shielded off.
-
-
-
-#### <a name="relativeTransmissivityExpectedValue"></a>RelativeTransmissivity: ExpectedValue
-<i>Allowed values:</i> \f$\in \f$ [0,1]
-
-Expected value of the throughput efficiency due to the overall relative transmissivity (i.e. the mean over all pixels of one detector, within the FOV).
-
-
-### <a name=contamination></a>Contamination
-
-The contribution to contamination is two-fold:
-
-* particulate contamination is the unintended presence of particles on (optical) surfaces, which leads to straylight and influences the effciency;
-* molecular contamination is caused chiefly by outgassing of materials in the first phase of the mission and affects all surfaces (the down side of L2 and the CCD will be affected the most).
-
-#### <a name="particulateContamination"></a>Contamination: ParticulateContaminationEfficiency
-<i>Allowed values:</i> \f$\in \f$ [0,1]
-
-Throughput efficiency due to particulate contamination.
-
-
-
-#### <a name="molecularContamination"></a>Contamination: MolecularContaminationEfficiency
-<i>Allowed values:</i> \f$\in \f$ [0,1]
-
-Throughput efficiency due to molecular contamination.
-
-
-
-### <a name="darkSignal"></a>DarkSignal
-
-Dark signal is the relatively small electric current that is generated in the CCD when no outside radiation is entering the device.
-
-#### <a name="darkCurrent"></a>DarkSignal: DarkCurrent
-<i>Allowed values:</i> > 0
-
-Dark current, expressed in e<sup>-</sup> / s.  This is the nominal value of the dark signal.
-
-
-
-#### <a name="dsnu"></a>DarkSignal: DSNU
-<i>Allowed values:</i> \f$\in \f$ [0,100]
-
-Dark signal non-uniformity, expressed as a percentage of the [dark current](#darkCurrent).  This is the systematic (fixed-pattern) deviation of a pixel's dark current from its nominal value.
-
-
-
-#### <a name="darkCurrentStability"></a>DarkSignal: Stability
-<i>Allowed values:</i> \f$\ge \f$ 0
-
-Temperature stability of the dark current, expressed in in e<sup>-</sup> / K / s.
-
-
-
 
 
 ### <a name="fullWellSaturation"></a>FullWellSaturation
@@ -1600,6 +1547,26 @@ Time required to shift the charges one row down (towards the readout register) i
 
 
 
+### <a name="readout"></a>ReadoutMode
+
+This determines how the CCD is read out. The readout mode can either be Nominal or Partial. Nominal readout mode mode will read out all the 4510 rows starting at row 0 for normal cameras, and only 2255 rows starting at row 2255 for the fast cameras (the lower half of the CCD is shielded off). For the Partial readout mode, only certain rows are read out. These rows can be on the upper half of the CCD for the fast cameras and on the entire CCD for the normal cameras. 
+
+#### <a name="readoutMode"></a>ReadoutMode: ReadoutMode
+<i>Allowed values:</i> Nominal or Partial
+
+#### <a name="readoutModePartial">ReadoutMode: Partial
+Configuration settings for when [readout mode](#readoutMode) == Partial.
+
+##### <a name="firstRowParialReadout"></a>ReadoutMode: Partial: FirstRowReadout
+
+First row that will be read out by the FEE when [readout mode](#readoutMode) == Partial.
+
+
+##### <a name="numRowsPartiaReadout"></a>ReadoutMode: Partial: NumRowsReadout
+
+Numbers of rows that will be read out by the FEE when [readout mode](#readoutMode) == Partial.
+
+
 
 ### <a name="flatfieldPtPNoise"></a>FlatfieldNoiseRMS
 <i>Allowed values:</i> \f$\ge \f$ 0
@@ -1607,6 +1574,98 @@ Time required to shift the charges one row down (towards the readout register) i
 Local PRNU (Pixel Response Non-Uniformity), defined as the standard deviation in the signal level (\f$S_i \f$), divided by the mean signal (\f$ \overline{S}\f$):
 
 \f[PRNU = \frac{\sqrt{\frac{1}{N} \sum_{i=1}^{N} (S_i - \overline{S})^2}}{\overline{S}}\f]
+
+
+
+### <a name="relativeTransmissivity"></a>RelativeTransmissivity
+
+On top of the (time-dependent) [transmission efficiency](#transmissionEfficiency), the overall relative transmissivity should be taken into account.  This decrease in efficiency with distance to the optical axis, comprises the following contributions:
+
+* natural vignetting (brightness attenuation towards the edges of the FOV, introduced by the view factor of the entrance pupil);
+* mechanical vignetting (due to the undersized mask at the entrance pupil), incl. total blockage of all incoming radiation beyond the edge of the FOV;
+* glass absorption + anti-reflective coating;
+
+
+
+#### <a name="relativeTransmissivityCoefficients"></a>RelativeTransmissivity: Coefficients
+<i>Allowed values:</i> > 0
+
+Coefficients \f$k_1, k_2, k_3 \f$ for the polynomial that converts the distance from the optical axis, \f$\theta \f$ (expressed in degrees), to the variation in the overall relative transmissivity (expressed in percentage):
+
+\f[P(\theta) = k_1 \cdot \theta^2 + k_2 \cdot \theta^4 + k_3 \cdot \theta^6.\f]
+
+
+
+#### <a name="mechanicalVignettingRadiusFOV"></a>RelativeTransmissivity: RadiusFOV
+<i>Allowed values:</i> > 0
+
+Radius of the FOV, expressed in degrees.  Beyond this radius all incoming flux (apart from the cosmic hits) is shielded off.
+
+
+
+#### <a name="relativeTransmissivityExpectedValue"></a>RelativeTransmissivity: ExpectedValue
+<i>Allowed values:</i> \f$\in \f$ [0,1]
+
+Expected value of the throughput efficiency due to the overall relative transmissivity (i.e. the mean over all pixels of one detector, within the FOV).
+
+
+
+### <a name=polarization></a>Polarization
+
+Optical elements induce a preferred direction for the propagation of light.  This effect is called polarisation.
+
+
+
+#### <a name="polarizationExpectedValue"></a>Polarization: ExpectedValue
+<i>Allowed values:</i> \f$\in \f$ [0,1]
+
+Expected value of the throughput efficiency due to polarisation (i.e. the mean over all pixels of one detector).  Currently no information on the angle dependency of polarisation is available and hence this value will be used for the whole FOV, until further notice.
+
+
+
+### <a name=contamination></a>Contamination
+
+The contribution to contamination is two-fold:
+
+* particulate contamination is the unintended presence of particles on (optical) surfaces, which leads to straylight and influences the effciency;
+* molecular contamination is caused chiefly by outgassing of materials in the first phase of the mission and affects all surfaces (the down side of L2 and the CCD will be affected the most).
+
+#### <a name="particulateContamination"></a>Contamination: ParticulateContaminationEfficiency
+<i>Allowed values:</i> \f$\in \f$ [0,1]
+
+Throughput efficiency due to particulate contamination.
+
+
+
+#### <a name="molecularContamination"></a>Contamination: MolecularContaminationEfficiency
+<i>Allowed values:</i> \f$\in \f$ [0,1]
+
+Throughput efficiency due to molecular contamination.
+
+
+
+### <a name="darkSignal"></a>DarkSignal
+
+Dark signal is the relatively small electric current that is generated in the CCD when no outside radiation is entering the device.
+
+#### <a name="darkCurrent"></a>DarkSignal: DarkCurrent
+<i>Allowed values:</i> > 0
+
+Dark current, expressed in e<sup>-</sup> / s.  This is the nominal value of the dark signal.
+
+
+
+#### <a name="dsnu"></a>DarkSignal: DSNU
+<i>Allowed values:</i> \f$\in \f$ [0,100]
+
+Dark signal non-uniformity, expressed as a percentage of the [dark current](#darkCurrent).  This is the systematic (fixed-pattern) deviation of a pixel's dark current from its nominal value.
+
+
+
+#### <a name="darkCurrentStability"></a>DarkSignal: Stability
+<i>Allowed values:</i> \f$\ge \f$ 0
+
+Temperature stability of the dark current, expressed in in e<sup>-</sup> / K / s.
 
 
 
@@ -1641,7 +1700,7 @@ The simple implementation ("Simple") assumes that for each row transfer (in the 
 Mean charge-transfer efficiency (CTE) of the detector.  The fraction of the charge that is successfully transferred from one row to the next row is expressed by this parameter.
 
 
-#### <a name=ShortCTI></a>CTI: Short
+#### <a name=ShortCTI></a>CTI: Short2013
 A more sophisticated implementation ("Short2013") is based on <a href="http://mnras.oxfordjournals.org/content/430/4/3078.full.pdf">Short et al., MNRAS 430, 3078-3085 (2013)</a>, in which only parallel readout is taken into account.
 
 
@@ -1715,6 +1774,27 @@ Array holding the trap release time constants \f$\tau_r\f$ for each of the consi
 
 
 
+
+### <a name="chargeInjection"></a>ChargeInjection
+
+Settings for the charge injection. 
+
+#### <a name="injectionLevelCI></a>ChargeInjection: InjectionLevel
+<i>Allowed values:</i> \f$\in \f$ [0,100]
+
+Percentage of the full well to be filled.
+
+#### <a name="rowIntervalCI></a>ChargeInjection: RowInterval
+<i>Allowed values:</i> \f$\in \f$ [1, CCD:numRows]
+
+The interval around which Charge Injection will happen. For a value of n, the charge will be injected every n-th row of the CCD after the [first row](#firstRowCI)
+
+#### <a name="firstRowCI></a>ChargeInjection: FirstRow
+
+The first row that will be injected with charge. 
+
+
+
 ### <a name="nominalTempCCD"></a>NominalOperatingTemperature
 
 <i>Allowed values:</i> > 0
@@ -1735,8 +1815,6 @@ Path to the file, relative to the [project location](#projectLocation), holding 
 
 
 
-
-
 ### <a name="inclFlatfield"></a>IncludeFlatfield
 <i>Allowed values:</i> "yes" and "no"
 
@@ -1748,6 +1826,13 @@ Indicates whether or not to include the flatfield.
 <i>Allowed values:</i> "yes" and "no"
 
 Indicates whether or not to include dark signal.
+
+
+
+### <a name="inclBFE"></a>IncludeBFE
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to inlcude the Brighter Fatter Effect
 
 
 
@@ -1774,11 +1859,25 @@ Indicates whether or not to include CTI effects.
 
 
 
+### <a name="inclChargeInjection"></a>IncludeChargeInjection
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to include charge injection
+
+
 
 ### <a name="inclOpenShutterSmearing"></a>IncludeOpenShutterSmearing
 <i>Allowed values:</i> "yes" and "no"
 
 Indicates whether or not to include open-shutter smearing effects.
+
+
+
+
+### <a name="inclQuantumEfficiency"></a>IncludeQuantumEfficiency
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not to include loss of throughput efficiency due to quantum efficiency.
 
 
 
@@ -1813,15 +1912,7 @@ Indicates whether or not to include loss of throughput efficiency due to particu
 Indicates whether or not to include loss of throughput efficiency due to molecular contamination.
 
 
-        
 
-### <a name="inclQuantumEfficiency"></a>IncludeQuantumEfficiency
-<i>Allowed values:</i> "yes" and "no"
-
-Indicates whether or not to include loss of throughput efficiency due to quantum efficiency.
-
-
-        
 
 ### <a name="inclConvolution"></a>IncludeConvolution
 <i>Allowed values:</i> "yes" and "no"
@@ -1857,12 +1948,9 @@ Indicates whether or not to apply quantisation.  This includes:
 
 
 
-### <a name="writeSubPixelImages"></a>WriteSubPixelImages
-<i>Allowed values:</i> "yes" and "no"
-
-Indicates whether or not the sub-pixel images must be written to the HDF5-file.  Use this for a limited number of exposures, as it takes a lot of space.
 
 ---
+
 
 
 
@@ -1892,7 +1980,7 @@ SubField:
 
 
 
-@image html /images/subField.png "Figure 9: Schematic presentation of the modelled sub-field and the parameters required to define it. The pixel coordinates of the origin of the sub-field relative to the CCD are xs and ys."
+@image html /images/subField.png "Figure 9: Schematic presentation of the modelled sub-field and the parameters required to define it. The pixel coordinates of the origin of the sub-field relative to the CCD are x_s and y_s."
 
 
 
@@ -1966,7 +2054,6 @@ If you want a pixel of 256 x 256 = 65536 sub-pixels you should specify in the co
 
 
 
-
 <!-- ********************* -->
 <!-- Photometry Parameters -->
 <!-- ********************** -->
@@ -2033,10 +2120,9 @@ RandomSeeds:
     PhotonNoiseSeed:             1433320336 
     JitterSeed:                  1433320381 
     FlatFieldSeed:               1425284070 
-    CTESeed:                     1424949740 
     DriftSeed:                   1433429158 
-    CosmicSeed:                  1494750830
-    DarkSignalSeed:              1468838669
+    CosmicSeed:                  1494750830 
+    DarkSignalSeed:              1468838669 
 \endcode
 
 
@@ -2079,15 +2165,6 @@ In case a value of -1 is given as input, the computer time at the start of the s
 
 
 
-### CTESeed
-<i>Allowed values:</i> > 0 or -1
-
-Seed for the random-number generator used for the CTE.
-
-In case a value of -1 is given as input, the computer time at the start of the simulation will be used instead.  That way, the fast-forward of the random generator when when chopping up the simulation in chunks (Slurm) is no longer needed (which is better for performance reasons).
-
-
-
 ### DriftSeed
 <i>Allowed values:</i> > 0 or -1
 
@@ -2114,9 +2191,6 @@ In case a value of -1 is given as input, the computer time at the start of the s
 ---
 
 
-
-
-
 <!-- ************************** -->
 <!-- Content Control Parameters -->
 <!-- *************************** -->
@@ -2129,14 +2203,21 @@ The <b>ControlHDF5Content</b> block of the configuration file contains all the s
 ControlHDF5Content:
 
     WritePixelMaps:                  yes
-    WriteBiasMaps:                   yes
-    WriteSmearingMaps:               yes
-    WriteThroughputMaps:             yes
-    WriteFlatfieldMap:               yes
-    WriteSubPixelImages:             no
-    WriteStarPositions:              yes
+    WriteBiasMaps:                   yes             
+    WriteSmearingMaps:               yes             
+    WriteThroughputMaps:             yes             
+    WriteFlatfieldMap:               yes             
+    WriteSubPixelImages:             no              
+    WriteStarPositions:              yes             
+    WriteGhostPositions:             yes             
+    WriteACS:                        yes             
+    WriteCosmics:                    yes             
+    WriteDiffusedPSF:                no              
+    WriteHighResolutionPSF:          no              
+    WriteStarCatalog:                yes             
+    WriteTelescopeACS:               yes             
+    WriteTransmissionEfficiency:     yes             
 \endcode
-
 
 
 ### WritePixelImages
@@ -2185,11 +2266,61 @@ Indicates whether or not the sub-pixel maps must be stored in the output file.  
 
 Indicates whether or not the star positions should be stored in pixel and focal plane coordinates in the output file.  This scales with the number of exposures and the number of stars in the sub-field.
 
----
+
+### WriteGhostPositions
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the ghost positions should be stored in pixel and focal plane coordinates in the output file. This scales with the number of exposures and the number of stars in the sub-field.
+
+
+### WriteACS
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the camera Yaw, Pitch and Roll should be stored in the output file. This scales with the number of exposures.
+
+
+### WriteCosmics
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the columns, rows and flux of the cosmics should stored in the output file. This scales with the number of exposures.
+
+
+### WriteDiffusedPSF
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not a high resolution image of the PSF with diffusion applied to it should be stored in the output file. This features only works for the mapped PSF and takes a long time to compute. 
 
 
 
+### WriteHighResolutionPSF
+<i>Allowed values:</i> "yes" and "no"
 
+Indicates whether or not a high resolution image of the PSF should be stored in the output file. This feature does not work for Analytic Gaussian PSF.
+
+
+
+### WriteStarCatalog
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the starcatalog should be stored in the output file. 
+
+
+
+### WriteTelescopeACS
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether or not the platform Yaw, Pitch and Roll should be stored in the output file. This scales with the number of exposures.
+
+
+
+### WriteTransmissionEfficiency
+<i>Allowed values:</i> "yes" and "no"
+
+Indicates whether the Transmission Efficiency should be stored in the output file. 
+
+
+
+--- 
 
 <!-- ********************************* -->
 <!-- Control TCP connection parameters -->

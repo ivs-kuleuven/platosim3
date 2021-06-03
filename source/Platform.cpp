@@ -203,8 +203,9 @@ void Platform::setPointingCoordinates(double rightAscencsion, double declination
 
 void Platform::updatePlatformOrientation(double time)
 {
-    double yaw=0.0, pitch=0.0, roll=0.0;
 
+    double yaw=0.0, pitch=0.0, roll=0.0;
+    //    Log.warning("Platform: We use the jitter " + to_string(useJitter));
     if (useJitter)
     {
         // Check if the request is going backwards in time. If so: complain.
@@ -233,7 +234,6 @@ void Platform::updatePlatformOrientation(double time)
 
         // We're now in the case that we haven't processed the given time point yet.
         // Let the platfrom jitter until 'time'. Yaw, pitch, and roll are in [rad]
-
         tie(yaw, pitch, roll) = jitterGenerator.getNextYawPitchRoll(time);
 
         Log.debug("Platform: At time " + to_string(time) + ": (yaw, pitch, roll) = (" 

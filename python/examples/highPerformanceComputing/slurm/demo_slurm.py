@@ -18,10 +18,10 @@ from platosim.simulation import Simulation
 
 # Specify the total number of exposures of the entire unpartitioned time series.
 
-totalNumberOfExposures = 105  
+totalNumberOfExposures = 105
 
-# Slurm sets some environment variables for each job, which we can use. 
-# The slurm script specifies an array of jobs, for which we can derive 
+# Slurm sets some environment variables for each job, which we can use.
+# The slurm script specifies an array of jobs, for which we can derive
 # the total number of jobs, and the sequential number of the current job.
 # argv[1]: the task ID of the first task in the slurm array
 # argv[2]: the task ID of the last task in the slurm array
@@ -44,7 +44,7 @@ sim = Simulation(outputFile, inputFile)
 sim.outputDir = outputDir
 
 sim["PSF/Model"] = "MappedGaussian"
-sim["ObservingParameters/RApointing"]  = 180.0 
+sim["ObservingParameters/RApointing"]  = 180.0
 sim["ObservingParameters/DecPointing"] = -70.0
 sim["Platform/SolarPanelOrientation"]  =   0.0
 sim["Telescope/AzimuthAngle"]          =   0.0
@@ -79,4 +79,4 @@ else:
 
 # Run the simulation
 
-simFile = sim.run()
+#simFile = sim.run()

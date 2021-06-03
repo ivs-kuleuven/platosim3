@@ -310,12 +310,47 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
     // feel the PRNU, but for the MappedPSF we first need to apply the PRNU on sub-pixel level and afterwards
     // apply the throughputEfficiency() at pixel level, so there is no possibilty to respect the order
     // (1) throughput (2) charge injection (3) PRNU.
-    
+
     if (includeChargeInjection)
     {
         Log.debug("Detector: applying charge injection");
         applyChargeInjection();
     }
+
+
+
+    // Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
+    // the pixels are still receiving photons from the sky, while they are being transfered towards
+    // the readout register.
+    // Pixel units before: [electrons]
+    // Pixel units after: [electrons]
+
+
+    if (includeOpenShutterSmearing)
+    {
+        Log.debug("Detector: applying open shutter smearing.");
+        applyOpenShutterSmearing(exposureTime);
+    }
+    else
+    {
+         Log.debug("Detector: no open shutter smearing applied.");
+    }
+
+    // Apply poisson distributed photon noise
+    // Pixel units before: [electrons]
+    // Pixel units after: [electrons]
+    
+
+    if (includePhotonNoise)
+    {
+        Log.debug("Detector: adding photon noise.");
+        addPhotonNoise();
+    }
+    else
+    {
+        Log.debug("Detector: no photon noise added.");
+    }
+
 
     // Add dark current
 
@@ -330,18 +365,6 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
         Log.debug("Detector: no dark current added");
     }
 
-    // Brighter-Fatter effect
-
-    if (includeBFE)
-    {
-        Log.debug("DetectorWithMappedPSF: adding Brighter-Fatter effect");
-
-        applyBFE();
-    }
-    else
-    {
-        Log.debug("DetectorWithMappedPSF: no Brighter-Fatter effect added");
-    }
 }
 
 
@@ -723,3 +746,77 @@ void DetectorWithMappedPSF::writeSubPixelMapToHDF5(int exposureNr)
 
 
 
+
+
+/** 
+ * \brief: Write the diffused PSF to the HDF5 file.
+ */
+
+void DetectorWithMappedPSF::writeDiffusedPSFToHDF5(PointSpreadFunction *psf)
+{
+    arma::fmat psfMap = psf->getOriginalPSF();
+    arma::fmat diffusedPsf = arma::fmat(size(psfMap), arma::fill::zeros);
+
+    int numRows = size(psfMap)(0);
+    int numColumns = size(psfMap)(1);
+
+    // set the diffusion kernel image size
+    int psfSubPixelsPerPixel = psf->getNumSubPixelsPerPixel();
+    generateDiffusionKernel(chargeDiffusionStrength*psfSubPixelsPerPixel);
+    
+    
+    for (int row=0; row < numRows; row++)
+    {
+      for (int column=0; column < numColumns; column++)
+      {
+       	applyDiffusionKernelOnPSF(row, column, psfMap(row, column), diffusedPsf, psfSubPixelsPerPixel);
+      }
+    }
+
+    // reset the diffusion kernel
+    generateDiffusionKernel(chargeDiffusionStrength*numSubPixelsPerPixel);
+
+    // write the diffused psf to the output hdf5 file
+    hdf5File.writeArray("/PSF", "diffusedPSF", diffusedPsf);
+}
+
+
+
+
+
+
+
+void DetectorWithMappedPSF::applyDiffusionKernelOnPSF(double subpixRow, double subpixColumn, double flux, arma::fmat& psf, int numberOfPsfSubpixelsPerPixel)
+{
+    int sx = subpixColumn - (diffusionKernelImageSize - 1) / 2;
+    int sy = subpixRow - (diffusionKernelImageSize - 1) / 2;
+
+    double ox = subpixColumn - floor(subpixColumn);
+    double oy = subpixRow - floor(subpixRow);
+
+    int numRows = size(psf)(0);
+    int numColumns = size(psf)(1);
+
+    // Establish diffusion kernel image
+
+    signalResponse = IntegralOfAnalyticSignalResponse(diffusionKernelImageSize);
+    signalResponse.addPart(ox, oy, 1., diffusionKernelWidth);
+
+    for (unsigned int row = 0; row < diffusionKernelImageSize; row++)
+    {
+        for (unsigned int column = 0; column < diffusionKernelImageSize; column++)
+        {
+            diffusionKernel(row, column) = signalResponse(column, row); // Normalisation done by ()-operator
+        }
+    }
+
+    // Add the flux to the psf 
+
+    arma::span rowSpan = arma::span(max(0, sy), min((int)numRows, sy + diffusionKernelImageSize) - 1);
+    arma::span columnSpan = arma::span(max(0, sx), min((int)numColumns, sx + diffusionKernelImageSize) - 1);
+
+    arma::span xSpan = arma::span(max(0, sx) - sx, min((int)numColumns, sx + diffusionKernelImageSize) - sx - 1);
+    arma::span ySpan = arma::span(max(0, sy) - sy, min((int)numRows, sy + diffusionKernelImageSize) - sy - 1);
+
+    psf(rowSpan, columnSpan) += diffusionKernel(ySpan, xSpan) * flux;
+}

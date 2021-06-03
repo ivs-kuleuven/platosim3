@@ -286,13 +286,13 @@ void DetectorWithAnalyticGaussianPSF::integrateLight(int exposureNr, double star
     // Apply throughput efficiency on the pixel map.
     // This takes into account the QE, vignetting, polarisation, and particulate & molecular contamination.
     // PixelMap units change from [photons] to [electrons] 
-    
+
     applyThroughputEfficiency();
 
     // Apply the charge injection which will mitigate the CTI. The injection happens in electrons, 
     // so the throughput efficiency should already have been applied. The injected charges do feel the PRNU, 
     // so applying the flatfied should happen afterwards.
-    
+
     if (includeChargeInjection)
     {
         Log.debug("Detector: applying charge injection");
@@ -314,6 +314,39 @@ void DetectorWithAnalyticGaussianPSF::integrateLight(int exposureNr, double star
     }
 
 
+
+    // Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
+    // the pixels are still receiving photons from the sky, while they are being transfered towards
+    // the readout register.
+    // Pixel units before: [electrons]
+    // Pixel units after: [electrons]
+
+    if (includeOpenShutterSmearing)
+    {
+        Log.debug("Detector: applying open shutter smearing.");
+        applyOpenShutterSmearing(exposureTime);
+    }
+    else
+    {
+         Log.debug("Detector: no open shutter smearing applied.");
+    }
+
+    // Apply poisson distributed photon noise
+    // Pixel units before: [electrons]
+    // Pixel units after: [electrons]
+
+    if (includePhotonNoise)
+    {
+        Log.debug("Detector: adding photon noise.");
+        addPhotonNoise();
+    }
+    else
+    {
+        Log.debug("Detector: no photon noise added.");
+    }
+
+
+    
     // Add dark current
 
     if(includeDarkSignal)
@@ -327,18 +360,8 @@ void DetectorWithAnalyticGaussianPSF::integrateLight(int exposureNr, double star
         Log.debug("Detector: no dark current added");
     }
 
-    // Brighter-fatter effect
 
-    if(includeBFE)
-    {
-   		Log.debug("Detector: adding Brighter-Fatter effect");
-
-   		applyBFE();
-    }
-    else
-    {
-        Log.debug("Detector: no Brighter-Fatter effect added");
-    }
+    
 }
 
 

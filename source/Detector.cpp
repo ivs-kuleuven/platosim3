@@ -936,13 +936,14 @@ bool Detector::isInPixelMap(double row, double column)
 
 
 
-/**
+/*
  * \brief Apply throughput efficiency. This is the combined effect of:
  *          - vignetting (brightness attenuation towards the edges of the FOV);
  *          - particulate contamination;
  *          - molecular contamination;
  *          - quantum efficiency.
  */
+
 
 void Detector::applyThroughputEfficiency()
 {
@@ -1058,11 +1059,12 @@ void Detector::addDarkSignal(float exposureTime)
 
 /**
  * \brief: Reads out the detector and apply the following effects:
- *          - photon noise
- *          - full-well saturation (i.e. blooming)
+ *          - Cosmics
+ *          - BFE
  *          - CTE
- *          - open-shutter smearing
+ *          - full-well saturation (i.e. blooming)
  *          - readout noise
+ *          - F-FEE over-/under shoot
  *          - quantisation:
  *              - gain
  *              - electronic offset (i.e. bias)
@@ -1093,22 +1095,6 @@ void Detector::readOut(float exposureTime)
         Log.debug("Detector: no cosmic hits included.");
     }
 
-    // Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
-    // the pixels are still receiving photons from the sky, while they are being transfered towards
-    // the readout register.
-    // Pixel units before: [electrons]
-    // Pixel units after: [electrons]
-
-    if (includeOpenShutterSmearing)
-    {
-        Log.debug("Detector: applying open shutter smearing.");
-        applyOpenShutterSmearing(exposureTime);
-    }
-    else
-    {
-        Log.debug("Detector: no open shutter smearing applied.");
-    }
-
     // Simulate the effects of the Charge Transfer Inefficiency (CTI). When the
     // CCD is read out, row after row, a part of the charge is always left behind
     // which then dribbles into the trailing pixels. This causes each star to have
@@ -1124,48 +1110,6 @@ void Detector::readOut(float exposureTime)
     else
     {
         Log.debug("Detector: no charge transfer inefficiency applied.");
-    }
-
-    // Apply poisson distributed photon noise
-    // Pixel units before: [electrons]
-    // Pixel units after: [electrons]
-
-    if (includePhotonNoise)
-    {
-        Log.debug("Detector: adding photon noise.");
-        addPhotonNoise();
-    }
-    else
-    {
-        Log.debug("Detector: no photon noise added.");
-    }
-
-    // Apply the F-FEE over-/undershoot to the pixel map.
-    // Pixel units before of pixel, smearing and bias maps: [ADU]
-    // Pixel units after of  pixel, smearing and bias maps: [ADU]
-
-    if(isFastCamera && frontEndElectronics->getIncludeOverAndUnderShoot())
-    {
-        Log.debug("Detector: adding (F-)FEE over-/undershoot");
-        applyOverAndUnderShoot();
-    }
-    else{
-        Log.debug("Detector: (F-)FEE over-/undershoot not applied: " + to_string(isFastCamera) + " " + to_string(frontEndElectronics->getIncludeOverAndUnderShoot()));
-    }
-
-    // Each time the amplifier reads out a pixel, a tiny bit of noise is added.
-    // Add the readout noise.
-    // Pixel units before: [electrons]
-    // Pixel units after: [electrons]
-
-    if (includeReadoutNoise)
-    {
-        Log.debug("Detector: adding readout noise of CCD and FEE.");
-        addReadoutNoise();
-    }
-    else
-    {
-        Log.debug("Detector: no readout noise added.");
     }
 
     // Apply full-well saturation. A pixel has a maximum capacity of electrons (the full well capacity).
@@ -1184,13 +1128,56 @@ void Detector::readOut(float exposureTime)
         Log.debug("Detector: no full well saturation applied.");
     }
 
+
+
+    // Brighter-Fatter effect
+
+    if (includeBFE)
+    {
+        Log.debug("DetectorWithMappedPSF: adding Brighter-Fatter effect");
+
+        applyBFE();
+    }
+    else
+    {
+        Log.debug("DetectorWithMappedPSF: no Brighter-Fatter effect added");
+    }
+
+    // Each time the amplifier reads out a pixel, a tiny bit of noise is added.
+    // Add the readout noise.
+    // Pixel units before: [electrons]
+    // Pixel units after: [electrons]
+
+    if (includeReadoutNoise)
+    {
+        Log.debug("Detector: adding readout noise of CCD and FEE.");
+        addReadoutNoise();
+    }
+    else
+    {
+        Log.debug("Detector: no readout noise added.");
+    }
+    
+    // Apply the F-FEE over-/undershoot to the pixel map.
+    // Pixel units before of pixel, smearing and bias maps: [ADU]
+    // Pixel units after of  pixel, smearing and bias maps: [ADU]
+
+    if(isFastCamera && frontEndElectronics->getIncludeOverAndUnderShoot())
+    {
+        Log.debug("Detector: adding (F-)FEE over-/undershoot");
+        applyOverAndUnderShoot();
+    }
+    else{
+        Log.debug("Detector: (F-)FEE over-/undershoot not applied: " + to_string(isFastCamera) + " " + to_string(frontEndElectronics->getIncludeOverAndUnderShoot()));
+    }
+
+
     //  Apply quantisation. This consists of:
     //         - applying FEE and CCD gain (converting from electrons to ADU)
     //         - adding the electronic offset
     //         - applying digital saturation
     // Pixel units before: [electrons]
     // Pixel units after: [ADU]
-
 
     if(includeQuantisation)
     {
@@ -1224,6 +1211,7 @@ void Detector::readOut(float exposureTime)
  */
 void Detector::applyBFE()
 {
+
     // For each pixel (0, 0), we only account for the influence of pixels (i, j)
     // that are within the given range (to evaluate Eq. (11) in Guyonnet et al.)
 

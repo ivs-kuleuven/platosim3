@@ -1,5 +1,6 @@
 # Prerequisites for Running PlatoSim3 {#ReqsRun}
 
+
 ## Data Package
 
 If you want to use realistic PSF models instead of a Gaussian, you can download these from <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/psf.hdf5
@@ -9,11 +10,11 @@ If you want to use realistic PSF models instead of a Gaussian, you can download 
 
 ## Source the Conda Environment (Users Only)
 
-After the installation of the software, the PLATO Simulator can be run.  Developers will have built the code in the <code>/build</code> directory and run it from there.  For users it is sufficient to @ref ReqsInstallViaConda "activate the appropriate conda environment" (i.e. the conda environment in which they have installed the version of the software they want to use).
+After the installation of the software, the PLATO Simulator can be run.  Developers will have built the code in the <code>/build</code> directory and run it from there.  For users it is sufficient to activate the appropriate @ref user-prerequisites "conda environment" (i.e. the conda environment in which they have installed the version of the software they want to use).
 
 ---
 
-## Environment Variables
+## Environment Variables 
 
 To avoid having to hardcode any path in configuration files, tutorials, etc., you must export three environment variables:
 
@@ -32,7 +33,7 @@ This can be done as follows:
     $ PYTHONPATH=$PYTHONPATH:$PLATO_PROJECT_HOME/python
     $ export PYTHONPATH
 
-In case you've installed PlatoSim3 @ref ViaConda "via conda", the former environment variable should be exported as
+In case you've installed PlatoSim3 @ref user-install "via conda", the former environment variable should be exported as
 
     $ export PLATO_PROJECT_HOME=$CONDA_PREFIX
 

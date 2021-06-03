@@ -1,9 +1,37 @@
 # Changelog for PlatoSim
 
+<!-- 3.4.1 -->
+<!-- ***** -->
+
+## 02/06/2021: 3.4.1
+
+## Fixed
+* Corrected the implementation of the Jitter (GitHub issue #508)
+* Corrected the implementation of the Drift
+* Fixed the conda build in Jenkins
+
+## Changed
+* Added option to the method to include time in output of `getYawPitchRoll`
+* Apply the BFE after full-well saturation (GitHub issue #584)
+* Added the option to have conda install for python 3.6, 3.7, 3.8 and 3.9
+
+## Added
+* Test that checks the Jitter on different CCD's
+* Added method `getYawPitchRollFromDrift` in the simfile.py file
+* Option to save diffused PSF in output HDF5 file (GitHub issue #564)
+* Added method `setSubfieldAroundPixelRows` to simulation.py
+* Added option to (not) include in output file:
+    - High resolution PSF (if PSF is not Analytic Gaussian)
+    - Star Catalog
+    - Platoform Yaw, Pitch, Roll
+    - Transmission Efficiency
+
+
+
 <!-- 3.4.0 -->
 <!-- ***** -->
 
-## 31/03/2021: 3.3.8
+## 31/03/2021: 3.4.0
 
 ## Fixed
 * HighResMap matrix is now initialized with zeros (GitHub issue #543)
