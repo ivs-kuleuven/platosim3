@@ -45,11 +45,12 @@
       </tab>
 
       <tab type="user" visible="yes" url="@ref SimulationSteps" title="Simulation Steps"/>
+      
     </tab>
 
     <tab type="usergroup" visible="yes" url="@ref IssueTracking" title="Help (Issue Tracking)"/>
-  </tab>
-</tab>
+      
+
 
 <tab type="pages" visible="no" title="" intro=""/>
 <tab type="modules" visible="yes" title="" intro=""/>

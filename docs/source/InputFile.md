@@ -14,8 +14,10 @@ To configure the Plato Simulator, a large set of input parameters is required.  
 * FEE parameters,
 * CCD parameters,
 * sub-field parameters,
+* Photometry parameters,
 * seed parameters,
-* content control parameters,
+* HDF5 content parameters,
+* TCP connection parameters,
 * and pre-defined settings for the camera groups and CCD positions (specific for PLATO).
 
 These are described in more detail @ref ConfigurationParameters "here".

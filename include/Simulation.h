@@ -74,6 +74,7 @@ class Simulation
         bool useFeeNominalTemperature;
         bool useDetectorTemperatureFromFile;
         bool useDetectorNominalTemperature;
+        bool writeStarCatalog;
         string psfModel;
 
         JitterGenerator *jitterGenerator;
