@@ -82,7 +82,7 @@ def showSim(simfile, n=0, type="Image", dpi=0, figname=None,verbose=True, **kwar
         >>> showSim(myFile, 3, type="im")
         >>> showSim(myFile, type="pr", figname="Flatfield")
     """
-    from h5 import h5get
+    from platosim.h5 import h5get
 
     # Extract the data from the HDF5 file
 
