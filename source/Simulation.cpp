@@ -262,14 +262,19 @@ void Simulation::configure(ConfigurationParameters &configParams)
     // Find out the right time shift.
 
     string ccdPosition              = configParams.getString("CCD/Position");
+    bool isFastCamera               = configParams.getString("Telescope/GroupID") == "Fast";
     if (ccdPosition == "Custom")
     {
         timeShift = configParams.getDouble("CCD/TimeShift");
     }
-    else
+    else if (!isFastCamera)
     {
         int index = stoi(ccdPosition) - 1;   // Position are named  [1, 2, 3, 4] while the index into vector starts at 0
         timeShift = configParams.getDoubleAt("CCDPositions/TimeShift", index);
+    }
+    else
+    {
+        timeShift = 0.0;
     }
 
     Log.debug("Simulation: configure(): time shift for current CCD configuration: " + to_string(timeShift));

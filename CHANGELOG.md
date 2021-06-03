@@ -1,5 +1,20 @@
 # Changelog for PlatoSim
 
+<!-- 3.4.2 -->
+<!-- ***** -->
+
+## **/**/2021: 3.4.2
+
+## Fixed
+* Time shift is not applied when reading out CCDs for the F-CAMs (GitHub #540)
+
+## Changed
+
+## Added
+
+
+
+
 <!-- 3.4.1 -->
 <!-- ***** -->
 
@@ -26,6 +41,7 @@
     - Star Catalog
     - Platoform Yaw, Pitch, Roll
     - Transmission Efficiency
+			     
 
 
 
