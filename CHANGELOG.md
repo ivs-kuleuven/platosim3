@@ -7,8 +7,10 @@
 
 ## Fixed
 * Time shift is not applied when reading out CCDs for the F-CAMs (GitHub #540)
+* In `hdf5ToFits.py` typecheck before converting to `string` (GitHub #600)
 
 ## Changed
+* Update `showSim.py` to include biasMapsRight and biasMapsLeft
 
 ## Added
 
