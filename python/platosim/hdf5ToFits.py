@@ -47,7 +47,7 @@ def hdf5ToFits(inputFilename, outputFilename):
     biasHeader = getSerialPreScanHeader(simFile)    
     smearingHeader = getParallelOverScanHeader(simFile)
 
-    beginExposureNumber = simFile("ObservingParameters", "BeginExposureNr")
+    beginExposureNumber = simFile.getInputParameter("ObservingParameters", "BeginExposureNr")
     numExposures = simFile.getInputParameter("ObservingParameters", "NumExposures")
 
     for exposure in range(beginExposureNumber, beginExposureNumber + numExposures):
