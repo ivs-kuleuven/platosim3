@@ -45,15 +45,17 @@ def hdf5ToFits(inputFilename, outputFilename):
     biasHeader = getSerialPreScanHeader(simFile)    
     smearingHeader = getParallelOverScanHeader(simFile)
 
+    beginExposureNumber = simFile.getInputParameter("ObservingParameters", "BeginExposureNr")
     numExposures = simFile.getInputParameter("ObservingParameters", "NumExposures")
 
-    for exposure in range(numExposures):
+    for exposure in range(beginExposureNumber, beginExposureNumber + numExposures):
 
         formattedTimestamp = timestamp.strftime("%Y-%m-%d %H:%M:%S")
 
         # Image data
 
         imageHeader["DATE-OBS"] = formattedTimestamp
+        imageHeader["EXTVER"] = exposure
 
         image = simFile.getImage(exposure)
         fits.append(outputFilePath, image, imageHeader)
@@ -65,27 +67,32 @@ def hdf5ToFits(inputFilename, outputFilename):
             biasHeader["DATE-OBS"] = formattedTimestamp
 
             biasMapLeft = simFile.getBiasMapLeft(exposure)
-            biasHeader["EXTNAME"] = "SPRESCANE1"
+            biasHeader["EXTNAME"] = f"SPRE_{biasHeader['CCD_ID']}_E"
+            biasHeader["EXTVER"] = exposure
             fits.append(outputFilePath, biasMapLeft, biasHeader)
             
             biasMapRight = simFile.getBiasMapRight(exposure)
-            biasHeader["EXTNAME"] = "SPRESCANF1"
+            biasHeader["EXTNAME"] = f"SPRE_{biasHeader['CCD_ID']}_F"
             fits.append(outputFilePath, biasMapRight, biasHeader)
 
         # Parallel over-scan (smearing map)
 
         smearingHeader["DATE-OBS"] = formattedTimestamp
+        smearingHeader["EXTVER"] = exposure
 
         try:
+
             smearingMap = simFile.getSmearingMap(exposure)
             fits.append(outputFilePath, smearingMap, smearingHeader)
+
         except:
+
             pass
 
         # Update timestamp for the next exposure
 
         cycleTime = simFile.getInputParameter("ObservingParameters", "CycleTime") 
-        timestamp += timedelta(seconds = cycleTime)
+        timestamp += timedelta(seconds=cycleTime)
 
     # Only one window is stored in the FITS file
 
@@ -211,7 +218,7 @@ def getImageHeader(simFile: SimFile):
 
     # Using this keyword, the image will end up in the correct extension
 
-    header["EXTNAME"] = "WINDOW1"
+    header["EXTNAME"] = f"IMAGE_{header['CCD_ID']}"
 
     return header
 
@@ -292,7 +299,8 @@ def getParallelOverScanHeader(simFile: SimFile):
 
     # Using this keyword, the parallel over-scan will end up in the correct extension
 
-    header["EXTNAME"] = "POVERSCAN1"
+
+    header["EXTNAME"] = f"POVER_{header['CCD_ID']}"
 
     return header
 
@@ -323,6 +331,6 @@ def getPrimaryHeader(simFile: SimFile):
     primaryHeader["NWINDOWS"] = (0, "Number of windows")
 
     timestamp = datetime.now()
-    primaryHeader["DATE-OBS "] = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+    primaryHeader["DATE-OBS"] = timestamp.strftime("%Y-%m-%d %H:%M:%S")
 
     return primaryHeader, timestamp
