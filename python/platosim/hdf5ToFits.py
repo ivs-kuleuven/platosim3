@@ -29,8 +29,6 @@ def hdf5ToFits(inputFilename, outputFilename):
     simFile = SimFile(inputFilename)
     outputFilePath = Path(outputFilename)
 
-    ccdCode = simFile.getInputParameter("CCD", "Position")
-
     # The primary HDU contains only a header and no image data
     # (if the output filename is already in use, an exception will be thrown)
 
@@ -69,12 +67,12 @@ def hdf5ToFits(inputFilename, outputFilename):
             biasHeader["DATE-OBS"] = formattedTimestamp
 
             biasMapLeft = simFile.getBiasMapLeft(exposure)
-            biasHeader["EXTNAME"] = f"SPRE_{ccdCode}_E"
+            biasHeader["EXTNAME"] = f"SPRE_{biasHeader['CCD_ID']}_E"
             biasHeader["EXTVER"] = exposure
             fits.append(outputFilePath, biasMapLeft, biasHeader)
             
             biasMapRight = simFile.getBiasMapRight(exposure)
-            biasHeader["EXTNAME"] = f"SPRE_{ccdCode}_F"
+            biasHeader["EXTNAME"] = f"SPRE_{biasHeader['CCD_ID']}_F"
             fits.append(outputFilePath, biasMapRight, biasHeader)
 
         # Parallel over-scan (smearing map)
@@ -220,7 +218,7 @@ def getImageHeader(simFile: SimFile):
 
     # Using this keyword, the image will end up in the correct extension
 
-    header["EXTNAME"] = f"IMAGE_{ccdCode}"
+    header["EXTNAME"] = f"IMAGE_{header['CCD_ID']}"
 
     return header
 
@@ -301,7 +299,8 @@ def getParallelOverScanHeader(simFile: SimFile):
 
     # Using this keyword, the parallel over-scan will end up in the correct extension
 
-    header["EXTNAME"] = f"POVER_{ccdCode}"
+
+    header["EXTNAME"] = f"POVER_{header['CCD_ID']}"
 
     return header
 
