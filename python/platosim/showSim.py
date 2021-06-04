@@ -166,7 +166,8 @@ def getSim(simfile, n=0, type="Image"):
                    im - pixelImage, 
                    su - subPixelImage
                    sm - smearingMap
-                   bi - biasMap
+                   br - biasMapRight
+                   bl - biasMapLeft
                    fp - prnu -- FF pixel
                    fs - irnu -- FF subpixel
                    pp - rebinnedPSFpixel
@@ -182,9 +183,9 @@ def getSim(simfile, n=0, type="Image"):
     # the group names and the data array name within that group
 
     firstTwoLettersOfDataProduct = str(type).lower()[:2]
-    hdf5GroupNameMapping = {"im":'Images', "su":'SubPixelImages', "bi":"BiasMaps",\
+    hdf5GroupNameMapping = {"im":'Images', "su":'SubPixelImages', "br":"BiasMapsRight", "bl":"BiasMapsLeft",\
     "sm":"SmearingMaps", "fp":"Flatfield", "fs":"Flatfield","pp":"PSF","ps":"PSF","pr":"PSF"}
-    hdf5DataNameMapping  = {"im":'image', "su":'subPixelImage', "bi":"biasMap",\
+    hdf5DataNameMapping  = {"im":'image', "su":'subPixelImage', "br":"biasMap", "bl":"biasMap",\
     "sm":"smearingMap", "fp":"PRNU", "fs":"IRNU", "pp":"rebinnedPSFpixel", "ps":"rebinnedPSFsubPixel", "pr":"rotatedPSF"}
     
     groupName = hdf5GroupNameMapping[firstTwoLettersOfDataProduct]
@@ -194,7 +195,7 @@ def getSim(simfile, n=0, type="Image"):
     if firstTwoLettersOfDataProduct in ["fp","fs","pp","ps","pr"]:
         dataName = hdf5DataNameMapping[firstTwoLettersOfDataProduct]
         return simfile[groupName][dataName]
-    elif firstTwoLettersOfDataProduct in ["im","su","bi","sm"]:
+    elif firstTwoLettersOfDataProduct in ["im","su","bl", "br","sm"]:
         dataName = hdf5DataNameMapping[firstTwoLettersOfDataProduct] + str(n).zfill(6)
         return simfile[groupName][dataName]
     else:
