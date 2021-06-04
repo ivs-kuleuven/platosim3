@@ -61,8 +61,13 @@ def hdf5ToFits(inputFilename, outputFilename):
         fits.append(outputFilePath, image, imageHeader)
 
         # Serial pre-scan (bias register maps)
+        try:
+            readoutMode = simFile.getInputParameter("CCD/ReadoutMode", "ReadoutMode").decode("utf-8")
+        except:
+            readoutMode = simFile.getInputParameter("CCD/ReadoutMode", "ReadoutMode")
+        
 
-        if simFile.getInputParameter("CCD/ReadoutMode", "ReadoutMode").decode("utf-8") == "Nominal":
+        if readoutMode == "Nominal":
 
             biasHeader["DATE-OBS"] = formattedTimestamp
 
