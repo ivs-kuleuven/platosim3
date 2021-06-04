@@ -5,7 +5,7 @@
 ** Improvements
 
 
-*** Added an option to the method `getYawPitchRoll` to also obtain the time (GitHub issue #508)
+*** Added an option to the method `getYawPitchRoll` in simfile.py to obtain the time (GitHub issue #508)
 
 *** Apply the BFE after full-well saturation (GitHub issue #584)
 The current implementation of the BFE fails for very large pixel values, which results in negative pixel values in
