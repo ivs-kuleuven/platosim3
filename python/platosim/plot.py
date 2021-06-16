@@ -4,7 +4,115 @@ from platosim.referenceFrames import *
 from matplotlib import pyplot as plt
 from matplotlib import patches
 from matplotlib.path import Path
+import astropy.units as u
+from astropy.coordinates import SkyCoord
 
+
+
+
+def drawStarsInSkyAitoff(fig, raStars, decStars, magStars, skymap=None, cbarOrientation=None):
+    """
+    Project and plot a catalog of stars on the sky in a Aitoff Galactic projection.
+    This plot uses the astropy library to make the ICRS to Galactic coordinate
+    transformation together with a nice Galactic background image. To show the plot
+    it is necessary to introduce a "plt.show()" after the function call. This module
+    scales the scatter plot markersize of the stars according to their sample size.
+
+    Parameters
+    ----------
+    fig : object
+        Figure matplotlib.pyplot object to define e.g. figsize
+    raStars : list, array
+        Right ascension of stars [deg]
+    decStars : list, array
+        Declination of stars [deg]
+    magStars : list, array
+        Magnitudes of stars
+    cbarOrientation : str
+        Colorbar orientation. Default 'horizontal' else 'vertical'
+
+    Return
+    ------
+    axes : object
+        Axes matplotlib.pyplot handle object to be modified by the user
+    """
+
+    # Convert coordinates from ICRS to Galactic using astropy
+
+    gal = SkyCoord(raStars, decStars, frame='icrs', unit=u.deg)
+    gal = gal.galactic
+
+    # Plot Aitoff projection in Galactic coordinates
+
+    plt.title('Aitoff projection in Galactic coordinates', fontsize=18, y=1.02)
+    fig, ax = fig
+    fs = 16
+    if len(raStars) <= 1e2: ms = 3
+    if len(raStars) >= 1e2 and len(raStars) < 1e3: ms = 1
+    if len(raStars) >= 1e3 and len(raStars) < 1e4: ms = 0.5
+    if len(raStars) >= 1e4: ms = 0.1
+
+    # Plot Galactic map as background (e.g. Gaia DR3)
+    # E.g.: skymap = plt.imread('skymap.png')
+
+    if skymap is not None:
+        ax.imshow(skymap)
+
+    # Add the sky projection ontop as transparent layer
+
+    axes = fig.add_subplot(111, projection='aitoff', facecolor='none')
+
+    # Plot the targets on the sky
+
+    im = plt.scatter(-gal.l.wrap_at('180d').radian, gal.b.radian, c=magStars, s=ms, cmap='autumn_r', zorder=3)
+
+    # Vertical or horizontal colorbar showing magnitudes
+
+    if cbarOrientation == 'vertical':
+        cbarax = fig.add_axes([0.905, 0.2, 0.02, 0.57])
+        cbar = plt.colorbar(im, orientation='vertical', cax=cbarax, extend='both')
+        cbar.set_label('Bessel V Magnitude', fontsize=fs)
+        cbar.ax.tick_params(labelsize=fs)
+    else:
+        cbarax = fig.add_axes([0.25, 0.06, 0.525, 0.03])
+        cbar = plt.colorbar(im, orientation='horizontal', cax=cbarax, extend='both')
+        cbar.set_label('Gaia V Magnitude', fontsize=fs)
+        cbar.ax.tick_params(labelsize=fs)
+
+    # Change the tick labels so that they are 0->360, rather than -180->+180
+
+    tickLabels = np.array([150, 120, 90, 60, 30, 0, 330, 300, 270, 240, 210])
+    tickLabels = np.remainder(tickLabels+360, 360)
+    axes.set_xticklabels(tickLabels)
+
+    # Change y ticks and remove last to make space for title
+
+    tickLabels = np.array([-75, -60, -45, -30, -15, 0, 15, 30, 45, 60, ''])
+    axes.set_yticklabels(tickLabels)
+
+    # Change color of x tick labels
+
+    axes.tick_params(axis='x', colors='w')
+
+    # Increase x and y tick labels
+
+    axes.xaxis.set_tick_params(labelsize=fs+1)
+    axes.yaxis.set_tick_params(labelsize=fs)
+
+    # Add axis labels
+
+    axes.set_xlabel('Longitude [deg]', fontsize=fs)
+    axes.set_ylabel('Latitude [deg]', fontsize=fs)
+
+    # Set grid and remore outer ticks (if set by default)
+
+    axes.grid(True, alpha=0.3)
+    ax.axis('off')
+    plt.draw()
+
+    # That's it
+
+    return axes
 
 
 
@@ -22,7 +130,7 @@ def drawCCDsInSkyMollweide(fig, raPlatform, decPlatform, solarPanelOrientation, 
     INPUT: raPlatform:            right ascension of the platform pointing axis             [rad]
            decPlatform:           declination of the platform pointing axis                 [rad]
            solarPanelOrientation: (0,pi/2,pi,3pi/2) for quarters (Q1,Q2,Q3,Q4)              [rad]
-           tiltAngle:             tilt angle of the telescope w.r.t. platform z-axis        [rad]                   
+           tiltAngle:             tilt angle of the telescope w.r.t. platform z-axis        [rad]
            azimuthAngle:          azimuth angle of the telescope on the platform            [rad]
            focalPlaneAngle:       angle between the Y_TL axis and the Y_FP axis: gamma_FP   [rad]
            focalLength:           focal length of the camera                                [mm]
@@ -36,14 +144,14 @@ def drawCCDsInSkyMollweide(fig, raPlatform, decPlatform, solarPanelOrientation, 
     """
 
     # Select the proper CCD codes depending on whether we're dealing with the nominal or the fast cams
-    
+
     if normal == True:
         ccdCodes = ['1', '2', '3', '4']
     else:
         ccdCodes = ['1F', '2F', '3F', '4F']
 
 
-    # Set up the colors to be used to draw each CCD. 
+    # Set up the colors to be used to draw each CCD.
     # Different CCDs have different colors.
 
     color = {'1': 'b', '1F': 'b', '2': 'r', '2F': 'r', '3': 'g', '3F': 'g', '4': 'k', '4F': 'k'}
@@ -107,7 +215,7 @@ def drawCCDsInSkyMollweide(fig, raPlatform, decPlatform, solarPanelOrientation, 
 
 
 
-def drawStarsInSkyMollweide(fig, ra, dec ):
+def drawStarsInSkyMollweide(fig, ra, dec):
 
     """
     PURPOSE: Project and plot the stars with the given right ascension and declination on the sky
@@ -467,4 +575,118 @@ def skyProjection(longitude, latitude, fig, origin=0, projection="mollweide"):
     
     # That's it!
     
+    return axes
+
+
+
+
+
+
+
+
+def plotStellarSampleDistributions(fig, mag, magCon, magRange, numConPerTar, distCon):
+    """
+    This function plots 4 different stellar sample distribution plots
+    for an PLATO Input Catalogue (PIC)
+    1) Magnitude distribution of PIC targets
+    2) Magnitude distribution of PIC contaminants
+    3) Number distribution of contaminants per target
+    4) Distance distribution of contaminants
+
+    Parameters
+    ----------
+    mag : list, array
+        The stellar target magnitudes
+    magCon : list, array
+        The stellar contaminant magnitudes
+    magRange : list, array
+        Upper and lower magnitude limit for input sample
+    numConPerTar : list, array
+        The number of contaminants (integer) per target star
+    distCon : list, array
+        Distances of each contaminant star w.r.t. their target
+
+    Return
+    ------
+    axes : object
+        Axes matplotlib.pyplot handle object to be modified by the user
+    """
+
+    # Copy figure object not to overwrite it
+
+    fig1, axes = fig
+
+    # Prepare bins and plot magnitude distribution of targets
+
+    magbinTar  = 0.1
+    if magRange[1]-magRange[0] > 10: magbinTar = 0.2
+    binsizeTar = int((magRange[1] - magRange[0]) / magbinTar) + 1
+    binlistTar = np.linspace(magRange[0], magRange[1], binsizeTar)
+
+    axes[0,0].hist(mag, binlistTar, facecolor='b', edgecolor='b', fill=True, alpha=0.3)
+    axes[0,0].set_title('Magnitude distribution of PIC targets')
+    axes[0,0].set_xlabel('Gaia V Magnitude')
+    axes[0,0].set_ylabel('Number of stars')
+    axes[0,0].locator_params(axis='y', integer=True)
+    axes[0,0].tick_params(axis='x', which='minor', bottom=True, top=False)
+    axes[0,0].tick_params(axis='x', which='major', bottom=True, top=False)
+    axes[0,0].tick_params(axis='y', which='minor', left=False, right=False)
+    axes[0,0].tick_params(axis='y', which='major', left=True, right=False)
+    axes[0,0].grid(axis='y', color='gray', alpha=0.3)
+
+    # Prepare bins and plot magnitude distribution of contaminants
+
+    magbinCon  = 0.2
+    binsizeCon = int((np.max(magCon) - np.min(magCon)) / magbinCon) + 1
+    binlistCon = np.linspace(round(np.min(magCon)), round(np.max(magCon)), binsizeCon)
+
+    axes[0,1].hist(magCon, binlistCon, facecolor='m', edgecolor='m', fill=True, alpha=0.3)
+    axes[0,1].set_title('Magnitude distribution of PIC contaminants')
+    axes[0,1].set_xlabel('Gaia V Magnitude')
+    axes[0,1].set_ylabel('Number of stars')
+    axes[0,1].tick_params(axis='x', which='minor', bottom=True, top=False)
+    axes[0,1].tick_params(axis='x', which='major', bottom=True, top=False)
+    axes[0,1].tick_params(axis='y', which='minor', left=False, right=False)
+    axes[0,1].tick_params(axis='y', which='major', left=True, right=False)
+    axes[0,1].grid(axis='y', color='gray', alpha=0.3)
+
+    # Prepare bins and plot number distribution of contaminants per target
+
+    numbinCon  = 1
+    binsizeNum = int((np.max(numConPerTar) - 0) / numbinCon) + 2
+    binlistNum = np.linspace(-0.5, np.max(numConPerTar)+0.5, binsizeNum)  # -0.5 because num x-axis
+
+    axes[1,0].hist(numConPerTar, binlistNum, facecolor='g', edgecolor='g', fill=True, log=True, alpha=0.3)
+    axes[1,0].set_title('Number distribution of contaminants per target')
+    axes[1,0].set_xlabel('Number of contaminants')
+    axes[1,0].set_ylabel('Number of targets')
+    axes[1,0].tick_params(axis='x', which='minor', bottom=False, top=False)
+    axes[1,0].tick_params(axis='x', which='major', bottom=True, top=False)
+    axes[1,0].tick_params(axis='y', which='minor', left=False, right=False)
+    axes[1,0].tick_params(axis='y', which='major', left=True, right=False)
+    axes[1,0].grid(axis='y', color='gray', alpha=0.3)
+
+    # Prepare bins and plot distance distribution of contaminants in respect to their target star
+
+    distbinCon  = 1.0
+    binsizeDist = int((np.max(distCon) - np.min(distCon)) / distbinCon) + 2  # +1 extra because zero is rare
+    binlistDist = np.linspace(round(np.min(distCon)), round(np.max(distCon)), binsizeDist)
+
+    axes[1,1].hist(distCon, binlistDist, facecolor='orange', edgecolor='orange', fill=True, alpha=0.4)
+    axes[1,1].set_title('Distance distribution of contaminants')
+    axes[1,1].set_xlabel('Distances [arcsec]')
+    axes[1,1].set_ylabel('Number of stars')
+    axes[1,1].locator_params(axis='y', integer=True)
+    axes[1,1].tick_params(axis='x', which='minor', bottom=True, top=False)
+    axes[1,1].tick_params(axis='x', which='major', bottom=True, top=False)
+    axes[1,1].tick_params(axis='y', which='minor', left=False, right=False)
+    axes[1,1].tick_params(axis='y', which='major', left=True, right=False)
+    axes[1,1].grid(axis='y', color='gray', alpha=0.3)
+
+    # Layout
+
+    plt.tight_layout()
+
+    # That's it!
+
     return axes
