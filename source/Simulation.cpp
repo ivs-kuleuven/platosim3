@@ -409,7 +409,7 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
 
 		else if (readoutMode == "Partial")
 		{
-            numRowsReadout = configParams.getInteger("CCD/ReadoutMode/Partial/NumRowsReadout");
+		numRowsReadout = configParams.getInteger("CCD/ReadoutMode/Partial/NumRowsReadout");
 			numRowsDump = firstRowExposed - numRowsReadout;
 		}
 
