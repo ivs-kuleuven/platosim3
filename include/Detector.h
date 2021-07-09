@@ -83,6 +83,7 @@ class Detector: public HDF5Writer
 
         virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) = 0;
         virtual void addFlux(double flux) = 0;
+        virtual tuple<bool, double, double> addExtendedGhost(double xFP, double yFP, double radius, double flux) = 0;
 
         bool isInPixelMap(double row, double column);
         bool isInSubfield(double xFPmm, double yFPmm);
@@ -109,7 +110,7 @@ class Detector: public HDF5Writer
         virtual void readOut(float exposureTime);
         virtual void addPhotonNoise();
         virtual void addCosmics(float exposureTime);
-        virtual void addCosmics(float exposureTime, arma::Mat<float> &map, int numRows, int numColumns, string area);
+        virtual void addCosmics(float exposureTime, arma::Mat<float> &map, vector<unsigned int> &rowsCos, vector<unsigned int> &columnsCos, vector<double> &fluxCos, int numRows, int numColumns, string area);
         virtual void applyFullWellSaturation();
         virtual void applyCTI();
         virtual void applyChargeInjection();
@@ -132,11 +133,33 @@ class Detector: public HDF5Writer
 
         virtual void initHDF5Groups() override;
         virtual void writePixelMapsToHDF5(int exposureNr);
+        virtual void writeCosmicHitsToHDF5(int exposureNr);
+        virtual void writeCosmicFieldToHDF5(int exposureNr, string field, vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux);
 
         double getRowEdgeFOV(int column);
 
         virtual double getTemperature();
+  
+        vector<unsigned int> rowsOfCosmicsInSubField;
+        vector<unsigned int> columnsOfCosmicsInSubField;
+        vector<double> fluxOfCosmicsInSubField;
 
+        vector<unsigned int> rowsOfCosmicsInSmearingMap;
+        vector<unsigned int> columnsOfCosmicsInSmearingMap;
+        vector<double> fluxOfCosmicsInSmearingMap;
+  
+
+        vector<unsigned int> rowsOfCosmicsInBiasMapLeft;
+        vector<unsigned int> columnsOfCosmicsInBiasMapLeft;
+        vector<double> fluxOfCosmicsInBiasMapLeft;
+  
+        vector<unsigned int> rowsOfCosmicsInBiasMapRight;
+        vector<unsigned int> columnsOfCosmicsInBiasMapRight;
+        vector<double> fluxOfCosmicsInBiasMapRight;
+
+
+
+  
         arma::Mat<float> pixelMap;               // Pixel map, excl. edge pixels
         arma::Mat<float> smearingMap;            // Smearing map (i.e. over-scan strip)
         arma::Mat<float> biasMapLeft;            // Bias map (i.e. pre-scan strip) for the left detector half
@@ -177,7 +200,7 @@ class Detector: public HDF5Writer
         bool includeCosmicsInSubField;           // Whether or not to include cosmic hits in the subfield
         bool includeCosmicsInSmearingMap;        // Whether or not to include cosmic hits in the (physical) overscan region
         bool includeCosmicsInBiasMap;            // Whether or not to include cosmic hits in the (virtual) prescan region
-        double cosmicHitRate;					 // Cosmic hit rate [events / cm^2 / s]
+        double cosmicHitRate;				 // Cosmic hit rate [events / cm^2 / s]
         vector<double> cosmicTrailLength;		 // Interval of the length of the cosmic trails [pixels]
         vector<double> cosmicIntensity; 		 // Interval of the intensity of the cosmic trails [e-]
         vector<double> relTransmissivityCoefVector;
@@ -211,6 +234,7 @@ class Detector: public HDF5Writer
         bool writeBiasMaps;                      // Whether or not to write the bias maps (left and right) to the HDF5 file, for each exposure
         bool writeSmearingMaps;                  // Whether or not to write the smearing maps to the HDF5 file, for each exposure 
         bool writeThroughputMaps;                // Whether or not to write the throughput maps to the HDF5 file, for each exposure
+        bool writeCosmics;                       // Whether or not to write the cosmics row, column and flux to the HDF5 file, for each exposure
 
         string CTImodel;
         double meanCte;                          // Mean charge-transfer efficiency  (in [0,1])
@@ -230,8 +254,8 @@ class Detector: public HDF5Writer
         double readoutTimeBeforeNextExposure;    // Duration of the readout before the next exposure can start [s]
         double readoutTimeDuringNextExposure;    // Duration of the readout when the next exposure has already started [s]
 
-        bool includeBFE;						 // Whether or not to include the BFE
-        bool includeDarkSignal;	      			 // Whether or not to include dark
+        bool includeBFE;			 // Whether or not to include the BFE
+        bool includeDarkSignal;	      		 // Whether or not to include dark
         bool includePhotonNoise;                 // Whether or not to include photon noise
         bool includeReadoutNoise;                // Include readout noise [yes or no]
         bool includeCTIeffects;                  // Include CTI effects [yes or no]

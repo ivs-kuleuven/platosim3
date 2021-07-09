@@ -26,8 +26,11 @@ class DetectorWithMappedPSF : public Detector
 
         virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) override;
         virtual void addFlux(double flux) override;
+        virtual tuple<bool, double, double> addExtendedGhost(double xFP, double yFP, double radius, double flux) override;
 
         virtual void configure(ConfigurationParameters &configParam){};
+        void writeDiffusedPSFToHDF5(PointSpreadFunction *psf);
+        void applyDiffusionKernelOnPSF(double subpixRow, double subpixColumn, double flux, arma::fmat& psf, int numberOfPsfSubpixelsPerPixel);
 
     protected:
 
@@ -64,6 +67,8 @@ class DetectorWithMappedPSF : public Detector
         bool writeFlatfieldMap;                 // Whether or not to write the flatfield map to the HDF5 file
         bool writeSubPixelImagesToHDF5;         // Write subpixel maps to HDF5 as well
         bool includeConvolution;                // Whether or not to convolve the subPixelMap with the PSF
+
+        bool writeDiffusedPSF;                  // Whether or not to write the diffused PSF to the output HDF5 file
 
         arma::Mat<float> diffusionKernel;                    // Diffusion kernel image
         IntegralOfAnalyticSignalResponse signalResponse;	 // Signal response

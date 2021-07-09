@@ -11,6 +11,13 @@ DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configPara
                                                                                                                                                                                                                                                                                                         includeFlatfield(true),
                                                                                                                                                                                                                                                                                                         writeSubPixelImagesToHDF5(false) {}
 
+
+
+
+
+
+
+
 /**
   * \brief: Generate the diffusion kernel.  This is generated at sub-pixel level.
   *
@@ -23,6 +30,16 @@ void DetectorWithMappedPSF::generateDiffusionKernel(double kernelWidth)
 
     diffusionKernel.zeros(diffusionKernelImageSize, diffusionKernelImageSize);
 }
+
+
+
+
+
+
+
+
+
+
 
 /**
  * \brief: Generate the (random) flatfield variations.  This map is generated
@@ -209,6 +226,11 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
         Log.debug("DetectorWithMappedPSF: Writing SubPixelMap " + to_string(exposureNr) + " to HDF5 file.");
         writeSubPixelMapToHDF5(exposureNr);
     }
+    // Write the cosmic hits to the HDF5 file
+    
+        Log.debug("Detector: Writing Cosmics of the PixelMap, smearing map, bias map #" + to_string(exposureNr) + " to HDF5 file.");
+
+    writeCosmicHitsToHDF5(exposureNr);
 
     // Advance the internal clock
 
@@ -288,12 +310,47 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
     // feel the PRNU, but for the MappedPSF we first need to apply the PRNU on sub-pixel level and afterwards
     // apply the throughputEfficiency() at pixel level, so there is no possibilty to respect the order
     // (1) throughput (2) charge injection (3) PRNU.
-    
+
     if (includeChargeInjection)
     {
         Log.debug("Detector: applying charge injection");
         applyChargeInjection();
     }
+
+
+
+    // Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
+    // the pixels are still receiving photons from the sky, while they are being transfered towards
+    // the readout register.
+    // Pixel units before: [electrons]
+    // Pixel units after: [electrons]
+
+
+    if (includeOpenShutterSmearing)
+    {
+        Log.debug("Detector: applying open shutter smearing.");
+        applyOpenShutterSmearing(exposureTime);
+    }
+    else
+    {
+         Log.debug("Detector: no open shutter smearing applied.");
+    }
+
+    // Apply poisson distributed photon noise
+    // Pixel units before: [electrons]
+    // Pixel units after: [electrons]
+    
+
+    if (includePhotonNoise)
+    {
+        Log.debug("Detector: adding photon noise.");
+        addPhotonNoise();
+    }
+    else
+    {
+        Log.debug("Detector: no photon noise added.");
+    }
+
 
     // Add dark current
 
@@ -308,19 +365,17 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
         Log.debug("Detector: no dark current added");
     }
 
-    // Brighter-Fatter effect
-
-    if (includeBFE)
-    {
-        Log.debug("DetectorWithMappedPSF: adding Brighter-Fatter effect");
-
-        applyBFE();
-    }
-    else
-    {
-        Log.debug("DetectorWithMappedPSF: no Brighter-Fatter effect added");
-    }
 }
+
+
+
+
+
+
+
+
+
+
 
 /**
  * \brief: Add the given flux value to the value of the sub-pixel that corresponds to the given coordinates 
@@ -387,6 +442,78 @@ tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yF
     }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Insert the extended ghost with the given radius and flux at the given focal-plane position.
+ * 
+ * Note that the extended source will be convolved with the PSF in a next step.
+ * 
+ * \param x0: Focal-plane x-coordinate of the centre of the extended ghost [mm].
+ * \param y0: Focal-plane y-coordinate of the centre of the extended ghost [mm].
+ * \param radius: Radius of the extended ghost [mm].
+ * \param flux: Flux of the extended ghost [photons].
+ * 
+ * \return: Whether or not the extended source falls (at least partially) on the sub-field, and the
+ *          (row, column) coordinates of the centre of the extended ghost in the pixel map.
+ */
+tuple<bool, double, double> DetectorWithMappedPSF::addExtendedGhost(double x0, double y0, double radius, double flux)
+{
+    // Calculate the number of sub-pixels in the extended ghost
+
+    double radiusSubPixels = radius * 1000 / pixelSize * numSubPixelsPerPixel;    // Radius [sub-pixels]
+    double radiusSubPixelsSquared = pow(radiusSubPixels, 2);                      // Squared radius [sub-pixels^2]
+
+    double numSubPixels = PI * pow(radiusSubPixels, 2);       // Area of the extended ghost [sub-pixels]
+    double fluxPerSubPixel = flux / numSubPixels;             // Flux [photons / sub-pixel]
+
+    // Calculate the (row, column) coordinates of the centre of the extended source in the sub-pixel map
+
+    double row0, column0;
+    tie(row0, column0) = focalPlaneToPixelCoordinates(x0, y0);
+    row0 -= subFieldZeroPointRow;
+    column0 -= subFieldZeroPointColumn;
+
+    row0 *= numSubPixelsPerPixel;
+    column0 *= numSubPixelsPerPixel;
+
+    bool ghostInSubPixelMap = false;
+
+    // Try to add flux to all pixels covered by the extended ghosts
+
+    for(int row = row0 - radiusSubPixels; row <= row0 + radiusSubPixels; row++)
+    {
+        for(int column = column0 - radiusSubPixels; column <= column0 + radiusSubPixels; column++)
+        {
+            if (isInSubPixelMap(row, column) && pow(column - column0, 2) + pow(row - row0, 2) <= radiusSubPixelsSquared)
+            {
+                ghostInSubPixelMap = true;
+                subPixelMap(row, column) += fluxPerSubPixel;
+            }
+        }
+    }
+
+    return  make_tuple(ghostInSubPixelMap, row0 / numSubPixelsPerPixel, column0 / numSubPixelsPerPixel);
+}
+
+
+
+
+
+
+
+
+
+
 /**
  * \brief: Applies charge diffusion or jitter smoothing for the given flux at the given position in the sub-pixel map.
  *
@@ -428,6 +555,16 @@ void DetectorWithMappedPSF::applyDiffusionKernel(double subpixRow, double subpix
     subPixelMap(rowSpan, columnSpan) += diffusionKernel(ySpan, xSpan) * flux;
 }
 
+
+
+
+
+
+
+
+
+
+
 /**
  * \brief Check whether the given (row, column) indices are within the array range of the subpixel map.
  *
@@ -460,6 +597,14 @@ void DetectorWithMappedPSF::addFlux(double flux)
     subPixelMap += flux / numSubPixelsPerPixel / numSubPixelsPerPixel;
 }
 
+
+
+
+
+
+
+
+
 /**
  * \brief: Multiply the sub-pixel map with the flatfield.
  * 
@@ -487,6 +632,14 @@ void DetectorWithMappedPSF::applyFlatfield()
 
     subPixelMap.submat(beginRow, beginCol, endRow, endCol) = subPixelMap.submat(beginRow, beginCol, endRow, endCol) % flatfieldMap;
 }
+
+
+
+
+
+
+
+
 
 /**
  * \brief Rebin the sub-pixel map to pixel level and crop the edge pixels.
@@ -517,6 +670,11 @@ void DetectorWithMappedPSF::rebin()
     }
 }
 
+
+
+
+
+
 /**
  * \brief: Convolve the sub-pixel map with the PSF, keeping the same dimensions.
  *
@@ -539,6 +697,14 @@ void DetectorWithMappedPSF::convolveWithPsf()
     }
 }
 
+
+
+
+
+
+
+
+
 /**
  * \brief: Creates the group(s) in the HDF5 file where the detector specific
  *         information will be stored.  These groups have to be created once,
@@ -554,6 +720,13 @@ void DetectorWithMappedPSF::initHDF5Groups()
     }
 }
 
+
+
+
+
+
+
+
 /**
  * \brief: Writes the subpixel map for the HDF5 file.
  */
@@ -567,4 +740,83 @@ void DetectorWithMappedPSF::writeSubPixelMapToHDF5(int exposureNr)
     // Add the image to the "SubPixelImages" group
 
     hdf5File.writeArray("/SubPixelImages", imageName, subPixelMap);
+}
+
+
+
+
+
+
+
+/** 
+ * \brief: Write the diffused PSF to the HDF5 file.
+ */
+
+void DetectorWithMappedPSF::writeDiffusedPSFToHDF5(PointSpreadFunction *psf)
+{
+    arma::fmat psfMap = psf->getOriginalPSF();
+    arma::fmat diffusedPsf = arma::fmat(size(psfMap), arma::fill::zeros);
+
+    int numRows = size(psfMap)(0);
+    int numColumns = size(psfMap)(1);
+
+    // set the diffusion kernel image size
+    int psfSubPixelsPerPixel = psf->getNumSubPixelsPerPixel();
+    generateDiffusionKernel(chargeDiffusionStrength*psfSubPixelsPerPixel);
+    
+    
+    for (int row=0; row < numRows; row++)
+    {
+      for (int column=0; column < numColumns; column++)
+      {
+       	applyDiffusionKernelOnPSF(row, column, psfMap(row, column), diffusedPsf, psfSubPixelsPerPixel);
+      }
+    }
+
+    // reset the diffusion kernel
+    generateDiffusionKernel(chargeDiffusionStrength*numSubPixelsPerPixel);
+
+    // write the diffused psf to the output hdf5 file
+    hdf5File.writeArray("/PSF", "diffusedPSF", diffusedPsf);
+}
+
+
+
+
+
+
+
+void DetectorWithMappedPSF::applyDiffusionKernelOnPSF(double subpixRow, double subpixColumn, double flux, arma::fmat& psf, int numberOfPsfSubpixelsPerPixel)
+{
+    int sx = subpixColumn - (diffusionKernelImageSize - 1) / 2;
+    int sy = subpixRow - (diffusionKernelImageSize - 1) / 2;
+
+    double ox = subpixColumn - floor(subpixColumn);
+    double oy = subpixRow - floor(subpixRow);
+
+    int numRows = size(psf)(0);
+    int numColumns = size(psf)(1);
+
+    // Establish diffusion kernel image
+
+    signalResponse = IntegralOfAnalyticSignalResponse(diffusionKernelImageSize);
+    signalResponse.addPart(ox, oy, 1., diffusionKernelWidth);
+
+    for (unsigned int row = 0; row < diffusionKernelImageSize; row++)
+    {
+        for (unsigned int column = 0; column < diffusionKernelImageSize; column++)
+        {
+            diffusionKernel(row, column) = signalResponse(column, row); // Normalisation done by ()-operator
+        }
+    }
+
+    // Add the flux to the psf 
+
+    arma::span rowSpan = arma::span(max(0, sy), min((int)numRows, sy + diffusionKernelImageSize) - 1);
+    arma::span columnSpan = arma::span(max(0, sx), min((int)numColumns, sx + diffusionKernelImageSize) - 1);
+
+    arma::span xSpan = arma::span(max(0, sx) - sx, min((int)numColumns, sx + diffusionKernelImageSize) - sx - 1);
+    arma::span ySpan = arma::span(max(0, sy) - sy, min((int)numRows, sy + diffusionKernelImageSize) - sy - 1);
+
+    psf(rowSpan, columnSpan) += diffusionKernel(ySpan, xSpan) * flux;
 }

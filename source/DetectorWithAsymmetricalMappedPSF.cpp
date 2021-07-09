@@ -131,6 +131,7 @@ void DetectorWithAsymmetricalMappedPSF::configure(ConfigurationParameters &confi
     // The configuration for the HDF5 contents
 
     writeFlatfieldMap = configParam.getBoolean("ControlHDF5Content/WriteFlatfieldMap");
+    writeDiffusedPSF = configParam.getBoolean("ControlHDF5Content/WriteDiffusedPSF");
 }
 
 
@@ -159,6 +160,19 @@ void DetectorWithAsymmetricalMappedPSF::setPsfForSubfield()
 
     psf->select(xFPmm, yFPmm);
 
+    if(psf->getNumSubPixelsPerPixel() < numSubPixelsPerPixel)
+    {
+        throw IllegalArgumentException(string("DetectorWithAsymmetricalMappedPSF.setPsfForSubfield: ") + 
+            "The sub-pixel resolution of the PSF (" + to_string(psf->getNumSubPixelsPerPixel()) +
+                    ") must be at least that of the sub-field (" + to_string(numSubPixelsPerPixel) + ")");
+    }
+
+    // If requestied save the diffused PSF to the output file
+    if (writeDiffusedPSF)
+    {
+      writeDiffusedPSFToHDF5(psf);
+    }
+    
     //  Compensate for the orientation of the CCD wrt focal plane orientation.
 
     psf->rotate(-rotationAnglePsf);
@@ -172,3 +186,7 @@ void DetectorWithAsymmetricalMappedPSF::setPsfForSubfield()
 
     convolver.initialise(numRowsSubPixelMap, numColumnsSubPixelMap, psfMap);
 }
+
+
+
+

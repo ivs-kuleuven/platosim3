@@ -63,6 +63,7 @@ class Telescope  : public Heartbeat, HDF5Writer
         double driftTimeScale;                 // Timescale of thermo-elastic drift                                 [s]
  
         bool useDrift;                         // If false, the yaw, pitch, and roll of the thermo-elastic drift are always zero.
+        bool writeTelescopeACS;                // Determines if the Transmission Efficiency should be writen to the HDF5 file
 
         double originalFocalPlaneOrientation;  // As in the input file [rad]
 

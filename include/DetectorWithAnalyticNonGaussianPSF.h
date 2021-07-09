@@ -37,6 +37,7 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
         bool addFluxToMap(arma::Mat<float>& map, double row0, double col0, double r, double p, double flux);
         virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) override;
         virtual void addFlux(double flux) override;
+        virtual tuple<bool, double, double> addExtendedGhost(double xFP, double yFP, double radius, double flux) override;
 
         void integrateAnalyticPSF(IntegralOfAnalyticSignalResponse&, double, double, double, double, double, int = 1);
 
@@ -68,6 +69,7 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
         bool includeFlatfield;              // Whether or not to include flat fielding        
         long flatfieldSeed;                 // Seed dedicated to generate a random flatfield map
         bool writeFlatfieldMap;             // Whether or not to write the flatfield map to the HDF5 file
+        bool writeHighResolutionPSF;        // Wheter or not to write the high resosultion PSF to the HDF5 file 
 
         bool includePhotometry;             // Whether or not to include on-the-fly photometry
         int contaminationRadius;            // Stars outside the radius are never considered a contaminant of the main target [pix] 

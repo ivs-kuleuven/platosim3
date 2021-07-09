@@ -4,12 +4,14 @@ build/*
 inputfiles/*
 outputfiles/*
 dependencies/Installs/*
+dependencies/Downloads/._*
 *.xcodeproj/*
 *.sublime-project
 *.sublime-workspace
 PlatoSim3.code-workspace
 .vscode/*
 PlatoSim3.code-workspace
+.idea
 
 # Ignore some of the auto-generated files (during cmake)
 
@@ -65,7 +67,8 @@ log.txt
 *.sql
 *.sqlite
 *.swp
-
+*~
+*#
 # OSX generated files
 
 .DS_Store*
@@ -76,3 +79,6 @@ Pipfile*
 /venv/
 /requirements.in
 /requirements.txt
+
+# Validation tests
+tests/validationTests/ioFiles/

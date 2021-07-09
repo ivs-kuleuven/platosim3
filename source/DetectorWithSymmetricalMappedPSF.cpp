@@ -131,6 +131,7 @@ void DetectorWithSymmetricalMappedPSF::configure(ConfigurationParameters &config
     // The configuration for the HDF5 contents
 
     writeFlatfieldMap = configParam.getBoolean("ControlHDF5Content/WriteFlatfieldMap");
+    writeDiffusedPSF = configParam.getBoolean("ControlHDF5Content/WriteDiffusedPSF");
 }
 
 
@@ -169,6 +170,13 @@ void DetectorWithSymmetricalMappedPSF::setPsfForSubfield()
 
     psf->select(radius);
 
+    if(psf->getNumSubPixelsPerPixel() < numSubPixelsPerPixel)
+    {
+        throw IllegalArgumentException(string("DetectorWithSymmetricalMappedPSF.setPsfForSubfield: ") + 
+            "The sub-pixel resolution of the PSF (" + to_string(psf->getNumSubPixelsPerPixel()) +
+                    ") must be at least that of the sub-field (" + to_string(numSubPixelsPerPixel) + ")");
+    }
+
     // Get the 'user specified' orientation angle from the psf.
     // if the user didn't specify a rotation angle, calculate it
     // from the given focal plane coordinates.
@@ -178,6 +186,12 @@ void DetectorWithSymmetricalMappedPSF::setPsfForSubfield()
     if (angle < 0.0)
     {
         angle = atan2(yFPmm, xFPmm);
+    }
+
+    // If requested save the diffused PSF to the output file
+    if (writeDiffusedPSF)
+    {
+        writeDiffusedPSFToHDF5(psf);
     }
 
     //  Compensate for the orientation of the CCD wrt focal plane orientation.

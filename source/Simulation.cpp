@@ -82,6 +82,10 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     double readoutTimeDuringNextExposure;
     tie(readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure) = configureReadoutTime(configParams);
     exposureTime = cycleTime - readoutTimeBeforeNextExposure;
+    if (cycleTime < readoutTimeBeforeNextExposure)
+      {
+	Log.warning("Simulation: exposure time is negative value: " + to_string(exposureTime));	
+      }
 
     Log.debug("Simulation: Cycle time: " + to_string(cycleTime));
     Log.debug("Simulation: Exposure time: " + to_string(exposureTime));
@@ -252,19 +256,25 @@ void Simulation::configure(ConfigurationParameters &configParams)
     useDetectorNominalTemperature   = configParams.getString("CCD/Temperature") == "Nominal";
     sendImagettesToClient           = configParams.getBoolean("ControlTcpConnection/SendImagettesToClients");
     getWindowPositionFromServer     = configParams.getBoolean("ControlTcpConnection/GetWindowPositionsFromServer");
+    writeStarCatalog                = configParams.getBoolean("ControlHDF5Content/WriteStarCatalog");                
 
     // The readout of different CCDs are shifted in time because of the power budget.
     // Find out the right time shift.
 
     string ccdPosition              = configParams.getString("CCD/Position");
+    bool isFastCamera               = configParams.getString("Telescope/GroupID") == "Fast";
     if (ccdPosition == "Custom")
     {
         timeShift = configParams.getDouble("CCD/TimeShift");
     }
-    else
+    else if (!isFastCamera)
     {
         int index = stoi(ccdPosition) - 1;   // Position are named  [1, 2, 3, 4] while the index into vector starts at 0
         timeShift = configParams.getDoubleAt("CCDPositions/TimeShift", index);
+    }
+    else
+    {
+        timeShift = 0.0;
     }
 
     Log.debug("Simulation: configure(): time shift for current CCD configuration: " + to_string(timeShift));
@@ -399,7 +409,7 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
 
 		else if (readoutMode == "Partial")
 		{
-            numRowsReadout = configParams.getInteger("CCD/ReadoutMode/Partial/NumRowsReadout");
+		numRowsReadout = configParams.getInteger("CCD/ReadoutMode/Partial/NumRowsReadout");
 			numRowsDump = firstRowExposed - numRowsReadout;
 		}
 
@@ -499,8 +509,10 @@ void Simulation::run()
             n++;             
         }
     }
-
+    if (writeStarCatalog)
+    {
     writeStarCatalogToHDF5();
+    }
 }
 
 
@@ -556,9 +568,8 @@ void Simulation::writeStarCatalogToHDF5()
 
     // For all detected stars, copy the equatorial sky coordinates and the magnitude 
     // from the user-given star catalog to the output HDF5 file in a custom group.
-    
-    hdf5File->createGroup("/StarCatalog");
 
+    hdf5File->createGroup("/StarCatalog");
     const int Nstars = allStarIDs.size();
     vector<unsigned int> starIDs(Nstars);    // set<> is not contiguous, vector<> is. Needed for HDF5.
     vector<double> RA(Nstars);
@@ -592,7 +603,6 @@ void Simulation::writeStarCatalogToHDF5()
             tie(rowPix[k], colPix[k]) = detector->focalPlaneToPixelCoordinates(xFPmm[k], yFPmm[k]);
             k++;
         }
-
         hdf5File->writeArray("StarCatalog/", "starIDs", starIDs.data(), starIDs.size());
         hdf5File->writeArray("StarCatalog/", "RA",      RA.data(), RA.size());
         hdf5File->writeArray("StarCatalog/", "Dec",     dec.data(), dec.size());
@@ -735,6 +745,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("ThroughputBandwidth");
     addDouble("ThroughputLambdaC");
     addBoolean("IncludeFieldDistortion");
+    addBoolean("IncludeGhosts");
     subGroup = "Camera/FieldDistortion";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addString("Type");
@@ -753,6 +764,18 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addString("Source");
     addDouble("ConstantValue");
     addString("FromFile");
+
+    subGroup = "Camera/Ghosts";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    subGroup = "Camera/Ghosts/PointLike";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addDouble("FluxRatio");
+    addDouble("DistanceCutOff");
+    subGroup = "Camera/Ghosts/Extended";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addDouble("FluxRatio");
+    addDouble("DistanceRatio");
+    addDoubleVector("RadiusCoefficients");
 
     subGroup = "PSF";
     hdf5File->createGroup(parentGroup + "/" + subGroup);

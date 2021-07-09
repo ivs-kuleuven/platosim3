@@ -8,14 +8,15 @@ PlatoSim3 relies on a number of other packages, which are all included in the Pl
     $ python ./dependencies/installscripts/install_armadillo.py
     $ python ./dependencies/installscripts/install_fftw.py
     $ python ./dependencies/installscripts/install_faddeeva.py
-
+    $ python ./dependencies/installscripts/install_zeromq.py
+    
 Alternatively, you can also install the required dependencies and build the code in one go by typing (also in the directory in which PlatoSim3 was downloaded):
 
     $ ./install.sh
 
 If problems would arise when executing this command, it may be useful to tried to install the dependencies one-by-one to pinpoint the problem.
 
-Running this script will create two executables :
+Running this script will create two executables:
 
-* <code>platosim</code> to run simulations (see below)
-* and <code>testplatosim</code> to run the test harnesses (without arguments).
+* <code>platosim</code> to run simulations (see below) and
+* <code>testplatosim</code> to run the test harnesses (without arguments).
