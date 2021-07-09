@@ -38,7 +38,7 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
         virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) override;
         virtual void addFlux(double flux) override;
 
-        void integrateAnalyticPSF(IntegralOfAnalyticSignalResponse&, double, double, double, double, int = 1);
+        void integrateAnalyticPSF(IntegralOfAnalyticSignalResponse&, double, double, double, double, double, int = 1);
 
         void makeHighResolutionPSF(arma::Mat<float> &highResMap, int Npixels, int Nsubpixels);
         virtual void flushOutput() override;
