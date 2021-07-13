@@ -246,17 +246,18 @@ void DetectorWithAnalyticNonGaussianPSF::updateParameters(double time)
  * \param Nsubpixels: number of subpixels per pixel (e.g. 128, set to 1 for no subpixels)
  **/
 
-void DetectorWithAnalyticNonGaussianPSF::integrateAnalyticPSF(IntegralOfAnalyticSignalResponse& psf, double x, double y, double r, double p, int Nsubpixels)
+void DetectorWithAnalyticNonGaussianPSF::integrateAnalyticPSF(IntegralOfAnalyticSignalResponse& psf, double x, double y, double q, double p, double rotpsf, int Nsubpixels)
 {
     double ox = x - floor(x);
     double oy = y - floor(y);
     double s = (*sigma)() * Nsubpixels;
-    if (params.size() > 0 && params[0].size() > 6) 
+    if (params.size() == 6 && params[0].size() > 6) 
     {
-        r /= 1.4;
-        unsigned c1 = min(params[0].size() / 7 - 1, (size_t)r) * 7;
-        unsigned c2 = min(params[0].size() / 7 - 1, (size_t)r + 1) * 7;
-        double w = r - (unsigned)r;
+        q /= 1.4;
+        p -= rotpsf;
+        unsigned c1 = min(params[0].size() / 7 - 1, (size_t)q) * 7;
+        unsigned c2 = min(params[0].size() / 7 - 1, (size_t)q + 1) * 7;
+        double w = q - (unsigned)q;
         w = 3. * w * w - 2. * w * w * w;
         
         for (auto i = params.cbegin(); i != params.cend(); i++) 
@@ -271,6 +272,33 @@ void DetectorWithAnalyticNonGaussianPSF::integrateAnalyticPSF(IntegralOfAnalytic
 
             psf.addPart(ox + pr * cos(p + pp), oy + pr * sin(p + pp), h, b, rr, m, p + a);
             psf.addPart(ox + pr * cos(p - pp), oy + pr * sin(p - pp), h, b, rr, m, p - a);
+        }
+    }
+    else if (params.size() > 0 && params[0].size() > 6)
+    {
+        unsigned S = params[0].size() / 7;
+        unsigned N = params.size() / S;
+        double c = atan(tan(q / 180. * M_PI) * cos(p)) / M_PI * 180. * S / 36. + (S - 1.) / 2.;
+        double r = atan(tan(q / 180. * M_PI) * sin(p)) / M_PI * 180. * S / 36. + (S - 1.) / 2.;
+        double t = p - rotpsf;
+        double co = s * cos(t), si = s * sin(t);
+        double wc = c - floor(c);
+        double wr = r - floor(r);
+        unsigned c1 = (unsigned)min(max(c, 0.), S - 1.) * 7;
+        unsigned c2 = (unsigned)min(max(c + 1., 0.), S - 1.) * 7;
+        unsigned r1 = (unsigned)min(max(r, 0.), S - 1.) * N;
+        unsigned r2 = (unsigned)min(max(r + 1., 0.), S - 1.) * N;
+        double d[7];
+
+        for (unsigned n = 0; n < N; n++)
+        {
+            for (unsigned i = 0; i < 7; i++)
+            {
+                double d1 = (1. - wc) * params[r1 + n][c1 + i] + wc * params[r1 + n][c2 + i];
+                double d2 = (1. - wc) * params[r2 + n][c1 + i] + wc * params[r2 + n][c2 + i];
+                d[i] = (1. - wr) * d1 + wr * d2;
+            }
+            psf.addPart(ox + d[0] * co - d[1] * si, oy + d[0] * si + d[1] * co, d[2], d[3] * s, d[4] * s, d[5], d[6] + t);
         }
     } 
     else 
@@ -594,10 +622,7 @@ bool DetectorWithAnalyticNonGaussianPSF::addFluxToMap(arma::Mat<float>& map, dou
 
     IntegralOfAnalyticSignalResponse psf(size, diffusionKernelWidth);
 
-    double ccdOrientation = rotationAnglePsf;
-    p -= ccdOrientation;
-
-    integrateAnalyticPSF(psf, column0, row0, r, p);
+    integrateAnalyticPSF(psf, column0, row0, r, p, rotationAnglePsf);
 
     for (int y = max(0, sy); y < min((int)map.n_rows, sy + size); y++)
         for (int x = max(0, sx); x < min((int)map.n_cols, sx + size); x++)
@@ -767,10 +792,7 @@ void DetectorWithAnalyticNonGaussianPSF::makeHighResolutionPSF(arma::Mat<float> 
     double r = rad2deg(camera.getGnomonicRadialDistanceFromOpticalAxis(xFP, yFP));
     double p = atan2(yFP, xFP);
 
-    double ccdOrientation = rotationAnglePsf;
-    p -= ccdOrientation;
-
-    integrateAnalyticPSF(psf, column0, row0, r, p, Nsubpixels);
+    integrateAnalyticPSF(psf, column0, row0, r, p, rotationAnglePsf, Nsubpixels);
 
     for (int y = max(0, sy); y < min((int)Npixels*Nsubpixels, sy + size); y++)
         for (int x = max(0, sx); x < min((int)Npixels*Nsubpixels, sx + size); x++)
