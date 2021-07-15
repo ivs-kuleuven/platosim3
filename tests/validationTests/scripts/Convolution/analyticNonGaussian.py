@@ -1,6 +1,6 @@
 import numpy as np
 from test       import Test
-
+from platosim.validation import fitGaussian2D
 
 
 
@@ -118,7 +118,7 @@ class AnalyticNonGaussianPSF(Test):
         # Sets the effects for the third run. Only one exposure is needed for this test.
         
         self.sim["ObservingParameters/NumExposures"]                = 1
-        self.sim["PSF/AnalyticNonGaussian/ChargeDiffusionStrength"] = 2
+        self.sim["PSF/AnalyticNonGaussian/ChargeDiffusionStrength"] = 10
         self.sim["PSF/AnalyticNonGaussian/IncludeChargeDiffusion"]  = "yes"
    
 
@@ -172,17 +172,16 @@ class AnalyticNonGaussianPSF(Test):
         xPos        = self.xPosition1
         yPos        = self.yPosition1
         image       = simFile.getImage(0)
+        
         stars       = [np.array([[image[y+i-200][x+j-200] for i in range(400)] for j in range(400)]) for x, y in zip(xPos, yPos) ]
 
         xSpread     = [[star[i][i] for i in range(400)] for star in stars]
         ySpread     = [[star[i][399-i] for i in range(400)] for star in stars]
 
-        sigmaX      = self.getSigmas(xSpread)
-        sigmaY      = self.getSigmas(ySpread)
+        sigma = self.getSigmas(stars)
 
-        condition1  = self.doesIncreas(sigmaX)
-        condition2  = self.doesIncreas(sigmaY)
-        return condition1 and condition2
+        return self.doesIncreas(sigma)
+
 
 
 
@@ -199,38 +198,12 @@ class AnalyticNonGaussianPSF(Test):
         
         numExpos = self.sim["ObservingParameters/NumExposures"]
         images   = [simFile.getImage(n) for n in range(numExpos)]
-        xPos     = self.xPosition2
-        yPos     = self.xPosition1
-        
-        xSpread  = [[image[60][i] for i in range(120)] for image in images]
-        ySpread  = [[image[i][60] for i in range(120)] for image in images]
+        sigma    = self.getSigmas(images)
 
-        sigmaX   = self.getSigmas(xSpread)
-        sigmaY   = self.getSigmas(ySpread)
-
-        return self.doesIncreas(sigmaX) and self.doesIncreas(sigmaY)
-
-
-
-        
+        return self.doesIncreas(sigma)
 
 
     
-
-
-    
-
-
-    
-
-
-
-
-
-
-
-    
-
     def compareDiffusion(self, simFile2, simFile3):
         # check that stars are more spread out when charge diffusion is included.
         
@@ -238,13 +211,9 @@ class AnalyticNonGaussianPSF(Test):
         image3 = simFile3.getImage(0)
         images  = [image2, image3]
 
-        xSpread = [[image[60][i] for i in range(120)] for image in images]
-        ySpread = [[image[i][60] for i in range(120)] for image in images]
+        sigma = self.getSigmas(images)
 
-        sigmaX  = self.getSigmas(xSpread)
-        sigmaY  = self.getSigmas(ySpread)
-
-        return self.doesIncreas(sigmaX) and self.doesIncreas(sigmaY)
+        return self.doesIncreas(sigma) 
  
 
 
@@ -255,21 +224,12 @@ class AnalyticNonGaussianPSF(Test):
 
     
     
-    def getSigmas(self, spread):
+    def getSigmas(self, spread, debug=False):
         # Estimates the sigma from a function.
-        
+ 
         spread  = [ (star - np.min(star)) / (np.sum(star) - len(star) * np.min(star)) for star in spread]
-        means   = np.array([ sum([x * func[x] for x in range(len(func))]) for func in spread])
-        sigmaSq = [ np.sum(func * (np.arange(len(func)) - mean)**2) for func, mean in zip(spread, means)]
-        
-        return sigmaSq
-
-
-
-
-
-    
-    
+        sigma = [fitGaussian2D(star, star.max(), len(spread)/2, len(spread)/2, 1, 1)[3]**2 + fitGaussian2D(star, star.max(), len(spread)/2, len(spread)/2, 1, 1)[4]**2 for star in spread]
+        return sigma
     def doesIncreas(self, list):
         # Checks if a list in increasing.
         
