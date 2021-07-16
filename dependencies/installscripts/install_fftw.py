@@ -33,7 +33,7 @@ print("\n")
 installProcedure = "cd {build};                                                      \
                     tar -xvf {package}.tgz;                                          \
                     cd {package};                                                    \
-                    ./configure --prefix={install} --enable-threads --enable-float;  \
+                    ./configure --prefix={install} --enable-threads --enable-float --disable-fortran;  \
                     make;                                                            \
                     make install".format(build=buildDir, package=packageName, install=installDir)
 
