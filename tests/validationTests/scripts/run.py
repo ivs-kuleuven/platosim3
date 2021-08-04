@@ -93,13 +93,13 @@ name = "Absolute Aberration"
 testMessages.append("{:<9}  {:^42}:{}".format("Test3:", name, success[out3]))
 print(testMessages[-1])
 
-with suppress_stdout():
-    test4   = FieldDistortion()
-    out4    = test4.run()
+#with suppress_stdout():
+#    test4   = FieldDistortion()
+#    out4    = test4.run()
 
-name = "Field Distortion"
-testMessages.append("{:<9}  {:^42}:{}".format("Test4:", name, success[out4]))
-print(testMessages[-1])
+#name = "Field Distortion"
+#testMessages.append("{:<9}  {:^42}:{}".format("Test4:", name, success[out4]))
+#print(testMessages[-1])
 
 
 with suppress_stdout():
