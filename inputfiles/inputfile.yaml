@@ -79,6 +79,8 @@ Camera:
     IncludeAberrationCorrection:     yes             # Calculate the differential aberration correction and apply
     AberrationCorrection:
         Type:                        differential    # [differential, absolute]
+        OrbitFile:                   inputfiles/orbit.txt
+        StartTime:                   4149.122013 
     IncludeGhosts:                   yes
     Ghosts:
         PointLike:
