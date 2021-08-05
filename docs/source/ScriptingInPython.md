@@ -22,10 +22,10 @@ To create and activate such an environment, type
     source /anaconda/bin/activate root
     conda create -n platosim python=<Python version> anaconda
 
-Supported Python versions are 3.5, 3.6, and 3.7.  More information on managing environment with conda can be found <a href="http://conda.pydata.org/docs/using/envs.html#">here</a>.  Please, note that - when you switch to a different version of Python - it is advised to create a new conda environment rather than trying to update your existing one.  This means you (as a developer) will have to re-install a couple of Python packages (see below), but is will save you a lot of trouble if you do it like this.
+Supported Python versions are 3.6, 3.7, 3.8 and 3.9.  More information on managing environment with conda can be found <a href="http://conda.pydata.org/docs/using/envs.html#">here</a>.  Please, note that - when you switch to a different version of Python - it is advised to create a new conda environment rather than trying to update your existing one.  This means you (as a developer) will have to re-install a couple of Python packages (see below), but is will save you a lot of trouble if you do it like this.
 
-Users only have to source the conda environment in which the desired version of the software has been installed in.  Also they are advised to create a new conda environment when they want to switch to a different version of Python.  After a @ref InstallViaConda "conda update" or a
-@ref InstallViaConda "conda install" of the PlatoSim software, everything will be configured appropriately, without further action.
+Users only have to source the conda environment in which the desired version of the software has been installed in.  Also they are advised to create a new conda environment when they want to switch to a different version of Python.  After a @ref user-install "conda update" or a
+@ref user-install "conda install" of the PlatoSim software, everything will be configured appropriately, without further action.
 
 
 ### Installing Extra Packages (for Developers)
@@ -62,7 +62,7 @@ The Python functionality that is offered in PlatoSim3 can be found in the <code>
     PYTHONPATH=$PYTHONPATH:<full path to the /Platosim3/python directory>
     export PYTHONPATH
 
-In case you've installed PlatoSim3 @ref ViaConda "via conda", this environment variable should be exported as
+In case you've installed PlatoSim3 @ref user-install "via conda", this environment variable should be exported as
 
     export PLATO_PROJECT_HOME=$CONDA_PREFIX
 

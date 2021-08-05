@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['tutorials',['Tutorials',['../Tutorials.html',1,'']]]
+  ['tutorials',['Tutorials',['../_tutorials.html',1,'']]]
 ];

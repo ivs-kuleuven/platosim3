@@ -16,7 +16,7 @@ To install the latest successfully built version of the <code>master</code> bran
 
     $ conda install -c https://jenkins.miricle.org/platosim/ platosim
 
-To install a specific version (only for the <code>master</code> branch), just append <code><version>=</code> to this command.
+To install a specific version (only for the <code>master</code> branch), just append <code>"<version>="</code> to this command.
 
 ---
 
@@ -39,4 +39,4 @@ respectively.
 
 Please, contact the developer team for the username and password.
 
-If no pop-up window, asking for the credentials, would appear, you can adapt the <code>conda install</code> commands from above, by placing <code><username>:<password></code>@ between the <code>https://</code> and the <code>jenkins</code>.
+If no pop-up window, asking for the credentials, would appear, you can adapt the <code>conda install</code> commands from above, by placing <code>"<username>:<password>"</code>@ between the <code>https://</code> and the <code>jenkins</code>.

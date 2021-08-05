@@ -11,6 +11,6 @@ var searchData=
   ['dev_2dpull_2emd',['dev-pull.md',['../dev-pull_8md.html',1,'']]],
   ['dev_2dpush_2emd',['dev-push.md',['../dev-push_8md.html',1,'']]],
   ['dev_2dwrap_2dup_2emd',['dev-wrap-up.md',['../dev-wrap-up_8md.html',1,'']]],
-  ['description_20of_20the_20input_20files',['Description of the Input Files',['../InputFileDescription.html',1,'']]],
-  ['description_20of_20the_20output_20file',['Description of the Output File',['../OutputFileDescription.html',1,'']]]
+  ['description_20of_20the_20input_20files',['Description of the Input Files',['../_input_file_description.html',1,'']]],
+  ['description_20of_20the_20output_20file',['Description of the Output File',['../_output_file_description.html',1,'']]]
 ];
