@@ -814,7 +814,7 @@ PSF:
         SigmaX18:                    5.0             
         SigmaY18:                    2.0             
     AnalyticNonGaussian:
-        ParameterFileName:           inputfiles/psfallv3.txt
+        ParameterFileName:           inputfiles/apsf_N6000K_v2.txt
         ChargeDiffusionStrength:     0.2             
         IncludeChargeDiffusion:      yes             
         Sigma:                                       
