@@ -246,7 +246,6 @@ void Simulation::configure(ConfigurationParameters &configParams)
     numExposures                    = configParams.getInteger("ObservingParameters/NumExposures");
     useJitter                       = configParams.getBoolean("Platform/UseJitter");
     jitterSource                    = configParams.getString("Platform/JitterSource");
-    includeFieldDistortion          = configParams.getBoolean("Camera/IncludeFieldDistortion"); // do we want to do this or should this be asked to Camera?
     useDrift                        = configParams.getBoolean("Telescope/UseDrift");  
     useDriftFromFile                = configParams.getBoolean("Telescope/UseDriftFromFile");  
     psfModel                        = configParams.getString("PSF/Model");
@@ -595,10 +594,6 @@ void Simulation::writeStarCatalogToHDF5()
             RA[k]  *= Angle::degrees;    // [rad] -> [deg]
             dec[k] *= Angle::degrees;    // [rad] -> [deg]
 
-            if (includeFieldDistortion)
-            {
-               tie(xFPmm[k], yFPmm[k]) = camera->undistortedToDistortedFocalPlaneCoordinates(xFPmm[k], yFPmm[k]);
-            }
 
             tie(rowPix[k], colPix[k]) = detector->focalPlaneToPixelCoordinates(xFPmm[k], yFPmm[k]);
             k++;

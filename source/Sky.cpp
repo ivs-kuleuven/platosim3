@@ -16,7 +16,7 @@ Sky::Sky(ConfigurationParameters &configParams)
     // Configure this Sky 
 
     configure(configParams);
-
+    
     // Open and read the file containing the position and magnitude of all stars
     // The path of the starInputfile should have been set in configure().
 
@@ -69,6 +69,57 @@ Sky::Sky(ConfigurationParameters &configParams)
         Log.error("Sky: Cannot open star catalog file " + starInputfile);
         exit(1);
     }
+
+
+    // Open and read the file containing the position and velocity of Plato
+    // The path of the file  should have been set in configure().
+
+    time0 = configParams.getDouble("Camera/AberrationCorrection/StartTime");
+    double endTime   = time0 + configParams.getDouble("ObservingParameters/NumExposures") * configParams.getDouble("ObservingParameters/CycleTime");
+    
+    ifstream orbitFile(orbitPlatoFile);
+    if (orbitFile.is_open())
+    {
+        string line;
+	unsigned int n = 0;
+	while (getline(orbitFile, line))
+	{
+	  // Skip empty lines
+
+	  if (line.size() == 0) continue;
+
+	  // Skip lines that only contain white space
+
+	  const string whitespace = " /t/r/n";
+	  if (line.find_first_not_of(whitespace) == string::npos) continue;
+
+	  // Skip header line starting with '#'.
+	  
+	  if (line[0] == '#') continue;
+
+	  istringstream buffer(line);
+	  vector<double> numbers((istream_iterator<double>(buffer)), istream_iterator<double>());
+	  if (time0 <= numbers[1] && numbers[1] <= endTime)
+	  {
+	    valarray<double> v = {numbers[5], numbers[6], numbers[7]};
+	    orbitDB.push_back(make_tuple(numbers[1], v, numbers[8]));    // (time, [v1, v2, v3], |v|)
+	  }
+	  n++;
+        }
+	if (orbitDB.size() == 0.)
+	{
+	  Log.error("Sky: no values between start and end time in orbitPlatoFile");
+	  exit(EXIT_FAILURE);
+	}
+        myfile.close();
+
+    }
+    else
+    {
+        Log.error("Sky: Cannot open orbit file " + orbitPlatoFile);
+        exit(1);
+    }
+
 }
 
 
@@ -93,8 +144,6 @@ Sky::~Sky()
 
 
 
-
-
 /**
  * \brief Configure the Sky class with the user given input parameters
  */
@@ -104,6 +153,11 @@ void Sky::configure(ConfigurationParameters &configParams)
     // Store the path of the general database of stars
     
     starInputfile = configParams.getAbsoluteFilename("ObservingParameters/StarCatalogFile");
+
+    // Store the path of the file with the Plato orbit
+
+    orbitPlatoFile = configParams.getAbsoluteFilename("Camera/AberrationCorrection/OrbitFile");
+
 
     // If there variable stars, get their time series files
     
@@ -160,8 +214,6 @@ void Sky::configure(ConfigurationParameters &configParams)
 
 
 }
-
-
 
 
 
@@ -414,11 +466,23 @@ void Sky::aberrateSelectedStarPositions(Platform &platform, string aberrationCor
 {
     using StringUtilities::dtos;
 
-    //velocity direction of PLATO, assuming circular orbit in ecliptic plane with constant speed of 30 km/s, 
-    //TODO: check the direction of rotation around the sun and adjust the sign of platoAngle accordingly
-    
-    double platoAngle = 2. * M_PI / 365. / 24. / 3600. * startTime;
-    valarray<double> v = {cos(platoAngle), sin(platoAngle), 0.};
+    valarray<double> v = std::get<1>(orbitDB.at(0));
+    double speed = std::get<2>(orbitDB.at(0));
+ 
+    for (int i=0; i < orbitDB.size(); i++)
+    {
+      if ( std::get<0>(orbitDB.at(i)) <= time0 + startTime)
+      {
+        speed = std::get<2>(orbitDB.at(i));
+        v     = std::get<1>(orbitDB.at(i));
+      }
+    }
+
+    std::cout << "speed: " << speed << std::endl;
+    std::cout << "v = ( ";
+    for (double &x: v) {std::cout << x << " ";}
+    std::cout << ")" << std::endl;
+
 
     //rotation matrix to compensate the aberration of light for the pointing direction, needed to calculate the differential aberration
     
@@ -428,7 +492,7 @@ void Sky::aberrateSelectedStarPositions(Platform &platform, string aberrationCor
 
     //ratio of the velocity of PLATO to the speed of light
     
-    constexpr double beta = 30. / 300000.;
+    double beta = speed / 300000.;
 
     if (aberrationCorrectionType == "differential")
     {
@@ -472,7 +536,6 @@ void Sky::aberrateSelectedStarPositions(Platform &platform, string aberrationCor
     else
     {
         Log.info("StarCatalog::aberrate: applying absolute aberration correction");
-
     }
 
     for (unsigned int n = 0; n < selectedStarID.size(); ++n)
@@ -544,11 +607,23 @@ void Sky::aberrateSelectedGhostOrigPositions(Platform &platform, string aberrati
 {
     using StringUtilities::dtos;
 
-    //velocity direction of PLATO, assuming circular orbit in ecliptic plane with constant speed of 30 km/s, 
-    //TODO: check the direction of rotation around the sun and adjust the sign of platoAngle accordingly
-    
-    double platoAngle = 2. * M_PI / 365. / 24. / 3600. * startTime;
-    valarray<double> v = {cos(platoAngle), sin(platoAngle), 0.};
+    valarray<double> v = std::get<1>(orbitDB.at(0));
+    double speed = std::get<2>(orbitDB.at(0));
+ 
+    for (int i=0; i < orbitDB.size(); i++)
+    {
+      if ( std::get<0>(orbitDB.at(i)) <= time0 + startTime)
+      {
+        speed = std::get<2>(orbitDB.at(i));
+        v     = std::get<1>(orbitDB.at(i));
+      }
+    }
+
+    std::cout << "speed: " << speed << std::endl;
+    std::cout << "v = ( ";
+    for (double &x: v) {std::cout << x << " ";}
+    std::cout << ")" << std::endl;
+    std::cout << " " << std::endl;
 
     //rotation matrix to compensate the aberration of light for the pointing direction, needed to calculate the differential aberration
     
