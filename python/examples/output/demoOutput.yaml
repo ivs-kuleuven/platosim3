@@ -252,7 +252,7 @@ PSF:
     AnalyticNonGaussian:
         ChargeDiffusionStrength: 0.2
         IncludeChargeDiffusion: true
-        ParameterFileName: inputfiles/psfallv3.txt
+        ParameterFileName: inputfile/apsf_N6000K_v2.txt
         Sigma:
             ConstantValue: 0.5
             FromFile: inputfiles/sigmaPSF.txt
