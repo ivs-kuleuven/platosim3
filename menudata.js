@@ -49,4 +49,5 @@ var menudata={children:[
 {text:"Scripting in Python",url:"_scripting_in_python.html"},
 {text:"Tutorials",url:"_tutorials.html"}]},
 {text:"Simulation Steps",url:"_simulation_steps.html"}]},
+{text:"Quick Start",url:"_quick_start.html"},
 {text:"Help (Issue Tracking)",url:"_issue_tracking.html"}]}
