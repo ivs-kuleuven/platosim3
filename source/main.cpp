@@ -47,25 +47,30 @@ int main(int Narguments, char* arguments[])
     if (Narguments == 5)
     {
         logLevel = atoi(arguments[4]);
-        if ((logLevel < 1) || (logLevel > 3)) 
+        if ((logLevel < 0) || (logLevel > 3)) 
         {
-            cerr << "Error: logLevel should be either 1 (least verbose), 2, or 3 (most verbose)" << endl;
+            cerr << "Error: logLevel should be either 0 (only errors), 2, or 3 (most verbose)" << endl;
             exit(EXIT_FAILURE);
         }
     }
 
     // Set up the log file
 
-    Log.addOutputStream(cerr, ERROR | WARNING);
 
     ofstream logFile(logFilename);
     switch (logLevel)
     {
+        case 0: Log.addOutputStream(logFile, ERROR);
+                Log.addOutputStream(cerr,    ERROR);
+                break;
         case 1: Log.addOutputStream(logFile, ERROR | WARNING);
+                Log.addOutputStream(cerr,    ERROR | WARNING);
                 break;
         case 2: Log.addOutputStream(logFile, ERROR | WARNING | INFO); 
+                Log.addOutputStream(cerr,    ERROR | WARNING);                           // No excessive logging to stderr
                 break;
         case 3: Log.addOutputStream(logFile, ERROR | WARNING | INFO | DEBUG);
+                Log.addOutputStream(cerr,    ERROR | WARNING);                           // No excessive logging to stderr
                 break;   
     }
     
