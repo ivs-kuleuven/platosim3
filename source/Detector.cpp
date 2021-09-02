@@ -487,6 +487,20 @@ void Detector::updateParameters(double time)
     subFieldZeroPointRow    = configParam.getInteger("SubField/ZeroPointRow");
     subFieldZeroPointColumn = configParam.getInteger("SubField/ZeroPointColumn");
     numRowsPixelMap         = configParam.getInteger("SubField/NumRows");
+    // For a fast camera, the part of the subfield that is on the lower half of the CCD (and thus physically covered) is ignored.
+    // If no part of the subfield lies on the exposed part of the CCD, and error is raised and the simulation is terminated.
+    if (isFastCamera)
+    {
+      numRowsPixelMap       = std::max(0, int(numRowsPixelMap - std::max(0, int(firstRowExposed - subFieldZeroPointRow))));
+      subFieldZeroPointRow  = std::max(subFieldZeroPointRow, firstRowExposed);
+      if (numRowsPixelMap == 0)
+      {
+	Log.error("The subfield does not lie on the exposed part of the detector, nothing is simulated.");
+	exit(1);
+      }
+      
+
+    }
     numColumnsPixelMap      = configParam.getInteger("SubField/NumColumns");
     numRowsBiasMap          = configParam.getInteger("SubField/NumBiasPrescanRows");
     numColumnsBiasMap       = configParam.getInteger("SubField/NumBiasPrescanColumns");
