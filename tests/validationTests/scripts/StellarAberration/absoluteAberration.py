@@ -40,6 +40,7 @@ class AbsoluteAberration(Test):
         self.sim["Camera/AberrationCorrection/StartTime"] = self.startTime
 
 
+
     def runForYear(self):
         # We run the simulation multiple times over one year with 5 days
         #between two consecutive exposures.
@@ -126,11 +127,11 @@ class AbsoluteAberration(Test):
         
         dxTheo     = (raTheo - inputRa) * 3600 * np.cos(np.deg2rad(decTheo))
         dyTheo     = (decTheo - inputDec ) * 3600
-            
+
+        
         plt.plot(dxMeasurement, dyMeasurement, 'r')
         plt.plot(dxTheo, dyTheo)
-        #plt.show()
-        plt.savefig(self.inputDir + "/aberrationpathYear.png")
+        plt.savefig(self.ioPath + "/test" + self.nr +  "/aberrationOverYear.png")
         
 
 
