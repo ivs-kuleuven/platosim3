@@ -144,6 +144,8 @@ CCDPositions:
     UsePositionsFromFile: false
 Camera:
     AberrationCorrection:
+        OrbitFile: inputfiles/orbit.txt
+        StartTime: 4149.122013
         Type: differential
     FocalLength:
         ConstantValue: 0.24752

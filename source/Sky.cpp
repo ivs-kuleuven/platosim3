@@ -99,10 +99,11 @@ Sky::Sky(ConfigurationParameters &configParams)
 
 	  istringstream buffer(line);
 	  vector<double> numbers((istream_iterator<double>(buffer)), istream_iterator<double>());
-	  if (time0 <= numbers[1] && numbers[1] <= endTime)
+	  if (time0 <= numbers[1])
 	  {
 	    valarray<double> v = {numbers[5], numbers[6], numbers[7]};
 	    orbitDB.push_back(make_tuple(numbers[1], v, numbers[8]));    // (time, [v1, v2, v3], |v|)
+	    if (numbers[1] > endTime){break;}
 	  }
 	  n++;
         }
