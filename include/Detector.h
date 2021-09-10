@@ -18,7 +18,6 @@
 #include "FrontEndElectronics.h"
 #include "TemperatureGenerator.h"
 #include "ConfigurationParameters.h"
-#include "SymmetricalPointSpreadFunction.h"
 #include "Convolver.h"
 #include "HDF5File.h"
 #include "HDF5Writer.h"

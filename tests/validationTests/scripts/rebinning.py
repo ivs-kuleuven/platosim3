@@ -25,7 +25,7 @@ class Rebinning(Test):
         self.sim["SubField/NumRows"]    = 1500
         self.sim["SubField/NumColumns"] = 1500
 
-        self.sim["PSF/Model"] = "MappedGaussian"
+        self.sim["PSF/Model"] = "MappedFromFile"
         self.sim["ControlHDF5Content/WriteSubPixelImages"] = "yes"
 
 

@@ -170,11 +170,7 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     // Depending on how the PSF is computed (analytically or pre-mapped) the Detector object is different.
 
-    if ((psfModel == "MappedGaussian") || (psfModel == "MappedFromFileSymmetrical"))
-    {
-        detector = detectorFactory->createDetectorWithSymmetricalMappedPsfInstance(configParams, *hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
-    }
-    else if (psfModel == "MappedFromFileAsymmetrical")
+    if (psfModel == "MappedFromFile")
     {
         detector = detectorFactory->createDetectorWithAsymmetricalMappedPsfInstance(configParams, *hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
     }
@@ -765,25 +761,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     subGroup = "PSF";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addString("Model");
-    subGroup = "PSF/MappedGaussian";
-    hdf5File->createGroup(parentGroup + "/" + subGroup);
-    addDouble("Sigma");
-    addInteger("NumberOfPixels");
-    addDouble("ChargeDiffusionStrength");
-    addBoolean("IncludeChargeDiffusion");
-    addBoolean("IncludeJitterSmoothing");
-
-    subGroup = "PSF/MappedFromFileSymmetrical";
-    hdf5File->createGroup(parentGroup + "/" + subGroup);
-    addString("Filename");
-    addDouble("DistanceToOA");
-    addDouble("RotationAngle");
-    addInteger("NumberOfPixels");
-    addDouble("ChargeDiffusionStrength");
-    addBoolean("IncludeChargeDiffusion");
-    addBoolean("IncludeJitterSmoothing");
-
-    subGroup = "PSF/MappedFromFileAsymmetrical";
+    subGroup = "PSF/MappedFromFile";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addString("Filename");
     addInteger("NumberOfPixels");

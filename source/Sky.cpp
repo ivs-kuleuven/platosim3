@@ -478,12 +478,6 @@ void Sky::aberrateSelectedStarPositions(Platform &platform, string aberrationCor
       }
     }
 
-    std::cout << "speed: " << speed << std::endl;
-    std::cout << "v = ( ";
-    for (double &x: v) {std::cout << x << " ";}
-    std::cout << ")" << std::endl;
-
-
     //rotation matrix to compensate the aberration of light for the pointing direction, needed to calculate the differential aberration
     
     valarray<double> rot0 = {1., 0., 0.};
@@ -619,12 +613,6 @@ void Sky::aberrateSelectedGhostOrigPositions(Platform &platform, string aberrati
       }
     }
 
-    std::cout << "speed: " << speed << std::endl;
-    std::cout << "v = ( ";
-    for (double &x: v) {std::cout << x << " ";}
-    std::cout << ")" << std::endl;
-    std::cout << " " << std::endl;
-
     //rotation matrix to compensate the aberration of light for the pointing direction, needed to calculate the differential aberration
     
     valarray<double> rot0 = {1., 0., 0.};
@@ -633,7 +621,7 @@ void Sky::aberrateSelectedGhostOrigPositions(Platform &platform, string aberrati
 
     //ratio of the velocity of PLATO to the speed of light
     
-    constexpr double beta = 30. / 300000.;
+    double beta = speed / 300000.;
 
     if (aberrationCorrectionType == "differential")
     {
