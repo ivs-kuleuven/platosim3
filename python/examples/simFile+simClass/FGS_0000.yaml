@@ -144,20 +144,9 @@ CCDPositions:
     UsePositionsFromFile: false
 Camera:
     AberrationCorrection:
+        OrbitFile: inputfiles/orbit.txt
+        StartTime: 4149.122013
         Type: differential
-    FieldDistortion:
-        CoefficientsFromFile: inputfiles/distortioncoefficients.txt
-        ConstantCoefficients:
-            - 0.316257210577
-            - 0.066373219688
-            - 0.372589221219
-        ConstantInverseCoefficients:
-            - -0.317143032936
-            - 0.242638513347
-            - -0.459260203502
-        InverseCoefficientsFromFile: inputfiles/distortioninversecoefficients.txt
-        Source: ConstantValue
-        Type: Polynomial1D
     FocalLength:
         ConstantValue: 0.24752
         FromFile: inputfiles/focallength.txt
@@ -199,13 +188,19 @@ CameraGroups:
 ControlHDF5Content:
     WriteACS: true
     WriteBiasMaps: true
+    WriteCosmics: true
+    WriteDiffusedPSF: false
     WriteFlatfieldMap: true
     WriteGhostPositions: true
+    WriteHighResolutionPSF: false
     WritePixelMaps: true
     WriteSmearingMaps: true
+    WriteStarCatalog: true
     WriteStarPositions: true
     WriteSubPixelImages: false
+    WriteTelescopeACS: true
     WriteThroughputMaps: true
+    WriteTransmissionEfficiency: true
 ControlTcpConnection:
     GetWindowPositionsFromServer: false
     ImagetteClientAddress: tcp://localhost:5560
@@ -243,7 +238,7 @@ ObservingParameters:
     MissionDuration: 6.5
     NumExposures: 10
     RApointing: 86.7987
-    StarCatalogFile: /lhome/driess/Documents/PlatoSim3/inputfiles/guide_stars_EQ.txt
+    StarCatalogFile: /lhome/driess/PlatoSim3/inputfiles/guide_stars_EQ.txt
 PSF:
     AnalyticGaussian:
         Sigma00: 1.0
@@ -252,7 +247,7 @@ PSF:
     AnalyticNonGaussian:
         ChargeDiffusionStrength: 0.2
         IncludeChargeDiffusion: true
-        ParameterFileName: inputfiles/psfallv3.txt
+        ParameterFileName: inputfiles/apsf_N6000K_v2.txt
         Sigma:
             ConstantValue: 0.5
             FromFile: inputfiles/sigmaPSF.txt
@@ -266,7 +261,7 @@ PSF:
     MappedFromFileSymmetrical:
         ChargeDiffusionStrength: 0.2
         DistanceToOA: -1
-        Filename: /lhome/driess/Documents/PlatoSim3/inputfiles/psf.hdf5
+        Filename: /lhome/driess/PlatoSim3/inputfiles/psf.hdf5
         IncludeChargeDiffusion: false
         IncludeJitterSmoothing: false
         NumberOfPixels: 8
@@ -284,7 +279,7 @@ Photometry:
     MaskUpdateInterval: 14.0
     TargetFileName: inputfiles/photometryTargets.txt
 Platform:
-    JitterFileName: /lhome/driess/Documents/PlatoSim3/inputfiles/PlatoJitter_Airbus.txt
+    JitterFileName: /lhome/driess/PlatoSim3/inputfiles/PlatoJitter_Airbus.txt
     JitterPitchRms: 0.04
     JitterRollRms: 0.08
     JitterSource: FromFile
@@ -329,7 +324,7 @@ Telescope:
     DriftFileName: inputfiles/drift.txt
     DriftPitchRms: 2.0
     DriftRollRms: 2.0
-    DriftTimeScale: 86400.0
+    DriftTimeScale: 3600.0
     DriftYawRms: 2.0
     GroupID: Fast
     LightCollectingArea: 113.1

@@ -49,7 +49,7 @@ class BrighterFatterEffect(Test):
         self.sim["ControlHDF5Content/WriteSubPixelImages"] = "yes"
         self.numSubPixels = self.sim["SubField/SubPixels"]
 
-        self.sim["PSF/Model"] = "MappedGaussian"
+        self.sim["PSF/Model"] = "MappedFromFile"
 
 
 
@@ -100,7 +100,7 @@ class BrighterFatterEffect(Test):
 
         # Specify the star catalog file name
         starCatalogFilename = self.outputDir + "/starCatalog" + self.nr + ".txt"
-        self.sigma           = self.sim["PSF/MappedGaussian/Sigma"]
+        #self.sigma           = self.sim["PSF/MappedGaussian/Sigma"]
 
         widthWithBFE     = np.array([]), np.array([])
         widthWithoutBFE  = np.array([]), np.array([])
@@ -158,11 +158,11 @@ class BrighterFatterEffect(Test):
         # Runs the simulator with the specific input paramters and fits the output image to 2D gaussian.
         # The sigma of this fit gets added to the input width array.
         
-        sigma    = self.sigma
+        #sigma    = self.sigma
         simFile  = self.sim.run(removeOutputFile = True)
         image    = simFile.getImage(0)
 
-        params   = fitGaussian2D(image, np.max(image), self.dim / 2, self.dim / 2, sigma, sigma, subtractConstant = True)
+        params   = fitGaussian2D(image, np.max(image), self.dim / 2, self.dim / 2, 1, 1, subtractConstant = True)
         width    = np.append(width, params[3])
 
 

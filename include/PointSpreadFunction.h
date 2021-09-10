@@ -22,20 +22,23 @@ class PointSpreadFunction : public HDF5Writer
     public:
 
         PointSpreadFunction(ConfigurationParameters &configParam, HDF5File &hdf5File);
-        virtual ~PointSpreadFunction();
+        ~PointSpreadFunction();
 
-        virtual void initHDF5Groups() override;
-        virtual void flushOutput() override;
-
-        virtual void rotate(double angle){};
+        void initHDF5Groups() override;
+        void flushOutput() override;
+        void select(double xFP, double yFP);
+        void rotate(double angle);
 
         int getNumSubPixelsPerPixel(){return numberOfSubPixelsPerPixel;};
         arma::fmat rebinToSubPixels(unsigned int targetSubPixels);
         arma::fmat getOriginalPSF();
+        vector<std::array<double, 4>> getDistortionMap();
+        bool writeHighResolutionPSF;
+        vector<std::array<double, 4>> distortionMap;
 
     protected:
 
-        virtual void configure(ConfigurationParameters &configParam){};
+        void configure(ConfigurationParameters &configParam);
 
         arma::fmat rebinToPixels();
         arma::fmat getGaussianPsf();

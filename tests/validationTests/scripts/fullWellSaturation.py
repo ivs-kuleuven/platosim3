@@ -16,8 +16,8 @@ class FullWellSaturation(Test):
         self.sim["SubField/NumColumns"] = 1
 
         self.sim["ObservingParameters/DecPointing"] = -self.sim["ObservingParameters/DecPointing"]
-        self.sim["PSF/Model"] = "MappedFromFileSymmetrical"
-        self.sim["PSF/MappedFromFileSymmetrical/Filename"] = self.inputDir + "/psf.hdf5"
+        self.sim["PSF/Model"] = "MappedFromFile"
+        #self.sim["PSF/MappedFromFile/Filename"] = self.inputDir + "/psf.hdf5"
 
         starCatalogFilename = self.inputDir + "/starCatalog" + self.nr + ".txt"
         self.sim.createStarCatalogFileFromPixelCoordinates(np.array([self.middleOfRows + 0.5]), np.array([0.5]), np.array([7.5]), np.array([1]), starCatalogFilename)

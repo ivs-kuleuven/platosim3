@@ -252,7 +252,7 @@ PSF:
     AnalyticNonGaussian:
         ChargeDiffusionStrength: 0.2
         IncludeChargeDiffusion: true
-        ParameterFileName: inputfiles/psfallv3.txt
+        ParameterFileName: inputfile/apsf_N6000K_v2.txt
         Sigma:
             ConstantValue: 0.5
             FromFile: inputfiles/sigmaPSF.txt
@@ -263,14 +263,6 @@ PSF:
         IncludeChargeDiffusion: false
         IncludeJitterSmoothing: false
         NumberOfPixels: 8
-    MappedFromFileSymmetrical:
-        ChargeDiffusionStrength: 0.2
-        DistanceToOA: -1
-        Filename: inputfiles/psf.hdf5
-        IncludeChargeDiffusion: false
-        IncludeJitterSmoothing: false
-        NumberOfPixels: 8
-        RotationAngle: -1
     MappedGaussian:
         ChargeDiffusionStrength: 0.2
         IncludeChargeDiffusion: false

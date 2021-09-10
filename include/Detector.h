@@ -18,7 +18,6 @@
 #include "FrontEndElectronics.h"
 #include "TemperatureGenerator.h"
 #include "ConfigurationParameters.h"
-#include "SymmetricalPointSpreadFunction.h"
 #include "Convolver.h"
 #include "HDF5File.h"
 #include "HDF5Writer.h"
@@ -89,6 +88,8 @@ class Detector: public HDF5Writer
         bool isInSubfield(double xFPmm, double yFPmm);
 
         double getReadoutTimeBeforeNextExposure();
+        virtual void applyDistortion(double &, double &){};
+        virtual void applyInverseDistortion(double &, double &){};
 
         virtual double getTrapDensity(double time, int trapSpecies);
 

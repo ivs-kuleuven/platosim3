@@ -23,7 +23,8 @@ generated/version.h
 !inputfiles/inputfile.yaml
 !inputfiles/photometryTargets.txt
 !starField_RA180Dec-70.txt
-!psfallv3.txt
+!aps_N6000K_v2.txt
+!orbit.txt
 !inputfiles/cl2bCcds.txt
 
 # Ignore compile command json file for neovim LSP

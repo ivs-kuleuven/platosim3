@@ -3,8 +3,38 @@
 
 ## Data Package
 
-If you want to use realistic PSF models instead of a Gaussian, you can download these from <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/psf.hdf5
-">our FTP server</a>.  <!-- A convenient place to store this file is in the <code>/inputfiles</code> directory. -->
+If you want to use realistic PSF models instead of a Gaussian, you can download these from out FTP server. The default file for most users (in focuss PSF at 6000K) can be found <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/FF_0mu_N6000K_4224stars.hdf5"> here</a>.\n  <!-- A convenient place to store this file is in the <code>/inputfiles</code> directory. -->
+
+
+### Out off focuss PSF (at 6000K):
+| Distortion | download link |
+|------------|---------------|
+| 10 mu      | <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/PSF_Focus_10mu.hdf5"> PSF 10 mu </a>  |
+| -10 mu     | <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/PSF_Focus_-10mu.hdf5"> PSF -10 mu</a> |
+| 20 mu      | <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/PSF_Focus_20mu.hdf5"> PSF 20 mu </a>  |
+| -20 mu     | <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/PSF_Focus_-20mu.hdf5"> PSF -20 mu</a> |
+| 40 mu      | <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/PSF_Focus_40mu.hdf5"> PSF 40 mu </a>  |
+| -40 mu     | <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/PSF_Focus_-40mu.hdf5"> PSF -40 mu</a> |
+| 60 mu      | <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/PSF_Focus_60mu.hdf5"> PSF 60 mu </a>  |
+| -60 mu     | <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/PSF_Focus_-60mu.hdf5"> PSF -60 mu</a> |
+| 80 mu      | <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/PSF_Focus_80mu.hdf5"> PSF 80 mu </a>  |
+| -80 mu     | <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/PSF_Focus_-80mu.hdf5"> PSF -80 mu</a> |
+| 100 mu      | <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/PSF_Focus_100mu.hdf5"> PSF 100 mu </a>  |
+| -100 mu     | <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/PSF_Focus_-100mu.hdf5"> PSF -100 mu</a> |
+
+
+
+### PSF at different temperatures:
+| Temperature | download link |
+|-------------|---------------|
+| 4000K       | <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/FF_0mu_N4000K_4224stars.hdf5"> PSF 4000K </a>    |
+| 5000K       | <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/FF_0mu_N5000K_4224stars.hdf5"> PSF 5000K </a>    |
+| 6000K       | <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/FF_0mu_N6000K_4224stars.hdf5"> PSF 6000K </a>    |
+| 6500K       | <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/FF_0mu_N6500K_4224stars.hdf5"> PSF 6500K </a>    |
+
+
+
+<!-- | 40 mu       | <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/FF_0mu_B6000K_1084stars.hdf5"> PSF 40 mu </a>    | -->
 
 ---
 
@@ -14,7 +44,7 @@ After the installation of the software, the PLATO Simulator can be run.  Develop
 
 ---
 
-## Environment Variables 
+## Environment Variables {#EvironVar}
 
 To avoid having to hardcode any path in configuration files, tutorials, etc., you must export three environment variables:
 

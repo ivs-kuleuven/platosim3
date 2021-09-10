@@ -789,21 +789,7 @@ The <b>PSF</b> block of the configuration file contains all the information that
 PSF:
 
     Model:                           AnalyticNonGaussian 
-    MappedGaussian:                                  
-        Sigma:                       0.639           
-        NumberOfPixels:              8               
-        ChargeDiffusionStrength:     0.2             
-        IncludeChargeDiffusion:      no              
-        IncludeJitterSmoothing:      no              
-    MappedFromFileSymmetrical:                       
-        Filename:                    inputfiles/psf.hdf5
-        DistanceToOA:               -1               
-        RotationAngle:              -1               
-        NumberOfPixels:              8               
-        ChargeDiffusionStrength:     0.2             
-        IncludeChargeDiffusion:      no              
-        IncludeJitterSmoothing:      no              
-    MappedFromFileAsymmetrical:                      
+    MappedFromFile:                      
         Filename:                    inputfiles/blueRealPSF.hdf5
         NumberOfPixels:              8               
         ChargeDiffusionStrength:     0.2             
@@ -814,7 +800,7 @@ PSF:
         SigmaX18:                    5.0             
         SigmaY18:                    2.0             
     AnalyticNonGaussian:
-        ParameterFileName:           inputfiles/psfallv3.txt
+        ParameterFileName:           inputfiles/apsf_N6000K_v2.txt
         ChargeDiffusionStrength:     0.2             
         IncludeChargeDiffusion:      yes             
         Sigma:                                       
@@ -827,133 +813,35 @@ PSF:
 
 
 ### <a name="psfModel"></a>Model
-<i>Allowed values:</i> "MappedGaussian", "MappedFromFileSymmetrical", "MappedFromFileAsymmetrical", "AnalyticGaussian" and "AnalyticNonGaussian
+<i>Allowed values:</i> "MappedFromFile", "AnalyticGaussian" and "AnalyticNonGaussian
 
 Indicates whether to use a Gaussian PSF, to read the PSF from an HDF5 file, or to use an analytical model (Gaussian or non-Gaussian):
 
-- MappedGaussian: the PSF is a circular Gaussian, the size of which does not change over the FOV;
-- MappedFromFileSymmetrical: the PSF is selected from an HDF5 file with pre-computed PSFs, based on the angular distance to the optical axis;
-- MappedFromFileAsymmetrical: the PSF is selected from an HDF5 file with pre-computed PSFs, based on the angular distance to the optical axis and the angle with respect to the x-axis of the focal plane. 
+- MappedFromFile: the PSF is selected from an HDF5 file with pre-computed PSFs, based on the angular distance to the optical axis and the angle with respect to the x-axis of the focal plane. 
 - AnalyticGaussian: the PSF is an elongated Gaussian (the symmetry axes being parallel to the x- and y-axis), for which the width and the height are given at the centre of the FOV and at 18 degrees from the optical axis;
 - AnalyticNonGaussian: the PSF is an analytical non-Gaussian model, the parameters of which are stored in a separate file.
 
 
 
-### <a name="mappedGaussian"></a>MappedGaussian
-
-The PSF is a circular Gaussian, the size of which does not change over the FOV.
-
-#### <a name="gaussSigma"></a>MappedGaussian: Sigma
-<i>Allowed values:</i> > 0, only required if a Gaussian PSF must be used ([Model](#psfModel) = MappedGaussian)
-
-Width (\f$\sigma \f$) of the two-dimensional Gaussian PSF, expressed in pixels.  This Gaussian PSF does not vary in size over the FOV.
-
-
-
-
-#### <a name="gaussNumPixels"></a>MappedGaussian: NumberOfPixels
-<i>Allowed values:</i> > 0, only required if a Gaussian PSF with a fixed size over the FOV must be used ([Model](#psfModel) = MappedGaussian)
-
-Number of pixels (in both directions) for which the Gaussian PSF must be generated.
-
-
-
-#### <a name="chargeDiffusionStrength"></a>MappedGaussian: ChargeDiffusionStrength
-
-<i>Allowed values:</i> \f$\ge \f$ 1 / [SubPixels](#numSubPixelsl)
-
-Charge diffusion has been modelled by a convolution with a Gaussian diffusion kernel, of which this is the standard deviation.
-
-
-
-#### <a name="inclChargeDiffusion"></a>MappedGaussian: IncludeChargeDiffusion
-
-<i>Allowed values:</i> "yes" and "no"
-
-Indicates whether or not to include charge diffusion.
-
-
-#### <a name="inclJitterSmoothing"></a>MappedGaussian: IncludeJitterSmoothing
-
-<i>Allowed values:</i> "yes" and "no"
-
-Indicates whether or not to include jitter smoothing.  This is implemented as charge diffusion with a kernel width of 0.5 sub-pixels and alleviates the problem of jitter discontinuities.  Only applicable in case [IncludeChargeDiffusion](#inclChargeDiffusion) = False.
-
-
-
-### <a name="mappedFromFile"></a>MappedFromFileSymmetrical
-
-The PSF is selected from an HDF5 file with pre-computed PSFs, based on the angular distance to the optical axis.
-
-
-
-#### <a name="psfFilename"></a>MappedFromFileSymmetrical: Filename
-<i>Allowed values:</i> only required if a pre-computed PSF must be used ([Model](#psfModel) = MappedFromFileSymmetrical)
-
-Path to the file, relative to the [project location](#projectLocation), holding the location independent [pre-computed PSF](#psfFile).
-
-
-
-#### <a name="psfDistance"></a>MappedFromFileSymmetrical: DistanceToOA
-<i>Allowed values:</i> -1 for automatic calculation, \f$\ge \f$ 0 to use the input value; only required if a pre-computed PSF must be used ([Model](#psfModel) = MappedFromFileSymmetrical)
-
-In case a positive value is given the input value will be used for the angular distance to the optical axis.
-
-In case a negative value is given, the angular distance to the optical axis will be calculated automatically.
-
-
-
-
-#### <a name="psfRotation"></a>MappedFromFileSymmetrical: RotationAngle
-<i>Allowed values:</i> Any, only required if a pre-computed PSF must be used ([Model](#psfModel) = MappedFromFileSymmetrical)
-
-Arbitrary rotation angle of the PSF, expressed in degrees and measured counterclockwise.
-
-
-
-
-#### <a name="psfNumPixels"></a>MappedFromFileSymmetrical: NumberOfPixels
-<i>Allowed values:</i> > 0, only required if a pre-computed PSF must be used ([Model](#psfModel) = MappedFromFile)
-
-Number of pixels (in both directions) for which the PSF was generated.
-
-
-
-#### <a name="chargeDiffusionStrengthFile"></a>MappedFromFileSymmetrical: ChargeDiffusionStrength
-
-<i>Allowed values:</i> \f$\ge \f$ 1 / [SubPixels](#numSubPixels)
-
-Charge diffusion has been modelled by a convolution with a Gaussian diffusion kernel, of which this is the standard deviation.
-
-
-
-#### <a name="inclChargeDiffusionFile"></a>MappedFromFileSymmetrical: IncludeChargeDiffusion
-
-<i>Allowed values:</i> "yes" and "no"
-
-Indicates whether or not to include charge diffusion.
-
-
-
-### <a name="mappedFromFile"></a>MappedFromFileAsymmetrical
+### <a name="mappedFromFile"></a>MappedFromFile
 
 The PSF is selected from an HDF5 file with pre-computed PSFs, based on the angular distance to the optical axis and the angle with respect to the x-axis of the focal plane. 
 
-#### <a name="psfFilename"></a>MappedFromFileAsymmetrical: Filename
+#### <a name="psfFilename"></a>MappedFromFile: Filename
 <i>Allowed values:</i> only required if a pre-computed PSF must be used ([Model](#psfModel) = MappedFromFile[Symmetrical/Asymmetrical].
 
 Path to the file, relative to the [project location](#projectLocation), holding the location independent [pre-computed PSF](#psfFile).
 
 
 
-#### <a name="psfNumPixels"></a>MappedFromFileAsymmetrical: NumberOfPixels
+#### <a name="psfNumPixels"></a>MappedFromFile: NumberOfPixels
 <i>Allowed values:</i> > 0, only required if a pre-computed PSF must be used ([Model](#psfModel) = MappedFromFile)
 
 Number of pixels (in both directions) for which the PSF was generated.
 
 
 
-#### <a name="chargeDiffusionStrengthFile"></a>MappedFromFileAsymmetrical: ChargeDiffusionStrength
+#### <a name="chargeDiffusionStrengthFile"></a>MappedFromFile: ChargeDiffusionStrength
 
 <i>Allowed values:</i> \f$\ge \f$ 1 / [SubPixels](#numSubPixels)
 
@@ -961,7 +849,7 @@ Charge diffusion has been modelled by a convolution with a Gaussian diffusion ke
 
 
 
-#### <a name="inclChargeDiffusionFile"></a>MappedFromFileAsymmetrical: IncludeChargeDiffusion
+#### <a name="inclChargeDiffusionFile"></a>MappedFromFile: IncludeChargeDiffusion
 
 <i>Allowed values:</i> "yes" and "no"
 
