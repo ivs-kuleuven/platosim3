@@ -89,6 +89,20 @@ numRowsSubField = sim["SubField/NumRows"]
   
 sim["Telescope/GroupID"] = group
 
+# The optical alignment of each camera is not perfect, so put a slight offset on their azimuth and tilt angles.
+# This mean misalignment is independent of the quarter.
+
+randomSeed = 1252225 + 5000 * group + 20 * telescope
+rng = np.random.default_rng(randomSeed)
+oneArcminute = 1/60.                                                                # [deg]
+meanAzimuth = np.array(sim["CameraGroups/AzimuthAngle"])                            # [deg]
+meanTilt = np.array(sim["CameraGroups/TiltAngle"])                                  # [deg]
+actualAzimuth = rng.uniform(meanAzimuth-oneArcminute, meanAzimuth+oneArcminute)     # [deg]
+actualTilt = rng.uniform(meanTilt-oneArcminute, meanTilt+oneArcminute)              # [deg]
+
+sim["CameraGroups/AzimuthAngle"] = list(actualAzimuth)                              # [deg]
+sim["CameraGroups/TiltAngle"] = list(actualTilt)                                    # [deg]
+
 # Set the quarter specific parameters
 
 sim["RandomSeeds/JitterSeed"] = 2033429158 + 100 * quarter
@@ -96,8 +110,8 @@ sim["Platform/SolarPanelOrientation"] = math.fmod(quarter * 90., 360.)         #
 
 cycleTime = sim["ObservingParameters/CycleTime"]
 numExposuresCoveringOneQuarter = 90. * 86400. / cycleTime                      # One quarter is 90 days
-numExposures = (90. - 2.) * 86400. / cycleTime                                 # Two days lost because of platform roll + thermal stabilisation
-#numExposures = 100                                                             # For testing only
+#numExposures = (90. - 2.) * 86400. / cycleTime                                 # Two days lost because of platform roll + thermal stabilisation
+numExposures = 100                                                             # For testing only
 sim["ObservingParameters/NumExposures"] = int(numExposures)
 sim["ObservingParameters/BeginExposureNr"] = (quarter-1) * int(numExposuresCoveringOneQuarter)
 

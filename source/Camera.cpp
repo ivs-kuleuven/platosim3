@@ -1308,8 +1308,8 @@ pair<double, double> Camera::skyToFocalPlaneCoordinates(double raStar, double de
  * \brief Compute the equatorial sky coordinates of a star which has the given focal plane (FP) coordinates (x,y),
  *        assuming a pinhole camera model
  *
- * \param xFP     Focal plane x-coordinate in the FP system [mm]
- * \param yFP     Focal plane y-coordinate in the FP system [mm]
+ * \param xFP     Undistorted focal plane x-coordinate in the FP system [mm]
+ * \param yFP     Undistorted focal plane y-coordinate in the FP system [mm]
  * \param useInitialOrientation  true: use initial orientation of telescope and platform (i.e. before first exposure)
  *                               false: use current (jittered and drifted) telescope and platform orientation
  *

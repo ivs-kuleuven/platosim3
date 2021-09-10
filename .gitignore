@@ -12,6 +12,7 @@ PlatoSim3.code-workspace
 .vscode/*
 PlatoSim3.code-workspace
 .idea
+.cache
 
 # Ignore some of the auto-generated files (during cmake)
 
@@ -25,6 +26,10 @@ generated/version.h
 !aps_N6000K_v2.txt
 !orbit.txt
 !inputfiles/cl2bCcds.txt
+
+# Ignore compile command json file for neovim LSP
+
+compile_commands.json
 
 # Ignore output of ctags
 
