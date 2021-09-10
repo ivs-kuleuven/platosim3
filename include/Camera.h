@@ -55,6 +55,9 @@ class Camera : public HDF5Writer
         pair<double, double> skyToFocalPlaneCoordinates(double raStar, double decStar, bool useInitialOrientation=false);
         pair<double, double> focalPlaneToSkyCoordinates(double xFP, double yFP, bool useInitialOrientation=false);
 
+        pair<double, double> undistortedToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm);
+        pair<double, double> distortedToUndistortedFocalPlaneCoordinates(double xFPdist, double yFPdist);
+
         double getGnomonicRadialDistanceFromOpticalAxis(double xFP, double yFP);
 
         set<unsigned int> getAllStarIDs();
@@ -78,8 +81,11 @@ class Camera : public HDF5Writer
         Sky &sky;
 
         Parameter<double> *focalLength;       // [mm]
-        Parameter<double> *focalPlaneAngle;   // Orientation of the focal plane, as an angle around the optical axis  [rad] 
+        Parameter<double> *focalPlaneAngle;   // Orientation of the focal plane, as an angle around the optical axis  [rad]
+        Parameter<double, 3> *distortionCoef; // distortion coefficients to map undistorted to distorted coordinates.
+        Parameter<double, 3> *inverseDistortionCoef; // inverse distortion coefficient to map distorted to undistorted coordinates.
 
+        string distortionModel;               // The model used to compute the distortion  
         double plateScale;                    // [arcsec/micron]
         double throughputBandwidth;           // FWHM of the throughput passband [nm]
         double throughputLambdaC;             // Central wavelength of the throughput passband [nm]
@@ -88,6 +94,9 @@ class Camera : public HDF5Writer
 
         bool includeAberrationCorrection; // Whether or not (differential) aberration correction should be included
         string aberrationCorrectionType;  // [differential or absolute]
+
+        bool isMapped;                    // Whether or not the PSF is mapped from a file or not
+        bool includeFieldDistortion;      // Whether or not field distortion should be included
 
         double userGivenSkyBackground;    // User-set zodiacal + stellar sky background.                          [phot/pix/s]
                                           // If negative, computed by the Sky class

@@ -981,3 +981,59 @@ void DetectorWithMappedPSF::applyDiffusionKernelOnPSF(double subpixRow, double s
 
     psf(rowSpan, columnSpan) += diffusionKernel(ySpan, xSpan) * flux;
 }
+
+
+
+
+/*
+ * /brief: applies the field distortion on the inputparameters from the distortion map
+ * /input: FP coordinates [mm] 
+ */
+void DetectorWithMappedPSF::applyDistortion(double &x, double &y)
+{
+  double xDist, yDist;
+  double minDistanceSquared = std::numeric_limits<double>::max();
+
+  for (auto& coordinates : distortionMap)
+  {
+    double distanceSquared = pow(std::get<0>(coordinates) - x, 2) + pow(std::get<1>(coordinates) - y, 2);
+
+    if(distanceSquared < minDistanceSquared)
+    {
+      minDistanceSquared = distanceSquared;
+      
+      xDist   = std::get<2>(coordinates);
+      yDist   = std::get<3>(coordinates);
+    }
+  }
+      
+  x = xDist;
+  y = yDist;
+ }
+
+
+/*
+ * /brief: applies the inverse of the field distortion on the input coordinates
+ * /input: FP coordinates [mm] 
+ */
+void DetectorWithMappedPSF::applyInverseDistortion(double &x, double &y)
+{
+  double xUndist, yUndist;
+  double minDistanceSquared = std::numeric_limits<double>::max();
+
+  for (auto& coordinates : distortionMap)
+  {
+    double distanceSquared = pow(std::get<2>(coordinates) - x, 2) + pow(std::get<3>(coordinates) - y, 2);
+
+    if(distanceSquared < minDistanceSquared)
+    {
+      minDistanceSquared = distanceSquared;
+      
+      xUndist   = std::get<0>(coordinates);
+      yUndist   = std::get<1>(coordinates);
+    }
+  }
+      
+  x = xUndist;
+  y = yUndist;
+ }

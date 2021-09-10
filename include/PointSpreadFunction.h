@@ -32,7 +32,9 @@ class PointSpreadFunction : public HDF5Writer
         int getNumSubPixelsPerPixel(){return numberOfSubPixelsPerPixel;};
         arma::fmat rebinToSubPixels(unsigned int targetSubPixels);
         arma::fmat getOriginalPSF();
+        vector<std::array<double, 4>> getDistortionMap();
         bool writeHighResolutionPSF;
+        vector<std::array<double, 4>> distortionMap;
 
     protected:
 

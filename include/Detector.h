@@ -88,6 +88,8 @@ class Detector: public HDF5Writer
         bool isInSubfield(double xFPmm, double yFPmm);
 
         double getReadoutTimeBeforeNextExposure();
+        virtual void applyDistortion(double &, double &){};
+        virtual void applyInverseDistortion(double &, double &){};
 
         virtual double getTrapDensity(double time, int trapSpecies);
 

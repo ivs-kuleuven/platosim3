@@ -80,7 +80,15 @@ Camera:
     AberrationCorrection:
         Type:                        differential    # [differential, absolute]
         OrbitFile:                   inputfiles/orbit.txt
-        StartTime:                   4149.122013 
+        StartTime:                   4149.122013
+    IncludeFieldDistortion:          yes             # Whether or not to include field distortion. This only applies when the PSF is not mapped from file. 
+    FieldDistortion:
+        Type:                        Polynomial1D    # The model for the field distortion
+        Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent)
+        ConstantCoefficients:        [0.316257210577,  0.066373219688,  0.372589221219]      # In case Source is ConstantValue
+        ConstantInverseCoefficients: [-0.317143032936, 0.242638513347,-0.459260203502]       # In case Source is ConstantValue
+        CoefficientsFromFile:        inputfiles/distortioncoefficients.txt                   # In case Source is FromFile
+        InverseCoefficientsFromFile: inputfiles/distortioninversecoefficients.txt            # In case Source if FromFile
     IncludeGhosts:                   yes
     Ghosts:
         PointLike:

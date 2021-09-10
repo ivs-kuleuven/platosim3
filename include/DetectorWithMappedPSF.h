@@ -31,6 +31,8 @@ class DetectorWithMappedPSF : public Detector
         void configure(ConfigurationParameters &configParam);
         void writeDiffusedPSFToHDF5(PointSpreadFunction *psf);
         void applyDiffusionKernelOnPSF(double subpixRow, double subpixColumn, double flux, arma::fmat& psf, int numberOfPsfSubpixelsPerPixel);
+        void applyDistortion(double &x, double &y);
+        void applyInverseDistortion(double &x, double &y);
 
     protected:
 

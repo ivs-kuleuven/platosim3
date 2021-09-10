@@ -222,6 +222,25 @@ void PointSpreadFunction::select(double xFP, double yFP)
 
     isSelected = true;
 
+    // We read in the table that converts the undistorted coordinates to distorted coordinates from the psf HDF5 file.
+    vector<double> xUndistorted;
+    vector<double> yUndistorted;
+
+    vector<double> xDistorted;
+    vector<double> yDistorted;
+
+    psfFile.readArray("/Coordinates map/Undistorted", "x", xUndistorted);
+    psfFile.readArray("/Coordinates map/Undistorted", "y", yUndistorted);    
+    psfFile.readArray("/Coordinates map/Distorted", "x", xDistorted);
+    psfFile.readArray("/Coordinates map/Distorted", "y", yDistorted);
+
+    
+
+    for (int i=0; i < xDistorted.size(); i++)
+    {
+      distortionMap.push_back({xUndistorted.at(i), yUndistorted.at(i), xDistorted.at(i), yDistorted.at(i)});
+    }
+
     
 
 }
@@ -342,6 +361,17 @@ arma::fmat PointSpreadFunction::getOriginalPSF()
   psfMap /= arma::accu(psfMap);
   return psfMap;
 }
+
+
+/*
+ * This function gets the distortion map 
+ */
+
+vector<std::array<double, 4>> PointSpreadFunction::getDistortionMap()
+{
+  return distortionMap;
+}
+
 
 
 
