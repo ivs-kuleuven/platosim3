@@ -20,7 +20,7 @@ class AnalyticPSF:
 
         # Specify the camera characteristics
 
-        >>> path = "/path/to/psfallv3.txt"
+        >>> path = "/path/to/apsf_N6000K.txt"
         >>> sigmaPSF = 0.5                    # [pix]
         >>> sigmaDiffusion = 0.2              # [pix]
         >>> focalLength = 247.52              # [mm]

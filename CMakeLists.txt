@@ -12,7 +12,8 @@
 # Notes:
 #   - Prefer 'cmake ..' in the build/ directory above 'cmake' in the
 #     parent directory, because the former does an out-of-source build.
-#
+#   - To create a `compile_commands.json` file for clangd integration:
+#        $ cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 ..
 
 
 project(PlatoSim)

@@ -118,12 +118,12 @@ PSF:
         SigmaX18:                    5.0             # Stdev of Gaussian PSF in x-direction at 18 deg from the optical axis [pix]
         SigmaY18:                    2.0             # Stdev of Gaussian PSF in y-direction at 18 deg from the optical axis [pix]
     AnalyticNonGaussian:
-        ParameterFileName:           inputfiles/psfallv3.txt
+        ParameterFileName:           inputfiles/apsf_N6000K_v2.txt
         Sigma:                                       # Width of the analytic PSF, equal to sigma for a Gaussian PSF [pix]  
             Source:                  ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent) 
             ConstantValue:           0.5             # Used in case Source is ConstantValue  [pix]
             FromFile:                inputfiles/sigmaPSF.txt # Used in case Source is FromFile: time [s] & sigma_PSF [pix]
-        ParameterFileName:           inputfiles/psfallv3.txt
+        ParameterFileName:           inputfiles/apsf_N6000K_v2.txt
 
 RandomSeeds:
 

@@ -54,7 +54,7 @@ class Sky
         void aberrateSelectedGhostOrigPositions(Platform &platform, string aberrationCorrectionType, double startTime, double timeMiddle);
         tuple<unsigned int, double, double, double> getSelectedGhostOrig(unsigned int n);
 
-
+        double time0;
         double zodiacalFlux(double RA, double dec, double lambda1, double lambda2);
         double zodiacalFlux(double RA, double dec, vector<double> &lambda, vector<double> &throughput);
         double stellarBackgroundFlux(double RA, double dec, double lambda1, double lambda2);
@@ -68,13 +68,15 @@ class Sky
         double solarRadiantFlux(double lambda1, double lambda2);
         double solarRadiantFlux(vector<double> &lambda, vector<double> &throughput);
 
-        map<unsigned int, unique_ptr<Parameter<double>>> deltaMagnitude;     // deltaMagnitude[starID] contains pointer to time series file.  
+        map<unsigned int, unique_ptr<Parameter<double>>> deltaMagnitude;     // deltaMagnitude[starID] contains pointer to time series file.
+        string orbitPlatoFile;
 
     private:
 
         map<unsigned int, tuple<double, double, double>> starDB;    // star database: starDB[stardID] contains (RA, dec, Vmag), 
                                                                     // with (RA, dec) in radians, and Vmag = Johnson V magnitude,
                                                                     // and starID the star identification number.
+        vector<tuple<double, valarray<double>, double>> orbitDB;
        
         vector<unsigned int> selectedStarID;  // IDs of the stars selected with selectStarsWithinRadiusFrom()
         vector<double> selectedRA;            //      Corresponding selected Right Ascension [rad]

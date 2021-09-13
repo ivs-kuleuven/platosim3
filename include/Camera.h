@@ -81,7 +81,7 @@ class Camera : public HDF5Writer
         Sky &sky;
 
         Parameter<double> *focalLength;       // [mm]
-        Parameter<double> *focalPlaneAngle;   // Orientation of the focal plane, as an angle around the optical axis  [rad] 
+        Parameter<double> *focalPlaneAngle;   // Orientation of the focal plane, as an angle around the optical axis  [rad]
         Parameter<double, 3> *distortionCoef; // distortion coefficients to map undistorted to distorted coordinates.
         Parameter<double, 3> *inverseDistortionCoef; // inverse distortion coefficient to map distorted to undistorted coordinates.
 
@@ -95,6 +95,7 @@ class Camera : public HDF5Writer
         bool includeAberrationCorrection; // Whether or not (differential) aberration correction should be included
         string aberrationCorrectionType;  // [differential or absolute]
 
+        bool isMapped;                    // Whether or not the PSF is mapped from a file or not
         bool includeFieldDistortion;      // Whether or not field distortion should be included
 
         double userGivenSkyBackground;    // User-set zodiacal + stellar sky background.                          [phot/pix/s]
