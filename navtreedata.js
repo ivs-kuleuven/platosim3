@@ -56,6 +56,7 @@ var NAVTREE =
       ] ],
       [ "Simulation Steps", "_simulation_steps.html", null ]
     ] ],
+    [ "Quick Start", "_quick_start.html", null ],
     [ "Help (Issue Tracking)", "_issue_tracking.html", null ]
   ] ]
 ];
