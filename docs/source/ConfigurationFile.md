@@ -541,24 +541,26 @@ The <b>Camera</b> block of the configuration file contains all the information t
 \code{.yaml}
 Camera:
 
-    PlateScale:                      0.8333          
+    PlateScale:                      0.8333
     FocalPlaneOrientation:
         Source:                      ConstantValue
-        ConstantValue:               0.0 
-        FromFile:                    inputfiles/fporientation.txt           
-    FocalLength: 
-        Source:                      ConstantValue 
+        ConstantValue:               0.0
+        FromFile:                    inputfiles/fporientation.txt
+    FocalLength:
+        Source:                      ConstantValue
         ConstantValue:               0.24752
-        FromFile:                    inputfiles/focallength.txt   
-    ThroughputBandwidth:         532             
-    ThroughputLambdaC:           550        
-    IncludeAberrationCorrection: yes     
+        FromFile:                    inputfiles/focallength.txt
+    ThroughputBandwidth:         532
+    ThroughputLambdaC:           550
+    IncludeAberrationCorrection: yes
     AberrationCorrection:
-        Type:                    differential
-    IncludeFieldDistortion:      yes             
+        Type:                        differential    # [differential, absolute]
+        OrbitFile:                   inputfiles/orbit.txt
+        StartTime:                   4149.122013
+    IncludeFieldDistortion:          yes
     FieldDistortion:
         Type:                        Polynomial1D
-        Source:                      ConstantValue 
+        Source:                      ConstantValue
         ConstantCoefficients:        [0.316257210577,  0.066373219688,  0.372589221219]
         ConstantInverseCoefficients: [-0.317143032936, 0.242638513347, -0.459260203502]
         CoefficientsFromFile:        inputfiles/distortioncoefficients.txt
@@ -681,6 +683,15 @@ The calculation of the aberration correction is an approximation based on a circ
 
 Indicates whether to apply either differential or absolute aberration correction (if ([IncludeAbberationCorrection](#includeAberrationCorrection) = yes).
 
+
+
+#### <a name=aberrationCorrectionType></a>IncludeAberrationCorrection: OrbitFile
+The path towards the location of the orbit file. The orbit files consist of: time, the coordinates of the spacecraft, the velocity of the spacecraft and the speed of the spacecraft. 
+
+
+
+#### <a name=aberrationCorrectionType></a>IncludeAberrationCorrection: StartTime
+The time at in the orbit file that coresponds with exposure number 0. 
 
 
 ### <a name="fieldDistortion"></a>FieldDistortion
