@@ -120,7 +120,6 @@ The output if this function is:
 ## Simulate CCD for N-Camera
 
 A Plato N-Cam CCD consists out of 5 parts, the image section, the readout register, the serial pre-scan, the serial over-scan and the parallel overscan. Note that PlatoSim currently does not simulate serial overscan. (This feature is coming in the future)
-@image html /images/full_CCD.png "The left half of a full CCD. The red areas are what is simulated using PlatoSim."
 
 
 ### Simulate exposed part

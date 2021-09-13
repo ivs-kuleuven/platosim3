@@ -3,7 +3,7 @@
 
 ## Data Package
 
-If you want to use realistic PSF models instead of a Gaussian, you can download these from out FTP server. The default file for most users (in focuss PSF at 6000K) can be found <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/FF_0mu_N6000K_4224stars.hdf5"> here</a>.\n  <!-- A convenient place to store this file is in the <code>/inputfiles</code> directory. -->
+If you want to use realistic PSF models instead of a Gaussian, you can download these from out FTP server. The default file for most users (in focuss PSF at 6000K) can be found <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/PSF_Focus_0mu.hdf5"> here</a>.\n  <!-- A convenient place to store this file is in the <code>/inputfiles</code> directory. -->
 
 
 ### Out off focuss PSF (at 6000K):
