@@ -1,18 +1,27 @@
 # Changelog for PlatoSim
 
-<!-- 3.4.2 -->
+<!-- 3.5.0 -->
 <!-- ***** -->
 
-## **/**/2021: 3.4.2
+## 13/09/2021: 3.5.0
 
 ## Fixed
 * Time shift is not applied when reading out CCDs for the F-CAMs (GitHub #540)
 * In `hdf5ToFits.py` typecheck before converting to `string` (GitHub #600)
+* Removed fortran dependencies in fftw  isntall script
 
 ## Changed
 * Update `showSim.py` to include biasMapsRight and biasMapsLeft
+* New analytic PSF model and set of parametes for N6000K
+* Include more accurate PSF files for mapped PSF model. The new files can be downloaded from the `Prerequisites` section of the PlatoSim website. 
+* Updated mail.cpp to allow a new log level: 0: only shows errors and no warning. 
+* Update `Simulation::writeInputParametersToHDF5` function.
+* Implemented a new mapped distortion method for mapped PSF model. The distortion table is included in psf files. 
+* Updated website 
 
 ## Added
+* Added a more accurate aberration model. Instead of assumeing a sircular orbit with constant speed around the sun, we can now include the path of the spacecraft in an orbitfile to simulate any time dependent velocity. An accurate orbitfile is included in the `inputfiles` directory. 
+
 
 
 
