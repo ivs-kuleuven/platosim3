@@ -325,8 +325,12 @@ class Simulation(object):
         """
         
         # Ensure that the given item is a string
+        
+        if type(item) is np.ndarray:
+            item = list(item)
 
-        item = str(item)
+        if type(item) != list:
+            item = str(item)
 
         # Split the path into node names
         # E.g. "PSF/MappedGaussian/Sigma" into ["PSF", "MappedGaussian", "Sigma"]

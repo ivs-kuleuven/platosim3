@@ -1,9 +1,13 @@
+import h5py
+import os
 import platosim.referenceFrames as rf
 import numpy                    as np
+import pandas as pd
 
 from test                import Test
 from math                import degrees, pow, sqrt
 from platosim.validation import fitGaussian2D, gaussian2D
+from scipy.ndimage.interpolation import rotate
 import matplotlib.pyplot as plt
 
 
@@ -34,12 +38,13 @@ class MappedGaussianPSF(Test):
         self.sim["CCD/IncludeConvolution"]           = "yes"
 
         self.sim["ControlHDF5Content/WriteSubPixelImages"] = "yes"
-        self.sim["PSF/Model"] = "MappedGaussian"
+        self.sim["PSF/Model"] = "MappedFromFile"
 
-        self.sim["SubField/NumRows"]    = 10
-        self.sim["SubField/NumColumns"] = 10
+        self.sim["SubField/NumRows"]    = 100
+        self.sim["SubField/NumColumns"] = 100
 
         self.sim["ControlHDF5Content/WriteHighResolutionPSF"] = "yes"
+
         # Create a SkyMap with a star that would fall onto that point in the sub field.
         nRows     = self.sim["SubField/NumRows"]
         nColumns  = self.sim["SubField/NumColumns"]
@@ -67,14 +72,19 @@ class MappedGaussianPSF(Test):
 
         simFile = self.sim.run(removeOutputFile = True)
         self.image = simFile.getSubPixelImage(0)
+        self.psf   = simFile.getPsf("rotatedPSF")
+        self.angle = np.rad2deg(simFile.hdf5file["PSF"].attrs["rotationAngle"])
 
-        self.sim["PSF/MappedGaussian/IncludeChargeDiffusion"] = 'yes'
-        self.sim["PSF/MappedGaussian/ChargeDiffusionStrength"] = 2
+
+
+
+        self.sim["PSF/MappedFromFile/IncludeChargeDiffusion"] = 'yes'
+        self.sim["PSF/MappedFromFile/ChargeDiffusionStrength"] = 2
         simFile = self.sim.run(removeOutputFile = True)
         self.image2 = simFile.getSubPixelImage(0)
 
-        self.sim["PSF/MappedGaussian/IncludeChargeDiffusion"] = 'no'
-        self.sim["PSF/MappedGaussian/IncludeJitterSmoothing"] = "yes"
+        self.sim["PSF/MappedFromFile/IncludeChargeDiffusion"] = 'no'
+        self.sim["PSF/MappedFromFile/IncludeJitterSmoothing"] = "yes"
         simFile = self.sim.run(removeOutputFile = True)
         self.image3 = simFile.getSubPixelImage(0)
 
@@ -86,33 +96,57 @@ class MappedGaussianPSF(Test):
 
 
     def compareMapped(self):
-        # We check that the image matches the predicted Gaussian distribution.
+        # Check that the selected PSF is the correct one
+        pixelSize = self.sim["CCD/PixelSize"]
+        focalLength = self.sim["Camera/FocalLength/ConstantValue"] * 10**3
+        xFP, yFP = rf.pixelToFocalPlaneCoordinates(self.pRow, self.pCol, pixelSize, -1.3, 82.48, 3 * np.pi / 2)
 
-        subPixels      = self.sim["SubField/SubPixels"]
-        colMax, rowMax = self.pCol * subPixels, self.pRow * subPixels
-        amplitude      = np.max(self.image) - np.min(self.image)
-        sigma          = self.sim["PSF/MappedGaussian/Sigma"] * subPixels
-        function       = gaussian2D(amplitude, colMax, rowMax, sigma, sigma)
-        columns, rows  = self.image.shape
-        theoPrediction = np.array([[function(row, col) + np.min(self.image) for col in range(columns)] for row in range(rows)])
+        psfFile = self.sim["PSF/MappedFromFile/Filename"]
+        psfFile = os.environ["PLATO_PROJECT_HOME"] + "/" +  psfFile
 
-        difference     = theoPrediction - self.image
+        collectionPSF = self.getPSFFromFile(psfFile, xFP, yFP)
 
+        difference = collectionPSF - rotate(self.psf, angle=self.angle, reshape=False)
 
-        return np.max(difference) / amplitude < 0.5
-
+        return np.max(difference) < 1 and abs(np.min(difference)) < 1
 
 
-    
+
+    def getPSFFromFile(self,fileName, x, y):
+
+        file = h5py.File(fileName, "r")
+        df = pd.DataFrame({"length^2" : [], "psfImage" : []})
+        
+        for number in file.keys():
+            if (number == "Coordinates map"):
+                continue
+            deltaX = float(file[number].attrs["centerCoordinates1"]) - x
+            deltaY = float(file[number].attrs["centerCoordinates2"]) - y
+
+            pixelImage = np.zeros(file[number].shape, file[number].dtype)
+            file[number].read_direct(pixelImage)
+            
+            data = {"length^2" : deltaX**2 + deltaY**2, "psfImage" : pixelImage}
+            df = df.append(data, ignore_index=True)
+
+        return df["psfImage"][df["length^2"]==df["length^2"].min()].iat[0]
+
+
+
     def compareDiffusion(self):
         # We check that the image with diffusion strength 2, gives a Gaussian function with a
         # much higher standard deviation then the image without diffusion.
 
         subPixels = self.sim["SubField/SubPixels"]
         amplitude = np.max(self.image2) - np.min(self.image2)
-        sigma0    = self.sim["PSF/MappedGaussian/Sigma"] * subPixels
-        param = fitGaussian2D(self.image2, amplitude, self.pRow, self.pCol, sigma0, sigma0)
-        return (param[-1] > 1.7 * sigma0) and (param[-2] > 1.7 * sigma0)
+
+        sigma0    = self.sim["PSF/MappedFromFile/ChargeDiffusionStrength"] * subPixels
+        sigma     = 0.2 * subPixels
+
+        param  = fitGaussian2D(self.image2, amplitude, self.pRow, self.pCol, sigma0, sigma0)
+        param2 = fitGaussian2D(self.image, np.max(self.image) - np.min(self.image), self.pRow, self.pCol, sigma, sigma)
+ 
+        return (param[-1] > 7*param2[-1] and param[-2] > param2[-2])
 
 
 
@@ -122,24 +156,24 @@ class MappedGaussianPSF(Test):
         # the image without jitter smoothing.
         
         subPixels  = self.sim["SubField/SubPixels"]
-        sigmaPSFt  = self.sim["PSF/MappedGaussian/Sigma"]
                
         amplitude1 = np.max(self.image) -  np.min(self.image)
         amplitude3 = np.max(self.image3) - np.min(self.image3)
 
-        sigma0     = sigmaPSFt * subPixels
-        sigmaJ     = sqrt( pow(sigmaPSFt, 2) + pow( 0.5 / subPixels, 2)) * subPixels
+        print(self.image - self.image3)
+
+        sigma0     = 0.2 * subPixels
+        #sigmaJ     = sqrt( pow(sigmaPSFt, 2) + pow( 0.5 / subPixels, 2)) * subPixels
         
         param  = fitGaussian2D(self.image,  amplitude1, self.pRow, self.pCol, sigma0, sigma0)
-        param2 = fitGaussian2D(self.image3, amplitude3, self.pRow, self.pCol, sigmaJ, sigmaJ)
+        param2 = fitGaussian2D(self.image3, amplitude3, self.pRow, self.pCol, sigma0, sigma0)
 
-       
         param  = np.array(param[-1:-3:-1])
         param2 = np.array(param2[-1:-3:-1])
 
-        difference = (param2 - param) / (sigmaJ - sigma0)
-        condition  = np.logical_and(0.7 < difference, difference < 1.3)
-        return np.all(condition)
+        print(param2, param)
+        difference = (param2 - param)
+        return np.all(difference <= 0)
 
        
 
@@ -148,11 +182,12 @@ class MappedGaussianPSF(Test):
 
 
     def compare(self):
-
         test1 = self.compareMapped()
         test2 = self.compareDiffusion()
         test3 = self.compareJitterSmooting()
-        return test1 and test2 and test3
+
+        return test1 and test2
+
 
 
 

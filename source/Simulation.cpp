@@ -170,11 +170,7 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     // Depending on how the PSF is computed (analytically or pre-mapped) the Detector object is different.
 
-    if ((psfModel == "MappedGaussian") || (psfModel == "MappedFromFileSymmetrical"))
-    {
-        detector = detectorFactory->createDetectorWithSymmetricalMappedPsfInstance(configParams, *hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
-    }
-    else if (psfModel == "MappedFromFileAsymmetrical")
+    if (psfModel == "MappedFromFile")
     {
         detector = detectorFactory->createDetectorWithAsymmetricalMappedPsfInstance(configParams, *hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
     }
@@ -246,7 +242,6 @@ void Simulation::configure(ConfigurationParameters &configParams)
     numExposures                    = configParams.getInteger("ObservingParameters/NumExposures");
     useJitter                       = configParams.getBoolean("Platform/UseJitter");
     jitterSource                    = configParams.getString("Platform/JitterSource");
-    includeFieldDistortion          = configParams.getBoolean("Camera/IncludeFieldDistortion"); // do we want to do this or should this be asked to Camera?
     useDrift                        = configParams.getBoolean("Telescope/UseDrift");  
     useDriftFromFile                = configParams.getBoolean("Telescope/UseDriftFromFile");  
     psfModel                        = configParams.getString("PSF/Model");
@@ -262,14 +257,19 @@ void Simulation::configure(ConfigurationParameters &configParams)
     // Find out the right time shift.
 
     string ccdPosition              = configParams.getString("CCD/Position");
+    bool isFastCamera               = configParams.getString("Telescope/GroupID") == "Fast";
     if (ccdPosition == "Custom")
     {
         timeShift = configParams.getDouble("CCD/TimeShift");
     }
-    else
+    else if (!isFastCamera)
     {
         int index = stoi(ccdPosition) - 1;   // Position are named  [1, 2, 3, 4] while the index into vector starts at 0
         timeShift = configParams.getDoubleAt("CCDPositions/TimeShift", index);
+    }
+    else
+    {
+        timeShift = 0.0;
     }
 
     Log.debug("Simulation: configure(): time shift for current CCD configuration: " + to_string(timeShift));
@@ -404,7 +404,7 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
 
 		else if (readoutMode == "Partial")
 		{
-            numRowsReadout = configParams.getInteger("CCD/ReadoutMode/Partial/NumRowsReadout");
+		numRowsReadout = configParams.getInteger("CCD/ReadoutMode/Partial/NumRowsReadout");
 			numRowsDump = firstRowExposed - numRowsReadout;
 		}
 
@@ -590,10 +590,6 @@ void Simulation::writeStarCatalogToHDF5()
             RA[k]  *= Angle::degrees;    // [rad] -> [deg]
             dec[k] *= Angle::degrees;    // [rad] -> [deg]
 
-            if (includeFieldDistortion)
-            {
-               tie(xFPmm[k], yFPmm[k]) = camera->undistortedToDistortedFocalPlaneCoordinates(xFPmm[k], yFPmm[k]);
-            }
 
             tie(rowPix[k], colPix[k]) = detector->focalPlaneToPixelCoordinates(xFPmm[k], yFPmm[k]);
             k++;
@@ -739,16 +735,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("PlateScale");
     addDouble("ThroughputBandwidth");
     addDouble("ThroughputLambdaC");
-    addBoolean("IncludeFieldDistortion");
     addBoolean("IncludeGhosts");
-    subGroup = "Camera/FieldDistortion";
-    hdf5File->createGroup(parentGroup + "/" + subGroup);
-    addString("Type");
-    addString("Source");
-    addDoubleVector("ConstantCoefficients");
-    addDoubleVector("ConstantInverseCoefficients");
-    addString("CoefficientsFromFile");
-    addString("InverseCoefficientsFromFile");
     subGroup = "Camera/FocalPlaneOrientation";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addString("Source");
@@ -759,7 +746,6 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addString("Source");
     addDouble("ConstantValue");
     addString("FromFile");
-
     subGroup = "Camera/Ghosts";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     subGroup = "Camera/Ghosts/PointLike";
@@ -775,25 +761,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     subGroup = "PSF";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addString("Model");
-    subGroup = "PSF/MappedGaussian";
-    hdf5File->createGroup(parentGroup + "/" + subGroup);
-    addDouble("Sigma");
-    addInteger("NumberOfPixels");
-    addDouble("ChargeDiffusionStrength");
-    addBoolean("IncludeChargeDiffusion");
-    addBoolean("IncludeJitterSmoothing");
-
-    subGroup = "PSF/MappedFromFileSymmetrical";
-    hdf5File->createGroup(parentGroup + "/" + subGroup);
-    addString("Filename");
-    addDouble("DistanceToOA");
-    addDouble("RotationAngle");
-    addInteger("NumberOfPixels");
-    addDouble("ChargeDiffusionStrength");
-    addBoolean("IncludeChargeDiffusion");
-    addBoolean("IncludeJitterSmoothing");
-
-    subGroup = "PSF/MappedFromFileAsymmetrical";
+    subGroup = "PSF/MappedFromFile";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addString("Filename");
     addInteger("NumberOfPixels");
@@ -818,25 +786,23 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("ConstantValue");
     addString("FromFile");
 
-	subGroup = "FEE";
-	hdf5File->createGroup(parentGroup + "/" + subGroup);
-	addDouble("NominalOperatingTemperature");
-	addString("Temperature");
-	addString("TemperatureFileName");
-	addDouble("ReadoutNoise");
-
-	subGroup = "FEE/Gain";
-	hdf5File->createGroup(parentGroup + "/" + subGroup);
-	addDouble("RefValueLeft");
-	addDouble("RefValueRight");
-	addDouble("Stability");
-	addDouble("AllowedDifference");
-
-	subGroup = "FEE/ElectronicOffset";
-	hdf5File->createGroup(parentGroup + "/" + subGroup);
-	addInteger("RefValue");
-	addDouble("Stability");
-
+    subGroup = "FEE";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addDouble("NominalOperatingTemperature");
+    addString("Temperature");
+    addString("TemperatureFileName");
+    addDouble("ReadoutNoise");
+    addBoolean("IncludeOverAndUnderShoot");
+    subGroup = "FEE/Gain";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addDouble("RefValueLeft");
+    addDouble("RefValueRight");
+    addDouble("Stability");
+    addDouble("AllowedDifference");
+    subGroup = "FEE/ElectronicOffset";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addInteger("RefValue");
+    addDouble("Stability");
     subGroup = "FEE/OverAndUnderShoot";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addDouble("Strength");
@@ -844,45 +810,57 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("DecayRate");
     addInteger("Range");
 
-	subGroup = "CCD";
-	hdf5File->createGroup(parentGroup + "/" + subGroup);
+    subGroup = "CCD";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
     addString("Position");
-	addDouble("OriginOffsetX");
-	addDouble("OriginOffsetY");
-	addDouble("Orientation");
-	addInteger("NumColumns");
+    addDouble("OriginOffsetX");
+    addDouble("OriginOffsetY");
+    addDouble("Orientation");
+    addInteger("NumColumns");
     addInteger("NumRows");
     addInteger("FirstRowExposed");
-	addDouble("PixelSize");
-	addLong("FullWellSaturation");
-	addInteger("DigitalSaturation");
-	addDouble("ReadoutNoise");
+    addDouble("TimeShift");
+    addDouble("PixelSize");
+    addLong("FullWellSaturation");
+    addInteger("DigitalSaturation");
+    addDouble("ReadoutNoise");
     addDouble("SerialTransferTime");
     addDouble("ParallelTransferTime");
     addDouble("ParallelTransferTimeFast");
     addDouble("FlatfieldNoiseRMS");
-	addDouble("NominalOperatingTemperature");
-	addString("Temperature");
-	addString("TemperatureFileName");
+    addDouble("NominalOperatingTemperature");
+    addString("Temperature");
+    addString("TemperatureFileName");
     addBoolean("IncludeFlatfield");
     addBoolean("IncludeDarkSignal");
     addBoolean("IncludeBFE");
     addBoolean("IncludePhotonNoise");
     addBoolean("IncludeReadoutNoise");
-    addBoolean("IncludeCTIeffects"); 
+    addBoolean("IncludeCTIeffects");
     addBoolean("IncludeChargeInjection");
     addBoolean("IncludeOpenShutterSmearing");
+    addBoolean("IncludeQuantumEfficiency");
     addBoolean("IncludeRelativeTransmissivity");
     addBoolean("IncludePolarization");
     addBoolean("IncludeParticulateContamination");
     addBoolean("IncludeMolecularContamination");
-    addBoolean("IncludeQuantumEfficiency");
     addBoolean("IncludeConvolution");
     addBoolean("IncludeFullWellSaturation");
-    addBoolean("IncludeQuantisation");
     addBoolean("IncludeDigitalSaturation");
-    // addBoolean("WriteSubPixelImagesToHDF5"); - Moved into ControlHDF5Content group below
-
+    addBoolean("IncludeQuantisation");
+    subGroup = "CCD/BFE";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addString("CoefficientsFileName");
+    subGroup = "CCD/Gain";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addDouble("RefValueLeft");
+    addDouble("RefValueRight");
+    addDouble("Stability");
+    addDouble("AllowedDifference");
+    subGroup = "CCD/QuantumEfficiency";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addDouble("MeanQuantumEfficiency");
+    addDouble("MeanAngleDependency");
     subGroup = "CCD/ReadoutMode";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addString("ReadoutMode");
@@ -890,47 +868,23 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addInteger("FirstRowReadout");
     addInteger("NumRowsReadout");
-
-	subGroup = "CCD/Gain";
-	hdf5File->createGroup(parentGroup + "/" + subGroup);
-	addDouble("RefValueLeft");
-	addDouble("RefValueRight");
-	addDouble("Stability");
-	addDouble("AllowedDifference");
-
     subGroup = "CCD/RelativeTransmissivity";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
-    addDouble("ExpectedValue");
     addDouble("RadiusFOV");
+    addDouble("ExpectedValue");
     addDoubleVector("Coefficients");
-
-    subGroup = "CCD/QuantumEfficiency";
-    hdf5File->createGroup(parentGroup + "/" + subGroup);
-//    addDouble("RefAngle");
-//    addDouble("RelativeRefEfficiency");
-    addDouble("MeanQuantumEfficiency");
-    addDouble("MeanAngleDependency");
-
     subGroup = "CCD/Polarization";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
-//    addDouble("Efficiency");
-//    addDouble("RefAngle");
     addDouble("ExpectedValue");
-
     subGroup = "CCD/Contamination";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addDouble("ParticulateContaminationEfficiency");
     addDouble("MolecularContaminationEfficiency");
-
     subGroup = "CCD/DarkSignal";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addDouble("DarkCurrent");
     addDouble("DSNU");
-
-    subGroup = "CCD/BFE";
-    hdf5File->createGroup(parentGroup + "/" + subGroup);
-    addString("CoefficientsFileName");
-
+    addDouble("Stability");
     subGroup = "CCD/CTI";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addString("Model");
@@ -948,8 +902,6 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addDoubleVector("BOL");
     addDoubleVector("EOL");
-
-
     subGroup = "CCD/ChargeInjection";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addDouble("InjectionLevel");
@@ -981,17 +933,36 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addLong("JitterSeed");
     addLong("FlatFieldSeed");
     addLong("DriftSeed");
-	addLong("CosmicSeed");
-	addLong("DarkSignalSeed");
+    addLong("CosmicSeed");
+    addLong("DarkSignalSeed");
 
     subGroup = "ControlHDF5Content";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addBoolean("WritePixelMaps");
     addBoolean("WriteBiasMaps");
-    addBoolean("WriteSmearingMaps");          
-    addBoolean("WriteFlatfieldMap");          
+    addBoolean("WriteSmearingMaps");
+    addBoolean("WriteThroughputMaps");
+    addBoolean("WriteFlatfieldMap");
     addBoolean("WriteSubPixelImages");
     addBoolean("WriteStarPositions");
+    addBoolean("WriteGhostPositions");
+    addBoolean("WriteACS");
+    addBoolean("WriteCosmics");
+    addBoolean("WriteDiffusedPSF");
+    addBoolean("WriteHighResolutionPSF");
+    addBoolean("WriteStarCatalog");
+    addBoolean("WriteTelescopeACS");
+    addBoolean("WriteTransmissionEfficiency");
+
+    subGroup = "ControlTcpConnection";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addBoolean("SendImagettesToClients");
+    addBoolean("GetWindowPositionsFromServer");
+    addString("WindowPositionServerAddress");
+    addString("JitterServerAddress");
+    addString("ImagetteClientAddress");
+    addInteger("WindowPositionSocketTimeout");
+    addInteger("JitterSocketTimeout");
 
     subGroup = "CameraGroups";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
@@ -1000,6 +971,8 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "CCDPositions";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addBoolean("UsePositionsFromFile");
+    addString("PositionsFileName");
     addDoubleVector("OriginOffsetX");
     addDoubleVector("OriginOffsetY");
     addDoubleVector("Orientation");
@@ -1007,7 +980,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addIntegerVector("NumRows");
     addIntegerVector("FirstRowForNormalCamera");
     addIntegerVector("FirstRowForFastCamera");
-
+    addDoubleVector("TimeShift");
 }
 
 

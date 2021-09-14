@@ -69,13 +69,9 @@ def switchOffAllEffects(sim):
 
     # PSF parameters
 
-    sim["PSF/MappedGaussian/IncludeChargeDiffusion"] = "no"
-    sim["PSF/MappedFromFileSymmetrical/IncludeChargeDiffusion"] = "no"
-    sim["PSF/MappedFromFileAsymmetrical/IncludeChargeDiffusion"] = "no"
+    sim["PSF/MappedFromFile/IncludeChargeDiffusion"] = "no"
     sim["PSF/AnalyticNonGaussian/IncludeChargeDiffusion"] = "no"
-    sim["PSF/MappedGaussian/IncludeJitterSmoothing"] = "no"
-    sim["PSF/MappedFromFileSymmetrical/IncludeJitterSmoothing"] = "no"
-    sim["PSF/MappedFromFileAsymmetrical/IncludeJitterSmoothing"] = "no"
+    sim["PSF/MappedFromFile/IncludeJitterSmoothing"] = "no"
 
     # CCD parameters
 

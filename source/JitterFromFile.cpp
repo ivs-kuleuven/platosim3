@@ -174,22 +174,27 @@ void JitterFromFile::configure(ConfigurationParameters &configParams)
     int beginExposureNr = configParams.getInteger("ObservingParameters/BeginExposureNr");
     double cycleTime    = configParams.getDouble("ObservingParameters/CycleTime");
     string ccdPosition  = configParams.getString("CCD/Position");
+    bool isFastCamera   = configParams.getString("Telescope/GroupID") == "Fast";    
 
     double timeShift;
     if (ccdPosition == "Custom")
     {
         timeShift = configParams.getDouble("CCD/TimeShift");
     }
-    else
+    else if (!isFastCamera)
     {
         int index = stoi(ccdPosition) - 1;   // Position are named  [1, 2, 3, 4] while the index into vector starts at 0
         timeShift = configParams.getDoubleAt("CCDPositions/TimeShift", index);
+    }
+    else
+    {
+        timeShift = 0.0;
     }
 
     //  Determine from when to when the simulation runs. Only for this time interval
     //  we need to read the jitter file into memory. This saves time when the jitter
     //  file is large but the simulation is short.
-    
+
     beginTime = timeShift + beginExposureNr * cycleTime;
     endTime   = beginTime + numExposures * cycleTime;
 }

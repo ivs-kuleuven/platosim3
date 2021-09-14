@@ -20,9 +20,7 @@
  */
 
 Camera::Camera(ConfigurationParameters &configParam, HDF5File &hdf5file, Platform &platform, Telescope &telescope, Sky &sky)
-: HDF5Writer(hdf5file), platform(platform), telescope(telescope), sky(sky), focalLength(nullptr), focalPlaneAngle(nullptr),
-  distortionCoef(nullptr), inverseDistortionCoef(nullptr), internalTime(0.0), includeFieldDistortion(true),
-  userGivenSkyBackground(-1.0), fluxOfV0Star(0.0)
+  : HDF5Writer(hdf5file), platform(platform), telescope(telescope), sky(sky), focalLength(nullptr), focalPlaneAngle(nullptr), distortionCoef(nullptr), inverseDistortionCoef(nullptr), internalTime(0.0), includeFieldDistortion(true), userGivenSkyBackground(-1.0), fluxOfV0Star(0.0)
 {
 
     // Parse the parameters from the configuration file.
@@ -62,6 +60,7 @@ Camera::~Camera()
 
     delete distortionCoef;
     delete inverseDistortionCoef;
+
 }
 
 
@@ -508,13 +507,17 @@ void Camera::configure(ConfigurationParameters &configParam)
     }
 
 
-
-    // The distortion coefficients can either be a fixed value, or given by a time series in a file
-    // Idem for the inverse distortion coefficients.
+    
+   // When we have a mapped PSF, the distortion is always applied. For the mapped PSF, this happend through a conversion table that is read from the
+   // psf HDF5 files. For the analytic PSFs, we can choose to apply field distortion in using a Polynomial fit. The coefficients can either be a
+   // fixed value, or given by a time series in a file.
+   // Idem for the inverse distortion coefficients.
 
     includeFieldDistortion = configParam.getBoolean("Camera/IncludeFieldDistortion");
+    isMapped               = configParam.getString("PSF/Model") == "MappedFromFile";
 
-    if (includeFieldDistortion)
+    // Remark that if the PSF is mapped, no coefficients are read from the input file. 
+    if (includeFieldDistortion && !isMapped)
     {
         distortionModel              = configParam.getString("Camera/FieldDistortion/Type");
         string fieldDistortionSource = configParam.getString("Camera/FieldDistortion/Source");
@@ -625,38 +628,13 @@ void Camera::updateParameters(double time)
     focalLength->updateValue(time);
     focalPlaneAngle->updateValue(time);
 
-    if (includeFieldDistortion)
+    if (includeFieldDistortion && !isMapped)
     {
         distortionCoef->updateValue(time);
         inverseDistortionCoef->updateValue(time);
     }
+
 }
-
-
-
-
-
-
-
-
-
-
-/**
- * \brief      Specify the type of fit function used to fit the distortion
- *
- * \param      polynomial         The polynomial that describes the distortion
- * \param      inversePolynomial  The inverse polynomial
- */
-
-//void Camera::setDistortionPolynomial(Polynomial1D &polynomial, Polynomial1D &inversePolynomial)
-//{
-//    this->polynomial = polynomial;
-//    this->inversePolynomial = inversePolynomial;
-//}
-
-
-
-
 
 
 
@@ -738,14 +716,20 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
         for (unsigned int starIndex = 0; starIndex < numStars; starIndex++)
         {
             // Calculate the focal-plane coordinates of the current star
-            // (apply field distortion, if enabled)
+	    // (apply field distortion, if enabled)
 
             tie(starID, raStar, decStar, magStar) = sky.getSelectedStar(starIndex);     // Sky coordinates in radians
             tie(xStar, yStar) = skyToFocalPlaneCoordinates(raStar, decStar);            // [mm]
 
-            if (includeFieldDistortion)
-
-                tie(xStar, yStar) = undistortedToDistortedFocalPlaneCoordinates(xStar, yStar);
+	    // apply the distortion on the FP-coordinates
+	    if(isMapped && includeFieldDistortion)
+	    {
+	      detector.applyDistortion(xStar, yStar);
+	    }
+	    else if (includeFieldDistortion)
+	    {
+	      tie(xStar, yStar) = undistortedToDistortedFocalPlaneCoordinates(xStar, yStar);
+	    }
 
             // Total flux of the star acquired over the time step [photons]
             // (photons are always an integer number, so round down)
@@ -863,15 +847,19 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
             for (unsigned int starIndex = 0; starIndex < numPointLikeGhosts; starIndex++)
             {
                 // Calculate the focal-plane coordinates of the ghost produced by the current star
-                // (apply field distortion, if enabled)
+	        // (apply field distortion, if enabled
 
                 tie(starID, raStar, decStar, magStar) = sky.getSelectedGhostOrig(starIndex);    // Sky coordinates of the originator [radians]
                 tie(xStar, yStar) = skyToFocalPlaneCoordinates(raStar, decStar);                // Focal-plane coordinate of the originator [mm]
 
-                if (includeFieldDistortion)
-                {
-                    tie(xStar, xStar) = undistortedToDistortedFocalPlaneCoordinates(xStar, xStar);
-                }
+		if (isMapped && includeFieldDistortion)
+		{
+		  detector.applyDistortion(xStar, yStar);
+		}
+		else if (includeFieldDistortion)
+		{
+		  tie(xStar, yStar) = undistortedToDistortedFocalPlaneCoordinates(xStar, yStar);
+		}
 
                 // Consider the distance cut-off
                 // (only sources that are close enough to the OA will produce a symmetric point-like ghost)
@@ -990,16 +978,23 @@ tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &d
     tie(corner00Xmm, corner00Ymm, dummy, dummy, corner11Xmm, corner11Ymm, dummy, dummy) = detector.getFocalPlaneCoordinatesOfSubfieldCorners();
 
     // Apply field distortion (if enabled)
-
-    if (includeFieldDistortion)
+    if (isMapped && includeFieldDistortion)
     {
-        Log.info("Camera: including field distortion");
+      Log.info("Camera: including field distortion");
+
+      detector.applyInverseDistortion(centerSubFieldXmm, centerSubFieldYmm);
+      detector.applyInverseDistortion(corner00Xmm, corner00Ymm);
+      detector.applyInverseDistortion(corner11Xmm, corner11Ymm);
+    }
+    else if (includeFieldDistortion)
+    {
+      Log.info("Camera: including field distortion");
 
         tie(centerSubFieldXmm, centerSubFieldYmm) = distortedToUndistortedFocalPlaneCoordinates(centerSubFieldXmm, centerSubFieldYmm);
         tie(corner00Xmm, corner00Ymm) = distortedToUndistortedFocalPlaneCoordinates(corner00Xmm, corner00Ymm);
         tie(corner11Xmm, corner11Ymm) = distortedToUndistortedFocalPlaneCoordinates(corner11Xmm, corner11Ymm);
     }
-
+    
     // Calculate the pixel coordinates of the sub-field centre in the CCD reference frame
     // (just for logging purposes)
 
@@ -1110,13 +1105,19 @@ void Camera::exposeDetectorWithSkyBackground(Detector &detector, double startTim
     double centerXmm, centerYmm;
     tie(centerXmm, centerYmm) = detector.getFocalPlaneCoordinatesOfSubfieldCenter();
 
-    if (includeFieldDistortion)
+    if (includeFieldDistortion && isMapped)
     {
-        Log.info("Camera: correct FP coordinates of subfield center for field distortion");
+      Log.info("Camera: correct FP coordinates of subfield center for field distortion");
 
-        tie(centerXmm, centerYmm) = distortedToUndistortedFocalPlaneCoordinates(centerXmm, centerYmm);
+      detector.applyInverseDistortion(centerXmm, centerYmm);      
     }
-
+    else if (includeFieldDistortion)
+    {
+      Log.info("Camera: correct FP coordinates of subfield center for field distortion");
+      
+      tie(centerXmm, centerYmm) = distortedToUndistortedFocalPlaneCoordinates(centerXmm, centerYmm);
+    }
+    
     // Convert the focal plane coordinates [mm] to (alpha, delta) equatorial sky coordinates [rad]
 
     double centerRA, centerDec;
@@ -1307,8 +1308,8 @@ pair<double, double> Camera::skyToFocalPlaneCoordinates(double raStar, double de
  * \brief Compute the equatorial sky coordinates of a star which has the given focal plane (FP) coordinates (x,y),
  *        assuming a pinhole camera model
  *
- * \param xFP     Focal plane x-coordinate in the FP system [mm]
- * \param yFP     Focal plane y-coordinate in the FP system [mm]
+ * \param xFP     Undistorted focal plane x-coordinate in the FP system [mm]
+ * \param yFP     Undistorted focal plane y-coordinate in the FP system [mm]
  * \param useInitialOrientation  true: use initial orientation of telescope and platform (i.e. before first exposure)
  *                               false: use current (jittered and drifted) telescope and platform orientation
  *
@@ -1383,13 +1384,17 @@ pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFP, double yFP, 
 
 
 
+
+
+
+
 /**
- * @brief      Convert from undistorted to distorted focal plane coordinates
+ * @brief      Convert from undistorted to distorted focal plane coordinates for analytic PSF
  *
  * @param[in]  xFPmm  Undistorted focal plane x-coordinate [mm]
  * @param[in]  yFPmm  Undistorted focal plane y-coordinate [mm]
  *
- * @return     (xFPdist, yFPdist) distorted x and y coordinates [mm]
+ * @return     (xFPdist, yFPdist) distorted x and y focal plane coordinates [mm]
  */
 pair<double, double> Camera::undistortedToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm)
 {
@@ -1414,10 +1419,8 @@ pair<double, double> Camera::undistortedToDistortedFocalPlaneCoordinates(double 
 
 
 
-
-
 /**
- * @brief      Convert from distorted to undistorted focal plane coordinates
+ * @brief      Convert from distorted to undistorted focal plane coordinates for the analytic PSF
  *
  * @param[in]  xFPdist  Distorted focal plane x-coordinate [mm]
  * @param[in]  yFPdist  DIstorted focal plane y-coordinate [mm]
@@ -1438,6 +1441,12 @@ pair<double, double> Camera::distortedToUndistortedFocalPlaneCoordinates(double 
 
     return make_pair(xFPmm, yFPmm);
 }
+
+
+
+
+
+
 
 
 

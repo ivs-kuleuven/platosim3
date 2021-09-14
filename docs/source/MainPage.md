@@ -41,6 +41,7 @@ In case you would come across problems you cannot solve yourself, please, let us
 <!-- Reference -->
 <!-- ********* -->
 
-## <a name="reference"></a>Reference
+<!-- ## <a name="reference"></a>Reference
 
 We kindly ask you to refer to <a href="http://arxiv.org/abs/1404.1886">this work</a> in any publication the PLATO Simulator software contributes to.
+-->

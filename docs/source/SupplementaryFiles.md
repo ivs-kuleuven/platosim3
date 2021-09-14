@@ -181,7 +181,7 @@ The simulator will automatically select the PSF for which the angular distance t
 
 ### <a name="analyticNonGaussianPsfFile"></a>Analytic Non-Gaussian PSF Files (Optional)
 
-In case you want to use an analytic non-Gaussian PSF (<code>Model</code> = <code>AnalyticGaussian</code> in the <code>PSF</code> block), you must provide the parameters characterising it in a file in ASCII format.  The most recent values for these parameters can be found in the file <code>psfallv3.txt</code> file in the <code>/inputfiles</code> directory.
+In case you want to use an analytic non-Gaussian PSF (<code>Model</code> = <code>AnalyticGaussian</code> in the <code>PSF</code> block), you must provide the parameters characterising it in a file in ASCII format.  The most recent values for these parameters can be found in the file <code>apsf_N6000K_v2.txt</code> file in the <code>/inputfiles</code> directory.
 
 Additionally, if required (<code>AnalyticNonGaussian: Sigma: Source</code> = <code>FromFile</code> in the <code>PSF</code> block), a time series for the width of the analytic non-Gaussian PSF must be provided in a file in ASCII format.  This file should contain columns, separated by a space, holding the following information:
 
