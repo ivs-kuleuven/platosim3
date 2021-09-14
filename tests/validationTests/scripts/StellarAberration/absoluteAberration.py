@@ -7,6 +7,15 @@ import math
 import matplotlib.pyplot as plt
 
 
+"""
+This test checks the absolute aberration. The test consists out of 3 parts: 
+1. The first test plots the position of an aberrated star over one year and a theoretical predicted path (where we assume a circular orbit with a constant velocity for the spacecraft) over one year. This figure is saved into the ioFiles directory, it is possible to visually confirm that the two paths are similar. 
+
+2. The second test checks that the aberration is zero for a star whose position wrt the spacecraft is orthogonal to the spacecrafts velocity. 
+
+3. The last test checks that the aberration is maximal for a star whose position is parallel to the velocity.
+"""
+
 
 class AbsoluteAberration(Test):
 
@@ -74,10 +83,14 @@ class AbsoluteAberration(Test):
 
 
     def runForSecondTest(self):
+
+        # Rest begin exposure numbers
+        self.sim["ObservingParameters/BeginExposureNr"] = 0
+
         lamb = np.arctan2(self.velocity[1], self.velocity[0])
         beta = np.arcsin(self.velocity[2])
         ra, dec = np.rad2deg(rf.ecliptic2equatorial(lamb, beta))
-        print("ra: ", ra, "dec: ",  dec)
+
         self.sim["ObservingParameters/RApointing"] = ra
         self.sim["ObservingParameters/DecPointing"] = dec
         self.sim["CCD/Position"] = "1"
@@ -89,8 +102,59 @@ class AbsoluteAberration(Test):
         myFile.write("{0}  {1}  {2}  {3}\n".format(ra, dec, 16.5, 1))
         myFile.close()
 
-        #print(rf.skyToFocalPlaneCoordinates(ra, dec, 0, 0, 0, 0, 0, 0, 247.52))
+        # Run the simulation with aberration
+        simFile = self.sim.run(removeOutputFile=True)
+        dummy, dummy, dummy, xFP1, yFP1, dummy = simFile.getStarCoordinates(0)
+        xFP1, yFP1 = xFP1[0], yFP1[0]
+
+        # Run the simulation without aberration
+        self.sim["Camera/IncludeAberrationCorrection"] = "no"
+        simFile = self.sim.run(removeOutputFile=True)
+        dummy, dummy, dummy, xFP2, yFP2, dummy = simFile.getStarCoordinates(0)
+        xFP2, yFP2 = xFP2[0], yFP2[0]
+
+        self.xDelta1, self.yDelta1 = abs(xFP1 - xFP2) < 0.001, abs(yFP1 - yFP2) < 0.001
+
+
+
+    def runForThirdTest(self):
+
+        # Rest begin exposure numbers
+        self.sim["ObservingParameters/BeginExposureNr"] = 0
         
+        orthogonalVelocity = [(self.velocity[1] - self.velocity[2]), self.velocity[2] - self.velocity[0], self.velocity[0] - self.velocity[1]]
+        orthogonalNorm     = np.sqrt(orthogonalVelocity[0]**2 + orthogonalVelocity[1]**2 + orthogonalVelocity[2]**2)
+        orthogonalVelocity = [ x / orthogonalNorm for x in orthogonalVelocity]
+
+        lamb = np.arctan2(orthogonalVelocity[1], orthogonalVelocity[0])
+        beta = np.arcsin(orthogonalVelocity[2])
+
+        ra, dec = np.rad2deg(rf.ecliptic2equatorial(lamb, beta))
+        
+        self.sim["ObservingParameters/RApointing"] = ra
+        self.sim["ObservingParameters/DecPointing"] = dec
+        self.sim["CCD/Position"] = "1"
+
+        # Set the star catalog
+        starFileName = self.outputDir + "/starCatalog" + self.nr + ".txt"
+        myFile = open(starFileName, "w")
+        myFile.write("# RA DEC Vmag starID\n")
+        myFile.write("{0}  {1}  {2}  {3}\n".format(ra, dec, 16.5, 1))
+        myFile.close()
+
+        # Run the simulation with aberration
+        self.sim["Camera/IncludeAberrationCorrection"] = "yes"
+        simFile = self.sim.run(removeOutputFile=True)
+        dummy, dummy, dummy, xFP1, yFP1, dummy = simFile.getStarCoordinates(0)
+        xFP1, yFP1 = xFP1[0], yFP1[0]
+
+        # Run the simulation without aberration
+        self.sim["Camera/IncludeAberrationCorrection"] = "no"
+        simFile = self.sim.run(removeOutputFile=True)
+        dummy, dummy, dummy, xFP2, yFP2, dummy = simFile.getStarCoordinates(0)
+        xFP2, yFP2 = xFP2[0], yFP2[0]
+
+        self.xDelta2, self.yDelta2 = abs(xFP1 - xFP2) > 0.001, abs(yFP1 - yFP2) > 0.001
 
 
         
@@ -100,11 +164,14 @@ class AbsoluteAberration(Test):
         self.runForYear()
         self.compareToTheoreticalEstimate()
 
-        #self.runForSecondTest()
+        # Run for second test
+        self.runForSecondTest()
+        
+        # Run for the third test
+        self.runForThirdTest()
+
 
         
-
-
     def compareToTheoreticalEstimate(self):
 
         # The theoretical predicted aberration is calculated over the span of one year. We check whether the observed displacements over
@@ -117,7 +184,6 @@ class AbsoluteAberration(Test):
         dxMeasurement  = (self.outputRa - inputRa) * 3600 * np.cos(np.deg2rad(self.outputDec))
         dyMeasurement  = (self.outputDec - inputDec) * 3600
         radialDistance = [x0**2 + y0**2 for x0, y0 in zip(dxMeasurement, dyMeasurement)]
-            
 
         # Theoretically predicted aberration over one year
         theoAber = [aberration(lonStar, latStar, lSun) for lSun in np.linspace(0, 2*np.pi, 360)]
@@ -127,7 +193,6 @@ class AbsoluteAberration(Test):
         
         dxTheo     = (raTheo - inputRa) * 3600 * np.cos(np.deg2rad(decTheo))
         dyTheo     = (decTheo - inputDec ) * 3600
-
         
         plt.plot(dxMeasurement, dyMeasurement, 'r')
         plt.plot(dxTheo, dyTheo)
@@ -135,11 +200,26 @@ class AbsoluteAberration(Test):
         
 
 
+    def NoAberration(self):
+        return self.xDelta1 and self.yDelta1
+
+
+    
+    def maxAberration(self):
+        return self.xDelta2 or self.yDelta2
+    
+
+    
     def compare(self):
 
-        #result1 = self.NoAberration()
-        return True
+        result1 = self.NoAberration()
+        result2 = self.maxAberration()
+        return (result1 and result2)
+        
 
+
+
+    
 
 
 if __name__ == "__main__":

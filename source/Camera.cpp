@@ -517,7 +517,7 @@ void Camera::configure(ConfigurationParameters &configParam)
     isMapped               = configParam.getString("PSF/Model") == "MappedFromFile";
 
     // Remark that if the PSF is mapped, no coefficients are read from the input file. 
-    if (includeFieldDistortion && isMapped)
+    if (includeFieldDistortion && !isMapped)
     {
         distortionModel              = configParam.getString("Camera/FieldDistortion/Type");
         string fieldDistortionSource = configParam.getString("Camera/FieldDistortion/Source");
