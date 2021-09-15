@@ -517,12 +517,15 @@ void Camera::configure(ConfigurationParameters &configParam)
     isMapped               = configParam.getString("PSF/Model") == "MappedFromFile";
 
     // Remark that if the PSF is mapped, no coefficients are read from the input file. 
+
     if (includeFieldDistortion && !isMapped)
     {
         distortionModel              = configParam.getString("Camera/FieldDistortion/Type");
         string fieldDistortionSource = configParam.getString("Camera/FieldDistortion/Source");
         if (fieldDistortionSource == "ConstantValue")
         {
+            Log.info("Camera: Reading constant distortion coefficients from the yaml input file");
+
             // Read the distortion coefficients from the yaml input file. Currently vector<>s are
             // being read while Parameter<> expects array<>s. So we'll have to do some overhead
             // to convert one to the other.
@@ -545,7 +548,6 @@ void Camera::configure(ConfigurationParameters &configParam)
             distortionCoef        = new Parameter<double, 3>(distortionCoefArray);
             inverseDistortionCoef = new Parameter<double, 3>(inverseDistortionCoefArray);
 
-            Log.info("Camera: Using a constant distortion law");
         }
         else if (fieldDistortionSource == "FromFile")
         {
@@ -560,7 +562,14 @@ void Camera::configure(ConfigurationParameters &configParam)
     }
     else
     {
-        Log.info("Camera: Ignoring field distortion");
+        if (isMapped)
+        {
+            Log.info("Camera: field distortion is taken into account using the maped PSFs");
+        }
+        else
+        {
+            Log.info("Camera: ignoring field distortion");
+        }
     }
 
 
@@ -980,7 +989,7 @@ tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &d
     // Apply field distortion (if enabled)
     if (isMapped && includeFieldDistortion)
     {
-      Log.info("Camera: including field distortion");
+      Log.info("Camera: including field distortion for mapped PSF");
 
       detector.applyInverseDistortion(centerSubFieldXmm, centerSubFieldYmm);
       detector.applyInverseDistortion(corner00Xmm, corner00Ymm);
@@ -988,15 +997,17 @@ tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &d
     }
     else if (includeFieldDistortion)
     {
-      Log.info("Camera: including field distortion");
+      Log.info("Camera: including field distortion for non-mapped PSF");
 
-        tie(centerSubFieldXmm, centerSubFieldYmm) = distortedToUndistortedFocalPlaneCoordinates(centerSubFieldXmm, centerSubFieldYmm);
-        tie(corner00Xmm, corner00Ymm) = distortedToUndistortedFocalPlaneCoordinates(corner00Xmm, corner00Ymm);
-        tie(corner11Xmm, corner11Ymm) = distortedToUndistortedFocalPlaneCoordinates(corner11Xmm, corner11Ymm);
+      tie(centerSubFieldXmm, centerSubFieldYmm) = distortedToUndistortedFocalPlaneCoordinates(centerSubFieldXmm, centerSubFieldYmm);
+      tie(corner00Xmm, corner00Ymm) = distortedToUndistortedFocalPlaneCoordinates(corner00Xmm, corner00Ymm);
+      tie(corner11Xmm, corner11Ymm) = distortedToUndistortedFocalPlaneCoordinates(corner11Xmm, corner11Ymm);
     }
     
     // Calculate the pixel coordinates of the sub-field centre in the CCD reference frame
     // (just for logging purposes)
+
+    Log.debug("Camera: calculating subfield center pixel coordinates");
 
     double centerRow, centerCol;
     tie(centerRow, centerCol) = detector.focalPlaneToPixelCoordinates(centerSubFieldXmm, centerSubFieldYmm);
