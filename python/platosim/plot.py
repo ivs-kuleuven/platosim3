@@ -10,117 +10,6 @@ from astropy.coordinates import SkyCoord
 
 
 
-def drawStarsInSkyAitoff(fig, raStars, decStars, magStars, skymap=None, cbarOrientation=None):
-    """
-    Project and plot a catalog of stars on the sky in a Aitoff Galactic projection.
-    This plot uses the astropy library to make the ICRS to Galactic coordinate
-    transformation together with a nice Galactic background image. To show the plot
-    it is necessary to introduce a "plt.show()" after the function call. This module
-    scales the scatter plot markersize of the stars according to their sample size.
-
-    Parameters
-    ----------
-    fig : object
-        Figure matplotlib.pyplot object to define e.g. figsize
-    raStars : list, array
-        Right ascension of stars [deg]
-    decStars : list, array
-        Declination of stars [deg]
-    magStars : list, array
-        Magnitudes of stars
-    cbarOrientation : str
-        Colorbar orientation. Default 'horizontal' else 'vertical'
-
-    Return
-    ------
-    axes : object
-        Axes matplotlib.pyplot handle object to be modified by the user
-    """
-
-    # Convert coordinates from ICRS to Galactic using astropy
-
-    gal = SkyCoord(raStars, decStars, frame='icrs', unit=u.deg)
-    gal = gal.galactic
-
-    # Plot Aitoff projection in Galactic coordinates
-
-    plt.title('Aitoff projection in Galactic coordinates', fontsize=18, y=1.02)
-    fig, ax = fig
-    fs = 16
-    if len(raStars) <= 1e2: ms = 3
-    if len(raStars) >= 1e2 and len(raStars) < 1e3: ms = 1
-    if len(raStars) >= 1e3 and len(raStars) < 1e4: ms = 0.5
-    if len(raStars) >= 1e4: ms = 0.1
-
-    # Plot Galactic map as background (e.g. Gaia DR3)
-    # E.g.: skymap = plt.imread('skymap.png')
-
-    if skymap is not None:
-        ax.imshow(skymap)
-
-    # Add the sky projection ontop as transparent layer
-
-    axes = fig.add_subplot(111, projection='aitoff', facecolor='none')
-
-    # Plot the targets on the sky
-
-    im = plt.scatter(-gal.l.wrap_at('180d').radian, gal.b.radian, c=magStars, s=ms, cmap='autumn_r', zorder=3)
-
-    # Vertical or horizontal colorbar showing magnitudes
-
-    if cbarOrientation == 'vertical':
-        cbarax = fig.add_axes([0.905, 0.2, 0.02, 0.57])
-        cbar = plt.colorbar(im, orientation='vertical', cax=cbarax, extend='both')
-        cbar.set_label('Bessel V Magnitude', fontsize=fs)
-        cbar.ax.tick_params(labelsize=fs)
-    else:
-        cbarax = fig.add_axes([0.25, 0.06, 0.525, 0.03])
-        cbar = plt.colorbar(im, orientation='horizontal', cax=cbarax, extend='both')
-        cbar.set_label('Gaia V Magnitude', fontsize=fs)
-        cbar.ax.tick_params(labelsize=fs)
-
-    # Change the tick labels so that they are 0->360, rather than -180->+180
-
-    tickLabels = np.array([150, 120, 90, 60, 30, 0, 330, 300, 270, 240, 210])
-    tickLabels = np.remainder(tickLabels+360, 360)
-    axes.set_xticklabels(tickLabels)
-
-    # Change y ticks and remove last to make space for title
-
-    tickLabels = np.array([-75, -60, -45, -30, -15, 0, 15, 30, 45, 60, ''])
-    axes.set_yticklabels(tickLabels)
-
-    # Change color of x tick labels
-
-    axes.tick_params(axis='x', colors='w')
-
-    # Increase x and y tick labels
-
-    axes.xaxis.set_tick_params(labelsize=fs+1)
-    axes.yaxis.set_tick_params(labelsize=fs)
-
-    # Add axis labels
-
-    axes.set_xlabel('Longitude [deg]', fontsize=fs)
-    axes.set_ylabel('Latitude [deg]', fontsize=fs)
-
-    # Set grid and remore outer ticks (if set by default)
-
-    axes.grid(True, alpha=0.3)
-    ax.axis('off')
-    plt.draw()
-
-    # That's it
-
-    return axes
-
-
-
-
-
-
-
-
 
 def drawCCDsInSkyMollweide(fig, raPlatform, decPlatform, solarPanelOrientation, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength, pixelSize, normal=True):
 
@@ -576,6 +465,119 @@ def skyProjection(longitude, latitude, fig, origin=0, projection="mollweide"):
     # That's it!
     
     return axes
+
+
+
+
+
+
+
+def drawStarsInSkyAitoff(fig, raStars, decStars, magStars, skymap=None, cbarOrientation=None, cbarMap='rainbow'):
+    """
+    Project and plot a catalog of stars on the sky in a Aitoff Galactic projection.
+    This plot uses the astropy library to make the ICRS to Galactic coordinate
+    transformation together with a nice Galactic background image. To show the plot
+    it is necessary to introduce a "plt.show()" after the function call. This module
+    scales the scatter plot markersize of the stars according to their sample size.
+
+    Parameters
+    ----------
+    fig : object
+        Figure matplotlib.pyplot object to define e.g. figsize
+    raStars : list, array
+        Right ascension of stars [deg]
+    decStars : list, array
+        Declination of stars [deg]
+    magStars : list, array
+        Magnitudes of stars
+    cbarOrientation : str
+        Colorbar orientation. Default 'horizontal' else 'vertical'
+    cbarMap : str
+        Colormap of colorbar. Default 'rainbow'
+
+    Return
+    ------
+    axes : object
+        Axes matplotlib.pyplot handle object to be modified by the user
+    """
+
+    # Convert coordinates from ICRS to Galactic using astropy
+
+    gal = SkyCoord(raStars, decStars, frame='icrs', unit=u.deg)
+    gal = gal.galactic
+
+    # Plot Aitoff projection in Galactic coordinates
+
+    plt.title('Aitoff projection in Galactic coordinates', fontsize=18, y=1.02)
+    fig, ax = fig
+    fs = 16
+    if len(raStars) <= 1e2: ms = 3.
+    if len(raStars) >= 1e2 and len(raStars) < 1e3: ms = 1.3
+    if len(raStars) >= 1e3 and len(raStars) < 1e4: ms = 1.
+    if len(raStars) >= 1e4: ms = 0.1
+
+    # Plot Galactic map as background (e.g. Gaia DR3)
+    # E.g.: skymap = plt.imread('skymap.png')
+
+    if skymap is not None:
+        ax.imshow(skymap)
+
+    # Add the sky projection ontop as transparent layer
+
+    axes = fig.add_subplot(111, projection='aitoff', facecolor='none')
+
+    # Plot the targets on the sky (autumn_r, rainbow)
+
+    im = plt.scatter(-gal.l.wrap_at('180d').radian, gal.b.radian, c=magStars, s=ms, cmap=cbarMap, zorder=3)
+
+    # Vertical or horizontal colorbar showing magnitudes
+
+    if cbarOrientation == 'vertical':
+        cbarax = fig.add_axes([0.905, 0.2, 0.02, 0.57])
+        cbar = plt.colorbar(im, orientation='vertical', cax=cbarax, extend='both')
+        cbar.set_label(r'PLATO passband, $P$', fontsize=fs)
+        cbar.ax.tick_params(labelsize=fs)
+    else:
+        cbarax = fig.add_axes([0.25, 0.06, 0.525, 0.03])
+        cbar = plt.colorbar(im, orientation='horizontal', cax=cbarax, extend='both')
+        cbar.set_label(r'PLATO passband, $P$', fontsize=fs)
+        cbar.ax.tick_params(labelsize=fs)
+
+    # Change the tick labels so that they are 0->360, rather than -180->+180
+
+    tickLabels = np.array([150, 120, 90, 60, 30, 0, 330, 300, 270, 240, 210])
+    tickLabels = np.remainder(tickLabels+360, 360)
+    axes.set_xticklabels(tickLabels)
+
+    # Change y ticks and remove last to make space for title
+
+    tickLabels = np.array([-75, -60, -45, -30, -15, 0, 15, 30, 45, 60, ''])
+    axes.set_yticklabels(tickLabels)
+
+    # Change color of x tick labels
+
+    axes.tick_params(axis='x', colors='w')
+
+    # Increase x and y tick labels
+
+    axes.xaxis.set_tick_params(labelsize=fs+1)
+    axes.yaxis.set_tick_params(labelsize=fs)
+
+    # Add axis labels
+
+    axes.set_xlabel(r'Longitude, $l$ [deg]', fontsize=fs)
+    axes.set_ylabel(r'Latitude, $b$ [deg]', fontsize=fs)
+
+    # Set grid and remore outer ticks (if set by default)
+
+    axes.grid(True, alpha=0.3)
+    ax.axis('off')
+    plt.draw()
+
+    # That's it
+
+    return axes
+
 
 
 
