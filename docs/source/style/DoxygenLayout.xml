@@ -48,6 +48,8 @@
       
     </tab>
 
+    <tab type="usergroup" visible="yes" url="@ref QuickStart" title="Quick Start"/>
+
     <tab type="usergroup" visible="yes" url="@ref IssueTracking" title="Help (Issue Tracking)"/>
       
 

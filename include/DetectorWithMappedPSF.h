@@ -20,42 +20,46 @@ class DetectorWithMappedPSF : public Detector
     public:
 
         DetectorWithMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure);
-        virtual ~DetectorWithMappedPSF(){};
+        ~DetectorWithMappedPSF();
 
-        virtual double takeExposure(int exposureNr, double startTime, double exposureTime) override;
+        double takeExposure(int exposureNr, double startTime, double exposureTime) override;
 
-        virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) override;
-        virtual void addFlux(double flux) override;
-        virtual tuple<bool, double, double> addExtendedGhost(double xFP, double yFP, double radius, double flux) override;
+        tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) override;
+        void addFlux(double flux) override;
+        tuple<bool, double, double> addExtendedGhost(double xFP, double yFP, double radius, double flux) override;
 
-        virtual void configure(ConfigurationParameters &configParam){};
+        void configure(ConfigurationParameters &configParam);
         void writeDiffusedPSFToHDF5(PointSpreadFunction *psf);
         void applyDiffusionKernelOnPSF(double subpixRow, double subpixColumn, double flux, arma::fmat& psf, int numberOfPsfSubpixelsPerPixel);
+        void applyDistortion(double &x, double &y);
+        void applyInverseDistortion(double &x, double &y);
 
     protected:
 
-        virtual void reset() override;
-        virtual void initHDF5Groups() override;
-        virtual void integrateLight(int exposureNr, double startTime, double exposureTime) override;
+        void reset() override;
+        void initHDF5Groups() override;
+        void integrateLight(int exposureNr, double startTime, double exposureTime) override;
 
-        virtual bool isInSubPixelMap(double row, double column);
+        bool isInSubPixelMap(double row, double column);
 
-        virtual void applyFlatfield() override;
+        void applyFlatfield() override;
 
         
-        virtual void applyDiffusionKernel(double row, double column, double flux);
-        virtual void generateFlatfieldMap();
-        virtual void generateDiffusionKernel(double kernelWidth);
-        virtual void rebin();
+        void applyDiffusionKernel(double row, double column, double flux);
+        void generateFlatfieldMap();
+        void generateDiffusionKernel(double kernelWidth);
+        void rebin();
         void writeSubPixelMapToHDF5(int exposureNr);
 
-        virtual void setPsfForSubfield(){};
+        void setPsfForSubfield();
 
-        virtual void convolveWithPsf();
+        void convolveWithPsf();
+
 
         arma::Mat<float> subPixelMap;           // Sub-pixel map, incl. edge pixels
         arma::Mat<float> psfMap;                // The PSF map that will be used for convolving
         arma::Mat<float> flatfieldMap;          // Intra-pixel flatfield map
+        vector<std::array<double, 4>> distortionMap;
 
         double chargeDiffusionStrength;			// Strength of the charge diffusion (width of the Gaussian diffusion kernel) [pixels]
         bool includeChargeDiffusion;			// Whether or not to include charge diffusion
@@ -78,7 +82,7 @@ class DetectorWithMappedPSF : public Detector
         unsigned int numRowsSubPixelMap;        // Nr of subpixel rows in the subfield incl. edge pixels (= size in the y-direction) [subpixels]
         unsigned int numColumnsSubPixelMap;     // Nr of subpixel columns in the subfield incl. edge pixels (= size in the x-direction = readout direction) [subpixels]
         unsigned int numSubPixelsPerPixel;      // Nr of sub-pixels per pixel
-        
+        PointSpreadFunction *psf;        
         long flatfieldSeed;
 
         Convolver convolver;

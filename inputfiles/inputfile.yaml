@@ -79,7 +79,9 @@ Camera:
     IncludeAberrationCorrection:     yes             # Calculate the differential aberration correction and apply
     AberrationCorrection:
         Type:                        differential    # [differential, absolute]
-    IncludeFieldDistortion:          yes             # Whether or not to include field distortion
+        OrbitFile:                   inputfiles/orbit.txt
+        StartTime:                   4149.122013
+    IncludeFieldDistortion:          yes             # Whether or not to include field distortion. This only applies when the PSF is not mapped from file. 
     FieldDistortion:
         Type:                        Polynomial1D    # The model for the field distortion
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent)
@@ -100,23 +102,9 @@ Camera:
 
 PSF:
 
-    Model:                           AnalyticNonGaussian # PSF model: MappedGaussian, MappedFromFileSymmetrical, MappedFromFileAsymmetrical, or AnalyticNonGaussian
-    MappedGaussian:                                  # Generate the PSF from a fixed 2D Gaussian function
-        Sigma:                       0.639           # Standard deviation of Gaussian PSF [pix]
-        NumberOfPixels:              8               # The number of pixels in the field for which the PSF is generated
-        ChargeDiffusionStrength:     0.2             # Charge diffusion strength (width of the Gaussian diffusion kernel) [pixels]
-        IncludeChargeDiffusion:      no              # Include charge diffusion [yes or no]
-        IncludeJitterSmoothing:      no              # Include jitter smoothing [yes or no]
-    MappedFromFileSymmetrical:                       # Read a pre-calculated and fixed PSF from an HDF5 file
-        Filename:                    inputfiles/psf.hdf5
-        DistanceToOA:               -1               # The angular distance to the optical axis. -1 to auto-compute.               [deg]
-        RotationAngle:              -1               # PSF rotation angle w.r.t the x-axis of the focal plane. -1 to auto-compute. [deg]
-        NumberOfPixels:              8               # The number of pixels in the field for which the PSF is generated
-        ChargeDiffusionStrength:     0.2             # Charge diffusion strength (width of the Gaussian diffusion kernel) [pixels]
-        IncludeChargeDiffusion:      no              # Include charge diffusion [yes or no]
-        IncludeJitterSmoothing:      no              # Include jitter smoothing [yes or no]
-    MappedFromFileAsymmetrical:                       # Read a pre-calculated and fixed PSF from an HDF5 file
-        Filename:                    inputfiles/blueRealPSF.hdf5
+    Model:                           AnalyticNonGaussian # PSF model: MappedFromFile, AnalyticGaussian or AnalyticNonGaussian
+    MappedFromFile:                       # Read a pre-calculated and fixed PSF from an HDF5 file
+        Filename:                    inputfiles/PSF_Focus_0mu.hdf5
         NumberOfPixels:              8               # The number of pixels in the field for which the PSF is generated
         ChargeDiffusionStrength:     0.2             # Charge diffusion strength (width of the Gaussian diffusion kernel) [pixels]
         IncludeChargeDiffusion:      no              # Include charge diffusion [yes or no]

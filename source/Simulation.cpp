@@ -170,11 +170,7 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     // Depending on how the PSF is computed (analytically or pre-mapped) the Detector object is different.
 
-    if ((psfModel == "MappedGaussian") || (psfModel == "MappedFromFileSymmetrical"))
-    {
-        detector = detectorFactory->createDetectorWithSymmetricalMappedPsfInstance(configParams, *hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
-    }
-    else if (psfModel == "MappedFromFileAsymmetrical")
+    if (psfModel == "MappedFromFile")
     {
         detector = detectorFactory->createDetectorWithAsymmetricalMappedPsfInstance(configParams, *hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
     }
@@ -246,7 +242,6 @@ void Simulation::configure(ConfigurationParameters &configParams)
     numExposures                    = configParams.getInteger("ObservingParameters/NumExposures");
     useJitter                       = configParams.getBoolean("Platform/UseJitter");
     jitterSource                    = configParams.getString("Platform/JitterSource");
-    includeFieldDistortion          = configParams.getBoolean("Camera/IncludeFieldDistortion"); // do we want to do this or should this be asked to Camera?
     useDrift                        = configParams.getBoolean("Telescope/UseDrift");  
     useDriftFromFile                = configParams.getBoolean("Telescope/UseDriftFromFile");  
     psfModel                        = configParams.getString("PSF/Model");
@@ -595,10 +590,6 @@ void Simulation::writeStarCatalogToHDF5()
             RA[k]  *= Angle::degrees;    // [rad] -> [deg]
             dec[k] *= Angle::degrees;    // [rad] -> [deg]
 
-            if (includeFieldDistortion)
-            {
-               tie(xFPmm[k], yFPmm[k]) = camera->undistortedToDistortedFocalPlaneCoordinates(xFPmm[k], yFPmm[k]);
-            }
 
             tie(rowPix[k], colPix[k]) = detector->focalPlaneToPixelCoordinates(xFPmm[k], yFPmm[k]);
             k++;
@@ -770,25 +761,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     subGroup = "PSF";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addString("Model");
-    subGroup = "PSF/MappedGaussian";
-    hdf5File->createGroup(parentGroup + "/" + subGroup);
-    addDouble("Sigma");
-    addInteger("NumberOfPixels");
-    addDouble("ChargeDiffusionStrength");
-    addBoolean("IncludeChargeDiffusion");
-    addBoolean("IncludeJitterSmoothing");
-
-    subGroup = "PSF/MappedFromFileSymmetrical";
-    hdf5File->createGroup(parentGroup + "/" + subGroup);
-    addString("Filename");
-    addDouble("DistanceToOA");
-    addDouble("RotationAngle");
-    addInteger("NumberOfPixels");
-    addDouble("ChargeDiffusionStrength");
-    addBoolean("IncludeChargeDiffusion");
-    addBoolean("IncludeJitterSmoothing");
-
-    subGroup = "PSF/MappedFromFileAsymmetrical";
+    subGroup = "PSF/MappedFromFile";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addString("Filename");
     addInteger("NumberOfPixels");
