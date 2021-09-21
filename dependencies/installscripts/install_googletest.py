@@ -14,8 +14,15 @@ packageName = "googletest"
 # Specify build and install folders
 
 currentWorkingDir = os.getcwd()
-buildDir   = currentWorkingDir + "/dependencies/Downloads/"
-installDir = currentWorkingDir + "/dependencies/Installs/" + packageName 
+buildDir         = currentWorkingDir + "/dependencies/Downloads/"
+parentInstallDir = currentWorkingDir + "/dependencies/Installs/"
+installDir = currentWorkingDir + "/dependencies/Installs/" + packageName
+
+
+# Check if /dependencies/Installs directory exists
+
+if not os.path.isdir(parentInstallDir):
+    os.mkdir(parentInstallDir)
 
 # Print a banner
 
