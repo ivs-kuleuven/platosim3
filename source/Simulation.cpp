@@ -735,7 +735,8 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("PlateScale");
     addDouble("ThroughputBandwidth");
     addDouble("ThroughputLambdaC");
-    addBoolean("IncludeGhosts");
+    addBoolean("IncludePointLikeGhosts");
+    addBoolean("IncludeExtendedGhosts");
     subGroup = "Camera/FocalPlaneOrientation";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addString("Source");

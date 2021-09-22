@@ -89,7 +89,8 @@ Camera:
         ConstantInverseCoefficients: [-0.317143032936, 0.242638513347,-0.459260203502]       # In case Source is ConstantValue
         CoefficientsFromFile:        inputfiles/distortioncoefficients.txt                   # In case Source is FromFile
         InverseCoefficientsFromFile: inputfiles/distortioninversecoefficients.txt            # In case Source if FromFile
-    IncludeGhosts:                   yes
+    IncludePointLikeGhosts:          yes
+    IncludeExtendedGhosts:           no
     Ghosts:
         PointLike:
             FluxRatio:               0.08                       # Flux ratio between the point-like ghost and the originating source [%]
