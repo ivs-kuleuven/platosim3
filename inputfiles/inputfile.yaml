@@ -246,7 +246,7 @@ SubField:
 
 Photometry:                                          # Only possible when 'AnalyticNonGaussian' is selected as PSF. Minimum size of pixel map is 8x8.
 
-    IncludePhotometry:               no
+    IncludePhotometry:               no              # The method described in Marchiori et al., 2019, A&A 627, A71 for in-flight photometry is used.
     ContaminationRadius:             4               # Only consider contaminants that are within this number of pixels [integer pixels]
     MaskUpdateInterval:              14.0            # Photometric masks will be updated every xx days  [days]
     TargetFileName:                  inputfiles/photometryTargets.txt      # One column with star IDs for which you want to have photometry
