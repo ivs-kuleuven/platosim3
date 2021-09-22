@@ -130,8 +130,8 @@ FEE:
     TemperatureFileName:             inputfiles/feeTemperature.txt
     ReadoutNoise:                    32.0            # Readout noise for the FEE [e-/pixel] (same for both ADCs)
     Gain:
-        RefValueLeft:                0.0222          # [ADU/microV] (1 / (Total gain) = FFE gain * CCD gain = 1 / (20 e-/ADU))
-        RefValueRight:               0.0222          # [ADU/microV] (1 / (Total gain) = FFE gain * CCD gain = 1 / (20 e-/ADU))
+        RefValueLeft:                0.0222          # [ADU/microV] (1 / (Total gain) = FFE gain * CCD gain = 1 / (25 e-/ADU))
+        RefValueRight:               0.0222          # [ADU/microV] (1 / (Total gain) = FFE gain * CCD gain = 1 / (25 e-/ADU))
         Stability:                   -300.0e-6       # [ppm/K] = [ADU/microV/K]
         AllowedDifference:           0.0             # Difference in gain between both ADCs [%]
     ElectronicOffset:
