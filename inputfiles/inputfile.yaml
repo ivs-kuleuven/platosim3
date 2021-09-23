@@ -202,8 +202,8 @@ CCD:
             Temperature:             203.                                         # [K]
             NumTrapSpecies:          4                                            # number of different trap species
             TrapDensity:             # for each trap species [traps/pixel]
-                BOL:                 [0.0, 0.0, 0.0, 0.0]
-                EOL:                 [9.8, 3.31, 1.56, 13.24]
+                BOL:                 [0.0, 0.0, 0.0, 0.0]                         # Values at the Beginning Of Life
+                EOL:                 [9.8, 3.31, 1.56, 13.24]                     # Values at the End Of Life
             TrapCaptureCrossSection: [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]     # for each trap species [m^2]
             ReleaseTime:             [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]         # for each trap species [s]
     ChargeInjection:                                 # Inject charge once per exposure to mitigate the CTI effect
