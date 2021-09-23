@@ -81,7 +81,7 @@ class DetectorWithMappedPSF : public Detector
 
         unsigned int numRowsSubPixelMap;        // Nr of subpixel rows in the subfield incl. edge pixels (= size in the y-direction) [subpixels]
         unsigned int numColumnsSubPixelMap;     // Nr of subpixel columns in the subfield incl. edge pixels (= size in the x-direction = readout direction) [subpixels]
-        unsigned int numSubPixelsPerPixel;      // Nr of sub-pixels per pixel
+        int numSubPixelsPerPixel;               // Nr of sub-pixels per pixel
         PointSpreadFunction *psf;        
         long flatfieldSeed;
 

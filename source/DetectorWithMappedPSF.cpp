@@ -221,8 +221,8 @@ void DetectorWithMappedPSF::generateFlatfieldMap()
     // Double the dimensions (this is necessary because of the behaviour of the Fourier transforms)
     // (this is a bit inconvenient as we are working at sub-pixel level -> to be investigated)
 
-    int Nrows = 2 * numRowsPixelMap * numSubPixelsPerPixel;
-    int Ncolumns = 2 * numColumnsPixelMap * numSubPixelsPerPixel;
+    unsigned int Nrows = 2 * numRowsPixelMap * numSubPixelsPerPixel;
+    unsigned int Ncolumns = 2 * numColumnsPixelMap * numSubPixelsPerPixel;
 
     arma::cx_fmat evenMap = arma::cx_fmat(Nrows, Ncolumns);
 
@@ -991,7 +991,8 @@ void DetectorWithMappedPSF::applyDiffusionKernelOnPSF(double subpixRow, double s
  */
 void DetectorWithMappedPSF::applyDistortion(double &x, double &y)
 {
-  double xDist, yDist;
+  double xDist = 0;
+  double yDist = 0;
   double minDistanceSquared = std::numeric_limits<double>::max();
 
   for (auto& coordinates : distortionMap)
@@ -1018,7 +1019,8 @@ void DetectorWithMappedPSF::applyDistortion(double &x, double &y)
  */
 void DetectorWithMappedPSF::applyInverseDistortion(double &x, double &y)
 {
-  double xUndist, yUndist;
+  double xUndist = 0;
+  double yUndist = 0;
   double minDistanceSquared = std::numeric_limits<double>::max();
 
   for (auto& coordinates : distortionMap)
