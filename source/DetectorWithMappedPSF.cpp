@@ -910,7 +910,7 @@ void DetectorWithMappedPSF::writeSubPixelMapToHDF5(int exposureNr)
 
 
 /** 
- * \brief: Write the diffused PSF to the HDF5 file.
+ * \brief: Write the diffused and rotated PSF to the HDF5 file.
  */
 
 void DetectorWithMappedPSF::writeDiffusedPSFToHDF5(PointSpreadFunction *psf)
@@ -937,6 +937,11 @@ void DetectorWithMappedPSF::writeDiffusedPSFToHDF5(PointSpreadFunction *psf)
     // reset the diffusion kernel
     generateDiffusionKernel(chargeDiffusionStrength*numSubPixelsPerPixel);
 
+
+    // rotate the diffused PSF
+    diffusedPsf = ArrayOperations::rotateArray(diffusedPsf, -rotationAnglePsf);
+    diffusedPsf /= arma::accu(diffusedPsf);
+   
     // write the diffused psf to the output hdf5 file
     hdf5File.writeArray("/PSF", "diffusedPSF", diffusedPsf);
 }

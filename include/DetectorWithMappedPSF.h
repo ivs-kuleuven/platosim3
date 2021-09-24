@@ -10,6 +10,7 @@
 
 #include "Detector.h"
 #include "PointSpreadFunction.h"
+#include "ArrayOperations.h"
 
 using namespace std;
 
