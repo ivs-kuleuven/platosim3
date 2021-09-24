@@ -1,5 +1,21 @@
 # Changelog for PlatoSim
 
+<!-- 3.5.1 -->
+<!-- ***** -->
+
+## **/**/****: 3.5.1
+
+## Fixed
+* The diffused PSF that was saved to the output HDF5 is now rotated with respect to the CCD it falls on. (GitHub #627)
+
+## Changed
+* The dependencies python install files now check that the `Installs` directory excists and creates this directory if it doesn't. 
+
+## Added
+* Added an option to individually switch on/off extended or pointlike ghosts. 
+
+
+
 <!-- 3.5.0 -->
 <!-- ***** -->
 
