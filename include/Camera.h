@@ -118,7 +118,8 @@ class Camera : public HDF5Writer
         vector<double> transmissionEfficiencyValues;
         double totalSkyBackground;          // Total sky background [photons / pixel / exposure]
 
-        bool includeGhosts;                                         // Whether or not to include ghosts
+        bool includePointLikeGhosts;                                // Whether or not to include pointlike ghosts
+        bool includeExtendedGhosts;                                 // Whether or not to include extended ghosts
         double distanceCutOffPointLikeGhosts;                       // Beyond this distance from the optical axis [degrees], sources don't produce point-like ghosts anymore
         double fluxRatioOnAxisPointLikeGhosts;                      // Flux ratio between the point-like ghost and the originating source on-axis [%] -> linear decrease
         double distanceRatioExtendedGhosts;                         // For a star at FP-coordinates (x, y), the centre of the extended ghost will be at (distanceRatio * x, distanceRatio * y)

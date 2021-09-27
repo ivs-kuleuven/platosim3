@@ -221,8 +221,8 @@ void DetectorWithMappedPSF::generateFlatfieldMap()
     // Double the dimensions (this is necessary because of the behaviour of the Fourier transforms)
     // (this is a bit inconvenient as we are working at sub-pixel level -> to be investigated)
 
-    int Nrows = 2 * numRowsPixelMap * numSubPixelsPerPixel;
-    int Ncolumns = 2 * numColumnsPixelMap * numSubPixelsPerPixel;
+    unsigned int Nrows = 2 * numRowsPixelMap * numSubPixelsPerPixel;
+    unsigned int Ncolumns = 2 * numColumnsPixelMap * numSubPixelsPerPixel;
 
     arma::cx_fmat evenMap = arma::cx_fmat(Nrows, Ncolumns);
 
@@ -910,7 +910,7 @@ void DetectorWithMappedPSF::writeSubPixelMapToHDF5(int exposureNr)
 
 
 /** 
- * \brief: Write the diffused PSF to the HDF5 file.
+ * \brief: Write the diffused and rotated PSF to the HDF5 file.
  */
 
 void DetectorWithMappedPSF::writeDiffusedPSFToHDF5(PointSpreadFunction *psf)
@@ -937,6 +937,11 @@ void DetectorWithMappedPSF::writeDiffusedPSFToHDF5(PointSpreadFunction *psf)
     // reset the diffusion kernel
     generateDiffusionKernel(chargeDiffusionStrength*numSubPixelsPerPixel);
 
+
+    // rotate the diffused PSF
+    diffusedPsf = ArrayOperations::rotateArray(diffusedPsf, -rotationAnglePsf);
+    diffusedPsf /= arma::accu(diffusedPsf);
+   
     // write the diffused psf to the output hdf5 file
     hdf5File.writeArray("/PSF", "diffusedPSF", diffusedPsf);
 }
@@ -991,7 +996,8 @@ void DetectorWithMappedPSF::applyDiffusionKernelOnPSF(double subpixRow, double s
  */
 void DetectorWithMappedPSF::applyDistortion(double &x, double &y)
 {
-  double xDist, yDist;
+  double xDist = 0;
+  double yDist = 0;
   double minDistanceSquared = std::numeric_limits<double>::max();
 
   for (auto& coordinates : distortionMap)
@@ -1018,7 +1024,8 @@ void DetectorWithMappedPSF::applyDistortion(double &x, double &y)
  */
 void DetectorWithMappedPSF::applyInverseDistortion(double &x, double &y)
 {
-  double xUndist, yUndist;
+  double xUndist = 0;
+  double yUndist = 0;
   double minDistanceSquared = std::numeric_limits<double>::max();
 
   for (auto& coordinates : distortionMap)
