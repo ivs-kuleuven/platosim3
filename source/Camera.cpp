@@ -1007,16 +1007,24 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
  */
 tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure)
 {
-    // Undistorted focal-plane coordinates of the centre, and the lower left and upper right corner
+    // Focal-plane coordinates of the centre, and the lower left and upper right corner
     // of the sub-field
 
     double centerSubFieldXmm, centerSubFieldYmm;
-    tie(centerSubFieldXmm, centerSubFieldYmm) = detector.getFocalPlaneCoordinatesOfSubfieldCenter();
+    double actualCenterSubFieldXmm, actualCenterSubFieldYmm; // this is only used for logging purposes
+    tie(actualCenterSubFieldXmm, actualCenterSubFieldYmm) = detector.getFocalPlaneCoordinatesOfSubfieldCenter();
+    centerSubFieldXmm = actualCenterSubFieldXmm;
+    centerSubFieldYmm = actualCenterSubFieldYmm;
 
     double corner00Xmm, corner00Ymm, corner11Xmm, corner11Ymm, dummy;
-    tie(corner00Xmm, corner00Ymm, dummy, dummy, corner11Xmm, corner11Ymm, dummy, dummy) = detector.getFocalPlaneCoordinatesOfSubfieldCorners();
+    double actualCorner00Xmm, actualCorner00Ymm, actualCorner11Xmm, actualCorner11Ymm; // this is only used for logging purposes 
+    tie(actualCorner00Xmm, actualCorner00Ymm, dummy, dummy, actualCorner11Xmm, actualCorner11Ymm, dummy, dummy) = detector.getFocalPlaneCoordinatesOfSubfieldCorners();
+    corner00Xmm = actualCorner00Xmm;
+    corner00Ymm = actualCorner00Ymm;
+    corner11Xmm = actualCorner11Xmm;
+    corner11Ymm = actualCorner11Ymm;
 
-    // Apply field distortion (if enabled)
+    // Apply inverse field distortion (if distortion was enabled) 
     if (isMapped && includeFieldDistortion)
     {
       Log.info("Camera: including field distortion for mapped PSF");
@@ -1040,12 +1048,21 @@ tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &d
     Log.debug("Camera: calculating subfield center pixel coordinates");
 
     double centerRow, centerCol;
+    double actualCenterRow, actualCenterCol;
     tie(centerRow, centerCol) = detector.focalPlaneToPixelCoordinates(centerSubFieldXmm, centerSubFieldYmm);
+    tie(actualCenterRow, actualCenterCol) = detector.focalPlaneToPixelCoordinates(actualCenterSubFieldXmm, actualCenterSubFieldYmm);
+    
+    // Actual coordiantes of the subfield 
+    Log.debug("Camera: actual center of subfield at CCD (row, col) = (" + to_string(actualCenterRow) + ", " + to_string(actualCenterCol) + ") pix");
+    Log.debug("Camera: actual center of subfield at (Xmm, Ymm) = (" + to_string(actualCenterSubFieldXmm) + ", " + to_string(actualCenterSubFieldYmm) + ") mm");
+    Log.debug("Camera: actual lower left corner of subfield at (Xmm, Ymm) = (" + to_string(actualCorner00Xmm) + ", " + to_string(actualCorner00Ymm) + ") mm");
+    Log.debug("Camera: actual upper right corner of subfield at (Xmm, Ymm) = (" + to_string(actualCorner11Xmm) + ", " + to_string(actualCorner11Ymm) + ") mm");
 
-    Log.debug("Camera: center of subfield at CCD (row, col) = (" + to_string(centerRow) + ", " + to_string(centerCol) + ") pix");
-    Log.debug("Camera: center of subfield at (Xmm, Ymm) = (" + to_string(centerSubFieldXmm) + ", " + to_string(centerSubFieldYmm) + ") mm");
-    Log.debug("Camera: lower left corner of subfield at (Xmm, Ymm) = (" + to_string(corner00Xmm) + ", " + to_string(corner00Ymm) + ") mm");
-    Log.debug("Camera: upper right corner of subfield at (Xmm, Ymm) = (" + to_string(corner11Xmm) + ", " + to_string(corner11Ymm) + ") mm");
+    // Coordinates of the subfield if the selected stars fall undistorted on the subfield  
+    Log.debug("Camera: undistorted center of subfield at CCD (row, col) = (" + to_string(centerRow) + ", " + to_string(centerCol) + ") pix");
+    Log.debug("Camera: undistorted center of subfield at (Xmm, Ymm) = (" + to_string(centerSubFieldXmm) + ", " + to_string(centerSubFieldYmm) + ") mm");
+    Log.debug("Camera: undistorted lower left corner of subfield at (Xmm, Ymm) = (" + to_string(corner00Xmm) + ", " + to_string(corner00Ymm) + ") mm");
+    Log.debug("Camera: undistorted upper right corner of subfield at (Xmm, Ymm) = (" + to_string(corner11Xmm) + ", " + to_string(corner11Ymm) + ") mm");
 
     // Conversion to equatorial sky coordinates (alpha, delta) [radians]
 
