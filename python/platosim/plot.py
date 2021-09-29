@@ -767,7 +767,7 @@ def plotStellarSampleDistributions(fig, mag, magCon, magRange, numConPerTar, dis
 
 
 
-def plotYawPitchRollTimeSeries(fig, time, signal, units, title=False, ylims=False):
+def plotYawPitchRollTimeSeries(fig, time, signal, units, title=False, ylim=False):
     """
     Function to plot the time series of yaw, pitch, and roll for both AOSC jitter and thermo drift.
     Along with the time series plots the Root-Mean-Square (RMS) are calculated and plotted in each
@@ -798,8 +798,8 @@ def plotYawPitchRollTimeSeries(fig, time, signal, units, title=False, ylims=Fals
 
     # Handle yaxis limits
 
-    if ylims is False:
-        lim = 0.5*np.max(np.abs(signal))
+    if ylim is False:
+        ylim = 0.5*np.max(np.abs(signal))
 
     # Adjust linewidth after data
 
@@ -836,7 +836,7 @@ def plotYawPitchRollTimeSeries(fig, time, signal, units, title=False, ylims=Fals
 
         axes.set_ylabel('{0} [{1}]'.format(labels[plot], units[1]))
         axes.set_xlim(np.min(time), np.max(time))
-        axes.set_ylim(-lim, +lim)
+        axes.set_ylim(-ylim, +ylim)
 
         # Remove tick labels on x axis except for last plot
 
@@ -852,7 +852,6 @@ def plotYawPitchRollTimeSeries(fig, time, signal, units, title=False, ylims=Fals
 
     # Remaining
 
-    #if title is not False: fig.text(0.5, 0.95, title, ha='center', fontsize=fs)
     plt.tight_layout()
     plt.subplots_adjust(hspace = .001)
 
@@ -868,7 +867,7 @@ def plotYawPitchRollTimeSeries(fig, time, signal, units, title=False, ylims=Fals
 
 
 
-def plotYawPitchRollPSD(fig, time, signals, xmin=False, ylim=False, carbox=False, title=False, labels=False, misreq=False):
+def plotYawPitchRollPSD(fig, time, signals, carbox=144, title=False, labels=False, xmin=False, ylim=False, misreq=False):
     """
     This function takes a Yaw, Pitch, and Roll time series and plots the Power Spectral Density (PSD)
     function for each. Alongside the data a median filter is plotted with a default carbox length of
@@ -880,16 +879,16 @@ def plotYawPitchRollPSD(fig, time, signals, xmin=False, ylim=False, carbox=False
         Time points [s]
     signals : narray, list-narray
         Either single signal array or a list of signal arrays
-    xmin : float (optional)
-        Limit for x min. The x max limit is the Nyquist frequency
-    ylim : list-float (optional)
-        List of y min and max limit ["y-min", "y-max"]
     carbox : int (optional)
         Length of median carbox filter. Default is 3600s/25s = 144
     title : str (optional)
         Title for plot
     labels : list-str (optinal)
         List of string labels where the first is the xlabel and the rest is ylabels
+    xmin : float (optional)
+        Limit for x min. The x max limit is the Nyquist frequency
+    ylim : list-float (optional)
+        List of y min and max limit ["y-min", "y-max"]
     misreq : bool (optional)
         If "True" the mission requirements for the AOSC will be plotted alonside the data.
 
@@ -904,11 +903,8 @@ def plotYawPitchRollPSD(fig, time, signals, xmin=False, ylim=False, carbox=False
 
     # Find time step
 
-    sampling = np.diff(time)[0]
-
-    # Choose carbox length of 1 hour if time is in seconds
-
-    if carbox is False: carbox = 144
+    scale    = 1e-6
+    sampling = np.diff(time)[0] * scale
 
     # Make plot
 
@@ -927,16 +923,18 @@ def plotYawPitchRollPSD(fig, time, signals, xmin=False, ylim=False, carbox=False
         PSD_med   = median_filter(PSD, carbox)
         #freq      *= 1e-3
 
+        perhour = int(carbox*25/3600)
+
         # Plot results
 
         axes.plot(freq, PSD,     '-', c=colors[plot], lw=lw, label=labels[plot])
-        axes.plot(freq, PSD_med, 'k-', lw=lw+1)
+        axes.plot(freq, PSD_med, 'k-', lw=lw+1, label='{0}h median '.format(perhour))
 
-        # Plot mission requirements
+        # Plot mission requirements (from the red book)
 
         if misreq:
-            axes.plot([1e-1, 2e1], [1e10, 1e1], c='k', linestyle='--', lw=1)
-            axes.plot([2e1,  1e4], [1e1,  1e1], c='k', linestyle='--', lw=1)
+            axes.plot([3, 20],   [21.4**2*scale, 0.23**2*scale], c='b', linestyle='--', lw=1, label='MPE requirement')
+            axes.plot([20, 4e4], [0.23**2*scale, 0.23**2*scale], c='b', linestyle='--', lw=1)
 
         # Log scaling
 
@@ -945,7 +943,7 @@ def plotYawPitchRollPSD(fig, time, signals, xmin=False, ylim=False, carbox=False
 
         # Latter settings
 
-        axes.set_ylabel('{0}'.format(labels[plot]) + r' [arcsec$^2$ Hz$^{-1}$]')
+        axes.set_ylabel(r'Amplitude [arcsec $\mu$Hz$^{-1}$]')
 
         # Remove tick labels on x axis except for last plot
 
@@ -969,7 +967,7 @@ def plotYawPitchRollPSD(fig, time, signals, xmin=False, ylim=False, carbox=False
 
         # Set legends
 
-        axes.legend(loc='upper right')
+        axes.legend(loc='lower left')
 
         # Set title
 
@@ -977,7 +975,7 @@ def plotYawPitchRollPSD(fig, time, signals, xmin=False, ylim=False, carbox=False
 
     # Remaining
 
-    plt.xlabel(r'Frequency [mHz]')
+    plt.xlabel(r'Frequency [$\mu$Hz]')
     plt.tight_layout()
     plt.subplots_adjust(hspace = .001)
 
