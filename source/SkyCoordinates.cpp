@@ -308,7 +308,7 @@ vector<double> angularDistanceBetween(const double RA0, const double dec0, const
 {
     vector<double> angularDistance(RA.size());
 
-    for (long n = 0; n < RA.size(); ++n)
+    for (unsigned long n = 0; n < RA.size(); ++n)
     {
         const double sinHalfDeltaLong = sin((RA0 - RA[n])/2.0);
         const double sinHalfDeltaLat = sin((dec0 - dec[n])/2.0);

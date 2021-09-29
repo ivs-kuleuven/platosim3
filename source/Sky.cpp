@@ -470,7 +470,7 @@ void Sky::aberrateSelectedStarPositions(Platform &platform, string aberrationCor
     valarray<double> v = std::get<1>(orbitDB.at(0));
     double speed = std::get<2>(orbitDB.at(0));
  
-    for (int i=0; i < orbitDB.size(); i++)
+    for (unsigned int i=0; i < orbitDB.size(); i++)
     {
       if ( std::get<0>(orbitDB.at(i)) <= time0 + startTime)
       {
@@ -605,7 +605,7 @@ void Sky::aberrateSelectedGhostOrigPositions(Platform &platform, string aberrati
     valarray<double> v = std::get<1>(orbitDB.at(0));
     double speed = std::get<2>(orbitDB.at(0));
  
-    for (int i=0; i < orbitDB.size(); i++)
+    for (unsigned int i=0; i < orbitDB.size(); i++)
     {
       if ( std::get<0>(orbitDB.at(i)) <= time0 + startTime)
       {
