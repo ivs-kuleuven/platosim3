@@ -17,19 +17,6 @@ from scipy.ndimage import median_filter
 from numba import njit
 
 #==============================================================#
-#                    GLOBAL HARDCODE SETTINGS                  #
-#==============================================================#
-
-dpi = 300  # Matplotlib.savefig resolution setting (default is 95)
-
-sp = 3
-sms = 5
-lw = 0.3
-al = 0.5
-dx = 150
-cm = 'plasma'
-
-#==============================================================#
 #                           FUNCTIONS                          #
 #==============================================================#
 
@@ -56,19 +43,31 @@ def compilation(i, i_max, text=''):
     """
     This function print out a compilation-time-bar in the terminal.
 
-    INPUT:
-    @param int i:       Index of the current running job-loop
-    @param int i_max:   Index of the last running job-loop
-    @param str text:    Optional text written next to compilation-bar
+    PARAMETERS
+    ----------
+    i : int
+        Index of the current running job-loop
+    i_max : int
+        Index of the last running job-loop
+    text : str
+        Optional text written next to compilation-bar
 
-    OUTPUT:
-    None
+    RETURN
+    ------
+        No parameters only a nice compilation bar to bash
     """
+
+    # Running percentage calculation
+
     percent = (i + 1) / (i_max * 1.0) * 100
-    # print int(percent/2), 50-int(percent/2)
+
     # We here divide by 2 as the length of the bar is only 50 characters:
+
     bar = "[" + "-" * int(percent/2) + '>' + " " * (50-int(percent/2))+"] {}% {}"\
         .format(int(percent), text)
+
+    # Print and clean-up
+
     sys.stdout.write(u"\u001b[1000D" + bar)
     sys.stdout.flush()
 
@@ -203,21 +202,24 @@ def passbandConversionV2P(V, Teff):
 
 
 
-def NSRphotonNoiseLimit(P, ncams=24, texp=25, tdur=3600.):
+def NSRphotonNoiseLimit(P, Ncam=24., Ntra=1., tdur=3600., camType='N'):
     """
-    NSR estimate in the photon noise limit of bright stars.
-    NOTE only valid for very bright stars!
+    NSR estimate in the photon noise limit of bright stars. The stellar flux are
+    calculated from the PLATO passband found by Marchiori et al. (2019).
+    NOTE only valid for very bright stars (P < 9).
 
     PARAMETERS
     ----------
     P : float, narray
         The PLATO passband magnitude.
-    ncams : float, narray
+    Ncam : float, narray
         Number of telescope visibility. N-Cams (6, 12. 18, 24) or F-Cams (2).
-    texp : float, narray
-        Exposure time. N-Cams is 25s and F-Cams 2s.
+    Ntra : float, narray
+        Number of transits that can be co-added by phase-folding.
     tdur : float, narray
         Time duration over which the NSR is estimated. E.g., 3600s for 1h precision.
+    camType : str
+        Either the normal (N) or fast (F) cameras. Default is normal.
 
     RETURN
     ------
@@ -225,42 +227,161 @@ def NSRphotonNoiseLimit(P, ncams=24, texp=25, tdur=3600.):
         NSR only valid for the photon noise limit.
     """
 
+    # Choose cycle and exposure time for either the normal (N) or fast (F) cameras
+
+    if camType == 'N':
+        texp = 21.  # [s]
+        tcyc = 25.  # [s]
+    elif camType == 'F':
+        texp = 2.1
+        tcyc = 2.5
+
     # The P passband zero-point
 
     zp = 20.62
 
-    # Flux of stars
+    # Flux of stars [e-/s]
 
-    fP = 10**(-0.4*(P-zp))
+    f = 10**(-0.4*(P-zp))
 
-    # SNR from pure photon noise
+    # Observed total flux per exposure in ADU counts
 
-    SNR = np.sqrt(fP)
+    g = 900000/65535.  # [e-/ADU] Gain
+    F = f * texp / g   # [ADU]
 
-    # NSR from uncorrelated noise sources between the cameras
+    # SNR from pure photon noise and NSR from uncorrelated noise.
+    # Gaussian statistic gives sigma --> sigma/sqrt(N)
 
-    NSR = np.sqrt(texp/(tdur*ncams)) * 1/SNR * 1e6
+    SNR = np.sqrt(F * Ncam * Ntra * tdur/tcyc)
+    NSR = 1/SNR * 1e6
 
     return NSR
 
 
 
 
-def distribution(distribution, range):
+
+
+
+def powerDensityFFT(signal, timestep):
     """
-    This function picks a value from any distribution and returns it. The distribution
-    must consist of values between 0 and 1 with its peak at 1. This function picks a
-    random value from the allowed range and then uses a distribution to get a P number
-    between 0 and 1, it then rolls a dice and chekcs wheter the dice roll is under the
-    P number. If it is, then the picked value is returned. This ensures a recration of
-    the distribution shape over thousands of picks
+    Computes the power density of an equidistant time series 'signal',
+    using the FFT algorithm. The length of the time series need not
+    be a power of 2 (zero padding is done automatically).
+    NOTE This function is a copy from the IvS repo to avoid depencies.
+
+    Parameters
+    ----------
+    signal : ndarray
+        Signaltime series [0..Ntime-1]
+    timestep : float
+        Time step fo the equidistant time series
+    Return
+    ------
+    freq : ndarray
+        frequencies and the power density spectrum
+    PSD : ndarray
+        Power spectral density profile
     """
 
-    pick = random.random()*(range[1]-range[0]) + range[0]
-    p = distribution(pick)
-    roll = random.random()
-    if roll < p:
-        return pick
-    else:
-        return distribution_pick(distribution, range)
+    # Compute the FFT of a real-valued signal. If N is the number
+    # of points of the original signal, 'Nfreq' is (N/2+1).
+
+    fourier = np.fft.rfft(signal)
+    Ntime   = len(signal)
+    Nfreq   = len(fourier)
+
+    # Compute the power density
+
+    PSD = np.abs(fourier)**2 / Ntime * timestep
+
+    # Compute the frequency array.
+    # First compute an equidistant array that goes from 0 to 1 (included),
+    # with in total as many points as in the 'fourier' array.
+    # Then rescale the array that it goes from 0 to the Nyquist frequency
+    # which is 0.5/timestep
+
+    freq = np.arange(float(Nfreq)) / (Nfreq-1) * 0.5 / timestep
+
+    # That's it!
+
+    return freq, PSD
+
+
+
+# def powerPSD(signal, sampling):
+#     """
+#     This function takes a time series and plots the Power Spectral Density (PSD) function.
+
+#     PARAMETERS
+#     ----------
+#     signal : narray, list-narray
+#         Either single signal array or a list of signal arrays
+    
+#     OUTPUT:
+#     Plot or/and saved plot to PNG.
+#     """
+
+#     Compute frequencies uptil the Nyquist frequency
+
+#     freq = np.fft.fftfreq(len(time), d=np.diff(time)[0])
+
+#     Require even number of data points
+
+#     if (len(time) % 2) != 0:
+#         dx = len(time) - 1
+#     else:
+#         dx = len(time)
+#     time = time[:dx]
+#     data = signal[:dx]
+
+#     Start with wavelength varying signal; units are DN/s, values are real
+
+#     fourier = np.fft.fft(data)
+#     power   = np.sqrt(fourier.real**2 + fourier.imag**2)
+#     sp_med  = median_filter(power, int(3600*1e-6/sampling))  [microHz/hour]
+
+#     Sort away the negative reflection image
+
+#     positives   = np.where(frequencies > 0)
+#     frequencies = frequencies[positives]
+#     power_model = power_model[positives]
+#     sp_med      = sp_med[positives]
+
+#     ax.plot(frequencies, power_model, '-', c=colors[plot], lw=lw, label=labels[plot])
+#     ax.plot(frequencies, sp_med, 'k-', lw=lw+0.5)
+
+#     ax.plot([1e-1, 2e1], [1e10, 1e1], c='k', linestyle='--', lw=1)
+#     ax.plot([2e1,  1e4], [1e1,  1e1], c='k', linestyle='--', lw=1)
+
+
+#     return freq, PSDs
+
+
+
+
+
+
+
+
+
+
+
+# def picOfDestiny(distribution, prange):
+#     """
+#     This function randomly picks a value from any gievn distribution and returns it.
+#     The distribution must consist of values between 0 and 1 with its peak at 1. This function picks a
+#     random value from the allowed range and then uses a distribution to get a P number
+#     between 0 and 1, it then rolls a dice and chekcs wheter the dice roll is under the
+#     P number. If it is, then the picked value is returned. This ensures a recration of
+#     the distribution shape over thousands of picks
+#     """
+
+#     pick = random.random()*(prange[1]-prange[0]) + prange[0]
+#     p = distribution(pick)
+#     roll = random.random()
+#     if roll < p:
+#         return pick
+#     else:
+#         return distribution_pick(distribution, range)
 
