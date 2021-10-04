@@ -1,5 +1,6 @@
-
+import h5py
 import math
+import os
 import numpy as np
 
 from numpy import *
@@ -702,7 +703,7 @@ def undistortedFocalPlaneToTelescopeCoordinates(xFP, yFP, focalLength, focalPlan
 def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients, focalLength):
 
     """
-    PURPOSE:      Convert from undistorted to distorted normalized focal plane coordinates
+    PURPOSE:      Convert from undistorted to distorted normalized focal plane coordinates using the analytic distortion model. 
 
     INPUTS:       xFPmm  undistorted normalized focal plane x-coordinate [mm]
                   yFPmm  undistorted normalized focal plane y-coordinate [mm]
@@ -710,6 +711,9 @@ def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoeffici
                   focalLength: Focal length [mm]
 
     OUTPUTS:      (xFPdist, yFPdist) distorted x and y coordinates [mm]
+
+    REMARK:       This is not the prefered method for detectors with mapped PSF, since these use a mapped distortion model. 
+                  For such models use the function mappedUndistortedToDistortedFocalPlaneCoordinates.
 
     Note: Example of distortion coefficients: [0.316257210577,  0.066373219688,  0.372589221219]
     """
@@ -736,10 +740,85 @@ def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoeffici
 
 
 
+
+def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile):
+
+    """
+    PURPOSE:      Convert from undistorted to distorted normalized focal plane coordinates using a mapped distortion model. 
+
+    INPUTS:       xFPmm:  undistorted normalized focal plane x-coordinate [mm]
+                  yFPmm:  undistorted normalized focal plane y-coordinate [mm]w
+                  pathToFoPsfFile: absolute path to the PSF file that the Coordinates map
+
+    OUTPUTS:      (xFPdist, yFPdist) distorted x and y coordinates [mm]
+
+    REMARK:       This is the prefered method for detectors with mapped PSF. 
+                  For detectors that use analytic PSF use the function undistortedToDistortedFocalPlaneCoordinates.
+
+    """
+
+    # Check the path to the PSF file excists
+    if not os.path.exists(pathToPsfFile):
+        if os.path.exists(os.environ["PLATO_PROJECT_HOME"] + "/" + pathToPsfFile):
+            pathToPsfFile = os.environ["PLATO_PROJECT_HOME"] + "/" + pathToPsfFile
+        else:
+            print("Error: {} is not a valid path name for mapped PSF".format(pathToPsfFile))            
+        
+
+    # We open the psf file where the coordinate transformation matrix should be in. If the matrix isn't in the file, we raise an error. 
+    psfFile = h5py.File(pathToPsfFile, "r")
+    if not "Coordinates map" in psfFile.keys():
+        print("Error: No transformation map given in psf file, mapped distortion is not possible.")
+        return 
+    else:
+        coordMap = psfFile["Coordinates map"]
+
+    # Calculate the distance of the undistorted coordinates with the input coordinates.
+    undistorted = coordMap["Undistorted"]
+
+    x = undistorted["x"]
+    xUndis = np.zeros(x.shape, x.dtype)
+    x.read_direct(xUndis)
+
+    y = undistorted["y"]
+    yUndis = np.zeros(y.shape, y.dtype)
+    y.read_direct(yUndis)
+
+    distance = np.array([(xFPmm - x)**2 + (yFPmm - y)**2 for x, y in zip(xUndis, yUndis)])
+
+    # Select the distorted coordinates whose respective undistorted counterparts are closest to the input coordinates
+    distorted = coordMap["Distorted"]
+
+    x = distorted["x"]
+    xDist = np.zeros(x.shape, x.dtype)
+    x.read_direct(xDist)
+
+    y = distorted["y"]
+    yDist = np.zeros(y.shape, y.dtype)
+    y.read_direct(yDist)
+
+    distortedCoordinateMap = [(x, y) for x, y in zip(xDist, yDist)]
+    distortedCoordinates = [coord for coord, dist in zip(distortedCoordinateMap, distance) if dist == np.min(distance)]
+
+    xFPdist, yFPdist = distortedCoordinates[0]
+    return xFPdist, yFPdist
+    
+
+    
+
+
+
+
+
+
+
+
+
+
 def distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, inverseDistortionCoefficients, focalLength):
 
     """
-    PURPOSE:     Convert from distorted to undistorted normalized focal plane coordinates
+    PURPOSE:     Convert from distorted to undistorted normalized focal plane coordinates using the analytic distortion model.
 
     INPUTS:      xFPdist  Distorted normalized focal plane x-coordinate [mm]
                  yFPdist  DIstorted normalized focal plane y-coordinate [mm]
@@ -747,6 +826,9 @@ def distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, inverseDistort
                  focalLength: Focal length [mm]
 
     OUTPUTS:     (xFPmm, yFPmm) distorted x and y coordinates [mm]
+
+    REMARK:     This is not the prefered method for detectors with mapped PSF, since these use a mapped distortion model. 
+                For such models use the function mappedDistortedToUndistortedFocalPlaneCoordinates.
 
     Note: Example of inverse distortion coefficients: [-0.317143032936, 0.242638513347,-0.459260203502]
     """
@@ -762,6 +844,76 @@ def distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, inverseDistort
     xFPmm = xFPdist + cos(angle) * distortion
     yFPmm = yFPdist + sin(angle) * distortion
 
+    return xFPmm, yFPmm
+
+
+
+
+
+
+
+
+
+
+
+def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPsfFile):
+
+    """
+    PURPOSE:     Convert from distorted to undistorted normalized focal plane coordinates using the mapped distortion model.
+
+    INPUTS:      xFPdist  Distorted normalized focal plane x-coordinate [mm]
+                 yFPdist  DIstorted normalized focal plane y-coordinate [mm]
+                 pathToFoPsfFile: absolute path to the PSF file that the Coordinates map
+
+    OUTPUTS:     (xFPmm, yFPmm) distorted x and y coordinates [mm]
+
+    REMARK:     This is the prefered method for detectors with mapped PSF, since these use a mapped distortion model. 
+                For detectors that use analytic PSF use the function distortedToUndistortedFocalPlaneCoordinates.
+    """
+
+    # Check the path to the PSF file excists
+    if not os.path.exists(pathToPsfFile):
+        if os.path.exists(os.environ["PLATO_PROJECT_HOME"] + "/" + pathToPsfFile):
+            pathToPsfFile = os.environ["PLATO_PROJECT_HOME"] + "/" + pathToPsfFile
+        else:
+            print("Error: {} is not a valid path name for mapped PSF".format(pathToPsfFile))            
+    
+    # We open the psf file where the coordinate transformation matrix should be in. If this map isn't in the file, we raise an error. 
+    psfFile = h5py.File(pathToPsfFile, "r")
+    if not "Coordinates map" in psfFile.keys():
+        print("Error: No transformation map given in psf file, mapped distortion is not possible.")
+        return 
+    else:
+        coordMap = psfFile["Coordinates map"]
+
+    # Calculate the distance of the distorted coordinates with the distorted input coordinates.
+    distorted = coordMap["Distorted"]
+
+    x = distorted["x"]
+    xDist = np.zeros(x.shape, x.dtype)
+    x.read_direct(xDist)
+
+    y = distorted["y"]
+    yDist = np.zeros(y.shape, y.dtype)
+    y.read_direct(yDist)
+
+    distance = np.array([(xFPdist - x)**2 + (yFPdist - y)**2 for x, y in zip(xDist, yDist)])
+
+    # Select the undistorted coordinates whose respective distorted counterparts are closest to the input coordinates
+    undistorted = coordMap["Undistorted"]
+
+    x = undistorted["x"]
+    xUndis = np.zeros(x.shape, x.dtype)
+    x.read_direct(xUndis)
+
+    y = undistorted["y"]
+    yUndis = np.zeros(y.shape, y.dtype)
+    y.read_direct(yUndis)
+
+    undistortedCoordinateMap = [(x, y) for x, y in zip(xUndis, yUndis)]
+    undistortedCoordinates = [coord for coord, dist in zip(undistortedCoordinateMap, distance) if dist == np.min(distance)]
+
+    xFPmm, yFPmm = undistortedCoordinates[0]
     return xFPmm, yFPmm
 
 
@@ -975,8 +1127,8 @@ def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
 
 
 def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation, tiltAngle, azimuthAngle,  \
-                              focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, distortionCoefficients,   \
-                              normal):
+                              focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, normal,   \
+ mappedDistortion=False, distortionCoefficients=None, pathToPsfFile=None):
 
     """
     PURPOSE: Given the equatorial coordinates of a star, find out on which CCD it falls ('1', '2', ...)
@@ -995,8 +1147,11 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
            focalLength:            focal length of the camera.                               [mm]
            pixelSize:              pixel size                                                [micron]
            includeFieldDistortion: True to include field distortion in coordinate transformations, false otherwise
-           distortionCoefficients: Coefficients of the polynomial describing the distortion
            normal:                 True for the normal camera configuration, False for the fast cameras
+           mappedDistortion:       True if we want mapped distortion (mapped from file psf) False if we have analytic psfs      
+           distortionCoefficients: Coefficients of the polynomial describing the distortion for anlytic psf 
+           pathToPsfFile         : Path to the PSF file for mapped PSFs to calculate mapped distortion
+
 
     OUTPUT: ccdCode: for normal camera: either '1', '2', '3', or '4'
                      for fast camera: either '1F', '2F', '3F', '4F'
@@ -1009,6 +1164,15 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
     Note: Example of distortion coefficients: [-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06]
     """
 
+    # Make sure that for the respective field distortion the proper information is given.
+    if (includeFieldDistortion or includeFieldDistortion == "yes"):
+        if (mappedDistortion and pathToPsfFile is None):
+            print("Error: If mapped field distortion should be taken into account, a path to the psf file should be given")
+            return
+        elif ( (not mappedDistortion) and distortionCoefficients is None):
+            print("Error: If analytic field distortion should be taken into account, the distortionCoefficients should be given")
+            return
+        
     # Select the proper CCD codes depending on whether we're dealing with the nominal or the fast cams
 
     if normal == True:
@@ -1023,7 +1187,10 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
                                               tiltAngle, azimuthAngle, focalPlaneAngle, focalLength)
 
     if (includeFieldDistortion == True) or (includeFieldDistortion == "yes"):
-        xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients, focalLength)
+        if mappedDistortion:
+            xFPmm, yFPmm = mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile)
+        else: 
+            xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients, focalLength)
 
     # Find out if this falls on a CCD, and if yes which one.
     # Our approach: try each of the CCDs. Not elegant, but robust...
@@ -1052,7 +1219,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
 
         return ccdCode, xCCDpix, yCCDpix
 
-
+   
     # If we arrive here, the star does not fall on any CCD
 
     return None, None, None
@@ -1162,7 +1329,7 @@ def platformToTelescopePointingCoordinates(raPlatform, decPlatform, raSun, decSu
 
 def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, decStar, raPlatform, decPlatform, solarPanelOrientation,  \
                                        tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength, pixelSize,                       \
-                                       includeFieldDistortion, distortionCoefficients, normal):
+                                       includeFieldDistortion, normal, mappedDistortion=False, distortionCoefficients=None, pathToPsfFile=None ):
 
     """
     PURPOSE: Calculates the location of the subfield such that the star with coordinates (raStar, decStar)
@@ -1184,8 +1351,12 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
            focalLength:            focal length of the camera.                              [mm]
            pixelSize:              pixel size                                               [micron]
            includeFieldDistortion: True to include field distortion in coordinate transformations, false otherwise
-           distortionCoefficients: Coefficients of the polynomial describing the distortion
            normal:                 True for the normal camera configuration, False for the fast cameras
+           mappedDistortion:       True if we want mapped distortion (mapped from file psf) False if we have analytic psfs      
+           distortionCoefficients: Coefficients of the polynomial describing the distortion for anlytic psf 
+           pathToPsfFile:          Path to the PSF file for mapped PSFs to calculate mapped distortion       
+
+
 
     OUTPUT: ccdCode: "1", "2", "3" or "4" if nominal=True, "1F", "2F", "3F" or "4F" otherwise
             xCCDpix: x-coordinate of the star in pixels (i.e. column number)
@@ -1197,11 +1368,20 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
              - Example of distortion coefficients: [-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06]
     """
 
+    # Find out that we have been given the correct distortion input parameters. If this is not the case raise error and return. 
+    if (includeFieldDistortion or includeFieldDistortion == "yes"):
+        if (mappedDistortion and pathToPsfFile is None):
+            print("Error: If mapped field distortion should be taken into account, a path to the psf file should be given")
+            return
+        elif ( (not mappedDistortion) and distortionCoefficients is None):
+            print("Error: If analytic field distortion should be taken into account, the distortionCoefficients should be given")
+            return
+
     # Find out on which CCD the star falls, and the corresponding pixel coordinates
 
     ccdCode, xCCDpix, yCCDpix = getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation,     \
                                                           tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength,       \
-                                                          pixelSize, includeFieldDistortion, distortionCoefficients, normal)
+                                                          pixelSize, includeFieldDistortion, normal, mappedDistortion, distortionCoefficients, pathToPsfFile)
 
     # If the CCD code is None, the star does not fall on any ccd -> error
 
@@ -1258,13 +1438,23 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal):
             yCCDpixel: row pixel coordinate of the star (real-valued)
     """
 
-    if (sim["Camera/IncludeFieldDistortion"] == "yes")  or (sim["Camera/IncludeFieldDistortion"] == "1"):
+    if (sim["PSF/Model"] == "MappedFromFile"):
         includeFieldDistortion = True
+        distortionCoefficients = None 
+        pathToPsfFile          = sim["PSF/MappedFromFile/Filename"]
+        mappedDistortion       = True
+    elif (sim["Camera/IncludeFieldDistortion"] == "yes")  or (sim["Camera/IncludeFieldDistortion"] == "1") or (sim["Camera/IncludeFieldDistortion"]):
         distortionCoefficients = sim["Camera/FieldDistortion/ConstantCoefficients"]
+        pathToPsfFile          = None
+        mappedDistortion       = False
+        includeFieldDistortion = True
     else:
         includeFieldDistortion = False
         distortionCoefficients = None
+        pathToPsfFile          = None
+        mappedDistortion       = False
 
+        
     pixelSize             = float(sim["CCD/PixelSize"])
     focalLength           = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0                   # [m] -> [mm]
     raPlatform            = np.deg2rad(float(sim["ObservingParameters/RApointing"]))
@@ -1276,11 +1466,12 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal):
 
     # Get the pixel coordinates on the CCD
 
-    ccdCode, xCCDpixel, yCCDpixel = getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation, tiltTelescope, azimuthTelescope,  \
-                                                              focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, distortionCoefficients, normal)
+    ccdCode, xCCDpixel, yCCDpixel = getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation,\
+                                                              tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength, \
+                                                              pixelSize, includeFieldDistortion, normal, mappedDistortion, \
+                                                              distortionCoefficients, pathToPsfFile)
 
     return ccdCode, xCCDpixel, yCCDpixel
-
 
 
 
@@ -1317,11 +1508,22 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
     OUTPUT: raStar, decStar: Equatorial coordinates (right ascension and declination) of the star [rad]
     """
 
-    if (sim["Camera/IncludeFieldDistortion"] == "yes")  or (sim["Camera/IncludeFieldDistortion"] == "1"):
-        includeFieldDistortion = True
-        inverseDistortionCoefficients = sim["Camera/FieldDistortion/ConstantInverseCoefficients"]
+    if (sim["PSF/Model"] == "MappedFromFile"):
+        includeFieldDistortion = True        
+        inverseDistortionCoefficients = None 
+        pathToPsfFile          = sim["PSF/MappedFromFile/Filename"]
+        mappedDistortion       = True
+    elif (sim["Camera/IncludeFieldDistortion"] == "yes")  or (sim["Camera/IncludeFieldDistortion"] == "1") or (sim["Camera/IncludeFieldDistortion"]):
+            inverseDistortionCoefficients = sim["Camera/FieldDistortion/ConstantInverseCoefficients"]
+            pathToPsfFile          = None
+            mappedDistortion       = False
+            includeFieldDistortion = True
     else:
-        includeFieldDistortion = False
+        includeFieldDistortion        = False
+        pathToPsfFile                 = None
+        inverseDistortionCoefficients = None
+        mappedDistortion              = False
+
 
     pixelSize             = float(sim["CCD/PixelSize"])
     focalLength           = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0                     # [m] -> [mm]
@@ -1344,10 +1546,41 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
     # If required, undistort them
 
     if includeFieldDistortion:
-        xFPmm, yFPmm = distortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, inverseDistortionCoefficients, focalLength)
+        if mappedDistortion:
+            xFPmm, yFPmm = mappedDistortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile)
+        else:
+            xFPmm, yFPmm = distortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, inverseDistortionCoefficients, focalLength)
 
     # Get the corresponding sky coordinates
 
     ra, dec = focalPlaneToSkyCoordinates(xFPmm, yFPmm, raPlatform, decPlatform, solarPanelOrientation, tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength)
 
     return ra, dec
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

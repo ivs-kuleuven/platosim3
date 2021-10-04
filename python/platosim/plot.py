@@ -330,14 +330,24 @@ def drawStarInFocalPlane(sim, raStar, decStar):
 
     normal = True  # FIXME: where can we specify that we use the fast or normal Camera
 
-    distortionCoefficients = None
+
+    if sim["PSF/Model"] == "MappedFromFile":
+        includeFieldDistortion = True
+        isMapped               = True
+        pathToPsfFile          = sim["PSF/MappedFromFile/Filename"]
+        distortionCoefficients = None
     if (sim["Camera/IncludeFieldDistortion"] == "yes")  or (sim["Camera/IncludeFieldDistortion"] == "1"):
         includeFieldDistortion = True
+        isMapped               = False
+        pathToPsfFile          = None 
         FIELD_DISTORTION["Coeff"] = sim["Camera/FieldDistortion/Coefficients"]
         FIELD_DISTORTION["InverseCoeff"] = sim["Camera/FieldDistortion/InverseCoefficients"]
         distortionCoefficients = sim["Camera/FieldDistortion/Coefficients"]
     else:
         includeFieldDistortion = False
+        distortionCoefficients = None
+        pathToPsfFile          = None
+        isMapped               = False 
         
 
     pixelSize             = float(sim["CCD/PixelSize"])
@@ -356,11 +366,14 @@ def drawStarInFocalPlane(sim, raStar, decStar):
                                               focalPlaneAngle, focalLength)
 
     if includeFieldDistortion:
-        xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients, focalLength)
+        if isMapped:
+            xFPmm, yFPmm = mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile)
+        else:
+            xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients, focalLength)
 
     #ccdCode, xCCD, yCCD = getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, tiltTelescope, azimuthTelescope,  \
     #                                                focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, FIELD_DISTORTION["Coeff"], normal)
-    ccdCode, xCCD, yCCD = getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation, tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, distortionCoefficients, normal)
+    ccdCode, xCCD, yCCD = getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation, tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, normal, isMapped,  distortionCoefficients, pathToPsfFile)
 
     if ccdCode == None:
         print ("Warning: DrawStarInFocalPlane(): The star doesn't fall on any of the CCDs.")
@@ -412,6 +425,7 @@ def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize):
 
     plt.plot(xFPmm, yFPmm, 'ro')
     plt.draw()
+    plt.show()
 
     return
 
