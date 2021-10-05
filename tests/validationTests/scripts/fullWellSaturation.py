@@ -16,7 +16,7 @@ class FullWellSaturation(Test):
         self.sim["SubField/NumColumns"] = 1
 
         self.sim["ObservingParameters/DecPointing"] = -self.sim["ObservingParameters/DecPointing"]
-        self.sim["PSF/Model"] = "MappedFromFile"
+        #wself.sim["PSF/Model"] = "MappedFromFile"
         #self.sim["PSF/MappedFromFile/Filename"] = self.inputDir + "/psf.hdf5"
 
         starCatalogFilename = self.inputDir + "/starCatalog" + self.nr + ".txt"
@@ -49,15 +49,19 @@ class FullWellSaturation(Test):
 
 
         #  The total flux with or withouth blooming should be the same.
-        condition1 = abs(np.sum(self.columnWithBlooming) - np.sum(self.columnWithoutBlooming)) <= 0.01
+        condition1 = abs(np.sum(self.columnWithBlooming) - np.sum(self.columnWithoutBlooming)) <= 1.
+        
 
         # The maximum value the immage gets with blooming can not exceed the saturation limit
         condition2 = np.max(self.columnWithBlooming) < saturationLimit
 
         
         xValue = np.arange(-25, 25)
+        normalizationBlooming = (np.sum(xValue) * np.sum(self.columnWithBlooming))
+        normalizationWithoutBlooming = (np.sum(xValue) * np.sum(self.columnWithoutBlooming))
         # Both images are centered around the position of the star
-        condition3 = int(abs(xValue.dot(self.columnWithBlooming))) == 0 and int(abs(xValue.dot(self.columnWithoutBlooming))) == 0
+        condition3 = int(abs(xValue.dot(self.columnWithBlooming)/normalizationBlooming)) == 0 and int(abs(xValue.dot(self.columnWithoutBlooming)/normalizationWithoutBlooming)) == 0
+
         
         # The image of the star with blooming is more spread out then the image of the star without blooming
         condition4 = (xValue**2).dot(self.columnWithBlooming) > (xValue**2).dot(self.columnWithoutBlooming)

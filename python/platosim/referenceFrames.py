@@ -1513,11 +1513,13 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
         inverseDistortionCoefficients = None 
         pathToPsfFile          = sim["PSF/MappedFromFile/Filename"]
         mappedDistortion       = True
-    elif (sim["Camera/IncludeFieldDistortion"] == "yes")  or (sim["Camera/IncludeFieldDistortion"] == "1") or (sim["Camera/IncludeFieldDistortion"]):
+
+    elif (sim["Camera/IncludeFieldDistortion"] == "yes")  or (sim["Camera/IncludeFieldDistortion"] == "1") or (sim["Camera/IncludeFieldDistortion"] == "True"):
             inverseDistortionCoefficients = sim["Camera/FieldDistortion/ConstantInverseCoefficients"]
             pathToPsfFile          = None
             mappedDistortion       = False
             includeFieldDistortion = True
+           
     else:
         includeFieldDistortion        = False
         pathToPsfFile                 = None
