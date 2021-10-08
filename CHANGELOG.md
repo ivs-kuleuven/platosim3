@@ -7,9 +7,12 @@
 
 ## Fixed
 * The diffused PSF that was saved to the output HDF5 is now rotated with respect to the CCD it falls on. (GitHub #627)
+* Fixed bug where the star coordinates where written to the output HDF5 file without taking field distortion into account. (GitHub #631)
 
 ## Changed
-* The dependencies python install files now check that the `Installs` directory excists and creates this directory if it doesn't. 
+* The dependencies python install files now check that the `Installs` directory exists and creates this directory if it doesn't. 
+* Made the log files for `Camera::makeStarCatalogSelection` clearer. 
+* Changed the python functions in `referenceFrames.py`, `plot.py` and `simulation.py` to deal with mapped distortion.
 
 ## Added
 * Added an option to individually switch on/off extended or pointlike ghosts. 
