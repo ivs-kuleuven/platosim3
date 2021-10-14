@@ -1345,18 +1345,22 @@ void Detector::addPhotonNoise()
  */
 void Detector::addCosmics(float exposureTime)
 {
+    // Initialize the (class-variable) distributions of the cosmic intensity, trail length, etc.
+    // For the Intensity distribution, the parameters are the location, scale>0, and shape.
+
     cosmicHitRateDistribution     = poisson_distribution<long>(cosmicHitRate);                                       // [hits/cm^2/s]
     cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsPixelMap - 1);                    // [pixels]
     cosmicEntryAngleDistribution  = uniform_real_distribution<double>(0, 2 * PI);                                    // [radians]
     cosmicTrailLengthDistribution = uniform_real_distribution<double>(cosmicTrailLength[0], cosmicTrailLength[1]);   // [pixels]
-    cosmicIntensityDistribution   = uniform_real_distribution<double>(cosmicIntensity[0], cosmicIntensity[1]);       // [e-/hit]
+    cosmicIntensityDistribution   = skew_normal_distribution(cosmicIntensity[0], cosmicIntensity[1], cosmicIntensity[2]); // [e-/hit]
 
     // Cosmics in the subfield
 
     if (includeCosmicsInSubField)
     {
         Log.debug("Detector: adding cosmic hits to the sub-field");
-        addCosmics(exposureTime + readoutTimeBeforeNextExposure + readoutTimeDuringNextExposure, pixelMap, rowsOfCosmicsInSubField, columnsOfCosmicsInSubField, fluxOfCosmicsInSubField, numRowsPixelMap, numColumnsPixelMap, "image area");
+        addCosmics(exposureTime + readoutTimeBeforeNextExposure + readoutTimeDuringNextExposure, pixelMap, rowsOfCosmicsInSubField, 
+                   columnsOfCosmicsInSubField, fluxOfCosmicsInSubField, numRowsPixelMap, numColumnsPixelMap, "image area");
     }
 
     // Cosmics in the over-scan
@@ -1367,10 +1371,13 @@ void Detector::addCosmics(float exposureTime)
 
         if(isFastCamera)
         {
-	addCosmics(readoutTimeDuringNextExposure, smearingMap, rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap, fluxOfCosmicsInSmearingMap,numRowsSmearingMap, numColumnsPixelMap, "smearing map");
-        } else
+	        addCosmics(readoutTimeDuringNextExposure, smearingMap, rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap, 
+                       fluxOfCosmicsInSmearingMap,numRowsSmearingMap, numColumnsPixelMap, "smearing map");
+        } 
+        else
         {
-	addCosmics(readoutTimeBeforeNextExposure, smearingMap, rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap, fluxOfCosmicsInSmearingMap, numRowsSmearingMap, numColumnsPixelMap, "smearing map");
+	        addCosmics(readoutTimeBeforeNextExposure, smearingMap, rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap, 
+                       fluxOfCosmicsInSmearingMap, numRowsSmearingMap, numColumnsPixelMap, "smearing map");
         }
     }
 
@@ -1383,8 +1390,10 @@ void Detector::addCosmics(float exposureTime)
         Log.debug("Detector: adding cosmic hits to bias map");
         cosmicTrailLengthDistribution = uniform_real_distribution<double>(0.0, 1.e-6);    // Only hot pixels, no trails
         const double biasMapRowLifeTime = (numColumns / 2 + numColumnsBiasMap) * serialTransferTime + parallelTransferTime;
-        addCosmics(biasMapRowLifeTime, biasMapLeft, rowsOfCosmicsInBiasMapLeft, columnsOfCosmicsInBiasMapLeft, fluxOfCosmicsInBiasMapLeft, numRowsBiasMap, numColumnsBiasMap, "bias map (left half)");
-        addCosmics(biasMapRowLifeTime, biasMapRight, rowsOfCosmicsInBiasMapRight, columnsOfCosmicsInBiasMapRight, fluxOfCosmicsInBiasMapRight, numRowsBiasMap, numColumnsBiasMap, "bias map (right half)");
+        addCosmics(biasMapRowLifeTime, biasMapLeft, rowsOfCosmicsInBiasMapLeft, columnsOfCosmicsInBiasMapLeft, fluxOfCosmicsInBiasMapLeft, 
+                   numRowsBiasMap, numColumnsBiasMap, "bias map (left half)");
+        addCosmics(biasMapRowLifeTime, biasMapRight, rowsOfCosmicsInBiasMapRight, columnsOfCosmicsInBiasMapRight, 
+                   fluxOfCosmicsInBiasMapRight, numRowsBiasMap, numColumnsBiasMap, "bias map (right half)");
     }
 
  
@@ -1495,7 +1504,8 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, vector<unsi
         entryColumn = cosmicEntryColumnDistribution(cosmicEntryColumnGenerator);    // Entry column [pixels] (uniform distribution over the columns of the sub-field)
         entryAngle  = cosmicEntryAngleDistribution(cosmicEntryAngleGenerator);      // Entry angle [radians] (uniform distribution between 0 and 2π)
         trailLength = cosmicTrailLengthDistribution(cosmicTrailLengthGenerator);    // Trail length [pixels] (uniform distribution over interval)
-        intensity   = cosmicIntensityDistribution(cosmicIntensityGenerator);        // Number of e- in cosmic hit [e-] (uniform distribution over interval)
+        intensity   = cosmicIntensityDistribution(cosmicIntensityGenerator);        // Number of e- in cosmic hit [e-] (skew-normal distribution over interval)
+        cerr << intensity << endl;
 
         meanEntryAngle += entryAngle;
         meanTrailLength += trailLength;

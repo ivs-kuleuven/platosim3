@@ -14,6 +14,7 @@
 #include "Constants.h"
 #include "ArrayOperations.h"
 #include "Mathematics.h"
+#include "Random.h"
 #include "Camera.h"
 #include "FrontEndElectronics.h"
 #include "TemperatureGenerator.h"
@@ -302,7 +303,7 @@ class Detector: public HDF5Writer
         uniform_real_distribution<double> cosmicEntryColumnDistribution;
         uniform_real_distribution<double> cosmicEntryAngleDistribution;
         uniform_real_distribution<double> cosmicTrailLengthDistribution;
-        uniform_real_distribution<double> cosmicIntensityDistribution;
+        skew_normal_distribution cosmicIntensityDistribution;
         uniform_real_distribution<double> decimalNumCosmicHitsDistribution;
  
         Camera &camera;
