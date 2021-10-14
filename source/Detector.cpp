@@ -1505,7 +1505,6 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, vector<unsi
         entryAngle  = cosmicEntryAngleDistribution(cosmicEntryAngleGenerator);      // Entry angle [radians] (uniform distribution between 0 and 2π)
         trailLength = cosmicTrailLengthDistribution(cosmicTrailLengthGenerator);    // Trail length [pixels] (uniform distribution over interval)
         intensity   = cosmicIntensityDistribution(cosmicIntensityGenerator);        // Number of e- in cosmic hit [e-] (skew-normal distribution over interval)
-        cerr << intensity << endl;
 
         meanEntryAngle += entryAngle;
         meanTrailLength += trailLength;
