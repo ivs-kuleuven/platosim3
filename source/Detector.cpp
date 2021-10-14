@@ -1346,12 +1346,13 @@ void Detector::addPhotonNoise()
 void Detector::addCosmics(float exposureTime)
 {
     // Initialize the (class-variable) distributions of the cosmic intensity, trail length, etc.
+    // For the Intensity distribution, the parameters are the location, scale>0, and shape.
 
     cosmicHitRateDistribution     = poisson_distribution<long>(cosmicHitRate);                                       // [hits/cm^2/s]
     cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsPixelMap - 1);                    // [pixels]
     cosmicEntryAngleDistribution  = uniform_real_distribution<double>(0, 2 * PI);                                    // [radians]
     cosmicTrailLengthDistribution = uniform_real_distribution<double>(cosmicTrailLength[0], cosmicTrailLength[1]);   // [pixels]
-    cosmicIntensityDistribution   = uniform_real_distribution<double>(cosmicIntensity[0], cosmicIntensity[1]);       // [e-/hit]
+    cosmicIntensityDistribution   = skew_normal_distribution(cosmicIntensity[0], cosmicIntensity[1], cosmicIntensity[2]); // [e-/hit]
 
     // Cosmics in the subfield
 
@@ -1503,7 +1504,8 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, vector<unsi
         entryColumn = cosmicEntryColumnDistribution(cosmicEntryColumnGenerator);    // Entry column [pixels] (uniform distribution over the columns of the sub-field)
         entryAngle  = cosmicEntryAngleDistribution(cosmicEntryAngleGenerator);      // Entry angle [radians] (uniform distribution between 0 and 2π)
         trailLength = cosmicTrailLengthDistribution(cosmicTrailLengthGenerator);    // Trail length [pixels] (uniform distribution over interval)
-        intensity   = cosmicIntensityDistribution(cosmicIntensityGenerator);        // Number of e- in cosmic hit [e-] (uniform distribution over interval)
+        intensity   = cosmicIntensityDistribution(cosmicIntensityGenerator);        // Number of e- in cosmic hit [e-] (skew-normal distribution over interval)
+        cerr << intensity << endl;
 
         meanEntryAngle += entryAngle;
         meanTrailLength += trailLength;
