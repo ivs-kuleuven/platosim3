@@ -388,17 +388,17 @@ void Detector::updateParameters(double time)
 
     if(readoutMode == "Partial")
     {
-    	firstRowPartialReadout = configParam.getInteger("CCD/ReadoutMode/Partial/FirstRowReadout");
-    	numRowsPartialReadout = configParam.getInteger("CCD/ReadoutMode/Partial/NumRowsReadout");
+        firstRowPartialReadout = configParam.getInteger("CCD/ReadoutMode/Partial/FirstRowReadout");
+        numRowsPartialReadout = configParam.getInteger("CCD/ReadoutMode/Partial/NumRowsReadout");
     }
     else if (readoutMode != "Nominal")
     {
-    	Log.error("Detector::configure(): Unknown readout mode specification in configuration file: "  + readoutMode);
-    	throw ConfigurationException("Detector: Unknown readout mode specification in configuration file");
+        Log.error("Detector::configure(): Unknown readout mode specification in configuration file: "  + readoutMode);
+        throw ConfigurationException("Detector: Unknown readout mode specification in configuration file");
     }
 
-    serialTransferTime = configParam.getDouble("CCD/SerialTransferTime") * 1E-9;			  // [ns] -> [s]
-    parallelTransferTime = configParam.getDouble("CCD/ParallelTransferTime") * 1E-6;		  // [µs] -> [s]
+    serialTransferTime = configParam.getDouble("CCD/SerialTransferTime") * 1E-9;              // [ns] -> [s]
+    parallelTransferTime = configParam.getDouble("CCD/ParallelTransferTime") * 1E-6;          // [µs] -> [s]
     parallelTransferTimeFast = configParam.getDouble("CCD/ParallelTransferTimeFast") * 1E-6;  // [µs] -> [s]
 
     CTImodel                   = configParam.getString("CCD/CTI/Model");
@@ -495,8 +495,8 @@ void Detector::updateParameters(double time)
       subFieldZeroPointRow  = std::max(subFieldZeroPointRow, firstRowExposed);
       if (numRowsPixelMap == 0)
       {
-	Log.error("The subfield does not lie on the exposed part of the detector, nothing is simulated.");
-	exit(1);
+    Log.error("The subfield does not lie on the exposed part of the detector, nothing is simulated.");
+    exit(1);
       }
       
 
@@ -516,8 +516,8 @@ void Detector::updateParameters(double time)
 
     if(readoutMode == "Partial")
     {
-    	Log.info("No smearing map for partial readout");
-    	numRowsSmearingMap = 0;
+        Log.info("No smearing map for partial readout");
+        numRowsSmearingMap = 0;
     }
 
     // Configuration parameters for the HDF5 file output
@@ -1008,7 +1008,7 @@ void Detector::addDarkSignal(float exposureTime)
     // Add dark signal to the pixel map
 
     // When is dark current accumulated for the pixel map?
-	// 	-  exposure + readout
+    //     -  exposure + readout
 
     const double darkCurrentOverDeltaTemp = darkCurrentStability * (getTemperature() - nominalOperatingTemperature);
     double darkSignalRef = (darkCurrent + darkCurrentOverDeltaTemp) * (exposureTime + readoutTimeBeforeNextExposure + readoutTimeDuringNextExposure);
@@ -1036,12 +1036,12 @@ void Detector::addDarkSignal(float exposureTime)
     // Add dark signal to the smearing map
 
     // When is dark current accumulated for the smearing map?
-    // 	- normal camera, nominal mode: whole readout
+    //     - normal camera, nominal mode: whole readout
     //  - fast camera, nominal mode: readout during the next exposure
     //  - partial readout: no smearing map
 
-	darkSignalRef = darkCurrent
-			* (isFastCamera ? readoutTimeDuringNextExposure : readoutTimeBeforeNextExposure);
+    darkSignalRef = darkCurrent
+            * (isFastCamera ? readoutTimeDuringNextExposure : readoutTimeBeforeNextExposure);
     darkSignalDistribution = normal_distribution<double>(darkSignalRef, darkSignalRef * dsnu / 100.0);
 
     for(unsigned int row = 0; row < numRowsSmearingMap; row++)
@@ -1371,12 +1371,12 @@ void Detector::addCosmics(float exposureTime)
 
         if(isFastCamera)
         {
-	        addCosmics(readoutTimeDuringNextExposure, smearingMap, rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap, 
+            addCosmics(readoutTimeDuringNextExposure, smearingMap, rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap, 
                        fluxOfCosmicsInSmearingMap,numRowsSmearingMap, numColumnsPixelMap, "smearing map");
         } 
         else
         {
-	        addCosmics(readoutTimeBeforeNextExposure, smearingMap, rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap, 
+            addCosmics(readoutTimeBeforeNextExposure, smearingMap, rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap, 
                        fluxOfCosmicsInSmearingMap, numRowsSmearingMap, numColumnsPixelMap, "smearing map");
         }
     }
@@ -1464,31 +1464,31 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, vector<unsi
     // - exposure time [s]
     // - dimensions [pixels] -> [micron] -> [cm]
     //
-	// To make sure the number of cosmics is as expected when considering a large number
+    // To make sure the number of cosmics is as expected when considering a large number
     // of exposures, we have to account for the decimal part of the number of cosmic hits
     // per exposure too, instead of rounding down this value. E.g. if you have 1.5 cosmics
     // per exposure, you want 1500 cosmics for 1000 exposures, instead of 1000 cosmics.
     // The solution is to add as many cosmics as denoted by the integer part, and add one
     // extra cosmic, with a chance equal to the decimal part.  This is handled by the
     // uniform random distribution in [0,1]:
-    // 	- random number < decimal part => add one extra cosmic
+    //     - random number < decimal part => add one extra cosmic
     //  - random number >= decimal part => don't add an extra cosmic
 
     double numCosmicHitsAsDouble = cosmicHitRateDistribution(
-			cosmicHitRateGenerator) * exposureTime
-			* (numRows * pixelSize / 10000.0)
-			* (numColumns * pixelSize / 10000.0);
+            cosmicHitRateGenerator) * exposureTime
+            * (numRows * pixelSize / 10000.0)
+            * (numColumns * pixelSize / 10000.0);
     double decimalPartNumCosmicHits = numCosmicHitsAsDouble - (int) numCosmicHitsAsDouble;
 
     // Round down the number of cosmic hits to an integer, possibly zero.
 
     int numCosmicHits = (int) numCosmicHitsAsDouble;
 
-  	// Add 1 cosmic with a chance equal to the decimal part.
+      // Add 1 cosmic with a chance equal to the decimal part.
 
     if (decimalNumCosmicHitsDistribution(decimalNumCosmicHitsGenerator) < decimalPartNumCosmicHits)
     {
-    	numCosmicHits += 1;
+        numCosmicHits += 1;
     }
 
     Log.debug("Detector: number of cosmic hits for the " + area + ": "  + to_string(numCosmicHits));
@@ -1533,24 +1533,25 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, vector<unsi
             {
                 map(trailRow, trailColumn) += (trailWeights(index) * intensity);
 
-	// Store the column, row and flux value in their respective vectors. If a pixel in the map has had a been hit, the extra flux gets simply added.
-		if (rowsOfCosmicsMap.empty() && columnsOfCosmicsMap.empty() && fluxOfCosmicsMap.empty())
-		  {
-		    rowsOfCosmicsMap.push_back(trailRow);
-		    columnsOfCosmicsMap.push_back(trailColumn);
-		    fluxOfCosmicsMap.push_back(trailWeights(index) * intensity);
-		  }
-		
-		if (trailRow != rowsOfCosmicsMap.back() || trailColumn != columnsOfCosmicsMap.back()) 
-		  {
-		    rowsOfCosmicsMap.push_back(trailRow);
-		    columnsOfCosmicsMap.push_back(trailColumn);
-		    fluxOfCosmicsMap.push_back(trailWeights(index) * intensity);
-		  }
-		else
-		  {
-		    fluxOfCosmicsMap.back() += (trailWeights(index) * intensity);
-		  }
+                // Store the column, row and flux value in their respective vectors. If a pixel in the map has had a been hit, the extra flux gets simply added.
+
+                if (rowsOfCosmicsMap.empty() && columnsOfCosmicsMap.empty() && fluxOfCosmicsMap.empty())
+                {
+                    rowsOfCosmicsMap.push_back(trailRow);
+                    columnsOfCosmicsMap.push_back(trailColumn);
+                    fluxOfCosmicsMap.push_back(trailWeights(index) * intensity);
+                }
+        
+                if (trailRow != rowsOfCosmicsMap.back() || trailColumn != columnsOfCosmicsMap.back()) 
+                {
+                    rowsOfCosmicsMap.push_back(trailRow);
+                    columnsOfCosmicsMap.push_back(trailColumn);
+                    fluxOfCosmicsMap.push_back(trailWeights(index) * intensity);
+                }
+                else
+                {
+                    fluxOfCosmicsMap.back() += (trailWeights(index) * intensity);
+                }
 
             }
         }
@@ -1925,8 +1926,8 @@ void Detector::applyShort2013CTImodel()
 
     // Arrays to keep track of the captured and released electrons, for each column in a particular row.
 
-    arma::Row<float> numberOfCapturedElectrons(numColumnsPixelMap);		                                     // Nc
-    arma::Row<float> numberOfReleasedElectrons(numColumnsPixelMap);		                                     // Nr
+    arma::Row<float> numberOfCapturedElectrons(numColumnsPixelMap);                                             // Nc
+    arma::Row<float> numberOfReleasedElectrons(numColumnsPixelMap);                                             // Nr
 
     arma::Row<float> alpha(numTrapSpecies, arma::fill::zeros);
 
@@ -2242,11 +2243,11 @@ void Detector::addReadoutNoise()
 
     for(unsigned int row = 0; row < numRowsBiasMap; row++)
     {
-    	for(unsigned int column = 0; column < numColumnsBiasMap; column++)
-    	{
-    		biasMapLeft(row, column) += readoutNoiseDistribution(readoutNoiseGenerator);
-    		biasMapRight(row, column) += readoutNoiseDistribution(readoutNoiseGenerator);
-    	}
+        for(unsigned int column = 0; column < numColumnsBiasMap; column++)
+        {
+            biasMapLeft(row, column) += readoutNoiseDistribution(readoutNoiseGenerator);
+            biasMapRight(row, column) += readoutNoiseDistribution(readoutNoiseGenerator);
+        }
     }
 
     // Add readout noise to the smearing overscan map
@@ -2917,11 +2918,11 @@ void Detector::initHDF5Groups()
     hdf5File.createGroup("/ThroughputMaps");
     if (writeCosmics)
       {
-	hdf5File.createGroup("/Cosmics");
-	hdf5File.createGroup("/Cosmics/SubField");
-	hdf5File.createGroup("/Cosmics/SmearingMap");
-	hdf5File.createGroup("/Cosmics/BiasMapLeft");
-	hdf5File.createGroup("/Cosmics/BiasMapRight");
+    hdf5File.createGroup("/Cosmics");
+    hdf5File.createGroup("/Cosmics/SubField");
+    hdf5File.createGroup("/Cosmics/SmearingMap");
+    hdf5File.createGroup("/Cosmics/BiasMapLeft");
+    hdf5File.createGroup("/Cosmics/BiasMapRight");
       }
     
 }
@@ -2966,16 +2967,16 @@ void Detector::writeCosmicFieldToHDF5(int exposureNr, string field, vector<unsig
     
     if (rows.empty() && cols.empty())
       {
-	vector<int> noHits{-1};
-	hdf5File.writeArray(imageName, "Rows", noHits.data(), 1);
-	hdf5File.writeArray(imageName, "Columns", noHits.data(), 1);
-	hdf5File.writeArray(imageName, "Flux", noHits.data(), 1);
+    vector<int> noHits{-1};
+    hdf5File.writeArray(imageName, "Rows", noHits.data(), 1);
+    hdf5File.writeArray(imageName, "Columns", noHits.data(), 1);
+    hdf5File.writeArray(imageName, "Flux", noHits.data(), 1);
       }
     else
       {
-	hdf5File.writeArray(imageName, "Rows", rows.data(), rows.size() );
-	hdf5File.writeArray(imageName, "Columns", cols.data(), cols.size() );
-	hdf5File.writeArray(imageName, "Flux", flux.data(), flux.size() );
+    hdf5File.writeArray(imageName, "Rows", rows.data(), rows.size() );
+    hdf5File.writeArray(imageName, "Columns", cols.data(), cols.size() );
+    hdf5File.writeArray(imageName, "Flux", flux.data(), flux.size() );
       }
    
     
@@ -3154,7 +3155,7 @@ double Detector::getTemperature()
  */
 double Detector::getReadoutTimeBeforeNextExposure()
 {
-	return readoutTimeBeforeNextExposure;
+    return readoutTimeBeforeNextExposure;
 }
 
 
