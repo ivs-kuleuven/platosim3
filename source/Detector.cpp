@@ -1345,6 +1345,8 @@ void Detector::addPhotonNoise()
  */
 void Detector::addCosmics(float exposureTime)
 {
+    // Initialize the (class-variable) distributions of the cosmic intensity, trail length, etc.
+
     cosmicHitRateDistribution     = poisson_distribution<long>(cosmicHitRate);                                       // [hits/cm^2/s]
     cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsPixelMap - 1);                    // [pixels]
     cosmicEntryAngleDistribution  = uniform_real_distribution<double>(0, 2 * PI);                                    // [radians]
@@ -1356,7 +1358,8 @@ void Detector::addCosmics(float exposureTime)
     if (includeCosmicsInSubField)
     {
         Log.debug("Detector: adding cosmic hits to the sub-field");
-        addCosmics(exposureTime + readoutTimeBeforeNextExposure + readoutTimeDuringNextExposure, pixelMap, rowsOfCosmicsInSubField, columnsOfCosmicsInSubField, fluxOfCosmicsInSubField, numRowsPixelMap, numColumnsPixelMap, "image area");
+        addCosmics(exposureTime + readoutTimeBeforeNextExposure + readoutTimeDuringNextExposure, pixelMap, rowsOfCosmicsInSubField, 
+                   columnsOfCosmicsInSubField, fluxOfCosmicsInSubField, numRowsPixelMap, numColumnsPixelMap, "image area");
     }
 
     // Cosmics in the over-scan
@@ -1367,10 +1370,13 @@ void Detector::addCosmics(float exposureTime)
 
         if(isFastCamera)
         {
-	addCosmics(readoutTimeDuringNextExposure, smearingMap, rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap, fluxOfCosmicsInSmearingMap,numRowsSmearingMap, numColumnsPixelMap, "smearing map");
-        } else
+	        addCosmics(readoutTimeDuringNextExposure, smearingMap, rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap, 
+                       fluxOfCosmicsInSmearingMap,numRowsSmearingMap, numColumnsPixelMap, "smearing map");
+        } 
+        else
         {
-	addCosmics(readoutTimeBeforeNextExposure, smearingMap, rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap, fluxOfCosmicsInSmearingMap, numRowsSmearingMap, numColumnsPixelMap, "smearing map");
+	        addCosmics(readoutTimeBeforeNextExposure, smearingMap, rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap, 
+                       fluxOfCosmicsInSmearingMap, numRowsSmearingMap, numColumnsPixelMap, "smearing map");
         }
     }
 
@@ -1383,8 +1389,10 @@ void Detector::addCosmics(float exposureTime)
         Log.debug("Detector: adding cosmic hits to bias map");
         cosmicTrailLengthDistribution = uniform_real_distribution<double>(0.0, 1.e-6);    // Only hot pixels, no trails
         const double biasMapRowLifeTime = (numColumns / 2 + numColumnsBiasMap) * serialTransferTime + parallelTransferTime;
-        addCosmics(biasMapRowLifeTime, biasMapLeft, rowsOfCosmicsInBiasMapLeft, columnsOfCosmicsInBiasMapLeft, fluxOfCosmicsInBiasMapLeft, numRowsBiasMap, numColumnsBiasMap, "bias map (left half)");
-        addCosmics(biasMapRowLifeTime, biasMapRight, rowsOfCosmicsInBiasMapRight, columnsOfCosmicsInBiasMapRight, fluxOfCosmicsInBiasMapRight, numRowsBiasMap, numColumnsBiasMap, "bias map (right half)");
+        addCosmics(biasMapRowLifeTime, biasMapLeft, rowsOfCosmicsInBiasMapLeft, columnsOfCosmicsInBiasMapLeft, fluxOfCosmicsInBiasMapLeft, 
+                   numRowsBiasMap, numColumnsBiasMap, "bias map (left half)");
+        addCosmics(biasMapRowLifeTime, biasMapRight, rowsOfCosmicsInBiasMapRight, columnsOfCosmicsInBiasMapRight, 
+                   fluxOfCosmicsInBiasMapRight, numRowsBiasMap, numColumnsBiasMap, "bias map (right half)");
     }
 
  
