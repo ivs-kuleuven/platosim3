@@ -366,6 +366,13 @@ void Detector::updateParameters(double time)
     cosmicHitRate                       = configParam.getDouble("Sky/Cosmics/CosmicHitRate");
     cosmicTrailLength                   = configParam.getDoubleVector("Sky/Cosmics/TrailLength");
     cosmicIntensity                     = configParam.getDoubleVector("Sky/Cosmics/Intensity");
+
+    if (cosmicIntensity.size() != 3) 
+    {
+        Log.error("Detector::configure(): in input yaml file: Sky/Cosmics/Intensity array does not contain 3 numbers.");
+        throw ConfigurationException("Detector: in input yaml file: Sky/Cosmics/Intensity array needs to have 3 numbers. Perhaps you used an old config file?"); 
+    }
+
     darkCurrent                         = configParam.getDouble("CCD/DarkSignal/DarkCurrent");
     dsnu                                = configParam.getDouble("CCD/DarkSignal/DSNU");
     darkCurrentStability                = configParam.getDouble("CCD/DarkSignal/Stability");
