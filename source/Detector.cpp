@@ -364,10 +364,10 @@ void Detector::updateParameters(double time)
     includeCosmicsInSmearingMap         = configParam.getBoolean("Sky/IncludeCosmicsInSmearingMap");
     includeCosmicsInBiasMap             = configParam.getBoolean("Sky/IncludeCosmicsInBiasMap");
     cosmicHitRate                       = configParam.getDouble("Sky/Cosmics/CosmicHitRate");
-    cosmicTrailLength                   = configParam.getDoubleVector("Sky/Cosmics/TrailLength");
-    cosmicIntensity                     = configParam.getDoubleVector("Sky/Cosmics/Intensity");
+    cosmicTrailLengthParams             = configParam.getDoubleVector("Sky/Cosmics/TrailLength");
+    cosmicIntensityParams               = configParam.getDoubleVector("Sky/Cosmics/Intensity");
 
-    if (cosmicIntensity.size() != 3) 
+    if (cosmicIntensityParams.size() != 3) 
     {
         Log.error("Detector::configure(): in input yaml file: Sky/Cosmics/Intensity array does not contain 3 numbers.");
         throw ConfigurationException("Detector: in input yaml file: Sky/Cosmics/Intensity array needs to have 3 numbers. Perhaps you used an old config file?"); 
@@ -1355,11 +1355,11 @@ void Detector::addCosmics(float exposureTime)
     // Initialize the (class-variable) distributions of the cosmic intensity, trail length, etc.
     // For the Intensity distribution, the parameters are the location, scale>0, and shape.
 
-    cosmicHitRateDistribution     = poisson_distribution<long>(cosmicHitRate);                                       // [hits/cm^2/s]
-    cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsPixelMap - 1);                    // [pixels]
-    cosmicEntryAngleDistribution  = uniform_real_distribution<double>(0, 2 * PI);                                    // [radians]
-    cosmicTrailLengthDistribution = uniform_real_distribution<double>(cosmicTrailLength[0], cosmicTrailLength[1]);   // [pixels]
-    cosmicIntensityDistribution   = skew_normal_distribution(cosmicIntensity[0], cosmicIntensity[1], cosmicIntensity[2]); // [e-/hit]
+    cosmicHitRateDistribution     = poisson_distribution<long>(cosmicHitRate);                                                   // [hits/cm^2/s]
+    cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsPixelMap - 1);                                // [pixels]
+    cosmicEntryAngleDistribution  = uniform_real_distribution<double>(0, 2 * PI);                                                // [radians]
+    cosmicTrailLengthDistribution = uniform_real_distribution<double>(cosmicTrailLengthParams[0], cosmicTrailLengthParams[1]);   // [pixels]
+    cosmicIntensityDistribution   = skew_normal_distribution(cosmicIntensityParams[0], cosmicIntensityParams[1], cosmicIntensityParams[2]); // [e-/hit]
 
     // Cosmics in the subfield
 

@@ -26,7 +26,7 @@ Sky:
     IncludeCosmicsInSmearingMap:     yes             # Whether or not to include cosmics in the overscan map
     IncludeCosmicsInBiasMap:         yes             # Whether or not to include cosmics in the prescan map
     Cosmics:
-      CosmicHitRate:                 1000              # Cosmic hit rate [events / cm^2 / s]
+      CosmicHitRate:                 1000            # Cosmic hit rate [events / cm^2 / s]
       TrailLength:                   [0, 15]         # Boundaries of uniform distribution for the length of the cosmic trails [pixels]
       Intensity:                     [2500., 2000., 30.] # Location, scale>0, and shape of the skew-Normal distribution for the total number of e- in a cosmic hit [e-]
 

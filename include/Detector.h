@@ -202,9 +202,9 @@ class Detector: public HDF5Writer
         bool includeCosmicsInSubField;           // Whether or not to include cosmic hits in the subfield
         bool includeCosmicsInSmearingMap;        // Whether or not to include cosmic hits in the (physical) overscan region
         bool includeCosmicsInBiasMap;            // Whether or not to include cosmic hits in the (virtual) prescan region
-        double cosmicHitRate;				 // Cosmic hit rate [events / cm^2 / s]
-        vector<double> cosmicTrailLength;		 // Interval of the length of the cosmic trails [pixels]
-        vector<double> cosmicIntensity; 		 // Interval of the intensity of the cosmic trails [e-]
+        double cosmicHitRate;				     // Cosmic hit rate [events / cm^2 / s]
+        vector<double> cosmicTrailLengthParams;  // Distribution parameters of the length of the cosmic trails          [pixels]
+        vector<double> cosmicIntensityParams;    // Skew-Normal distribution parameters fo the intensity of the intensities of the cosmics 
         vector<double> relTransmissivityCoefVector;
         double radiusFOV;                        // Radius of the FOV [radians]
         double expectedValueRelativeTransmissivity;   // Expected value of the relative transmissivity for the sub-field
