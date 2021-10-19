@@ -861,6 +861,9 @@ class SimFile (object):
 
         EXAMPLE:
 
+            >>> file = SimFile("Simul01.hdf5")
+            >>> imageNr = 4
+            >>> entryRows, entryColumns, entryAngles, intensities, trailLengths = file.getCosmicsInfo(imageNr, "SubField")
         """
 
         # Check if the field variables matches the allowed values
