@@ -374,9 +374,11 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
 
     readOut(exposureTime);
 
+
     // Write the CCD subfield, the bias map, and the smearing map to the HDF5 file
 
     Log.debug("DetectorWithMappedPSF: Writing PixelMap, smearing map, and bias map #" + to_string(exposureNr) + " to HDF5 file.");
+
 
     writePixelMapsToHDF5(exposureNr);
 
@@ -988,6 +990,29 @@ void DetectorWithMappedPSF::applyDiffusionKernelOnPSF(double subpixRow, double s
 }
 
 
+/*
+ * /brief: determins if three points in (given in an array) are colinear
+ * /input: an array with the points of the form {{x1, y1}, {x2, y2}, {x3, y3}}
+ * /note:
+ * Three points are colinear if the determinant of the matrix 
+ * | 1  1  1|
+ * |x1 x2 x3| is equal to zero. 
+ * |y1 y2 y3|
+ */
+bool DetectorWithMappedPSF::areColinear(std::array<std::array<double, 2>, 3> points)
+{
+ double determinant = points[1][0] * points[2][1] - points[2][0] * points[1][1] - points[0][0] * points[2][1] + points[2][0] * points[0][1] + points[0][0] * points[1][1] - points[1][0] * points[0][1];
+ if(abs(determinant) < 0.01)
+ {
+   return true;
+ }
+ else
+ {
+   return false;
+ }
+}
+
+
 
 
 /*
@@ -996,26 +1021,135 @@ void DetectorWithMappedPSF::applyDiffusionKernelOnPSF(double subpixRow, double s
  */
 void DetectorWithMappedPSF::applyDistortion(double &x, double &y)
 {
-  double xDist = 0;
-  double yDist = 0;
-  double minDistanceSquared = std::numeric_limits<double>::max();
+  // We try to sellect the three closest noncolinear undistorted points to our input coordinates from the distortionmap and their respective
+  // distorted counterparts. 
+  std::array<std::array<double, 2>,3> ClosestUndistortedCoordinates;
+  std::array<std::array<double, 2>,3> ClosestDistortedCoordinates;
+
+  std::array<double,3> minDistanceSquared;
+  minDistanceSquared.fill(std::numeric_limits<double>::max());
 
   for (auto& coordinates : distortionMap)
   {
-    double distanceSquared = pow(std::get<0>(coordinates) - x, 2) + pow(std::get<1>(coordinates) - y, 2);
+    double distanceSquared = pow(coordinates[0] - x, 2) + pow(coordinates[1] - y, 2);
 
-    if(distanceSquared < minDistanceSquared)
+    if(distanceSquared < minDistanceSquared[0])
     {
-      minDistanceSquared = distanceSquared;
+      // First we need to check that by adding this point and dropping the last point we don't end up with three colinear undistorted
+      // points. If this is not the case, we can simply drop the last point and add this new point, otherwise we drop the second to last
+      // point and add this new point. If we start from three points that are not colinear, this process will assure that we do not
+      // end up with three colinear point.
       
-      xDist   = std::get<2>(coordinates);
-      yDist   = std::get<3>(coordinates);
+      std::array<std::array<double, 2>, 3> newMatrix = {{ {coordinates[0], coordinates[1]}, ClosestUndistortedCoordinates[0], ClosestUndistortedCoordinates[1] }};
+      if (areColinear(newMatrix))
+      {
+	ClosestUndistortedCoordinates = {{ {coordinates[0], coordinates[1]} , ClosestUndistortedCoordinates[0], ClosestUndistortedCoordinates[2] }};
+	ClosestDistortedCoordinates   = {{ {coordinates[2], coordinates[3]}, ClosestDistortedCoordinates[0], ClosestDistortedCoordinates[2] }};
+	minDistanceSquared            = { distanceSquared, minDistanceSquared[0], minDistanceSquared[2] };
+      }
+      else
+      {
+	ClosestUndistortedCoordinates = newMatrix;
+	ClosestDistortedCoordinates   = {{ {coordinates[2], coordinates[3]}, ClosestDistortedCoordinates[0], ClosestDistortedCoordinates[1]}};
+	minDistanceSquared            = { distanceSquared, minDistanceSquared[0], minDistanceSquared[1]};
+      }
+
+	
+    }
+    else if(distanceSquared < minDistanceSquared[1])
+    {
+      // We try to add the new point as second closest point, and have the current second closest point as our new third closest point, if these
+      // three points are not colinear. If they are, we simply drop the old second closest point and keep our third closest point as is.
+      
+      std::array<std::array<double, 2>, 3> newMatrix = {{ClosestUndistortedCoordinates[0], {coordinates[0], coordinates[1]}, ClosestUndistortedCoordinates[1]}};
+      if(areColinear(newMatrix))
+      {
+	ClosestUndistortedCoordinates = {{ ClosestUndistortedCoordinates[0], {coordinates[0], coordinates[1]}, ClosestUndistortedCoordinates[2]}};
+	ClosestDistortedCoordinates   = {{ ClosestDistortedCoordinates[0], {coordinates[2], coordinates[3]}, ClosestDistortedCoordinates[2]}};
+	minDistanceSquared            = { minDistanceSquared[0], distanceSquared, minDistanceSquared[2]};
+      }
+      else
+      {
+	ClosestUndistortedCoordinates = newMatrix;
+	ClosestDistortedCoordinates   = {{ ClosestDistortedCoordinates[0], {coordinates[2], coordinates[3]}, ClosestDistortedCoordinates[1]}};
+	minDistanceSquared            = { minDistanceSquared[0], distanceSquared, minDistanceSquared[1]};	
+      }
+    }
+    else if(distanceSquared < minDistanceSquared[2])
+    {
+      // We replace the old third closest point with the new point if this doesn't make our new points colinear.
+      std::array<std::array<double, 2>, 3> newMatrix = {{ClosestUndistortedCoordinates[0], ClosestUndistortedCoordinates[1], {coordinates[0], coordinates[1]}}};
+      if(!areColinear(newMatrix))
+      {
+	ClosestUndistortedCoordinates = newMatrix;
+	ClosestDistortedCoordinates   = {{ ClosestDistortedCoordinates[0], ClosestDistortedCoordinates[1], {coordinates[2], coordinates[3]} }};
+	minDistanceSquared            = { minDistanceSquared[0], minDistanceSquared[1], distanceSquared};	
+      }
     }
   }
-      
-  x = xDist;
-  y = yDist;
- }
+
+  // We have selected the 3 closest, noncolinear undistorted points ([e0, e1, e2] from closest to most far) in the distortionmap in
+  // ClosestUndistortedCoordinates. These three points form a reference frame around which the input point can be expressed as 
+  // (x, y) = e0 + a1*r1 + a2*r2, with x0 the corner is chosen to be the point closest to both other points.
+
+  // We make sure that at index 0, we have the corner point x0
+
+  std::array<double, 3> difference = {0, 0, 0};
+  for (int i=0; i < 3; i++)
+  {
+    std::array<double, 2> x1 = ClosestUndistortedCoordinates[(i+1) % 3];
+    std::array<double, 2> x2 = ClosestUndistortedCoordinates[(i+2) % 3];
+    difference[i] = pow(x1[0] - x2[0], 2) + pow(x1[1] - x2[1], 2);
+  }
+
+  // set location of the angle at position 0
+  int index = std::distance(difference.begin(), std::max_element(difference.begin(), difference.end()));
+  if ( index != 0)
+  {
+    std::array<double, 2> AngleUndistorted = ClosestUndistortedCoordinates[index];
+    std::array<double, 2> AngleDistorted   = ClosestDistortedCoordinates[index];
+
+    ClosestDistortedCoordinates[index]   = ClosestDistortedCoordinates[0];
+    ClosestUndistortedCoordinates[index] = ClosestUndistortedCoordinates[0];
+
+    ClosestDistortedCoordinates[0]   = AngleDistorted;
+    ClosestUndistortedCoordinates[0] = AngleUndistorted;
+  }
+ 
+ 
+  // The undistorted coordinates can be expressed as: (x, y) = e0 + a1 * r1 + a2 * r2.
+  // We approximate the distorted coordinates as: (x, y)' = e0' + a1 * r1' + a2 * r2', (where ' indicates distortion) 
+  double e0x = ClosestUndistortedCoordinates[0][0];
+  double e0y = ClosestUndistortedCoordinates[0][1];
+
+  double r1x = ClosestUndistortedCoordinates[1][0] - e0x;
+  double r1y = ClosestUndistortedCoordinates[1][1] - e0y;
+
+  double r2x = ClosestUndistortedCoordinates[2][0] - e0x;
+  double r2y = ClosestUndistortedCoordinates[2][1] - e0y;
+
+  double deltaX = x - e0x;
+  double deltaY = y - e0y;
+
+  double a1 = (deltaX * r1x + deltaY * r1y) / (r1x*r1x + r1y*r1y);
+  double a2 = (deltaX * r2x + deltaY * r2y) / (r2x*r2x + r2y*r2y);
+
+  
+
+  double e0xDistorted = ClosestDistortedCoordinates[0][0];
+  double e0yDistorted = ClosestDistortedCoordinates[0][1];
+
+  double r1xDistorted = ClosestDistortedCoordinates[1][0] - e0xDistorted;
+  double r1yDistorted = ClosestDistortedCoordinates[1][1] - e0yDistorted;
+
+  double r2xDistorted = ClosestDistortedCoordinates[2][0] - e0xDistorted;
+  double r2yDistorted = ClosestDistortedCoordinates[2][1] - e0yDistorted;
+    
+
+  x = a1 * r1xDistorted + a2 * r2xDistorted + e0xDistorted;
+  y = a1 * r1yDistorted + a2 * r2yDistorted + e0yDistorted; 
+  
+}
 
 
 /*
@@ -1024,23 +1158,127 @@ void DetectorWithMappedPSF::applyDistortion(double &x, double &y)
  */
 void DetectorWithMappedPSF::applyInverseDistortion(double &x, double &y)
 {
-  double xUndist = 0;
-  double yUndist = 0;
-  double minDistanceSquared = std::numeric_limits<double>::max();
+  // We try to sellect the three closest noncolinear distorted points to our input coordinates from the distortionmap and their respective
+  // undistorted counterparts. 
+  std::array<std::array<double, 2>,3> ClosestUndistortedCoordinates;
+  std::array<std::array<double, 2>,3> ClosestDistortedCoordinates;
+
+  std::array<double,3> minDistanceSquared;
+  minDistanceSquared.fill(std::numeric_limits<double>::max());
 
   for (auto& coordinates : distortionMap)
   {
-    double distanceSquared = pow(std::get<2>(coordinates) - x, 2) + pow(std::get<3>(coordinates) - y, 2);
+    double distanceSquared = pow(coordinates[2] - x, 2) + pow(coordinates[3] - y, 2);
 
-    if(distanceSquared < minDistanceSquared)
+    if(distanceSquared < minDistanceSquared[0])
     {
-      minDistanceSquared = distanceSquared;
+      // First we need to check that by adding this point and dropping the last point we don't end up with three colinear distorted
+      // points. If this is not the case, we can simply drop the last point and add this new point, otherwise we drop the second to last
+      // point and add this new point. If we start from three points that are not colinear, this process will assure that we do not
+      // end up with three colinear point.
       
-      xUndist   = std::get<0>(coordinates);
-      yUndist   = std::get<1>(coordinates);
+      std::array<std::array<double, 2>, 3> newMatrix = {{ {coordinates[2], coordinates[3]}, ClosestDistortedCoordinates[0], ClosestDistortedCoordinates[1] }};
+      if (areColinear(newMatrix))
+      {
+	ClosestUndistortedCoordinates = {{ {coordinates[0], coordinates[1]} , ClosestUndistortedCoordinates[0], ClosestUndistortedCoordinates[2] }};
+	ClosestDistortedCoordinates   = {{ {coordinates[2], coordinates[3]}, ClosestDistortedCoordinates[0], ClosestDistortedCoordinates[2] }};
+	minDistanceSquared            = { distanceSquared, minDistanceSquared[0], minDistanceSquared[2] };
+      }
+      else
+      {
+	ClosestUndistortedCoordinates = {{ {coordinates[0], coordinates[1]}, ClosestUndistortedCoordinates[0], ClosestUndistortedCoordinates[1]}};
+	ClosestDistortedCoordinates   = newMatrix;
+	minDistanceSquared            = { distanceSquared, minDistanceSquared[0], minDistanceSquared[1]};
+      }
+    }
+    else if(distanceSquared < minDistanceSquared[1])
+    {
+      // We try to add the new point as second closest point, and have the current second closest point as our new third closest point, if these
+      // three points are not colinear. If they are, we simply drop the old second closest point and keep our third closest point as is.
+      
+      std::array<std::array<double, 2>, 3> newMatrix = {{ClosestDistortedCoordinates[0], {coordinates[2], coordinates[3]}, ClosestDistortedCoordinates[1]}};
+      if(areColinear(newMatrix))
+      {
+	ClosestUndistortedCoordinates = {{ ClosestUndistortedCoordinates[0], {coordinates[0], coordinates[1]}, ClosestUndistortedCoordinates[2]}};
+	ClosestDistortedCoordinates   = {{ ClosestDistortedCoordinates[0], {coordinates[2], coordinates[3]}, ClosestDistortedCoordinates[2]}};
+	minDistanceSquared            = { minDistanceSquared[0], distanceSquared, minDistanceSquared[2]};
+      }
+      else
+      {
+	ClosestUndistortedCoordinates = {{ ClosestUndistortedCoordinates[0], {coordinates[0], coordinates[1]}, ClosestUndistortedCoordinates[1]}};
+	ClosestDistortedCoordinates   = newMatrix;	
+	minDistanceSquared            = { minDistanceSquared[0], distanceSquared, minDistanceSquared[1]};	
+      }
+    }
+    else if(distanceSquared < minDistanceSquared[2])
+    {
+      // We replace the old third closest point with the new point if this doesn't make our new points colinear.
+      std::array<std::array<double, 2>, 3> newMatrix = {{ClosestDistortedCoordinates[0], ClosestDistortedCoordinates[1], {coordinates[0], coordinates[1]}}};
+      if(!areColinear(newMatrix))
+      {
+	ClosestDistortedCoordinates   = newMatrix;
+	ClosestUndistortedCoordinates = {{ ClosestUndistortedCoordinates[0], ClosestUndistortedCoordinates[1], {coordinates[0], coordinates[1]} }};
+	minDistanceSquared            = { minDistanceSquared[0], minDistanceSquared[1], distanceSquared};	
+      }
     }
   }
-      
-  x = xUndist;
-  y = yUndist;
- }
+
+  // We have selected the 3 closest, noncolinear distorted points ([e0', e1', e2'] from closest to most far) in the distortionmap in
+  // ClosestDistortedCoordinates. These three points form a reference frame around which the input point can be expressed as 
+  // (x, y)' = e0' + a1*r1' + a2*r2', with x0' the corner is chosen to be the point closest to both other points.
+
+  // We make sure that at index 0, we have the corner point x0
+
+  std::array<double, 3> difference = {0, 0, 0};
+  for (int i=0; i < 3; i++)
+  {
+    std::array<double, 2> x1 = ClosestDistortedCoordinates[(i+1) % 3];
+    std::array<double, 2> x2 = ClosestDistortedCoordinates[(i+2) % 3];
+    difference[i] = pow(x1[0] - x2[0], 2) + pow(x1[1] - x2[1], 2);
+  }
+
+  // set location of the angle at position 0
+  int index = std::distance(difference.begin(), std::max_element(difference.begin(), difference.end()));
+  if ( index != 0)
+  {
+    std::array<double, 2> AngleUndistorted = ClosestUndistortedCoordinates[index];
+    std::array<double, 2> AngleDistorted   = ClosestDistortedCoordinates[index];
+
+    ClosestDistortedCoordinates[index]   = ClosestDistortedCoordinates[0];
+    ClosestUndistortedCoordinates[index] = ClosestUndistortedCoordinates[0];
+
+    ClosestDistortedCoordinates[0]   = AngleDistorted;
+    ClosestUndistortedCoordinates[0] = AngleUndistorted;
+  }
+  
+  // The distorted coordinates can be expressed as: (x, y)' = e0' + a1 * r1' + a2 * r2'.
+  // We approximate the undistorted coordinates as: (x, y) = e0 + a1 * r1 + a2 * r2, (where ' indicates distortion) 
+  double e0x = ClosestDistortedCoordinates[0][0];
+  double e0y = ClosestDistortedCoordinates[0][1];
+
+  double r1x = ClosestDistortedCoordinates[1][0] - e0x;
+  double r1y = ClosestDistortedCoordinates[1][1] - e0y;
+
+  double r2x = ClosestDistortedCoordinates[2][0] - e0x;
+  double r2y = ClosestDistortedCoordinates[2][1] - e0y;
+
+  double deltaX = x - e0x;
+  double deltaY = y - e0y;
+
+  double a1 = (deltaX * r1x + deltaY * r1y) / (r1x*r1x + r1y*r1y);
+  double a2 = (deltaX * r2x + deltaY * r2y) / (r2x*r2x + r2y*r2y);
+
+
+  double e0xUndistorted = ClosestUndistortedCoordinates[0][0];
+  double e0yUndistorted = ClosestUndistortedCoordinates[0][1];
+
+  double r1xUndistorted = ClosestUndistortedCoordinates[1][0] - e0xUndistorted;
+  double r1yUndistorted = ClosestUndistortedCoordinates[1][1] - e0yUndistorted;
+
+  double r2xUndistorted = ClosestUndistortedCoordinates[2][0] - e0xUndistorted;
+  double r2yUndistorted = ClosestUndistortedCoordinates[2][1] - e0yUndistorted;
+    
+
+  x = a1 * r1xUndistorted + a2 * r2xUndistorted + e0xUndistorted;
+  y = a1 * r1yUndistorted + a2 * r2yUndistorted + e0yUndistorted; 
+}
