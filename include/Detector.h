@@ -136,7 +136,9 @@ class Detector: public HDF5Writer
         virtual void initHDF5Groups() override;
         virtual void writePixelMapsToHDF5(int exposureNr);
         virtual void writeCosmicHitsToHDF5(int exposureNr);
-        virtual void writeCosmicFieldToHDF5(int exposureNr, string field, vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux);
+        virtual void writeCosmicFieldToHDF5(int exposureNr, string field, vector<unsigned int> &entryRows, vector<unsigned int> &entryColumns, 
+                                            vector<double> &trailLengths, vector<double> &entryAngles, vector<double> &intensities,   
+                                            vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux);
 
         double getRowEdgeFOV(int column);
 
@@ -205,9 +207,34 @@ class Detector: public HDF5Writer
         double cosmicHitRate;				     // Cosmic hit rate [events / cm^2 / s]
         vector<double> cosmicTrailLengthParams;  // Distribution parameters of the length of the cosmic trails          [pixels]
         vector<double> cosmicIntensityParams;    // Skew-Normal distribution parameters fo the intensity of the intensities of the cosmics 
+        vector<unsigned int> cosmicEntryRowSubfield;     //
+        vector<unsigned int> cosmicEntryColSubfield;     //
+        vector<double> cosmicsTrailsSubfield;            // 
+        vector<double> cosmicsAnglesSubfield;            // 
+        vector<double> cosmicsIntensitiesSubfield;       // 
+
+        vector<unsigned int> cosmicEntryRowSmearingMap;  //
+        vector<unsigned int> cosmicEntryColSmearingMap;  //
+        vector<double> cosmicsTrailsSmearingMap;         // 
+        vector<double> cosmicsAnglesSmearingMap;         // 
+        vector<double> cosmicsIntensitiesSmearingMap;    // 
+        
+        vector<unsigned int> cosmicEntryRowBiasMapLeft;  //
+        vector<unsigned int> cosmicEntryColBiasMapLeft;  //
+        vector<double> cosmicsTrailsBiasMapLeft;         // 
+        vector<double> cosmicsAnglesBiasMapLeft;         // 
+        vector<double> cosmicsIntensitiesBiasMapLeft;    // 
+        
+        vector<unsigned int> cosmicEntryRowBiasMapRight; //
+        vector<unsigned int> cosmicEntryColBiasMapRight; //
+        vector<double> cosmicsTrailsBiasMapRight;        // 
+        vector<double> cosmicsAnglesBiasMapRight;        // 
+        vector<double> cosmicsIntensitiesBiasMapRight;   // 
+
+
         vector<double> relTransmissivityCoefVector;
         double radiusFOV;                        // Radius of the FOV [radians]
-        double expectedValueRelativeTransmissivity;   // Expected value of the relative transmissivity for the sub-field
+        double expectedValueRelativeTransmissivity; // Expected value of the relative transmissivity for the sub-field
         double expectedValuePolarization;        // Expected value of the throughput efficiency due to polarisation
         double particulateContaminationEfficiency;  // Efficiency of particulate contamination (in [0,1])
         double molecularContaminationEfficiency;    // Efficiency of molecular contamination (in [0,1])

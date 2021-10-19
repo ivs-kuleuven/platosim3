@@ -572,6 +572,30 @@ void Detector::reset()
     biasMapRight.zeros();
     smearingMap.zeros();
     
+    cosmicEntryRowSubfield.clear();        
+    cosmicEntryColSubfield.clear();        
+    cosmicsTrailsSubfield.clear();          
+    cosmicsAnglesSubfield.clear();          
+    cosmicsIntensitiesSubfield.clear();     
+
+    cosmicEntryRowSmearingMap.clear();     
+    cosmicEntryColSmearingMap.clear();     
+    cosmicsTrailsSmearingMap.clear();       
+    cosmicsAnglesSmearingMap.clear();       
+    cosmicsIntensitiesSmearingMap.clear();  
+
+    cosmicEntryRowBiasMapLeft.clear();     
+    cosmicEntryColBiasMapLeft.clear();     
+    cosmicsTrailsBiasMapLeft.clear();       
+    cosmicsAnglesBiasMapLeft.clear();       
+    cosmicsIntensitiesBiasMapLeft.clear();  
+
+    cosmicEntryRowBiasMapRight.clear();    
+    cosmicEntryColBiasMapRight.clear();    
+    cosmicsTrailsBiasMapRight.clear();      
+    cosmicsAnglesBiasMapRight.clear();      
+    cosmicsIntensitiesBiasMapRight.clear(); 
+
     rowsOfCosmicsInSubField.clear();
     columnsOfCosmicsInSubField.clear();
     fluxOfCosmicsInSubField.clear();
@@ -1389,7 +1413,7 @@ void Detector::addCosmics(float exposureTime)
     }
 
     // Cosmics in the pre-scan
-    // This is a special case because the rows of the prescan are all virtual.
+    // This is a special case because the rows of the prescan are all virtual, so only hot pixels and no trails.
     // The following is only approximative.
 
     if (includeCosmicsInBiasMap)
@@ -1432,15 +1456,14 @@ void Detector::addCosmics(float exposureTime)
  * This function is not called directly in Detector, but only through the method
  *      Detector::addCosmics(exposureTime)
  *
- * \param exposureTime: amount of time exposed to cosmic particle influx [s].
- * \param map: Map affected by cosmics [e-].  Either the pixel, bias register, or
- *             smearing map.
- * \param rowsOfCosmicsMap: a vector that stores the rows where the cosmics hit.
+ * \param exposureTime:        amount of time exposed to cosmic particle influx [s].
+ * \param map:                 map affected by cosmics [e-].  Either the pixel, bias register, or smearing map.
+ * \param rowsOfCosmicsMap:    a vector that stores the rows where the cosmics hit.
  * \param columnsOfCosmicsMap: a vector that stores the column where the cosmics hit. 
- * \param fluxOfCosmicsMap: a vector that stores the flux of the cosmics.
- * \param numRows: Number of rows in the map [pixels].
- * \param numColumns: Number of columns in the map [pixels].
- * \param area: Name of the area to which the cosmics are added ("image area", "smearing map", "bias map").
+ * \param fluxOfCosmicsMap:    a vector that stores the flux of the cosmics.
+ * \param numRows:             number of rows in the map [pixels].
+ * \param numColumns:          number of columns in the map [pixels].
+ * \param area:                name of the area to which the cosmics are added ("image area", "smearing map", "bias map").
  *
  * \pre Pixel unit in the pixel map: [electrons].
  * \pre Pixel unit in the smearing map: [electrons].
@@ -1464,7 +1487,7 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, vector<unsi
     arma::vec trailRows, trailColumns, trailWeights;    // All trail points: row, column, and weight
     int trailRow, trailColumn;                        // Individual trail point: row and column
 
-    cosmicEntryRowDistribution = uniform_real_distribution<double>(0, numRows - 1);
+    cosmicEntryRowDistribution = uniform_real_distribution<double>(0, numRows - 1);   // different for each subfield vs smearing map vs bias map 
 
     // Number of cosmic hits
     // - cosmic hit rate [events / cm^2 / s]
@@ -1507,11 +1530,53 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, vector<unsi
 
     for (unsigned int cosmicHit = 0; cosmicHit < numCosmicHits; cosmicHit++)
     {
-        entryRow    = cosmicEntryRowDistribution(cosmicEntryRowGenerator);          // Entry row [pixels] (uniform distribution over the rows of the sub-fields)
-        entryColumn = cosmicEntryColumnDistribution(cosmicEntryColumnGenerator);    // Entry column [pixels] (uniform distribution over the columns of the sub-field)
+        entryRow    = int(floor(cosmicEntryRowDistribution(cosmicEntryRowGenerator)));        // Entry row [pixels] (uniform distribution over the rows of the sub-fields)
+        entryColumn = int(floor(cosmicEntryColumnDistribution(cosmicEntryColumnGenerator)));  // Entry column [pixels] (uniform distribution over the columns of the sub-field)
         entryAngle  = cosmicEntryAngleDistribution(cosmicEntryAngleGenerator);      // Entry angle [radians] (uniform distribution between 0 and 2π)
         trailLength = cosmicTrailLengthDistribution(cosmicTrailLengthGenerator);    // Trail length [pixels] (uniform distribution over interval)
         intensity   = cosmicIntensityDistribution(cosmicIntensityGenerator);        // Number of e- in cosmic hit [e-] (skew-normal distribution over interval)
+
+        // Save the cosmics generated numbers above, so that we can persist them in the HDF5 file
+
+        if (area == "image area")
+        {
+            cosmicEntryRowSubfield.push_back(entryRow);
+            cosmicEntryColSubfield.push_back(entryColumn);
+            cosmicsTrailsSubfield.push_back(trailLength);
+            cosmicsAnglesSubfield.push_back(entryAngle);
+            cosmicsIntensitiesSubfield.push_back(intensity);
+        }
+        else if (area == "smearing map")
+        {
+            cosmicEntryRowSmearingMap.push_back(entryRow);
+            cosmicEntryColSmearingMap.push_back(entryColumn);
+            cosmicsTrailsSmearingMap.push_back(trailLength);
+            cosmicsAnglesSmearingMap.push_back(entryAngle);
+            cosmicsIntensitiesSmearingMap.push_back(intensity);
+        }
+        else if (area == "bias map (left half)")
+        {
+            cosmicEntryRowBiasMapLeft.push_back(entryRow);
+            cosmicEntryColBiasMapLeft.push_back(entryColumn);
+            cosmicsTrailsBiasMapLeft.push_back(trailLength);
+            cosmicsAnglesBiasMapLeft.push_back(entryAngle);
+            cosmicsIntensitiesBiasMapLeft.push_back(intensity);
+        }
+        else if (area == "bias map (right half)")
+        {
+            cosmicEntryRowBiasMapRight.push_back(entryRow);
+            cosmicEntryColBiasMapRight.push_back(entryColumn);
+            cosmicsTrailsBiasMapRight.push_back(trailLength);
+            cosmicsAnglesBiasMapRight.push_back(entryAngle);
+            cosmicsIntensitiesBiasMapRight.push_back(intensity);
+        }
+        else
+        {
+            Log.warning("Detector: addCosmics(): unknow `area`");
+        }
+
+
+        // Compute the mean of the sample distribution to save in the log file
 
         meanEntryAngle += entryAngle;
         meanTrailLength += trailLength;
@@ -2948,45 +3013,75 @@ void Detector::initHDF5Groups()
  */
 void Detector::writeCosmicHitsToHDF5(int exposureNr)
 {
-  if (includeCosmicsInSubField && writeCosmics)
-    writeCosmicFieldToHDF5(exposureNr, "SubField", rowsOfCosmicsInSubField, columnsOfCosmicsInSubField, fluxOfCosmicsInSubField);
+   if (includeCosmicsInSubField && writeCosmics)
+   {
+       writeCosmicFieldToHDF5(exposureNr, "SubField", cosmicEntryRowSubfield, cosmicEntryColSubfield, cosmicsTrailsSubfield, 
+                              cosmicsAnglesSubfield, cosmicsIntensitiesSubfield, 
+                              rowsOfCosmicsInSubField, columnsOfCosmicsInSubField, fluxOfCosmicsInSubField);
+   }
 
-  if (includeCosmicsInSmearingMap && writeCosmics)
-    writeCosmicFieldToHDF5(exposureNr, "SmearingMap", rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap, fluxOfCosmicsInSmearingMap);
+   if (includeCosmicsInSmearingMap && writeCosmics)
+   {
+       writeCosmicFieldToHDF5(exposureNr, "SmearingMap", cosmicEntryRowSmearingMap, cosmicEntryColSmearingMap, cosmicsTrailsSmearingMap, 
+                              cosmicsAnglesSmearingMap, cosmicsIntensitiesSmearingMap, 
+                              rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap, fluxOfCosmicsInSmearingMap);
+   }
 
-  if (includeCosmicsInBiasMap && writeCosmics)
-    {
-      writeCosmicFieldToHDF5(exposureNr, "BiasMapLeft", rowsOfCosmicsInBiasMapLeft, columnsOfCosmicsInBiasMapLeft, fluxOfCosmicsInBiasMapLeft);
-      writeCosmicFieldToHDF5(exposureNr, "BiasMapRight", rowsOfCosmicsInBiasMapRight, columnsOfCosmicsInBiasMapRight, fluxOfCosmicsInBiasMapRight);
-    }
+   if (includeCosmicsInBiasMap && writeCosmics)
+   {
+       writeCosmicFieldToHDF5(exposureNr, "BiasMapLeft", cosmicEntryRowBiasMapLeft, cosmicEntryColBiasMapLeft, cosmicsTrailsBiasMapLeft, 
+                              cosmicsAnglesBiasMapLeft, cosmicsIntensitiesBiasMapLeft,
+                              rowsOfCosmicsInBiasMapLeft, columnsOfCosmicsInBiasMapLeft, fluxOfCosmicsInBiasMapLeft);
 
+       writeCosmicFieldToHDF5(exposureNr, "BiasMapRight", cosmicEntryRowBiasMapRight, cosmicEntryColBiasMapRight, cosmicsTrailsBiasMapRight, 
+                              cosmicsAnglesBiasMapRight, cosmicsIntensitiesBiasMapRight,
+                              rowsOfCosmicsInBiasMapRight, columnsOfCosmicsInBiasMapRight, fluxOfCosmicsInBiasMapRight);
+   }
 }
 
-void Detector::writeCosmicFieldToHDF5(int exposureNr, string field, vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux)
+
+
+
+
+
+void Detector::writeCosmicFieldToHDF5(int exposureNr, string field, vector<unsigned int> &entryRows, vector<unsigned int> &entryColumns, 
+                                      vector<double> &trailLengths, vector<double> &entryAngles, vector<double> &intensities,   
+                                      vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux)
 {
-  // Define the name of sub group for every exposure.
+    // Define the name of sub group for every exposure.
+    
     stringstream myStream;
     myStream << "/exposure" << setfill('0') << setw(6) << exposureNr;
     string imageName = "/Cosmics/" + field  + myStream.str();
    
     // add the columns vector
+
     hdf5File.createGroup(imageName);
     
     if (rows.empty() && cols.empty())
-      {
-    vector<int> noHits{-1};
-    hdf5File.writeArray(imageName, "Rows", noHits.data(), 1);
-    hdf5File.writeArray(imageName, "Columns", noHits.data(), 1);
-    hdf5File.writeArray(imageName, "Flux", noHits.data(), 1);
-      }
+    {
+        vector<unsigned int> noHitsUnsignedInt{0};
+        vector<double> noHitsDouble{-1.0};
+        hdf5File.writeArray(imageName, "EntryRows",    noHitsUnsignedInt.data(), 1);
+        hdf5File.writeArray(imageName, "EntryColumns", noHitsUnsignedInt.data(), 1);
+        hdf5File.writeArray(imageName, "EntryAngles",  noHitsDouble.data(), 1);
+        hdf5File.writeArray(imageName, "Intensities",  noHitsDouble.data(), 1);
+        hdf5File.writeArray(imageName, "TrailLengths", noHitsDouble.data(), 1);
+        hdf5File.writeArray(imageName, "Rows",         noHitsUnsignedInt.data(), 1);
+        hdf5File.writeArray(imageName, "Columns",      noHitsUnsignedInt.data(), 1);
+        hdf5File.writeArray(imageName, "Flux",         noHitsDouble.data(), 1);
+    }
     else
-      {
-    hdf5File.writeArray(imageName, "Rows", rows.data(), rows.size() );
-    hdf5File.writeArray(imageName, "Columns", cols.data(), cols.size() );
-    hdf5File.writeArray(imageName, "Flux", flux.data(), flux.size() );
-      }
-   
-    
+    {
+        hdf5File.writeArray(imageName, "EntryRows",    entryRows.data(), entryRows.size());
+        hdf5File.writeArray(imageName, "EntryColumns", entryColumns.data(), entryColumns.size());
+        hdf5File.writeArray(imageName, "EntryAngles",  entryAngles.data(), entryAngles.size());
+        hdf5File.writeArray(imageName, "Intensities",  intensities.data(), intensities.size());
+        hdf5File.writeArray(imageName, "TrailLengths", trailLengths.data(), trailLengths.size());
+        hdf5File.writeArray(imageName, "Rows",         rows.data(), rows.size());
+        hdf5File.writeArray(imageName, "Columns",      cols.data(), cols.size());
+        hdf5File.writeArray(imageName, "Flux",         flux.data(), flux.size());
+    }
 }
 
 
