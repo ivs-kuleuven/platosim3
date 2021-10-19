@@ -207,29 +207,30 @@ class Detector: public HDF5Writer
         double cosmicHitRate;				     // Cosmic hit rate [events / cm^2 / s]
         vector<double> cosmicTrailLengthParams;  // Distribution parameters of the length of the cosmic trails          [pixels]
         vector<double> cosmicIntensityParams;    // Skew-Normal distribution parameters fo the intensity of the intensities of the cosmics 
-        vector<unsigned int> cosmicEntryRowSubfield;     //
-        vector<unsigned int> cosmicEntryColSubfield;     //
-        vector<double> cosmicsTrailsSubfield;            // 
-        vector<double> cosmicsAnglesSubfield;            // 
-        vector<double> cosmicsIntensitiesSubfield;       // 
 
-        vector<unsigned int> cosmicEntryRowSmearingMap;  //
-        vector<unsigned int> cosmicEntryColSmearingMap;  //
-        vector<double> cosmicsTrailsSmearingMap;         // 
-        vector<double> cosmicsAnglesSmearingMap;         // 
-        vector<double> cosmicsIntensitiesSmearingMap;    // 
+        vector<unsigned int> cosmicEntryRowSubfield;     // rows in the subfield where the cosmic hit the CCD                 [pixel]
+        vector<unsigned int> cosmicEntryColSubfield;     // columns in the subfield where the cosmic hit the CCD              [pix]
+        vector<double> cosmicsTrailsSubfield;            // length of the trails of the cosmics that hit the subfield         [pix]
+        vector<double> cosmicsAnglesSubfield;            // angle at which the cosmic hits the CCD in the subfield            [rad]
+        vector<double> cosmicsIntensitiesSubfield;       // total number of electrons the cosmic will release over its trail  [e-]
+
+        vector<unsigned int> cosmicEntryRowSmearingMap;  // rows in the smearing map where the cosmic hit the CCD             [pixel]
+        vector<unsigned int> cosmicEntryColSmearingMap;  // columns in the smearing map where the cosmic hit the CCD          [pix]
+        vector<double> cosmicsTrailsSmearingMap;         // length of the trails of the cosmics that hit the smearing map     [pix]
+        vector<double> cosmicsAnglesSmearingMap;         // angle at which the cosmic hits the CCD in the smearing map        [rad]
+        vector<double> cosmicsIntensitiesSmearingMap;    // total number of electrons the cosmic will release over its trail  [e-]
         
-        vector<unsigned int> cosmicEntryRowBiasMapLeft;  //
-        vector<unsigned int> cosmicEntryColBiasMapLeft;  //
-        vector<double> cosmicsTrailsBiasMapLeft;         // 
-        vector<double> cosmicsAnglesBiasMapLeft;         // 
-        vector<double> cosmicsIntensitiesBiasMapLeft;    // 
+        vector<unsigned int> cosmicEntryRowBiasMapLeft;  // rows in the left bias map where the cosmic hit the CCD            [pixel]
+        vector<unsigned int> cosmicEntryColBiasMapLeft;  // columns in the left bias map where the cosmic hit the CCD         [pix]
+        vector<double> cosmicsTrailsBiasMapLeft;         // length of the trails of the cosmics that hit the left bias map    [pix]
+        vector<double> cosmicsAnglesBiasMapLeft;         // angle at which the cosmic hits the CCD in the left bias map       [rad]
+        vector<double> cosmicsIntensitiesBiasMapLeft;    // total number of electrons the cosmic will release over its trail  [e-]
         
-        vector<unsigned int> cosmicEntryRowBiasMapRight; //
-        vector<unsigned int> cosmicEntryColBiasMapRight; //
-        vector<double> cosmicsTrailsBiasMapRight;        // 
-        vector<double> cosmicsAnglesBiasMapRight;        // 
-        vector<double> cosmicsIntensitiesBiasMapRight;   // 
+        vector<unsigned int> cosmicEntryRowBiasMapRight; // rows in the righ bias map where the cosmic hit the CCD            [pixel]
+        vector<unsigned int> cosmicEntryColBiasMapRight; // columns in the righ bias map where the cosmic hit the CCD         [pix]
+        vector<double> cosmicsTrailsBiasMapRight;        // length of the trails of the cosmics that hit the righ bias map    [pix]
+        vector<double> cosmicsAnglesBiasMapRight;        // angle at which the cosmic hits the CCD in the righ bias map       [rad]
+        vector<double> cosmicsIntensitiesBiasMapRight;   // total number of electrons the cosmic will release over its trail  [e-]
 
 
         vector<double> relTransmissivityCoefVector;
