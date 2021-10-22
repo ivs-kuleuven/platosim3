@@ -13,9 +13,11 @@
 * The dependencies python install files now check that the `Installs` directory exists and creates this directory if it doesn't. 
 * Made the log files for `Camera::makeStarCatalogSelection` clearer. 
 * Changed the python functions in `referenceFrames.py`, `plot.py` and `simulation.py` to deal with mapped distortion.
+* Mapped distortion now uses a continuous approximation insead of the previous (crude) method of one-to-one fitting of closed point.
 
 ## Added
 * Added an option to individually switch on/off extended or pointlike ghosts. 
+
 
 
 
