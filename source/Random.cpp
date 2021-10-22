@@ -17,8 +17,9 @@ skew_normal_distribution::skew_normal_distribution(double location, double scale
 
 
 
-// Drawing random number
-
+// Drawing random numbers from the skew-normal distribution.
+// See also: Henze, N. (1986). A probabilistic representation of the skew-normal distribution, 
+//           Scandinavian Journal of Statistics, 13, 271-275. 
 
 double skew_normal_distribution::operator()(mt19937 &engine)
 {

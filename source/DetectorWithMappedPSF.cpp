@@ -402,6 +402,14 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
     return internalTime;
 }
 
+
+
+
+
+
+
+
+
 /**
  * \brief: During an exposure, this method makes the detector integrate the light
  *         in small steps. During each step the slight change of star positions due
