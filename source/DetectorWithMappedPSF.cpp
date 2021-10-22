@@ -21,7 +21,7 @@
  * cteMap
  * 
  * The flatfieldMap is filled at sub-pixel level, the throughputMap and cteMap are filled at pixel level.
- * 
+ *
  * \param configParam    Configuration parameters for the detector.
  * \param hdf5file       HFD5 file to write the detector images to.
  * \param camera         Camera to which to attach the detector.
@@ -76,7 +76,7 @@ DetectorWithMappedPSF::~DetectorWithMappedPSF()
 /**
  * \brief Configure the DetectorWithMappedPSF object using the given
  *        configuration parameters.
- * 
+ *
  * \param configParam: Configuration parameters.
  */
 void DetectorWithMappedPSF::configure(ConfigurationParameters &configParam)
@@ -132,7 +132,7 @@ void DetectorWithMappedPSF::configure(ConfigurationParameters &configParam)
 
 /**
  * \brief Set the PSF map for the sub-field and sets  the distortion map
- * 
+ *
  * \details The PSF that is selected is dependent on the user input.
  */
 void DetectorWithMappedPSF::setPsfForSubfield()
@@ -158,7 +158,7 @@ void DetectorWithMappedPSF::setPsfForSubfield()
     {
       writeDiffusedPSFToHDF5(psf);
     }
-    
+
     //  Compensate for the orientation of the CCD wrt focal plane orientation.
 
     psf->rotate(-rotationAnglePsf);
@@ -339,11 +339,11 @@ void DetectorWithMappedPSF::reset()
  *         point spread function and adding various noise effects.
  *
  * \param exposureNr: Sequential number of the exposure.
- * 
+ *
  * \param startTime: Starting time of the exposure [s].
- * 
+ *
  * \param exposureTime: Duration of the exposure [s].
- * 
+ *
  * \return endTime: Time after the exposure (startTime + exposureTime + readoutTime)
  *
  * \pre Sub-pixel, pixel, bias register, and smearing map filled with values from previous exposure.
@@ -357,7 +357,7 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
     internalTime = startTime;
 
     // Clear all arrays
-    
+
     Log.debug("Detector: resetting subfield array for new exposure.");
     reset();
 
@@ -390,7 +390,7 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
         writeSubPixelMapToHDF5(exposureNr);
     }
     // Write the cosmic hits to the HDF5 file
-    
+
         Log.debug("Detector: Writing Cosmics of the PixelMap, smearing map, bias map #" + to_string(exposureNr) + " to HDF5 file.");
 
     writeCosmicHitsToHDF5(exposureNr);
@@ -420,7 +420,7 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
  * \pre Sub-pixel, pixel, bias register, and smearing map filled with values from previous exposure.
  *
  * \post Pixel unit of the sub-pixel map: [photons].
- * 
+*
  * \post Pixel, bias register, and smearing map filled with zeroes.
  */
 void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, double exposureTime)
@@ -434,7 +434,7 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
     // Integration (incl. jitter): point sources
 
     camera.exposeDetectorWithStars(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
-    
+
     // Convolve with the point spread function
 
     convolveWithPsf();
@@ -502,7 +502,7 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
     // Apply poisson distributed photon noise
     // Pixel units before: [electrons]
     // Pixel units after: [electrons]
-    
+
 
     if (includePhotonNoise)
     {
@@ -620,12 +620,12 @@ tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yF
  * \brief Insert the extended ghost with the given radius and flux at the given focal-plane position.
  * 
  * Note that the extended source will be convolved with the PSF in a next step.
- * 
+ *
  * \param x0: Focal-plane x-coordinate of the centre of the extended ghost [mm].
  * \param y0: Focal-plane y-coordinate of the centre of the extended ghost [mm].
  * \param radius: Radius of the extended ghost [mm].
  * \param flux: Flux of the extended ghost [photons].
- * 
+ *
  * \return: Whether or not the extended source falls (at least partially) on the sub-field, and the
  *          (row, column) coordinates of the centre of the extended ghost in the pixel map.
  */
@@ -681,9 +681,9 @@ tuple<bool, double, double> DetectorWithMappedPSF::addExtendedGhost(double x0, d
  * \brief: Applies charge diffusion or jitter smoothing for the given flux at the given position in the sub-pixel map.
  *
  * \param subpixelRow: Row index [sub-pixels]. NOT a coordinate in the CCD frame, but in the subfield frame.
- * 
+ *
  * \param subpixColumn: Column index [sub-pixels].  NOT a coordinate in the CCD frame, but in the subfield frame.
- * 
+ *
  * \param flux: Flux for which to apply charge diffusion or jitter smoothing [photons].
  */
 void DetectorWithMappedPSF::applyDiffusionKernel(double subpixRow, double subpixColumn, double flux)
@@ -736,7 +736,7 @@ void DetectorWithMappedPSF::applyDiffusionKernel(double subpixRow, double subpix
  *          function it's not necessary to round them to the nearest integer. 
  *
  * \param row: Row index. NOT a coordinate in the CCD frame, but in the subfield frame. [sub-pixel].
- * 
+ *
  * \param column: Column index.NOT a coordinate in the CCD frame, but in the subfield frame.  [sub-pixel].
  *
  * \return  True if the given (row, column) coordinates are in the sub-pixel map; false otherwise.
@@ -770,15 +770,15 @@ void DetectorWithMappedPSF::addFlux(double flux)
 
 /**
  * \brief: Multiply the sub-pixel map with the flatfield.
- * 
+ *
  * NOTE: The sub-pixel map contains extra edge pixels, but the flatfield
  *       map does not. These edge pixels are excluded from this flatfield
  *       multiplication.
  *
  * \pre Unit of the sub-pixels: [photons].
- * 
+ *
  * \pre Flatfield map at sub-pixel level, excl. edge pixels.
- * 
+ *
  * \pre Pixel, bias register, and smearing maps filled with zeroes.
  *
  * \post Pixel value in the sub-pixel map: [photons].
@@ -808,11 +808,11 @@ void DetectorWithMappedPSF::applyFlatfield()
  * \brief Rebin the sub-pixel map to pixel level and crop the edge pixels.
  *
  * \pre Unit of the pixel value in the sub-pixel map: [photons].
- * 
+ *
  * \pre Pixel, bias register, and smearing map filled with zeroes.
  *
  * \post Unit of pixel values in the sub-pixel map: [photons].
- * 
+ *
  * \post Bias register, and smearing maps filled with zeroes.
  */
 void DetectorWithMappedPSF::rebin()
@@ -911,7 +911,7 @@ void DetectorWithMappedPSF::writeSubPixelMapToHDF5(int exposureNr)
 
 
 
-/** 
+/**
  * \brief: Write the diffused and rotated PSF to the HDF5 file.
  */
 
@@ -926,13 +926,12 @@ void DetectorWithMappedPSF::writeDiffusedPSFToHDF5(PointSpreadFunction *psf)
     // set the diffusion kernel image size
     int psfSubPixelsPerPixel = psf->getNumSubPixelsPerPixel();
     generateDiffusionKernel(chargeDiffusionStrength*psfSubPixelsPerPixel);
-    
-    
+
     for (int row=0; row < numRows; row++)
     {
       for (int column=0; column < numColumns; column++)
       {
-       	applyDiffusionKernelOnPSF(row, column, psfMap(row, column), diffusedPsf, psfSubPixelsPerPixel);
+                applyDiffusionKernelOnPSF(row, column, psfMap(row, column), diffusedPsf, psfSubPixelsPerPixel);
       }
     }
 
@@ -943,7 +942,7 @@ void DetectorWithMappedPSF::writeDiffusedPSFToHDF5(PointSpreadFunction *psf)
     // rotate the diffused PSF
     diffusedPsf = ArrayOperations::rotateArray(diffusedPsf, -rotationAnglePsf);
     diffusedPsf /= arma::accu(diffusedPsf);
-   
+
     // write the diffused psf to the output hdf5 file
     hdf5File.writeArray("/PSF", "diffusedPSF", diffusedPsf);
 }
@@ -994,22 +993,22 @@ void DetectorWithMappedPSF::applyDiffusionKernelOnPSF(double subpixRow, double s
  * /brief: determins if three points in (given in an array) are colinear
  * /input: an array with the points of the form {{x1, y1}, {x2, y2}, {x3, y3}}
  * /note:
- * Three points are colinear if the determinant of the matrix 
+ * Three points are colinear if the determinant of the matrix
  * | 1  1  1|
- * |x1 x2 x3| is equal to zero. 
+ * |x1 x2 x3| is equal to zero.
  * |y1 y2 y3|
  */
 bool DetectorWithMappedPSF::areColinear(std::array<std::array<double, 2>, 3> points)
 {
- double determinant = points[1][0] * points[2][1] - points[2][0] * points[1][1] - points[0][0] * points[2][1] + points[2][0] * points[0][1] + points[0][0] * points[1][1] - points[1][0] * points[0][1];
- if(abs(determinant) < 0.01)
- {
-   return true;
- }
- else
- {
-   return false;
- }
+    double determinant = points[1][0] * points[2][1] - points[2][0] * points[1][1] - points[0][0] * points[2][1] + points[2][0] * points[0][1] + points[0][0] * points[1][1] - points[1][0] * points[0][1];
+    if(abs(determinant) < 0.01)
+    {
+      return true;
+    }
+    else
+    {
+      return false;
+    }
 }
 
 
@@ -1017,12 +1016,13 @@ bool DetectorWithMappedPSF::areColinear(std::array<std::array<double, 2>, 3> poi
 
 /*
  * /brief: applies the field distortion on the inputparameters from the distortion map
- * /input: FP coordinates [mm] 
+ * /input: FP coordinates [mm]
  */
 void DetectorWithMappedPSF::applyDistortion(double &x, double &y)
 {
   // We try to sellect the three closest noncolinear undistorted points to our input coordinates from the distortionmap and their respective
-  // distorted counterparts. 
+  // distorted counterparts.
+
   std::array<std::array<double, 2>,3> ClosestUndistortedCoordinates;
   std::array<std::array<double, 2>,3> ClosestDistortedCoordinates;
 
@@ -1039,40 +1039,39 @@ void DetectorWithMappedPSF::applyDistortion(double &x, double &y)
       // points. If this is not the case, we can simply drop the last point and add this new point, otherwise we drop the second to last
       // point and add this new point. If we start from three points that are not colinear, this process will assure that we do not
       // end up with three colinear point.
-      
+
       std::array<std::array<double, 2>, 3> newMatrix = {{ {coordinates[0], coordinates[1]}, ClosestUndistortedCoordinates[0], ClosestUndistortedCoordinates[1] }};
       if (areColinear(newMatrix))
       {
-	ClosestUndistortedCoordinates = {{ {coordinates[0], coordinates[1]} , ClosestUndistortedCoordinates[0], ClosestUndistortedCoordinates[2] }};
-	ClosestDistortedCoordinates   = {{ {coordinates[2], coordinates[3]}, ClosestDistortedCoordinates[0], ClosestDistortedCoordinates[2] }};
-	minDistanceSquared            = { distanceSquared, minDistanceSquared[0], minDistanceSquared[2] };
+        ClosestUndistortedCoordinates = {{ {coordinates[0], coordinates[1]} , ClosestUndistortedCoordinates[0], ClosestUndistortedCoordinates[2] }};
+        ClosestDistortedCoordinates   = {{ {coordinates[2], coordinates[3]}, ClosestDistortedCoordinates[0], ClosestDistortedCoordinates[2] }};
+        minDistanceSquared            = { distanceSquared, minDistanceSquared[0], minDistanceSquared[2] };
       }
       else
       {
-	ClosestUndistortedCoordinates = newMatrix;
-	ClosestDistortedCoordinates   = {{ {coordinates[2], coordinates[3]}, ClosestDistortedCoordinates[0], ClosestDistortedCoordinates[1]}};
-	minDistanceSquared            = { distanceSquared, minDistanceSquared[0], minDistanceSquared[1]};
+        ClosestUndistortedCoordinates = newMatrix;
+        ClosestDistortedCoordinates   = {{ {coordinates[2], coordinates[3]}, ClosestDistortedCoordinates[0], ClosestDistortedCoordinates[1]}};
+        minDistanceSquared            = { distanceSquared, minDistanceSquared[0], minDistanceSquared[1]};
       }
 
-	
     }
     else if(distanceSquared < minDistanceSquared[1])
     {
       // We try to add the new point as second closest point, and have the current second closest point as our new third closest point, if these
       // three points are not colinear. If they are, we simply drop the old second closest point and keep our third closest point as is.
-      
+
       std::array<std::array<double, 2>, 3> newMatrix = {{ClosestUndistortedCoordinates[0], {coordinates[0], coordinates[1]}, ClosestUndistortedCoordinates[1]}};
       if(areColinear(newMatrix))
       {
-	ClosestUndistortedCoordinates = {{ ClosestUndistortedCoordinates[0], {coordinates[0], coordinates[1]}, ClosestUndistortedCoordinates[2]}};
-	ClosestDistortedCoordinates   = {{ ClosestDistortedCoordinates[0], {coordinates[2], coordinates[3]}, ClosestDistortedCoordinates[2]}};
-	minDistanceSquared            = { minDistanceSquared[0], distanceSquared, minDistanceSquared[2]};
+        ClosestUndistortedCoordinates = {{ ClosestUndistortedCoordinates[0], {coordinates[0], coordinates[1]}, ClosestUndistortedCoordinates[2]}};
+        ClosestDistortedCoordinates   = {{ ClosestDistortedCoordinates[0], {coordinates[2], coordinates[3]}, ClosestDistortedCoordinates[2]}};
+        minDistanceSquared            = { minDistanceSquared[0], distanceSquared, minDistanceSquared[2]};
       }
       else
       {
-	ClosestUndistortedCoordinates = newMatrix;
-	ClosestDistortedCoordinates   = {{ ClosestDistortedCoordinates[0], {coordinates[2], coordinates[3]}, ClosestDistortedCoordinates[1]}};
-	minDistanceSquared            = { minDistanceSquared[0], distanceSquared, minDistanceSquared[1]};	
+        ClosestUndistortedCoordinates = newMatrix;
+        ClosestDistortedCoordinates   = {{ ClosestDistortedCoordinates[0], {coordinates[2], coordinates[3]}, ClosestDistortedCoordinates[1]}};
+        minDistanceSquared            = { minDistanceSquared[0], distanceSquared, minDistanceSquared[1]};
       }
     }
     else if(distanceSquared < minDistanceSquared[2])
@@ -1081,9 +1080,9 @@ void DetectorWithMappedPSF::applyDistortion(double &x, double &y)
       std::array<std::array<double, 2>, 3> newMatrix = {{ClosestUndistortedCoordinates[0], ClosestUndistortedCoordinates[1], {coordinates[0], coordinates[1]}}};
       if(!areColinear(newMatrix))
       {
-	ClosestUndistortedCoordinates = newMatrix;
-	ClosestDistortedCoordinates   = {{ ClosestDistortedCoordinates[0], ClosestDistortedCoordinates[1], {coordinates[2], coordinates[3]} }};
-	minDistanceSquared            = { minDistanceSquared[0], minDistanceSquared[1], distanceSquared};	
+        ClosestUndistortedCoordinates = newMatrix;
+        ClosestDistortedCoordinates   = {{ ClosestDistortedCoordinates[0], ClosestDistortedCoordinates[1], {coordinates[2], coordinates[3]} }};
+        minDistanceSquared            = { minDistanceSquared[0], minDistanceSquared[1], distanceSquared};
       }
     }
   }
@@ -1103,6 +1102,7 @@ void DetectorWithMappedPSF::applyDistortion(double &x, double &y)
   }
 
   // set location of the angle at position 0
+
   int index = std::distance(difference.begin(), std::max_element(difference.begin(), difference.end()));
   if ( index != 0)
   {
@@ -1115,10 +1115,10 @@ void DetectorWithMappedPSF::applyDistortion(double &x, double &y)
     ClosestDistortedCoordinates[0]   = AngleDistorted;
     ClosestUndistortedCoordinates[0] = AngleUndistorted;
   }
- 
- 
+
   // The undistorted coordinates can be expressed as: (x, y) = e0 + a1 * r1 + a2 * r2.
   // We approximate the distorted coordinates as: (x, y)' = e0' + a1 * r1' + a2 * r2', (where ' indicates distortion) 
+
   double e0x = ClosestUndistortedCoordinates[0][0];
   double e0y = ClosestUndistortedCoordinates[0][1];
 
@@ -1134,7 +1134,6 @@ void DetectorWithMappedPSF::applyDistortion(double &x, double &y)
   double a1 = (deltaX * r1x + deltaY * r1y) / (r1x*r1x + r1y*r1y);
   double a2 = (deltaX * r2x + deltaY * r2y) / (r2x*r2x + r2y*r2y);
 
-  
 
   double e0xDistorted = ClosestDistortedCoordinates[0][0];
   double e0yDistorted = ClosestDistortedCoordinates[0][1];
@@ -1144,22 +1143,23 @@ void DetectorWithMappedPSF::applyDistortion(double &x, double &y)
 
   double r2xDistorted = ClosestDistortedCoordinates[2][0] - e0xDistorted;
   double r2yDistorted = ClosestDistortedCoordinates[2][1] - e0yDistorted;
-    
+
 
   x = a1 * r1xDistorted + a2 * r2xDistorted + e0xDistorted;
-  y = a1 * r1yDistorted + a2 * r2yDistorted + e0yDistorted; 
-  
+  y = a1 * r1yDistorted + a2 * r2yDistorted + e0yDistorted;
+
 }
 
 
 /*
  * /brief: applies the inverse of the field distortion on the input coordinates
- * /input: FP coordinates [mm] 
+ * /input: FP coordinates [mm]
  */
 void DetectorWithMappedPSF::applyInverseDistortion(double &x, double &y)
 {
   // We try to sellect the three closest noncolinear distorted points to our input coordinates from the distortionmap and their respective
-  // undistorted counterparts. 
+  // undistorted counterparts
+
   std::array<std::array<double, 2>,3> ClosestUndistortedCoordinates;
   std::array<std::array<double, 2>,3> ClosestDistortedCoordinates;
 
@@ -1176,49 +1176,50 @@ void DetectorWithMappedPSF::applyInverseDistortion(double &x, double &y)
       // points. If this is not the case, we can simply drop the last point and add this new point, otherwise we drop the second to last
       // point and add this new point. If we start from three points that are not colinear, this process will assure that we do not
       // end up with three colinear point.
-      
+
       std::array<std::array<double, 2>, 3> newMatrix = {{ {coordinates[2], coordinates[3]}, ClosestDistortedCoordinates[0], ClosestDistortedCoordinates[1] }};
       if (areColinear(newMatrix))
       {
-	ClosestUndistortedCoordinates = {{ {coordinates[0], coordinates[1]} , ClosestUndistortedCoordinates[0], ClosestUndistortedCoordinates[2] }};
-	ClosestDistortedCoordinates   = {{ {coordinates[2], coordinates[3]}, ClosestDistortedCoordinates[0], ClosestDistortedCoordinates[2] }};
-	minDistanceSquared            = { distanceSquared, minDistanceSquared[0], minDistanceSquared[2] };
+        ClosestUndistortedCoordinates = {{ {coordinates[0], coordinates[1]} , ClosestUndistortedCoordinates[0], ClosestUndistortedCoordinates[2] }};
+        ClosestDistortedCoordinates   = {{ {coordinates[2], coordinates[3]}, ClosestDistortedCoordinates[0], ClosestDistortedCoordinates[2] }};
+        minDistanceSquared            = { distanceSquared, minDistanceSquared[0], minDistanceSquared[2] };
       }
       else
       {
-	ClosestUndistortedCoordinates = {{ {coordinates[0], coordinates[1]}, ClosestUndistortedCoordinates[0], ClosestUndistortedCoordinates[1]}};
-	ClosestDistortedCoordinates   = newMatrix;
-	minDistanceSquared            = { distanceSquared, minDistanceSquared[0], minDistanceSquared[1]};
+        ClosestUndistortedCoordinates = {{ {coordinates[0], coordinates[1]}, ClosestUndistortedCoordinates[0], ClosestUndistortedCoordinates[1]}};
+        ClosestDistortedCoordinates   = newMatrix;
+        minDistanceSquared            = { distanceSquared, minDistanceSquared[0], minDistanceSquared[1]};
       }
     }
     else if(distanceSquared < minDistanceSquared[1])
     {
       // We try to add the new point as second closest point, and have the current second closest point as our new third closest point, if these
       // three points are not colinear. If they are, we simply drop the old second closest point and keep our third closest point as is.
-      
+
       std::array<std::array<double, 2>, 3> newMatrix = {{ClosestDistortedCoordinates[0], {coordinates[2], coordinates[3]}, ClosestDistortedCoordinates[1]}};
       if(areColinear(newMatrix))
       {
-	ClosestUndistortedCoordinates = {{ ClosestUndistortedCoordinates[0], {coordinates[0], coordinates[1]}, ClosestUndistortedCoordinates[2]}};
-	ClosestDistortedCoordinates   = {{ ClosestDistortedCoordinates[0], {coordinates[2], coordinates[3]}, ClosestDistortedCoordinates[2]}};
-	minDistanceSquared            = { minDistanceSquared[0], distanceSquared, minDistanceSquared[2]};
+        ClosestUndistortedCoordinates = {{ ClosestUndistortedCoordinates[0], {coordinates[0], coordinates[1]}, ClosestUndistortedCoordinates[2]}};
+        ClosestDistortedCoordinates   = {{ ClosestDistortedCoordinates[0], {coordinates[2], coordinates[3]}, ClosestDistortedCoordinates[2]}};
+        minDistanceSquared            = { minDistanceSquared[0], distanceSquared, minDistanceSquared[2]};
       }
       else
       {
-	ClosestUndistortedCoordinates = {{ ClosestUndistortedCoordinates[0], {coordinates[0], coordinates[1]}, ClosestUndistortedCoordinates[1]}};
-	ClosestDistortedCoordinates   = newMatrix;	
-	minDistanceSquared            = { minDistanceSquared[0], distanceSquared, minDistanceSquared[1]};	
+        ClosestUndistortedCoordinates = {{ ClosestUndistortedCoordinates[0], {coordinates[0], coordinates[1]}, ClosestUndistortedCoordinates[1]}};
+        ClosestDistortedCoordinates   = newMatrix;
+        minDistanceSquared            = { minDistanceSquared[0], distanceSquared, minDistanceSquared[1]};
       }
     }
     else if(distanceSquared < minDistanceSquared[2])
     {
       // We replace the old third closest point with the new point if this doesn't make our new points colinear.
+
       std::array<std::array<double, 2>, 3> newMatrix = {{ClosestDistortedCoordinates[0], ClosestDistortedCoordinates[1], {coordinates[0], coordinates[1]}}};
       if(!areColinear(newMatrix))
       {
-	ClosestDistortedCoordinates   = newMatrix;
-	ClosestUndistortedCoordinates = {{ ClosestUndistortedCoordinates[0], ClosestUndistortedCoordinates[1], {coordinates[0], coordinates[1]} }};
-	minDistanceSquared            = { minDistanceSquared[0], minDistanceSquared[1], distanceSquared};	
+        ClosestDistortedCoordinates   = newMatrix;
+        ClosestUndistortedCoordinates = {{ ClosestUndistortedCoordinates[0], ClosestUndistortedCoordinates[1], {coordinates[0], coordinates[1]} }};
+        minDistanceSquared            = { minDistanceSquared[0], minDistanceSquared[1], distanceSquared};
       }
     }
   }
@@ -1250,7 +1251,7 @@ void DetectorWithMappedPSF::applyInverseDistortion(double &x, double &y)
     ClosestDistortedCoordinates[0]   = AngleDistorted;
     ClosestUndistortedCoordinates[0] = AngleUndistorted;
   }
-  
+
   // The distorted coordinates can be expressed as: (x, y)' = e0' + a1 * r1' + a2 * r2'.
   // We approximate the undistorted coordinates as: (x, y) = e0 + a1 * r1 + a2 * r2, (where ' indicates distortion) 
   double e0x = ClosestDistortedCoordinates[0][0];
@@ -1277,8 +1278,8 @@ void DetectorWithMappedPSF::applyInverseDistortion(double &x, double &y)
 
   double r2xUndistorted = ClosestUndistortedCoordinates[2][0] - e0xUndistorted;
   double r2yUndistorted = ClosestUndistortedCoordinates[2][1] - e0yUndistorted;
-    
+
 
   x = a1 * r1xUndistorted + a2 * r2xUndistorted + e0xUndistorted;
-  y = a1 * r1yUndistorted + a2 * r2yUndistorted + e0yUndistorted; 
+  y = a1 * r1yUndistorted + a2 * r2yUndistorted + e0yUndistorted;
 }
