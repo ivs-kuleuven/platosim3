@@ -14,9 +14,12 @@
 * Made the log files for `Camera::makeStarCatalogSelection` clearer. 
 * Changed the python functions in `referenceFrames.py`, `plot.py` and `simulation.py` to deal with mapped distortion.
 * Mapped distortion now uses a continuous approximation insead of the previous (crude) method of one-to-one fitting of closed point.
+* Changed cosmics intensity from uniform to skew-normal. (GitHub #638)
+* Renamed `getCosmicsCoordinates()` to `getCosmicsAffectedPixels()` in `simfile.py`
 
 ## Added
 * Added an option to individually switch on/off extended or pointlike ghosts. 
+* Added `getCosmicsInfo()` method to extract the entry position, entry angle and the trail length of all cosmics
 
 
 
