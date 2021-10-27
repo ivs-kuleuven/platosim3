@@ -837,16 +837,112 @@ class SimFile (object):
 
 
 
-    def getCosmicsCoordinates(self, imageNr, field="SubField"):
+    def getCosmicsInfo(self, imageNr, field="SubField"):
         """
-        PURPOSE: Get the pixel coordinates, and flux in a particular field of the cosmics in 
-                 the given image.
+        PURPOSE: returns for all cosmics that hit the CCD in a given field, the entry rows, the entry columns,
+                 the entry angles, the intensities, and the trail lengths. If this information is not stored in 
+                 the HDF5 file, it return (None, None, None, None, None)
+
+        INPUT:
+            - imageNr: Integer sequential number of the image in the HDF5 file.
+            - field: String that determines from what field the Cosmics should be returned. Can be:
+                     "SubField", "BiasMapLeft", "BiasMapRight" or "SmearingMap". 
+                     If input doesn't match any of these values the function returns (None, None, None, None).
+
+        OUTPUT:
+            - entryRows[0..N-1]:    the row where the cosmic hit the CCD                                         [integer pixel]
+            - entryColumns[0..N-1]: the column where the cosmic hit the CCD                                      [integer pixel]
+            - entryAngles[0..N-1]:  the angle in which the cosmic hit the CCD                                    [rad]
+            - intensities[0..N-1]:  the total number of e- of the cosmic before they were spread out in a trail  [e-]
+            - trailLengths[0..N-1]: the length of the trail caused by the cosmic                                 [pixels]
+            
+            Here N is the total number of cosmics that hit the CCD. If there were no hits in the field, the arrays will be empty.
+            The latter is especially likely for the bias
+
+        EXAMPLE:
+
+            >>> file = SimFile("Simul01.hdf5")
+            >>> imageNr = 4
+            >>> entryRows, entryColumns, entryAngles, intensities, trailLengths = file.getCosmicsInfo(imageNr, "SubField")
+        """
+
+        # Check if the field variables matches the allowed values
+
+        if not field in ["SubField", "BiasMapLeft", "BiasMapRight", "SmearingMap"]:
+            print("Error: SimFile.getCosmicsInfo(): field variable doesn't match one of the allowed values: SubField, BiasMapLeft, BiasMapRight or SmearingMap ")
+            return None, None, None, None, None
+        
+        # Check if the Cosmics info was saved to the HDF5 file
+
+        if "Cosmics" not in self.hdf5file["/"].keys():
+            print("Error: SimFile.getCosmicsInfo(): no cosmics information was saved in the HDF5 file.")
+            return None, None, None, None, None
+
+
+        # Construct the exposure name that was used to store the image
+
+        exposureGroupName = "exposure{0:06d}".format(imageNr)
+
+
+        # Check if the arrays are in the file. If not: complain, if yes: copy the contents into a numpy array.
+
+        if field not in self.hdf5file["Cosmics"].keys():
+            print("Error: SimFile.getCosmicsInfo(): {0} not in hdf5 file".format(field))
+            return None, None, None, None, None
+        
+        if exposureGroupName not in self.hdf5file["Cosmics/" + field].keys():
+            print(self.hdf5file["Cosmics/" + field].keys())
+            print("Error: SimFile.getCosmicsInfo(): {0} not in hdf5 file".format(exposureGroupName))
+            return None, None, None, None, None
+        
+        # Extract the arrays from the HDF5 file
+
+        dataset = self.hdf5file["Cosmics"][field][exposureGroupName]["EntryRows"]
+        entryRows = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(entryRows)
+
+        dataset = self.hdf5file["Cosmics"][field][exposureGroupName]["EntryColumns"]
+        entryColumns = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(entryColumns)
+
+        dataset = self.hdf5file["Cosmics"][field][exposureGroupName]["EntryAngles"]
+        entryAngles = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(entryAngles)
+
+        dataset = self.hdf5file["Cosmics"][field][exposureGroupName]["Intensities"]
+        intensities = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(intensities)
+
+        dataset = self.hdf5file["Cosmics"][field][exposureGroupName]["TrailLengths"]
+        trailLengths = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(trailLengths)
+
+        # That's it!
+
+        if len(intensities) == 1 and intensities[0] == -1.0:
+            empty = np.array([])
+            return empty, empty, empty, empty, empty
+        else:
+            return entryRows, entryColumns, entryAngles, intensities, trailLengths
+
+
+
+
+
+
+
+
+
+    def getCosmicsAffectedPixels(self, imageNr, field="SubField"):
+        """
+        PURPOSE: Get the pixel coordinates and flux for those pixels that are affected by a cosmics,
+                 for a particular field (e.g. SubField, SmearingMap, etc). 
 
         INPUT: 
             - imageNr: Integer sequential number of the image in the HDF5 file.
-            - field: String that determines from what field the Cosmics should be returned.Can be "SubField", 
-                     "BiasMapLeft", "BiasMapRight" or "SmearingMap". If input doesn't match any of these 
-                     values the function returns (None, None, None).
+            - field: String that determines from what field the Cosmics should be returned. Can be:
+                     "SubField", "BiasMapLeft", "BiasMapRight" or "SmearingMap". 
+                     If input doesn't match any of these values the function returns (None, None, None).
 
         OUTPUT:
             - row: Pixel row coordinates of each star in the image (integer).
@@ -856,18 +952,20 @@ class SimFile (object):
         EXAMPLE:
 
             >>> file = SimFile("Simul01.hdf5")
-            >>> row, col, flux = file.getCosmicsCoordinates(4)
-            
+            >>> imageNr = 4
+            >>> row, col, flux = file.getCosmicsAffectedPixels(imageNr)
         """
+        
         # Check if the field variables matches the allowed values
+
         if not field in ["SubField", "BiasMapLeft", "BiasMapRight", "SmearingMap"]:
-            print("Error: field variable doesn't match the allowed values: SubField, BiasMapLeft, BiasMapRight or SmearingMap ")
+            print("Error: SimFile:getCosmicsAffectedPixels(): field variable doesn't match one of the allowed values: SubField, BiasMapLeft, BiasMapRight or SmearingMap ")
             return None, None, None
         
         # Check if the Cosmics info was saved to the HDF5 file
+        
         if "Cosmics" not in self.hdf5file["/"].keys():
-
-            print("Error: no group Cosmics in the HDF5 file.")
+            print("Error: SimFile.getCosmicsAffectedPixels(): no cosmics data was saved in the HDF5 file.")
             return None, None, None
 
 
@@ -880,11 +978,11 @@ class SimFile (object):
 
         if field not in self.hdf5file["Cosmics"].keys():
 
-            print("Error: SimfFile.getCosmicsCoordinates(): {0} not in hdf5 file".format(field))
+            print("Error: SimFile.getCosmicsAffectedPixels(): field {0} not in hdf5 file".format(field))
             return None, None, None
         if exposureGroupName not in self.hdf5file["Cosmics/" + field].keys():
             print(self.hdf5file["Cosmics/" + field].keys())
-            print("Error: SimfFile.getCosmicsCoordinates(): {0} not in hdf5 file".format(exposureGroupName))
+            print("Error: SimFile.getCosmicsAffectedPixels(): field {0} not in hdf5 file".format(exposureGroupName))
             return None, None, None
         
         # Extract the arrays from the HDF5 file
@@ -905,6 +1003,8 @@ class SimFile (object):
         # That's it!
        
         return row, col, flux
+
+
 
 
 

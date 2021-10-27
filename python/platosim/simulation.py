@@ -683,11 +683,22 @@ class Simulation(object):
         focalPlaneAngle  = np.deg2rad(float(self["Camera/FocalPlaneOrientation/ConstantValue"]))
         pixelSize        = float(self["CCD/PixelSize"]) 
 
-        if (self["Camera/IncludeFieldDistortion"] == "yes")  or (self["Camera/IncludeFieldDistortion"] == "1" or (self["Camera/IncludeFieldDistortion"] == True)):
+
+        # If the psf is MappedFromFile we need to include mapped field distortion
+        if (self["PSF/Model"] == "MappedFromFile"):
             includeFieldDistortion = True
+            mappedDistortion       = True
+            pathToPsfFile          = self["PSF/MappedFromFile/Filename"]
+            distortionCoefficients = None
+        elif (self["Camera/IncludeFieldDistortion"] == "yes")  or (self["Camera/IncludeFieldDistortion"] == "1" or (self["Camera/IncludeFieldDistortion"] == True)):
+            includeFieldDistortion = True
+            mappedDistortion       = False
+            pathToPsfFile          = None 
             distortionCoefficients = self["Camera/FieldDistortion/ConstantCoefficients"]
         else:
             includeFieldDistortion = False
+            mappedDistortion       = False
+            pathToPsfFile          = None 
             distortionCoefficients = None
 
         solarPanelOrientation = np.deg2rad(float(self["Platform/SolarPanelOrientation"]))               # [rad]
@@ -695,10 +706,10 @@ class Simulation(object):
         # Compute the position of the subfield.
         # xPix and yPix are the CCD coordinates of the star, given a 4510x4510 CCD [colNumber, rowNumber].
         # The function below also checks if the subfield fits entirely on the CCD. If not: ccdCode is None.
-
+ 
         ccdCode, xPix, yPix = rf.calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, decStar, raPlatform, decPlatform,           \
                                                                     solarPanelOrientation, tiltTelescope, azimuthTelescope, focalPlaneAngle,          \
-                                                                    focalLength, pixelSize, includeFieldDistortion, distortionCoefficients, normal)
+                                                                    focalLength, pixelSize, includeFieldDistortion, normal, mappedDistortion, distortionCoefficients, pathToPsfFile)
         if ccdCode == None:
             return False
         
@@ -788,17 +799,29 @@ class Simulation(object):
         decPlatform     = np.deg2rad(self["ObservingParameters/DecPointing"])
         focalPlaneAngle = np.deg2rad(self["Camera/FocalPlaneOrientation/ConstantValue"])
         focalLength     = self["Camera/FocalLength/ConstantValue"] * 1000.0                     # [m] -> [mm]
-        includeFieldDistortion = self["Camera/IncludeFieldDistortion"]
-        inverseDistortionCoefficients = self["Camera/FieldDistortion/ConstantInverseCoefficients"]
+
+        if (self["PSF/Model"] == "MappedFromFile"):
+            incldueFieldDistortion        = True
+            mappedDistortion              = True
+            inverseDistortionCoefficients = None
+            pathToPsfFile                 = self["PSF/MappedFromFile/Filename"]
+        else: 
+            includeFieldDistortion = self["Camera/IncludeFieldDistortion"]
+            mappedDistortion       = False
+            inverseDistortionCoefficients = self["Camera/FieldDistortion/ConstantInverseCoefficients"]
+            pathToPsfFile          = None
+            
         solarPanelOrientation = np.deg2rad(float(self["Platform/SolarPanelOrientation"]))
+        
 
         # Convert the pixel coordinates to focal plane coordinates [mm]
       
         xFPmm, yFPmm = rf.pixelToFocalPlaneCoordinates(cols, rows, pixelSize, ccdZeroPointX, ccdZeroPointY, CCDangle)
       
         # If distortion is required in the yaml input file, distort the focal plane coordinates [mm]
-
-        if (includeFieldDistortion == "yes")  or (includeFieldDistortion == "1") or (includeFieldDistortion == True):
+        if mappedDistortion:
+            xFpmm, yFPmm = rf.mappedDistortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile)
+        elif (includeFieldDistortion == "yes")  or (includeFieldDistortion == "1") or (includeFieldDistortion == True):
             xFPmm, yFPmm = rf.distortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, inverseDistortionCoefficients, focalLength)
 
         # Convert the focal plane coordinates to equatorial sky coordinates [rad]

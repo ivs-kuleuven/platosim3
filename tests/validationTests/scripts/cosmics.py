@@ -127,7 +127,7 @@ class Cosmics(Test):
     def checkOutPut(self):
 
         image1 = self.simFileWithCos1.getImage(0) - self.simFileWithoutCos.getImage(0)
-        row, col, flux = self.simFileWithCos1.getCosmicsCoordinates(0)
+        row, col, flux = self.simFileWithCos1.getCosmicsAffectedPixels(0)
         
         image2 = np.zeros((1000, 1000))
         for c, r, f in zip(col, row, flux):
