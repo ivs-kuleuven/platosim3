@@ -1,9 +1,23 @@
 # Changelog for PlatoSim
 
+<!-- 3.5.2 -->
+<!-- ***** -->
+
+## **/**/****: 3.5.2
+
+## Fixed
+
+
+## Changed
+
+
+## Added
+
+
 <!-- 3.5.1 -->
 <!-- ***** -->
 
-## **/**/****: 3.5.1
+## 29/10/2021: 3.5.1
 
 ## Fixed
 * The diffused PSF that was saved to the output HDF5 is now rotated with respect to the CCD it falls on. (GitHub #627)
