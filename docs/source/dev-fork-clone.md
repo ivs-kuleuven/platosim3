@@ -24,6 +24,21 @@ From there you can "clone" it to a designated directory on your local machine, w
 
     $ git clone https://github.com/<your GitHub username>/PlatoSim3.git .
 
+It is possible that you will be asked for a usename and password. In that case, follow the section **Credentials** underneed this section.
+
 After you have downloaded the PlatoSim3 code, you first have to install a few packages (so-called dependencies) before you can actually build and run the PLATO Simulator.  How to do this, is described @ref dev-dependencies "here".
 
 Note that it is also possible to clone the repository directly onto your local machine, without forking it first.  You will be able to update the software but not to contribute to it.  We therefore strongly discourage this approach.  If you only want to use PlatoSim (without changing the code), you may want to follow the @ref user-overview "user installation procedure" instead.
+
+---
+
+## Credentials
+
+When cloning a repository for the first time, GitHub might as for authentification. If this is the case, you will need to obtain a [Personal Acces Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token) for you account. When cloning the repository to your local machine your GitHub username and personal acces tokens will be needed. If you want your machine to remember these in the future, write the following command 
+
+    $ git config credential.helper store
+
+PlatoSim can then be "cloned" to your local machine using the command
+
+    $ git clone https://"<USERNAME>:<ACCES_TOKEN>"@github.com/<your GitHub username>/PlatoSim3.git .
+	

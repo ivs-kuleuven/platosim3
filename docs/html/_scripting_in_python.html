@@ -100,7 +100,7 @@ $(document).ready(function(){initNavTree('_scripting_in_python.html','');});
 <h3>Creating a Python Environment (for Developers)</h3>
 <p>With <a href="http://conda.pydata.org/docs/index.html">conda</a> (which is included in <a href="https://docs.continuum.io/anaconda/install">Anaconda</a>), you can create, export, list, remove, and update environments that have different versions of Python and/or packages installed in them. Switching or moving between environments is called activating the environment.</p>
 <p>To create and activate such an environment, type </p><pre class="fragment">source /anaconda/bin/activate root
-conda create -n platosim python=&lt;Python version&gt; anaconda
+conda create -n platosim python=&lt;Python version&gt;
 </pre><p>Supported Python versions are 3.6, 3.7, 3.8 and 3.9. More information on managing environment with conda can be found <a href="http://conda.pydata.org/docs/using/envs.html#">here</a>. Please, note that - when you switch to a different version of Python - it is advised to create a new conda environment rather than trying to update your existing one. This means you (as a developer) will have to re-install a couple of Python packages (see below), but is will save you a lot of trouble if you do it like this.</p>
 <p>Users only have to source the conda environment in which the desired version of the software has been installed in. Also they are advised to create a new conda environment when they want to switch to a different version of Python. After a <a class="el" href="user-install.html">conda update</a> or a <a class="el" href="user-install.html">conda install</a> of the PlatoSim software, everything will be configured appropriately, without further action.</p>
 <h3>Installing Extra Packages (for Developers)</h3>
@@ -132,7 +132,7 @@ export PYTHONPATH
 <h2>Running PlatoSim3 in Python</h2>
 <h3>Creating a <code>Simulation</code> Object</h3>
 <p>To run PlatoSim from within Python, you have to import the <code>simulation</code> module:</p>
-<div class="fragment"><div class="line"><span class="keyword">import</span> simulation</div></div><!-- fragment --><p>and create a new <code>Simulation object</code> (the name <code>sim</code> is arbitrary):</p>
+<div class="fragment"><div class="line"><span class="keyword">import</span> platosim.simulation</div></div><!-- fragment --><p>and create a new <code>Simulation object</code> (the name <code>sim</code> is arbitrary):</p>
 <div class="fragment"><div class="line">sim = Simulation(&lt;runName&gt;, configurationFile = &lt;full path to the configuration file&gt;, outputDir = &lt;full path to the output directory&gt;)</div></div><!-- fragment --><p>Note that you can use the working directory (i.e. the directory specified in the <code>PLATO_WORKDIR</code>) environment variable to specify the path to the input configuration file or the output directory. To read the content of this environment variable in Python, use</p>
 <div class="fragment"><div class="line"><span class="keyword">import</span> os</div><div class="line">workDir = os.environ[<span class="stringliteral">&quot;PLATO_WORKDIR&quot;</span>]</div></div><!-- fragment --><h3>Input Configuration File</h3>
 <p>The <code>configurationFile</code> parameter is optional and contains the full path to the configuration file that will be used as a reference. A copy of this file will be stored in the output directory (with the name <code>runName.yaml</code>) and only the copy (and not the original file) will be modified. We will show later how to do this.</p>

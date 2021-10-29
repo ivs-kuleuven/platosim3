@@ -20,7 +20,7 @@ With <a href="http://conda.pydata.org/docs/index.html">conda</a> (which is inclu
 To create and activate such an environment, type
 
     source /anaconda/bin/activate root
-    conda create -n platosim python=<Python version> anaconda
+    conda create -n platosim python=<Python version>
 
 Supported Python versions are 3.6, 3.7, 3.8 and 3.9.  More information on managing environment with conda can be found <a href="http://conda.pydata.org/docs/using/envs.html#">here</a>.  Please, note that - when you switch to a different version of Python - it is advised to create a new conda environment rather than trying to update your existing one.  This means you (as a developer) will have to re-install a couple of Python packages (see below), but is will save you a lot of trouble if you do it like this.
 
@@ -82,7 +82,7 @@ In <a href="https://pythonhosted.org/spyder/">Spyder</a> (the GUI that comes wit
 To run PlatoSim from within Python, you have to import the <code>simulation</code> module:
 
 \code{.py}
-import simulation
+import platosim.simulation
 \endcode
 
 and create a new <code>Simulation object</code> (the name <code>sim</code> is arbitrary):
