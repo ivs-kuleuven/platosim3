@@ -26,9 +26,9 @@ Sky:
     IncludeCosmicsInSmearingMap:     yes             # Whether or not to include cosmics in the overscan map
     IncludeCosmicsInBiasMap:         yes             # Whether or not to include cosmics in the prescan map
     Cosmics:
-      CosmicHitRate:                 10              # Cosmic hit rate [events / cm^2 / s]
-      TrailLength:                   [0, 15]         # Intervalof the length of the cosmic trails [pixels]
-      Intensity:                     [2000, 40000]   # Interval of the total number of e- in a cosmic hit [e-]
+      CosmicHitRate:                 1000            # Cosmic hit rate [events / cm^2 / s]
+      TrailLength:                   [0, 15]         # Boundaries of uniform distribution for the length of the cosmic trails [pixels]
+      Intensity:                     [2500., 2000., 30.] # Location, scale>0, and shape of the skew-Normal distribution for the total number of e- in a cosmic hit [e-]
 
 Platform:
 
@@ -89,7 +89,8 @@ Camera:
         ConstantInverseCoefficients: [-0.317143032936, 0.242638513347,-0.459260203502]       # In case Source is ConstantValue
         CoefficientsFromFile:        inputfiles/distortioncoefficients.txt                   # In case Source is FromFile
         InverseCoefficientsFromFile: inputfiles/distortioninversecoefficients.txt            # In case Source if FromFile
-    IncludeGhosts:                   yes
+    IncludePointLikeGhosts:          yes
+    IncludeExtendedGhosts:           no
     Ghosts:
         PointLike:
             FluxRatio:               0.08                       # Flux ratio between the point-like ghost and the originating source [%]
@@ -130,8 +131,8 @@ FEE:
     TemperatureFileName:             inputfiles/feeTemperature.txt
     ReadoutNoise:                    32.0            # Readout noise for the FEE [e-/pixel] (same for both ADCs)
     Gain:
-        RefValueLeft:                0.0222          # [ADU/microV] (1 / (Total gain) = FFE gain * CCD gain = 1 / (20 e-/ADU))
-        RefValueRight:               0.0222          # [ADU/microV] (1 / (Total gain) = FFE gain * CCD gain = 1 / (20 e-/ADU))
+        RefValueLeft:                0.0222          # [ADU/microV] (1 / (Total gain) = FFE gain * CCD gain = 1 / (25 e-/ADU))
+        RefValueRight:               0.0222          # [ADU/microV] (1 / (Total gain) = FFE gain * CCD gain = 1 / (25 e-/ADU))
         Stability:                   -300.0e-6       # [ppm/K] = [ADU/microV/K]
         AllowedDifference:           0.0             # Difference in gain between both ADCs [%]
     ElectronicOffset:
@@ -202,8 +203,8 @@ CCD:
             Temperature:             203.                                         # [K]
             NumTrapSpecies:          4                                            # number of different trap species
             TrapDensity:             # for each trap species [traps/pixel]
-                BOL:                 [0.0, 0.0, 0.0, 0.0]
-                EOL:                 [9.8, 3.31, 1.56, 13.24]
+                BOL:                 [0.0, 0.0, 0.0, 0.0]                         # Values at the Beginning Of Life
+                EOL:                 [9.8, 3.31, 1.56, 13.24]                     # Values at the End Of Life
             TrapCaptureCrossSection: [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]     # for each trap species [m^2]
             ReleaseTime:             [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]         # for each trap species [s]
     ChargeInjection:                                 # Inject charge once per exposure to mitigate the CTI effect
@@ -246,7 +247,7 @@ SubField:
 
 Photometry:                                          # Only possible when 'AnalyticNonGaussian' is selected as PSF. Minimum size of pixel map is 8x8.
 
-    IncludePhotometry:               no
+    IncludePhotometry:               no              # The method described in Marchiori et al., 2019, A&A 627, A71 for in-flight photometry is used.
     ContaminationRadius:             4               # Only consider contaminants that are within this number of pixels [integer pixels]
     MaskUpdateInterval:              14.0            # Photometric masks will be updated every xx days  [days]
     TargetFileName:                  inputfiles/photometryTargets.txt      # One column with star IDs for which you want to have photometry
