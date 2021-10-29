@@ -1,43 +1,39 @@
-* Release Notes PlatoSim 3.4.1
+* Release Notes PlatoSim 3.5.1
 
 
 
 ** Improvements
 
+*** The dependencies python install files now check that the `Installs` directory exists and creates this directory if it doesn't. 
 
-*** Added an option to the method `getYawPitchRoll` in simfile.py to obtain the time (GitHub issue #508)
+*** Made the log files for `Camera::makeStarCatalogSelection` clearer. 
 
-*** Apply the BFE after full-well saturation (GitHub issue #584)
-The current implementation of the BFE fails for very large pixel values, which results in negative pixel values in
-the pixelmap. By first applying full-well saturation, these large values will not occur.
+*** Changed the python functions in `referenceFrames.py`, `plot.py` and `simulation.py` to deal with mapped distortion.
 
-*** The conda install should now work for python versions 3.6, 3.7, 3.8 and 3.9.
+*** Mapped distortion now uses a continuous approximation insead of the previous (crude) method of one-to-one fitting of closed point.
+
+*** Changed cosmics intensity from uniform to skew-normal. (GitHub #638)
+
+*** Renamed `getCosmicsCoordinates()` to `getCosmicsAffectedPixels()` in `simfile.py`
+
+*** Updated website 
+
+
 
 
 ** Bug fixes
 
-*** Corrected the implementation of the jitter/drift from red noise
-The previous implementation of the jitter and drift was not consistent between different CCDs. It is now implemented
-to be consistent between different CCDs if the jitter/drift seed is the same.
+*** The diffused PSF that was saved to the output HDF5 is now rotated with respect to the CCD it falls on. (GitHub #627)
 
-*** Fixed conda build of PlatoSim in Jenkins
+*** Fixed bug where the star coordinates where written to the output HDF5 file without taking field distortion into account. (GitHub #631)
+
 
 
     
 ** New features/functionality
 
-*** Validation test for Jitter on different CCDs
+*** Added an option to individually switch on/off extended or pointlike ghosts. 
 
-*** Add method `getYawPitchRollFromDrift` in simfile.py
-Added a method to extract the Yaw, Pitch, Roll and time from the output file.
+*** Added `getCosmicsInfo()` method to extract the entry position, entry angle and the trail length of all cosmics
 
-*** Option to add the diffused PSF in the output file. (GitHub Issue #564)
-
-*** Add option `setSubfieldAroundPixelRows` (GitHub Issue #587)
-
-*** Added the option to (not) include in the output file:
-    - High resolution PSF (if PSF is not Analytic Gaussian)
-    - Star Catalog
-    - Platform Yaw, Pitch, Roll
-    - Transmission Efficiency
 

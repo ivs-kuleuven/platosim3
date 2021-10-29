@@ -236,7 +236,7 @@ void PointSpreadFunction::select(double xFP, double yFP)
 
     
 
-    for (int i=0; i < xDistorted.size(); i++)
+    for (unsigned int i=0; i < xDistorted.size(); i++)
     {
       const std::array<double, 4> coordinates = { xUndistorted.at(i), yUndistorted.at(i), xDistorted.at(i), yDistorted.at(i) }; 
       distortionMap.push_back(coordinates);

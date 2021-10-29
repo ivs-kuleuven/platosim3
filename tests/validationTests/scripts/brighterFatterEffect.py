@@ -42,14 +42,14 @@ class BrighterFatterEffect(Test):
         self.sim["ObservingParameters/NumExposures"] = 1
         self.sim["CCD/IncludeConvolution"]           = "yes"
 
-        self.dim                        = 9
+        self.dim                        = 20
         self.sim["SubField/NumRows"]    = self.dim
         self.sim["SubField/NumColumns"] = self.dim
 
         self.sim["ControlHDF5Content/WriteSubPixelImages"] = "yes"
         self.numSubPixels = self.sim["SubField/SubPixels"]
 
-        self.sim["PSF/Model"] = "MappedFromFile"
+        #self.sim["PSF/Model"] = "MappedFromFile"
 
 
 

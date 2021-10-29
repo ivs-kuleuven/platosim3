@@ -242,6 +242,7 @@ void Simulation::configure(ConfigurationParameters &configParams)
     numExposures                    = configParams.getInteger("ObservingParameters/NumExposures");
     useJitter                       = configParams.getBoolean("Platform/UseJitter");
     jitterSource                    = configParams.getString("Platform/JitterSource");
+    includeFieldDistortion          = configParams.getBoolean("Camera/IncludeFieldDistortion"); // do we want to do this or should this be asked to Camera?
     useDrift                        = configParams.getBoolean("Telescope/UseDrift");  
     useDriftFromFile                = configParams.getBoolean("Telescope/UseDriftFromFile");  
     psfModel                        = configParams.getString("PSF/Model");
@@ -590,6 +591,17 @@ void Simulation::writeStarCatalogToHDF5()
             RA[k]  *= Angle::degrees;    // [rad] -> [deg]
             dec[k] *= Angle::degrees;    // [rad] -> [deg]
 
+	    if (includeFieldDistortion)
+	    {
+	      if(psfModel == "MappedFromFile")
+	      {
+		detector->applyDistortion(xFPmm[k], yFPmm[k]);
+	      }
+	      else
+	      {
+		tie(xFPmm[k], yFPmm[k]) = camera->undistortedToDistortedFocalPlaneCoordinates(xFPmm[k], yFPmm[k]);
+	      }
+	    }
 
             tie(rowPix[k], colPix[k]) = detector->focalPlaneToPixelCoordinates(xFPmm[k], yFPmm[k]);
             k++;
@@ -638,37 +650,37 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     // Define some Lambda functions that will make it much easier to add the input parameters
 
-    auto addDouble = [&] (string attributeName) 
-    { 
+    auto addDouble = [&] (string attributeName)
+    {
         hdf5File->writeAttribute(parentGroup + "/" + subGroup, attributeName, configParams.getDouble(subGroup + "/" + attributeName));
     };
 
-    auto addInteger = [&] (string attributeName) 
-    { 
+    auto addInteger = [&] (string attributeName)
+    {
         hdf5File->writeAttribute(parentGroup + "/" + subGroup, attributeName, configParams.getInteger(subGroup + "/" + attributeName));
     };
 
-    auto addLong = [&] (string attributeName) 
-    { 
+    auto addLong = [&] (string attributeName)
+    {
         hdf5File->writeAttribute(parentGroup + "/" + subGroup, attributeName, configParams.getLong(subGroup + "/" + attributeName));
     };
 
-    auto addString = [&] (string attributeName) 
-    { 
+    auto addString = [&] (string attributeName)
+    {
         hdf5File->writeAttribute(parentGroup + "/" + subGroup, attributeName, configParams.getString(subGroup + "/" + attributeName));
     };
 
-    auto addBoolean = [&] (string attributeName) 
-    { 
+    auto addBoolean = [&] (string attributeName)
+    {
         hdf5File->writeAttribute(parentGroup + "/" + subGroup, attributeName, configParams.getBoolean(subGroup + "/" + attributeName));
     };
 
-    auto addDoubleVector = [&] (string attributeName) 
+    auto addDoubleVector = [&] (string attributeName)
     {
         hdf5File->writeAttribute(parentGroup + "/" + subGroup, attributeName, configParams.getDoubleVector(subGroup + "/" + attributeName));
     };
 
-    auto addIntegerVector = [&] (string attributeName) 
+    auto addIntegerVector = [&] (string attributeName)
     {
         hdf5File->writeAttribute(parentGroup + "/" + subGroup, attributeName, configParams.getIntegerVector(subGroup + "/" + attributeName));
     };
@@ -735,7 +747,10 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("PlateScale");
     addDouble("ThroughputBandwidth");
     addDouble("ThroughputLambdaC");
-    addBoolean("IncludeGhosts");
+    addBoolean("IncludeAberrationCorrection");
+    addBoolean("IncludeFieldDistortion");
+    addBoolean("IncludePointLikeGhosts");
+    addBoolean("IncludeExtendedGhosts");
     subGroup = "Camera/FocalPlaneOrientation";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addString("Source");
@@ -746,6 +761,19 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addString("Source");
     addDouble("ConstantValue");
     addString("FromFile");
+    subGroup = "Camera/AberrationCorrection";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addString("Type");
+    addString("OrbitFile");
+    addDouble("StartTime");
+    subGroup = "Camera/FieldDistortion";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addString("Type");
+    addString("Source");
+    addDoubleVector("ConstantCoefficients");
+    addDoubleVector("ConstantInverseCoefficients");
+    addString("CoefficientsFromFile");
+    addString("InverseCoefficientsFromFile");
     subGroup = "Camera/Ghosts";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     subGroup = "Camera/Ghosts/PointLike";
@@ -768,13 +796,11 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("ChargeDiffusionStrength");
     addBoolean("IncludeChargeDiffusion");
     addBoolean("IncludeJitterSmoothing");
-
     subGroup = "PSF/AnalyticGaussian";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addDouble("Sigma00");
     addDouble("SigmaX18");
     addDouble("SigmaY18");
-
     subGroup = "PSF/AnalyticNonGaussian";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addString("ParameterFileName");
@@ -870,9 +896,9 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addInteger("NumRowsReadout");
     subGroup = "CCD/RelativeTransmissivity";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addDoubleVector("Coefficients");
     addDouble("RadiusFOV");
     addDouble("ExpectedValue");
-    addDoubleVector("Coefficients");
     subGroup = "CCD/Polarization";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addDouble("ExpectedValue");
@@ -989,14 +1015,14 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
 
 /**
- * @brief Set the random seeds of the simulation. 
- * 
+ * @brief Set the random seeds of the simulation.
+ *
  * If the user set a random seed to -1, use the system's clock to set it. This is useful
  * to simulate time series that were partitioned in several segments, so that each 
  * segment has a different random seed.
- * 
- * @param configParams 
- * 
+ *
+ * @param configParams
+ *
  * @return configParams will have adapted seeds if they were set to -1.
  */
 

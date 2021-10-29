@@ -10,6 +10,7 @@
 
 #include "Detector.h"
 #include "PointSpreadFunction.h"
+#include "ArrayOperations.h"
 
 using namespace std;
 
@@ -35,7 +36,7 @@ class DetectorWithMappedPSF : public Detector
         void applyInverseDistortion(double &x, double &y) override;
 
     protected:
-
+        bool areColinear(std::array<std::array<double, 2>, 3>);
         void reset() override;
         void initHDF5Groups() override;
         void integrateLight(int exposureNr, double startTime, double exposureTime) override;
@@ -75,14 +76,13 @@ class DetectorWithMappedPSF : public Detector
         bool writeDiffusedPSF;                  // Whether or not to write the diffused PSF to the output HDF5 file
 
         arma::Mat<float> diffusionKernel;                    // Diffusion kernel image
-        IntegralOfAnalyticSignalResponse signalResponse;	 // Signal response
-        double diffusionKernelWidth;				         // Width (sigma) of the Gaussian diffusion kernel [sub-pixels]
-        int diffusionKernelImageSize;             		     // Size of the diffusion kernel image [sub-pixels]
-
+        IntegralOfAnalyticSignalResponse signalResponse;    // Signal response
+        double diffusionKernelWidth;                        // Width (sigma) of the Gaussian diffusion kernel [sub-pixels]
+        int diffusionKernelImageSize;                           // Size of the diffusion kernel image [sub-pixels]
         unsigned int numRowsSubPixelMap;        // Nr of subpixel rows in the subfield incl. edge pixels (= size in the y-direction) [subpixels]
         unsigned int numColumnsSubPixelMap;     // Nr of subpixel columns in the subfield incl. edge pixels (= size in the x-direction = readout direction) [subpixels]
         unsigned int numSubPixelsPerPixel;      // Nr of sub-pixels per pixel
-        PointSpreadFunction *psf;        
+        PointSpreadFunction *psf;
         long flatfieldSeed;
 
         Convolver convolver;
