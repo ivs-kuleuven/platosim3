@@ -243,6 +243,8 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
  */
 Detector::~Detector()
 {
+    writeCTIToHDF5();
+
     flushOutput();
 
     delete frontEndElectronics;
@@ -291,12 +293,12 @@ void Detector::updateParameters(double time)
 
     if (ccdPosition == "Custom")
     {
-        customOriginOffsetX         = configParam.getDouble("CCD/OriginOffsetX");        // [mm]
-        customOriginOffsetY         = configParam.getDouble("CCD/OriginOffsetY");        // [mm]
-        customOrientationAngle      = deg2rad(configParam.getDouble("CCD/Orientation")); // [rad]
-        numRows               = configParam.getInteger("CCD/NumRows");             // [pixels]
-        numColumns            = configParam.getInteger("CCD/NumColumns");          // [pixels]
-        firstRowExposed       = configParam.getInteger("CCD/FirstRowExposed");     // [pixels]
+        customOriginOffsetX    = configParam.getDouble("CCD/OriginOffsetX");        // [mm]
+        customOriginOffsetY    = configParam.getDouble("CCD/OriginOffsetY");        // [mm]
+        customOrientationAngle = deg2rad(configParam.getDouble("CCD/Orientation")); // [rad]
+        numRows                = configParam.getInteger("CCD/NumRows");             // [pixels]
+        numColumns             = configParam.getInteger("CCD/NumColumns");          // [pixels]
+        firstRowExposed        = configParam.getInteger("CCD/FirstRowExposed");     // [pixels]
 
         rotationAnglePsf = customOrientationAngle;  // Angle over which the PSF should be rotated
     }
@@ -408,28 +410,6 @@ void Detector::updateParameters(double time)
     parallelTransferTime = configParam.getDouble("CCD/ParallelTransferTime") * 1E-6;          // [µs] -> [s]
     parallelTransferTimeFast = configParam.getDouble("CCD/ParallelTransferTimeFast") * 1E-6;  // [µs] -> [s]
 
-    CTImodel                   = configParam.getString("CCD/CTI/Model");
-    if (CTImodel == "Simple")
-    {
-        meanCte                = configParam.getDouble("CCD/CTI/Simple/MeanCTE");
-    }
-    else if (CTImodel == "Short2013")
-    {
-        beta                    = configParam.getDouble("CCD/CTI/Short2013/Beta");
-        temperature             = configParam.getDouble("CCD/CTI/Short2013/Temperature");
-        numTrapSpecies          = configParam.getInteger("CCD/CTI/Short2013/NumTrapSpecies");
-        trapDensityBOL          = configParam.getDoubleVector("CCD/CTI/Short2013/TrapDensity/BOL");
-        trapDensityEOL          = configParam.getDoubleVector("CCD/CTI/Short2013/TrapDensity/EOL");
-        missionDuration         = configParam.getDouble("ObservingParameters/MissionDuration") * 31536000.0; // [s]
-        trapCaptureCrossSection = configParam.getDoubleVector("CCD/CTI/Short2013/TrapCaptureCrossSection");
-        releaseTime             = configParam.getDoubleVector("CCD/CTI/Short2013/ReleaseTime");
-    }
-    else
-    {
-        Log.error("Detector::configure(): Unkown CTI model specification in configuration file: "  + CTImodel);
-        throw ConfigurationException("Detector: Unkown CTI model specification in configuration file");
-    }
-
 
     chargeInjectionLevel = configParam.getDouble("CCD/ChargeInjection/InjectionLevel");
     injectionRowInterval = configParam.getInteger("CCD/ChargeInjection/RowInterval");
@@ -527,6 +507,38 @@ void Detector::updateParameters(double time)
         numRowsSmearingMap = 0;
     }
 
+    // The configuration for CTI
+
+    missionDuration = configParam.getDouble("ObservingParameters/MissionDuration") * 31536000.0; // [s]
+
+    CTImodel                   = configParam.getString("CCD/CTI/Model");
+    if (CTImodel == "Simple")
+    {
+        meanCte                = configParam.getDouble("CCD/CTI/Simple/MeanCTE");
+    }
+    else if (CTImodel == "Short2013")
+    {
+        beta                    = configParam.getDouble("CCD/CTI/Short2013/Beta");
+        temperature             = configParam.getDouble("CCD/CTI/Short2013/Temperature");
+        numTrapSpecies          = configParam.getInteger("CCD/CTI/Short2013/NumTrapSpecies");
+        trapCaptureCrossSection = configParam.getDoubleVector("CCD/CTI/Short2013/TrapCaptureCrossSection");
+        releaseTime             = configParam.getDoubleVector("CCD/CTI/Short2013/ReleaseTime");
+        meanTrapDensityBOL      = configParam.getDoubleVector("CCD/CTI/Short2013/TrapDensity/BOL");
+        meanTrapDensityEOL      = configParam.getDoubleVector("CCD/CTI/Short2013/TrapDensity/EOL");
+        radiationMap.resize(numRowsPixelMap, numColumnsPixelMap); 
+        radiationMap.fill(1.0);
+    }
+    else if (CTImodel == "Short2013FromFile")
+    {
+        string ctiInputFile = configParam.getAbsoluteFilename("CCD/CTI/Short2013FromFile/CTIFileName");
+        readCTIinputFile(ctiInputFile);
+    }
+    else
+    {
+        Log.error("Detector::configure(): Unkown CTI model specification in configuration file: "  + CTImodel);
+        throw ConfigurationException("Detector: Unkown CTI model specification in configuration file");
+    }
+
     // Configuration parameters for the HDF5 file output
 
     writePixelMaps      = configParam.getBoolean("ControlHDF5Content/WritePixelMaps");
@@ -534,14 +546,14 @@ void Detector::updateParameters(double time)
     writeSmearingMaps   = configParam.getBoolean("ControlHDF5Content/WriteSmearingMaps");
     writeThroughputMaps = configParam.getBoolean("ControlHDF5Content/WriteThroughputMaps");
     writeCosmics        = configParam.getBoolean("ControlHDF5Content/WriteCosmics");
+    writeCTI            = configParam.getBoolean("ControlHDF5Content/WriteCTI");
 
     // Configuration parameters for the noise source random seeds
 
     readoutNoiseSeed    = configParam.getLong("RandomSeeds/ReadOutNoiseSeed");
     photonNoiseSeed     = configParam.getLong("RandomSeeds/PhotonNoiseSeed");
-    cosmicSeed          = configParam.getLong("RandomSeeds/CosmicSeed");
-    darkSignalSeed      = configParam.getLong("RandomSeeds/DarkSignalSeed");
 
+    darkSignalSeed      = configParam.getLong("RandomSeeds/DarkSignalSeed");
 
     // Get the sequential number of the very first exposure
 
@@ -557,9 +569,72 @@ void Detector::updateParameters(double time)
 
 
 
+
+
+
 /**
- * \brief: Zeroes the pixel, bias register, and the smearing maps.
- *
+ * \brief Read the CTI input HDF5 file. This allows for a spatially varying trap density, and thus CTI.
+ */
+void Detector::readCTIinputFile(string ctiInputFile)
+{
+
+    // Prepare the psfFile by performing some basic checks
+
+    if (!FileUtilities::fileExists(ctiInputFile))
+    {
+        throw FileException("Detector: trying to load the CTI input HDF5 file (" + ctiInputFile + "), but file doesn't exist.");
+    }
+
+    try
+    {
+         CTIFile.open(ctiInputFile);
+    }
+    catch (H5::FileIException ex)
+    {
+        Log.error("H5::FileIException: " + string(ex.getCDetailMsg()));
+        throw H5FileException("Detector: Could not open HDF5 file: " + ctiInputFile);
+    }
+
+    Log.info("Detector: Opened the CTI input HDF5 file " + ctiInputFile);
+
+    // Read in the CTI info 
+
+    vector<double> temporary;
+    CTIFile.readArray("/", "beta", temporary); 
+    beta = temporary[0]; 
+    CTIFile.readArray("/", "temperature", temporary); 
+    temperature = temporary[0]; 
+
+    CTIFile.readArray("/", "meanTrapDensityBOL", meanTrapDensityBOL); 
+    CTIFile.readArray("/", "meanTrapDensityEOL", meanTrapDensityEOL); 
+    CTIFile.readArray("/", "trapCaptureCrossSection", trapCaptureCrossSection); 
+    CTIFile.readArray("/", "releaseTime", releaseTime); 
+
+    numTrapSpecies = releaseTime.size();
+
+    // Read in the radiation map. This map has the same size as for the entire CCD.  
+
+    arma::Mat<float> map(numRows, numColumns); 
+    CTIFile.readArray("/", "radiationMap", map); 
+
+    // Rescale the radiation map so that it has mean = 1, and only keep the part relevant to subfield we're interested in. 
+
+    radiationMap.resize(numRowsPixelMap, numColumnsPixelMap); 
+    radiationMap = map.submat(subFieldZeroPointRow, subFieldZeroPointColumn, subFieldZeroPointRow+numRowsPixelMap-1, subFieldZeroPointColumn+numColumnsPixelMap-1); 
+    radiationMap /= arma::mean(arma::mean(map)); 
+
+    // That's it!  
+
+    CTIFile.close(); 
+} 
+
+
+
+
+
+
+
+/** \brief: Zeroes the pixel, bias register, and the smearing maps.
  * \pre pixel, bias register, and smearing maps filled with values from previous exposure.
  *
  * \post pixel, bias register, and smearing maps filled with zeroes.
@@ -671,7 +746,7 @@ double Detector::takeExposure(int exposureNr, double startTime, double exposureT
     
     writePixelMapsToHDF5(exposureNr);
 
-     // Write the cosmic hits to the HDF5 file
+    // Write the cosmic hits to the HDF5 file
     
     Log.debug("Detector: Writing Cosmics of the PixelMap, smearing map, bias map #" + to_string(exposureNr) + " to HDF5 file.");
 
@@ -902,6 +977,7 @@ void Detector::readBfeCoefficients(string filename)
         bfeNeighbors[index][1] = coefficientsFile.readIntegerGroupAttribute("Neighbors/" + neighborName, "column");
     }
 
+    Log.debug("Detector: closing HDF5 file " + filename);
     coefficientsFile.close();
 }
 
@@ -1810,7 +1886,12 @@ void Detector::applyCTI()
     }
     else if (CTImodel == "Short2013")
     {
-        Log.info("Detector: applying Short et al. (2013) CTI model");
+        Log.info("Detector: applying Short et al. (2013) CTI model with a constant trap density");
+        applyShort2013CTImodel();
+    }
+    else if (CTImodel == "Short2013FromFile")
+    {
+        Log.info("Detector: applying Short et al. (2013) CTI model with CTI info from file");
         applyShort2013CTImodel();
     }
 }
@@ -1940,24 +2021,6 @@ void Detector::applySimpleCTImodel()
 
 
 
-
-
-double Detector::getTrapDensity(double time, int trapSpecies)
-{
-    double densityBOL = trapDensityBOL[trapSpecies];
-    double densityEOL = trapDensityEOL[trapSpecies];
-
-    return densityBOL - (densityBOL - densityEOL) / missionDuration * time;
-}
-
-
-
-
-
-
-
-
-
 /**
  * \brief: Apply the effect of the charge-transfer inefficiency to the pixel map,
  *         using the model described in Short et al., MNRAS 430, 3078-3085 (2013).
@@ -1992,8 +2055,9 @@ void Detector::applyShort2013CTImodel()
     const double effectiveElectronMass = 0.5 * Constants::FREEELECTRONMASS;                                  // me [kg]
     const double thermalVelocity = sqrt(3.0 * Constants::KBOLTZMANN * temperature / effectiveElectronMass);  // vt [m/s]
 
-    // Arrays to keep track of the number of occupied traps in a column
+    // Arrays to keep track of the trapdensity and the number of occupied traps in a row
 
+    arma::Row<float> trapDensity(numColumnsPixelMap);
     arma::Mat<float> numberOfOccupiedTraps = arma::zeros<arma::Mat<float>>(numTrapSpecies, numColumnsPixelMap);
 
     // Arrays to keep track of the captured and released electrons, for each column in a particular row.
@@ -2002,6 +2066,7 @@ void Detector::applyShort2013CTImodel()
     arma::Row<float> numberOfReleasedElectrons(numColumnsPixelMap);                                             // Nr
 
     arma::Row<float> alpha(numTrapSpecies, arma::fill::zeros);
+    arma::Row<float> gamma(numColumnsPixelMap, arma::fill::zeros);
 
     // Eq. (23) of Short et al. 2013
 
@@ -2019,14 +2084,20 @@ void Detector::applyShort2013CTImodel()
 
         for (int k = 0; k < numTrapSpecies; k++)
         {
+            // Interpolate between the BOL and EOL to get the trap density for species k corresponding to the current `internalTime`
+
+            arma::Mat<float> currentTrapDensityMap = (meanTrapDensityBOL[k] 
+                                                      + (meanTrapDensityEOL[k] - meanTrapDensityBOL[k]) * internalTime / missionDuration 
+                                                     ) * radiationMap;
+
             // Compute the number of electrons captured in a trap, according to Eq. (22)-(23) of Short et al. (2013).
             // Note that Armadillo uses % for elementwise multiplication.
             // In the following line: +1 as row = 0 also has to be transferred once
 
-            const double gamma = 2 * getTrapDensity(internalTime, k) * (subFieldZeroPointRow + rowNumber + 1) / pow(fullWellSaturationLimit, beta) / (1 + beta); // +1 as row = 0 also has to be transferred once
-            
-            numberOfCapturedElectrons =   (gamma * arma::pow(pixelMap.row(rowNumber), beta) - numberOfOccupiedTraps.row(k)) \
-                                        / (gamma * arma::pow(pixelMap.row(rowNumber), beta-1) + 1)                          \
+            gamma = 2 * currentTrapDensityMap.row(rowNumber) * (subFieldZeroPointRow + rowNumber + 1) / pow(fullWellSaturationLimit, beta) / (1 + beta); // +1 as row = 0 also has to be transferred once
+
+            numberOfCapturedElectrons =   (gamma % arma::pow(pixelMap.row(rowNumber), beta) - numberOfOccupiedTraps.row(k)) \
+                                        / (gamma % arma::pow(pixelMap.row(rowNumber), beta-1) + 1)                          \
                                         % (1 - arma::exp(-alpha(k) * arma::pow(pixelMap.row(rowNumber), 1-beta)));
 
             // Captured electron numbers can't be negative, so clip negative value to zero.
@@ -2988,14 +3059,20 @@ void Detector::initHDF5Groups()
     hdf5File.createGroup("/SmearingMaps");
     hdf5File.createGroup("/Flatfield");
     hdf5File.createGroup("/ThroughputMaps");
+
+    if (writeCTI)
+    {
+        hdf5File.createGroup("/CTI");
+    }
+
     if (writeCosmics)
-      {
-    hdf5File.createGroup("/Cosmics");
-    hdf5File.createGroup("/Cosmics/SubField");
-    hdf5File.createGroup("/Cosmics/SmearingMap");
-    hdf5File.createGroup("/Cosmics/BiasMapLeft");
-    hdf5File.createGroup("/Cosmics/BiasMapRight");
-      }
+    {
+        hdf5File.createGroup("/Cosmics");
+        hdf5File.createGroup("/Cosmics/SubField");
+        hdf5File.createGroup("/Cosmics/SmearingMap");
+        hdf5File.createGroup("/Cosmics/BiasMapLeft");
+        hdf5File.createGroup("/Cosmics/BiasMapRight");
+    }
     
 }
 
@@ -3226,6 +3303,61 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
     }
 }
 
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Write the EOL and BOL trap density maps of each species to the HDF5 file.
+ *
+ */
+
+void Detector::writeCTIToHDF5()
+{
+    stringstream myStream;
+
+    if (writeCTI)
+    {
+
+        // FIXME: This informational log statement is not visible in the log file (low priority)
+
+        Log.info("Detector: Writing BOL and EOL trap density maps to HDF5 file");
+
+        for (int k = 0; k < numTrapSpecies; k++)
+        {
+            // First the map for BOL
+
+            myStream << "trapDensityMapForSpecies" << k << "BOL";
+            string mapName = myStream.str();
+
+            arma::Mat<float> trapDensityMap = meanTrapDensityBOL[k] * radiationMap;
+            hdf5File.writeArray("/CTI", mapName, trapDensityMap);
+
+            // Clear the string stream and compose the EOL trap density map name
+
+            myStream.str(string());      // insert empty string
+            myStream.clear();            // clear eof bit
+            myStream << "trapDensityMapForSpecies" << k << "EOL";
+            mapName = myStream.str();
+
+            // Save the EOL trap density map
+
+            trapDensityMap = meanTrapDensityEOL[k] * radiationMap;
+            hdf5File.writeArray("/CTI", mapName, trapDensityMap);
+            
+            // Once more clear the stream to that it's ready to be be used again
+
+            myStream.str(string());      // insert empty string
+            myStream.clear();            // clear eof bit
+        }
+    }
+}
 
 
 

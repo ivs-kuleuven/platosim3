@@ -14,6 +14,7 @@
 #include "Constants.h"
 #include "ArrayOperations.h"
 #include "Mathematics.h"
+#include "FileUtilities.h"
 #include "Random.h"
 #include "Camera.h"
 #include "FrontEndElectronics.h"
@@ -92,9 +93,6 @@ class Detector: public HDF5Writer
         virtual void applyDistortion(double &, double &){};
         virtual void applyInverseDistortion(double &, double &){};
 
-        virtual double getTrapDensity(double time, int trapSpecies);
-
-
     protected:
 
         virtual void reset();
@@ -139,6 +137,7 @@ class Detector: public HDF5Writer
         virtual void writeCosmicFieldToHDF5(int exposureNr, string field, vector<unsigned int> &entryRows, vector<unsigned int> &entryColumns, 
                                             vector<double> &trailLengths, vector<double> &entryAngles, vector<double> &intensities,   
                                             vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux);
+        virtual void writeCTIToHDF5();
 
         double getRowEdgeFOV(int column);
 
@@ -265,16 +264,19 @@ class Detector: public HDF5Writer
         bool writeSmearingMaps;                  // Whether or not to write the smearing maps to the HDF5 file, for each exposure 
         bool writeThroughputMaps;                // Whether or not to write the throughput maps to the HDF5 file, for each exposure
         bool writeCosmics;                       // Whether or not to write the cosmics row, column and flux to the HDF5 file, for each exposure
+        bool writeCTI;                           // Whether or not to write the BOL/EOL trap density maps for each species to the HDF5 file
 
         string CTImodel;
         double meanCte;                          // Mean charge-transfer efficiency  (in [0,1])
         double beta;                             // Beta exponent in Short et al., MNRAS 430, 3078-3085 (2010).
         double temperature;                      // Temperature of the detector
         unsigned int numTrapSpecies;             // Number of different trap species included in the Short2010 model
-        vector<double> trapDensityBOL;           // For each trap species: the trap density at BOL [traps/pixel]
-        vector<double> trapDensityEOL;           // For each trap species: the trap density at EOL [traps/pixel]
+        vector<double> meanTrapDensityBOL;       // mean (averaged over entire CCD) trap density of each trap species at Beginning-Of-Live [traps/pixel] 
+        vector<double> meanTrapDensityEOL;       // mean (averaged over entire CCD) trap density of each trap species at End-Of-Live [traps/pixel] 
         vector<double> trapCaptureCrossSection;  // For each trap species: the trap capture cross section [m^2]
         vector<double> releaseTime;              // For each trap species: the electron release time [s]
+        arma::Mat<float> radiationMap;           // Normalized radiation map for the subfield under consideration [p+ / s]
+        HDF5File CTIFile;                        // Input CTI file with the trap density maps
 
         double chargeInjectionLevel;             // Percentage of the full well to be filled by charge injection [0-100]
         int injectionRowInterval;                // Charge will be injected every XX CCD row [integer: in 1 - numrows] starting from firstInjectedRow.
@@ -341,6 +343,7 @@ class Detector: public HDF5Writer
 
         TemperatureGenerator &temperatureGenerator;
 
+        void readCTIinputFile(string ctiInputFile);
 };
 
 #endif
