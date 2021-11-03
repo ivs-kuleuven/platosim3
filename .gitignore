@@ -88,3 +88,6 @@ Pipfile*
 
 # Validation tests
 tests/validationTests/ioFiles/
+
+# ignore setting file for ccls language server
+.ccls-cache/

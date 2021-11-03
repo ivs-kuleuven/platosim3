@@ -758,22 +758,25 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
     """
 
     # Check the path to the PSF file excists
+
     if not os.path.exists(pathToPsfFile):
         if os.path.exists(os.environ["PLATO_PROJECT_HOME"] + "/" + pathToPsfFile):
             pathToPsfFile = os.environ["PLATO_PROJECT_HOME"] + "/" + pathToPsfFile
         else:
             print("Error: {} is not a valid path name for mapped PSF".format(pathToPsfFile))            
-        
 
     # We open the psf file where the coordinate transformation matrix should be in. If the matrix isn't in the file, we raise an error. 
+
     psfFile = h5py.File(pathToPsfFile, "r")
     if not "Coordinates map" in psfFile.keys():
         print("Error: No transformation map given in psf file, mapped distortion is not possible.")
-        return 
+        return
     else:
         coordMap = psfFile["Coordinates map"]
 
+
     # Calculate the distance of the undistorted coordinates with the input coordinates.
+
     undistorted = coordMap["Undistorted"]
 
     x = undistorted["x"]
@@ -784,9 +787,44 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
     yUndis = np.zeros(y.shape, y.dtype)
     y.read_direct(yUndis)
 
-    distance = np.array([(xFPmm - x)**2 + (yFPmm - y)**2 for x, y in zip(xUndis, yUndis)])
+    distanceFromPoint = [(xFPmm - x)**2 + (yFPmm - y)**2 for x, y in zip(xUndis, yUndis)]
+    areColinear = lambda x, y : abs(np.inner(np.cross(x, y), np.array([1, 1, 1]))) < 1e-5
 
-    # Select the distorted coordinates whose respective undistorted counterparts are closest to the input coordinates
+    # We should select the closest three undistorted and noncolinear points to the input point
+
+    idx = [distanceFromPoint.index(np.sort(distanceFromPoint)[i]) for i in [0, 1, 2]]
+    closestX, closestY = np.array([xUndis[idx[0]], xUndis[idx[1]], xUndis[idx[2]]]), np.array([yUndis[idx[0]], yUndis[idx[1]], yUndis[idx[2]]])
+    i = 2
+
+    while(areColinear(closestX, closestY) and i < len(distanceFromPoint)):
+        idx[2] = distanceFromPoint.index(np.sort(distanceFromPoint)[i+1])
+        closestX, closestY = np.array([xUndis[idx[0]], xUndis[idx[1]], xUndis[idx[2]]]), np.array([yUndis[idx[0]], yUndis[idx[1]], yUndis[idx[2]]])
+        i = i + 1
+
+    # We make sure that the first index of the origin of the reference frame corresponds to the first index in idx. 
+
+    distanceBetweenPoints = [abs(xUndis[i] - xUndis[i+1]) + abs(yUndis[i] - yUndis[i+1]) for i in [1, 2, 3]]
+    indexOfAngle          = distanceBetweenPoints.index(np.max(distanceBetweenPoints))
+
+    if not indexOfAngle == 0:
+        idx0 = idx[0]
+        idx[0] = idx[indexOfAngle]
+        idx[indexOfAngle] = idx0
+
+    # The input points can be expressed as: xFPmm = rx[0] + a1 * rx[1] + a2 * rx[2]
+    #                                       yFPmm = ry[0] + a1 * ry[1] + a2 * ry[2]
+
+    rx = [ xUndis[i] - xUndis[idx[0]] if not i == idx[0] else xUndis[i] for i in idx]
+    ry = [ yUndis[i] - yUndis[idx[0]] if not i == idx[0] else yUndis[i] for i in idx]
+    deltaX, deltaY = xFPmm - rx[0], yFPmm - ry[0]
+
+    a1 = (deltaX * rx[1] + deltaY * ry[1]) / (rx[1]*rx[1] + ry[1]*ry[1]);
+    a2 = (deltaX * rx[2] + deltaY * ry[2]) / (rx[2]*rx[2] + ry[2]*ry[2]);
+
+    # The distorted FP coordinates can then be estimated as:
+    #   xFPdist = rxDist[0] + a1 * rxDist[1] + a2 * rxDist[2]
+    #   yFPdist = ryDist[0] + a1 * rxDist[1] + a2 * ryDist[2]
+
     distorted = coordMap["Distorted"]
 
     x = distorted["x"]
@@ -797,14 +835,11 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
     yDist = np.zeros(y.shape, y.dtype)
     y.read_direct(yDist)
 
-    distortedCoordinateMap = [(x, y) for x, y in zip(xDist, yDist)]
-    distortedCoordinates = [coord for coord, dist in zip(distortedCoordinateMap, distance) if dist == np.min(distance)]
+    rxd = [xDist[i] - xDist[idx[0]] if not i == idx[0] else xDist[i] for i in idx]
+    ryd = [yDist[i] - yDist[idx[0]] if not i == idx[0] else yDist[i] for i in idx]
 
-    xFPdist, yFPdist = distortedCoordinates[0]
+    xFPdist, yFPdist = xDist[idx[0]] + a1 * rxd[1] + a2 * rxd[2] , yDist[idx[0]] + a1 * ryd[1] + a2 * ryd[2]
     return xFPdist, yFPdist
-    
-
-    
 
 
 
@@ -876,13 +911,13 @@ def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPs
         if os.path.exists(os.environ["PLATO_PROJECT_HOME"] + "/" + pathToPsfFile):
             pathToPsfFile = os.environ["PLATO_PROJECT_HOME"] + "/" + pathToPsfFile
         else:
-            print("Error: {} is not a valid path name for mapped PSF".format(pathToPsfFile))            
-    
+            print("Error: {} is not a valid path name for mapped PSF".format(pathToPsfFile))
+
     # We open the psf file where the coordinate transformation matrix should be in. If this map isn't in the file, we raise an error. 
     psfFile = h5py.File(pathToPsfFile, "r")
     if not "Coordinates map" in psfFile.keys():
         print("Error: No transformation map given in psf file, mapped distortion is not possible.")
-        return 
+        return
     else:
         coordMap = psfFile["Coordinates map"]
 
@@ -897,9 +932,44 @@ def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPs
     yDist = np.zeros(y.shape, y.dtype)
     y.read_direct(yDist)
 
-    distance = np.array([(xFPdist - x)**2 + (yFPdist - y)**2 for x, y in zip(xDist, yDist)])
+    distanceFromPoint = [(xFPdist - x)**2 + (yFPdist - y)**2 for x, y in zip(xDist, yDist)]
+    areColinear = lambda x, y : abs(np.inner(np.cross(x, y), np.array([1, 1, 1]))) < 1e-5
 
-    # Select the undistorted coordinates whose respective distorted counterparts are closest to the input coordinates
+    # We should select the closest three distorted and noncolinear points to the input point
+
+    idx = [distanceFromPoint.index(np.sort(distanceFromPoint)[i]) for i in [0, 1, 2]]
+    closestX, closestY = np.array([xDist[idx[0]], xDist[idx[1]], xDist[idx[2]]]), np.array([yDist[idx[0]], yDist[idx[1]], yDist[idx[2]]])
+    i = 2
+
+    while(areColinear(closestX, closestY) and i < len(distanceFromPoint)):
+        idx[2] = distanceFromPoint.index(np.sort(distanceFromPoint)[i+1])
+        closestX, closestY = np.array([xDist[idx[0]], xDist[idx[1]], xDist[idx[2]]]), np.array([yDist[idx[0]], yDist[idx[1]], yDist[idx[2]]])
+        i = i + 1
+
+    # We make sure that the first index of the origin of the reference frame corresponds to the first index in idx. 
+
+    distanceBetweenPoints = [abs(xDist[i] - xDist[i+1]) + abs(yDist[i] - yDist[i+1]) for i in [1, 2, 3]]
+    indexOfAngle          = distanceBetweenPoints.index(np.max(distanceBetweenPoints))
+
+    if not indexOfAngle == 0:
+        idx0 = idx[0]
+        idx[0] = idx[indexOfAngle]
+        idx[indexOfAngle] = idx0
+
+    # The input points can be expressed as: xFPdist = rx[0] + a1 * rx[1] + a2 * rx[2]
+    #                                       yFPdist = ry[0] + a1 * ry[1] + a2 * ry[2]
+
+    rx = [ xDist[i] - xDist[idx[0]] if not i == idx[0] else xDist[i] for i in idx]
+    ry = [ yDist[i] - yDist[idx[0]] if not i == idx[0] else yDist[i] for i in idx]
+    deltaX, deltaY = xFPdist - rx[0], yFPdist - ry[0]
+
+    a1 = (deltaX * rx[1] + deltaY * ry[1]) / (rx[1]*rx[1] + ry[1]*ry[1]);
+    a2 = (deltaX * rx[2] + deltaY * ry[2]) / (rx[2]*rx[2] + ry[2]*ry[2]);
+
+    # The undistorted FP coordinates can then be estimated as:
+    #   xFPmm = rxUnd[0] + a1 * rxUnd[1] + a2 * rxUnd[2]
+    #   yFPmm = ryUnd[0] + a1 * rxUnd[1] + a2 * ryUnd[2]
+
     undistorted = coordMap["Undistorted"]
 
     x = undistorted["x"]
@@ -910,10 +980,11 @@ def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPs
     yUndis = np.zeros(y.shape, y.dtype)
     y.read_direct(yUndis)
 
-    undistortedCoordinateMap = [(x, y) for x, y in zip(xUndis, yUndis)]
-    undistortedCoordinates = [coord for coord, dist in zip(undistortedCoordinateMap, distance) if dist == np.min(distance)]
+    rxu = [xUndis[i] - xUndis[idx[0]] if not i == idx[0] else xUndis[i] for i in idx]
+    ryu = [yUndis[i] - yUndis[idx[0]] if not i == idx[0] else yUndis[i] for i in idx]
 
-    xFPmm, yFPmm = undistortedCoordinates[0]
+    xFPmm, yFPmm = xUndis[idx[0]] + a1 * rxu[1] + a2 * rxu[2] , yUndis[idx[0]] + a1 * ryu[1] + a2 * ryu[2]
+
     return xFPmm, yFPmm
 
 

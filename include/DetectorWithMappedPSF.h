@@ -36,7 +36,7 @@ class DetectorWithMappedPSF : public Detector
         void applyInverseDistortion(double &x, double &y) override;
 
     protected:
-
+        bool areColinear(std::array<std::array<double, 2>, 3>);
         void reset() override;
         void initHDF5Groups() override;
         void integrateLight(int exposureNr, double startTime, double exposureTime) override;
