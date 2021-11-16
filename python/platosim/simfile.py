@@ -391,12 +391,28 @@ class SimFile (object):
 
         figure, axis = plt.subplots(1, 1)
 
-        imagePlot = axis.imshow(image, cmap=colorMap, interpolation="nearest", origin='lower', extent=[0,Nrows,0,Ncols])
+        imagePlot = axis.imshow(image, cmap=colorMap, interpolation="nearest", origin='lower', extent=[0,Nrows,0,Ncols], zorder=0)
 
         # The large dynamic range of the pixel values often results in images where only
         # the brightest stars are visible. To improve the contrast, clip the color mapping.
 
         imagePlot.set_clim(np.percentile(image, clipPercentile), np.percentile(image, 100-clipPercentile))
+
+        # If requiered, overplot a gray semi-transparent grid
+        # Note: this is only meaningsful for smaller imagettes
+
+        if showGrid is True:
+            axis.grid(c='gray', ls='-', alpha=0.3, zorder=1)
+
+        # Overplot rectangles over those pixels that are part of the mask
+        # Note: imshow reverses rows and columns
+
+        if showMaskOfStarID is not None:
+            rowIndices, colIndices, exposureNr = self.getPhotometricMask(showMaskOfStarID, imageNr)
+            for k in range(len(rowIndices)):
+                rect = patches.Rectangle((colIndices[k], rowIndices[k]), 1, 1, linewidth=2.0,
+                                         edgecolor='navy', facecolor='none', zorder=2)
+                axis.add_patch(rect)
 
         # If required, overplot the true averaged star positions
 
@@ -404,8 +420,12 @@ class SimFile (object):
             ID, row, col, Xmm, Ymm, flux = self.getStarCoordinates(imageNr, minVmag=minVmag, maxVmag=maxVmag)
             # Allow differentiating between a target and its contaminants
             if showStarPositions == 'PIC':
-                axis.scatter(col[0], row[0], marker='*', c='g')
-                if len(col) > 1: axis.scatter(col[1:], row[1:], marker='x', c='r')
+                tarMarkerSize = 200
+                mag = -2.5*np.log10(flux)
+                axis.scatter(col[0], row[0], s=tarMarkerSize, marker='o', c='lime', edgecolor='k', linewidth=1, zorder=4)
+                if len(col) > 1:
+                    conMarkerSize = (tarMarkerSize / (mag[1:] - mag[0]*np.ones(len(col)-1))).astype(int)
+                    axis.scatter(col[1:], row[1:], s=conMarkerSize, marker='o', c='gold', edgecolor='k', linewidth=1, zorder=4)
             # Or hightligth all stars the same
             else:
                 axis.scatter(col, row, marker='x', c='g')
@@ -414,7 +434,7 @@ class SimFile (object):
                     label = "{0}".format(ID[k])
                     axis.annotate(label, (col[k], row[k]), fontsize='small', fontweight='extra bold', color="black")
 
-        # If required, overplot the true averaged pointlike ghost positions
+        # If required, overplot the true averaged point-like ghost positions
 
         if showPointLikeGhostPositions:
             ID, row, col, Xmm, Ymm, flux = self.getPointLikeGhostCoordinates(imageNr, minVmag=minVmag, maxVmag=maxVmag)
@@ -463,21 +483,6 @@ class SimFile (object):
         else:
             plt.xticks(np.arange(0, Nrows, 10))
             plt.yticks(np.arange(0, Ncols, 10))
-
-        # Overplot rectangles over those pixels that are part of the mask
-        # Note: imshow reverses rows and columns
-
-        if showMaskOfStarID is not None:
-            rowIndices, colIndices, exposureNr = self.getPhotometricMask(showMaskOfStarID, imageNr)
-            for k in range(len(rowIndices)):
-                rect = patches.Rectangle((colIndices[k], rowIndices[k]), 1, 1, linewidth=2.0, edgecolor='b', facecolor='none')
-                axis.add_patch(rect)
-
-        # If requiered, overplot a gray semi-transparent grid
-        # Note: this is only meaningsful for smaller imagettes
-
-        if showGrid is True:
-            axis.grid(c='gray', ls='-', alpha=0.3)
 
         # Show the image
 
