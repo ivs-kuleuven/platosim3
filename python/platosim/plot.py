@@ -3,6 +3,7 @@
 import h5py
 from numpy import *
 import numpy as np
+from numba import njit
 
 from scipy import constants
 from scipy.ndimage import median_filter
@@ -17,13 +18,13 @@ from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 import astropy.units as u
 from astropy.coordinates import SkyCoord
 
+from platosim.simfile import SimFile
+
 import platosim.referenceFrames as rf
 
-from platosim.photometryfile import PhotometricFile
 from platosim.referenceFrames import *
 from platosim.utilities import *
 from platosim.noise import powerDensityFFT
-from platosim.quarterFile import timeQuarterFromOutputFile
 
 # Top level Matplotlib settings to ease the writing
 
@@ -83,6 +84,11 @@ def axes_maskupdates(ax, time, maskupdates):
 #==============================================================#
 #                      GRAPHICAL FUNCTIONS                     #
 #==============================================================#
+
+
+
+
+
 
 
 
@@ -152,6 +158,7 @@ def drawCCDsInFocalPlane(pixelSize=18, plotCCDlabels=True, normal=True):
     # Finito!
 
     return
+
 
 
 
@@ -1455,25 +1462,27 @@ def plotPSD(fig, freq, psd, carbox=144, units=False, labels=False, colors=False,
 
 
 
-
-def plotPhotometryFromHDF5(fig, outputFile, medfilt=144, fluxInput=False, NSR=False, COB=False, title=False):
+def plotPhotometry(fig, outputFile, medfilt=144, fluxInput=False, NSR=False, COB=False, title=False):
     """
-    Plot the photometric time series of single target from a HDF5 file.
+    PURPOSE: Plot the photometric time series of single target from a HDF5 file.
 
-    Parameters
+    PARAMETERS
     ----------
     outputFile : str
         File name of HDF5 file containing photometry
-    filt : int
-        Number of time points for overlaid median filter. Default is 1h cadence: 3600s/25s=144 time points.
+    medfilt : int
+        Number of time points for overlaid median filter.
+        Default is 1h cadence: 3600s/25s=144 time points.
     NSR : bool
-        If the Noise-to-Signal Ratio (NSR) should be plotted alonside the time series. Default is False.
+        If the Noise-to-Signal Ratio (NSR) should be plotted alonside the time series.
+        Default is False.
     COB : bool
-        If the Center-Of-Brightness (COB) should be plotted alonside the time series. Default is False.
+        If the Center-Of-Brightness (COB) should be plotted alonside the time series.
+        Default is False.
     title : str
         String of title plot. Default is False.
 
-    Return
+    RETURN
     ------
     axes : object
         Axes matplotlib.pyplot handle object to be modified by the user
@@ -1481,40 +1490,24 @@ def plotPhotometryFromHDF5(fig, outputFile, medfilt=144, fluxInput=False, NSR=Fa
 
     # Load photometry class
 
-    photometryClass = PhotometricFile(outputFile)
+    f = SimFile(outputFile)
 
     # Fetch photometry
 
-    signals = photometryClass.getPhotometricTimeSeries(1)
-    flux_in  = normalize(signals[1])            # [ppm]
-    flux_out = normalize(signals[2])            # [ppm]
-    maskupdates = (signals[3] * 25.) / 86400.   # [days]
+    lc = f.getLightCurve(1)
+    time     = lc[0] / 86400.    # [days]
+    flux_in  = normalize(lc[1])  # [ppm]
+    flux_out = normalize(lc[2])  # [ppm]
 
-    flux_med = median_filter(flux_out, medfilt)
+    # Compute median carbox filter of output signal
 
-    # Fetch time array
+    flux_med = median_filter(flux_out, medfilt)  # [ppm]
 
-    time = timeQuarterFromOutputFile(outputFile, 1) / 86400.
+    # Fetch mask updates
 
-    # Fetch mask information and signals
-
-    # mask = photometryClass.getPhotometricMask(1)
-    # maskupdate = mask[0]
-    # exposureNrOfMaskUpdate = mask[1]
-    #maskNSR = mask[2] * 1e6
-    #maskSize               = mask[3]
-    #maskColIndices         = mask[4]
-    #maskRowIndices         = mask[5]
-
-    # Find NSR per hour TODO should be calculated from PlatoSim module
-
-    # if NSR is True:
-    #     NSR = convolution(flux, 'std', filt)
-
-    # Stellar pixel coordinates
-
-    if COB is True:
-        COB = photometryClass.getStellarPixelCoordinates(1)
+    mask = f.getPhotometricMask(1)
+    maskupdates = (mask[0] * 25.) / 86400.  # [days]
+    maskNSR     = mask[2] * 1e6             # [ppm]
 
     # Create figure and subplots
 
@@ -1533,25 +1526,35 @@ def plotPhotometryFromHDF5(fig, outputFile, medfilt=144, fluxInput=False, NSR=Fa
     # Plot NSR
 
     if NSR is not False:
+
         ax1 = fig.add_subplot(2,1,2)
-        ax1.plot(time, NSR, '-', c='m',  label='BOL')
-        #ax1.plot(updates, maskNSR, 'k--', alpha=0.5)
-        #ax1.plot(updates, maskNSR, 'b*', label='Mask update NSR')
+        ax1.plot(maskupdates, maskNSR, 'k--', alpha=0.5)
+        ax1.plot(maskupdates, maskNSR, 'm*', label='Mask update NSR')
         ax1.legend(loc='upper right',  fancybox=True)
         ax1.set_xlabel('Time [days]')
         ax1.set_ylabel(r'NSR [ppm h$^{-1}$]')
         ax1.set_xlim(axes_minmax(x=time))
 
-    # Plot stellar coordinates
-
     if COB is not False:
-        ax2 = fig.add_subplot(2,1,2)
-        colPix, rowPix = COB
-        ax2.plot(time, colPix, '-', c='r', label='Col pixel')
-        ax2.plot(time, rowPix, '-', c='b', label='Row pixel')
-        ax2.legend(loc='upper right',  fancybox=True, shadow=True)
-        ax2.set_xlabel('Time [days]')
-        ax2.set_ylabel('Star coordinate')
+
+        # Fetch pixel coordinates
+
+        rowPix, colPix = f.getStarPositions(1)
+
+        # Plot row pixel on left y axis
+
+        ax1 = fig.add_subplot(2,1,2)
+        ax1.plot(time, rowPix, '-', c='darkcyan', label='Row pixel')
+        ax1.set_ylabel('Row coordinate [pixel]')
+        ax1.set_xlabel('Time [days]')
+        ax1.set_title('Star position')
+        ax1.set_xlim(axes_minmax(x=time))
+
+        # Plot column pixel on right y axis
+
+        ax2 = ax1.twinx()
+        ax2.plot(time, colPix, '-', c='hotpink')
+        ax2.set_ylabel('Column coordinate [pixel]')
         ax2.set_xlim(axes_minmax(x=time))
 
     # Labels
@@ -1568,6 +1571,10 @@ def plotPhotometryFromHDF5(fig, outputFile, medfilt=144, fluxInput=False, NSR=Fa
     # Finito!
 
     plt.show()
+
+
+
+
 
 
 
