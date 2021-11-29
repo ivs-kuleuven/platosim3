@@ -8,9 +8,11 @@ from test import Test
 
 
 """
-This test checks the simple model for the Charge Transfer Inefficiency (CTI). The test determines the Charge Transfer Efficiency (CTE) with respect to the row position on 
-the CCD for an exposure without any stars. It compares it then to the theoretically predicted values. The test passes if the RMS between difference these two is smaller than 0.05, and 
-the mean difference between these two is close to zero. 
+This test checks the simple model for the Charge Transfer Inefficiency (CTI). The test simulates one full column of the CCD and CTE enabled without any stars. 
+
+We would expect that the pixel values in the output image behaves as ~ <CTI>^(row + 1). (where <CTI> is the mean CTI as given in the input file. 
+
+The test passes if the RMS difference between the observed and expected values in the subfield is smaller than 0.05 
 """
 
 class SimpleCTI(Test):
