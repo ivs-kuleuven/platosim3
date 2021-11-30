@@ -6,13 +6,15 @@
 ## **/**/****: 3.5.2
 
 ## Fixed
-
+* Corrected bug in validationtest for Cosmics. 
 
 ## Changed
 
 
 ## Added
-
+* Added inhomogenous trap density (GitHub #639)
+* Added validationtest for Short2013 CTI 
+* Added validationtest for Short2013fromfile CTI 
 
 <!-- 3.5.1 -->
 <!-- ***** -->
