@@ -40,12 +40,12 @@ To get an imagette around star #13561 in image #2:
 
 To get a light curve of star with ID = 10. lctype can be 'estimated' or 'input'
 
->>>  time, flux = f.getLightCurve(10, lctype="estimated") 
+>>>  time, flux = f.getLightCurve(10, lctype="estimated")
 
 
-To get the pixels of the photometric mask. exposureNr is when the mask was created, and afterwards reused for imageNr.
+To get the pixels of the photometric mask. exposureNr is when the mask was created, and afterwards reused for imageNr. Note that if imageNr is not given as argument then this function returns all mask update events present from the output file
 
->>> rowIndices, colIndices, exposureNr = f.getPhotometricMask(starID=10, imageNr=1000) 
+>>> rowIndices, colIndices, exposureNr, maskSize, maskNSR = f.getPhotometricMask(starID=10, imageNr=1000)
 
 
 To get the time series of the yaw, pitch:
@@ -386,7 +386,7 @@ class SimFile (object):
         # Note: imshow reverses rows and columns
 
         if showMaskOfStarID is not None:
-            rowIndices, colIndices, exposureNr = self.getPhotometricMask(showMaskOfStarID, imageNr)
+            rowIndices, colIndices, _, _, _ = self.getPhotometricMask(showMaskOfStarID, imageNr)
             for k in range(len(rowIndices)):
                 rect = patches.Rectangle((colIndices[k], rowIndices[k]), 1, 1, linewidth=2.0,
                                          edgecolor='b', facecolor='none', zorder=2)
@@ -1354,7 +1354,7 @@ class SimFile (object):
 
         # Finito!
 
-        return exposureNrOfMaskUpdate, maskSize, maskNSR, rowIndices, colIndices
+        return rowIndices, colIndices, exposureNrOfMaskUpdate, maskSize, maskNSR
 
 
 

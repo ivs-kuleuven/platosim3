@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 
 import h5py
-from numpy import *
 import numpy as np
-from numba import njit
 
-from scipy import constants
+from scipy import constants as c
 from scipy.ndimage import median_filter
 
 from matplotlib import pyplot as plt
@@ -14,27 +12,21 @@ from matplotlib import patches
 from matplotlib.path import Path
 from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+import matplotlib.animation as animation
 
 import astropy.units as u
 from astropy.coordinates import SkyCoord
 
 from platosim.simfile import SimFile
-
 import platosim.referenceFrames as rf
-
-from platosim.referenceFrames import *
-from platosim.utilities import *
-from platosim.noise import powerDensityFFT
+import platosim.utilities as ut
+import platosim.noise as ns
 
 # Top level Matplotlib settings to ease the writing
 
 fs = 15    # Font size
 lw = 0.3   # Line width
 ms = 0.5   # Marker size
-
-# Constants
-
-rad2arcsec = 648000 / np.pi
 
 #==============================================================#
 #                         GRAPHICAL TOOLS                      #
@@ -127,12 +119,12 @@ def drawCCDsInFocalPlane(pixelSize=18, plotCCDlabels=True, normal=True):
 
         # Get the corner coordinates in the FP' plane
 
-        cornersXmm, cornersYmm = computeCCDcornersInFocalPlane(ccdCode, pixelSize)
+        cornersXmm, cornersYmm = rf.computeCCDcornersInFocalPlane(ccdCode, pixelSize)
 
         # Repeat the coordinates of the 1st corner, to plot a nice closed loop
 
-        x = append(cornersXmm, cornersXmm[0])
-        y = append(cornersYmm, cornersYmm[0])
+        x = np.append(cornersXmm, cornersXmm[0])
+        y = np.append(cornersYmm, cornersYmm[0])
 
         ax.plot(x, y, c=color[ccdCode])
 
@@ -277,23 +269,23 @@ def drawSubfieldInFocalPlane(ccdCode, xCCD, yCCD, subfieldSizeX, subfieldSizeY, 
     # Compute the position of the subfield in pixel coordinates, for the current CCD, 
     # disregarding the physical extend of the CCD. LL = lower left, UR = upper right.
 
-    zeroPointXmm = CCD[ccdCode]["zeroPointXmm"]
-    zeroPointYmm = CCD[ccdCode]["zeroPointYmm"]
-    ccdAngle     = CCD[ccdCode]["angle"]
+    zeroPointXmm = rf.CCD[ccdCode]["zeroPointXmm"]
+    zeroPointYmm = rf.CCD[ccdCode]["zeroPointYmm"]
+    ccdAngle     = rf.CCD[ccdCode]["angle"]
 
-    xFPprime, yFPprime = pixelToFocalPlaneCoordinates(xCCD, yCCD, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
-    xFPprimeLL, yFPprimeLL = pixelToFocalPlaneCoordinates(xCCD - subfieldSizeX/2, yCCD - subfieldSizeY/2, \
-                                                          pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
-    xFPprimeUR, yFPprimeUR = pixelToFocalPlaneCoordinates(xCCD + subfieldSizeX/2, yCCD + subfieldSizeY/2, \
-                                                          pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
+    xFPprime, yFPprime = rf.pixelToFocalPlaneCoordinates(xCCD, yCCD, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
+    xFPprimeLL, yFPprimeLL = rf.pixelToFocalPlaneCoordinates(xCCD - subfieldSizeX/2, yCCD - subfieldSizeY/2, \
+                                                             pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
+    xFPprimeUR, yFPprimeUR = rf.pixelToFocalPlaneCoordinates(xCCD + subfieldSizeX/2, yCCD + subfieldSizeY/2, \
+                                                             pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
 
 
     verts = [
-        (xFPprimeLL, yFPprimeLL), # left, bottom
-        (xFPprimeLL, yFPprimeUR), # left, top
-        (xFPprimeUR, yFPprimeUR), # right, top
-        (xFPprimeUR, yFPprimeLL), # right, bottom
-        (xFPprimeLL, yFPprimeLL), # ignored
+        (xFPprimeLL, yFPprimeLL),  # left, bottom
+        (xFPprimeLL, yFPprimeUR),  # left, top
+        (xFPprimeUR, yFPprimeUR),  # right, top
+        (xFPprimeUR, yFPprimeLL),  # right, bottom
+        (xFPprimeLL, yFPprimeLL),  # ignored
     ]
 
     codes = [
@@ -336,15 +328,13 @@ def drawStarInFocalPlane(sim, raStar, decStar):
     INPUT:    sim:     instance of simulation class (see simulation.py)
               raStar:  right ascension of the star [rad]
               decStar: declination of the star     [rad]
-    
+
     OUTPUT:   Draw a red dot where the star is located on the CCD
 
     TODO: Update doc-string
-
     """
 
     normal = True  # FIXME: where can we specify that we use the fast or normal Camera
-
 
     if sim["PSF/Model"] == "MappedFromFile":
         includeFieldDistortion = True
@@ -363,7 +353,7 @@ def drawStarInFocalPlane(sim, raStar, decStar):
         distortionCoefficients = None
         pathToPsfFile          = None
         isMapped               = False 
-        
+
 
     pixelSize             = float(sim["CCD/PixelSize"])
     raPlatform            = np.radians(float(sim["ObservingParameters/RApointing"]))
@@ -377,18 +367,18 @@ def drawStarInFocalPlane(sim, raStar, decStar):
     ccdZeroPointY         = float(sim["CCD/OriginOffsetY"])
     ccdAngle              = np.radians(float(sim["CCD/Orientation"]))
 
-    xFPmm, yFPmm = skyToFocalPlaneCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation, tiltTelescope, azimuthTelescope, \
-                                              focalPlaneAngle, focalLength)
+    xFPmm, yFPmm = rf.skyToFocalPlaneCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation,
+                                                 tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength)
 
     if includeFieldDistortion:
         if isMapped:
-            xFPmm, yFPmm = mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile)
+            xFPmm, yFPmm = rf.mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile)
         else:
-            xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients, focalLength)
+            xFPmm, yFPmm = rf.undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients, focalLength)
 
     #ccdCode, xCCD, yCCD = getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, tiltTelescope, azimuthTelescope,  \
     #                                                focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, FIELD_DISTORTION["Coeff"], normal)
-    ccdCode, xCCD, yCCD = getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation, tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, normal, isMapped,  distortionCoefficients, pathToPsfFile)
+    ccdCode, xCCD, yCCD = rf.getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation, tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, normal, isMapped,  distortionCoefficients, pathToPsfFile)
 
     if ccdCode == None:
         print ("Warning: DrawStarInFocalPlane(): The star doesn't fall on any of the CCDs.")
@@ -427,11 +417,11 @@ def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize):
     # Compute the position of the star in pixel coordinates, for the current CCD, 
     # disregarding the physical extend of the CCD
 
-    zeroPointXmm = CCD[ccdCode]["zeroPointXmm"]
-    zeroPointYmm = CCD[ccdCode]["zeroPointYmm"]
-    ccdAngle     = CCD[ccdCode]["angle"]
+    zeroPointXmm = rf.CCD[ccdCode]["zeroPointXmm"]
+    zeroPointYmm = rf.CCD[ccdCode]["zeroPointYmm"]
+    ccdAngle     = rf.CCD[ccdCode]["angle"]
 
-    xFPmm, yFPmm = pixelToFocalPlaneCoordinates(xCCD, yCCD, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)   # [mm]
+    xFPmm, yFPmm = rf.pixelToFocalPlaneCoordinates(xCCD, yCCD, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)   # [mm]
 
     # Get the current axis
 
@@ -479,7 +469,7 @@ def drawCCDsInSkyMollweide(fig, raPlatform, decPlatform, solarPanelOrientation, 
 
     # Select the proper CCD codes depending on whether we're dealing with the nominal or the fast cams
 
-    if normal == True:
+    if normal:
         ccdCodes = ['1', '2', '3', '4']
     else:
         ccdCodes = ['1F', '2F', '3F', '4F']
@@ -501,24 +491,24 @@ def drawCCDsInSkyMollweide(fig, raPlatform, decPlatform, solarPanelOrientation, 
 
         # Get the focal plane FP' coordinates of the CCD corners  [mm]
 
-        cornersXmm, cornersYmm = computeCCDcornersInFocalPlane(ccdCode, pixelSize)
+        cornersXmm, cornersYmm = rf.computeCCDcornersInFocalPlane(ccdCode, pixelSize)
 
         # Compute the equatorial sky coordinates [rad] from the the focal plane FP' coordinates [mm] of the corners
 
-        ra, dec = focalPlaneToSkyCoordinates(cornersXmm, cornersYmm, raPlatform, decPlatform, solarPanelOrientation,  \
-                                             tiltAngle, azimuthAngle, focalPlaneAngle, focalLength)
+        ra, dec = rf.focalPlaneToSkyCoordinates(cornersXmm, cornersYmm, raPlatform, decPlatform, solarPanelOrientation,
+                                                tiltAngle, azimuthAngle, focalPlaneAngle, focalLength)
 
         # Repeat the coordinates of the 1st corner, to plot a nice closed loop
         # Convert from radians to degrees
 
-        ra  = append(ra, ra[0]) 
-        dec = append(dec, dec[0]) 
+        ra  = np.append(ra, ra[0])
+        dec = np.append(dec, dec[0])
 
         # The sky projection expects a longitude in [-pi, +pi] rather than [0, 2* pi]
         # Moreover, the longitude should be reversed so that East is to the left
-        
-        ra[ra>pi] -= 2*pi
-        ra = -ra 
+
+        ra[ra>np.pi] -= 2 * np.pi
+        ra = -ra
 
         axes.plot(ra, dec, c=color[ccdCode])
 
@@ -531,7 +521,7 @@ def drawCCDsInSkyMollweide(fig, raPlatform, decPlatform, solarPanelOrientation, 
 
     tickLabels = np.array([150, 120, 90, 60, 30, 0, 330, 300, 270, 240, 210])
     tickLabels = np.remainder(tickLabels+360, 360)
-    axes.set_xticklabels(tickLabels)     
+    axes.set_xticklabels(tickLabels)
 
     # Add axis labels
 
@@ -559,7 +549,7 @@ def drawStarsInSkyMollweide(fig, ra, dec):
 
     OUTPUT: None
     """
-    
+
     # Set up the figure
 
     axes = fig.add_subplot(111, projection="mollweide")
@@ -567,10 +557,10 @@ def drawStarsInSkyMollweide(fig, ra, dec):
 
     raRadians = []
     decRadians = []
-    
+
     for index in range(len(ra)):
-        raRadians.append(-ra[index] * pi / 180.0)
-        decRadians.append(dec[index] * pi / 180.0)
+        raRadians.append(-ra[index] * np.pi / 180.0)
+        decRadians.append(dec[index] * np.pi / 180.0)
 
     axes.plot(raRadians, decRadians, 'ko')
 
@@ -579,7 +569,7 @@ def drawStarsInSkyMollweide(fig, ra, dec):
 
     tickLabels = np.array([150, 120, 90, 60, 30, 0, 330, 300, 270, 240, 210])
     tickLabels = np.remainder(tickLabels+360, 360)
-    axes.set_xticklabels(tickLabels)     
+    axes.set_xticklabels(tickLabels)
 
     # Add axis labels
 
@@ -604,51 +594,49 @@ def drawStarsInSkyMollweide(fig, ra, dec):
 
 
 
-def skyProjection(longitude, latitude, fig, origin=0, projection="mollweide"):
-    
+def skyProjection(fig, longitude, latitude, origin=0, projection="mollweide"):
     """
     Plot sources with coordinates longitude & latitude (equatorial, galactic,...)
     in the projected sky.
-    
+
     @param longitude:  longitude coordinate in [0, 360]                      [deg]
     @param latitude:   latitude coordinate in [-90, +90]                     [deg]
     @param fig:        matplotlib figure, the output of plt.figure()
     @param origin:     longitude value in the center of the plot             [deg]
     @param projection: either 'mollweide', 'aitoff', 'hammer', or 'lambert'
-    
+
     @return axes: the output of plt.scatter() in the given figure.
-    
     """
-    
+
     # Shift the longitude values around the origin
-    
+
     longitude = np.remainder(longitude+360-origin, 360) 
-    
+
     # Rescale the range from [0,360] to [-180, +180]
-    
-    longitude[longitude>180] -=360
+
+    longitude[longitude > 180] -= 360
 
     # Reverse the longitude so that East is to the left
-    
+
     longitude = -longitude
-    
+
     # Create the plot
-    
+
     axes = fig.add_subplot(111, projection=projection)
     axes.grid(True)
-    
+
     # Adapt the tick labels on the x-axis to take into account the origin shift
-    
+
     tickLabels = np.array([150, 120, 90, 60, 30, 0, 330, 300, 270, 240, 210])
     tickLabels = np.remainder(tickLabels+360+origin, 360)
-    axes.set_xticklabels(tickLabels) 
- 
+    axes.set_xticklabels(tickLabels)
+
     # Plot the sources
-    
+
     axes.scatter(np.radians(longitude), np.radians(latitude), s=3)
-    
+
     # That's it!
-    
+
     return axes
 
 
@@ -789,7 +777,6 @@ def plotPlatoFOV(fig, raPointing, decPointing, raStars, decStars, nCamVis, skyma
     """
 
     import ligo.skymap.plot
-    from matplotlib import pyplot as plt
 
     center = [raPointing, decPointing]
 
@@ -968,13 +955,11 @@ def plotYawPitchRollTimeSeries(fig, time, signals, units, title=False, ylim=Fals
     labels = ['Yaw', 'Pitch', 'Roll']
     colors = ['royalblue', 'lightseagreen', 'limegreen']
 
-    #fig, axes = plt.subplots(numData, 1, figsize=figsize)
-
     for plot in range(numData):
 
         axes = fig.add_subplot(numData, 1, plot+1)
 
-        # Make sure that time series is redual around zero
+        # Make sure that time series is residuals around zero
 
         signals[plot] -= np.median(signals[plot])
 
@@ -1007,7 +992,7 @@ def plotYawPitchRollTimeSeries(fig, time, signals, units, title=False, ylim=Fals
 
         if plot == 0: axes.set_title(title, fontsize=fs)
 
-    # Remaining
+    # Adjust layout
 
     plt.tight_layout()
     plt.subplots_adjust(hspace = .001)
@@ -1076,7 +1061,7 @@ def plotYawPitchRollPSD(fig, time, signals, scale=1e-6, carbox=144, title=False,
 
         # Find PSD and median filter
 
-        freq, PSD = powerDensityFFT(signals[plot], sampling)
+        freq, PSD = ns.powerDensityFFT(signals[plot], sampling)
         PSD_med   = median_filter(PSD, carbox)
         perhour   = int(carbox*sampling/3600.)
 
@@ -1495,9 +1480,9 @@ def plotPhotometry(fig, outputFile, medfilt=144, fluxInput=False, NSR=False, COB
     # Fetch photometry
 
     lc = f.getLightCurve(1)
-    time     = lc[0] / 86400.    # [days]
-    flux_in  = normalize(lc[1])  # [ppm]
-    flux_out = normalize(lc[2])  # [ppm]
+    time     = lc[0] / c.day        # [days]
+    flux_in  = ut.normalize(lc[1])  # [ppm]
+    flux_out = ut.normalize(lc[2])  # [ppm]
 
     # Compute median carbox filter of output signal
 
@@ -1506,8 +1491,8 @@ def plotPhotometry(fig, outputFile, medfilt=144, fluxInput=False, NSR=False, COB
     # Fetch mask updates
 
     mask = f.getPhotometricMask(1)
-    maskupdates = (mask[0] * 25.) / 86400.  # [days]
-    maskNSR     = mask[2] * 1e6             # [ppm]
+    maskupdates = (mask[2] * 25.) / c.day   # [days]
+    maskNSR     = mask[4] * 1e6             # [ppm]
 
     # Create figure and subplots
 
@@ -1559,8 +1544,10 @@ def plotPhotometry(fig, outputFile, medfilt=144, fluxInput=False, NSR=False, COB
 
     # Labels
 
-    if title is not False: fig.text(0.5, 0.9, title, ha='center', fontsize=fs)
-    if NSR is False and COB is False: ax0.set_xlabel('Time [days]')
+    if title is not False:
+        fig.text(0.5, 0.9, title, ha='center', fontsize=fs)
+    if NSR is False and COB is False:
+        ax0.set_xlabel('Time [days]')
 
     # Limits
 
@@ -1596,6 +1583,9 @@ def plotPhotometryComparison(fig, filenames, medfilt=None, title=None):
     RETURN
     ------
     Plot or/and saved plot to PNG.
+
+    FIXME this function do not work currently. Perhaps this should be moved to photometry file
+    as a bigger library of function to plot multi-quarter and multi-camera time series
     """
 
     # User defined labels
@@ -1644,7 +1634,7 @@ def plotPhotometryComparison(fig, filenames, medfilt=None, title=None):
         photometryClass = PhotometricFile(filenames[i])
         signals = photometryClass.getPhotometricTimeSeries(1)
 
-        if i == 0: time = signals[0]/day  # [days]
+        if i == 0: time = signals[0]/c.day  # [days]
 
         flux = normalize(signals[2]) - df*(i)
         plt.plot(time, flux, 'o', c='k', markersize=1, alpha=aa)
@@ -1718,9 +1708,9 @@ def plotSubfieldAnimation(fig, filename, numImages=False, outputFileName=False, 
     ------
     axes : object
         Axes matplotlib.pyplot handle object to be modified by the user
+
+    TODO add photometric mask to animation
     """
-    import matplotlib.cm as cm
-    import matplotlib.animation as animation
 
     # Fetch file with simulated subfields
 
@@ -1730,7 +1720,6 @@ def plotSubfieldAnimation(fig, filename, numImages=False, outputFileName=False, 
 
     if numImages is False:
         numImages = N
-
 
     # Plot the image. Note that pixel coordinates start at the left bottom side of each pixel.
 
