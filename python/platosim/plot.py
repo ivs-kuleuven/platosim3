@@ -1479,7 +1479,7 @@ def plotPhotometry(fig, outputFile, medfilt=144, fluxInput=False, NSR=False, COB
 
     # Fetch photometry
 
-    lc = f.getLightCurve(1)
+    lc = f.getPhotometry(1)
     time     = lc[0] / c.day        # [days]
     flux_in  = ut.normalize(lc[1])  # [ppm]
     flux_out = ut.normalize(lc[2])  # [ppm]
@@ -1560,6 +1560,93 @@ def plotPhotometry(fig, outputFile, medfilt=144, fluxInput=False, NSR=False, COB
     plt.show()
 
 
+
+
+
+
+
+
+
+
+
+
+def plotMultiCameraAndQuarterPhotometry(fig, outputFiles, medfilt=144, title=None):
+    """
+    PURPOSE: 
+
+    PARAMETERS
+    ----------
+    filename : str
+        File name of HDF5 file containing photometry
+
+    RETURN
+    ------
+    Plot or/and saved plot to PNG.
+
+    FIXME this function do not work currently. Perhaps this should be moved to photometry file
+    as a bigger library of function to plot multi-quarter and multi-camera time series
+    """
+
+    # Fetch information about the observation
+
+    numFiles = len(outputFiles)
+    aa = 0.2  # Alpha channel of data
+
+    ax = fig.add_subplot(1,1,1)
+
+    cameras = {}
+    maskupdates = []
+
+    for i in range(numFiles):
+
+        # Load photometry class
+
+        f = SimFile(outputFiles[i])
+
+        quarter_i = int(outputFiles[i][-6])
+        camera_i  = outputFiles[i][-11:-8]
+
+        #print(quarter_i)
+        # Fetch and combine time series for each quarter
+
+        # Fetch photometry
+
+        lc = f.getPhotometry(starID=1, quarterNo=quarter_i)
+        time = lc[0] / c.day        # [days]
+        flux = ut.normalize(lc[2])  # [ppm]
+        flux_med = median_filter(flux, medfilt)  # [ppm]
+
+        ax.plot(time, flux, 'k.', markersize=1, alpha=0.2, label='Raw flux')
+        ax.plot(time, flux_med, 'g-', label='Median per hour')
+
+        # Fetch mask updates
+
+        mask = f.getPhotometricMask(1)
+        maskupdates.append((mask[2] * 25.) / c.day)  # [days]
+
+            # Save time series to dict
+
+        #cameras['Ncam{}'.format(camera_i)] = [time, flux]
+
+
+    # Compute median carbox filter of output signal
+
+    maskupdates = np.arange(0, 7*8*maskupdates[0][1], maskupdates[0][1])
+
+    axes_maskupdates(ax, time, maskupdates)
+    ax.legend(loc='lower right', fancybox=True, ncol=2)
+    ax.set_ylabel('Norm. Flux [ppm]')
+    plt.xlabel('Time [days]', fontsize=fs-3)
+    plt.ylabel('Relative flux [ppm]', fontsize=fs-3)
+
+    # Settings
+
+    #plt.xlim(axes_minmax(x=time))
+    #plt.ylim(-n*df, df)
+
+    # That's it!
+
+    plt.show()
 
 
 
