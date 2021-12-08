@@ -1271,6 +1271,61 @@ class SimFile (object):
 
 
 
+    def getLightCurve(self, starID, lctype="estimated"):
+        """
+        PURPOSE: Extract the light curve of the star with the given ID.
+
+        INPUT: starID: ID of the star as mentioned in the last column of the star catalog file
+               lctype: either "estimated" or "input". The estimated one is derived from a binary mask.
+                       the input one is derived from the mean input magnitude specified in the star catalog
+                       and (for variable stars) the delta-magnitude time series given as an input file.
+
+        OUTPUT: time: [s]
+                flux: [electrons/exposure]
+        """
+
+        # Verify if the necessary info is in the HDF5 file
+
+        if "Photometry" not in self.hdf5file["/"].keys():
+            print("Error: getLightCurve(): No photometry present in the HDF5 file")
+            return None, None
+
+        starIDgroupName = "starID{0}".format(starID)
+        if starIDgroupName not in self.hdf5file["Photometry"]["Lightcurves"].keys():
+            print("Error: getLightCurve(): " + starIDgroupName + " not present in Photometry/Lightcurves/ in the HDF5 file")
+            return None, None
+
+        if "Time" not in self.hdf5file["StarPositions"].keys():
+            print("Error: getLightCurve(): Time array not present in StarPositions group. Configure HDF5 output in yaml input file.")
+            return None, None
+
+        # Select the proper flux name
+
+        if lctype == "estimated":
+            datasetName = "estimatedFlux"
+        elif lctype == "input":
+            datasetName = "inputFlux"
+        else:
+            print("Error: getLightCurve(): lctype can only be 'estimated' or 'input'")
+            return None, None
+
+        # Extract the flux and the time points
+
+        dataset = self.hdf5file["Photometry"]["Lightcurves"][starIDgroupName][datasetName]
+        flux = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(flux)
+
+        dataset = self.hdf5file["StarPositions"]["Time"]
+        time = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(time)
+
+        return time, flux
+
+
+
+
+
+
 
 
     def getPhotometricMask(self, starID, imageNr=None):
@@ -1366,24 +1421,26 @@ class SimFile (object):
 
 
 
-    def getLightCurve(self, starID):
+    def getPhotometry(self, starID, quarterNo=1):
         """
         PURPOSE: Extract the light curve of the star with the given ID.
+        NOTE The estimated one is derived from a binary mask. The input one is derived
+        from the mean input magnitude specified in the star catalog and
+        (for variable stars) the delta-mag time series given as an input file.
 
         PARAMETERS
         ----------
         starID : int
             ID of the star as mentioned in the last column of the star catalog file
-        lctype : str
-            Either "estimated" or "input".
-            NOTE The estimated one is derived from a binary mask. The input one is derived
-                 from the mean input magnitude specified in the star catalog and
-                 (for variable stars) the delta-mag time series given as an input file.
+        quarterNo : int
+            Mission quarter number used to return correct relative time points.
 
         RETURN
         ------
-        time : ndarray [s]
-        flux : ndarray [electrons/exposure]
+        time : ndarray
+            Time points of time series [s]
+        flux : ndarray
+            Flux points of time series [electrons/exposure]
         """
 
         # Verify if the necessary info is in the HDF5 file
@@ -1399,7 +1456,7 @@ class SimFile (object):
 
         # Fetch time points
 
-        time = self.getTimeQuarter(1)
+        time = self.getTimeQuarter(quarterNo)
 
         # Extract the flux and the time points
 
