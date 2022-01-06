@@ -40,12 +40,12 @@ To get an imagette around star #13561 in image #2:
 
 To get a light curve of star with ID = 10. lctype can be 'estimated' or 'input'
 
->>>  time, flux = f.getLightCurve(10, lctype="estimated") 
+>>>  time, flux = f.getLightCurve(10, lctype="estimated")
 
 
-To get the pixels of the photometric mask. exposureNr is when the mask was created, and afterwards reused for imageNr.
+To get the pixels of the photometric mask. exposureNr is when the mask was created, and afterwards reused for imageNr. Note that if imageNr is not given as argument then this function returns all mask update events present from the output file
 
->>> rowIndices, colIndices, exposureNr = f.getPhotometricMask(starID=10, imageNr=1000) 
+>>> rowIndices, colIndices, exposureNr, maskSize, maskNSR = f.getPhotometricMask(starID=10, imageNr=1000)
 
 
 To get the time series of the yaw, pitch:
@@ -75,8 +75,6 @@ The group name and parameter name are exactly the same as in the YAML file.
 
 """
 
-
-
 import os
 import numpy as np
 import h5py
@@ -84,6 +82,10 @@ from matplotlib import pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.cm as cm
 from astropy.io import fits
+
+
+
+
 
 
 
@@ -125,10 +127,6 @@ class SimFile (object):
 
 
 
-
-
-
-
     def reload(self):
 
         """
@@ -138,11 +136,6 @@ class SimFile (object):
         self.hdf5file.close()
         self.hdf5file = h5py.File(self.filename, "r")
         return
-
-
-
-
-
 
 
 
@@ -169,7 +162,7 @@ class SimFile (object):
         # Check if the smearing map is in the file. If not: complain, if yes: copy the contents into a numpy array.
 
         if smearingMapName not in self.hdf5file["SmearingMaps"].keys():
-            
+
             readoutMode = self["CCD/ReadoutMode/ReadoutMode"]
             if(readoutMode == "Partial"):
                 print("Warning: No smearing map created in case of partial readout")
@@ -180,10 +173,7 @@ class SimFile (object):
             dataset = self.hdf5file["SmearingMaps"][smearingMapName]
             smearingMap = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(smearingMap)
-            return smearingMap 
-
-
-
+            return smearingMap
 
 
 
@@ -216,10 +206,7 @@ class SimFile (object):
             dataset = self.hdf5file["BiasMapsLeft"][biasMapName]
             biasMap = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(biasMap)
-            return biasMap 
-        
-
-
+            return biasMap
 
 
 
@@ -252,11 +239,7 @@ class SimFile (object):
             dataset = self.hdf5file["BiasMapsRight"][biasMapName]
             biasMap = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(biasMap)
-            return biasMap 
-
-
-
-
+            return biasMap
 
 
 
@@ -290,9 +273,6 @@ class SimFile (object):
             image = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(image)
             return image 
-
-
-
 
 
 
@@ -339,11 +319,9 @@ class SimFile (object):
 
 
 
-
-
     def showImage(self, imageNr, clipPercentile=5.0, showStarPositions=False, showPointLikeGhostPositions=False,
                   minVmag=None, maxVmag=None, showStarIDs=False, showMaskOfStarID=None, useTitle=True, colorMap="hot",
-                  showGrid=False):
+                  showGrid=False, figsize=(7,7)):
 
         """
         PURPOSE: make a plot of the requested image
@@ -389,14 +367,30 @@ class SimFile (object):
 
         # Plot the image. Note that pixel coordinates start at the left bottom side of each pixel.
 
-        figure, axis = plt.subplots(1, 1)
+        figure, axis = plt.subplots(1, 1, figsize=figsize)
 
-        imagePlot = axis.imshow(image, cmap=colorMap, interpolation="nearest", origin='lower', extent=[0,Nrows,0,Ncols])
+        imagePlot = axis.imshow(image, cmap=colorMap, interpolation="nearest", origin='lower', extent=[0,Nrows,0,Ncols], zorder=0)
 
         # The large dynamic range of the pixel values often results in images where only
         # the brightest stars are visible. To improve the contrast, clip the color mapping.
 
         imagePlot.set_clim(np.percentile(image, clipPercentile), np.percentile(image, 100-clipPercentile))
+
+        # If requiered, overplot a gray semi-transparent grid
+        # Note: this is only meaningsful for smaller imagettes
+
+        if showGrid is True:
+            axis.grid(c='gray', ls='-', alpha=0.3, zorder=1)
+
+        # Overplot rectangles over those pixels that are part of the mask
+        # Note: imshow reverses rows and columns
+
+        if showMaskOfStarID is not None:
+            rowIndices, colIndices, _, _, _ = self.getPhotometricMask(showMaskOfStarID, imageNr)
+            for k in range(len(rowIndices)):
+                rect = patches.Rectangle((colIndices[k], rowIndices[k]), 1, 1, linewidth=2.0,
+                                         edgecolor='b', facecolor='none', zorder=2)
+                axis.add_patch(rect)
 
         # If required, overplot the true averaged star positions
 
@@ -404,8 +398,12 @@ class SimFile (object):
             ID, row, col, Xmm, Ymm, flux = self.getStarCoordinates(imageNr, minVmag=minVmag, maxVmag=maxVmag)
             # Allow differentiating between a target and its contaminants
             if showStarPositions == 'PIC':
-                axis.scatter(col[0], row[0], marker='*', c='g')
-                if len(col) > 1: axis.scatter(col[1:], row[1:], marker='x', c='r')
+                tarMarkerSize = 200
+                mag = -2.5*np.log10(flux)
+                axis.scatter(col[0], row[0], s=tarMarkerSize, marker='o', c='lime', edgecolor='k', linewidth=1, zorder=4)
+                if len(col) > 1:
+                    conMarkerSize = (tarMarkerSize / (mag[1:] - mag[0]*np.ones(len(col)-1))).astype(int)
+                    axis.scatter(col[1:], row[1:], s=conMarkerSize, marker='o', c='gold', edgecolor='k', linewidth=1, zorder=4)
             # Or hightligth all stars the same
             else:
                 axis.scatter(col, row, marker='x', c='g')
@@ -414,7 +412,7 @@ class SimFile (object):
                     label = "{0}".format(ID[k])
                     axis.annotate(label, (col[k], row[k]), fontsize='small', fontweight='extra bold', color="black")
 
-        # If required, overplot the true averaged pointlike ghost positions
+        # If required, overplot the true averaged point-like ghost positions
 
         if showPointLikeGhostPositions:
             ID, row, col, Xmm, Ymm, flux = self.getPointLikeGhostCoordinates(imageNr, minVmag=minVmag, maxVmag=maxVmag)
@@ -464,21 +462,6 @@ class SimFile (object):
             plt.xticks(np.arange(0, Nrows, 10))
             plt.yticks(np.arange(0, Ncols, 10))
 
-        # Overplot rectangles over those pixels that are part of the mask
-        # Note: imshow reverses rows and columns
-
-        if showMaskOfStarID is not None:
-            rowIndices, colIndices, exposureNr = self.getPhotometricMask(showMaskOfStarID, imageNr)
-            for k in range(len(rowIndices)):
-                rect = patches.Rectangle((colIndices[k], rowIndices[k]), 1, 1, linewidth=2.0, edgecolor='b', facecolor='none')
-                axis.add_patch(rect)
-
-        # If requiered, overplot a gray semi-transparent grid
-        # Note: this is only meaningsful for smaller imagettes
-
-        if showGrid is True:
-            axis.grid(c='gray', ls='-', alpha=0.3)
-
         # Show the image
 
         plt.draw()
@@ -496,6 +479,8 @@ class SimFile (object):
 
 
 
+
+
     def getPsf(self, datasetName):
 
         """
@@ -503,7 +488,7 @@ class SimFile (object):
 
         INPUT:   the PSF name: "rebinnedPSFpixel", "rebinnedPSFsubPixel", "rotatedPSF" or "diffusedPSF"
                  where rotatedPSF is at subpixel level.
-                 
+
         OUTPUT:  psf: 2D numpy array containing the image
         """
 
@@ -518,7 +503,6 @@ class SimFile (object):
             image = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(image)
             return image 
-
 
 
 
@@ -608,6 +592,7 @@ class SimFile (object):
 
 
 
+
     def getStarCatalog(self):
 
         """
@@ -662,11 +647,11 @@ class SimFile (object):
         dataset = self.hdf5file["StarCatalog"]["starIDs"]
         starIDs = np.zeros(dataset.shape, dataset.dtype)
         dataset.read_direct(starIDs)
-         
+
         dataset = self.hdf5file["StarCatalog"]["RA"]
         RA = np.zeros(dataset.shape, dataset.dtype)
         dataset.read_direct(RA)
-        
+
         dataset = self.hdf5file["StarCatalog"]["Dec"]
         declination = np.zeros(dataset.shape, dataset.dtype)
         dataset.read_direct(declination)
@@ -682,15 +667,15 @@ class SimFile (object):
             dataset = self.hdf5file["StarCatalog"]["xFPmm"]
             xFPmm = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(xFPmm)
-            
+
             dataset = self.hdf5file["StarCatalog"]["yFPmm"]
             yFPmm = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(yFPmm)
-            
+
             dataset = self.hdf5file["StarCatalog"]["colPix"]
             colPix = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(colPix)
-            
+
             dataset = self.hdf5file["StarCatalog"]["rowPix"]
             rowPix = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(rowPix)
@@ -713,7 +698,7 @@ class SimFile (object):
 
 
 
-    def getStarCoordinates(self, imageNr, minVmag = None, maxVmag = None):
+    def getStarCoordinates(self, imageNr, minVmag=None, maxVmag=None):
 
         """
         PURPOSE: get the (fractional) pixel coordinates of all stars in the given image
@@ -734,10 +719,9 @@ class SimFile (object):
                 Ymm: The focal plane FP' y-coordinates of each star in the image
                 flux: The flux of each star in the image [photons]
 
-
         REMARKS: 
             - The coordinates returned are the time-averaged coordinates of the stars during the exposure.
-            
+
             - To get the pixel with the higest flux of star #0, given its (row, col) coordinates:
               >>> im = file.getImage(0)
               >>> ID, row, col, Xmm, Ymm, flux = file.getStarCoordinates(4, minVmag=6.0, maxVmag=9.0)  
@@ -760,14 +744,12 @@ class SimFile (object):
 
         exposureGroupName = "Exposure{0:06d}".format(imageNr)
 
-
         # Check if the arrays are in the file. If not: complain, if yes: copy the contents into a numpy array.
 
         if exposureGroupName not in self.hdf5file["StarPositions"].keys():
             print("Error: SimfFile.getStarCoordinates(): {0} not in hdf5 file".format(exposureGroupName))
             return None, None, None, None, None, None
 
-        
         # Extract the arrays from the HDF5 file
 
         dataset = self.hdf5file["StarPositions"][exposureGroupName]["starID"]
@@ -777,7 +759,7 @@ class SimFile (object):
         dataset = self.hdf5file["StarPositions"][exposureGroupName]["rowPix"]
         row = np.zeros(dataset.shape, dataset.dtype)
         dataset.read_direct(row)
-        
+
         dataset = self.hdf5file["StarPositions"][exposureGroupName]["colPix"]
         col = np.zeros(dataset.shape, dataset.dtype)
         dataset.read_direct(col)
@@ -794,7 +776,6 @@ class SimFile (object):
         flux = np.zeros(dataset.shape, dataset.dtype)
         dataset.read_direct(flux)
 
-        
         # Make sure that the star IDs are sorted
 
         sorted = np.argsort(starIDs)
@@ -804,7 +785,6 @@ class SimFile (object):
         Xmm = Xmm[sorted]
         Ymm = Ymm[sorted]
         flux = flux[sorted]
-
 
         # If no cut in V magnitude is required, we're finished.
 
@@ -828,8 +808,12 @@ class SimFile (object):
         selection = (subFieldVmag >= minVmag) & (subFieldVmag <= maxVmag)
 
         # That's it!
-       
+
         return starIDs[selection], row[selection], col[selection], Xmm[selection], Ymm[selection], flux[selection]
+
+
+
+
 
 
 
@@ -855,7 +839,7 @@ class SimFile (object):
             - entryAngles[0..N-1]:  the angle in which the cosmic hit the CCD                                    [rad]
             - intensities[0..N-1]:  the total number of e- of the cosmic before they were spread out in a trail  [e-]
             - trailLengths[0..N-1]: the length of the trail caused by the cosmic                                 [pixels]
-            
+
             Here N is the total number of cosmics that hit the CCD. If there were no hits in the field, the arrays will be empty.
             The latter is especially likely for the bias
 
@@ -871,7 +855,7 @@ class SimFile (object):
         if not field in ["SubField", "BiasMapLeft", "BiasMapRight", "SmearingMap"]:
             print("Error: SimFile.getCosmicsInfo(): field variable doesn't match one of the allowed values: SubField, BiasMapLeft, BiasMapRight or SmearingMap ")
             return None, None, None, None, None
-        
+
         # Check if the Cosmics info was saved to the HDF5 file
 
         if "Cosmics" not in self.hdf5file["/"].keys():
@@ -889,12 +873,12 @@ class SimFile (object):
         if field not in self.hdf5file["Cosmics"].keys():
             print("Error: SimFile.getCosmicsInfo(): {0} not in hdf5 file".format(field))
             return None, None, None, None, None
-        
+
         if exposureGroupName not in self.hdf5file["Cosmics/" + field].keys():
             print(self.hdf5file["Cosmics/" + field].keys())
             print("Error: SimFile.getCosmicsInfo(): {0} not in hdf5 file".format(exposureGroupName))
             return None, None, None, None, None
-        
+
         # Extract the arrays from the HDF5 file
 
         dataset = self.hdf5file["Cosmics"][field][exposureGroupName]["EntryRows"]
@@ -933,6 +917,8 @@ class SimFile (object):
 
 
 
+
+
     def getCosmicsAffectedPixels(self, imageNr, field="SubField"):
         """
         PURPOSE: Get the pixel coordinates and flux for those pixels that are affected by a cosmics,
@@ -955,24 +941,22 @@ class SimFile (object):
             >>> imageNr = 4
             >>> row, col, flux = file.getCosmicsAffectedPixels(imageNr)
         """
-        
+
         # Check if the field variables matches the allowed values
 
         if not field in ["SubField", "BiasMapLeft", "BiasMapRight", "SmearingMap"]:
             print("Error: SimFile:getCosmicsAffectedPixels(): field variable doesn't match one of the allowed values: SubField, BiasMapLeft, BiasMapRight or SmearingMap ")
             return None, None, None
-        
+
         # Check if the Cosmics info was saved to the HDF5 file
-        
+
         if "Cosmics" not in self.hdf5file["/"].keys():
             print("Error: SimFile.getCosmicsAffectedPixels(): no cosmics data was saved in the HDF5 file.")
             return None, None, None
 
-
         # Construct the exposure name that was used to store the image
 
         exposureGroupName = "exposure{0:06d}".format(imageNr)
-
 
         # Check if the arrays are in the file. If not: complain, if yes: copy the contents into a numpy array.
 
@@ -984,7 +968,7 @@ class SimFile (object):
             print(self.hdf5file["Cosmics/" + field].keys())
             print("Error: SimFile.getCosmicsAffectedPixels(): field {0} not in hdf5 file".format(exposureGroupName))
             return None, None, None
-        
+
         # Extract the arrays from the HDF5 file
 
         dataset = self.hdf5file["Cosmics"][field][exposureGroupName]["Columns"]
@@ -999,10 +983,10 @@ class SimFile (object):
         flux = np.zeros(dataset.shape, dataset.dtype)
         dataset.read_direct(flux)
 
-
         # That's it!
-       
+
         return row, col, flux
+
 
 
 
@@ -1041,7 +1025,7 @@ class SimFile (object):
 
         REMARKS: 
             - The coordinates returned are the time-averaged coordinates of the point-like ghosts during the exposure.
-            
+
             - To get the pixel with the higest flux of star #0, given its (row, col) coordinates:
               >>> im = file.getImage(0)
               >>> ID, row, col, Xmm, Ymm, flux = file.getPointLikeGhostCoordinates(4, minVmag=6.0, maxVmag=9.0)  
@@ -1066,11 +1050,9 @@ class SimFile (object):
             print("Error: no group PointLikeGhostPositions in the HDF5 file.")
             return None, None, None, None, None, None
 
-
         # Construct the exposure name that was used to store the image
 
         exposureGroupName = "Exposure{0:06d}".format(imageNr)
-
 
         # Check if the arrays are in the file. If not: complain, if yes: copy the contents into a numpy array.
 
@@ -1079,7 +1061,6 @@ class SimFile (object):
             print("Error: SimfFile.getPointLikeGhostCoordinates(): {0} not in hdf5 file".format(exposureGroupName))
             return None, None, None, None, None, None
 
-        
         # Extract the arrays from the HDF5 file
 
         dataset = self.hdf5file["PointLikeGhostPositions"][exposureGroupName]["starID"]
@@ -1089,7 +1070,7 @@ class SimFile (object):
         dataset = self.hdf5file["PointLikeGhostPositions"][exposureGroupName]["rowPix"]
         row = np.zeros(dataset.shape, dataset.dtype)
         dataset.read_direct(row)
-        
+
         dataset = self.hdf5file["PointLikeGhostPositions"][exposureGroupName]["colPix"]
         col = np.zeros(dataset.shape, dataset.dtype)
         dataset.read_direct(col)
@@ -1106,7 +1087,6 @@ class SimFile (object):
         flux = np.zeros(dataset.shape, dataset.dtype)
         dataset.read_direct(flux)
 
-        
         # Make sure that the point-like ghost star IDs are sorted
 
         sorted = np.argsort(starIDs)
@@ -1116,7 +1096,6 @@ class SimFile (object):
         Xmm = Xmm[sorted]
         Ymm = Ymm[sorted]
         flux = flux[sorted]
-
 
         # If no cut in V magnitude is required, we're finished.
 
@@ -1140,11 +1119,13 @@ class SimFile (object):
         selection = (subFieldVmag >= minVmag) & (subFieldVmag <= maxVmag)
 
         # That's it!
-       
+
         return starIDs[selection], row[selection], col[selection], Xmm[selection], Ymm[selection], flux[selection]
 
 
-    
+
+
+
 
 
 
@@ -1177,10 +1158,9 @@ class SimFile (object):
             - flux: Flux of each extended ghost in the image [photons].
             - radius: Radius of the extended ghost [mm].
 
-
         REMARKS: 
             - The coordinates returned are the time-averaged coordinates of the extended ghosts during the exposure.
-            
+
             - To get the pixel with the higest flux of star #0, given its (row, col) coordinates:
               >>> im = file.getImage(0)
               >>> ID, row, col, Xmm, Ymm, flux, radius = file.getExtendedGhostCoordinates(4, minVmag=6.0, maxVmag=9.0)  
@@ -1205,20 +1185,17 @@ class SimFile (object):
             print("Error: no group ExtendedGhostPositions in the HDF5 file.")
             return None, None, None, None, None, None, None
 
-
         # Construct the exposure name that was used to store the image
 
         exposureGroupName = "Exposure{0:06d}".format(imageNr)
 
-
         # Check if the arrays are in the file. If not: complain, if yes: copy the contents into a numpy array.
 
         if exposureGroupName not in self.hdf5file["ExtendedGhostPositions"].keys():
-            
+
             print("Error: SimfFile.getExtendedGhostCoordinates(): {0} not in hdf5 file".format(exposureGroupName))
             return None, None, None, None, None, None, None
 
-        
         # Extract the arrays from the HDF5 file
 
         dataset = self.hdf5file["ExtendedGhostPositions"][exposureGroupName]["starID"]
@@ -1228,7 +1205,7 @@ class SimFile (object):
         dataset = self.hdf5file["ExtendedGhostPositions"][exposureGroupName]["rowPix"]
         row = np.zeros(dataset.shape, dataset.dtype)
         dataset.read_direct(row)
-        
+
         dataset = self.hdf5file["ExtendedGhostPositions"][exposureGroupName]["colPix"]
         col = np.zeros(dataset.shape, dataset.dtype)
         dataset.read_direct(col)
@@ -1249,7 +1226,6 @@ class SimFile (object):
         radius = np.zeros(dataset.shape, dataset.dtype)
         dataset.read_direct(radius)
 
-        
         # Make sure that the extended ghost star IDs are sorted
 
         sorted = np.argsort(starIDs)
@@ -1260,7 +1236,6 @@ class SimFile (object):
         Ymm = Ymm[sorted]
         flux = flux[sorted]
         radius = radius[sorted]
-
 
         # If no cut in V magnitude is required, we're finished.
 
@@ -1284,7 +1259,7 @@ class SimFile (object):
         selection = (subFieldVmag >= minVmag) & (subFieldVmag <= maxVmag)
 
         # That's it!
-       
+
         return starIDs[selection], row[selection], col[selection], Xmm[selection], Ymm[selection], flux[selection], radius[selection]
 
 
@@ -1296,75 +1271,7 @@ class SimFile (object):
 
 
 
-
-
-
-
-
-
-    def getPhotometricMask(self, starID, imageNr):
-        """
-        PURPOSE: return the subfield row and column indices of the mask that is used to extract
-                 the flux of star with the given ID for the given exposure number. This only makes
-                 sense if the photometry was activated in the configuration yaml file.
-
-        INPUT: starID:  ID of the star as mentioned in the last column of the star catalog file
-               imageNr: integer sequential number of the image in the HDF5 file
-
-        OUTPUT: rowIndices: subimage row indices for each of the mask pixels
-                colIndices: subimage column indices for each of the mask pixels
-                exposureNr: the image number in which the mask was derived.
-                            exposureNr <= imageNr
-
-        NOTE: Masks are not update continuously, but only once in a while. This function searches
-              for the most recent mask. This mask may have thus been derived from a previous image
-              rather than from the given image Nr.
-        """
-
-        if "Photometry" not in self.hdf5file["/"].keys():
-            print("Error: getPhotometricMask(): No photometry present in the HDF5 file")
-            return None, None
-
-        starIDgroupName = "starID{0}".format(starID)
-        if starIDgroupName not in self.hdf5file["Photometry"]["Masks"].keys():
-            print("Error: getPhotometricMask(): " + starIDgroupName + " not present in Photometry/Masks/ in the HDF5 file")
-            return None, None
-
-        # Masks are not updated for every exposure, so find the exposure Nr of the most recent mask
-
-        dataset = self.hdf5file["Photometry"]["Masks"]["exposureNrOfMaskUpdate"]
-        exposureNrOfMaskUpdate = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(exposureNrOfMaskUpdate)
-
-        idx = np.searchsorted(exposureNrOfMaskUpdate, imageNr, side='right') - 1
-        if idx < 0:
-            print("Error: getPhotometricMask(): requesting an imageNr that is too early for this HDF5 file")
-            return None, None
-
-        exposureNr = exposureNrOfMaskUpdate[idx]
-
-        # Extract the indices of the proper mask
-        
-        exposureGroupName = "Exposure{0:06d}".format(exposureNr)
-        
-        dataset = self.hdf5file["Photometry"]["Masks"][starIDgroupName][exposureGroupName]["maskRowIndices"]
-        rowIndices = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(rowIndices)
-
-        dataset = self.hdf5file["Photometry"]["Masks"][starIDgroupName][exposureGroupName]["maskColumnIndices"]
-        colIndices = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(colIndices)
-
-        return rowIndices, colIndices, exposureNr
-
-
-
-
-
-
-
     def getLightCurve(self, starID, lctype="estimated"):
-
         """
         PURPOSE: Extract the light curve of the star with the given ID.
 
@@ -1372,13 +1279,13 @@ class SimFile (object):
                lctype: either "estimated" or "input". The estimated one is derived from a binary mask.
                        the input one is derived from the mean input magnitude specified in the star catalog
                        and (for variable stars) the delta-magnitude time series given as an input file.
-                       
+
         OUTPUT: time: [s]
                 flux: [electrons/exposure]
         """
 
-        # Verify if the necessary info is in the HDF5 file 
-        
+        # Verify if the necessary info is in the HDF5 file
+
         if "Photometry" not in self.hdf5file["/"].keys():
             print("Error: getLightCurve(): No photometry present in the HDF5 file")
             return None, None
@@ -1400,7 +1307,7 @@ class SimFile (object):
             datasetName = "inputFlux"
         else:
             print("Error: getLightCurve(): lctype can only be 'estimated' or 'input'")
-            return None, None 
+            return None, None
 
         # Extract the flux and the time points
 
@@ -1410,9 +1317,239 @@ class SimFile (object):
 
         dataset = self.hdf5file["StarPositions"]["Time"]
         time = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(time)       
+        dataset.read_direct(time)
 
         return time, flux
+
+
+
+
+
+
+
+
+    def getPhotometricMask(self, starID, imageNr=None):
+        """
+        PURPOSE: return the subfield row and column indices of the mask that is used to extract
+                 the flux of star with the given ID for the given exposure number. This only makes
+                 sense if the photometry was activated in the configuration yaml file.
+
+        INPUT: starID:  ID of the star as mentioned in the last column of the star catalog file
+               imageNr: integer sequential number of the image in the HDF5 file
+
+        OUTPUT: rowIndices: subimage row indices for each of the mask pixels
+                colIndices: subimage column indices for each of the mask pixels
+                exposureNr: the image number in which the mask was derived.
+                            exposureNr <= imageNr
+
+        NOTE: Masks are not update continuously, but only once in a while. This function searches
+              for the most recent mask. This mask may have thus been derived from a previous image
+              rather than from the given image Nr.
+        """
+
+        # Check if photometric data exists
+
+        if "Photometry" not in self.hdf5file["/"].keys():
+            print("Error: getPhotometricMask(): No photometry present in the HDF5 file")
+            return None, None, None, None, None
+
+        starIDgroupName = "starID{0}".format(starID)
+        if starIDgroupName not in self.hdf5file["Photometry"]["Masks"].keys():
+            print("Error: getPhotometricMask(): " + starIDgroupName + " not present in Photometry/Masks/ in the HDF5 file")
+            return None, None, None, None, None
+
+        # Fetch mask info and mask updates
+
+        mask = self.hdf5file["Photometry"]["Masks"]
+        exposureNrOfMaskUpdate = np.array(mask["exposureNrOfMaskUpdate"])
+        numMaskUpdates = len(exposureNrOfMaskUpdate)
+
+        # If a specific image number for the mask update is requested:
+        # NOTE Masks are not updated for every exposure hence find most recent mask
+
+        if isinstance(imageNr, int):
+
+            idx = np.searchsorted(exposureNrOfMaskUpdate, imageNr, side='right') - 1
+            if idx < 0:
+                print("Error: getPhotometricMask(): requesting an imageNr that is too early for this HDF5 file")
+                return None, None, None, None, None
+
+            exposureNrOfMaskUpdate = exposureNrOfMaskUpdate[idx]
+
+            # Extact mask size and NSR
+
+            maskSize = np.array(mask[starIDgroupName]['maskSize'])[idx]
+            maskNSR  = np.array(mask[starIDgroupName]['maskNSR'])[idx]
+
+            # Extract the indices of the proper mask
+
+            exposureGroupName = "Exposure{0:06d}".format(exposureNrOfMaskUpdate)
+            rowIndices = np.array(mask[starIDgroupName][exposureGroupName]["maskRowIndices"])
+            colIndices = np.array(mask[starIDgroupName][exposureGroupName]["maskColumnIndices"])
+
+        # Else fetch all the indices for all mask updates
+
+        else:
+
+            # Extact mask size and NSR
+
+            maskSize = np.array(mask[starIDgroupName]['maskSize'])
+            maskNSR  = np.array(mask[starIDgroupName]['maskNSR'])
+
+            # Extract the indices of all masks
+
+            rowIndices = []
+            colIndices = []
+            for i in range(numMaskUpdates):
+                exposureGroupName = "Exposure{0:06d}".format(exposureNrOfMaskUpdate[i])
+                rowIndices.append(mask[starIDgroupName][exposureGroupName]["maskRowIndices"])
+                colIndices.append(mask[starIDgroupName][exposureGroupName]["maskColumnIndices"])
+            rowIndices = np.array(rowIndices)
+            colIndices = np.array(colIndices)
+
+        # Finito!
+
+        return rowIndices, colIndices, exposureNrOfMaskUpdate, maskSize, maskNSR
+
+
+
+
+
+
+
+
+
+
+
+    def getPhotometry(self, starID, quarterNo=1):
+        """
+        PURPOSE: Extract the light curve of the star with the given ID.
+        NOTE The estimated one is derived from a binary mask. The input one is derived
+        from the mean input magnitude specified in the star catalog and
+        (for variable stars) the delta-mag time series given as an input file.
+
+        PARAMETERS
+        ----------
+        starID : int
+            ID of the star as mentioned in the last column of the star catalog file
+        quarterNo : int
+            Mission quarter number used to return correct relative time points.
+
+        RETURN
+        ------
+        time : ndarray
+            Time points of time series [s]
+        flux : ndarray
+            Flux points of time series [electrons/exposure]
+        """
+
+        # Verify if the necessary info is in the HDF5 file
+
+        if "Photometry" not in self.hdf5file["/"].keys():
+            print("Error: getLightCurve(): No photometry present in the HDF5 file")
+            return None, None
+
+        starIDgroupName = "starID{0}".format(starID)
+        if starIDgroupName not in self.hdf5file["Photometry"]["Lightcurves"].keys():
+            print("Error: getLightCurve(): " + starIDgroupName + " not present in Photometry/Lightcurves/ in the HDF5 file")
+            return None, None
+
+        # Fetch time points
+
+        time = self.getTimeQuarter(quarterNo)
+
+        # Extract the flux and the time points
+
+        photometry = self.hdf5file["Photometry"]["Lightcurves"][starIDgroupName]
+        inputFlux     = np.array(photometry["inputFlux"])
+        estimatedFlux = np.array(photometry["estimatedFlux"])
+
+        return time, inputFlux, estimatedFlux
+
+
+
+
+
+
+
+
+
+
+    def getTimeQuarter(self, quarterNo):
+        """
+        This function creates a time array for a quarter long simulation. It uses
+        the quarter number and the hdf5 output file to correct for the time shift
+        of the parent CCD.
+
+        PARAMETERS
+        ----------
+        outputFile : str
+           Full path to the HDF5 outputfile.
+        quarterNo : int
+           Integer specifying which quarter the time array should be created for.
+
+        RETURN
+        ------
+        time : ndarray [seconds]
+            Time array matching the parent quarter defined by the user.
+        """
+
+        # Fetch times
+
+        numExposures = self.hdf5file['InputParameters/ObservingParameters'].attrs['NumExposures']
+        timeStep  = self.hdf5file['InputParameters/ObservingParameters'].attrs['CycleTime']
+        timeShift = self.hdf5file['InputParameters/CCD'].attrs['TimeShift']
+
+        # Create time array from start and end times
+
+        timeStart = (quarterNo-1) * 90. * 86400. + float(timeShift)
+        timeEnd   = timeStart + timeStep * numExposures
+        time      = np.arange(timeStart, timeEnd, timeStep)
+
+        return time
+
+
+
+
+
+
+
+
+
+
+    def getStarPositions(self, starID):
+        """
+        This function fetch the pixel coordinates of a desired star ID from the output file.
+
+        PARAMETERS
+        ----------
+        starID : int
+           Star ID in simulated catalogue.
+
+        RETURN
+        ------
+        rowPix : ndarray [pixels]
+            Stellar row pixel coordinate
+        colPix : ndarray [pixels]
+            Stellar column pixel coordinate
+        """
+
+        # Get all Exposure00.. strings and avoid the time array being the last entry
+
+        exposureStrings = np.array(self.hdf5file['StarPositions'])[:-1]
+        N = len(exposureStrings)
+
+        # Loop over each image to fetch pixel coordinates
+
+        rowPix = np.zeros(N)
+        colPix = np.zeros(N)
+
+        for i in range(N):
+
+            rowPix[i] = np.array(self.hdf5file['StarPositions'][exposureStrings[i]]['rowPix'][starID-1])
+            colPix[i] = np.array(self.hdf5file['StarPositions'][exposureStrings[i]]['colPix'][starID-1])
+
+        return rowPix, colPix
 
 
 
@@ -1489,6 +1626,7 @@ class SimFile (object):
 
 
 
+
     def getYawPitchRoll(self, getTime = False):
     
         """
@@ -1541,6 +1679,13 @@ class SimFile (object):
             return yaw, pitch, roll
 
 
+
+
+
+
+
+
+
     def getYawPitchRollFromDrift(self, getTime = False):
         """
         PURPOSE: Get the telescop yaw, pitch and roll angle values at the end of each exposure 
@@ -1590,6 +1735,7 @@ class SimFile (object):
 
         else:
             return yaw, pitch, roll
+
 
 
 
@@ -1751,6 +1897,11 @@ class SimFile (object):
 
 
 
+
+
+
+
+
     def getPositionTimeSeries(self, starID):
 
         """
@@ -1835,6 +1986,9 @@ class SimFile (object):
 
 
 
+
+
+
     def getTime(self):
 
         """
@@ -1843,6 +1997,9 @@ class SimFile (object):
 
         return self.hdf5file["/StarPositions/Time"]
     
+
+
+
 
 
 
@@ -1859,6 +2016,11 @@ class SimFile (object):
         readoutTimeBeforeNextExposure = self.getReadoutTime()[0]
 
         return cycleTime - readoutTimeBeforeNextExposure
+
+
+
+
+
 
     def getReadoutTime(self):
 
@@ -1992,6 +2154,8 @@ class SimFile (object):
             readoutTimeDuringNextExposure = 0
 
         return readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure
+
+
 
 
 
