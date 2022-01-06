@@ -761,7 +761,7 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
             tie(xStar, yStar) = skyToFocalPlaneCoordinates(raStar, decStar);            // [mm]
 
 	    // apply the distortion on the FP-coordinates
-	    if(isMapped && includeFieldDistortion)
+	    if(isMapped)
 	    {
 	      detector.applyDistortion(xStar, yStar);
 	    }
