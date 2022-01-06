@@ -803,7 +803,7 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
 
     # We make sure that the first index of the origin of the reference frame corresponds to the first index in idx. 
 
-    distanceBetweenPoints = [abs(xUndis[i] - xUndis[i+1]) + abs(yUndis[i] - yUndis[i+1]) for i in [1, 2, 3]]
+    distanceBetweenPoints = [(closestX[i%3] - closestX[(i+1)%3])**2 + (closestY[i%3] - closestY[(i+1)%3])**2 for i in [1, 2, 3]]
     indexOfAngle          = distanceBetweenPoints.index(np.max(distanceBetweenPoints))
 
     if not indexOfAngle == 0:
@@ -818,8 +818,9 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
     ry = [ yUndis[i] - yUndis[idx[0]] if not i == idx[0] else yUndis[i] for i in idx]
     deltaX, deltaY = xFPmm - rx[0], yFPmm - ry[0]
 
-    a1 = (deltaX * rx[1] + deltaY * ry[1]) / (rx[1]*rx[1] + ry[1]*ry[1]);
-    a2 = (deltaX * rx[2] + deltaY * ry[2]) / (rx[2]*rx[2] + ry[2]*ry[2]);
+    det = (rx[1]*rx[1] + ry[1]*ry[1])*(rx[2]*rx[2] + ry[2]*ry[2]) - (rx[1]*rx[2] + ry[1]*ry[2])*(rx[1]*rx[2] + ry[1]*ry[2])
+    a1  = ((rx[2]*rx[2] + ry[2]*ry[2])*(deltaX*rx[1] + deltaY*ry[1]) - (rx[1]*rx[2] + ry[1]*ry[2])*(deltaX*rx[2] + deltaY*ry[2]))/det
+    a2  = ((rx[1]*rx[1] + ry[1]*ry[1])*(deltaX*rx[2] + deltaY*ry[2]) - (rx[1]*rx[2] + ry[1]*ry[2])*(deltaX*rx[1] + deltaY*ry[1]))/det
 
     # The distorted FP coordinates can then be estimated as:
     #   xFPdist = rxDist[0] + a1 * rxDist[1] + a2 * rxDist[2]
@@ -948,7 +949,7 @@ def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPs
 
     # We make sure that the first index of the origin of the reference frame corresponds to the first index in idx. 
 
-    distanceBetweenPoints = [abs(xDist[i] - xDist[i+1]) + abs(yDist[i] - yDist[i+1]) for i in [1, 2, 3]]
+    distanceBetweenPoints = [(closestX[i%3] - closestX[(i+1)%3])**2 + (closestY[i%3] - closestY[(i+1)%3])**2 for i in [1, 2, 3]]
     indexOfAngle          = distanceBetweenPoints.index(np.max(distanceBetweenPoints))
 
     if not indexOfAngle == 0:
@@ -963,8 +964,9 @@ def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPs
     ry = [ yDist[i] - yDist[idx[0]] if not i == idx[0] else yDist[i] for i in idx]
     deltaX, deltaY = xFPdist - rx[0], yFPdist - ry[0]
 
-    a1 = (deltaX * rx[1] + deltaY * ry[1]) / (rx[1]*rx[1] + ry[1]*ry[1]);
-    a2 = (deltaX * rx[2] + deltaY * ry[2]) / (rx[2]*rx[2] + ry[2]*ry[2]);
+    det = (rx[1]*rx[1] + ry[1]*ry[1])*(rx[2]*rx[2] + ry[2]*ry[2]) - (rx[1]*rx[2] + ry[1]*ry[2])*(rx[1]*rx[2] + ry[1]*ry[2])
+    a1  = ((rx[2]*rx[2] + ry[2]*ry[2])*(deltaX*rx[1] + deltaY*ry[1]) - (rx[1]*rx[2] + ry[1]*ry[2])*(deltaX*rx[2] + deltaY*ry[2]))/det
+    a2  = ((rx[1]*rx[1] + ry[1]*ry[1])*(deltaX*rx[2] + deltaY*ry[2]) - (rx[1]*rx[2] + ry[1]*ry[2])*(deltaX*rx[1] + deltaY*ry[1]))/det
 
     # The undistorted FP coordinates can then be estimated as:
     #   xFPmm = rxUnd[0] + a1 * rxUnd[1] + a2 * rxUnd[2]
