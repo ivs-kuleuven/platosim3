@@ -85,9 +85,9 @@ Camera:
     FieldDistortion:
         Type:                        Polynomial1D    # The model for the field distortion
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent)
-        ConstantCoefficients:        [0.316257210577,  0.066373219688,  0.372589221219, 0.00022463, 0.000217599, 0.000381958, 0.000963902]      # In case Source is ConstantValue
+        ConstantCoefficients:        [0.32419,  0.0232909,  0.407979, 0.00022463, 0.000217599, 0.000381958, 0.000963902]      # In case Source is ConstantValue
                                                      # These are the coefficients of the Wang distortion model: [k1, k2, k3, q1, q2, p1, p2]
-        ConstantInverseCoefficients: [-0.317143032936, 0.242638513347,-0.459260203502, -0.00019304, -0.000176961, -0.000321713, -0.000827654]   # In case Source is ConstantValue
+        ConstantInverseCoefficients: [-0.323487, 0.268344, -0.435473, -0.00019304, -0.000176961, -0.000321713, -0.000827654]   # In case Source is ConstantValue
                                                      # These are the inverse coefficients of the Wang distortion model
         CoefficientsFromFile:        inputfiles/distortioncoefficients.txt                   # In case Source is FromFile
         InverseCoefficientsFromFile: inputfiles/distortioninversecoefficients.txt            # In case Source if FromFile
