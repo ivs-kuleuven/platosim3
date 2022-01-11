@@ -515,7 +515,7 @@ void Camera::configure(ConfigurationParameters &configParam)
     }
 
 
-    
+
    // When we have a mapped PSF, the distortion is always applied. For the mapped PSF, this happend through a conversion table that is read from the
    // psf HDF5 files. For the analytic PSFs, we can choose to apply field distortion in using a Polynomial fit. The coefficients can either be a
    // fixed value, or given by a time series in a file.
@@ -640,7 +640,7 @@ void Camera::configure(ConfigurationParameters &configParam)
     writeStarPositions     = configParam.getBoolean("ControlHDF5Content/WriteStarPositions");
     writeGhostPositions    = configParam.getBoolean("ControlHDF5Content/WriteGhostPositions");
     writeTransmissionEfficiency = configParam.getBoolean("ControlHDF5Content/WriteTransmissionEfficiency");
-    
+
 }
 
 
@@ -730,7 +730,7 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
     double rowGhost, columnGhost, xGhost, yGhost, fluxGhost, radiusExtendedGhost, distanceOA, fluxRatioPointLikeGhosts;
     bool isStarInSubField, isGhostInSubField;
     array<double, 3> coefficients;
-    
+
     // Take the flux of the stars and ghosts (if enabled) into account, breaking up the
     // exposure time in small (heartbeat) intervals to track jitter during exposure
 
@@ -755,20 +755,20 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
         for (unsigned int starIndex = 0; starIndex < numStars; starIndex++)
         {
             // Calculate the focal-plane coordinates of the current star
-	    // (apply field distortion, if enabled)
+            // (apply field distortion, if enabled)
 
             tie(starID, raStar, decStar, magStar) = sky.getSelectedStar(starIndex);     // Sky coordinates in radians
             tie(xStar, yStar) = skyToFocalPlaneCoordinates(raStar, decStar);            // [mm]
 
-	    // apply the distortion on the FP-coordinates
-	    if(isMapped)
-	    {
-	      detector.applyDistortion(xStar, yStar);
-	    }
-	    else if (includeFieldDistortion)
-	    {
-	      tie(xStar, yStar) = undistortedToDistortedFocalPlaneCoordinates(xStar, yStar);
-	    }
+            // apply the distortion on the FP-coordinates
+            if(isMapped)
+            {
+              detector.applyDistortion(xStar, yStar);
+            }
+            else if (includeFieldDistortion)
+            {
+              tie(xStar, yStar) = undistortedToDistortedFocalPlaneCoordinates(xStar, yStar);
+            }
 
             // Total flux of the star acquired over the time step [photons]
             // (photons are always an integer number, so round down)
@@ -886,32 +886,32 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
             for (unsigned int starIndex = 0; starIndex < numPointLikeGhosts; starIndex++)
             {
                 // Calculate the focal-plane coordinates of the ghost produced by the current star
-	        // (apply field distortion, if enabled
+                // (apply field distortion, if enabled
 
                 tie(starID, raStar, decStar, magStar) = sky.getSelectedGhostOrig(starIndex);    // Sky coordinates of the originator [radians]
                 tie(xStar, yStar) = skyToFocalPlaneCoordinates(raStar, decStar);                // Focal-plane coordinate of the originator [mm]
 
-		if (isMapped && includeFieldDistortion)
-		{
-		  detector.applyDistortion(xStar, yStar);
-		}
-		else if (includeFieldDistortion)
-		{
-		  tie(xStar, yStar) = undistortedToDistortedFocalPlaneCoordinates(xStar, yStar);
-		}
+                if (isMapped && includeFieldDistortion)
+                {
+                  detector.applyDistortion(xStar, yStar);
+                }
+                else if (includeFieldDistortion)
+                {
+                  tie(xStar, yStar) = undistortedToDistortedFocalPlaneCoordinates(xStar, yStar);
+                }
 
                 // Consider the distance cut-off
                 // (only sources that are close enough to the OA will produce a symmetric point-like ghost)
 
                 distanceOA = this->getGnomonicRadialDistanceFromOpticalAxis(xStar, yStar);      // [radians]
-                
+
                 if(distanceOA < distanceCutOffPointLikeGhosts)
                 {
                     // Linear decrease in flux ratio from on-axis (fluxRatioOnAxisPointLikeGhosts) to the distance
                     // cut-off (distanceCutOffPointLikeGhosts), where the fluxRatio is zero.  Beyond the distance
                     // cut-off no point-like ghosts will occur (as the reflected rays will not make it through the
                     // pupil around L3)
-    
+
                     fluxRatioPointLikeGhosts = (-fluxRatioOnAxisPointLikeGhosts * distanceOA / distanceCutOffPointLikeGhosts) + fluxRatioOnAxisPointLikeGhosts;
 
                     // Focal-plane coordinates of the centre of the symmetric point-like ghost
@@ -1041,7 +1041,7 @@ tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &d
       tie(corner00Xmm, corner00Ymm) = distortedToUndistortedFocalPlaneCoordinates(corner00Xmm, corner00Ymm);
       tie(corner11Xmm, corner11Ymm) = distortedToUndistortedFocalPlaneCoordinates(corner11Xmm, corner11Ymm);
     }
-    
+
     // Calculate the pixel coordinates of the sub-field centre in the CCD reference frame
     // (just for logging purposes)
 
@@ -1051,7 +1051,7 @@ tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &d
     double actualCenterRow, actualCenterCol;
     tie(centerRow, centerCol) = detector.focalPlaneToPixelCoordinates(centerSubFieldXmm, centerSubFieldYmm);
     tie(actualCenterRow, actualCenterCol) = detector.focalPlaneToPixelCoordinates(actualCenterSubFieldXmm, actualCenterSubFieldYmm);
-    
+
     // Actual coordiantes of the subfield 
     Log.debug("Camera: actual center of subfield at CCD (row, col) = (" + to_string(actualCenterRow) + ", " + to_string(actualCenterCol) + ") pix");
     Log.debug("Camera: actual center of subfield at (Xmm, Ymm) = (" + to_string(actualCenterSubFieldXmm) + ", " + to_string(actualCenterSubFieldYmm) + ") mm");
@@ -1167,15 +1167,15 @@ void Camera::exposeDetectorWithSkyBackground(Detector &detector, double startTim
     {
       Log.info("Camera: correct FP coordinates of subfield center for field distortion");
 
-      detector.applyInverseDistortion(centerXmm, centerYmm);      
+      detector.applyInverseDistortion(centerXmm, centerYmm);
     }
     else if (includeFieldDistortion)
     {
       Log.info("Camera: correct FP coordinates of subfield center for field distortion");
-      
+
       tie(centerXmm, centerYmm) = distortedToUndistortedFocalPlaneCoordinates(centerXmm, centerYmm);
     }
-    
+
     // Convert the focal plane coordinates [mm] to (alpha, delta) equatorial sky coordinates [rad]
 
     double centerRA, centerDec;
