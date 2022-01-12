@@ -715,19 +715,20 @@ def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoeffici
     REMARK:       This is not the prefered method for detectors with mapped PSF, since these use a mapped distortion model. 
                   For such models use the function mappedUndistortedToDistortedFocalPlaneCoordinates.
 
-    Note: Example of distortion coefficients: [0.316257210577,  0.066373219688,  0.372589221219]
+    Note: Example of distortion coefficients: [0.32419,  0.0232909,  0.407979, 0.00022463, 0.000217599, 0.000381958, 0.000963902]
     """
 
-    coefficients = [0, 0, 0, distortionCoefficients[0], 0, distortionCoefficients[1], 0, distortionCoefficients[2]]
-    distortionPolynomial = Polynomial(coefficients)
+    radialCoefficients = [0, 0, 0, distortionCoefficients[0], 0, distortionCoefficients[1], 0, distortionCoefficients[2]]
+    distortionPolynomial = Polynomial(radialCoefficients)
 
     angle = arctan2(yFPmm, xFPmm)    # Position angle on the focal plane [radians]
 
     rFP = sqrt(xFPmm**2 + yFPmm**2) / focalLength              # Undistorted radial distance [normalised pixels]
-    distortion = distortionPolynomial(rFP) * focalLength       # Distortion [mm]
+    radialDistortion = distortionPolynomial(rFP) * focalLength
+    tangentialDistortion = rFP**2 * (distortionCoefficients[5] * cos(angle) + distortionCoefficients[6] * sin(angle)) * focalLength
 
-    xFPdist = xFPmm + cos(angle) * distortion
-    yFPdist = yFPmm + sin(angle) * distortion
+    xFPdist = xFPmm + cos(angle) * (radialDistortion + tangentialDistortion) + distortionCoefficients[3] * rFP**2 * focalLength 
+    yFPdist = yFPmm + sin(angle) * (radialDistortion + tangentialDistortion) + distortionCoefficients[4] * rFP**2 * focalLength
 
     return xFPdist, yFPdist
 
@@ -866,19 +867,20 @@ def distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, inverseDistort
     REMARK:     This is not the prefered method for detectors with mapped PSF, since these use a mapped distortion model. 
                 For such models use the function mappedDistortedToUndistortedFocalPlaneCoordinates.
 
-    Note: Example of inverse distortion coefficients: [-0.317143032936, 0.242638513347,-0.459260203502]
+    Note: Example of inverse distortion coefficients: [-0.323487, 0.268344, -0.435473, -0.00019304, -0.000176961, -0.000321713, -0.000827654]
     """
 
-    inverseCoefficients = [0, 0, 0, inverseDistortionCoefficients[0], 0, inverseDistortionCoefficients[1], 0, inverseDistortionCoefficients[2]]
-    inverseDistortionPolynomial = Polynomial(inverseCoefficients)
+    inverseCoefficientsRadial = [0, 0, 0, inverseDistortionCoefficients[0], 0, inverseDistortionCoefficients[1], 0, inverseDistortionCoefficients[2]]
+    inverseDistortionPolynomialRadial = Polynomial(inverseCoefficientsRadial)
 
     angle = arctan2(yFPdist, xFPdist)     # Position angle on the focal plane [radians]
 
     rFP = sqrt(xFPdist**2 + yFPdist**2) / focalLength                   # Distorted radial distance [normalised pixels]
-    distortion = inverseDistortionPolynomial(rFP) * focalLength         # Distortion [mm] -> negative!
+    radialDistortion = inverseDistortionPolynomialRadial(rFP) * focalLength         # Distortion [mm] -> negative!
+    tangentialDistortion = rFP**2 * (inverseDistortionCoefficients[5] * cos(angle) + inverseDistortionCoefficients[6] * sin(angle)) * focalLength
 
-    xFPmm = xFPdist + cos(angle) * distortion
-    yFPmm = yFPdist + sin(angle) * distortion
+    xFPmm = xFPdist + cos(angle) * (radialDistortion + tangentialDistortion) + inverseDistortionCoefficients[3] * rFP**2 * focalLength
+    yFPmm = yFPdist + sin(angle) * (radialDistortion + tangentialDistortion) + inverseDistortionCoefficients[4] * rFP**2 * focalLength
 
     return xFPmm, yFPmm
 
