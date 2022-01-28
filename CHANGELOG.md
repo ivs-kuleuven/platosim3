@@ -7,14 +7,19 @@
 
 ## Fixed
 * Corrected bug in validationtest for Cosmics. 
+* Corrected bug in python mapped distortion functions in python/platosim/referenceFrames.py. (GitHub #659)
 
 ## Changed
-
+* Changed field distortion for mapped PSF to deal with more general mapped psf files.
+* Changed field distoriton for analytic PSF from Radial model to Wang model. (GitHub #652)
+* Changed 'distortedToUndistortedFocalPlaneCoordinates' and 'undistortedToDistortedFocalPlaneCoordinates' in 
+python/platosim/referenceFrames.py
 
 ## Added
 * Added inhomogenous trap density (GitHub #639)
 * Added validationtest for Short2013 CTI 
 * Added validationtest for Short2013fromfile CTI 
+* Added 'distortioncoefficients.txt' and 'distortioninversecoefficients.txt' 
 
 <!-- 3.5.1 -->
 <!-- ***** -->

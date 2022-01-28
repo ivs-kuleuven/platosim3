@@ -515,7 +515,7 @@ void Camera::configure(ConfigurationParameters &configParam)
     }
 
 
-    
+
    // When we have a mapped PSF, the distortion is always applied. For the mapped PSF, this happend through a conversion table that is read from the
    // psf HDF5 files. For the analytic PSFs, we can choose to apply field distortion in using a Polynomial fit. The coefficients can either be a
    // fixed value, or given by a time series in a file.
@@ -540,11 +540,11 @@ void Camera::configure(ConfigurationParameters &configParam)
 
             vector<double> distortionCoefVector        = configParam.getDoubleVector("Camera/FieldDistortion/ConstantCoefficients");
             vector<double> inverseDistortionCoefVector = configParam.getDoubleVector("Camera/FieldDistortion/ConstantInverseCoefficients");
-            array<double, 3> distortionCoefArray, inverseDistortionCoefArray;
+            array<double, 7> distortionCoefArray, inverseDistortionCoefArray;
 
-            if ((distortionCoefVector.size() != 3) || (inverseDistortionCoefVector.size() != 3))
+            if ((distortionCoefVector.size() != 7) || (inverseDistortionCoefVector.size() != 7))
             {
-                string msg = "Camera::configure(): number of (inverse) distortion coefficients in input yaml file != 3.";
+                string msg = "Camera::configure(): number of (inverse) distortion coefficients in input yaml file != 7.";
                 throw ConfigurationException(msg);
             }
             else
@@ -553,16 +553,16 @@ void Camera::configure(ConfigurationParameters &configParam)
                 copy(inverseDistortionCoefVector.begin(), inverseDistortionCoefVector.end(), inverseDistortionCoefArray.begin());
             }
 
-            distortionCoef        = new Parameter<double, 3>(distortionCoefArray);
-            inverseDistortionCoef = new Parameter<double, 3>(inverseDistortionCoefArray);
+            distortionCoef        = new Parameter<double, 7>(distortionCoefArray);
+            inverseDistortionCoef = new Parameter<double, 7>(inverseDistortionCoefArray);
 
         }
         else if (fieldDistortionSource == "FromFile")
         {
             string distortionInputFile = configParam.getAbsoluteFilename("Camera/FieldDistortion/CoefficientsFromFile");
             string invDistortionInputFile = configParam.getAbsoluteFilename("Camera/FieldDistortion/InverseCoefficientsFromFile");
-            distortionCoef = new Parameter<double, 3>(distortionInputFile, 1);
-            inverseDistortionCoef = new Parameter<double, 3>(invDistortionInputFile, 1);
+            distortionCoef = new Parameter<double, 7>(distortionInputFile, 1);
+            inverseDistortionCoef = new Parameter<double, 7>(invDistortionInputFile, 1);
 
             Log.info("Camera: Reading distortion coefficients from " + distortionInputFile);
             Log.info("Camera: Reading inverse distortion coefficients from " + invDistortionInputFile);
@@ -640,7 +640,7 @@ void Camera::configure(ConfigurationParameters &configParam)
     writeStarPositions     = configParam.getBoolean("ControlHDF5Content/WriteStarPositions");
     writeGhostPositions    = configParam.getBoolean("ControlHDF5Content/WriteGhostPositions");
     writeTransmissionEfficiency = configParam.getBoolean("ControlHDF5Content/WriteTransmissionEfficiency");
-    
+
 }
 
 
@@ -730,7 +730,7 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
     double rowGhost, columnGhost, xGhost, yGhost, fluxGhost, radiusExtendedGhost, distanceOA, fluxRatioPointLikeGhosts;
     bool isStarInSubField, isGhostInSubField;
     array<double, 3> coefficients;
-    
+
     // Take the flux of the stars and ghosts (if enabled) into account, breaking up the
     // exposure time in small (heartbeat) intervals to track jitter during exposure
 
@@ -755,20 +755,20 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
         for (unsigned int starIndex = 0; starIndex < numStars; starIndex++)
         {
             // Calculate the focal-plane coordinates of the current star
-	    // (apply field distortion, if enabled)
+            // (apply field distortion, if enabled)
 
             tie(starID, raStar, decStar, magStar) = sky.getSelectedStar(starIndex);     // Sky coordinates in radians
             tie(xStar, yStar) = skyToFocalPlaneCoordinates(raStar, decStar);            // [mm]
 
-	    // apply the distortion on the FP-coordinates
-	    if(isMapped)
-	    {
-	      detector.applyDistortion(xStar, yStar);
-	    }
-	    else if (includeFieldDistortion)
-	    {
-	      tie(xStar, yStar) = undistortedToDistortedFocalPlaneCoordinates(xStar, yStar);
-	    }
+            // apply the distortion on the FP-coordinates
+            if(isMapped)
+            {
+              detector.applyDistortion(xStar, yStar);
+            }
+            else if (includeFieldDistortion)
+            {
+              tie(xStar, yStar) = undistortedToDistortedFocalPlaneCoordinates(xStar, yStar);
+            }
 
             // Total flux of the star acquired over the time step [photons]
             // (photons are always an integer number, so round down)
@@ -886,32 +886,32 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
             for (unsigned int starIndex = 0; starIndex < numPointLikeGhosts; starIndex++)
             {
                 // Calculate the focal-plane coordinates of the ghost produced by the current star
-	        // (apply field distortion, if enabled
+                // (apply field distortion, if enabled
 
                 tie(starID, raStar, decStar, magStar) = sky.getSelectedGhostOrig(starIndex);    // Sky coordinates of the originator [radians]
                 tie(xStar, yStar) = skyToFocalPlaneCoordinates(raStar, decStar);                // Focal-plane coordinate of the originator [mm]
 
-		if (isMapped && includeFieldDistortion)
-		{
-		  detector.applyDistortion(xStar, yStar);
-		}
-		else if (includeFieldDistortion)
-		{
-		  tie(xStar, yStar) = undistortedToDistortedFocalPlaneCoordinates(xStar, yStar);
-		}
+                if (isMapped && includeFieldDistortion)
+                {
+                  detector.applyDistortion(xStar, yStar);
+                }
+                else if (includeFieldDistortion)
+                {
+                  tie(xStar, yStar) = undistortedToDistortedFocalPlaneCoordinates(xStar, yStar);
+                }
 
                 // Consider the distance cut-off
                 // (only sources that are close enough to the OA will produce a symmetric point-like ghost)
 
                 distanceOA = this->getGnomonicRadialDistanceFromOpticalAxis(xStar, yStar);      // [radians]
-                
+
                 if(distanceOA < distanceCutOffPointLikeGhosts)
                 {
                     // Linear decrease in flux ratio from on-axis (fluxRatioOnAxisPointLikeGhosts) to the distance
                     // cut-off (distanceCutOffPointLikeGhosts), where the fluxRatio is zero.  Beyond the distance
                     // cut-off no point-like ghosts will occur (as the reflected rays will not make it through the
                     // pupil around L3)
-    
+
                     fluxRatioPointLikeGhosts = (-fluxRatioOnAxisPointLikeGhosts * distanceOA / distanceCutOffPointLikeGhosts) + fluxRatioOnAxisPointLikeGhosts;
 
                     // Focal-plane coordinates of the centre of the symmetric point-like ghost
@@ -1041,7 +1041,7 @@ tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &d
       tie(corner00Xmm, corner00Ymm) = distortedToUndistortedFocalPlaneCoordinates(corner00Xmm, corner00Ymm);
       tie(corner11Xmm, corner11Ymm) = distortedToUndistortedFocalPlaneCoordinates(corner11Xmm, corner11Ymm);
     }
-    
+
     // Calculate the pixel coordinates of the sub-field centre in the CCD reference frame
     // (just for logging purposes)
 
@@ -1051,7 +1051,7 @@ tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &d
     double actualCenterRow, actualCenterCol;
     tie(centerRow, centerCol) = detector.focalPlaneToPixelCoordinates(centerSubFieldXmm, centerSubFieldYmm);
     tie(actualCenterRow, actualCenterCol) = detector.focalPlaneToPixelCoordinates(actualCenterSubFieldXmm, actualCenterSubFieldYmm);
-    
+
     // Actual coordiantes of the subfield 
     Log.debug("Camera: actual center of subfield at CCD (row, col) = (" + to_string(actualCenterRow) + ", " + to_string(actualCenterCol) + ") pix");
     Log.debug("Camera: actual center of subfield at (Xmm, Ymm) = (" + to_string(actualCenterSubFieldXmm) + ", " + to_string(actualCenterSubFieldYmm) + ") mm");
@@ -1167,15 +1167,15 @@ void Camera::exposeDetectorWithSkyBackground(Detector &detector, double startTim
     {
       Log.info("Camera: correct FP coordinates of subfield center for field distortion");
 
-      detector.applyInverseDistortion(centerXmm, centerYmm);      
+      detector.applyInverseDistortion(centerXmm, centerYmm);
     }
     else if (includeFieldDistortion)
     {
       Log.info("Camera: correct FP coordinates of subfield center for field distortion");
-      
+
       tie(centerXmm, centerYmm) = distortedToUndistortedFocalPlaneCoordinates(centerXmm, centerYmm);
     }
-    
+
     // Convert the focal plane coordinates [mm] to (alpha, delta) equatorial sky coordinates [rad]
 
     double centerRA, centerDec;
@@ -1456,16 +1456,16 @@ pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFP, double yFP, 
  */
 pair<double, double> Camera::undistortedToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm)
 {
-	const array<double, 3> coefficients = (*distortionCoef)();
+    const array<double, 7> coefficients = (*distortionCoef)();
 
     double alpha = atan2(yFPmm, xFPmm);  // Position angle on the focal plane [radians]
 
     double rFP = sqrt(xFPmm * xFPmm + yFPmm * yFPmm) / (*focalLength)();	// Undistorted radial distance [normalised pixels]
-    double distortion = (coefficients[0] * pow(rFP, 3) + coefficients[1] * pow(rFP, 5) + coefficients[2] * pow(rFP, 7)) * (*focalLength)();	// Distortion [mm]
+    double radialDistortion = (coefficients[0] * pow(rFP, 3) + coefficients[1] * pow(rFP, 5) + coefficients[2] * pow(rFP, 7)) * (*focalLength)();	// Distortion [mm]
+    double tangentialDistortion = pow(rFP,2) * (coefficients[5] * cos(alpha) + coefficients[6] * sin(alpha)) * (*focalLength)();
 
-    double xFPdist = xFPmm + cos(alpha) * distortion;
-    double yFPdist = yFPmm + sin(alpha) * distortion;
-
+    double xFPdist = xFPmm + cos(alpha) * (radialDistortion + tangentialDistortion) + coefficients[3] * pow(rFP,2) * (*focalLength)();
+    double yFPdist = yFPmm + sin(alpha) * (radialDistortion + tangentialDistortion) + coefficients[4] * pow(rFP,2) * (*focalLength)();
     return make_pair(xFPdist, yFPdist);
 }
 
@@ -1487,16 +1487,16 @@ pair<double, double> Camera::undistortedToDistortedFocalPlaneCoordinates(double 
  */
 pair<double, double> Camera::distortedToUndistortedFocalPlaneCoordinates(double xFPdist, double yFPdist)
 {
-	const array<double, 3> inverseCoefficients = (*inverseDistortionCoef)();
+    const array<double, 7> inverseCoefficients = (*inverseDistortionCoef)();
 
     double alpha = atan2(yFPdist, xFPdist);  // Position angle on the focal plane [radians]
 
     double rFP = sqrt(xFPdist * xFPdist + yFPdist * yFPdist) / (*focalLength)();	// Distorted radial distance [normalised pixels]
-    double distortion = (inverseCoefficients[0] * pow(rFP, 3) + inverseCoefficients[1] * pow(rFP, 5) + inverseCoefficients[2] * pow(rFP, 7)) * (*focalLength)();	// Distortion [mm] -> negative
+    double radialDistortion = (inverseCoefficients[0] * pow(rFP, 3) + inverseCoefficients[1] * pow(rFP, 5) + inverseCoefficients[2] * pow(rFP, 7)) * (*focalLength)();	// Distortion [mm] -> negative
+    double tangentialDistortion = pow(rFP,2) * (inverseCoefficients[5] * cos(alpha) + inverseCoefficients[6] * sin(alpha)) * (*focalLength)();
 
-    double xFPmm = xFPdist +  cos(alpha) * distortion;
-    double yFPmm = yFPdist + sin(alpha) * distortion;
-
+    double xFPmm = xFPdist + cos(alpha) * (radialDistortion + tangentialDistortion) + inverseCoefficients[3] * pow(rFP,2) * (*focalLength)();
+    double yFPmm = yFPdist + sin(alpha) * (radialDistortion + tangentialDistortion) + inverseCoefficients[4] * pow(rFP,2) * (*focalLength)();
     return make_pair(xFPmm, yFPmm);
 }
 
