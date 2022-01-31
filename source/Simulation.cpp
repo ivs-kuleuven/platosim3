@@ -505,9 +505,10 @@ void Simulation::run()
             n++;             
         }
     }
+
     if (writeStarCatalog)
     {
-    writeStarCatalogToHDF5();
+        writeStarCatalogToHDF5();
     }
 }
 
@@ -650,37 +651,37 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     // Define some Lambda functions that will make it much easier to add the input parameters
 
-    auto addDouble = [&] (string attributeName) 
-    { 
+    auto addDouble = [&] (string attributeName)
+    {
         hdf5File->writeAttribute(parentGroup + "/" + subGroup, attributeName, configParams.getDouble(subGroup + "/" + attributeName));
     };
 
-    auto addInteger = [&] (string attributeName) 
-    { 
+    auto addInteger = [&] (string attributeName)
+    {
         hdf5File->writeAttribute(parentGroup + "/" + subGroup, attributeName, configParams.getInteger(subGroup + "/" + attributeName));
     };
 
-    auto addLong = [&] (string attributeName) 
-    { 
+    auto addLong = [&] (string attributeName)
+    {
         hdf5File->writeAttribute(parentGroup + "/" + subGroup, attributeName, configParams.getLong(subGroup + "/" + attributeName));
     };
 
-    auto addString = [&] (string attributeName) 
-    { 
+    auto addString = [&] (string attributeName)
+    {
         hdf5File->writeAttribute(parentGroup + "/" + subGroup, attributeName, configParams.getString(subGroup + "/" + attributeName));
     };
 
-    auto addBoolean = [&] (string attributeName) 
-    { 
+    auto addBoolean = [&] (string attributeName)
+    {
         hdf5File->writeAttribute(parentGroup + "/" + subGroup, attributeName, configParams.getBoolean(subGroup + "/" + attributeName));
     };
 
-    auto addDoubleVector = [&] (string attributeName) 
+    auto addDoubleVector = [&] (string attributeName)
     {
         hdf5File->writeAttribute(parentGroup + "/" + subGroup, attributeName, configParams.getDoubleVector(subGroup + "/" + attributeName));
     };
 
-    auto addIntegerVector = [&] (string attributeName) 
+    auto addIntegerVector = [&] (string attributeName)
     {
         hdf5File->writeAttribute(parentGroup + "/" + subGroup, attributeName, configParams.getIntegerVector(subGroup + "/" + attributeName));
     };
@@ -747,6 +748,8 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("PlateScale");
     addDouble("ThroughputBandwidth");
     addDouble("ThroughputLambdaC");
+    addBoolean("IncludeAberrationCorrection");
+    addBoolean("IncludeFieldDistortion");
     addBoolean("IncludePointLikeGhosts");
     addBoolean("IncludeExtendedGhosts");
     subGroup = "Camera/FocalPlaneOrientation";
@@ -759,6 +762,19 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addString("Source");
     addDouble("ConstantValue");
     addString("FromFile");
+    subGroup = "Camera/AberrationCorrection";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addString("Type");
+    addString("OrbitFile");
+    addDouble("StartTime");
+    subGroup = "Camera/FieldDistortion";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addString("Type");
+    addString("Source");
+    addDoubleVector("ConstantCoefficients");
+    addDoubleVector("ConstantInverseCoefficients");
+    addString("CoefficientsFromFile");
+    addString("InverseCoefficientsFromFile");
     subGroup = "Camera/Ghosts";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     subGroup = "Camera/Ghosts/PointLike";
@@ -781,13 +797,11 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("ChargeDiffusionStrength");
     addBoolean("IncludeChargeDiffusion");
     addBoolean("IncludeJitterSmoothing");
-
     subGroup = "PSF/AnalyticGaussian";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addDouble("Sigma00");
     addDouble("SigmaX18");
     addDouble("SigmaY18");
-
     subGroup = "PSF/AnalyticNonGaussian";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addString("ParameterFileName");
@@ -883,9 +897,9 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addInteger("NumRowsReadout");
     subGroup = "CCD/RelativeTransmissivity";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addDoubleVector("Coefficients");
     addDouble("RadiusFOV");
     addDouble("ExpectedValue");
-    addDoubleVector("Coefficients");
     subGroup = "CCD/Polarization";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addDouble("ExpectedValue");
@@ -1002,14 +1016,14 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
 
 /**
- * @brief Set the random seeds of the simulation. 
- * 
+ * @brief Set the random seeds of the simulation.
+ *
  * If the user set a random seed to -1, use the system's clock to set it. This is useful
  * to simulate time series that were partitioned in several segments, so that each 
  * segment has a different random seed.
- * 
- * @param configParams 
- * 
+ *
+ * @param configParams
+ *
  * @return configParams will have adapted seeds if they were set to -1.
  */
 

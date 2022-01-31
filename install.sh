@@ -14,7 +14,6 @@ set -e
 # and installs dependencies packages in dependencies/Installs/
 
 python ./dependencies/installscripts/install_hdf5.py
-python ./dependencies/installscripts/install_googletest.py
 python ./dependencies/installscripts/install_yaml.py
 python ./dependencies/installscripts/install_armadillo.py
 python ./dependencies/installscripts/install_fftw.py

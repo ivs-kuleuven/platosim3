@@ -83,22 +83,27 @@ class Cosmics(Test):
         numIsland1  = np.array([])
         numIsland2  = np.array([])
         trailLength = np.array([])
-        
+
+        numWithoutCosmics = 0
         for exp in range(self.numExposures):
 
             diff = fileWithCosmics.getImage(exp) - fileWithoutCosmics.getImage(exp)
             diff[diff!=0] = 1
 
-            trailLength = np.append(trailLength, np.sum(diff))
+            if (np.sum(diff) != 0):
+                trailLength = np.append(trailLength, np.sum(diff))
 
-            labels, num1 = morphology.label(diff, connectivity=1, return_num=True)
-            numIsland1 = np.append(numIsland1, num1)
+                labels, num1 = morphology.label(diff, connectivity=1, return_num=True)
+                numIsland1 = np.append(numIsland1, num1)
                         
-            labels, num2 = morphology.label(diff, connectivity=2, return_num=True)           
-            numIsland2 = np.append(numIsland2, num2)
+                labels, num2 = morphology.label(diff, connectivity=2, return_num=True)           
+                numIsland2 = np.append(numIsland2, num2)
+            else:
+                numWithoutCosmics += 1
 
-        trailLength1       = np.mean(trailLength / numIsland2 / np.sqrt(2))
-        trailLength2       = np.mean(trailLength / numIsland1 / np.sqrt(2))
+
+        trailLength1       = np.mean(np.concatenate((trailLength / numIsland2 / np.sqrt(2), np.zeros(numWithoutCosmics)), axis=0))
+        trailLength2       = np.mean(np.concatenate((trailLength / numIsland1 / np.sqrt(2), np.zeros(numWithoutCosmics)), axis=0))
         theoTrail          = (trailLengthParameter) / 2
 
         minTrail           = min(trailLength1, trailLength2)

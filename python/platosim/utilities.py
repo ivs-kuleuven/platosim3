@@ -6,6 +6,7 @@ codes within the PlatoSim and PLATOnium repository.
 """
 
 import sys
+import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -92,7 +93,7 @@ def normalize(signal, factor=1e6, length=-1):
     RETURN
     ------
     relative_signal : narray
-        Normalized relative signal is returned.
+        Normalized relative signal is returned. Default unit in [ppm].
     """
 
     relative_signal = (signal / np.mean(signal[:int(length)]) - 1) * factor
@@ -169,7 +170,6 @@ def filter(signal, filt='median', carbox=144):
 
 
 
-
 def passbandConversionV2P(V, Teff):
     """
     Coversion from Johnson-Cousin V magnitude to the PLATO passband.
@@ -206,7 +206,7 @@ def NSRphotonNoiseLimit(P, Ncam=24., Ntra=1., tdur=3600., camType='N'):
     """
     NSR estimate in the photon noise limit of bright stars. The stellar flux are
     calculated from the PLATO passband found by Marchiori et al. (2019).
-    NOTE only valid for very bright stars (P < 9).
+    NOTE only valid for very bright stars (P < 11).
 
     PARAMETERS
     ----------
@@ -256,110 +256,6 @@ def NSRphotonNoiseLimit(P, Ncam=24., Ntra=1., tdur=3600., camType='N'):
     NSR = 1/SNR * 1e6
 
     return NSR
-
-
-
-
-
-
-
-def powerDensityFFT(signal, timestep):
-    """
-    Computes the power density of an equidistant time series 'signal',
-    using the FFT algorithm. The length of the time series need not
-    be a power of 2 (zero padding is done automatically).
-    NOTE This function is a copy from the IvS repo to avoid depencies.
-
-    Parameters
-    ----------
-    signal : ndarray
-        Signaltime series [0..Ntime-1]
-    timestep : float
-        Time step fo the equidistant time series
-    Return
-    ------
-    freq : ndarray
-        frequencies and the power density spectrum
-    PSD : ndarray
-        Power spectral density profile
-    """
-
-    # Compute the FFT of a real-valued signal. If N is the number
-    # of points of the original signal, 'Nfreq' is (N/2+1).
-
-    fourier = np.fft.rfft(signal)
-    Ntime   = len(signal)
-    Nfreq   = len(fourier)
-
-    # Compute the power density
-
-    PSD = np.abs(fourier)**2 / Ntime * timestep
-
-    # Compute the frequency array.
-    # First compute an equidistant array that goes from 0 to 1 (included),
-    # with in total as many points as in the 'fourier' array.
-    # Then rescale the array that it goes from 0 to the Nyquist frequency
-    # which is 0.5/timestep
-
-    freq = np.arange(float(Nfreq)) / (Nfreq-1) * 0.5 / timestep
-
-    # That's it!
-
-    return freq, PSD
-
-
-
-# def powerPSD(signal, sampling):
-#     """
-#     This function takes a time series and plots the Power Spectral Density (PSD) function.
-
-#     PARAMETERS
-#     ----------
-#     signal : narray, list-narray
-#         Either single signal array or a list of signal arrays
-    
-#     OUTPUT:
-#     Plot or/and saved plot to PNG.
-#     """
-
-#     Compute frequencies uptil the Nyquist frequency
-
-#     freq = np.fft.fftfreq(len(time), d=np.diff(time)[0])
-
-#     Require even number of data points
-
-#     if (len(time) % 2) != 0:
-#         dx = len(time) - 1
-#     else:
-#         dx = len(time)
-#     time = time[:dx]
-#     data = signal[:dx]
-
-#     Start with wavelength varying signal; units are DN/s, values are real
-
-#     fourier = np.fft.fft(data)
-#     power   = np.sqrt(fourier.real**2 + fourier.imag**2)
-#     sp_med  = median_filter(power, int(3600*1e-6/sampling))  [microHz/hour]
-
-#     Sort away the negative reflection image
-
-#     positives   = np.where(frequencies > 0)
-#     frequencies = frequencies[positives]
-#     power_model = power_model[positives]
-#     sp_med      = sp_med[positives]
-
-#     ax.plot(frequencies, power_model, '-', c=colors[plot], lw=lw, label=labels[plot])
-#     ax.plot(frequencies, sp_med, 'k-', lw=lw+0.5)
-
-#     ax.plot([1e-1, 2e1], [1e10, 1e1], c='k', linestyle='--', lw=1)
-#     ax.plot([2e1,  1e4], [1e1,  1e1], c='k', linestyle='--', lw=1)
-
-
-#     return freq, PSDs
-
-
-
-
 
 
 

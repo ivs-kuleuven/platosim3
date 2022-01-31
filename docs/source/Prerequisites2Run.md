@@ -28,7 +28,7 @@ If you want to use realistic PSF models instead of a Gaussian, you can download 
 
 
 
-### PSF at different temperatures:
+### PSF at different stellar effective temperatures:
 | Temperature | download link |
 |-------------|---------------|
 | 4000K       | <a href="ftp://plato:miSotalP@ftp.ster.kuleuven.be/FF_0mu_N4000K_4224stars.hdf5"> PSF 4000K </a>    |

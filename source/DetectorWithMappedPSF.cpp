@@ -1139,9 +1139,9 @@ void DetectorWithMappedPSF::applyDistortion(double &x, double &y)
   double deltaX = x - e0x;
   double deltaY = y - e0y;
 
-  double a1 = (deltaX * r1x + deltaY * r1y) / (r1x*r1x + r1y*r1y);
-  double a2 = (deltaX * r2x + deltaY * r2y) / (r2x*r2x + r2y*r2y);
-
+  double det = (r1x*r1x + r1y*r1y)*(r2x*r2x + r2y*r2y) - (r1x*r2x + r1y*r2y)*(r1x*r2x + r1y*r2y);
+  double a1  = ((r2x*r2x + r2y*r2y)*(deltaX*r1x + deltaY*r1y) - (r1x*r2x + r1y*r2y)*(deltaX*r2x + deltaY*r2y))/det;
+  double a2  = ((r1x*r1x + r1y*r1y)*(deltaX*r2x + deltaY*r2y) - (r1x*r2x + r1y*r2y)*(deltaX*r1x + deltaY*r1y))/det;
 
   double e0xDistorted = ClosestDistortedCoordinates[0][0];
   double e0yDistorted = ClosestDistortedCoordinates[0][1];
@@ -1274,8 +1274,9 @@ void DetectorWithMappedPSF::applyInverseDistortion(double &x, double &y)
   double deltaX = x - e0x;
   double deltaY = y - e0y;
 
-  double a1 = (deltaX * r1x + deltaY * r1y) / (r1x*r1x + r1y*r1y);
-  double a2 = (deltaX * r2x + deltaY * r2y) / (r2x*r2x + r2y*r2y);
+  double det = (r1x*r1x + r1y*r1y)*(r2x*r2x + r2y*r2y) - (r1x*r2x + r1y*r2y)*(r1x*r2x + r1y*r2y);
+  double a1  = ((r2x*r2x + r2y*r2y)*(deltaX*r1x + deltaY*r1y) - (r1x*r2x + r1y*r2y)*(deltaX*r2x + deltaY*r2y))/det;
+  double a2  = ((r1x*r1x + r1y*r1y)*(deltaX*r2x + deltaY*r2y) - (r1x*r2x + r1y*r2y)*(deltaX*r1x + deltaY*r1y))/det;
 
 
   double e0xUndistorted = ClosestUndistortedCoordinates[0][0];
