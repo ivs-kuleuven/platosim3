@@ -1534,21 +1534,23 @@ def plotPhotometry(fig, outputFile, medfilt=144, fluxInput=False, NSR=False, COB
         ax1.set_xlabel('Time [days]')
         ax1.set_title('Star position')
         ax1.set_xlim(axes_minmax(x=time))
-
+        ax1.legend(loc='upper left')
+        
         # Plot column pixel on right y axis
 
         ax2 = ax1.twinx()
-        ax2.plot(time, colPix, '-', c='hotpink')
+        ax2.plot(time, colPix, '-', c='hotpink', label='Col pixel')
         ax2.set_ylabel('Column coordinate [pixel]')
         ax2.set_xlim(axes_minmax(x=time))
-
+        ax2.legend(loc='lower right')
+        
     # Labels
 
     if title is not False:
         fig.text(0.5, 0.9, title, ha='center', fontsize=fs)
     if NSR is False and COB is False:
         ax0.set_xlabel('Time [days]')
-
+        
     # Limits
 
     flux_min = np.min([flux_in, flux_out])
@@ -1781,9 +1783,10 @@ def plotPhotometryComparison(fig, filenames, medfilt=None, title=None):
 
 
 
-def plotSubfieldAnimation(fig, filename, numImages=False, outputFileName=False, clipPercentile=5.0, useTitle=True,
-                          colorMap="hot", showGrid=False, showStarPositions=False, showPointLikeGhostPositions=False,
-                          minVmag=None, maxVmag=None, showStarIDs=False, showMaskOfStarID=None):
+def plotSubfieldAnimation(fig, filename, numImages=False, outputFileName=False, clipPercentile=8.0,
+                          useTitle=True, colorMap="hot", showGrid=False, showStarPositions=False,
+                          showPointLikeGhostPositions=False, minVmag=None, maxVmag=None,
+                          showStarIDs=False, showMaskOfStarID=None, skipNimages=None):
     """
     Create and plot an animation of a set of imagettes.
 
@@ -1796,90 +1799,95 @@ def plotSubfieldAnimation(fig, filename, numImages=False, outputFileName=False, 
     axes : object
         Axes matplotlib.pyplot handle object to be modified by the user
 
+    EXAMPLES
+    --------
+    fig = plt.figure(fig=(10,10))
     TODO add photometric mask to animation
     """
 
     # Fetch file with simulated subfields
 
     f = h5py.File(filename, "r")
-    N = len(f["Images/"])
-    # Amount of images to animate
 
-    if numImages is False:
-        numImages = N
+    # Fetch the image names
+    imgNames   = list(f['Images'].keys())
+    #imgNumbers = list(range(1, len(imgNames)+1))
+    imgNumbers = list(range(len(imgNames)))
+    N          = len(imgNames)
 
+    # Skip N images to make animation faster
+    if skipNimages is not None:
+        imgNames   = imgNames[0::skipNimages]
+        imgNumbers = imgNumbers[0::skipNimages]
+        
     # Plot the image. Note that pixel coordinates start at the left bottom side of each pixel.
 
     ims = []
     fig, axis = plt.subplots(1,1)
+    for imgNumber, imgName in zip(imgNumbers, imgNames):
 
-    for imageNr in range(1, numImages):
-
-        # Fetch each image name
-
-        image = f["Images/image{0:0{1}d}".format(imageNr, len(str(N))+1)]
+        # Fetch each pixel image
+        image = f["Images/{0}".format(imgName)]
 
         # Fetch image dimention first time only
-
-        if imageNr == 1:
+        if not ims:
             Nrows, Ncols = image.shape
 
         # Make image plot
-
-        imagePlot = axis.imshow(image, cmap=colorMap, interpolation="nearest", origin='lower', extent=[0,Nrows,0,Ncols], animated=True)
+        imagePlot = axis.imshow(image, cmap=colorMap, interpolation="nearest",
+                                origin='lower', extent=[0,Nrows,0,Ncols], animated=True)
 
         # The large dynamic range of the pixel values often results in images where only
         # the brightest stars are visible. To improve the contrast, clip the color mapping.
-
         imagePlot.set_clim(np.percentile(image, clipPercentile), np.percentile(image, 100-clipPercentile))
 
         # OVERPLOT STAR POSITIONS
 
         if showStarPositions:
-            exposureGroupName = "Exposure{0:06d}".format(imageNr)
-
             # Extract the arays from HDF5 file
-
+            exposureGroupName = "Exposure{0:06d}".format(imgNumber)
             dataset = f["StarPositions"][exposureGroupName]["starID"]
             ID = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(ID)
-
             dataset = f["StarPositions"][exposureGroupName]["rowPix"]
             row = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(row)
-
             dataset = f["StarPositions"][exposureGroupName]["colPix"]
             col = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(col)
+            dataset = f["StarPositions"][exposureGroupName]["flux"]
+            flux = np.zeros(dataset.shape, dataset.dtype)
+            dataset.read_direct(flux)
 
-            # Allow differentiating between a target and its contaminants
-
+            # Allow differentiating between a (PIC) target and its contaminants
             if showStarPositions == 'PIC':
-                axis.scatter(col[0], row[0], marker='*', c='g')
-                if len(col) > 1: axis.scatter(col[1:], row[1:], marker='x', c='r')
+                tarMarkerSize = 200
+                mag = -2.5*np.log10(flux)
+                coor_tar = axis.scatter(col[0], row[0], s=tarMarkerSize, marker='o', c='lime',
+                                        edgecolor='k', linewidth=1, zorder=4)
+                if len(col) > 1:
+                    conMarkerSize = (tarMarkerSize /
+                                     (mag[1:] - mag[0]*np.ones(len(col)-1))).astype(int)
+                    coor_con = axis.scatter(col[1:], row[1:], s=conMarkerSize, marker='o', c='gold',
+                                            edgecolor='k', linewidth=1, zorder=4)
             # Or hightligth all stars the same
             else:
                 axis.scatter(col, row, marker='x', c='g')
             if showStarIDs:
                 for k in range(len(ID)):
                     label = "{0}".format(ID[k])
-                    axis.annotate(label, (col[k], row[k]),
-                                  fontsize='small', fontweight='extra bold', color="black")
-
-        # Ensure that the axis limits are properly set.
-
+                    axis.annotate(label, (col[k], row[k]), fontsize='small', fontweight='extra bold', color="black")
+                    
+        # Ensure that the axis limits are properly set
         axis.set_xlim(0, Ncols)
         axis.set_ylim(0, Nrows)
-
-        # If required, put the title
 
         # User defined title-string
         if isinstance(useTitle, str):
             plt.title(useTitle)
 
-        # By default, matplotlib only shows the (x,y) coordinates of each pixel, but not the pixel value itself.
-        # Change this by redefining the axis.format_coord
-
+        # By default, matplotlib only shows the (x,y) coordinates of each pixel but not
+        # the pixel value itself. Change this by redefining the axis.format_coord
         def format_coord(x, y):
             col = int(x)
             row = int(y)
@@ -1888,18 +1896,16 @@ def plotSubfieldAnimation(fig, filename, numImages=False, outputFileName=False, 
                 return "x={:.1f}, y={:.1f}, z={:.1f}".format(x, y, z)
             else:
                 return "x={:.1f}, y={:.1f}".format(x, y)
-
         axis.format_coord = format_coord
 
         # Show all ticks for smaller subfields or otherwise 10
-
         if Ncols < 10 and Nrows < 10:
             plt.xticks(np.arange(0, Nrows+1))
             plt.yticks(np.arange(0, Ncols+1))
         else:
             plt.xticks(np.arange(0, Nrows, 10))
             plt.yticks(np.arange(0, Ncols, 10))
-
+            plt.tight_layout()
         # Overplot rectangles over those pixels that are part of the mask
         # Note: imshow reverses rows and columns
 
@@ -1916,24 +1922,24 @@ def plotSubfieldAnimation(fig, filename, numImages=False, outputFileName=False, 
             axis.grid(c='gray', ls='-', alpha=0.3)
 
         # Append images to list
+        ims.append([imagePlot, coor_tar, coor_con])
 
-        ims.append([imagePlot])
+        # Compile to bash
+        ut.compilation(imgNumber, N, 'Done')
+    print; print('')
 
     # CREATE ANIMATION
-
-    ani = animation.ArtistAnimation(fig, ims, interval=10, blit=True, repeat_delay=0)
-
-    # Save animation
-
+    ani = animation.ArtistAnimation(fig, ims, interval=5, blit=True, repeat_delay=0)
+    
+    # Save animation (fps=50 and dpi=100 seems like good settings)
+    print('Creating GIF animation..')
     if outputFileName is not False:
-        ani.save(f'{outputFileName}.mp4')
+        ani.save(f'{outputFileName}.gif', fps=50, dpi=100)
 
     # Show animation
-
     plt.draw()
     plt.plot()
 
     # Finito!
-
     return
 
