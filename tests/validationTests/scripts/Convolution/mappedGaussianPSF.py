@@ -126,8 +126,8 @@ class MappedGaussianPSF(Test):
             pixelImage = np.zeros(file[number].shape, file[number].dtype)
             file[number].read_direct(pixelImage)
             
-            data = {"length^2" : deltaX**2 + deltaY**2, "psfImage" : pixelImage}
-            df = df.append(data, ignore_index=True)
+            data = pd.DataFrame({"length^2" : [deltaX**2 + deltaY**2], "psfImage" : [pixelImage]})
+            df = pd.concat([df,data])
 
         return df["psfImage"][df["length^2"]==df["length^2"].min()].iat[0]
 

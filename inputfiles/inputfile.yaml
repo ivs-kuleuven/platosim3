@@ -323,4 +323,8 @@ CCDPositions:
     NumRows:                         [4510, 4510, 4510, 4510]       # Number of rows on the CCD [pixels] (including non-exposed ones)
     FirstRowForNormalCamera:         [0, 0, 0, 0]                   # The complete CCDs are active/illuminated for the Normal Camera's
     FirstRowForFastCamera:           [2255, 2255, 2255, 2255]       # Only the upper half of the CCDs is active/illuminated for the Fast Camera's
+    MetallicShield:
+        IncludeMetallicShield:            yes                        # Whether or not to include a metallic shield for fast camera
+        ShieldColumnCoordinates:         [10, 4500]                 # First and last column of CCD that isn't covered by metal shield around fast camera [pxl]
+        ShieldRowCoordinates:            [2260, 4505]               # First and last row of CCD that isn't covered by metal shield around fast camera [pxl]
     TimeShift:                       [0.0, 6.25, 12.5, 18.75]       # Time shift for readout w.r.t. CCD #1.  [s]
