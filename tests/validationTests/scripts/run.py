@@ -28,6 +28,8 @@ from brighterFatterEffect                          import BrighterFatterEffect
 from cosmics                                       import Cosmics
 from openShutterSmearing                           import OpenShutterSmearing
 from ChargeTransferInefficiency.simpleCTI          import SimpleCTI
+from ChargeTransferInefficiency.Short2013          import Short2013CTI
+from ChargeTransferInefficiency.Short2013FromFile  import Short2013CTIFromFile 
 from photonNoise                                   import PhotonNoise
 from readOutNoise                                  import ReadoutNoise
 from fullWellSaturation                            import FullWellSaturation
@@ -35,6 +37,7 @@ from Quantisation.gain                             import Gain
 from Quantisation.electronicOffset                 import ElectronicOffset
 from Quantisation.flooring                         import Flooring
 from Quantisation.digitalSaturation                import DigitalSaturation
+from metallicShield                                import MetallicShield
 
 from contextlib import contextmanager
 import sys, os
@@ -333,6 +336,22 @@ testMessages.append("{:<9}  {:^42}:{}".format("Test16.1:", name, success[out16_1
 print(testMessages[-1])
 
 with suppress_stdout():
+    test16_2 = Short2013CTI()
+    out16_2  = test16_2.run()
+
+name = "Short 2013 model"
+testMessages.append("{:<9}  {:^42}:{}".format("Test16.2:", name, success[out16_2]))
+print(testMessages[-1])
+
+with suppress_stdout():
+    test16_3 = Short2013CTIFromFile()
+    out16_3  = test16_3.run()
+
+name = "Sort 2013 from file model"
+testMessages.append("{:<9}  {:^42}:{}".format("Test16.3:", name, success[out16_3]))
+print(testMessages[-1])
+
+with suppress_stdout():
     test17 = PhotonNoise()
     out17  = test17.run()
 
@@ -387,6 +406,19 @@ with suppress_stdout():
 name = "Digital Saturation"
 testMessages.append("{:<9}  {:^42}:{}".format("Test20.4:", name, success[out20_4]))
 print(testMessages[-1])
+
+
+with suppress_stdout():
+    test21 = MetallicShield()
+    out21  = test21.run()
+
+name = "Metallic Shield"
+testMessages.append("{:<9}  {:^42}:{}".format("Test21:", name, success[out21]))
+print(testMessages[-1])
+
+
+
+
 
 
 

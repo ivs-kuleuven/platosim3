@@ -751,21 +751,37 @@ void DetectorWithMappedPSF::applyDiffusionKernel(double subpixRow, double subpix
  */
 bool DetectorWithMappedPSF::isInSubPixelMap(double row, double column)
 {
-    return (column >= 0) && (row >= 0) && (column < numColumnsSubPixelMap) && (row < numRowsSubPixelMap);
+    int coveredSubPixelsLeft   = coveredLeft * numSubPixelsPerPixel;
+    int coveredSubPixelsRight  = coveredRight * numSubPixelsPerPixel;
+    int coveredSubPixelsBottom = coveredBottom * numSubPixelsPerPixel;
+    int coveredSubPixelsTop     = coveredTop * numSubPixelsPerPixel;
+
+    return (column >= coveredSubPixelsLeft) && (row >= coveredSubPixelsBottom) && (column < numColumnsPixelMap*numSubPixelsPerPixel - coveredSubPixelsRight) && (row < numRowsPixelMap*numSubPixelsPerPixel - coveredSubPixelsTop);
+
 }
 
 /**
- * \brief: Add the given flux value to (all sub-pixels of) the sub-pixel map.
+ * \brief: Add the given flux value to (all sub-pixels that are not covered by a metallic
+ *         shield of) the sub-pixel map.
  *
  * \param flux: Flux to add to the sub-pixel map [photons/pixel].
  */
 void DetectorWithMappedPSF::addFlux(double flux)
 {
-    // The flux is expressed in [photons/pixel] but we need the quantity expressed
-    // in [photons/subpixel]. There are (numSubPixelsPerPixel)^2 per pixel (the
-    // name is thus a bit of a misnomer.).
+    int coveredSubPixelsLeft   = coveredLeft * numSubPixelsPerPixel;
+    int coveredSubPixelsRight  = coveredRight * numSubPixelsPerPixel;
+    int coveredSubPixelsBottom = coveredBottom * numSubPixelsPerPixel;
+    int coveredSubPixelsTop    = coveredTop * numSubPixelsPerPixel;
 
-    subPixelMap += flux / numSubPixelsPerPixel / numSubPixelsPerPixel;
+    bool isBlockedOff = (coveredSubPixelsLeft + coveredSubPixelsRight >= numColumnsSubPixelMap || coveredSubPixelsBottom + coveredSubPixelsTop >= numRowsSubPixelMap);
+
+    if (!isBlockedOff)
+    {
+      subPixelMap.submat(coveredSubPixelsBottom, coveredSubPixelsLeft,
+                         numRowsSubPixelMap - coveredSubPixelsTop - 1,
+                         numColumnsSubPixelMap - coveredSubPixelsRight - 1) +=
+          flux / numSubPixelsPerPixel / numSubPixelsPerPixel;
+    }
 }
 
 
@@ -985,7 +1001,8 @@ void DetectorWithMappedPSF::applyDiffusionKernelOnPSF(double subpixRow, double s
         }
     }
 
-    // Add the flux to the psf 
+    // Add the flux to the psf
+
 
     arma::span rowSpan = arma::span(max(0, sy), min((int)numRows, sy + diffusionKernelImageSize) - 1);
     arma::span columnSpan = arma::span(max(0, sx), min((int)numColumns, sx + diffusionKernelImageSize) - 1);
@@ -1139,9 +1156,9 @@ void DetectorWithMappedPSF::applyDistortion(double &x, double &y)
   double deltaX = x - e0x;
   double deltaY = y - e0y;
 
-  double a1 = (deltaX * r1x + deltaY * r1y) / (r1x*r1x + r1y*r1y);
-  double a2 = (deltaX * r2x + deltaY * r2y) / (r2x*r2x + r2y*r2y);
-
+  double det = (r1x*r1x + r1y*r1y)*(r2x*r2x + r2y*r2y) - (r1x*r2x + r1y*r2y)*(r1x*r2x + r1y*r2y);
+  double a1  = ((r2x*r2x + r2y*r2y)*(deltaX*r1x + deltaY*r1y) - (r1x*r2x + r1y*r2y)*(deltaX*r2x + deltaY*r2y))/det;
+  double a2  = ((r1x*r1x + r1y*r1y)*(deltaX*r2x + deltaY*r2y) - (r1x*r2x + r1y*r2y)*(deltaX*r1x + deltaY*r1y))/det;
 
   double e0xDistorted = ClosestDistortedCoordinates[0][0];
   double e0yDistorted = ClosestDistortedCoordinates[0][1];
@@ -1274,8 +1291,9 @@ void DetectorWithMappedPSF::applyInverseDistortion(double &x, double &y)
   double deltaX = x - e0x;
   double deltaY = y - e0y;
 
-  double a1 = (deltaX * r1x + deltaY * r1y) / (r1x*r1x + r1y*r1y);
-  double a2 = (deltaX * r2x + deltaY * r2y) / (r2x*r2x + r2y*r2y);
+  double det = (r1x*r1x + r1y*r1y)*(r2x*r2x + r2y*r2y) - (r1x*r2x + r1y*r2y)*(r1x*r2x + r1y*r2y);
+  double a1  = ((r2x*r2x + r2y*r2y)*(deltaX*r1x + deltaY*r1y) - (r1x*r2x + r1y*r2y)*(deltaX*r2x + deltaY*r2y))/det;
+  double a2  = ((r1x*r1x + r1y*r1y)*(deltaX*r2x + deltaY*r2y) - (r1x*r2x + r1y*r2y)*(deltaX*r1x + deltaY*r1y))/det;
 
 
   double e0xUndistorted = ClosestUndistortedCoordinates[0][0];

@@ -62,7 +62,8 @@ void ClosedLoopDetectorWithAsymmetricalMappedPSF::setNewWindowPosition(std::tupl
         subFieldZeroPointRow    = get<3>(windowPositionTuple);
         subFieldZeroPointColumn = get<4>(windowPositionTuple);
         
-        // orientationAngle      = deg2rad(get<5>(windowPositionTuple));
+        customOrientationAngle  = deg2rad(get<5>(windowPositionTuple));
+        rotationAnglePsf        = deg2rad(get<5>(windowPositionTuple));
         
         Log.info("ClosedLoopDetectorWithAsymmetricalMappedPSF: Changed numRowsPixelMap to: " + to_string(numRowsPixelMap));
         Log.info("ClosedLoopDetectorWithAsymmetricalMappedPSF: Changed numColumnsPixelMap to: " + to_string(numColumnsPixelMap));
@@ -70,7 +71,7 @@ void ClosedLoopDetectorWithAsymmetricalMappedPSF::setNewWindowPosition(std::tupl
         Log.info("ClosedLoopDetectorWithAsymmetricalMappedPSF: Changed subFieldZeroPointColumn to: " + to_string(subFieldZeroPointColumn));
         Log.info("ClosedLoopDetectorWithAsymmetricalMappedPSF: Changed subFieldZeroPointRow to: " + to_string(subFieldZeroPointRow));
 
-        // Log.info("ClosedLoopDetectorWithAsymmetricalMappedPSF: Changed orientationAngle to: " + to_string(orientationAngle));
+        Log.info("ClosedLoopDetectorWithAsymmetricalMappedPSF: Changed orientationAngle to: " + to_string(customOrientationAngle));
             
 
         pixelMap.set_size(numRowsPixelMap, numColumnsPixelMap);
@@ -199,15 +200,16 @@ void ClosedLoopDetectorWithAnalyticNonGaussianPSF::setNewWindowPosition(std::tup
         subFieldZeroPointRow    = get<3>(windowPositionTuple);
         subFieldZeroPointColumn = get<4>(windowPositionTuple);
         
-        // orientationAngle      = deg2rad(get<5>(windowPositionTuple));
+        customOrientationAngle  = deg2rad(get<5>(windowPositionTuple));
+        rotationAnglePsf        = deg2rad(get<5>(windowPositionTuple));
         
-        Log.info("ClosedLoopDetectorWithMappedPSF: Changed numRowsPixelMap to: " + to_string(numRowsPixelMap));
-        Log.info("ClosedLoopDetectorWithMappedPSF: Changed numColumnsPixelMap to: " + to_string(numColumnsPixelMap));
+        Log.info("ClosedLoopDetectorWithAnalyticNonGaussianPSF: Changed numRowsPixelMap to: " + to_string(numRowsPixelMap));
+        Log.info("ClosedLoopDetectorWithAnalyticNonGaussianPSF: Changed numColumnsPixelMap to: " + to_string(numColumnsPixelMap));
 
-        Log.info("ClosedLoopDetectorWithMappedPSF: Changed subFieldZeroPointColumn to: " + to_string(subFieldZeroPointColumn));
-        Log.info("ClosedLoopDetectorWithMappedPSF: Changed subFieldZeroPointRow to: " + to_string(subFieldZeroPointRow));
+        Log.info("ClosedLoopDetectorWithAnalyticNonGaussianPSF: Changed subFieldZeroPointColumn to: " + to_string(subFieldZeroPointColumn));
+        Log.info("ClosedLoopDetectorWithAnalyticNonGaussianPSF: Changed subFieldZeroPointRow to: " + to_string(subFieldZeroPointRow));
 
-        // Log.info("ClosedLoopDetectorWithMappedPSF: Changed orientationAngle to: " + to_string(orientationAngle));
+        Log.info("ClosedLoopDetectorWithAnalyticNonGaussianPSF: Changed customOrientationAngle to: " + to_string(customOrientationAngle));
             
 
         pixelMap.set_size(numRowsPixelMap, numColumnsPixelMap);
@@ -326,15 +328,16 @@ void ClosedLoopDetectorWithAnalyticGaussianPSF::setNewWindowPosition(std::tuple<
         subFieldZeroPointRow    = get<3>(windowPositionTuple);
         subFieldZeroPointColumn = get<4>(windowPositionTuple);
         
-        // orientationAngle      = deg2rad(get<5>(windowPositionTuple));
+        customOrientationAngle  = deg2rad(get<5>(windowPositionTuple));
+        rotationAnglePsf        = deg2rad(get<5>(windowPositionTuple));
         
-        Log.info("ClosedLoopDetectorWithMappedPSF: Changed numRowsPixelMap to: " + to_string(numRowsPixelMap));
-        Log.info("ClosedLoopDetectorWithMappedPSF: Changed numColumnsPixelMap to: " + to_string(numColumnsPixelMap));
+        Log.info("ClosedLoopDetectorWithAnalyticGaussianPSF: Changed numRowsPixelMap to: " + to_string(numRowsPixelMap));
+        Log.info("ClosedLoopDetectorWithAnalyticGaussianPSF: Changed numColumnsPixelMap to: " + to_string(numColumnsPixelMap));
 
-        Log.info("ClosedLoopDetectorWithMappedPSF: Changed subFieldZeroPointColumn to: " + to_string(subFieldZeroPointColumn));
-        Log.info("ClosedLoopDetectorWithMappedPSF: Changed subFieldZeroPointRow to: " + to_string(subFieldZeroPointRow));
+        Log.info("ClosedLoopDetectorWithAnalyticGaussianPSF: Changed subFieldZeroPointColumn to: " + to_string(subFieldZeroPointColumn));
+        Log.info("ClosedLoopDetectorWithAnalyticGaussianPSF: Changed subFieldZeroPointRow to: " + to_string(subFieldZeroPointRow));
 
-        // Log.info("ClosedLoopDetectorWithMappedPSF: Changed orientationAngle to: " + to_string(orientationAngle));
+        Log.info("ClosedLoopDetectorWithAnalyticGaussianPSF: Changed customOrientationAngle to: " + to_string(customOrientationAngle));
             
 
         pixelMap.set_size(numRowsPixelMap, numColumnsPixelMap);

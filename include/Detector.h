@@ -14,6 +14,7 @@
 #include "Constants.h"
 #include "ArrayOperations.h"
 #include "Mathematics.h"
+#include "FileUtilities.h"
 #include "Random.h"
 #include "Camera.h"
 #include "FrontEndElectronics.h"
@@ -62,7 +63,7 @@ class IntegralOfAnalyticSignalResponse
 
 
 
-class Detector: public HDF5Writer 
+class Detector: public HDF5Writer
 {
     public:
 
@@ -91,9 +92,6 @@ class Detector: public HDF5Writer
         double getReadoutTimeBeforeNextExposure();
         virtual void applyDistortion(double &, double &){};
         virtual void applyInverseDistortion(double &, double &){};
-
-        virtual double getTrapDensity(double time, int trapSpecies);
-
 
     protected:
 
@@ -137,13 +135,14 @@ class Detector: public HDF5Writer
         virtual void writePixelMapsToHDF5(int exposureNr);
         virtual void writeCosmicHitsToHDF5(int exposureNr);
         virtual void writeCosmicFieldToHDF5(int exposureNr, string field, vector<unsigned int> &entryRows, vector<unsigned int> &entryColumns, 
-                                            vector<double> &trailLengths, vector<double> &entryAngles, vector<double> &intensities,   
-                                            vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux);
+        vector<double> &trailLengths, vector<double> &entryAngles, vector<double> &intensities,
+        vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux);
+        virtual void writeCTIToHDF5();
 
         double getRowEdgeFOV(int column);
 
         virtual double getTemperature();
-  
+
         vector<unsigned int> rowsOfCosmicsInSubField;
         vector<unsigned int> columnsOfCosmicsInSubField;
         vector<double> fluxOfCosmicsInSubField;
@@ -151,19 +150,19 @@ class Detector: public HDF5Writer
         vector<unsigned int> rowsOfCosmicsInSmearingMap;
         vector<unsigned int> columnsOfCosmicsInSmearingMap;
         vector<double> fluxOfCosmicsInSmearingMap;
-  
+
 
         vector<unsigned int> rowsOfCosmicsInBiasMapLeft;
         vector<unsigned int> columnsOfCosmicsInBiasMapLeft;
         vector<double> fluxOfCosmicsInBiasMapLeft;
-  
+
         vector<unsigned int> rowsOfCosmicsInBiasMapRight;
         vector<unsigned int> columnsOfCosmicsInBiasMapRight;
         vector<double> fluxOfCosmicsInBiasMapRight;
 
+        int coveredLeft, coveredRight;            // Amount of pixels in the subfield that are blocked off from light because of the metallic schield
+        int coveredBottom, coveredTop;
 
-
-  
         arma::Mat<float> pixelMap;               // Pixel map, excl. edge pixels
         arma::Mat<float> smearingMap;            // Smearing map (i.e. over-scan strip)
         arma::Mat<float> biasMapLeft;            // Bias map (i.e. pre-scan strip) for the left detector half
@@ -207,29 +206,30 @@ class Detector: public HDF5Writer
         double cosmicHitRate;				     // Cosmic hit rate [events / cm^2 / s]
         vector<double> cosmicTrailLengthParams;  // Distribution parameters of the length of the cosmic trails          [pixels]
         vector<double> cosmicIntensityParams;    // Skew-Normal distribution parameters fo the intensity of the intensities of the cosmics 
-        vector<unsigned int> cosmicEntryRowSubfield;     //
-        vector<unsigned int> cosmicEntryColSubfield;     //
-        vector<double> cosmicsTrailsSubfield;            // 
-        vector<double> cosmicsAnglesSubfield;            // 
-        vector<double> cosmicsIntensitiesSubfield;       // 
 
-        vector<unsigned int> cosmicEntryRowSmearingMap;  //
-        vector<unsigned int> cosmicEntryColSmearingMap;  //
-        vector<double> cosmicsTrailsSmearingMap;         // 
-        vector<double> cosmicsAnglesSmearingMap;         // 
-        vector<double> cosmicsIntensitiesSmearingMap;    // 
-        
-        vector<unsigned int> cosmicEntryRowBiasMapLeft;  //
-        vector<unsigned int> cosmicEntryColBiasMapLeft;  //
-        vector<double> cosmicsTrailsBiasMapLeft;         // 
-        vector<double> cosmicsAnglesBiasMapLeft;         // 
-        vector<double> cosmicsIntensitiesBiasMapLeft;    // 
-        
-        vector<unsigned int> cosmicEntryRowBiasMapRight; //
-        vector<unsigned int> cosmicEntryColBiasMapRight; //
-        vector<double> cosmicsTrailsBiasMapRight;        // 
-        vector<double> cosmicsAnglesBiasMapRight;        // 
-        vector<double> cosmicsIntensitiesBiasMapRight;   // 
+        vector<unsigned int> cosmicEntryRowSubfield;     // rows in the subfield where the cosmic hit the CCD                 [pixel]
+        vector<unsigned int> cosmicEntryColSubfield;     // columns in the subfield where the cosmic hit the CCD              [pix]
+        vector<double> cosmicsTrailsSubfield;            // length of the trails of the cosmics that hit the subfield         [pix]
+        vector<double> cosmicsAnglesSubfield;            // angle at which the cosmic hits the CCD in the subfield            [rad]
+        vector<double> cosmicsIntensitiesSubfield;       // total number of electrons the cosmic will release over its trail  [e-]
+
+        vector<unsigned int> cosmicEntryRowSmearingMap;  // rows in the smearing map where the cosmic hit the CCD             [pixel]
+        vector<unsigned int> cosmicEntryColSmearingMap;  // columns in the smearing map where the cosmic hit the CCD          [pix]
+        vector<double> cosmicsTrailsSmearingMap;         // length of the trails of the cosmics that hit the smearing map     [pix]
+        vector<double> cosmicsAnglesSmearingMap;         // angle at which the cosmic hits the CCD in the smearing map        [rad]
+        vector<double> cosmicsIntensitiesSmearingMap;    // total number of electrons the cosmic will release over its trail  [e-]
+
+        vector<unsigned int> cosmicEntryRowBiasMapLeft;  // rows in the left bias map where the cosmic hit the CCD            [pixel]
+        vector<unsigned int> cosmicEntryColBiasMapLeft;  // columns in the left bias map where the cosmic hit the CCD         [pix]
+        vector<double> cosmicsTrailsBiasMapLeft;         // length of the trails of the cosmics that hit the left bias map    [pix]
+        vector<double> cosmicsAnglesBiasMapLeft;         // angle at which the cosmic hits the CCD in the left bias map       [rad]
+        vector<double> cosmicsIntensitiesBiasMapLeft;    // total number of electrons the cosmic will release over its trail  [e-]
+
+        vector<unsigned int> cosmicEntryRowBiasMapRight; // rows in the righ bias map where the cosmic hit the CCD            [pixel]
+        vector<unsigned int> cosmicEntryColBiasMapRight; // columns in the righ bias map where the cosmic hit the CCD         [pix]
+        vector<double> cosmicsTrailsBiasMapRight;        // length of the trails of the cosmics that hit the righ bias map    [pix]
+        vector<double> cosmicsAnglesBiasMapRight;        // angle at which the cosmic hits the CCD in the righ bias map       [rad]
+        vector<double> cosmicsIntensitiesBiasMapRight;   // total number of electrons the cosmic will release over its trail  [e-]
 
 
         vector<double> relTransmissivityCoefVector;
@@ -244,6 +244,7 @@ class Detector: public HDF5Writer
         double parallelTransferTime;			 // Time to shift the charges one row down in case the readout register will be read out [s]
         double parallelTransferTimeFast;	     // Time to shift the charges one row down in case the readout register will not be read out [s]
         bool isFastCamera;                       // Indicates whether or not the camera is a fast camera
+        bool includeShield;                      // Indicates whether or not to include a metacllic shield around CCD
         int firstRowPartialReadout;			     // First row that will be read out by the FEE in partial readout mode
         int numRowsPartialReadout;			     // Number of rows that will be read out by the FEE, starting at firstRowReadout, in partial readout mode
         double readoutNoise;                     // Mean readout noise [electrons]
@@ -264,16 +265,19 @@ class Detector: public HDF5Writer
         bool writeSmearingMaps;                  // Whether or not to write the smearing maps to the HDF5 file, for each exposure 
         bool writeThroughputMaps;                // Whether or not to write the throughput maps to the HDF5 file, for each exposure
         bool writeCosmics;                       // Whether or not to write the cosmics row, column and flux to the HDF5 file, for each exposure
+        bool writeCTI;                           // Whether or not to write the BOL/EOL trap density maps for each species to the HDF5 file
 
         string CTImodel;
         double meanCte;                          // Mean charge-transfer efficiency  (in [0,1])
         double beta;                             // Beta exponent in Short et al., MNRAS 430, 3078-3085 (2010).
         double temperature;                      // Temperature of the detector
         unsigned int numTrapSpecies;             // Number of different trap species included in the Short2010 model
-        vector<double> trapDensityBOL;           // For each trap species: the trap density at BOL [traps/pixel]
-        vector<double> trapDensityEOL;           // For each trap species: the trap density at EOL [traps/pixel]
+        vector<double> meanTrapDensityBOL;       // mean (averaged over entire CCD) trap density of each trap species at Beginning-Of-Live [traps/pixel] 
+        vector<double> meanTrapDensityEOL;       // mean (averaged over entire CCD) trap density of each trap species at End-Of-Live [traps/pixel] 
         vector<double> trapCaptureCrossSection;  // For each trap species: the trap capture cross section [m^2]
         vector<double> releaseTime;              // For each trap species: the electron release time [s]
+        arma::Mat<float> radiationMap;           // Normalized radiation map for the subfield under consideration [p+ / s]
+        HDF5File CTIFile;                        // Input CTI file with the trap density maps
 
         double chargeInjectionLevel;             // Percentage of the full well to be filled by charge injection [0-100]
         int injectionRowInterval;                // Charge will be injected every XX CCD row [integer: in 1 - numrows] starting from firstInjectedRow.
@@ -283,8 +287,8 @@ class Detector: public HDF5Writer
         double readoutTimeBeforeNextExposure;    // Duration of the readout before the next exposure can start [s]
         double readoutTimeDuringNextExposure;    // Duration of the readout when the next exposure has already started [s]
 
-        bool includeBFE;			 // Whether or not to include the BFE
-        bool includeDarkSignal;	      		 // Whether or not to include dark
+        bool includeBFE;                         // Whether or not to include the BFE
+        bool includeDarkSignal;                  // Whether or not to include dark
         bool includePhotonNoise;                 // Whether or not to include photon noise
         bool includeReadoutNoise;                // Include readout noise [yes or no]
         bool includeCTIeffects;                  // Include CTI effects [yes or no]
@@ -332,7 +336,7 @@ class Detector: public HDF5Writer
         uniform_real_distribution<double> cosmicTrailLengthDistribution;
         skew_normal_distribution cosmicIntensityDistribution;
         uniform_real_distribution<double> decimalNumCosmicHitsDistribution;
- 
+
         Camera &camera;
         FrontEndElectronics *frontEndElectronics;
 
@@ -340,6 +344,7 @@ class Detector: public HDF5Writer
 
         TemperatureGenerator &temperatureGenerator;
 
+        void readCTIinputFile(string ctiInputFile);
 };
 
 #endif

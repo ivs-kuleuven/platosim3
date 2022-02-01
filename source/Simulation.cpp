@@ -505,9 +505,10 @@ void Simulation::run()
             n++;             
         }
     }
+
     if (writeStarCatalog)
     {
-    writeStarCatalogToHDF5();
+        writeStarCatalogToHDF5();
     }
 }
 

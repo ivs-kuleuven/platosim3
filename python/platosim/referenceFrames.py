@@ -715,19 +715,20 @@ def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoeffici
     REMARK:       This is not the prefered method for detectors with mapped PSF, since these use a mapped distortion model. 
                   For such models use the function mappedUndistortedToDistortedFocalPlaneCoordinates.
 
-    Note: Example of distortion coefficients: [0.316257210577,  0.066373219688,  0.372589221219]
+    Note: Example of distortion coefficients: [0.32419,  0.0232909,  0.407979, 0.00022463, 0.000217599, 0.000381958, 0.000963902]
     """
 
-    coefficients = [0, 0, 0, distortionCoefficients[0], 0, distortionCoefficients[1], 0, distortionCoefficients[2]]
-    distortionPolynomial = Polynomial(coefficients)
+    radialCoefficients = [0, 0, 0, distortionCoefficients[0], 0, distortionCoefficients[1], 0, distortionCoefficients[2]]
+    distortionPolynomial = Polynomial(radialCoefficients)
 
     angle = arctan2(yFPmm, xFPmm)    # Position angle on the focal plane [radians]
 
     rFP = sqrt(xFPmm**2 + yFPmm**2) / focalLength              # Undistorted radial distance [normalised pixels]
-    distortion = distortionPolynomial(rFP) * focalLength       # Distortion [mm]
+    radialDistortion = distortionPolynomial(rFP) * focalLength
+    tangentialDistortion = rFP**2 * (distortionCoefficients[5] * cos(angle) + distortionCoefficients[6] * sin(angle)) * focalLength
 
-    xFPdist = xFPmm + cos(angle) * distortion
-    yFPdist = yFPmm + sin(angle) * distortion
+    xFPdist = xFPmm + cos(angle) * (radialDistortion + tangentialDistortion) + distortionCoefficients[3] * rFP**2 * focalLength 
+    yFPdist = yFPmm + sin(angle) * (radialDistortion + tangentialDistortion) + distortionCoefficients[4] * rFP**2 * focalLength
 
     return xFPdist, yFPdist
 
@@ -803,7 +804,7 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
 
     # We make sure that the first index of the origin of the reference frame corresponds to the first index in idx. 
 
-    distanceBetweenPoints = [abs(xUndis[i] - xUndis[i+1]) + abs(yUndis[i] - yUndis[i+1]) for i in [1, 2, 3]]
+    distanceBetweenPoints = [(closestX[i%3] - closestX[(i+1)%3])**2 + (closestY[i%3] - closestY[(i+1)%3])**2 for i in [1, 2, 3]]
     indexOfAngle          = distanceBetweenPoints.index(np.max(distanceBetweenPoints))
 
     if not indexOfAngle == 0:
@@ -818,8 +819,9 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
     ry = [ yUndis[i] - yUndis[idx[0]] if not i == idx[0] else yUndis[i] for i in idx]
     deltaX, deltaY = xFPmm - rx[0], yFPmm - ry[0]
 
-    a1 = (deltaX * rx[1] + deltaY * ry[1]) / (rx[1]*rx[1] + ry[1]*ry[1]);
-    a2 = (deltaX * rx[2] + deltaY * ry[2]) / (rx[2]*rx[2] + ry[2]*ry[2]);
+    det = (rx[1]*rx[1] + ry[1]*ry[1])*(rx[2]*rx[2] + ry[2]*ry[2]) - (rx[1]*rx[2] + ry[1]*ry[2])*(rx[1]*rx[2] + ry[1]*ry[2])
+    a1  = ((rx[2]*rx[2] + ry[2]*ry[2])*(deltaX*rx[1] + deltaY*ry[1]) - (rx[1]*rx[2] + ry[1]*ry[2])*(deltaX*rx[2] + deltaY*ry[2]))/det
+    a2  = ((rx[1]*rx[1] + ry[1]*ry[1])*(deltaX*rx[2] + deltaY*ry[2]) - (rx[1]*rx[2] + ry[1]*ry[2])*(deltaX*rx[1] + deltaY*ry[1]))/det
 
     # The distorted FP coordinates can then be estimated as:
     #   xFPdist = rxDist[0] + a1 * rxDist[1] + a2 * rxDist[2]
@@ -865,19 +867,20 @@ def distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, inverseDistort
     REMARK:     This is not the prefered method for detectors with mapped PSF, since these use a mapped distortion model. 
                 For such models use the function mappedDistortedToUndistortedFocalPlaneCoordinates.
 
-    Note: Example of inverse distortion coefficients: [-0.317143032936, 0.242638513347,-0.459260203502]
+    Note: Example of inverse distortion coefficients: [-0.323487, 0.268344, -0.435473, -0.00019304, -0.000176961, -0.000321713, -0.000827654]
     """
 
-    inverseCoefficients = [0, 0, 0, inverseDistortionCoefficients[0], 0, inverseDistortionCoefficients[1], 0, inverseDistortionCoefficients[2]]
-    inverseDistortionPolynomial = Polynomial(inverseCoefficients)
+    inverseCoefficientsRadial = [0, 0, 0, inverseDistortionCoefficients[0], 0, inverseDistortionCoefficients[1], 0, inverseDistortionCoefficients[2]]
+    inverseDistortionPolynomialRadial = Polynomial(inverseCoefficientsRadial)
 
     angle = arctan2(yFPdist, xFPdist)     # Position angle on the focal plane [radians]
 
     rFP = sqrt(xFPdist**2 + yFPdist**2) / focalLength                   # Distorted radial distance [normalised pixels]
-    distortion = inverseDistortionPolynomial(rFP) * focalLength         # Distortion [mm] -> negative!
+    radialDistortion = inverseDistortionPolynomialRadial(rFP) * focalLength         # Distortion [mm] -> negative!
+    tangentialDistortion = rFP**2 * (inverseDistortionCoefficients[5] * cos(angle) + inverseDistortionCoefficients[6] * sin(angle)) * focalLength
 
-    xFPmm = xFPdist + cos(angle) * distortion
-    yFPmm = yFPdist + sin(angle) * distortion
+    xFPmm = xFPdist + cos(angle) * (radialDistortion + tangentialDistortion) + inverseDistortionCoefficients[3] * rFP**2 * focalLength
+    yFPmm = yFPdist + sin(angle) * (radialDistortion + tangentialDistortion) + inverseDistortionCoefficients[4] * rFP**2 * focalLength
 
     return xFPmm, yFPmm
 
@@ -948,7 +951,7 @@ def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPs
 
     # We make sure that the first index of the origin of the reference frame corresponds to the first index in idx. 
 
-    distanceBetweenPoints = [abs(xDist[i] - xDist[i+1]) + abs(yDist[i] - yDist[i+1]) for i in [1, 2, 3]]
+    distanceBetweenPoints = [(closestX[i%3] - closestX[(i+1)%3])**2 + (closestY[i%3] - closestY[(i+1)%3])**2 for i in [1, 2, 3]]
     indexOfAngle          = distanceBetweenPoints.index(np.max(distanceBetweenPoints))
 
     if not indexOfAngle == 0:
@@ -963,8 +966,9 @@ def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPs
     ry = [ yDist[i] - yDist[idx[0]] if not i == idx[0] else yDist[i] for i in idx]
     deltaX, deltaY = xFPdist - rx[0], yFPdist - ry[0]
 
-    a1 = (deltaX * rx[1] + deltaY * ry[1]) / (rx[1]*rx[1] + ry[1]*ry[1]);
-    a2 = (deltaX * rx[2] + deltaY * ry[2]) / (rx[2]*rx[2] + ry[2]*ry[2]);
+    det = (rx[1]*rx[1] + ry[1]*ry[1])*(rx[2]*rx[2] + ry[2]*ry[2]) - (rx[1]*rx[2] + ry[1]*ry[2])*(rx[1]*rx[2] + ry[1]*ry[2])
+    a1  = ((rx[2]*rx[2] + ry[2]*ry[2])*(deltaX*rx[1] + deltaY*ry[1]) - (rx[1]*rx[2] + ry[1]*ry[2])*(deltaX*rx[2] + deltaY*ry[2]))/det
+    a2  = ((rx[1]*rx[1] + ry[1]*ry[1])*(deltaX*rx[2] + deltaY*ry[2]) - (rx[1]*rx[2] + ry[1]*ry[2])*(deltaX*rx[1] + deltaY*ry[1]))/det
 
     # The undistorted FP coordinates can then be estimated as:
     #   xFPmm = rxUnd[0] + a1 * rxUnd[1] + a2 * rxUnd[2]
@@ -1604,8 +1608,18 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
     decPlatform           = np.deg2rad(float(sim["ObservingParameters/DecPointing"]))
     solarPanelOrientation = np.deg2rad(float(sim["Platform/SolarPanelOrientation"]))
     focalPlaneAngle       = np.deg2rad(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
-    azimuthTelescope      = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
-    tiltTelescope         = np.deg2rad(float(sim["Telescope/TiltAngle"]))
+
+    telescopeGroup       = sim["Telescope/GroupID"]
+    if telescopeGroup == "Custom":
+        azimuthTelescope = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
+        tiltTelescope    = np.deg2rad(float(sim["Telescope/TiltAngle"]))
+    elif telescopeGroup == "Fast":
+        azimuthTelescope = np.deg2rad(float(sim["CameraGroups/AzimuthAngle"][4]))
+        tiltTelescope    = np.deg2rad(float(sim["CameraGroups/TiltAngle"][4]))
+    else:
+        idx = int(telescopeGroup)-1
+        azimuthTelescope = np.deg2rad(float(sim["CameraGroups/AzimuthAngle"][idx]))
+        tiltTelescope    = np.deg2rad(float(sim["CameraGroups/TiltAngle"][idx]))
 
     ccdZeroPointX = CCD[ccdCode]['zeroPointXmm']
     ccdZeroPointY = CCD[ccdCode]['zeroPointYmm']
