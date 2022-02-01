@@ -891,7 +891,7 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
                 tie(starID, raStar, decStar, magStar) = sky.getSelectedGhostOrig(starIndex);    // Sky coordinates of the originator [radians]
                 tie(xStar, yStar) = skyToFocalPlaneCoordinates(raStar, decStar);                // Focal-plane coordinate of the originator [mm]
 
-                if (isMapped && includeFieldDistortion)
+                if (isMapped)
                 {
                   detector.applyDistortion(xStar, yStar);
                 }
@@ -1025,7 +1025,7 @@ tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &d
     corner11Ymm = actualCorner11Ymm;
 
     // Apply inverse field distortion (if distortion was enabled) 
-    if (isMapped && includeFieldDistortion)
+    if (isMapped)
     {
       Log.info("Camera: including field distortion for mapped PSF");
 
@@ -1163,7 +1163,7 @@ void Camera::exposeDetectorWithSkyBackground(Detector &detector, double startTim
     double centerXmm, centerYmm;
     tie(centerXmm, centerYmm) = detector.getFocalPlaneCoordinatesOfSubfieldCenter();
 
-    if (includeFieldDistortion && isMapped)
+    if (isMapped)
     {
       Log.info("Camera: correct FP coordinates of subfield center for field distortion");
 
