@@ -549,7 +549,14 @@ tuple<bool, double, double> DetectorWithAnalyticGaussianPSF::addExtendedGhost(do
 
 void DetectorWithAnalyticGaussianPSF::addFlux(double flux)
 {
-    pixelMap += flux;
+    bool subFieldIsBlockedOff = (coveredBottom + coveredTop >= numRowsPixelMap) || (coveredLeft + coveredRight >= numColumnsPixelMap);
+    if (!subFieldIsBlockedOff)
+    {
+      pixelMap.submat(coveredBottom, coveredLeft,
+                      numRowsPixelMap - coveredTop - 1,
+                      numColumnsPixelMap - coveredRight - 1) += flux;
+    }
+
 }
 
 
