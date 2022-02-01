@@ -1,39 +1,55 @@
-* Release Notes PlatoSim 3.5.1
+* Release Notes PlatoSim 3.5.2
 
 
 
 ** Improvements
 
-*** The dependencies python install files now check that the `Installs` directory exists and creates this directory if it doesn't. 
+*** Changed field distortion for mapped PSF to deal with more general mapped psf files.
 
-*** Made the log files for `Camera::makeStarCatalogSelection` clearer. 
+*** Changed field distoriton for analytic PSF from Radial model to Wang model. (GitHub #652)
 
-*** Changed the python functions in `referenceFrames.py`, `plot.py` and `simulation.py` to deal with mapped distortion.
+*** Changed 'distortedToUndistortedFocalPlaneCoordinates' and 'undistortedToDistortedFocalPlaneCoordinates' in 
+python/platosim/referenceFrames.py
 
-*** Mapped distortion now uses a continuous approximation insead of the previous (crude) method of one-to-one fitting of closed point.
+*** Orientation angle received via network is propagated correctly to the detector (Github #660)
 
-*** Changed cosmics intensity from uniform to skew-normal. (GitHub #638)
+*** Changed deprecated 'append' method for pandas dataframe in MappedGaussianPSF validation test into 'concat' method
 
-*** Renamed `getCosmicsCoordinates()` to `getCosmicsAffectedPixels()` in `simfile.py`
+*** Changed pixelToSkyCoordinates function in referenceFrames.py to work better with F-cameras
 
-*** Updated website 
 
 
 
 
 ** Bug fixes
 
-*** The diffused PSF that was saved to the output HDF5 is now rotated with respect to the CCD it falls on. (GitHub #627)
+*** Corrected bug in validationtest for Cosmics.
 
-*** Fixed bug where the star coordinates where written to the output HDF5 file without taking field distortion into account. (GitHub #631)
+*** Corrected bug in python mapped distortion functions in python/platosim/referenceFrames.py. (GitHub #659)
+
+*** Fixed bug in Camera.cpp. Previously distortion for mapped PSF would only be taken into account when 
+includeFieldDistoritions was set to True. Now, mapped distoriton always happens independent of that value. 
+
+
+
 
 
 
     
 ** New features/functionality
 
-*** Added an option to individually switch on/off extended or pointlike ghosts. 
+*** Added inhomogenous trap density (GitHub #639)
 
-*** Added `getCosmicsInfo()` method to extract the entry position, entry angle and the trail length of all cosmics
+*** Added validationtest for Short2013 CTI
+
+*** Added validationtest for Short2013fromfile CTI
+
+*** Added 'distortioncoefficients.txt' and 'distortioninversecoefficients.txt'
+
+*** Added a first version of the PlatoSim license
+
+*** Added metallic shield around CCD for F-Cameras
+
+*** Added validation test for metallic shield around CCDs for F-Cameras
 
 
