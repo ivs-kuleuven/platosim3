@@ -1608,8 +1608,18 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
     decPlatform           = np.deg2rad(float(sim["ObservingParameters/DecPointing"]))
     solarPanelOrientation = np.deg2rad(float(sim["Platform/SolarPanelOrientation"]))
     focalPlaneAngle       = np.deg2rad(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
-    azimuthTelescope      = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
-    tiltTelescope         = np.deg2rad(float(sim["Telescope/TiltAngle"]))
+
+    telescopeGroup       = sim["Telescope/GroupID"]
+    if telescopeGroup == "Custom":
+        azimuthTelescope = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
+        tiltTelescope    = np.deg2rad(float(sim["Telescope/TiltAngle"]))
+    elif telescopeGroup == "Fast":
+        azimuthTelescope = np.deg2rad(float(sim["CameraGroups/AzimuthAngle"][4]))
+        tiltTelescope    = np.deg2rad(float(sim["CameraGroups/TiltAngle"][4]))
+    else:
+        idx = int(telescopeGroup)-1
+        azimuthTelescope = np.deg2rad(float(sim["CameraGroups/AzimuthAngle"][idx]))
+        tiltTelescope    = np.deg2rad(float(sim["CameraGroups/TiltAngle"][idx]))
 
     ccdZeroPointX = CCD[ccdCode]['zeroPointXmm']
     ccdZeroPointY = CCD[ccdCode]['zeroPointYmm']
