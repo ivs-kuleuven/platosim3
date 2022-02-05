@@ -1921,6 +1921,10 @@ def plotSubfieldAnimation(fig, filename, numImages=False, outputFileName=False, 
         if showGrid is True:
             axis.grid(c='gray', ls='-', alpha=0.3)
 
+        # Add x and y axis labels
+        plt.xlabel('x [pixel]')
+        plt.ylabel('y [pixel]')
+            
         # Append images to list
         ims.append([imagePlot, coor_tar, coor_con])
 
@@ -1929,7 +1933,7 @@ def plotSubfieldAnimation(fig, filename, numImages=False, outputFileName=False, 
     print; print('')
 
     # CREATE ANIMATION
-    ani = animation.ArtistAnimation(fig, ims, interval=5, blit=True, repeat_delay=0)
+    ani = animation.ArtistAnimation(fig, ims, interval=100, blit=True, repeat_delay=0)
     
     # Save animation (fps=50 and dpi=100 seems like good settings)
     print('Creating GIF animation..')
