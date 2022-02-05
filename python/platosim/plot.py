@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import h5py
 import numpy as np
 
@@ -10,7 +11,7 @@ from matplotlib import pyplot as plt
 from matplotlib.pyplot import cm
 from matplotlib import patches
 from matplotlib.path import Path
-from matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import MaxNLocator, ScalarFormatter
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 import matplotlib.animation as animation
 
@@ -764,7 +765,7 @@ def drawStarsInSkyAitoff(fig, raStars, decStars, magStars, skymap=None, cbarOrie
 
 
 
-def plotPlatoFOV(fig, raPointing, decPointing, raStars, decStars, nCamVis, skymap=None):
+def plotPlatoFOV(pointingField, raStars, decStars, magStars=None, nCamVis=None, skymap=None, save=False):
     """
 
     Parameters
@@ -778,21 +779,95 @@ def plotPlatoFOV(fig, raPointing, decPointing, raStars, decStars, nCamVis, skyma
 
     import ligo.skymap.plot
 
-    center = [raPointing, decPointing]
+    # Select field
+    
+    indir = os.getenv('PLATO_WORKDIR') + '/platonium/pic/PIC1.1.0/'
 
-    ax = plt.axes(projection='astro zoom', center=center, radius='20 deg', rotate='20 deg')
-    ax.grid()
-    ax.plot(raPointing, decPointing)
+    if pointingField == 'NPF': PF_gal = [65.0, 30.0]
+    if pointingField == 'SPF': PF_gal = [253.0, -30.0]
+
+    PF_gal  = SkyCoord(PF_gal[0], PF_gal[1], frame='galactic', unit='deg')  # [deg]
+    PF_icrs = PF_gal.icrs  # [deg]
+
+    PF06 = np.load(indir + f'{pointingField}-NCAM06.npy')
+    PF12 = np.load(indir + f'{pointingField}-NCAM12.npy')
+    PF18 = np.load(indir + f'{pointingField}-NCAM18.npy')
+    PF24 = np.load(indir + f'{pointingField}-NCAM24.npy')
+
+    starPF06 = SkyCoord(PF06[:,0]*u.deg, PF06[:,1]*u.deg, frame='icrs', unit='deg')
+    starPF12 = SkyCoord(PF12[:,0]*u.deg, PF12[:,1]*u.deg, frame='icrs', unit='deg')
+    starPF18 = SkyCoord(PF18[:,0]*u.deg, PF18[:,1]*u.deg, frame='icrs', unit='deg')
+    starPF24 = SkyCoord(PF24[:,0]*u.deg, PF24[:,1]*u.deg, frame='icrs', unit='deg')
+    
+    # Load brightest stars
+    starPF = SkyCoord(raStars*u.deg, decStars*u.deg, frame='icrs', unit='deg')
+
+    # MAKE PLOTS
+    fig = plt.figure(figsize=(10,10))
+    ax = plt.axes(projection='astro zoom', center=PF_icrs, radius='35 deg', rotate='180 deg')
+
+    # Plot PIC1.1.0 stars after N-CAM visibility
+
+    ax.plot(starPF06.ra.deg, starPF06.dec.deg, '.', c='skyblue',
+            transform=ax.get_transform('world'), markersize=1, zorder=1)
+    ax.plot(starPF12.ra.deg, starPF12.dec.deg, '.', c='deepskyblue',
+            transform=ax.get_transform('world'), markersize=1, zorder=2)
+    ax.plot(starPF18.ra.deg, starPF18.dec.deg, '.', c='dodgerblue',
+            transform=ax.get_transform('world'), markersize=1, zorder=3)
+    ax.plot(starPF24.ra.deg, starPF24.dec.deg, '.', c='royalblue',
+            transform=ax.get_transform('world'), markersize=1, zorder=4)
+
+    # Plot saturated stars and add legend scaled to the stellar magnitudes
+
+    if magStars is not None:
+        maxMarkerSize = 30
+        dm = (max(magStars) - magStars) * maxMarkerSize
+        mag_range = np.arange(min(magStars), max(magStars)).astype(int)
+        dm_range  = (max(magStars) - mag_range) * maxMarkerSize/10
+        mark, color = 'o', 'gold'
+        handle = [plt.plot([],[], "o", c='gray', ms=dm_range[i], ls="")[0] for i in range(len(dm_range))]
+        ax.legend(handles=handle, labels=mag_range.tolist(), loc='upper right', title=r"P [mag]", fontsize=16, title_fontsize=16)
+    else:
+        dm, mark, color = 20, '*', 'none'
+    # Plot all stars
+    scatter = ax.scatter(starPF.ra.deg, starPF.dec.deg, transform=ax.get_transform('world'), 
+                         s=dm, marker=mark, c=color, ec='k', lw=1, zorder=5)
+
+    # Plot pointing of each camera group
+
+    #camPointing = coorCameraGroup(PF_icrs.ra.deg, PF_icrs.dec.deg)
+    #ax.plot(camPointing.ra.deg, camPointing.dec.deg, 'rx', transform=ax.get_transform('world'), markersize=10, zorder=6)
+
+    # Plot pointing of PIC1.1.0 and PIC2.0.0
+
+    ax.plot(PF_icrs.ra.deg, PF_icrs.dec.deg, '*', transform=ax.get_transform('world'), ms=20, c='k', mfc='r', zorder=6)
+    ax.plot(277.18, 52.85, '*', transform=ax.get_transform('world'), ms=20, c='k', mfc='b', zorder=7)
+
+    # Add-on's
+
+    ax.scalebar((0.05, 0.05), 10 * u.deg).label()
+    ax.compass(0.95, 0.05, 0.1)
+    ax.grid(color='gray')
+
+    # Settings
+
+    ax.set_title(f'{pointingField} pointing', fontsize = 24)
+    ax.set_xlabel('RA', fontsize = 20)
+    ax.set_ylabel('Dec', fontsize = 20)
+    plt.xticks(fontsize = 18)
+    plt.yticks(fontsize = 18)
+    ax.tick_params(axis='both', labelsize=18)
+    
+    # Plot and save
+
+    return ax
 
 
 
 
 
 
-
-
-
-
+        
 def plotStellarSampleDistributions(fig, mag, magCon, magRange, numConPerTar, distCon):
     """
     This function plots 4 different stellar sample distribution plots
@@ -861,11 +936,11 @@ def plotStellarSampleDistributions(fig, mag, magCon, magRange, numConPerTar, dis
 
     # Prepare bins and plot number distribution of contaminants per target
 
-    numbinCon  = 1
+    numbinCon  = 1 + int(np.max(numConPerTar)/100)
     binsizeNum = int((np.max(numConPerTar) - 0) / numbinCon) + 2
     binlistNum = np.linspace(-0.5, np.max(numConPerTar)+0.5, binsizeNum)  # -0.5 because num x-axis
-
     axes[1,0].hist(numConPerTar, binlistNum, facecolor='g', edgecolor='g', fill=True, log=True, alpha=0.3)
+    axes[1,0].yaxis.set_major_formatter(ScalarFormatter())
     axes[1,0].set_title('Number distribution of contaminants per target')
     axes[1,0].set_xlabel('Number of contaminants')
     axes[1,0].set_ylabel('Number of targets')
@@ -874,6 +949,7 @@ def plotStellarSampleDistributions(fig, mag, magCon, magRange, numConPerTar, dis
     axes[1,0].tick_params(axis='y', which='minor', left=False, right=False)
     axes[1,0].tick_params(axis='y', which='major', left=True, right=False)
     axes[1,0].grid(axis='y', color='gray', alpha=0.3)
+
 
     # Prepare bins and plot distance distribution of contaminants in respect to their target star
 
