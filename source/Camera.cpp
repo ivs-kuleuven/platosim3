@@ -325,116 +325,116 @@ void Camera::flushOutput()
         }
 
         for (int n = 0; n < time.size(); n++)
-	{
-	  stringstream myStream;
-	  myStream << "Exposure" << setfill('0') << setw(6) << beginExposureNr + n;
-	  
-	  // Write the info for the point-like ghost star positions to HDF5
+        {
+          stringstream myStream;
+          myStream << "Exposure" << setfill('0') << setw(6) << beginExposureNr + n;
+          
+          // Write the info for the point-like ghost star positions to HDF5
 
-	  vector<unsigned int> starIDs;
-	  vector<double> xFPmm;
-	  vector<double> yFPmm;
-	  vector<double> rowPix;
-	  vector<double> colPix;
-	  vector<double> flux;
-	  vector<double> ghostRadius;
-	  
-	  for(auto keyValuePair: detectedPointLikeGhostInfo[time[n]])
-	  {
-	    const unsigned int starID = keyValuePair.first;
-	    starIDs.push_back(starID);                       // list of starIDs for this exposure only
-	    xFPmm.push_back(detectedPointLikeGhostInfo[time[n]][starID][0] / detectedPointLikeGhostInfo[time[n]][starID][5]);
-	    yFPmm.push_back(detectedPointLikeGhostInfo[time[n]][starID][1] / detectedPointLikeGhostInfo[time[n]][starID][5]);
-	    rowPix.push_back(detectedPointLikeGhostInfo[time[n]][starID][2] / detectedPointLikeGhostInfo[time[n]][starID][5]);
-	    colPix.push_back(detectedPointLikeGhostInfo[time[n]][starID][3] / detectedPointLikeGhostInfo[time[n]][starID][5]);
-	    flux.push_back(detectedPointLikeGhostInfo[time[n]][starID][4]);
-	  }
+          vector<unsigned int> starIDs;
+          vector<double> xFPmm;
+          vector<double> yFPmm;
+          vector<double> rowPix;
+          vector<double> colPix;
+          vector<double> flux;
+          vector<double> ghostRadius;
+          
+          for(auto keyValuePair: detectedPointLikeGhostInfo[time[n]])
+          {
+            const unsigned int starID = keyValuePair.first;
+            starIDs.push_back(starID);                       // list of starIDs for this exposure only
+            xFPmm.push_back(detectedPointLikeGhostInfo[time[n]][starID][0] / detectedPointLikeGhostInfo[time[n]][starID][5]);
+            yFPmm.push_back(detectedPointLikeGhostInfo[time[n]][starID][1] / detectedPointLikeGhostInfo[time[n]][starID][5]);
+            rowPix.push_back(detectedPointLikeGhostInfo[time[n]][starID][2] / detectedPointLikeGhostInfo[time[n]][starID][5]);
+            colPix.push_back(detectedPointLikeGhostInfo[time[n]][starID][3] / detectedPointLikeGhostInfo[time[n]][starID][5]);
+            flux.push_back(detectedPointLikeGhostInfo[time[n]][starID][4]);
+          }
 
-	  const string pointLikeGhostGroupName = "/PointLikeGhostPositions/" + myStream.str();
-	  hdf5File.createGroup(pointLikeGhostGroupName);
-	    
-	  if(!starIDs.empty())
-	  {
-	    hdf5File.writeArray(pointLikeGhostGroupName, "starID", starIDs.data(), starIDs.size());
-	    hdf5File.writeArray(pointLikeGhostGroupName, "xFPmm",  xFPmm.data(),   xFPmm.size());
-	    hdf5File.writeArray(pointLikeGhostGroupName, "yFPmm",  yFPmm.data(),   yFPmm.size());
-	    hdf5File.writeArray(pointLikeGhostGroupName, "rowPix", rowPix.data(),  rowPix.size());
-	    hdf5File.writeArray(pointLikeGhostGroupName, "colPix", colPix.data(),  colPix.size());
-	    hdf5File.writeArray(pointLikeGhostGroupName, "flux",   flux.data(),    flux.size());
-	  }
-	
+          const string pointLikeGhostGroupName = "/PointLikeGhostPositions/" + myStream.str();
+          hdf5File.createGroup(pointLikeGhostGroupName);
 
-	  // Write the info for the point like ghost star positions to HDF5
+          if(!starIDs.empty())
+          {
+            hdf5File.writeArray(pointLikeGhostGroupName, "starID", starIDs.data(), starIDs.size());
+            hdf5File.writeArray(pointLikeGhostGroupName, "xFPmm",  xFPmm.data(),   xFPmm.size());
+            hdf5File.writeArray(pointLikeGhostGroupName, "yFPmm",  yFPmm.data(),   yFPmm.size());
+            hdf5File.writeArray(pointLikeGhostGroupName, "rowPix", rowPix.data(),  rowPix.size());
+            hdf5File.writeArray(pointLikeGhostGroupName, "colPix", colPix.data(),  colPix.size());
+            hdf5File.writeArray(pointLikeGhostGroupName, "flux",   flux.data(),    flux.size());
+          }
 
-	  Log.info("Camera: writing point like ghost positions to HDF5 file");
-	  
-	  starIDs.clear();
-	  xFPmm.clear();
-	  yFPmm.clear();
-	  rowPix.clear();
-	  colPix.clear();
-	  flux.clear();
-	  ghostRadius.clear();
-	}
+
+          // Write the info for the point like ghost star positions to HDF5
+
+          Log.info("Camera: writing point like ghost positions to HDF5 file");
+          
+          starIDs.clear();
+          xFPmm.clear();
+          yFPmm.clear();
+          rowPix.clear();
+          colPix.clear();
+          flux.clear();
+          ghostRadius.clear();
+        }
       }
 
       time.clear();
       
       if(includeExtendedGhosts)
       {
-	for(auto keyValuePair: detectedExtendedGhostInfo) time.push_back(keyValuePair.first);
-	if (!time.empty())
-	{
-	  hdf5File.writeArray("ExtendedGhostPositions/", "Time", time.data(), time.size());
-	}
-	else
-	{
-	  Log.warning("Camera: No extended ghost positions to write to HDF5 file.");
-	}
-	
-	for (int n = 0; n < time.size(); n++)
-	{
-	  stringstream myStream;
-	  myStream << "Exposure" << setfill('0') << setw(6) << beginExposureNr + n;
-	    
-	    
-	  // Write the info for the extended ghost star positions to HDF5
-	  
-	  vector<unsigned int> starIDs;
-	  vector<double> xFPmm;
-	  vector<double> yFPmm;
-	  vector<double> rowPix;
-	  vector<double> colPix;
-	  vector<double> flux;
-	  vector<double> ghostRadius;
-	      
-	    
-	  for(auto keyValuePair: detectedExtendedGhostInfo[time[n]])
-	  {
-	    const unsigned int starID = keyValuePair.first;
-	    starIDs.push_back(starID);                       // list of starIDs for this exposure only
-	    xFPmm.push_back(detectedExtendedGhostInfo[time[n]][starID][0] / detectedExtendedGhostInfo[time[n]][starID][5]);
-	    yFPmm.push_back(detectedExtendedGhostInfo[time[n]][starID][1] / detectedExtendedGhostInfo[time[n]][starID][5]);
-	    rowPix.push_back(detectedExtendedGhostInfo[time[n]][starID][2] / detectedExtendedGhostInfo[time[n]][starID][5]);
-	    colPix.push_back(detectedExtendedGhostInfo[time[n]][starID][3] / detectedExtendedGhostInfo[time[n]][starID][5]);
-	    flux.push_back(detectedExtendedGhostInfo[time[n]][starID][4]);
-	    ghostRadius.push_back(detectedExtendedGhostInfo[time[n]][starID][6] / detectedExtendedGhostInfo[time[n]][starID][5]);
-	  }
-	  
-	  const string extendedGhostGroupName = "/ExtendedGhostPositions/" + myStream.str();
-	  hdf5File.createGroup(extendedGhostGroupName);
-	    
-	  if(!starIDs.empty())
-	  {
-	    hdf5File.writeArray(extendedGhostGroupName, "starID", starIDs.data(), starIDs.size());
-	    hdf5File.writeArray(extendedGhostGroupName, "xFPmm",  xFPmm.data(),   xFPmm.size());
-	    hdf5File.writeArray(extendedGhostGroupName, "yFPmm",  yFPmm.data(),   yFPmm.size());
-	    hdf5File.writeArray(extendedGhostGroupName, "rowPix", rowPix.data(),  rowPix.size());
-	    hdf5File.writeArray(extendedGhostGroupName, "colPix", colPix.data(),  colPix.size());
-	    hdf5File.writeArray(extendedGhostGroupName, "flux",   flux.data(),    flux.size());
-	    hdf5File.writeArray(extendedGhostGroupName, "radius", ghostRadius.data(), ghostRadius.size());
-	  }
-	}
+        for(auto keyValuePair: detectedExtendedGhostInfo) time.push_back(keyValuePair.first);
+        if (!time.empty())
+        {
+          hdf5File.writeArray("ExtendedGhostPositions/", "Time", time.data(), time.size());
+        }
+        else
+        {
+          Log.warning("Camera: No extended ghost positions to write to HDF5 file.");
+        }
+        
+        for (int n = 0; n < time.size(); n++)
+        {
+          stringstream myStream;
+          myStream << "Exposure" << setfill('0') << setw(6) << beginExposureNr + n;
+            
+            
+          // Write the info for the extended ghost star positions to HDF5
+          
+          vector<unsigned int> starIDs;
+          vector<double> xFPmm;
+          vector<double> yFPmm;
+          vector<double> rowPix;
+          vector<double> colPix;
+          vector<double> flux;
+          vector<double> ghostRadius;
+              
+            
+          for(auto keyValuePair: detectedExtendedGhostInfo[time[n]])
+          {
+            const unsigned int starID = keyValuePair.first;
+            starIDs.push_back(starID);                       // list of starIDs for this exposure only
+            xFPmm.push_back(detectedExtendedGhostInfo[time[n]][starID][0] / detectedExtendedGhostInfo[time[n]][starID][5]);
+            yFPmm.push_back(detectedExtendedGhostInfo[time[n]][starID][1] / detectedExtendedGhostInfo[time[n]][starID][5]);
+            rowPix.push_back(detectedExtendedGhostInfo[time[n]][starID][2] / detectedExtendedGhostInfo[time[n]][starID][5]);
+            colPix.push_back(detectedExtendedGhostInfo[time[n]][starID][3] / detectedExtendedGhostInfo[time[n]][starID][5]);
+            flux.push_back(detectedExtendedGhostInfo[time[n]][starID][4]);
+            ghostRadius.push_back(detectedExtendedGhostInfo[time[n]][starID][6] / detectedExtendedGhostInfo[time[n]][starID][5]);
+          }
+          
+          const string extendedGhostGroupName = "/ExtendedGhostPositions/" + myStream.str();
+          hdf5File.createGroup(extendedGhostGroupName);
+            
+          if(!starIDs.empty())
+          {
+            hdf5File.writeArray(extendedGhostGroupName, "starID", starIDs.data(), starIDs.size());
+            hdf5File.writeArray(extendedGhostGroupName, "xFPmm",  xFPmm.data(),   xFPmm.size());
+            hdf5File.writeArray(extendedGhostGroupName, "yFPmm",  yFPmm.data(),   yFPmm.size());
+            hdf5File.writeArray(extendedGhostGroupName, "rowPix", rowPix.data(),  rowPix.size());
+            hdf5File.writeArray(extendedGhostGroupName, "colPix", colPix.data(),  colPix.size());
+            hdf5File.writeArray(extendedGhostGroupName, "flux",   flux.data(),    flux.size());
+            hdf5File.writeArray(extendedGhostGroupName, "radius", ghostRadius.data(), ghostRadius.size());
+          }
+        }
       }
     }
 
@@ -591,21 +591,21 @@ void Camera::configure(ConfigurationParameters &configParam)
         distanceCutOffPointLikeGhosts = deg2rad(configParam.getDouble("Camera/Ghosts/PointLike/DistanceCutOff"));   // [radians]
         fluxRatioOnAxisPointLikeGhosts = configParam.getDouble("Camera/Ghosts/PointLike/FluxRatio") / 100.0;
 
-	if(includeExtendedGhosts)
-	{
-	  distanceRatioExtendedGhosts = configParam.getDouble("Camera/Ghosts/Extended/DistanceRatio");
-	  fluxRatioExtendedGhosts = configParam.getDouble("Camera/Ghosts/Extended/FluxRatio") / 100.0;
+        if(includeExtendedGhosts)
+        {
+          distanceRatioExtendedGhosts = configParam.getDouble("Camera/Ghosts/Extended/DistanceRatio");
+          fluxRatioExtendedGhosts = configParam.getDouble("Camera/Ghosts/Extended/FluxRatio") / 100.0;
 
-	  vector<double> extendedGhostRadiusCoefVector = configParam.getDoubleVector("Camera/Ghosts/Extended/RadiusCoefficients");
-	  array<double, 3> extendedGhostRadiusCoefArray;
-	  copy(extendedGhostRadiusCoefVector.begin(), extendedGhostRadiusCoefVector.end(), extendedGhostRadiusCoefArray.begin());
+          vector<double> extendedGhostRadiusCoefVector = configParam.getDoubleVector("Camera/Ghosts/Extended/RadiusCoefficients");
+          array<double, 3> extendedGhostRadiusCoefArray;
+          copy(extendedGhostRadiusCoefVector.begin(), extendedGhostRadiusCoefVector.end(), extendedGhostRadiusCoefArray.begin());
 
-	  extendedGhostRadiusCoefficients = new Parameter<double, 3>(extendedGhostRadiusCoefArray);
-	}
-	else
-	{
-	  Log.info("Camera: Ignoring Extended Ghosts");
-	}
+          extendedGhostRadiusCoefficients = new Parameter<double, 3>(extendedGhostRadiusCoefArray);
+        }
+        else
+        {
+          Log.info("Camera: Ignoring Extended Ghosts");
+        }
     }
     else if(includeExtendedGhosts)
     {
@@ -618,7 +618,7 @@ void Camera::configure(ConfigurationParameters &configParam)
       array<double, 3> extendedGhostRadiusCoefArray;
       copy(extendedGhostRadiusCoefVector.begin(), extendedGhostRadiusCoefVector.end(), extendedGhostRadiusCoefArray.begin());
 
-      extendedGhostRadiusCoefficients = new Parameter<double, 3>(extendedGhostRadiusCoefArray);	
+      extendedGhostRadiusCoefficients = new Parameter<double, 3>(extendedGhostRadiusCoefArray);
     }
     else
     {
@@ -1460,8 +1460,8 @@ pair<double, double> Camera::undistortedToDistortedFocalPlaneCoordinates(double 
 
     double alpha = atan2(yFPmm, xFPmm);  // Position angle on the focal plane [radians]
 
-    double rFP = sqrt(xFPmm * xFPmm + yFPmm * yFPmm) / (*focalLength)();	// Undistorted radial distance [normalised pixels]
-    double radialDistortion = (coefficients[0] * pow(rFP, 3) + coefficients[1] * pow(rFP, 5) + coefficients[2] * pow(rFP, 7)) * (*focalLength)();	// Distortion [mm]
+    double rFP = sqrt(xFPmm * xFPmm + yFPmm * yFPmm) / (*focalLength)();        // Undistorted radial distance [normalised pixels]
+    double radialDistortion = (coefficients[0] * pow(rFP, 3) + coefficients[1] * pow(rFP, 5) + coefficients[2] * pow(rFP, 7)) * (*focalLength)();       // Distortion [mm]
     double tangentialDistortion = pow(rFP,2) * (coefficients[5] * cos(alpha) + coefficients[6] * sin(alpha)) * (*focalLength)();
 
     double xFPdist = xFPmm + cos(alpha) * (radialDistortion + tangentialDistortion) + coefficients[3] * pow(rFP,2) * (*focalLength)();
@@ -1491,8 +1491,8 @@ pair<double, double> Camera::distortedToUndistortedFocalPlaneCoordinates(double 
 
     double alpha = atan2(yFPdist, xFPdist);  // Position angle on the focal plane [radians]
 
-    double rFP = sqrt(xFPdist * xFPdist + yFPdist * yFPdist) / (*focalLength)();	// Distorted radial distance [normalised pixels]
-    double radialDistortion = (inverseCoefficients[0] * pow(rFP, 3) + inverseCoefficients[1] * pow(rFP, 5) + inverseCoefficients[2] * pow(rFP, 7)) * (*focalLength)();	// Distortion [mm] -> negative
+    double rFP = sqrt(xFPdist * xFPdist + yFPdist * yFPdist) / (*focalLength)();        // Distorted radial distance [normalised pixels]
+    double radialDistortion = (inverseCoefficients[0] * pow(rFP, 3) + inverseCoefficients[1] * pow(rFP, 5) + inverseCoefficients[2] * pow(rFP, 7)) * (*focalLength)();  // Distortion [mm] -> negative
     double tangentialDistortion = pow(rFP,2) * (inverseCoefficients[5] * cos(alpha) + inverseCoefficients[6] * sin(alpha)) * (*focalLength)();
 
     double xFPmm = xFPdist + cos(alpha) * (radialDistortion + tangentialDistortion) + inverseCoefficients[3] * pow(rFP,2) * (*focalLength)();
