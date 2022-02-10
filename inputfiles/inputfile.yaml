@@ -152,6 +152,7 @@ CCD:
 
     Position:                        Custom          # one of [1, 2, 3, 4, Custom]
                                                      # (use Custom to specify the CCD position parameters yourself)
+                                                     # REMARK: if Custom, then Camera/GroupID can not be Fast
 
     OriginOffsetX:                   0               # X Offset of CCD origin from center of focal plane [mm]
     OriginOffsetY:                   0               # Y Offset of CCD origin from center of focal plane [mm]
