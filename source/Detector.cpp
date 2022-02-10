@@ -287,8 +287,31 @@ void Detector::updateParameters(double time)
 
  void Detector::configure(ConfigurationParameters &configParam)
  {
-    // Configuration parameters for the CCD detector
+     // Configuration parameters for the subfield
 
+    subFieldZeroPointRow    = configParam.getInteger("SubField/ZeroPointRow");
+    subFieldZeroPointColumn = configParam.getInteger("SubField/ZeroPointColumn");
+    numRowsPixelMap         = configParam.getInteger("SubField/NumRows");
+    numColumnsPixelMap      = configParam.getInteger("SubField/NumColumns");
+    numRowsBiasMap          = configParam.getInteger("SubField/NumBiasPrescanRows");
+    numColumnsBiasMap       = configParam.getInteger("SubField/NumBiasPrescanColumns");
+    numRowsSmearingMap      = configParam.getInteger("SubField/NumSmearingOverscanRows");
+
+    Log.debug("Detector: Subfield zero point (row, col) = (" + to_string(subFieldZeroPointRow) + ", " + to_string(subFieldZeroPointColumn) + ")");
+    Log.debug("Detector: Subfield center point (row, col) = (" + to_string(subFieldZeroPointRow + numRowsPixelMap/2)
+                                                               + ", " + to_string(subFieldZeroPointColumn + numColumnsPixelMap/2) + ")");
+    Log.debug("Detector: Subfield nr of rows = " + to_string(numRowsPixelMap));
+    Log.debug("Detector: Subfield nr of columns = " + to_string(numColumnsPixelMap));
+
+    // No parallel over-scan in case of partial readout
+
+    if(readoutMode == "Partial")
+    {
+        Log.info("No smearing map for partial readout");
+        numRowsSmearingMap = 0;
+    }
+
+    // Configuration parameters for the CCD detector
     ccdPosition                  = configParam.getString("CCD/Position");
 
     if (ccdPosition == "Custom")
@@ -299,6 +322,8 @@ void Detector::updateParameters(double time)
         numRows                = configParam.getInteger("CCD/NumRows");             // [pixels]
         numColumns             = configParam.getInteger("CCD/NumColumns");          // [pixels]
         firstRowExposed        = configParam.getInteger("CCD/FirstRowExposed");     // [pixels]
+        coveredLeft, coveredRight = 0;                                              // [pixels]
+        coveredTop, coveredBottom = 0;                                              // [pixels]
 
         rotationAnglePsf = customOrientationAngle;  // Angle over which the PSF should be rotated
     }
@@ -316,7 +341,7 @@ void Detector::updateParameters(double time)
         {
             vector<double> originOffsetX = configParam.getDoubleVector("CCDPositions/OriginOffsetX");
             vector<double> originOffsetY = configParam.getDoubleVector("CCDPositions/OriginOffsetY");
-            
+
             array<double, 12> ccdPositionsArray;
 
             for (unsigned int ccd = 0; ccd < 4; ccd++)
@@ -325,11 +350,11 @@ void Detector::updateParameters(double time)
                 ccdPositionsArray[ccd * 3 + 1] = originOffsetY[ccd];
                 ccdPositionsArray[ccd * 3 + 2] = orientation[ccd];
             }
-            
+
 
             ccdPositions = new Parameter<double, 12>(ccdPositionsArray);
         }
-     
+
         int idx = stoi(ccdPosition) - 1;  // Positions are named [1, 2, 3, 4] while the index into vector starts at 0
 
         numRows               = configParam.getIntegerAt("CCDPositions/NumRows", idx);
@@ -338,14 +363,36 @@ void Detector::updateParameters(double time)
         rotationAnglePsf = deg2rad(orientation[idx]);  // Angle over which the PSF should be rotated
 
         isFastCamera          = configParam.getString("Telescope/GroupID") == "Fast";
+        coveredLeft, coveredRight = 0;
+        coveredTop, coveredBottom = 0;
 
         if (isFastCamera)
         {
             firstRowExposed       = configParam.getIntegerAt("CCDPositions/FirstRowForFastCamera", idx);
+            includeShield         = configParam.getBoolean("CCDPositions/MetallicShield/IncludeMetallicShield");
+            if (includeShield)
+            {
+                int bColumn = configParam.getIntegerAt("CCDPositions/MetallicShield/ShieldColumnCoordinates", 0);
+                int bRow    = configParam.getIntegerAt("CCDPositions/MetallicShield/ShieldRowCoordinates", 0);
+
+                int tColumn = configParam.getIntegerAt("CCDPositions/MetallicShield/ShieldColumnCoordinates", 1);
+                int tRow    = configParam.getIntegerAt("CCDPositions/MetallicShield/ShieldRowCoordinates", 1);
+
+                // What part of the pixelmap is covered by the metallic shield
+                coveredLeft   = std::min(int(numColumnsPixelMap),
+                                         std::max(int(bColumn - subFieldZeroPointColumn), 0));
+                coveredRight  = std::min(int(numColumnsPixelMap),
+                                         std::max(int(subFieldZeroPointColumn + numColumnsPixelMap - tColumn), 0));
+                coveredBottom = std::min(int(numRowsPixelMap),
+                                         std::max(int(bRow - subFieldZeroPointRow), 0));
+                coveredTop    = std::min(int(numRowsPixelMap),
+                                         std::max(int(subFieldZeroPointRow + numRowsPixelMap - tRow), 0));
+            }
         }
         else
         {
             firstRowExposed       = configParam.getIntegerAt("CCDPositions/FirstRowForNormalCamera", idx);
+            includeShield         = false;
         }
 
     }
@@ -369,7 +416,7 @@ void Detector::updateParameters(double time)
     cosmicTrailLengthParams             = configParam.getDoubleVector("Sky/Cosmics/TrailLength");
     cosmicIntensityParams               = configParam.getDoubleVector("Sky/Cosmics/Intensity");
 
-    if (cosmicIntensityParams.size() != 3) 
+    if (cosmicIntensityParams.size() != 3)
     {
         Log.error("Detector::configure(): in input yaml file: Sky/Cosmics/Intensity array does not contain 3 numbers.");
         throw ConfigurationException("Detector: in input yaml file: Sky/Cosmics/Intensity array needs to have 3 numbers. Perhaps you used an old config file?"); 
@@ -469,44 +516,6 @@ void Detector::updateParameters(double time)
         expectedValueRelativeTransmissivity =  configParam.getDouble("CCD/RelativeTransmissivity/ExpectedValue");
     }
 
-    // Configuration parameters for the subfield
-
-    subFieldZeroPointRow    = configParam.getInteger("SubField/ZeroPointRow");
-    subFieldZeroPointColumn = configParam.getInteger("SubField/ZeroPointColumn");
-    numRowsPixelMap         = configParam.getInteger("SubField/NumRows");
-    // For a fast camera, the part of the subfield that is on the lower half of the CCD (and thus physically covered) is ignored.
-    // If no part of the subfield lies on the exposed part of the CCD, and error is raised and the simulation is terminated.
-    if (isFastCamera)
-    {
-      numRowsPixelMap       = std::max(0, int(numRowsPixelMap - std::max(0, int(firstRowExposed - subFieldZeroPointRow))));
-      subFieldZeroPointRow  = std::max(subFieldZeroPointRow, firstRowExposed);
-      if (numRowsPixelMap == 0)
-      {
-    Log.error("The subfield does not lie on the exposed part of the detector, nothing is simulated.");
-    exit(1);
-      }
-      
-
-    }
-    numColumnsPixelMap      = configParam.getInteger("SubField/NumColumns");
-    numRowsBiasMap          = configParam.getInteger("SubField/NumBiasPrescanRows");
-    numColumnsBiasMap       = configParam.getInteger("SubField/NumBiasPrescanColumns");
-    numRowsSmearingMap      = configParam.getInteger("SubField/NumSmearingOverscanRows");
-
-    Log.debug("Detector: Subfield zero point (row, col) = (" + to_string(subFieldZeroPointRow) + ", " + to_string(subFieldZeroPointColumn) + ")");
-    Log.debug("Detector: Subfield center point (row, col) = (" + to_string(subFieldZeroPointRow + numRowsPixelMap/2)
-                                                               + ", " + to_string(subFieldZeroPointColumn + numColumnsPixelMap/2) + ")");
-    Log.debug("Detector: Subfield nr of rows = " + to_string(numRowsPixelMap));
-    Log.debug("Detector: Subfield nr of columns = " + to_string(numColumnsPixelMap));
-
-    // No parallel over-scan in case of partial readout
-
-    if(readoutMode == "Partial")
-    {
-        Log.info("No smearing map for partial readout");
-        numRowsSmearingMap = 0;
-    }
-
     // The configuration for CTI
 
     missionDuration = configParam.getDouble("ObservingParameters/MissionDuration") * 31536000.0; // [s]
@@ -525,7 +534,7 @@ void Detector::updateParameters(double time)
         releaseTime             = configParam.getDoubleVector("CCD/CTI/Short2013/ReleaseTime");
         meanTrapDensityBOL      = configParam.getDoubleVector("CCD/CTI/Short2013/TrapDensity/BOL");
         meanTrapDensityEOL      = configParam.getDoubleVector("CCD/CTI/Short2013/TrapDensity/EOL");
-        radiationMap.resize(numRowsPixelMap, numColumnsPixelMap); 
+        radiationMap.resize(numRowsPixelMap, numColumnsPixelMap);
         radiationMap.fill(1.0);
     }
     else if (CTImodel == "Short2013FromFile")
@@ -597,10 +606,10 @@ void Detector::readCTIinputFile(string ctiInputFile)
 
     Log.info("Detector: Opened the CTI input HDF5 file " + ctiInputFile);
 
-    // Read in the CTI info 
+    // Read in the CTI info
 
     vector<double> temporary;
-    CTIFile.readArray("/", "beta", temporary); 
+    CTIFile.readArray("/", "beta", temporary);
     beta = temporary[0]; 
     CTIFile.readArray("/", "temperature", temporary); 
     temperature = temporary[0]; 
@@ -743,11 +752,11 @@ double Detector::takeExposure(int exposureNr, double startTime, double exposureT
 
     Log.debug("Detector: Writing PixelMap, smearing map, bias map and throughputMap #" + to_string(exposureNr) + " to HDF5 file.");
 
-    
+
     writePixelMapsToHDF5(exposureNr);
 
     // Write the cosmic hits to the HDF5 file
-    
+
     Log.debug("Detector: Writing Cosmics of the PixelMap, smearing map, bias map #" + to_string(exposureNr) + " to HDF5 file.");
 
     writeCosmicHitsToHDF5(exposureNr);
@@ -1030,7 +1039,7 @@ bool Detector::isInSubfield(double xFP, double yFP)
 
 
  /**
- * \brief   Check whether the given (row, column) indices are within the array range of the pixel map.
+ * \brief   Check whether the given (row, column) indices are within the array range of the exposed part of the pixel map.
  *
  * \details  The input parameters row & column come from a coordinate transformation
  *           in the focal plane, and as a result are not necessarily integers. For this
@@ -1044,7 +1053,7 @@ bool Detector::isInSubfield(double xFP, double yFP)
 
 bool Detector::isInPixelMap(double row, double column)
 {
-    return (column >= 0) && (row >= 0) && (column < numColumnsPixelMap) && (row < numRowsPixelMap);
+    return (column >= coveredLeft) && (row >= coveredBottom) && (column < numColumnsPixelMap - coveredRight) && (row < numRowsPixelMap - coveredTop);
 }
 
 
@@ -1191,7 +1200,7 @@ void Detector::addDarkSignal(float exposureTime)
  *              - electronic offset (i.e. bias)
  *              - digital saturation
  *
- * \param exposureTime: Exposure time [s].                    
+ * \param exposureTime: Exposure time [s].
  *
  * \pre Pixel unit in the pixel map: [electrons].
  * \pre Pixel unit in the smearing map: [electrons].
@@ -1278,7 +1287,7 @@ void Detector::readOut(float exposureTime)
     {
         Log.debug("Detector: no readout noise added.");
     }
-    
+
     // Apply the F-FEE over-/undershoot to the pixel map.
     // Pixel units before of pixel, smearing and bias maps: [ADU]
     // Pixel units after of  pixel, smearing and bias maps: [ADU]
@@ -1466,7 +1475,7 @@ void Detector::addCosmics(float exposureTime)
     if (includeCosmicsInSubField)
     {
         Log.debug("Detector: adding cosmic hits to the sub-field");
-        addCosmics(exposureTime + readoutTimeBeforeNextExposure + readoutTimeDuringNextExposure, pixelMap, rowsOfCosmicsInSubField, 
+        addCosmics(exposureTime + readoutTimeBeforeNextExposure + readoutTimeDuringNextExposure, pixelMap, rowsOfCosmicsInSubField,
                    columnsOfCosmicsInSubField, fluxOfCosmicsInSubField, numRowsPixelMap, numColumnsPixelMap, "image area");
     }
 
@@ -1478,9 +1487,9 @@ void Detector::addCosmics(float exposureTime)
 
         if(isFastCamera)
         {
-            addCosmics(readoutTimeDuringNextExposure, smearingMap, rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap, 
+            addCosmics(readoutTimeDuringNextExposure, smearingMap, rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap,
                        fluxOfCosmicsInSmearingMap,numRowsSmearingMap, numColumnsPixelMap, "smearing map");
-        } 
+        }
         else
         {
             addCosmics(readoutTimeBeforeNextExposure, smearingMap, rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap, 
@@ -1503,9 +1512,9 @@ void Detector::addCosmics(float exposureTime)
                    fluxOfCosmicsInBiasMapRight, numRowsBiasMap, numColumnsBiasMap, "bias map (right half)");
     }
 
- 
-     
-    
+
+
+
 }
 
 
