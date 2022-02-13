@@ -398,11 +398,13 @@ class SimFile (object):
             ID, row, col, Xmm, Ymm, flux = self.getStarCoordinates(imageNr, minVmag=minVmag, maxVmag=maxVmag)
             # Allow differentiating between a target and its contaminants
             if showStarPositions == 'PIC':
-                tarMarkerSize = 200
-                mag = -2.5*np.log10(flux)
+                tarMarkerSize = 300
+                mag = -2.5*np.log10(flux) + 25                
                 axis.scatter(col[0], row[0], s=tarMarkerSize, marker='o', c='lime', edgecolor='k', linewidth=1, zorder=4)
                 if len(col) > 1:
-                    conMarkerSize = (tarMarkerSize / (mag[1:] - mag[0]*np.ones(len(col)-1))).astype(int)
+                    dm  = mag[1:] - mag[0]*np.ones(len(mag)-1)
+                    conMarkerSize = tarMarkerSize - np.abs(tarMarkerSize - tarMarkerSize/dm).astype(int)
+                    #conMarkerSize = (tarMarkerSize / (mag[1:] - mag[0]*np.ones(len(col)-1))).astype(int)
                     axis.scatter(col[1:], row[1:], s=conMarkerSize, marker='o', c='gold', edgecolor='k', linewidth=1, zorder=4)
             # Or hightligth all stars the same
             else:

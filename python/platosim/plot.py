@@ -765,16 +765,18 @@ def drawStarsInSkyAitoff(fig, raStars, decStars, magStars, skymap=None, cbarOrie
 
 
 
-def plotPlatoFOV(pointingField, raStars, decStars, magStars=None, nCamVis=None, skymap=None, save=False):
+def plotPlatoFOV(pointingField, raStars, decStars, magStars=None, nCamVis=None, skymap=None, title=None):
     """
 
+    
     Parameters
     ----------
 
     Return
     ------
-    axes : object
+    fig : object
         Axes matplotlib.pyplot handle object to be modified by the user
+        Use fig..savefig('<plot.png>', bbox_inches='tight', dpi=200)
     """
 
     import ligo.skymap.plot
@@ -851,7 +853,8 @@ def plotPlatoFOV(pointingField, raStars, decStars, magStars=None, nCamVis=None, 
 
     # Settings
 
-    ax.set_title(f'{pointingField} pointing', fontsize = 24)
+    if title is not None:
+        ax.set_title(title, fontsize = 24)
     ax.set_xlabel('RA', fontsize = 20)
     ax.set_ylabel('Dec', fontsize = 20)
     plt.xticks(fontsize = 18)
@@ -860,7 +863,7 @@ def plotPlatoFOV(pointingField, raStars, decStars, magStars=None, nCamVis=None, 
     
     # Plot and save
 
-    return ax
+    return fig
 
 
 
@@ -909,7 +912,8 @@ def plotStellarSampleDistributions(fig, mag, magCon, magRange, numConPerTar, dis
 
     axes[0,0].hist(mag, binlistTar, facecolor='b', edgecolor='b', fill=True, alpha=0.3)
     axes[0,0].set_title('Magnitude distribution of PIC targets')
-    axes[0,0].set_xlabel(r'$V$ Johnson-Cousin')
+    axes[0,0].set_xlabel(r'$P$ passband')
+    #axes[0,0].set_xlabel(r'$V$ Johnson-Cousin')
     axes[0,0].set_ylabel('Number of stars')
     axes[0,0].locator_params(axis='y', integer=True)
     axes[0,0].tick_params(axis='x', which='minor', bottom=True, top=False)
@@ -926,7 +930,8 @@ def plotStellarSampleDistributions(fig, mag, magCon, magRange, numConPerTar, dis
 
     axes[0,1].hist(magCon, binlistCon, facecolor='m', edgecolor='m', fill=True, alpha=0.3)
     axes[0,1].set_title('Magnitude distribution of PIC contaminants')
-    axes[0,1].set_xlabel(r'$V$ Johnson-Cousin')
+    #axes[0,1].set_xlabel(r'$V$ Johnson-Cousin')
+    axes[0,1].set_xlabel(r'$P$ passband')
     axes[0,1].set_ylabel('Number of stars')
     axes[0,1].tick_params(axis='x', which='minor', bottom=True, top=False)
     axes[0,1].tick_params(axis='x', which='major', bottom=True, top=False)
@@ -936,7 +941,7 @@ def plotStellarSampleDistributions(fig, mag, magCon, magRange, numConPerTar, dis
 
     # Prepare bins and plot number distribution of contaminants per target
 
-    numbinCon  = 1 + int(np.max(numConPerTar)/100)
+    numbinCon  = 1 + int(np.max(numConPerTar)/50)
     binsizeNum = int((np.max(numConPerTar) - 0) / numbinCon) + 2
     binlistNum = np.linspace(-0.5, np.max(numConPerTar)+0.5, binsizeNum)  # -0.5 because num x-axis
     axes[1,0].hist(numConPerTar, binlistNum, facecolor='g', edgecolor='g', fill=True, log=True, alpha=0.3)
