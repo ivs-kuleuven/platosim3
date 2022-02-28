@@ -26,6 +26,8 @@ generated/version.h
 !aps_N6000K_v2.txt
 !orbit.txt
 !inputfiles/cl2bCcds.txt
+!starcatalog.txt
+!starcatalogOld.txt
 
 # Ignore compile command json file for neovim LSP
 
