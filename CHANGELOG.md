@@ -8,12 +8,17 @@
 ## **/**/****: 3.5.2
 
 ## Fixed
-
+* When cosmics are added for F-Cams, we make sure they can not fall into covered part
 
 ## Changed
-
+* Improved stability of validations tests for drift/jitter from file
+* Renamed previous starcatalog
+* F-Camera can now be simulated with custom CCD
 
 ## Added
+* Added custom inputfile for F-Camera
+* Added new starcatalog
+
 
 
 
