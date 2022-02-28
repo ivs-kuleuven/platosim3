@@ -314,6 +314,10 @@ void Detector::updateParameters(double time)
     // Configuration parameters for the CCD detector
     ccdPosition                  = configParam.getString("CCD/Position");
 
+
+    isFastCamera          = configParam.getString("Telescope/GroupID") == "Fast";
+    includeShield         = configParam.getBoolean("CCDPositions/MetallicShield/IncludeMetallicShield");
+
     if (ccdPosition == "Custom")
     {
         customOriginOffsetX    = configParam.getDouble("CCD/OriginOffsetX");        // [mm]
@@ -326,6 +330,9 @@ void Detector::updateParameters(double time)
         coveredTop, coveredBottom = 0;                                              // [pixels]
 
         rotationAnglePsf = customOrientationAngle;  // Angle over which the PSF should be rotated
+
+        if(isFastCamera && includeShield)                            // Include a metallic shield if we have a fast camera
+            configureMetallicShield(configParam);
     }
     else
     {
@@ -362,32 +369,14 @@ void Detector::updateParameters(double time)
 
         rotationAnglePsf = deg2rad(orientation[idx]);  // Angle over which the PSF should be rotated
 
-        isFastCamera          = configParam.getString("Telescope/GroupID") == "Fast";
         coveredLeft, coveredRight = 0;
         coveredTop, coveredBottom = 0;
 
         if (isFastCamera)
         {
             firstRowExposed       = configParam.getIntegerAt("CCDPositions/FirstRowForFastCamera", idx);
-            includeShield         = configParam.getBoolean("CCDPositions/MetallicShield/IncludeMetallicShield");
             if (includeShield)
-            {
-                int bColumn = configParam.getIntegerAt("CCDPositions/MetallicShield/ShieldColumnCoordinates", 0);
-                int bRow    = configParam.getIntegerAt("CCDPositions/MetallicShield/ShieldRowCoordinates", 0);
-
-                int tColumn = configParam.getIntegerAt("CCDPositions/MetallicShield/ShieldColumnCoordinates", 1);
-                int tRow    = configParam.getIntegerAt("CCDPositions/MetallicShield/ShieldRowCoordinates", 1);
-
-                // What part of the pixelmap is covered by the metallic shield
-                coveredLeft   = std::min(int(numColumnsPixelMap),
-                                         std::max(int(bColumn - subFieldZeroPointColumn), 0));
-                coveredRight  = std::min(int(numColumnsPixelMap),
-                                         std::max(int(subFieldZeroPointColumn + numColumnsPixelMap - tColumn), 0));
-                coveredBottom = std::min(int(numRowsPixelMap),
-                                         std::max(int(bRow - subFieldZeroPointRow), 0));
-                coveredTop    = std::min(int(numRowsPixelMap),
-                                         std::max(int(subFieldZeroPointRow + numRowsPixelMap - tRow), 0));
-            }
+                configureMetallicShield(configParam);                // Configure metallic shield around CCD
         }
         else
         {
@@ -578,7 +567,31 @@ void Detector::updateParameters(double time)
 
 
 
+/**
+ * /brief Configures the metallic shield around the CCD
+ */
+void Detector::configureMetallicShield(ConfigurationParameters &configParam)
+{
+    int bColumn = configParam.getIntegerAt(
+        "CCDPositions/MetallicShield/ShieldColumnCoordinates", 0);
+    int bRow    = configParam.getIntegerAt(
+        "CCDPositions/MetallicShield/ShieldRowCoordinates", 0);
+    int tColumn = configParam.getIntegerAt(
+        "CCDPositions/MetallicShield/ShieldColumnCoordinates", 1);
+    int tRow =   configParam.getIntegerAt(
+        "CCDPositions/MetallicShield/ShieldRowCoordinates", 1);
 
+    // What part of the pixelmap is covered by the metallic shield
+    coveredLeft = std::min(int(numColumnsPixelMap),
+                           std::max(int(bColumn - subFieldZeroPointColumn), 0));
+    coveredRight = std::min(int(numColumnsPixelMap),
+                            std::max(int(subFieldZeroPointColumn +
+                                         numColumnsPixelMap - tColumn), 0));
+    coveredBottom = std::min(int(numRowsPixelMap),
+                             std::max(int(bRow - subFieldZeroPointRow), 0));
+    coveredTop = std::min( int(numRowsPixelMap),
+                           std::max(int(subFieldZeroPointRow + numRowsPixelMap - tRow), 0));
+}
 
 
 /**
@@ -1465,7 +1478,6 @@ void Detector::addCosmics(float exposureTime)
     // For the Intensity distribution, the parameters are the location, scale>0, and shape.
 
     cosmicHitRateDistribution     = poisson_distribution<long>(cosmicHitRate);                                                   // [hits/cm^2/s]
-    cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsPixelMap - 1);                                // [pixels]
     cosmicEntryAngleDistribution  = uniform_real_distribution<double>(0, 2 * PI);                                                // [radians]
     cosmicTrailLengthDistribution = uniform_real_distribution<double>(cosmicTrailLengthParams[0], cosmicTrailLengthParams[1]);   // [pixels]
     cosmicIntensityDistribution   = skew_normal_distribution(cosmicIntensityParams[0], cosmicIntensityParams[1], cosmicIntensityParams[2]); // [e-/hit]
@@ -1474,13 +1486,14 @@ void Detector::addCosmics(float exposureTime)
 
     if (includeCosmicsInSubField)
     {
+        // auto& exposedPixelMap = pixelMap.submat(coveredBottom, coveredLeft, numRowsPixelMap - coveredTop - 1, numColumnsPixelMap - coveredRight - 1);
         Log.debug("Detector: adding cosmic hits to the sub-field");
         addCosmics(exposureTime + readoutTimeBeforeNextExposure + readoutTimeDuringNextExposure, pixelMap, rowsOfCosmicsInSubField,
                    columnsOfCosmicsInSubField, fluxOfCosmicsInSubField, numRowsPixelMap, numColumnsPixelMap, "image area");
     }
 
     // Cosmics in the over-scan
-
+    cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsPixelMap - 1);                                // [pixels]
     if (includeCosmicsInSmearingMap)
     {
         Log.debug("Detector: adding cosmic hits to smearing map");
@@ -1561,6 +1574,7 @@ void Detector::addCosmics(float exposureTime)
 void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, vector<unsigned int> &rowsOfCosmicsMap, vector<unsigned int> &columnsOfCosmicsMap, vector<double> &fluxOfCosmicsMap, int numRows, int numColumns, string area)
 {
 
+
     // Characteristics of an individual trail
 
     double entryRow, entryColumn, entryAngle, trailLength, intensity, sigma;
@@ -1570,9 +1584,33 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, vector<unsi
 
     int numTrailPoints = 200;
     arma::vec trailRows, trailColumns, trailWeights;    // All trail points: row, column, and weight
-    int trailRow, trailColumn;                        // Individual trail point: row and column
+    int trailRow, trailColumn;                          // Individual trail point: row and column
 
-    cosmicEntryRowDistribution = uniform_real_distribution<double>(0, numRows - 1);   // different for each subfield vs smearing map vs bias map 
+
+
+    int minRow = 0;
+    int minCol = 0;
+
+    int maxRow = numRows;
+    int maxCol = numColumns;
+
+    // If we we have a "image area" we need to make sure the entry Row and Columns only fall on the exposed part of the subfield
+
+    if (area == "image area")
+    {
+        minRow = coveredBottom;
+        minCol = coveredLeft;
+        maxCol = numColumns - coveredRight;
+        maxRow = numRows - coveredTop;
+
+        // If subfield is completly covered, we return the function without adding cosmics to the subfield
+        if (minRow == maxCol || minCol == maxCol)
+            return;
+
+        cosmicEntryColumnDistribution = uniform_real_distribution<double>(minCol, maxCol - 1);      // [pixels]
+    }
+
+    cosmicEntryRowDistribution    = uniform_real_distribution<double>(minRow, maxRow-1);   // different for each subfield vs smearing map vs bias map
 
     // Number of cosmic hits
     // - cosmic hit rate [events / cm^2 / s]
@@ -1608,10 +1646,12 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, vector<unsi
 
     Log.debug("Detector: number of cosmic hits for the " + area + ": "  + to_string(numCosmicHits));
     if (numCosmicHits == 0) return;
-    
+
     double meanEntryAngle = 0.0;
     double meanTrailLength = 0.0;
     double meanIntensity = 0.0;
+
+
 
     for (unsigned int cosmicHit = 0; cosmicHit < numCosmicHits; cosmicHit++)
     {
@@ -1698,7 +1738,7 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, vector<unsi
                     columnsOfCosmicsMap.push_back(trailColumn);
                     fluxOfCosmicsMap.push_back(trailWeights(index) * intensity);
                 }
-        
+
                 if (trailRow != rowsOfCosmicsMap.back() || trailColumn != columnsOfCosmicsMap.back()) 
                 {
                     rowsOfCosmicsMap.push_back(trailRow);
@@ -1712,8 +1752,9 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, vector<unsi
 
             }
         }
+
     }
-    
+
 
     meanEntryAngle /= numCosmicHits;
     meanTrailLength /= numCosmicHits;

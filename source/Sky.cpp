@@ -346,7 +346,7 @@ unsigned long Sky::selectStarsWithinRadiusFrom(double RA0, double dec0, double r
     // It's not sufficient to simply keep the starIDs of the selected stars, because the coordinates
     // of the selected stars may change due to aberration, or the magnitude may change due to variability.
     // We don't want to apply such changes to the original database of stars.
-    
+
     for (auto const& star: starDB)
     {
         unsigned int starID = star.first;
