@@ -106,6 +106,7 @@ class Detector: public HDF5Writer
         virtual void applyThroughputEfficiency();
         virtual void applyBFE();
         virtual void addDarkSignal(float exposureTime);
+        virtual void configureMetallicShield(ConfigurationParameters &configParam);
 
         virtual void readOut(float exposureTime);
         virtual void addPhotonNoise();
