@@ -734,8 +734,8 @@ class Simulation(object):
         else:
             self["CCD/FirstRowExposed"] = str(0)
 
-        self["SubField/ZeroPointRow"] = str(int(yPix - subfieldSizeY/2))
-        self["SubField/ZeroPointColumn"] = str(int(xPix - subfieldSizeX/2))
+        self["SubField/ZeroPointRow"] = str(yPix - int(subfieldSizeY/2))
+        self["SubField/ZeroPointColumn"] = str(xPix - int(subfieldSizeX/2))
         self["SubField/NumRows"] = str(subfieldSizeY)
         self["SubField/NumColumns"] = str(subfieldSizeX)
 
