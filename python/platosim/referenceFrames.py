@@ -1201,9 +1201,9 @@ def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
 
 
 
-def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation, tiltAngle, azimuthAngle,  \
-                              focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, normal,   \
- mappedDistortion=False, distortionCoefficients=None, pathToPsfFile=None):
+def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation, tiltAngle, azimuthAngle,
+                              focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, normal,
+                              mappedDistortion=False, distortionCoefficients=None, pathToPsfFile=None):
 
     """
     PURPOSE: Given the equatorial coordinates of a star, find out on which CCD it falls ('1', '2', ...)
@@ -1258,7 +1258,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
 
     # Compute the (x,y) coordinates in the FP reference system [mm]
 
-    xFPmm, yFPmm = skyToFocalPlaneCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation,  \
+    xFPmm, yFPmm = skyToFocalPlaneCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation,
                                               tiltAngle, azimuthAngle, focalPlaneAngle, focalLength)
 
     if (includeFieldDistortion == True) or (includeFieldDistortion == "yes"):
@@ -1294,7 +1294,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
 
         return ccdCode, xCCDpix, yCCDpix
 
-   
+    
     # If we arrive here, the star does not fall on any CCD
 
     return None, None, None
@@ -1401,10 +1401,63 @@ def platformToTelescopePointingCoordinates(raPlatform, decPlatform, raSun, decSu
 
 
 
+def getCameraGroupCoordinates(raPlatform, decPlatform, solarPanelOrientation=0):
 
-def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, decStar, raPlatform, decPlatform, solarPanelOrientation,  \
-                                       tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength, pixelSize,                       \
-                                       includeFieldDistortion, normal, mappedDistortion=False, distortionCoefficients=None, pathToPsfFile=None ):
+    """
+    PURPOSE: Calculate the ICRS coordinates of each camera group.
+
+    INPUT: raPlatform:            Right Ascension of the platform pointing [deg]
+           decPlatform:           Declination of the platform pointing [deg]
+           solarPanelOrientation: Orientation of the solar panel [deg]
+           
+    OUTPUT: RA and Dec coordinates for each camera group.
+    """
+    
+    # Find coordinates of the Sun [rad]
+
+    raSun, decSun = sunSkyCoordinatesAwayfromPlatformPointing(np.deg2rad(raPlatform),
+                                                              np.deg2rad(decPlatform),
+                                                              np.deg2rad(solarPanelOrientation))
+
+    # Relative azimuth and tilt angles of each camera group w.r.t platform
+
+    azimuthAngles = [45.0, 135.0, 225.0, 315.0]
+    tiltAngles    = [9.2, 9.2, 9.2, 9.2]
+    
+    # Fetch RA and Dec for each camera group
+    
+    raGroups  = []
+    decGroups = []
+
+    for group in range(4):
+        
+        ra, dec = platformToTelescopePointingCoordinates(np.deg2rad(raPlatform),
+                                                         np.deg2rad(decPlatform), 
+                                                         raSun, decSun, 
+                                                         np.deg2rad(azimuthAngles[group]), 
+                                                         np.deg2rad(tiltAngles[group]))    
+        raGroups.append(np.rad2deg(ra))
+        decGroups.append(np.rad2deg(dec))
+
+    # Finito!
+    
+    return raGroups, decGroups
+
+
+
+
+
+
+
+
+
+
+
+def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, decStar, raPlatform, decPlatform,
+                                       solarPanelOrientation, tiltTelescope, azimuthTelescope,
+                                       focalPlaneAngle, focalLength, pixelSize,
+                                       includeFieldDistortion, normal,
+                                       mappedDistortion=False, distortionCoefficients=None, pathToPsfFile=None ):
 
     """
     PURPOSE: Calculates the location of the subfield such that the star with coordinates (raStar, decStar)
@@ -1454,9 +1507,10 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
 
     # Find out on which CCD the star falls, and the corresponding pixel coordinates
 
-    ccdCode, xCCDpix, yCCDpix = getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation,     \
-                                                          tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength,       \
-                                                          pixelSize, includeFieldDistortion, normal, mappedDistortion, distortionCoefficients, pathToPsfFile)
+    ccdCode, xCCDpix, yCCDpix = getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation,
+                                                          tiltTelescope, azimuthTelescope, focalPlaneAngle, focalLength,
+                                                          pixelSize, includeFieldDistortion, normal,
+                                                          mappedDistortion, distortionCoefficients, pathToPsfFile)
 
     # If the CCD code is None, the star does not fall on any ccd -> error
 
@@ -1466,12 +1520,12 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
     # If the star does fall on a CCD, check if it's not too close to the edge for the subfield to
     # be completely on the CCD.
 
-    xCCDpix = round(xCCDpix)                # integer values
-    yCCDpix = round(yCCDpix)
+    xCCDpix = int(xCCDpix)                # integer values
+    yCCDpix = int(yCCDpix)
     firstRow = CCD[ccdCode]["firstRow"]     # different from nominal than for fast cams
     Ncols = CCD[ccdCode]["Ncols"]
     Nrows = CCD[ccdCode]["Nrows"]
-
+    
     if     (xCCDpix - subfieldSizeX/2 < 0)        or (xCCDpix + subfieldSizeX/2 - 1 > Ncols-1)   \
         or (yCCDpix - subfieldSizeY/2 < firstRow) or (yCCDpix + subfieldSizeY/2 - 1 > Nrows-1):
         return None, None, None
