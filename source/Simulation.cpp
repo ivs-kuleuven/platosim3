@@ -306,44 +306,44 @@ void Simulation::configure(ConfigurationParameters &configParams)
 pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &configParams)
 {
 
-	int numRows, numColumns, firstRowExposed;
-	bool isFastCamera = configParams.getString("Telescope/GroupID") == "Fast";
-	string ccdPosition = configParams.getString("CCD/Position");
+        int numRows, numColumns, firstRowExposed;
+        bool isFastCamera = configParams.getString("Telescope/GroupID") == "Fast";
+        string ccdPosition = configParams.getString("CCD/Position");
 
-	if (ccdPosition == "Custom")
-	{
-		numRows = configParams.getInteger("CCD/NumRows");                   // [pixels]
-		numColumns = configParams.getInteger("CCD/NumColumns");             // [pixels]
-		firstRowExposed = configParams.getInteger("CCD/FirstRowExposed");   // [pixels]
-	}
+        if (ccdPosition == "Custom")
+        {
+                numRows = configParams.getInteger("CCD/NumRows");                   // [pixels]
+                numColumns = configParams.getInteger("CCD/NumColumns");             // [pixels]
+                firstRowExposed = configParams.getInteger("CCD/FirstRowExposed");   // [pixels]
+        }
 
-	else
-	{
-		int idx = stoi(ccdPosition) - 1; // Positions are named [1, 2, 3, 4] while the index into vector starts at 0
+        else
+        {
+                int idx = stoi(ccdPosition) - 1; // Positions are named [1, 2, 3, 4] while the index into vector starts at 0
 
-		numRows = configParams.getIntegerAt("CCDPositions/NumRows", idx);           // [pixels]
-		numColumns = configParams.getIntegerAt("CCDPositions/NumColumns", idx);     // [pixels]
+                numRows = configParams.getIntegerAt("CCDPositions/NumRows", idx);           // [pixels]
+                numColumns = configParams.getIntegerAt("CCDPositions/NumColumns", idx);     // [pixels]
 
-		isFastCamera = configParams.getString("Telescope/GroupID") == "Fast";
+                isFastCamera = configParams.getString("Telescope/GroupID") == "Fast";
 
-		if (isFastCamera)
-			firstRowExposed = configParams.getIntegerAt("CCDPositions/FirstRowForFastCamera", idx);     // [pixels]
+                if (isFastCamera)
+                        firstRowExposed = configParams.getIntegerAt("CCDPositions/FirstRowForFastCamera", idx);     // [pixels]
 
-		else
-			firstRowExposed = configParams.getIntegerAt("CCDPositions/FirstRowForNormalCamera", idx);   // [pixels]
-	}
+                else
+                        firstRowExposed = configParams.getIntegerAt("CCDPositions/FirstRowForNormalCamera", idx);   // [pixels]
+        }
 
-	string readoutMode = configParams.getString("CCD/ReadoutMode/ReadoutMode");
+        string readoutMode = configParams.getString("CCD/ReadoutMode/ReadoutMode");
 
-	if((readoutMode != "Nominal") && (readoutMode != "Partial"))
-	{
-		Log.error("Simulation::configureReadoutTime(): Unknown readout mode specification in configuration file: "  + readoutMode);
-		throw ConfigurationException("Simulation: Unknown readout mode specification in configuration file");
-	}
+        if((readoutMode != "Nominal") && (readoutMode != "Partial"))
+        {
+                Log.error("Simulation::configureReadoutTime(): Unknown readout mode specification in configuration file: "  + readoutMode);
+                throw ConfigurationException("Simulation: Unknown readout mode specification in configuration file");
+        }
 
-	double serialTransferTime = configParams.getDouble("CCD/SerialTransferTime") * 1E-9;			  // [ns] -> [s]
-	double parallelTransferTime = configParams.getDouble("CCD/ParallelTransferTime") * 1E-6;		  // [µs] -> [s]
-	double parallelTransferTimeFast = configParams.getDouble("CCD/ParallelTransferTimeFast") * 1E-6;  // [µs] -> [s]
+        double serialTransferTime = configParams.getDouble("CCD/SerialTransferTime") * 1E-9;			  // [ns] -> [s]
+        double parallelTransferTime = configParams.getDouble("CCD/ParallelTransferTime") * 1E-6;		  // [µs] -> [s]
+        double parallelTransferTimeFast = configParams.getDouble("CCD/ParallelTransferTimeFast") * 1E-6;  // [µs] -> [s]
 
 
 
@@ -352,109 +352,109 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
 
 
 
-	double readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure;
+        double readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure;
 
 
 
-	// Both detector halves are read out simultaneously
-	// -> columns read out by the FEE:
-	// 		- half of the CCD
-	// 		- serial pre-scan
-	// 		- (serial over-scan)
+        // Both detector halves are read out simultaneously
+        // -> columns read out by the FEE:
+        //              - half of the CCD
+        //              - serial pre-scan
+        //              - (serial over-scan)
 
-	int numColumnsReadout = numColumns / 2 + numColumnsBiasMap; // + numRowsSerialOverScan
+        int numColumnsReadout = numColumns / 2 + numColumnsBiasMap; // + numRowsSerialOverScan
 
-	// How many rows will be actually read out by the FEE?
-	// 	- nominal mode: image area + parallel over-scan
-	//      normal camera: image area = whole CCD
-	//      fast camera: image area = lower half of the CCD
-	//	- partial readout: configurable
-	// The rest of the image area will be dumped
+        // How many rows will be actually read out by the FEE?
+        //      - nominal mode: image area + parallel over-scan
+        //      normal camera: image area = whole CCD
+        //      fast camera: image area = lower half of the CCD
+        //      - partial readout: configurable
+        // The rest of the image area will be dumped
 
-	int numRowsReadout=0;
-    int numRowsDump=0;
+        int numRowsReadout=0;
+        int numRowsDump=0;
 
 
 
-	// -----------
-	// Fast camera
-	// -----------
+        // -----------
+        // Fast camera
+        // -----------
 
-	if (isFastCamera) 
+        if (isFastCamera)
     {
-		// Move the upper half of the CCD down to the lower half, row-by-row
+                // Move the upper half of the CCD down to the lower half, row-by-row
 
-		int numRowsFrameTransfer = numRows - firstRowExposed;
+                int numRowsFrameTransfer = numRows - firstRowExposed;
 
-		readoutTimeBeforeNextExposure = numRowsFrameTransfer * parallelTransferTimeFast;
+                readoutTimeBeforeNextExposure = numRowsFrameTransfer * parallelTransferTimeFast;
 
-		// The actual readout of the lower half of the CCD (after frame transfer) is done
-		// while the next exposure has already started
+                // The actual readout of the lower half of the CCD (after frame transfer) is done
+                // while the next exposure has already started
 
-		// Nominal mode
+                // Nominal mode
 
-		if (readoutMode == "Nominal")
-		{
-			numRowsReadout = firstRowExposed + numRowsSmearingMap;
-			numRowsDump = 0;
+                if (readoutMode == "Nominal")
+                {
+                        numRowsReadout = firstRowExposed + numRowsSmearingMap;
+                        numRowsDump = 0;
 
-		}
+                }
 
-		// Rows read out by the FEE: rows in the block (other rows in image area are dumped)
-		// Note: no parallel over-scan
+                // Rows read out by the FEE: rows in the block (other rows in image area are dumped)
+                // Note: no parallel over-scan
 
-		else if (readoutMode == "Partial")
-		{
-		numRowsReadout = configParams.getInteger("CCD/ReadoutMode/Partial/NumRowsReadout");
-			numRowsDump = firstRowExposed - numRowsReadout;
-		}
+                else if (readoutMode == "Partial")
+                {
+                numRowsReadout = configParams.getInteger("CCD/ReadoutMode/Partial/NumRowsReadout");
+                        numRowsDump = firstRowExposed - numRowsReadout;
+                }
 
-		readoutTimeDuringNextExposure = numRowsDump * parallelTransferTimeFast
-				+ numRowsReadout * (parallelTransferTime + numColumnsReadout * serialTransferTime);
-	}
+                readoutTimeDuringNextExposure = numRowsDump * parallelTransferTimeFast
+                                + numRowsReadout * (parallelTransferTime + numColumnsReadout * serialTransferTime);
+        }
 
 
 
-	// -------------
-	// Normal camera
-	// -------------
+        // -------------
+        // Normal camera
+        // -------------
 
-	else
-	{
-
-		// Nominal mode (full-frame readout)
-
-		if (readoutMode == "Nominal")
-		{
-
-			// Rows read out by the FEE:
-			// 		- rows of image area
-			// 		- parallel over-scan
-
-			numRowsReadout = numRows + numRowsSmearingMap;
-
-			// No rows dumped
-
-			numRowsDump = 0;
-		}
-
-		// Partial readout
-
-		else if (readoutMode == "Partial")
+        else
         {
-			// Rows read out by the FEE: rows in the block (other rows in image area are dumped)
-			// Note: no parallel over-scan
-            numRowsReadout = configParams.getInteger("CCD/ReadoutMode/Partial/NumRowsReadout");
-			numRowsDump = numRows - numRowsReadout;
-		}
 
-		readoutTimeBeforeNextExposure = numRowsDump * parallelTransferTimeFast
-				+ numRowsReadout * (numColumnsReadout * serialTransferTime + parallelTransferTime);
+                // Nominal mode (full-frame readout)
 
-		readoutTimeDuringNextExposure = 0;
-	}
+                if (readoutMode == "Nominal")
+                {
 
-	return make_pair(readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
+                        // Rows read out by the FEE:
+                        //              - rows of image area
+                        //              - parallel over-scan
+
+                        numRowsReadout = numRows + numRowsSmearingMap;
+
+                        // No rows dumped
+
+                        numRowsDump = 0;
+                }
+
+                // Partial readout
+
+                else if (readoutMode == "Partial")
+                {
+                        // Rows read out by the FEE: rows in the block (other rows in image area are dumped)
+                        // Note: no parallel over-scan
+                        numRowsReadout = configParams.getInteger("CCD/ReadoutMode/Partial/NumRowsReadout");
+                        numRowsDump = numRows - numRowsReadout;
+                }
+
+                readoutTimeBeforeNextExposure = numRowsDump * parallelTransferTimeFast
+                                + numRowsReadout * (numColumnsReadout * serialTransferTime + parallelTransferTime);
+
+                readoutTimeDuringNextExposure = 0;
+        }
+
+        return make_pair(readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
 }
 
 
@@ -481,7 +481,7 @@ void Simulation::run()
 
     int n = beginExposureNr;
 
-    bool endOfSimulation = false;  
+    bool endOfSimulation = false;
 
     // Continue the simulation until no more jittersteps are send from a tcp connection server
 
@@ -493,7 +493,7 @@ void Simulation::run()
             Log.info("Simulation: end of simulation reached");
 
             endOfSimulation = true;
-        } 
+        }
         else
         {
             Log.info("Simulation: Starting exposure " + to_string(n) + " at time " + to_string(currentTime));
@@ -502,7 +502,7 @@ void Simulation::run()
 
             endOfSimulation = jitterGenerator->getSimulationState();
 
-            n++;             
+            n++;
         }
     }
 
@@ -533,7 +533,7 @@ void Simulation::writeVersionInformationToHDF5()
 
     string parentGroup = "/Version";
     hdf5File->createGroup(parentGroup);
- 
+
     hdf5File->writeAttribute(parentGroup, "Application", string("PlatoSim3"));
     hdf5File->writeAttribute(parentGroup, "GitVersion", string(GIT_DESCRIBE));
 
@@ -549,13 +549,13 @@ void Simulation::writeVersionInformationToHDF5()
 
 /**
  * \brief      Write information about the stars that were detected in the subField 
- *             to the HDF5 output file. 
- * 
+ *             to the HDF5 output file.
+ *
  * \details    The Camera collects all the stars that fall within the boundaries of the subField.
- * 
+ *
  *             This function should only be called after all exposures have been taken in order 
  *             to have the complete collections of stars that have been detected in the subField.
- *             
+ *
  */
 void Simulation::writeStarCatalogToHDF5()
 {
@@ -588,21 +588,21 @@ void Simulation::writeStarCatalogToHDF5()
             tie(RA[k], dec[k], Vmag[k]) = sky->getInfoOfStarWithID(starID);  // RA & dec returned in radians!
             const bool useInitialOrientation = true;
             tie(xFPmm[k], yFPmm[k]) = camera->skyToFocalPlaneCoordinates(RA[k], dec[k], useInitialOrientation);
-            
+
             RA[k]  *= Angle::degrees;    // [rad] -> [deg]
             dec[k] *= Angle::degrees;    // [rad] -> [deg]
 
-	    if (includeFieldDistortion)
-	    {
-	      if(psfModel == "MappedFromFile")
-	      {
-		detector->applyDistortion(xFPmm[k], yFPmm[k]);
-	      }
-	      else
-	      {
-		tie(xFPmm[k], yFPmm[k]) = camera->undistortedToDistortedFocalPlaneCoordinates(xFPmm[k], yFPmm[k]);
-	      }
-	    }
+            if (includeFieldDistortion)
+            {
+              if(psfModel == "MappedFromFile")
+              {
+                detector->applyDistortion(xFPmm[k], yFPmm[k]);
+              }
+              else
+              {
+                tie(xFPmm[k], yFPmm[k]) = camera->undistortedToDistortedFocalPlaneCoordinates(xFPmm[k], yFPmm[k]);
+              }
+            }
 
             tie(rowPix[k], colPix[k]) = detector->focalPlaneToPixelCoordinates(xFPmm[k], yFPmm[k]);
             k++;
