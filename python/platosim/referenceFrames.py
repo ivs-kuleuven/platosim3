@@ -1466,8 +1466,8 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
     # If the star does fall on a CCD, check if it's not too close to the edge for the subfield to
     # be completely on the CCD.
 
-    xCCDpix = round(xCCDpix)                # integer values
-    yCCDpix = round(yCCDpix)
+    xCCDpix = int(xCCDpix)                  # integer values
+    yCCDpix = int(yCCDpix)
     firstRow = CCD[ccdCode]["firstRow"]     # different from nominal than for fast cams
     Ncols = CCD[ccdCode]["Ncols"]
     Nrows = CCD[ccdCode]["Nrows"]

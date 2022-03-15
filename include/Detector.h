@@ -106,6 +106,7 @@ class Detector: public HDF5Writer
         virtual void applyThroughputEfficiency();
         virtual void applyBFE();
         virtual void addDarkSignal(float exposureTime);
+        virtual void configureMetallicShield(ConfigurationParameters &configParam);
 
         virtual void readOut(float exposureTime);
         virtual void addPhotonNoise();
@@ -123,7 +124,7 @@ class Detector: public HDF5Writer
         virtual void applyOverAndUnderShoot();
 
         void applySimpleCTImodel();
-        void applyShort2013CTImodel();
+        void applyShort2013CTImodel(string map);
 
         void applyParticulateContamination();
         void applyMolecularContamination();
@@ -277,6 +278,7 @@ class Detector: public HDF5Writer
         vector<double> trapCaptureCrossSection;  // For each trap species: the trap capture cross section [m^2]
         vector<double> releaseTime;              // For each trap species: the electron release time [s]
         arma::Mat<float> radiationMap;           // Normalized radiation map for the subfield under consideration [p+ / s]
+        arma::Mat<float> radiationSmearingMap;   // Normalized radiation map for the smearing map under consideration [p+ / s]
         HDF5File CTIFile;                        // Input CTI file with the trap density maps
 
         double chargeInjectionLevel;             // Percentage of the full well to be filled by charge injection [0-100]

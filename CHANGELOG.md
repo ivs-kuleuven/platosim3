@@ -2,18 +2,40 @@
 
 
 
-<!-- 3.5.3 -->
+<!-- 3.5.4 -->
 <!-- ***** -->
 
-## **/**/****: 3.5.2
+## **/**/****: 3.5.4
 
 ## Fixed
 
-
 ## Changed
 
+## Added
+
+
+
+<!-- 3.5.3 -->
+<!-- ***** -->
+
+## 15/03/2022: 3.5.3
+
+## Fixed
+* When cosmics are added for F-Cams, we make sure they can not fall into covered part
+* Corrected bug 'calculateSubfieldAroundCoordinates' in 'referenceFrames.py' where middel pixel of subfield was rounded up/down by 1.
+* orbit.txt file is now only read if we include aberration in the simulation
+
+## Changed
+* Improved stability of validations tests for drift/jitter from file
+* Renamed previous starcatalog
+* F-Camera can now be simulated with custom CCD
 
 ## Added
+* Added custom inputfile for F-Camera
+* Added new starcatalog
+* Added CTI in SmearingMaps for "Short2013" CTI model
+
+
 
 
 
