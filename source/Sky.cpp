@@ -70,57 +70,55 @@ Sky::Sky(ConfigurationParameters &configParams)
         exit(1);
     }
 
-
-    // Open and read the file containing the position and velocity of Plato
+    // Open and read the file containing the position and velocity of Plato if aberration is included
     // The path of the file  should have been set in configure().
-
-    time0 = configParams.getDouble("Camera/AberrationCorrection/StartTime");
-    double endTime   = time0 + configParams.getDouble("ObservingParameters/NumExposures") * configParams.getDouble("ObservingParameters/CycleTime");
-    
-    ifstream orbitFile(orbitPlatoFile);
-    if (orbitFile.is_open())
+    if (includeAberrationCorrection)
     {
-        string line;
-	unsigned int n = 0;
-	while (getline(orbitFile, line))
-	{
-	  // Skip empty lines
+        time0 = configParams.getDouble("Camera/AberrationCorrection/StartTime");
+        double endTime   = time0 + configParams.getDouble("ObservingParameters/NumExposures") * configParams.getDouble("ObservingParameters/CycleTime");
 
-	  if (line.size() == 0) continue;
+        ifstream orbitFile(orbitPlatoFile);
+        if (orbitFile.is_open())
+        {
+            string line;
+            unsigned int n = 0;
+            while (getline(orbitFile, line))
+            {
+                // Skip empty lines
 
-	  // Skip lines that only contain white space
+                if (line.size() == 0) continue;
 
-	  const string whitespace = " /t/r/n";
-	  if (line.find_first_not_of(whitespace) == string::npos) continue;
+                // Skip lines that only contain white space
 
-	  // Skip header line starting with '#'.
-	  
-	  if (line[0] == '#') continue;
+                const string whitespace = " /t/r/n";
+                if (line.find_first_not_of(whitespace) == string::npos) continue;
 
-	  istringstream buffer(line);
-	  vector<double> numbers((istream_iterator<double>(buffer)), istream_iterator<double>());
-	  if (time0 <= numbers[1])
-	  {
-	    valarray<double> v = {numbers[5], numbers[6], numbers[7]};
-	    orbitDB.push_back(make_tuple(numbers[1], v, numbers[8]));    // (time, [v1, v2, v3], |v|)
-	    if (numbers[1] > endTime){break;}
-	  }
-	  n++;
+                // Skip header line starting with '#'.
+
+                if (line[0] == '#') continue;
+
+                istringstream buffer(line);
+                vector<double> numbers((istream_iterator<double>(buffer)), istream_iterator<double>());
+                if (time0 <= numbers[1])
+                {
+                    valarray<double> v = {numbers[5], numbers[6], numbers[7]};
+                    orbitDB.push_back(make_tuple(numbers[1], v, numbers[8]));    // (time, [v1, v2, v3], |v|)
+                    if (numbers[1] > endTime){break;}
+                }
+                n++;
+            }
+            if (orbitDB.size() == 0.)
+            {
+                Log.error("Sky: no values between start and end time in orbitPlatoFile");
+                exit(EXIT_FAILURE);
+            }
+            myfile.close();
+
+        } else {
+          Log.error("Sky: Cannot open orbit file " + orbitPlatoFile);
+          exit(1);
         }
-	if (orbitDB.size() == 0.)
-	{
-	  Log.error("Sky: no values between start and end time in orbitPlatoFile");
-	  exit(EXIT_FAILURE);
-	}
-        myfile.close();
-
     }
-    else
-    {
-        Log.error("Sky: Cannot open orbit file " + orbitPlatoFile);
-        exit(1);
-    }
-
 }
 
 
@@ -156,7 +154,7 @@ void Sky::configure(ConfigurationParameters &configParams)
     starInputfile = configParams.getAbsoluteFilename("ObservingParameters/StarCatalogFile");
 
     // Store the path of the file with the Plato orbit
-
+    includeAberrationCorrection = configParams.getBoolean("Camera/IncludeAberrationCorrection");
     orbitPlatoFile = configParams.getAbsoluteFilename("Camera/AberrationCorrection/OrbitFile");
 
 
