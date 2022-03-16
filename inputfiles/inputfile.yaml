@@ -12,8 +12,8 @@ ObservingParameters:
     NumExposures:                    10              # Number of exposures
     BeginExposureNr:                  0              # Sequential number of first exposure. useful for slurm parallellisation
     CycleTime:                       25              # Image cycle time (exposure + readout before next exposure starts)[s]
-    RApointing:                      180             # Platform (not telescope) right ascension pointing coordinate      [deg]
-    DecPointing:                     -70             # Platform (not telescope) declination pointing coordinate          [deg]
+    RApointing:                      86.8            # Platform (not telescope) right ascension pointing coordinate      [deg]
+    DecPointing:                     -46.4           # Platform (not telescope) declination pointing coordinate          [deg]
     Fluxm0:                          1.00179e8       # Photon flux of a V=0 G2V-star                                     [phot/s/m^2/nm]
     StarCatalogFile:                 inputfiles/starcatalog.txt
 
@@ -152,7 +152,6 @@ CCD:
 
     Position:                        Custom          # one of [1, 2, 3, 4, Custom]
                                                      # (use Custom to specify the CCD position parameters yourself)
-                                                     # REMARK: if Custom, then Camera/GroupID can not be Fast
 
     OriginOffsetX:                   0               # X Offset of CCD origin from center of focal plane [mm]
     OriginOffsetY:                   0               # Y Offset of CCD origin from center of focal plane [mm]

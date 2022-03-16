@@ -314,6 +314,10 @@ void Detector::updateParameters(double time)
     // Configuration parameters for the CCD detector
     ccdPosition                  = configParam.getString("CCD/Position");
 
+
+    isFastCamera          = configParam.getString("Telescope/GroupID") == "Fast";
+    includeShield         = configParam.getBoolean("CCDPositions/MetallicShield/IncludeMetallicShield");
+
     if (ccdPosition == "Custom")
     {
         customOriginOffsetX    = configParam.getDouble("CCD/OriginOffsetX");        // [mm]
@@ -326,6 +330,9 @@ void Detector::updateParameters(double time)
         coveredTop, coveredBottom = 0;                                              // [pixels]
 
         rotationAnglePsf = customOrientationAngle;  // Angle over which the PSF should be rotated
+
+        if(isFastCamera && includeShield)                            // Include a metallic shield if we have a fast camera
+            configureMetallicShield(configParam);
     }
     else
     {
@@ -362,32 +369,14 @@ void Detector::updateParameters(double time)
 
         rotationAnglePsf = deg2rad(orientation[idx]);  // Angle over which the PSF should be rotated
 
-        isFastCamera          = configParam.getString("Telescope/GroupID") == "Fast";
         coveredLeft, coveredRight = 0;
         coveredTop, coveredBottom = 0;
 
         if (isFastCamera)
         {
             firstRowExposed       = configParam.getIntegerAt("CCDPositions/FirstRowForFastCamera", idx);
-            includeShield         = configParam.getBoolean("CCDPositions/MetallicShield/IncludeMetallicShield");
             if (includeShield)
-            {
-                int bColumn = configParam.getIntegerAt("CCDPositions/MetallicShield/ShieldColumnCoordinates", 0);
-                int bRow    = configParam.getIntegerAt("CCDPositions/MetallicShield/ShieldRowCoordinates", 0);
-
-                int tColumn = configParam.getIntegerAt("CCDPositions/MetallicShield/ShieldColumnCoordinates", 1);
-                int tRow    = configParam.getIntegerAt("CCDPositions/MetallicShield/ShieldRowCoordinates", 1);
-
-                // What part of the pixelmap is covered by the metallic shield
-                coveredLeft   = std::min(int(numColumnsPixelMap),
-                                         std::max(int(bColumn - subFieldZeroPointColumn), 0));
-                coveredRight  = std::min(int(numColumnsPixelMap),
-                                         std::max(int(subFieldZeroPointColumn + numColumnsPixelMap - tColumn), 0));
-                coveredBottom = std::min(int(numRowsPixelMap),
-                                         std::max(int(bRow - subFieldZeroPointRow), 0));
-                coveredTop    = std::min(int(numRowsPixelMap),
-                                         std::max(int(subFieldZeroPointRow + numRowsPixelMap - tRow), 0));
-            }
+                configureMetallicShield(configParam);                // Configure metallic shield around CCD
         }
         else
         {
@@ -536,11 +525,15 @@ void Detector::updateParameters(double time)
         meanTrapDensityEOL      = configParam.getDoubleVector("CCD/CTI/Short2013/TrapDensity/EOL");
         radiationMap.resize(numRowsPixelMap, numColumnsPixelMap);
         radiationMap.fill(1.0);
+        radiationSmearingMap.resize(numRowsSmearingMap, numColumnsPixelMap);
+        radiationSmearingMap.fill(1.0);
     }
     else if (CTImodel == "Short2013FromFile")
     {
         string ctiInputFile = configParam.getAbsoluteFilename("CCD/CTI/Short2013FromFile/CTIFileName");
         readCTIinputFile(ctiInputFile);
+        radiationSmearingMap.resize(numRowsSmearingMap, numColumnsPixelMap);
+        radiationSmearingMap.fill(1.0);
     }
     else
     {
@@ -578,7 +571,31 @@ void Detector::updateParameters(double time)
 
 
 
+/**
+ * /brief Configures the metallic shield around the CCD
+ */
+void Detector::configureMetallicShield(ConfigurationParameters &configParam)
+{
+    int bColumn = configParam.getIntegerAt(
+        "CCDPositions/MetallicShield/ShieldColumnCoordinates", 0);
+    int bRow    = configParam.getIntegerAt(
+        "CCDPositions/MetallicShield/ShieldRowCoordinates", 0);
+    int tColumn = configParam.getIntegerAt(
+        "CCDPositions/MetallicShield/ShieldColumnCoordinates", 1);
+    int tRow =   configParam.getIntegerAt(
+        "CCDPositions/MetallicShield/ShieldRowCoordinates", 1);
 
+    // What part of the pixelmap is covered by the metallic shield
+    coveredLeft = std::min(int(numColumnsPixelMap),
+                           std::max(int(bColumn - subFieldZeroPointColumn), 0));
+    coveredRight = std::min(int(numColumnsPixelMap),
+                            std::max(int(subFieldZeroPointColumn +
+                                         numColumnsPixelMap - tColumn), 0));
+    coveredBottom = std::min(int(numRowsPixelMap),
+                             std::max(int(bRow - subFieldZeroPointRow), 0));
+    coveredTop = std::min( int(numRowsPixelMap),
+                           std::max(int(subFieldZeroPointRow + numRowsPixelMap - tRow), 0));
+}
 
 
 /**
@@ -1465,7 +1482,6 @@ void Detector::addCosmics(float exposureTime)
     // For the Intensity distribution, the parameters are the location, scale>0, and shape.
 
     cosmicHitRateDistribution     = poisson_distribution<long>(cosmicHitRate);                                                   // [hits/cm^2/s]
-    cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsPixelMap - 1);                                // [pixels]
     cosmicEntryAngleDistribution  = uniform_real_distribution<double>(0, 2 * PI);                                                // [radians]
     cosmicTrailLengthDistribution = uniform_real_distribution<double>(cosmicTrailLengthParams[0], cosmicTrailLengthParams[1]);   // [pixels]
     cosmicIntensityDistribution   = skew_normal_distribution(cosmicIntensityParams[0], cosmicIntensityParams[1], cosmicIntensityParams[2]); // [e-/hit]
@@ -1474,13 +1490,14 @@ void Detector::addCosmics(float exposureTime)
 
     if (includeCosmicsInSubField)
     {
+        // auto& exposedPixelMap = pixelMap.submat(coveredBottom, coveredLeft, numRowsPixelMap - coveredTop - 1, numColumnsPixelMap - coveredRight - 1);
         Log.debug("Detector: adding cosmic hits to the sub-field");
         addCosmics(exposureTime + readoutTimeBeforeNextExposure + readoutTimeDuringNextExposure, pixelMap, rowsOfCosmicsInSubField,
                    columnsOfCosmicsInSubField, fluxOfCosmicsInSubField, numRowsPixelMap, numColumnsPixelMap, "image area");
     }
 
     // Cosmics in the over-scan
-
+    cosmicEntryColumnDistribution = uniform_real_distribution<double>(0, numColumnsPixelMap - 1);                                // [pixels]
     if (includeCosmicsInSmearingMap)
     {
         Log.debug("Detector: adding cosmic hits to smearing map");
@@ -1561,6 +1578,7 @@ void Detector::addCosmics(float exposureTime)
 void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, vector<unsigned int> &rowsOfCosmicsMap, vector<unsigned int> &columnsOfCosmicsMap, vector<double> &fluxOfCosmicsMap, int numRows, int numColumns, string area)
 {
 
+
     // Characteristics of an individual trail
 
     double entryRow, entryColumn, entryAngle, trailLength, intensity, sigma;
@@ -1570,9 +1588,33 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, vector<unsi
 
     int numTrailPoints = 200;
     arma::vec trailRows, trailColumns, trailWeights;    // All trail points: row, column, and weight
-    int trailRow, trailColumn;                        // Individual trail point: row and column
+    int trailRow, trailColumn;                          // Individual trail point: row and column
 
-    cosmicEntryRowDistribution = uniform_real_distribution<double>(0, numRows - 1);   // different for each subfield vs smearing map vs bias map 
+
+
+    int minRow = 0;
+    int minCol = 0;
+
+    int maxRow = numRows;
+    int maxCol = numColumns;
+
+    // If we we have a "image area" we need to make sure the entry Row and Columns only fall on the exposed part of the subfield
+
+    if (area == "image area")
+    {
+        minRow = coveredBottom;
+        minCol = coveredLeft;
+        maxCol = numColumns - coveredRight;
+        maxRow = numRows - coveredTop;
+
+        // If subfield is completly covered, we return the function without adding cosmics to the subfield
+        if (minRow == maxCol || minCol == maxCol)
+            return;
+
+        cosmicEntryColumnDistribution = uniform_real_distribution<double>(minCol, maxCol - 1);      // [pixels]
+    }
+
+    cosmicEntryRowDistribution    = uniform_real_distribution<double>(minRow, maxRow-1);   // different for each subfield vs smearing map vs bias map
 
     // Number of cosmic hits
     // - cosmic hit rate [events / cm^2 / s]
@@ -1608,10 +1650,12 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, vector<unsi
 
     Log.debug("Detector: number of cosmic hits for the " + area + ": "  + to_string(numCosmicHits));
     if (numCosmicHits == 0) return;
-    
+
     double meanEntryAngle = 0.0;
     double meanTrailLength = 0.0;
     double meanIntensity = 0.0;
+
+
 
     for (unsigned int cosmicHit = 0; cosmicHit < numCosmicHits; cosmicHit++)
     {
@@ -1698,7 +1742,7 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, vector<unsi
                     columnsOfCosmicsMap.push_back(trailColumn);
                     fluxOfCosmicsMap.push_back(trailWeights(index) * intensity);
                 }
-        
+
                 if (trailRow != rowsOfCosmicsMap.back() || trailColumn != columnsOfCosmicsMap.back()) 
                 {
                     rowsOfCosmicsMap.push_back(trailRow);
@@ -1712,8 +1756,9 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, vector<unsi
 
             }
         }
+
     }
-    
+
 
     meanEntryAngle /= numCosmicHits;
     meanTrailLength /= numCosmicHits;
@@ -1896,12 +1941,14 @@ void Detector::applyCTI()
     else if (CTImodel == "Short2013")
     {
         Log.info("Detector: applying Short et al. (2013) CTI model with a constant trap density");
-        applyShort2013CTImodel();
+        applyShort2013CTImodel("pixelMap");
+        applyShort2013CTImodel("smearingMap");
     }
     else if (CTImodel == "Short2013FromFile")
     {
         Log.info("Detector: applying Short et al. (2013) CTI model with CTI info from file");
-        applyShort2013CTImodel();
+        applyShort2013CTImodel("pixelMap");
+        applyShort2013CTImodel("smearingMap");
     }
 }
 
@@ -2031,12 +2078,12 @@ void Detector::applySimpleCTImodel()
 
 
 /**
- * \brief: Apply the effect of the charge-transfer inefficiency to the pixel map,
+ * \brief: Apply the effect of the charge-transfer inefficiency to the map,
  *         using the model described in Short et al., MNRAS 430, 3078-3085 (2013).
  *         Only parallel readout is taken into account here.
  *
  * \note The readout register is assumed to be right next to row [0] of the pixel map.
- *       The pixel map needs to be in [e-], not in [ADU]
+ *       The map needs to be in [e-], not in [ADU]
  *
  * \pre Pixel unit in the pixel map: [electrons].
  * \pre Pixel unit in the smearing map: [electrons].
@@ -2047,8 +2094,37 @@ void Detector::applySimpleCTImodel()
  * \post No bias register map, unless cosmics have been added to it.
  */
 
-void Detector::applyShort2013CTImodel()
+void Detector::applyShort2013CTImodel(string map)
 {
+
+    int  numColumns;
+    int  zeroPointRow;
+    int numRows;
+    arma::Mat<float> *matMap    = nullptr;
+    arma::Mat<float> *radiation = nullptr;
+
+    // Configure for the different maps
+    if (map == "pixelMap")
+    {
+        numRows    = numRowsPixelMap;
+        numColumns = numColumnsPixelMap;
+        zeroPointRow = subFieldZeroPointRow;
+        matMap = &pixelMap;
+        radiation = &radiationMap;
+        // We still need to configure radiation map
+    }
+    else if (map == "smearingMap")
+    {
+        numRows = numRowsSmearingMap;
+        numColumns = numColumnsPixelMap;
+        zeroPointRow = 4510;
+        matMap = &smearingMap;
+        radiation = &radiationSmearingMap;
+    } else
+    {
+      return;
+    }
+
     // Compute the maximum geometrical volume that electrons can occupy within a pixel.
     // I.e. the volume of the electron cloud when the capacity of the full well is maxed out.
     // E.g if the pixel size is 18 micron, then the volume is 18e-6 * 18e-6 * 1.e-6 / 2.0
@@ -2066,16 +2142,16 @@ void Detector::applyShort2013CTImodel()
 
     // Arrays to keep track of the trapdensity and the number of occupied traps in a row
 
-    arma::Row<float> trapDensity(numColumnsPixelMap);
-    arma::Mat<float> numberOfOccupiedTraps = arma::zeros<arma::Mat<float>>(numTrapSpecies, numColumnsPixelMap);
+    arma::Row<float> trapDensity(numColumns);
+    arma::Mat<float> numberOfOccupiedTraps = arma::zeros<arma::Mat<float>>(numTrapSpecies, numColumns);
 
     // Arrays to keep track of the captured and released electrons, for each column in a particular row.
 
-    arma::Row<float> numberOfCapturedElectrons(numColumnsPixelMap);                                             // Nc
-    arma::Row<float> numberOfReleasedElectrons(numColumnsPixelMap);                                             // Nr
+    arma::Row<float> numberOfCapturedElectrons(numColumns);                                             // Nc
+    arma::Row<float> numberOfReleasedElectrons(numColumns);                                             // Nr
 
     arma::Row<float> alpha(numTrapSpecies, arma::fill::zeros);
-    arma::Row<float> gamma(numColumnsPixelMap, arma::fill::zeros);
+    arma::Row<float> gamma(numColumns, arma::fill::zeros);
 
     // Eq. (23) of Short et al. 2013
 
@@ -2084,10 +2160,10 @@ void Detector::applyShort2013CTImodel()
         alpha(k) = chargeTransferTime * trapCaptureCrossSection[k] * thermalVelocity * pow(fullWellSaturationLimit, beta) / (2.0 * maxVolumePerPixel);
     }
 
-    // Loop over all rows of the pixelMap.
+    // Loop over all rows of the pixel/smearing Map.
     // For each row, the computations are done for all columns simultaneously.
 
-    for (int rowNumber = 0; rowNumber < numRowsPixelMap; rowNumber++)
+    for (int rowNumber = 0; rowNumber < numRows; rowNumber++)
     {
         // Loop over all trap species
 
@@ -2097,17 +2173,16 @@ void Detector::applyShort2013CTImodel()
 
             arma::Mat<float> currentTrapDensityMap = (meanTrapDensityBOL[k] 
                                                       + (meanTrapDensityEOL[k] - meanTrapDensityBOL[k]) * internalTime / missionDuration 
-                                                     ) * radiationMap;
+                                                     ) * (*radiation);
 
             // Compute the number of electrons captured in a trap, according to Eq. (22)-(23) of Short et al. (2013).
             // Note that Armadillo uses % for elementwise multiplication.
             // In the following line: +1 as row = 0 also has to be transferred once
+            gamma = 2 * currentTrapDensityMap.row(rowNumber) * (zeroPointRow + rowNumber + 1) / pow(fullWellSaturationLimit, beta) / (1 + beta); // +1 as row = 0 also has to be transferred once
 
-            gamma = 2 * currentTrapDensityMap.row(rowNumber) * (subFieldZeroPointRow + rowNumber + 1) / pow(fullWellSaturationLimit, beta) / (1 + beta); // +1 as row = 0 also has to be transferred once
-
-            numberOfCapturedElectrons =   (gamma % arma::pow(pixelMap.row(rowNumber), beta) - numberOfOccupiedTraps.row(k)) \
-                                        / (gamma % arma::pow(pixelMap.row(rowNumber), beta-1) + 1)                          \
-                                        % (1 - arma::exp(-alpha(k) * arma::pow(pixelMap.row(rowNumber), 1-beta)));
+            numberOfCapturedElectrons =   (gamma % arma::pow((*matMap).row(rowNumber), beta) - numberOfOccupiedTraps.row(k)) \
+                                        / (gamma % arma::pow((*matMap).row(rowNumber), beta-1) + 1)                          \
+                                        % (1 - arma::exp(-alpha(k) * arma::pow((*matMap).row(rowNumber), 1-beta)));
 
             // Captured electron numbers can't be negative, so clip negative value to zero.
 
@@ -2126,7 +2201,7 @@ void Detector::applyShort2013CTImodel()
 
             // Add the electron excess to the current pixel value
 
-            pixelMap.row(rowNumber) += numberOfReleasedElectrons - numberOfCapturedElectrons;
+            (*matMap).row(rowNumber) += numberOfReleasedElectrons - numberOfCapturedElectrons;
         }
     }
 }

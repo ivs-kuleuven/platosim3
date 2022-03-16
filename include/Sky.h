@@ -92,6 +92,7 @@ class Sky
 
 
         string starInputfile;
+        bool includeAberrationCorrection;
 
         vector<double> integrand;
         TabulatedFunction<vector<double>> tabfunction;
