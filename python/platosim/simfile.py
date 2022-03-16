@@ -398,7 +398,7 @@ class SimFile (object):
             ID, row, col, Xmm, Ymm, flux = self.getStarCoordinates(imageNr, minVmag=minVmag, maxVmag=maxVmag)
             # Allow differentiating between a target and its contaminants
             if showStarPositions == 'PIC':
-                tarMarkerSize = 300
+                tarMarkerSize = 200
                 mag = -2.5*np.log10(flux) + 25                
                 axis.scatter(col[0], row[0], s=tarMarkerSize, marker='o', c='lime', edgecolor='k', linewidth=1, zorder=4)
                 if len(col) > 1:
@@ -457,12 +457,15 @@ class SimFile (object):
 
         # Show all ticks for smaller subfields or otherwise 10
 
-        if Ncols < 10 and Nrows < 10:
+        if Ncols <= 15:
             plt.xticks(np.arange(0, Nrows+1))
             plt.yticks(np.arange(0, Ncols+1))
+        elif Ncols > 15 and Ncols <= 100:
+            plt.xticks(np.arange(0, Nrows+1, 10))
+            plt.yticks(np.arange(0, Ncols+1, 10))
         else:
-            plt.xticks(np.arange(0, Nrows, 10))
-            plt.yticks(np.arange(0, Ncols, 10))
+            plt.xticks(np.arange(0, Nrows+1, 100))
+            plt.yticks(np.arange(0, Ncols+1, 100))
 
         # Show the image
 
