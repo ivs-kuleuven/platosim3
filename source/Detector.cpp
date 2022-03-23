@@ -326,8 +326,8 @@ void Detector::updateParameters(double time)
         numRows                = configParam.getInteger("CCD/NumRows");             // [pixels]
         numColumns             = configParam.getInteger("CCD/NumColumns");          // [pixels]
         firstRowExposed        = configParam.getInteger("CCD/FirstRowExposed");     // [pixels]
-        coveredLeft, coveredRight = 0;                                              // [pixels]
-        coveredTop, coveredBottom = 0;                                              // [pixels]
+        coveredLeft = 0, coveredRight = 0;                                          // [pixels]
+        coveredTop = 0, coveredBottom = 0;                                          // [pixels]
 
         rotationAnglePsf = customOrientationAngle;  // Angle over which the PSF should be rotated
 
@@ -369,8 +369,8 @@ void Detector::updateParameters(double time)
 
         rotationAnglePsf = deg2rad(orientation[idx]);  // Angle over which the PSF should be rotated
 
-        coveredLeft, coveredRight = 0;
-        coveredTop, coveredBottom = 0;
+        coveredLeft = 0, coveredRight = 0;
+        coveredTop = 0, coveredBottom = 0;
 
         if (isFastCamera)
         {
