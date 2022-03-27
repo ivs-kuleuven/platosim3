@@ -27,6 +27,8 @@ def errorcode(API, message):
     This function allows to colour code error messages within a code.
     """
     if API == 'software':
+        print(Style.BRIGHT + Fore.BLUE + message + Style.RESET_ALL)
+    if API == 'module':
         print(Style.BRIGHT + Fore.GREEN + message + Style.RESET_ALL)
     if API == 'message':
         print(Style.BRIGHT + message + Style.RESET_ALL)
@@ -108,7 +110,7 @@ def normalize(signal, factor=1e6, length=-1):
 @njit
 def filter(signal, filt='median', carbox=144):
     """
-    This utility makes the proper filtolution to a signal dataset.
+    This utility makes the proper filter solution to a signal dataset.
     Notice: the carbox size here is twice what is default by numpy.
 
     PARAMETERS

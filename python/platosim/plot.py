@@ -163,6 +163,7 @@ def drawCCDsInFocalPlane(pixelSize=18, plotCCDlabels=True, normal=True):
 
 
 def drawCCDsInCameraFocalPlane(fig):
+
     """
     PURPOSE: Draw the CCDs in the focal plane of a N-CAM.
 
@@ -320,194 +321,6 @@ def drawSubfieldInFocalPlane(ccdCode, xCCD, yCCD, subfieldSizeX, subfieldSizeY, 
 
 
 
-def drawStarInDetailedFocalPlane(fig, sim, xCCD, yCCD, refCcdCode, refGroup, raPlatform, decPlatform,
-                                 tiltAngle, azimuthAngle, solarPanelOrientation):
-
-    numGroups     = 4
-    numCorners    = 4
-    offset        = 4
-    colors        = ['b', 'r', 'g', 'orange']
-    ccdCodes      = ["1", "2", "3", "4"]
-    tiltAngles    = sim['CameraGroups/TiltAngle'][:numGroups]
-    azimuthAngles = sim['CameraGroups/AzimuthAngle'][:numGroups]    
-    fovDegrees    = sim['CCD/RelativeTransmissivity/RadiusFOV']         # [deg]
-    focalLength   = sim['Camera/FocalLength/ConstantValue'] * 1e3       # [mm]
-    pixelSize     = sim['CCD/PixelSize']                                # [micron]
-    plateScale    = sim['Camera/PlateScale'] * pixelSize                # [arcsec]
-
-    # Find actual FOV in pixel and mm
-    
-    fovPixels  = fovDegrees / plateScale * c.degree / c.arcsec
-    fovMm      = focalLength * np.tan(np.radians(fovDegrees))
-
-    def mm2pixels(distanceMm):
-        """
-        Conversion from millimeters to pixels.
-        :param distanceMm: Distance [mm].
-        :return distancePixels: Distance [pixels].
-        """
-        distancePixels = np.degrees(np.arctan(distanceMm / focalLength)) / plateScale * c.degree / c.arcsec
-        return distancePixels
-
-    sign = lambda x: (1, -1)[x < 0]
-
-    xFP = np.array([])
-    yFP = np.array([])
-    # Position of the Sun
-    raSun, decSun = rf.sunSkyCoordinatesAwayfromPlatformPointing(np.radians(raPlatform),
-                                                                 np.radians(decPlatform),
-                                                                 np.radians(solarPanelOrientation))
-
-    # Telescope pointing w.r.t. platform pointing
-    raTelescope = []
-    decTelescope = []
-    for group in range(0, numGroups):
-        # Telescope pointing (absolute) [radians]
-        ra, dec = rf.platformToTelescopePointingCoordinates(np.radians(raPlatform), np.radians(decPlatform),
-                                                            raSun, decSun,
-                                                            np.radians(azimuthAngles[group]),
-                                                            np.radians(tiltAngles[group]))
-        # Telescope pointing w.r.t. platform pointing
-        raTelescope.append(np.degrees(ra) - raPlatform)     # [degrees]
-        decTelescope.append(np.degrees(dec) - decPlatform)  # [degrees]
-
-    meanDist = (np.mean(np.absolute(raTelescope)) + np.mean(np.absolute(decTelescope))) / 2.0
-    for group in range(numGroups):
-        raTelescope[group]  = sign(raTelescope[group]) * meanDist
-        decTelescope[group] = sign(decTelescope[group]) * meanDist
-
-    # Calculate the coordinates of the telescope pointings (for the 4 telescope groups) 
-    # in the focal-plane reference frame of group 1
-    for group in range(numGroups):
-        xFP1, yFP1 = rf.skyToFocalPlaneCoordinates(np.radians(raTelescope[group] + raPlatform), 
-                                                   np.radians(decTelescope[group] + decPlatform), 
-                                                   np.radians(raPlatform), np.radians(decPlatform),
-                                                   np.radians(solarPanelOrientation),
-                                                   np.radians(tiltAngles[0]), 
-                                                   np.radians(azimuthAngles[0]), 
-                                                   0, focalLength)
-        xFP = np.append(xFP, xFP1)
-        yFP = np.append(yFP, yFP1)
-
-    # Make sure the average of the telescope pointings of the 4 telescope groups is at the origin of the reference frame
-    xAvg = np.mean(xFP)
-    yAvg = np.mean(yFP)
-    xFP -= xAvg
-    yFP -= yAvg
-
-    meanDist = (np.mean(np.absolute(xFP)) + np.mean(np.absolute(yFP))) / 2.0
-
-    for group in range(numGroups):
-        xFP[group] = sign(xFP[group]) * meanDist
-        yFP[group] = sign(yFP[group]) * meanDist
-
-    xPixels = np.copy(xFP)
-    yPixels = np.copy(yFP)
-
-    for group in range(numGroups):
-        xPixels[group] = mm2pixels(xPixels[group])     # [mm] -> [pixels]
-        yPixels[group] = mm2pixels(yPixels[group])     # [mm] -> [pixels]
-
-    index = 0
-
-    cornersX, cornersY = rf.computeCCDcornersInFocalPlane(refCcdCode, pixelSize)
-    offsetX = mm2pixels(cornersX[index]) + xPixels[refGroup - 1]
-    offsetY = mm2pixels(cornersY[index]) + yPixels[refGroup - 1]
-
-    # Correct input pixel coordinates to match orientation of CCD origin
-    if refCcdCode == '1': xCCD, yCCD = +xCCD, +yCCD
-    if refCcdCode == '2': xCCD, yCCD = -yCCD, +xCCD 
-    if refCcdCode == '3': xCCD, yCCD = -xCCD, -yCCD
-    if refCcdCode == '4': xCCD, yCCD = +yCCD, -xCCD
-    
-    #-------------------------------------------
-    
-    ax = fig.add_subplot(111)
-
-    # Add first grid
-    ax.grid(True)
-
-    # Gray shade N-CAM visibility
-    circles = []
-    for group in range(numGroups):
-        circles.append(sg.Point(-(xPixels[group] - offsetX), -(yPixels[group] - offsetY)).buffer(fovPixels))
-    for index in range(numCorners):
-        one = circles[index].intersection(circles[index])
-        ax.add_patch(descartes.PolygonPatch(one, fc='gray', ec='none', alpha=0.2))
-        two = circles[index].intersection(circles[(index + 1) % numCorners])
-        ax.add_patch(descartes.PolygonPatch(two, fc='gray', ec='none', alpha=0.1))
-        three = circles[index].intersection(circles[(index + 1) % numCorners]).intersection(circles[(index + 2) % numCorners])
-        ax.add_patch(descartes.PolygonPatch(three, fc='gray', ec='none', alpha=0.05))
-    four = circles[0].intersection(circles[1]).intersection(circles[2]).intersection(circles[3])
-    ax.add_patch(descartes.PolygonPatch(four, fc='gray', ec='none', alpha=0.03))
-
-    # Plot CCD footprint ontop
-    for ccdCode in ccdCodes:
-        cornersX, cornersY = rf.computeCCDcornersInFocalPlane(ccdCode, pixelSize)
-        for corner in range(numCorners):
-            cornersX[corner] = mm2pixels(cornersX[corner])
-            cornersY[corner] = mm2pixels(cornersY[corner])
-        cornersX = np.append(cornersX, cornersX[0])     # [mm]
-        cornersY = np.append(cornersY, cornersY[0])     # [mm]
-        for group in range(numGroups):
-            arrayX = cornersX + xPixels[group] - offsetX
-            arrayY = cornersY + yPixels[group] - offsetY
-            for index in range(5):
-                arrayX[index] = (arrayX[index])
-                arrayY[index] = (arrayY[index])
-            if group != refGroup-1:
-                plt.plot(-arrayX, -arrayY, color=colors[group], zorder=1)
-            else:
-                plt.plot(-arrayX, -arrayY, color=colors[group], zorder=2)
-            off = 4000
-            if group == refGroup-1 and int(ccdCode) == int(refCcdCode):
-                ax.text(-(xPixels[group] - offsetX + sign(cornersX[3]) * off),
-                        -(yPixels[group] - offsetY + sign(cornersY[3]) * off),
-                        ccdCode, fontsize=20, color=colors[group], weight='bold')
-            else:
-                ax.text(-(xPixels[group] - offsetX + sign(cornersX[3]) * off),
-                        -(yPixels[group] - offsetY + sign(cornersY[3]) * off),
-                        ccdCode, fontsize=15, color=colors[group])
-
-    # Plot center of group
-    for group in range(numGroups):
-        plt.plot([-(xPixels[group] - offsetX)], [-(yPixels[group] - offsetY)], mfc=colors[group], marker="o", mec='k', ms=10)
-        circ = plt.Circle(((-(xPixels[group] - offsetX)), (-(yPixels[group] - offsetY))),
-                          radius=fovPixels, color="none", linewidth=1, label="Group " + str(group + 1))
-        ax.add_patch(circ)
-        circ.set_edgecolor(colors[group])
-        circ.set_facecolor("none")
-
-    # Plot arrow
-    xHead, yHead = -200, -200
-    if xCCD < 0: xHead *= -1
-    elif xCCD < 200: xHead = abs(xCCD)
-    if yCCD < 0: yHead *= -1
-    elif yCCD < 200: yHead = abs(yCCD)
-    ax.arrow(0, 0, xCCD+xHead, 0, head_width=150, head_length=abs(xHead), fc='k', ec='k', linewidth=3, zorder=5)
-    ax.arrow(0, 0, 0, yCCD+yHead, head_width=150, head_length=abs(xHead), fc='k', ec='k', linewidth=3, zorder=5)
-    plt.plot([0], [0], "ko", ms=10, label="CCD origin", zorder=6)
-        
-    # Plot target star
-    plt.plot([-(xPixels[refGroup-1] - offsetX), xCCD], [-(yPixels[refGroup-1] - offsetY), yCCD], 'k--', zorder=6)
-    plt.plot(xCCD, yCCD, '*', mfc=colors[refGroup-1], mec='k', ms=19, label='Target star', zorder=7)
-    
-    # Settings
-    ax.set_title("CCD " + refCcdCode + " in Group " + str(refGroup), fontsize=20)
-    plt.legend(prop={"size": 12}, bbox_to_anchor=(1.0, 1.0))
-    ax.set_xlabel("Column [pixel]", fontsize=15)
-    ax.set_ylabel("Row [pixel]", fontsize=15)
-    #ax.set_xticks(np.arange(-5000, 9000, 1000))
-    #ax.set_yticks(np.arange(0, 13000, 1000))
-    ax.set_aspect('equal', 'box')
-    plt.tight_layout()
-    plt.show()
-
-
-
-
-
-
 
 
 
@@ -628,6 +441,244 @@ def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize):
     plt.show()
 
     return
+
+
+
+
+
+
+
+
+
+
+
+def drawStarInCCDfocalPlane(fig, sim, xCCD, yCCD, refCcdCode, refGroup, raPlatform, decPlatform, tiltAngle, azimuthAngle, solarPanelOrientation):
+
+    """
+    PURPOSE:  Draw a star given by the CCD pixel coordinates in the CCD focal plane.
+
+              This function plot the CCD pixel position in the CCD focal plane, together
+              with the CCD- and Camera footprints. Given the reference CCD- and camera group,
+              the star location is indicated by black arrows sprung from the origo of the 
+              parrent CCD. To easy the eye (of this rather complicated plot) the star is
+              highligthed by the parrent CCD color and the dashed line is connecting the
+              star to the optical axis of the camera-group. 
+
+    INPUT:    fig:                    matplotlib figure object (e.g.: fig = fig.plt.figure(figsize=(10,10)))
+              sim:                    instance of simulation class (see simulation.py)
+              xCCD:                   column  pixel coordinate [pixel]
+              yCCD:                   row pixel coordinate [pixel]
+              refCcdCode:             Reference of CCD (1, 2, 3, 4)
+              refGroup:               Reference of camera group (1, 2, 3, 4)
+              raPlatform:             Right Ascension of platform pointing [deg]
+              decPlatform:            Declination of platform pointing [deg]
+              titlAngle:              Tilt angle of camera [deg]
+              azimuthAngle:           Azimuth angle of camera [deg] 
+              solarPanelOrientation:  Orientation of solar panel [deg]
+              
+    OUTPUT:   Plot only, no axes object.
+
+    NOTE:     This plot neglects pointing- and camera alignment errors.
+    """
+
+    # Parameter used for the plot
+    
+    numGroups     = 4
+    numCorners    = 4
+    offset        = 4
+    colors        = ['b', 'r', 'g', 'orange']
+    ccdCodes      = ["1", "2", "3", "4"]
+    tiltAngles    = sim['CameraGroups/TiltAngle'][:numGroups]           # [deg]
+    azimuthAngles = sim['CameraGroups/AzimuthAngle'][:numGroups]        # [deg]
+    fovDegrees    = sim['CCD/RelativeTransmissivity/RadiusFOV']         # [deg]
+    focalLength   = sim['Camera/FocalLength/ConstantValue'] * 1e3       # [mm]
+    pixelSize     = sim['CCD/PixelSize']                                # [micron]
+    plateScale    = sim['Camera/PlateScale'] * pixelSize                # [arcsec]
+
+    # Find actual FOV in pixel and mm
+    
+    fovPixels  = fovDegrees / plateScale * c.degree / c.arcsec
+    fovMm      = focalLength * np.tan(np.radians(fovDegrees))
+
+    def mm2pixels(distanceMm):
+        """
+        Conversion from millimeters to pixels.
+        :param distanceMm: Distance [mm].
+        :return distancePixels: Distance [pixels].
+        """
+        distancePixels = np.degrees(np.arctan(distanceMm / focalLength)) / plateScale * c.degree / c.arcsec
+        return distancePixels
+
+    sign = lambda x: (1, -1)[x < 0]
+
+    xFP = np.array([])
+    yFP = np.array([])
+    # Position of the Sun
+    raSun, decSun = rf.sunSkyCoordinatesAwayfromPlatformPointing(np.radians(raPlatform),
+                                                                 np.radians(decPlatform),
+                                                                 np.radians(solarPanelOrientation))
+
+    # Telescope pointing w.r.t. platform pointing
+    
+    raTelescope = []
+    decTelescope = []
+    for group in range(0, numGroups):
+        
+        # Telescope pointing (absolute) [radians]
+        
+        ra, dec = rf.platformToTelescopePointingCoordinates(np.radians(raPlatform), np.radians(decPlatform),
+                                                            raSun, decSun,
+                                                            np.radians(azimuthAngles[group]),
+                                                            np.radians(tiltAngles[group]))
+
+        # Telescope pointing w.r.t. platform pointing
+        
+        raTelescope.append(np.degrees(ra) - raPlatform)     # [degrees]
+        decTelescope.append(np.degrees(dec) - decPlatform)  # [degrees]
+
+    meanDist = (np.mean(np.absolute(raTelescope)) + np.mean(np.absolute(decTelescope))) / 2.0
+    for group in range(numGroups):
+        raTelescope[group]  = sign(raTelescope[group]) * meanDist
+        decTelescope[group] = sign(decTelescope[group]) * meanDist
+
+    # Calculate the coordinates of the telescope pointings (for the 4 telescope groups) 
+    # in the focal-plane reference frame of group 1
+    
+    for group in range(numGroups):
+        xFP1, yFP1 = rf.skyToFocalPlaneCoordinates(np.radians(raTelescope[group] + raPlatform), 
+                                                   np.radians(decTelescope[group] + decPlatform), 
+                                                   np.radians(raPlatform), np.radians(decPlatform),
+                                                   np.radians(solarPanelOrientation),
+                                                   np.radians(tiltAngles[0]), 
+                                                   np.radians(azimuthAngles[0]), 
+                                                   0, focalLength)
+        xFP = np.append(xFP, xFP1)
+        yFP = np.append(yFP, yFP1)
+
+    # Make sure the average of the telescope pointings of the 4 telescope groups is at the origin of the reference frame
+    
+    xAvg = np.mean(xFP)
+    yAvg = np.mean(yFP)
+    xFP -= xAvg
+    yFP -= yAvg
+
+    meanDist = (np.mean(np.absolute(xFP)) + np.mean(np.absolute(yFP))) / 2.0
+
+    for group in range(numGroups):
+        xFP[group] = sign(xFP[group]) * meanDist
+        yFP[group] = sign(yFP[group]) * meanDist
+
+    xPixels = np.copy(xFP)
+    yPixels = np.copy(yFP)
+
+    for group in range(numGroups):
+        xPixels[group] = mm2pixels(xPixels[group])     # [mm] -> [pixels]
+        yPixels[group] = mm2pixels(yPixels[group])     # [mm] -> [pixels]
+
+    index = 0
+
+    cornersX, cornersY = rf.computeCCDcornersInFocalPlane(refCcdCode, pixelSize)
+    offsetX = mm2pixels(cornersX[index]) + xPixels[refGroup - 1]
+    offsetY = mm2pixels(cornersY[index]) + yPixels[refGroup - 1]
+
+    # Correct input pixel coordinates to match orientation of CCD origin
+    if refCcdCode == '1': xCCD, yCCD = +xCCD, +yCCD
+    if refCcdCode == '2': xCCD, yCCD = -yCCD, +xCCD 
+    if refCcdCode == '3': xCCD, yCCD = -xCCD, -yCCD
+    if refCcdCode == '4': xCCD, yCCD = +yCCD, -xCCD
+    
+    # START PLOT
+    
+    ax = fig.add_subplot(111)
+
+    # Add grid
+
+    ax.grid(True)
+
+    # Gray shade N-CAM visibility
+
+    circles = []
+    for group in range(numGroups):
+        circles.append(sg.Point(-(xPixels[group] - offsetX), -(yPixels[group] - offsetY)).buffer(fovPixels))
+    for index in range(numCorners):
+        one = circles[index].intersection(circles[index])
+        ax.add_patch(descartes.PolygonPatch(one, fc='gray', ec='none', alpha=0.2))
+        two = circles[index].intersection(circles[(index + 1) % numCorners])
+        ax.add_patch(descartes.PolygonPatch(two, fc='gray', ec='none', alpha=0.1))
+        three = circles[index].intersection(circles[(index + 1) % numCorners]).intersection(circles[(index + 2) % numCorners])
+        ax.add_patch(descartes.PolygonPatch(three, fc='gray', ec='none', alpha=0.05))
+    four = circles[0].intersection(circles[1]).intersection(circles[2]).intersection(circles[3])
+    ax.add_patch(descartes.PolygonPatch(four, fc='gray', ec='none', alpha=0.03))
+
+    # Plot CCD footprint ontop
+
+    for ccdCode in ccdCodes:
+        cornersX, cornersY = rf.computeCCDcornersInFocalPlane(ccdCode, pixelSize)
+        for corner in range(numCorners):
+            cornersX[corner] = mm2pixels(cornersX[corner])
+            cornersY[corner] = mm2pixels(cornersY[corner])
+        cornersX = np.append(cornersX, cornersX[0])     # [mm]
+        cornersY = np.append(cornersY, cornersY[0])     # [mm]
+        for group in range(numGroups):
+            arrayX = cornersX + xPixels[group] - offsetX
+            arrayY = cornersY + yPixels[group] - offsetY
+            for index in range(5):
+                arrayX[index] = (arrayX[index])
+                arrayY[index] = (arrayY[index])
+            if group != refGroup-1:
+                plt.plot(-arrayX, -arrayY, color=colors[group], zorder=1)
+            else:
+                plt.plot(-arrayX, -arrayY, color=colors[group], zorder=2)
+            off = 4000
+            if group == refGroup-1 and int(ccdCode) == int(refCcdCode):
+                ax.text(-(xPixels[group] - offsetX + sign(cornersX[3]) * off),
+                        -(yPixels[group] - offsetY + sign(cornersY[3]) * off),
+                        ccdCode, fontsize=20, color=colors[group], weight='bold')
+            else:
+                ax.text(-(xPixels[group] - offsetX + sign(cornersX[3]) * off),
+                        -(yPixels[group] - offsetY + sign(cornersY[3]) * off),
+                        ccdCode, fontsize=15, color=colors[group])
+
+    # Plot center of group
+
+    for group in range(numGroups):
+        plt.plot([-(xPixels[group] - offsetX)], [-(yPixels[group] - offsetY)], mfc=colors[group], marker="o", mec='k', ms=10)
+        circ = plt.Circle(((-(xPixels[group] - offsetX)), (-(yPixels[group] - offsetY))),
+                          radius=fovPixels, color="none", linewidth=1, label="Group " + str(group + 1))
+        ax.add_patch(circ)
+        circ.set_edgecolor(colors[group])
+        circ.set_facecolor("none")
+
+    # Plot arrow
+
+    xHead, yHead = -200, -200
+    if xCCD < 0: xHead *= -1
+    elif xCCD < 200: xHead = abs(xCCD)
+    if yCCD < 0: yHead *= -1
+    elif yCCD < 200: yHead = abs(yCCD)
+    ax.arrow(0, 0, xCCD+xHead, 0, head_width=150, head_length=abs(xHead), fc='k', ec='k', linewidth=3, zorder=5)
+    ax.arrow(0, 0, 0, yCCD+yHead, head_width=150, head_length=abs(xHead), fc='k', ec='k', linewidth=3, zorder=5)
+    plt.plot([0], [0], "ko", ms=10, label="CCD origin", zorder=6)
+        
+    # Plot target star
+
+    plt.plot([-(xPixels[refGroup-1] - offsetX), xCCD], [-(yPixels[refGroup-1] - offsetY), yCCD], 'k--', zorder=6)
+    plt.plot(xCCD, yCCD, '*', mfc=colors[refGroup-1], mec='k', ms=19, label='Target star', zorder=7)
+    
+    # Settings
+
+    ax.set_title("CCD " + refCcdCode + " in Group " + str(refGroup), fontsize=20)
+    plt.legend(prop={"size": 12}, bbox_to_anchor=(1.0, 1.0))
+    ax.set_xlabel("Column [pixel]", fontsize=15)
+    ax.set_ylabel("Row [pixel]", fontsize=15)
+    #ax.set_xticks(np.arange(-5000, 9000, 1000))
+    #ax.set_yticks(np.arange(0, 13000, 1000))
+    ax.set_aspect('equal', 'box')
+    plt.tight_layout()
+
+    # Finito!
+    
+    plt.show()
 
 
 
@@ -1127,9 +1178,15 @@ def plotYawPitchRollJitter(time, signals, clabel, cmap='gnuplot', plottype='shor
             ax[row, 0].plot(signals[1][tpoint*row:tpoint*(row+1)], signals[0][tpoint*row:tpoint*(row+1)], 'k-', alpha=al, lw=lw, zorder=1)
             ax[row, 1].plot(signals[2][tpoint*row:tpoint*(row+1)], signals[0][tpoint*row:tpoint*(row+1)], 'k-', alpha=al, lw=lw, zorder=1)
             ax[row, 2].plot(signals[2][tpoint*row:tpoint*(row+1)], signals[1][tpoint*row:tpoint*(row+1)], 'k-', alpha=al, lw=lw, zorder=1)
-            im0 = ax[row, 0].scatter(signals[1][tpoint*row:tpoint*(row+1)], signals[0][tpoint*row:tpoint*(row+1)], c=time[tpoint*row:tpoint*(row+1)], s=sms, cmap=cmap, zorder=2)
-            im1 = ax[row, 1].scatter(signals[2][tpoint*row:tpoint*(row+1)], signals[0][tpoint*row:tpoint*(row+1)], c=time[tpoint*row:tpoint*(row+1)], s=sms, cmap=cmap, zorder=2)
-            im2 = ax[row, 2].scatter(signals[2][tpoint*row:tpoint*(row+1)], signals[1][tpoint*row:tpoint*(row+1)], c=time[tpoint*row:tpoint*(row+1)], s=sms, cmap=cmap, zorder=2)
+            im0 = ax[row, 0].scatter(signals[1][tpoint*row:tpoint*(row+1)],
+                                     signals[0][tpoint*row:tpoint*(row+1)],
+                                     c=time[tpoint*row:tpoint*(row+1)], s=sms, cmap=cmap, zorder=2)
+            im1 = ax[row, 1].scatter(signals[2][tpoint*row:tpoint*(row+1)],
+                                     signals[0][tpoint*row:tpoint*(row+1)],
+                                     c=time[tpoint*row:tpoint*(row+1)], s=sms, cmap=cmap, zorder=2)
+            im2 = ax[row, 2].scatter(signals[2][tpoint*row:tpoint*(row+1)],
+                                     signals[1][tpoint*row:tpoint*(row+1)],
+                                     c=time[tpoint*row:tpoint*(row+1)], s=sms, cmap=cmap, zorder=2)
 
             # Labels
 
