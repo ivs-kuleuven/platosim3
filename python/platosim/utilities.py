@@ -27,6 +27,8 @@ def errorcode(API, message):
     This function allows to colour code error messages within a code.
     """
     if API == 'software':
+        print(Style.BRIGHT + Fore.BLUE + message + Style.RESET_ALL)
+    if API == 'module':
         print(Style.BRIGHT + Fore.GREEN + message + Style.RESET_ALL)
     if API == 'message':
         print(Style.BRIGHT + message + Style.RESET_ALL)
@@ -108,7 +110,7 @@ def normalize(signal, factor=1e6, length=-1):
 @njit
 def filter(signal, filt='median', carbox=144):
     """
-    This utility makes the proper filtolution to a signal dataset.
+    This utility makes the proper filter solution to a signal dataset.
     Notice: the carbox size here is twice what is default by numpy.
 
     PARAMETERS
@@ -192,7 +194,9 @@ def passbandConversionV2P(V, Teff):
 
     # The actual filtersion equation
 
-    P  = 1.184e-12*Teff**3 - 4.526e-8*Teff**2 + 5.805e-4*Teff - 2.449 + V
+    c = [1.184e-12, 4.526e-8, 5.805e-4, 2.449]     # Machiori et al. (2019)
+    #c = [2.366e-12, 8.126e-08, -0.0009279, 3.499] # Fabio Fialho et al. in prep
+    P  = c[0]*Teff**3 - c[1]*Teff**2 + c[2]*Teff - c[3] + V
 
     return P
 
@@ -280,4 +284,3 @@ def NSRphotonNoiseLimit(P, Ncam=24., Ntra=1., tdur=3600., camType='N'):
 #         return pick
 #     else:
 #         return distribution_pick(distribution, range)
-

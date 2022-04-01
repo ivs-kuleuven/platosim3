@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import h5py
 import numpy as np
 
@@ -10,12 +11,12 @@ from matplotlib import pyplot as plt
 from matplotlib.pyplot import cm
 from matplotlib import patches
 from matplotlib.path import Path
-from matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import MaxNLocator, ScalarFormatter
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 import matplotlib.animation as animation
 
-import astropy.units as u
-from astropy.coordinates import SkyCoord
+import shapely.geometry as sg
+import descartes
 
 from platosim.simfile import SimFile
 import platosim.referenceFrames as rf
@@ -162,6 +163,7 @@ def drawCCDsInFocalPlane(pixelSize=18, plotCCDlabels=True, normal=True):
 
 
 def drawCCDsInCameraFocalPlane(fig):
+
     """
     PURPOSE: Draw the CCDs in the focal plane of a N-CAM.
 
@@ -320,6 +322,12 @@ def drawSubfieldInFocalPlane(ccdCode, xCCD, yCCD, subfieldSizeX, subfieldSizeY, 
 
 
 
+
+
+
+
+
+
 def drawStarInFocalPlane(sim, raStar, decStar):
 
     """
@@ -433,6 +441,244 @@ def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize):
     plt.show()
 
     return
+
+
+
+
+
+
+
+
+
+
+
+def drawStarInCCDfocalPlane(fig, sim, xCCD, yCCD, refCcdCode, refGroup, raPlatform, decPlatform, tiltAngle, azimuthAngle, solarPanelOrientation):
+
+    """
+    PURPOSE:  Draw a star given by the CCD pixel coordinates in the CCD focal plane.
+
+              This function plot the CCD pixel position in the CCD focal plane, together
+              with the CCD- and Camera footprints. Given the reference CCD- and camera group,
+              the star location is indicated by black arrows sprung from the origo of the 
+              parrent CCD. To easy the eye (of this rather complicated plot) the star is
+              highligthed by the parrent CCD color and the dashed line is connecting the
+              star to the optical axis of the camera-group. 
+
+    INPUT:    fig:                    matplotlib figure object (e.g.: fig = fig.plt.figure(figsize=(10,10)))
+              sim:                    instance of simulation class (see simulation.py)
+              xCCD:                   column  pixel coordinate [pixel]
+              yCCD:                   row pixel coordinate [pixel]
+              refCcdCode:             Reference of CCD (1, 2, 3, 4)
+              refGroup:               Reference of camera group (1, 2, 3, 4)
+              raPlatform:             Right Ascension of platform pointing [deg]
+              decPlatform:            Declination of platform pointing [deg]
+              titlAngle:              Tilt angle of camera [deg]
+              azimuthAngle:           Azimuth angle of camera [deg] 
+              solarPanelOrientation:  Orientation of solar panel [deg]
+              
+    OUTPUT:   Plot only, no axes object.
+
+    NOTE:     This plot neglects pointing- and camera alignment errors.
+    """
+
+    # Parameter used for the plot
+    
+    numGroups     = 4
+    numCorners    = 4
+    offset        = 4
+    colors        = ['b', 'r', 'g', 'orange']
+    ccdCodes      = ["1", "2", "3", "4"]
+    tiltAngles    = sim['CameraGroups/TiltAngle'][:numGroups]           # [deg]
+    azimuthAngles = sim['CameraGroups/AzimuthAngle'][:numGroups]        # [deg]
+    fovDegrees    = sim['CCD/RelativeTransmissivity/RadiusFOV']         # [deg]
+    focalLength   = sim['Camera/FocalLength/ConstantValue'] * 1e3       # [mm]
+    pixelSize     = sim['CCD/PixelSize']                                # [micron]
+    plateScale    = sim['Camera/PlateScale'] * pixelSize                # [arcsec]
+
+    # Find actual FOV in pixel and mm
+    
+    fovPixels  = fovDegrees / plateScale * c.degree / c.arcsec
+    fovMm      = focalLength * np.tan(np.radians(fovDegrees))
+
+    def mm2pixels(distanceMm):
+        """
+        Conversion from millimeters to pixels.
+        :param distanceMm: Distance [mm].
+        :return distancePixels: Distance [pixels].
+        """
+        distancePixels = np.degrees(np.arctan(distanceMm / focalLength)) / plateScale * c.degree / c.arcsec
+        return distancePixels
+
+    sign = lambda x: (1, -1)[x < 0]
+
+    xFP = np.array([])
+    yFP = np.array([])
+    # Position of the Sun
+    raSun, decSun = rf.sunSkyCoordinatesAwayfromPlatformPointing(np.radians(raPlatform),
+                                                                 np.radians(decPlatform),
+                                                                 np.radians(solarPanelOrientation))
+
+    # Telescope pointing w.r.t. platform pointing
+    
+    raTelescope = []
+    decTelescope = []
+    for group in range(0, numGroups):
+        
+        # Telescope pointing (absolute) [radians]
+        
+        ra, dec = rf.platformToTelescopePointingCoordinates(np.radians(raPlatform), np.radians(decPlatform),
+                                                            raSun, decSun,
+                                                            np.radians(azimuthAngles[group]),
+                                                            np.radians(tiltAngles[group]))
+
+        # Telescope pointing w.r.t. platform pointing
+        
+        raTelescope.append(np.degrees(ra) - raPlatform)     # [degrees]
+        decTelescope.append(np.degrees(dec) - decPlatform)  # [degrees]
+
+    meanDist = (np.mean(np.absolute(raTelescope)) + np.mean(np.absolute(decTelescope))) / 2.0
+    for group in range(numGroups):
+        raTelescope[group]  = sign(raTelescope[group]) * meanDist
+        decTelescope[group] = sign(decTelescope[group]) * meanDist
+
+    # Calculate the coordinates of the telescope pointings (for the 4 telescope groups) 
+    # in the focal-plane reference frame of group 1
+    
+    for group in range(numGroups):
+        xFP1, yFP1 = rf.skyToFocalPlaneCoordinates(np.radians(raTelescope[group] + raPlatform), 
+                                                   np.radians(decTelescope[group] + decPlatform), 
+                                                   np.radians(raPlatform), np.radians(decPlatform),
+                                                   np.radians(solarPanelOrientation),
+                                                   np.radians(tiltAngles[0]), 
+                                                   np.radians(azimuthAngles[0]), 
+                                                   0, focalLength)
+        xFP = np.append(xFP, xFP1)
+        yFP = np.append(yFP, yFP1)
+
+    # Make sure the average of the telescope pointings of the 4 telescope groups is at the origin of the reference frame
+    
+    xAvg = np.mean(xFP)
+    yAvg = np.mean(yFP)
+    xFP -= xAvg
+    yFP -= yAvg
+
+    meanDist = (np.mean(np.absolute(xFP)) + np.mean(np.absolute(yFP))) / 2.0
+
+    for group in range(numGroups):
+        xFP[group] = sign(xFP[group]) * meanDist
+        yFP[group] = sign(yFP[group]) * meanDist
+
+    xPixels = np.copy(xFP)
+    yPixels = np.copy(yFP)
+
+    for group in range(numGroups):
+        xPixels[group] = mm2pixels(xPixels[group])     # [mm] -> [pixels]
+        yPixels[group] = mm2pixels(yPixels[group])     # [mm] -> [pixels]
+
+    index = 0
+
+    cornersX, cornersY = rf.computeCCDcornersInFocalPlane(refCcdCode, pixelSize)
+    offsetX = mm2pixels(cornersX[index]) + xPixels[refGroup - 1]
+    offsetY = mm2pixels(cornersY[index]) + yPixels[refGroup - 1]
+
+    # Correct input pixel coordinates to match orientation of CCD origin
+    if refCcdCode == '1': xCCD, yCCD = +xCCD, +yCCD
+    if refCcdCode == '2': xCCD, yCCD = -yCCD, +xCCD 
+    if refCcdCode == '3': xCCD, yCCD = -xCCD, -yCCD
+    if refCcdCode == '4': xCCD, yCCD = +yCCD, -xCCD
+    
+    # START PLOT
+    
+    ax = fig.add_subplot(111)
+
+    # Add grid
+
+    ax.grid(True)
+
+    # Gray shade N-CAM visibility
+
+    circles = []
+    for group in range(numGroups):
+        circles.append(sg.Point(-(xPixels[group] - offsetX), -(yPixels[group] - offsetY)).buffer(fovPixels))
+    for index in range(numCorners):
+        one = circles[index].intersection(circles[index])
+        ax.add_patch(descartes.PolygonPatch(one, fc='gray', ec='none', alpha=0.2))
+        two = circles[index].intersection(circles[(index + 1) % numCorners])
+        ax.add_patch(descartes.PolygonPatch(two, fc='gray', ec='none', alpha=0.1))
+        three = circles[index].intersection(circles[(index + 1) % numCorners]).intersection(circles[(index + 2) % numCorners])
+        ax.add_patch(descartes.PolygonPatch(three, fc='gray', ec='none', alpha=0.05))
+    four = circles[0].intersection(circles[1]).intersection(circles[2]).intersection(circles[3])
+    ax.add_patch(descartes.PolygonPatch(four, fc='gray', ec='none', alpha=0.03))
+
+    # Plot CCD footprint ontop
+
+    for ccdCode in ccdCodes:
+        cornersX, cornersY = rf.computeCCDcornersInFocalPlane(ccdCode, pixelSize)
+        for corner in range(numCorners):
+            cornersX[corner] = mm2pixels(cornersX[corner])
+            cornersY[corner] = mm2pixels(cornersY[corner])
+        cornersX = np.append(cornersX, cornersX[0])     # [mm]
+        cornersY = np.append(cornersY, cornersY[0])     # [mm]
+        for group in range(numGroups):
+            arrayX = cornersX + xPixels[group] - offsetX
+            arrayY = cornersY + yPixels[group] - offsetY
+            for index in range(5):
+                arrayX[index] = (arrayX[index])
+                arrayY[index] = (arrayY[index])
+            if group != refGroup-1:
+                plt.plot(-arrayX, -arrayY, color=colors[group], zorder=1)
+            else:
+                plt.plot(-arrayX, -arrayY, color=colors[group], zorder=2)
+            off = 4000
+            if group == refGroup-1 and int(ccdCode) == int(refCcdCode):
+                ax.text(-(xPixels[group] - offsetX + sign(cornersX[3]) * off),
+                        -(yPixels[group] - offsetY + sign(cornersY[3]) * off),
+                        ccdCode, fontsize=20, color=colors[group], weight='bold')
+            else:
+                ax.text(-(xPixels[group] - offsetX + sign(cornersX[3]) * off),
+                        -(yPixels[group] - offsetY + sign(cornersY[3]) * off),
+                        ccdCode, fontsize=15, color=colors[group])
+
+    # Plot center of group
+
+    for group in range(numGroups):
+        plt.plot([-(xPixels[group] - offsetX)], [-(yPixels[group] - offsetY)], mfc=colors[group], marker="o", mec='k', ms=10)
+        circ = plt.Circle(((-(xPixels[group] - offsetX)), (-(yPixels[group] - offsetY))),
+                          radius=fovPixels, color="none", linewidth=1, label="Group " + str(group + 1))
+        ax.add_patch(circ)
+        circ.set_edgecolor(colors[group])
+        circ.set_facecolor("none")
+
+    # Plot arrow
+
+    xHead, yHead = -200, -200
+    if xCCD < 0: xHead *= -1
+    elif xCCD < 200: xHead = abs(xCCD)
+    if yCCD < 0: yHead *= -1
+    elif yCCD < 200: yHead = abs(yCCD)
+    ax.arrow(0, 0, xCCD+xHead, 0, head_width=150, head_length=abs(xHead), fc='k', ec='k', linewidth=3, zorder=5)
+    ax.arrow(0, 0, 0, yCCD+yHead, head_width=150, head_length=abs(xHead), fc='k', ec='k', linewidth=3, zorder=5)
+    plt.plot([0], [0], "ko", ms=10, label="CCD origin", zorder=6)
+        
+    # Plot target star
+
+    plt.plot([-(xPixels[refGroup-1] - offsetX), xCCD], [-(yPixels[refGroup-1] - offsetY), yCCD], 'k--', zorder=6)
+    plt.plot(xCCD, yCCD, '*', mfc=colors[refGroup-1], mec='k', ms=19, label='Target star', zorder=7)
+    
+    # Settings
+
+    ax.set_title("CCD " + refCcdCode + " in Group " + str(refGroup), fontsize=20)
+    plt.legend(prop={"size": 12}, bbox_to_anchor=(1.0, 1.0))
+    ax.set_xlabel("Column [pixel]", fontsize=15)
+    ax.set_ylabel("Row [pixel]", fontsize=15)
+    #ax.set_xticks(np.arange(-5000, 9000, 1000))
+    #ax.set_yticks(np.arange(0, 13000, 1000))
+    ax.set_aspect('equal', 'box')
+    plt.tight_layout()
+
+    # Finito!
+    
+    plt.show()
 
 
 
@@ -640,265 +886,6 @@ def skyProjection(fig, longitude, latitude, origin=0, projection="mollweide"):
     return axes
 
 
-
-
-
-
-
-
-
-
-def drawStarsInSkyAitoff(fig, raStars, decStars, magStars, skymap=None, cbarOrientation=None, cbarMap='rainbow'):
-    """
-    Project and plot a catalog of stars on the sky in a Aitoff Galactic projection.
-    This plot uses the astropy library to make the ICRS to Galactic coordinate
-    transformation together with a nice Galactic background image. To show the plot
-    it is necessary to introduce a "plt.show()" after the function call. This module
-    scales the scatter plot markersize of the stars according to their sample size.
-
-    Parameters
-    ----------
-    fig : object
-        Figure matplotlib.pyplot object to define e.g. figsize
-    raStars : list, array
-        Right ascension of stars [deg]
-    decStars : list, array
-        Declination of stars [deg]
-    magStars : list, array
-        Magnitudes of stars
-    cbarOrientation : str
-        Colorbar orientation. Default 'horizontal' else 'vertical'
-    cbarMap : str
-        Colormap of colorbar. Default 'rainbow'
-
-    Return
-    ------
-    axes : object
-        Axes matplotlib.pyplot handle object to be modified by the user
-    """
-
-    # Convert coordinates from ICRS to Galactic using astropy
-
-    gal = SkyCoord(raStars, decStars, frame='icrs', unit=u.deg)
-    gal = gal.galactic
-
-    # Plot Aitoff projection in Galactic coordinates
-
-    plt.title('Aitoff projection in Galactic coordinates', fontsize=18, y=1.02)
-    fig, ax = fig
-    fs = 16
-    if len(raStars) <= 1e2: ms = 3.
-    if len(raStars) >= 1e2 and len(raStars) < 1e3: ms = 1.3
-    if len(raStars) >= 1e3 and len(raStars) < 1e4: ms = 1.
-    if len(raStars) >= 1e4: ms = 0.1
-
-    # Plot Galactic map as background (e.g. Gaia DR3)
-    # E.g.: skymap = plt.imread('skymap.png')
-
-    if skymap is not None:
-        ax.imshow(skymap)
-
-    # Add the sky projection ontop as transparent layer
-
-    axes = fig.add_subplot(111, projection='aitoff', facecolor='none')
-
-    # Plot the targets on the sky (autumn_r, rainbow)
-
-    im = plt.scatter(-gal.l.wrap_at('180d').radian, gal.b.radian, c=magStars, s=ms, cmap=cbarMap, zorder=3)
-
-    # Vertical or horizontal colorbar showing magnitudes
-
-    if cbarOrientation == 'vertical':
-        cbarax = fig.add_axes([0.905, 0.2, 0.02, 0.57])
-        cbar = plt.colorbar(im, orientation='vertical', cax=cbarax, extend='both')
-        cbar.set_label(r'PLATO passband, $P$', fontsize=fs)
-        cbar.ax.tick_params(labelsize=fs)
-    else:
-        cbarax = fig.add_axes([0.25, 0.06, 0.525, 0.03])
-        cbar = plt.colorbar(im, orientation='horizontal', cax=cbarax, extend='both')
-        cbar.set_label(r'PLATO passband, $P$', fontsize=fs)
-        cbar.ax.tick_params(labelsize=fs)
-
-    # Change the tick labels so that they are 0->360, rather than -180->+180
-
-    tickLabels = np.array([150, 120, 90, 60, 30, 0, 330, 300, 270, 240, 210])
-    tickLabels = np.remainder(tickLabels+360, 360)
-    axes.set_xticklabels(tickLabels)
-
-    # Change y ticks and remove last to make space for title
-
-    tickLabels = np.array([-75, -60, -45, -30, -15, 0, 15, 30, 45, 60, ''])
-    axes.set_yticklabels(tickLabels)
-
-    # Change color of x tick labels
-
-    axes.tick_params(axis='x', colors='w')
-
-    # Increase x and y tick labels
-
-    axes.xaxis.set_tick_params(labelsize=fs+1)
-    axes.yaxis.set_tick_params(labelsize=fs)
-
-    # Add axis labels
-
-    axes.set_xlabel(r'Longitude, $l$ [deg]', fontsize=fs)
-    axes.set_ylabel(r'Latitude, $b$ [deg]', fontsize=fs)
-
-    # Set grid and remore outer ticks (if set by default)
-
-    axes.grid(True, alpha=0.3)
-    ax.axis('off')
-    plt.draw()
-
-    # That's it
-
-    return axes
-
-
-
-
-
-
-
-
-
-
-
-def plotPlatoFOV(fig, raPointing, decPointing, raStars, decStars, nCamVis, skymap=None):
-    """
-
-    Parameters
-    ----------
-
-    Return
-    ------
-    axes : object
-        Axes matplotlib.pyplot handle object to be modified by the user
-    """
-
-    import ligo.skymap.plot
-
-    center = [raPointing, decPointing]
-
-    ax = plt.axes(projection='astro zoom', center=center, radius='20 deg', rotate='20 deg')
-    ax.grid()
-    ax.plot(raPointing, decPointing)
-
-
-
-
-
-
-
-
-
-
-def plotStellarSampleDistributions(fig, mag, magCon, magRange, numConPerTar, distCon):
-    """
-    This function plots 4 different stellar sample distribution plots
-    for an PLATO Input Catalogue (PIC)
-    1) Magnitude distribution of PIC targets
-    2) Magnitude distribution of PIC contaminants
-    3) Number distribution of contaminants per target
-    4) Distance distribution of contaminants
-
-    Parameters
-    ----------
-    mag : list, array
-        The stellar target magnitudes
-    magCon : list, array
-        The stellar contaminant magnitudes
-    magRange : list, array
-        Upper and lower magnitude limit for input sample
-    numConPerTar : list, array
-        The number of contaminants (integer) per target star
-    distCon : list, array
-        Distances of each contaminant star w.r.t. their target
-
-    Return
-    ------
-    axes : object
-        Axes matplotlib.pyplot handle object to be modified by the user
-    """
-
-    # Copy figure object not to overwrite it
-
-    fig1, axes = fig
-
-    # Prepare bins and plot magnitude distribution of targets
-
-    magbinTar  = 0.1
-    if magRange[1]-magRange[0] > 10: magbinTar = 0.2
-    binsizeTar = int((magRange[1] - magRange[0]) / magbinTar) + 1
-    binlistTar = np.linspace(magRange[0], magRange[1], binsizeTar)
-
-    axes[0,0].hist(mag, binlistTar, facecolor='b', edgecolor='b', fill=True, alpha=0.3)
-    axes[0,0].set_title('Magnitude distribution of PIC targets')
-    axes[0,0].set_xlabel(r'$V$ Johnson-Cousin')
-    axes[0,0].set_ylabel('Number of stars')
-    axes[0,0].locator_params(axis='y', integer=True)
-    axes[0,0].tick_params(axis='x', which='minor', bottom=True, top=False)
-    axes[0,0].tick_params(axis='x', which='major', bottom=True, top=False)
-    axes[0,0].tick_params(axis='y', which='minor', left=False, right=False)
-    axes[0,0].tick_params(axis='y', which='major', left=True, right=False)
-    axes[0,0].grid(axis='y', color='gray', alpha=0.3)
-
-    # Prepare bins and plot magnitude distribution of contaminants
-
-    magbinCon  = 0.2
-    binsizeCon = int((np.max(magCon) - np.min(magCon)) / magbinCon) + 1
-    binlistCon = np.linspace(round(np.min(magCon)), round(np.max(magCon)), binsizeCon)
-
-    axes[0,1].hist(magCon, binlistCon, facecolor='m', edgecolor='m', fill=True, alpha=0.3)
-    axes[0,1].set_title('Magnitude distribution of PIC contaminants')
-    axes[0,1].set_xlabel(r'$V$ Johnson-Cousin')
-    axes[0,1].set_ylabel('Number of stars')
-    axes[0,1].tick_params(axis='x', which='minor', bottom=True, top=False)
-    axes[0,1].tick_params(axis='x', which='major', bottom=True, top=False)
-    axes[0,1].tick_params(axis='y', which='minor', left=False, right=False)
-    axes[0,1].tick_params(axis='y', which='major', left=True, right=False)
-    axes[0,1].grid(axis='y', color='gray', alpha=0.3)
-
-    # Prepare bins and plot number distribution of contaminants per target
-
-    numbinCon  = 1
-    binsizeNum = int((np.max(numConPerTar) - 0) / numbinCon) + 2
-    binlistNum = np.linspace(-0.5, np.max(numConPerTar)+0.5, binsizeNum)  # -0.5 because num x-axis
-
-    axes[1,0].hist(numConPerTar, binlistNum, facecolor='g', edgecolor='g', fill=True, log=True, alpha=0.3)
-    axes[1,0].set_title('Number distribution of contaminants per target')
-    axes[1,0].set_xlabel('Number of contaminants')
-    axes[1,0].set_ylabel('Number of targets')
-    axes[1,0].tick_params(axis='x', which='minor', bottom=False, top=False)
-    axes[1,0].tick_params(axis='x', which='major', bottom=True, top=False)
-    axes[1,0].tick_params(axis='y', which='minor', left=False, right=False)
-    axes[1,0].tick_params(axis='y', which='major', left=True, right=False)
-    axes[1,0].grid(axis='y', color='gray', alpha=0.3)
-
-    # Prepare bins and plot distance distribution of contaminants in respect to their target star
-
-    distbinCon  = 1.0
-    binsizeDist = int((np.max(distCon) - np.min(distCon)) / distbinCon) + 2  # +1 extra because zero is rare
-    binlistDist = np.linspace(round(np.min(distCon)), round(np.max(distCon)), binsizeDist)
-
-    axes[1,1].hist(distCon, binlistDist, facecolor='orange', edgecolor='orange', fill=True, alpha=0.4)
-    axes[1,1].set_title('Distance distribution of contaminants')
-    axes[1,1].set_xlabel('Distances [arcsec]')
-    axes[1,1].set_ylabel('Number of stars')
-    axes[1,1].locator_params(axis='y', integer=True)
-    axes[1,1].tick_params(axis='x', which='minor', bottom=True, top=False)
-    axes[1,1].tick_params(axis='x', which='major', bottom=True, top=False)
-    axes[1,1].tick_params(axis='y', which='minor', left=False, right=False)
-    axes[1,1].tick_params(axis='y', which='major', left=True, right=False)
-    axes[1,1].grid(axis='y', color='gray', alpha=0.3)
-
-    # Layout
-
-    plt.tight_layout()
-
-    # Finito!
-
-    return axes
 
 
 
@@ -1191,9 +1178,15 @@ def plotYawPitchRollJitter(time, signals, clabel, cmap='gnuplot', plottype='shor
             ax[row, 0].plot(signals[1][tpoint*row:tpoint*(row+1)], signals[0][tpoint*row:tpoint*(row+1)], 'k-', alpha=al, lw=lw, zorder=1)
             ax[row, 1].plot(signals[2][tpoint*row:tpoint*(row+1)], signals[0][tpoint*row:tpoint*(row+1)], 'k-', alpha=al, lw=lw, zorder=1)
             ax[row, 2].plot(signals[2][tpoint*row:tpoint*(row+1)], signals[1][tpoint*row:tpoint*(row+1)], 'k-', alpha=al, lw=lw, zorder=1)
-            im0 = ax[row, 0].scatter(signals[1][tpoint*row:tpoint*(row+1)], signals[0][tpoint*row:tpoint*(row+1)], c=time[tpoint*row:tpoint*(row+1)], s=sms, cmap=cmap, zorder=2)
-            im1 = ax[row, 1].scatter(signals[2][tpoint*row:tpoint*(row+1)], signals[0][tpoint*row:tpoint*(row+1)], c=time[tpoint*row:tpoint*(row+1)], s=sms, cmap=cmap, zorder=2)
-            im2 = ax[row, 2].scatter(signals[2][tpoint*row:tpoint*(row+1)], signals[1][tpoint*row:tpoint*(row+1)], c=time[tpoint*row:tpoint*(row+1)], s=sms, cmap=cmap, zorder=2)
+            im0 = ax[row, 0].scatter(signals[1][tpoint*row:tpoint*(row+1)],
+                                     signals[0][tpoint*row:tpoint*(row+1)],
+                                     c=time[tpoint*row:tpoint*(row+1)], s=sms, cmap=cmap, zorder=2)
+            im1 = ax[row, 1].scatter(signals[2][tpoint*row:tpoint*(row+1)],
+                                     signals[0][tpoint*row:tpoint*(row+1)],
+                                     c=time[tpoint*row:tpoint*(row+1)], s=sms, cmap=cmap, zorder=2)
+            im2 = ax[row, 2].scatter(signals[2][tpoint*row:tpoint*(row+1)],
+                                     signals[1][tpoint*row:tpoint*(row+1)],
+                                     c=time[tpoint*row:tpoint*(row+1)], s=sms, cmap=cmap, zorder=2)
 
             # Labels
 
@@ -1534,21 +1527,23 @@ def plotPhotometry(fig, outputFile, medfilt=144, fluxInput=False, NSR=False, COB
         ax1.set_xlabel('Time [days]')
         ax1.set_title('Star position')
         ax1.set_xlim(axes_minmax(x=time))
-
+        ax1.legend(loc='upper left')
+        
         # Plot column pixel on right y axis
 
         ax2 = ax1.twinx()
-        ax2.plot(time, colPix, '-', c='hotpink')
+        ax2.plot(time, colPix, '-', c='hotpink', label='Col pixel')
         ax2.set_ylabel('Column coordinate [pixel]')
         ax2.set_xlim(axes_minmax(x=time))
-
+        ax2.legend(loc='lower right')
+        
     # Labels
 
     if title is not False:
         fig.text(0.5, 0.9, title, ha='center', fontsize=fs)
     if NSR is False and COB is False:
         ax0.set_xlabel('Time [days]')
-
+        
     # Limits
 
     flux_min = np.min([flux_in, flux_out])
@@ -1781,9 +1776,10 @@ def plotPhotometryComparison(fig, filenames, medfilt=None, title=None):
 
 
 
-def plotSubfieldAnimation(fig, filename, numImages=False, outputFileName=False, clipPercentile=5.0, useTitle=True,
-                          colorMap="hot", showGrid=False, showStarPositions=False, showPointLikeGhostPositions=False,
-                          minVmag=None, maxVmag=None, showStarIDs=False, showMaskOfStarID=None):
+def plotSubfieldAnimation(fig, filename, numImages=False, outputFileName=False, clipPercentile=8.0,
+                          useTitle=True, colorMap="hot", showGrid=False, showStarPositions=False,
+                          showPointLikeGhostPositions=False, minVmag=None, maxVmag=None,
+                          showStarIDs=False, showMaskOfStarID=None, skipNimages=None):
     """
     Create and plot an animation of a set of imagettes.
 
@@ -1796,90 +1792,95 @@ def plotSubfieldAnimation(fig, filename, numImages=False, outputFileName=False, 
     axes : object
         Axes matplotlib.pyplot handle object to be modified by the user
 
+    EXAMPLES
+    --------
+    fig = plt.figure(fig=(10,10))
     TODO add photometric mask to animation
     """
 
     # Fetch file with simulated subfields
 
     f = h5py.File(filename, "r")
-    N = len(f["Images/"])
-    # Amount of images to animate
 
-    if numImages is False:
-        numImages = N
+    # Fetch the image names
+    imgNames   = list(f['Images'].keys())
+    #imgNumbers = list(range(1, len(imgNames)+1))
+    imgNumbers = list(range(len(imgNames)))
+    N          = len(imgNames)
 
+    # Skip N images to make animation faster
+    if skipNimages is not None:
+        imgNames   = imgNames[0::skipNimages]
+        imgNumbers = imgNumbers[0::skipNimages]
+        
     # Plot the image. Note that pixel coordinates start at the left bottom side of each pixel.
 
     ims = []
     fig, axis = plt.subplots(1,1)
+    for imgNumber, imgName in zip(imgNumbers, imgNames):
 
-    for imageNr in range(1, numImages):
-
-        # Fetch each image name
-
-        image = f["Images/image{0:0{1}d}".format(imageNr, len(str(N))+1)]
+        # Fetch each pixel image
+        image = f["Images/{0}".format(imgName)]
 
         # Fetch image dimention first time only
-
-        if imageNr == 1:
+        if not ims:
             Nrows, Ncols = image.shape
 
         # Make image plot
-
-        imagePlot = axis.imshow(image, cmap=colorMap, interpolation="nearest", origin='lower', extent=[0,Nrows,0,Ncols], animated=True)
+        imagePlot = axis.imshow(image, cmap=colorMap, interpolation="nearest",
+                                origin='lower', extent=[0,Nrows,0,Ncols], animated=True)
 
         # The large dynamic range of the pixel values often results in images where only
         # the brightest stars are visible. To improve the contrast, clip the color mapping.
-
         imagePlot.set_clim(np.percentile(image, clipPercentile), np.percentile(image, 100-clipPercentile))
 
         # OVERPLOT STAR POSITIONS
 
         if showStarPositions:
-            exposureGroupName = "Exposure{0:06d}".format(imageNr)
-
             # Extract the arays from HDF5 file
-
+            exposureGroupName = "Exposure{0:06d}".format(imgNumber)
             dataset = f["StarPositions"][exposureGroupName]["starID"]
             ID = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(ID)
-
             dataset = f["StarPositions"][exposureGroupName]["rowPix"]
             row = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(row)
-
             dataset = f["StarPositions"][exposureGroupName]["colPix"]
             col = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(col)
+            dataset = f["StarPositions"][exposureGroupName]["flux"]
+            flux = np.zeros(dataset.shape, dataset.dtype)
+            dataset.read_direct(flux)
 
-            # Allow differentiating between a target and its contaminants
-
+            # Allow differentiating between a (PIC) target and its contaminants
             if showStarPositions == 'PIC':
-                axis.scatter(col[0], row[0], marker='*', c='g')
-                if len(col) > 1: axis.scatter(col[1:], row[1:], marker='x', c='r')
+                tarMarkerSize = 200
+                mag = -2.5*np.log10(flux)
+                coor_tar = axis.scatter(col[0], row[0], s=tarMarkerSize, marker='o', c='lime',
+                                        edgecolor='k', linewidth=1, zorder=4)
+                if len(col) > 1:
+                    conMarkerSize = (tarMarkerSize /
+                                     (mag[1:] - mag[0]*np.ones(len(col)-1))).astype(int)
+                    coor_con = axis.scatter(col[1:], row[1:], s=conMarkerSize, marker='o', c='gold',
+                                            edgecolor='k', linewidth=1, zorder=4)
             # Or hightligth all stars the same
             else:
                 axis.scatter(col, row, marker='x', c='g')
             if showStarIDs:
                 for k in range(len(ID)):
                     label = "{0}".format(ID[k])
-                    axis.annotate(label, (col[k], row[k]),
-                                  fontsize='small', fontweight='extra bold', color="black")
-
-        # Ensure that the axis limits are properly set.
-
+                    axis.annotate(label, (col[k], row[k]), fontsize='small', fontweight='extra bold', color="black")
+                    
+        # Ensure that the axis limits are properly set
         axis.set_xlim(0, Ncols)
         axis.set_ylim(0, Nrows)
-
-        # If required, put the title
 
         # User defined title-string
         if isinstance(useTitle, str):
             plt.title(useTitle)
 
-        # By default, matplotlib only shows the (x,y) coordinates of each pixel, but not the pixel value itself.
-        # Change this by redefining the axis.format_coord
-
+        # By default, matplotlib only shows the (x,y) coordinates of each pixel but not
+        # the pixel value itself. Change this by redefining the axis.format_coord
         def format_coord(x, y):
             col = int(x)
             row = int(y)
@@ -1888,18 +1889,16 @@ def plotSubfieldAnimation(fig, filename, numImages=False, outputFileName=False, 
                 return "x={:.1f}, y={:.1f}, z={:.1f}".format(x, y, z)
             else:
                 return "x={:.1f}, y={:.1f}".format(x, y)
-
         axis.format_coord = format_coord
 
         # Show all ticks for smaller subfields or otherwise 10
-
         if Ncols < 10 and Nrows < 10:
             plt.xticks(np.arange(0, Nrows+1))
             plt.yticks(np.arange(0, Ncols+1))
         else:
             plt.xticks(np.arange(0, Nrows, 10))
             plt.yticks(np.arange(0, Ncols, 10))
-
+            plt.tight_layout()
         # Overplot rectangles over those pixels that are part of the mask
         # Note: imshow reverses rows and columns
 
@@ -1915,25 +1914,29 @@ def plotSubfieldAnimation(fig, filename, numImages=False, outputFileName=False, 
         if showGrid is True:
             axis.grid(c='gray', ls='-', alpha=0.3)
 
+        # Add x and y axis labels
+        plt.xlabel('x [pixel]')
+        plt.ylabel('y [pixel]')
+            
         # Append images to list
+        ims.append([imagePlot, coor_tar, coor_con])
 
-        ims.append([imagePlot])
+        # Compile to bash
+        ut.compilation(imgNumber, N, 'Done')
+    print; print('')
 
     # CREATE ANIMATION
-
-    ani = animation.ArtistAnimation(fig, ims, interval=10, blit=True, repeat_delay=0)
-
-    # Save animation
-
+    ani = animation.ArtistAnimation(fig, ims, interval=100, blit=True, repeat_delay=0)
+    
+    # Save animation (fps=50 and dpi=100 seems like good settings)
+    print('Creating GIF animation..')
     if outputFileName is not False:
-        ani.save(f'{outputFileName}.mp4')
+        ani.save(f'{outputFileName}.gif', fps=50, dpi=100)
 
     # Show animation
-
     plt.draw()
     plt.plot()
 
     # Finito!
-
     return
 
