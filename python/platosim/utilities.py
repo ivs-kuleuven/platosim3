@@ -266,6 +266,17 @@ def NSRphotonNoiseLimit(P, Ncam=24., Ntra=1., tdur=3600., camType='N'):
 
 
 
+def pdAddColumn(df, newCol, name):
+    """
+    Function to add a column to an exisiting pandas data frame.
+    """
+    df[name] = newCol
+    cols = df.columns.tolist()
+    cols = cols[-1:] + cols[:-1]
+    return df[cols]
+
+
+
 
 # def picOfDestiny(distribution, prange):
 #     """
