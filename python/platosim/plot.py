@@ -1440,7 +1440,7 @@ def plotPSD(fig, freq, psd, carbox=144, units=False, labels=False, colors=False,
 
 
 
-def plotPhotometry(fig, outputFile, medfilt=144, fluxInput=False, NSR=False, COB=False, title=False):
+def plotPhotometry(fig, outputFile, medfilt=144, fluxInput=False, NSR=False, COB=False, title=False, medcolor='g', legendLocation='best'):
     """
     PURPOSE: Plot the photometric time series of single target from a HDF5 file.
 
@@ -1498,7 +1498,7 @@ def plotPhotometry(fig, outputFile, medfilt=144, fluxInput=False, NSR=False, COB
     ax0.plot(time, flux_med, 'g-', label='Median per hour')
     if fluxInput is not False: ax0.plot(time, flux_in, '-', c='royalblue', markersize=2, label='Model')
     axes_maskupdates(ax0, time, maskupdates)
-    ax0.legend(loc='lower right', fancybox=True, ncol=2)
+    ax0.legend(loc=legendLocation, fancybox=True, ncol=2)
     ax0.set_ylabel('Norm. Flux [ppm]')
 
     # Plot NSR
