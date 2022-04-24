@@ -80,7 +80,7 @@ Camera:
     AberrationCorrection:
         Type:                        differential    # [differential, absolute]
         OrbitFile:                   inputfiles/orbit.txt
-        StartTime:                   4149.122013
+        StartTime:                   101489.207030
     IncludeFieldDistortion:          yes             # Whether or not to include field distortion. This only applies when the PSF is not mapped from file. 
     FieldDistortion:
         Type:                        Polynomial1D    # The model for the field distortion
