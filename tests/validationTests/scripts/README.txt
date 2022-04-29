@@ -1,5 +1,5 @@
 
-To run the validation tests, executing the following command in you shell:
+To run the validation tests, execute the following command in you shell:
 
 $ python run.py
 
