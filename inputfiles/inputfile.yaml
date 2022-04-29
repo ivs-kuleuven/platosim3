@@ -12,8 +12,8 @@ ObservingParameters:
     NumExposures:                    10              # Number of exposures
     BeginExposureNr:                  0              # Sequential number of first exposure. useful for slurm parallellisation
     CycleTime:                       25              # Image cycle time (exposure + readout before next exposure starts)[s]
-    RApointing:                      180             # Platform (not telescope) right ascension pointing coordinate      [deg]
-    DecPointing:                     -70             # Platform (not telescope) declination pointing coordinate          [deg]
+    RApointing:                      86.8            # Platform (not telescope) right ascension pointing coordinate      [deg]
+    DecPointing:                     -46.4           # Platform (not telescope) declination pointing coordinate          [deg]
     Fluxm0:                          1.00179e8       # Photon flux of a V=0 G2V-star                                     [phot/s/m^2/nm]
     StarCatalogFile:                 inputfiles/starcatalog.txt
 
@@ -80,7 +80,7 @@ Camera:
     AberrationCorrection:
         Type:                        differential    # [differential, absolute]
         OrbitFile:                   inputfiles/orbit.txt
-        StartTime:                   4149.122013
+        StartTime:                   101489.207030
     IncludeFieldDistortion:          yes             # Whether or not to include field distortion. This only applies when the PSF is not mapped from file. 
     FieldDistortion:
         Type:                        Polynomial1D    # The model for the field distortion
@@ -323,4 +323,8 @@ CCDPositions:
     NumRows:                         [4510, 4510, 4510, 4510]       # Number of rows on the CCD [pixels] (including non-exposed ones)
     FirstRowForNormalCamera:         [0, 0, 0, 0]                   # The complete CCDs are active/illuminated for the Normal Camera's
     FirstRowForFastCamera:           [2255, 2255, 2255, 2255]       # Only the upper half of the CCDs is active/illuminated for the Fast Camera's
+    MetallicShield:
+        IncludeMetallicShield:            yes                        # Whether or not to include a metallic shield for fast camera
+        ShieldColumnCoordinates:         [10, 4500]                 # First and last column of CCD that isn't covered by metal shield around fast camera [pxl]
+        ShieldRowCoordinates:            [2260, 4505]               # First and last row of CCD that isn't covered by metal shield around fast camera [pxl]
     TimeShift:                       [0.0, 6.25, 12.5, 18.75]       # Time shift for readout w.r.t. CCD #1.  [s]

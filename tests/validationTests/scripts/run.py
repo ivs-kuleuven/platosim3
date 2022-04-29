@@ -37,6 +37,7 @@ from Quantisation.gain                             import Gain
 from Quantisation.electronicOffset                 import ElectronicOffset
 from Quantisation.flooring                         import Flooring
 from Quantisation.digitalSaturation                import DigitalSaturation
+from metallicShield                                import MetallicShield
 
 from contextlib import contextmanager
 import sys, os
@@ -405,6 +406,19 @@ with suppress_stdout():
 name = "Digital Saturation"
 testMessages.append("{:<9}  {:^42}:{}".format("Test20.4:", name, success[out20_4]))
 print(testMessages[-1])
+
+
+with suppress_stdout():
+    test21 = MetallicShield()
+    out21  = test21.run()
+
+name = "Metallic Shield"
+testMessages.append("{:<9}  {:^42}:{}".format("Test21:", name, success[out21]))
+print(testMessages[-1])
+
+
+
+
 
 
 

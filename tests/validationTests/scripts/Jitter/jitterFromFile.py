@@ -164,7 +164,7 @@ class JitterFromFile(Test):
 
 
         simFile = self.sim.run(removeOutputFile = True)
-        pos     = [simFile.getStarCoordinates(exp)[1:3] for exp in range(numEx)]
+        pos     = [simFile.getStarCoordinates(exp)[1:3] for exp in range(numEx-1)]
         return zip(*pos)
 
 

@@ -113,7 +113,7 @@ class TedFromFile(Test):
         path       = self.driftFile["Yaw"]
         self.sim["Telescope/DriftFileName"] = path
         simFile    = self.sim.run(removeOutputFile = True)
-
+        
         pos        = [simFile.getStarCoordinates(exp)[1:3] for exp in range(numEx)]
         return zip(*pos)
 
@@ -166,7 +166,7 @@ class TedFromFile(Test):
 
 
         simFile = self.sim.run(removeOutputFile = True)
-        pos     = [simFile.getStarCoordinates(exp)[1:3] for exp in range(numEx)]
+        pos     = [simFile.getStarCoordinates(exp)[1:3] for exp in range(numEx-1)]
         return zip(*pos)
 
 
@@ -191,6 +191,7 @@ class TedFromFile(Test):
         # We check that the path the star follows is a circle. This is done by calculating
         # the radius. The test passes if the root mean square between the radius and the
         # mean radius is smaller then 0.1.
+
         rowRoll     = np.array([x for [x] in self.rowRoll])
         colRoll     = np.array([x for [x] in self.colRoll])
         radius      = np.sqrt(rowRoll * rowRoll + colRoll * colRoll)
@@ -199,6 +200,7 @@ class TedFromFile(Test):
         resultRoll  = RMS < 0.1
 
         return resultYaw and resultPitch and resultRoll
+
 
 
 

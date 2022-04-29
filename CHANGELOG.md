@@ -1,25 +1,73 @@
 # Changelog for PlatoSim
 
+
+
+<!-- 3.5.4 -->
+<!-- ***** -->
+
+## **/**/****: 3.5.4
+
+## Fixed
+
+## Changed
+
+## Added
+
+
+
+<!-- 3.5.3 -->
+<!-- ***** -->
+
+## 15/03/2022: 3.5.3
+
+## Fixed
+* When cosmics are added for F-Cams, we make sure they can not fall into covered part
+* Corrected bug 'calculateSubfieldAroundCoordinates' in 'referenceFrames.py' where middel pixel of subfield was rounded up/down by 1.
+* orbit.txt file is now only read if we include aberration in the simulation
+
+## Changed
+* Improved stability of validations tests for drift/jitter from file
+* Renamed previous starcatalog
+* F-Camera can now be simulated with custom CCD
+
+## Added
+* Added custom inputfile for F-Camera
+* Added new starcatalog
+* Added CTI in SmearingMaps for "Short2013" CTI model
+
+
+
+
+
 <!-- 3.5.2 -->
 <!-- ***** -->
 
-## **/**/****: 3.5.2
+## 01/02/2022: 3.5.2
 
 ## Fixed
-* Corrected bug in validationtest for Cosmics. 
+* Corrected bug in validationtest for Cosmics.
 * Corrected bug in python mapped distortion functions in python/platosim/referenceFrames.py. (GitHub #659)
+* Fixed bug in Camera.cpp. Previously distortion for mapped PSF would only be taken into account when 
+includeFieldDistoritions was set to True. Mapped distoriton should always happen, independent of that value. 
 
 ## Changed
 * Changed field distortion for mapped PSF to deal with more general mapped psf files.
 * Changed field distoriton for analytic PSF from Radial model to Wang model. (GitHub #652)
 * Changed 'distortedToUndistortedFocalPlaneCoordinates' and 'undistortedToDistortedFocalPlaneCoordinates' in 
 python/platosim/referenceFrames.py
+* Orientation angle received via network is propagated correctly to the detector (Github #660)
+* Changed deprecated 'append' method for pandas dataframe in MappedGaussianPSF validation test into 'concat' method
+* Changed pixelToSkyCoordinates function in referenceFrames.py to work better with F-cameras
+
 
 ## Added
 * Added inhomogenous trap density (GitHub #639)
-* Added validationtest for Short2013 CTI 
-* Added validationtest for Short2013fromfile CTI 
-* Added 'distortioncoefficients.txt' and 'distortioninversecoefficients.txt' 
+* Added validationtest for Short2013 CTI
+* Added validationtest for Short2013fromfile CTI
+* Added 'distortioncoefficients.txt' and 'distortioninversecoefficients.txt'
+* Added a first version of the PlatoSim license
+* Added metallic shield around CCD for F-Cameras
+* Added validation test for metallic shield around CCDs for F-Cameras
 
 <!-- 3.5.1 -->
 <!-- ***** -->

@@ -1,39 +1,37 @@
-* Release Notes PlatoSim 3.5.1
+* Release Notes PlatoSim 3.5.3
 
 
 
 ** Improvements
 
-*** The dependencies python install files now check that the `Installs` directory exists and creates this directory if it doesn't. 
+*** Improved stability of validations tests for drift/jitter from file
 
-*** Made the log files for `Camera::makeStarCatalogSelection` clearer. 
+*** Renamed previous starcatalog
 
-*** Changed the python functions in `referenceFrames.py`, `plot.py` and `simulation.py` to deal with mapped distortion.
+*** F-Camera can now be simulated with custom CCD
 
-*** Mapped distortion now uses a continuous approximation insead of the previous (crude) method of one-to-one fitting of closed point.
-
-*** Changed cosmics intensity from uniform to skew-normal. (GitHub #638)
-
-*** Renamed `getCosmicsCoordinates()` to `getCosmicsAffectedPixels()` in `simfile.py`
-
-*** Updated website 
 
 
 
 
 ** Bug fixes
 
-*** The diffused PSF that was saved to the output HDF5 is now rotated with respect to the CCD it falls on. (GitHub #627)
+*** When cosmics are added for F-Cams, we make sure they can not fall into covered part
 
-*** Fixed bug where the star coordinates where written to the output HDF5 file without taking field distortion into account. (GitHub #631)
+*** Corrected bug 'calculateSubfieldAroundCoordinates' in 'referenceFrames.py' where middel pixel of subfield was rounded up/down by 1.
+
+*** orbit.txt file is now only read if we include aberration in the simulation
+
 
 
 
     
 ** New features/functionality
 
-*** Added an option to individually switch on/off extended or pointlike ghosts. 
+*** Added custom inputfile for F-Camera
 
-*** Added `getCosmicsInfo()` method to extract the entry position, entry angle and the trail length of all cosmics
+*** Added new starcatalog
+
+*** Added CTI in SmearingMaps for "Short2013" CTI model
 
 
