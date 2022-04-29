@@ -2094,7 +2094,7 @@ void Detector::applyShort2013CTImodel()
             // Note that Armadillo uses % for elementwise multiplication.
             // In the following line: +1 as row = 0 also has to be transferred once
 
-            gamma = 2 * currentTrapDensityMap.row(rowNumber) * (subFieldZeroPointRow + rowNumber + 1) / pow(fullWellSaturationLimit, beta) / (1 + beta); // +1 as row = 0 also has to be transferred once
+            gamma = 2 * currentTrapDensityMap.row(rowNumber) * (subFieldZeroPointRow + rowNumber + 1) / pow(fullWellSaturationLimit, beta) / (1 + beta); 
 
             numberOfCapturedElectrons =   (gamma % arma::pow(pixelMap.row(rowNumber), beta) - numberOfOccupiedTraps.row(k)) \
                                         / (gamma % arma::pow(pixelMap.row(rowNumber), beta-1) + 1)                          \
