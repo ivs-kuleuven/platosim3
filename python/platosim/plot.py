@@ -1917,7 +1917,10 @@ def plotSubfieldAnimation(fig, filename, numImages=False, outputFileName=False, 
     if skipNimages is not None:
         imgNames   = imgNames[0::skipNimages]
         imgNumbers = imgNumbers[0::skipNimages]
-        
+
+    # Fetch StarPosition keys (i.e. "Exposure000000", etc)
+    exposureGroupNames = list(f['StarPositions'].keys())[:-1] # -1 because Time is last column
+
     # Plot the image. Note that pixel coordinates start at the left bottom side of each pixel.
 
     ims = []
@@ -1943,7 +1946,7 @@ def plotSubfieldAnimation(fig, filename, numImages=False, outputFileName=False, 
 
         if showStarPositions:
             # Extract the arays from HDF5 file
-            exposureGroupName = "Exposure{0:06d}".format(imgNumber)
+            exposureGroupName = exposureGroupNames[imgNumber]
             dataset = f["StarPositions"][exposureGroupName]["starID"]
             ID = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(ID)
@@ -1982,7 +1985,7 @@ def plotSubfieldAnimation(fig, filename, numImages=False, outputFileName=False, 
 
         # User defined title-string
         if isinstance(useTitle, str):
-            plt.title(useTitle)
+            plt.title(useTitle, fontsize=13)
 
         # By default, matplotlib only shows the (x,y) coordinates of each pixel but not
         # the pixel value itself. Change this by redefining the axis.format_coord
@@ -2020,8 +2023,8 @@ def plotSubfieldAnimation(fig, filename, numImages=False, outputFileName=False, 
             axis.grid(c='gray', ls='-', alpha=0.3)
 
         # Add x and y axis labels
-        plt.xlabel('x [pixel]')
-        plt.ylabel('y [pixel]')
+        plt.xlabel('x [pixel]', fontsize=12)
+        plt.ylabel('y [pixel]', fontsize=12)
             
         # Append images to list
         ims.append([imagePlot, coor_tar, coor_con])
@@ -2197,7 +2200,7 @@ def plotTeffvsRadius(fig0, starSample, title,
                columnspacing=0.5, handletextpad=0)
 
     # Finito!
-    plt.show()
+    return
 
     
 
