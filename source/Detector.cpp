@@ -2592,7 +2592,7 @@ void Detector::applyGain()
     combinedGainLeft = frontEndElectronics->getGainLeftAdc(internalTime) * ccdGainLeft;
     combinedGainRight = frontEndElectronics->getGainRightAdc(internalTime) * ccdGainRight;
 
-    if(lastIndexSubFieldLeft >= numColumnsPixelMap - 1)      // Left ADC only
+    if(lastIndexSubFieldLeft >= ((int) numColumnsPixelMap - 1))      // Left ADC only
     {
         pixelMap *= combinedGainLeft;
         smearingMap *= combinedGainLeft;
