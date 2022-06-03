@@ -8,10 +8,11 @@
 ## **/**/****: 3.5.4
 
 ## Fixed
-
+* Fixed bug where incorrect gain was applied to the right CCD.
+* Fixed a bug when applying open shutter smearing when we include relative transmissivity. 
 
 ## Changed
-* Fixed bug where incorrect gain was applied to the right CCD.
+
 * Changed the test for the gain, to correctly test that the left/right CCD have different gains.
 
 ## Added
