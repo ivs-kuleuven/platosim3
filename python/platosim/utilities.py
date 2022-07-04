@@ -5,8 +5,10 @@ This python module contains all general utilities that are commonly used
 by the different codes within the PlatoSim and the PLATOnium repository.
 """
 
+import os
 import sys
 import h5py
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -341,11 +343,30 @@ def convertMagnitudeRange(dm):
 
 
 
-def getStarsWithinCameraGroup(camGroup, raPF, decPF, ra, dec):
+def getStarsWithinCameraGroup(camGroup, raPF, decPF, ra, dec, sizeSubfield=6):
     """
     This function determines if a star is within the FOV of a specific
     PLATO camera group. 
-    TODO add more information!
+
+    Parameters
+    ----------
+    camGroup : int [1, 2, 3, 4]
+        N-CAM camera group ID
+    raPF : float
+        Right acsension of pointing field [deg]
+    decPF : float
+        Declination of pointing field [deg]
+    ra : list, array
+        Right ascension of stars to be checked against [deg]
+    dec : list, tuple, array
+        Declination of stars to be checked against [deg]
+
+    Return
+    ------
+    dex : list
+       Indices booleans with True being all stars within camera group FOV
+    distanceOA : list
+       Distance of each from the camera's optical axis [mm]
     """
 
     # Setup for simulation object
@@ -384,7 +405,7 @@ def getStarsWithinCameraGroup(camGroup, raPF, decPF, ra, dec):
     for i in range(len(ra)):
 
         subfieldIsOnCCD = sim.setSubfieldAroundCoordinates(raTargetsRad[i], decTargetsRad[i],
-                                                           6, 6, normal=True)
+                                                           sizeSubfield, sizeSubfield, normal=True)
         if subfieldIsOnCCD:
 
             xFP, yFP = skyToFocalPlaneCoordinates(raTargetsRad[i], decTargetsRad[i],
