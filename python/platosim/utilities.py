@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 """
-This python module contains all general utilities that are commonly used by the different
-codes within the PlatoSim and PLATOnium repository.
+This python module contains all general utilities that are commonly used
+by the different codes within the PlatoSim and the PLATOnium repository.
 """
 
 import sys
@@ -16,6 +16,12 @@ from pylab import MaxNLocator
 from colorama import Fore, Style
 from scipy.ndimage import median_filter
 from numba import njit
+
+from platosim.simulation import Simulation
+from platosim.referenceFrames import (skyToFocalPlaneCoordinates,
+                                      gnomonicRadialDistanceFromOpticalAxis,
+                                      getCCDandPixelCoordinates)
+
 
 #==============================================================#
 #                           FUNCTIONS                          #
@@ -261,6 +267,145 @@ def NSRphotonNoiseLimit(P, Ncam=24., Ntra=1., tdur=3600., camType='N'):
 
     return NSR
 
+
+
+
+
+
+def pdAddColumn(df, newCol, name):
+    """
+    Function to add a column to an exisiting pandas data frame.
+    """
+    df[name] = newCol
+    cols = df.columns.tolist()
+    cols = cols[-1:] + cols[:-1]
+    return df[cols]
+
+
+
+
+
+def convertQuarterRange(dQ):
+    """
+    Small function that takes a string of numbers (here quarters)
+    and split it up into readable float values used as real number
+    ranges. If a single number is given, an quarter integer is 
+    returned.
+    """
+    quarters = []
+    for part in dQ.split(','):
+        if '-' in part:
+            # If a range in mag is provided
+            q1, q2 = part.split('-')
+            q1, q2 = int(q1), int(q2)
+            quarters.append(q1)
+            quarters.append(q2)
+        else:
+            # If only one mag-value is given select 1 mag around it
+            q1 = int(part)
+            quarters.append(q1)
+    return quarters
+
+
+
+
+
+
+
+
+def convertMagnitudeRange(dm):
+    """
+    Small function that takes a string of numbers (here of magnitudes)
+    and split it up into readable float values used as real number
+    ranges. If a single number is given, a selection of 1 mag around
+    the imput int/float is returned as a magnitude range.
+    Used in: PLATOnium/simulator-pic.py
+    """
+    magRange = []
+    for part in dm.split(','):
+        if '-' in part:
+            # If a range in mag is provided
+            m1, m2 = part.split('-')
+            m1, m2 = float(m1), float(m2)
+        else:
+            # If only one mag-value is given select 1 mag around it
+            m1 = float(part)-0.5
+            m2 = float(part)+0.5
+        magRange.append(m1)
+        magRange.append(m2)
+    return magRange
+
+
+
+
+
+
+
+def getStarsWithinCameraGroup(camGroup, raPF, decPF, ra, dec):
+    """
+    This function determines if a star is within the FOV of a specific
+    PLATO camera group. 
+    TODO add more information!
+    """
+
+    # Setup for simulation object
+
+    inputFile = os.getenv("PLATO_PROJECT_HOME") + "/inputfiles/inputfile.yaml"
+    sim = Simulation(None, inputFile)
+
+    # Telescope config
+
+    quarter = 1
+
+    raPlatformDeg  = sim["ObservingParameters/RApointing"]  = raPF   # [deg]
+    decPlatformDeg = sim["ObservingParameters/DecPointing"] = decPF  # [deg]
+
+    raPlatformRad  = np.deg2rad(raPlatformDeg)   # [rad]
+    decPlatformRad = np.deg2rad(decPlatformDeg)  # [rad]
+
+    focalLength      = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
+    focalPlaneAngle  = np.deg2rad(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
+
+    solarPanelOrientation = sim["Platform/SolarPanelOrientation"] = math.fmod(quarter * 90., 360.) -6
+    solarPanelOrientation = np.deg2rad(float(solarPanelOrientation))
+
+    raTargetsRad  = np.deg2rad(ra)   # [rad]
+    decTargetsRad = np.deg2rad(dec)  # [rad]
+
+    # Loop over each star for this cam-group
+
+    sim["Telescope/GroupID"] = camGroup
+    azimuthTelescope = np.deg2rad(sim["CameraGroups/AzimuthAngle"][camGroup-1])
+    tiltTelescope    = np.deg2rad(sim["CameraGroups/TiltAngle"][camGroup-1])
+
+    dexGroup   = np.zeros(len(ra), dtype=bool)
+    distanceOA = np.zeros(len(ra))
+
+    for i in range(len(ra)):
+
+        subfieldIsOnCCD = sim.setSubfieldAroundCoordinates(raTargetsRad[i], decTargetsRad[i],
+                                                           6, 6, normal=True)
+        if subfieldIsOnCCD:
+
+            xFP, yFP = skyToFocalPlaneCoordinates(raTargetsRad[i], decTargetsRad[i],
+                                                  raPlatformRad, decPlatformRad,
+                                                  solarPanelOrientation,
+                                                  tiltTelescope, azimuthTelescope,
+                                                  focalPlaneAngle, focalLength)
+
+            distanceOA[i] = np.rad2deg(gnomonicRadialDistanceFromOpticalAxis(xFP, yFP,
+                                                                             focalLength))
+
+            if distanceOA[i] < 18.2: #sim['CCD/RelativeTransmissivity/RadiusFOV']:
+                dexGroup[i] = True
+            else:
+                dexGroup[i] = False
+
+        # Compile to bash
+        compilation(i, len(ra), 'Group {}'.format(camGroup))
+    print; print('')
+
+    return dexGroup, distanceOA
 
 
 

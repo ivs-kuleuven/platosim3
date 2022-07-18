@@ -130,7 +130,7 @@ class BrighterFatterEffect(Test):
 
         # Run the test for increasing sky backgrounds and store the corresponding mean and standard deviation of the image in
         # self.means and self.stds.
-        backgrounds = np.arange(0, 90000, 9000)
+        backgrounds = np.arange(0, 50000, 9000)                              # [ph/pix/s]
         means       = np.array([])
         stds        = np.array([])
 
