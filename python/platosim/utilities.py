@@ -433,6 +433,93 @@ def getStarsWithinCameraGroup(camGroup, raPF, decPF, ra, dec, sizeSubfield=6):
 
 
 
+
+
+
+def getInterPixelPositions(raPF, decPF, ra, dec):
+
+    # Setup for simulation object
+
+    inputFile = os.getenv("PLATO_PROJECT_HOME") + "/inputfiles/inputfile.yaml"
+    sim = Simulation(None, inputFile)
+
+    # Telescope config
+
+    quarter = 1
+
+    raPlatformDeg  = sim["ObservingParameters/RApointing"]  = raPF   # [deg]
+    decPlatformDeg = sim["ObservingParameters/DecPointing"] = decPF  # [deg]
+
+    raPlatformRad  = np.deg2rad(raPlatformDeg)   # [rad]
+    decPlatformRad = np.deg2rad(decPlatformDeg)  # [rad]
+
+    focalLength      = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
+    focalPlaneAngle  = np.deg2rad(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
+
+    solarPanelOrientation = sim["Platform/SolarPanelOrientation"] = math.fmod(quarter * 90., 360.) -6
+    solarPanelOrientationRad = np.deg2rad(float(solarPanelOrientation))
+
+    raTargetsRad  = np.deg2rad(ra)   # [rad]
+    decTargetsRad = np.deg2rad(dec)  # [rad]
+
+    # Loop over each star for this cam-group
+
+    camGroup = 1
+    sim["Telescope/GroupID"] = camGroup
+    azimuthTelescopeRad = np.deg2rad(sim["CameraGroups/AzimuthAngle"][camGroup-1])
+    tiltTelescopeRad    = np.deg2rad(sim["CameraGroups/TiltAngle"][camGroup-1])
+
+    # CCD properties
+
+    pixelSize = float(sim["CCD/PixelSize"])
+    
+    ccdCode = np.zeros(len(ra))
+    xCCD    = np.zeros(len(ra))
+    yCCD    = np.zeros(len(ra))
+
+    for i in range(len(ra)):
+
+        subfieldIsOnCCD = sim.setSubfieldAroundCoordinates(raTargetsRad[i], decTargetsRad[i],
+                                                           6, 6, normal=True)
+        if subfieldIsOnCCD:
+    
+            # Fetch CCD code and pixel coordinates (account for field distortion in included)
+            
+            if sim["Camera/IncludeFieldDistortion"]:
+                includeFieldDistortion = sim["Camera/IncludeFieldDistortion"]
+                if sim["Camera/FieldDistortion/Type"] == 'FromFile':
+                    mappedDistortion = True
+                    distortionCoefficients = sim["Camera/FieldDistortion/CoefficientsFromFile"]
+                else:
+                    mappedDistortion = False
+                    distortionCoefficients = sim["Camera/FieldDistortion/ConstantCoefficients"]
+            else:
+                includeFieldDistortion = False
+                mappedDistortion = False
+                distortionCoefficients = False
+                
+            ccdCode[i], xCCD[i], yCCD[i] = getCCDandPixelCoordinates(raTargetsRad[i], decTargetsRad[i],
+                                                                     raPlatformRad, decPlatformRad,
+                                                                     solarPanelOrientationRad,
+                                                                     tiltTelescopeRad, azimuthTelescopeRad,
+                                                                     focalPlaneAngle, focalLength, pixelSize,
+                                                                     includeFieldDistortion, normal=True,
+                                                                     mappedDistortion=mappedDistortion,
+                                                                     distortionCoefficients=distortionCoefficients)
+
+        # Compile to bash
+        compilation(i, len(ra), 'Computing pixel positions')
+    print; print('')
+    
+    return ccdCode, xCCD, yCCD
+
+
+
+
+
+
+
+
 # def picOfDestiny(distribution, prange):
 #     """
 #     This function randomly picks a value from any gievn distribution and returns it.

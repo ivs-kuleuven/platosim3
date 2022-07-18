@@ -8,11 +8,10 @@ dependencies/Downloads/._*
 *.xcodeproj/*
 *.sublime-project
 *.sublime-workspace
-PlatoSim3.code-workspace
 .vscode/*
-PlatoSim3.code-workspace
 .idea
 .cache
+PlatoSim3.code-workspace
 
 # Ignore some of the auto-generated files (during cmake)
 
@@ -29,6 +28,7 @@ generated/version.h
 !inputfiles/cl2bCcds.txt
 !starcatalog.txt
 !starcatalogOld.txt
+!AOCS_spiral_8Hz_airbus_3h.txt
 
 # Ignore compile command json file for neovim LSP
 
@@ -56,6 +56,18 @@ docs/tutorials/Photometry/photometrySimulation*
 docs/tutorials/Photometry/photometryOutput.hdf5
 docs/validation/photometryOutput*
 
+# platonium
+
+
+# picsim
+PIC1.1.0/
+gaiaDR3.png
+
+# varsim
+PHOENIX_HiResFITS/
+fitting_parameters.h5
+WAVE_PHOENIX-ACES-AGSS-COND-2011.fits
+
 # Compiled source 
 
 *.pyc
@@ -76,8 +88,11 @@ log.txt
 *.sql
 *.sqlite
 *.swp
+*.npy
 *~
 *#
+*.#*
+
 # OSX generated files
 
 .DS_Store*
@@ -90,7 +105,9 @@ Pipfile*
 /requirements.txt
 
 # Validation tests
+
 tests/validationTests/ioFiles/
 
 # ignore setting file for ccls language server
+
 .ccls-cache/
