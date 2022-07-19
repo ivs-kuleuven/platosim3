@@ -51,9 +51,9 @@ def plot_phoenix_sed(wvl, wvl1_in, wvl2_in, wvl_equi,
     #ax[0].legend(fontsize=12)
 
     # Plot the interpolation of the grid
-    ax[0].plot(wvl2_in, flux2_in, c='blue', lw=lw, alpha=0.8, label=r'$T_{\mathrm{eff}}$'+' = {0} K'.format(int(Teff_upper)))
-    ax[0].plot(wvl,     flux,     c='k', lw=lw, alpha=0.8, label=r'$T_{\mathrm{eff}}$'+' = {0} K'.format(int(Teff)))
-    ax[0].plot(wvl1_in, flux1_in, c='green', lw=lw, alpha=0.8, label=r'$T_{\mathrm{eff}}$'+' = {0} K'.format(int(Teff_lower)))
+    ax[0].plot(wvl2_in, flux2_in, c='black',    lw=lw, alpha=0.8, label=r'$T_{\mathrm{eff}}$'+' = {0} K'.format(int(Teff_upper)))
+    ax[0].plot(wvl,     flux,     c='deeppink', lw=lw, alpha=0.8, label=r'$T_{\mathrm{eff}}$'+' = {0} K'.format(int(Teff)))
+    ax[0].plot(wvl1_in, flux1_in, c='darkblue', lw=lw, alpha=0.8, label=r'$T_{\mathrm{eff}}$'+' = {0} K'.format(int(Teff_lower)))
     ax[0].set_xlim(2000, 10000)
     ax[0].legend(fontsize=12)
 
@@ -61,11 +61,11 @@ def plot_phoenix_sed(wvl, wvl1_in, wvl2_in, wvl_equi,
     ax[1].plot(wvl, flux,  'k', lw=lw,  alpha=0.8, label='Zoom-in on original grid')
     ax[1].plot(wvl_equi, flux_equi, 'r', lw=0.8, alpha=1.0, label=r'Equidistant grid: by Subhajit Sarkar')
     ax[1].set_xlim(wvl_equi[0]-500, wvl_equi[-1]+500)
-    ax[1].set_xlabel('$\lambda$ [AA]')
+    ax[1].set_xlabel('Wavelength, $\lambda$ [Å]')
     ax[1].legend(fontsize=12)
-    plt.tight_layout()
+    plt.tight_layout(pad=1.5)
 
-    fig.text(0.001, 0.5, r'Flux [ergs sec$^{-1}$ cm$^{-2}$ AA$^{-1}$ sr$^{-1}$]', va='center', rotation='vertical')
+    fig.text(0.001, 0.5, r'Flux, $F_{\lambda}$ [erg s$^{-1}$ cm$^{-2}$ Å$^{-1}$ sr$^{-1}$]', va='center', rotation='vertical')
     
     # Finito!
     plt.show()

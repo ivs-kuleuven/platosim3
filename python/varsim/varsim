@@ -42,16 +42,16 @@ import batman
 from platosim.utilities import errorcode
 
 # PLATOnium
-import platonium.var.plots as pt
-import platonium.var.utilities as ut
-import platonium.var.mr_forecast as mr
-from platonium.var.pyspot_PLATO_v2 import simulate_lc
-from platonium.var.phoenix import Phoenix
-from platonium.var.source_exoplanets import load_exoplanet
-from platonium.var.source_stars import load_star
-from platonium.var.models import (LimbDarkening, DopplerBeaming, EllipsoidalDistortion,
-                                  StellarActivity, StellarFlares,
-                                  GravityOscillations, solarosc)
+import plots as pt
+import utilities as ut
+import mr_forecast as mr
+from pyspot_PLATO_v2 import simulate_lc
+from phoenix import Phoenix
+from source_exoplanets import load_exoplanet
+from source_stars import load_star
+from models import (LimbDarkening, DopplerBeaming, EllipsoidalDistortion,
+                    StellarActivity, StellarFlares,
+                    GravityOscillations, solarosc)
 
 #-------------------------------------------------------#
 #                     CONFIGURATION                     #
@@ -105,7 +105,7 @@ class variability(object):
             plt.rcParams['text.usetex'] = True
         
         # Path to input data
-        self.datapath = os.getenv('PLATONIUM') + '/platonium/var/data'
+        self.datapath = os.getenv('PLATO_PROJECT_HOME') + '/python/varsim/data'
         
         # OBSERVATIONAL PARAMETERS
 
@@ -148,7 +148,7 @@ class variability(object):
         # Load the instrument passband
         if args.inst: self.intrument = args.inst
         else: self.instrument = 'plato'
-        passband = np.loadtxt(self.datapath + '/Passbands/response_{0}.txt'.format(self.instrument))
+        passband = np.loadtxt(self.datapath + '/response_{0}.txt'.format(self.instrument))
         self.wvl_tele = passband[:,0] * u.nm  # Wavelengths [nm]
         self.tra_tele = passband[:,1]         # Normalized transmission
         
@@ -318,7 +318,7 @@ class variability(object):
             pt.plot_phoenix_sed(wvl, wvl1_in, wvl2_in, wvl_equi,
                                 flux, bb_flux, flux1_in, flux2_in, flux_equi,
                                 Teff, Teff_upper, Teff_lower)
-        
+
 
 
 
