@@ -365,7 +365,7 @@ void Detector::updateParameters(double time)
         int idx = stoi(ccdPosition) - 1;  // Positions are named [1, 2, 3, 4] while the index into vector starts at 0
 
         numRows               = configParam.getIntegerAt("CCDPositions/NumRows", idx);
-        numColumns            = configParam.getIntegerAt("CCDPositions/NumColumns", idx);
+        numColumns           = configParam.getIntegerAt("CCDPositions/NumColumns", idx);
 
         rotationAnglePsf = deg2rad(orientation[idx]);  // Angle over which the PSF should be rotated
 
@@ -527,6 +527,9 @@ void Detector::updateParameters(double time)
         radiationMap.fill(1.0);
         radiationSmearingMap.resize(numRowsSmearingMap, numColumnsPixelMap);
         radiationSmearingMap.fill(1.0);
+        numberOfOccupiedTrapsPixelMap = arma::zeros<arma::Mat<float>>(numTrapSpecies, numColumnsPixelMap);
+        numberOfOccupiedTrapsSmearingMap = arma::zeros<arma::Mat<float>>(numTrapSpecies, numColumnsPixelMap);
+
     }
     else if (CTImodel == "Short2013FromFile")
     {
@@ -744,7 +747,6 @@ void Detector::reset()
 double Detector::takeExposure(int exposureNr, double startTime, double exposureTime)
 {
     // Advance the internal clock until the given start time
-
     internalTime = startTime;
 
     // Clear all arrays
@@ -757,6 +759,20 @@ double Detector::takeExposure(int exposureNr, double startTime, double exposureT
     Log.info("Detector: Integrating light for exposure " + to_string(exposureNr) + " with exposure time = " + to_string(exposureTime));
 
     integrateLight(exposureNr, startTime, exposureTime);
+
+
+    // If this is the first exposure, we should initialize the number of occupied traps.
+    // This can only be done after the detector
+    // has been exposed to the skybackground.
+    // => Check if CTI is included && We use the Short2013 model
+
+    if (exposureNr == beginExposureNr) {
+      if (includeCTIeffects &&
+          (CTImodel == "Short2013" || CTImodel == "Short2013FromFile"))
+      {
+          setInitialNumberOfOccupiedTraps(numberOfOccupiedTrapsPixelMap);
+      }
+    }
 
     // Include noise effects like readout noise, photon noise, full well saturation, etc.
     // Note: readOut() needs the exposure time to compute the open shutter smearing.
@@ -898,7 +914,6 @@ void Detector::generateThroughputMap()
     {
         throughputMap *= molecularContaminationEfficiency;
     }
-
 }
 
 
@@ -1949,7 +1964,57 @@ void Detector::applyCTI()
         Log.info("Detector: applying Short et al. (2013) CTI model with CTI info from file");
         applyShort2013CTImodel("pixelMap");
         applyShort2013CTImodel("smearingMap");
+        
     }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+void Detector::setInitialNumberOfOccupiedTraps(arma::Mat<float> &numberOfOccupiedTraps)
+{
+    // Set general parameters
+    const double maxVolumePerPixel = pixelSize * pixelSize * 1.e-18  / 2.0;                                  // Vg [m^3]
+    const double effectiveElectronMass = 0.5 * Constants::FREEELECTRONMASS;                                  // me [kg]
+    const double thermalVelocity = sqrt(3.0 * Constants::KBOLTZMANN * temperature / effectiveElectronMass);  // vt [m/s]    
+
+    // Initialise the trapspecies 
+    arma::Row<float> alpha(numTrapSpecies, arma::fill::zeros);
+    for (int k = 0; k < numTrapSpecies; k++)
+    {
+        alpha(k) = parallelTransferTime * trapCaptureCrossSection[k] * thermalVelocity * pow(fullWellSaturationLimit, beta) / (2.0 * maxVolumePerPixel);
+    }
+
+    arma::Row<float> skyBackground;
+    skyBackground = pixelMap.row(0);
+
+    // Set initial number of occupied traps for pixelMap
+    for (int k = 0; k < numTrapSpecies; k++)
+    {
+      arma::Mat<float> currentTrapDensityMap =
+          (meanTrapDensityBOL[k]) * (radiationMap);
+
+      arma::Row<float> gamma(numColumnsPixelMap, arma::fill::zeros);
+      gamma = 2 * currentTrapDensityMap.row(0) *
+              (subFieldZeroPointRow + 1) /
+              pow(fullWellSaturationLimit, beta) /
+              (1 + beta); // +1 as row = 0 also has to be transferred once
+      arma::Row<float> A =
+          (1 - arma::exp(-alpha(k) * arma::pow(skyBackground / 2, 1 - beta))) /
+          (gamma % arma::pow(skyBackground, beta - 1) + 1);
+      arma::Row<float> B = gamma % arma::pow(skyBackground, beta);
+      double C = (1 - exp(-parallelTransferTime / releaseTime[k]));
+      numberOfOccupiedTraps.row(k) = (A % B) / (A + C);
+    }
+
 }
 
 
@@ -2096,34 +2161,39 @@ void Detector::applySimpleCTImodel()
 
 void Detector::applyShort2013CTImodel(string map)
 {
+    int numColumnsCTI;
+    int numRowsCTI;
+    int zeroPointRow;
 
-    int  numColumns;
-    int  zeroPointRow;
-    int numRows;
     arma::Mat<float> *matMap    = nullptr;
     arma::Mat<float> *radiation = nullptr;
+    arma::Mat<float> *numberOfOccupiedTraps = nullptr;
 
     // Configure for the different maps
     if (map == "pixelMap")
     {
-        numRows    = numRowsPixelMap;
-        numColumns = numColumnsPixelMap;
+        numRowsCTI = numRowsPixelMap;
+        numColumnsCTI = numColumnsPixelMap;
         zeroPointRow = subFieldZeroPointRow;
         matMap = &pixelMap;
         radiation = &radiationMap;
+        numberOfOccupiedTraps  = &numberOfOccupiedTrapsPixelMap;
         // We still need to configure radiation map
     }
     else if (map == "smearingMap")
     {
-        numRows = numRowsSmearingMap;
-        numColumns = numColumnsPixelMap;
+        numRowsCTI = numRowsSmearingMap;
+        numColumnsCTI = numColumnsPixelMap;
         zeroPointRow = 4510;
         matMap = &smearingMap;
         radiation = &radiationSmearingMap;
+        numberOfOccupiedTraps = &numberOfOccupiedTrapsPixelMap;
+        *numberOfOccupiedTraps = (*numberOfOccupiedTraps) / ( ((float)subFieldZeroPointRow + (float)numRowsPixelMap) / 4511.);
     } else
     {
       return;
     }
+
 
     // Compute the maximum geometrical volume that electrons can occupy within a pixel.
     // I.e. the volume of the electron cloud when the capacity of the full well is maxed out.
@@ -2142,16 +2212,15 @@ void Detector::applyShort2013CTImodel(string map)
 
     // Arrays to keep track of the trapdensity and the number of occupied traps in a row
 
-    arma::Row<float> trapDensity(numColumns);
-    arma::Mat<float> numberOfOccupiedTraps = arma::zeros<arma::Mat<float>>(numTrapSpecies, numColumns);
+    arma::Row<float> trapDensity(numColumnsCTI);
 
     // Arrays to keep track of the captured and released electrons, for each column in a particular row.
 
-    arma::Row<float> numberOfCapturedElectrons(numColumns);                                             // Nc
-    arma::Row<float> numberOfReleasedElectrons(numColumns);                                             // Nr
+    arma::Row<float> numberOfCapturedElectrons(numColumnsCTI);                                             // Nc
+    arma::Row<float> numberOfReleasedElectrons(numColumnsCTI);                                             // Nr
 
     arma::Row<float> alpha(numTrapSpecies, arma::fill::zeros);
-    arma::Row<float> gamma(numColumns, arma::fill::zeros);
+    arma::Row<float> gamma(numColumnsCTI, arma::fill::zeros);
 
     // Eq. (23) of Short et al. 2013
 
@@ -2163,10 +2232,9 @@ void Detector::applyShort2013CTImodel(string map)
     // Loop over all rows of the pixel/smearing Map.
     // For each row, the computations are done for all columns simultaneously.
 
-    for (int rowNumber = 0; rowNumber < numRows; rowNumber++)
+    for (int rowNumber = 0; rowNumber < numRowsCTI; rowNumber++)
     {
         // Loop over all trap species
-
         for (int k = 0; k < numTrapSpecies; k++)
         {
             // Interpolate between the BOL and EOL to get the trap density for species k corresponding to the current `internalTime`
@@ -2179,8 +2247,8 @@ void Detector::applyShort2013CTImodel(string map)
             // Note that Armadillo uses % for elementwise multiplication.
             // In the following line: +1 as row = 0 also has to be transferred once
             gamma = 2 * currentTrapDensityMap.row(rowNumber) * (zeroPointRow + rowNumber + 1) / pow(fullWellSaturationLimit, beta) / (1 + beta); // +1 as row = 0 also has to be transferred once
-
-            numberOfCapturedElectrons =   (gamma % arma::pow((*matMap).row(rowNumber), beta) - numberOfOccupiedTraps.row(k)) \
+            
+            numberOfCapturedElectrons =   (gamma % arma::pow((*matMap).row(rowNumber), beta) - (*numberOfOccupiedTraps).row(k)) \
                                         / (gamma % arma::pow((*matMap).row(rowNumber), beta-1) + 1)                          \
                                         % (1 - arma::exp(-alpha(k) * arma::pow((*matMap).row(rowNumber), 1-beta)));
 
@@ -2192,17 +2260,22 @@ void Detector::applyShort2013CTImodel(string map)
 
             // Update the number of occupied traps with the estimated number of captured electrons
 
-            numberOfOccupiedTraps.row(k) += numberOfCapturedElectrons;
+            (*numberOfOccupiedTraps).row(k) += numberOfCapturedElectrons;
 
             // Correct the number of occupied traps with the electrons that were released again during the charge transfer time.
 
-            numberOfReleasedElectrons = numberOfOccupiedTraps.row(k) * (1-exp(-chargeTransferTime/releaseTime[k]));
-            numberOfOccupiedTraps.row(k) -= numberOfReleasedElectrons;
+            numberOfReleasedElectrons = (*numberOfOccupiedTraps).row(k) * (1-exp(-chargeTransferTime/releaseTime[k]));
+            (*numberOfOccupiedTraps).row(k) -= numberOfReleasedElectrons;
 
             // Add the electron excess to the current pixel value
 
             (*matMap).row(rowNumber) += numberOfReleasedElectrons - numberOfCapturedElectrons;
         }
+    }
+
+    if (map == "smearingMap")
+    {
+        *numberOfOccupiedTraps = (*numberOfOccupiedTraps) / ( (4510. + (float)numRowsSmearingMap) / ((float)subFieldZeroPointRow + 1.));
     }
 }
 
