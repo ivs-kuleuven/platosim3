@@ -2178,7 +2178,6 @@ void Detector::applyShort2013CTImodel(string map)
         matMap = &pixelMap;
         radiation = &radiationMap;
         numberOfOccupiedTraps  = &numberOfOccupiedTrapsPixelMap;
-        // We still need to configure radiation map
     }
     else if (map == "smearingMap")
     {
