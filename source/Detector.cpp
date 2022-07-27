@@ -1984,13 +1984,14 @@ void Detector::setInitialNumberOfOccupiedTraps(arma::Mat<float> &numberOfOccupie
     // Set general parameters
     const double maxVolumePerPixel = pixelSize * pixelSize * 1.e-18  / 2.0;                                  // Vg [m^3]
     const double effectiveElectronMass = 0.5 * Constants::FREEELECTRONMASS;                                  // me [kg]
-    const double thermalVelocity = sqrt(3.0 * Constants::KBOLTZMANN * temperature / effectiveElectronMass);  // vt [m/s]    
+    const double thermalVelocity = sqrt(3.0 * Constants::KBOLTZMANN * temperature / effectiveElectronMass);  // vt [m/s]
+    const double dwellTime = ((numColumns / 2) + numColumnsBiasMap) * serialTransferTime;                    // t  [s]
 
     // Initialise the trapspecies 
     arma::Row<float> alpha(numTrapSpecies, arma::fill::zeros);
     for (int k = 0; k < numTrapSpecies; k++)
     {
-        alpha(k) = parallelTransferTime * trapCaptureCrossSection[k] * thermalVelocity * pow(fullWellSaturationLimit, beta) / (2.0 * maxVolumePerPixel);
+        alpha(k) = dwellTime * trapCaptureCrossSection[k] * thermalVelocity * pow(fullWellSaturationLimit, beta) / (2.0 * maxVolumePerPixel);
     }
 
     arma::Row<float> skyBackground;
@@ -2011,7 +2012,7 @@ void Detector::setInitialNumberOfOccupiedTraps(arma::Mat<float> &numberOfOccupie
           (1 - arma::exp(-alpha(k) * arma::pow(skyBackground / 2, 1 - beta))) /
           (gamma % arma::pow(skyBackground, beta - 1) + 1);
       arma::Row<float> B = gamma % arma::pow(skyBackground, beta);
-      double C = (1 - exp(-parallelTransferTime / releaseTime[k]));
+      double C = (1 - exp(-dwellTime / releaseTime[k]));
       numberOfOccupiedTraps.row(k) = (A % B) / (A + C);
     }
 
@@ -2178,7 +2179,6 @@ void Detector::applyShort2013CTImodel(string map)
         matMap = &pixelMap;
         radiation = &radiationMap;
         numberOfOccupiedTraps  = &numberOfOccupiedTrapsPixelMap;
-        // We still need to configure radiation map
     }
     else if (map == "smearingMap")
     {
@@ -2203,7 +2203,8 @@ void Detector::applyShort2013CTImodel(string map)
 
     // Time it takes to transfer 1 row during readout
 
-    const double chargeTransferTime = parallelTransferTime;                                                  // [s]
+    const double numberColumnsReadOut = (numColumns / 2) + numColumnsBiasMap;
+    const double dwellTime = numberColumnsReadOut * serialTransferTime;                                      // [s]
 
     // Compute the thermal velocity of the electrons in the silicon
 
@@ -2226,7 +2227,7 @@ void Detector::applyShort2013CTImodel(string map)
 
     for (int k = 0; k < numTrapSpecies; k++)
     {
-        alpha(k) = chargeTransferTime * trapCaptureCrossSection[k] * thermalVelocity * pow(fullWellSaturationLimit, beta) / (2.0 * maxVolumePerPixel);
+        alpha(k) = dwellTime * trapCaptureCrossSection[k] * thermalVelocity * pow(fullWellSaturationLimit, beta) / (2.0 * maxVolumePerPixel);
     }
 
     // Loop over all rows of the pixel/smearing Map.
@@ -2264,7 +2265,7 @@ void Detector::applyShort2013CTImodel(string map)
 
             // Correct the number of occupied traps with the electrons that were released again during the charge transfer time.
 
-            numberOfReleasedElectrons = (*numberOfOccupiedTraps).row(k) * (1-exp(-chargeTransferTime/releaseTime[k]));
+            numberOfReleasedElectrons = (*numberOfOccupiedTraps).row(k) * (1-exp(-dwellTime/releaseTime[k]));
             (*numberOfOccupiedTraps).row(k) -= numberOfReleasedElectrons;
 
             // Add the electron excess to the current pixel value
