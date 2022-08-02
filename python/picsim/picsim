@@ -6,16 +6,10 @@ stars and their contaminants. Notice that the catalog will only be saved if an o
 and prefix (-o) are given as input. This script can also be used to re-plot a old output ascii
 catalog produced by this software. Note that the PIC contaminant catalog is complete up to 20 mag.
 
-The selection of PIC targets is done by
-(1) Sample size in number of targets. Choose 'all' if all targets for the next step is desired
-(2) Magnitude range (single number will select 1 mag range) or by PIC sample (P1, P2, P4, P5)
-(3) PLATO pointing field (SPF or NPF)
-(4) N-cam visibility (6, 12, 18, 24)
-
 Usage examples:
-  $ python simulator-pic.py 100 P1 SPF
-  $ python simulator-pic.py 1000 P5 NPF -c 24
-  $ python simulator-pic.py all all SPF -c 12 --mag 9.5-12.2 -o </path/to/outdir>
+  $ python simulator-pic.py 100 P1 SPF -p
+  $ python simulator-pic.py 1000 P5 NPF --camera 24
+  $ python simulator-pic.py all all SPF --camera 6 --group 1 --mag 9.5-12.2 -o </path/to/outdir>
 
 Note on Fields:
   Number of targets in PIC: 320,743
@@ -30,18 +24,20 @@ Note on SampleFlag:
   Number of targets in P2:   1,385 (SPF:     717, NPF:     668)
   Number of targets in P4:  33,032 (SPF:  16,866, NPF:  16,166)
   Number of targets in P5: 272,617 (SPF: 132,571, NPF: 140,046)
-  Please note that P2 is a bright sub-sample of P1.
-  Please note that P5 is on-board processed lightcures only.
+  Note that P2 is a bright sub-sample of P1.
+  Note that P5 is on-board processed lightcures only.
 """
 
 import os
 import random
 import argparse
 import datetime
+import urllib.request
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from prettytable import PrettyTable
+from pathlib import Path
 
 # PlatoSim utilities 
 from platosim.utilities import (errorcode,
@@ -58,6 +54,8 @@ from platosim.plot import (drawStarsInSkyAitoff,
 
 # Import repo matplotlibrc
 import platonium.matplotlibrc
+# Use LaTeX when plots should be saved properly
+plt.rcParams['text.usetex'] = True
 
 # Disable warnings
 import warnings
@@ -139,18 +137,19 @@ elif numTargets == 'all':
         nTargets = 'all'
         numTargets = numTargetsTotalInPIC
 
+# Detect input file format
+fileFormat = '.ftr'
+
 # Default is to use the latest PIC catalog saved
 # Else several old catalogs can be parsed for replotting
 # E.g. use: -intar starcat**targets.txt --incon starcat**contaminants.txt
-inputDir = os.getenv('PLATO_PROJECT_HOME') + '/python/picsim/PIC1.1.0'
-inputFileTar = inputDir + '/PIC110target'
-inputFileCon = inputDir + '/PIC110contaminant'
+inputDir     = Path(os.getenv('PLATO_PROJECT_HOME')) / 'python/picsim'
+inputFileTar = inputDir / 'PIC110target'
+inputFileCon = inputDir / 'PIC110contaminant'
 
-# Detect input file format
-if inputFileTar[-4:] == '.csv': fileFormat = '.csv'
-elif inputFileTar[-4:] == '.txt': fileFormat = '.txt'
-else: fileFormat = '.ftr'
-        
+# Resolve absolute output directory
+outputDir = Path(outputDir).resolve()
+
 # Prefix name of output files
 outputPrefix = 'starcat'
 if args.sample: outputPrefix += '_' + args.sample
@@ -158,17 +157,17 @@ if args.field:  outputPrefix += '_' + args.field
 if args.group:  outputPrefix += '_Ncam' + str(args.group)
 if args.camera: outputPrefix += '_CamVis' + args.camera
 if inputFiles is not None: outputPrefix += '_NewCat'
-    
-# Name space for output files (only if an output directory and prefix are given)
+outputPrefixTar = outputPrefix + '_targets'      + fileFormat
+outputPrefixCon = outputPrefix + '_contaminants' + fileFormat
+
+# Name space for output files
 if outputDir is not None:
     if subfield:
-        outputFileFOV = outputDir + outputPrefix + '.ftr'
+        outputFileFOV = (outputDir / outputPrefix).joinwith_suffix(fileFormat)
     else:
-        outputFileTar = outputDir + outputPrefix + '_targets.ftr'
-        outputFileCon = outputDir + outputPrefix + '_contaminants.ftr'
-        # Use LaTeX when plots should be saved properly
-        plt.rcParams['text.usetex'] = True
-    
+        outputFileTar = outputDir / outputPrefixTar
+        outputFileCon = outputDir / outputPrefixCon
+
 # Select PIC sample
 bitmask = {'P1': 1,
            'P2': 3,  # Notice 2 is stated in documentation but 3 is correct..
@@ -252,7 +251,22 @@ def load_targets(pic_tar):
     field  = pic_tar[:,9].astype(str)
     return ID, ra, dec, mag, sample, Teff, R, M, ncams, field
 
-
+# Fetch PIC catalogue from FTP server
+try:
+    pic_tar = np.load(inputFileTar.with_suffix('.npy'))
+except:
+    inuaguration = True
+    errorcode('message', 'Inuaguration: Welcome to the PIC of Destiny!')
+    print(f"Downloading PIC 1.1.0 catalogue...")
+    url_tar = 'ftp://plato:miSotalP@ftp.ster.kuleuven.be/PIC110target.npy'
+    url_con = 'ftp://plato:miSotalP@ftp.ster.kuleuven.be/PIC110contaminant.npy'
+    with urllib.request.urlopen(url_tar) as response, open(inputFileTar.with_suffix('.npy'), "wb") as out_file:
+        data = response.read()
+        out_file.write(data)
+    with urllib.request.urlopen(url_con) as response, open(inputFileCon.with_suffix('.npy'), "wb") as out_file:
+        data = response.read()
+        out_file.write(data)
+        
 # Load old PIC catalog for re-plot an old catalogue
 if inputFiles is not None:
 
@@ -277,14 +291,14 @@ if inputFiles is not None:
         else:
             DF  = DF.append(pd.read_feather(inputFileTarget[i]))
             DFC = DFC.append(pd.read_feather(inputFileContam[i]))
-
-# If it is the first run of this software we save catalog to a binary file
+            
+# If it is the first run of this software on a CSV format catalogue we save catalog to a binary file
 # This dramitically speed-up any future data reads
 try:
-    pic_tar = np.load(inputFileTar + '.npy')
+    pic_tar = np.load(inputFileTar.with_suffix('.npy'))
 except:
     # Load ascii catalogue
-    data = np.genfromtxt(inputFileTar + '.csv', delimiter=',',
+    data = np.genfromtxt(inputFileTar.with_suffix('.csv'), delimiter=',',
                         usecols=[0, 3, 5, 53, 55, 56, 58, 60, 71])
     ID     = data[:,0]
     ra     = data[:,1]
@@ -296,7 +310,7 @@ except:
     M      = data[:,7]
     ncams  = data[:,8]
     # String field needs to be loaded seperately: PLATO field: N=North, S=South
-    field = np.loadtxt(inputFileTar+'.csv', delimiter=',', usecols=[68], dtype=str)
+    field = np.loadtxt(inputFileTar.with_suffix('.csv'), delimiter=',', usecols=[68], dtype=str)
     # Load catalogue
     pic_tar = np.transpose([ID, ra, dec, mag, sample, Teff, R, M, ncams, field])
     ID, ra, dec, mag, sample, Teff, R, M, ncams, field = load_targets(pic_tar)
@@ -309,11 +323,10 @@ except:
     errorcode('message', 'Inuaguration! Welcome to the PIC of Destiny!')
     print('PIC catalogue is saved to binary format for optimised performance!')
     inuaguration = True
-    output_file_tar = inputFileTar + '.npy'
+    output_file_tar = inputFileTar.with_suffix('.npy')
     output_data_tar = np.transpose([ID, ra, dec, mag, sample, Teff, R, M, ncams, field])
     np.save(output_file_tar, output_data_tar)
 else:
-    inuaguration = False
     # If saved open binary table
     ID, ra, dec, mag, sample, Teff, R, M, ncams, field = load_targets(pic_tar)
 
@@ -328,7 +341,7 @@ ncams = df['ncams'].replace(cams_EOL[0], cams_EOL[1])
 df = df.assign(ncams = ncams)
 
 # Save each N-CAM visibility into seperate catalogues
-if inuaguration: # is False and fileFormat != '.pkl':
+if inputFileTar.with_suffix('.npy').is_file():
 
     # Save SPF for each group
     df_SPF = df[df['field'] == 'S']
@@ -342,10 +355,10 @@ if inuaguration: # is False and fileFormat != '.pkl':
     df_SPF18 = df_SPF18[df_SPF18.columns[1:3]].to_numpy()
     df_SPF24 = df_SPF24[df_SPF24.columns[1:3]].to_numpy()
 
-    np.save(inputDir + '/SPF-NCAM06.npy', df_SPF06)
-    np.save(inputDir + '/SPF-NCAM12.npy', df_SPF12)
-    np.save(inputDir + '/SPF-NCAM18.npy', df_SPF18)
-    np.save(inputDir + '/SPF-NCAM24.npy', df_SPF24)
+    np.save(inputDir / 'SPF-NCAM06.npy', df_SPF06)
+    np.save(inputDir / 'SPF-NCAM12.npy', df_SPF12)
+    np.save(inputDir / 'SPF-NCAM18.npy', df_SPF18)
+    np.save(inputDir / 'SPF-NCAM24.npy', df_SPF24)
 
     # Save NPF for each group
     df_NPF = df[df['field'] == 'N']
@@ -359,10 +372,10 @@ if inuaguration: # is False and fileFormat != '.pkl':
     df_NPF18 = df_NPF18[df_NPF18.columns[1:3]].to_numpy()
     df_NPF24 = df_NPF24[df_NPF24.columns[1:3]].to_numpy()
 
-    np.save(inputDir + '/NPF-NCAM06.npy', df_NPF06)
-    np.save(inputDir + '/NPF-NCAM12.npy', df_NPF12)
-    np.save(inputDir + '/NPF-NCAM18.npy', df_NPF18)
-    np.save(inputDir + '/NPF-NCAM24.npy', df_NPF24)
+    np.save(inputDir / 'NPF-NCAM06.npy', df_NPF06)
+    np.save(inputDir / 'NPF-NCAM12.npy', df_NPF12)
+    np.save(inputDir / 'NPF-NCAM18.npy', df_NPF18)
+    np.save(inputDir / 'NPF-NCAM24.npy', df_NPF24)
 
 #==============================================================#
 #                  SELECT PIC TARGETS ON INPUT                 #
@@ -626,8 +639,8 @@ if fileFormat != '.txt':
 # PLOT STARS
 
 # Plot targets in aitoff Galactic sky projection
-fig0 = plt.subplots(figsize = (18,10))
-img = plt.imread(os.getenv('PLATONIUM')+'/platonium/pic/gaiaDR3.png')
+fig0 = plt.subplots(figsize = (13,9))
+img = plt.imread(f'{inputDir}/gaiaDR3.png')
 drawStarsInSkyAitoff(fig0, df['ra'], df['dec'], df['mag'], skymap=img)
 if plot: plt.show()
 
@@ -637,7 +650,7 @@ if platoField is None:
     exit()
 
 # Plot Zoom-in on FOV
-if len(df['ID']) > 300: plotmag = None
+if len(df['ID']) > 200: plotmag = None
 else: plotmag = df['mag'].to_numpy()
 title = f'{platoField} {starSample} sample'
 fig1 = plotPlatoFOV(platoField, df['ra'].to_numpy(), df['dec'].to_numpy(), plotmag, title=title)
@@ -693,13 +706,13 @@ else:
     # If it is the first run of this software we save catalog to a binary file
     # This dramitically speed-up any future data reads
     try:
-        pic_con = np.load(inputFileCon + '.npy')
+        pic_con = np.load(inputFileCon.with_suffix('.npy'))
     except:
         errorcode('message', 'Inuaguration! Welcome to the PIC of Destiny!')
         print('PIC catalogue is saved to binary format for optimised performance!')
         print('Be patient, this will take around 1 min the first time only!')
         # Load ascii catalogue
-        pic_con = np.loadtxt(inputFileCon + '.csv', delimiter=',', skiprows=1, usecols=[2, 6, 8, 5, 19])
+        pic_con = np.loadtxt(inputFileCon.with_suffix('.csv'), delimiter=',', skiprows=1, usecols=[2, 6, 8, 5, 19])
         ID_con, ra_con, dec_con, distance, mag_con = load_contaminants(pic_con)
         # TODO for PIC2.0.0
         #----------------------------------------
@@ -707,7 +720,7 @@ else:
         #mag_con = passbandConversionV2P(mag_con, Teff_con)
         #----------------------------------------
         # Save dataset to binary file:
-        output_file_con = inputFileCon + '.npy'
+        output_file_con = inputFileCon.with_suffix('.npy')
         output_data_con = np.transpose([ID_con, ra_con, dec_con, distance, mag_con])
         np.save(output_file_con, output_data_con)
     else:
@@ -785,10 +798,10 @@ errorcode('module', '\nPrologue')
 if outputDir is not None:
     res = 200
     print('Saving all plots to {0}'.format(outputDir))
-    fig0[0].savefig(outputDir+f'plot_{outputPrefix}_allsky.png',       bbox_inches='tight', dpi=res)
-    fig1.savefig(outputDir   +f'plot_{outputPrefix}_pointing.png',     bbox_inches='tight', dpi=res)
-    fig2.savefig(outputDir   +f'plot_{outputPrefix}_TeffvsRadius.png', bbox_inches='tight', dpi=res)
-    fig3[0].savefig(outputDir+f'plot_{outputPrefix}_distribution.png', bbox_inches='tight', dpi=res)
+    fig0[0].savefig(outputDir / f'plot_{outputPrefix}_allsky.png',       bbox_inches='tight', dpi=res)
+    fig1.savefig(outputDir    / f'plot_{outputPrefix}_pointing.png',     bbox_inches='tight', dpi=res)
+    fig2.savefig(outputDir    / f'plot_{outputPrefix}_TeffvsRadius.png', bbox_inches='tight', dpi=res)
+    fig3[0].savefig(outputDir / f'plot_{outputPrefix}_distribution.png', bbox_inches='tight', dpi=res)
 
     # Save textfile with information about PIC stars
     log = ('PIC Catalogue include\n' +
@@ -801,7 +814,7 @@ if outputDir is not None:
            f'Contaminants distance : {disConLimit} arcsec\n' +
            f'Contaminant magnitude : {dmagConLimit} mag\n' +
            tt + '\n' + t.get_string())
-    with open(outputDir + f'{outputPrefix}.log','w') as file:
+    with open(outputDir / f'{outputPrefix}.log','w') as file:
         file.write(log)
     
     # Only save the catalogs if they don't exist
