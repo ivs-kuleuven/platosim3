@@ -435,6 +435,14 @@ double DetectorWithAnalyticNonGaussianPSF::takeExposure(int exposureNr, double s
 
     Log.info("Detector: Adding noise effects to exposure " + to_string(exposureNr));
 
+    if (exposureNr == beginExposureNr) {
+      if (includeCTIeffects &&
+          (CTImodel == "Short2013" || CTImodel == "Short2013FromFile"))
+      {
+          setInitialNumberOfOccupiedTraps(numberOfOccupiedTrapsPixelMap);
+      }
+    }
+
     readOut(exposureTime);
 
     // If photometric extraction was asked, apply it now

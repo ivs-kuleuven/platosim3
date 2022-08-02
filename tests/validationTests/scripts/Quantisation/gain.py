@@ -192,7 +192,7 @@ class Gain(Test):
         condition2 = self.compareFEE(self.leftSimFileFEE, 'left')
         condition3 = self.compareFEE(self.rightSimFileFEE, 'right')
         condition4 = self.compareCCD(self.leftSimFileCCD, 'left')
-        condition5 = self.compareCCD(self.leftSimFileCCD, 'right')
+        condition5 = self.compareCCD(self.rightSimFileCCD, 'right')
 
         return condition1 and condition2 and condition3 and condition4 and condition5
 
