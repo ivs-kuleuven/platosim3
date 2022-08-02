@@ -5,8 +5,10 @@ This python module contains all general utilities that are commonly used
 by the different codes within the PlatoSim and the PLATOnium repository.
 """
 
+import os
 import sys
 import h5py
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -341,11 +343,30 @@ def convertMagnitudeRange(dm):
 
 
 
-def getStarsWithinCameraGroup(camGroup, raPF, decPF, ra, dec):
+def getStarsWithinCameraGroup(camGroup, raPF, decPF, ra, dec, sizeSubfield=6):
     """
     This function determines if a star is within the FOV of a specific
     PLATO camera group. 
-    TODO add more information!
+
+    Parameters
+    ----------
+    camGroup : int [1, 2, 3, 4]
+        N-CAM camera group ID
+    raPF : float
+        Right acsension of pointing field [deg]
+    decPF : float
+        Declination of pointing field [deg]
+    ra : list, array
+        Right ascension of stars to be checked against [deg]
+    dec : list, tuple, array
+        Declination of stars to be checked against [deg]
+
+    Return
+    ------
+    dex : list
+       Indices booleans with True being all stars within camera group FOV
+    distanceOA : list
+       Distance of each from the camera's optical axis [mm]
     """
 
     # Setup for simulation object
@@ -366,7 +387,7 @@ def getStarsWithinCameraGroup(camGroup, raPF, decPF, ra, dec):
     focalLength      = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
     focalPlaneAngle  = np.deg2rad(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
 
-    solarPanelOrientation = sim["Platform/SolarPanelOrientation"] = math.fmod(quarter * 90., 360.) -6
+    solarPanelOrientation = sim["Platform/SolarPanelOrientation"] = math.fmod(quarter * 90., 360.)-4
     solarPanelOrientation = np.deg2rad(float(solarPanelOrientation))
 
     raTargetsRad  = np.deg2rad(ra)   # [rad]
@@ -384,7 +405,7 @@ def getStarsWithinCameraGroup(camGroup, raPF, decPF, ra, dec):
     for i in range(len(ra)):
 
         subfieldIsOnCCD = sim.setSubfieldAroundCoordinates(raTargetsRad[i], decTargetsRad[i],
-                                                           6, 6, normal=True)
+                                                           sizeSubfield, sizeSubfield, normal=True)
         if subfieldIsOnCCD:
 
             xFP, yFP = skyToFocalPlaneCoordinates(raTargetsRad[i], decTargetsRad[i],
@@ -406,6 +427,93 @@ def getStarsWithinCameraGroup(camGroup, raPF, decPF, ra, dec):
     print; print('')
 
     return dexGroup, distanceOA
+
+
+
+
+
+
+
+
+
+def getInterPixelPositions(raPF, decPF, ra, dec):
+
+    # Setup for simulation object
+
+    inputFile = os.getenv("PLATO_PROJECT_HOME") + "/inputfiles/inputfile.yaml"
+    sim = Simulation(None, inputFile)
+
+    # Telescope config
+
+    quarter = 1
+
+    raPlatformDeg  = sim["ObservingParameters/RApointing"]  = raPF   # [deg]
+    decPlatformDeg = sim["ObservingParameters/DecPointing"] = decPF  # [deg]
+
+    raPlatformRad  = np.deg2rad(raPlatformDeg)   # [rad]
+    decPlatformRad = np.deg2rad(decPlatformDeg)  # [rad]
+
+    focalLength      = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
+    focalPlaneAngle  = np.deg2rad(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
+
+    solarPanelOrientation = sim["Platform/SolarPanelOrientation"] = math.fmod(quarter * 90., 360.) -6
+    solarPanelOrientationRad = np.deg2rad(float(solarPanelOrientation))
+
+    raTargetsRad  = np.deg2rad(ra)   # [rad]
+    decTargetsRad = np.deg2rad(dec)  # [rad]
+
+    # Loop over each star for this cam-group
+
+    camGroup = 1
+    sim["Telescope/GroupID"] = camGroup
+    azimuthTelescopeRad = np.deg2rad(sim["CameraGroups/AzimuthAngle"][camGroup-1])
+    tiltTelescopeRad    = np.deg2rad(sim["CameraGroups/TiltAngle"][camGroup-1])
+
+    # CCD properties
+
+    pixelSize = float(sim["CCD/PixelSize"])
+    
+    ccdCode = np.zeros(len(ra))
+    xCCD    = np.zeros(len(ra))
+    yCCD    = np.zeros(len(ra))
+
+    for i in range(len(ra)):
+
+        subfieldIsOnCCD = sim.setSubfieldAroundCoordinates(raTargetsRad[i], decTargetsRad[i],
+                                                           6, 6, normal=True)
+        if subfieldIsOnCCD:
+    
+            # Fetch CCD code and pixel coordinates (account for field distortion in included)
+            
+            if sim["Camera/IncludeFieldDistortion"]:
+                includeFieldDistortion = sim["Camera/IncludeFieldDistortion"]
+                if sim["Camera/FieldDistortion/Type"] == 'FromFile':
+                    mappedDistortion = True
+                    distortionCoefficients = sim["Camera/FieldDistortion/CoefficientsFromFile"]
+                else:
+                    mappedDistortion = False
+                    distortionCoefficients = sim["Camera/FieldDistortion/ConstantCoefficients"]
+            else:
+                includeFieldDistortion = False
+                mappedDistortion = False
+                distortionCoefficients = False
+                
+            ccdCode[i], xCCD[i], yCCD[i] = getCCDandPixelCoordinates(raTargetsRad[i], decTargetsRad[i],
+                                                                     raPlatformRad, decPlatformRad,
+                                                                     solarPanelOrientationRad,
+                                                                     tiltTelescopeRad, azimuthTelescopeRad,
+                                                                     focalPlaneAngle, focalLength, pixelSize,
+                                                                     includeFieldDistortion, normal=True,
+                                                                     mappedDistortion=mappedDistortion,
+                                                                     distortionCoefficients=distortionCoefficients)
+
+        # Compile to bash
+        compilation(i, len(ra), 'Computing pixel positions')
+    print; print('')
+    
+    return ccdCode, xCCD, yCCD
+
+
 
 
 
