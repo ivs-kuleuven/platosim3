@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-user examples:
+User examples:
   $ varsim --star Sun --planet hotJupiter -p -v
-  $ varsim --star CoRoT-1 --planet CoRoT-1b --time 10 --puls KjeldsenBedding1995 -p -o /path/to/varsource.txt
+  $ varsim --star CoRoT-1 --planet CoRoT-1b --time 10 -p -o /path/to/varsource.txt
   $ varsim --star_params 1 1 5800 4.5 0.0 0.0 --planet_params 1 10 0 90 0 1 1 --quarter 1-8 -o /path/to/varsource.txt
 
 Given a star and exoplent this script creates a synthetic stellar and exoplanet
@@ -21,18 +21,14 @@ import os
 import glob
 import argparse
 import datetime
-
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-
 from scipy.ndimage import median_filter
 from scipy.interpolate import make_interp_spline
-
 from astropy.io import fits
 from astropy import constants as c
 from astropy import units as u
-#from PyAstronomy import pyasl
 
 # External for exoplanet
 from ldtk import LDPSetCreator, TabulatedFilter

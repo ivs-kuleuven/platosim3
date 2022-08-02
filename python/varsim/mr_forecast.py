@@ -4,7 +4,9 @@
 import os
 import h5py 
 import numpy as np
+import urllib.request
 from scipy.stats import norm, truncnorm 
+from platosim.utilities import errorcode
 
 # constant
 mearth2mjup = 317.828
@@ -19,8 +21,23 @@ mupper = 3e5
 # Number of different populations
 n_pop = 4
 
+##############################################
+
 # read parameter file
-hyper_file = os.getenv('PLATONIUM') + '/platonium/var/data/fitting_parameters.h5'
+hyper_file = os.getenv('PLATO_PROJECT_HOME') + '/python/varsim/data/fitting_parameters.h5'
+
+# Fetch PIC catalogue from FTP server
+try:
+    h5 = h5py.File(hyper_file, 'r')
+except:
+    errorcode('message', 'Inuaguration: Welcome to the PLATO noise-less light curve simulator!')
+    print(f"Downloading mass-radius parameterisation file...")
+    url_file = 'ftp://plato:miSotalP@ftp.ster.kuleuven.be/varsim_exomass_fitting_parameters.h5'
+    with urllib.request.urlopen(url_file) as response, open(hyper_file, "wb") as out_file:
+        data = response.read()
+        out_file.write(data)
+
+# Open file
 h5 = h5py.File(hyper_file, 'r')
 all_hyper = h5['hyper_posterior'][:]
 h5.close()
