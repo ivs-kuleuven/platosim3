@@ -2096,7 +2096,7 @@ def plotPlatoFOV(pointingField, raStars, decStars, magStars=None, nCamVis=None, 
 
     # MAKE PLOTS
     
-    fig = plt.figure(figsize=(10,10))
+    fig = plt.figure(figsize=(9,9))
     ax = plt.axes(projection='astro zoom', center=PF_icrs, radius='30 deg', rotate='180 deg')
 
     # Plot PIC1.1.0 stars after N-CAM visibility
@@ -2189,15 +2189,15 @@ def plotTeffvsRadius(fig0, starSample, title,
 
     # Settings
     plt.title(title)
-    plt.xlabel(r'Effective temperature, $T_{\mathrm{eff}}$ [K]')
-    plt.ylabel(r'Stellar radius, $R$ [$R_{\odot}$]')
+    plt.xlabel(r'Effective temperature, $T_{\mathrm{eff}}$ [K]', fontsize=16)
+    plt.ylabel(r'Stellar radius, $R$ [$R_{\odot}$]', fontsize=16)
 
     # Legend
     order = [3, 4, 5, 0, 1, 2]
     handles, labels = plt.gca().get_legend_handles_labels()
     h = [handles[idx] for idx in order]
     l = [labels[idx] for idx in order]
-    plt.legend(h, l, ncol=2, loc='upper left', prop={'size':11},
+    plt.legend(h, l, ncol=2, loc='upper left', prop={'size':12},
                columnspacing=0.5, handletextpad=0)
 
     # Finito!
