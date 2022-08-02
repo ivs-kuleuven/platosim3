@@ -889,12 +889,12 @@ def drawStarsInSkyAitoff(fig, raStars, decStars, magStars, skymap=None, cbarOrie
 
     # Vertical or horizontal colorbar showing magnitudes
     if cbarOrientation == 'vertical':
-        cbarax = fig.add_axes([0.905, 0.2, 0.02, 0.57])
+        cbarax = fig.add_axes([0.805, 0.2, 0.02, 0.57])
         cbar = plt.colorbar(im, orientation='vertical', cax=cbarax, extend='both')
         cbar.set_label(r'PLATO passband, $P$', fontsize=fs)
         cbar.ax.tick_params(labelsize=fs)
     else:
-        cbarax = fig.add_axes([0.25, 0.06, 0.525, 0.03])
+        cbarax = fig.add_axes([0.25, 0.08, 0.525, 0.03])
         cbar = plt.colorbar(im, orientation='horizontal', cax=cbarax, extend='both')
         cbar.set_label(r'PLATO passband, $P$', fontsize=fs)
         cbar.ax.tick_params(labelsize=fs)
@@ -923,6 +923,7 @@ def drawStarsInSkyAitoff(fig, raStars, decStars, magStars, skymap=None, cbarOrie
     axes.grid(True, alpha=0.3)
     ax.axis('off')
     plt.draw()
+    plt.tight_layout()
 
     # That's it
     return axes
