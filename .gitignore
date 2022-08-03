@@ -61,10 +61,6 @@ docs/validation/photometryOutput*
 # platonium
 .platonium_init
 
-# picsim
-PIC1.1.0/
-gaiaDR3.png
-
 # varsim
 PHOENIX_HiResFITS/
 fitting_parameters.h5
