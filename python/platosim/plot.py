@@ -2074,7 +2074,7 @@ def plotPlatoFOV(pointingField, raStars, decStars, magStars=None, nCamVis=None, 
     """
 
     # Select field
-    indir = os.getenv('PLATONIUM') + '/platonium/pic/PIC1.1.0/'
+    indir = os.getenv('PLATO_PROJECT_HOME') + '/python/picsim/'
     if pointingField == 'NPF': PF_gal = [65.0, 30.0]
     if pointingField == 'SPF': PF_gal = [253.0, -30.0]
 
@@ -2097,7 +2097,7 @@ def plotPlatoFOV(pointingField, raStars, decStars, magStars=None, nCamVis=None, 
     # MAKE PLOTS
     
     fig = plt.figure(figsize=(9,9))
-    ax = plt.axes(projection='astro zoom', center=PF_icrs, radius='30 deg', rotate='180 deg')
+    ax = plt.axes(projection='astro zoom', center=PF_icrs, radius='30 deg', rotate='184 deg')
 
     # Plot PIC1.1.0 stars after N-CAM visibility
     ax.plot(starPF06.ra.deg, starPF06.dec.deg, '.', c='skyblue',

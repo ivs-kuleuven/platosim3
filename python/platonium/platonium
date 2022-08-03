@@ -79,7 +79,8 @@ class PLATOnium(object):
         self.picID        = args.pic
         self.maskUpdate   = args.mask
         self.seed         = args.seed
-
+        self.reuseJitter  = args.reusejitter
+        
         self.sample         = args.sample
         self.conDeltaMag    = args.con_dmag
         self.conFluxError   = args.con_ferr
@@ -352,8 +353,7 @@ class PLATOnium(object):
         # CONFIGURE SPACECRAFT
                 
         # Solar panel orientation: Q(N) = {0, 90, 180, 270} deg [deg]
-        solarPanelOrientationDeg = sim["Platform/SolarPanelOrientation"] = math.fmod(self.quarter * 90., 360.) #-6
-
+        solarPanelOrientationDeg = sim["Platform/SolarPanelOrientation"] = math.fmod(self.quarter * 84., 360.)
         # Select PLATO pointing field from inputfile (e.g. SPF, NPF, etc.) [deg]
         self.pointingField = sim["ObservingParameters/StarCatalogFile"]
         raPlatformDeg  = sim["ObservingParameters/RApointing"]  = self.PF[self.pointingField][0]
@@ -392,11 +392,29 @@ class PLATOnium(object):
 
         # Attitude Orbit Control System (AOCS) jitter
         # NOTE: Will only be included if file "AOCS_Q<quarterNo>.txt" is availale in the input folder
-        # inputFileAOCS = self.inputDir.joinpath(f'AOCS_Q{self.quarter}.txt')
-        # if inputFileAOCS.is_file():
-        #     sim["Platform/UseJitter"]      = True
-        #     sim["Platform/JitterSource"]   = 'FromFile'
-        #     sim["Platform/JitterFileName"] = inputFileAOCS
+        if self.reuseJitter:
+            sim["Platform/UseJitter"]    = True
+            sim["Platform/JitterSource"] = 'FromFile'
+
+            print(sim["Platform/JitterFileName"])
+            exit()
+            inputFileAOCS = self.inputDir.joinpath(sim["Platform/JitterFileName"])
+            print(inputFileAOCS); exit()
+
+            # Check if first quarter or else create new time column
+            if self.quarter == 1 and int(self.df0['CCD']) == 1:
+                os.system(f'cp {spiralFileBase} {spiralFileQuarterN}')
+            else:
+                # Load file given in YAML input
+                data = np.loadtxt(spiralFileBase)
+                t, x, y, z = data[:,0], data[:,1], data[:,2], data[:,3]
+                # Generate new time column
+                cadence = np.diff(t)[0]  # [s -> 8 Hz]
+                t = np.arange(len(t)) * cadence + self.timeStart
+                # Save data to input folder
+                np.savetxt(spiralFileQuarterN, np.transpose([t,x,y,z]), fmt=['%.3f', '%.9f', '%.9f', '%.9f'])
+
+            sim["Platform/JitterFileName"] = inputFileAOCS
                                     
         # The TED is needs handling for each camera seperately
         # NOTE if from file 24 files needs to be present in a user defined path from the inputfile
@@ -1131,8 +1149,9 @@ sim_group.add_argument('--tdur',    metavar='DAY', type=int, help='Total lenght 
 sim_group.add_argument('--nexp',    metavar='NO.', type=int, help='Number of exposures of shortened quarter time series')
 #obs_group.add_argument('--mexp', metavar='NO.',  type=int, help='Number of equidistant exposures in quarter or shortened time series.')
 sim_group.add_argument('--pic',     metavar='ID',  type=int, help='ID from the PIC -> Simulate a specific star in the PIC catalog (Overwrites "starID")')
-sim_group.add_argument('--seed',    metavar='INT', type=int, help='Option to bootstrap seeds in order to reproduce results')
+sim_group.add_argument('--seed',    metavar='INT', type=int,   help='Option to bootstrap seeds in order to reproduce results')
 sim_group.add_argument('--mask',    metavar='DAY', type=float, help='Option to alter/overwrite the mask-update in inputfile [days]')
+sim_group.add_argument('--reusejitter', action='store_true',   help='Flag to re-use AOCS jitter file across all quarters')
 
 pip_group = parser.add_argument_group('L1 PIPELINE PARAMETERS')
 pip_group.add_argument('--sample',   metavar='PIC', type=str, help='PIC sample to activate the correct L0-L1 pipeline chain [P1, P5]')
