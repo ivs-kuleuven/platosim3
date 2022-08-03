@@ -115,6 +115,7 @@ class Detector: public HDF5Writer
         virtual void applyFullWellSaturation();
         virtual void applyCTI();
         virtual void applyChargeInjection();
+        virtual void setInitialNumberOfOccupiedTraps(arma::Mat<float> &numberOfOccupiedTraps);
         virtual void applyOpenShutterSmearing(float exposureTime);
         virtual void addReadoutNoise();
         virtual void applyQuantisation();
@@ -279,6 +280,8 @@ class Detector: public HDF5Writer
         vector<double> releaseTime;              // For each trap species: the electron release time [s]
         arma::Mat<float> radiationMap;           // Normalized radiation map for the subfield under consideration [p+ / s]
         arma::Mat<float> radiationSmearingMap;   // Normalized radiation map for the smearing map under consideration [p+ / s]
+        arma::Mat<float> numberOfOccupiedTrapsPixelMap;  // Number of occupied traps in the Short2013 CTI model
+        arma::Mat<float> numberOfOccupiedTrapsSmearingMap;
         HDF5File CTIFile;                        // Input CTI file with the trap density maps
 
         double chargeInjectionLevel;             // Percentage of the full well to be filled by charge injection [0-100]

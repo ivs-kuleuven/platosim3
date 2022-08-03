@@ -56,8 +56,10 @@ docs/tutorials/Photometry/photometrySimulation*
 docs/tutorials/Photometry/photometryOutput.hdf5
 docs/validation/photometryOutput*
 
-# platonium
+# Ignore files for PLATOnium
 
+# platonium
+.platonium_init
 
 # picsim
 PIC1.1.0/

@@ -889,12 +889,12 @@ def drawStarsInSkyAitoff(fig, raStars, decStars, magStars, skymap=None, cbarOrie
 
     # Vertical or horizontal colorbar showing magnitudes
     if cbarOrientation == 'vertical':
-        cbarax = fig.add_axes([0.905, 0.2, 0.02, 0.57])
+        cbarax = fig.add_axes([0.805, 0.2, 0.02, 0.57])
         cbar = plt.colorbar(im, orientation='vertical', cax=cbarax, extend='both')
         cbar.set_label(r'PLATO passband, $P$', fontsize=fs)
         cbar.ax.tick_params(labelsize=fs)
     else:
-        cbarax = fig.add_axes([0.25, 0.06, 0.525, 0.03])
+        cbarax = fig.add_axes([0.25, 0.08, 0.525, 0.03])
         cbar = plt.colorbar(im, orientation='horizontal', cax=cbarax, extend='both')
         cbar.set_label(r'PLATO passband, $P$', fontsize=fs)
         cbar.ax.tick_params(labelsize=fs)
@@ -923,6 +923,7 @@ def drawStarsInSkyAitoff(fig, raStars, decStars, magStars, skymap=None, cbarOrie
     axes.grid(True, alpha=0.3)
     ax.axis('off')
     plt.draw()
+    plt.tight_layout()
 
     # That's it
     return axes
@@ -2073,7 +2074,7 @@ def plotPlatoFOV(pointingField, raStars, decStars, magStars=None, nCamVis=None, 
     """
 
     # Select field
-    indir = os.getenv('PLATONIUM') + '/platonium/pic/PIC1.1.0/'
+    indir = os.getenv('PLATO_PROJECT_HOME') + '/python/picsim/'
     if pointingField == 'NPF': PF_gal = [65.0, 30.0]
     if pointingField == 'SPF': PF_gal = [253.0, -30.0]
 
@@ -2095,8 +2096,8 @@ def plotPlatoFOV(pointingField, raStars, decStars, magStars=None, nCamVis=None, 
 
     # MAKE PLOTS
     
-    fig = plt.figure(figsize=(10,10))
-    ax = plt.axes(projection='astro zoom', center=PF_icrs, radius='30 deg', rotate='180 deg')
+    fig = plt.figure(figsize=(9,9))
+    ax = plt.axes(projection='astro zoom', center=PF_icrs, radius='30 deg', rotate='184 deg')
 
     # Plot PIC1.1.0 stars after N-CAM visibility
     ax.plot(starPF06.ra.deg, starPF06.dec.deg, '.', c='skyblue',
@@ -2188,15 +2189,15 @@ def plotTeffvsRadius(fig0, starSample, title,
 
     # Settings
     plt.title(title)
-    plt.xlabel(r'Effective temperature, $T_{\mathrm{eff}}$ [K]')
-    plt.ylabel(r'Stellar radius, $R$ [$R_{\odot}$]')
+    plt.xlabel(r'Effective temperature, $T_{\mathrm{eff}}$ [K]', fontsize=16)
+    plt.ylabel(r'Stellar radius, $R$ [$R_{\odot}$]', fontsize=16)
 
     # Legend
     order = [3, 4, 5, 0, 1, 2]
     handles, labels = plt.gca().get_legend_handles_labels()
     h = [handles[idx] for idx in order]
     l = [labels[idx] for idx in order]
-    plt.legend(h, l, ncol=2, loc='upper left', prop={'size':11},
+    plt.legend(h, l, ncol=2, loc='upper left', prop={'size':12},
                columnspacing=0.5, handletextpad=0)
 
     # Finito!
