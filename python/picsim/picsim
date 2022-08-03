@@ -147,9 +147,6 @@ inputDir     = Path(os.getenv('PLATO_PROJECT_HOME')) / 'python/picsim'
 inputFileTar = inputDir / 'PIC110target'
 inputFileCon = inputDir / 'PIC110contaminant'
 
-# Resolve absolute output directory
-outputDir = Path(outputDir).resolve()
-
 # Prefix name of output files
 outputPrefix = 'starcat'
 if args.sample: outputPrefix += '_' + args.sample
@@ -162,6 +159,8 @@ outputPrefixCon = outputPrefix + '_contaminants' + fileFormat
 
 # Name space for output files
 if outputDir is not None:
+    # Resolve absolute output directory
+    outputDir = Path(outputDir).resolve()
     if subfield:
         outputFileFOV = (outputDir / outputPrefix).joinwith_suffix(fileFormat)
     else:
