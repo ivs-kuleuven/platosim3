@@ -80,7 +80,7 @@ Camera:
     AberrationCorrection:
         Type:                        differential    # [differential, absolute]
         OrbitFile:                   inputfiles/orbit.txt
-        StartTime:                   4149.122013
+        StartTime:                   101489.207030
     IncludeFieldDistortion:          yes             # Whether or not to include field distortion. This only applies when the PSF is not mapped from file. 
     FieldDistortion:
         Type:                        Polynomial1D    # The model for the field distortion
@@ -164,8 +164,8 @@ CCD:
     BFE:                                             # Brighter-fatter effect
         CoefficientsFileName:        inputfiles/a_bfe.hdf5  # File with the BFE coefficients, calculated by P. Astier
     Gain:
-        RefValueLeft:                1.80            # [microV/e-]
-        RefValueRight:               1.80            # [microV/e-]
+        RefValueLeft:                2.14            # [microV/e-]
+        RefValueRight:               2.21            # [microV/e-]
         Stability:                   -0.001          # [microV/e-/K]
         AllowedDifference:           15.0            # Difference in gain between both CCD halves [%]
     QuantumEfficiency:

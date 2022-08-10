@@ -1,14 +1,14 @@
-* Release Notes PlatoSim 3.5.3
+* Release Notes PlatoSim 3.5.4
 
 
 
 ** Improvements
 
-*** Improved stability of validations tests for drift/jitter from file
+*** Changed the test for the gain, to correctly test that the left/right CCD have different gains.
 
-*** Renamed previous starcatalog
+*** Changed the start time for the orbit.txt file.
 
-*** F-Camera can now be simulated with custom CCD
+*** changed brighterFatterEffect.py validation test to be able to deal with the different gain values (on different CCDs).
 
 
 
@@ -16,22 +16,24 @@
 
 ** Bug fixes
 
-*** When cosmics are added for F-Cams, we make sure they can not fall into covered part
+*** Fixed bug where incorrect gain was applied to the right CCD.
 
-*** Corrected bug 'calculateSubfieldAroundCoordinates' in 'referenceFrames.py' where middel pixel of subfield was rounded up/down by 1.
+*** Fixed a bug when applying open shutter smearing when we include relative transmissivity.
 
-*** orbit.txt file is now only read if we include aberration in the simulation
-
-
+*** Fixed issue with CTI (Short2013 model) where we did not use the correct dwell time.
 
 
-    
+
+
+
 ** New features/functionality
 
-*** Added custom inputfile for F-Camera
+*** Added a sensible estimate of the number of occupied traps when applying "Short2013" CTI model.
 
-*** Added new starcatalog
+*** Added comparison between new and old Cosmic ray model to the validation tests.
 
-*** Added CTI in SmearingMaps for "Short2013" CTI model
+*** New plot module to plot a star in the CCD focal plane.
+
+*** Added the platonium package into the PlatoSim python files.
 
 
