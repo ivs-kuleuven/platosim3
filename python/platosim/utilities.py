@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
 """
-This python module contains all general utilities that are commonly used by the different
-codes within the PlatoSim and PLATOnium repository.
+This python module contains all general utilities that are commonly used
+by the different codes within the PlatoSim and the PLATOnium repository.
 """
 
+import os
 import sys
 import h5py
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -16,6 +18,12 @@ from pylab import MaxNLocator
 from colorama import Fore, Style
 from scipy.ndimage import median_filter
 from numba import njit
+
+from platosim.simulation import Simulation
+from platosim.referenceFrames import (skyToFocalPlaneCoordinates,
+                                      gnomonicRadialDistanceFromOpticalAxis,
+                                      getCCDandPixelCoordinates)
+
 
 #==============================================================#
 #                           FUNCTIONS                          #
@@ -27,6 +35,8 @@ def errorcode(API, message):
     This function allows to colour code error messages within a code.
     """
     if API == 'software':
+        print(Style.BRIGHT + Fore.BLUE + message + Style.RESET_ALL)
+    if API == 'module':
         print(Style.BRIGHT + Fore.GREEN + message + Style.RESET_ALL)
     if API == 'message':
         print(Style.BRIGHT + message + Style.RESET_ALL)
@@ -108,7 +118,7 @@ def normalize(signal, factor=1e6, length=-1):
 @njit
 def filter(signal, filt='median', carbox=144):
     """
-    This utility makes the proper filtolution to a signal dataset.
+    This utility makes the proper filter solution to a signal dataset.
     Notice: the carbox size here is twice what is default by numpy.
 
     PARAMETERS
@@ -192,7 +202,9 @@ def passbandConversionV2P(V, Teff):
 
     # The actual filtersion equation
 
-    P  = 1.184e-12*Teff**3 - 4.526e-8*Teff**2 + 5.805e-4*Teff - 2.449 + V
+    c = [1.184e-12, 4.526e-8, 5.805e-4, 2.449]     # Machiori et al. (2019)
+    #c = [2.366e-12, 8.126e-08, -0.0009279, 3.499] # Fabio Fialho et al. in prep
+    P  = c[0]*Teff**3 - c[1]*Teff**2 + c[2]*Teff - c[3] + V
 
     return P
 
@@ -262,6 +274,251 @@ def NSRphotonNoiseLimit(P, Ncam=24., Ntra=1., tdur=3600., camType='N'):
 
 
 
+def pdAddColumn(df, newCol, name):
+    """
+    Function to add a column to an exisiting pandas data frame.
+    """
+    df[name] = newCol
+    cols = df.columns.tolist()
+    cols = cols[-1:] + cols[:-1]
+    return df[cols]
+
+
+
+
+
+def convertQuarterRange(dQ):
+    """
+    Small function that takes a string of numbers (here quarters)
+    and split it up into readable float values used as real number
+    ranges. If a single number is given, an quarter integer is 
+    returned.
+    """
+    quarters = []
+    for part in dQ.split(','):
+        if '-' in part:
+            # If a range in mag is provided
+            q1, q2 = part.split('-')
+            q1, q2 = int(q1), int(q2)
+            quarters.append(q1)
+            quarters.append(q2)
+        else:
+            # If only one mag-value is given select 1 mag around it
+            q1 = int(part)
+            quarters.append(q1)
+    return quarters
+
+
+
+
+
+
+
+
+def convertMagnitudeRange(dm):
+    """
+    Small function that takes a string of numbers (here of magnitudes)
+    and split it up into readable float values used as real number
+    ranges. If a single number is given, a selection of 1 mag around
+    the imput int/float is returned as a magnitude range.
+    Used in: PLATOnium/simulator-pic.py
+    """
+    magRange = []
+    for part in dm.split(','):
+        if '-' in part:
+            # If a range in mag is provided
+            m1, m2 = part.split('-')
+            m1, m2 = float(m1), float(m2)
+        else:
+            # If only one mag-value is given select 1 mag around it
+            m1 = float(part)-0.5
+            m2 = float(part)+0.5
+        magRange.append(m1)
+        magRange.append(m2)
+    return magRange
+
+
+
+
+
+
+
+def getStarsWithinCameraGroup(camGroup, raPF, decPF, ra, dec, sizeSubfield=6):
+    """
+    This function determines if a star is within the FOV of a specific
+    PLATO camera group. 
+
+    Parameters
+    ----------
+    camGroup : int [1, 2, 3, 4]
+        N-CAM camera group ID
+    raPF : float
+        Right acsension of pointing field [deg]
+    decPF : float
+        Declination of pointing field [deg]
+    ra : list, array
+        Right ascension of stars to be checked against [deg]
+    dec : list, tuple, array
+        Declination of stars to be checked against [deg]
+
+    Return
+    ------
+    dex : list
+       Indices booleans with True being all stars within camera group FOV
+    distanceOA : list
+       Distance of each from the camera's optical axis [mm]
+    """
+
+    # Setup for simulation object
+
+    inputFile = os.getenv("PLATO_PROJECT_HOME") + "/inputfiles/inputfile.yaml"
+    sim = Simulation(None, inputFile)
+
+    # Telescope config
+
+    quarter = 1
+
+    raPlatformDeg  = sim["ObservingParameters/RApointing"]  = raPF   # [deg]
+    decPlatformDeg = sim["ObservingParameters/DecPointing"] = decPF  # [deg]
+
+    raPlatformRad  = np.deg2rad(raPlatformDeg)   # [rad]
+    decPlatformRad = np.deg2rad(decPlatformDeg)  # [rad]
+
+    focalLength      = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
+    focalPlaneAngle  = np.deg2rad(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
+
+    solarPanelOrientation = sim["Platform/SolarPanelOrientation"] = math.fmod(quarter * 90., 360.)-4
+    solarPanelOrientation = np.deg2rad(float(solarPanelOrientation))
+
+    raTargetsRad  = np.deg2rad(ra)   # [rad]
+    decTargetsRad = np.deg2rad(dec)  # [rad]
+
+    # Loop over each star for this cam-group
+
+    sim["Telescope/GroupID"] = camGroup
+    azimuthTelescope = np.deg2rad(sim["CameraGroups/AzimuthAngle"][camGroup-1])
+    tiltTelescope    = np.deg2rad(sim["CameraGroups/TiltAngle"][camGroup-1])
+
+    dexGroup   = np.zeros(len(ra), dtype=bool)
+    distanceOA = np.zeros(len(ra))
+
+    for i in range(len(ra)):
+
+        subfieldIsOnCCD = sim.setSubfieldAroundCoordinates(raTargetsRad[i], decTargetsRad[i],
+                                                           sizeSubfield, sizeSubfield, normal=True)
+        if subfieldIsOnCCD:
+
+            xFP, yFP = skyToFocalPlaneCoordinates(raTargetsRad[i], decTargetsRad[i],
+                                                  raPlatformRad, decPlatformRad,
+                                                  solarPanelOrientation,
+                                                  tiltTelescope, azimuthTelescope,
+                                                  focalPlaneAngle, focalLength)
+
+            distanceOA[i] = np.rad2deg(gnomonicRadialDistanceFromOpticalAxis(xFP, yFP,
+                                                                             focalLength))
+
+            if distanceOA[i] < 18.2: #sim['CCD/RelativeTransmissivity/RadiusFOV']:
+                dexGroup[i] = True
+            else:
+                dexGroup[i] = False
+
+        # Compile to bash
+        compilation(i, len(ra), 'Group {}'.format(camGroup))
+    print; print('')
+
+    return dexGroup, distanceOA
+
+
+
+
+
+
+
+
+
+def getInterPixelPositions(raPF, decPF, ra, dec):
+
+    # Setup for simulation object
+
+    inputFile = os.getenv("PLATO_PROJECT_HOME") + "/inputfiles/inputfile.yaml"
+    sim = Simulation(None, inputFile)
+
+    # Telescope config
+
+    quarter = 1
+
+    raPlatformDeg  = sim["ObservingParameters/RApointing"]  = raPF   # [deg]
+    decPlatformDeg = sim["ObservingParameters/DecPointing"] = decPF  # [deg]
+
+    raPlatformRad  = np.deg2rad(raPlatformDeg)   # [rad]
+    decPlatformRad = np.deg2rad(decPlatformDeg)  # [rad]
+
+    focalLength      = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
+    focalPlaneAngle  = np.deg2rad(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
+
+    solarPanelOrientation = sim["Platform/SolarPanelOrientation"] = math.fmod(quarter * 90., 360.) -6
+    solarPanelOrientationRad = np.deg2rad(float(solarPanelOrientation))
+
+    raTargetsRad  = np.deg2rad(ra)   # [rad]
+    decTargetsRad = np.deg2rad(dec)  # [rad]
+
+    # Loop over each star for this cam-group
+
+    camGroup = 1
+    sim["Telescope/GroupID"] = camGroup
+    azimuthTelescopeRad = np.deg2rad(sim["CameraGroups/AzimuthAngle"][camGroup-1])
+    tiltTelescopeRad    = np.deg2rad(sim["CameraGroups/TiltAngle"][camGroup-1])
+
+    # CCD properties
+
+    pixelSize = float(sim["CCD/PixelSize"])
+    
+    ccdCode = np.zeros(len(ra))
+    xCCD    = np.zeros(len(ra))
+    yCCD    = np.zeros(len(ra))
+
+    for i in range(len(ra)):
+
+        subfieldIsOnCCD = sim.setSubfieldAroundCoordinates(raTargetsRad[i], decTargetsRad[i],
+                                                           6, 6, normal=True)
+        if subfieldIsOnCCD:
+    
+            # Fetch CCD code and pixel coordinates (account for field distortion in included)
+            
+            if sim["Camera/IncludeFieldDistortion"]:
+                includeFieldDistortion = sim["Camera/IncludeFieldDistortion"]
+                if sim["Camera/FieldDistortion/Type"] == 'FromFile':
+                    mappedDistortion = True
+                    distortionCoefficients = sim["Camera/FieldDistortion/CoefficientsFromFile"]
+                else:
+                    mappedDistortion = False
+                    distortionCoefficients = sim["Camera/FieldDistortion/ConstantCoefficients"]
+            else:
+                includeFieldDistortion = False
+                mappedDistortion = False
+                distortionCoefficients = False
+                
+            ccdCode[i], xCCD[i], yCCD[i] = getCCDandPixelCoordinates(raTargetsRad[i], decTargetsRad[i],
+                                                                     raPlatformRad, decPlatformRad,
+                                                                     solarPanelOrientationRad,
+                                                                     tiltTelescopeRad, azimuthTelescopeRad,
+                                                                     focalPlaneAngle, focalLength, pixelSize,
+                                                                     includeFieldDistortion, normal=True,
+                                                                     mappedDistortion=mappedDistortion,
+                                                                     distortionCoefficients=distortionCoefficients)
+
+        # Compile to bash
+        compilation(i, len(ra), 'Computing pixel positions')
+    print; print('')
+    
+    return ccdCode, xCCD, yCCD
+
+
+
+
+
+
+
 
 # def picOfDestiny(distribution, prange):
 #     """
@@ -280,4 +537,3 @@ def NSRphotonNoiseLimit(P, Ncam=24., Ntra=1., tdur=3600., camType='N'):
 #         return pick
 #     else:
 #         return distribution_pick(distribution, range)
-

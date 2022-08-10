@@ -347,7 +347,7 @@ with suppress_stdout():
     test16_3 = Short2013CTIFromFile()
     out16_3  = test16_3.run()
 
-name = "Sort 2013 from file model"
+name = "Short 2013 from file model"
 testMessages.append("{:<9}  {:^42}:{}".format("Test16.3:", name, success[out16_3]))
 print(testMessages[-1])
 
