@@ -309,6 +309,7 @@ class Detector: public HDF5Writer
         bool includeQuantisation;                // Whether or not to include quantisation
 
         int beginExposureNr;                     // Sequential number of the very first exposure. See yaml input file.
+        int finalExposureNr;                     // Sequential number of the very last exposure: beginExposureNr + numExposures
 
         double nominalOperatingTemperature;
         double internalTime;
