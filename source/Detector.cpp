@@ -537,6 +537,8 @@ void Detector::updateParameters(double time)
         readCTIinputFile(ctiInputFile);
         radiationSmearingMap.resize(numRowsSmearingMap, numColumnsPixelMap);
         radiationSmearingMap.fill(1.0);
+	numberOfOccupiedTrapsPixelMap = arma::zeros<arma::Mat<float>>(numTrapSpecies, numColumnsPixelMap);
+        numberOfOccupiedTrapsSmearingMap = arma::zeros<arma::Mat<float>>(numTrapSpecies, numColumnsPixelMap);
     }
     else
     {
@@ -561,8 +563,8 @@ void Detector::updateParameters(double time)
     darkSignalSeed      = configParam.getLong("RandomSeeds/DarkSignalSeed");
 
     // Get the sequential number of the very first exposure
-
     beginExposureNr     = configParam.getInteger("ObservingParameters/BeginExposureNr");
+    finalExposureNr     = beginExposureNr + configParam.getInteger("ObservingParameters/NumExposures");
 
     numEdgePixels = 0;
  }
@@ -646,11 +648,11 @@ void Detector::readCTIinputFile(string ctiInputFile)
     arma::Mat<float> map(numRows, numColumns); 
     CTIFile.readArray("/", "radiationMap", map); 
 
-    // Rescale the radiation map so that it has mean = 1, and only keep the part relevant to subfield we're interested in. 
+    // Rescale the radiatio  map so that it has mean = 1, and only keep the part relevant to subfield we're interested in.
 
     radiationMap.resize(numRowsPixelMap, numColumnsPixelMap); 
     radiationMap = map.submat(subFieldZeroPointRow, subFieldZeroPointColumn, subFieldZeroPointRow+numRowsPixelMap-1, subFieldZeroPointColumn+numColumnsPixelMap-1); 
-    radiationMap /= arma::mean(arma::mean(map)); 
+    radiationMap /= arma::mean(arma::mean(map));
 
     // That's it!  
 
@@ -2001,7 +2003,7 @@ void Detector::setInitialNumberOfOccupiedTraps(arma::Mat<float> &numberOfOccupie
     for (int k = 0; k < numTrapSpecies; k++)
     {
       arma::Mat<float> currentTrapDensityMap =
-          (meanTrapDensityBOL[k]) * (radiationMap);
+	(meanTrapDensityBOL[k] + (meanTrapDensityEOL[k] - meanTrapDensityBOL[k]) * beginExposureNr / finalExposureNr) * (radiationMap);
 
       arma::Row<float> gamma(numColumnsPixelMap, arma::fill::zeros);
       gamma = 2 * currentTrapDensityMap.row(0) *
