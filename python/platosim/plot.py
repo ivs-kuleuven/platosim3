@@ -668,8 +668,6 @@ def drawStarInCCDfocalPlane(fig, sim, xCCD, yCCD, refCcdCode, refGroup, raPlatfo
     plt.legend(prop={"size": 12}, bbox_to_anchor=(1.0, 1.0))
     ax.set_xlabel("Column [pixel]", fontsize=15)
     ax.set_ylabel("Row [pixel]", fontsize=15)
-    #ax.set_xticks(np.arange(-5000, 9000, 1000))
-    #ax.set_yticks(np.arange(0, 13000, 1000))
     ax.set_aspect('equal', 'box')
     plt.tight_layout()
 

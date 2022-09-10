@@ -326,7 +326,10 @@ class PLATOnium(object):
 
         # Print to bash
         if self.verbose > 0:
-            print(f'Simulating N-CAM {self.group}.{self.camera} Q{self.quarter} for {self.numExposures} exposures')
+            if args.plot:
+                print(f'Visualizing simulation for N-CAM {self.group}.{self.camera} Q{self.quarter}')
+            else:
+                print(f'Simulating N-CAM {self.group}.{self.camera} Q{self.quarter} for {self.numExposures} exposures')
             
 
         # PHYSICAL PARAMETERS
@@ -395,26 +398,24 @@ class PLATOnium(object):
         if self.reuseJitter:
             sim["Platform/UseJitter"]    = True
             sim["Platform/JitterSource"] = 'FromFile'
-
-            print(sim["Platform/JitterFileName"])
-            exit()
-            inputFileAOCS = self.inputDir.joinpath(sim["Platform/JitterFileName"])
-            print(inputFileAOCS); exit()
-
-            # Check if first quarter or else create new time column
-            if self.quarter == 1 and int(self.df0['CCD']) == 1:
-                os.system(f'cp {spiralFileBase} {spiralFileQuarterN}')
+            inputFileAOCS   = self.inputDir.joinpath(sim["Platform/JitterFileName"])
+            inputFileAOCS_Q = f'{self.inputDir}/AOCS_Q{self.quarter}.txt'
+            # Check if the exists or else create new time column
+            if Path(inputFileAOCS_Q).is_file():
+                pass
+            elif self.quarter == 1:
+                os.system(f'cp {inputFileAOCS} {inputFileAOCS_Q}')
             else:
                 # Load file given in YAML input
-                data = np.loadtxt(spiralFileBase)
+                data = np.loadtxt(inputFileAOCS)
                 t, x, y, z = data[:,0], data[:,1], data[:,2], data[:,3]
                 # Generate new time column
                 cadence = np.diff(t)[0]  # [s -> 8 Hz]
                 t = np.arange(len(t)) * cadence + self.timeStart
                 # Save data to input folder
-                np.savetxt(spiralFileQuarterN, np.transpose([t,x,y,z]), fmt=['%.3f', '%.9f', '%.9f', '%.9f'])
-
-            sim["Platform/JitterFileName"] = inputFileAOCS
+                np.savetxt(inputFileAOCS_Q, np.transpose([t,x,y,z]), fmt=['%.3f', '%.9f', '%.9f', '%.9f'])
+            # Set filepath to new file
+            sim["Platform/JitterFileName"] = inputFileAOCS_Q
                                     
         # The TED is needs handling for each camera seperately
         # NOTE if from file 24 files needs to be present in a user defined path from the inputfile
