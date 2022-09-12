@@ -1218,9 +1218,9 @@ def plotYawPitchRollPSD(fig, time, signals, scale=1e-6, carbox=144, title=False,
 
 
 
-def plotYawPitchRollJitter(time, signals, clabel, cmap='gnuplot', plottype='short', tpoint=100, title=False):
+def plotYawPitchRollJitter(time, signals, clabel, tpoint=100, lim=0.15, cmap='gnuplot', plottype='short', title=False):
     """
-    This function can be used to plot a time series of spacecraft jitter.
+v    This function can be used to plot a time series of spacecraft jitter.
     For time series on short time scales, the correlation between yaw, pitch,
     and roll can be illustrated using the the "plottype='short'" option. For
     visualising the entire jitter time series correlated between yaw, pitch,
@@ -1248,11 +1248,9 @@ def plotYawPitchRollJitter(time, signals, clabel, cmap='gnuplot', plottype='shor
     Nothing so far
     """
 
-    # Hardcode values
-
-    lim    = np.max(np.abs(signals))
-    nticks = 5
+    # Hardcode valukes
     labels = ['Yaw [arcsec]', 'Pitch [arcsec]', 'Roll [arcsec]']
+    nticks = 5
     sms = 5
     al  = 1
 
@@ -1272,7 +1270,6 @@ def plotYawPitchRollJitter(time, signals, clabel, cmap='gnuplot', plottype='shor
         for row in range(3):
 
             # Plots
-
             ax[row, 0].plot(signals[1][tpoint*row:tpoint*(row+1)], signals[0][tpoint*row:tpoint*(row+1)], 'k-', alpha=al, lw=lw, zorder=1)
             ax[row, 1].plot(signals[2][tpoint*row:tpoint*(row+1)], signals[0][tpoint*row:tpoint*(row+1)], 'k-', alpha=al, lw=lw, zorder=1)
             ax[row, 2].plot(signals[2][tpoint*row:tpoint*(row+1)], signals[1][tpoint*row:tpoint*(row+1)], 'k-', alpha=al, lw=lw, zorder=1)
@@ -1287,7 +1284,6 @@ def plotYawPitchRollJitter(time, signals, clabel, cmap='gnuplot', plottype='shor
                                      c=time[tpoint*row:tpoint*(row+1)], s=sms, cmap=cmap, zorder=2)
 
             # Labels
-
             ax[2, 0].set_xlabel(labels[1])
             ax[2, 1].set_xlabel(labels[2])
             ax[2, 2].set_xlabel(labels[2])
@@ -1296,33 +1292,26 @@ def plotYawPitchRollJitter(time, signals, clabel, cmap='gnuplot', plottype='shor
             ax[row, 2].set_ylabel(labels[1])
 
             # Remove tick labels on x axis except for last plot
-
             if row < 2:
                 ax[row, 0].tick_params(labelbottom=False)
                 ax[row, 1].tick_params(labelbottom=False)
                 ax[row, 2].tick_params(labelbottom=False)
 
             # Duplicate settings for each plotted row
-
             for col, im in zip(range(3), [im0, im1, im2]):
 
                 # Axes limits
-
-                ax[row, col].set_xlim(-lim, lim)
                 ax[row, col].set_ylim(-lim, lim)
                 ax[row, col].set_aspect('equal', 'box')
 
                 # Force the same number of ticks
-
                 ax[row, col].xaxis.set_major_locator(MaxNLocator(nticks))
                 ax[row, col].yaxis.set_major_locator(MaxNLocator(nticks))
 
                 # Set grid
-
                 ax[row, col].grid(c='gray', ls='-', lw=lw, alpha=al)
 
                 # Color bars
-
                 div = make_axes_locatable(ax[row, col])
                 cax = div.append_axes('right', size='10%', pad=0.1)
                 cbar = plt.colorbar(im, ax=ax[row, col], cax=cax, extend='max')
