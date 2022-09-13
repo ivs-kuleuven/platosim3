@@ -56,12 +56,10 @@ docs/tutorials/Photometry/photometrySimulation*
 docs/tutorials/Photometry/photometryOutput.hdf5
 docs/validation/photometryOutput*
 
+# Ignore files for PLATOnium
+
 # platonium
-
-
-# picsim
-PIC1.1.0/
-gaiaDR3.png
+.platonium_init
 
 # varsim
 PHOENIX_HiResFITS/
