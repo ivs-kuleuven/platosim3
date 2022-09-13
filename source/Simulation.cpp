@@ -76,7 +76,7 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     // Write the version info to the output HDF5 file
 
-    writeVersionInformationToHDF5();
+    hdf5File->writeVersionInformation();
 
 
     double readoutTimeDuringNextExposure;
@@ -512,32 +512,6 @@ void Simulation::run()
     }
 }
 
-
-
-
-
-
-
-
-
-
-/**
- * \brief Take care that the version of the simulator is included in the HDF5 file,.
- */
-
-void Simulation::writeVersionInformationToHDF5()
-{
-    Log.info("Simulation: writing version information to HDF5");
-
-    // Make the parent group
-
-    string parentGroup = "/Version";
-    hdf5File->createGroup(parentGroup);
-
-    hdf5File->writeAttribute(parentGroup, "Application", string("PlatoSim3"));
-    hdf5File->writeAttribute(parentGroup, "GitVersion", string(GIT_DESCRIBE));
-
-}
 
 
 

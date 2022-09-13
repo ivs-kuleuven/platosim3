@@ -3466,17 +3466,7 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
 
     if (writeThroughputMaps)
     {
-        // Clear the string stream and compose the throughput map name
-
-        myStream.str(string());      // insert empty string
-        myStream.clear();            // clear eof bit
-
-        myStream << "throughputMap" << setfill('0') << setw(6) << exposureNr;
-        string throughputMapName = myStream.str();
-
-        // Add the throughput map to the "ThroughputMaps" group
-
-        hdf5File.writeArray("/ThroughputMaps", throughputMapName, throughputMap);
+      hdf5File.writeThroughput(exposureNr, throughputMap);
     }
 }
 

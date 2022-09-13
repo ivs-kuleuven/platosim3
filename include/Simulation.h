@@ -49,7 +49,6 @@ class Simulation
     protected:
 
         virtual void writeInputParametersToHDF5(ConfigurationParameters &configParams);
-        virtual void writeVersionInformationToHDF5();
         virtual void writeStarCatalogToHDF5();
         virtual void setRandomSeeds(ConfigurationParameters &configParams);
 

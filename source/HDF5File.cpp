@@ -1968,6 +1968,126 @@ void HDF5File::readArray(string groupName, string arrayName, vector<unsigned int
 
 
 
+/**
+ * \brief: include version of the simulator in the HDF5 file,.
+ */
+
+void HDF5File::writeVersionInformation()
+{
+    Log.info("Simulation: writing version information to HDF5");
+
+    // Make the parent group
+
+    string parentGroup = "/Version";
+    createGroup(parentGroup);
+
+    writeAttribute(parentGroup, "Application", string("PlatoSim3"));
+    writeAttribute(parentGroup, "GitVersion", string(GIT_DESCRIBE));
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief: include the tranmsissionEfficiency values to the HDF5 file.
+ *
+ */
+void HDF5File::writeTransmissionEfficiencyValues(double* array, int size)
+{
+    writeArray("TransmissionEfficiency/", "transmissionEfficiency", array, size);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief: include the throughput map to the HDF5 file.
+ *
+ */
+void HDF5File::writeThroughput(int exposureNr, arma::Mat<float>& throughputMap)
+{
+    // Clear the string stream and compose the throughput map name
+    stringstream myStream;
+    myStream.str(string());      // insert empty string
+    myStream.clear();            // clear eof bit
+
+    myStream << "throughputMap" << setfill('0') << setw(6) << exposureNr;
+    string throughputMapName = myStream.str();
+
+    // Add the throughput map to the "ThroughputMaps" group
+    writeArray("/ThroughputMaps", throughputMapName, throughputMap);
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief: includes the TelescopeACS to the HDF5 file.
+ *
+ */
+void HDF5File::writeTelescopeACS(vector<double>& time, vector<double>& RA, vector<double>& dec,
+				 vector<double>& yaw, vector<double>& pitch, vector<double>& roll)
+{
+    writeArray("/Telescope/", "Time",           time.data(),    time.size());
+    writeArray("/Telescope/", "TelescopeRA",    RA.data(),      RA.size());         // [deg]
+    writeArray("/Telescope/", "TelescopeDec",   dec.data(),     dec.size());        // [deg]
+    writeArray("/Telescope/", "TelescopeYaw",   yaw.data(),     yaw.size());        // [arcsec]
+    writeArray("/Telescope/", "TelescopePitch", pitch.data(),   pitch.size());      // [arcsec]
+    writeArray("/Telescope/", "TelescopeRoll",  roll.data(),    roll.size());       // [arcsec]
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+// /**
+//  * /brief: save the star positions to the HDF5 file.
+//  *
+//  */
+// void HDF5File::writeStarPosition
+
+
+
+
+
+
+
+
+
+
+
 
 
 // fileExists()

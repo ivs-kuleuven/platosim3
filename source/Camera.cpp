@@ -448,7 +448,7 @@ void Camera::flushOutput()
     // Write the transmissionEfficiency values for each exposureTime to HDF5 in a custom group
     if (writeTransmissionEfficiency)
     {
-    hdf5File.writeArray("TransmissionEfficiency/", "transmissionEfficiency", transmissionEfficiencyValues.data(), transmissionEfficiencyValues.size());
+      hdf5File.writeTransmissionEfficiencyValues(transmissionEfficiencyValues.data(), transmissionEfficiencyValues.size());
     }
 
 }
@@ -756,7 +756,6 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
         {
             // Calculate the focal-plane coordinates of the current star
             // (apply field distortion, if enabled)
-
             tie(starID, raStar, decStar, magStar) = sky.getSelectedStar(starIndex);     // Sky coordinates in radians
             tie(xStar, yStar) = skyToFocalPlaneCoordinates(raStar, decStar);            // [mm]
 
@@ -1028,7 +1027,6 @@ tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &d
     if (isMapped)
     {
       Log.info("Camera: including field distortion for mapped PSF");
-
       detector.applyInverseDistortion(centerSubFieldXmm, centerSubFieldYmm);
       detector.applyInverseDistortion(corner00Xmm, corner00Ymm);
       detector.applyInverseDistortion(corner11Xmm, corner11Ymm);

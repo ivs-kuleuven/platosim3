@@ -12,6 +12,7 @@
 #include "armadillo"
 
 #include "Logger.h"
+#include "version.h"
 #include "HDF5Exceptions.h"
 
 using namespace std;
@@ -63,6 +64,12 @@ class HDF5File
         void readArray(string groupName, string arrayName, arma::Mat<float>& A);
         void readArray(string groupName, string arrayName, vector<double> &vec);
         void readArray(string groupName, string arrayName, vector<unsigned int> &vec);
+
+        void writeVersionInformation();
+        void writeTransmissionEfficiencyValues(double* array, int size);
+        void writeThroughput(int exposureNr, arma::Mat<float>& throughputMap);
+        void writeTelescopeACS(vector<double>&, vector<double>&, vector<double>&, vector<double>&,
+			       vector<double>&, vector<double>&);
 
     protected:
 
