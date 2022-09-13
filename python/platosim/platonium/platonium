@@ -442,6 +442,7 @@ class PLATOnium(object):
         tiltTelescopeRad         = np.deg2rad(tiltTelescopeDeg)
         azimuthTelescopeRad      = np.deg2rad(azimuthTelescopeDeg)
         solarPanelOrientationRad = np.deg2rad(solarPanelOrientationDeg)
+        # Call function
         self.subfieldIsOnCCD = sim.setSubfieldAroundCoordinates(raTargetRad, decTargetRad,
                                                                 numColSubfield, numRowSubfield,
                                                                 normal=True)
@@ -478,19 +479,32 @@ class PLATOnium(object):
                 errorcode('warning', message)
             exit()
 
-        # Fetch CCD code and pixel coordinates (account for field distortion in included)
-        if sim["Camera/IncludeFieldDistortion"]:
-            includeFieldDistortion = sim["Camera/IncludeFieldDistortion"]
-            if sim["Camera/FieldDistortion/Type"] == 'FromFile':
-                mappedDistortion = True
-                distortionCoefficients = sim["Camera/FieldDistortion/CoefficientsFromFile"]
-            else:
-                mappedDistortion = False
-                distortionCoefficients = sim["Camera/FieldDistortion/ConstantCoefficients"]
+        # Fetch CCD code and pixel coordinates (account for field distortion if included)
+
+        # If the psf is MappedFromFile we need to include mapped field distortion
+        if sim["PSF/Model"] == "MappedFromFile":
+            includeFieldDistortion = True
+            mappedDistortion       = True
+            pathToPsfFile          = sim["PSF/MappedFromFile/Filename"]
+            distortionCoefficients = None
+        elif (sim["Camera/IncludeFieldDistortion"] == "yes" or
+              sim["Camera/IncludeFieldDistortion"] == "1"   or
+              sim["Camera/IncludeFieldDistortion"] == True):
+            includeFieldDistortion = True
+            mappedDistortion       = False
+            pathToPsfFile          = None 
+            distortionCoefficients = sim["Camera/FieldDistortion/ConstantCoefficients"]
         else:
             includeFieldDistortion = False
-            mappedDistortion = False
-            distortionCoefficients = False
+            mappedDistortion       = False
+            pathToPsfFile          = None 
+            distortionCoefficients = None
+
+        #ccdCode = int(sim['CCD/Position'])
+        #xCCD = float(sim['SubField/ZeroPointColumn']) + float(sim['SubField/NumColumns'])
+        #yCCD = float(sim['SubField/ZeroPointRow'])    + float(sim['SubField/NumRows'])
+        #print(ccdCode, xCCD, yCCD); exit()
+        
         ccdCode, xCCD, yCCD = rf.getCCDandPixelCoordinates(raTargetRad, decTargetRad,
                                                            raPlatformRad, decPlatformRad,
                                                            solarPanelOrientationRad,
@@ -498,7 +512,8 @@ class PLATOnium(object):
                                                            focalPlaneAngle, focalLength, pixelSize,
                                                            includeFieldDistortion, normal=True,
                                                            mappedDistortion=mappedDistortion,
-                                                           distortionCoefficients=distortionCoefficients)
+                                                           distortionCoefficients=distortionCoefficients,
+                                                           pathToPsfFile=pathToPsfFile)
         
 
         # Create data frame for printing and saving
