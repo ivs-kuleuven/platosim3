@@ -122,7 +122,10 @@ class PLATOnium(object):
 
         # Absolute pwd path
         self.path = Path(__file__).parent.resolve()
-        
+
+        # PlatoSim inputfiles
+        self.platosimInputDir = self.path.joinpath(os.getenv('PLATO_PROJECT_HOME'), 'inputfiles')
+
         # First priotity to project name
         if self.project:
             self.simDir = self.path.joinpath(os.getenv('PLATO_WORKDIR'), self.project)
@@ -138,9 +141,6 @@ class PLATOnium(object):
         if not self.inputFile.is_file():
             errorcode('error', f'File {self.inputFile} do not exist!')        
 
-        # Model directory TODO not save - change!
-        self.modelDir = self.path.joinpath(os.getenv('PLATONIUM'), 'models')
-        
         # L1 pipeline paths
         if self.sample:
             # platoBin: extract_contaminant.py
@@ -356,7 +356,7 @@ class PLATOnium(object):
         # CONFIGURE SPACECRAFT
                 
         # Solar panel orientation: Q(N) = {0, 90, 180, 270} deg [deg]
-        solarPanelOrientationDeg = sim["Platform/SolarPanelOrientation"] = math.fmod(self.quarter * 84., 360.)
+        solarPanelOrientationDeg = sim["Platform/SolarPanelOrientation"] = math.fmod(self.quarter * 90., 360.) #-6
         # Select PLATO pointing field from inputfile (e.g. SPF, NPF, etc.) [deg]
         self.pointingField = sim["ObservingParameters/StarCatalogFile"]
         raPlatformDeg  = sim["ObservingParameters/RApointing"]  = self.PF[self.pointingField][0]
@@ -779,9 +779,12 @@ class PLATOnium(object):
         sim["ControlHDF5Content/WriteTransmissionEfficiency"] = True
         sim["ControlHDF5Content/WriteCTI"]                    = False
 
+        # Check for high res mapped PSF
+        if sim["PSF/Model"] == 'MappedFromFile':
+            sim["ControlHDF5Content/WriteDiffusedPSF"] = True
 
 
-
+            
     def run_microscan(self, sim):
         """
         Module to run a microscan sequence with PlatoSim.
@@ -790,18 +793,23 @@ class PLATOnium(object):
         # Print to bash
         if self.verbose > 0:
             errorcode('module', 'Microscanning Sequence & PSF Inversion')
-        
+
+        # Check if mapped PSFs are used and apply correct resolution
+        if sim["PSF/Model"] == 'MappedFromFile':
+            sim["SubField/SubPixels"] = 64
+        else:
+            sim["SubField/SubPixels"] = 128
+            
         # Prepare for the Archimedean jitter spiral pattern
         sim["Platform/UseJitter"]    = 'yes'
         sim["Platform/JitterSource"] = 'FromFile'
-        sim["SubField/SubPixels"]    = 128
         sim["ObservingParameters/NumExposures"] = 430
 
         # Time of microscan simulation needs to match quarter for PlatoSim to run successfully
         # NOTE Here a new file is created with a appropriate time column to match the observation
         # NOTE This is done once per quarter and CCD time-shift and the file is saved to the simulation folder
-        spiralFileBase     = f'{self.modelDir}/AOCS/spiral_8Hz_airbus_3h.txt'
-        spiralFileQuarterN = f'{self.microscanDirStarID}/spiral_8Hz_airbus_3h.txt'
+        spiralFileBase     = f'{self.platosimInputDir}/AOCS_spiral_8Hz_airbus_3h.txt'
+        spiralFileQuarterN = f'{self.microscanDirStarID}/AOCS_spiral_8Hz_airbus_3h.txt'
         if self.quarter == 1 and int(self.df0['CCD']) == 1:
             os.system(f'cp {spiralFileBase} {spiralFileQuarterN}')
         else:
