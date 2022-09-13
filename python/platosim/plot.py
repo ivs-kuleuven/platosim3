@@ -1218,9 +1218,9 @@ def plotYawPitchRollPSD(fig, time, signals, scale=1e-6, carbox=144, title=False,
 
 
 
-def plotYawPitchRollJitter(time, signals, clabel, tpoint=100, lim=0.15, cmap='gnuplot', plottype='short', title=False):
+def plotYawPitchRollJitter(time, signals, clabel, tpoint=100, lim=0.20, cmap='gnuplot', plottype='short', title=False):
     """
-v    This function can be used to plot a time series of spacecraft jitter.
+    This function can be used to plot a time series of spacecraft jitter.
     For time series on short time scales, the correlation between yaw, pitch,
     and roll can be illustrated using the the "plottype='short'" option. For
     visualising the entire jitter time series correlated between yaw, pitch,
@@ -2061,7 +2061,7 @@ def plotPlatoFOV(pointingField, raStars, decStars, magStars=None, nCamVis=None, 
     """
 
     # Select field
-    indir = os.getenv('PLATO_PROJECT_HOME') + '/python/picsim/'
+    indir = os.getenv('PLATO_PROJECT_HOME') + '/python/platosim/picsim/'
     if pointingField == 'NPF': PF_gal = [65.0, 30.0]
     if pointingField == 'SPF': PF_gal = [253.0, -30.0]
 

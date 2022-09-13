@@ -143,7 +143,7 @@ fileFormat = '.ftr'
 # Default is to use the latest PIC catalog saved
 # Else several old catalogs can be parsed for replotting
 # E.g. use: -intar starcat**targets.txt --incon starcat**contaminants.txt
-inputDir     = Path(os.getenv('PLATO_PROJECT_HOME')) / 'python/picsim'
+inputDir     = Path(os.getenv('PLATO_PROJECT_HOME')) / 'python/platosim/picsim'
 inputFileTar = inputDir / 'PIC110target'
 inputFileCon = inputDir / 'PIC110contaminant'
 
@@ -256,12 +256,13 @@ try:
 except:
     inuaguration = True
     errorcode('message', 'Inuaguration: Welcome to the PIC of Destiny!')
-    print(f"Downloading PIC 1.1.0 catalogue...")
+    print(f'Downloading PIC 1.1.0 catalogue...')
     url_tar = 'ftp://plato:miSotalP@ftp.ster.kuleuven.be/PIC110target.npy'
     url_con = 'ftp://plato:miSotalP@ftp.ster.kuleuven.be/PIC110contaminant.npy'
     with urllib.request.urlopen(url_tar) as response, open(inputFileTar.with_suffix('.npy'), "wb") as out_file:
         data = response.read()
         out_file.write(data)
+        #print(out_file); exit()
     with urllib.request.urlopen(url_con) as response, open(inputFileCon.with_suffix('.npy'), "wb") as out_file:
         data = response.read()
         out_file.write(data)
