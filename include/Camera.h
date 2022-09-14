@@ -116,6 +116,7 @@ class Camera : public HDF5Writer
         map<double, map<unsigned int, array<double, 6>>> detectedPointLikeGhostInfo;
         vector<double> skyBackgroundValues;
         vector<double> transmissionEfficiencyValues;
+        vector<unsigned int> starIDsInSubfield;
         double totalSkyBackground;          // Total sky background [photons / pixel / exposure]
 
         bool includePointLikeGhosts;                                // Whether or not to include pointlike ghosts

@@ -2072,11 +2072,177 @@ void HDF5File::writeTelescopeACS(vector<double>& time, vector<double>& RA, vecto
 
 
 
-// /**
-//  * /brief: save the star positions to the HDF5 file.
-//  *
-//  */
-// void HDF5File::writeStarPosition
+/**
+ * /brief: save the star positions to the HDF5 file.
+ * /Note: This is the old way of doing things!
+ *
+ */
+void HDF5File::writeStarPosition1(map<double, map<unsigned int, array<double, 6>>>& detectedStarInfo, int beginExposureNr)
+{
+
+    Log.info("HDF5File: writing star positions to HDF5 file");
+
+    vector<double> time;
+    for(auto keyValuePair: detectedStarInfo)
+    {
+      time.push_back(keyValuePair.first);
+    }
+    if (!time.empty())
+    {
+      writeArray("StarPositions/", "Time", time.data(), time.size());
+    }
+    else
+    {
+      Log.warning("HDF5File: No star positions to write to HDF5 file.");
+    }
+
+    // For each of the exposures, make a subgroup and write the position and flux of all detected stars.
+    // Because some stars at the edge may jitter in and out of the subfield from one exposure to the other,
+    // the written arrays may not be equally long for each exposure.
+
+    for (int n = 0; n < time.size(); n++)
+    {
+      // Make the sub-group
+      
+      stringstream myStream;
+      myStream << "Exposure" << setfill('0') << setw(6) << beginExposureNr + n;
+      const string exposureGroupName = "/StarPositions/" + myStream.str();
+      createGroup(exposureGroupName);
+
+      // Collect the different time series. For the positions, we only compute the sum, so we still need
+      // to divide by N to compute the average, where N is the number of times the star was detected to be
+      // in the subfield during an exposure.
+
+      vector<unsigned int> starIDs;
+      vector<double> xFPmm;
+      vector<double> yFPmm;
+      vector<double> rowPix;
+      vector<double> colPix;
+      vector<double> flux;
+
+      for(auto keyValuePair: detectedStarInfo[time[n]])
+      {
+	const unsigned int starID = keyValuePair.first;
+	starIDs.push_back(starID);                       // list of starIDs for this exposure only
+	xFPmm.push_back(detectedStarInfo[time[n]][starID][0] / detectedStarInfo[time[n]][starID][5]);
+	yFPmm.push_back(detectedStarInfo[time[n]][starID][1] / detectedStarInfo[time[n]][starID][5]);
+	rowPix.push_back(detectedStarInfo[time[n]][starID][2] / detectedStarInfo[time[n]][starID][5]);
+	colPix.push_back(detectedStarInfo[time[n]][starID][3] / detectedStarInfo[time[n]][starID][5]);
+	flux.push_back(detectedStarInfo[time[n]][starID][4]);
+      }
+
+      // Write the time series to HDF5
+
+      if(!starIDs.empty())
+      {
+	writeArray(exposureGroupName, "starID", starIDs.data(), starIDs.size());
+	writeArray(exposureGroupName, "xFPmm",  xFPmm.data(),   xFPmm.size());
+	writeArray(exposureGroupName, "yFPmm",  yFPmm.data(),   yFPmm.size());
+	writeArray(exposureGroupName, "rowPix", rowPix.data(),  rowPix.size());
+	writeArray(exposureGroupName, "colPix", colPix.data(),  colPix.size());
+	writeArray(exposureGroupName, "flux",   flux.data(),    flux.size());
+      }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * /brief: save the star positions to the HDF5 file.
+ * /Note: This is the new way of doing things!
+ *
+ */
+void HDF5File::writeStarPosition2(map<double, map<unsigned int, array<double, 6>>>& detectedStarInfo, vector<unsigned int> starIDs)
+{
+    Log.info("HDF5File: writing star positions to HDF5 file");
+    map<unsigned int, map<double, array<double, 6>>> transformedDetectedStarInfo;
+    vector<double> time;
+    for(auto keyValuePair: detectedStarInfo)
+    {
+      time.push_back(keyValuePair.first);
+    }
+    if (!time.empty())
+    {
+      writeArray("StarPositions/", "Time", time.data(), time.size());
+    }
+    else
+    {
+      Log.warning("HDF5File: No star positions to write to HDF5 file.");
+    }
+
+    // For each starID, make a subgroup and write the position and flux of all detected stars.
+    // Because some stars at the edge may jitter in and out of the subfield from one exposure to the other,
+    // the written arrays may not be equally long for each exposure.
+
+    for (int n = 0; n < time.size(); n++)
+    {
+
+      for(auto keyValuePair: detectedStarInfo[time[n]])
+      {
+	const unsigned int starID = keyValuePair.first;
+	transformedDetectedStarInfo[starID][time[n]] = detectedStarInfo[time[n]][starID];
+      }
+    }
+
+
+    for (int n = 0; n < starIDs.size(); n++)
+    {
+
+      // Collect the different time series. For the positions, we only compute the sum, so we still need
+      // to divide by N to compute the average, where N is the number of times the star was detected to be
+      // in the subfield during an exposure.
+
+      vector<unsigned int> times;
+      vector<double> xFPmm;
+      vector<double> yFPmm;
+      vector<double> rowPix;
+      vector<double> colPix;
+      vector<double> flux;
+
+      for(auto keyValuePair: transformedDetectedStarInfo[starIDs[n]])
+      {
+	const double time = keyValuePair.first;
+	times.push_back(time);
+	xFPmm.push_back(transformedDetectedStarInfo[starIDs[n]][time][0] / transformedDetectedStarInfo[starIDs[n]][time][5]);
+	yFPmm.push_back(transformedDetectedStarInfo[starIDs[n]][time][1] / transformedDetectedStarInfo[starIDs[n]][time][5]);
+	rowPix.push_back(transformedDetectedStarInfo[starIDs[n]][time][2] / transformedDetectedStarInfo[starIDs[n]][time][5]);
+	colPix.push_back(transformedDetectedStarInfo[starIDs[n]][time][3] / transformedDetectedStarInfo[starIDs[n]][time][5]);
+	flux.push_back(transformedDetectedStarInfo[starIDs[n]][time][4]);
+      }
+
+      // Write the time series to HDF5
+
+      if(!times.empty())
+      {
+	// Make the sub-group
+      
+	stringstream myStream;
+	myStream << "starID" << setfill('0') << setw(6) << 0 + starIDs[n];
+	const string exposureGroupName = "/StarPositions/" + myStream.str();
+	createGroup(exposureGroupName);
+	writeArray(exposureGroupName, "time", times.data(), times.size());
+	writeArray(exposureGroupName, "xFPmm",  xFPmm.data(),   xFPmm.size());
+	writeArray(exposureGroupName, "yFPmm",  yFPmm.data(),   yFPmm.size());
+	writeArray(exposureGroupName, "rowPix", rowPix.data(),  rowPix.size());
+	writeArray(exposureGroupName, "colPix", colPix.data(),  colPix.size());
+	writeArray(exposureGroupName, "flux",   flux.data(),    flux.size());
+      }
+      else
+      {
+	std::cout << "PASSED: " << std::endl;
+	std::cout << "n: " << n << ", IDS: " << starIDs[n] << std::endl;
+      }
+    }
+}
 
 
 
