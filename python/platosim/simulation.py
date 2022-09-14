@@ -566,8 +566,8 @@ class Simulation(object):
 
         INPUTS: ccdCode:       for nominal camera: either '1', '2', '3', '4'
                                for fast camera: either '1F', '2F', '3F', '4F'
-                xCCDpixel:     x-coordinate (column-number) of the star on the CCD  [pixel/float]
-                yCCDpixel:     y-coordinate (row-number) of the star on the CCD  [pixel/float]
+                xCCDpixel:     x-coordinate (column-number) of the star on the CCD [pixel/float]
+                yCCDpixel:     y-coordinate (row-number) of the star on the CCD [pixel/float]
                 subfieldSizeX: width (i.e. number of columns) of the sub-field [pixels]
                 subfieldSizeY: height (i.e. number of rows) of the sub-field [pixels]
 
@@ -662,7 +662,6 @@ class Simulation(object):
 
         """
         
-
         # Find out some instrumental characteristics from the sim object
 
         raPlatform       = np.deg2rad(float(self["ObservingParameters/RApointing"]))
@@ -679,18 +678,21 @@ class Simulation(object):
             azimuthTelescope = np.deg2rad(self["CameraGroups/AzimuthAngle"][telescopeGroupID-1])
             tiltTelescope = np.deg2rad(self["CameraGroups/TiltAngle"][telescopeGroupID-1])
 
-        focalLength      = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0                     # [m] -> [mm]     
+        solarPanelOrientation = np.deg2rad(float(self["Platform/SolarPanelOrientation"]))         # [rad]
+        focalLength      = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0               # [m] -> [mm]     
         focalPlaneAngle  = np.deg2rad(float(self["Camera/FocalPlaneOrientation/ConstantValue"]))
         pixelSize        = float(self["CCD/PixelSize"]) 
 
-
         # If the psf is MappedFromFile we need to include mapped field distortion
-        if (self["PSF/Model"] == "MappedFromFile"):
+        
+        if self["PSF/Model"] == "MappedFromFile":
             includeFieldDistortion = True
             mappedDistortion       = True
             pathToPsfFile          = self["PSF/MappedFromFile/Filename"]
             distortionCoefficients = None
-        elif (self["Camera/IncludeFieldDistortion"] == "yes")  or (self["Camera/IncludeFieldDistortion"] == "1" or (self["Camera/IncludeFieldDistortion"] == True)):
+        elif (self["Camera/IncludeFieldDistortion"] == "yes" or
+              self["Camera/IncludeFieldDistortion"] == "1"   or
+              self["Camera/IncludeFieldDistortion"] == True):
             includeFieldDistortion = True
             mappedDistortion       = False
             pathToPsfFile          = None 
@@ -701,15 +703,14 @@ class Simulation(object):
             pathToPsfFile          = None 
             distortionCoefficients = None
 
-        solarPanelOrientation = np.deg2rad(float(self["Platform/SolarPanelOrientation"]))               # [rad]
-
         # Compute the position of the subfield.
         # xPix and yPix are the CCD coordinates of the star, given a 4510x4510 CCD [colNumber, rowNumber].
         # The function below also checks if the subfield fits entirely on the CCD. If not: ccdCode is None.
  
-        ccdCode, xPix, yPix = rf.calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, decStar, raPlatform, decPlatform,           \
-                                                                    solarPanelOrientation, tiltTelescope, azimuthTelescope, focalPlaneAngle,          \
-                                                                    focalLength, pixelSize, includeFieldDistortion, normal, mappedDistortion, distortionCoefficients, pathToPsfFile)
+        ccdCode, xPix, yPix = rf.calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, decStar, raPlatform, decPlatform,
+                                                                    solarPanelOrientation, tiltTelescope, azimuthTelescope, focalPlaneAngle,
+                                                                    focalLength, pixelSize, includeFieldDistortion, normal,
+                                                                    mappedDistortion, distortionCoefficients, pathToPsfFile)
         if ccdCode == None:
             return False
         
@@ -721,27 +722,27 @@ class Simulation(object):
 
         # If we arrive here, there is no problem accommodating the entire sufield on the CCD
 
-        self["CCD/Position"] = str(ccdCode)
+        self["CCD/Position"]      = str(ccdCode)
         self["CCD/OriginOffsetX"] = str(CCDOriginOffsetX)
         self["CCD/OriginOffsetY"] = str(CCDOriginOffsetY)
-        self["CCD/Orientation"] = str(np.rad2deg(CCDOrientation))
+        self["CCD/Orientation"]   = str(np.rad2deg(CCDOrientation))
 
         self["CCD/NumColumns"] = CCDSizeX
-        self["CCD/NumRows"] = CCDSizeY
+        self["CCD/NumRows"]    = CCDSizeY
 
         if telescopeGroupID == "Fast":
             self["CCD/FirstRowExposed"] = str(2255)
         else:
             self["CCD/FirstRowExposed"] = str(0)
 
-        self["SubField/ZeroPointRow"] = str(yPix - int(subfieldSizeY/2))
+        self["SubField/ZeroPointRow"]    = str(yPix - int(subfieldSizeY/2))
         self["SubField/ZeroPointColumn"] = str(xPix - int(subfieldSizeX/2))
-        self["SubField/NumRows"] = str(subfieldSizeY)
+        self["SubField/NumRows"]    = str(subfieldSizeY)
         self["SubField/NumColumns"] = str(subfieldSizeX)
 
         self["Telescope/AzimuthAngle"] = np.rad2deg(azimuthTelescope)
-        self["Telescope/TiltAngle"] = np.rad2deg(tiltTelescope)
-
+        self["Telescope/TiltAngle"]    = np.rad2deg(tiltTelescope)
+        
         # That's it
 
         return True
