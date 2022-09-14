@@ -1240,6 +1240,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
     """
 
     # Make sure that for the respective field distortion the proper information is given.
+    
     if (includeFieldDistortion or includeFieldDistortion == "yes"):
         if (mappedDistortion and pathToPsfFile is None):
             print("Error: If mapped field distortion should be taken into account, a path to the psf file should be given")
@@ -1519,7 +1520,6 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
 
     # If the star does fall on a CCD, check if it's not too close to the edge for the subfield to
     # be completely on the CCD.
-
 
     xCCDpix = int(xCCDpix)                # integer values
     yCCDpix = int(yCCDpix)

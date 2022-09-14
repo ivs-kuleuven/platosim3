@@ -43,7 +43,7 @@ from platosim.plot import drawStarInCCDfocalPlane
 
 # Import repo matplotlibrc
 import matplotlib.pyplot as plt
-import platonium.matplotlibrc
+import platosim.platonium.matplotlibrc
 
 #==============================================================#
 #                        PLATOnium CLASS                       #
@@ -359,13 +359,13 @@ class PLATOnium(object):
         solarPanelOrientationDeg = sim["Platform/SolarPanelOrientation"] = math.fmod(self.quarter * 90., 360.) #-6
         # Select PLATO pointing field from inputfile (e.g. SPF, NPF, etc.) [deg]
         self.pointingField = sim["ObservingParameters/StarCatalogFile"]
-        raPlatformDeg  = sim["ObservingParameters/RApointing"]  = self.PF[self.pointingField][0]
-        decPlatformDeg = sim["ObservingParameters/DecPointing"] = self.PF[self.pointingField][1]
-
+        sim["ObservingParameters/RApointing"]  = self.PF[self.pointingField][0]
+        sim["ObservingParameters/DecPointing"] = self.PF[self.pointingField][1]
+        
         # Set the Camera-group ID and Camera-group Alt (tilt) and Az [deg]
         sim["Telescope/GroupID"] = self.group        
-        tiltTelescopeDeg    = sim["Telescope/TiltAngle"]    = sim["CameraGroups/TiltAngle"][self.group-1]
-        azimuthTelescopeDeg = sim["Telescope/AzimuthAngle"] = sim["CameraGroups/AzimuthAngle"][self.group-1]       
+        sim["Telescope/TiltAngle"]    = sim["CameraGroups/TiltAngle"][self.group-1]
+        sim["Telescope/AzimuthAngle"] = sim["CameraGroups/AzimuthAngle"][self.group-1]       
 
         
         # POINTING ERRORS
@@ -380,19 +380,19 @@ class PLATOnium(object):
             except:
                 errorcode('warning', 'Cannot apply Pointing Repeatability Error, no matching quarters in PRE.txt!')
             else:
-                raPlatformDeg            += PRE[dex, 1][0]
-                decPlatformDeg           += PRE[dex, 2][0]
-                solarPanelOrientationDeg += np.deg2rad(PRE[dex, 3][0])                
-            
+                sim["ObservingParameters/RApointing"]  += PRE[dex, 1][0]
+                sim["ObservingParameters/DecPointing"] += PRE[dex, 2][0]
+                sim["Platform/SolarPanelOrientation"]  += PRE[dex, 3][0]
+
         # Include Absolute Pointing Error (APE) due to camera misalignments
         # NOTE: Will only be included if the file "APE.txt" is available in the input folder
         inputFileAPE = self.inputDir.joinpath('APE.txt')
         if inputFileAPE.is_file():
             APE = np.loadtxt(inputFileAPE)
             dex = (self.group - 1) * 6 + self.camera - 1
-            tiltTelescopeDeg    += APE[dex, 0]
-            azimuthTelescopeDeg += APE[dex, 1]
-
+            sim["Telescope/TiltAngle"]    += APE[dex, 0]
+            sim["Telescope/AzimuthAngle"] += APE[dex, 1]
+        
         # Attitude Orbit Control System (AOCS) jitter
         # NOTE: Will only be included if file "AOCS_Q<quarterNo>.txt" is availale in the input folder
         if self.reuseJitter:
@@ -437,12 +437,9 @@ class PLATOnium(object):
         # sets the CCD and subfield parameters correctly in the 'sim' object.
         numColSubfield = sim["SubField/NumColumns"]
         numRowSubfield = sim["SubField/NumRows"]
-        raTargetRad              = np.deg2rad(self.df['ra'])
-        decTargetRad             = np.deg2rad(self.df['dec'])
-        tiltTelescopeRad         = np.deg2rad(tiltTelescopeDeg)
-        azimuthTelescopeRad      = np.deg2rad(azimuthTelescopeDeg)
-        solarPanelOrientationRad = np.deg2rad(solarPanelOrientationDeg)
-        # Call function
+        raTargetRad    = np.deg2rad(self.df['ra'])
+        decTargetRad   = np.deg2rad(self.df['dec'])
+
         self.subfieldIsOnCCD = sim.setSubfieldAroundCoordinates(raTargetRad, decTargetRad,
                                                                 numColSubfield, numRowSubfield,
                                                                 normal=True)
@@ -453,33 +450,6 @@ class PLATOnium(object):
                             f'N-CAM {self.group}.{self.camera} and Q{self.quarter}!')
                 errorcode('warning', message)
             exit()
-
-        # Fetch focal plane coordinates [mm]
-        raPlatformRad    = np.deg2rad(raPlatformDeg)   # [rad]
-        decPlatformRad   = np.deg2rad(decPlatformDeg)  # [rad]
-        pixelSize        = float(sim["CCD/PixelSize"])
-        focalLength      = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
-        focalPlaneAngle  = np.deg2rad(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
-        xFPmm, yFPmm = rf.skyToFocalPlaneCoordinates(raTargetRad, decTargetRad,
-                                                     raPlatformRad, decPlatformRad,
-                                                     solarPanelOrientationRad,
-                                                     tiltTelescopeRad, azimuthTelescopeRad,
-                                                     focalPlaneAngle, focalLength)
-
-        # Calculate radial distance of coordinate away from OA
-        # NOTE due to strong vinetting stars are barely detectable beyond 18.2 deg
-        # TODO check if this is in fact due to the distortion model which is not accounted
-        # for in the setSubfieldAroundCoordinates
-        distanceOA = np.rad2deg(rf.gnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm, focalLength))
-        if distanceOA > 18.2:
-            if self.verbose > 0:
-                message  = (f"PIC {self.df['ID']} (subfield {self.targetNo}) " +
-                            f'is outside camera FOV (d={distanceOA:.2f} deg) ' +
-                            f'for N-CAM {self.group}.{self.camera} and Q{self.quarter}!')
-                errorcode('warning', message)
-            exit()
-
-        # Fetch CCD code and pixel coordinates (account for field distortion if included)
 
         # If the psf is MappedFromFile we need to include mapped field distortion
         if sim["PSF/Model"] == "MappedFromFile":
@@ -500,11 +470,37 @@ class PLATOnium(object):
             pathToPsfFile          = None 
             distortionCoefficients = None
 
-        #ccdCode = int(sim['CCD/Position'])
-        #xCCD = float(sim['SubField/ZeroPointColumn']) + float(sim['SubField/NumColumns'])
-        #yCCD = float(sim['SubField/ZeroPointRow'])    + float(sim['SubField/NumRows'])
-        #print(ccdCode, xCCD, yCCD); exit()
-        
+        # Fetch info from YAML file since setting the subfied figure the inputfile
+        self.raPlatformDeg            = sim["ObservingParameters/RApointing"]
+        self.decPlatformDeg           = sim["ObservingParameters/DecPointing"]
+        self.tiltTelescopeDeg         = sim["Telescope/TiltAngle"]
+        self.azimuthTelescopeDeg      = sim["Telescope/AzimuthAngle"]
+        self.solarPanelOrientationDeg = sim["Platform/SolarPanelOrientation"]
+        # Transform to radians
+        raPlatformRad            = np.deg2rad(self.raPlatformDeg)
+        decPlatformRad           = np.deg2rad(self.decPlatformDeg)
+        tiltTelescopeRad         = np.deg2rad(self.tiltTelescopeDeg)
+        azimuthTelescopeRad      = np.deg2rad(self.azimuthTelescopeDeg)
+        solarPanelOrientationRad = np.deg2rad(self.solarPanelOrientationDeg)
+        # Hardware parameters
+        pixelSize       = float(sim["CCD/PixelSize"])
+        focalLength     = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
+        focalPlaneAngle = np.deg2rad(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
+
+        # Fetch focal plane coordinates [mm]
+        xFPmm, yFPmm = rf.skyToFocalPlaneCoordinates(raTargetRad, decTargetRad,
+                                                     raPlatformRad, decPlatformRad,
+                                                     solarPanelOrientationRad,
+                                                     tiltTelescopeRad, azimuthTelescopeRad,
+                                                     focalPlaneAngle, focalLength)
+        if includeFieldDistortion == True or includeFieldDistortion == "yes":
+            if mappedDistortion:
+                xFPmm, yFPmm = rf.mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile)
+            else: 
+                xFPmm, yFPmm = rf.undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients, focalLength)
+
+                
+        # Fetch CCD code and pixel coordinates (account for field distortion if included)
         ccdCode, xCCD, yCCD = rf.getCCDandPixelCoordinates(raTargetRad, decTargetRad,
                                                            raPlatformRad, decPlatformRad,
                                                            solarPanelOrientationRad,
@@ -515,6 +511,19 @@ class PLATOnium(object):
                                                            distortionCoefficients=distortionCoefficients,
                                                            pathToPsfFile=pathToPsfFile)
         
+
+        # Calculate radial distance of coordinate away from OA
+        # NOTE due to strong vinetting stars are barely detectable beyond 18.2 deg
+        # TODO check if this is in fact due to the distortion model which is not accounted
+        # for in the setSubfieldAroundCoordinates
+        distanceOA = np.rad2deg(rf.gnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm, focalLength))
+        if distanceOA > 18.2:
+            if self.verbose > 0:
+                message  = (f"PIC {self.df['ID']} (subfield {self.targetNo}) " +
+                            f'is outside camera FOV (d={distanceOA:.2f} deg) ' +
+                            f'for N-CAM {self.group}.{self.camera} and Q{self.quarter}!')
+                errorcode('warning', message)
+            exit()
 
         # Create data frame for printing and saving
         c = ['ID', 'ra [deg]', 'dec [deg]', 'mag',
@@ -541,13 +550,6 @@ class PLATOnium(object):
             errorcode('warning', 'Star falls within a CCD gap!')
             exit()
             
-        # Store parameters
-        self.raPlatformDeg       = raPlatformDeg
-        self.decPlatformDeg      = decPlatformDeg
-        self.tiltTelescopeDeg    = tiltTelescopeDeg
-        self.azimuthTelescopeDeg = azimuthTelescopeDeg
-        self.solarPanelOrientationDeg = solarPanelOrientationDeg
-
         # Finito!
         return sim
         
