@@ -89,9 +89,9 @@ else
     . $HOME/.bashrc
 
     # Add code to global executeables (-i overwrite old files)
-    cp -rf $PLATO_PROJECT_HOME/python/platonium/platonium $HOME/.local/bin/
-    cp -rf $PLATO_PROJECT_HOME/python/picsim/picsim $HOME/.local/bin/
-    cp -rf $PLATO_PROJECT_HOME/python/varsim/varsim $HOME/.local/bin/
+    cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/platonium $HOME/.local/bin/
+    cp -rf $PLATO_PROJECT_HOME/python/platosim/picsim/picsim $HOME/.local/bin/
+    cp -rf $PLATO_PROJECT_HOME/python/platosim/varsim/varsim $HOME/.local/bin/
     #cp -u $PLATONIUM/quicktools.py $HOME/.local/bin/
 
     # Finish with prolog message
