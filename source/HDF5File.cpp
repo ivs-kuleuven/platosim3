@@ -2224,7 +2224,6 @@ void HDF5File::writeStarPosition2(map<double, map<unsigned int, array<double, 6>
       if(!times.empty())
       {
 	// Make the sub-group
-      
 	stringstream myStream;
 	myStream << "starID" << setfill('0') << setw(6) << 0 + starIDs[n];
 	const string exposureGroupName = "/StarPositions/" + myStream.str();
@@ -2235,11 +2234,6 @@ void HDF5File::writeStarPosition2(map<double, map<unsigned int, array<double, 6>
 	writeArray(exposureGroupName, "rowPix", rowPix.data(),  rowPix.size());
 	writeArray(exposureGroupName, "colPix", colPix.data(),  colPix.size());
 	writeArray(exposureGroupName, "flux",   flux.data(),    flux.size());
-      }
-      else
-      {
-	std::cout << "PASSED: " << std::endl;
-	std::cout << "n: " << n << ", IDS: " << starIDs[n] << std::endl;
       }
     }
 }
