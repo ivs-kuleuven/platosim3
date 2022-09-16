@@ -946,6 +946,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("WriteFlatfieldMap");
     addBoolean("WriteSubPixelImages");
     addBoolean("WriteStarPositions");
+    addBoolean("GroupByExposure");
     addBoolean("WriteGhostPositions");
     addBoolean("WriteACS");
     addBoolean("WriteCosmics");

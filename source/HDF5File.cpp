@@ -2077,7 +2077,7 @@ void HDF5File::writeTelescopeACS(vector<double>& time, vector<double>& RA, vecto
  * /Note: This is the old way of doing things!
  *
  */
-void HDF5File::writeStarPosition1(map<double, map<unsigned int, array<double, 6>>>& detectedStarInfo, int beginExposureNr)
+void HDF5File::writeStarPositionByExposure(map<double, map<unsigned int, array<double, 6>>>& detectedStarInfo, int beginExposureNr)
 {
 
     Log.info("HDF5File: writing star positions to HDF5 file");
@@ -2161,7 +2161,7 @@ void HDF5File::writeStarPosition1(map<double, map<unsigned int, array<double, 6>
  * /Note: This is the new way of doing things!
  *
  */
-void HDF5File::writeStarPosition2(map<double, map<unsigned int, array<double, 6>>>& detectedStarInfo, vector<unsigned int> starIDs)
+void HDF5File::writeStarPositionByStarID(map<double, map<unsigned int, array<double, 6>>>& detectedStarInfo, vector<unsigned int> starIDs)
 {
     Log.info("HDF5File: writing star positions to HDF5 file");
     map<unsigned int, map<double, array<double, 6>>> transformedDetectedStarInfo;

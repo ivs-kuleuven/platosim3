@@ -71,9 +71,9 @@ class HDF5File
         void writeThroughput(int exposureNr, arma::Mat<float>& throughputMap);
         void writeTelescopeACS(vector<double>&, vector<double>&, vector<double>&, vector<double>&,
 			       vector<double>&, vector<double>&);
-        void writeStarPosition1(map<double, map<unsigned int, array<double, 6>>>& detectedStarInfo,
+        void writeStarPositionByExposure(map<double, map<unsigned int, array<double, 6>>>& detectedStarInfo,
 				int beginExposureNr);
-        void writeStarPosition2(map<double, map<unsigned int, array<double, 6>>>& detectedStarInfo,
+        void writeStarPositionByStarID(map<double, map<unsigned int, array<double, 6>>>& detectedStarInfo,
 				vector<unsigned int> starIDs);
 
     protected:
