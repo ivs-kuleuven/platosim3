@@ -21,7 +21,7 @@ project(PlatoSim)
 
 # cmake version shouldn't be too old
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.0)
 
 # Find out which version of the software is being compiled (through git commit hash)
 # so that we can include it in the output HDF5 file.
@@ -166,3 +166,4 @@ add_executable(connectionTest ${connectionTestMain})
 
 target_link_libraries(platosim platosimLibrary hdf5 hdf5_cpp armadillo yaml-cpp fftw3f fftw3f_threads pthread Faddeeva zmq)
 target_link_libraries(connectionTest zmq pthread)
+
