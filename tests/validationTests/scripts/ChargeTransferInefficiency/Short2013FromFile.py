@@ -24,7 +24,7 @@ class Short2013CTIFromFile(Test):
         # We simulate one exposure at the end of the life of the simulation so that CTI is higher 
         self.sim["ObservingParameters/NumExposures"] = 1
         self.sim["ObservingParameters/BeginExposureNr"] = 8000000
-        self.sim["Sky/SkyBackground"] = 0
+        self.sim["Sky/SkyBackground"] = 100
 
         self.numRows    = 4500
         self.numColumns = 100
@@ -58,10 +58,11 @@ class Short2013CTIFromFile(Test):
 
     def runSimulation(self):
 
-        # Run with CTI from file with uniform radiation map 
-        self.createUniformInput()
+        # Run with CTI from file with uniform radiation map
+        outputFile  = self.ioPath + "/test" + self.nr + "/ctiInput.hdf5"
+        self.createUniformInput(outputFile)
         self.sim["CCD/CTI/Model"] = "Short2013FromFile"
-        self.sim["CCD/CTI/Short2013FromFile/CTIFileName"] = self.outputFile
+        self.sim["CCD/CTI/Short2013FromFile/CTIFileName"] = outputFile
         output = self.sim.run(removeOutputFile=True)
         figure1 = output.getImage(8000000)
 
@@ -69,16 +70,20 @@ class Short2013CTIFromFile(Test):
         output = self.sim.run(removeOutputFile=True)
         figure2 = output.getImage(8000000)
 
-        # Check that these two simulations are equivallent 
+        # Check that these two simulations are equivallent
         self.difference = figure1 - figure2
 
-        # We create a non uniform radiationmap and check that on the side with no/little radiation CTI is much less 
-        self.createNonUniformInput()
+        # We create a non uniform radiationmap and check that on the side with no/little radiation CTI is much less
+        outputFile = self.ioPath + "/test" + self.nr + "/ctiInputNO.hdf5"
+        self.sim["CCD/CTI/Short2013FromFile/CTIFileName"] = outputFile
+
+        self.createNonUniformInput(outputFile)
         self.sim["CCD/CTI/Model"] = "Short2013FromFile"
         output = self.sim.run(removeOutputFile=True)
         figure = output.getImage(8000000)
 
         self.starsWithCTI = [ np.array([[ figure[i][j] for j in np.arange(int(col-10), int(col+10)) ] for i in np.arange(int(row-10), int(row+10))]) for row, col in zip(self.rows, self.columns) ]
+        
 
 
 
@@ -86,7 +91,7 @@ class Short2013CTIFromFile(Test):
 
 
 
-    def createUniformInput(self):
+    def createUniformInput(self, outputFile):
 
         beta = 0.37
         temperature = 203.0
@@ -95,8 +100,7 @@ class Short2013CTIFromFile(Test):
         trapCaptureCrossSection = np.array([2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23])
         releaseTime = np.array([2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1])
         radiationMap = np.ones((4510, 4510))
-        self.outputFile  = self.ioPath + "/test" + self.nr + "/ctiInput.hdf5"
-        createCTIinputFile(self.outputFile, beta, temperature, meanTrapDensityBOL, meanTrapDensityEOL, trapCaptureCrossSection, releaseTime, radiationMap)
+        createCTIinputFile(outputFile, beta, temperature, meanTrapDensityBOL, meanTrapDensityEOL, trapCaptureCrossSection, releaseTime, radiationMap)
 
 
 
@@ -104,18 +108,18 @@ class Short2013CTIFromFile(Test):
 
 
 
-    def createNonUniformInput(self):
+    def createNonUniformInput(self, outputFile):
 
         beta = 0.37
         temperature = 203.0
         meanTrapDensityBOL = np.array([0.0, 0.0, 0.0, 0.0])
-        meanTrapDensityEOL = np.array([9.8, 3.31, 1.56, 13.24])
+        meanTrapDensityEOL = 1000 * np.array([9.8, 3.31, 1.56, 13.24])
         trapCaptureCrossSection = np.array([2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23])
         releaseTime = np.array([2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1])
         radiationMap = np.ones((4510, 4510))
         for row in radiationMap:
             row[:2050:] = 0
-        createCTIinputFile(self.outputFile, beta, temperature, meanTrapDensityBOL, meanTrapDensityEOL, trapCaptureCrossSection, releaseTime, radiationMap)
+        createCTIinputFile(outputFile, beta, temperature, meanTrapDensityBOL, meanTrapDensityEOL, trapCaptureCrossSection, releaseTime, radiationMap)
 
 
 
@@ -140,8 +144,10 @@ class Short2013CTIFromFile(Test):
         variance1, variance2 = zip(*[self.getCovariance(star) for star in self.starsWithCTI])
         variance1 = np.array(variance1)
         variance1 = np.resize(variance1, (9,9))
+        condition = np.array([np.mean(var) for var in variance1])
+        condition = condition / np.mean(condition)
+        condition = np.all([ var < 1 if col<=50 else var > 1 for var, col in zip(condition, self.columns[::9])])
 
-        condition = np.all([ np.mean(var) < 1 if col <50 else np.mean(var) > 1 for var, col in zip(variance1, self.columns[::9])])
         return condition
 
 
