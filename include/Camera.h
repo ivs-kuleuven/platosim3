@@ -106,6 +106,7 @@ class Camera : public HDF5Writer
         double decSun;                    // Declination of the direction of the sun shield during the run        [rad]
 
         bool writeStarPositions;          // Whether or not the star positions should be written to the output HDF5 file
+        bool groupByExposure;             // Whether or not we should group the starpositions by exposure or by StarID
         bool writeGhostPositions;         // Whether or not the ghost positions should be written to the output HDF5 file
         bool writeTransmissionEfficiency;
 

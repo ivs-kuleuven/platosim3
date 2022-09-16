@@ -238,7 +238,9 @@ void Camera::flushOutput()
 
     if (writeStarPositions)
     {
-	hdf5File.writeStarPosition2(detectedStarInfo, starIDsInSubfield);
+        if (groupByExposure){hdf5File.writeStarPositionByExposure(detectedStarInfo, beginExposureNr);}
+	else {hdf5File.writeStarPositionByStarID(detectedStarInfo, starIDsInSubfield);}
+	  
     }
     else 
     {
@@ -579,6 +581,7 @@ void Camera::configure(ConfigurationParameters &configParam)
     userGivenSkyBackground = configParam.getDouble("Sky/SkyBackground");          // [phot/pix/s]
 
     writeStarPositions     = configParam.getBoolean("ControlHDF5Content/WriteStarPositions");
+    groupByExposure        = configParam.getBoolean("ControlHDF5Content/GroupByExposure");
     writeGhostPositions    = configParam.getBoolean("ControlHDF5Content/WriteGhostPositions");
     writeTransmissionEfficiency = configParam.getBoolean("ControlHDF5Content/WriteTransmissionEfficiency");
 
