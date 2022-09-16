@@ -41,6 +41,7 @@ from metallicShield                                import MetallicShield
 
 from contextlib import contextmanager
 import sys, os
+import time
 
 
 @contextmanager
@@ -69,6 +70,7 @@ success = {True: successMessage, False: failureMessage}
 
 
 
+startTime = time.time()
 
 with suppress_stdout():
     test1 = StarPositionOnCCD()
@@ -417,6 +419,8 @@ testMessages.append("{:<9}  {:^42}:{}".format("Test21:", name, success[out21]))
 print(testMessages[-1])
 
 
+endTime = time.time()
+print("[Completed in {0} s]".format(endTime - startTime))
 
 
 
