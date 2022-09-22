@@ -2460,14 +2460,12 @@ double Detector::getRowEdgeFOV(int column)
 {
     double offsetCol;
     double offsetRow;
-    double angle;
     double pixelSizeMm = pixelSize / 1000.0;    // Pixel size [µm] -> [mm]
 
     if (ccdPosition == "Custom")
     {
         offsetCol = customOriginOffsetX;
         offsetRow = customOriginOffsetY;
-        angle   = customOrientationAngle;
     }
     else
     {
@@ -2475,7 +2473,6 @@ double Detector::getRowEdgeFOV(int column)
         array<double, 12> currentCcdPositions = (*ccdPositions)();
         offsetCol = currentCcdPositions[ccd * 3];
         offsetRow = currentCcdPositions[ccd * 3 + 1];
-        angle   = deg2rad(currentCcdPositions[ccd * 3 + 2]);
     }
   
     // Quadratic equation: a * x**2 + b * x + c  = 0
@@ -2483,7 +2480,9 @@ double Detector::getRowEdgeFOV(int column)
 
     double a = pow(pixelSizeMm, 2);
     double b = 2 * pixelSizeMm * ( pixelSizeMm * subFieldZeroPointRow - offsetRow);
-    double c = pow(pixelSizeMm * subFieldZeroPointRow - offsetRow, 2) + pow((column + subFieldZeroPointColumn) * pixelSizeMm - offsetCol , 2) -  pow(camera.getFocalLength() * tan(radiusFOV), 2);
+    double c = pow(pixelSizeMm * subFieldZeroPointRow - offsetRow, 2) 
+             + pow((column + subFieldZeroPointColumn) * pixelSizeMm - offsetCol , 2) 
+             - pow(camera.getFocalLength() * tan(radiusFOV), 2);
 
     // Discriminant (should be positive)
 
