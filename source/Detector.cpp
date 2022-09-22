@@ -836,8 +836,9 @@ void Detector::generateThroughputMap()
     if(includeRelativeTransmissivity  && includeOpenShutterSmearing)
         mechanicalVignettingMask.fill(1);
 
-    double xFPmm, yFPmm;
-    double angle;
+    double xFPmmDistorted, yFPmmDistorted;             // Distorted focal plan coordinates   [mm]
+    double xFPmmUndistorted, yFPmmUndistorted;         // Undistorted focal plan coordinates [mm]
+    double angle;                                      // Gnomonic radial distance from the optical axis [rad]
     double relativeTransmissivityVariation;
     
 
@@ -855,13 +856,17 @@ void Detector::generateThroughputMap()
         {
             for (unsigned int column = 0; column < numColumnsPixelMap; column++)
             {
-                // Pixel coordinates (in the detector) -> focal-plane coordinates
+                // Distorted pixel coordinates (in the detector) -> distorted focal-plane coordinates
 
-                tie(xFPmm, yFPmm) = pixelToFocalPlaneCoordinates(row + subFieldZeroPointRow, column + subFieldZeroPointColumn);
+                tie(xFPmmDistorted, yFPmmDistorted) = pixelToFocalPlaneCoordinates(row + subFieldZeroPointRow, column + subFieldZeroPointColumn);
+
+                // Convert from distorted to undistorted focal plane coordinates (Cf GitHub issue #716)
+
+                tie(xFPmmUndistorted, yFPmmUndistorted) =  camera.distortedToUndistortedFocalPlaneCoordinates(xFPmmDistorted, yFPmmDistorted);
 
                 // Angular distance [radians] of the pixel from the optical axis
 
-                angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm);  // [radians]
+                angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmmUndistorted, yFPmmUndistorted);  // [radians]
 
                 if (includeRelativeTransmissivity)
                 {
@@ -876,7 +881,9 @@ void Detector::generateThroughputMap()
                     else
                     {
                         angle = rad2deg(angle); // [degrees]
-                        relativeTransmissivityVariation = (relTransmissivityCoefVector[0] * pow(angle, 2) + relTransmissivityCoefVector[1] * pow(angle, 4) + relTransmissivityCoefVector[2] * pow(angle, 6)) / 100.;
+                        relativeTransmissivityVariation = (  relTransmissivityCoefVector[0] * pow(angle, 2) 
+                                                           + relTransmissivityCoefVector[1] * pow(angle, 4) 
+                                                           + relTransmissivityCoefVector[2] * pow(angle, 6)) / 100.;
 
                         throughputMap(row, column) *= (1 - relativeTransmissivityVariation);
                     }
