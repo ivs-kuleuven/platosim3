@@ -239,7 +239,7 @@ class PLATOnium(object):
         
         # NOTE the structure for the L1 pipeline are different from the default
         if self.sample is None:
-
+            
             # PIC name convention
             self.outputFileName = f'{self.outputFileName}_{self.obsPrefix}'
 
