@@ -85,7 +85,6 @@ class Camera : public HDF5Writer
         Parameter<double, 7> *distortionCoef; // distortion coefficients to map undistorted to distorted coordinates.
         Parameter<double, 7> *inverseDistortionCoef; // inverse distortion coefficient to map distorted to undistorted coordinates.
 
-        string distortionModel;               // The model used to compute the distortion  
         double plateScale;                    // [arcsec/micron]
         double throughputBandwidth;           // FWHM of the throughput passband [nm]
         double throughputLambdaC;             // Central wavelength of the throughput passband [nm]

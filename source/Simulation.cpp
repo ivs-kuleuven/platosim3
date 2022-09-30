@@ -743,7 +743,6 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("StartTime");
     subGroup = "Camera/FieldDistortion";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
-    addString("Type");
     addString("Source");
     addDoubleVector("ConstantCoefficients");
     addDoubleVector("ConstantInverseCoefficients");
