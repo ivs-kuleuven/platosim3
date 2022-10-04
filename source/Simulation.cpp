@@ -1,8 +1,8 @@
 /**
  * \class Simulation
- * 
+ *
  * \brief The starting point for any simulation.
- * 
+ *
  */
 
 #include "Simulation.h"
@@ -10,14 +10,14 @@
 
 /**
  * \brief      Constructor
- * 
+ *
  * \details
- * 
+ *
  * The constructor reads the YAML input file, and creates the HDF5 output file.
  * Based on the user input a Jitter generator is created and all spacecraft
  * components are initialized.
  *
- * \param[in]  inputFilename   the YAML input file 
+ * \param[in]  inputFilename   the YAML input file
  * \param[in]  outputFilename  the HDF5 output file
  */
 
@@ -29,8 +29,8 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     ConfigurationParameters configParams(inputFilename);
 
 
-    // Set the random seeds of the simulation. Seeds are set in the input yaml file using long integers. 
-    // If they are set to -1, the following functions resets them using the system clock. This is useful 
+    // Set the random seeds of the simulation. Seeds are set in the input yaml file using long integers.
+    // If they are set to -1, the following functions resets them using the system clock. This is useful
     // when the simulated time series is partitioned in segments so that each segment has a different
     // seed. The seeds that are actually used are written to the HDF5 file.
 
@@ -59,7 +59,7 @@ Simulation::Simulation(string inputFilename, string outputFilename)
         // create a specific empty hdf5 output file
 
         hdf5File = new ClosedLoopHDF5File();
- 
+
     }
     else
     {
@@ -67,7 +67,7 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
         hdf5File = new HDF5File();
     }
-   
+
 
 
     // Open the HDF5 output file where the images will be written
