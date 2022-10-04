@@ -16,7 +16,7 @@ using namespace std;
 
 
 
-class DetectorWithMappedPSF : public Detector 
+class DetectorWithMappedPSF : public Detector
 {
     public:
 
@@ -45,7 +45,7 @@ class DetectorWithMappedPSF : public Detector
 
         void applyFlatfield() override;
 
-        
+
         void applyDiffusionKernel(double row, double column, double flux);
         void generateFlatfieldMap();
         void generateDiffusionKernel(double kernelWidth);

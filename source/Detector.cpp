@@ -408,7 +408,7 @@ void Detector::updateParameters(double time)
     if (cosmicIntensityParams.size() != 3)
     {
         Log.error("Detector::configure(): in input yaml file: Sky/Cosmics/Intensity array does not contain 3 numbers.");
-        throw ConfigurationException("Detector: in input yaml file: Sky/Cosmics/Intensity array needs to have 3 numbers. Perhaps you used an old config file?"); 
+        throw ConfigurationException("Detector: in input yaml file: Sky/Cosmics/Intensity array needs to have 3 numbers. Perhaps you used an old config file?");
     }
 
     darkCurrent                         = configParam.getDouble("CCD/DarkSignal/DarkCurrent");
@@ -3250,7 +3250,6 @@ void Detector::initHDF5Groups()
         hdf5File.createGroup("/Cosmics/BiasMapLeft");
         hdf5File.createGroup("/Cosmics/BiasMapRight");
     }
-    
 }
 
 
@@ -3260,7 +3259,7 @@ void Detector::initHDF5Groups()
 
 /**
  * Writes the colum, row and flux values of cosmics to the HDF5 file. This function
- * calls Detector::writeCosmicFieldToHDF5, if cosmics is included 
+ * calls Detector::writeCosmicFieldToHDF5, if cosmics is included
  * in the repective Field.
  *
  * /params exposureNr:   Sequential number of the exposure
@@ -3269,25 +3268,25 @@ void Detector::writeCosmicHitsToHDF5(int exposureNr)
 {
    if (includeCosmicsInSubField && writeCosmics)
    {
-       writeCosmicFieldToHDF5(exposureNr, "SubField", cosmicEntryRowSubfield, cosmicEntryColSubfield, cosmicsTrailsSubfield, 
-                              cosmicsAnglesSubfield, cosmicsIntensitiesSubfield, 
+       writeCosmicFieldToHDF5(exposureNr, "SubField", cosmicEntryRowSubfield, cosmicEntryColSubfield, cosmicsTrailsSubfield,
+                              cosmicsAnglesSubfield, cosmicsIntensitiesSubfield,
                               rowsOfCosmicsInSubField, columnsOfCosmicsInSubField, fluxOfCosmicsInSubField);
    }
 
    if (includeCosmicsInSmearingMap && writeCosmics)
    {
-       writeCosmicFieldToHDF5(exposureNr, "SmearingMap", cosmicEntryRowSmearingMap, cosmicEntryColSmearingMap, cosmicsTrailsSmearingMap, 
-                              cosmicsAnglesSmearingMap, cosmicsIntensitiesSmearingMap, 
+       writeCosmicFieldToHDF5(exposureNr, "SmearingMap", cosmicEntryRowSmearingMap, cosmicEntryColSmearingMap, cosmicsTrailsSmearingMap,
+                              cosmicsAnglesSmearingMap, cosmicsIntensitiesSmearingMap,
                               rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap, fluxOfCosmicsInSmearingMap);
    }
 
    if (includeCosmicsInBiasMap && writeCosmics)
    {
-       writeCosmicFieldToHDF5(exposureNr, "BiasMapLeft", cosmicEntryRowBiasMapLeft, cosmicEntryColBiasMapLeft, cosmicsTrailsBiasMapLeft, 
+       writeCosmicFieldToHDF5(exposureNr, "BiasMapLeft", cosmicEntryRowBiasMapLeft, cosmicEntryColBiasMapLeft, cosmicsTrailsBiasMapLeft,
                               cosmicsAnglesBiasMapLeft, cosmicsIntensitiesBiasMapLeft,
                               rowsOfCosmicsInBiasMapLeft, columnsOfCosmicsInBiasMapLeft, fluxOfCosmicsInBiasMapLeft);
 
-       writeCosmicFieldToHDF5(exposureNr, "BiasMapRight", cosmicEntryRowBiasMapRight, cosmicEntryColBiasMapRight, cosmicsTrailsBiasMapRight, 
+       writeCosmicFieldToHDF5(exposureNr, "BiasMapRight", cosmicEntryRowBiasMapRight, cosmicEntryColBiasMapRight, cosmicsTrailsBiasMapRight,
                               cosmicsAnglesBiasMapRight, cosmicsIntensitiesBiasMapRight,
                               rowsOfCosmicsInBiasMapRight, columnsOfCosmicsInBiasMapRight, fluxOfCosmicsInBiasMapRight);
    }
@@ -3298,20 +3297,20 @@ void Detector::writeCosmicHitsToHDF5(int exposureNr)
 
 
 
-void Detector::writeCosmicFieldToHDF5(int exposureNr, string field, vector<unsigned int> &entryRows, vector<unsigned int> &entryColumns, 
-                                      vector<double> &trailLengths, vector<double> &entryAngles, vector<double> &intensities,   
+void Detector::writeCosmicFieldToHDF5(int exposureNr, string field, vector<unsigned int> &entryRows, vector<unsigned int> &entryColumns,
+                                      vector<double> &trailLengths, vector<double> &entryAngles, vector<double> &intensities,
                                       vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux)
 {
     // Define the name of sub group for every exposure.
-    
+
     stringstream myStream;
     myStream << "/exposure" << setfill('0') << setw(6) << exposureNr;
     string imageName = "/Cosmics/" + field  + myStream.str();
-   
+
     // add the columns vector
 
     hdf5File.createGroup(imageName);
-    
+
     if (rows.empty() && cols.empty())
     {
         vector<unsigned int> noHitsUnsignedInt{0};
@@ -3362,6 +3361,27 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
         // Add the image to the "Images" group
 
         if (!includeQuantisation)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         {
             // Write the float array to HDF5
 
@@ -3388,37 +3408,7 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
 
     if (writeSmearingMaps)
     {
-        if (numRowsSmearingMap != 0)
-        {
-            // Clear the string stream and compose the smearing map name
-
-            myStream.str(string());      // insert empty string
-            myStream.clear();            // clear eof bit
-
-            myStream << "smearingMap" << setfill('0') << setw(6) << exposureNr;
-            string smearingMapName = myStream.str();
-
-            // Add the smearing map to the "SmearingMaps" group
-
-            if (!includeQuantisation)
-            {
-                // Write the float array to HDF5
-
-                hdf5File.writeArray("/SmearingMaps", smearingMapName, smearingMap);
-            }
-            else
-            {
-                if ((smearingMap.min() < 0) || (smearingMap.max() >= (1 << 16)))
-                {
-                    throw ConfigurationException("Detector: quantisation was applied but smearing map values are not in [0, 2^16[");
-                }
-
-                // Convert the float matrix to an unsigned uint16_t matrix
-
-                arma::Mat<uint16_t> uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(smearingMap);
-                hdf5File.writeArray("/SmearingMaps", smearingMapName, uintMap);
-            }
-        }
+      if (numRowsSmearingMap != 0){hdf5File.writeSmearingMap(smearingMap, includeQuantisation, exposureNr);}
     }
 
 
@@ -3517,7 +3507,7 @@ void Detector::writeCTIToHDF5()
 
             trapDensityMap = meanTrapDensityEOL[k] * radiationMap;
             hdf5File.writeArray("/CTI", mapName, trapDensityMap);
-            
+
             // Once more clear the stream to that it's ready to be be used again
 
             myStream.str(string());      // insert empty string
