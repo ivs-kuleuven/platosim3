@@ -30,38 +30,46 @@ generated/version.h
 !starcatalogOld.txt
 !AOCS_spiral_8Hz_airbus_3h.txt
 
-# Ignore compile command json file for neovim LSP
+# Compile command json file for neovim LSP
 
 compile_commands.json
 
-# Ignore output of ctags
+# Output of ctags
 
 tags
 
-# Ignore vim related files
+# Vim related files
 
 .ycm_extra_conf.py
 .local.vimrc
 
-# Ignore checkpoints of iPython notebooks
+# Checkpoints of Jupyter notebooks
 
 .ipynb_checkpoints/
 docs/tutorials/.ipynb_checkpoints/*
 docs/tutorials/*/.ipynb_checkpoints/*
 docs/validation/.ipynb_checkpoints/*
 docs/validation/*/.ipynb_checkpoints/*
+docs/technicalNotes/.ipynb_checkpoints/*
+docs/technicalNotes/*/.ipynb_checkpoints/*
 
-docs/tutorials/FineGuidanceStars/GuideStarSimulation00*
-docs/tutorials/Photometry/photometrySimulation*
-docs/tutorials/Photometry/photometryOutput.hdf5
-docs/validation/photometryOutput*
+# Output files from Jupyter notebooks
 
-# Ignore files for PLATOnium
+docs/tutorials/*/output_*
+docs/tutorials/*/starcat_*
+docs/validation/*/output_*
+docs/validation/*/starcat_*
+docs/technicalNotes/*/starcat_*
+docs/technicalNotes/*/output_*
 
-# platonium
+*.mat
+
+# Files for platonium
+
 .platonium_init
 
 # varsim
+
 PHOENIX_HiResFITS/
 fitting_parameters.h5
 WAVE_PHOENIX-ACES-AGSS-COND-2011.fits
