@@ -1,8 +1,6 @@
 """
 This file contains tools to generate artificial noise time series
-
 """
-
 
 import sys
 import numpy as np
@@ -10,31 +8,18 @@ from numpy.random import normal
 
 
 
-
-
-
-
-
-
-
-
-
-
 def redNoise(time, timescale, varscale):
-
     """
-    INPUT:  . time[0..Ntime-1]: time points
-            . timescale[0..Ncomp-1]: time scale tau of each red noise component
-            . varscale[0..Ncomp-1]: variation scale of each red noise component
+    INPUT:   time[0..Ntime-1]: time points
+             timescale[0..Ncomp-1]: time scale tau of each red noise component
+             varscale[0..Ncomp-1]: variation scale of each red noise component
             
-    OUTPUT: . signal[0..Ntime-1]: signal containing all red noise components
+    OUTPUT:  signal[0..Ntime-1]: signal containing all red noise components
     
     EXAMPLE: from numpy import *
              from rednoise import rednoise
              time = linspace(0,100,10000)
              signal = rednoise(time, array([20.0]), array([1.0]))
-             
-             
     """
 
     Ntime = len(time)
@@ -88,7 +73,6 @@ def redNoise(time, timescale, varscale):
 
         signal[i] = np.sum(noise)
 
-
     # That's it!
 
     return(signal)
@@ -103,7 +87,7 @@ def redNoise(time, timescale, varscale):
 
 
 
-def rednoiseModel(freq, timescale, varscale):
+def redNoiseModel(freq, timescale, varscale):
 
     """
     PURPOSE: compute the mean power spectral density (PSD) corresponding to the red noise

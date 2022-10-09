@@ -1,29 +1,14 @@
 # -*- coding: utf-8 -*-
 
-
-
 import numpy as np
 import matplotlib.cm as cm
 from matplotlib import pyplot as plt 
     
-
-
-
-
-def mad(array):
-    
-    """
-    Return the median absolute deviation
-    """
-
-    return np.sum(np.abs(array-np.median(array)))/len(np.ravel(array))
-
-
+import platosim.utilities import ut
 
 
 
 class Formatter:
-
     """
     This formatter class is used to make matplotlib show the pixel coordinates and intensity 
     of an image shown by imshow()
@@ -102,8 +87,8 @@ def showSim(simfile, n=0, type="Image", dpi=0, figname=None,verbose=True, **kwar
     # in the imshow plot.
     
     med    = np.median(image)
-    meddev = np.max([1.,mad(image)])
-    stddev = np.max([1.,np.std(image)])
+    meddev = np.max([1., ut.mad(image)])
+    stddev = np.max([1., np.std(image)])
     
     # Set the default imshow arguments
 

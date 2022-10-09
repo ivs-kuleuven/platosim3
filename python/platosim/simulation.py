@@ -48,7 +48,7 @@ Interactive usage example:
     	CTI:
     		Model: Simple
     		Simple:
-		        MeanCTE: 0. 99999
+ 		        MeanCTE: 0. 99999
         DigitalSaturation: 65535
         ElectronicOffset: 100
         FlatfieldPtPNoise: 0.016
