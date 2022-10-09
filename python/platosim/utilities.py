@@ -86,6 +86,25 @@ def compilation(i, i_max, text=''):
 
 
 
+
+def medianAbsoluteDeviation(array):
+    """
+    Calculate the Median Abosolute Deviation (MAD) of an array.
+    """
+    return np.sum( np.abs(array - np.median(array)) ) / len(np.ravel(array))
+
+
+
+def rootMeanSquare(array):
+    """
+    Calculate the Root Mean Square (RMS) of an array.
+    """
+    return np.sqrt( np.mean(array**2) )
+
+
+    
+
+
 def normalize(signal, factor=1e6, length=-1):
     """
     This function normalize a signal with the option to factorize it.
@@ -214,7 +233,7 @@ def passbandConversionV2P(V, Teff):
 
 
 
-def NSRphotonNoiseLimit(P, Ncam=24., Ntra=1., tdur=3600., camType='N'):
+def getPhotonNoiseLimitNSR(P, Ncam=1, Ntra=1, tdur=3600, camType='N'):
     """
     NSR estimate in the photon noise limit of bright stars. The stellar flux are
     calculated from the PLATO passband found by Marchiori et al. (2019).
@@ -239,11 +258,11 @@ def NSRphotonNoiseLimit(P, Ncam=24., Ntra=1., tdur=3600., camType='N'):
         NSR only valid for the photon noise limit.
     """
 
-    # Choose cycle and exposure time for either the normal (N) or fast (F) cameras
+    # Choose cycle and exposure time [s] for either the normal (N) or fast (F) cameras
 
     if camType == 'N':
-        texp = 21.  # [s]
-        tcyc = 25.  # [s]
+        texp = 21.
+        tcyc = 25.
     elif camType == 'F':
         texp = 2.1
         tcyc = 2.5
@@ -537,3 +556,153 @@ def getInterPixelPositions(raPF, decPF, ra, dec):
 #         return pick
 #     else:
 #         return distribution_pick(distribution, range)
+
+
+
+
+
+
+def imageNorm(inputArray, norm="linear", sigma=2, scale_min=None, scale_max=None):
+    """
+    Performs custom scaling of the input numpy array.
+
+    @type inputArray: np array
+    @param inputArray: image data array
+    @type scale_min: float
+    @param scale_min: minimum data value
+    @type scale_max: float
+    @param scale_max: maximum data value
+    @rtype: np array
+    @return: image data array
+    """
+    # Input image array
+    
+    image = np.array(inputArray, copy=True)
+
+    # Default scaling is 2 sigma
+
+    if scale_min is None:
+        scale_min = image.mean() - sigma*image.std()
+    if scale_max is None:
+        scale_max = image.mean() + sigma*image.std()
+
+    # Clip data
+    
+    image = image.clip(min=scale_min, max=scale_max)
+    
+    # Select normalization method
+    
+    if norm == "linear":
+        image   = (image - scale_min) / (scale_max - scale_min)
+        indices = np.where(image < 0)
+        image[indices] = 0.0
+        indices = np.where(image > 1)
+        image[indices] = 1.0
+
+    elif norm == "log":
+        factor = np.log10(scale_max - scale_min)
+        indices0 = np.where(image < scale_min)
+        indices1 = np.where((image >= scale_min) & (image <= scale_max))
+        indices2 = np.where(image > scale_max)
+        image[indices0] = 0.0
+        image[indices2] = 1.0
+        image[indices1] = np.log10(image[indices1]) / factor
+        
+    elif norm == "sqrt":
+        image = image - scale_min
+        indices = np.where(image < 0)
+        image[indices] = 0.0
+        image = np.sqrt(image)
+        image = image / math.sqrt(scale_max - scale_min)
+        image = np.sqrt(image)
+        image = image / np.sqrt(scale_max - scale_min)
+
+    elif norm == "asinh":
+        non_linear = 2.0
+        factor = np.arcsinh((scale_max - scale_min) / non_linear)
+        indices0 = np.where(image < scale_min)
+        indices1 = np.where((image >= scale_min) & (image <= scale_max))
+        indices2 = np.where(image > scale_max)
+        image[indices0] = 0.0
+        image[indices2] = 1.0
+        image[indices1] = np.arcsinh( (image[indices1] - scale_min) / non_linear) / factor
+
+    #else:
+    #    errorcode("error", "Not valid normalization method!")
+
+    # Finito!
+        
+    return image
+
+
+
+
+
+
+
+
+
+def moveColorbarExponent(x_offs=0, y_offs=1, dig=0, side='left', omit_last=False):
+    """
+    Move scientific notation exponent from top to the side.
+    
+    Additionally, one can set the number of digits after the comma
+    for the y-ticks, hence if it should state 1, 1.0, 1.00 and so forth.
+
+    Parameters
+    ----------
+    offs : float, optional; <0>
+        Horizontal movement additional to default.
+    dig : int, optional; <0>
+        Number of decimals after the comma.
+    side : string, optional; {<'left'>, 'right'}
+        To choose the side of the y-axis notation.
+    omit_last : bool, optional; <False>
+        If True, the top y-axis-label is omitted.
+
+    Returns
+    -------
+    locs : list
+        List of y-tick locations.
+
+    Note
+    ----
+    This is kind of a non-satisfying hack, which should be handled more
+    properly. But it works. Functions to look at for a better implementation:
+    ax.ticklabel_format
+    ax.yaxis.major.formatter.set_offset_string
+    """
+
+    # Get the ticks
+    locs, _ = plt.yticks()
+
+    # Put the last entry into a string, ensuring it is in scientific notation
+    # E.g: 123456789 => '1.235e+08'
+    llocs = '%.3e' % locs[-1]
+
+    # Get the magnitude, hence the number after the 'e'
+    # E.g: '1.235e+08' => 8
+    yoff = int(str(llocs).split('e')[1])
+
+    # If omit_last, remove last entry
+    if omit_last:
+        slocs = locs[:-1]
+    else:
+        slocs = locs
+
+    # Set ticks to the requested precision
+    form = r'$%.'+str(dig)+'f$'
+    plt.yticks(locs, list(map(lambda x: form % x, slocs/(10**yoff))))
+
+    # Define offset depending on the side
+    if side == 'left':
+        x_offs = -.18 - x_offs # Default left: -0.18
+    elif side == 'right':
+        x_offs = 1 + x_offs    # Default right: 1.0
+        
+    # Plot the exponent
+    plt.text(x_offs, y_offs, r'$\times10^{%i}$' % yoff, transform =
+            plt.gca().transAxes, verticalalignment='top')
+
+    # Return the locs
+    return locs

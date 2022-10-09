@@ -160,7 +160,6 @@ def drawCCDsInFocalPlane(pixelSize=18, plotCCDlabels=True, normal=True):
 
 
 def drawCCDsInCameraFocalPlane(fig):
-
     """
     PURPOSE: Draw the CCDs in the focal plane of a N-CAM.
 
@@ -247,7 +246,6 @@ def drawCCDsInCameraFocalPlane(fig):
 
 
 def drawSubfieldInFocalPlane(ccdCode, xCCD, yCCD, subfieldSizeX, subfieldSizeY, pixelSize):
-
     """
     PURPOSE: Draw a subfield in the focal plane.
 
@@ -326,7 +324,6 @@ def drawSubfieldInFocalPlane(ccdCode, xCCD, yCCD, subfieldSizeX, subfieldSizeY, 
 
 
 def drawStarInFocalPlane(sim, raStar, decStar):
-
     """
     PURPOSE:  Draw a star given by the equatorial coordinates in the focal plane.
 
@@ -405,7 +402,6 @@ def drawStarInFocalPlane(sim, raStar, decStar):
 
 
 def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize):
-
     """
     PURPOSE: Plot a pixel from a particular CCD in the focal plane. The actual position in millimeter
              is shown as a red dot, while the pixel itself is drawn as a rectangle with edge pixelSize.
@@ -450,7 +446,6 @@ def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize):
 
 
 def drawStarInCCDfocalPlane(fig, sim, xCCD, yCCD, refCcdCode, refGroup, raPlatform, decPlatform, tiltAngle, azimuthAngle, solarPanelOrientation):
-
     """
     PURPOSE:  Draw a star given by the CCD pixel coordinates in the CCD focal plane.
 
@@ -688,7 +683,6 @@ def drawStarInCCDfocalPlane(fig, sim, xCCD, yCCD, refCcdCode, refGroup, raPlatfo
 
 
 def drawCCDsInSkyMollweide(fig, raPlatform, decPlatform, solarPanelOrientation, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength, pixelSize, normal=True):
-
     """
     PURPOSE: Project and plot the 4 CCDs of 1 camera on the sky
 
@@ -781,7 +775,6 @@ def drawCCDsInSkyMollweide(fig, raPlatform, decPlatform, solarPanelOrientation, 
 
 
 def drawStarsInSkyMollweide(fig, ra, dec):
-
     """
     PURPOSE: Project and plot the stars with the given right ascension and declination on the sky
 
@@ -1654,210 +1647,6 @@ def plotPhotometry(fig, outputFile, medfilt=144, fluxInput=False, NSR=False, COB
 
 
 
-def plotMultiCameraAndQuarterPhotometry(fig, outputFiles, medfilt=144, title=None):
-    """
-    PURPOSE: 
-
-    PARAMETERS
-    ----------
-    filename : str
-        File name of HDF5 file containing photometry
-
-    RETURN
-    ------
-    Plot or/and saved plot to PNG.
-
-    FIXME this function do not work currently. Perhaps this should be moved to photometry file
-    as a bigger library of function to plot multi-quarter and multi-camera time series
-    """
-
-    # Fetch information about the observation
-
-    numFiles = len(outputFiles)
-    aa = 0.2  # Alpha channel of data
-
-    ax = fig.add_subplot(1,1,1)
-
-    cameras = {}
-    maskupdates = []
-
-    for i in range(numFiles):
-
-        # Load photometry class
-
-        f = SimFile(outputFiles[i])
-
-        quarter_i = int(outputFiles[i][-6])
-        camera_i  = outputFiles[i][-11:-8]
-
-        #print(quarter_i)
-        # Fetch and combine time series for each quarter
-
-        # Fetch photometry
-
-        lc = f.getPhotometry(starID=1, quarterNo=quarter_i)
-        time = lc[0] / c.day        # [days]
-        flux = ut.normalize(lc[2])  # [ppm]
-        flux_med = median_filter(flux, medfilt)  # [ppm]
-
-        ax.plot(time, flux, 'k.', markersize=1, alpha=0.2, label='Raw flux')
-        ax.plot(time, flux_med, 'g-', label='Median per hour')
-
-        # Fetch mask updates
-
-        mask = f.getPhotometricMask(1)
-        maskupdates.append((mask[2] * 25.) / c.day)  # [days]
-
-            # Save time series to dict
-
-        #cameras['Ncam{}'.format(camera_i)] = [time, flux]
-
-
-    # Compute median carbox filter of output signal
-
-    maskupdates = np.arange(0, 7*8*maskupdates[0][1], maskupdates[0][1])
-
-    axes_maskupdates(ax, time, maskupdates)
-    ax.legend(loc='lower right', fancybox=True, ncol=2)
-    ax.set_ylabel('Norm. Flux [ppm]')
-    plt.xlabel('Time [days]', fontsize=fs-3)
-    plt.ylabel('Relative flux [ppm]', fontsize=fs-3)
-
-    # Settings
-
-    #plt.xlim(axes_minmax(x=time))
-    #plt.ylim(-n*df, df)
-
-    # That's it!
-
-    plt.show()
-
-
-
-
-
-
-
-
-
-    
-
-
-
-
-def plotPhotometryComparison(fig, filenames, medfilt=None, title=None):
-    """
-    PURPOSE: 
-
-    PARAMETERS
-    ----------
-    filename : str
-        File name of HDF5 file containing photometry
-
-    RETURN
-    ------
-    Plot or/and saved plot to PNG.
-
-    FIXME this function do not work currently. Perhaps this should be moved to photometry file
-    as a bigger library of function to plot multi-quarter and multi-camera time series
-    """
-
-    # User defined labels
-
-    #title  = 'Drift test: 10.0 mag; All CCD effects ON; Jitter OFF'
-    #labels = ['0.0', '0.5', '1.0', '1.5', '2.0', '2.5']
-
-    #title  = 'Drift test: 10.0 mag; All CCD effects ON; Jitter of 0.04 RMS'
-    #labels = ['0.1', '2.0', '3.0']
-
-    # title  = 'Jitter test: All CCD effects on & drift off'
-    # labels = ['0.00', '0.01', '0.02', '0.03', '0.04', '0.05', '0.06']
-
-    #title  = 'Test of flux decrease: 10.0 mag; WASP-33b hot-Jupiter'
-    #labels = ['TE con. + Drift/jitter OFF', 'TE reg. + Drift/jitter OFF', 'TE con. + 2.0/0.04 RMS', 'TE req. + 2.0/0.04 RMS']
-
-    #title  = 'Magnitude test: All CCD effects ON; Drift 2.0 RMS; Jitter 0.04 RMS'
-    #labels = ['8.0 mag', '9 mag', '10 mag']
-
-    #title  = 'Test of exoplanet input model: 10.0 mag; Sun + hot-Jupiter'
-    #labels = ['Disabled: Drift, Jitter, CTI, and TE']
-
-    #title  = 'Test of exoplanet input model: 10.0 mag; Constant flux'
-    #labels = ['Disabled: Drift, Jitter, CTI, and TE', 'Disabled: Drift, Jitter, CTI', 'Disabled: Drift, Jitter']
-
-    #title  = 'Test Photometry: Constant flux; Jitter 0.04 arcsec RMS; TED yaw and pitch = 15 arcsec/quarter, roll from Prime'
-    #labels = ['10.0 mag', '11.0 mag']
-
-    # Fetch information about the observation
-
-    n = len(filenames)
-
-    method = 'median'
-    maskupdate = 14
-    df = 4e4
-    aa = 0.2
-
-    # Colvolution filter
-
-    if medfilt is None: medfilt = 144
-
-    # Plot each time series with an offset
-
-    for i in range(n):
-
-        photometryClass = PhotometricFile(filenames[i])
-        signals = photometryClass.getPhotometricTimeSeries(1)
-
-        if i == 0: time = signals[0]/c.day  # [days]
-
-        flux = normalize(signals[2]) - df*(i)
-        plt.plot(time, flux, 'o', c='k', markersize=1, alpha=aa)
-
-        if method == 'model':
-
-            flux_input = normalize(signals[1]) - df*(i)
-            plt.plot(time, flux_input, '-', c=cb[i+1], label=labels[i])
-            plt.axhline(y=-i*df, c='gray', linestyle='--', linewidth=1)
-
-        if method == 'median':
-
-            flux_med = median_filter(flux, medfilt)
-            plt.plot(time, flux_med, '-', c=cb[i+1], markersize=1, label=labels[i])
-            plt.axhline(y=np.median(flux_med[:1000]), c='gray',linestyle='--', linewidth=1)
-
-    # Plot Quarters
-
-    quarters = np.arange(0, time[-1]/(24*3600.), 120)
-    for Q in quarters:
-        if Q == 0:
-            plt.axvline(x=Q, c='darkgray', linestyle='-.', linewidth=1, label='Quarter marks')
-        else:
-            plt.axvline(x=Q, c='darkgray', linestyle='-.', linewidth=1)
-
-    # Plot mask update occurance
-
-    updates = np.arange(0, 90, maskupdate)
-    for update in updates:
-        if update == 0:
-            plt.axvline(x=update, c='k', linestyle=':', linewidth=1, label='Mask updates')
-        else:
-            plt.axvline(x=update, c='k', linestyle=':', linewidth=1)
-
-    # Labels
-
-    if title is not None: fig.text(0.5, 0.9, title, ha='center', fontsize=fs)
-    plt.legend(loc='upper center', bbox_to_anchor=(0.5, 0.995), fancybox=True, ncol=n+2, fontsize=fs-3)
-    plt.xlabel('Time [days]', fontsize=fs-3)
-    plt.ylabel('Relative flux [ppm]', fontsize=fs-3)
-
-    # Settings
-
-    plt.xlim(axes_minmax(x=time))
-    plt.ylim(-n*df, df)
-
-    # That's it!
-
-    plt.show()
 
 
 
@@ -2310,3 +2099,49 @@ def plotStellarSampleDistributions(fig, mag, magCon, magRange, numConPerTar, dis
 
     return axes
 
+
+
+
+
+
+
+def plotNSRvsMagnitude(df, Ncam=1, tdur=3600., camType="N", unit="log",
+                       column=False, cmap="coolwarm", figsize=(12,8)):
+
+    # Calculate photon noise limit:
+    mag_range = np.linspace(df["mag"].min(), df["mag"].max(), 1000)
+    NSR_cam01 = ut.getPhotonNoiseLimitNSR(mag_range, Ncam=1)
+    NSR_cam06 = ut.getPhotonNoiseLimitNSR(mag_range, Ncam=6)
+    NSR_cam12 = ut.getPhotonNoiseLimitNSR(mag_range, Ncam=12)
+    NSR_cam18 = ut.getPhotonNoiseLimitNSR(mag_range, Ncam=18)
+    NSR_cam24 = ut.getPhotonNoiseLimitNSR(mag_range, Ncam=24)
+    NSR_phot = [NSR_cam01, NSR_cam06, NSR_cam12, NSR_cam18, NSR_cam24]
+    cams = [1, 6, 12, 18, 24]
+    
+    # Create matplotlib object
+    fig, ax = plt.subplots(1, 1, figsize=figsize)
+
+    # Plot the input variable source
+    if column:
+        im = ax.scatter(df["mag"], df["NSR"], c=df[column], cmap=cmap, s=30, label="PlatoSim")
+        cb = plt.colorbar(im, extend="max", pad=0.01)
+        cb.set_label(column)
+    else:
+        ax.plot(df["mag"], df["NSR"], 'k.', alpha=0.7, label="PlatoSim")
+
+    for i, cam in zip(range(5), cams):
+        ax.plot(mag_range, NSR_phot[i], '-', lw=2, label=f"{cam} N-CAM")
+
+    # Settings
+    ax.set_yscale(unit)
+    #ax.set_xlim(time.iloc[0], time.iloc[-1])
+    #ax.set_ylim(ycen.iloc[0], ycen.iloc[-1])
+    ax.set_xlabel(r'PLATO magnitude, $P$')
+    ax.set_ylabel('NSR [ppm]')
+    ax.legend(loc='best')
+        
+    # P1 sample has flux errors
+    #try: self.df['flux_err'] = ut.normalize(self.df['flux_err'])
+    #except: pass 
+        
+    return fig, ax
