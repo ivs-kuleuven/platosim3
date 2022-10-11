@@ -696,11 +696,11 @@ void Detector::reset()
     cosmicsAnglesBiasMapLeft.clear();       
     cosmicsIntensitiesBiasMapLeft.clear();  
 
-    cosmicEntryRowBiasMapRight.clear();    
-    cosmicEntryColBiasMapRight.clear();    
-    cosmicsTrailsBiasMapRight.clear();      
-    cosmicsAnglesBiasMapRight.clear();      
-    cosmicsIntensitiesBiasMapRight.clear(); 
+    cosmicEntryRowBiasMapRight.clear();
+    cosmicEntryColBiasMapRight.clear();
+    cosmicsTrailsBiasMapRight.clear();
+    cosmicsAnglesBiasMapRight.clear();
+    cosmicsIntensitiesBiasMapRight.clear();
 
     rowsOfCosmicsInSubField.clear();
     columnsOfCosmicsInSubField.clear();
@@ -3335,6 +3335,7 @@ void Detector::writeCosmicFieldToHDF5(int exposureNr, string field, vector<unsig
         hdf5File.writeArray(imageName, "Columns",      cols.data(), cols.size());
         hdf5File.writeArray(imageName, "Flux",         flux.data(), flux.size());
     }
+
 }
 
 
@@ -3350,7 +3351,6 @@ void Detector::writeCosmicFieldToHDF5(int exposureNr, string field, vector<unsig
 void Detector::writePixelMapsToHDF5(int exposureNr)
 {
     stringstream myStream;
-
     if (writePixelMaps)
     {
         // Compose the image name
@@ -3361,31 +3361,11 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
         // Add the image to the "Images" group
 
         if (!includeQuantisation)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         {
             // Write the float array to HDF5
 
             hdf5File.writeArray("/Images", imageName, pixelMap);
+
         }
         else
         {
@@ -3452,7 +3432,6 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
             hdf5File.writeArray("/BiasMapsRight", biasMapName, uintMap);
         }
     }
-
 
     if (writeThroughputMaps)
     {

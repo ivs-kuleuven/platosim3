@@ -522,12 +522,12 @@ void Simulation::run()
 
 
 /**
- * \brief      Write information about the stars that were detected in the subField 
+ * \brief      Write information about the stars that were detected in the subField
  *             to the HDF5 output file.
  *
  * \details    The Camera collects all the stars that fall within the boundaries of the subField.
  *
- *             This function should only be called after all exposures have been taken in order 
+ *             This function should only be called after all exposures have been taken in order
  *             to have the complete collections of stars that have been detected in the subField.
  *
  */
@@ -537,7 +537,7 @@ void Simulation::writeStarCatalogToHDF5()
 
     set<unsigned int> allStarIDs = camera->getAllStarIDs();
 
-    // For all detected stars, copy the equatorial sky coordinates and the magnitude 
+    // For all detected stars, copy the equatorial sky coordinates and the magnitude
     // from the user-given star catalog to the output HDF5 file in a custom group.
 
     hdf5File->createGroup("/StarCatalog");

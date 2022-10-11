@@ -136,7 +136,7 @@ class Detector: public HDF5Writer
         virtual void initHDF5Groups() override;
         virtual void writePixelMapsToHDF5(int exposureNr);
         virtual void writeCosmicHitsToHDF5(int exposureNr);
-        virtual void writeCosmicFieldToHDF5(int exposureNr, string field, vector<unsigned int> &entryRows, vector<unsigned int> &entryColumns, 
+        virtual void writeCosmicFieldToHDF5(int exposureNr, string field, vector<unsigned int> &entryRows, vector<unsigned int> &entryColumns,
         vector<double> &trailLengths, vector<double> &entryAngles, vector<double> &intensities,
         vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux);
         virtual void writeCTIToHDF5();
@@ -173,7 +173,7 @@ class Detector: public HDF5Writer
 
         double missionDuration;                  // Duration of the PLATO Mission, used for degrading parameters      [s]
 
-        arma::Mat<int> mechanicalVignettingMask; // Mask for the sub-field showing which pixels are within the FOV (1) and which aren't (0)   
+        arma::Mat<int> mechanicalVignettingMask; // Mask for the sub-field showing which pixels are within the FOV (1) and which aren't (0)
         arma::Row<int> numExposedRowsInFOV;      // How many pixels in the exposed part of the detector for each column are within the FOV (only for columns showing overlap with the sub-field)
 
         unsigned int numRows;                    // Nr of rows of the detector (= size in y-direction) including non-exposed ones [pixels]
