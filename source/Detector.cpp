@@ -317,6 +317,7 @@ void Detector::updateParameters(double time)
 
     isFastCamera          = configParam.getString("Telescope/GroupID") == "Fast";
     includeShield         = configParam.getBoolean("CCDPositions/MetallicShield/IncludeMetallicShield");
+    groupByExposure       = configParam.getBoolean("ControlHDF5Content/GroupByExposure");
 
     if (ccdPosition == "Custom")
     {
@@ -3257,6 +3258,28 @@ void Detector::initHDF5Groups()
 
 
 
+
+/**
+ * Creates the subgroup for cosmics in the HDF5 file. This is used to manage the
+ * amount of subgroups in the HDF5 file.
+ */
+void Detector::makeSubGroupForCosmics(string field, int exposureNr)
+{
+    // Create sub group that we need to create
+    stringstream subgroupStream;
+    subgroupStream << "/exposure" << setfill('0') << setw(3) << exposureNr / 1000;
+    string subgroupName = "/Cosmics/" + field + subgroupStream.str();
+    hdf5File.createGroup(subgroupName);
+}
+
+
+
+
+
+
+
+
+
 /**
  * Writes the colum, row and flux values of cosmics to the HDF5 file. This function
  * calls Detector::writeCosmicFieldToHDF5, if cosmics is included
@@ -3266,8 +3289,17 @@ void Detector::initHDF5Groups()
  */
 void Detector::writeCosmicHitsToHDF5(int exposureNr)
 {
+   bool makeSubGroup = false;
+
+   if ((cosmicSubgroupIndex < (exposureNr / 1000)) && !groupByExposure)
+   {
+            cosmicSubgroupIndex = exposureNr / 1000;
+            makeSubGroup = true;
+   }
+
    if (includeCosmicsInSubField && writeCosmics)
    {
+       if (makeSubGroup){makeSubGroupForCosmics("SubField", exposureNr);}
        writeCosmicFieldToHDF5(exposureNr, "SubField", cosmicEntryRowSubfield, cosmicEntryColSubfield, cosmicsTrailsSubfield,
                               cosmicsAnglesSubfield, cosmicsIntensitiesSubfield,
                               rowsOfCosmicsInSubField, columnsOfCosmicsInSubField, fluxOfCosmicsInSubField);
@@ -3275,6 +3307,7 @@ void Detector::writeCosmicHitsToHDF5(int exposureNr)
 
    if (includeCosmicsInSmearingMap && writeCosmics)
    {
+       if (makeSubGroup){makeSubGroupForCosmics("SmearingMap", exposureNr);}
        writeCosmicFieldToHDF5(exposureNr, "SmearingMap", cosmicEntryRowSmearingMap, cosmicEntryColSmearingMap, cosmicsTrailsSmearingMap,
                               cosmicsAnglesSmearingMap, cosmicsIntensitiesSmearingMap,
                               rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap, fluxOfCosmicsInSmearingMap);
@@ -3282,6 +3315,11 @@ void Detector::writeCosmicHitsToHDF5(int exposureNr)
 
    if (includeCosmicsInBiasMap && writeCosmics)
    {
+       if (makeSubGroup)
+       {
+               makeSubGroupForCosmics("BiasMapLeft", exposureNr);
+               makeSubGroupForCosmics("BiasMapRight", exposureNr);
+       }
        writeCosmicFieldToHDF5(exposureNr, "BiasMapLeft", cosmicEntryRowBiasMapLeft, cosmicEntryColBiasMapLeft, cosmicsTrailsBiasMapLeft,
                               cosmicsAnglesBiasMapLeft, cosmicsIntensitiesBiasMapLeft,
                               rowsOfCosmicsInBiasMapLeft, columnsOfCosmicsInBiasMapLeft, fluxOfCosmicsInBiasMapLeft);
@@ -3301,16 +3339,33 @@ void Detector::writeCosmicFieldToHDF5(int exposureNr, string field, vector<unsig
                                       vector<double> &trailLengths, vector<double> &entryAngles, vector<double> &intensities,
                                       vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux)
 {
-    // Define the name of sub group for every exposure.
+    string imageName;
+    if (!groupByExposure)
+    {
+         // Create sub group so that there are no more then 1000 exposures in one sub group
 
-    stringstream myStream;
-    myStream << "/exposure" << setfill('0') << setw(6) << exposureNr;
-    string imageName = "/Cosmics/" + field  + myStream.str();
+         stringstream subgroupStream;
+         subgroupStream << "/exposure" << setfill('0') << setw(3) << exposureNr / 1000;
+
+         // Define the name of sub group for every exposure.
+
+         stringstream myStream;
+         myStream << "/exposure" << setfill('0') << setw(6) << exposureNr;
+         imageName = "/Cosmics/" + field  + subgroupStream.str() + myStream.str();
+    }
+    else
+    {
+         // Define the name of sub group for every exposure.
+
+         stringstream myStream;
+         myStream << "/exposure" << setfill('0') << setw(6) << exposureNr;
+         imageName = "/Cosmics/" + field + myStream.str();
+    }
+
 
     // add the columns vector
 
     hdf5File.createGroup(imageName);
-
     if (rows.empty() && cols.empty())
     {
         vector<unsigned int> noHitsUnsignedInt{0};

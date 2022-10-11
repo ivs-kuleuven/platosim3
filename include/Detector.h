@@ -126,6 +126,7 @@ class Detector: public HDF5Writer
 
         void applySimpleCTImodel();
         void applyShort2013CTImodel(string map);
+        void makeSubGroupForCosmics(string field, int exposureNr);
 
         void applyParticulateContamination();
         void applyMolecularContamination();
@@ -205,6 +206,7 @@ class Detector: public HDF5Writer
         bool includeCosmicsInSubField;           // Whether or not to include cosmic hits in the subfield
         bool includeCosmicsInSmearingMap;        // Whether or not to include cosmic hits in the (physical) overscan region
         bool includeCosmicsInBiasMap;            // Whether or not to include cosmic hits in the (virtual) prescan region
+        bool groupByExposure;                    
         double cosmicHitRate;				     // Cosmic hit rate [events / cm^2 / s]
         vector<double> cosmicTrailLengthParams;  // Distribution parameters of the length of the cosmic trails          [pixels]
         vector<double> cosmicIntensityParams;    // Skew-Normal distribution parameters fo the intensity of the intensities of the cosmics 
@@ -232,7 +234,7 @@ class Detector: public HDF5Writer
         vector<double> cosmicsTrailsBiasMapRight;        // length of the trails of the cosmics that hit the righ bias map    [pix]
         vector<double> cosmicsAnglesBiasMapRight;        // angle at which the cosmic hits the CCD in the righ bias map       [rad]
         vector<double> cosmicsIntensitiesBiasMapRight;   // total number of electrons the cosmic will release over its trail  [e-]
-
+        int cosmicSubgroupIndex=-1;                      // Keeps track of which subgroup in HDF5 file is being filled when saving the cosmics
 
         vector<double> relTransmissivityCoefVector;
         double radiusFOV;                        // Radius of the FOV [radians]
