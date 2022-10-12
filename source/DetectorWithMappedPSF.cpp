@@ -85,8 +85,7 @@ void DetectorWithMappedPSF::configure(ConfigurationParameters &configParam)
     includeFlatfield = configParam.getBoolean("CCD/IncludeFlatfield");
     includeConvolution = configParam.getBoolean("CCD/IncludeConvolution");
 
-    writeSubPixelImagesToHDF5 = configParam.getBoolean(
-        "ControlHDF5Content/WriteSubPixelImages");
+    writeSubPixelImagesToHDF5 = configParam.getBoolean("ControlHDF5Content/WriteSubPixelImages");
 
     numSubPixelsPerPixel = configParam.getInteger("SubField/SubPixels");
 
@@ -579,7 +578,7 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
 
 tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yFP, double flux)
 {
-    // Convert from FP coordinates to CCD pixel coordinates
+    // Convert from FP coordinates to real-valued CCD pixel coordinates
 
     double pixRow, pixColumn;
     tie(pixRow, pixColumn) = focalPlaneToPixelCoordinates(xFP, yFP);
