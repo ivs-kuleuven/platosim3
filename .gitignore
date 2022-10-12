@@ -59,10 +59,9 @@ docs/tutorials/*/output_*
 docs/tutorials/*/starcat_*
 docs/validation/*/output_*
 docs/validation/*/starcat_*
-docs/technicalNotes/*/starcat_*
-docs/technicalNotes/*/output_*
-
-*.mat
+docs/technicalNotes/PlatoSim3Paper/starcat_*
+docs/technicalNotes/PlatoSim3Paper/output_*
+docs/technicalNotes/PlatoSim3Paper/*.pdf
 
 # Files for platonium
 
