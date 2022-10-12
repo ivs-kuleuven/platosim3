@@ -38,16 +38,16 @@ import batman
 from platosim.utilities import errorcode
 
 # PLATOnium
-import plots as pt
-import utilities as ut
-import mr_forecast as mr
-from pyspot_PLATO_v2 import simulate_lc
-from phoenix import Phoenix
-from source_exoplanets import load_exoplanet
-from source_stars import load_star
-from models import (LimbDarkening, DopplerBeaming, EllipsoidalDistortion,
-                    StellarActivity, StellarFlares,
-                    GravityOscillations, solarosc)
+import platosim.varsim.plots as pt
+import platosim.varsim.utilities as ut
+import platosim.varsim.mr_forecast as mr
+from platosim.varsim.pyspot_PLATO_v2 import simulate_lc
+from platosim.varsim.phoenix import Phoenix
+from platosim.varsim.source_exoplanets import load_exoplanet
+from platosim.varsim.source_stars import load_star
+from platosim.varsim.models import (LimbDarkening, DopplerBeaming, EllipsoidalDistortion,
+                                    StellarActivity, StellarFlares,
+                                    GravityOscillations, solarosc)
 
 #-------------------------------------------------------#
 #                     CONFIGURATION                     #
