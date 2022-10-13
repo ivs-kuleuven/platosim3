@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
 This file contains tools to generate artificial noise time series
 """
@@ -5,7 +7,11 @@ This file contains tools to generate artificial noise time series
 import sys
 import numpy as np
 from numpy.random import normal
+from scipy.signal import periodogram
 
+#==============================================================#
+#                         UTILITIES                            #
+#==============================================================#
 
 
 def redNoise(time, timescale, varscale):
@@ -191,5 +197,40 @@ def timeSeriesFromMeanPSD(freq, psd):
 
 
 
+def numpyFFT(signal, timestep):
+    """
+    Computes power spectrum of an equidistant time series 'signal'
+    using the FFT algorithm. The length of the time series need not
+    be a power of 2 (zero padding is done automatically).
+    Normalisation is such that a signal A*sin(2*pi*nu_0*t)
+    gives power A^2 at nu=nu_0  (IF nu_0 is in the 'freq' array)
+    @param signal: the time series [0..Ntime-1]
+    @type signal: ndarray
+    @param timestep: time step fo the equidistant time series
+    @type timestep: float
+    @return: frequencies and the power spectrum
+    @rtype: array,array
+    """
 
+    # Compute the FFT of a real-valued signal. If N is the number
+    # of points of the original signal, 'Nfreq' is (N/2+1).
 
+    fourier = np.fft.rfft(signal)
+    Ntime = len(signal)
+    Nfreq = len(fourier)
+
+    # Compute the power
+
+    power = np.abs(fourier)**2 * 4.0 / Ntime**2
+
+    # Compute the frequency array.
+    # First compute an equidistant array that goes from 0 to 1 (included),
+    # with in total as many points as in the 'fourier' array.
+    # Then rescale the array that it goes from 0 to the Nyquist frequency
+    # which is 0.5/timestep
+
+    freq = np.arange(float(Nfreq)) / (Nfreq-1) * 0.5 / timestep
+
+    # That's it!
+
+    return freq, power
