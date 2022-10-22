@@ -12,9 +12,9 @@ ObservingParameters:
     NumExposures:                    10              # Number of exposures
     BeginExposureNr:                  0              # Sequential number of first exposure. useful for slurm parallellisation
     CycleTime:                       25              # Image cycle time (exposure + readout before next exposure starts)[s]
-    RApointing:                      86.8            # Platform (not telescope) right ascension pointing coordinate     [deg]
-    DecPointing:                     -46.4           # Platform (not telescope) declination pointing coordinate         [deg]
-    Fluxm0:                          1.00179e8       # Photon flux of a V=0 G2V-star                                    [phot/s/m^2/nm]
+    RApointing:                      86.79870508     # Platform (not telescope) right ascension pointing coordinate (Default: PIC 1.1, SPF) [deg]
+    DecPointing:                    -46.39594703     # Platform (not telescope) declination     pointing coordinate (Default: PIC 1.1, SPF) [deg]
+    Fluxm0:                          1.00179e8       # Photon flux of a V=0 G2V-star [phot/s/m^2/nm]
     StarCatalogFile:                 inputfiles/starcatalog.txt
 
 Sky:

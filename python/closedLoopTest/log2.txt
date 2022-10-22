@@ -1,0 +1,18 @@
+2021-03-02 16:58:30 INFO    PlatoSim 3.3.7-459-gedc0eae
+2021-03-02 16:58:30 INFO    Main: Log file includes 'error', 'warning', 'info', and 'debug'
+2021-03-02 16:58:30 INFO    Simulation: reading the input parameters file
+2021-03-02 16:58:30 DEBUG   Simulation: configure(): time shift for current CCD configuration: 0.000000
+2021-03-02 16:58:30 INFO    Simulation: create a connected detector factory instance
+2021-03-02 16:58:30 INFO    HDF5File: opened new HDF5 file online.hdf5 to read/write
+2021-03-02 16:58:30 INFO    Simulation: writing version information to HDF5
+2021-03-02 16:58:30 DEBUG   Simulation: Cycle time: 2.500000
+2021-03-02 16:58:30 DEBUG   Simulation: Exposure time: 2.297050
+2021-03-02 16:58:30 DEBUG   Simulation: Readout time before next exposure: 0.202950
+2021-03-02 16:58:30 DEBUG   Platform: initialising HDF5 groups
+2021-03-02 16:58:30 DEBUG   Platform: solar panel orientation = 0.000000 deg
+2021-03-02 16:58:30 DEBUG   Platform: (RA Sun, Dec Sun) = (263.037413, -23.284619)
+2021-03-02 16:58:30 DEBUG   Telescope: initialising HDF5 groups
+2021-03-02 16:58:30 INFO    Telescope: selected groupID = Fast
+2021-03-02 16:58:30 DEBUG   Telescope: azimuth, tilt = 0.000000, 0.000000
+2021-03-02 16:58:30 INFO    JitterFromNetwork: heartbeatInterval: 0.125000
+2021-03-02 16:58:30 ERROR   Sky: Cannot open star catalog file /lhome/driess/Documents/PlatoSim3/inputfiles/complete_cat.txt

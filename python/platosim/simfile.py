@@ -76,15 +76,13 @@ The group name and parameter name are exactly the same as in the YAML file.
 """
 
 import os
-import numpy as np
 import h5py
+import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib.colors import Normalize, LogNorm
 import matplotlib.patches as patches
 import matplotlib.cm as cm
 from astropy.io import fits
-
-
-
 
 
 
@@ -319,9 +317,12 @@ class SimFile (object):
 
 
 
-    def showImage(self, imageNr, clipPercentile=5.0, showStarPositions=False, showPointLikeGhostPositions=False,
-                  minVmag=None, maxVmag=None, showStarIDs=False, showMaskOfStarID=None, useTitle=True, colorMap="hot",
-                  showGrid=False, figsize=(7,7)):
+    def showImage(self, imageNr, clipPercentile=5.0, imgScale="clip",
+                  showStarPositions=False, showPointLikeGhostPositions=False,
+                  minVmag=None, maxVmag=None, showStarIDs=False,
+                  tarMarkerSize=200, showMaskOfStarID=None,
+                  useTitle=False, showGrid=False, colorBar=False, colorMap="hot",
+                  origin="lower", figsize=(7,7), fontSize=15):
 
         """
         PURPOSE: make a plot of the requested image
@@ -367,20 +368,64 @@ class SimFile (object):
 
         # Plot the image. Note that pixel coordinates start at the left bottom side of each pixel.
 
-        figure, axis = plt.subplots(1, 1, figsize=figsize)
+        fig = plt.figure(figsize=figsize)
+        axis = fig.add_subplot(111)
+        axis.tick_params(axis='both', which='major', labelsize=fontSize)
+        axis.tick_params(axis='both', which='minor', labelsize=fontSize)
 
-        imagePlot = axis.imshow(image, cmap=colorMap, interpolation="nearest", origin='lower', extent=[0,Nrows,0,Ncols], zorder=0)
-
+        # Show image either using clip-procentage scaling or linear scaling if using a colorbar
         # The large dynamic range of the pixel values often results in images where only
         # the brightest stars are visible. To improve the contrast, clip the color mapping.
+        
+        if imgScale == "clip":
+            clabel = "Counts [ADU]"
+            vmin = np.percentile(image, clipPercentile).astype(int)
+            vmax = np.percentile(image, 100-clipPercentile).astype(int)
+            norm  = Normalize(vmin, vmax)
+                        
+        elif imgScale == "minmax":
+            image = image/1e3
+            clabel = "Counts [kADU]"
+            vmin, vmax = image.min(), image.max()
+            norm  = Normalize(vmin, vmax)
+            
+        elif imgScale == 'log':
+            clabel = "Count [ADU]"
+            vmin, vmax = image.min(), image.max()
+            norm  = LogNorm(vmin, vmax)
 
-        imagePlot.set_clim(np.percentile(image, clipPercentile), np.percentile(image, 100-clipPercentile))
+        elif imgScale == "auto":
+            clabel = "Norm. Count"
+            from platosim.utilities import imageNorm
+            image = imageNorm(image, "linear", sigma=0.5)
+            vmin, vmax = image.min(), image.max()
+            norm  = Normalize(vmin, vmax)
+
+        else:
+            print("Not valid scaling for imgScale!"); exit()
+
+        # Generate image
+
+        if imgScale == "clip":
+            imagePlot = axis.imshow(image, cmap=colorMap, interpolation="nearest",
+                                    origin=origin, extent=[0, Nrows, 0, Ncols], zorder=0)
+            imagePlot.set_clim(vmin, vmax)
+        else:
+            imagePlot = axis.imshow(image, norm=norm, cmap=colorMap, interpolation="nearest",
+                                    origin=origin, extent=[0, Nrows, 0, Ncols], zorder=0)
+
+        # Add colorbar if requested
+        
+        if colorBar:
+            cbar = fig.colorbar(imagePlot, extend='max', shrink=0.84, pad=0.015)
+            cbar.set_label(clabel, fontsize=fontSize, labelpad=3)
+            cbar.ax.tick_params(labelsize=fontSize)
 
         # If requiered, overplot a gray semi-transparent grid
         # Note: this is only meaningsful for smaller imagettes
 
         if showGrid is True:
-            axis.grid(c='gray', ls='-', alpha=0.3, zorder=1)
+            axis.grid(c='gray', ls='-', alpha=0.5, zorder=1)
 
         # Overplot rectangles over those pixels that are part of the mask
         # Note: imshow reverses rows and columns
@@ -396,16 +441,16 @@ class SimFile (object):
 
         if showStarPositions:
             ID, row, col, Xmm, Ymm, flux = self.getStarCoordinates(imageNr, minVmag=minVmag, maxVmag=maxVmag)
+
             # Allow differentiating between a target and its contaminants
             if showStarPositions == 'PIC':
-                tarMarkerSize = 200
                 mag = -2.5*np.log10(flux) + 25                
                 axis.scatter(col[0], row[0], s=tarMarkerSize, marker='o', c='lime', edgecolor='k', linewidth=1, zorder=4)
                 if len(col) > 1:
                     dm  = mag[1:] - mag[0]*np.ones(len(mag)-1)
                     conMarkerSize = tarMarkerSize - np.abs(tarMarkerSize - tarMarkerSize/dm).astype(int)
-                    #conMarkerSize = (tarMarkerSize / (mag[1:] - mag[0]*np.ones(len(col)-1))).astype(int)
                     axis.scatter(col[1:], row[1:], s=conMarkerSize, marker='o', c='gold', edgecolor='k', linewidth=1, zorder=4)
+                    
             # Or hightligth all stars the same
             else:
                 axis.scatter(col, row, marker='x', c='g')
@@ -433,12 +478,12 @@ class SimFile (object):
 
         # User defined title-string
         if isinstance(useTitle, str):
-            plt.title(useTitle)
+            plt.title(useTitle, fontsize=fontSize)
         # With the .hdf5
         if useTitle is True:
             fileBasename = os.path.splitext(self.filename)[0]
             title = fileBasename + " - image{0:06d}".format(imageNr)
-            plt.title(title)
+            plt.title(title, fontsize=fontSize)
 
         # By default, matplotlib only shows the (x,y) coordinates of each pixel, but not the pixel value itself.
         # Change this by redefining the axis.format_coord
@@ -463,10 +508,20 @@ class SimFile (object):
         elif Ncols > 15 and Ncols <= 100:
             plt.xticks(np.arange(0, Nrows+1, 10))
             plt.yticks(np.arange(0, Ncols+1, 10))
-        else:
+        elif Ncols > 100 and Ncols <= 300:
+            plt.xticks(np.arange(0, Nrows+1, 50))
+            plt.yticks(np.arange(0, Ncols+1, 50))
+        elif Ncols > 300 and Ncols <= 1000:
             plt.xticks(np.arange(0, Nrows+1, 100))
             plt.yticks(np.arange(0, Ncols+1, 100))
+        else:
+            plt.xticks(np.arange(0, Nrows+1, 500))
+            plt.yticks(np.arange(0, Ncols+1, 500))
 
+        # Set labels if requested
+        plt.xlabel("x (pixel)", fontsize=fontSize)
+        plt.ylabel("y (pixel)", fontsize=fontSize)
+            
         # Show the image
 
         plt.draw()
@@ -474,7 +529,7 @@ class SimFile (object):
 
         # That's it!
 
-        return
+        return fig
 
 
 
@@ -486,7 +541,7 @@ class SimFile (object):
 
 
 
-    def getPsf(self, datasetName):
+    def getPSF(self, datasetName):
 
         """
         PURPOSE: extract the PSF from the HDF5 file (if present)
@@ -518,7 +573,7 @@ class SimFile (object):
 
 
 
-    def showPsf(self, datasetName, useTitle=True):
+    def showPSF(self, datasetName, useTitle=True):
 
         """
         PURPOSE: make a plot of the requested PSF
