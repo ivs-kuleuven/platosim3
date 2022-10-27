@@ -55,19 +55,17 @@ docs/technicalNotes/*/.ipynb_checkpoints/*
 
 # Output files from Jupyter notebooks
 
-docs/tutorials/*/output_*
-docs/tutorials/*/starcat_*
-docs/validation/*/output_*
-docs/validation/*/starcat_*
-docs/technicalnotes/*/starcat_*
-docs/technicalnotes/*/output_*
-docs/technicalnotes/PlatoSim3Paper/*.pdf
+docs/*/*/*.ftr
+docs/*/*/*.txt
+docs/*/*/*.pdf
+docs/*/*/*.yaml
+docs/*/*/*.hdf5
 
 # Files for platonium
 
 .platonium_init
 
-# varsim
+# Files for varsim
 
 PHOENIX_HiResFITS/
 fitting_parameters.h5
