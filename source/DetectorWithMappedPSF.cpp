@@ -387,6 +387,13 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
 
     readOut(exposureTime);
 
+    // If photometric extraction was asked, apply it now
+
+    // if (includePhotometry)
+    // {
+    //     Log.info("Detector: applying photometric extraction to exposure " + to_string(exposureNr));
+    //     applyPhotometry(exposureNr);
+    // }
 
     // Write the CCD subfield, the bias map, and the smearing map to the HDF5 file
 
