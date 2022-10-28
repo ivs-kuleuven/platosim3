@@ -4,22 +4,22 @@
 
 /**
  * \brief Constructor.
- * 
+ *
  * \details
- * 
+ *
  * The constructor initializes the groups in the HDF5 file where the different maps (i.e. pixel map,
- * bias register map, smearing map, etc.) will be saved. 
- * 
+ * bias register map, smearing map, etc.) will be saved.
+ *
  * The following maps are initialized to zero (partly through the base class Detector):
- * 
- * pixelMap 
+ *
+ * pixelMap
  * subPixelMap
  * biasMap
  * smearingMap
  * flatfieldMap
  * throughputMap
  * cteMap
- * 
+ *
  * The flatfieldMap is filled at sub-pixel level, the throughputMap and cteMap are filled at pixel level.
  *
  * \param configParam    Configuration parameters for the detector.
@@ -496,8 +496,8 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
 
     applyThroughputEfficiency();
 
-    // Apply the charge injection which will mitigate the CTI. The injection happens in electrons, 
-    // so the throughput efficiency should already have been applied. In principle, the injected charges do 
+    // Apply the charge injection which will mitigate the CTI. The injection happens in electrons,
+    // so the throughput efficiency should already have been applied. In principle, the injected charges do
     // feel the PRNU, but for the MappedPSF we first need to apply the PRNU on sub-pixel level and afterwards
     // apply the throughputEfficiency() at pixel level, so there is no possibilty to respect the order
     // (1) throughput (2) charge injection (3) PRNU.
@@ -578,7 +578,7 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
  * 
  * \param flux: Flux to add to the sub-pixel map [photons].
  *
- * \return (isInSubfield, row, col) 
+ * \return (isInSubfield, row, col)
  *         isInSubfield: True if (xFP, yFP) are on the subfield, false otherwise;
  *         row: sub-field (not CCD) row number of the pixel to which the flux was added;
  *         col: sub-field (not CCD) column number of the pixel to which the flux was added.

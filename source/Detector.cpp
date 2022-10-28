@@ -317,6 +317,7 @@ void Detector::updateParameters(double time)
 
     isFastCamera          = configParam.getString("Telescope/GroupID") == "Fast";
     includeShield         = configParam.getBoolean("CCDPositions/MetallicShield/IncludeMetallicShield");
+    groupByExposure       = configParam.getBoolean("ControlHDF5Content/GroupByExposure");
 
     if (ccdPosition == "Custom")
     {
@@ -408,7 +409,7 @@ void Detector::updateParameters(double time)
     if (cosmicIntensityParams.size() != 3)
     {
         Log.error("Detector::configure(): in input yaml file: Sky/Cosmics/Intensity array does not contain 3 numbers.");
-        throw ConfigurationException("Detector: in input yaml file: Sky/Cosmics/Intensity array needs to have 3 numbers. Perhaps you used an old config file?"); 
+        throw ConfigurationException("Detector: in input yaml file: Sky/Cosmics/Intensity array needs to have 3 numbers. Perhaps you used an old config file?");
     }
 
     darkCurrent                         = configParam.getDouble("CCD/DarkSignal/DarkCurrent");
@@ -696,11 +697,11 @@ void Detector::reset()
     cosmicsAnglesBiasMapLeft.clear();       
     cosmicsIntensitiesBiasMapLeft.clear();  
 
-    cosmicEntryRowBiasMapRight.clear();    
-    cosmicEntryColBiasMapRight.clear();    
-    cosmicsTrailsBiasMapRight.clear();      
-    cosmicsAnglesBiasMapRight.clear();      
-    cosmicsIntensitiesBiasMapRight.clear(); 
+    cosmicEntryRowBiasMapRight.clear();
+    cosmicEntryColBiasMapRight.clear();
+    cosmicsTrailsBiasMapRight.clear();
+    cosmicsAnglesBiasMapRight.clear();
+    cosmicsIntensitiesBiasMapRight.clear();
 
     rowsOfCosmicsInSubField.clear();
     columnsOfCosmicsInSubField.clear();
@@ -3250,8 +3251,29 @@ void Detector::initHDF5Groups()
         hdf5File.createGroup("/Cosmics/BiasMapLeft");
         hdf5File.createGroup("/Cosmics/BiasMapRight");
     }
-    
 }
+
+
+
+
+
+
+
+/**
+ * Creates the subgroup for cosmics in the HDF5 file. This is used to manage the
+ * amount of subgroups in the HDF5 file.
+ */
+void Detector::makeSubGroupForCosmics(string field, int exposureNr)
+{
+    // Create sub group that we need to create
+    stringstream subgroupStream;
+    subgroupStream << "/exposure" << setfill('0') << setw(3) << exposureNr / 1000;
+    string subgroupName = "/Cosmics/" + field + subgroupStream.str();
+    hdf5File.createGroup(subgroupName);
+}
+
+
+
 
 
 
@@ -3260,34 +3282,49 @@ void Detector::initHDF5Groups()
 
 /**
  * Writes the colum, row and flux values of cosmics to the HDF5 file. This function
- * calls Detector::writeCosmicFieldToHDF5, if cosmics is included 
+ * calls Detector::writeCosmicFieldToHDF5, if cosmics is included
  * in the repective Field.
  *
  * /params exposureNr:   Sequential number of the exposure
  */
 void Detector::writeCosmicHitsToHDF5(int exposureNr)
 {
+   bool makeSubGroup = false;
+
+   if ((cosmicSubgroupIndex < (exposureNr / 1000)) && !groupByExposure)
+   {
+            cosmicSubgroupIndex = exposureNr / 1000;
+            makeSubGroup = true;
+   }
+
    if (includeCosmicsInSubField && writeCosmics)
    {
-       writeCosmicFieldToHDF5(exposureNr, "SubField", cosmicEntryRowSubfield, cosmicEntryColSubfield, cosmicsTrailsSubfield, 
-                              cosmicsAnglesSubfield, cosmicsIntensitiesSubfield, 
+       if (makeSubGroup){makeSubGroupForCosmics("SubField", exposureNr);}
+       writeCosmicFieldToHDF5(exposureNr, "SubField", cosmicEntryRowSubfield, cosmicEntryColSubfield, cosmicsTrailsSubfield,
+                              cosmicsAnglesSubfield, cosmicsIntensitiesSubfield,
                               rowsOfCosmicsInSubField, columnsOfCosmicsInSubField, fluxOfCosmicsInSubField);
    }
 
    if (includeCosmicsInSmearingMap && writeCosmics)
    {
-       writeCosmicFieldToHDF5(exposureNr, "SmearingMap", cosmicEntryRowSmearingMap, cosmicEntryColSmearingMap, cosmicsTrailsSmearingMap, 
-                              cosmicsAnglesSmearingMap, cosmicsIntensitiesSmearingMap, 
+       if (makeSubGroup){makeSubGroupForCosmics("SmearingMap", exposureNr);}
+       writeCosmicFieldToHDF5(exposureNr, "SmearingMap", cosmicEntryRowSmearingMap, cosmicEntryColSmearingMap, cosmicsTrailsSmearingMap,
+                              cosmicsAnglesSmearingMap, cosmicsIntensitiesSmearingMap,
                               rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap, fluxOfCosmicsInSmearingMap);
    }
 
    if (includeCosmicsInBiasMap && writeCosmics)
    {
-       writeCosmicFieldToHDF5(exposureNr, "BiasMapLeft", cosmicEntryRowBiasMapLeft, cosmicEntryColBiasMapLeft, cosmicsTrailsBiasMapLeft, 
+       if (makeSubGroup)
+       {
+               makeSubGroupForCosmics("BiasMapLeft", exposureNr);
+               makeSubGroupForCosmics("BiasMapRight", exposureNr);
+       }
+       writeCosmicFieldToHDF5(exposureNr, "BiasMapLeft", cosmicEntryRowBiasMapLeft, cosmicEntryColBiasMapLeft, cosmicsTrailsBiasMapLeft,
                               cosmicsAnglesBiasMapLeft, cosmicsIntensitiesBiasMapLeft,
                               rowsOfCosmicsInBiasMapLeft, columnsOfCosmicsInBiasMapLeft, fluxOfCosmicsInBiasMapLeft);
 
-       writeCosmicFieldToHDF5(exposureNr, "BiasMapRight", cosmicEntryRowBiasMapRight, cosmicEntryColBiasMapRight, cosmicsTrailsBiasMapRight, 
+       writeCosmicFieldToHDF5(exposureNr, "BiasMapRight", cosmicEntryRowBiasMapRight, cosmicEntryColBiasMapRight, cosmicsTrailsBiasMapRight,
                               cosmicsAnglesBiasMapRight, cosmicsIntensitiesBiasMapRight,
                               rowsOfCosmicsInBiasMapRight, columnsOfCosmicsInBiasMapRight, fluxOfCosmicsInBiasMapRight);
    }
@@ -3298,20 +3335,37 @@ void Detector::writeCosmicHitsToHDF5(int exposureNr)
 
 
 
-void Detector::writeCosmicFieldToHDF5(int exposureNr, string field, vector<unsigned int> &entryRows, vector<unsigned int> &entryColumns, 
-                                      vector<double> &trailLengths, vector<double> &entryAngles, vector<double> &intensities,   
+void Detector::writeCosmicFieldToHDF5(int exposureNr, string field, vector<unsigned int> &entryRows, vector<unsigned int> &entryColumns,
+                                      vector<double> &trailLengths, vector<double> &entryAngles, vector<double> &intensities,
                                       vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux)
 {
-    // Define the name of sub group for every exposure.
-    
-    stringstream myStream;
-    myStream << "/exposure" << setfill('0') << setw(6) << exposureNr;
-    string imageName = "/Cosmics/" + field  + myStream.str();
-   
+    string imageName;
+    if (!groupByExposure)
+    {
+         // Create sub group so that there are no more then 1000 exposures in one sub group
+
+         stringstream subgroupStream;
+         subgroupStream << "/exposure" << setfill('0') << setw(3) << exposureNr / 1000;
+
+         // Define the name of sub group for every exposure.
+
+         stringstream myStream;
+         myStream << "/exposure" << setfill('0') << setw(6) << exposureNr;
+         imageName = "/Cosmics/" + field  + subgroupStream.str() + myStream.str();
+    }
+    else
+    {
+         // Define the name of sub group for every exposure.
+
+         stringstream myStream;
+         myStream << "/exposure" << setfill('0') << setw(6) << exposureNr;
+         imageName = "/Cosmics/" + field + myStream.str();
+    }
+
+
     // add the columns vector
 
     hdf5File.createGroup(imageName);
-    
     if (rows.empty() && cols.empty())
     {
         vector<unsigned int> noHitsUnsignedInt{0};
@@ -3336,6 +3390,7 @@ void Detector::writeCosmicFieldToHDF5(int exposureNr, string field, vector<unsig
         hdf5File.writeArray(imageName, "Columns",      cols.data(), cols.size());
         hdf5File.writeArray(imageName, "Flux",         flux.data(), flux.size());
     }
+
 }
 
 
@@ -3351,7 +3406,6 @@ void Detector::writeCosmicFieldToHDF5(int exposureNr, string field, vector<unsig
 void Detector::writePixelMapsToHDF5(int exposureNr)
 {
     stringstream myStream;
-
     if (writePixelMaps)
     {
         // Compose the image name
@@ -3366,6 +3420,7 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
             // Write the float array to HDF5
 
             hdf5File.writeArray("/Images", imageName, pixelMap);
+
         }
         else
         {
@@ -3388,37 +3443,7 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
 
     if (writeSmearingMaps)
     {
-        if (numRowsSmearingMap != 0)
-        {
-            // Clear the string stream and compose the smearing map name
-
-            myStream.str(string());      // insert empty string
-            myStream.clear();            // clear eof bit
-
-            myStream << "smearingMap" << setfill('0') << setw(6) << exposureNr;
-            string smearingMapName = myStream.str();
-
-            // Add the smearing map to the "SmearingMaps" group
-
-            if (!includeQuantisation)
-            {
-                // Write the float array to HDF5
-
-                hdf5File.writeArray("/SmearingMaps", smearingMapName, smearingMap);
-            }
-            else
-            {
-                if ((smearingMap.min() < 0) || (smearingMap.max() >= (1 << 16)))
-                {
-                    throw ConfigurationException("Detector: quantisation was applied but smearing map values are not in [0, 2^16[");
-                }
-
-                // Convert the float matrix to an unsigned uint16_t matrix
-
-                arma::Mat<uint16_t> uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(smearingMap);
-                hdf5File.writeArray("/SmearingMaps", smearingMapName, uintMap);
-            }
-        }
+      if (numRowsSmearingMap != 0){hdf5File.writeSmearingMap(smearingMap, includeQuantisation, exposureNr);}
     }
 
 
@@ -3462,7 +3487,6 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
             hdf5File.writeArray("/BiasMapsRight", biasMapName, uintMap);
         }
     }
-
 
     if (writeThroughputMaps)
     {
@@ -3517,7 +3541,7 @@ void Detector::writeCTIToHDF5()
 
             trapDensityMap = meanTrapDensityEOL[k] * radiationMap;
             hdf5File.writeArray("/CTI", mapName, trapDensityMap);
-            
+
             // Once more clear the stream to that it's ready to be be used again
 
             myStream.str(string());      // insert empty string

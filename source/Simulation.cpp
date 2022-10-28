@@ -1,8 +1,8 @@
 /**
  * \class Simulation
- * 
+ *
  * \brief The starting point for any simulation.
- * 
+ *
  */
 
 #include "Simulation.h"
@@ -10,14 +10,14 @@
 
 /**
  * \brief      Constructor
- * 
+ *
  * \details
- * 
+ *
  * The constructor reads the YAML input file, and creates the HDF5 output file.
  * Based on the user input a Jitter generator is created and all spacecraft
  * components are initialized.
  *
- * \param[in]  inputFilename   the YAML input file 
+ * \param[in]  inputFilename   the YAML input file
  * \param[in]  outputFilename  the HDF5 output file
  */
 
@@ -29,8 +29,8 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     ConfigurationParameters configParams(inputFilename);
 
 
-    // Set the random seeds of the simulation. Seeds are set in the input yaml file using long integers. 
-    // If they are set to -1, the following functions resets them using the system clock. This is useful 
+    // Set the random seeds of the simulation. Seeds are set in the input yaml file using long integers.
+    // If they are set to -1, the following functions resets them using the system clock. This is useful
     // when the simulated time series is partitioned in segments so that each segment has a different
     // seed. The seeds that are actually used are written to the HDF5 file.
 
@@ -59,7 +59,7 @@ Simulation::Simulation(string inputFilename, string outputFilename)
         // create a specific empty hdf5 output file
 
         hdf5File = new ClosedLoopHDF5File();
- 
+
     }
     else
     {
@@ -67,7 +67,7 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
         hdf5File = new HDF5File();
     }
-   
+
 
 
     // Open the HDF5 output file where the images will be written
@@ -522,12 +522,12 @@ void Simulation::run()
 
 
 /**
- * \brief      Write information about the stars that were detected in the subField 
+ * \brief      Write information about the stars that were detected in the subField
  *             to the HDF5 output file.
  *
  * \details    The Camera collects all the stars that fall within the boundaries of the subField.
  *
- *             This function should only be called after all exposures have been taken in order 
+ *             This function should only be called after all exposures have been taken in order
  *             to have the complete collections of stars that have been detected in the subField.
  *
  */
@@ -537,7 +537,7 @@ void Simulation::writeStarCatalogToHDF5()
 
     set<unsigned int> allStarIDs = camera->getAllStarIDs();
 
-    // For all detected stars, copy the equatorial sky coordinates and the magnitude 
+    // For all detected stars, copy the equatorial sky coordinates and the magnitude
     // from the user-given star catalog to the output HDF5 file in a custom group.
 
     hdf5File->createGroup("/StarCatalog");
@@ -945,6 +945,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("WriteFlatfieldMap");
     addBoolean("WriteSubPixelImages");
     addBoolean("WriteStarPositions");
+    addBoolean("GroupByExposure");
     addBoolean("WriteGhostPositions");
     addBoolean("WriteACS");
     addBoolean("WriteCosmics");

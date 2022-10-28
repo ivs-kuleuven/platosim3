@@ -274,6 +274,7 @@ ControlHDF5Content:
     WriteFlatfieldMap:               yes             # 2D image of the flatfield (PRNU and/or IRNU)
     WriteSubPixelImages:             no              # Only use this for a limited number of exposures. Takes a lot of space!
     WriteStarPositions:              yes             # Star positions are written in pixel and focal plane coordinates
+    GroupByExposure:                 yes             # Deals with the layout of the HDF5 file when WriteStarPositions is true. Groupt the star positions by exposure, if not we will group them by StarID.
     WriteGhostPositions:             yes             # Ghost positions are written in pixel and focal plane coordinates
     WriteACS:                        yes             # Whether to write the yaw, pitch, roll to the HDF5 file
     WriteCosmics:                    yes             # Determines if the columns, rows and flux of the cosmics should be written to the HDF5 file 
