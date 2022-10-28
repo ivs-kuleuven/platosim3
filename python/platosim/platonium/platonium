@@ -43,7 +43,7 @@ from platosim.plot import drawStarInCCDfocalPlane
 
 # Import repo matplotlibrc
 import matplotlib.pyplot as plt
-import platosim.platonium.matplotlibrc
+#import platosim.platonium.matplotlibrc
 
 #==============================================================#
 #                        PLATOnium CLASS                       #
