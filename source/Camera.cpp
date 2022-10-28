@@ -717,7 +717,7 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
 
     double transmissionEfficiency = telescope.getTransmissionEfficiency(startTime);
     const double fluxFactor = fluxOfV0Star * throughputBandwidth * transmissionEfficiency * telescope.getLightCollectingArea();
-
+Us
     // Update the internal clock
 
     internalTime = startTime;
@@ -746,7 +746,7 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
         if(includeExtendedGhosts)
             coefficients = (*extendedGhostRadiusCoefficients)();
 
-        // Loop over the selected stars and add their flux to the sub-fild
+        // Loop over the selected stars and add their flux to the sub-field
         // Also add the extended ghosts (if enabled)
 
         numStarsInSubField = 0;
