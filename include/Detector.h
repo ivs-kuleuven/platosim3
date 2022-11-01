@@ -234,7 +234,7 @@ class Detector: public HDF5Writer
         vector<double> cosmicsIntensitiesBiasMapRight;   // total number of electrons the cosmic will release over its trail  [e-]
 
 
-        vector<double> relTransmissivityCoefVector;
+        vector<double> relTransmissivityCoefVector;      // To take into account the transmissivity, including the vignetting  
         double radiusFOV;                        // Radius of the FOV [radians]
         double expectedValueRelativeTransmissivity; // Expected value of the relative transmissivity for the sub-field
         double expectedValuePolarization;        // Expected value of the throughput efficiency due to polarisation

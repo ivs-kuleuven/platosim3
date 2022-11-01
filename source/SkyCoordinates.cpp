@@ -104,7 +104,7 @@ pair<double, double> SkyCoordinates::toEcliptic(Unit angleUnit)
 
 void ecliptic2equatorial(const double lambda, const double beta, double &alpha, double &delta)
 {
-    const double obliquity = 0.409087723;                    // Obliquity of the ecliptic = 23.439 deg  [rad]
+    const double obliquity = deg2rad(84381.406 / 3600.0);         // Obliquity of the ecliptic = 84381.406"  [rad]
  
     double sindelta = sin(beta) * cos(obliquity) + cos(beta) * sin(obliquity) * sin(lambda);
     delta = asin(sindelta);
@@ -148,7 +148,7 @@ void ecliptic2equatorial(const double lambda, const double beta, double &alpha, 
 
 void equatorial2ecliptic(const double alpha, const double delta, double &lambda, double &beta)
 {
-    const double obliquity = 0.409087723;                    // Obliquity of the ecliptic = 23.439 deg  [rad]
+    const double obliquity = deg2rad(84381.406 / 3600.0);         // Obliquity of the ecliptic = 84381.406"  [rad]
  
     double sinbeta = sin(delta) * cos(obliquity) - cos(delta) * sin(obliquity) * sin(alpha);
     beta = asin(sinbeta);
