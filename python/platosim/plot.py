@@ -1814,7 +1814,7 @@ def plotSubfieldAnimation(fig, filename, numImages=False, outputFileName=False, 
 
 
 def plotNSRvsMagnitude(df, Ncam=1, tdur=3600., residuals=False, camType="N", unit="log",
-                       column=False, cmap="coolwarm", figsize=(12,8)):
+                       column=False, cmap="coolwarm", figsize=(10,6)):
     """
     PURPOSE:
     """
@@ -1834,11 +1834,11 @@ def plotNSRvsMagnitude(df, Ncam=1, tdur=3600., residuals=False, camType="N", uni
     
     # Plot the input variable source
     if residuals:
-        im = ax.scatter(df["mag"], df["res"], s=30, label="PlatoSim",
+        im = ax.scatter(df["mag"], df["res"], s=20, label="PlatoSim",
                         c=df[column], cmap=cmap, norm=norm)
         ax.set_ylabel('NSR Residuals [ppm]')
     elif column:
-        im = ax.scatter(df["mag"], df["NSR"], s=30, label="PlatoSim",
+        im = ax.scatter(df["mag"], df["NSR"], s=20, label="PlatoSim",
                         c=df[column], cmap=cmap, norm=norm)
         ax.set_ylabel('NSR [ppm]')
     else:

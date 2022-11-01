@@ -49,10 +49,9 @@ setup()
 
 class PLATOnium(object):
     """
-    This class has the purpose
+    Class for running multi-camera and multi-quarter PlatoSim simulations.
     """
     
-    # INITILIZE THE CLASS:
     def __init__(self, args):
 
         # PARSED ARGUMENTS
