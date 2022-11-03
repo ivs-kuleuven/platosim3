@@ -717,7 +717,7 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
 
     double transmissionEfficiency = telescope.getTransmissionEfficiency(startTime);
     const double fluxFactor = fluxOfV0Star * throughputBandwidth * transmissionEfficiency * telescope.getLightCollectingArea();
-Us
+
     // Update the internal clock
 
     internalTime = startTime;
