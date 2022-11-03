@@ -94,6 +94,11 @@ else
     cp -rf $PLATO_PROJECT_HOME/python/platosim/varsim/varsim $HOME/.local/bin/
     #cp -u $PLATONIUM/quicktools.py $HOME/.local/bin/
 
+    # Fix Jupyter-notebook problem "module not found"
+    pip install ipykernel
+    python -m ipykernel install --user
+    
+    
     # Finish with prolog message
     echo "----------------------------"
     echo " PLATOnium has been set up! "

@@ -61,6 +61,11 @@ docs/*/*/*.pdf
 docs/*/*/*.yaml
 docs/*/*/*.hdf5
 
+
+# Poetry
+
+poetry.lock
+
 # Files for platonium
 
 .platonium_init

@@ -55,6 +55,7 @@ class LimbDarkening(funcFit.OneDFit):
         return y
 
 
+
     def limb_darkening_coefficients(self, bandpass, star_source, plot=False):
  
         """
@@ -444,6 +445,10 @@ def pulsations(time, freq, eta, Ntime, Nmode, amplsin, amplcos,
 
 
 
+
+
+
+
 def solarosc(time, freq, ampl, eta, verbose):
     """
     Compute time series of stochastically excited damped modes
@@ -533,9 +538,6 @@ def solarosc(time, freq, ampl, eta, verbose):
     # Finito!
 
     return signal
-
-
-
 
 
 

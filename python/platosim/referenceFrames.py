@@ -1709,6 +1709,48 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
 
 
 
+def getPointingRepeatabilityError(ra, dec, rot, sigma=[3., 6.], quarter=[1, 8], show_table=False):
+    """
+    TODO under development!
+
+    PURPOSE: 
+             
+    INPUT:
+
+    OUTPUT:
+    """
+
+    # Coordinates
+    ICRS = np.array([ra, dec, rot])
+
+    # Pointing Reproducibility Error (PRE) in P/L reference frame (yaw, pitch, roll)
+    # Here t stands for transverse direction and  
+    sigma_t = sigma[0]/3600
+    sigma_b = sigma[1]/3600
+
+    # Find distribution within 3 sigma of req.
+    tt = np.array([np.random.normal(0, t/sigma) for i in range(len(quarters))])
+    bb = np.array([np.random.normal(0, b/sigma) for i in range(len(quarters))])
+
+    # Corresponding yaw, pitch, roll
+    y = tt
+    z = 3 * y
+    x = bb - z
+
+    # ICRS pointing angles
+    phi   = np.deg2rad(ra)
+    theta = np.deg2rad(dec)
+
+    # Find change to pointing for quarters
+    coor = np.zeros((len(quarters), 4))
+    for i in range(len(quarters)):
+        data = changeOfPointing(x[i], y[i], z[i], phi, theta)[0]
+        coor[i,:] = np.append(quarters[i], data)
+
+    # Save file with relative pointing errors [deg]
+    np.savetxt(f'{outdir}/PRE.txt', coor, fmt=['%i', '%0.8f', '%0.8f', '%0.8f'])
+
+
 
 
 

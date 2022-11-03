@@ -49,10 +49,9 @@ setup()
 
 class PLATOnium(object):
     """
-    This class has the purpose
+    Class for running multi-camera and multi-quarter PlatoSim simulations.
     """
     
-    # INITILIZE THE CLASS:
     def __init__(self, args):
 
         # PARSED ARGUMENTS
@@ -1072,7 +1071,7 @@ class PLATOnium(object):
                 df = pd.read_csv(prefixStarIDtar + '.dat', delimiter=' ', comment='#', names=cols)
             except:
                 # Open the file in append & read mode ('a+')
-                with open(self.inputDir / 'failed.txt', 'a+') as f:
+v                with open(self.inputDir / 'failed.txt', 'a+') as f:
                     # Move read cursor to the start of file.
                     f.seek(0)
                     # If file is not empty then append '\n'

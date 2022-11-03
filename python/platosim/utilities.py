@@ -20,10 +20,7 @@ from scipy.ndimage import median_filter
 from numba import njit
 
 from platosim.simulation import Simulation
-from platosim.referenceFrames import (skyToFocalPlaneCoordinates,
-                                      gnomonicRadialDistanceFromOpticalAxis,
-                                      getCCDandPixelCoordinates)
-
+import platosim.referenceFrames as rf
 
 #==============================================================#
 #                           FUNCTIONS                          #
@@ -31,9 +28,21 @@ from platosim.referenceFrames import (skyToFocalPlaneCoordinates,
 
 
 def errorcode(API, message):
+
+    """Function to colour code error messages within a code.
+
+    Parameters
+    ----------
+    API : str
+       Which API to use: [software, module, message, warning, error]
+    message : str
+       Message to add to API
+
+    Return
+    ------
+    Error message written to bash
     """
-    This function allows to colour code error messages within a code.
-    """
+    
     if API == 'software':
         print(Style.BRIGHT + Fore.BLUE + message + Style.RESET_ALL)
     if API == 'module':
@@ -50,11 +59,23 @@ def errorcode(API, message):
 
 
 
-def compilation(i, i_max, text=''):
-    """
-    This function print out a compilation-time-bar in the terminal.
+def tqdm_bar_format():
 
-    PARAMETERS
+    """Code snippet to set default
+    """
+
+    bar_format = "{l_bar}{bar:50}{r_bar}{bar:-50b}"
+    return bar_format
+
+        
+
+
+        
+def compilation(i, i_max, text=''):
+
+    """Custum function to print out a compilation-time-bar in the terminal.
+
+    Parameters
     ----------
     i : int
         Index of the current running job-loop
@@ -63,7 +84,7 @@ def compilation(i, i_max, text=''):
     text : str
         Optional text written next to compilation-bar
 
-    RETURN
+    Return
     ------
         No parameters only a nice compilation bar to bash
     """
@@ -138,20 +159,21 @@ def normalize(signal, factor=1e6, length=-1):
 def filter(signal, filt='median', carbox=144):
     """
     This utility makes the proper filter solution to a signal dataset.
+
     Notice: the carbox size here is twice what is default by numpy.
 
-    PARAMETERS
+    Parameters
     ----------
     filtType : string
         Filter is either: median or mean
-    signalIn : narray
+    signalIn : ndarray
        Signal needed for processing
     numBox : int
         Integer used as car-box size of 1 hour: 3600s/25s = 144.
 
-    RETURN
+    Return
     ------
-    signalOut : narray
+    signalOut : ndarray
         Filtered signal array
     """
 
@@ -200,20 +222,21 @@ def filter(signal, filt='median', carbox=144):
 
 
 def passbandConversionV2P(V, Teff):
-    """
-    Coversion from Johnson-Cousin V magnitude to the PLATO passband.
+    
+    """Coversion from Johnson-Cousin V magnitude to the PLATO passband.
+    
     This filtersion is from Marchiori et al. (2019), Eq. 5 and 6, and is
     extracted using synthetic stellar spectra from the POLLOX database.
     NOTE valid for Teff = 4000-15000 K (hence not for M-dwarfs).
 
-    PARAMETERS
+    Parameters
     ----------
     V : float, narray
         Johnson-Cousin magnitude of star(s).
     Teff : float narray
         Effective temperature of star(s).
 
-    RETURN
+    Return
     ------
     P : float, narray
         The PLATO passband magnitude of star(s).
@@ -234,12 +257,15 @@ def passbandConversionV2P(V, Teff):
 
 
 def getPhotonNoiseLimitNSR(P, Ncam=1, Ntra=1, tdur=3600, camType='N'):
-    """
-    NSR estimate in the photon noise limit of bright stars. The stellar flux are
-    calculated from the PLATO passband found by Marchiori et al. (2019).
-    NOTE only valid for very bright stars (P < 11).
 
-    PARAMETERS
+    """NSR estimate in the photon noise limit of bright stars. 
+
+    The stellar flux are calculated from the PLATO passband found by 
+    Marchiori et al. (2019).
+    
+    NOTE: only valid for very bright stars (P < 11).
+
+    Parameters
     ----------
     P : float, narray
         The PLATO passband magnitude.
@@ -252,7 +278,7 @@ def getPhotonNoiseLimitNSR(P, Ncam=1, Ntra=1, tdur=3600, camType='N'):
     camType : str
         Either the normal (N) or fast (F) cameras. Default is normal.
 
-    RETURN
+    Return
     ------
     NSR : float, narray
         NSR only valid for the photon noise limit.
@@ -294,9 +320,10 @@ def getPhotonNoiseLimitNSR(P, Ncam=1, Ntra=1, tdur=3600, camType='N'):
 
 
 def pdAddColumn(df, newCol, name):
+
+    """Function to add a column to an exisiting pandas data frame.
     """
-    Function to add a column to an exisiting pandas data frame.
-    """
+    
     df[name] = newCol
     cols = df.columns.tolist()
     cols = cols[-1:] + cols[:-1]
@@ -307,7 +334,9 @@ def pdAddColumn(df, newCol, name):
 
 
 def convertQuarterRange(dQ):
-    """
+
+    """Function to sort a quarter ranges.
+    
     Small function that takes a string of numbers (here quarters)
     and split it up into readable float values used as real number
     ranges. If a single number is given, an quarter integer is 
@@ -331,11 +360,10 @@ def convertQuarterRange(dQ):
 
 
 
-
-
-
 def convertMagnitudeRange(dm):
-    """
+
+    """Function to sort magnitudes ranges.
+
     Small function that takes a string of numbers (here of magnitudes)
     and split it up into readable float values used as real number
     ranges. If a single number is given, a selection of 1 mag around
@@ -363,7 +391,9 @@ def convertMagnitudeRange(dm):
 
 
 def getStarsWithinCameraGroup(camGroup, raPF, decPF, ra, dec, sizeSubfield=6):
-    """
+
+    """Fetch all star within a camera group.
+
     This function determines if a star is within the FOV of a specific
     PLATO camera group. 
 
@@ -538,30 +568,6 @@ def getInterPixelPositions(raPF, decPF, ra, dec):
 
 
 
-
-# def picOfDestiny(distribution, prange):
-#     """
-#     This function randomly picks a value from any gievn distribution and returns it.
-#     The distribution must consist of values between 0 and 1 with its peak at 1. This function picks a
-#     random value from the allowed range and then uses a distribution to get a P number
-#     between 0 and 1, it then rolls a dice and chekcs wheter the dice roll is under the
-#     P number. If it is, then the picked value is returned. This ensures a recration of
-#     the distribution shape over thousands of picks
-#     """
-
-#     pick = random.random()*(prange[1]-prange[0]) + prange[0]
-#     p = distribution(pick)
-#     roll = random.random()
-#     if roll < p:
-#         return pick
-#     else:
-#         return distribution_pick(distribution, range)
-
-
-
-
-
-
 def imageNorm(inputArray, norm="linear", sigma=2, scale_min=None, scale_max=None):
     """
     Performs custom scaling of the input numpy array.
@@ -643,8 +649,8 @@ def imageNorm(inputArray, norm="linear", sigma=2, scale_min=None, scale_max=None
 
 
 def moveColorbarExponent(x_offs=0, y_offs=1, dig=0, side='left', omit_last=False):
-    """
-    Move scientific notation exponent from top to the side.
+
+    """Move scientific notation exponent from top to the side.
     
     Additionally, one can set the number of digits after the comma
     for the y-ticks, hence if it should state 1, 1.0, 1.00 and so forth.
@@ -706,3 +712,31 @@ def moveColorbarExponent(x_offs=0, y_offs=1, dig=0, side='left', omit_last=False
 
     # Return the locs
     return locs
+
+
+
+
+
+
+
+
+# def picOfDestiny(distribution, prange):
+#     """
+#     This function randomly picks a value from any gievn distribution and returns it.
+#     The distribution must consist of values between 0 and 1 with its peak at 1. This function picks a
+#     random value from the allowed range and then uses a distribution to get a P number
+#     between 0 and 1, it then rolls a dice and chekcs wheter the dice roll is under the
+#     P number. If it is, then the picked value is returned. This ensures a recration of
+#     the distribution shape over thousands of picks
+#     """
+
+#     pick = random.random()*(prange[1]-prange[0]) + prange[0]
+#     p = distribution(pick)
+#     roll = random.random()
+#     if roll < p:
+#         return pick
+#     else:
+#         return distribution_pick(distribution, range)
+
+
+

@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 
 """
+Usage examples:
+  $ python picsim.py 100 P1 SPF -p
+  $ python picsim.py 1000 P5 NPF --camera 24
+  $ python picsim.py all all SPF --camera 6 --group 1 --mag 9.5-12.2 -o </path/to/outdir>
+
 This script take the PIC input catalog (csv format) and fetch the correct entries for target
 stars and their contaminants. Notice that the catalog will only be saved if an ouput directory
 and prefix (-o) are given as input. This script can also be used to re-plot a old output ascii
 catalog produced by this software. Note that the PIC contaminant catalog is complete up to 20 mag.
 
-Usage examples:
-  $ python simulator-pic.py 100 P1 SPF -p
-  $ python simulator-pic.py 1000 P5 NPF --camera 24
-  $ python simulator-pic.py all all SPF --camera 6 --group 1 --mag 9.5-12.2 -o </path/to/outdir>
-
-Note on Fields:
+Notes on PLATO fields:
   Number of targets in PIC: 320,743
   Number of targets in SPF: 163,772
   Number of targets in NPF: 156,971
@@ -19,7 +19,7 @@ Note on Fields:
   photometry using a calibration technique being valid for:
   0.5 < Bp-Rp < 5.17
 
-Note on SampleFlag:
+Note on Sample flag:
   Number of targets in P1:  15,094 (SPF:   6,817, NPF:   6,892)
   Number of targets in P2:   1,385 (SPF:     717, NPF:     668)
   Number of targets in P4:  33,032 (SPF:  16,866, NPF:  16,166)
@@ -47,15 +47,14 @@ from platosim.utilities import (errorcode,
                                 getStarsWithinCameraGroup)
 
 # Import plot modules
-from platosim.plot import (drawStarsInSkyAitoff,
-                           plotPlatoFOV,
-                           plotTeffvsRadius,
-                           plotStellarSampleDistributions)
+from platosim.plot import drawStarsInSkyAitoff
+from platosim.varsim.plot import (plotPlatoFOV,
+                                  plotTeffvsRadius,
+                                  plotStellarSampleDistributions)
 
 # Import repo matplotlibrc
-import platonium.matplotlibrc
-# Use LaTeX when plots should be saved properly
-plt.rcParams['text.usetex'] = True
+from platosim.matplotlibrc import setup
+setup()
 
 # Disable warnings
 import warnings
