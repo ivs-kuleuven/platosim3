@@ -12,9 +12,9 @@ ObservingParameters:
     NumExposures:                    10              # Number of exposures
     BeginExposureNr:                  0              # Sequential number of first exposure. useful for slurm parallellisation
     CycleTime:                       25              # Image cycle time (exposure + readout before next exposure starts)[s]
-    RApointing:                      86.8            # Platform (not telescope) right ascension pointing coordinate     [deg]
-    DecPointing:                     -46.4           # Platform (not telescope) declination pointing coordinate         [deg]
-    Fluxm0:                          1.00179e8       # Photon flux of a V=0 G2V-star                                    [phot/s/m^2/nm]
+    RApointing:                      86.79870508     # Platform (not telescope) right ascension pointing coordinate (Default: PIC 1.1, SPF) [deg]
+    DecPointing:                     -46.39594703    # Platform (not telescope) declination     pointing coordinate (Default: PIC 1.1, SPF) [deg]
+    Fluxm0:                          1.00179e8       # Photon flux of a V=0 G2V-star [phot/s/m^2/nm]
     StarCatalogFile:                 inputfiles/starcatalog.txt
 
 Sky:
@@ -26,7 +26,7 @@ Sky:
     IncludeCosmicsInSmearingMap:     yes             # Whether or not to include cosmics in the overscan map
     IncludeCosmicsInBiasMap:         yes             # Whether or not to include cosmics in the prescan map
     Cosmics:
-      CosmicHitRate:                 1000            # Cosmic hit rate [events / cm^2 / s]
+      CosmicHitRate:                 10              # Cosmic hit rate [events / cm^2 / s]
       TrailLength:                   [0, 15]         # Boundaries of uniform distribution for the length of the cosmic trails [pixels]
       Intensity:                     [2500., 2000., 30.] # Location, scale>0, and shape of the skew-Normal distribution for the total number of e- in a cosmic hit [e-]
 
@@ -44,11 +44,11 @@ Platform:
 
 Telescope:
 
-    GroupID:                         Custom          # There are four camera groups: 1, 2, 3, 4, Fast, Custom
+    GroupID:                         1               # There are four camera groups: 1, 2, 3, 4, Fast, Custom
                                                      # (use Custom to specify the telescope azimuth and tilt angles yourself)
 
-    AzimuthAngle:                    0.0             # Azimuth angle of telescope on the platform [deg]  - used when GroupID = Custom
-    TiltAngle:                       0.0             # Tilt angle of the telescope on the platform [deg] - used when GroupID = Custom
+    AzimuthAngle:                    0.0             # Azimuth angle of the telescope on the platform [deg] - used when GroupID = Custom
+    TiltAngle:                       0.0             # Tilt    angle of the telescope on the platform [deg] - used when GroupID = Custom
 
     LightCollectingArea:             113.1           # Effective area of 1 telescope [cm^2]
     TransmissionEfficiency:
@@ -276,14 +276,14 @@ ControlHDF5Content:
     WriteThroughputMaps:             yes             # 2D throughput maps (QE, vignetting, contamination, ...), for each exposure
     WriteFlatfieldMap:               yes             # 2D image of the flatfield (PRNU and/or IRNU)
     WriteSubPixelImages:             no              # Only use this for a limited number of exposures. Takes a lot of space!
-    WriteStarPositions:              yes             # Star positions are written in pixel and focal plane coordinates
-    WriteGhostPositions:             yes             # Ghost positions are written in pixel and focal plane coordinates
-    WriteACS:                        yes             # Whether to write the platform yaw, pitch, roll to the HDF5 file
-    WriteCosmics:                    yes             # Determines if the columns, rows and flux of the cosmics should be written to the HDF5 file 
     WriteDiffusedPSF:                no              # Determines if diffused PSF should be written to the output HDF5 file. (Only works for mapped PSF, takes a long time to compute)
     WriteHighResolutionPSF:          no              # Determines if the high resolution PSF will be written to the HDF5 file (doesn't work for Analytic Gaussian PSF)
     WriteStarCatalog:                yes             # Determines if the starcatalog should be written to the HDF5 file
-    WriteTelescopeACS:               yes             # Determines if the telescope Yaw, Pitch and Roll should be written to the HDF5 file
+    WriteStarPositions:              yes             # Star positions are written in pixel and focal plane coordinates
+    WriteGhostPositions:             yes             # Ghost positions are written in pixel and focal plane coordinates
+    WriteCosmics:                    yes             # Determines if the columns, rows and flux of the cosmics should be written to the HDF5 file 
+    WriteACS:                        yes             # Whether to write the yaw, pitch, roll to the HDF5 file
+    WriteTelescopeACS:               yes             # Determines if the platform Yaw, Pitch and Roll should be written to the HDF5 file
     WriteTransmissionEfficiency:     yes             # Determines if the Transmission Efficiency should be writen to the HDF5 file
     WriteCTI:                        yes             # Write trap density maps at BOL and EOL for each species
 

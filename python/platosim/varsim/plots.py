@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 
 import os
+import scipy
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
-from scipy.interpolate import make_interp_spline
-from scipy.ndimage import median_filter
 from PyAstronomy import pyasl
 #from platosim.utilities import powerDensityFFT
+from scipy.interpolate import make_interp_spline
+
 
 # Hard-code values
 
@@ -157,7 +158,7 @@ def plot_amplitude_spectrum(time, signals, sampling, freqlim=1e-2, title=False, 
 
     for i in range(3):
         freq, PSD[i,:] = powerDensityFFT(signals[i], sampling)
-        med[i,:] = median_filter(PSD[i,:], medfilt)
+        med[i,:] = scipy.ndimage.median_filter(PSD[i,:], medfilt)
 
     # PLOT SEPERATE
 
@@ -261,24 +262,24 @@ def plot_passband_ldc(wvl_int_plato, tran_int_plato, grid_no,
 
     # Create the plot
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))#13,6))
+    fig, ax = plt.subplots(1, 2, figsize=(12, 6))#13,6))
 
     # Response functions:
 
-    ax1.plot(wvl_int_plato,  tran_int_plato,  'r-', label='PLATO')
-    ax1.plot(wvl_int_tess,   tran_int_tess,   'g--', label='TESS')
-    ax1.plot(wvl_int_kepler, tran_int_kepler, 'b:', label='Kepler')
-    ax1.set_xlabel(r'Wavelength, $\lambda$ [Å]')
-    ax1.set_ylabel(r'Norm. Spectral Response, $S_{\lambda}$')
-    ax1.set_title('Bandpass')
-    ax1.legend(fontsize=12)
+    ax[0].plot(wvl_int_plato,  tran_int_plato,  'r-', label='PLATO')
+    ax[0].plot(wvl_int_tess,   tran_int_tess,   'g--', label='TESS')
+    ax[0].plot(wvl_int_kepler, tran_int_kepler, 'b:', label='Kepler')
+    ax[0].set_xlabel(r'Wavelength, $\lambda$ [Å]')
+    ax[0].set_ylabel(r'Norm. Spectral Response, $S_{\lambda}$')
+    ax[0].set_title('Bandpass')
+    ax[0].legend(fontsize=12)
 
     # Quadratic LD coeffients fitting:
 
-    ax2.plot(mu_trunc, intensity_VTA_trunc, 'ko', alpha=0.2, label='Data')
-    lab = 'Model:'+'\n'+r'$u_1$ = %.5s'%ldc[0]+'\n'+r'$u_2$ = %.5s'%ldc[1]
-    ax2.plot(mu_trunc, LD_values.model, 'r-', label=lab)
-    ax2.set_xlabel(r'Norm. Wavelength, $\lambda$')
+    lab = 'Model:'+'\n'+r'$u_1$ = %.5s'%ldc[0]+'\n'+r'$u_2$ = %.5s'%ldc[1]`
+    ax[1].plot(mu_trunc, intensity_VTA_trunc, 'ko', alpha=0.2, label='Data')
+    ax[1].plot(mu_trunc, LD_values.model, 'r-', label=lab)
+    ax[1].set_xlabel(r'Norm. Wavelength, $\lambda$')
     ax2.set_ylabel(r'Norm. Intensity, $I_{\lambda}$')
     ax2.set_title('Quadratic LD coeffients fitting')
     ax2.legend(fontsize=12)
@@ -286,7 +287,7 @@ def plot_passband_ldc(wvl_int_plato, tran_int_plato, grid_no,
     plt.show()
     #fig.savefig('/home/nicholas/Nextcloud/presentations/presentation_PW12/plotPassbandPLATO.png', bbox_inches='tight', dpi=300)
 
-
+    return fig, ax
 
 
 
@@ -537,7 +538,7 @@ def plot_final_lc(lc):
     except: lc['tran'] = zeros.tolist()
     
     time = lc['time']/86400.
-    lc_med = median_filter(lc['sum'], 144)
+    lc_med = scipy.ndimage.median_filter(lc['sum'], 144)
 
     fig, ax = plt.subplots(4, 1, figsize=(12, 10), sharex=True)
 

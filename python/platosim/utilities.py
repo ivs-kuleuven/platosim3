@@ -20,10 +20,7 @@ from scipy.ndimage import median_filter
 from numba import njit
 
 from platosim.simulation import Simulation
-from platosim.referenceFrames import (skyToFocalPlaneCoordinates,
-                                      gnomonicRadialDistanceFromOpticalAxis,
-                                      getCCDandPixelCoordinates)
-
+import platosim.referenceFrames as rf
 
 #==============================================================#
 #                           FUNCTIONS                          #
@@ -31,9 +28,21 @@ from platosim.referenceFrames import (skyToFocalPlaneCoordinates,
 
 
 def errorcode(API, message):
+
+    """Function to colour code error messages within a code.
+
+    Parameters
+    ----------
+    API : str
+       Which API to use: [software, module, message, warning, error]
+    message : str
+       Message to add to API
+
+    Return
+    ------
+    Error message written to bash
     """
-    This function allows to colour code error messages within a code.
-    """
+    
     if API == 'software':
         print(Style.BRIGHT + Fore.BLUE + message + Style.RESET_ALL)
     if API == 'module':
@@ -50,11 +59,23 @@ def errorcode(API, message):
 
 
 
-def compilation(i, i_max, text=''):
-    """
-    This function print out a compilation-time-bar in the terminal.
+def tqdm_bar_format():
 
-    PARAMETERS
+    """Code snippet to set default
+    """
+
+    bar_format = "{l_bar}{bar:50}{r_bar}{bar:-50b}"
+    return bar_format
+
+        
+
+
+        
+def compilation(i, i_max, text=''):
+
+    """Custum function to print out a compilation-time-bar in the terminal.
+
+    Parameters
     ----------
     i : int
         Index of the current running job-loop
@@ -63,7 +84,7 @@ def compilation(i, i_max, text=''):
     text : str
         Optional text written next to compilation-bar
 
-    RETURN
+    Return
     ------
         No parameters only a nice compilation bar to bash
     """
@@ -84,6 +105,25 @@ def compilation(i, i_max, text=''):
 
 
 
+
+
+
+def medianAbsoluteDeviation(array):
+    """
+    Calculate the Median Abosolute Deviation (MAD) of an array.
+    """
+    return np.sum( np.abs(array - np.median(array)) ) / len(np.ravel(array))
+
+
+
+def rootMeanSquare(array):
+    """
+    Calculate the Root Mean Square (RMS) of an array.
+    """
+    return np.sqrt( np.mean(array**2) )
+
+
+    
 
 
 def normalize(signal, factor=1e6, length=-1):
@@ -119,20 +159,21 @@ def normalize(signal, factor=1e6, length=-1):
 def filter(signal, filt='median', carbox=144):
     """
     This utility makes the proper filter solution to a signal dataset.
+
     Notice: the carbox size here is twice what is default by numpy.
 
-    PARAMETERS
+    Parameters
     ----------
     filtType : string
         Filter is either: median or mean
-    signalIn : narray
+    signalIn : ndarray
        Signal needed for processing
     numBox : int
         Integer used as car-box size of 1 hour: 3600s/25s = 144.
 
-    RETURN
+    Return
     ------
-    signalOut : narray
+    signalOut : ndarray
         Filtered signal array
     """
 
@@ -181,20 +222,21 @@ def filter(signal, filt='median', carbox=144):
 
 
 def passbandConversionV2P(V, Teff):
-    """
-    Coversion from Johnson-Cousin V magnitude to the PLATO passband.
+    
+    """Coversion from Johnson-Cousin V magnitude to the PLATO passband.
+    
     This filtersion is from Marchiori et al. (2019), Eq. 5 and 6, and is
     extracted using synthetic stellar spectra from the POLLOX database.
     NOTE valid for Teff = 4000-15000 K (hence not for M-dwarfs).
 
-    PARAMETERS
+    Parameters
     ----------
     V : float, narray
         Johnson-Cousin magnitude of star(s).
     Teff : float narray
         Effective temperature of star(s).
 
-    RETURN
+    Return
     ------
     P : float, narray
         The PLATO passband magnitude of star(s).
@@ -214,13 +256,16 @@ def passbandConversionV2P(V, Teff):
 
 
 
-def NSRphotonNoiseLimit(P, Ncam=24., Ntra=1., tdur=3600., camType='N'):
-    """
-    NSR estimate in the photon noise limit of bright stars. The stellar flux are
-    calculated from the PLATO passband found by Marchiori et al. (2019).
-    NOTE only valid for very bright stars (P < 11).
+def getPhotonNoiseLimitNSR(P, Ncam=1, Ntra=1, tdur=3600, camType='N'):
 
-    PARAMETERS
+    """NSR estimate in the photon noise limit of bright stars. 
+
+    The stellar flux are calculated from the PLATO passband found by 
+    Marchiori et al. (2019).
+    
+    NOTE: only valid for very bright stars (P < 11).
+
+    Parameters
     ----------
     P : float, narray
         The PLATO passband magnitude.
@@ -233,17 +278,17 @@ def NSRphotonNoiseLimit(P, Ncam=24., Ntra=1., tdur=3600., camType='N'):
     camType : str
         Either the normal (N) or fast (F) cameras. Default is normal.
 
-    RETURN
+    Return
     ------
     NSR : float, narray
         NSR only valid for the photon noise limit.
     """
 
-    # Choose cycle and exposure time for either the normal (N) or fast (F) cameras
+    # Choose cycle and exposure time [s] for either the normal (N) or fast (F) cameras
 
     if camType == 'N':
-        texp = 21.  # [s]
-        tcyc = 25.  # [s]
+        texp = 21.
+        tcyc = 25.
     elif camType == 'F':
         texp = 2.1
         tcyc = 2.5
@@ -275,9 +320,10 @@ def NSRphotonNoiseLimit(P, Ncam=24., Ntra=1., tdur=3600., camType='N'):
 
 
 def pdAddColumn(df, newCol, name):
+
+    """Function to add a column to an exisiting pandas data frame.
     """
-    Function to add a column to an exisiting pandas data frame.
-    """
+    
     df[name] = newCol
     cols = df.columns.tolist()
     cols = cols[-1:] + cols[:-1]
@@ -288,7 +334,9 @@ def pdAddColumn(df, newCol, name):
 
 
 def convertQuarterRange(dQ):
-    """
+
+    """Function to sort a quarter ranges.
+    
     Small function that takes a string of numbers (here quarters)
     and split it up into readable float values used as real number
     ranges. If a single number is given, an quarter integer is 
@@ -312,11 +360,10 @@ def convertQuarterRange(dQ):
 
 
 
-
-
-
 def convertMagnitudeRange(dm):
-    """
+
+    """Function to sort magnitudes ranges.
+
     Small function that takes a string of numbers (here of magnitudes)
     and split it up into readable float values used as real number
     ranges. If a single number is given, a selection of 1 mag around
@@ -344,7 +391,9 @@ def convertMagnitudeRange(dm):
 
 
 def getStarsWithinCameraGroup(camGroup, raPF, decPF, ra, dec, sizeSubfield=6):
-    """
+
+    """Fetch all star within a camera group.
+
     This function determines if a star is within the FOV of a specific
     PLATO camera group. 
 
@@ -519,6 +568,157 @@ def getInterPixelPositions(raPF, decPF, ra, dec):
 
 
 
+def imageNorm(inputArray, norm="linear", sigma=2, scale_min=None, scale_max=None):
+    """
+    Performs custom scaling of the input numpy array.
+
+    @type inputArray: np array
+    @param inputArray: image data array
+    @type scale_min: float
+    @param scale_min: minimum data value
+    @type scale_max: float
+    @param scale_max: maximum data value
+    @rtype: np array
+    @return: image data array
+    """
+    # Input image array
+    
+    image = np.array(inputArray, copy=True)
+
+    # Default scaling is 2 sigma
+
+    if scale_min is None:
+        scale_min = image.mean() - sigma*image.std()
+    if scale_max is None:
+        scale_max = image.mean() + sigma*image.std()
+
+    # Clip data
+    
+    image = image.clip(min=scale_min, max=scale_max)
+    
+    # Select normalization method
+    
+    if norm == "linear":
+        image   = (image - scale_min) / (scale_max - scale_min)
+        indices = np.where(image < 0)
+        image[indices] = 0.0
+        indices = np.where(image > 1)
+        image[indices] = 1.0
+
+    elif norm == "log":
+        factor = np.log10(scale_max - scale_min)
+        indices0 = np.where(image < scale_min)
+        indices1 = np.where((image >= scale_min) & (image <= scale_max))
+        indices2 = np.where(image > scale_max)
+        image[indices0] = 0.0
+        image[indices2] = 1.0
+        image[indices1] = np.log10(image[indices1]) / factor
+        
+    elif norm == "sqrt":
+        image = image - scale_min
+        indices = np.where(image < 0)
+        image[indices] = 0.0
+        image = np.sqrt(image)
+        image = image / math.sqrt(scale_max - scale_min)
+        image = np.sqrt(image)
+        image = image / np.sqrt(scale_max - scale_min)
+
+    elif norm == "asinh":
+        non_linear = 2.0
+        factor = np.arcsinh((scale_max - scale_min) / non_linear)
+        indices0 = np.where(image < scale_min)
+        indices1 = np.where((image >= scale_min) & (image <= scale_max))
+        indices2 = np.where(image > scale_max)
+        image[indices0] = 0.0
+        image[indices2] = 1.0
+        image[indices1] = np.arcsinh( (image[indices1] - scale_min) / non_linear) / factor
+
+    #else:
+    #    errorcode("error", "Not valid normalization method!")
+
+    # Finito!
+        
+    return image
+
+
+
+
+
+
+
+
+
+def moveColorbarExponent(x_offs=0, y_offs=1, dig=0, side='left', omit_last=False):
+
+    """Move scientific notation exponent from top to the side.
+    
+    Additionally, one can set the number of digits after the comma
+    for the y-ticks, hence if it should state 1, 1.0, 1.00 and so forth.
+
+    Parameters
+    ----------
+    offs : float, optional; <0>
+        Horizontal movement additional to default.
+    dig : int, optional; <0>
+        Number of decimals after the comma.
+    side : string, optional; {<'left'>, 'right'}
+        To choose the side of the y-axis notation.
+    omit_last : bool, optional; <False>
+        If True, the top y-axis-label is omitted.
+
+    Returns
+    -------
+    locs : list
+        List of y-tick locations.
+
+    Note
+    ----
+    This is kind of a non-satisfying hack, which should be handled more
+    properly. But it works. Functions to look at for a better implementation:
+    ax.ticklabel_format
+    ax.yaxis.major.formatter.set_offset_string
+    """
+
+    # Get the ticks
+    locs, _ = plt.yticks()
+
+    # Put the last entry into a string, ensuring it is in scientific notation
+    # E.g: 123456789 => '1.235e+08'
+    llocs = '%.3e' % locs[-1]
+
+    # Get the magnitude, hence the number after the 'e'
+    # E.g: '1.235e+08' => 8
+    yoff = int(str(llocs).split('e')[1])
+
+    # If omit_last, remove last entry
+    if omit_last:
+        slocs = locs[:-1]
+    else:
+        slocs = locs
+
+    # Set ticks to the requested precision
+    form = r'$%.'+str(dig)+'f$'
+    plt.yticks(locs, list(map(lambda x: form % x, slocs/(10**yoff))))
+
+    # Define offset depending on the side
+    if side == 'left':
+        x_offs = -.18 - x_offs # Default left: -0.18
+    elif side == 'right':
+        x_offs = 1 + x_offs    # Default right: 1.0
+        
+    # Plot the exponent
+    plt.text(x_offs, y_offs, r'$\times10^{%i}$' % yoff, transform =
+            plt.gca().transAxes, verticalalignment='top')
+
+    # Return the locs
+    return locs
+
+
+
+
+
+
+
 
 # def picOfDestiny(distribution, prange):
 #     """
@@ -537,3 +737,6 @@ def getInterPixelPositions(raPF, decPF, ra, dec):
 #         return pick
 #     else:
 #         return distribution_pick(distribution, range)
+
+
+

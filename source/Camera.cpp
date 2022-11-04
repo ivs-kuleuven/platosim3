@@ -746,7 +746,7 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
         if(includeExtendedGhosts)
             coefficients = (*extendedGhostRadiusCoefficients)();
 
-        // Loop over the selected stars and add their flux to the sub-fild
+        // Loop over the selected stars and add their flux to the sub-field
         // Also add the extended ghosts (if enabled)
 
         numStarsInSubField = 0;

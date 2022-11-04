@@ -48,7 +48,7 @@ Interactive usage example:
     	CTI:
     		Model: Simple
     		Simple:
-		        MeanCTE: 0. 99999
+ 		        MeanCTE: 0. 99999
         DigitalSaturation: 65535
         ElectronicOffset: 100
         FlatfieldPtPNoise: 0.016
@@ -856,6 +856,38 @@ class Simulation(object):
 
 
 
+    def createPhotometryTargetFile(self, starIDs, fileName):
+        """
+        PURPOSE: Create a photometry file list in ascii format and sets it to the YAML input.
+ 
+        INPUT: starIDs:  IDs of the star (integers)
+               fileName: Path of the photometry file that will be written.
+
+        OUTPUT: A file will be saved, containing the star IDs that photometry should be performed on.
+                The "Photometry/TargetFileName" tag in the yaml tree will be changed to the given starCatalogPath
+        """
+
+        # Check if starIDs are just a number
+        
+        if type(starIDs) is int:
+            starIDs = [starIDs]
+        
+        # Create photometry list file
+        
+        np.savetxt(fileName, np.transpose(starIDs), delimiter=" ", fmt="%d")
+
+        # Set this to simulation
+        
+        self["Photometry/TargetFileName"] = fileName
+
+        # Finito!
+
+        return
+    
+
+
+
+    
 
 
     def getReadoutTime(self):
