@@ -5,6 +5,7 @@ import h5py
 import numpy as np
 import ligo.skymap.plot
 from matplotlib import pyplot as plt
+from matplotlib.ticker import ScalarFormatter
 
 import astropy.units as u
 from astropy.coordinates import SkyCoord

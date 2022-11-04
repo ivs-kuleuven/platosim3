@@ -48,7 +48,7 @@ from platosim.utilities import (errorcode,
 
 # Import plot modules
 from platosim.plot import drawStarsInSkyAitoff
-from platosim.varsim.plot import (plotPlatoFOV,
+from platosim.picsim.plot import (plotPlatoFOV,
                                   plotTeffvsRadius,
                                   plotStellarSampleDistributions)
 
