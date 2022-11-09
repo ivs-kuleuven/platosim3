@@ -1824,7 +1824,7 @@ def plotNSRvsMagnitude(df, Ncam=1, tdur=3600., residuals=False, camType="N", uni
     fig, ax = plt.subplots(1, 1, figsize=figsize)
 
     # Set proper discrete cmap
-    if column in ("group", "camera", "quarter", "ncam", "ncon"):
+    if column in ("group", "camera", "quarter", "ncam", "ncon", "flag"):
         # Fetch custom discrete colorbar used by matplotlib
         cbins = np.arange(df[column].min(), df[column].max()+2, 1)
         ticks = cbins + 0.5

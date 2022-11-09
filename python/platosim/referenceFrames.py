@@ -1196,14 +1196,10 @@ def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
 
 
 
-
-
-
-
-
-def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation, tiltAngle, azimuthAngle,
-                              focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, normal,
-                              mappedDistortion=False, distortionCoefficients=None, pathToPsfFile=None):
+def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation,
+                              tiltAngle, azimuthAngle, focalPlaneAngle, focalLength, pixelSize,
+                              includeFieldDistortion, normal, mappedDistortion=False,
+                              distortionCoefficients=None, pathToPsfFile=None):
 
     """
     PURPOSE: Given the equatorial coordinates of a star, find out on which CCD it falls ('1', '2', ...)
