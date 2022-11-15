@@ -32,18 +32,18 @@ import platosim.referenceFrames as rf
 #                         BEGIN CLASS                          #
 #==============================================================#
 
-class PhotometryFile(object):
+class LightCurve(object):
 
     """Class for PlatoSim photometry and time series analysis.
     
-    This class provides the Python interface to an HDF5 or Feather file generated
+    This class provides the Python interface to an Feather file generated
     by the PLATO Photometric Pipeline that comes with the PlatoSim software.
 
     Usage example for a single feather file:
-        >>> lc1 = PhotometryFile("000000001_Ncam1.1_Q1.ftr")
+        >>> lc1 = Photometry("000000001_Ncam1.1_Q1.ftr")
 
     Usage example for a batch of feather files:
-        >>> phot = PhotometryFile("</path/to/files>", "multi")
+        >>> phot = Photometry("</path/to/files>", "multi")
     """
 
     def __init__(self, filename, mode="single", ncam=False):
@@ -77,14 +77,14 @@ class PhotometryFile(object):
 
             self.filename = filename
             
-            # Select HDF5 or Feather output file
+            # Select Feather output file
             
             fileExtention = pathlib.Path(filename).suffix
 
             if fileExtention == ".ftr":
                 self.df = pd.read_feather(filename)
             else:
-                ut.errorcode("error", "File should be either in the format of HDF5 or feather!")
+                ut.errorcode("error", "File should be in the format of a feather!")
 
             
 
@@ -877,6 +877,108 @@ class PhotometryFile(object):
     #--------------------------------------------------------------#
 
 
+    def analyse_single_camera(self, inputDir, outputFile, numStar):
+
+        # Open a pandas data frame and write to it
+        df = pd.DataFrame()
+        cols = ["id", "ra", "dec", "x", "y", "mag", "ccd", "xccd", "yccd", "xfp", "yfp"]
+        f = 247.52 # [mm] 
+
+        # Loop over star simulated
+
+        for i in tqdm(range(1, numStar+1), bar_format=ut.tqdm_bar_format()):
+
+            # Fetch all zip files
+            starID   = f"{i}".zfill(9)
+            path     = f"{inputDir}/{starID}"
+            files    = self.files(path=path)
+            numFiles = len(files)
+
+            # Loop over each group/cam/quarter simulation
+
+            for j in range(numFiles):
+
+                # Extract files
+                with ZipFile(files[j], 'r') as unzip:
+                    unzip.extractall(path)
+
+                # Get file names
+                filename_ftr = files[j][:-3] + "ftr"
+                filename_cat = files[j][:-3] + "cat"
+                filename_inv = files[j][:-3] + "invert"    
+
+                # Fetch light curve object
+                try: lc = PhotometryFile(filename_ftr)
+                except: pass
+                else:
+
+                    # Fetch info about observation
+                    group, camera, quarter = lc.obs()
+
+                    # Fetch info about contaminants
+                    mag, rOA, rCP, ncon, SPR = self.star_info(filename_cat)
+
+                    # Force a correction and reload file
+                    # TODO remove for future simulations! Fixed in PLATOnium now
+                    self.correct_cols(lc, filename_ftr)
+                    lc = PhotometryFile(filename_ftr)
+
+                    # Flag for negative fluxes (bad behavior of L1 pipeline)
+                    if lc.flux().iloc[0] < 1:
+                        flag = 1
+                        #print(filename_ftr)
+                        #print(lc.data())
+                        #exit()
+                    else:
+                        flag = 0
+                    
+                    # Fetch NSR from RMS [ppm/sqrt(h)]
+                    NSR = lc.getNSR()
+                    
+                    # Mean centroid error in percent
+                    xcen     = lc.xcen()
+                    ycen     = lc.ycen()
+                    xcen_err = lc.xcen_err()
+                    ycen_err = lc.ycen_err()
+                    rcen     = np.sqrt(xcen**2 + ycen**2)
+                    rcen_err = np.sqrt(xcen_err**2 + ycen_err**2)
+                    rcen_err_mean = rcen_err.mean() / rcen.mean() * 100
+                    #if rcen_err_mean > 100: rcen_err_mean = 100
+
+                    # Mean flux error in percent
+                    flux     = np.abs(lc.flux())
+                    flux_err = np.abs(lc.flux_err())
+                    flux_err_mean = flux_err.mean() / flux.mean() * 100                
+                    #if flux_err_mean > 100: flux_err_mean = 100
+
+                    # Write data to feather
+                    data = {"star":i, "group":group, "camera":camera, "quarter":quarter, "mag":mag,
+                            "flux_err":flux_err_mean, "rerr":rcen_err_mean, "flag":flag,
+                            "rOA":rOA, "rCP":rCP, "ncon":ncon, "SPR":SPR, "NSR":NSR}
+                    df = df.append(data, ignore_index=True)
+                    
+                    # Delete unpacked files again to not overflow storage memory
+                    os.remove(filename_ftr)
+                    os.remove(filename_cat)
+                    os.remove(filename_inv)
+
+        # Save final feather
+        df = df.astype({"star":int, "group":int, "camera":int, "quarter":int, "mag":np.float32,
+                        "rOA":np.float32, "flux_err":np.float32, "rerr":np.float32, "flag":int,
+                        "rOA":np.float32, "rCP":np.float32, "ncon":int, "SPR":np.float32,
+                        "NSR":np.float32})
+
+        # Sort data frame
+        df = df.sort_values(by=["star", "group", "camera", "quarter"])
+
+        # Set new index and save
+        df = df.reset_index()
+        df.to_feather(outputFile)
+
+
+        
+    
+
     def star_info(self, filename):
 
         # Fetch info about target star
@@ -892,7 +994,12 @@ class PhotometryFile(object):
         # Distance from optical axis [deg]
         f = 247.52 # [mm] 
         rOA = np.rad2deg(rf.gnomonicRadialDistanceFromOpticalAxis(df["xfp"][0], df["yfp"][0], f))
-
+        
+        # Intra-pixel position
+        xcen = df["x"][0] % 1/2
+        ycen = df["y"][0] % 1/2
+        rCP  = np.sqrt(xcen**2 + ycen**2)
+        
         # Custom metric to measure the stellar pollution ratio
         SPR = 0
         n = len(df["mag"])
@@ -906,7 +1013,7 @@ class PhotometryFile(object):
                 if SPR < 0: SPR += 1
 
         # Finito!   
-        return mag, rOA, ncon, SPR
+        return mag, rOA, rCP, ncon, SPR
 
 
 
@@ -1005,7 +1112,7 @@ class PhotometryFile(object):
             else:
 
                 # Fetch star info
-                mag, rOA, ncon, SPR = self.star_info(filename_cat)
+                mag, rOA, rCP, ncon, SPR = self.star_info(filename_cat)
                 
                 # Loop over each quarter
                 
@@ -1042,7 +1149,8 @@ class PhotometryFile(object):
         # Sort data frame
         df = df.sort_values(by=["star", "quarter"])
 
-        # Save new file
+        # Set new index and save
+        df = df.reset_index()
         df.to_feather(outputFile)
 
 
@@ -1074,110 +1182,3 @@ class PhotometryFile(object):
             df = df.iloc[:,:13]
             df.columns = cols
             df.to_feather(filename_ftr)
-
-
-            
-
-
-
-    def analyse_single_camera(self, inputDir, outputFile, numStar):
-
-        # Open a pandas data frame and write to it
-        df = pd.DataFrame()
-        cols = ["id", "ra", "dec", "x", "y", "mag", "ccd", "xccd", "yccd", "xfp", "yfp"]
-        f = 247.52 # [mm] 
-
-        # Loop over star simulated
-
-        for i in tqdm(range(1, numStar+1), bar_format=ut.tqdm_bar_format()):
-
-            # Fetch all zip files
-            starID   = f"{i}".zfill(9)
-            path     = f"{inputDir}/{starID}"
-            files    = self.files(path=path)
-            numFiles = len(files)
-
-            # Loop over each group/cam/quarter simulation
-
-            for j in range(numFiles):
-
-                # Extract files
-                with ZipFile(files[j], 'r') as unzip:
-                    unzip.extractall(path)
-
-                # Get file names
-                filename_ftr = files[j][:-3] + "ftr"
-                filename_cat = files[j][:-3] + "cat"
-                filename_inv = files[j][:-3] + "invert"    
-
-                # Fetch light curve object
-                try: lc = PhotometryFile(filename_ftr)
-                except: pass
-                else:
-
-                    # Fetch info about observation
-                    group, camera, quarter = lc.obs()
-
-                    # Fetch info about contaminants
-                    mag, rOA, ncon, SPR = self.star_info(filename_cat)
-                    
-                    # Force a correction and reload file
-                    # TODO remove for future simulations! Fixed in PLATOnium now
-                    self.correct_cols(lc, filename_ftr)
-                    lc = PhotometryFile(filename_ftr)
-
-                    # Flag for negative fluxes (bad behavior of L1 pipeline)
-                    if lc.flux().iloc[0] < 1:
-                        flag = 1
-                        #print(filename_ftr)
-                        #print(lc.data())
-                        #exit()
-                    else:
-                        flag = 0
-                    
-                    # Fetch NSR from RMS [ppm/sqrt(h)]
-                    NSR = lc.getNSR()
-                    
-                    # Intra-pixel position
-                    #xcen = dc["x"][0] - 3.5
-                    #ycen = dc["y"][0] - 3.5
-                    #rCP = np.sqrt(xcen**2 + ycen**2)
-
-                    # Mean centroid error in percent
-                    xcen     = lc.xcen()
-                    ycen     = lc.ycen()
-                    xcen_err = lc.xcen_err()
-                    ycen_err = lc.ycen_err()
-                    rcen     = np.sqrt(xcen**2 + ycen**2)
-                    rcen_err = np.sqrt(xcen_err**2 + ycen_err**2)
-                    rcen_err_mean = rcen_err.mean() / rcen.mean() * 100
-                    #if rcen_err_mean > 100: rcen_err_mean = 100
-
-                    # Mean flux error in percent
-                    flux     = np.abs(lc.flux())
-                    flux_err = np.abs(lc.flux_err())
-                    flux_err_mean = flux_err.mean() / flux.mean() * 100                
-                    #if flux_err_mean > 100: flux_err_mean = 100
-
-                    # Write data to feather
-                    data = {"star":i, "group":group, "camera":camera, "quarter":quarter, "mag":mag,
-                            "rOA":rOA, "flux_err":flux_err_mean, "rerr":rcen_err_mean, "flag":flag,
-                            "ncon":ncon, "SPR":SPR, "NSR":NSR}
-                    df = df.append(data, ignore_index=True)
-                    
-                    # Delete unpacked files again to not overflow storage memory
-                    os.remove(filename_ftr)
-                    os.remove(filename_cat)
-                    os.remove(filename_inv)
-
-        # Save final feather
-        df = df.astype({"star":int, "group":int, "camera":int, "quarter":int, "mag":np.float32,
-                        "rOA":np.float32, "flux_err":np.float32, "rerr":np.float32, "flag":int,
-                        "ncon":int, "SPR":np.float32, "NSR":np.float32})
-
-        # Sort data frame
-        df = df.sort_values(by=["star", "group", "camera", "quarter"])
-
-        # Set new index and save
-        df = df.reset_index()
-        df.to_feather(outputFile)

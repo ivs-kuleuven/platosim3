@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
 Extract information from the PlatoSim HDF5 output file.
 
@@ -10,15 +12,20 @@ For usage see the Jupyter tutorial notebooks available at "PlatoSim/docs/tutoria
 import os
 import h5py
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 from matplotlib.colors import Normalize, LogNorm
 import matplotlib.patches as patches
 import ipywidgets as widgets
 from astropy.io import fits
 
-from platosim.utilities import imageNorm
+import platosim.plot      as pt
+import platosim.utilities as ut
 
 
+#==============================================================#
+#                         SIMFILE CLASS                        #
+#==============================================================#
 
 
 class SimFile (object):
@@ -31,12 +38,11 @@ class SimFile (object):
 
 
     def __init__(self, filename):
-        """
-        PURPOSE: open the HDF5 file
 
-        INPUT: filename: string containing the full path of the HDF5 file
+        """Open the HDF5 file.
 
-        OUTPUT: None.
+        INPUT  : filename: string containing the full path of the HDF5 file
+        OUTPUT : None
         """
 
         self.filename = filename
@@ -57,7 +63,8 @@ class SimFile (object):
     
     def reload(self):
         """
-        PURPOSE: close the file, and reload it. Useful when the file may have changed meanwhile.
+        Close the file, and reload it. 
+        Useful when the file may have changed meanwhile.
         """
 
         self.hdf5file.close()
@@ -96,10 +103,17 @@ class SimFile (object):
         Returns time points.
         """
 
-        return self.hdf5file["/StarPositions/Time"]
+        # Check if column exist in HSD5 file
+        if "Time" not in self.hdf5file["StarPositions"].keys():
+            ut.errorcode("warning","getTime(): Time array not present in StarPositions group!")
+            return None
+        else:
+            # Fetch time column and write to data frame
+            time = np.array(self.hdf5file["StarPositions/Time"])
+            return pd.DataFrame({"time": time})
 
-    
-
+        
+        
     
 
     def getExposureTime(self):
@@ -711,53 +725,51 @@ class SimFile (object):
 
 
     def saveBiasMapsLeftToFITS(self, fileName):
-            """
-            Save all bias maps in the HDF5 file to a FITS file with the given file name.
-            This will go horribly wrong when the number of exposures is too large or when the maps 
-            themselves are too large.
-            """
+        """
+        Save all bias maps in the HDF5 file to a FITS file with the given file name.
+        This will go horribly wrong when the number of exposures is too large or when the maps 
+        themselves are too large.
+        """
 
-            hduList = []
-            Nimages = self.getInputParameter("ObservingParameters", "NumExposures")
-            for imageNr in range(Nimages):
-                image = self.getBiasMapLeft(imageNr)
-                imageName = "BiasMap{0:06d}".format(imageNr)
-                if imageNr == 0:
-                    hdu = fits.PrimaryHDU(image)
-                else:
-                    hdu = fits.ImageHDU(image, name=imageName)
-                hduList.append(hdu)
-            
-            myFits = fits.HDUList(hduList)
-            myFits.writeto(fileName)
+        hduList = []
+        Nimages = self.getInputParameter("ObservingParameters", "NumExposures")
+        for imageNr in range(Nimages):
+            image = self.getBiasMapLeft(imageNr)
+            imageName = "BiasMap{0:06d}".format(imageNr)
+            if imageNr == 0:
+                hdu = fits.PrimaryHDU(image)
+            else:
+                hdu = fits.ImageHDU(image, name=imageName)
+            hduList.append(hdu)
+
+        myFits = fits.HDUList(hduList)
+        myFits.writeto(fileName)
             
             
             
             
             
     def saveBiasMapRightToFITS(self, fileName):
-            """
-            Save all bias maps in the HDF5 file to a FITS file with the given file name.
-            This will go horribly wrong when the number of exposures is too large or when the maps 
-            themselves are too large.
-            """
+        """
+        Save all bias maps in the HDF5 file to a FITS file with the given file name.
+        This will go horribly wrong when the number of exposures is too large or when the maps 
+        themselves are too large.
+        """
 
-            hduList = []
-            Nimages = self.getInputParameter("ObservingParameters", "NumExposures")
-            for imageNr in range(Nimages):
-                image = self.getBiasMapRight(imageNr)
-                imageName = "BiasMap{0:06d}".format(imageNr)
-                if imageNr == 0:
-                    hdu = fits.PrimaryHDU(image)
-                else:
-                    hdu = fits.ImageHDU(image, name=imageName)
-                hduList.append(hdu)
-            
-            myFits = fits.HDUList(hduList)
-            myFits.writeto(fileName)
+        hduList = []
+        Nimages = self.getInputParameter("ObservingParameters", "NumExposures")
+        for imageNr in range(Nimages):
+            image = self.getBiasMapRight(imageNr)
+            imageName = "BiasMap{0:06d}".format(imageNr)
+            if imageNr == 0:
+                hdu = fits.PrimaryHDU(image)
+            else:
+                hdu = fits.ImageHDU(image, name=imageName)
+            hduList.append(hdu)
 
+        myFits = fits.HDUList(hduList)
+        myFits.writeto(fileName)
 
-        
         
     #--------------------------------------------------------------#
     #                         PLOT FUNCTIONS                       #
@@ -824,13 +836,13 @@ class SimFile (object):
 
         # As default, add slider if all images are requested
         # Else get the requested image from the HDF5 file
-        
-        if not imageNr:
+
+        if imageNr is False:
             images = self.getImages()
             image = images[0]
             Nimg = images.shape[0]
             Nrows, Ncols = image.shape
-            
+
         else:
             image = self.getImage(imageNr)
             if image is None:
@@ -871,7 +883,7 @@ class SimFile (object):
 
         elif imgScale == "auto":
             clabel = "Norm. Count"
-            image = imageNorm(image, "linear", sigma=0.5)
+            image = ut.imageNorm(image, "linear", sigma=0.5)
             vmin, vmax = image.min(), image.max()
             norm  = Normalize(vmin, vmax)
 
@@ -996,28 +1008,28 @@ class SimFile (object):
 
         plt.xlabel(r"$x$ [pixel]", fontsize=fontSize)
         plt.ylabel(r"$y$ [pixel]", fontsize=fontSize)
-
-
+        
         # Plot with or without a slider
         
-        if not imageNr:
+        if imageNr is False:
 
             # Function to update slider
+            
             def update_image(n=0):
                 image = images[n]
                 imagePlot.set_data(image)
                 fig.canvas.draw()
+
             # Create slider
+            
             slider = widgets.IntSlider(description='Image:',
                                        value=0, min=0, max=Nimg-1, step=1,
-                                       layout=widgets.Layout(width='80%'))
+                                       layout=widgets.Layout(width='70%'))
             widgets.interact(update_image, n=slider)
             
         else:
             plt.draw()
             plt.show()
-
-        plt.tight_layout()
             
         # That's it!
         
@@ -1903,291 +1915,3 @@ class SimFile (object):
 
         return starIDs[selection], row[selection], col[selection], Xmm[selection], Ymm[selection], flux[selection], radius[selection]
 
-
-
-    #--------------------------------------------------------------#
-    #                          PHOTOMETRY                          #
-    #--------------------------------------------------------------#
-
-
-    def getLightCurve(self, starID, lctype="estimated"):
-        """
-        PURPOSE: Extract the light curve of the star with the given ID.
-
-        INPUT: starID: ID of the star as mentioned in the last column of the star catalog file
-               lctype: either "estimated" or "input". The estimated one is derived from a binary mask.
-                       the input one is derived from the mean input magnitude specified in the star catalog
-                       and (for variable stars) the delta-magnitude time series given as an input file.
-
-        OUTPUT: time: [s]
-                flux: [electrons/exposure]
-        """
-
-        # Verify if the necessary info is in the HDF5 file
-
-        if "Photometry" not in self.hdf5file["/"].keys():
-            print("Error: getLightCurve(): No photometry present in the HDF5 file")
-            return None, None
-
-        starIDgroupName = "starID{0}".format(starID)
-        if starIDgroupName not in self.hdf5file["Photometry"]["Lightcurves"].keys():
-            print("Error: getLightCurve(): " + starIDgroupName + " not present in Photometry/Lightcurves/ in the HDF5 file")
-            return None, None
-
-        if "Time" not in self.hdf5file["StarPositions"].keys():
-            print("Error: getLightCurve(): Time array not present in StarPositions group. Configure HDF5 output in yaml input file.")
-            return None, None
-
-        # Select the proper flux name
-
-        if lctype == "estimated":
-            datasetName = "estimatedFlux"
-        elif lctype == "input":
-            datasetName = "inputFlux"
-        else:
-            print("Error: getLightCurve(): lctype can only be 'estimated' or 'input'")
-            return None, None
-
-        # Extract the flux and the time points
-
-        dataset = self.hdf5file["Photometry"]["Lightcurves"][starIDgroupName][datasetName]
-        flux = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(flux)
-
-        dataset = self.hdf5file["StarPositions"]["Time"]
-        time = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(time)
-
-        return time, flux
-
-
-
-
-    
-
-    def getPhotometry(self, starID, quarterNo=1):
-        """
-        PURPOSE: Extract the light curve of the star with the given ID.
-        NOTE The estimated one is derived from a binary mask. The input one is derived
-        from the mean input magnitude specified in the star catalog and
-        (for variable stars) the delta-mag time series given as an input file.
-
-        PARAMETERS
-        ----------
-        starID : int
-            ID of the star as mentioned in the last column of the star catalog file
-        quarterNo : int
-            Mission quarter number used to return correct relative time points.
-
-        RETURN
-        ------
-        time : ndarray
-            Time points of time series [s]
-        flux : ndarray
-            Flux points of time series [electrons/exposure]
-        """
-
-        # Verify if the necessary info is in the HDF5 file
-
-        if "Photometry" not in self.hdf5file["/"].keys():
-            print("Error: getLightCurve(): No photometry present in the HDF5 file")
-            return None, None
-
-        starIDgroupName = "starID{0}".format(starID)
-        if starIDgroupName not in self.hdf5file["Photometry"]["Lightcurves"].keys():
-            print("Error: getLightCurve(): " + starIDgroupName + " not present in Photometry/Lightcurves/ in the HDF5 file")
-            return None, None
-
-        # Fetch time points
-
-        time = self.getTimeQuarter(quarterNo)
-
-        # Extract the flux and the time points
-
-        photometry = self.hdf5file["Photometry"]["Lightcurves"][starIDgroupName]
-        inputFlux     = np.array(photometry["inputFlux"])
-        estimatedFlux = np.array(photometry["estimatedFlux"])
-
-        return time, inputFlux, estimatedFlux
-
-
-
-
-
-
-    def getPhotometricTimeSeries(self, targetIDs):
-
-        """
-        PURPOSE: Return time points, input flux, and output flux for the given target star.
-
-        PARAMETERS
-        ----------
-        targetID : int
-            Star ID for the target star for which to return the photometric time series.
-
-        RETURNS
-        -------
-        time : narray
-            Time points [s]
-        inputFlux : narray
-            Flux as derived from the input catalogue [photons]
-        outputFlux : narray
-            Flux as estimated by the photometric pipeline [photons]
-        """
-
-        # Fetch time points
-
-        #time = np.array(self.hdf5file["/Photometry/Time"])
-        time = np.array(self.hdf5file["Telescope/Time"])
-
-        # Fetch mask update events
-
-        maskUpdateEvents = np.array(self.hdf5file["Photometry/Masks/exposureNrOfMaskUpdate"])
-
-        # Fetch stellar input and simulated flux for all targetIDs
-
-        if isinstance(targetIDs, int):
-
-            fluxInput  = np.array(self.hdf5file["Photometry/Lightcurves/starID{0}/inputFlux".format(targetIDs)])
-            fluxOutput = np.array(self.hdf5file["Photometry/Lightcurves/starID{0}/estimatedFlux".format(targetIDs)])
-
-        else:
-
-            fluxInput = fluxOutput = np.zeros((len(time), len(targetIDs)))
-
-            for targetID in targetIDs:
-
-                fluxInput  = np.array(self.hdf5file["Photometry/Lightcurves/StarID{0}/inputFlux".format(targetID)])
-                fluxOutput = np.array(self.hdf5file["Photometry/Lightcurves/StarID{0}/estimatedFlux".format(targetID)])
-
-        # Finito!
-
-        return time, fluxInput, fluxOutput, maskUpdateEvents
-
-
-    
-
-    
-    
-    def getApertureMask(self, starID, imageNr=None):
-        """
-        PURPOSE: return the subfield row and column indices of the mask that is used to extract
-                 the flux of star with the given ID for the given exposure number. This only makes
-                 sense if the photometry was activated in the configuration yaml file.
-
-        INPUT: starID:  ID of the star as mentioned in the last column of the star catalog file
-               imageNr: integer sequential number of the image in the HDF5 file
-
-        OUTPUT: rowIndices: subimage row indices for each of the mask pixels
-                colIndices: subimage column indices for each of the mask pixels
-                exposureNr: the image number in which the mask was derived.
-                            exposureNr <= imageNr
-
-        NOTE: Masks are not update continuously, but only once in a while. This function searches
-              for the most recent mask. This mask may have thus been derived from a previous image
-              rather than from the given image Nr.
-        """
-
-        # Check if photometric data exists
-
-        if "Photometry" not in self.hdf5file["/"].keys():
-            print("Error: getPhotometricMask(): No photometry present in the HDF5 file")
-            return None, None, None, None, None
-
-        starIDgroupName = "starID{0}".format(starID)
-        if starIDgroupName not in self.hdf5file["Photometry"]["Masks"].keys():
-            print("Error: getPhotometricMask(): " + starIDgroupName + " not present in Photometry/Masks/ in the HDF5 file")
-            return None, None, None, None, None
-
-        # Fetch mask info and mask updates
-
-        mask = self.hdf5file["Photometry"]["Masks"]
-        exposureNrOfMaskUpdate = np.array(mask["exposureNrOfMaskUpdate"])
-        numMaskUpdates = len(exposureNrOfMaskUpdate)
-
-        # If a specific image number for the mask update is requested:
-        # NOTE Masks are not updated for every exposure hence find most recent mask
-
-        if isinstance(imageNr, int):
-
-            idx = np.searchsorted(exposureNrOfMaskUpdate, imageNr, side='right') - 1
-            if idx < 0:
-                print("Error: getPhotometricMask(): requesting an imageNr that is too early for this HDF5 file")
-                return None, None, None, None, None
-
-            exposureNrOfMaskUpdate = exposureNrOfMaskUpdate[idx]
-
-            # Extact mask size and NSR
-
-            maskSize = np.array(mask[starIDgroupName]['maskSize'])[idx]
-            maskNSR  = np.array(mask[starIDgroupName]['maskNSR'])[idx]
-
-            # Extract the indices of the proper mask
-
-            exposureGroupName = "Exposure{0:06d}".format(exposureNrOfMaskUpdate)
-            rowIndices = np.array(mask[starIDgroupName][exposureGroupName]["maskRowIndices"])
-            colIndices = np.array(mask[starIDgroupName][exposureGroupName]["maskColumnIndices"])
-
-        # Else fetch all the indices for all mask updates
-
-        else:
-
-            # Extact mask size and NSR
-
-            maskSize = np.array(mask[starIDgroupName]['maskSize'])
-            maskNSR  = np.array(mask[starIDgroupName]['maskNSR'])
-
-            # Extract the indices of all masks
-
-            rowIndices = []
-            colIndices = []
-            for i in range(numMaskUpdates):
-                exposureGroupName = "Exposure{0:06d}".format(exposureNrOfMaskUpdate[i])
-                rowIndices.append(mask[starIDgroupName][exposureGroupName]["maskRowIndices"])
-                colIndices.append(mask[starIDgroupName][exposureGroupName]["maskColumnIndices"])
-            rowIndices = np.array(rowIndices)
-            colIndices = np.array(colIndices)
-
-        # Finito!
-
-        return rowIndices, colIndices, exposureNrOfMaskUpdate, maskSize, maskNSR
-
-
-
-
-    
-
-    def getTimeQuarter(self, quarterNo):
-
-        """Function to create and return quarter-long time column.
-
-        This function creates a time array for a quarter long simulation. It uses
-        the quarter number and the hdf5 output file to correct for the time shift
-        of the parent CCD.
-
-        Parameters
-        ----------
-        outputFile : str
-           Full path to the HDF5 outputfile.
-        quarterNo : int
-           Integer specifying which quarter the time array should be created for.
-
-        Return
-        ------
-        time : ndarray 
-            Time array matching the parent quarter defined by the user.
-        """
-
-        # Fetch times
-
-        numExposures = self.hdf5file['InputParameters/ObservingParameters'].attrs['NumExposures']
-        timeStep     = self.hdf5file['InputParameters/ObservingParameters'].attrs['CycleTime']
-        timeShift    = self.hdf5file['InputParameters/CCD'].attrs['TimeShift']
-
-        # Create time array from start and end times
-
-        timeStart = (quarterNo-1) * 90. * 86400. + float(timeShift)
-        timeEnd   = timeStart + timeStep * numExposures
-        time      = np.arange(timeStart, timeEnd, timeStep)
-
-        return time
