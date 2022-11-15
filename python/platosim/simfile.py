@@ -13,6 +13,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.colors import Normalize, LogNorm
 import matplotlib.patches as patches
+import ipywidgets as widgets
 from astropy.io import fits
 
 from platosim.utilities import imageNorm
@@ -26,7 +27,6 @@ class SimFile (object):
 
     Usage example:
         >>> f = SimFile("output.hdf5")
-
     """
 
 
@@ -476,7 +476,7 @@ class SimFile (object):
 
 
 
-        
+
 
     def getImagette(self, starID, imageNr, radius=2):
 
@@ -595,6 +595,42 @@ class SimFile (object):
 
 
 
+
+
+
+    def getImages(self, imageNr=False):
+        """
+        PURPOSE: extract the image with seq. nr. 'imageNr' from the HDF5 file (if present)
+
+        INPUT: imageNr: integer sequential number of the image
+
+        OUTPUT: image: 2D numpy array containing the image [ADU]
+        """
+
+        # Construct the image name that was used to store the image
+
+        imageName = "image{0:06d}".format(0)
+
+        # Check if the image is in the file
+
+        if imageName not in self.hdf5file["Images"].keys():
+            print("Error: SimfFile.getImage(): {0} not in hdf5 file".format(imageName))
+            return
+        else:
+            # Fetch images names
+            imgNames = list(self.hdf5file["Images"].keys())
+            # Create numpy data cube
+            nimg = len(imgNames)
+            nrow = self.hdf5file["InputParameters/SubField"].attrs["NumRows"]
+            ncol = self.hdf5file["InputParameters/SubField"].attrs["NumColumns"]
+            cube = np.zeros((nimg, nrow, ncol))
+            for i in range(nimg):
+                cube[i,:,:] = np.array(self.hdf5file["Images"][imgNames[i]])
+            return cube 
+
+
+
+        
 
     #--------------------------------------------------------------#
     #                         SAVE PIXEL MAPS                      #
@@ -728,61 +764,85 @@ class SimFile (object):
     #--------------------------------------------------------------#
 
     
-    def showImage(self, imageNr, clipPercentile=5.0, imgScale="clip",
+    def showImage(self, imageNr=False, clipPercentile=5.0, imgScale="clip",
                   showStarPositions=False, showPointLikeGhostPositions=False,
                   minVmag=None, maxVmag=None, showStarIDs=False,
                   tarMarkerSize=200, showMaskOfStarID=None,
                   useTitle=False, showGrid=False, colorBar=False, colorMap="hot",
                   origin="lower", figsize=(7,7), fontSize=15):
 
+        """Make a plot of the a requested image or the entire cube in HDF5.
+
+        Parameters
+        ----------
+        imageNr: False, int
+            False : Will plot all images in HDF5 using a slider
+            int   : Integer sequential number of the image in the HDF5 file
+        clipPercentile: int, float
+            Intensities will be clipped between [value, 100-value] to improve the image contrast.
+        showStarPositions: bool
+            False : Default
+            True  : Plot the average star positions (averaged over the exposure) 
+            "PIC" : Differentiate between a target and contaminants (useful for imagettes)
+        showPointLikeGhostPositions: bool
+            False : Default
+            True  : Plot the average pointlike ghost position (averaged over the exposure)
+        minVmag: int, float
+            The minimum V magnitude of the stars/ghosts for which the position should be plotted.
+            Only relevant if either showStarPositions or showPointLikeGhostPositions is True.
+        maxVmag: int, float
+            The maximum V magnitude of the stars/ghosts for which the position should be plotted.
+            Only relevant if either showStarPositions or showPointLikeGhostPositions is True.
+        showStarIDs: bool
+            Put small labels with the star IDs next to the star positions
+            Will only be executed if showStarPositions=True is set.
+        showMaskOfStarID: bool
+            Draw rectangles around the pixels of the mask that is used to extract the flux
+            value of the star with the given ID. Only works if photometry was activated
+            in the yaml inputfile.
+        useTitle: bool, str
+            False : Default
+            True  : Show a default image title of the star ID
+            str   : Provide custom title as a string
+        colorMap: str
+            Option to select your preferred colormap from the matplotlib library.
+            Default is the colormap "hot".
+        showGrid: bool -> False
+            option to select a dim gray grid for a higher visibility of teh pixel grid.
+            Will only be executed if showGrid=True is set.
+        
+        Return
+        ------
+        fig, ax : object
+            Axes matplotlib.pyplot handle objects to modify plot
+
+        Example
+        -------
+            >>> simfile = SimFile("Simul01.hdf5")
+            >>> simfile.showImage(23)
         """
-        PURPOSE: make a plot of the requested image
 
-        INPUT:  imageNr:           Integer sequential number of the image in the HDF5 file
-                clipPercentile:    In [0,49]. Intensities will be clipped between [value, 100-value]
-                                              to improve the image contrast.
-                showStarPositions: True if the average star positions (averaged over the exposure)
-                                   should be shown with a small green cross. False otherwise.
-                                   If showStarPositions="PIC", one can differentiate between 
-                                   a target and contaminants
-                showPointLikeGhostPositions: True if the average pointlike ghost position 
-                                             (averaged over the exposure)
-                                             should be shown with a small blue cross. False otherwisse.
-                minVmag: the minimum V magnitude of the stars/ghosts for which the position should be marked on the image
-                         only relevant if either showStarPositions or showPointLikeGhostPositions is True.
-                maxVmag: the maximum V magnitude of the stars/ghosts for which the position should be marked on the image
-                         only relevant if either showStarPositions or showPointLikeGhostPositions is True.
-                showStarIDs: Put small labels with the star IDs next to the star positions
-                             Will only be executed if showStarPositions=True is set.
-                showMaskOfStarID: draw rectangles around the pixels of the mask that is used to extract the flux
-                                  value of the star with the given ID. Only works if photometry was activated
-                                  in the yaml inputfile
-                useTitle:          True is an image title should be plotted, False otherwise
-
-                colorMap: option to select your preferred colormap from the matplotlib library.
-                          Default is the colormap "hot".
-
-                showGrid: option to select a dim gray grid for a higher visibility of teh pixel grid.
-                          Will only be executed if showGrid=True is set.
-        OUTPUT: None
-
-        EXAMPLE:
-            >>> file = SimFile("Simul01.hdf5")
-            >>> file.showImage(23)
-        """
-
-        # Get the image from the HDF5 file
-
-        image = self.getImage(imageNr)
-        if image is None:
-            print("Cannot extract image nr ", imageNr)
-
-        Nrows, Ncols = image.shape
+        # As default, add slider if all images are requested
+        # Else get the requested image from the HDF5 file
+        
+        if not imageNr:
+            images = self.getImages()
+            image = images[0]
+            Nimg = images.shape[0]
+            Nrows, Ncols = image.shape
+            
+        else:
+            image = self.getImage(imageNr)
+            if image is None:
+                ut.errorcode(f"Cannot extract image nr {imageNr}")
+            Nrows, Ncols = image.shape
 
         # Plot the image. Note that pixel coordinates start at the left bottom side of each pixel.
 
         fig = plt.figure(figsize=figsize)
         ax = fig.add_subplot(111)
+
+        # Add ticks
         ax.tick_params(axis='both', which='major', labelsize=fontSize)
         ax.tick_params(axis='both', which='minor', labelsize=fontSize)
 
@@ -933,16 +993,34 @@ class SimFile (object):
             plt.yticks(np.arange(0, Ncols+1, 500))
 
         # Set labels if requested
+
         plt.xlabel(r"$x$ [pixel]", fontsize=fontSize)
         plt.ylabel(r"$y$ [pixel]", fontsize=fontSize)
+
+
+        # Plot with or without a slider
+        
+        if not imageNr:
+
+            # Function to update slider
+            def update_image(n=0):
+                image = images[n]
+                imagePlot.set_data(image)
+                fig.canvas.draw()
+            # Create slider
+            slider = widgets.IntSlider(description='Image:',
+                                       value=0, min=0, max=Nimg-1, step=1,
+                                       layout=widgets.Layout(width='80%'))
+            widgets.interact(update_image, n=slider)
             
-        # Show the image
+        else:
+            plt.draw()
+            plt.show()
 
-        plt.draw()
-        plt.show()
-
+        plt.tight_layout()
+            
         # That's it!
-
+        
         return fig, ax
 
 
