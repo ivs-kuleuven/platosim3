@@ -566,7 +566,7 @@ void Detector::updateParameters(double time)
     beginExposureNr     = configParam.getInteger("ObservingParameters/BeginExposureNr");
     finalExposureNr     = beginExposureNr + configParam.getInteger("ObservingParameters/NumExposures");
 
-    numEdgePixels = 0;
+   numEdgePixels = 0;
  }
 
 
