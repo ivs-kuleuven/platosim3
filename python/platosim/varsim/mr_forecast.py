@@ -24,7 +24,7 @@ n_pop = 4
 ##############################################
 
 # read parameter file
-hyper_file = os.getenv('PLATO_PROJECT_HOME') + '/python/varsim/data/fitting_parameters.h5'
+hyper_file = os.getcwd() + '/data/fitting_parameters.h5'
 
 # Fetch PIC catalogue from FTP server
 try:
