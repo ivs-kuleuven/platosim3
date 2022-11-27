@@ -95,8 +95,8 @@ else
     #cp -u $PLATONIUM/quicktools.py $HOME/.local/bin/
 
     # Fix Jupyter-notebook problem "module not found"
-    pip install ipykernel
-    python -m ipykernel install --user
+    # pip install ipykernel
+    # python -m ipykernel install --user
     
     
     # Finish with prolog message
