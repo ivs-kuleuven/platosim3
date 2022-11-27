@@ -91,7 +91,7 @@ class SimFile (object):
             23.0
         """
 
-        return self.hdf5file["/InputParameters/" + groupName].attrs[parameterName]
+        return self.hdf5file["InputParameters/" + groupName].attrs[parameterName]
 
 
 
@@ -869,7 +869,6 @@ class SimFile (object):
             norm   = Normalize(vmin, vmax)
                         
         elif imgScale == "minmax":
-            image  = image/1e3
             clabel = "Counts [kADU]"
             vmin   = image.min() 
             vmax   = image.max()

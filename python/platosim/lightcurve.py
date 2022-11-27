@@ -12,6 +12,7 @@ import sys
 import glob
 import h5py
 import scipy
+import shutil
 import pathlib
 
 import numpy as np
@@ -519,20 +520,21 @@ class LightCurve(object):
 
 
     def plot(self, time_unit="d", flux_unit="e/s", errorbar=False,
-             median_filter=False, binsize=False, merged=False, figsize=(10,5)):
+             median_filter=False, binsize=False, cameras=False, quarter=False,
+             figsize=(10,5)):
         """
         PURPOSE: Function normalize the input flux and change time units to days. 
 
         NOTE: Function tailored to PLATOniums output format feather!
 
-        PARAMETERS
+        Parameters
         ----------
-        data : pdarray
+        time_unit : str
             Array containing at least a time and flux column (and potential flux_err)
         flux_err: boolen
            Wheather or not a flux_err column is present and should thus be added.
 
-        RETURN
+        Return
         ------
         data
         """
@@ -545,8 +547,8 @@ class LightCurve(object):
         else: ut.errorcode("error", "No such flux unit!")
         
         # Fetch obs infoin range
-        if merged:
-            lab = f"Merged {merged} cameras"
+        if cameras and quarter:
+            lab = f"{cameras} N-CAMs, Q{quarter}"
             flux_unit="e/s"
             ylab = "Flux [ppm]"
         else:
@@ -581,9 +583,10 @@ class LightCurve(object):
             
         # Settings
         ax.set_xlim(time.iloc[0], time.iloc[-1])
-        ax.set_xlabel(f'Time - BOL [{time_unit}]')
+        ax.set_xlabel(f'Time [{time_unit}]')
         ax.set_ylabel(ylab)
         ax.legend(loc='best')
+        plt.tight_layout()
         
         return fig, ax
     
@@ -908,7 +911,7 @@ class LightCurve(object):
                 filename_inv = files[j][:-3] + "invert"    
 
                 # Fetch light curve object
-                try: lc = PhotometryFile(filename_ftr)
+                try: lc = LightCurve(filename_ftr)
                 except: pass
                 else:
 
@@ -920,8 +923,8 @@ class LightCurve(object):
 
                     # Force a correction and reload file
                     # TODO remove for future simulations! Fixed in PLATOnium now
-                    self.correct_cols(lc, filename_ftr)
-                    lc = PhotometryFile(filename_ftr)
+                    #self.correct_cols(lc, filename_ftr)
+                    #lc = LightCurve(filename_ftr)
 
                     # Flag for negative fluxes (bad behavior of L1 pipeline)
                     if lc.flux().iloc[0] < 1:
@@ -1045,14 +1048,14 @@ class LightCurve(object):
             filename_ftr = files[j][:-3] + "ftr"            
 
             # Fetch light curve object
-            try: lc = PhotometryFile(filename_ftr)
+            try: lc = LightCurve(filename_ftr)
             except: pass
             else:
                 
                 # Force a correction
                 # TODO remove for future simulations! Fixed in PLATOnium now
-                self.correct_cols(lc, filename_ftr)
-                lc = PhotometryFile(filename_ftr)
+                #self.correct_cols(lc, filename_ftr)
+                #lc = LightCurve(filename_ftr)
 
                 # Flag for negative fluxes (bad behavior of L1 pipeline)
                 if lc.flux("e/s").mean() < 1: flag = 1
@@ -1077,7 +1080,7 @@ class LightCurve(object):
         dx = dx.reset_index(drop=True)
 
         # Set a global light curve object
-        lc = PhotometryFile(dx, mode="multi", ncam=ncam)
+        lc = LightCurve(dx, mode="multi", ncam=ncam)
 
         return lc, ncam, flag
 
@@ -1100,7 +1103,7 @@ class LightCurve(object):
             path = f"{self.path}/{starID}/" 
 
             # Load all feather files
-            phot = PhotometryFile(path, mode="multi")
+            phot = LightCurve(path, mode="multi")
 
             # Unpack all zip files in the path folder
             phot.unpack()
@@ -1182,3 +1185,85 @@ class LightCurve(object):
             df = df.iloc[:,:13]
             df.columns = cols
             df.to_feather(filename_ftr)
+
+
+
+
+
+
+
+    def correct_and_save(self, inputDir, outputDir, numStar):
+        """
+        """
+
+        # Open a pandas data frame and write to it
+        df = pd.DataFrame()
+
+        # Loop over star simulated
+
+        for i in tqdm(range(1, numStar+1), bar_format=ut.tqdm_bar_format()):
+
+            # Read path
+            starID = f"{i}".zfill(9)
+            path = f"{self.path}/{starID}/" 
+
+            # Load all feather files
+            phot = LightCurve(path, mode="multi")
+            
+            # Unpack all zip files in the path folder
+            phot.unpack()
+
+            # Check if any data exist for a given star
+
+            try: filename_cat = glob.glob(path + "*.ftr")[0]
+            except: pass
+            else:
+                
+                # Fetch all zip files
+                files    = self.files("ftr", path=path)
+                numFiles = len(files)
+
+                # Create directory for each star
+                starDir = f"{outputDir}/{starID}"
+                if not os.path.exists(starDir):
+                    os.mkdir(starDir)
+
+                # Loop over each group and camera
+
+                for j in range(numFiles):
+
+                    # Get file names
+                    filepath_ftr = files[j][:-3] + "ftr"
+                    filepath_cat = files[j][:-3] + "cat"
+                    filepath_inv = files[j][:-3] + "invert"
+
+                    # Fetch light curve object
+                    try: lc = LightCurve(filepath_ftr)
+                    except: pass
+                    else:
+                        
+                        # Force a correction
+                        # TODO remove for future simulations! Fixed in PLATOnium now
+                        self.correct_cols(lc, filepath_ftr)
+
+                        # Move files to new folder
+                        filepath_ftr_new = f"{outputDir}/{starID}/{filepath_ftr[-24:]}"
+                        filepath_cat_new = f"{outputDir}/{starID}/{filepath_cat[-24:]}"
+                        filepath_inv_new = f"{outputDir}/{starID}/{filepath_inv[-27:]}"
+                        shutil.move(filepath_ftr, filepath_ftr_new)
+                        shutil.move(filepath_cat, filepath_cat_new)
+                        shutil.move(filepath_inv, filepath_inv_new)
+
+                        # Give full access to all files
+                        os.system(f'chmod 777 {filepath_ftr_new[:-3]}*')
+
+                        # Compress
+                        os.system(f'zip -j {filepath_ftr_new[:-4]}.zip {filepath_ftr_new[:-3]}* > /dev/null')
+
+                        # Give full access to new zip file
+                        os.system(f'chmod 777 {filepath_ftr_new[:-4]}.zip')
+
+                        # Remove old files (except for zip files)
+                        os.remove(filepath_ftr_new)
+                        os.remove(filepath_cat_new)
+                        os.remove(filepath_inv_new)

@@ -831,6 +831,36 @@ class Simulation(object):
 
 
 
+
+
+    def createDriftFile(self, fileName, amplitude, model="linear"):
+        
+        # Fetch number of exposure
+
+
+        # Set the correct output time
+        
+        # Model of yaw, pitch, roll
+        if model == 'linear':
+            x = np.linspace(0, amplitude, len(t))
+            y = x
+            z = np.zeros(len(t))
+        
+        # Save model data to file
+            
+        np.savetxt(fileName, np.transpose([t,x,y,z]), fmt=['%i', '%f', '%f', '%f'])
+
+        # Set this to simulation
+
+        self["Telescope/UseDriftFromFile"] = True
+        self["Telescope/DriftFileName"]    = fileName
+
+        # Finito!
+
+        return
+        
+
+
     
 
 

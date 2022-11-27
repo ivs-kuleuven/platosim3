@@ -38,7 +38,7 @@ def setup():
 
     # Font
     plt.rcParams['font.family'] = 'serif'
-    plt.rcParams['font.size']   = 15
+    plt.rcParams['font.size']   = 17
 
     
     
@@ -47,7 +47,8 @@ def latex():
 
     # Set Latex font
     plt.rcParams['text.usetex'] = True
-
+    setup()
+    
 
     
     

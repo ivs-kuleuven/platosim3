@@ -1333,7 +1333,7 @@ def plotYawPitchRollTimeSeries(time, signals, units=["days", "arcsec"],
 
     for plot in range(numData):
 
-        axes = fig.add_subplot(numData, 1, plot+1)
+        ax = fig.add_subplot(numData, 1, plot+1)
 
         # Make sure that time series is residuals around zero
 
@@ -1341,31 +1341,31 @@ def plotYawPitchRollTimeSeries(time, signals, units=["days", "arcsec"],
 
         # Plot timeseries
 
-        axes.plot(time, signals[plot], '-', c=colors[plot], lw=lw)
+        ax.plot(time, signals[plot], '-', c=colors[plot], lw=lw)
 
         # Add root-mean-square lines
 
         rms = np.sqrt(np.mean(signals[plot]**2))
-        axes.axhline(+rms, c='k', ls='--', lw=0.7, label='RMS = {0:.3f} {1}'.format(rms, units[1]))
-        axes.axhline(-rms, c='k', ls='--', lw=0.7)
-        axes.legend(loc='upper right')
+        ax.axhline(+rms, c='k', ls='--', lw=0.7, label='RMS = {0:.3f} {1}'.format(rms, units[1]))
+        ax.axhline(-rms, c='k', ls='--', lw=0.7)
+        ax.legend(loc='upper right')
 
         # Latter settings
 
-        axes.set_ylabel('{0} [{1}]'.format(labels[plot], units[1]))
-        axes.set_xlim(np.min(time), np.max(time))
-        axes.set_ylim(-ylim, +ylim)
+        ax.set_ylabel('{0} [{1}]'.format(labels[plot], units[1]))
+        ax.set_xlim(np.min(time), np.max(time))
+        ax.set_ylim(-ylim, +ylim)
 
         # Remove tick labels on x axis except for last plot
 
         if plot < numData-1:
-            axes.tick_params(labelbottom=False)
+            ax.tick_params(labelbottom=False)
         else:
-            axes.set_xlabel('Time [{0}]'.format(units[0]))
+            ax.set_xlabel('Time [{0}]'.format(units[0]))
 
         # Title
 
-        if plot == 0: axes.set_title(title)
+        if plot == 0: ax.set_title(title)
 
     # Adjust layout
 
@@ -1374,7 +1374,7 @@ def plotYawPitchRollTimeSeries(time, signals, units=["days", "arcsec"],
 
     # Finito!
 
-    return axes
+    return fig, ax
 
 
 
@@ -1888,7 +1888,7 @@ def plotNSRvsMagnitude(df, Ncam=1, tdur=3600., column=False, residuals=False,
     
     # Plot the input variable source
     
-    if residuals:
+    if residuals in ("camera", "system"):
         im = ax.scatter(df["mag"], df["res"], s=20, label="PlatoSim",
                         c=df[column], cmap=cmap, norm=norm)
         ax.set_ylabel('NSR Residuals [ppm]')
@@ -1918,7 +1918,7 @@ def plotNSRvsMagnitude(df, Ncam=1, tdur=3600., column=False, residuals=False,
     elif residuals == "system":
         ax.axhline(y=9, c="red", ls="--", label="AOCS system req.: 9 ppm")
     elif residuals == "multi":
-        ax.axhline(y=50, color="r", linestyle="-", label="24 N-CAM NSR req.: 50 ppm")
+        ax.axhline(y=50, color="r", linestyle="--", label="24 N-CAM NSR req.: 50 ppm")
         ax.plot([11, 11, 11, 11], [88, 63, 52, 45], 'm*', ms=10, label="CBE of G0V 11 mag star")
 
     # Add grid
