@@ -23,6 +23,7 @@ import argparse
 import datetime
 import numpy as np
 import pandas as pd
+from pathlib import Path
 from matplotlib import pyplot as plt
 from scipy.ndimage import median_filter
 from scipy.interpolate import make_interp_spline
@@ -56,9 +57,6 @@ from platosim.varsim.models import (LimbDarkening, DopplerBeaming, EllipsoidalDi
 # Construct a new Generator with the default BitGenerator (PCG64)
 from numpy.random import default_rng
 rng = default_rng()
-
-# Import repo matplotlibrc
-import platonium.matplotlibrc
 
 # Monitor script speed
 tic = datetime.datetime.now()
@@ -96,12 +94,22 @@ class variability(object):
             self.verbose = 3
 
         # SETTINGS
+
+        # Add latex font if catalogue is saved
+        if args.outfile is None:
+            from platosim.matplotlibrc import setup
+            setup()
+        else:
+            from platosim.matplotlibrc import latex
+            latex()
+
         # Use LaTeX when plotting
         if args.plot:
             plt.rcParams['text.usetex'] = True
         
-        # Path to input data
-        self.datapath = os.getenv('PLATO_PROJECT_HOME') + '/python/varsim/data'
+        # Absolute cwd path
+        self.path     = Path(os.getenv("PLATO_PROJECT_HOME") + "/python/platosim/varmsim")
+        self.datapath = self.path / 'data'
         
         # OBSERVATIONAL PARAMETERS
 
@@ -144,7 +152,7 @@ class variability(object):
         # Load the instrument passband
         if args.inst: self.intrument = args.inst
         else: self.instrument = 'plato'
-        passband = np.loadtxt(self.datapath + '/response_{0}.txt'.format(self.instrument))
+        passband = np.loadtxt(self.datapath / 'response_{0}.txt'.format(self.instrument))
         self.wvl_tele = passband[:,0] * u.nm  # Wavelengths [nm]
         self.tra_tele = passband[:,1]         # Normalized transmission
         
@@ -485,7 +493,7 @@ class variability(object):
         cadence = self.cadence.to('Ms').value
 
         # Solar frequency spectrum: mode line-widths and frequencies
-        data = np.loadtxt(self.datapath + '/Main_Fits_BiSON_8640d_lbest_UseInSolarCycle.dat')
+        data = np.loadtxt(self.datapath / 'Main_Fits_BiSON_8640d_lbest_UseInSolarCycle.dat')
         eta  = np.exp(data[:,6])*np.pi  # From Chaplin et al. (2009) Eq. 1
         freq = data[:,2]                # frequencies of 96 modes
 
