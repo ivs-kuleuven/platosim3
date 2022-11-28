@@ -2222,17 +2222,17 @@ void HDF5File::writeStarPositionByStarID(map<double, map<unsigned int, array<dou
 
       if(!times.empty())
       {
-	// Make the sub-group
-	stringstream myStream;
-	myStream << "starID" << setfill('0') << setw(6) << 0 + starIDs[n];
-	const string exposureGroupName = "/StarPositions/" + myStream.str();
-	createGroup(exposureGroupName);
-	writeArray(exposureGroupName, "time", times.data(), times.size());
-	writeArray(exposureGroupName, "xFPmm",  xFPmm.data(),   xFPmm.size());
-	writeArray(exposureGroupName, "yFPmm",  yFPmm.data(),   yFPmm.size());
-	writeArray(exposureGroupName, "rowPix", rowPix.data(),  rowPix.size());
-	writeArray(exposureGroupName, "colPix", colPix.data(),  colPix.size());
-	writeArray(exposureGroupName, "flux",   flux.data(),    flux.size());
+        // Make the sub-group
+        stringstream myStream;
+        myStream << "starID" << setfill('0') << setw(6) << 0 + starIDs[n];
+        const string exposureGroupName = "/StarPositions/" + myStream.str();
+        createGroup(exposureGroupName);
+        writeArray(exposureGroupName, "time", times.data(), times.size());
+        writeArray(exposureGroupName, "xFPmm",  xFPmm.data(),   xFPmm.size());
+        writeArray(exposureGroupName, "yFPmm",  yFPmm.data(),   yFPmm.size());
+        writeArray(exposureGroupName, "rowPix", rowPix.data(),  rowPix.size());
+        writeArray(exposureGroupName, "colPix", colPix.data(),  colPix.size());
+        writeArray(exposureGroupName, "flux",   flux.data(),    flux.size());
       }
     }
 }
@@ -2668,6 +2668,137 @@ void HDF5File::writeExtendedGhostByStarID(map<double, map<unsigned int, array<do
     ghostRadius.clear();
   }
   starIDs.clear();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * /brief: save the cosmics to the HDF5 file.
+ * /note: This functin gets called when groupByExposure is true.
+ *
+ */
+void HDF5File::writeCosmicsWhenGroupByExposure(int exposureNr, string field, vector<unsigned int> &entryRows,
+                          vector<unsigned int> &entryColumns, vector<double> &trailLengths, vector<double> &entryAngles,
+                          vector<double> &intensities, vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux)
+{
+    string imageName;
+
+    // Define the name of sub group for every exposure.
+
+    stringstream myStream;
+    myStream << "/exposure" << setfill('0') << setw(6) << exposureNr;
+    imageName = "/Cosmics/" + field + myStream.str();
+
+    // add the columns vector
+
+    createGroup(imageName);
+    if (rows.empty() && cols.empty())
+    {
+        vector<unsigned int> noHitsUnsignedInt{0};
+        vector<double> noHitsDouble{-1.0};
+        writeArray(imageName, "EntryRows",    noHitsUnsignedInt.data(), 1);
+        writeArray(imageName, "EntryColumns", noHitsUnsignedInt.data(), 1);
+        writeArray(imageName, "EntryAngles",  noHitsDouble.data(), 1);
+        writeArray(imageName, "Intensities",  noHitsDouble.data(), 1);
+        writeArray(imageName, "TrailLengths", noHitsDouble.data(), 1);
+        writeArray(imageName, "Rows",         noHitsUnsignedInt.data(), 1);
+        writeArray(imageName, "Columns",      noHitsUnsignedInt.data(), 1);
+        writeArray(imageName, "Flux",         noHitsDouble.data(), 1);
+    }
+    else
+    {
+        writeArray(imageName, "EntryRows",    entryRows.data(), entryRows.size());
+        writeArray(imageName, "EntryColumns", entryColumns.data(), entryColumns.size());
+        writeArray(imageName, "EntryAngles",  entryAngles.data(), entryAngles.size());
+        writeArray(imageName, "Intensities",  intensities.data(), intensities.size());
+        writeArray(imageName, "TrailLengths", trailLengths.data(), trailLengths.size());
+        writeArray(imageName, "Rows",         rows.data(), rows.size());
+        writeArray(imageName, "Columns",      cols.data(), cols.size());
+        writeArray(imageName, "Flux",         flux.data(), flux.size());
+    }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * /brief: save the cosmics to the HDF5 file.
+ * /note: This functin gets called when groupByExposure is false.
+ *
+ */
+void HDF5File::writeCosmicsWhithoutGroupByExposure(int exposureNr, string field, vector<unsigned int> &entryRows,
+                          vector<unsigned int> &entryColumns, vector<double> &trailLengths, vector<double> &entryAngles,
+                          vector<double> &intensities, vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux)
+{
+    string imageName;
+
+
+    // Create sub group so that there are no more then 1000 exposures in one sub group
+
+    stringstream subgroupStream;
+    subgroupStream << "/exposure" << setfill('0') << setw(3) << exposureNr / 1000;
+
+    // Define the name of sub group for every exposure.
+
+
+    stringstream myStream;
+    myStream << "/exposure" << setfill('0') << setw(6) << exposureNr;
+    imageName = "/Cosmics/" + field + subgroupStream.str() + myStream.str();
+
+    // add the columns vector
+
+    createGroup(imageName);
+    if (rows.empty() && cols.empty())
+    {
+        vector<unsigned int> noHitsUnsignedInt{0};
+        vector<double> noHitsDouble{-1.0};
+        writeArray(imageName, "EntryRows",    noHitsUnsignedInt.data(), 1);
+        writeArray(imageName, "EntryColumns", noHitsUnsignedInt.data(), 1);
+        writeArray(imageName, "EntryAngles",  noHitsDouble.data(), 1);
+        writeArray(imageName, "Intensities",  noHitsDouble.data(), 1);
+        writeArray(imageName, "TrailLengths", noHitsDouble.data(), 1);
+        writeArray(imageName, "Rows",         noHitsUnsignedInt.data(), 1);
+        writeArray(imageName, "Columns",      noHitsUnsignedInt.data(), 1);
+        writeArray(imageName, "Flux",         noHitsDouble.data(), 1);
+    }
+    else
+    {
+        writeArray(imageName, "EntryRows",    entryRows.data(), entryRows.size());
+        writeArray(imageName, "EntryColumns", entryColumns.data(), entryColumns.size());
+        writeArray(imageName, "EntryAngles",  entryAngles.data(), entryAngles.size());
+        writeArray(imageName, "Intensities",  intensities.data(), intensities.size());
+        writeArray(imageName, "TrailLengths", trailLengths.data(), trailLengths.size());
+        writeArray(imageName, "Rows",         rows.data(), rows.size());
+        writeArray(imageName, "Columns",      cols.data(), cols.size());
+        writeArray(imageName, "Flux",         flux.data(), flux.size());
+    }
+
 }
 
 

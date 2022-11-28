@@ -795,7 +795,11 @@ double Detector::takeExposure(int exposureNr, double startTime, double exposureT
 
     Log.debug("Detector: Writing Cosmics of the PixelMap, smearing map, bias map #" + to_string(exposureNr) + " to HDF5 file.");
 
-    writeCosmicHitsToHDF5(exposureNr);
+    if (writeCosmics)
+    {
+            if (groupByExposure){writeCosmicHitsToHDF5WhenGroupByExposure(exposureNr);}
+            else{writeCosmicHitsToHDF5WithoutGroupByExposure(exposureNr);}
+    }
 
     // Advance the internal clock
 
@@ -3282,50 +3286,37 @@ void Detector::makeSubGroupForCosmics(string field, int exposureNr)
 
 /**
  * Writes the colum, row and flux values of cosmics to the HDF5 file. This function
- * calls Detector::writeCosmicFieldToHDF5, if cosmics is included
+ * calls HDF5File::writeCosmicsWhithoutGroupByExposure, if cosmics is included
  * in the repective Field.
  *
  * /params exposureNr:   Sequential number of the exposure
+ * /note: This function gets called when groupByExposure is true.
  */
-void Detector::writeCosmicHitsToHDF5(int exposureNr)
+void Detector::writeCosmicHitsToHDF5WhenGroupByExposure(int exposureNr)
 {
-   bool makeSubGroup = false;
-
-   if ((cosmicSubgroupIndex < (exposureNr / 1000)) && !groupByExposure)
-   {
-            cosmicSubgroupIndex = exposureNr / 1000;
-            makeSubGroup = true;
-   }
 
    if (includeCosmicsInSubField && writeCosmics)
    {
-       if (makeSubGroup){makeSubGroupForCosmics("SubField", exposureNr);}
-       writeCosmicFieldToHDF5(exposureNr, "SubField", cosmicEntryRowSubfield, cosmicEntryColSubfield, cosmicsTrailsSubfield,
-                              cosmicsAnglesSubfield, cosmicsIntensitiesSubfield,
+        hdf5File.writeCosmicsWhenGroupByExposure(exposureNr, "SubField", cosmicEntryRowSubfield, cosmicEntryColSubfield,
+                              cosmicsTrailsSubfield, cosmicsAnglesSubfield, cosmicsIntensitiesSubfield,
                               rowsOfCosmicsInSubField, columnsOfCosmicsInSubField, fluxOfCosmicsInSubField);
    }
 
    if (includeCosmicsInSmearingMap && writeCosmics)
    {
-       if (makeSubGroup){makeSubGroupForCosmics("SmearingMap", exposureNr);}
-       writeCosmicFieldToHDF5(exposureNr, "SmearingMap", cosmicEntryRowSmearingMap, cosmicEntryColSmearingMap, cosmicsTrailsSmearingMap,
-                              cosmicsAnglesSmearingMap, cosmicsIntensitiesSmearingMap,
+        hdf5File.writeCosmicsWhenGroupByExposure(exposureNr, "SmearingMap", cosmicEntryRowSmearingMap, cosmicEntryColSmearingMap,
+                              cosmicsTrailsSmearingMap, cosmicsAnglesSmearingMap, cosmicsIntensitiesSmearingMap,
                               rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap, fluxOfCosmicsInSmearingMap);
    }
 
    if (includeCosmicsInBiasMap && writeCosmics)
    {
-       if (makeSubGroup)
-       {
-               makeSubGroupForCosmics("BiasMapLeft", exposureNr);
-               makeSubGroupForCosmics("BiasMapRight", exposureNr);
-       }
-       writeCosmicFieldToHDF5(exposureNr, "BiasMapLeft", cosmicEntryRowBiasMapLeft, cosmicEntryColBiasMapLeft, cosmicsTrailsBiasMapLeft,
-                              cosmicsAnglesBiasMapLeft, cosmicsIntensitiesBiasMapLeft,
+       hdf5File.writeCosmicsWhenGroupByExposure(exposureNr, "BiasMapLeft", cosmicEntryRowBiasMapLeft, cosmicEntryColBiasMapLeft,
+                              cosmicsTrailsBiasMapLeft, cosmicsAnglesBiasMapLeft, cosmicsIntensitiesBiasMapLeft,
                               rowsOfCosmicsInBiasMapLeft, columnsOfCosmicsInBiasMapLeft, fluxOfCosmicsInBiasMapLeft);
 
-       writeCosmicFieldToHDF5(exposureNr, "BiasMapRight", cosmicEntryRowBiasMapRight, cosmicEntryColBiasMapRight, cosmicsTrailsBiasMapRight,
-                              cosmicsAnglesBiasMapRight, cosmicsIntensitiesBiasMapRight,
+       hdf5File.writeCosmicsWhenGroupByExposure(exposureNr, "BiasMapRight", cosmicEntryRowBiasMapRight, cosmicEntryColBiasMapRight,
+                              cosmicsTrailsBiasMapRight, cosmicsAnglesBiasMapRight, cosmicsIntensitiesBiasMapRight,
                               rowsOfCosmicsInBiasMapRight, columnsOfCosmicsInBiasMapRight, fluxOfCosmicsInBiasMapRight);
    }
 }
@@ -3335,63 +3326,72 @@ void Detector::writeCosmicHitsToHDF5(int exposureNr)
 
 
 
-void Detector::writeCosmicFieldToHDF5(int exposureNr, string field, vector<unsigned int> &entryRows, vector<unsigned int> &entryColumns,
-                                      vector<double> &trailLengths, vector<double> &entryAngles, vector<double> &intensities,
-                                      vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux)
+/**
+ * Writes the colum, row and flux values of cosmics to the HDF5 file. This function
+ * calls Detector::writeCosmicsWhithoutGroupByExposure, if cosmics is included
+ * in the repective Field.
+ *
+ * /params exposureNr:   Sequential number of the exposure
+ * /note: This function gets called when groupByExposure is false.
+ */
+void Detector::writeCosmicHitsToHDF5WithoutGroupByExposure(int exposureNr)
 {
-    string imageName;
-    if (!groupByExposure)
-    {
-         // Create sub group so that there are no more then 1000 exposures in one sub group
+   bool makeSubGroup = false;
 
-         stringstream subgroupStream;
-         subgroupStream << "/exposure" << setfill('0') << setw(3) << exposureNr / 1000;
+   if ((cosmicSubgroupIndex < (exposureNr / 1000)))
+   {
+            cosmicSubgroupIndex = exposureNr / 1000;
+            makeSubGroup = true;
+   }
 
-         // Define the name of sub group for every exposure.
+   // Initialize the subgroup if needed
 
-         stringstream myStream;
-         myStream << "/exposure" << setfill('0') << setw(6) << exposureNr;
-         imageName = "/Cosmics/" + field  + subgroupStream.str() + myStream.str();
-    }
-    else
-    {
-         // Define the name of sub group for every exposure.
+   if (makeSubGroup && writeCosmics)
+   {
+           if (includeCosmicsInSubField){makeSubGroupForCosmics("SubField", exposureNr);}
+           if (includeCosmicsInSmearingMap){makeSubGroupForCosmics("SmearingMap", exposureNr);}
+           if (includeCosmicsInBiasMap)
+           {
+               makeSubGroupForCosmics("BiasMapLeft", exposureNr);
+               makeSubGroupForCosmics("BiasMapRight", exposureNr);
+           }
+   }
 
-         stringstream myStream;
-         myStream << "/exposure" << setfill('0') << setw(6) << exposureNr;
-         imageName = "/Cosmics/" + field + myStream.str();
-    }
+   if (includeCosmicsInSubField && writeCosmics)
+   {
+       hdf5File.writeCosmicsWhithoutGroupByExposure(exposureNr, "SubField", cosmicEntryRowSubfield, cosmicEntryColSubfield,
+                              cosmicsTrailsSubfield, cosmicsAnglesSubfield, cosmicsIntensitiesSubfield,
+                              rowsOfCosmicsInSubField, columnsOfCosmicsInSubField, fluxOfCosmicsInSubField);
+   }
 
+   if (includeCosmicsInSmearingMap && writeCosmics)
+   {
+       hdf5File.writeCosmicsWhithoutGroupByExposure(exposureNr, "SmearingMap", cosmicEntryRowSmearingMap, cosmicEntryColSmearingMap,
+                              cosmicsTrailsSmearingMap, cosmicsAnglesSmearingMap, cosmicsIntensitiesSmearingMap,
+                              rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap, fluxOfCosmicsInSmearingMap);
+   }
 
-    // add the columns vector
+   if (includeCosmicsInBiasMap && writeCosmics)
+   {
+       hdf5File.writeCosmicsWhithoutGroupByExposure(exposureNr, "BiasMapLeft", cosmicEntryRowBiasMapLeft, cosmicEntryColBiasMapLeft,
+                              cosmicsTrailsBiasMapLeft, cosmicsAnglesBiasMapLeft, cosmicsIntensitiesBiasMapLeft,
+                              rowsOfCosmicsInBiasMapLeft, columnsOfCosmicsInBiasMapLeft, fluxOfCosmicsInBiasMapLeft);
 
-    hdf5File.createGroup(imageName);
-    if (rows.empty() && cols.empty())
-    {
-        vector<unsigned int> noHitsUnsignedInt{0};
-        vector<double> noHitsDouble{-1.0};
-        hdf5File.writeArray(imageName, "EntryRows",    noHitsUnsignedInt.data(), 1);
-        hdf5File.writeArray(imageName, "EntryColumns", noHitsUnsignedInt.data(), 1);
-        hdf5File.writeArray(imageName, "EntryAngles",  noHitsDouble.data(), 1);
-        hdf5File.writeArray(imageName, "Intensities",  noHitsDouble.data(), 1);
-        hdf5File.writeArray(imageName, "TrailLengths", noHitsDouble.data(), 1);
-        hdf5File.writeArray(imageName, "Rows",         noHitsUnsignedInt.data(), 1);
-        hdf5File.writeArray(imageName, "Columns",      noHitsUnsignedInt.data(), 1);
-        hdf5File.writeArray(imageName, "Flux",         noHitsDouble.data(), 1);
-    }
-    else
-    {
-        hdf5File.writeArray(imageName, "EntryRows",    entryRows.data(), entryRows.size());
-        hdf5File.writeArray(imageName, "EntryColumns", entryColumns.data(), entryColumns.size());
-        hdf5File.writeArray(imageName, "EntryAngles",  entryAngles.data(), entryAngles.size());
-        hdf5File.writeArray(imageName, "Intensities",  intensities.data(), intensities.size());
-        hdf5File.writeArray(imageName, "TrailLengths", trailLengths.data(), trailLengths.size());
-        hdf5File.writeArray(imageName, "Rows",         rows.data(), rows.size());
-        hdf5File.writeArray(imageName, "Columns",      cols.data(), cols.size());
-        hdf5File.writeArray(imageName, "Flux",         flux.data(), flux.size());
-    }
-
+       hdf5File.writeCosmicsWhithoutGroupByExposure(exposureNr, "BiasMapRight", cosmicEntryRowBiasMapRight, cosmicEntryColBiasMapRight,
+                              cosmicsTrailsBiasMapRight, cosmicsAnglesBiasMapRight, cosmicsIntensitiesBiasMapRight,
+                              rowsOfCosmicsInBiasMapRight, columnsOfCosmicsInBiasMapRight, fluxOfCosmicsInBiasMapRight);
+   }
 }
+
+
+
+
+
+
+
+
+
+
 
 
 
