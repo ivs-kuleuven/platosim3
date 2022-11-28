@@ -84,6 +84,14 @@ class HDF5File
         void writeExtendedGhostByExposure(map<double, map<unsigned int, array<double, 7>>>&
                                  detectedExtendedGhostInfo, int beginExposureNr);
         void writeExtendedGhostByStarID(map<double, map<unsigned int, array<double, 7>>>& detectedExtendedGhostInfo);
+        void writeCosmicsWhenGroupByExposure(int exposureNr, string field, vector<unsigned int> &entryRows,
+                          vector<unsigned int> &entryColumns, vector<double> &trailLengths,
+                          vector<double> &entryAngles, vector<double> &intensities, vector<unsigned int> &rows,
+                                                 vector<unsigned int> &cols, vector<double> &flux);
+        void writeCosmicsWhithoutGroupByExposure(int exposureNr, string field, vector<unsigned int> &entryRows,
+                          vector<unsigned int> &entryColumns, vector<double> &trailLengths,
+                          vector<double> &entryAngles, vector<double> &intensities, vector<unsigned int> &rows,
+                                                 vector<unsigned int> &cols, vector<double> &flux);
 
     protected:
 

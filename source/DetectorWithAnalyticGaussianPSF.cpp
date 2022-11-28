@@ -249,7 +249,11 @@ double DetectorWithAnalyticGaussianPSF::takeExposure(int exposureNr, double star
 
     Log.debug("Detector: Writing Cosmics of the PixelMap, smearing map, bias map #" + to_string(exposureNr) + " to HDF5 file.");
 
-    writeCosmicHitsToHDF5(exposureNr);
+    if (writeCosmics)
+    {
+            if (groupByExposure){writeCosmicHitsToHDF5WhenGroupByExposure(exposureNr);}
+            else{writeCosmicHitsToHDF5WithoutGroupByExposure(exposureNr);}
+    }
     // Advance the internal clock
 
     internalTime += exposureTime + readoutTimeBeforeNextExposure;
