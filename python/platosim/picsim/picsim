@@ -6,7 +6,7 @@ Usage examples:
   $ python picsim.py 1000 P5 NPF --camera 24
   $ python picsim.py all all SPF --camera 6 --group 1 --mag 9.5-12.2 -o </path/to/outdir>
 
-This script take the PIC input catalog (csv format) and fetch the correct entries for target
+This script take the PIC inputcatalog (csv format) and fetch the correct entries for target
 stars and their contaminants. Notice that the catalog will only be saved if an ouput directory
 and prefix (-o) are given as input. This script can also be used to re-plot a old output ascii
 catalog produced by this software. Note that the PIC contaminant catalog is complete up to 20 mag.
@@ -33,28 +33,18 @@ import random
 import argparse
 import datetime
 import urllib.request
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from prettytable import PrettyTable
-from pathlib import Path
+from tqdm import tqdm
 
-# PlatoSim utilities 
-from platosim.utilities import (errorcode,
-                                compilation,
-                                passbandConversionV2P,
-                                convertMagnitudeRange,
-                                getStarsWithinCameraGroup)
-
-# Import plot modules
-from platosim.plot import drawStarsInSkyAitoff
-from platosim.varsim.plot import (plotPlatoFOV,
-                                  plotTeffvsRadius,
-                                  plotStellarSampleDistributions)
-
-# Import repo matplotlibrc
-from platosim.matplotlibrc import setup
-setup()
+# PlatoSim utilities
+import platosim.plot      as pt
+import platosim.utilities as ut
+from platosim.utilities    import errorcode
 
 # Disable warnings
 import warnings
@@ -118,6 +108,13 @@ numTimeseries = args.ntime
 dmagConLimit  = args.dmag
 disConLimit   = args.dist
 
+# Add latex font if catalogue is saved
+if outputDir is None:
+    from platosim.matplotlibrc import setup
+    setup()
+else:
+    from platosim.matplotlibrc import latex
+    latex()
 
 # Activate plot if `-t` is parsed
 if onlyTargets: plot = True
@@ -142,7 +139,7 @@ fileFormat = '.ftr'
 # Default is to use the latest PIC catalog saved
 # Else several old catalogs can be parsed for replotting
 # E.g. use: -intar starcat**targets.txt --incon starcat**contaminants.txt
-inputDir     = Path(os.getenv('PLATO_PROJECT_HOME')) / 'python/platosim/picsim'
+inputDir     = Path(os.getenv("PLATO_PROJECT_HOME") + "/python/platosim/picsim")
 inputFileTar = inputDir / 'PIC110target'
 inputFileCon = inputDir / 'PIC110contaminant'
 
@@ -181,7 +178,7 @@ else:
 
 # Select magnitude range or convert string to actual list range
 if magRange is None: magRange = [0, 20]  # Select all stars
-else: magRange = convertMagnitudeRange(magRange)
+else: magRange = ut.convertMagnitudeRange(magRange)
 
 # Check for PLATO pointing field: ICRS-Ra-Dec (deg) and Galactic-long.-lat. (deg)
 
@@ -316,7 +313,7 @@ except:
     # TODO for PIC2.0.0
     #----------------------------------------
     # Convert V Jonhson-Cousin to P passband
-    mag = passbandConversionV2P(mag, Teff)
+    mag = ut.passbandConversionV2P(mag, Teff)
     #----------------------------------------
     # Save dataset to binary file:
     errorcode('message', 'Inuaguration! Welcome to the PIC of Destiny!')
@@ -533,7 +530,7 @@ if fileFormat != '.txt':
         # NOTE the following is a small table for checking radial distance to OA
         # A ghost within 8 deg from the OA will produce a point-like ghost
         #----------------
-        # Pmag = passbandConversionV2P(mag, Teff)
+        # Pmag = ut.passbandConversionV2P(mag, Teff)
         # t2 = PrettyTable(['PIC', 'V', 'P', 'd_G1 (deg)', 'd_G2 (deg)', 'd_G3 (deg)', 'd_G4 (deg)'])
         # for i in range(len(ID)):
         #     t2.add_row([int(ID[i]), '{:.2f}'.format(mag[i]), '{:.2f}'.format(Pmag[i]), '{:.2f}'.format(d1[i]),
@@ -640,7 +637,7 @@ if fileFormat != '.txt':
 # Plot targets in aitoff Galactic sky projection
 fig0 = plt.subplots(figsize = (13,9))
 img = plt.imread(f'{inputDir}/gaiaDR3.png')
-drawStarsInSkyAitoff(fig0, df['ra'], df['dec'], df['mag'], skymap=img)
+pt.drawStarsInSkyAitoff(fig0, df['ra'], df['dec'], df['mag'], skymap=img)
 if plot: plt.show()
 
 # Save if both pointing fields are given
@@ -652,16 +649,16 @@ if platoField is None:
 if len(df['ID']) > 200: plotmag = None
 else: plotmag = df['mag'].to_numpy()
 title = f'{platoField} {starSample} sample'
-fig1 = plotPlatoFOV(platoField, df['ra'].to_numpy(), df['dec'].to_numpy(), plotmag, title=title)
+fig1 = pt.plotPlatoFOV(platoField, df['ra'].to_numpy(), df['dec'].to_numpy(), plotmag, title=title)
 if plot: plt.show()
 
 # Plot sample distribution in Teff vs. Radius
 fig2 = plt.figure(figsize=(8,6))
 title = f'{platoField} {starSample} sample'
-plotTeffvsRadius(fig2, starSample, title,
-                 ds, df_dK, df_dG, df_dF,
-                 sg, df_sgK, df_sgG, df_sgF,
-                 df, ms_limit)
+pt.plotTeffvsRadius(fig2, starSample, title,
+                    ds, df_dK, df_dG, df_dF,
+                    sg, df_sgK, df_sgG, df_sgF,
+                    df, ms_limit)
 if plot: plt.show()
 
 # Stop here when flag -t
@@ -716,7 +713,7 @@ else:
         # TODO for PIC2.0.0
         #----------------------------------------
         # Convert to PLATO passband
-        #mag_con = passbandConversionV2P(mag_con, Teff_con)
+        #mag_con = ut.passbandConversionV2P(mag_con, Teff_con)
         #----------------------------------------
         # Save dataset to binary file:
         output_file_con = inputFileCon.with_suffix('.npy')
@@ -738,7 +735,7 @@ else:
     dfc = pd.DataFrame(columns=['ID', 'ra', 'dec', 'mag', 'dis'])
     numConPerTar = []
 
-    for starNo in range(numTargets):
+    for starNo in tqdm(range(numTargets), bar_format=ut.tqdm_bar_format()):
 
         # Find corresponding contaminants to our target
         dcc = dc[dc['ID'] == df['ID'].iloc[starNo]]
@@ -750,7 +747,7 @@ else:
         # NOTE we should change this in the future!
         Teff = np.full(len(dcc), df['Teff'].iloc[starNo])
         teff = pd.DataFrame({'Teff': Teff}, columns=['Teff'])
-        dcc['mag'] = passbandConversionV2P(dcc['mag'].values, teff['Teff'].values)
+        dcc['mag'] = ut.passbandConversionV2P(dcc['mag'].values, teff['Teff'].values)
 
         # Add only contaminants brigther than threshold
         dcc = dcc[dcc['mag'] < df['mag'].iloc[starNo] + dmagConLimit]
@@ -760,10 +757,6 @@ else:
 
         # Store number of contaminats per target for statistics below
         numConPerTar.append(len(dcc))
-
-        # Compile to bash
-        compilation(starNo, numTargets, 'Done')
-    print; print('')
 
     # Let's add the number of contaminats to the target catalog
     df['ncon'] = np.array(numConPerTar).tolist()
@@ -784,8 +777,8 @@ else:
 # Necessary to define again in case a PIC sample is defined
 magRange = [np.min(df['mag']), np.max(df['mag'])]
 fig3 = plt.subplots(2, 2, figsize=(14,8))
-plotStellarSampleDistributions(fig3, df['mag'].to_numpy(), dfc['mag'].to_numpy(),
-                               magRange, df['ncon'].to_numpy(), dfc['dis'].to_numpy())
+pt.plotStellarSampleDistributions(fig3, df['mag'].to_numpy(), dfc['mag'].to_numpy(),
+                                  magRange, df['ncon'].to_numpy(), dfc['dis'].to_numpy())
 if plot: plt.show()
 
 #==============================================================#

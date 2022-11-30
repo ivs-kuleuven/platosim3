@@ -34,6 +34,7 @@ class DetectorWithMappedPSF : public Detector
         void applyDiffusionKernelOnPSF(double subpixRow, double subpixColumn, double flux, arma::fmat& psf, int numberOfPsfSubpixelsPerPixel);
         void applyDistortion(double &x, double &y) override;
         void applyInverseDistortion(double &x, double &y) override;
+        void generateThroughputMap() override;
 
     protected:
         bool areColinear(std::array<std::array<double, 2>, 3>);
@@ -45,7 +46,7 @@ class DetectorWithMappedPSF : public Detector
 
         void applyFlatfield() override;
 
-        
+
         void applyDiffusionKernel(double row, double column, double flux);
         void generateFlatfieldMap();
         void generateDiffusionKernel(double kernelWidth);

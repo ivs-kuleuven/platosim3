@@ -566,7 +566,7 @@ void Detector::updateParameters(double time)
     beginExposureNr     = configParam.getInteger("ObservingParameters/BeginExposureNr");
     finalExposureNr     = beginExposureNr + configParam.getInteger("ObservingParameters/NumExposures");
 
-    numEdgePixels = 0;
+   numEdgePixels = 0;
  }
 
 
@@ -840,7 +840,7 @@ void Detector::generateThroughputMap()
     double xFPmmUndistorted, yFPmmUndistorted;         // Undistorted focal plan coordinates [mm]
     double angle;                                      // Gnomonic radial distance from the optical axis [rad]
     double relativeTransmissivityVariation;
-    
+
 
 //    const double refAnglePolarizationRadians = deg2rad(refAnglePolarization);       // Reference angle for the polarisation efficiency [radians]
 //    const double acosPolarizationEfficiency = acos(polarizationEfficiency);
@@ -881,8 +881,8 @@ void Detector::generateThroughputMap()
                     else
                     {
                         angle = rad2deg(angle); // [degrees]
-                        relativeTransmissivityVariation = (  relTransmissivityCoefVector[0] * pow(angle, 2) 
-                                                           + relTransmissivityCoefVector[1] * pow(angle, 4) 
+                        relativeTransmissivityVariation = (  relTransmissivityCoefVector[0] * pow(angle, 2)
+                                                           + relTransmissivityCoefVector[1] * pow(angle, 4)
                                                            + relTransmissivityCoefVector[2] * pow(angle, 6)) / 100.;
 
                         throughputMap(row, column) *= (1 - relativeTransmissivityVariation);

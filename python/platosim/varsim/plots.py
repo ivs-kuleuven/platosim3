@@ -276,7 +276,7 @@ def plot_passband_ldc(wvl_int_plato, tran_int_plato, grid_no,
 
     # Quadratic LD coeffients fitting:
 
-    lab = 'Model:'+'\n'+r'$u_1$ = %.5s'%ldc[0]+'\n'+r'$u_2$ = %.5s'%ldc[1]`
+    lab = 'Model:'+'\n'+r'$u_1$ = %.5s'%ldc[0]+'\n'+r'$u_2$ = %.5s'%ldc[1]
     ax[1].plot(mu_trunc, intensity_VTA_trunc, 'ko', alpha=0.2, label='Data')
     ax[1].plot(mu_trunc, LD_values.model, 'r-', label=lab)
     ax[1].set_xlabel(r'Norm. Wavelength, $\lambda$')

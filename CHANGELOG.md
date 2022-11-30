@@ -1,6 +1,17 @@
 # Changelog for PlatoSim
 
+<!-- 3.5.5 -->
+<!-- ***** -->
 
+## 29/11/2022: 3.5.5
+
+## Fixed
+* Fixed bug where mapped distortion was not used when calculating the vignetting. (GH #716)
+
+
+## Changed
+
+## Added
 
 <!-- 3.5.4 -->
 <!-- ***** -->
