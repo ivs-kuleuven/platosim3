@@ -10,7 +10,7 @@ ObservingParameters:
 
     MissionDuration:                 6.5             # Total duration of the mission [yr], relevant for BOL->EOL degradation
     NumExposures:                    10              # Number of exposures
-    BeginExposureNr:                  0              # Sequential number of first exposure. useful for slurm parallellisation
+    BeginExposureNr:                 0               # Sequential number of first exposure. useful for slurm parallellisation
     CycleTime:                       25              # Image cycle time (exposure + readout before next exposure starts)[s]
     RApointing:                      86.8            # Platform (not telescope) right ascension pointing coordinate     [deg]
     DecPointing:                     -46.4           # Platform (not telescope) declination pointing coordinate         [deg]
@@ -180,9 +180,8 @@ CCD:
           FirstRowReadout:           0               # First row that will be read out by the FEE in partial-readout mode
           NumRowsReadout:            4510            # Number of rows that will be read out by the FEE, in partial-readout mode
     FlatfieldNoiseRMS:               0.010           # Flatfield noise RMS (local PRNU)
-    RelativeTransmissivity:
-        Coefficients:                [4.18e-2, -5.65e-5, 2.37e-7]  # Coefficients of the polynomial fit (k1 * x^2 + k2 * x^4 + k3 * x^6) to the variation
-                                                                   # in overall relative transmissivity w.r.t. angular distance from the OA
+    RelativeTransmissivity:                          # Overall relative transmissivity w.r.t. angular distance from the OA
+        Coefficients:                [4.18e-2, -5.65e-5, 2.37e-7]  # Coefficients of the polynomial fit (k1 * x^2 + k2 * x^4 + k3 * x^6)
         RadiusFOV:                   18.8908         # Radius of the FOV [degrees]
         ExpectedValue:               0.920           # Expected value of the efficiency (mean of all detector pixels within FOV)
     Polarization:
@@ -266,24 +265,24 @@ RandomSeeds:
     DarkSignalSeed:                  1468838669      # Unique positive integer, or -1 to auto-set using clock
 
 
-ControlHDF5Content:
-    WritePixelMaps:                  yes             # The 2D subimages for each exposure
-    WriteBiasMaps:                   yes             # 2D bias maps for the left and right hand side of the CCD, for each exposure
-    WriteSmearingMaps:               yes             # 2D smearing maps, for each exposure
-    WriteThroughputMaps:             yes             # 2D throughput maps (QE, vignetting, contamination, ...), for each exposure
-    WriteFlatfieldMap:               yes             # 2D image of the flatfield (PRNU and/or IRNU)
-    WriteSubPixelImages:             no              # Only use this for a limited number of exposures. Takes a lot of space!
-    WriteStarPositions:              yes             # Star positions are written in pixel and focal plane coordinates
-    GroupByExposure:                 yes             # Deals with the layout of the HDF5 file when WriteStarPositions is true. Groupt the star positions by exposure, if not we will group them by StarID.
-    WriteGhostPositions:             yes             # Ghost positions are written in pixel and focal plane coordinates
-    WriteACS:                        yes             # Whether to write the yaw, pitch, roll to the HDF5 file
-    WriteCosmics:                    yes             # Determines if the columns, rows and flux of the cosmics should be written to the HDF5 file 
-    WriteDiffusedPSF:                no              # Determines if diffused PSF should be written to the output HDF5 file. (Only works for mapped PSF, takes a long time to compute)
-    WriteHighResolutionPSF:          no              # Determines if the high resolution PSF will be written to the HDF5 file (doesn't work for Analytic Gaussian PSF)
-    WriteStarCatalog:                yes             # Determines if the starcatalog should be written to the HDF5 file
-    WriteTelescopeACS:               yes             # Determines if the platform Yaw, Pitch and Roll should be written to the HDF5 file
-    WriteTransmissionEfficiency:     yes             # Determines if the Transmission Efficiency should be writen to the HDF5 file
-    WriteCTI:                        yes             # Write trap density maps at BOL and EOL for each species
+ControlHDF5Content:                                  # Data that can be written to the HDF5 output file
+    GroupByExposure:                 yes             # Layout of several HDF5 file entries: If "yes" group by Exposure, if "no" group by StarID.
+    WritePixelMaps:                  yes             # 2D Subfield Pixel maps for each exposure
+    WriteBiasMaps:                   yes             # 2D Bias maps for the left and right hand side of the CCD, for each exposure
+    WriteSmearingMaps:               yes             # 2D Smearing maps, for each exposure
+    WriteFlatfieldMap:               yes             # 2D Flatfield maps (PRNU and/or IPRNU), for each exposure
+    WriteThroughputMaps:             yes             # 2D Throughput maps (QE, vignetting, contamination, etc.), for each exposure
+    WriteTransmissionEfficiency:     yes             # 2D Transmission Efficiency maps, for each exposure
+    WriteCTI:                        yes             # 2D Trap Density maps at BOL and EOL for each species
+    WriteSubPixelImages:             no              # 2D Subpixel maps, for each exposure: Only use this for a limited number of exposures as it takes a lot of space!
+    WriteDiffusedPSF:                no              # Diffused PSF (Only works for mapped PSF, takes a long time to compute)
+    WriteHighResolutionPSF:          no              # High resolution PSF (doesn't work for Analytic Gaussian PSF)
+    WriteACS:                        yes             # AOCS for Camera yaw, pitch, roll
+    WriteTelescopeACS:               yes             # AOCS for Platform Yaw, Pitch and Roll
+    WriteStarCatalog:                yes             # Star Catalog used in simulation
+    WriteStarPositions:              yes             # Star Positions written in pixel and focal plane coordinates
+    WriteGhostPositions:             yes             # Ghost positions (extended and point-like) written in pixel and focal plane coordinates
+    WriteCosmics:                    yes             # Cosmic rays written as pixel columns, rows and fluxes
 
 ControlTcpConnection:
 
