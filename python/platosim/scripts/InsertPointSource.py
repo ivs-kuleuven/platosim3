@@ -35,6 +35,8 @@ from platosim.referenceFrames import focalPlaneCoordinatesFromGnomonicRadialDist
 from platosim.simulation import Simulation
 
 
+
+
 def insertSourceFieldAngles(sim: Simulation, theta: float, phi: float, magnitude: float, filename: str):
     """ Insert a single point sources at the given field angles.
 
@@ -63,6 +65,9 @@ def insertSourceFieldAngles(sim: Simulation, theta: float, phi: float, magnitude
     insertSourceFP(sim, xFP, yFP, magnitude, filename)
 
 
+
+
+    
 def insertSourceFP(sim: Simulation, xFP: float, yFP: float, magnitude: float, filename: str):
     """ Insert a single point sources at the given focal-plane coordinates.
 
@@ -110,6 +115,9 @@ def insertSourceFP(sim: Simulation, xFP: float, yFP: float, magnitude: float, fi
     makeStarCatalog(sim, ra_star, dec_star, magnitude, filename)
 
 
+
+
+    
 def insertSourceCCD(sim: Simulation, row: float, column: float, ccdCode: int, magnitude: float, filename: str):
     """ Insert a single point sources at the given CCD coordinates.
 
@@ -138,6 +146,8 @@ def insertSourceCCD(sim: Simulation, row: float, column: float, ccdCode: int, ma
     makeStarCatalog(sim, raStar, decStar, magnitude, filename)
 
 
+
+    
 def printCCD(sim: Simulation, xFP: float, yFP: float):
     """ Print out clues on where you should place the sub-field.
 
@@ -186,6 +196,8 @@ def printCCD(sim: Simulation, xFP: float, yFP: float):
     print(f"The source will be located on CCD {ccdCode}, on pixel (row, column) = ({row}, {column})")
 
 
+
+    
 def makeStarCatalog(sim: Simulation, raStar: float, decStar: float, magnitude: float, filename: str):
     """ Create a star catalogue for the given Simulation object.
 
