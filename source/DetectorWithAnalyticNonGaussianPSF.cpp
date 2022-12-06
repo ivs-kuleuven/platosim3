@@ -194,6 +194,7 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
     
     writeFlatfieldMap = configParam.getBoolean("ControlHDF5Content/WriteFlatfieldMap");
     writeHighResolutionPSF = configParam.getBoolean("ControlHDF5Content/WriteHighResolutionPSF");
+    writeDiffusedPSF = configParam.getBoolean("ControlHDF5Content/WriteDiffusedPSF");
 
 } // end configure()
 
@@ -777,7 +778,6 @@ void DetectorWithAnalyticNonGaussianPSF::makeHighResolutionPSF(arma::Mat<float> 
     double xFP, yFP;
     tie(xFP, yFP) = pixelToFocalPlaneCoordinates(middleRowSubfield, middleColSubfield);
 
-
     double s = (*sigma)();
     double diffusionKernelWidth = 0.;
 
@@ -881,6 +881,116 @@ void DetectorWithAnalyticNonGaussianPSF::applyFlatfield()
 
 
 
+//************************** Diffused PSF *****************************//
+
+/**
+  * \brief: Generate the diffusion kernel. This is generated at sub-pixel level.
+  *
+  * \param kernelWidth: Width (sigma) of the Gaussian diffusion kernel [sub-pixels].
+  */
+void DetectorWithAnalyticNonGaussianPSF::generateDiffusionKernel(double kernelWidth)
+{
+    diffusionKernelWidth = kernelWidth;
+    diffusionKernelImageSize = 2 * (int)(8 * kernelWidth + 1) + 1;
+
+    diffusionKernel.zeros(diffusionKernelImageSize, diffusionKernelImageSize);
+}
+
+
+
+/**
+ * \brief: Write the diffused and rotated PSF to the HDF5 file.
+ */
+
+void DetectorWithAnalyticNonGaussianPSF::writeDiffusedPSFToHDF5(PointSpreadFunction *psf)
+{
+
+    // make hard copy of original PSF
+  
+    arma::fmat psfMap = psf->getOriginalPSF();
+    arma::fmat diffusedPsf = arma::fmat(size(psfMap), arma::fill::zeros);
+
+    int numRows = size(psfMap)(0);
+    int numColumns = size(psfMap)(1);
+
+    // set the diffusion kernel image size
+    
+    int psfSubPixelsPerPixel = psf->getNumSubPixelsPerPixel();
+    generateDiffusionKernel(chargeDiffusionStrength*psfSubPixelsPerPixel);
+
+    for (int row=0; row < numRows; row++)
+    {
+      for (int column=0; column < numColumns; column++)
+      {
+	applyDiffusionKernelOnPSF(row, column, psfMap(row, column), diffusedPsf, psfSubPixelsPerPixel);
+      }
+    }
+
+    // reset the diffusion kernel
+    
+    generateDiffusionKernel(chargeDiffusionStrength*numSubPixelsPerPixel);
+
+    // rotate the diffused PSF
+    
+    diffusedPsf = ArrayOperations::rotateArray(diffusedPsf, -rotationAnglePsf);
+
+    // Normalize the PSF
+
+    diffusedPsf /= arma::accu(diffusedPsf);
+
+    // write the diffused psf to the output hdf5 file
+    
+    hdf5File.writeArray("/PSF", "diffusedPSF", diffusedPsf);
+}
+
+
+
+/**
+ * \brief: Apply the diffused kernel on the PSF.
+ */
+
+void DetectorWithAnalyticNonGaussianPSF::applyDiffusionKernelOnPSF(double subpixRow, double subpixColumn, double flux, arma::fmat& psf, int numberOfPsfSubpixelsPerPixel)
+{
+    int sx = subpixColumn - (diffusionKernelImageSize - 1) / 2;
+    int sy = subpixRow - (diffusionKernelImageSize - 1) / 2;
+
+    double ox = subpixColumn - floor(subpixColumn);
+    double oy = subpixRow - floor(subpixRow);
+
+    int numRows = size(psf)(0);
+    int numColumns = size(psf)(1);
+
+    // Establish diffusion kernel image
+
+    signalResponse = IntegralOfAnalyticSignalResponse(diffusionKernelImageSize);
+    signalResponse.addPart(ox, oy, 1., diffusionKernelWidth);
+
+    for (unsigned int row = 0; row < diffusionKernelImageSize; row++)
+    {
+        for (unsigned int column = 0; column < diffusionKernelImageSize; column++)
+        {
+            diffusionKernel(row, column) = signalResponse(column, row); // Normalisation done by ()-operator
+        }
+    }
+
+    // Add the flux to the psf
+
+    arma::span rowSpan = arma::span(max(0, sy), min((int)numRows, sy + diffusionKernelImageSize) - 1);
+    arma::span columnSpan = arma::span(max(0, sx), min((int)numColumns, sx + diffusionKernelImageSize) - 1);
+
+    arma::span xSpan = arma::span(max(0, sx) - sx, min((int)numColumns, sx + diffusionKernelImageSize) - sx - 1);
+    arma::span ySpan = arma::span(max(0, sy) - sy, min((int)numRows, sy + diffusionKernelImageSize) - sy - 1);
+
+    psf(rowSpan, columnSpan) += diffusionKernel(ySpan, xSpan) * flux;
+}
+
+//**************************************************************//
+
+
+
+
+
+
 
 /**
  *  \brief Before destroying this object, save all info to the HDF5 file
@@ -892,21 +1002,35 @@ void DetectorWithAnalyticNonGaussianPSF::flushOutput()
     int Npixels = 8;
     int Nsubpixels = 128;
 
-    // Create the group in the HDF5 file. We chose the same name as for DetectorWithMappedPSF
+    // Create the group in the HDF5 file.
+    // We chose the same name as for DetectorWithMappedPSF
 
     hdf5File.createGroup("/PSF");
     
-    // Generate the high-resolution map
+    // Generate and save the high resolution PSF (center of subfield)
 
     arma::Mat<float> highResMap;
     makeHighResolutionPSF(highResMap, Npixels, Nsubpixels);
 
-    // Save the map to HDF5
     if (writeHighResolutionPSF)
     {
-    hdf5File.writeArray("/PSF", "HighResPSFmapCenterSubfield", highResMap);
+      Log.info("Writing high resolution PSF to the HDF5 file");
+   
+      hdf5File.writeArray("/PSF", "highResPSF", highResMap);
     }
 
+    // Generate and save the diffused PSF (center of subfield)
+    
+    if (writeDiffusedPSF)
+    {
+      Log.info("Writing diffused PSF to the HDF5 file");
+      
+      arma::Mat<float> diffusedMap;
+      makeDiffusedPSF(diffusedMap, Npixels, Nsubpixels);
+
+      hdf5File.writeArray("/PSF", "diffusedPSF", diffusedMap);
+    }
+    
     // Save the photometry info
 
     if (includePhotometry)

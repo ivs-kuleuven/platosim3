@@ -130,7 +130,7 @@ void DetectorWithMappedPSF::configure(ConfigurationParameters &configParam)
 
 
 /**
- * \brief Set the PSF map for the sub-field and sets  the distortion map
+ * \brief Set the PSF map for the sub-field and sets the distortion map
  *
  * \details The PSF that is selected is dependent on the user input.
  */
@@ -479,7 +479,6 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
     // Rebin from a subpixel map to a pixel map
 
     Log.debug("DetectorWithMappedPSF: rebinning sub-pixel map into pixel map.");
-
     rebin();
 
     // Apply throughput efficiency on the pixel map
@@ -500,14 +499,11 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
         applyChargeInjection();
     }
 
-
-
     // Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
     // the pixels are still receiving photons from the sky, while they are being transfered towards
     // the readout register.
     // Pixel units before: [electrons]
     // Pixel units after: [electrons]
-
 
     if (includeOpenShutterSmearing)
     {
@@ -523,7 +519,6 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
     // Pixel units before: [electrons]
     // Pixel units after: [electrons]
 
-
     if (includePhotonNoise)
     {
         Log.debug("Detector: adding photon noise.");
@@ -533,7 +528,6 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
     {
         Log.debug("Detector: no photon noise added.");
     }
-
 
     // Add dark current
 
@@ -772,6 +766,10 @@ bool DetectorWithMappedPSF::isInSubPixelMap(double row, double column)
 
 }
 
+
+
+
+
 /**
  * \brief: Add the given flux value to (all sub-pixels that are not covered by a metallic
  *         shield of) the sub-pixel map.
@@ -795,8 +793,6 @@ void DetectorWithMappedPSF::addFlux(double flux)
           flux / numSubPixelsPerPixel / numSubPixelsPerPixel;
     }
 }
-
-
 
 
 
@@ -906,7 +902,7 @@ void DetectorWithMappedPSF::convolveWithPsf()
 
 /**
  * \brief: Creates the group(s) in the HDF5 file where the detector specific
- *         information will be stored.  These groups have to be created once,
+ *         information will be stored. These groups have to be created once,
  *         at the very beginning.
  */
 void DetectorWithMappedPSF::initHDF5Groups()
@@ -960,6 +956,7 @@ void DetectorWithMappedPSF::writeDiffusedPSFToHDF5(PointSpreadFunction *psf)
     int numColumns = size(psfMap)(1);
 
     // set the diffusion kernel image size
+    
     int psfSubPixelsPerPixel = psf->getNumSubPixelsPerPixel();
     generateDiffusionKernel(chargeDiffusionStrength*psfSubPixelsPerPixel);
 
@@ -972,14 +969,19 @@ void DetectorWithMappedPSF::writeDiffusedPSFToHDF5(PointSpreadFunction *psf)
     }
 
     // reset the diffusion kernel
+    
     generateDiffusionKernel(chargeDiffusionStrength*numSubPixelsPerPixel);
 
-
     // rotate the diffused PSF
+    
     diffusedPsf = ArrayOperations::rotateArray(diffusedPsf, -rotationAnglePsf);
+
+    // normalize the PSF
+    
     diffusedPsf /= arma::accu(diffusedPsf);
 
     // write the diffused psf to the output hdf5 file
+    
     hdf5File.writeArray("/PSF", "diffusedPSF", diffusedPsf);
 }
 

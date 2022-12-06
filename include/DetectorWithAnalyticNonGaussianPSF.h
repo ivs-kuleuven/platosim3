@@ -42,6 +42,8 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
         void integrateAnalyticPSF(IntegralOfAnalyticSignalResponse&, double, double, double, double, double, int = 1);
 
         void makeHighResolutionPSF(arma::Mat<float> &highResMap, int Npixels, int Nsubpixels);
+        void generateDiffusionKernel(double kernelWidth);
+        void applyDiffusionKernelOnPSF(double subpixRow, double subpixColumn, double flux, arma::fmat& psf, int numberOfPsfSubpixelsPerPixel);
         virtual void flushOutput() override;
 
         void applyPhotometry(const unsigned int exposureNr);
@@ -57,20 +59,28 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
 
         arma::Mat<float> flatfieldMap;      // Pixel flatfield map
 
-        unsigned int numExposures;                  // Number of exposures
+        unsigned int numExposures;          // Number of exposures
         unsigned int beginExposureNr;       // Exposure nr of the first exposure in the time series
         double cycleTime;                   // Image cycle time (exposure + readout before next exposure starts)  [s]
 
-        double chargeDiffusionStrength;		// Strength of the charge diffusion (width of the Gaussian diffusion kernel) [pixels]
-        bool includeChargeDiffusion;		// Whether or not to include charge diffusion
+        double chargeDiffusionStrength;	    // Strength of the charge diffusion (width of the Gaussian diffusion kernel) [pixels]
+        bool includeChargeDiffusion;	    // Whether or not to include charge diffusion
 
         double flatfieldNoiseRMS;           // Peak-to-peak noise amplitude
 
         bool includeFlatfield;              // Whether or not to include flat fielding        
         long flatfieldSeed;                 // Seed dedicated to generate a random flatfield map
         bool writeFlatfieldMap;             // Whether or not to write the flatfield map to the HDF5 file
-        bool writeHighResolutionPSF;        // Wheter or not to write the high resosultion PSF to the HDF5 file 
+        bool writeHighResolutionPSF;        // Wheter or not to write the high resosultion PSF to the HDF5 file
+        bool writeDiffusedPSF;              // Wheter or not to write the high resosultion PSF to the HDF5 file 
+        arma::Mat<float> diffusionKernel;                   // Diffusion kernel image
+        IntegralOfAnalyticSignalResponse signalResponse;    // Signal response
+        double diffusionKernelWidth;                        // Width (sigma) of the Gaussian diffusion kernel [sub-pixels]
+        int diffusionKernelImageSize;                       // Size of the diffusion kernel image [sub-pixels]
+        PointSpreadFunction *psf;
 
+        // Photometry
+  
         bool includePhotometry;             // Whether or not to include on-the-fly photometry
         int contaminationRadius;            // Stars outside the radius are never considered a contaminant of the main target [pix] 
         double maskUpdateInterval;          // All photometric masks will be updated every xx days  [days]
