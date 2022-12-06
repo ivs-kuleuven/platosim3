@@ -1773,7 +1773,7 @@ def getPointingRepeatabilityError(ra, dec, kappa, sigma=3, quarter=[1, 8], outdi
         coor[i,:] = np.append(quarters[i], data)
 
     # Save file with relative pointing errors [deg]
-    if outdir it not None:
+    if outdir is not None:
         np.savetxt(f'{outdir}/PRE.txt', coor, fmt=['%i', '%0.8f', '%0.8f', '%0.8f'])
 
     # Print generated values
