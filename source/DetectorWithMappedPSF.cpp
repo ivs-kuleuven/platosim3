@@ -148,7 +148,7 @@ void DetectorWithMappedPSF::setPsfForSubfield()
 
     if(psf->getNumSubPixelsPerPixel() < numSubPixelsPerPixel)
     {
-        throw IllegalArgumentException(string("DetectorWithMappedPSF.setPsfForSubfield: ") + 
+        throw IllegalArgumentException(string("DetectorWithMappedPSF.setPsfForSubfield: ") +
             "The sub-pixel resolution of the PSF (" + to_string(psf->getNumSubPixelsPerPixel()) +
                     ") must be at least that of the sub-field (" + to_string(numSubPixelsPerPixel) + ")");
     }
@@ -413,7 +413,11 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
 
         Log.debug("Detector: Writing Cosmics of the PixelMap, smearing map, bias map #" + to_string(exposureNr) + " to HDF5 file.");
 
-    writeCosmicHitsToHDF5(exposureNr);
+    if (writeCosmics)
+    {
+            if (groupByExposure){writeCosmicHitsToHDF5WhenGroupByExposure(exposureNr);}
+            else{writeCosmicHitsToHDF5WithoutGroupByExposure(exposureNr);}
+    }
 
     // Advance the internal clock
 
@@ -1298,7 +1302,7 @@ void DetectorWithMappedPSF::applyInverseDistortion(double &x, double &y)
   }
 
   // The distorted coordinates can be expressed as: (x, y)' = e0' + a1 * r1' + a2 * r2'.
-  // We approximate the undistorted coordinates as: (x, y) = e0 + a1 * r1 + a2 * r2, (where ' indicates distortion) 
+  // We approximate the undistorted coordinates as: (x, y) = e0 + a1 * r1 + a2 * r2, (where ' indicates distortion)
   double e0x = ClosestDistortedCoordinates[0][0];
   double e0y = ClosestDistortedCoordinates[0][1];
 
@@ -1329,3 +1333,6 @@ void DetectorWithMappedPSF::applyInverseDistortion(double &x, double &y)
   x = a1 * r1xUndistorted + a2 * r2xUndistorted + e0xUndistorted;
   y = a1 * r1yUndistorted + a2 * r2yUndistorted + e0yUndistorted;
 }
+
+
+

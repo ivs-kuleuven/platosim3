@@ -136,10 +136,8 @@ class Detector: public HDF5Writer
 
         virtual void initHDF5Groups() override;
         virtual void writePixelMapsToHDF5(int exposureNr);
-        virtual void writeCosmicHitsToHDF5(int exposureNr);
-        virtual void writeCosmicFieldToHDF5(int exposureNr, string field, vector<unsigned int> &entryRows, vector<unsigned int> &entryColumns,
-        vector<double> &trailLengths, vector<double> &entryAngles, vector<double> &intensities,
-        vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux);
+        virtual void writeCosmicHitsToHDF5WithoutGroupByExposure(int exposureNr);
+        virtual void writeCosmicHitsToHDF5WhenGroupByExposure(int exposureNr);
         virtual void writeCTIToHDF5();
 
         double getRowEdgeFOV(int column);
