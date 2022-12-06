@@ -58,19 +58,19 @@ docs/technicalNotes/*/.ipynb_checkpoints/*
 docs/*/*/*.ftr
 docs/*/*/*.txt
 docs/*/*/*.pdf
+docs/*/*/*.png
 docs/*/*/*.yaml
 docs/*/*/*.hdf5
-
 
 # Poetry
 
 poetry.lock
 
-# Files for platonium
+# PLATOnium
 
 .platonium_init
 
-# Files for varsim
+# varsim
 
 PHOENIX_HiResFITS/
 fitting_parameters.h5

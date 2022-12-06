@@ -354,9 +354,10 @@ class LightCurve(object):
 
         # Distinguish between single camera and multi camera obs
         if self.mode == "single":
-            self.group   = int(self.filename[-10])
-            self.camera  = int(self.filename[-8])
-            self.quarter = int(self.filename[-5])
+            filename = pathlib.Path(self.filename).stem
+            self.group   = int(filename[14])
+            self.camera  = int(filename[16])
+            self.quarter = int(filename[19:])
         else:
             self.group   = False
             self.camera  = False
@@ -427,8 +428,6 @@ class LightCurve(object):
         return ut.medianAbsoluteDeviation(array)
     
     
-
-
 
 
     def getNSR(self, binhour=1, unit="ppm", influx="e/s"):
@@ -513,6 +512,102 @@ class LightCurve(object):
 
         return df
     
+
+    #--------------------------------------------------------------#
+    #                 STAR CATALOGUE AND VARSOURCE                 #
+    #--------------------------------------------------------------#
+
+    
+    def star_info(self, filename):
+        """
+        Function to fetch the target star information.
+        """
+        
+        # Fetch info about target star
+        cols = ["id", "ra", "dec", "x", "y", "mag", "ccd", "xccd", "yccd", "xfp", "yfp"]
+        df = pd.read_csv(filename, delimiter=' ', comment='#', names=cols)
+
+        # Fetch V magnitude
+        mag = df["mag"][0]
+
+        # Number of contaminants
+        ncon = len(df["id"]) - 1
+
+        # Distance from optical axis [deg]
+        f = 247.52 # [mm] 
+        rOA = np.rad2deg(rf.gnomonicRadialDistanceFromOpticalAxis(df["xfp"][0], df["yfp"][0], f))
+        
+        # Intra-pixel position
+        xcen = df["x"][0] % 1/2
+        ycen = df["y"][0] % 1/2
+        rCOB= np.sqrt(xcen**2 + ycen**2)        
+
+        # Loop over contaminants
+        SPR = 0
+        rcon = 0
+        dmag = 0
+        n = len(df["mag"])
+
+        if n > 1:
+
+            # Sort after magnitude
+            df = df.sort_values(by=["mag"])
+            
+            # Distance to main contaminant
+            rcon = np.sqrt(df["x"].diff()[1]**2 + df["y"].diff()[1]**2)
+
+            # Delta magnitude of main contaminant
+            dmag = df["mag"].diff()[1]
+            
+            # Custom metric to measure the stellar pollution ratio
+            for k in range(1, n):
+                dm   = np.abs(df["mag"].diff()[k])
+                rpix = np.sqrt(df["x"].diff()[k]**2 + df["y"].diff()[k]**2)
+                SPR += 1/(1 + dm + rpix)
+                # If the contaminants is brighter than the target SPR becomes negative.
+                # Here we are only interested in the absolute pollution:
+                #if SPR < 0: SPR += 1
+
+        # Finito!   
+        return mag, rOA, rCOB, ncon, rcon, dmag, SPR
+
+
+
+
+
+    def varsource(self):
+        """
+        Function to fetch the noise-less light curve.
+        """
+
+        # Get correct path to varsource file
+        path = pathlib.Path(self.filename)
+        starID   = path.parts[-2]
+        sample   = path.parts[-3]
+        varpath  = path.parents[2] / "varsource" / "P1" / f"varsource_{starID}_components.ftr"
+        #varpath  = path.parents[2] / "varsource" / sample / f"varsource_{starID}_components.ftr"
+
+        # Open file
+        df = pd.read_feather(varpath)
+
+        return df
+
+
+
+
+    def plot_varsource(self, figsize=(10, 8)):
+        """
+        Function to plot the noise-less light curve.
+        """
+
+        # Fetch variable source
+        df = self.varsource()
+
+        # Plot varsim plot
+        fig, ax = pt.plot_final_lc(df, figsize=figsize)
+
+        return fig, ax
+
     
     #--------------------------------------------------------------#
     #                         PLOT MODULES                         #   
@@ -573,7 +668,7 @@ class LightCurve(object):
         # Plot a median filter
         if median_filter:
             flux_med = self.flux_med(unit=flux_unit)
-            ax.plot(time, flux_med, 'b-', lw=self.lw, label='1h median', zorder=2)
+            ax.plot(time, flux_med, 'b-', lw=self.lw, label=f'{median_filter}h median', zorder=2)
 
         # Show binned mean points if requested
         if binsize:
@@ -594,7 +689,7 @@ class LightCurve(object):
 
 
 
-    def plotCentroid(self, time_unit="d", cen_unit="pix", figsize=(12,6)):
+    def plot_centroid(self, time_unit="d", cen_unit="pix", figsize=(12,6)):
         """
         PURPOSE: Function normalize the input flux and change time units to days. 
 
@@ -648,10 +743,6 @@ class LightCurve(object):
 
 
     
-
-
-
-
     def axes_maskupdates(self, ax, time, maskupdates):
         """
         This is a small utility that takes an axes object, time points
@@ -679,8 +770,6 @@ class LightCurve(object):
 
     
     
-
-
 
 
     def plotComparison(self, fig, filenames, medfilt=None, title=None):
@@ -873,13 +962,59 @@ class LightCurve(object):
 
         plt.show()
 
+
+
+
+
+    def plot_oc(self, time_unit="d", figsize=(9,6)):
+        """
+        Function to plot observed - calculated light curve.
+        """
+
+        # Get varsource light curve
+        lc = self.varsource()
+        itime = lc["time"] / c.day
+        iflux = lc["sum"]
         
+        # Sorten simulation
+        oflux = self.flux(unit="ppm")
+        mflux = self.flux_med(unit="ppm")
+        
+        # Handle time column
+        time = self.time(unit=time_unit)
+
+        # Star plotting
+        
+        fig, ax = plt.subplots(2, 1, figsize=figsize)
+
+        # Plot simulation, median, and input
+        ax[0].plot(time,  oflux, '.', c='k', ms=1, alpha=0.7, label='Corrected data')
+        ax[0].plot(time,  mflux, '-', c='b', lw=0.5,          label='1h median')
+        ax[0].plot(itime, iflux, '-', c='m', lw=0.5,          label='Input signal')
+        ax[0].set_xlim(time.iloc[0], time.iloc[-1])
+        ax[0].legend(ncol=3, loc="center",  bbox_to_anchor=(0.5, 1.2))
+
+        # Plot median vs. input
+        ax[1].plot(time,  mflux, '-', c='b', lw=0.5)
+        ax[1].plot(itime, iflux, '-', c='m', lw=0.5)
+        ax[1].set_xlim(time.iloc[0], time.iloc[-1])
+
+        # Labels
+        ax[1].set_xlabel('Time [days]')
+        fig.text(0.005, 0.5, 'Flux [ppm]', va='center', rotation='vertical')
+
+        # Layout
+        plt.tight_layout()
+        plt.tight_layout(h_pad=0.1, w_pad=1)
+        
+        return fig, ax
+
 
     #--------------------------------------------------------------#
     #                       MULTI CAMERA/QUARTER                   #
     #--------------------------------------------------------------#
-
-
+    
+    
     def analyse_single_camera(self, inputDir, outputFile, numStar):
 
         # Open a pandas data frame and write to it
@@ -888,7 +1023,6 @@ class LightCurve(object):
         f = 247.52 # [mm] 
 
         # Loop over star simulated
-
         for i in tqdm(range(1, numStar+1), bar_format=ut.tqdm_bar_format()):
 
             # Fetch all zip files
@@ -919,7 +1053,7 @@ class LightCurve(object):
                     group, camera, quarter = lc.obs()
 
                     # Fetch info about contaminants
-                    mag, rOA, rCP, ncon, SPR = self.star_info(filename_cat)
+                    mag, rOA, rCP, ncon, rcon, dmag, SPR = self.star_info(filename_cat)
 
                     # Force a correction and reload file
                     # TODO remove for future simulations! Fixed in PLATOnium now
@@ -956,8 +1090,9 @@ class LightCurve(object):
 
                     # Write data to feather
                     data = {"star":i, "group":group, "camera":camera, "quarter":quarter, "mag":mag,
-                            "flux_err":flux_err_mean, "rerr":rcen_err_mean, "flag":flag,
-                            "rOA":rOA, "rCP":rCP, "ncon":ncon, "SPR":SPR, "NSR":NSR}
+                            "ferr":flux_err_mean, "rerr":rcen_err_mean, "flag":flag,
+                            "rOA":rOA, "rCP":rCP, "ncon":ncon, "rcon":rcon, "dmag":dmag,
+                            "SPR":SPR, "NSR":NSR}
                     df = df.append(data, ignore_index=True)
                     
                     # Delete unpacked files again to not overflow storage memory
@@ -967,9 +1102,9 @@ class LightCurve(object):
 
         # Save final feather
         df = df.astype({"star":int, "group":int, "camera":int, "quarter":int, "mag":np.float32,
-                        "rOA":np.float32, "flux_err":np.float32, "rerr":np.float32, "flag":int,
-                        "rOA":np.float32, "rCP":np.float32, "ncon":int, "SPR":np.float32,
-                        "NSR":np.float32})
+                        "rOA":np.float32, "ferr":np.float32, "rerr":np.float32, "flag":int,
+                        "rOA":np.float32, "rCP":np.float32, "ncon":int, "rcon":np.float32,
+                        "dmag":np.float32, "SPR":np.float32, "NSR":np.float32})
 
         # Sort data frame
         df = df.sort_values(by=["star", "group", "camera", "quarter"])
@@ -978,45 +1113,6 @@ class LightCurve(object):
         df = df.reset_index()
         df.to_feather(outputFile)
 
-
-        
-    
-
-    def star_info(self, filename):
-
-        # Fetch info about target star
-        cols = ["id", "ra", "dec", "x", "y", "mag", "ccd", "xccd", "yccd", "xfp", "yfp"]
-        df = pd.read_csv(filename, delimiter=' ', comment='#', names=cols)
-
-        # Fetch V magnitude
-        mag = df["mag"][0]
-
-        # Number of contaminants
-        ncon = len(df["id"]) - 1
-
-        # Distance from optical axis [deg]
-        f = 247.52 # [mm] 
-        rOA = np.rad2deg(rf.gnomonicRadialDistanceFromOpticalAxis(df["xfp"][0], df["yfp"][0], f))
-        
-        # Intra-pixel position
-        xcen = df["x"][0] % 1/2
-        ycen = df["y"][0] % 1/2
-        rCP  = np.sqrt(xcen**2 + ycen**2)
-        
-        # Custom metric to measure the stellar pollution ratio
-        SPR = 0
-        n = len(df["mag"])
-        if n >= 1:
-            for k in range(1, n):
-                dmag = df["mag"].diff()[k]  
-                rpix = np.sqrt(df["x"].diff()[k]**2 + df["y"].diff()[k]**2)
-                SPR += 1/(1+dmag+rpix)
-                # If the contaminants is brighter than the target SPR becomes negative.
-                # Here we are only interested in the absolute pollution:
-                if SPR < 0: SPR += 1
-
-        # Finito!   
-        return mag, rOA, rCP, ncon, SPR
 
 
 
@@ -1115,7 +1211,7 @@ class LightCurve(object):
             else:
 
                 # Fetch star info
-                mag, rOA, rCP, ncon, SPR = self.star_info(filename_cat)
+                mag, rOA, rCP, ncon, rcon, SPR = self.star_info(filename_cat)
                 
                 # Loop over each quarter
                 
@@ -1135,7 +1231,7 @@ class LightCurve(object):
 
                         # Write data to feather
                         data = {"star":i, "mag":mag, "rOA":rOA, "quarter":q, "ncam":ncam, 
-                                "ncon":ncon, "SPR":SPR, "NSR":NSR, "flux_err":flux_err,
+                                "ncon":ncon, "rcon":rcon, "SPR":SPR, "NSR":NSR, "flux_err":flux_err,
                                 "flag":flag}
                         df = df.append(data, ignore_index=True)
 
@@ -1145,9 +1241,9 @@ class LightCurve(object):
                 for files_inv in glob.iglob(os.path.join(path, '*.invert')): os.remove(files_inv)
 
         # Save final feather
-        df = df.astype({"star":int, "mag":np.float32, "rOA":np.float32, "quarter":int, "ncam":int, 
-                        "ncon":int, "SPR":np.float32, "NSR":np.float32, "flux_err":np.float32,
-                        "flag":str})
+        df = df.astype({"star":int, "mag":np.float32,  "rOA":np.float32, "quarter":int, "ncam":int, 
+                        "ncon":int, "rcon":np.float32, "SPR":np.float32, "NSR":np.float32,
+                        "flux_err":np.float32, "flag":str})
 
         # Sort data frame
         df = df.sort_values(by=["star", "quarter"])
@@ -1192,18 +1288,26 @@ class LightCurve(object):
 
 
 
-    def correct_and_save(self, inputDir, outputDir, numStar):
+    def correct_and_save(self, inputDir, outputDir, numStar=False, numBegin=False, numEnd=False):
         """
         """
 
         # Open a pandas data frame and write to it
         df = pd.DataFrame()
 
+
+        if numBegin and numEnd:
+            start = numBegin
+            end   = numEnd + 1
+        else:
+            start = 1
+            end   = numStar + 1
+        
         # Loop over star simulated
 
-        for i in tqdm(range(1, numStar+1), bar_format=ut.tqdm_bar_format()):
+        for i in tqdm(range(start, end), bar_format=ut.tqdm_bar_format()):
 
-            # Read path
+            # Create star folder
             starID = f"{i}".zfill(9)
             path = f"{self.path}/{starID}/" 
 
@@ -1233,37 +1337,46 @@ class LightCurve(object):
                 for j in range(numFiles):
 
                     # Get file names
-                    filepath_ftr = files[j][:-3] + "ftr"
-                    filepath_cat = files[j][:-3] + "cat"
-                    filepath_inv = files[j][:-3] + "invert"
+                    filename     = files[j][-25:]
+                    filepath_all = files[j][:-3]
+                    filepath_ftr = filepath_all + "ftr"
+                    filepath_cat = filepath_all + "cat"
+                    filepath_inv = filepath_all + "invert"
+                    filepath_zip = filepath_all + "zip"
 
                     # Fetch light curve object
                     try: lc = LightCurve(filepath_ftr)
                     except: pass
                     else:
+
+                        # Define filepaths
+                        filepath_new_zip = f"{outputDir}/{starID}/{filename[:-4]}.zip"
+                        filepath_old_all = f"{filepath_ftr} {filepath_cat} {filepath_inv}"
                         
-                        # Force a correction
-                        # TODO remove for future simulations! Fixed in PLATOnium now
-                        self.correct_cols(lc, filepath_ftr)
+                        # Check if any contaminant are present                        
+                        ncon = self.star_info(filepath_cat)[3]
 
-                        # Move files to new folder
-                        filepath_ftr_new = f"{outputDir}/{starID}/{filepath_ftr[-24:]}"
-                        filepath_cat_new = f"{outputDir}/{starID}/{filepath_cat[-24:]}"
-                        filepath_inv_new = f"{outputDir}/{starID}/{filepath_inv[-27:]}"
-                        shutil.move(filepath_ftr, filepath_ftr_new)
-                        shutil.move(filepath_cat, filepath_cat_new)
-                        shutil.move(filepath_inv, filepath_inv_new)
+                        if ncon == 0:
 
-                        # Give full access to all files
-                        os.system(f'chmod 777 {filepath_ftr_new[:-3]}*')
+                            # Copy the already existing file
+                            os.system(f'cp {filepath_zip} {filepath_new_zip}')
+                        
+                        else:
+                        
+                            # Force a correction
+                            self.correct_cols(lc, filepath_ftr)
+                            
+                            # Give full access to all files
+                            os.system(f'chmod 777 {filepath_old_all}')
 
-                        # Compress
-                        os.system(f'zip -j {filepath_ftr_new[:-4]}.zip {filepath_ftr_new[:-3]}* > /dev/null')
+                            # Compress to new destination
+                            os.system(f"zip -j {filepath_new_zip} {filepath_old_all} > /dev/null")
 
-                        # Give full access to new zip file
-                        os.system(f'chmod 777 {filepath_ftr_new[:-4]}.zip')
+                            # Give full access to new zip file
+                            os.system(f'chmod 777 {filepath_new_zip}')
+                        
+                        # Remove old files (except for zip file)
+                        os.remove(filepath_ftr)
+                        os.remove(filepath_cat)
+                        os.remove(filepath_inv)
 
-                        # Remove old files (except for zip files)
-                        os.remove(filepath_ftr_new)
-                        os.remove(filepath_cat_new)
-                        os.remove(filepath_inv_new)
