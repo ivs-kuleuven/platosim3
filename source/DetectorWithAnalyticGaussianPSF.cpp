@@ -105,7 +105,7 @@ DetectorWithAnalyticGaussianPSF::~DetectorWithAnalyticGaussianPSF()
 
 
  /**
- * \brief: Generate the (random) flatfield variations.  This map is generated
+ * \brief: Generate the (random) flatfield variations. This map is generated
  *         at pixel level but without the edge pixels.
  *
  * https://github.com/python-acoustics/python-acoustics/blob/master/acoustics/generator.py#L108
@@ -236,20 +236,18 @@ double DetectorWithAnalyticGaussianPSF::takeExposure(int exposureNr, double star
     // Note: readOut() needs the exposure time to compute the open shutter smearing.
 
     Log.info("Detector: Adding noise effects to exposure " + to_string(exposureNr));
-
     readOut(exposureTime);
 
     // Write the CCD subfield, the bias map, and the smearing map to the HDF5 file
 
     Log.debug("Detector: Writing PixelMap, smearing map, and bias map #" + to_string(exposureNr) + " to HDF5 file.");
-
     writePixelMapsToHDF5(exposureNr);
 
     // Write the cosmic hits to the HDF5 file
 
     Log.debug("Detector: Writing Cosmics of the PixelMap, smearing map, bias map #" + to_string(exposureNr) + " to HDF5 file.");
-
     writeCosmicHitsToHDF5(exposureNr);
+    
     // Advance the internal clock
 
     internalTime += exposureTime + readoutTimeBeforeNextExposure;
@@ -326,8 +324,6 @@ void DetectorWithAnalyticGaussianPSF::integrateLight(int exposureNr, double star
         Log.debug("Detector: no flatfield applied.");
     }
 
-
-
     // Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
     // the pixels are still receiving photons from the sky, while they are being transfered towards
     // the readout register.
@@ -358,8 +354,6 @@ void DetectorWithAnalyticGaussianPSF::integrateLight(int exposureNr, double star
         Log.debug("Detector: no photon noise added.");
     }
 
-
-    
     // Add dark current
 
     if(includeDarkSignal)
@@ -371,10 +365,7 @@ void DetectorWithAnalyticGaussianPSF::integrateLight(int exposureNr, double star
     else
     {
         Log.debug("Detector: no dark current added");
-    }
-
-
-    
+    }    
 }
 
 
@@ -510,6 +501,7 @@ tuple<bool, double, double> DetectorWithAnalyticGaussianPSF::addFlux(double xFP,
  * \return: Whether or not the extended source falls (at least partially) on the sub-field, and the
  *          (row, column) coordinates of the centre of the extended ghost in the pixel map.
  */
+
 tuple<bool, double, double> DetectorWithAnalyticGaussianPSF::addExtendedGhost(double x0, double y0, double radius, double flux)
 {
     // Calculate the number of pixels in the extended ghost
@@ -569,7 +561,6 @@ void DetectorWithAnalyticGaussianPSF::addFlux(double flux)
                       numRowsPixelMap - coveredTop - 1,
                       numColumnsPixelMap - coveredRight - 1) += flux;
     }
-
 }
 
 
