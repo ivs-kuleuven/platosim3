@@ -41,10 +41,13 @@ DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(Configura
 
     if(includeFlatfield)
     {
-    		// Generate the flatfield map
-
-    		generateFlatfieldMap();
+      // Generate the flatfield map
+      
+      generateFlatfieldMap();
     }
+
+    // Initialize and load the PSF. This will open the PSF HDF5 file and perform some basic checking,
+    // Then select the proper PSF for the given subfield. Should only be done after calling configure().
 }
 
 
@@ -194,6 +197,7 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
     
     writeFlatfieldMap = configParam.getBoolean("ControlHDF5Content/WriteFlatfieldMap");
     writeHighResolutionPSF = configParam.getBoolean("ControlHDF5Content/WriteHighResolutionPSF");
+    writeDiffusedPSF = configParam.getBoolean("ControlHDF5Content/WriteDiffusedPSF");
 
 } // end configure()
 
@@ -761,7 +765,7 @@ tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addExtendedGhost
  *                   Its size will be  (Npixels * Nsubpixels) x  (Npixels * Nsubpixels)
  */
 
-void DetectorWithAnalyticNonGaussianPSF::makeHighResolutionPSF(arma::Mat<float> &highResMap, int Npixels, int Nsubpixels)
+void DetectorWithAnalyticNonGaussianPSF::makeHighResolutionPSF(arma::Mat<float> &highResMap, bool includeDiffusion, int Npixels, int Nsubpixels)
 {
     // Put the PSF right in the middle of the (high-res) (sub)pixel map
 
@@ -777,22 +781,21 @@ void DetectorWithAnalyticNonGaussianPSF::makeHighResolutionPSF(arma::Mat<float> 
     double xFP, yFP;
     tie(xFP, yFP) = pixelToFocalPlaneCoordinates(middleRowSubfield, middleColSubfield);
 
-
-    double s = (*sigma)();
+    // Convolve with Gaussian diffusion kernel is requested
+    
     double diffusionKernelWidth = 0.;
 
-    if (includeChargeDiffusion) 
+    if (includeDiffusion)
     {
         diffusionKernelWidth = chargeDiffusionStrength;
-        s = sqrt(s * s + diffusionKernelWidth * diffusionKernelWidth);
     }
 
     int size = Npixels * Nsubpixels;
     highResMap.set_size(size, size);
     highResMap.fill(0.0);
 
-    int sx = (int)floor(column0*Nsubpixels - (size - 1.) / 2.);
-    int sy = (int)floor(row0*Nsubpixels - (size - 1.) / 2.);
+    int sx = (int)floor(column0 * Nsubpixels - (size - 1.) / 2.);
+    int sy = (int)floor(row0    * Nsubpixels - (size - 1.) / 2.);
 
     // Construct the PSF around the central pixel coordinates
 
@@ -892,21 +895,33 @@ void DetectorWithAnalyticNonGaussianPSF::flushOutput()
     int Npixels = 8;
     int Nsubpixels = 128;
 
-    // Create the group in the HDF5 file. We chose the same name as for DetectorWithMappedPSF
+    // Create the group in the HDF5 file.
+    // We chose the same name as for DetectorWithMappedPSF
 
     hdf5File.createGroup("/PSF");
     
-    // Generate the high-resolution map
-
-    arma::Mat<float> highResMap;
-    makeHighResolutionPSF(highResMap, Npixels, Nsubpixels);
-
-    // Save the map to HDF5
+    // Generate and save the high resolution PSF (center of subfield)
+    
     if (writeHighResolutionPSF)
     {
-    hdf5File.writeArray("/PSF", "HighResPSFmapCenterSubfield", highResMap);
+      Log.info("Writing high resolution PSF to the HDF5 file");
+
+      arma::Mat<float> highResMap;
+      makeHighResolutionPSF(highResMap, false, Npixels, Nsubpixels);
+      hdf5File.writeArray("/PSF", "highResPSF", highResMap);
     }
 
+    // Generate and save the diffused high resolution PSF (center of subfield)
+    
+    if (writeDiffusedPSF && includeChargeDiffusion)
+    {
+      Log.info("Writing diffused high resolution PSF to the HDF5 file");
+
+      arma::Mat<float> highResDiffusedMap;
+      makeHighResolutionPSF(highResDiffusedMap, true, Npixels, Nsubpixels);
+      hdf5File.writeArray("/PSF", "diffusedPSF", highResDiffusedMap);
+    }
+    
     // Save the photometry info
 
     if (includePhotometry)

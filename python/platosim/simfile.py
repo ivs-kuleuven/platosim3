@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from matplotlib.colors import Normalize, LogNorm
-from matplotlib.ticker import FixedLocator, FixedFormatter
+import matplotlib.ticker as ticker
 import matplotlib.patches as patches
 import ipywidgets as widgets
 from astropy.io import fits
@@ -886,10 +886,8 @@ class SimFile (object):
             norm = Normalize(img_min, img_max)
             
         elif imgScale == 'log':
-            image = ut.imageNorm(image, "log", sigma=0.5)
             vmin, vmax = image.min(), image.max()
-            norm  = Normalize(vmin, vmax)
-            #norm   = LogNorm(image.min(), image.max())
+            norm   = LogNorm(vmin, vmax)
 
         elif imgScale == "auto":
             image = ut.imageNorm(image, "linear", sigma=0.5)
@@ -897,7 +895,7 @@ class SimFile (object):
             norm  = Normalize(vmin, vmax)
 
         else:
-            print("Not valid scaling for imgScale!"); exit()
+            ut.errorcode("error", "Not valid scaling for imgScale!")
 
         # Generate image
 
@@ -915,17 +913,21 @@ class SimFile (object):
             cbar = fig.colorbar(imagePlot, extend='max', shrink=0.84, pad=0.015)
             cbar.set_label(clabel, fontsize=fontSize, labelpad=3)
             cbar.ax.tick_params(labelsize=fontSize)
-            
-            if not imgScale == "linear" and not imgScale == "clip":
+
+            # Remove default (small) minor tick label for logarithm plot
+            if imgScale == "log":
+                cbar.ax.tick_params(which='minor', right=False, labelright=False)
+
+            # Adjust the colorbar to correct ADU calues 
+            if not imgScale == "clip":
                 ticks_loc1  = np.linspace(vmin, vmax, 6)
                 ticks_loc2  = np.linspace(img_min, img_max, 6)
                 ticks_label = [f"{i:.1f}" for i in ticks_loc2]
-                print(img_min, img_max)
-                print(vmin, vmax)
-                cbar.locator     = FixedLocator(ticks_loc1)
-                cbar.formatter   = FixedFormatter(ticks_label)
+                cbar.locator     = ticker.FixedLocator(ticks_loc1)
+                cbar.formatter   = ticker.FixedFormatter(ticks_label)
                 cbar.update_ticks()
-
+                
+                
         # If requiered, overplot a gray semi-transparent grid
         # Note: this is only meaningsful for smaller imagettes
 
