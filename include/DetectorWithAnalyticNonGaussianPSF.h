@@ -16,7 +16,6 @@
 #include "Detector.h"
 #include "Camera.h"
 #include "Parameter.h"
-#include "PointSpreadFunction.h"
 
 
 
@@ -29,32 +28,33 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
     public:
 
         DetectorWithAnalyticNonGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure);
-        virtual ~DetectorWithAnalyticNonGaussianPSF();
+        ~DetectorWithAnalyticNonGaussianPSF();
 
-        virtual double takeExposure(int exposureNr, double startTime, double exposureTime) override;
+        double takeExposure(int exposureNr, double startTime, double exposureTime) override;
 
         void configure(ConfigurationParameters &configParam);
-        virtual void updateParameters(double time) override;
-
+        void updateParameters(double time) override;
         bool addFluxToMap(arma::Mat<float>& map, double row0, double col0, double r, double p, double flux);
-        virtual tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) override;
-        virtual void addFlux(double flux) override;
-        virtual tuple<bool, double, double> addExtendedGhost(double xFP, double yFP, double radius, double flux) override;
+
+        tuple<bool, double, double> addFlux(double xFP, double yFP, double flux) override;
+        void addFlux(double flux) override;
+        tuple<bool, double, double> addExtendedGhost(double xFP, double yFP, double radius, double flux) override;
 
         void integrateAnalyticPSF(IntegralOfAnalyticSignalResponse&, double, double, double, double, double, int = 1);
-
-        void makeHighResolutionPSF(arma::Mat<float> &highResMap, int Npixels, int Nsubpixels);
+        void makeHighResolutionPSF(arma::Mat<float> &highResMap, bool includeDiffusion, int Npixels, int Nsubpixels);
         void generateDiffusionKernel(double kernelWidth);
         void applyDiffusionKernelOnPSF(double subpixRow, double subpixColumn, double flux, arma::fmat& psf, int numberOfPsfSubpixelsPerPixel);
-        virtual void flushOutput() override;
+        void flushOutput() override;
 
+        // Photometry
+  
         void applyPhotometry(const unsigned int exposureNr);
 
     protected:
 
-        virtual void integrateLight(int exposureNr, double startTime, double exposureTime) override;
-        virtual void applyFlatfield() override;
-        virtual void generateFlatfieldMap();
+        void integrateLight(int exposureNr, double startTime, double exposureTime) override;
+        void applyFlatfield() override;
+        void generateFlatfieldMap();
 
         Parameter<double> *sigma;           // Width of the analytic PSF, equal to sigma for a Gaussian PSF
         vector<vector<double>> params;      // Table of analytic PSF parameters
@@ -74,7 +74,6 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
         IntegralOfAnalyticSignalResponse signalResponse;    // Signal response
         double diffusionKernelWidth;                        // Width (sigma) of the Gaussian diffusion kernel [sub-pixels]
         int diffusionKernelImageSize;                       // Size of the diffusion kernel image [sub-pixels]
-        PointSpreadFunction *psf;
 
         // Photometry
   
