@@ -42,8 +42,6 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
 
         void integrateAnalyticPSF(IntegralOfAnalyticSignalResponse&, double, double, double, double, double, int = 1);
         void makeHighResolutionPSF(arma::Mat<float> &highResMap, bool includeDiffusion, int Npixels, int Nsubpixels);
-        void generateDiffusionKernel(double kernelWidth);
-        void applyDiffusionKernelOnPSF(double subpixRow, double subpixColumn, double flux, arma::fmat& psf, int numberOfPsfSubpixelsPerPixel);
         void flushOutput() override;
 
         // Photometry
@@ -70,10 +68,6 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
         bool writeFlatfieldMap;             // Whether or not to write the flatfield map to the HDF5 file
         bool writeHighResolutionPSF;        // Wheter or not to write the high resosultion PSF to the HDF5 file
         bool writeDiffusedPSF;              // Wheter or not to write the high resosultion PSF to the HDF5 file 
-        arma::Mat<float> diffusionKernel;                   // Diffusion kernel image
-        IntegralOfAnalyticSignalResponse signalResponse;    // Signal response
-        double diffusionKernelWidth;                        // Width (sigma) of the Gaussian diffusion kernel [sub-pixels]
-        int diffusionKernelImageSize;                       // Size of the diffusion kernel image [sub-pixels]
 
         // Photometry
   
