@@ -16,6 +16,8 @@
 #include "Detector.h"
 #include "Camera.h"
 #include "Parameter.h"
+#include "PointSpreadFunction.h"
+
 
 
 using namespace std;
@@ -56,18 +58,13 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
 
         Parameter<double> *sigma;           // Width of the analytic PSF, equal to sigma for a Gaussian PSF
         vector<vector<double>> params;      // Table of analytic PSF parameters
-
         arma::Mat<float> flatfieldMap;      // Pixel flatfield map
-
         unsigned int numExposures;          // Number of exposures
         unsigned int beginExposureNr;       // Exposure nr of the first exposure in the time series
         double cycleTime;                   // Image cycle time (exposure + readout before next exposure starts)  [s]
-
         double chargeDiffusionStrength;	    // Strength of the charge diffusion (width of the Gaussian diffusion kernel) [pixels]
         bool includeChargeDiffusion;	    // Whether or not to include charge diffusion
-
         double flatfieldNoiseRMS;           // Peak-to-peak noise amplitude
-
         bool includeFlatfield;              // Whether or not to include flat fielding        
         long flatfieldSeed;                 // Seed dedicated to generate a random flatfield map
         bool writeFlatfieldMap;             // Whether or not to write the flatfield map to the HDF5 file
@@ -90,13 +87,14 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
         // E.g. maskSizeTarget[1234][10] contains the nr of pixels of the mask of target 1234 for exposure 10.
 
         map<unsigned int, vector<unsigned int>> exposureNrOfMaskUpdate;   // Photometric mask is updated once in a while
-        map<unsigned int, vector<unsigned int>> maskSizeTarget;                    // Nr of pixels within the mask for each target
+        map<unsigned int, vector<unsigned int>> maskSizeTarget;           // Nr of pixels within the mask for each target
         map<unsigned int, vector<double>> inputFluxTarget;                // Flux of the target as computed from the (variable) Vmag
         map<unsigned int, vector<double>> estimatedFluxTarget;            // Estimated flux for each target
         map<unsigned int, vector<double>> varFluxTarget;                  //  Variance of the flux for each target
         map<unsigned int, vector<double>> NSRtarget;                      // Noise/Signal ratio of the flux of each target
     
         // The indices of the masks are stored as [starID][exposureNr][index]
+  
         map<unsigned int, map<unsigned int, vector<unsigned int>>> rowIndexOfMaskOfTarget;  // The row indices of all mask pixels, for each target
         map<unsigned int, map<unsigned int, vector<unsigned int>>> colIndexOfMaskOfTarget;  // The column indices of all mask pixels, for each target
 

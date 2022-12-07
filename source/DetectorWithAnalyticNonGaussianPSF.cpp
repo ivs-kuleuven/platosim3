@@ -41,10 +41,15 @@ DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(Configura
 
     if(includeFlatfield)
     {
-    		// Generate the flatfield map
-
-    		generateFlatfieldMap();
+      // Generate the flatfield map
+      
+      generateFlatfieldMap();
     }
+
+    // Initialize and load the PSF. This will open the PSF HDF5 file and perform some basic checking,
+    // Then select the proper PSF for the given subfield. Should only be done after calling configure().
+
+    psf = new PointSpreadFunction(configParam, hdf5file);
 }
 
 
@@ -904,7 +909,6 @@ void DetectorWithAnalyticNonGaussianPSF::generateDiffusionKernel(double kernelWi
 
 void DetectorWithAnalyticNonGaussianPSF::writeDiffusedPSFToHDF5(PointSpreadFunction *psf)
 {
-
     // make hard copy of original PSF
   
     arma::fmat psfMap = psf->getOriginalPSF();

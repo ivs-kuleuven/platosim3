@@ -153,6 +153,7 @@ void DetectorWithMappedPSF::setPsfForSubfield()
     }
 
     // If requestied save the diffused PSF to the output file
+    
     if (writeDiffusedPSF)
     {
       writeDiffusedPSFToHDF5(psf);
@@ -1028,6 +1029,10 @@ void DetectorWithMappedPSF::applyDiffusionKernelOnPSF(double subpixRow, double s
 }
 
 
+
+
+
+
 /*
  * /brief: determins if three points in (given in an array) are colinear
  * /input: an array with the points of the form {{x1, y1}, {x2, y2}, {x3, y3}}
@@ -1037,6 +1042,7 @@ void DetectorWithMappedPSF::applyDiffusionKernelOnPSF(double subpixRow, double s
  * |x1 x2 x3| is equal to zero.
  * |y1 y2 y3|
  */
+
 bool DetectorWithMappedPSF::areColinear(std::array<std::array<double, 2>, 3> points)
 {
     double determinant = points[1][0] * points[2][1] - points[2][0] * points[1][1] - points[0][0] * points[2][1] + points[2][0] * points[0][1] + points[0][0] * points[1][1] - points[1][0] * points[0][1];
@@ -1053,10 +1059,13 @@ bool DetectorWithMappedPSF::areColinear(std::array<std::array<double, 2>, 3> poi
 
 
 
+
+
 /*
  * /brief: applies the field distortion on the inputparameters from the distortion map
  * /input: FP coordinates [mm]
  */
+
 void DetectorWithMappedPSF::applyDistortion(double &x, double &y)
 {
   // We try to sellect the three closest noncolinear undistorted points to our input coordinates from the distortionmap and their respective
@@ -1190,12 +1199,19 @@ void DetectorWithMappedPSF::applyDistortion(double &x, double &y)
 }
 
 
+
+
+
+
+
 /*
  * /brief: applies the inverse of the field distortion on the input coordinates
  * /input: FP coordinates [mm]
  */
+
 void DetectorWithMappedPSF::applyInverseDistortion(double &x, double &y)
 {
+
   // We try to sellect the three closest noncolinear distorted points to our input coordinates from the distortionmap and their respective
   // undistorted counterparts
 
