@@ -1343,6 +1343,10 @@ void DetectorWithMappedPSF::applyInverseDistortion(double &x, double &y)
 
 
 
+
+
+
+
 /**
  *\brief Generate throughput map, containing for each sub-field pixel the combined throughput efficiency
  *       of vignetting, polarisation, particulate & molecular contamination, and quantum efficiency.  Each
