@@ -281,7 +281,7 @@ ControlHDF5Content:
     WriteStarCatalog:                yes             # Determines if the starcatalog should be written to the HDF5 file
     WriteStarPositions:              yes             # Star positions are written in pixel and focal plane coordinates
     WriteGhostPositions:             yes             # Ghost positions are written in pixel and focal plane coordinates
-    WriteCosmics:                    yes             # Determines if the columns, rows and flux of the cosmics should be written to the HDF5 file 
+    WriteCosmics:                    yes             # Determines if the columns, rows and flux of the cosmics should be written to the HDF5 file
     WriteACS:                        yes             # Whether to write the yaw, pitch, roll to the HDF5 file
     WriteTelescopeACS:               yes             # Determines if the platform Yaw, Pitch and Roll should be written to the HDF5 file
     WriteTransmissionEfficiency:     yes             # Determines if the Transmission Efficiency should be writen to the HDF5 file

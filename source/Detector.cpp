@@ -645,12 +645,12 @@ void Detector::readCTIinputFile(string ctiInputFile)
 
     // Read in the radiation map. This map has the same size as for the entire CCD.  
 
-    arma::Mat<float> map(numRows, numColumns); 
-    CTIFile.readArray("/", "radiationMap", map); 
+    arma::Mat<float> map(numRows, numColumns);
+    CTIFile.readArray("/", "radiationMap", map);
 
     // Rescale the radiatio  map so that it has mean = 1, and only keep the part relevant to subfield we're interested in.
 
-    radiationMap.resize(numRowsPixelMap, numColumnsPixelMap); 
+    radiationMap.resize(numRowsPixelMap, numColumnsPixelMap);
     radiationMap = map.submat(subFieldZeroPointRow, subFieldZeroPointColumn, subFieldZeroPointRow+numRowsPixelMap-1, subFieldZeroPointColumn+numColumnsPixelMap-1); 
     radiationMap /= arma::mean(arma::mean(map));
 

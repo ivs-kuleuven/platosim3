@@ -1,8 +1,8 @@
 /**
  * \class Simulation
- * 
+ *
  * \brief The starting point for any simulation.
- * 
+ *
  */
 
 #include "Simulation.h"
@@ -10,14 +10,14 @@
 
 /**
  * \brief      Constructor
- * 
+ *
  * \details
- * 
+ *
  * The constructor reads the YAML input file, and creates the HDF5 output file.
  * Based on the user input a Jitter generator is created and all spacecraft
  * components are initialized.
  *
- * \param[in]  inputFilename   the YAML input file 
+ * \param[in]  inputFilename   the YAML input file
  * \param[in]  outputFilename  the HDF5 output file
  */
 
@@ -29,8 +29,8 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     ConfigurationParameters configParams(inputFilename);
 
 
-    // Set the random seeds of the simulation. Seeds are set in the input yaml file using long integers. 
-    // If they are set to -1, the following functions resets them using the system clock. This is useful 
+    // Set the random seeds of the simulation. Seeds are set in the input yaml file using long integers.
+    // If they are set to -1, the following functions resets them using the system clock. This is useful
     // when the simulated time series is partitioned in segments so that each segment has a different
     // seed. The seeds that are actually used are written to the HDF5 file.
 
@@ -59,7 +59,7 @@ Simulation::Simulation(string inputFilename, string outputFilename)
         // create a specific empty hdf5 output file
 
         hdf5File = new ClosedLoopHDF5File();
- 
+
     }
     else
     {
@@ -67,7 +67,7 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
         hdf5File = new HDF5File();
     }
-   
+
 
 
     // Open the HDF5 output file where the images will be written
@@ -84,7 +84,7 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     exposureTime = cycleTime - readoutTimeBeforeNextExposure;
     if (cycleTime < readoutTimeBeforeNextExposure)
       {
-	Log.warning("Simulation: exposure time is negative value: " + to_string(exposureTime));	
+	Log.warning("Simulation: exposure time is negative value: " + to_string(exposureTime));
       }
 
     Log.debug("Simulation: Cycle time: " + to_string(cycleTime));
@@ -115,9 +115,9 @@ Simulation::Simulation(string inputFilename, string outputFilename)
         else
         {
             string errorMessage = "Simulation: Jitter Source '" + jitterSource + "' is not supported.";
-            
+
             Log.error(errorMessage);
-            
+
             throw IllegalArgumentException(errorMessage);
         }
 
@@ -140,7 +140,7 @@ Simulation::Simulation(string inputFilename, string outputFilename)
             driftGenerator = new ThermoElasticDriftFromRedNoise(configParams);
         }
     }
-    
+
 
     if(useFeeTemperatureFromFile)
     {
@@ -231,20 +231,20 @@ Simulation::~Simulation()
 
 /**
  * \brief Configure the Simulation object using the input parameter file
- * 
+ *
  * \param configParams  Contains all configuration parameters from the input file
  */
 
 void Simulation::configure(ConfigurationParameters &configParams)
 {
-    cycleTime                       = configParams.getDouble("ObservingParameters/CycleTime"); 
+    cycleTime                       = configParams.getDouble("ObservingParameters/CycleTime");
     beginExposureNr                 = configParams.getInteger("ObservingParameters/BeginExposureNr");
     numExposures                    = configParams.getInteger("ObservingParameters/NumExposures");
     useJitter                       = configParams.getBoolean("Platform/UseJitter");
     jitterSource                    = configParams.getString("Platform/JitterSource");
     includeFieldDistortion          = configParams.getBoolean("Camera/IncludeFieldDistortion"); // do we want to do this or should this be asked to Camera?
-    useDrift                        = configParams.getBoolean("Telescope/UseDrift");  
-    useDriftFromFile                = configParams.getBoolean("Telescope/UseDriftFromFile");  
+    useDrift                        = configParams.getBoolean("Telescope/UseDrift");
+    useDriftFromFile                = configParams.getBoolean("Telescope/UseDriftFromFile");
     psfModel                        = configParams.getString("PSF/Model");
     useFeeTemperatureFromFile       = configParams.getString("FEE/Temperature") == "FromFile";
     useFeeNominalTemperature        = configParams.getString("FEE/Temperature") == "Nominal";
@@ -252,7 +252,7 @@ void Simulation::configure(ConfigurationParameters &configParams)
     useDetectorNominalTemperature   = configParams.getString("CCD/Temperature") == "Nominal";
     sendImagettesToClient           = configParams.getBoolean("ControlTcpConnection/SendImagettesToClients");
     getWindowPositionFromServer     = configParams.getBoolean("ControlTcpConnection/GetWindowPositionsFromServer");
-    writeStarCatalog                = configParams.getBoolean("ControlHDF5Content/WriteStarCatalog");                
+    writeStarCatalog                = configParams.getBoolean("ControlHDF5Content/WriteStarCatalog");
 
     // The readout of different CCDs are shifted in time because of the power budget.
     // Find out the right time shift.
@@ -287,13 +287,13 @@ void Simulation::configure(ConfigurationParameters &configParams)
  *        depending on the camera type (normal / fast) and the readout mode
  *        (nominal / partial readout).
  *
- * For the normal cameras the entire CCD is read out (with open shutter) after 
- * the exposure during a time interval called 'readoutTimeBeforeNextExposure'. 
+ * For the normal cameras the entire CCD is read out (with open shutter) after
+ * the exposure during a time interval called 'readoutTimeBeforeNextExposure'.
  * Only after this readout, a new exposure is started.
- * For the fast camera, half of the CCD is first quickly frame-transferred, 
+ * For the fast camera, half of the CCD is first quickly frame-transferred,
  * after which it is read out slowly. In this case a new exposure is already
- * started after the quick frame-transfer, and starts thus during the slow readout 
- * of the previous exposure. 
+ * started after the quick frame-transfer, and starts thus during the slow readout
+ * of the previous exposure.
  * Hence the need for two parameters 'readoutTimeBeforeNextExposure' and
  * 'readoutTimeDuringNextExposure'.
  *
@@ -548,12 +548,12 @@ void Simulation::writeVersionInformationToHDF5()
 
 
 /**
- * \brief      Write information about the stars that were detected in the subField 
+ * \brief      Write information about the stars that were detected in the subField
  *             to the HDF5 output file.
  *
  * \details    The Camera collects all the stars that fall within the boundaries of the subField.
  *
- *             This function should only be called after all exposures have been taken in order 
+ *             This function should only be called after all exposures have been taken in order
  *             to have the complete collections of stars that have been detected in the subField.
  *
  */
@@ -563,7 +563,7 @@ void Simulation::writeStarCatalogToHDF5()
 
     set<unsigned int> allStarIDs = camera->getAllStarIDs();
 
-    // For all detected stars, copy the equatorial sky coordinates and the magnitude 
+    // For all detected stars, copy the equatorial sky coordinates and the magnitude
     // from the user-given star catalog to the output HDF5 file in a custom group.
 
     hdf5File->createGroup("/StarCatalog");
@@ -1019,7 +1019,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
  * @brief Set the random seeds of the simulation.
  *
  * If the user set a random seed to -1, use the system's clock to set it. This is useful
- * to simulate time series that were partitioned in several segments, so that each 
+ * to simulate time series that were partitioned in several segments, so that each
  * segment has a different random seed.
  *
  * @param configParams
