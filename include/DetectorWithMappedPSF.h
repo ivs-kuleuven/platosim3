@@ -34,6 +34,7 @@ class DetectorWithMappedPSF : public Detector
         void applyDiffusionKernelOnPSF(double subpixRow, double subpixColumn, double flux, arma::fmat& psf, int numberOfPsfSubpixelsPerPixel);
         void applyDistortion(double &x, double &y) override;
         void applyInverseDistortion(double &x, double &y) override;
+        void generateThroughputMap() override;
 
     protected:
   

@@ -1339,3 +1339,119 @@ void DetectorWithMappedPSF::applyInverseDistortion(double &x, double &y)
   x = a1 * r1xUndistorted + a2 * r2xUndistorted + e0xUndistorted;
   y = a1 * r1yUndistorted + a2 * r2yUndistorted + e0yUndistorted;
 }
+
+
+
+
+/**
+ *\brief Generate throughput map, containing for each sub-field pixel the combined throughput efficiency
+ *       of vignetting, polarisation, particulate & molecular contamination, and quantum efficiency.  Each
+ *       array value is a value between 0 and 1.
+ *
+ * \details Because of vignetting, the stars at the edge of the FOV look dimmer than the stars close
+ *          to the optical axis. If the incoming flux before vignetting at pixel (i,j) is F(i,j),
+ *          then the flux after vignetting taken into account is F(i,j) * vignettingMap(i,j).
+ *          Because of contamination (both particulate and molecular) the throughput efficiency
+ *          decreases over the entire FOV by the same factor.
+ *
+ * \note    The throughput map is written to the HDF5 map.
+ */
+
+void DetectorWithMappedPSF::generateThroughputMap()
+{
+    Log.info("DetectorWithMappedPSF: generating throughput map.");
+
+    throughputMap.fill(1.0);
+
+    if(includeRelativeTransmissivity  && includeOpenShutterSmearing)
+        mechanicalVignettingMask.fill(1);
+
+    double xFPmmDistorted, yFPmmDistorted;             // Distorted focal plan coordinates   [mm]
+    double xFPmmUndistorted, yFPmmUndistorted;         // Undistorted focal plan coordinates [mm]
+    double angle;                                      // Gnomonic radial distance from the optical axis [rad]
+    double relativeTransmissivityVariation;
+
+
+//    const double refAnglePolarizationRadians = deg2rad(refAnglePolarization);       // Reference angle for the polarisation efficiency [radians]
+//    const double acosPolarizationEfficiency = acos(polarizationEfficiency);
+
+//    const double refAngleQuantumEfficiencyRadians = deg2rad(refAngleQE);     // Reference angle for the quantum efficiency [radians]
+//    const double acosQuantumEfficiency = acos(relativeRefEfficiencyQE);        // Relative efficiency due to the angle dependency of the QE at the reference angle
+
+    if (includeRelativeTransmissivity || includePolarization || includeQuantumEfficiency)
+    {
+        // Loop over all pixels in the pixel map
+
+        for (unsigned int row = 0; row < numRowsPixelMap; row++)
+        {
+            for (unsigned int column = 0; column < numColumnsPixelMap; column++)
+            {
+                // Distorted pixel coordinates (in the detector) -> distorted focal-plane coordinates
+
+                tie(xFPmmDistorted, yFPmmDistorted) = pixelToFocalPlaneCoordinates(row + subFieldZeroPointRow, column + subFieldZeroPointColumn);
+                xFPmmUndistorted = xFPmmDistorted;
+                yFPmmUndistorted = yFPmmDistorted;
+                // Convert from distorted to undistorted focal plane coordinates (Cf GitHub issue #716)
+
+                applyInverseDistortion(xFPmmUndistorted, yFPmmUndistorted);
+
+                // Angular distance [radians] of the pixel from the optical axis
+
+                angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmmUndistorted, yFPmmUndistorted);  // [radians]
+
+                if (includeRelativeTransmissivity)
+                {
+                    if (angle >= radiusFOV)
+                    {
+                        throughputMap(row, column) = 0.0;
+
+                        if (includeOpenShutterSmearing)
+                            mechanicalVignettingMask(row, column) = 0;
+                    }
+
+                    else
+                    {
+                        angle = rad2deg(angle); // [degrees]
+                        relativeTransmissivityVariation = (  relTransmissivityCoefVector[0] * pow(angle, 2)
+                                                           + relTransmissivityCoefVector[1] * pow(angle, 4)
+                                                           + relTransmissivityCoefVector[2] * pow(angle, 6)) / 100.;
+
+                        throughputMap(row, column) *= (1 - relativeTransmissivityVariation);
+                    }
+                }
+
+                // Polarisation (Eq. 4-11 in PLATO-DLR-PL-RP-001)
+
+                // NOTE: the polarization is angle dependent, but since no info on this dependency is currently available,
+                //       we assume fow now it is fixed over the entire FOV.
+
+                if (includePolarization)
+                    throughputMap(row, column) *= expectedValuePolarization; //cos(angle / refAnglePolarizationRadians * acosPolarizationEfficiency);
+
+                // Quantum efficiency (Eq. 4-12 in PLATO-DLR-PL-RP-001)
+                // Pixel units before: [photons]
+                // Pixel units after: [electrons]
+
+                // NOTE: the QE is angle dependent, but since no info on this dependency is currently available,
+                //       we assume for now it is fixed over the entire FOV.
+
+                if (includeQuantumEfficiency)
+                    throughputMap(row, column) *= meanQE * meanAngleDependencyQE; //(meanQE * cos(angle / refAngleQuantumEfficiencyRadians * acosQuantumEfficiency));
+            }
+        }
+    }
+
+    // Particulate contamination (Sect. 4.2.4.3 in PLATO-DLR-PL-RP-001)
+
+    if (includeParticulateContamination)
+    {
+        throughputMap *= particulateContaminationEfficiency;
+    }
+
+    // Molecular contamination (Sect. 4.2.4.4 in PLATO-DLR-PL-RP-001)
+
+    if (includeMolecularContamination)
+    {
+        throughputMap *= molecularContaminationEfficiency;
+    }
+}

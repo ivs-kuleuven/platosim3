@@ -524,7 +524,7 @@ void Camera::configure(ConfigurationParameters &configParam)
     includeFieldDistortion = configParam.getBoolean("Camera/IncludeFieldDistortion");
     isMapped               = configParam.getString("PSF/Model") == "MappedFromFile";
 
-    // Remark that if the PSF is mapped, no coefficients are read from the input file. 
+    // Remark that if the PSF is mapped, no coefficients are read from the input file.
 
     if (includeFieldDistortion && !isMapped)
     {
@@ -581,7 +581,7 @@ void Camera::configure(ConfigurationParameters &configParam)
     }
 
 
-    // Configure the ghost star parameters 
+    // Configure the ghost star parameters
 
     includePointLikeGhosts = configParam.getBoolean("Camera/IncludePointLikeGhosts");
     includeExtendedGhosts  = configParam.getBoolean("Camera/IncludeExtendedGhosts");

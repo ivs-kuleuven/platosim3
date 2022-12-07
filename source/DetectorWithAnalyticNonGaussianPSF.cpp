@@ -783,13 +783,11 @@ void DetectorWithAnalyticNonGaussianPSF::makeHighResolutionPSF(arma::Mat<float> 
 
     // Convolve with Gaussian diffusion kernel is requested
     
-    //double s = (*sigma)();
     double diffusionKernelWidth = 0.;
 
     if (includeDiffusion)
     {
         diffusionKernelWidth = chargeDiffusionStrength;
-        //s = sqrt(s * s + diffusionKernelWidth * diffusionKernelWidth);
     }
 
     int size = Npixels * Nsubpixels;
@@ -913,7 +911,7 @@ void DetectorWithAnalyticNonGaussianPSF::flushOutput()
       hdf5File.writeArray("/PSF", "highResPSF", highResMap);
     }
 
-    // Generate and save the diffused PSF (center of subfield)
+    // Generate and save the diffused high resolution PSF (center of subfield)
     
     if (writeDiffusedPSF && includeChargeDiffusion)
     {
