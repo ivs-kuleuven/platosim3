@@ -108,7 +108,7 @@ class variability(object):
             plt.rcParams['text.usetex'] = True
         
         # Absolute cwd path
-        self.path     = Path(os.getenv("PLATO_PROJECT_HOME") + "/python/platosim/varmsim")
+        self.path     = Path(os.getenv("PLATO_PROJECT_HOME") + "/python/platosim/varsim")
         self.datapath = self.path / 'data'
         
         # OBSERVATIONAL PARAMETERS
@@ -1286,6 +1286,7 @@ class variability(object):
         
         if args.plot and args.star != 'std':
             pt.plot_final_lc(self.lc)
+            plt.show()
 
         # OUTPUT PANDAS TABLE
         
