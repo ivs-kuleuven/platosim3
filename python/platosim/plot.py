@@ -2262,7 +2262,7 @@ def plot_orbital_phase_curve(fig, time, lc_tra, lc_occ, lc_beam, lc_elli, lc_fin
     # Axes
     ax0.xaxis.set_label_position('top')
     ax0.xaxis.tick_top()
-    ymin, ymax = axes_yminmax(lc_final/1e6+1)
+    ymin, ymax = axes_minmax(y=lc_final/1e6+1)
     ax0.set_ylim(ymin, ymax)
     ax0.set_xlim(time[0], time[-1])
     # Color fill areas of interest
@@ -2285,7 +2285,7 @@ def plot_orbital_phase_curve(fig, time, lc_tra, lc_occ, lc_beam, lc_elli, lc_fin
     ax1.text(x_pos, y_pos, r'$\delta_{\mathrm{tra}}=%.1f$ ppm' % delta_tra, fontsize=fs-4)
     # Axes
     ax1.set_xlim(time[dex_tra][0], time[dex_tra][-1])
-    ax1.set_ylim(axes_yminmax(lc_tra))
+    ax1.set_ylim(axes_minmax(y=lc_tra))
     ax1.xaxis.set_label_position('top')
     ax1.xaxis.tick_top()
 
@@ -2302,7 +2302,7 @@ def plot_orbital_phase_curve(fig, time, lc_tra, lc_occ, lc_beam, lc_elli, lc_fin
     ax2.text(x_pos, y_pos, r'$\delta_{\mathrm{occ}}=%.1f$ ppm' % delta_occ, fontsize=fs-4)
     # Axes
     ax2.set_xlim(time[dex_occ][0], time[dex_occ][-1])
-    ax2.set_ylim(axes_yminmax(lc_occ))
+    ax2.set_ylim(axes_minmax(y=lc_occ))
     ax2.xaxis.set_label_position('top')
     ax2.xaxis.tick_top()
 
@@ -2341,7 +2341,7 @@ def plot_orbital_phase_curve(fig, time, lc_tra, lc_occ, lc_beam, lc_elli, lc_fin
     ax4.axvline(0.75, color='gray', linestyle=':',  zorder=3)
     ax4.axvline(1.00, color='gray', linestyle='--', zorder=4)
     # Text labels
-    ymin, ymax = axes_yminmax(lc_final - lc_tra)
+    ymin, ymax = axes_minmax(y=lc_final - lc_tra)
     ydif = (ymax-ymin)*pp
     ypos_text = ymax + ydif + ymax*pt
     ax4.text(0.00-0.02, ypos_text, 'Transit',     fontsize=fs-5)
