@@ -2472,7 +2472,7 @@ def plot_final_lc(lc, figsize=(10,8)):
 
     # Handle time units
     time = lc['time']/86400.
-    lc_med = median_filter(lc['sum'], 144)
+    #lc_med = median_filter(lc['sum'], 144)
 
     # Start plotting
     
@@ -2481,15 +2481,15 @@ def plot_final_lc(lc, figsize=(10,8)):
     ax[0].plot(time, lc['gran'] + lc['puls'], 'g-', label='Gran + Puls')
     ax[1].plot(time, lc['spot'], 'b-', label='Spots')
     ax[2].plot(time, lc['tran'], 'r-', label='Transits')
-    ax[3].plot(time, lc['sum'],  'k-', label='Combined')
-    ax[3].plot(time, lc_med,     'm-', label='1h median')            
+    ax[3].plot(time, lc['sum'],  'm-', label='Combined')
+    #ax[3].plot(time, lc_med,     'm-', label='1h median')            
 
     plt.xlabel('Time [days]')
     fig.text(0.01, 0.5, 'Relative flux [ppm]', va='center', rotation='vertical')
     
     for i in range(4):
         ax[i].set_xlim(time.iloc[0], time.iloc[-1])
-        ax[i].legend(loc="best")
+        ax[i].legend(loc="lower left")
         
     plt.tight_layout(h_pad=0.1, w_pad=1)
     #plt.subplots_adjust(wspace=0, hspace=0.1)    
