@@ -33,28 +33,29 @@ def setup():
     # Legends
     plt.rcParams['legend.loc']        = 'best'
     plt.rcParams['legend.frameon']    = True
-    plt.rcParams['legend.framealpha'] = 0.8
     plt.rcParams['legend.fancybox']   = True
+    plt.rcParams['legend.framealpha'] = 0.8
+    plt.rcParams['legend.fontsize']   = 15
 
     # Font
     plt.rcParams['font.family'] = 'serif'
     plt.rcParams['font.size']   = 17
 
     
-    
-    
+        
 def latex():
-
-    # Set Latex font
-    plt.rcParams['text.usetex'] = True
     setup()
-    
+    plt.rcParams['text.usetex'] = True
 
     
     
 def setup_notebook():
-
-    # Set default
-    plt.rcParams['font.size']   = 20
     setup()
     latex()
+
+
+def setup_paper():
+    setup()
+    latex()
+    plt.rcParams['legend.fontsize'] = 18
+    plt.rcParams['font.size']       = 20

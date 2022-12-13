@@ -58,6 +58,7 @@ def plot_modelfit(data, lsFit, model, lsModel='OLS', CI=[0.05], alpha=0.1, theme
     if model == 'y ~ x': title += fr' + $\theta_1 {x}$'   
     if model == 'y ~ x + z': title += fr' + $\theta_1$ {x} + \theta_2 z$'
     if model == 'y ~ x + I(x**2)': title += fr' + $\theta_1 {x} + \theta_2 {x}^2$'
+    if model == 'y ~ x + I(x**2) + I(x**3)': title += fr' + $\theta_1 {x} + \theta_2 {x}^2 + \theta_3 {x}^3$'
     if model == 'y ~ x + I(np.sin(x))': title += fr' + $\theta_1 {x} + \theta_2 \sin({x})$'            
 
     # Predict response variable
@@ -113,11 +114,11 @@ def plot_modelfit(data, lsFit, model, lsModel='OLS', CI=[0.05], alpha=0.1, theme
     ax.set_xlim(data[reg].iloc[0], data[reg].iloc[-1])
     
     # Add fit box
-    RMS = round(np.sqrt(np.mean( (data[pre]-df_predictions['mean'])**2 )))
-    string += f'RMS = {RMS} ppm'
-    props = dict(boxstyle='round', facecolor=color[0], alpha=0.3)
-    ax.text(1.02, 0.98, string, transform=ax.transAxes, fontsize=14, 
-            verticalalignment='top', bbox=props)            
+    #RMS = round(np.sqrt(np.mean( (data[pre]-df_predictions['mean'])**2 )))
+    #string += f'RMS = {RMS} ppm'
+    #props = dict(boxstyle='round', facecolor=color[0], alpha=0.3)
+    #ax.text(1.02, 0.98, string, transform=ax.transAxes, fontsize=14, 
+    #        verticalalignment='top', bbox=props)            
     plt.show()
     
     

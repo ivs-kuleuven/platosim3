@@ -18,15 +18,18 @@ import pathlib
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import statsmodels.api as sm
 
 from scipy import constants as c
 from zipfile import ZipFile
 from tqdm import tqdm
+
 #from numba import njit
 #from numba_progress import ProgressBar
 
 import platosim.plot            as pt
 import platosim.utilities       as ut
+import platosim.statistics      as st
 import platosim.referenceFrames as rf
 
 #==============================================================#
@@ -152,6 +155,18 @@ class LightCurve(object):
                 unzip.extractall(self.path)
 
 
+
+    def remove(self, files=None):
+        """
+        PURPOSE: Function to remove all files, except for zip files,
+                 for certain star folder.
+        """
+
+        # Remove all ftr, cat, and invert files
+        os.system(f"rm {self.path}/*.ftr")
+        os.system(f"rm {self.path}/*.cat")
+        os.system(f"rm {self.path}/*.invert")
+
     
     #--------------------------------------------------------------#
     #                      SINGLE CAMERA/QUARTER                   #
@@ -174,36 +189,24 @@ class LightCurve(object):
 
     
 
-    def flux(self, unit="e/s"):
+    def flux(self, column="flux", unit="e/s"):
         """
         PURPOSE: Function to fetch the flux column.
+        
+        This function should be used to fetch the columns:
+        flux, flux_err, flux_cor, bg, bg_err
+
+        Note: flux_cor is only available for on-board photometry.
         """
 
         # Flux unit
-        if   unit == "e/s": flux = self.df["flux"]
-        elif unit == "rel": flux = ut.normalize(self.df["flux"], factor=1)
-        elif unit == "ppt": flux = ut.normalize(self.df["flux"], factor=1e3)
-        elif unit == "ppm": flux = ut.normalize(self.df["flux"], factor=1e6)
+        if   unit == "e/s": flux = self.df[column]
+        elif unit == "rel": flux = ut.normalize(self.df[column], factor=1)
+        elif unit == "ppt": flux = ut.normalize(self.df[column], factor=1e3)
+        elif unit == "ppm": flux = ut.normalize(self.df[column], factor=1e6)
         else: ut.errorcode("error", "No such flux unit! Availble option: [e/s, norm, ppt, ppm]")
         
         return flux
-
-
-    
-    def flux_err(self, unit="e/s"):
-        """
-        PURPOSE: Function to fetch the flux error column.
-        NOTE:    Only available for on-ground photometry.
-        """
-
-        # Flux unit
-        if   unit == "e/s": flux_err = self.df["flux_err"]
-        elif unit == "rel": flux_err = ut.normalize(self.df["flux_err"], factor=1)
-        elif unit == "ppt": flux_err = ut.normalize(self.df["flux_err"], factor=1e3)
-        elif unit == "ppm": flux_err = ut.normalize(self.df["flux_err"], factor=1e6)
-        else: ut.errorcode("error", "No such flux unit! Availble option: [e/s, norm, ppt, ppm]")
-        
-        return flux_err
 
 
 
@@ -225,68 +228,22 @@ class LightCurve(object):
         return flux_med
 
 
-    
-
-    def flux_cor(self):
-        """
-        PURPOSE: Function to fetch the flux correlation column.
-        NOTE   : Only available for on-board photometry.
-        """
-
-        return self.df["flux_cor"]
-
-
-    
-
-    
-
-    def bg(self, unit="e/s"):
-        """
-        PURPOSE: Function to fetch the sky background flux column. 
-        """
-
-        # Flux unit
-        if   unit == "e/s": bg = self.df["bg"]
-        elif unit == "rel": bg = ut.normalize(self.df["bg"], factor=1)
-        elif unit == "ppt": bg = ut.normalize(self.df["bg"], factor=1e3)
-        elif unit == "ppm": bg = ut.normalize(self.df["bg"], factor=1e6)
-        else: ut.errorcode("error", "No such flux unit! Availble option: [e/s, rel, ppt, ppm]")
         
-        return flux
-
 
     
-
-    def bg_err(self, unit="e/s"):
-        """
-        PURPOSE: Function to fetch the sky background flux error column. 
-        """
-
-        # Flux unit
-        if   unit == "e/s": flux = self.df["bg_err"]
-        elif unit == "rel": flux = ut.normalize(self.df["bg_err"], factor=1)
-        elif unit == "ppt": flux = ut.normalize(self.df["bg_err"], factor=1e3)
-        elif unit == "ppm": flux = ut.normalize(self.df["bg_err"], factor=1e6)
-        else: ut.errorcode("error", "No such flux unit! Availble option: [e/s, norm, ppt, ppm]")
-        
-        return flux
-
-    
-
-    
-    def xcen(self, unit="pix"):
+    def cen(self, column="cx", unit="pix"):
         """
         PURPOSE: Function to fetch the imagette X centroid column.
         """
 
         # Centroid unit
-        if   unit == "pix": xcen = self.df["cx"]
-        elif unit == "mm":  xcen = self.df["cx"] * self.pixelSize / 1000.0
-        elif unit == "rel": xcen = self.df["cx"] - np.mean(self.df["cx"])
-        elif unit == "cen": xcen = self.df["cx"] - 3
+        if   unit == "pix": cen = self.df[column]
+        elif unit == "mm":  cen = self.df[column] * self.pixelSize / 1000.0
+        elif unit == "rel": cen = self.df[column] - np.mean(self.df[column])
+        elif unit == "cen": cen = self.df[column] - 3
         else: ut.errorcode("error", "No such centroid unit! Availble option: [pix, mm, rel, cen]")
         
-        return xcen
+        return cen
 
 
 
@@ -302,38 +259,6 @@ class LightCurve(object):
         else: ut.errorcode("error", "No such centroid unit! Availble option: [pix, mm]")
         
         return xcen_err
-
-
-
-
-    def ycen(self, unit="pix"):
-        """
-        PURPOSE: Function to fetch the imagette Y centroid column.
-        """
-
-        # Centroid unit
-        if   unit == "pix": ycen = self.df["cy"]
-        elif unit == "mm":  ycen = self.df["cy"] * self.pixelSize / 1000.0
-        elif unit == "rel": ycen = self.df["cy"] - np.mean(self.df["cy"])
-        elif unit == "cen": ycen = self.df["cy"] - 3
-        else: ut.errorcode("error", "No such centroid unit! Availble option: [pix, mm, rel, cen]")
-        
-        return ycen
-
-
-
-
-    def ycen_err(self, unit="pix"):
-        """
-        PURPOSE: Function to fetch the imagette Y centroid error column.
-        """
-
-        # Centroid unit
-        if   unit == "pix": ycen_err = self.df["cy_err"]
-        elif unit == "mm":  ycen_err = self.df["cy_err"] * self.pixelSize / 1000.0
-        else: ut.errorcode("error", "No such centroid unit! Availble option: [pix, mm]")
-        
-        return ycen_err
 
     
 
@@ -430,7 +355,7 @@ class LightCurve(object):
     
 
 
-    def getNSR(self, binhour=1, unit="ppm", influx="e/s"):
+    def getNSR(self, column="flux", binhour=1, unit="ppm", influx="e/s"):
         """
         PURPOSE: Calculates the Noise-to-Signal Ratio (NSR) of binned time series.
         """
@@ -443,20 +368,23 @@ class LightCurve(object):
 
         # Fetch flux column and force to be ppm for correct NSR
         if influx == "e/s":
-            df["flux"] = self.flux(unit="ppm")
-
+            df[column] = self.flux(column=column, unit="ppm")
+                
         # Set the binned time scale [days]
         dt = binhour/24.
 
         # Bin to devide data
-        nbins = round( (df["time"].max() - df["time"].min()) / dt) + 1
-        tbins = np.linspace(df["time"].min(), df["time"].max(), nbins)
-        nbin  = len(df[df["time"].between(tbins[0], tbins[1])])
-
-        # Bin data
-        flux_dex = df.columns.get_loc("flux")
-        data  = [df[df["time"].between(tbins[i], tbins[i+1])].to_numpy() for i in range(nbins-1)]
-        sigma = np.array([data[i][:,flux_dex].std()  for i in range(len(data))])
+        if binhour == 0:
+            sigma = df[column].std()
+            nbin  = 1
+        else:
+            nbins = round( (df["time"].max() - df["time"].min()) / dt) + 1
+            tbins = np.linspace(df["time"].min(), df["time"].max(), nbins)
+            nbin  = len(df[df["time"].between(tbins[0], tbins[1])])
+            # Bin data
+            flux_dex = df.columns.get_loc(column)
+            data  = [df[df["time"].between(tbins[i], tbins[i+1])].to_numpy() for i in range(nbins-1)]
+            sigma = np.array([data[i][:,flux_dex].std()  for i in range(len(data))])
 
         # Find noise-to-signal ratio
         NSR = np.mean(sigma / np.sqrt(nbin))
@@ -466,6 +394,49 @@ class LightCurve(object):
 
 
 
+
+
+
+    def detrend(self, poly_deg=2, plot=True):
+        """
+        PURPOSE: Detrend data using a simply polynomial model.
+        """
+
+        # Detrend
+        poly = np.polyfit(self.df['time'], self.df['flux'], deg=poly_deg)
+        self.df['detrend']  = np.polyval(poly, self.df['time'])
+        self.df['flux_det'] = self.df['flux'] - self.df['detrend'] + self.df['flux'].mean()
+
+        # # Select model
+        # if   poly == 1: model = 'y ~ x'
+        # elif poly == 2: model = 'y ~ x + I(x**2)'
+        # elif poly == 3: model = 'y ~ x + I(x**2) - I(x**3)'
+        # elif poly == 4: model = 'y ~ x + I(x**2) + I(x**3) + I(x**4)'
+        # else: ut.errorcode('error', 'Not valid model!')
+        
+        # # Perform fit
+        # lsFit = sm.OLS.from_formula(formula=model, data=df).fit()
+        # lsFit.summary(alpha=0.05)
+
+        # # Predict response variable
+        # n = 100
+        # xpredict = np.linspace(df['x'].min(), df['y'].max(), n)
+        # xpredict = np.linspace(df['x'].min(), df['y'].max(), n)
+        
+        # # Select predictions
+        # ypredict    = lsFit.predict(exog=dict(x=xpredict))
+        # predictions = lsFit.get_prediction()
+        # df_predictions = predictions.summary_frame(alpha=0.05)
+
+        # # Revert back to original array
+        # df = df.rename(columns={'x':'time', 'y':'flux'})
+        # df['model_det'] = df_predictions['mean']
+        # df['flux_det']  = df['flux'] - df_predictions['mean']
+        
+        return self.df
+                
+
+        
     
 
     def bin(self, binsize=1, time_unit="d", flux_unit="e/s"):
@@ -595,7 +566,7 @@ class LightCurve(object):
 
 
 
-    def plot_varsource(self, figsize=(10, 8)):
+    def plot_varsource(self, figsize=(9, 8)):
         """
         Function to plot the noise-less light curve.
         """
@@ -616,7 +587,7 @@ class LightCurve(object):
 
     def plot(self, time_unit="d", flux_unit="e/s", errorbar=False,
              median_filter=False, binsize=False, cameras=False, quarter=False,
-             figsize=(10,5)):
+             figsize=(9,5)):
         """
         PURPOSE: Function normalize the input flux and change time units to days. 
 
@@ -651,9 +622,9 @@ class LightCurve(object):
             lab = f"N-CAM {group}.{camera} Q{quarter}"
 
         # Fetch columns
-        time = self.time(unit=time_unit)
-        flux = self.flux(unit=flux_unit)
-        flux_err = self.flux_err(unit=flux_unit)
+        time     = self.time(unit=time_unit)
+        flux     = self.flux(unit=flux_unit)
+        flux_err = self.flux(column="flux_err", unit=flux_unit)
         
         # Create matplotlib object 
         fig, ax = plt.subplots(1, 1, figsize=figsize)
@@ -741,6 +712,8 @@ class LightCurve(object):
         return fig, ax
 
 
+
+    
 
     
     def axes_maskupdates(self, ax, time, maskupdates):
@@ -1009,6 +982,63 @@ class LightCurve(object):
         
         return fig, ax
 
+
+
+    def plot_detrend(self, poly_deg=2, binsize=1, time_unit='d', figsize=(9,9)):
+        # Plot regression model and residuals
+        #st.plot_modelfit(df, lsFit, model, theme='g', xlab='Time [days]', ylab='Flux [ppm]')
+        #plot_residuals(sim, lsFit, reg='x', theme='g')
+        #plot_standardized_residuals(sim, lsFit, K=3, reg='x')
+
+        # Get varsource light curve
+        lc = self.varsource()
+        itime = lc["time"] / c.day
+        iflux = lc["sum"]
+
+        # Get detrending
+        df = self.detrend(poly_deg=poly_deg)    
+        dflux     = ut.normalize(df["flux_det"], factor=1e6)
+        dflux_mod = ut.normalize(df["detrend"],  factor=1e6)
+        dflux_med = scipy.ndimage.median_filter(dflux, 144)
+        
+        # Sorten simulation
+        oflux = self.flux(unit="ppm")
+        mflux = self.flux_med(unit="ppm")
+
+        # Handle time column
+        time = self.time(unit=time_unit)
+
+        # Start plotting
+        
+        fig, ax = plt.subplots(3, 1, figsize=figsize)
+
+        # Plot simulation, median, and input
+        ax[0].plot(time,  oflux,     '.', c='k', ms=1, alpha=0.7, label='Sim')
+        ax[0].plot(time,  dflux_mod, '-', c='r', lw=2,            label='Detrend')
+        ax[0].set_xlim(time.iloc[0], time.iloc[-1])
+
+        # Plot median vs. input
+        ax[1].plot(time,  dflux,     '.', c='k', ms=1, alpha=0.7, label="Corrected")
+        ax[1].plot(time,  dflux_med, '-', c='royalblue', lw=0.5,  label="1h median")
+        ax[1].set_xlim(time.iloc[0], time.iloc[-1])
+
+        # Plot median vs. input
+        ax[2].plot(time,  dflux_med, '-', c='royalblue', lw=0.5, label="1h median")
+        ax[2].plot(itime, iflux,     '-', c='m',         lw=0.5, label="Input LC")
+        ax[2].set_xlim(time.iloc[0], time.iloc[-1])
+
+        # Labels
+        ax[2].set_xlabel('Time [days]')
+        fig.text(0.005, 0.5, 'Flux [ppm]', va='center', rotation='vertical')
+        for i in range(3): ax[i].legend(ncol=2, loc="upper left")
+        
+        # Layout
+        plt.tight_layout()
+        #plt.tight_layout(h_pad=0.1, w_pad=0.6)
+        
+        return fig, ax
+
+    
 
     #--------------------------------------------------------------#
     #                       MULTI CAMERA/QUARTER                   #
@@ -1378,5 +1408,95 @@ class LightCurve(object):
                         # Remove old files (except for zip file)
                         os.remove(filepath_ftr)
                         os.remove(filepath_cat)
-                        os.remove(filepath_inv)
+                        try: os.remove(filepath_inv)
+                        except: pass
 
+
+
+
+
+
+
+
+    def bad_files(self, outputFile, numStar=False, numBegin=False, numEnd=False):
+        """
+        """
+
+        # Open a pandas data frame and write to it
+        df = pd.DataFrame()
+
+        if numBegin and numEnd:
+            start = numBegin
+            end   = numEnd + 1
+        else:
+            start = 1
+            end   = numStar + 1
+
+        # Open file to write to
+
+        with open(outputFile, 'a+') as f:
+            
+            # Loop over star simulated
+
+            for i in tqdm(range(start, end), bar_format=ut.tqdm_bar_format()):
+
+                # Create star folder
+                starID = f"{i}".zfill(9)
+                path = f"{self.path}/{starID}/" 
+
+                # Load all feather files
+                phot = LightCurve(path, mode="multi")
+
+                # Unpack all zip files in the path folder
+                phot.unpack()
+
+                # Check if any data exist for a given star
+
+                try: check = glob.glob(path + "*.ftr")[0]
+                except: pass
+                else:
+
+                    # Fetch all zip Files
+                    files    = self.files("ftr", path=path)
+                    numFiles = len(files)
+
+                    # Loop over each group and camera
+
+                    for j in range(numFiles):
+
+                        # Get file names
+                        filename     = files[j][-25:]
+                        filepath_all = files[j][:-3]
+                        filepath_ftr = filepath_all + "ftr"
+                        filepath_cat = filepath_all + "cat"
+                        filepath_inv = filepath_all + "invert"
+
+                        # Fetch light curve object
+                        try: lc = LightCurve(filepath_ftr)
+                        except: pass
+                        else:
+
+                            # Check if any contaminant are present                        
+                            ncon = self.star_info(filepath_cat)[3]
+                            
+                            if ncon > 0:
+
+                                # Force a correction
+                                ncols = df.columns.str.startswith("level").sum()
+                                
+                                if ncols > 0:
+
+                                    print("works")
+                                    # Move read cursor to the start of file.
+                                    f.seek(0)
+                                    # If file is not empty then append '\n'
+                                    if len(f.read(100)) > 0: f.write("\n")
+                                    # Append text at the end of file
+                                    f.write(f'{filepath_ftr} {ncols}')
+
+                        # Remove old files (except for zip file)
+                        os.remove(filepath_ftr)
+                        os.remove(filepath_cat)
+                        try: os.remove(filepath_inv)
+                        except: pass
+                        
