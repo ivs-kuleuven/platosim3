@@ -876,6 +876,7 @@ class SimFile (object):
         
         if imgScale == "clip":
             image *= 1000.
+            clabel  = "Counts [ADU]"
             vmin   = np.percentile(image, clipPercentile).astype(int)
             vmax   = np.percentile(image, 100-clipPercentile).astype(int)
             norm   = Normalize(vmin, vmax)
