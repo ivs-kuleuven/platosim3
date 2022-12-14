@@ -924,8 +924,8 @@ class SimFile (object):
 
             # Adjust the colorbar to correct ADU values
             if not imgScale == "clip" and not imgScale == "auto":
-                ticks_loc1  = np.linspace(vmin, vmax, 6)
-                ticks_loc2  = np.linspace(img_min, img_max, 6)
+                ticks_loc1  = np.linspace(vmin, vmax, 6) if imgScale != "log" else np.logspace(np.log10(vmin), np.log10(vmax), 6)
+                ticks_loc2  = np.linspace(img_min, img_max, 6) if imgScale != "log" else np.logspace(np.log10(img_min), np.log10(img_max), 6)
                 ticks_label = [f"{i:.1f}" for i in ticks_loc2]
                 cbar.locator     = ticker.FixedLocator(ticks_loc1)
                 cbar.formatter   = ticker.FixedFormatter(ticks_label)
