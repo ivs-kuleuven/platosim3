@@ -873,6 +873,8 @@ class SimFile (object):
         image   = image / 1000.
         img_min = image.min()
         img_max = image.max()
+        img_mean = image.mean()
+        img_std = image.std()
         
         if imgScale == "clip":
             image *= 1000.
@@ -891,9 +893,10 @@ class SimFile (object):
             norm   = LogNorm(vmin, vmax)
 
         elif imgScale == "auto":
-            image = ut.imageNorm(image, "linear", sigma=0.5)
+            sigma = 0.5
+            image = ut.imageNorm(image, "linear", sigma=sigma)
             vmin, vmax = image.min(), image.max()
-            norm  = Normalize(vmin, vmax)
+            norm = Normalize(vmin, vmax)
 
         else:
             ut.errorcode("error", "Not valid scaling for imgScale!")
@@ -911,7 +914,7 @@ class SimFile (object):
         # Add colorbar if requested
         
         if colorBar:
-            cbar = fig.colorbar(imagePlot, extend='max', shrink=0.84, pad=0.015)
+            cbar = fig.colorbar(imagePlot, extend='both', shrink=0.84, pad=0.015)
             cbar.set_label(clabel, fontsize=fontSize, labelpad=3)
             cbar.ax.tick_params(labelsize=fontSize)
 
@@ -919,18 +922,26 @@ class SimFile (object):
             if imgScale == "log":
                 cbar.ax.tick_params(which='minor', right=False, labelright=False)
 
-            # Adjust the colorbar to correct ADU calues 
-            if not imgScale == "clip":
+            # Adjust the colorbar to correct ADU values
+            if not imgScale == "clip" and not imgScale == "auto":
                 ticks_loc1  = np.linspace(vmin, vmax, 6)
                 ticks_loc2  = np.linspace(img_min, img_max, 6)
                 ticks_label = [f"{i:.1f}" for i in ticks_loc2]
                 cbar.locator     = ticker.FixedLocator(ticks_loc1)
                 cbar.formatter   = ticker.FixedFormatter(ticks_label)
                 cbar.update_ticks()
+
+            # Adjust the colorbar to correct ADU values for auto-scaling
+            if imgScale == "auto":
+                ticks_loc1  = np.linspace(vmin, vmax, 6)
+                ticks_loc2  = np.linspace(img_mean-sigma*img_std, img_mean+sigma*img_std, 6)
+                ticks_label = [f"{i:.1f}" for i in ticks_loc2]
+                cbar.locator = ticker.FixedLocator(ticks_loc1)
+                cbar.formatter = ticker.FixedFormatter(ticks_label)
+                cbar.update_ticks()
                 
-                
-        # If requiered, overplot a gray semi-transparent grid
-        # Note: this is only meaningsful for smaller imagettes
+        # If required, overplot a gray semi-transparent grid
+        # Note: this is only meaningful for smaller imagettes
 
         if showGrid is True:
             ax.grid(c='gray', ls='-', alpha=0.5, zorder=1)
