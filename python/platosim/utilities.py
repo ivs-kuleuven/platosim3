@@ -112,6 +112,12 @@ def compilation(i, i_max, text=''):
 
 
 
+def findNearestIndex(array, value):
+    """
+    Find the nearest value within an numpy array.
+    """
+    return (np.abs(np.asarray(array) - value)).argmin()
+
 
 
 def medianAbsoluteDeviation(array):
