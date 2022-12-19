@@ -364,7 +364,8 @@ class variability(object):
         if args.planet or args.planet_params or args.xsource:
             incl = np.random.uniform(85, 90)
         else:
-            incl = np.random.uniform(0, 90)
+            # None means cos(i_star) uniform between 0-90 deg
+            incl = None
             
         # Re-run random activity cycle until it fits in memory!
         lc = None
@@ -1283,7 +1284,7 @@ class variability(object):
             self.lc['time'] += self.timeStart * 86400
 
         # PLOT FINAL LIGHT CURVE
-        
+
         if args.plot and args.star != 'std':
             pt.plot_final_lc(self.lc)
             plt.show()
@@ -1317,8 +1318,8 @@ class variability(object):
              'Pmin_day': [self.spot_params[3]],
              'Pmax_day': [self.spot_params[4]],
              'lmax_deg': [self.spot_params[5]],
-             'Pcyc_day': [self.spot_params[6]],
-             'Povl_day': [self.spot_params[7]],
+             'Pcyc_year': [self.spot_params[6]],
+             'Povl_year': [self.spot_params[7]],
              'Acyc': [self.spot_params[8]],
              'is_deg': [self.spot_params[9]],
 
@@ -1464,7 +1465,8 @@ elif args.xsource or args.planet:
     if args.star or args.star_params:
         if args.spot:
             v.stellar_activity()
-        v.stellar_gran_osc()
+        if not args.gran or not args.puls:
+            v.stellar_gran_osc()
         
     # Exoplanet model
     if args.planet or args.planet_params or args.planet == 'random':
