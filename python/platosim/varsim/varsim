@@ -69,7 +69,7 @@ t_day    = 86400.  # [s]
 #                        PLATOnium CLASS                       #
 #==============================================================#
 
-class variability(object):
+class Variability(object):
     """
     This class has the purpose
     """
@@ -1453,7 +1453,7 @@ if not args.xsource in (0, 1, 2, 3):
     args.xsource = False
     
 # Initialize instance of class
-v = variability(args)
+v = Variability(args)
 
 # Run variability modules
 if args.star == 'std':

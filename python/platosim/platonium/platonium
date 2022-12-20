@@ -358,10 +358,11 @@ class PLATOnium(object):
             self.maskUpdateRate = round(sim['Photometry/MaskUpdateInterval'] * 86400. / self.cadence)
             
             
-        # CONFIGURE SPACECRAFT
+        # CONFIGURE PAYLOAD
                 
         # Solar panel orientation: Q(N) = {0, 90, 180, 270} deg [deg]
-        solarPanelOrientationDeg = sim["Platform/SolarPanelOrientation"] = math.fmod(self.quarter * 90., 360.) #-6
+        solarPanelOrientationDeg = sim["Platform/SolarPanelOrientation"] = math.fmod(self.quarter * 90., 360.)
+
         # Select PLATO pointing field from inputfile (e.g. SPF, NPF, etc.) [deg]
         self.pointingField = sim["ObservingParameters/StarCatalogFile"]
         sim["ObservingParameters/RApointing"]  = self.PF[self.pointingField][0]
@@ -422,13 +423,13 @@ class PLATOnium(object):
             # Set filepath to new file
             sim["Platform/JitterFileName"] = inputFileAOCS_Q
                                     
-        # The TED is needs handling for each camera seperately
-        # NOTE if from file 24 files needs to be present in a user defined path from the inputfile
-        # Else set the quarter specific random seed for TED
-        # inputFileTED = self.inputDir.joinpath('TED_Ncam{}.txt')
-        # if sim["Telescope/UseDrift"] and sim["Telescope/UseDriftFromFile"]:
-        #         inputFileTED = modelDir + 'TED_' + obsPrefix + '.txt'
-        #         sim["Telescope/DriftFileName"] = fileNameTED
+        # Thermal Elastic Distortion (TED):
+        # NOTE: it is assumed that the TED is the same for each camera per quarter 
+        inputFileTED = self.inputDir.joinpath('instrumentTED.txt')
+        if inputFileTED.is_file():
+            sim["Telescope/UseDrift"]         = True
+            sim["Telescope/UseDriftFromFile"] = True
+            sim["Telescope/DriftFileName"]    = inputFileTED
 
         # KDA
         #print(sim['Camera/AberrationCorrection/OrbitFile'])
@@ -635,6 +636,7 @@ class PLATOnium(object):
                                index=idStarCatalog)
             print(df1)
 
+            
         # SAVE LIST OF VARIABLE SOURCES
 
         # NOTE if a user-defined filename for the variable data is parsed
@@ -665,6 +667,7 @@ class PLATOnium(object):
                 self.varSourceList = varSourceList
                 self.varSourceFile = varSourceFile
 
+                
         # SAVE PHOTOMETRY FILE
         
         # NOTE if a user defined file name for the photometry file is parsed
@@ -807,6 +810,8 @@ class PLATOnium(object):
             sim["ControlHDF5Content/WriteDiffusedPSF"] = True
 
 
+
+
             
     def run_microscan(self, sim):
         """
@@ -826,14 +831,16 @@ class PLATOnium(object):
         # Prepare for the Archimedean jitter spiral pattern
         sim["Platform/UseJitter"]               = 'yes'
         sim["Platform/JitterSource"]            = 'FromFile'
-        sim["ObservingParameters/NumExposures"] = 430
+        sim["ObservingParameters/NumExposures"] = 428
         sim['ObservingParameters/CycleTime']    = 25
         
         # Time of microscan simulation needs to match quarter for PlatoSim to run successfully
         # NOTE Here a new file is created with a appropriate time column to match the observation
         # NOTE This is done once per quarter and CCD time-shift and the file is saved to the simulation folder
-        spiralFileBase     = f'{self.platosimInputDir}/AOCS_spiral_8Hz_airbus_3h.txt'
-        spiralFileQuarterN = f'{self.microscanDirStarID}/AOCS_spiral_8Hz_airbus_3h.txt'
+        spiralFileName     = 'microscan_spiral_8Hz_3h_WC_01.txt'
+        spiralFileBase     = f'{self.platosimInputDir}/{spiralFileName}'
+        spiralFileQuarterN = f'{self.microscanDirStarID}/{spiralFileName}'
+
         if self.quarter == 1 and int(self.df0['CCD']) == 1:
             os.system(f'cp {spiralFileBase} {spiralFileQuarterN}')
         else:

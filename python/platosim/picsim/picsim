@@ -777,8 +777,9 @@ else:
 # Necessary to define again in case a PIC sample is defined
 magRange = [np.min(df['mag']), np.max(df['mag'])]
 fig3 = plt.subplots(2, 2, figsize=(14,8))
-pt.plotStellarSampleDistributions(fig3, df['mag'].to_numpy(), dfc['mag'].to_numpy(),
-                                  magRange, df['ncon'].to_numpy(), dfc['dis'].to_numpy())
+try: pt.plotStellarSampleDistributions(fig3, df['mag'].to_numpy(), dfc['mag'].to_numpy(),
+                                       magRange, df['ncon'].to_numpy(), dfc['dis'].to_numpy())
+except: fig3 = False
 if plot: plt.show()
 
 #==============================================================#
@@ -793,7 +794,7 @@ if outputDir is not None:
     fig0[0].savefig(outputDir / f'plot_{outputPrefix}_allsky.png',       bbox_inches='tight', dpi=res)
     fig1.savefig(outputDir    / f'plot_{outputPrefix}_pointing.png',     bbox_inches='tight', dpi=res)
     fig2.savefig(outputDir    / f'plot_{outputPrefix}_TeffvsRadius.png', bbox_inches='tight', dpi=res)
-    fig3[0].savefig(outputDir / f'plot_{outputPrefix}_distribution.png', bbox_inches='tight', dpi=res)
+    if not fig3 is False: fig3[0].savefig(outputDir / f'plot_{outputPrefix}_distribution.png', bbox_inches='tight', dpi=res)
 
     # Save textfile with information about PIC stars
     log = ('PIC Catalogue include\n' +
