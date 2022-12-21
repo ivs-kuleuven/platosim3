@@ -837,7 +837,7 @@ class PLATOnium(object):
         # Time of microscan simulation needs to match quarter for PlatoSim to run successfully
         # NOTE Here a new file is created with a appropriate time column to match the observation
         # NOTE This is done once per quarter and CCD time-shift and the file is saved to the simulation folder
-        spiralFileName     = 'microscan_spiral_8Hz_3h_WC_01.txt'
+        spiralFileName     = 'microscan_spiral_8Hz_3h_BC.txt'
         spiralFileBase     = f'{self.platosimInputDir}/{spiralFileName}'
         spiralFileQuarterN = f'{self.microscanDirStarID}/{spiralFileName}'
 
