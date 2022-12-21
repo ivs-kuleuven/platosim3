@@ -147,9 +147,9 @@ def load_exoplanet(source):
 
     if source == 'Earth':
         # 
-        params = {'t0': 1 * u.d,
-                  'P' : 365.5 * u.d,
-                  'e' : 0.0,
+        params = {'t0': 10 * u.d,
+                  'P' : 365.25 * u.d,
+                  'e' : 0.0167,
                   'i' : 90.0 * u.deg,
                   #'i' : 83.96 * u.deg,
                   'w' : 0. * u.deg,

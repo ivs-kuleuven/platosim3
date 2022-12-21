@@ -2,6 +2,8 @@ import h5py
 import math
 import os
 import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
 
 from numpy import *
 from numpy.polynomial import Polynomial
@@ -588,7 +590,7 @@ def focalPlaneAngles2pixelCoordinates(angleFromOpticalAxis, azimuthFromXAxis, cc
 
     """
     PURPOSE: given the location angles of the star in the focal plane, compute the real-valued CCD pixel coordinates. These 
-             calculations are based on the custom CCD position and orientation angle (so not from file!).
+             calculations are based on the  custom CCD position and orientation angle (so not from file!).
 
     INPUT:
         angleFromOpticalAxis : angular distance from the optical axis             [rad]
@@ -1745,17 +1747,21 @@ def getPointingRepeatabilityError(ra, dec, kappa, sigma=3, quarter=[1, 8], outdi
 
     OUTPUT:
     """
+
+    # Sort input quarters
+    n = len(quarter)
+    
     # Coordinates
     ICRS = np.array([ra, dec, kappa])
-
+    
     # Pointing Reproducibility Error (PRE) in P/L reference frame (yaw, pitch, roll)
-    # Here t stands for transverse direction and  
-    sigma_t = sigma[0]/3600
-    sigma_b = sigma[1]/3600
+    # Here t stands for transverse direction and [deg]
+    t = 3.0/3600
+    b = 6.0/3600
 
     # Find distribution within 3 sigma of req.
-    tt = np.array([np.random.normal(0, t/sigma) for i in range(len(quarters))])
-    bb = np.array([np.random.normal(0, b/sigma) for i in range(len(quarters))])
+    tt = np.array([np.random.normal(0, t/sigma) for i in range(n)])
+    bb = np.array([np.random.normal(0, b/sigma) for i in range(n)])
 
     # Corresponding yaw, pitch, roll
     y = tt
@@ -1767,34 +1773,40 @@ def getPointingRepeatabilityError(ra, dec, kappa, sigma=3, quarter=[1, 8], outdi
     theta = np.deg2rad(dec)
 
     # Find change to pointing for quarters
-    coor = np.zeros((len(quarters), 4))
-    for i in range(len(quarters)):
+    PRE = np.zeros((n , 4))
+    for i in range(n):
         data = changeOfPointing(x[i], y[i], z[i], phi, theta)[0]
-        coor[i,:] = np.append(quarters[i], data)
+        PRE[i,:] = np.append(quarter[i], data)
+
+    df = pd.DataFrame(PRE, columns=["quarter", "yaw", "pitch", "roll"])
+    df = df.astype({"quarter":int, "yaw":np.float64, "pitch":np.float64, "roll":np.float64})
+    
+    # Print generated values
+    if show_table:         
+
+        print('\nChange of coordinates [arcsec]')
+        df0 = df.copy()
+        df0.iloc[:,1:] = df0.iloc[:,1:] * 3600
+        print(df0)
+
+        print('\nNew ICRS coordinates [deg]')
+        df1 = df.copy()
+        df1.rename(columns={"yaw":"RA", "pitch":"Dec", "roll":"kappa"}, inplace=True)
+        df1.iloc[:,1] = df1.iloc[:,1] + ra
+        df1.iloc[:,2] = df1.iloc[:,2] + dec
+        print(df1)
 
     # Save file with relative pointing errors [deg]
     if outdir is not None:
-        np.savetxt(f'{outdir}/PRE.txt', coor, fmt=['%i', '%0.8f', '%0.8f', '%0.8f'])
+        df.to_csv(f'{outdir}/instrumentPRE.txt', sep=" ", header=False, index=False)
 
-    # Print generated values
-    if show_table: 
-        print('Yaw, Pitch, and Roll angles')
-        print(x)
-        print(y)
-        print(z)
-        print('\nChange of coordinates [arcsec]')
-        print(coor*3600)
-        print('\nNew coordinates [deg]')
-        for i in range(len(quarters)):
-            print(coor[i][1]+ra, coor[i][2]+dec, coor[i][3])
+    return PRE
 
 
 
 
 
-
-
-def cameraAlignmentErrors(ra, dec, kappa, sigma=3, outdir=None, show_table=False):
+def getCameraAlignmentErrors(ra, dec, kappa, sigma=3, outdir=None, show_table=False):
 
     # Pointing Reproducibility Error (PRE) in P/L reference frame (yaw, pitch, roll)
     t = 4.5/60  # [deg]
@@ -1808,26 +1820,34 @@ def cameraAlignmentErrors(ra, dec, kappa, sigma=3, outdir=None, show_table=False
     dy = tt
     dz = 3 * dy
     dx = bb - dz
-    mu, sigma = 0, sigma # mean and standard deviation
+
+    # Mean and standard deviation
+    mu, sigma = 0, sigma
     s = np.random.normal(mu, sigma, 1000)
     count, bins, ignored = plt.hist(s, 30, density=True)
 
-    # Save APE camera misalignments
-    if outdir is not None:
-        np.savetxt('APE.txt', np.transpose([tt, bb]), fmt='%.8f')
+    # Store APE
+    APE = np.transpose([tt, bb])
+    df  = pd.DataFrame(APE, columns=["tilt", "azimuth"])
 
     # Plot histogram and data
     if show_table:
-        plt.plot(bins, 1/(sigma * np.sqrt(2 * np.pi)) * 
-                 np.exp( - (bins - mu)**2 / (2 * sigma**2) ),
-                 linewidth=2, color='r')
-        plt.show()
-
         # Print generate values
-        print('Alt, Az, Yaw, Pitch, and Roll alignment error for all 24 N-CAMs [arcmin]')
-        print(np.transpose([tt, bb, dx, dy, dz])*60)
+        print('\nCamera alignment errors for all 24 N-CAMs [arcmin]')
+        APE0 = np.transpose([tt, bb, dx, dy, dz]) * 60
+        df0  = pd.DataFrame(APE0, columns=["Alt", "Az", "Yaw", "Pitch", "Roll"])
+        print(df0)
+        # Plot
+        # plt.plot(bins, 1/(sigma * np.sqrt(2 * np.pi)) * 
+        #          np.exp( - (bins - mu)**2 / (2 * sigma**2) ),
+        #          linewidth=2, color='r')
+        # plt.show()
 
-
+    # Save APE camera misalignments
+    if outdir is not None:
+        df.to_csv(f'{outdir}/instrumentAPE.txt', sep=" ", header=False, index=False)
+                       
+    return APE
 
 
 

@@ -53,7 +53,7 @@ def errorcode(API, message):
         print(Style.BRIGHT + Fore.YELLOW + '[Warning]: ' + message + Style.RESET_ALL)
     if API == 'error':
         print(Style.BRIGHT + Fore.RED + '[Error]: ' + message + Style.RESET_ALL)
-        exit()
+        sys.exit()
 
 
 
@@ -111,6 +111,12 @@ def compilation(i, i_max, text=''):
 
 
 
+
+def findNearestIndex(array, value):
+    """
+    Find the nearest value within an numpy array.
+    """
+    return (np.abs(np.asarray(array) - value)).argmin()
 
 
 
