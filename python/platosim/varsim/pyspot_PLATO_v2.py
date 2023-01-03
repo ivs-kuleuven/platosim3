@@ -9,7 +9,7 @@ from platosim.utilities import errorcode
 
 # Load table
 from astropy.table import Table
-filename = os.getenv('PLATONIUM') + '/platonium/var/data/meunier_19a_t1.dat'
+filename = os.getenv('PLATO_PROJECT_HOME') + '/python/platosim/varsim/data/meunier_19a_t1.dat'
 t1 = Table.read(filename, format = 'ascii')
 
 # Initialise random  number generator after clock

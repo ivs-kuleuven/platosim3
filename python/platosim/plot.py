@@ -1878,7 +1878,9 @@ def plotPhotometry(df, time_unit=False, flux_unit=False, figsize=(8,5)):
 
 
 def plotNSRvsMagnitude(df, Ncam=1, tdur=3600., column=False, residuals=False,
-                       camType="N", yscale="log", cmap="coolwarm", figsize=(10,6)):
+                       camType="N", yscale="log", cmap="coolwarm",
+                       grid=True, legend=True,
+                       figsize=(10,6)):
     """
     PURPOSE:
     """
@@ -1888,7 +1890,6 @@ def plotNSRvsMagnitude(df, Ncam=1, tdur=3600., column=False, residuals=False,
     fig, ax = plt.subplots(1, 1, figsize=figsize)
 
     # Set proper discrete cmap
-    
     if column in ("group", "camera", "quarter", "ncam", "ncon", "flag"):
         # Fetch custom discrete colorbar used by matplotlib
         cbins = np.arange(df[column].min(), df[column].max()+2, 1)
@@ -1896,23 +1897,41 @@ def plotNSRvsMagnitude(df, Ncam=1, tdur=3600., column=False, residuals=False,
         norm = discrete_colorbar(cbins=cbins, cmap=cmap)
     else:
         norm = None
-    
+
+    # Plot requirements
+    if residuals == "camera":
+        ax.axhline(y=108, c="darkorange", ls="--", label="AOCS camera req.: 108 ppm", zorder=0)
+        if yscale == "linear":
+            ax.axhline(y=-108, c="darkorange", ls="--")
+    elif residuals == "system":
+        ax.axhline(y=9, c="red", ls="--", label="AOCS system req.: 9 ppm", zorder=0)
+    elif residuals == "multi":
+        import matplotlib as mpl
+        cmap = mpl.cm.get_cmap('coolwarm')
+        for nsr, ncam, color in zip([100, 70, 58, 50], [6, 12, 18, 24], [0.0, 0.33, 0.66, 0.999]):
+            ax.axhline(y=nsr, color=cmap(color), linestyle="--",
+                       label=f"{nsr} ppm req. for {ncam} N-CAMs", zorder=0)
+        #ax.plot([11, 11, 11, 11], [88, 63, 52, 45], 'm*', ms=10, label="CBE of G0V 11 mag star")
+        
     # Plot the input variable source
-    
     if residuals in ("camera", "system"):
-        im = ax.scatter(df["mag"], df["res"], s=20, label="PlatoSim",
-                        c=df[column], cmap=cmap, norm=norm)
         ax.set_ylabel('NSR Residuals [ppm]')
+        if yscale == "log":
+            im = ax.scatter(df["mag"], df["res"].abs(), s=20, zorder=1,
+                            c=df[column], cmap=cmap, norm=norm)
+        else:
+            im = ax.scatter(df["mag"], df["res"], s=20, zorder=1,
+                            c=df[column], cmap=cmap, norm=norm)
     elif column:
-        im = ax.scatter(df["mag"], df["NSR"], s=20, label="PlatoSim",
+        im = ax.scatter(df["mag"], df["NSR"], s=20, zorder=1,
                         c=df[column], cmap=cmap, norm=norm)
         ax.set_ylabel('NSR [ppm]')
     else:
-        ax.plot(df["mag"], df["NSR"], 'k.', alpha=0.7, label="PlatoSim")
+        ax.plot(df["mag"], df["NSR"], 'k.', alpha=0.7, zorder=1)
         ax.set_ylabel('NSR [ppm]')
 
     # Handle colorbar
-    
+    if column == "ncam": column = "N-CAMs"
     if norm is None:
         cb = plt.colorbar(im, extend="max", pad=0.01)
         cb.set_label(column)
@@ -1922,45 +1941,18 @@ def plotNSRvsMagnitude(df, Ncam=1, tdur=3600., column=False, residuals=False,
         cb.set_label(column)
         cb.minorticks_off()
 
-    # Plot requirements
-    
-    if residuals == "camera":
-        ax.axhline(y=108, c="darkorange", ls="--", label="AOCS camera req.: 108 ppm")
-    elif residuals == "system":
-        ax.axhline(y=9, c="red", ls="--", label="AOCS system req.: 9 ppm")
-    elif residuals == "multi":
-        ax.axhline(y=50, color="r", linestyle="--", label="24 N-CAM NSR req.: 50 ppm")
-        ax.plot([11, 11, 11, 11], [88, 63, 52, 45], 'm*', ms=10, label="CBE of G0V 11 mag star")
-
-    # Add grid
-
-    # Calculate photon noise limit:
-    # if not residuals:
-    #     mag_range = np.linspace(df["mag"].min(), df["mag"].max(), 1000)
-    #     NSR_cam01 = ut.getPhotonNoiseLimitNSR(mag_range, Ncam=1)
-    #     NSR_cam06 = ut.getPhotonNoiseLimitNSR(mag_range, Ncam=6)
-    #     NSR_cam12 = ut.getPhotonNoiseLimitNSR(mag_range, Ncam=12)
-    #     NSR_cam18 = ut.getPhotonNoiseLimitNSR(mag_range, Ncam=18)
-    #     NSR_cam24 = ut.getPhotonNoiseLimitNSR(mag_range, Ncam=24)
-    #     NSR_phot = [NSR_cam01, NSR_cam06, NSR_cam12, NSR_cam18, NSR_cam24]
-    #     cams = [1, 6, 12, 18, 24]
-    #     for i, cam in zip(range(5), cams):
-    #         ax.plot(mag_range, NSR_phot[i], '-', lw=2, label=f"{cam} N-CAM")
-
     # Force all yticks for log plot
-
     ax.set_yscale(yscale)
     subticks = [.1, .2, .3, .4, .5, .6, .7, .8, .9] 
     ax.yaxis.get_minor_locator().set_params(numticks=99, subs=subticks)
+    ax.yaxis.set_major_formatter(ScalarFormatter())
+    ax.yaxis.set_minor_formatter(ScalarFormatter())
     
-    # Settings
-    
-    ax.grid(color="lightgray")
+    # Settings    
     ax.set_xlabel(r'PLATO magnitude, $P$')
-    ax.legend(loc='best')
+    if grid:   ax.grid(color="lightgray")
+    if legend: ax.legend(loc='best')
 
-    # Finito!
-    
     return fig, ax
 
 
