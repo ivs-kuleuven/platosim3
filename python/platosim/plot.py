@@ -1015,7 +1015,7 @@ def skyProjection(fig, longitude, latitude, origin=0, projection="mollweide"):
 
 
 
-def plotPlatoFOV(pointingField, raStars, decStars, magStars=None,
+def plotPlatoFOV(pointingField, raStars=0, decStars=0, system="icrs", magStars=None,
                  nCamVis=None, skymap=None, title=None, fs=20):
     """
     Funtion to plot 
@@ -1037,7 +1037,11 @@ def plotPlatoFOV(pointingField, raStars, decStars, magStars=None,
 
     PF_gal  = SkyCoord(PF_gal[0], PF_gal[1], frame='galactic', unit='deg')  # [deg]
     PF_icrs = PF_gal.icrs  # [deg]
-    
+    if system == 'icrs':
+        PF = PF_icrs
+    elif system == 'galactic':
+        PF = PF_gal
+        
     # Load PIC stars for each N-CAM visibility
     PF06 = np.load(indir + f'{pointingField}-NCAM06.npy')
     PF12 = np.load(indir + f'{pointingField}-NCAM12.npy')
@@ -1050,21 +1054,21 @@ def plotPlatoFOV(pointingField, raStars, decStars, magStars=None,
     
     # Load brightest stars
     starPF = SkyCoord(raStars*u.deg, decStars*u.deg, frame='icrs', unit='deg')
-
+    
     # MAKE PLOTS
     
     fig = plt.figure(figsize=(9,9))
-    ax = plt.axes(projection='astro zoom', center=PF_icrs, radius='30 deg', rotate='184 deg')
+    ax = plt.axes(projection='astro zoom', center=PF_icrs, radius='30 deg', rotate='180 deg')
 
     # Plot PIC1.1.0 stars after N-CAM visibility
     ax.plot(starPF06.ra.deg, starPF06.dec.deg, '.', c='skyblue',
-            transform=ax.get_transform('world'), markersize=1, zorder=1)
+            transform=ax.get_transform(system), markersize=1, zorder=1)
     ax.plot(starPF12.ra.deg, starPF12.dec.deg, '.', c='deepskyblue',
-            transform=ax.get_transform('world'), markersize=1, zorder=2)
+            transform=ax.get_transform(system), markersize=1, zorder=2)
     ax.plot(starPF18.ra.deg, starPF18.dec.deg, '.', c='dodgerblue',
-            transform=ax.get_transform('world'), markersize=1, zorder=3)
+            transform=ax.get_transform(system), markersize=1, zorder=3)
     ax.plot(starPF24.ra.deg, starPF24.dec.deg, '.', c='royalblue',
-            transform=ax.get_transform('world'), markersize=1, zorder=4)
+            transform=ax.get_transform(system), markersize=1, zorder=4)
 
     # Plot stars and add legend scaled to the stellar magnitudes
     if magStars is not None and len(magStars) > 0:
@@ -1088,6 +1092,11 @@ def plotPlatoFOV(pointingField, raStars, decStars, magStars=None,
 
     # Plot pointing of PIC1.1.0 and PIC2.0.0
     ax.plot(PF_icrs.ra.deg, PF_icrs.dec.deg, '*', transform=ax.get_transform('world'), ms=20, c='k', mfc='r', zorder=6)
+
+    # Plot F-CAM FOV as cicle
+    fcam = patches.Circle((PF_icrs.ra.deg, PF_icrs.dec.deg), 12.2, fc='none', lw=2,
+                          transform=ax.get_transform('galactic'), ec='r', zorder=2)
+    ax.add_patch(fcam)
     #ax.plot(277.18, 52.85, '*', transform=ax.get_transform('world'), ms=20, c='k', mfc='b', zorder=7)
 
     # Add-on's
@@ -1844,22 +1853,22 @@ def plotPhotometry(df, time_unit=False, flux_unit=False, figsize=(8,5)):
     # Create matplotlib object
     
     fig, ax = plt.subplots(1, 1, figsize=figsize)
-        
+
+    # LIGHT CURVE
+    
     # Plot the input variable source
     if "flux_err" in df.columns:
         ax.errorbar(df["time"], df["flux"], yerr=df["flux_err"],
                     fmt=".", color='k', ecolor='darkgray', elinewidth=1,
                     capsize=0, alpha=aa, label="Raw flux", zorder=1)
     else:
-        ax.plot(df["time"], df["flux"], 'k.', ms=ms, alpha=aa, label="Raw flux", zorder=1)
+        ax.plot(df["time"], df["flux"], 'k.', ms=5, alpha=aa, label="Raw flux", zorder=1)
 
     # Plot a median filter
-    
     if "flux_med" in df.columns:
-        ax.plot(df["time"], df["flux_med"], 'b-', lw=lw, label='1h mdeian', zorder=2)
+        ax.plot(df["time"], df["flux_med"], '-', c='royalblue', lw=lw, label='1h mdeian', zorder=2)
     
     # Show binned mean points if requested
-
     if "flux_bin" in df.columns:
         binsize = 1
         ax.plot(df["time"], df["flux_bin"], 'ro', ms=8, mec='k', label=f'{binsize}h bins', zorder=3)
@@ -1869,6 +1878,9 @@ def plotPhotometry(df, time_unit=False, flux_unit=False, figsize=(8,5)):
     ax.set_xlabel(f"Time [{time_unit}]")
     ax.set_ylabel(f"Flux [{flux_unit}]")
     ax.legend(loc='best')
+
+    # MASK UPDATES
+
     
     return fig, ax
 

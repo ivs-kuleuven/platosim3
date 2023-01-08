@@ -35,13 +35,6 @@ def getTED(quarter, model="poly", outfile=False, plot=False):
         # Create data frame and store default time0 for fit
         df  = pd.DataFrame()
         df1 = pd.DataFrame()
-
-        # Select TED model
-        if model == 'linear':
-            x = np.linspace(0, amplitude, len(t))
-            y = x
-            z = np.zeros(len(t))
-            np.savetxt(fileName, np.transpose([t,x,y,z]), fmt=['%i', '%f', '%f', '%f'])
             
         # Loop over each quarter
         
@@ -52,21 +45,30 @@ def getTED(quarter, model="poly", outfile=False, plot=False):
             t1 = round(90. * (Q+1) * day2sec)
             df1["time"] = np.arange(t0, t1, 25)
 
+            # Generate linear model
+            
             # Generate a random 2nd order polynomial
             
             for col in cols:
-                
-                # NOTE these parameters has been compared to Prime TED
-                a = np.random.uniform(-10, 10) * 1e-14
-                b = np.random.uniform(-15, 15) * 1e-7
-                # Secure that c (the y offset) is always zero
-                c = 0
-                # Make sure that a and b always has opposite signs
-                if np.sign(a) == np.sign(b): b *= -1
 
-                # Get model fit 
-                poly = np.array([a, b, c])
-                df1[col] = np.polyval(poly, time0)
+                if model == 'linear':
+                    a = 1.3 * 15      
+                    if col == "roll":
+                        df1[col] = np.zeros(len(df1.time))
+                    else:
+                        df1[col] = np.linspace(0, a, len(df1.time))
+
+                else:
+                    # NOTE these parameters has been compared to Prime TED
+                    a = np.random.uniform(-10, 10) * 1e-14
+                    b = np.random.uniform(-15, 15) * 1e-7
+                    # Secure that c (the y offset) is always zero
+                    c = 0
+                    # Make sure that a and b always has opposite signs
+                    if np.sign(a) == np.sign(b): b *= -1
+                    # Get model fit 
+                    poly = np.array([a, b, c])
+                    df1[col] = np.polyval(poly, time0)
 
             # File to save
             df = pd.concat([df, df1])

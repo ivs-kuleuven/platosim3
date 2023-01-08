@@ -73,6 +73,15 @@ class SimFile (object):
         return
 
 
+
+    def checkPhotometry(self):
+        # Check that photometry has been saved
+
+        if "Photometry" not in self.hdf5file["/"].keys():
+            ut.errorcode("error", "No photometry present in the HDF5 file!")
+
+    
+    
     
     #--------------------------------------------------------------#
     #                    SIMULATION PARAMETERS                     #
@@ -771,6 +780,266 @@ class SimFile (object):
         myFits = fits.HDUList(hduList)
         myFits.writeto(fileName)
 
+
+    #--------------------------------------------------------------#
+    #                         PLOT FUNCTIONS                       #
+    #--------------------------------------------------------------#
+
+
+    def getTime(self):
+
+        """
+        Returns time points.
+        """
+
+        # Check if column exist in HSD5 file
+        if "Time" not in self.hdf5file["StarPositions"].keys():
+            ut.errorcode("warning","getTime(): Time array not present in StarPositions group!")
+            return None
+        else:
+            # Fetch time column and write to data frame
+            time = np.array(self.hdf5file["StarPositions/Time"])
+            return pd.DataFrame({"time": time})
+
+
+
+    
+    def getFlux(self, starID, flux_type="estimated"):
+
+        """Returns flux points.
+        """
+
+        # Select the proper flux name
+        
+        if   flux_type == "estimated": lctype = "estimatedFlux"
+        elif flux_type == "input":     lctype = "inputFlux"
+        else:
+            ut.errorcode("error", "getFlux(): flux_type can only be 'estimated' or 'input'")
+
+        # Query either a single star or multiple stars as requested
+        
+        try: len(starID)
+        except:
+            starID = np.array([starID])
+            names = False
+        else:
+            names = True
+            
+        # Add a flux column(s) for the star(s)
+        
+        for ID in starID:
+            
+            # Check photometry is present for each star
+            starIDgroupName = f"starID{ID}"
+            if starIDgroupName not in self.hdf5file["Photometry"]["Lightcurves"].keys():
+                ut.errorcode("error", f"getLightCurve(): {starIDgroupName} not present in" +
+                                       "Photometry/Lightcurves/ in the HDF5 file")
+
+            # Select correct name convention
+            if names: string = f"flux_{ID}"
+            else:     string = "flux"
+                
+            # Fetch flux column
+            flux = np.array(self.hdf5file[f"Photometry/Lightcurves/starID{ID}/{lctype}"])
+
+            # Create data frame and append to it
+            if ID == starID[0]:
+                df = pd.DataFrame({string: flux})
+            else:
+                df[string] = flux
+            
+        # Finito!
+            
+        return df
+
+
+    
+    
+
+    
+    def getLightCurve(self, starID, flux_type="estimated"):
+
+        """Extract the light curve of one or more stars
+
+        This function can be used to extract the light curves for one star
+        with the given ID, or for a full list of stars with IDs given by an
+        list or array.
+
+        Parameters
+        ----------
+        starID : int, list/ndarray
+            int  : ID of the star as mentioned in the last column of the star catalog file
+            list : List of star IDs for which the light curve should be extracted
+        flux_type : str
+            Either "estimated" or "input". 
+            The estimated one is derived from a binary mask.
+            The input one is derived from the mean input magnitude specified in the star catalog
+            and (for variable stars) the delta-magnitude time series given as an input file.
+
+        Return
+        ------
+        df : pandas data frame
+            time : first column [s] 
+            flux : consecutive columns [e-/exposure]
+        """
+
+        # Fetch time column
+        
+        time = self.getTime()
+        
+        # Fetch flux column(s)
+
+        flux = self.getFlux(starID, flux_type=flux_type)
+
+        # Combine data
+
+        return pd.concat([time, flux], axis=1)
+
+
+
+
+
+    
+
+    def getMaskUpdateEvents(self):
+
+        """Exposure number of all mask updates.
+        """
+        
+        # Fetch mask update events
+
+        return np.array(self.hdf5file["Photometry/Masks/exposureNrOfMaskUpdate"])
+
+
+
+    
+    
+
+    def getApertureMask(self, starID, imageNr=None):
+
+        """Fetch all information about the photometric aperture mask used.
+
+        This function returns the subfield row and column indices of the mask that
+        is used to extract the flux of star with the given ID for the given exposure
+        number. This only makes sense if the photometry was activated in the configuration
+        yaml file.
+
+        INPUT: 
+        starID:  ID of the star as mentioned in the last column of the star catalog file
+               imageNr: integer sequential number of the image in the HDF5 file
+
+        OUTPUT: rowIndices: subimage row indices for each of the mask pixels
+                colIndices: subimage column indices for each of the mask pixels
+                exposureNr: the image number in which the mask was derived.
+                            exposureNr <= imageNr
+
+        NOTE: Masks are not update continuously, but only once in a while. This function searches
+              for the most recent mask. This mask may have thus been derived from a previous image
+              rather than from the given image Nr.
+        """
+
+
+        # Check if photometric data exists
+        starIDgroupName = "starID{0}".format(starID)
+        if starIDgroupName not in self.hdf5file["Photometry"]["Masks"].keys():
+            print(f"Error: getPhotometricMask(): {starIDgroupName}" +
+                  " not present in Photometry/Masks/ in the HDF5 file")
+            return None, None, None, None, None
+
+        # Fetch mask info and mask updates
+        mask = self.hdf5file["Photometry"]["Masks"]
+        exposureNrOfMaskUpdate = np.array(mask["exposureNrOfMaskUpdate"])
+        numMaskUpdates = len(exposureNrOfMaskUpdate)
+
+        # If a specific image number for the mask update is requested:
+        # NOTE Masks are not updated for every exposure hence find most recent mask
+
+        if isinstance(imageNr, int):
+
+            idx = np.searchsorted(exposureNrOfMaskUpdate, imageNr, side='right') - 1
+            if idx < 0:
+                print("Error: getPhotometricMask(): requesting an imageNr that is too early for this HDF5 file")
+                return None, None, None, None, None
+
+            exposureNrOfMaskUpdate = exposureNrOfMaskUpdate[idx]
+
+            # Extact mask size and NSR
+
+            maskSize = np.array(mask[starIDgroupName]['maskSize'])[idx]
+            maskNSR  = np.array(mask[starIDgroupName]['maskNSR'])[idx]
+
+            # Extract the indices of the proper mask
+
+            exposureGroupName = "Exposure{0:06d}".format(exposureNrOfMaskUpdate)
+            rowIndices = np.array(mask[starIDgroupName][exposureGroupName]["maskRowIndices"])
+            colIndices = np.array(mask[starIDgroupName][exposureGroupName]["maskColumnIndices"])
+
+        # Else fetch all the indices for all mask updates
+
+        else:
+
+            # Extact mask size and NSR
+
+            maskSize = np.array(mask[starIDgroupName]['maskSize'])
+            maskNSR  = np.array(mask[starIDgroupName]['maskNSR'])
+
+            # Extract the indices of all masks
+
+            rowIndices = []
+            colIndices = []
+            for i in range(numMaskUpdates):
+                exposureGroupName = "Exposure{0:06d}".format(exposureNrOfMaskUpdate[i])
+                rowIndices.append(mask[starIDgroupName][exposureGroupName]["maskRowIndices"])
+                colIndices.append(mask[starIDgroupName][exposureGroupName]["maskColumnIndices"])
+            rowIndices = np.array(rowIndices)
+            colIndices = np.array(colIndices)
+
+        # Finito!
+
+        return rowIndices, colIndices, exposureNrOfMaskUpdate, maskSize, maskNSR
+
+
+
+
+
+    
+
+    def getTimeQuarter(self, quarterNo):
+
+        """Function to create and return quarter-long time column.
+
+        This function creates a time array for a quarter long simulation. It uses
+        the quarter number and the hdf5 output file to correct for the time shift
+        of the parent CCD.
+
+        Parameters
+        ----------
+        outputFile : str
+           Full path to the HDF5 outputfile.
+        quarterNo : int
+           Integer specifying which quarter the time array should be created for.
+
+        Return
+        ------
+        time : ndarray 
+            Time array matching the parent quarter defined by the user.
+        """
+
+        # Fetch times
+
+        numExposures = self.hdf5file['InputParameters/ObservingParameters'].attrs['NumExposures']
+        timeStep     = self.hdf5file['InputParameters/ObservingParameters'].attrs['CycleTime']
+        timeShift    = self.hdf5file['InputParameters/CCD'].attrs['TimeShift']
+
+        # Create time array from start and end times
+
+        timeStart = (quarterNo-1) * 90. * 86400. + float(timeShift)
+        timeEnd   = timeStart + timeStep * numExposures
+        time      = np.arange(timeStart, timeEnd, timeStep)
+
+        return time
+
+
         
     #--------------------------------------------------------------#
     #                         PLOT FUNCTIONS                       #
@@ -781,8 +1050,8 @@ class SimFile (object):
                   showStarPositions=False, showPointLikeGhostPositions=False,
                   minVmag=None, maxVmag=None, showStarIDs=False,
                   tarMarkerSize=200, showMaskOfStarID=None,
-                  useTitle=False, showGrid=False, colorBar=False, colorMap="hot",
-                  origin="lower", figsize=(7,7), fontSize=15):
+                  useTitle=False, showGrid=False, colorBar=False, colorMap="magma",
+                  origin="lower", figsize=(8,8), fontSize=15):
 
         """Make a plot of the a requested image or the entire cube in HDF5.
 
@@ -939,7 +1208,7 @@ class SimFile (object):
         # Note: imshow reverses rows and columns
 
         if showMaskOfStarID is not None:
-            rowIndices, colIndices, _, _, _ = self.getPhotometricMask(showMaskOfStarID, imageNr)
+            rowIndices, colIndices, _, _, _ = self.getApertureMask(showMaskOfStarID, imageNr)
             for k in range(len(rowIndices)):
                 rect = patches.Rectangle((colIndices[k], rowIndices[k]), 1, 1, linewidth=2.0,
                                          edgecolor='b', facecolor='none', zorder=2)
