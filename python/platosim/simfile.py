@@ -1331,7 +1331,7 @@ class SimFile (object):
 
 
 
-    def showPSF(self, datasetName, useTitle=False):
+    def showPSF(self, datasetName, useTitle=False, colorBar=True, colorMap="gist_stern", figsize=(7,6)):
 
         """
         PURPOSE: make a plot of the requested PSF
@@ -1349,58 +1349,52 @@ class SimFile (object):
         # are vertical, and the image is oriented in such a way that overplotting the 
         # star x,y coordinates from getStarPixelCoordinates() becomes straightforward.
 
-        image = np.rot90(np.fliplr(self.getPSF(datasetName)))
-        Nrows, Ncols = image.shape
-
+        psf = np.rot90(np.fliplr(self.getPSF(datasetName)))
+        Nrows, Ncols = psf.shape
+        
         # Plot the image. 
 
-        figure = plt.figure()
-        ax = figure.add_subplot(111)
-        imagePlot = ax.imshow(image, cmap="jet", interpolation="nearest", origin='lower', extent=[0,Nrows,0,Ncols])
+        fig, ax = plt.subplots(1, 1, sharex=True, sharey=True, figsize=figsize)
 
-        # The large dynamic range of the pixel values often results in images where only
-        # the brightest stars are visible. To improve the contrast, clip the color mapping.
+        
+        image = ax.imshow(psf, cmap=colorMap, interpolation="nearest",
+                          origin='lower', extent=[0, Nrows, 0, Ncols])
 
-        #imagePlot.set_clim(np.percentile(image, 1), np.percentile(image, 99))
-
-        # If required, put the title
-
+        # If requested, set a default title
+        
         if useTitle:
-            fileBasename = os.path.splitext(self.filename)[0]                  # with the .hdf5
-            title = fileBasename + " - {}".format(datasetName)
+            fileBasename = os.path.splitext(self.filename)[0]   # with the .hdf5
+            title = f"{fileBasename} - {datasetName}"
             plt.title(title)
 
-        # By default, matplotlib only shows the (x,y) coordinates of each pixel, but not the pixel value itself.
-        # Change this by redefining the ax.format_coord
+        # If requested, set colorbar
 
-        # Nrows, Ncols = image.shape
-        # def format_coord(x, y):
-        #     col = int(x+0.5)
-        #     row = int(y+0.5)
-        #     if col>=0 and col<Ncols and row>=0 and row<Nrows:
-        #         z = image[row,col]
-        #         return "x={:.1f}, y={:.1f}, z={:.1f}".format(x, y, z)
-        #     else:
-        #         return "x={:.1f}, y={:.1f}".format(x, y)
-
-        # ax.format_coord = format_coord
-
-        # plt.xticks(np.arange(0, Nrows, 10))
-        # plt.yticks(np.arange(0, Ncols, 10))
-
+        if colorBar:
+            plt.colorbar(image, orientation='vertical', extend='max',
+                         cmap=colorMap, aspect=15, fraction=0.06)
+            
         # Labels
-
-        plt.xlabel("x [subpixel]")
-        plt.ylabel("y [subpixel]")
         
-        # Show the image
+        ax.set_xlabel(r"$x$ [subpixel]")
+        ax.set_ylabel(r"$y$ [subpixel]")
 
-        plt.draw()
-        plt.show()
+        # Limits
+        
+        ax.set_xlim(0, Nrows)
+        ax.set_ylim(0, Ncols)
 
+        # Ticks
+        
+        ax.set_xticks(np.linspace(0, Nrows+1, 5))
+        ax.set_yticks(np.linspace(0, Ncols+1, 5))
+
+        # Settings
+        
+        plt.tight_layout()
+        
         # That's it!
 
-        return
+        return fig, ax
 
 
 
