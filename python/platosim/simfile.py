@@ -61,10 +61,10 @@ class SimFile (object):
 
 
 
-    
+
     def reload(self):
         """
-        Close the file, and reload it. 
+        Close the file, and reload it.
         Useful when the file may have changed meanwhile.
         """
 
@@ -74,15 +74,17 @@ class SimFile (object):
 
 
 
+
     def checkPhotometry(self):
         # Check that photometry has been saved
 
         if "Photometry" not in self.hdf5file["/"].keys():
             ut.errorcode("error", "No photometry present in the HDF5 file!")
 
-    
-    
-    
+
+
+
+            
     #--------------------------------------------------------------#
     #                    SIMULATION PARAMETERS                     #
     #--------------------------------------------------------------#
@@ -95,7 +97,7 @@ class SimFile (object):
         INPUT: groupName: a parameter group as present in the Yaml input file (e.g. "Platform", "Camera")
                parameterName: name of the input parameter as present in the Yaml input file (e.g. "CycleTime")
         OUTPUT: value of the input parameter
-        EXAMPLE: 
+        EXAMPLE:
             >>> file = SimFile("Simul01.hdf5")
             >>> file.getInputParameter("ObservingParameters", "CycleTime")
             23.0
@@ -105,7 +107,7 @@ class SimFile (object):
 
 
 
-    
+
 
     def getTime(self):
 
@@ -122,9 +124,9 @@ class SimFile (object):
             time = np.array(self.hdf5file["StarPositions/Time"])
             return pd.DataFrame({"time": time})
 
-        
-        
-    
+
+
+
 
     def getExposureTime(self):
 
@@ -141,9 +143,9 @@ class SimFile (object):
         return cycleTime - readoutTimeBeforeNextExposure
 
 
-    
 
-    
+
+
     def getTimeOffset(self):
 
         """
@@ -186,7 +188,7 @@ class SimFile (object):
                 index = int(ccdPosition[0]) - 1
             else:
                 index = int(ccdPosition) - 1
-            
+
             numRows    = self.getInputParameter("CCDPositions", "NumRows")[index]
             numColumns = self.getInputParameter("CCDPositions", "NumColumns")[index]
 
@@ -201,47 +203,47 @@ class SimFile (object):
         serialTransferTime       = self.getInputParameter("CCD", "SerialTransferTime")       * 1e-9
         parallelTransferTime     = self.getInputParameter("CCD", "ParallelTransferTime")     * 1e-6
         parallelTransferTimeFast = self.getInputParameter("CCD", "ParallelTransferTimeFast") * 1e-6
-        
+
         numColumnsBiasMap  = self.getInputParameter("SubField", "NumBiasPrescanColumns")
         numRowsSmearingMap = self.getInputParameter("SubField", "NumSmearingOverscanRows")
-        
+
         #Both detector halves are read out simultaneously
         # -> columns read out by the FEE:
         # 	- half of the CCD
         # 	- serial pre-scan
         # 	- (serial over-scan)
-        
+
         numColumnsReadout = numColumns / 2 + numColumnsBiasMap # + numRowsSerialOverScan
-        
+
         # How many rows will be actually read out by the FEE?
         #  	- nominal mode: image area + parallel over-scan
         #       normal camera: image area = whole CCD
         #       fast camera: image area = lower half of the CCD
         # 	- partial readout: configurable
         # The rest of the image area will be dumped
-        
+
         numRowsReadout = 0
         numRowsDump = 0
-        
+
         #############
         # Fast camera
         #############
-        
+
         if isFastCamera:
-            
+
             # Move the upper half of the CCD down to the lower half, row-by-row
-            
+
             numRowsFrameTransfer = numRows - firstRowExposed
-            
+
             readoutTimeBeforeNextExposure = numRowsFrameTransfer * parallelTransferTimeFast
-            
+
             # The actual readout of the lower half of the CCD (after frame transfer) is done
             # while the next exposure has already started
 
             # Nominal mode
-            
+
             if readoutMode == "Nominal":
-                
+
                 numRowsReadout = firstRowExposed + numRowsSmearingMap
                 numRowsDump = 0
 
@@ -253,47 +255,47 @@ class SimFile (object):
 
                 numRowsReadout = self.getInputParameter("CCD/ReadoutMode/Partial", "NumRowsReadout")
                 numRowsDump = firstRowExposed - numRowsReadout
-            
+
             readoutTimeDuringNextExposure = numRowsDump * parallelTransferTimeFast \
                 + numRowsReadout * (parallelTransferTime + numColumnsReadout * serialTransferTime)
-        
+
         ###############
         # Normal camera
         ###############
 
         else:
-            
+
             # Nominal mode (full-frame readout)
-            
+
             if readoutMode == "Nominal":
 
                 # Rows read out by the FEE:
                 #  		- rows of image area
                 #  		- parallel over-scan
-                
+
                 numRowsReadout = numRows + numRowsSmearingMap
-                
+
                 # No rows dumped
-                
+
                 numRowsDump = 0
-            
+
             # Partial readout
-            
+
             elif readoutMode == "Partial":
-                
+
                 # Rows read out by the FEE: rows in the block (other rows in image area are dumped)
                 # Note: no parallel over-scan
-                
+
                 numRowsReadout = self.getInputParameter("CCD/ReadoutMode/Partial", "NumRowsReadout")
                 numRowsDump = numRows - numRowsReadout
-            
+
             readoutTimeBeforeNextExposure = numRowsDump * parallelTransferTimeFast \
 				+ numRowsReadout * (numColumnsReadout * serialTransferTime + parallelTransferTime)
             readoutTimeDuringNextExposure = 0
 
         return readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure
 
-    
+
 
     #--------------------------------------------------------------#
     #                          PIXEL MAPS                          #
@@ -305,12 +307,12 @@ class SimFile (object):
         """
         Return the throughput map for the given exposure.
         """
-        
+
         return self.hdf5file["/ThroughputMaps/throughputMap{0:06d}".format(imageNr)]
 
 
 
-    
+
 
     def getSmearingMap(self, exposureNr):
         """
@@ -344,10 +346,10 @@ class SimFile (object):
 
 
 
-        
+
     def getBiasMapLeft(self, exposureNr):
         """
-        PURPOSE: extract the bias map of the given exposure # 
+        PURPOSE: extract the bias map of the given exposure #
         from the HDF5 file (if present) for the left detector half
 
         INPUT: exposureNr: integer sequential number of the bias map
@@ -372,14 +374,14 @@ class SimFile (object):
             dataset.read_direct(biasMap)
             return biasMap
 
-        
+
 
 
 
     def getBiasMapRight(self, exposureNr):
 
         """
-        PURPOSE: extract the bias map of the given exposure from 
+        PURPOSE: extract the bias map of the given exposure from
         the HDF5 file (if present) for the left detector half
 
         INPUT: exposureNr: integer sequential number of the bias map
@@ -412,7 +414,7 @@ class SimFile (object):
 
         """
         PURPOSE: retrieve the Pixel Response Non-Uniformity map from the HDF5 file
-                 for the subfield on the CCD that was simulated. 
+                 for the subfield on the CCD that was simulated.
 
         INPUT: None
 
@@ -472,8 +474,8 @@ class SimFile (object):
 
 
 
-        
-        
+
+
     def getImage(self, imageNr):
         """
         PURPOSE: extract the image with seq. nr. 'imageNr' from the HDF5 file (if present)
@@ -496,7 +498,7 @@ class SimFile (object):
             dataset = self.hdf5file["Images"][imageName]
             image = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(image)
-            return image 
+            return image
 
 
 
@@ -507,8 +509,8 @@ class SimFile (object):
         """
         PURPOSE: returns a small square imagette around a specified star in a specified image.
 
-        INPUT: starID: integer star identifier. Equals the line number of the star in the input 
-                       star catalog (counting from 0). 
+        INPUT: starID: integer star identifier. Equals the line number of the star in the input
+                       star catalog (counting from 0).
                imageNr: integer sequential number of the image in the HDF5 file
                radius: output imagette has size 2*radius+1 pixels in both x and y direction. [pixels]
 
@@ -530,7 +532,7 @@ class SimFile (object):
             dataset = self.hdf5file["Images"][imageName]
             image = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(image)
-        
+
 
         # Get a list of the stars visible in the subimage and their coordinates
         # Check if our star is in this list. If not, complain.
@@ -559,12 +561,12 @@ class SimFile (object):
 
 
 
-        
+
 
     def getSubPixelImage(self, exposureNr):
 
         """
-        PURPOSE: extract the subpixel image (if present) 
+        PURPOSE: extract the subpixel image (if present)
         with seq. nr. 'exposureNr' from the HDF5 file
 
         INPUT: exposureNr: integer sequential number of the subpixel image
@@ -588,12 +590,12 @@ class SimFile (object):
                 dataset = self.hdf5file["SubPixelImages"][subPixelImageName]
                 subPixelImage = np.zeros(dataset.shape, dataset.dtype)
                 dataset.read_direct(subPixelImage)
-                return subPixelImage 
+                return subPixelImage
 
 
 
 
-            
+
     def getPSF(self, datasetName):
 
         """
@@ -615,7 +617,7 @@ class SimFile (object):
             dataset = self.hdf5file["PSF"][datasetName]
             image = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(image)
-            return image 
+            return image
 
 
 
@@ -650,11 +652,11 @@ class SimFile (object):
             cube = np.zeros((nimg, nrow, ncol))
             for i in range(nimg):
                 cube[i,:,:] = np.array(self.hdf5file["Images"][imgNames[i]])
-            return cube 
+            return cube
 
 
 
-        
+
 
     #--------------------------------------------------------------#
     #                         SAVE PIXEL MAPS                      #
@@ -683,11 +685,11 @@ class SimFile (object):
 
 
 
-            
+
     def saveImagesToFITS(self, fileName):
         """
         Save all subfield images in the HDF5 file to a FITS file with the given file name.
-        This will go horribly wrong when the number of images is too large or when the images 
+        This will go horribly wrong when the number of images is too large or when the images
         themselves are too large.
         """
 
@@ -701,7 +703,7 @@ class SimFile (object):
             else:
                 hdu = fits.ImageHDU(image, name=imageName)
             hduList.append(hdu)
-        
+
         myFits = fits.HDUList(hduList)
         myFits.writeto(fileName)
 
@@ -712,7 +714,7 @@ class SimFile (object):
     def saveSmearingMapsToFITS(self, fileName):
             """
             Save all smearing maps in the HDF5 file to a FITS file with the given file name.
-            This will go horribly wrong when the number of exposures is too large or when the maps 
+            This will go horribly wrong when the number of exposures is too large or when the maps
             themselves are too large.
             """
 
@@ -726,7 +728,7 @@ class SimFile (object):
                 else:
                     hdu = fits.ImageHDU(image, name=imageName)
                 hduList.append(hdu)
-            
+
             myFits = fits.HDUList(hduList)
             myFits.writeto(fileName)
 
@@ -737,7 +739,7 @@ class SimFile (object):
     def saveBiasMapsLeftToFITS(self, fileName):
         """
         Save all bias maps in the HDF5 file to a FITS file with the given file name.
-        This will go horribly wrong when the number of exposures is too large or when the maps 
+        This will go horribly wrong when the number of exposures is too large or when the maps
         themselves are too large.
         """
 
@@ -754,15 +756,15 @@ class SimFile (object):
 
         myFits = fits.HDUList(hduList)
         myFits.writeto(fileName)
-            
-            
-            
-            
-            
+
+
+
+
+
     def saveBiasMapRightToFITS(self, fileName):
         """
         Save all bias maps in the HDF5 file to a FITS file with the given file name.
-        This will go horribly wrong when the number of exposures is too large or when the maps 
+        This will go horribly wrong when the number of exposures is too large or when the maps
         themselves are too large.
         """
 
@@ -779,6 +781,7 @@ class SimFile (object):
 
         myFits = fits.HDUList(hduList)
         myFits.writeto(fileName)
+
 
 
     #--------------------------------------------------------------#
@@ -1041,11 +1044,12 @@ class SimFile (object):
 
 
         
+
     #--------------------------------------------------------------#
     #                         PLOT FUNCTIONS                       #
     #--------------------------------------------------------------#
 
-    
+
     def showImage(self, imageNr=False, clipPercentile=5.0, imgScale="clip",
                   showStarPositions=False, showPointLikeGhostPositions=False,
                   minVmag=None, maxVmag=None, showStarIDs=False,
@@ -1070,7 +1074,7 @@ class SimFile (object):
             minmax : Scale image from min to max image value
         showStarPositions: bool
             False : Default
-            True  : Plot the average star positions (averaged over the exposure) 
+            True  : Plot the average star positions (averaged over the exposure)
             "PIC" : Differentiate between a target and contaminants (useful for imagettes)
         showPointLikeGhostPositions: bool
             False : Default
@@ -1098,7 +1102,7 @@ class SimFile (object):
         showGrid: bool -> False
             option to select a dim gray grid for a higher visibility of teh pixel grid.
             Will only be executed if showGrid=True is set.
-        
+
         Return
         ------
         fig, ax : object
@@ -1142,27 +1146,30 @@ class SimFile (object):
         image   = image / 1000.
         img_min = image.min()
         img_max = image.max()
-        
+        img_mean = image.mean()
+        img_std = image.std()
+
         if imgScale == "clip":
             image *= 1000.
             clabel  = "Counts [ADU]"
             vmin   = np.percentile(image, clipPercentile).astype(int)
             vmax   = np.percentile(image, 100-clipPercentile).astype(int)
             norm   = Normalize(vmin, vmax)
-                        
+
         elif imgScale == "minmax":
             vmin = img_min
             vmax = img_max
             norm = Normalize(img_min, img_max)
-            
+
         elif imgScale == 'log':
             vmin, vmax = image.min(), image.max()
             norm   = LogNorm(vmin, vmax)
 
         elif imgScale == "auto":
-            image = ut.imageNorm(image, "linear", sigma=0.5)
+            sigma = 0.5
+            image = ut.imageNorm(image, "linear", sigma=sigma)
             vmin, vmax = image.min(), image.max()
-            norm  = Normalize(vmin, vmax)
+            norm = None  # Image is already normalized to [0,1]
 
         else:
             ut.errorcode("error", "Not valid scaling for imgScale!")
@@ -1178,9 +1185,9 @@ class SimFile (object):
                                     origin=origin, extent=[0, Nrows, 0, Ncols], zorder=0)
 
         # Add colorbar if requested
-        
+
         if colorBar:
-            cbar = fig.colorbar(imagePlot, extend='max', shrink=0.84, pad=0.015)
+            cbar = fig.colorbar(imagePlot, extend='both', shrink=0.84, pad=0.015)
             cbar.set_label(clabel, fontsize=fontSize, labelpad=3)
             cbar.ax.tick_params(labelsize=fontSize)
 
@@ -1188,18 +1195,29 @@ class SimFile (object):
             if imgScale == "log":
                 cbar.ax.tick_params(which='minor', right=False, labelright=False)
 
-            # Adjust the colorbar to correct ADU calues 
-            if not imgScale == "clip":
-                ticks_loc1  = np.linspace(vmin, vmax, 6)
-                ticks_loc2  = np.linspace(img_min, img_max, 6)
-                ticks_label = [f"{i:.1f}" for i in ticks_loc2]
+            # Adjust the colorbar to correct ADU values
+            if imgScale == "log":
+                ticks_loc1  = np.logspace(np.log10(vmin), np.log10(vmax), 6)
+                ticks_loc2  = np.logspace(np.log10(img_min), np.log10(img_max), 6)
+                ticks_label = [f"{i:.2f}" for i in ticks_loc2]
                 cbar.locator     = ticker.FixedLocator(ticks_loc1)
                 cbar.formatter   = ticker.FixedFormatter(ticks_label)
                 cbar.update_ticks()
-                
-                
-        # If requiered, overplot a gray semi-transparent grid
-        # Note: this is only meaningsful for smaller imagettes
+
+            # Adjust the colorbar to correct ADU values for auto-scaling
+            if imgScale == "auto":
+                ticks_loc1 = np.linspace(vmin, vmax, 6)
+                scale_min = img_mean - sigma*img_std
+                first_tick = vmin*(2*sigma*img_std)+scale_min
+                last_tick = vmax*(2*sigma*img_std)+scale_min
+                ticks_loc2 = np.linspace(first_tick, last_tick, 6)
+                ticks_label = [f"{i:.1f}" for i in ticks_loc2]
+                cbar.locator = ticker.FixedLocator(ticks_loc1)
+                cbar.formatter = ticker.FixedFormatter(ticks_label)
+                cbar.update_ticks()
+
+        # If required, overplot a gray semi-transparent grid
+        # Note: this is only meaningful for smaller imagettes
 
         if showGrid is True:
             ax.grid(c='gray', ls='-', alpha=0.5, zorder=1)
@@ -1222,13 +1240,13 @@ class SimFile (object):
             # Allow differentiating between a target and its contaminants
             if showStarPositions == 'PIC':
                 lw = 0.06 * fontSize
-                mag = -2.5*np.log10(flux) + 25                
+                mag = -2.5*np.log10(flux) + 25
                 ax.scatter(col[0], row[0], s=tarMarkerSize, marker='o', c='lime', edgecolor='k', linewidth=lw, zorder=4)
                 if len(col) > 1:
                     dm  = mag[1:] - mag[0]*np.ones(len(mag)-1)
                     conMarkerSize = tarMarkerSize - np.abs(tarMarkerSize - tarMarkerSize/dm).astype(int)
                     ax.scatter(col[1:], row[1:], s=conMarkerSize, marker='o', c='gold', edgecolor='k', linewidth=lw, zorder=4)
-                    
+
             # Or hightligth all stars the same
             else:
                 ax.scatter(col, row, marker='x', c='g')
@@ -1300,31 +1318,31 @@ class SimFile (object):
 
         plt.xlabel(r"$x$ [pixel]", fontsize=fontSize)
         plt.ylabel(r"$y$ [pixel]", fontsize=fontSize)
-        
+
         # Plot with or without a slider
-        
+
         if imageNr is False:
 
             # Function to update slider
-            
+
             def update_image(n=0):
                 image = images[n]
                 imagePlot.set_data(image)
                 fig.canvas.draw()
 
             # Create slider
-            
+
             slider = widgets.IntSlider(description='Image:',
                                        value=0, min=0, max=Nimg-1, step=1,
                                        layout=widgets.Layout(width='70%'))
             widgets.interact(update_image, n=slider)
-            
+
         else:
             plt.draw()
             plt.show()
-            
+
         # That's it!
-        
+
         return fig, ax
 
 
@@ -1337,7 +1355,7 @@ class SimFile (object):
         PURPOSE: make a plot of the requested PSF
 
         INPUT: datasetName: the name of the dataset that contains the PSF in the HDF5 file
-               This is set by the Simulator and is currently: 
+               This is set by the Simulator and is currently:
                     rebinnedPSFpixel, rebinnedPSFsubPixel,  or  rotatedPSF
                useTitle: True is a title should be plotted, False otherwise
 
@@ -1346,8 +1364,9 @@ class SimFile (object):
 
         # Get the image from the HDF5 file
         # Flip (left-right) the image, then rotate it 90 degrees. This way the smearing lines
-        # are vertical, and the image is oriented in such a way that overplotting the 
+        # are vertical, and the image is oriented in such a way that overplotting the
         # star x,y coordinates from getStarPixelCoordinates() becomes straightforward.
+
 
         psf = np.rot90(np.fliplr(self.getPSF(datasetName)))
         Nrows, Ncols = psf.shape
@@ -1405,7 +1424,7 @@ class SimFile (object):
 
 
     def getYawPitchRoll(self, getTime = False):
-    
+
         """
         PURPOSE: Get the yaw, pitch and roll angle values at the end of each exposure
 
@@ -1415,7 +1434,7 @@ class SimFile (object):
                 pitch: [arcsec]
                 roll: [arcsec]
 
-        NOTE: The yaw, pitch, roll values at the end of an exposure are not the same as the ones at 
+        NOTE: The yaw, pitch, roll values at the end of an exposure are not the same as the ones at
               the beginning of the next exposure, because between two exposures there is the CCD readout time
               during which the ACS jitter continues.
         """
@@ -1440,7 +1459,7 @@ class SimFile (object):
 
         if (getTime):
             # Extract the time values
-            
+
             dataset = self.hdf5file["ACS"]["Time"]
             time    = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(time)
@@ -1456,7 +1475,7 @@ class SimFile (object):
 
     def getYawPitchRollFromDrift(self, getTime = False):
         """
-        PURPOSE: Get the telescop yaw, pitch and roll angle values at the end of each exposure 
+        PURPOSE: Get the telescop yaw, pitch and roll angle values at the end of each exposure
 
         INPUT: set to False by defaut, if True the function also returns the drift time
 
@@ -1464,7 +1483,7 @@ class SimFile (object):
                 pitch: [arcsec]
                 roll: [arcsec]
 
-        NOTE: The yaw, pitch, roll values at the end of an exposure are not the same as the ones at 
+        NOTE: The yaw, pitch, roll values at the end of an exposure are not the same as the ones at
               the beginning of the next exposure, because between two exposures there is the CCD readout time
               during which the drift continues.
         """
@@ -1489,7 +1508,7 @@ class SimFile (object):
 
         if (getTime):
             # Extract the time values
-            
+
             dataset = self.hdf5file["Telescope"]["Time"]
             time    = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(time)
@@ -1501,7 +1520,7 @@ class SimFile (object):
 
 
 
-        
+
 
     def getPlatformPointingCoordinates(self):
 
@@ -1513,7 +1532,7 @@ class SimFile (object):
         OUTPUT: rightAscension:  [degrees]
                 declination: [degrees]
 
-        NOTE: The coordinate values at the end of an exposure are not the same as the ones at 
+        NOTE: The coordinate values at the end of an exposure are not the same as the ones at
               the beginning of the next exposure, because between two exposures there is the CCD readout time
               during which the ACS jitter continues.
         """
@@ -1535,23 +1554,23 @@ class SimFile (object):
         return rightAscension, declination
 
 
-    
+
 
     #--------------------------------------------------------------#
     #                       STELLAR INFORMATION                    #
     #--------------------------------------------------------------#
-    
+
 
     def getStarCatalog(self):
 
         """
-        PURPOSE: retrieve a catalog of stars that were observed during the time series. Most stars 
-                 are observed during every exposure, but at the edge of the subfield some stars may 
-                 be observed during a few exposures only, depending on the ACS. The source of the 
-                 information is the Star Input Catalog that the user specified before running the 
+        PURPOSE: retrieve a catalog of stars that were observed during the time series. Most stars
+                 are observed during every exposure, but at the edge of the subfield some stars may
+                 be observed during a few exposures only, depending on the ACS. The source of the
+                 information is the Star Input Catalog that the user specified before running the
                  simulation.
 
-                 The initial planar focal plane and pixel coordinates are the coordinates of the 
+                 The initial planar focal plane and pixel coordinates are the coordinates of the
                  stars on the CCD before any Jitter or thermal distortions took place. Field distortion
                  is however taken into account when requested by the user in the YAML input file.
 
@@ -1683,25 +1702,25 @@ class SimFile (object):
                         Should be 'None' if no cut in minimum magnitude should be made.
 
         OUTPUT: starIDs: integer numpy array containing the star identifiers of those
-                         stars visible in the current image (subfield). The star 
-                         identifier equals the line number of the star in the input 
-                         star catalog (counting from 0). 
+                         stars visible in the current image (subfield). The star
+                         identifier equals the line number of the star in the input
+                         star catalog (counting from 0).
                 row: The pixel row coordinates of each star in the image (float).
                 col: The pixel column coordinates of each star in the image (float).
                 Xmm: The focal plane FP' x-coordinates of each star in the image
                 Ymm: The focal plane FP' y-coordinates of each star in the image
                 flux: The flux of each star in the image [photons]
 
-        REMARKS: 
+        REMARKS:
             - The coordinates returned are the time-averaged coordinates of the stars during the exposure.
 
             - To get the pixel with the higest flux of star #0, given its (row, col) coordinates:
               >>> im = file.getImage(0)
-              >>> ID, row, col, Xmm, Ymm, flux = file.getStarCoordinates(4, minVmag=6.0, maxVmag=9.0)  
+              >>> ID, row, col, Xmm, Ymm, flux = file.getStarCoordinates(4, minVmag=6.0, maxVmag=9.0)
               >>> im[int(row[0]), int(col[0])]
 
-            - To use this function to overplot the positions of the stars on an image plotted by 
-              showImage(), use plt.scatter(floor(col), floor(row)) because showImage uses 
+            - To use this function to overplot the positions of the stars on an image plotted by
+              showImage(), use plt.scatter(floor(col), floor(row)) because showImage uses
               matplotlib.imshow() which switches rows and columns.
         """
 
@@ -1791,20 +1810,20 @@ class SimFile (object):
 
         return self.hdf5file["/Background/skyBackground"][imageNr]
 
-    
 
 
-    
+
+
     def getCosmicsInfo(self, imageNr, field="SubField"):
         """
         PURPOSE: returns for all cosmics that hit the CCD in a given field, the entry rows, the entry columns,
-                 the entry angles, the intensities, and the trail lengths. If this information is not stored in 
+                 the entry angles, the intensities, and the trail lengths. If this information is not stored in
                  the HDF5 file, it return (None, None, None, None, None)
 
         INPUT:
             - imageNr: Integer sequential number of the image in the HDF5 file.
             - field: String that determines from what field the Cosmics should be returned. Can be:
-                     "SubField", "BiasMapLeft", "BiasMapRight" or "SmearingMap". 
+                     "SubField", "BiasMapLeft", "BiasMapRight" or "SmearingMap".
                      If input doesn't match any of these values the function returns (None, None, None, None).
 
         OUTPUT:
@@ -1885,12 +1904,12 @@ class SimFile (object):
     def getCosmicsAffectedPixels(self, imageNr, field="SubField"):
         """
         PURPOSE: Get the pixel coordinates and flux for those pixels that are affected by a cosmics,
-                 for a particular field (e.g. SubField, SmearingMap, etc). 
+                 for a particular field (e.g. SubField, SmearingMap, etc).
 
-        INPUT: 
+        INPUT:
             - imageNr: Integer sequential number of the image in the HDF5 file.
             - field: String that determines from what field the Cosmics should be returned. Can be:
-                     "SubField", "BiasMapLeft", "BiasMapRight" or "SmearingMap". 
+                     "SubField", "BiasMapLeft", "BiasMapRight" or "SmearingMap".
                      If input doesn't match any of these values the function returns (None, None, None).
 
         OUTPUT:
@@ -1964,11 +1983,11 @@ class SimFile (object):
                        the originating star is brighter than maxVmag.
                        Should be 'None' if no cut in maximum magnitude should be made.
 
-        OUTPUT: 
+        OUTPUT:
             - starIDs: Integer numpy array containing the star IDs of the stars (as mentioned in the
                        input catalogue) that cause point-like ghosts in the current image.  If no star ID
-                       was given in the input star catalogue file, the identifier equals the line number 
-                       of the star in the input star catalogue (counting from 0). 
+                       was given in the input star catalogue file, the identifier equals the line number
+                       of the star in the input star catalogue (counting from 0).
             - row: Pixel row coordinates of each star in the image (float).
             - col: Pixel column coordinates of each star in the image (float).
             - Xmm: Focal-plane x-coordinates of each star in the image.
@@ -1976,16 +1995,16 @@ class SimFile (object):
             - flux: Flux of each point-like ghost in the image [photons].
 
 
-        REMARKS: 
+        REMARKS:
             - The coordinates returned are the time-averaged coordinates of the point-like ghosts during the exposure.
 
             - To get the pixel with the higest flux of star #0, given its (row, col) coordinates:
               >>> im = file.getImage(0)
-              >>> ID, row, col, Xmm, Ymm, flux = file.getPointLikeGhostCoordinates(4, minVmag=6.0, maxVmag=9.0)  
+              >>> ID, row, col, Xmm, Ymm, flux = file.getPointLikeGhostCoordinates(4, minVmag=6.0, maxVmag=9.0)
               >>> im[int(row[0]), int(col[0])]
 
-            - To use this function to overplot the positions of the point-like ghost on an image plotted by 
-              showImage(), use plt.scatter(floor(col), floor(row)) because showImage uses 
+            - To use this function to overplot the positions of the point-like ghost on an image plotted by
+              showImage(), use plt.scatter(floor(col), floor(row)) because showImage uses
               matplotlib.imshow() which switches rows and columns.
         """
 
@@ -2092,11 +2111,11 @@ class SimFile (object):
                        the originating star is brighter than maxVmag.
                        Should be 'None' if no cut in maximum magnitude should be made.
 
-        OUTPUT: 
+        OUTPUT:
             - starIDs: Integer numpy array containing the star IDs of the stars (as mentioned in the
                        input catalogue) that cause extended ghosts in the current image.  If no star ID
-                       was given in the input star catalogue file, the identifier equals the line number 
-                       of the star in the input star catalogue (counting from 0). 
+                       was given in the input star catalogue file, the identifier equals the line number
+                       of the star in the input star catalogue (counting from 0).
             - row: Pixel row coordinates of each star in the image (float).
             - col: Pixel column coordinates of each star in the image (float).
             - Xmm: Focal-plane x-coordinates of each star in the image.
@@ -2104,16 +2123,16 @@ class SimFile (object):
             - flux: Flux of each extended ghost in the image [photons].
             - radius: Radius of the extended ghost [mm].
 
-        REMARKS: 
+        REMARKS:
             - The coordinates returned are the time-averaged coordinates of the extended ghosts during the exposure.
 
             - To get the pixel with the higest flux of star #0, given its (row, col) coordinates:
               >>> im = file.getImage(0)
-              >>> ID, row, col, Xmm, Ymm, flux, radius = file.getExtendedGhostCoordinates(4, minVmag=6.0, maxVmag=9.0)  
+              >>> ID, row, col, Xmm, Ymm, flux, radius = file.getExtendedGhostCoordinates(4, minVmag=6.0, maxVmag=9.0)
               >>> im[int(row[0]), int(col[0])]
 
-            - To use this function to overplot the positions of the extended ghost on an image plotted by 
-              showImage(), use plt.scatter(floor(col), floor(row)) because showImage uses 
+            - To use this function to overplot the positions of the extended ghost on an image plotted by
+              showImage(), use plt.scatter(floor(col), floor(row)) because showImage uses
               matplotlib.imshow() which switches rows and columns.
         """
 
