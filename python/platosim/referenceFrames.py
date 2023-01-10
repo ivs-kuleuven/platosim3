@@ -788,45 +788,6 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
     yUndis = np.zeros(y.shape, y.dtype)
     y.read_direct(yUndis)
 
-    distanceFromPoint = [(xFPmm - x)**2 + (yFPmm - y)**2 for x, y in zip(xUndis, yUndis)]
-    areColinear = lambda x, y : abs(np.inner(np.cross(x, y), np.array([1, 1, 1]))) < 1e-5
-
-    # We should select the closest three undistorted and noncolinear points to the input point
-
-    idx = [distanceFromPoint.index(np.sort(distanceFromPoint)[i]) for i in [0, 1, 2]]
-    closestX, closestY = np.array([xUndis[idx[0]], xUndis[idx[1]], xUndis[idx[2]]]), np.array([yUndis[idx[0]], yUndis[idx[1]], yUndis[idx[2]]])
-    i = 2
-
-    while(areColinear(closestX, closestY) and i < len(distanceFromPoint)):
-        idx[2] = distanceFromPoint.index(np.sort(distanceFromPoint)[i+1])
-        closestX, closestY = np.array([xUndis[idx[0]], xUndis[idx[1]], xUndis[idx[2]]]), np.array([yUndis[idx[0]], yUndis[idx[1]], yUndis[idx[2]]])
-        i = i + 1
-
-    # We make sure that the first index of the origin of the reference frame corresponds to the first index in idx. 
-
-    distanceBetweenPoints = [(closestX[i%3] - closestX[(i+1)%3])**2 + (closestY[i%3] - closestY[(i+1)%3])**2 for i in [1, 2, 3]]
-    indexOfAngle          = distanceBetweenPoints.index(np.max(distanceBetweenPoints))
-
-    if not indexOfAngle == 0:
-        idx0 = idx[0]
-        idx[0] = idx[indexOfAngle]
-        idx[indexOfAngle] = idx0
-
-    # The input points can be expressed as: xFPmm = rx[0] + a1 * rx[1] + a2 * rx[2]
-    #                                       yFPmm = ry[0] + a1 * ry[1] + a2 * ry[2]
-
-    rx = [ xUndis[i] - xUndis[idx[0]] if not i == idx[0] else xUndis[i] for i in idx]
-    ry = [ yUndis[i] - yUndis[idx[0]] if not i == idx[0] else yUndis[i] for i in idx]
-    deltaX, deltaY = xFPmm - rx[0], yFPmm - ry[0]
-
-    det = (rx[1]*rx[1] + ry[1]*ry[1])*(rx[2]*rx[2] + ry[2]*ry[2]) - (rx[1]*rx[2] + ry[1]*ry[2])*(rx[1]*rx[2] + ry[1]*ry[2])
-    a1  = ((rx[2]*rx[2] + ry[2]*ry[2])*(deltaX*rx[1] + deltaY*ry[1]) - (rx[1]*rx[2] + ry[1]*ry[2])*(deltaX*rx[2] + deltaY*ry[2]))/det
-    a2  = ((rx[1]*rx[1] + ry[1]*ry[1])*(deltaX*rx[2] + deltaY*ry[2]) - (rx[1]*rx[2] + ry[1]*ry[2])*(deltaX*rx[1] + deltaY*ry[1]))/det
-
-    # The distorted FP coordinates can then be estimated as:
-    #   xFPdist = rxDist[0] + a1 * rxDist[1] + a2 * rxDist[2]
-    #   yFPdist = ryDist[0] + a1 * rxDist[1] + a2 * ryDist[2]
-
     distorted = coordMap["Distorted"]
 
     x = distorted["x"]
@@ -837,11 +798,46 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
     yDist = np.zeros(y.shape, y.dtype)
     y.read_direct(yDist)
 
-    rxd = [xDist[i] - xDist[idx[0]] if not i == idx[0] else xDist[i] for i in idx]
-    ryd = [yDist[i] - yDist[idx[0]] if not i == idx[0] else yDist[i] for i in idx]
+    distanceFromPoint = [max( (xFPmm - x)**2, (yFPmm - y)**2) for x, y in zip(xUndis, yUndis)]
 
-    xFPdist, yFPdist = xDist[idx[0]] + a1 * rxd[1] + a2 * rxd[2] , yDist[idx[0]] + a1 * ryd[1] + a2 * ryd[2]
-    return xFPdist, yFPdist
+    # We should select the closest four undistorted points to the input point
+
+    idx = list(range(len(distanceFromPoint)))
+    idx.sort(key=lambda i: distanceFromPoint[i])
+    idx = [ idx[i] for i in [0, 1, 2, 3]]
+
+
+    # We sort these points
+    first_points_idx  = [i for i in idx if (yUndis[i] < yFPmm)]
+    first_points_idx.sort(key=lambda idx: xUndis[idx])
+    second_points_idx = [i for i in idx if (yUndis[i] >= yFPmm)]
+    second_points_idx.sort(key=lambda idx: xUndis[idx])
+
+    idx = first_points_idx + second_points_idx
+
+
+    closestX, closestY = np.array([xUndis[idx[0]], xUndis[idx[1]], xUndis[idx[2]], xUndis[idx[3]]]), np.array([yUndis[idx[0]], yUndis[idx[1]], yUndis[idx[2]], yUndis[idx[3]]])
+
+    # We can write the points (xFPmm, yFPmm) as a linear combination of the
+    # four closests points around this point.
+
+    oPointIdx = [3, 2, 1, 0]
+    area = (closestX[0] - closestX[3])*(closestY[0]-closestY[3])
+
+    constants = [abs( (closestX[oPointIdx[i]] - xFPmm) *
+                      (closestY[oPointIdx[i]] - yFPmm))/ area
+                 for i in np.arange(4)]
+
+
+
+    closestXdist = np.array([ xDist[idx[i]] for i in [0,1,2,3]])
+    closestYdist = np.array([ yDist[idx[i]] for i in [0,1,2,3]])
+
+
+    xFPdist = sum([constants[i]*closestXdist[i] for i in np.arange(4)])
+    yFPdist = sum([constants[i]*closestYdist[i] for i in np.arange(4)])
+
+    return round(xFPdist, 4), round(yFPdist, 4)
 
 
 
@@ -925,54 +921,6 @@ def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPs
         coordMap = psfFile["Coordinates map"]
 
     # Calculate the distance of the distorted coordinates with the distorted input coordinates.
-    distorted = coordMap["Distorted"]
-
-    x = distorted["x"]
-    xDist = np.zeros(x.shape, x.dtype)
-    x.read_direct(xDist)
-
-    y = distorted["y"]
-    yDist = np.zeros(y.shape, y.dtype)
-    y.read_direct(yDist)
-
-    distanceFromPoint = [(xFPdist - x)**2 + (yFPdist - y)**2 for x, y in zip(xDist, yDist)]
-    areColinear = lambda x, y : abs(np.inner(np.cross(x, y), np.array([1, 1, 1]))) < 1e-5
-
-    # We should select the closest three distorted and noncolinear points to the input point
-
-    idx = [distanceFromPoint.index(np.sort(distanceFromPoint)[i]) for i in [0, 1, 2]]
-    closestX, closestY = np.array([xDist[idx[0]], xDist[idx[1]], xDist[idx[2]]]), np.array([yDist[idx[0]], yDist[idx[1]], yDist[idx[2]]])
-    i = 2
-
-    while(areColinear(closestX, closestY) and i < len(distanceFromPoint)):
-        idx[2] = distanceFromPoint.index(np.sort(distanceFromPoint)[i+1])
-        closestX, closestY = np.array([xDist[idx[0]], xDist[idx[1]], xDist[idx[2]]]), np.array([yDist[idx[0]], yDist[idx[1]], yDist[idx[2]]])
-        i = i + 1
-
-    # We make sure that the first index of the origin of the reference frame corresponds to the first index in idx. 
-
-    distanceBetweenPoints = [(closestX[i%3] - closestX[(i+1)%3])**2 + (closestY[i%3] - closestY[(i+1)%3])**2 for i in [1, 2, 3]]
-    indexOfAngle          = distanceBetweenPoints.index(np.max(distanceBetweenPoints))
-
-    if not indexOfAngle == 0:
-        idx0 = idx[0]
-        idx[0] = idx[indexOfAngle]
-        idx[indexOfAngle] = idx0
-
-    # The input points can be expressed as: xFPdist = rx[0] + a1 * rx[1] + a2 * rx[2]
-    #                                       yFPdist = ry[0] + a1 * ry[1] + a2 * ry[2]
-
-    rx = [ xDist[i] - xDist[idx[0]] if not i == idx[0] else xDist[i] for i in idx]
-    ry = [ yDist[i] - yDist[idx[0]] if not i == idx[0] else yDist[i] for i in idx]
-    deltaX, deltaY = xFPdist - rx[0], yFPdist - ry[0]
-
-    det = (rx[1]*rx[1] + ry[1]*ry[1])*(rx[2]*rx[2] + ry[2]*ry[2]) - (rx[1]*rx[2] + ry[1]*ry[2])*(rx[1]*rx[2] + ry[1]*ry[2])
-    a1  = ((rx[2]*rx[2] + ry[2]*ry[2])*(deltaX*rx[1] + deltaY*ry[1]) - (rx[1]*rx[2] + ry[1]*ry[2])*(deltaX*rx[2] + deltaY*ry[2]))/det
-    a2  = ((rx[1]*rx[1] + ry[1]*ry[1])*(deltaX*rx[2] + deltaY*ry[2]) - (rx[1]*rx[2] + ry[1]*ry[2])*(deltaX*rx[1] + deltaY*ry[1]))/det
-
-    # The undistorted FP coordinates can then be estimated as:
-    #   xFPmm = rxUnd[0] + a1 * rxUnd[1] + a2 * rxUnd[2]
-    #   yFPmm = ryUnd[0] + a1 * rxUnd[1] + a2 * ryUnd[2]
 
     undistorted = coordMap["Undistorted"]
 
@@ -984,12 +932,53 @@ def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPs
     yUndis = np.zeros(y.shape, y.dtype)
     y.read_direct(yUndis)
 
-    rxu = [xUndis[i] - xUndis[idx[0]] if not i == idx[0] else xUndis[i] for i in idx]
-    ryu = [yUndis[i] - yUndis[idx[0]] if not i == idx[0] else yUndis[i] for i in idx]
+    distorted = coordMap["Distorted"]
 
-    xFPmm, yFPmm = xUndis[idx[0]] + a1 * rxu[1] + a2 * rxu[2] , yUndis[idx[0]] + a1 * ryu[1] + a2 * ryu[2]
+    x = distorted["x"]
+    xDist = np.zeros(x.shape, x.dtype)
+    x.read_direct(xDist)
 
-    return xFPmm, yFPmm
+    y = distorted["y"]
+    yDist = np.zeros(y.shape, y.dtype)
+    y.read_direct(yDist)
+
+    distanceFromPoint = [max( (xFPdist - x)**2, (yFPdist - y)**2) for x, y in zip(xDist, yDist)]
+
+    # We should select the four closest distorted points to the input point
+
+    idx = list(range(len(distanceFromPoint)))
+    idx.sort(key=lambda i: distanceFromPoint[i])
+    idx = [idx[i] for i in [0, 1, 2, 3]]
+
+    # We sort these points
+    first_points_idx = [i for i in idx if (yDist[i] < yFPdist)]
+    first_points_idx.sort(key=lambda idx: xDist[idx])
+    second_points_idx = [i for i in idx if (yDist[i] >= yFPdist)]
+    second_points_idx.sort(key=lambda idx: xDist[idx])
+
+    idx = first_points_idx + second_points_idx
+
+    closestX, closestY = np.array([xDist[idx[0]], xDist[idx[1]], xDist[idx[2]], xDist[idx[3]]]), np.array([yDist[idx[0]], yDist[idx[1]], yDist[idx[2]], yDist[idx[3]]])
+
+    # We can write the points (xFPmm, yFPmm) as a linear combination of the
+    # four closest points around this point.
+
+    oPointIdx = [3, 2, 1, 0]
+    area = (closestX[0] - closestX[3])*(closestY[0] - closestY[3])
+
+    constants = [abs( (closestX[oPointIdx[i]] - xFPdist) *
+                      (closestY[oPointIdx[i]] - yFPdist))
+                 for i in np.arange(4)]
+    constants = [ constant / sum(constants) for constant in constants]
+
+    closestXund = np.array([ xUndis[idx[i]] for i in [0,1,2,3]])
+    closestYund = np.array([ yUndis[idx[i]] for i in [0,1,2,3]])
+
+
+    xFPmm = sum([constants[i]*closestXund[i] for i in np.arange(4)])
+    yFPmm = sum([constants[i]*closestYund[i] for i in np.arange(4)])
+
+    return round(xFPmm, 4), round(yFPmm, 4)
 
 
 
