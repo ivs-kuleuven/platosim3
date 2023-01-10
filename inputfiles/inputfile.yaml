@@ -280,7 +280,7 @@ ControlHDF5Content:
     WriteHighResolutionPSF:          no              # Determines if the high resolution PSF will be written to the HDF5 file (doesn't work for Analytic Gaussian PSF)
     WriteStarCatalog:                yes             # Determines if the starcatalog should be written to the HDF5 file
     WriteStarPositions:              yes             # Star positions are written in pixel and focal plane coordinates
-    WriteGhostPositions:             yes             # Ghost positions are written in pixel and focal plane coordinates
+    WriteGhostPositions:             no             # Ghost positions are written in pixel and focal plane coordinates
     WriteCosmics:                    yes             # Determines if the columns, rows and flux of the cosmics should be written to the HDF5 file 
     WriteACS:                        yes             # Whether to write the yaw, pitch, roll to the HDF5 file
     WriteTelescopeACS:               yes             # Determines if the platform Yaw, Pitch and Roll should be written to the HDF5 file

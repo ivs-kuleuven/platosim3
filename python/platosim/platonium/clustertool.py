@@ -15,16 +15,7 @@ parameters per image.
 For each input argument select either
 - A number  : e.g. "1"
 - A range   : e.g. "1-2"
-- Full range: i.e. "0"         (default quarterNo is 8 = 2 years)
-
-User examples:
-   python makeScriptVSC.py 1 0 1-4
-
-Before running this script all the 'user defined parameters' needs
-to be modified to ensure that the automatic estimation of needed
-nodes, cores, and memory are rigthfully calculated.
-
-Author: Nicholas Jannsen (nicholas.jannsen@kuleuven.be)
+- Full range: i.e. "0"     (default quarterNo: 8Q = 2 years)
 """
 
 import os
@@ -37,10 +28,8 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from textwrap import dedent
 
-import platosim.utilities       as ut
-import platosim.referenceFrames as rf
-from platosim.matplotlibrc import latex
-latex()
+import platosim.utilities  as ut
+import platosim.instrument as it
 
 #==============================================================#
 #                         BEGIN CLASS                          #
@@ -64,21 +53,23 @@ class InstrumentSetup(object):
         # Constants
         self.day2sec = 86400.
 
-        # Define the project
-        self.project = args.project
-
         # Output directory
-        self.odir = Path(os.getenv('PLATO_WORKDIR')) / self.project / "input"
-        
+        if args.outdir:
+            self.odir = Path(args.outdir)
+        elif args.project:
+            self.project = args.project
+            self.odir = Path(os.getenv('PLATO_WORKDIR')) / self.project / "input"
+        else:
+            self.odir = False
+            
         # Number of images in a quarter
         self.nimg = (60 * 60 * 24 * 90) / 25
 
-        # Select pointng field
+        # Provisional Long-duration Observation Phases (LOP):
         PF = {'SPF': [ 86.79870508, -46.39594703, 0.0],  # Galactic [253.0, -30.0]
               'NPF': [265.08002279,  39.5836954,  0,0]}  # Galactic [65.0,  +30.0]
-        self.ra    = PF[args.field][0]
-        self.dec   = PF[args.field][1]
-        self.kappa = PF[args.field][2]
+        # Select pointng field
+        self.ra, self.dec, self.kappa = PF[args.field]
         
         # Short-hand definitions 
         N = args.stars
@@ -280,9 +271,10 @@ class InstrumentSetup(object):
         """
 
         # Save textfile for worker
-        filename = f"{self.odir}/{prefix}.pbs"
-        with open(filename, "w") as ofile:
-            ofile.write(dedent(script).strip())
+        if self.odir:
+            filename = f"{self.odir}/{prefix}.pbs"
+            with open(filename, "w") as ofile:
+                ofile.write(dedent(script).strip())
 
 
 
@@ -307,9 +299,10 @@ class InstrumentSetup(object):
                         textfile += f"{starNo},{groupNo},{cameraNo},{quarterNo}\n"
 
         # Save textfile for worker
-        filename = f"{self.odir}/{prefix}.txt"
-        with open(filename, "w") as ofile:
-            ofile.write(dedent(textfile).strip())
+        if self.odir:
+            filename = f"{self.odir}/{prefix}.txt"
+            with open(filename, "w") as ofile:
+                ofile.write(dedent(textfile).strip())
 
 
 
@@ -366,15 +359,10 @@ class InstrumentSetup(object):
         plt.plot(df["tgap"] / self.day2sec, np.ones(df.tsim.shape[0]), "r.")
         plt.show()
         
-        #df["tsim"].applymap(lambda x: 1 if x else np.nan)
-        
-
-            
         print(df); exit()
 
         # Apply start time relative mission BOL
         self.beginExposureNr = round(self.timeStart / self.cadence)
-
         
         # Select prefix
         prefix = "instrument"
@@ -385,97 +373,47 @@ class InstrumentSetup(object):
 
 
 
-    def create_PRE(self):
+    def createPRE(self):
         """
         Function to create a Pointing Repeatability Error (PRE) file.
+        Used to realistically include errors for each pointing.
         """
 
         # Generete PRE file
-        rf.getPointingRepeatabilityError(self.ra, self.dec, self.kappa,
-                                         sigma=3, quarter=self.Q,
-                                         outdir=self.odir, show_table=True)
+        if self.odir: print("\nSaving PRE file")
+        it.getPRE(self.ra, self.dec, self.kappa, self.Q, sigma=3,
+                  outdir=self.odir + "/instrumentPRE.txt", show_table=True)
 
         
 
-    def create_APE(self):
+    def createAPE(self):
         """
-        Function to create a Absolute Pointing Error (APE) file for the camera alignments.
-        """
-
-        # Generete PRE file
-        rf.getCameraAlignmentErrors(self.ra, self.dec, self.kappa,
-                                    sigma=3, outdir=self.odir, show_table=True)
-
-
-
-    def create_TED(self):
-        """
-        Function to create a Absolute Pointing Error (APE) file for the camera alignments.
+        Function to create a Absolute Pointing Error (APE) file.
+        Used to realistically include camera misalignments errors.
         """
 
-        # Constants
-        time0 = np.arange(0, 90*self.day2sec, 25)
-        N = len(self.Q)
-        cols = ["yaw", "pitch", "roll"]
-        # Create data frame and store default time0 for fit
-        df  = pd.DataFrame()
-        df1 = pd.DataFrame()
+        # Generete APE file
+        if self.odir: print("\nSaving APE file")
+        it.getAPE(self.ra, self.dec, self.kappa, sigma=3,
+                  outdir=self.odir + "/instrumentAPE.txt", show_table=True)
 
-        for Q in range(self.Q[0]-1, self.Q[-1]):
 
-            # Time column
-            t0 = round(90. * Q * self.day2sec)
-            t1 = round(90. * (Q+1)      * self.day2sec)
-            df1["time"] = np.arange(t0, t1, 25)
 
-            # Generate a random 2nd order polynomial
-            
-            for col in cols:
-                
-                # NOTE these parameters has been compared to Prime TED
-                a = np.random.uniform(-10, 10) * 1e-14
-                b = np.random.uniform(-15, 15) * 1e-7
-                # Secure that c (the y offset) is always zero
-                c = 0
-                # Make sure that a and b always has opposite signs
-                if np.sign(a) == np.sign(b): b *= -1
-
-                # Get model fit 
-                poly = np.array([a, b, c])
-                df1[col] = np.polyval(poly, time0)
-
-            # File to save
-            df = pd.concat([df, df1])
-
-        # Plot model
-        fig, ax = plt.subplots(3,1,figsize=(10, 8))
-        # Plots
-        for i, col in zip(range(3), cols):
-            ax[i].plot(df["time"]/self.day2sec, df[col], 'k-')
-            ax[i].axhline(y=0, linestyle=':', color='k')
-            for k in range(N-1):
-                ax[i].axvline(x=self.Q[k]*90, linestyle='--', color='r')
-        # Settings
-        ax[2].set_xlabel("Time [days]")
-        ax[0].set_ylabel("Yaw [arcsec]")
-        ax[1].set_ylabel("Pitch [arcsec]")
-        ax[2].set_ylabel("Roll [arcsec]")
-        for i in range(3):
-            ax[i].set_xlim(df.time.min()/self.day2sec, df.time.max()/self.day2sec)
-        plt.show()
-
-        # Save data in one big drift text file for PlatoSim
-        if self.odir is not None:
-            print("\nSaving TED plot and file")
-            fig.savefig(f"{self.odir}/plot_pointingTED.png", bbox_inches='tight', dpi=200)
-            df.to_csv(f'{self.odir}/instrumentTED.txt', sep=" ", header=False, index=False)
-
+    def createTED(self):
+        """
+        Function to create a Absolute Pointing Error (APE) file
+        """
+        
+        # Generate TED file
+        if self.odir: print("\nSaving TED file and plot")
+        it.getTED(self.Q, outdir=self.odir + "/instrumentTED.txt", plot=True)
+        
         
 #--------------------------------------------------------------#
 #                PARSING COMMAND-LINE ARGUMENTS                #
 #--------------------------------------------------------------#
 
-software = '\nInstrument files generator'
+software = '\nInstrument file generator'
 parser = argparse.ArgumentParser(epilog=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter,
                                  description=ut.errorcode('software', software))
@@ -486,10 +424,10 @@ man_group.add_argument('stars',   type=str, help='Number of stars')
 man_group.add_argument('group',   type=str, help='Either: 1, 2, 3, 4')
 man_group.add_argument('camera',  type=str, help='Either: 1, 2, 3, 4, 5, 6')
 man_group.add_argument('quarter', type=str, help='Either: 1, 2, .. (Default Q1-Q8 -> 2 years)')
-man_group.add_argument('project', type=str, help='Name of PLATOnium project')
 
-#out_group = parser.add_argument_group('I/O PARAMETERS')
-#out_group.add_argument('-o', '--outdir', metavar='PATH', type=str, help='Output directory to save')
+out_group = parser.add_argument_group('I/O PARAMETERS')
+out_group.add_argument('-o', '--outdir',  metavar='PATH', type=str, help='Output directory to save')
+out_group.add_argument('-p', '--project', metavar='NAME', type=str, help='Name of PLATOnium project')
 
 # Initialize instance of class
 args = parser.parse_args()
@@ -499,6 +437,6 @@ x = InstrumentSetup(args)
 x.create_job_script()
 x.create_param_file()
 #x.create_time_gaps()
-x.create_PRE()
-x.create_APE()
-x.create_TED()
+x.createPRE()
+x.createAPE()
+x.createTED()

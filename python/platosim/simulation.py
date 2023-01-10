@@ -15,10 +15,13 @@ import ast
 import yaml
 import pyaml
 import inspect
+import datetime
 import subprocess
 import numpy as np
 
 import platosim.referenceFrames as rf
+import platosim.instrument      as it
+import platosim.utilities       as ut
 from platosim.simfile import SimFile
 
 
@@ -384,22 +387,27 @@ class Simulation(object):
 
 
 
-    def run(self, removeOutputFile=False, logLevel=3):
+    def run(self, removeOutputFile=False, executionTime=False, logLevel=3):
         """
         Run the PLATO Simulator.
 
-        param removeOutputFile: if the outputfile already exists before the run started, simply delete it.
+        param removeOutputFile: if the outputfile already exists before the run started, 
+        simply delete it.
         param logLevel: 1 (least verbose) to 3 (most verbose)
 
-        When PlatoSim fails for some reason and returns an error code (!= 0), an Exception is raised.
+        When PlatoSim fails for some reason and returns an error code (!= 0), 
+        an Exception is raised.
         """
-
+        
+        if executionTime:
+            tic = datetime.datetime.now()
+        
         if not self.hasTargetLocation:
             raise Exception("Output location not set for this Simulation. Set the outputDir before executing the run() method.")
 
-        inputFilename = "{}/{}.yaml".format(self.targetOutputFilesLocation, self.runName)
-        outputFilename = "{}/{}.hdf5".format(self.targetOutputFilesLocation, self.runName)
-        logFilename = "{}/{}.log".format(self.targetOutputFilesLocation, self.runName)
+        inputFilename  = f"{self.targetOutputFilesLocation}/{self.runName}.yaml"
+        outputFilename = f"{self.targetOutputFilesLocation}/{self.runName}.hdf5"
+        logFilename    = f"{self.targetOutputFilesLocation}/{self.runName}.log"
 
         if removeOutputFile:
             try:
@@ -416,18 +424,23 @@ class Simulation(object):
             if rc:
                 raise Exception("Simulation.run(): PlatoSim returned with exit code {}.".format(rc))
         else:
-            completedProcess = subprocess.run([self.platosimBuildLocation + "/platosim", inputFilename, outputFilename, logFilename, str(logLevel)], 
+            completedProcess = subprocess.run([self.platosimBuildLocation + "/platosim",
+                                               inputFilename, outputFilename, logFilename,
+                                               str(logLevel)], 
                                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-            print (str(completedProcess.stdout.decode("utf-8")))
-            print (str(completedProcess.stderr.decode("utf-8")))
+            print(str(completedProcess.stdout.decode("utf-8")))
+            print(str(completedProcess.stderr.decode("utf-8")))
             
             if completedProcess.returncode:
                 raise Exception("Simulation.run(): PlatoSim returned with exit code {}.".format(completedProcess.returncode))
-
-        simFile = SimFile(outputFilename)
-
-        return simFile 
+            
+        # Print computation time
+        if executionTime:
+            toc = datetime.datetime.now()
+            print(f"Execution time : {toc - tic} [hh:mm:ss]")
+        
+        return SimFile(outputFilename)
 
 
 
@@ -452,6 +465,45 @@ class Simulation(object):
 
 
 
+    def writeAllOutputToHDF5(self, write=True):
+
+        """
+        Function to write all or write nothing to the HDF5 file.
+
+        Return: None
+        """
+
+        # Fetch names of ControlHDF5Content attributes
+
+        group = "ControlHDF5Content"
+        entries = []
+        for name, dict_ in self.yamlDocument[group].items():
+            entries.append(name)
+
+        # Control the content
+            
+        for entry in entries:
+
+            # Set all HDF5 content parameters to "yes"
+            
+            if write:
+                self.__setitem__(f"{group}/{entry}", "yes")
+
+            # Set all HDF5 content parameters to "no"
+                
+            elif write is False:
+                self.__setitem__(f"{group}/{entry}", "no")
+
+            else:
+                ut.errorcode("error", "only 'True' or 'False' can be parsed as argument!")
+                
+        return
+
+
+
+
+
+    
 
 
     def useNominalCamera(self):
@@ -487,12 +539,14 @@ class Simulation(object):
 
                  CCD/NumColumns = 4510
                  CCD/NumRows = 2255
+                 ObservingParameters/CycleTime = 2.5
                  ObservingParameters/ExposureTime = 2.3
         """
 
         self.__setitem__("CCD/NumColumns", "4510")
         self.__setitem__("CCD/NumRows",    "2255")
-        self.__setitem__("ObservingParameters/ExposureTime", "23")
+        self.__setitem__("ObservingParameters/CycleTime", "2.5")
+        self.__setitem__("ObservingParameters/ExposureTime", "2.3")
 
         return
 
@@ -555,10 +609,10 @@ class Simulation(object):
         xCCDpixel = subfieldRowZero + subfieldSizeX / 2
 
         if not (0 <= yCCDpixel <  4510):
-            print("Error: we expect input row coordinate in [0,4510[, but value {} was given.".format(yCCDpixel))
+            print("Error: we expect input row coordinate in [0, 4510], but value {} was given.".format(yCCDpixel))
             return 
         if not (1 <= subfieldSizeY <= 4510):
-            print("Error: we expect size of the row subfield in [1,4510], but value {} was given.".format(subfieldSizeY))
+            print("Error: we expect size of the row subfield in [1, 4510], but value {} was given.".format(subfieldSizeY))
             return
         
         self.setSubfieldAroundPixelCoordinates(ccdCode, xCCDpixel, yCCDpixel, 1, 1)
@@ -765,7 +819,7 @@ class Simulation(object):
       
         # If distortion is required in the yaml input file, distort the focal plane coordinates [mm]
         if mappedDistortion:
-            xFpmm, yFPmm = rf.mappedDistortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile)
+            xFPmm, yFPmm = rf.mappedDistortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile)
         elif (includeFieldDistortion == "yes")  or (includeFieldDistortion == "1") or (includeFieldDistortion == True):
             xFPmm, yFPmm = rf.distortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, inverseDistortionCoefficients, focalLength)
 
@@ -833,25 +887,26 @@ class Simulation(object):
 
 
 
-    def createDriftFile(self, fileName, amplitude, model="linear"):
-        
-        # Fetch number of exposure
+    def createDriftFile(self, quarter, fileName, model="poly", plot=False):
+        """
+        Create a photometry file list in ascii format and sets it to the YAML input.
+ 
+        INPUT: starIDs:  IDs of the star (integers)
+               fileName: Path of the photometry file that will be written.
 
+        OUTPUT: 
+        A file will be saved, containing the star IDs that photometry should be performed on.
+        The "Telescope/UseDriftFromFile" tag in the yaml tree will be changed to the given 
+        DriftFileName.
+        """
 
-        # Set the correct output time
-        
-        # Model of yaw, pitch, roll
-        if model == 'linear':
-            x = np.linspace(0, amplitude, len(t))
-            y = x
-            z = np.zeros(len(t))
-        
-        # Save model data to file
-            
-        np.savetxt(fileName, np.transpose([t,x,y,z]), fmt=['%i', '%f', '%f', '%f'])
+        # Create TED file
 
+        it.getTED(quarter=quarter, model=model, outfile=fileName, plot=plot)
+        
         # Set this to simulation
 
+        self["Telescope/UseDrift"]         = True
         self["Telescope/UseDriftFromFile"] = True
         self["Telescope/DriftFileName"]    = fileName
 

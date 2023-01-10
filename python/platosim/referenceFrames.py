@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import h5py
 import math
 import os
@@ -8,7 +10,6 @@ import matplotlib.pyplot as plt
 from numpy import *
 from numpy.polynomial import Polynomial
 from numpy.linalg import norm
-
 
 
 
@@ -36,6 +37,8 @@ CCD = \
     '3F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': 0},
     '4F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': pi/2}
 }
+
+        
 
 
 
@@ -1732,123 +1735,6 @@ def changeOfPointing(x, y, z, phi, theta):
                   [np.sin(phi)*np.sin(theta)], 
                   [1]])
     return np.dot(R,A).T
-
-
-
-
-
-def getPointingRepeatabilityError(ra, dec, kappa, sigma=3, quarter=[1, 8], outdir=None, show_table=False):
-    """
-    TODO under development!
-
-    PURPOSE: 
-             
-    INPUT:
-
-    OUTPUT:
-    """
-
-    # Sort input quarters
-    n = len(quarter)
-    
-    # Coordinates
-    ICRS = np.array([ra, dec, kappa])
-    
-    # Pointing Reproducibility Error (PRE) in P/L reference frame (yaw, pitch, roll)
-    # Here t stands for transverse direction and [deg]
-    t = 3.0/3600
-    b = 6.0/3600
-
-    # Find distribution within 3 sigma of req.
-    tt = np.array([np.random.normal(0, t/sigma) for i in range(n)])
-    bb = np.array([np.random.normal(0, b/sigma) for i in range(n)])
-
-    # Corresponding yaw, pitch, roll
-    y = tt
-    z = 3 * y
-    x = bb - z
-
-    # ICRS pointing angles
-    phi   = np.deg2rad(ra)
-    theta = np.deg2rad(dec)
-
-    # Find change to pointing for quarters
-    PRE = np.zeros((n , 4))
-    for i in range(n):
-        data = changeOfPointing(x[i], y[i], z[i], phi, theta)[0]
-        PRE[i,:] = np.append(quarter[i], data)
-
-    df = pd.DataFrame(PRE, columns=["quarter", "yaw", "pitch", "roll"])
-    df = df.astype({"quarter":int, "yaw":np.float64, "pitch":np.float64, "roll":np.float64})
-    
-    # Print generated values
-    if show_table:         
-
-        print('\nChange of coordinates [arcsec]')
-        df0 = df.copy()
-        df0.iloc[:,1:] = df0.iloc[:,1:] * 3600
-        print(df0)
-
-        print('\nNew ICRS coordinates [deg]')
-        df1 = df.copy()
-        df1.rename(columns={"yaw":"RA", "pitch":"Dec", "roll":"kappa"}, inplace=True)
-        df1.iloc[:,1] = df1.iloc[:,1] + ra
-        df1.iloc[:,2] = df1.iloc[:,2] + dec
-        print(df1)
-
-    # Save file with relative pointing errors [deg]
-    if outdir is not None:
-        df.to_csv(f'{outdir}/instrumentPRE.txt', sep=" ", header=False, index=False)
-
-    return PRE
-
-
-
-
-
-def getCameraAlignmentErrors(ra, dec, kappa, sigma=3, outdir=None, show_table=False):
-
-    # Pointing Reproducibility Error (PRE) in P/L reference frame (yaw, pitch, roll)
-    t = 4.5/60  # [deg]
-    b = 9.0/60  # [deg]
-
-    # Find distribution within 3 sigma of req.
-    tt = np.array([np.random.normal(0, t/sigma) for i in range(24)])
-    bb = np.array([np.random.normal(0, b/sigma) for i in range(24)])
-
-    # Corresponding yaw, pitch, roll
-    dy = tt
-    dz = 3 * dy
-    dx = bb - dz
-
-    # Mean and standard deviation
-    mu, sigma = 0, sigma
-    s = np.random.normal(mu, sigma, 1000)
-    count, bins, ignored = plt.hist(s, 30, density=True)
-
-    # Store APE
-    APE = np.transpose([tt, bb])
-    df  = pd.DataFrame(APE, columns=["tilt", "azimuth"])
-
-    # Plot histogram and data
-    if show_table:
-        # Print generate values
-        print('\nCamera alignment errors for all 24 N-CAMs [arcmin]')
-        APE0 = np.transpose([tt, bb, dx, dy, dz]) * 60
-        df0  = pd.DataFrame(APE0, columns=["Alt", "Az", "Yaw", "Pitch", "Roll"])
-        print(df0)
-        # Plot
-        # plt.plot(bins, 1/(sigma * np.sqrt(2 * np.pi)) * 
-        #          np.exp( - (bins - mu)**2 / (2 * sigma**2) ),
-        #          linewidth=2, color='r')
-        # plt.show()
-
-    # Save APE camera misalignments
-    if outdir is not None:
-        df.to_csv(f'{outdir}/instrumentAPE.txt', sep=" ", header=False, index=False)
-                       
-    return APE
-
 
 
 

@@ -31,6 +31,7 @@ import platosim.plot            as pt
 import platosim.utilities       as ut
 import platosim.statistics      as st
 import platosim.referenceFrames as rf
+from platosim.simfile import SimFile
 
 #==============================================================#
 #                         BEGIN CLASS                          #
@@ -53,20 +54,48 @@ class LightCurve(object):
     def __init__(self, filename, mode="single", ncam=False):
 
         # Constants
-
         self.pixelSize = 18  # [micron]
         
         # Matplotlib
-
         self.aa = 0.5  # Alpha
         self.ms = 3    # MarkerSize
         self.lw = 2    # LineWidth
         
         # Read either a single file or multiple files
-
         self.mode = mode
 
-        if mode == "multi":
+        
+        # SINGLE-CAMERA SIMULATION
+        
+        if mode == "single":
+
+            self.filename = filename
+            
+            # Select Feather output file            
+            self.fileExtention = pathlib.Path(filename).suffix
+
+            if self.fileExtention == ".ftr":
+
+                # Simply load file
+                self.df = pd.read_feather(filename)
+                
+            elif self.fileExtention == ".hdf5":
+                
+                # Load HDF5 file
+                simfile = SimFile(filename)
+
+                # Fetch light curve
+                self.df = simfile.getLightCurve(0)
+                #self.mask_apertures = simfile.getApertureMask(0)
+                self.mask_updates   = simfile.getMaskUpdateEvents()
+                
+            else:
+                ut.errorcode("error", "File should be in the format of .ftr or .hdf5!")
+
+
+        # MULTI-CAMERA SIMULATIONS
+                
+        elif mode == "multi":
 
             # Check if data frame or new files    
             if isinstance(filename, pd.DataFrame):
@@ -76,21 +105,7 @@ class LightCurve(object):
 
             # Correct obs info if it's a merged light curve
             self.ncam = ncam                
-                
-        elif mode == "single":
 
-            self.filename = filename
-            
-            # Select Feather output file
-            
-            fileExtention = pathlib.Path(filename).suffix
-
-            if fileExtention == ".ftr":
-                self.df = pd.read_feather(filename)
-            else:
-                ut.errorcode("error", "File should be in the format of a feather!")
-
-            
 
 
 
@@ -100,7 +115,6 @@ class LightCurve(object):
         """
 
         pass
-
 
 
 
@@ -117,6 +131,42 @@ class LightCurve(object):
 
 
 
+
+    
+
+    def getMaskUpdateEvents(self):
+
+        """Exposure number of all mask updates.
+        """
+        
+        # Fetch mask update events
+
+        return np.array(self.hdf5file["Photometry/Masks/exposureNrOfMaskUpdate"])
+
+
+
+
+
+    def axesMaskupdates(self, ax):
+        """
+        This is a small utility that takes an axes object, time points
+        from a time series, and the mask-updates given in the same unit
+        of time as the time points, and then plots vertical lines for
+        every mask-update and quarter marks.
+        """
+
+        # Plot occurance of mask update
+        mask_updates = self.getMaskUpdateEvents() * 25. / c.day
+
+        # Skip first mask as that's the default one
+        for update in mask_updates[1:]:
+            if update == 1:
+                ax.axvline(x=update, c='k', linestyle=':', linewidth=1, label='Mask updates')
+            else:
+                ax.axvline(x=update, c='k', linestyle=':', linewidth=1)
+
+
+    
     #--------------------------------------------------------------#
     #                          PREPARE DATA                        #
     #--------------------------------------------------------------#
@@ -220,7 +270,8 @@ class LightCurve(object):
         """
 
         # Flux unit
-        if   unit == "e/s": flux = self.df[column]
+        #if   unit == "e/exp": flux = self.df[column]
+        if   unit == "e/s": flux = self.df[column] / 4.026526
         elif unit == "rel": flux = ut.normalize(self.df[column], factor=1)
         elif unit == "ppt": flux = ut.normalize(self.df[column], factor=1e3)
         elif unit == "ppm": flux = ut.normalize(self.df[column], factor=1e6)
@@ -290,8 +341,11 @@ class LightCurve(object):
         return self.df
 
 
+    
+    #--------------------------------------------------------------#
 
-
+    
+    
     def obs(self):
         """
         PURPOSE: Function to fetch the obs information.
@@ -299,10 +353,17 @@ class LightCurve(object):
 
         # Distinguish between single camera and multi camera obs
         if self.mode == "single":
-            filename = pathlib.Path(self.filename).stem
-            self.group   = int(filename[14])
-            self.camera  = int(filename[16])
-            self.quarter = int(filename[19:])
+
+            # Get obs info from feather file
+            if self.fileExtention == ".ftr":
+                filename = pathlib.Path(self.filename).stem
+                self.group   = int(filename[14])
+                self.camera  = int(filename[16])
+                self.quarter = int(filename[19:])
+            elif self.fileExtention == ".hdf5":
+                self.group   = False
+                self.camera  = False
+                self.quarter = False
         else:
             self.group   = False
             self.camera  = False
@@ -327,7 +388,10 @@ class LightCurve(object):
         df = pd.read_csv(filename, delimiter=' ', comment='#', names=cols)
 
     
+
+    #--------------------------------------------------------------#
     
+        
 
     def getMAD(self, column="flux", unit="e/s"):
         """
@@ -414,7 +478,7 @@ class LightCurve(object):
 
 
 
-
+    #--------------------------------------------------------------#
 
 
     def detrend(self, poly_deg=2, plot=True):
@@ -490,25 +554,34 @@ class LightCurve(object):
         self.nbin = len(df[df["time"].between(tbins[0], tbins[1])])
         
         # Bin data
+        # TODO Can be done in a better way?
         data = [df[df["time"].between(tbins[i], tbins[i+1])] for i in range(nbins)]
         time     = [data[i]["time"].mean()     for i in range(len(data))]
         flux     = [data[i]["flux"].mean()     for i in range(len(data))]
         sigma    = [data[i]["flux"].std()      for i in range(len(data))]
-        try: flux_err = [data[i]["flux_err"].mean() for i in range(len(data))]
-        except KeyError: flux_err = [data[i]["flux_cor"].mean() for i in range(len(data))]
-        
-        #print(np.transpose([time, flux, flux_err]))
-        df = pd.DataFrame(np.transpose([time, flux, flux_err, sigma]),
-                          columns=["time", "flux", "flux_err", "sigma"])
-        
+
+        cols = ["time", "flux", "sigma"]
+        data = np.transpose([time, flux, sigma])
+        if df.columns.str.startswith("flux_err").sum():
+            flux_err = [data[i]["flux_err"].mean() for i in range(len(data))]
+            cols.append("flux_err")
+            data.append(flux_err)
+        if df.columns.str.startswith("flux_cor").sum():
+            flux_cor = [data[i]["flux_cor"].mean() for i in range(len(data))]
+            data.append(flux_cor)
+            
         # Replace flux_err with RMS
         #df["flux_err"] = np.array([df[df["time"].between(tbins[i], tbins[i+1])].std() for i in range(nbins-1)])
 
-        return df
+        return pd.DataFrame(data, columns=cols)
 
 
 
-    def remove_outliers(self):
+
+
+    
+
+    def remove_outliers(self, plot=False):
         """
         This function use a moving median filter to reject 3 sigma outliers from
         the out-of-eclipsed data. This is done to secure that a simple median
@@ -547,6 +620,27 @@ class LightCurve(object):
                          self.time_mask_occ, self.flux_mask_occ)
 
 
+
+
+    def jumps(self, gapsize=500):
+        """
+        This function corrects for jumps larger than "gapsize" in a timeseries. Normally
+        ajacent datapoint to a jump is effected, hence, a specified number of points
+        of each side of a jump can be removed.
+        """
+        # Find distances/difference between data points:
+        s_diff = np.diff(self.df.flux)
+        print(s_dff)
+        exit()
+        # Find gaps:
+        index = np.where(abs(s_diff)>gapsize)[0][:]
+        # Move the data when a jump:
+        for i in index:
+            self.df.flux.iloc[i + 1:] -= s_diff[i]
+
+        return self.df
+
+            
     #--------------------------------------------------------------#
     #                      STELLAR CATALOGUE                       #
     #--------------------------------------------------------------#
@@ -1093,7 +1187,22 @@ class LightCurve(object):
 
 
 
+    #--------------------------------------------------------------#
+    #                        APERTURE MASKS                        #   
+    #--------------------------------------------------------------#
 
+                
+    def axes_quarter_marks(self):
+                
+        # Plot quarters
+        quarters = np.arange(0, time[-1], 90)
+        for Q in quarters:
+            if Q == 0:
+                ax.axvline(x=Q, c='darkgray', linestyle='-.', linewidth=1, label='Quarter marks')
+            else:
+                ax.axvline(x=Q, c='darkgray', linestyle='-.', linewidth=1)
+
+                        
 
     #--------------------------------------------------------------#
     #                         PLOT MODULES                         #   
@@ -1116,7 +1225,7 @@ class LightCurve(object):
 
 
     
-    def plot(self, time_unit="d", flux_unit="e/s", errorbar=False,
+    def plot(self, time_unit="d", flux_unit="e/s", legend=True, errorbar=False,
              median_filter=False, binsize=False, cameras=False, quarter=False,
              figsize=(9,5)):
         """
@@ -1177,13 +1286,63 @@ class LightCurve(object):
             df = self.bin(binsize=binsize, time_unit=time_unit, flux_unit=flux_unit)
             ax.plot(df["time"], df["flux"], 'ro', ms=8, mec='k',
                     label=f'{binsize}h bins', zorder=3)
-            
+
+        # If any plot mask-update events
+        if self.mask_updates.any():
+            self.cadence = 25
+            updates = self.mask_updates * self.cadence / c.day
+            for update in updates[1:]:
+                if update == updates[-1]:
+                    ax.axvline(x=update, c='k', linestyle=':', linewidth=1, label='Mask updates')
+                else:
+                    ax.axvline(x=update, c='k', linestyle=':', linewidth=1)
+
+        # Set legend
+        if legend:
+            ax.legend(loc='best')
+                    
         # Settings
         ax.set_xlim(time.iloc[0], time.iloc[-1])
         ax.set_xlabel(f'Time [{time_unit}]')
         ax.set_ylabel(ylab)
-        ax.legend(loc='best')
         plt.tight_layout()
+
+
+        
+        # if NSR is not False:
+
+        #     ax1 = fig.add_subplot(2,1,2)
+        #     ax1.plot(maskupdates, maskNSR, 'k--', alpha=0.5)
+        #     ax1.plot(maskupdates, maskNSR, 'm*', label='Mask update NSR')
+        #     ax1.legend(loc='upper right',  fancybox=True)
+        #     ax1.set_xlabel('Time [days]')
+        #     ax1.set_ylabel(r'NSR [ppm h$^{-1}$]')
+        #     ax1.set_xlim(axes_minmax(x=time))
+
+        # if COB is not False:
+
+        #     # Fetch pixel coordinates
+
+        #     rowPix, colPix = f.getStarPositions(1)
+
+        #     # Plot row pixel on left y axis
+
+        #     ax1 = fig.add_subplot(2,1,2)
+        #     ax1.plot(time, rowPix, '-', c='darkcyan', label='Row pixel')
+        #     ax1.set_ylabel('Row coordinate [pixel]')
+        #     ax1.set_xlabel('Time [days]')
+        #     ax1.set_title('Star position')
+        #     ax1.set_xlim(axes_minmax(x=time))
+        #     ax1.legend(loc='upper left')
+
+        #     # Plot column pixel on right y axis
+
+        #     ax2 = ax1.twinx()
+        #     ax2.plot(time, colPix, '-', c='hotpink', label='Col pixel')
+        #     ax2.set_ylabel('Column coordinate [pixel]')
+        #     ax2.set_xlim(axes_minmax(x=time))
+        #     ax2.legend(loc='lower right')
+
         
         return fig, ax
     
@@ -1245,28 +1404,6 @@ class LightCurve(object):
 
 
      
-    def axes_maskupdates(self, ax, time, maskupdates):
-        """
-        This is a small utility that takes an axes object, time points
-        from a time series, and the mask-updates given in the same unit
-        of time as the time points, and then plots vertical lines for
-        every mask-update and quarter marks.
-        """
-
-        # Plot occurance of mask update
-        for update in maskupdates:
-            if update == 0:
-                ax.axvline(x=update, c='k', linestyle=':', linewidth=1, label='Mask updates')
-            else:
-                ax.axvline(x=update, c='k', linestyle=':', linewidth=1)
-
-        # Plot quarters
-        quarters = np.arange(0, time[-1], 90)
-        for Q in quarters:
-            if Q == 0:
-                ax.axvline(x=Q, c='darkgray', linestyle='-.', linewidth=1, label='Quarter marks')
-            else:
-                ax.axvline(x=Q, c='darkgray', linestyle='-.', linewidth=1)
 
     
     
