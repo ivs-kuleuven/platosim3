@@ -950,7 +950,7 @@ class SimFile (object):
             # Allow differentiating between a target and its contaminants
             if showStarPositions == 'PIC':
                 lw = 0.06 * fontSize
-                mag = -2.5*np.log10(flux) + 25                
+                mag = -2.5*np.log10(flux) + 25
                 ax.scatter(col[0], row[0], s=tarMarkerSize, marker='o', c='lime', edgecolor='k', linewidth=lw, zorder=4)
                 if len(col) > 1:
                     dm  = mag[1:] - mag[0]*np.ones(len(mag)-1)
