@@ -147,7 +147,7 @@ void DetectorWithMappedPSF::setPsfForSubfield()
 
     if(psf->getNumSubPixelsPerPixel() < numSubPixelsPerPixel)
     {
-        throw IllegalArgumentException(string("DetectorWithMappedPSF.setPsfForSubfield: ") + 
+        throw IllegalArgumentException(string("DetectorWithMappedPSF.setPsfForSubfield: ") +
             "The sub-pixel resolution of the PSF (" + to_string(psf->getNumSubPixelsPerPixel()) +
                     ") must be at least that of the sub-field (" + to_string(numSubPixelsPerPixel) + ")");
     }

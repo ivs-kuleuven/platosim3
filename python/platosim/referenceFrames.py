@@ -703,7 +703,7 @@ def undistortedFocalPlaneToTelescopeCoordinates(xFP, yFP, focalLength, focalPlan
 def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients, focalLength):
 
     """
-    PURPOSE:      Convert from undistorted to distorted normalized focal plane coordinates using the analytic distortion model. 
+    PURPOSE:      Convert from undistorted to distorted normalized focal plane coordinates using the analytic distortion model.
 
     INPUTS:       xFPmm  undistorted normalized focal plane x-coordinate [mm]
                   yFPmm  undistorted normalized focal plane y-coordinate [mm]
@@ -712,7 +712,7 @@ def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoeffici
 
     OUTPUTS:      (xFPdist, yFPdist) distorted x and y coordinates [mm]
 
-    REMARK:       This is not the prefered method for detectors with mapped PSF, since these use a mapped distortion model. 
+    REMARK:       This is not the prefered method for detectors with mapped PSF, since these use a mapped distortion model.
                   For such models use the function mappedUndistortedToDistortedFocalPlaneCoordinates.
 
     Note: Example of distortion coefficients: [0.32419,  0.0232909,  0.407979, 0.00022463, 0.000217599, 0.000381958, 0.000963902]
@@ -727,7 +727,7 @@ def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoeffici
     radialDistortion = distortionPolynomial(rFP) * focalLength
     tangentialDistortion = rFP**2 * (distortionCoefficients[5] * cos(angle) + distortionCoefficients[6] * sin(angle)) * focalLength
 
-    xFPdist = xFPmm + cos(angle) * (radialDistortion + tangentialDistortion) + distortionCoefficients[3] * rFP**2 * focalLength 
+    xFPdist = xFPmm + cos(angle) * (radialDistortion + tangentialDistortion) + distortionCoefficients[3] * rFP**2 * focalLength
     yFPdist = yFPmm + sin(angle) * (radialDistortion + tangentialDistortion) + distortionCoefficients[4] * rFP**2 * focalLength
 
     return xFPdist, yFPdist
@@ -745,7 +745,7 @@ def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoeffici
 def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile):
 
     """
-    PURPOSE:      Convert from undistorted to distorted normalized focal plane coordinates using a mapped distortion model. 
+    PURPOSE:      Convert from undistorted to distorted normalized focal plane coordinates using a mapped distortion model.
 
     INPUTS:       xFPmm:  undistorted normalized focal plane x-coordinate [mm]
                   yFPmm:  undistorted normalized focal plane y-coordinate [mm]w
@@ -753,7 +753,7 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
 
     OUTPUTS:      (xFPdist, yFPdist) distorted x and y coordinates [mm]
 
-    REMARK:       This is the prefered method for detectors with mapped PSF. 
+    REMARK:       This is the prefered method for detectors with mapped PSF.
                   For detectors that use analytic PSF use the function undistortedToDistortedFocalPlaneCoordinates.
 
     """
@@ -764,9 +764,9 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
         if os.path.exists(os.environ["PLATO_PROJECT_HOME"] + "/" + pathToPsfFile):
             pathToPsfFile = os.environ["PLATO_PROJECT_HOME"] + "/" + pathToPsfFile
         else:
-            print("Error: {} is not a valid path name for mapped PSF".format(pathToPsfFile))            
+            print("Error: {} is not a valid path name for mapped PSF".format(pathToPsfFile))
 
-    # We open the psf file where the coordinate transformation matrix should be in. If the matrix isn't in the file, we raise an error. 
+    # We open the psf file where the coordinate transformation matrix should be in. If the matrix isn't in the file, we raise an error.
 
     psfFile = h5py.File(pathToPsfFile, "r")
     if not "Coordinates map" in psfFile.keys():
@@ -864,7 +864,7 @@ def distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, inverseDistort
 
     OUTPUTS:     (xFPmm, yFPmm) distorted x and y coordinates [mm]
 
-    REMARK:     This is not the prefered method for detectors with mapped PSF, since these use a mapped distortion model. 
+    REMARK:     This is not the prefered method for detectors with mapped PSF, since these use a mapped distortion model.
                 For such models use the function mappedDistortedToUndistortedFocalPlaneCoordinates.
 
     Note: Example of inverse distortion coefficients: [-0.323487, 0.268344, -0.435473, -0.00019304, -0.000176961, -0.000321713, -0.000827654]
@@ -905,7 +905,7 @@ def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPs
 
     OUTPUTS:     (xFPmm, yFPmm) distorted x and y coordinates [mm]
 
-    REMARK:     This is the prefered method for detectors with mapped PSF, since these use a mapped distortion model. 
+    REMARK:     This is the prefered method for detectors with mapped PSF, since these use a mapped distortion model.
                 For detectors that use analytic PSF use the function distortedToUndistortedFocalPlaneCoordinates.
     """
 
@@ -916,7 +916,7 @@ def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPs
         else:
             print("Error: {} is not a valid path name for mapped PSF".format(pathToPsfFile))
 
-    # We open the psf file where the coordinate transformation matrix should be in. If this map isn't in the file, we raise an error. 
+    # We open the psf file where the coordinate transformation matrix should be in. If this map isn't in the file, we raise an error.
     psfFile = h5py.File(pathToPsfFile, "r")
     if not "Coordinates map" in psfFile.keys():
         print("Error: No transformation map given in psf file, mapped distortion is not possible.")

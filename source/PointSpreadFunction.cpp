@@ -1,7 +1,7 @@
 /**
  * \class PointSpreadFunction
- * 
- * \brief Base class for the PSF, both symmetrical and asymmetrical. 
+ *
+ * \brief Base class for the PSF, both symmetrical and asymmetrical.
  */
 
 #include "PointSpreadFunction.h"
@@ -12,27 +12,27 @@
 
 /**
  * \brief Constructor.
- * 
+ *
  * \details Initialises the groups in the HDF5 file where the different maps (i.e. pixel map,
- *          bias register map, smearing map, etc.) will be saved. 
- * 
+ *          bias register map, smearing map, etc.) will be saved.
+ *
  * The following maps are initialized to zero (partly through the base class Detector):
- *      - pixelMap 
+ *      - pixelMap
  *      - subPixelMap
  *      - biasMap
  *      - smearingMap
  *      - flatfieldMap
  *      - throughputMap
  *      - cteMap
- * 
+ *
  * The flatfieldMap is filled at sub-pixel level, the throughputMap and cteMap are filled at pixel level.
- * 
+ *
  * \param configParam: Configuration parameters for the detector.
- * 
+ *
  * \param hdf5file:HFD5 file to write the detector images to.
- * 
+ *
  * \param camera: Camera to which to attach the detector.
- * 
+ *
  * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start [s].
  */
 PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam, HDF5File &hdf5file) : HDF5Writer(hdf5file)
@@ -213,7 +213,7 @@ void PointSpreadFunction::select(double xFP, double yFP)
 
     // We should be able to read the number of sub-pixels per pixel that was used to generate the PSFs
     // from an attribute in the HDF5 file. Unfortunately, this is not available and we therefore derive 
-    // the number from the array size of the psfMap and the number of pixels, currently specified 
+    // the number from the array size of the psfMap and the number of pixels, currently specified
     // in the input file.
 
     numberOfSubPixelsPerPixel = psfMap.n_rows / numberOfPixels;
@@ -230,15 +230,15 @@ void PointSpreadFunction::select(double xFP, double yFP)
     vector<double> yDistorted;
 
     psfFile.readArray("/Coordinates map/Undistorted", "x", xUndistorted);
-    psfFile.readArray("/Coordinates map/Undistorted", "y", yUndistorted);    
+    psfFile.readArray("/Coordinates map/Undistorted", "y", yUndistorted);
     psfFile.readArray("/Coordinates map/Distorted", "x", xDistorted);
     psfFile.readArray("/Coordinates map/Distorted", "y", yDistorted);
 
-    
+
 
     for (unsigned int i=0; i < xDistorted.size(); i++)
     {
-      const std::array<double, 4> coordinates = { xUndistorted.at(i), yUndistorted.at(i), xDistorted.at(i), yDistorted.at(i) }; 
+      const std::array<double, 4> coordinates = { xUndistorted.at(i), yUndistorted.at(i), xDistorted.at(i), yDistorted.at(i) };
       distortionMap.push_back(coordinates);
     }
 }
@@ -248,8 +248,8 @@ void PointSpreadFunction::select(double xFP, double yFP)
 
 
 
-/** 
- * \brief Rotates the PSF with the given angle.  Beware that the PSF that has been provided is already 
+/**
+ * \brief Rotates the PSF with the given angle.  Beware that the PSF that has been provided is already
  *        rotated, this will be taken into account.
  *
  * \param[in] angle: Angle by which the PSF should be rotated [radians].
@@ -364,7 +364,7 @@ arma::fmat PointSpreadFunction::getOriginalPSF()
 
 
 /*
- * This function gets the distortion map 
+ * This function gets the distortion map
  */
 
 vector<std::array<double, 4>> PointSpreadFunction::getDistortionMap()

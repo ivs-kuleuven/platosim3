@@ -1757,8 +1757,8 @@ void HDF5File::readArray(string groupName, string arrayName, arma::Mat<float>& A
 
     H5::DataSet dataset;
 
-    try 
-    {  
+    try
+    {
         // Turn off the auto-printing when an exception is raised
 
         H5::Exception::dontPrint();
@@ -1826,7 +1826,7 @@ void HDF5File::readArray(string groupName, string arrayName, arma::Mat<float>& A
  * \param groupName  Name of an existing HDF5 Group in the file. Starts with "/".
  * \param arrayName  Unique name of the array in the group, e.g. "skyBackground"
  * \param vec        C++ vector<double>. Previous contents will be lost.
- * 
+ *
  */
 
 void HDF5File::readArray(string groupName, string arrayName, vector<double> &vec)
@@ -1839,8 +1839,8 @@ void HDF5File::readArray(string groupName, string arrayName, vector<double> &vec
 
     H5::DataSet dataset;
 
-    try 
-    {  
+    try
+    {
         // Turn off the auto-printing when an exception is raised
 
         H5::Exception::dontPrint();
@@ -1896,11 +1896,11 @@ void HDF5File::readArray(string groupName, string arrayName, vector<double> &vec
 
 /**
  * \brief  Read a 1D (unsigned int) array from a specified group in the HDF5 file into a vector<unsigned int>
- * 
+ *
  * \param groupName  Name of an existing HDF5 Group in the file. Starts with "/".
  * \param arrayName  Unique name of the array in the group, e.g. "skyBackground"
  * \param vec        C++ vector<double>. Previous contents will be lost.
- * 
+ *
  */
 
 void HDF5File::readArray(string groupName, string arrayName, vector<unsigned int> &vec)
@@ -1913,8 +1913,8 @@ void HDF5File::readArray(string groupName, string arrayName, vector<unsigned int
 
     H5::DataSet dataset;
 
-    try 
-    {  
+    try
+    {
         // Turn off the auto-printing when an exception is raised
 
         H5::Exception::dontPrint();
@@ -1981,16 +1981,16 @@ void HDF5File::readArray(string groupName, string arrayName, vector<unsigned int
 
 bool fileExists(string filename)
 {
-    ifstream myFile(filename.c_str()); 
- 
+    ifstream myFile(filename.c_str());
+
     if (myFile.good())
     {
         myFile.close();
         return true;
-    } 
-    else 
+    }
+    else
     {
         myFile.close();
         return false;
-    }   
+    }
 }

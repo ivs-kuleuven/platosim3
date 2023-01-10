@@ -695,7 +695,7 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
 {
     // Make a rough selection of:
     //  - stars that are on or near the sub-field (or will produce an extended ghost on or near the sub-field)
-    //  - stars that produce a symmetric point-like ghost on or near the sub-field the sub-field (without 
+    //  - stars that produce a symmetric point-like ghost on or near the sub-field the sub-field (without
     //    accounting for the distance cut-off)
 
     unsigned long numStars, numPointLikeGhosts;
@@ -710,7 +710,7 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
     double timeStep = min(telescope.getHeartbeatInterval(), exposureTime);
 
     // Later we will have to convert the magnitudes from the star catalogues to fluxes.  Here we
-    // pre-compute a constant flux factor [photons / s] that we will need for the conversion of 
+    // pre-compute a constant flux factor [photons / s] that we will need for the conversion of
     // all stars.
     // The value of the degrading transmission efficiency that is used here, is the one at the start
     // of the current exposure.
@@ -763,7 +763,9 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
             // apply the distortion on the FP-coordinates
             if(isMapped)
             {
-              detector.applyDistortion(xStar, yStar);
+
+                detector.applyDistortion(xStar, yStar);
+
             }
             else if (includeFieldDistortion)
             {
@@ -1000,7 +1002,7 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
  * \param startTime: Start time of the exposure [s].
  * \param exposureTime: Duration of one exposure [s].
  * \param readoutTimeBeforeNextExposure: Duration of the readout that takes place before the next exposure starts [s].
- * 
+ *
  * \return: Number of selected stars that are on or near the sub-field, and number of selected stars that produces
  *          symmetric point-like ghosts on or near the sub-field (without accounting for the distance cut-off).  The
  *          latter is zero if ghosts are not to be included in the simulation.
@@ -1017,14 +1019,14 @@ tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &d
     centerSubFieldYmm = actualCenterSubFieldYmm;
 
     double corner00Xmm, corner00Ymm, corner11Xmm, corner11Ymm, dummy;
-    double actualCorner00Xmm, actualCorner00Ymm, actualCorner11Xmm, actualCorner11Ymm; // this is only used for logging purposes 
+    double actualCorner00Xmm, actualCorner00Ymm, actualCorner11Xmm, actualCorner11Ymm; // this is only used for logging purposes
     tie(actualCorner00Xmm, actualCorner00Ymm, dummy, dummy, actualCorner11Xmm, actualCorner11Ymm, dummy, dummy) = detector.getFocalPlaneCoordinatesOfSubfieldCorners();
     corner00Xmm = actualCorner00Xmm;
     corner00Ymm = actualCorner00Ymm;
     corner11Xmm = actualCorner11Xmm;
     corner11Ymm = actualCorner11Ymm;
 
-    // Apply inverse field distortion (if distortion was enabled) 
+    // Apply inverse field distortion (if distortion was enabled)
     if (isMapped)
     {
       Log.info("Camera: including field distortion for mapped PSF");
@@ -1032,6 +1034,7 @@ tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &d
       detector.applyInverseDistortion(centerSubFieldXmm, centerSubFieldYmm);
       detector.applyInverseDistortion(corner00Xmm, corner00Ymm);
       detector.applyInverseDistortion(corner11Xmm, corner11Ymm);
+
     }
     else if (includeFieldDistortion)
     {
@@ -1052,13 +1055,13 @@ tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &d
     tie(centerRow, centerCol) = detector.focalPlaneToPixelCoordinates(centerSubFieldXmm, centerSubFieldYmm);
     tie(actualCenterRow, actualCenterCol) = detector.focalPlaneToPixelCoordinates(actualCenterSubFieldXmm, actualCenterSubFieldYmm);
 
-    // Actual coordiantes of the subfield 
+    // Actual coordiantes of the subfield
     Log.debug("Camera: actual center of subfield at CCD (row, col) = (" + to_string(actualCenterRow) + ", " + to_string(actualCenterCol) + ") pix");
     Log.debug("Camera: actual center of subfield at (Xmm, Ymm) = (" + to_string(actualCenterSubFieldXmm) + ", " + to_string(actualCenterSubFieldYmm) + ") mm");
     Log.debug("Camera: actual lower left corner of subfield at (Xmm, Ymm) = (" + to_string(actualCorner00Xmm) + ", " + to_string(actualCorner00Ymm) + ") mm");
     Log.debug("Camera: actual upper right corner of subfield at (Xmm, Ymm) = (" + to_string(actualCorner11Xmm) + ", " + to_string(actualCorner11Ymm) + ") mm");
 
-    // Coordinates of the subfield if the selected stars fall undistorted on the subfield  
+    // Coordinates of the subfield if the selected stars fall undistorted on the subfield
     Log.debug("Camera: undistorted center of subfield at CCD (row, col) = (" + to_string(centerRow) + ", " + to_string(centerCol) + ") pix");
     Log.debug("Camera: undistorted center of subfield at (Xmm, Ymm) = (" + to_string(centerSubFieldXmm) + ", " + to_string(centerSubFieldYmm) + ") mm");
     Log.debug("Camera: undistorted lower left corner of subfield at (Xmm, Ymm) = (" + to_string(corner00Xmm) + ", " + to_string(corner00Ymm) + ") mm");

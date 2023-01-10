@@ -705,11 +705,11 @@ class Simulation(object):
 
         """
         PURPOSE: Create a star catalog ascii file given the pixel coordinates (row and column) of the stars.
-                 This requires the orientation of the spacecraft, telescopes, focal plane, hence it's a 
-                 member function of the Simulation class. 
- 
-        INPUT: rows:       Numpy array with fractional row coordinates of the stars (CCD, not subfield) [pix]     
-               cols:       Numpy array with fractional column coordinates of the stars (CCD, not subfield) [pix]  
+                 This requires the orientation of the spacecraft, telescopes, focal plane, hence it's a
+                 member function of the Simulation class.
+
+        INPUT: rows:       Numpy array with fractional row coordinates of the stars (CCD, not subfield) [pix]
+               cols:       Numpy array with fractional column coordinates of the stars (CCD, not subfield) [pix]
                magnitudes: Johnson V magnitudes of the stars
                starIDs:    IDs of the star (integers)
                starCatalogPath: Path of the star catalog file that will be written.
@@ -719,8 +719,8 @@ class Simulation(object):
         """
 
         # Extract the needed information from the yaml input file
-        # Note: groupIDs and ccdIDs start counting from 1... 
-        
+        # Note: groupIDs and ccdIDs start counting from 1...
+
         if self["Telescope/GroupID"] == "Custom":
             azimuthAngle    = np.deg2rad(self["Telescope/AzimuthAngle"])
             tiltAngle       = np.deg2rad(self["Telescope/TiltAngle"])
@@ -750,22 +750,24 @@ class Simulation(object):
             mappedDistortion              = True
             inverseDistortionCoefficients = None
             pathToPsfFile                 = self["PSF/MappedFromFile/Filename"]
-        else: 
+        else:
             includeFieldDistortion = self["Camera/IncludeFieldDistortion"]
             mappedDistortion       = False
             inverseDistortionCoefficients = self["Camera/FieldDistortion/ConstantInverseCoefficients"]
             pathToPsfFile          = None
-            
+
         solarPanelOrientation = np.deg2rad(float(self["Platform/SolarPanelOrientation"]))
-        
+
 
         # Convert the pixel coordinates to focal plane coordinates [mm]
-      
+
         xFPmm, yFPmm = rf.pixelToFocalPlaneCoordinates(cols, rows, pixelSize, ccdZeroPointX, ccdZeroPointY, CCDangle)
-      
+
         # If distortion is required in the yaml input file, distort the focal plane coordinates [mm]
         if mappedDistortion:
-            xFpmm, yFPmm = rf.mappedDistortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile)
+            for i in range(len(xFPmm)):
+                xFPmm[i], yFPmm[i] = rf.mappedDistortedToUndistortedFocalPlaneCoordinates(xFPmm[i], yFPmm[i], pathToPsfFile)
+
         elif (includeFieldDistortion == "yes")  or (includeFieldDistortion == "1") or (includeFieldDistortion == True):
             xFPmm, yFPmm = rf.distortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, inverseDistortionCoefficients, focalLength)
 
@@ -774,7 +776,7 @@ class Simulation(object):
         ra, dec = rf.focalPlaneToSkyCoordinates(xFPmm, yFPmm, raPlatform, decPlatform, solarPanelOrientation, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength)
 
         # Convert sky coordinates to degrees
-        
+
         ra = np.rad2deg(ra)
         dec = np.rad2deg(dec)
 
@@ -803,7 +805,7 @@ class Simulation(object):
     def createPhotometryTargetFile(self, starIDs, fileName):
         """
         PURPOSE: Create a photometry file list in ascii format and sets it to the YAML input.
- 
+
         INPUT: starIDs:  IDs of the star (integers)
                fileName: Path of the photometry file that will be written.
 
@@ -812,22 +814,22 @@ class Simulation(object):
         """
 
         # Check if starIDs are just a number
-        
+
         if type(starIDs) is int:
             starIDs = [starIDs]
-        
+
         # Create photometry list file
-        
+
         np.savetxt(fileName, np.transpose(starIDs), delimiter=" ", fmt="%d")
 
         # Set this to simulation
-        
+
         self["Photometry/TargetFileName"] = fileName
 
         # Finito!
 
         return
-    
+
 
 
 
