@@ -39,7 +39,7 @@ import batman
 from platosim.utilities import errorcode
 
 # PLATOnium
-import platosim.varsim.plots as pt
+import platosim.plot as pt
 import platosim.varsim.utilities as ut
 import platosim.varsim.mr_forecast as mr
 from platosim.varsim.pyspot_PLATO_v2 import simulate_lc

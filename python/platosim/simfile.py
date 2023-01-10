@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from matplotlib.colors import Normalize, LogNorm
+from matplotlib.ticker import FixedLocator, FixedFormatter
 import matplotlib.patches as patches
 import ipywidgets as widgets
 from astropy.io import fits
@@ -792,6 +793,12 @@ class SimFile (object):
             int   : Integer sequential number of the image in the HDF5 file
         clipPercentile: int, float
             Intensities will be clipped between [value, 100-value] to improve the image contrast.
+        imgScale : str
+            Different options to select the image scaling:
+            clip   : Scale image using a percentile clipping
+            auto   : Scale image using a sigma clipping and linear scaling
+            log    : Scale image logarithmically
+            minmax : Scale image from min to max image value
         showStarPositions: bool
             False : Default
             True  : Plot the average star positions (averaged over the exposure) 
@@ -861,27 +868,30 @@ class SimFile (object):
         # Show image either using clip-procentage scaling or linear scaling if using a colorbar
         # The large dynamic range of the pixel values often results in images where only
         # the brightest stars are visible. To improve the contrast, clip the color mapping.
+
+        clabel  = "Counts [kADU]"
+        image   = image / 1000.
+        img_min = image.min()
+        img_max = image.max()
         
         if imgScale == "clip":
-            clabel = "Counts [ADU]"
+            image *= 1000.
             vmin   = np.percentile(image, clipPercentile).astype(int)
             vmax   = np.percentile(image, 100-clipPercentile).astype(int)
             norm   = Normalize(vmin, vmax)
                         
         elif imgScale == "minmax":
-            clabel = "Counts [kADU]"
-            vmin   = image.min() 
-            vmax   = image.max()
-            norm   = Normalize(vmin, vmax)
+            vmin = img_min
+            vmax = img_max
+            norm = Normalize(img_min, img_max)
             
         elif imgScale == 'log':
-            clabel = "Count [ADU]"
-            vmin   = image.min() 
-            vmax   = image.max()
-            norm   = LogNorm(vmin, vmax)
+            image = ut.imageNorm(image, "log", sigma=0.5)
+            vmin, vmax = image.min(), image.max()
+            norm  = Normalize(vmin, vmax)
+            #norm   = LogNorm(image.min(), image.max())
 
         elif imgScale == "auto":
-            clabel = "Norm. Count"
             image = ut.imageNorm(image, "linear", sigma=0.5)
             vmin, vmax = image.min(), image.max()
             norm  = Normalize(vmin, vmax)
@@ -905,6 +915,16 @@ class SimFile (object):
             cbar = fig.colorbar(imagePlot, extend='max', shrink=0.84, pad=0.015)
             cbar.set_label(clabel, fontsize=fontSize, labelpad=3)
             cbar.ax.tick_params(labelsize=fontSize)
+            
+            if not imgScale == "linear" and not imgScale == "clip":
+                ticks_loc1  = np.linspace(vmin, vmax, 6)
+                ticks_loc2  = np.linspace(img_min, img_max, 6)
+                ticks_label = [f"{i:.1f}" for i in ticks_loc2]
+                print(img_min, img_max)
+                print(vmin, vmax)
+                cbar.locator     = FixedLocator(ticks_loc1)
+                cbar.formatter   = FixedFormatter(ticks_label)
+                cbar.update_ticks()
 
         # If requiered, overplot a gray semi-transparent grid
         # Note: this is only meaningsful for smaller imagettes
@@ -929,12 +949,13 @@ class SimFile (object):
 
             # Allow differentiating between a target and its contaminants
             if showStarPositions == 'PIC':
-                mag = -2.5*np.log10(flux) + 25
-                ax.scatter(col[0], row[0], s=tarMarkerSize, marker='o', c='lime', edgecolor='k', linewidth=1, zorder=4)
+                lw = 0.06 * fontSize
+                mag = -2.5*np.log10(flux) + 25                
+                ax.scatter(col[0], row[0], s=tarMarkerSize, marker='o', c='lime', edgecolor='k', linewidth=lw, zorder=4)
                 if len(col) > 1:
                     dm  = mag[1:] - mag[0]*np.ones(len(mag)-1)
                     conMarkerSize = tarMarkerSize - np.abs(tarMarkerSize - tarMarkerSize/dm).astype(int)
-                    ax.scatter(col[1:], row[1:], s=conMarkerSize, marker='o', c='gold', edgecolor='k', linewidth=1, zorder=4)
+                    ax.scatter(col[1:], row[1:], s=conMarkerSize, marker='o', c='gold', edgecolor='k', linewidth=lw, zorder=4)
 
             # Or hightligth all stars the same
             else:

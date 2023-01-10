@@ -1693,8 +1693,38 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
 
 
 
+def matrixMisalignment(x, y, z):   
+    r11 = + np.cos(x)*np.cos(z) - np.sin(x)*np.sin(z)*np.sin(y)
+    r12 = - np.cos(x)*np.sin(z) - np.sin(x)*np.cos(z)*np.cos(y)
+    r13 = + np.sin(x)*np.sin(z)
+    r21 = + np.sin(x)*np.cos(z) + np.cos(x)*np.sin(z)*np.cos(y)
+    r22 = - np.sin(x)*np.sin(z) - np.cos(x)*np.cos(z)*np.cos(y)
+    r23 = - np.cos(x)*np.sin(z)
+    r31 = + np.sin(z)*np.sin(y)
+    r32 = + np.cos(z)*np.sin(y)
+    r33 = - np.cos(y)   
+    R = np.array([[r11, r12, r13],
+                  [r21, r22, r23],
+                  [r31, r32, r33]])
+    return R
 
-def getPointingRepeatabilityError(ra, dec, rot, sigma=[3., 6.], quarter=[1, 8], show_table=False):
+
+
+
+def changeOfPointing(x, y, z, phi, theta):
+    R = np.array([[ 0, -z,  y],
+                  [ z,  0, -x],
+                  [-y,  x,  0]])
+    A = np.array([[np.cos(phi)*np.sin(theta)],
+                  [np.sin(phi)*np.sin(theta)], 
+                  [1]])
+    return np.dot(R,A).T
+
+
+
+
+
+def getPointingRepeatabilityError(ra, dec, kappa, sigma=3, quarter=[1, 8], outdir=None, show_table=False):
     """
     TODO under development!
 
@@ -1704,9 +1734,8 @@ def getPointingRepeatabilityError(ra, dec, rot, sigma=[3., 6.], quarter=[1, 8], 
 
     OUTPUT:
     """
-
     # Coordinates
-    ICRS = np.array([ra, dec, rot])
+    ICRS = np.array([ra, dec, kappa])
 
     # Pointing Reproducibility Error (PRE) in P/L reference frame (yaw, pitch, roll)
     # Here t stands for transverse direction and  
@@ -1733,8 +1762,59 @@ def getPointingRepeatabilityError(ra, dec, rot, sigma=[3., 6.], quarter=[1, 8], 
         coor[i,:] = np.append(quarters[i], data)
 
     # Save file with relative pointing errors [deg]
-    np.savetxt(f'{outdir}/PRE.txt', coor, fmt=['%i', '%0.8f', '%0.8f', '%0.8f'])
+    if outdir it not None:
+        np.savetxt(f'{outdir}/PRE.txt', coor, fmt=['%i', '%0.8f', '%0.8f', '%0.8f'])
 
+    # Print generated values
+    if show_table: 
+        print('Yaw, Pitch, and Roll angles')
+        print(x)
+        print(y)
+        print(z)
+        print('\nChange of coordinates [arcsec]')
+        print(coor*3600)
+        print('\nNew coordinates [deg]')
+        for i in range(len(quarters)):
+            print(coor[i][1]+ra, coor[i][2]+dec, coor[i][3])
+
+
+
+
+
+
+
+def cameraAlignmentErrors(ra, dec, kappa, sigma=3, outdir=None, show_table=False):
+
+    # Pointing Reproducibility Error (PRE) in P/L reference frame (yaw, pitch, roll)
+    t = 4.5/60  # [deg]
+    b = 9.0/60  # [deg]
+
+    # Find distribution within 3 sigma of req.
+    tt = np.array([np.random.normal(0, t/sigma) for i in range(24)])
+    bb = np.array([np.random.normal(0, b/sigma) for i in range(24)])
+
+    # Corresponding yaw, pitch, roll
+    dy = tt
+    dz = 3 * dy
+    dx = bb - dz
+    mu, sigma = 0, sigma # mean and standard deviation
+    s = np.random.normal(mu, sigma, 1000)
+    count, bins, ignored = plt.hist(s, 30, density=True)
+
+    # Save APE camera misalignments
+    if outdir is not None:
+        np.savetxt('APE.txt', np.transpose([tt, bb]), fmt='%.8f')
+
+    # Plot histogram and data
+    if show_table:
+        plt.plot(bins, 1/(sigma * np.sqrt(2 * np.pi)) * 
+                 np.exp( - (bins - mu)**2 / (2 * sigma**2) ),
+                 linewidth=2, color='r')
+        plt.show()
+
+        # Print generate values
+        print('Alt, Az, Yaw, Pitch, and Roll alignment error for all 24 N-CAMs [arcmin]')
+        print(np.transpose([tt, bb, dx, dy, dz])*60)
 
 
 

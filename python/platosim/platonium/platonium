@@ -824,10 +824,11 @@ class PLATOnium(object):
             sim["SubField/SubPixels"] = 128
             
         # Prepare for the Archimedean jitter spiral pattern
-        sim["Platform/UseJitter"]    = 'yes'
-        sim["Platform/JitterSource"] = 'FromFile'
+        sim["Platform/UseJitter"]               = 'yes'
+        sim["Platform/JitterSource"]            = 'FromFile'
         sim["ObservingParameters/NumExposures"] = 430
-
+        sim['ObservingParameters/CycleTime']    = 25
+        
         # Time of microscan simulation needs to match quarter for PlatoSim to run successfully
         # NOTE Here a new file is created with a appropriate time column to match the observation
         # NOTE This is done once per quarter and CCD time-shift and the file is saved to the simulation folder
@@ -1179,9 +1180,9 @@ out_group.add_argument('--varlist',      metavar='FILE', type=str, help='Path to
 out_group.add_argument('--compress',     action='store_true',      help='Flag to compress output files')
 
 sim_group = parser.add_argument_group('SIM PARAMETERS')
-sim_group.add_argument('--cadence', metavar='SEC', type=int, help='Cadence or cycle time step for each exposure [seconds] (default: 25 s)')
-sim_group.add_argument('--tdur',    metavar='DAY', type=int, help='Total lenght of shortened quarter time series [days]')
-sim_group.add_argument('--nexp',    metavar='NO.', type=int, help='Number of exposures of shortened quarter time series')
+sim_group.add_argument('--cadence', metavar='SEC', type=float, help='Cadence or cycle time step for each exposure [seconds] (default: 25 s)')
+sim_group.add_argument('--tdur',    metavar='DAY', type=float, help='Total lenght of shortened quarter time series [days]')
+sim_group.add_argument('--nexp',    metavar='NO.', type=int,   help='Number of exposures of shortened quarter time series')
 #obs_group.add_argument('--mexp', metavar='NO.',  type=int, help='Number of equidistant exposures in quarter or shortened time series.')
 sim_group.add_argument('--pic',     metavar='ID',  type=int, help='ID from the PIC -> Simulate a specific star in the PIC catalog (Overwrites "starID")')
 sim_group.add_argument('--seed',    metavar='INT', type=int,   help='Option to bootstrap seeds in order to reproduce results')
