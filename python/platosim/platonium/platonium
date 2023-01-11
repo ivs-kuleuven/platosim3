@@ -777,7 +777,6 @@ class PLATOnium(object):
 
     def control_hdf5(self):
         """
-
         Module to control HDF5 content for L1 pipeline.
         """
 

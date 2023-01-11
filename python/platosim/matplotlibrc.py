@@ -5,11 +5,12 @@ This script is used to configure the matplotlibrc file in order to consistantly
 use the same settings for all plots.
 """
 
+import os
 import matplotlib.pyplot as plt
 
 
 def setup():
-
+    
     # Control tickers
     plt.rcParams['xtick.top']           = True
     plt.rcParams['xtick.bottom']        = True
@@ -53,7 +54,8 @@ def setup_notebook():
     setup()
     latex()
 
-
+    
+    
 def setup_paper():
     setup()
     latex()

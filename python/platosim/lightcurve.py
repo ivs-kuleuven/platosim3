@@ -18,6 +18,8 @@ import pathlib
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import matplotlib.colors as colors
 import statsmodels.api as sm
 
 from scipy import constants as c
@@ -78,6 +80,9 @@ class LightCurve(object):
 
                 # Simply load file
                 self.df = pd.read_feather(filename)
+
+                # No mask updates
+                self.mask_updates = np.array([])
                 
             elif self.fileExtention == ".hdf5":
                 
@@ -86,8 +91,10 @@ class LightCurve(object):
 
                 # Fetch light curve
                 self.df = simfile.getLightCurve(0)
+
+                # Mask updates
                 #self.mask_apertures = simfile.getApertureMask(0)
-                self.mask_updates   = simfile.getMaskUpdateEvents()
+                self.mask_updates = simfile.getMaskUpdateEvents()
                 
             else:
                 ut.errorcode("error", "File should be in the format of .ftr or .hdf5!")
@@ -103,6 +110,7 @@ class LightCurve(object):
             else:
                 self.path = filename
 
+                
             # Correct obs info if it's a merged light curve
             self.ncam = ncam                
 
@@ -172,7 +180,7 @@ class LightCurve(object):
     #--------------------------------------------------------------#
 
 
-    def files(self, extension="zip", path=None):
+    def files(self, extension="zip", group=False, camera=False, quarter=False, path=None):
         """
         Function fetch all files with a common extention.
         """
@@ -180,9 +188,17 @@ class LightCurve(object):
         # Set path to files as default
         if path is None: path = self.path
 
-        # Fetch all zip files and sort them
-        files = np.sort(glob.glob(f"{path}/*.{extension}"))
+        # Sort after group, camera, or quarter
+        if group: G = f"{group}."
+        else: G = ""
+        if camera: C = f"{camera}_"
+        else: C = ""
+        if quarter: Q = f"Q{quarter}"
+        else: Q = ""
 
+        # Fetch all zip files and sort them
+        files = np.sort(glob.glob(f"{path}/*{G}**{C}**{Q}.{extension}"))
+        
         return files
 
     
@@ -268,7 +284,7 @@ class LightCurve(object):
 
         Note: flux_cor is only available for on-board photometry.
         """
-
+        
         # Flux unit
         #if   unit == "e/exp": flux = self.df[column]
         if   unit == "e/s": flux = self.df[column] / 4.026526
@@ -523,7 +539,7 @@ class LightCurve(object):
         
     
 
-    def bin(self, binsize=1, time_unit="d", flux_unit="e/s"):
+    def bin(self, binsize=1, time_unit="h", flux_unit="e/s"):
         """
         PURPOSE: Bin data after w.r.t. to the input time scale and cadence.
         """
@@ -559,20 +575,16 @@ class LightCurve(object):
         time     = [data[i]["time"].mean()     for i in range(len(data))]
         flux     = [data[i]["flux"].mean()     for i in range(len(data))]
         sigma    = [data[i]["flux"].std()      for i in range(len(data))]
-
+        # Specific column for P1 and P5 samples
         cols = ["time", "flux", "sigma"]
-        data = np.transpose([time, flux, sigma])
         if df.columns.str.startswith("flux_err").sum():
             flux_err = [data[i]["flux_err"].mean() for i in range(len(data))]
             cols.append("flux_err")
-            data.append(flux_err)
         if df.columns.str.startswith("flux_cor").sum():
-            flux_cor = [data[i]["flux_cor"].mean() for i in range(len(data))]
-            data.append(flux_cor)
-            
-        # Replace flux_err with RMS
-        #df["flux_err"] = np.array([df[df["time"].between(tbins[i], tbins[i+1])].std() for i in range(nbins-1)])
-
+            flux_err = [data[i]["flux_cor"].mean() for i in range(len(data))]
+            cols.append("flux_err")
+        data = np.transpose([time, flux, sigma, flux_err])
+        
         return pd.DataFrame(data, columns=cols)
 
 
@@ -1191,7 +1203,15 @@ class LightCurve(object):
     #                        APERTURE MASKS                        #   
     #--------------------------------------------------------------#
 
-                
+    def time_limit(self, quarters):
+
+        tmin = (min(quarters) - 1) * 90 - 2
+        tmax = (max(quarters)    ) * 90
+
+        return tmin, tmax
+
+
+    
     def axes_quarter_marks(self):
                 
         # Plot quarters
@@ -1266,6 +1286,7 @@ class LightCurve(object):
         flux = self.flux(unit=flux_unit)
         
         # Create matplotlib object 
+
         fig, ax = plt.subplots(1, 1, figsize=figsize)
         
         # Plot the input variable source
@@ -1407,7 +1428,105 @@ class LightCurve(object):
 
     
     
+    def plot_multi(self, time_unit="d", flux_unit="e/s", fileExtention="ftr",
+                   group=False, camera=False, quarter=False,
+                   legend=True, median_filter=False, binsize=False,
+                   figsize=(10,6)):
+        """
+        PURPOSE: Function normalize the input flux and change time units to days. 
+        NOTE: Function tailored to PLATOniums output format feather!
+        FIXME this function do not work currently
 
+        Parameters
+        ----------
+        time_unit : str
+            Array containing at least a time and flux column (and potential flux_err)
+        flux_err: boolen
+           Wheather or not a flux_err column is present and should thus be added.
+
+        Return
+        ------
+        fig, ax : matplotlib objects
+        """
+
+        # Fetch all feather filenames
+        filenames = self.files(fileExtention, group=group, camera=camera, quarter=quarter)
+        nfiles    = len(filenames)
+
+        # Find number of quarters set axes limit
+        quarters = np.unique([int(pathlib.Path(filenames[i]).stem[19:]) for i in range(nfiles)])
+        
+        # Create matplotlib object 
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+
+        # Set colors
+        cmap      = plt.get_cmap('nipy_spectral')
+        cnorm     = colors.Normalize(vmin=0, vmax=nfiles-1)
+        scalarMap = cm.ScalarMappable(norm=cnorm, cmap=cmap)
+        ax.set_prop_cycle(color=[scalarMap.to_rgba(i) for i in range(nfiles)])
+        
+        # Loop over each observation
+
+        for f in filenames:
+
+            # Load single camera obs
+            #df = pd.read_feather(f)
+
+            lc = LightCurve(f)
+
+            # Label for flux
+            if   flux_unit == "e/s":  ylab = r"Flux [e$^-$ s$^{-1}$]"
+            elif flux_unit == "norm": ylab = "Flux normalized"
+            elif flux_unit == "ppt":  ylab = "Flux [ppt]"
+            elif flux_unit == "ppm":  ylab = "Flux [ppm]"
+            else: ut.errorcode("error", "No such flux unit!")
+        
+            # Fetch obs infoin range
+            group, camera, quarter = lc.obs()
+            lab = f"N-CAM {group}.{camera} Q{quarter}"
+
+            # Fetch columns and plot
+            time = lc.time(unit=time_unit)
+            flux = lc.flux(unit=flux_unit)
+            ax.plot(time, flux, '.', ms=self.ms, alpha=self.aa, label=lab, zorder=1)
+            
+        # Set legend
+        if legend:
+            pos = ax.get_position()
+            ax.set_position([pos.x0, pos.y0, pos.width * 0.9, pos.height])
+            ax.legend(bbox_to_anchor=(1.24, 1.0), prop={'size': 10})
+
+        # Set title
+        #ax.title(f"StarID : {}")
+            
+        # Settings
+        ax.set_xlim(self.time_limit(quarters))
+        #ax.set_xlim(time.iloc[0], time.iloc[-1])
+        ax.set_xlabel(f'Time [{time_unit}]')
+        ax.set_ylabel(ylab)
+        plt.show()
+            
+            # Fetch mask updates
+            # mask = f.getPhotometricMask(1)
+            # maskupdates.append((mask[2] * 25.) / c.day)  # [days]
+
+            # Save time series to dict
+            #cameras['Ncam{}'.format(camera_i)] = [time, flux]
+
+            
+            # Compute median carbox filter of output signal
+            #maskupdates = np.arange(0, 7*8*maskupdates[0][1], maskupdates[0][1])
+            #axes_maskupdates(ax, time, maskupdates)
+
+
+        return fig, ax
+
+
+
+
+
+
+        
 
     def plotComparison(self, fig, filenames, medfilt=None, title=None):
         """
@@ -1524,80 +1643,6 @@ class LightCurve(object):
 
 
 
-    def plotMultiCameraAndQuarterPhotometry(self, fig, outputFiles, medfilt=144, title=None):
-        """
-        FIXME this function do not work currently
-
-        Parameters
-        ----------
-        filename : str
-            File name of HDF5 file containing photometry
-
-        Return
-        ------
-        fig, ax: matplotlib object
-        """
-
-        # Fetch information about the observation
-
-        numFiles = len(outputFiles)
-        aa = 0.2  # Alpha channel of data
-
-        ax = fig.add_subplot(1,1,1)
-
-        cameras = {}
-        maskupdates = []
-
-        for i in range(numFiles):
-
-            # Load photometry class
-
-            f = SimFile(outputFiles[i])
-
-            quarter_i = int(outputFiles[i][-6])
-            camera_i  = outputFiles[i][-11:-8]
-
-            #print(quarter_i)
-            # Fetch and combine time series for each quarter
-
-            # Fetch photometry
-
-            lc = f.getPhotometry(starID=1, quarterNo=quarter_i)
-            time = lc[0] / c.day        # [days]
-            flux = ut.normalize(lc[2])  # [ppm]
-            flux_med = median_filter(flux, medfilt)  # [ppm]
-
-            ax.plot(time, flux, 'k.', markersize=1, alpha=0.2, label='Raw flux')
-            ax.plot(time, flux_med, 'g-', label='Median per hour')
-
-            # Fetch mask updates
-
-            mask = f.getPhotometricMask(1)
-            maskupdates.append((mask[2] * 25.) / c.day)  # [days]
-
-                # Save time series to dict
-
-            #cameras['Ncam{}'.format(camera_i)] = [time, flux]
-
-
-        # Compute median carbox filter of output signal
-
-        maskupdates = np.arange(0, 7*8*maskupdates[0][1], maskupdates[0][1])
-
-        axes_maskupdates(ax, time, maskupdates)
-        ax.legend(loc='lower right', fancybox=True, ncol=2)
-        ax.set_ylabel('Norm. Flux [ppm]')
-        plt.xlabel('Time [days]', fontsize=fs-3)
-        plt.ylabel('Relative flux [ppm]', fontsize=fs-3)
-
-        # Settings
-
-        #plt.xlim(axes_minmax(x=time))
-        #plt.ylim(-n*df, df)
-
-        # That's it!
-
-        plt.show()
 
 
 
