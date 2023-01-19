@@ -55,13 +55,22 @@ class InstrumentSetup(object):
 
         # Output directory
         if args.outdir:
-            self.odir = Path(args.outdir)
+            self.odir = Path(args.outdir).resolve()
         elif args.project:
             self.project = args.project
             self.odir = Path(os.getenv('PLATO_WORKDIR')) / self.project / "input"
         else:
             self.odir = False
-            
+
+        # File names
+        if self.odir:
+            self.fileNamePRE = f"{self.odir}/instrumentPRE.txt"
+            self.fileNameAPE = f"{self.odir}/instrumentAPE.txt"
+            self.fileNameTED = f"{self.odir}/instrumentTED.txt"
+        else:
+            self.fileNamePRE = self.fileNameAPE = self.fileNameTED = False
+
+
         # Number of images in a quarter
         self.nimg = (60 * 60 * 24 * 90) / 25
 
@@ -129,6 +138,7 @@ class InstrumentSetup(object):
         t0 = round(90. * (self.Q[0]  - 1) * self.day2sec)
         t1 = round(90. * (self.Q[-1] - 1) * self.day2sec)
         self.time = np.arange(t0, t1, 25)
+
         
         
 
@@ -210,8 +220,9 @@ class InstrumentSetup(object):
         if email is None: email = ''
 
         # Generate job script
-        
-        print(f"Creating HPC parameterization job-script: {self.odir}/{prefix}.pbs")
+
+        if self.odir:
+            print(f"Creating HPC parameterization job-script: {self.odir}/{prefix}.pbs")
 
         script = \
         """
@@ -228,9 +239,8 @@ class InstrumentSetup(object):
         module restore plato
 
         # Define sample
-        PX=P1
-        PROJECT=kul21
-        OUTDIR=/scratch/leuven/341/vsc34166/platonium/$PROJECT
+        PX=<sample>
+        PROJECT=<project>
 
         # Load paths
         POETRY=$VSC_DATA/poetry/virtualenvs/platonium-KLYW-dHg-py3.8/bin/activate
@@ -239,6 +249,7 @@ class InstrumentSetup(object):
         PLATO_WORKDIR=$VSC_DATA/workdir
         SIMDIR=$PLATO_PROJECT_HOME/python/platosim/platonium
         TEMDIR=$VSC_SCRATCH_NODE
+        OUTDIR=/scratch/leuven/341/vsc34166/platonium/$PROJECT
         PYTHONPATH=$POETRY:$PLATO:$PLATO_PROJECT_HOME/python:$PLATO_WORKDIR:$SIMDIR:$TEMDIR:$OUTDIR
         export POETRY
         export PLATO
@@ -288,7 +299,8 @@ class InstrumentSetup(object):
         # Select prefix
         prefix = "data"
         
-        print(f"Creating HPC parameterization file : {self.odir}/{prefix}.txt")
+        if self.odir:
+            print(f"Creating HPC parameterization file : {self.odir}/{prefix}.txt")
 
         # Add rows in a loop
         textfile = "star,group,camera,quarter\n"
@@ -307,6 +319,7 @@ class InstrumentSetup(object):
 
 
 
+                
     def create_time_gaps(self):
         """
         Function to create a job script to be used on the VSC.
@@ -316,58 +329,176 @@ class InstrumentSetup(object):
         rng = np.random.default_rng()
 
         # Create pandas data frame for different flags
-        flags = ["time", "roll", "downlink", "safemode", "fineguidance",
-                 "attitude", "ccdanomaly", "argabrightning"]
-        df = pd.DataFrame(columns=flags)
+        #flags = ["time", "roll", "downlink", "safemode", "fineguidance",
+        #         "attitude", "ccdanomaly", "argabrightning"]
+        df = pd.DataFrame()
 
         # Start time of simulation
         t0 = round(90. * (self.Q[0]  - 1) * self.day2sec)
         t1 = round(90. * (self.Q[-1] - 1) * self.day2sec)
         time = np.arange(t0, t1, 25)
+
         # Create continous time array
         df["time"] = time
 
-        # Quarterly rolls
-        for Q in self.Q[1:]:                                    # [d]
-            roll_gap    = 2 + np.random.uniform(-0.5, 0.5)      # [d]
-            roll_event0 = (90. * (Q - 1) - roll_gap) * self.day2sec  # [s]
-            roll_event1 = 90. * (Q - 1) * self.day2sec               # [s]
-            df["roll"]  = np.logical_and(time>=roll_event0, time<=roll_event1)
+        
+        # QUARTERLY ROLLS
 
-        # Downlink gaps
-        downlink_events = np.linspace(self.Q[1], self.Q[-1], 3*(self.Q[-1]-self.Q[1]))
-        for M in downlink_events:
-            downlink_gap    = (5/24. + np.random.uniform(-0.5/24., 0.5/24))
-            downlink_event0 = (M - downlink_gap) * self.day2sec
-            downlink_event1 = M * self.day2sec
-            df["downlink"]  = np.logical_and(time>=downlink_event0, time<=downlink_event1)
+        roll_period   = 93.
+        roll_duration = 2.0
+        roll_anomaly  = 0.5
+
+        n_roll = len(self.Q)
+        roll_events = self.Q
+        roll_event0 = np.zeros(n_roll)
+        roll_event1 = np.zeros(n_roll)
+        
+        for i, Q in zip(range(n_roll), roll_events):
+            roll_gap = roll_duration + np.random.uniform(-roll_anomaly, roll_anomaly) # [d]
+            roll_event0[i] = (roll_period * Q - roll_gap/2) * self.day2sec  # [s]
+            roll_event1[i] = (roll_period * Q + roll_gap/2) * self.day2sec  # [s]
+            df["roll"] = np.logical_and(time>=roll_event0[i], time<=roll_event1[i])
+
+
+        # DOWNLINK GAPS
+
+        link_period   = 30.
+        link_duration = 5/24.           # [d] i.e. 5 hours
+        link_anomaly  = 0.5/24.         # [d] i.e. 0.5 hour
+        link_events = np.arange((self.Q[0]-1)*roll_period, self.Q[-1]*roll_period, link_period)[1:]
+
+        n_link = len(link_events)
+        link_event0 = np.zeros(n_link)
+        link_event1 = np.zeros(n_link)
+        
+        for i, L in zip(range(n_link), link_events):
+            link_gap = link_duration + np.random.uniform(-link_anomaly, link_anomaly)
+            link_event0[i] = (L - link_gap/2) * self.day2sec
+            link_event1[i] = (L + link_gap/2) * self.day2sec
+            df["downlink"] = np.logical_and(time>=link_event0[i], time<=link_event1[i])
+
+
+        # LOSS OF FINE GUIDANCE
+
+        freq = 180
+        t = self.Q[0] * roll_period
+        jitter_duration = 0.5/24.
+        jitter_anomaly  = 0.1/24.
+        jitter_events   = []
+        
+        while t < self.Q[-1] * roll_period:            
+            jitter_event = np.random.poisson(lam=freq)
+            t += jitter_event
+            jitter_events.append(t)
+
+        n_jitter = len(jitter_events)
+        jitter_event0 = np.zeros(n_jitter)
+        jitter_event1 = np.zeros(n_jitter)
+
+        for i, J in zip(range(n_jitter), jitter_events):
+            jitter_gap = jitter_duration + np.random.uniform(-jitter_anomaly, jitter_anomaly)
+            jitter_event0[i] = (J - jitter_gap/2) * self.day2sec
+            jitter_event1[i] = (J + jitter_gap/2) * self.day2sec
+            df["jitter"] = np.logical_and(time>=jitter_event0[i], time<=jitter_event1[i])
+
+
+        # SAVE MODE EVENTS
+
+        freq = 270
+        t = self.Q[0] * roll_period
+        safe_duration = 1
+        safe_anomaly  = 12/24.
+        safe_events   = []
+        
+        while t < self.Q[-1] * roll_period:            
+            safe_event = np.random.poisson(lam=freq)
+            t += safe_event
+            safe_events.append(t)
+
+        n_safe = len(safe_events)
+        safe_event0 = np.zeros(n_safe)
+        safe_event1 = np.zeros(n_safe)
+
+        for i, S in zip(range(n_safe), safe_events):
+            safe_gap = safe_duration + np.random.uniform(-safe_anomaly, safe_anomaly)
+            safe_event0[i] = (S - safe_gap/2) * self.day2sec
+            safe_event1[i] = (S + safe_gap/2) * self.day2sec
+            df["safe"] = np.logical_and(time>=safe_event0[i], time<=safe_event1[i])
 
 
         # Create new time array with all gaps
-        df["tsim"] = ~df.roll * ~df.downlink
-        df["tsim"] = df["tsim"].where(df["tsim"]!='T', 1) * df["time"]
-        df["tsim"].replace({0: np.nan}, inplace=True) 
-        df["tsim"].iloc[0] = 0
+        # df["tsim"] = ~df.roll * ~df.downlink
+        # df["tsim"] = df["tsim"].where(df["tsim"]!='T', 1) * df["time"]
+        # df["tsim"].replace({0: np.nan}, inplace=True) 
+        # df["tsim"].iloc[0] = 0
 
-        df["tgap"] = ~df.roll * ~df.downlink
-        df["tgap"] = ~df["tgap"]
-        df["tgap"] = df["tgap"].where(df["tgap"]!='T', 1) * df["time"]
+        # df["tgap"] = ~df.roll * ~df.downlink
+        # df["tgap"] = ~df["tgap"]
+        # df["tgap"] = df["tgap"].where(df["tgap"]!='T', 1) * df["time"]
+        # df["tgap"].replace({0: np.nan}, inplace=True) 
 
-        df["tgap"].replace({0: np.nan}, inplace=True) 
+        
+        # Show figure
+        
+        fig, ax = plt.subplots(figsize=(10, 3))
 
-        plt.plot(df["tsim"] / self.day2sec, np.ones(df.tsim.shape[0]), "b.")
-        plt.plot(df["tgap"] / self.day2sec, np.ones(df.tsim.shape[0]), "r.")
+        # Plots
+        ax.axhline(y=0, linestyle=':', color='k')
+
+        for i in range(n_roll):
+            roll =ax.axvspan(roll_event0[i]/self.day2sec, roll_event1[i]/self.day2sec,
+                             color='b', alpha=0.5)
+            
+        for i in range(n_link):
+            link =ax.axvspan(link_event0[i]/self.day2sec, link_event1[i]/self.day2sec,
+                             color='m', alpha=0.5)
+
+        for i in range(n_jitter):
+            jitter =ax.axvspan(jitter_event0[i]/self.day2sec, jitter_event1[i]/self.day2sec,
+                               color='orange', alpha=0.5)
+
+        for i in range(n_safe):
+            safe =ax.axvspan(safe_event0[i]/self.day2sec, safe_event1[i]/self.day2sec,
+                             color='r', alpha=0.5)
+
+            
+        # for i, col in zip(range(3), cols):
+        #     ax[i].plot(df["time"]/day2sec, df[col], 'k-')
+        #     ax[i].axhline(y=0, linestyle=':', color='k')
+        #     for k in range(N-1):
+        #         ax[i].axvline(x=quarter[k]*90, linestyle='--', color='b')
+        # # Settings
+        # ax[1].set_ylabel("Pitch [arcsec]")
+        # ax[2].set_ylabel("Roll [arcsec]")
+        # for i in range(3):
+        #     ax[i].set_xlim(df.time.min()/day2sec, df.time.max()/day2sec)
+        # # Layout
+        # ax[0].set_xticklabels([])
+        # ax[1].set_xticklabels([])
+        # plt.tight_layout(h_pad=0.2, w_pad=0)
+        # plt.show()
+
+        # Labels
+        ax.set_xlabel("Time [days]")
+        ax.set_ylabel("Arb.")
+        roll.set_label('Quarter rolls')
+        link.set_label('Downlinks')
+        jitter.set_label('Loss of FGS')
+        safe.set_label('Safe modes')
+        ax.legend(ncol=4, loc="center", bbox_to_anchor=(0.5, 1.2))
+
+        # Layout
+        ax.set_yticklabels([])
+        ax.set_xlim(df.time.iloc[0], df.time.iloc[-1]/self.day2sec+5)
+        ax.set_ylim(-1,1)
+        plt.tight_layout()
         plt.show()
-        
-        print(df); exit()
 
-        # Apply start time relative mission BOL
-        self.beginExposureNr = round(self.timeStart / self.cadence)
+        # APply start time relative mission BOL
+        #self.beginExposureNr = round(self.timeStart / self.cadence)
         
-        # Select prefix
-        prefix = "instrument"
-        
-        print(f"Creating file with instrumental time gaps : {self.odir}/{prefix}.txt")
+        if self.odir:
+            print(f"Creating file with instrumental time gaps : {self.odir}/instrumentDataGaps.txt")
         
 
 
@@ -382,7 +513,7 @@ class InstrumentSetup(object):
         # Generete PRE file
         if self.odir: print("\nSaving PRE file")
         it.getPRE(self.ra, self.dec, self.kappa, self.Q, sigma=3,
-                  outdir=self.odir + "/instrumentPRE.txt", show_table=True)
+                  outfile=self.fileNamePRE, show_table=True)
 
         
 
@@ -395,7 +526,7 @@ class InstrumentSetup(object):
         # Generete APE file
         if self.odir: print("\nSaving APE file")
         it.getAPE(self.ra, self.dec, self.kappa, sigma=3,
-                  outdir=self.odir + "/instrumentAPE.txt", show_table=True)
+                  outfile=self.fileNameAPE, show_table=True)
 
 
 
@@ -406,7 +537,7 @@ class InstrumentSetup(object):
         
         # Generate TED file
         if self.odir: print("\nSaving TED file and plot")
-        it.getTED(self.Q, outdir=self.odir + "/instrumentTED.txt", plot=True)
+        it.getTED(self.Q, outfile=self.fileNameTED, plot=True)
         
         
 #--------------------------------------------------------------#
@@ -419,7 +550,7 @@ parser = argparse.ArgumentParser(epilog=__doc__,
                                  description=ut.errorcode('software', software))
 
 man_group = parser.add_argument_group('MANDATORY PARAMETERS')
-man_group.add_argument('field',   type=str, help='Number of stars')
+man_group.add_argument('field',   type=str, help='LOP (SPF, NPF)')
 man_group.add_argument('stars',   type=str, help='Number of stars')
 man_group.add_argument('group',   type=str, help='Either: 1, 2, 3, 4')
 man_group.add_argument('camera',  type=str, help='Either: 1, 2, 3, 4, 5, 6')
@@ -436,7 +567,7 @@ x = InstrumentSetup(args)
 # Run each module
 x.create_job_script()
 x.create_param_file()
-#x.create_time_gaps()
+x.create_time_gaps()
 x.createPRE()
 x.createAPE()
 x.createTED()

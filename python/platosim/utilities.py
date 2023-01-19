@@ -158,7 +158,7 @@ def normalize(signal, factor=1e6, length=-1):
         Normalized relative signal is returned. Default unit in [ppm].
     """
 
-    relative_signal = (signal / np.mean(signal[:int(length)]) - 1) * factor
+    relative_signal = (signal / np.nanmean(signal[:int(length)]) - 1) * factor
 
     return relative_signal
 

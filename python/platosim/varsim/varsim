@@ -1271,14 +1271,31 @@ class Variability(object):
         if args.star == 'std':
             dm = self.lc['std']
         else:
-            # Sum all signals
-            lc_sum = self.lc.iloc[:,1:].sum(axis=1)
-            self.lc['sum'] = lc_sum.tolist()
-            # Convert back to relative flux
-            df = self.lc['sum'].to_numpy() / 1e6 + 1
+            # Combine all signals
+            
+            # Granulation and pulsation are additive
+            if 'gran' in self.lc and 'puls' in self.lc:
+                self.lc['comb'] = (self.lc.gran + self.lc.puls) / 1e6 + 1
+            elif 'gran' in self.lc and 'puls' not in self.lc:
+                self.lc['comb'] = self.lc.gran / 1e6 + 1
+            elif 'gran' not in self.lc and 'puls' in self.lc:
+                self.lc['comb'] = self.lc.puls / 1e6 + 1
+            else:
+                self.lc['comb'] = np.ones_like(self.lc.time)
+                
+            # Spots and transits are multiplicative
+            if 'spot' in self.lc:
+                self.lc['comb'] *= (self.lc.spot / 1e6 + 1)
+            if 'tran' in self.lc:
+                self.lc['comb'] *= (self.lc.tran / 1e6 + 1)
+                
             # Convert to delta magnitude
-            dm = - 2.5 * np.log10(df)
+            dF = self.lc['comb'].to_numpy()
+            dm = - 2.5 * np.log10(dF)
 
+            # Convert back again for plot (normalized to 0 [ppm])
+            self.lc.comb = (self.lc.comb - 1) * 1e6
+            
         # Convert to quarters
         if args.quarter:
             self.lc['time'] += self.timeStart * 86400
@@ -1353,14 +1370,15 @@ class Variability(object):
         # SAVE DATA
         
         if args.outfile:
+
+            print(f'\nSaving output files')
             out = args.outfile[-3:]
 
             # Save to ascii
             if out == 'txt':
                 np.savetxt(args.outfile, np.transpose([self.lc['time'], dm]), fmt=['%.1f', '%.8f'])
                 df.to_feather(f'{args.outfile[:-4]}_parameters.ftr')
-                if args.xsource in (1, 2, 3):
-                    self.lc.to_feather(f'{args.outfile[:-4]}_components.ftr')
+                self.lc.to_feather(f'{args.outfile[:-4]}_components.ftr')
 
             # Save to numpy binary
             elif out == 'npy':
@@ -1379,7 +1397,7 @@ class Variability(object):
                 if out == 'ftr':
                     df.to_feather(args.outfile)
                     df.to_feather(f'{args.outfile[:-4]}_params.{out}')
-
+                    
             else:
                 errorcode('Error', 'Output format not supported!')
 
@@ -1476,8 +1494,8 @@ elif args.xsource or args.planet:
         v.exoplanet_occultation()
         v.exoplanet_beaming()
         v.exoplanet_ellipsoidal()
-        if not args.xsource and args.plot:
-            v.plot_phase_curve()
+        #if not args.xsource and args.plot:
+        #    v.plot_phase_curve()
         
 # Combine and save
 v.run_prolog()

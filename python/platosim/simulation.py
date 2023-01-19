@@ -546,7 +546,6 @@ class Simulation(object):
         self.__setitem__("CCD/NumColumns", "4510")
         self.__setitem__("CCD/NumRows",    "2255")
         self.__setitem__("ObservingParameters/CycleTime", "2.5")
-        self.__setitem__("ObservingParameters/ExposureTime", "2.3")
 
         return
 

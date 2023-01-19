@@ -1086,17 +1086,18 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, system="icrs", magStars=N
                          s=dm, marker=mark, c=color, ec='k', lw=1, zorder=5)
 
     # Plot pointing of each camera group
-    #raGroups, decGroups = rf.getCameraGroupCoordinates(PF_icrs.ra.deg, PF_icrs.dec.deg, -8)
-    #camPointing = SkyCoord(raGroups*u.deg, decGroups*u.deg, frame='icrs', unit='deg')  
-    #ax.plot(camPointing.ra.deg, camPointing.dec.deg, 'r.', transform=ax.get_transform('world'), markersize=10, zorder=6)
+    raGroups, decGroups = rf.getCameraGroupCoordinates(PF_icrs.ra.deg, PF_icrs.dec.deg, -8.5)
+    camPointing = SkyCoord(raGroups*u.deg, decGroups*u.deg, frame='icrs', unit='deg')  
+    for i, c in zip(range(4), ['b', 'limegreen', 'yellow', 'r']):
+        ax.plot(camPointing[i].ra.deg, camPointing[i].dec.deg, 'o', ms=13, color=c, mec='k', transform=ax.get_transform('world'), zorder=6)
 
-    # Plot pointing of PIC1.1.0 and PIC2.0.0
-    ax.plot(PF_icrs.ra.deg, PF_icrs.dec.deg, '*', transform=ax.get_transform('world'), ms=20, c='k', mfc='r', zorder=6)
+    # Plot F-CAM and platform pointing (PIC1.1.0 and PIC2.0.0)
+    ax.plot(PF_icrs.ra.deg, PF_icrs.dec.deg, '*', c='k', mfc='magenta', ms=25, transform=ax.get_transform('world'), zorder=6)
 
     # Plot F-CAM FOV as cicle
-    fcam = patches.Circle((PF_icrs.ra.deg, PF_icrs.dec.deg), 12.2, fc='none', lw=2,
-                          transform=ax.get_transform('galactic'), ec='r', zorder=2)
-    ax.add_patch(fcam)
+    #fcam = patches.Circle((PF_icrs.ra.deg, PF_icrs.dec.deg), 12.2, fc='none', lw=2,
+    #                      transform=ax.get_transform('galactic'), ec='m', zorder=2)
+    #ax.add_patch(fcam)
     #ax.plot(277.18, 52.85, '*', transform=ax.get_transform('world'), ms=20, c='k', mfc='b', zorder=7)
 
     # Add-on's
@@ -2465,18 +2466,13 @@ def plot_final_lc(lc, figsize=(10,8)):
 
     # Fetch component or set to zero
     zeros = np.zeros(len(lc['time']))
-    try: lc['spot']
-    except: lc['spot'] = zeros.tolist()
-    try: lc['gran']
-    except: lc['gran'] = zeros.tolist()
-    try: lc['puls']
-    except: lc['puls'] = zeros.tolist()
-    try: lc['tran']
-    except: lc['tran'] = zeros.tolist()
+    if 'spot' not in lc: lc['spot'] = zeros.tolist()
+    if 'gran' not in lc: lc['gran'] = zeros.tolist()
+    if 'puls' not in lc: lc['puls'] = zeros.tolist()
+    if 'tran' not in lc: lc['tran'] = zeros.tolist()
 
     # Handle time units
     time = lc['time']/86400.
-    #lc_med = median_filter(lc['sum'], 144)
 
     # Start plotting
     
@@ -2485,19 +2481,16 @@ def plot_final_lc(lc, figsize=(10,8)):
     ax[0].plot(time, lc['gran'] + lc['puls'], 'g-', label='Gran + Puls')
     ax[1].plot(time, lc['spot'], 'b-', label='Spots')
     ax[2].plot(time, lc['tran'], 'r-', label='Transits')
-    ax[3].plot(time, lc['sum'],  'm-', label='Combined')
-    #ax[3].plot(time, lc_med,     'm-', label='1h median')            
-
-    plt.xlabel('Time [days]')
-    fig.text(0.01, 0.5, 'Relative flux [ppm]', va='center', rotation='vertical')
+    ax[3].plot(time, lc['comb'], 'm-', label='Combined')
     
     for i in range(4):
         ax[i].set_xlim(time.iloc[0], time.iloc[-1])
         ax[i].legend(loc="lower left")
-        
-    plt.tight_layout(h_pad=0.1, w_pad=1)
-    #plt.subplots_adjust(wspace=0, hspace=0.1)    
 
+    plt.xlabel('Time [days]')
+    fig.text(0.01, 0.5, 'Relative flux [ppm]', va='center', rotation='vertical')    
+    plt.tight_layout(h_pad=0.1, w_pad=1)
+    
     return fig, ax
 
 
