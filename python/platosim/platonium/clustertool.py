@@ -437,62 +437,63 @@ class InstrumentSetup(object):
         # df["tgap"] = df["tgap"].where(df["tgap"]!='T', 1) * df["time"]
         # df["tgap"].replace({0: np.nan}, inplace=True) 
 
-        
         # Show figure
-        
-        fig, ax = plt.subplots(figsize=(10, 3))
 
-        # Plots
-        ax.axhline(y=0, linestyle=':', color='k')
-
-        for i in range(n_roll):
-            roll =ax.axvspan(roll_event0[i]/self.day2sec, roll_event1[i]/self.day2sec,
-                             color='b', alpha=0.5)
+        if n_roll != 1:
             
-        for i in range(n_link):
-            link =ax.axvspan(link_event0[i]/self.day2sec, link_event1[i]/self.day2sec,
-                             color='m', alpha=0.5)
+            fig, ax = plt.subplots(figsize=(10, 3))
 
-        for i in range(n_jitter):
-            jitter =ax.axvspan(jitter_event0[i]/self.day2sec, jitter_event1[i]/self.day2sec,
-                               color='orange', alpha=0.5)
+            # Plots
+            ax.axhline(y=0, linestyle=':', color='k')
 
-        for i in range(n_safe):
-            safe =ax.axvspan(safe_event0[i]/self.day2sec, safe_event1[i]/self.day2sec,
-                             color='r', alpha=0.5)
+            for i in range(n_roll):
+                roll =ax.axvspan(roll_event0[i]/self.day2sec, roll_event1[i]/self.day2sec,
+                                 color='b', alpha=0.5)
 
-            
-        # for i, col in zip(range(3), cols):
-        #     ax[i].plot(df["time"]/day2sec, df[col], 'k-')
-        #     ax[i].axhline(y=0, linestyle=':', color='k')
-        #     for k in range(N-1):
-        #         ax[i].axvline(x=quarter[k]*90, linestyle='--', color='b')
-        # # Settings
-        # ax[1].set_ylabel("Pitch [arcsec]")
-        # ax[2].set_ylabel("Roll [arcsec]")
-        # for i in range(3):
-        #     ax[i].set_xlim(df.time.min()/day2sec, df.time.max()/day2sec)
-        # # Layout
-        # ax[0].set_xticklabels([])
-        # ax[1].set_xticklabels([])
-        # plt.tight_layout(h_pad=0.2, w_pad=0)
-        # plt.show()
+            for i in range(n_link):
+                link =ax.axvspan(link_event0[i]/self.day2sec, link_event1[i]/self.day2sec,
+                                 color='m', alpha=0.5)
 
-        # Labels
-        ax.set_xlabel("Time [days]")
-        ax.set_ylabel("Arb.")
-        roll.set_label('Quarter rolls')
-        link.set_label('Downlinks')
-        jitter.set_label('Loss of FGS')
-        safe.set_label('Safe modes')
-        ax.legend(ncol=4, loc="center", bbox_to_anchor=(0.5, 1.2))
+            for i in range(n_jitter):
+                jitter =ax.axvspan(jitter_event0[i]/self.day2sec, jitter_event1[i]/self.day2sec,
+                                   color='orange', alpha=0.5)
 
-        # Layout
-        ax.set_yticklabels([])
-        ax.set_xlim(df.time.iloc[0], df.time.iloc[-1]/self.day2sec+5)
-        ax.set_ylim(-1,1)
-        plt.tight_layout()
-        plt.show()
+            for i in range(n_safe):
+                safe =ax.axvspan(safe_event0[i]/self.day2sec, safe_event1[i]/self.day2sec,
+                                 color='r', alpha=0.5)
+
+
+            # for i, col in zip(range(3), cols):
+            #     ax[i].plot(df["time"]/day2sec, df[col], 'k-')
+            #     ax[i].axhline(y=0, linestyle=':', color='k')
+            #     for k in range(N-1):
+            #         ax[i].axvline(x=quarter[k]*90, linestyle='--', color='b')
+            # # Settings
+            # ax[1].set_ylabel("Pitch [arcsec]")
+            # ax[2].set_ylabel("Roll [arcsec]")
+            # for i in range(3):
+            #     ax[i].set_xlim(df.time.min()/day2sec, df.time.max()/day2sec)
+            # # Layout
+            # ax[0].set_xticklabels([])
+            # ax[1].set_xticklabels([])
+            # plt.tight_layout(h_pad=0.2, w_pad=0)
+            # plt.show()
+
+            # Labels
+            ax.set_xlabel("Time [days]")
+            ax.set_ylabel("Arb.")
+            roll.set_label('Quarter rolls')
+            link.set_label('Downlinks')
+            jitter.set_label('Loss of FGS')
+            safe.set_label('Safe modes')
+            ax.legend(ncol=4, loc="center", bbox_to_anchor=(0.5, 1.2))
+
+            # Layout
+            ax.set_yticklabels([])
+            ax.set_xlim(df.time.iloc[0], df.time.iloc[-1]/self.day2sec+5)
+            ax.set_ylim(-1,1)
+            plt.tight_layout()
+            plt.show()
 
         # APply start time relative mission BOL
         #self.beginExposureNr = round(self.timeStart / self.cadence)
