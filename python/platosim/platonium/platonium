@@ -78,11 +78,13 @@ class PLATOnium(object):
         self.seed         = args.seed
         self.reuseJitter  = args.reusejitter
         
-        self.sample         = args.sample
-        self.conDeltaMag    = args.con_dmag
-        self.conFluxError   = args.con_ferr
-        self.tarFluxError   = args.tar_ferr
-        self.tarAbsCenError = args.tar_cerr
+        self.sample          = args.sample
+        self.conDeltaMag     = args.con_dmag
+        self.conFluxError    = args.con_ferr
+        self.tarFluxError    = args.tar_ferr
+        self.tarAbsCenError  = args.tar_cerr
+        self.saveAllFiles    = args.save_all
+        self.jitterDriftOff  = args.jitterdrift_off
         
         # Make sure that the input is physical
         if not self.group in [1,2,3,4]:
@@ -777,7 +779,6 @@ class PLATOnium(object):
 
     def control_hdf5(self):
         """
-
         Module to control HDF5 content for L1 pipeline.
         """
 
@@ -1033,15 +1034,16 @@ class PLATOnium(object):
 
         # JITTER AND DRIFT CORRECTION
 
-        if self.verbose > 0:
-            errorcode('message', '\n[jittercorrection.py]: Jitter & Drift Correction')
-        os.system(f'{self.platoLib}/jittercorrection.py ' +
-                  f'--add_chromatic_abberation ' +
-                  f'-W 128 -r 128 ' +
-                  f'--bsres {self.bsres} --seed {self.seedOffset} ' + 
-                  f'-f {self.prnuError} -b {self.tarAbsCenError} -a {self.conDeltaMag} ' +
-                  f'-I {self.microscanDirInvers}/{self.starID}_PRLS.vec ' +
-                  f'-o {self.starID} {self.starID} {self.starID} {self.devnull}')
+        if not self.jitterDriftOff:
+            if self.verbose > 0:
+                errorcode('message', '\n[jittercorrection.py]: Jitter & Drift Correction')
+            os.system(f'{self.platoLib}/jittercorrection.py ' +
+                      f'--add_chromatic_abberation ' +
+                      f'-W 128 -r 128 ' +
+                      f'--bsres {self.bsres} --seed {self.seedOffset} ' + 
+                      f'-f {self.prnuError} -b {self.tarAbsCenError} -a {self.conDeltaMag} ' +
+                      f'-I {self.microscanDirInvers}/{self.starID}_PRLS.vec ' +
+                      f'-o {self.starID} {self.starID} {self.starID} {self.devnull}')
         
         # PROLOGUE
                 
@@ -1089,7 +1091,12 @@ class PLATOnium(object):
                 
         if args.sample == 'P5':
             cols = ['flux', 'xc', 'yc', 'flux_cor']
-            df = pd.read_csv(prefixStarIDtar + '-jc.dat', delimiter=' ', comment='#', names=cols, usecols=cols)
+            # If jitter/drift correction is not applied no JC correction neither
+            if self.jitterDriftOff:
+                df = pd.read_csv(prefixStarIDtar + '.dat', delimiter=' ', comment='#', names=cols[:3], usecols=cols[:3])
+            else:
+                df = pd.read_csv(prefixStarIDtar + '-jc.dat', delimiter=' ', comment='#', names=cols, usecols=cols)
+            # Move the SPR file
             shutil.move(prefixStarIDtar + '-sprtot.dat', prefixStarIDnew + '.spr')
             # Move mask files number after mask update exposure
             maskfits = glob.glob(f'{prefixStarIDtar}**mask.fits')
@@ -1111,9 +1118,10 @@ class PLATOnium(object):
             shutil.move(prefixStarIDsim + f'_starcoord.dat',   prefixStarIDnew + '.cat')
         
         # Remove microscan-starID and simulation folder (and all its content)
-        shutil.rmtree(self.microscanDirStarID)
-        shutil.rmtree(self.microscanDirInvers)
-        shutil.rmtree(self.outputDirStarIDsim)
+        if not self.saveAllFiles:
+            shutil.rmtree(self.microscanDirStarID)
+            shutil.rmtree(self.microscanDirInvers)
+            shutil.rmtree(self.outputDirStarIDsim)
 
         # Give full read/write access
         os.system(f'chmod 777 {prefixStarIDnew}*')
@@ -1193,11 +1201,14 @@ sim_group.add_argument('--mask',    metavar='DAY', type=float, help='Option to a
 sim_group.add_argument('--reusejitter', action='store_true',   help='Flag to re-use AOCS jitter file across all quarters')
 
 pip_group = parser.add_argument_group('L1 PIPELINE PARAMETERS')
-pip_group.add_argument('--sample',   metavar='PIC', type=str, help='PIC sample to activate the correct L0-L1 pipeline chain [P1, P5]')
+pip_group.add_argument('--sample',   metavar='PIC',     type=str,   help='PIC sample to activate the correct L0-L1 pipeline chain [P1, P5]')
 pip_group.add_argument('--con_dmag', metavar='MAG',     type=float, help='Relative magnitude inclusion threshold for contaminant(s) (Default: 5 mag)')
 pip_group.add_argument('--con_ferr', metavar='PERCENT', type=float, help='Flux error assumption for Target')
 pip_group.add_argument('--tar_ferr', metavar='PERCENT', type=float, help='Flux error assumption for Contaminant(s)')
 pip_group.add_argument('--tar_cerr', metavar='PIXEL',   type=float, help='Centroid error assumption for Target')
+pip_group.add_argument('--save_all',        action='store_true',    help='Saves all files produced by each processing step')
+pip_group.add_argument('--jitterdrift_off', action='store_true',    help='Turn off the jitter/drift correction')
+
 
 args = parser.parse_args()
 
