@@ -632,9 +632,9 @@ void Detector::readCTIinputFile(string ctiInputFile)
 
     vector<double> temporary;
     CTIFile.readArray("/", "beta", temporary);
-    beta = temporary[0]; 
-    CTIFile.readArray("/", "temperature", temporary); 
-    temperature = temporary[0]; 
+    beta = temporary[0];
+    CTIFile.readArray("/", "temperature", temporary);
+    temperature = temporary[0];
 
     CTIFile.readArray("/", "meanTrapDensityBOL", meanTrapDensityBOL); 
     CTIFile.readArray("/", "meanTrapDensityEOL", meanTrapDensityEOL); 

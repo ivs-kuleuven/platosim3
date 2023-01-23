@@ -74,7 +74,7 @@ PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam, H
 
 /**
  * \brief Destructor.
- * 
+ *
  * \details Closes the HDF5 file and releases the memory.
  */
 PointSpreadFunction::~PointSpreadFunction()
@@ -100,12 +100,12 @@ void PointSpreadFunction::configure(ConfigurationParameters &configParam)
     if (model == "MappedFromFile")
     {
         // The user specified to use the pre-calculated PSFs from file
-        // The number of sub-pixels per pixel is derived from the number of pixels specified 
+        // The number of sub-pixels per pixel is derived from the number of pixels specified
         // and the size of the array in the file. (The number of sub-pixels should be in the file).
 
         absolutePath = configParam.getAbsoluteFilename("PSF/MappedFromFile/Filename");
         numberOfPixels = configParam.getInteger("PSF/MappedFromFile/NumberOfPixels");
-	writeHighResolutionPSF = configParam.getBoolean("ControlHDF5Content/WriteHighResolutionPSF");	
+	writeHighResolutionPSF = configParam.getBoolean("ControlHDF5Content/WriteHighResolutionPSF");
     }
     else
     {
@@ -119,7 +119,7 @@ void PointSpreadFunction::configure(ConfigurationParameters &configParam)
 
 
 /**
- * \brief Creates the group(s) in the HDF5 file where the PSF information will be stored. 
+ * \brief Creates the group(s) in the HDF5 file where the PSF information will be stored.
  *        These group(s) has (have) to be created once, at the very beginning.
  */
 void PointSpreadFunction::initHDF5Groups()
@@ -139,10 +139,10 @@ void PointSpreadFunction::initHDF5Groups()
 void PointSpreadFunction::flushOutput()
 {
     Log.info("PointSpreadFunction: Flushing output to HDf5 file.");
-    
+
     if (!isSelected)
         return;
-    
+
     // Save the PSF subpixel map when it is rebinned to pixel level.
 
     rebinToPixels();
@@ -152,17 +152,17 @@ void PointSpreadFunction::flushOutput()
 
 
 /**
- * \brief Selects the proper PSF matching the given focal-plane coordinates closest.  The appropriate PSF will be 
+ * \brief Selects the proper PSF matching the given focal-plane coordinates closest.  The appropriate PSF will be
  *        selected, i.e. the PSF for which the focal-plane position matches best.
- * 
+ *
  * \param[in] xFP: Focal-plane x-coordinate [mm].
- * 
+ *
  * \param[in] yFP: Focal-plane y-coordinate [mm].
  */
 void PointSpreadFunction::select(double xFP, double yFP)
 {
     using StringUtilities::dtos;
-    
+
     // TODO: Should we take any action if different PSFs are selected for this object?
 
     if (isSelected)
@@ -184,7 +184,7 @@ void PointSpreadFunction::select(double xFP, double yFP)
         {
             // The following two attributes are stored as strings in the HDF5 file rather than doubles,
             // so we need to convert them.
-            
+
             xPsf = stod(psfFile.readStringDatasetAttribute("/", datasetName, "centerCoordinates1"));
             yPsf = stod(psfFile.readStringDatasetAttribute("/", datasetName, "centerCoordinates2"));
 

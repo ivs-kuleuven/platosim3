@@ -463,8 +463,8 @@ class SimFile (object):
 
 
 
-        
-        
+
+
     def getImage(self, imageNr):
         """
         PURPOSE: extract the image with seq. nr. 'imageNr' from the HDF5 file (if present)
@@ -487,7 +487,7 @@ class SimFile (object):
             dataset = self.hdf5file["Images"][imageName]
             image = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(image)
-            return image 
+            return image
 
 
 
@@ -498,8 +498,8 @@ class SimFile (object):
         """
         PURPOSE: returns a small square imagette around a specified star in a specified image.
 
-        INPUT: starID: integer star identifier. Equals the line number of the star in the input 
-                       star catalog (counting from 0). 
+        INPUT: starID: integer star identifier. Equals the line number of the star in the input
+                       star catalog (counting from 0).
                imageNr: integer sequential number of the image in the HDF5 file
                radius: output imagette has size 2*radius+1 pixels in both x and y direction. [pixels]
 
@@ -521,7 +521,7 @@ class SimFile (object):
             dataset = self.hdf5file["Images"][imageName]
             image = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(image)
-        
+
 
         # Get a list of the stars visible in the subimage and their coordinates
         # Check if our star is in this list. If not, complain.
@@ -550,7 +550,7 @@ class SimFile (object):
 
 
 
-        
+
 
     def getSubPixelImage(self, exposureNr):
 
@@ -606,7 +606,7 @@ class SimFile (object):
             dataset = self.hdf5file["PSF"][datasetName]
             image = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(image)
-            return image 
+            return image
 
 
 
@@ -829,7 +829,7 @@ class SimFile (object):
         showGrid: bool -> False
             option to select a dim gray grid for a higher visibility of teh pixel grid.
             Will only be executed if showGrid=True is set.
-        
+
         Return
         ------
         fig, ax : object
@@ -873,18 +873,18 @@ class SimFile (object):
         image   = image / 1000.
         img_min = image.min()
         img_max = image.max()
-        
+
         if imgScale == "clip":
             image *= 1000.
             vmin   = np.percentile(image, clipPercentile).astype(int)
             vmax   = np.percentile(image, 100-clipPercentile).astype(int)
             norm   = Normalize(vmin, vmax)
-                        
+
         elif imgScale == "minmax":
             vmin = img_min
             vmax = img_max
             norm = Normalize(img_min, img_max)
-            
+
         elif imgScale == 'log':
             image = ut.imageNorm(image, "log", sigma=0.5)
             vmin, vmax = image.min(), image.max()
