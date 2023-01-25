@@ -1167,6 +1167,7 @@ class SimFile (object):
 
         elif imgScale == "auto":
             sigma = 0.5
+            clabel  = "Normalised counts"
             image = ut.imageNorm(image, "linear", sigma=sigma)
             vmin, vmax = image.min(), image.max()
             norm = None  # Image is already normalized to [0,1]
@@ -1185,9 +1186,9 @@ class SimFile (object):
                                     origin=origin, extent=[0, Nrows, 0, Ncols], zorder=0)
 
         # Add colorbar if requested
-
+        
         if colorBar:
-            cbar = fig.colorbar(imagePlot, extend='both', shrink=0.84, pad=0.015)
+            cbar = fig.colorbar(imagePlot, extend='max', shrink=0.84, pad=0.015)
             cbar.set_label(clabel, fontsize=fontSize, labelpad=3)
             cbar.ax.tick_params(labelsize=fontSize)
 
@@ -1205,14 +1206,10 @@ class SimFile (object):
                 cbar.update_ticks()
 
             # Adjust the colorbar to correct ADU values for auto-scaling
-            if imgScale == "auto":
-                ticks_loc1 = np.linspace(vmin, vmax, 6)
-                scale_min = img_mean - sigma*img_std
-                first_tick = vmin*(2*sigma*img_std)+scale_min
-                last_tick = vmax*(2*sigma*img_std)+scale_min
-                ticks_loc2 = np.linspace(first_tick, last_tick, 6)
-                ticks_label = [f"{i:.1f}" for i in ticks_loc2]
-                cbar.locator = ticker.FixedLocator(ticks_loc1)
+            if imgScale == "auto":                
+                ticks_label    = [f"{i:.1f}" for i in np.linspace(0, 1, 6)]
+                ticks_loc      = np.linspace(vmin, vmax, 6)
+                cbar.locator   = ticker.FixedLocator(ticks_loc)
                 cbar.formatter = ticker.FixedFormatter(ticks_label)
                 cbar.update_ticks()
 
@@ -1316,8 +1313,8 @@ class SimFile (object):
 
         # Set labels if requested
 
-        plt.xlabel(r"$x$ [pixel]", fontsize=fontSize)
-        plt.ylabel(r"$y$ [pixel]", fontsize=fontSize)
+        plt.xlabel(r"Pixel column, $i$", fontsize=fontSize)
+        plt.ylabel(r"Pixel row, $j$",    fontsize=fontSize)
 
         # Plot with or without a slider
 

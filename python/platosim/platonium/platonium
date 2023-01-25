@@ -76,6 +76,7 @@ class PLATOnium(object):
         self.picID        = args.pic
         self.maskUpdate   = args.mask
         self.seed         = args.seed
+        self.mag          = args.mag
         self.reuseJitter  = args.reusejitter
         
         self.sample          = args.sample
@@ -84,7 +85,7 @@ class PLATOnium(object):
         self.tarFluxError    = args.tar_ferr
         self.tarAbsCenError  = args.tar_cerr
         self.saveAllFiles    = args.save_all
-        self.jitterDriftOff  = args.jitterdrift_off
+        self.jitterDriftOff  = args.jit_off
         
         # Make sure that the input is physical
         if not self.group in [1,2,3,4]:
@@ -214,6 +215,9 @@ class PLATOnium(object):
             self.dc = dc[dc['ID'] == self.df['ID']]
             self.numCon = len(self.dc['ID'])
 
+        # If requested overwrite magnitude of target star
+        if self.mag:
+            self.df.mag = self.mag
 
 
 
@@ -708,7 +712,7 @@ class PLATOnium(object):
         self.outputSimName = self.outputDir.joinpath(self.outputFileName)
         sim.outputDir = self.outputDir
         simFile = sim.run(removeOutputFile=self.overwrite)
-        
+
         # Plot star in CCD focal plane
         fig = plt.figure(figsize=(12,10))
         drawStarInCCDfocalPlane(fig, sim, self.df0['xCCD [pix]'][0], self.df0['yCCD [pix]'][0],
@@ -717,7 +721,7 @@ class PLATOnium(object):
                                 self.tiltTelescopeDeg, self.azimuthTelescopeDeg,
                                 self.solarPanelOrientationDeg)
         
-        # Show image (recommend cmaps: "hot", "gnuplot2", "magma", "Spectral_r")        
+        # Show subfield for first cadence
         title = 'Imagette of PIC {0} ({1:.2f} mag)'.format(int(self.df['ID']), float(self.df['mag']))
         simFile.showImage(self.beginExposureNr, showStarPositions='PIC', clipPercentile=7,
                           showMaskOfStarID=mask, useTitle=title, colorMap='cubehelix',
@@ -725,10 +729,9 @@ class PLATOnium(object):
 
         # Remove the output files
         if os.path.isfile(str(self.outputSimName) + '.hdf5'):
-            os.system(f'rm {self.outputDir}/* ')
+            os.system(f'rm {self.outputDir}/0*')
 
-
-
+            
 
             
 
@@ -768,8 +771,9 @@ class PLATOnium(object):
         if self.verbose > 0:
             self.tocPlatoSim = datetime.datetime.now() - self.tic
             self.tic = datetime.datetime.now()
-            self.byte2MB = 1024 * 1024 #* 1024
-            self.memPlatoSim = os.path.getsize(self.outputDir) / self.byte2MB
+            # TODO add storage memory to overview
+            #self.byte2MB = 1024 * 1024 #* 1024
+            #self.memPlatoSim = os.path.getsize(self.outputDir) / self.byte2MB
             #self.memPlatoSim = shutil.disk_usage(self.outputDir)
 
             
@@ -1191,14 +1195,15 @@ out_group.add_argument('--varlist',      metavar='FILE', type=str, help='Path to
 out_group.add_argument('--compress',     action='store_true',      help='Flag to compress output files')
 
 sim_group = parser.add_argument_group('SIM PARAMETERS')
-sim_group.add_argument('--cadence', metavar='SEC', type=float, help='Cadence or cycle time step for each exposure [seconds] (default: 25 s)')
-sim_group.add_argument('--tdur',    metavar='DAY', type=float, help='Total lenght of shortened quarter time series [days]')
-sim_group.add_argument('--nexp',    metavar='NO.', type=int,   help='Number of exposures of shortened quarter time series')
+sim_group.add_argument('--cadence', metavar='SEC',  type=float, help='Cadence or cycle time step for each exposure [seconds] (default: 25 s)')
+sim_group.add_argument('--tdur',    metavar='DAY',  type=float, help='Total lenght of shortened quarter time series [days]')
+sim_group.add_argument('--nexp',    metavar='NO.',  type=int,   help='Number of exposures of shortened quarter time series')
 #obs_group.add_argument('--mexp', metavar='NO.',  type=int, help='Number of equidistant exposures in quarter or shortened time series.')
-sim_group.add_argument('--pic',     metavar='ID',  type=int, help='ID from the PIC -> Simulate a specific star in the PIC catalog (Overwrites "starID")')
-sim_group.add_argument('--seed',    metavar='INT', type=int,   help='Option to bootstrap seeds in order to reproduce results')
-sim_group.add_argument('--mask',    metavar='DAY', type=float, help='Option to alter/overwrite the mask-update in inputfile [days]')
-sim_group.add_argument('--reusejitter', action='store_true',   help='Flag to re-use AOCS jitter file across all quarters')
+sim_group.add_argument('--pic',     metavar='ID',   type=int,   help='ID from the PIC (overwrites "starID")')
+sim_group.add_argument('--seed',    metavar='INT',  type=int,   help='Option to bootstrap seeds in order to reproduce results')
+sim_group.add_argument('--mask',    metavar='DAY',  type=float, help='Option to alter/overwrite the mask-update in inputfile [days]')
+sim_group.add_argument('--mag',     metavar='PMAG', type=float, help='Option to change target magnitude (overwrites catalogue magnitude)')
+sim_group.add_argument('--reusejitter', action='store_true',    help='Flag to re-use AOCS jitter file across all quarters')
 
 pip_group = parser.add_argument_group('L1 PIPELINE PARAMETERS')
 pip_group.add_argument('--sample',   metavar='PIC',     type=str,   help='PIC sample to activate the correct L0-L1 pipeline chain [P1, P5]')
@@ -1206,8 +1211,8 @@ pip_group.add_argument('--con_dmag', metavar='MAG',     type=float, help='Relati
 pip_group.add_argument('--con_ferr', metavar='PERCENT', type=float, help='Flux error assumption for Target')
 pip_group.add_argument('--tar_ferr', metavar='PERCENT', type=float, help='Flux error assumption for Contaminant(s)')
 pip_group.add_argument('--tar_cerr', metavar='PIXEL',   type=float, help='Centroid error assumption for Target')
-pip_group.add_argument('--save_all',        action='store_true',    help='Saves all files produced by each processing step')
-pip_group.add_argument('--jitterdrift_off', action='store_true',    help='Turn off the jitter/drift correction')
+pip_group.add_argument('--save_all', action='store_true', help='Saves all files produced by each processing step')
+pip_group.add_argument('--jit_off',  action='store_true', help='Turn off the jitter/drift correction')
 
 
 args = parser.parse_args()
