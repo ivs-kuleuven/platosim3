@@ -151,7 +151,6 @@ def load_exoplanet(source):
                   'P' : 365.25 * u.d,
                   'e' : 0.0167,
                   'i' : 90.0 * u.deg,
-                  #'i' : 83.96 * u.deg,
                   'w' : 0. * u.deg,
                   'rp': 1. * u.R_earth,
                   'mp': 1. * u.M_earth,

@@ -1902,15 +1902,6 @@ def plotNSRvsMagnitude(df, Ncam=1, tdur=3600., column=False, residuals=False,
     
     fig, ax = plt.subplots(1, 1, figsize=figsize)
 
-    # Set proper discrete cmap
-    if column in ("group", "camera", "quarter", "ncam", "ncon", "flag"):
-        # Fetch custom discrete colorbar used by matplotlib
-        cbins = np.arange(df[column].min(), df[column].max()+2, 1)
-        ticks = cbins + 0.5
-        norm = discrete_colorbar(cbins=cbins, cmap=cmap)
-    else:
-        norm = None
-
     # Plot requirements
     if residuals == "camera":
         ax.axhline(y=108, c="darkorange", ls="--", label="AOCS camera req.: 108 ppm", zorder=0)
@@ -1919,12 +1910,21 @@ def plotNSRvsMagnitude(df, Ncam=1, tdur=3600., column=False, residuals=False,
     elif residuals == "system":
         ax.axhline(y=9, c="red", ls="--", label="AOCS system req.: 9 ppm", zorder=0)
     elif residuals == "multi":
-        import matplotlib as mpl
-        cmap = mpl.cm.get_cmap('coolwarm')
+        #import matplotlib as mpl
+        cmap = plt.cm.get_cmap('coolwarm')
         for nsr, ncam, color in zip([100, 70, 58, 50], [6, 12, 18, 24], [0.0, 0.33, 0.66, 0.999]):
             ax.axhline(y=nsr, color=cmap(color), linestyle="--",
-                       label=f"{nsr} ppm req. for {ncam} N-CAMs", zorder=0)
+                       label=f"{nsr} ppm for "+r"$n_{\rm CAM}=\,$"+f"{ncam}", zorder=0)
         #ax.plot([11, 11, 11, 11], [88, 63, 52, 45], 'm*', ms=10, label="CBE of G0V 11 mag star")
+
+    # Set proper discrete cmap
+    if column in ("group", "camera", "quarter", "ncam", "ncon", "flag"):
+        # Fetch custom discrete colorbar used by matplotlib
+        cbins = np.arange(df[column].min(), df[column].max()+2, 1)
+        ticks = cbins + 0.5
+        norm = discrete_colorbar(cbins=cbins, cmap=cmap)
+    else:
+        norm = None
         
     # Plot the input variable source
     if residuals in ("camera", "system"):
@@ -1944,7 +1944,7 @@ def plotNSRvsMagnitude(df, Ncam=1, tdur=3600., column=False, residuals=False,
         ax.set_ylabel('NSR [ppm]')
 
     # Handle colorbar
-    if column == "ncam": column = "N-CAMs"
+    if column == "ncam": column = r"$n_{\rm CAM}$"
     if norm is None:
         cb = plt.colorbar(im, extend="max", pad=0.01)
         cb.set_label(column)
@@ -1962,7 +1962,7 @@ def plotNSRvsMagnitude(df, Ncam=1, tdur=3600., column=False, residuals=False,
     ax.yaxis.set_minor_formatter(ScalarFormatter())
     
     # Settings    
-    ax.set_xlabel(r'PLATO magnitude, $P$')
+    ax.set_xlabel(r'PLATO magnitude, $\mathcal{P}$')
     if grid:   ax.grid(color="lightgray")
     if legend: ax.legend(loc='best')
 
