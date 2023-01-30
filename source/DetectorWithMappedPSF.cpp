@@ -957,7 +957,7 @@ void DetectorWithMappedPSF::writeDiffusedPSFToHDF5(PointSpreadFunction *psf)
     int numColumns = size(psfMap)(1);
 
     // set the diffusion kernel image size
-    
+
     int psfSubPixelsPerPixel = psf->getNumSubPixelsPerPixel();
     generateDiffusionKernel(chargeDiffusionStrength*psfSubPixelsPerPixel);
 
@@ -970,19 +970,19 @@ void DetectorWithMappedPSF::writeDiffusedPSFToHDF5(PointSpreadFunction *psf)
     }
 
     // reset the diffusion kernel
-    
+
     generateDiffusionKernel(chargeDiffusionStrength*numSubPixelsPerPixel);
 
     // rotate the diffused PSF
-    
+
     diffusedPsf = ArrayOperations::rotateArray(diffusedPsf, -rotationAnglePsf);
 
     // normalize the PSF
-    
+
     diffusedPsf /= arma::accu(diffusedPsf);
 
     // write the diffused psf to the output hdf5 file
-    
+
     hdf5File.writeArray("/PSF", "diffusedPSF", diffusedPsf);
 }
 

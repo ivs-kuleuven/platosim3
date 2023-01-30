@@ -38,7 +38,7 @@ CCD = \
     '4F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': pi/2}
 }
 
-        
+
 
 
 
@@ -551,7 +551,7 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, solarPanelOrie
 def pixelCoordinates2FocalPlaneAngles(xCCD, yCCD, ccdCode, pixelSize, focalLength):
 
     """
-    PURPOSE: Given the real-valued CCD pixel coordinates, compute the location angles of the star in the focal plane. These 
+    PURPOSE: Given the real-valued CCD pixel coordinates, compute the location angles of the star in the focal plane. These
              calculations are based on the custom CCD position and orientation angle (so not from file!).
 
     INPUT:
@@ -591,7 +591,7 @@ def pixelCoordinates2FocalPlaneAngles(xCCD, yCCD, ccdCode, pixelSize, focalLengt
 def focalPlaneAngles2pixelCoordinates(angleFromOpticalAxis, azimuthFromXAxis, ccdCode, pixelSize, focalLength):
 
     """
-    PURPOSE: given the location angles of the star in the focal plane, compute the real-valued CCD pixel coordinates. These 
+    PURPOSE: given the location angles of the star in the focal plane, compute the real-valued CCD pixel coordinates. These
              calculations are based on the  custom CCD position and orientation angle (so not from file!).
 
     INPUT:
@@ -1395,10 +1395,10 @@ def getCameraGroupCoordinates(raPlatform, decPlatform, solarPanelOrientation=0):
     INPUT: raPlatform:            Right Ascension of the platform pointing [deg]
            decPlatform:           Declination of the platform pointing [deg]
            solarPanelOrientation: Orientation of the solar panel [deg]
-           
+
     OUTPUT: RA and Dec coordinates for each camera group.
     """
-    
+
     # Find coordinates of the Sun [rad]
 
     raSun, decSun = sunSkyCoordinatesAwayfromPlatformPointing(np.deg2rad(raPlatform),
@@ -1409,24 +1409,24 @@ def getCameraGroupCoordinates(raPlatform, decPlatform, solarPanelOrientation=0):
 
     azimuthAngles = [45.0, 135.0, 225.0, 315.0]
     tiltAngles    = [9.2, 9.2, 9.2, 9.2]
-    
+
     # Fetch RA and Dec for each camera group
-    
+
     raGroups  = []
     decGroups = []
 
     for group in range(4):
-        
+
         ra, dec = platformToTelescopePointingCoordinates(np.deg2rad(raPlatform),
-                                                         np.deg2rad(decPlatform), 
-                                                         raSun, decSun, 
-                                                         np.deg2rad(azimuthAngles[group]), 
-                                                         np.deg2rad(tiltAngles[group]))    
+                                                         np.deg2rad(decPlatform),
+                                                         raSun, decSun,
+                                                         np.deg2rad(azimuthAngles[group]),
+                                                         np.deg2rad(tiltAngles[group]))
         raGroups.append(np.rad2deg(ra))
         decGroups.append(np.rad2deg(dec))
 
     # Finito!
-    
+
     return raGroups, decGroups
 
 
@@ -1533,9 +1533,9 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
 
 def skyToPixelCoordinates(sim, raStar, decStar, normal):
     """
-    PURPOSE: Convert sky coordinates to pixel coordinates. These calculations are based on the custom 
+    PURPOSE: Convert sky coordinates to pixel coordinates. These calculations are based on the custom
              CCD position and orientation angle (so not from file!).
-             
+
     NOTE:   It is assumed that the configuration parameters in the sim object contains
             a correct (ra, dec) of the platform, a correct (azimuth, tilt) of the telescope,
             a valid value for the focal length, the plate scale, the pixel size, and that
@@ -1555,7 +1555,7 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal):
 
     if (sim["PSF/Model"] == "MappedFromFile"):
         includeFieldDistortion = True
-        distortionCoefficients = None 
+        distortionCoefficients = None
         pathToPsfFile          = sim["PSF/MappedFromFile/Filename"]
         mappedDistortion       = True
     elif (sim["Camera/IncludeFieldDistortion"] == "yes")  or (sim["Camera/IncludeFieldDistortion"] == "1") or (sim["Camera/IncludeFieldDistortion"]):
@@ -1569,7 +1569,7 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal):
         pathToPsfFile          = None
         mappedDistortion       = False
 
-        
+
     pixelSize             = float(sim["CCD/PixelSize"])
     focalLength           = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0                   # [m] -> [mm]
     raPlatform            = np.deg2rad(float(sim["ObservingParameters/RApointing"]))
@@ -1605,16 +1605,16 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal):
 def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
 
     """
-    PURPOSE: Convert pixel coordinates to equatorial sky coordinates (ra,dec).  These calculations are based on the custom 
+    PURPOSE: Convert pixel coordinates to equatorial sky coordinates (ra,dec).  These calculations are based on the custom
              CCD position and orientation angle (so not from file!).
-             
+
     NOTE:   It is assumed that the configuration parameters in the sim object contains
             a correct (ra, dec) of the platform, a correct (azimuth, tilt) of the telescope,
             a valid value for the focal length, the pixel size, and that
             the switch to include distortion or not is set correctly.
 
     INPUT:  sim:        simulation for which the configuration file is adapted
-            
+
             :    for nominal camera: either '1', '2', '3', '4'
                         for fast camera: either '1F', '2F', '3F', '4F'
             xCCDpixel:  x-coordinate (column-number) of the star on the CCD  [pix]
@@ -1693,7 +1693,7 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
 
 
 
-def matrixMisalignment(x, y, z):   
+def matrixMisalignment(x, y, z):
     r11 = + np.cos(x)*np.cos(z) - np.sin(x)*np.sin(z)*np.sin(y)
     r12 = - np.cos(x)*np.sin(z) - np.sin(x)*np.cos(z)*np.cos(y)
     r13 = + np.sin(x)*np.sin(z)
@@ -1702,7 +1702,7 @@ def matrixMisalignment(x, y, z):
     r23 = - np.cos(x)*np.sin(z)
     r31 = + np.sin(z)*np.sin(y)
     r32 = + np.cos(z)*np.sin(y)
-    r33 = - np.cos(y)   
+    r33 = - np.cos(y)
     R = np.array([[r11, r12, r13],
                   [r21, r22, r23],
                   [r31, r32, r33]])
