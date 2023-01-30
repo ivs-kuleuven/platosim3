@@ -465,7 +465,6 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, solarPanelOrie
     # Get the sky position of the Sun (ra, dec) [rad]
 
     raSun, decSun = sunSkyCoordinatesAwayfromPlatformPointing(raPlatform, decPlatform, solarPanelOrientation)
-
     # Undo the reverse-image projection effect of the pinhole
 
     vecFP = np.array([-xFP/focalLength, -yFP/focalLength, 1.0], dtype=object)
@@ -745,7 +744,8 @@ def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoeffici
 def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile):
 
     """
-    PURPOSE:      Convert from undistorted to distorted normalized focal plane coordinates using a mapped distortion model.
+    PURPOSE:      Convert from undistorted to distorted normalized focal plane
+                  coordinates using a mapped distortion model.
 
     INPUTS:       xFPmm:  undistorted normalized focal plane x-coordinate [mm]
                   yFPmm:  undistorted normalized focal plane y-coordinate [mm]w
@@ -754,9 +754,13 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
     OUTPUTS:      (xFPdist, yFPdist) distorted x and y coordinates [mm]
 
     REMARK:       This is the prefered method for detectors with mapped PSF.
-                  For detectors that use analytic PSF use the function undistortedToDistortedFocalPlaneCoordinates.
+                  For detectors that use analytic PSF use the function
+                  undistortedToDistortedFocalPlaneCoordinates.
 
     """
+
+    if (xFPmm**2 + yFPmm**2 > 85):
+        return xFPmm, yFPmm
 
     # Check the path to the PSF file excists
 
@@ -764,9 +768,11 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
         if os.path.exists(os.environ["PLATO_PROJECT_HOME"] + "/" + pathToPsfFile):
             pathToPsfFile = os.environ["PLATO_PROJECT_HOME"] + "/" + pathToPsfFile
         else:
-            print("Error: {} is not a valid path name for mapped PSF".format(pathToPsfFile))
+            print("Error: {} is not a valid path name for mapped PSF".format(
+                pathToPsfFile))
 
-    # We open the psf file where the coordinate transformation matrix should be in. If the matrix isn't in the file, we raise an error.
+    # We open the psf file where the coordinate transformation matrix should be in.
+    # If the matrix isn't in the file, we raise an error.
 
     psfFile = h5py.File(pathToPsfFile, "r")
     if not "Coordinates map" in psfFile.keys():
@@ -776,7 +782,7 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
         coordMap = psfFile["Coordinates map"]
 
 
-    # Calculate the distance of the undistorted coordinates with the input coordinates.
+    # Calculate the distance of the undist coordinates wrt input coordinates
 
     undistorted = coordMap["Undistorted"]
 
@@ -798,46 +804,67 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
     yDist = np.zeros(y.shape, y.dtype)
     y.read_direct(yDist)
 
-    distanceFromPoint = [max( (xFPmm - x)**2, (yFPmm - y)**2) for x, y in zip(xUndis, yUndis)]
+    distanceFromPointx = np.array([x - xFPmm for x in xUndis])
+    distanceFromPointy = np.array([y - yFPmm for y in yUndis])
+    aDistanceFromPoint  = np.array([ x**2 + y**2
+        for x, y in zip(distanceFromPointx, distanceFromPointy)])
 
     # We should select the closest four undistorted points to the input point
 
-    idx = list(range(len(distanceFromPoint)))
-    idx.sort(key=lambda i: distanceFromPoint[i])
-    idx = [ idx[i] for i in [0, 1, 2, 3]]
+    idx = np.arange(len(distanceFromPointx))
+    idx_selected = np.empty(4, dtype=int16)
+
+    idx_left = idx[distanceFromPointx < 0]
+    idx_right = idx[distanceFromPointx >= 0]
+
+    leftDistanceFromPointy  = distanceFromPointy[distanceFromPointx < 0]
+    rightDistanceFromPointy = distanceFromPointy[distanceFromPointx >= 0]
 
 
-    # We sort these points
-    first_points_idx  = [i for i in idx if (yUndis[i] < yFPmm)]
-    first_points_idx.sort(key=lambda idx: xUndis[idx])
-    second_points_idx = [i for i in idx if (yUndis[i] >= yFPmm)]
-    second_points_idx.sort(key=lambda idx: xUndis[idx])
+    left_bottom_idx = idx_left[leftDistanceFromPointy < 0]
+    idx_closest_idx = np.argmin(aDistanceFromPoint[left_bottom_idx])
+    idx_selected[0] = left_bottom_idx[idx_closest_idx]
 
-    idx = first_points_idx + second_points_idx
+    left_top_idx    = idx_left[leftDistanceFromPointy >=0]
+    idx_closest_idx = np.argmin(aDistanceFromPoint[left_top_idx])
+    idx_selected[1] = left_top_idx[idx_closest_idx]
+
+    right_bottom_idx = idx_right[rightDistanceFromPointy < 0]
+    idx_closest_idx  = np.argmin(aDistanceFromPoint[right_bottom_idx])
+    idx_selected[2]  = right_bottom_idx[idx_closest_idx]
+
+    right_top_idx = idx_right[rightDistanceFromPointy >= 0]
+    idx_closest_idx = np.argmin(aDistanceFromPoint[right_top_idx])
+    idx_selected[3] = right_top_idx[idx_closest_idx]
 
 
-    closestX, closestY = np.array([xUndis[idx[0]], xUndis[idx[1]], xUndis[idx[2]], xUndis[idx[3]]]), np.array([yUndis[idx[0]], yUndis[idx[1]], yUndis[idx[2]], yUndis[idx[3]]])
+    for i in np.arange(2):
+        if (yUndis[idx_selected[2*i]] > yUndis[idx_selected[2*i+1]]):
+            dummy = idx_selected[2*i]
+            idx_selected[2*i] = idx_selected[2*i+1]
+            idx_selected[2*i+1] = dummy
+
+    closestX = np.array([ xUndis[i] for i in idx_selected])
+    closestY = np.array([ yUndis[i] for i in idx_selected])
 
     # We can write the points (xFPmm, yFPmm) as a linear combination of the
     # four closests points around this point.
 
     oPointIdx = [3, 2, 1, 0]
-    area = (closestX[0] - closestX[3])*(closestY[0]-closestY[3])
 
-    constants = [abs( (closestX[oPointIdx[i]] - xFPmm) *
-                      (closestY[oPointIdx[i]] - yFPmm))/ area
+    constants = [abs( (closestX[oPointIdx[i]] - xFPmm) * \
+                      (closestY[oPointIdx[i]] - yFPmm))
                  for i in np.arange(4)]
 
+    constants = [ constant / sum(constants) for constant in constants]
 
-
-    closestXdist = np.array([ xDist[idx[i]] for i in [0,1,2,3]])
-    closestYdist = np.array([ yDist[idx[i]] for i in [0,1,2,3]])
-
+    closestXdist = np.array([ xDist[i] for i in idx_selected])
+    closestYdist = np.array([ yDist[i] for i in idx_selected])
 
     xFPdist = sum([constants[i]*closestXdist[i] for i in np.arange(4)])
     yFPdist = sum([constants[i]*closestYdist[i] for i in np.arange(4)])
 
-    return round(xFPdist, 4), round(yFPdist, 4)
+    return xFPdist, yFPdist
 
 
 
@@ -905,80 +932,48 @@ def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPs
                 For detectors that use analytic PSF use the function distortedToUndistortedFocalPlaneCoordinates.
     """
 
-    # Check the path to the PSF file excists
-    if not os.path.exists(pathToPsfFile):
-        if os.path.exists(os.environ["PLATO_PROJECT_HOME"] + "/" + pathToPsfFile):
-            pathToPsfFile = os.environ["PLATO_PROJECT_HOME"] + "/" + pathToPsfFile
-        else:
-            print("Error: {} is not a valid path name for mapped PSF".format(pathToPsfFile))
+    delta = 100.
+    length = 80.
+    x0 = 0
+    y0 = 0
+    i = 0
 
-    # We open the psf file where the coordinate transformation matrix should be in. If this map isn't in the file, we raise an error.
-    psfFile = h5py.File(pathToPsfFile, "r")
-    if not "Coordinates map" in psfFile.keys():
-        print("Error: No transformation map given in psf file, mapped distortion is not possible.")
-        return
-    else:
-        coordMap = psfFile["Coordinates map"]
-
-    # Calculate the distance of the distorted coordinates with the distorted input coordinates.
-
-    undistorted = coordMap["Undistorted"]
-
-    x = undistorted["x"]
-    xUndis = np.zeros(x.shape, x.dtype)
-    x.read_direct(xUndis)
-
-    y = undistorted["y"]
-    yUndis = np.zeros(y.shape, y.dtype)
-    y.read_direct(yUndis)
-
-    distorted = coordMap["Distorted"]
-
-    x = distorted["x"]
-    xDist = np.zeros(x.shape, x.dtype)
-    x.read_direct(xDist)
-
-    y = distorted["y"]
-    yDist = np.zeros(y.shape, y.dtype)
-    y.read_direct(yDist)
-
-    distanceFromPoint = [max( (xFPdist - x)**2, (yFPdist - y)**2) for x, y in zip(xDist, yDist)]
-
-    # We should select the four closest distorted points to the input point
-
-    idx = list(range(len(distanceFromPoint)))
-    idx.sort(key=lambda i: distanceFromPoint[i])
-    idx = [idx[i] for i in [0, 1, 2, 3]]
-
-    # We sort these points
-    first_points_idx = [i for i in idx if (yDist[i] < yFPdist)]
-    first_points_idx.sort(key=lambda idx: xDist[idx])
-    second_points_idx = [i for i in idx if (yDist[i] >= yFPdist)]
-    second_points_idx.sort(key=lambda idx: xDist[idx])
-
-    idx = first_points_idx + second_points_idx
-
-    closestX, closestY = np.array([xDist[idx[0]], xDist[idx[1]], xDist[idx[2]], xDist[idx[3]]]), np.array([yDist[idx[0]], yDist[idx[1]], yDist[idx[2]], yDist[idx[3]]])
-
-    # We can write the points (xFPmm, yFPmm) as a linear combination of the
-    # four closest points around this point.
-
-    oPointIdx = [3, 2, 1, 0]
-    area = (closestX[0] - closestX[3])*(closestY[0] - closestY[3])
-
-    constants = [abs( (closestX[oPointIdx[i]] - xFPdist) *
-                      (closestY[oPointIdx[i]] - yFPdist))
-                 for i in np.arange(4)]
-    constants = [ constant / sum(constants) for constant in constants]
-
-    closestXund = np.array([ xUndis[idx[i]] for i in [0,1,2,3]])
-    closestYund = np.array([ yUndis[idx[i]] for i in [0,1,2,3]])
+    while((delta > .001) and (i<160)):
+        xDist, yDist = mappedUndistortedToDistortedFocalPlaneCoordinates(x0,
+                                                        y0, pathToPsfFile)
 
 
-    xFPmm = sum([constants[i]*closestXund[i] for i in np.arange(4)])
-    yFPmm = sum([constants[i]*closestYund[i] for i in np.arange(4)])
+        length = 3*length / 5
 
-    return round(xFPmm, 4), round(yFPmm, 4)
+        if (xFPdist > xDist):
+            if ((x0 + length) > 85):
+                x0 = 85
+            else:
+                x0 = x0 + length
+        elif (xFPdist < xDist):
+            if ((x0 - length) < -85):
+                x0 = -85
+            else:
+                x0 = x0 - length
+
+        if (yFPdist > yDist):
+            if ((y0 + length) > 85):
+                y0 = 85
+            else:
+                y0 = y0 + length
+        elif (yFPdist < yDist):
+            if ((y0 - length) < -85):
+                y0 = -85
+            else:
+                y0 = y0 - length
+
+
+        delta = abs(xFPdist - xDist) + abs(yFPdist - yDist)
+
+        i += 1
+
+    return x0, y0
+
 
 
 
@@ -1147,7 +1142,7 @@ def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
 
     """
     PURPOSE: Get the (x,y) coordinates of each of the 4 corners of the exposed part of the CCD
-             in the FP' reference system.  These calculations are based on the custom 
+             in the FP' reference system.  These calculations are based on the custom
              CCD position and orientation angle (so not from file!).
 
     INPUT: ccdCode:   one of the following: '1', '2', '3', '4', '1F', '2F', '3F', '4F'
@@ -1193,7 +1188,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
     """
     PURPOSE: Given the equatorial coordinates of a star, find out on which CCD it falls ('1', '2', ...)
              and compute the pixel coordinates of the star on this CCD. If the star doesn't fall on any of the CCDs
-             then (None, None, None) is given as output.  These calculations use the custom CCD positions and 
+             then (None, None, None) is given as output.  These calculations use the custom CCD positions and
              orientation angle (so not from file!).
 
     INPUT: raStar:                 right ascension of the star                               [rad]
@@ -1208,8 +1203,8 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
            pixelSize:              pixel size                                                [micron]
            includeFieldDistortion: True to include field distortion in coordinate transformations, false otherwise
            normal:                 True for the normal camera configuration, False for the fast cameras
-           mappedDistortion:       True if we want mapped distortion (mapped from file psf) False if we have analytic psfs      
-           distortionCoefficients: Coefficients of the polynomial describing the distortion for anlytic psf 
+           mappedDistortion:       True if we want mapped distortion (mapped from file psf) False if we have analytic psfs
+           distortionCoefficients: Coefficients of the polynomial describing the distortion for anlytic psf
            pathToPsfFile         : Path to the PSF file for mapped PSFs to calculate mapped distortion
 
 
@@ -1225,7 +1220,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
     """
 
     # Make sure that for the respective field distortion the proper information is given.
-    
+
     if (includeFieldDistortion or includeFieldDistortion == "yes"):
         if (mappedDistortion and pathToPsfFile is None):
             print("Error: If mapped field distortion should be taken into account, a path to the psf file should be given")
@@ -1233,7 +1228,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
         elif ( (not mappedDistortion) and distortionCoefficients is None):
             print("Error: If analytic field distortion should be taken into account, the distortionCoefficients should be given")
             return
-        
+
     # Select the proper CCD codes depending on whether we're dealing with the nominal or the fast cams
 
     if normal == True:
@@ -1250,7 +1245,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
     if (includeFieldDistortion == True) or (includeFieldDistortion == "yes"):
         if mappedDistortion:
             xFPmm, yFPmm = mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile)
-        else: 
+        else:
             xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients, focalLength)
 
     # Find out if this falls on a CCD, and if yes which one.
@@ -1280,7 +1275,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
 
         return ccdCode, xCCDpix, yCCDpix
 
-    
+
     # If we arrive here, the star does not fall on any CCD
 
     return None, None, None
@@ -1466,9 +1461,9 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
            pixelSize:              pixel size                                               [micron]
            includeFieldDistortion: True to include field distortion in coordinate transformations, false otherwise
            normal:                 True for the normal camera configuration, False for the fast cameras
-           mappedDistortion:       True if we want mapped distortion (mapped from file psf) False if we have analytic psfs      
-           distortionCoefficients: Coefficients of the polynomial describing the distortion for anlytic psf 
-           pathToPsfFile:          Path to the PSF file for mapped PSFs to calculate mapped distortion       
+           mappedDistortion:       True if we want mapped distortion (mapped from file psf) False if we have analytic psfs
+           distortionCoefficients: Coefficients of the polynomial describing the distortion for anlytic psf
+           pathToPsfFile:          Path to the PSF file for mapped PSFs to calculate mapped distortion
 
 
 
@@ -1482,7 +1477,7 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
              - Example of distortion coefficients: [-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06]
     """
 
-    # Find out that we have been given the correct distortion input parameters. If this is not the case raise error and return. 
+    # Find out that we have been given the correct distortion input parameters. If this is not the case raise error and return.
     if (includeFieldDistortion or includeFieldDistortion == "yes"):
         if (mappedDistortion and pathToPsfFile is None):
             print("Error: If mapped field distortion should be taken into account, a path to the psf file should be given")
@@ -1511,7 +1506,7 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
     firstRow = CCD[ccdCode]["firstRow"]     # different from nominal than for fast cams
     Ncols = CCD[ccdCode]["Ncols"]
     Nrows = CCD[ccdCode]["Nrows"]
-    
+
     if     (xCCDpix - subfieldSizeX/2 < 0)        or (xCCDpix + subfieldSizeX/2 - 1 > Ncols-1)   \
         or (yCCDpix - subfieldSizeY/2 < firstRow) or (yCCDpix + subfieldSizeY/2 - 1 > Nrows-1):
         return None, None, None
@@ -1624,8 +1619,8 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
     """
 
     if (sim["PSF/Model"] == "MappedFromFile"):
-        includeFieldDistortion = True        
-        inverseDistortionCoefficients = None 
+        includeFieldDistortion = True
+        inverseDistortionCoefficients = None
         pathToPsfFile          = sim["PSF/MappedFromFile/Filename"]
         mappedDistortion       = True
 
@@ -1634,7 +1629,7 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
             pathToPsfFile          = None
             mappedDistortion       = False
             includeFieldDistortion = True
-           
+
     else:
         includeFieldDistortion        = False
         pathToPsfFile                 = None
@@ -1716,7 +1711,7 @@ def changeOfPointing(x, y, z, phi, theta):
                   [ z,  0, -x],
                   [-y,  x,  0]])
     A = np.array([[np.cos(phi)*np.sin(theta)],
-                  [np.sin(phi)*np.sin(theta)], 
+                  [np.sin(phi)*np.sin(theta)],
                   [1]])
     return np.dot(R,A).T
 
@@ -1724,58 +1719,58 @@ def changeOfPointing(x, y, z, phi, theta):
 
 
 
-def getPointingRepeatabilityError(ra, dec, kappa, sigma=3, quarter=[1, 8], outdir=None, show_table=False):
-    """
-    TODO under development!
+# def getPointingRepeatabilityError(ra, dec, kappa, sigma=3, quarter=[1, 8], outdir=None, show_table=False):
+#     """
+#     TODO under development!
 
-    PURPOSE: 
-             
-    INPUT:
+#     PURPOSE:
 
-    OUTPUT:
-    """
-    # Coordinates
-    ICRS = np.array([ra, dec, kappa])
+#     INPUT:
 
-    # Pointing Reproducibility Error (PRE) in P/L reference frame (yaw, pitch, roll)
-    # Here t stands for transverse direction and  
-    sigma_t = sigma[0]/3600
-    sigma_b = sigma[1]/3600
+#     OUTPUT:
+#     """
+#     # Coordinates
+#     ICRS = np.array([ra, dec, kappa])
 
-    # Find distribution within 3 sigma of req.
-    tt = np.array([np.random.normal(0, t/sigma) for i in range(len(quarters))])
-    bb = np.array([np.random.normal(0, b/sigma) for i in range(len(quarters))])
+#     # Pointing Reproducibility Error (PRE) in P/L reference frame (yaw, pitch, roll)
+#     # Here t stands for transverse direction and
+#     sigma_t = sigma[0]/3600
+#     sigma_b = sigma[1]/3600
 
-    # Corresponding yaw, pitch, roll
-    y = tt
-    z = 3 * y
-    x = bb - z
+#     # Find distribution within 3 sigma of req.
+#     tt = np.array([np.random.normal(0, t/sigma) for i in range(len(quarters))])
+#     bb = np.array([np.random.normal(0, b/sigma) for i in range(len(quarters))])
 
-    # ICRS pointing angles
-    phi   = np.deg2rad(ra)
-    theta = np.deg2rad(dec)
+#     # Corresponding yaw, pitch, roll
+#     y = tt
+#     z = 3 * y
+#     x = bb - z
 
-    # Find change to pointing for quarters
-    coor = np.zeros((len(quarters), 4))
-    for i in range(len(quarters)):
-        data = changeOfPointing(x[i], y[i], z[i], phi, theta)[0]
-        coor[i,:] = np.append(quarters[i], data)
+#     # ICRS pointing angles
+#     phi   = np.deg2rad(ra)
+#     theta = np.deg2rad(dec)
 
-    # Save file with relative pointing errors [deg]
-    if outdir it not None:
-        np.savetxt(f'{outdir}/PRE.txt', coor, fmt=['%i', '%0.8f', '%0.8f', '%0.8f'])
+#     # Find change to pointing for quarters
+#     coor = np.zeros((len(quarters), 4))
+#     for i in range(len(quarters)):
+#         data = changeOfPointing(x[i], y[i], z[i], phi, theta)[0]
+#         coor[i,:] = np.append(quarters[i], data)
 
-    # Print generated values
-    if show_table: 
-        print('Yaw, Pitch, and Roll angles')
-        print(x)
-        print(y)
-        print(z)
-        print('\nChange of coordinates [arcsec]')
-        print(coor*3600)
-        print('\nNew coordinates [deg]')
-        for i in range(len(quarters)):
-            print(coor[i][1]+ra, coor[i][2]+dec, coor[i][3])
+#     # Save file with relative pointing errors [deg]
+#     if outdir it not None:
+#         np.savetxt(f'{outdir}/PRE.txt', coor, fmt=['%i', '%0.8f', '%0.8f', '%0.8f'])
+
+#     # Print generated values
+#     if show_table:
+#         print('Yaw, Pitch, and Roll angles')
+#         print(x)
+#         print(y)
+#         print(z)
+#         print('\nChange of coordinates [arcsec]')
+#         print(coor*3600)
+#         print('\nNew coordinates [deg]')
+#         for i in range(len(quarters)):
+#             print(coor[i][1]+ra, coor[i][2]+dec, coor[i][3])
 
 
 
@@ -1807,7 +1802,7 @@ def cameraAlignmentErrors(ra, dec, kappa, sigma=3, outdir=None, show_table=False
 
     # Plot histogram and data
     if show_table:
-        plt.plot(bins, 1/(sigma * np.sqrt(2 * np.pi)) * 
+        plt.plot(bins, 1/(sigma * np.sqrt(2 * np.pi)) *
                  np.exp( - (bins - mu)**2 / (2 * sigma**2) ),
                  linewidth=2, color='r')
         plt.show()

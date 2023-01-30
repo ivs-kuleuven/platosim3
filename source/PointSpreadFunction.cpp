@@ -206,13 +206,12 @@ void PointSpreadFunction::select(double xFP, double yFP)
 
     psfFile.readArray("/", selectedDatasetName, psfMap);
 
-	     
-    
+
 
     rotationAngle = 0.0;
 
     // We should be able to read the number of sub-pixels per pixel that was used to generate the PSFs
-    // from an attribute in the HDF5 file. Unfortunately, this is not available and we therefore derive 
+    // from an attribute in the HDF5 file. Unfortunately, this is not available and we therefore derive
     // the number from the array size of the psfMap and the number of pixels, currently specified
     // in the input file.
 
@@ -269,7 +268,7 @@ void PointSpreadFunction::rotate(double angle)
         psfMap = ArrayOperations::rotateArray(psfMap, angle);
 
         rotationAngle = angle;
-        isRotated = true;    
+        isRotated = true;
 
         psfMap /= arma::accu(psfMap);
 
@@ -289,9 +288,9 @@ void PointSpreadFunction::rotate(double angle)
  *        This method does not change the psfMap of the PointSpreadFunction class.
  *
  * \param[in] targetPixels: Target number of pixels.
- * 
+ *
  * \return Rebinned PSF map.
- * 
+ *
  */
 arma::fmat PointSpreadFunction::rebinToPixels()
 {
@@ -315,12 +314,12 @@ arma::fmat PointSpreadFunction::rebinToPixels()
 
 
 /**
- * \brief Rebins the PSF map to the target number of sub-pixels. The number of sub-pixels used 
+ * \brief Rebins the PSF map to the target number of sub-pixels. The number of sub-pixels used
  *        to generate the PSF is not necessarily the same as the number of sub-pixels per pixel
- *        for the detector. So the PSF needs to be rebinned to the number of sub-pixels per pixel 
+ *        for the detector. So the PSF needs to be rebinned to the number of sub-pixels per pixel
  *        for the detector, which is the specified target number of sub-pixels.
  *        This method does not change the psfMap of the PointSpreadFunction class.
- * 
+ *
  * \param[in] targetSubPixels: Target number of sub-pixels (i.e. after rebinning).
  *
  * \return Rebinned PSF map (with the given number of sub-pixels).

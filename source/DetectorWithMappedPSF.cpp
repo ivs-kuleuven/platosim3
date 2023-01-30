@@ -331,8 +331,8 @@ void DetectorWithMappedPSF::reset()
 
 /**
  * \brief: Take an exposure with the detector starting at the given time.
- *         The light is integrated during the given exposure time, during which 
- *         the detector experiences the effects of jitter and thermo-elastic telescope 
+ *         The light is integrated during the given exposure time, during which
+ *         the detector experiences the effects of jitter and thermo-elastic telescope
  *         drift. The background is assumed uniform for the whole subfield.
  *         Afterwards, the collected light is read out, convolving the image with the
  *         point spread function and adding various noise effects.
@@ -425,16 +425,16 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
 /**
  * \brief: During an exposure, this method makes the detector integrate the light
  *         in small steps. During each step the slight change of star positions due
- *         to spacecraft jitter is taken into account. 
- *         
- *  \details  Besides jitter, also the sky background, and the flatfield is taken into 
+ *         to spacecraft jitter is taken into account.
+ *
+ *  \details  Besides jitter, also the sky background, and the flatfield is taken into
  *            account. The sub-pixel map is rebinned in a pixel map.  After rebinning,
  *            vignetting and polarisation are applied (if applicable).
  *
  * \param exposureNr: Sequential number of the exposure.
- * 
+ *
  * \param startTime: Starting time of the exposure for which jitter must be applied [s].
- * 
+ *
  * \param exposureTime: Duration of the exposure [s].
  *
  * \pre Sub-pixel, pixel, bias register, and smearing map filled with values from previous exposure.
@@ -488,8 +488,8 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
 
     applyThroughputEfficiency();
 
-    // Apply the charge injection which will mitigate the CTI. The injection happens in electrons, 
-    // so the throughput efficiency should already have been applied. In principle, the injected charges do 
+    // Apply the charge injection which will mitigate the CTI. The injection happens in electrons,
+    // so the throughput efficiency should already have been applied. In principle, the injected charges do
     // feel the PRNU, but for the MappedPSF we first need to apply the PRNU on sub-pixel level and afterwards
     // apply the throughputEfficiency() at pixel level, so there is no possibilty to respect the order
     // (1) throughput (2) charge injection (3) PRNU.
@@ -561,16 +561,16 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
 
 
 /**
- * \brief: Add the given flux value to the value of the sub-pixel that corresponds to the given coordinates 
+ * \brief: Add the given flux value to the value of the sub-pixel that corresponds to the given coordinates
  *         in the focal plane. Return the pixel coordinates of the pixel to which the flux was added.
  *
  * \param xFP: X-coordinate of the sub-pixel in the focal plane in the FP reference frame [mm].
- * 
+ *
  * \param yFP: Y-coordinate of the sub-pixel in the focal plane in the FP reference frame [mm].
- * 
+ *
  * \param flux: Flux to add to the sub-pixel map [photons].
  *
- * \return (isInSubfield, row, col) 
+ * \return (isInSubfield, row, col)
  *         isInSubfield: True if (xFP, yFP) are on the subfield, false otherwise;
  *         row: sub-field (not CCD) row number of the pixel to which the flux was added;
  *         col: sub-field (not CCD) column number of the pixel to which the flux was added.
@@ -638,7 +638,7 @@ tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yF
 
 /**
  * \brief Insert the extended ghost with the given radius and flux at the given focal-plane position.
- * 
+ *
  * Note that the extended source will be convolved with the PSF in a next step.
  *
  * \param x0: Focal-plane x-coordinate of the centre of the extended ghost [mm].
@@ -752,8 +752,8 @@ void DetectorWithMappedPSF::applyDiffusionKernel(double subpixRow, double subpix
  * \brief Check whether the given (row, column) indices are within the array range of the subpixel map.
  *
  * \details The input parameters row & column come from a coordinate transformation
- *          in the focal plane, and as a result are not necessarily integers. For this 
- *          function it's not necessary to round them to the nearest integer. 
+ *          in the focal plane, and as a result are not necessarily integers. For this
+ *          function it's not necessary to round them to the nearest integer.
  *
  * \param row: Row index. NOT a coordinate in the CCD frame, but in the subfield frame. [sub-pixel].
  *
@@ -818,7 +818,7 @@ void DetectorWithMappedPSF::addFlux(double flux)
  * \pre Pixel, bias register, and smearing maps filled with zeroes.
  *
  * \post Pixel value in the sub-pixel map: [photons].
- * 
+ *
  * \post Pixel, bias, and smearing maps filled with zeroes.
  */
 void DetectorWithMappedPSF::applyFlatfield()
@@ -1057,91 +1057,104 @@ bool DetectorWithMappedPSF::areColinear(std::array<std::array<double, 2>, 3> poi
  */
 void DetectorWithMappedPSF::applyDistortion(double &x, double &y)
 {
-    // We try to select 4 undistorted "closest"* points around the input point
-    // together with their respectuve distorted points. To know
-    // wether a point should be included instead of another we compare their distance*
-    // the 4 points with the smallest distance* get selected.
 
-    // * REMARK: The distance we use is not with the euclidean metric. This is because we
-    // want to select 4 points that describe a square in which the input point lies.
+    // If the input coordinates are outside the field of view, we don't apply the
+    // distortion. This is because coordiantes in the table do not reach that far
+    // and linear approximation of that point would fail.
+    if (x*x + y*y > 85)
+    {
+        return;
+    }
 
     std::array<std::array<double, 2>,4> ClosestUndistortedCoordinates;
     std::array<std::array<double, 2>,4> ClosestDistortedCoordinates;
 
-    std::array<double,4> minDistance;
-    minDistance.fill(std::numeric_limits<double>::max());
+    std::array<double,4> minDistance_x;
+    std::array<double,4> minDistance_y;
 
+    minDistance_x[0] = -1*std::numeric_limits<double>::max();
+    minDistance_x[1] = -1*std::numeric_limits<double>::max();
+    minDistance_x[2] = std::numeric_limits<double>::max();
+    minDistance_x[3] = std::numeric_limits<double>::max();
+
+    minDistance_y[0] = -1*std::numeric_limits<double>::max();
+    minDistance_y[1] = std::numeric_limits<double>::max();
+    minDistance_y[2] = -1*std::numeric_limits<double>::max();
+    minDistance_y[3] = std::numeric_limits<double>::max();
+
+
+    // We try to find the four closest points around the input point.
     for (auto& coordinates : distortionMap)
-    {
-        double distance = std::max( pow(coordinates[0] - x, 2), pow(coordinates[1] - y, 2));
+   {
+        double distance_x = (coordinates[0] - x);
+        double distance_y = (coordinates[1] - y);
 
-        // for a point to be included, its distance to the input point should be at least smaller
-        // then the highest distance that we keep track of.
-
-        if(distance < minDistance[3])
+        // the points left from the input point.
+        if (distance_x < 0)
         {
-            // Once we know we want to include the point, we check where its position in the list should
-            // be so that the order nearest -> furthest remains.
-            int j=2;
-            while( (j >= 0) && (distance < minDistance[j]))
+            // the points below the input point.
+            if (distance_y < 0)
             {
-                minDistance[j+1] = minDistance[j];
-                ClosestUndistortedCoordinates[j+1] = ClosestUndistortedCoordinates[j];
-                ClosestDistortedCoordinates[j+1] = ClosestDistortedCoordinates[j];
-                j = j-1;
+                // We try to have on the 0th index, the closest point left/under the input point.
+                if ((minDistance_x[0] <= distance_x) && (minDistance_y[0] <= distance_y))
+                {
+                    minDistance_x[0] = distance_x;
+                    minDistance_y[0] = distance_y;
+
+                    ClosestUndistortedCoordinates[0] = {coordinates[0], coordinates[1]};
+                    ClosestDistortedCoordinates[0]   = {coordinates[2], coordinates[3]};
+                }
             }
-            minDistance[j+1] = distance;
-            ClosestUndistortedCoordinates[j+1] = {coordinates[0], coordinates[1]};
-            ClosestDistortedCoordinates[j+1] = {coordinates[2], coordinates[3]};
+            else
+            {
+                // We try to have on the 1th index, the closest point left/above the input point.
+                if ((minDistance_x[1] <= distance_x) && (minDistance_y[1] >= distance_y))
+                {
+                    minDistance_x[1] = distance_x;
+                    minDistance_y[1] = distance_y;
+
+                    ClosestUndistortedCoordinates[1] = {coordinates[0], coordinates[1]};
+                    ClosestDistortedCoordinates[1] = {coordinates[2], coordinates[3]};
+                }
+            }
+        }
+        else
+        {
+            if (distance_y < 0)
+            {
+                // We try to have on the 2th idx, the closest point right/below the input point.
+                if ((minDistance_x[2] >= distance_x) && (minDistance_y[2] <= distance_y))
+                {
+                    minDistance_x[2] = distance_x;
+                    minDistance_y[2] = distance_y;
+
+                    ClosestUndistortedCoordinates[2] = {coordinates[0], coordinates[1]};
+                    ClosestDistortedCoordinates[2] = {coordinates[2], coordinates[3]};
+                }
+            }
+            else
+            {
+                // We try to have on the 3th idx, the closest point right/above the input point.
+                if ((minDistance_x[3] >= distance_x) && (minDistance_y[3] >= distance_y))
+                {
+                    minDistance_x[3] = distance_x;
+                    minDistance_y[3] = distance_y;
+
+                    ClosestUndistortedCoordinates[3] = {coordinates[0], coordinates[1]};
+                    ClosestDistortedCoordinates[3] = {coordinates[2], coordinates[3]};
+                }
+            }
+
         }
     }
-
-    // We now have selected 4 points that form a square in which the input point will lie. We now want to
-    // order these points so that the lowest, most left point corresponds to index 0, and the next indices
-    // follow the points counterclockwise.
-
-    for (int i=0; i<3; i++)
-    {
-        bool isBigger   = (ClosestUndistortedCoordinates[i])[0] > (ClosestUndistortedCoordinates[i+1])[0];
-
-        if(isBigger)
-        {
-            for (int k=i; k>=0; k--)
-            {
-                std::array<double, 2> dummy        = ClosestUndistortedCoordinates[k];
-                ClosestUndistortedCoordinates[k]   = ClosestUndistortedCoordinates[k+1];
-                ClosestUndistortedCoordinates[k+1] = dummy;
-                dummy                              = ClosestDistortedCoordinates[k];
-                ClosestDistortedCoordinates[k]     = ClosestDistortedCoordinates[k+1];
-                ClosestDistortedCoordinates[k+1]   = dummy;
-            }
-
-        }
-    }
-
-  for (int i=0; i<3; i++)
-  {
-      bool isBigger = (ClosestUndistortedCoordinates[i])[0] < (ClosestUndistortedCoordinates[i+1])[0];
-      bool secondIsBigger = (ClosestUndistortedCoordinates[i])[1] > (ClosestUndistortedCoordinates[i+1])[1];
-
-      if(!isBigger && secondIsBigger)
-      {
-          std::array<double, 2> dummy        = ClosestUndistortedCoordinates[i];
-          ClosestUndistortedCoordinates[i]   = ClosestUndistortedCoordinates[i+1];
-          ClosestUndistortedCoordinates[i+1] = dummy;
-          dummy                              = ClosestDistortedCoordinates[i];
-          ClosestDistortedCoordinates[i]     = ClosestDistortedCoordinates[i+1];
-          ClosestDistortedCoordinates[i+1]   = dummy;
-      }
-  }
 
   // We approximate the distorted coordinates using a linear combination of the 4 distorted coordinates corresponding
-  // with the points around the input point.
+  // with the 4 points around the input point.
 
   std::array<double, 4> constants;
   std::array<int, 4> oppositeIdx = {3, 2, 1, 0};
 
-  // We get the constants of the linear combination
+  // We define the constants of the linear combination
   double area = (ClosestUndistortedCoordinates[0][0] - ClosestUndistortedCoordinates[3][0]) * (ClosestUndistortedCoordinates[0][1] - ClosestUndistortedCoordinates[3][1]);
   for (int i=0; i<4; i++)
   {
@@ -1149,16 +1162,16 @@ void DetectorWithMappedPSF::applyDistortion(double &x, double &y)
       constants[i] = abs( (oppositePoint[0]-x)*(oppositePoint[1]-y) ) / area;
   }
 
+
   x = constants[0] * ClosestDistortedCoordinates[0][0] + constants[1] * ClosestDistortedCoordinates[1][0] + constants[2] * ClosestDistortedCoordinates[2][0] + constants[3] * ClosestDistortedCoordinates[3][0];
   y = constants[0] * ClosestDistortedCoordinates[0][1] + constants[1] * ClosestDistortedCoordinates[1][1] + constants[2] * ClosestDistortedCoordinates[2][1] + constants[3] * ClosestDistortedCoordinates[3][1];
-
-  // Round up/down the numbers to 4 decimal numbers to get consistent results
-
-  float x_dummy = (int) (x * 10000 + 0.5);
-  float y_dummy = (int) (y * 10000 + 0.5);
-  x = (float) x_dummy / 10000;
-  y = (float) y_dummy / 10000;
 }
+
+
+
+
+
+
 
 
 /*
@@ -1167,112 +1180,77 @@ void DetectorWithMappedPSF::applyDistortion(double &x, double &y)
  */
 void DetectorWithMappedPSF::applyInverseDistortion(double &x, double &y)
 {
-    // We try to select 4 distorted "closest"* points around the input point
-    // together with their respectuve undistorted points. To know
-    // wether a point should be included instead of another we compare their distance*
-    // the 4 points with the smallest distance* get selected.
+    // This is a brute force method to find the inverse distortion of the input point.
+    // We estimate this point as the central point of a square of the CCD, and by
+    // distorting this point we can estimate on which quadrant of the square the actual
+    // point would lie. We then improve our guess by taking the central of this quadrant.
+    // This process is repeated until we find a point that is close enough
+    // to the undistorted point of (x, y).
 
-    // * REMARK: The distance we use is not with the euclidean metric. This is because we
-    // want to select 4 points that describe a square in which the input point lies.
 
-    std::array<std::array<double, 2>,4> ClosestUndistortedCoordinates;
-    std::array<std::array<double, 2>,4> ClosestDistortedCoordinates;
+    // Initialze the values
+    double delta = 100;
+    // length of the square we consider
+    double length = 80;
 
-    std::array<double,4> minDistance;
-    minDistance.fill(std::numeric_limits<double>::max());
+    // our first guess is the center of the CCD
+    double x0 = 0;
+    double y0 = 0;
 
-    for (auto& coordinates : distortionMap)
+    double xDist =x0;
+    double yDist = y0;
+    int i = 0;
+
+    // delta detamines how close the distorted point and the distorted "estimated point"
+    // lie. If they only differ by delta < 0.0001 we have found our point.
+    // If we are not able to reach this, then we finish the loop after 160 itaration to avoid
+    // an infinite loop.
+    while ((delta > 0.0001) && (i < 160))
     {
-        double distance = std::max( pow(coordinates[2] - x, 2), pow(coordinates[3] - y, 2));
 
-        // for a point to be included, its distance to the input point should be at least smaller
-        // then the highest distance that we keep track of.
+        applyDistortion(xDist, yDist);
 
-        if(distance < minDistance[3])
+        // For our next guess we shift our point with a value 3*length / 5. This is more then lenght/2,
+        // so that we are still able to converge to a point that would lie close to the edge of our square.
+        length = 3*length / 5;
+
+        // Dependent on which quadrant of the square the input point falles, we change the middle of our square.
+        switch (x > xDist)
         {
-            // Once we know we want to include the point, we check where its position in the list should
-            // be so that the order nearest -> furthest remains.
-            int j=2;
-            while( (j >= 0) && (distance < minDistance[j]))
-            {
-                minDistance[j+1] = minDistance[j];
-                ClosestUndistortedCoordinates[j+1] = ClosestUndistortedCoordinates[j];
-                ClosestDistortedCoordinates[j+1] = ClosestDistortedCoordinates[j];
-                j = j-1;
-            }
-            minDistance[j+1] = distance;
-            ClosestUndistortedCoordinates[j+1] = {coordinates[0], coordinates[1]};
-            ClosestDistortedCoordinates[j+1] = {coordinates[2], coordinates[3]};
+        case true:
+            if (x0 + length > 85.) {x0 = 85.;}
+            else {x0 = x0 + length;}
+            break;
+        case false:
+            if (x0 - length < -85.) {x0 = -85.;}
+            else {x0 = x0 - length;}
+            break;
         }
-    }
 
-    // We now have selected 4 points that form a square in which the input point will lie. We now want to
-    // order these points so that the lowest, most left point corresponds to index 0, and the next indices
-    // follow the points counterclockwise.
-
-    for (int i=0; i<3; i++)
-    {
-        bool isBigger   = (ClosestDistortedCoordinates[i])[0] > (ClosestDistortedCoordinates[i+1])[0];
-
-        if(isBigger)
+        switch (y > yDist)
         {
-            for (int k=i; k>=0; k--)
-            {
-                std::array<double, 2> dummy        = ClosestUndistortedCoordinates[k];
-                ClosestUndistortedCoordinates[k]   = ClosestUndistortedCoordinates[k+1];
-                ClosestUndistortedCoordinates[k+1] = dummy;
-                dummy                              = ClosestDistortedCoordinates[k];
-                ClosestDistortedCoordinates[k]     = ClosestDistortedCoordinates[k+1];
-                ClosestDistortedCoordinates[k+1]   = dummy;
-            }
+        case true:
+            if (y0 + length > 85.) {y0 = 85;}
+            else {y0 = y0 + length;}
+            break;
+        case false:
+            if (y0 - length < -85.) {y0 = -85;}
+            else {y0 = y0 - length;}
+            break;
         }
+
+        delta = std::abs(x-xDist) + std::abs(y-yDist);
+        xDist = x0;
+        yDist = y0;
+        i = i + 1;
     }
-
-  for (int i=0; i<3; i++)
-  {
-      bool isBigger = (ClosestDistortedCoordinates[i][0] < ClosestDistortedCoordinates[i+1][0]) && (abs(ClosestDistortedCoordinates[i][0] - ClosestDistortedCoordinates[i+1][0]) > 0.01) ;
-      bool secondIsBigger = (ClosestDistortedCoordinates[i])[1] > (ClosestDistortedCoordinates[i+1])[1];
-
-      if(!isBigger && secondIsBigger)
-      {
-          std::array<double, 2> dummy        = ClosestUndistortedCoordinates[i];
-          ClosestUndistortedCoordinates[i]   = ClosestUndistortedCoordinates[i+1];
-          ClosestUndistortedCoordinates[i+1] = dummy;
-          dummy                              = ClosestDistortedCoordinates[i];
-          ClosestDistortedCoordinates[i]     = ClosestDistortedCoordinates[i+1];
-          ClosestDistortedCoordinates[i+1]   = dummy;
-      }
-  }
-
-  // The distorted coordinates have been approximated as a linear combination of the
-  // 4 nearest points. We can use this to know the coordinates of the undistorted point.
-
-  std::array<double, 4> constants;
-  std::array<int, 4> oppositeIdx = {3, 2, 1, 0};
-
-  float sum = 0;
-  for (int i=0; i<4; i++)
-  {
-      constants[i] = abs( (ClosestDistortedCoordinates[oppositeIdx[i]][0] - x)*(ClosestDistortedCoordinates[oppositeIdx[i]][1]-y));
-      sum = sum + abs( (ClosestDistortedCoordinates[oppositeIdx[i]][0] - x)*(ClosestDistortedCoordinates[oppositeIdx[i]][1]-y));
-  }
-  for (int i=0; i<4; i++)
-  {
-      constants[i] = constants[i]/sum;
-  }
-
-  x = constants[0] * ClosestUndistortedCoordinates[0][0] + constants[1] * ClosestUndistortedCoordinates[1][0] + constants[2] * ClosestUndistortedCoordinates[2][0] + constants[3] * ClosestUndistortedCoordinates[3][0];
-  y = constants[0] * ClosestUndistortedCoordinates[0][1] + constants[1] * ClosestUndistortedCoordinates[1][1] + constants[2] * ClosestUndistortedCoordinates[2][1] + constants[3] * ClosestUndistortedCoordinates[3][1];
-
-  // Round up/down the numbers to 4 decimal numbers to get consistent results
-
-  float x_dummy = (int) (x * 10000 + 0.5);
-  float y_dummy = (int) (y * 10000 + 0.5);
-  x = (float) x_dummy / 10000;
-  y = (float) y_dummy / 10000;
+    x = xDist;
+    y = yDist;
 
 
 }
+
+
 
 
 

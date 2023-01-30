@@ -83,7 +83,7 @@ Camera::~Camera()
 void Camera::initHDF5Groups()
 {
     Log.debug("Camera: initialising HDF5 groups");
-    
+
     hdf5File.createGroup("/StarPositions");
     hdf5File.createGroup("/Background");
     if (writeTransmissionEfficiency)
@@ -299,7 +299,7 @@ void Camera::flushOutput()
             }
         }
     }
-    else 
+    else
     {
         Log.warning("Camera: No star positions written to HDF5 file by user demand (see input file).");
     }
@@ -328,7 +328,7 @@ void Camera::flushOutput()
         {
           stringstream myStream;
           myStream << "Exposure" << setfill('0') << setw(6) << beginExposureNr + n;
-          
+
           // Write the info for the point-like ghost star positions to HDF5
 
           vector<unsigned int> starIDs;
@@ -338,7 +338,7 @@ void Camera::flushOutput()
           vector<double> colPix;
           vector<double> flux;
           vector<double> ghostRadius;
-          
+
           for(auto keyValuePair: detectedPointLikeGhostInfo[time[n]])
           {
             const unsigned int starID = keyValuePair.first;
@@ -367,7 +367,7 @@ void Camera::flushOutput()
           // Write the info for the point like ghost star positions to HDF5
 
           Log.info("Camera: writing point like ghost positions to HDF5 file");
-          
+
           starIDs.clear();
           xFPmm.clear();
           yFPmm.clear();
@@ -379,7 +379,7 @@ void Camera::flushOutput()
       }
 
       time.clear();
-      
+
       if(includeExtendedGhosts)
       {
         for(auto keyValuePair: detectedExtendedGhostInfo) time.push_back(keyValuePair.first);
@@ -391,15 +391,15 @@ void Camera::flushOutput()
         {
           Log.warning("Camera: No extended ghost positions to write to HDF5 file.");
         }
-        
+
         for (int n = 0; n < time.size(); n++)
         {
           stringstream myStream;
           myStream << "Exposure" << setfill('0') << setw(6) << beginExposureNr + n;
-            
-            
+
+
           // Write the info for the extended ghost star positions to HDF5
-          
+
           vector<unsigned int> starIDs;
           vector<double> xFPmm;
           vector<double> yFPmm;
@@ -407,8 +407,8 @@ void Camera::flushOutput()
           vector<double> colPix;
           vector<double> flux;
           vector<double> ghostRadius;
-              
-            
+
+
           for(auto keyValuePair: detectedExtendedGhostInfo[time[n]])
           {
             const unsigned int starID = keyValuePair.first;
@@ -420,10 +420,10 @@ void Camera::flushOutput()
             flux.push_back(detectedExtendedGhostInfo[time[n]][starID][4]);
             ghostRadius.push_back(detectedExtendedGhostInfo[time[n]][starID][6] / detectedExtendedGhostInfo[time[n]][starID][5]);
           }
-          
+
           const string extendedGhostGroupName = "/ExtendedGhostPositions/" + myStream.str();
           hdf5File.createGroup(extendedGhostGroupName);
-            
+
           if(!starIDs.empty())
           {
             hdf5File.writeArray(extendedGhostGroupName, "starID", starIDs.data(), starIDs.size());
@@ -442,7 +442,7 @@ void Camera::flushOutput()
 
 
     // Write the total sky background flux values [photons/pixel/exposure] to HDF5 in a custom group
-    
+
     hdf5File.writeArray("Background/", "skyBackground", skyBackgroundValues.data(), skyBackgroundValues.size());
 
     // Write the transmissionEfficiency values for each exposureTime to HDF5 in a custom group
@@ -860,7 +860,7 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
                     numExtendedGhostsInSubField++;
 
                     if(detectedExtendedGhostInfo.find(startTime) == detectedExtendedGhostInfo.end())
-                    {   
+                    {
                         detectedExtendedGhostInfo[startTime][starID] = {{xGhost, yGhost, rowGhost, columnGhost, fluxGhost, 1.0, radiusExtendedGhost}};
                     }
 
@@ -988,8 +988,8 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
  *        and the are on or near the field that produces symmetric point-like ghosts on or near the
  *        sub-field (without accounting for the distance cut-off).  The latter stars are only selected
  *        if ghosts are to be included in the simulation.
- * 
- * To make a rough selection of the stars from the input catalogue that are on or near the sub-field, 
+ *
+ * To make a rough selection of the stars from the input catalogue that are on or near the sub-field,
  * consider all stars that are within a certain distance from the centre of the sub-field:
  *      - calculate the sky coordinates of the centre of the sub-field (taking field distortion into account, if enabled);
  *      - the distance between the lower left (00) and the upper right (11) corner of the sub-field will be a 1st-order
@@ -997,7 +997,7 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
  *        on the safe side.
  * Take a similar approach to select the stars on the opposite side of the optical axis as potential originators of
  * symmetric point-like ghosts.
- * 
+ *
  * \param detector: Detector for which to make a rough selection of stars.
  * \param startTime: Start time of the exposure [s].
  * \param exposureTime: Duration of one exposure [s].
@@ -1092,8 +1092,8 @@ tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &d
 
     Log.debug("Camera: semi-diagonal of subfield = " + to_string(rad2deg(radius)) + " deg");
 
-    // Select the stars from the catalogue that are on or near the sub-field (i.e. in a radius 
-    // around the centre of the sub-field). Take the radius a bit larger so that the queried area includes 
+    // Select the stars from the catalogue that are on or near the sub-field (i.e. in a radius
+    // around the centre of the sub-field). Take the radius a bit larger so that the queried area includes
     // possible small shifts of the projected subfield because of jitter.
 
     const unsigned long numStars = sky.selectStarsWithinRadiusFrom(centerSubFieldRA, centerSubFieldDec, radius * 1.1, Angle::radians);
