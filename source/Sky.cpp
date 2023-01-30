@@ -6,9 +6,9 @@
 
 /**
  * \brief Constructor
- * 
+ *
  * \param configParams    Configuration parameters as read from the (e.g. yaml) inputfile
- * 
+ *
  */
 
 Sky::Sky(ConfigurationParameters &configParams)
@@ -500,24 +500,24 @@ void Sky::aberrateSelectedStarPositions(Platform &platform, string aberrationCor
         equatorial2ecliptic(raPlatform, decPlatform, lambdaPlatform, betaPlatform);
 
         //direction of the pointing
-        
+
         valarray<double> p = {cos(lambdaPlatform) * cos(betaPlatform), sin(lambdaPlatform) * cos(betaPlatform), sin(betaPlatform)};
 
         //angle between velocity direction and pointing
-        
+
         double pangle = acos((v * p).sum());
 
         //relativistically aberrated angle between velocity direction and pointing
-        
+
         double oangle = atan2(sqrt(1. - beta * beta) * sin(pangle), cos(pangle) + beta);
 
         //rotation axis between velocity direction and pointing
-        
+
         valarray<double> r = {p[1] * v[2] - p[2] * v[1], p[2] * v[0] - p[0] * v[2], p[0] * v[1] - p[1] * v[0]};
-        r /= sqrt((r * r).sum()); 
+        r /= sqrt((r * r).sum());
 
         //rotation matrix for rotation axis r with angle difference after aberration, this reverses the aberration effect for the pointing direction
-        
+
         double c = cos(oangle - pangle);
         double s = sin(oangle - pangle);
         double x = r[0], y = r[1], z = r[2];

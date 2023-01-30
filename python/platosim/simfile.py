@@ -84,7 +84,7 @@ class SimFile (object):
 
 
 
-            
+
     #--------------------------------------------------------------#
     #                    SIMULATION PARAMETERS                     #
     #--------------------------------------------------------------#
@@ -806,32 +806,32 @@ class SimFile (object):
 
 
 
-    
+
     def getFlux(self, starID, flux_type="estimated"):
 
         """Returns flux points.
         """
 
         # Select the proper flux name
-        
+
         if   flux_type == "estimated": lctype = "estimatedFlux"
         elif flux_type == "input":     lctype = "inputFlux"
         else:
             ut.errorcode("error", "getFlux(): flux_type can only be 'estimated' or 'input'")
 
         # Query either a single star or multiple stars as requested
-        
+
         try: len(starID)
         except:
             starID = np.array([starID])
             names = False
         else:
             names = True
-            
+
         # Add a flux column(s) for the star(s)
-        
+
         for ID in starID:
-            
+
             # Check photometry is present for each star
             starIDgroupName = f"starID{ID}"
             if starIDgroupName not in self.hdf5file["Photometry"]["Lightcurves"].keys():
@@ -841,7 +841,7 @@ class SimFile (object):
             # Select correct name convention
             if names: string = f"flux_{ID}"
             else:     string = "flux"
-                
+
             # Fetch flux column
             flux = np.array(self.hdf5file[f"Photometry/Lightcurves/starID{ID}/{lctype}"])
 
@@ -850,16 +850,16 @@ class SimFile (object):
                 df = pd.DataFrame({string: flux})
             else:
                 df[string] = flux
-            
+
         # Finito!
-            
+
         return df
 
 
-    
-    
 
-    
+
+
+
     def getLightCurve(self, starID, flux_type="estimated"):
 
         """Extract the light curve of one or more stars
@@ -874,7 +874,7 @@ class SimFile (object):
             int  : ID of the star as mentioned in the last column of the star catalog file
             list : List of star IDs for which the light curve should be extracted
         flux_type : str
-            Either "estimated" or "input". 
+            Either "estimated" or "input".
             The estimated one is derived from a binary mask.
             The input one is derived from the mean input magnitude specified in the star catalog
             and (for variable stars) the delta-magnitude time series given as an input file.
@@ -882,14 +882,14 @@ class SimFile (object):
         Return
         ------
         df : pandas data frame
-            time : first column [s] 
+            time : first column [s]
             flux : consecutive columns [e-/exposure]
         """
 
         # Fetch time column
-        
+
         time = self.getTime()
-        
+
         # Fetch flux column(s)
 
         flux = self.getFlux(starID, flux_type=flux_type)
@@ -902,21 +902,21 @@ class SimFile (object):
 
 
 
-    
+
 
     def getMaskUpdateEvents(self):
 
         """Exposure number of all mask updates.
         """
-        
+
         # Fetch mask update events
 
         return np.array(self.hdf5file["Photometry/Masks/exposureNrOfMaskUpdate"])
 
 
 
-    
-    
+
+
 
     def getApertureMask(self, starID, imageNr=None):
 
@@ -927,7 +927,7 @@ class SimFile (object):
         number. This only makes sense if the photometry was activated in the configuration
         yaml file.
 
-        INPUT: 
+        INPUT:
         starID:  ID of the star as mentioned in the last column of the star catalog file
                imageNr: integer sequential number of the image in the HDF5 file
 
@@ -1005,7 +1005,7 @@ class SimFile (object):
 
 
 
-    
+
 
     def getTimeQuarter(self, quarterNo):
 
@@ -1024,7 +1024,7 @@ class SimFile (object):
 
         Return
         ------
-        time : ndarray 
+        time : ndarray
             Time array matching the parent quarter defined by the user.
         """
 
@@ -1043,7 +1043,7 @@ class SimFile (object):
         return time
 
 
-        
+
 
     #--------------------------------------------------------------#
     #                         PLOT FUNCTIONS                       #
@@ -1146,6 +1146,7 @@ class SimFile (object):
         image   = image / 1000.
         img_min = image.min()
         img_max = image.max()
+
         img_mean = image.mean()
         img_std = image.std()
 
@@ -1186,7 +1187,7 @@ class SimFile (object):
                                     origin=origin, extent=[0, Nrows, 0, Ncols], zorder=0)
 
         # Add colorbar if requested
-        
+
         if colorBar:
             cbar = fig.colorbar(imagePlot, extend='max', shrink=0.84, pad=0.015)
             cbar.set_label(clabel, fontsize=fontSize, labelpad=3)
@@ -1206,7 +1207,7 @@ class SimFile (object):
                 cbar.update_ticks()
 
             # Adjust the colorbar to correct ADU values for auto-scaling
-            if imgScale == "auto":                
+            if imgScale == "auto":
                 ticks_label    = [f"{i:.1f}" for i in np.linspace(0, 1, 6)]
                 ticks_loc      = np.linspace(vmin, vmax, 6)
                 cbar.locator   = ticker.FixedLocator(ticks_loc)
@@ -1367,17 +1368,17 @@ class SimFile (object):
 
         psf = np.rot90(np.fliplr(self.getPSF(datasetName)))
         Nrows, Ncols = psf.shape
-        
-        # Plot the image. 
+
+        # Plot the image.
 
         fig, ax = plt.subplots(1, 1, sharex=True, sharey=True, figsize=figsize)
 
-        
+
         image = ax.imshow(psf, cmap=colorMap, interpolation="nearest",
                           origin='lower', extent=[0, Nrows, 0, Ncols])
 
         # If requested, set a default title
-        
+
         if useTitle:
             fileBasename = os.path.splitext(self.filename)[0]   # with the .hdf5
             title = f"{fileBasename} - {datasetName}"
@@ -1388,26 +1389,26 @@ class SimFile (object):
         if colorBar:
             plt.colorbar(image, orientation='vertical', extend='max',
                          cmap=colorMap, aspect=15, fraction=0.06)
-            
+
         # Labels
-        
+
         ax.set_xlabel(r"$x$ [subpixel]")
         ax.set_ylabel(r"$y$ [subpixel]")
 
         # Limits
-        
+
         ax.set_xlim(0, Nrows)
         ax.set_ylim(0, Ncols)
 
         # Ticks
-        
+
         ax.set_xticks(np.linspace(0, Nrows+1, 5))
         ax.set_yticks(np.linspace(0, Ncols+1, 5))
 
         # Settings
-        
+
         plt.tight_layout()
-        
+
         # That's it!
 
         return fig, ax
