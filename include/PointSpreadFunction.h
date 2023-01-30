@@ -53,7 +53,7 @@ class PointSpreadFunction : public HDF5Writer
         bool isRotated = false;
 
         // Indicates whether this PSF has been rebinned
-        
+
         bool isRebinned = false;
 
         // Absolute path to the HDF5 file with the PSFs

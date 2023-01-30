@@ -16,7 +16,7 @@ using namespace std;
 
 
 
-class DetectorWithMappedPSF : public Detector 
+class DetectorWithMappedPSF : public Detector
 {
     public:
 

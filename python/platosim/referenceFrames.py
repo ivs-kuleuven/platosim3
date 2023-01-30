@@ -470,7 +470,6 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, solarPanelOrie
     # Get the sky position of the Sun (ra, dec) [rad]
 
     raSun, decSun = sunSkyCoordinatesAwayfromPlatformPointing(raPlatform, decPlatform, solarPanelOrientation)
-
     # Undo the reverse-image projection effect of the pinhole
 
     vecFP = np.array([-xFP/focalLength, -yFP/focalLength, 1.0], dtype=object)
@@ -708,7 +707,7 @@ def undistortedFocalPlaneToTelescopeCoordinates(xFP, yFP, focalLength, focalPlan
 def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients, focalLength):
 
     """
-    PURPOSE:      Convert from undistorted to distorted normalized focal plane coordinates using the analytic distortion model. 
+    PURPOSE:      Convert from undistorted to distorted normalized focal plane coordinates using the analytic distortion model.
 
     INPUTS:       xFPmm  undistorted normalized focal plane x-coordinate [mm]
                   yFPmm  undistorted normalized focal plane y-coordinate [mm]
@@ -717,7 +716,7 @@ def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoeffici
 
     OUTPUTS:      (xFPdist, yFPdist) distorted x and y coordinates [mm]
 
-    REMARK:       This is not the prefered method for detectors with mapped PSF, since these use a mapped distortion model. 
+    REMARK:       This is not the prefered method for detectors with mapped PSF, since these use a mapped distortion model.
                   For such models use the function mappedUndistortedToDistortedFocalPlaneCoordinates.
 
     Note: Example of distortion coefficients: [0.32419,  0.0232909,  0.407979, 0.00022463, 0.000217599, 0.000381958, 0.000963902]
@@ -732,7 +731,7 @@ def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoeffici
     radialDistortion = distortionPolynomial(rFP) * focalLength
     tangentialDistortion = rFP**2 * (distortionCoefficients[5] * cos(angle) + distortionCoefficients[6] * sin(angle)) * focalLength
 
-    xFPdist = xFPmm + cos(angle) * (radialDistortion + tangentialDistortion) + distortionCoefficients[3] * rFP**2 * focalLength 
+    xFPdist = xFPmm + cos(angle) * (radialDistortion + tangentialDistortion) + distortionCoefficients[3] * rFP**2 * focalLength
     yFPdist = yFPmm + sin(angle) * (radialDistortion + tangentialDistortion) + distortionCoefficients[4] * rFP**2 * focalLength
 
     return xFPdist, yFPdist
@@ -750,7 +749,8 @@ def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoeffici
 def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile):
 
     """
-    PURPOSE:      Convert from undistorted to distorted normalized focal plane coordinates using a mapped distortion model. 
+    PURPOSE:      Convert from undistorted to distorted normalized focal plane
+                  coordinates using a mapped distortion model.
 
     INPUTS:       xFPmm:  undistorted normalized focal plane x-coordinate [mm]
                   yFPmm:  undistorted normalized focal plane y-coordinate [mm]w
@@ -758,10 +758,14 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
 
     OUTPUTS:      (xFPdist, yFPdist) distorted x and y coordinates [mm]
 
-    REMARK:       This is the prefered method for detectors with mapped PSF. 
-                  For detectors that use analytic PSF use the function undistortedToDistortedFocalPlaneCoordinates.
+    REMARK:       This is the prefered method for detectors with mapped PSF.
+                  For detectors that use analytic PSF use the function
+                  undistortedToDistortedFocalPlaneCoordinates.
 
     """
+
+    if (xFPmm**2 + yFPmm**2 > 85):
+        return xFPmm, yFPmm
 
     # Check the path to the PSF file excists
 
@@ -769,9 +773,11 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
         if os.path.exists(os.environ["PLATO_PROJECT_HOME"] + "/" + pathToPsfFile):
             pathToPsfFile = os.environ["PLATO_PROJECT_HOME"] + "/" + pathToPsfFile
         else:
-            print("Error: {} is not a valid path name for mapped PSF".format(pathToPsfFile))            
+            print("Error: {} is not a valid path name for mapped PSF".format(
+                pathToPsfFile))
 
-    # We open the psf file where the coordinate transformation matrix should be in. If the matrix isn't in the file, we raise an error. 
+    # We open the psf file where the coordinate transformation matrix should be in.
+    # If the matrix isn't in the file, we raise an error.
 
     psfFile = h5py.File(pathToPsfFile, "r")
     if not "Coordinates map" in psfFile.keys():
@@ -781,7 +787,7 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
         coordMap = psfFile["Coordinates map"]
 
 
-    # Calculate the distance of the undistorted coordinates with the input coordinates.
+    # Calculate the distance of the undist coordinates wrt input coordinates
 
     undistorted = coordMap["Undistorted"]
 
@@ -793,45 +799,6 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
     yUndis = np.zeros(y.shape, y.dtype)
     y.read_direct(yUndis)
 
-    distanceFromPoint = [(xFPmm - x)**2 + (yFPmm - y)**2 for x, y in zip(xUndis, yUndis)]
-    areColinear = lambda x, y : abs(np.inner(np.cross(x, y), np.array([1, 1, 1]))) < 1e-5
-
-    # We should select the closest three undistorted and noncolinear points to the input point
-
-    idx = [distanceFromPoint.index(np.sort(distanceFromPoint)[i]) for i in [0, 1, 2]]
-    closestX, closestY = np.array([xUndis[idx[0]], xUndis[idx[1]], xUndis[idx[2]]]), np.array([yUndis[idx[0]], yUndis[idx[1]], yUndis[idx[2]]])
-    i = 2
-
-    while(areColinear(closestX, closestY) and i < len(distanceFromPoint)):
-        idx[2] = distanceFromPoint.index(np.sort(distanceFromPoint)[i+1])
-        closestX, closestY = np.array([xUndis[idx[0]], xUndis[idx[1]], xUndis[idx[2]]]), np.array([yUndis[idx[0]], yUndis[idx[1]], yUndis[idx[2]]])
-        i = i + 1
-
-    # We make sure that the first index of the origin of the reference frame corresponds to the first index in idx. 
-
-    distanceBetweenPoints = [(closestX[i%3] - closestX[(i+1)%3])**2 + (closestY[i%3] - closestY[(i+1)%3])**2 for i in [1, 2, 3]]
-    indexOfAngle          = distanceBetweenPoints.index(np.max(distanceBetweenPoints))
-
-    if not indexOfAngle == 0:
-        idx0 = idx[0]
-        idx[0] = idx[indexOfAngle]
-        idx[indexOfAngle] = idx0
-
-    # The input points can be expressed as: xFPmm = rx[0] + a1 * rx[1] + a2 * rx[2]
-    #                                       yFPmm = ry[0] + a1 * ry[1] + a2 * ry[2]
-
-    rx = [ xUndis[i] - xUndis[idx[0]] if not i == idx[0] else xUndis[i] for i in idx]
-    ry = [ yUndis[i] - yUndis[idx[0]] if not i == idx[0] else yUndis[i] for i in idx]
-    deltaX, deltaY = xFPmm - rx[0], yFPmm - ry[0]
-
-    det = (rx[1]*rx[1] + ry[1]*ry[1])*(rx[2]*rx[2] + ry[2]*ry[2]) - (rx[1]*rx[2] + ry[1]*ry[2])*(rx[1]*rx[2] + ry[1]*ry[2])
-    a1  = ((rx[2]*rx[2] + ry[2]*ry[2])*(deltaX*rx[1] + deltaY*ry[1]) - (rx[1]*rx[2] + ry[1]*ry[2])*(deltaX*rx[2] + deltaY*ry[2]))/det
-    a2  = ((rx[1]*rx[1] + ry[1]*ry[1])*(deltaX*rx[2] + deltaY*ry[2]) - (rx[1]*rx[2] + ry[1]*ry[2])*(deltaX*rx[1] + deltaY*ry[1]))/det
-
-    # The distorted FP coordinates can then be estimated as:
-    #   xFPdist = rxDist[0] + a1 * rxDist[1] + a2 * rxDist[2]
-    #   yFPdist = ryDist[0] + a1 * rxDist[1] + a2 * ryDist[2]
-
     distorted = coordMap["Distorted"]
 
     x = distorted["x"]
@@ -842,10 +809,66 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
     yDist = np.zeros(y.shape, y.dtype)
     y.read_direct(yDist)
 
-    rxd = [xDist[i] - xDist[idx[0]] if not i == idx[0] else xDist[i] for i in idx]
-    ryd = [yDist[i] - yDist[idx[0]] if not i == idx[0] else yDist[i] for i in idx]
+    distanceFromPointx = np.array([x - xFPmm for x in xUndis])
+    distanceFromPointy = np.array([y - yFPmm for y in yUndis])
+    aDistanceFromPoint  = np.array([ x**2 + y**2
+        for x, y in zip(distanceFromPointx, distanceFromPointy)])
 
-    xFPdist, yFPdist = xDist[idx[0]] + a1 * rxd[1] + a2 * rxd[2] , yDist[idx[0]] + a1 * ryd[1] + a2 * ryd[2]
+    # We should select the closest four undistorted points to the input point
+
+    idx = np.arange(len(distanceFromPointx))
+    idx_selected = np.empty(4, dtype=int16)
+
+    idx_left = idx[distanceFromPointx < 0]
+    idx_right = idx[distanceFromPointx >= 0]
+
+    leftDistanceFromPointy  = distanceFromPointy[distanceFromPointx < 0]
+    rightDistanceFromPointy = distanceFromPointy[distanceFromPointx >= 0]
+
+
+    left_bottom_idx = idx_left[leftDistanceFromPointy < 0]
+    idx_closest_idx = np.argmin(aDistanceFromPoint[left_bottom_idx])
+    idx_selected[0] = left_bottom_idx[idx_closest_idx]
+
+    left_top_idx    = idx_left[leftDistanceFromPointy >=0]
+    idx_closest_idx = np.argmin(aDistanceFromPoint[left_top_idx])
+    idx_selected[1] = left_top_idx[idx_closest_idx]
+
+    right_bottom_idx = idx_right[rightDistanceFromPointy < 0]
+    idx_closest_idx  = np.argmin(aDistanceFromPoint[right_bottom_idx])
+    idx_selected[2]  = right_bottom_idx[idx_closest_idx]
+
+    right_top_idx = idx_right[rightDistanceFromPointy >= 0]
+    idx_closest_idx = np.argmin(aDistanceFromPoint[right_top_idx])
+    idx_selected[3] = right_top_idx[idx_closest_idx]
+
+
+    for i in np.arange(2):
+        if (yUndis[idx_selected[2*i]] > yUndis[idx_selected[2*i+1]]):
+            dummy = idx_selected[2*i]
+            idx_selected[2*i] = idx_selected[2*i+1]
+            idx_selected[2*i+1] = dummy
+
+    closestX = np.array([ xUndis[i] for i in idx_selected])
+    closestY = np.array([ yUndis[i] for i in idx_selected])
+
+    # We can write the points (xFPmm, yFPmm) as a linear combination of the
+    # four closests points around this point.
+
+    oPointIdx = [3, 2, 1, 0]
+
+    constants = [abs( (closestX[oPointIdx[i]] - xFPmm) * \
+                      (closestY[oPointIdx[i]] - yFPmm))
+                 for i in np.arange(4)]
+
+    constants = [ constant / sum(constants) for constant in constants]
+
+    closestXdist = np.array([ xDist[i] for i in idx_selected])
+    closestYdist = np.array([ yDist[i] for i in idx_selected])
+
+    xFPdist = sum([constants[i]*closestXdist[i] for i in np.arange(4)])
+    yFPdist = sum([constants[i]*closestYdist[i] for i in np.arange(4)])
+
     return xFPdist, yFPdist
 
 
@@ -869,7 +892,7 @@ def distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, inverseDistort
 
     OUTPUTS:     (xFPmm, yFPmm) distorted x and y coordinates [mm]
 
-    REMARK:     This is not the prefered method for detectors with mapped PSF, since these use a mapped distortion model. 
+    REMARK:     This is not the prefered method for detectors with mapped PSF, since these use a mapped distortion model.
                 For such models use the function mappedDistortedToUndistortedFocalPlaneCoordinates.
 
     Note: Example of inverse distortion coefficients: [-0.323487, 0.268344, -0.435473, -0.00019304, -0.000176961, -0.000321713, -0.000827654]
@@ -910,91 +933,52 @@ def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPs
 
     OUTPUTS:     (xFPmm, yFPmm) distorted x and y coordinates [mm]
 
-    REMARK:     This is the prefered method for detectors with mapped PSF, since these use a mapped distortion model. 
+    REMARK:     This is the prefered method for detectors with mapped PSF, since these use a mapped distortion model.
                 For detectors that use analytic PSF use the function distortedToUndistortedFocalPlaneCoordinates.
     """
 
-    # Check the path to the PSF file excists
-    if not os.path.exists(pathToPsfFile):
-        if os.path.exists(os.environ["PLATO_PROJECT_HOME"] + "/" + pathToPsfFile):
-            pathToPsfFile = os.environ["PLATO_PROJECT_HOME"] + "/" + pathToPsfFile
-        else:
-            print("Error: {} is not a valid path name for mapped PSF".format(pathToPsfFile))
+    delta = 100.
+    length = 80.
+    x0 = 0
+    y0 = 0
+    i = 0
 
-    # We open the psf file where the coordinate transformation matrix should be in. If this map isn't in the file, we raise an error. 
-    psfFile = h5py.File(pathToPsfFile, "r")
-    if not "Coordinates map" in psfFile.keys():
-        print("Error: No transformation map given in psf file, mapped distortion is not possible.")
-        return
-    else:
-        coordMap = psfFile["Coordinates map"]
+    while((delta > .001) and (i<160)):
+        xDist, yDist = mappedUndistortedToDistortedFocalPlaneCoordinates(x0,
+                                                        y0, pathToPsfFile)
 
-    # Calculate the distance of the distorted coordinates with the distorted input coordinates.
-    distorted = coordMap["Distorted"]
 
-    x = distorted["x"]
-    xDist = np.zeros(x.shape, x.dtype)
-    x.read_direct(xDist)
+        length = 3*length / 5
 
-    y = distorted["y"]
-    yDist = np.zeros(y.shape, y.dtype)
-    y.read_direct(yDist)
+        if (xFPdist > xDist):
+            if ((x0 + length) > 85):
+                x0 = 85
+            else:
+                x0 = x0 + length
+        elif (xFPdist < xDist):
+            if ((x0 - length) < -85):
+                x0 = -85
+            else:
+                x0 = x0 - length
 
-    distanceFromPoint = [(xFPdist - x)**2 + (yFPdist - y)**2 for x, y in zip(xDist, yDist)]
-    areColinear = lambda x, y : abs(np.inner(np.cross(x, y), np.array([1, 1, 1]))) < 1e-5
+        if (yFPdist > yDist):
+            if ((y0 + length) > 85):
+                y0 = 85
+            else:
+                y0 = y0 + length
+        elif (yFPdist < yDist):
+            if ((y0 - length) < -85):
+                y0 = -85
+            else:
+                y0 = y0 - length
 
-    # We should select the closest three distorted and noncolinear points to the input point
 
-    idx = [distanceFromPoint.index(np.sort(distanceFromPoint)[i]) for i in [0, 1, 2]]
-    closestX, closestY = np.array([xDist[idx[0]], xDist[idx[1]], xDist[idx[2]]]), np.array([yDist[idx[0]], yDist[idx[1]], yDist[idx[2]]])
-    i = 2
+        delta = abs(xFPdist - xDist) + abs(yFPdist - yDist)
 
-    while(areColinear(closestX, closestY) and i < len(distanceFromPoint)):
-        idx[2] = distanceFromPoint.index(np.sort(distanceFromPoint)[i+1])
-        closestX, closestY = np.array([xDist[idx[0]], xDist[idx[1]], xDist[idx[2]]]), np.array([yDist[idx[0]], yDist[idx[1]], yDist[idx[2]]])
-        i = i + 1
+        i += 1
 
-    # We make sure that the first index of the origin of the reference frame corresponds to the first index in idx. 
+    return x0, y0
 
-    distanceBetweenPoints = [(closestX[i%3] - closestX[(i+1)%3])**2 + (closestY[i%3] - closestY[(i+1)%3])**2 for i in [1, 2, 3]]
-    indexOfAngle          = distanceBetweenPoints.index(np.max(distanceBetweenPoints))
-
-    if not indexOfAngle == 0:
-        idx0 = idx[0]
-        idx[0] = idx[indexOfAngle]
-        idx[indexOfAngle] = idx0
-
-    # The input points can be expressed as: xFPdist = rx[0] + a1 * rx[1] + a2 * rx[2]
-    #                                       yFPdist = ry[0] + a1 * ry[1] + a2 * ry[2]
-
-    rx = [ xDist[i] - xDist[idx[0]] if not i == idx[0] else xDist[i] for i in idx]
-    ry = [ yDist[i] - yDist[idx[0]] if not i == idx[0] else yDist[i] for i in idx]
-    deltaX, deltaY = xFPdist - rx[0], yFPdist - ry[0]
-
-    det = (rx[1]*rx[1] + ry[1]*ry[1])*(rx[2]*rx[2] + ry[2]*ry[2]) - (rx[1]*rx[2] + ry[1]*ry[2])*(rx[1]*rx[2] + ry[1]*ry[2])
-    a1  = ((rx[2]*rx[2] + ry[2]*ry[2])*(deltaX*rx[1] + deltaY*ry[1]) - (rx[1]*rx[2] + ry[1]*ry[2])*(deltaX*rx[2] + deltaY*ry[2]))/det
-    a2  = ((rx[1]*rx[1] + ry[1]*ry[1])*(deltaX*rx[2] + deltaY*ry[2]) - (rx[1]*rx[2] + ry[1]*ry[2])*(deltaX*rx[1] + deltaY*ry[1]))/det
-
-    # The undistorted FP coordinates can then be estimated as:
-    #   xFPmm = rxUnd[0] + a1 * rxUnd[1] + a2 * rxUnd[2]
-    #   yFPmm = ryUnd[0] + a1 * rxUnd[1] + a2 * ryUnd[2]
-
-    undistorted = coordMap["Undistorted"]
-
-    x = undistorted["x"]
-    xUndis = np.zeros(x.shape, x.dtype)
-    x.read_direct(xUndis)
-
-    y = undistorted["y"]
-    yUndis = np.zeros(y.shape, y.dtype)
-    y.read_direct(yUndis)
-
-    rxu = [xUndis[i] - xUndis[idx[0]] if not i == idx[0] else xUndis[i] for i in idx]
-    ryu = [yUndis[i] - yUndis[idx[0]] if not i == idx[0] else yUndis[i] for i in idx]
-
-    xFPmm, yFPmm = xUndis[idx[0]] + a1 * rxu[1] + a2 * rxu[2] , yUndis[idx[0]] + a1 * ryu[1] + a2 * ryu[2]
-
-    return xFPmm, yFPmm
 
 
 
@@ -1163,7 +1147,7 @@ def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
 
     """
     PURPOSE: Get the (x,y) coordinates of each of the 4 corners of the exposed part of the CCD
-             in the FP' reference system.  These calculations are based on the custom 
+             in the FP' reference system.  These calculations are based on the custom
              CCD position and orientation angle (so not from file!).
 
     INPUT: ccdCode:   one of the following: '1', '2', '3', '4', '1F', '2F', '3F', '4F'
@@ -1209,7 +1193,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
     """
     PURPOSE: Given the equatorial coordinates of a star, find out on which CCD it falls ('1', '2', ...)
              and compute the pixel coordinates of the star on this CCD. If the star doesn't fall on any of the CCDs
-             then (None, None, None) is given as output.  These calculations use the custom CCD positions and 
+             then (None, None, None) is given as output.  These calculations use the custom CCD positions and
              orientation angle (so not from file!).
 
     INPUT: raStar:                 right ascension of the star                               [rad]
@@ -1224,8 +1208,8 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
            pixelSize:              pixel size                                                [micron]
            includeFieldDistortion: True to include field distortion in coordinate transformations, false otherwise
            normal:                 True for the normal camera configuration, False for the fast cameras
-           mappedDistortion:       True if we want mapped distortion (mapped from file psf) False if we have analytic psfs      
-           distortionCoefficients: Coefficients of the polynomial describing the distortion for anlytic psf 
+           mappedDistortion:       True if we want mapped distortion (mapped from file psf) False if we have analytic psfs
+           distortionCoefficients: Coefficients of the polynomial describing the distortion for anlytic psf
            pathToPsfFile         : Path to the PSF file for mapped PSFs to calculate mapped distortion
 
 
@@ -1241,7 +1225,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
     """
 
     # Make sure that for the respective field distortion the proper information is given.
-    
+
     if (includeFieldDistortion or includeFieldDistortion == "yes"):
         if (mappedDistortion and pathToPsfFile is None):
             print("Error: If mapped field distortion should be taken into account, a path to the psf file should be given")
@@ -1249,7 +1233,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
         elif ( (not mappedDistortion) and distortionCoefficients is None):
             print("Error: If analytic field distortion should be taken into account, the distortionCoefficients should be given")
             return
-        
+
     # Select the proper CCD codes depending on whether we're dealing with the nominal or the fast cams
 
     if normal == True:
@@ -1266,7 +1250,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
     if (includeFieldDistortion == True) or (includeFieldDistortion == "yes"):
         if mappedDistortion:
             xFPmm, yFPmm = mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile)
-        else: 
+        else:
             xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients, focalLength)
 
     # Find out if this falls on a CCD, and if yes which one.
@@ -1296,7 +1280,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
 
         return ccdCode, xCCDpix, yCCDpix
 
-    
+
     # If we arrive here, the star does not fall on any CCD
 
     return None, None, None
@@ -1482,9 +1466,9 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
            pixelSize:              pixel size                                               [micron]
            includeFieldDistortion: True to include field distortion in coordinate transformations, false otherwise
            normal:                 True for the normal camera configuration, False for the fast cameras
-           mappedDistortion:       True if we want mapped distortion (mapped from file psf) False if we have analytic psfs      
-           distortionCoefficients: Coefficients of the polynomial describing the distortion for anlytic psf 
-           pathToPsfFile:          Path to the PSF file for mapped PSFs to calculate mapped distortion       
+           mappedDistortion:       True if we want mapped distortion (mapped from file psf) False if we have analytic psfs
+           distortionCoefficients: Coefficients of the polynomial describing the distortion for anlytic psf
+           pathToPsfFile:          Path to the PSF file for mapped PSFs to calculate mapped distortion
 
 
 
@@ -1498,7 +1482,7 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
              - Example of distortion coefficients: [-0.0036696919678, 1.0008542317, -4.12553764817e-05, 5.7201219949e-06]
     """
 
-    # Find out that we have been given the correct distortion input parameters. If this is not the case raise error and return. 
+    # Find out that we have been given the correct distortion input parameters. If this is not the case raise error and return.
     if (includeFieldDistortion or includeFieldDistortion == "yes"):
         if (mappedDistortion and pathToPsfFile is None):
             print("Error: If mapped field distortion should be taken into account, a path to the psf file should be given")
@@ -1527,7 +1511,7 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
     firstRow = CCD[ccdCode]["firstRow"]     # different from nominal than for fast cams
     Ncols = CCD[ccdCode]["Ncols"]
     Nrows = CCD[ccdCode]["Nrows"]
-    
+
     if     (xCCDpix - subfieldSizeX/2 < 0)        or (xCCDpix + subfieldSizeX/2 - 1 > Ncols-1)   \
         or (yCCDpix - subfieldSizeY/2 < firstRow) or (yCCDpix + subfieldSizeY/2 - 1 > Nrows-1):
         return None, None, None
@@ -1640,8 +1624,8 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
     """
 
     if (sim["PSF/Model"] == "MappedFromFile"):
-        includeFieldDistortion = True        
-        inverseDistortionCoefficients = None 
+        includeFieldDistortion = True
+        inverseDistortionCoefficients = None
         pathToPsfFile          = sim["PSF/MappedFromFile/Filename"]
         mappedDistortion       = True
 
@@ -1650,7 +1634,7 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
             pathToPsfFile          = None
             mappedDistortion       = False
             includeFieldDistortion = True
-           
+
     else:
         includeFieldDistortion        = False
         pathToPsfFile                 = None
@@ -1732,13 +1716,9 @@ def changeOfPointing(x, y, z, phi, theta):
                   [ z,  0, -x],
                   [-y,  x,  0]])
     A = np.array([[np.cos(phi)*np.sin(theta)],
-                  [np.sin(phi)*np.sin(theta)], 
+                  [np.sin(phi)*np.sin(theta)],
                   [1]])
     return np.dot(R,A).T
-
-
-
-
 
 
 

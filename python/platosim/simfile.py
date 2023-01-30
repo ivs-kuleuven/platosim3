@@ -1146,6 +1146,7 @@ class SimFile (object):
         image   = image / 1000.
         img_min = image.min()
         img_max = image.max()
+
         img_mean = image.mean()
         img_std = image.std()
 
@@ -1186,7 +1187,7 @@ class SimFile (object):
                                     origin=origin, extent=[0, Nrows, 0, Ncols], zorder=0)
 
         # Add colorbar if requested
-        
+
         if colorBar:
             cbar = fig.colorbar(imagePlot, extend='max', shrink=0.84, pad=0.015)
             cbar.set_label(clabel, fontsize=fontSize, labelpad=3)
@@ -1313,8 +1314,13 @@ class SimFile (object):
 
         # Set labels if requested
 
+<<<<<<< HEAD
         plt.xlabel(r"Pixel column, $i$", fontsize=fontSize)
         plt.ylabel(r"Pixel row, $j$",    fontsize=fontSize)
+=======
+        plt.xlabel(r"$x$ [pixel]", fontsize=fontSize)
+        plt.ylabel(r"$y$ [pixel]", fontsize=fontSize)
+>>>>>>> mappedDistortion
 
         # Plot with or without a slider
 
@@ -1365,10 +1371,14 @@ class SimFile (object):
         # star x,y coordinates from getStarPixelCoordinates() becomes straightforward.
 
 
+<<<<<<< HEAD
         psf = np.rot90(np.fliplr(self.getPSF(datasetName)))
         Nrows, Ncols = psf.shape
         
         # Plot the image. 
+=======
+        # Plot the image.
+>>>>>>> mappedDistortion
 
         fig, ax = plt.subplots(1, 1, sharex=True, sharey=True, figsize=figsize)
 
@@ -1390,9 +1400,17 @@ class SimFile (object):
                          cmap=colorMap, aspect=15, fraction=0.06)
             
         # Labels
+<<<<<<< HEAD
         
         ax.set_xlabel(r"$x$ [subpixel]")
         ax.set_ylabel(r"$y$ [subpixel]")
+=======
+
+        plt.xlabel("x [subpixel]")
+        plt.ylabel("y [subpixel]")
+
+        # Show the image
+>>>>>>> mappedDistortion
 
         # Limits
         

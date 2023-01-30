@@ -1,9 +1,9 @@
 """
 Run the PLATO Simulator from Python.
 
-The Simulation class provides the opportunity to interactively tune the input parameters 
-before the simulator is started. The parameters that are available can be inspected by 
-just printing the Simulation object, i.e. print (sim), which will dump all the parameters 
+The Simulation class provides the opportunity to interactively tune the input parameters
+before the simulator is started. The parameters that are available can be inspected by
+just printing the Simulation object, i.e. print (sim), which will dump all the parameters
 and their current values on the command line.
 
 For usage see the Jupyter tutorial notebooks available at "PlatoSim/docs/tutorials".
@@ -28,7 +28,7 @@ from platosim.simfile import SimFile
 
 
 class Simulation(object):
-    
+
     """
     Simulation class allows running the PLATO simulator interactively from Python
     and tuning the input parameters before each run. For more help, type:
@@ -46,9 +46,9 @@ class Simulation(object):
 
         self.debug = debug
         self.runName = runName
-        
+
         # flag to check if output directory has been specified before running the Simulation.
-        
+
         self.hasTargetLocation = False
         self.targetOutputFilesLocation = None
 
@@ -68,35 +68,35 @@ class Simulation(object):
 
 
     def setSimulatorLocation(self):
-        
+
         """
         Given the location of the simfile.py module, try to find the build/ folder where
-        the simulator executable should be. Then set the default locations for the platosim 
-        executable (i.e. build directory), and the original input files location.        
+        the simulator executable should be. Then set the default locations for the platosim
+        executable (i.e. build directory), and the original input files location.
         """
 
         # Find the absolute path of the simfile.py. This will allow us to located the other
-        # default project directories. Build in a test to check that the build sub-directory 
+        # default project directories. Build in a test to check that the build sub-directory
         # exists, otherwise this is probably not a correct default installation.
-        
+
         path = os.environ["PLATO_PROJECT_HOME"]
-        
+
         self.platosimLocation = path
-        
+
         if os.path.exists(path + "/build"):
             self.platosimBuildLocation = self.platosimLocation + "/build"
-            
+
         elif os.path.exists(path + "/bin"):
             self.platosimBuildLocation = self.platosimLocation + "/bin"
-            
+
         else:
             raise Exception("Unexpected directory structure for this PLATO Simulator distribution: no build nor bin sub-directory in PLATO_PROJECT_HOME")
-        
-            
-        
+
+
+
 
         # This is the location of the original input files as distributed by the PLATO Simulator
-        
+
         self.originalInputFilesLocation = self.platosimLocation + "/inputfiles"
         self.originalOutputFilesLocation = self.platosimLocation + "/outputfiles"
 
@@ -121,7 +121,7 @@ class Simulation(object):
         """
         Specify the absolute path for the output directory. This directory will contain
         a copy of the modified input file and the HDF5 output file for this simulation.
-        
+
         If the output path doesn't exist, it is created.
         """
 
@@ -129,7 +129,7 @@ class Simulation(object):
             if self.debug:
                 print("DEBUG: creating output directory {}.".format(path))
             self.createDirectory(path)
-        
+
         self.targetOutputFilesLocation = path
         self.hasTargetLocation = True
 
@@ -144,19 +144,19 @@ class Simulation(object):
 
     def readConfigurationFile(self, filename):
         """
-        Read the YAML input configuration file. 
+        Read the YAML input configuration file.
         """
         self.configurationFilename = filename
 
         if self.debug:
             print ("Parsing YAML configuration file {}.".format(filename))
-        
+
         with open(filename, 'r') as stream:
             try:
                 self.yamlDocument = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
                 print(exc)
-        
+
 
 
 
@@ -219,7 +219,7 @@ class Simulation(object):
 
         Return: the value of the parameter
         """
-        
+
         # Split the path into node names
         # E.g. "PSF/MappedGaussian/Sigma" into ["PSF", "MappedGaussian", "Sigma"]
 
@@ -233,7 +233,7 @@ class Simulation(object):
 
         # Navigate to the deepest node, starting from the document root
 
-        node = self.yamlDocument 
+        node = self.yamlDocument
 
         for nodeName in nodeNames:
             if nodeName in node:
@@ -248,7 +248,7 @@ class Simulation(object):
             value = ast.literal_eval(node)
         except ValueError:
             value = node
-        
+
         # Return the value of the deepest node
 
         return value
@@ -261,7 +261,7 @@ class Simulation(object):
 
 
     def __setitem__(self, key, item):
-        
+
         """
         Update a specific node.
 
@@ -270,9 +270,9 @@ class Simulation(object):
 
         Return: True if node could be updated, False otherwise
         """
-        
+
         # Ensure that the given item is a string
-        
+
         if type(item) is np.ndarray:
             item = list(item)
 
@@ -336,7 +336,7 @@ class Simulation(object):
         if len(nodeNames) == 4:
             self.yamlDocument[nodeNames[0]][nodeNames[1]][nodeNames[2]][nodeNames[3]] = item
             return True
-  
+
 
         # If we arrive here, there are at least 5 nodes in the path. Issue a not-implemented error message.
 
@@ -353,7 +353,7 @@ class Simulation(object):
 
 
     def createDirectory(self, path):
-        try: 
+        try:
             os.makedirs(path)
         except OSError as ose:
             print (ose)
@@ -372,7 +372,7 @@ class Simulation(object):
 
     def writeYamlConfigurationFile(self, filename):
         """
-        Write the modified configuration to output file location. This configuration will 
+        Write the modified configuration to output file location. This configuration will
         be loaded by the PLATO Simulator when the run() method is executed.
         """
         if self.debug:
@@ -419,7 +419,7 @@ class Simulation(object):
 
         # The run() method was only introduced with Python 3.5, use the older call() method when running e.g. Python 2.7
 
-        if sys.version_info < (3, 5):   
+        if sys.version_info < (3, 5):
             rc = subprocess.call([self.platosimBuildLocation + "/platosim", inputFilename, outputFilename, logFilename, str(logLevel)])
             if rc:
                 raise Exception("Simulation.run(): PlatoSim returned with exit code {}.".format(rc))
@@ -551,14 +551,14 @@ class Simulation(object):
 
 
 
-    
+
 
 
 
 
     def setSubfieldAroundPixelCoordinates(self, ccdCode, xCCDpixel, yCCDpixel, subfieldSizeX, subfieldSizeY):
         """
-        PURPOSE:  Calculate the location of the subField such that it is centered on the star with 
+        PURPOSE:  Calculate the location of the subField such that it is centered on the star with
               the given pixel coordinates.
 
         INPUTS: ccdCode:       for nominal camera: either '1', '2', '3', '4'
@@ -574,24 +574,24 @@ class Simulation(object):
         raStar, decStar = rf.pixelToSkyCoordinates(self, ccdCode, xCCDpixel, yCCDpixel)
 
         # TODO: determine nominal from the given ccdCode
-        
+
         nominal = True
-        
+
         success = self.setSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY, True)
-        
+
         if not success:
             print ("Warning: setSubfieldAroundPixelCoordinates() failed to set subField around the star.")
-            
+
         return
 
 
-    
+
 
 
 
     def setSubfieldAroundPixelRow(self, ccdCode, yCCDpixel, subfieldSizeY):
         """
-        PURPOSE: Sets the location of the sub-field so that its rows are centered around the given pixel coordinate. 
+        PURPOSE: Sets the location of the sub-field so that its rows are centered around the given pixel coordinate.
 
         INPUTS: ccdCode:       for nominal camera: either '1', '2', '3', '4'
                                for fast camera: either '1F', '2F', '3F', '4F'
@@ -599,8 +599,8 @@ class Simulation(object):
                 subfieldSizeY: height (i.e. number of rows) of the sub-field [pixels]
 
         OUTPUTS:  None
-        REMARKS:  If it is not possible to center the subfield around the row, because the row is too close the the edge, the subfield 
-                  will be set at that respective edge. 
+        REMARKS:  If it is not possible to center the subfield around the row, because the row is too close the the edge, the subfield
+                  will be set at that respective edge.
         """
 
         subfieldSizeX = int(self["SubField/NumColumns"])
@@ -608,18 +608,23 @@ class Simulation(object):
         xCCDpixel = subfieldRowZero + subfieldSizeX / 2
 
         if not (0 <= yCCDpixel <  4510):
+<<<<<<< HEAD
             print("Error: we expect input row coordinate in [0, 4510], but value {} was given.".format(yCCDpixel))
             return 
+=======
+            print("Error: we expect input row coordinate in [0,4510[, but value {} was given.".format(yCCDpixel))
+            return
+>>>>>>> mappedDistortion
         if not (1 <= subfieldSizeY <= 4510):
             print("Error: we expect size of the row subfield in [1, 4510], but value {} was given.".format(subfieldSizeY))
             return
-        
+
         self.setSubfieldAroundPixelCoordinates(ccdCode, xCCDpixel, yCCDpixel, 1, 1)
-        
+
         deltaY = int(subfieldSizeY / 2)
         self["SubField/NumColumns"] = subfieldSizeX
         self["SubField/NumRows"]    = subfieldSizeY
-        
+
         self["SubField/ZeroPointColumn"] = subfieldRowZero
         self["SubField/ZeroPointRow"]    = min(max(0 , self["SubField/ZeroPointRow"] - deltaY), 4510 - subfieldSizeY)
 
@@ -630,15 +635,15 @@ class Simulation(object):
 
 
     def setSubfieldAroundCoordinates(self, raStar, decStar, subfieldSizeX, subfieldSizeY, normal=True):
-        
+
         """
-        PURPOSE: Set the location of the sub-field such that it is centred on the star 
+        PURPOSE: Set the location of the sub-field such that it is centred on the star
                  with the given sky coordinates.  Depending on the CCD (in nomincal mode:
-                 "1", "2", "3", or "4"; in fast mode: "1F", "2F", "3F", or "4F"), the 
+                 "1", "2", "3", or "4"; in fast mode: "1F", "2F", "3F", or "4F"), the
                  configuration file for the given simulation is adapted.  These include the
                  pre-defined CCD position, the dimensions of the CCD (and also of the sub-field,
                  although this is not affected by the calculations), the sub-field zeropoint
-                 and the exposure time. 
+                 and the exposure time.
 
         NOTE: This function calls the calculateSubfieldAroundCoordinates() function in reference frames
 
@@ -655,10 +660,10 @@ class Simulation(object):
                 subfieldSizeY:          height (i.e. number of rows) of the sub-field   [pixels]
                 normal:                 True for the normal camera configuration, False for the fast cameras
 
-        OUTPUT: True if the entire subfield fit on one of the 4 (pre-defined) CCDs, False otherwise 
+        OUTPUT: True if the entire subfield fit on one of the 4 (pre-defined) CCDs, False otherwise
 
         """
-        
+
         # Find out some instrumental characteristics from the sim object
 
         raPlatform       = np.deg2rad(float(self["ObservingParameters/RApointing"]))
@@ -676,12 +681,12 @@ class Simulation(object):
             tiltTelescope = np.deg2rad(self["CameraGroups/TiltAngle"][telescopeGroupID-1])
 
         solarPanelOrientation = np.deg2rad(float(self["Platform/SolarPanelOrientation"]))         # [rad]
-        focalLength      = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0               # [m] -> [mm]     
+        focalLength      = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0               # [m] -> [mm]
         focalPlaneAngle  = np.deg2rad(float(self["Camera/FocalPlaneOrientation/ConstantValue"]))
-        pixelSize        = float(self["CCD/PixelSize"]) 
+        pixelSize        = float(self["CCD/PixelSize"])
 
         # If the psf is MappedFromFile we need to include mapped field distortion
-        
+
         if self["PSF/Model"] == "MappedFromFile":
             includeFieldDistortion = True
             mappedDistortion       = True
@@ -692,25 +697,25 @@ class Simulation(object):
               self["Camera/IncludeFieldDistortion"] == True):
             includeFieldDistortion = True
             mappedDistortion       = False
-            pathToPsfFile          = None 
+            pathToPsfFile          = None
             distortionCoefficients = self["Camera/FieldDistortion/ConstantCoefficients"]
         else:
             includeFieldDistortion = False
             mappedDistortion       = False
-            pathToPsfFile          = None 
+            pathToPsfFile          = None
             distortionCoefficients = None
 
         # Compute the position of the subfield.
         # xPix and yPix are the CCD coordinates of the star, given a 4510x4510 CCD [colNumber, rowNumber].
         # The function below also checks if the subfield fits entirely on the CCD. If not: ccdCode is None.
- 
+
         ccdCode, xPix, yPix = rf.calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, decStar, raPlatform, decPlatform,
                                                                     solarPanelOrientation, tiltTelescope, azimuthTelescope, focalPlaneAngle,
                                                                     focalLength, pixelSize, includeFieldDistortion, normal,
                                                                     mappedDistortion, distortionCoefficients, pathToPsfFile)
         if ccdCode == None:
             return False
-        
+
         CCDSizeX         = rf.CCD[ccdCode]["Ncols"]
         CCDSizeY         = rf.CCD[ccdCode]["Nrows"]
         CCDOriginOffsetX = rf.CCD[ccdCode]["zeroPointXmm"]
@@ -739,7 +744,7 @@ class Simulation(object):
 
         self["Telescope/AzimuthAngle"] = np.rad2deg(azimuthTelescope)
         self["Telescope/TiltAngle"]    = np.rad2deg(tiltTelescope)
-        
+
         # That's it
 
         return True
@@ -758,11 +763,11 @@ class Simulation(object):
 
         """
         PURPOSE: Create a star catalog ascii file given the pixel coordinates (row and column) of the stars.
-                 This requires the orientation of the spacecraft, telescopes, focal plane, hence it's a 
-                 member function of the Simulation class. 
- 
-        INPUT: rows:       Numpy array with fractional row coordinates of the stars (CCD, not subfield) [pix]     
-               cols:       Numpy array with fractional column coordinates of the stars (CCD, not subfield) [pix]  
+                 This requires the orientation of the spacecraft, telescopes, focal plane, hence it's a
+                 member function of the Simulation class.
+
+        INPUT: rows:       Numpy array with fractional row coordinates of the stars (CCD, not subfield) [pix]
+               cols:       Numpy array with fractional column coordinates of the stars (CCD, not subfield) [pix]
                magnitudes: Johnson V magnitudes of the stars
                starIDs:    IDs of the star (integers)
                starCatalogPath: Path of the star catalog file that will be written.
@@ -772,8 +777,8 @@ class Simulation(object):
         """
 
         # Extract the needed information from the yaml input file
-        # Note: groupIDs and ccdIDs start counting from 1... 
-        
+        # Note: groupIDs and ccdIDs start counting from 1...
+
         if self["Telescope/GroupID"] == "Custom":
             azimuthAngle    = np.deg2rad(self["Telescope/AzimuthAngle"])
             tiltAngle       = np.deg2rad(self["Telescope/TiltAngle"])
@@ -803,22 +808,28 @@ class Simulation(object):
             mappedDistortion              = True
             inverseDistortionCoefficients = None
             pathToPsfFile                 = self["PSF/MappedFromFile/Filename"]
-        else: 
+        else:
             includeFieldDistortion = self["Camera/IncludeFieldDistortion"]
             mappedDistortion       = False
             inverseDistortionCoefficients = self["Camera/FieldDistortion/ConstantInverseCoefficients"]
             pathToPsfFile          = None
-            
+
         solarPanelOrientation = np.deg2rad(float(self["Platform/SolarPanelOrientation"]))
-        
+
 
         # Convert the pixel coordinates to focal plane coordinates [mm]
-      
+
         xFPmm, yFPmm = rf.pixelToFocalPlaneCoordinates(cols, rows, pixelSize, ccdZeroPointX, ccdZeroPointY, CCDangle)
-      
+
         # If distortion is required in the yaml input file, distort the focal plane coordinates [mm]
         if mappedDistortion:
+<<<<<<< HEAD
             xFPmm, yFPmm = rf.mappedDistortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile)
+=======
+            for i in range(len(xFPmm)):
+                xFPmm[i], yFPmm[i] = rf.mappedDistortedToUndistortedFocalPlaneCoordinates(xFPmm[i], yFPmm[i], pathToPsfFile)
+
+>>>>>>> mappedDistortion
         elif (includeFieldDistortion == "yes")  or (includeFieldDistortion == "1") or (includeFieldDistortion == True):
             xFPmm, yFPmm = rf.distortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, inverseDistortionCoefficients, focalLength)
 
@@ -827,7 +838,7 @@ class Simulation(object):
         ra, dec = rf.focalPlaneToSkyCoordinates(xFPmm, yFPmm, raPlatform, decPlatform, solarPanelOrientation, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength)
 
         # Convert sky coordinates to degrees
-        
+
         ra = np.rad2deg(ra)
         dec = np.rad2deg(dec)
 
@@ -856,7 +867,7 @@ class Simulation(object):
     def createPhotometryTargetFile(self, starIDs, fileName):
         """
         PURPOSE: Create a photometry file list in ascii format and sets it to the YAML input.
- 
+
         INPUT: starIDs:  IDs of the star (integers)
                fileName: Path of the photometry file that will be written.
 
@@ -865,33 +876,39 @@ class Simulation(object):
         """
 
         # Check if starIDs are just a number
-        
+
         if type(starIDs) is int:
             starIDs = [starIDs]
-        
+
         # Create photometry list file
-        
+
         np.savetxt(fileName, np.transpose(starIDs), delimiter=" ", fmt="%d")
 
         # Set this to simulation
-        
+
         self["Photometry/TargetFileName"] = fileName
 
         # Finito!
 
         return
-    
 
 
 
 
 
+
+<<<<<<< HEAD
     def createDriftFile(self, quarter, fileName, model="poly", plot=False):
         """
         Create a photometry file list in ascii format and sets it to the YAML input.
  
         INPUT: starIDs:  IDs of the star (integers)
                fileName: Path of the photometry file that will be written.
+=======
+    def createDriftFile(self, fileName, amplitude, model="linear"):
+
+        # Fetch number of exposure
+>>>>>>> mappedDistortion
 
         OUTPUT: 
         A file will be saved, containing the star IDs that photometry should be performed on.
@@ -899,7 +916,21 @@ class Simulation(object):
         DriftFileName.
         """
 
+<<<<<<< HEAD
         # Create TED file
+=======
+        # Set the correct output time
+
+        # Model of yaw, pitch, roll
+        if model == 'linear':
+            x = np.linspace(0, amplitude, len(t))
+            y = x
+            z = np.zeros(len(t))
+
+        # Save model data to file
+
+        np.savetxt(fileName, np.transpose([t,x,y,z]), fmt=['%i', '%f', '%f', '%f'])
+>>>>>>> mappedDistortion
 
         it.getTED(quarter=quarter, model=model, outfile=fileName, plot=plot)
         
@@ -912,10 +943,10 @@ class Simulation(object):
         # Finito!
 
         return
-        
 
 
-    
+
+
 
 
     def getReadoutTime(self):
@@ -925,16 +956,16 @@ class Simulation(object):
                 - and the readout that takes place during the next exposure,
                 depending on the camera type (normal / fast) and the readout mode
                 (nominal / partial readout).
-    
-                For the normal cameras the entire CCD is read out (with open shutter) after 
-                the exposure during a time interval called 'readoutTimeBeforeNextExposure'. 
+
+                For the normal cameras the entire CCD is read out (with open shutter) after
+                the exposure during a time interval called 'readoutTimeBeforeNextExposure'.
                 Only after this readout, a new exposure is started.
-                For the fast camera, half of the CCD is first quickly frame-transferred, 
+                For the fast camera, half of the CCD is first quickly frame-transferred,
                 after which it is read out slowly. In this case a new exposure is already
-                started after the quick frame-transfer, and starts thus during the slow readout 
-                of the previous exposure. Hence the need for two parameters 'readoutTimeBeforeNextExposure' 
+                started after the quick frame-transfer, and starts thus during the slow readout
+                of the previous exposure. Hence the need for two parameters 'readoutTimeBeforeNextExposure'
                 and 'readoutTimeDuringNextExposure'.
-    
+
         RETURN readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure
         """
 
@@ -955,13 +986,13 @@ class Simulation(object):
                 firstRowExposed = self["CCDPositions/FirstRowForFastCamera"][idx]       # [pixels]
             else:
                 firstRowExposed = self["CCDPositions/FirstRowForNormalCamera"][idx]     # [pixels]
-        
+
         readoutMode = self["CCD/ReadoutMode/ReadoutMode"]
 
         if (readoutMode != "Nominal") and (readoutMode != "Partial"):
             raise ValueError("Simulation::getReadoutTime() Unknown readout mode specification in configuration file: {0}".format(readoutMode))
 
-            
+
         serialTransferTime = self["CCD/SerialTransferTime"] * 1E-9                      # [ns] -> [s]
         parallelTransferTime = self["CCD/ParallelTransferTime"] * 1E-6                  # [micro s] -> [s]
         parallelTransferTimeFast = self["CCD/ParallelTransferTimeFast"] * 1E-6          # [micro s] -> [s]
@@ -985,8 +1016,8 @@ class Simulation(object):
         # The rest of the image area will be dumped
 
         #--- Fast camera
-       
-        if isFastCamera: 
+
+        if isFastCamera:
             # Move the upper half of the CCD down to the lower half, row-by-row
 
             numRowsFrameTransfer = numRows - firstRowExposed
@@ -1010,9 +1041,9 @@ class Simulation(object):
                 numRowsDump = firstRowExposed - numRowsReadout
 
             readoutTimeDuringNextExposure = numRowsDump * parallelTransferTimeFast + numRowsReadout * (parallelTransferTime + numColumnsReadout * serialTransferTime)
-        
+
         #--- Normal camera
-        
+
         else:
             # Nominal mode (full-frame readout)
 
@@ -1026,13 +1057,13 @@ class Simulation(object):
                 # No rows dumped
 
                 numRowsDump = 0;
-            
+
             # Partial readout
 
             elif readoutMode == "Partial":
                 # Rows read out by the FEE: rows in the block (other rows in image area are dumped)
                 # Note: no parallel over-scan
-                
+
                 numRowsReadout = self["CCD/ReadoutMode/Partial/NumRowsReadout"]
                 numRowsDump = numRows - numRowsReadout
 
@@ -1054,7 +1085,7 @@ class Simulation(object):
         """Fetch all star within a camera group.
 
         This function determines if a star is within the FOV of a specific
-        PLATO camera group. 
+        PLATO camera group.
 
         TODO: Could be implemented in a better and faster manner!
 
@@ -1127,7 +1158,7 @@ class Simulation(object):
                     dexGroup[i] = False
 
         # Finito!
-                    
+
         return dexGroup, distanceOA
 
 
@@ -1139,7 +1170,7 @@ class Simulation(object):
 
 
     def getSubPixelPositions(self, raPF, decPF, ra, dec, camGroup=1, quarter=1):
-        
+
         """Fetch the subpixel postion for all stars.
 
         This function determines the subpixel postion of all stars for the first
@@ -1230,4 +1261,4 @@ class Simulation(object):
 
         return ccdCode, xCCD, yCCD
 
-    
+
