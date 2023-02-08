@@ -81,7 +81,7 @@ Camera:
         Type:                        differential    # [differential, absolute]
         OrbitFile:                   inputfiles/orbit.txt
         StartTime:                   101489.207030
-    IncludeFieldDistortion:          yes             # Whether or not to include field distortion. This only applies when the PSF is not mapped from file. 
+    IncludeFieldDistortion:          yes             # Whether or not to include field distortion. This only applies when the PSF is not mapped from file.
     FieldDistortion:
         Type:                        Polynomial1D    # The model for the field distortion
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent)
@@ -210,7 +210,7 @@ CCD:
                 EOL:                 [9.8, 3.31, 1.56, 13.24]                   # Values at the End Of Life
             TrapCaptureCrossSection: [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]   # for each trap species [m^2]
             ReleaseTime:             [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]       # for each trap species [s]
-        Short2013FromFile:                           # Allows to specify trap densities that vary spatially over the CCD 
+        Short2013FromFile:                           # Allows to specify trap densities that vary spatially over the CCD
             CTIFileName:             inputfiles/ctiInput.hdf5
     ChargeInjection:                                 # Inject charge once per exposure to mitigate the CTI effect
         InjectionLevel:              90.0            # Percentage of the full well to be filled [percentage: 0-100]
@@ -280,8 +280,8 @@ ControlHDF5Content:
     WriteHighResolutionPSF:          no              # Determines if the high resolution PSF will be written to the HDF5 file (doesn't work for Analytic Gaussian PSF)
     WriteStarCatalog:                yes             # Determines if the starcatalog should be written to the HDF5 file
     WriteStarPositions:              yes             # Star positions are written in pixel and focal plane coordinates
-    WriteGhostPositions:             no             # Ghost positions are written in pixel and focal plane coordinates
-    WriteCosmics:                    yes             # Determines if the columns, rows and flux of the cosmics should be written to the HDF5 file 
+    WriteGhostPositions:             no              # Ghost positions are written in pixel and focal plane coordinates
+    WriteCosmics:                    yes             # Determines if the columns, rows and flux of the cosmics should be written to the HDF5 file
     WriteACS:                        yes             # Whether to write the yaw, pitch, roll to the HDF5 file
     WriteTelescopeACS:               yes             # Determines if the platform Yaw, Pitch and Roll should be written to the HDF5 file
     WriteTransmissionEfficiency:     yes             # Determines if the Transmission Efficiency should be writen to the HDF5 file

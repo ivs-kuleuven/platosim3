@@ -38,7 +38,7 @@ aa = 0.5  # Alpha transparency
 fs = 14   # Font-size
 ms = 0.2  # Marker-size
 lw = 0.5  # Line-width
-pt = 0.1  # Percentage 
+pt = 0.1  # Percentage
 pp = 0.01
 
 # Define some nice colors
