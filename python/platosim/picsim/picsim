@@ -262,7 +262,7 @@ except:
     with urllib.request.urlopen(url_con) as response, open(inputFileCon.with_suffix('.npy'), "wb") as out_file:
         data = response.read()
         out_file.write(data)
-        
+
 # Load old PIC catalog for re-plot an old catalogue
 if inputFiles is not None:
 
@@ -278,7 +278,7 @@ if inputFiles is not None:
     else:
         inputFileTarget = [inputFiles[1]]
         inputFileContam = [inputFiles[0]]
-        
+
     # Append each catalog if several are parsed
     for i in range(N):
         if i == 0:
@@ -287,7 +287,7 @@ if inputFiles is not None:
         else:
             DF  = DF.append(pd.read_feather(inputFileTarget[i]))
             DFC = DFC.append(pd.read_feather(inputFileContam[i]))
-            
+
 # If it is the first run of this software on a CSV format catalogue we save catalog to a binary file
 # This dramitically speed-up any future data reads
 try:
@@ -383,18 +383,18 @@ if fileFormat != '.txt':
 
     # Remove any star with NaN for any parameter
     df = df.dropna()
-    
+
     # Removing dublicate stars (if any)
     df = df.drop_duplicates(subset=['ID'])
-    
+
     # Check pointing field
     if platoField is not None:
-        df = df[df['field'] == pointingField]        
-        
+        df = df[df['field'] == pointingField]
+
     # Check stellar sample
     if samplePIC is not None:
         df = df[df['sample'] == samplePIC]
-    
+
     # Check parsing of old catalogue to select unique new targets
     if oldCatalogue:
         try:
@@ -404,7 +404,7 @@ if fileFormat != '.txt':
         else:
             cond = df['ID'].isin(df_old['ID']) # Boolen
             df   = df.drop(df[cond].index)
-        
+
     # Seperate dwarf (MS) and sub-gaint (post MS) stars
     def ms_limit(Teff):
         return 1 + 2 * 1e-7 * (Teff - 4000)**2
@@ -431,11 +431,11 @@ if fileFormat != '.txt':
     # Check spectral type
     if specType is not None:
         if specType == 'K':
-            df = df_dK
+            df = df_dK if lumClass == 'V' else df_sgK
         elif specType == 'G':
-            df = df_dG
+            df = df_dG if lumClass == 'V' else df_sgG
         elif specType == 'F':
-            df = df_dF
+            df = df_dF if lumClass == 'V' else df_sgF
         else:
             errorcode('error', 'Not valid spectral type for PIC stars!')
 
@@ -445,7 +445,7 @@ if fileFormat != '.txt':
 
     if ncamVisible is not None:
         df = df[df['ncams'] == int(ncamVisible)]
-    
+
     # Allow to select only one cam-group
     if camGroup:
         raPF  = PF[platoField][1]
@@ -457,12 +457,12 @@ if fileFormat != '.txt':
             numTargets = max_stars
             errorcode('warning', f'Too many stars requested - using max of {max_stars} instead!')
         df = df[dex[0]]
-    
+
     # Check P passband magnitude range
     if magRange is not None:
         df = df[(df['mag'] > magRange[0]) & (df['mag'] < magRange[1])]
 
-        
+
     # Check if too many stars are selected
     if len(df['ID']) > numTargetsTotalInPIC:
         errorcode('error', 'More stars selected than available in the PIC! See -h for sample notes')
@@ -481,10 +481,10 @@ if fileFormat != '.txt':
         decPF = PF[platoField][2]
 
         # CONFIGURE SPACECRAFT
-        
+
         # # Set the telescope group ID
         # sim["Telescope/GroupID"] = camGroup        
-        
+
         # # Solar panel orientation: 0, 90, 180, and 270 degrees for Q1, Q2, Q3, and Q4
         # solarPanelOrientation = sim["Platform/SolarPanelOrientation"] = math.fmod(self.quarter * 90., 360.)
         # self.solarPanelOrientation = np.deg2rad(float(solarPanelOrientation))
@@ -497,7 +497,7 @@ if fileFormat != '.txt':
         # # Camera-group Alt (tilt) and Az
         # tiltTelescope    = sim["CameraGroups/TiltAngle"][self.group-1]
         # azimuthTelescope = sim["CameraGroups/AzimuthAngle"][self.group-1]
-        
+
         # # Include spacecraft Pointing Repeatability Error (PRE) between consecutive quarters
         # # NOTE: Will only be included if the file "PRE.txt" is available in the input folder 
         # if os.path.exists(self.inputDir + '/PRE.txt'):
@@ -506,7 +506,7 @@ if fileFormat != '.txt':
         #     raPlatformDeg         += PRE[dex, 1][0]
         #     decPlatformDeg        += PRE[dex, 2][0]
         #     solarPanelOrientation += np.deg2rad(PRE[dex, 3][0])
-            
+
         # # Include Absolute Pointing Error (APE) due to camera misalignments
         # # NOTE: Will only be included if the file "APE.txt" is available in the input folder
         # if os.path.exists(self.inputDir + '/APE.txt'):
@@ -514,7 +514,7 @@ if fileFormat != '.txt':
         #     dex = (self.group - 1) * 6 + self.camera - 1
         #     tiltTelescope    += APE[dex, 0]
         #     azimuthTelescope += APE[dex, 1]
-        
+
         print('Checking star visibility for each camera group..')
         dexGroup1, d1 = getStarsWithinCamGroup(1, raPF, decPF, df['ra'].to_numpy(), df['dec'].to_numpy())
         dexGroup2, d2 = getStarsWithinCamGroup(2, raPF, decPF, df['ra'].to_numpy(), df['dec'].to_numpy())
@@ -604,7 +604,7 @@ if fileFormat != '.txt':
                 break
 
     # MAKE AN OVERVIEW TABLE
-    
+
     cameras = [6, 12, 18, 24]
     countStars = [df[df['ncams'] == 6].count()[0],  df[df['ncams'] == 12].count()[0],
                   df[df['ncams'] == 18].count()[0], df[df['ncams'] == 24].count()[0]]
@@ -662,7 +662,7 @@ pt.plotTeffvsRadius(fig2, starSample, title,
 if plot: plt.show()
 
 # Stop here when flag -t
-if onlyTargets: exit()    
+if onlyTargets: exit()
 
 # NOTE use this to save target catalogue only!
 #---------------------------------
@@ -809,7 +809,7 @@ if outputDir is not None:
            tt + '\n' + t.get_string())
     with open(outputDir / f'{outputPrefix}.log','w') as file:
         file.write(log)
-    
+
     # Only save the catalogs if they don't exist
     if fileFormat != '.txt' and subfield is False:
 
@@ -828,7 +828,7 @@ if outputDir is not None:
         outputVarData = np.transpose([df['ID'].to_numpy(), df['M'].to_numpy(),
                                       df['R'].to_numpy(),  df['Teff'].to_numpy()])
         np.savetxt(outputVarFileName, outputVarData, header=headerVar, comments='',
-                   fmt=['%i', '%0.3f', '%0.3f', '%i'], delimiter=',')        
+                   fmt=['%i', '%0.3f', '%0.3f', '%i'], delimiter=',')
 
     if fileFormat == '.csv' and subfield is True:
         print(f'Saving file {outputFileFOV}')
