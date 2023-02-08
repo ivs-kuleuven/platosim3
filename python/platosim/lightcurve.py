@@ -93,8 +93,14 @@ class LightCurve(object):
                 simfile = SimFile(filename)
 
                 # Fetch light curve
-                self.df = simfile.getLightCurve(0)
+                self.df = simfile.getLightCurve(1)
 
+                # Add time column if not found
+                if not 'time' in self.df:
+
+                    exptime  = simfile.getExposureTime()
+                    readtime = simfile.getReadoutTime()
+                    
                 # Mask updates
                 #self.mask_apertures = simfile.getApertureMask(0)
                 self.mask_updates = simfile.getMaskUpdateEvents()
@@ -114,7 +120,10 @@ class LightCurve(object):
                 self.path = filename
 
             # Correct obs info if it's a merged light curve
-            self.ncam = ncam                
+            self.ncam = ncam
+
+            # No mask updates if multi mode
+            self.mask_updates = np.array([])
 
 
 
@@ -401,17 +410,11 @@ class LightCurve(object):
 
         # Distinguish between single camera and multi camera obs
         if self.mode == "single":
-
             # Get obs info from feather file
-            if self.fileExtention == ".ftr":
-                filename = pathlib.Path(self.filename).stem
-                self.group   = int(filename[14])
-                self.camera  = int(filename[16])
-                self.quarter = int(filename[19:])
-            elif self.fileExtention == ".hdf5":
-                self.group   = False
-                self.camera  = False
-                self.quarter = False
+            filename = pathlib.Path(self.filename).stem
+            self.group   = int(filename[14])
+            self.camera  = int(filename[16])
+            self.quarter = int(filename[19:])
         else:
             self.group   = False
             self.camera  = False
@@ -1686,7 +1689,7 @@ class LightCurve(object):
 
             # Load single camera obs
             lc = LightCurve(f)
-            #print(lc.data()); exit()
+
             # Fetch columns and plot            
             time = lc.time(unit=time_unit)
             flux = lc.flux(unit=flux_unit)
@@ -1706,7 +1709,7 @@ class LightCurve(object):
             lab = f'Q{quarter}'
             xpos = np.mean(time) - 20
             if quarter > 9: xpos -= 10
-            ypos = 104.5 #103.5
+            ypos = 103.5 #103.5
             ax.text(xpos, ypos, lab, fontsize=16, zorder=-1)
             if not quarter in (0, nfiles):
                 ax.axvline(x=quarter*90-1, c='k', linestyle=':', lw=1, zorder=-1)

@@ -256,9 +256,9 @@ def passbandConversionV2P(V, Teff):
 
     # The actual filtersion equation
 
-    c = [1.184e-12, 4.526e-8, 5.805e-4, 2.449]     # Machiori et al. (2019)
-    #c = [2.366e-12, 8.126e-08, -0.0009279, 3.499] # Fabio Fialho et al. in prep
-    P  = c[0]*Teff**3 - c[1]*Teff**2 + c[2]*Teff - c[3] + V
+    #c = [1.184e-12, 4.526e-8, -5.805e-4, 2.449]   # Machiori et al. (2019)
+    c = [2.366e-12, 8.126e-08, -9.279e-4, 3.499]  # Fabio Fialho et al. in prep
+    P = c[0]*Teff**3 - c[1]*Teff**2 - c[2]*Teff - c[3] + V
 
     return P
 
