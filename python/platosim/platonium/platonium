@@ -194,26 +194,26 @@ class PLATOnium(object):
         df = pd.read_feather(picTarFile)
         dc = pd.read_feather(picConFile)
 
-        # If a specific star is choosen
-        if self.picID is not None:
+        # Correct indicing and allow a specific star to be choosen
+        if self.targetNo == 0:
+            errorcode('error', 'Star ID indicing starts from 1 and not 0!')
+        elif self.picID is not None:
             try:
                 self.targetNo = np.where(df['ID'] == self.picID)[0][0]
             except IndexError:
                 errorcode('error', f'PIC {self.picID} star does not exist in current catalogue:\n{picTarFile}')
+        else:
+            self.targetNo -= 1
 
         # TODO add full frames to sim
         # if self.targetNo == -1:
         #     self.df = df.append
         #     self
 
-        # NOTE ID=1 is the first star!
-        if self.targetNo == 0:
-            errorcode('error', 'Star ID indicing starts from 1 and not 0!')
-        else:
-            # Select single star
-            self.df = df.iloc[self.targetNo - 1]
-            self.dc = dc[dc['ID'] == self.df['ID']]
-            self.numCon = len(self.dc['ID'])
+        # Select star
+        self.df = df.iloc[self.targetNo]
+        self.dc = dc[dc['ID'] == self.df['ID']]
+        self.numCon = len(self.dc['ID'])
 
         # If requested overwrite magnitude of target star
         if self.mag:
@@ -457,7 +457,7 @@ class PLATOnium(object):
                                                                 normal=True)
         if self.subfieldIsOnCCD is False:
             if self.verbose > 0:
-                message  = (f"PIC {self.df['ID']} (subfield {self.targetNo}) " +
+                message  = (f"PIC {self.df['ID'][self.targetNo]} (subfield {self.targetNo}) " +
                             'do not fall on any of the CCDs for ' +
                             f'N-CAM {self.group}.{self.camera} and Q{self.quarter}!')
                 errorcode('warning', message)
@@ -1153,7 +1153,7 @@ class PLATOnium(object):
         """
         if not args.plot:
             errorcode('module', '\nSimulation Statistics')
-            print(f'Storage memory for PlatoSim      : {self.memPlatoSim} MB')
+            #print(f'Storage memory for PlatoSim      : {self.memPlatoSim} MB')
             print(f'Execution time for PlatoSim      : {self.tocPlatoSim} [hh:mm:ss]')
             if self.sample:
                 print(f'Execution time for Microscanning : {self.tocMicroscan} [hh:mm:ss]')
