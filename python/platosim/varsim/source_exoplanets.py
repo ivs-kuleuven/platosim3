@@ -147,11 +147,10 @@ def load_exoplanet(source):
 
     if source == 'Earth':
         # 
-        params = {'t0': 1 * u.d,
-                  'P' : 365.5 * u.d,
-                  'e' : 0.0,
+        params = {'t0': 10 * u.d,
+                  'P' : 365.25 * u.d,
+                  'e' : 0.0167,
                   'i' : 90.0 * u.deg,
-                  #'i' : 83.96 * u.deg,
                   'w' : 0. * u.deg,
                   'rp': 1. * u.R_earth,
                   'mp': 1. * u.M_earth,
@@ -159,6 +158,18 @@ def load_exoplanet(source):
                   'Tn': 300. * u.K,
                   'dT': 50. * u.K}
 
+    if source == 'Neptune':
+        # 
+        params = {'t0': 10 * u.d,
+                  'P' : 365.25 * u.d,
+                  'e' : 0.0167,
+                  'i' : 90.0 * u.deg,
+                  'w' : 0. * u.deg,
+                  'rp': 3.9 * u.R_earth,
+                  'mp': 17.15 * u.M_earth,
+                  'xi': 0.,
+                  'Tn': 300. * u.K,
+                  'dT': 50. * u.K}
 
     if source == 'Kepler-21b':  # F6 IV
         # http://exoplanet.eu/catalog/kepler-21_b/

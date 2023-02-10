@@ -25,12 +25,12 @@ SkyCoordinates::SkyCoordinates(double RA, double decl, Unit angleUnit)
 
 /**
  * \brief destructor
- * 
+ *
  */
 
 SkyCoordinates::~SkyCoordinates()
 {
-} 
+}
 
 
 
@@ -41,11 +41,11 @@ SkyCoordinates::~SkyCoordinates()
 
 /**
  * \brief Return the galactic coordinates l and b
- * 
- * \details The conversion is done for epoch B1950. 
+ *
+ * \details The conversion is done for epoch B1950.
  *          Example: double l,b;
  *                   tie(l,b) = point.toGalactic(Angle::degrees);
- * 
+ *
  * \param angleUnit: Angle::radians if output angles should be in radians, Angle::degrees if in degrees
  * \return (l, b)
  */

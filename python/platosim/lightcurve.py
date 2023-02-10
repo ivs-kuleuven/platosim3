@@ -12,22 +12,32 @@ import sys
 import glob
 import h5py
 import scipy
+import wotan
 import shutil
 import pathlib
+import natsort
 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import matplotlib.colors as colors
+import statsmodels.api as sm
+import astropy.stats as stats
 
+from PyAstronomy import pyasl
 from scipy import constants as c
 from zipfile import ZipFile
 from tqdm import tqdm
+
 #from numba import njit
 #from numba_progress import ProgressBar
 
 import platosim.plot            as pt
 import platosim.utilities       as ut
+import platosim.statistics      as st
 import platosim.referenceFrames as rf
+from platosim.simfile import SimFile
 
 #==============================================================#
 #                         BEGIN CLASS                          #
@@ -41,29 +51,61 @@ class LightCurve(object):
     by the PLATO Photometric Pipeline that comes with the PlatoSim software.
 
     Usage example for a single feather file:
-        >>> lc1 = Photometry("000000001_Ncam1.1_Q1.ftr")
+        >>> lc1 = LightCurve("000000001_Ncam1.1_Q1.ftr")
 
     Usage example for a batch of feather files:
-        >>> phot = Photometry("</path/to/files>", "multi")
+        >>> phot = LightCurve("</path/to/files>", "multi")
     """
 
     def __init__(self, filename, mode="single", ncam=False):
 
         # Constants
-
         self.pixelSize = 18  # [micron]
         
         # Matplotlib
-
         self.aa = 0.5  # Alpha
         self.ms = 3    # MarkerSize
         self.lw = 2    # LineWidth
-        
+
         # Read either a single file or multiple files
-
         self.mode = mode
+        
+        # SINGLE-CAMERA SIMULATION
+        
+        if mode == "single":
 
-        if mode == "multi":
+            self.filename = filename
+            
+            # Select Feather output file            
+            self.fileExtention = pathlib.Path(filename).suffix
+
+            if self.fileExtention == ".ftr":
+
+                # Simply load file
+                self.df = pd.read_feather(filename)
+
+                # No mask updates
+                self.mask_updates = np.array([])
+                
+            elif self.fileExtention == ".hdf5":
+                
+                # Load HDF5 file
+                simfile = SimFile(filename)
+
+                # Fetch light curve
+                self.df = simfile.getLightCurve(0)
+
+                # Mask updates
+                #self.mask_apertures = simfile.getApertureMask(0)
+                self.mask_updates = simfile.getMaskUpdateEvents()
+                
+            else:
+                ut.errorcode("error", "File should be in the format of .ftr or .hdf5!")
+
+
+        # MULTI-CAMERA SIMULATIONS
+                
+        elif mode == "multi":
 
             # Check if data frame or new files    
             if isinstance(filename, pd.DataFrame):
@@ -73,21 +115,7 @@ class LightCurve(object):
 
             # Correct obs info if it's a merged light curve
             self.ncam = ncam                
-                
-        elif mode == "single":
 
-            self.filename = filename
-            
-            # Select Feather output file
-            
-            fileExtention = pathlib.Path(filename).suffix
-
-            if fileExtention == ".ftr":
-                self.df = pd.read_feather(filename)
-            else:
-                ut.errorcode("error", "File should be in the format of a feather!")
-
-            
 
 
 
@@ -97,7 +125,6 @@ class LightCurve(object):
         """
 
         pass
-
 
 
 
@@ -114,23 +141,201 @@ class LightCurve(object):
 
 
 
+
+    
+
+    def getMaskUpdateEvents(self):
+
+        """Exposure number of all mask updates.
+        """
+        
+        # Fetch mask update events
+
+        return np.array(self.hdf5file["Photometry/Masks/exposureNrOfMaskUpdate"])
+
+
+
+
+
+    def axesMaskupdates(self, ax):
+        """
+        This is a small utility that takes an axes object, time points
+        from a time series, and the mask-updates given in the same unit
+        of time as the time points, and then plots vertical lines for
+        every mask-update and quarter marks.
+        """
+
+        # Plot occurance of mask update
+        mask_updates = self.getMaskUpdateEvents() * 25. / c.day
+
+        # Skip first mask as that's the default one
+        for update in mask_updates[1:]:
+            if update == 1:
+                ax.axvline(x=update, c='k', linestyle=':', linewidth=1, label='Mask updates')
+            else:
+                ax.axvline(x=update, c='k', linestyle=':', linewidth=1)
+
+
+
+
+
+    #--------------------------------------------------------------#
+    #                      STELLAR CATALOGUE                       #
+    #--------------------------------------------------------------#
+
+
+    def star(self):
+        """
+        PURPOSE: Function to fetch the info about star.
+        """
+
+        #
+        print(self.filename)
+        exit()
+        
+        # Fetch info about target star
+        cols = ["id", "ra", "dec", "x", "y", "mag", "ccd", "xccd", "yccd", "xfp", "yfp"]
+        df = pd.read_csv(filename, delimiter=' ', comment='#', names=cols)
+
+
+
+        
+    def star_info(self, filename=False):
+        """
+        Function to fetch the target star information.
+        """
+
+        # Find file if specific it not requested
+        if not filename:
+            file_ftr = pathlib.Path(self.filename)
+            filename = file_ftr.parents[0] / f'{file_ftr.stem}.cat'
+        
+        # Fetch info about target star
+        cols = ["id", "ra", "dec", "x", "y", "mag", "ccd", "xccd", "yccd", "xfp", "yfp"]
+        df = pd.read_csv(filename, delimiter=' ', comment='#', names=cols)
+
+        # Fetch V magnitude
+        mag = df["mag"][0]
+
+        # Number of contaminants
+        ncon = len(df["id"]) - 1
+
+        # Distance from optical axis [deg]
+        f = 247.52 # [mm] 
+        rOA = np.rad2deg(rf.gnomonicRadialDistanceFromOpticalAxis(df["xfp"][0], df["yfp"][0], f))
+        
+        # Intra-pixel position
+        xcen = df["x"][0] % 1/2
+        ycen = df["y"][0] % 1/2
+        rCOB= np.sqrt(xcen**2 + ycen**2)        
+
+        # Loop over contaminants
+        SPR = 0
+        rcon = 0
+        dmag = 0
+        n = len(df["mag"])
+
+        if n > 1:
+
+            # Sort after magnitude
+            df = df.sort_values(by=["mag"])
+            
+            # Distance to main contaminant
+            rcon = np.sqrt(df["x"].diff()[1]**2 + df["y"].diff()[1]**2)
+
+            # Delta magnitude of main contaminant
+            dmag = df["mag"].diff()[1]
+            
+            # Custom metric to measure the stellar pollution ratio
+            for k in range(1, n):
+                dm   = np.abs(df["mag"].diff()[k])
+                rpix = np.sqrt(df["x"].diff()[k]**2 + df["y"].diff()[k]**2)
+                SPR += 1/(1 + dm + rpix)
+                # If the contaminants is brighter than the target SPR becomes negative.
+                # Here we are only interested in the absolute pollution:
+                #if SPR < 0: SPR += 1
+
+        # Finito!
+        df = pd.DataFrame()
+        df['Pmag'] = [mag]
+        df['rOA']  = [rOA]
+        df['ncon'] = [ncon]
+        df['rcon'] = [rcon]
+        df['dmag'] = [dmag]
+        df['SPR']  = [SPR]
+        
+        return df
+
+
+
+    #--------------------------------------------------------------#
+    #                        VARSOURCE SOURCES                     #
+    #--------------------------------------------------------------#
+
+
+    def varsource(self):
+        """
+        Function to fetch the noise-less light curve.
+        """
+
+        # Check mode a tell user to load a file
+        if self.mode == "multi":
+            ut.errorcode('error', 'Specify a file to load target!')
+
+        # Get correct path to varsource file
+        filename = pathlib.Path(self.filename)
+        starID   = filename.stem[:9]
+        path     = filename.parents[1]
+        filename = f"varsource_{starID}_components.ftr"
+        varpath  = path / "varsource" / filename
+
+        return pd.read_feather(varpath)
+
+
+
+    def varsource_info(self):
+        """
+        Function to fetch the noise-less light curve.
+        """
+
+        # Get correct path to varsource file
+        filename = pathlib.Path(self.filename)
+        starID   = filename.stem[:9]
+        path     = filename.parents[1]
+        filename = f"varsource_{starID}_parameters.ftr"
+        varpath  = path / "varsource" / filename
+        
+        return pd.read_feather(varpath)
+
+                
+    
     #--------------------------------------------------------------#
     #                          PREPARE DATA                        #
     #--------------------------------------------------------------#
 
 
-    def files(self, extension="zip", path=None):
+    def files(self, extension="zip", surfix=False,  path=None,
+              group=False, camera=False, quarter=False):
         """
-        PURPOSE: Function to unpack all files multi-camera and multi-quarter
-                 light curves simulated for a single star.
+        Function fetch all files with a common extention.
         """
 
         # Set path to files as default
         if path is None: path = self.path
 
-        # Fetch all zip files
-        files = glob.glob(f"{path}/*.{extension}")
-
+        # Sort after group, camera, or quarter
+        if group: G = f"{group}."
+        else: G = ""
+        if camera: C = f"{camera}_"
+        else: C = ""
+        if quarter: Q = f"Q{quarter}"
+        else: Q = ""
+        if surfix: S = f"_{surfix}"
+        else: S = ""
+        
+        # Fetch all zip files and sort them using natsort
+        files = natsort.natsorted(glob.glob(f"{path}/0**{G}**{C}**{Q}**{S}.{extension}"))
+        
         return files
 
     
@@ -138,8 +343,8 @@ class LightCurve(object):
 
     def unpack(self, files=None):
         """
-        PURPOSE: Function to unpack all files multi-camera and multi-quarter
-                 light curves simulated for a single star.
+        Function to unpack all files multi-camera and multi-quarter
+        light curves simulated for a single star.
         """
 
         # Fetch all zip files
@@ -152,13 +357,71 @@ class LightCurve(object):
                 unzip.extractall(self.path)
 
 
+
+    def remove(self, files=None):
+        """
+        PURPOSE: Function to remove all files, except for zip files,
+                 for certain star folder.
+        """
+
+        # Remove all ftr, cat, and invert files
+        os.system(f"rm {self.path}/*.ftr")
+        os.system(f"rm {self.path}/*.cat")
+        os.system(f"rm {self.path}/*.invert")
+
+
+
+        
+    def quality_flags(self):
+
+        flag = {'0': 'Good data point',
+                '1': 'Data downlink',
+                '2': 'Quarterly roll',
+                '3': 'Safe mode event',
+                '4': 'Loss of fine guidance',
+                '5': 'Attitude tweak',
+                '6': 'Cosmic ray in optimal aperture',
+                '7': 'Detector anomaly',
+                '8': 'Argabrightening'}
+        #256 ['Manual exclude']
+        
+        return flag
+    
+                
     
     #--------------------------------------------------------------#
-    #                      SINGLE CAMERA/QUARTER                   #
+    #                        EXTRACT COLUMNS                       #
     #--------------------------------------------------------------#
         
 
+    def obs(self):
+        """
+        PURPOSE: Function to fetch the obs information.
+        """
 
+        # Distinguish between single camera and multi camera obs
+        if self.mode == "single":
+
+            # Get obs info from feather file
+            if self.fileExtention == ".ftr":
+                filename = pathlib.Path(self.filename).stem
+                self.group   = int(filename[14])
+                self.camera  = int(filename[16])
+                self.quarter = int(filename[19:])
+            elif self.fileExtention == ".hdf5":
+                self.group   = False
+                self.camera  = False
+                self.quarter = False
+        else:
+            self.group   = False
+            self.camera  = False
+            self.quarter = False
+
+        return self.group, self.camera, self.quarter
+
+    
+
+    
     def time(self, unit="d"):
         """
         PURPOSE: Function fetch the time column.
@@ -174,119 +437,43 @@ class LightCurve(object):
 
     
 
-    def flux(self, unit="e/s"):
+    def flux(self, column="flux", unit="e/s"):
         """
         PURPOSE: Function to fetch the flux column.
-        """
-
-        # Flux unit
-        if   unit == "e/s": flux = self.df["flux"]
-        elif unit == "rel": flux = ut.normalize(self.df["flux"], factor=1)
-        elif unit == "ppt": flux = ut.normalize(self.df["flux"], factor=1e3)
-        elif unit == "ppm": flux = ut.normalize(self.df["flux"], factor=1e6)
-        else: ut.errorcode("error", "No such flux unit! Availble option: [e/s, norm, ppt, ppm]")
         
-        return flux
+        This function should be used to fetch the columns:
+        flux, flux_err, flux_cor, bg, bg_err
 
-
-    
-    def flux_err(self, unit="e/s"):
+        Note: flux_cor is only available for on-board photometry.
         """
-        PURPOSE: Function to fetch the flux error column.
-        NOTE:    Only available for on-ground photometry.
-        """
-
-        # Flux unit
-        if   unit == "e/s": flux_err = self.df["flux_err"]
-        elif unit == "rel": flux_err = ut.normalize(self.df["flux_err"], factor=1)
-        elif unit == "ppt": flux_err = ut.normalize(self.df["flux_err"], factor=1e3)
-        elif unit == "ppm": flux_err = ut.normalize(self.df["flux_err"], factor=1e6)
-        else: ut.errorcode("error", "No such flux unit! Availble option: [e/s, norm, ppt, ppm]")
         
-        return flux_err
-
-
-
-    def flux_med(self, carbox=144, unit="e/s", addColumn=False):
-        """
-        PURPOSE: Function normalize the input flux and change time units to days. 
-        NOTE:    Function tailored to PLATOniums output format, feather.
-        """
-
         # Flux unit
-        flux = self.flux(unit=unit)
-        
-        # Normalize flux and find medina filter
-        flux_med = scipy.ndimage.median_filter(flux, carbox)
-
-        # Add column to data frame if requested
-        if addColumn: self.df["flux_med"] = flux_med
-
-        return flux_med
-
-
-    
-
-    def flux_cor(self):
-        """
-        PURPOSE: Function to fetch the flux correlation column.
-        NOTE   : Only available for on-board photometry.
-        """
-
-        return self.df["flux_cor"]
-
-
-    
-
-    
-
-    def bg(self, unit="e/s"):
-        """
-        PURPOSE: Function to fetch the sky background flux column. 
-        """
-
-        # Flux unit
-        if   unit == "e/s": bg = self.df["bg"]
-        elif unit == "rel": bg = ut.normalize(self.df["bg"], factor=1)
-        elif unit == "ppt": bg = ut.normalize(self.df["bg"], factor=1e3)
-        elif unit == "ppm": bg = ut.normalize(self.df["bg"], factor=1e6)
-        else: ut.errorcode("error", "No such flux unit! Availble option: [e/s, rel, ppt, ppm]")
-        
-        return flux
-
-
-    
-
-    def bg_err(self, unit="e/s"):
-        """
-        PURPOSE: Function to fetch the sky background flux error column. 
-        """
-
-        # Flux unit
-        if   unit == "e/s": flux = self.df["bg_err"]
-        elif unit == "rel": flux = ut.normalize(self.df["bg_err"], factor=1)
-        elif unit == "ppt": flux = ut.normalize(self.df["bg_err"], factor=1e3)
-        elif unit == "ppm": flux = ut.normalize(self.df["bg_err"], factor=1e6)
+        #if   unit == "e/exp": flux = self.df[column]
+        if   unit == "e/s": flux = self.df[column] / 4.026526
+        elif unit == "rel": flux = ut.normalize(self.df[column], factor=1)
+        elif unit == "ppt": flux = ut.normalize(self.df[column], factor=1e3)
+        elif unit == "ppm": flux = ut.normalize(self.df[column], factor=1e6)
         else: ut.errorcode("error", "No such flux unit! Availble option: [e/s, norm, ppt, ppm]")
         
         return flux
 
     
+        
 
     
-    def xcen(self, unit="pix"):
+    def cen(self, column="cx", unit="pix"):
         """
         PURPOSE: Function to fetch the imagette X centroid column.
         """
 
         # Centroid unit
-        if   unit == "pix": xcen = self.df["cx"]
-        elif unit == "mm":  xcen = self.df["cx"] * self.pixelSize / 1000.0
-        elif unit == "rel": xcen = self.df["cx"] - np.mean(self.df["cx"])
-        elif unit == "cen": xcen = self.df["cx"] - 3
+        if   unit == "pix": cen = self.df[column]
+        elif unit == "mm":  cen = self.df[column] * self.pixelSize / 1000.0
+        elif unit == "rel": cen = self.df[column] - np.mean(self.df[column])
+        elif unit == "cen": cen = self.df[column] - 3
         else: ut.errorcode("error", "No such centroid unit! Availble option: [pix, mm, rel, cen]")
         
-        return xcen
+        return cen
 
 
 
@@ -303,38 +490,6 @@ class LightCurve(object):
         
         return xcen_err
 
-
-
-
-    def ycen(self, unit="pix"):
-        """
-        PURPOSE: Function to fetch the imagette Y centroid column.
-        """
-
-        # Centroid unit
-        if   unit == "pix": ycen = self.df["cy"]
-        elif unit == "mm":  ycen = self.df["cy"] * self.pixelSize / 1000.0
-        elif unit == "rel": ycen = self.df["cy"] - np.mean(self.df["cy"])
-        elif unit == "cen": ycen = self.df["cy"] - 3
-        else: ut.errorcode("error", "No such centroid unit! Availble option: [pix, mm, rel, cen]")
-        
-        return ycen
-
-
-
-
-    def ycen_err(self, unit="pix"):
-        """
-        PURPOSE: Function to fetch the imagette Y centroid error column.
-        """
-
-        # Centroid unit
-        if   unit == "pix": ycen_err = self.df["cy_err"]
-        elif unit == "mm":  ycen_err = self.df["cy_err"] * self.pixelSize / 1000.0
-        else: ut.errorcode("error", "No such centroid unit! Availble option: [pix, mm]")
-        
-        return ycen_err
-
     
 
 
@@ -345,43 +500,11 @@ class LightCurve(object):
         return self.df
 
 
-
-
-    def obs(self):
-        """
-        PURPOSE: Function to fetch the obs information.
-        """
-
-        # Distinguish between single camera and multi camera obs
-        if self.mode == "single":
-            self.group   = int(self.filename[-10])
-            self.camera  = int(self.filename[-8])
-            self.quarter = int(self.filename[-5])
-        else:
-            self.group   = False
-            self.camera  = False
-            self.quarter = False
-
-        return self.group, self.camera, self.quarter
-
-
-
-
-    def star(self):
-        """
-        PURPOSE: Function to fetch the info about star.
-        """
-
-        #
-        print(self.filename)
-        exit()
+    
+    #--------------------------------------------------------------#
+    #                   MEASURES FROM LIGHT CURVE                  #
+    #--------------------------------------------------------------#
         
-        # Fetch info about target star
-        cols = ["id", "ra", "dec", "x", "y", "mag", "ccd", "xccd", "yccd", "xfp", "yfp"]
-        df = pd.read_csv(filename, delimiter=' ', comment='#', names=cols)
-
-    
-    
 
     def getMAD(self, column="flux", unit="e/s"):
         """
@@ -429,9 +552,7 @@ class LightCurve(object):
     
 
 
-
-
-    def getNSR(self, binhour=1, unit="ppm", influx="e/s"):
+    def getNSR(self, column="flux", binhour=1, unit="ppm", influx="e/s"):
         """
         PURPOSE: Calculates the Noise-to-Signal Ratio (NSR) of binned time series.
         """
@@ -444,32 +565,56 @@ class LightCurve(object):
 
         # Fetch flux column and force to be ppm for correct NSR
         if influx == "e/s":
-            df["flux"] = self.flux(unit="ppm")
-
+            df[column] = self.flux(column=column, unit="ppm")
+                
         # Set the binned time scale [days]
         dt = binhour/24.
 
         # Bin to devide data
-        nbins = round( (df["time"].max() - df["time"].min()) / dt) + 1
-        tbins = np.linspace(df["time"].min(), df["time"].max(), nbins)
-        nbin  = len(df[df["time"].between(tbins[0], tbins[1])])
-
-        # Bin data
-        flux_dex = df.columns.get_loc("flux")
-        data  = [df[df["time"].between(tbins[i], tbins[i+1])].to_numpy() for i in range(nbins-1)]
-        sigma = np.array([data[i][:,flux_dex].std()  for i in range(len(data))])
+        if binhour == 0:
+            sigma = df[column].std()
+            nbin  = 1
+        else:
+            nbins = round( (df["time"].max() - df["time"].min()) / dt) + 1
+            tbins = np.linspace(df["time"].min(), df["time"].max(), nbins)
+            nbin  = len(df[df["time"].between(tbins[0], tbins[1])])
+            # Bin data
+            flux_dex = df.columns.get_loc(column)
+            data  = [df[df["time"].between(tbins[i], tbins[i+1])].to_numpy() for i in range(nbins-1)]
+            sigma = np.array([data[i][:,flux_dex].std()  for i in range(len(data))])
 
         # Find noise-to-signal ratio
-        NSR = np.mean(sigma / np.sqrt(nbin))
+        NSR = np.mean(sigma) / np.sqrt(nbin)
         
         return NSR
 
 
+    #--------------------------------------------------------------#
+    #                       DATA OPERATIONS                        #
+    #--------------------------------------------------------------#
+    
+
+    def flux_med(self, carbox=144, unit="e/s", addColumn=False):
+        """
+        PURPOSE: Function normalize the input flux and change time units to days. 
+        NOTE:    Function tailored to PLATOniums output format, feather.
+        """
+
+        # Flux unit
+        flux = self.flux(unit=unit)
+        
+        # Normalize flux and find medina filter
+        flux_med = scipy.ndimage.median_filter(flux, carbox)
+
+        # Add column to data frame if requested
+        if addColumn: self.df["flux_med"] = flux_med
+
+        return flux_med
 
 
     
-
-    def bin(self, binsize=1, time_unit="d", flux_unit="e/s"):
+    
+    def bin(self, binsize=1, time_unit="h", flux_unit="e/s"):
         """
         PURPOSE: Bin data after w.r.t. to the input time scale and cadence.
         """
@@ -479,7 +624,8 @@ class LightCurve(object):
         
         # Fetch time and flux
         df["time"] = self.time(unit=time_unit)
-
+        df["flux"] = self.flux(unit=flux_unit)
+        
         # Set the binned time scale
         if   time_unit == "s": dt = binsize * 3600
         elif time_unit == "h": dt = binsize * 1
@@ -498,30 +644,820 @@ class LightCurve(object):
         # Save number of data points in each time bin
         self.nbin = len(df[df["time"].between(tbins[0], tbins[1])])
         
-        # Bin data
+        # TODO Can be done in a better way?
         data = [df[df["time"].between(tbins[i], tbins[i+1])] for i in range(nbins)]
         time     = [data[i]["time"].mean()     for i in range(len(data))]
         flux     = [data[i]["flux"].mean()     for i in range(len(data))]
         sigma    = [data[i]["flux"].std()      for i in range(len(data))]
-        flux_err = [data[i]["flux_err"].mean() for i in range(len(data))]
-        #print(np.transpose([time, flux, flux_err]))
-        df = pd.DataFrame(np.transpose([time, flux, flux_err, sigma]),
-                          columns=["time", "flux", "flux_err", "sigma"])
+        # Specific column for P1 and P5 samples
+        cols = ["time", "flux", "sigma"]
+        if df.columns.str.startswith("flux_err").sum():
+            flux_err = [data[i]["flux_err"].mean() for i in range(len(data))]
+            cols.append("flux_err")
+        if df.columns.str.startswith("flux_cor").sum():
+            flux_err = [data[i]["flux_cor"].mean() for i in range(len(data))]
+            cols.append("flux_err")
+        data = np.transpose([time, flux, sigma, flux_err])
         
-        # Replace flux_err with RMS
-        #df["flux_err"] = np.array([df[df["time"].between(tbins[i], tbins[i+1])].std() for i in range(nbins-1)])
+        return pd.DataFrame(data, columns=cols)
 
-        return df
+
     
+    #--------------------------------------------------------------#
+    #                       DATA CORRECTIONS                       #
+    #--------------------------------------------------------------#
     
+
+    def clip(self, model="wotan", window=0.5, low=3, high=3, plot=False):
+        """
+        This function use a moving median filter to reject 3 sigma outliers from
+        the out-of-eclipsed data. This is done to secure that a simple median
+        convolution do not mis-interp sharp and deep transit signatures as outliers.
+        Use a 16 point-width moving median to reject 3 sigma outliers.
+        """
+
+        # If outliers have been removed
+        if 'flux_detrend' in self.df: flux = self.df.flux_detrend
+        else: flux = self.df.flux
+
+        
+        if model == 'wotan':
+            self.df['flux_clip'] = wotan.slide_clip(self.df.time,
+                                                    flux,
+                                                    window_length=window*c.day,
+                                                    low=low,
+                                                    high=high,
+                                                    method='mad', # mad or std
+                                                    center='median')
+        elif model == 'sigma':
+            self.df['flux_clip'] = stats.sigma_clip(flux,
+                                                    sigma_lower=low,
+                                                    sigma_upper=high)
+        # Remove clipped NaNs 
+        self.df = self.df.dropna()
+            
+        # Plot if requested
+        if plot: self.plot_clip(self.df)
+        
+        return self.df
+
+    
+            
+
+    def plot_clip(self, df, figsize=(9,4)):
+        """
+        Function to plot a clipped light curve for outliers.
+        """
+
+        # Get detrending [time: days, flux: ppm]
+        time = df.time / c.day
+        if 'flux_detrend' in df:
+            flux = df.flux_detrend / 1e3
+            flux_clip = df.flux_clip / 1e3
+        else:
+            flux      = ut.normalize(df.flux, factor=1e3)
+            flux_clip = ut.normalize(df.flux_clip, factor=1e3)
+
+        flux_med = scipy.ndimage.median_filter(flux_clip, 144)
+        
+        # Start plotting
+        
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+
+        # Plot simulation and trend
+        ax.plot(time,  flux,      '.', c='r', ms=2,   alpha=0.5, label='Raw')
+        ax.plot(time,  flux_clip, '.', c='k', ms=2,   alpha=0.2, label='Clipped')
+        ax.plot(time,  flux_med,  '-', c='b', lw=0.5, alpha=1.0, label='Median')
+
+        # Layout
+        ax.set_xlim(time.iloc[0], time.iloc[-1])
+        ax.set_xlabel('Time [days]')
+        ax.set_ylabel('Flux [ppt]')
+        plt.legend()
+        plt.tight_layout()
+        
+        return fig, ax
+
+
+        
+
+            
+
+    def jumps(self, gapsize=500):
+        """
+        This function corrects for jumps larger than "gapsize" in a timeseries. Normally
+        ajacent datapoint to a jump is effected, hence, a specified number of points
+        of each side of a jump can be removed.
+        """
+        # Find distances/difference between data points:
+        s_diff = np.diff(self.df.flux)
+        print(s_dff)
+        exit()
+        # Find gaps:
+        index = np.where(abs(s_diff)>gapsize)[0][:]
+        # Move the data when a jump:
+        for i in index:
+            self.df.flux.iloc[i + 1:] -= s_diff[i]
+
+        return self.df
+
+        
+    
+
+    def full_correction(self, method="sigma", plot=False):
+        """
+        This function use a moving median filter to reject 3 sigma outliers from
+        the out-of-eclipsed data. This is done to secure that a simple median
+        convolution do not mis-interp sharp and deep transit signatures as outliers.
+        Use a 16 point-width moving median to reject 3 sigma outliers.
+        """
+        
+        # Remove NaN in time:
+        df = self.df.copy()
+
+        if method == "sigma":
+            from astropy.stats import sigma_clip
+            flux = sigma_clip(flux, sigma_upper=3, sigma_lower=20)
+        
+        # Remove NaN
+        df = df[~df["time"].isnull()]
+        df = df[~df["flux"].isnull()]
+
+        # Remove flagged data:
+        index_flag_bad = np.where(qual==0)
+        time = time[index_flag_bad]
+        flux = flux[index_flag_bad]
+
+        # Mask transits and occultations
+        df_mask = self.mask_eclipses(df)
+
+        # Sigma-clipping
+        df_clip = self.sigma_clipping(df, df_mask)
+        
+        # Locata LOCALIZE BAD DATA BY CONVOLUTION:
+        #self.time, self.flux = self.locate(self.time, self.flux)
+
+        # Correct data jumps
+        df_jump = self.jumps(df_clip)
+
+        # Plot results
+        if plot:
+            pt.plot_mask(self.ticid, time0, flux0, \
+                         self.time_mask_out, self.flux_mask_out, \
+                         self.time_mask_tra, self.flux_mask_tra, \
+                         self.time_mask_occ, self.flux_mask_occ)
+            
+
+
+    #--------------------------------------------------------------#
+    #                           DETRENDING                         #
+    #--------------------------------------------------------------#
+
+    
+    def detrend(self, model="wotan", method="biweight", window=0.5, mask=False,
+                poly_deg=2, plot=False):
+        """
+        PURPOSE: Detrend data using a simply polynomial model.
+
+        Parameters
+        ----------
+        model : wotan, poly
+        """
+
+        # If outliers have been removed
+        if 'flux_clip' in self.df: flux = self.df.flux_clip
+        else: flux = self.df.flux
+            
+        # If requested mask transits
+        if mask:
+            mask = wotan.transit_mask(time=self.df.time,
+                                      period=mask[0]*c.day,
+                                      duration=mask[1]*c.day,
+                                      T0=mask[2]*c.day)
+
+        # Fit Wotan model optimal for transit searches
+        
+        if model == "wotan":
+            flux_detrend, flux_trend = wotan.flatten(self.df.time,
+                                                     flux,
+                                                     method=method,
+                                                     window_length=window*c.day,
+                                                     return_trend=True,
+                                                     robust=True,
+                                                     mask=mask)
+            # Convert into ppm
+            self.df['flux_trend']   = flux_trend
+            self.df['flux_detrend'] = (flux_detrend - 1) * 1e6
+            
+        # Fit polynomial model
+        elif model == "poly":
+            # Make sure to remvoe NaNs before fit
+            dex = np.isfinite(flux)
+            poly = np.polyfit(self.df.time[dex], flux[dex], deg=poly_deg)
+            flux_trend = np.polyval(poly, self.df.time)
+
+            # Convert to ppm
+            self.df['flux_trend']   = flux_trend
+            self.df['flux_detrend'] = flux - flux_trend
+
+        # Plot dianostic
+        if plot: self.plot_detrend(self.df)
+
+        return self.df
+                
+
+
+
+    def plot_detrend(self, df, figsize=(9,7)):
+        """
+        Function to plot a detrended light curve and make a O-C plot.
+        """
+        
+        # Get varsource light curve
+        lc_var = self.varsource()
+        time_var = lc_var["time"] / c.day
+        flux_var = lc_var["comb"]
+
+        # If outliers have been removed
+        #if 'flux_clip' in df: flux = df.flux_clip
+        #else: flux = df.flux
+        flux = df.flux
+        
+        # Get detrending [time: days, flux: ppm]
+        time = df.time / c.day
+        flux_norm   = ut.normalize(flux)
+        flux_median = scipy.ndimage.median_filter(df.flux_detrend, 144)
+        
+        # Start plotting
+        
+        fig, ax = plt.subplots(3, 1, figsize=figsize)
+
+        # Plot simulation and trend
+        ax[0].plot(time,  flux/1e3,          '.', c='k', ms=1, alpha=0.2, label='Sim')
+        ax[0].plot(time,  df.flux_trend/1e3, '-', c='b', lw=2,            label='Trend')
+        ax[0].set_xlim(time.iloc[0], time.iloc[-1])
+        ax[0].set_ylabel(r"Flux [ke$^-$ s$^{-1}$]")
+
+        # Plot detrend and median
+        ax[1].plot(time,  df.flux_detrend/1e3, '.', c='k', ms=1, alpha=0.2, label="Detrend")
+        ax[1].plot(time,  flux_median/1e3,     '-', c='orange',  lw=0.5,    label="Detrend 1h")
+        ax[1].set_xlim(time.iloc[0], time.iloc[-1])
+        ax[1].set_ylabel('Flux [ppt]')
+        
+        # Plot detrend-median,  vs. input
+        ax[2].plot(time,     flux_median, '-', c='orange', lw=0.5)
+        ax[2].plot(time_var, flux_var,    '-', c='red',    lw=1.0, alpha=1, label="Input")
+        ax[2].set_xlim(time.iloc[0], time.iloc[-1])
+        ax[2].set_ylabel('Flux [ppm]')
+        ax[2].set_xlabel('Time [days]')
+        
+        # Labels
+        #fig.text(0.005, 0.5, 'Flux [ppm]', va='center', rotation='vertical')
+        #for i in range(3): ax[i].legend(ncol=2, loc="upper left")
+        
+        # Layout
+        ax[0].set_xticklabels([])
+        ax[1].set_xticklabels([])
+        plt.tight_layout(h_pad=0.2, w_pad=0.6)
+        
+        return fig, ax
+
+
+    
+    #--------------------------------------------------------------#
+    #                       MULTI CAMERA/QUARTER                   #
+    #--------------------------------------------------------------#
+
+
+    def merge(self, quarter=False, detrend=False, clip=False, ofile=False,
+              flux_group_mean=False):
+        """
+        Merge light curves from a single star.
+
+        Function to merge multi-cameras and multi-quarter light curves into
+        a single pandas data frame. If requested each of light curve can be
+        detrended prior to the merge and as default it uses the Wotan is 
+        used. This package is good for planet transit searches, however, not
+        so much for preserving the stellar signal.
+
+        
+        """
+
+        # Open a pandas data frame and write to it
+        df0 = pd.DataFrame()
+        df1 = pd.DataFrame()
+
+        # Fetch all zip files
+        files  = self.files("ftr")
+        nfiles = len(files)
+        ncam   = 0
+        flag   = 0
+        
+        # Loop over each group and camera
+
+        for i in tqdm(range(nfiles), bar_format=ut.tqdm_bar_format()):
+
+            # Fetch light curve object
+            try: lc = LightCurve(files[i])
+            except: pass
+            else:
+                
+                # Force a correction
+                # TODO remove for future simulations! Fixed in PLATOnium now
+                #self.correct_cols(lc, filename_ftr)
+                #lc = LightCurve(filename_ftr)
+
+                # Fetch obs info
+                G, C, Q = lc.obs()
+
+                # Select quarter
+                if Q == quarter:
+                    ncam += 1
+                
+                # Flag for negative fluxes (bad behavior of L1 pipeline)
+                df = lc.data()
+                if lc.flux(unit="e/s").mean() < 1: flag = 1
+                    
+                if i == 0:
+                    df0['time'] = df.time
+                    df0['flux'] = df.flux
+                    if 'flux_err'     in df: df0['flux_err']     = df.flux_err
+                    if 'flux_cor'     in df: df0['flux_cor']     = df.flux_cor
+                    if 'flux_trend'   in df: df0['flux_trend']   = df.flux_trend
+                    if 'flux_detrend' in df: df0['flux_detrend'] = df.flux_detrend
+                    if 'flux_clip'    in df: df0['flux_clip']    = df.flux_clip
+
+                else:
+                    df1['time'] = df.time
+                    df1['flux'] = df.flux
+                    if 'flux_err'     in df: df1['flux_err']     = df.flux_err
+                    if 'flux_cor'     in df: df1['flux_cor']     = df.flux_cor
+                    if 'flux_trend'   in df: df1['flux_trend']   = df.flux_trend
+                    if 'flux_detrend' in df: df1['flux_detrend'] = df.flux_detrend
+                    if 'flux_clip'    in df: df1['flux_clip']    = df.flux_clip
+                    # Contatinate data frames
+                    df0 = pd.concat([df0, df1])
+
+        # Sort after logic structure and reset indices
+        df0 = df0.sort_values(by=["time"])
+        df0 = df0.reset_index(drop=True)
+
+        # If requested mean fluxes from same group (i.e. same time stamp)
+        if flux_group_mean: df0 = df0.groupby('time').mean().reset_index()
+        
+        # If requested save output file
+        if ofile: df0.to_feather(ofile)
+        
+        # Set a global light curve object
+        lc = LightCurve(df0, mode="multi", ncam=ncam)
+
+        return lc  #, ncam, flag
+
+
+
+
+    
+    def analyse_single_camera(self, inputDir, outputFile, numStar):
+
+        # Open a pandas data frame and write to it
+        df = pd.DataFrame()
+        cols = ["id", "ra", "dec", "x", "y", "mag", "ccd", "xccd", "yccd", "xfp", "yfp"]
+        f = 247.52 # [mm] 
+
+        # Loop over star simulated
+        for i in tqdm(range(1, numStar+1), bar_format=ut.tqdm_bar_format()):
+
+            # Fetch all zip files
+            starID   = f"{i}".zfill(9)
+            path     = f"{inputDir}/{starID}"
+            files    = self.files(path=path)
+            numFiles = len(files)
+
+            # Loop over each group/cam/quarter simulation
+
+            for j in range(numFiles):
+
+                # Extract files
+                with ZipFile(files[j], 'r') as unzip:
+                    unzip.extractall(path)
+
+                # Get file names
+                filename_ftr = files[j][:-3] + "ftr"
+                filename_cat = files[j][:-3] + "cat"
+                filename_inv = files[j][:-3] + "invert"    
+
+                # Fetch light curve object
+                try: lc = LightCurve(filename_ftr)
+                except: pass
+                else:
+
+                    # Fetch info about observation
+                    group, camera, quarter = lc.obs()
+
+                    # Fetch info about contaminants
+                    mag, rOA, rCP, ncon, rcon, dmag, SPR = self.star_info(filename_cat)
+
+                    # Force a correction and reload file
+                    # TODO remove for future simulations! Fixed in PLATOnium now
+                    #self.correct_cols(lc, filename_ftr)
+                    #lc = LightCurve(filename_ftr)
+
+                    # Flag for negative fluxes (bad behavior of L1 pipeline)
+                    if lc.flux().iloc[0] < 1:
+                        flag = 1
+                        #print(filename_ftr)
+                        #print(lc.data())
+                        #exit()
+                    else:
+                        flag = 0
+                    
+                    # Fetch NSR from RMS [ppm/sqrt(h)]
+                    NSR = lc.getNSR()
+                    
+                    # Mean centroid error in percent
+                    xcen     = lc.xcen()
+                    ycen     = lc.ycen()
+                    xcen_err = lc.xcen_err()
+                    ycen_err = lc.ycen_err()
+                    rcen     = np.sqrt(xcen**2 + ycen**2)
+                    rcen_err = np.sqrt(xcen_err**2 + ycen_err**2)
+                    rcen_err_mean = rcen_err.mean() / rcen.mean() * 100
+                    #if rcen_err_mean > 100: rcen_err_mean = 100
+
+                    # Mean flux error in percent
+                    flux     = np.abs(lc.flux())
+                    flux_err = np.abs(lc.flux_err())
+                    flux_err_mean = flux_err.mean() / flux.mean() * 100                
+                    #if flux_err_mean > 100: flux_err_mean = 100
+
+                    # Write data to feather
+                    data = {"star":i, "group":group, "camera":camera, "quarter":quarter, "mag":mag,
+                            "ferr":flux_err_mean, "rerr":rcen_err_mean, "flag":flag,
+                            "rOA":rOA, "rCP":rCP, "ncon":ncon, "rcon":rcon, "dmag":dmag,
+                            "SPR":SPR, "NSR":NSR}
+                    df = df.append(data, ignore_index=True)
+                    
+                    # Delete unpacked files again to not overflow storage memory
+                    os.remove(filename_ftr)
+                    os.remove(filename_cat)
+                    os.remove(filename_inv)
+
+        # Save final feather
+        df = df.astype({"star":int, "group":int, "camera":int, "quarter":int, "mag":np.float32,
+                        "rOA":np.float32, "ferr":np.float32, "rerr":np.float32, "flag":int,
+                        "rOA":np.float32, "rCP":np.float32, "ncon":int, "rcon":np.float32,
+                        "dmag":np.float32, "SPR":np.float32, "NSR":np.float32})
+
+        # Sort data frame
+        df = df.sort_values(by=["star", "group", "camera", "quarter"])
+
+        # Set new index and save
+        df = df.reset_index()
+        df.to_feather(outputFile)
+
+
+
+
+    
+
+    def merge_cameras(self, outputFile, numStar):
+
+        # Open a pandas data frame and write to it
+        df = pd.DataFrame()
+
+        # Loop over star simulated
+
+        for i in tqdm(range(1, numStar+1), bar_format=ut.tqdm_bar_format()):
+
+            # Read path
+            starID = f"{i}".zfill(9)
+            path = f"{self.path}/{starID}/" 
+
+            # Load all feather files
+            phot = LightCurve(path, mode="multi")
+
+            # Unpack all zip files in the path folder
+            phot.unpack()
+
+            # Check if any data exist for a given star
+
+            try: filename_cat = glob.glob(path + "*.cat")[0]
+            except: pass
+            else:
+
+                # Fetch star info
+                mag, rOA, rCP, ncon, rcon, SPR = self.star_info(filename_cat)
+                
+                # Loop over each quarter
+                
+                for q in range(1,9):
+                            
+                    # Merge all observations for the same quarter 
+                    lc, ncam, flag = phot.merge(quarter=q)
+
+                    # Check that any light curve exist for a given quarter
+                    if not ncam == 0:
+
+                        # Estimate NSR
+                        NSR = lc.getNSR(influx="ppm")
+
+                        # Mean Flux error
+                        flux_err = lc.flux_err().abs().mean()
+
+                        # Write data to feather
+                        data = {"star":i, "mag":mag, "rOA":rOA, "quarter":q, "ncam":ncam, 
+                                "ncon":ncon, "rcon":rcon, "SPR":SPR, "NSR":NSR, "flux_err":flux_err,
+                                "flag":flag}
+                        df = df.append(data, ignore_index=True)
+
+                # Delete unpacked files again to not overflow storage memory
+                for files_ftr in glob.iglob(os.path.join(path, '*.ftr')):    os.remove(files_ftr)
+                for files_cat in glob.iglob(os.path.join(path, '*.cat')):    os.remove(files_cat)
+                for files_inv in glob.iglob(os.path.join(path, '*.invert')): os.remove(files_inv)
+
+        # Save final feather
+        df = df.astype({"star":int, "mag":np.float32,  "rOA":np.float32, "quarter":int, "ncam":int, 
+                        "ncon":int, "rcon":np.float32, "SPR":np.float32, "NSR":np.float32,
+                        "flux_err":np.float32, "flag":str})
+
+        # Sort data frame
+        df = df.sort_values(by=["star", "quarter"])
+
+        # Set new index and save
+        df = df.reset_index()
+        df.to_feather(outputFile)
+
+
+
+
+
+
+    def correct_cols(self, lc, filename_ftr):
+
+        # Fetch data
+        df = lc.data()
+
+        # Number of columns to correct
+        ncols = df.columns.str.startswith("level").sum()
+
+        # TODO only needed for now!
+        # if "level_5" in df.columns:
+        if ncols == 6:
+            cols = ['flux', 'cx', 'cy', 'bg', 'flux_err', 'cx_err', 'time',
+                    'cy_err', 'bg_err', 'chi2', 'iter', 'lamb']
+            df = df.iloc[:,:12]
+            df.columns = cols
+            df.to_feather(filename_ftr)
+            
+        elif ncols > 0: # in (12, 18, 22, 28):
+            cols = ['flux', 'cx', 'cy', 'bg', 'flux_err',
+                    'cx_err', 'cy_err', 'bg_err',
+                    'chi2', 'iter', 'lamb', 'random1', 'time']
+            df = df.iloc[:,:13]
+            df.columns = cols
+            df.to_feather(filename_ftr)
+
+
+
+
+
+
+
+    def correct_and_save(self, inputDir, outputDir, numStar=False, numBegin=False, numEnd=False):
+        """
+        """
+
+        # Open a pandas data frame and write to it
+        df = pd.DataFrame()
+
+
+        if numBegin and numEnd:
+            start = numBegin
+            end   = numEnd + 1
+        else:
+            start = 1
+            end   = numStar + 1
+        
+        # Loop over star simulated
+
+        for i in tqdm(range(start, end), bar_format=ut.tqdm_bar_format()):
+
+            # Create star folder
+            starID = f"{i}".zfill(9)
+            path = f"{self.path}/{starID}/" 
+
+            # Load all feather files
+            phot = LightCurve(path, mode="multi")
+            
+            # Unpack all zip files in the path folder
+            phot.unpack()
+
+            # Check if any data exist for a given star
+
+            try: filename_cat = glob.glob(path + "*.ftr")[0]
+            except: pass
+            else:
+                
+                # Fetch all zip files
+                files    = self.files("ftr", path=path)
+                numFiles = len(files)
+
+                # Create directory for each star
+                starDir = f"{outputDir}/{starID}"
+                if not os.path.exists(starDir):
+                    os.mkdir(starDir)
+
+                # Loop over each group and camera
+
+                for j in range(numFiles):
+
+                    # Get file names
+                    filename     = files[j][-25:]
+                    filepath_all = files[j][:-3]
+                    filepath_ftr = filepath_all + "ftr"
+                    filepath_cat = filepath_all + "cat"
+                    filepath_inv = filepath_all + "invert"
+                    filepath_zip = filepath_all + "zip"
+
+                    # Fetch light curve object
+                    try: lc = LightCurve(filepath_ftr)
+                    except: pass
+                    else:
+
+                        # Define filepaths
+                        filepath_new_zip = f"{outputDir}/{starID}/{filename[:-4]}.zip"
+                        filepath_old_all = f"{filepath_ftr} {filepath_cat} {filepath_inv}"
+                        
+                        # Check if any contaminant are present                        
+                        ncon = self.star_info(filepath_cat)[3]
+
+                        if ncon == 0:
+
+                            # Copy the already existing file
+                            os.system(f'cp {filepath_zip} {filepath_new_zip}')
+                        
+                        else:
+                        
+                            # Force a correction
+                            self.correct_cols(lc, filepath_ftr)
+                            
+                            # Give full access to all files
+                            os.system(f'chmod 777 {filepath_old_all}')
+
+                            # Compress to new destination
+                            os.system(f"zip -j {filepath_new_zip} {filepath_old_all} > /dev/null")
+
+                            # Give full access to new zip file
+                            os.system(f'chmod 777 {filepath_new_zip}')
+                        
+                        # Remove old files (except for zip file)
+                        os.remove(filepath_ftr)
+                        os.remove(filepath_cat)
+                        try: os.remove(filepath_inv)
+                        except: pass
+
+
+
+
+
+
+
+
+    def bad_files(self, outputFile, numStar=False, numBegin=False, numEnd=False):
+        """
+        """
+
+        # Open a pandas data frame and write to it
+        df = pd.DataFrame()
+
+        if numBegin and numEnd:
+            start = numBegin
+            end   = numEnd + 1
+        else:
+            start = 1
+            end   = numStar + 1
+
+        # Open file to write to
+
+        with open(outputFile, 'a+') as f:
+            
+            # Loop over star simulated
+
+            for i in tqdm(range(start, end), bar_format=ut.tqdm_bar_format()):
+
+                # Create star folder
+                starID = f"{i}".zfill(9)
+                path = f"{self.path}/{starID}/" 
+
+                # Load all feather files
+                phot = LightCurve(path, mode="multi")
+
+                # Unpack all zip files in the path folder
+                phot.unpack()
+
+                # Check if any data exist for a given star
+
+                try: check = glob.glob(path + "*.ftr")[0]
+                except: pass
+                else:
+
+                    # Fetch all zip Files
+                    files    = self.files("ftr", path=path)
+                    numFiles = len(files)
+
+                    # Loop over each group and camera
+
+                    for j in range(numFiles):
+
+                        # Get file names
+                        filename     = files[j][-25:]
+                        filepath_all = files[j][:-3]
+                        filepath_ftr = filepath_all + "ftr"
+                        filepath_cat = filepath_all + "cat"
+                        filepath_inv = filepath_all + "invert"
+
+                        # Fetch light curve object
+                        try: lc = LightCurve(filepath_ftr)
+                        except: pass
+                        else:
+
+                            # Check if any contaminant are present                        
+                            ncon = self.star_info(filepath_cat)[3]
+                            
+                            if ncon > 0:
+
+                                # Force a correction
+                                ncols = df.columns.str.startswith("level").sum()
+                                
+                                if ncols > 0:
+
+                                    print("works")
+                                    # Move read cursor to the start of file.
+                                    f.seek(0)
+                                    # If file is not empty then append '\n'
+                                    if len(f.read(100)) > 0: f.write("\n")
+                                    # Append text at the end of file
+                                    f.write(f'{filepath_ftr} {ncols}')
+
+                        # Remove old files (except for zip file)
+                        os.remove(filepath_ftr)
+                        os.remove(filepath_cat)
+                        try: os.remove(filepath_inv)
+                        except: pass
+                        
+
+
+
+    #--------------------------------------------------------------#
+    #                        APERTURE MASKS                        #   
+    #--------------------------------------------------------------#
+
+    def time_limit(self, quarters):
+
+        tmin = (min(quarters) - 1) * 90 - 2
+        tmax = (max(quarters)    ) * 90
+
+        return tmin, tmax
+
+
+    
+    def axes_quarter_marks(self):
+                
+        # Plot quarters
+        quarters = np.arange(0, time[-1], 90)
+        for Q in quarters:
+            if Q == 0:
+                ax.axvline(x=Q, c='darkgray', linestyle='-.', linewidth=1, label='Quarter marks')
+            else:
+                ax.axvline(x=Q, c='darkgray', linestyle='-.', linewidth=1)
+
+                        
+
     #--------------------------------------------------------------#
     #                         PLOT MODULES                         #   
     #--------------------------------------------------------------#
 
 
-    def plot(self, time_unit="d", flux_unit="e/s", errorbar=False,
-             median_filter=False, binsize=False, cameras=False, quarter=False,
-             figsize=(10,5)):
+    def plot_varsource(self, figsize=(9, 8)):
+        """
+        Function to plot the noise-less light curve.
+        """
+
+        # Fetch variable source
+        df = self.varsource()
+
+        # Plot varsim plot
+        fig, ax = pt.plot_final_lc(df, figsize=figsize)
+
+        return fig, ax
+
+
+
+    
+    def plot(self, time_unit="d", flux_unit="e/s",
+             errorbar=False, median_filter=False, binsize=False,
+             cameras=False, quarter=False,
+             legend=True, alpha=0.2, figsize=(9,5)):
         """
         PURPOSE: Function normalize the input flux and change time units to days. 
 
@@ -538,7 +1474,9 @@ class LightCurve(object):
         ------
         data
         """
-
+        #from  platosim.matplotlibrc import setup_paper
+        #setup_paper()
+        
         # Label for flux
         if   flux_unit == "e/s":  ylab = r"Flux [e$^-$ s$^{-1}$]"
         elif flux_unit == "norm": ylab = "Flux normalized"
@@ -558,35 +1496,87 @@ class LightCurve(object):
         # Fetch columns
         time = self.time(unit=time_unit)
         flux = self.flux(unit=flux_unit)
-        flux_err = self.flux_err(unit=flux_unit)
         
         # Create matplotlib object 
+
         fig, ax = plt.subplots(1, 1, figsize=figsize)
         
         # Plot the input variable source
         if errorbar:
+            flux_err = self.flux(column="flux_err", unit=flux_unit)
             ax.errorbar(time, flux, yerr=flux_err, fmt=".", color='k', ecolor='darkgray',
-                        elinewidth=1, capsize=0, alpha=0.5, label=lab, zorder=1)
+                        elinewidth=1, capsize=0, alpha=alpha, label=lab, zorder=1)
         else:
-            ax.plot(time, flux, 'k.', ms=self.ms, alpha=self.aa, label=lab, zorder=1)
+            ax.plot(time, flux, 'k.', ms=self.ms, alpha=alpha, label=lab, zorder=1)
 
         # Plot a median filter
         if median_filter:
             flux_med = self.flux_med(unit=flux_unit)
-            ax.plot(time, flux_med, 'b-', lw=self.lw, label='1h median', zorder=2)
+            ax.plot(time, flux_med, '-', c='royalblue', lw=0.5,
+                    label=f'{median_filter}h median', zorder=2)
 
         # Show binned mean points if requested
         if binsize:
             df = self.bin(binsize=binsize, time_unit=time_unit, flux_unit=flux_unit)
-            ax.plot(df["time"], df["flux"], 'ro', ms=8, mec='k',
-                    label=f'{binsize}h bins', zorder=3)
+            ax.plot(df["time"], df["flux"], 'o', c='r', ms=8, mec='k',
+                    label=f'{binsize}{time_unit} bins', zorder=3)
+
+        # If any plot mask-update events
+        if self.mask_updates.any():
+            self.cadence = 25
+            updates = self.mask_updates * self.cadence / c.day
+            for update in updates[1:]:
+                if update == updates[-1]:
+                    ax.axvline(x=update, c='k', linestyle=':', linewidth=1, label='Mask updates')
+                else:
+                    ax.axvline(x=update, c='k', linestyle=':', linewidth=1)
+
+        # Set legend
+        if legend:
+            ax.legend(loc='best')
             
         # Settings
         ax.set_xlim(time.iloc[0], time.iloc[-1])
         ax.set_xlabel(f'Time [{time_unit}]')
         ax.set_ylabel(ylab)
-        ax.legend(loc='best')
         plt.tight_layout()
+
+
+        
+        # if NSR is not False:
+
+        #     ax1 = fig.add_subplot(2,1,2)
+        #     ax1.plot(maskupdates, maskNSR, 'k--', alpha=0.5)
+        #     ax1.plot(maskupdates, maskNSR, 'm*', label='Mask update NSR')
+        #     ax1.legend(loc='upper right',  fancybox=True)
+        #     ax1.set_xlabel('Time [days]')
+        #     ax1.set_ylabel(r'NSR [ppm h$^{-1}$]')
+        #     ax1.set_xlim(axes_minmax(x=time))
+
+        # if COB is not False:
+
+        #     # Fetch pixel coordinates
+
+        #     rowPix, colPix = f.getStarPositions(1)
+
+        #     # Plot row pixel on left y axis
+
+        #     ax1 = fig.add_subplot(2,1,2)
+        #     ax1.plot(time, rowPix, '-', c='darkcyan', label='Row pixel')
+        #     ax1.set_ylabel('Row coordinate [pixel]')
+        #     ax1.set_xlabel('Time [days]')
+        #     ax1.set_title('Star position')
+        #     ax1.set_xlim(axes_minmax(x=time))
+        #     ax1.legend(loc='upper left')
+
+        #     # Plot column pixel on right y axis
+
+        #     ax2 = ax1.twinx()
+        #     ax2.plot(time, colPix, '-', c='hotpink', label='Col pixel')
+        #     ax2.set_ylabel('Column coordinate [pixel]')
+        #     ax2.set_xlim(axes_minmax(x=time))
+        #     ax2.legend(loc='lower right')
+
         
         return fig, ax
     
@@ -594,7 +1584,7 @@ class LightCurve(object):
 
 
 
-    def plotCentroid(self, time_unit="d", cen_unit="pix", figsize=(12,6)):
+    def plot_centroid(self, time_unit="d", cen_unit="pix", figsize=(12,6)):
         """
         PURPOSE: Function normalize the input flux and change time units to days. 
 
@@ -647,41 +1637,150 @@ class LightCurve(object):
 
 
 
+     
+
     
-
-
-
-
-    def axes_maskupdates(self, ax, time, maskupdates):
+    
+    def plot_multi(self, time_unit="d", flux_unit="e/s", fileExtention="ftr",
+                   group=False, camera=False, quarter=False,
+                   legend=False, median_filter=False, binsize=False,
+                   figsize=(8,3)):
         """
-        This is a small utility that takes an axes object, time points
-        from a time series, and the mask-updates given in the same unit
-        of time as the time points, and then plots vertical lines for
-        every mask-update and quarter marks.
+        PURPOSE: Function normalize the input flux and change time units to days. 
+        NOTE: Function tailored to PLATOniums output format feather!
+        FIXME this function do not work currently
+
+        Parameters
+        ----------
+        time_unit : str
+            Array containing at least a time and flux column (and potential flux_err)
+        flux_err: boolen
+           Wheather or not a flux_err column is present and should thus be added.
+
+        Return
+        ------
+        fig, ax : matplotlib objects
         """
 
-        # Plot occurance of mask update
+        # Fetch all feather filenames
+        filenames = self.files(fileExtention, group=group, camera=camera, quarter=quarter)
+        nfiles    = len(filenames)
 
-        for update in maskupdates:
-            if update == 0:
-                ax.axvline(x=update, c='k', linestyle=':', linewidth=1, label='Mask updates')
-            else:
-                ax.axvline(x=update, c='k', linestyle=':', linewidth=1)
+        # Find number of quarters set axes limit
+        quarters = np.unique([int(pathlib.Path(filenames[i]).stem[19:]) for i in range(nfiles)])
+        
+        # Create matplotlib object 
 
-        # Plot quarters
+        fig = plt.figure(figsize=figsize)
+        ax = fig.add_subplot(311)
+        
+        # Set colors
+        cmap      = plt.get_cmap('nipy_spectral')
+        cnorm     = colors.Normalize(vmin=0, vmax=nfiles-1)
+        scalarMap = cm.ScalarMappable(norm=cnorm, cmap=cmap)
+        ax.set_prop_cycle(color=[scalarMap.to_rgba(i) for i in range(nfiles)])
+                
+        # Loop over each observation
+        
+        for f in filenames:
 
-        quarters = np.arange(0, time[-1], 90)
-        for Q in quarters:
-            if Q == 0:
-                ax.axvline(x=Q, c='darkgray', linestyle='-.', linewidth=1, label='Quarter marks')
-            else:
-                ax.axvline(x=Q, c='darkgray', linestyle='-.', linewidth=1)
+            # Load single camera obs
+            lc = LightCurve(f)
+            #print(lc.data()); exit()
+            # Fetch columns and plot            
+            time = lc.time(unit=time_unit)
+            flux = lc.flux(unit=flux_unit)
+            flux_trend = lc.flux(unit='e/s', column='flux_trend')
+            ax.plot(time, flux/1e3, ',', alpha=0.2)
+            # Special legend
+            import matplotlib.patheffects as mpe
+            outline=mpe.withStroke(linewidth=3, foreground='k')
+            ax.plot(time, flux_trend/1e3, '-', c='w', lw=1, path_effects=[outline])
+            if f == filenames[-1]:
+                ax.plot(time, flux_trend/1e3, '-', c='w', lw=0.5, label='Wotan trend',
+                        path_effects=[outline])
+            
+            # Plot quarter mark
+            ax.tick_params(which='both', top=False)
+            group, camera, quarter = lc.obs()
+            lab = f'Q{quarter}'
+            xpos = np.mean(time) - 20
+            if quarter > 9: xpos -= 10
+            ypos = 104.5 #103.5
+            ax.text(xpos, ypos, lab, fontsize=16, zorder=-1)
+            if not quarter in (0, nfiles):
+                ax.axvline(x=quarter*90-1, c='k', linestyle=':', lw=1, zorder=-1)
+            
+        # Set legend
+        if legend:
+            pos = ax.get_position()
+            ax.set_position([pos.x0, pos.y0, pos.width * 0.9, pos.height])
+            ax.legend(bbox_to_anchor=(1.24, 1.0), prop={'size': 10})
+            
+        # Settings
+        ax.set_xlim(self.time_limit(quarters))
+        ax.set_xlabel(f'Time [days]')
+        ax.set_ylabel(r"Flux [ke$^-$ s$^{-1}$]")
 
-    
-    
+        ax.set_xlim(self.time_limit(quarters))
+        #plt.tight_layout(pad=0.0)
+
+        return fig, ax
+            
 
 
 
+        
+
+
+    def plot_oc(self, time_unit="d", figsize=(9,6)):
+        """
+        Function to plot observed - calculated light curve.
+        """
+
+        # Get varsource light curve
+        lc = self.varsource()
+        itime = lc["time"] / c.day
+        iflux = lc["comb"]
+        
+        # Sorten simulation
+        oflux = self.flux(unit="ppm")
+        mflux = self.flux_med(unit="ppm")
+        
+        # Handle time column
+        time = self.time(unit=time_unit)
+
+        # Star plotting
+        
+        fig, ax = plt.subplots(2, 1, figsize=figsize)
+
+        # Plot simulation, median, and input
+        ax[0].plot(time,  oflux, '.', c='k', ms=self.ms, alpha=0.2, label='Corrected data')
+        ax[0].plot(time,  mflux, '-', c='royalblue', lw=0.5,         label='1h median')
+        ax[0].plot(itime, iflux, '-', c='m',         lw=0.5,         label='Input signal')
+        ax[0].set_xlim(time.iloc[0], time.iloc[-1])
+        ax[0].legend(ncol=3, loc="center",  bbox_to_anchor=(0.5, 1.1))
+
+        # Plot median vs. input
+        ax[1].plot(time,  mflux, '-', c='royalblue', lw=0.5)
+        ax[1].plot(itime, iflux, '-', c='m',         lw=0.5)
+        ax[1].set_xlim(time.iloc[0], time.iloc[-1])
+
+        # Labels
+        ax[1].set_xlabel('Time [days]')
+        fig.text(0.005, 0.5, 'Flux [ppm]', va='center', rotation='vertical')
+
+        # Layout
+        ax[0].set_xticklabels([])
+        plt.tight_layout(h_pad=0.2, w_pad=1)
+        
+        return fig, ax
+
+
+
+
+
+        
 
     def plotComparison(self, fig, filenames, medfilt=None, title=None):
         """
@@ -794,476 +1893,3 @@ class LightCurve(object):
 
         return fig
 
-
-
-
-
-    def plotMultiCameraAndQuarterPhotometry(self, fig, outputFiles, medfilt=144, title=None):
-        """
-        FIXME this function do not work currently
-
-        Parameters
-        ----------
-        filename : str
-            File name of HDF5 file containing photometry
-
-        Return
-        ------
-        fig, ax: matplotlib object
-        """
-
-        # Fetch information about the observation
-
-        numFiles = len(outputFiles)
-        aa = 0.2  # Alpha channel of data
-
-        ax = fig.add_subplot(1,1,1)
-
-        cameras = {}
-        maskupdates = []
-
-        for i in range(numFiles):
-
-            # Load photometry class
-
-            f = SimFile(outputFiles[i])
-
-            quarter_i = int(outputFiles[i][-6])
-            camera_i  = outputFiles[i][-11:-8]
-
-            #print(quarter_i)
-            # Fetch and combine time series for each quarter
-
-            # Fetch photometry
-
-            lc = f.getPhotometry(starID=1, quarterNo=quarter_i)
-            time = lc[0] / c.day        # [days]
-            flux = ut.normalize(lc[2])  # [ppm]
-            flux_med = median_filter(flux, medfilt)  # [ppm]
-
-            ax.plot(time, flux, 'k.', markersize=1, alpha=0.2, label='Raw flux')
-            ax.plot(time, flux_med, 'g-', label='Median per hour')
-
-            # Fetch mask updates
-
-            mask = f.getPhotometricMask(1)
-            maskupdates.append((mask[2] * 25.) / c.day)  # [days]
-
-                # Save time series to dict
-
-            #cameras['Ncam{}'.format(camera_i)] = [time, flux]
-
-
-        # Compute median carbox filter of output signal
-
-        maskupdates = np.arange(0, 7*8*maskupdates[0][1], maskupdates[0][1])
-
-        axes_maskupdates(ax, time, maskupdates)
-        ax.legend(loc='lower right', fancybox=True, ncol=2)
-        ax.set_ylabel('Norm. Flux [ppm]')
-        plt.xlabel('Time [days]', fontsize=fs-3)
-        plt.ylabel('Relative flux [ppm]', fontsize=fs-3)
-
-        # Settings
-
-        #plt.xlim(axes_minmax(x=time))
-        #plt.ylim(-n*df, df)
-
-        # That's it!
-
-        plt.show()
-
-        
-
-    #--------------------------------------------------------------#
-    #                       MULTI CAMERA/QUARTER                   #
-    #--------------------------------------------------------------#
-
-
-    def analyse_single_camera(self, inputDir, outputFile, numStar):
-
-        # Open a pandas data frame and write to it
-        df = pd.DataFrame()
-        cols = ["id", "ra", "dec", "x", "y", "mag", "ccd", "xccd", "yccd", "xfp", "yfp"]
-        f = 247.52 # [mm] 
-
-        # Loop over star simulated
-
-        for i in tqdm(range(1, numStar+1), bar_format=ut.tqdm_bar_format()):
-
-            # Fetch all zip files
-            starID   = f"{i}".zfill(9)
-            path     = f"{inputDir}/{starID}"
-            files    = self.files(path=path)
-            numFiles = len(files)
-
-            # Loop over each group/cam/quarter simulation
-
-            for j in range(numFiles):
-
-                # Extract files
-                with ZipFile(files[j], 'r') as unzip:
-                    unzip.extractall(path)
-
-                # Get file names
-                filename_ftr = files[j][:-3] + "ftr"
-                filename_cat = files[j][:-3] + "cat"
-                filename_inv = files[j][:-3] + "invert"    
-
-                # Fetch light curve object
-                try: lc = LightCurve(filename_ftr)
-                except: pass
-                else:
-
-                    # Fetch info about observation
-                    group, camera, quarter = lc.obs()
-
-                    # Fetch info about contaminants
-                    mag, rOA, rCP, ncon, SPR = self.star_info(filename_cat)
-
-                    # Force a correction and reload file
-                    # TODO remove for future simulations! Fixed in PLATOnium now
-                    #self.correct_cols(lc, filename_ftr)
-                    #lc = LightCurve(filename_ftr)
-
-                    # Flag for negative fluxes (bad behavior of L1 pipeline)
-                    if lc.flux().iloc[0] < 1:
-                        flag = 1
-                        #print(filename_ftr)
-                        #print(lc.data())
-                        #exit()
-                    else:
-                        flag = 0
-                    
-                    # Fetch NSR from RMS [ppm/sqrt(h)]
-                    NSR = lc.getNSR()
-                    
-                    # Mean centroid error in percent
-                    xcen     = lc.xcen()
-                    ycen     = lc.ycen()
-                    xcen_err = lc.xcen_err()
-                    ycen_err = lc.ycen_err()
-                    rcen     = np.sqrt(xcen**2 + ycen**2)
-                    rcen_err = np.sqrt(xcen_err**2 + ycen_err**2)
-                    rcen_err_mean = rcen_err.mean() / rcen.mean() * 100
-                    #if rcen_err_mean > 100: rcen_err_mean = 100
-
-                    # Mean flux error in percent
-                    flux     = np.abs(lc.flux())
-                    flux_err = np.abs(lc.flux_err())
-                    flux_err_mean = flux_err.mean() / flux.mean() * 100                
-                    #if flux_err_mean > 100: flux_err_mean = 100
-
-                    # Write data to feather
-                    data = {"star":i, "group":group, "camera":camera, "quarter":quarter, "mag":mag,
-                            "flux_err":flux_err_mean, "rerr":rcen_err_mean, "flag":flag,
-                            "rOA":rOA, "rCP":rCP, "ncon":ncon, "SPR":SPR, "NSR":NSR}
-                    df = df.append(data, ignore_index=True)
-                    
-                    # Delete unpacked files again to not overflow storage memory
-                    os.remove(filename_ftr)
-                    os.remove(filename_cat)
-                    os.remove(filename_inv)
-
-        # Save final feather
-        df = df.astype({"star":int, "group":int, "camera":int, "quarter":int, "mag":np.float32,
-                        "rOA":np.float32, "flux_err":np.float32, "rerr":np.float32, "flag":int,
-                        "rOA":np.float32, "rCP":np.float32, "ncon":int, "SPR":np.float32,
-                        "NSR":np.float32})
-
-        # Sort data frame
-        df = df.sort_values(by=["star", "group", "camera", "quarter"])
-
-        # Set new index and save
-        df = df.reset_index()
-        df.to_feather(outputFile)
-
-
-        
-    
-
-    def star_info(self, filename):
-
-        # Fetch info about target star
-        cols = ["id", "ra", "dec", "x", "y", "mag", "ccd", "xccd", "yccd", "xfp", "yfp"]
-        df = pd.read_csv(filename, delimiter=' ', comment='#', names=cols)
-
-        # Fetch V magnitude
-        mag = df["mag"][0]
-
-        # Number of contaminants
-        ncon = len(df["id"]) - 1
-
-        # Distance from optical axis [deg]
-        f = 247.52 # [mm] 
-        rOA = np.rad2deg(rf.gnomonicRadialDistanceFromOpticalAxis(df["xfp"][0], df["yfp"][0], f))
-        
-        # Intra-pixel position
-        xcen = df["x"][0] % 1/2
-        ycen = df["y"][0] % 1/2
-        rCP  = np.sqrt(xcen**2 + ycen**2)
-        
-        # Custom metric to measure the stellar pollution ratio
-        SPR = 0
-        n = len(df["mag"])
-        if n >= 1:
-            for k in range(1, n):
-                dmag = df["mag"].diff()[k]  
-                rpix = np.sqrt(df["x"].diff()[k]**2 + df["y"].diff()[k]**2)
-                SPR += 1/(1+dmag+rpix)
-                # If the contaminants is brighter than the target SPR becomes negative.
-                # Here we are only interested in the absolute pollution:
-                if SPR < 0: SPR += 1
-
-        # Finito!   
-        return mag, rOA, rCP, ncon, SPR
-
-
-
-    
-    def merge(self, quarter=1, time_unit="d", flux_unit="ppm"):
-        """
-        PURPOSE: Function to unpack all files multi-camera and multi-quarter
-                 light curves simulated for a single star.
-        """
-
-        # Open a pandas data frame and write to it
-        df_time = pd.DataFrame()
-        df_flux = pd.DataFrame()
-        df_flux_err = pd.DataFrame()
-        df_flag = pd.DataFrame()
-        dx = pd.DataFrame()
-
-        # Fetch all zip files
-        files    = self.files("ftr")
-        numFiles = len(files)
-        ncam     = 0
-        flag     = 0
-
-        # Loop over each group and camera
-
-        for j in range(numFiles):
-
-            # Get file names
-            filename_ftr = files[j][:-3] + "ftr"            
-
-            # Fetch light curve object
-            try: lc = LightCurve(filename_ftr)
-            except: pass
-            else:
-                
-                # Force a correction
-                # TODO remove for future simulations! Fixed in PLATOnium now
-                #self.correct_cols(lc, filename_ftr)
-                #lc = LightCurve(filename_ftr)
-
-                # Flag for negative fluxes (bad behavior of L1 pipeline)
-                if lc.flux("e/s").mean() < 1: flag = 1
-
-                # Fetch obs info
-                G, C, Q = lc.obs()
-
-                # Select quarter
-                if Q == quarter:
-                    ncam += 1
-                    df_time[f"time_{Q}{G}{C}"] = lc.time(unit="s")
-                    df_flux[f"flux_{Q}{G}{C}"] = lc.flux(unit=flux_unit)
-                    df_flux_err[f"flux_err_{Q}{G}{C}"] = lc.flux_err(unit=flux_unit)
-                    
-        # Melt coloumns together
-        dx["time"] = df_time.melt()["value"]
-        dx["flux"] = df_flux.melt()["value"]
-        dx["flux_err"] = df_flux_err.melt()["value"]
-
-        # Sort after logic structure and reset indices
-        dx = dx.sort_values(by=["time"])
-        dx = dx.reset_index(drop=True)
-
-        # Set a global light curve object
-        lc = LightCurve(dx, mode="multi", ncam=ncam)
-
-        return lc, ncam, flag
-
-
-
-
-    
-
-    def merge_cameras(self, outputFile, numStar):
-
-        # Open a pandas data frame and write to it
-        df = pd.DataFrame()
-
-        # Loop over star simulated
-
-        for i in tqdm(range(1, numStar+1), bar_format=ut.tqdm_bar_format()):
-
-            # Read path
-            starID = f"{i}".zfill(9)
-            path = f"{self.path}/{starID}/" 
-
-            # Load all feather files
-            phot = LightCurve(path, mode="multi")
-
-            # Unpack all zip files in the path folder
-            phot.unpack()
-
-            # Check if any data exist for a given star
-
-            try: filename_cat = glob.glob(path + "*.cat")[0]
-            except: pass
-            else:
-
-                # Fetch star info
-                mag, rOA, rCP, ncon, SPR = self.star_info(filename_cat)
-                
-                # Loop over each quarter
-                
-                for q in range(1,9):
-                            
-                    # Merge all observations for the same quarter 
-                    lc, ncam, flag = phot.merge(quarter=q)
-
-                    # Check that any light curve exist for a given quarter
-                    if not ncam == 0:
-
-                        # Estimate NSR
-                        NSR = lc.getNSR(influx="ppm")
-
-                        # Mean Flux error
-                        flux_err = lc.flux_err().abs().mean()
-
-                        # Write data to feather
-                        data = {"star":i, "mag":mag, "rOA":rOA, "quarter":q, "ncam":ncam, 
-                                "ncon":ncon, "SPR":SPR, "NSR":NSR, "flux_err":flux_err,
-                                "flag":flag}
-                        df = df.append(data, ignore_index=True)
-
-                # Delete unpacked files again to not overflow storage memory
-                for files_ftr in glob.iglob(os.path.join(path, '*.ftr')):    os.remove(files_ftr)
-                for files_cat in glob.iglob(os.path.join(path, '*.cat')):    os.remove(files_cat)
-                for files_inv in glob.iglob(os.path.join(path, '*.invert')): os.remove(files_inv)
-
-        # Save final feather
-        df = df.astype({"star":int, "mag":np.float32, "rOA":np.float32, "quarter":int, "ncam":int, 
-                        "ncon":int, "SPR":np.float32, "NSR":np.float32, "flux_err":np.float32,
-                        "flag":str})
-
-        # Sort data frame
-        df = df.sort_values(by=["star", "quarter"])
-
-        # Set new index and save
-        df = df.reset_index()
-        df.to_feather(outputFile)
-
-
-
-
-
-
-    def correct_cols(self, lc, filename_ftr):
-
-        # Fetch data
-        df = lc.data()
-
-        # Number of columns to correct
-        ncols = df.columns.str.startswith("level").sum()
-
-        # TODO only needed for now!
-        # if "level_5" in df.columns:
-        if ncols == 6:
-            cols = ['flux', 'cx', 'cy', 'bg', 'flux_err', 'cx_err', 'time',
-                    'cy_err', 'bg_err', 'chi2', 'iter', 'lamb']
-            df = df.iloc[:,:12]
-            df.columns = cols
-            df.to_feather(filename_ftr)
-            
-        elif ncols > 0: # in (12, 18, 22, 28):
-            cols = ['flux', 'cx', 'cy', 'bg', 'flux_err',
-                    'cx_err', 'cy_err', 'bg_err',
-                    'chi2', 'iter', 'lamb', 'random1', 'time']
-            df = df.iloc[:,:13]
-            df.columns = cols
-            df.to_feather(filename_ftr)
-
-
-
-
-
-
-
-    def correct_and_save(self, inputDir, outputDir, numStar):
-        """
-        """
-
-        # Open a pandas data frame and write to it
-        df = pd.DataFrame()
-
-        # Loop over star simulated
-
-        for i in tqdm(range(1, numStar+1), bar_format=ut.tqdm_bar_format()):
-
-            # Read path
-            starID = f"{i}".zfill(9)
-            path = f"{self.path}/{starID}/" 
-
-            # Load all feather files
-            phot = LightCurve(path, mode="multi")
-            
-            # Unpack all zip files in the path folder
-            phot.unpack()
-
-            # Check if any data exist for a given star
-
-            try: filename_cat = glob.glob(path + "*.ftr")[0]
-            except: pass
-            else:
-                
-                # Fetch all zip files
-                files    = self.files("ftr", path=path)
-                numFiles = len(files)
-
-                # Create directory for each star
-                starDir = f"{outputDir}/{starID}"
-                if not os.path.exists(starDir):
-                    os.mkdir(starDir)
-
-                # Loop over each group and camera
-
-                for j in range(numFiles):
-
-                    # Get file names
-                    filepath_ftr = files[j][:-3] + "ftr"
-                    filepath_cat = files[j][:-3] + "cat"
-                    filepath_inv = files[j][:-3] + "invert"
-
-                    # Fetch light curve object
-                    try: lc = LightCurve(filepath_ftr)
-                    except: pass
-                    else:
-                        
-                        # Force a correction
-                        # TODO remove for future simulations! Fixed in PLATOnium now
-                        self.correct_cols(lc, filepath_ftr)
-
-                        # Move files to new folder
-                        filepath_ftr_new = f"{outputDir}/{starID}/{filepath_ftr[-24:]}"
-                        filepath_cat_new = f"{outputDir}/{starID}/{filepath_cat[-24:]}"
-                        filepath_inv_new = f"{outputDir}/{starID}/{filepath_inv[-27:]}"
-                        shutil.move(filepath_ftr, filepath_ftr_new)
-                        shutil.move(filepath_cat, filepath_cat_new)
-                        shutil.move(filepath_inv, filepath_inv_new)
-
-                        # Give full access to all files
-                        os.system(f'chmod 777 {filepath_ftr_new[:-3]}*')
-
-                        # Compress
-                        os.system(f'zip -j {filepath_ftr_new[:-4]}.zip {filepath_ftr_new[:-3]}* > /dev/null')
-
-                        # Give full access to new zip file
-                        os.system(f'chmod 777 {filepath_ftr_new[:-4]}.zip')
-
-                        # Remove old files (except for zip files)
-                        os.remove(filepath_ftr_new)
-                        os.remove(filepath_cat_new)
-                        os.remove(filepath_inv_new)

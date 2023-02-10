@@ -39,7 +39,7 @@ import batman
 from platosim.utilities import errorcode
 
 # PLATOnium
-import platosim.varsim.plots as pt
+import platosim.plot as pt
 import platosim.varsim.utilities as ut
 import platosim.varsim.mr_forecast as mr
 from platosim.varsim.pyspot_PLATO_v2 import simulate_lc
@@ -69,7 +69,7 @@ t_day    = 86400.  # [s]
 #                        PLATOnium CLASS                       #
 #==============================================================#
 
-class variability(object):
+class Variability(object):
     """
     This class has the purpose
     """
@@ -108,7 +108,7 @@ class variability(object):
             plt.rcParams['text.usetex'] = True
         
         # Absolute cwd path
-        self.path     = Path(os.getenv("PLATO_PROJECT_HOME") + "/python/platosim/varmsim")
+        self.path     = Path(os.getenv("PLATO_PROJECT_HOME") + "/python/platosim/varsim")
         self.datapath = self.path / 'data'
         
         # OBSERVATIONAL PARAMETERS
@@ -364,7 +364,8 @@ class variability(object):
         if args.planet or args.planet_params or args.xsource:
             incl = np.random.uniform(85, 90)
         else:
-            incl = np.random.uniform(0, 90)
+            # None means cos(i_star) uniform between 0-90 deg
+            incl = None
             
         # Re-run random activity cycle until it fits in memory!
         lc = None
@@ -1270,22 +1271,40 @@ class variability(object):
         if args.star == 'std':
             dm = self.lc['std']
         else:
-            # Sum all signals
-            lc_sum = self.lc.iloc[:,1:].sum(axis=1)
-            self.lc['sum'] = lc_sum.tolist()
-            # Convert back to relative flux
-            df = self.lc['sum'].to_numpy() / 1e6 + 1
+            # Combine all signals
+            
+            # Granulation and pulsation are additive
+            if 'gran' in self.lc and 'puls' in self.lc:
+                self.lc['comb'] = (self.lc.gran + self.lc.puls) / 1e6 + 1
+            elif 'gran' in self.lc and 'puls' not in self.lc:
+                self.lc['comb'] = self.lc.gran / 1e6 + 1
+            elif 'gran' not in self.lc and 'puls' in self.lc:
+                self.lc['comb'] = self.lc.puls / 1e6 + 1
+            else:
+                self.lc['comb'] = np.ones_like(self.lc.time)
+                
+            # Spots and transits are multiplicative
+            if 'spot' in self.lc:
+                self.lc['comb'] *= (self.lc.spot / 1e6 + 1)
+            if 'tran' in self.lc:
+                self.lc['comb'] *= (self.lc.tran / 1e6 + 1)
+                
             # Convert to delta magnitude
-            dm = - 2.5 * np.log10(df)
+            dF = self.lc['comb'].to_numpy()
+            dm = - 2.5 * np.log10(dF)
 
+            # Convert back again for plot (normalized to 0 [ppm])
+            self.lc.comb = (self.lc.comb - 1) * 1e6
+            
         # Convert to quarters
         if args.quarter:
             self.lc['time'] += self.timeStart * 86400
 
         # PLOT FINAL LIGHT CURVE
-        
+
         if args.plot and args.star != 'std':
             pt.plot_final_lc(self.lc)
+            plt.show()
 
         # OUTPUT PANDAS TABLE
         
@@ -1316,8 +1335,8 @@ class variability(object):
              'Pmin_day': [self.spot_params[3]],
              'Pmax_day': [self.spot_params[4]],
              'lmax_deg': [self.spot_params[5]],
-             'Pcyc_day': [self.spot_params[6]],
-             'Povl_day': [self.spot_params[7]],
+             'Pcyc_year': [self.spot_params[6]],
+             'Povl_year': [self.spot_params[7]],
              'Acyc': [self.spot_params[8]],
              'is_deg': [self.spot_params[9]],
 
@@ -1351,14 +1370,15 @@ class variability(object):
         # SAVE DATA
         
         if args.outfile:
+
+            print(f'\nSaving output files')
             out = args.outfile[-3:]
 
             # Save to ascii
             if out == 'txt':
                 np.savetxt(args.outfile, np.transpose([self.lc['time'], dm]), fmt=['%.1f', '%.8f'])
                 df.to_feather(f'{args.outfile[:-4]}_parameters.ftr')
-                if args.xsource in (1, 2, 3):
-                    self.lc.to_feather(f'{args.outfile[:-4]}_components.ftr')
+                self.lc.to_feather(f'{args.outfile[:-4]}_components.ftr')
 
             # Save to numpy binary
             elif out == 'npy':
@@ -1377,7 +1397,7 @@ class variability(object):
                 if out == 'ftr':
                     df.to_feather(args.outfile)
                     df.to_feather(f'{args.outfile[:-4]}_params.{out}')
-
+                    
             else:
                 errorcode('Error', 'Output format not supported!')
 
@@ -1451,7 +1471,7 @@ if not args.xsource in (0, 1, 2, 3):
     args.xsource = False
     
 # Initialize instance of class
-v = variability(args)
+v = Variability(args)
 
 # Run variability modules
 if args.star == 'std':
@@ -1463,7 +1483,8 @@ elif args.xsource or args.planet:
     if args.star or args.star_params:
         if args.spot:
             v.stellar_activity()
-        v.stellar_gran_osc()
+        if not args.gran or not args.puls:
+            v.stellar_gran_osc()
         
     # Exoplanet model
     if args.planet or args.planet_params or args.planet == 'random':
@@ -1473,8 +1494,8 @@ elif args.xsource or args.planet:
         v.exoplanet_occultation()
         v.exoplanet_beaming()
         v.exoplanet_ellipsoidal()
-        if not args.xsource and args.plot:
-            v.plot_phase_curve()
+        #if not args.xsource and args.plot:
+        #    v.plot_phase_curve()
         
 # Combine and save
 v.run_prolog()
