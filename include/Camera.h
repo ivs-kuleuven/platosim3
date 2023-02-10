@@ -58,6 +58,7 @@ class Camera : public HDF5Writer
         pair<double, double> undistortedToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm);
         pair<double, double> distortedToUndistortedFocalPlaneCoordinates(double xFPdist, double yFPdist);
 
+        void createZodiacalMap();
         double getGnomonicRadialDistanceFromOpticalAxis(double xFP, double yFP);
 
         set<unsigned int> getAllStarIDs();

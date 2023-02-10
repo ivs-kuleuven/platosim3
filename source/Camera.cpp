@@ -1197,10 +1197,11 @@ void Camera::exposeDetectorWithSkyBackground(Detector &detector, double startTim
 
     if (userGivenSkyBackground < 0.0)
     {
+
+        createZodiacalMap();
         const double energyOfOnePhoton = Constants::CLIGHT * Constants::HPLANCK / (throughputLambdaC * 1.e-9);                // [J]
         const double lambda1 = (throughputLambdaC - throughputBandwidth/2.0) * 1.e-9;                                         // [m]
         const double lambda2 = (throughputLambdaC + throughputBandwidth/2.0) * 1.e-9;                                         // [m]
-
         const double zodiacalFlux = sky.zodiacalFlux(centerRA, centerDec, lambda1, lambda2)                                   // [phot/exposure]
                                     * (exposureTime + readoutTimeBeforeNextExposure) * transmissionEfficiency * telescope.getLightCollectingArea()
                                     * detector.getSolidAngleOfOnePixel(plateScale) / energyOfOnePhoton;
@@ -1239,6 +1240,15 @@ void Camera::exposeDetectorWithSkyBackground(Detector &detector, double startTim
 
 
 
+/**
+ * @brief  Create the zodiacal map on the sub
+ *
+ * @param[in] backgroundMap   Map we fill with values of the zodiacal light.
+ */
+void Camera::createZodiacalMap()
+{
+    std::cout << "We do get here" << std::endl;
+}
 
 
 
