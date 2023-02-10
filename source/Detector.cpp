@@ -408,7 +408,7 @@ void Detector::updateParameters(double time)
     if (cosmicIntensityParams.size() != 3)
     {
         Log.error("Detector::configure(): in input yaml file: Sky/Cosmics/Intensity array does not contain 3 numbers.");
-        throw ConfigurationException("Detector: in input yaml file: Sky/Cosmics/Intensity array needs to have 3 numbers. Perhaps you used an old config file?"); 
+        throw ConfigurationException("Detector: in input yaml file: Sky/Cosmics/Intensity array needs to have 3 numbers. Perhaps you used an old config file?");
     }
 
     darkCurrent                         = configParam.getDouble("CCD/DarkSignal/DarkCurrent");
@@ -636,14 +636,14 @@ void Detector::readCTIinputFile(string ctiInputFile)
     CTIFile.readArray("/", "temperature", temporary);
     temperature = temporary[0];
 
-    CTIFile.readArray("/", "meanTrapDensityBOL", meanTrapDensityBOL); 
-    CTIFile.readArray("/", "meanTrapDensityEOL", meanTrapDensityEOL); 
-    CTIFile.readArray("/", "trapCaptureCrossSection", trapCaptureCrossSection); 
-    CTIFile.readArray("/", "releaseTime", releaseTime); 
+    CTIFile.readArray("/", "meanTrapDensityBOL", meanTrapDensityBOL);
+    CTIFile.readArray("/", "meanTrapDensityEOL", meanTrapDensityEOL);
+    CTIFile.readArray("/", "trapCaptureCrossSection", trapCaptureCrossSection);
+    CTIFile.readArray("/", "releaseTime", releaseTime);
 
     numTrapSpecies = releaseTime.size();
 
-    // Read in the radiation map. This map has the same size as for the entire CCD.  
+    // Read in the radiation map. This map has the same size as for the entire CCD.
 
     arma::Mat<float> map(numRows, numColumns);
     CTIFile.readArray("/", "radiationMap", map);
@@ -651,13 +651,13 @@ void Detector::readCTIinputFile(string ctiInputFile)
     // Rescale the radiatio  map so that it has mean = 1, and only keep the part relevant to subfield we're interested in.
 
     radiationMap.resize(numRowsPixelMap, numColumnsPixelMap);
-    radiationMap = map.submat(subFieldZeroPointRow, subFieldZeroPointColumn, subFieldZeroPointRow+numRowsPixelMap-1, subFieldZeroPointColumn+numColumnsPixelMap-1); 
+    radiationMap = map.submat(subFieldZeroPointRow, subFieldZeroPointColumn, subFieldZeroPointRow+numRowsPixelMap-1, subFieldZeroPointColumn+numColumnsPixelMap-1);
     radiationMap /= arma::mean(arma::mean(map));
 
-    // That's it!  
+    // That's it!
 
-    CTIFile.close(); 
-} 
+    CTIFile.close();
+}
 
 
 
@@ -677,30 +677,30 @@ void Detector::reset()
     biasMapLeft.zeros();
     biasMapRight.zeros();
     smearingMap.zeros();
-    
-    cosmicEntryRowSubfield.clear();        
-    cosmicEntryColSubfield.clear();        
-    cosmicsTrailsSubfield.clear();          
-    cosmicsAnglesSubfield.clear();          
-    cosmicsIntensitiesSubfield.clear();     
 
-    cosmicEntryRowSmearingMap.clear();     
-    cosmicEntryColSmearingMap.clear();     
-    cosmicsTrailsSmearingMap.clear();       
-    cosmicsAnglesSmearingMap.clear();       
-    cosmicsIntensitiesSmearingMap.clear();  
+    cosmicEntryRowSubfield.clear();
+    cosmicEntryColSubfield.clear();
+    cosmicsTrailsSubfield.clear();
+    cosmicsAnglesSubfield.clear();
+    cosmicsIntensitiesSubfield.clear();
 
-    cosmicEntryRowBiasMapLeft.clear();     
-    cosmicEntryColBiasMapLeft.clear();     
-    cosmicsTrailsBiasMapLeft.clear();       
-    cosmicsAnglesBiasMapLeft.clear();       
-    cosmicsIntensitiesBiasMapLeft.clear();  
+    cosmicEntryRowSmearingMap.clear();
+    cosmicEntryColSmearingMap.clear();
+    cosmicsTrailsSmearingMap.clear();
+    cosmicsAnglesSmearingMap.clear();
+    cosmicsIntensitiesSmearingMap.clear();
 
-    cosmicEntryRowBiasMapRight.clear();    
-    cosmicEntryColBiasMapRight.clear();    
-    cosmicsTrailsBiasMapRight.clear();      
-    cosmicsAnglesBiasMapRight.clear();      
-    cosmicsIntensitiesBiasMapRight.clear(); 
+    cosmicEntryRowBiasMapLeft.clear();
+    cosmicEntryColBiasMapLeft.clear();
+    cosmicsTrailsBiasMapLeft.clear();
+    cosmicsAnglesBiasMapLeft.clear();
+    cosmicsIntensitiesBiasMapLeft.clear();
+
+    cosmicEntryRowBiasMapRight.clear();
+    cosmicEntryColBiasMapRight.clear();
+    cosmicsTrailsBiasMapRight.clear();
+    cosmicsAnglesBiasMapRight.clear();
+    cosmicsIntensitiesBiasMapRight.clear();
 
     rowsOfCosmicsInSubField.clear();
     columnsOfCosmicsInSubField.clear();
@@ -968,7 +968,7 @@ void Detector::checkGain()
  *       be available for the pixels (i, j) that are within a window centred
  *       at pixel (0, 0).  This can be done because the influence of pixels (i, j)
  *       rapidly decreases with distance from pixel (0, 0).
- * 
+ *
  * \param filename: Name of the HDF5 file from which to read the BFE coefficients.
  */
 void Detector::readBfeCoefficients(string filename)
@@ -1000,9 +1000,9 @@ void Detector::readBfeCoefficients(string filename)
     int windowDim = 2 * bfeRange + 1;   // Window in which to consider source charges Q_ij
 
     string neighborNames[numNeighbors] = {"East", "North", "West", "South"};
-    
+
     bfeCoefficients.zeros(windowDim, windowDim, numNeighbors);  // (row, column, X)
-    
+
     string neighborName;
     arma::fmat slice = arma::fmat(windowDim, windowDim, arma::fill::zeros); // Temporary storage of the BFE coefficients for given neighbour
 
@@ -1533,7 +1533,7 @@ void Detector::addCosmics(float exposureTime)
         }
         else
         {
-            addCosmics(readoutTimeBeforeNextExposure, smearingMap, rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap, 
+            addCosmics(readoutTimeBeforeNextExposure, smearingMap, rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap,
                        fluxOfCosmicsInSmearingMap, numRowsSmearingMap, numColumnsPixelMap, "smearing map");
         }
     }
@@ -1547,9 +1547,9 @@ void Detector::addCosmics(float exposureTime)
         Log.debug("Detector: adding cosmic hits to bias map");
         cosmicTrailLengthDistribution = uniform_real_distribution<double>(0.0, 1.e-6);    // Only hot pixels, no trails
         const double biasMapRowLifeTime = (numColumns / 2 + numColumnsBiasMap) * serialTransferTime + parallelTransferTime;
-        addCosmics(biasMapRowLifeTime, biasMapLeft, rowsOfCosmicsInBiasMapLeft, columnsOfCosmicsInBiasMapLeft, fluxOfCosmicsInBiasMapLeft, 
+        addCosmics(biasMapRowLifeTime, biasMapLeft, rowsOfCosmicsInBiasMapLeft, columnsOfCosmicsInBiasMapLeft, fluxOfCosmicsInBiasMapLeft,
                    numRowsBiasMap, numColumnsBiasMap, "bias map (left half)");
-        addCosmics(biasMapRowLifeTime, biasMapRight, rowsOfCosmicsInBiasMapRight, columnsOfCosmicsInBiasMapRight, 
+        addCosmics(biasMapRowLifeTime, biasMapRight, rowsOfCosmicsInBiasMapRight, columnsOfCosmicsInBiasMapRight,
                    fluxOfCosmicsInBiasMapRight, numRowsBiasMap, numColumnsBiasMap, "bias map (right half)");
     }
 
@@ -1585,7 +1585,7 @@ void Detector::addCosmics(float exposureTime)
  * \param exposureTime:        amount of time exposed to cosmic particle influx [s].
  * \param map:                 map affected by cosmics [e-].  Either the pixel, bias register, or smearing map.
  * \param rowsOfCosmicsMap:    a vector that stores the rows where the cosmics hit.
- * \param columnsOfCosmicsMap: a vector that stores the column where the cosmics hit. 
+ * \param columnsOfCosmicsMap: a vector that stores the column where the cosmics hit.
  * \param fluxOfCosmicsMap:    a vector that stores the flux of the cosmics.
  * \param numRows:             number of rows in the map [pixels].
  * \param numColumns:          number of columns in the map [pixels].
@@ -1767,7 +1767,7 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, vector<unsi
                     fluxOfCosmicsMap.push_back(trailWeights(index) * intensity);
                 }
 
-                if (trailRow != rowsOfCosmicsMap.back() || trailColumn != columnsOfCosmicsMap.back()) 
+                if (trailRow != rowsOfCosmicsMap.back() || trailColumn != columnsOfCosmicsMap.back())
                 {
                     rowsOfCosmicsMap.push_back(trailRow);
                     columnsOfCosmicsMap.push_back(trailColumn);
@@ -1973,7 +1973,7 @@ void Detector::applyCTI()
         Log.info("Detector: applying Short et al. (2013) CTI model with CTI info from file");
         applyShort2013CTImodel("pixelMap");
         applyShort2013CTImodel("smearingMap");
-        
+
     }
 }
 
@@ -1996,7 +1996,7 @@ void Detector::setInitialNumberOfOccupiedTraps(arma::Mat<float> &numberOfOccupie
     const double thermalVelocity = sqrt(3.0 * Constants::KBOLTZMANN * temperature / effectiveElectronMass);  // vt [m/s]
     const double dwellTime = ((numColumns / 2) + numColumnsBiasMap) * serialTransferTime;                    // t  [s]
 
-    // Initialise the trapspecies 
+    // Initialise the trapspecies
     arma::Row<float> alpha(numTrapSpecies, arma::fill::zeros);
     for (int k = 0; k < numTrapSpecies; k++)
     {
@@ -2249,15 +2249,15 @@ void Detector::applyShort2013CTImodel(string map)
         {
             // Interpolate between the BOL and EOL to get the trap density for species k corresponding to the current `internalTime`
 
-            arma::Mat<float> currentTrapDensityMap = (meanTrapDensityBOL[k] 
-                                                      + (meanTrapDensityEOL[k] - meanTrapDensityBOL[k]) * internalTime / missionDuration 
+            arma::Mat<float> currentTrapDensityMap = (meanTrapDensityBOL[k]
+                                                      + (meanTrapDensityEOL[k] - meanTrapDensityBOL[k]) * internalTime / missionDuration
                                                      ) * (*radiation);
 
             // Compute the number of electrons captured in a trap, according to Eq. (22)-(23) of Short et al. (2013).
             // Note that Armadillo uses % for elementwise multiplication.
             // In the following line: +1 as row = 0 also has to be transferred once
             gamma = 2 * currentTrapDensityMap.row(rowNumber) * (zeroPointRow + rowNumber + 1) / pow(fullWellSaturationLimit, beta) / (1 + beta); // +1 as row = 0 also has to be transferred once
-            
+
             numberOfCapturedElectrons =   (gamma % arma::pow((*matMap).row(rowNumber), beta) - (*numberOfOccupiedTraps).row(k)) \
                                         / (gamma % arma::pow((*matMap).row(rowNumber), beta-1) + 1)                          \
                                         % (1 - arma::exp(-alpha(k) * arma::pow((*matMap).row(rowNumber), 1-beta)));
@@ -2474,14 +2474,14 @@ double Detector::getRowEdgeFOV(int column)
         offsetCol = currentCcdPositions[ccd * 3];
         offsetRow = currentCcdPositions[ccd * 3 + 1];
     }
-  
+
     // Quadratic equation: a * x**2 + b * x + c  = 0
     // Find intersection between circle representing the FOV and the given column
 
     double a = pow(pixelSizeMm, 2);
     double b = 2 * pixelSizeMm * ( pixelSizeMm * subFieldZeroPointRow - offsetRow);
-    double c = pow(pixelSizeMm * subFieldZeroPointRow - offsetRow, 2) 
-             + pow((column + subFieldZeroPointColumn) * pixelSizeMm - offsetCol , 2) 
+    double c = pow(pixelSizeMm * subFieldZeroPointRow - offsetRow, 2)
+             + pow((column + subFieldZeroPointColumn) * pixelSizeMm - offsetCol , 2)
              - pow(camera.getFocalLength() * tan(radiusFOV), 2);
 
     // Discriminant (should be positive)
@@ -2828,7 +2828,7 @@ void Detector::applyOverAndUnderShoot()
     int lengthReadoutRegister;
 
     double skyBackground = camera.getTotalSkyBackground();
-    
+
     if (includeRelativeTransmissivity)
         skyBackground *= expectedValueRelativeTransmissivity;
     if (includePolarization)
@@ -2950,7 +2950,7 @@ pair<double, double> Detector::pixelToFocalPlaneCoordinates(double row, double c
     }
 
     else
-    {   
+    {
         int ccd = stoi(ccdPosition) - 1;
 
         array<double, 12> currentCcdPositions = (*ccdPositions)();
@@ -2999,7 +2999,7 @@ pair<double, double> Detector::focalPlaneToPixelCoordinates(double xFP, double y
     if (ccdPosition == "Custom")
     {
         xCCDmm = customOriginOffsetX + xFP * cos(customOrientationAngle) + yFP * sin(customOrientationAngle);
-        yCCDmm = customOriginOffsetY - xFP * sin(customOrientationAngle) + yFP * cos(customOrientationAngle); 
+        yCCDmm = customOriginOffsetY - xFP * sin(customOrientationAngle) + yFP * cos(customOrientationAngle);
     }
 
     else
@@ -3015,7 +3015,7 @@ pair<double, double> Detector::focalPlaneToPixelCoordinates(double xFP, double y
         xCCDmm = originOffsetX + xFP * cos(orientationAngle) + yFP * sin(orientationAngle);
         yCCDmm = originOffsetY - xFP * sin(orientationAngle) + yFP * cos(orientationAngle);
     }
-    
+
     // Convert the [mm] coordinates into pixel coordinates
 
     const double column = xCCDmm / pixelSize * 1000.0;
@@ -3256,7 +3256,7 @@ void Detector::initHDF5Groups()
         hdf5File.createGroup("/Cosmics/BiasMapLeft");
         hdf5File.createGroup("/Cosmics/BiasMapRight");
     }
-    
+
 }
 
 
@@ -3266,7 +3266,7 @@ void Detector::initHDF5Groups()
 
 /**
  * Writes the colum, row and flux values of cosmics to the HDF5 file. This function
- * calls Detector::writeCosmicFieldToHDF5, if cosmics is included 
+ * calls Detector::writeCosmicFieldToHDF5, if cosmics is included
  * in the repective Field.
  *
  * /params exposureNr:   Sequential number of the exposure
@@ -3275,25 +3275,25 @@ void Detector::writeCosmicHitsToHDF5(int exposureNr)
 {
    if (includeCosmicsInSubField && writeCosmics)
    {
-       writeCosmicFieldToHDF5(exposureNr, "SubField", cosmicEntryRowSubfield, cosmicEntryColSubfield, cosmicsTrailsSubfield, 
-                              cosmicsAnglesSubfield, cosmicsIntensitiesSubfield, 
+       writeCosmicFieldToHDF5(exposureNr, "SubField", cosmicEntryRowSubfield, cosmicEntryColSubfield, cosmicsTrailsSubfield,
+                              cosmicsAnglesSubfield, cosmicsIntensitiesSubfield,
                               rowsOfCosmicsInSubField, columnsOfCosmicsInSubField, fluxOfCosmicsInSubField);
    }
 
    if (includeCosmicsInSmearingMap && writeCosmics)
    {
-       writeCosmicFieldToHDF5(exposureNr, "SmearingMap", cosmicEntryRowSmearingMap, cosmicEntryColSmearingMap, cosmicsTrailsSmearingMap, 
-                              cosmicsAnglesSmearingMap, cosmicsIntensitiesSmearingMap, 
+       writeCosmicFieldToHDF5(exposureNr, "SmearingMap", cosmicEntryRowSmearingMap, cosmicEntryColSmearingMap, cosmicsTrailsSmearingMap,
+                              cosmicsAnglesSmearingMap, cosmicsIntensitiesSmearingMap,
                               rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap, fluxOfCosmicsInSmearingMap);
    }
 
    if (includeCosmicsInBiasMap && writeCosmics)
    {
-       writeCosmicFieldToHDF5(exposureNr, "BiasMapLeft", cosmicEntryRowBiasMapLeft, cosmicEntryColBiasMapLeft, cosmicsTrailsBiasMapLeft, 
+       writeCosmicFieldToHDF5(exposureNr, "BiasMapLeft", cosmicEntryRowBiasMapLeft, cosmicEntryColBiasMapLeft, cosmicsTrailsBiasMapLeft,
                               cosmicsAnglesBiasMapLeft, cosmicsIntensitiesBiasMapLeft,
                               rowsOfCosmicsInBiasMapLeft, columnsOfCosmicsInBiasMapLeft, fluxOfCosmicsInBiasMapLeft);
 
-       writeCosmicFieldToHDF5(exposureNr, "BiasMapRight", cosmicEntryRowBiasMapRight, cosmicEntryColBiasMapRight, cosmicsTrailsBiasMapRight, 
+       writeCosmicFieldToHDF5(exposureNr, "BiasMapRight", cosmicEntryRowBiasMapRight, cosmicEntryColBiasMapRight, cosmicsTrailsBiasMapRight,
                               cosmicsAnglesBiasMapRight, cosmicsIntensitiesBiasMapRight,
                               rowsOfCosmicsInBiasMapRight, columnsOfCosmicsInBiasMapRight, fluxOfCosmicsInBiasMapRight);
    }
@@ -3304,20 +3304,20 @@ void Detector::writeCosmicHitsToHDF5(int exposureNr)
 
 
 
-void Detector::writeCosmicFieldToHDF5(int exposureNr, string field, vector<unsigned int> &entryRows, vector<unsigned int> &entryColumns, 
-                                      vector<double> &trailLengths, vector<double> &entryAngles, vector<double> &intensities,   
+void Detector::writeCosmicFieldToHDF5(int exposureNr, string field, vector<unsigned int> &entryRows, vector<unsigned int> &entryColumns,
+                                      vector<double> &trailLengths, vector<double> &entryAngles, vector<double> &intensities,
                                       vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux)
 {
     // Define the name of sub group for every exposure.
-    
+
     stringstream myStream;
     myStream << "/exposure" << setfill('0') << setw(6) << exposureNr;
     string imageName = "/Cosmics/" + field  + myStream.str();
-   
+
     // add the columns vector
 
     hdf5File.createGroup(imageName);
-    
+
     if (rows.empty() && cols.empty())
     {
         vector<unsigned int> noHitsUnsignedInt{0};
@@ -3533,7 +3533,7 @@ void Detector::writeCTIToHDF5()
 
             trapDensityMap = meanTrapDensityEOL[k] * radiationMap;
             hdf5File.writeArray("/CTI", mapName, trapDensityMap);
-            
+
             // Once more clear the stream to that it's ready to be be used again
 
             myStream.str(string());      // insert empty string
