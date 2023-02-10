@@ -5,7 +5,7 @@
 User examples:
   $ varsim --star Sun --planet hotJupiter -p -v
   $ varsim --star CoRoT-1 --planet CoRoT-1b --time 10 -p -o /path/to/varsource.txt
-  $ varsim --star_params 1 1 5800 4.5 0.0 0.0 --planet_params 1 10 0 90 0 1 1 --quarter 1-8 -o /path/to/varsource.txt
+  $ varsim --star_params 1 1 5800 4.5 0 --planet_params 1 10 0 90 0 1 1 --quarter 1-8 -o /path/to/varsource.txt
 
 Given a star and exoplent this script creates a synthetic stellar and exoplanet
 variability model that can be used directly as input for PlatoSim. The script is
@@ -1469,14 +1469,17 @@ if args.xsource == 3:
     args.planet        = 'random'
 if not args.xsource in (0, 1, 2, 3):
     args.xsource = False
-    
+
+if args.spot is None:
+    args.spot = True
+
 # Initialize instance of class
 v = Variability(args)
 
 # Run variability modules
 if args.star == 'std':
     v.photometric_standard()
-elif args.xsource or args.planet:
+else:
     # Star model
     v.stellar_source()
     v.stellar_spectrum()
