@@ -16,12 +16,8 @@ from scipy import constants as c
 from scipy.ndimage import median_filter
 from scipy.interpolate import make_interp_spline
 
-import astropy.units as u
 from astropy.coordinates import SkyCoord
-
-from PyAstronomy import pyasl
-
-import ligo.skymap.plot
+import astropy.units as u
 import shapely.geometry as sg
 import descartes
 
@@ -1030,6 +1026,10 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
         Use fig..savefig('<plot.png>', bbox_inches='tight', dpi=200)
     """
 
+    # Import extra package from astropy
+    # NOTE automatically installed using poetry setup
+    import ligo.skymap.plot
+    
     # Select field
     indir = os.getenv('PLATO_PROJECT_HOME') + '/python/platosim/picsim/'
     if pointingField == 'NPF': PF_gal = [65.0, 30.0]
@@ -2240,6 +2240,8 @@ def plot_orbital_phase_curve(fig, time, lc_tra, lc_occ, lc_beam, lc_elli, lc_fin
     if colors is None: colors = colors_new
 
     # Phase-fold light curve
+    # TODO Implement ourselves
+    from PyAstronomy import pyasl
     phase = pyasl.foldAt(time, P, T0=t0)
 
     # Locate first transit
