@@ -17,7 +17,6 @@
 #include "Camera.h"
 #include "Parameter.h"
 
-
 using namespace std;
 
 
@@ -26,8 +25,26 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
 {
  public:
 
+  // Mapped Zemax PSF
+  
+  DetectorWithMappedPSF(ConfigurationParameters &configParam,
+			HDF5File &hdf5file,
+			Camera &camera,
+			TemperatureGenerator &feeTemperatureGenerator,
+			TemperatureGenerator &detectorTemperatureGenerator,
+			double readoutTimeBeforeNextExposure,
+			double readoutTimeDuringNextExposure);
+  ~DetectorWithMappedPSF();
 
-  DetectorWithAnalyticNonGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure);
+  // Analytic PSF
+  
+  DetectorWithAnalyticNonGaussianPSF(ConfigurationParameters &configParam,
+				     HDF5File &hdf5File,
+				     Camera &camera,
+				     TemperatureGenerator &feeTemperatureGenerator,
+				     TemperatureGenerator &detectorTemperatureGenerator,
+				     double readoutTimeBeforeNextExposure,
+				     double readoutTimeDuringNextExposure);
   ~DetectorWithAnalyticNonGaussianPSF();
 
  protected:
@@ -53,11 +70,11 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
         map<unsigned int, vector<double>> NSRtarget;                      // Noise/Signal ratio of the flux of each target
     
         // The indices (row and column) of the masks are stored as [starID][exposureNr][index]
+  
         map<unsigned int, map<unsigned int, vector<unsigned int>>> rowIndexOfMaskOfTarget;  
         map<unsigned int, map<unsigned int, vector<unsigned int>>> colIndexOfMaskOfTarget;
 
     private:
-
   
 };
 

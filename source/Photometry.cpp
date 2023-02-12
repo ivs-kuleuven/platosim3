@@ -53,6 +53,10 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
     image -= throughputMap * skyBackground;                                      // [e-/pixel/exposure]
 
 
+
+
+    
+
     // Loop over all targets for which you need a lightcurve
 
     const int Ntargets = photStarIDs.size();                                     // Nr of stars for which we want a lightcurve
@@ -85,8 +89,7 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
 
         inputFluxTarget.at(starID).at(zeroBasedExposureNr) = fluxTarget;
 
-        // If this is the first exposure, or it's already 2 weeks ago that the mask was updated,
-        // generate the mask of the current target. 
+        // If this is the first exposure, the mask is alway defined for the current target
 
         double timeSinceLastMaskUpdate = 0.0;
 
@@ -179,7 +182,6 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
                 }
             }
 
-
             // Order the pixels in the (flattened) NSR map from low to high N/S ratio (i.e. high to low S/N)
 
             vector<unsigned int> indices(flatNSRmap.size());
@@ -195,10 +197,9 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
                 colIndex[i] = minCol + (unsigned int)(indices[i]) % NcolsMask; 
             }
 
-            // Build the mask, starting with the pixel with the best NSR, adding one pixel at the time,
-            // with the condition that adding a pixel should contribute more to the aggregated signal than to the aggregated noise.
-
-            // Initialize with the first pixel
+            // Build the mask, starting with the pixel with the lowest NSR, adding one pixel at the time,
+            // with the condition that adding a pixel should contribute more to the aggregated signal than
+	    // to the aggregated noise. Initialize with the first pixel
 
             double aggregatedVariance            = varianceMap(rowIndex[0], colIndex[0]);
             double aggregatedSingleTargetFlux    = singleTargetMap(rowIndex[0], colIndex[0]);
@@ -216,7 +217,7 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
                 double temp = sqrt(aggregatedVariance + varianceMap(rowIndex[i], colIndex[i])) / (aggregatedSingleTargetFlux + singleTargetMap(rowIndex[i], colIndex[i]));
                 if (temp < aggregatedNSR)
                 {
-                    // The aggregated Noise / Signal ratio improved by adding a pixel, so include the pixel in the mask
+                    // The aggregated NSR improved by adding a pixel, so include the pixel in the mask
 
                     aggregatedVariance           += varianceMap(rowIndex[i], colIndex[i]);
                     aggregatedSingleTargetFlux   += singleTargetMap(rowIndex[i], colIndex[i]);
@@ -228,7 +229,7 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
                 }
                 else
                 {
-                    // The aggregated Noise/Signal ratio did not improve by adding this pixel. Not only can we ignore exclude this pixel from the 
+                    // The aggregated NSR did not improve by adding this pixel. Not only can we ignore exclude this pixel from the 
                     // mask, but also all subsequent ones that have an even worse noise/signal ratio. So finalize the mask for this target, and 
                     // then break out of the for-loop.
 

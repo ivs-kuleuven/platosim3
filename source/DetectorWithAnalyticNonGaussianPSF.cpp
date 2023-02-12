@@ -1,7 +1,6 @@
 #include "DetectorWithAnalyticNonGaussianPSF.h"
 
 
-
 /**
  * \brief Constructor.
  * 
@@ -54,9 +53,6 @@ DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(Configura
 
 
 
-
-
-
 /**
  * Destructor.
  *
@@ -66,11 +62,6 @@ DetectorWithAnalyticNonGaussianPSF::~DetectorWithAnalyticNonGaussianPSF()
     flushOutput();
     delete sigma;
 }
-
-
-
-
-
 
 
 
@@ -86,12 +77,13 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
 {
     numExposures        = configParam.getUnsignedInteger("ObservingParameters/NumExposures");
     beginExposureNr     = configParam.getUnsignedInteger("ObservingParameters/BeginExposureNr");
-    cycleTime           = configParam.getDouble("ObservingParameters/CycleTime");                 
-
+    cycleTime           = configParam.getDouble("ObservingParameters/CycleTime");
+    
     flatfieldNoiseRMS   = configParam.getDouble("CCD/FlatfieldNoiseRMS");
     includeFlatfield    = configParam.getBoolean("CCD/IncludeFlatfield");
     flatfieldSeed       = configParam.getLong("RandomSeeds/FlatFieldSeed");
 
+    
     // Read and configure the parameters used to calculate the PSF
 
     string filename = configParam.getAbsoluteFilename("PSF/AnalyticNonGaussian/ParameterFileName");
@@ -125,7 +117,6 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
     chargeDiffusionStrength = configParam.getDouble("PSF/AnalyticNonGaussian/ChargeDiffusionStrength");
 
     Log.info("DetectorWithAnalyticNonGaussianPSF: sigma of charge diffusion: " + to_string(chargeDiffusionStrength) + " pix");
-
     
     // The sigma of the PSF can either be a fixed value, or given by a time series in a file
     
@@ -148,12 +139,12 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
 
     // The configuration for the on-the-fly photometry
 
-    includePhotometry    = configParam.getBoolean("Photometry/IncludePhotometry");
+    includePhotometry = configParam.getBoolean("Photometry/IncludePhotometry");
 
     if (includePhotometry)
     {
-        contaminationRadius = configParam.getInteger("Photometry/ContaminationRadius");                   // [pix]
-        maskUpdateInterval  = configParam.getDouble("Photometry/MaskUpdateInterval") * 86400.;            // [s]                  
+        contaminationRadius = configParam.getInteger("Photometry/ContaminationRadius");         // [pix]
+        maskUpdateInterval  = configParam.getDouble("Photometry/MaskUpdateInterval") * 86400.;  // [s]                  
         filename            = configParam.getAbsoluteFilename("Photometry/TargetFileName");
 
         // Read and store the list of star IDs for which we want a lightcurve
@@ -183,30 +174,23 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
 
         for (auto starID : photStarIDs)
         {
-            inputFluxTarget[starID] = vector<double>(numExposures);  
-            estimatedFluxTarget[starID] = vector<double>(numExposures); 
-            varFluxTarget[starID] = vector<double>(numExposures);
-            maskSizeTarget[starID] = vector<unsigned int>();  
-            NSRtarget[starID] = vector<double>();   
+            inputFluxTarget[starID]        = vector<double>(numExposures);  
+            estimatedFluxTarget[starID]    = vector<double>(numExposures); 
+            varFluxTarget[starID]          = vector<double>(numExposures);
+            maskSizeTarget[starID]         = vector<unsigned int>();  
+            NSRtarget[starID]              = vector<double>();   
             exposureNrOfMaskUpdate[starID] = vector<unsigned int>();
         }
     }
 
-
+    
     // The configuration for the HDF5 contents
     
-    writeFlatfieldMap = configParam.getBoolean("ControlHDF5Content/WriteFlatfieldMap");
+    writeFlatfieldMap      = configParam.getBoolean("ControlHDF5Content/WriteFlatfieldMap");
     writeHighResolutionPSF = configParam.getBoolean("ControlHDF5Content/WriteHighResolutionPSF");
-    writeDiffusedPSF = configParam.getBoolean("ControlHDF5Content/WriteDiffusedPSF");
+    writeDiffusedPSF       = configParam.getBoolean("ControlHDF5Content/WriteDiffusedPSF");
 
 } // end configure()
-
-
-
-
-
-
-
 
 
 
@@ -228,12 +212,6 @@ void DetectorWithAnalyticNonGaussianPSF::updateParameters(double time)
 
     sigma->updateValue(time);
 }
-
-
-
-
-
-
 
 
 
@@ -315,13 +293,7 @@ void DetectorWithAnalyticNonGaussianPSF::integrateAnalyticPSF(IntegralOfAnalytic
 
 
 
-
-
-
-
-
-
- /**
+/**
  * \brief: Generate the (random) flatfield variations.  This map is generated
  *         at pixel level but without the edge pixels.
  *
@@ -389,11 +361,6 @@ void DetectorWithAnalyticNonGaussianPSF::generateFlatfieldMap()
         hdf5File.writeArray("/Flatfield", "PRNU", flatfieldMap);
     }
 }
-
-
-
-
-
 
 
 
@@ -476,13 +443,6 @@ double DetectorWithAnalyticNonGaussianPSF::takeExposure(int exposureNr, double s
 
     return internalTime;
 }
-
-
-
-
-
-
-
 
 
 
@@ -594,8 +554,6 @@ void DetectorWithAnalyticNonGaussianPSF::integrateLight(int exposureNr, double s
 
 
 
-
-
 /**
  * \brief: Add the PSF of the star with given focal plane coordinates and flux level to the given map.
  *         As PSF we use an analytic non-Gaussian function. This function gets called in the addFlux() 
@@ -647,12 +605,6 @@ bool DetectorWithAnalyticNonGaussianPSF::addFluxToMap(arma::Mat<float>& map, dou
 
 
 
-
-
-
-
-
-
 /**
  * \brief: Add the PSF of the star with given focal plane coordinates and flux level to the pixel map.
  *         Return the pixel coordinates of the barycenter of the PSF. As PSF we use an analytic non-Gaussian 
@@ -697,6 +649,10 @@ tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addFlux(double x
 
     return  make_tuple(success, row0, column0);
 }
+
+
+
+
 
 /**
  * \brief Insert the extended ghost with the given radius and flux at the given focal-plane position.
@@ -752,8 +708,6 @@ tuple<bool, double, double> DetectorWithAnalyticNonGaussianPSF::addExtendedGhost
 
 
 
-
-
 /**
  * \brief: Create a high-resolution map of the PSF in the center of the subfield
  *         
@@ -769,15 +723,15 @@ void DetectorWithAnalyticNonGaussianPSF::makeHighResolutionPSF(arma::Mat<float> 
 {
     // Put the PSF right in the middle of the (high-res) (sub)pixel map
 
-    double row0 = Npixels / 2.0;
+    double row0    = Npixels / 2.0;
     double column0 = Npixels / 2.0;
 
     // The high-res (sub)pixel map will be placed in the middle of the regular subfield.
     // Derive the focal plane coordinates of the middle of the subfield. These are needed
     // to later on derive the angular distance from the optical axis.
 
-    double middleRowSubfield = subFieldZeroPointRow + numRowsPixelMap / 2.0;
-    double middleColSubfield = subFieldZeroPointColumn +  numColumnsPixelMap / 2.0;
+    double middleRowSubfield = subFieldZeroPointRow    + numRowsPixelMap    / 2.0;
+    double middleColSubfield = subFieldZeroPointColumn + numColumnsPixelMap / 2.0;
     double xFP, yFP;
     tie(xFP, yFP) = pixelToFocalPlaneCoordinates(middleRowSubfield, middleColSubfield);
 
@@ -818,15 +772,6 @@ void DetectorWithAnalyticNonGaussianPSF::makeHighResolutionPSF(arma::Mat<float> 
 
 
 
-
-
-
-
-
-
-
-
-
 /**
  * \brief: Add the given flux value to (all sub-pixels of) the sub-pixel map.
  *
@@ -844,11 +789,6 @@ void DetectorWithAnalyticNonGaussianPSF::addFlux(double flux)
                       numColumnsPixelMap - coveredRight - 1) += flux;
     }
 }
-
-
-
-
-
 
 
 
@@ -873,13 +813,11 @@ void DetectorWithAnalyticNonGaussianPSF::applyFlatfield()
 {
     const unsigned int beginRow = numEdgePixels;
     const unsigned int beginCol = numEdgePixels;
-    const unsigned int endRow = numRowsPixelMap - numEdgePixels - 1;
-    const unsigned int endCol = numColumnsPixelMap - numEdgePixels - 1;
+    const unsigned int endRow   = numRowsPixelMap    - numEdgePixels - 1;
+    const unsigned int endCol   = numColumnsPixelMap - numEdgePixels - 1;
 
     pixelMap.submat(beginRow, beginCol, endRow, endCol) = pixelMap.submat(beginRow, beginCol, endRow, endCol) % flatfieldMap;
 }
-
-
 
 
 
@@ -892,7 +830,7 @@ void DetectorWithAnalyticNonGaussianPSF::applyFlatfield()
 
 void DetectorWithAnalyticNonGaussianPSF::flushOutput()
 {
-    int Npixels = 8;
+    int Npixels    = 8;
     int Nsubpixels = 128;
 
     // Create the group in the HDF5 file.

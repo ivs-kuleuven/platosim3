@@ -63,6 +63,7 @@ DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configPara
 
 
 
+
 /**
  * Destructor.
  */
@@ -73,6 +74,9 @@ DetectorWithMappedPSF::~DetectorWithMappedPSF()
 }
 
 
+
+
+
 /**
  * \brief Configure the DetectorWithMappedPSF object using the given
  *        configuration parameters.
@@ -81,18 +85,19 @@ DetectorWithMappedPSF::~DetectorWithMappedPSF()
  */
 void DetectorWithMappedPSF::configure(ConfigurationParameters &configParam)
 {
-    flatfieldNoiseRMS = configParam.getDouble("CCD/FlatfieldNoiseRMS");
-    includeFlatfield = configParam.getBoolean("CCD/IncludeFlatfield");
-    includeConvolution = configParam.getBoolean("CCD/IncludeConvolution");
-
+    numExposures              = configParam.getUnsignedInteger("ObservingParameters/NumExposures");
+    beginExposureNr           = configParam.getUnsignedInteger("ObservingParameters/BeginExposureNr");
+    cycleTime                 = configParam.getDouble("ObservingParameters/CycleTime");
+    
+    flatfieldNoiseRMS         = configParam.getDouble("CCD/FlatfieldNoiseRMS");
+    includeFlatfield          = configParam.getBoolean("CCD/IncludeFlatfield");
+    flatfieldSeed             = configParam.getLong("RandomSeeds/FlatFieldSeed");
+    
+    includeConvolution        = configParam.getBoolean("CCD/IncludeConvolution");
     writeSubPixelImagesToHDF5 = configParam.getBoolean("ControlHDF5Content/WriteSubPixelImages");
-
-    numSubPixelsPerPixel = configParam.getInteger("SubField/SubPixels");
-
-    // Configuration parameters for the noise source random seeds
-
-    flatfieldSeed = configParam.getLong("RandomSeeds/FlatFieldSeed");
-
+    numSubPixelsPerPixel      = configParam.getInteger("SubField/SubPixels");
+    
+    
     // Treat the specific configurations for a Mapped PSF
 
     string psfModel = configParam.getString("PSF/Model");
@@ -113,17 +118,64 @@ void DetectorWithMappedPSF::configure(ConfigurationParameters &configParam)
         }
     }
 
+    
     // Derive the dimensions of the sub-pixel map
 
-    numRowsSubPixelMap = numRowsPixelMap * numSubPixelsPerPixel;       // TODO Add edge pixels
-    numColumnsSubPixelMap = numColumnsPixelMap * numSubPixelsPerPixel; // TODO Add edge pixels
+    numRowsSubPixelMap    = numRowsPixelMap    * numSubPixelsPerPixel;  // TODO Add edge pixels
+    numColumnsSubPixelMap = numColumnsPixelMap * numSubPixelsPerPixel;  // TODO Add edge pixels
+
+    
+    // The configuration for the on-the-fly photometry
+
+    includePhotometry = configParam.getBoolean("Photometry/IncludePhotometry");
+
+    if (includePhotometry)
+    {
+        contaminationRadius = configParam.getInteger("Photometry/ContaminationRadius");         // [pix]
+        maskUpdateInterval  = configParam.getDouble("Photometry/MaskUpdateInterval") * 86400.;  // [s]                  
+        filename            = configParam.getAbsoluteFilename("Photometry/TargetFileName");
+
+        // Read and store the list of star IDs for which we want a lightcurve
+
+        ifstream inputfile(filename);
+        if (!inputfile) 
+        {
+            Log.error("DetectorWithMappedGaussianPSF::configure(): 'TargetFileName' file doesn't exist or is not readable: "  + filename);
+            throw ConfigurationException("DetectorWithMappedGaussianPSF: wrong TargetFileName in configuration file");
+        }
+
+        photStarIDs.clear();
+        while (getline(inputfile, line)) 
+        {
+            if (line == "" || line.find("#") == 0)
+            {
+                continue;
+            }
+            else
+            {
+                int starID = (unsigned int)stoi(line);
+                photStarIDs.emplace_back(starID);
+            }
+        }
+
+        // Initialize the maps containing the photometric information
+
+        for (auto starID : photStarIDs)
+        {
+            inputFluxTarget[starID]        = vector<double>(numExposures);  
+            estimatedFluxTarget[starID]    = vector<double>(numExposures); 
+            varFluxTarget[starID]          = vector<double>(numExposures);
+            maskSizeTarget[starID]         = vector<unsigned int>();  
+            NSRtarget[starID]              = vector<double>();   
+            exposureNrOfMaskUpdate[starID] = vector<unsigned int>();
+        }
+    }
 
     // The configuration for the HDF5 contents
 
     writeFlatfieldMap = configParam.getBoolean("ControlHDF5Content/WriteFlatfieldMap");
-    writeDiffusedPSF = configParam.getBoolean("ControlHDF5Content/WriteDiffusedPSF");
+    writeDiffusedPSF  = configParam.getBoolean("ControlHDF5Content/WriteDiffusedPSF");
 }
-
 
 
 
@@ -177,8 +229,6 @@ void DetectorWithMappedPSF::setPsfForSubfield()
 
 
 
-
-
 /**
   * \brief: Generate the diffusion kernel.  This is generated at sub-pixel level.
   *
@@ -191,12 +241,6 @@ void DetectorWithMappedPSF::generateDiffusionKernel(double kernelWidth)
 
     diffusionKernel.zeros(diffusionKernelImageSize, diffusionKernelImageSize);
 }
-
-
-
-
-
-
 
 
 
@@ -303,7 +347,6 @@ void DetectorWithMappedPSF::generateFlatfieldMap()
 
 
 
-
 /**
  * \brief: Zeroes the pixel, bias register, and the smearing maps.
  *         This differs from the normal Detector::reset() because it includes resetting the subPixelMap.
@@ -321,10 +364,6 @@ void DetectorWithMappedPSF::reset()
     smearingMap.zeros();
     subPixelMap.zeros();
 }
-
-
-
-
 
 
 
@@ -387,12 +426,17 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
 
     readOut(exposureTime);
 
+    // If photometric extraction was asked, apply it now
+
+    if (includePhotometry)
+    {
+        Log.info("Detector: applying photometric extraction to exposure " + to_string(exposureNr));
+        applyPhotometry(exposureNr);
+    }
 
     // Write the CCD subfield, the bias map, and the smearing map to the HDF5 file
 
-    Log.debug("DetectorWithMappedPSF: Writing PixelMap, smearing map, and bias map #" + to_string(exposureNr) + " to HDF5 file.");
-
-
+    Log.debug("DetectorWithMappedPSF: Writing PixelMap, Smearing map, and bias map #" + to_string(exposureNr) + " to HDF5 file.");
     writePixelMapsToHDF5(exposureNr);
 
     // If required, also write the subpixel image to the HDF5 file
@@ -414,10 +458,6 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
 
     return internalTime;
 }
-
-
-
-
 
 
 
@@ -504,7 +544,7 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
     // the pixels are still receiving photons from the sky, while they are being transfered towards
     // the readout register.
     // Pixel units before: [electrons]
-    // Pixel units after: [electrons]
+    // Pixel units after : [electrons]
 
     if (includeOpenShutterSmearing)
     {
@@ -518,7 +558,7 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
 
     // Apply poisson distributed photon noise
     // Pixel units before: [electrons]
-    // Pixel units after: [electrons]
+    // Pixel units after : [electrons]
 
     if (includePhotonNoise)
     {
@@ -544,12 +584,6 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
     }
 
 }
-
-
-
-
-
-
 
 
 
@@ -617,15 +651,8 @@ tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yF
     else
     {
         return make_tuple(false, pixRow, pixColumn);
-    }
+    }    
 }
-
-
-
-
-
-
-
 
 
 
@@ -687,11 +714,6 @@ tuple<bool, double, double> DetectorWithMappedPSF::addExtendedGhost(double x0, d
 
 
 
-
-
-
-
-
 /**
  * \brief: Applies charge diffusion or jitter smoothing for the given flux at the given position in the sub-pixel map.
  *
@@ -732,12 +754,6 @@ void DetectorWithMappedPSF::applyDiffusionKernel(double subpixRow, double subpix
 
     subPixelMap(rowSpan, columnSpan) += diffusionKernel(ySpan, xSpan) * flux;
 }
-
-
-
-
-
-
 
 
 
@@ -799,8 +815,6 @@ void DetectorWithMappedPSF::addFlux(double flux)
 
 
 
-
-
 /**
  * \brief: Multiply the sub-pixel map with the flatfield.
  *
@@ -828,10 +842,6 @@ void DetectorWithMappedPSF::applyFlatfield()
 
     subPixelMap.submat(beginRow, beginCol, endRow, endCol) = subPixelMap.submat(beginRow, beginCol, endRow, endCol) % flatfieldMap;
 }
-
-
-
-
 
 
 
@@ -870,7 +880,6 @@ void DetectorWithMappedPSF::rebin()
 
 
 
-
 /**
  * \brief: Convolve the sub-pixel map with the PSF, keeping the same dimensions.
  *
@@ -897,10 +906,6 @@ void DetectorWithMappedPSF::convolveWithPsf()
 
 
 
-
-
-
-
 /**
  * \brief: Creates the group(s) in the HDF5 file where the detector specific
  *         information will be stored. These groups have to be created once,
@@ -920,9 +925,6 @@ void DetectorWithMappedPSF::initHDF5Groups()
 
 
 
-
-
-
 /**
  * \brief: Writes the subpixel map for the HDF5 file.
  */
@@ -937,8 +939,6 @@ void DetectorWithMappedPSF::writeSubPixelMapToHDF5(int exposureNr)
 
     hdf5File.writeArray("/SubPixelImages", imageName, subPixelMap);
 }
-
-
 
 
 
@@ -990,8 +990,6 @@ void DetectorWithMappedPSF::writeDiffusedPSFToHDF5(PointSpreadFunction *psf)
 
 
 
-
-
 void DetectorWithMappedPSF::applyDiffusionKernelOnPSF(double subpixRow, double subpixColumn, double flux, arma::fmat& psf, int numberOfPsfSubpixelsPerPixel)
 {
     int sx = subpixColumn - (diffusionKernelImageSize - 1) / 2;
@@ -1018,7 +1016,6 @@ void DetectorWithMappedPSF::applyDiffusionKernelOnPSF(double subpixRow, double s
 
     // Add the flux to the psf
 
-
     arma::span rowSpan = arma::span(max(0, sy), min((int)numRows, sy + diffusionKernelImageSize) - 1);
     arma::span columnSpan = arma::span(max(0, sx), min((int)numColumns, sx + diffusionKernelImageSize) - 1);
 
@@ -1027,7 +1024,6 @@ void DetectorWithMappedPSF::applyDiffusionKernelOnPSF(double subpixRow, double s
 
     psf(rowSpan, columnSpan) += diffusionKernel(ySpan, xSpan) * flux;
 }
-
 
 
 
@@ -1055,7 +1051,6 @@ bool DetectorWithMappedPSF::areColinear(std::array<std::array<double, 2>, 3> poi
       return false;
     }
 }
-
 
 
 
@@ -1202,8 +1197,6 @@ void DetectorWithMappedPSF::applyDistortion(double &x, double &y)
 
 
 
-
-
 /*
  * /brief: applies the inverse of the field distortion on the input coordinates
  * /input: FP coordinates [mm]
@@ -1308,7 +1301,8 @@ void DetectorWithMappedPSF::applyInverseDistortion(double &x, double &y)
   }
 
   // The distorted coordinates can be expressed as: (x, y)' = e0' + a1 * r1' + a2 * r2'.
-  // We approximate the undistorted coordinates as: (x, y) = e0 + a1 * r1 + a2 * r2, (where ' indicates distortion) 
+  // We approximate the undistorted coordinates as: (x, y) = e0 + a1 * r1 + a2 * r2, (where ' indicates distortion)
+  
   double e0x = ClosestDistortedCoordinates[0][0];
   double e0y = ClosestDistortedCoordinates[0][1];
 
@@ -1325,7 +1319,6 @@ void DetectorWithMappedPSF::applyInverseDistortion(double &x, double &y)
   double a1  = ((r2x*r2x + r2y*r2y)*(deltaX*r1x + deltaY*r1y) - (r1x*r2x + r1y*r2y)*(deltaX*r2x + deltaY*r2y))/det;
   double a2  = ((r1x*r1x + r1y*r1y)*(deltaX*r2x + deltaY*r2y) - (r1x*r2x + r1y*r2y)*(deltaX*r1x + deltaY*r1y))/det;
 
-
   double e0xUndistorted = ClosestUndistortedCoordinates[0][0];
   double e0yUndistorted = ClosestUndistortedCoordinates[0][1];
 
@@ -1335,13 +1328,9 @@ void DetectorWithMappedPSF::applyInverseDistortion(double &x, double &y)
   double r2xUndistorted = ClosestUndistortedCoordinates[2][0] - e0xUndistorted;
   double r2yUndistorted = ClosestUndistortedCoordinates[2][1] - e0yUndistorted;
 
-
   x = a1 * r1xUndistorted + a2 * r2xUndistorted + e0xUndistorted;
   y = a1 * r1yUndistorted + a2 * r2yUndistorted + e0yUndistorted;
 }
-
-
-
 
 
 
@@ -1395,6 +1384,7 @@ void DetectorWithMappedPSF::generateThroughputMap()
                 tie(xFPmmDistorted, yFPmmDistorted) = pixelToFocalPlaneCoordinates(row + subFieldZeroPointRow, column + subFieldZeroPointColumn);
                 xFPmmUndistorted = xFPmmDistorted;
                 yFPmmUndistorted = yFPmmDistorted;
+		
                 // Convert from distorted to undistorted focal plane coordinates (Cf GitHub issue #716)
 
                 applyInverseDistortion(xFPmmUndistorted, yFPmmUndistorted);
@@ -1412,7 +1402,6 @@ void DetectorWithMappedPSF::generateThroughputMap()
                         if (includeOpenShutterSmearing)
                             mechanicalVignettingMask(row, column) = 0;
                     }
-
                     else
                     {
                         angle = rad2deg(angle); // [degrees]
