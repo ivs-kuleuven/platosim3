@@ -16,12 +16,8 @@ from scipy import constants as c
 from scipy.ndimage import median_filter
 from scipy.interpolate import make_interp_spline
 
-import astropy.units as u
 from astropy.coordinates import SkyCoord
-
-from PyAstronomy import pyasl
-
-import ligo.skymap.plot
+import astropy.units as u
 import shapely.geometry as sg
 import descartes
 
@@ -1015,8 +1011,8 @@ def skyProjection(fig, longitude, latitude, origin=0, projection="mollweide"):
 
 
 
-def plotPlatoFOV(pointingField, raStars=0, decStars=0, system="icrs", magStars=None,
-                 nCamVis=None, skymap=None, title=None, fs=20):
+def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="icrs",
+                 showGroups=False, skymap=None, title=None, fs=20):
     """
     Funtion to plot 
 
@@ -1030,6 +1026,10 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, system="icrs", magStars=N
         Use fig..savefig('<plot.png>', bbox_inches='tight', dpi=200)
     """
 
+    # Import extra package from astropy
+    # NOTE automatically installed using poetry setup
+    import ligo.skymap.plot
+    
     # Select field
     indir = os.getenv('PLATO_PROJECT_HOME') + '/python/platosim/picsim/'
     if pointingField == 'NPF': PF_gal = [65.0, 30.0]
@@ -1086,19 +1086,20 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, system="icrs", magStars=N
                          s=dm, marker=mark, c=color, ec='k', lw=1, zorder=5)
 
     # Plot pointing of each camera group
-    raGroups, decGroups = rf.getCameraGroupCoordinates(PF_icrs.ra.deg, PF_icrs.dec.deg, -8.5)
-    camPointing = SkyCoord(raGroups*u.deg, decGroups*u.deg, frame='icrs', unit='deg')  
-    for i, c in zip(range(4), ['b', 'limegreen', 'yellow', 'r']):
-        ax.plot(camPointing[i].ra.deg, camPointing[i].dec.deg, 'o', ms=13, color=c, mec='k', transform=ax.get_transform('world'), zorder=6)
+    if showGroups:
+        raGroups, decGroups = rf.getCameraGroupCoordinates(PF_icrs.ra.deg, PF_icrs.dec.deg, -8.5)
+        camPointing = SkyCoord(raGroups*u.deg, decGroups*u.deg, frame='icrs', unit='deg')  
+        for i, c in zip(range(4), ['b', 'limegreen', 'yellow', 'r']):
+            ax.plot(camPointing[i].ra.deg, camPointing[i].dec.deg, 'o', ms=13, color=c, mec='k', transform=ax.get_transform('world'), zorder=6)
 
-    # Plot F-CAM and platform pointing (PIC1.1.0 and PIC2.0.0)
-    ax.plot(PF_icrs.ra.deg, PF_icrs.dec.deg, '*', c='k', mfc='magenta', ms=25, transform=ax.get_transform('world'), zorder=6)
+        # Plot F-CAM and platform pointing (PIC1.1.0 and PIC2.0.0)
+        ax.plot(PF_icrs.ra.deg, PF_icrs.dec.deg, '*', c='k', mfc='magenta', ms=25, transform=ax.get_transform('world'), zorder=6)
 
-    # Plot F-CAM FOV as cicle
-    #fcam = patches.Circle((PF_icrs.ra.deg, PF_icrs.dec.deg), 12.2, fc='none', lw=2,
-    #                      transform=ax.get_transform('galactic'), ec='m', zorder=2)
-    #ax.add_patch(fcam)
-    #ax.plot(277.18, 52.85, '*', transform=ax.get_transform('world'), ms=20, c='k', mfc='b', zorder=7)
+        # Plot F-CAM FOV as cicle
+        #fcam = patches.Circle((PF_icrs.ra.deg, PF_icrs.dec.deg), 12.2, fc='none', lw=2,
+        #                      transform=ax.get_transform('galactic'), ec='m', zorder=2)
+        #ax.add_patch(fcam)
+        #ax.plot(277.18, 52.85, '*', transform=ax.get_transform('world'), ms=20, c='k', mfc='b', zorder=7)
 
     # Add-on's
     ax.scalebar((0.05, 0.05), 10 * u.deg).label()
@@ -2239,6 +2240,8 @@ def plot_orbital_phase_curve(fig, time, lc_tra, lc_occ, lc_beam, lc_elli, lc_fin
     if colors is None: colors = colors_new
 
     # Phase-fold light curve
+    # TODO Implement ourselves
+    from PyAstronomy import pyasl
     phase = pyasl.foldAt(time, P, T0=t0)
 
     # Locate first transit

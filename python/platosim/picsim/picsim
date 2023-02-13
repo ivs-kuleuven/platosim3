@@ -42,9 +42,10 @@ from prettytable import PrettyTable
 from tqdm import tqdm
 
 # PlatoSim utilities
-import platosim.plot      as pt
-import platosim.utilities as ut
-from platosim.utilities    import errorcode
+import platosim.plot       as pt
+import platosim.utilities  as ut
+from platosim.utilities  import errorcode
+from platosim.simulation import Simulation
 
 # Disable warnings
 import warnings
@@ -450,7 +451,8 @@ if fileFormat != '.txt':
     if camGroup:
         raPF  = PF[platoField][1]
         decPF = PF[platoField][2]
-        dex = getStarsWithinCameraGroup(camGroup, raPF, decPF, df['ra'].to_numpy(), df['dec'].to_numpy())
+        sim = Simulation('picsim')
+        dex = sim.getStarsWithinCameraGroup(raPF, decPF, df['ra'].to_numpy(), df['dec'].to_numpy(), camGroup)
         # Select max number of stars if too many is requested
         max_stars = np.sum(dex[0])
         if numTargets > max_stars:

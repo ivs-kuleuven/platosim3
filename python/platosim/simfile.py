@@ -835,7 +835,7 @@ class SimFile (object):
             # Check photometry is present for each star
             starIDgroupName = f"starID{ID}"
             if starIDgroupName not in self.hdf5file["Photometry"]["Lightcurves"].keys():
-                ut.errorcode("error", f"getLightCurve(): {starIDgroupName} not present in" +
+                ut.errorcode("error", f"getLightCurve(): {starIDgroupName} not present in " +
                                        "Photometry/Lightcurves/ in the HDF5 file")
 
             # Select correct name convention
