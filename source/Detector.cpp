@@ -489,6 +489,7 @@ void Detector::updateParameters(double time)
     includeFullWellSaturation       = configParam.getBoolean("CCD/IncludeFullWellSaturation");
     includeDigitalSaturation        = configParam.getBoolean("CCD/IncludeDigitalSaturation");
     includeQuantisation             = configParam.getBoolean("CCD/IncludeQuantisation");
+    includeFieldDistortion          = configParam.getBoolean("Camera/IncludeFieldDistortion");
 
     if(includeRelativeTransmissivity)
     {
@@ -861,8 +862,15 @@ void Detector::generateThroughputMap()
                 tie(xFPmmDistorted, yFPmmDistorted) = pixelToFocalPlaneCoordinates(row + subFieldZeroPointRow, column + subFieldZeroPointColumn);
 
                 // Convert from distorted to undistorted focal plane coordinates (Cf GitHub issue #716)
-
-                tie(xFPmmUndistorted, yFPmmUndistorted) =  camera.distortedToUndistortedFocalPlaneCoordinates(xFPmmDistorted, yFPmmDistorted);
+                if (includeFieldDistortion)
+                {
+                    tie(xFPmmUndistorted, yFPmmUndistorted) =  camera.distortedToUndistortedFocalPlaneCoordinates(xFPmmDistorted, yFPmmDistorted);
+                }
+                else
+                {
+                    xFPmmUndistorted = xFPmmDistorted;
+                    yFPmmUndistorted = yFPmmDistorted;
+                }
 
                 // Angular distance [radians] of the pixel from the optical axis
 
