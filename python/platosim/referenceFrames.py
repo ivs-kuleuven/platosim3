@@ -223,7 +223,8 @@ def skyToPlatformCoordinates(raStar, decStar, raPlatform, decPlatform, solarPane
            decStar:                declination of the star                                   [rad]
            raPlatform:             right ascension of the platform roll axis                 [rad]
            decPlatform:            declination of the platform roll axis                     [rad]
-           solarPanelOrientation:  (0,pi/2,pi,3pi/2) for quarters (Q1,Q2,Q3,Q4)              [rad]
+           solarPanelOrientation:  roll angle of the spacecraft. [rad] 
+                                   Changes by pi/2 radians every quarter.
 
     OUTPUT: xSC, ySC, zSC: normalized cartesian coordinates of the direction of the star in the spacecraft reference frame.
 
@@ -231,25 +232,23 @@ def skyToPlatformCoordinates(raStar, decStar, raPlatform, decPlatform, solarPane
 
     """
 
-    # Get the sky position of the Sun (ra, dec) [rad]
+    rotEQ2A = np.array([[ np.cos(raStar), np.sin(raStar), 0.0],
+                        [-np.sin(raStar), np.cos(raStar), 0.0],
+                        [     0.0       ,       0.0     , 1.0]])
 
-    raSun, decSun = sunSkyCoordinatesAwayfromPlatformPointing(raPlatform, decPlatform, solarPanelOrientation)
+    rotA2B = np.array([[ np.cos(decStar), 0.0, np.sin(decStar)],
+                       [      0.0       , 1.0,        0.0     ],
+                       [-np.sin(decStar), 0.0, np.cos(decStar)]])
+    
+    rotB2C = np.array([[ 0.0, 1.0, 0.0],
+                       [-1.0, 0.0, 0.0], 
+                       [ 0.0, 0.0, 1.0]])
 
-    # Compute the equatorial cartesian coordinates of the unit vector along the z-axis (= roll = pointing axis) of the platform.
-    # The x-axis of the platform points to the highest point fof the sunshield, which is pointing to the (average) sky position
-    # of the Sun.
+    rotC2SC = np.array([[ np.cos(solarPanelOrientation), np.sin(solarPanelOrientation), 0.0],
+                        [-np.sin(solarPanelOrientation), np.cos(solarPanelOrientation), 0.0],
+                        [          0.0                 ,              0.0             , 1.0]])
 
-    zSC = np.array([cos(decPlatform)*cos(raPlatform), cos(decPlatform)*sin(raPlatform), sin(decPlatform)])
-    deltax = np.arctan(- cos(raPlatform-raSun) / tan(decPlatform))
-    xSC = np.array([cos(deltax)*cos(raSun), cos(deltax)*sin(raSun), sin(deltax)])
-    ySC = np.cross(zSC, xSC)
-
-    # Compute the rotation matrix to convert cartesian coordinates in the equatorial reference frame to
-    # cartesian coordinates in the spacecraft framework.
-
-    rotEQ2SC   = np.array([[xSC[0], xSC[1], xSC[2]], \
-                           [ySC[0], ySC[1], ySC[2]], \
-                           [zSC[0], zSC[1], zSC[2]]])
+    rotEQ2SC = rotC2SC @ rotB2C @ rotA2B @ rotEQ2A
 
     # Compute the cartesian coordinates of the star in the equatorial reference frame
 
@@ -257,7 +256,7 @@ def skyToPlatformCoordinates(raStar, decStar, raPlatform, decPlatform, solarPane
 
     # Transform these coordinates to the corresponding ones in the focal plane reference frame:
 
-    starSC = np.dot(rotEQ2SC, starEQ)
+    starSC = rotEQ2SC @ starEQ
 
     # That's it
 
@@ -283,7 +282,8 @@ def platformToSkyCoordinates(xSC, ySC, zSC, raPlatform, decPlatform, solarPanelO
            zSC:                    z-coordinate in the spacecraft reference frame  [same unit as xSC]
            raPlatform:             right ascension of the platform roll axis       [rad]
            decPlatform:            declination of the platform roll axis           [rad]
-           solarPanelOrientation:  (0,pi/2,pi,3pi/2) for quarters (Q1,Q2,Q3,Q4)    [rad]
+           solarPanelOrientation:  roll angle of the spacecraft.                   [rad] 
+                                   Changes by pi/2 radians every quarter.
 
     OUTPUT: Equatorial coordinates of the direction of the vector (xSC, ySC, zSC)  [rad]
 
@@ -291,32 +291,29 @@ def platformToSkyCoordinates(xSC, ySC, zSC, raPlatform, decPlatform, solarPanelO
 
     """
 
-    vecSC = np.array([xSC, ySC, zSC])
+    rotEQ2A = np.array([[ np.cos(raStar), np.sin(raStar), 0.0],
+                        [-np.sin(raStar), np.cos(raStar), 0.0],
+                        [     0.0       ,       0.0     , 1.0]])
 
-    # Get the sky position of the Sun (ra, dec) [rad]
+    rotA2B = np.array([[ np.cos(decStar), 0.0, np.sin(decStar)],
+                       [      0.0       , 1.0,        0.0     ],
+                       [-np.sin(decStar), 0.0, np.cos(decStar)]])
+    
+    rotB2C = np.array([[ 0.0, 1.0, 0.0],
+                       [-1.0, 0.0, 0.0], 
+                       [ 0.0, 0.0, 1.0]])
 
-    raSun, decSun = sunSkyCoordinatesAwayfromPlatformPointing(raPlatform, decPlatform, solarPanelOrientation)
+    rotC2SC = np.array([[ np.cos(solarPanelOrientation), np.sin(solarPanelOrientation), 0.0],
+                        [-np.sin(solarPanelOrientation), np.cos(solarPanelOrientation), 0.0],
+                        [          0.0                 ,              0.0             , 1.0]])
 
-    # Compute the equatorial cartesian coordinates of the unit vector along the z-axis (= roll = pointing axis) of the platform.
-    # The x-axis of the platform points to the highest point fof the sunshield, which is pointing to the (average) sky position
-    # of the Sun.
-
-    zSC = np.array([cos(decPlatform)*cos(raPlatform), cos(decPlatform)*sin(raPlatform), sin(decPlatform)])
-    deltax = np.arctan(- cos(raPlatform-raSun) / tan(decPlatform))
-    xSC = np.array([cos(deltax)*cos(raSun), cos(deltax)*sin(raSun), sin(deltax)])
-    ySC = np.cross(zSC, xSC)
-
-    # Compute the rotation matrix to convert cartesian coordinates in the equatorial reference frame to
-    # cartesian coordinates in the spacecraft reference frame
-
-    rotSC2EQ   = np.array([[xSC[0], ySC[0], zSC[0]], \
-                           [xSC[1], ySC[1], zSC[1]], \
-                           [xSC[2], ySC[2], zSC[2]]])
-
+    rotEQ2SC = rotC2SC @ rotB2C @ rotA2B @ rotEQ2A
+    rotSC2EQ = rotEQ2SC.T
 
     # Transform the unnormalized focal plane coordinates to the corresponding ones in the equatorial reference frame
 
-    vecEQ = np.dot(rotSC2EQ, vecSC)
+    vecSC = np.array([xSC, ySC, zSC])
+    vecEQ = rotSC2EQ @ vecSC
 
     # Convert the cartesian equatorial coordinates to equatorial sky coordinates
 
@@ -1572,9 +1569,9 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal):
 
     pixelSize             = float(sim["CCD/PixelSize"])
     focalLength           = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0                   # [m] -> [mm]
-    raPlatform            = np.deg2rad(float(sim["ObservingParameters/RApointing"]))
-    decPlatform           = np.deg2rad(float(sim["ObservingParameters/DecPointing"]))
-    solarPanelOrientation = np.deg2rad(float(sim["Platform/SolarPanelOrientation"]))
+    raPlatform            = np.deg2rad(float(sim["Platform/Orientation/Angles/RAPointing"]))
+    decPlatform           = np.deg2rad(float(sim["Platform/Orientation/Angles/DecPointing"]))
+    solarPanelOrientation = np.deg2rad(float(sim["Platform/Orientation/Angles/SolarPanelOrientation"]))
     focalPlaneAngle       = np.deg2rad(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
     azimuthTelescope      = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
     tiltTelescope         = np.deg2rad(float(sim["Telescope/TiltAngle"]))
@@ -1644,9 +1641,9 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpixel, yCCDpixel):
 
     pixelSize             = float(sim["CCD/PixelSize"])
     focalLength           = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0                     # [m] -> [mm]
-    raPlatform            = np.deg2rad(float(sim["ObservingParameters/RApointing"]))
-    decPlatform           = np.deg2rad(float(sim["ObservingParameters/DecPointing"]))
-    solarPanelOrientation = np.deg2rad(float(sim["Platform/SolarPanelOrientation"]))
+    raPlatform            = np.deg2rad(float(sim["Platform/Orientation/Angles/RAPointing"]))
+    decPlatform           = np.deg2rad(float(sim["Platform/Orientation/Angles/DecPointing"]))
+    solarPanelOrientation = np.deg2rad(float(sim["Platform/Orientation/Angles/SolarPanelOrientation"]))
     focalPlaneAngle       = np.deg2rad(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
 
     telescopeGroup       = sim["Telescope/GroupID"]

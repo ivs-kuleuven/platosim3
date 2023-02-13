@@ -695,8 +695,6 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addInteger("NumExposures");
     addInteger("BeginExposureNr");
     addDouble("CycleTime");
-    addDouble("RApointing");
-    addDouble("DecPointing");
     addDouble("Fluxm0");
     addString("StarCatalogFile");
 
@@ -716,7 +714,6 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "Platform";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
-    addDouble("SolarPanelOrientation");
     addBoolean("UseJitter");
     addString("JitterSource");
     addDouble("JitterYawRms");
@@ -724,6 +721,18 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("JitterRollRms");
     addDouble("JitterTimeScale");
     addString("JitterFileName");
+    subGroup = "Platform/Orientation";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addString("Source");
+    subGroup = "Platform/Orientation/Angles";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addDouble("RAPointing");
+    addDouble("DecPointing");
+    addDouble("SolarPanelOrientation");
+    subGroup = "Platform/Orientation/Quaternion";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addDoubleVector("Components");
+
 
     subGroup = "Telescope";
     hdf5File->createGroup(parentGroup + "/" + subGroup);

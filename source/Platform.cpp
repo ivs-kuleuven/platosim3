@@ -55,7 +55,6 @@ Platform::~Platform()
 
 
 
-
 /**
  * \brief Configure the Platform object
  * 
@@ -64,29 +63,28 @@ Platform::~Platform()
 
 void Platform::configure(ConfigurationParameters &configParams)
 {
-    useJitter   = configParams.getBoolean("Platform/UseJitter");
-    originalRA  = deg2rad(configParams.getDouble("ObservingParameters/RApointing"));            
-    originalDec = deg2rad(configParams.getDouble("ObservingParameters/DecPointing"));
-    double solarPanelOrientation = deg2rad(configParams.getDouble("Platform/SolarPanelOrientation"));
+    useJitter = configParams.getBoolean("Platform/UseJitter");
+
+    platformOrientationSource = configParams.getString("Platform/Orientation/Source");
+    if (platformOrientationSource == "Angles") {
+        Log.info("Platform: using the (RA, Dec, Kappa) angles to determine the initial platform orientation");
+        originalRA  = deg2rad(configParams.getDouble("Platform/Orientation/Angles/RAPointing"));            
+        originalDec = deg2rad(configParams.getDouble("Platform/Orientation/Angles/DecPointing"));
+        originalKappa = deg2rad(configParams.getDouble("Platform/Orientation/Angles/SolarPanelOrientation"));
+    }
+    else if (platformOrientationSource == "Quaternion") {
+        Log.info("Platform: using the Platform/Orientation/Quaternion to determine the initial platform orientation");
+        vector<double> quaternion = configParams.getDoubleVector("Platform/Orientation/Quaternion/Components");
+        copy(quaternion.begin(), quaternion.end(), originalQuaternion.begin());
+    }
+    else {
+        Log.error("In input yaml file: unsupported Platform/Orientation/Source value. Only Angles or Quaternion are allowed");
+    }
+
     writeACS    = configParams.getBoolean("ControlHDF5Content/WriteACS");
          
     currentRA   = originalRA;
     currentDec  = originalDec;
-
-    // Derive the location of the Sun. This depends on where the platform is pointing and
-    // on the solar panel orientatin, which is specified in the yaml input file.
-    
-    double lambdaPlatform;                                 // Ecliptic longitude of the platform pointing [rad]
-    double betaPlatform;                                   // Ecliptic latitude  of the platform pointing [rad]
-    equatorial2ecliptic(originalRA, originalDec, lambdaPlatform, betaPlatform);
-
-    double lambdaSun = lambdaPlatform - Constants::PI + solarPanelOrientation;
-    if (lambdaSun < 0.0) lambdaSun += 2.0 * Constants::PI;
-    ecliptic2equatorial(lambdaSun, 0.0, raSun, decSun);
-
-    Log.debug("Platform: solar panel orientation = " + to_string(rad2deg(solarPanelOrientation)) + " deg");
-    Log.debug("Platform: (RA Sun, Dec Sun) = (" + to_string(rad2deg(raSun)) + ", " + to_string(rad2deg(decSun)) + ")");
-
 }
 
 
@@ -139,19 +137,19 @@ void Platform::flushOutput()
         }
         
 
-         if (!historyTime.empty())
-         {
-            hdf5File.writeArray("/ACS/", "Time",        historyTime.data(),  historyTime.size());
-            hdf5File.writeArray("/ACS/", "PlatformRA",  historyRA.data(),    historyRA.size());
-            hdf5File.writeArray("/ACS/", "PlatformDec", historyDec.data(),   historyDec.size());
-            hdf5File.writeArray("/ACS/", "Yaw",         historyYaw.data(),   historyYaw.size());
-            hdf5File.writeArray("/ACS/", "Pitch",       historyPitch.data(), historyPitch.size());
-            hdf5File.writeArray("/ACS/", "Roll",        historyRoll.data(),  historyRoll.size());
-         }
-         else
-         {
-            Log.warning("Platform: No ACS history to flush to HDF5 file.");
-         }
+        if (!historyTime.empty())
+        {
+           hdf5File.writeArray("/ACS/", "Time",        historyTime.data(),  historyTime.size());
+           hdf5File.writeArray("/ACS/", "PlatformRA",  historyRA.data(),    historyRA.size());
+           hdf5File.writeArray("/ACS/", "PlatformDec", historyDec.data(),   historyDec.size());
+           hdf5File.writeArray("/ACS/", "Yaw",         historyYaw.data(),   historyYaw.size());
+           hdf5File.writeArray("/ACS/", "Pitch",       historyPitch.data(), historyPitch.size());
+           hdf5File.writeArray("/ACS/", "Roll",        historyRoll.data(),  historyRoll.size());
+        }
+        else
+        {
+           Log.warning("Platform: No ACS history to flush to HDF5 file.");
+        }
     }
 }
 
@@ -454,38 +452,17 @@ double Platform::getHeartbeatInterval()
  *               vecEQ = rotSC2EQ * vecSC
  *        where vecEQ are cartesian coordinates in the equatorial reference frame, and vecSC are the 
  *        cartesian coordinates in the Spacecraft (platform) reference frame.
- *        See PLATO-KUL-PL-TN-0001 for more details
+ *        See PLATO-KUL-PL-TN-0001 for more details on the definition of the rotation matrices.
  *
  * \return rotSC2EQ : 3x3 rotation matrix 
  */
 
 arma::mat Platform::getUnjitteredSpacecraftToEquatorialRotationMatrix()
 {
-    // Compute the equatorial coordinates of each of the unit vectors corresponding to the X, Y, and Z axis
-    // of the spacecraft reference frame. The z-axis is pointing towards the targets, the x-axis points towards
-    // the highest point of the sun shield which is pointing towards the Sun. The coordinates of the Sun were
-    // computed in Platform::configure()
-
-    double deltax = atan(- cos(originalRA-raSun) / tan(originalDec));
-
-    arma::colvec unitzSC = {cos(originalDec)*cos(originalRA), cos(originalDec)*sin(originalRA), sin(originalDec)};
-    arma::colvec unitxSC = {cos(deltax)*cos(raSun), cos(deltax)*sin(raSun), sin(deltax)};
-    arma::colvec unitySC = arma::cross(unitzSC, unitxSC);
-
-    // Compute the rotation matrix to convert cartesian coordinates in the equatorial reference frame to 
-    // cartesian coordinates in the spacecraft reference frame
-
-    arma::mat rotSC2EQ;
-    rotSC2EQ << unitxSC[0] << unitySC[0] << unitzSC[0] << arma::endr
-             << unitxSC[1] << unitySC[1] << unitzSC[1] << arma::endr
-             << unitxSC[2] << unitySC[2] << unitzSC[2] << arma::endr;
-    
-
-    // That's it
-
+    arma::mat rotEQ2SC = getEquatorialToUnjitteredSpacecraftRotationMatrix();
+    arma::mat rotSC2EQ = rotEQ2SC.t();
     return rotSC2EQ;
 }
-
 
 
 
@@ -514,10 +491,42 @@ arma::mat Platform::getUnjitteredSpacecraftToEquatorialRotationMatrix()
 
 arma::mat Platform::getEquatorialToUnjitteredSpacecraftRotationMatrix()
 {
-    arma::mat rotSC2EQ = getUnjitteredSpacecraftToEquatorialRotationMatrix();
-    arma::mat rotEQ2SC = rotSC2EQ.t();
+    if (platformOrientationSource == "Angles") 
+    {
+        arma::mat rotEQ2A;
+        rotEQ2A <<  cos(originalRA) << sin(originalRA) << 0.0 << arma::endr
+                << -sin(originalRA) << cos(originalRA) << 0.0 << arma::endr
+                <<        0.0       <<        0.0      << 1.0 << arma::endr;
 
-    return rotEQ2SC;
+        arma::mat rotA2B;
+        rotA2B << sin(originalDec) << 0.0 << -cos(originalDec) << arma::endr
+               <<       0.0        << 1.0 <<        0.0        << arma::endr
+               << cos(originalDec) << 0.0 <<  sin(originalDec) << arma::endr;
+        
+        arma::mat rotB2SC;
+        rotB2SC <<  cos(originalKappa) << sin(originalKappa) << 0.0 << arma::endr
+                << -sin(originalKappa) << cos(originalKappa) << 0.0 << arma::endr
+                <<        0.0          <<        0.0         << 1.0 << arma::endr;
+
+        arma::mat rotEQ2SC = rotB2SC % rotA2B % rotEQ2A;
+
+        return rotEQ2SC;
+    }
+    else    // platformOrientationSource == "Quaternion"
+    {
+        // Convert the quaternion into a rotation matrix. 
+        
+        const double q0 = originalQuaternion[0];
+        const double qx = originalQuaternion[1];
+        const double qy = originalQuaternion[2];
+        const double qz = originalQuaternion[3];
+        arma::mat rotEQ2SC;
+        rotEQ2SC << 2*(q0*q0+qx*qx)-1 << 2*(qx*qy-q0*qz)   << 2*(qx*qz+q0*qy)   << arma::endr
+                 << 2*(qx*qy+q0*qz)   << 2*(q0*q0+qy*qy)-1 << 2*(qy*qz-q0*qx)   << arma::endr
+                 << 2*(qx*qz-q0*qy)   << 2*(qy*qz+q0*qx)   << 2*(q0*q0+qz*qz)-1 << arma::endr;
+
+        return rotEQ2SC;
+    }
 }
 
 

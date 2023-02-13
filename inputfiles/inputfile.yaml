@@ -12,9 +12,7 @@ ObservingParameters:
     NumExposures:                    10              # Number of exposures
     BeginExposureNr:                  0              # Sequential number of first exposure. useful for slurm parallellisation
     CycleTime:                       25              # Image cycle time (exposure + readout before next exposure starts)[s]
-    RApointing:                      86.79870508     # Platform (not telescope) right ascension pointing coordinate (Default: PIC 1.1, SPF) [deg]
-    DecPointing:                     -46.39594703    # Platform (not telescope) declination     pointing coordinate (Default: PIC 1.1, SPF) [deg]
-    Fluxm0:                          1.00179e8       # Photon flux of a V=0 G2V-star [phot/s/m^2/nm]
+    Fluxm0:                          1.00179e8       # Photon flux of a V=0 G2V-star                                    [phot/s/m^2/nm]
     StarCatalogFile:                 inputfiles/starcatalog.txt
 
 Sky:
@@ -32,7 +30,14 @@ Sky:
 
 Platform:
 
-    SolarPanelOrientation:           0               # 0, 90, 180, or 270 degrees for the different quarters of a year [deg]
+    Orientation:
+      Source:                        Angles          # Should be either "Angles" or "Quaternion" 
+      Angles:
+        RAPointing:                  86.8            # Platform (not telescope) right ascension pointing coordinate     [deg]
+        DecPointing:                -46.4            # Platform (not telescope) declination pointing coordinate         [deg]
+        SolarPanelOrientation:        0.0            # Spacecraft roll angle to determine the solar panel orientation.  [deg]
+      Quaternion:                                    # Unit quaternion to transform from the equatorial to the platfrom reference frame
+        Components:                  [1.0, 0.0, 0.0, 0.0]   # [q0, qx, qy, qz] with norm = 1.0
     UseJitter:                       yes             # yes or no. If no, ignore everything below.
     JitterSource:                    FromRedNoise    # FromFile, FromRedNoise, or FromNetwork
     JitterYawRms:                    0.04            # [arcsec]
