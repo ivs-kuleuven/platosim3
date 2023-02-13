@@ -294,6 +294,7 @@ class Detector: public HDF5Writer
 
         bool includeBFE;                         // Whether or not to include the BFE
         bool includeDarkSignal;                  // Whether or not to include dark
+        bool includeFieldDistortion;             // Whether or not to include field distortion
         bool includePhotonNoise;                 // Whether or not to include photon noise
         bool includeReadoutNoise;                // Include readout noise [yes or no]
         bool includeCTIeffects;                  // Include CTI effects [yes or no]
