@@ -655,12 +655,10 @@ fig1 = pt.plotPlatoFOV(platoField, df['ra'].to_numpy(), df['dec'].to_numpy(), ma
 if plot: plt.show()
 
 # Plot sample distribution in Teff vs. Radius
-fig2 = plt.figure(figsize=(8,6))
 title = f'{platoField} {starSample} sample'
-pt.plotTeffvsRadius(fig2, starSample, title,
-                    ds, df_dK, df_dG, df_dF,
-                    sg, df_sgK, df_sgG, df_sgF,
-                    df, ms_limit)
+fig2, ax = pt.plotTeffvsRadius(ds, df_dK, df_dG, df_dF,
+                               sg, df_sgK, df_sgG, df_sgF,
+                               df, ms_limit, title)
 if plot: plt.show()
 
 # Stop here when flag -t
