@@ -64,3 +64,4 @@ class Test:
 
         self.runSimulation()
         return self.compare()
+

@@ -663,8 +663,8 @@ class Simulation(object):
 
         # Find out some instrumental characteristics from the sim object
 
-        raPlatform       = np.deg2rad(float(self["ObservingParameters/RApointing"]))
-        decPlatform      = np.deg2rad(float(self["ObservingParameters/DecPointing"]))
+        raPlatform       = np.deg2rad(float(self["Platform/Orientation/Angles/RAPointing"]))
+        decPlatform      = np.deg2rad(float(self["Platform/Orientation/Angles/DecPointing"]))
 
         telescopeGroupID = self["Telescope/GroupID"]
         if telescopeGroupID == "Custom":
@@ -677,8 +677,8 @@ class Simulation(object):
             azimuthTelescope = np.deg2rad(self["CameraGroups/AzimuthAngle"][telescopeGroupID-1])
             tiltTelescope = np.deg2rad(self["CameraGroups/TiltAngle"][telescopeGroupID-1])
 
-        solarPanelOrientation = np.deg2rad(float(self["Platform/SolarPanelOrientation"]))         # [rad]
-        focalLength      = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0               # [m] -> [mm]
+        solarPanelOrientation = np.deg2rad(float(self["Platform/Orientation/Angles/SolarPanelOrientation"]))         # [rad]
+        focalLength      = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0                                  # [m] -> [mm]
         focalPlaneAngle  = np.deg2rad(float(self["Camera/FocalPlaneOrientation/ConstantValue"]))
         pixelSize        = float(self["CCD/PixelSize"])
 
@@ -794,11 +794,12 @@ class Simulation(object):
             ccdZeroPointY   = self["CCDPositions/OriginOffsetY"][ccdID-1]
             CCDangle        = np.deg2rad(self["CCDPositions/Orientation"][ccdID-1])
 
-        pixelSize       = self["CCD/PixelSize"]                                                 # [micron]
-        raPlatform      = np.deg2rad(self["ObservingParameters/RApointing"])
-        decPlatform     = np.deg2rad(self["ObservingParameters/DecPointing"])
-        focalPlaneAngle = np.deg2rad(self["Camera/FocalPlaneOrientation/ConstantValue"])
-        focalLength     = self["Camera/FocalLength/ConstantValue"] * 1000.0                     # [m] -> [mm]
+        pixelSize       = self["CCD/PixelSize"]                                                               # [micron]
+        raPlatform      = np.deg2rad(self["Platform/Orientation/Angles/RAPointing"])                          # [rad]
+        decPlatform     = np.deg2rad(self["Platform/Orientation/Angles/DecPointing"])                         # [rad]
+        solarPanelOrientation = np.deg2rad(float(self["Platform/Orientation/Angles/SolarPanelOrientation"]))  # [rad]
+        focalPlaneAngle = np.deg2rad(self["Camera/FocalPlaneOrientation/ConstantValue"])                      # [rad]
+        focalLength     = self["Camera/FocalLength/ConstantValue"] * 1000.0                                   # [m] -> [mm]
 
         if (self["PSF/Model"] == "MappedFromFile"):
             incldueFieldDistortion        = True
@@ -811,7 +812,6 @@ class Simulation(object):
             inverseDistortionCoefficients = self["Camera/FieldDistortion/ConstantInverseCoefficients"]
             pathToPsfFile          = None
 
-        solarPanelOrientation = np.deg2rad(float(self["Platform/SolarPanelOrientation"]))
 
 
         # Convert the pixel coordinates to focal plane coordinates [mm]
@@ -828,7 +828,8 @@ class Simulation(object):
 
         # Convert the focal plane coordinates to equatorial sky coordinates [rad]
 
-        ra, dec = rf.focalPlaneToSkyCoordinates(xFPmm, yFPmm, raPlatform, decPlatform, solarPanelOrientation, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength)
+        ra, dec = rf.focalPlaneToSkyCoordinates(xFPmm, yFPmm, raPlatform, decPlatform, solarPanelOrientation, tiltAngle, azimuthAngle, \
+                                                focalPlaneAngle, focalLength)
 
         # Convert sky coordinates to degrees
 
@@ -1087,20 +1088,20 @@ class Simulation(object):
 
         # Telescope config
 
-        raPlatformDeg  = self["ObservingParameters/RApointing"]  = raPF   # [deg]
-        decPlatformDeg = self["ObservingParameters/DecPointing"] = decPF  # [deg]
+        raPlatformDeg  = self["Platform/Orientation/Angles/RAPointing"]  = raPF                                       # [deg]
+        decPlatformDeg = self["Platform/Orientation/Angles/DecPointing"] = decPF                                      # [deg]
 
-        raPlatformRad  = np.deg2rad(raPlatformDeg)   # [rad]
-        decPlatformRad = np.deg2rad(decPlatformDeg)  # [rad]
+        raPlatformRad  = np.deg2rad(raPlatformDeg)                                                                    # [rad]
+        decPlatformRad = np.deg2rad(decPlatformDeg)                                                                   # [rad]
 
-        focalLength      = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
+        focalLength      = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0                                   # [m] -> [mm]
         focalPlaneAngle  = np.deg2rad(float(self["Camera/FocalPlaneOrientation/ConstantValue"]))
 
-        solarPanelOrientation = self["Platform/SolarPanelOrientation"] = math.fmod(quarter * 90. - kappa, 360.)
-        solarPanelOrientation = np.deg2rad(float(solarPanelOrientation))
+        solarPanelOrientation = self["Platform/Orientation/Angles/SolarPanelOrientation"] = math.fmod(quarter * 90. - kappa, 360.) [deg]
+        solarPanelOrientation = np.deg2rad(float(solarPanelOrientation))                                              # [rad]
 
-        raTargetsRad  = np.deg2rad(ra)   # [rad]
-        decTargetsRad = np.deg2rad(dec)  # [rad]
+        raTargetsRad  = np.deg2rad(ra)                                                                                # [rad]
+        decTargetsRad = np.deg2rad(dec)                                                                               # [rad]
 
         # Loop over each star for this cam-group
 
@@ -1175,8 +1176,8 @@ class Simulation(object):
 
         # Telescope config
 
-        raPlatformDeg  = self["ObservingParameters/RApointing"]  = raPF   # [deg]
-        decPlatformDeg = self["ObservingParameters/DecPointing"] = decPF  # [deg]
+        raPlatformDeg  = self["Platform/Orientation/Angles/RAPointing"]  = raPF   # [deg]
+        decPlatformDeg = self["Platform/Orientation/Angles/DecPointing"] = decPF  # [deg]
 
         raPlatformRad  = np.deg2rad(raPlatformDeg)   # [rad]
         decPlatformRad = np.deg2rad(decPlatformDeg)  # [rad]
@@ -1184,7 +1185,7 @@ class Simulation(object):
         focalLength      = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
         focalPlaneAngle  = np.deg2rad(float(self["Camera/FocalPlaneOrientation/ConstantValue"]))
 
-        solarPanelOrientation = self["Platform/SolarPanelOrientation"] = math.fmod(quarter * 90., 360.) -6
+        solarPanelOrientation = self["Platform/Orientation/Angles/SolarPanelOrientation"] = math.fmod(quarter * 90., 360.) -6
         solarPanelOrientationRad = np.deg2rad(float(solarPanelOrientation))
 
         raTargetsRad  = np.deg2rad(ra)   # [rad]

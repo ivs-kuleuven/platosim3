@@ -7,9 +7,12 @@ import math
 import matplotlib.pyplot as plt
 
 
-"""
+""" 
 This test checks the absolute aberration. The test consists out of 3 parts: 
-1. The first test plots the position of an aberrated star over one year and a theoretical predicted path (where we assume a circular orbit with a constant velocity for the spacecraft) over one year. This figure is saved into the ioFiles directory, it is possible to visually confirm that the two paths are similar. 
+
+1. The first test plots the position of an aberrated star over one
+year and a theoretical predicted path (where we assume a circular orbit with a constant velocity for the spacecraft) over one year. This figure is
+saved into the ioFiles directory, it is possible to visually confirm that the two paths are similar. 
 
 2. The second test checks that the aberration is zero for a star whose position wrt the spacecraft is orthogonal to the spacecrafts velocity. 
 
@@ -53,9 +56,9 @@ class AbsoluteAberration(Test):
     def runForYear(self):
         # We run the simulation multiple times over one year with 5 days
         #between two consecutive exposures.
-        raPlatform            = radians(self.sim["ObservingParameters/RApointing"])
-        decPlatform           = radians(self.sim["ObservingParameters/DecPointing"])
-        solarPanelOrientation = radians(self.sim["Platform/SolarPanelOrientation"])
+        raPlatform            = radians(self.sim["Platform/Orientation/Angles/RAPointing"])
+        decPlatform           = radians(self.sim["Platform/Orientation/Angles/DecPointing"])
+        solarPanelOrientation = radians(self.sim["Platform/Orientation/Angles/SolarPanelOrientation"])
         tiltAngle             = radians(self.sim["Telescope/TiltAngle"])
         azimuthAngle          = radians(self.sim["Telescope/AzimuthAngle"])
         focalPlaneAngle       = radians(self.sim["Camera/FocalPlaneOrientation/ConstantValue"])
@@ -91,8 +94,9 @@ class AbsoluteAberration(Test):
         beta = np.arcsin(self.velocity[2])
         ra, dec = np.rad2deg(rf.ecliptic2equatorial(lamb, beta))
 
-        self.sim["ObservingParameters/RApointing"] = ra
-        self.sim["ObservingParameters/DecPointing"] = dec
+        self.sim["Platform/Orientation/Source"] = "Angles"
+        self.sim["Platform/Orientation/Angles/RAPointing"] = ra
+        self.sim["Platform/Orientation/Angles/DecPointing"] = dec
         self.sim["CCD/Position"] = "1"
 
         # Set the star catalog
