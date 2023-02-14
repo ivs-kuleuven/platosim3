@@ -4,12 +4,13 @@ import os
 import h5py
 import numpy as np
 
-from matplotlib.pyplot import cm
 from matplotlib import patches
+from matplotlib.pyplot import cm
 from matplotlib.path import Path
 from matplotlib.ticker import MaxNLocator, ScalarFormatter, LogLocator
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors 
 import matplotlib.animation as animation
 
 from scipy import constants as c
@@ -20,10 +21,10 @@ from astropy.coordinates import SkyCoord
 import astropy.units as u
 
 from tqdm import tqdm
+from ipywidgets import interact
 import shapely.geometry as sg
 import descartes
 
-from platosim.simfile import SimFile
 import platosim.noise           as ns
 import platosim.utilities       as ut
 import platosim.referenceFrames as rf
@@ -37,7 +38,6 @@ fs = 14   # Font-size
 ms = 0.2  # Marker-size
 lw = 0.5  # Line-width
 pt = 0.1  # Percentage
-pp = 0.01
 
 # Define some nice colors
 
@@ -75,22 +75,35 @@ def axes_minmax(x=None, y=None, pt=0.02):
 def discrete_colorbar(cbins, cmap="coolwarm"):
 
     """Enforce that colorbar use discrete values.
+
+    Parameters
+    ----------
+    cbins : int
+        Number of bins to discretize colorbar
+    cmap : str
+        Matplotlib color map (see docs for possible cmaps)
+
+    Return
+    ------
+    norm : matplotlib object
+        Matplotlib colorbar object used to normalize the colorbar scale.
     """
-    
-    import matplotlib as mpl
-    from matplotlib.colors import LinearSegmentedColormap, BoundaryNorm
-    
+        
     # define the colormap
+    
     cmap = plt.get_cmap(cmap)
     
     # Extract all colors from the the choosen colormap
+    
     cmaplist = [cmap(i) for i in range(cmap.N)]
 
     # Create the new map
-    cmap = LinearSegmentedColormap.from_list('custom', cmaplist, cmap.N)
+    
+    cmap = colors.LinearSegmentedColormap.from_list('custom', cmaplist, cmap.N)
 
     # define the bins and normalize
-    norm = mpl.colors.BoundaryNorm(cbins, cmap.N)
+    
+    norm = colors.BoundaryNorm(cbins, cmap.N)
 
     return norm
 
@@ -101,18 +114,33 @@ def discrete_colorbar(cbins, cmap="coolwarm"):
 def slider(imagePlot, images, Nimg, label="Image number"):
 
     """Enable the usage of a slider to show multiple images.
+
+    Parameters
+    ----------
+    imagePlot : imshow object
+        Matplotlib imshow object of the pixel image.
+    images : ndarray
+        Image cube with pixel data.
+    Nimg : int
+        Number of images used for slider.
+    label : str
+        Label for slider.
+    
+    Return
+    ------
+    None
     """
     
     # Function to update slider
+    
     def update_image(n=0):
         image = images[n]
         imagePlot.set_data(image)
         fig.canvas.draw()
 
     # Show the image
+    
     slider = IntSlider(0, 0, 10, 1, layout=Layout(width='500px'))
-
-    from ipywidgets import interact
     interact(update_image, n=(0,Nimg-1), x=slider)
 
     # Make a horizontal slider to control the frequency.
@@ -211,7 +239,10 @@ def drawCCDsInCameraFocalPlane(fig):
     ----------
     fig :  A matplotlib.pyplot figure object [e.g. plt.figure(figsize=(10,10)].
 
-    OUTPUT:  ax:   Axes object to modify the figure object.
+    Return
+    ------
+    ax : matplotlib object
+        Matplotlib axes object to modify the figure after use.
     """
 
     # Constants
@@ -972,7 +1003,8 @@ def drawStarsInSkyAitoff(fig, raStars, decStars, magStars, skymap=None,
 
     # Plot the targets on the sky (autumn_r, rainbow)
     
-    im = plt.scatter(-gal.l.wrap_at('180d').radian, gal.b.radian, c=magStars, s=ms, cmap=cbarMap, zorder=3)
+    im = plt.scatter(-gal.l.wrap_at('180d').radian, gal.b.radian, c=magStars,
+                     s=ms, cmap=cbarMap, zorder=3)
 
     # Vertical or horizontal colorbar showing magnitudes
     
@@ -2437,24 +2469,29 @@ def plot_orbital_phase_curve(fig, time, lc_tra, lc_occ, lc_beam, lc_elli, lc_fin
     """
 
     # Input parameters
+    
     if colors is None: colors = colors_new
 
     # Phase-fold light curve
     # TODO Implement ourselves
+    
     from PyAstronomy import pyasl
     phase = pyasl.foldAt(time, P, T0=t0)
 
     # Locate first transit
+    
     t_tra_min = t_tra_cen - t_tra_tot
     t_tra_max = t_tra_cen + t_tra_tot
     dex_tra = (time >= t_tra_min) * (time < t_tra_max)
 
     # Locate first occultation
+    
     t_occ_min = t_occ_cen - t_occ_tot
     t_occ_max = t_occ_cen + t_occ_tot
     dex_occ = (time >= t_occ_min) * (time < t_occ_max)
 
     # Setup
+    
     plt.subplots_adjust(wspace=0.15, hspace=0.20)
     fig.text(0.5, 0.92, 'Time [days]', ha='center', fontsize=fs)
     fig.text(0.5, 0.06, 'Phase', ha='center', fontsize=fs)
@@ -2566,77 +2603,14 @@ def plot_orbital_phase_curve(fig, time, lc_tra, lc_occ, lc_beam, lc_elli, lc_fin
     ax4.set_xlim(0-pp, 1+pp)
     ax4.legend(loc='upper left')
 
-    # Show plot
+    # That's it!
+    
     plt.show()
 
 
 
     
-
     
-# def plot_phasefold_lightcurve(fig, time, flux, t0, P, tdur, tdepth, odepth, mark='o'):
-
-#     """Alternative method to plot phase folded light curve.
-#     """
-
-#     # Initial calculations
-#     dt_c = P/2 * (1 + 4*e*np.cos(w)/np.pi)
-
-#     # Setup
-#     fs, ms = 15, 1
-#     fig.text(0.5, 0.04, 'Time [d]', ha='center', fontsize=fs)
-#     fig.text(0.04, 0.5, 'Relative Flu--x', va='center', rotation='vertical', fontsize=fs)
-#     plt.subplots_adjust(wspace=0.25, hspace=0.25)
-
-#     # Find phases
-#     phase = np.mod(time, per)
-
-#     # # Full phase-folded light curve
-#     ax0 = fig.add_subplot(3,2,(1,2))
-#     ax0.plot(time, flux, 'bo', markersize=ms)
-#     ax0.plot(time, flux, 'k-')
-
-#     # Full phase-folded light curve
-#     ax1 = fig.add_subplot(3,2,(3,4))
-#     ax1.plot(phase, flux, 'bo', markersize=ms)
-
-#     # Transit zoom-in
-#     ax2 = fig.add_subplot(3,2,5)
-#     ax2.set_xlim(phi-tdur, phi+tdur)
-#     #ax2.set_ylim(tdepth, ])
-#     # xpos  = phi-dT+((phi+dT)-(phi-dT))*0.70
-#     # ypos1 = depth+0.0000
-#     # ypos2 = depth+0.0002
-#     # plt.text(xpos, ypos2, '$P={:.4f}$ days'.format(P), fontsize=18)
-#     # plt.text(xpos, ypos1, '$\phi={:.4f}$ days'.format(phi), fontsize=18)
-#     # plt.title('Phase  folded', fontsize=18)
-#     # plot_settings('$t$ $mod$ $P$ [days]', 'Flux')
-
-
-#     # ax2.plot(phase, flux, 'go')
-#     # ax2.plot(phase, flux, 'k-')
-#     # # Position text
-#     # xpos = min(phase)+(max(phase)-min(phase))*0.70
-#     # ypos = max(flux)-(max(flux)-min(flux))*0.98
-#     # ax1.text(xpos, ypos,'$P={:.4f}$ d'.format(per), fontsize=fs)
-#     # # Labels
-#     # ax2.set_title('Phase folded', fontsize=15)
-#     #ax2.set_xlim(phase-tdur, phase+tdur)
-#     #ax1.set_ylim(min(flux), max(flux))
-
-#     # Occultation zoom-in
-#     ax4 = fig.add_subplot(3,2,6)
-#     #sub3.plot(x, y)
-    
-#     # Finito!
-#     plt.show()
-
-
-
-
-
-    
-
 def plot_final_lc(lc, figsize=(10,8)):
 
     """Plot noise-less light curve from file produced with varsim.
@@ -2860,14 +2834,16 @@ def plotSubfieldAnimation(filename, outputFileName=False,
             
         # Overplot rectangles over those pixels that are part of the mask
         # Note: imshow reverses rows and columns
+        # TODO this result in circular import -> move this to showImage()!
 
-        if showMaskOfStarID is not None:
-            mask = simfile.getApertureMask(showMaskOfStarID, imgNumber)
-            rowIndices, colIndices = mask[0], mask[1] 
-            for k in range(len(rowIndices)):
-                rect = patches.Rectangle((colIndices[k], rowIndices[k]),
-                                          1, 1, linewidth=2.0, edgecolor='b', facecolor='none')
-                mask = ax.add_patch(rect)
+        # if showMaskOfStarID is not None:
+        #     from platosim.simfile import SimFile
+        #     mask = simfile.getApertureMask(showMaskOfStarID, imgNumber)
+        #     rowIndices, colIndices = mask[0], mask[1] 
+        #     for k in range(len(rowIndices)):
+        #         rect = patches.Rectangle((colIndices[k], rowIndices[k]),
+        #                                   1, 1, linewidth=2.0, edgecolor='b', facecolor='none')
+        #         mask = ax.add_patch(rect)
 
         # If requiered, overplot a gray semi-transparent grid
         # Note: this is only meaningsful for smaller imagettes
