@@ -49,7 +49,6 @@ class Platform : public Heartbeat, HDF5Writer
         arma::mat getEquatorialToUnjitteredSpacecraftRotationMatrix();
 
         virtual double getHeartbeatInterval() override;
-        tuple<double, double> getRADecSun();
         
 
     protected:
@@ -71,8 +70,6 @@ class Platform : public Heartbeat, HDF5Writer
         double originalRA;                          // Original user-given right Ascension of spacecraft pointing axis (zSC-axis) [rad]
         double originalDec;                         // Original user-given declination     of spacecraft pointing axis (zSC-axis) [rad]
         double originalKappa;                       // Original user-given Platform roll angle before the jitter starts           [rad]
-        double raSun;                               // Right ascension of the direction of the sun shield during the run          [rad]
-        double decSun;                              // Declination of the direction of the sun shield during the run              [rad]
         string platformOrientationSource;           // Either "Angles" or "Quaternion": orientation in the EQ reference frame
 
         JitterGenerator &jitterGenerator; 

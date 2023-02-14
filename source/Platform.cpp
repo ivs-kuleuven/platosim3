@@ -223,9 +223,9 @@ void Platform::updatePlatformOrientation(double time)
             if (time == historyTime.back())
             {
                 Log.debug("Platform: updatePlatformOrientation(): coordinates up-to-date for requested time " + to_string(time));
-                Log.debug("Platform: At time " + to_string(time) + ": (RA, dec) = (" 
+                Log.debug("Platform: updatePlatformOrientation(): At time " + to_string(time) + ": (RA, dec) = (" 
                                                + to_string(historyRA.back()) + ", " 
-                                               + to_string(historyDec.back()) + ")");
+                                               + to_string(historyDec.back()) + ") before applying jitter step.");
                 return;
             }
         }
@@ -234,7 +234,7 @@ void Platform::updatePlatformOrientation(double time)
         // Let the platfrom jitter until 'time'. Yaw, pitch, and roll are in [rad]
         tie(yaw, pitch, roll) = jitterGenerator.getNextYawPitchRoll(time);
 
-        Log.debug("Platform: At time " + to_string(time) + ": (yaw, pitch, roll) = (" 
+        Log.debug("Platform: updatePlatformOrientation(): At time " + to_string(time) + ": (yaw, pitch, roll) = (" 
                                        + to_string(rad2deg(yaw)*3600.) + ", " 
                                        + to_string(rad2deg(pitch)*3600.) + ", " 
                                        + to_string(rad2deg(roll)*3600.) + ") arcsec");
@@ -287,7 +287,7 @@ void Platform::updatePlatformOrientation(double time)
 
     Log.debug("Platform: At time " + to_string(time) + ": (RA, dec) = (" 
                                    + to_string(rad2deg(currentRA)) + ", " 
-                                   + to_string(rad2deg(currentDec)) + ")");
+                                   + to_string(rad2deg(currentDec)) + ") after applying jitter step.");
 
     // Update the internal clock
 
@@ -508,8 +508,7 @@ arma::mat Platform::getEquatorialToUnjitteredSpacecraftRotationMatrix()
                 << -sin(originalKappa) << cos(originalKappa) << 0.0 << arma::endr
                 <<        0.0          <<        0.0         << 1.0 << arma::endr;
 
-        arma::mat rotEQ2SC = rotB2SC % rotA2B % rotEQ2A;
-
+        arma::mat rotEQ2SC = rotB2SC * rotA2B * rotEQ2A;
         return rotEQ2SC;
     }
     else    // platformOrientationSource == "Quaternion"
@@ -596,36 +595,6 @@ arma::mat Platform::getUnjitteredToJitteredRotationMatrix(const double yaw, cons
 
     return Ryaw  * Rpitch * Rroll;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * \brief Return the right ascension and declination of the Sun in the middle of the time series
- * \details It is assumed that the Sun is always 180 degrees away from platform pointing in the middle of the time series.
- * 
- * \return raSun:  Right Ascension of the Sun [rad]
- *         decSun: Declination of the Sun [rad]
- */
-
-tuple<double, double> Platform::getRADecSun()
-{
-    return make_pair(raSun, decSun);
-}
-
-
 
 
 

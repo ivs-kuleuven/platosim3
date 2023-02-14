@@ -53,11 +53,10 @@ Telescope::Telescope(ConfigurationParameters &configParams, HDF5File &hdf5File, 
     const double y = opticalAxisEQ(1);
     const double z = opticalAxisEQ(2);
  
-    const double r = sqrt(x*x+y*y+z*z);
-    currentDeltaOpticalAxis = PI / 2.0 - acos(z/r);                               // [rad]
+    const double r = sqrt(x*x + y*y + z*z);
+    currentDeltaOpticalAxis = PI / 2.0 - acos(z/r);                               // Dec is measured from equator, not North Pole.  [rad]
     currentAlphaOpticalAxis = atan2(y, x);                                        // [rad]
     if (currentAlphaOpticalAxis < 0.0) currentAlphaOpticalAxis += 2 * PI; 
-
 }
 
 
@@ -454,18 +453,18 @@ arma::mat Telescope::getUndriftedTelescopeToPlatformRotationMatrix()
     // Rotating over an azimuth angle around the Z-axis of the platform
 
     arma::mat rotAzimuth;
-    rotAzimuth << cos(originalAzimuthAngle) << -sin(originalAzimuthAngle) << 0 << arma::endr
-               << sin(originalAzimuthAngle) <<  cos(originalAzimuthAngle) << 0 << arma::endr
-               <<          0                <<          0                 << 1 << arma::endr;
+    rotAzimuth <<  cos(originalAzimuthAngle) << sin(originalAzimuthAngle) << 0 << arma::endr
+               << -sin(originalAzimuthAngle) << cos(originalAzimuthAngle) << 0 << arma::endr
+               <<           0                <<          0                << 1 << arma::endr;
 
-    // Rotating over a tilt angle around teh Y-axis of the telescope
+    // Rotating over a tilt angle around the Y-axis of the telescope
 
     arma::mat rotTilt;
-    rotTilt <<  cos(originalTiltAngle)  << 0 << sin(originalTiltAngle)  << arma::endr
-            <<           0              << 1 <<            0            << arma::endr
-            <<  -sin(originalTiltAngle) << 0 << cos(originalTiltAngle)  << arma::endr;
+    rotTilt <<  cos(originalTiltAngle)   << 0 << sin(originalTiltAngle)  << arma::endr
+            <<            0              << 1 <<            0            << arma::endr
+            <<  -sin(originalTiltAngle)  << 0 << cos(originalTiltAngle)  << arma::endr;
 
-    return rotAzimuth * rotTilt * rotAzimuth.t();
+    return rotAzimuth.t() * rotTilt.t() * rotAzimuth;
 }
 
 
