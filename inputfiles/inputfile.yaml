@@ -158,8 +158,8 @@ CCD:
     Position:                        Custom          # One of [1, 2, 3, 4, Custom]
                                                      # (use Custom to specify the CCD position parameters yourself)
 
-    OriginOffsetX:                   0               # X Offset of CCD origin from center of focal plane [mm]
-    OriginOffsetY:                   0               # Y Offset of CCD origin from center of focal plane [mm]
+    OriginOffsetX:                   0               # X offset of CCD origin from center of focal plane [mm]
+    OriginOffsetY:                   0               # Y offset of CCD origin from center of focal plane [mm]
     Orientation:                     0               # Orientation of CCD w.r.t. focal plane orientation [deg] - use when CCDPosition = Custom
     NumColumns:                      4510            # Number of columns on the CCD [pixels]                   - use when CCDPosition = Custom
     NumRows:                         4510            # Number of rows on the CCD [pixels] (including non-exposed ones) - use when CCDPosition = Custom
@@ -169,8 +169,8 @@ CCD:
     BFE:                                             # Brighter-fatter effect
         CoefficientsFileName:        inputfiles/a_bfe.hdf5  # File with the BFE coefficients, calculated by P. Astier
     Gain:
-        RefValueLeft:                2.14            # [microV/e-]
-        RefValueRight:               2.14            # [microV/e-]
+        RefValueLeft:                2.14            # F side of CCD [microV/e-]
+        RefValueRight:               2.21            # E side of CCD [microV/e-]
         Stability:                   -0.001          # [microV/e-/K]
         AllowedDifference:           15.0            # Difference in gain between both CCD halves [%]
     QuantumEfficiency:

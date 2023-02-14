@@ -5,13 +5,14 @@ The Simulation class provides the opportunity to interactively tune the input pa
 before the simulator is started. The parameters that are available can be inspected by
 just printing the Simulation object, i.e. print (sim), which will dump all the parameters
 and their current values on the command line.
-
+Simulation
 For usage see the Jupyter tutorial notebooks available at "PlatoSim/docs/tutorials".
 """
 
 import os
 import sys
 import ast
+import math
 import yaml
 import pyaml
 import inspect
@@ -1052,11 +1053,11 @@ class Simulation(object):
 
 
 
-    def getStarsWithinCameraGroup(self, raPF, decPF, ra, dec, camGroup=1, quarter=1, sizeSubfield=6):
+    def getStarsWithinCameraGroup(self, raPF, decPF, ra, dec, kappa=-8, camGroup=1, quarter=1, sizeSubfield=6):
 
         """Fetch all star within a camera group.
 
-        This function determines if a star is within the FOV of a specific
+        This function determines if any star from a catalogue is within the FOV of a specific
         PLATO camera group.
 
         TODO: Could be implemented in a better and faster manner!
@@ -1073,6 +1074,8 @@ class Simulation(object):
             Right ascension of stars to be checked against [deg]
         dec : list, tuple, array
             Declination of stars to be checked against [deg]
+        kappa : float
+            Rotation of the platform [deg]
 
         Return
         ------
@@ -1093,7 +1096,7 @@ class Simulation(object):
         focalLength      = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
         focalPlaneAngle  = np.deg2rad(float(self["Camera/FocalPlaneOrientation/ConstantValue"]))
 
-        solarPanelOrientation = sim["Platform/SolarPanelOrientation"] = math.fmod(quarter * 90., 360.)-4
+        solarPanelOrientation = self["Platform/SolarPanelOrientation"] = math.fmod(quarter * 90. - kappa, 360.)
         solarPanelOrientation = np.deg2rad(float(solarPanelOrientation))
 
         raTargetsRad  = np.deg2rad(ra)   # [rad]
@@ -1101,7 +1104,7 @@ class Simulation(object):
 
         # Loop over each star for this cam-group
 
-        sim["Telescope/GroupID"] = camGroup
+        self["Telescope/GroupID"] = camGroup
         azimuthTelescope = np.deg2rad(self["CameraGroups/AzimuthAngle"][camGroup-1])
         tiltTelescope    = np.deg2rad(self["CameraGroups/TiltAngle"][camGroup-1])
 
