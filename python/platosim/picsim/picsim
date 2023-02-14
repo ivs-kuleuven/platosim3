@@ -432,11 +432,11 @@ if fileFormat != '.txt':
     # Check spectral type
     if specType is not None:
         if specType == 'K':
-            df = df_dK if lumClass == 'V' else df_sgK
+            df = df_dK if lumClass == 'V' else (df_sgK if lumClass == 'IV' else pd.concat([df_dK, df_sgK]))
         elif specType == 'G':
-            df = df_dG if lumClass == 'V' else df_sgG
+            df = df_dG if lumClass == 'V' else (df_sgG if lumClass == 'IV' else pd.concat([df_dG, df_sgG]))
         elif specType == 'F':
-            df = df_dF if lumClass == 'V' else df_sgF
+            df = df_dF if lumClass == 'V' else (df_sgF if lumClass == 'IV' else pd.concat([df_dF, df_sgF]))
         else:
             errorcode('error', 'Not valid spectral type for PIC stars!')
 
