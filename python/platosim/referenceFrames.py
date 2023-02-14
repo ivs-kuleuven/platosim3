@@ -1790,8 +1790,10 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
     Ncols = CCD[ccdCode]["Ncols"]
     Nrows = CCD[ccdCode]["Nrows"]
 
-    if     (xCCDpix - subfieldSizeX/2 < 0)        or (xCCDpix + subfieldSizeX/2 - 1 > Ncols-1)
-        or (yCCDpix - subfieldSizeY/2 < firstRow) or (yCCDpix + subfieldSizeY/2 - 1 > Nrows-1):
+    if (xCCDpix - subfieldSizeX/2 < 0           or
+        xCCDpix + subfieldSizeX/2 - 1 > Ncols-1 or
+        yCCDpix - subfieldSizeY/2 < firstRow    or
+        yCCDpix + subfieldSizeY/2 - 1 > Nrows-1):
         return None, None, None
 
     # That's it!
