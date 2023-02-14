@@ -23,50 +23,58 @@ day2sec = 86400.
 
 
 def getPRE(ra, dec, kappa, quarter, sigma=3, outfile=False, show_table=False):
+
     """
-    TODO under development!
+   
+    Paramters
+    ---------
 
-    PURPOSE: 
-             
-    INPUT:
-
-    OUTPUT:
+    Return
+    ------
     """
 
     # Sort input quarters
+    
     n = len(quarter)
     
     # Coordinates
+    
     ICRS = np.array([ra, dec, kappa])
     
     # Pointing Reproducibility Error (PRE) in P/L reference frame (yaw, pitch, roll)
     # Here t stands for transverse direction and [deg]
+    
     t = 3.0/3600
     b = 6.0/3600
 
     # Find distribution within 3 sigma of req.
+    
     tt = np.array([np.random.normal(0, t/sigma) for i in range(n)])
     bb = np.array([np.random.normal(0, b/sigma) for i in range(n)])
 
     # Corresponding yaw, pitch, roll
+    
     y = tt
     z = 3 * y
     x = bb - z
 
     # ICRS pointing angles
+    
     phi   = np.deg2rad(ra)
     theta = np.deg2rad(dec)
 
-    # Find change to pointing for quarters
-    PRE = np.zeros((n , 4))
+    # Find change of pointing for each quarter
+    
+    PRE = np.zeros((n, 4))
     for i in range(n):
-        data = rf.changeOfPointing(x[i], y[i], z[i], phi, theta)[0]
+        data = rf.perturbPlatformPointing(x[i], y[i], z[i], phi, theta)[0]
         PRE[i,:] = np.append(quarter[i], data)
 
     df = pd.DataFrame(PRE, columns=["quarter", "yaw", "pitch", "roll"])
     df = df.astype({"quarter":int, "yaw":np.float64, "pitch":np.float64, "roll":np.float64})
     
     # Print generated values
+    
     if show_table:         
 
         print('\nChange of coordinates [arcsec]')
@@ -82,6 +90,7 @@ def getPRE(ra, dec, kappa, quarter, sigma=3, outfile=False, show_table=False):
         print(df1)
 
     # Save file with relative pointing errors [deg]
+    
     if outfile:
         df.to_csv(outfile, sep=" ", header=False, index=False)
 
@@ -93,6 +102,15 @@ def getPRE(ra, dec, kappa, quarter, sigma=3, outfile=False, show_table=False):
 
 def getAPE(ra, dec, kappa, sigma=3, outfile=False, show_table=False):
 
+    """
+   
+    Paramters
+    ---------
+
+    Return
+    ------
+    """
+    
     # Pointing Reproducibility Error (PRE) in P/L reference frame (yaw, pitch, roll)
     t = 4.5/60  # [deg]
     b = 9.0/60  # [deg]
@@ -139,80 +157,98 @@ def getAPE(ra, dec, kappa, sigma=3, outfile=False, show_table=False):
 
 
 
+
 def getTED(quarter, model="poly", outfile=False, plot=False):
-        """
-        Function to create a Themo-Elastic Distortion (TED) file.
-        """
+
+    """Generate a Themo-Elastic Drift (TED) file.
+   
+    This function generates a complete TED model returned in euler angles.
+    
+    Paramters
+    ---------
+    quarter : range
+        Range of quarters (e.g. range(1,8) for Q1-Q8).
+    model : str
+        Model to produce TED: 'linear' or 'poly'.
+    outfile : bool, str
+        Parse string to save the model to a ascii file.
+    plot : bool
+        True will make a plot of the models.
         
-        # Constants
-        time0 = np.arange(0, 90*day2sec, 25)
-        cols  = ["yaw", "pitch", "roll"]
-        N     = len(quarter)
-
-        # Create data frame and store default time0 for fit
-        df  = pd.DataFrame()
-        df1 = pd.DataFrame()
-            
-        # Loop over each quarter
+    Return
+    ------
+    Output file if requested.
+    """
         
-        for Q in range(quarter[0]-1, quarter[-1]):
+    # Constants
+    time0 = np.arange(0, 90*day2sec, 25)
+    cols  = ["yaw", "pitch", "roll"]
+    N     = len(quarter)
 
-            # Time column
-            t0 = round(90. *  Q    * day2sec)
-            t1 = round(90. * (Q+1) * day2sec)
-            df1["time"] = np.arange(t0, t1, 25)
+    # Create data frame and store default time0 for fit
+    df  = pd.DataFrame()
+    df1 = pd.DataFrame()
 
-            # Generate linear model
-            
-            # Generate a random 2nd order polynomial
-            
-            for col in cols:
+    # Loop over each quarter
 
-                if model == 'linear':
-                    a = 1.3 * 15      
-                    if col == "roll":
-                        df1[col] = np.zeros(len(df1.time))
-                    else:
-                        df1[col] = np.linspace(0, a, len(df1.time))
+    for Q in range(quarter[0]-1, quarter[-1]):
 
+        # Time column
+        t0 = round(90. *  Q    * day2sec)
+        t1 = round(90. * (Q+1) * day2sec)
+        df1["time"] = np.arange(t0, t1, 25)
+
+        # Generate linear model
+
+        # Generate a random 2nd order polynomial
+
+        for col in cols:
+
+            if model == 'linear':
+                a = 1.3 * 15      
+                if col == "roll":
+                    df1[col] = np.zeros(len(df1.time))
                 else:
-                    # NOTE these parameters has been compared to Prime TED
-                    a = np.random.uniform(-10, 10) * 1e-14
-                    b = np.random.uniform(-15, 15) * 1e-7
-                    # Secure that c (the y offset) is always zero
-                    c = 0
-                    # Make sure that a and b always has opposite signs
-                    if np.sign(a) == np.sign(b): b *= -1
-                    # Get model fit 
-                    poly = np.array([a, b, c])
-                    df1[col] = np.polyval(poly, time0)
+                    df1[col] = np.linspace(0, a, len(df1.time))
 
-            # File to save
-            df = pd.concat([df, df1])
+            else:
+                # NOTE these parameters has been compared to Prime TED
+                a = np.random.uniform(-10, 10) * 1e-14
+                b = np.random.uniform(-15, 15) * 1e-7
+                # Secure that c (the y offset) is always zero
+                c = 0
+                # Make sure that a and b always has opposite signs
+                if np.sign(a) == np.sign(b): b *= -1
+                # Get model fit 
+                poly = np.array([a, b, c])
+                df1[col] = np.polyval(poly, time0)
 
-        # Plot model
-        if plot:
-            fig, ax = plt.subplots(3,1,figsize=(9, 6))
-            # Plots
-            for i, col in zip(range(3), cols):
-                ax[i].plot(df["time"]/day2sec, df[col], 'k-')
-                ax[i].axhline(y=0, linestyle=':', color='k')
-                for k in range(N-1):
-                    ax[i].axvline(x=quarter[k]*90, linestyle='--', color='b')
-            # Settings
-            ax[2].set_xlabel("Time [days]")
-            ax[0].set_ylabel("Yaw [arcsec]")
-            ax[1].set_ylabel("Pitch [arcsec]")
-            ax[2].set_ylabel("Roll [arcsec]")
-            for i in range(3):
-                ax[i].set_xlim(df.time.min()/day2sec, df.time.max()/day2sec)
-            # Layout
-            ax[0].set_xticklabels([])
-            ax[1].set_xticklabels([])
-            plt.tight_layout(h_pad=0.2, w_pad=0)
-            plt.show()
+        # File to save
+        df = pd.concat([df, df1])
 
-        # Save data in one big drift text file for PlatoSim
-        if outfile:
-            fig.savefig(f"{outfile[:-4]}.png", bbox_inches='tight', dpi=200)
-            df.to_csv(outfile, sep=" ", header=False, index=False)
+    # Plot model
+    if plot:
+        fig, ax = plt.subplots(3,1,figsize=(9, 6))
+        # Plots
+        for i, col in zip(range(3), cols):
+            ax[i].plot(df["time"]/day2sec, df[col], 'k-')
+            ax[i].axhline(y=0, linestyle=':', color='k')
+            for k in range(N-1):
+                ax[i].axvline(x=quarter[k]*90, linestyle='--', color='b')
+        # Settings
+        ax[2].set_xlabel("Time [days]")
+        ax[0].set_ylabel("Yaw [arcsec]")
+        ax[1].set_ylabel("Pitch [arcsec]")
+        ax[2].set_ylabel("Roll [arcsec]")
+        for i in range(3):
+            ax[i].set_xlim(df.time.min()/day2sec, df.time.max()/day2sec)
+        # Layout
+        ax[0].set_xticklabels([])
+        ax[1].set_xticklabels([])
+        plt.tight_layout(h_pad=0.2, w_pad=0)
+        plt.show()
+
+    # Save data in one big drift text file for PlatoSim
+    if outfile:
+        fig.savefig(f"{outfile[:-4]}.png", bbox_inches='tight', dpi=200)
+        df.to_csv(outfile, sep=" ", header=False, index=False)
