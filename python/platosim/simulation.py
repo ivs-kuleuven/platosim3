@@ -1303,20 +1303,22 @@ class Simulation(object):
                     mappedDistortion = False
                     distortionCoefficients = False
 
-                ccdCode[i], xCCD[i], yCCD[i] = rf.getCCDandPixelCoordinates(raTargetsRad[i],
-                                                                            decTargetsRad[i],
-                                                                            raPlatformRad,
-                                                                            decPlatformRad,
-                                                                            solarPanelOrientationRad,
-                                                                            tiltTelescopeRad,
-                                                                            azimuthTelescopeRad,
-                                                                            focalPlaneAngle,
-                                                                            focalLength,
-                                                                            pixelSize,
-                                                                            includeFieldDistortion,
-                                                                            normal=True,
-                                                                            mappedDistortion,
-                                                                            distortionCoefficients)
+                out = rf.getCCDandPixelCoordinates(raTargetsRad[i],
+                                                   decTargetsRad[i],
+                                                   raPlatformRad,
+                                                   decPlatformRad,
+                                                   solarPanelOrientationRad,
+                                                   tiltTelescopeRad,
+                                                   azimuthTelescopeRad,
+                                                   focalPlaneAngle,
+                                                   focalLength,
+                                                   pixelSize,
+                                                   includeFieldDistortion,
+                                                   normal=True,
+                                                   mappedDistortion=mappedDistortion,
+                                                   distortionCoefficients=distortionCoefficients)
+                ccdCode[i], xCCD[i], yCCD[i] = out[0], out[1], out[2]
+                
         # That's it!
         
         return ccdCode, xCCD, yCCD
