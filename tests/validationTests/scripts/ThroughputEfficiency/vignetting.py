@@ -32,7 +32,7 @@ class Vignetting(Test):
         self.sim["ObservingParameters/NumExposures"] = 1
         self.sim["SubField/NumRows"]    = 4200
         self.sim["SubField/NumColumns"] = 4200
-        self.sim["ObservingParameters/DecPointing"] = -self.sim["ObservingParameters/DecPointing"]
+        self.sim["Platform/Orientation/Angles/DecPointing"] = -self.sim["Platform/Orientation/Angles/DecPointing"]
         self.sim["CCD/IncludeRelativeTransmissivity"] = "yes"
         print(self.sim["CCD/IncludeRelativeTransmissivity"])
 
@@ -93,3 +93,5 @@ class Vignetting(Test):
 if __name__ == "__main__":
     t = Vignetting()
     print(t.run())
+
+

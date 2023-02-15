@@ -90,21 +90,21 @@ testMessages.append("{:<9}  {:^42}:{}".format("Test2:", name, success[out2]))
 print(testMessages[-1])
 
 
+# with suppress_stdout():
+#     test3   = AbsoluteAberration()
+#     out3    = test3.run()
+#
+# name = "Absolute Aberration"
+# testMessages.append("{:<9}  {:^42}:{}".format("Test3:", name, success[out3]))
+# print(testMessages[-1])
+
 with suppress_stdout():
-    test3   = AbsoluteAberration()
-    out3    = test3.run()
+    test4   = FieldDistortion()
+    out4    = test4.run()
 
-name = "Absolute Aberration"
-testMessages.append("{:<9}  {:^42}:{}".format("Test3:", name, success[out3]))
+name = "Field Distortion"
+testMessages.append("{:<9}  {:^42}:{}".format("Test4:", name, success[out4]))
 print(testMessages[-1])
-
-#with suppress_stdout():
-#    test4   = FieldDistortion()
-#    out4    = test4.run()
-
-#name = "Field Distortion"
-#testMessages.append("{:<9}  {:^42}:{}".format("Test4:", name, success[out4]))
-#print(testMessages[-1])
 
 
 with suppress_stdout():
@@ -436,3 +436,4 @@ print("[Completed in {0} s]".format(endTime - startTime))
 with open(os.environ["PLATO_PROJECT_HOME"] + '/tests/validationTests/ioFiles/result.txt', 'w') as outputFile:
     for line in testMessages:
         outputFile.write(line+'\n')
+

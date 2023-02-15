@@ -37,8 +37,7 @@ class PRNU(Test):
 
         self.sim["CCD/IncludeFlatfield"] = "yes"
         
-        #print(self.sim["CCD/FlatfieldNoiseRMS"])
-        self.sim["ObservingParameters/DecPointing"] = -self.sim["ObservingParameters/DecPointing"]
+        self.sim["Platform/Orientation/Angles/DecPointing"] = -self.sim["Platform/Orientation/Angles/DecPointing"]
 
         self.sim["ControlHDF5Content/WriteSubPixelImages"] = "true"
 

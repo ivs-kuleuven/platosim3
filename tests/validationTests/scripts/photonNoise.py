@@ -32,7 +32,7 @@ class PhotonNoise(Test):
         self.sim["SubField/NumColumns"] = 100
 
         # Make sure no stars are on the subfield.
-        self.sim["ObservingParameters/DecPointing"] = - self.sim["ObservingParameters/DecPointing"]
+        self.sim["Platform/Orientation/Angles/DecPointing"] = -self.sim["Platform/Orientation/Angles/DecPointing"]
 
         # Include photon noise.
         self.sim["CCD/IncludePhotonNoise"] = "yes"
