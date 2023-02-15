@@ -22,10 +22,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.colors as colors
-import statsmodels.api as sm
+#import statsmodels.api as sm
 import astropy.stats as stats
 
-from PyAstronomy import pyasl
 from scipy import constants as c
 from zipfile import ZipFile
 from tqdm import tqdm
@@ -35,7 +34,7 @@ import platosim.utilities       as ut
 import platosim.statistics      as st
 import platosim.referenceFrames as rf
 from platosim.simfile import SimFile
-
+from platosim.utilities import errorcode
 
 #==============================================================#
 #                         BEGIN CLASS                          #
@@ -105,7 +104,7 @@ class LightCurve(object):
                 self.mask_updates = simfile.getMaskUpdateEvents()
                 
             else:
-                ut.errorcode("error", "File should be in the format of .ftr or .hdf5!")
+                errorcode("error", "File should be in the format of .ftr or .hdf5!")
 
 
         # MULTI-CAMERA SIMULATIONS
@@ -251,7 +250,7 @@ class LightCurve(object):
 
         # Check mode a tell user to load a file
         if self.mode == "multi":
-            ut.errorcode('error', 'Specify a file to load target!')
+            errorcode('error', 'Specify a file to load target!')
 
         # Get correct path to varsource file
         filename = pathlib.Path(self.filename)
@@ -413,7 +412,7 @@ class LightCurve(object):
         if   unit == "s": time = self.df["time"]
         elif unit == "h": time = self.df["time"] / c.hour
         elif unit == "d": time = self.df["time"] / c.day
-        else: ut.errorcode("error", "No such time unit! Available units: [s, h, d]")
+        else: errorcode("error", "No such time unit! Available units: [s, h, d]")
         
         return time
 
@@ -437,7 +436,7 @@ class LightCurve(object):
         elif unit == "rel": flux = ut.normalize(self.df[column], factor=1)
         elif unit == "ppt": flux = ut.normalize(self.df[column], factor=1e3)
         elif unit == "ppm": flux = ut.normalize(self.df[column], factor=1e6)
-        else: ut.errorcode("error", "No such flux unit! Availble option: [e/s, norm, ppt, ppm]")
+        else: errorcode("error", "No such flux unit! Availble option: [e/s, norm, ppt, ppm]")
         
         return flux
 
@@ -455,7 +454,7 @@ class LightCurve(object):
         elif unit == "mm":  cen = self.df[column] * self.pixelSize / 1000.0
         elif unit == "rel": cen = self.df[column] - np.mean(self.df[column])
         elif unit == "cen": cen = self.df[column] - 3
-        else: ut.errorcode("error", "No such centroid unit! Availble option: [pix, mm, rel, cen]")
+        else: errorcode("error", "No such centroid unit! Availble option: [pix, mm, rel, cen]")
         
         return cen
 
@@ -471,7 +470,7 @@ class LightCurve(object):
         # Centroid unit
         if   unit == "pix": xcen_err = self.df["cx_err"]
         elif unit == "mm":  xcen_err = self.df["cx_err"] * self.pixelSize / 1000.0
-        else: ut.errorcode("error", "No such centroid unit! Availble option: [pix, mm]")
+        else: errorcode("error", "No such centroid unit! Availble option: [pix, mm]")
         
         return xcen_err
 
@@ -504,7 +503,7 @@ class LightCurve(object):
         if not unit:
             if   column in set(("flux", "flux_err", "flux_med")): unit = "e/s"
             elif column is set(( "xcen", "yxen")):                unit = "pix"
-            else: ut.errorcode("error", "No such column!")
+            else: errorcode("error", "No such column!")
             
         # Fetch column
         if   column == "flux":     array = self.flux(unit=unit)
@@ -528,7 +527,7 @@ class LightCurve(object):
         if not unit:
             if   column in set(("flux", "flux_err", "flux_med")): unit = "e/s"
             elif column is set(( "xcen", "yxen")):                unit = "pix"
-            else: ut.errorcode("error", "No such column!")
+            else: errorcode("error", "No such column!")
 
         # Fetch column
         if   column == "flux":     array = self.flux(unit=unit)
@@ -624,7 +623,7 @@ class LightCurve(object):
         if   time_unit == "s": dt = binsize * 3600
         elif time_unit == "h": dt = binsize * 1
         elif time_unit == "d": dt = binsize * 1/24.
-        else: ut.errorcode("error", "No such time unit! Available unit: [s, h, d]")
+        else: errorcode("error", "No such time unit! Available unit: [s, h, d]")
 
         # Define bins to devide data
         tbins = np.arange(df["time"].min(), df["time"].max().round(1)+1, binsize)
@@ -1051,7 +1050,7 @@ class LightCurve(object):
         elif flux_unit == "norm": ylab = "Flux normalized"
         elif flux_unit == "ppt":  ylab = "Flux [ppt]"
         elif flux_unit == "ppm":  ylab = "Flux [ppm]"
-        else: ut.errorcode("error", "No such flux unit!")
+        else: errorcode("error", "No such flux unit!")
         
         # Fetch obs infoin range
         if cameras and quarter:
@@ -1142,7 +1141,7 @@ class LightCurve(object):
         elif cen_unit == "rel": lab_unit = "- Mean [pixel]" 
         elif cen_unit == "cen": lab_unit = "- Center [pixel]"
         elif cen_unit == "mm":  lab_unit = "[mm]" 
-        else: ut.errorcode("error", "No such centroid unit! Availble option: [pix, mm, rel, cen]")
+        else: errorcode("error", "No such centroid unit! Availble option: [pix, mm, rel, cen]")
 
         # Convert to days
         time = self.time(unit=time_unit)
@@ -1579,7 +1578,7 @@ class LightCurve(object):
 
         # Loop over star simulated
 
-        for i in tqdm(range(1, numStar+1), bar_format=ut.tqdm_bar_format()):
+        for i in tqdm(range(1, numStar+1), bar_format=ut.tqdmBar()):
 
             # Read path
             starID = f"{i}".zfill(9)
@@ -1691,7 +1690,7 @@ class LightCurve(object):
         f = 247.52 # [mm] 
 
         # Loop over star simulated
-        for i in tqdm(range(1, numStar+1), bar_format=ut.tqdm_bar_format()):
+        for i in tqdm(range(1, numStar+1), bar_format=ut.tqdmBar()):
 
             # Fetch all zip files
             starID   = f"{i}".zfill(9)
@@ -1795,7 +1794,7 @@ class LightCurve(object):
 
         # Loop over star simulated
 
-        for i in tqdm(range(1, numStar+1), bar_format=ut.tqdm_bar_format()):
+        for i in tqdm(range(1, numStar+1), bar_format=ut.tqdmBar()):
 
             # Read path
             starID = f"{i}".zfill(9)
@@ -1908,7 +1907,7 @@ class LightCurve(object):
         
         # Loop over star simulated
 
-        for i in tqdm(range(start, end), bar_format=ut.tqdm_bar_format()):
+        for i in tqdm(range(start, end), bar_format=ut.tqdmBar()):
 
             # Create star folder
             starID = f"{i}".zfill(9)
@@ -2008,7 +2007,7 @@ class LightCurve(object):
             
             # Loop over star simulated
 
-            for i in tqdm(range(start, end), bar_format=ut.tqdm_bar_format()):
+            for i in tqdm(range(start, end), bar_format=ut.tqdmBar()):
 
                 # Create star folder
                 starID = f"{i}".zfill(9)

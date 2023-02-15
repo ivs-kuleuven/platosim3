@@ -72,7 +72,7 @@ def axes_minmax(x=None, y=None, pt=0.02):
 
 
 
-def discrete_colorbar(cbins, cmap="coolwarm"):
+def discretizeColorbar(cbins, cmap="coolwarm"):
 
     """Enforce that colorbar use discrete values.
 
@@ -143,14 +143,87 @@ def slider(imagePlot, images, Nimg, label="Image number"):
     slider = IntSlider(0, 0, 10, 1, layout=Layout(width='500px'))
     interact(update_image, n=(0,Nimg-1), x=slider)
 
-    # Make a horizontal slider to control the frequency.
-    #axfreq = fig.add_axes([0.25, 0.1, 0.65, 0.03])
-    #slider = Slider(ax=axfreq, label=label, valmin=vmin, valmax=vmax, valinit=val)
 
 
 
 
+def moveColorbarExponent(x_offs=0, y_offs=1, dig=0, side='left', omit_last=False):
+
+    """Move scientific notation exponent from top to the side.
     
+    Additionally, one can set the number of digits after the comma
+    for the y-ticks, hence if it should state 1, 1.0, 1.00 and so forth.
+
+    Note
+    ----
+    This is kind of a non-satisfying hack, which should be handled more
+    properly. But it works. Functions to look at for a better implementation:
+    >>> ax.ticklabel_format
+    >>> ax.yaxis.major.formatter.set_offset_string
+
+    Parameters
+    ----------
+    offs : float, optional; <0>
+        Horizontal movement additional to default.
+    dig : int, optional; <0>
+        Number of decimals after the comma.
+    side : string, optional; {<'left'>, 'right'}
+        To choose the side of the y-axis notation.
+    omit_last : bool, optional; <False>
+        If True, the top y-axis-label is omitted.
+
+    Returns
+    -------
+    locs : list
+        List of y-tick locations.
+    """
+
+    # Get the ticks
+    
+    locs, _ = plt.yticks()
+
+    # Put the last entry into a string, ensuring it is in scientific notation
+    # E.g: 123456789 => '1.235e+08'
+    
+    llocs = '%.3e' % locs[-1]
+
+    # Get the magnitude, hence the number after the 'e'
+    # E.g: '1.235e+08' => 8
+    
+    yoff = int(str(llocs).split('e')[1])
+
+    # If omit_last, remove last entry
+    
+    if omit_last:
+        slocs = locs[:-1]
+    else:
+        slocs = locs
+
+    # Set ticks to the requested precision
+    
+    form = r'$%.' + str(dig) + 'f$'
+    plt.yticks(locs, list(map(lambda x: form % x, slocs / (10 ** yoff))))
+
+    # Define offset depending on the side
+    
+    if side == 'left':
+        x_offs = -.18 - x_offs  # Default left: -0.18
+    elif side == 'right':
+        x_offs = 1 + x_offs     # Default right: 1.0
+
+    # Plot the exponent
+    
+    plt.text(x_offs, y_offs, r'$\times10^{%i}$' % yoff, transform=
+    plt.gca().transAxes, verticalalignment='top')
+
+    # That's it!
+    
+    return locs
+
+
+
+
+
 #--------------------------------------------------------------#
 #                         PROJECTIONS                          #
 #--------------------------------------------------------------#
@@ -1955,11 +2028,12 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, yscale="log", cmap="co
         
         cbins = np.arange(df[column].min(), df[column].max()+2, 1)
         ticks = cbins + 0.5
-        norm = discrete_colorbar(cbins=cbins, cmap=cmap)
+        norm  = discretizeColorbar(cbins=cbins, cmap=cmap)
     else:
         norm = None
         
     # Plot the input variable source
+    
     if residuals in ("camera", "system"):
         ax.set_ylabel('NSR Residuals [ppm]')
         if yscale == "log":
@@ -2880,5 +2954,3 @@ def plotSubfieldAnimation(filename, outputFileName=False,
     
     plt.draw()
     plt.plot()
-
-    
