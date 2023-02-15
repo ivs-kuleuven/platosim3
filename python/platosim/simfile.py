@@ -3,10 +3,11 @@
 """
 Extract information from the PlatoSim HDF5 output file.
 
-This SimFile class provides a direct interface to extract and inspect the HDF5 output file
-that PlatoSim produce upon execution.
+This SimFile class provides a direct interface to extract and inspect
+the HDF5 output file that PlatoSim produce upon execution.
 
-For usage see the Jupyter tutorial notebooks available at "PlatoSim/docs/tutorials".
+For usage see the Jupyter tutorial notebooks available at:
+"PlatoSim/docs/tutorials".
 """
 
 import os
@@ -92,9 +93,12 @@ class SimFile (object):
 
     def getInputParameter(self, groupName, parameterName):
 
-        """
-        PURPOSE: Get an input parameter that was read from the Yaml input file and copied into the HDF5 file.
-        INPUT: groupName: a parameter group as present in the Yaml input file (e.g. "Platform", "Camera")
+        """Get an input parameters that was read and copied from the YAML file.
+        
+        Parameters
+        ----------
+        groupName : str
+            A parameter group as present in the Yaml input file (e.g. "Platform", "Camera")
                parameterName: name of the input parameter as present in the Yaml input file (e.g. "CycleTime")
         OUTPUT: value of the input parameter
         EXAMPLE:
@@ -949,7 +953,8 @@ class SimFile (object):
 
             idx = np.searchsorted(exposureNrOfMaskUpdate, imageNr, side='right') - 1
             if idx < 0:
-                print("Error: getPhotometricMask(): requesting an imageNr that is too early for this HDF5 file")
+                print("Error: getPhotometricMask(): " +
+                      "requesting an imageNr that is too early for this HDF5 file")
                 return None, None, None, None, None
 
             exposureNrOfMaskUpdate = exposureNrOfMaskUpdate[idx]
@@ -1326,7 +1331,7 @@ class SimFile (object):
         else:
             plt.draw()
             plt.show()
-
+            
         # That's it!
 
         return fig, ax
@@ -1368,7 +1373,7 @@ class SimFile (object):
         # If requested, set a default title
 
         if useTitle:
-            fileBasename = os.path.splitext(self.filename)[0]   # with the .hdf5
+            fileBasename = os.path.splitext(self.filename)[0]
             title = f"{fileBasename} - {datasetName}"
             plt.title(title)
 
@@ -1402,8 +1407,7 @@ class SimFile (object):
         return fig, ax
 
 
-
-
+    
     #--------------------------------------------------------------#
     #                      PLATFORM & TELESCOPE                    #
     #--------------------------------------------------------------#
