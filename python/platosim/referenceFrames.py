@@ -526,7 +526,7 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, solarPanelOrie
                         [     0         , 1,        0      ],
                         [-sin(tiltAngle), 0, cos(tiltAngle)]])
 
-    rotTL2SC = np.dot(rotAzimuth.T, np.dot(rotTilt.T, rotAzimuth))
+    rotCAM2PLM = np.dot(rotAzimuth.T, np.dot(rotTilt.T, rotAzimuth))
 
     # Compute the equatorial cartesian coordinates of the unit vector along
     # the z-axis (= roll = pointing axis) of the platform.
@@ -543,12 +543,12 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, solarPanelOrie
                        [      0.0       , 1.0,        0.0      ],
                        [ np.cos(decPlatform), 0.0,  np.sin(decPlatform)]])
     
-    rotB2SC = np.array([[ np.cos(solarPanelOrientation), np.sin(solarPanelOrientation), 0.0],
-                        [-np.sin(solarPanelOrientation), np.cos(solarPanelOrientation), 0.0],
-                        [          0.0                 ,              0.0             , 1.0]])
+    rotB2PLM = np.array([[ np.cos(solarPanelOrientation), np.sin(solarPanelOrientation), 0.0],
+                         [-np.sin(solarPanelOrientation), np.cos(solarPanelOrientation), 0.0],
+                         [          0.0                 ,              0.0             , 1.0]])
 
-    rotEQ2SC = rotB2SC @ rotA2B @ rotEQ2A
-    rotSC2EQ = rotEQ2SC.T
+    rotEQ2PLM = rotB2PLM @ rotA2B @ rotEQ2A
+    rotPLM2EQ = rotEQ2PLM.T
 
     # Combine all the rotation matrices
 
