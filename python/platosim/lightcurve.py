@@ -49,7 +49,7 @@ class LightCurve(object):
     This class provides the Python interface to an Feather file generated
     by the PLATO Photometric Pipeline that comes with the PlatoSim software.
 
-    Usage example for a single feather file:
+    Usage example for a single feather file
         >>> lc1 = LightCurve("000000001_Ncam1.1_Q1.ftr")
 
     Usage example for a batch of feather files:
