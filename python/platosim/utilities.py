@@ -570,6 +570,30 @@ def ticQuery(star, radius=2, Vmax=18, outFile=None):
     return results
 
 
+def gaiaQuery(star):
+    """
+    Query Gaia for a named star and return the Gaia DR2 ID.
+
+    PARAMETERS
+    ----------
+    star : str
+        Name of the star to query around.
+
+    RETURNS
+    -------
+    gaia_id : int
+        The Gaia DR2 ID of the star.
+    """
+    result_table = Simbad.query_objectids(star)
+    if result_table is None:
+        raise LookupError(f"No Simbad results for {star} (probably not a star)")
+    for row in result_table:
+        if 'Gaia DR2' in row['ID']:
+            gaia_id = row['ID']
+            return int(gaia_id[9:])
+    raise LookupError(f"No Gaia DR2 ID for {star} (probably a multiple star)")
+
+
 # def picOfDestiny(distribution, prange):
 #     """
 #     This function randomly picks a value from any gievn distribution and returns it.
