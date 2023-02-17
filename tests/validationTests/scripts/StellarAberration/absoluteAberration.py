@@ -71,11 +71,11 @@ class AbsoluteAberration(Test):
         outputDec = []
         startTime0 = self.startTime
         
-        for exp in range(0, numExposures + 1, deltaNumExposures):
-            self.sim["ObservingParameters/BeginExposureNr"] = exp
-            self.sim["Camera/AberrationCorrection/StartTime"] = startTime0 + exp*25
+        for exposureNr in range(0, numExposures + 1, deltaNumExposures):
+            self.sim["ObservingParameters/BeginExposureNr"] = exposureNr
+            self.sim["Camera/AberrationCorrection/StartTime"] = startTime0 + exposureNr*25
             self.simFile = self.sim.run(removeOutputFile=True)
-            ([x], [y])   = self.simFile.getStarCoordinates(exp)[3:5]
+            ([x], [y])   = self.simFile.getStarCoordinates(exposureNr)[3:5]
             ra, dec      = rf.focalPlaneToSkyCoordinates(x, y, raPlatform, decPlatform, solarPanelOrientation,   \
                                                          tiltAngle, azimuthAngle, focalPlaneAngle, focalLength)
             outputRa.append(ra)
