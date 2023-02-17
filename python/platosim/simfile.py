@@ -109,25 +109,6 @@ class SimFile (object):
 
 
 
-    def getTime(self):
-
-        """
-        Returns time points.
-        """
-
-        # Check if column exist in HSD5 file
-        if "Time" not in self.hdf5file["StarPositions"].keys():
-            ut.errorcode("warning","getTime(): Time array not present in StarPositions group!")
-            return None
-        else:
-            # Fetch time column and write to data frame
-            time = np.array(self.hdf5file["StarPositions/Time"])
-            return pd.DataFrame({"time": time})
-
-
-
-
-
     def getExposureTime(self):
 
         """
@@ -788,25 +769,32 @@ class SimFile (object):
     #                         PLOT FUNCTIONS                       #
     #--------------------------------------------------------------#
 
+    
+    def getTime(self, warning=True):
 
-    def getTime(self):
-
+        """Fetch time points.
         """
-        Returns time points.
-        """
 
-        # Check if column exist in HSD5 file
-        if "Time" not in self.hdf5file["StarPositions"].keys():
-            ut.errorcode("warning","getTime(): Time array not present in StarPositions group!")
-            return None
-        else:
-            # Fetch time column and write to data frame
+        # Fetch time column and write to data frame
+            
+        if "Time" in self.hdf5file["StarPositions"].keys():
+            
             time = np.array(self.hdf5file["StarPositions/Time"])
             return pd.DataFrame({"time": time})
 
+        elif not warning:
+            
+                time = self.getTimeQuarter(1)
+                return pd.DataFrame({"time": time})
+        else:
+            
+            ut.errorcode("warning","getTime(): Time array not present in StarPositions group!")
+            return None
 
 
 
+
+        
     def getFlux(self, starID, flux_type="estimated"):
 
         """Returns flux points.
@@ -835,7 +823,7 @@ class SimFile (object):
             # Check photometry is present for each star
             starIDgroupName = f"starID{ID}"
             if starIDgroupName not in self.hdf5file["Photometry"]["Lightcurves"].keys():
-                ut.errorcode("error", f"getLightCurve(): {starIDgroupName} not present in" +
+                ut.errorcode("error", f"getLightCurve(): {starIDgroupName} not present in " +
                                        "Photometry/Lightcurves/ in the HDF5 file")
 
             # Select correct name convention
@@ -860,7 +848,7 @@ class SimFile (object):
 
 
 
-    def getLightCurve(self, starID, flux_type="estimated"):
+    def getLightCurve(self, starID, flux_type="estimated", warning=True):
 
         """Extract the light curve of one or more stars
 
@@ -881,14 +869,14 @@ class SimFile (object):
 
         Return
         ------
-        df : pandas data frame
+        df : pdframe
             time : first column [s]
             flux : consecutive columns [e-/exposure]
         """
 
         # Fetch time column
 
-        time = self.getTime()
+        time = self.getTime(warning=warning)
 
         # Fetch flux column(s)
 

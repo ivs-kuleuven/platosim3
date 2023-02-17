@@ -5,7 +5,7 @@ description = "Welcome to the PLATO simulator."
 authors = ["The PlatoSim team - KU Leuven>"]
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.9"
+python = ">=3.8,<4.0"
 h5py = "^3.6.0"
 DateTime = "^4.4"
 numpy = "^1.22.3"
@@ -38,6 +38,7 @@ ipywidgets = "^8.0.2"
 wotan = "^1.10"
 transitleastsquares = "^1.0.31"
 natsort = "^8.2.0"
+llvmlite = "0.39.1"
 
 [tool.poetry.dev-dependencies]
 
