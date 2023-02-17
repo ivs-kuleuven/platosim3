@@ -42,6 +42,7 @@ from platosim.utilities import errorcode, gaiaQuery
 tic = datetime.datetime.now()
 warnings.filterwarnings('ignore')
 
+
 # ==============================================================#
 #               PARSING COMMAND-LINE ARGUMENTS                  #
 # ==============================================================#
@@ -220,7 +221,6 @@ dcc = dc[dc['ID'] == df['ID'].iloc[0]]
 dcc = dcc[dcc['dis'] < disConLimit]
 
 # Convert to PLATO passband using host star Teff
-# NOTE we should change this in the future!
 Teff = np.full(len(dcc), df['Teff'].iloc[0])
 teff = pd.DataFrame({'Teff': Teff}, columns=['Teff'])
 dcc['mag'] = ut.passbandConversionV2P(dcc['mag'].values, teff['Teff'].values)
