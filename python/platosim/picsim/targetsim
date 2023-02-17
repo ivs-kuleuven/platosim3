@@ -2,10 +2,10 @@
 
 """
 Usage examples:
-  $ ./targetsim -o </path/to/outdir>
+  $ ./targetsim -o </path/to/outdir> <target name>
 
-This script takes the PLATO input catalogue (PIC) and creates target and contaminant catalogues
-around a named star. The catalogues are saved as Platonium star catalogue files in the feather (.ftr) format.
+This script generates target and contaminant catalogues for a named target
+and saves them to the specified output directory as .ftr files.
 
 Notes on PLATO fields:
   Number of targets in PIC: 320,743
@@ -15,13 +15,6 @@ Notes on PLATO fields:
   photometry using a calibration technique being valid for:
   0.5 < Bp-Rp < 5.17
 
-Note on Sample flag:
-  Number of targets in P1:  15,094 (SPF:   6,817, NPF:   6,892)
-  Number of targets in P2:   1,385 (SPF:     717, NPF:     668)
-  Number of targets in P4:  33,032 (SPF:  16,866, NPF:  16,166)
-  Number of targets in P5: 272,617 (SPF: 132,571, NPF: 140,046)
-  Note that P2 is a bright sub-sample of P1.
-  Note that P5 is on-board processed light cures only.
 """
 
 import argparse
@@ -68,7 +61,7 @@ def load_targets(pic_tar):
 
 def load_contaminants(pic_con):
     """
-    Function to load target catalogue.
+    Function to load contaminant catalogue.
     Also needed for more efficient script speed
     """
     ID_con = pic_con[:, 0].astype(float).astype(int)
@@ -114,14 +107,6 @@ outputPrefixCon = outputPrefix + '_contaminants.ftr'
 outputFileTar = outputDir / outputPrefixTar
 outputFileCon = outputDir / outputPrefixCon
 
-# Select PIC sample
-bitmask = {'P1': 1,
-           'P2': 3,  # Notice 2 is stated in documentation but 3 is correct..
-           'P4': 4,
-           'P5': 8}
-PF = {'SPF': ['S', 86.79870508, -46.39594703, 253.0, -30.0],
-      'NPF': ['N', 265.08002279, 39.5836954, 65.0, +30.0]}
-
 # Visibility by N-cams: PIC gives EOL estimate, but we here assume that no camera are lost!
 cams = {'6': 6, '12': 12, '18': 18, '24': 24}
 cams_EOL = [[5, 11, 16, 17, 22], [6, 12, 18, 18, 24]]
@@ -142,7 +127,7 @@ if disConLimit is None:
 elif disConLimit not in [30, 45, 60]:
     errorcode('error', 'Not a valid contaminant-to-target distance! Use either 30, 45, or 60 arcsec')
 
-errorcode('module', '\nPIC targets')
+errorcode('module', '\nTarget star')
 # Fetch PIC catalogue from FTP server
 
 if not inputFileTar.with_suffix('.npy').exists():
@@ -179,13 +164,13 @@ df = df.assign(ncams=ncams)
 df = df.dropna()
 # Removing duplicate stars (if any)
 df = df.drop_duplicates(subset=['ID'])
-
+print(args.target)
 # Get gaia ID of target star
 try:
     gaiaID = gaiaQuery(targetName)
 except LookupError:
     errorcode('error', 'Target star not found in Gaia DR2')
-print(f'Gaia ID of target star: {gaiaID}')
+print(f'Gaia ID: {gaiaID}')
 # Read gaia to pic mapping
 with open(inputDir / 'GaiaDR2-PIC110-dict.pkl', 'rb') as f:
     gaia2pic = pickle.load(f)
@@ -193,10 +178,15 @@ with open(inputDir / 'GaiaDR2-PIC110-dict.pkl', 'rb') as f:
 if gaiaID not in gaia2pic:
     errorcode('error', 'Target star found in Gaia DR2, but not PIC')
 picID = gaia2pic[gaiaID]
-print(f' PIC ID of target star: {picID}')
+print(f' PIC ID: {picID}')
 pd.set_option('display.max_columns', None)
 df = df[df['ID'] == picID]
-print(df)
+print(f'RA, Dec: {df["ra"].iloc[0]:.2f}, {df["dec"].iloc[0]:.2f}')
+print(f'Vmag:    {df["mag"].iloc[0]:.2f}')
+print(f'N-cams:  {df["ncams"].iloc[0]}')
+print(f'Teff:    {df["Teff"].iloc[0]:.0f} K')
+print(f'Radius:  {df["R"].iloc[0]:.2f} R_sun')
+print(f'Mass:    {df["M"].iloc[0]:.2f} M_sun')
 
 # FETCH STELLAR CONTAMINANTS FOR EACH TARGET STAR
 errorcode('module', '\nPIC contaminants')
@@ -236,6 +226,7 @@ numConPerTar.append(len(dcc))
 
 # Let's add the number of contaminates to the target catalog
 df['ncon'] = np.array(numConPerTar).tolist()
+print(f'Number of contaminants: {df["ncon"].iloc[0]}')
 
 # ==============================================================#
 #                          SAVE OUTPUT                         #
