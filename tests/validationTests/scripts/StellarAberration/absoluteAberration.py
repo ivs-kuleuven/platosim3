@@ -5,6 +5,7 @@ from math       import radians
 from platosim.validation import equatorial2galactic, galactic2equatorial, aberration
 import math
 import matplotlib.pyplot as plt
+from test import eprint
 
 
 """ 
@@ -229,3 +230,4 @@ class AbsoluteAberration(Test):
 if __name__ == "__main__":
     t = AbsoluteAberration()
     print(t.run())
+

@@ -56,6 +56,8 @@ def suppress_stdout():
 
 
 
+
+
 testMessages = []
 
 try:
@@ -90,13 +92,13 @@ testMessages.append("{:<9}  {:^42}:{}".format("Test2:", name, success[out2]))
 print(testMessages[-1])
 
 
-# with suppress_stdout():
-#     test3   = AbsoluteAberration()
-#     out3    = test3.run()
-#
-# name = "Absolute Aberration"
-# testMessages.append("{:<9}  {:^42}:{}".format("Test3:", name, success[out3]))
-# print(testMessages[-1])
+with suppress_stdout():
+    test3   = AbsoluteAberration()
+    out3    = test3.run()
+
+name = "Absolute Aberration"
+testMessages.append("{:<9}  {:^42}:{}".format("Test3:", name, success[out3]))
+print(testMessages[-1])
 
 with suppress_stdout():
     test4   = FieldDistortion()

@@ -1,8 +1,19 @@
+import sys
 import os
 import random
 
 from platosim.simulation import Simulation
 from platosim.validation import switchOffAllEffects
+
+
+def eprint(*args, **kwargs):
+    """ 
+    print to stderr rather than to stdout. Useful to debug since all tests are ran with stdout suppressed. 
+    """
+    print(*args, file=sys.stderr, **kwargs)
+
+
+
 
 
 class Test:
