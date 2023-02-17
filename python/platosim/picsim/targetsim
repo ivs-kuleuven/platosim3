@@ -181,7 +181,7 @@ picID = gaia2pic[gaiaID]
 print(f' PIC ID: {picID}')
 pd.set_option('display.max_columns', None)
 df = df[df['ID'] == picID]
-print(f'RA, Dec: {df["ra"].iloc[0]:.2f}, {df["dec"].iloc[0]:.2f}')
+print(f'RA, Dec: {df["ra"].iloc[0]:.2f}, {df["dec"].iloc[0]:.2f} ({"Northern" if df["field"].iloc[0] == "N" else "Southern"} Field)')
 print(f'Vmag:    {df["mag"].iloc[0]:.2f}')
 print(f'N-cams:  {df["ncams"].iloc[0]}')
 print(f'Teff:    {df["Teff"].iloc[0]:.0f} K')
