@@ -178,7 +178,7 @@ with open(inputDir / 'GaiaDR2-PIC110-dict.pkl', 'rb') as f:
 if gaiaID not in gaia2pic:
     errorcode('error', 'Target star found in Gaia DR2, but not PIC')
 picID = gaia2pic[gaiaID]
-print(f' PIC ID: {picID}')
+print(f'PIC ID:  {picID}')
 pd.set_option('display.max_columns', None)
 df = df[df['ID'] == picID]
 print(f'RA, Dec: {df["ra"].iloc[0]:.2f}, {df["dec"].iloc[0]:.2f} ({"Northern" if df["field"].iloc[0] == "N" else "Southern"} Field)')
