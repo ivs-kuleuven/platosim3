@@ -181,7 +181,7 @@ picID = gaia2pic[gaiaID]
 print(f'PIC ID:  {picID}')
 pd.set_option('display.max_columns', None)
 df = df[df['ID'] == picID]
-print(f'RA, Dec: {df["ra"].iloc[0]:.2f}, {df["dec"].iloc[0]:.2f} ({"Northern" if df["field"].iloc[0] == "N" else "Southern"} Field)')
+print(f'RA, Dec: {df["ra"].iloc[0]:.6f}, {df["dec"].iloc[0]:.6f} ({"Northern" if df["field"].iloc[0] == "N" else "Southern"} Field)')
 print(f'Vmag:    {df["mag"].iloc[0]:.2f}')
 print(f'N-cams:  {df["ncams"].iloc[0]}')
 print(f'Teff:    {df["Teff"].iloc[0]:.0f} K')
@@ -218,15 +218,17 @@ dcc['mag'] = ut.passbandConversionV2P(dcc['mag'].values, teff['Teff'].values)
 # Add only contaminants brigther than threshold
 dcc = dcc[dcc['mag'] < df['mag'].iloc[0] + dmagConLimit]
 
-# Append contaminates to contaminant list
+# Append contaminants to contaminant list
 dfc = pd.concat([dfc, dcc])
+print("\nTable of contaminants:")
+print(dfc)
 
-# Store number of contaminates per target for statistics below
+# Store number of contaminants per target for statistics below
 numConPerTar.append(len(dcc))
 
-# Let's add the number of contaminates to the target catalog
+# Let's add the number of contaminants to the target catalog
 df['ncon'] = np.array(numConPerTar).tolist()
-print(f'Number of contaminants: {df["ncon"].iloc[0]}')
+print(f'\nNumber of contaminants: {df["ncon"].iloc[0]}')
 
 # ==============================================================#
 #                          SAVE OUTPUT                         #
