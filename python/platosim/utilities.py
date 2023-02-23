@@ -525,7 +525,7 @@ def ticQuery(star, radius=2, Vmax=18, outFile=None):
     """
     Query TIC catalog for stars around a given named source below a given V magnitude.
 
-    PARAMETERS
+    Parameters
     ----------
     star : str
         Name of the star to query around.
@@ -536,7 +536,7 @@ def ticQuery(star, radius=2, Vmax=18, outFile=None):
     outFile : str
         Path of the output file to write to. If None, no file is written.
 
-    RETURNS
+    Returns
     -------
     results : pandas.DataFrame
         DataFrame containing the results of the query. The named star will appear first if
@@ -574,12 +574,12 @@ def gaiaQuery(star):
     """
     Query Gaia for a named star and return the Gaia DR2 ID.
 
-    PARAMETERS
+    Parameters
     ----------
     star : str
         Name of the star to query around.
 
-    RETURNS
+    Returns
     -------
     gaia_id : int
         The Gaia DR2 ID of the star.
