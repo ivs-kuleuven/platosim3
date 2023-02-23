@@ -39,6 +39,7 @@ wotan = "^1.10"
 transitleastsquares = "^1.0.31"
 natsort = "^8.2.0"
 llvmlite = "0.39.1"
+astroquery = "^0.4.6"
 
 [tool.poetry.dev-dependencies]
 
