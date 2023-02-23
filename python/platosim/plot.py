@@ -72,7 +72,7 @@ def axes_minmax(x=None, y=None, pt=0.02):
 
 
 
-def discrete_colorbar(cbins, cmap="coolwarm"):
+def discretizeColorbar(cbins, cmap="coolwarm"):
 
     """Enforce that colorbar use discrete values.
 
@@ -143,14 +143,87 @@ def slider(imagePlot, images, Nimg, label="Image number"):
     slider = IntSlider(0, 0, 10, 1, layout=Layout(width='500px'))
     interact(update_image, n=(0,Nimg-1), x=slider)
 
-    # Make a horizontal slider to control the frequency.
-    #axfreq = fig.add_axes([0.25, 0.1, 0.65, 0.03])
-    #slider = Slider(ax=axfreq, label=label, valmin=vmin, valmax=vmax, valinit=val)
 
 
 
 
+def moveColorbarExponent(x_offs=0, y_offs=1, dig=0, side='left', omit_last=False):
+
+    """Move scientific notation exponent from top to the side.
     
+    Additionally, one can set the number of digits after the comma
+    for the y-ticks, hence if it should state 1, 1.0, 1.00 and so forth.
+
+    Note
+    ----
+    This is kind of a non-satisfying hack, which should be handled more
+    properly. But it works. Functions to look at for a better implementation:
+    >>> ax.ticklabel_format
+    >>> ax.yaxis.major.formatter.set_offset_string
+
+    Parameters
+    ----------
+    offs : float, optional; <0>
+        Horizontal movement additional to default.
+    dig : int, optional; <0>
+        Number of decimals after the comma.
+    side : string, optional; {<'left'>, 'right'}
+        To choose the side of the y-axis notation.
+    omit_last : bool, optional; <False>
+        If True, the top y-axis-label is omitted.
+
+    Returns
+    -------
+    locs : list
+        List of y-tick locations.
+    """
+
+    # Get the ticks
+    
+    locs, _ = plt.yticks()
+
+    # Put the last entry into a string, ensuring it is in scientific notation
+    # E.g: 123456789 => '1.235e+08'
+    
+    llocs = '%.3e' % locs[-1]
+
+    # Get the magnitude, hence the number after the 'e'
+    # E.g: '1.235e+08' => 8
+    
+    yoff = int(str(llocs).split('e')[1])
+
+    # If omit_last, remove last entry
+    
+    if omit_last:
+        slocs = locs[:-1]
+    else:
+        slocs = locs
+
+    # Set ticks to the requested precision
+    
+    form = r'$%.' + str(dig) + 'f$'
+    plt.yticks(locs, list(map(lambda x: form % x, slocs / (10 ** yoff))))
+
+    # Define offset depending on the side
+    
+    if side == 'left':
+        x_offs = -.18 - x_offs  # Default left: -0.18
+    elif side == 'right':
+        x_offs = 1 + x_offs     # Default right: 1.0
+
+    # Plot the exponent
+    
+    plt.text(x_offs, y_offs, r'$\times10^{%i}$' % yoff, transform=
+    plt.gca().transAxes, verticalalignment='top')
+
+    # That's it!
+    
+    return locs
+
+
+
+
+
 #--------------------------------------------------------------#
 #                         PROJECTIONS                          #
 #--------------------------------------------------------------#
@@ -1899,8 +1972,9 @@ def plotPhotometry(df, time_unit=False, flux_unit=False, figsize=(8,5)):
     
 
 
-def plotNSRvsMagnitude(df, column=False, residuals=False, yscale="log", cmap="coolwarm",
-                       grid=True, legend=True, figsize=(10,6)):
+def plotNSRvsMagnitude(df, column=False, Vmag=False, residuals=False,
+                       yscale="log", cmap="coolwarm",
+                       grid=True, legend=False, figsize=(10,6)):
 
     """Plot the NSR vs. Magnitude for a star catalogue.
 
@@ -1946,39 +2020,55 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, yscale="log", cmap="co
         for nsr, ncam, color in zip([100, 70, 58, 50], [6, 12, 18, 24], [0.0, 0.33, 0.66, 0.999]):
             ax.axhline(y=nsr, color=cmap(color), linestyle="--",
                        label=f"{nsr} ppm for "+r"$n_{\rm CAM}=\,$"+f"{ncam}", zorder=0)
-
-    # Set proper discrete cmap
-    
-    if column in ("group", "camera", "quarter", "ncam", "ncon", "flag"):
+        ax.axvline(x=11, color="k", alpha=0.7, linestyle=':', zorder=0)
         
+    # Handle colorbar and make discrete
+
+    if column in ("group", "camera", "quarter", "ncam", "ncon", "flag"):
+
         # Fetch custom discrete colorbar used by matplotlib
         
-        cbins = np.arange(df[column].min(), df[column].max()+2, 1)
+        if (df[column].max() - df[column].min()) > 24:
+            sep = 5
+        else:
+            sep = 1    
+        cbins = np.arange(df[column].min(), df[column].max()+2, sep)
         ticks = cbins + 0.5
-        norm = discrete_colorbar(cbins=cbins, cmap=cmap)
+        norm  = discretizeColorbar(cbins=cbins, cmap=cmap)
+        
     else:
         norm = None
-        
-    # Plot the input variable source
+
+    # Set figure labels
+
+    if Vmag: xlabel = r'Johnson-Cousin magnitude, $V$'
+    else:    xlabel = r'PLATO magnitude, $\mathcal{P}$'
+    ax.set_xlabel(xlabel)
+    ylabel = r'NSR [ppm h$^{-1/2}$]'
+    
+    # Distinguish between the NSR or O-C plot
+    
     if residuals in ("camera", "system"):
         ax.set_ylabel('NSR Residuals [ppm]')
         if yscale == "log":
-            im = ax.scatter(df["mag"], df["res"].abs(), s=20, zorder=1,
+            im = ax.scatter(df["mag"], df["res"].abs(), s=5, zorder=1,
                             c=df[column], cmap=cmap, norm=norm)
         else:
-            im = ax.scatter(df["mag"], df["res"], s=20, zorder=1,
+            im = ax.scatter(df["mag"], df["res"], s=5, zorder=1,
                             c=df[column], cmap=cmap, norm=norm)
     elif column:
-        im = ax.scatter(df["mag"], df["NSR"], s=20, zorder=1,
+        im = ax.scatter(df["mag"], df["NSR"], s=3, zorder=1,
                         c=df[column], cmap=cmap, norm=norm)
-        ax.set_ylabel('NSR [ppm]')
+        ax.set_ylabel(ylabel)
     else:
         ax.plot(df["mag"], df["NSR"], 'k.', alpha=0.7, zorder=1)
-        ax.set_ylabel('NSR [ppm]')
+        ax.set_ylabel(ylabel)
 
-    # Handle colorbar
-    
-    if column == "ncam": column = r"$n_{\rm CAM}$"
+    # Extra settings for colorbar after image generation
+
+    if column == "ncam":
+        column = r"$n_{\rm CAM}$"        
+        
     if norm is None:
         cb = plt.colorbar(im, extend="max", pad=0.01)
         cb.set_label(column)
@@ -1989,16 +2079,16 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, yscale="log", cmap="co
         cb.minorticks_off()
 
     # Force all yticks for log plot
-    
+
     ax.set_yscale(yscale)
-    subticks = [.1, .2, .3, .4, .5, .6, .7, .8, .9] 
-    ax.yaxis.get_minor_locator().set_params(numticks=99, subs=subticks)
-    ax.yaxis.set_major_formatter(ScalarFormatter())
-    ax.yaxis.set_minor_formatter(ScalarFormatter())
+    if (df["NSR"].max() - df["NSR"].min()) < 900:
+        subticks = [.1, .2, .3, .4, .5, .6, .7, .8, .9] 
+        ax.yaxis.get_minor_locator().set_params(numticks=99, subs=subticks)
+        ax.yaxis.set_major_formatter(ScalarFormatter())
+        ax.yaxis.set_minor_formatter(ScalarFormatter())
     
     # Settings
-    
-    ax.set_xlabel(r'PLATO magnitude, $\mathcal{P}$')
+
     if grid:   ax.grid(color="lightgray")
     if legend: ax.legend(loc='best')
 
@@ -2880,5 +2970,3 @@ def plotSubfieldAnimation(filename, outputFileName=False,
     
     plt.draw()
     plt.plot()
-
-    

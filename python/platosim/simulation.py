@@ -158,7 +158,7 @@ class Simulation(object):
         self.configurationFilename = filename
 
         if self.debug:
-            print ("Parsing YAML configuration file {}.".format(filename))
+            print("Parsing YAML configuration file {}.".format(filename))
 
         with open(filename, 'r') as stream:
             try:
@@ -237,8 +237,8 @@ class Simulation(object):
 
         if key.find('/') == -1:
             parentNodeName, nodeName = key, None
-            print ("usage: the given parameter name (key) should include the group name of the group that contains the parameter.")
-            print ("       E.g in 'Camera/PlateScale', Camera is the group, PlateScale is the parameter.")
+            print("usage: the given parameter name (key) should include the group name of the group that contains the parameter.")
+            print("       E.g in 'Camera/PlateScale', Camera is the group, PlateScale is the parameter.")
             return None
         else:
             nodeNames = key.split("/")
@@ -453,8 +453,8 @@ class Simulation(object):
                                                str(logLevel)],
                                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-            print(str(completedProcess.stdout.decode("utf-8")))
-            print(str(completedProcess.stderr.decode("utf-8")))
+            # print(str(completedProcess.stdout.decode("utf-8")))
+            # print(str(completedProcess.stderr.decode("utf-8")))
 
             if completedProcess.returncode:
                 raise Exception("Simulation.run(): PlatoSim returned with " +
