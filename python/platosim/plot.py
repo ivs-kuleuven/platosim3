@@ -1972,8 +1972,9 @@ def plotPhotometry(df, time_unit=False, flux_unit=False, figsize=(8,5)):
     
 
 
-def plotNSRvsMagnitude(df, column=False, residuals=False, yscale="log", cmap="coolwarm",
-                       grid=True, legend=True, figsize=(10,6)):
+def plotNSRvsMagnitude(df, column=False, Vmag=False, residuals=False,
+                       yscale="log", cmap="coolwarm",
+                       grid=True, legend=False, figsize=(10,6)):
 
     """Plot the NSR vs. Magnitude for a star catalogue.
 
@@ -2019,40 +2020,55 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, yscale="log", cmap="co
         for nsr, ncam, color in zip([100, 70, 58, 50], [6, 12, 18, 24], [0.0, 0.33, 0.66, 0.999]):
             ax.axhline(y=nsr, color=cmap(color), linestyle="--",
                        label=f"{nsr} ppm for "+r"$n_{\rm CAM}=\,$"+f"{ncam}", zorder=0)
-
-    # Set proper discrete cmap
-    
-    if column in ("group", "camera", "quarter", "ncam", "ncon", "flag"):
+        ax.axvline(x=11, color="k", alpha=0.7, linestyle=':', zorder=0)
         
+    # Handle colorbar and make discrete
+
+    if column in ("group", "camera", "quarter", "ncam", "ncon", "flag"):
+
         # Fetch custom discrete colorbar used by matplotlib
         
-        cbins = np.arange(df[column].min(), df[column].max()+2, 1)
+        if (df[column].max() - df[column].min()) > 24:
+            sep = 5
+        else:
+            sep = 1    
+        cbins = np.arange(df[column].min(), df[column].max()+2, sep)
         ticks = cbins + 0.5
         norm  = discretizeColorbar(cbins=cbins, cmap=cmap)
+        
     else:
         norm = None
-        
-    # Plot the input variable source
+
+    # Set figure labels
+
+    if Vmag: xlabel = r'Johnson-Cousin magnitude, $V$'
+    else:    xlabel = r'PLATO magnitude, $\mathcal{P}$'
+    ax.set_xlabel(xlabel)
+    ylabel = r'NSR [ppm h$^{-1/2}$]'
+    
+    # Distinguish between the NSR or O-C plot
     
     if residuals in ("camera", "system"):
         ax.set_ylabel('NSR Residuals [ppm]')
         if yscale == "log":
-            im = ax.scatter(df["mag"], df["res"].abs(), s=20, zorder=1,
+            im = ax.scatter(df["mag"], df["res"].abs(), s=5, zorder=1,
                             c=df[column], cmap=cmap, norm=norm)
         else:
-            im = ax.scatter(df["mag"], df["res"], s=20, zorder=1,
+            im = ax.scatter(df["mag"], df["res"], s=5, zorder=1,
                             c=df[column], cmap=cmap, norm=norm)
     elif column:
-        im = ax.scatter(df["mag"], df["NSR"], s=20, zorder=1,
+        im = ax.scatter(df["mag"], df["NSR"], s=3, zorder=1,
                         c=df[column], cmap=cmap, norm=norm)
-        ax.set_ylabel('NSR [ppm]')
+        ax.set_ylabel(ylabel)
     else:
         ax.plot(df["mag"], df["NSR"], 'k.', alpha=0.7, zorder=1)
-        ax.set_ylabel('NSR [ppm]')
+        ax.set_ylabel(ylabel)
 
-    # Handle colorbar
-    
-    if column == "ncam": column = r"$n_{\rm CAM}$"
+    # Extra settings for colorbar after image generation
+
+    if column == "ncam":
+        column = r"$n_{\rm CAM}$"        
+        
     if norm is None:
         cb = plt.colorbar(im, extend="max", pad=0.01)
         cb.set_label(column)
@@ -2063,16 +2079,16 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, yscale="log", cmap="co
         cb.minorticks_off()
 
     # Force all yticks for log plot
-    
+
     ax.set_yscale(yscale)
-    subticks = [.1, .2, .3, .4, .5, .6, .7, .8, .9] 
-    ax.yaxis.get_minor_locator().set_params(numticks=99, subs=subticks)
-    ax.yaxis.set_major_formatter(ScalarFormatter())
-    ax.yaxis.set_minor_formatter(ScalarFormatter())
+    if (df["NSR"].max() - df["NSR"].min()) < 900:
+        subticks = [.1, .2, .3, .4, .5, .6, .7, .8, .9] 
+        ax.yaxis.get_minor_locator().set_params(numticks=99, subs=subticks)
+        ax.yaxis.set_major_formatter(ScalarFormatter())
+        ax.yaxis.set_minor_formatter(ScalarFormatter())
     
     # Settings
-    
-    ax.set_xlabel(r'PLATO magnitude, $\mathcal{P}$')
+
     if grid:   ax.grid(color="lightgray")
     if legend: ax.legend(loc='best')
 

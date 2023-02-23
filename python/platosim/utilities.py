@@ -422,7 +422,7 @@ def stellarFlux(Vmag, exposureTime, fluxm0=1.00238e8,
 
 
 
-def passbandConversionV2P(V, Teff):
+def passbandConversionV2P(mag, Teff, inverse=False):
 
     """Coversion from Johnson-Cousin V magnitude to the PLATO passband.
     
@@ -443,13 +443,19 @@ def passbandConversionV2P(V, Teff):
         The PLATO passband magnitude of star(s).
     """
 
-    # The actual filtersion equation
-
+    # Bolometric scaling relation
+    
     # c = [1.184e-12, 4.526e-8, -5.805e-4, 2.449]  # Machiori et al. (2019)
     c = [2.366e-12, 8.126e-8, -9.279e-4, 3.499]  # Fabio Fialho et al. in prep
-    P = c[0]*Teff**3 - c[1]*Teff**2 - c[2]*Teff - c[3] + V
+    bol = c[0]*Teff**3 + c[1]*Teff**2 + c[2]*Teff + c[3]
 
-    return P
+    # From V to P (or P to V if inverse it True)
+
+    if inverse:
+        return mag + bol
+    else:
+        return mag - bol
+
 
 
 

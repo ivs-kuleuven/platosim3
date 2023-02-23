@@ -78,7 +78,7 @@ def sunSkyCoordinates(julianDate):
     # Compute the RA, DEC of the Sun. Ensure that the RA is positive.
 
     raSun  = np.arctan2(np.cos(eclipticObliquity) * np.sin(eclipticLongitude), np.cos(eclipticLongitude))
-    decSun = np.arcnp.sin(np.sin(eclipticObliquity)  * np.sin(eclipticLongitude))
+    decSun = np.arcsin(np.sin(eclipticObliquity)  * np.sin(eclipticLongitude))
 
     if raSun < 0.0: raSun += 2.0 * np.pi
 
@@ -114,7 +114,7 @@ def ecliptic2equatorial(lam, beta):
     obliquity = 0.409087723
 
     sindelta = np.sin(beta) * np.cos(obliquity) + np.cos(beta) * np.sin(obliquity) * np.sin(lam)
-    delta    = arcnp.sin(sindelta)
+    delta    = np.arcsin(sindelta)
     cosdelta = np.cos(delta)
 
     if (cosdelta == 0.0):
@@ -124,7 +124,7 @@ def ecliptic2equatorial(lam, beta):
     sinalpha = (-np.sin(beta) * np.sin(obliquity) + np.cos(beta) * np.cos(obliquity) * np.sin(lam)) / cosdelta
     cosalpha = np.cos(lam) * np.cos(beta) / cosdelta
 
-    alpha = arctan2(sinalpha, cosalpha)
+    alpha = np.arctan2(sinalpha, cosalpha)
 
     if (alpha < 0.0): alpha += 2.0 * 3.141592653589793
 
@@ -158,7 +158,7 @@ def equatorial2ecliptic(alpha, delta):
     obliquity = 0.409087723
 
     sinbeta = np.sin(delta) * np.cos(obliquity) - np.cos(delta) * np.sin(obliquity) * np.sin(alpha)
-    beta = arcnp.sin(sinbeta)
+    beta    = np.arcsin(sinbeta)
     cosbeta = np.cos(beta)
 
     if (cosbeta == 0.0):
@@ -168,7 +168,7 @@ def equatorial2ecliptic(alpha, delta):
     sinlambda = (np.sin(delta) * np.sin(obliquity) + np.cos(delta) * np.cos(obliquity) * np.sin(alpha)) / cosbeta
     coslambda = np.cos(alpha) * np.cos(delta) / cosbeta
 
-    lam = arctan2(sinlambda, coslambda)
+    lam = np.arctan2(sinlambda, coslambda)
 
     if (lam < 0.0): lam += 2.0 * 3.141592653589793
 
@@ -261,7 +261,7 @@ def skyToPlatformCoordinates(raStar, decStar, raPlatform, decPlatform, solarPane
     zSC = np.array([np.cos(decPlatform)*np.cos(raPlatform),
                     np.cos(decPlatform)*np.sin(raPlatform),
                     np.sin(decPlatform)])
-    deltax = np.arctan(- np.cos(raPlatform-raSun) / tan(decPlatform))
+    deltax = np.arctan(- np.cos(raPlatform-raSun) / np.tan(decPlatform))
     xSC = np.array([np.cos(deltax)*np.cos(raSun), np.cos(deltax)*np.sin(raSun), np.sin(deltax)])
     ySC = np.cross(zSC, xSC)
 
@@ -337,7 +337,7 @@ def platformToSkyCoordinates(xPLM, yPLM, zPLM, raPlatform, decPlatform, solarPan
     zPLM = np.array([np.cos(decPlatform)*np.cos(raPlatform),
                      np.cos(decPlatform)*np.sin(raPlatform),
                      np.sin(decPlatform)])
-    deltax = np.arctan(- np.cos(raPlatform-raSun) / tan(decPlatform))
+    deltax = np.arctan(- np.cos(raPlatform-raSun) / np.tan(decPlatform))
     xPLM = np.array([np.cos(deltax)*np.cos(raSun), np.cos(deltax)*np.sin(raSun), np.sin(deltax)])
     yPLM = np.cross(zPLM, xPLM)
 
@@ -356,8 +356,8 @@ def platformToSkyCoordinates(xPLM, yPLM, zPLM, raPlatform, decPlatform, solarPan
     # Convert the cartesian equatorial coordinates to equatorial sky coordinates
 
     norm    = np.sqrt(vecEQ[0]*vecEQ[0] + vecEQ[1]*vecEQ[1] + vecEQ[2]*vecEQ[2])
-    decStar = np.pi/2.0 - arcnp.cos(vecEQ[2]/norm);
-    raStar  = arctan2(vecEQ[1], vecEQ[0]);
+    decStar = np.pi/2.0 - np.arccos(vecEQ[2]/norm);
+    raStar  = np.arctan2(vecEQ[1], vecEQ[0]);
 
     # Ensure that the right ascension is positive
 
@@ -438,7 +438,7 @@ def skyToFocalPlaneCoordinates(raStar, decStar,
     zPLM = np.array([np.cos(decPlatform)*np.cos(raPlatform),
                      np.cos(decPlatform)*np.sin(raPlatform),
                      np.sin(decPlatform)])
-    deltax = np.arctan(-np.cos(raPlatform-raSun) / tan(decPlatform))
+    deltax = np.arctan(-np.cos(raPlatform-raSun) / np.tan(decPlatform))
     xPLM   = np.array([np.cos(deltax)*np.cos(raSun), np.cos(deltax)*np.sin(raSun), np.sin(deltax)])
     yPLM   = np.cross(zPLM, xPLM)
 
@@ -575,7 +575,7 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, solarPanelOrie
     zPLM = np.array([np.cos(decPlatform)*np.cos(raPlatform),
                      np.cos(decPlatform)*np.sin(raPlatform),
                      np.sin(decPlatform)])
-    deltax = np.arctan(- np.cos(raPlatform-raSun) / tan(decPlatform))
+    deltax = np.arctan(- np.cos(raPlatform-raSun) / np.tan(decPlatform))
     xPLM = np.array([np.cos(deltax)*np.cos(raSun), np.cos(deltax)*np.sin(raSun), np.sin(deltax)])
     yPLM = np.cross(zPLM, xPLM)
 
@@ -598,8 +598,8 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, solarPanelOrie
     # Convert the cartesian equatorial coordinates to equatorial sky coordinates
 
     norm    = np.sqrt(vecEQ[0]*vecEQ[0] + vecEQ[1]*vecEQ[1] + vecEQ[2]*vecEQ[2])
-    decStar = np.pi/2.0 - arcnp.cos(vecEQ[2]/norm);
-    raStar  = arctan2(vecEQ[1], vecEQ[0]);
+    decStar = np.pi/2.0 - np.arccos(vecEQ[2]/norm);
+    raStar  = np.arctan2(vecEQ[1], vecEQ[0]);
 
     # Ensure that the right ascension is positive
 
@@ -851,7 +851,7 @@ def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoeffici
 
     # Position angle on the focal plane [radians]
     
-    angle = arctan2(yFPmm, xFPmm)
+    angle = np.arctan2(yFPmm, xFPmm)
 
     # Undistorted radial distance [normalised pixels]
     
@@ -959,9 +959,9 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
     # We should select the closest four undistorted points to the input point
 
     idx = np.arange(len(distanceFromPointx))
-    idx_selected = np.empty(4, dtype=int16)
+    idx_selected = np.empty(4, dtype=np.int16)
 
-    idx_left = idx[distanceFromPointx < 0]
+    idx_left  = idx[distanceFromPointx < 0]
     idx_right = idx[distanceFromPointx >= 0]
 
     leftDistanceFromPointy  = distanceFromPointy[distanceFromPointx < 0]
@@ -1061,7 +1061,7 @@ def distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist,
 
     # Position angle on the focal plane [radians]
     
-    angle = arctan2(yFPdist, xFPdist)
+    angle = np.arctan2(yFPdist, xFPdist)
 
     # Distorted radial distance [normalised pixels]
     
@@ -1284,7 +1284,7 @@ def gnomonicRadialDistanceFromOpticalAxis(xFP, yFP, focalLength):
     tanx = xFP / focalLength
     tany = yFP / focalLength
 
-    angularDistance = np.arcnp.cos(1.0/np.sqrt(1.0 + tanx*tanx + tany*tany));
+    angularDistance = np.arccos(1.0/np.sqrt(1.0 + tanx*tanx + tany*tany));
 
     # Take care that the angle is between [0, 2*PI]
 
@@ -1576,7 +1576,7 @@ def platformToTelescopePointingCoordinates(raPlatform, decPlatform, raSun, decSu
     zPLM = np.array([np.cos(decPlatform)*np.cos(raPlatform),
                      np.cos(decPlatform)*np.sin(raPlatform),
                      np.sin(decPlatform)])
-    deltax = np.arctan(- np.cos(raPlatform-raSun) / tan(decPlatform))
+    deltax = np.arctan(- np.cos(raPlatform-raSun) / np.tan(decPlatform))
     xPLM = np.array([np.cos(deltax)*np.cos(raSun), np.cos(deltax)*np.sin(raSun), np.sin(deltax)])
     yPLM = np.cross(zPLM, xPLM)
 
@@ -1602,8 +1602,8 @@ def platformToTelescopePointingCoordinates(raPlatform, decPlatform, raSun, decSu
     # Convert the cartesian equatorial coordinates to equatorial sky coordinates
 
     norm           = np.sqrt(vecEQ[0]*vecEQ[0] + vecEQ[1]*vecEQ[1] + vecEQ[2]*vecEQ[2])
-    decOpticalAxis = np.pi/2.0 - arcnp.cos(vecEQ[2]/norm)
-    raOpticalAxis  = arctan2(vecEQ[1], vecEQ[0])
+    decOpticalAxis = np.pi/2.0 - np.arccos(vecEQ[2]/norm)
+    raOpticalAxis  = np.arctan2(vecEQ[1], vecEQ[0])
 
     # Ensure that the right ascension is positive
 
