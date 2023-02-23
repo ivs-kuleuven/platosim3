@@ -513,7 +513,7 @@ class SimFile (object):
 
         # Check if the image is in the file
 
-        image = self.getMap("Image", imageNr=imageNr)
+        image = self.getMap("Images", imageNr=imageNr)
 
         # Get a list of the stars visible in the subimage and their coordinates
         # Check if our star is in this list. If not, complain.
