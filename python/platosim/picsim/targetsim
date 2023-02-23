@@ -20,7 +20,6 @@ Notes on PLATO fields:
 import argparse
 import datetime
 import os
-import pickle
 import urllib.request
 import warnings
 from pathlib import Path
@@ -98,6 +97,7 @@ inputDir = Path(os.getenv("PLATO_PROJECT_HOME") + "/python/platosim/picsim")
 
 inputFileTar = inputDir / 'PIC110target'
 inputFileCon = inputDir / 'PIC110contaminant'
+inputFileDict = inputDir / 'gaiaDR2-PIC110id'
 
 # Prefix name of output files
 outputPrefix = 'starcat'
@@ -141,6 +141,15 @@ if not inputFileTar.with_suffix('.npy').exists():
     with urllib.request.urlopen(url_con) as response, open(inputFileCon.with_suffix('.npy'), "wb") as out_file:
         data = response.read()
         out_file.write(data)
+
+if not inputFileDict.with_suffix('.npy').exists():
+    errorcode('message', 'Inauguration: Welcome to TargetSim!')
+    print(f'Downloading Gaia DR2 to PLATO PIC 1.1.0 ID Table...')
+    url_dict = 'ftp://plato:miSotalP@ftp.ster.kuleuven.be/gaiaDR2-PIC110id.npy'
+    with urllib.request.urlopen(url_dict) as response, open(inputFileDict.with_suffix('.npy'), "wb") as out_file:
+        data = response.read()
+        out_file.write(data)
+
 pic_tar = np.load(inputFileTar.with_suffix('.npy'))
 
 ID, ra, dec, mag, sample, Teff, R, M, ncams, field = load_targets(pic_tar)
@@ -172,11 +181,14 @@ except LookupError:
     errorcode('error', 'Target star not found in Gaia DR2')
 print(f'Gaia ID: {gaiaID}')
 # Read gaia to pic mapping
-with open(inputDir / 'GaiaDR2-PIC110-dict.pkl', 'rb') as f:
-    gaia2pic = pickle.load(f)
+gaia2pic = dict(np.load(inputFileDict.with_suffix('.npy')))
 # Get pic ID of target star
 if gaiaID not in gaia2pic:
-    errorcode('error', 'Target star found in Gaia DR2, but not PIC')
+    errorcode('error', "Target star found in Gaia DR2, but not PIC110. "
+                       "\nThis could be because:"
+                       "\n\t1. The star is not in PIC110 (see A&A 653, A98 (2021))"
+                       "\n\t2. The star is in PIC110, but it was removed from TargetSim"
+                       " due to its catalogue entry being incomplete")
 picID = gaia2pic[gaiaID]
 print(f'PIC ID:  {picID}')
 pd.set_option('display.max_columns', None)
