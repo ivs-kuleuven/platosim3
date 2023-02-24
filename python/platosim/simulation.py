@@ -252,9 +252,9 @@ class Simulation(object):
                 node = node[nodeName]
             else:
                 print(f"ERROR: The group '{key}' was not found in the " +
-                      f"yaml inputfile '{self.configurationFilename}'"
+                      f"yaml inputfile '{self.configurationFilename}'")
                 return None
-
+                      
         # Node is a string, so cast it to its proper value
 
         try:
@@ -463,7 +463,7 @@ class Simulation(object):
 
             if completedProcess.returncode:
                 raise Exception("Simulation.run(): PlatoSim returned with " +
-                                "exit code {completedProcess.returncode}.")
+                                f"exit code {completedProcess.returncode}.")
 
         # Print computation time
         

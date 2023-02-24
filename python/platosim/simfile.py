@@ -21,8 +21,8 @@ import matplotlib.patches as patches
 import ipywidgets as widgets
 from astropy.io import fits
 
-import platosim.plot    as pt
-from platosim.utilities as imageNorm
+import platosim.plot as pt
+from platosim.utilities import imageNorm
 
 
 #==============================================================#
