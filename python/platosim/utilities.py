@@ -45,9 +45,9 @@ def errorcode(API, message):
     message : str
        Message to add to API
 
-    Return
+    Returns
     ------
-    Error message written to bash
+    Colored error message written to bash
     """
 
     if API == 'software':

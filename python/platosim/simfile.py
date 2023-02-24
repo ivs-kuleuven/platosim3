@@ -23,7 +23,7 @@ from astropy.io import fits
 
 import platosim.plot      as pt
 import platosim.utilities as ut
-
+from platosim.utilities import errorcode
 
 #==============================================================#
 #                         SIMFILE CLASS                        #
@@ -85,7 +85,7 @@ class SimFile (object):
         # Check that photometry has been saved
 
         if "Photometry" not in self.hdf5file["/"].keys():
-            ut.errorcode("error", "No photometry present in the HDF5 file!")
+            errorcode("error", "No photometry present in the HDF5 file!")
 
 
 
@@ -141,7 +141,7 @@ class SimFile (object):
                 return pd.DataFrame({"time": time})
         else:
             
-            ut.errorcode("warning","getTime(): Time array not present in StarPositions group!")
+            errorcode("warning","getTime(): Time array not present in StarPositions group!")
             return None
 
 
@@ -548,9 +548,10 @@ class SimFile (object):
 
     def saveHighResolutionPSFtoFITS(self, FITSfileName):
         """
-        In case of the analytic non-Gaussian PSF, a high-resolution PSF corresponding to the center
-        of the subfield is stored in the HDF5 file. Extract this image and save it to a FITS file
-        This function will fail when PlatoSim was not run with an analytic non-Gaussian PSF.
+        In case of the analytic non-Gaussian PSF, a high-resolution PSF
+        corresponding to the center of the subfield is stored in the HDF5
+        file. Extract this image and save it to a FITS file This function
+        will fail when PlatoSim was not run with an analytic non-Gaussian PSF.
         """
 
         imageName = "HighResPSFmapCenterSubfield"
@@ -571,9 +572,9 @@ class SimFile (object):
 
     def saveImagesToFITS(self, fileName):
         """
-        Save all subfield images in the HDF5 file to a FITS file with the given file name.
-        This will go horribly wrong when the number of images is too large or when the images
-        themselves are too large.
+        Save all subfield images in the HDF5 file to a FITS file with the
+        given file name. This will go horribly wrong when the number of images
+        is too large or when the images themselves are too large.
         """
 
         hduList = []
@@ -595,25 +596,25 @@ class SimFile (object):
 
 
     def saveSmearingMapsToFITS(self, fileName):
-            """
-            Save all smearing maps in the HDF5 file to a FITS file with the given file name.
-            This will go horribly wrong when the number of exposures is too large or when the maps
-            themselves are too large.
-            """
+        """
+        Save all smearing maps in the HDF5 file to a FITS file with the given
+        file name. This will go horribly wrong when the number of exposures is
+        too large or when the maps themselves are too large.
+        """
 
-            hduList = []
-            Nimages = self.getInputParameter("ObservingParameters", "NumExposures")
-            for imageNr in range(Nimages):
-                image = self.getSmearingMap(imageNr)
-                imageName = "SmearingMap{0:06d}".format(imageNr)
-                if imageNr == 0:
-                    hdu = fits.PrimaryHDU(image)
-                else:
-                    hdu = fits.ImageHDU(image, name=imageName)
-                hduList.append(hdu)
+        hduList = []
+        Nimages = self.getInputParameter("ObservingParameters", "NumExposures")
+        for imageNr in range(Nimages):
+            image = self.getSmearingMap(imageNr)
+            imageName = "SmearingMap{0:06d}".format(imageNr)
+            if imageNr == 0:
+                hdu = fits.PrimaryHDU(image)
+            else:
+                hdu = fits.ImageHDU(image, name=imageName)
+            hduList.append(hdu)
 
-            myFits = fits.HDUList(hduList)
-            myFits.writeto(fileName)
+        myFits = fits.HDUList(hduList)
+        myFits.writeto(fileName)
 
 
 
@@ -621,9 +622,9 @@ class SimFile (object):
 
     def saveBiasMapsLeftToFITS(self, fileName):
         """
-        Save all bias maps in the HDF5 file to a FITS file with the given file name.
-        This will go horribly wrong when the number of exposures is too large or when the maps
-        themselves are too large.
+        Save all bias maps in the HDF5 file to a FITS file with the given 
+        file name. This will go horribly wrong when the number of exposures
+        is too large or when the maps themselves are too large.
         """
 
         hduList = []
@@ -646,9 +647,9 @@ class SimFile (object):
 
     def saveBiasMapRightToFITS(self, fileName):
         """
-        Save all bias maps in the HDF5 file to a FITS file with the given file name.
-        This will go horribly wrong when the number of exposures is too large or when the maps
-        themselves are too large.
+        Save all bias maps in the HDF5 file to a FITS file with the given
+        file name. This will go horribly wrong when the number of exposures
+        is too large or when the maps themselves are too large.
         """
 
         hduList = []
@@ -674,49 +675,46 @@ class SimFile (object):
     #--------------------------------------------------------------#
 
 
-    def getYawPitchRoll(self, getTime = False):
+    def getYawPitchRoll(self, getTime=False):
 
+        """Get (yaw, pitch, roll) of platform.
+        
+        Get the yaw, pitch and roll angle values of the platform pointng
+        at the end of each exposure.
+
+        Parameters
+        ----------
+        getTime : bool
+            If True the function also returns the jitter time
+
+        Returns
+        -------
+        yaw : ndarray
+            Yaw of platform pointing [arcsec]
+        pitch : ndarray
+            Pitch of platform pointing [arcsec]
+        roll : ndarray
+            Roll of platform pointing [arcsec]
+
+        Notes
+        -----
+        The yaw, pitch, roll values at the end of an exposure are not the
+        same as the ones at the beginning of the next exposure, because 
+        between two exposures there is the CCD readout time during which
+        the ACS jitter continues.
         """
-        PURPOSE: Get the yaw, pitch and roll angle values at the end of each exposure
 
-        INPUT: set to False by defaut, if True the function also returns the jitter time
+        # Extract arrays
 
-        OUTPUT: yaw:  [arcsec]
-                pitch: [arcsec]
-                roll: [arcsec]
+        yaw   = self.hdf5file["ACS"]["Yaw"][:]
+        pitch = self.hdf5file["ACS"]["Pitch"][:]
+        roll  = self.hdf5file["ACS"]["Roll"][:]
 
-        NOTE: The yaw, pitch, roll values at the end of an exposure are not the same as the ones at
-              the beginning of the next exposure, because between two exposures there is the CCD readout time
-              during which the ACS jitter continues.
-        """
-
-        # Extract the yaw values
-
-        dataset = self.hdf5file["ACS"]["Yaw"]
-        yaw = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(yaw)
-
-        # Extract the pitch values
-
-        dataset = self.hdf5file["ACS"]["Pitch"]
-        pitch = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(pitch)
-
-        # Extract the roll values
-
-        dataset = self.hdf5file["ACS"]["Roll"]
-        roll = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(roll)
-
+        # Extract the time values - That's it!
+        
         if (getTime):
-            # Extract the time values
-
-            dataset = self.hdf5file["ACS"]["Time"]
-            time    = np.zeros(dataset.shape, dataset.dtype)
-            dataset.read_direct(time)
-
+            time = self.hdf5file["ACS"]["Time"][:]
             return yaw, pitch, roll, time
-
         else:
             return yaw, pitch, roll
 
@@ -725,47 +723,45 @@ class SimFile (object):
 
 
     def getYawPitchRollFromDrift(self, getTime = False):
+
+        """Get (yaw, pitch, roll) of camera drift.
+        
+        Get the camera yaw, pitch and roll angle values at the
+        end of each exposure.
+
+        Parameters
+        ----------
+        getTime : bool
+            If True the function also returns the jitter time
+
+        Returns
+        -------
+        yaw : ndarray
+            Yaw of platform pointing [arcsec]
+        pitch : ndarray
+            Pitch of platform pointing [arcsec]
+        roll : ndarray
+            Roll of platform pointing [arcsec]
+
+        Notes
+        -----
+        The yaw, pitch, roll values at the end of an exposure are not the
+        same as the ones at the beginning of the next exposure, because 
+        between two exposures there is the CCD readout time during which
+        the drift continues.
         """
-        PURPOSE: Get the telescop yaw, pitch and roll angle values at the end of each exposure
 
-        INPUT: set to False by defaut, if True the function also returns the drift time
+        # Extract arrays
 
-        OUTPUT: yaw:  [arcsec]
-                pitch: [arcsec]
-                roll: [arcsec]
+        yaw   = self.hdf5file["Telescope"]["TelescopeYaw"][:]
+        pitch = self.hdf5file["Telescope"]["TelescopePitch"][:]
+        roll  = self.hdf5file["Telescope"]["TelescopeRoll"][:]
 
-        NOTE: The yaw, pitch, roll values at the end of an exposure are not the same as the ones at
-              the beginning of the next exposure, because between two exposures there is the CCD readout time
-              during which the drift continues.
-        """
-
-        # Extract the yaw values
-
-        dataset = self.hdf5file["Telescope"]["TelescopeYaw"]
-        yaw = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(yaw)
-
-        # Extract the pitch values
-
-        dataset = self.hdf5file["Telescope"]["TelescopePitch"]
-        pitch = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(pitch)
-
-        # Extract the roll values
-
-        dataset = self.hdf5file["Telescope"]["TelescopeRoll"]
-        roll = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(roll)
-
+        # Extract the time values
+        
         if (getTime):
-            # Extract the time values
-
-            dataset = self.hdf5file["Telescope"]["Time"]
-            time    = np.zeros(dataset.shape, dataset.dtype)
-            dataset.read_direct(time)
-
+            time = self.hdf5file["Telescope"]["Time"][:]
             return yaw, pitch, roll, time
-
         else:
             return yaw, pitch, roll
 
@@ -775,34 +771,36 @@ class SimFile (object):
 
     def getPlatformPointingCoordinates(self):
 
+        """Get the pointing of platform.
+
+        Get the RA and Dec values of the Platform pointing axis
+        at the end of each exposure.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        RA : ndarray
+            Right ascension of platform pointing [deg]
+        dec : ndarray
+            Declination of platform pointing [deg]
+
+        Notes
+        -----
+        The coordinate values at the end of an exposure are not the same
+        as the ones at the beginning of the next exposure, because between
+        two exposures there is the CCD readout time during which the ACS
+        jitter continues.
         """
-        PURPOSE: Get the right ascension and declination values of the Platform pointing ax at the end of each exposure
 
-        INPUT: None
-
-        OUTPUT: rightAscension:  [degrees]
-                declination: [degrees]
-
-        NOTE: The coordinate values at the end of an exposure are not the same as the ones at
-              the beginning of the next exposure, because between two exposures there is the CCD readout time
-              during which the ACS jitter continues.
-        """
-
-        # Extract the right ascension values
-
-        dataset = self.hdf5file["ACS"]["PlatformRA"]
-        rightAscension = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(rightAscension)
-
-        # Extract the pitch values
-
-        dataset = self.hdf5file["ACS"]["PlatformDec"]
-        declination = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(declination)
+        RA  = self.hdf5file["ACS"]["PlatformRA"][:]
+        Dec = self.hdf5file["ACS"]["PlatformDec"][:]
 
         # That's it
 
-        return rightAscension, declination
+        return RA, Dec
 
 
 
@@ -814,26 +812,43 @@ class SimFile (object):
 
     def getStarCatalog(self):
 
-        """
-        PURPOSE: retrieve a catalog of stars that were observed during the time series. Most stars
-                 are observed during every exposure, but at the edge of the subfield some stars may
-                 be observed during a few exposures only, depending on the ACS. The source of the
-                 information is the Star Input Catalog that the user specified before running the
-                 simulation.
+        """Get the stellar catalogue.
 
-                 The initial planar focal plane and pixel coordinates are the coordinates of the
-                 stars on the CCD before any Jitter or thermal distortions took place. Field distortion
-                 is however taken into account when requested by the user in the YAML input file.
+        Retrieve a catalog of stars that were observed during the time
+        series. Most stars are observed during every exposure, but at
+        the edge of the subfield some stars may be observed during a
+        few exposures only, depending on the ACS. The source of the
+        information is the Star Input Catalog that the user specified
+        before running the simulation.
 
-        INPUT: None
+        The initial planar focal plane and pixel coordinates are the
+        coordinates of the stars on the CCD before any Jitter or thermal
+        distortions took place. Field distortion is however taken into
+        account when requested by the user in the YAML input file.
 
-        OUTPUT: starIDs:        Sequential number of those stars in the input catalog that were detected
-                                on the subfield in one or more exposures.
-                RA:             Right ascension                                                       [deg]
-                decl:           Equatorial declination                                                [deg]
-                Vmag:           V magnitude
-                xFPmm, yFPmm:   Initial planar focal plane coordinates of the stars                   [mm]
-                rowPix, colPix: Initial CCD (not subfield) real-valued pixel coordinates of the stars [pix]
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        starIDs : ndarray
+            Sequential number of those stars in the input catalog that
+            were detected on the subfield in one or more exposures.
+        RA : ndarray
+            Right ascension of stars [deg]
+        dec : ndarray
+            Declination of stars [deg]
+        Vmag : ndarray
+            V magnitude of stars
+        xFPmm : ndarray
+            Initial planar X focal plane coordinates of the stars [mm]
+        yFPmm: ndarray
+            Initial planar Y focal plane coordinates of the stars [mm]
+        rowPix : ndarray
+            Initial CCD (not subfield) X pixel coordinates of the stars [pix]
+        colPix : ndarray 
+            Initial CCD (not subfield) Y pixel coordinates of the stars [pix]
         """
 
         # First some checks. Failure will lead to meaningful error messages
@@ -854,50 +869,28 @@ class SimFile (object):
             print("Error: SimfFile.getStarCatalog(): no V magnitudes found in hdf5 file")
             return None, None, None, None, None, None, None, None
 
-
         # Extract the data from the HDF5 file
 
-        dataset = self.hdf5file["StarCatalog"]["starIDs"]
-        starIDs = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(starIDs)
-
-        dataset = self.hdf5file["StarCatalog"]["RA"]
-        RA = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(RA)
-
-        dataset = self.hdf5file["StarCatalog"]["Dec"]
-        declination = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(declination)
-
-        dataset = self.hdf5file["StarCatalog"]["Vmag"]
-        Vmag = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(Vmag)
+        starIDs = self.hdf5file["StarCatalog"]["starIDs"][:]
+        RA      = self.hdf5file["StarCatalog"]["RA"][:]
+        dec     = self.hdf5file["StarCatalog"]["Dec"][:]
+        Vmag    = self.hdf5file["StarCatalog"]["Vmag"][:]
 
         # xFPmm, yFPmm, rowPix, and colPix were all introduced with the same commit
         # So, testing if xFPmm is present in the StarCatalog group is sufficient
 
         if "xFPmm" in self.hdf5file["StarCatalog"].keys():
-            dataset = self.hdf5file["StarCatalog"]["xFPmm"]
-            xFPmm = np.zeros(dataset.shape, dataset.dtype)
-            dataset.read_direct(xFPmm)
+            
+            xFPmm  = self.hdf5file["StarCatalog"]["xFPmm"][:]
+            yFPmm  = self.hdf5file["StarCatalog"]["yFPmm"][:]
+            colPix = self.hdf5file["StarCatalog"]["colPix"][:]
+            rowPix = self.hdf5file["StarCatalog"]["rowPix"][:]
 
-            dataset = self.hdf5file["StarCatalog"]["yFPmm"]
-            yFPmm = np.zeros(dataset.shape, dataset.dtype)
-            dataset.read_direct(yFPmm)
-
-            dataset = self.hdf5file["StarCatalog"]["colPix"]
-            colPix = np.zeros(dataset.shape, dataset.dtype)
-            dataset.read_direct(colPix)
-
-            dataset = self.hdf5file["StarCatalog"]["rowPix"]
-            rowPix = np.zeros(dataset.shape, dataset.dtype)
-            dataset.read_direct(rowPix)
-
-            return starIDs, RA, declination, Vmag, xFPmm, yFPmm, rowPix, colPix
+            return starIDs, RA, dec, Vmag, xFPmm, yFPmm, rowPix, colPix
 
         # That's it!
 
-        return starIDs, RA, declination, Vmag, None, None, None, None
+        return starIDs, RA, dec, Vmag, None, None, None, None
 
 
 
@@ -981,7 +974,10 @@ class SimFile (object):
                 if groupName == "ExtendedGhostPositions":  func = "getExtendedGhostCoordinates()"
 
                 self.errorcode("warning", f"SimfFile.{func}: {exposureGroupName} not in hdf5 file")
-                return None, None, None, None, None, None
+                if groupName == "ExtendedGhostPositions":
+                    return None, None, None, None, None, None, None
+                else:
+                    return None, None, None, None, None, None
 
             else:
                 
@@ -1016,7 +1012,7 @@ class SimFile (object):
             # Or grouped per star which is already sorted
             
             star = list(self.hdf5file[groupName].keys())
-            print(star); exit()
+
             # TODO remove this when time column is deleted from HDF5
             #---------------------------------
             if groupName == "StarPositions":
@@ -1037,11 +1033,6 @@ class SimFile (object):
             if groupName == "ExtendedGhostPositions":
                     
                 radius = np.array([self.hdf5file[groupName][s]["radius"][imageNr] for s in star])
-
-        # If no cut in V magnitude is required, we're finished.
-
-        if (minVmag == None) and (maxVmag == None):
-            return starID, row, col, Xmm, Ymm, flux
 
         # If a cut in magnitude is required, get the magnitudes from the star input catalogue
 
@@ -1068,9 +1059,9 @@ class SimFile (object):
             return (starID[selection], row[selection], col[selection],
                     Xmm[selection], Ymm[selection], flux[selection])
 
-    
-    
 
+
+        
         
     def getStarCoordinates(self, imageNr, minVmag=None, maxVmag=None):
 
@@ -1084,7 +1075,7 @@ class SimFile (object):
         return self.getCoordinates("StarPositions", imageNr, minVmag, maxVmag)
 
 
-
+    
     
 
     def getPointLikeGhostCoordinates(self, imageNr, minVmag=None, maxVmag=None):
@@ -1095,7 +1086,7 @@ class SimFile (object):
         the (fractional) pixel coordinates of all point-like ghosts in the given image.
         See parameters and returns for this function.
         """
-        print("hej")
+
         return self.getCoordinates("PointLikeGhostPositions", imageNr, minVmag, maxVmag)
 
 
@@ -1112,6 +1103,77 @@ class SimFile (object):
         """
 
         return self.getCoordinates("ExtendedGhostPositions", imageNr, minVmag, maxVmag)
+
+
+
+
+
+    def getStarPositions(self, starID):
+
+        """Get stellar pixel positions
+
+        This function fetch the pixel coordinates of a desired 
+        star ID from the output file.
+        
+        Parameters
+        ----------
+        starID : int 
+            Integer sequential number of the star ID.
+
+        Return
+        ------
+        row : ndarray
+            Pixel row coordinates of each star in the image (float).
+        col : ndarray
+            Pixel column coordinates of each star in the image (float).
+        """
+        
+        # Check if the point-like ghost info was saved to the HDF5 file
+
+        groupName = "StarPositions"
+        
+        if groupName not in self.hdf5file["/"].keys():
+            self.errorcode("warning", f"No group '{groupName}' in the HDF5 file.")
+            return None, None
+
+        # Extract information depending of HDF5 structure
+        
+        groupByExposure = self.getInputParameter("ControlHDF5Content", "GroupByExposure") 
+        
+        if groupByExposure:
+
+            # Get all Exposure00.. strings and avoid the time array being the last entry
+
+            exp   = np.array(self.hdf5file[groupName])[:-1]
+            Nexp  = len(exp)
+            starIDs   = self.hdf5file[groupName][exp[0]]["starID"][:]
+            starIndex = np.where(starIDs == starID)
+            star = starIndex[0]
+
+            # Check if star exist
+
+            if not starIndex:
+                errorcode("warning", f"No star with ID '{starID}' in the HDF5 file.")
+                return None, None
+            
+            # Loop over each image to fetch pixel coordinates
+            
+            row = np.zeros(Nexp)
+            col = np.zeros(Nexp)
+            
+            for i in range(Nexp):
+                row[i] = np.array(self.hdf5file[groupName][exp[i]]['rowPix'][star])
+                col[i] = np.array(self.hdf5file[groupName][exp[i]]['colPix'][star])
+
+        elif not groupByExposure:
+            
+            star = f"starID{starID:06d}"
+            row = self.hdf5file[groupName][star]["rowPix"][:]
+            col = self.hdf5file[groupName][star]["colPix"][:]
+
+        # That's it!
+        
+        return row, col
 
 
 
@@ -1229,62 +1291,80 @@ class SimFile (object):
 
 
     def getCosmicsAffectedPixels(self, imageNr, field="SubField"):
-        """
-        PURPOSE: Get the pixel coordinates and flux for those pixels that are affected by a cosmics,
-                 for a particular field (e.g. SubField, SmearingMap, etc).
 
-        INPUT:
-            - imageNr: Integer sequential number of the image in the HDF5 file.
-            - field: String that determines from what field the Cosmics should be returned. Can be:
-                     "SubField", "BiasMapLeft", "BiasMapRight" or "SmearingMap".
-                     If input doesn't match any of these values the function returns (None, None, None).
+        """Get the pixel affected by cosmic rays.
 
-        OUTPUT:
-            - row: Pixel row coordinates of each star in the image (integer).
-            - col: Pixel column coordinates of each star in the image (integer).
-            - flux: Flux of cosmics [electrons].
+        Get the pixel coordinates and flux for those pixels that are affected
+        by a cosmics, for a particular field (e.g. SubField, SmearingMap, etc).
+
+        Parameters
+        ----------
+        imageNr : int
+            Integer sequential number of the image in the HDF5 file.
+        field : str
+            String that determines from what field the Cosmics should be returned. 
+            Option: ['SubField', 'BiasMapLeft', 'BiasMapRight', 'SmearingMap'].
+
+        Returns
+        -------
+        row : ndarray
+            Pixel row coordinates of each star in the image (integer).
+        col : ndarray
+            Pixel column coordinates of each star in the image (integer).
+        flux : ndarray
+            Flux of cosmics [electrons].
         """
 
         # Check if the field variables matches the allowed values
 
         if not field in ["SubField", "BiasMapLeft", "BiasMapRight", "SmearingMap"]:
-            print("Error: SimFile:getCosmicsAffectedPixels(): field variable doesn't match one of the allowed values: SubField, BiasMapLeft, BiasMapRight or SmearingMap ")
+            print("Error: SimFile:getCosmicsAffectedPixels(): " +
+                  "field variable doesn't match one of the allowed values: " +
+                  "[SubField, BiasMapLeft, BiasMapRight, SmearingMap]")
             return None, None, None
 
         # Check if the Cosmics info was saved to the HDF5 file
 
         if "Cosmics" not in self.hdf5file["/"].keys():
-            print("Error: SimFile.getCosmicsAffectedPixels(): no cosmics data was saved in the HDF5 file.")
+            print("Error: SimFile.getCosmicsAffectedPixels(): " +
+                  "no cosmics data was saved in the HDF5 file.")
             return None, None, None
 
+        # Check if the arrays are in the HDF5 file
+        
+        if field not in self.hdf5file["Cosmics"].keys():
+            print("Error: SimFile.getCosmicsAffectedPixels(): {field} not in hdf5 file")
+            return None, None, None
+        
         # Construct the exposure name that was used to store the image
 
         exposureGroupName = "exposure{0:06d}".format(imageNr)
 
-        # Check if the arrays are in the file. If not: complain, if yes: copy the contents into a numpy array.
+        # Extract information depending of HDF5 structure
+        
+        groupByExposure = self.getInputParameter("ControlHDF5Content", "GroupByExposure") 
 
-        if field not in self.hdf5file["Cosmics"].keys():
+        if not groupByExposure:
 
-            print("Error: SimFile.getCosmicsAffectedPixels(): field {0} not in hdf5 file".format(field))
-            return None, None, None
+            # Here cosmics are further grouped per 1000th exposures
+            # and we overwrite the "exposureGroupName"
+
+            n = 1000
+            imageNrRound = imageNr // n * n
+            exposureGroupName = f"exposure{imageNrRound:03d}/{exposureGroupName}"
+
+        # Check if this column exists in the HDF5 file
+                
         if exposureGroupName not in self.hdf5file["Cosmics/" + field].keys():
             print(self.hdf5file["Cosmics/" + field].keys())
-            print("Error: SimFile.getCosmicsAffectedPixels(): field {0} not in hdf5 file".format(exposureGroupName))
+            print("Error: SimFile.getCosmicsAffectedPixels(): {exposureGroupName} not in hdf5 file")
             return None, None, None
 
         # Extract the arrays from the HDF5 file
 
-        dataset = self.hdf5file["Cosmics"][field][exposureGroupName]["Columns"]
-        col = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(col)
-
-        dataset = self.hdf5file["Cosmics"][field][exposureGroupName]["Rows"]
-        row = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(row)
-
-        dataset = self.hdf5file["Cosmics"][field][exposureGroupName]["Flux"]
-        flux = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(flux)
+        col  = self.hdf5file["Cosmics"][field][exposureGroupName]["Columns"][:]
+        row  = self.hdf5file["Cosmics"][field][exposureGroupName]["Rows"][:]
+        flux = self.hdf5file["Cosmics"][field][exposureGroupName]["Flux"][:]
 
         # That's it!
 
@@ -1309,7 +1389,7 @@ class SimFile (object):
         if   fluxType == "estimated": lctype = "estimatedFlux"
         elif fluxType == "input":     lctype = "inputFlux"
         else:
-            ut.errorcode("error", "getFlux(): flux_type can only be 'estimated' or 'input'")
+            errorcode("error", "getFlux(): flux_type can only be 'estimated' or 'input'")
 
         # Query either a single star or multiple stars as requested
 
@@ -1327,7 +1407,7 @@ class SimFile (object):
             # Check photometry is present for each star
             starIDgroupName = f"starID{ID}"
             if starIDgroupName not in self.hdf5file["Photometry"]["Lightcurves"].keys():
-                ut.errorcode("error", f"getLightCurve(): {starIDgroupName} not present in " +
+                errorcode("error", f"getLightCurve(): {starIDgroupName} not present in " +
                                        "Photometry/Lightcurves/ in the HDF5 file")
 
             # Select correct name convention
@@ -1554,7 +1634,7 @@ class SimFile (object):
 
         Parameters
         ----------
-        imageNr: False, int
+        imageNr : False, int
             False : Will plot all images in HDF5 using a slider
             int   : Integer sequential number of the image in the HDF5 file
         clipPercentile: int, float
@@ -1565,46 +1645,43 @@ class SimFile (object):
             auto   : Scale image using a sigma clipping and linear scaling
             log    : Scale image logarithmically
             minmax : Scale image from min to max image value
-        showStarPositions: bool
+        showStarPositions : bool
             False : Default
             True  : Plot the average star positions (averaged over the exposure)
             "PIC" : Differentiate between a target and contaminants (useful for imagettes)
-        showPointLikeGhostPositions: bool
+        showPointLikeGhostPositions : bool
             False : Default
             True  : Plot the average pointlike ghost position (averaged over the exposure)
-        minVmag: int, float
+        minVmag : int, float
             The minimum V magnitude of the stars/ghosts for which the position should be plotted.
             Only relevant if either showStarPositions or showPointLikeGhostPositions is True.
-        maxVmag: int, float
+        maxVmag : int, float
             The maximum V magnitude of the stars/ghosts for which the position should be plotted.
             Only relevant if either showStarPositions or showPointLikeGhostPositions is True.
-        showStarIDs: bool
+        showStarIDs : bool
             Put small labels with the star IDs next to the star positions
             Will only be executed if showStarPositions=True is set.
-        showMaskOfStarID: bool
+        showMaskOfStarID : bool
             Draw rectangles around the pixels of the mask that is used to extract the flux
             value of the star with the given ID. Only works if photometry was activated
             in the yaml inputfile.
-        useTitle: bool, str
+        useTitle : bool, str
             False : Default
             True  : Show a default image title of the star ID
             str   : Provide custom title as a string
-        colorMap: str
-            Option to select your preferred colormap from the matplotlib library.
-            Default is the colormap "hot".
         showGrid: bool -> False
             option to select a dim gray grid for a higher visibility of teh pixel grid.
             Will only be executed if showGrid=True is set.
+        colorBar : bool
+            If True a colorbar will be shown.
+        colorMap : str
+            Option to select your preferred colormap from the matplotlib library.
+            Default is the colormap "hot".
 
         Return
         ------
         fig, ax : object
             Axes matplotlib.pyplot handle objects to modify plot
-
-        Example
-        -------
-            >>> simfile = SimFile("Simul01.hdf5")
-            >>> simfile.showImage(23)
         """
 
         # As default, add slider if all images are requested
@@ -1619,7 +1696,7 @@ class SimFile (object):
         else:
             image = self.getImage(imageNr)
             if image is None:
-                ut.errorcode(f"Cannot extract image nr {imageNr}")
+                errorcode(f"Cannot extract image nr {imageNr}")
             Nrows, Ncols = image.shape
 
         # Plot the image. Note that pixel coordinates start at the left bottom side of each pixel.
@@ -1667,7 +1744,7 @@ class SimFile (object):
             norm = None  # Image is already normalized to [0,1]
 
         else:
-            ut.errorcode("error", "Not valid scaling for imgScale!")
+            errorcode("error", "Not valid scaling for imgScale!")
 
         # Generate image
 
@@ -1852,15 +1929,29 @@ class SimFile (object):
     def showPSF(self, datasetName, useTitle=False, colorBar=True, colorMap="gist_stern",
                 figsize=(7,6)):
 
-        """
-        PURPOSE: make a plot of the requested PSF
+        """Make a plot of the requested PSF.
 
-        INPUT: datasetName: the name of the dataset that contains the PSF in the HDF5 file
-               This is set by the Simulator and is currently:
-                    rebinnedPSFpixel, rebinnedPSFsubPixel,  or  rotatedPSF
-               useTitle: True is a title should be plotted, False otherwise
+        Parameters
+        ----------
+        datasetName : str
+            The name of the dataset that contains the PSF in the HDF5 file.
+            Options: [highResPSF, diffusedPSF, rebinnedPSFpixel, rebinnedPSFsubPixel]
+        useTitle: bool, str
+            False : Default
+            True  : Show a default image title of the star ID
+            str   : Provide custom title as a string
+        colorBar : bool
+            If True a colorbar will be shown.
+        colorMap: str
+            Option to select your preferred colormap from the matplotlib library.
+            Default is the colormap "hot".
+        figsize : object
+            Axes Matplotlib object to set plot size
 
-        OUTPUT: None
+        Return
+        ------
+        fig, ax : object
+            Axes matplotlib.pyplot handle objects to modify plot
         """
 
         # Get the image from the HDF5 file
@@ -1868,14 +1959,12 @@ class SimFile (object):
         # are vertical, and the image is oriented in such a way that overplotting the
         # star x,y coordinates from getStarPixelCoordinates() becomes straightforward.
 
-
         psf = np.rot90(np.fliplr(self.getPSF(datasetName)))
         Nrows, Ncols = psf.shape
 
         # Plot the image.
 
         fig, ax = plt.subplots(1, 1, sharex=True, sharey=True, figsize=figsize)
-
 
         image = ax.imshow(psf, cmap=colorMap, interpolation="nearest",
                           origin='lower', extent=[0, Nrows, 0, Ncols])
@@ -1915,415 +2004,3 @@ class SimFile (object):
         # That's it!
 
         return fig, ax
-
-
-
-    
-
-#-----------------------------
-
-    
-    def getStarPositions(self, starID):
-
-        """This function fetch the pixel coordinates of a desired star ID from the output file.
-
-        Parameters
-        ----------
-        starID : int
-           Star ID in simulated catalogue.
-
-        Return
-        ------
-        rowPix : ndarray [pixels]
-            Stellar row pixel coordinate
-        colPix : ndarray [pixels]
-            Stellar column pixel coordinate
-        """
-
-        # Get all Exposure00.. strings and avoid the time array being the last entry
-
-        exposureStrings = np.array(self.hdf5file['StarPositions'])[:-1]
-        N = len(exposureStrings)
-
-        # Loop over each image to fetch pixel coordinates
-
-        rowPix = np.zeros(N)
-        colPix = np.zeros(N)
-
-        for i in range(N):
-
-            rowPix[i] = np.array(self.hdf5file['StarPositions'][exposureStrings[i]]['rowPix'][starID-1])
-            colPix[i] = np.array(self.hdf5file['StarPositions'][exposureStrings[i]]['colPix'][starID-1])
-
-        return rowPix, colPix
-
-
-
-
-
-
-    
-    def getStarCoordinates(self, imageNr, minVmag=None, maxVmag=None):
-
-        """
-        PURPOSE: get the (fractional) pixel coordinates of all stars in the given image
-
-        INPUT: imageNr: integer sequential number of the image in the HDF5 file
-               minVmag: minimum V magnitiude. Only return stars fainter than minVmag.
-                        Should be 'None' if no cut in minimum magnitude should be made.
-               maxVmag: maximum V magnitude. Only return stars brighter than maxVmag.
-                        Should be 'None' if no cut in minimum magnitude should be made.
-
-        OUTPUT: starIDs: integer numpy array containing the star identifiers of those
-                         stars visible in the current image (subfield). The star
-                         identifier equals the line number of the star in the input
-                         star catalog (counting from 0).
-                row: The pixel row coordinates of each star in the image (float).
-                col: The pixel column coordinates of each star in the image (float).
-                Xmm: The focal plane FP' x-coordinates of each star in the image
-                Ymm: The focal plane FP' y-coordinates of each star in the image
-                flux: The flux of each star in the image [photons]
-
-        REMARKS:
-            - The coordinates returned are the time-averaged coordinates of the stars during the exposure.
-
-            - To get the pixel with the higest flux of star #0, given its (row, col) coordinates:
-              >>> im = file.getImage(0)
-              >>> ID, row, col, Xmm, Ymm, flux = file.getStarCoordinates(4, minVmag=6.0, maxVmag=9.0)
-              >>> im[int(row[0]), int(col[0])]
-
-            - To use this function to overplot the positions of the stars on an image plotted by
-              showImage(), use plt.scatter(floor(col), floor(row)) because showImage uses
-              matplotlib.imshow() which switches rows and columns.
-        """
-
-        # Construct the exposure name that was used to store the image
-
-        exposureGroupName = "Exposure{0:06d}".format(imageNr)
-
-        # Check if the arrays are in the file. If not: complain, if yes: copy the contents into a numpy array.
-
-        if exposureGroupName not in self.hdf5file["StarPositions"].keys():
-            print("Error: SimfFile.getStarCoordinates(): {0} not in hdf5 file".format(exposureGroupName))
-            return None, None, None, None, None, None
-
-        # Extract the arrays from the HDF5 file
-
-        dataset = self.hdf5file["StarPositions"][exposureGroupName]["starID"]
-        starIDs = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(starIDs)
-
-        dataset = self.hdf5file["StarPositions"][exposureGroupName]["rowPix"]
-        row = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(row)
-
-        dataset = self.hdf5file["StarPositions"][exposureGroupName]["colPix"]
-        col = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(col)
-
-        dataset = self.hdf5file["StarPositions"][exposureGroupName]["xFPmm"]
-        Xmm = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(Xmm)
-
-        dataset = self.hdf5file["StarPositions"][exposureGroupName]["yFPmm"]
-        Ymm = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(Ymm)
-
-        dataset = self.hdf5file["StarPositions"][exposureGroupName]["flux"]
-        flux = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(flux)
-
-        # Make sure that the star IDs are sorted
-
-        sorted = np.argsort(starIDs)
-        starIDs = starIDs[sorted]
-        row = row[sorted]
-        col = col[sorted]
-        Xmm = Xmm[sorted]
-        Ymm = Ymm[sorted]
-        flux = flux[sorted]
-
-        # If no cut in V magnitude is required, we're finished.
-
-        if (minVmag == None) and (maxVmag == None):
-            return starIDs, row, col, Xmm, Ymm, flux
-
-        # If a cut in magnitude is required, first get the magnitudes from the star input catalog.
-
-        inputStarIDs, RA, decl, Vmag, xFPmm, yFPmm, rowPix, colPix = self.getStarCatalog()
-        subFieldVmag = Vmag[np.in1d(inputStarIDs, starIDs)]
-
-        # If the min or max V magnitude is set to None, use the default values
-
-        if minVmag == None:
-            minVmag = subFieldVmag.min()
-        if maxVmag == None:
-            maxVmag = subFieldVmag.max()
-
-        # Make the magnitude cut
-
-        selection = (subFieldVmag >= minVmag) & (subFieldVmag <= maxVmag)
-
-        # That's it!
-
-        return starIDs[selection], row[selection], col[selection], Xmm[selection], Ymm[selection], flux[selection]
-
-
-
-
-    def getPointLikeGhostCoordinates(self, imageNr, minVmag = None, maxVmag = None):
-
-        """
-        PURPOSE: Get the star ID, pixel and focal-plane coordinates, and flux of all point-like ghosts
-                 in the given image.
-
-        INPUT:
-            - imageNr: Integer sequential number of the image in the HDF5 file.
-            - minVmag: Minimum V magnitude of the stars causing the point-like ghosts. Only return ghosts for which
-                       the originating star is fainter than minVmag.
-                       Should be 'None' if no cut in minimum magnitude should be made.
-            - maxVmag: Maximum V magnitude of the stars causing the point-like ghosts. Only return ghosts for which
-                       the originating star is brighter than maxVmag.
-                       Should be 'None' if no cut in maximum magnitude should be made.
-
-        OUTPUT:
-            - starIDs: Integer numpy array containing the star IDs of the stars (as mentioned in the
-                       input catalogue) that cause point-like ghosts in the current image.  If no star ID
-                       was given in the input star catalogue file, the identifier equals the line number
-                       of the star in the input star catalogue (counting from 0).
-            - row: Pixel row coordinates of each star in the image (float).
-            - col: Pixel column coordinates of each star in the image (float).
-            - Xmm: Focal-plane x-coordinates of each star in the image.
-            - Ymm: Focal plane y-coordinates of each star in the image.
-            - flux: Flux of each point-like ghost in the image [photons].
-
-
-        REMARKS:
-            - The coordinates returned are the time-averaged coordinates of the point-like ghosts during the exposure.
-
-            - To get the pixel with the higest flux of star #0, given its (row, col) coordinates:
-              >>> im = file.getImage(0)
-              >>> ID, row, col, Xmm, Ymm, flux = file.getPointLikeGhostCoordinates(4, minVmag=6.0, maxVmag=9.0)
-              >>> im[int(row[0]), int(col[0])]
-
-            - To use this function to overplot the positions of the point-like ghost on an image plotted by
-              showImage(), use plt.scatter(floor(col), floor(row)) because showImage uses
-              matplotlib.imshow() which switches rows and columns.
-        """
-
-        # Check if the point-like ghost info was saved to the HDF5 file
-
-        if "PointLikeGhostPositions" not in self.hdf5file["/"].keys():
-
-            print("Error: no group PointLikeGhostPositions in the HDF5 file.")
-            return None, None, None, None, None, None
-
-        # Construct the exposure name that was used to store the image
-
-        exposureGroupName = "Exposure{0:06d}".format(imageNr)
-
-        # Check if the arrays are in the file. If not: complain, if yes: copy the contents into a numpy array.
-
-        if exposureGroupName not in self.hdf5file["PointLikeGhostPositions"].keys():
-
-            print("Error: SimfFile.getPointLikeGhostCoordinates(): {0} not in hdf5 file".format(exposureGroupName))
-            return None, None, None, None, None, None
-
-        # Extract the arrays from the HDF5 file
-
-        dataset = self.hdf5file["PointLikeGhostPositions"][exposureGroupName]["starID"]
-        starIDs = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(starIDs)
-
-        dataset = self.hdf5file["PointLikeGhostPositions"][exposureGroupName]["rowPix"]
-        row = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(row)
-
-        dataset = self.hdf5file["PointLikeGhostPositions"][exposureGroupName]["colPix"]
-        col = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(col)
-
-        dataset = self.hdf5file["PointLikeGhostPositions"][exposureGroupName]["xFPmm"]
-        Xmm = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(Xmm)
-
-        dataset = self.hdf5file["PointLikeGhostPositions"][exposureGroupName]["yFPmm"]
-        Ymm = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(Ymm)
-
-        dataset = self.hdf5file["PointLikeGhostPositions"][exposureGroupName]["flux"]
-        flux = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(flux)
-
-        # Make sure that the point-like ghost star IDs are sorted
-
-        sorted = np.argsort(starIDs)
-        starIDs = starIDs[sorted]
-        row = row[sorted]
-        col = col[sorted]
-        Xmm = Xmm[sorted]
-        Ymm = Ymm[sorted]
-        flux = flux[sorted]
-
-        # If no cut in V magnitude is required, we're finished.
-
-        if (minVmag == None) and (maxVmag == None):
-            return starIDs, row, col, Xmm, Ymm, flux
-
-        # If a cut in magnitude is required, first get the magnitudes from the star input catalogue
-
-        inputStarIDs, RA, decl, Vmag, xFPmm, yFPmm, rowPix, colPix = self.getStarCatalog()
-        subFieldVmag = Vmag[np.in1d(inputStarIDs, starIDs)]
-
-        # If the min or max V magnitude is set to None, use the default values
-
-        if minVmag == None:
-            minVmag = subFieldVmag.min()
-        if maxVmag == None:
-            maxVmag = subFieldVmag.max()
-
-        # Make the magnitude cut
-
-        selection = (subFieldVmag >= minVmag) & (subFieldVmag <= maxVmag)
-
-        # That's it!
-
-        return starIDs[selection], row[selection], col[selection], Xmm[selection], Ymm[selection], flux[selection]
-
-
-
-
-
-
-
-
-
-
-    def getExtendedGhostCoordinates(self, imageNr, minVmag = None, maxVmag = None):
-
-        """
-        PURPOSE: Get the star ID, pixel and focal-plane coordinates, flux, and radius of all extended ghosts
-                 in the given image.
-
-        INPUT:
-            - imageNr: Integer sequential number of the image in the HDF5 file.
-            - minVmag: Minimum V magnitude of the stars causing the extended ghosts. Only return ghosts for which
-                       the originating star is fainter than minVmag.
-                       Should be 'None' if no cut in minimum magnitude should be made.
-            - maxVmag: Maximum V magnitude of the stars causing the extended ghosts. Only return ghosts for which
-                       the originating star is brighter than maxVmag.
-                       Should be 'None' if no cut in maximum magnitude should be made.
-
-        OUTPUT:
-            - starIDs: Integer numpy array containing the star IDs of the stars (as mentioned in the
-                       input catalogue) that cause extended ghosts in the current image.  If no star ID
-                       was given in the input star catalogue file, the identifier equals the line number
-                       of the star in the input star catalogue (counting from 0).
-            - row: Pixel row coordinates of each star in the image (float).
-            - col: Pixel column coordinates of each star in the image (float).
-            - Xmm: Focal-plane x-coordinates of each star in the image.
-            - Ymm: Focal plane y-coordinates of each star in the image.
-            - flux: Flux of each extended ghost in the image [photons].
-            - radius: Radius of the extended ghost [mm].
-
-        REMARKS:
-            - The coordinates returned are the time-averaged coordinates of the extended ghosts during the exposure.
-
-            - To get the pixel with the higest flux of star #0, given its (row, col) coordinates:
-              >>> im = file.getImage(0)
-              >>> ID, row, col, Xmm, Ymm, flux, radius = file.getExtendedGhostCoordinates(4, minVmag=6.0, maxVmag=9.0)
-              >>> im[int(row[0]), int(col[0])]
-
-            - To use this function to overplot the positions of the extended ghost on an image plotted by
-              showImage(), use plt.scatter(floor(col), floor(row)) because showImage uses
-              matplotlib.imshow() which switches rows and columns.
-        """
-
-        # Check if the extended ghost info was saved to the HDF5 file
-
-        if "ExtendedGhostPositions" not in self.hdf5file["/"].keys():
-
-            print("Error: no group ExtendedGhostPositions in the HDF5 file.")
-            return None, None, None, None, None, None, None
-
-        # Construct the exposure name that was used to store the image
-
-        exposureGroupName = "Exposure{0:06d}".format(imageNr)
-
-        # Check if the arrays are in the file. If not: complain, if yes: copy the contents into a numpy array.
-
-        if exposureGroupName not in self.hdf5file["ExtendedGhostPositions"].keys():
-
-            print("Error: SimfFile.getExtendedGhostCoordinates(): {0} not in hdf5 file".format(exposureGroupName))
-            return None, None, None, None, None, None, None
-
-        # Extract the arrays from the HDF5 file
-
-        dataset = self.hdf5file["ExtendedGhostPositions"][exposureGroupName]["starID"]
-        starIDs = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(starIDs)
-
-        dataset = self.hdf5file["ExtendedGhostPositions"][exposureGroupName]["rowPix"]
-        row = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(row)
-
-        dataset = self.hdf5file["ExtendedGhostPositions"][exposureGroupName]["colPix"]
-        col = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(col)
-
-        dataset = self.hdf5file["ExtendedGhostPositions"][exposureGroupName]["xFPmm"]
-        Xmm = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(Xmm)
-
-        dataset = self.hdf5file["ExtendedGhostPositions"][exposureGroupName]["yFPmm"]
-        Ymm = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(Ymm)
-
-        dataset = self.hdf5file["ExtendedGhostPositions"][exposureGroupName]["flux"]
-        flux = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(flux)
-
-        dataset = self.hdf5file["ExtendedGhostPositions"][exposureGroupName]["radius"]
-        radius = np.zeros(dataset.shape, dataset.dtype)
-        dataset.read_direct(radius)
-
-        # Make sure that the extended ghost star IDs are sorted
-
-        sorted = np.argsort(starIDs)
-        starIDs = starIDs[sorted]
-        row = row[sorted]
-        col = col[sorted]
-        Xmm = Xmm[sorted]
-        Ymm = Ymm[sorted]
-        flux = flux[sorted]
-        radius = radius[sorted]
-
-        # If no cut in V magnitude is required, we're finished.
-
-        if (minVmag == None) and (maxVmag == None):
-            return starIDs, row, col, Xmm, Ymm, flux, radius
-
-        # If a cut in magnitude is required, first get the magnitudes from the star input catalogue
-
-        inputStarIDs, RA, decl, Vmag, xFPmm, yFPmm, rowPix, colPix = self.getStarCatalog()
-        subFieldVmag = Vmag[np.in1d(inputStarIDs, starIDs)]
-
-        # If the min or max V magnitude is set to None, use the default values
-
-        if minVmag == None:
-            minVmag = subFieldVmag.min()
-        if maxVmag == None:
-            maxVmag = subFieldVmag.max()
-
-        # Make the magnitude cut
-
-        selection = (subFieldVmag >= minVmag) & (subFieldVmag <= maxVmag)
-
-        # That's it!
-
-        return starIDs[selection], row[selection], col[selection], Xmm[selection], Ymm[selection], flux[selection], radius[selection]
-
-
-
-
-    
