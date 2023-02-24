@@ -1027,7 +1027,6 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
     const double skyBackground = camera. getTotalSkyBackground();                // [photons/pixel/exposure]
     image -= throughputMap * skyBackground;                                      // [e-/pixel/exposure]
 
-
     // Loop over all targets for which you need a lightcurve
 
     const int Ntargets = photStarIDs.size();                                     // Nr of stars for which we want a lightcurve

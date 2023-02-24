@@ -43,7 +43,7 @@ from platosim.plot import drawStarInCCDfocalPlane
 
 # Import repo matplotlibrc
 import matplotlib.pyplot as plt
-import platosim.platonium.matplotlibrc
+#import platosim.platonium.matplotlibrc
 
 #==============================================================#
 #                        PLATOnium CLASS                       #
@@ -226,7 +226,7 @@ class PLATOnium(object):
         if self.simPrefix is None: self.simPrefix = ''
         else: self.simPrefix = self.simPrefix + '_'
         self.obsPrefix = f'Ncam{self.group}.{self.camera}_Q{self.quarter}'
-        self.picPrefix = f"{self.simPrefix}pic{self.df['ID']}_{self.obsPrefix}"
+        #self.picPrefix = f"{self.simPrefix}pic{self.df['ID']}_{self.obsPrefix}"
 
         # Default output path
         if self.outputDir is None: self.outputDir = self.simDir.joinpath('output')
@@ -234,15 +234,17 @@ class PLATOnium(object):
         try: os.mkdir(self.outputDir)
         except: pass
 
+        # Set general output filename
+        self.outputFileName = f'{self.targetNo}'.zfill(9)
+        
         # NOTE the structure for the L1 pipeline are different from the default
         if self.sample is None:
-
+            
             # PIC name convention
-            self.outputFileName = self.picPrefix
+            self.outputFileName = f'{self.outputFileName}_{self.obsPrefix}'
 
         else:
             # Name convention for pipeline mode
-            self.outputFileName = f'{self.targetNo}'.zfill(9)
             self.starID = self.outputFileName
             relativeDirStar = f'{self.sample}/Q{self.quarter}/Ncam{self.group}{self.camera}'
 

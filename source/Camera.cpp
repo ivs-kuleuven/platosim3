@@ -362,7 +362,6 @@ void Camera::configure(ConfigurationParameters &configParam)
 
     if (includeFieldDistortion && !isMapped)
     {
-        distortionModel              = configParam.getString("Camera/FieldDistortion/Type");
         string fieldDistortionSource = configParam.getString("Camera/FieldDistortion/Source");
         if (fieldDistortionSource == "ConstantValue")
         {
