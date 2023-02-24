@@ -1016,7 +1016,7 @@ class SimFile (object):
             # Or grouped per star which is already sorted
             
             star = list(self.hdf5file[groupName].keys())
-
+            print(star); exit()
             # TODO remove this when time column is deleted from HDF5
             #---------------------------------
             if groupName == "StarPositions":
@@ -1061,13 +1061,10 @@ class SimFile (object):
 
         # That's it!
 
-        if groupName == "ExtendedGhostPositions":
-            
+        if groupName == "ExtendedGhostPositions":            
             return (starID[selection], row[selection], col[selection],
                     Xmm[selection], Ymm[selection], flux[selection], radius[selection])
-        
         else:
-
             return (starID[selection], row[selection], col[selection],
                     Xmm[selection], Ymm[selection], flux[selection])
 
@@ -1082,16 +1079,7 @@ class SimFile (object):
         This function use the general 'getCoordinates' function to fetch
         the (fractional) pixel coordinates of all stars in the given image.
         See parameters and returns for this function.
-
-        Example
-        -------
-        >>> file = SimFile("Simul01.hdf5")
-        >>> file.showImage(4)
-        >>> ID, row, col, Xmm, Ymm, flux = file.getStarCoordinates(4, minVmag=6.0, maxVmag=9.0)
-        >>> plt.scatter(floor(col), floor(row), marker='x', c='g')
         """
-
-        # Fetch information
 
         return self.getCoordinates("StarPositions", imageNr, minVmag, maxVmag)
 
@@ -1106,17 +1094,8 @@ class SimFile (object):
         This function use the general 'getCoordinates' function to fetch
         the (fractional) pixel coordinates of all point-like ghosts in the given image.
         See parameters and returns for this function.
-
-        Example
-        -------
-        >>> file = SimFile("Simul01.hdf5")
-        >>> file.showImage(4)
-        >>> ID, row, col, Xmm, Ymm, flux = file.getPointLikeGhostsCoordinates(4, minVmag=6.0, maxVmag=9.0)
-        >>> plt.scatter(floor(col), floor(row), marker='x', c='g')
         """
-
-        # Fetch information
-
+        print("hej")
         return self.getCoordinates("PointLikeGhostPositions", imageNr, minVmag, maxVmag)
 
 
@@ -1130,16 +1109,7 @@ class SimFile (object):
         This function use the general 'getCoordinates' function to fetch
         the (fractional) pixel coordinates of all point-like ghosts in the given image.
         See parameters and returns for this function.
-
-        Example
-        -------
-        >>> file = SimFile("Simul01.hdf5")
-        >>> file.showImage(4)
-        >>> ID, row, col, Xmm, Ymm, flux, radius = file.getExtendedGhostsCoordinates(4, minVmag=6.0, maxVmag=9.0)
-        >>> plt.scatter(floor(col), floor(row), marker='x', c='g')
         """
-
-        # Fetch information
 
         return self.getCoordinates("ExtendedGhostPositions", imageNr, minVmag, maxVmag)
 
@@ -1153,8 +1123,8 @@ class SimFile (object):
 
 
     def getCosmicsInfo(self, imageNr, field="SubField"):
-        """
-        Get information about cosmic rays in the pixel maps.
+
+        """Get information about cosmic rays in the pixel maps.
         
         This function returns for all cosmics that hit the CCD in a given field, 
         the entry rows, the entry columns, the entry angles, the intensities, 
