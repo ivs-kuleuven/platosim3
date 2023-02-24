@@ -72,7 +72,7 @@ class MappedGaussianPSF(Test):
 
         simFile = self.sim.run(removeOutputFile = True)
         self.image = simFile.getSubPixelImage(0)
-        self.psf   = simFile.getPSF("rotatedPSF")
+        self.psf   = simFile.getPSF("highResPSF")
         self.angle = np.rad2deg(simFile.hdf5file["PSF"].attrs["rotationAngle"])
 
 
