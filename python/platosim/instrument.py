@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 
 """
+This python module contains utilities that are are used to calculate
+pointing error sources (PES) for PLATO.
+
+NOTE: these utilities needs the Poetry install!
 """
 
 import os

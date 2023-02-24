@@ -3,6 +3,8 @@
 """
 This python module contains all general utilities that are commonly used
 by the different codes within PlatoSim and PLATOnium.
+
+NOTE: these utilities needs the Poetry install!
 """
 
 import os

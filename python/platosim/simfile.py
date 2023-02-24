@@ -21,8 +21,8 @@ import matplotlib.patches as patches
 import ipywidgets as widgets
 from astropy.io import fits
 
-import platosim.plot      as pt
-import platosim.utilities as ut
+import platosim.plot    as pt
+from platosim.utilities as imageNorm
 
 
 #==============================================================#
@@ -85,7 +85,7 @@ class SimFile (object):
         # Check that photometry has been saved
 
         if "Photometry" not in self.hdf5file["/"].keys():
-            ut.errorcode("error", "No photometry present in the HDF5 file!")
+            print("ERROR: No photometry present in the HDF5 file!")
 
 
 
@@ -141,7 +141,7 @@ class SimFile (object):
                 return pd.DataFrame({"time": time})
         else:
             
-            ut.errorcode("warning","getTime(): Time array not present in StarPositions group!")
+            print("ERROR: getTime(): Time array not present in StarPositions group")
             return None
 
 
@@ -1320,8 +1320,9 @@ class SimFile (object):
         if   fluxType == "estimated": lctype = "estimatedFlux"
         elif fluxType == "input":     lctype = "inputFlux"
         else:
-            ut.errorcode("error", "getFlux(): flux_type can only be 'estimated' or 'input'")
-
+            print("ERROR: getFlux(): flux_type can only be 'estimated' or 'input'")
+            return None
+        
         # Query either a single star or multiple stars as requested
 
         try: len(starID)
@@ -1338,8 +1339,8 @@ class SimFile (object):
             # Check photometry is present for each star
             starIDgroupName = f"starID{ID}"
             if starIDgroupName not in self.hdf5file["Photometry"]["Lightcurves"].keys():
-                ut.errorcode("error", f"getLightCurve(): {starIDgroupName} not present in " +
-                                       "Photometry/Lightcurves/ in the HDF5 file")
+                print(f"ERROR: getLightCurve(): {starIDgroupName} not present in " +
+                      "Photometry/Lightcurves/ in the HDF5 file")
 
             # Select correct name convention
             if names: string = f"flux_{ID}"
@@ -1630,7 +1631,8 @@ class SimFile (object):
         else:
             image = self.getImage(imageNr)
             if image is None:
-                ut.errorcode(f"Cannot extract image nr {imageNr}")
+                print(f"ERROR: Cannot extract image nr {imageNr}")
+                return None
             Nrows, Ncols = image.shape
 
         # Plot the image. Note that pixel coordinates start at the left bottom side of each pixel.
@@ -1673,12 +1675,12 @@ class SimFile (object):
         elif imgScale == "auto":
             sigma = 0.5
             clabel  = "Normalised counts"
-            image = ut.imageNorm(image, "linear", sigma=sigma)
+            image = imageNorm(image, "linear", sigma=sigma)
             vmin, vmax = image.min(), image.max()
             norm = None  # Image is already normalized to [0,1]
 
         else:
-            ut.errorcode("error", "Not valid scaling for imgScale!")
+            print("ERROR: Not valid scaling for 'imgScale'")
 
         # Generate image
 
