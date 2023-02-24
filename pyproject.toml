@@ -40,6 +40,7 @@ transitleastsquares = "^1.0.31"
 natsort = "^8.2.0"
 llvmlite = "0.39.1"
 astroquery = "^0.4.6"
+numba = "^0.56.4"
 
 [tool.poetry.dev-dependencies]
 
