@@ -28,8 +28,8 @@
  * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start.
  */
 
-DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
-  : Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure), includeFlatfield(true), writeSubPixelImagesToHDF5(false)
+DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, Photometry &photometry, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
+  : Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, photometry, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure), includeFlatfield(true), writeSubPixelImagesToHDF5(false)
 {
     // Parse the parameters from the configuration file.
 
@@ -397,7 +397,7 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
 
     // Clear all arrays
 
-    Log.debug("Detector: resetting subfield array for new exposure.");
+    Log.debug("DetectorWithMappedPSF: resetting subfield array for new exposure.");
     reset();
 
     // Integration of point sources and background, taking into account jitter + drift.
@@ -430,7 +430,7 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
 
     if (includePhotometry)
     {
-        Log.info("Detector: applying photometric extraction to exposure " + to_string(exposureNr));
+        Log.info("DetectorWithMappedPSF: applying photometric extraction to exposure " + to_string(exposureNr));
         applyPhotometry(exposureNr);
     }
 
@@ -448,7 +448,7 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
     }
     // Write the cosmic hits to the HDF5 file
 
-        Log.debug("Detector: Writing Cosmics of the PixelMap, smearing map, bias map #" + to_string(exposureNr) + " to HDF5 file.");
+        Log.debug("DetectorWithMappedPSF: Writing Cosmics of the PixelMap, smearing map, bias map #" + to_string(exposureNr) + " to HDF5 file.");
 
     writeCosmicHitsToHDF5(exposureNr);
 
@@ -1448,3 +1448,69 @@ void DetectorWithMappedPSF::generateThroughputMap()
         throughputMap *= molecularContaminationEfficiency;
     }
 }
+
+
+
+
+
+/**
+ *  \brief Before destroying this object, save all info to the HDF5 file
+ * 
+ */ 
+
+void DetectorWithMappedPSF::flushOutput()
+{
+    // Save the photometry info
+
+    if (includePhotometry)
+    {
+        Log.info("Writing photometry to the HDF5 file");
+
+        hdf5File.createGroup("/Photometry");
+        hdf5File.createGroup("/Photometry/Masks");
+        hdf5File.createGroup("/Photometry/Lightcurves");
+
+        string groupName = "/Photometry/Masks";
+        string arrayName = "exposureNrOfMaskUpdate";
+        int starID = photStarIDs[0];    // Doesn't matter which one we take the update exposure Nrs are the same for all targets.
+        hdf5File.writeArray(groupName, arrayName, exposureNrOfMaskUpdate[starID].data(), exposureNrOfMaskUpdate[starID].size());
+
+        for (auto starID : photStarIDs)
+        {
+            string starName = to_string(starID);
+            groupName = "/Photometry/Lightcurves/starID" + starName;
+            hdf5File.createGroup(groupName);
+
+            arrayName = "inputFlux";
+            hdf5File.writeArray(groupName, arrayName, inputFluxTarget[starID].data(), inputFluxTarget[starID].size());
+
+            arrayName = "estimatedFlux";
+            hdf5File.writeArray(groupName, arrayName, estimatedFluxTarget[starID].data(), estimatedFluxTarget[starID].size());
+
+            groupName = "/Photometry/Masks/starID" + starName;
+            hdf5File.createGroup(groupName);
+
+            arrayName = "maskSize";
+            hdf5File.writeArray(groupName, arrayName, maskSizeTarget[starID].data(), maskSizeTarget[starID].size());
+
+            arrayName = "maskNSR";
+            hdf5File.writeArray(groupName, arrayName, NSRtarget[starID].data(), NSRtarget[starID].size());
+
+            for(auto iter = rowIndexOfMaskOfTarget[starID].begin(); iter != rowIndexOfMaskOfTarget[starID].end(); ++iter)
+            {
+                const unsigned int exposureNumber = iter->first;
+                
+                stringstream myStream;
+                myStream << "Exposure" << setfill('0') << setw(6) << exposureNumber;
+                groupName = "/Photometry/Masks/starID" + starName + "/" + myStream.str();
+                hdf5File.createGroup(groupName);
+
+                arrayName = "maskRowIndices"; 
+                hdf5File.writeArray(groupName, arrayName, rowIndexOfMaskOfTarget[starID][exposureNumber].data(), rowIndexOfMaskOfTarget[starID][exposureNumber].size());
+            
+                arrayName = "maskColumnIndices";
+                hdf5File.writeArray(groupName, arrayName, colIndexOfMaskOfTarget[starID][exposureNumber].data(), colIndexOfMaskOfTarget[starID][exposureNumber].size());
+            }
+        }
+    } // end if includePhotometry
+} // end flushOutput()

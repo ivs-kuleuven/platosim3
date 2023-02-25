@@ -27,8 +27,8 @@
  * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start.
  */
 
-DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
-: Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure), sigma(nullptr)
+DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, Photometry &photometry, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
+  : Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, photometry, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure), sigma(nullptr)
 {
     // Parse the parameters from the configuration file.
 
@@ -57,6 +57,7 @@ DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(Configura
  * Destructor.
  *
  */
+
 DetectorWithAnalyticNonGaussianPSF::~DetectorWithAnalyticNonGaussianPSF()
 {
     flushOutput();
@@ -392,19 +393,19 @@ double DetectorWithAnalyticNonGaussianPSF::takeExposure(int exposureNr, double s
 
     // Clear all arrays
     
-    Log.debug("Detector: resetting subfield array for new exposure.");
+    Log.debug("DetectorWithAnalyticNonGaussianPSF: resetting subfield array for new exposure.");
     reset();
 
     // Integration of point sources and background, taking into account jitter + drift.
 
-    Log.info("Detector: Integrating light for exposure " + to_string(exposureNr) + " with exposure time = " + to_string(exposureTime));
+    Log.info("DetectorWithAnalyticNonGaussianPSF: Integrating light for exposure " + to_string(exposureNr) + " with exposure time = " + to_string(exposureTime));
 
     integrateLight(exposureNr, startTime, exposureTime);
 
     // Include noise effects like readout noise, photon noise, full well saturation, etc.
     // Note: readOut() needs the exposure time to compute the open shutter smearing.
 
-    Log.info("Detector: Adding noise effects to exposure " + to_string(exposureNr));
+    Log.info("DetectorWithAnalyticNonGaussianPSF: Adding noise effects to exposure " + to_string(exposureNr));
 
     if (exposureNr == beginExposureNr) {
       if (includeCTIeffects &&
@@ -420,23 +421,22 @@ double DetectorWithAnalyticNonGaussianPSF::takeExposure(int exposureNr, double s
 
     if (includePhotometry)
     {
-        Log.info("Detector: applying photometric extraction to exposure " + to_string(exposureNr));
+        Log.info("DetectorWithAnalyticNonGaussianPSF: applying photometric extraction to exposure " + to_string(exposureNr));
         applyPhotometry(exposureNr);
     }
 
     // Write the CCD subfield, the bias map, and the smearing map to the HDF5 file
 
-    Log.debug("Detector: Writing PixelMap, smearing map, and bias map #" + to_string(exposureNr) + " to HDF5 file.");
+    Log.debug("DetectorWithAnalyticNonGaussianPSF: Writing PixelMap, smearing map, and bias map #" + to_string(exposureNr) + " to HDF5 file.");
 
     writePixelMapsToHDF5(exposureNr);
 
     // Write the cosmic hits to the HDF5 file
 
-    Log.debug("Detector: Writing cosmics of the PixelMap, smearing map, bias map #" + to_string(exposureNr) + " to HDF5 file.");
+    Log.debug("DetectorWithAnalyticNonGaussianPSF: Writing cosmics of the PixelMap, smearing map, bias map #" + to_string(exposureNr) + " to HDF5 file.");
 
     writeCosmicHitsToHDF5(exposureNr);
     
-
     // Advance the internal clock
 
     internalTime += exposureTime + readoutTimeBeforeNextExposure;

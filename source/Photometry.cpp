@@ -1,7 +1,25 @@
+#include "Photometry.h"
 
 
 
 
+/**
+ * \brief      Constructor
+ *
+ * \param configParam   Configuration parameters for the Camera
+ * \param hdf5file      HFD5 file to write the camera information to
+ * \param telescope     Telescope on which the camera is mounted on
+ * \param sky           Sky object to query which stars we are seeing
+ */
+
+Photometry::Photometry(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera)
+  : HDF5Writer(hdf5file)
+
+
+
+
+
+    
 /**
  * \brief Extract the photometric light curve for a specified list of stars
  *
@@ -49,8 +67,8 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
     
     // Subtract the sky background
 
-    const double skyBackground = camera. getTotalSkyBackground();                // [photons/pixel/exposure]
-    image -= throughputMap * skyBackground;                                      // [e-/pixel/exposure]
+    const double skyBackground = camera.getTotalSkyBackground();  // [photons/pixel/exposure]
+    image -= throughputMap * skyBackground;                       // [e-/pixel/exposure]
 
 
 
@@ -59,7 +77,7 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
 
     // Loop over all targets for which you need a lightcurve
 
-    const int Ntargets = photStarIDs.size();                                     // Nr of stars for which we want a lightcurve
+    const int Ntargets = photStarIDs.size();   // Nr of stars for which we want a lightcurve
     if (Ntargets == 0)
     {
         Log.warning("Detector:applyPhotometry: no stars found for which photometry is requested. Skipping applyPhotometry()."); 
@@ -72,12 +90,12 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
 
         int starID = photStarIDs[n];
 
-        double time;                                                      // Time stamp of the last exposure         [s]
-        double xFPtarget;                                                 // Mean x-coordinate in the focal plane    [mm]
-        double yFPtarget;                                                 // Mean y-coordinate in the focal plane    [mm] 
-        double rowTarget;                                                 // Mean row coordinate in the subfield     [pix] 
-        double colTarget;                                                 // Mean column coordinate in the subfield  [pix]
-        double fluxTarget;                                                // Total flux during the exposure          [photons/exposure]
+        double time;         // Time stamp of the last exposure         [s]
+        double xFPtarget;    // Mean x-coordinate in the focal plane    [mm]
+        double yFPtarget;    // Mean y-coordinate in the focal plane    [mm] 
+        double rowTarget;    // Mean row coordinate in the subfield     [pix] 
+        double colTarget;    // Mean column coordinate in the subfield  [pix]
+        double fluxTarget;   // Total flux during the exposure          [photons/exposure]
     
         tie(time, xFPtarget, yFPtarget, rowTarget, colTarget, fluxTarget) = camera.getInfoForTheMostRecentExposureForStar(starID);
 
