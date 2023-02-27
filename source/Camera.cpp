@@ -636,7 +636,11 @@ void Camera::configure(ConfigurationParameters &configParam)
 
 
     fluxOfV0Star           = configParam.getDouble("ObservingParameters/Fluxm0");                 // [phot/s/m^2/nm]
-    userGivenSkyBackground = configParam.getDouble("Sky/SkyBackground");          // [phot/pix/s]
+    useConstantSkyBackground = configParam.getBoolean("Sky/SkyBackground/UseConstantSkyBackground");
+    if (useConstantSkyBackground)
+    {
+        userGivenSkyBackground = configParam.getDouble("Sky/SkyBackground/BackgroundValue");          // [phot/pix/s]
+    }
 
     writeStarPositions     = configParam.getBoolean("ControlHDF5Content/WriteStarPositions");
     writeGhostPositions    = configParam.getBoolean("ControlHDF5Content/WriteGhostPositions");
@@ -1199,7 +1203,6 @@ void Camera::exposeDetectorWithSkyBackground(Detector &detector, double startTim
     if (userGivenSkyBackground < 0.0)
     {
 
-        createZodiacalMap();
         const double energyOfOnePhoton = Constants::CLIGHT * Constants::HPLANCK / (throughputLambdaC * 1.e-9);                // [J]
         const double lambda1 = (throughputLambdaC - throughputBandwidth/2.0) * 1.e-9;                                         // [m]
         const double lambda2 = (throughputLambdaC + throughputBandwidth/2.0) * 1.e-9;                                         // [m]
@@ -1239,17 +1242,6 @@ void Camera::exposeDetectorWithSkyBackground(Detector &detector, double startTim
 
 
 
-
-
-/**
- * @brief  Create the zodiacal map on the sub
- *
- * @param[in] backgroundMap   Map we fill with values of the zodiacal light.
- */
-void Camera::createZodiacalMap()
-{
-    std::cout << "We do get here" << std::endl;
-}
 
 
 
@@ -1518,7 +1510,11 @@ pair<double, double> Camera::distortedToUndistortedFocalPlaneCoordinates(double 
 
 
 
-
+void Camera::addSkybackgroundAndTransmissionEfficiency(double skyBackground, double transmissionEfficiency)
+{
+    skyBackgroundValues.push_back(skyBackground);
+    transmissionEfficiencyValues.push_back(transmissionEfficiency);
+}
 
 
 
@@ -1561,4 +1557,50 @@ double Camera::getTotalSkyBackground()
 double Camera::getFocalLength()
 {
     return (*focalLength)();
+}
+
+
+
+
+/**
+ * @brief      calculates the flux value of the background at FP coordinates
+ *
+ * @param[in]  xFP  Focal plane x-coordinate [mm]
+ * @param[in]  yFP  Focal plane y-coordinate [mm]
+ *
+ * @return     flux: flux value of the background at xFP, yFP
+ */
+double Camera::getBackgroundFlux(double xFP, double yFP, Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure)
+ {
+     double transmissionEfficiency = telescope.getTransmissionEfficiency(startTime);
+     double flux;
+     double RA, Dec;
+     tie(RA, Dec) = focalPlaneToSkyCoordinates(xFP, yFP, true);
+
+     //double transmissionEfficiency = telescope.getTransmissionEfficiency(startTime);
+     const double energyOfOnePhoton = Constants::CLIGHT * Constants::HPLANCK / (throughputLambdaC * 1.e-9);                // [J]
+     const double lambda1 = (throughputLambdaC - throughputBandwidth/2.0) * 1.e-9;                                         // [m]
+     const double lambda2 = (throughputLambdaC + throughputBandwidth/2.0) * 1.e-9;                                         // [m]
+     const double zodiacalFlux = sky.zodiacalFlux(RA, Dec, lambda1, lambda2)                                   // [phot/exposure]
+                                    * (exposureTime + readoutTimeBeforeNextExposure) * transmissionEfficiency * telescope.getLightCollectingArea()
+                                    * detector.getSolidAngleOfOnePixel(plateScale) / energyOfOnePhoton;
+
+     const double stellarBackgroundFlux = sky.stellarBackgroundFlux(RA, Dec, lambda1, lambda2)                 // [phot/exposure]
+                                             * (exposureTime + readoutTimeBeforeNextExposure) * transmissionEfficiency * telescope.getLightCollectingArea()
+                                             * detector.getSolidAngleOfOnePixel(plateScale) / energyOfOnePhoton;
+
+
+     flux = floor(zodiacalFlux + stellarBackgroundFlux);
+
+     return flux;
+ }
+
+
+
+
+
+
+double Camera::getTransmissionEfficiency(double startTime)
+{
+    return telescope.getTransmissionEfficiency(startTime);
 }

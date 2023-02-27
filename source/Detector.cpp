@@ -184,6 +184,12 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
     smearingMap.zeros(numRowsSmearingMap, numColumnsPixelMap);
     throughputMap.ones(numRowsPixelMap, numColumnsPixelMap);
 
+    if (!constantSkyBackground)
+    {
+        // Initialize the background map
+        backgroundMap.zeros(numRowsPixelMap, numColumnsPixelMap);
+    }
+
     // If we are going to apply open-shutter smearing, we have to know which pixels are within
     // the FOV (relevant only in case of mechanical vignetting).  When mechanical vignetting is
     // disabled, all pixels of the detector are inside the FOV.
@@ -227,8 +233,37 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
     decimalNumCosmicHitsGenerator.seed(cosmicSeed + 6);
 
     decimalNumCosmicHitsDistribution = uniform_real_distribution<double>(0, 1);
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief: Adds the background map to the pixelMap. This function is only used
+ *         is we are dealing with a non-constant background map.
+ *
+ * \param camera: camera object
+ * \param startTime: startTime of current exposure [s]
+ *
+ */
+void Detector::addBackgroundMapToPixelMap(Camera &camera, double startTime)
+{
+    double transmissionEfficiency = camera.getTransmissionEfficiency(startTime);
+    double meanBackground = arma::mean(arma::mean( backgroundMap*transmissionEfficiency));
+
+    pixelMap += backgroundMap*transmissionEfficiency;
+    camera.addSkybackgroundAndTransmissionEfficiency(meanBackground, transmissionEfficiency);
 
 }
+
+
 
 
 
@@ -244,6 +279,8 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 Detector::~Detector()
 {
     writeCTIToHDF5();
+
+    writeBackgroundMapToHDF5();
 
     flushOutput();
 
@@ -489,6 +526,7 @@ void Detector::updateParameters(double time)
     includeFullWellSaturation       = configParam.getBoolean("CCD/IncludeFullWellSaturation");
     includeDigitalSaturation        = configParam.getBoolean("CCD/IncludeDigitalSaturation");
     includeQuantisation             = configParam.getBoolean("CCD/IncludeQuantisation");
+    constantSkyBackground           = configParam.getBoolean("Sky/SkyBackground/UseConstantSkyBackground");
 
     if(includeRelativeTransmissivity)
     {
@@ -554,6 +592,7 @@ void Detector::updateParameters(double time)
     writeThroughputMaps = configParam.getBoolean("ControlHDF5Content/WriteThroughputMaps");
     writeCosmics        = configParam.getBoolean("ControlHDF5Content/WriteCosmics");
     writeCTI            = configParam.getBoolean("ControlHDF5Content/WriteCTI");
+    writeBackgroundMap  = configParam.getBoolean("ControlHDF5Content/WriteVariableBackgroundMap") && !constantSkyBackground;
 
     // Configuration parameters for the noise source random seeds
 
@@ -757,6 +796,10 @@ double Detector::takeExposure(int exposureNr, double startTime, double exposureT
     reset();
 
     // Integration of point sources and background, taking into account jitter + drift.
+    if (!constantSkyBackground && (exposureNr == beginExposureNr))
+    {
+        fillBackgroundMap(camera, startTime, exposureTime);
+    }
 
     Log.info("Detector: Integrating light for exposure " + to_string(exposureNr) + " with exposure time = " + to_string(exposureTime));
 
@@ -3257,6 +3300,11 @@ void Detector::initHDF5Groups()
         hdf5File.createGroup("/Cosmics/BiasMapRight");
     }
 
+    if (writeBackgroundMap)
+    {
+        hdf5File.createGroup("/BackgroundMap");
+    }
+
 }
 
 
@@ -3344,6 +3392,21 @@ void Detector::writeCosmicFieldToHDF5(int exposureNr, string field, vector<unsig
     }
 }
 
+
+
+
+
+/**
+ * \brief: Write the background map to the HDF5 file.
+ */
+void Detector::writeBackgroundMapToHDF5()
+{
+    if (writeBackgroundMap)
+    {
+        string imageName = "backgroundMap";
+        hdf5File.writeArray("/BackgroundMap", imageName, backgroundMap);
+    }
+}
 
 
 
@@ -3577,3 +3640,34 @@ double Detector::getReadoutTimeBeforeNextExposure()
 
 
 
+
+
+/**
+ *
+ * \brief: Initializes the background map. This is done only once.
+ *
+ * \note:  The flux stored in the array does not take transmission efficiency into account.
+ *         To obtain the flux from the stellar background this map should still be
+ *         multiplied by the transmission efficiency. (this is exposure dependent)
+ *
+ */
+void Detector::fillBackgroundMap(Camera &camera, double startTime, double exposureTime)
+{
+    // For each pixel in the background map (same dimensions as as subfield)
+    for (int row=0; row<numRowsPixelMap; row++)
+    {
+        for (int col=0; col<numColumnsPixelMap; col++)
+        {
+            // Convert the pixel coordinates to focal plane coordinates
+            double xFPmm, yFPmm;
+            tie(xFPmm, yFPmm) = pixelToFocalPlaneCoordinates(row, col);
+
+            // TODO: We should undistort the FP coordinates
+            double transmissionEfficiencyBOL = camera.getTransmissionEfficiency(startTime);
+            double flux = camera.getBackgroundFlux(xFPmm, yFPmm, *this, startTime, exposureTime, readoutTimeBeforeNextExposure)/transmissionEfficiencyBOL;
+            backgroundMap(row, col) = flux;
+
+        }
+    }
+
+}

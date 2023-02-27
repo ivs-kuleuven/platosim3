@@ -19,7 +19,9 @@ ObservingParameters:
 
 Sky:
 
-    SkyBackground:                   342.            # Stellar + zodiacal background level (excl. transmission efficiency). Set negative to compute. [phot/pix/s]
+    SkyBackground:
+      UseConstantSkyBackground:      yes             # If true, every pixel sees the same background, otherwise the background gets calculated ones for every pixel.
+      BackgroundValue:               342.            # Stellar + zodiacal background level (excl. transmission efficiency). Set negative to compute. [phot/pix/s]
     IncludeVariableSources:          no              # Include time series of variable stars or not
     VariableSourceList:              inputfiles/varsource.txt  # Ascii file: Col 1: star ID, Col 2: path of time series file
     IncludeCosmicsInSubField:        yes             # Whether or not to include cosmics in the subfield on the CCD
@@ -286,6 +288,7 @@ ControlHDF5Content:
     WriteTelescopeACS:               yes             # Determines if the platform Yaw, Pitch and Roll should be written to the HDF5 file
     WriteTransmissionEfficiency:     yes             # Determines if the Transmission Efficiency should be writen to the HDF5 file
     WriteCTI:                        yes             # Write trap density maps at BOL and EOL for each species
+    WriteVariableBackgroundMap:      yes             # Write the background map to HDF5 file. This is only done if we don't use a constant sky background.
 
 ControlTcpConnection:
 
