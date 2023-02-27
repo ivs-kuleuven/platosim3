@@ -192,6 +192,7 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     // Write the input parameters to the output HDF5 file
 
     writeInputParametersToHDF5(configParams);
+
 }
 
 

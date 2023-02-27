@@ -31,6 +31,7 @@ Camera::Camera(ConfigurationParameters &configParam, HDF5File &hdf5file, Platfor
 
     initHDF5Groups();
 
+
     // Get the equatorial sky coordinates of the Sun, which is know by platform since it's pointing its sunshield towards it.
 
     tie(raSun, decSun) = platform.getRADecSun();
