@@ -20,7 +20,9 @@
  */
 
 Camera::Camera(ConfigurationParameters &configParam, HDF5File &hdf5file, Platform &platform, Telescope &telescope, Sky &sky)
-  : HDF5Writer(hdf5file), platform(platform), telescope(telescope), sky(sky), focalLength(nullptr), focalPlaneAngle(nullptr), distortionCoef(nullptr), inverseDistortionCoef(nullptr), internalTime(0.0), includeFieldDistortion(true), userGivenSkyBackground(-1.0), fluxOfV0Star(0.0)
+  : HDF5Writer(hdf5file), platform(platform), telescope(telescope), sky(sky), focalLength(nullptr), focalPlaneAngle(nullptr), 
+    distortionCoef(nullptr), inverseDistortionCoef(nullptr), internalTime(0.0), includeFieldDistortion(true), userGivenSkyBackground(-1.0), 
+    fluxOfV0Star(0.0)
 {
 
     // Parse the parameters from the configuration file.

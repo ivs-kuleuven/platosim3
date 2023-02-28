@@ -1,5 +1,6 @@
 
 #include "Platform.h"
+#include "Units.h"
 
 
 
@@ -71,11 +72,16 @@ void Platform::configure(ConfigurationParameters &configParams)
         originalRA  = deg2rad(configParams.getDouble("Platform/Orientation/Angles/RAPointing"));            
         originalDec = deg2rad(configParams.getDouble("Platform/Orientation/Angles/DecPointing"));
         originalKappa = deg2rad(configParams.getDouble("Platform/Orientation/Angles/SolarPanelOrientation"));
+        currentRA   = originalRA;
+        currentDec  = originalDec;
+        Log.debug("Platform: (RA, Dec, Kappa) = (" + to_string(rad2deg(originalRA)) + " deg, " + to_string(rad2deg(originalDec)) + " deg, " + to_string(rad2deg(originalKappa)) + " deg)");
     }
     else if (platformOrientationSource == "Quaternion") {
         Log.info("Platform: using the Platform/Orientation/Quaternion to determine the initial platform orientation");
         vector<double> quaternion = configParams.getDoubleVector("Platform/Orientation/Quaternion/Components");
         copy(quaternion.begin(), quaternion.end(), originalQuaternion.begin());
+        currentRA = 123456;
+        currentDec = 123456;
     }
     else {
         Log.error("In input yaml file: unsupported Platform/Orientation/Source value. Only Angles or Quaternion are allowed");
@@ -83,8 +89,6 @@ void Platform::configure(ConfigurationParameters &configParams)
 
     writeACS    = configParams.getBoolean("ControlHDF5Content/WriteACS");
          
-    currentRA   = originalRA;
-    currentDec  = originalDec;
 }
 
 

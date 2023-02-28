@@ -249,7 +249,7 @@ void Telescope::updateTelescopeOrientation(double time)
         if (time == historyTime.back())
         {
             Log.debug("Telescope: updateTelescopeOrientation: coordinates up-to-date for requested time " + to_string(time));
-            Log.info("Telescope: At time " + to_string(time) + ": (RA, dec) = (" 
+            Log.debug("Telescope: At time " + to_string(time) + ": (RA, dec) = (" 
                                            + to_string(rad2deg(currentAlphaOpticalAxis)) + ", " 
                                            + to_string(rad2deg(currentDeltaOpticalAxis)) + ")");
             return;
@@ -263,6 +263,7 @@ void Telescope::updateTelescopeOrientation(double time)
 
     // Get the rotation matrix to transform the spacecraft coordinates of the (drifted) optical axis 
     // to equatorial coordinates, taking into account that the platform itself may have jittered meanwhile.
+
     platform.updatePlatformOrientation(time);
     arma::mat rotSC2EQ = platform.getJitteredSpacecraftToEquatorialRotationMatrix();
 
@@ -281,7 +282,7 @@ void Telescope::updateTelescopeOrientation(double time)
 
         tie(yaw, pitch, roll) = driftGenerator.getNextYawPitchRoll(time);
 
-        Log.debug("Telescope: At time " + to_string(time) + ": (yaw, pitch, roll) = (" 
+        Log.debug("Telescope: updateTelescopeOrientation(): At time " + to_string(time) + ": (yaw, pitch, roll) = (" 
                                         + to_string(rad2deg(yaw)*3600.) + ", " 
                                         + to_string(rad2deg(pitch)*3600.) + ", " 
                                         + to_string(rad2deg(roll)*3600.) + ") arcsec");
@@ -304,7 +305,7 @@ void Telescope::updateTelescopeOrientation(double time)
     }
     else
     {
-        Log.info("Telescope: No drift, telescope (yaw, pitch, roll) = (0.0, 0.0, 0.0)");
+        Log.info("Telescope: updateTelescopeOrientation(): No drift, telescope (yaw, pitch, roll) = (0.0, 0.0, 0.0)");
         yaw = 0.0;
         pitch = 0.0;
         roll = 0.0;
@@ -332,7 +333,7 @@ void Telescope::updateTelescopeOrientation(double time)
     if (currentAlphaOpticalAxis < 0.0) currentAlphaOpticalAxis += 2 * PI; 
 
 
-    Log.debug("Telescope: At time " + to_string(time) + ": (RA, dec) = (" 
+    Log.debug("Telescope: updateTelescopeOrientation(): at time " + to_string(time) + ": (RA, dec) = (" 
                                    + to_string(rad2deg(currentAlphaOpticalAxis)) + ", " 
                                    + to_string(rad2deg(currentDeltaOpticalAxis)) + ")");
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import sys
 import h5py
 import math
 import os
@@ -10,6 +11,15 @@ import matplotlib.pyplot as plt
 from numpy import *
 from numpy.polynomial import Polynomial
 from numpy.linalg import norm
+
+
+def eprint(*args, **kwargs):
+    """ 
+    print to stderr rather than to stdout. Useful to debug since all tests are ran with stdout suppressed. 
+    """
+    print(*args, file=sys.stderr, **kwargs)
+
+
 
 
 # CCD configuration
@@ -314,10 +324,10 @@ def platformToSkyCoordinates(xPLM, yPLM, zPLM, raPlatform, decPlatform, solarPan
 
     rotEQ2A = np.array([[ np.cos(raPlatform), np.sin(raPlatform), 0.0],
                         [-np.sin(raPlatform), np.cos(raPlatform), 0.0],
-                        [     0.0       ,       0.0     , 1.0]])
+                        [     0.0       ,           0.0,          1.0]])
 
     rotA2B = np.array([[ np.sin(decPlatform), 0.0, -np.cos(decPlatform)],
-                       [      0.0       , 1.0,         0.0     ],
+                       [      0.0,            1.0,         0.0         ],
                        [ np.cos(decPlatform), 0.0,  np.sin(decPlatform)]])
 
     rotB2SC = np.array([[ np.cos(solarPanelOrientation), np.sin(solarPanelOrientation), 0.0],
@@ -461,8 +471,7 @@ def skyToFocalPlaneCoordinates(raStar, decStar, raPlatform, decPlatform, solarPa
 
 
 
-def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, solarPanelOrientation,
-                               tiltAngle, azimuthAngle, focalPlaneAngle, focalLength):
+def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, solarPanelOrientation, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength):
 
     """From focal plane to equatorial reference system.
 
@@ -526,21 +535,21 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, solarPanelOrie
                         [     0         , 1,        0      ],
                         [-sin(tiltAngle), 0, cos(tiltAngle)]])
 
-    rotCAM2PLM = np.dot(rotAzimuth.T, np.dot(rotTilt.T, rotAzimuth))
+    rotPLM2CAM = np.dot(rotAzimuth.T, np.dot(rotTilt, rotAzimuth))
+    rotCAM2PLM = rotPLM2CAM.T
 
     # Compute the equatorial cartesian coordinates of the unit vector along
     # the z-axis (= roll = pointing axis) of the platform.
-    # The x-axis of the platform points to the highest point fof the sunshield,
-    # which is pointing to the (average) sky position of the Sun.
+    # The x-axis of the platform points to the highest point fof the sunshield.
 
     # Compute the equatorial cartesian coordinates of the unit vector along the z-axis (= roll = pointing axis) of the platform.
 
     rotEQ2A = np.array([[ np.cos(raPlatform), np.sin(raPlatform), 0.0],
                         [-np.sin(raPlatform), np.cos(raPlatform), 0.0],
-                        [     0.0       ,       0.0     , 1.0]])
+                        [     0.0,              0.0,              1.0]])
 
     rotA2B = np.array([[ np.sin(decPlatform), 0.0, -np.cos(decPlatform)],
-                       [      0.0       , 1.0,        0.0      ],
+                       [      0.0,            1.0,        0.0          ],
                        [ np.cos(decPlatform), 0.0,  np.sin(decPlatform)]])
     
     rotB2PLM = np.array([[ np.cos(solarPanelOrientation), np.sin(solarPanelOrientation), 0.0],
@@ -1484,8 +1493,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
 
 
 
-def platformToTelescopePointingCoordinates(raPlatform, decPlatform, raSun, decSun,
-                                           azimuthAngle, tiltAngle):
+def platformToTelescopePointingCoordinates(raPlatform, decPlatform, solarPanelOrientation, azimuthAngle, tiltAngle):
 
     """From platform to camera pointing coordinates.
 
@@ -1499,10 +1507,8 @@ def platformToTelescopePointingCoordinates(raPlatform, decPlatform, raSun, decSu
         Right ascension of the pointing of the Platform [rad]
     decPlatform : float 
         Declination of the pointing of the Platform [rad]
-    raSun : float
-        Right ascension of the Sun (shield) at the given time [rad]
-    decSun : float
-        Declination of the Sun (shield) at the given time [rad]
+    solarPanelOrientation: float 
+        Roll angle of the platform (payload module, kappa) [rad]
     azimuthAngle : float
         Azimuth angle of the camera on the platform [rad]
     tiltAngle : float
@@ -1527,12 +1533,11 @@ def platformToTelescopePointingCoordinates(raPlatform, decPlatform, raSun, decSu
                         [     0         , 1,        0      ], \
                         [-sin(tiltAngle), 0, cos(tiltAngle)]])
 
-    rotTL2SC = np.dot(rotAzimuth.T, np.dot(rotTilt.T, rotAzimuth))
+    rotCAM2PLM = np.dot(rotAzimuth.T, np.dot(rotTilt.T, rotAzimuth))
 
     # Compute the equatorial cartesian coordinates of the unit vector
     # along the z-axis (= roll = pointing axis) of the platform.
-    # The x-axis of the platform points to the highest point fof the sunshield,
-    # which is pointing to the (average) sky position of the Sun.
+    # The x-axis of the platform points to the highest point fof the sunshield.
 
     # Compute the equatorial cartesian coordinates of the unit vector along the z-axis (= roll = pointing axis) of the platform.
 
@@ -1544,12 +1549,12 @@ def platformToTelescopePointingCoordinates(raPlatform, decPlatform, raSun, decSu
                        [      0.0       , 1.0,        0.0      ],
                        [ np.cos(decPlatform), 0.0,  np.sin(decPlatform)]])
     
-    rotB2SC = np.array([[ np.cos(solarPanelOrientation), np.sin(solarPanelOrientation), 0.0],
-                        [-np.sin(solarPanelOrientation), np.cos(solarPanelOrientation), 0.0],
-                        [          0.0                 ,              0.0             , 1.0]])
+    rotB2PLM = np.array([[ np.cos(solarPanelOrientation), np.sin(solarPanelOrientation), 0.0],
+                         [-np.sin(solarPanelOrientation), np.cos(solarPanelOrientation), 0.0],
+                         [          0.0                 ,              0.0             , 1.0]])
 
-    rotEQ2SC = rotB2SC @ rotA2B @ rotEQ2A
-    rotSC2EQ = rotEQ2SC.T
+    rotEQ2PLM = rotB2PLM @ rotA2B @ rotEQ2A
+    rotPLM2EQ = rotEQ2PLM.T
 
     # Combine all the rotation matrices
 
@@ -1939,30 +1944,28 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpix, yCCDpix):
 
     # Get the focal plane coordinates
 
-    xFPmm, yFPmm = pixelToFocalPlaneCoordinates(xCCDpix, yCCDpix, pixelSize,
-                                                ccdZeroPointX, ccdZeroPointY, ccdAngle)
+    xFPmm, yFPmm = pixelToFocalPlaneCoordinates(xCCDpix, yCCDpix, pixelSize, ccdZeroPointX, ccdZeroPointY, ccdAngle)
 
     # If required, undistort them
 
     if includeFieldDistortion:
         if mappedDistortion:
-            xFPmm, yFPmm = mappedDistortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm,
-                                                                             pathToPsfFile)
+            xFPmm, yFPmm = mappedDistortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile)
         else:
-            xFPmm, yFPmm = distortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm,
-                                                                       inverseDistortionCoefficients,
-                                                                       focalLength)
+            xFPmm, yFPmm = distortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, inverseDistortionCoefficients, focalLength)
 
     # Get the corresponding sky coordinates
 
-    ra, dec = focalPlaneToSkyCoordinates(xFPmm, yFPmm,
-                                         raPlatform, decPlatform, solarPanelOrientation,
-                                         tiltTelescope, azimuthTelescope,
+    ra, dec = focalPlaneToSkyCoordinates(xFPmm, yFPmm, raPlatform, decPlatform, solarPanelOrientation, tiltTelescope, azimuthTelescope,
                                          focalPlaneAngle, focalLength)
 
     # That's it!
     
     return ra, dec
+
+
+
+
 
 
 

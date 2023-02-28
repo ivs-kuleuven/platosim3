@@ -95,16 +95,22 @@ class AbsoluteAberration(Test):
         beta = np.arcsin(self.velocity[2])
         ra, dec = np.rad2deg(rf.ecliptic2equatorial(lamb, beta))
 
+        ccdCode = "1"
         self.sim["Platform/Orientation/Source"] = "Angles"
         self.sim["Platform/Orientation/Angles/RAPointing"] = ra
         self.sim["Platform/Orientation/Angles/DecPointing"] = dec
-        self.sim["CCD/Position"] = "1"
+        self.sim["CCD/Position"] = ccdCode
+
+        xCCDpix, yCCDpix = 4510/2, 4510/2
+        RAcenterOfSubfield, DecCenterOfSubfield = rf.pixelToSkyCoordinates(self.sim, ccdCode, xCCDpix, yCCDpix)
+        RAcenterOfSubfield = np.rad2deg(RAcenterOfSubfield)
+        DecCenterOfSubfield = np.rad2deg(DecCenterOfSubfield)
 
         # Set the star catalog
         starFileName = self.outputDir + "/starCatalog" + self.nr + ".txt"
         myFile = open(starFileName, "w")
         myFile.write("# RA DEC Vmag starID\n")
-        myFile.write("{0}  {1}  {2}  {3}\n".format(ra, dec, 16.5, 1))
+        myFile.write("{0}  {1}  {2}  {3}\n".format(RAcenterOfSubfield, DecCenterOfSubfield, 16.5, 1))
         myFile.close()
 
         # Run the simulation with aberration
@@ -136,15 +142,22 @@ class AbsoluteAberration(Test):
 
         ra, dec = np.rad2deg(rf.ecliptic2equatorial(lamb, beta))
         
+        ccdCode = "1"
+        self.sim["Platform/Orientation/Source"] = "Angles"
         self.sim["ObservingParameters/RApointing"] = ra
         self.sim["ObservingParameters/DecPointing"] = dec
-        self.sim["CCD/Position"] = "1"
+        self.sim["CCD/Position"] = ccdCode
+
+        xCCDpix, yCCDpix = 4510/2, 4510/2
+        RAcenterOfSubfield, DecCenterOfSubfield = rf.pixelToSkyCoordinates(self.sim, ccdCode, xCCDpix, yCCDpix)
+        RAcenterOfSubfield = np.rad2deg(RAcenterOfSubfield)
+        DecCenterOfSubfield = np.rad2deg(DecCenterOfSubfield)
 
         # Set the star catalog
         starFileName = self.outputDir + "/starCatalog" + self.nr + ".txt"
         myFile = open(starFileName, "w")
         myFile.write("# RA DEC Vmag starID\n")
-        myFile.write("{0}  {1}  {2}  {3}\n".format(ra, dec, 16.5, 1))
+        myFile.write("{0}  {1}  {2}  {3}\n".format(RAcenterOfSubfield, DecCenterOfSubfield, 16.5, 1))
         myFile.close()
 
         # Run the simulation with aberration
