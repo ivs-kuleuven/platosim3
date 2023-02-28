@@ -3404,7 +3404,8 @@ void Detector::writeBackgroundMapToHDF5()
     if (writeBackgroundMap)
     {
         string imageName = "backgroundMap";
-        hdf5File.writeArray("/BackgroundMap", imageName, backgroundMap);
+        arma::Mat<float> backgroundMapBOS = backgroundMap*transmissionEfficiencyBOS;
+        hdf5File.writeArray("/BackgroundMap", imageName, backgroundMapBOS);
     }
 }
 
@@ -3663,8 +3664,8 @@ void Detector::fillBackgroundMap(Camera &camera, double startTime, double exposu
             tie(xFPmm, yFPmm) = pixelToFocalPlaneCoordinates(row, col);
 
             // TODO: We should undistort the FP coordinates
-            double transmissionEfficiencyBOL = camera.getTransmissionEfficiency(startTime);
-            double flux = camera.getBackgroundFlux(xFPmm, yFPmm, *this, startTime, exposureTime, readoutTimeBeforeNextExposure)/transmissionEfficiencyBOL;
+            transmissionEfficiencyBOS = camera.getTransmissionEfficiency(startTime);
+            double flux = camera.getBackgroundFlux(xFPmm, yFPmm, *this, startTime, exposureTime, readoutTimeBeforeNextExposure)/transmissionEfficiencyBOS;
             backgroundMap(row, col) = flux;
 
         }

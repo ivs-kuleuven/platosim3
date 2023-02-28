@@ -313,6 +313,7 @@ class Detector: public HDF5Writer
         bool includeFullWellSaturation;          // Whether or not full well saturation should be applied
         bool includeDigitalSaturation;           // Whether or not digital saturation should be applied
         bool includeQuantisation;                // Whether or not to include quantisation
+        double transmissionEfficiencyBOS;        // Transmission efficiency at the begining of the simulation.
 
         int beginExposureNr;                     // Sequential number of the very first exposure. See yaml input file.
         int finalExposureNr;                     // Sequential number of the very last exposure: beginExposureNr + numExposures
