@@ -45,6 +45,11 @@ DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configPara
 
     subPixelMap.zeros(numRowsSubPixelMap, numColumnsSubPixelMap);
     flatfieldMap.ones(numRowsSubPixelMap, numColumnsSubPixelMap);
+    if (!constantSkyBackground)
+    {
+        // Initialize the subpixel background map
+        subPixelBackgroundMap.zeros(numRowsSubPixelMap, numColumnsSubPixelMap);
+    }
 
     if (includeFlatfield)
     {
@@ -452,6 +457,12 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
 
     reset();
 
+
+    if (!constantSkyBackground && (exposureNr == beginExposureNr))
+    {
+        fillBackgroundSubpixelMap(camera, startTime, exposureTime);
+    }
+
     // Integration (incl. jitter): point sources
 
     camera.exposeDetectorWithStars(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
@@ -461,8 +472,14 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
     convolveWithPsf();
 
     // Integration: background
-
-    camera.exposeDetectorWithSkyBackground(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
+    if (constantSkyBackground)
+    {
+        camera.exposeDetectorWithSkyBackground(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
+    }
+    else
+    {
+        addBackgroundMapToSubpixelMap(camera, startTime);
+    }
 
     // Apply flatfield (at sub-pixel level)
 
@@ -1310,6 +1327,7 @@ void DetectorWithMappedPSF::generateThroughputMap()
         {
             for (unsigned int column = 0; column < numColumnsPixelMap; column++)
             {
+
                 // Distorted pixel coordinates (in the detector) -> distorted focal-plane coordinates
 
                 tie(xFPmmDistorted, yFPmmDistorted) = pixelToFocalPlaneCoordinates(row + subFieldZeroPointRow, column + subFieldZeroPointColumn);
@@ -1378,4 +1396,61 @@ void DetectorWithMappedPSF::generateThroughputMap()
     {
         throughputMap *= molecularContaminationEfficiency;
     }
+}
+
+
+
+
+/**
+ * \brief: Fill the background subpixel map.
+ *
+ * \details: In order to save computotational time the background subpixel map is
+ *           generated from the background pixel map (generate at pixel level).
+ *
+ */
+void DetectorWithMappedPSF::fillBackgroundSubpixelMap(Camera &camera, double startTime, double exposureTime)
+{
+    // Fil background map
+    fillBackgroundMap(camera, startTime, exposureTime);
+
+    // convert background map to background subpixel map
+    for (int row=0; row < numRowsPixelMap; row++)
+    {
+        for (int col=0; col < numColumnsPixelMap; col++)
+        {
+            for (int i=0; i<numSubPixelsPerPixel; i++)
+            {
+                for (int j=0; j<numSubPixelsPerPixel; j++)
+                {
+                    int subPixelRow = row*numSubPixelsPerPixel+i;
+                    int subPixelCol = col*numSubPixelsPerPixel+j;
+                    subPixelBackgroundMap(subPixelRow, subPixelCol) = backgroundMap(row, col) / numSubPixelsPerPixel;
+                }
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+/**
+ *
+ * \brief: Adds the subpixel background map to the subpixel map. This function is
+ *         only used when we are dealing with a non-constant background map.
+ *
+ * \param camera: camera object
+ * \param startTime: start time of current exposure ]s\
+ *
+ */
+void DetectorWithMappedPSF::addBackgroundMapToSubpixelMap(Camera &camera, double startTime)
+{
+    double transmissionEfficiency = camera.getTransmissionEfficiency(startTime);
+    double meanBackground = arma::mean(arma::mean( backgroundMap*transmissionEfficiency));
+
+    subPixelMap += subPixelBackgroundMap*transmissionEfficiency;
+    camera.addSkybackgroundAndTransmissionEfficiency(meanBackground, transmissionEfficiency);
 }
