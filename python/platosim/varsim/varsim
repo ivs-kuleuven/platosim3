@@ -35,10 +35,8 @@ from astropy import units as u
 from ldtk import LDPSetCreator, TabulatedFilter
 import batman
 
-# PlatoSim3
+# PlatoSim
 from platosim.utilities import errorcode
-
-# PLATOnium
 import platosim.plot as pt
 import platosim.varsim.utilities as ut
 import platosim.varsim.mr_forecast as mr

@@ -608,13 +608,13 @@ void Simulation::writeStarCatalogToHDF5()
             k++;
         }
         hdf5File->writeArray("StarCatalog/", "starIDs", starIDs.data(), starIDs.size());
-        hdf5File->writeArray("StarCatalog/", "RA",      RA.data(), RA.size());
-        hdf5File->writeArray("StarCatalog/", "Dec",     dec.data(), dec.size());
-        hdf5File->writeArray("StarCatalog/", "Vmag",    Vmag.data(), Vmag.size());
-        hdf5File->writeArray("StarCatalog/", "xFPmm",    xFPmm.data(), xFPmm.size());
-        hdf5File->writeArray("StarCatalog/", "yFPmm",    yFPmm.data(), yFPmm.size());
-        hdf5File->writeArray("StarCatalog/", "colPix",    colPix.data(), colPix.size());
-        hdf5File->writeArray("StarCatalog/", "rowPix",    rowPix.data(), rowPix.size());
+        hdf5File->writeArray("StarCatalog/", "RA",      RA.data(),      RA.size());
+        hdf5File->writeArray("StarCatalog/", "Dec",     dec.data(),     dec.size());
+        hdf5File->writeArray("StarCatalog/", "Vmag",    Vmag.data(),    Vmag.size());
+        hdf5File->writeArray("StarCatalog/", "xFPmm",   xFPmm.data(),   xFPmm.size());
+        hdf5File->writeArray("StarCatalog/", "yFPmm",   yFPmm.data(),   yFPmm.size());
+        hdf5File->writeArray("StarCatalog/", "colPix",  colPix.data(),  colPix.size());
+        hdf5File->writeArray("StarCatalog/", "rowPix",  rowPix.data(),  rowPix.size());
     }
     else
     {

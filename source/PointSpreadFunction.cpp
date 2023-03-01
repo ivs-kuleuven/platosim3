@@ -277,7 +277,7 @@ void PointSpreadFunction::rotate(double angle)
         // Write the psfMap of the rotated PSF to the HDF5 output file
 	if (writeHighResolutionPSF)
 	{
-        hdf5File.writeArray("/PSF", "rotatedPSF", psfMap);
+        hdf5File.writeArray("/PSF", "highResPSF", psfMap);
         hdf5File.writeAttribute("/PSF", "rotationAngle", rotationAngle);
 	}
     }
