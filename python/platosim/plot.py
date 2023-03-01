@@ -17,7 +17,7 @@ from scipy import constants as c
 from scipy.ndimage import median_filter
 from scipy.interpolate import make_interp_spline
 
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, Angle
 import astropy.units as u
 
 from tqdm import tqdm
@@ -1196,7 +1196,7 @@ def skyProjection(fig, longitude, latitude, origin=0, projection="mollweide"):
 
 
 def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="icrs",
-                 showGroups=False, skymap=None, title=None, fs=20):
+                 showGroups=False, skymap=None, title=None, fs=20, figsize=(9,9)):
 
     """Plot a PLATO pointing field in the sky.
 
@@ -1254,25 +1254,32 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
     starPF18 = SkyCoord(PF18[:,0]*u.deg, PF18[:,1]*u.deg, frame=system, unit='deg')
     starPF24 = SkyCoord(PF24[:,0]*u.deg, PF24[:,1]*u.deg, frame=system, unit='deg')
     
+    if system == "icrs":
+        xStar06, yStar06 = starPF06.ra.deg, starPF06.dec.deg
+        xStar12, yStar12 = starPF12.ra.deg, starPF12.dec.deg
+        xStar18, yStar18 = starPF18.ra.deg, starPF18.dec.deg
+        xStar24, yStar24 = starPF24.ra.deg, starPF24.dec.deg
+    elif system == "galactic":
+        xStar06, yStar06 = starPF06.l.deg, starPF06.b.deg
+        xStar12, yStar12 = starPF12.l.deg, starPF12.b.deg
+        xStar18, yStar18 = starPF18.l.deg, starPF18.b.deg
+        xStar24, yStar24 = starPF24.l.deg, starPF24.b.deg
+    
     # Load brightest stars
 
     starPF = SkyCoord(raStars*u.deg, decStars*u.deg, frame=system, unit='deg')
     
     # START PLOT
     
-    fig = plt.figure(figsize=(9,9))
-    ax = plt.axes(projection='astro zoom', center=PF_icrs, radius='30 deg', rotate='180 deg')
+    fig = plt.figure(figsize=figsize)
+    ax = plt.axes(projection='astro zoom', center=PF, radius='30 deg', rotate='180 deg')
 
     # Plot PIC1.1.0 stars after N-CAM visibility
 
-    ax.plot(starPF06.ra.deg, starPF06.dec.deg, '.', c='skyblue',
-            transform=ax.get_transform(system), markersize=1, zorder=1)
-    ax.plot(starPF12.ra.deg, starPF12.dec.deg, '.', c='deepskyblue',
-            transform=ax.get_transform(system), markersize=1, zorder=2)
-    ax.plot(starPF18.ra.deg, starPF18.dec.deg, '.', c='dodgerblue',
-            transform=ax.get_transform(system), markersize=1, zorder=3)
-    ax.plot(starPF24.ra.deg, starPF24.dec.deg, '.', c='royalblue',
-            transform=ax.get_transform(system), markersize=1, zorder=4)
+    ax.plot(xStar06, yStar06, '.', c='skyblue',     transform=ax.get_transform(system), ms=1, zorder=1)
+    ax.plot(xStar12, yStar12, '.', c='deepskyblue', transform=ax.get_transform(system), ms=1, zorder=2)
+    ax.plot(xStar18, yStar18, '.', c='dodgerblue',  transform=ax.get_transform(system), ms=1, zorder=3)
+    ax.plot(xStar24, yStar24, '.', c='royalblue',   transform=ax.get_transform(system), ms=1, zorder=4)
 
     # Plot stars and add legend scaled to the stellar magnitudes
     
@@ -1282,16 +1289,19 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
         mag_range = np.arange(min(magStars), max(magStars)).astype(int)
         dm_range  = (max(magStars) - mag_range) * maxMarkerSize/10
         mark, color = 'o', 'gold'
-        handle = [plt.plot([],[], "o", c='gray', ms=dm_range[i], ls="")[0] for i in range(len(dm_range))]
-        ax.legend(handles=handle, labels=mag_range.tolist(), loc='upper right', title=r"P [mag]", fontsize=16, title_fontsize=16)
+        handle = [plt.plot([],[], "o", c='gray', ms=dm_range[i], ls="")[0]
+                  for i in range(len(dm_range))]
+        ax.legend(handles=handle, labels=mag_range.tolist(), loc='upper right',
+                  title=r"P [mag]", fontsize=16, title_fontsize=16)
     else:
         dm, mark, color = 20, '*', 'none'
 
     # Plot all stars
     
-    scatter = ax.scatter(starPF.ra.deg, starPF.dec.deg, transform=ax.get_transform('world'), 
-                         s=dm, marker=mark, c=color, ec='k', lw=1, zorder=5)
+    # scatter = ax.scatter(starPF.ra.deg, starPF.dec.deg, transform=ax.get_transform('world'), 
+    #                      s=dm, marker=mark, c=color, ec='k', lw=1, zorder=5)
 
+    
     # Plot pointing of each camera group
     
     if showGroups:
@@ -1305,12 +1315,20 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
         
         ax.plot(PF_icrs.ra.deg, PF_icrs.dec.deg, '*', c='k', mfc='magenta', ms=25,
                 transform=ax.get_transform('world'), zorder=6)
-
+    
         # Plot F-CAM FOV as cicle
-        #fcam = patches.Circle((PF_icrs.ra.deg, PF_icrs.dec.deg), 12.2, fc='none', lw=2,
-        #                      transform=ax.get_transform('galactic'), ec='m', zorder=2)
-        #ax.add_patch(fcam)
-        #ax.plot(277.18, 52.85, '*', transform=ax.get_transform('world'), ms=20, c='k', mfc='b', zorder=7)
+        # ax.plot(PF_icrs.ra.deg, PF_icrs.dec.deg,  marker='.',
+        #         linestyle='solid', mfc='none', mec='magenta', ms=700, lw=3,
+        #         transform=ax.get_transform(system), zorder=6)
+        ax.scatter(PF_icrs.ra.deg, PF_icrs.dec.deg, s=115000, marker='o',
+                   edgecolor='magenta', facecolor='none', linewidth=2,
+                   transform=ax.get_transform(system), zorder=6)
+        # The problem with projecting shapes due to missing cos factor
+        # https://nbviewer.org/gist/cdeil/1df42de70326d577e7964be15b2a7396
+        # https://github.com/astropy/regions/issues/76
+        # circle = patches.Circle((PF_icrs.ra.deg, PF_icrs.dec.deg), 18, fc='none', lw=2,
+        #                         transform=ax.get_transform('icrs'), ec='magenta', zorder=7)
+        #ax.add_patch()
 
     # Add-on's
     
@@ -1332,6 +1350,135 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
     
     return fig
 
+
+
+
+
+
+def plot_test(pointingField, raStars=0, decStars=0, magStars=None, system="icrs",
+                 showGroups=False, skymap=None, title=None, fs=20, figsize=(9,9)):
+    import numpy as np
+    from matplotlib.patches import Circle
+    from astropy.coordinates import SkyCoord
+    import matplotlib.pyplot as plt
+    from astropy.wcs import WCS
+
+    indir = os.getenv('PLATO_PROJECT_HOME') + '/python/platosim/picsim/'
+
+    # Select field
+    
+    if pointingField == 'NPF': PF_gal = [65.0, 30.0]
+    if pointingField == 'SPF': PF_gal = [253.0, -30.0]
+    PF = SkyCoord(PF_gal[0], PF_gal[1], frame='galactic', unit='deg')  # [deg]
+
+    if system == 'icrs':
+        PF = PF.icrs  # [deg]
+        x = PF.ra.deg
+        y = PF.dec.deg
+        z = -8.5
+        xstring = 'RA---AIT'
+        ystring = 'DEC--AIT'
+    elif system == 'galactic':
+        x = PF.l.deg
+        y = PF.b.deg
+        xstring = 'LAT'
+        ystring = 'LON'
+
+    print(x, y)
+
+
+    wcs_spec =  {'CDELT1': -3.5,
+                 'CDELT2': 3.5,
+                 'CRPIX1': 8.5,
+                 'CRPIX2': 8.5,
+                 'CRVAL1': x,
+                 'CRVAL2': y,
+                 'CTYPE1': xstring,
+                 'CTYPE2': ystring,
+                 'CUNIT1': 'deg',
+                 'CUNIT2': 'deg'}
+
+    wcs = WCS(wcs_spec)
+
+    # Load PIC stars for each N-CAM visibility
+
+    PF06 = np.load(indir + f'{pointingField}-NCAM06.npy')
+    PF12 = np.load(indir + f'{pointingField}-NCAM12.npy')
+    PF18 = np.load(indir + f'{pointingField}-NCAM18.npy')
+    PF24 = np.load(indir + f'{pointingField}-NCAM24.npy')
+
+    starPF06 = SkyCoord(PF06[:,0]*u.deg, PF06[:,1]*u.deg, frame=system, unit='deg')
+    starPF12 = SkyCoord(PF12[:,0]*u.deg, PF12[:,1]*u.deg, frame=system, unit='deg')
+    starPF18 = SkyCoord(PF18[:,0]*u.deg, PF18[:,1]*u.deg, frame=system, unit='deg')
+    starPF24 = SkyCoord(PF24[:,0]*u.deg, PF24[:,1]*u.deg, frame=system, unit='deg')
+
+    if system == "icrs":
+        xStar06, yStar06 = starPF06.ra.deg, starPF06.dec.deg
+        xStar12, yStar12 = starPF12.ra.deg, starPF12.dec.deg
+        xStar18, yStar18 = starPF18.ra.deg, starPF18.dec.deg
+        xStar24, yStar24 = starPF24.ra.deg, starPF24.dec.deg
+    elif system == "galactic":
+        xStar06, yStar06 = starPF06.l.deg, starPF06.b.deg
+        xStar12, yStar12 = starPF12.l.deg, starPF12.b.deg
+        xStar18, yStar18 = starPF18.l.deg, starPF18.b.deg
+        xStar24, yStar24 = starPF24.l.deg, starPF24.b.deg
+    
+    # Start plotting
+    
+    fig = plt.figure(figsize=figsize)
+    ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], projection=wcs)
+
+    # Plot PIC1.1.0 stars after N-CAM visibility
+
+    ax.plot(xStar06, yStar06, '.', c='skyblue',     transform=ax.get_transform(system), ms=1, zorder=1)
+    ax.plot(xStar12, yStar12, '.', c='deepskyblue', transform=ax.get_transform(system), ms=1, zorder=2)
+    ax.plot(xStar18, yStar18, '.', c='dodgerblue',  transform=ax.get_transform(system), ms=1, zorder=3)
+    ax.plot(xStar24, yStar24, '.', c='royalblue',   transform=ax.get_transform(system), ms=1, zorder=4)
+
+    # Plot stars and add legend scaled to the stellar magnitudes
+    
+    if magStars is not None and len(magStars) > 0:
+        maxMarkerSize = 30
+        dm = (max(magStars) - magStars) * maxMarkerSize
+        mag_range = np.arange(min(magStars), max(magStars)).astype(int)
+        dm_range  = (max(magStars) - mag_range) * maxMarkerSize/10
+        mark, color = 'o', 'gold'
+        handle = [plt.plot([],[], "o", c='gray', ms=dm_range[i], ls="")[0] for i in range(len(dm_range))]
+        ax.legend(handles=handle, labels=mag_range.tolist(), loc='upper right', title=r"P [mag]", fontsize=16, title_fontsize=16)
+    else:
+        dm, mark, color = 20, '*', 'none'
+
+
+    # Plot pointing of each camera group
+    
+    if showGroups:
+        raGroups, decGroups = rf.getCameraGroupCoordinates(x, y, z)
+        camPointing = SkyCoord(raGroups*u.deg, decGroups*u.deg, frame='icrs', unit='deg')  
+        for i, c in zip(range(4), ['b', 'limegreen', 'yellow', 'r']):
+            ax.plot(camPointing[i].ra.deg, camPointing[i].dec.deg, 'o', ms=13, color=c,
+                    mec='k', transform=ax.get_transform('world'), zorder=6)
+
+        
+    #fcams = Circle((x, y), 20, fc='none', lw=2, transform=ax.get_transform('icrs'),
+    #               ec='magenta', zorder=7)
+    #ax.add_patch(fcams)
+    
+    ax.plot(x, y,  marker='.', linestyle='solid',  mfc='none', mec='magenta', ms=700,
+            transform=ax.get_transform(system), zorder=7)
+
+    
+    ax.grid('on', color='gray')
+
+    #l = np.linspace(-10, 10, 100)
+    #b = np.zeros_like(l)
+    #gp = SkyCoord(l, b, frame='galactic', unit='deg').transform_to('icrs')
+
+    # add galactic plane
+    #ax.plot(gp.ra.deg, gp.dec.deg, c='w', lw=1, transform=ax.get_transform('icrs'))
+    #ax.set_xlim(0, 15)
+    #ax.set_ylim(0, 15)
+
+    #plt.savefig('circle_gc_icrs.png', dpi=180)
 
 
 
