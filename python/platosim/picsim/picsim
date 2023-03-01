@@ -735,7 +735,7 @@ else:
     dfc = pd.DataFrame(columns=['ID', 'ra', 'dec', 'mag', 'dis'])
     numConPerTar = []
 
-    for starNo in tqdm(range(numTargets), bar_format=ut.tqdm_bar_format()):
+    for starNo in tqdm(range(numTargets), bar_format=ut.tqdmBar()):
 
         # Find corresponding contaminants to our target
         dcc = dc[dc['ID'] == df['ID'].iloc[starNo]]

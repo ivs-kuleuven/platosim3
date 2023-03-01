@@ -5,8 +5,8 @@ The Simulation class provides the opportunity to interactively tune the input pa
 before the simulator is started. The parameters that are available can be inspected by
 just printing the Simulation object, i.e. print (sim), which will dump all the parameters
 and their current values on the command line.
-Simulation
-For usage see the Jupyter tutorial notebooks available at "PlatoSim/docs/tutorials".
+
+For usage, see the tutorial Jupyter-notebooks available at "PlatoSim/docs/tutorials".
 """
 
 import os
@@ -22,7 +22,6 @@ import numpy as np
 
 import platosim.referenceFrames as rf
 import platosim.instrument      as it
-import platosim.utilities       as ut
 from platosim.simfile import SimFile
 
 
@@ -107,7 +106,7 @@ class Simulation(object):
 
         # This is the location of the original input files as distributed by the PLATO Simulator
 
-        self.originalInputFilesLocation = self.platosimLocation + "/inputfiles"
+        self.originalInputFilesLocation  = self.platosimLocation + "/inputfiles"
         self.originalOutputFilesLocation = self.platosimLocation + "/outputfiles"
 
 
@@ -137,14 +136,14 @@ class Simulation(object):
 
         if not os.path.exists(path):
             if self.debug:
-                print("DEBUG: creating output directory {}.".format(path))
+                print(f"DEBUG: creating output directory {path}")
             self.createDirectory(path)
 
         self.targetOutputFilesLocation = path
         self.hasTargetLocation = True
 
         if self.debug:
-            print("DEBUG: output dir set to {}.".format(path))
+            print(f"DEBUG: output dir set to {path}")
 
 
 
@@ -158,7 +157,7 @@ class Simulation(object):
         self.configurationFilename = filename
 
         if self.debug:
-            print ("Parsing YAML configuration file {}.".format(filename))
+            print(f"DEBUG: Parsing YAML configuration file {filename}")
 
         with open(filename, 'r') as stream:
             try:
@@ -205,7 +204,7 @@ class Simulation(object):
         node = self.yamlDocument
 
         for nodeName in nodeNames:
-            print("> {}, {}".format(nodeName, type(node)))
+            print(f"> {nodeName}, {type(node)}")
             try:
                 node = node[nodeName]
             except:
@@ -233,12 +232,13 @@ class Simulation(object):
         """
 
         # Split the path into node names
-        # E.g. "PSF/MappedGaussian/Sigma" into ["PSF", "MappedGaussian", "Sigma"]
+        # E.g. "PSF/MappedGaussian/Sigma" into [PSF, MappedGaussian, Sigma]
 
         if key.find('/') == -1:
             parentNodeName, nodeName = key, None
-            print ("usage: the given parameter name (key) should include the group name of the group that contains the parameter.")
-            print ("       E.g in 'Camera/PlateScale', Camera is the group, PlateScale is the parameter.")
+            print("usage: the given parameter name (key) should " +
+                  "include the group name of the group that contains the parameter.")
+            print("E.g in 'Camera/PlateScale', Camera is the group, PlateScale is the parameter.")
             return None
         else:
             nodeNames = key.split("/")
@@ -251,9 +251,10 @@ class Simulation(object):
             if nodeName in node:
                 node = node[nodeName]
             else:
-                print("ERROR: The group '{}' was not found in the yaml inputfile '{}'.".format(key, self.configurationFilename))
+                print(f"ERROR: The group '{key}' was not found in the " +
+                      f"yaml inputfile '{self.configurationFilename}'")
                 return None
-
+                      
         # Node is a string, so cast it to its proper value
 
         try:
@@ -297,7 +298,7 @@ class Simulation(object):
         # E.g. "PSF/MappedGaussian/Sigma" into ["PSF", "MappedGaussian", "Sigma"]
 
         if key.find('/') == -1:
-            print ("usage: the given parameter name (key) should include the " +
+            print ("USAGE: the given parameter name (key) should include the " +
                    "group name of the group that contains the parameter.")
             print ("       E.g in 'Camera/PlateScale', Camera is the group," +
                    "PlatScale is the parameter.")
@@ -308,7 +309,7 @@ class Simulation(object):
         # Check whether the parent node is in the document. If not, complain
 
         if nodeNames[0] not in self.yamlDocument:
-             print(f"Error: no node with the name {nodeNames[0]} found in input yaml file")
+             print(f"ERROR: no node with the name {nodeNames[0]} found in input yaml file")
              return False
 
         # If there is only 1 node in the path, we're finished after setting its value
@@ -320,7 +321,8 @@ class Simulation(object):
         # If we arrive here, there are at least 2 node in the path, check if 2nd parent node exists
 
         if nodeNames[1] not in self.yamlDocument[nodeNames[0]]:
-             print(f"Error: no node with the name {nodeNames[0]}/{nodeNames[1]} found in input yaml file")
+             print("ERROR: no node with the name " +
+                   f"{nodeNames[0]}/{nodeNames[1]} found in input yaml file")
              return False
 
         # If there are only 2 nodes in the path, we're finished after setting its value
@@ -332,7 +334,8 @@ class Simulation(object):
         # If we arrive here, there are at least 3 nodes in the path, check if 3rd parent node exists
 
         if nodeNames[2] not in self.yamlDocument[nodeNames[0]][nodeNames[1]]:
-             print(f"Error: no node with the name {nodeNames[0]}/{nodeNames[1]}/{nodeNames[2]} found in input yaml file")
+             print("ERROR: no node with the name " +
+                   f"{nodeNames[0]}/{nodeNames[1]}/{nodeNames[2]} found in input yaml file")
              return False
 
         # If there are only 3 nodes in the path, we're finished after setting its value
@@ -344,7 +347,9 @@ class Simulation(object):
         # If we arrive here, there are at least 4 nodes in the path, check if 4th parent node exists
 
         if nodeNames[3] not in self.yamlDocument[nodeNames[0]][nodeNames[1]][nodeNames[2]]:
-             print("Error: no node with the name {nodeNames[0]}/{nodeNames[1]}/{nodeNames[2]}/{nodeNames[3]} found in input yaml file")
+             print("ERROR: no node with the name " +
+                   f"{nodeNames[0]}/{nodeNames[1]}/{nodeNames[2]}/{nodeNames[3]} " +
+                   "found in input yaml file")
              return False
 
         # If there are only 34nodes in the path, we're finished after setting its value
@@ -356,7 +361,7 @@ class Simulation(object):
         # If we arrive here, there are at least 5 nodes in the path.
         # Issue a not-implemented error message.
 
-        print("Error: detected 5 or more nodes in the path {0}".format(key))
+        print(f"ERROR: detected 5 or more nodes in the path {key}")
         return False
 
 
@@ -373,7 +378,7 @@ class Simulation(object):
         except OSError as ose:
             print (ose)
             if not os.path.isdir(path):
-                raise Exception("Could not create directory {}".format(path))
+                raise Exception(f"Could not create directory {path}")
 
         return
 
@@ -395,7 +400,7 @@ class Simulation(object):
         """
         
         if self.debug:
-            print ("Writing the Yaml configuration file {}.".format(filename))
+            print(f"DEBUG: writing the YAML configuration file {filename}")
         with open(filename, 'w') as outfile:
             outfile.write( pyaml.dump(self.yamlDocument, indent=4, width=120) )
 
@@ -453,12 +458,12 @@ class Simulation(object):
                                                str(logLevel)],
                                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-            print(str(completedProcess.stdout.decode("utf-8")))
-            print(str(completedProcess.stderr.decode("utf-8")))
+            # print(str(completedProcess.stdout.decode("utf-8")))
+            # print(str(completedProcess.stderr.decode("utf-8")))
 
             if completedProcess.returncode:
                 raise Exception("Simulation.run(): PlatoSim returned with " +
-                                "exit code {completedProcess.returncode}.")
+                                f"exit code {completedProcess.returncode}.")
 
         # Print computation time
         
@@ -519,7 +524,7 @@ class Simulation(object):
                 self.__setitem__(f"{group}/{entry}", "no")
 
             else:
-                ut.errorcode("error", "only 'True' or 'False' can be parsed as argument!")
+                print("ERROR: only 'True' or 'False' can be parsed as argument!")
 
 
 
@@ -605,8 +610,8 @@ class Simulation(object):
                                                     subfieldSizeX, subfieldSizeY, True)
 
         if not success:
-            print ("Warning: setSubfieldAroundPixelCoordinates() " +
-                   "failed to set subField around the star.")
+            print("WARNING: setSubfieldAroundPixelCoordinates() " +
+                  "failed to set subField around the star.")
 
         return
 
@@ -713,8 +718,8 @@ class Simulation(object):
 
         # Find out some instrumental characteristics from the sim object
 
-        raPlatform       = np.deg2rad(float(self["ObservingParameters/RApointing"]))
-        decPlatform      = np.deg2rad(float(self["ObservingParameters/DecPointing"]))
+        raPlatform  = np.deg2rad(float(self["ObservingParameters/RApointing"]))
+        decPlatform = np.deg2rad(float(self["ObservingParameters/DecPointing"]))
 
         telescopeGroupID = self["Telescope/GroupID"]
         if telescopeGroupID == "Custom":
@@ -948,9 +953,6 @@ class Simulation(object):
 
         self["Photometry/TargetFileName"] = fileName
 
-        # Finito!
-
-        return
 
 
 
@@ -983,10 +985,6 @@ class Simulation(object):
         self["Telescope/UseDrift"]         = True
         self["Telescope/UseDriftFromFile"] = True
         self["Telescope/DriftFileName"]    = fileName
-
-        # Finito!
-
-        return
 
 
 
@@ -1039,7 +1037,8 @@ class Simulation(object):
         readoutMode = self["CCD/ReadoutMode/ReadoutMode"]
 
         if (readoutMode != "Nominal") and (readoutMode != "Partial"):
-            raise ValueError("Simulation::getReadoutTime() Unknown readout mode specification in configuration file: {0}".format(readoutMode))
+            raise ValueError("Simulation::getReadoutTime() Unknown readout mode " +
+                             f"specification in configuration file: {readoutMode}")
 
 
         serialTransferTime       = self["CCD/SerialTransferTime"]       * 1e-9  # [ns] -> [s]
@@ -1214,7 +1213,7 @@ class Simulation(object):
                 else:
                     dexGroup[i] = False
 
-        # Finito!
+        # Return parameters
 
         return dexGroup, distanceOA
 
