@@ -3654,16 +3654,20 @@ double Detector::getReadoutTimeBeforeNextExposure()
  */
 void Detector::fillBackgroundMap(Camera &camera, double startTime, double exposureTime)
 {
+
     // For each pixel in the background map (same dimensions as as subfield)
     for (int row=0; row<numRowsPixelMap; row++)
     {
         for (int col=0; col<numColumnsPixelMap; col++)
         {
             // Convert the pixel coordinates to focal plane coordinates
+            double xFPd , yFPd ;
             double xFPmm, yFPmm;
-            tie(xFPmm, yFPmm) = pixelToFocalPlaneCoordinates(row, col);
+            tie(xFPd, yFPd) = pixelToFocalPlaneCoordinates(row+subFieldZeroPointRow, col+subFieldZeroPointColumn);
 
-            // TODO: We should undistort the FP coordinates
+            // Apply the inverse distortion
+            tie(xFPmm, yFPmm) = camera.distortedToUndistortedFocalPlaneCoordinates(xFPd, yFPd);
+
             transmissionEfficiencyBOS = camera.getTransmissionEfficiency(startTime);
             double flux = camera.getBackgroundFlux(xFPmm, yFPmm, *this, startTime, exposureTime, readoutTimeBeforeNextExposure)/transmissionEfficiencyBOS;
             backgroundMap(row, col) = flux;
