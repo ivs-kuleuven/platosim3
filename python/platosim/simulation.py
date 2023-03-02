@@ -176,8 +176,20 @@ class Simulation(object):
         
         return self.yamlDocument
 
+    
 
 
+    
+    def showYamlConfiguration(self):
+
+        """Return the YAML configuration as a dictionary.
+        """
+
+        YAML = self.getYamlConfiguration()
+        print(pyaml.dump(YAML))
+
+
+        
 
 
     def __contains__(self, key):
