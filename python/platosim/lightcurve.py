@@ -36,6 +36,7 @@ import platosim.referenceFrames as rf
 from platosim.simfile import SimFile
 from platosim.utilities import errorcode
 
+
 #==============================================================#
 #                         BEGIN CLASS                          #
 #==============================================================#
@@ -415,10 +416,10 @@ class LightCurve(object):
         # Distinguish between single camera and multi camera obs
         
         if self.mode == "single":
-            filename = pathlib.Path(self.filename).stem
-            self.group   = int(filename[14])
-            self.camera  = int(filename[16])
-            self.quarter = int(filename[19:])
+            parts = pathlib.Path(self.filename).stem.split('_')
+            self.group   = int(parts[-2][4])
+            self.camera  = int(parts[-2][6])
+            self.quarter = int(parts[-1][1:])
         else:
             self.group   = False
             self.camera  = False
