@@ -220,15 +220,12 @@ class PLATOnium(object):
             self.df.mag = self.mag
 
 
-
-
         
 
 
-
     def configure_output(self):
-        """
-        Module to create, configure, and select the correct output folders.
+
+        """Module to create, configure, and select the correct output folders.
         """
 
         # Select proper name convension
@@ -457,7 +454,7 @@ class PLATOnium(object):
                                                                 normal=True)
         if self.subfieldIsOnCCD is False:
             if self.verbose > 0:
-                message  = (f"PIC {self.df['ID'][self.targetNo]} (subfield {self.targetNo}) " +
+                message  = (f"PIC {self.df.ID} (subfield {self.targetNo}) " +
                             'do not fall on any of the CCDs for ' +
                             f'N-CAM {self.group}.{self.camera} and Q{self.quarter}!')
                 errorcode('warning', message)
