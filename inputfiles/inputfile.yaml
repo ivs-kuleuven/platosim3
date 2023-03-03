@@ -19,7 +19,7 @@ ObservingParameters:
 
 Sky:
 
-    SkyBackground:                   -1              # Sky background (Zodiacal + Galactic) excl. transmission efficiency. Set negative to compute [phot/pix/s]
+    SkyBackground:                   342.            # Sky background (Zodiacal + Galactic) excl. transmission efficiency. Set negative to compute [phot/pix/s]
     IncludeVariableSources:          no              # Include time series of variable stars or not
     VariableSourceList:              inputfiles/varsource.txt  # Ascii file: Col 1: star ID, Col 2: path of time series file
     IncludeCosmicsInSubField:        yes             # Whether or not to include cosmics in the subfield on the CCD
@@ -38,7 +38,7 @@ Platform:
     JitterYawRms:                    0.038           # [arcsec]
     JitterPitchRms:                  0.038           # [arcsec]
     JitterRollRms:                   0.040           # [arcsec]
-    JitterTimeScale:                 25.             # [s]
+    JitterTimeScale:                 3600.           # [s]
     JitterFileName:                  inputfiles/jitter.txt
 
 
