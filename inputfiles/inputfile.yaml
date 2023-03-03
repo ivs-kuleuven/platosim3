@@ -10,16 +10,16 @@ ObservingParameters:
 
     MissionDuration:                 6.5             # Total duration of the mission [yr], relevant for BOL->EOL degradation
     NumExposures:                    10              # Number of exposures
-    BeginExposureNr:                  0              # Sequential number of first exposure. useful for slurm parallellisation
+    BeginExposureNr:                 0               # Sequential number of first exposure. useful for slurm parallellisation
     CycleTime:                       25              # Image cycle time (exposure + readout before next exposure starts)[s]
-    RApointing:                      86.79870508     # Platform (not telescope) right ascension pointing coordinate (Default: PIC 1.1, SPF) [deg]
-    DecPointing:                     -46.39594703    # Platform (not telescope) declination     pointing coordinate (Default: PIC 1.1, SPF) [deg]
+    RApointing:                      86.79870508     # Platform right ascension pointing coordinate (PIC 1.1, SPF) [deg]
+    DecPointing:                     -46.39594703    # Platform declination     pointing coordinate (PIC 1.1, SPF) [deg]
     Fluxm0:                          1.00179e8       # Photon flux of a V=0 G2V-star [phot/s/m^2/nm]
     StarCatalogFile:                 inputfiles/starcatalog.txt
 
 Sky:
 
-    SkyBackground:                   342.            # Stellar + zodiacal background level (excl. transmission efficiency). Set negative to compute. [phot/pix/s]
+    SkyBackground:                   342.            # Sky background (Zodiacal + Galactic) excl. transmission efficiency. Set negative to compute [phot/pix/s]
     IncludeVariableSources:          no              # Include time series of variable stars or not
     VariableSourceList:              inputfiles/varsource.txt  # Ascii file: Col 1: star ID, Col 2: path of time series file
     IncludeCosmicsInSubField:        yes             # Whether or not to include cosmics in the subfield on the CCD
@@ -35,20 +35,20 @@ Platform:
     SolarPanelOrientation:           0               # 0, 90, 180, or 270 degrees for the different quarters of a year [deg]
     UseJitter:                       yes             # yes or no. If no, ignore everything below.
     JitterSource:                    FromRedNoise    # FromFile, FromRedNoise, or FromNetwork
-    JitterYawRms:                    0.04            # [arcsec]
-    JitterPitchRms:                  0.04            # [arcsec]
-    JitterRollRms:                   0.08            # [arcsec]
+    JitterYawRms:                    0.038           # [arcsec]
+    JitterPitchRms:                  0.038           # [arcsec]
+    JitterRollRms:                   0.040           # [arcsec]
     JitterTimeScale:                 3600.           # [s]
-    JitterFileName:                  inputfiles/PlatoJitter_Airbus.txt
+    JitterFileName:                  inputfiles/jitter.txt
 
 
 Telescope:
 
-    GroupID:                         1               # There are four camera groups: 1, 2, 3, 4, Fast, Custom
+    GroupID:                         Custom          # There are four camera groups: 1, 2, 3, 4, Fast, Custom
                                                      # (use Custom to specify the telescope azimuth and tilt angles yourself)
 
-    AzimuthAngle:                    0.0             # Azimuth angle of the telescope on the platform [deg] - used when GroupID = Custom
-    TiltAngle:                       0.0             # Tilt    angle of the telescope on the platform [deg] - used when GroupID = Custom
+    AzimuthAngle:                    0.0             # Azimuth angle of camera on the platform [deg] -> when GroupID = Custom
+    TiltAngle:                       0.0             # Tilt    angle of camera on the platform [deg] -> when GroupID = Custom
 
     LightCollectingArea:             113.1           # Effective area of 1 telescope [cm^2]
     TransmissionEfficiency:
@@ -83,14 +83,12 @@ Camera:
         StartTime:                   101489.207030
     IncludeFieldDistortion:          yes             # Whether or not to include field distortion. This only applies when the PSF is not mapped from file.
     FieldDistortion:
-        Type:                        Polynomial1D    # The model for the field distortion
+        Type:                        Polynomial1D    # Wang distortion field distortion model: [k1, k2, k3, q1, q2, p1, p2] -> ConstantValue
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent)
-        ConstantCoefficients:        [0.32419,  0.0232909,  0.407979, 0.00022463, 0.000217599, 0.000381958, 0.000963902]      # In case Source is ConstantValue
-                                                     # These are the coefficients of the Wang distortion model: [k1, k2, k3, q1, q2, p1, p2]
-        ConstantInverseCoefficients: [-0.323487, 0.268344, -0.435473, -0.00019304, -0.000176961, -0.000321713, -0.000827654]   # In case Source is ConstantValue
-                                                     # These are the inverse coefficients of the Wang distortion model
-        CoefficientsFromFile:        inputfiles/distortioncoefficients.txt                   # In case Source is FromFile
-        InverseCoefficientsFromFile: inputfiles/distortioninversecoefficients.txt            # In case Source if FromFile
+        ConstantCoefficients:        [ 0.32419,  0.0232909,  0.407979,  0.00022463,  0.000217599,  0.000381958,  0.000963902]
+        ConstantInverseCoefficients: [-0.323487, 0.268344,  -0.435473, -0.00019304, -0.000176961, -0.000321713, -0.000827654]
+        CoefficientsFromFile:        inputfiles/distortioncoefficients.txt           # In case Source is FromFile
+        InverseCoefficientsFromFile: inputfiles/distortioninversecoefficients.txt    # In case Source if FromFile
     IncludePointLikeGhosts:          yes
     IncludeExtendedGhosts:           no
     Ghosts:
@@ -105,7 +103,7 @@ Camera:
 
 PSF:
 
-    Model:                           AnalyticNonGaussian      # PSF model: MappedFromFile, AnalyticGaussian or AnalyticNonGaussian
+    Model:                           AnalyticNonGaussian      # PSF model: MappedFromFile or AnalyticNonGaussian
     MappedFromFile:                                           # Read a pre-calculated and fixed PSF from an HDF5 file
         Filename:                    inputfiles/PSF_Focus_0mu.hdf5
         NumberOfPixels:              8                        # The number of pixels in the field for which the PSF is generated
@@ -172,7 +170,7 @@ CCD:
         MeanQuantumEfficiency:       0.6218          # Mean quantum efficiency
         MeanAngleDependency:         1.01            # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE
     FullWellSaturation:              900000          # [e-/pixel]
-    DigitalSaturation:               65535           # E.g. 16 bit [ADU/pixel]
+    DigitalSaturation:               65535           # [ADU/pixel] -> 16 bit CCD
     ReadoutNoise:                    38.7            # [e-/pixel]
     SerialTransferTime:              340             # Time to shift the content of the readout register by one pixel [ns]
     ParallelTransferTime:            110             # Time to shift the charges one row down in case the readout register will be read out [µs]
@@ -255,7 +253,7 @@ Photometry:                                          # Only possible when 'Analy
     IncludePhotometry:               no              # The method described in Marchiori et al., 2019, A&A 627, A71 for in-flight photometry is used.
     ContaminationRadius:             4               # Only consider contaminants that are within this number of pixels [integer pixels]
     MaskUpdateInterval:              14.0            # Photometric masks will be updated every xx days  [days]
-    TargetFileName:                  inputfiles/photometryTargets.txt  # One column with star IDs for which you want to have photometry
+    TargetFileName:                  inputfiles/photometry.txt  # One column with star IDs for which you want to have photometry
 
 
 RandomSeeds:
@@ -270,16 +268,16 @@ RandomSeeds:
 
 
 ControlHDF5Content:
-    WritePixelMaps:                  yes             # The 2D subimages for each exposure
+    WritePixelMaps:                  yes             # 2D pixel images for each exposure
     WriteBiasMaps:                   yes             # 2D bias maps for the left and right hand side of the CCD, for each exposure
     WriteSmearingMaps:               yes             # 2D smearing maps, for each exposure
     WriteThroughputMaps:             yes             # 2D throughput maps (QE, vignetting, contamination, ...), for each exposure
     WriteFlatfieldMap:               yes             # 2D image of the flatfield (PRNU and/or IRNU)
-    WriteSubPixelImages:             no              # Only use this for a limited number of exposures. Takes a lot of space!
+    WriteSubPixelImages:             no              # 2D subpixel images: Only use this for a limited number of exposures!
     WriteDiffusedPSF:                no              # Determines if diffused PSF should be written to the output HDF5 file. (Only works for mapped PSF, takes a long time to compute)
     WriteHighResolutionPSF:          no              # Determines if the high resolution PSF will be written to the HDF5 file (doesn't work for Analytic Gaussian PSF)
     WriteStarCatalog:                yes             # Determines if the starcatalog should be written to the HDF5 file
-    WriteStarPositions:              yes             # Star positions are written in pixel and focal plane coordinates
+    WriteStarPositions:              yes             # Star  positions are written in pixel and focal plane coordinates
     WriteGhostPositions:             no              # Ghost positions are written in pixel and focal plane coordinates
     WriteCosmics:                    yes             # Determines if the columns, rows and flux of the cosmics should be written to the HDF5 file
     WriteACS:                        yes             # Whether to write the yaw, pitch, roll to the HDF5 file
