@@ -322,7 +322,7 @@ class SimFile (object):
     #--------------------------------------------------------------#
 
 
-    def getMap(self, imageMap, imageNr=0):
+    def getMap(self, imageMap, imageNr=False):
 
         """Get the a simulated image map from the HDF5 file.
 
@@ -336,7 +336,7 @@ class SimFile (object):
         ------
         ndarray : 2D numpy array containing the image map.
         """
-        
+
         data = {"highResPSF":      "highResPSF",
                 "diffusedPSF":     "diffusedPSF",
                 "PRNU":            "PRNU",
@@ -352,29 +352,50 @@ class SimFile (object):
         datasetName = data[imageMap]
 
         # Correct naming conventions
-        
+                
         if imageMap in ["highResPSF", "diffusedPSF"]: imageMap = "PSF"
         if imageMap in ["PRNU",       "IRNU"]:        imageMap = "Flatfield"
 
         # Check if the image is in the file
 
         if datasetName not in self.hdf5file[imageMap].keys():
-            print(f"Error: {datasetName} not in hdf5 file")
+            print(f"ERROR: {datasetName} not in HDF5 file")
             return
-        
-        else:            
-            return self.hdf5file[imageMap][datasetName][:]        
 
         
+        # Cases when on or more images are requested
+        
+        if imageNr is False:
 
+            # Fetch images names
+
+            imgNames = list(self.hdf5file[imageMap].keys())
+                
+            # Create numpy data cube
+                
+            nimg = len(imgNames)
+            nrow = self.hdf5file["InputParameters/SubField"].attrs["NumRows"]
+            ncol = self.hdf5file["InputParameters/SubField"].attrs["NumColumns"]
+            cube = np.zeros((nimg, nrow, ncol))
+                
+            for i in range(nimg):
+                cube[i,:,:] = np.array(self.hdf5file[imageMap][imgNames[i]])
+                    
+            return cube
+
+        else:
+            return self.hdf5file[imageMap][datasetName][:]
+        
        
- 
-    def getPSF(self, psfName, imageNr=False):
+
+
+        
+    def getPSF(self, psfName):
 
         """Get the PSF from the HDF5 file.
         """
 
-        return self.getMap(psfName, imageNr=imageNr)
+        return self.getMap(psfName, imageNr=0)
 
 
 
@@ -385,7 +406,7 @@ class SimFile (object):
         """Get the normalized flat-field map.
         """
 
-        return self.getMap("PRNU", imageNr=False)
+        return self.getMap("PRNU", imageNr=0)
 
 
 
@@ -403,7 +424,7 @@ class SimFile (object):
         >>> PRNU = IRNU.reshape(Nrows, NsubPixels, Ncols, NsubPixels).sum(axis=3).sum(axis=1)
         """
 
-        return self.getMap("IRNU", imageNr=False)
+        return self.getMap("IRNU", imageNr=0)
 
 
 
@@ -1623,9 +1644,9 @@ class SimFile (object):
         # Else get the requested image from the HDF5 file
 
         if imageNr is False:
-            images = self.getImages()
+            images = self.getImage()
             image = images[0]
-            Nimg = images.shape[0]
+            Nimg  = images.shape[0]
             Nrows, Ncols = image.shape
 
         else:

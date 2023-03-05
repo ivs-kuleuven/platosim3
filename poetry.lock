@@ -1422,6 +1422,23 @@ doc = ["sphinx"]
 test = ["pytest", "wheel"]
 
 [[package]]
+name = "regions"
+version = "0.7"
+description = "Astropy coordinated package for region handling"
+category = "main"
+optional = false
+python-versions = ">=3.8"
+
+[package.dependencies]
+astropy = ">=5.0"
+numpy = ">=1.18"
+
+[package.extras]
+all = ["matplotlib (>=3.1)", "shapely"]
+docs = ["matplotlib (>=3.1)", "shapely", "sphinx-astropy"]
+test = ["pytest-astropy", "pytest-arraydiff"]
+
+[[package]]
 name = "renku-sphinx-theme"
 version = "0.2.2"
 description = "A Sphinx theme for Renku documentation."
@@ -1926,7 +1943,7 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<4.0"
-content-hash = "746086296c1e5ea9c4ce79eceb9155e938d08bfd09143f3ee6b43715d10fe8d9"
+content-hash = "1cd15f7b2d146e376d67b3fb03f0d6ea8b1bc5ad3b2edd17c2437ef659195ed4"
 
 [metadata.files]
 alabaster = []
@@ -2254,6 +2271,7 @@ pyyaml = [
 ]
 pyzmq = []
 quantities = []
+regions = []
 renku-sphinx-theme = [
     {file = "renku-sphinx-theme-0.2.2.tar.gz", hash = "sha256:b33d7bcbae1b95fda678afec0f4995a10a60722663e80609cf9b36a38d63005d"},
     {file = "renku_sphinx_theme-0.2.2-py2.py3-none-any.whl", hash = "sha256:98bb34f83569a2f0637864d6a5fc6676e632ee72c0dfd7a8426934a086e2bc93"},

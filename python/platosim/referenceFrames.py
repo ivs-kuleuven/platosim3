@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 import sys
+import os
 import h5py
 import math
-import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -45,8 +45,6 @@ CCD = \
     '3F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': 0},
     '4F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': pi/2}
 }
-
-
 
 
 
@@ -1341,8 +1339,8 @@ def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
     Ncols = CCD[ccdCode]["Ncols"]
     firstRow = CCD[ccdCode]["firstRow"]
 
-    cornersXpix = array([0.0, Ncols, Ncols, 0.0])
-    cornersYpix = array([firstRow, firstRow, Nrows, Nrows])
+    cornersXpix = np.array([0.0, Ncols, Ncols, 0.0])
+    cornersYpix = np.array([firstRow, firstRow, Nrows, Nrows])
 
     # Convert to the x,y coordinates in the FP' reference frame
 
