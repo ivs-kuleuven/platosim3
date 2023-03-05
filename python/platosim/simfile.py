@@ -1933,7 +1933,6 @@ class SimFile (object):
 
     
 
-#-----------------------------
 
     
     def getStarPositions(self, starID):

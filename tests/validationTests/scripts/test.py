@@ -37,20 +37,17 @@ class Test:
         self.sim = Simulation("test" + self.nr, outputDir = self.outputDir)
         self.setAllEffects()
 
-    def setNr(self):
 
+    def setNr(self):
         self.nr = ""
 
 
     def setAllEffects(self):
-
-
         switchOffAllEffects(self.sim)
         self.sim["Telescope/GroupID"] = "2"
         self.sim["CCD/Position"]      = "2"
         self.sim["PSF/Model"]         = "AnalyticNonGaussian"
         
-
         # Configure the angles of the input file
 
         n      = self.sim["Telescope/GroupID"]
@@ -63,16 +60,15 @@ class Test:
 
 
     def runSimulation(self):
-
         # Run PlatoSIM
         self.simFile = self.sim.run(removeOutputFile=True)
 
-    def compare(self):
 
+    def compare(self):
         return None
 
-    def run(self):
 
+    def run(self):
         self.runSimulation()
         return self.compare()
 

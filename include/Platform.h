@@ -18,6 +18,7 @@
 #include "Telescope.h"
 #include "ConfigurationParameters.h"
 #include "JitterGenerator.h"
+#include "Quaternion.h"
 
 
 using namespace std;
@@ -54,6 +55,7 @@ class Platform : public Heartbeat, HDF5Writer
     protected:
 
         arma::mat getUnjitteredToJitteredRotationMatrix(const double yaw, const double pitch, const double roll);
+        pair<double, double> calculatePlatFormSkyCoordinatesFromQuaternion(quaternionType q_EQ2PLM);
         
         tuple<double, double, double> getNextYawPitchRoll(double time);
 
@@ -74,7 +76,7 @@ class Platform : public Heartbeat, HDF5Writer
 
         JitterGenerator &jitterGenerator; 
 
-        array<double, 4> originalQuaternion;        // Original quaternion to convert from the EQ ref frame to the spacecraft ref frame. 
+        quaternionType original_q_EQ2PLM;           // Original quaternion to convert from the EQ ref frame to the spacecraft ref frame. 
         vector<double> historyTime;                 // The following vectors stores all computed ASC values to write to HDF5
         vector<double> historyRA;
         vector<double> historyDec;

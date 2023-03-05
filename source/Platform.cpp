@@ -79,16 +79,17 @@ void Platform::configure(ConfigurationParameters &configParams)
     else if (platformOrientationSource == "Quaternion") {
         Log.info("Platform: using the Platform/Orientation/Quaternion to determine the initial platform orientation");
         vector<double> quaternion = configParams.getDoubleVector("Platform/Orientation/Quaternion/Components");
-        copy(quaternion.begin(), quaternion.end(), originalQuaternion.begin());
-        currentRA = 123456;
-        currentDec = 123456;
+        copy(quaternion.begin(), quaternion.end(), original_q_EQ2PLM.begin());
+        tie(originalRA, originalDec) = calculatePlatFormSkyCoordinatesFromQuaternion(original_q_EQ2PLM);         // [rad]
+        currentRA  = originalRA;                                                                                 // [rad]
+        currentDec = originalDec;                                                                                // [rad]
+        Log.debug("Platform: (RA, Dec) from quaternion = (" + to_string(rad2deg(originalRA)) + " deg, " + to_string(rad2deg(originalDec)) + " deg)");
     }
     else {
         Log.error("In input yaml file: unsupported Platform/Orientation/Source value. Only Angles or Quaternion are allowed");
     }
 
     writeACS    = configParams.getBoolean("ControlHDF5Content/WriteACS");
-         
 }
 
 
@@ -188,7 +189,31 @@ void Platform::setPointingCoordinates(double rightAscencsion, double declination
 
 
 
+/**
+  * \brief Compute the RA, Declination coordinates given a quaterntion in the equatorial reference frame.
+  *
+  * \param q   Unit quaternion (q0, qx, qy, qz) describing the passive rotation from the equatorial reference 
+  *            system to the platform reference system so that:
+  *                 vec_PLM = q^* . vec_EQ . q
+  *
+  * \return (RA, Dec)   [rad]
+  */   
+pair<double, double> Platform::calculatePlatFormSkyCoordinatesFromQuaternion(quaternionType q_EQ2PLM)
+{
+    // In the Platform reference frame, the platform pointing vector corresponds with the z-axis (roll-axis)
 
+    quaternionType v_PLM = {0.0, 0.0, 0.0, 1.0};
+    quaternionType v_EQ = qmul(q_EQ2PLM, qmul(v_PLM, conj(q_EQ2PLM)));             // Real part can be ignored
+
+    const double r = sqrt(v_EQ[1]*v_EQ[1] + v_EQ[2]*v_EQ[2] + v_EQ[3]*v_EQ[3]);
+    const double dec = PI / 2.0 - acos(v_EQ[3]/r);                                 // Declination     [rad]
+    double RA = atan2(v_EQ[2], v_EQ[1]);                                           // Right Ascension [rad]
+    if (RA < 0.0) RA += 2 * PI; 
+    
+    // That's it
+
+    return make_pair(RA, dec);
+}
 
 
 
@@ -513,20 +538,21 @@ arma::mat Platform::getEquatorialToUnjitteredSpacecraftRotationMatrix()
                 <<        0.0          <<        0.0         << 1.0 << arma::endr;
 
         arma::mat rotEQ2SC = rotB2SC * rotA2B * rotEQ2A;
+
         return rotEQ2SC;
     }
     else    // platformOrientationSource == "Quaternion"
     {
         // Convert the quaternion into a rotation matrix. 
         
-        const double q0 = originalQuaternion[0];
-        const double qx = originalQuaternion[1];
-        const double qy = originalQuaternion[2];
-        const double qz = originalQuaternion[3];
-        arma::mat rotEQ2SC;
-        rotEQ2SC << 2*(q0*q0+qx*qx)-1 << 2*(qx*qy-q0*qz)   << 2*(qx*qz+q0*qy)   << arma::endr
-                 << 2*(qx*qy+q0*qz)   << 2*(q0*q0+qy*qy)-1 << 2*(qy*qz-q0*qx)   << arma::endr
-                 << 2*(qx*qz-q0*qy)   << 2*(qy*qz+q0*qx)   << 2*(q0*q0+qz*qz)-1 << arma::endr;
+        const double q0 = original_q_EQ2PLM[0];
+        const double qx = original_q_EQ2PLM[1];
+        const double qy = original_q_EQ2PLM[2];
+        const double qz = original_q_EQ2PLM[3];
+        arma::mat rotEQ2SC;                                                                         // Passive rotation matrix! 
+        rotEQ2SC << 2*(q0*q0+qx*qx)-1 << 2*(qx*qy+q0*qz)   << 2*(qx*qz-q0*qy)   << arma::endr
+                 << 2*(qx*qy-q0*qz)   << 2*(q0*q0+qy*qy)-1 << 2*(qy*qz+q0*qx)   << arma::endr
+                 << 2*(qx*qz+q0*qy)   << 2*(qy*qz-q0*qx)   << 2*(q0*q0+qz*qz)-1 << arma::endr;
 
         return rotEQ2SC;
     }
