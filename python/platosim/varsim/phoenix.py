@@ -9,8 +9,15 @@ import zipfile
 import urllib.request
 import numpy as np
 from astropy.io import fits
-from platosim.utilities import errorcode
-from platonium.var.utilities import find_nearest
+
+# PlatoSim
+from platosim.utilities        import errorcode
+from platosim.varsim.utilities import find_nearest
+
+
+#==============================================================#
+#                         PHOENIX CLASS                        #
+#==============================================================#
 
 
 class Phoenix(object):
