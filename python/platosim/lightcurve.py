@@ -1071,7 +1071,7 @@ class LightCurve(object):
     
     def plot(self, time_unit="d", flux_unit="e/s",
              errorbar=False, median_filter=False, binsize=False,
-             cameras=False, quarter=False,
+             ncam=False, quarter=False,
              legend=True, alpha=0.2, figsize=(9,5)):
 
         """Plot the light curve.
@@ -1101,17 +1101,19 @@ class LightCurve(object):
         else: errorcode("error", "No such flux unit!")
         
         # Fetch obs infoin range
-        if cameras and quarter:
-            lab = f"{cameras} N-CAMs, Q{quarter}"
+        if ncam and quarter:
+            lab = f"{ncam} N-CAMs, Q{quarter}"
             flux_unit="e/s"
             ylab = "Flux [ppm]"
+            time = self.time(unit=time_unit)
+            flux = self.flux(unit='e/s')
         else:
             group, camera, quarter = self.obs()
             lab = f"N-CAM {group}.{camera} Q{quarter}"
+            time = self.time(unit=time_unit)
+            flux = self.flux(unit=flux_unit)
 
         # Fetch columns
-        time = self.time(unit=time_unit)
-        flux = self.flux(unit=flux_unit)
         
         # Create matplotlib object 
 
@@ -1504,6 +1506,7 @@ class LightCurve(object):
         quarter : int
             Mission quarter number.
         detrend : bool
+
             Whether or not detrending should be applied before merge.
         clip : bool
             Whether or not sigma-clipping should be applied before merge.
@@ -1537,7 +1540,7 @@ class LightCurve(object):
         nfiles = len(files)
         ncam   = 0
         flag   = 0
-        
+
         # Loop over each group and camera
 
         for i in range(nfiles):
@@ -1558,19 +1561,20 @@ class LightCurve(object):
                 G, C, Q = lc.obs()
 
                 # Select quarter
-                
+
                 if Q == quarter: ncam += 1
-                
+
                 # Flag for negative fluxes (bad behavior of L1 pipeline)
                 
-                df = lc.data()
                 if lc.flux(unit="e/s").mean() < 1: flag = 1
 
                 # Create initial data frame and save to it
+
+                df = lc.data()
                 
                 if i == 0:
                     df0['time'] = df.time
-                    df0['flux'] = df.flux
+                    df0['flux'] = lc.flux(unit='ppm')
                     if 'flux_err'     in df: df0['flux_err']     = df.flux_err
                     if 'flux_cor'     in df: df0['flux_cor']     = df.flux_cor
                     if 'flux_trend'   in df: df0['flux_trend']   = df.flux_trend
@@ -1578,7 +1582,7 @@ class LightCurve(object):
                     if 'flux_clip'    in df: df0['flux_clip']    = df.flux_clip
                 else:
                     df1['time'] = df.time
-                    df1['flux'] = df.flux
+                    df1['flux'] = lc.flux(unit='ppm')
                     if 'flux_err'     in df: df1['flux_err']     = df.flux_err
                     if 'flux_cor'     in df: df1['flux_cor']     = df.flux_cor
                     if 'flux_trend'   in df: df1['flux_trend']   = df.flux_trend
@@ -1612,8 +1616,7 @@ class LightCurve(object):
 
 
 
-    def run_NSRvsMag_analysis_perStar(self, outputFile, numStar, quarters=1, flux_unit="e/s",
-                                      suffix="ftr"):
+    def run_NSRvsMag_analysis_perStar(self, outputFile, numStar, quarters=1, suffix="ftr"):
 
         """Compute NSR(mag) for a stellar catalogue.
                 
@@ -1635,7 +1638,8 @@ class LightCurve(object):
 
         # Open a pandas data frame and write to it
         
-        df = pd.DataFrame()
+        df0 = pd.DataFrame()
+        df1 = pd.DataFrame()
 
         # Loop over star simulated
 
@@ -1648,11 +1652,11 @@ class LightCurve(object):
             
             # Initialise object
             
-            phot = LightCurve(path, mode="multi")
+            lcs = LightCurve(path, mode="multi")
 
             # Unpack all zip files in the path folder
             
-            phot.unpack()
+            lcs.unpack()
             
             # Check if any data exist for a given star
 
@@ -1670,8 +1674,9 @@ class LightCurve(object):
 
                 for q in range(1, quarters+1):
 
-                    # Merge all observations for the same quarter                    
-                    lc, ncam, flag = phot.merge(quarter=q, flux_group_mean=True, suffix=suffix)
+                    # Merge all observations for the same quarter [ppm]
+                    
+                    lc, ncam, flag = lcs.merge(quarter=q, flux_group_mean=True, suffix=suffix)
 
                     # Check that any light curve exist for a given quarter
 
@@ -1679,7 +1684,7 @@ class LightCurve(object):
 
                         # Estimate NSR
 
-                        NSR = lc.getNSR(influx=flux_unit)
+                        NSR = lc.getNSR(influx='ppm')
 
                         # The L1 pipeline have more info to save currently
 
@@ -1688,26 +1693,29 @@ class LightCurve(object):
                             data = {"star":i, "mag":mag, "rOA":rOA, "quarter":q, "ncam":ncam, 
                                     "ncon":ncon, "rcon":rcon, "SPR":SPR, "NSR":NSR,
                                     "flux_err":flux_err, "flag":flag}
+                            df1 = pd.DataFrame(data, index=[0])
+                            
                         else:
                             data = {"star":i, "quarter":q, "ncam":ncam, "NSR":NSR, "flag":flag}
-
-                        # Write data to data frame
+                            df1 = pd.DataFrame(data, index=[0])
+                            
+                        # Add data to data frame
                         
-                        df = df.append(data, ignore_index=True)
+                        df0 = pd.concat([df0, df1])
 
                 # Remove output files again
 
-                phot.remove(path=path)
+                lcs.remove(path=path)
                     
         # Handle output format
 
         if mag:
-            df = df.astype({"star":int, "mag":np.float32, "rOA":np.float32, "quarter":int,
-                            "ncam":int, "ncon":int, "rcon":np.float32, "SPR":np.float32,
-                            "NSR":np.float32, "flux_err":np.float32, "flag":str})
+            df = df0.astype({"star":int, "mag":np.float32, "rOA":np.float32, "quarter":int,
+                             "ncam":int, "ncon":int, "rcon":np.float32, "SPR":np.float32,
+                             "NSR":np.float32, "flux_err":np.float32, "flag":str})
         else:
-            df = df.astype({"star":int, "quarter":int, "ncam":int,
-                            "NSR":np.float32, "flag":str})
+            df = df0.astype({"star":int, "quarter":int, "ncam":int,
+                             "NSR":np.float32, "flag":str})
 
         # Sort data frame, set new index, and save
         
@@ -1740,7 +1748,8 @@ class LightCurve(object):
 
         # Open a pandas data frame and write to it
         
-        df = pd.DataFrame()
+        df0 = pd.DataFrame()
+        df1 = pd.DataFrame()
         cols = ["id", "ra", "dec", "x", "y", "mag",
                 "ccd", "xccd", "yccd", "xfp", "yfp"]
         f = 247.52 # [mm]
@@ -1756,16 +1765,13 @@ class LightCurve(object):
             files    = self.files(path=path)
             numFiles = len(files)
 
-            # Extract files
-                
-            # with ZipFile(files[j], 'r') as unzip:
-            #     unzip.extractall(path)
+            # Fetch light curve object
 
-            phot = LightCurve(path, mode="multi")
+            lcs = LightCurve(path, mode="multi")
             
             # Unpack all zip files in the path folder
             
-            phot.unpack()
+            lcs.unpack()
 
             # Loop over each group/cam/quarter simulation
 
@@ -1773,98 +1779,96 @@ class LightCurve(object):
                     
                 # Get file names
                 
-                filename_hdf5 = files[j][:-3] + "hdf5"
-                filename_ftr  = files[j][:-3] + "ftr"
-                filename_cat  = files[j][:-3] + "cat"
-                filename_inv  = files[j][:-3] + "invert"    
+                filename     = files[j][:-3]
+                filename_cat = filename + "cat"
+                filename_inv = filename + "invert"    
 
                 # Fetch light curve object
                 
-                try: lc = LightCurve(filename_hdf5)
-                except ExplicitException:
-                    try: lc = LightCurve(filename_ftr)
-                    except ExplicitException: pass
+                try: lc = LightCurve(filename + suffix)
+                except: pass
+                else:
+
+                    # Fetch info about observation
+
+                    group, camera, quarter = lc.obs()
+
+                    # Check if there is additional information from L1 pipeline
+
+                    try: filename_cat = glob.glob(path + f"*.cat")[0]
+                    except: mag, rOA, rCP, ncon, rcon, SPR = None, None, None, None, None, None
+                    else:   mag, rOA, rCP, ncon, rcon, SPR = self.star_info(filename_cat)
+
+                    # Force a correction and reload file
+                    # TODO remove for future simulations! Fixed in PLATOnium now
+                    #self.correct_cols(lc, filename_ftr)
+                    #lc = LightCurve(filename_ftr)
+
+                    # Flag for negative fluxes (bad behavior of L1 pipeline)
+
+                    if lc.flux().iloc[0] < 1:
+                        flag = 1
+                    else:
+                        flag = 0
+
+                    # Fetch NSR from RMS [ppm/sqrt(h)]
+
+                    NSR = lc.getNSR()
+
+                    # Additional info is available for L1 pipeline
+
+                    if suffix == "ftr":
+
+                        # Mean centroid error in percent
+
+                        xcen     = lc.xcen()
+                        ycen     = lc.ycen()
+                        xcen_err = lc.xcen_err()
+                        ycen_err = lc.ycen_err()
+                        rcen     = np.sqrt(xcen**2 + ycen**2)
+                        rcen_err = np.sqrt(xcen_err**2 + ycen_err**2)
+                        rcen_err_mean = rcen_err.mean() / rcen.mean() * 100
+                        #if rcen_err_mean > 100: rcen_err_mean = 100
+
+                        # Mean flux error in percent
+
+                        flux     = np.abs(lc.flux())
+                        flux_err = np.abs(lc.flux_err())
+                        flux_err_mean = flux_err.mean() / flux.mean() * 100                
+                        #if flux_err_mean > 100: flux_err_mean = 100
+
+                        # Write data to feather
+
+                        data = {"star":i, "group":group, "camera":camera, "quarter":quarter,
+                                "mag":mag, "ferr":flux_err_mean, "rerr":rcen_err_mean,
+                                "flag":flag, "rOA":rOA, "rCP":rCP, "ncon":ncon, "rcon":rcon,
+                                "dmag":dmag, "SPR":SPR, "NSR":NSR}
+                        df1 = pd.DataFrame(data, index=[0])
+
                     else:
 
-                        # Fetch info about observation
+                        data = {"star":i, "group":group, "camera":camera, "quarter":quarter,
+                                "mag":mag, "NSR":NSR}
+                        df1 = pd.DataFrame(data, index=[0])
 
-                        group, camera, quarter = lc.obs()
+                    # Append data
+                    if i !=0 and j != 0:
+                        df0 = pd.concat([df0, df1])
 
-                        # Check if there is additional information from L1 pipeline
+            # Remove output files again
 
-                        try: filename_cat = glob.glob(path + f"*.cat")[0]
-                        except: mag, rOA, rCP, ncon, rcon, SPR = None, None, None, None, None, None
-                        else:   mag, rOA, rCP, ncon, rcon, SPR = self.star_info(filename_cat)
-
-                        # Force a correction and reload file
-                        # TODO remove for future simulations! Fixed in PLATOnium now
-                        #self.correct_cols(lc, filename_ftr)
-                        #lc = LightCurve(filename_ftr)
-
-                        # Flag for negative fluxes (bad behavior of L1 pipeline)
-
-                        if lc.flux().iloc[0] < 1:
-                            flag = 1
-                        else:
-                            flag = 0
-
-                        # Fetch NSR from RMS [ppm/sqrt(h)]
-
-                        NSR = lc.getNSR()
-
-                        # Additional info is available for L1 pipeline
-
-                        if suffix == "ftr":
-
-                            # Mean centroid error in percent
-
-                            xcen     = lc.xcen()
-                            ycen     = lc.ycen()
-                            xcen_err = lc.xcen_err()
-                            ycen_err = lc.ycen_err()
-                            rcen     = np.sqrt(xcen**2 + ycen**2)
-                            rcen_err = np.sqrt(xcen_err**2 + ycen_err**2)
-                            rcen_err_mean = rcen_err.mean() / rcen.mean() * 100
-                            #if rcen_err_mean > 100: rcen_err_mean = 100
-
-                            # Mean flux error in percent
-
-                            flux     = np.abs(lc.flux())
-                            flux_err = np.abs(lc.flux_err())
-                            flux_err_mean = flux_err.mean() / flux.mean() * 100                
-                            #if flux_err_mean > 100: flux_err_mean = 100
-
-                            # Write data to feather
-
-                            data = {"star":i, "group":group, "camera":camera, "quarter":quarter,
-                                    "mag":mag, "ferr":flux_err_mean, "rerr":rcen_err_mean,
-                                    "flag":flag, "rOA":rOA, "rCP":rCP, "ncon":ncon, "rcon":rcon,
-                                    "dmag":dmag, "SPR":SPR, "NSR":NSR}
-                            df = df.append(data, ignore_index=True)
-
-                            # Delete unpacked files again to not overflow storage memory
-
-                            os.remove(filename_ftr)
-                            os.remove(filename_cat)
-                            os.remove(filename_inv)
-
-                        else:
-
-                            data = {"star":i, "group":group, "camera":camera, "quarter":quarter,
-                                    "mag":mag, "NSR":NSR}
-                            df = df.append(data, ignore_index=True)
+            lcs.remove(path=path)
 
         # Save final feather
 
         if suffix == "ftr":            
-            df = df.astype({"star":int, "group":int, "camera":int, "quarter":int, "mag":np.float32,
-                            "rOA":np.float32, "ferr":np.float32, "rerr":np.float32, "flag":int,
-                            "rOA":np.float32, "rCP":np.float32, "ncon":int, "rcon":np.float32,
-                            "dmag":np.float32, "SPR":np.float32, "NSR":np.float32})
+            df = df0.astype({"star":int, "group":int, "camera":int, "quarter":int, "mag":np.float32,
+                             "rOA":np.float32, "ferr":np.float32, "rerr":np.float32, "flag":int,
+                             "rOA":np.float32, "rCP":np.float32, "ncon":int, "rcon":np.float32,
+                             "dmag":np.float32, "SPR":np.float32, "NSR":np.float32})
         else:
-            df = df.astype({"star":int, "group":int, "camera":int, "quarter":int, "mag":np.float32,
-                            "NSR":np.float32})
-
+            df = df0.astype({"star":int, "group":int, "camera":int, "quarter":int, "mag":np.float32,
+                             "NSR":np.float32})
             
         # Sort data frame
 

@@ -123,27 +123,21 @@ class SimFile (object):
     #--------------------------------------------------------------#
 
 
-    def getTime(self, warning=True):
+    def getTime(self):
 
         """Get the time points according to the CCD cadence [s].
         """
 
-        # Fetch time column and write to data frame
-            
-        if "Time" in self.hdf5file["StarPositions"].keys():
-            
-            time = np.array(self.hdf5file["StarPositions/Time"])
-            return pd.DataFrame({"time": time})
+        cadence       = self.getInputParameter("ObservingParameters", "CycleTime")
+        numExposures  = self.getInputParameter("ObservingParameters", "NumExposures")
+        beginExposure = self.getInputParameter("ObservingParameters", "BeginExposureNr")
+        ccdCode       = self.getInputParameter("CCD", "Position")
 
-        elif not warning:
-            
-                time = self.getTimeQuarter(1)
-                return pd.DataFrame({"time": time})
-        else:
-            
-            print("ERROR: getTime(): Time array not present in StarPositions group")
-            return None
+        # TODO fix this in future!
+        if ccdCode == "Custom": ccdCode = "1"
+        timeShift     = self.getInputParameter("CCDPositions", "TimeShift")[int(ccdCode)-1]
 
+        return np.arange(beginExposure, numExposures) * cadence + timeShift
 
 
 
@@ -616,25 +610,25 @@ class SimFile (object):
 
 
     def saveSmearingMapsToFITS(self, fileName):
-            """
-            Save all smearing maps in the HDF5 file to a FITS file with the given file name.
-            This will go horribly wrong when the number of exposures is too large or when the maps
-            themselves are too large.
-            """
+        """
+        Save all smearing maps in the HDF5 file to a FITS file with the given file name.
+        This will go horribly wrong when the number of exposures is too large or when the maps
+        themselves are too large.
+        """
 
-            hduList = []
-            Nimages = self.getInputParameter("ObservingParameters", "NumExposures")
-            for imageNr in range(Nimages):
-                image = self.getSmearingMap(imageNr)
-                imageName = "SmearingMap{0:06d}".format(imageNr)
-                if imageNr == 0:
-                    hdu = fits.PrimaryHDU(image)
-                else:
-                    hdu = fits.ImageHDU(image, name=imageName)
-                hduList.append(hdu)
+        hduList = []
+        Nimages = self.getInputParameter("ObservingParameters", "NumExposures")
+        for imageNr in range(Nimages):
+            image = self.getSmearingMap(imageNr)
+            imageName = "SmearingMap{0:06d}".format(imageNr)
+            if imageNr == 0:
+                hdu = fits.PrimaryHDU(image)
+            else:
+                hdu = fits.ImageHDU(image, name=imageName)
+            hduList.append(hdu)
 
-            myFits = fits.HDUList(hduList)
-            myFits.writeto(fileName)
+        myFits = fits.HDUList(hduList)
+        myFits.writeto(fileName)
 
 
 
@@ -695,7 +689,7 @@ class SimFile (object):
     #--------------------------------------------------------------#
 
 
-    def getYawPitchRoll(self, getTime = False):
+    def getYawPitchRoll(self, getTime=False):
 
         """
         PURPOSE: Get the yaw, pitch and roll angle values at the end of each exposure
@@ -745,7 +739,7 @@ class SimFile (object):
 
 
 
-    def getYawPitchRollFromDrift(self, getTime = False):
+    def getYawPitchRollFromDrift(self, getTime=False):
         """
         PURPOSE: Get the telescop yaw, pitch and roll angle values at the end of each exposure
 
@@ -1413,7 +1407,7 @@ class SimFile (object):
 
         # Fetch time column
 
-        time = self.getTime(warning=warning)
+        time = pd.DataFrame({"time": self.getTime()})
 
         # Fetch flux column(s)
 
@@ -1427,8 +1421,6 @@ class SimFile (object):
 
 
 
-
-
     def getMaskUpdateEvents(self):
 
         """Exposure number of all mask updates.
@@ -1437,7 +1429,6 @@ class SimFile (object):
         # Fetch mask update events
 
         return np.array(self.hdf5file["Photometry/Masks/exposureNrOfMaskUpdate"])
-
 
 
 
@@ -1526,8 +1517,6 @@ class SimFile (object):
         # Finito!
 
         return rowIndices, colIndices, exposureNrOfMaskUpdate, maskSize, maskNSR
-
-
 
 
 

@@ -463,7 +463,7 @@ def passbandConversionV2P(mag, Teff, inverse=False):
 
 
 
-def getPhotonNoiseLimitNSR(P, Ncam=1, Ntra=1, tdur=3600, camType='N'):
+def getPhotonNoiseLimitNSR(mag, passband='P', Ncam=1, Ntra=1, tdur=3600, camType='N'):
 
     """NSR estimate in the photon noise limit of bright stars.
 
@@ -496,27 +496,31 @@ def getPhotonNoiseLimitNSR(P, Ncam=1, Ntra=1, tdur=3600, camType='N'):
     if camType == 'N':
         texp = 21.
         tcyc = 25.
+        gain = 0.075     # [ADU/e-]
     elif camType == 'F':
         texp = 2.1
         tcyc = 2.5
-
-    # The P passband zero-point
-
-    zp = 20.62
+        gain = 0.05
 
     # Flux of stars [e-/s]
+    
+    if passband == "V":
+        f0 = 1.00179e8
+        f = 10**(-0.4 * mag) * f0
+    else:
+        f0 = 0.7324478224428527e8
+        # The P passband zero-point
+        zp = 20.62
+        f = 10**(-0.4 * (mag - zp)) * f0
 
-    f = 10 ** (-0.4 * (P - zp))
+    # Observed total flux [ADU/exp]
 
-    # Observed total flux per exposure in ADU counts
-
-    g = 900000 / 65535.  # [e-/ADU] Gain
-    F = f * texp / g  # [ADU]
+    F = f * tcyc * gain
 
     # SNR from pure photon noise and NSR from uncorrelated noise.
     # Gaussian statistic gives sigma --> sigma/sqrt(N)
 
-    SNR = np.sqrt(F * Ncam * Ntra * tdur / tcyc)
+    SNR = np.sqrt(F * Ncam * Ntra * tdur) # / tcyc)
     NSR = 1 / SNR * 1e6
 
     return NSR

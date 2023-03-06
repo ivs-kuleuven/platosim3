@@ -1298,9 +1298,8 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
 
     # Plot all stars
     
-    # scatter = ax.scatter(starPF.ra.deg, starPF.dec.deg, transform=ax.get_transform('world'), 
-    #                      s=dm, marker=mark, c=color, ec='k', lw=1, zorder=5)
-
+    scatter = ax.scatter(starPF.ra.deg, starPF.dec.deg, transform=ax.get_transform('world'), 
+                         s=dm, marker=mark, c=color, ec='k', lw=1, zorder=5)
     
     # Plot pointing of each camera group
     
@@ -2168,7 +2167,18 @@ def plotNSRvsMagnitude(df, column=False, Vmag=False, residuals=False,
             ax.axhline(y=nsr, color=cmap(color), linestyle="--",
                        label=f"{nsr} ppm for "+r"$n_{\rm CAM}=\,$"+f"{ncam}", zorder=0)
         ax.axvline(x=11, color="k", alpha=0.7, linestyle=':', zorder=0)
-        
+
+    # Plot noise limits
+
+    mag = np.linspace(6, 13, 100)
+
+    ax.axhline(y=9, c="gray", ls="-", lw=1, zorder=0)
+    ax.text(np.mean(mag), 8, "Jitter noise", fontsize=15, zorder=0)
+
+    noise_photon = ut.getPhotonNoiseLimitNSR(mag, passband='V', Ncam=24)
+    ax.plot(mag, noise_photon, '-', c='gray',lw=1,zorder=0)
+    
+
     # Handle colorbar and make discrete
 
     if column in ("group", "camera", "quarter", "ncam", "ncon", "flag"):
@@ -2210,7 +2220,7 @@ def plotNSRvsMagnitude(df, column=False, Vmag=False, residuals=False,
     else:
         ax.plot(df["mag"], df["NSR"], 'k.', alpha=0.7, zorder=1)
         ax.set_ylabel(ylabel)
-
+        
     # Extra settings for colorbar after image generation
 
     if column == "ncam":
@@ -2237,7 +2247,7 @@ def plotNSRvsMagnitude(df, column=False, Vmag=False, residuals=False,
     # Settings
 
     if grid:   ax.grid(color="lightgray")
-    if legend: ax.legend(loc='best')
+    if legend: ax.legend(loc='upper left')
 
     return fig, ax
 
