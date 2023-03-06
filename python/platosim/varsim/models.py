@@ -19,12 +19,14 @@ from astropy import units as u
 from astropy import constants as c
 from PyAstronomy import funcFit, pyasl
 from matplotlib import pyplot as plt
-from platosim.utilities import errorcode
-from platonium.var.utilities import find_nearest
 
-#============================================================================#
-#                             CLASS DEFINITIONS                              #
-#============================================================================#
+# PlatoSim
+from platosim.utilities        import errorcode
+from platosim.varsim.utilities import find_nearest
+
+#==============================================================#
+#                          MODELS CLASS                        #
+#==============================================================#
 
 
 class LimbDarkening(funcFit.OneDFit):

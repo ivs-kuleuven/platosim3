@@ -32,7 +32,7 @@ Sky:
 
 Platform:
 
-    SolarPanelOrientation:           0               # 0, 90, 180, or 270 degrees for the different quarters of a year [deg]
+    SolarPanelOrientation:           -8.5            # kappa (PIC 1.1, SPF) for different mission quarters [deg]: kappa + {0, 90, 180, 270}
     UseJitter:                       yes             # yes or no. If no, ignore everything below.
     JitterSource:                    FromRedNoise    # FromFile, FromRedNoise, or FromNetwork
     JitterYawRms:                    0.038           # [arcsec]
