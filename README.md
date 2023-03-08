@@ -1,15 +1,17 @@
+![PlatoSim logo](docs/figures/LogoPlatoSim.png "PlatoSim logo")
+## The end-to-end PLATO camera simulator
 [![Image](https://img.shields.io/badge/license-MIT-blue.svg "")](https://github.com/IvS-KULeuven/PlatoSim3/blob/master/LICENSE.txt)
-[![Image](https://img.shields.io/badge/Jenkins-D24939?style=flat&logo=Jenkins&logoColor=white)](https://www.jenkins.io/)
 [![Image](https://img.shields.io/badge/documentation-%E2%9C%93-blue.svg)](https://ivs-kuleuven.github.io/PlatoSim3/)
 [![Image](https://img.shields.io/badge/tutorials-%E2%9C%93-blue.svg)](https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials)
-
+[![Image](https://img.shields.io/badge/Python-3766AB?style=flat-square&logo=Python&logoColor=white)](https://ivs-kuleuven.github.io/PlatoSim3/user-overview.html)
+[![Image](https://img.shields.io/badge/Jenkins-D24939?style=flat&logo=Jenkins&logoColor=white)](https://ivs-kuleuven.github.io/PlatoSim3/user-jenkins.html)
+[![Image](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=Docker&logoColor=white)]()
 <!-- [![Image](https://img.shields.io/badge/pip%20install-transitleastsquares-blue.svg)]() -->
 <!-- [![Image](https://img.shields.io/badge/arXiv-1901.02015-blue.svg)]() -->
-![PlatoSim logo](docs/figures/LogoPlatoSim.png "PlatoSim logo")
 
 # Motivation
 
-To accommodate PLATO's need of versatile simulations prior to mission launch -- that at the same time describe accurately the innovative but complex multi-telescope design -- we here present Platosim, the end-to-end PLATO camera simulator specifically developed for purpose. PlatoSim allows the user to simulate photometric time series of CCD images and light curves in accordance to the expected observations of PLATO. In the context of the PLATO payload, PlatoSim uses a general formalism of modelling the stellar field and sky background, the short and long-term barycentric pixel displacement of the stellar sources, the cameras and their optics, the CCDs and their electronics, and all main random and systematic noise sources. With its strong predictive powers and diverse applicability, PlatoSim is key simulator for PLATO Mission Consortium.
+To accommodate PLATO's need of versatile simulations prior to mission launch - that at the same time describe accurately the innovative but complex multi-telescope design - we here present Platosim, the end-to-end PLATO camera simulator specifically developed for purpose. PlatoSim allows the user to simulate photometric time series of CCD images and light curves in accordance to the expected observations of PLATO. In the context of the PLATO payload, PlatoSim uses a general formalism of modelling the stellar field and sky background, the short and long-term barycentric pixel displacement of the stellar sources, the cameras and their optics, the CCDs and their electronics, and all main random and systematic noise sources. With its strong predictive powers and diverse applicability, PlatoSim is key simulator for PLATO Mission Consortium.
 
 # Access and contribution
 
