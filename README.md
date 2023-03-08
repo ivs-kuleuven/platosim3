@@ -1,4 +1,7 @@
-<img src="docs/figures/LogoPlatoSim.png" alt="PlatoSim logo" style="width:850px"/>
+![PlatoSim logo](docs/figures/LogoPlatoSim.png "PlatoSim logo")
+
+<!-- <img src="docs/figures/LogoPlatoSim.png" alt="PlatoSim logo" style="width:850px"/> -->
+
 [![Image](https://img.shields.io/badge/license-MIT-blue.svg "")](https://github.com/IvS-KULeuven/PlatoSim3/blob/master/LICENSE.txt)
 
 <!-- [![Image](https://img.shields.io/badge/documentation-%E2%9C%93-blue.svg)](https://ivs-kuleuven.github.io/PlatoSim3/) -->
