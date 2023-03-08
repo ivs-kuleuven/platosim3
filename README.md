@@ -1,10 +1,12 @@
 <img src="docs/figures/LogoPlatoSim.png" alt="PlatoSim logo" style="width:850px"/>
-[![Image](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/hippke/tls/blob/master/LICENSE)
+[![Image](https://img.shields.io/badge/license-MIT-blue.svg)]()
+
+<!-- [![Image](https://img.shields.io/badge/documentation-%E2%9C%93-blue.svg)](https://ivs-kuleuven.github.io/PlatoSim3/) -->
+<!-- [![Image](https://img.shields.io/badge/tutorials-%E2%9C%93-blue.svg)](https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials) -->
 <!-- [![Image](https://img.shields.io/badge/Python-2.7%20%26%203.5%2B-blue.svg)](https://pypi.org/project/transitleastsquares/) -->
 <!-- [![Image](https://img.shields.io/badge/pip%20install-transitleastsquares-blue.svg)](https://pypi.org/project/transitleastsquares/) -->
-[![Image](https://img.shields.io/badge/documentation-%E2%9C%93-blue.svg)](https://ivs-kuleuven.github.io/PlatoSim3/)
-[![Image](https://img.shields.io/badge/tutorials-%E2%9C%93-blue.svg)](https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials)
 <!-- [![Image](https://img.shields.io/badge/arXiv-1901.02015-blue.svg)]() -->
+
 
 # Motivation
 
