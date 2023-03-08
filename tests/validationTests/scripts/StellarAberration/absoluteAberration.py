@@ -8,14 +8,14 @@ import matplotlib.pyplot as plt
 from test import eprint
 
 
-""" 
-This test checks the absolute aberration. The test consists out of 3 parts: 
+"""
+This test checks the absolute aberration. The test consists out of 3 parts:
 
 1. The first test plots the position of an aberrated star over one
 year and a theoretical predicted path (where we assume a circular orbit with a constant velocity for the spacecraft) over one year. This figure is
-saved into the ioFiles directory, it is possible to visually confirm that the two paths are similar. 
+saved into the ioFiles directory, it is possible to visually confirm that the two paths are similar.
 
-2. The second test checks that the aberration is zero for a star whose position wrt the spacecraft is orthogonal to the spacecrafts velocity. 
+2. The second test checks that the aberration is zero for a star whose position wrt the spacecraft is orthogonal to the spacecrafts velocity.
 
 3. The last test checks that the aberration is maximal for a star whose position is parallel to the velocity.
 """
@@ -70,7 +70,7 @@ class AbsoluteAberration(Test):
         outputRa  = []
         outputDec = []
         startTime0 = self.startTime
-        
+
         for exposureNr in range(0, numExposures + 1, deltaNumExposures):
             self.sim["ObservingParameters/BeginExposureNr"] = exposureNr
             self.sim["Camera/AberrationCorrection/StartTime"] = startTime0 + exposureNr*25
@@ -95,22 +95,23 @@ class AbsoluteAberration(Test):
         beta = np.arcsin(self.velocity[2])
         ra, dec = np.rad2deg(rf.ecliptic2equatorial(lamb, beta))
 
-        ccdCode = "1"
         self.sim["Platform/Orientation/Source"] = "Angles"
         self.sim["Platform/Orientation/Angles/RAPointing"] = ra
         self.sim["Platform/Orientation/Angles/DecPointing"] = dec
-        self.sim["CCD/Position"] = ccdCode
 
-        xCCDpix, yCCDpix = 4510/2, 4510/2
-        RAcenterOfSubfield, DecCenterOfSubfield = rf.pixelToSkyCoordinates(self.sim, ccdCode, xCCDpix, yCCDpix)
-        RAcenterOfSubfield = np.rad2deg(RAcenterOfSubfield)
-        DecCenterOfSubfield = np.rad2deg(DecCenterOfSubfield)
+        dec = np.deg2rad(dec)
+        ra  = np.deg2rad(ra)
+
+        self.sim["SubField/NumRows"]         = 510
+        self.sim["SubField/NumColumns"]      = 510
+
+        self.sim.setSubfieldAroundCoordinates(ra, dec, 510, 510)
 
         # Set the star catalog
         starFileName = self.outputDir + "/starCatalog" + self.nr + ".txt"
         myFile = open(starFileName, "w")
         myFile.write("# RA DEC Vmag starID\n")
-        myFile.write("{0}  {1}  {2}  {3}\n".format(RAcenterOfSubfield, DecCenterOfSubfield, 16.5, 1))
+        myFile.write("{0}  {1}  {2}  {3}\n".format(np.rad2deg(ra), np.rad2deg(dec), 16.5, 1))
         myFile.close()
 
         # Run the simulation with aberration
@@ -130,34 +131,33 @@ class AbsoluteAberration(Test):
 
     def runForThirdTest(self):
 
-        # Rest begin exposure numbers
-        self.sim["ObservingParameters/BeginExposureNr"] = 0
-        
+        # Calculate the orthogonal velocity
         orthogonalVelocity = [(self.velocity[1] - self.velocity[2]), self.velocity[2] - self.velocity[0], self.velocity[0] - self.velocity[1]]
         orthogonalNorm     = np.sqrt(orthogonalVelocity[0]**2 + orthogonalVelocity[1]**2 + orthogonalVelocity[2]**2)
         orthogonalVelocity = [ x / orthogonalNorm for x in orthogonalVelocity]
 
+
         lamb = np.arctan2(orthogonalVelocity[1], orthogonalVelocity[0])
         beta = np.arcsin(orthogonalVelocity[2])
-
         ra, dec = np.rad2deg(rf.ecliptic2equatorial(lamb, beta))
-        
-        ccdCode = "1"
-        self.sim["Platform/Orientation/Source"] = "Angles"
-        self.sim["ObservingParameters/RApointing"] = ra
-        self.sim["ObservingParameters/DecPointing"] = dec
-        self.sim["CCD/Position"] = ccdCode
 
-        xCCDpix, yCCDpix = 4510/2, 4510/2
-        RAcenterOfSubfield, DecCenterOfSubfield = rf.pixelToSkyCoordinates(self.sim, ccdCode, xCCDpix, yCCDpix)
-        RAcenterOfSubfield = np.rad2deg(RAcenterOfSubfield)
-        DecCenterOfSubfield = np.rad2deg(DecCenterOfSubfield)
+        self.sim["Platform/Orientation/Source"] = "Angles"
+        self.sim["Platform/Orientation/Angles/RAPointing"] = ra
+        self.sim["Platform/Orientation/Angles/DecPointing"] = dec
+
+        dec = np.deg2rad(dec)
+        ra  = np.deg2rad(ra)
+
+        self.sim["SubField/NumRows"]    = 510
+        self.sim["SubField/NumColumns"] = 510
+
+        self.sim.setSubfieldAroundCoordinates(ra, dec, 510, 510)
 
         # Set the star catalog
         starFileName = self.outputDir + "/starCatalog" + self.nr + ".txt"
         myFile = open(starFileName, "w")
         myFile.write("# RA DEC Vmag starID\n")
-        myFile.write("{0}  {1}  {2}  {3}\n".format(RAcenterOfSubfield, DecCenterOfSubfield, 16.5, 1))
+        myFile.write("{0}  {1}  {2}  {3}\n".format(np.rad2deg(ra), np.rad2deg(dec), 16.5, 1))
         myFile.close()
 
         # Run the simulation with aberration
