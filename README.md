@@ -1,5 +1,5 @@
 [![Image](https://img.shields.io/badge/license-MIT-blue.svg "")](https://github.com/IvS-KULeuven/PlatoSim3/blob/master/LICENSE.txt)
-[![Image](https://img.shields.io/badge/Jenkins-D24939?)](https://www.jenkins.io/)
+[![Image](https://img.shields.io/badge/Jenkins-D24939?style=plastic&logo=Jenkins&logoColor=white)](https://www.jenkins.io/)
 [![Image](https://img.shields.io/badge/documentation-%E2%9C%93-blue.svg)](https://ivs-kuleuven.github.io/PlatoSim3/)
 [![Image](https://img.shields.io/badge/tutorials-%E2%9C%93-blue.svg)](https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials)
 
