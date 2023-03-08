@@ -1,4 +1,4 @@
-<img src="docs/figures/LogoPlatoSim.png" alt="PlatoSim logoo" style="width:1000px;"/>
+<img src="docs/figures/LogoPlatoSim.png" alt="PlatoSim logoo" style="width:800px;"/>
 
 # Motivation
 
