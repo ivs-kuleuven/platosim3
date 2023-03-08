@@ -1,4 +1,4 @@
-![PlatoSim logo](docs/figures/LogoPlatoSim.png "PlatoSim logo")
+<img src="docs/figures/LogoPlatoSim.png" alt="PlatoSim logoo" style="height:1000px;width:1000px;"/>
 
 # Motivation
 
@@ -6,18 +6,18 @@ To accommodate PLATO's need of versatile simulations prior to mission launch -- 
 
 # Access and contribution
 
-We welcome new users and encourage contributions. Simply contact one of the PlatoSim developers from KU Leuven and we will make sure to give you access. Note that in agreement with the regulations of the PLATO mission. you need a signed *Non Disclosure Agreement* (NDA) before we can give you access to PlatoSim.
+We welcome new users and encourage contributions. Simply contact one of the PlatoSim developers from KU Leuven and we will make sure to give you access. Note that in agreement with the regulations of the PLATO mission, you need a signed *Non Disclosure Agreement* (NDA) before we can give you access to PlatoSim.
 
 # Installation
 
-We provide the following installation procedures:
+PlatoSim has the following installation procedures:
 
 * [conda installation procedure](https://ivs-kuleuven.github.io/PlatoSim3/user-install.html) (recommended!)
 * [straight from GitHub](https://ivs-kuleuven.github.io/PlatoSim3/dev-fork-clone.html)
 
 # Getting Started
 
-In order to provide a smooth start of your PlatoSim journey, we suggest to both consult our [PlatoSim3 Documentation Page](https://ivs-kuleuven.github.io/PlatoSim3/) and our [Python Turorials](https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials).
+In order to provide a smooth start of your PlatoSim journey, we suggest that you both consult our [PlatoSim3 Documentation Page](https://ivs-kuleuven.github.io/PlatoSim3/) and our [Python Turorials](https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials).
 
 # Reference
 
@@ -33,7 +33,7 @@ If you have any questions or trouble using PlatoSim, please open a [GitHub Issue
 * Appropiate issue *label* (see right-hand menu)
 * Concise explanation of the problem
 * What were tried to investigate the problem?
-* Please provide the YAML input file and log file (Using debugging: `--verbosity 3`)
+* Please provide the `inputfile.yaml` and `log.txt` files (in debug mode: `--verbosity 3`)
 
 ---
 
