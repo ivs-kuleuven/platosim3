@@ -4,9 +4,10 @@
 [![Image](https://img.shields.io/badge/license-MIT-blue.svg "")](https://github.com/IvS-KULeuven/PlatoSim3/blob/master/LICENSE.txt)
 [![Image](https://img.shields.io/badge/documentation-%E2%9C%93-blue.svg)](https://ivs-kuleuven.github.io/PlatoSim3/)
 [![Image](https://img.shields.io/badge/tutorials-%E2%9C%93-blue.svg)](https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials)
+[![Image](https://img.shields.io/badge/c++-00599C?style=for-the-badge&logo=c%2B%2B&logoColor=white)](https://ivs-kuleuven.github.io/PlatoSim3/_simulation_steps.html)
 [![Image](https://img.shields.io/badge/Python-3766AB?style=flat-square&logo=Python&logoColor=white)](https://ivs-kuleuven.github.io/PlatoSim3/user-overview.html)
 [![Image](https://img.shields.io/badge/Jenkins-D24939?style=flat&logo=Jenkins&logoColor=white)](https://ivs-kuleuven.github.io/PlatoSim3/user-jenkins.html)
-[![Image](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=Docker&logoColor=white)]()
+<!-- [![Image](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=Docker&logoColor=white)]() -->
 <!-- [![Image](https://img.shields.io/badge/pip%20install-transitleastsquares-blue.svg)]() -->
 <!-- [![Image](https://img.shields.io/badge/arXiv-1901.02015-blue.svg)]() -->
 
