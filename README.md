@@ -23,12 +23,13 @@ We welcome new users and encourage contributions. Simply contact one of the Plat
 
 PlatoSim has the following installation procedures:
 
-* [conda installation procedure](https://ivs-kuleuven.github.io/PlatoSim3/user-install.html) (recommended!)
+* [conda installation procedure](https://ivs-kuleuven.github.io/PlatoSim3/user-install.html) (recommended)
 * [straight from GitHub](https://ivs-kuleuven.github.io/PlatoSim3/dev-fork-clone.html)
 
 ## Getting Started
 
-In order to provide a smooth start of your PlatoSim journey, we suggest that you both consult our <br> [PlatoSim3 Documentation Page](https://ivs-kuleuven.github.io/PlatoSim3/) and our [Python Turorials](https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials).
+In order to provide a smooth start of your PlatoSim journey, we suggest that you both consult our <br> 
+[Documentation Page](https://ivs-kuleuven.github.io/PlatoSim3/) and our [Python Turorials](https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials).
 
 ## Reference
 
@@ -38,7 +39,8 @@ Please cite Jannsen et al. (in prep.) if use this code in your research. The ADS
 
 ## Feedback and Issues
 
-If you have any questions or trouble using PlatoSim, please open a [GitHub Issue](https://github.com/IvS-KULeuven/PlatoSim3/issues). In case of issues -- to help us help you -- we recommend to provide the following information:
+If you have any questions or trouble using PlatoSim, please open a [GitHub Issue](https://github.com/IvS-KULeuven/PlatoSim3/issues). <br> 
+In case of issues -- to help us help you -- we recommend to provide the following information:
 
 * PlatoSim version (bash command: `platosim --version`)
 * Appropiate issue *label* (see right-hand menu)
