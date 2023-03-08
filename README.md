@@ -1,5 +1,5 @@
 <img src="docs/figures/LogoPlatoSim.png" alt="PlatoSim logo" style="width:850px"/>
-[<img src="https://img.shields.io/badge/license-MIT-blue.svg"](https://github.com/IvS-KULeuven/PlatoSim3/blob/master/LICENSE.txt)
+[<img src="https://img.shields.io/badge/license-MIT-blue.svg">](https://github.com/IvS-KULeuven/PlatoSim3/blob/master/LICENSE.txt)
 
 <!-- [![Image](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/hippke/tls/blob/master/LICENSE) -->
 <!-- [![Image](https://img.shields.io/badge/documentation-%E2%9C%93-blue.svg)](https://ivs-kuleuven.github.io/PlatoSim3/) -->
