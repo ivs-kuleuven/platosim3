@@ -28,7 +28,7 @@ PlatoSim has the following installation procedures:
 
 ## Getting Started
 
-In order to provide a smooth start of your PlatoSim journey, we suggest that you both consult our [PlatoSim3 Documentation Page](https://ivs-kuleuven.github.io/PlatoSim3/) and our [Python Turorials](https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials).
+In order to provide a smooth start of your PlatoSim journey, we suggest that you both consult our <br> [PlatoSim3 Documentation Page](https://ivs-kuleuven.github.io/PlatoSim3/) and our [Python Turorials](https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials).
 
 ## Reference
 
