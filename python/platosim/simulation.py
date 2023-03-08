@@ -36,7 +36,7 @@ class Simulation(object):
 
     Simulation class allows running the PLATO simulator interactively from Python
     and tuning the input parameters before each run. For more help, type:
-    
+
     Example
     -------
     >>> import platosim.simulation as Simulation
@@ -58,7 +58,7 @@ class Simulation(object):
         self.targetOutputFilesLocation = None
 
         # Set output directory
-        
+
         if outputDir is not None:
             self.outputDir = outputDir
 
@@ -690,7 +690,7 @@ class Simulation(object):
                                      normal=True):
 
         """Set subfield around stellar coordinates
-        
+
         Set the location of the sub-field such that it is centred on the star
         with the given sky coordinates.  Depending on the CCD (in nomincal mode:
         "1", "2", "3", or "4"; in fast mode: "1F", "2F", "3F", or "4F"), the
@@ -713,7 +713,7 @@ class Simulation(object):
         ---------
         raStar : float
             Right ascension of the star [radians]
-        decStar : float 
+        decStar : float
             Declination of the star [radians]
         subfieldSizeX : int
             Width (i.e. number of columns) of the subiield [pixels]
@@ -724,7 +724,7 @@ class Simulation(object):
 
         Return
         ------
-        bool : True if the entire subfield fit on one of the 4 (pre-defined) CCDs, 
+        bool : True if the entire subfield fit on one of the 4 (pre-defined) CCDs,
                False otherwise.
         """
 
@@ -772,7 +772,6 @@ class Simulation(object):
         # Compute the position of the subfield. xPix and yPix are the CCD coordinates
         # of the star, given a 4510x4510 CCD [colNumber, rowNumber]. The function below
         # also checks if the subfield fits entirely on the CCD. If not: ccdCode is None.
-
         ccdCode, xPix, yPix = rf.calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY,
                                                                     raStar, decStar,
                                                                     raPlatform, decPlatform,
@@ -784,6 +783,7 @@ class Simulation(object):
                                                                     mappedDistortion,
                                                                     distortionCoefficients,
                                                                     pathToPsfFile)
+
         if ccdCode == None:
             return False
 
@@ -794,7 +794,6 @@ class Simulation(object):
         CCDOrientation   = rf.CCD[ccdCode]["angle"]
 
         # If we arrive here, there is no problem accommodating the entire sufield on the CCD
-
         self["CCD/Position"]      = str(ccdCode)
         self["CCD/OriginOffsetX"] = str(CCDOriginOffsetX)
         self["CCD/OriginOffsetY"] = str(CCDOriginOffsetY)
