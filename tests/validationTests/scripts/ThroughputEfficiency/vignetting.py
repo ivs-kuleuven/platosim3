@@ -34,14 +34,13 @@ class Vignetting(Test):
         self.sim["SubField/NumColumns"] = 4200
         self.sim["Platform/Orientation/Angles/DecPointing"] = -self.sim["Platform/Orientation/Angles/DecPointing"]
         self.sim["CCD/IncludeRelativeTransmissivity"] = "yes"
-        print(self.sim["CCD/IncludeRelativeTransmissivity"])
 
 
 
 
 
     def runSimulation(self):
-        
+
         simFile = self.sim.run(removeOutputFile = True)
         self.image = simFile.getImage(0)
         self.image = self.image / np.max(self.image)
