@@ -1,3 +1,5 @@
+![PlatoSim logo](docs/figures/LogoPlatoSim.png "PlatoSim logo")
+
 # Where to find the documentation?
 
 See the [PlatoSim3 Documentation Pages](https://ivs-kuleuven.github.io/PlatoSim3/).
