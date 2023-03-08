@@ -1334,7 +1334,8 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
     ax.scalebar((0.05, 0.05), 10 * u.deg).label()
     ax.compass(0.95, 0.05, 0.1)
     ax.grid(color='gray')
-
+    
+    
     # Settings
     
     if title is not None:
@@ -1347,7 +1348,7 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
     
     # Return figure
     
-    return fig
+    return fig, ax
 
 
 
@@ -2975,7 +2976,7 @@ def plotSubfieldAnimation(filename, outputFileName=False,
     ims = []
     fig, ax = plt.subplots(1,1,figsize=figsize)
 
-    for imgNumber, imgName in zip(tqdm(imgNumbers, bar_format=ut.tqdm_bar_format()), imgNames):
+    for imgNumber, imgName in zip(tqdm(imgNumbers, bar_format=ut.tqdmBar()), imgNames):
 
         # Fetch each pixel image
         
