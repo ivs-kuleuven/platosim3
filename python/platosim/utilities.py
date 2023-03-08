@@ -2,13 +2,16 @@
 
 """
 This python module contains all general utilities that are commonly used
-by the different codes within the PlatoSim and the PLATOnium repository.
+by the different codes within PlatoSim and PLATOnium.
+
+NOTE: these utilities needs the Poetry install!
 """
 
 import os
 import sys
 import h5py
 import math
+import inspect
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -16,6 +19,7 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord
 from pylab import MaxNLocator
 from colorama import Fore, Style
+from prettytable import PrettyTable
 from scipy.ndimage import median_filter
 from numba import njit
 import astropy.units as u
@@ -27,12 +31,13 @@ from astroquery.mast import Catalogs
 import platosim.referenceFrames as rf
 
 
-# ==============================================================#
-#                           FUNCTIONS                          #
-# ==============================================================#
+#--------------------------------------------------------------#
+#                        BASH FUNCTIONS                        #
+#--------------------------------------------------------------#
 
 
 def errorcode(API, message):
+
     """Function to colour code error messages within a code.
 
     Parameters
@@ -60,15 +65,42 @@ def errorcode(API, message):
         sys.exit()
 
 
-def tqdm_bar_format():
-    """Code snippet to set default
+
+
+
+def getFunctions(script):
+
+    """Fetch names of class functions.
+    """
+    names = inspect.getmembers(script, inspect.isfunction)
+    funcs = [item[0] for item in names]
+    t = PrettyTable()
+    t.add_column(f"{script.__name__} functions", funcs)
+    return t
+    
+
+
+
+
+def tqdmBar():
+
+    """Add-on function to be used in a for statement with tqdm library.
+
+    Example:
+    >>> from tqdm import tqdm
+    >>> for i in tqdm(range(<number of loops>), bar_format=ut.tqdmBar()):
+            <loop over something>
     """
 
     bar_format = "{l_bar}{bar:50}{r_bar}{bar:-50b}"
     return bar_format
 
 
+
+
+
 def compilation(i, i_max, text=''):
+
     """Custum function to print out a compilation-time-bar in the terminal.
 
     Parameters
@@ -106,32 +138,71 @@ def compilation(i, i_max, text=''):
     sys.stdout.flush()
 
 
+
+
+
+#--------------------------------------------------------------#
+#                      PANDAS OPERATIONS                       #
+#--------------------------------------------------------------#
+
+
+def pdAddColumn(df, newCol, name):
+
+    """Add a column to an exisiting pandas data frame as first entry.
+    """
+
+    df[name] = newCol
+    cols = df.columns.tolist()
+    cols = cols[-1:] + cols[:-1]
+    return df[cols]
+
+
+
+
+
+#--------------------------------------------------------------#
+#                       NUMPY OPERATIONS                       #
+#--------------------------------------------------------------#
+
+    
 def findNearestIndex(array, value):
+
+    """Find the nearest value within an numpy array.
     """
-    Find the nearest value within an numpy array.
-    """
+
     return (np.abs(np.asarray(array) - value)).argmin()
 
 
+
+
+
 def medianAbsoluteDeviation(array):
+
+    """Calculate the Median Abosolute Deviation (MAD) of an array.
     """
-    Calculate the Median Abosolute Deviation (MAD) of an array.
-    """
+    
     return np.sum(np.abs(array - np.median(array))) / len(np.ravel(array))
 
 
+
+
+
 def rootMeanSquare(array):
+
+    """Calculate the Root Mean Square (RMS) of an array.
     """
-    Calculate the Root Mean Square (RMS) of an array.
-    """
+    
     return np.sqrt(np.mean(array ** 2))
 
 
-def normalize(signal, factor=1e6, length=-1):
-    """
-    This function normalize a signal with the option to factorize it.
 
-    PARAMETERS
+
+
+def normalize(signal, factor=1e6, length=-1):
+
+    """Normalize a signal with the option to factorize it.
+
+    Parameters
     ----------
     signal : narray
         Signal array that needs to be turned into relative signal.
@@ -141,7 +212,7 @@ def normalize(signal, factor=1e6, length=-1):
         Option to normalize signal using only a smaller initial signal segment.
         Default is to use the entire signal sequence.
 
-    RETURN
+    Return
     ------
     relative_signal : narray
         Normalized relative signal is returned. Default unit in [ppm].
@@ -152,10 +223,102 @@ def normalize(signal, factor=1e6, length=-1):
     return relative_signal
 
 
+
+
+
+def imageNorm(inputArray, norm="linear", sigma=2, scale_min=None, scale_max=None):
+
+    """Performs custom scaling of the input numpy array.
+
+    Parameters
+    ----------
+    inputArray : ndarray
+        Input image array to normalize.
+    norm : str
+        Normalization method. 
+        Options: ['linear', 'log', 'sqrt', 'asinh'] 
+    sigma : float
+        Scaling factor corresponding to the std of the image.
+    scale_min : float
+        Minimum data value.
+    scale_max : float
+        Maximum data value.
+    
+    Return
+    ------
+    image : ndarray
+        Normalized image array.
+    """
+    
+    # Input image array
+
+    image = np.array(inputArray, copy=True)
+
+    # Default scaling is 2 sigma
+
+    if scale_min is None:
+        scale_min = image.mean() - sigma * image.std()
+    if scale_max is None:
+        scale_max = image.mean() + sigma * image.std()
+
+    # Clip data
+
+    image = image.clip(min=scale_min, max=scale_max)
+
+    # Select normalization method
+
+    if norm == "linear":
+        image = (image - scale_min) / (scale_max - scale_min)
+        indices = np.where(image < 0)
+        image[indices] = 0.0
+        indices = np.where(image > 1)
+        image[indices] = 1.0
+
+    elif norm == "log":
+        factor = np.log10(scale_max - scale_min)
+        indices0 = np.where(image < scale_min)
+        indices1 = np.where((image >= scale_min) & (image <= scale_max))
+        indices2 = np.where(image > scale_max)
+        image[indices0] = 0.0
+        image[indices2] = 1.0
+        image[indices1] = np.log10(image[indices1]) / factor
+
+    elif norm == "sqrt":
+        image = image - scale_min
+        indices = np.where(image < 0)
+        image[indices] = 0.0
+        image = np.sqrt(image)
+        image = image / math.sqrt(scale_max - scale_min)
+        image = np.sqrt(image)
+        image = image / np.sqrt(scale_max - scale_min)
+
+    elif norm == "asinh":
+        non_linear = 2.0
+        factor = np.arcsinh((scale_max - scale_min) / non_linear)
+        indices0 = np.where(image < scale_min)
+        indices1 = np.where((image >= scale_min) & (image <= scale_max))
+        indices2 = np.where(image > scale_max)
+        image[indices0] = 0.0
+        image[indices2] = 1.0
+        image[indices1] = np.arcsinh((image[indices1] - scale_min) / non_linear) / factor
+
+    # That's it!
+
+    return image
+
+
+
+
+
+#--------------------------------------------------------------#
+#                       SIGNAL PROCESSING                      #
+#--------------------------------------------------------------#
+
+
 @njit
 def filter(signal, filt='median', carbox=144):
-    """
-    This utility makes the proper filter solution to a signal dataset.
+
+    """Custom carbox filter for signal processing.
 
     Notice: the carbox size here is twice what is default by numpy.
 
@@ -214,7 +377,55 @@ def filter(signal, filt='median', carbox=144):
     return S_new
 
 
-def passbandConversionV2P(V, Teff):
+
+
+
+#--------------------------------------------------------------#
+#                        PLATO SPECIFIC                        #
+#--------------------------------------------------------------#
+
+
+def stellarFlux(Vmag, exposureTime, fluxm0=1.00238e8,
+                throughputBandwidth=400, transmissionEfficiency=0.76,
+                lightCollectingArea=0.01131, quantumEfficiency=0.87):
+
+    """Compute the stellar flux given the instrumental characteristics.
+
+    Parameters
+    ----------
+    Vmag : float
+        Johnson-Cousin V magnitude
+    exposureTime : float
+        Exposure time (without the readout) [s]
+    fluxm0 : float
+        Photon flux of a V=0 G2V star [phot/s/m^2/nm]
+    throughputBandwidth : float 
+        Throughput FWHM value in the passband [nm]
+    transmissionEfficiency : 
+        Transmission efficiency in the passband [0, 1]
+    lightCollectingArea : float
+        The aperture of the cameras [m^2]
+    quantumEfficiency : float
+        Quantum efficiency of the detector [0, 1]
+
+    Return
+    ------
+    flux : float
+        Instrumental stellar flux [e-/exposure]
+    """
+
+    photonFlux = (fluxm0 * throughputBandwidth * transmissionEfficiency *
+                  lightCollectingArea * pow(10.0, -0.4 * Vmag) * exposureTime)
+    electronFlux = photonFlux * quantumEfficiency
+
+    return electronFlux
+
+
+
+
+
+def passbandConversionV2P(mag, Teff, inverse=False):
+
     """Coversion from Johnson-Cousin V magnitude to the PLATO passband.
     
     This filtersion is from Marchiori et al. (2019), Eq. 5 and 6, and is
@@ -234,16 +445,26 @@ def passbandConversionV2P(V, Teff):
         The PLATO passband magnitude of star(s).
     """
 
-    # The actual filtersion equation
+    # Bolometric scaling relation
+    
+    # c = [1.184e-12, 4.526e-8, -5.805e-4, 2.449]  # Machiori et al. (2019)
+    c = [2.366e-12, 8.126e-8, -9.279e-4, 3.499]  # Fabio Fialho et al. in prep
+    bol = c[0]*Teff**3 + c[1]*Teff**2 + c[2]*Teff + c[3]
 
-    c = [1.184e-12, 4.526e-8, 5.805e-4, 2.449]  # Machiori et al. (2019)
-    # c = [2.366e-12, 8.126e-08, -0.0009279, 3.499] # Fabio Fialho et al. in prep
-    P = c[0] * Teff ** 3 - c[1] * Teff ** 2 + c[2] * Teff - c[3] + V
+    # From V to P (or P to V if inverse it True)
 
-    return P
+    if inverse:
+        return mag + bol
+    else:
+        return mag - bol
 
 
-def getPhotonNoiseLimitNSR(P, Ncam=1, Ntra=1, tdur=3600, camType='N'):
+
+
+
+
+def getPhotonNoiseLimitNSR(mag, passband='P', Ncam=1, Ntra=1, tdur=3600, camType='N'):
+
     """NSR estimate in the photon noise limit of bright stars.
 
     The stellar flux are calculated from the PLATO passband found by 
@@ -275,43 +496,46 @@ def getPhotonNoiseLimitNSR(P, Ncam=1, Ntra=1, tdur=3600, camType='N'):
     if camType == 'N':
         texp = 21.
         tcyc = 25.
+        gain = 0.075     # [ADU/e-]
     elif camType == 'F':
         texp = 2.1
         tcyc = 2.5
-
-    # The P passband zero-point
-
-    zp = 20.62
+        gain = 0.05
 
     # Flux of stars [e-/s]
+    
+    if passband == "V":
+        f0 = 1.00179e8
+        f = 10**(-0.4 * mag) * f0
+    else:
+        f0 = 0.7324478224428527e8
+        # The P passband zero-point
+        zp = 20.62
+        f = 10**(-0.4 * (mag - zp)) * f0
 
-    f = 10 ** (-0.4 * (P - zp))
+    # Observed total flux [ADU/exp]
 
-    # Observed total flux per exposure in ADU counts
-
-    g = 900000 / 65535.  # [e-/ADU] Gain
-    F = f * texp / g  # [ADU]
+    F = f * tcyc * gain
 
     # SNR from pure photon noise and NSR from uncorrelated noise.
     # Gaussian statistic gives sigma --> sigma/sqrt(N)
 
-    SNR = np.sqrt(F * Ncam * Ntra * tdur / tcyc)
+    SNR = np.sqrt(F * Ncam * Ntra * tdur) # / tcyc)
     NSR = 1 / SNR * 1e6
 
     return NSR
 
 
-def pdAddColumn(df, newCol, name):
-    """Function to add a column to an exisiting pandas data frame.
-    """
 
-    df[name] = newCol
-    cols = df.columns.tolist()
-    cols = cols[-1:] + cols[:-1]
-    return df[cols]
+
+
+#--------------------------------------------------------------#
+#                       PLATOnium FUNCTIONS                    #
+#--------------------------------------------------------------#
 
 
 def convertQuarterRange(dQ):
+
     """Function to sort a quarter ranges.
     
     Small function that takes a string of numbers (here quarters)
@@ -319,147 +543,92 @@ def convertQuarterRange(dQ):
     ranges. If a single number is given, an quarter integer is 
     returned.
     """
+    
     quarters = []
     for part in dQ.split(','):
+
         if '-' in part:
+
             # If a range in mag is provided
+
             q1, q2 = part.split('-')
             q1, q2 = int(q1), int(q2)
             quarters.append(q1)
             quarters.append(q2)
+            
         else:
+
             # If only one mag-value is given select 1 mag around it
+
             q1 = int(part)
             quarters.append(q1)
+
+    # That's it!
+            
     return quarters
 
 
-def stellarFlux(Vmag, exposureTime, fluxm0=1.00238e8,
-                throughputBandwidth=400, transmissionEfficiency=0.76,
-                lightCollectingArea=0.01131, quantumEfficiency=0.87):
-    """
-    PURPOSE: compute the stellar flux (electrons / exposure) given the instrumental characteristics
 
-    INPUT: Vmag:                   Johnson V magnitude
-           exposureTime:           Exposure time (without the readout) [s]
-           fluxm0:                 Photon flux of a V=0 star (default SpT=G2V) [phot/s/m^2/nm]
-           throughputBandwidth:    FWHM [nm]
-           transmissionEfficiency: In [0,1]
-           lightCollectingArea:    Of the telescope [m^2]
-           quantumEfficiency:      In [0,1]
-
-    OUTPUT: flux: [e-/exposure]
-    """
-
-    photonFlux = (fluxm0 * throughputBandwidth * transmissionEfficiency *
-                  lightCollectingArea * pow(10.0, -0.4 * Vmag) * exposureTime)
-    electronFlux = photonFlux * quantumEfficiency
-
-    return electronFlux
 
 
 def convertMagnitudeRange(dm):
+
     """Function to sort magnitudes ranges.
 
     Small function that takes a string of numbers (here of magnitudes)
     and split it up into readable float values used as real number
     ranges. If a single number is given, a selection of 1 mag around
     the imput int/float is returned as a magnitude range.
+    
     Used in: PLATOnium/simulator-pic.py
+
+    Parameters
+    ----------
+    dm : str
+        Magnitude value or range (e.g. '10.5' or '10.0-11.5')
+
+    Return
+    ------
+    magRange : range()
+        Corresponding magnitude range using the range() object.
     """
+    
     magRange = []
     for part in dm.split(','):
+        
         if '-' in part:
+
             # If a range in mag is provided
+
             m1, m2 = part.split('-')
             m1, m2 = float(m1), float(m2)
+            
         else:
+            
             # If only one mag-value is given select 1 mag around it
+            
             m1 = float(part) - 0.5
             m2 = float(part) + 0.5
+            
         magRange.append(m1)
         magRange.append(m2)
+
+    # That's it!
+        
     return magRange
 
 
-def imageNorm(inputArray, norm="linear", sigma=2, scale_min=None, scale_max=None):
-    """
-    Performs custom scaling of the input numpy array.
-
-    @type inputArray: np array
-    @param inputArray: image data array
-    @type scale_min: float
-    @param scale_min: minimum data value
-    @type scale_max: float
-    @param scale_max: maximum data value
-    @rtype: np array
-    @return: image data array
-    """
-    # Input image array
-
-    image = np.array(inputArray, copy=True)
-
-    # Default scaling is 2 sigma
-
-    if scale_min is None:
-        scale_min = image.mean() - sigma * image.std()
-    if scale_max is None:
-        scale_max = image.mean() + sigma * image.std()
-
-    # Clip data
-
-    image = image.clip(min=scale_min, max=scale_max)
-
-    # Select normalization method
-
-    if norm == "linear":
-        image = (image - scale_min) / (scale_max - scale_min)
-        indices = np.where(image < 0)
-        image[indices] = 0.0
-        indices = np.where(image > 1)
-        image[indices] = 1.0
-
-    elif norm == "log":
-        factor = np.log10(scale_max - scale_min)
-        indices0 = np.where(image < scale_min)
-        indices1 = np.where((image >= scale_min) & (image <= scale_max))
-        indices2 = np.where(image > scale_max)
-        image[indices0] = 0.0
-        image[indices2] = 1.0
-        image[indices1] = np.log10(image[indices1]) / factor
-
-    elif norm == "sqrt":
-        image = image - scale_min
-        indices = np.where(image < 0)
-        image[indices] = 0.0
-        image = np.sqrt(image)
-        image = image / math.sqrt(scale_max - scale_min)
-        image = np.sqrt(image)
-        image = image / np.sqrt(scale_max - scale_min)
-
-    elif norm == "asinh":
-        non_linear = 2.0
-        factor = np.arcsinh((scale_max - scale_min) / non_linear)
-        indices0 = np.where(image < scale_min)
-        indices1 = np.where((image >= scale_min) & (image <= scale_max))
-        indices2 = np.where(image > scale_max)
-        image[indices0] = 0.0
-        image[indices2] = 1.0
-        image[indices1] = np.arcsinh((image[indices1] - scale_min) / non_linear) / factor
-
-    # else:
-    #    errorcode("error", "Not valid normalization method!")
-
-    # Finito!
-
-    return image
 
 
-def moveColorbarExponent(x_offs=0, y_offs=1, dig=0, side='left', omit_last=False):
-    """Move scientific notation exponent from top to the side.
-    
-    Additionally, one can set the number of digits after the comma
-    for the y-ticks, hence if it should state 1, 1.0, 1.00 and so forth.
+
+#--------------------------------------------------------------#
+#                          QUERY TOOLS                         #
+#--------------------------------------------------------------#
+
+
+def ticQuery(star, radius=2, Vmax=18, outFile=None):
+
+    """Query TIC catalog for stars around a given named source below a given V magnitude.
 
     Parameters
     ----------
@@ -524,7 +693,7 @@ def ticQuery(star, radius=2, Vmax=18, outFile=None):
     """
     Query TIC catalog for stars around a given named source below a given V magnitude.
 
-    PARAMETERS
+    Parameters
     ----------
     star : str
         Name of the star to query around.
@@ -535,7 +704,7 @@ def ticQuery(star, radius=2, Vmax=18, outFile=None):
     outFile : str
         Path of the output file to write to. If None, no file is written.
 
-    RETURNS
+    Returns
     -------
     results : pandas.DataFrame
         DataFrame containing the results of the query. The named star will appear first if
@@ -543,6 +712,7 @@ def ticQuery(star, radius=2, Vmax=18, outFile=None):
     """
 
     # Get the coordinates of the star from Simbad
+    
     result_table = Simbad.query_object(star)
     if result_table is None:
         raise ValueError(f"Could not find {star} in Simbad.")
@@ -551,22 +721,56 @@ def ticQuery(star, radius=2, Vmax=18, outFile=None):
     coords = SkyCoord(ra, dec, unit=(u.hourangle, u.deg))
 
     # Query TIC for stars around the star, within the given radius
+    
     results = Catalogs.query_region(coords, radius=radius * u.arcmin, catalog="TIC")
     if results is None:
         raise ValueError(f"Could not find any stars in TIC around {star}.")
 
     # Convert the results to a Pandas DataFrame
+    
     results = results.to_pandas()
     results = results[results["Vmag"] < Vmax][["ra", "dec", "Vmag"]]
 
     # Optionally write the results to a txt file
+    
     if outFile is not None:
         with open(outFile, "w") as f:
             f.write("# RA DEC Vmag\n")
             for i, row in results.iterrows():
                 f.write(f"{row['ra']:.6f} {row['dec']:.6f} {row['Vmag']:.3f}\n")
 
+    # That's it!
+                
     return results
+
+
+
+
+
+def gaiaQuery(star):
+    """
+    Query Gaia for a named star and return the Gaia DR2 ID.
+
+    Parameters
+    ----------
+    star : str
+        Name of the star to query around.
+
+    Returns
+    -------
+    gaia_id : int
+        The Gaia DR2 ID of the star.
+    """
+    result_table = Simbad.query_objectids(star)
+    if result_table is None:
+        raise LookupError(f"No Simbad results for {star} (probably not a star)")
+    for row in result_table:
+        if 'Gaia DR2' in row['ID']:
+            gaia_id = row['ID']
+            return int(gaia_id[9:])
+    raise LookupError(f"No Gaia DR2 ID for {star} (probably a multiple star)")
+
+
 
 
 # def picOfDestiny(distribution, prange):
