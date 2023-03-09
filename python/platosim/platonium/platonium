@@ -39,7 +39,7 @@ from scipy.interpolate import interp1d, CubicSpline
 import platosim.referenceFrames as rf
 from platosim.simulation   import Simulation
 from platosim.utilities    import errorcode, pdAddColumn
-from platosim.plot         import drawStarInCCDfocalPlane
+from platosim.plot         import drawStarInCCDfocalPlane, plotSubfieldAnimation
 from platosim.matplotlibrc import setup
 setup()
 
@@ -123,6 +123,12 @@ class PLATOnium(object):
         else:
             self.overwrite = False
 
+        # Overwrite simulation
+        if args.animation:
+            self.animation = True
+        else:
+            self.animation = False
+            
             
         # PATHS AND INPUT
 
@@ -768,6 +774,20 @@ class PLATOnium(object):
             os.system(f'zip -j {self.outputSimName}.zip {self.outputSimName}*')
             os.remove(self.outputSimName + '.hdf5')
 
+        # Make a animation if requested
+        if self.animation:
+            plotSubfieldAnimation(str(self.outputSimName) + '.hdf5',
+                                  outputFileName=str(self.outputSimName),
+                                  skipNimages=1000,
+                                  numImages=False,
+                                  colorMap="cubehelix",
+                                  clipPercentile=8.0, 
+                                  showStarPositions='PIC',
+                                  showMaskOfStarID='1',
+                                  useTitle=True,
+                                  showGrid=True,
+                                  figsize=(6,6))
+            
         # Execution time of module
         if self.verbose > 0:
             self.tocPlatoSim = datetime.datetime.now() - self.tic
@@ -776,6 +796,9 @@ class PLATOnium(object):
             #self.byte2MB = 1024 * 1024 #* 1024
             #self.memPlatoSim = os.path.getsize(self.outputDir) / self.byte2MB
             #self.memPlatoSim = shutil.disk_usage(self.outputDir)
+
+
+        
 
             
     #--------------------------------------------------------------#
@@ -1178,6 +1201,7 @@ parser = argparse.ArgumentParser(epilog=__doc__,
 
 parser.add_argument('-p', '--plot',      action='store_true',   help='Flag to plot 1st subfield (this will not save the simulation)')
 parser.add_argument('-w', '--overwrite', action='store_true',   help='Flag to overwrite an existing HDF5 output file that may exist')
+parser.add_argument('-a', '--animation', action='store_true',   help='Flag to generate a animation of the subfield simulation')
 parser.add_argument('-v', '--verbose', metavar='INT', type=int, help='Verbosity level [0, 1, 3] (Default: 1)')
 
 man_group = parser.add_argument_group('MANDATORY PARAMETERS')
