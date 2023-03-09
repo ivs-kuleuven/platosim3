@@ -17,7 +17,7 @@ To accommodate PLATO's need of versatile simulations prior to mission launch - t
 
 ## Access and contribution
 
-We welcome new users and encourage contributions. Simply contact one of the PlatoSim developers from KU Leuven and we will make sure to give you access. Note that in agreement with the regulations of the PLATO mission, you need a signed *Non Disclosure Agreement* (NDA) before we can give you access to PlatoSim.
+We welcome new users and encourage contributions. Simply contact one of the PlatoSim developers from KU Leuven and we will make sure to give you access. Note that in agreement with the regulations of the PLATO mission, you need a *Non Disclosure Agreement* (NDA) before we can give you access to PlatoSim.
 
 ## Installation
 
@@ -33,19 +33,19 @@ In order to provide a smooth start of your PlatoSim journey, we suggest that you
 
 ## Reference
 
-Please cite Jannsen et al. (in prep.) if use this code in your research. The ADS BibTex entry for this paper will soon be available.
+Please cite *Jannsen et al. (in prep.)* if use PlatoSim in your research. The ADS BibTex entry for this paper will be available soon.
 
 <!-- The BibTeX entry for the paper is: -->
 
 ## Feedback and Issues
 
-If you have any questions or trouble using PlatoSim, please open a [GitHub Issue](https://github.com/IvS-KULeuven/PlatoSim3/issues). <br> 
-In case of issues -- to help us help you -- we recommend to provide the following information:
+If you have any questions or experience any trouble while using PlatoSim, please open a [GitHub Issue](https://github.com/IvS-KULeuven/PlatoSim3/issues). <br> 
+In case of an issue -- to help us help you -- we recommend to provide the following information:
 
 * PlatoSim version (bash command: `platosim --version`)
 * Appropiate issue *label* (see right-hand menu)
 * Concise explanation of the problem
-* What were tried to investigate the problem?
+* What you tried to investigate the problem
 * Please provide the `inputfile.yaml` and `log.txt` files (in debug mode: `--verbosity 3`)
 
 ---

@@ -1719,7 +1719,7 @@ class SimFile (object):
 
         if showGrid is True:
             ax.grid(c='gray', ls='-', alpha=0.5, zorder=1)
-
+            
         # Overplot rectangles over those pixels that are part of the mask
         # Note: imshow reverses rows and columns
 
@@ -1729,7 +1729,7 @@ class SimFile (object):
                 rect = patches.Rectangle((colIndices[k], rowIndices[k]), 1, 1, linewidth=2.0,
                                          edgecolor='b', facecolor='none', zorder=2)
                 ax.add_patch(rect)
-
+        
         # If required, overplot the true averaged star positions
 
         if showStarPositions:
@@ -1738,19 +1738,23 @@ class SimFile (object):
                                                                    maxVmag=maxVmag)
 
             # Allow differentiating between a target and its contaminants
+            
             if showStarPositions == 'PIC':
                 lw = 0.06 * fontSize
+
                 mag = -2.5*np.log10(flux) + 25
                 ax.scatter(col[0], row[0], s=tarMarkerSize, marker='o', c='lime',
                            edgecolor='k', linewidth=lw, zorder=4)
+
                 if len(col) > 1:
-                    dm  = mag[1:] - mag[0]*np.ones(len(mag)-1)
-                    conMarkerSize = (tarMarkerSize -
-                                     np.abs(tarMarkerSize - tarMarkerSize/dm).astype(int))
-                    ax.scatter(col[1:], row[1:], s=conMarkerSize, marker='o',
-                               c='gold', edgecolor='k', linewidth=lw, zorder=4)
+                    # Scale contaminant circle with area
+                    conDeltaMag   = mag[1:] - mag[0]
+                    conMarkerSize = tarMarkerSize * (mag[0]/mag[1:])**2
+                    ax.scatter(col[1:], row[1:], s=conMarkerSize, marker='o', c='gold',
+                               edgecolor='k', linewidth=lw, zorder=4)
 
             # Or hightligth all stars the same
+            
             else:
                 ax.scatter(col, row, marker='x', c='g')
             if showStarIDs:
@@ -1831,14 +1835,12 @@ class SimFile (object):
         if imageNr is False:
 
             # Function to update slider
-
             def update_image(n=0):
                 image = images[n]
                 imagePlot.set_data(image)
                 fig.canvas.draw()
 
             # Create slider
-
             slider = widgets.IntSlider(description='Image:',
                                        value=0, min=0, max=Nimg-1, step=1,
                                        layout=widgets.Layout(width='70%'))
