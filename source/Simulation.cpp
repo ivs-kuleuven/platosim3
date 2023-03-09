@@ -76,7 +76,7 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     // Write the version info to the output HDF5 file
 
-    writeVersionInformationToHDF5();
+    hdf5File->writeVersionInformation();
 
 
     double readoutTimeDuringNextExposure;
@@ -769,7 +769,6 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("StartTime");
     subGroup = "Camera/FieldDistortion";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
-    addString("Type");
     addString("Source");
     addDoubleVector("ConstantCoefficients");
     addDoubleVector("ConstantInverseCoefficients");
@@ -972,6 +971,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("WriteFlatfieldMap");
     addBoolean("WriteSubPixelImages");
     addBoolean("WriteStarPositions");
+    addBoolean("GroupByExposure");
     addBoolean("WriteGhostPositions");
     addBoolean("WriteACS");
     addBoolean("WriteCosmics");

@@ -467,7 +467,12 @@ double DetectorWithAnalyticNonGaussianPSF::takeExposure(int exposureNr, double s
 
     Log.debug("Detector: Writing cosmics of the PixelMap, smearing map, bias map #" + to_string(exposureNr) + " to HDF5 file.");
 
-    writeCosmicHitsToHDF5(exposureNr);
+    if (writeCosmics)
+    {
+            if (groupByExposure){writeCosmicHitsToHDF5WhenGroupByExposure(exposureNr);}
+            else{writeCosmicHitsToHDF5WithoutGroupByExposure(exposureNr);}
+    }
+
 
 
     // Advance the internal clock
@@ -578,13 +583,13 @@ void DetectorWithAnalyticNonGaussianPSF::integrateLight(int exposureNr, double s
 
     if(includeDarkSignal)
     {
-    		Log.debug("Detector: adding dark current");
+         Log.debug("Detector: adding dark current");
 
-       	addDarkSignal(exposureTime);
+         addDarkSignal(exposureTime);
     }
     else
     {
-    		Log.debug("Detector: no dark current added");
+          Log.debug("Detector: no dark current added");
     }
 
 
@@ -1036,7 +1041,6 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
 
     const double skyBackground = camera. getTotalSkyBackground();                // [photons/pixel/exposure]
     image -= throughputMap * skyBackground;                                      // [e-/pixel/exposure]
-
 
     // Loop over all targets for which you need a lightcurve
 
