@@ -463,6 +463,7 @@ def passbandConversionV2P(mag, Teff, inverse=False):
 
 
 
+
 def getPhotonNoiseLimitNSR(mag, passband='P', Ncam=1, Ntra=1, tdur=3600, camType='N'):
 
     """NSR estimate in the photon noise limit of bright stars.
@@ -497,6 +498,7 @@ def getPhotonNoiseLimitNSR(mag, passband='P', Ncam=1, Ntra=1, tdur=3600, camType
         texp = 21.
         tcyc = 25.
         gain = 0.075     # [ADU/e-]
+
     elif camType == 'F':
         texp = 2.1
         tcyc = 2.5
@@ -516,6 +518,7 @@ def getPhotonNoiseLimitNSR(mag, passband='P', Ncam=1, Ntra=1, tdur=3600, camType
     # Observed total flux [ADU/exp]
 
     F = f * tcyc * gain
+
 
     # SNR from pure photon noise and NSR from uncorrelated noise.
     # Gaussian statistic gives sigma --> sigma/sqrt(N)
@@ -711,6 +714,7 @@ def ticQuery(star, radius=2, Vmax=18, outFile=None):
         it is not removed by the Vmax cut.
     """
 
+
     # Get the coordinates of the star from Simbad
     
     result_table = Simbad.query_object(star)
@@ -790,3 +794,4 @@ def gaiaQuery(star):
 #         return pick
 #     else:
 #         return distribution_pick(distribution, range)
+

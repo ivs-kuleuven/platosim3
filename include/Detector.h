@@ -126,6 +126,7 @@ class Detector: public HDF5Writer
 
         void applySimpleCTImodel();
         void applyShort2013CTImodel(string map);
+        void makeSubGroupForCosmics(string field, int exposureNr);
 
         void applyParticulateContamination();
         void applyMolecularContamination();
@@ -135,10 +136,8 @@ class Detector: public HDF5Writer
 
         virtual void initHDF5Groups() override;
         virtual void writePixelMapsToHDF5(int exposureNr);
-        virtual void writeCosmicHitsToHDF5(int exposureNr);
-        virtual void writeCosmicFieldToHDF5(int exposureNr, string field, vector<unsigned int> &entryRows, vector<unsigned int> &entryColumns, 
-        vector<double> &trailLengths, vector<double> &entryAngles, vector<double> &intensities,
-        vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux);
+        virtual void writeCosmicHitsToHDF5WithoutGroupByExposure(int exposureNr);
+        virtual void writeCosmicHitsToHDF5WhenGroupByExposure(int exposureNr);
         virtual void writeCTIToHDF5();
 
         double getRowEdgeFOV(int column);
@@ -173,7 +172,7 @@ class Detector: public HDF5Writer
 
         double missionDuration;                  // Duration of the PLATO Mission, used for degrading parameters      [s]
 
-        arma::Mat<int> mechanicalVignettingMask; // Mask for the sub-field showing which pixels are within the FOV (1) and which aren't (0)   
+        arma::Mat<int> mechanicalVignettingMask; // Mask for the sub-field showing which pixels are within the FOV (1) and which aren't (0)
         arma::Row<int> numExposedRowsInFOV;      // How many pixels in the exposed part of the detector for each column are within the FOV (only for columns showing overlap with the sub-field)
 
         unsigned int numRows;                    // Nr of rows of the detector (= size in y-direction) including non-exposed ones [pixels]
@@ -205,6 +204,7 @@ class Detector: public HDF5Writer
         bool includeCosmicsInSubField;           // Whether or not to include cosmic hits in the subfield
         bool includeCosmicsInSmearingMap;        // Whether or not to include cosmic hits in the (physical) overscan region
         bool includeCosmicsInBiasMap;            // Whether or not to include cosmic hits in the (virtual) prescan region
+        bool groupByExposure;                    
         double cosmicHitRate;				     // Cosmic hit rate [events / cm^2 / s]
         vector<double> cosmicTrailLengthParams;  // Distribution parameters of the length of the cosmic trails          [pixels]
         vector<double> cosmicIntensityParams;    // Skew-Normal distribution parameters fo the intensity of the intensities of the cosmics 
@@ -232,7 +232,7 @@ class Detector: public HDF5Writer
         vector<double> cosmicsTrailsBiasMapRight;        // length of the trails of the cosmics that hit the righ bias map    [pix]
         vector<double> cosmicsAnglesBiasMapRight;        // angle at which the cosmic hits the CCD in the righ bias map       [rad]
         vector<double> cosmicsIntensitiesBiasMapRight;   // total number of electrons the cosmic will release over its trail  [e-]
-
+        int cosmicSubgroupIndex=-1;                      // Keeps track of which subgroup in HDF5 file is being filled when saving the cosmics
 
         vector<double> relTransmissivityCoefVector;      // To take into account the transmissivity, including the vignetting  
         double radiusFOV;                        // Radius of the FOV [radians]

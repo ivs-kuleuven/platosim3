@@ -22,6 +22,7 @@ import numpy as np
 
 import platosim.referenceFrames as rf
 import platosim.instrument      as it
+
 from platosim.simfile import SimFile
 
 
@@ -112,7 +113,6 @@ class Simulation(object):
 
 
 
-
     @property
     def outputDir(self):
 
@@ -144,8 +144,6 @@ class Simulation(object):
 
         if self.debug:
             print(f"DEBUG: output dir set to {path}")
-
-
 
 
 
@@ -188,8 +186,6 @@ class Simulation(object):
         YAML = self.getYamlConfiguration()
         print(pyaml.dump(YAML))
 
-
-        
 
 
     def __contains__(self, key):
@@ -266,7 +262,7 @@ class Simulation(object):
                 print(f"ERROR: The group '{key}' was not found in the " +
                       f"yaml inputfile '{self.configurationFilename}'")
                 return None
-                      
+
         # Node is a string, so cast it to its proper value
 
         try:
@@ -998,6 +994,38 @@ class Simulation(object):
         self["Telescope/UseDriftFromFile"] = True
         self["Telescope/DriftFileName"]    = fileName
 
+    def createDriftFile(self, quarter, fileName, model="poly", plot=False):
+
+        """Create a photometry file list in ascii format and sets it to the YAML input.
+
+        Parameters
+        ----------
+        starIDs : ndarray
+            Array with IDs of the star (integers)
+        fileName : str
+            Path of the photometry file that will be written.
+
+        Return
+        ------
+        A file will be saved, containing the star IDs that photometry should be performed on.
+        The "Telescope/UseDriftFromFile" tag in the yaml tree will be changed to the given
+        DriftFileName.
+        """
+
+        # Create TED file
+
+        it.getTED(quarter=quarter, model=model, outfile=fileName, plot=plot)
+
+        # Set this to simulation
+
+        self["Telescope/UseDrift"]         = True
+        self["Telescope/UseDriftFromFile"] = True
+        self["Telescope/DriftFileName"]    = fileName
+
+        # Finito!
+
+        return
+
 
 
 
@@ -1226,7 +1254,6 @@ class Simulation(object):
                     dexGroup[i] = False
 
         # Return parameters
-
         return dexGroup, distanceOA
 
 

@@ -387,6 +387,13 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
 
     readOut(exposureTime);
 
+    // If photometric extraction was asked, apply it now
+
+    // if (includePhotometry)
+    // {
+    //     Log.info("Detector: applying photometric extraction to exposure " + to_string(exposureNr));
+    //     applyPhotometry(exposureNr);
+    // }
 
     // Write the CCD subfield, the bias map, and the smearing map to the HDF5 file
 
@@ -406,7 +413,11 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
 
         Log.debug("Detector: Writing Cosmics of the PixelMap, smearing map, bias map #" + to_string(exposureNr) + " to HDF5 file.");
 
-    writeCosmicHitsToHDF5(exposureNr);
+    if (writeCosmics)
+    {
+            if (groupByExposure){writeCosmicHitsToHDF5WhenGroupByExposure(exposureNr);}
+            else{writeCosmicHitsToHDF5WithoutGroupByExposure(exposureNr);}
+    }
 
     // Advance the internal clock
 
@@ -1258,8 +1269,6 @@ void DetectorWithMappedPSF::applyInverseDistortion(double &x, double &y)
     }
     x = xDist;
     y = yDist;
-
-
 }
 
 
@@ -1379,3 +1388,6 @@ void DetectorWithMappedPSF::generateThroughputMap()
         throughputMap *= molecularContaminationEfficiency;
     }
 }
+
+
+

@@ -91,8 +91,6 @@ void Camera::initHDF5Groups()
       hdf5File.createGroup("/TransmissionEfficiency");
     }
 
-    hdf5File.createGroup("/PointLikeGhostPositions");
-    hdf5File.createGroup("/ExtendedGhostPositions");
 }
 
 
@@ -238,66 +236,8 @@ void Camera::flushOutput()
 
     if (writeStarPositions)
     {
-        Log.info("Camera: writing star positions to HDF5 file");
-
-        vector<double> time;
-        for(auto keyValuePair: detectedStarInfo) time.push_back(keyValuePair.first);
-        if (!time.empty())
-        {
-            hdf5File.writeArray("StarPositions/", "Time", time.data(), time.size());
-        }
-        else
-        {
-            Log.warning("Camera: No star positions to write to HDF5 file.");
-        }
-
-        // For each of the exposures, make a subgroup and write the position and flux of all detected stars.
-        // Because some stars at the edge may jitter in and out of the subfield from one exposure to the other,
-        // the written arrays may not be equally long for each exposure.
-
-        for (int n = 0; n < time.size(); n++)
-        {
-            // Make the sub-group
-
-            stringstream myStream;
-            myStream << "Exposure" << setfill('0') << setw(6) << beginExposureNr + n;
-            const string exposureGroupName = "/StarPositions/" + myStream.str();
-            hdf5File.createGroup(exposureGroupName);
-
-            // Collect the different time series. For the positions, we only compute the sum, so we still need
-            // to divide by N to compute the average, where N is the number of times the star was detected to be
-            // in the subfield during an exposure.
-
-            vector<unsigned int> starIDs;
-            vector<double> xFPmm;
-            vector<double> yFPmm;
-            vector<double> rowPix;
-            vector<double> colPix;
-            vector<double> flux;
-
-            for(auto keyValuePair: detectedStarInfo[time[n]])
-            {
-                const unsigned int starID = keyValuePair.first;
-                starIDs.push_back(starID);                       // list of starIDs for this exposure only
-                xFPmm.push_back(detectedStarInfo[time[n]][starID][0] / detectedStarInfo[time[n]][starID][5]);
-                yFPmm.push_back(detectedStarInfo[time[n]][starID][1] / detectedStarInfo[time[n]][starID][5]);
-                rowPix.push_back(detectedStarInfo[time[n]][starID][2] / detectedStarInfo[time[n]][starID][5]);
-                colPix.push_back(detectedStarInfo[time[n]][starID][3] / detectedStarInfo[time[n]][starID][5]);
-                flux.push_back(detectedStarInfo[time[n]][starID][4]);
-            }
-
-            // Write the time series to HDF5
-
-            if(!starIDs.empty())
-            {
-                hdf5File.writeArray(exposureGroupName, "starID", starIDs.data(), starIDs.size());
-                hdf5File.writeArray(exposureGroupName, "xFPmm",  xFPmm.data(),   xFPmm.size());
-                hdf5File.writeArray(exposureGroupName, "yFPmm",  yFPmm.data(),   yFPmm.size());
-                hdf5File.writeArray(exposureGroupName, "rowPix", rowPix.data(),  rowPix.size());
-                hdf5File.writeArray(exposureGroupName, "colPix", colPix.data(),  colPix.size());
-                hdf5File.writeArray(exposureGroupName, "flux",   flux.data(),    flux.size());
-            }
-        }
+        if (groupByExposure){hdf5File.writeStarPositionByExposure(detectedStarInfo, beginExposureNr);}
+	else {hdf5File.writeStarPositionByStarID(detectedStarInfo, starIDsInSubfield);}
     }
     else
     {
@@ -309,136 +249,30 @@ void Camera::flushOutput()
 
     if ((includePointLikeGhosts || includeExtendedGhosts) && writeGhostPositions)
     {
-      vector<double> time;
-      if(includePointLikeGhosts)
-      {
-        Log.info("Camera: writing pointlike ghost positions to HDF5 file");
-
-        for(auto keyValuePair: detectedPointLikeGhostInfo) time.push_back(keyValuePair.first);
-        if (!time.empty())
+        if(includePointLikeGhosts)
         {
-            hdf5File.writeArray("PointLikeGhostPositions/", "Time", time.data(), time.size());
-        }
-        else
-        {
-            Log.warning("Camera: No point-like ghost positions to write to HDF5 file.");
+            if (groupByExposure)
+            {
+                hdf5File.writePointlikeGhostByExposure(detectedPointLikeGhostInfo, beginExposureNr);
+            }
+            else
+            {
+                hdf5File.writePointlikeGhostByStarID(detectedPointLikeGhostInfo);
+            }
         }
 
-        for (int n = 0; n < time.size(); n++)
+        if(includeExtendedGhosts)
         {
-          stringstream myStream;
-          myStream << "Exposure" << setfill('0') << setw(6) << beginExposureNr + n;
-
-          // Write the info for the point-like ghost star positions to HDF5
-
-          vector<unsigned int> starIDs;
-          vector<double> xFPmm;
-          vector<double> yFPmm;
-          vector<double> rowPix;
-          vector<double> colPix;
-          vector<double> flux;
-          vector<double> ghostRadius;
-
-          for(auto keyValuePair: detectedPointLikeGhostInfo[time[n]])
-          {
-            const unsigned int starID = keyValuePair.first;
-            starIDs.push_back(starID);                       // list of starIDs for this exposure only
-            xFPmm.push_back(detectedPointLikeGhostInfo[time[n]][starID][0] / detectedPointLikeGhostInfo[time[n]][starID][5]);
-            yFPmm.push_back(detectedPointLikeGhostInfo[time[n]][starID][1] / detectedPointLikeGhostInfo[time[n]][starID][5]);
-            rowPix.push_back(detectedPointLikeGhostInfo[time[n]][starID][2] / detectedPointLikeGhostInfo[time[n]][starID][5]);
-            colPix.push_back(detectedPointLikeGhostInfo[time[n]][starID][3] / detectedPointLikeGhostInfo[time[n]][starID][5]);
-            flux.push_back(detectedPointLikeGhostInfo[time[n]][starID][4]);
-          }
-
-          const string pointLikeGhostGroupName = "/PointLikeGhostPositions/" + myStream.str();
-          hdf5File.createGroup(pointLikeGhostGroupName);
-
-          if(!starIDs.empty())
-          {
-            hdf5File.writeArray(pointLikeGhostGroupName, "starID", starIDs.data(), starIDs.size());
-            hdf5File.writeArray(pointLikeGhostGroupName, "xFPmm",  xFPmm.data(),   xFPmm.size());
-            hdf5File.writeArray(pointLikeGhostGroupName, "yFPmm",  yFPmm.data(),   yFPmm.size());
-            hdf5File.writeArray(pointLikeGhostGroupName, "rowPix", rowPix.data(),  rowPix.size());
-            hdf5File.writeArray(pointLikeGhostGroupName, "colPix", colPix.data(),  colPix.size());
-            hdf5File.writeArray(pointLikeGhostGroupName, "flux",   flux.data(),    flux.size());
-          }
-
-
-          // Write the info for the point like ghost star positions to HDF5
-
-          Log.info("Camera: writing point like ghost positions to HDF5 file");
-
-          starIDs.clear();
-          xFPmm.clear();
-          yFPmm.clear();
-          rowPix.clear();
-          colPix.clear();
-          flux.clear();
-          ghostRadius.clear();
+            if (groupByExposure)
+            {
+            hdf5File.writeExtendedGhostByExposure(detectedExtendedGhostInfo, beginExposureNr);
+            }
+            else
+            {
+            hdf5File.writeExtendedGhostByStarID(detectedExtendedGhostInfo);
+            }
         }
-      }
-
-      time.clear();
-
-      if(includeExtendedGhosts)
-      {
-        for(auto keyValuePair: detectedExtendedGhostInfo) time.push_back(keyValuePair.first);
-        if (!time.empty())
-        {
-          hdf5File.writeArray("ExtendedGhostPositions/", "Time", time.data(), time.size());
-        }
-        else
-        {
-          Log.warning("Camera: No extended ghost positions to write to HDF5 file.");
-        }
-
-        for (int n = 0; n < time.size(); n++)
-        {
-          stringstream myStream;
-          myStream << "Exposure" << setfill('0') << setw(6) << beginExposureNr + n;
-
-
-          // Write the info for the extended ghost star positions to HDF5
-
-          vector<unsigned int> starIDs;
-          vector<double> xFPmm;
-          vector<double> yFPmm;
-          vector<double> rowPix;
-          vector<double> colPix;
-          vector<double> flux;
-          vector<double> ghostRadius;
-
-
-          for(auto keyValuePair: detectedExtendedGhostInfo[time[n]])
-          {
-            const unsigned int starID = keyValuePair.first;
-            starIDs.push_back(starID);                       // list of starIDs for this exposure only
-            xFPmm.push_back(detectedExtendedGhostInfo[time[n]][starID][0] / detectedExtendedGhostInfo[time[n]][starID][5]);
-            yFPmm.push_back(detectedExtendedGhostInfo[time[n]][starID][1] / detectedExtendedGhostInfo[time[n]][starID][5]);
-            rowPix.push_back(detectedExtendedGhostInfo[time[n]][starID][2] / detectedExtendedGhostInfo[time[n]][starID][5]);
-            colPix.push_back(detectedExtendedGhostInfo[time[n]][starID][3] / detectedExtendedGhostInfo[time[n]][starID][5]);
-            flux.push_back(detectedExtendedGhostInfo[time[n]][starID][4]);
-            ghostRadius.push_back(detectedExtendedGhostInfo[time[n]][starID][6] / detectedExtendedGhostInfo[time[n]][starID][5]);
-          }
-
-          const string extendedGhostGroupName = "/ExtendedGhostPositions/" + myStream.str();
-          hdf5File.createGroup(extendedGhostGroupName);
-
-          if(!starIDs.empty())
-          {
-            hdf5File.writeArray(extendedGhostGroupName, "starID", starIDs.data(), starIDs.size());
-            hdf5File.writeArray(extendedGhostGroupName, "xFPmm",  xFPmm.data(),   xFPmm.size());
-            hdf5File.writeArray(extendedGhostGroupName, "yFPmm",  yFPmm.data(),   yFPmm.size());
-            hdf5File.writeArray(extendedGhostGroupName, "rowPix", rowPix.data(),  rowPix.size());
-            hdf5File.writeArray(extendedGhostGroupName, "colPix", colPix.data(),  colPix.size());
-            hdf5File.writeArray(extendedGhostGroupName, "flux",   flux.data(),    flux.size());
-            hdf5File.writeArray(extendedGhostGroupName, "radius", ghostRadius.data(), ghostRadius.size());
-          }
-        }
-      }
     }
-
-
 
 
     // Write the total sky background flux values [photons/pixel/exposure] to HDF5 in a custom group
@@ -448,7 +282,7 @@ void Camera::flushOutput()
     // Write the transmissionEfficiency values for each exposureTime to HDF5 in a custom group
     if (writeTransmissionEfficiency)
     {
-    hdf5File.writeArray("TransmissionEfficiency/", "transmissionEfficiency", transmissionEfficiencyValues.data(), transmissionEfficiencyValues.size());
+      hdf5File.writeTransmissionEfficiencyValues(transmissionEfficiencyValues.data(), transmissionEfficiencyValues.size());
     }
 
 }
@@ -528,7 +362,6 @@ void Camera::configure(ConfigurationParameters &configParam)
 
     if (includeFieldDistortion && !isMapped)
     {
-        distortionModel              = configParam.getString("Camera/FieldDistortion/Type");
         string fieldDistortionSource = configParam.getString("Camera/FieldDistortion/Source");
         if (fieldDistortionSource == "ConstantValue")
         {
@@ -638,6 +471,7 @@ void Camera::configure(ConfigurationParameters &configParam)
     userGivenSkyBackground = configParam.getDouble("Sky/SkyBackground");          // [phot/pix/s]
 
     writeStarPositions     = configParam.getBoolean("ControlHDF5Content/WriteStarPositions");
+    groupByExposure        = configParam.getBoolean("ControlHDF5Content/GroupByExposure");
     writeGhostPositions    = configParam.getBoolean("ControlHDF5Content/WriteGhostPositions");
     writeTransmissionEfficiency = configParam.getBoolean("ControlHDF5Content/WriteTransmissionEfficiency");
 
@@ -756,9 +590,10 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
         {
             // Calculate the focal-plane coordinates of the current star
             // (apply field distortion, if enabled)
-
             tie(starID, raStar, decStar, magStar) = sky.getSelectedStar(starIndex);     // Sky coordinates in radians
             tie(xStar, yStar) = skyToFocalPlaneCoordinates(raStar, decStar);            // [mm]
+	    if (find(starIDsInSubfield.begin(), starIDsInSubfield.end(), starID) == starIDsInSubfield.end())
+	        starIDsInSubfield.push_back(starID);
 
             // apply the distortion on the FP-coordinates
             if(isMapped)
@@ -1030,7 +865,6 @@ tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &d
     if (isMapped)
     {
       Log.info("Camera: including field distortion for mapped PSF");
-
       detector.applyInverseDistortion(centerSubFieldXmm, centerSubFieldYmm);
       detector.applyInverseDistortion(corner00Xmm, corner00Ymm);
       detector.applyInverseDistortion(corner11Xmm, corner11Ymm);
