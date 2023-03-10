@@ -482,6 +482,7 @@ def getJitterNoiseLimitNSR(jitterASD, tdur=3600, level='instrument', camType='N'
         NSR only valid for the photon noise limit.
     """
 
+
     # Choose cycle and exposure time [s] for either the normal (N) or fast (F) cameras
 
     if camType == 'N':
@@ -564,7 +565,6 @@ def getPhotonNoiseLimitNSR(mag, passband='P', ncam=1, ntra=1, tdur=3600, camType
     # Observed total flux [ADU/exp]
 
     F = f * tcyc * gain
-
 
     # SNR from pure photon noise and NSR from uncorrelated noise.
     # Gaussian statistic gives sigma --> sigma/sqrt(N)
