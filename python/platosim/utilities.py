@@ -30,7 +30,6 @@ from astroquery.mast import Catalogs
 # PlatoSim
 import platosim.referenceFrames as rf
 
-
 #--------------------------------------------------------------#
 #                        BASH FUNCTIONS                        #
 #--------------------------------------------------------------#
@@ -462,8 +461,57 @@ def passbandConversionV2P(mag, Teff, inverse=False):
 
 
 
+def getJitterNoiseLimitNSR(jitterASD, tdur=3600, level='instrument', camType='N'):
 
-def getPhotonNoiseLimitNSR(mag, passband='P', Ncam=1, Ntra=1, tdur=3600, camType='N'):
+    """NSR estimate of the jitter noise component.
+
+    Parameters
+    ----------
+    jitterASD : float
+        Amplitude Spectral Density of the jitter [ppm/sqrt(muHz)] :
+        If level = 'camera'     : At the cycle frequency of the cameras
+        If level = 'instrument' : Over the duration of all exposures
+    tdur : float, narray
+        Time duration over which the NSR is estimated. E.g., 3600s for 1h precision.
+    camType : str
+        Either the normal (N) or fast (F) cameras. Default is normal.
+
+    Return
+    ------
+    NSR : float
+        NSR only valid for the photon noise limit.
+    """
+
+
+    # Choose cycle and exposure time [s] for either the normal (N) or fast (F) cameras
+
+    if camType == 'N':
+        tcyc = 25.
+    elif camType == 'F':
+        tcyc = 2.5
+
+    # Number of images to average over
+
+    nimg = int(tdur/tcyc)
+
+    # Calculate the jitter noise
+
+    if level == 'camera':
+        jitterNoise = jitterASD * np.sqrt(1 / tcyc)
+    elif level == 'instrument':
+        jitterNoise = jitterASD * np.sqrt(1 / (tcyc*nimg) ) 
+    else:
+        errorcode('error', 'No such "level" entry!')
+        
+    # Return
+
+    return jitterNoise
+
+
+
+
+        
+def getPhotonNoiseLimitNSR(mag, passband='P', ncam=1, ntra=1, tdur=3600, camType='N'):
 
     """NSR estimate in the photon noise limit of bright stars.
 
@@ -521,7 +569,7 @@ def getPhotonNoiseLimitNSR(mag, passband='P', Ncam=1, Ntra=1, tdur=3600, camType
     # SNR from pure photon noise and NSR from uncorrelated noise.
     # Gaussian statistic gives sigma --> sigma/sqrt(N)
 
-    SNR = np.sqrt(F * Ncam * Ntra * tdur) # / tcyc)
+    SNR = np.sqrt(F * ncam * ntra * tdur)
     NSR = 1 / SNR * 1e6
 
     return NSR

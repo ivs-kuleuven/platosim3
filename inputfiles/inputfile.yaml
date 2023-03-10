@@ -48,10 +48,8 @@ Telescope:
 
     GroupID:                         Custom          # There are four camera groups: 1, 2, 3, 4, Fast, Custom
                                                      # (use Custom to specify the telescope azimuth and tilt angles yourself)
-
     AzimuthAngle:                    0.0             # Azimuth angle of camera on the platform [deg] -> when GroupID = Custom
     TiltAngle:                       0.0             # Tilt    angle of camera on the platform [deg] -> when GroupID = Custom
-
     LightCollectingArea:             113.1           # Effective area of 1 telescope [cm^2]
     TransmissionEfficiency:
         BOL:                         0.8135          # Beginning of Life value in [0,1]
@@ -149,9 +147,7 @@ FEE:
 
 CCD:
 
-    Position:                        Custom          # One of [1, 2, 3, 4, Custom]
-                                                     # (use Custom to specify the CCD position parameters yourself)
-
+    Position:                        Custom          # One of [1, 2, 3, 4, Custom] (use Custom to specify the CCD position parameters yourself)
     OriginOffsetX:                   0               # X offset of CCD origin from center of focal plane [mm]
     OriginOffsetY:                   0               # Y offset of CCD origin from center of focal plane [mm]
     Orientation:                     0               # Orientation of CCD w.r.t. focal plane orientation [deg] - use when CCDPosition = Custom
@@ -242,8 +238,8 @@ SubField:
     ZeroPointColumn:                 0               # Column of the (0,0) pixel of the subfield [pixels]
     NumColumns:                      100             # Number of columns, should be >= 8 [pixels]
     NumRows:                         100             # Number of rows,    should be >= 8 [pixels]
-    NumBiasPrescanRows:              30              # Nr of rows of the prescan strip to determine the bias [pixels]
-    NumBiasPrescanColumns:           30              # Nr of columns of the prescan strip to determine the bias [pixels]
+    NumBiasPrescanRows:              25              # Nr of rows of the prescan strip to determine the bias [pixels]
+    NumBiasPrescanColumns:           15              # Nr of columns of the prescan strip to determine the bias [pixels]
     NumSmearingOverscanRows:         30              # Nr of rows of the overscan strip to determine the smearing [pixels]
     SubPixels:                       8               # (Sqrt of) nr of subpixels per CCD pixel. Should be 2^n <= 128.
 
@@ -288,6 +284,7 @@ ControlHDF5Content:                                  # Data that can be written 
     WriteVariableBackgroundMap:      yes             # Write the background map to HDF5 file. This is only done if we don't use a constant sky background.    
 
 
+    
 ControlTcpConnection:
 
     SendImagettesToClients:          no
