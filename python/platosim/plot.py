@@ -10,7 +10,7 @@ from matplotlib.path import Path
 from matplotlib.ticker import MaxNLocator, ScalarFormatter, LogLocator
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 import matplotlib.pyplot as plt
-import matplotlib.colors as colors 
+import matplotlib.colors as colors
 import matplotlib.animation as animation
 
 from scipy import constants as c
@@ -2244,7 +2244,7 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
     else:
         ax.plot(df["mag"], df["NSR"], 'k.', alpha=0.7, zorder=1)
         ax.set_ylabel(ylabel)
-        
+
     # Extra settings for colorbar after image generation
 
     if column == "ncam":

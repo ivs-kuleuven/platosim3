@@ -37,13 +37,13 @@ class DetectorWithMappedPSF : public Detector
         void generateThroughputMap() override;
 
     protected:
-  
+
         bool areColinear(std::array<std::array<double, 2>, 3>);
         void reset() override;
         void initHDF5Groups() override;
         void integrateLight(int exposureNr, double startTime, double exposureTime) override;
         bool isInSubPixelMap(double row, double column);
-        void applyFlatfield() override;        
+        void applyFlatfield() override;
         void applyDiffusionKernel(double row, double column, double flux);
         void generateFlatfieldMap();
         void generateDiffusionKernel(double kernelWidth);
