@@ -1934,72 +1934,37 @@ class SimFile (object):
 #-----------------------------
 
     
-    def getStarPositions(self, starID):
+def getStarPositions(self, starID):
 
-        """General function to get coordinate information.
-
-        This function fetch the star ID, pixel and focal-plane coordinates, and flux
-        of all (stars, point-like ghosts, or extended ghosts) in the given image.
-
+    """This function fetch the pixel coordinates of a desired star ID from the output file.
         Parameters
         ----------
-        imageNr : int 
-            Integer sequential number of the image in the HDF5 file.
-        minVmag : int, float
-            Min V magnitude of the stars causing the point-like ghosts. 
-            Only return ghosts for which the originating star is fainter than minVmag.
-            Should be 'None' if no cut in minimum magnitude should be made.
-        maxVmag : int, float
-            Maximum V magnitude of the stars causing the point-like ghosts. 
-            Only return ghosts for which the originating star is brighter than maxVmag.
-            Should be 'None' if no cut in maximum magnitude should be made.
-
+        starID : int
+           Star ID in simulated catalogue.
         Return
         ------
-        starID : ndarray
-            Integer numpy array containing the star IDs of the stars (as mentioned in
-            the input catalogue) that cause point-like ghosts in the current image.  
-            If no star ID was given in the input star catalogue file, the identifier 
-            equals the line number of the star in the input star catalogue (counting from 0). 
-        row : ndarray
-            Pixel row coordinates of each star in the image (float).
-        col : ndarray
-            Pixel column coordinates of each star in the image (float).
-        Xmm : ndarray
-            Focal-plane x-coordinates of each star in the image.
-        Ymm : ndarray
-            Focal plane y-coordinates of each star in the image.
-        flux : ndarray
-            Flux of each point-like ghost in the image [photons].
+        rowPix : ndarray [pixels]
+            Stellar row pixel coordinate
+        colPix : ndarray [pixels]
+            Stellar column pixel coordinate
+    """
 
-        Remarks
-        ------- 
-        - The coordinates returned are the time-averaged coordinates of the point-like
-          ghosts during the exposure.
-        - To get the pixel with the higest flux of star #0, given its (row, col) coordinates:
-          >>> im = file.getImage(0)
-          >>> ID,row,col,Xmm,Ymm,flux = file.getPointLikeGhostCoordinates(4,minVmag=6.0,maxVmag=9.0)
-          >>> im[int(row[0]), int(col[0])]
-        - To use this function to overplot the positions of the point-like ghost on an 
-          image plotted by showImage(), use plt.scatter(floor(col), floor(row)) because 
-          showImage uses matplotlib.imshow() which switches rows and columns.
-        """
+    # Get all Exposure00.. strings and avoid the time array being the last entry
 
-        # Check if the point-like ghost info was saved to the HDF5 file
+    exposureStrings = np.array(self.hdf5file['StarPositions'])[:-1]
+    N = len(exposureStrings)
 
-        if groupName not in self.hdf5file["/"].keys():
+    # Loop over each image to fetch pixel coordinates
 
-        # Loop over each image to fetch pixel coordinates
+    rowPix = np.zeros(N)
+    colPix = np.zeros(N)
 
-        rowPix = np.zeros(N)
-        colPix = np.zeros(N)
+    for i in range(N):
 
-        for i in range(N):
+        rowPix[i] = np.array(self.hdf5file['StarPositions'][exposureStrings[i]]['rowPix'][starID-1])
+        colPix[i] = np.array(self.hdf5file['StarPositions'][exposureStrings[i]]['colPix'][starID-1])
 
-            rowPix[i] = np.array(self.hdf5file['StarPositions'][exposureStrings[i]]['rowPix'][starID-1])
-            colPix[i] = np.array(self.hdf5file['StarPositions'][exposureStrings[i]]['colPix'][starID-1])
-
-        return rowPix, colPix
+    return rowPix, colPix
 
 
 
