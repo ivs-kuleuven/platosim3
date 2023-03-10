@@ -584,12 +584,13 @@ class LightCurve(object):
 
         # Fetch flux column and force to be ppm for correct NSR
         
-        if influx == "e/s":
-            df[column] = self.flux(column=column, unit="ppm")
-                
+        #if influx == "e/s":
+        #    df[column] = self.flux(column=column, unit="ppm")
+        
         # Set the binned time scale [days]
         
         dt = binhour/24.
+        
         # Bin to devide data
         
         if binhour == 0:
@@ -601,12 +602,15 @@ class LightCurve(object):
             nbin  = len(df[df["time"].between(tbins[0], tbins[1])])
             # Bin data
             flux_dex = df.columns.get_loc(column)
-            data = [df[df["time"].between(tbins[i], tbins[i+1])].to_numpy() for i in range(nbins-1)]
+            data  = [df[df["time"].between(tbins[i], tbins[i+1])].to_numpy() for i in range(nbins-1)]
+            mean  = np.array([data[i][:,flux_dex].mean() for i in range(len(data))])
             sigma = np.array([data[i][:,flux_dex].std()  for i in range(len(data))])
 
         # Return NSR
         
-        return np.mean(sigma) / np.sqrt(nbin)
+        return np.mean(sigma/mean) / np.sqrt(nbin) * 1e6
+    
+        #return np.mean(sigma) / np.sqrt(nbin)
 
 
 

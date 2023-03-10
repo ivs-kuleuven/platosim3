@@ -77,6 +77,7 @@ class PLATOnium(object):
         self.maskUpdate   = args.mask
         self.seed         = args.seed
         self.mag          = args.mag
+        self.noCon        = args.nocon
         self.reuseJitter  = args.reusejitter
         
         self.sample          = args.sample
@@ -218,10 +219,16 @@ class PLATOnium(object):
         #     self.df = df.append
         #     self
 
-        # Select star
+        # Select target star
         self.df = df.iloc[self.targetNo]
-        self.dc = dc[dc['ID'] == self.df['ID']]
-        self.numCon = len(self.dc['ID'])
+
+        # Select contaminant(s)
+        if self.noCon:
+            self.numCon = 0
+            self.dc = dc[dc['ID'] == self.numCon]
+        else:
+            self.dc = dc[dc['ID'] == self.df['ID']]
+            self.numCon = len(self.dc['ID'])
 
         # If requested overwrite magnitude of target star
         if self.mag:
@@ -1228,6 +1235,7 @@ sim_group.add_argument('--pic',     metavar='ID',   type=int,   help='ID from th
 sim_group.add_argument('--seed',    metavar='INT',  type=int,   help='Option to bootstrap seeds in order to reproduce results')
 sim_group.add_argument('--mask',    metavar='DAY',  type=float, help='Option to alter/overwrite the mask-update in inputfile [days]')
 sim_group.add_argument('--mag',     metavar='PMAG', type=float, help='Option to change target magnitude (overwrites catalogue magnitude)')
+sim_group.add_argument('--nocon',       action='store_true',    help='Flag ignore all stellar contaminants')
 sim_group.add_argument('--reusejitter', action='store_true',    help='Flag to re-use AOCS jitter file across all quarters')
 
 pip_group = parser.add_argument_group('L1 PIPELINE PARAMETERS')

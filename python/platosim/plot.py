@@ -1532,7 +1532,7 @@ def plot_test(pointingField, raStars=0, decStars=0, magStars=None, system="icrs"
 
 
 def plotYawPitchRollTimeSeries(time, signals, units=["days", "arcsec"],
-                               title=False, ylim=False, figsize=(10,10)):
+                               title=False, ylim=False, figsize=(9,10)):
 
     """Plot the time series of yaw, pitch, and roll for both AOSC jitter and thermo drift.
     
@@ -1616,7 +1616,7 @@ def plotYawPitchRollTimeSeries(time, signals, units=["days", "arcsec"],
 
         # Title
 
-        if plot == 0: ax.set_title(title)
+        if title and plot == 0: ax.set_title(title)
 
     # Adjust layout
 
