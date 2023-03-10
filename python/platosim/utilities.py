@@ -463,7 +463,6 @@ def passbandConversionV2P(mag, Teff, inverse=False):
 
 
 
-
 def getPhotonNoiseLimitNSR(mag, passband='P', Ncam=1, Ntra=1, tdur=3600, camType='N'):
 
     """NSR estimate in the photon noise limit of bright stars.
@@ -518,7 +517,6 @@ def getPhotonNoiseLimitNSR(mag, passband='P', Ncam=1, Ntra=1, tdur=3600, camType
     # Observed total flux [ADU/exp]
 
     F = f * tcyc * gain
-
 
     # SNR from pure photon noise and NSR from uncorrelated noise.
     # Gaussian statistic gives sigma --> sigma/sqrt(N)

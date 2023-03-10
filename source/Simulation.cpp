@@ -192,6 +192,7 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     // Write the input parameters to the output HDF5 file
 
     writeInputParametersToHDF5(configParams);
+
 }
 
 
@@ -684,12 +685,15 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "Sky";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
-    addDouble("SkyBackground");
     addBoolean("IncludeVariableSources");
     addString("VariableSourceList");
     addBoolean("IncludeCosmicsInSubField");
     addBoolean("IncludeCosmicsInSmearingMap");
     addBoolean("IncludeCosmicsInBiasMap");
+    subGroup = "Sky/SkyBackground";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addBoolean("UseConstantSkyBackground");
+    addDouble("BackgroundValue");
     subGroup = "Sky/Cosmics";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addDouble("CosmicHitRate");
