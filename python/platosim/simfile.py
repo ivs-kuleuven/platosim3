@@ -25,7 +25,6 @@ import platosim.plot as pt
 from platosim.utilities import imageNorm
 
 
-
 #==============================================================#
 #                         SIMFILE CLASS                        #
 #==============================================================#
@@ -140,6 +139,11 @@ class SimFile (object):
 
         return np.arange(beginExposure, numExposures) * cadence + timeShift
 
+        # TODO fix this in future!
+        if ccdCode == "Custom": ccdCode = "1"
+        timeShift     = self.getInputParameter("CCDPositions", "TimeShift")[int(ccdCode)-1]
+
+        return np.arange(beginExposure, numExposures) * cadence + timeShift
 
 
 
@@ -383,10 +387,7 @@ class SimFile (object):
             return self.hdf5file[imageMap][datasetName][:]
 
 
-
-
-
-
+        
     def getPSF(self, psfName):
 
         """Get the PSF from the HDF5 file.
@@ -682,6 +683,7 @@ class SimFile (object):
 
         myFits = fits.HDUList(hduList)
         myFits.writeto(fileName)
+
 
 
 
@@ -1934,25 +1936,58 @@ class SimFile (object):
     
     def getStarPositions(self, starID):
 
-        """This function fetch the pixel coordinates of a desired star ID from the output file.
+        """General function to get coordinate information.
+
+        This function fetch the star ID, pixel and focal-plane coordinates, and flux
+        of all (stars, point-like ghosts, or extended ghosts) in the given image.
 
         Parameters
         ----------
-        starID : int
-           Star ID in simulated catalogue.
+        imageNr : int 
+            Integer sequential number of the image in the HDF5 file.
+        minVmag : int, float
+            Min V magnitude of the stars causing the point-like ghosts. 
+            Only return ghosts for which the originating star is fainter than minVmag.
+            Should be 'None' if no cut in minimum magnitude should be made.
+        maxVmag : int, float
+            Maximum V magnitude of the stars causing the point-like ghosts. 
+            Only return ghosts for which the originating star is brighter than maxVmag.
+            Should be 'None' if no cut in maximum magnitude should be made.
 
         Return
         ------
-        rowPix : ndarray [pixels]
-            Stellar row pixel coordinate
-        colPix : ndarray [pixels]
-            Stellar column pixel coordinate
+        starID : ndarray
+            Integer numpy array containing the star IDs of the stars (as mentioned in
+            the input catalogue) that cause point-like ghosts in the current image.  
+            If no star ID was given in the input star catalogue file, the identifier 
+            equals the line number of the star in the input star catalogue (counting from 0). 
+        row : ndarray
+            Pixel row coordinates of each star in the image (float).
+        col : ndarray
+            Pixel column coordinates of each star in the image (float).
+        Xmm : ndarray
+            Focal-plane x-coordinates of each star in the image.
+        Ymm : ndarray
+            Focal plane y-coordinates of each star in the image.
+        flux : ndarray
+            Flux of each point-like ghost in the image [photons].
+
+        Remarks
+        ------- 
+        - The coordinates returned are the time-averaged coordinates of the point-like
+          ghosts during the exposure.
+        - To get the pixel with the higest flux of star #0, given its (row, col) coordinates:
+          >>> im = file.getImage(0)
+          >>> ID,row,col,Xmm,Ymm,flux = file.getPointLikeGhostCoordinates(4,minVmag=6.0,maxVmag=9.0)
+          >>> im[int(row[0]), int(col[0])]
+        - To use this function to overplot the positions of the point-like ghost on an 
+          image plotted by showImage(), use plt.scatter(floor(col), floor(row)) because 
+          showImage uses matplotlib.imshow() which switches rows and columns.
         """
 
-        # Get all Exposure00.. strings and avoid the time array being the last entry
+        # Check if the point-like ghost info was saved to the HDF5 file
 
-        exposureStrings = np.array(self.hdf5file['StarPositions'])[:-1]
-        N = len(exposureStrings)
+        if groupName not in self.hdf5file["/"].keys():
 
         # Loop over each image to fetch pixel coordinates
 
@@ -2009,6 +2044,7 @@ class SimFile (object):
         # Check if the point-like ghost info was saved to the HDF5 file
 
         if groupName not in self.hdf5file["/"].keys():
+
 
             self.errorcode("warning", f"No group '{groupName}' in the HDF5 file.")
             return None, None, None, None, None, None
@@ -2093,6 +2129,7 @@ class SimFile (object):
                     
                 radius = np.array([self.hdf5file[groupName][s]["radius"][imageNr] for s in star])
 
+
         # If a cut in magnitude is required, get the magnitudes from the star input catalogue
 
         inputStarIDs, RA, decl, Vmag, xFPmm, yFPmm, rowPix, colPix = self.getStarCatalog()
@@ -2114,6 +2151,7 @@ class SimFile (object):
         if groupName == "ExtendedGhostPositions":            
             return (starID[selection], row[selection], col[selection],
                     Xmm[selection], Ymm[selection], flux[selection], radius[selection])
+
         else:
             return (starID[selection], row[selection], col[selection],
                     Xmm[selection], Ymm[selection], flux[selection])
@@ -2162,6 +2200,779 @@ class SimFile (object):
         """
 
         return self.getCoordinates("ExtendedGhostPositions", imageNr, minVmag, maxVmag)
+
+
+
+    #--------------------------------------------------------------#
+    #                    PHOTOMETRIC FUNCTIONS                     #
+    #--------------------------------------------------------------#
+
+           
+    def getFlux(self, starID, fluxType="estimated"):
+
+        """Returns flux points.
+        """
+
+        # Select the proper flux name
+
+        if   fluxType == "estimated": lctype = "estimatedFlux"
+        elif fluxType == "input":     lctype = "inputFlux"
+        else:
+            print("ERROR: getFlux(): flux_type can only be 'estimated' or 'input'")
+            return None
+        
+        # Query either a single star or multiple stars as requested
+
+        try: len(starID)
+        except:
+            starID = np.array([starID])
+            names = False
+        else:
+            names = True
+
+        # Add a flux column(s) for the star(s)
+
+        for ID in starID:
+
+            # Check photometry is present for each star
+            starIDgroupName = f"starID{ID}"
+            if starIDgroupName not in self.hdf5file["Photometry"]["Lightcurves"].keys():
+                print(f"ERROR: getLightCurve(): {starIDgroupName} not present in " +
+                      "Photometry/Lightcurves/ in the HDF5 file")
+
+            # Select correct name convention
+            if names: string = f"flux_{ID}"
+            else:     string = "flux"
+
+            # Fetch flux column
+            flux = np.array(self.hdf5file[f"Photometry/Lightcurves/starID{ID}/{lctype}"])
+
+            # Create data frame and append to it
+            if ID == starID[0]:
+                df = pd.DataFrame({string: flux})
+            else:
+                df[string] = flux
+
+        # Finito!
+
+        return df
+
+
+
+
+
+
+    def getLightCurve(self, starID, fluxType="estimated", warning=True):
+
+        """Extract the light curve of one or more stars
+
+        This function can be used to extract the light curves for one star
+        with the given ID, or for a full list of stars with IDs given by an
+        list or array.
+
+        Parameters
+        ----------
+        starID : int, list/ndarray
+            int  : ID of the star as mentioned in the last column of the star catalog file
+            list : List of star IDs for which the light curve should be extracted
+        flux_type : str
+            Either "estimated" or "input".
+            The estimated one is derived from a binary mask.
+            The input one is derived from the mean input magnitude specified in the star catalog
+            and (for variable stars) the delta-magnitude time series given as an input file.
+
+        Return
+        ------
+        df : pdframe
+            time : first column [s]
+            flux : consecutive columns [e-/exposure]
+        """
+
+        # Fetch time column
+
+        time = pd.DataFrame({"time": self.getTime()})
+
+        # Fetch flux column(s)
+
+        flux = self.getFlux(starID, fluxType=fluxType)
+
+        # Combine data
+
+        return pd.concat([time, flux], axis=1)
+
+
+
+
+
+    def getMaskUpdateEvents(self):
+
+        """Exposure number of all mask updates.
+        """
+
+        # Fetch mask update events
+
+        return np.array(self.hdf5file["Photometry/Masks/exposureNrOfMaskUpdate"])
+
+
+
+
+
+    def getApertureMask(self, starID, imageNr=None):
+
+        """Fetch all information about the photometric aperture mask used.
+
+        This function returns the subfield row and column indices of the mask that
+        is used to extract the flux of star with the given ID for the given exposure
+        number. This only makes sense if the photometry was activated in the configuration
+        yaml file.
+
+        INPUT:
+        starID:  ID of the star as mentioned in the last column of the star catalog file
+               imageNr: integer sequential number of the image in the HDF5 file
+
+        OUTPUT: rowIndices: subimage row indices for each of the mask pixels
+                colIndices: subimage column indices for each of the mask pixels
+                exposureNr: the image number in which the mask was derived.
+                            exposureNr <= imageNr
+
+        NOTE: Masks are not update continuously, but only once in a while. This function searches
+              for the most recent mask. This mask may have thus been derived from a previous image
+              rather than from the given image Nr.
+        """
+
+
+        # Check if photometric data exists
+        starIDgroupName = "starID{0}".format(starID)
+        if starIDgroupName not in self.hdf5file["Photometry"]["Masks"].keys():
+            print(f"Error: getPhotometricMask(): {starIDgroupName}" +
+                  " not present in Photometry/Masks/ in the HDF5 file")
+            return None, None, None, None, None
+
+        # Fetch mask info and mask updates
+        mask = self.hdf5file["Photometry"]["Masks"]
+        exposureNrOfMaskUpdate = np.array(mask["exposureNrOfMaskUpdate"])
+        numMaskUpdates = len(exposureNrOfMaskUpdate)
+
+        # If a specific image number for the mask update is requested:
+        # NOTE Masks are not updated for every exposure hence find most recent mask
+
+        if isinstance(imageNr, int):
+
+            idx = np.searchsorted(exposureNrOfMaskUpdate, imageNr, side='right') - 1
+            if idx < 0:
+                print("Error: getPhotometricMask(): " +
+                      "requesting an imageNr that is too early for this HDF5 file")
+                return None, None, None, None, None
+
+            exposureNrOfMaskUpdate = exposureNrOfMaskUpdate[idx]
+
+            # Extact mask size and NSR
+
+            maskSize = np.array(mask[starIDgroupName]['maskSize'])[idx]
+            maskNSR  = np.array(mask[starIDgroupName]['maskNSR'])[idx]
+
+            # Extract the indices of the proper mask
+
+            exposureGroupName = "Exposure{0:06d}".format(exposureNrOfMaskUpdate)
+            rowIndices = np.array(mask[starIDgroupName][exposureGroupName]["maskRowIndices"])
+            colIndices = np.array(mask[starIDgroupName][exposureGroupName]["maskColumnIndices"])
+
+        # Else fetch all the indices for all mask updates
+
+        else:
+
+            # Extact mask size and NSR
+
+            maskSize = np.array(mask[starIDgroupName]['maskSize'])
+            maskNSR  = np.array(mask[starIDgroupName]['maskNSR'])
+
+            # Extract the indices of all masks
+
+            rowIndices = []
+            colIndices = []
+            for i in range(numMaskUpdates):
+                exposureGroupName = "Exposure{0:06d}".format(exposureNrOfMaskUpdate[i])
+                rowIndices.append(mask[starIDgroupName][exposureGroupName]["maskRowIndices"])
+                colIndices.append(mask[starIDgroupName][exposureGroupName]["maskColumnIndices"])
+            rowIndices = np.array(rowIndices)
+            colIndices = np.array(colIndices)
+
+        # Finito!
+
+        return rowIndices, colIndices, exposureNrOfMaskUpdate, maskSize, maskNSR
+
+
+
+
+
+    def getTimeQuarter(self, quarterNo):
+
+        """Function to create and return quarter-long time column.
+
+        This function creates a time array for a quarter long simulation. It uses
+        the quarter number and the hdf5 output file to correct for the time shift
+        of the parent CCD.
+
+        Parameters
+        ----------
+        outputFile : str
+           Full path to the HDF5 outputfile.
+        quarterNo : int
+           Integer specifying which quarter the time array should be created for.
+
+        Return
+        ------
+        time : ndarray
+            Time array matching the parent quarter defined by the user.
+        """
+
+        # Fetch times
+
+        numExposures = self.hdf5file['InputParameters/ObservingParameters'].attrs['NumExposures']
+        timeStep     = self.hdf5file['InputParameters/ObservingParameters'].attrs['CycleTime']
+        timeShift    = self.hdf5file['InputParameters/CCD'].attrs['TimeShift']
+
+        # Create time array from start and end times
+
+        timeStart = (quarterNo-1) * 90. * 86400. + float(timeShift)
+        timeEnd   = timeStart + timeStep * numExposures
+        time      = np.arange(timeStart, timeEnd, timeStep)
+
+        return time
+
+
+
+
+    #--------------------------------------------------------------#
+    #                         PLOT FUNCTIONS                       #
+    #--------------------------------------------------------------#
+
+
+    def showImage(self, imageNr=False, clipPercentile=5.0, imgScale="clip",
+                  showStarPositions=False, showPointLikeGhostPositions=False,
+                  minVmag=None, maxVmag=None, showStarIDs=False,
+                  tarMarkerSize=200, showMaskOfStarID=None,
+                  useTitle=False, showGrid=False, colorBar=False, colorMap="magma",
+                  origin="lower", figsize=(8,8), fontSize=15):
+
+        """Make a plot of the a requested image or the entire cube in HDF5.
+
+        Parameters
+        ----------
+        imageNr: False, int
+            False : Will plot all images in HDF5 using a slider
+            int   : Integer sequential number of the image in the HDF5 file
+        clipPercentile: int, float
+            Intensities will be clipped between [value, 100-value] to improve the image contrast.
+        imgScale : str
+            Different options to select the image scaling:
+            clip   : Scale image using a percentile clipping
+            auto   : Scale image using a sigma clipping and linear scaling
+            log    : Scale image logarithmically
+            minmax : Scale image from min to max image value
+        showStarPositions: bool
+            False : Default
+            True  : Plot the average star positions (averaged over the exposure)
+            "PIC" : Differentiate between a target and contaminants (useful for imagettes)
+        showPointLikeGhostPositions: bool
+            False : Default
+            True  : Plot the average pointlike ghost position (averaged over the exposure)
+        minVmag: int, float
+            The minimum V magnitude of the stars/ghosts for which the position should be plotted.
+            Only relevant if either showStarPositions or showPointLikeGhostPositions is True.
+        maxVmag: int, float
+            The maximum V magnitude of the stars/ghosts for which the position should be plotted.
+            Only relevant if either showStarPositions or showPointLikeGhostPositions is True.
+        showStarIDs: bool
+            Put small labels with the star IDs next to the star positions
+            Will only be executed if showStarPositions=True is set.
+        showMaskOfStarID: bool
+            Draw rectangles around the pixels of the mask that is used to extract the flux
+            value of the star with the given ID. Only works if photometry was activated
+            in the yaml inputfile.
+        useTitle: bool, str
+            False : Default
+            True  : Show a default image title of the star ID
+            str   : Provide custom title as a string
+        colorMap: str
+            Option to select your preferred colormap from the matplotlib library.
+            Default is the colormap "hot".
+        showGrid: bool -> False
+            option to select a dim gray grid for a higher visibility of teh pixel grid.
+            Will only be executed if showGrid=True is set.
+
+        Return
+        ------
+        fig, ax : object
+            Axes matplotlib.pyplot handle objects to modify plot
+
+        Example
+        -------
+            >>> simfile = SimFile("Simul01.hdf5")
+            >>> simfile.showImage(23)
+        """
+
+        # As default, add slider if all images are requested
+        # Else get the requested image from the HDF5 file
+
+        if imageNr is False:
+            images = self.getImage()
+            image = images[0]
+            Nimg  = images.shape[0]
+            Nrows, Ncols = image.shape
+
+        else:
+            image = self.getImage(imageNr)
+            if image is None:
+                print(f"ERROR: Cannot extract image nr {imageNr}")
+                return None
+            Nrows, Ncols = image.shape
+
+        # Plot the image. Note that pixel coordinates start at the left bottom side of each pixel.
+
+        fig = plt.figure(figsize=figsize)
+        ax = fig.add_subplot(111)
+
+        # Add ticks
+        ax.tick_params(axis='both', which='major', labelsize=fontSize)
+        ax.tick_params(axis='both', which='minor', labelsize=fontSize)
+
+        # Show image either using clip-procentage scaling or linear scaling if using a colorbar
+        # The large dynamic range of the pixel values often results in images where only
+        # the brightest stars are visible. To improve the contrast, clip the color mapping.
+
+        clabel  = "Counts [kADU]"
+        image   = image / 1000.
+        img_min = image.min()
+        img_max = image.max()
+
+        img_mean = image.mean()
+        img_std = image.std()
+
+        if imgScale == "clip":
+            image *= 1000.
+            clabel  = "Counts [ADU]"
+            vmin   = np.percentile(image, clipPercentile).astype(int)
+            vmax   = np.percentile(image, 100-clipPercentile).astype(int)
+            norm   = Normalize(vmin, vmax)
+
+        elif imgScale == "minmax":
+            vmin = img_min
+            vmax = img_max
+            norm = Normalize(img_min, img_max)
+
+        elif imgScale == 'log':
+            vmin, vmax = image.min(), image.max()
+            norm   = LogNorm(vmin, vmax)
+
+        elif imgScale == "auto":
+            sigma = 0.5
+            clabel  = "Normalised counts"
+            image = imageNorm(image, "linear", sigma=sigma)
+            vmin, vmax = image.min(), image.max()
+            norm = None  # Image is already normalized to [0,1]
+
+        else:
+            print("ERROR: Not valid scaling for 'imgScale'")
+
+        # Generate image
+
+        if imgScale == "clip":
+            imagePlot = ax.imshow(image, cmap=colorMap, interpolation="nearest",
+                                    origin=origin, extent=[0, Nrows, 0, Ncols], zorder=0)
+            imagePlot.set_clim(vmin, vmax)
+        else:
+            imagePlot = ax.imshow(image, norm=norm, cmap=colorMap, interpolation="nearest",
+                                    origin=origin, extent=[0, Nrows, 0, Ncols], zorder=0)
+
+        # Add colorbar if requested
+
+        if colorBar:
+            cbar = fig.colorbar(imagePlot, extend='max', shrink=0.84, pad=0.015)
+            cbar.set_label(clabel, fontsize=fontSize, labelpad=3)
+            cbar.ax.tick_params(labelsize=fontSize)
+
+            # Remove default (small) minor tick label for logarithm plot
+            if imgScale == "log":
+                cbar.ax.tick_params(which='minor', right=False, labelright=False)
+
+            # Adjust the colorbar to correct ADU values
+            if imgScale == "log":
+                ticks_loc1  = np.logspace(np.log10(vmin), np.log10(vmax), 6)
+                ticks_loc2  = np.logspace(np.log10(img_min), np.log10(img_max), 6)
+                ticks_label = [f"{i:.2f}" for i in ticks_loc2]
+                cbar.locator     = ticker.FixedLocator(ticks_loc1)
+                cbar.formatter   = ticker.FixedFormatter(ticks_label)
+                cbar.update_ticks()
+
+            # Adjust the colorbar to correct ADU values for auto-scaling
+            if imgScale == "auto":
+                ticks_label    = [f"{i:.1f}" for i in np.linspace(0, 1, 6)]
+                ticks_loc      = np.linspace(vmin, vmax, 6)
+                cbar.locator   = ticker.FixedLocator(ticks_loc)
+                cbar.formatter = ticker.FixedFormatter(ticks_label)
+                cbar.update_ticks()
+
+        # If required, overplot a gray semi-transparent grid
+        # Note: this is only meaningful for smaller imagettes
+
+        if showGrid is True:
+            ax.grid(c='gray', ls='-', alpha=0.5, zorder=1)
+
+        # Overplot rectangles over those pixels that are part of the mask
+        # Note: imshow reverses rows and columns
+
+        if showMaskOfStarID is not None:
+            rowIndices, colIndices, _, _, _ = self.getApertureMask(showMaskOfStarID, imageNr)
+            for k in range(len(rowIndices)):
+                rect = patches.Rectangle((colIndices[k], rowIndices[k]), 1, 1, linewidth=2.0,
+                                         edgecolor='b', facecolor='none', zorder=2)
+                ax.add_patch(rect)
+
+        # If required, overplot the true averaged star positions
+
+        if showStarPositions:
+            ID, row, col, Xmm, Ymm, flux = self.getStarCoordinates(imageNr,
+                                                                   minVmag=minVmag,
+                                                                   maxVmag=maxVmag)
+
+            # Allow differentiating between a target and its contaminants
+            if showStarPositions == 'PIC':
+                lw = 0.06 * fontSize
+                mag = -2.5*np.log10(flux) + 25
+                ax.scatter(col[0], row[0], s=tarMarkerSize, marker='o', c='lime',
+                           edgecolor='k', linewidth=lw, zorder=4)
+                if len(col) > 1:
+                    dm  = mag[1:] - mag[0]*np.ones(len(mag)-1)
+                    conMarkerSize = (tarMarkerSize -
+                                     np.abs(tarMarkerSize - tarMarkerSize/dm).astype(int))
+                    ax.scatter(col[1:], row[1:], s=conMarkerSize, marker='o',
+                               c='gold', edgecolor='k', linewidth=lw, zorder=4)
+
+            # Or hightligth all stars the same
+            else:
+                ax.scatter(col, row, marker='x', c='g')
+            if showStarIDs:
+                for k in range(len(ID)):
+                    label = "{0}".format(ID[k])
+                    ax.annotate(label, (col[k], row[k]), fontsize='small',
+                                fontweight='extra bold', color="black")
+
+        # If required, overplot the true averaged point-like ghost positions
+
+        if showPointLikeGhostPositions:
+            ID, row, col, Xmm, Ymm, flux = self.getPointLikeGhostCoordinates(imageNr,
+                                                                             minVmag=minVmag,
+                                                                             maxVmag=maxVmag)
+            ax.scatter(col, row, marker='o', s=6, c='b')
+            if showStarIDs:
+                for k in range(len(ID)):
+                    label = "{0}".format(ID[k])
+                    ax.annotate(label, (col[k], row[k]), fontsize='small',
+                                fontweight='extra bold', color="black")
+
+        # Ensure that the ax limits are properly set.
+
+        ax.set_xlim(0,Ncols)
+        ax.set_ylim(0,Nrows)
+
+        # If required, put the title
+
+        # User defined title-string
+        if isinstance(useTitle, str):
+            plt.title(useTitle, fontsize=fontSize)
+        # With the .hdf5
+        if useTitle is True:
+            fileBasename = os.path.splitext(self.filename)[0]
+            title = fileBasename + " - image{0:06d}".format(imageNr)
+            plt.title(title, fontsize=fontSize)
+
+        # By default, matplotlib only shows the (x,y) coordinates of each pixel,
+        # but not the pixel value itself. Change this by redefining the ax.format_coord
+
+        Nrows, Ncols = image.shape
+        def format_coord(x, y):
+            col = int(x)
+            row = int(y)
+            if col>=0 and col<Ncols and row>=0 and row<Nrows:
+                z = image[row,col]
+                return "x={:.1f}, y={:.1f}, z={:.1f}".format(x, y, z)
+            else:
+                return "x={:.1f}, y={:.1f}".format(x, y)
+
+        ax.format_coord = format_coord
+
+        # Show all ticks for smaller subfields or otherwise 10
+
+        if Ncols <= 15:
+            plt.xticks(np.arange(0, Nrows+1))
+            plt.yticks(np.arange(0, Ncols+1))
+        elif Ncols > 15 and Ncols <= 100:
+            plt.xticks(np.arange(0, Nrows+1, 10))
+            plt.yticks(np.arange(0, Ncols+1, 10))
+        elif Ncols > 100 and Ncols <= 300:
+            plt.xticks(np.arange(0, Nrows+1, 50))
+            plt.yticks(np.arange(0, Ncols+1, 50))
+        elif Ncols > 300 and Ncols <= 1000:
+            plt.xticks(np.arange(0, Nrows+1, 100))
+            plt.yticks(np.arange(0, Ncols+1, 100))
+        else:
+            plt.xticks(np.arange(0, Nrows+1, 500))
+            plt.yticks(np.arange(0, Ncols+1, 500))
+
+        # Set labels if requested
+
+        plt.xlabel(r"Pixel column, $i$", fontsize=fontSize)
+        plt.ylabel(r"Pixel row, $j$",    fontsize=fontSize)
+
+        # Plot with or without a slider
+
+        if imageNr is False:
+
+            # Function to update slider
+
+            def update_image(n=0):
+                image = images[n]
+                imagePlot.set_data(image)
+                fig.canvas.draw()
+
+            # Create slider
+
+            slider = widgets.IntSlider(description='Image:',
+                                       value=0, min=0, max=Nimg-1, step=1,
+                                       layout=widgets.Layout(width='70%'))
+            widgets.interact(update_image, n=slider)
+
+        else:
+            plt.draw()
+            plt.show()
+            
+        # That's it!
+
+        return fig, ax
+
+
+
+
+
+    def showPSF(self, datasetName, useTitle=False, colorBar=True, colorMap="gist_stern",
+                figsize=(7,6)):
+
+        """
+        PURPOSE: make a plot of the requested PSF
+
+        INPUT: datasetName: the name of the dataset that contains the PSF in the HDF5 file
+               This is set by the Simulator and is currently:
+                    rebinnedPSFpixel, rebinnedPSFsubPixel,  or  rotatedPSF
+               useTitle: True is a title should be plotted, False otherwise
+
+        OUTPUT: None
+        """
+
+        # Get the image from the HDF5 file
+        # Flip (left-right) the image, then rotate it 90 degrees. This way the smearing lines
+        # are vertical, and the image is oriented in such a way that overplotting the
+        # star x,y coordinates from getStarPixelCoordinates() becomes straightforward.
+
+
+        psf = np.rot90(np.fliplr(self.getPSF(datasetName)))
+        Nrows, Ncols = psf.shape
+
+        # Plot the image.
+
+        fig, ax = plt.subplots(1, 1, sharex=True, sharey=True, figsize=figsize)
+
+
+        image = ax.imshow(psf, cmap=colorMap, interpolation="nearest",
+                          origin='lower', extent=[0, Nrows, 0, Ncols])
+
+        # If requested, set a default title
+
+        if useTitle:
+            fileBasename = os.path.splitext(self.filename)[0]
+            title = f"{fileBasename} - {datasetName}"
+            plt.title(title)
+
+        # If requested, set colorbar
+
+        if colorBar:
+            plt.colorbar(image, orientation='vertical', extend='max',
+                         cmap=colorMap, aspect=15, fraction=0.06)
+
+        # Labels
+
+        ax.set_xlabel(r"$x$ [subpixel]")
+        ax.set_ylabel(r"$y$ [subpixel]")
+
+        # Limits
+
+        ax.set_xlim(0, Nrows)
+        ax.set_ylim(0, Ncols)
+
+        # Ticks
+
+        ax.set_xticks(np.linspace(0, Nrows+1, 5))
+        ax.set_yticks(np.linspace(0, Ncols+1, 5))
+
+        # Settings
+
+        plt.tight_layout()
+
+        # That's it!
+
+        return fig, ax
+
+
+
+    
+
+#-----------------------------
+
+    
+    def getStarPositions(self, starID):
+
+        """This function fetch the pixel coordinates of a desired star ID from the output file.
+
+        Parameters
+        ----------
+        starID : int
+           Star ID in simulated catalogue.
+
+        Return
+        ------
+        rowPix : ndarray [pixels]
+            Stellar row pixel coordinate
+        colPix : ndarray [pixels]
+            Stellar column pixel coordinate
+        """
+
+        # Get all Exposure00.. strings and avoid the time array being the last entry
+
+        exposureStrings = np.array(self.hdf5file['StarPositions'])[:-1]
+        N = len(exposureStrings)
+
+        # Loop over each image to fetch pixel coordinates
+
+        rowPix = np.zeros(N)
+        colPix = np.zeros(N)
+
+        for i in range(N):
+
+            rowPix[i] = np.array(self.hdf5file['StarPositions'][exposureStrings[i]]['rowPix'][starID-1])
+            colPix[i] = np.array(self.hdf5file['StarPositions'][exposureStrings[i]]['colPix'][starID-1])
+
+        return rowPix, colPix
+
+
+
+
+
+
+    
+    def getStarCoordinates(self, imageNr, minVmag=None, maxVmag=None):
+
+        """
+        PURPOSE: get the (fractional) pixel coordinates of all stars in the given image
+
+        INPUT: imageNr: integer sequential number of the image in the HDF5 file
+               minVmag: minimum V magnitiude. Only return stars fainter than minVmag.
+                        Should be 'None' if no cut in minimum magnitude should be made.
+               maxVmag: maximum V magnitude. Only return stars brighter than maxVmag.
+                        Should be 'None' if no cut in minimum magnitude should be made.
+
+        OUTPUT: starIDs: integer numpy array containing the star identifiers of those
+                         stars visible in the current image (subfield). The star
+                         identifier equals the line number of the star in the input
+                         star catalog (counting from 0).
+                row: The pixel row coordinates of each star in the image (float).
+                col: The pixel column coordinates of each star in the image (float).
+                Xmm: The focal plane FP' x-coordinates of each star in the image
+                Ymm: The focal plane FP' y-coordinates of each star in the image
+                flux: The flux of each star in the image [photons]
+
+        REMARKS:
+            - The coordinates returned are the time-averaged coordinates of the stars during the exposure.
+
+            - To get the pixel with the higest flux of star #0, given its (row, col) coordinates:
+              >>> im = file.getImage(0)
+              >>> ID, row, col, Xmm, Ymm, flux = file.getStarCoordinates(4, minVmag=6.0, maxVmag=9.0)
+              >>> im[int(row[0]), int(col[0])]
+
+            - To use this function to overplot the positions of the stars on an image plotted by
+              showImage(), use plt.scatter(floor(col), floor(row)) because showImage uses
+              matplotlib.imshow() which switches rows and columns.
+        """
+
+        # Construct the exposure name that was used to store the image
+
+        exposureGroupName = "Exposure{0:06d}".format(imageNr)
+
+        # Check if the arrays are in the file. If not: complain, if yes: copy the contents into a numpy array.
+
+        if exposureGroupName not in self.hdf5file["StarPositions"].keys():
+            print("Error: SimfFile.getStarCoordinates(): {0} not in hdf5 file".format(exposureGroupName))
+            return None, None, None, None, None, None
+
+        # Extract the arrays from the HDF5 file
+
+        dataset = self.hdf5file["StarPositions"][exposureGroupName]["starID"]
+        starIDs = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(starIDs)
+
+        dataset = self.hdf5file["StarPositions"][exposureGroupName]["rowPix"]
+        row = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(row)
+
+        dataset = self.hdf5file["StarPositions"][exposureGroupName]["colPix"]
+        col = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(col)
+
+        dataset = self.hdf5file["StarPositions"][exposureGroupName]["xFPmm"]
+        Xmm = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(Xmm)
+
+        dataset = self.hdf5file["StarPositions"][exposureGroupName]["yFPmm"]
+        Ymm = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(Ymm)
+
+        dataset = self.hdf5file["StarPositions"][exposureGroupName]["flux"]
+        flux = np.zeros(dataset.shape, dataset.dtype)
+        dataset.read_direct(flux)
+
+        # Make sure that the star IDs are sorted
+
+        sorted = np.argsort(starIDs)
+        starIDs = starIDs[sorted]
+        row = row[sorted]
+        col = col[sorted]
+        Xmm = Xmm[sorted]
+        Ymm = Ymm[sorted]
+        flux = flux[sorted]
+
+        # If no cut in V magnitude is required, we're finished.
+
+        if (minVmag == None) and (maxVmag == None):
+            return starIDs, row, col, Xmm, Ymm, flux
+
+        # If a cut in magnitude is required, first get the magnitudes from the star input catalog.
+
+        inputStarIDs, RA, decl, Vmag, xFPmm, yFPmm, rowPix, colPix = self.getStarCatalog()
+        subFieldVmag = Vmag[np.in1d(inputStarIDs, starIDs)]
+
+        # If the min or max V magnitude is set to None, use the default values
+
+        if minVmag == None:
+            minVmag = subFieldVmag.min()
+        if maxVmag == None:
+            maxVmag = subFieldVmag.max()
+
+        # Make the magnitude cut
+
+        selection = (subFieldVmag >= minVmag) & (subFieldVmag <= maxVmag)
+
+        # That's it!
+
+        return starIDs[selection], row[selection], col[selection], Xmm[selection], Ymm[selection], flux[selection]
 
 
 
@@ -2417,3 +3228,4 @@ class SimFile (object):
         # That's it!
 
         return starIDs[selection], row[selection], col[selection], Xmm[selection], Ymm[selection], flux[selection], radius[selection]
+

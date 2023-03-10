@@ -46,6 +46,14 @@ DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configPara
     subPixelMap.zeros(numRowsSubPixelMap, numColumnsSubPixelMap);
     flatfieldMap.ones(numRowsSubPixelMap, numColumnsSubPixelMap);
 
+    if (!constantSkyBackground)
+    {
+        // Initialize the subpixel background map
+        subPixelBackgroundMap.zeros(numRowsSubPixelMap, numColumnsSubPixelMap);
+        unDistortedX.zeros(numRowsPixelMap, numColumnsPixelMap);
+        unDistortedY.zeros(numRowsPixelMap, numColumnsPixelMap);
+    }
+
     if (includeFlatfield)
     {
         // Generate the flatfield map
@@ -463,6 +471,12 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
 
     reset();
 
+
+    if (!constantSkyBackground && (exposureNr == beginExposureNr))
+    {
+        fillBackgroundSubpixelMap(camera, startTime, exposureTime);
+    }
+
     // Integration (incl. jitter): point sources
 
     camera.exposeDetectorWithStars(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
@@ -472,8 +486,14 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
     convolveWithPsf();
 
     // Integration: background
-
-    camera.exposeDetectorWithSkyBackground(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
+    if (constantSkyBackground)
+    {
+        camera.exposeDetectorWithSkyBackground(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
+    }
+    else
+    {
+        addBackgroundMapToSubpixelMap(camera, startTime);
+    }
 
     // Apply flatfield (at sub-pixel level)
 
@@ -1299,7 +1319,6 @@ void DetectorWithMappedPSF::generateThroughputMap()
     if(includeRelativeTransmissivity  && includeOpenShutterSmearing)
         mechanicalVignettingMask.fill(1);
 
-    double xFPmmDistorted, yFPmmDistorted;             // Distorted focal plan coordinates   [mm]
     double xFPmmUndistorted, yFPmmUndistorted;         // Undistorted focal plan coordinates [mm]
     double angle;                                      // Gnomonic radial distance from the optical axis [rad]
     double relativeTransmissivityVariation;
@@ -1319,14 +1338,11 @@ void DetectorWithMappedPSF::generateThroughputMap()
         {
             for (unsigned int column = 0; column < numColumnsPixelMap; column++)
             {
+
                 // Distorted pixel coordinates (in the detector) -> distorted focal-plane coordinates
 
-                tie(xFPmmDistorted, yFPmmDistorted) = pixelToFocalPlaneCoordinates(row + subFieldZeroPointRow, column + subFieldZeroPointColumn);
-                xFPmmUndistorted = xFPmmDistorted;
-                yFPmmUndistorted = yFPmmDistorted;
-                // Convert from distorted to undistorted focal plane coordinates (Cf GitHub issue #716)
-
-                applyInverseDistortion(xFPmmUndistorted, yFPmmUndistorted);
+                xFPmmUndistorted = unDistortedX(row, column);
+                yFPmmUndistorted = unDistortedY(row, column);
 
                 // Angular distance [radians] of the pixel from the optical axis
 
@@ -1391,3 +1407,102 @@ void DetectorWithMappedPSF::generateThroughputMap()
 
 
 
+
+/**
+ * \brief: Fill the background subpixel map.
+ *
+ * \details: In order to save computotational time the background subpixel map is
+ *           generated from the background pixel map (generate at pixel level).
+ *
+ */
+void DetectorWithMappedPSF::fillBackgroundSubpixelMap(Camera &camera, double startTime, double exposureTime)
+{
+    // Fil background map
+    fillBackgroundMap(camera, startTime, exposureTime);
+
+    // convert background map to background subpixel map
+    for (int row=0; row < numRowsPixelMap; row++)
+    {
+        for (int col=0; col < numColumnsPixelMap; col++)
+        {
+            for (int i=0; i<numSubPixelsPerPixel; i++)
+            {
+                for (int j=0; j<numSubPixelsPerPixel; j++)
+                {
+                    int subPixelRow = row*numSubPixelsPerPixel+i;
+                    int subPixelCol = col*numSubPixelsPerPixel+j;
+                    subPixelBackgroundMap(subPixelRow, subPixelCol) = backgroundMap(row, col) / numSubPixelsPerPixel;
+                }
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+/**
+ *
+ * \brief: Adds the subpixel background map to the subpixel map. This function is
+ *         only used when we are dealing with a non-constant background map.
+ *
+ * \param camera: camera object
+ * \param startTime: start time of current exposure ]s\
+ *
+ */
+void DetectorWithMappedPSF::addBackgroundMapToSubpixelMap(Camera &camera, double startTime)
+{
+    double transmissionEfficiency = camera.getTransmissionEfficiency(startTime);
+    double meanBackground = arma::mean(arma::mean( backgroundMap*transmissionEfficiency));
+
+    subPixelMap += subPixelBackgroundMap*transmissionEfficiency;
+    camera.addSkybackgroundAndTransmissionEfficiency(meanBackground, transmissionEfficiency);
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
+ *
+ * \brief: Initializes the background map. This is done only once.
+ *
+ * \note:  The flux stored in the array does not take transmission efficiency into account.
+ *         To obtain the flux from the stellar background this map should still be
+ *         multiplied by the transmission efficiency. (this is exposure dependent)
+ *
+ */
+void DetectorWithMappedPSF::fillBackgroundMap(Camera &camera, double startTime, double exposureTime)
+{
+
+    // For each pixel in the background map (same dimensions as as subfield)
+    for (int row=0; row<numRowsPixelMap; row++)
+    {
+        for (int col=0; col<numColumnsPixelMap; col++)
+        {
+            // Convert the pixel coordinates to focal plane coordinates
+            double xFPmm, yFPmm;
+            tie(xFPmm, yFPmm) = pixelToFocalPlaneCoordinates(row+subFieldZeroPointRow, col+subFieldZeroPointColumn);
+
+            // Apply the inverse distortion
+            applyInverseDistortion(xFPmm, yFPmm);
+            unDistortedX(row, col) = xFPmm;
+            unDistortedY(row, col) = yFPmm;
+
+            transmissionEfficiencyBOS = camera.getTransmissionEfficiency(startTime);
+            double flux = camera.getBackgroundFlux(xFPmm, yFPmm, *this, startTime, exposureTime, readoutTimeBeforeNextExposure)/transmissionEfficiencyBOS;
+            backgroundMap(row, col) = flux;
+
+        }
+    }
+
+}

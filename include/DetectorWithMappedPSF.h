@@ -51,10 +51,16 @@ class DetectorWithMappedPSF : public Detector
         void writeSubPixelMapToHDF5(int exposureNr);
         void setPsfForSubfield();
         void convolveWithPsf();
+        void addBackgroundMapToSubpixelMap(Camera &camera, double startTime);
+        void fillBackgroundSubpixelMap(Camera &camera, double startTime, double exposureTime);
+        void fillBackgroundMap(Camera &camera, double startTime, double exposureTime) ;
 
+        arma::Mat<float> subPixelBackgroundMap;
         arma::Mat<float> subPixelMap;           // Sub-pixel map, incl. edge pixels
         arma::Mat<float> psfMap;                // The PSF map that will be used for convolving
         arma::Mat<float> flatfieldMap;          // Intra-pixel flatfield map
+        arma::Mat<float> unDistortedX;
+        arma::Mat<float> unDistortedY;
         vector<std::array<double, 4>> distortionMap;
 
         double chargeDiffusionStrength;		// Strength of the charge diffusion (width of the Gaussian diffusion kernel) [pixels]

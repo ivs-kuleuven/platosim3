@@ -1110,7 +1110,6 @@ double Sky::zodiacalFlux(double alpha, double delta, double lambda1, double lamb
     // derive the zodiacal light flux in the interval [lambda1, lambda2].
     // For this we use the fact that the zodiacal flux has a solar
     // wavelength dependence.
-
     return (flux500 * solarRadiantFlux(lambda1, lambda2) / solarRadiantFlux(500e-9));
 }
 
