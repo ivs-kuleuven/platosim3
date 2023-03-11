@@ -505,9 +505,9 @@ class Simulation(object):
 
 
 
-    def writeAllOutputToHDF5(self, write=True):
+    def turnOffAllOutput(self):
 
-        """Function to write all or nothing to the HDF5 file.
+        """Function to write nothing to the HDF5 file.
         """
 
         # Fetch names of ControlHDF5Content attributes
@@ -520,20 +520,29 @@ class Simulation(object):
         # Control the content
 
         for entry in entries:
+            self.__setitem__(f"{group}/{entry}", "no")
 
-            # Set all HDF5 content parameters to "yes"
 
-            if write:
-                self.__setitem__(f"{group}/{entry}", "yes")
 
-            # Set all HDF5 content parameters to "no"
 
-            elif write is False:
-                self.__setitem__(f"{group}/{entry}", "no")
 
-            else:
-                print("ERROR: only 'True' or 'False' can be parsed as argument!")
+    def turnOnAllOutput(self):
 
+        """Function to write all to the HDF5 file.
+        """
+
+        # Fetch names of ControlHDF5Content attributes
+
+        group = "ControlHDF5Content"
+        entries = []
+        for name, dict_ in self.yamlDocument[group].items():
+            entries.append(name)
+
+        # Control the content
+
+        for entry in entries:
+            self.__setitem__(f"{group}/{entry}", "yes")
+                
 
 
 
