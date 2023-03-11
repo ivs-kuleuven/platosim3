@@ -713,10 +713,10 @@ class PLATOnium(object):
         """
 
         # Control the content of the hdf5 output files
-        sim.writeAllOutputToHDF5(write=False)
-        sim["ObservingParameters/NumExposures"] = 1
-        sim["ControlHDF5Content/WritePixelMaps"]      = True
-        sim["ControlHDF5Content/WriteStarPositions"]  = True
+        sim.turnOffAllOutput()
+        sim["ObservingParameters/NumExposures"]      = 1
+        sim["ControlHDF5Content/WritePixelMaps"]     = True
+        sim["ControlHDF5Content/WriteStarPositions"] = True
         
         # Add photometric mask to plot if available
         if sim['Photometry/IncludePhotometry']: mask = 1
