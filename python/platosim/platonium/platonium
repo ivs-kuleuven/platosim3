@@ -61,9 +61,10 @@ class PLATOnium(object):
         self.camera       = args.cameraNr
         self.quarter      = args.quarterNr
 
-        self.inputDir      = args.inDir
+        self.inputFile     = args.infile
         self.outputDir     = args.outdir
         self.project       = args.project
+        self.inputFileName = args.yaml
         self.simPrefix     = args.prefix
         self.varSourceFile = args.varfile
         self.varSourceList = args.varlist
@@ -139,21 +140,26 @@ class PLATOnium(object):
         # PlatoSim inputfiles
         self.platosimInputDir = self.path.joinpath(os.getenv('PLATO_PROJECT_HOME'), 'inputfiles')
 
-        # First priotity to project name
-        if self.project:
-            self.simDir = self.path.joinpath(os.getenv('PLATO_WORKDIR'), self.project)
-        # Second priority to path to inputfiles
-        elif self.inputDir:
-            self.simDir = Path(self.inputDir).resolve()
+        # Sort the workdir input paths and files
+        if self.project and self.inputFileName:
+            self.simDir    = self.path.joinpath(os.getenv('PLATO_WORKDIR'), self.project)
+            self.inputDir  = self.simDir / 'input'
+            self.inputFile = self.inputDir / self.inputFileName
+        elif self.project:
+            self.simDir    = self.path.joinpath(os.getenv('PLATO_WORKDIR'), self.project)
+            self.inputDir  = self.simDir / 'input'
+            self.inputFile = self.inputDir / 'inputfile.yaml'
+        elif self.inputFile:
+            self.inputFile = Path(self.inputFile).resolve()
+            self.inputDir  = self.inputFile.parents[0]
+            self.simDir    = self.inputFile.parents[1]
         else:
             errorcode('error', 'Either -i or --project is needed to locate the inputfiles!')
 
         # Check if the inputfile.yaml exists
-        self.inputDir  = self.simDir / 'input'
-        self.inputFile = self.inputDir / 'inputfile.yaml'
         if not self.inputFile.is_file():
             errorcode('error', f'File {self.inputFile} do not exist!')        
-
+            
         # L1 pipeline paths
         if self.sample:
             # platoBin: extract_contaminant.py
@@ -199,7 +205,7 @@ class PLATOnium(object):
         picTarFile = glob.glob(str(self.inputDir) + f'/starcat{extra_str}**targets.ftr')[0]
         picConFile = glob.glob(str(self.inputDir) + f'/starcat{extra_str}**contaminants.ftr')[0]
 
-        if self.verbose > 0: print('Loading PIC stars..')
+        if self.verbose > 0: print('Loading stellar catalogue..')
         df = pd.read_feather(picTarFile)
         dc = pd.read_feather(picConFile)
 
@@ -1223,10 +1229,11 @@ man_group.add_argument('cameraNr',      type=int, help='Either: 1, 2, 3, 4, 5, 6
 man_group.add_argument('quarterNr',     type=int, help='Either: 1, 2, 3, 4, 5, 6, 7, 8, ..')
 
 out_group = parser.add_argument_group('I/O PARAMETERS')
-out_group.add_argument('-i', '--inDir',  metavar='PATH', type=str, help='Input directory for simulation')
-out_group.add_argument('-o', '--outdir', metavar='PATH', type=str, help='Output directory for simulation')
-out_group.add_argument('--project',      metavar='NAME', type=str, help='Project folder inside $PLATO_WORKDIR')
-out_group.add_argument('--prefix',       metavar='NAME', type=str, help='Prefix extention to default generated name')
+out_group.add_argument('-i', '--infile', metavar='FILE', type=str, help='Path to YAML input file')
+out_group.add_argument('-o', '--outdir', metavar='PATH', type=str, help='Output directory')
+out_group.add_argument('--project',      metavar='NAME', type=str, help='Name project folder within $PLATO_WORKDIR')
+out_group.add_argument('--yaml',         metavar='NAME', type=str, help='Name of yaml file within $PLATO_WORKDIR/input')
+out_group.add_argument('--prefix',       metavar='NAME', type=str, help='Prefix filename extention')
 out_group.add_argument('--varfile',      metavar='FILE', type=str, help='Path to variable source file -> see PlatoSim docs')
 out_group.add_argument('--varlist',      metavar='FILE', type=str, help='Path to variable source list -> see PlatoSim docs')
 out_group.add_argument('--compress',     action='store_true',      help='Flag to compress output files')
