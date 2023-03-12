@@ -1,47 +1,65 @@
 [tool.poetry]
-name = "PlatoSim"
-version = "0.1.0"
-description = "Welcome to the PLATO simulator."
-authors = ["The PlatoSim team - KU Leuven>"]
+name = "platosim"
+version = "3.5.4"
+description = "PlatoSim: A end-to-end PLATO camera simulator"
+authors = ["KU Leuven and the PlatoSim team <nicholas.jannsen@kuleuven.be>"]
+readme = "README.md"
+packages = [{include = "python/platosim"}]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<4.0"
+pyaml = "^21.10.1"
 h5py = "^3.6.0"
+argos = "^0.4.1"
+tqdm = "^4.65.0"
+prettytable = "^3.2.0"
+descartes = "^1.1.0"
+Shapely = "^1.8.1"
 DateTime = "^4.4"
 numpy = "^1.22.3"
 pandas = "^1.4.1"
-zipp = "^3.7.0"
-colorama = "^0.4.4"
 scipy = "^1.8.0"
-matplotlib = "^3.5.1"
 astropy = "^5.0.2"
-LDTk = "^1.7.0"
-batman-package = "^2.4.8"
-PyAstronomy = "^0.17.1"
-prettytable = "^3.2.0"
-pyaml = "^21.10.1"
-"ligo.skymap" = "^0.6.1"
-Shapely = "^1.8.1"
-descartes = "^1.1.0"
-pyarrow = "^7.0.0"
+matplotlib = "^3.5.1"
+ipywidgets = "^8.0.2"
+# NOTE: jupyter is extremely slow if not jupyter-client and tornado are the version below!
+notebook = ">=6.4.6,<6.4.7"
+jupyter-client = "7.3.2"
+tornado = "6.1.0"
+
+[tool.poetry.group.docs]
+optional = true
+[tool.poetry.group.docs.dependencies]
 Sphinx = "^4.5.0"
 renku-sphinx-theme = "^0.2.2"
-argos = "^0.4.1"
-PyQt5 = "^5.15.6"
+
+[tool.poetry.group.platonium]
+optional = true
+[tool.poetry.group.platonium.dependencies]
+zipp = "^3.7.0"
+natsort = "^8.2.0"
+colorama = "^0.4.4"
+numba = "^0.56.4"
+scikit-image = "^0.19.2"
+astroquery = "^0.4.6"
+LDTk = "^1.7.0"
+wotan = "^1.10"
+batman-package = "^2.4.8"
+transitleastsquares = "^1.0.31"
+PyAstronomy = "^0.17.1"
+"ligo.skymap" = "^0.6.1"
+
+[tool.poetry.group.pipeline]
+optional = true
+[tool.poetry.group.pipeline.dependencies]
 ipython = "^8.3.0"
 Cython = "^0.29.28"
-wheel = "^0.37.1"
-PyMT64 = "^1.9"
-mpi4py = "^3.1.3"
-scikit-image = "^0.19.2"
-ipywidgets = "^8.0.2"
-wotan = "^1.10"
-transitleastsquares = "^1.0.31"
-natsort = "^8.2.0"
-llvmlite = "0.39.1"
-astroquery = "^0.4.6"
 numba = "^0.56.4"
-regions = "^0.7"
+llvmlite = "0.39.1"
+mpi4py = "^3.1.3"
+PyQt5 = "^5.15.6"
+pyarrow = "^7.0.0"
+#PyMT64 = "^1.9"
 
 [tool.poetry.dev-dependencies]
 
