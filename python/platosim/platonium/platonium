@@ -87,7 +87,7 @@ class PLATOnium(object):
         self.tarAbsCenError  = args.tar_cerr
         self.saveAllFiles    = args.save_all
         self.jitterDriftOff  = args.jit_off
-        
+
         # Make sure that the input is physical
         if not self.group in [1,2,3,4]:
             errorcode('error', 'Camera-group can only be either 1, 2, 3, 4!')
@@ -210,10 +210,11 @@ class PLATOnium(object):
             try:
                 self.targetNo = np.where(df['ID'] == self.picID)[0][0]
             except IndexError:
-                errorcode('error', f'PIC {self.picID} star does not exist in current catalogue:\n{picTarFile}')
+                errorcode('error', f'PIC {self.picID} star does not exist in current catalogue:' +
+                          f'\n{picTarFile}')
         else:
             self.targetNo -= 1
-
+        
         # TODO add full frames to sim
         # if self.targetNo == -1:
         #     self.df = df.append
@@ -222,7 +223,7 @@ class PLATOnium(object):
         # Select target star
         self.df = df.iloc[self.targetNo]
 
-        # Select contaminant(s)
+        # If requested select only the target or including contaminants
         if self.noCon:
             self.numCon = 0
             self.dc = dc[dc['ID'] == self.numCon]
@@ -256,8 +257,8 @@ class PLATOnium(object):
         except: pass
 
         # Set general output filename
-        self.outputFileName = f'{self.targetNo}'.zfill(9)
-        
+        self.outputFileName = f'{self.targetNo + 1}'.zfill(9)
+
         # NOTE the structure for the L1 pipeline are different from the default
         if self.sample is None:
             
@@ -765,13 +766,17 @@ class PLATOnium(object):
         sim.outputDir = self.outputDir
         simFile = sim.run(removeOutputFile=self.overwrite, logLevel=self.verbose_platosim)
         
-        # Common files to always remove
+        # Common files to always remove (unless debug mode)
         if self.subfieldIsOnCCD:
-            if self.varSourceFile: os.remove(self.varSourceList)
+            if self.varSourceFile:
+                os.remove(self.varSourceList)
             if self.sample is None and self.verbose < 3:
-                if os.path.isfile(str(self.outputSimName) + '.log'):  os.remove(str(self.outputSimName) + '.log')
-                if os.path.isfile(str(self.outputSimName) + '.yaml'): os.remove(str(self.outputSimName) + '.yaml')
-                if os.path.isfile(self.starCatalogFile): os.remove(self.starCatalogFile)
+                if os.path.isfile(str(self.outputSimName) + '.log'):
+                    os.remove(str(self.outputSimName) + '.log')
+                if os.path.isfile(str(self.outputSimName) + '.yaml'):
+                    os.remove(str(self.outputSimName) + '.yaml')
+                if os.path.isfile(self.starCatalogFile):
+                    os.remove(self.starCatalogFile)
             
         # Compress files
         if self.compress and os.path.isfile(self.outputSimName + '.hdf5') and not self.sample:
