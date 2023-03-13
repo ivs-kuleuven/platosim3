@@ -188,6 +188,8 @@ class Simulation(object):
 
 
 
+
+        
     def __contains__(self, key):
 
         """Returns true if the input parameter (key) is known/exists.
@@ -505,9 +507,9 @@ class Simulation(object):
 
 
 
-    def writeAllOutputToHDF5(self, write=True):
+    def turnOffAllOutput(self):
 
-        """Function to write all or nothing to the HDF5 file.
+        """Function to write nothing to the HDF5 file.
         """
 
         # Fetch names of ControlHDF5Content attributes
@@ -520,24 +522,155 @@ class Simulation(object):
         # Control the content
 
         for entry in entries:
-
-            # Set all HDF5 content parameters to "yes"
-
-            if write:
-                self.__setitem__(f"{group}/{entry}", "yes")
-
-            # Set all HDF5 content parameters to "no"
-
-            elif write is False:
-                self.__setitem__(f"{group}/{entry}", "no")
-
-            else:
-                print("ERROR: only 'True' or 'False' can be parsed as argument!")
+            self.__setitem__(f"{group}/{entry}", "no")
 
 
 
 
 
+    def turnOnAllOutput(self):
+
+        """Function to write all to the HDF5 file.
+        """
+
+        # Fetch names of ControlHDF5Content attributes
+
+        group = "ControlHDF5Content"
+        entries = []
+        for name, dict_ in self.yamlDocument[group].items():
+            entries.append(name)
+
+        # Control the content
+
+        for entry in entries:
+            self.__setitem__(f"{group}/{entry}", "yes")
+                
+
+
+
+
+
+    def controlAllEffects(self, switch):
+
+        """Function to write all or nothing to the HDF5 file.
+
+        Parameters
+        ----------
+        switch : str, bool
+            If 'yes' ('True')  turn on  all effects
+            If 'no'  ('False') turn off all effects
+        
+        Notes
+        -----
+        Parameters that are turned on/off:
+        - Stellar variability
+        - Cosmic rays
+        - AOCS jitter
+        - Thermo-elastic drift (TED)
+        - Aberration correction (absolute + differential)
+        - Field distortion
+        - Charge diffusion
+        - Jitter smoothing
+        - Flatfield
+        - Dark signal
+        - Brighter-fatter effect (BFE)
+        - Photon noise
+        - Readout noise
+        - Charge transfer inefficiency (CTI)
+        - Open-shutter smearing
+        - Overall relative transmissivity
+        - Polarisation
+        - Particulate contamination
+        - Molecular contamination
+        - Quantum efficiency
+        - Convolution with the PSF (Zemax only)
+        - Full-well saturation (blooming)
+        - Digital saturation
+        - Quantisation
+        """
+        
+        # Sky parameters
+
+        self["Sky/IncludeVariableSources"]      = switch
+        self["Sky/IncludeCosmicsInSubField"]    = switch
+        self["Sky/IncludeCosmicsInSmearingMap"] = switch
+        self["Sky/IncludeCosmicsInBiasMap"]     = switch
+
+        # Platform parameters
+
+        self["Platform/UseJitter"] = switch
+
+        # Telescope parameters
+
+        self["Telescope/UseDrift"] = switch
+
+        # Camera parameters
+
+        self["Camera/IncludeAberrationCorrection"] = switch
+        self["Camera/IncludeFieldDistortion"]      = switch
+        self["Camera/IncludePointLikeGhosts"]      = switch
+        self["Camera/IncludeExtendedGhosts"]       = switch
+
+        # PSF parameters
+
+        self["PSF/MappedFromFile/IncludeChargeDiffusion"]      = switch
+        self["PSF/AnalyticNonGaussian/IncludeChargeDiffusion"] = switch
+        self["PSF/MappedFromFile/IncludeJitterSmoothing"]      = switch
+
+        # FEE parameters
+
+        self["FEE/IncludeOverAndUnderShoot"] = switch
+        
+        # CCD parameters
+
+        self["CCD/IncludeFlatfield"]                = switch
+        self["CCD/IncludeDarkSignal"]               = switch
+        self["CCD/IncludeBFE"]                      = switch
+        self["CCD/IncludePhotonNoise"]              = switch
+        self["CCD/IncludeReadoutNoise"]             = switch
+        self["CCD/IncludeCTIeffects"]               = switch
+        self["CCD/IncludeChargeInjection"]          = switch
+        self["CCD/IncludeOpenShutterSmearing"]      = switch
+        self["CCD/IncludeQuantumEfficiency"]        = switch
+        self["CCD/IncludeRelativeTransmissivity"]   = switch
+        self["CCD/IncludePolarization"]             = switch
+        self["CCD/IncludeParticulateContamination"] = switch
+        self["CCD/IncludeMolecularContamination"]   = switch
+        self["CCD/IncludeConvolution"]              = switch
+        self["CCD/IncludeFullWellSaturation"]       = switch
+        self["CCD/IncludeDigitalSaturation"]        = switch
+        self["CCD/IncludeQuantisation"]             = switch
+
+
+
+
+        
+    def turnOnAllEffects(self):
+
+        """Function to switch off all writing to the HDF5 file.
+
+        NOTE: function uses controlAllEffects()
+        """
+
+        self.controlAllEffects("yes")
+
+
+
+
+        
+    def turnOffAllEffects(self):
+
+        """Function to switch off all writing to the HDF5 file.
+
+        NOTE: function uses controlAllEffects()
+        """
+
+        self.controlAllEffects("no")
+
+
+
+        
+        
     def useNominalCamera(self):
 
         """Change the input parameters to use the nominal camera's.

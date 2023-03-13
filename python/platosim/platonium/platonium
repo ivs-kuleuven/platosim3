@@ -39,7 +39,7 @@ from scipy.interpolate import interp1d, CubicSpline
 import platosim.referenceFrames as rf
 from platosim.simulation   import Simulation
 from platosim.utilities    import errorcode, pdAddColumn
-from platosim.plot         import drawStarInCCDfocalPlane
+from platosim.plot         import drawStarInCCDfocalPlane, plotSubfieldAnimation
 from platosim.matplotlibrc import setup
 setup()
 
@@ -61,9 +61,10 @@ class PLATOnium(object):
         self.camera       = args.cameraNr
         self.quarter      = args.quarterNr
 
-        self.inputDir      = args.inDir
+        self.inputFile     = args.infile
         self.outputDir     = args.outdir
         self.project       = args.project
+        self.inputFileName = args.yaml
         self.simPrefix     = args.prefix
         self.varSourceFile = args.varfile
         self.varSourceList = args.varlist
@@ -77,6 +78,7 @@ class PLATOnium(object):
         self.maskUpdate   = args.mask
         self.seed         = args.seed
         self.mag          = args.mag
+        self.noCon        = args.nocon
         self.reuseJitter  = args.reusejitter
         
         self.sample          = args.sample
@@ -86,7 +88,7 @@ class PLATOnium(object):
         self.tarAbsCenError  = args.tar_cerr
         self.saveAllFiles    = args.save_all
         self.jitterDriftOff  = args.jit_off
-        
+
         # Make sure that the input is physical
         if not self.group in [1,2,3,4]:
             errorcode('error', 'Camera-group can only be either 1, 2, 3, 4!')
@@ -123,6 +125,12 @@ class PLATOnium(object):
         else:
             self.overwrite = False
 
+        # Overwrite simulation
+        if args.animation:
+            self.animation = True
+        else:
+            self.animation = False
+            
             
         # PATHS AND INPUT
 
@@ -132,21 +140,26 @@ class PLATOnium(object):
         # PlatoSim inputfiles
         self.platosimInputDir = self.path.joinpath(os.getenv('PLATO_PROJECT_HOME'), 'inputfiles')
 
-        # First priotity to project name
-        if self.project:
-            self.simDir = self.path.joinpath(os.getenv('PLATO_WORKDIR'), self.project)
-        # Second priority to path to inputfiles
-        elif self.inputDir:
-            self.simDir = Path(self.inputDir).resolve()
+        # Sort the workdir input paths and files
+        if self.project and self.inputFileName:
+            self.simDir    = self.path.joinpath(os.getenv('PLATO_WORKDIR'), self.project)
+            self.inputDir  = self.simDir / 'input'
+            self.inputFile = self.inputDir / self.inputFileName
+        elif self.project:
+            self.simDir    = self.path.joinpath(os.getenv('PLATO_WORKDIR'), self.project)
+            self.inputDir  = self.simDir / 'input'
+            self.inputFile = self.inputDir / 'inputfile.yaml'
+        elif self.inputFile:
+            self.inputFile = Path(self.inputFile).resolve()
+            self.inputDir  = self.inputFile.parents[0]
+            self.simDir    = self.inputFile.parents[1]
         else:
             errorcode('error', 'Either -i or --project is needed to locate the inputfiles!')
 
         # Check if the inputfile.yaml exists
-        self.inputDir  = self.simDir / 'input'
-        self.inputFile = self.inputDir / 'inputfile.yaml'
         if not self.inputFile.is_file():
             errorcode('error', f'File {self.inputFile} do not exist!')        
-
+            
         # L1 pipeline paths
         if self.sample:
             # platoBin: extract_contaminant.py
@@ -192,7 +205,7 @@ class PLATOnium(object):
         picTarFile = glob.glob(str(self.inputDir) + f'/starcat{extra_str}**targets.ftr')[0]
         picConFile = glob.glob(str(self.inputDir) + f'/starcat{extra_str}**contaminants.ftr')[0]
 
-        if self.verbose > 0: print('Loading PIC stars..')
+        if self.verbose > 0: print('Loading stellar catalogue..')
         df = pd.read_feather(picTarFile)
         dc = pd.read_feather(picConFile)
 
@@ -203,19 +216,26 @@ class PLATOnium(object):
             try:
                 self.targetNo = np.where(df['ID'] == self.picID)[0][0]
             except IndexError:
-                errorcode('error', f'PIC {self.picID} star does not exist in current catalogue:\n{picTarFile}')
+                errorcode('error', f'PIC {self.picID} star does not exist in current catalogue:' +
+                          f'\n{picTarFile}')
         else:
             self.targetNo -= 1
-
+        
         # TODO add full frames to sim
         # if self.targetNo == -1:
         #     self.df = df.append
         #     self
 
-        # Select star
+        # Select target star
         self.df = df.iloc[self.targetNo]
-        self.dc = dc[dc['ID'] == self.df['ID']]
-        self.numCon = len(self.dc['ID'])
+
+        # If requested select only the target or including contaminants
+        if self.noCon:
+            self.numCon = 0
+            self.dc = dc[dc['ID'] == self.numCon]
+        else:
+            self.dc = dc[dc['ID'] == self.df['ID']]
+            self.numCon = len(self.dc['ID'])
 
         # If requested overwrite magnitude of target star
         if self.mag:
@@ -243,8 +263,8 @@ class PLATOnium(object):
         except: pass
 
         # Set general output filename
-        self.outputFileName = f'{self.targetNo}'.zfill(9)
-        
+        self.outputFileName = f'{self.targetNo + 1}'.zfill(9)
+
         # NOTE the structure for the L1 pipeline are different from the default
         if self.sample is None:
             
@@ -700,10 +720,10 @@ class PLATOnium(object):
         """
 
         # Control the content of the hdf5 output files
-        sim.writeAllOutputToHDF5(write=False)
-        sim["ObservingParameters/NumExposures"] = 1
-        sim["ControlHDF5Content/WritePixelMaps"]      = True
-        sim["ControlHDF5Content/WriteStarPositions"]  = True
+        sim.turnOffAllOutput()
+        sim["ObservingParameters/NumExposures"]      = 1
+        sim["ControlHDF5Content/WritePixelMaps"]     = True
+        sim["ControlHDF5Content/WriteStarPositions"] = True
         
         # Add photometric mask to plot if available
         if sim['Photometry/IncludePhotometry']: mask = 1
@@ -752,13 +772,17 @@ class PLATOnium(object):
         sim.outputDir = self.outputDir
         simFile = sim.run(removeOutputFile=self.overwrite, logLevel=self.verbose_platosim)
         
-        # Common files to always remove
+        # Common files to always remove (unless debug mode)
         if self.subfieldIsOnCCD:
-            if self.varSourceFile: os.remove(self.varSourceList)
+            if self.varSourceFile:
+                os.remove(self.varSourceList)
             if self.sample is None and self.verbose < 3:
-                if os.path.isfile(str(self.outputSimName) + '.log'):  os.remove(str(self.outputSimName) + '.log')
-                if os.path.isfile(str(self.outputSimName) + '.yaml'): os.remove(str(self.outputSimName) + '.yaml')
-                if os.path.isfile(self.starCatalogFile): os.remove(self.starCatalogFile)
+                if os.path.isfile(str(self.outputSimName) + '.log'):
+                    os.remove(str(self.outputSimName) + '.log')
+                if os.path.isfile(str(self.outputSimName) + '.yaml'):
+                    os.remove(str(self.outputSimName) + '.yaml')
+                if os.path.isfile(self.starCatalogFile):
+                    os.remove(self.starCatalogFile)
             
         # Compress files
         if self.compress and os.path.isfile(self.outputSimName + '.hdf5') and not self.sample:
@@ -768,6 +792,20 @@ class PLATOnium(object):
             os.system(f'zip -j {self.outputSimName}.zip {self.outputSimName}*')
             os.remove(self.outputSimName + '.hdf5')
 
+        # Make a animation if requested
+        if self.animation:
+            plotSubfieldAnimation(str(self.outputSimName) + '.hdf5',
+                                  outputFileName=str(self.outputSimName),
+                                  skipNimages=1000,
+                                  numImages=False,
+                                  colorMap="cubehelix",
+                                  clipPercentile=8.0, 
+                                  showStarPositions='PIC',
+                                  showMaskOfStarID='1',
+                                  useTitle=True,
+                                  showGrid=True,
+                                  figsize=(6,6))
+            
         # Execution time of module
         if self.verbose > 0:
             self.tocPlatoSim = datetime.datetime.now() - self.tic
@@ -776,6 +814,9 @@ class PLATOnium(object):
             #self.byte2MB = 1024 * 1024 #* 1024
             #self.memPlatoSim = os.path.getsize(self.outputDir) / self.byte2MB
             #self.memPlatoSim = shutil.disk_usage(self.outputDir)
+
+
+        
 
             
     #--------------------------------------------------------------#
@@ -1178,6 +1219,7 @@ parser = argparse.ArgumentParser(epilog=__doc__,
 
 parser.add_argument('-p', '--plot',      action='store_true',   help='Flag to plot 1st subfield (this will not save the simulation)')
 parser.add_argument('-w', '--overwrite', action='store_true',   help='Flag to overwrite an existing HDF5 output file that may exist')
+parser.add_argument('-a', '--animation', action='store_true',   help='Flag to generate a animation of the subfield simulation')
 parser.add_argument('-v', '--verbose', metavar='INT', type=int, help='Verbosity level [0, 1, 3] (Default: 1)')
 
 man_group = parser.add_argument_group('MANDATORY PARAMETERS')
@@ -1187,10 +1229,11 @@ man_group.add_argument('cameraNr',      type=int, help='Either: 1, 2, 3, 4, 5, 6
 man_group.add_argument('quarterNr',     type=int, help='Either: 1, 2, 3, 4, 5, 6, 7, 8, ..')
 
 out_group = parser.add_argument_group('I/O PARAMETERS')
-out_group.add_argument('-i', '--inDir',  metavar='PATH', type=str, help='Input directory for simulation')
-out_group.add_argument('-o', '--outdir', metavar='PATH', type=str, help='Output directory for simulation')
-out_group.add_argument('--project',      metavar='NAME', type=str, help='Project folder inside $PLATO_WORKDIR')
-out_group.add_argument('--prefix',       metavar='NAME', type=str, help='Prefix extention to default generated name')
+out_group.add_argument('-i', '--infile', metavar='FILE', type=str, help='Path to YAML input file')
+out_group.add_argument('-o', '--outdir', metavar='PATH', type=str, help='Output directory')
+out_group.add_argument('--project',      metavar='NAME', type=str, help='Name project folder within $PLATO_WORKDIR')
+out_group.add_argument('--yaml',         metavar='NAME', type=str, help='Name of yaml file within $PLATO_WORKDIR/input')
+out_group.add_argument('--prefix',       metavar='NAME', type=str, help='Prefix filename extention')
 out_group.add_argument('--varfile',      metavar='FILE', type=str, help='Path to variable source file -> see PlatoSim docs')
 out_group.add_argument('--varlist',      metavar='FILE', type=str, help='Path to variable source list -> see PlatoSim docs')
 out_group.add_argument('--compress',     action='store_true',      help='Flag to compress output files')
@@ -1204,6 +1247,7 @@ sim_group.add_argument('--pic',     metavar='ID',   type=int,   help='ID from th
 sim_group.add_argument('--seed',    metavar='INT',  type=int,   help='Option to bootstrap seeds in order to reproduce results')
 sim_group.add_argument('--mask',    metavar='DAY',  type=float, help='Option to alter/overwrite the mask-update in inputfile [days]')
 sim_group.add_argument('--mag',     metavar='PMAG', type=float, help='Option to change target magnitude (overwrites catalogue magnitude)')
+sim_group.add_argument('--nocon',       action='store_true',    help='Flag ignore all stellar contaminants')
 sim_group.add_argument('--reusejitter', action='store_true',    help='Flag to re-use AOCS jitter file across all quarters')
 
 pip_group = parser.add_argument_group('L1 PIPELINE PARAMETERS')
