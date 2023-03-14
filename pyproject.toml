@@ -47,8 +47,8 @@ wotan = "^1.10"
 batman-package = "^2.4.8"
 transitleastsquares = "^1.0.31"
 PyAstronomy = "^0.17.1"
-"ligo.skymap" = "^0.6.1"
 statsmodels = "^0.13.5"
+"ligo.skymap" = "^0.6.1"
 
 [tool.poetry.group.pipeline]
 optional = true
