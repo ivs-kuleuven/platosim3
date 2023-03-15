@@ -66,9 +66,9 @@ docs/*/*/*.hdf5
 
 poetry.lock
 
-# PLATOnium
+# Setup script
 
-.platonium_init
+.bash_profile
 
 # varsim
 
