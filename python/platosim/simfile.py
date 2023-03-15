@@ -1860,7 +1860,7 @@ class SimFile (object):
         if   fluxType == "estimated": lctype = "estimatedFlux"
         elif fluxType == "input":     lctype = "inputFlux"
         else:
-            print("ERROR: getFlux(): flux_type can only be 'estimated' or 'input'")
+            print("ERROR: simfile.getFlux(): fluxType can only be 'estimated' or 'input'")
             return None
         
         # Query either a single star or multiple stars as requested
@@ -1879,7 +1879,7 @@ class SimFile (object):
             # Check photometry is present for each star
             starIDgroupName = f"starID{ID}"
             if starIDgroupName not in self.hdf5file["Photometry"]["Lightcurves"].keys():
-                print(f"ERROR: getLightCurve(): {starIDgroupName} not present in " +
+                print(f"ERROR: simfile.getFlux(): {starIDgroupName} not present in " +
                       "Photometry/Lightcurves/ in the HDF5 file")
 
             # Select correct name convention
@@ -1904,7 +1904,7 @@ class SimFile (object):
 
 
 
-    def getLightCurve(self, starID, fluxType="estimated", warning=True):
+    def getLightCurve(self, starID, fluxType=None):
 
         """Extract the light curve of one or more stars
 
@@ -1917,8 +1917,8 @@ class SimFile (object):
         starID : int, list/ndarray
             int  : ID of the star as mentioned in the last column of the star catalog file
             list : List of star IDs for which the light curve should be extracted
-        flux_type : str
-            Either "estimated" or "input".
+        fluxType : str
+            Either None, "estimated", or "input". If none both flux columns are returned.
             The estimated one is derived from a binary mask.
             The input one is derived from the mean input magnitude specified in the star catalog
             and (for variable stars) the delta-magnitude time series given as an input file.
@@ -1936,13 +1936,19 @@ class SimFile (object):
 
         # Fetch flux column(s)
 
-        flux = self.getFlux(starID, fluxType=fluxType)
-
-        # Combine data
-
-        return pd.concat([time, flux], axis=1)
-
-
+        if fluxType == None:
+            flux_input     = self.getFlux(starID, fluxType="input")
+            flux_estimated = self.getFlux(starID, fluxType="estimated")
+            df = pd.concat([time, flux_input, flux_estimated], axis=1)
+            df.columns = ["time", "flux_input", "flux_estimated"]
+            return df
+        elif fluxType in ("input", "estimated"):
+            flux = self.getFlux(starID, fluxType=fluxType)
+            return pd.concat([time, flux], axis=1)
+        else:
+            print("ERROR: no such flux name, use either 'estimated' or 'input'!")
+            
+            
 
 
 

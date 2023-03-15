@@ -21,7 +21,7 @@ import subprocess
 import numpy as np
 
 import platosim.referenceFrames as rf
-import platosim.instrument      as it
+import platosim.instrument      as getTED
 
 from platosim.simfile import SimFile
 
@@ -1119,45 +1119,13 @@ class Simulation(object):
 
         # Create TED file
 
-        it.getTED(quarter=quarter, model=model, outfile=fileName, plot=plot)
+        getTED(quarter=quarter, model=model, outfile=fileName, plot=plot)
 
         # Set this to simulation
 
         self["Telescope/UseDrift"]         = True
         self["Telescope/UseDriftFromFile"] = True
         self["Telescope/DriftFileName"]    = fileName
-
-    def createDriftFile(self, quarter, fileName, model="poly", plot=False):
-
-        """Create a photometry file list in ascii format and sets it to the YAML input.
-
-        Parameters
-        ----------
-        starIDs : ndarray
-            Array with IDs of the star (integers)
-        fileName : str
-            Path of the photometry file that will be written.
-
-        Return
-        ------
-        A file will be saved, containing the star IDs that photometry should be performed on.
-        The "Telescope/UseDriftFromFile" tag in the yaml tree will be changed to the given
-        DriftFileName.
-        """
-
-        # Create TED file
-
-        it.getTED(quarter=quarter, model=model, outfile=fileName, plot=plot)
-
-        # Set this to simulation
-
-        self["Telescope/UseDrift"]         = True
-        self["Telescope/UseDriftFromFile"] = True
-        self["Telescope/DriftFileName"]    = fileName
-
-        # Finito!
-
-        return
 
 
 

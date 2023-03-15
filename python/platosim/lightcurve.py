@@ -92,7 +92,7 @@ class LightCurve(object):
                 simfile = SimFile(filename)
 
                 # Fetch light curve
-                self.df = simfile.getLightCurve(1, warning=False)
+                self.df = simfile.getLightCurve(1)
 
                 # Add time column if not found
                 if not 'time' in self.df:
@@ -584,8 +584,8 @@ class LightCurve(object):
 
         # Fetch flux column and force to be ppm for correct NSR
         
-        #if influx == "e/s":
-        #    df[column] = self.flux(column=column, unit="ppm")
+        # if influx == "e/s":
+        #     df[column] = self.flux(column=column, unit="ppm")
         
         # Set the binned time scale [days]
         
@@ -608,9 +608,9 @@ class LightCurve(object):
 
         # Return NSR
         
-        return np.mean(sigma/mean) / np.sqrt(nbin) * 1e6
+        #return np.mean(sigma/mean) / np.sqrt(nbin) * 1e6
     
-        #return np.mean(sigma) / np.sqrt(nbin)
+        return np.mean(sigma) / np.sqrt(nbin)
 
 
 
@@ -1550,7 +1550,7 @@ class LightCurve(object):
         for i in range(nfiles):
 
             # Fetch light curve object
-            
+            print(lc = LightCurve(files[i]))
             try: lc = LightCurve(files[i])
             except: pass
             else:
@@ -1598,7 +1598,7 @@ class LightCurve(object):
                     df0 = pd.concat([df0, df1])
 
         # Sort after logic structure and reset indices
-        
+
         df0 = df0.sort_values(by=["time"])
         df0 = df0.reset_index(drop=True)
 
