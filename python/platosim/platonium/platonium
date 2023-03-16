@@ -69,6 +69,7 @@ class PLATOnium(object):
         self.project       = args.project
         self.inputFileName = args.yaml
         self.simPrefix     = args.prefix
+        self.starcatFile   = args.starcat
         self.varSourceFile = args.varfile
         self.varSourceList = args.varlist
         self.compress      = args.compress
@@ -175,8 +176,10 @@ class PLATOnium(object):
         # PHYSICAL PARAMETERS
 
         # Check for PLATO pointing field (in Galactic long. (deg) and lat. (deg))
-        self.PF = {'SPF': [86.79870508, -46.39594703, -8.5],  # Equivalent to Galactic [253.0, -30.0, 0.0]
-                   'NPF': [265.08002279, 39.5836954,  +8.5]}  # Equivalent to Galactic [ 65.0, +30.0, 0.0]
+        self.PF = {'SPF': [93.49134, -42.93544, -8.5],  # Equivalent to Galactic [253.0, -30.0, 0.0]
+                   'NPF': [277.18023, 52.85952, +8.5]}  # Equivalent to Galactic [ 65.0, +30.0, 0.0]
+        # self.PF = {'SPF': [86.79870508, -46.39594703, -8.5],  # Equivalent to Galactic [253.0, -30.0, 0.0]
+        #            'NPF': [265.08002279, 39.5836954,  +8.5]}  # Equivalent to Galactic [ 65.0, +30.0, 0.0]
 
         # TODO Threshold (%) of variability to incldue for a contaminant
         # Signals: flare, pulsation, eclipse
@@ -202,35 +205,52 @@ class PLATOnium(object):
         Module to load the stellar targets and contaminants.
         """
 
-        # Handle PIC catalog files
-        if self.sample is not None: extra_str = f'_{self.sample}'
-        else: extra_str = ''
-        picTarFile = glob.glob(str(self.inputDir) + f'/starcat{extra_str}**targets.ftr')[0]
-        picConFile = glob.glob(str(self.inputDir) + f'/starcat{extra_str}**contaminants.ftr')[0]
-
-        if self.verbose > 0: print('Loading stellar catalogue..')
-        df = pd.read_feather(picTarFile)
-        dc = pd.read_feather(picConFile)
-
-        # Correct indicing and allow a specific star to be choosen
-        if self.targetNo == 0:
-            errorcode('error', 'Star ID indicing starts from 1 and not 0!')
-        elif self.picID is not None:
-            try:
-                self.targetNo = np.where(df['ID'] == self.picID)[0][0]
-            except IndexError:
-                errorcode('error', f'PIC {self.picID} star does not exist in current catalogue:' +
-                          f'\n{picTarFile}')
-        else:
-            self.targetNo -= 1
+        if self.verbose > 0:
+            print('Loading stellar catalogue..')
         
-        # TODO add full frames to sim
-        # if self.targetNo == -1:
-        #     self.df = df.append
-        #     self
+        # Fetch stars either from custum catalogue are the default PIC setup
 
-        # Select target star
-        self.df = df.iloc[self.targetNo]
+        if self.starcatFile is not None:
+            dx = pd.read_csv(self.starcatFile, sep=' ', names=['ID', 'ra', 'dec', 'mag', 'dis'])
+            # Chnage IDs all to be the target
+            dx.ID = np.ones(len(dx))
+            dx.ID = dx.ID.astype('int')
+            # Define data frames
+            self.df = dx.loc[0]
+            dc = dx.loc[1:]
+
+        else:
+            # Add sample name if pipeline is activated
+            if self.sample is not None:
+                extra_str = f'_{self.sample}'
+            else:
+                extra_str = ''
+
+            # Fetch PIC targets and contaminants
+            picTarFile = glob.glob(str(self.inputDir) + f'/starcat{extra_str}**targets.ftr')[0]
+            picConFile = glob.glob(str(self.inputDir) + f'/starcat{extra_str}**contaminants.ftr')[0]
+            df = pd.read_feather(picTarFile)
+            dc = pd.read_feather(picConFile)
+
+            # Correct indicing and allow a specific star to be choosen
+            if self.targetNo == 0:
+                errorcode('error', 'Star ID indicing starts from 1 and not 0!')
+            elif self.picID is not None:
+                try:
+                    self.targetNo = np.where(df['ID'] == self.picID)[0][0]
+                except IndexError:
+                    errorcode('error', f'PIC {self.picID} star does not exist in current catalogue:' +
+                              f'\n{picTarFile}')
+            else:
+                self.targetNo -= 1
+        
+            # TODO add full frames to sim
+            # if self.targetNo == -1:
+            #     self.df = df.append
+            #     self
+
+            # Select target star
+            self.df = df.iloc[self.targetNo]
 
         # If requested select only the target or including contaminants
         if self.noCon:
@@ -245,7 +265,9 @@ class PLATOnium(object):
             self.df.mag = self.mag
 
 
-        
+
+
+            
 
 
     def configure_output(self):
@@ -668,7 +690,7 @@ class PLATOnium(object):
 
             
         # SAVE LIST OF VARIABLE SOURCES
-
+        
         # NOTE if a user-defined filename for the variable data is parsed
         # then a variable source list is created automatically
         # TODO binary files are not yet compatible with PlatoSim!
@@ -677,7 +699,7 @@ class PLATOnium(object):
             # First priority to varSourceList -> Allows variability for all stars
             if self.varSourceList:
                 sim["Sky/VariableSourceList"] = Path(self.varSourceList).resolve()
-
+                
             # Second priority to varSourceFile -> Allows variability for target only
             elif os.path.exists(str(self.varSourceList)) is False:
 
@@ -1237,6 +1259,7 @@ out_group.add_argument('-o', '--outdir', metavar='PATH', type=str, help='Output 
 out_group.add_argument('--project',      metavar='NAME', type=str, help='Name project folder within $PLATO_WORKDIR')
 out_group.add_argument('--yaml',         metavar='NAME', type=str, help='Name of yaml file within $PLATO_WORKDIR/input')
 out_group.add_argument('--prefix',       metavar='NAME', type=str, help='Prefix filename extention')
+out_group.add_argument('--starcat',      metavar='FILE', type=str, help='Path to stellar catalogue    -> see PlatoSim docs')
 out_group.add_argument('--varfile',      metavar='FILE', type=str, help='Path to variable source file -> see PlatoSim docs')
 out_group.add_argument('--varlist',      metavar='FILE', type=str, help='Path to variable source list -> see PlatoSim docs')
 out_group.add_argument('--compress',     action='store_true',      help='Flag to compress output files')

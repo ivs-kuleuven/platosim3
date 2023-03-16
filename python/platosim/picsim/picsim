@@ -74,6 +74,11 @@ pic_group.add_argument('targets', type=str, help='Number of targets saved in cat
 pic_group.add_argument('sample',  type=str, help='PIC samples [P1, P2, P4, P5, all]  (Select "all" for all samples)')
 pic_group.add_argument('field',   type=str, help='PLATO fields [NPF, SPF, all]       (Select "all" for both fields)')
 
+que_group = parser.add_argument_group('QUERY OPTIONS (optional)')
+que_group.add_argument('--query', type=str, metavar='NAME',   help='Simbad target for query using Gaia DR2')
+que_group.add_argument('--dmag',  type=int, metavar='MAG',    help='Delta magnitude inclusion threhold of target-to-contaminatn (Default: 5 mag)')
+que_group.add_argument('--dist',  type=int, metavar='ARCSEC', help='Radial distance to fecth contaminants [30, 45, 60] (Default: 45 arcsec)')
+
 obs_group = parser.add_argument_group('OBSERVABLES (optional)')
 obs_group.add_argument('--camera', metavar='NUM',   type=str, help='N-CAM visibility [6, 12, 18, 24]')
 obs_group.add_argument('--group',  metavar='NUM',   type=int, help='Camera-group visibility [1, 2, 3, 4]')
@@ -81,10 +86,6 @@ obs_group.add_argument('--mag',    metavar='RANGE', type=str, help='P magnitude 
 obs_group.add_argument('--spec',   metavar='TYPE',  type=str, help='Spectral type [F, G, K]')
 obs_group.add_argument('--lum',    metavar='CLASS', type=str, help='Luminosity class [V, IV]')
 obs_group.add_argument('--ntime',  metavar='NUM',   type=int, help='Number of individual timeseries to be generated')
-
-con_group = parser.add_argument_group('CONTAMINANTS (optional)')
-con_group.add_argument('--dmag', type=int, metavar='MAG',    help='Delta magnitude inclusion threhold of target-to-contaminatn (Default: 5 mag)')
-con_group.add_argument('--dist', type=int, metavar='ARCSEC', help='Radial distance threshold to include a contaminant [30, 45, 60] (Default: 45 arcsec)')
 
 args = parser.parse_args()
 
@@ -94,6 +95,10 @@ onlyTargets   = args.targ
 outputDir     = args.outdir
 inputFiles    = args.incat
 oldCatalogue  = args.unique
+
+targetQuery   = args.query
+dmagConLimit  = args.dmag
+disConLimit   = args.dist
 
 numTargets    = args.targets
 starSample    = args.sample
@@ -105,9 +110,6 @@ magRange      = args.mag
 specType      = args.spec
 lumClass      = args.lum
 numTimeseries = args.ntime
-
-dmagConLimit  = args.dmag
-disConLimit   = args.dist
 
 # Add latex font if catalogue is saved
 if outputDir is None:
@@ -164,6 +166,20 @@ if outputDir is not None:
         outputFileTar = outputDir / outputPrefixTar
         outputFileCon = outputDir / outputPrefixCon
 
+
+#--------------------
+# TODO implement properly such dmag and dist can be requested too
+if targetQuery:
+    df = ut.starQuery(targetQuery)
+    print(f'Catalogue for {targetQuery}:')
+    print(df)
+    
+    if outputDir is not None:
+        df.to_csv(outputDir / f"starcat_{targetQuery}.txt", sep=' ', header=False)    
+    exit()
+#--------------------
+
+        
 # Select PIC sample
 bitmask = {'P1': 1,
            'P2': 3,  # Notice 2 is stated in documentation but 3 is correct..
