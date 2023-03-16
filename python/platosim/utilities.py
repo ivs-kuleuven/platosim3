@@ -12,6 +12,7 @@ import sys
 import h5py
 import math
 import inspect
+import pathlib
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -23,10 +24,10 @@ from prettytable import PrettyTable
 from scipy.ndimage import median_filter
 from numba import njit
 import astropy.units as u
-from astroquery.simbad import Simbad
 from astropy.coordinates import SkyCoord
+from astroquery.simbad import Simbad
 from astroquery.mast import Catalogs
-
+from astroquery.gaia import Gaia
 # PlatoSim
 import platosim.referenceFrames as rf
 
@@ -811,14 +812,89 @@ def gaiaQuery(star):
     gaia_id : int
         The Gaia DR2 ID of the star.
     """
+
+    # Query for target star
     result_table = Simbad.query_objectids(star)
     if result_table is None:
         raise LookupError(f"No Simbad results for {star} (probably not a star)")
+
+    # If requested find all stars with 'radius'
     for row in result_table:
         if 'Gaia DR2' in row['ID']:
             gaia_id = row['ID']
             return int(gaia_id[9:])
     raise LookupError(f"No Gaia DR2 ID for {star} (probably a multiple star)")
+
+
+
+
+
+
+def starQuery(star, radius=45):
+    """
+    Query Gaia for a named star and return the Gaia DR2 ID.
+
+    Parameters
+    ----------
+    star : str
+        Name of the star to query around.
+
+    Returns
+    -------
+    gaia_id : int
+        The Gaia DR2 ID of the star.
+    """
+
+    # Qucik check that target star exist
+    result_table = Simbad.query_objectids(star)
+    if result_table is None:
+        raise LookupError(f"No Simbad results for {star} (probably not a star)")
+
+    # Fetch the equatorial coordinates
+    Simbad.reset_votable_fields()
+    Simbad.remove_votable_fields('coordinates')
+    Simbad.add_votable_fields('ra(:;A;ICRS;J2000)', 'dec(:;D;ICRS;2000)')
+    table = Simbad.query_object(star, wildcard=False)
+    coord = SkyCoord(ra=['{}h{}m{}s'.format(*ra.split(':')) for ra in table['RA___A_ICRS_J2000']], 
+                     dec=['{}d{}m{}s'.format(*dec.split(':')) for dec in table['DEC___D_ICRS_2000']],
+                     frame='icrs', equinox='J2000')
+    raStar  = coord.ra.degree[0]
+    decStar = coord.dec.degree[0]
+
+    # Convert radius to from arcsec to deg
+    radius /= 3600.
+
+    # Gaia radius querymetric
+    query_cone = f"""SELECT 
+    TOP 10 
+    source_id, ra, dec, phot_g_mean_mag
+    FROM gaiadr2.gaia_source
+    WHERE 1=CONTAINS(POINT(ra, dec), CIRCLE({raStar}, {decStar}, {radius}))
+    """
+
+    # Launch Gaia query 
+    job     = Gaia.launch_job(query_cone)
+    results = job.get_results()
+
+    # Convert astropy results table into pandas df
+    df = results.to_pandas()
+
+    # Make sure that target is the first entry
+    for row in result_table:
+        if 'Gaia DR2' in row['ID']:
+            gaia_id = int(row['ID'][9:])            
+    row = df.index[df['source_id'] == gaia_id].tolist()
+    dex = row + [i for i in range(len(df)) if i != row[0]]
+    df = df.iloc[dex].reset_index(drop=True)
+    
+    # Calculate radial distance
+    dist = np.sqrt( (df.ra - df.ra.iloc[0])**2 + (df.dec - df.dec.iloc[0])**2 ) * 3600
+    df['dis'] = dist
+    df = df.sort_values(by=['dis'])
+
+    # Return data frame
+    return df
+        
 
 
 

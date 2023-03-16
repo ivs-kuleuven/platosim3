@@ -217,8 +217,8 @@ class PLATOnium(object):
             dx.ID = dx.ID.astype('int')
             # Define data frames
             self.df = dx.loc[0]
-            dc = dx.loc[1:]
-
+            dc = dx.iloc[1:]
+            
         else:
             # Add sample name if pipeline is activated
             if self.sample is not None:
@@ -263,7 +263,6 @@ class PLATOnium(object):
         # If requested overwrite magnitude of target star
         if self.mag:
             self.df.mag = self.mag
-
 
 
 
