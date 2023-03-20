@@ -3688,10 +3688,19 @@ void Detector::fillBackgroundMap(Camera &camera, double startTime, double exposu
             tie(xFPd, yFPd) = pixelToFocalPlaneCoordinates(row+subFieldZeroPointRow, col+subFieldZeroPointColumn);
 
             // Apply the inverse distortion
-            tie(xFPmm, yFPmm) = camera.distortedToUndistortedFocalPlaneCoordinates(xFPd, yFPd);
+            if (includeFieldDistortion)
+            {
+                tie(xFPmm, yFPmm) = camera.distortedToUndistortedFocalPlaneCoordinates(xFPd, yFPd);
+            }
+            else
+            {
+                xFPmm = xFPd;
+                yFPmm = yFPd;
+            }
 
             transmissionEfficiencyBOS = camera.getTransmissionEfficiency(startTime);
             double flux = camera.getBackgroundFlux(xFPmm, yFPmm, *this, startTime, exposureTime, readoutTimeBeforeNextExposure)/transmissionEfficiencyBOS;
+
             backgroundMap(row, col) = flux;
 
         }

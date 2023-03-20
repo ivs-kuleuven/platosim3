@@ -21,7 +21,7 @@ ObservingParameters:
 Sky:
 
     SkyBackground:
-      UseConstantSkyBackground:      no              # If true, every pixel sees the same background, otherwise the background gets calculated ones for every pixel
+      UseConstantSkyBackground:      yes             # If true, every pixel sees the same background, otherwise the background gets calculated ones for every pixel
       BackgroundValue:               -1              # Sky background: Zodiacal + Galactic (excl. transmission efficiency). Set negative to compute. [phot/pix/s]
     IncludeVariableSources:          no              # Include time series of variable stars or not
     VariableSourceList:              inputfiles/varsource.txt  # Ascii file: Col 1: star ID, Col 2: path of time series file
