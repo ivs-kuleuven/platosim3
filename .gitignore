@@ -68,6 +68,7 @@ poetry.lock
 
 # Setup script
 
+pipeline/
 .bash_profile
 
 # varsim

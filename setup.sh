@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Stop this script if we encounter an error with one of the packages
+# Stop script if an error is encountered
 set -e
 
 # Set parsed arguments
@@ -12,7 +12,6 @@ POETRY=$HOME/.local/bin/poetry
 PLATO_SETUP=$PWD/.bash_profile
 PLATO_PROJECT_HOME=$PWD
 PLATO_MANPATH=$PWD/pipeline/man
-PLATO_PYLIB=$PLATO_PIPELINE/lib/python
 
 # If no arguments are given write usage message
 if [ -z "$PLATO_WORKDIR" ] || [ "$1" = "-h" ]; then    
@@ -24,9 +23,13 @@ if [ -z "$PLATO_WORKDIR" ] || [ "$1" = "-h" ]; then
     echo "</path/to/plato_pipeline> : Location to PLATO LESIA SVN repo (optional)"
     echo ""
     echo "DESCRIPTION:"
-    echo "Script to setup the PLATOnium software on your local machine or cluster."
-    echo "Note that clusters typically don't support much disk space for HOME, and"
-    echo "hence it is better to install Poetry on your DATA disk storage."
+    echo "PLATOnium is a PlatoSim toolkit that allows the user to run multi-camera"
+    echo "simulations and while also using the L1 pipeline in extention to extract"
+    echo "on-ground or on-board data products in accordance to the mission strategy."
+    echo "Given the PLATO_WORDIR and PLATO_PIPELINE (optional) as input arguments"
+    echo "this script sets up all your path environment so they are globally defined"
+    echo "on your system. If the latter argument for the pipeline is provided the"
+    echo "script further sets up and installs the L1 pipeline."
     echo ""
     exit 1
     
@@ -62,7 +65,8 @@ else
     if [ $# -eq 2 ]; then
 
 	# Define path of pipeline
-	echo "export PLATO_PIPELINE=$PLATO_PIPELINE" >> $PLATO_SETUP
+	# NOTE: PLATO cannot be changed
+	echo "export PLATO=$PLATO_PIPELINE" >> $PLATO_SETUP
 
 	# Create folder structure
 	mkdir -p $PLATO_PIPELINE/bin
@@ -74,7 +78,7 @@ else
 	# Create env.bash file and write to it
 	echo "unset MANPATH"                                  >> $PLATO_SETUP
 	echo "export PLATO_MANPATH=$(manpath):$PLATO_MANPATH" >> $PLATO_SETUP
-	echo "export PLATO_PYLIB=$PLATO_PYLIB"                >> $PLATO_SETUP
+	echo "export PLATO_PYLIB=$PLATO_PIPELINE/lib/python"  >> $PLATO_SETUP
     fi
 
     # Lastly, export the python path to bashrc
@@ -90,13 +94,13 @@ else
     . $HOME/.bashrc
 
     # Lastly, try to install L1 pipeline
-    if [ -f "$PLATO_PIPELINE/algorithms/Makefile" ]; then
-	echo "----------------------------"
-	echo " Installing the L1 pipeline "
-	echo "----------------------------"
-	cd $PLATO_PIPELINE/algorithms 
-	#make install	
-    fi
+    # if [ -f "$PLATO_PIPELINE/algorithms/Makefile" ]; then
+    # 	echo "----------------------------"
+    # 	echo " Installing the L1 pipeline "
+    # 	echo "----------------------------"
+    # 	cd $PLATO_PIPELINE/algorithms 
+    # 	make install	
+    # fi
     
     # Fix Jupyter-notebook problem "module not found"
     # pip install ipykernel
