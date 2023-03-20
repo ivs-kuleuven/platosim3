@@ -3692,6 +3692,11 @@ void Detector::fillBackgroundMap(Camera &camera, double startTime, double exposu
             {
                 tie(xFPmm, yFPmm) = camera.distortedToUndistortedFocalPlaneCoordinates(xFPd, yFPd);
             }
+            else
+            {
+                xFPmm = xFPd;
+                yFPmm = yFPd;
+            }
 
             transmissionEfficiencyBOS = camera.getTransmissionEfficiency(startTime);
             double flux = camera.getBackgroundFlux(xFPmm, yFPmm, *this, startTime, exposureTime, readoutTimeBeforeNextExposure)/transmissionEfficiencyBOS;
