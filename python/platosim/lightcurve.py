@@ -104,6 +104,11 @@ class LightCurve(object):
                 #self.mask_apertures = simfile.getApertureMask(0)
                 self.mask_updates = simfile.getMaskUpdateEvents()
                 
+            elif self.fileExtention == ".txt":
+
+                # Simply load file
+                self.df = pd.read_csv(filename, sep=' ', names=['time', 'dmag'])
+                
             else:
                 errorcode("error", "File should be in the format of .ftr or .hdf5!")
 
@@ -304,7 +309,7 @@ class LightCurve(object):
     #--------------------------------------------------------------#
 
 
-    def files(self, suffix="zip", path=None,
+    def files(self, suffix="zip", prefix="0", path=None,
               group=False, camera=False, quarter=False, name=False):
 
         """Fetch all files with a common extention.
@@ -327,7 +332,7 @@ class LightCurve(object):
         
         # Fetch all zip files and sort them using natsort
         
-        files = natsort.natsorted(glob.glob(f"{path}/0**{G}**{C}**{Q}**{N}.{suffix}"))
+        files = natsort.natsorted(glob.glob(f"{path}/{prefix}**{G}**{C}**{Q}**{N}.{suffix}"))
         
         return files
 
@@ -582,10 +587,14 @@ class LightCurve(object):
         
         df["time"] = self.time(unit="d")
 
+        # Mean flux
+
+        signal = df.flux.mean()
+        
         # Fetch flux column and force to be ppm for correct NSR
         
-        # if influx == "e/s":
-        #     df[column] = self.flux(column=column, unit="ppm")
+        if influx == "e/s":
+            df[column] = self.flux(column=column, unit="ppm")
         
         # Set the binned time scale [days]
         
@@ -602,18 +611,14 @@ class LightCurve(object):
             nbin  = len(df[df["time"].between(tbins[0], tbins[1])])
             # Bin data
             flux_dex = df.columns.get_loc(column)
-            data  = [df[df["time"].between(tbins[i], tbins[i+1])].to_numpy() for i in range(nbins-1)]
-            mean  = np.array([data[i][:,flux_dex].mean() for i in range(len(data))])
-            sigma = np.array([data[i][:,flux_dex].std()  for i in range(len(data))])
+            data = [df[df["time"].between(tbins[i], tbins[i+1])].to_numpy() for i in range(nbins-1)]
+            #signal = np.array([data[i][:,flux_dex].mean() for i in range(len(data))])
+            noise  = np.array([data[i][:,flux_dex].std()  for i in range(len(data))])
 
         # Return NSR
         
-        #return np.mean(sigma/mean) / np.sqrt(nbin) * 1e6
-    
-        return np.mean(sigma) / np.sqrt(nbin)
-
-
-
+        #return np.mean(noise) / signal * 1e6 / np.sqrt(nbin)
+        return np.mean(noise) / np.sqrt(nbin)
 
     
     #--------------------------------------------------------------#
@@ -1550,7 +1555,6 @@ class LightCurve(object):
         for i in range(nfiles):
 
             # Fetch light curve object
-            print(lc = LightCurve(files[i]))
             try: lc = LightCurve(files[i])
             except: pass
             else:
@@ -2174,3 +2178,644 @@ class LightCurve(object):
                         os.remove(filepath_cat)
                         try: os.remove(filepath_inv)
                         except: pass
+
+
+
+
+    #--------------------------------------------------
+    #--------------------------------------------------
+    #--------------------------------------------------
+
+
+
+    def run_NSRvsMag_analysis_perStar_reference(self, vfile, idir0, idir1, ofile, numStar, quarters=1):
+
+        """Compute NSR(mag) for a stellar catalogue.
+                
+        Function to merge multi-cameras and multi-quarter light curves and
+        compute the NSR for merged light curve per star and quarter.
+
+        Parameters
+        ----------
+        outputFile : str
+           Full path including name and suffix of output file.
+        numStar : int
+           Number of stars to be analysed.
+        
+        Return
+        ------
+        <outputFile>.ftr : pdframe
+            Output feather file containing one NSR value per star and quarter.
+        """
+
+        # Open a pandas data frame and write to it
+        df0 = pd.DataFrame()
+        df1 = pd.DataFrame()
+
+        # Load stellar catalogue
+        dc = pd.read_feather(vfile)
+
+        suffix = "hdf5"
+        
+        # Loop over each star
+
+        for i in tqdm(range(1, numStar+1), bar_format=ut.tqdmBar()):
+
+            # Read path
+            starID = f"{i}".zfill(9)
+            path0  = f"{idir0}/{starID}"
+            path1  = f"{idir1}/{starID}"
+            
+            # Initialise object
+            lcs0 = LightCurve(path0, mode="multi")
+            lcs1 = LightCurve(path1, mode="multi")
+
+            # Unpack all zip files in the path folder
+            lcs0.unpack()
+            lcs1.unpack()
+            
+            # Check if any data exist for a given star
+            try: glob.glob(f"{path1}/*{suffix}")[0]
+            except: pass
+            else:
+                    
+                # Fetch manitude for each star
+                mag  = dc.mag.iloc[i-1]
+                ncon = dc.ncon.iloc[i-1]
+                
+                # Loop over each quarter
+
+                for q in range(1, quarters+1):
+
+                    # Merge all observations for the same quarter [ppm]
+                    df, ncam = self.merge_reference(path0, path1, quarter=q)
+
+                    # Check that any light curve exist for a given quarter
+                    if not ncam == 0:
+
+                        # Estimate NSR
+                        dt = 1/24.
+                        nbins = round( (df["time"].max() - df["time"].min()) / dt) + 1
+                        tbins = np.linspace(df["time"].min(), df["time"].max(), nbins)
+
+                        # Bin data
+                        flux_dex = df.columns.get_loc('flux')
+                        data = [df[df["time"].between(tbins[i], tbins[i+1])].to_numpy()
+                                for i in range(nbins-1)]
+                        noise = np.array([data[i][:,flux_dex].std()  for i in range(len(data))])
+                        nbin = len(noise)
+
+                        # Estimate NSR
+                        NSR = np.mean(noise) * 1e6 / np.sqrt(nbin)
+
+                        # Store data in data frame
+                        data = {"star":i, "quarter":q, "ncam":ncam, "ncon":ncon,
+                                "mag":mag, "NSR":NSR}
+                        df1 = pd.DataFrame(data, index=[0])
+                            
+                        # Add data to data frame
+                        df0 = pd.concat([df0, df1])
+
+                # Remove output files again
+                #lcs0.remove(path=path)
+                #lcs1.remove(path=path)
+                    
+        # Handle output format
+        df = df0.astype({"star":int, "quarter":int, "ncam":int, "ncon":int,
+                         "mag":np.float32, "NSR":np.float32})
+
+        # Sort data frame, set new index, and save
+        df = df.sort_values(by=["star", "quarter"])
+        df = df.reset_index()
+        df.to_feather(ofile)
+
+        
+
+
+
+    def merge_reference(self, path0, path1, flux_group_mean=True, quarter=False):
+
+        """Merge light curves from a single star.
+
+        Function to merge multi-cameras and multi-quarter light curves into
+        a single pandas data frame. If requested each of light curve can be
+        detrended prior to the merge and as default it uses the Wotan is 
+        used. This package is good for planet transit searches, however, not
+        so much for preserving the stellar signal.
+        """
+
+        # Open a pandas data frame and write to it
+        df0 = pd.DataFrame()
+        df1 = pd.DataFrame()
+
+        # Fetch all zip files
+        files0 = self.files(path=path0, suffix='hdf5')
+        files1 = self.files(path=path1, suffix='hdf5')
+        nfiles = len(files0)
+        ncam   = 0
+
+        # Loop over each group and camera
+
+        for i in range(nfiles):
+
+            # Fetch light curve object
+            try: lc0 = LightCurve(files0[i])
+            except: pass
+            else:
+
+                # Mean flux signal
+                signal = lc0.flux(unit='e/s').mean()
+                                
+                # Fetch obs info                
+                G, C, Q = lc0.obs()
+
+                # Select quarter
+                if Q == quarter: ncam += 1
+                
+                # Create initial data frame and save to it
+                lc = LightCurve(files1[i])
+                if i == 0:
+                    df0['time'] = lc.time(unit='d')
+                    df0['flux'] = lc.flux(unit='e/s') / signal
+                    #df0['flux'] -= df0.flux.mean()
+                else:
+                    df1['time'] = lc.time(unit='d')
+                    df1['flux'] = lc.flux(unit='e/s') / signal
+                    df1['flux'] -= df1.flux.mean()
+                    # Contatinate data frames
+                    #df0 = pd.concat([df0, df1])
+                    
+        # Sort after logic structure and reset indices
+        df0 = df0.sort_values(by=["time"])
+        df0 = df0.reset_index(drop=True)
+
+        # If requested mean fluxes from same group (i.e. same time stamp)
+        if flux_group_mean:
+            df0 = df0.groupby('time').mean().reset_index()
+                
+        return df0, ncam
+    
+
+
+    
+
+    #==========================================
+
+
+
+    
+
+    def run_NSRvsMag_analysisPerStar_test(self, vfile, ofile, numStar, quarters=1, suffix="hdf5"):
+
+        """Compute NSR(mag) for a stellar catalogue.
+                
+        Function to merge multi-cameras and multi-quarter light curves and
+        compute the NSR for merged light curve per star and quarter.
+
+        Parameters
+        ----------
+        outputFile : str
+           Full path including name and suffix of output file.
+        numStar : int
+           Number of stars to be analysed.
+        
+        Return
+        ------
+        <outputFile>.ftr : pdframe
+            Output feather file containing one NSR value per star and quarter.
+        """
+
+        # Open a pandas data frame and write to it
+        df0 = pd.DataFrame()
+        df1 = pd.DataFrame()
+
+        # Load stellar catalogue
+        dc = pd.read_feather(vfile)
+        
+        # Loop over star simulated
+
+        for i in tqdm(range(1, numStar+1), bar_format=ut.tqdmBar()):
+
+            # Read path
+            starID = f"{i}".zfill(9)
+            path   = f"{self.path}/{starID}" 
+            
+            # Initialise object
+            lcs = LightCurve(path, mode="multi")
+
+            # Unpack all zip files in the path folder
+            lcs.unpack()
+            
+            # Check if any data exist for a given star
+            try: glob.glob(f"{path}/*{suffix}")[0]
+            except: pass
+            else:
+                    
+                # Check if there is additional information from L1 pipeline
+                mag  = dc.mag.iloc[i]
+                ncon = dc.ncon.iloc[i]
+
+                # Loop over each quarter
+
+                for q in range(1, quarters+1):
+
+                    # Merge all observations for the same quarter [ppm]
+                    df, ncam = lcs.merge_test(quarter=q, flux_group_mean=True, suffix=suffix)
+
+                    # Check that any light curve exist for a given quarter
+
+                    if not ncam == 0:
+
+                        # Estimate NSR
+                        df["time"] = df.time/86400.
+                        dt = 1/24.
+                        nbins = round( (df["time"].max() - df["time"].min()) / dt) + 1
+                        tbins = np.linspace(df["time"].min(), df["time"].max(), nbins)
+                        nbin  = len(df[df["time"].between(tbins[0], tbins[1])])
+                        # Bin data
+                        flux_dex = df.columns.get_loc('flux')
+                        data = [df[df["time"].between(tbins[i], tbins[i+1])].to_numpy()
+                                for i in range(nbins-1)]
+                        noise  = np.array([data[i][:,flux_dex].std()  for i in range(len(data))])
+                        NSR = np.mean(noise) * 1e6 / np.sqrt(nbin)
+                        # Store data in data frame
+                        data = {"star":i, "quarter":q, "ncam":ncam, "ncon":ncon,
+                                "mag":mag, "NSR":NSR}
+                        df1 = pd.DataFrame(data, index=[0])
+                            
+                        # Add data to data frame
+                        df0 = pd.concat([df0, df1])
+
+                # Remove output files again
+                lcs.remove(path=path)
+                    
+        # Handle output format
+        df = df0.astype({"star":int, "quarter":int, "ncam":int, "ncon":int,
+                         "mag":np.float32, "NSR":np.float32})
+
+        # Sort data frame, set new index, and save
+        df = df.sort_values(by=["star", "quarter"])
+        df = df.reset_index()
+        df.to_feather(ofile)
+    
+
+
+
+    def merge_test(self, quarter=False, ofile=False, flux_group_mean=False, suffix='hdf5'):
+
+        """Merge light curves from a single star.
+
+        Function to merge multi-cameras and multi-quarter light curves into
+        a single pandas data frame. If requested each of light curve can be
+        detrended prior to the merge and as default it uses the Wotan is 
+        used. This package is good for planet transit searches, however, not
+        so much for preserving the stellar signal.
+        """
+
+        # Open a pandas data frame and write to it
+        df0 = pd.DataFrame()
+        df1 = pd.DataFrame()
+
+        # Fetch all zip files
+        files  = self.files('hdf5')
+        nfiles = len(files)
+        ncam   = 0
+        flag   = 0
+
+        # Loop over each group and camera
+
+        for i in range(nfiles):
+
+            # Fetch light curve object
+            try: lc = LightCurve(files[i])
+            except: pass
+            else:
+                
+                # Fetch obs info                
+                G, C, Q = lc.obs()
+
+                # Select quarter
+                if Q == quarter: ncam += 1
+
+                # Create initial data frame and save to it
+                df = lc.data()
+                if i == 0:
+                    df0['time'] = df.time
+                    df0['flux'] = df.flux / df.flux_input.iloc[0]
+                    df0['flux'] -= df0.flux.mean()
+                else:
+                    df1['time'] = df.time
+                    df1['flux'] = df.flux / df.flux_input.iloc[0]
+                    df1['flux'] -= df1.flux.mean()
+                    # Contatinate data frames
+                    df0 = pd.concat([df0, df1])
+                print(df0); exit()
+        # Sort after logic structure and reset indices
+        df0 = df0.sort_values(by=["time"])
+        df0 = df0.reset_index(drop=True)
+        
+        # If requested mean fluxes from same group (i.e. same time stamp)
+        if flux_group_mean:
+            df0 = df0.groupby('time').mean().reset_index()
+
+        return df0, ncam
+        
+
+
+
+
+
+    def getNoise(self, column='flux'):
+
+        """Calculates the Noise-to-Signal Ratio (NSR) of binned time series.
+        """
+
+        # Deep copy light curve object
+        df = self.df.copy()
+        
+        # Fetch time and flux
+        df["time"] = self.time(unit="d")
+
+        # Fetch flux column and force to be ppm for correct NSR
+        signal = df.flux_input.mean()
+        
+        # Bin to devide data
+        dt = 1/24.
+        nbins = round( (df["time"].max() - df["time"].min()) / dt) + 1
+        tbins = np.linspace(df["time"].min(), df["time"].max(), nbins)
+        nbin  = len(df[df["time"].between(tbins[0], tbins[1])])
+        # Bin data
+        flux_dex = df.columns.get_loc(column)
+        data  = [df[df["time"].between(tbins[i], tbins[i+1])].to_numpy() for i in range(nbins-1)]
+        noise = np.array([data[i][:,flux_dex].std() for i in range(len(data))])
+
+        # Return NSR    
+        return np.mean(noise) / signal * 1e6 / np.sqrt(nbin)
+
+
+
+    #///////////////////////////////////////////////////////////
+    
+    
+
+    def run_NSRvsMag_analysis_perCamera_test(self, outputFile, numStar, suffix="ftr"):
+
+        """Compute NSR(mag) for stellar catalogue.
+
+        Function to merge multi-cameras and multi-quarter light curves into
+        a single pandas data frame. If requested each of light curve can be
+        detrended prior to the merge and as default it uses the Wotan is 
+        used. This package is good for planet transit searches, however, not
+        so much for preserving the stellar signal.
+
+        Parameters
+        ----------
+        inputDir : str
+            Input directory 
+        
+        Return
+        ------
+        """
+
+        # Open a pandas data frame and write to it
+        
+        df0 = pd.DataFrame()
+        df1 = pd.DataFrame()
+        cols = ["id", "ra", "dec", "x", "y", "mag",
+                "ccd", "xccd", "yccd", "xfp", "yfp"]
+        f = 247.52 # [mm]
+
+        # Loop over star simulated
+        
+        for i in tqdm(range(1, numStar+1), bar_format=ut.tqdmBar()):
+
+            # Fetch all zip files
+            
+            starID   = f"{i}".zfill(9)
+            path     = f"{self.path}/{starID}"
+            files    = self.files(path=path)
+            numFiles = len(files)
+
+            # Fetch light curve object
+
+            lcs = LightCurve(path, mode="multi")
+            
+            # Unpack all zip files in the path folder
+            
+            lcs.unpack()
+
+            # Loop over each group/cam/quarter simulation
+
+            for j in range(numFiles):
+                    
+                # Get file names
+                
+                filename     = files[j][:-3]
+                filename_cat = filename + "cat"
+                filename_inv = filename + "invert"    
+
+                # Fetch light curve object
+                
+                try: lc = LightCurve(filename + suffix)
+                except: pass
+                else:
+
+                    # Fetch info about observation
+
+                    group, camera, quarter = lc.obs()
+
+                    # Check if there is additional information from L1 pipeline
+
+                    try: filename_cat = glob.glob(path + f"*.cat")[0]
+                    except: mag, rOA, rCP, ncon, rcon, SPR = None, None, None, None, None, None
+                    else:   mag, rOA, rCP, ncon, rcon, SPR = self.star_info(filename_cat)
+
+                    # Force a correction and reload file
+                    # TODO remove for future simulations! Fixed in PLATOnium now
+                    #self.correct_cols(lc, filename_ftr)
+                    #lc = LightCurve(filename_ftr)
+
+                    # Fetch NSR from RMS [ppm/sqrt(h)]
+
+                    NSR = lc.getNoise()
+
+                    # Additional info is available for L1 pipeline
+
+                    if suffix == "ftr":
+
+                        # Mean centroid error in percent
+
+                        xcen     = lc.xcen()
+                        ycen     = lc.ycen()
+                        xcen_err = lc.xcen_err()
+                        ycen_err = lc.ycen_err()
+                        rcen     = np.sqrt(xcen**2 + ycen**2)
+                        rcen_err = np.sqrt(xcen_err**2 + ycen_err**2)
+                        rcen_err_mean = rcen_err.mean() / rcen.mean() * 100
+                        #if rcen_err_mean > 100: rcen_err_mean = 100
+
+                        # Mean flux error in percent
+
+                        flux     = np.abs(lc.flux())
+                        flux_err = np.abs(lc.flux_err())
+                        flux_err_mean = flux_err.mean() / flux.mean() * 100                
+                        #if flux_err_mean > 100: flux_err_mean = 100
+
+                        # Write data to feather
+
+                        data = {"star":i, "group":group, "camera":camera, "quarter":quarter,
+                                "mag":mag, "ferr":flux_err_mean, "rerr":rcen_err_mean,
+                                "flag":flag, "rOA":rOA, "rCP":rCP, "ncon":ncon, "rcon":rcon,
+                                "dmag":dmag, "SPR":SPR, "NSR":NSR}
+                        df1 = pd.DataFrame(data, index=[0])
+
+                    else:
+
+                        data = {"star":i, "group":group, "camera":camera, "quarter":quarter,
+                                "mag":mag, "NSR":NSR}
+                        df1 = pd.DataFrame(data, index=[0])
+
+                    # Append data
+                    if i !=0 and j != 0:
+                        df0 = pd.concat([df0, df1])
+
+            # Remove output files again
+
+            lcs.remove(path=path)
+
+        # Save final feather
+
+        if suffix == "ftr":            
+            df = df0.astype({"star":int, "group":int, "camera":int, "quarter":int, "mag":np.float32,
+                             "rOA":np.float32, "ferr":np.float32, "rerr":np.float32, "flag":int,
+                             "rOA":np.float32, "rCP":np.float32, "ncon":int, "rcon":np.float32,
+                             "dmag":np.float32, "SPR":np.float32, "NSR":np.float32})
+        else:
+            df = df0.astype({"star":int, "group":int, "camera":int, "quarter":int, "mag":np.float32,
+                             "NSR":np.float32})
+            
+        # Sort data frame
+
+        df = df.sort_values(by=["star", "group", "camera", "quarter"])
+
+        # Set new index and save
+        
+        df = df.reset_index()
+        df.to_feather(outputFile)
+
+    
+
+
+
+
+    def run_NSRvsMag_reference_perCamera_test(self, outputFile, numStar, suffix="ftr"):
+
+        """Compute NSR(mag) for stellar catalogue.
+
+        Function to merge multi-cameras and multi-quarter light curves into
+        a single pandas data frame. If requested each of light curve can be
+        detrended prior to the merge and as default it uses the Wotan is 
+        used. This package is good for planet transit searches, however, not
+        so much for preserving the stellar signal.
+
+        Parameters
+        ----------
+        inputDir : str
+            Input directory 
+        
+        Return
+        ------
+        """
+
+        # Open a pandas data frame and write to it
+        
+        df0 = pd.DataFrame()
+        df1 = pd.DataFrame()
+        cols = ["id", "ra", "dec", "x", "y", "mag",
+                "ccd", "xccd", "yccd", "xfp", "yfp"]
+        f = 247.52 # [mm]
+
+        # Loop over star simulated
+        
+        for i in tqdm(range(1, numStar+1), bar_format=ut.tqdmBar()):
+
+            # Fetch all zip files
+            
+            starID   = f"{i}".zfill(9)
+            path     = f"{self.path}/{starID}"
+            files    = self.files(path=path)
+            numFiles = len(files)
+
+            # Fetch light curve object
+
+            lcs = LightCurve(path, mode="multi")
+            
+            # Unpack all zip files in the path folder
+            
+            lcs.unpack()
+
+            # Loop over each group/cam/quarter simulation
+
+            for j in range(numFiles):
+                    
+                # Get file names
+                
+                filename     = files[j][:-3]
+                filename_cat = filename + "cat"
+                filename_inv = filename + "invert"    
+
+                # Fetch light curve object
+                
+                try: lc = LightCurve(filename + suffix)
+                except: pass
+                else:
+
+                    # Fetch info about observation
+
+                    group, camera, quarter = lc.obs()
+
+                    # Check if there is additional information from L1 pipeline
+
+                    try: filename_cat = glob.glob(path + f"*.cat")[0]
+                    except: mag, rOA, rCP, ncon, rcon, SPR = None, None, None, None, None, None
+                    else:   mag, rOA, rCP, ncon, rcon, SPR = self.star_info(filename_cat)
+
+                    # Force a correction and reload file
+                    # TODO remove for future simulations! Fixed in PLATOnium now
+                    #self.correct_cols(lc, filename_ftr)
+                    #lc = LightCurve(filename_ftr)
+
+                    # Fetch NSR from RMS [ppm/sqrt(h)]
+
+                    mean = lc.flux().mean()
+                    
+                    # Additional info is available for L1 pipeline
+
+                    data = {"star":i, "group":group, "camera":camera, "quarter":quarter,
+                            "mag":mag, "mean":mean}
+                    df1 = pd.DataFrame(data, index=[0])
+
+                    # Append data
+                    if i !=0 and j != 0:
+                        df0 = pd.concat([df0, df1])
+
+            # Remove output files again
+
+            lcs.remove(path=path)
+
+        # Save final feather
+
+        df = df0.astype({"star":int, "group":int, "camera":int, "quarter":int, "mag":np.float32,
+                         "mean":np.float32})
+            
+        # Sort data frame
+
+        df = df.sort_values(by=["star", "group", "camera", "quarter"])
+
+        # Set new index and save
+        
+        df = df.reset_index()
+        df.to_feather(outputFile)
+
+
+        

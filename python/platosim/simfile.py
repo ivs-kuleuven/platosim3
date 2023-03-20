@@ -1937,21 +1937,23 @@ class SimFile (object):
         # Fetch flux column(s)
 
         if fluxType == None:
-            flux_input     = self.getFlux(starID, fluxType="input")
-            flux_estimated = self.getFlux(starID, fluxType="estimated")
-            df = pd.concat([time, flux_input, flux_estimated], axis=1)
-            df.columns = ["time", "flux_input", "flux_estimated"]
-            return df
+            flux       = self.getFlux(starID, fluxType="estimated")
+            flux_input = self.getFlux(starID, fluxType="input")
+            df = pd.concat([time, flux, flux_input], axis=1)
+            df.columns = ["time", "flux", "flux_input"]
         elif fluxType in ("input", "estimated"):
             flux = self.getFlux(starID, fluxType=fluxType)
-            return pd.concat([time, flux], axis=1)
+            df = pd.concat([time, flux], axis=1)
+            df.columns = ["time", "flux"]
         else:
             print("ERROR: no such flux name, use either 'estimated' or 'input'!")
             
-            
+        return df
 
 
 
+
+    
     def getMaskUpdateEvents(self):
 
         """Exposure number of all mask updates.

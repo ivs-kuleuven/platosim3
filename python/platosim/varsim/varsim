@@ -697,7 +697,7 @@ class Variability(object):
         time = self.time.to('d').value
 
         # Random value of rotational period in [1, 3] d range
-        P = np.random.uniform(low=1,high=3)
+        P = np.random.uniform(low=1, high=3)
 
         # Relative amplitudes of the main frequency and harmonic
         a1 = 1.
@@ -708,8 +708,8 @@ class Variability(object):
 
         # Create light curve and scale amplitude in [10,30] mmag range
         mag   = a1 * np.cos(2*np.pi * (time/P)) + a2 * np.cos(4*np.pi * (time/P) + dphi)
-        scale = np.random.uniform(low=10, high=30) / max(abs(lc))
-        mag *= scale
+        scale = np.random.uniform(low=10, high=30) / max(abs(mag))
+        mag  *= scale
 
         # plot light curve
         if args.plot:
@@ -722,7 +722,7 @@ class Variability(object):
 
         # Return [delta mag]
         mag *= 1e-3 
-        self.lc['flux'] = mag.tolist()
+        self.lc['mag'] = mag.tolist()
         self.std_params = [P, dphi*180/np.pi, a1, a2, scale]
 
 
@@ -755,7 +755,6 @@ class Variability(object):
         # loop over the number of modes and each time pick a period, an amplitude and a phi
         #  at random out of the appropriate range
         for i in range(nmodes):
-
             phase     = random.uniform(0, 2*np.pi)
             period    = random.uniform(period_range[0], period_range[1])
             amplitude = random.uniform((amplitude_range[0]), amplitude_range[1])
@@ -774,7 +773,7 @@ class Variability(object):
             plt.figure(figsize=(10,3.5))
             plt.plot(time, flux, 'm-')
             plt.xlabel('Time [d]')
-            plt.ylabel('Flux []')
+            plt.ylabel('Mag')
             plt.tight_layout()
             plt.show()
         
@@ -798,7 +797,7 @@ class Variability(object):
         if self.verbose > 0:
             errorcode('module', 'gamma-Dor g-modes\n')
 
-        flux = self.gravity_oscill([1,30], [10,30], nmodes=10, power=2.2, seed=0)
+        flux = self.gravity_oscill([0.1, 10], [0.01, 0.1], nmodes=100, power=2.2, seed=0)
         self.lc['flux'] = flux.tolist()
         #self.std_params = [P, dphi*180/np.pi, a1, a2, scale]
 
@@ -821,7 +820,7 @@ class Variability(object):
         # Start script
         if self.verbose > 0:
             errorcode('module', 'delta-Sct g-modes\n')
-
+            
         flux = self.gravity_oscill([1,30], [10,30], nmodes=100, power=1.0, seed=0)
         self.lc['flux'] = flux.tolist()
         #self.std_params = [P, dphi*180/np.pi, a1, a2, scale]
@@ -1373,7 +1372,7 @@ class Variability(object):
         # Compute delta magnitude of signal
         variable = ('std', 'dSct', 'gDor', 'SMBHB')
         if args.star in variable:
-            dm = self.lc['flux']
+            dm = self.lc['mag']
         else:
             # Combine all signals
             

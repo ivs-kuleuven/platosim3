@@ -2284,12 +2284,12 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
         mag = np.linspace(df.mag.min(), df.mag.max(), 100)
 
         # Jitter noise
-        jitter = 0.0
+        jitter = 0.2
         if noise_ncam == 1: level = 'camera'
         else: level = 'instrument'
         noise_jitter = ut.getJitterNoiseLimitNSR(jitter/np.sqrt(1e-6), level=level)
         ax.axhline(y=noise_jitter, c="gray", ls="-", lw=1, zorder=2)
-        ax.text(np.mean(mag), noise_jitter+0.2, "Jitter noise", fontsize=15, zorder=2)
+        ax.text(np.mean(mag), noise_jitter, "Jitter noise", fontsize=15, zorder=2)
 
         # Photon noise
         noise_photon = ut.getPhotonNoiseLimitNSR(mag, passband=passband, ncam=noise_ncam)
