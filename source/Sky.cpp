@@ -1069,7 +1069,7 @@ double Sky::zodiacalFlux(double alpha, double delta, double lambda1, double lamb
     // Check if the coordinates are out of boundary.
 
     locate(lam, skydata::zodlong, 19, lam_index);
-    locate(beta,skydata::zodlat,  10, beta_index);
+    locate(beta,skydata::zodlat,  11, beta_index);
 
     if ((lam_index == -1) || (beta_index == -1))
     {
@@ -1156,7 +1156,7 @@ double Sky::zodiacalFlux(double alpha, double delta, vector<double> &lambda, vec
     // Check if the coordinates are out of boundary.
 
     locate(lam,  skydata::zodlong, 19, lam_index);
-    locate(beta, skydata::zodlat,  10, beta_index);
+    locate(beta, skydata::zodlat,  11, beta_index);
 
 
     if ((lam_index == -1) || (beta_index == -1))
@@ -1240,7 +1240,7 @@ double Sky::stellarBackgroundFlux(double RA, double dec, double lambda1, double 
     // Check if the coordinates are out of boundary.
 
     locate(alpha, skydata::skyRA, 37, alpha_index);
-    locate(delta, skydata::skydec, 25, delta_index);
+    locate(delta, skydata::skydec, 27, delta_index);
 
     if ((alpha_index == -1) || (delta_index == -1))
     {
@@ -1347,7 +1347,7 @@ double Sky::stellarBackgroundFlux (double RA, double dec, vector<double> &lambda
     // Check if the coordinates are out of boundary.
 
     locate(alpha, skydata::skyRA, 37, alpha_index);
-    locate(delta, skydata::skydec, 25, delta_index);
+    locate(delta, skydata::skydec, 27, delta_index);
 
     if ((alpha_index == -1) || (delta_index == -1))
     {
