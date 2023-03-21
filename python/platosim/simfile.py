@@ -1482,7 +1482,9 @@ class SimFile (object):
             if (groupName == "PointLikeGhostPositions") or (groupName == "ExtendedGhostPositions"):
                 star = star[:-1]
             #---------------------------------
-            
+            # Check if only a single image is requested and use that automatically
+            N = len(self.hdf5file[groupName][star[0]]["rowPix"][:])
+            if N == 1: imageNr = 0
             starID = np.array([int(s[-6:]) for s in star])
             row    = np.array([self.hdf5file[groupName][s]["rowPix"][imageNr] for s in star])
             col    = np.array([self.hdf5file[groupName][s]["colPix"][imageNr] for s in star])
