@@ -273,7 +273,7 @@ ControlHDF5Content:                                  # Data that can be written 
     WriteFlatfieldMap:               yes             # 2D Flatfield maps (PRNU and/or IPRNU), for each exposure
     WriteThroughputMaps:             yes             # 2D Throughput maps for each exposure (i.e. QE, vignetting, contamination, etc.)
     WriteTransmissionEfficiency:     yes             # 2D Transmission Efficiency maps for each exposure
-    WriteVariableBackgroundMap:      yes             # 2D Sky Background map (only if "WriteVariableBackgroundMap = no")
+    WriteBackgroundMap:              yes             # 2D Sky Background map (only if "WriteVariableBackgroundMap = no")
     WriteCTI:                        yes             # 2D Trap Density maps at BOL and EOL for each species
     WriteSubPixelImages:             no              # 2D Subpixel maps, for each exposure: Only use this for a limited number of exposures!
     WriteDiffusedPSF:                no              # 2D Diffused PSF
