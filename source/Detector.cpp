@@ -3319,7 +3319,8 @@ void Detector::initHDF5Groups()
     {
         hdf5File.createGroup("/BackgroundMap");
     }
-}                 
+
+}
 
 
 
@@ -3458,7 +3459,7 @@ void Detector::writeBackgroundMapToHDF5()
 {
     if (writeBackgroundMap)
     {
-        string imageName = "backgroundMap";
+        string imageName = "skyBackground";
         arma::Mat<float> backgroundMapBOS = backgroundMap*transmissionEfficiencyBOS;
         hdf5File.writeArray("/BackgroundMap", imageName, backgroundMapBOS);
     }
