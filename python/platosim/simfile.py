@@ -342,7 +342,7 @@ class SimFile (object):
                 "diffusedPSF":     "diffusedPSF",
                 "PRNU":            "PRNU",
                 "IRNU":            "IRNU",
-                "BackgroundMap":   "backgroundMap",
+                "BackgroundMap":   "skyBackground",
                 "ThroughputMaps": f"throughputMap{imageNr:06d}",
                 "SmearingMaps":   f"smearingMap{imageNr:06d}",
                 "BiasMapsLeft":   f"biasMap{imageNr:06d}",
@@ -353,7 +353,7 @@ class SimFile (object):
         datasetName = data[imageMap]
 
         # Correct naming conventions
-                
+
         if imageMap in ["highResPSF", "diffusedPSF"]: imageMap = "PSF"
         if imageMap in ["PRNU",       "IRNU"]:        imageMap = "Flatfield"
 
@@ -364,23 +364,26 @@ class SimFile (object):
             return
 
         # Cases when on or more images are requested
-        
+
         if imageNr is False:
 
             # Fetch images names
 
             imgNames = list(self.hdf5file[imageMap].keys())
-                
+
             # Create numpy data cube
-                
+
             nimg = len(imgNames)
             nrow = self.hdf5file["InputParameters/SubField"].attrs["NumRows"]
             ncol = self.hdf5file["InputParameters/SubField"].attrs["NumColumns"]
-            cube = np.zeros((nimg, nrow, ncol))
-                
-            for i in range(nimg):
-                cube[i,:,:] = np.array(self.hdf5file[imageMap][imgNames[i]])
-                    
+            if len(imgNames) == 1:
+                cube = self.hdf5file[imageMap][imgNames[0]][:]
+
+            else:
+                cube = np.zeros((nimg, nrow, ncol))
+                for i in range(nimg):
+                    cube[i,:,:] = np.array(self.hdf5file[imageMap][imgNames[i]])
+
             return cube
 
         else:
@@ -430,28 +433,17 @@ class SimFile (object):
 
 
     
-    def getBackgroundMap(self):
+    def getBackground(self):
 
         """Get the sky background map [photons/pixel/exposure]
         """
 
-        return self.getMap("BackgroundMap", imageNr=False)[0]  # TODO remove [0] when updated
+        return self.getMap("BackgroundMap", imageNr=False)
 
 
 
 
-    
-    def getBackgroundValue(self): # TODO remove if structure change!
 
-        """Get central subfield sky background value [photons/pixel/exposure]
-        """
-
-        return self.hdf5file["Background/skyBackground"][:][0]
-
-    
-
-
-    
     def getSmearingMap(self, imageNr=False):
 
         """Get the smearing map from the HDF5 file [ADU/exposure].
