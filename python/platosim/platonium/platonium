@@ -345,7 +345,7 @@ class PLATOnium(object):
 
         # Print to bash
         if self.verbose > 0:
-            errorcode('module', '\nInitialize and configure PlatoSim\n')
+            errorcode('module', '\nInitialize and configure PlatoSim')
 
         # Setting up a test simulation environement
         sim = Simulation(self.outputFileName, self.inputFile)
@@ -758,8 +758,8 @@ class PLATOnium(object):
 
         # Print to bash
         if self.verbose > 0:
-            errorcode('message', f'[PlatoSim]: Visualizing simulation for N-CAM ' +
-                      f'{self.group}.{self.camera} Q{self.quarter}')
+            errorcode('message', f'\n[PlatoSim]: Visualizing simulation for N-CAM ' +
+                      f'{self.group}.{self.camera} Q{self.quarter}\n=')
         
         # Control the content of the hdf5 output files
         sim.turnOffAllOutput()

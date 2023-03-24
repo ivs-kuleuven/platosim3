@@ -75,8 +75,8 @@ class InstrumentSetup(object):
         self.nimg = (60 * 60 * 24 * 90) / 25
 
         # Provisional Long-duration Observation Phases (LOP):
-        PF = {'SPF': [ 86.79870508, -46.39594703, 0.0],  # Galactic [253.0, -30.0]
-              'NPF': [265.08002279,  39.5836954,  0,0]}  # Galactic [65.0,  +30.0]
+        PF = {'SPF': [ 86.79870508, -46.39594703, -8.5],  # Galactic [253.0, -30.0]
+              'NPF': [265.08002279,  39.5836954,  +8,5]}  # Galactic [65.0,  +30.0]
         # Select pointng field
         self.ra, self.dec, self.kappa = PF[args.field]
         
@@ -500,8 +500,8 @@ class InstrumentSetup(object):
         
         if self.odir:
             print(f"Creating file with instrumental time gaps : {self.odir}/instrumentDataGaps.txt")
-        
-
+            
+            
 
 
 
