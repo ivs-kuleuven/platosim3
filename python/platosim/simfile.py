@@ -653,6 +653,10 @@ class SimFile (object):
                 return None
             Nrows, Ncols = image.shape
 
+        # Correct for the orientation
+        
+        extent = [0, Ncols, 0, Nrows]
+        
         # Plot the image. Note that pixel coordinates start at the left bottom side of each pixel.
 
         fig = plt.figure(figsize=figsize)
@@ -699,16 +703,16 @@ class SimFile (object):
 
         else:
             print("ERROR: Not valid scaling for 'imgScale'")
-
+            
         # Generate image
 
         if imgScale == "clip":
             imagePlot = ax.imshow(image, cmap=colorMap, interpolation="nearest",
-                                    origin=origin, extent=[0, Nrows, 0, Ncols], zorder=0)
+                                    origin=origin, extent=extent, zorder=0)
             imagePlot.set_clim(vmin, vmax)
         else:
             imagePlot = ax.imshow(image, norm=norm, cmap=colorMap, interpolation="nearest",
-                                    origin=origin, extent=[0, Nrows, 0, Ncols], zorder=0)
+                                    origin=origin, extent=extent, zorder=0)
 
         # Add colorbar if requested
 
@@ -801,10 +805,10 @@ class SimFile (object):
                                 fontweight='extra bold', color="black")
 
         # Ensure that the ax limits are properly set.
-
-        ax.set_xlim(0,Ncols)
-        ax.set_ylim(0,Nrows)
-
+        
+        ax.set_xlim(0, Ncols)
+        ax.set_ylim(0, Nrows)
+        
         # If required, put the title
 
         # User defined title-string
@@ -819,7 +823,7 @@ class SimFile (object):
         # By default, matplotlib only shows the (x,y) coordinates of each pixel,
         # but not the pixel value itself. Change this by redefining the ax.format_coord
 
-        Nrows, Ncols = image.shape
+        #Nrows, Ncols = image.shape
         def format_coord(x, y):
             col = int(x)
             row = int(y)
@@ -828,12 +832,11 @@ class SimFile (object):
                 return "x={:.1f}, y={:.1f}, z={:.1f}".format(x, y, z)
             else:
                 return "x={:.1f}, y={:.1f}".format(x, y)
-
         ax.format_coord = format_coord
 
         # Show all ticks for smaller subfields or otherwise 10
-
-        if Ncols <= 15:
+        Nrows, Ncols = Ncols, Nrows
+        if Ncols <= 25:
             plt.xticks(np.arange(0, Nrows+1))
             plt.yticks(np.arange(0, Ncols+1))
         elif Ncols > 15 and Ncols <= 100:
@@ -1901,7 +1904,7 @@ class SimFile (object):
 
 
 
-    def getLightCurve(self, starID, fluxType=None):
+    def getLightCurve(self, starID, fluxType='estimated'):
 
         """Extract the light curve of one or more stars
 
@@ -1933,7 +1936,7 @@ class SimFile (object):
 
         # Fetch flux column(s)
 
-        if fluxType == None:
+        if fluxType == 'both':
             flux       = self.getFlux(starID, fluxType="estimated")
             flux_input = self.getFlux(starID, fluxType="input")
             df = pd.concat([time, flux, flux_input], axis=1)

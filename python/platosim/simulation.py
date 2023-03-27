@@ -62,6 +62,8 @@ class Simulation(object):
         
         if outputDir is not None:
             self.outputDir = outputDir
+        else:
+            self.outputDir = os.getcwd()
 
         # Set simulation location
         
@@ -913,6 +915,7 @@ class Simulation(object):
                                                                     mappedDistortion,
                                                                     distortionCoefficients,
                                                                     pathToPsfFile)
+
         if ccdCode == None:
             return False
 
@@ -1090,9 +1093,10 @@ class Simulation(object):
 
         np.savetxt(fileName, np.transpose(starIDs), delimiter=" ", fmt="%d")
 
-        # Set this to simulation
+        # Set this to simulation and activate photometry
 
-        self["Photometry/TargetFileName"] = fileName
+        self["Photometry/IncludePhotometry"] = True
+        self["Photometry/TargetFileName"]    = fileName
 
 
 

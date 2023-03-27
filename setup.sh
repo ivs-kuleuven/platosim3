@@ -93,13 +93,17 @@ else
     # Reload .bashrc
     . $HOME/.bashrc
 
-    # Lastly, try to install L1 pipeline
+    ## Lastly, try to install L1 pipeline
     # if [ -f "$PLATO_PIPELINE/algorithms/Makefile" ]; then
     # 	echo "----------------------------"
     # 	echo " Installing the L1 pipeline "
     # 	echo "----------------------------"
     # 	cd $PLATO_PIPELINE/algorithms 
-    # 	make install	
+    # 	make install
+    ## The following is needed (bug?) to locate these two files
+    # cp $PALTO/algorithms/WP/321000/invert/invert_parabolic1_multi $CONDA_PREFIX/bin
+    # cp $PALTO/algorithms/WP/321000/microscan/discretize.py $CONDA_PREFIX/bin/discretize
+    # chmod 755 $CONDA_PREFIX/bin/discretize
     # fi
     
     # Fix Jupyter-notebook problem "module not found"
@@ -107,17 +111,18 @@ else
     # python -m ipykernel install --user
 
     # Finish with prolog message
-    echo "----------------------------"
-    echo " Platosim has been set up!  "
-    echo "----------------------------"
+    echo "---------------------------"
+    echo " PLATOnium has been set up!"
+    echo "---------------------------"
     echo "From bash checkout:"
     echo ">> platonium -h"
     echo ">> picsim -h"
     echo ">> varsim -h"
     if [ -f "$PLATO_PIPELINE/algorithms/Makefile" ]; then
+	echo "--------------------------"
 	echo ">> pproc.py -h"
-	echo ">> jittercorrection.py -h"
-	echo ">> photometry.py -h"
 	echo ">> psffit.py -h"
+	echo ">> photometry.py -h"
+	echo ">> jittercorrection.py -h"
     fi
 fi

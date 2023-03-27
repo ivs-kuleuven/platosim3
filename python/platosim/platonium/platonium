@@ -242,11 +242,6 @@ class PLATOnium(object):
             else:
                 self.targetNo -= 1
         
-            # TODO add full frames to sim
-            # if self.targetNo == -1:
-            #     self.df = df.append
-            #     self
-
             # Select target star
             self.df = df.iloc[self.targetNo]
 
@@ -345,7 +340,7 @@ class PLATOnium(object):
 
         # Print to bash
         if self.verbose > 0:
-            errorcode('module', '\nInitialize and configure PlatoSim')
+            errorcode('module', '\nInitialize and configure PlatoSim\n')
 
         # Setting up a test simulation environement
         sim = Simulation(self.outputFileName, self.inputFile)
@@ -406,7 +401,7 @@ class PLATOnium(object):
             
             
         # CONFIGURE PAYLOAD
-                        
+
         # Select PLATO pointing field from inputfile (e.g. SPF, NPF, etc.) [deg]
         self.pointingField = sim["ObservingParameters/StarCatalogFile"]
         sim["ObservingParameters/RApointing"]  = self.PF[self.pointingField][0]
@@ -433,10 +428,11 @@ class PLATOnium(object):
             dex = np.where(PRE[:,0] == self.quarter)[0]
             try: dex[0]
             except:
-                errorcode('warning', 'Cannot apply Pointing error model: ' +
+                errorcode('warning', 'Cannot apply pointing error model: ' +
                           'no matching quarters in instrumentPRE.txt!')
             else:
-                print('Applying Pointing error model (PRE file)')
+                if self.verbose > 0:
+                    print('Applying pointing error      (PRE FromFile)')
                 sim["ObservingParameters/RApointing"]  += PRE[dex, 1][0]
                 sim["ObservingParameters/DecPointing"] += PRE[dex, 2][0]
                 sim["Platform/SolarPanelOrientation"]  += PRE[dex, 3][0]
@@ -445,7 +441,8 @@ class PLATOnium(object):
         # NOTE: Will only be included if the file "APE.txt" is available in the input folder
         inputFileAPE = self.inputDir.joinpath('instrumentAPE.txt')
         if inputFileAPE.is_file():
-            print('Applying Camera misalignment model (APE file)')
+            if self.verbose > 0 :
+                print('Applying camera misalignment (APE FromFile)')
             APE = np.loadtxt(inputFileAPE)
             dex = (self.group - 1) * 6 + self.camera - 1
             sim["Telescope/TiltAngle"]    += APE[dex, 0]
@@ -476,19 +473,23 @@ class PLATOnium(object):
                            fmt=['%.3f', '%.9f', '%.9f', '%.9f'])
             # Set filepath to new file
             sim["Platform/JitterFileName"] = inputFileAOCS_Q
-                                    
-        # Thermal Elastic Distortion (TED):
-        # NOTE: it is assumed that the TED is the same for each camera per quarter 
+        # Print to bash that jitter is included
+        if sim["Platform/UseJitter"] and self.verbose > 0:
+            print(f'Applying platform jitter     (ACS {sim["Platform/JitterSource"]})')
+            
+        # Thermo-Elastic Distortion (TED)
+        # NOTE: The camera(s) drift due to the thermal gradient of
+        # the interface between the camera and the optical bench
         inputFileTED = self.inputDir.joinpath('instrumentTED.txt')
         if inputFileTED.is_file():
-            print('Applying Thermo-elastic drift of cameras (TED file)')
             sim["Telescope/UseDrift"]         = True
             sim["Telescope/UseDriftFromFile"] = True
             sim["Telescope/DriftFileName"]    = inputFileTED
-
-        # KDA
-        #print(sim['Camera/AberrationCorrection/OrbitFile'])
-
+        if sim["Telescope/UseDrift"] and self.verbose > 0:
+            if sim["Telescope/UseDriftFromFile"]: source = 'FromFile'
+            else: source = 'RedNoise'
+            print(f'Applying camera drift        (TED {source})')
+            
 
         # SELECT SUBFIELD
         
@@ -577,9 +578,6 @@ class PLATOnium(object):
         
 
         # Calculate radial distance of coordinate away from OA
-        # NOTE due to strong vinetting stars are barely detectable beyond 18.2 deg
-        # TODO check if this is in fact due to the distortion model which is not accounted
-        # for in the setSubfieldAroundCoordinates
         distanceOA = np.rad2deg(rf.gnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm, focalLength))
         if distanceOA > 19.0:
             if self.verbose > 0:
@@ -759,7 +757,7 @@ class PLATOnium(object):
         # Print to bash
         if self.verbose > 0:
             errorcode('message', f'\n[PlatoSim]: Visualizing simulation for N-CAM ' +
-                      f'{self.group}.{self.camera} Q{self.quarter}\n=')
+                      f'{self.group}.{self.camera} Q{self.quarter}\n')
         
         # Control the content of the hdf5 output files
         sim.turnOffAllOutput()
@@ -774,6 +772,7 @@ class PLATOnium(object):
         # Run simulation for first image cadence
         self.outputSimName = self.outputDir.joinpath(self.outputFileName)
         sim.outputDir = self.outputDir
+
         simFile = sim.run(removeOutputFile=self.overwrite)
 
         # Plot star in CCD focal plane
@@ -783,9 +782,9 @@ class PLATOnium(object):
                                 self.raPlatformDeg, self.decPlatformDeg,
                                 self.tiltTelescopeDeg, self.azimuthTelescopeDeg,
                                 self.solarPanelOrientationDeg)
-        
+
         # Show subfield for first cadence
-        title = 'Imagette of PIC {0} ({1:.2f} mag)'.format(int(self.df['ID']), float(self.df['mag']))
+        title = f'Imagette of PIC {int(self.df.ID)} ({float(self.df.mag):.2f} mag)'
         simFile.showImage(self.beginExposureNr, showStarPositions='PIC', clipPercentile=7,
                           showMaskOfStarID=mask, useTitle=title, colorMap='cubehelix',
                           colorBar=True, imgScale="auto", showGrid=True, figsize=(6,6))
@@ -807,7 +806,7 @@ class PLATOnium(object):
         if self.verbose > 0:
             errorcode('message', f'\n[PlatoSim]: Simulating N-CAM {self.group}.{self.camera} ' +
                       f'Q{self.quarter} for {self.numExposures} exposures')
-            
+
         # Select the number of exposures
         sim["ObservingParameters/NumExposures"] = self.numExposures
         
@@ -915,9 +914,10 @@ class PLATOnium(object):
             sim["SubField/SubPixels"] = 128
             
         # Prepare for the Archimedean jitter spiral pattern
+        nimages = 428
         sim["Platform/UseJitter"]               = 'yes'
         sim["Platform/JitterSource"]            = 'FromFile'
-        sim["ObservingParameters/NumExposures"] = 428
+        sim["ObservingParameters/NumExposures"] = nimages
         sim['ObservingParameters/CycleTime']    = 25
         
         # Time of microscan simulation needs to match quarter for PlatoSim to run successfully
@@ -981,7 +981,7 @@ class PLATOnium(object):
         # MICROSCANNING SIMULATION
 
         if self.verbose > 0:
-            errorcode('message', '\n[PlatoSim]: Simulating imagettes')
+            errorcode('message', f'\n[PlatoSim]: Simulating {nimages} imagettes along Archimedean spiral')
         sim.outputDir = self.microscanDirStarID
         simFile = sim.run(removeOutputFile=self.overwrite, logLevel=self.verbose_platosim)
 
@@ -1162,13 +1162,15 @@ class PLATOnium(object):
 
 
     def sort_output(self):
-        """
-        Module to move output files and delete redundant files.
+
+        """Module to move output files and delete redundant files.
         """
 
-        # Print to bash
         if self.verbose > 0:
-            errorcode('module', '\nRestructuring data output')
+            errorcode('module', '\nPrologue')
+        
+        if self.verbose > 0:
+            errorcode('message', '\nRestructuring data output')
             print(f'L1 light curve is saved to {self.outputDirStarIDnew}')
 
         # Select prefix-files
@@ -1249,11 +1251,11 @@ class PLATOnium(object):
 
 
     def resources(self):
-        """
-        Module to print resources used by PLATOnium.
+
+        """Module to print resources used by PLATOnium.
         """
         if not args.plot:
-            errorcode('module', '\nSimulation Statistics')
+            errorcode('message', '\nSimulation statistics')
             #print(f'Storage memory for PlatoSim      : {self.memPlatoSim} MB')
             print(f'Execution time for PlatoSim      : {self.tocPlatoSim} [hh:mm:ss]')
             if self.sample:

@@ -50,6 +50,7 @@ from platosim.varsim.models import (LimbDarkening, DopplerBeaming, EllipsoidalDi
                                     StellarActivity, StellarFlares,
                                     GravityOscillations, solarosc)
 
+
 #-------------------------------------------------------#
 #                     CONFIGURATION                     #
 #-------------------------------------------------------#
@@ -71,8 +72,8 @@ t_day    = 86400.  # [s]
 #==============================================================#
 
 class Variability(object):
-    """
-    This class has the purpose
+
+    """Class to generate noise-less light curves.
     """
     
     def __init__(self, args):
@@ -161,8 +162,10 @@ class Variability(object):
         self.lc = pd.DataFrame(data=self.time.to('s').value, columns=['time'])
         
         if self.verbose > 0:
-            print('Simulating time series  : {0} x {1} ({2} days)'.format(len(self.time), self.cadence.to('s'), self.timeDur.value))
-            print('Simulating {0} bandpass : {1} - {2} \n'.format(self.instrument, self.wvl_tele[0], self.wvl_tele[-1]))
+            print(f'Simulating time series for : ' +
+                  f'{len(self.time)} x {self.cadence.to("s")} ({self.timeDur.value} days)')
+            print(f'Simulating {self.instrument} bandpass : ' +
+                  f'{self.wvl_tele[0]} - {self.wvl_tele[-1]}')
 
 
 
@@ -394,61 +397,87 @@ class Variability(object):
 
 
 
-    # def stellar_flare(self, tscale=False, tmax=False, ):
-    #     """
-    #     # time_start and time_end are given in days and define the time interval over which to simulate the flare
-    #     # the sampling should be given in exposures or data-points per day
-    #     # time_scale is the full time width at half maximum flux of the flares
-    #     # time_max should be a list of the times of the maxima of every flare that will be included in the time interval
-    #     time_start, time_end, time_max, time_scale, asymmetry, sampling
-    #     """
+    def stellar_flare(self, tscale=False, tmax=False, amplitude=30, asymmetry=1):
 
-    #     # Convert units of input parameters
-    #     time = self.time.to('d').value
-    #     flux = np.zeros_like(time)
-
-    #     # Loop over each flare event
+        """Function to model flares.
         
-    #     for m in range(len(time_max)):
+        Parameters
+        ----------
+        tscale : float, ndarray
+            Time scale duration of the flare(s) [days]
+        tmax : float, ndarray
+            Full time-width at half-maximum-flux of the flare(s) maximum intensity [days]
+        amplitude : float, ndarray
+            Amplitude of the flare(s) [mmag]
+        asymmetry : float, ndarray
+            Asymmetry factor of the flare(s)
+        """
 
-    #         # Start and end of flare event
-    #         t0 = (time[0]  - tmax[m])
-    #         t1 = (time[-1] - tmax[m])
-    #         dt = np.diff(time)[0]
+        # Convert units of input parameters
+        time = self.time.to('d').value
+        flux = np.zeros_like(time)
 
-    #         # Time array during flare event
-    #         tn = np.arange(t0, t1, time_step)
-    #         t = tn/time_scale
+        # Secure that single flare works
+        try: len(tmax)
+        except: tmax = [tmax]
+        
+        # Loop over each flare event
+        
+        for m in range(len(tmax)):
 
-    #         # Model parameters of flare
-    #         B = asymmetry
-    #         C = 1/B
-    #         b = - 1.941 - 0.175 + 2.246 + 1
-    #         c = 1 - 0.689
+            # Start and end of flare event
+            t0 = (time[0]  - tmax[m])
+            t1 = (time[-1] - tmax[m])
+            dt = np.diff(time)[0]
 
-    #         # Loop over every time-step in the flare time interval
-    #         # NOTE: this is defined relative to this flares maxima and put in units
-    #         # of the time-scale here the analytic expressions for the rise and decay
-    #         # are used to determine the flux of this flare
+            # Time array during flare event
+            tn = np.arange(t0, t1, dt)
+            t = tn/tscale
 
-    #         for i in range(len(t)):
+            # Model parameters of flare
+            B = asymmetry
+            C = 1/B
+            b = -1.941 - 0.175 + 2.246 + 1
+            c = 1 - 0.689
 
-    #             # Rise of flare
-    #             if (t[i]*B) > -1 and (t[i]*B) <= 0:
-    #                 flux[i] += (1 + 1.941 * t[i]*B - 0.175 * (t[i]*B)**2 - 2.246 *
-    #                             (t[i]*B)**3 - b * (t[i]*B)**4
+            # Loop over every time-step in the flare time interval
+            # NOTE: this is defined relative to this flares maxima and put in units
+            # of the time-scale here the analytic expressions for the rise and decay
+            # are used to determine the flux of this flare
 
-    #             # Decay of flare
-    #             elif t[i]*C > 0:
-    #                 flux[i] += 0.689 * np.exp(-1.6 * t[i]*C) + c * np.exp(-0.2783 * t[i]*C)
+            for i in range(len(t)):
 
-    #             # No flare
-    #             else:
-    #                 flux[i] += 0
+                # Rise of flare
+                if t[i]*B > -1 and t[i]*B <= 0:
+                    flux[i] += (1
+                                + 1.941 * (t[i]*B)
+                                - 0.175 * (t[i]*B)**2
+                                - 2.246 * (t[i]*B)**3
+                                - b     * (t[i]*B)**4)
 
-    #     #time = tn + time_max[len(time_max)-1]
+                # Decay of flare
+                elif t[i]*C > 0:
+                    flux[i] += 0.689 * np.exp(-1.6 * t[i]*C) + c * np.exp(-0.2783 * t[i]*C)
 
-    #     return flux
+                # No flare
+                else:
+                    flux[i] += 0
+
+        # Convert to magnitude [mmag]
+        mag = flux * amplitude
+                    
+        # plot light curve
+        # if args.plot:
+        #     plt.figure(figsize=(10, 5))
+        #     plt.plot(time, mag , 'm-')
+        #     plt.xlabel('Time [d]')
+        #     plt.ylabel(r'$\delta m$ [mmag]')
+        #     plt.xlim(np.min(time), np.max(time))
+        #     plt.tight_layout()
+        #     plt.show()
+            
+
+        return flux * amplitude + 1
 
         
 
@@ -746,38 +775,60 @@ class Variability(object):
 
         # Convert units of input parameters
         time = self.time.to('d').value
-        flux = np.zeros_like(time)
+        mag  = np.zeros_like(time)
 
-        # Select a random
-        if seed != 0:
-            random.seed(seed)
+        # Check if a file with pulsations are parsed
+        if args.pulslist:
+            f = Path(args.pulslist).resolve()
+            # Catch if the file doesn't exist
+            if not f.is_file():
+                errorcode('error', 'File do not exist, check filepath again!')
+            else:
+                data = np.loadtxt(f)
+            # Else load the data
+            period    = data[:,0]
+            amplitude = data[:,1]
+            phase     = data[:,2]
+            nmodes = len(period)
+        else:
+            # Randomly generate pulsations if not from file
+            period    = np.zeros(nmodes)
+            amplitude = np.zeros(nmodes)
+            phase     = np.zeros(nmodes)
+            for i in range(nmodes):
+                phase[i]     = random.uniform(0, 2*np.pi)
+                period[i]    = random.uniform(period_range[0], period_range[1])
+                amplitude[i] = random.uniform((amplitude_range[0]), amplitude_range[1])
 
-        # loop over the number of modes and each time pick a period, an amplitude and a phi
-        #  at random out of the appropriate range
+        # Loop over the number of modes
+        # Flux is the sum of every mode
         for i in range(nmodes):
-            phase     = random.uniform(0, 2*np.pi)
-            period    = random.uniform(period_range[0], period_range[1])
-            amplitude = random.uniform((amplitude_range[0]), amplitude_range[1])
+            mag += amplitude[i] * np.sin(2 * np.pi * (1 / period[i]) * time + phase[i])
 
-            # Flux is the sum of every mode
-            flux += amplitude * np.sin(2 * np.pi * (1 / period) * time + phase)
+        # Normalize the flux so its values lie in [-1, 1] (so roots are not undefined)
+        # Then add 1, raise the power and substract 1
+        A = np.amax(np.absolute(mag))
+        mag /= A
+        mag = A * ( ( (1 + mag)**power ) - 1)
 
-        # normalize the flux so its values lie in [-1, 1] (so roots are not undefined)
-        # add 1, raise the power and substract 1
-        A = np.amax(np.absolute(flux))
-        flux /= A
-        flux = A*(((1+flux)**power)-1)
-
+        # Create a table with value
+        df = pd.DataFrame()
+        df['period [days]']    = period 
+        df['amplitude [mmag]'] = amplitude
+        df['phase [rad]']      = phase
+        
         # plot light curve
         if args.plot:
-            plt.figure(figsize=(10,3.5))
-            plt.plot(time, flux, 'm-')
+            print(df)
+            plt.figure(figsize=(10, 5))
+            plt.plot(time, mag, 'm-')
             plt.xlabel('Time [d]')
-            plt.ylabel('Mag')
+            plt.ylabel(r'$\delta m$ [mmag]')
+            plt.xlim(np.min(time), np.max(time))
             plt.tight_layout()
             plt.show()
         
-        return flux
+        return mag * 1e-3 
 
 
 
@@ -795,17 +846,19 @@ class Variability(object):
 
         # Start script
         if self.verbose > 0:
-            errorcode('module', 'gamma-Dor g-modes\n')
+            errorcode('module', '\ngamma-Dor g-modes\n')
 
-        flux = self.gravity_oscill([0.1, 10], [0.01, 0.1], nmodes=100, power=2.2, seed=0)
-        self.lc['flux'] = flux.tolist()
+        # Draw number of pulsation from uniform distribution
+        npuls = int(rng.normal(50, 5))
+
+        # Model gravity modes
+        flux = self.gravity_oscill([0.8, 3], [0.5, 2.5], nmodes=npuls, power=2.2, seed=0)
+        self.lc['mag'] = flux.tolist()
         #self.std_params = [P, dphi*180/np.pi, a1, a2, scale]
-
 
 
     
         
-
 
     def delta_scuti(self):
 
@@ -819,38 +872,77 @@ class Variability(object):
 
         # Start script
         if self.verbose > 0:
-            errorcode('module', 'delta-Sct g-modes\n')
-            
-        flux = self.gravity_oscill([1,30], [10,30], nmodes=100, power=1.0, seed=0)
-        self.lc['flux'] = flux.tolist()
+            errorcode('module', 'delta-Scuti g-modes\n')
+
+        # Draw number of pulsation from uniform distribution
+        npuls = int(rng.normal(50, 5))
+
+        # Model pulsations
+        flux = self.gravity_oscill([1,30], [10,30], nmodes=npuls, power=1.0, seed=0)
+        self.lc['mag'] = flux.tolist()
         #self.std_params = [P, dphi*180/np.pi, a1, a2, scale]
 
 
 
 
 
-    # def smbh_binary(self):
+    def smbh_binary(self):
 
-    #     """Function to generate a SMBH binary light curve.
+        """Function to generate a SMBH binary light curve.
 
-    #     A Super Massive Black Hole (SMBH) binary system consist of several components,
-    #     for which this model includes two of the effects:
-    #     - The doppler boosting
-    #     - The gravitational lensing effect
+        A Super Massive Black Hole (SMBH) binary system consist of several components,
+        for which this model includes two of the effects:
+        - The doppler boosting
+        - The gravitational lensing effect
 
-    #     Notes 
-    #     -----
-    #     This function used the "gravity_oscill" utility with a characteristic power
-    #     of 2.2 for these g-mode pulsators.
-    #     """
+        """
 
-    #     # Start script
-    #     if self.verbose > 0:
-    #         errorcode('module', 'delta-Sct g-modes\n')
+        # Start script
+        if self.verbose > 0:
+            errorcode('module', 'SMBH binary')
 
-    #     flux = self.gravity_oscill([1,30], [10,30], nmodes=100, power=1.0, seed=0)
-    #     self.lc['gdor'] = flux.tolist()
-    #     #self.std_params = [P, dphi*180/np.pi, a1, a2, scale]
+        # Fetch time array
+        time = self.time.to('d').value
+            
+        # Model doppler beaming effect
+        A   = 0.04          # [mag]
+        P   = 2.1 * 365.25  # [days]
+        phi = np.pi #np.random.uniform(low=0, high=2*np.pi) 
+        flux_beam = A * np.cos(2*np.pi * (time/P) + phi) + 1
+
+        # Model the flare event
+        tscale    = 10 #np.ones(len(max)) * 10
+        tmax      = 200
+        amplitude = 0.08
+        asymmetry = 1
+        flux_flare = self.stellar_flare(tscale, tmax, amplitude, asymmetry)
+        
+        # Combine model
+        flux = flux_beam + flux_flare - 1
+        mag  = -2.5 * np.log10(flux)
+        
+        # plot light curve
+        if args.plot:
+            plt.figure(figsize=(10,3.5))
+            plt.plot(time, flux_beam,  'g-')
+            plt.plot(time, flux_flare, 'b-')
+            plt.plot(time, flux, 'm-')
+            plt.xlabel('Time [d]')
+            plt.ylabel(r'Relative flux')
+            plt.tight_layout()
+            plt.show()
+
+        if args.plot:
+            plt.figure(figsize=(10,3.5))
+            plt.plot(time, mag*1e3, 'm-')
+            plt.xlabel('Time [d]')
+            plt.ylabel(r'$\delta m$ [mmag]')
+            plt.tight_layout()
+            plt.show()
+
+        # Return 
+        self.lc['mag'] = mag.tolist()
+        #self.std_params = [P, dphi*180/np.pi, a1, a2, scale]
 
 
 
@@ -1370,7 +1462,7 @@ class Variability(object):
             errorcode('module', '\nPrologue')
             
         # Compute delta magnitude of signal
-        variable = ('std', 'dSct', 'gDor', 'SMBHB')
+        variable = ('std', 'dSct', 'gDor', 'SMBH')
         if args.star in variable:
             dm = self.lc['mag']
         else:
@@ -1466,7 +1558,7 @@ class Variability(object):
         df = pd.DataFrame(d)
 
         # Print table
-        if self.verbose > 0:
+        if self.verbose > 0 and args.star not in variable:
             print('\nUsed parameters space:')
             print(df.T) 
 
@@ -1509,7 +1601,7 @@ class Variability(object):
 #                PARSING COMMAND-LINE ARGUMENTS                #
 #--------------------------------------------------------------#
 
-software = '\nNoise-less Light Curve Simulator'
+software = '\nNoise-less Light Curve Simulator\n'
 parser = argparse.ArgumentParser(epilog=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter,
                                  description=errorcode('software', software))
@@ -1523,7 +1615,7 @@ obs_group = parser.add_argument_group('OBSERVATION')
 obs_group.add_argument('--time',    metavar='DAYS', type=int, help='Time duration of simulation [days] (Default: 30 days)')
 obs_group.add_argument('--quarter', metavar='NUM',  type=str, help='Quarter number or range of quaters to simulate (Default: False)')
 obs_group.add_argument('--samp',    metavar='SECS', type=int, help='Time cadence of observation [seconds] (Default: 25 sec)')
-obs_group.add_argument('--inst',    metavar='NAME', type=str, help='Observational instrument (Default "PLATO")')
+obs_group.add_argument('--inst',    metavar='NAME', type=str, help='Observational instrument (Default: "PLATO")')
 
 star_group = parser.add_argument_group('STAR')
 star_group.add_argument('--star', metavar='NAME', type=str, help='Stellar variability source [None, <Object>, roAp, gDor, dSct] (Default: None)')
@@ -1531,8 +1623,9 @@ star_group.add_argument('--star_params', action='append', type=float, nargs=5, m
                         help='Stellar model parameters [M: Msun, R: Rsun, Teff: K] (Default: None)')
 star_group.add_argument('--gran', metavar='RELATION', type=str, help='Scaling relation of Granulation [None, Kallinger2014] (Default: Kallinger2014)')
 star_group.add_argument('--puls', metavar='RELATION', type=str, help='Scaling relation of Pulsations  [None, Corsaro2013] (Default: Corsaro2013)')
-star_group.add_argument('--corr', metavar='METHOD',   type=str, help='Scaling Correction method [None] (Default: None)')
+star_group.add_argument('--corr', metavar='METHOD',   type=str, help='Scaling Correction method of p-modes [None] (Default: None)')
 star_group.add_argument('--spot', metavar='BOOL',     type=str, help='Inclusion of stellar spots [None, True] (Default: True)')
+star_group.add_argument('--pulslist', metavar='FILE', type=str, help='Use custum list of pulsations {periods, amplitudes, phases}')
 
 planet_group = parser.add_argument_group('EXOPLANET')
 planet_group.add_argument('--planet', metavar='NAME',  type=str, help='Exoplanet variability source (Default: None)')
@@ -1554,7 +1647,7 @@ args = parser.parse_args()
 # 3 -> Gran, Puls, Spots, Exo
 # x -> Constant stars is any other number x
 if args.xsource == 0:
-    args.star = 'std'
+    args.star = 'roAp'
 if args.xsource in (1, 2, 3):
     args.star          = 'Sun'
     args.planet_params = False
@@ -1575,7 +1668,7 @@ if args.spot is None:
 v = Variability(args)
 
 # Include stellar variability
-if args.star == 'std':
+if args.star == 'roAp':
     v.photometric_standard()
 elif args.star == 'gDor':
     v.gamma_doradus()
@@ -1583,7 +1676,7 @@ elif args.star == 'dSct':
     v.delta_scuti()
 elif args.star == 'EB':
     v.eclipsing_binary()
-elif args.star == 'SMBHB':
+elif args.star == 'SMBH':
     v.smbh_binary()
 else:
     # TODO include blackbody function for massive stars!
