@@ -448,7 +448,7 @@ def passbandConversionV2P(mag, Teff, inverse=False):
     # Bolometric scaling relation
     
     # c = [1.184e-12, 4.526e-8, -5.805e-4, 2.449]  # Machiori et al. (2019)
-    c = [2.366e-12, 8.126e-8, -9.279e-4, 3.499]  # Fabio Fialho et al. in prep
+    c   = [2.366e-12, 8.126e-8, -9.279e-4, 3.499]  # Fabio Fialho et al. in prep
     bol = c[0]*Teff**3 + c[1]*Teff**2 + c[2]*Teff + c[3]
 
     # From V to P (or P to V if inverse it True)
@@ -462,7 +462,7 @@ def passbandConversionV2P(mag, Teff, inverse=False):
 
 
 
-def getJitterNoiseLimitNSR(jitterASD, tdur=3600, level='instrument', camType='N'):
+def getJitterNoiseLimitNSR(rms, tdur=3600, level='instrument', camType='normal'):
 
     """NSR estimate of the jitter noise component.
 
@@ -483,12 +483,15 @@ def getJitterNoiseLimitNSR(jitterASD, tdur=3600, level='instrument', camType='N'
         NSR only valid for the photon noise limit.
     """
 
+    # Amplitude Spectral Density of the jitter [ppm/sqrt(muHz)]
+    
+    jitterASD = rms / np.sqrt(1e-6)
 
     # Choose cycle and exposure time [s] for either the normal (N) or fast (F) cameras
 
-    if camType == 'N':
+    if camType == 'normal':
         tcyc = 25.
-    elif camType == 'F':
+    elif camType == 'fast':
         tcyc = 2.5
 
     # Number of images to average over
@@ -512,14 +515,12 @@ def getJitterNoiseLimitNSR(jitterASD, tdur=3600, level='instrument', camType='N'
 
 
         
-def getPhotonNoiseLimitNSR(mag, passband='P', ncam=1, ntra=1, tdur=3600, camType='N'):
+def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, tdur=3600):
 
     """NSR estimate in the photon noise limit of bright stars.
 
     The stellar flux are calculated from the PLATO passband found by 
     Marchiori et al. (2019).
-    
-    NOTE: only valid for very bright stars (P < 11).
 
     Parameters
     ----------
@@ -540,14 +541,13 @@ def getPhotonNoiseLimitNSR(mag, passband='P', ncam=1, ntra=1, tdur=3600, camType
         NSR only valid for the photon noise limit.
     """
 
-    # Choose cycle and exposure time [s] for either the normal (N) or fast (F) cameras
+    # Choose cycle and exposure time [s] for either the normal or fast cameras
 
     if camType == 'N':
         texp = 21.
         tcyc = 25.
-        gain = 0.075     # [ADU/e-]
-
-    elif camType == 'F':
+        gain = 0.0222 * 2.14   # [ADU/e-]
+    else:
         texp = 2.1
         tcyc = 2.5
         gain = 0.05
@@ -557,11 +557,19 @@ def getPhotonNoiseLimitNSR(mag, passband='P', ncam=1, ntra=1, tdur=3600, camType
     if passband == "V":
         f0 = 1.00179e8
         f = 10**(-0.4 * mag) * f0
-    else:
-        f0 = 0.7324478224428527e8
+    elif passband == 'P':
         # The P passband zero-point
-        zp = 20.62
+        if camType == 'normal':
+            zp   = 20.77
+        if camType == 'fastblue':
+            zp = 20.18
+        if camType == 'fastred':
+            zp = 19.81
+        # Calculate flux
+        f0 = 0.7324478224428527e8
         f = 10**(-0.4 * (mag - zp)) * f0
+    else:
+        errorcode('error', f'Wrong {camType} name!')
 
     # Observed total flux [ADU/exp]
 
@@ -570,8 +578,7 @@ def getPhotonNoiseLimitNSR(mag, passband='P', ncam=1, ntra=1, tdur=3600, camType
     # SNR from pure photon noise and NSR from uncorrelated noise.
     # Gaussian statistic gives sigma --> sigma/sqrt(N)
 
-    SNR = np.sqrt(F * ncam * ntra * tdur)
-    NSR = 1 / SNR * 1e6
+    NSR = 1e6 / np.sqrt(F * ncam * ntra * tdur)
 
     return NSR
 
