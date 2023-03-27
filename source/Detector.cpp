@@ -279,8 +279,10 @@ void Detector::addBackgroundMapToPixelMap(Camera &camera, double startTime)
 Detector::~Detector()
 {
     writeCTIToHDF5();
-
-    writeBackgroundMapToHDF5();
+    if (!constantSkyBackground)
+    {
+        writeBackgroundMapToHDF5();
+    }
 
     flushOutput();
 
@@ -594,7 +596,7 @@ void Detector::updateParameters(double time)
     writeThroughputMaps = configParam.getBoolean("ControlHDF5Content/WriteThroughputMaps");
     writeCosmics        = configParam.getBoolean("ControlHDF5Content/WriteCosmics");
     writeCTI            = configParam.getBoolean("ControlHDF5Content/WriteCTI");
-    writeBackgroundMap  = configParam.getBoolean("ControlHDF5Content/WriteVariableBackgroundMap") && !constantSkyBackground;
+    writeBackgroundMap  = configParam.getBoolean("ControlHDF5Content/WriteBackgroundMap") && !constantSkyBackground;
 
     // Configuration parameters for the noise source random seeds
 
@@ -3313,11 +3315,12 @@ void Detector::initHDF5Groups()
         hdf5File.createGroup("/Cosmics/BiasMapRight");
     }
 
-    if (writeBackgroundMap)
+    if (writeBackgroundMap || constantSkyBackground)
     {
         hdf5File.createGroup("/BackgroundMap");
     }
-}                 
+
+}
 
 
 
@@ -3456,7 +3459,7 @@ void Detector::writeBackgroundMapToHDF5()
 {
     if (writeBackgroundMap)
     {
-        string imageName = "backgroundMap";
+        string imageName = "skyBackground";
         arma::Mat<float> backgroundMapBOS = backgroundMap*transmissionEfficiencyBOS;
         hdf5File.writeArray("/BackgroundMap", imageName, backgroundMapBOS);
     }
