@@ -14,7 +14,6 @@ import pandas as pd
 import matplotlib.pyplot as plt 
 from pathlib import Path
 
-import platosim.utilities       as ut
 import platosim.referenceFrames as rf
 from platosim.matplotlibrc import latex
 latex()

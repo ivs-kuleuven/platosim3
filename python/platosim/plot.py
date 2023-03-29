@@ -2163,7 +2163,8 @@ def plotPhotometry(df, time_unit=False, flux_unit=False, figsize=(8,5)):
 
 
 def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
-                       yscale="log", cmap="coolwarm", noise_ncam=False,
+                       yscale="log", cmap="coolwarm", show_targets=False,
+                       show_ncam_noise_limits=False, show_saturation_limits=False,
                        grid=True, legend=False, figsize=(10,6)):
 
     """Plot the NSR vs. Magnitude for a star catalogue.
@@ -2197,6 +2198,14 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
     
     fig, ax = plt.subplots(1, 1, figsize=figsize)
 
+    # Secure a small offset in x axis to show data
+    dx = (df.mag.max() - df.mag.min()) * 1e-2
+    ax.set_xlim(df.mag.min()-dx, df.mag.max()+dx)
+
+    # Define global colormap
+    
+    cmap = plt.cm.get_cmap('coolwarm')
+    
     # Set figure labels
 
     if passband == 'P':
@@ -2209,19 +2218,14 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
     ylabel = r'NSR [ppm h$^{-1/2}$]'
     
     # Handle colorbar and make discrete
-
+    
     if column in ("group", "camera", "quarter", "ncam", "ncon", "flag"):
 
         # Fetch custom discrete colorbar used by matplotlib
-        
-        if (df[column].max() - df[column].min()) > 24:
-            sep = 5
-        else:
-            sep = 1    
+        sep =1
         cbins = np.arange(df[column].min(), df[column].max()+2, sep)
         ticks = cbins + 0.5
         norm  = discretizeColorbar(cbins=cbins, cmap=cmap)
-        
     else:
         norm = None
     
@@ -2237,30 +2241,54 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
                             c=df[column], cmap=cmap, norm=norm)
             
     elif column:
-        im = ax.scatter(df["mag"], df["NSR"], s=3, zorder=1,
+        im = ax.scatter(df["mag"], df["NSR"], s=3, alpha=1, zorder=1,
                         c=df[column], cmap=cmap, norm=norm)
         ax.set_ylabel(ylabel)
         
     else:
         ax.plot(df["mag"], df["NSR"], 'k.', alpha=0.7, zorder=1)
         ax.set_ylabel(ylabel)
-
+        
     # Extra settings for colorbar after image generation
-
-    if column == "ncam":
-        column = r"$n_{\rm CAM}$"        
         
     if norm is None:
         cb = plt.colorbar(im, extend="max", pad=0.01)
         cb.set_label(column)
     else:
+
+        # Change label
+        if column == 'ncam':
+            column_label = r'$n_{\rm CAM}$'
+        elif column == 'ncon':
+            column_label = r'$n_{\rm contaminants}$'
+
+        # Plot the colorbar
         cb = plt.colorbar(im, extend="max", pad=0.01, spacing='proportional',
                           ticks=ticks, boundaries=cbins, format='%1i')
-        cb.set_label(column)
+        cb.set_label(column_label)
         cb.minorticks_off()
 
-    # Plot requirements
+        # Fewer tick labels for large numbers
+        # if (df[column].max() - df[column].min()) > 24:
+        #     for label in cb.ax.yaxis.get_ticklabels()[::2]:
+        #         label.set_visible(False)
+
+    # Highlight single stars
     
+    if show_targets and column == 'ncon' and residuals == 'multi':
+        dc = df.loc[df.ncon == 0]
+        ax.scatter(dc.mag, dc.NSR, s=3, color=cmap(0.0), zorder=1)
+                
+    # Plot saturation limits
+    
+    if show_saturation_limits:
+        ax.axvline(x=8.5, color="k", alpha=0.7, linestyle=':',  zorder=0,
+                   label='Onset of saturation')
+        ax.axvline(x=7.4, color="k", alpha=0.5, linestyle='--', zorder=0,
+                   label='Moderate saturation')
+
+    # Plot requirements
+        
     if residuals == "camera":
         ax.axhline(y=108, c="darkorange", ls="--", label="AOCS camera req.: 108 ppm", zorder=0)
         if yscale == "linear":
@@ -2269,37 +2297,44 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
     elif residuals == "system":
         ax.axhline(y=9, c="red", ls="--", label="AOCS system req.: 9 ppm", zorder=0)
         
-    elif residuals == "multi":
-        cmap = plt.cm.get_cmap('coolwarm')
+    elif residuals == "multi" and 'ncam' in df:
         for nsr, ncam, color in zip([100, 70, 58, 50], [6, 12, 18, 24], [0.0, 0.33, 0.66, 0.999]):
             ax.axhline(y=nsr, color=cmap(color), linestyle="--",
                        label=f"{nsr} ppm for "+r"$n_{\rm CAM}=\,$"+f"{ncam}", zorder=0)
-        ax.axvline(x=11, color="k", alpha=0.7, linestyle=':', zorder=0)
+        ax.axvline(x=11, color="k", lw=1, alpha=0.5, linestyle='-', zorder=0)
 
     # Plot noise limits
 
-    if noise_ncam:
+    if show_ncam_noise_limits:
         
         # Magnitude range
-        mag = np.linspace(df.mag.min(), df.mag.max(), 100)
+        mag = np.linspace(df.mag.min()-1, df.mag.max()+1, 100)
 
         # Jitter noise
-        jitter = 0.0
-        if noise_ncam == 1: level = 'camera'
-        else: level = 'instrument'
-        noise_jitter = ut.getJitterNoiseLimitNSR(jitter/np.sqrt(1e-6), level=level)
-        ax.axhline(y=noise_jitter, c="gray", ls="-", lw=1, zorder=2)
-        ax.text(np.mean(mag), noise_jitter+0.2, "Jitter noise", fontsize=15, zorder=2)
+        rms = 0.04
+        if show_ncam_noise_limits == 1:
+            level = 'camera'
+        else:
+            level = 'instrument'
+        noise_jitter = ut.getJitterNoiseLimitNSR(rms, level=level)
+        ax.axhline(y=noise_jitter, c="deeppink", ls="--", lw=1.5, zorder=2, label='Jitter noise')
 
         # Photon noise
-        noise_photon = ut.getPhotonNoiseLimitNSR(mag, passband=passband, ncam=noise_ncam)
-        ax.plot(mag, noise_photon, '-', c='gray', lw=1, zorder=2)
-
+        ncams = show_ncam_noise_limits
+        noise_photon = ut.getPhotonNoiseLimitNSR(mag, passband=passband, ncam=ncams) * 0.7324478224428527
+        ax.plot(mag, noise_photon, '-.', c='deeppink', lw=1.5, zorder=2, label='Photon noise')
+        
         # Background and readout noise
+        #f0 = 1.00179e8
+        f0 = 0.7324478224428527e8
+        noise_background = (1800 / np.sqrt(10**(-0.4 * mag) * f0 * 25))**1.8
+        ax.plot(mag, noise_background, ':', c='deeppink', lw=1.5, zorder=2,
+                label='Sky and read noise')
 
         # Combine and plot
-        noise = noise_jitter + noise_photon
-        ax.plot(mag, noise, 'r-', zorder=2, label='Noise floor ' + r"$n_{\rm CAM}=\,$"+f"{noise_ncam}")
+        noise = noise_jitter + noise_photon + noise_background
+        ax.plot(mag, noise, '-', c='orange', lw=2,  zorder=2,
+                label=r"$n_{\rm CAM}=\,$"+f"{show_ncam_noise_limits} noise model")
         
     # Force all yticks for log plot
 
@@ -2311,7 +2346,6 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
         ax.yaxis.set_minor_formatter(ScalarFormatter())
 
     # Settings
-    
     if grid:   ax.grid(color="lightgray")
     if legend: ax.legend(loc='upper left')
 
@@ -2969,8 +3003,8 @@ def plot_final_lc(lc, figsize=(10,8)):
 #--------------------------------------------------------------#
 
     
-def plotSubfieldAnimation(filename, outputFileName=False,
-                          skipNimages=None, numImages=False,
+def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
+                          frameRate=50, skipNimages=None, numImages=False,
                           colorMap="cubehelix", clipPercentile=8.0, 
                           showStarPositions=False, showPointLikeGhostPositions=False,
                           minVmag=None, maxVmag=None,
@@ -3069,7 +3103,7 @@ def plotSubfieldAnimation(filename, outputFileName=False,
 
         # Add either default title or defined by user
         if useTitle:
-            time  = 25./86400 * imgNumber
+            time  = cadence/86400 * imgNumber
             title = ax.text(0.5, 1.05, f"Elapsed time: {time:.2f} days",
                             horizontalalignment='center', transform=ax.transAxes)
         elif isinstance(useTitle, str) and int(imgNumber) == 0:
@@ -3189,7 +3223,7 @@ def plotSubfieldAnimation(filename, outputFileName=False,
     
     if outputFileName is not False:
         print('Creating GIF animation..')
-        ani.save(f'{outputFileName}.gif', fps=50, dpi=100)
+        ani.save(f'{outputFileName}.gif', fps=frameRate, dpi=100)
 
     # Show animation
     

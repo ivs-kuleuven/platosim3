@@ -20,6 +20,7 @@ User examples:
   $ platonium 3 4 2 8 -i </path/to/project> --nexp 600
 """
 
+# Built-in
 import os
 import sys
 import glob
@@ -27,6 +28,8 @@ import math
 import h5py
 import shutil
 import argparse
+
+# 
 import datetime
 import numpy as np
 import pandas as pd
@@ -66,6 +69,7 @@ class PLATOnium(object):
         self.project       = args.project
         self.inputFileName = args.yaml
         self.simPrefix     = args.prefix
+        self.starcatFile   = args.starcat
         self.varSourceFile = args.varfile
         self.varSourceList = args.varlist
         self.compress      = args.compress
@@ -162,31 +166,30 @@ class PLATOnium(object):
             
         # L1 pipeline paths
         if self.sample:
-            # platoBin: extract_contaminant.py
-            # platoLib: pproc.py, invert_parabolic1_multi, psffit.py, lightcurve.py, jittercorrection.py
             self.platoBin = self.path.joinpath(os.getenv('PLATO'), 'bin')
             self.platoLib = Path(os.path.split(sys.executable)[0]).resolve()
-            #self.platoBin = os.getenv('PLATO') + '/bin'
-            #self.platoLib = os.getenv('PLATO') + '/lib/python/bin'
+
             
         # PHYSICAL PARAMETERS
 
         # Check for PLATO pointing field (in Galactic long. (deg) and lat. (deg))
-        self.PF = {'SPF': [86.79870508, -46.39594703, -8.5],  # Equivalent to Galactic [253.0, -30.0, 0.0]
-                   'NPF': [265.08002279, 39.5836954,  +8.5]}  # Equivalent to Galactic [ 65.0, +30.0, 0.0]
+        self.PF = {'NPF':  [265.08002279,  39.5836954,  +8.5],  # PIC1.1.0: Equivalent to Galactic []
+                   'LOPN': [277.18023,     52.85952,    +8.5],  # PIC2.0.0: Equivalent to Galactic [ 81.6, -24.6, 0.0]
+                   'SPF':  [ 86.79870508, -46.39594703, -8.5],  # PIC1.1.0: Equivalent to Galactic [253.0, -30.0, 0.0]
+                   'LOPS': [ 95.3,        -47.9,        -8.5]}  # PIC2.0.0: Equivalent to Galactic [255.9, -24.0, 0.0]
 
-        # TODO Threshold (%) of variability to incldue for a contaminant
-        # Signals: flare, pulsation, eclipse
-        self.varStarLimit = 50
+        # Inclusion thresholds
         if not self.conDeltaMag:    self.conDeltaMag    = 5     # Limit to include contaminants [delta mag]
+        # TODO include varsource limit?
+        #self.varStarLimit = 50
+        
+        # Error tolerance for L1 pipeline
+        self.bsres = 10
+        self.prnuError = 0.1
         if not self.conFluxError:   self.conFluxError   = 10    # Flux error of contaminat stars [%]
         if not self.tarFluxError:   self.tarFluxError   = 1     # Flux error of target star [%]
         if not self.tarAbsCenError: self.tarAbsCenError = 0.02  # Absolute error of target centroid position [pixel]
 
-        # Error tolerance for L1 pipeline
-        self.bsres = 10
-        self.prnuError = 0.1
-        
         # Monitor script speed
         self.tic  = datetime.datetime.now()
         self.tic0 = datetime.datetime.now()
@@ -199,35 +202,47 @@ class PLATOnium(object):
         Module to load the stellar targets and contaminants.
         """
 
-        # Handle PIC catalog files
-        if self.sample is not None: extra_str = f'_{self.sample}'
-        else: extra_str = ''
-        picTarFile = glob.glob(str(self.inputDir) + f'/starcat{extra_str}**targets.ftr')[0]
-        picConFile = glob.glob(str(self.inputDir) + f'/starcat{extra_str}**contaminants.ftr')[0]
-
-        if self.verbose > 0: print('Loading stellar catalogue..')
-        df = pd.read_feather(picTarFile)
-        dc = pd.read_feather(picConFile)
-
-        # Correct indicing and allow a specific star to be choosen
-        if self.targetNo == 0:
-            errorcode('error', 'Star ID indicing starts from 1 and not 0!')
-        elif self.picID is not None:
-            try:
-                self.targetNo = np.where(df['ID'] == self.picID)[0][0]
-            except IndexError:
-                errorcode('error', f'PIC {self.picID} star does not exist in current catalogue:' +
-                          f'\n{picTarFile}')
-        else:
-            self.targetNo -= 1
+        if self.verbose == 3:
+            print('Loading stellar catalogue..')
         
-        # TODO add full frames to sim
-        # if self.targetNo == -1:
-        #     self.df = df.append
-        #     self
+        # Fetch stars either from custum catalogue are the default PIC setup
 
-        # Select target star
-        self.df = df.iloc[self.targetNo]
+        if self.starcatFile is not None:
+            dx = pd.read_csv(self.starcatFile, sep=' ', names=['ID', 'ra', 'dec', 'mag', 'dis'])
+            # Chnage IDs all to be the target
+            dx.ID = np.ones(len(dx))
+            dx.ID = dx.ID.astype('int')
+            # Define data frames
+            self.df = dx.loc[0]
+            dc = dx.iloc[1:]
+            
+        else:
+            # Add sample name if pipeline is activated
+            if self.sample is not None:
+                extra_str = f'_{self.sample}'
+            else:
+                extra_str = ''
+
+            # Fetch PIC targets and contaminants
+            picTarFile = glob.glob(str(self.inputDir) + f'/starcat{extra_str}**targets.ftr')[0]
+            picConFile = glob.glob(str(self.inputDir) + f'/starcat{extra_str}**contaminants.ftr')[0]
+            df = pd.read_feather(picTarFile)
+            dc = pd.read_feather(picConFile)
+            
+            # Correct indicing and allow a specific star to be choosen
+            if self.targetNo == 0:
+                errorcode('error', 'Star ID indicing starts from 1 and not 0!')
+            elif self.picID is not None:
+                try:
+                    self.targetNo = np.where(df['ID'] == self.picID)[0][0]
+                except IndexError:
+                    errorcode('error', f'PIC {self.picID} star does not exist in catalogue:' +
+                              f'\n{picTarFile}')
+            else:
+                self.targetNo -= 1
+        
+            # Select target star
+            self.df = df.iloc[self.targetNo]
 
         # If requested select only the target or including contaminants
         if self.noCon:
@@ -236,25 +251,22 @@ class PLATOnium(object):
         else:
             self.dc = dc[dc['ID'] == self.df['ID']]
             self.numCon = len(self.dc['ID'])
+            # Sort contaminants after their distance
+            self.dc = self.dc.sort_values(by=['dis'])
 
         # If requested overwrite magnitude of target star
         if self.mag:
             self.df.mag = self.mag
 
 
-        
+
+            
 
 
     def configure_output(self):
 
         """Module to create, configure, and select the correct output folders.
         """
-
-        # Select proper name convension
-        if self.simPrefix is None: self.simPrefix = ''
-        else: self.simPrefix = self.simPrefix + '_'
-        self.obsPrefix = f'Ncam{self.group}.{self.camera}_Q{self.quarter}'
-        #self.picPrefix = f"{self.simPrefix}pic{self.df['ID']}_{self.obsPrefix}"
 
         # Default output path
         if self.outputDir is None: self.outputDir = self.simDir.joinpath('output')
@@ -265,12 +277,22 @@ class PLATOnium(object):
         # Set general output filename
         self.outputFileName = f'{self.targetNo + 1}'.zfill(9)
 
+        # Select prefix of observation
+        self.obsPrefix = f'Ncam{self.group}.{self.camera}_Q{self.quarter}'
+        #self.picPrefix = f"{self.simPrefix}pic{self.df['ID']}_{self.obsPrefix}"
+
+        # Add a custom prefix to simulation
+        if self.simPrefix is not None:
+            self.simPrefix = f'{self.simPrefix}_'
+        else:
+            self.simPrefix = ''
+            
         # NOTE the structure for the L1 pipeline are different from the default
         if self.sample is None:
             
             # PIC name convention
-            self.outputFileName = f'{self.outputFileName}_{self.obsPrefix}'
-
+            self.outputFileName = f'{self.simPrefix}{self.outputFileName}_{self.obsPrefix}'
+            
         else:
             # Name convention for pipeline mode
             self.starID = self.outputFileName
@@ -317,7 +339,7 @@ class PLATOnium(object):
 
         # Print to bash
         if self.verbose > 0:
-            errorcode('module', '\nInitialising and running PlatoSim')
+            errorcode('module', '\nInitialize and configure PlatoSim\n')
 
         # Setting up a test simulation environement
         sim = Simulation(self.outputFileName, self.inputFile)
@@ -350,16 +372,11 @@ class PLATOnium(object):
             self.numExposures = round(self.simTime * 86400. / self.cadence)
         else:
             # Setting time series to full quarter
-            # NOTE Two days are lost due to platform roll, thermal stabilisation, downlink, microscanning, etc.
-            # TODO make configurable/flag option to change inter-quarter downtime (normal distributed?)
+            # NOTE Two days are lost due to platform roll, thermal stabilisation,
+            # downlink, microscanning, etc.
+            # TODO make configurable/flag option to change inter-quarter downtime
+            # (normal distributed?)
             self.numExposures = round( (90. - 2.) * 86400. / self.cadence )
-
-        # Print to bash
-        if self.verbose > 0:
-            if args.plot:
-                print(f'Visualizing simulation for N-CAM {self.group}.{self.camera} Q{self.quarter}')
-            else:
-                print(f'Simulating N-CAM {self.group}.{self.camera} Q{self.quarter} for {self.numExposures} exposures')
             
 
         # PHYSICAL PARAMETERS
@@ -375,16 +392,15 @@ class PLATOnium(object):
 
         # The maskUpdate is given in days
         # The mask-update rate is event after number of exposures
-        # NOTE argument parsing overwrites inputfile.yaml
         if self.maskUpdate:
             sim['Photometry/MaskUpdateInterval'] = self.maskUpdate
             self.maskUpdateRate = round(self.maskUpdate * 86400. / self.cadence)
         else:
-            self.maskUpdateRate = round(sim['Photometry/MaskUpdateInterval'] * 86400. / self.cadence)
+            self.maskUpdateRate = round(sim['Photometry/MaskUpdateInterval'] * 86400./self.cadence)
             
             
         # CONFIGURE PAYLOAD
-                        
+
         # Select PLATO pointing field from inputfile (e.g. SPF, NPF, etc.) [deg]
         self.pointingField = sim["ObservingParameters/StarCatalogFile"]
         sim["ObservingParameters/RApointing"]  = self.PF[self.pointingField][0]
@@ -396,7 +412,7 @@ class PLATOnium(object):
         sim["Platform/SolarPanelOrientation"] = solarPanelOrientationDeg
 
         # Set the Camera-group ID and Camera-group Alt (tilt) and Az [deg]
-        sim["Telescope/GroupID"] = self.group        
+        sim["Telescope/GroupID"]      = self.group        
         sim["Telescope/TiltAngle"]    = sim["CameraGroups/TiltAngle"][self.group-1]
         sim["Telescope/AzimuthAngle"] = sim["CameraGroups/AzimuthAngle"][self.group-1]       
 
@@ -405,29 +421,35 @@ class PLATOnium(object):
         
         # Include spacecraft Pointing Repeatability Error (PRE) between consecutive quarters
         # NOTE: Will only be included if the file "PRE.txt" is available in the input folder
-        inputFilePRE = self.inputDir.joinpath('PRE.txt')
+        inputFilePRE = self.inputDir.joinpath('instrumentPRE.txt')
         if inputFilePRE.is_file():
             PRE = np.loadtxt(inputFilePRE)
             dex = np.where(PRE[:,0] == self.quarter)[0]
             try: dex[0]
             except:
-                errorcode('warning', 'Cannot apply Pointing Repeatability Error, no matching quarters in PRE.txt!')
+                errorcode('warning', 'Cannot apply pointing error model: ' +
+                          'no matching quarters in instrumentPRE.txt!')
             else:
+                if self.verbose > 0:
+                    print('Applying pointing error      (PRE FromFile)')
                 sim["ObservingParameters/RApointing"]  += PRE[dex, 1][0]
                 sim["ObservingParameters/DecPointing"] += PRE[dex, 2][0]
                 sim["Platform/SolarPanelOrientation"]  += PRE[dex, 3][0]
 
         # Include Absolute Pointing Error (APE) due to camera misalignments
         # NOTE: Will only be included if the file "APE.txt" is available in the input folder
-        inputFileAPE = self.inputDir.joinpath('APE.txt')
+        inputFileAPE = self.inputDir.joinpath('instrumentAPE.txt')
         if inputFileAPE.is_file():
+            if self.verbose > 0 :
+                print('Applying camera misalignment (APE FromFile)')
             APE = np.loadtxt(inputFileAPE)
             dex = (self.group - 1) * 6 + self.camera - 1
             sim["Telescope/TiltAngle"]    += APE[dex, 0]
             sim["Telescope/AzimuthAngle"] += APE[dex, 1]
         
         # Attitude Orbit Control System (AOCS) jitter
-        # NOTE: Will only be included if file "AOCS_Q<quarterNo>.txt" is availale in the input folder
+        # NOTE: Will only be included if file "AOCS_Q<quarterNo>.txt"
+        # is availale in the input folder
         if self.reuseJitter:
             sim["Platform/UseJitter"]    = True
             sim["Platform/JitterSource"] = 'FromFile'
@@ -446,21 +468,27 @@ class PLATOnium(object):
                 cadence = np.diff(t)[0]  # [s -> 8 Hz]
                 t = np.arange(len(t)) * cadence + self.timeStart
                 # Save data to input folder
-                np.savetxt(inputFileAOCS_Q, np.transpose([t,x,y,z]), fmt=['%.3f', '%.9f', '%.9f', '%.9f'])
+                np.savetxt(inputFileAOCS_Q, np.transpose([t,x,y,z]),
+                           fmt=['%.3f', '%.9f', '%.9f', '%.9f'])
             # Set filepath to new file
             sim["Platform/JitterFileName"] = inputFileAOCS_Q
-                                    
-        # Thermal Elastic Distortion (TED):
-        # NOTE: it is assumed that the TED is the same for each camera per quarter 
+        # Print to bash that jitter is included
+        if sim["Platform/UseJitter"] and self.verbose > 0:
+            print(f'Applying platform jitter     (ACS {sim["Platform/JitterSource"]})')
+            
+        # Thermo-Elastic Distortion (TED)
+        # NOTE: The camera(s) drift due to the thermal gradient of
+        # the interface between the camera and the optical bench
         inputFileTED = self.inputDir.joinpath('instrumentTED.txt')
         if inputFileTED.is_file():
             sim["Telescope/UseDrift"]         = True
             sim["Telescope/UseDriftFromFile"] = True
             sim["Telescope/DriftFileName"]    = inputFileTED
-
-        # KDA
-        #print(sim['Camera/AberrationCorrection/OrbitFile'])
-
+        if sim["Telescope/UseDrift"] and self.verbose > 0:
+            if sim["Telescope/UseDriftFromFile"]: source = 'FromFile'
+            else: source = 'RedNoise'
+            print(f'Applying camera drift        (TED {source})')
+            
 
         # SELECT SUBFIELD
         
@@ -528,9 +556,12 @@ class PLATOnium(object):
                                                      focalPlaneAngle, focalLength)
         if includeFieldDistortion == True or includeFieldDistortion == "yes":
             if mappedDistortion:
-                xFPmm, yFPmm = rf.mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile)
+                xFPmm, yFPmm = rf.mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
+                                                                                    pathToPsfFile)
             else: 
-                xFPmm, yFPmm = rf.undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients, focalLength)
+                xFPmm, yFPmm = rf.undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
+                                                                              distortionCoefficients,
+                                                                              focalLength)
 
                 
         # Fetch CCD code and pixel coordinates (account for field distortion if included)
@@ -546,11 +577,8 @@ class PLATOnium(object):
         
 
         # Calculate radial distance of coordinate away from OA
-        # NOTE due to strong vinetting stars are barely detectable beyond 18.2 deg
-        # TODO check if this is in fact due to the distortion model which is not accounted
-        # for in the setSubfieldAroundCoordinates
         distanceOA = np.rad2deg(rf.gnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm, focalLength))
-        if distanceOA > 18.2:
+        if distanceOA > 19.0:
             if self.verbose > 0:
                 message  = (f"PIC {self.df['ID']} (subfield {self.targetNo}) " +
                             f'is outside camera FOV (d={distanceOA:.2f} deg) ' +
@@ -607,7 +635,8 @@ class PLATOnium(object):
         self.seedTarget = self.seed * self.targetNo 
 
         # Seed different for each quarter, group, and camera
-        self.seedObservation = self.seed * 8 * self.quarter + 10 * 4 * self.group + self.camera + 100000
+        self.seedObservation = (self.seed * 8 * self.quarter + 10 * 4 *
+                                self.group + self.camera + 100000)
 
         # Seed different for each star, quarter, group, and camera
         self.seedOffset = self.seedTarget + self.seedObservation
@@ -666,35 +695,40 @@ class PLATOnium(object):
             
         # SAVE LIST OF VARIABLE SOURCES
 
+        # Automatically activate varsource (if the user forgets)
+        if self.varSourceFile or self.varSourceList:
+            sim['Sky/IncludeVariableSources'] = True
+
         # NOTE if a user-defined filename for the variable data is parsed
         # then a variable source list is created automatically
         # TODO binary files are not yet compatible with PlatoSim!
         if sim['Sky/IncludeVariableSources'] is True:
-            
+
             # First priority to varSourceList -> Allows variability for all stars
             if self.varSourceList:
-                sim["Sky/VariableSourceList"] = Path(self.varSourceList).resolve()
 
-            # Second priority to varSourceFile -> Allows variability for target only
-            elif os.path.exists(str(self.varSourceList)) is False:
-
-                # If varSourceFile is parsed or located within input
-                if self.varSourceFile:
-                    varSourceFile = Path(self.varSourceFile).absolute()
-                elif os.path.exists(f'{self.inputDir}/varsource.txt'):
-                    varSourceFile = f'{self.inputDir}/varsource.txt'
+                # Make sure that wrong paths are detected
+                self.varSourceList = Path(self.varSourceList).resolve()
+                if self.varSourceList.is_file():
+                    sim["Sky/VariableSourceList"] = self.varSourceList
                 else:
-                    errorcode('error', 'No variable source list found from inputfiles! Create file or give as input')
+                    errorcode('error', 'VariableSourceList do not exist, check file path!')
+                    
+            # Second priority to varSourceFile -> Allows variability for target only
+            elif self.varSourceFile:
 
-                # Save varSourceList to file
-                varSourceList = f'{self.outputDir}/{self.outputFileName}.var' 
-                np.savetxt(varSourceList, np.array([]), header='1 '+ str(varSourceFile), comments='')
-                sim["Sky/VariableSourceList"] = varSourceList
-                # Store parameters for future deletion
-                self.varSourceList = varSourceList
-                self.varSourceFile = varSourceFile
+                # If varSourceFile is parsed
+                self.varSourceFile = Path(self.varSourceFile).absolute()
+                if self.varSourceFile.is_file():
+                    # Automaticallt save varSourceList to file
+                    self.varSourceList = f'{self.outputDir}/{self.outputFileName}.var'
+                    np.savetxt(self.varSourceList, np.array([]),
+                               header='1 '+ str(self.varSourceFile), comments='')
+                    sim["Sky/VariableSourceList"] = self.varSourceList                    
+                else:
+                    errorcode('error', 'VariableSourceFile do not exist, check file path!')
 
-                
+        
         # SAVE PHOTOMETRY FILE
         
         # NOTE if a user defined file name for the photometry file is parsed
@@ -719,6 +753,11 @@ class PLATOnium(object):
         This function exit the simulation.
         """
 
+        # Print to bash
+        if self.verbose > 0:
+            errorcode('message', f'\n[PlatoSim]: Visualizing simulation for N-CAM ' +
+                      f'{self.group}.{self.camera} Q{self.quarter}\n')
+        
         # Control the content of the hdf5 output files
         sim.turnOffAllOutput()
         sim["ObservingParameters/NumExposures"]      = 1
@@ -732,6 +771,7 @@ class PLATOnium(object):
         # Run simulation for first image cadence
         self.outputSimName = self.outputDir.joinpath(self.outputFileName)
         sim.outputDir = self.outputDir
+
         simFile = sim.run(removeOutputFile=self.overwrite)
 
         # Plot star in CCD focal plane
@@ -741,16 +781,16 @@ class PLATOnium(object):
                                 self.raPlatformDeg, self.decPlatformDeg,
                                 self.tiltTelescopeDeg, self.azimuthTelescopeDeg,
                                 self.solarPanelOrientationDeg)
-        
+
         # Show subfield for first cadence
-        title = 'Imagette of PIC {0} ({1:.2f} mag)'.format(int(self.df['ID']), float(self.df['mag']))
+        title = f'Imagette of PIC {int(self.df.ID)} ({float(self.df.mag):.2f} mag)'
         simFile.showImage(self.beginExposureNr, showStarPositions='PIC', clipPercentile=7,
                           showMaskOfStarID=mask, useTitle=title, colorMap='cubehelix',
                           colorBar=True, imgScale="auto", showGrid=True, figsize=(6,6))
 
         # Remove the output files
         if os.path.isfile(str(self.outputSimName) + '.hdf5'):
-            os.system(f'rm {self.outputDir}/0*')
+            os.system(f'rm {self.outputDir}/{self.outputFileName}*')
 
             
 
@@ -763,8 +803,9 @@ class PLATOnium(object):
 
         # Print to bash
         if self.verbose > 0:
-            errorcode('message', '\n[PlatoSim]: Simulating Quarter imagette time-series')
-     
+            errorcode('message', f'\n[PlatoSim]: Simulating N-CAM {self.group}.{self.camera} ' +
+                      f'Q{self.quarter} for {self.numExposures} exposures')
+
         # Select the number of exposures
         sim["ObservingParameters/NumExposures"] = self.numExposures
         
@@ -794,9 +835,19 @@ class PLATOnium(object):
 
         # Make a animation if requested
         if self.animation:
+            
+            # Adjust number of images to skip and frame rate
+            if self.cadence == 25.0:
+                fps, nskip = 50, 1000
+            elif self.cadence == 50.0:
+                fps, nskip = 25, 500
+            elif self.cadence == 600.0:
+                fps, nskip = 25, 50
             plotSubfieldAnimation(str(self.outputSimName) + '.hdf5',
                                   outputFileName=str(self.outputSimName),
-                                  skipNimages=1000,
+                                  cadence=self.cadence,
+                                  frameRate=fps,
+                                  skipNimages=nskip,
                                   numImages=False,
                                   colorMap="cubehelix",
                                   clipPercentile=8.0, 
@@ -833,24 +884,25 @@ class PLATOnium(object):
 
         # Include HDF5 content
         sim["ControlHDF5Content/WritePixelMaps"]              = True
-        sim["ControlHDF5Content/WriteBiasMaps"]               = False
         sim["ControlHDF5Content/WriteSmearingMaps"]           = True
         sim["ControlHDF5Content/WriteThroughputMaps"]         = True
         sim["ControlHDF5Content/WriteFlatfieldMap"]           = True
-        sim["ControlHDF5Content/WriteSubPixelImages"]         = False
         sim["ControlHDF5Content/WriteStarPositions"]          = True
         sim["ControlHDF5Content/WriteACS"]                    = True
         sim["ControlHDF5Content/WriteCosmics"]                = True
-        sim["ControlHDF5Content/WriteDiffusedPSF"]            = False
         sim["ControlHDF5Content/WriteHighResolutionPSF"]      = True
         sim["ControlHDF5Content/WriteStarCatalog"]            = True
-        sim["ControlHDF5Content/WriteTelescopeACS"]           = False
         sim["ControlHDF5Content/WriteTransmissionEfficiency"] = True
+        sim["ControlHDF5Content/WriteBiasMaps"]               = False
+        sim["ControlHDF5Content/WriteSubPixelImages"]         = False
+        sim["ControlHDF5Content/WriteTelescopeACS"]           = False
         sim["ControlHDF5Content/WriteCTI"]                    = False
 
         # Check for high res mapped PSF
         if sim["PSF/Model"] == 'MappedFromFile':
             sim["ControlHDF5Content/WriteDiffusedPSF"] = True
+        else:
+            sim["ControlHDF5Content/WriteDiffusedPSF"] = False
 
 
 
@@ -863,7 +915,7 @@ class PLATOnium(object):
 
         # Print to bash
         if self.verbose > 0:
-            errorcode('module', 'Microscanning Sequence & PSF Inversion')
+            errorcode('module', '\nMicroscanning & PSF inversion')
 
         # Check if mapped PSFs are used and apply correct resolution
         if sim["PSF/Model"] == 'MappedFromFile':
@@ -872,14 +924,16 @@ class PLATOnium(object):
             sim["SubField/SubPixels"] = 128
             
         # Prepare for the Archimedean jitter spiral pattern
+        nimages = 428
         sim["Platform/UseJitter"]               = 'yes'
         sim["Platform/JitterSource"]            = 'FromFile'
-        sim["ObservingParameters/NumExposures"] = 428
+        sim["ObservingParameters/NumExposures"] = nimages
         sim['ObservingParameters/CycleTime']    = 25
         
         # Time of microscan simulation needs to match quarter for PlatoSim to run successfully
         # NOTE Here a new file is created with a appropriate time column to match the observation
-        # NOTE This is done once per quarter and CCD time-shift and the file is saved to the simulation folder
+        # NOTE This is done once per quarter and CCD time-shift and the file is saved to the
+        # simulation folder
         spiralFileName     = 'microscan_spiral_8Hz_3h_BC.txt'
         spiralFileBase     = f'{self.platosimInputDir}/{spiralFileName}'
         spiralFileQuarterN = f'{self.microscanDirStarID}/{spiralFileName}'
@@ -937,9 +991,9 @@ class PLATOnium(object):
         # MICROSCANNING SIMULATION
 
         if self.verbose > 0:
-            errorcode('message', '\n[PlatoSim]: Simulating imagettes')
+            errorcode('message', f'\n[PlatoSim]: Simulating {nimages} imagettes along Archimedean spiral')
         sim.outputDir = self.microscanDirStarID
-        simFile = sim.run(removeOutputFile=False, logLevel=self.verbose_platosim)
+        simFile = sim.run(removeOutputFile=self.overwrite, logLevel=self.verbose_platosim)
 
         # Execution time of module
         if self.verbose > 0:
@@ -954,17 +1008,23 @@ class PLATOnium(object):
         # Run pre-processing
         if self.verbose > 0:
             errorcode('message', '\n[pproc]: Pre-processing imagettes')
-        os.system(f'{self.platoLib}/pproc.py --platosim --auto-bg -f {self.starID} {self.devnull}')
-        
+        cmd = os.system(f'{self.platoLib}/pproc.py ' +
+                        f'--platosim --auto-bg -f {self.starID} {self.devnull}')
+        if cmd != 0: errorcode('error', 'pproc.py failed due to the above error!')
+
         # EXTRACT CONTAMINANTS
 
         # Run contaminant extraction
         if self.verbose > 0:
-            errorcode('message', f'\n[extract_contaminants]: Model contaminants with dmag < {self.conDeltaMag} from target')
-        os.system(f'{self.platoBin}/extract_contaminant.py ' +
-                  f'-D {self.conDeltaMag} -e {self.conFluxError} ' + 
-                  f'-s {self.seedTarget} {self.starID} {self.starID} {self.devnull}')
-
+            errorcode('message', f'\n[extract_contaminants]: Model contaminant stars')
+            print(f'Include contaminats with dmag < {self.conDeltaMag} from target')
+        cmd = os.system(f'{self.platoLib}/extract_contaminant.py ' +
+                        f'-D {self.conDeltaMag} -e {self.conFluxError} ' + 
+                        f'-s {self.seedTarget} {self.starID} {self.starID} {self.devnull}')
+        if cmd != 0: errorcode('error', 'extract_contaminant.py failed due to the above error!')
+        if self.verbose > 0:
+            print('Modelling of contaminants done')
+            
         # PSF INVERSION
         
         # Find Regularization parameter for each star
@@ -984,11 +1044,14 @@ class PLATOnium(object):
         # NOTE Number of elementary steps over which to calculate averaged positions (-N)
         if self.verbose > 0:
             errorcode('message', '\n[invert_parabolic_multi]: Run the PSF inversion')
-        os.system(f'{self.platoLib}/invert_parabolic1_multi ' +
-                  f'-Q -t continuous -m PRLS ' +
-                  f'-N 1 -r 128 -l 128 -p {self.bsres} -u {regs} ' +
-                  f'-d . -i {self.starID} -q {self.starID}/{self.starID}_offsets.txt ' + 
-                  f'-o inversion {self.devnull}')
+        cmd = os.system(f'{self.platoLib}/invert_parabolic1_multi ' +
+                        f'-Q -t continuous -m PRLS ' +
+                        f'-N 1 -r 128 -l 128 -p {self.bsres} -u {regs} ' +
+                        f'-d . -i {self.starID} -q {self.starID}/{self.starID}_offsets.txt ' + 
+                        f'-o inversion {self.devnull}')
+        if cmd != 0: errorcode('error', 'invert_parabolic_multi failed due to the above error!')
+
+        # TODO check how well the inversion is!
         
         # Execution time of module
         if self.verbose > 0:
@@ -1017,8 +1080,9 @@ class PLATOnium(object):
 
         if self.verbose > 0:
              errorcode('message', '\n[pproc]: Pre-processing imagettes')
-        os.system(f'{self.platoLib}/pproc.py --platosim --auto-bg -f {self.starID} {self.devnull}')
-
+        cmd = os.system(f'{self.platoLib}/pproc.py --platosim --auto-bg -f {self.starID} {self.devnull}')
+        if cmd != 0: errorcode('error', 'pproc.py failed due to the above error!')
+        
         # PSF FIITING
 
         # NOTE using Dierckx's knot distribution (-K 1)
@@ -1027,11 +1091,12 @@ class PLATOnium(object):
         # NOTE PRNU knowledge errorin % (-p)
         if self.verbose > 0:
             errorcode('message', '\n[psffit]: PSF fitting for light curve generation')
-        os.system(f'{self.platoLib}/psffit.py ' +
-                  f'-K 1 -b {self.bsres} --seed {self.seedOffset} ' +
-                  f'-F {self.tarFluxError} -s {self.tarAbsCenError} -p {self.prnuError} ' + 
-                  f'-f {self.microscanDirInvers}/{self.starID}_PRLS.vec ' +
-                  f'-o {self.starID} {self.starID} {self.devnull}')
+        cmd = os.system(f'{self.platoLib}/psffit.py ' +
+                        f'-K 1 -b {self.bsres} --seed {self.seedOffset} ' +
+                        f'-F {self.tarFluxError} -s {self.tarAbsCenError} -p {self.prnuError} ' + 
+                        f'-f {self.microscanDirInvers}/{self.starID}_PRLS.vec ' +
+                        f'-o {self.starID} {self.starID} {self.devnull}')
+        if cmd != 0: errorcode('error', 'psffit.py failed due to the above error!')
         
         # PROLOGUE
                 
@@ -1062,7 +1127,8 @@ class PLATOnium(object):
 
         if self.verbose > 0:
             errorcode('message', '\n[pproc]: Pre-processing imagettes')
-        os.system(f'{self.platoLib}/pproc.py --platosim --auto-bg -f {self.starID} {self.devnull}')
+        cmd = os.system(f'{self.platoLib}/pproc.py --platosim --auto-bg -f {self.starID} {self.devnull}')
+        if cmd != 0: errorcode('error', 'pproc.py failed due to the above error!')
         
         # NOTE Binary mask is default (-T 1)
         # NOTE Write mask FITS files (-M)
@@ -1070,27 +1136,30 @@ class PLATOnium(object):
         # NOTE Using B-spline PSF resolution (--bsres)
         # NOTE Using Dierckx's knot distribution (-K 1)
         # NOTE Update mask every 14 days (--update-period 48384)
+        self.maskUpdateRate = 2
         if self.verbose > 0:
             errorcode('message', '\n[lightcurve.py]: Aperture photometry ala Marchiori+2019')
-        os.system(f'{self.platoLib}/lightcurve.py ' +
-                  f'-M --input-hdf5 --spr_tot --include-contaminants --add_chromatic_abberation ' +
-                  f'--update-period {self.maskUpdateRate} --bsres {self.bsres} ' +
-                  f'-I {self.microscanDirInvers}/{self.starID}_PRLS.vec ' +
-                  f'-B {self.starID} -o {self.starID} {self.starID} {self.devnull}')
+        cmd = os.system(f'{self.platoLib}/lightcurve.py ' +
+                        f'-M --input-hdf5 --spr_tot --include-contaminants --add_chromatic_abberation ' +
+                        f'--update-period {self.maskUpdateRate} --bsres {self.bsres} ' +
+                        f'-I {self.microscanDirInvers}/{self.starID}_PRLS.vec ' +
+                        f'-B {self.starID} -o {self.starID} {self.starID} {self.devnull}')
+        if cmd != 0: errorcode('error', 'lightcurve.py failed due to the above error!')
 
         # JITTER AND DRIFT CORRECTION
 
         if not self.jitterDriftOff:
             if self.verbose > 0:
                 errorcode('message', '\n[jittercorrection.py]: Jitter & Drift Correction')
-            os.system(f'{self.platoLib}/jittercorrection.py ' +
-                      f'--add_chromatic_abberation ' +
-                      f'-W 128 -r 128 ' +
-                      f'--bsres {self.bsres} --seed {self.seedOffset} ' + 
-                      f'-f {self.prnuError} -b {self.tarAbsCenError} -a {self.conDeltaMag} ' +
-                      f'-I {self.microscanDirInvers}/{self.starID}_PRLS.vec ' +
-                      f'-o {self.starID} {self.starID} {self.starID} {self.devnull}')
-        
+            cmd = os.system(f'{self.platoLib}/jittercorrection.py ' +
+                            f'--add_chromatic_abberation ' +
+                            f'-W 128 -r 128 ' +
+                            f'--bsres {self.bsres} --seed {self.seedOffset} ' + 
+                            f'-f {self.prnuError} -b {self.tarAbsCenError} -a {self.conDeltaMag} ' +
+                            f'-I {self.microscanDirInvers}/{self.starID}_PRLS.vec ' +
+                            f'-o {self.starID} {self.starID} {self.starID} {self.devnull}')
+            if cmd != 0: errorcode('error', 'psffit.py failed due to the above error!')
+            
         # PROLOGUE
                 
         # Execution time of module
@@ -1103,13 +1172,15 @@ class PLATOnium(object):
 
 
     def sort_output(self):
-        """
-        Module to move output files and delete redundant files.
+
+        """Module to move output files and delete redundant files.
         """
 
-        # Print to bash
         if self.verbose > 0:
-            errorcode('module', '\nRestructuring data output')
+            errorcode('module', '\nPrologue')
+        
+        if self.verbose > 0:
+            errorcode('message', '\nRestructuring data output')
             print(f'L1 light curve is saved to {self.outputDirStarIDnew}')
 
         # Select prefix-files
@@ -1190,11 +1261,11 @@ class PLATOnium(object):
 
 
     def resources(self):
-        """
-        Module to print resources used by PLATOnium.
+
+        """Module to print resources used by PLATOnium.
         """
         if not args.plot:
-            errorcode('module', '\nSimulation Statistics')
+            errorcode('message', '\nSimulation statistics')
             #print(f'Storage memory for PlatoSim      : {self.memPlatoSim} MB')
             print(f'Execution time for PlatoSim      : {self.tocPlatoSim} [hh:mm:ss]')
             if self.sample:
@@ -1215,7 +1286,7 @@ class PLATOnium(object):
 
 parser = argparse.ArgumentParser(epilog=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter,
-                                 description=errorcode('software', '\nPLATOnium Astrophysics'))
+                                 description=errorcode('software', '\nPLATOnium'))
 
 parser.add_argument('-p', '--plot',      action='store_true',   help='Flag to plot 1st subfield (this will not save the simulation)')
 parser.add_argument('-w', '--overwrite', action='store_true',   help='Flag to overwrite an existing HDF5 output file that may exist')
@@ -1234,6 +1305,7 @@ out_group.add_argument('-o', '--outdir', metavar='PATH', type=str, help='Output 
 out_group.add_argument('--project',      metavar='NAME', type=str, help='Name project folder within $PLATO_WORKDIR')
 out_group.add_argument('--yaml',         metavar='NAME', type=str, help='Name of yaml file within $PLATO_WORKDIR/input')
 out_group.add_argument('--prefix',       metavar='NAME', type=str, help='Prefix filename extention')
+out_group.add_argument('--starcat',      metavar='FILE', type=str, help='Path to stellar catalogue    -> see PlatoSim docs')
 out_group.add_argument('--varfile',      metavar='FILE', type=str, help='Path to variable source file -> see PlatoSim docs')
 out_group.add_argument('--varlist',      metavar='FILE', type=str, help='Path to variable source list -> see PlatoSim docs')
 out_group.add_argument('--compress',     action='store_true',      help='Flag to compress output files')
