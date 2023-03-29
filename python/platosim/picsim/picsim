@@ -667,7 +667,7 @@ if platoField is None:
 if len(df['ID']) > 200: plotmag = None
 else: plotmag = df['mag'].to_numpy()
 title = f'{platoField} {starSample} sample'
-fig1 = pt.plotPlatoFOV(platoField, df['ra'].to_numpy(), df['dec'].to_numpy(), magStars=plotmag, title=title)
+fig1, ax = pt.plotPlatoFOV(platoField, df['ra'].to_numpy(), df['dec'].to_numpy(), magStars=plotmag, title=title)
 if plot: plt.show()
 
 # Plot sample distribution in Teff vs. Radius
