@@ -2311,7 +2311,7 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
         mag = np.linspace(df.mag.min()-1, df.mag.max()+1, 100)
 
         # Jitter noise
-        rms = 0.034
+        rms = 0.04
         if show_ncam_noise_limits == 1:
             level = 'camera'
         else:
@@ -2321,12 +2321,13 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
 
         # Photon noise
         ncams = show_ncam_noise_limits
-        noise_photon = ut.getPhotonNoiseLimitNSR(mag, passband=passband, ncam=ncams) * 0.72
+        noise_photon = ut.getPhotonNoiseLimitNSR(mag, passband=passband, ncam=ncams) * 0.7324478224428527
         ax.plot(mag, noise_photon, '-.', c='deeppink', lw=1.5, zorder=2, label='Photon noise')
         
         # Background and readout noise
-        f0 = 1.00179e8
-        noise_background = (2e3 / np.sqrt(10**(-0.4 * mag) * f0  * 0.8 * 25))**1.8
+        #f0 = 1.00179e8
+        f0 = 0.7324478224428527e8
+        noise_background = (1800 / np.sqrt(10**(-0.4 * mag) * f0 * 25))**1.8
         ax.plot(mag, noise_background, ':', c='deeppink', lw=1.5, zorder=2,
                 label='Sky and read noise')
 
@@ -3002,8 +3003,8 @@ def plot_final_lc(lc, figsize=(10,8)):
 #--------------------------------------------------------------#
 
     
-def plotSubfieldAnimation(filename, outputFileName=False,
-                          skipNimages=None, numImages=False,
+def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
+                          frameRate=50, skipNimages=None, numImages=False,
                           colorMap="cubehelix", clipPercentile=8.0, 
                           showStarPositions=False, showPointLikeGhostPositions=False,
                           minVmag=None, maxVmag=None,
@@ -3102,7 +3103,7 @@ def plotSubfieldAnimation(filename, outputFileName=False,
 
         # Add either default title or defined by user
         if useTitle:
-            time  = 25./86400 * imgNumber
+            time  = cadence/86400 * imgNumber
             title = ax.text(0.5, 1.05, f"Elapsed time: {time:.2f} days",
                             horizontalalignment='center', transform=ax.transAxes)
         elif isinstance(useTitle, str) and int(imgNumber) == 0:
@@ -3222,7 +3223,7 @@ def plotSubfieldAnimation(filename, outputFileName=False,
     
     if outputFileName is not False:
         print('Creating GIF animation..')
-        ani.save(f'{outputFileName}.gif', fps=50, dpi=100)
+        ani.save(f'{outputFileName}.gif', fps=frameRate, dpi=100)
 
     # Show animation
     

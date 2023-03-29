@@ -9,25 +9,32 @@ NOTE: these utilities needs the Poetry install!
 
 import os
 import sys
+import glob
 import h5py
 import math
 import inspect
+import natsort
 import pathlib
+import urllib.request
+import ftplib
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-import astropy.units as u
-from astropy.coordinates import SkyCoord
+
+from numba import njit
 from pylab import MaxNLocator
 from colorama import Fore, Style
 from prettytable import PrettyTable
 from scipy.ndimage import median_filter
-from numba import njit
+
 import astropy.units as u
+from astropy.coordinates import SkyCoord
+
 from astropy.coordinates import SkyCoord
 from astroquery.simbad import Simbad
 from astroquery.mast import Catalogs
 from astroquery.gaia import Gaia
+
 # PlatoSim
 import platosim.referenceFrames as rf
 
@@ -138,9 +145,69 @@ def compilation(i, i_max, text=''):
     sys.stdout.flush()
 
 
+    
 
 
+def downloadFromFTP(filename, outputDir, server='plato'):
 
+    """Function to download file from KUL FTP.
+    https://stackoverflow.com/questions/67300881/how-do-i-keep-a-ftp-connection-alive
+    """
+
+    # Assume that no suffix means a folder of data
+    # If true then download folder and it entire content
+    # If flase simply download the requested file
+    
+    ftp_filename = pathlib.Path(filename)
+    
+    if ftp_filename.suffix in ('zip', 'npy', 'ftr', 'hdf5'):
+        ftp_subpath = pathlib.Path(filename).parents[0]
+    else:
+        ftp_subpath = pathlib.Path(filename)
+
+    # Also if file on FTP is within a folder, create folder locally
+        
+    outputDir = outputDir / ftp_subpath
+    outputDir.mkdir(parents=True, exist_ok=True)
+        
+    # Login to server
+
+    ftp = ftplib.FTP('ftp.ster.kuleuven.be')
+    
+    if server == 'plato':
+        ftp.login(user=server, passwd='miSotalP')
+        ftp.cwd(f'{ftp_subpath}')
+        #ftp = 'ftp://plato:miSotalP@ftp.ster.kuleuven.be'
+    elif server == 'platodata':
+        ftp.login(user=server, passwd='i9Pidw1bXIFShGYb0jI8')
+        ftp.cwd(f'PLATOSIM/{ftp_subpath}')
+        #ftp = 'ftp://platodata:i9Pidw1bXIFShGYb0jI8@ftp.ster.kuleuven.be/PLATOSIM'
+    else:
+        errorcode('error', f'Server name {server} is not valid!')
+            
+    # Fetch all the files
+        
+    files = ftp.nlst()[2:]    
+
+    for filename in files:
+
+        # Only try to save file if is doesn't exists
+        
+        local_file = pathlib.Path(outputDir) / filename
+        if not local_file.is_file():
+            ftp_file   = open(local_file, 'wb')
+            ftp.retrbinary(f'RETR {filename}', ftp_file.write)
+            ftp_file.close()
+            # Give read and write rights to this
+            local_file.chmod(777)
+
+    # Close connection
+    
+    ftp.quit()
+
+    
+
+            
 #--------------------------------------------------------------#
 #                      PANDAS OPERATIONS                       #
 #--------------------------------------------------------------#
@@ -424,7 +491,7 @@ def stellarFlux(Vmag, exposureTime, fluxm0=1.00238e8,
 
 
 
-def passbandConversionV2P(mag, Teff, inverse=False):
+def passbandConversionV2P(mag, Teff, inverse=False, method='fialho'):
 
     """Coversion from Johnson-Cousin V magnitude to the PLATO passband.
     
@@ -446,9 +513,14 @@ def passbandConversionV2P(mag, Teff, inverse=False):
     """
 
     # Bolometric scaling relation
-    
-    # c = [1.184e-12, 4.526e-8, -5.805e-4, 2.449]  # Machiori et al. (2019)
-    c   = [2.366e-12, 8.126e-8, -9.279e-4, 3.499]  # Fabio Fialho et al. in prep
+
+    if method == 'fialho':
+        # Fialho et al. (in prep.)
+        c   = [-2.366e-12, 8.126e-8, -9.279e-4, 3.499]
+    elif method == 'marchiori':
+        # Machiori et al. (2019)
+        c = [-1.184e-12, 4.526e-8, -5.805e-4, 2.449]
+
     bol = c[0]*Teff**3 + c[1]*Teff**2 + c[2]*Teff + c[3]
 
     # From V to P (or P to V if inverse it True)
@@ -543,20 +615,21 @@ def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, 
 
     # Choose cycle and exposure time [s] for either the normal or fast cameras
 
-    if camType == 'N':
+    if camType == 'normal':
         texp = 21.
         tcyc = 25.
         gain = 0.0222 * 2.14   # [ADU/e-]
     else:
         texp = 2.1
         tcyc = 2.5
-        gain = 0.05
+        gain = 0.05   # TODO: update gain values for F-CAMs
 
     # Flux of stars [e-/s]
     
     if passband == "V":
         f0 = 1.00179e8
         f = 10**(-0.4 * mag) * f0
+        
     elif passband == 'P':
         # The P passband zero-point
         if camType == 'normal':
@@ -567,7 +640,11 @@ def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, 
             zp = 19.81
         # Calculate flux
         f0 = 0.7324478224428527e8
-        f = 10**(-0.4 * (mag - zp)) * f0
+        f = 10**(-0.4 * (mag - zp)) #* f0
+    elif passband == 'paper':
+
+        f = 10**(-0.4 * (mag + zp)) * f0
+        
     else:
         errorcode('error', f'Wrong {camType} name!')
 
@@ -577,7 +654,7 @@ def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, 
 
     # SNR from pure photon noise and NSR from uncorrelated noise.
     # Gaussian statistic gives sigma --> sigma/sqrt(N)
-
+    
     NSR = 1e6 / np.sqrt(F * ncam * ntra * tdur)
 
     return NSR

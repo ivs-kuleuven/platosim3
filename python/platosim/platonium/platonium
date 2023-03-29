@@ -173,24 +173,23 @@ class PLATOnium(object):
         # PHYSICAL PARAMETERS
 
         # Check for PLATO pointing field (in Galactic long. (deg) and lat. (deg))
-        self.PF = {'SPF': [86.79870508, -46.39594703, -8.5],  # Equivalent to Galactic [253.0, -30.0, 0.0]
-                   'NPF': [265.08002279, 39.5836954,  +8.5]}  # Equivalent to Galactic [ 65.0, +30.0, 0.0]
-        # Or use Nascimbeni et al. 2021:
-        # self.PF = {'SPF': [93.49134, -42.93544, -8.5],  # Equivalent to Galactic [253.0, -30.0, 0.0]
-        #            'NPF': [277.18023, 52.85952, +8.5]}  # Equivalent to Galactic [ 65.0, +30.0, 0.0]
+        self.PF = {'NPF':  [265.08002279,  39.5836954,  +8.5],  # PIC1.1.0: Equivalent to Galactic []
+                   'LOPN': [277.18023,     52.85952,    +8.5],  # PIC2.0.0: Equivalent to Galactic [ 81.6, -24.6, 0.0]
+                   'SPF':  [ 86.79870508, -46.39594703, -8.5],  # PIC1.1.0: Equivalent to Galactic [253.0, -30.0, 0.0]
+                   'LOPS': [ 95.3,        -47.9,        -8.5]}  # PIC2.0.0: Equivalent to Galactic [255.9, -24.0, 0.0]
 
-        # TODO Threshold (%) of variability to incldue for a contaminant
-        # Signals: flare, pulsation, eclipse
-        self.varStarLimit = 50
+        # Inclusion thresholds
         if not self.conDeltaMag:    self.conDeltaMag    = 5     # Limit to include contaminants [delta mag]
+        # TODO include varsource limit?
+        #self.varStarLimit = 50
+        
+        # Error tolerance for L1 pipeline
+        self.bsres = 10
+        self.prnuError = 0.1
         if not self.conFluxError:   self.conFluxError   = 10    # Flux error of contaminat stars [%]
         if not self.tarFluxError:   self.tarFluxError   = 1     # Flux error of target star [%]
         if not self.tarAbsCenError: self.tarAbsCenError = 0.02  # Absolute error of target centroid position [pixel]
 
-        # Error tolerance for L1 pipeline
-        self.bsres = 10
-        self.prnuError = 0.1
-        
         # Monitor script speed
         self.tic  = datetime.datetime.now()
         self.tic0 = datetime.datetime.now()
@@ -836,9 +835,19 @@ class PLATOnium(object):
 
         # Make a animation if requested
         if self.animation:
+            
+            # Adjust number of images to skip and frame rate
+            if self.cadence == 25.0:
+                fps, nskip = 50, 1000
+            elif self.cadence == 50.0:
+                fps, nskip = 25, 500
+            elif self.cadence == 600.0:
+                fps, nskip = 25, 50
             plotSubfieldAnimation(str(self.outputSimName) + '.hdf5',
                                   outputFileName=str(self.outputSimName),
-                                  skipNimages=1000,
+                                  cadence=self.cadence,
+                                  frameRate=fps,
+                                  skipNimages=nskip,
                                   numImages=False,
                                   colorMap="cubehelix",
                                   clipPercentile=8.0, 
@@ -875,24 +884,25 @@ class PLATOnium(object):
 
         # Include HDF5 content
         sim["ControlHDF5Content/WritePixelMaps"]              = True
-        sim["ControlHDF5Content/WriteBiasMaps"]               = False
         sim["ControlHDF5Content/WriteSmearingMaps"]           = True
         sim["ControlHDF5Content/WriteThroughputMaps"]         = True
         sim["ControlHDF5Content/WriteFlatfieldMap"]           = True
-        sim["ControlHDF5Content/WriteSubPixelImages"]         = False
         sim["ControlHDF5Content/WriteStarPositions"]          = True
         sim["ControlHDF5Content/WriteACS"]                    = True
         sim["ControlHDF5Content/WriteCosmics"]                = True
-        sim["ControlHDF5Content/WriteDiffusedPSF"]            = False
         sim["ControlHDF5Content/WriteHighResolutionPSF"]      = True
         sim["ControlHDF5Content/WriteStarCatalog"]            = True
-        sim["ControlHDF5Content/WriteTelescopeACS"]           = False
         sim["ControlHDF5Content/WriteTransmissionEfficiency"] = True
+        sim["ControlHDF5Content/WriteBiasMaps"]               = False
+        sim["ControlHDF5Content/WriteSubPixelImages"]         = False
+        sim["ControlHDF5Content/WriteTelescopeACS"]           = False
         sim["ControlHDF5Content/WriteCTI"]                    = False
 
         # Check for high res mapped PSF
         if sim["PSF/Model"] == 'MappedFromFile':
             sim["ControlHDF5Content/WriteDiffusedPSF"] = True
+        else:
+            sim["ControlHDF5Content/WriteDiffusedPSF"] = False
 
 
 
