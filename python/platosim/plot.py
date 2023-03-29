@@ -3055,8 +3055,8 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
     """
 
     # Fetch file with simulated subfields
+    print('Creating GIF animation:')
     from platosim.simfile import SimFile
-    
     f = h5py.File(filename, "r")
     simfile = SimFile(filename)
 
@@ -3223,7 +3223,7 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
     # Save animation (fps=50 and dpi=100 seems like good settings)
     
     if outputFileName is not False:
-        print('Creating GIF animation..')
+        print('Saving animation, be patient..')
         ani.save(f'{outputFileName}.gif', fps=frameRate, dpi=100)
 
     # Show animation
