@@ -1469,18 +1469,18 @@ class Variability(object):
             # Combine all signals
             
             # Granulation and pulsation are additive
-            if 'gran' in self.lc and 'puls' in self.lc:
-                self.lc['comb'] = (self.lc.gran + self.lc.puls) / 1e6 + 1
-            elif 'gran' in self.lc and 'puls' not in self.lc:
-                self.lc['comb'] = self.lc.gran / 1e6 + 1
-            elif 'gran' not in self.lc and 'puls' in self.lc:
-                self.lc['comb'] = self.lc.puls / 1e6 + 1
-            else:
-                self.lc['comb'] = np.ones_like(self.lc.time)
+            self.lc['comb'] = np.zeros(len(self.lc.time))
+            if 'gran' in self.lc:
+                self.lc['comb'] += self.lc.gran
+            if 'puls' in self.lc:
+                self.lc['comb'] += self.lc.puls
+            if 'spot' in self.lc:
+                self.lc['comb'] += self.lc.spot
+
+            # Convert to relative flux to multiply with transits
+            self.lc['comb'] = self.lc['comb'] / 1e6 + 1 
                 
             # Spots and transits are multiplicative
-            if 'spot' in self.lc:
-                self.lc['comb'] *= (self.lc.spot / 1e6 + 1)
             if 'tran' in self.lc:
                 self.lc['comb'] *= (self.lc.tran / 1e6 + 1)
                 
