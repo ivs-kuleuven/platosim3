@@ -166,11 +166,11 @@ CCD:
         Stability:                   -0.001          # [microV/e-/K]
         AllowedDifference:           15.0            # Difference in gain between both CCD halves [%]
     QuantumEfficiency:
-        MeanQuantumEfficiency:       0.6218          # TODO Mean quantum efficiency
-        MeanAngleDependency:         1.01            # TODO Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE
+        MeanQuantumEfficiency:       0.6218          # Mean quantum efficiency
+        MeanAngleDependency:         1.01            # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE
     FullWellSaturation:              900000          # [e-/pixel]
     DigitalSaturation:               65535           # [ADU/pixel] -> 16 bit CCD
-    ReadoutNoise:                    38.7            # TODO [e-/pixel]
+    ReadoutNoise:                    38.7            # [e-/pixel]
     SerialTransferTime:              340             # Time to shift the content of the readout register by one pixel [ns]
     ParallelTransferTime:            110             # Time to shift the charges one row down in case the readout register will be read out [µs]
     ParallelTransferTimeFast:        90              # Time to shift the charges one row down in case the readout register will not be read out [µs]
