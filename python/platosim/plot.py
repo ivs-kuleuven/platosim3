@@ -2818,7 +2818,8 @@ def plot_orbital_phase_curve(fig, time, lc_tra, lc_occ, lc_beam, lc_elli, lc_fin
     """
 
     # Input parameters
-    
+
+    pp = 0.05
     if colors is None: colors = colors_new
 
     # Phase-fold light curve
@@ -3054,15 +3055,14 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
     """
 
     # Fetch file with simulated subfields
-    from platosim.simfile      import SimFile
-    
+    print('Creating GIF animation:')
+    from platosim.simfile import SimFile
     f = h5py.File(filename, "r")
     simfile = SimFile(filename)
 
     # Fetch the image names
     imgNames   = list(f['Images'].keys())
-    #imgNumbers = list(range(1, len(imgNames)+1))
-    imgNumbers = list(range(len(imgNames)))
+    imgNumbers = list(range(int(imgNames[0][5:]), int(imgNames[-1][5:])))
     N          = len(imgNames)
 
     # Skip N images to make animation faster
@@ -3071,7 +3071,8 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
         imgNumbers = imgNumbers[0::skipNimages]
 
     # Fetch StarPosition keys (i.e. "Exposure000000", etc)
-    exposureGroupNames = list(f['StarPositions'].keys())[:-1] # -1 because Time is last column
+    # TODO remove time column: -1 because Time is last column
+    exposureGroupNames = list(f['StarPositions'].keys())[:-1]
 
     # Plot the image. Note that pixel coordinates start at the left bottom side of each pixel.
 
@@ -3115,7 +3116,7 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
 
             # Extract the arays from HDF5 file
             
-            exposureGroupName = exposureGroupNames[imgNumber]
+            exposureGroupName = exposureGroupNames[imgNumber-imgNumbers[0]]
             dataset = f["StarPositions"][exposureGroupName]["starID"]
             ID = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(ID)
@@ -3186,7 +3187,7 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
         # Note: imshow reverses rows and columns
 
         if showMaskOfStarID is not None:
-            from platosim.simfile import SimFile
+
             mask = simfile.getApertureMask(showMaskOfStarID, imgNumber)
             rowIndices, colIndices = mask[0], mask[1] 
             for k in range(len(rowIndices)):
@@ -3222,7 +3223,7 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
     # Save animation (fps=50 and dpi=100 seems like good settings)
     
     if outputFileName is not False:
-        print('Creating GIF animation..')
+        print('Saving animation, be patient..')
         ani.save(f'{outputFileName}.gif', fps=frameRate, dpi=100)
 
     # Show animation
