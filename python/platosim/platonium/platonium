@@ -29,7 +29,7 @@ import h5py
 import shutil
 import argparse
 
-# 
+# External packages
 import datetime
 import numpy as np
 import pandas as pd
@@ -90,7 +90,6 @@ class PLATOnium(object):
         self.conFluxError    = args.con_ferr
         self.tarFluxError    = args.tar_ferr
         self.tarAbsCenError  = args.tar_cerr
-        self.saveAllFiles    = args.save_all
         self.jitterDriftOff  = args.jit_off
 
         # Make sure that the input is physical
@@ -183,9 +182,10 @@ class PLATOnium(object):
         # TODO include varsource limit?
         #self.varStarLimit = 50
         
-        # Error tolerance for L1 pipeline
-        self.bsres = 10
-        self.prnuError = 0.1
+        # Defualt L1 pipeline parameters
+        self.bsres           = 10   # [subpixel]
+        self.prnuError       = 0.1  # [%]
+        self.maskUpdateThres = 0.1  # [pixel]
         if not self.conFluxError:   self.conFluxError   = 10    # Flux error of contaminat stars [%]
         if not self.tarFluxError:   self.tarFluxError   = 1     # Flux error of target star [%]
         if not self.tarAbsCenError: self.tarAbsCenError = 0.02  # Absolute error of target centroid position [pixel]
@@ -1080,7 +1080,8 @@ class PLATOnium(object):
 
         if self.verbose > 0:
              errorcode('message', '\n[pproc]: Pre-processing imagettes')
-        cmd = os.system(f'{self.platoLib}/pproc.py --platosim --auto-bg -f {self.starID} {self.devnull}')
+        cmd = os.system(f'{self.platoLib}/pproc.py ' +
+                        f'--platosim --auto-bg -f {self.starID} {self.devnull}')
         if cmd != 0: errorcode('error', 'pproc.py failed due to the above error!')
         
         # PSF FIITING
@@ -1127,21 +1128,31 @@ class PLATOnium(object):
 
         if self.verbose > 0:
             errorcode('message', '\n[pproc]: Pre-processing imagettes')
-        cmd = os.system(f'{self.platoLib}/pproc.py --platosim --auto-bg -f {self.starID} {self.devnull}')
+        cmd = os.system(f'{self.platoLib}/pproc.py ' +
+                        f'--platosim --auto-bg -f {self.starID} {self.devnull}')
         if cmd != 0: errorcode('error', 'pproc.py failed due to the above error!')
         
-        # NOTE Binary mask is default (-T 1)
-        # NOTE Write mask FITS files (-M)
-        # NOTE Calculating SPR vs. time (--spr_tot) -> only binary masks!
-        # NOTE Using B-spline PSF resolution (--bsres)
-        # NOTE Using Dierckx's knot distribution (-K 1)
-        # NOTE Update mask every 14 days (--update-period 48384)
-        self.maskUpdateRate = 2
+        # NOTE for the input parameters:
+        # - Binary mask is default (-T 1)
+        # - Write mask FITS files (-M)
+        # - Calculating SPR vs. time (--spr_tot) -> only binary masks!
+        # - Using B-spline PSF resolution (--bsres)
+        # - Using Dierckx's knot distribution (-K 1)
+        # - Update mask every 14 days (--update-period 48384)
+        # - Update mask given 0.1 pixel threshold (--update-thres 0.1)
+        # Conditions for a mask update are:
+        # - the displacement since the last update exceeds the threshold
+        # - the current exposure is = last update time + update period
+        # - the exposure number must be a multiple of 24 such that the mask update
+        #   always occurs at the beginning of a 600s cycle
         if self.verbose > 0:
             errorcode('message', '\n[lightcurve.py]: Aperture photometry ala Marchiori+2019')
         cmd = os.system(f'{self.platoLib}/lightcurve.py ' +
-                        f'-M --input-hdf5 --spr_tot --include-contaminants --add_chromatic_abberation ' +
-                        f'--update-period {self.maskUpdateRate} --bsres {self.bsres} ' +
+                        f'-M --input-hdf5 --spr_tot ' + 
+                        f'--include-contaminants --add_chromatic_abberation ' +
+                        f'--update-period {self.maskUpdateRate} ' +
+                        f'--update-thres {self.maskUpdateThres} ' +
+                        f'--bsres {self.bsres} ' +
                         f'-I {self.microscanDirInvers}/{self.starID}_PRLS.vec ' +
                         f'-B {self.starID} -o {self.starID} {self.starID} {self.devnull}')
         if cmd != 0: errorcode('error', 'lightcurve.py failed due to the above error!')
@@ -1235,7 +1246,7 @@ class PLATOnium(object):
             shutil.move(prefixStarIDsim + f'_starcoord.dat',   prefixStarIDnew + '.cat')
         
         # Remove microscan-starID and simulation folder (and all its content)
-        if not self.saveAllFiles:
+        if self.verbose != 3:
             shutil.rmtree(self.microscanDirStarID)
             shutil.rmtree(self.microscanDirInvers)
             shutil.rmtree(self.outputDirStarIDsim)
@@ -1328,9 +1339,7 @@ pip_group.add_argument('--con_dmag', metavar='MAG',     type=float, help='Relati
 pip_group.add_argument('--con_ferr', metavar='PERCENT', type=float, help='Flux error assumption for Target')
 pip_group.add_argument('--tar_ferr', metavar='PERCENT', type=float, help='Flux error assumption for Contaminant(s)')
 pip_group.add_argument('--tar_cerr', metavar='PIXEL',   type=float, help='Centroid error assumption for Target')
-pip_group.add_argument('--save_all', action='store_true', help='Saves all files produced by each processing step')
 pip_group.add_argument('--jit_off',  action='store_true', help='Turn off the jitter/drift correction')
-
 
 args = parser.parse_args()
 
