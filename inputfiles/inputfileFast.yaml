@@ -11,35 +11,37 @@ ObservingParameters:
     MissionDuration:                 6.5             # Total duration of the mission [yr], relevant for BOL->EOL degradation
     NumExposures:                    10              # Number of exposures
     BeginExposureNr:                  0              # Sequential number of first exposure. useful for slurm parallellisation
-    CycleTime:                       2.5              # Image cycle time (exposure + readout before next exposure starts)[s]
-    RApointing:                      86.8            # Platform (not telescope) right ascension pointing coordinate      [deg]
-    DecPointing:                     -46.4           # Platform (not telescope) declination pointing coordinate          [deg]
+    CycleTime:                       2.5             # Image cycle time (exposure + readout before next exposure starts)[s]
+    RApointing:                      86.79870508     # Platform (not telescope) right ascension pointing coordinate      [deg]
+    DecPointing:                     -46.39594703           # Platform (not telescope) declination pointing coordinate          [deg]
     Fluxm0:                          1.00179e8       # Photon flux of a V=0 G2V-star                                     [phot/s/m^2/nm]
     StarCatalogFile:                 inputfiles/starcatalog.txt
 
 Sky:
 
-    SkyBackground:                   342.            # Stellar + zodiacal background level (excl. transmission efficiency). Set negative to compute.     [phot/pix/s]
+    SkyBackground:
+            UseConstantSkyBackground:      yes       # If true, every pixel sees the same background, otherwise the background gets calculated ones for every pixel
+            BackgroundValue:               -1        # Sky background: Zodiacal + Galactic (excl. transmission efficiency). Set negative to compute. [phot/pix/s]342.            # Stellar + zodiacal background level (excl. transmission efficiency). Set negative to compute.     [phot/pix/s]
     IncludeVariableSources:          no              # Include time series of variable stars or not
     VariableSourceList:              inputfiles/varsource.txt  # Ascii file: Col 1: star ID, Col 2: path of time series file
     IncludeCosmicsInSubField:        yes             # Whether or not to include cosmics in the subfield on the CCD
     IncludeCosmicsInSmearingMap:     yes             # Whether or not to include cosmics in the overscan map
     IncludeCosmicsInBiasMap:         yes             # Whether or not to include cosmics in the prescan map
     Cosmics:
-      CosmicHitRate:                 1000            # Cosmic hit rate [events / cm^2 / s]
+      CosmicHitRate:                 10              # Cosmic hit rate [events / cm^2 / s]
       TrailLength:                   [0, 15]         # Boundaries of uniform distribution for the length of the cosmic trails [pixels]
       Intensity:                     [2500., 2000., 30.] # Location, scale>0, and shape of the skew-Normal distribution for the total number of e- in a cosmic hit [e-]
 
 Platform:
 
-    SolarPanelOrientation:           0               # 0, 90, 180, or 270 degrees for the different quarters of a year [deg]
+    SolarPanelOrientation:           -8.5            # 0, 90, 180, or 270 degrees for the different quarters of a year [deg]
     UseJitter:                       yes             # yes or no. If no, ignore everything below.
     JitterSource:                    FromRedNoise    # FromFile, FromRedNoise, or FromNetwork
-    JitterYawRms:                    0.04            # [arcsec]
-    JitterPitchRms:                  0.04            # [arcsec]
-    JitterRollRms:                   0.08            # [arcsec]
-    JitterTimeScale:                 3600.           # [s]
-    JitterFileName:                  inputfiles/PlatoJitter_Airbus.txt
+    JitterYawRms:                    0.038           # [arcsec]
+    JitterPitchRms:                  0.038           # [arcsec]
+    JitterRollRms:                   0.040           # [arcsec]
+    JitterTimeScale:                 25  .           # [s]
+    JitterFileName:                  inputfiles/jitter.txt
 
 
 Telescope:
@@ -80,10 +82,9 @@ Camera:
     AberrationCorrection:
         Type:                        differential    # [differential, absolute]
         OrbitFile:                   inputfiles/orbit.txt
-        StartTime:                   4149.122013
+        StartTime:                   101489.207030
     IncludeFieldDistortion:          yes             # Whether or not to include field distortion. This only applies when the PSF is not mapped from file. 
     FieldDistortion:
-        Type:                        Polynomial1D    # The model for the field distortion
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent)
         ConstantCoefficients:        [0.32419,  0.0232909,  0.407979, 0.00022463, 0.000217599, 0.000381958, 0.000963902]      # In case Source is ConstantValue
                                                      # These are the coefficients of the Wang distortion model: [k1, k2, k3, q1, q2, p1, p2]
@@ -105,7 +106,7 @@ Camera:
 
 PSF:
 
-    Model:                           AnalyticNonGaussian # PSF model: MappedFromFile, AnalyticGaussian or AnalyticNonGaussian
+    Model:                           AnalyticNonGaussian # PSF model: MappedFromFile or AnalyticNonGaussian
     MappedFromFile:                       # Read a pre-calculated and fixed PSF from an HDF5 file
         Filename:                    inputfiles/PSF_Focus_0mu.hdf5
         NumberOfPixels:              8               # The number of pixels in the field for which the PSF is generated
@@ -269,22 +270,25 @@ RandomSeeds:
 
 
 ControlHDF5Content:
+    GroupByExposure:                 yes             # Layout of several HDF5 file entries: If "yes" group by Exposure, if "no" group by StarID.
     WritePixelMaps:                  yes             # The 2D subimages for each exposure
     WriteBiasMaps:                   yes             # 2D bias maps for the left and right hand side of the CCD, for each exposure
     WriteSmearingMaps:               yes             # 2D smearing maps, for each exposure
+    WriteFlatfieldMap:               yes             # 2D Flatfield maps (PRNU and/or IPRNU), for each exposure
     WriteThroughputMaps:             yes             # 2D throughput maps (QE, vignetting, contamination, ...), for each exposure
     WriteFlatfieldMap:               yes             # 2D image of the flatfield (PRNU and/or IRNU)
+    WriteTransmissionEfficiency:     yes             # 2D Transmission Efficiency maps for each exposure
+    WriteBackgroundMap:              yes             # 2D Sky Background map (only if "WriteVariableBackgroundMap = no")
+    WriteCTI:                        yes             # 2D Trap Density maps at BOL and EOL for each species
     WriteSubPixelImages:             no              # Only use this for a limited number of exposures. Takes a lot of space!
+    WriteDiffusedPSF:                no              # 2D Diffused PSF
+    WriteHighResolutionPSF:          no              # 2D High resolution PSF
+    WriteACS:                        yes             # AOCS for Camera yaw, pitch, roll
+    WriteTelescopeACS:               yes             # AOCS for Platform Yaw, Pitch and Roll
+    WriteStarCatalog:                yes             # Star Catalog used in simulation
     WriteStarPositions:              yes             # Star positions are written in pixel and focal plane coordinates
     WriteGhostPositions:             yes             # Ghost positions are written in pixel and focal plane coordinates
-    WriteACS:                        yes             # Whether to write the yaw, pitch, roll to the HDF5 file
     WriteCosmics:                    yes             # Determines if the columns, rows and flux of the cosmics should be written to the HDF5 file 
-    WriteDiffusedPSF:                no              # Determines if diffused PSF should be written to the output HDF5 file. (Only works for mapped PSF, takes a long time to compute)
-    WriteHighResolutionPSF:          no              # Determines if the high resolution PSF will be written to the HDF5 file (doesn't work for Analytic Gaussian PSF)
-    WriteStarCatalog:                yes             # Determines if the starcatalog should be written to the HDF5 file
-    WriteTelescopeACS:               yes             # Determines if the platform Yaw, Pitch and Roll should be written to the HDF5 file
-    WriteTransmissionEfficiency:     yes             # Determines if the Transmission Efficiency should be writen to the HDF5 file
-    WriteCTI:                        yes             # Write trap density maps at BOL and EOL for each species
 
 ControlTcpConnection:
 
