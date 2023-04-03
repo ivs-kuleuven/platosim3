@@ -136,16 +136,11 @@ class SimFile (object):
 
         # TODO fix this in future!
         if ccdCode == "Custom": ccdCode = "1"
-        timeShift     = self.getInputParameter("CCDPositions", "TimeShift")[int(ccdCode)-1]
+        timeShift = self.getInputParameter("CCDPositions", "TimeShift")[int(ccdCode)-1]
 
-        return np.arange(beginExposure, numExposures) * cadence + timeShift
+        return np.arange(beginExposure, beginExposure + numExposures) * cadence + timeShift
 
-        # TODO fix this in future!
-        if ccdCode == "Custom": ccdCode = "1"
-        timeShift     = self.getInputParameter("CCDPositions", "TimeShift")[int(ccdCode)-1]
-
-        return np.arange(beginExposure, numExposures) * cadence + timeShift
-
+    
 
 
 
@@ -650,6 +645,10 @@ class SimFile (object):
                 return None
             Nrows, Ncols = image.shape
 
+        # Correct for the orientation
+        
+        extent = [0, Ncols, 0, Nrows]
+        
         # Plot the image. Note that pixel coordinates start at the left bottom side of each pixel.
 
         fig = plt.figure(figsize=figsize)
@@ -696,16 +695,16 @@ class SimFile (object):
 
         else:
             print("ERROR: Not valid scaling for 'imgScale'")
-
+            
         # Generate image
 
         if imgScale == "clip":
             imagePlot = ax.imshow(image, cmap=colorMap, interpolation="nearest",
-                                    origin=origin, extent=[0, Nrows, 0, Ncols], zorder=0)
+                                    origin=origin, extent=extent, zorder=0)
             imagePlot.set_clim(vmin, vmax)
         else:
             imagePlot = ax.imshow(image, norm=norm, cmap=colorMap, interpolation="nearest",
-                                    origin=origin, extent=[0, Nrows, 0, Ncols], zorder=0)
+                                    origin=origin, extent=extent, zorder=0)
 
         # Add colorbar if requested
 
@@ -798,10 +797,10 @@ class SimFile (object):
                                 fontweight='extra bold', color="black")
 
         # Ensure that the ax limits are properly set.
-
-        ax.set_xlim(0,Ncols)
-        ax.set_ylim(0,Nrows)
-
+        
+        ax.set_xlim(0, Ncols)
+        ax.set_ylim(0, Nrows)
+        
         # If required, put the title
 
         # User defined title-string
@@ -816,7 +815,7 @@ class SimFile (object):
         # By default, matplotlib only shows the (x,y) coordinates of each pixel,
         # but not the pixel value itself. Change this by redefining the ax.format_coord
 
-        Nrows, Ncols = image.shape
+        #Nrows, Ncols = image.shape
         def format_coord(x, y):
             col = int(x)
             row = int(y)
@@ -825,12 +824,11 @@ class SimFile (object):
                 return "x={:.1f}, y={:.1f}, z={:.1f}".format(x, y, z)
             else:
                 return "x={:.1f}, y={:.1f}".format(x, y)
-
         ax.format_coord = format_coord
 
         # Show all ticks for smaller subfields or otherwise 10
-
-        if Ncols <= 15:
+        Nrows, Ncols = Ncols, Nrows
+        if Ncols <= 25:
             plt.xticks(np.arange(0, Nrows+1))
             plt.yticks(np.arange(0, Ncols+1))
         elif Ncols > 15 and Ncols <= 100:
@@ -1474,7 +1472,9 @@ class SimFile (object):
             if (groupName == "PointLikeGhostPositions") or (groupName == "ExtendedGhostPositions"):
                 star = star[:-1]
             #---------------------------------
-            
+            # Check if only a single image is requested and use that automatically
+            N = len(self.hdf5file[groupName][star[0]]["rowPix"][:])
+            if N == 1: imageNr = 0
             starID = np.array([int(s[-6:]) for s in star])
             row    = np.array([self.hdf5file[groupName][s]["rowPix"][imageNr] for s in star])
             col    = np.array([self.hdf5file[groupName][s]["colPix"][imageNr] for s in star])
@@ -1852,7 +1852,7 @@ class SimFile (object):
         if   fluxType == "estimated": lctype = "estimatedFlux"
         elif fluxType == "input":     lctype = "inputFlux"
         else:
-            print("ERROR: getFlux(): flux_type can only be 'estimated' or 'input'")
+            print("ERROR: simfile.getFlux(): fluxType can only be 'estimated' or 'input'")
             return None
         
         # Query either a single star or multiple stars as requested
@@ -1871,7 +1871,7 @@ class SimFile (object):
             # Check photometry is present for each star
             starIDgroupName = f"starID{ID}"
             if starIDgroupName not in self.hdf5file["Photometry"]["Lightcurves"].keys():
-                print(f"ERROR: getLightCurve(): {starIDgroupName} not present in " +
+                print(f"ERROR: simfile.getFlux(): {starIDgroupName} not present in " +
                       "Photometry/Lightcurves/ in the HDF5 file")
 
             # Select correct name convention
@@ -1896,7 +1896,7 @@ class SimFile (object):
 
 
 
-    def getLightCurve(self, starID, fluxType="estimated", warning=True):
+    def getLightCurve(self, starID, fluxType='estimated'):
 
         """Extract the light curve of one or more stars
 
@@ -1909,8 +1909,8 @@ class SimFile (object):
         starID : int, list/ndarray
             int  : ID of the star as mentioned in the last column of the star catalog file
             list : List of star IDs for which the light curve should be extracted
-        flux_type : str
-            Either "estimated" or "input".
+        fluxType : str
+            Either None, "estimated", or "input". If none both flux columns are returned.
             The estimated one is derived from a binary mask.
             The input one is derived from the mean input magnitude specified in the star catalog
             and (for variable stars) the delta-magnitude time series given as an input file.
@@ -1928,16 +1928,24 @@ class SimFile (object):
 
         # Fetch flux column(s)
 
-        flux = self.getFlux(starID, fluxType=fluxType)
+        if fluxType == 'both':
+            flux       = self.getFlux(starID, fluxType="estimated")
+            flux_input = self.getFlux(starID, fluxType="input")
+            df = pd.concat([time, flux, flux_input], axis=1)
+            df.columns = ["time", "flux", "flux_input"]
+        elif fluxType in ("input", "estimated"):
+            flux = self.getFlux(starID, fluxType=fluxType)
+            df = pd.concat([time, flux], axis=1)
+            df.columns = ["time", "flux"]
+        else:
+            print("ERROR: no such flux name, use either 'estimated' or 'input'!")
+            
+        return df
 
-        # Combine data
-
-        return pd.concat([time, flux], axis=1)
 
 
 
-
-
+    
     def getMaskUpdateEvents(self):
 
         """Exposure number of all mask updates.

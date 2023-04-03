@@ -21,7 +21,7 @@ import subprocess
 import numpy as np
 
 import platosim.referenceFrames as rf
-import platosim.instrument      as it
+import platosim.instrument      as getTED
 
 from platosim.simfile import SimFile
 
@@ -62,6 +62,8 @@ class Simulation(object):
         
         if outputDir is not None:
             self.outputDir = outputDir
+        else:
+            self.outputDir = os.getcwd()
 
         # Set simulation location
         
@@ -913,6 +915,7 @@ class Simulation(object):
                                                                     mappedDistortion,
                                                                     distortionCoefficients,
                                                                     pathToPsfFile)
+
         if ccdCode == None:
             return False
 
@@ -1090,42 +1093,15 @@ class Simulation(object):
 
         np.savetxt(fileName, np.transpose(starIDs), delimiter=" ", fmt="%d")
 
-        # Set this to simulation
+        # Set this to simulation and activate photometry
 
-        self["Photometry/TargetFileName"] = fileName
-
-
-
+        self["Photometry/IncludePhotometry"] = True
+        self["Photometry/TargetFileName"]    = fileName
 
 
 
-    def createDriftFile(self, quarter, fileName, model="poly", plot=False):
 
-        """Create a photometry file list in ascii format and sets it to the YAML input.
 
-        Parameters
-        ----------
-        starIDs : ndarray
-            Array with IDs of the star (integers)
-        fileName : str
-            Path of the photometry file that will be written.
-
-        Return
-        ------
-        A file will be saved, containing the star IDs that photometry should be performed on.
-        The "Telescope/UseDriftFromFile" tag in the yaml tree will be changed to the given
-        DriftFileName.
-        """
-
-        # Create TED file
-
-        it.getTED(quarter=quarter, model=model, outfile=fileName, plot=plot)
-
-        # Set this to simulation
-
-        self["Telescope/UseDrift"]         = True
-        self["Telescope/UseDriftFromFile"] = True
-        self["Telescope/DriftFileName"]    = fileName
 
     def createDriftFile(self, quarter, fileName, model="poly", plot=False):
 
@@ -1147,17 +1123,13 @@ class Simulation(object):
 
         # Create TED file
 
-        it.getTED(quarter=quarter, model=model, outfile=fileName, plot=plot)
+        getTED(quarter=quarter, model=model, outfile=fileName, plot=plot)
 
         # Set this to simulation
 
         self["Telescope/UseDrift"]         = True
         self["Telescope/UseDriftFromFile"] = True
         self["Telescope/DriftFileName"]    = fileName
-
-        # Finito!
-
-        return
 
 
 

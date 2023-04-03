@@ -23,12 +23,13 @@ from astropy import units as u
 #============================================================================#
 
 # Function to create a star from its spectral type
+# TODO not working yet!
 
 def create_star(spectype, spectypes_datafile=None):
 
 
     if spectype in spectype_names: 
-        spectype_names = list(np.genfromtxt(spectypes_datafile,dtype='str', delimiter='', usecols=(0), unpack=True))
+        spectype_names = list(np.genfromtxt(spectypes_datafile, dtype='str', delimiter='', usecols=(0), unpack=True))
         teffs, luminosities, radii,masses = np.genfromtxt(spectypes_datafile, delimiter='', usecols=(1,2,3,4), unpack=True)
 
     else:
@@ -115,5 +116,20 @@ def load_star(source):
         logg = 4.5
         Z    = 0.0
 
+    if source == 'dSct':
+        M = 1.26 * u.M_sun
+        R = 1.20 * u.R_sun
+        Teff = 6071 * u.K
+        logg = 4.0
+        Z    = 0.0
+
+    if source == 'gDor':
+        M = 1.26 * u.M_sun
+        R = 1.20 * u.R_sun
+        Teff = 6071 * u.K
+        logg = 4.0
+        Z    = 0.0
+
+        
 
     return M, R, Teff, logg, Z
