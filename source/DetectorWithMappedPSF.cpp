@@ -50,9 +50,9 @@ DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configPara
     {
         // Initialize the subpixel background map
         subPixelBackgroundMap.zeros(numRowsSubPixelMap, numColumnsSubPixelMap);
-        unDistortedX.zeros(numRowsPixelMap, numColumnsPixelMap);
-        unDistortedY.zeros(numRowsPixelMap, numColumnsPixelMap);
     }
+    unDistortedX.zeros(numRowsPixelMap, numColumnsPixelMap);
+    unDistortedY.zeros(numRowsPixelMap, numColumnsPixelMap);
 
     if (includeFlatfield)
     {
