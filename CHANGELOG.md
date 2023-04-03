@@ -7,11 +7,19 @@
 
 ## Fixed
 * Fixed bug where mapped distortion was not used when calculating the vignetting. (GH #716)
+* Bugfix in pathlib in `picsim` file
+* Fixed colorbar for autoscaling in `simfile` for `showImage` method. (thanks to Morgan Mitchell)
 
 
 ## Changed
+* Changed implementation of mappded distortion
+
 
 ## Added
+* Added image slider to imageShow() function in `simFile.py`
+* Added =Photometry= and =LightCurve= class in `photometry.py` and `lightcurve.py` file
+* Added option to change structure of output HDF5 file
+* Added documentation on various places
 
 <!-- 3.5.4 -->
 <!-- ***** -->
