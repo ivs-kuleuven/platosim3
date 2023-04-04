@@ -88,7 +88,7 @@ else
     # Add code to global executeables (-i overwrite old files)
     cp -rf $PLATO_PROJECT_HOME/python/platosim/picsim/picsim       $HOME/.local/bin/
     cp -rf $PLATO_PROJECT_HOME/python/platosim/varsim/varsim       $HOME/.local/bin/
-    cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/payload   $HOME/.local/bin/
+    cp -rf $PLATO_PROJECT_HOME/python/platosim/payload/payload     $HOME/.local/bin/
     cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/platonium $HOME/.local/bin/
     
     # Reload .bashrc
@@ -116,10 +116,13 @@ else
     echo " PLATOnium has been set up!"
     echo "---------------------------"
     echo "From bash checkout:"
-    echo ">> platonium -h"
     echo ">> picsim -h"
     echo ">> varsim -h"
+    echo ">> payload -h"
+    echo ">> platonium -h"
     if [ -f "$PLATO_PIPELINE/algorithms/Makefile" ]; then
+	echo "---------------------------"
+	echo " Pipeline has been set up !"
 	echo "--------------------------"
 	echo ">> pproc.py -h"
 	echo ">> psffit.py -h"
