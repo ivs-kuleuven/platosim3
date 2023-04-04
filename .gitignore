@@ -59,6 +59,7 @@ docs/*/*/*.pdf
 docs/*/*/*.png
 docs/*/*/*.yaml
 docs/*/*/*.hdf5
+simulations_PlatoSimPaper2023/
 
 # Poetry
 
