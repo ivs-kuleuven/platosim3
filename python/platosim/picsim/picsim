@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 
 """
-Usage examples:
-  $ picsim 100 P1 SPF -p
-  $ picsim 1000 P5 NPF --camera 24
-  $ picsim all all SPF --camera 6 --group 1 --mag 9.5-12.2 -o </path/to/outdir>
-
-This script take the PIC inputcatalog (csv format) and fetch the correct entries for target
-stars and their contaminants. Notice that the catalog will only be saved if an ouput directory
-and prefix (-o) are given as input. This script can also be used to re-plot a old output ascii
-catalog produced by this software. Note that the PIC contaminant catalog is complete up to 20 mag.
+This script is an integrated part of PlatoSim's toolkit PLATOnium.
+This script take the PIC inputcatalog (csv format) and fetch the 
+correct entries for target stars and their contaminants. Notice that
+the catalog will only be saved if an ouput directory and prefix (-o)
+are given as input. This script can also be used to re-plot a old 
+output ascii catalog produced by this software. Note that the PIC
+ contaminant catalog is complete up to 20 mag.
 
 Notes on PLATO fields:
   Number of targets in PIC: 320,743
@@ -26,6 +24,11 @@ Note on Sample flag:
   Number of targets in P5: 272,617 (SPF: 132,571, NPF: 140,046)
   Note that P2 is a bright sub-sample of P1.
   Note that P5 is on-board processed lightcures only.
+
+Usage examples:
+  $ picsim 100 P1 SPF -p
+  $ picsim 1000 P5 NPF --camera 24
+  $ picsim all all SPF --camera 6 --group 1 --mag 9.5-12.2 -o </path/to/outdir>
 """
 
 import os

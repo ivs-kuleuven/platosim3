@@ -162,9 +162,11 @@ def downloadFromFTP(filename, outputDir, server='plato'):
 
     if ftp_filename.suffix in ('.zip', '.npy', '.ftr', '.hdf5', '.h5'):
         ftp_subpath = pathlib.Path(filename).parents[0]
+        permission  = False
     else:
         ftp_subpath = pathlib.Path(filename)
-
+        permission  = True
+        
     # Also if file on FTP is within a folder, create folder locally
         
     outputDir = outputDir / ftp_subpath
@@ -202,8 +204,9 @@ def downloadFromFTP(filename, outputDir, server='plato'):
             ftp_file   = open(local_file, 'wb')
             ftp.retrbinary(f'RETR {filename}', ftp_file.write)
             ftp_file.close()
+            
             # Give read and write rights to this
-            local_file.chmod(777)
+            if permission: local_file.chmod(777)
 
     # Close connection
     

@@ -2311,7 +2311,7 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
         mag = np.linspace(df.mag.min()-1, df.mag.max()+1, 100)
 
         # Jitter noise
-        rms = 0.04
+        rms = 0.037
         if show_ncam_noise_limits == 1:
             level = 'camera'
         else:
@@ -2321,13 +2321,12 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
 
         # Photon noise
         ncams = show_ncam_noise_limits
-        noise_photon = ut.getPhotonNoiseLimitNSR(mag, passband=passband, ncam=ncams) * 0.7324478224428527
-        ax.plot(mag, noise_photon, '-.', c='deeppink', lw=1.5, zorder=2, label='Photon noise')
+        noise_photon = ut.getPhotonNoiseLimitNSR(mag, passband=passband, ncam=ncams)
+        ax.plot(mag, noise_photon * 0.7324478224428527, '-.', c='deeppink', lw=1.5,
+                zorder=2, label='Photon noise')
         
         # Background and readout noise
-        #f0 = 1.00179e8
-        f0 = 0.7324478224428527e8
-        noise_background = (1800 / np.sqrt(10**(-0.4 * mag) * f0 * 25))**1.8
+        noise_background = ut.getBackgroundNoiseLimitNSR(mag, passband=passband)
         ax.plot(mag, noise_background, ':', c='deeppink', lw=1.5, zorder=2,
                 label='Sky and read noise')
 
