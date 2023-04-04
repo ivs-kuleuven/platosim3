@@ -2,9 +2,9 @@
 
 """
 Usage examples:
-  $ python picsim.py 100 P1 SPF -p
-  $ python picsim.py 1000 P5 NPF --camera 24
-  $ python picsim.py all all SPF --camera 6 --group 1 --mag 9.5-12.2 -o </path/to/outdir>
+  $ picsim 100 P1 SPF -p
+  $ picsim 1000 P5 NPF --camera 24
+  $ picsim all all SPF --camera 6 --group 1 --mag 9.5-12.2 -o </path/to/outdir>
 
 This script take the PIC inputcatalog (csv format) and fetch the correct entries for target
 stars and their contaminants. Notice that the catalog will only be saved if an ouput directory
@@ -142,9 +142,9 @@ fileFormat = '.ftr'
 # Default is to use the latest PIC catalog saved
 # Else several old catalogs can be parsed for replotting
 # E.g. use: -intar starcat**targets.txt --incon starcat**contaminants.txt
-inputDir     = Path(os.getenv("PLATO_PROJECT_HOME") + "/python/platosim/picsim")
-inputFileTar = inputDir / 'PIC110target'
-inputFileCon = inputDir / 'PIC110contaminant'
+inputDir     = Path(os.getenv("PLATO_PROJECT_HOME")) / 'python/platosim/picsim'
+inputFileTar = inputDir / 'PIC110target.npy'
+inputFileCon = inputDir / 'PIC110contaminant.npy'
 
 # Prefix name of output files
 outputPrefix = 'starcat'
@@ -199,8 +199,8 @@ else: magRange = ut.convertMagnitudeRange(magRange)
 
 # Check for PLATO pointing field: ICRS-Ra-Dec (deg) and Galactic-long.-lat. (deg)
 
-PF = {'SPF': ['S', 86.79870508, -46.39594703, 253.0, -30.0],
-      'NPF': ['N', 265.08002279, 39.5836954,   65.0, +30.0]}
+PF = {'SPF': ['S', 86.79870508, -46.39594703, -4.25],
+      'NPF': ['N', 265.08002279, 39.5836954,   4.25]}
 
 if platoField is not None:
     if platoField == 'all':
@@ -217,7 +217,7 @@ cams_EOL = [[5, 11, 16, 17, 22], [6, 12, 18, 18, 24]]
 
 if ncamVisible is not None:
     try: cams[ncamVisible]
-    except KeyError: errorcode('Not valid number of N-cams! Use either 6, 12, 18, or 24')
+    except KeyError: errorcode('Not valid number of N-CAMs! Use either 6, 12, 18, or 24')
     else: pass
 
 # Check cam-group entry
@@ -269,17 +269,10 @@ try:
 except:
     inuaguration = True
     errorcode('message', 'Inuaguration: Welcome to the PIC of Destiny!')
-    print(f'Downloading PIC 1.1.0 catalogue...')
-    url_tar = 'ftp://plato:miSotalP@ftp.ster.kuleuven.be/PIC110target.npy'
-    url_con = 'ftp://plato:miSotalP@ftp.ster.kuleuven.be/PIC110contaminant.npy'
-    with urllib.request.urlopen(url_tar) as response, open(inputFileTar.with_suffix('.npy'), "wb") as out_file:
-        data = response.read()
-        out_file.write(data)
-        #print(out_file); exit()
-    with urllib.request.urlopen(url_con) as response, open(inputFileCon.with_suffix('.npy'), "wb") as out_file:
-        data = response.read()
-        out_file.write(data)
-
+    print(f'Downloading PIC 1.1.0 catalogue..')
+    ut.downloadFromFTP(filename=inputFileTar.name, outputDir=inputDir, server='plato')
+    ut.downloadFromFTP(filename=inputFileCon.name, outputDir=inputDir, server='plato')
+    
 # Load old PIC catalog for re-plot an old catalogue
 if inputFiles is not None:
 
@@ -288,7 +281,7 @@ if inputFiles is not None:
     N = int(len(inputFiles)/2.)
 
     # Check if one or more catalogs are parsed
-    # NOTE using *.pkl will order in alphabetic order
+    # NOTE using *.ftr will order in alphabetic order
     if len(inputFiles) > 2:
         inputFileTarget = inputFiles[1::2]
         inputFileContam = inputFiles[0::2]
@@ -465,10 +458,13 @@ if fileFormat != '.txt':
 
     # Allow to select only one cam-group
     if camGroup:
-        raPF  = PF[platoField][1]
-        decPF = PF[platoField][2]
+        raPF    = PF[platoField][1]
+        decPF   = PF[platoField][2]
+        kappaPF = PF[platoField][3]
         sim = Simulation('picsim')
-        dex = sim.getStarsWithinCameraGroup(raPF, decPF, df['ra'].to_numpy(), df['dec'].to_numpy(), camGroup)
+        dex = sim.getStarsWithinCameraGroup(raPF, decPF, kappaPF,
+                                            df['ra'].to_numpy(), df['dec'].to_numpy(), camGroup)
+        
         # Select max number of stars if too many is requested
         max_stars = np.sum(dex[0])
         if numTargets > max_stars:

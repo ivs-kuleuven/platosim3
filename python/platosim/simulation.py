@@ -1278,7 +1278,7 @@ class Simulation(object):
 
 
 
-    def getStarsWithinCameraGroup(self, raPF, decPF, ra, dec, kappa=-8,
+    def getStarsWithinCameraGroup(self, raPF, decPF, kappaPF, ra, dec,
                                   camGroup=1, quarter=1, sizeSubfield=6):
 
         """Fetch all stars within a camera group.
@@ -1322,7 +1322,7 @@ class Simulation(object):
         focalLength      = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
         focalPlaneAngle  = np.deg2rad(float(self["Camera/FocalPlaneOrientation/ConstantValue"]))
 
-        solarPanelOrientation = self["Platform/SolarPanelOrientation"] = math.fmod(quarter * 90. - kappa, 360.)
+        solarPanelOrientation = self["Platform/SolarPanelOrientation"] = math.fmod(quarter * 90., 360.) + kappaPF
         solarPanelOrientation = np.deg2rad(float(solarPanelOrientation))
 
         raTargetsRad  = np.deg2rad(ra)   # [rad]

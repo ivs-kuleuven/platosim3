@@ -159,8 +159,8 @@ def downloadFromFTP(filename, outputDir, server='plato'):
     # If flase simply download the requested file
     
     ftp_filename = pathlib.Path(filename)
-    
-    if ftp_filename.suffix in ('zip', 'npy', 'ftr', 'hdf5'):
+
+    if ftp_filename.suffix in ('.zip', '.npy', '.ftr', '.hdf5', '.h5'):
         ftp_subpath = pathlib.Path(filename).parents[0]
     else:
         ftp_subpath = pathlib.Path(filename)
@@ -171,29 +171,33 @@ def downloadFromFTP(filename, outputDir, server='plato'):
     outputDir.mkdir(parents=True, exist_ok=True)
         
     # Login to server
+    # For plato: Download a single file
+    # For platodata: Download all files in a folder
 
     ftp = ftplib.FTP('ftp.ster.kuleuven.be')
     
     if server == 'plato':
+        # Single file download
         ftp.login(user=server, passwd='miSotalP')
         ftp.cwd(f'{ftp_subpath}')
+        files = [filename]
         #ftp = 'ftp://plato:miSotalP@ftp.ster.kuleuven.be'
     elif server == 'platodata':
         ftp.login(user=server, passwd='i9Pidw1bXIFShGYb0jI8')
         ftp.cwd(f'PLATOSIM/{ftp_subpath}')
+        files = ftp.nlst()[2:]
         #ftp = 'ftp://platodata:i9Pidw1bXIFShGYb0jI8@ftp.ster.kuleuven.be/PLATOSIM'
     else:
         errorcode('error', f'Server name {server} is not valid!')
             
     # Fetch all the files
         
-    files = ftp.nlst()[2:]    
-
     for filename in files:
 
         # Only try to save file if is doesn't exists
         
         local_file = pathlib.Path(outputDir) / filename
+
         if not local_file.is_file():
             ftp_file   = open(local_file, 'wb')
             ftp.retrbinary(f'RETR {filename}', ftp_file.write)
@@ -640,11 +644,7 @@ def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, 
             zp = 19.81
         # Calculate flux
         f0 = 0.7324478224428527e8
-        f = 10**(-0.4 * (mag - zp)) #* f0
-    elif passband == 'paper':
-
-        f = 10**(-0.4 * (mag + zp)) * f0
-        
+        f = 10**(-0.4 * (mag - zp)) * f0
     else:
         errorcode('error', f'Wrong {camType} name!')
 
@@ -660,6 +660,59 @@ def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, 
     return NSR
 
 
+
+
+
+def getBackgroundNoiseLimitNSR(mag, passband='P', camType='normal', tdur=3600):
+
+    """NSR estimate in the photon noise limit of bright stars.
+
+    The stellar flux are calculated from the PLATO passband found by 
+    Marchiori et al. (2019).
+
+    Parameters
+    ----------
+    P : float, narray
+        The PLATO passband magnitude.
+    Ncam : float, narray
+        Number of telescope visibility. N-Cams (6, 12. 18, 24) or F-Cams (2).
+    Ntra : float, narray
+        Number of transits that can be co-added by phase-folding.
+    tdur : float, narray
+        Time duration over which the NSR is estimated. E.g., 3600s for 1h precision.
+    camType : str
+        Either the normal (N) or fast (F) cameras. Default is normal.
+
+    Return
+    ------
+    NSR : float, narray
+        NSR only valid for the photon noise limit.
+    """
+
+    # Choose cycle and exposure time [s] for either the normal or fast cameras
+
+    if camType == 'normal':
+        gain = 1/(0.0222 * 2.14)   # [ADU/e-/pixel]
+    else:
+        gain = 0.05   # TODO: update gain values for F-CAMs
+
+    if passband == "V":
+        f0 = 1.00179e8
+    elif passband == 'P':
+        f0 = 0.7324478224428527e8
+    else:
+        errorcode('error', f'Wrong {camType} name!')
+        
+    # Calculate noise and signal
+    gain = 25
+    bg   = 60  # [e-/s/pixel]
+    mask = 20  # [pixel]
+    throughput   = 0.8134999994206865
+    transmission = 0.4822896122932434
+    
+    noise  = gain * bg * tdur * mask * throughput #* transmission
+    signal = np.sqrt(10**(-0.4 * mag) * f0 * tdur)**1.8
+    return noise / signal
 
 
 
