@@ -8,7 +8,6 @@ to generate the following files:
   - instrumentPRE.txt  : Pointing errors for each mission quarter pointing
   - instrumentAPE.txt  : Alignment errors between cameras and the optical bench
   - instrumentTED.txt  : Long-term camera drift due to Thermo-Elastic Distortion
-  - instrumentGain.txt : Gain differences for the each CCD (F and E side) and FEE
   - instrumentGaps.txt : Realistic distribution of spacecraft down times
   - run.pbs & data.pbs : Job and parameterisation file for array-like parallelisation
 
@@ -16,6 +15,7 @@ While using the "--project" output path, the files will be generated
 directly into your working directory and will immediately be known
 and used when running "platonium". 
 """
+#TOCOME   - instrumentGain.txt : Gain differences for the each CCD (F and E side) and FEE
 
 import os
 import math
