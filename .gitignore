@@ -59,6 +59,7 @@ docs/*/*/*.pdf
 docs/*/*/*.png
 docs/*/*/*.yaml
 docs/*/*/*.hdf5
+simulations_PlatoSimPaper2023/
 
 # Poetry
 
@@ -72,7 +73,7 @@ pipeline/
 # varsim
 
 PHOENIX_HiResFITS/
-fitting_parameters.h5
+varsim_exomass_fitting_parameters.h5
 WAVE_PHOENIX-ACES-AGSS-COND-2011.fits
 
 # Compiled source 

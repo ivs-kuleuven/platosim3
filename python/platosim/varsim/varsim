@@ -2,19 +2,33 @@
 # -*- coding: utf-8 -*-
 
 """
-User examples:
-  $ varsim --star Sun --planet hotJupiter -p -v
-  $ varsim --star CoRoT-1 --planet CoRoT-1b --time 10 -p -o /path/to/varsource.txt
-  $ varsim --star_params 1 1 5800 4.5 0 --planet_params 1 10 0 90 0 1 1 --quarter 1-8 -o /path/to/varsource.txt
+This script is an integrated part of PlatoSim's toolkit PLATOnium.
+Given a star and exoplent this script creates a synthetic stellar
+and exoplanet variability model that can be used directly as input
+for PlatoSim. A bolometric correction to the PLATO passband is 
+determined from a best fit interpolation between the passband and
+the synthetic high-res PHOENIX spectra. The script can model:
 
-Given a star and exoplent this script creates a synthetic stellar and exoplanet
-variability model that can be used directly as input for PlatoSim. The script is
-developed around modelling stellar activity modulations, granulation, and stellar
-convection driven oscillations (p-modes). A exoplanet model are created using 
-BATMAN for the transits, plus additionally phase curve components from the Doppler
-beaming and ellisoidal distorsion effect. Additionally simple eclipsing binary signals
-can also be included. The stellar p-modes and transit eclipses are derived from
-synthetic PHOENIX spectra being convolved with the instrumental bandpass.
+Solar-like stars (F5-K7 dwarf and subgiants):
+  - Activity modulations
+  - Granulation noise 
+  - Convection driven oscillations (p-modes)
+
+Other types of stars:
+  - gamma-Doradus star (analytic model)
+  - delta-Scuti star   (analytic model)
+
+Exoplanet phase curve variations:
+  - Transits               (using BATMAN)
+  - Occultations           (using SPIDERMAN)
+  - Limb Darkening         (using LDTk)
+  - Doppler beaming        (using PyAstronomy)
+  - Ellipsoidal distortion (using PyAstronomy)
+
+User examples:
+  $ varsim --star Sun --planet hotJupiter -p
+  $ varsim --star CoRoT-1 --planet CoRoT-1b --time 10 -p -o </path/to/varsouce.txt>
+  $ varsim --star_params 1 1 5800 4.5 0 --planet_params 1 10 0 90 0 1 1 --quarter 1-8 -o </path/to/varsource.txt>
 """
 
 import os
@@ -110,7 +124,7 @@ class Variability(object):
             plt.rcParams['text.usetex'] = True
         
         # Absolute cwd path
-        self.path     = Path(os.getenv("PLATO_PROJECT_HOME") + "/python/platosim/varsim")
+        self.path     = Path(os.getenv("PLATO_PROJECT_HOME")) + "/python/platosim/varsim"
         self.datapath = self.path / 'data'
         
         # OBSERVATIONAL PARAMETERS

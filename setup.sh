@@ -86,10 +86,11 @@ else
     echo "export PATH=${PATH}:$HOME/.local/bin/:$PLATO_PROJECT_HOME/build:$PLATO_PIPELINE/bin" >> $PLATO_SETUP
        
     # Add code to global executeables (-i overwrite old files)
-    cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/platonium $HOME/.local/bin/
     cp -rf $PLATO_PROJECT_HOME/python/platosim/picsim/picsim       $HOME/.local/bin/
     cp -rf $PLATO_PROJECT_HOME/python/platosim/varsim/varsim       $HOME/.local/bin/
-
+    cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/payload   $HOME/.local/bin/
+    cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/platonium $HOME/.local/bin/
+    
     # Reload .bashrc
     . $HOME/.bashrc
 

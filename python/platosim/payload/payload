@@ -1,22 +1,21 @@
 #!/usr/bin/env python3
 
 """
-Copy this script to your prefered working directory and change the
-'User defined parameters' given below. By running this script a new
-folder, with the name specified using 'simPrefix', will be created
-along with a job script and textfile for each simulation configuration.
-It is important that the 'memoryPerImage' and timePerIMage' parameters
-are given sufficiently accurately as an underestimation may terminate
-the job and a over estimation might leave the job in the que forever.
-Retrieve these two parameters from a smaller simulation with the same
-simulation setup on your local machine, and normalize to get the
-parameters per image.
+This script is an integrated part of PlatoSim's toolkit PLATOnium.
+Call this script prior to running your simulations with "platonium"
+to generate the following files:
 
-For each input argument select either
-- A number  : e.g. "1"
-- A range   : e.g. "1-2"
-- Full range: i.e. "0"     (default quarterNo: 8Q = 2 years)
+  - instrumentPRE.txt  : Pointing errors for each mission quarter pointing
+  - instrumentAPE.txt  : Alignment errors between cameras and the optical bench
+  - instrumentTED.txt  : Long-term camera drift due to Thermo-Elastic Distortion
+  - instrumentGaps.txt : Realistic distribution of spacecraft down times
+  - run.pbs & data.pbs : Job and parameterisation file for array-like parallelisation
+
+While using the "--project" output path, the files will be generated
+directly into your working directory and will immediately be known
+and used when running "platonium". 
 """
+#TOCOME   - instrumentGain.txt : Gain differences for the each CCD (F and E side) and FEE
 
 import os
 import math
@@ -88,9 +87,9 @@ class InstrumentSetup(object):
 
         # Default ranges
         N = range(1, int(N)+1)
-        if G == '0': G = range(1, 4+1)
-        if C == '0': C = range(1, 6+1)
-        if Q == '0': Q = range(1, 8+1)
+        if G is None: G = range(1, 4+1)
+        if C is None: C = range(1, 6+1)
+        if Q is None: Q = range(1, 8+1)
 
         # When number is given (also check for obvious mistakes)
         if len(G) == 1:
@@ -140,11 +139,51 @@ class InstrumentSetup(object):
         self.time = np.arange(t0, t1, 25)
 
         
+    
+
+
+    def createPRE(self):
+
+        """Function to create a Pointing Repeatability Error (PRE) file.
+        Used to realistically include errors for each pointing.
+        """
+
+        # Generete PRE file
+        if self.odir: print("\nSaving PRE file")
+        it.getPRE(self.ra, self.dec, self.kappa, self.Q, sigma=3,
+                  outfile=self.fileNamePRE, show_table=True)
+
         
 
-    def create_job_script(self):
+    def createAPE(self):
+
+        """Function to create a Absolute Pointing Error (APE) file.
+        Used to realistically include camera misalignments errors.
         """
-        Function to create a job script to be used on the VSC.
+
+        # Generete APE file
+        if self.odir: print("\nSaving APE file")
+        it.getAPE(self.ra, self.dec, self.kappa, sigma=3,
+                  outfile=self.fileNameAPE, show_table=True)
+
+
+
+    def createTED(self):
+
+        """Function to create a Absolute Pointing Error (APE) file
+        """
+        
+        # Generate TED file
+        if self.odir: print("\nSaving TED file and plot")
+        it.getTED(self.Q, outfile=self.fileNameTED, plot=True)
+
+
+
+
+
+    def create_job_script(self):
+
+        """Function to create a job script to be used on the VSC.
         """
 
         # prefix
@@ -206,7 +245,8 @@ class InstrumentSetup(object):
         # Check if if the total memory exceedes that of the cluster [gb]
         memPerNode = coresCluster * pmemSim*1e-3
         if memPerNode > pmemCluster-8:
-            ut.errorcode('error', "Simulation node-memory of {} GB exceedes the cluster node-memory of {}-8 GB!".format(int(memPerNode), pmemCluster))
+            ut.errorcode('error', 'Simulation node-memory of {int(memPerNode)} GB ' +
+                         'exceedes the cluster node-memory of {pmemCluster}-8 GB!')
 
         # Estimate wall time given the resources above:
         walltimeQuarter = timePerImage * self.nimg
@@ -214,7 +254,8 @@ class InstrumentSetup(object):
         walltime        = str(datetime.timedelta(seconds=int(walltimeSafe)))
 
         # Print if simulation will run and if so, with what resources
-        ut.errorcode('message', f"\nPrepared {numSim} simulations with resources: nodes={nodes}, cores={cores}, pmem={pmem}mb, walltime={walltime}")
+        ut.errorcode('message', f'\nPrepared {numSim} simulations with resources: ' +
+                     'nodes={nodes}, cores={cores}, pmem={pmem}mb, walltime={walltime}')
 
         # Check email argument
         if email is None: email = ''
@@ -292,8 +333,8 @@ class InstrumentSetup(object):
 
             
     def create_param_file(self):
-        """
-        Function to create a job script to be used on the VSC.
+
+        """Function to create a job script to be used on the VSC.
         """
 
         # Select prefix
@@ -321,8 +362,8 @@ class InstrumentSetup(object):
 
                 
     def create_time_gaps(self):
-        """
-        Function to create a job script to be used on the VSC.
+
+        """Function to create a job script to be used on the VSC.
         """
 
         # Initialise random generator
@@ -501,44 +542,6 @@ class InstrumentSetup(object):
         if self.odir:
             print(f"Creating file with instrumental time gaps : {self.odir}/instrumentDataGaps.txt")
             
-            
-
-
-
-    def createPRE(self):
-        """
-        Function to create a Pointing Repeatability Error (PRE) file.
-        Used to realistically include errors for each pointing.
-        """
-
-        # Generete PRE file
-        if self.odir: print("\nSaving PRE file")
-        it.getPRE(self.ra, self.dec, self.kappa, self.Q, sigma=3,
-                  outfile=self.fileNamePRE, show_table=True)
-
-        
-
-    def createAPE(self):
-        """
-        Function to create a Absolute Pointing Error (APE) file.
-        Used to realistically include camera misalignments errors.
-        """
-
-        # Generete APE file
-        if self.odir: print("\nSaving APE file")
-        it.getAPE(self.ra, self.dec, self.kappa, sigma=3,
-                  outfile=self.fileNameAPE, show_table=True)
-
-
-
-    def createTED(self):
-        """
-        Function to create a Absolute Pointing Error (APE) file
-        """
-        
-        # Generate TED file
-        if self.odir: print("\nSaving TED file and plot")
-        it.getTED(self.Q, outfile=self.fileNameTED, plot=True)
         
         
 #--------------------------------------------------------------#
@@ -553,22 +556,25 @@ parser = argparse.ArgumentParser(epilog=__doc__,
 man_group = parser.add_argument_group('MANDATORY PARAMETERS')
 man_group.add_argument('field',   type=str, help='LOP (SPF, NPF)')
 man_group.add_argument('stars',   type=str, help='Number of stars')
-man_group.add_argument('group',   type=str, help='Either: 1, 2, 3, 4')
-man_group.add_argument('camera',  type=str, help='Either: 1, 2, 3, 4, 5, 6')
-man_group.add_argument('quarter', type=str, help='Either: 1, 2, .. (Default Q1-Q8 -> 2 years)')
+
+obs_group = parser.add_argument_group('OBSERVATION PARAMETERS')
+obs_group.add_argument('--group',   metavar='NO.', type=str, help='Group   no.: 1, 2, .. (Default: 1-4 = all)')
+obs_group.add_argument('--camera',  metavar='NO.', type=str, help='Camera  no.: 1, 2, .. (Default: 1-6 = all)')
+obs_group.add_argument('--quarter', metavar='NO.', type=str, help='Quarter no.: 1, 2, .. (Default: 1-8 = 2yr)')
 
 out_group = parser.add_argument_group('I/O PARAMETERS')
-out_group.add_argument('-o', '--outdir',  metavar='PATH', type=str, help='Output directory to save')
-out_group.add_argument('-p', '--project', metavar='NAME', type=str, help='Name of PLATOnium project')
+out_group.add_argument('-p', '--plot',   action='store_true',      help='Flag to plot each action')
+out_group.add_argument('-o', '--outdir', metavar='PATH', type=str, help='Output directory to save')
+out_group.add_argument('--project',      metavar='NAME', type=str, help='Name of PLATOnium project')
 
 # Initialize instance of class
 args = parser.parse_args()
 x = InstrumentSetup(args)
 
 # Run each module
-x.create_job_script()
-x.create_param_file()
-x.create_time_gaps()
 x.createPRE()
 x.createAPE()
 x.createTED()
+x.create_time_gaps()
+x.create_job_script()
+x.create_param_file()
