@@ -27,8 +27,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+# PlatoSim imports
 import platosim.utilities as ut
-from platosim.utilities import errorcode, gaiaQuery, starQuery
+from platosim.utilities import errorcode 
+
+# VarSim imports
+from platosim.picsim.starquery import gaiaQuery
 
 # Start time tracking
 tic = datetime.datetime.now()
@@ -93,7 +97,7 @@ targetName = args.target
 
 dmagConLimit = args.dmag
 disConLimit = args.dist
-inputDir = Path(os.getenv("PLATO_PROJECT_HOME") + "/python/platosim/picsim")
+inputDir = Path(os.getenv("PLATO_PROJECT_HOME") + "/python/platosim/picsim/data")
 
 inputFileTar = inputDir / 'PIC110target'
 inputFileCon = inputDir / 'PIC110contaminant'
