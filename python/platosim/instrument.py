@@ -4,16 +4,21 @@
 This python module contains utilities that are are used to calculate
 pointing error sources (PES) for PLATO.
 
-NOTE: these utilities needs the Poetry install!
+NOTE: these utilities needs the platonium installation.
 """
 
+# Python standard
 import os
 import datetime
+
+# PlatoSim standard
+import scipy
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt 
 from pathlib import Path
 
+# PlatoSim imports
 import platosim.referenceFrames as rf
 from platosim.matplotlibrc import latex
 latex()
@@ -25,10 +30,10 @@ day2sec = 86400.
 #==============================================================#
 
 
-def getPRE(ra, dec, kappa, quarter, sigma=3, outfile=False, show_table=False):
+def getPRE(ra, dec, kappa, quarter, sigma=3, outfile=False, show_table=False, plot=False):
 
     """
-   
+    
     Paramters
     ---------
 
@@ -47,7 +52,7 @@ def getPRE(ra, dec, kappa, quarter, sigma=3, outfile=False, show_table=False):
     # Pointing Reproducibility Error (PRE) in P/L reference frame (yaw, pitch, roll)
     # Here t stands for transverse direction and [deg]
     
-    t = 3.0/3600
+    t = 3.0/3600 
     b = 6.0/3600
 
     # Find distribution within 3 sigma of req.
@@ -92,6 +97,25 @@ def getPRE(ra, dec, kappa, quarter, sigma=3, outfile=False, show_table=False):
         df1.iloc[:,2] = df1.iloc[:,2] + dec
         print(df1)
 
+    # Plot distributions
+    if plot:
+        t *= 3600
+        b *= 3600
+        y = t/sigma
+        z = 3 * y
+        x = np.abs(b/sigma - z)
+        xx = np.linspace(-10*x, 10*x, 1000)
+        fig = plt.figure(figsize=(7,5))
+        plt.title(f'PRE distributions at {sigma}$\sigma$')        
+        plt.plot(xx, scipy.stats.norm.pdf(xx, 0, x)*100, '-', c='b', label='Transverse')
+        plt.plot(xx, scipy.stats.norm.pdf(xx, 0, z)*100, '-', c='m', label='Rotation')
+        plt.xlabel('Platform pointing errors in FPA [pixel]')
+        plt.ylabel('Probability (PDF) [\%]')
+        plt.xlim(xx[0], xx[-1])
+        plt.tight_layout()
+        plt.legend()
+        plt.show()
+        
     # Save file with relative pointing errors [deg]
     
     if outfile:
@@ -103,7 +127,7 @@ def getPRE(ra, dec, kappa, quarter, sigma=3, outfile=False, show_table=False):
 
 
 
-def getAPE(ra, dec, kappa, sigma=3, outfile=False, show_table=False):
+def getAPE(ra, dec, kappa, sigma=3, outfile=False, show_table=False, plot=False):
 
     """
    
@@ -127,10 +151,6 @@ def getAPE(ra, dec, kappa, sigma=3, outfile=False, show_table=False):
     dz = 3 * dy
     dx = bb - dz
 
-    # Mean and standard deviation
-    mu, sigma = 0, sigma
-    s = np.random.normal(mu, sigma, 1000)
-
     # Store APE
     APE = np.transpose([tt, bb])
     df  = pd.DataFrame(APE, columns=["tilt", "azimuth"])
@@ -143,12 +163,24 @@ def getAPE(ra, dec, kappa, sigma=3, outfile=False, show_table=False):
         df0  = pd.DataFrame(APE0, columns=["Alt", "Az", "Yaw", "Pitch", "Roll"])
         print(df0)
         
-        # Plot
-        #count, bins, ignored = plt.hist(s, 30, density=True)
-        # plt.plot(bins, 1/(sigma * np.sqrt(2 * np.pi)) * 
-        #          np.exp( - (bins - mu)**2 / (2 * sigma**2) ),
-        #          linewidth=2, color='r')
-        # plt.show()
+    # Plot distribution
+    if plot:
+        t *= 3600
+        b *= 3600
+        y = t/sigma
+        z = 3 * y
+        x = np.abs(b/sigma - z)
+        xx = np.linspace(-10*x, 10*x, 1000)
+        fig = plt.figure(figsize=(7,5))
+        plt.title(f'APE distributions at {sigma}$\sigma$')        
+        plt.plot(xx, scipy.stats.norm.pdf(xx, 0, x)*100, '-', c='b', label='Transverse')
+        plt.plot(xx, scipy.stats.norm.pdf(xx, 0, z)*100, '-', c='m', label='Rotation')
+        plt.xlabel('Camera misalignment in FPA [pixel]')
+        plt.ylabel('Probability (PDF) [\%]')
+        plt.xlim(xx[0], xx[-1])
+        plt.tight_layout()
+        plt.legend()
+        plt.show()
 
     # Save APE camera misalignments
     if outfile:
@@ -161,7 +193,7 @@ def getAPE(ra, dec, kappa, sigma=3, outfile=False, show_table=False):
 
 
 
-def getTED(quarter, model="poly", outfile=False, plot=False):
+def getTED(quarter, model="poly", outfile=False, show_table=False, plot=False):
 
     """Generate a Themo-Elastic Drift (TED) file.
    
@@ -191,7 +223,7 @@ def getTED(quarter, model="poly", outfile=False, plot=False):
     # Create data frame and store default time0 for fit
     df  = pd.DataFrame()
     df1 = pd.DataFrame()
-
+    A = np.zeros((len(quarter), 4))
     # Loop over each quarter
 
     for Q in range(quarter[0]-1, quarter[-1]):
@@ -225,9 +257,22 @@ def getTED(quarter, model="poly", outfile=False, plot=False):
                 # Get model fit 
                 poly = np.array([a, b, c])
                 df1[col] = np.polyval(poly, time0)
-
+                
         # File to save
         df = pd.concat([df, df1])
+        # Array with all amplitudes
+        A[Q-quarter[0],0] = Q+1
+        A[Q-quarter[0],1] = df1.yaw.max()   - df1.yaw.min()
+        A[Q-quarter[0],2] = df1.pitch.max() - df1.pitch.min()
+        A[Q-quarter[0],3] = df1.roll.max()  - df1.roll.min()
+        
+    # Show amplitudes
+    if show_table:
+        print('\nTED model amplitudes [arcsec]')
+        names = ['Quarter', 'A_yaw', 'A_pitch', 'A_roll']
+        da = pd.DataFrame(A, columns=names)
+        da = da.astype({'Quarter':np.int})
+        print(da)
 
     # Plot model
     if plot:
