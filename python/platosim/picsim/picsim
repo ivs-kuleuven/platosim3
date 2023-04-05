@@ -33,6 +33,7 @@ Usage examples:
 
 # Python standard
 import os
+import shutil
 import random
 import warnings
 import argparse
@@ -71,17 +72,19 @@ parser = argparse.ArgumentParser(epilog=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter,
                                  description=errorcode('software', '\nPIC of Destiny'))
 
-parser.add_argument('-p', '--plot', action='store_true', help='Flag to plot target and contaminant catalog creation')
-parser.add_argument('-s', '--save', action='store_true', help='Flag to save target and contaminant catalog into a PlatoSim like starcatalog format')
-parser.add_argument('-t', '--targ', action='store_true', help='Flag to only show catalogue illustration (mainly testing)')
-parser.add_argument('-o', '--outdir', type=str, metavar='STR', help='Output directory to save catalogue and plots')
-parser.add_argument('-i', '--incat',  type=str, nargs='*',     help='PIC input target- and contaminant files (Format: csv, txt, ftr)')
-parser.add_argument('-u', '--unique', type=str, metavar='STR', help='Parse old picsim target catalogue to select new unique stars (Format: ftr)')
-
 pic_group = parser.add_argument_group('PIC INFO (required)')
 pic_group.add_argument('targets', type=str, help='Number of targets saved in catalog (Select "all" for all stars)')
 pic_group.add_argument('sample',  type=str, help='PIC samples [P1, P2, P4, P5, all]  (Select "all" for all samples)')
 pic_group.add_argument('field',   type=str, help='PLATO fields [NPF, SPF, all]       (Select "all" for both fields)')
+
+out_group = parser.add_argument_group('I/O PARAMETERS')
+out_group.add_argument('-p', '--plot', action='store_true', help='Flag to plot target and contaminant catalog creation')
+out_group.add_argument('-s', '--save', action='store_true', help='Flag to save target and contaminant catalog into a PlatoSim like starcatalog format')
+out_group.add_argument('-t', '--targ', action='store_true', help='Flag to only show catalogue illustration (mainly testing)')
+out_group.add_argument('-o', '--outdir', type=str, metavar='STR', help='Output directory to save catalogue and plots')
+out_group.add_argument('--project',     type=str, metavar='NAME', help='Name project folder within $PLATO_WORKDIR')
+out_group.add_argument('-i', '--incat',  type=str, nargs='*',     help='PIC input target- and contaminant files (Format: csv, txt, ftr)')
+out_group.add_argument('-u', '--unique', type=str, metavar='STR', help='Parse old picsim target catalogue to select new unique stars (Format: ftr)')
 
 que_group = parser.add_argument_group('QUERY OPTIONS (optional)')
 que_group.add_argument('--query', type=str, metavar='NAME',   help='Simbad target for query using Gaia DR2')
@@ -89,19 +92,24 @@ que_group.add_argument('--dmag',  type=int, metavar='MAG',    help='Delta magnit
 que_group.add_argument('--dist',  type=int, metavar='ARCSEC', help='Radial distance to fecth contaminants [30, 45, 60] (Default: 45 arcsec)')
 
 obs_group = parser.add_argument_group('OBSERVABLES (optional)')
-obs_group.add_argument('--camera', metavar='NUM',   type=str, help='N-CAM visibility [6, 12, 18, 24]')
-obs_group.add_argument('--group',  metavar='NUM',   type=int, help='Camera-group visibility [1, 2, 3, 4]')
-obs_group.add_argument('--mag',    metavar='RANGE', type=str, help='P magnitude range of PIC targets (float or dash-range)')
-obs_group.add_argument('--spec',   metavar='TYPE',  type=str, help='Spectral type [F, G, K]')
-obs_group.add_argument('--lum',    metavar='CLASS', type=str, help='Luminosity class [V, IV]')
-obs_group.add_argument('--ntime',  metavar='NUM',   type=int, help='Number of individual timeseries to be generated')
+obs_group.add_argument('--ncams', metavar='NUM',   type=str, help='N-CAM visibility [6, 12, 18, 24]')
+obs_group.add_argument('--group', metavar='NUM',   type=int, help='Camera-group visibility [1, 2, 3, 4]')
+obs_group.add_argument('--mag',   metavar='RANGE', type=str, help='P magnitude range of PIC targets (float or dash-range)')
+obs_group.add_argument('--spec',  metavar='TYPE',  type=str, help='Spectral type [F, G, K]')
+obs_group.add_argument('--lum',   metavar='CLASS', type=str, help='Luminosity class [V, IV]')
+obs_group.add_argument('--ntime', metavar='NUM',   type=int, help='Number of individual timeseries to be generated')
 
 args = parser.parse_args()
+
+numTargets    = args.targets
+starSample    = args.sample
+platoField    = args.field
 
 plot          = args.plot
 subfield      = args.save
 onlyTargets   = args.targ
 outputDir     = args.outdir
+project       = args.project
 inputFiles    = args.incat
 oldCatalogue  = args.unique
 
@@ -109,12 +117,8 @@ targetQuery   = args.query
 dmagConLimit  = args.dmag
 disConLimit   = args.dist
 
-numTargets    = args.targets
-starSample    = args.sample
-platoField    = args.field
-ncamVisible   = args.camera
+ncamVisible   = args.ncams
 camGroup      = args.group
-
 magRange      = args.mag
 specType      = args.spec
 lumClass      = args.lum
@@ -159,24 +163,34 @@ inputFileCon = inputDir / 'PIC110contaminant.npy'
 outputPrefix = 'starcat'
 if args.sample: outputPrefix += '_' + args.sample
 if args.field:  outputPrefix += '_' + args.field
-if args.group:  outputPrefix += '_Ncam' + str(args.group)
-if args.camera: outputPrefix += '_CamVis' + args.camera
+if args.group:  outputPrefix += '_Group' + str(args.group)
+if args.ncams:  outputPrefix += '_Ncam' + args.ncams
 if inputFiles is not None: outputPrefix += '_NewCat'
 outputPrefixTar = outputPrefix + '_targets'      + fileFormat
 outputPrefixCon = outputPrefix + '_contaminants' + fileFormat
 
 # Name space for output files
-if outputDir is not None:
+if outputDir is not None or project is not None:
     # Resolve absolute output directory
-    outputDir = Path(outputDir).resolve()
+    if outputDir is not None:
+        outputDir = Path(outputDir).resolve()
+    elif project is not None:
+        outputDir = Path(os.getenv('PLATO_WORKDIR')) / project / 'input'
+    # Set file names
     if subfield:
         outputFileFOV = (outputDir / outputPrefix).joinwith_suffix(fileFormat)
     else:
         outputFileTar = outputDir / outputPrefixTar
         outputFileCon = outputDir / outputPrefixCon
 
+# Copy an inputfile.yaml file if no file exist
+inputFileYAML = Path(os.getenv('PLATO_PROJECT_HOME')) / 'inputfiles/inputfile.yaml'
+inputFileNew  = outputDir / 'inputfile.yaml'
+if not inputFileNew.is_file():
+    shutil.copy(inputFileYAML, inputFileNew)
+        
 
-#--------------------
+#-----------------------------------------------------------------
 # TODO implement properly such dmag and dist can be requested too
 if targetQuery:
     df = starQuery(targetQuery)
@@ -186,7 +200,7 @@ if targetQuery:
     if outputDir is not None:
         df.to_csv(outputDir / f"starcat_{targetQuery}.txt", sep=' ', header=False)    
     exit()
-#--------------------
+#-----------------------------------------------------------------
 
         
 # Select PIC sample
@@ -843,7 +857,7 @@ if outputDir is not None:
         dfc.to_feather(outputFileCon)
 
         # Output file name of HPC data
-        outputVarFileName = f'{outputDir}/data_hpc_{outputPrefix}.txt'
+        outputVarFileName = f'{outputDir}/cluster_{outputPrefix}.txt'
         print(f'Saving file {outputVarFileName}')
         headerVar = 'PIC, M, R, Teff'
         outputVarData = np.transpose([df['ID'].to_numpy(), df['M'].to_numpy(),
