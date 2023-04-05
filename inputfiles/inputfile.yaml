@@ -47,7 +47,7 @@ Platform:
     JitterYawRms:                    0.038           # [arcsec]
     JitterPitchRms:                  0.038           # [arcsec]
     JitterRollRms:                   0.040           # [arcsec]
-    JitterTimeScale:                 25.             # [s]
+    JitterTimeScale:                 250.            # [s]
     JitterFileName:                  inputfiles/jitter.txt
 
 
