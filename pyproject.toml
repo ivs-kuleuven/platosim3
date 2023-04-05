@@ -10,7 +10,6 @@ packages = [{include = "python/platosim"}]
 python = ">=3.8,<4.0"
 pyaml = "^21.10.1"
 h5py = "^3.6.0"
-argos = "^0.4.1"
 tqdm = "^4.65.0"
 prettytable = "^3.2.0"
 descartes = "^1.1.0"
@@ -19,10 +18,11 @@ DateTime = "^4.4"
 numpy = "^1.22.3"
 pandas = "^1.4.1"
 scipy = "^1.3.0"
+scikit-image = "^0.19.2"
 astropy = "^5.0.2"
 matplotlib = "^3.5.1"
 ipywidgets = "^8.0.2"
-# NOTE: jupyter is extremely slow if not jupyter-client and tornado are the version below!
+# NOTE: jupyter is extremely slow if not jupyter-client and tornado are the versions from below!
 notebook = ">=6.4.6,<6.4.7"
 jupyter-client = "7.3.2"
 tornado = "6.1.0"
@@ -36,11 +36,11 @@ renku-sphinx-theme = "^0.2.2"
 [tool.poetry.group.platonium]
 optional = true
 [tool.poetry.group.platonium.dependencies]
+argos = "^0.4.1"
 zipp = "^3.7.0"
 natsort = "^8.2.0"
 colorama = "^0.4.4"
 numba = "^0.56.4"
-scikit-image = "^0.19.2"
 astroquery = "^0.4.6"
 LDTk = "^1.7.0"
 wotan = "^1.10"
