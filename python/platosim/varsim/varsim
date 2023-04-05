@@ -124,7 +124,7 @@ class Variability(object):
             plt.rcParams['text.usetex'] = True
         
         # Absolute cwd path
-        self.path     = Path(os.getenv("PLATO_PROJECT_HOME")) + "/python/platosim/varsim"
+        self.path     = Path(os.getenv("PLATO_PROJECT_HOME")) /  "python/platosim/varsim"
         self.datapath = self.path / 'data'
         
         # OBSERVATIONAL PARAMETERS
@@ -228,7 +228,7 @@ class Variability(object):
  
         # Print available stellar model parameters
         if self.verbose > 0:
-            errorcode('module', 'Stellar Spectrum\n')
+            errorcode('module', '\nStellar Spectrum\n')
             print("Spectral Type         : {}".format(self.star_source))
             print("Stellar Mass          : {:.2f}".format(self.M.to('M_sun')))
             print("Photosphere Radius    : {:.2f}".format(self.R.to('R_sun')))
