@@ -1,38 +1,43 @@
 #!/usr/bin/env python3
 
-import os
-import h5py
-import numpy as np
+"""
+This python module is part of minimal platosim installation.
+It contains general
+NOTE: these utilities needs the Poetry install!
+"""
 
+# Python standard
+import os
+
+# PlatoSim standard
+import h5py
+import shapely.geometry as sg
+import descartes
+from tqdm import tqdm
+from ipywidgets import interact
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.colors as colors
+import matplotlib.animation as animation
 from matplotlib import patches
 from matplotlib.pyplot import cm
 from matplotlib.path import Path
 from matplotlib.ticker import MaxNLocator, ScalarFormatter, LogLocator
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
-import matplotlib.pyplot as plt
-import matplotlib.colors as colors
-import matplotlib.animation as animation
-
 from scipy import constants as c
 from scipy.ndimage import median_filter
 from scipy.interpolate import make_interp_spline
-
 from astropy.coordinates import SkyCoord, Angle
 import astropy.units as u
 
-from tqdm import tqdm
-from ipywidgets import interact
-import shapely.geometry as sg
-import descartes
-
+# PlatoSim imports
 import platosim.noise           as ns
 import platosim.utilities       as ut
-import platosim.referenceFrames as rf
+import platosim.referenceFrames as rf                                
 from platosim.matplotlibrc import setup
 setup()
 
 # Hard-code values
-
 aa = 0.5  # Alpha transparency
 fs = 14   # Font-size
 ms = 0.2  # Marker-size
@@ -40,7 +45,6 @@ lw = 0.5  # Line-width
 pt = 0.1  # Percentage
 
 # Define some nice colors
-
 colors_sea = ['royalblue', 'lightseagreen', 'limegreen']
 colors_hot = ['tomato', 'darkorange', 'gold']
 colors_new = ['royalblue', 'limegreen', 'darkorange', 'tomato', 'gold']
@@ -1253,7 +1257,7 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
     
     # Select field
 
-    indir = os.getenv('PLATO_PROJECT_HOME') + '/python/platosim/picsim/'
+    indir = os.getenv('PLATO_PROJECT_HOME') + '/python/platosim/picsim/data'
     if pointingField == 'NPF': PF_gal = [65.0, 30.0]
     if pointingField == 'SPF': PF_gal = [253.0, -30.0]
 
@@ -1269,10 +1273,10 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
         
     # Load PIC stars for each N-CAM visibility
 
-    PF06 = np.load(indir + f'{pointingField}-NCAM06.npy')
-    PF12 = np.load(indir + f'{pointingField}-NCAM12.npy')
-    PF18 = np.load(indir + f'{pointingField}-NCAM18.npy')
-    PF24 = np.load(indir + f'{pointingField}-NCAM24.npy')
+    PF06 = np.load(f'{indir}/{pointingField}-NCAM06.npy')
+    PF12 = np.load(f'{indir}/{pointingField}-NCAM12.npy')
+    PF18 = np.load(f'{indir}/{pointingField}-NCAM18.npy')
+    PF24 = np.load(f'{indir}/{pointingField}-NCAM24.npy')
 
     starPF06 = SkyCoord(PF06[:,0]*u.deg, PF06[:,1]*u.deg, frame=system, unit='deg')
     starPF12 = SkyCoord(PF12[:,0]*u.deg, PF12[:,1]*u.deg, frame=system, unit='deg')
@@ -2316,17 +2320,17 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
             level = 'camera'
         else:
             level = 'instrument'
-        noise_jitter = ut.getJitterNoiseLimitNSR(rms, level=level)
+        noise_jitter = getJitterNoiseLimitNSR(rms, level=level)
         ax.axhline(y=noise_jitter, c="deeppink", ls="--", lw=1.5, zorder=2, label='Jitter noise')
 
         # Photon noise
         ncams = show_ncam_noise_limits
-        noise_photon = ut.getPhotonNoiseLimitNSR(mag, passband=passband, ncam=ncams)
+        noise_photon = getPhotonNoiseLimitNSR(mag, passband=passband, ncam=ncams)
         ax.plot(mag, noise_photon * 0.7324478224428527, '-.', c='deeppink', lw=1.5,
                 zorder=2, label='Photon noise')
         
         # Background and readout noise
-        noise_background = ut.getBackgroundNoiseLimitNSR(mag, passband=passband)
+        noise_background = getBackgroundNoiseLimitNSR(mag, passband=passband)
         ax.plot(mag, noise_background, ':', c='deeppink', lw=1.5, zorder=2,
                 label='Sky and read noise')
 
@@ -3078,7 +3082,7 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
     ims = []
     fig, ax = plt.subplots(1,1,figsize=figsize)
 
-    for imgNumber, imgName in zip(tqdm(imgNumbers, bar_format=ut.tqdmBar()), imgNames):
+    for imgNumber, imgName in zip(tqdm(imgNumbers, bar_format=tqdmBar()), imgNames):
 
         # Fetch each pixel image
         

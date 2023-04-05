@@ -9,6 +9,7 @@ and their current values on the command line.
 For usage, see the tutorial Jupyter-notebooks available at "PlatoSim/docs/tutorials".
 """
 
+# Python standard
 import os
 import sys
 import ast
@@ -18,11 +19,13 @@ import pyaml
 import inspect
 import datetime
 import subprocess
+
+# PlatoSim standard
 import numpy as np
 
+# PlatoSim imports
 import platosim.referenceFrames as rf
-import platosim.instrument      as getTED
-
+import platosim.instrument      as it
 from platosim.simfile import SimFile
 
 
@@ -1122,7 +1125,7 @@ class Simulation(object):
 
         # Create TED file
 
-        getTED(quarter=quarter, model=model, outfile=fileName, plot=plot)
+        it.getTED(quarter=quarter, model=model, outfile=fileName, plot=plot)
 
         # Set this to simulation
 

@@ -31,35 +31,41 @@ Usage examples:
   $ picsim all all SPF --camera 6 --group 1 --mag 9.5-12.2 -o </path/to/outdir>
 """
 
+# Python standard
 import os
 import random
+import warnings
 import argparse
 import datetime
-import urllib.request
-from pathlib import Path
 
+# PlatoSim standard
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from prettytable import PrettyTable
 from tqdm import tqdm
 
-# PlatoSim utilities
+# PlatoSim functions
 import platosim.plot       as pt
 import platosim.utilities  as ut
 from platosim.utilities  import errorcode
 from platosim.simulation import Simulation
 
+# VarSim functions
+import platosim.picsim.starquery as starQuery
+
 # Disable warnings
-import warnings
 warnings.simplefilter("ignore")
 
 # Start time tracking
 tic = datetime.datetime.now()
 
+
 #==============================================================#
 #               PARSING COMMAND-LINE ARGUMENTS                 #
 #==============================================================#
+
 
 parser = argparse.ArgumentParser(epilog=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -145,7 +151,7 @@ fileFormat = '.ftr'
 # Default is to use the latest PIC catalog saved
 # Else several old catalogs can be parsed for replotting
 # E.g. use: -intar starcat**targets.txt --incon starcat**contaminants.txt
-inputDir     = Path(os.getenv("PLATO_PROJECT_HOME")) / 'python/platosim/picsim'
+inputDir     = Path(os.getenv("PLATO_PROJECT_HOME")) / 'python/platosim/picsim/data'
 inputFileTar = inputDir / 'PIC110target.npy'
 inputFileCon = inputDir / 'PIC110contaminant.npy'
 
@@ -173,7 +179,7 @@ if outputDir is not None:
 #--------------------
 # TODO implement properly such dmag and dist can be requested too
 if targetQuery:
-    df = ut.starQuery(targetQuery)
+    df = starQuery(targetQuery)
     print(f'Catalogue for {targetQuery}:')
     print(df)
     
@@ -653,7 +659,7 @@ if fileFormat != '.txt':
 
 # Plot targets in aitoff Galactic sky projection
 fig0 = plt.subplots(figsize = (13,9))
-img = plt.imread(f'{inputDir}/gaiaDR3.png')
+img = plt.imread(f'{os.getenv("PLATO_PROJECT_HOME")}/docs/figures/gaiaDR3.png')
 pt.drawStarsInSkyAitoff(fig0, df['ra'], df['dec'], df['mag'], skymap=img)
 if plot: plt.show()
 
