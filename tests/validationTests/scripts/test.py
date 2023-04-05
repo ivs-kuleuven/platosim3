@@ -47,7 +47,8 @@ class Test:
         self.sim["Telescope/GroupID"] = "2"
         self.sim["CCD/Position"]      = "2"
         self.sim["PSF/Model"]         = "AnalyticNonGaussian"
-        
+        self.sim["Sky/SkyBackground/BackgroundValue"] = 342.
+
         # Configure the angles of the input file
 
         n      = self.sim["Telescope/GroupID"]

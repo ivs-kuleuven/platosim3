@@ -23,13 +23,13 @@ from ThroughputEfficiency.particulateContamination import ParticulateContaminati
 from ThroughputEfficiency.molecularContamination   import MolecularContamination
 from DarkSignal.shotNoise                          import ShotNoise
 from DarkSignal.darkSignalNonUniformity            import DarkSignalNonUniformity
-from DarkSignal.tempVariationOfCCD                 import TempVariationOfCCD 
+from DarkSignal.tempVariationOfCCD                 import TempVariationOfCCD
 from brighterFatterEffect                          import BrighterFatterEffect
 from cosmics                                       import Cosmics
 from openShutterSmearing                           import OpenShutterSmearing
 from ChargeTransferInefficiency.simpleCTI          import SimpleCTI
 from ChargeTransferInefficiency.Short2013          import Short2013CTI
-from ChargeTransferInefficiency.Short2013FromFile  import Short2013CTIFromFile 
+from ChargeTransferInefficiency.Short2013FromFile  import Short2013CTIFromFile
 from photonNoise                                   import PhotonNoise
 from readOutNoise                                  import ReadoutNoise
 from fullWellSaturation                            import FullWellSaturation

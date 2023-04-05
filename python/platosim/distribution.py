@@ -200,7 +200,7 @@ class Distribution(object):
 
         # Get bins using matplotlib
 
-        plt.figure(figsize=(8,5))
+        if plot: plt.figure(figsize=(8,5))
         hist, bins, patches = plt.hist(mags, bins=100, label="Stellar input catalogue")
         
         # Fit function: a * EXP(-b * magnitude) + c, to the magnitude distribution

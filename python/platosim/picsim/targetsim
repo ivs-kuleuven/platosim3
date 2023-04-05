@@ -28,7 +28,7 @@ import numpy as np
 import pandas as pd
 
 import platosim.utilities as ut
-from platosim.utilities import errorcode, gaiaQuery
+from platosim.utilities import errorcode, gaiaQuery, starQuery
 
 # Start time tracking
 tic = datetime.datetime.now()

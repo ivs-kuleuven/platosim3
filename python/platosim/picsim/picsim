@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 
 """
-Usage examples:
-  $ python picsim.py 100 P1 SPF -p
-  $ python picsim.py 1000 P5 NPF --camera 24
-  $ python picsim.py all all SPF --camera 6 --group 1 --mag 9.5-12.2 -o </path/to/outdir>
-
-This script take the PIC inputcatalog (csv format) and fetch the correct entries for target
-stars and their contaminants. Notice that the catalog will only be saved if an ouput directory
-and prefix (-o) are given as input. This script can also be used to re-plot a old output ascii
-catalog produced by this software. Note that the PIC contaminant catalog is complete up to 20 mag.
+This script is an integrated part of PlatoSim's toolkit PLATOnium.
+This script take the PIC inputcatalog (csv format) and fetch the 
+correct entries for target stars and their contaminants. Notice that
+the catalog will only be saved if an ouput directory and prefix (-o)
+are given as input. This script can also be used to re-plot a old 
+output ascii catalog produced by this software. Note that the PIC
+ contaminant catalog is complete up to 20 mag.
 
 Notes on PLATO fields:
   Number of targets in PIC: 320,743
@@ -26,6 +24,11 @@ Note on Sample flag:
   Number of targets in P5: 272,617 (SPF: 132,571, NPF: 140,046)
   Note that P2 is a bright sub-sample of P1.
   Note that P5 is on-board processed lightcures only.
+
+Usage examples:
+  $ picsim 100 P1 SPF -p
+  $ picsim 1000 P5 NPF --camera 24
+  $ picsim all all SPF --camera 6 --group 1 --mag 9.5-12.2 -o </path/to/outdir>
 """
 
 import os
@@ -74,6 +77,11 @@ pic_group.add_argument('targets', type=str, help='Number of targets saved in cat
 pic_group.add_argument('sample',  type=str, help='PIC samples [P1, P2, P4, P5, all]  (Select "all" for all samples)')
 pic_group.add_argument('field',   type=str, help='PLATO fields [NPF, SPF, all]       (Select "all" for both fields)')
 
+que_group = parser.add_argument_group('QUERY OPTIONS (optional)')
+que_group.add_argument('--query', type=str, metavar='NAME',   help='Simbad target for query using Gaia DR2')
+que_group.add_argument('--dmag',  type=int, metavar='MAG',    help='Delta magnitude inclusion threhold of target-to-contaminatn (Default: 5 mag)')
+que_group.add_argument('--dist',  type=int, metavar='ARCSEC', help='Radial distance to fecth contaminants [30, 45, 60] (Default: 45 arcsec)')
+
 obs_group = parser.add_argument_group('OBSERVABLES (optional)')
 obs_group.add_argument('--camera', metavar='NUM',   type=str, help='N-CAM visibility [6, 12, 18, 24]')
 obs_group.add_argument('--group',  metavar='NUM',   type=int, help='Camera-group visibility [1, 2, 3, 4]')
@@ -81,10 +89,6 @@ obs_group.add_argument('--mag',    metavar='RANGE', type=str, help='P magnitude 
 obs_group.add_argument('--spec',   metavar='TYPE',  type=str, help='Spectral type [F, G, K]')
 obs_group.add_argument('--lum',    metavar='CLASS', type=str, help='Luminosity class [V, IV]')
 obs_group.add_argument('--ntime',  metavar='NUM',   type=int, help='Number of individual timeseries to be generated')
-
-con_group = parser.add_argument_group('CONTAMINANTS (optional)')
-con_group.add_argument('--dmag', type=int, metavar='MAG',    help='Delta magnitude inclusion threhold of target-to-contaminatn (Default: 5 mag)')
-con_group.add_argument('--dist', type=int, metavar='ARCSEC', help='Radial distance threshold to include a contaminant [30, 45, 60] (Default: 45 arcsec)')
 
 args = parser.parse_args()
 
@@ -94,6 +98,10 @@ onlyTargets   = args.targ
 outputDir     = args.outdir
 inputFiles    = args.incat
 oldCatalogue  = args.unique
+
+targetQuery   = args.query
+dmagConLimit  = args.dmag
+disConLimit   = args.dist
 
 numTargets    = args.targets
 starSample    = args.sample
@@ -105,9 +113,6 @@ magRange      = args.mag
 specType      = args.spec
 lumClass      = args.lum
 numTimeseries = args.ntime
-
-dmagConLimit  = args.dmag
-disConLimit   = args.dist
 
 # Add latex font if catalogue is saved
 if outputDir is None:
@@ -140,9 +145,9 @@ fileFormat = '.ftr'
 # Default is to use the latest PIC catalog saved
 # Else several old catalogs can be parsed for replotting
 # E.g. use: -intar starcat**targets.txt --incon starcat**contaminants.txt
-inputDir     = Path(os.getenv("PLATO_PROJECT_HOME") + "/python/platosim/picsim")
-inputFileTar = inputDir / 'PIC110target'
-inputFileCon = inputDir / 'PIC110contaminant'
+inputDir     = Path(os.getenv("PLATO_PROJECT_HOME")) / 'python/platosim/picsim'
+inputFileTar = inputDir / 'PIC110target.npy'
+inputFileCon = inputDir / 'PIC110contaminant.npy'
 
 # Prefix name of output files
 outputPrefix = 'starcat'
@@ -164,6 +169,20 @@ if outputDir is not None:
         outputFileTar = outputDir / outputPrefixTar
         outputFileCon = outputDir / outputPrefixCon
 
+
+#--------------------
+# TODO implement properly such dmag and dist can be requested too
+if targetQuery:
+    df = ut.starQuery(targetQuery)
+    print(f'Catalogue for {targetQuery}:')
+    print(df)
+    
+    if outputDir is not None:
+        df.to_csv(outputDir / f"starcat_{targetQuery}.txt", sep=' ', header=False)    
+    exit()
+#--------------------
+
+        
 # Select PIC sample
 bitmask = {'P1': 1,
            'P2': 3,  # Notice 2 is stated in documentation but 3 is correct..
@@ -183,8 +202,8 @@ else: magRange = ut.convertMagnitudeRange(magRange)
 
 # Check for PLATO pointing field: ICRS-Ra-Dec (deg) and Galactic-long.-lat. (deg)
 
-PF = {'SPF': ['S', 86.79870508, -46.39594703, 253.0, -30.0],
-      'NPF': ['N', 265.08002279, 39.5836954,   65.0, +30.0]}
+PF = {'SPF': ['S', 86.79870508, -46.39594703, -4.25],
+      'NPF': ['N', 265.08002279, 39.5836954,   4.25]}
 
 if platoField is not None:
     if platoField == 'all':
@@ -201,7 +220,7 @@ cams_EOL = [[5, 11, 16, 17, 22], [6, 12, 18, 18, 24]]
 
 if ncamVisible is not None:
     try: cams[ncamVisible]
-    except KeyError: errorcode('Not valid number of N-cams! Use either 6, 12, 18, or 24')
+    except KeyError: errorcode('Not valid number of N-CAMs! Use either 6, 12, 18, or 24')
     else: pass
 
 # Check cam-group entry
@@ -253,17 +272,10 @@ try:
 except:
     inuaguration = True
     errorcode('message', 'Inuaguration: Welcome to the PIC of Destiny!')
-    print(f'Downloading PIC 1.1.0 catalogue...')
-    url_tar = 'ftp://plato:miSotalP@ftp.ster.kuleuven.be/PIC110target.npy'
-    url_con = 'ftp://plato:miSotalP@ftp.ster.kuleuven.be/PIC110contaminant.npy'
-    with urllib.request.urlopen(url_tar) as response, open(inputFileTar.with_suffix('.npy'), "wb") as out_file:
-        data = response.read()
-        out_file.write(data)
-        #print(out_file); exit()
-    with urllib.request.urlopen(url_con) as response, open(inputFileCon.with_suffix('.npy'), "wb") as out_file:
-        data = response.read()
-        out_file.write(data)
-
+    print(f'Downloading PIC 1.1.0 catalogue..')
+    ut.downloadFromFTP(filename=inputFileTar.name, outputDir=inputDir, server='plato')
+    ut.downloadFromFTP(filename=inputFileCon.name, outputDir=inputDir, server='plato')
+    
 # Load old PIC catalog for re-plot an old catalogue
 if inputFiles is not None:
 
@@ -272,7 +284,7 @@ if inputFiles is not None:
     N = int(len(inputFiles)/2.)
 
     # Check if one or more catalogs are parsed
-    # NOTE using *.pkl will order in alphabetic order
+    # NOTE using *.ftr will order in alphabetic order
     if len(inputFiles) > 2:
         inputFileTarget = inputFiles[1::2]
         inputFileContam = inputFiles[0::2]
@@ -449,10 +461,13 @@ if fileFormat != '.txt':
 
     # Allow to select only one cam-group
     if camGroup:
-        raPF  = PF[platoField][1]
-        decPF = PF[platoField][2]
+        raPF    = PF[platoField][1]
+        decPF   = PF[platoField][2]
+        kappaPF = PF[platoField][3]
         sim = Simulation('picsim')
-        dex = sim.getStarsWithinCameraGroup(raPF, decPF, df['ra'].to_numpy(), df['dec'].to_numpy(), camGroup)
+        dex = sim.getStarsWithinCameraGroup(raPF, decPF, kappaPF,
+                                            df['ra'].to_numpy(), df['dec'].to_numpy(), camGroup)
+        
         # Select max number of stars if too many is requested
         max_stars = np.sum(dex[0])
         if numTargets > max_stars:
@@ -651,7 +666,7 @@ if platoField is None:
 if len(df['ID']) > 200: plotmag = None
 else: plotmag = df['mag'].to_numpy()
 title = f'{platoField} {starSample} sample'
-fig1 = pt.plotPlatoFOV(platoField, df['ra'].to_numpy(), df['dec'].to_numpy(), magStars=plotmag, title=title)
+fig1, ax = pt.plotPlatoFOV(platoField, df['ra'].to_numpy(), df['dec'].to_numpy(), magStars=plotmag, title=title)
 if plot: plt.show()
 
 # Plot sample distribution in Teff vs. Radius

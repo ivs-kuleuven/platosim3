@@ -18,7 +18,9 @@ ObservingParameters:
     
 Sky:
 
-    SkyBackground:                   342.            # Sky background (Zodiacal + Galactic) excl. transmission efficiency. Set negative to compute [phot/pix/s]
+    SkyBackground:
+      UseConstantSkyBackground:      yes             # If true, every pixel sees the same background, otherwise the background gets calculated ones for every pixel
+      BackgroundValue:               -1              # Sky background: Zodiacal + Galactic (excl. transmission efficiency). Set negative to compute. [phot/pix/s]
     IncludeVariableSources:          no              # Include time series of variable stars or not
     VariableSourceList:              inputfiles/varsource.txt  # Ascii file: Col 1: star ID, Col 2: path of time series file
     IncludeCosmicsInSubField:        yes             # Whether or not to include cosmics in the subfield on the CCD
@@ -45,7 +47,7 @@ Platform:
     JitterYawRms:                    0.038           # [arcsec]
     JitterPitchRms:                  0.038           # [arcsec]
     JitterRollRms:                   0.040           # [arcsec]
-    JitterTimeScale:                 3600.           # [s]
+    JitterTimeScale:                 25.             # [s]
     JitterFileName:                  inputfiles/jitter.txt
 
 
@@ -86,14 +88,13 @@ Camera:
         Type:                        differential    # [differential, absolute]
         OrbitFile:                   inputfiles/orbit.txt
         StartTime:                   101489.207030
-    IncludeFieldDistortion:          yes             # Whether or not to include field distortion. This only applies when the PSF is not mapped from file.
-    FieldDistortion:
-        Type:                        Polynomial1D    # Wang distortion field distortion model: [k1, k2, k3, q1, q2, p1, p2] -> ConstantValue
+    IncludeFieldDistortion:          yes             # Whether or not to include field distortion. This only applies when the PSF is not mapped from file. 
+    FieldDistortion:                                 # Distortion model from Wang et al. (2007) with coefficients: [k1, k2, k3, q1, q2, p1, p2]
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent)
-        ConstantCoefficients:        [ 0.32419,  0.0232909,  0.407979,  0.00022463,  0.000217599,  0.000381958,  0.000963902]
-        ConstantInverseCoefficients: [-0.323487, 0.268344,  -0.435473, -0.00019304, -0.000176961, -0.000321713, -0.000827654]
-        CoefficientsFromFile:        inputfiles/distortioncoefficients.txt           # In case Source is FromFile
-        InverseCoefficientsFromFile: inputfiles/distortioninversecoefficients.txt    # In case Source if FromFile
+        ConstantCoefficients:        [ 0.32419,  0.0232909,  0.407979,  0.00022463,  0.000217599,  0.000381958,  0.000963902]  # Normal  coefficients if Source is Constant
+        ConstantInverseCoefficients: [-0.323487, 0.268344,  -0.435473, -0.00019304, -0.000176961, -0.000321713, -0.000827654]  # Inverse coefficients if Source is Constant
+        CoefficientsFromFile:        inputfiles/distortioncoefficients.txt         # Normal  coefficients if Source is FromFile
+        InverseCoefficientsFromFile: inputfiles/distortioninversecoefficients.txt  # Inverse coefficients if Source is FromFile
     IncludePointLikeGhosts:          yes
     IncludeExtendedGhosts:           no
     Ghosts:
@@ -185,9 +186,8 @@ CCD:
           FirstRowReadout:           0               # First row that will be read out by the FEE in partial-readout mode
           NumRowsReadout:            4510            # Number of rows that will be read out by the FEE, in partial-readout mode
     FlatfieldNoiseRMS:               0.010           # Flatfield noise RMS (local PRNU)
-    RelativeTransmissivity:
-        Coefficients:                [4.18e-2, -5.65e-5, 2.37e-7]  # Coefficients of the polynomial fit (k1 * x^2 + k2 * x^4 + k3 * x^6) to the variation
-                                                                   # in overall relative transmissivity w.r.t. angular distance from the OA
+    RelativeTransmissivity:                          # Overall relative transmissivity w.r.t. angular distance from the OA
+        Coefficients:                [4.18e-2, -5.65e-5, 2.37e-7]  # Coefficients of the polynomial fit (k1 * x^2 + k2 * x^4 + k3 * x^6)
         RadiusFOV:                   18.8908         # Radius of the FOV [degrees]
         ExpectedValue:               0.920           # Expected value of the efficiency (mean of all detector pixels within FOV)
     Polarization:
@@ -246,8 +246,8 @@ SubField:
     ZeroPointColumn:                 0               # Column of the (0,0) pixel of the subfield [pixels]
     NumColumns:                      100             # Number of columns, should be >= 8 [pixels]
     NumRows:                         100             # Number of rows,    should be >= 8 [pixels]
-    NumBiasPrescanRows:              30              # Nr of rows of the prescan strip to determine the bias [pixels]
-    NumBiasPrescanColumns:           30              # Nr of columns of the prescan strip to determine the bias [pixels]
+    NumBiasPrescanRows:              25              # Nr of rows of the prescan strip to determine the bias [pixels]
+    NumBiasPrescanColumns:           15              # Nr of columns of the prescan strip to determine the bias [pixels]
     NumSmearingOverscanRows:         30              # Nr of rows of the overscan strip to determine the smearing [pixels]
     SubPixels:                       8               # (Sqrt of) nr of subpixels per CCD pixel. Should be 2^n <= 128.
 
@@ -271,33 +271,34 @@ RandomSeeds:
     DarkSignalSeed:                  1468838669      # Unique positive integer, or -1 to auto-set using clock
 
 
-ControlHDF5Content:
-    WritePixelMaps:                  yes             # 2D pixel images for each exposure
-    WriteBiasMaps:                   yes             # 2D bias maps for the left and right hand side of the CCD, for each exposure
-    WriteSmearingMaps:               yes             # 2D smearing maps, for each exposure
-    WriteThroughputMaps:             yes             # 2D throughput maps (QE, vignetting, contamination, ...), for each exposure
-    WriteFlatfieldMap:               yes             # 2D image of the flatfield (PRNU and/or IRNU)
-    WriteSubPixelImages:             no              # 2D subpixel images: Only use this for a limited number of exposures!
-    WriteDiffusedPSF:                no              # Determines if diffused PSF should be written to the output HDF5 file. (Only works for mapped PSF, takes a long time to compute)
-    WriteHighResolutionPSF:          no              # Determines if the high resolution PSF will be written to the HDF5 file (doesn't work for Analytic Gaussian PSF)
-    WriteStarCatalog:                yes             # Determines if the starcatalog should be written to the HDF5 file
-    WriteStarPositions:              yes             # Star  positions are written in pixel and focal plane coordinates
-    WriteGhostPositions:             no              # Ghost positions are written in pixel and focal plane coordinates
-    WriteCosmics:                    yes             # Determines if the columns, rows and flux of the cosmics should be written to the HDF5 file
-    WriteACS:                        yes             # Whether to write the yaw, pitch, roll to the HDF5 file
-    WriteTelescopeACS:               yes             # Determines if the platform Yaw, Pitch and Roll should be written to the HDF5 file
-    WriteTransmissionEfficiency:     yes             # Determines if the Transmission Efficiency should be writen to the HDF5 file
-    WriteCTI:                        yes             # Write trap density maps at BOL and EOL for each species
+ControlHDF5Content:                                  # Data that can be written to the HDF5 output file
+    GroupByExposure:                 yes             # Layout of several HDF5 file entries: If "yes" group by Exposure, if "no" group by StarID.
+    WritePixelMaps:                  yes             # 2D Subfield Pixel maps for each exposure
+    WriteBiasMaps:                   yes             # 2D Bias maps for the left and right hand side of the CCD for each exposure
+    WriteSmearingMaps:               yes             # 2D Smearing maps for each exposure
+    WriteFlatfieldMap:               yes             # 2D Flatfield maps (PRNU and/or IPRNU), for each exposure
+    WriteThroughputMaps:             yes             # 2D Throughput maps for each exposure (i.e. QE, vignetting, contamination, etc.)
+    WriteTransmissionEfficiency:     yes             # 2D Transmission Efficiency maps for each exposure
+    WriteBackgroundMap:              yes             # 2D Sky Background map (only if "WriteVariableBackgroundMap = no")
+    WriteCTI:                        yes             # 2D Trap Density maps at BOL and EOL for each species
+    WriteSubPixelImages:             no              # 2D Subpixel maps, for each exposure: Only use this for a limited number of exposures!
+    WriteDiffusedPSF:                no              # 2D Diffused PSF
+    WriteHighResolutionPSF:          no              # 2D High resolution PSF
+    WriteACS:                        yes             # AOCS for Camera yaw, pitch, roll
+    WriteTelescopeACS:               yes             # AOCS for Platform Yaw, Pitch and Roll
+    WriteStarCatalog:                yes             # Star Catalog used in simulation
+    WriteStarPositions:              yes             # Star Positions written in pixel and focal plane coordinates
+    WriteGhostPositions:             yes             # Ghost positions (extended and point-like) written in pixel and focal plane coordinates
+    WriteCosmics:                    yes             # Cosmic rays written as pixel columns, rows and fluxes
+
 
 ControlTcpConnection:
 
     SendImagettesToClients:          no
     GetWindowPositionsFromServer:    no
-
     WindowPositionServerAddress:     tcp://localhost:5558
     JitterServerAddress:             tcp://localhost:5559
     ImagetteClientAddress:           tcp://localhost:5560
-
     WindowPositionSocketTimeout:     100  # [s]
     JitterSocketTimeout:             100  # [s]
 

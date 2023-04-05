@@ -10,7 +10,7 @@ from matplotlib.path import Path
 from matplotlib.ticker import MaxNLocator, ScalarFormatter, LogLocator
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 import matplotlib.pyplot as plt
-import matplotlib.colors as colors 
+import matplotlib.colors as colors
 import matplotlib.animation as animation
 
 from scipy import constants as c
@@ -1194,6 +1194,29 @@ def skyProjection(fig, longitude, latitude, origin=0, projection="mollweide"):
 
 
 
+def compass(ax, x, y, size):
+    
+    """Add a compass to indicate the north and east directions.
+
+    Parameters
+    ----------
+    x, y : float
+        Position of compass vertex in axes coordinates.
+    size : float
+        Size of compass in axes coordinates.
+    """
+    xy = x, y
+    scale = ax.wcs.pixel_scale_matrix
+    scale /= np.sqrt(np.abs(np.linalg.det(scale)))
+    self.annotate(label, xy, xy + size * n,
+                  self.transAxes, self.transAxes,
+                  ha='center', va='center',
+                  arrowprops=dict(arrowstyle='<-', shrinkA=0.0, shrinkB=0.0))
+            # for n, label, ha, va in zip(scale, 'EN',
+            #                             ['right', 'center'],
+            #                             ['center', 'bottom'])]
+
+
 
 def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="icrs",
                  showGroups=False, skymap=None, title=None, fs=20, figsize=(9,9)):
@@ -1239,8 +1262,10 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
 
     if system == 'icrs':
         PF = PF_icrs
+        view = 'astro'
     elif system == 'galactic':
         PF = PF_gal
+        view = system
         
     # Load PIC stars for each N-CAM visibility
 
@@ -1253,34 +1278,30 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
     starPF12 = SkyCoord(PF12[:,0]*u.deg, PF12[:,1]*u.deg, frame=system, unit='deg')
     starPF18 = SkyCoord(PF18[:,0]*u.deg, PF18[:,1]*u.deg, frame=system, unit='deg')
     starPF24 = SkyCoord(PF24[:,0]*u.deg, PF24[:,1]*u.deg, frame=system, unit='deg')
-    
-    if system == "icrs":
-        xStar06, yStar06 = starPF06.ra.deg, starPF06.dec.deg
-        xStar12, yStar12 = starPF12.ra.deg, starPF12.dec.deg
-        xStar18, yStar18 = starPF18.ra.deg, starPF18.dec.deg
-        xStar24, yStar24 = starPF24.ra.deg, starPF24.dec.deg
-    elif system == "galactic":
-        xStar06, yStar06 = starPF06.l.deg, starPF06.b.deg
-        xStar12, yStar12 = starPF12.l.deg, starPF12.b.deg
-        xStar18, yStar18 = starPF18.l.deg, starPF18.b.deg
-        xStar24, yStar24 = starPF24.l.deg, starPF24.b.deg
-    
-    # Load brightest stars
 
-    starPF = SkyCoord(raStars*u.deg, decStars*u.deg, frame=system, unit='deg')
+    if system == "icrs":
+        x06, y06 = starPF06.ra.deg, starPF06.dec.deg
+        x12, y12 = starPF12.ra.deg, starPF12.dec.deg
+        x18, y18 = starPF18.ra.deg, starPF18.dec.deg
+        x24, y24 = starPF24.ra.deg, starPF24.dec.deg
+    elif system == "galactic":
+        x06, y06 = starPF06.l.deg, starPF06.b.deg
+        x12, y12 = starPF12.l.deg, starPF12.b.deg
+        x18, y18 = starPF18.l.deg, starPF18.b.deg
+        x24, y24 = starPF24.l.deg, starPF24.b.deg
     
     # START PLOT
     
     fig = plt.figure(figsize=figsize)
-    ax = plt.axes(projection='astro zoom', center=PF, radius='30 deg', rotate='180 deg')
+    ax = plt.axes(projection=f'{view} degrees zoom', center=PF, radius='30 deg', rotate='180 deg')
 
     # Plot PIC1.1.0 stars after N-CAM visibility
 
-    ax.plot(xStar06, yStar06, '.', c='skyblue',     transform=ax.get_transform(system), ms=1, zorder=1)
-    ax.plot(xStar12, yStar12, '.', c='deepskyblue', transform=ax.get_transform(system), ms=1, zorder=2)
-    ax.plot(xStar18, yStar18, '.', c='dodgerblue',  transform=ax.get_transform(system), ms=1, zorder=3)
-    ax.plot(xStar24, yStar24, '.', c='royalblue',   transform=ax.get_transform(system), ms=1, zorder=4)
-
+    ax.plot(x06, y06, '.', c='skyblue',     transform=ax.get_transform(system), ms=1, zorder=1)
+    ax.plot(x12, y12, '.', c='deepskyblue', transform=ax.get_transform(system), ms=1, zorder=2)
+    ax.plot(x18, y18, '.', c='dodgerblue',  transform=ax.get_transform(system), ms=1, zorder=3)
+    ax.plot(x24, y24, '.', c='royalblue',   transform=ax.get_transform(system), ms=1, zorder=4)
+    
     # Plot stars and add legend scaled to the stellar magnitudes
     
     if magStars is not None and len(magStars) > 0:
@@ -1297,14 +1318,17 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
         dm, mark, color = 20, '*', 'none'
 
     # Plot all stars
-    
-    # scatter = ax.scatter(starPF.ra.deg, starPF.dec.deg, transform=ax.get_transform('world'), 
-    #                      s=dm, marker=mark, c=color, ec='k', lw=1, zorder=5)
 
+    starPF = SkyCoord(raStars*u.deg, decStars*u.deg, frame=system, unit='deg')
+    scatter = ax.scatter(starPF.ra.deg, starPF.dec.deg, transform=ax.get_transform('world'), 
+                         s=dm, marker=mark, c=color, ec='k', lw=1, zorder=5)
     
     # Plot pointing of each camera group
     
     if showGroups:
+
+        # Show N-CAM groups
+        
         raGroups, decGroups = rf.getCameraGroupCoordinates(PF_icrs.ra.deg, PF_icrs.dec.deg, -8.5)
         camPointing = SkyCoord(raGroups*u.deg, decGroups*u.deg, frame='icrs', unit='deg')  
         for i, c in zip(range(4), ['b', 'limegreen', 'yellow', 'r']):
@@ -1315,7 +1339,6 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
         
         ax.plot(PF_icrs.ra.deg, PF_icrs.dec.deg, '*', c='k', mfc='magenta', ms=25,
                 transform=ax.get_transform('world'), zorder=6)
-    
         # Plot F-CAM FOV as cicle
         # ax.plot(PF_icrs.ra.deg, PF_icrs.dec.deg,  marker='.',
         #         linestyle='solid', mfc='none', mec='magenta', ms=700, lw=3,
@@ -1335,7 +1358,7 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
     ax.scalebar((0.05, 0.05), 10 * u.deg).label()
     ax.compass(0.95, 0.05, 0.1)
     ax.grid(color='gray')
-
+    
     # Settings
     
     if title is not None:
@@ -1348,7 +1371,7 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
     
     # Return figure
     
-    return fig
+    return fig, ax
 
 
 
@@ -1357,6 +1380,10 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
 
 def plot_test(pointingField, raStars=0, decStars=0, magStars=None, system="icrs",
                  showGroups=False, skymap=None, title=None, fs=20, figsize=(9,9)):
+
+    # Under development!
+    # https://github.com/lpsinger/ligo.skymap/blob/main/ligo/skymap/plot/allsky.py
+    
     import numpy as np
     from matplotlib.patches import Circle
     from astropy.coordinates import SkyCoord
@@ -1381,11 +1408,9 @@ def plot_test(pointingField, raStars=0, decStars=0, magStars=None, system="icrs"
     elif system == 'galactic':
         x = PF.l.deg
         y = PF.b.deg
-        xstring = 'LAT'
-        ystring = 'LON'
-
-    print(x, y)
-
+        z = 0
+        xstring = 'GLON'
+        ystring = 'GLAT'
 
     wcs_spec =  {'CDELT1': -3.5,
                  'CDELT2': 3.5,
@@ -1397,7 +1422,6 @@ def plot_test(pointingField, raStars=0, decStars=0, magStars=None, system="icrs"
                  'CTYPE2': ystring,
                  'CUNIT1': 'deg',
                  'CUNIT2': 'deg'}
-
     wcs = WCS(wcs_spec)
 
     # Load PIC stars for each N-CAM visibility
@@ -1413,15 +1437,15 @@ def plot_test(pointingField, raStars=0, decStars=0, magStars=None, system="icrs"
     starPF24 = SkyCoord(PF24[:,0]*u.deg, PF24[:,1]*u.deg, frame=system, unit='deg')
 
     if system == "icrs":
-        xStar06, yStar06 = starPF06.ra.deg, starPF06.dec.deg
-        xStar12, yStar12 = starPF12.ra.deg, starPF12.dec.deg
-        xStar18, yStar18 = starPF18.ra.deg, starPF18.dec.deg
-        xStar24, yStar24 = starPF24.ra.deg, starPF24.dec.deg
+        ra06, dec06 = starPF06.ra.deg, starPF06.dec.deg
+        ra12, dec12 = starPF12.ra.deg, starPF12.dec.deg
+        ra18, dec18 = starPF18.ra.deg, starPF18.dec.deg
+        ra24, dec24 = starPF24.ra.deg, starPF24.dec.deg
     elif system == "galactic":
-        xStar06, yStar06 = starPF06.l.deg, starPF06.b.deg
-        xStar12, yStar12 = starPF12.l.deg, starPF12.b.deg
-        xStar18, yStar18 = starPF18.l.deg, starPF18.b.deg
-        xStar24, yStar24 = starPF24.l.deg, starPF24.b.deg
+        ra06, dec06 = starPF06.l.deg, starPF06.b.deg
+        ra12, dec12 = starPF12.l.deg, starPF12.b.deg
+        ra18, dec18 = starPF18.l.deg, starPF18.b.deg
+        ra24, dec24 = starPF24.l.deg, starPF24.b.deg
     
     # Start plotting
     
@@ -1430,10 +1454,10 @@ def plot_test(pointingField, raStars=0, decStars=0, magStars=None, system="icrs"
 
     # Plot PIC1.1.0 stars after N-CAM visibility
 
-    ax.plot(xStar06, yStar06, '.', c='skyblue',     transform=ax.get_transform(system), ms=1, zorder=1)
-    ax.plot(xStar12, yStar12, '.', c='deepskyblue', transform=ax.get_transform(system), ms=1, zorder=2)
-    ax.plot(xStar18, yStar18, '.', c='dodgerblue',  transform=ax.get_transform(system), ms=1, zorder=3)
-    ax.plot(xStar24, yStar24, '.', c='royalblue',   transform=ax.get_transform(system), ms=1, zorder=4)
+    ax.plot(ra06, dec06, '.', c='skyblue',     transform=ax.get_transform(system), ms=1, zorder=1)
+    ax.plot(ra12, dec12, '.', c='deepskyblue', transform=ax.get_transform(system), ms=1, zorder=2)
+    ax.plot(ra18, dec18, '.', c='dodgerblue',  transform=ax.get_transform(system), ms=1, zorder=3)
+    ax.plot(ra24, dec24, '.', c='royalblue',   transform=ax.get_transform(system), ms=1, zorder=4)
 
     # Plot stars and add legend scaled to the stellar magnitudes
     
@@ -1443,32 +1467,51 @@ def plot_test(pointingField, raStars=0, decStars=0, magStars=None, system="icrs"
         mag_range = np.arange(min(magStars), max(magStars)).astype(int)
         dm_range  = (max(magStars) - mag_range) * maxMarkerSize/10
         mark, color = 'o', 'gold'
-        handle = [plt.plot([],[], "o", c='gray', ms=dm_range[i], ls="")[0] for i in range(len(dm_range))]
-        ax.legend(handles=handle, labels=mag_range.tolist(), loc='upper right', title=r"P [mag]", fontsize=16, title_fontsize=16)
+        handle = [plt.plot([],[], "o", c='gray', ms=dm_range[i], ls="")[0]
+                  for i in range(len(dm_range))]
+        ax.legend(handles=handle, labels=mag_range.tolist(), loc='upper right',
+                  title=r"P [mag]", fontsize=16, title_fontsize=16)
     else:
         dm, mark, color = 20, '*', 'none'
-
 
     # Plot pointing of each camera group
     
     if showGroups:
+
+        # Plot pointing of the N-CAM groups
+        
         raGroups, decGroups = rf.getCameraGroupCoordinates(x, y, z)
         camPointing = SkyCoord(raGroups*u.deg, decGroups*u.deg, frame='icrs', unit='deg')  
         for i, c in zip(range(4), ['b', 'limegreen', 'yellow', 'r']):
             ax.plot(camPointing[i].ra.deg, camPointing[i].dec.deg, 'o', ms=13, color=c,
                     mec='k', transform=ax.get_transform('world'), zorder=6)
 
+        # Plot F-CAM and platform pointing (PIC1.1.0 and PIC2.0.0)
         
-    #fcams = Circle((x, y), 20, fc='none', lw=2, transform=ax.get_transform('icrs'),
-    #               ec='magenta', zorder=7)
-    #ax.add_patch(fcams)
-    
-    ax.plot(x, y,  marker='.', linestyle='solid',  mfc='none', mec='magenta', ms=700,
-            transform=ax.get_transform(system), zorder=7)
+        ax.plot(x, y, '*', c='k', mfc='magenta', ms=25,
+                transform=ax.get_transform('world'), zorder=6)
+        # Plot F-CAM FOV as cicle
+        # ax.plot(PF_icrs.ra.deg, PF_icrs.dec.deg,  marker='.',
+        #         linestyle='solid', mfc='none', mec='magenta', ms=700, lw=3,
+        #         transform=ax.get_transform(system), zorder=6)
+        ax.scatter(x, y, s=115000, marker='o', edgecolor='magenta', facecolor='none',
+                   linewidth=2, transform=ax.get_transform(system), zorder=6)
+        # The problem with projecting shapes due to missing cos factor
+        # https://nbviewer.org/gist/cdeil/1df42de70326d577e7964be15b2a7396
+        # https://github.com/astropy/regions/issues/76
+        # circle = patches.Circle((PF_icrs.ra.deg, PF_icrs.dec.deg), 18, fc='none', lw=2,
+        #                         transform=ax.get_transform('icrs'), ec='magenta', zorder=7)
+        #ax.add_patch()
 
+
+        
+    # ax.plot(x, y,  marker='.', linestyle='solid',  mfc='none', mec='magenta', ms=700,
+    #         transform=ax.get_transform(system), zorder=7)
     
     ax.grid('on', color='gray')
-
+    #ax.scalebar((0.05, 0.05), 10 * u.deg).label()
+    compass(ax, 0.95, 0.05, 0.1)
+    
     #l = np.linspace(-10, 10, 100)
     #b = np.zeros_like(l)
     #gp = SkyCoord(l, b, frame='galactic', unit='deg').transform_to('icrs')
@@ -1478,7 +1521,7 @@ def plot_test(pointingField, raStars=0, decStars=0, magStars=None, system="icrs"
     #ax.set_xlim(0, 15)
     #ax.set_ylim(0, 15)
 
-    #plt.savefig('circle_gc_icrs.png', dpi=180)
+    return fig, ax
 
 
 
@@ -1489,7 +1532,7 @@ def plot_test(pointingField, raStars=0, decStars=0, magStars=None, system="icrs"
 
 
 def plotYawPitchRollTimeSeries(time, signals, units=["days", "arcsec"],
-                               title=False, ylim=False, figsize=(10,10)):
+                               title=False, ylim=False, figsize=(9,10)):
 
     """Plot the time series of yaw, pitch, and roll for both AOSC jitter and thermo drift.
     
@@ -1573,7 +1616,7 @@ def plotYawPitchRollTimeSeries(time, signals, units=["days", "arcsec"],
 
         # Title
 
-        if plot == 0: ax.set_title(title)
+        if title and plot == 0: ax.set_title(title)
 
     # Adjust layout
 
@@ -2119,8 +2162,9 @@ def plotPhotometry(df, time_unit=False, flux_unit=False, figsize=(8,5)):
     
 
 
-def plotNSRvsMagnitude(df, column=False, Vmag=False, residuals=False,
-                       yscale="log", cmap="coolwarm",
+def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
+                       yscale="log", cmap="coolwarm", show_targets=False,
+                       show_ncam_noise_limits=False, show_saturation_limits=False,
                        grid=True, legend=False, figsize=(10,6)):
 
     """Plot the NSR vs. Magnitude for a star catalogue.
@@ -2154,44 +2198,36 @@ def plotNSRvsMagnitude(df, column=False, Vmag=False, residuals=False,
     
     fig, ax = plt.subplots(1, 1, figsize=figsize)
 
-    # Plot requirements
-    
-    if residuals == "camera":
-        ax.axhline(y=108, c="darkorange", ls="--", label="AOCS camera req.: 108 ppm", zorder=0)
-        if yscale == "linear":
-            ax.axhline(y=-108, c="darkorange", ls="--")
-    elif residuals == "system":
-        ax.axhline(y=9, c="red", ls="--", label="AOCS system req.: 9 ppm", zorder=0)
-    elif residuals == "multi":
-        cmap = plt.cm.get_cmap('coolwarm')
-        for nsr, ncam, color in zip([100, 70, 58, 50], [6, 12, 18, 24], [0.0, 0.33, 0.66, 0.999]):
-            ax.axhline(y=nsr, color=cmap(color), linestyle="--",
-                       label=f"{nsr} ppm for "+r"$n_{\rm CAM}=\,$"+f"{ncam}", zorder=0)
-        ax.axvline(x=11, color="k", alpha=0.7, linestyle=':', zorder=0)
-        
-    # Handle colorbar and make discrete
+    # Secure a small offset in x axis to show data
+    dx = (df.mag.max() - df.mag.min()) * 1e-2
+    ax.set_xlim(df.mag.min()-dx, df.mag.max()+dx)
 
+    # Define global colormap
+    
+    cmap = plt.cm.get_cmap('coolwarm')
+    
+    # Set figure labels
+
+    if passband == 'P':
+        xlabel = r'PLATO magnitude, $\mathcal{P}$'
+    elif passband == 'V':
+        xlabel = r'Johnson-Cousin magnitude, $V$'
+    else:
+        errorcode('error', 'Not valid passband: options ["P", "V"]')
+    ax.set_xlabel(xlabel)
+    ylabel = r'NSR [ppm h$^{-1/2}$]'
+    
+    # Handle colorbar and make discrete
+    
     if column in ("group", "camera", "quarter", "ncam", "ncon", "flag"):
 
         # Fetch custom discrete colorbar used by matplotlib
-        
-        if (df[column].max() - df[column].min()) > 24:
-            sep = 5
-        else:
-            sep = 1    
+        sep =1
         cbins = np.arange(df[column].min(), df[column].max()+2, sep)
         ticks = cbins + 0.5
         norm  = discretizeColorbar(cbins=cbins, cmap=cmap)
-        
     else:
         norm = None
-
-    # Set figure labels
-
-    if Vmag: xlabel = r'Johnson-Cousin magnitude, $V$'
-    else:    xlabel = r'PLATO magnitude, $\mathcal{P}$'
-    ax.set_xlabel(xlabel)
-    ylabel = r'NSR [ppm h$^{-1/2}$]'
     
     # Distinguish between the NSR or O-C plot
     
@@ -2203,28 +2239,102 @@ def plotNSRvsMagnitude(df, column=False, Vmag=False, residuals=False,
         else:
             im = ax.scatter(df["mag"], df["res"], s=5, zorder=1,
                             c=df[column], cmap=cmap, norm=norm)
+            
     elif column:
-        im = ax.scatter(df["mag"], df["NSR"], s=3, zorder=1,
+        im = ax.scatter(df["mag"], df["NSR"], s=3, alpha=1, zorder=1,
                         c=df[column], cmap=cmap, norm=norm)
         ax.set_ylabel(ylabel)
+        
     else:
         ax.plot(df["mag"], df["NSR"], 'k.', alpha=0.7, zorder=1)
         ax.set_ylabel(ylabel)
-
+        
     # Extra settings for colorbar after image generation
-
-    if column == "ncam":
-        column = r"$n_{\rm CAM}$"        
         
     if norm is None:
         cb = plt.colorbar(im, extend="max", pad=0.01)
         cb.set_label(column)
     else:
+
+        # Change label
+        if column == 'ncam':
+            column_label = r'$n_{\rm CAM}$'
+        elif column == 'ncon':
+            column_label = r'$n_{\rm contaminants}$'
+
+        # Plot the colorbar
         cb = plt.colorbar(im, extend="max", pad=0.01, spacing='proportional',
                           ticks=ticks, boundaries=cbins, format='%1i')
-        cb.set_label(column)
+        cb.set_label(column_label)
         cb.minorticks_off()
 
+        # Fewer tick labels for large numbers
+        # if (df[column].max() - df[column].min()) > 24:
+        #     for label in cb.ax.yaxis.get_ticklabels()[::2]:
+        #         label.set_visible(False)
+
+    # Highlight single stars
+    
+    if show_targets and column == 'ncon' and residuals == 'multi':
+        dc = df.loc[df.ncon == 0]
+        ax.scatter(dc.mag, dc.NSR, s=3, color=cmap(0.0), zorder=1)
+                
+    # Plot saturation limits
+    
+    if show_saturation_limits:
+        ax.axvline(x=8.5, color="k", alpha=0.7, linestyle=':',  zorder=0,
+                   label='Onset of saturation')
+        ax.axvline(x=7.4, color="k", alpha=0.5, linestyle='--', zorder=0,
+                   label='Moderate saturation')
+
+    # Plot requirements
+        
+    if residuals == "camera":
+        ax.axhline(y=108, c="darkorange", ls="--", label="AOCS camera req.: 108 ppm", zorder=0)
+        if yscale == "linear":
+            ax.axhline(y=-108, c="darkorange", ls="--")
+            
+    elif residuals == "system":
+        ax.axhline(y=9, c="red", ls="--", label="AOCS system req.: 9 ppm", zorder=0)
+        
+    elif residuals == "multi" and 'ncam' in df:
+        for nsr, ncam, color in zip([100, 70, 58, 50], [6, 12, 18, 24], [0.0, 0.33, 0.66, 0.999]):
+            ax.axhline(y=nsr, color=cmap(color), linestyle="--",
+                       label=f"{nsr} ppm for "+r"$n_{\rm CAM}=\,$"+f"{ncam}", zorder=0)
+        ax.axvline(x=11, color="k", lw=1, alpha=0.5, linestyle='-', zorder=0)
+
+    # Plot noise limits
+
+    if show_ncam_noise_limits:
+        
+        # Magnitude range
+        mag = np.linspace(df.mag.min()-1, df.mag.max()+1, 100)
+
+        # Jitter noise
+        rms = 0.037
+        if show_ncam_noise_limits == 1:
+            level = 'camera'
+        else:
+            level = 'instrument'
+        noise_jitter = ut.getJitterNoiseLimitNSR(rms, level=level)
+        ax.axhline(y=noise_jitter, c="deeppink", ls="--", lw=1.5, zorder=2, label='Jitter noise')
+
+        # Photon noise
+        ncams = show_ncam_noise_limits
+        noise_photon = ut.getPhotonNoiseLimitNSR(mag, passband=passband, ncam=ncams)
+        ax.plot(mag, noise_photon * 0.7324478224428527, '-.', c='deeppink', lw=1.5,
+                zorder=2, label='Photon noise')
+        
+        # Background and readout noise
+        noise_background = ut.getBackgroundNoiseLimitNSR(mag, passband=passband)
+        ax.plot(mag, noise_background, ':', c='deeppink', lw=1.5, zorder=2,
+                label='Sky and read noise')
+
+        # Combine and plot
+        noise = noise_jitter + noise_photon + noise_background
+        ax.plot(mag, noise, '-', c='orange', lw=2,  zorder=2,
+                label=r"$n_{\rm CAM}=\,$"+f"{show_ncam_noise_limits} noise model")
+        
     # Force all yticks for log plot
 
     ax.set_yscale(yscale)
@@ -2233,12 +2343,13 @@ def plotNSRvsMagnitude(df, column=False, Vmag=False, residuals=False,
         ax.yaxis.get_minor_locator().set_params(numticks=99, subs=subticks)
         ax.yaxis.set_major_formatter(ScalarFormatter())
         ax.yaxis.set_minor_formatter(ScalarFormatter())
-    
+
     # Settings
-
     if grid:   ax.grid(color="lightgray")
-    if legend: ax.legend(loc='best')
+    if legend: ax.legend(loc='upper left')
 
+    # Return axes objects
+    
     return fig, ax
 
 
@@ -2706,7 +2817,8 @@ def plot_orbital_phase_curve(fig, time, lc_tra, lc_occ, lc_beam, lc_elli, lc_fin
     """
 
     # Input parameters
-    
+
+    pp = 0.05
     if colors is None: colors = colors_new
 
     # Phase-fold light curve
@@ -2891,8 +3003,8 @@ def plot_final_lc(lc, figsize=(10,8)):
 #--------------------------------------------------------------#
 
     
-def plotSubfieldAnimation(filename, outputFileName=False,
-                          skipNimages=None, numImages=False,
+def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
+                          frameRate=50, skipNimages=None, numImages=False,
                           colorMap="cubehelix", clipPercentile=8.0, 
                           showStarPositions=False, showPointLikeGhostPositions=False,
                           minVmag=None, maxVmag=None,
@@ -2942,14 +3054,14 @@ def plotSubfieldAnimation(filename, outputFileName=False,
     """
 
     # Fetch file with simulated subfields
-
+    print('Creating GIF animation:')
+    from platosim.simfile import SimFile
     f = h5py.File(filename, "r")
     simfile = SimFile(filename)
 
     # Fetch the image names
     imgNames   = list(f['Images'].keys())
-    #imgNumbers = list(range(1, len(imgNames)+1))
-    imgNumbers = list(range(len(imgNames)))
+    imgNumbers = list(range(int(imgNames[0][5:]), int(imgNames[-1][5:])))
     N          = len(imgNames)
 
     # Skip N images to make animation faster
@@ -2958,14 +3070,15 @@ def plotSubfieldAnimation(filename, outputFileName=False,
         imgNumbers = imgNumbers[0::skipNimages]
 
     # Fetch StarPosition keys (i.e. "Exposure000000", etc)
-    exposureGroupNames = list(f['StarPositions'].keys())[:-1] # -1 because Time is last column
+    # TODO remove time column: -1 because Time is last column
+    exposureGroupNames = list(f['StarPositions'].keys())[:-1]
 
     # Plot the image. Note that pixel coordinates start at the left bottom side of each pixel.
 
     ims = []
     fig, ax = plt.subplots(1,1,figsize=figsize)
 
-    for imgNumber, imgName in zip(tqdm(imgNumbers, bar_format=ut.tqdm_bar_format()), imgNames):
+    for imgNumber, imgName in zip(tqdm(imgNumbers, bar_format=ut.tqdmBar()), imgNames):
 
         # Fetch each pixel image
         
@@ -2990,7 +3103,7 @@ def plotSubfieldAnimation(filename, outputFileName=False,
 
         # Add either default title or defined by user
         if useTitle:
-            time  = 25./86400 * imgNumber
+            time  = cadence/86400 * imgNumber
             title = ax.text(0.5, 1.05, f"Elapsed time: {time:.2f} days",
                             horizontalalignment='center', transform=ax.transAxes)
         elif isinstance(useTitle, str) and int(imgNumber) == 0:
@@ -3002,7 +3115,7 @@ def plotSubfieldAnimation(filename, outputFileName=False,
 
             # Extract the arays from HDF5 file
             
-            exposureGroupName = exposureGroupNames[imgNumber]
+            exposureGroupName = exposureGroupNames[imgNumber-imgNumbers[0]]
             dataset = f["StarPositions"][exposureGroupName]["starID"]
             ID = np.zeros(dataset.shape, dataset.dtype)
             dataset.read_direct(ID)
@@ -3071,16 +3184,15 @@ def plotSubfieldAnimation(filename, outputFileName=False,
             
         # Overplot rectangles over those pixels that are part of the mask
         # Note: imshow reverses rows and columns
-        # TODO this result in circular import -> move this to showImage()!
 
-        # if showMaskOfStarID is not None:
-        #     from platosim.simfile import SimFile
-        #     mask = simfile.getApertureMask(showMaskOfStarID, imgNumber)
-        #     rowIndices, colIndices = mask[0], mask[1] 
-        #     for k in range(len(rowIndices)):
-        #         rect = patches.Rectangle((colIndices[k], rowIndices[k]),
-        #                                   1, 1, linewidth=2.0, edgecolor='b', facecolor='none')
-        #         mask = ax.add_patch(rect)
+        if showMaskOfStarID is not None:
+
+            mask = simfile.getApertureMask(showMaskOfStarID, imgNumber)
+            rowIndices, colIndices = mask[0], mask[1] 
+            for k in range(len(rowIndices)):
+                rect = patches.Rectangle((colIndices[k], rowIndices[k]),
+                                          1, 1, linewidth=2.0, edgecolor='b', facecolor='none')
+                mask = ax.add_patch(rect)
 
         # If requiered, overplot a gray semi-transparent grid
         # Note: this is only meaningsful for smaller imagettes
@@ -3110,8 +3222,8 @@ def plotSubfieldAnimation(filename, outputFileName=False,
     # Save animation (fps=50 and dpi=100 seems like good settings)
     
     if outputFileName is not False:
-        print('Creating GIF animation..')
-        ani.save(f'{outputFileName}.gif', fps=50, dpi=100)
+        print('Saving animation, be patient..')
+        ani.save(f'{outputFileName}.gif', fps=frameRate, dpi=100)
 
     # Show animation
     
