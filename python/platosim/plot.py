@@ -515,9 +515,9 @@ def drawStarInFocalPlane(sim, raStar, decStar):
         isMapped               = False 
 
     pixelSize             = float(sim["CCD/PixelSize"])
-    raPlatform            = np.radians(float(sim["ObservingParameters/RApointing"]))
-    decPlatform           = np.radians(float(sim["ObservingParameters/DecPointing"]))
-    solarPanelOrientation = np.deg2rad(float(sim["Platform/SolarPanelOrientation"]))
+    raPlatform            = np.radians(float(sim["Platform/Orientation/Angles/RAPointing"]))
+    decPlatform           = np.radians(float(sim["Platform/Orientation/Angles/DecPointing"]))
+    solarPanelOrientation = np.deg2rad(float(sim["Platform/Orientation/Angles/SolarPanelOrientation"]))
     azimuthTelescope      = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
     tiltTelescope         = np.deg2rad(float(sim["Telescope/TiltAngle"]))
     focalPlaneAngle       = np.radians(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
@@ -703,7 +703,7 @@ def drawStarInCCDfocalPlane(fig, sim, xCCD, yCCD, refCcdCode, refGroup,
         
         ra, dec = rf.platformToTelescopePointingCoordinates(np.radians(raPlatform),
                                                             np.radians(decPlatform),
-                                                            raSun, decSun,
+                                                            np.radians(solarPanelOrientation),
                                                             np.radians(azimuthAngles[group]),
                                                             np.radians(tiltAngles[group]))
 

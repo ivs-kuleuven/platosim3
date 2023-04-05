@@ -1324,7 +1324,7 @@ class Simulation(object):
         focalLength      = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0                                   # [m] -> [mm]
         focalPlaneAngle  = np.deg2rad(float(self["Camera/FocalPlaneOrientation/ConstantValue"]))
 
-        solarPanelOrientation = self["Platform/Orientation/Angles/SolarPanelOrientation"] = math.fmod(quarter * 90. - kappa, 360.) [deg]
+        solarPanelOrientation = self["Platform/Orientation/Angles/SolarPanelOrientation"] = math.fmod(quarter * 90. - kappaPF, 360.)  # [deg]
         solarPanelOrientation = np.deg2rad(float(solarPanelOrientation))                                              # [rad]
 
         raTargetsRad  = np.deg2rad(ra)                                                                                # [rad]
