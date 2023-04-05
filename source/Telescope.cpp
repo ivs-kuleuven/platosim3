@@ -174,12 +174,7 @@ void Telescope::flushOutput()
 
       if (!historyTime.empty() )
 	{
-	  hdf5File.writeArray("/Telescope/", "Time",           historyTime.data(),    historyTime.size());
-	  hdf5File.writeArray("/Telescope/", "TelescopeRA",    historyRA.data(),      historyRA.size());         // [deg]
-	  hdf5File.writeArray("/Telescope/", "TelescopeDec",   historyDec.data(),     historyDec.size());        // [deg]
-	  hdf5File.writeArray("/Telescope/", "TelescopeYaw",   historyYaw.data(),     historyYaw.size());        // [arcsec]
-	  hdf5File.writeArray("/Telescope/", "TelescopePitch", historyPitch.data(),   historyPitch.size());      // [arcsec]
-	  hdf5File.writeArray("/Telescope/", "TelescopeRoll",  historyRoll.data(),    historyRoll.size());       // [arcsec]
+	  hdf5File.writeTelescopeACS(historyTime, historyRA, historyDec, historyYaw, historyPitch, historyRoll);
 	}
       else
 	{

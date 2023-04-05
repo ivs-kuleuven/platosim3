@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 """
-This python module contains all statistical data analysis utilities to more easily analysing
-PlatoSim data products. 
+This python module contains all statistical data analysis utilities 
+to more easily analysing PlatoSim data products. 
 """
 
 import os
@@ -16,25 +16,37 @@ from scipy.ndimage import median_filter
 import statsmodels.api as sm
 from statsmodels.graphics.gofplots import qqplot
 
-#==============================================================#
-#                           FUNCTIONS                          #
-#==============================================================#
+
+#--------------------------------------------------------------#
+#                       OLS/WLS STATISTICS                     #
+#--------------------------------------------------------------#
 
 
 def colortheme(theme):
+
+    """Function to call a color theme.
+    """
+    
     # Select theme and PI color
     if theme == 'r': color = ['tomato', 'red', 'orange']
     if theme == 'g': color = ['limegreen', 'forestgreen', 'yellowgreen']
     if theme == 'b': color = ['royalblue', 'darkcyan', 'dodgerblue']
     if theme == 'm': color = ['deeppink', 'darkviolet', 'm']
     if theme == 'y': color = ['khaki', 'gold', 'orange']
+
     return color
 
 
 
-def plot_modelfit(data, lsFit, model, lsModel='OLS', CI=[0.05], alpha=0.1, theme='b', 
-                  x='x', y='y', xlab='x', ylab='y', yerr=False):
 
+
+def plot_modelfit(data, lsFit, model, lsModel='OLS', CI=[0.05], alpha=0.1, theme='b', 
+                  x='x', y='y', xlab='x', ylab='y', yerr=False, figsize=(9,5)):
+
+     
+    """Plot OLS/WLS model fit.
+    """
+   
     # Select theme and PI color
     color = colortheme(theme)
         
@@ -71,7 +83,7 @@ def plot_modelfit(data, lsFit, model, lsModel='OLS', CI=[0.05], alpha=0.1, theme
     predictions = lsFit.get_prediction()
     
     # PLOTTING
-    fig, ax = plt.subplots(figsize=(13,8))
+    fig, ax = plt.subplots(figsize=figsize)
     
     # plot data
     if yerr:
@@ -125,16 +137,27 @@ def plot_modelfit(data, lsFit, model, lsModel='OLS', CI=[0.05], alpha=0.1, theme
     
     
     
-def plot_residuals(data, lsFit, theme='b', reg='x', alpha=0.1, lsModel='OLS'):
+def plot_residuals(data, lsFit, theme='b', reg='x', alpha=0.1, lsModel='OLS',
+                   figsize=(9,4)):
+
+    """Plot the OLS/WLS model fit residuals.
+    """
     
     # Choose correct residuals
+    
     if lsModel == 'OLS':  resid = lsFit.resid
     else: resid = lsFit.resid_pearson
+
+    # Select the color theme
     
     color = colortheme(theme)
-    fig, ax = plt.subplots(1,2, figsize=(16,5))
+
+    # Start the plot
+    
+    fig, ax = plt.subplots(1, 2, figsize=figsize)
 
     # Plot residuals squared vs. observations
+    
     ax[0].plot(data[reg], resid**2, 'ko', ms=2, alpha=alpha, zorder=1)
     ax[0].grid(True,   color='grey',   ls='-',  lw=0.5, zorder=2)
     ax[0].axhline(y=0, color=color[0], ls='--', lw=2.0, zorder=3)
@@ -143,20 +166,28 @@ def plot_residuals(data, lsFit, theme='b', reg='x', alpha=0.1, lsModel='OLS'):
     ax[0].set_xlim(data[reg].iloc[0], data[reg].iloc[-1])
     
     # Plot residuals vs. plot
+    
     ax[1].plot(lsFit.fittedvalues, resid, 'ko', ms=2, alpha=alpha, zorder=1)
     ax[1].grid(True,   color='grey',    ls='-',  lw=0.5, zorder=2)
     ax[1].axhline(y=0, color=color[0],  ls='--', lw=2.0, zorder=3)
     ax[1].set_xlabel("Predicted reponse")
     ax[1].set_ylabel(r"Residuals, $\epsilon$")
     ax[1].set_xlim(np.min(lsFit.fittedvalues), np.max(lsFit.fittedvalues))
+
+    plt.tight_layout()
     plt.show()
     
     
     
+
     
-def plot_standardized_residuals(data, lsFit, K, reg='x', lsModel='OLS'):
+def plot_standardized_residuals(data, lsFit, K, reg='x', lsModel='OLS', figsize=(8,7)):
+
+    """Function to plot Q-Q plot.
+    """
     
     # Choose correct residuals
+    
     if lsModel == 'OLS':  resid = lsFit.resid
     else: resid = lsFit.resid_pearson
     
@@ -165,6 +196,7 @@ def plot_standardized_residuals(data, lsFit, K, reg='x', lsModel='OLS'):
     standardizedResiduals = resid / np.sqrt(s2)
     
     # Plot standardized residuals (QQ-plot)
-    fig, ax = plt.subplots(figsize=(10,6))
+    
+    fig, ax = plt.subplots(figsize=figsize)
     qqplot(standardizedResiduals, line='45', ax=ax)
     plt.show()

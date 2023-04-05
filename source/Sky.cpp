@@ -1069,19 +1069,9 @@ double Sky::zodiacalFlux(double alpha, double delta, double lambda1, double lamb
     // Check if the coordinates are out of boundary.
 
     locate(lam, skydata::zodlong, 19, lam_index);
-    locate(beta,skydata::zodlat,  10, beta_index);
+    locate(beta,skydata::zodlat,  11, beta_index);
 
     if ((lam_index == -1) || (beta_index == -1))
-    {
-        string position = "(" + to_string(rad2deg(alpha)) + ", " + to_string(rad2deg(delta)) + ")";
-        Log.warning("Sky::zodiacalFlux(): No data for (alpha, delta) = " + position);
-        return 0.0;
-    }
-
-    // Check if we don't happen to be in a "hole" in the table
-
-    if (  (skydata::zod[lam_index][beta_index] == -1) || (skydata::zod[lam_index][beta_index+1] == -1)
-        || (skydata::zod[lam_index+1][beta_index] == -1) || (skydata::zod[lam_index+1][beta_index+1] == -1))
     {
         string position = "(" + to_string(rad2deg(alpha)) + ", " + to_string(rad2deg(delta)) + ")";
         Log.warning("Sky::zodiacalFlux(): No data for (alpha, delta) = " + position);
@@ -1110,7 +1100,6 @@ double Sky::zodiacalFlux(double alpha, double delta, double lambda1, double lamb
     // derive the zodiacal light flux in the interval [lambda1, lambda2].
     // For this we use the fact that the zodiacal flux has a solar
     // wavelength dependence.
-
     return (flux500 * solarRadiantFlux(lambda1, lambda2) / solarRadiantFlux(500e-9));
 }
 
@@ -1167,19 +1156,10 @@ double Sky::zodiacalFlux(double alpha, double delta, vector<double> &lambda, vec
     // Check if the coordinates are out of boundary.
 
     locate(lam,  skydata::zodlong, 19, lam_index);
-    locate(beta, skydata::zodlat,  10, beta_index);
+    locate(beta, skydata::zodlat,  11, beta_index);
+
 
     if ((lam_index == -1) || (beta_index == -1))
-    {
-        string position = "(" + to_string(rad2deg(alpha)) + ", " + to_string(rad2deg(delta)) + ")";
-        Log.warning("Sky::zodiacalFlux(): No data for (alpha, delta) = " + position);
-        return 0.0;
-    }
-
-    // Check if we don't happen to be in a "hole" in the table
-
-    if (  (skydata::zod[lam_index][beta_index] == -1) || (skydata::zod[lam_index][beta_index+1] == -1)
-        || (skydata::zod[lam_index+1][beta_index] == -1) || (skydata::zod[lam_index+1][beta_index+1] == -1))
     {
         string position = "(" + to_string(rad2deg(alpha)) + ", " + to_string(rad2deg(delta)) + ")";
         Log.warning("Sky::zodiacalFlux(): No data for (alpha, delta) = " + position);
@@ -1260,21 +1240,9 @@ double Sky::stellarBackgroundFlux(double RA, double dec, double lambda1, double 
     // Check if the coordinates are out of boundary.
 
     locate(alpha, skydata::skyRA, 37, alpha_index);
-    locate(delta, skydata::skydec, 25, delta_index);
+    locate(delta, skydata::skydec, 27, delta_index);
 
     if ((alpha_index == -1) || (delta_index == -1))
-    {
-        string skyPosition = "(" + to_string(alpha) + ", " + to_string(delta) + ") deg";
-        Log.warning("Sky::stellarBgFlux(): No data for (alpha, delta) = " + skyPosition);
-        return 0.0;
-    }
-
-
-    // Check if we don't happen to be in a "hole" in the table
-    // These "holes" are the same for the blue and red passband.
-
-    if (   (skydata::skyblue[alpha_index][delta_index] == -1) || (skydata::skyblue[alpha_index][delta_index+1] == -1)
-        || (skydata::skyblue[alpha_index+1][delta_index] == -1) || (skydata::skyblue[alpha_index+1][delta_index] == -1))
     {
         string skyPosition = "(" + to_string(alpha) + ", " + to_string(delta) + ") deg";
         Log.warning("Sky::stellarBgFlux(): No data for (alpha, delta) = " + skyPosition);
@@ -1379,21 +1347,9 @@ double Sky::stellarBackgroundFlux (double RA, double dec, vector<double> &lambda
     // Check if the coordinates are out of boundary.
 
     locate(alpha, skydata::skyRA, 37, alpha_index);
-    locate(delta, skydata::skydec, 25, delta_index);
+    locate(delta, skydata::skydec, 27, delta_index);
 
     if ((alpha_index == -1) || (delta_index == -1))
-    {
-        string skyPosition = "(" + to_string(alpha) + ", " + to_string(delta) + ") deg";
-        Log.warning("Sky::stellarBgFlux(): No data for (alpha, delta) = " + skyPosition);
-        return 0.0;
-    }
-
-
-    // Check if we don't happen to be in a "hole" in the table
-    // These "holes" are the same for the blue and red passband.
-
-    if (  (skydata::skyblue[alpha_index][delta_index] == -1) || (skydata::skyblue[alpha_index][delta_index+1] == -1)
-        || (skydata::skyblue[alpha_index+1][delta_index] == -1) || (skydata::skyblue[alpha_index+1][delta_index] == -1))
     {
         string skyPosition = "(" + to_string(alpha) + ", " + to_string(delta) + ") deg";
         Log.warning("Sky::stellarBgFlux(): No data for (alpha, delta) = " + skyPosition);

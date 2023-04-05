@@ -23,13 +23,13 @@ from ThroughputEfficiency.particulateContamination import ParticulateContaminati
 from ThroughputEfficiency.molecularContamination   import MolecularContamination
 from DarkSignal.shotNoise                          import ShotNoise
 from DarkSignal.darkSignalNonUniformity            import DarkSignalNonUniformity
-from DarkSignal.tempVariationOfCCD                 import TempVariationOfCCD 
+from DarkSignal.tempVariationOfCCD                 import TempVariationOfCCD
 from brighterFatterEffect                          import BrighterFatterEffect
 from cosmics                                       import Cosmics
 from openShutterSmearing                           import OpenShutterSmearing
 from ChargeTransferInefficiency.simpleCTI          import SimpleCTI
 from ChargeTransferInefficiency.Short2013          import Short2013CTI
-from ChargeTransferInefficiency.Short2013FromFile  import Short2013CTIFromFile 
+from ChargeTransferInefficiency.Short2013FromFile  import Short2013CTIFromFile
 from photonNoise                                   import PhotonNoise
 from readOutNoise                                  import ReadoutNoise
 from fullWellSaturation                            import FullWellSaturation
@@ -98,13 +98,13 @@ name = "Absolute Aberration"
 testMessages.append("{:<9}  {:^42}:{}".format("Test3:", name, success[out3]))
 print(testMessages[-1])
 
-#with suppress_stdout():
-#    test4   = FieldDistortion()
-#    out4    = test4.run()
+with suppress_stdout():
+   test4   = FieldDistortion()
+   out4    = test4.run()
 
-#name = "Field Distortion"
-#testMessages.append("{:<9}  {:^42}:{}".format("Test4:", name, success[out4]))
-#print(testMessages[-1])
+name = "Field Distortion"
+testMessages.append("{:<9}  {:^42}:{}".format("Test4:", name, success[out4]))
+print(testMessages[-1])
 
 
 with suppress_stdout():

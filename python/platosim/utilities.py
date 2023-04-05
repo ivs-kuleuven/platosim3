@@ -9,27 +9,34 @@ NOTE: these utilities needs the Poetry install!
 
 import os
 import sys
+import glob
 import h5py
 import math
 import inspect
+import natsort
+import pathlib
+import urllib.request
+import ftplib
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-import astropy.units as u
-from astropy.coordinates import SkyCoord
+
+from numba import njit
 from pylab import MaxNLocator
 from colorama import Fore, Style
 from prettytable import PrettyTable
 from scipy.ndimage import median_filter
-from numba import njit
+
 import astropy.units as u
-from astroquery.simbad import Simbad
 from astropy.coordinates import SkyCoord
+
+from astropy.coordinates import SkyCoord
+from astroquery.simbad import Simbad
 from astroquery.mast import Catalogs
+from astroquery.gaia import Gaia
 
 # PlatoSim
 import platosim.referenceFrames as rf
-
 
 #--------------------------------------------------------------#
 #                        BASH FUNCTIONS                        #
@@ -138,9 +145,76 @@ def compilation(i, i_max, text=''):
     sys.stdout.flush()
 
 
+    
 
 
+def downloadFromFTP(filename, outputDir, server='plato'):
 
+    """Function to download file from KUL FTP.
+    https://stackoverflow.com/questions/67300881/how-do-i-keep-a-ftp-connection-alive
+    """
+
+    # Assume that no suffix means a folder of data
+    # If true then download folder and it entire content
+    # If flase simply download the requested file
+    
+    ftp_filename = pathlib.Path(filename)
+
+    if ftp_filename.suffix in ('.zip', '.npy', '.ftr', '.hdf5', '.h5'):
+        ftp_subpath = pathlib.Path(filename).parents[0]
+        permission  = False
+    else:
+        ftp_subpath = pathlib.Path(filename)
+        permission  = True
+        
+    # Also if file on FTP is within a folder, create folder locally
+        
+    outputDir = outputDir / ftp_subpath
+    outputDir.mkdir(parents=True, exist_ok=True)
+        
+    # Login to server
+    # For plato: Download a single file
+    # For platodata: Download all files in a folder
+
+    ftp = ftplib.FTP('ftp.ster.kuleuven.be')
+    
+    if server == 'plato':
+        # Single file download
+        ftp.login(user=server, passwd='miSotalP')
+        ftp.cwd(f'{ftp_subpath}')
+        files = [filename]
+        #ftp = 'ftp://plato:miSotalP@ftp.ster.kuleuven.be'
+    elif server == 'platodata':
+        ftp.login(user=server, passwd='i9Pidw1bXIFShGYb0jI8')
+        ftp.cwd(f'PLATOSIM/{ftp_subpath}')
+        files = ftp.nlst()[2:]
+        #ftp = 'ftp://platodata:i9Pidw1bXIFShGYb0jI8@ftp.ster.kuleuven.be/PLATOSIM'
+    else:
+        errorcode('error', f'Server name {server} is not valid!')
+            
+    # Fetch all the files
+        
+    for filename in files:
+
+        # Only try to save file if is doesn't exists
+        
+        local_file = pathlib.Path(outputDir) / filename
+
+        if not local_file.is_file():
+            ftp_file   = open(local_file, 'wb')
+            ftp.retrbinary(f'RETR {filename}', ftp_file.write)
+            ftp_file.close()
+            
+            # Give read and write rights to this
+            if permission: local_file.chmod(777)
+
+    # Close connection
+    
+    ftp.quit()
+
+    
+
+            
 #--------------------------------------------------------------#
 #                      PANDAS OPERATIONS                       #
 #--------------------------------------------------------------#
@@ -424,7 +498,7 @@ def stellarFlux(Vmag, exposureTime, fluxm0=1.00238e8,
 
 
 
-def passbandConversionV2P(mag, Teff, inverse=False):
+def passbandConversionV2P(mag, Teff, inverse=False, method='fialho'):
 
     """Coversion from Johnson-Cousin V magnitude to the PLATO passband.
     
@@ -446,9 +520,14 @@ def passbandConversionV2P(mag, Teff, inverse=False):
     """
 
     # Bolometric scaling relation
-    
-    # c = [1.184e-12, 4.526e-8, -5.805e-4, 2.449]  # Machiori et al. (2019)
-    c = [2.366e-12, 8.126e-8, -9.279e-4, 3.499]  # Fabio Fialho et al. in prep
+
+    if method == 'fialho':
+        # Fialho et al. (in prep.)
+        c   = [-2.366e-12, 8.126e-8, -9.279e-4, 3.499]
+    elif method == 'marchiori':
+        # Machiori et al. (2019)
+        c = [-1.184e-12, 4.526e-8, -5.805e-4, 2.449]
+
     bol = c[0]*Teff**3 + c[1]*Teff**2 + c[2]*Teff + c[3]
 
     # From V to P (or P to V if inverse it True)
@@ -462,15 +541,65 @@ def passbandConversionV2P(mag, Teff, inverse=False):
 
 
 
+def getJitterNoiseLimitNSR(rms, tdur=3600, level='instrument', camType='normal'):
 
-def getPhotonNoiseLimitNSR(P, Ncam=1, Ntra=1, tdur=3600, camType='N'):
+    """NSR estimate of the jitter noise component.
+
+    Parameters
+    ----------
+    jitterASD : float
+        Amplitude Spectral Density of the jitter [ppm/sqrt(muHz)] :
+        If level = 'camera'     : At the cycle frequency of the cameras
+        If level = 'instrument' : Over the duration of all exposures
+    tdur : float, narray
+        Time duration over which the NSR is estimated. E.g., 3600s for 1h precision.
+    camType : str
+        Either the normal (N) or fast (F) cameras. Default is normal.
+
+    Return
+    ------
+    NSR : float
+        NSR only valid for the photon noise limit.
+    """
+
+    # Amplitude Spectral Density of the jitter [ppm/sqrt(muHz)]
+    
+    jitterASD = rms / np.sqrt(1e-6)
+
+    # Choose cycle and exposure time [s] for either the normal (N) or fast (F) cameras
+
+    if camType == 'normal':
+        tcyc = 25.
+    elif camType == 'fast':
+        tcyc = 2.5
+
+    # Number of images to average over
+
+    nimg = int(tdur/tcyc)
+
+    # Calculate the jitter noise
+
+    if level == 'camera':
+        jitterNoise = jitterASD * np.sqrt(1 / tcyc)
+    elif level == 'instrument':
+        jitterNoise = jitterASD * np.sqrt(1 / (tcyc*nimg) ) 
+    else:
+        errorcode('error', 'No such "level" entry!')
+        
+    # Return
+
+    return jitterNoise
+
+
+
+
+        
+def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, tdur=3600):
 
     """NSR estimate in the photon noise limit of bright stars.
 
     The stellar flux are calculated from the PLATO passband found by 
     Marchiori et al. (2019).
-    
-    NOTE: only valid for very bright stars (P < 11).
 
     Parameters
     ----------
@@ -491,37 +620,102 @@ def getPhotonNoiseLimitNSR(P, Ncam=1, Ntra=1, tdur=3600, camType='N'):
         NSR only valid for the photon noise limit.
     """
 
-    # Choose cycle and exposure time [s] for either the normal (N) or fast (F) cameras
+    # Choose cycle and exposure time [s] for either the normal or fast cameras
 
-    if camType == 'N':
+    if camType == 'normal':
         texp = 21.
         tcyc = 25.
-    elif camType == 'F':
+        gain = 0.0222 * 2.14   # [ADU/e-]
+    else:
         texp = 2.1
         tcyc = 2.5
-
-    # The P passband zero-point
-
-    zp = 20.62
+        gain = 0.05   # TODO: update gain values for F-CAMs
 
     # Flux of stars [e-/s]
+    
+    if passband == "V":
+        f0 = 1.00179e8
+        f = 10**(-0.4 * mag) * f0
+        
+    elif passband == 'P':
+        # The P passband zero-point
+        if camType == 'normal':
+            zp   = 20.77
+        if camType == 'fastblue':
+            zp = 20.18
+        if camType == 'fastred':
+            zp = 19.81
+        # Calculate flux
+        f0 = 0.7324478224428527e8
+        f = 10**(-0.4 * (mag - zp)) * f0
+    else:
+        errorcode('error', f'Wrong {camType} name!')
 
-    f = 10 ** (-0.4 * (P - zp))
+    # Observed total flux [ADU/exp]
 
-    # Observed total flux per exposure in ADU counts
-
-    g = 900000 / 65535.  # [e-/ADU] Gain
-    F = f * texp / g  # [ADU]
+    F = f * tcyc * gain
 
     # SNR from pure photon noise and NSR from uncorrelated noise.
     # Gaussian statistic gives sigma --> sigma/sqrt(N)
-
-    SNR = np.sqrt(F * Ncam * Ntra * tdur / tcyc)
-    NSR = 1 / SNR * 1e6
+    
+    NSR = 1e6 / np.sqrt(F * ncam * ntra * tdur)
 
     return NSR
 
 
+
+
+
+def getBackgroundNoiseLimitNSR(mag, passband='P', camType='normal', tdur=3600):
+
+    """NSR estimate in the photon noise limit of bright stars.
+
+    The stellar flux are calculated from the PLATO passband found by 
+    Marchiori et al. (2019).
+
+    Parameters
+    ----------
+    P : float, narray
+        The PLATO passband magnitude.
+    Ncam : float, narray
+        Number of telescope visibility. N-Cams (6, 12. 18, 24) or F-Cams (2).
+    Ntra : float, narray
+        Number of transits that can be co-added by phase-folding.
+    tdur : float, narray
+        Time duration over which the NSR is estimated. E.g., 3600s for 1h precision.
+    camType : str
+        Either the normal (N) or fast (F) cameras. Default is normal.
+
+    Return
+    ------
+    NSR : float, narray
+        NSR only valid for the photon noise limit.
+    """
+
+    # Choose cycle and exposure time [s] for either the normal or fast cameras
+
+    if camType == 'normal':
+        gain = 1/(0.0222 * 2.14)   # [ADU/e-/pixel]
+    else:
+        gain = 0.05   # TODO: update gain values for F-CAMs
+
+    if passband == "V":
+        f0 = 1.00179e8
+    elif passband == 'P':
+        f0 = 0.7324478224428527e8
+    else:
+        errorcode('error', f'Wrong {camType} name!')
+        
+    # Calculate noise and signal
+    gain = 25
+    bg   = 60  # [e-/s/pixel]
+    mask = 20  # [pixel]
+    throughput   = 0.8134999994206865
+    transmission = 0.4822896122932434
+    
+    noise  = gain * bg * tdur * mask * throughput #* transmission
+    signal = np.sqrt(10**(-0.4 * mag) * f0 * tdur)**1.8
+    return noise / signal
 
 
 
@@ -707,6 +901,7 @@ def ticQuery(star, radius=2, Vmax=18, outFile=None):
         it is not removed by the Vmax cut.
     """
 
+
     # Get the coordinates of the star from Simbad
     
     result_table = Simbad.query_object(star)
@@ -757,14 +952,89 @@ def gaiaQuery(star):
     gaia_id : int
         The Gaia DR2 ID of the star.
     """
+
+    # Query for target star
     result_table = Simbad.query_objectids(star)
     if result_table is None:
         raise LookupError(f"No Simbad results for {star} (probably not a star)")
+
+    # If requested find all stars with 'radius'
     for row in result_table:
         if 'Gaia DR2' in row['ID']:
             gaia_id = row['ID']
             return int(gaia_id[9:])
     raise LookupError(f"No Gaia DR2 ID for {star} (probably a multiple star)")
+
+
+
+
+
+
+def starQuery(star, radius=45):
+    """
+    Query Gaia for a named star and return the Gaia DR2 ID.
+
+    Parameters
+    ----------
+    star : str
+        Name of the star to query around.
+
+    Returns
+    -------
+    gaia_id : int
+        The Gaia DR2 ID of the star.
+    """
+
+    # Qucik check that target star exist
+    result_table = Simbad.query_objectids(star)
+    if result_table is None:
+        raise LookupError(f"No Simbad results for {star} (probably not a star)")
+
+    # Fetch the equatorial coordinates
+    Simbad.reset_votable_fields()
+    Simbad.remove_votable_fields('coordinates')
+    Simbad.add_votable_fields('ra(:;A;ICRS;J2000)', 'dec(:;D;ICRS;2000)')
+    table = Simbad.query_object(star, wildcard=False)
+    coord = SkyCoord(ra=['{}h{}m{}s'.format(*ra.split(':')) for ra in table['RA___A_ICRS_J2000']], 
+                     dec=['{}d{}m{}s'.format(*dec.split(':')) for dec in table['DEC___D_ICRS_2000']],
+                     frame='icrs', equinox='J2000')
+    raStar  = coord.ra.degree[0]
+    decStar = coord.dec.degree[0]
+
+    # Convert radius to from arcsec to deg
+    radius /= 3600.
+
+    # Gaia radius querymetric
+    query_cone = f"""SELECT 
+    TOP 10 
+    source_id, ra, dec, phot_g_mean_mag
+    FROM gaiadr2.gaia_source
+    WHERE 1=CONTAINS(POINT(ra, dec), CIRCLE({raStar}, {decStar}, {radius}))
+    """
+
+    # Launch Gaia query 
+    job     = Gaia.launch_job(query_cone)
+    results = job.get_results()
+
+    # Convert astropy results table into pandas df
+    df = results.to_pandas()
+
+    # Make sure that target is the first entry
+    for row in result_table:
+        if 'Gaia DR2' in row['ID']:
+            gaia_id = int(row['ID'][9:])            
+    row = df.index[df['source_id'] == gaia_id].tolist()
+    dex = row + [i for i in range(len(df)) if i != row[0]]
+    df = df.iloc[dex].reset_index(drop=True)
+    
+    # Calculate radial distance
+    dist = np.sqrt( (df.ra - df.ra.iloc[0])**2 + (df.dec - df.dec.iloc[0])**2 ) * 3600
+    df['dis'] = dist
+    df = df.sort_values(by=['dis'])
+
+    # Return data frame
+    return df
+        
 
 
 
@@ -786,3 +1056,4 @@ def gaiaQuery(star):
 #         return pick
 #     else:
 #         return distribution_pick(distribution, range)
+

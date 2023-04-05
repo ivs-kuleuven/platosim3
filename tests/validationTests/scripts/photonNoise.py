@@ -43,7 +43,7 @@ class PhotonNoise(Test):
 
         # Expected Sky Background
         exposureTime = self.simFile.getInputParameter("ObservingParameters", "CycleTime") - self.sim.getReadoutTime()[0]
-        expectedSkyBackground = self.simFile.getInputParameter("Sky", "SkyBackground") * exposureTime * self.simFile.getInputParameter("Telescope/TransmissionEfficiency", "BOL")
+        expectedSkyBackground = self.simFile.getInputParameter("Sky/SkyBackground", "BackgroundValue") * exposureTime * self.simFile.getInputParameter("Telescope/TransmissionEfficiency", "BOL")
 
         # Flux obtained from PlatoSim
         flux = np.array([self.simFile.getImage(exposure) for exposure in range(self.numExposures)])

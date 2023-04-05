@@ -76,7 +76,7 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     // Write the version info to the output HDF5 file
 
-    writeVersionInformationToHDF5();
+    hdf5File->writeVersionInformation();
 
 
     double readoutTimeDuringNextExposure;
@@ -192,6 +192,7 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     // Write the input parameters to the output HDF5 file
 
     writeInputParametersToHDF5(configParams);
+
 }
 
 
@@ -521,24 +522,6 @@ void Simulation::run()
 
 
 
-/**
- * \brief Take care that the version of the simulator is included in the HDF5 file,.
- */
-
-void Simulation::writeVersionInformationToHDF5()
-{
-    Log.info("Simulation: writing version information to HDF5");
-
-    // Make the parent group
-
-    string parentGroup = "/Version";
-    hdf5File->createGroup(parentGroup);
-
-    hdf5File->writeAttribute(parentGroup, "Application", string("PlatoSim3"));
-    hdf5File->writeAttribute(parentGroup, "GitVersion", string(GIT_DESCRIBE));
-
-}
-
 
 
 
@@ -702,12 +685,15 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
 
     subGroup = "Sky";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
-    addDouble("SkyBackground");
     addBoolean("IncludeVariableSources");
     addString("VariableSourceList");
     addBoolean("IncludeCosmicsInSubField");
     addBoolean("IncludeCosmicsInSmearingMap");
     addBoolean("IncludeCosmicsInBiasMap");
+    subGroup = "Sky/SkyBackground";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addBoolean("UseConstantSkyBackground");
+    addDouble("BackgroundValue");
     subGroup = "Sky/Cosmics";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addDouble("CosmicHitRate");
@@ -769,7 +755,6 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("StartTime");
     subGroup = "Camera/FieldDistortion";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
-    addString("Type");
     addString("Source");
     addDoubleVector("ConstantCoefficients");
     addDoubleVector("ConstantInverseCoefficients");
@@ -972,6 +957,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("WriteFlatfieldMap");
     addBoolean("WriteSubPixelImages");
     addBoolean("WriteStarPositions");
+    addBoolean("GroupByExposure");
     addBoolean("WriteGhostPositions");
     addBoolean("WriteACS");
     addBoolean("WriteCosmics");

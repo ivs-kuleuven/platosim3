@@ -184,6 +184,12 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
     smearingMap.zeros(numRowsSmearingMap, numColumnsPixelMap);
     throughputMap.ones(numRowsPixelMap, numColumnsPixelMap);
 
+    if (!constantSkyBackground)
+    {
+        // Initialize the background map
+        backgroundMap.zeros(numRowsPixelMap, numColumnsPixelMap);
+    }
+
     // If we are going to apply open-shutter smearing, we have to know which pixels are within
     // the FOV (relevant only in case of mechanical vignetting).  When mechanical vignetting is
     // disabled, all pixels of the detector are inside the FOV.
@@ -227,8 +233,37 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
     decimalNumCosmicHitsGenerator.seed(cosmicSeed + 6);
 
     decimalNumCosmicHitsDistribution = uniform_real_distribution<double>(0, 1);
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief: Adds the background map to the pixelMap. This function is only used
+ *         is we are dealing with a non-constant background map.
+ *
+ * \param camera: camera object
+ * \param startTime: startTime of current exposure [s]
+ *
+ */
+void Detector::addBackgroundMapToPixelMap(Camera &camera, double startTime)
+{
+    double transmissionEfficiency = camera.getTransmissionEfficiency(startTime);
+    double meanBackground = arma::mean(arma::mean( backgroundMap*transmissionEfficiency));
+
+    pixelMap += backgroundMap*transmissionEfficiency;
+    camera.addSkybackgroundAndTransmissionEfficiency(meanBackground, transmissionEfficiency);
 
 }
+
+
 
 
 
@@ -244,6 +279,10 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
 Detector::~Detector()
 {
     writeCTIToHDF5();
+    if (!constantSkyBackground)
+    {
+        writeBackgroundMapToHDF5();
+    }
 
     flushOutput();
 
@@ -317,6 +356,7 @@ void Detector::updateParameters(double time)
 
     isFastCamera          = configParam.getString("Telescope/GroupID") == "Fast";
     includeShield         = configParam.getBoolean("CCDPositions/MetallicShield/IncludeMetallicShield");
+    groupByExposure       = configParam.getBoolean("ControlHDF5Content/GroupByExposure");
 
     if (ccdPosition == "Custom")
     {
@@ -490,6 +530,7 @@ void Detector::updateParameters(double time)
     includeDigitalSaturation        = configParam.getBoolean("CCD/IncludeDigitalSaturation");
     includeQuantisation             = configParam.getBoolean("CCD/IncludeQuantisation");
     includeFieldDistortion          = configParam.getBoolean("Camera/IncludeFieldDistortion");
+    constantSkyBackground           = configParam.getBoolean("Sky/SkyBackground/UseConstantSkyBackground");
 
     if(includeRelativeTransmissivity)
     {
@@ -555,6 +596,7 @@ void Detector::updateParameters(double time)
     writeThroughputMaps = configParam.getBoolean("ControlHDF5Content/WriteThroughputMaps");
     writeCosmics        = configParam.getBoolean("ControlHDF5Content/WriteCosmics");
     writeCTI            = configParam.getBoolean("ControlHDF5Content/WriteCTI");
+    writeBackgroundMap  = configParam.getBoolean("ControlHDF5Content/WriteBackgroundMap") && !constantSkyBackground;
 
     // Configuration parameters for the noise source random seeds
 
@@ -758,6 +800,10 @@ double Detector::takeExposure(int exposureNr, double startTime, double exposureT
     reset();
 
     // Integration of point sources and background, taking into account jitter + drift.
+    if (!constantSkyBackground && (exposureNr == beginExposureNr))
+    {
+        fillBackgroundMap(camera, startTime, exposureTime);
+    }
 
     Log.info("Detector: Integrating light for exposure " + to_string(exposureNr) + " with exposure time = " + to_string(exposureTime));
 
@@ -795,7 +841,11 @@ double Detector::takeExposure(int exposureNr, double startTime, double exposureT
 
     Log.debug("Detector: Writing Cosmics of the PixelMap, smearing map, bias map #" + to_string(exposureNr) + " to HDF5 file.");
 
-    writeCosmicHitsToHDF5(exposureNr);
+    if (writeCosmics)
+    {
+            if (groupByExposure){writeCosmicHitsToHDF5WhenGroupByExposure(exposureNr);}
+            else{writeCosmicHitsToHDF5WithoutGroupByExposure(exposureNr);}
+    }
 
     // Advance the internal clock
 
@@ -3265,7 +3315,34 @@ void Detector::initHDF5Groups()
         hdf5File.createGroup("/Cosmics/BiasMapRight");
     }
 
+    if (writeBackgroundMap || constantSkyBackground)
+    {
+        hdf5File.createGroup("/BackgroundMap");
+    }
+
 }
+
+
+
+
+
+
+
+/**
+ * Creates the subgroup for cosmics in the HDF5 file. This is used to manage the
+ * amount of subgroups in the HDF5 file.
+ */
+void Detector::makeSubGroupForCosmics(string field, int exposureNr)
+{
+    // Create sub group that we need to create
+    stringstream subgroupStream;
+    subgroupStream << "/exposure" << setfill('0') << setw(3) << exposureNr / 1000;
+    string subgroupName = "/Cosmics/" + field + subgroupStream.str();
+    hdf5File.createGroup(subgroupName);
+}
+
+
+
 
 
 
@@ -3274,35 +3351,37 @@ void Detector::initHDF5Groups()
 
 /**
  * Writes the colum, row and flux values of cosmics to the HDF5 file. This function
- * calls Detector::writeCosmicFieldToHDF5, if cosmics is included
+ * calls HDF5File::writeCosmicsWhithoutGroupByExposure, if cosmics is included
  * in the repective Field.
  *
  * /params exposureNr:   Sequential number of the exposure
+ * /note: This function gets called when groupByExposure is true.
  */
-void Detector::writeCosmicHitsToHDF5(int exposureNr)
+void Detector::writeCosmicHitsToHDF5WhenGroupByExposure(int exposureNr)
 {
+
    if (includeCosmicsInSubField && writeCosmics)
    {
-       writeCosmicFieldToHDF5(exposureNr, "SubField", cosmicEntryRowSubfield, cosmicEntryColSubfield, cosmicsTrailsSubfield,
-                              cosmicsAnglesSubfield, cosmicsIntensitiesSubfield,
+        hdf5File.writeCosmicsWhenGroupByExposure(exposureNr, "SubField", cosmicEntryRowSubfield, cosmicEntryColSubfield,
+                              cosmicsTrailsSubfield, cosmicsAnglesSubfield, cosmicsIntensitiesSubfield,
                               rowsOfCosmicsInSubField, columnsOfCosmicsInSubField, fluxOfCosmicsInSubField);
    }
 
    if (includeCosmicsInSmearingMap && writeCosmics)
    {
-       writeCosmicFieldToHDF5(exposureNr, "SmearingMap", cosmicEntryRowSmearingMap, cosmicEntryColSmearingMap, cosmicsTrailsSmearingMap,
-                              cosmicsAnglesSmearingMap, cosmicsIntensitiesSmearingMap,
+        hdf5File.writeCosmicsWhenGroupByExposure(exposureNr, "SmearingMap", cosmicEntryRowSmearingMap, cosmicEntryColSmearingMap,
+                              cosmicsTrailsSmearingMap, cosmicsAnglesSmearingMap, cosmicsIntensitiesSmearingMap,
                               rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap, fluxOfCosmicsInSmearingMap);
    }
 
    if (includeCosmicsInBiasMap && writeCosmics)
    {
-       writeCosmicFieldToHDF5(exposureNr, "BiasMapLeft", cosmicEntryRowBiasMapLeft, cosmicEntryColBiasMapLeft, cosmicsTrailsBiasMapLeft,
-                              cosmicsAnglesBiasMapLeft, cosmicsIntensitiesBiasMapLeft,
+       hdf5File.writeCosmicsWhenGroupByExposure(exposureNr, "BiasMapLeft", cosmicEntryRowBiasMapLeft, cosmicEntryColBiasMapLeft,
+                              cosmicsTrailsBiasMapLeft, cosmicsAnglesBiasMapLeft, cosmicsIntensitiesBiasMapLeft,
                               rowsOfCosmicsInBiasMapLeft, columnsOfCosmicsInBiasMapLeft, fluxOfCosmicsInBiasMapLeft);
 
-       writeCosmicFieldToHDF5(exposureNr, "BiasMapRight", cosmicEntryRowBiasMapRight, cosmicEntryColBiasMapRight, cosmicsTrailsBiasMapRight,
-                              cosmicsAnglesBiasMapRight, cosmicsIntensitiesBiasMapRight,
+       hdf5File.writeCosmicsWhenGroupByExposure(exposureNr, "BiasMapRight", cosmicEntryRowBiasMapRight, cosmicEntryColBiasMapRight,
+                              cosmicsTrailsBiasMapRight, cosmicsAnglesBiasMapRight, cosmicsIntensitiesBiasMapRight,
                               rowsOfCosmicsInBiasMapRight, columnsOfCosmicsInBiasMapRight, fluxOfCosmicsInBiasMapRight);
    }
 }
@@ -3312,45 +3391,88 @@ void Detector::writeCosmicHitsToHDF5(int exposureNr)
 
 
 
-void Detector::writeCosmicFieldToHDF5(int exposureNr, string field, vector<unsigned int> &entryRows, vector<unsigned int> &entryColumns,
-                                      vector<double> &trailLengths, vector<double> &entryAngles, vector<double> &intensities,
-                                      vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux)
+/**
+ * Writes the colum, row and flux values of cosmics to the HDF5 file. This function
+ * calls Detector::writeCosmicsWhithoutGroupByExposure, if cosmics is included
+ * in the repective Field.
+ *
+ * /params exposureNr:   Sequential number of the exposure
+ * /note: This function gets called when groupByExposure is false.
+ */
+void Detector::writeCosmicHitsToHDF5WithoutGroupByExposure(int exposureNr)
 {
-    // Define the name of sub group for every exposure.
+   bool makeSubGroup = false;
 
-    stringstream myStream;
-    myStream << "/exposure" << setfill('0') << setw(6) << exposureNr;
-    string imageName = "/Cosmics/" + field  + myStream.str();
+   if ((cosmicSubgroupIndex < (exposureNr / 1000)))
+   {
+            cosmicSubgroupIndex = exposureNr / 1000;
+            makeSubGroup = true;
+   }
 
-    // add the columns vector
+   // Initialize the subgroup if needed
 
-    hdf5File.createGroup(imageName);
+   if (makeSubGroup && writeCosmics)
+   {
+           if (includeCosmicsInSubField){makeSubGroupForCosmics("SubField", exposureNr);}
+           if (includeCosmicsInSmearingMap){makeSubGroupForCosmics("SmearingMap", exposureNr);}
+           if (includeCosmicsInBiasMap)
+           {
+               makeSubGroupForCosmics("BiasMapLeft", exposureNr);
+               makeSubGroupForCosmics("BiasMapRight", exposureNr);
+           }
+   }
 
-    if (rows.empty() && cols.empty())
+   if (includeCosmicsInSubField && writeCosmics)
+   {
+       hdf5File.writeCosmicsWhithoutGroupByExposure(exposureNr, "SubField", cosmicEntryRowSubfield, cosmicEntryColSubfield,
+                              cosmicsTrailsSubfield, cosmicsAnglesSubfield, cosmicsIntensitiesSubfield,
+                              rowsOfCosmicsInSubField, columnsOfCosmicsInSubField, fluxOfCosmicsInSubField);
+   }
+
+   if (includeCosmicsInSmearingMap && writeCosmics)
+   {
+       hdf5File.writeCosmicsWhithoutGroupByExposure(exposureNr, "SmearingMap", cosmicEntryRowSmearingMap, cosmicEntryColSmearingMap,
+                              cosmicsTrailsSmearingMap, cosmicsAnglesSmearingMap, cosmicsIntensitiesSmearingMap,
+                              rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap, fluxOfCosmicsInSmearingMap);
+   }
+
+   if (includeCosmicsInBiasMap && writeCosmics)
+   {
+       hdf5File.writeCosmicsWhithoutGroupByExposure(exposureNr, "BiasMapLeft", cosmicEntryRowBiasMapLeft, cosmicEntryColBiasMapLeft,
+                              cosmicsTrailsBiasMapLeft, cosmicsAnglesBiasMapLeft, cosmicsIntensitiesBiasMapLeft,
+                              rowsOfCosmicsInBiasMapLeft, columnsOfCosmicsInBiasMapLeft, fluxOfCosmicsInBiasMapLeft);
+
+       hdf5File.writeCosmicsWhithoutGroupByExposure(exposureNr, "BiasMapRight", cosmicEntryRowBiasMapRight, cosmicEntryColBiasMapRight,
+                              cosmicsTrailsBiasMapRight, cosmicsAnglesBiasMapRight, cosmicsIntensitiesBiasMapRight,
+                              rowsOfCosmicsInBiasMapRight, columnsOfCosmicsInBiasMapRight, fluxOfCosmicsInBiasMapRight);
+   }
+}
+
+
+
+
+
+/**
+ * \brief: Write the background map to the HDF5 file.
+ */
+void Detector::writeBackgroundMapToHDF5()
+{
+    if (writeBackgroundMap)
     {
-        vector<unsigned int> noHitsUnsignedInt{0};
-        vector<double> noHitsDouble{-1.0};
-        hdf5File.writeArray(imageName, "EntryRows",    noHitsUnsignedInt.data(), 1);
-        hdf5File.writeArray(imageName, "EntryColumns", noHitsUnsignedInt.data(), 1);
-        hdf5File.writeArray(imageName, "EntryAngles",  noHitsDouble.data(), 1);
-        hdf5File.writeArray(imageName, "Intensities",  noHitsDouble.data(), 1);
-        hdf5File.writeArray(imageName, "TrailLengths", noHitsDouble.data(), 1);
-        hdf5File.writeArray(imageName, "Rows",         noHitsUnsignedInt.data(), 1);
-        hdf5File.writeArray(imageName, "Columns",      noHitsUnsignedInt.data(), 1);
-        hdf5File.writeArray(imageName, "Flux",         noHitsDouble.data(), 1);
-    }
-    else
-    {
-        hdf5File.writeArray(imageName, "EntryRows",    entryRows.data(), entryRows.size());
-        hdf5File.writeArray(imageName, "EntryColumns", entryColumns.data(), entryColumns.size());
-        hdf5File.writeArray(imageName, "EntryAngles",  entryAngles.data(), entryAngles.size());
-        hdf5File.writeArray(imageName, "Intensities",  intensities.data(), intensities.size());
-        hdf5File.writeArray(imageName, "TrailLengths", trailLengths.data(), trailLengths.size());
-        hdf5File.writeArray(imageName, "Rows",         rows.data(), rows.size());
-        hdf5File.writeArray(imageName, "Columns",      cols.data(), cols.size());
-        hdf5File.writeArray(imageName, "Flux",         flux.data(), flux.size());
+        string imageName = "skyBackground";
+        arma::Mat<float> backgroundMapBOS = backgroundMap*transmissionEfficiencyBOS;
+        hdf5File.writeArray("/BackgroundMap", imageName, backgroundMapBOS);
     }
 }
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3365,7 +3487,6 @@ void Detector::writeCosmicFieldToHDF5(int exposureNr, string field, vector<unsig
 void Detector::writePixelMapsToHDF5(int exposureNr)
 {
     stringstream myStream;
-
     if (writePixelMaps)
     {
         // Compose the image name
@@ -3380,6 +3501,7 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
             // Write the float array to HDF5
 
             hdf5File.writeArray("/Images", imageName, pixelMap);
+
         }
         else
         {
@@ -3402,37 +3524,7 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
 
     if (writeSmearingMaps)
     {
-        if (numRowsSmearingMap != 0)
-        {
-            // Clear the string stream and compose the smearing map name
-
-            myStream.str(string());      // insert empty string
-            myStream.clear();            // clear eof bit
-
-            myStream << "smearingMap" << setfill('0') << setw(6) << exposureNr;
-            string smearingMapName = myStream.str();
-
-            // Add the smearing map to the "SmearingMaps" group
-
-            if (!includeQuantisation)
-            {
-                // Write the float array to HDF5
-
-                hdf5File.writeArray("/SmearingMaps", smearingMapName, smearingMap);
-            }
-            else
-            {
-                if ((smearingMap.min() < 0) || (smearingMap.max() >= (1 << 16)))
-                {
-                    throw ConfigurationException("Detector: quantisation was applied but smearing map values are not in [0, 2^16[");
-                }
-
-                // Convert the float matrix to an unsigned uint16_t matrix
-
-                arma::Mat<uint16_t> uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(smearingMap);
-                hdf5File.writeArray("/SmearingMaps", smearingMapName, uintMap);
-            }
-        }
+      if (numRowsSmearingMap != 0){hdf5File.writeSmearingMap(smearingMap, includeQuantisation, exposureNr);}
     }
 
 
@@ -3477,20 +3569,9 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
         }
     }
 
-
     if (writeThroughputMaps)
     {
-        // Clear the string stream and compose the throughput map name
-
-        myStream.str(string());      // insert empty string
-        myStream.clear();            // clear eof bit
-
-        myStream << "throughputMap" << setfill('0') << setw(6) << exposureNr;
-        string throughputMapName = myStream.str();
-
-        // Add the throughput map to the "ThroughputMaps" group
-
-        hdf5File.writeArray("/ThroughputMaps", throughputMapName, throughputMap);
+      hdf5File.writeThroughput(exposureNr, throughputMap);
     }
 }
 
@@ -3585,3 +3666,47 @@ double Detector::getReadoutTimeBeforeNextExposure()
 
 
 
+
+
+/**
+ *
+ * \brief: Initializes the background map. This is done only once.
+ *
+ * \note:  The flux stored in the array does not take transmission efficiency into account.
+ *         To obtain the flux from the stellar background this map should still be
+ *         multiplied by the transmission efficiency. (this is exposure dependent)
+ *
+ */
+void Detector::fillBackgroundMap(Camera &camera, double startTime, double exposureTime)
+{
+
+    // For each pixel in the background map (same dimensions as as subfield)
+    for (int row=0; row<numRowsPixelMap; row++)
+    {
+        for (int col=0; col<numColumnsPixelMap; col++)
+        {
+            // Convert the pixel coordinates to focal plane coordinates
+            double xFPd , yFPd ;
+            double xFPmm, yFPmm;
+            tie(xFPd, yFPd) = pixelToFocalPlaneCoordinates(row+subFieldZeroPointRow, col+subFieldZeroPointColumn);
+
+            // Apply the inverse distortion
+            if (includeFieldDistortion)
+            {
+                tie(xFPmm, yFPmm) = camera.distortedToUndistortedFocalPlaneCoordinates(xFPd, yFPd);
+            }
+            else
+            {
+                xFPmm = xFPd;
+                yFPmm = yFPd;
+            }
+
+            transmissionEfficiencyBOS = camera.getTransmissionEfficiency(startTime);
+            double flux = camera.getBackgroundFlux(xFPmm, yFPmm, *this, startTime, exposureTime, readoutTimeBeforeNextExposure)/transmissionEfficiencyBOS;
+
+            backgroundMap(row, col) = flux;
+
+        }
+    }
+
+}

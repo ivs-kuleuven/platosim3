@@ -37,13 +37,13 @@ class DetectorWithMappedPSF : public Detector
         void generateThroughputMap() override;
 
     protected:
-  
+
         bool areColinear(std::array<std::array<double, 2>, 3>);
         void reset() override;
         void initHDF5Groups() override;
         void integrateLight(int exposureNr, double startTime, double exposureTime) override;
         bool isInSubPixelMap(double row, double column);
-        void applyFlatfield() override;        
+        void applyFlatfield() override;
         void applyDiffusionKernel(double row, double column, double flux);
         void generateFlatfieldMap();
         void generateDiffusionKernel(double kernelWidth);
@@ -51,10 +51,16 @@ class DetectorWithMappedPSF : public Detector
         void writeSubPixelMapToHDF5(int exposureNr);
         void setPsfForSubfield();
         void convolveWithPsf();
+        void addBackgroundMapToSubpixelMap(Camera &camera, double startTime);
+        void fillBackgroundSubpixelMap(Camera &camera, double startTime, double exposureTime);
+        void fillBackgroundMap(Camera &camera, double startTime, double exposureTime) ;
 
+        arma::Mat<float> subPixelBackgroundMap;
         arma::Mat<float> subPixelMap;           // Sub-pixel map, incl. edge pixels
         arma::Mat<float> psfMap;                // The PSF map that will be used for convolving
         arma::Mat<float> flatfieldMap;          // Intra-pixel flatfield map
+        arma::Mat<float> unDistortedX;
+        arma::Mat<float> unDistortedY;
         vector<std::array<double, 4>> distortionMap;
 
         double chargeDiffusionStrength;		// Strength of the charge diffusion (width of the Gaussian diffusion kernel) [pixels]

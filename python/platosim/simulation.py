@@ -21,7 +21,8 @@ import subprocess
 import numpy as np
 
 import platosim.referenceFrames as rf
-import platosim.instrument      as it
+import platosim.instrument      as getTED
+
 from platosim.simfile import SimFile
 
 
@@ -61,6 +62,8 @@ class Simulation(object):
         
         if outputDir is not None:
             self.outputDir = outputDir
+        else:
+            self.outputDir = os.getcwd()
 
         # Set simulation location
         
@@ -112,7 +115,6 @@ class Simulation(object):
 
 
 
-
     @property
     def outputDir(self):
 
@@ -147,8 +149,6 @@ class Simulation(object):
 
 
 
-
-
     def readConfigurationFile(self, filename):
 
         """Read the YAML input configuration file.
@@ -176,10 +176,22 @@ class Simulation(object):
         
         return self.yamlDocument
 
+    
+
+
+    
+    def showYamlConfiguration(self):
+
+        """Return the YAML configuration as a dictionary.
+        """
+
+        YAML = self.getYamlConfiguration()
+        print(pyaml.dump(YAML))
 
 
 
 
+        
     def __contains__(self, key):
 
         """Returns true if the input parameter (key) is known/exists.
@@ -254,7 +266,7 @@ class Simulation(object):
                 print(f"ERROR: The group '{key}' was not found in the " +
                       f"yaml inputfile '{self.configurationFilename}'")
                 return None
-                      
+
         # Node is a string, so cast it to its proper value
 
         try:
@@ -497,9 +509,9 @@ class Simulation(object):
 
 
 
-    def writeAllOutputToHDF5(self, write=True):
+    def turnOffAllOutput(self):
 
-        """Function to write all or nothing to the HDF5 file.
+        """Function to write nothing to the HDF5 file.
         """
 
         # Fetch names of ControlHDF5Content attributes
@@ -512,24 +524,155 @@ class Simulation(object):
         # Control the content
 
         for entry in entries:
-
-            # Set all HDF5 content parameters to "yes"
-
-            if write:
-                self.__setitem__(f"{group}/{entry}", "yes")
-
-            # Set all HDF5 content parameters to "no"
-
-            elif write is False:
-                self.__setitem__(f"{group}/{entry}", "no")
-
-            else:
-                print("ERROR: only 'True' or 'False' can be parsed as argument!")
+            self.__setitem__(f"{group}/{entry}", "no")
 
 
 
 
 
+    def turnOnAllOutput(self):
+
+        """Function to write all to the HDF5 file.
+        """
+
+        # Fetch names of ControlHDF5Content attributes
+
+        group = "ControlHDF5Content"
+        entries = []
+        for name, dict_ in self.yamlDocument[group].items():
+            entries.append(name)
+
+        # Control the content
+
+        for entry in entries:
+            self.__setitem__(f"{group}/{entry}", "yes")
+                
+
+
+
+
+
+    def controlAllEffects(self, switch):
+
+        """Function to write all or nothing to the HDF5 file.
+
+        Parameters
+        ----------
+        switch : str, bool
+            If 'yes' ('True')  turn on  all effects
+            If 'no'  ('False') turn off all effects
+        
+        Notes
+        -----
+        Parameters that are turned on/off:
+        - Stellar variability
+        - Cosmic rays
+        - AOCS jitter
+        - Thermo-elastic drift (TED)
+        - Aberration correction (absolute + differential)
+        - Field distortion
+        - Charge diffusion
+        - Jitter smoothing
+        - Flatfield
+        - Dark signal
+        - Brighter-fatter effect (BFE)
+        - Photon noise
+        - Readout noise
+        - Charge transfer inefficiency (CTI)
+        - Open-shutter smearing
+        - Overall relative transmissivity
+        - Polarisation
+        - Particulate contamination
+        - Molecular contamination
+        - Quantum efficiency
+        - Convolution with the PSF (Zemax only)
+        - Full-well saturation (blooming)
+        - Digital saturation
+        - Quantisation
+        """
+        
+        # Sky parameters
+
+        self["Sky/IncludeVariableSources"]      = switch
+        self["Sky/IncludeCosmicsInSubField"]    = switch
+        self["Sky/IncludeCosmicsInSmearingMap"] = switch
+        self["Sky/IncludeCosmicsInBiasMap"]     = switch
+
+        # Platform parameters
+
+        self["Platform/UseJitter"] = switch
+
+        # Telescope parameters
+
+        self["Telescope/UseDrift"] = switch
+
+        # Camera parameters
+
+        self["Camera/IncludeAberrationCorrection"] = switch
+        self["Camera/IncludeFieldDistortion"]      = switch
+        self["Camera/IncludePointLikeGhosts"]      = switch
+        self["Camera/IncludeExtendedGhosts"]       = switch
+
+        # PSF parameters
+
+        self["PSF/MappedFromFile/IncludeChargeDiffusion"]      = switch
+        self["PSF/AnalyticNonGaussian/IncludeChargeDiffusion"] = switch
+        self["PSF/MappedFromFile/IncludeJitterSmoothing"]      = switch
+
+        # FEE parameters
+
+        self["FEE/IncludeOverAndUnderShoot"] = switch
+        
+        # CCD parameters
+
+        self["CCD/IncludeFlatfield"]                = switch
+        self["CCD/IncludeDarkSignal"]               = switch
+        self["CCD/IncludeBFE"]                      = switch
+        self["CCD/IncludePhotonNoise"]              = switch
+        self["CCD/IncludeReadoutNoise"]             = switch
+        self["CCD/IncludeCTIeffects"]               = switch
+        self["CCD/IncludeChargeInjection"]          = switch
+        self["CCD/IncludeOpenShutterSmearing"]      = switch
+        self["CCD/IncludeQuantumEfficiency"]        = switch
+        self["CCD/IncludeRelativeTransmissivity"]   = switch
+        self["CCD/IncludePolarization"]             = switch
+        self["CCD/IncludeParticulateContamination"] = switch
+        self["CCD/IncludeMolecularContamination"]   = switch
+        self["CCD/IncludeConvolution"]              = switch
+        self["CCD/IncludeFullWellSaturation"]       = switch
+        self["CCD/IncludeDigitalSaturation"]        = switch
+        self["CCD/IncludeQuantisation"]             = switch
+
+
+
+
+        
+    def turnOnAllEffects(self):
+
+        """Function to switch off all writing to the HDF5 file.
+
+        NOTE: function uses controlAllEffects()
+        """
+
+        self.controlAllEffects("yes")
+
+
+
+
+        
+    def turnOffAllEffects(self):
+
+        """Function to switch off all writing to the HDF5 file.
+
+        NOTE: function uses controlAllEffects()
+        """
+
+        self.controlAllEffects("no")
+
+
+
+        
+        
     def useNominalCamera(self):
 
         """Change the input parameters to use the nominal camera's.
@@ -772,6 +915,7 @@ class Simulation(object):
                                                                     mappedDistortion,
                                                                     distortionCoefficients,
                                                                     pathToPsfFile)
+
         if ccdCode == None:
             return False
 
@@ -949,9 +1093,10 @@ class Simulation(object):
 
         np.savetxt(fileName, np.transpose(starIDs), delimiter=" ", fmt="%d")
 
-        # Set this to simulation
+        # Set this to simulation and activate photometry
 
-        self["Photometry/TargetFileName"] = fileName
+        self["Photometry/IncludePhotometry"] = True
+        self["Photometry/TargetFileName"]    = fileName
 
 
 
@@ -978,7 +1123,7 @@ class Simulation(object):
 
         # Create TED file
 
-        it.getTED(quarter=quarter, model=model, outfile=fileName, plot=plot)
+        getTED(quarter=quarter, model=model, outfile=fileName, plot=plot)
 
         # Set this to simulation
 
@@ -1133,7 +1278,7 @@ class Simulation(object):
 
 
 
-    def getStarsWithinCameraGroup(self, raPF, decPF, ra, dec, kappa=-8,
+    def getStarsWithinCameraGroup(self, raPF, decPF, kappaPF, ra, dec,
                                   camGroup=1, quarter=1, sizeSubfield=6):
 
         """Fetch all stars within a camera group.
@@ -1177,7 +1322,7 @@ class Simulation(object):
         focalLength      = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
         focalPlaneAngle  = np.deg2rad(float(self["Camera/FocalPlaneOrientation/ConstantValue"]))
 
-        solarPanelOrientation = self["Platform/SolarPanelOrientation"] = math.fmod(quarter * 90. - kappa, 360.)
+        solarPanelOrientation = self["Platform/SolarPanelOrientation"] = math.fmod(quarter * 90., 360.) + kappaPF
         solarPanelOrientation = np.deg2rad(float(solarPanelOrientation))
 
         raTargetsRad  = np.deg2rad(ra)   # [rad]
@@ -1214,7 +1359,6 @@ class Simulation(object):
                     dexGroup[i] = False
 
         # Return parameters
-
         return dexGroup, distanceOA
 
 
