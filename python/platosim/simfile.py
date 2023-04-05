@@ -137,7 +137,6 @@ class SimFile (object):
         # TODO fix this in future!
         if ccdCode == "Custom": ccdCode = "1"
         timeShift = self.getInputParameter("CCDPositions", "TimeShift")[int(ccdCode)-1]
-
         return np.arange(beginExposure, beginExposure + numExposures) * cadence + timeShift
 
     
@@ -1175,12 +1174,9 @@ class SimFile (object):
 
 
 
-    def getYawPitchRollFromDrift(self, getTime = False):
-
-        """Get (yaw, pitch, roll) of camera drift.
-        
-        Get the camera yaw, pitch and roll angle values at the
-        end of each exposure.
+    def getYawPitchRollFromDrift(self, getTime=False):
+        """
+        Get the camera yaw, pitch and roll angle values at the end of each exposure.
 
         Parameters
         ----------
@@ -1945,7 +1941,6 @@ class SimFile (object):
 
 
 
-    
     def getMaskUpdateEvents(self):
 
         """Exposure number of all mask updates.

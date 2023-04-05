@@ -37,7 +37,7 @@ class Simulation(object):
 
     Simulation class allows running the PLATO simulator interactively from Python
     and tuning the input parameters before each run. For more help, type:
-    
+
     Example
     -------
     >>> import platosim.simulation as Simulation
@@ -59,7 +59,7 @@ class Simulation(object):
         self.targetOutputFilesLocation = None
 
         # Set output directory
-        
+
         if outputDir is not None:
             self.outputDir = outputDir
         else:
@@ -821,7 +821,7 @@ class Simulation(object):
                                      normal=True):
 
         """Set subfield around stellar coordinates
-        
+
         Set the location of the sub-field such that it is centred on the star
         with the given sky coordinates.  Depending on the CCD (in nomincal mode:
         "1", "2", "3", or "4"; in fast mode: "1F", "2F", "3F", or "4F"), the
@@ -844,7 +844,7 @@ class Simulation(object):
         ---------
         raStar : float
             Right ascension of the star [radians]
-        decStar : float 
+        decStar : float
             Declination of the star [radians]
         subfieldSizeX : int
             Width (i.e. number of columns) of the subiield [pixels]
@@ -855,14 +855,14 @@ class Simulation(object):
 
         Return
         ------
-        bool : True if the entire subfield fit on one of the 4 (pre-defined) CCDs, 
+        bool : True if the entire subfield fit on one of the 4 (pre-defined) CCDs,
                False otherwise.
         """
 
         # Find out some instrumental characteristics from the sim object
 
-        raPlatform  = np.deg2rad(float(self["ObservingParameters/RApointing"]))
-        decPlatform = np.deg2rad(float(self["ObservingParameters/DecPointing"]))
+        raPlatform       = np.deg2rad(float(self["Platform/Orientation/Angles/RAPointing"]))
+        decPlatform      = np.deg2rad(float(self["Platform/Orientation/Angles/DecPointing"]))
 
         telescopeGroupID = self["Telescope/GroupID"]
         if telescopeGroupID == "Custom":
@@ -875,10 +875,10 @@ class Simulation(object):
             azimuthTelescope = np.deg2rad(self["CameraGroups/AzimuthAngle"][telescopeGroupID-1])
             tiltTelescope    = np.deg2rad(self["CameraGroups/TiltAngle"][telescopeGroupID-1])
 
-        solarPanelOrientation = np.deg2rad(float(self["Platform/SolarPanelOrientation"])) # [rad]
-        focalLength     = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0        # [m]->[mm]
-        focalPlaneAngle = np.deg2rad(float(self["Camera/FocalPlaneOrientation/ConstantValue"]))
-        pixelSize       = float(self["CCD/PixelSize"])
+        solarPanelOrientation = np.deg2rad(float(self["Platform/Orientation/Angles/SolarPanelOrientation"]))         # [rad]
+        focalLength      = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0                                  # [m] -> [mm]
+        focalPlaneAngle  = np.deg2rad(float(self["Camera/FocalPlaneOrientation/ConstantValue"]))
+        pixelSize        = float(self["CCD/PixelSize"])
 
         # If the psf is MappedFromFile we need to include mapped field distortion
 
@@ -903,7 +903,6 @@ class Simulation(object):
         # Compute the position of the subfield. xPix and yPix are the CCD coordinates
         # of the star, given a 4510x4510 CCD [colNumber, rowNumber]. The function below
         # also checks if the subfield fits entirely on the CCD. If not: ccdCode is None.
-
         ccdCode, xPix, yPix = rf.calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY,
                                                                     raStar, decStar,
                                                                     raPlatform, decPlatform,
@@ -926,7 +925,6 @@ class Simulation(object):
         CCDOrientation   = rf.CCD[ccdCode]["angle"]
 
         # If we arrive here, there is no problem accommodating the entire sufield on the CCD
-
         self["CCD/Position"]      = str(ccdCode)
         self["CCD/OriginOffsetX"] = str(CCDOriginOffsetX)
         self["CCD/OriginOffsetY"] = str(CCDOriginOffsetY)
@@ -1007,11 +1005,12 @@ class Simulation(object):
             ccdZeroPointY   = self["CCDPositions/OriginOffsetY"][ccdID-1]
             CCDangle        = np.deg2rad(self["CCDPositions/Orientation"][ccdID-1])
 
-        pixelSize       = self["CCD/PixelSize"]  # [micron]
-        raPlatform      = np.deg2rad(self["ObservingParameters/RApointing"])
-        decPlatform     = np.deg2rad(self["ObservingParameters/DecPointing"])
-        focalPlaneAngle = np.deg2rad(self["Camera/FocalPlaneOrientation/ConstantValue"])
-        focalLength     = self["Camera/FocalLength/ConstantValue"] * 1000.0  # [m] -> [mm]
+        pixelSize       = self["CCD/PixelSize"]                                                               # [micron]
+        raPlatform      = np.deg2rad(self["Platform/Orientation/Angles/RAPointing"])                          # [rad]
+        decPlatform     = np.deg2rad(self["Platform/Orientation/Angles/DecPointing"])                         # [rad]
+        solarPanelOrientation = np.deg2rad(float(self["Platform/Orientation/Angles/SolarPanelOrientation"]))  # [rad]
+        focalPlaneAngle = np.deg2rad(self["Camera/FocalPlaneOrientation/ConstantValue"])                      # [rad]
+        focalLength     = self["Camera/FocalLength/ConstantValue"] * 1000.0                                   # [m] -> [mm]
 
         if (self["PSF/Model"] == "MappedFromFile"):
             incldueFieldDistortion        = True
@@ -1024,7 +1023,6 @@ class Simulation(object):
             inverseDistortionCoefficients = self["Camera/FieldDistortion/ConstantInverseCoefficients"]
             pathToPsfFile          = None
 
-        solarPanelOrientation = np.deg2rad(float(self["Platform/SolarPanelOrientation"]))
 
         # Convert the pixel coordinates to focal plane coordinates [mm]
 
@@ -1043,7 +1041,8 @@ class Simulation(object):
 
         # Convert the focal plane coordinates to equatorial sky coordinates [rad]
 
-        ra, dec = rf.focalPlaneToSkyCoordinates(xFPmm, yFPmm, raPlatform, decPlatform, solarPanelOrientation, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength)
+        ra, dec = rf.focalPlaneToSkyCoordinates(xFPmm, yFPmm, raPlatform, decPlatform, solarPanelOrientation, tiltAngle, azimuthAngle, \
+                                                focalPlaneAngle, focalLength)
 
         # Convert sky coordinates to degrees
 
@@ -1313,20 +1312,20 @@ class Simulation(object):
 
         # Telescope config
 
-        raPlatformDeg  = self["ObservingParameters/RApointing"]  = raPF   # [deg]
-        decPlatformDeg = self["ObservingParameters/DecPointing"] = decPF  # [deg]
+        raPlatformDeg  = self["Platform/Orientation/Angles/RAPointing"]  = raPF                                       # [deg]
+        decPlatformDeg = self["Platform/Orientation/Angles/DecPointing"] = decPF                                      # [deg]
 
-        raPlatformRad  = np.deg2rad(raPlatformDeg)   # [rad]
-        decPlatformRad = np.deg2rad(decPlatformDeg)  # [rad]
+        raPlatformRad  = np.deg2rad(raPlatformDeg)                                                                    # [rad]
+        decPlatformRad = np.deg2rad(decPlatformDeg)                                                                   # [rad]
 
-        focalLength      = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
+        focalLength      = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0                                   # [m] -> [mm]
         focalPlaneAngle  = np.deg2rad(float(self["Camera/FocalPlaneOrientation/ConstantValue"]))
 
-        solarPanelOrientation = self["Platform/SolarPanelOrientation"] = math.fmod(quarter * 90., 360.) + kappaPF
-        solarPanelOrientation = np.deg2rad(float(solarPanelOrientation))
+        solarPanelOrientation = self["Platform/Orientation/Angles/SolarPanelOrientation"] = math.fmod(quarter * 90. - kappa, 360.) [deg]
+        solarPanelOrientation = np.deg2rad(float(solarPanelOrientation))                                              # [rad]
 
-        raTargetsRad  = np.deg2rad(ra)   # [rad]
-        decTargetsRad = np.deg2rad(dec)  # [rad]
+        raTargetsRad  = np.deg2rad(ra)                                                                                # [rad]
+        decTargetsRad = np.deg2rad(dec)                                                                               # [rad]
 
         # Loop over each star for this cam-group
 
@@ -1396,8 +1395,8 @@ class Simulation(object):
 
         # Telescope config
 
-        raPlatformDeg  = self["ObservingParameters/RApointing"]  = raPF   # [deg]
-        decPlatformDeg = self["ObservingParameters/DecPointing"] = decPF  # [deg]
+        raPlatformDeg  = self["Platform/Orientation/Angles/RAPointing"]  = raPF   # [deg]
+        decPlatformDeg = self["Platform/Orientation/Angles/DecPointing"] = decPF  # [deg]
 
         raPlatformRad  = np.deg2rad(raPlatformDeg)   # [rad]
         decPlatformRad = np.deg2rad(decPlatformDeg)  # [rad]
@@ -1405,7 +1404,7 @@ class Simulation(object):
         focalLength      = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
         focalPlaneAngle  = np.deg2rad(float(self["Camera/FocalPlaneOrientation/ConstantValue"]))
 
-        solarPanelOrientation = self["Platform/SolarPanelOrientation"] = math.fmod(quarter*90.,360.)
+        solarPanelOrientation = self["Platform/Orientation/Angles/SolarPanelOrientation"] = math.fmod(quarter * 90., 360.) -6
         solarPanelOrientationRad = np.deg2rad(float(solarPanelOrientation))
 
         raTargetsRad  = np.deg2rad(ra)   # [rad]
