@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
-
+# Python standard
 import os
+
+# PlatoSim standard
 import h5py
 import math
 import numpy as np

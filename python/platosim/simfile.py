@@ -10,7 +10,10 @@ For usage see the Jupyter tutorial notebooks available at:
 PlatoSim/docs/tutorials.
 """
 
+# Python standard
 import os
+
+# PlatoSim standard
 import h5py
 import numpy as np
 import pandas as pd
@@ -22,6 +25,7 @@ import matplotlib.patches as patches
 import ipywidgets as widgets
 from astropy.io import fits
 
+# PlatoSim imports
 import platosim.plot as pt
 from platosim.utilities import imageNorm
 
