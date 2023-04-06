@@ -71,7 +71,7 @@ class BrighterFatterEffect(Test):
         self.sim["CCD/IncludeBFE"]         = "yes"
 
         # No star in the subfield.
-        self.sim["ObservingParameters/DecPointing"] = - self.sim["ObservingParameters/DecPointing"]
+        self.sim["Platform/Orientation/Angles/DecPointing"] = - self.sim["Platform/Orientation/Angles/DecPointing"]
 
 
 

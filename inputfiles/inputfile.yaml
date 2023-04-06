@@ -5,15 +5,13 @@ General:
 
     ProjectLocation:                 ENV['PLATO_PROJECT_HOME']
 
-
+    
 ObservingParameters:
 
     MissionDuration:                 6.5             # Total duration of the mission [yr], relevant for BOL->EOL degradation
     NumExposures:                    10              # Number of exposures
     BeginExposureNr:                 0               # Sequential number of first exposure. useful for slurm parallellisation
     CycleTime:                       25              # Image cycle time (exposure + readout before next exposure starts)[s]
-    RApointing:                      86.79870508     # Platform right ascension pointing coordinate (PIC 1.1, SPF) [deg]
-    DecPointing:                     -46.39594703    # Platform declination     pointing coordinate (PIC 1.1, SPF) [deg]
     Fluxm0:                          1.00179e8       # Photon flux of a V=0 G2V-star [phot/s/m^2/nm]
     StarCatalogFile:                 inputfiles/starcatalog.txt
 
@@ -36,20 +34,27 @@ Sky:
       
 Platform:
 
-    SolarPanelOrientation:           -8.5            # kappa (PIC 1.1, SPF) for different mission quarters [deg]: kappa + {0, 90, 180, 270}
+    Orientation:
+      Source:                        Angles          # Should be either "Angles" or "Quaternion" 
+      Angles:
+        RAPointing:                  86.8            # Platform (not telescope) right ascension pointing coordinate     [deg]
+        DecPointing:                -46.4            # Platform (not telescope) declination pointing coordinate         [deg]
+        SolarPanelOrientation:       -8.5            # Spacecraft roll angle to determine the solar panel orientation.  [deg]
+      Quaternion:                                    # Unit quaternion to transform from the equatorial to the platfrom reference frame
+        Components:                  [1.0, 0.0, 0.0, 0.0]   # [q0, qx, qy, qz] with norm = 1.0
     UseJitter:                       yes             # yes or no. If no, ignore everything below.
     JitterSource:                    FromRedNoise    # FromFile, FromRedNoise, or FromNetwork
     JitterYawRms:                    0.038           # [arcsec]
     JitterPitchRms:                  0.038           # [arcsec]
     JitterRollRms:                   0.040           # [arcsec]
-    JitterTimeScale:                 25.             # [s]
+    JitterTimeScale:                 250.            # [s]
     JitterFileName:                  inputfiles/jitter.txt
 
 
 Telescope:
 
     GroupID:                         Custom          # There are four camera groups: 1, 2, 3, 4, Fast, Custom
-                                                     # (use Custom to specify the telescope azimuth and tilt angles yourself)
+                                                     # (use Custom to specify the telescope azimuth and tilt angles)
     AzimuthAngle:                    0.0             # Azimuth angle of camera on the platform [deg] -> when GroupID = Custom
     TiltAngle:                       0.0             # Tilt    angle of camera on the platform [deg] -> when GroupID = Custom
     LightCollectingArea:             113.1           # Effective area of 1 telescope [cm^2]
@@ -105,7 +110,7 @@ Camera:
 PSF:
 
     Model:                           AnalyticNonGaussian      # PSF model: MappedFromFile or AnalyticNonGaussian
-    MappedFromFile:                                           # Read a pre-calculated and fixed PSF from an HDF5 file
+    MappedFromFile:                                           # Read a Zemax (fixed) PSF from an HDF5 file
         Filename:                    inputfiles/PSF_Focus_0mu.hdf5
         NumberOfPixels:              8                        # The number of pixels in the field for which the PSF is generated
         ChargeDiffusionStrength:     0.2                      # Charge diffusion strength (width of the Gaussian diffusion kernel) [pixels]
@@ -149,7 +154,8 @@ FEE:
 
 CCD:
 
-    Position:                        Custom          # One of [1, 2, 3, 4, Custom] (use Custom to specify the CCD position parameters yourself)
+    Position:                        Custom          # One of [1, 2, 3, 4, Custom]
+                                                     # (use Custom to specify the CCD position parameters yourself)
     OriginOffsetX:                   0               # X offset of CCD origin from center of focal plane [mm]
     OriginOffsetY:                   0               # Y offset of CCD origin from center of focal plane [mm]
     Orientation:                     0               # Orientation of CCD w.r.t. focal plane orientation [deg] - use when CCDPosition = Custom

@@ -29,8 +29,8 @@ class OpenShutterSmearing(Test):
         self.sim["Platform/JitterTimeScale"] = 3600
 
         # No stars in the subfield
-        self.sim["ObservingParameters/DecPointing"]   = - self.sim["ObservingParameters/DecPointing"]
-        self.sim["CCD/IncludeRelativeTransmissivity"] = "yes"
+        self.sim["Platform/Orientation/Angles/DecPointing"] = -self.sim["Platform/Orientation/Angles/DecPointing"]
+        self.sim["CCD/IncludeRelativeTransmissivity"] = "yes"        
 
         self.sim["PSF/Model"] = "AnalyticNonGaussian"
 

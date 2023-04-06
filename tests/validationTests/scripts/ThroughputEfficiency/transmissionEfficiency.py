@@ -8,10 +8,10 @@ import platosim.h5   as h5
 
 
 
-"""
-This test to check the transmission efficiency. The test checks that the transmission efficiency decreases linearly during the lifetime of the mission. 
-The fits uses the BOL and EOL transmission efficiency obtained from the input file. The test passes of the RMS difference between the fit and the obtained
-values is smaller then 0.01.
+""" 
+This test to check the transmission efficiency. The test checks that the transmission efficiency decreases linearly during the lifetime of the
+mission. The fits uses the BOL and EOL transmission efficiency obtained from the input file. The test passes of the RMS difference between the fit
+and the obtained values is smaller then 0.01. 
 """
 
 
@@ -27,7 +27,7 @@ class TransmissionEfficiency(Test):
         self.sim["SubField/NumRows"]    = 1
         self.sim["SubField/NumColumns"] = 1
 
-        self.sim["ObservingParameters/DecPointing"] = -self.sim["ObservingParameters/DecPointing"]
+        self.sim["Platform/Orientation/Angles/DecPointing"] = -self.sim["Platform/Orientation/Angles/DecPointing"]
 
 
         self.sim["Telescope/TransmissionEfficiency/BOL"] = 0.9
@@ -96,10 +96,7 @@ class TransmissionEfficiency(Test):
 
 
 
-
-
-
-
 if __name__ == "__main__":
     t = TransmissionEfficiency()
     print(t.run())
+

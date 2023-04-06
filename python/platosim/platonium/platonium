@@ -209,7 +209,7 @@ class PLATOnium(object):
 
         if self.starcatFile is not None:
             dx = pd.read_csv(self.starcatFile, sep=' ', names=['ID', 'ra', 'dec', 'mag', 'dis'])
-            # Chnage IDs all to be the target
+            # Change IDs all to be the target
             dx.ID = np.ones(len(dx))
             dx.ID = dx.ID.astype('int')
             # Define data frames
@@ -228,6 +228,9 @@ class PLATOnium(object):
             picConFile = glob.glob(str(self.inputDir) + f'/starcat{extra_str}**contaminants.ftr')[0]
             df = pd.read_feather(picTarFile)
             dc = pd.read_feather(picConFile)
+
+            # Fetch LOP of catalogue
+            self.pointingField = str(Path(picTarFile).name[11:14])
             
             # Correct indicing and allow a specific star to be choosen
             if self.targetNo == 0:
@@ -402,14 +405,13 @@ class PLATOnium(object):
         # CONFIGURE PAYLOAD
 
         # Select PLATO pointing field from inputfile (e.g. SPF, NPF, etc.) [deg]
-        self.pointingField = sim["ObservingParameters/StarCatalogFile"]
-        sim["ObservingParameters/RApointing"]  = self.PF[self.pointingField][0]
-        sim["ObservingParameters/DecPointing"] = self.PF[self.pointingField][1]
+        sim["Platform/Orientation/Angles/RAPointing"]  = self.PF[self.pointingField][0]
+        sim["Platform/Orientation/Angles/DecPointing"] = self.PF[self.pointingField][1]
 
         # Solar panel orientation [deg]: Q(N) = {0, 90, 180, 270} + kappa
         kappa = self.PF[self.pointingField][2]
         solarPanelOrientationDeg = math.fmod(self.quarter * 90, 360) + kappa
-        sim["Platform/SolarPanelOrientation"] = solarPanelOrientationDeg
+        sim["Platform/Orientation/Angles/SolarPanelOrientation"] = solarPanelOrientationDeg
 
         # Set the Camera-group ID and Camera-group Alt (tilt) and Az [deg]
         sim["Telescope/GroupID"]      = self.group        
@@ -432,9 +434,9 @@ class PLATOnium(object):
             else:
                 if self.verbose > 0:
                     print('Applying pointing error      (PRE FromFile)')
-                sim["ObservingParameters/RApointing"]  += PRE[dex, 1][0]
-                sim["ObservingParameters/DecPointing"] += PRE[dex, 2][0]
-                sim["Platform/SolarPanelOrientation"]  += PRE[dex, 3][0]
+                sim["Platform/Orientation/Angles/RAPointing"]            += PRE[dex, 1][0]
+                sim["Platform/Orientation/Angles/DecPointing"]           += PRE[dex, 2][0]
+                sim["Platform/Orientation/Angles/SolarPanelOrientation"] += PRE[dex, 3][0]
 
         # Include Absolute Pointing Error (APE) due to camera misalignments
         # NOTE: Will only be included if the file "APE.txt" is available in the input folder
@@ -532,17 +534,17 @@ class PLATOnium(object):
             distortionCoefficients = None
 
         # Fetch info from YAML file since setting the subfied figure the inputfile
-        self.raPlatformDeg            = sim["ObservingParameters/RApointing"]
-        self.decPlatformDeg           = sim["ObservingParameters/DecPointing"]
+        self.raPlatformDeg            = sim["Platform/Orientation/Angles/RAPointing"]
+        self.decPlatformDeg           = sim["Platform/Orientation/Angles/DecPointing"]
+        self.solarPanelOrientationDeg = sim["Platform/Orientation/Angles/SolarPanelOrientation"]
         self.tiltTelescopeDeg         = sim["Telescope/TiltAngle"]
         self.azimuthTelescopeDeg      = sim["Telescope/AzimuthAngle"]
-        self.solarPanelOrientationDeg = sim["Platform/SolarPanelOrientation"]
         # Transform to radians
         raPlatformRad            = np.deg2rad(self.raPlatformDeg)
         decPlatformRad           = np.deg2rad(self.decPlatformDeg)
+        solarPanelOrientationRad = np.deg2rad(self.solarPanelOrientationDeg)
         tiltTelescopeRad         = np.deg2rad(self.tiltTelescopeDeg)
         azimuthTelescopeRad      = np.deg2rad(self.azimuthTelescopeDeg)
-        solarPanelOrientationRad = np.deg2rad(self.solarPanelOrientationDeg)
         # Hardware parameters
         pixelSize       = float(sim["CCD/PixelSize"])
         focalLength     = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]

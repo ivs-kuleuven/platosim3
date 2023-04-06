@@ -39,7 +39,7 @@ class Cosmics(Test):
         self.sim["SubField/NumRows"] = 1000
         self.sim["SubField/NumColumns"] = 1000
 
-        self.sim["ObservingParameters/DecPointing"] = -self.sim["ObservingParameters/DecPointing"]
+        self.sim["Platform/Orientation/Angles/DecPointing"] = - self.sim["Platform/Orientation/Angles/DecPointing"]
 
 
     def runSimulation(self):
@@ -147,3 +147,4 @@ class Cosmics(Test):
 if __name__ == "__main__":
     t = Cosmics()
     print(t.run())
+

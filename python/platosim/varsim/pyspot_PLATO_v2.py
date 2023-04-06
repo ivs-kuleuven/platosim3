@@ -468,7 +468,6 @@ def simulate_lc(teff, time, dur, cadence_hours,
         print('Cycle overlap : {:.3f} years'.format(coverlap))
         print('Activity rate : {:.3f} solar'.format(arate))
         print('i_star        : {:.3f}'.format(incl))
-        print('')
         
     # simulate regions
     reg_arr = regions(activityrate = arate, cycle_period = clen, cycle_overlap = coverlap, \

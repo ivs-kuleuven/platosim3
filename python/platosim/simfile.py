@@ -10,7 +10,10 @@ For usage see the Jupyter tutorial notebooks available at:
 PlatoSim/docs/tutorials.
 """
 
+# Python standard
 import os
+
+# PlatoSim standard
 import h5py
 import numpy as np
 import pandas as pd
@@ -22,6 +25,7 @@ import matplotlib.patches as patches
 import ipywidgets as widgets
 from astropy.io import fits
 
+# PlatoSim imports
 import platosim.plot as pt
 from platosim.utilities import imageNorm
 
@@ -137,7 +141,6 @@ class SimFile (object):
         # TODO fix this in future!
         if ccdCode == "Custom": ccdCode = "1"
         timeShift = self.getInputParameter("CCDPositions", "TimeShift")[int(ccdCode)-1]
-
         return np.arange(beginExposure, beginExposure + numExposures) * cadence + timeShift
 
     
@@ -1175,12 +1178,9 @@ class SimFile (object):
 
 
 
-    def getYawPitchRollFromDrift(self, getTime = False):
-
-        """Get (yaw, pitch, roll) of camera drift.
-        
-        Get the camera yaw, pitch and roll angle values at the
-        end of each exposure.
+    def getYawPitchRollFromDrift(self, getTime=False):
+        """
+        Get the camera yaw, pitch and roll angle values at the end of each exposure.
 
         Parameters
         ----------
@@ -1945,7 +1945,6 @@ class SimFile (object):
 
 
 
-    
     def getMaskUpdateEvents(self):
 
         """Exposure number of all mask updates.

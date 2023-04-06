@@ -17,18 +17,25 @@ and used when running "platonium".
 """
 #TOCOME   - instrumentGain.txt : Gain differences for the each CCD (F and E side) and FEE
 
+# Python standard
 import os
 import math
 import datetime
 import argparse
+from textwrap import dedent
+
+# PlatoSim standard
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt 
 from pathlib import Path
-from textwrap import dedent
 
-import platosim.utilities  as ut
+# PlatoSim functions
 import platosim.instrument as it
+from platosim.utilities import errorcode, convertQuarterRange
+
+# Default prefix
+prefix = 'cluster'
 
 #==============================================================#
 #                         BEGIN CLASS                          #
@@ -94,14 +101,14 @@ class InstrumentSetup(object):
         # When number is given (also check for obvious mistakes)
         if len(G) == 1:
             if int(G) > 4:
-                ut.errorcode('warning', 'Maximum number of camera groups is 4!')
+                errorcode('warning', 'Maximum number of camera groups is 4!')
                 parser.print_help()
             else:
                 G = [int(G)]
 
         if len(C) == 1:
             if int(C) > 6:
-                ut.errorcode('warning', 'Maximum number of cameras in a group is 6!')
+                errorcode('warning', 'Maximum number of cameras in a group is 6!')
                 parser.print_help()
             C = [int(C)]
 
@@ -111,20 +118,20 @@ class InstrumentSetup(object):
         # When a range is given (also check for obvious mistakes)
         if len(G) == 3:
             if int(G[2]) > 4:
-                ut.errorcode('warning', 'Maximum number of camera groups is 4!')
+                errorcode('warning', 'Maximum number of camera groups is 4!')
                 parser.print_help()
             else:
                 G = range(int(G[0]), int(G[2])+1)
 
         if len(C) == 3:
             if int(C[2]) > 6:
-                ut.errorcode('warning', 'Maximum number of cameras in a group is 6!')
+                errorcode('warning', 'Maximum number of cameras in a group is 6!')
                 parser.print_help()
             else:
                 C = range(int(C[0]), int(C[2])+1)
 
         if isinstance(Q, str): 
-            Q = ut.convertQuarterRange(Q)
+            Q = convertQuarterRange(Q)
             Q = range(int(Q[0]), int(Q[1])+1)
 
         # Store parameters
@@ -149,9 +156,10 @@ class InstrumentSetup(object):
         """
 
         # Generete PRE file
-        if self.odir: print("\nSaving PRE file")
+        errorcode('module', '\nPointing repeatability error (PRE)')
         it.getPRE(self.ra, self.dec, self.kappa, self.Q, sigma=3,
-                  outfile=self.fileNamePRE, show_table=True)
+                  outfile=self.fileNamePRE, show_table=True, plot=True)
+        if self.odir: print(f"File saved: {self.fileNamePRE}")
 
         
 
@@ -162,10 +170,10 @@ class InstrumentSetup(object):
         """
 
         # Generete APE file
-        if self.odir: print("\nSaving APE file")
+        errorcode('module', '\nAbsolute Pointing Error (APE)')
         it.getAPE(self.ra, self.dec, self.kappa, sigma=3,
-                  outfile=self.fileNameAPE, show_table=True)
-
+                  outfile=self.fileNameAPE, show_table=True, plot=True)
+        if self.odir: print(f"File saved: {self.fileNameAPE}")
 
 
     def createTED(self):
@@ -174,197 +182,18 @@ class InstrumentSetup(object):
         """
         
         # Generate TED file
-        if self.odir: print("\nSaving TED file and plot")
-        it.getTED(self.Q, outfile=self.fileNameTED, plot=True)
+        errorcode('module', '\nThermo-Elastic Distortion (TED)')
+        it.getTED(self.Q, outfile=self.fileNameTED, show_table=True, plot=True)
+        if self.odir: print(f"File saved: {self.fileNameTED}")
 
 
 
-
-
-    def create_job_script(self):
-
-        """Function to create a job script to be used on the VSC.
-        """
-
-        # prefix
-        prefix = "run"
-        
-        # Name of yaml inputfile
-        inputfile = "inputfile.yaml"
-
-        # VSC project account details
-        account = "default_project"
-
-        # Email to recieve job notifications (use "None" to deactivate notifications)
-        email = "nicholas.jannsen@kuleuven.be"
-
-        # VSC module environment for PlatoSim3
-        environment = "plato"
-
-        # Max nodes used
-        maxNodes = 10
-
-        # Number of node-cores for cluster
-        coresCluster = 36
-
-        # Memory per node for cluster [gb]
-        pmemCluster = 192 - 8
-
-        # Memory needed for 1 image [kb]
-        memoryPerImage = 4.25
-
-        # Run time to produce 1 image [s]
-        timePerImage = 1.1 / 1000.
-
-        # Overestimation of calculated memory and walltime [%]
-        limitSafe = 5
-        
-        # Number of idividual simulations
-        numSim = self.N[-1] * self.G[-1] * self.C[-1] * self.Q[-1]
-
-        # Estimate number of nodes
-        nodes = int(math.ceil(numSim/float(coresCluster)))
-
-        # Estimate number of node-cores
-        if nodes == 1:
-            cores = coresCluster
-        elif nodes > maxNodes:
-            nodes = maxNodes
-            cores = int(coresCluster * nodes)
-        else:
-            cores = int(math.ceil(numSim/nodes))
-
-        # Estimate memory per core-node [mb]
-        pmemSim = memoryPerImage * self.nimg / (nodes * cores) * 1e-3
-        pmem    = int(math.ceil(pmemSim + limitSafe/100 * pmemSim))
-
-        # Check if simulation quarter is larger than 5gb per node-core
-        if pmemSim > 5000:
-            ut.errorcode('warning', 'Memory per node-core exceedes 5 GB!')
-
-        # Check if if the total memory exceedes that of the cluster [gb]
-        memPerNode = coresCluster * pmemSim*1e-3
-        if memPerNode > pmemCluster-8:
-            ut.errorcode('error', 'Simulation node-memory of {int(memPerNode)} GB ' +
-                         'exceedes the cluster node-memory of {pmemCluster}-8 GB!')
-
-        # Estimate wall time given the resources above:
-        walltimeQuarter = timePerImage * self.nimg
-        walltimeSafe    = walltimeQuarter + limitSafe/100 * walltimeQuarter
-        walltime        = str(datetime.timedelta(seconds=int(walltimeSafe)))
-
-        # Print if simulation will run and if so, with what resources
-        ut.errorcode('message', f'\nPrepared {numSim} simulations with resources: ' +
-                     'nodes={nodes}, cores={cores}, pmem={pmem}mb, walltime={walltime}')
-
-        # Check email argument
-        if email is None: email = ''
-
-        # Generate job script
-
-        if self.odir:
-            print(f"Creating HPC parameterization job-script: {self.odir}/{prefix}.pbs")
-
-        script = \
-        """
-        #!/bin/bash
-
-        #PBS -A lp_mesa_modeling
-        #PBS -N output
-        #PBS -l nodes=10:ppn=36
-        #PBS -l pmem=5gb
-        #PBS -l walltime=100:00:00
-
-        cd $PBS_O_WORKDIR
-        module purge
-        module restore plato
-
-        # Define sample
-        PX=<sample>
-        PROJECT=<project>
-
-        # Load paths
-        POETRY=$VSC_DATA/poetry/virtualenvs/platonium-KLYW-dHg-py3.8/bin/activate
-        PLATO=$VSC_DATA/plato
-        PLATO_PROJECT_HOME=$VSC_DATA/PlatoSim3
-        PLATO_WORKDIR=$VSC_DATA/workdir
-        SIMDIR=$PLATO_PROJECT_HOME/python/platosim/platonium
-        TEMDIR=$VSC_SCRATCH_NODE
-        OUTDIR=/scratch/leuven/341/vsc34166/platonium/$PROJECT
-        PYTHONPATH=$POETRY:$PLATO:$PLATO_PROJECT_HOME/python:$PLATO_WORKDIR:$SIMDIR:$TEMDIR:$OUTDIR
-        export POETRY
-        export PLATO
-        export PLATO_PROJECT_HOME
-        export PLATO_WORKDIR
-        export SIMDIR
-        export TEMDIR
-        export OUTDIR
-        export PYTHONPATH
-
-        # Load python environment
-        source $POETRY
-
-        # Run PLATOnium
-        starID=$(printf "%09d" $star)
-        python $SIMDIR/platonium $star $group $camera $quarter --project $PROJECT --sample $PX -o $TEMDIR --compress
-
-        # Move data from the scrath node to output
-        mkdir -p $OUTDIR/$starID
-        zipfile=$TEMDIR/reduced/$PX/$starID/${starID}_Ncam${group}.${camera}_Q${quarter}.zip
-        if [ -f $zipfile ]; then
-            mv $zipfile $OUTDIR/$starID
-        fi
-
-        # Check if directory is not removed
-        olddir=$TEMDIR/$PX/$starID/Ncam${group}${camera}
-        if [ -d $olddir ]; then
-            rm -rf $$olddir
-        fi
-        """
-
-        # Save textfile for worker
-        if self.odir:
-            filename = f"{self.odir}/{prefix}.pbs"
-            with open(filename, "w") as ofile:
-                ofile.write(dedent(script).strip())
-
-
-
-
-            
-    def create_param_file(self):
-
-        """Function to create a job script to be used on the VSC.
-        """
-
-        # Select prefix
-        prefix = "data"
-        
-        if self.odir:
-            print(f"Creating HPC parameterization file : {self.odir}/{prefix}.txt")
-
-        # Add rows in a loop
-        textfile = "star,group,camera,quarter\n"
-        for starNo in self.N:
-            for groupNo in self.G:
-                for cameraNo in self.C:
-                    for quarterNo in self.Q:
-                        textfile += f"{starNo},{groupNo},{cameraNo},{quarterNo}\n"
-
-        # Save textfile for worker
-        if self.odir:
-            filename = f"{self.odir}/{prefix}.txt"
-            with open(filename, "w") as ofile:
-                ofile.write(dedent(textfile).strip())
-
-
-
-
-                
     def create_time_gaps(self):
 
         """Function to create a job script to be used on the VSC.
         """
+
+        errorcode('module', '\nDate gaps in time series\n')
 
         # Initialise random generator
         rng = np.random.default_rng()
@@ -381,11 +210,11 @@ class InstrumentSetup(object):
 
         # Create continous time array
         df["time"] = time
-
         
         # QUARTERLY ROLLS
 
-        roll_period   = 93.
+        print('Downtime due to quater interuptions')
+        roll_period   = 365.25/4
         roll_duration = 2.0
         roll_anomaly  = 0.5
 
@@ -400,10 +229,10 @@ class InstrumentSetup(object):
             roll_event1[i] = (roll_period * Q + roll_gap/2) * self.day2sec  # [s]
             df["roll"] = np.logical_and(time>=roll_event0[i], time<=roll_event1[i])
 
-
         # DOWNLINK GAPS
 
-        link_period   = 30.
+        print('Downtime due to data downlinks')
+        link_period   = 365.25/4/3
         link_duration = 5/24.           # [d] i.e. 5 hours
         link_anomaly  = 0.5/24.         # [d] i.e. 0.5 hour
         link_events = np.arange((self.Q[0]-1)*roll_period, self.Q[-1]*roll_period, link_period)[1:]
@@ -418,9 +247,9 @@ class InstrumentSetup(object):
             link_event1[i] = (L + link_gap/2) * self.day2sec
             df["downlink"] = np.logical_and(time>=link_event0[i], time<=link_event1[i])
 
-
         # LOSS OF FINE GUIDANCE
 
+        print('Downtime due to loss of fine guidance')
         freq = 180
         t = self.Q[0] * roll_period
         jitter_duration = 0.5/24.
@@ -442,9 +271,9 @@ class InstrumentSetup(object):
             jitter_event1[i] = (J + jitter_gap/2) * self.day2sec
             df["jitter"] = np.logical_and(time>=jitter_event0[i], time<=jitter_event1[i])
 
-
         # SAVE MODE EVENTS
 
+        print('Downtime due to safe-mode events')
         freq = 270
         t = self.Q[0] * roll_period
         safe_duration = 1
@@ -465,7 +294,6 @@ class InstrumentSetup(object):
             safe_event0[i] = (S - safe_gap/2) * self.day2sec
             safe_event1[i] = (S + safe_gap/2) * self.day2sec
             df["safe"] = np.logical_and(time>=safe_event0[i], time<=safe_event1[i])
-
 
         # Create new time array with all gaps
         # df["tsim"] = ~df.roll * ~df.downlink
@@ -540,10 +368,169 @@ class InstrumentSetup(object):
         #self.beginExposureNr = round(self.timeStart / self.cadence)
         
         if self.odir:
-            print(f"Creating file with instrumental time gaps : {self.odir}/instrumentDataGaps.txt")
+            outfile = f'{self.odir}/instrumentGaps.txt'
+            fig.savefig(f"{outfile[:-4]}.png", bbox_inches='tight', dpi=200)
+            df.to_csv(outfile, sep=" ", header=False, index=False)
+            print(f"File saved : {outfile}")
             
+
+
         
+    def create_job_script(self):
+
+        """Function to create a job script to be used on the VSC.
+        """
+
+        errorcode('module', f'\nJob script for parallisation\n')
+
+        # Max nodes used
+        maxNodes = 1
+
+        # Number of node-cores for cluster
+        coresCluster = 36
+
+        # Memory per node for cluster [gb]
+        pmemCluster = 192 - 8
+
+        # Memory needed for 1 image [kb]
+        memoryPerImage = 4.25
+
+        # Run time to produce 1 image [s]
+        timePerImage = 1.1 / 1000.
+
+        # Overestimation of calculated memory and walltime [%]
+        limitSafe = 5
         
+        # Number of idividual simulations
+        numSim = self.N[-1] * self.G[-1] * self.C[-1] * self.Q[-1]
+
+        # Estimate number of nodes
+        nodes = int(math.ceil(numSim/float(coresCluster)))
+
+        # Estimate number of node-cores
+        if nodes == 1:
+            cores = coresCluster
+        elif nodes > maxNodes:
+            nodes = maxNodes
+            cores = int(coresCluster * nodes)
+        else:
+            cores = int(math.ceil(numSim/nodes))
+
+        # Estimate memory per core-node [mb]
+        pmemSim = memoryPerImage * self.nimg / (nodes * cores) * 1e-3
+        pmem    = int(math.ceil(pmemSim + limitSafe/100 * pmemSim))
+
+        # Check if simulation quarter is larger than 5gb per node-core
+        if pmemSim > 5000:
+            errorcode('warning', 'Memory per node-core exceedes 5 GB!')
+
+        # Check if if the total memory exceedes that of the cluster [gb]
+        memPerNode = coresCluster * pmemSim*1e-3
+        if memPerNode > pmemCluster-8:
+            errorcode('error', 'Simulation node-memory of {int(memPerNode)} GB ' +
+                      'exceedes the cluster node-memory of {pmemCluster}-8 GB!')
+
+        # Estimate wall time given the resources above:
+        walltimeQuarter = timePerImage * self.nimg
+        walltimeSafe    = walltimeQuarter + limitSafe/100 * walltimeQuarter
+        walltime        = str(datetime.timedelta(seconds=int(walltimeSafe)))
+
+        # Print if simulation will run and if so, with what resources
+        print(f'Preparing {numSim} simulations with resources: ' +
+              f'nodes={nodes}, cores={cores}, pmem={pmem}mb, walltime={walltime}')
+
+        # Generate job script
+
+        if self.odir:
+            print(f"Creating parameterization job-script: {self.odir}/{prefix}.slurm")
+
+        script = \
+        """
+        #!/bin/bash
+
+        #PBS -A <account>
+        #PBS -N <output_name>
+        #PBS -l nodes=10:ppn=36
+        #PBS -l pmem=5gb
+        #PBS -l walltime=0:00:00
+        #PBS 
+
+        cd $PBS_O_WORKDIR
+        module purge
+        module restore plato
+
+        # Define sample
+        PX=<sample>
+        PROJECT=<project>
+        CLUSTER=/scratch/leuven/341/vsc34166/platonium
+        POETRY=$VSC_DATA/poetry/virtualenvs/platonium-KLYW-dHg-py3.8/bin/activate
+
+        # Load paths
+        export $POETRY
+        export PLATO=$VSC_DATA/plato
+        export PLATO_PROJECT_HOME=$VSC_DATA/PlatoSim3
+        export PLATO_WORKDIR=$VSC_DATA/workdir
+        export SIMDIR=$PLATO_PROJECT_HOME/python/platosim/platonium
+        export TEMDIR=$VSC_SCRATCH_NODE
+        export OUTDIR=$CLUSTER/$PROJECT
+        PYTHONPATH=$POETRY:$PLATO:$PLATO_PROJECT_HOME/python:$PLATO_WORKDIR:$SIMDIR:$TEMDIR:$OUTDIR
+        
+        # Load python environment
+        source $POETRY
+
+        # Run PLATOnium
+        starID=$(printf "%09d" $star)
+        python $SIMDIR/platonium $star $group $camera $quarter --project $PROJECT --sample $PX -o $TEMDIR --compress
+
+        # Move data from the scrath node to output
+        mkdir -p $OUTDIR/$starID
+        zipfile=$TEMDIR/reduced/$PX/$starID/${starID}_Ncam${group}.${camera}_Q${quarter}.zip
+        if [ -f $zipfile ]; then
+            mv $zipfile $OUTDIR/$starID
+        fi
+
+        # Check if directory is not removed
+        olddir=$TEMDIR/$PX/$starID/Ncam${group}${camera}
+        if [ -d $olddir ]; then
+            rm -rf $$olddir
+        fi
+        """
+
+        # Save textfile for worker
+        if self.odir:
+            filename = f"{self.odir}/{prefix}.slurm"
+            with open(filename, "w") as ofile:
+                ofile.write(dedent(script).strip())
+
+
+
+
+            
+    def create_param_file(self):
+
+        """Function to create a job script to be used on the VSC.
+        """
+        
+        if self.odir:
+            print(f"Creating HPC parameterization file : {self.odir}/{prefix}.data")
+
+        # Add rows in a loop
+        textfile = "star,group,camera,quarter\n"
+        for starNo in self.N:
+            for groupNo in self.G:
+                for cameraNo in self.C:
+                    for quarterNo in self.Q:
+                        textfile += f"{starNo},{groupNo},{cameraNo},{quarterNo}\n"
+
+        # Save textfile for worker
+        if self.odir:
+            filename = f"{self.odir}/{prefix}.data"
+            with open(filename, "w") as ofile:
+                ofile.write(dedent(textfile).strip())
+        
+
+
+            
 #--------------------------------------------------------------#
 #                PARSING COMMAND-LINE ARGUMENTS                #
 #--------------------------------------------------------------#
@@ -551,7 +538,7 @@ class InstrumentSetup(object):
 software = '\nInstrument file generator'
 parser = argparse.ArgumentParser(epilog=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter,
-                                 description=ut.errorcode('software', software))
+                                 description=errorcode('software', software))
 
 man_group = parser.add_argument_group('MANDATORY PARAMETERS')
 man_group.add_argument('field',   type=str, help='LOP (SPF, NPF)')
@@ -578,3 +565,4 @@ x.createTED()
 x.create_time_gaps()
 x.create_job_script()
 x.create_param_file()
+print('')
