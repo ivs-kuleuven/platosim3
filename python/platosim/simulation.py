@@ -15,12 +15,12 @@ import sys
 import ast
 import math
 import yaml
-import pyaml
 import inspect
 import datetime
 import subprocess
 
 # PlatoSim standard
+import pyaml
 import numpy as np
 
 # PlatoSim imports
