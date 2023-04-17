@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
 
+"""
+TODO this file is really not needed since its functionalities has been 
+implemented into simfile.py. Maybe check which method is best.
+"""
+
 import numpy as np
 import matplotlib.cm as cm
 from matplotlib import pyplot as plt 
