@@ -196,24 +196,33 @@ class Distribution(object):
 
         # Read the magnitudes from a real catalogue
 
-        mags = self.readMagnitudes()
+        import pandas as pd
+        df = pd.DataFrame(self.readMagnitudes(), columns=['mag'])
+        counts, bins = np.histogram(df.mag, bins=100)
+        
+        # Find magnitude limits
 
-        # Get bins using matplotlib
-
-        if plot: plt.figure(figsize=(8,5))
-        hist, bins, patches = plt.hist(mags, bins=100, label="Stellar input catalogue")
+        df0 = df[(df.mag > minMag) & (df.mag < maxMag)]
+        counts0, bins0 = np.histogram(df0.mag, bins=100)
         
         # Fit function: a * EXP(-b * magnitude) + c, to the magnitude distribution
         
-        x = (bins[1:] + bins[:-1]) / 2   # Centre of bins
-        fitMag, cov = curve_fit(self.expFunction, x, hist, p0=(1, 1e-6, 1))
+        x = (bins0[1:] + bins0[:-1]) / 2   # Centre of bins
+        fitMag, cov = curve_fit(self.expFunction, x, counts0, p0=(1, 1e-6, 1))
         
         # Plot if requested
         
         if plot:
+            plt.figure(figsize=(8,5))
+            # Plot input data
+            plt.hist(df.mag, bins=100,
+                     facecolor='b', edgecolor='b',
+                     fill=True, log=False, alpha=0.3,
+                     label="Stellar input catalogue")
+            # Plot fit
             xx = np.linspace(minMag, maxMag, 100)
             yy = self.expFunction(xx, *fitMag)
-            plt.plot(xx, yy, 'r', label="Best fit to magnitude range")
+            plt.plot(xx, yy, 'm', lw=2, label="Best fit to magnitude range")
             plt.xlabel("Magnitude")
             plt.ylabel("Number of stars")
             plt.legend(loc="best")

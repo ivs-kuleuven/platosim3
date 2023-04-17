@@ -269,7 +269,7 @@ def drawCCDsInFocalPlane(pixelSize=18, plotCCDlabels=True, normal=True):
 
     # Plot each of the 4 CCDs
 
-    fig = plt.figure(figsize = (10,10))
+    fig = plt.figure(figsize = (9,9))
     ax = fig.add_subplot(111)
 
     for ccdCode in ccdCodes:
@@ -301,8 +301,8 @@ def drawCCDsInFocalPlane(pixelSize=18, plotCCDlabels=True, normal=True):
             middleY = minY + (maxY - minY) / 8.
             ax.text(middleX, middleY, ccdCode, fontsize=30, color="gray")
 
-    ax.set_xlabel('$x_{FP}$ [mm]', fontsize = 20)
-    ax.set_ylabel('$y_{FP}$ [mm]', fontsize = 20)
+    ax.set_xlabel(r'$x_{\rm FP}$ [mm]', fontsize = 20)
+    ax.set_ylabel(r'$y_{\rm FP}$ [mm]', fontsize = 20)
 
 
 
@@ -861,9 +861,9 @@ def drawStarInCCDfocalPlane(fig, sim, xCCD, yCCD, refCcdCode, refGroup,
 
 
 
-def drawCCDsInSkyMollweide(fig, raPlatform, decPlatform, solarPanelOrientation,
+def drawCCDsInSkyMollweide(raPlatform, decPlatform, solarPanelOrientation,
                            tiltAngle, azimuthAngle, focalPlaneAngle, focalLength,
-                           pixelSize, normal=True):
+                           pixelSize, normal=True, figsize=(9,5)):
 
     """Project and plot the 4 CCDs of 1 camera on the sky
     
@@ -916,6 +916,7 @@ def drawCCDsInSkyMollweide(fig, raPlatform, decPlatform, solarPanelOrientation,
 
     # Set up the figure
 
+    fig = plt.figure(figsize=figsize)
     axes = fig.add_subplot(111, projection="mollweide")
     axes.grid(True)
 
@@ -962,11 +963,12 @@ def drawCCDsInSkyMollweide(fig, raPlatform, decPlatform, solarPanelOrientation,
 
     plt.xlabel("RA [deg]")
     plt.ylabel("Dec [deg]")
+    plt.tight_layout()
     plt.draw()
 
     # That's it
 
-    return axes
+    return fig, axes
 
 
 
