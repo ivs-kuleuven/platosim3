@@ -229,6 +229,118 @@ def sunSkyCoordinatesAwayfromPlatformPointing(raPlatform, decPlatform, solarPane
 
 
 
+
+def qmul(qa, qb):
+	"""Multiplication of two quaternions qa and qb.
+   
+	Parameters
+	----------
+    qa: quaternion of the form (q0, qx, qy, qz): list or ndarray
+ 	qb: quaternion of the form (q0, qx, qy, qz): list of ndarray
+  
+	Return
+	------
+    result: A list containing the resulting quaternion components.
+
+	"""	
+	result = [0.0, 0.0, 0.0, 0.0]
+	result[0] = qa[0]*qb[0] - qa[1]*qb[1] - qa[2]*qb[2] - qa[3]*qb[3]
+	result[1] = qa[0]*qb[1] + qa[1]*qb[0] + qa[2]*qb[3] - qa[3]*qb[2]
+	result[2] = qa[0]*qb[2] - qa[1]*qb[3] + qa[2]*qb[0] + qa[3]*qb[1]
+	result[3] = qa[0]*qb[3] + qa[1]*qb[2] - qa[2]*qb[1] + qa[3]*qb[0]
+	return result
+
+
+
+
+def qconj(q):
+    """ Compute the conjugate of a given quaterion 
+
+    Parameters 
+    ----------
+    q: quaternion of the form (q0, qx, qy, qz)
+
+    Output
+    ------
+    q^*: quaternion containing (q0, -qx, -qy, -qz)
+    """
+    return [q[0], -q[1], -q[2], -q[3]]
+
+
+
+
+
+def platformAnglesFromQuaternion(q_EQ2PLM):
+    """ 
+    Derive the (RA, dec) of the platform (Payload Module) pointing axis, as well as the
+    platform roll angle, given the q_EQ2PLM unit quaternion.
+
+    See PLATO-KUL-PL-TN-001 for more details on the equations.
+    
+    Parameters 
+    ----------
+    q_EQ2PLM: the unit quaterion used to transform coordinates in the equatorial reference frame 
+              to the corresponding coordinates in the Payload Module (i.e. Platform) reference frame.
+              Has the form [q0, qx, qy, qz].
+
+    Return
+    ------
+    raPlatform: Right ascencion sky coordinate of the platform pointing axis [rad]
+    decPlatform: Declination sky coordinate of the platform pointing axis    [rad]
+    solarPanelOrientation:  Roll angle of the platform                       [rad]
+    """
+
+    v_PLM = [0.0, 0.0, 0.0, 1.0];                                         # Pointing axis of the PLM is the z-axis
+    v_EQ = qmul(q_EQ2PLM, qmul(v_PLM, qconj(q_EQ2PLM)))                   # Real part can be ignored
+    r = np.sqrt(v_EQ[1]*v_EQ[1] + v_EQ[2]*v_EQ[2] + v_EQ[3]*v_EQ[3])
+    decPlatform = np.pi / 2.0 - np.arccos(v_EQ[3]/r)                      # Declination     [rad]
+    raPlatform = np.arctan2(v_EQ[2], v_EQ[1])                             # Right Ascension [rad]
+    if raPlatform < 0.0: raPlatform += 2*np.pi 
+    
+    q_EQ2A = [np.cos(raPlatform/2.0), 0.0, 0.0, np.sin(raPlatform/2.0)]
+    q_A2B = [np.cos(np.pi/4 - decPlatform/2.0), 0.0, np.sin(np.pi/4 - decPlatform/2.0), 0.0]
+    q_B2PLM = qmul(qconj(q_A2B), qmul(qconj(q_EQ2A), q_EQ2PLM))
+    solarPanelOrientation = 2.0 * np.arctan2(q_B2PLM[3], q_B2PLM[0])              
+
+    return raPlatform, decPlatform, solarPanelOrientation
+
+
+
+
+
+
+
+def platformQuaternionFromAngles(raPlatform, decPlatform, solarPanelOrientation):
+    """ 
+    Compute the quaternion q_EQ2PLM that is used to transform coordinates in the
+    equatorial reference frame to the corresponding coordinates in the Payload
+    Module (i.e. Platform) reference frame.
+
+    See PLATO-KUL-PL-TN-001 for more details on the equations.
+    
+    Parameters 
+    ----------
+    raPlatform: Right ascencion sky coordinate of the platform pointing axis [rad]
+    decPlatform: Declination sky coordinate of the platform pointing axis    [rad]
+    solarPanelOrientation:  Roll angle of the platform                       [rad]
+
+    Return
+    ------
+    q_EQ2PLM: quaternion of the form [q0, qx, qy, qz] 
+
+    """
+
+    q_EQ2A = [np.cos(raPlatform/2.0), 0.0, 0.0, np.sin(raPlatform/2.0)]
+    q_A2B = [np.cos(np.pi/4 - decPlatform/2.0), 0.0, np.sin(np.pi/4 - decPlatform/2.0), 0.0]
+    q_B2PLM = [np.cos(solarPanelOrientation/2.0), 0.0, 0.0, np.sin(solarPanelOrientation/2.0)]
+    q_EQ2PLM = qmul(q_EQ2A, qmul(q_A2B, q_B2PLM))
+    return q_EQ2PLM
+
+
+
+
+
+
 def skyToPlatformCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation):
 
     """From equatorial to platform coordinates.
@@ -635,8 +747,7 @@ def pixelCoordinates2FocalPlaneAngles(xCCD, yCCD, ccdCode, pixelSize, focalLengt
 
 
 
-def focalPlaneAngles2pixelCoordinates(angleFromOpticalAxis, azimuthFromXAxis,
-                                      ccdCode, pixelSize, focalLength):
+def focalPlaneAngles2pixelCoordinates(angleFromOpticalAxis, azimuthFromXAxis, ccdCode, pixelSize, focalLength):
 
     """From focal plane angles to pixel coordinates.
 

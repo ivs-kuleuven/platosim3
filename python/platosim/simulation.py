@@ -809,11 +809,11 @@ class Simulation(object):
                                                4510 - subfieldSizeY)
 
 
+        
 
 
 
     def setSubfieldAroundSkyCoordinates(self, raStar, decStar, subfieldSizeX, subfieldSizeY,
-                                     normal=True):
 
         """Set subfield around stellar coordinates
 
@@ -835,8 +835,8 @@ class Simulation(object):
           the switch to include distortion or not is set correctly
         - The function does not set the exposure time, nor the focal length source, etc.
 
-        Paramters
-        ---------
+        Parameters
+        ----------
         raStar : float
             Right ascension of the star [radians]
         decStar : float
@@ -852,13 +852,28 @@ class Simulation(object):
         ------
         bool : True if the entire subfield fit on one of the 4 (pre-defined) CCDs,
                False otherwise.
+
+        Example
+        -------
+        >>> import numpy as np
+        >>> from platosim.simulation import Simulation 
+        >>> sim = Simulation("run001")                                     # Using default inputfile.yaml
+        >>> raStar = np.deg2rad(90.0)                                      # [rad]
+        >>> decStar = np.deg2rad(-48.0)                                    # [rad]
+        >>> subfieldSizeX, subfieldSizeY = 8,8                             # [pixels]
+        >>> success = sim.setSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY, normal=True)
+        >>> print(success)
         """
 
         # Find the platform orientation [rad]
 
-        raPlatform            = np.deg2rad(float(self["Platform/Orientation/Angles/RAPointing"]))
-        decPlatform           = np.deg2rad(float(self["Platform/Orientation/Angles/DecPointing"]))
-        solarPanelOrientation = np.deg2rad(float(self["Platform/Orientation/Angles/SolarPanelOrientation"]))
+        if self["Platform/Orientation/Source"] == "Angles":
+            raPlatform  = np.deg2rad(float(self["Platform/Orientation/Angles/RAPointing"]))
+            decPlatform = np.deg2rad(float(self["Platform/Orientation/Angles/DecPointing"]))
+            solarPanelOrientation = np.deg2rad(float(self["Platform/Orientation/Angles/SolarPanelOrientation"]))         # [rad]
+        else:
+            q_EQ2PLM = self["Platform/Orientation/Quaternion/Components"]
+            raPlatform, decPlatform, solarPanelOrientation = rf.platformAnglesFromQuaternion(q_EQ2PLM)                   # [rad]
 
         # Find out some instrumental characteristics from the sim object
         
