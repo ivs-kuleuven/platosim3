@@ -105,7 +105,7 @@ class AbsoluteAberration(Test):
         self.sim["SubField/NumRows"]         = 510
         self.sim["SubField/NumColumns"]      = 510
 
-        self.sim.setSubfieldAroundCoordinates(ra, dec, 510, 510)
+        self.sim.setSubfieldAroundSkyCoordinates(ra, dec, 510, 510)
 
         # Set the star catalog
         starFileName = self.outputDir + "/starCatalog" + self.nr + ".txt"
@@ -151,7 +151,7 @@ class AbsoluteAberration(Test):
         self.sim["SubField/NumRows"]    = 510
         self.sim["SubField/NumColumns"] = 510
 
-        self.sim.setSubfieldAroundCoordinates(ra, dec, 510, 510)
+        self.sim.setSubfieldAroundSkyCoordinates(ra, dec, 510, 510)
 
         # Set the star catalog
         starFileName = self.outputDir + "/starCatalog" + self.nr + ".txt"
