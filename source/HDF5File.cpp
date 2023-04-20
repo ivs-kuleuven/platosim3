@@ -2701,7 +2701,7 @@ void HDF5File::writeCosmicsWhenGroupByExposure(int exposureNr, string field, vec
     // Define the name of sub group for every exposure.
 
     stringstream myStream;
-    myStream << "/exposure" << setfill('0') << setw(6) << exposureNr;
+    myStream << "/Exposure" << setfill('0') << setw(6) << exposureNr;
     imageName = "/Cosmics/" + field + myStream.str();
 
     // add the columns vector
@@ -2762,13 +2762,13 @@ void HDF5File::writeCosmicsWhithoutGroupByExposure(int exposureNr, string field,
     // Create sub group so that there are no more then 1000 exposures in one sub group
 
     stringstream subgroupStream;
-    subgroupStream << "/exposure" << setfill('0') << setw(3) << exposureNr / 1000;
+    subgroupStream << "/Exposure" << setfill('0') << setw(3) << exposureNr / 1000;
 
     // Define the name of sub group for every exposure.
 
 
     stringstream myStream;
-    myStream << "/exposure" << setfill('0') << setw(6) << exposureNr;
+    myStream << "/Exposure" << setfill('0') << setw(6) << exposureNr;
     imageName = "/Cosmics/" + field + subgroupStream.str() + myStream.str();
 
     // add the columns vector
