@@ -1278,7 +1278,7 @@ class SimFile (object):
 
         # Construct the exposure name that was used to store the image
 
-        exposureGroupName = "exposure{0:06d}".format(imageNr)
+        exposureGroupName = "Exposure{0:06d}".format(imageNr)
         
         # Extract information depending of HDF5 structure
         
@@ -1290,8 +1290,8 @@ class SimFile (object):
             # and we overwrite the "exposureGroupName"
 
             n = 1000
-            imageNrRound = imageNr // n * n
-            exposureGroupName = f"exposure{imageNrRound:03d}/{exposureGroupName}"
+            imageNrRound = imageNr // n
+            exposureGroupName = f"Exposure{imageNrRound:03d}/{exposureGroupName}"
 
         # Check if this column exists in the HDF5 file
 
@@ -1368,7 +1368,7 @@ class SimFile (object):
         
         # Construct the exposure name that was used to store the image
 
-        exposureGroupName = "exposure{0:06d}".format(imageNr)
+        exposureGroupName = "Exposure{0:06d}".format(imageNr)
 
         # Extract information depending of HDF5 structure
         
@@ -1381,7 +1381,7 @@ class SimFile (object):
             
             n = 1000
             imageNrRound = imageNr // n
-            exposureGroupName = f"exposure{imageNrRound:03d}/{exposureGroupName}"
+            exposureGroupName = f"Exposure{imageNrRound:03d}/{exposureGroupName}"
             
         # Check if this column exists in the HDF5 file
                 
