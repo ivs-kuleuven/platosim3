@@ -813,7 +813,7 @@ class Simulation(object):
 
 
 
-    def setSubfieldAroundSkyCoordinates(self, raStar, decStar, subfieldSizeX, subfieldSizeY,
+    def setSubfieldAroundSkyCoordinates(self, raStar, decStar, subfieldSizeX, subfieldSizeY, normal=True):
 
         """Set subfield around stellar coordinates
 
