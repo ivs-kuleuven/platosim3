@@ -131,13 +131,19 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     }
     else
     {
-        if (useDriftFromFile)
+        if (driftSource == "FromFile")
         {
             driftGenerator = new ThermoElasticDriftFromFile(configParams);
         }
-        else
+        else if (driftSource == "FromRedNoise")
         {
             driftGenerator = new ThermoElasticDriftFromRedNoise(configParams);
+        }
+	else
+        {
+            string errorMessage = "Simulation: Drift Source '" + driftSource + "' is not supported.";
+            Log.error(errorMessage);
+            throw IllegalArgumentException(errorMessage);
         }
     }
 
@@ -245,7 +251,7 @@ void Simulation::configure(ConfigurationParameters &configParams)
     jitterSource                    = configParams.getString("Platform/JitterSource");
     includeFieldDistortion          = configParams.getBoolean("Camera/IncludeFieldDistortion"); // do we want to do this or should this be asked to Camera?
     useDrift                        = configParams.getBoolean("Telescope/UseDrift");
-    useDriftFromFile                = configParams.getBoolean("Telescope/UseDriftFromFile");
+    driftSource                     = configParams.getString("Telescope/DriftSource");
     psfModel                        = configParams.getString("PSF/Model");
     useFeeTemperatureFromFile       = configParams.getString("FEE/Temperature") == "FromFile";
     useFeeNominalTemperature        = configParams.getString("FEE/Temperature") == "Nominal";
@@ -727,7 +733,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("TiltAngle");
     addDouble("LightCollectingArea");
     addBoolean("UseDrift");
-    addBoolean("UseDriftFromFile");
+    addString("DriftSource");
     addDouble("DriftYawRms");
     addDouble("DriftPitchRms");
     addDouble("DriftRollRms");
