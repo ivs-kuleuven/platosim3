@@ -1110,7 +1110,7 @@ class Simulation(object):
         myFile = open(starCatalogPath, "w")
         myFile.write("# RA DEC Vmag starID\n")
         for n in range(len(ra)):
-            myFile.write("{0}  {1}  {2}  {3}\n".format(ra[n], dec[n], magnitudes[n], starIDs[n]))
+            myFile.write("{0} {1} {2} {3}\n".format(ra[n], dec[n], magnitudes[n], starIDs[n]))
         myFile.close()
 
         # Set the "ObservingParameters/StarCatalogFile" tag in the yaml tree
@@ -1223,7 +1223,7 @@ class Simulation(object):
         
         with open(variableSourceList, 'w') as f:
             for i in range(len(starID)):
-                f.write(f'{starID[i]} {variableSourceFile[i]}')
+                f.write(f'{starID[i]} {variableSourceFile[i]}\n')
 
         # Set the "Sky" tag in the yaml tree
 

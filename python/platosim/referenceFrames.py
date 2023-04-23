@@ -2063,7 +2063,9 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpix, yCCDpix):
 
     # Get the corresponding sky coordinates
 
-    ra, dec = focalPlaneToSkyCoordinates(xFPmm, yFPmm, raPlatform, decPlatform, solarPanelOrientation, tiltTelescope, azimuthTelescope,
+    ra, dec = focalPlaneToSkyCoordinates(xFPmm, yFPmm,
+                                         raPlatform, decPlatform, solarPanelOrientation,
+                                         tiltTelescope, azimuthTelescope,
                                          focalPlaneAngle, focalLength)
 
     # That's it!

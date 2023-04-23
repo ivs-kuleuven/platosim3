@@ -1768,9 +1768,16 @@ class SimFile (object):
 
         if imageNr is False:
             images = self.getImage()
-            image = images[0]
-            Nimg  = images.shape[0]
-            Nrows, Ncols = image.shape
+
+            # Check for a single image
+            if len(images.shape) == 2:
+                image = images
+                Nimg  = 1
+                Nrows, Ncols = image.shape
+            else:
+                image = images[0]
+                Nimg  = images.shape[0]
+                Nrows, Ncols = image.shape
 
         else:
             image = self.getImage(imageNr)
@@ -1988,7 +1995,7 @@ class SimFile (object):
 
         # Plot with or without a slider
 
-        if imageNr is False:
+        if imageNr is False and Nimg > 1:
 
             # Function to update slider
             def update_image(n=0):
