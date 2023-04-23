@@ -7,8 +7,8 @@
 
 ### Changed
 
-* Change of HDF5 structure for Cosmics, now using consistent upper case letter for "Exposure"
-
+* Change of HDF5 structure for `Cosmics`, now using consistent upper case letter for "Exposure" (GH #765)
+* Change of YAML inputfile `Telescope` block named `UseDriftFromFile` to `DriftSource` (GH #766)
 
 
 <!-- 3.5.5 -->
