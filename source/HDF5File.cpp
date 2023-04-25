@@ -952,6 +952,70 @@ double HDF5File::readDoubleGroupAttribute(string groupName, string attributeName
 
 
 
+void HDF5File::readArrayDatasetAttribute(string groupName, string datasetName, string attributeName, double (&outputArray)[])
+{
+    // Complain if the file was not first opened
+
+    if (!fileIsOpen)
+    {
+        throw H5FileException("HDF5File: The file (" + file->getFileName() + ") has not been opened.");
+    }
+
+    // Open the proper group where the attribute is associated
+
+    H5::Group group;
+    if (hasGroup(groupName))
+    {
+        group = file->openGroup(groupName.c_str());
+    }
+    else
+    {
+        throw H5GroupException("HDF5File: Unknown group (" + groupName + ") in HDF5 file " + file->getFileName());
+    }
+
+    H5::DataSet dataset;
+    if (hasDataset(groupName, datasetName))
+    {
+        dataset = group.openDataSet(datasetName);
+    }
+    else
+    {
+        throw H5DatasetException("HDF5File: Unknown dataset (" + datasetName + ") in group (" + groupName + ") in HDF5 file " + file->getFileName());
+    }
+
+    // Check whether the attribute is in the group by trying to read it.
+    // If not, raise an exception.
+
+    H5::Attribute attr;
+
+    try
+    {
+        // Turn off the auto-printing when an exception is raised
+
+        H5::Exception::dontPrint();
+
+        // Try to open the attribute
+
+        attr = dataset.openAttribute(attributeName.c_str());
+    }
+    catch (H5::AttributeIException error)
+    {
+        throw H5AttributeException("HDF5File: Unknown Attribute (" + attributeName + ") in the group " + groupName + " for HDF5 file " + file->getFileName());
+    }
+
+
+    H5::DataType type = attr.getDataType();
+    attr.read(type, &outputArray);
+}
+
+
+
+
+
+
+
+
+
 
 
 /**
@@ -1145,7 +1209,7 @@ string HDF5File::readStringDatasetAttribute(string groupName, string datasetName
     {
         group = file->openGroup(groupName.c_str());
     }
-    else 
+    else
     {
         throw H5GroupException("HDF5File: Unknown group (" + groupName + ") in HDF5 file " + file->getFileName());
     }
