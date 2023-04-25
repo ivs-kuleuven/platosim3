@@ -27,7 +27,7 @@ from astropy.io import fits
 
 # PlatoSim imports
 import platosim.plot as pt
-from platosim.utilities import imageNorm
+from platosim.utilities import imageNorm, normalize
 
 
 #==============================================================#
@@ -141,7 +141,9 @@ class SimFile (object):
         # TODO fix this in future!
         if ccdCode == "Custom": ccdCode = "1"
         timeShift = self.getInputParameter("CCDPositions", "TimeShift")[int(ccdCode)-1]
-        return np.arange(beginExposure, beginExposure + numExposures) * cadence + timeShift
+        timeArray = np.arange(beginExposure, beginExposure + numExposures) * cadence + timeShift
+
+        return pd.DataFrame({"time": timeArray}) 
 
     
 
@@ -560,442 +562,7 @@ class SimFile (object):
         return image[rowBegin:rowEnd, columnBegin:columnEnd]
 
 
-
-
-
-    #--------------------------------------------------------------#
-    #                         PLOT FUNCTIONS                       #
-    #--------------------------------------------------------------#
-
-
-    def showImage(self, imageNr=False, clipPercentile=5.0, imgScale="clip",
-                  showStarPositions=False, showPointLikeGhostPositions=False,
-                  minVmag=None, maxVmag=None, showStarIDs=False,
-                  tarMarkerSize=200, showMaskOfStarID=None,
-                  useTitle=False, showGrid=False, colorBar=False, colorMap="magma",
-                  origin="lower", figsize=(8,8), fontSize=15):
-
-        """Make a plot of the a requested image or the entire cube in HDF5.
-
-        Parameters
-        ----------
-        imageNr: False, int
-            False : Will plot all images in HDF5 using a slider
-            int   : Integer sequential number of the image in the HDF5 file
-        clipPercentile: int, float
-            Intensities will be clipped between [value, 100-value] to improve the image contrast.
-        imgScale : str
-            Different options to select the image scaling:
-            clip   : Scale image using a percentile clipping
-            auto   : Scale image using a sigma clipping and linear scaling
-            log    : Scale image logarithmically
-            minmax : Scale image from min to max image value
-        showStarPositions: bool
-            False : Default
-            True  : Plot the average star positions (averaged over the exposure)
-            "PIC" : Differentiate between a target and contaminants (useful for imagettes)
-        showPointLikeGhostPositions: bool
-            False : Default
-            True  : Plot the average pointlike ghost position (averaged over the exposure)
-        minVmag: int, float
-            The minimum V magnitude of the stars/ghosts for which the position should be plotted.
-            Only relevant if either showStarPositions or showPointLikeGhostPositions is True.
-        maxVmag: int, float
-            The maximum V magnitude of the stars/ghosts for which the position should be plotted.
-            Only relevant if either showStarPositions or showPointLikeGhostPositions is True.
-        showStarIDs: bool
-            Put small labels with the star IDs next to the star positions
-            Will only be executed if showStarPositions=True is set.
-        showMaskOfStarID: bool
-            Draw rectangles around the pixels of the mask that is used to extract the flux
-            value of the star with the given ID. Only works if photometry was activated
-            in the yaml inputfile.
-        useTitle: bool, str
-            False : Default
-            True  : Show a default image title of the star ID
-            str   : Provide custom title as a string
-        colorMap: str
-            Option to select your preferred colormap from the matplotlib library.
-            Default is the colormap "hot".
-        showGrid: bool -> False
-            option to select a dim gray grid for a higher visibility of teh pixel grid.
-            Will only be executed if showGrid=True is set.
-
-        Return
-        ------
-        fig, ax : object
-            Axes matplotlib.pyplot handle objects to modify plot
-
-        Example
-        -------
-            >>> simfile = SimFile("Simul01.hdf5")
-            >>> simfile.showImage(23)
-        """
-
-        # As default, add slider if all images are requested
-        # Else get the requested image from the HDF5 file
-
-        if imageNr is False:
-            images = self.getImage()
-            image = images[0]
-            Nimg  = images.shape[0]
-            Nrows, Ncols = image.shape
-
-        else:
-            image = self.getImage(imageNr)
-            if image is None:
-                print(f"ERROR: Cannot extract image nr {imageNr}")
-                return None
-            Nrows, Ncols = image.shape
-
-        # Correct for the orientation
-        
-        extent = [0, Ncols, 0, Nrows]
-        
-        # Plot the image. Note that pixel coordinates start at the left bottom side of each pixel.
-
-        fig = plt.figure(figsize=figsize)
-        ax = fig.add_subplot(111)
-
-        # Add ticks
-        ax.tick_params(axis='both', which='major', labelsize=fontSize)
-        ax.tick_params(axis='both', which='minor', labelsize=fontSize)
-
-        # Show image either using clip-procentage scaling or linear scaling if using a colorbar
-        # The large dynamic range of the pixel values often results in images where only
-        # the brightest stars are visible. To improve the contrast, clip the color mapping.
-
-        clabel  = "Counts [kADU]"
-        image   = image / 1000.
-        img_min = image.min()
-        img_max = image.max()
-
-        img_mean = image.mean()
-        img_std = image.std()
-
-        if imgScale == "clip":
-            image *= 1000.
-            clabel  = "Counts [ADU]"
-            vmin   = np.percentile(image, clipPercentile).astype(int)
-            vmax   = np.percentile(image, 100-clipPercentile).astype(int)
-            norm   = Normalize(vmin, vmax)
-
-        elif imgScale == "minmax":
-            vmin = img_min
-            vmax = img_max
-            norm = Normalize(img_min, img_max)
-
-        elif imgScale == 'log':
-            vmin, vmax = image.min(), image.max()
-            norm   = LogNorm(vmin, vmax)
-
-        elif imgScale == "auto":
-            sigma = 0.5
-            clabel  = "Normalised counts"
-            image = imageNorm(image, "linear", sigma=sigma)
-            vmin, vmax = image.min(), image.max()
-            norm = None  # Image is already normalized to [0,1]
-
-        else:
-            print("ERROR: Not valid scaling for 'imgScale'")
-            
-        # Generate image
-
-        if imgScale == "clip":
-            imagePlot = ax.imshow(image, cmap=colorMap, interpolation="nearest",
-                                    origin=origin, extent=extent, zorder=0)
-            imagePlot.set_clim(vmin, vmax)
-        else:
-            imagePlot = ax.imshow(image, norm=norm, cmap=colorMap, interpolation="nearest",
-                                    origin=origin, extent=extent, zorder=0)
-
-        # Add colorbar if requested
-
-        if colorBar:
-            cbar = fig.colorbar(imagePlot, extend='max', shrink=0.84, pad=0.015)
-            cbar.set_label(clabel, fontsize=fontSize, labelpad=3)
-            cbar.ax.tick_params(labelsize=fontSize)
-
-            # Remove default (small) minor tick label for logarithm plot
-            if imgScale == "log":
-                cbar.ax.tick_params(which='minor', right=False, labelright=False)
-
-            # Adjust the colorbar to correct ADU values
-            if imgScale == "log":
-                ticks_loc1  = np.logspace(np.log10(vmin), np.log10(vmax), 6)
-                ticks_loc2  = np.logspace(np.log10(img_min), np.log10(img_max), 6)
-                ticks_label = [f"{i:.2f}" for i in ticks_loc2]
-                cbar.locator     = ticker.FixedLocator(ticks_loc1)
-                cbar.formatter   = ticker.FixedFormatter(ticks_label)
-                cbar.update_ticks()
-
-            # Adjust the colorbar to correct ADU values for auto-scaling
-            if imgScale == "auto":
-                ticks_label    = [f"{i:.1f}" for i in np.linspace(0, 1, 6)]
-                ticks_loc      = np.linspace(vmin, vmax, 6)
-                cbar.locator   = ticker.FixedLocator(ticks_loc)
-                cbar.formatter = ticker.FixedFormatter(ticks_label)
-                cbar.update_ticks()
-
-        # If required, overplot a gray semi-transparent grid
-        # Note: this is only meaningful for smaller imagettes
-
-        if showGrid is True:
-            ax.grid(c='gray', ls='-', alpha=0.5, zorder=1)
-            
-        # Overplot rectangles over those pixels that are part of the mask
-        # Note: imshow reverses rows and columns
-
-        if showMaskOfStarID is not None:
-            rowIndices, colIndices, _, _, _ = self.getApertureMask(showMaskOfStarID, imageNr)
-            for k in range(len(rowIndices)):
-                rect = patches.Rectangle((colIndices[k], rowIndices[k]), 1, 1, linewidth=2.0,
-                                         edgecolor='b', facecolor='none', zorder=2)
-                ax.add_patch(rect)
-        
-        # If required, overplot the true averaged star positions
-
-        if showStarPositions:
-            ID, row, col, Xmm, Ymm, flux = self.getStarCoordinates(imageNr,
-                                                                   minVmag=minVmag,
-                                                                   maxVmag=maxVmag)
-
-            # Allow differentiating between a target and its contaminants
-            
-            if showStarPositions == 'PIC':
-                lw = 0.06 * fontSize
-
-                mag = -2.5*np.log10(flux) + 25
-                ax.scatter(col[0], row[0], s=tarMarkerSize, marker='o', c='lime',
-                           edgecolor='k', linewidth=lw, zorder=4)
-
-                if len(col) > 1:
-                    # Scale contaminant circle with area
-                    conDeltaMag   = mag[1:] - mag[0]
-                    conMarkerSize = tarMarkerSize * (mag[0]/mag[1:])**2
-                    ax.scatter(col[1:], row[1:], s=conMarkerSize, marker='o', c='gold',
-                               edgecolor='k', linewidth=lw, zorder=4)
-
-            # Or hightligth all stars the same
-            
-            else:
-                ax.scatter(col, row, marker='x', c='g')
-            if showStarIDs:
-                for k in range(len(ID)):
-                    label = "{0}".format(ID[k])
-                    ax.annotate(label, (col[k], row[k]), fontsize='small',
-                                fontweight='extra bold', color="black")
-
-        # If required, overplot the true averaged point-like ghost positions
-
-        if showPointLikeGhostPositions:
-            ID, row, col, Xmm, Ymm, flux = self.getPointLikeGhostCoordinates(imageNr,
-                                                                             minVmag=minVmag,
-                                                                             maxVmag=maxVmag)
-            ax.scatter(col, row, marker='o', s=6, c='b')
-            if showStarIDs:
-                for k in range(len(ID)):
-                    label = "{0}".format(ID[k])
-                    ax.annotate(label, (col[k], row[k]), fontsize='small',
-                                fontweight='extra bold', color="black")
-
-        # Ensure that the ax limits are properly set.
-        
-        ax.set_xlim(0, Ncols)
-        ax.set_ylim(0, Nrows)
-        
-        # If required, put the title
-
-        # User defined title-string
-        if isinstance(useTitle, str):
-            plt.title(useTitle, fontsize=fontSize)
-        # With the .hdf5
-        if useTitle is True:
-            fileBasename = os.path.splitext(self.filename)[0]
-            title = fileBasename + " - image{0:06d}".format(imageNr)
-            plt.title(title, fontsize=fontSize)
-
-        # By default, matplotlib only shows the (x,y) coordinates of each pixel,
-        # but not the pixel value itself. Change this by redefining the ax.format_coord
-
-        #Nrows, Ncols = image.shape
-        def format_coord(x, y):
-            col = int(x)
-            row = int(y)
-            if col>=0 and col<Ncols and row>=0 and row<Nrows:
-                z = image[row,col]
-                return "x={:.1f}, y={:.1f}, z={:.1f}".format(x, y, z)
-            else:
-                return "x={:.1f}, y={:.1f}".format(x, y)
-        ax.format_coord = format_coord
-
-        # Show all ticks for smaller subfields or otherwise 10
-        Nrows, Ncols = Ncols, Nrows
-        if Ncols <= 25:
-            plt.xticks(np.arange(0, Nrows+1))
-            plt.yticks(np.arange(0, Ncols+1))
-        elif Ncols > 15 and Ncols <= 100:
-            plt.xticks(np.arange(0, Nrows+1, 10))
-            plt.yticks(np.arange(0, Ncols+1, 10))
-        elif Ncols > 100 and Ncols <= 300:
-            plt.xticks(np.arange(0, Nrows+1, 50))
-            plt.yticks(np.arange(0, Ncols+1, 50))
-        elif Ncols > 300 and Ncols <= 1000:
-            plt.xticks(np.arange(0, Nrows+1, 100))
-            plt.yticks(np.arange(0, Ncols+1, 100))
-        else:
-            plt.xticks(np.arange(0, Nrows+1, 500))
-            plt.yticks(np.arange(0, Ncols+1, 500))
-
-        # Set labels if requested
-
-        plt.xlabel(r"Pixel column, $i$", fontsize=fontSize)
-        plt.ylabel(r"Pixel row, $j$",    fontsize=fontSize)
-
-        # Plot with or without a slider
-
-        if imageNr is False:
-
-            # Function to update slider
-            def update_image(n=0):
-                image = images[n]
-                imagePlot.set_data(image)
-                fig.canvas.draw()
-
-            # Create slider
-            slider = widgets.IntSlider(description='Image:',
-                                       value=0, min=0, max=Nimg-1, step=1,
-                                       layout=widgets.Layout(width='70%'))
-            widgets.interact(update_image, n=slider)
-
-        else:
-            plt.draw()
-            plt.show()
-            
-        # That's it!
-
-        return fig, ax
-
-
-
-
-
-    def showMap(self, pixelMap, clabel=False, figsize=(6,5)):
-
-        """Make a plot any pixel map.
-        
-        Parameters
-        ----------
-        pixelMap : ndarray
-            Any pixel map from the HDF5 output file
-        clabel : str
-            String to change the colour bar label
-        figsize : mpl object
-            Figure size of plot
-        """
-
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
-        
-        # Axis and plot
-        
-        im = ax.imshow(pixelMap, interpolation='nearest', origin='lower', cmap="magma")
-
-        # Colorbar
-        
-        divider = make_axes_locatable(ax)
-        cax     = divider.append_axes('right', size='5%', pad=0.05)
-        cbar    = fig.colorbar(im, cax=cax, orientation='vertical')
-        
-        # Labels
-        
-        ax.set_xlabel(r"Pixel row, $i$")
-        ax.set_ylabel(r"Pixel column, $j$")
-        if clabel:
-            cbar.ax.set_ylabel(clabel)
-        else:
-            cbar.ax.set_ylabel('Counts [ADU]')
-            
-        # Settings
-        
-        plt.tight_layout()
-
-        # Returns
-
-        return fig, ax
-
-
-
-        
-
-    def showPSF(self, datasetName, useTitle=False, colorBar=True, colorMap="gist_stern",
-                figsize=(7,6)):
-
-        """
-        PURPOSE: make a plot of the requested PSF
-
-        INPUT: datasetName: the name of the dataset that contains the PSF in the HDF5 file
-               This is set by the Simulator and is currently:
-                    rebinnedPSFpixel, rebinnedPSFsubPixel,  or  rotatedPSF
-               useTitle: True is a title should be plotted, False otherwise
-
-        OUTPUT: None
-        """
-
-        # Get the image from the HDF5 file
-        # Flip (left-right) the image, then rotate it 90 degrees. This way the smearing lines
-        # are vertical, and the image is oriented in such a way that overplotting the
-        # star x,y coordinates from getStarPixelCoordinates() becomes straightforward.
-
-
-        psf = np.rot90(np.fliplr(self.getPSF(datasetName)))
-        Nrows, Ncols = psf.shape
-
-        # Plot the image.
-
-        fig, ax = plt.subplots(1, 1, sharex=True, sharey=True, figsize=figsize)
-
-
-        image = ax.imshow(psf, cmap=colorMap, interpolation="nearest",
-                          origin='lower', extent=[0, Nrows, 0, Ncols])
-
-        # If requested, set a default title
-
-        if useTitle:
-            fileBasename = os.path.splitext(self.filename)[0]
-            title = f"{fileBasename} - {datasetName}"
-            plt.title(title)
-
-        # If requested, set colorbar
-
-        if colorBar:
-            plt.colorbar(image, orientation='vertical', extend='max',
-                         cmap=colorMap, aspect=15, fraction=0.06)
-
-        # Labels
-
-        ax.set_xlabel(r"$x$ [subpixel]")
-        ax.set_ylabel(r"$y$ [subpixel]")
-
-        # Limits
-
-        ax.set_xlim(0, Nrows)
-        ax.set_ylim(0, Ncols)
-
-        # Ticks
-
-        ax.set_xticks(np.linspace(0, Nrows+1, 5))
-        ax.set_yticks(np.linspace(0, Ncols+1, 5))
-
-        # Settings
-
-        plt.tight_layout()
-
-        # That's it!
-
-        return fig, ax
-
-
-
+    
 
     
     #--------------------------------------------------------------#
@@ -1711,7 +1278,7 @@ class SimFile (object):
 
         # Construct the exposure name that was used to store the image
 
-        exposureGroupName = "exposure{0:06d}".format(imageNr)
+        exposureGroupName = "Exposure{0:06d}".format(imageNr)
         
         # Extract information depending of HDF5 structure
         
@@ -1723,8 +1290,8 @@ class SimFile (object):
             # and we overwrite the "exposureGroupName"
 
             n = 1000
-            imageNrRound = imageNr // n * n
-            exposureGroupName = f"exposure{imageNrRound:03d}/{exposureGroupName}"
+            imageNrRound = imageNr // n
+            exposureGroupName = f"Exposure{imageNrRound:03d}/{exposureGroupName}"
 
         # Check if this column exists in the HDF5 file
 
@@ -1801,7 +1368,7 @@ class SimFile (object):
         
         # Construct the exposure name that was used to store the image
 
-        exposureGroupName = "exposure{0:06d}".format(imageNr)
+        exposureGroupName = "Exposure{0:06d}".format(imageNr)
 
         # Extract information depending of HDF5 structure
         
@@ -1811,11 +1378,11 @@ class SimFile (object):
 
             # Here cosmics are further grouped per 1000th exposures
             # and we overwrite the "exposureGroupName"
-
+            
             n = 1000
-            imageNrRound = imageNr // n * n
-            exposureGroupName = f"exposure{imageNrRound:03d}/{exposureGroupName}"
-
+            imageNrRound = imageNr // n
+            exposureGroupName = f"Exposure{imageNrRound:03d}/{exposureGroupName}"
+            
         # Check if this column exists in the HDF5 file
                 
         if exposureGroupName not in self.hdf5file["Cosmics/" + field].keys():
@@ -1836,7 +1403,49 @@ class SimFile (object):
 
 
 
+    
+    def getCosmicsAffectedExposures(self, field="SubField"):
 
+        """Get the pixel affected by cosmic rays.
+
+        Get the pixel coordinates and flux for those pixels that are affected
+        by a cosmics, for a particular field (e.g. SubField, SmearingMap, etc).
+
+        Parameters
+        ----------
+        field : str
+            String that determines from what field the Cosmics should be returned. 
+            Option: ['SubField', 'BiasMapLeft', 'BiasMapRight', 'SmearingMap'].
+
+        Returns
+        -------
+        Exposure Nr : ndarray
+            Indices for exosure affected by cosmic rays.
+        """
+
+        # Fetch the image numbers
+
+        # Fetch StarPosition keys (i.e. "Exposure000000", etc)
+        # TODO remove time column: -1 because Time is last column
+        # Fetch the image names
+        imgNames = list(self.hdf5file['Images'].keys())
+        N        = len(imgNames)
+        
+        indices = np.zeros(N)
+        
+        for i in range(N-1):
+
+            _, _, flux = self.getCosmicsAffectedPixels(i+1, field=field)
+
+            if flux[0] == -1:
+                indices[i] = i
+
+        return indices
+
+
+    
+                
+        
     #--------------------------------------------------------------#
     #                    PHOTOMETRIC FUNCTIONS                     #
     #--------------------------------------------------------------#
@@ -1924,7 +1533,7 @@ class SimFile (object):
 
         # Fetch time column
 
-        time = pd.DataFrame({"time": self.getTime()})
+        time = self.getTime()
 
         # Fetch flux column(s)
 
@@ -2080,3 +1689,525 @@ class SimFile (object):
         time      = np.arange(timeStart, timeEnd, timeStep)
 
         return time
+
+
+
+
+    
+    #--------------------------------------------------------------#
+    #                         PLOT FUNCTIONS                       #
+    #--------------------------------------------------------------#
+
+
+    def showImage(self, imageNr=False, clipPercentile=5.0, imgScale="clip",
+                  showStarPositions=False, showPointLikeGhostPositions=False,
+                  minVmag=None, maxVmag=None, showStarIDs=False,
+                  tarMarkerSize=200, showMaskOfStarID=None,
+                  useTitle=False, showGrid=False, colorBar=False, colorMap="magma",
+                  origin="lower", figsize=(8,8), fontSize=15):
+
+        """Make a plot of the a requested image or the entire cube in HDF5.
+
+        Parameters
+        ----------
+        imageNr: False, int
+            False : Will plot all images in HDF5 using a slider
+            int   : Integer sequential number of the image in the HDF5 file
+        clipPercentile: int, float
+            Intensities will be clipped between [value, 100-value] to improve the image contrast.
+        imgScale : str
+            Different options to select the image scaling:
+            clip   : Scale image using a percentile clipping
+            auto   : Scale image using a sigma clipping and linear scaling
+            log    : Scale image logarithmically
+            minmax : Scale image from min to max image value
+        showStarPositions: bool
+            False : Default
+            True  : Plot the average star positions (averaged over the exposure)
+            "PIC" : Differentiate between a target and contaminants (useful for imagettes)
+        showPointLikeGhostPositions: bool
+            False : Default
+            True  : Plot the average pointlike ghost position (averaged over the exposure)
+        minVmag: int, float
+            The minimum V magnitude of the stars/ghosts for which the position should be plotted.
+            Only relevant if either showStarPositions or showPointLikeGhostPositions is True.
+        maxVmag: int, float
+            The maximum V magnitude of the stars/ghosts for which the position should be plotted.
+            Only relevant if either showStarPositions or showPointLikeGhostPositions is True.
+        showStarIDs: bool
+            Put small labels with the star IDs next to the star positions
+            Will only be executed if showStarPositions=True is set.
+        showMaskOfStarID: bool
+            Draw rectangles around the pixels of the mask that is used to extract the flux
+            value of the star with the given ID. Only works if photometry was activated
+            in the yaml inputfile.
+        useTitle: bool, str
+            False : Default
+            True  : Show a default image title of the star ID
+            str   : Provide custom title as a string
+        colorMap: str
+            Option to select your preferred colormap from the matplotlib library.
+            Default is the colormap "hot".
+        showGrid: bool -> False
+            option to select a dim gray grid for a higher visibility of teh pixel grid.
+            Will only be executed if showGrid=True is set.
+
+        Return
+        ------
+        fig, ax : object
+            Axes matplotlib.pyplot handle objects to modify plot
+
+        Example
+        -------
+            >>> simfile = SimFile("Simul01.hdf5")
+            >>> simfile.showImage(23)
+        """
+
+        # As default, add slider if all images are requested
+        # Else get the requested image from the HDF5 file
+
+        if imageNr is False:
+            images = self.getImage()
+            image = images[0]
+            Nimg  = images.shape[0]
+            Nrows, Ncols = image.shape
+
+        else:
+            image = self.getImage(imageNr)
+            if image is None:
+                print(f"ERROR: Cannot extract image nr {imageNr}")
+                return None
+            Nrows, Ncols = image.shape
+
+        # Correct for the orientation
+        
+        extent = [0, Ncols, 0, Nrows]
+        
+        # Plot the image. Note that pixel coordinates start at the left bottom side of each pixel.
+
+        fig = plt.figure(figsize=figsize)
+        ax = fig.add_subplot(111)
+
+        # Add ticks
+        ax.tick_params(axis='both', which='major', labelsize=fontSize)
+        ax.tick_params(axis='both', which='minor', labelsize=fontSize)
+
+        # Show image either using clip-procentage scaling or linear scaling if using a colorbar
+        # The large dynamic range of the pixel values often results in images where only
+        # the brightest stars are visible. To improve the contrast, clip the color mapping.
+
+        clabel  = "Counts [kADU]"
+        image   = image / 1000.
+        img_min = image.min()
+        img_max = image.max()
+
+        img_mean = image.mean()
+        img_std = image.std()
+
+        if imgScale == "clip":
+            image *= 1000.
+            clabel  = "Counts [ADU]"
+            vmin   = np.percentile(image, clipPercentile).astype(int)
+            vmax   = np.percentile(image, 100-clipPercentile).astype(int)
+            norm   = Normalize(vmin, vmax)
+
+        elif imgScale == "minmax":
+            vmin = img_min
+            vmax = img_max
+            norm = Normalize(img_min, img_max)
+
+        elif imgScale == 'log':
+            vmin, vmax = image.min(), image.max()
+            norm   = LogNorm(vmin, vmax)
+
+        elif imgScale == "auto":
+            sigma = 0.5
+            clabel  = "Normalised counts"
+            image = imageNorm(image, "linear", sigma=sigma)
+            vmin, vmax = image.min(), image.max()
+            norm = None  # Image is already normalized to [0,1]
+
+        else:
+            print("ERROR: Not valid scaling for 'imgScale'")
+            
+        # Generate image
+
+        if imgScale == "clip":
+            imagePlot = ax.imshow(image, cmap=colorMap, interpolation="nearest",
+                                    origin=origin, extent=extent, zorder=0)
+            imagePlot.set_clim(vmin, vmax)
+        else:
+            imagePlot = ax.imshow(image, norm=norm, cmap=colorMap, interpolation="nearest",
+                                    origin=origin, extent=extent, zorder=0)
+
+        # Add colorbar if requested
+
+        if colorBar:
+            cbar = fig.colorbar(imagePlot, extend='max', shrink=0.84, pad=0.015)
+            cbar.set_label(clabel, fontsize=fontSize, labelpad=3)
+            cbar.ax.tick_params(labelsize=fontSize)
+
+            # Remove default (small) minor tick label for logarithm plot
+            if imgScale == "log":
+                cbar.ax.tick_params(which='minor', right=False, labelright=False)
+
+            # Adjust the colorbar to correct ADU values
+            if imgScale == "log":
+                ticks_loc1  = np.logspace(np.log10(vmin), np.log10(vmax), 6)
+                ticks_loc2  = np.logspace(np.log10(img_min), np.log10(img_max), 6)
+                ticks_label = [f"{i:.2f}" for i in ticks_loc2]
+                cbar.locator     = ticker.FixedLocator(ticks_loc1)
+                cbar.formatter   = ticker.FixedFormatter(ticks_label)
+                cbar.update_ticks()
+
+            # Adjust the colorbar to correct ADU values for auto-scaling
+            if imgScale == "auto":
+                ticks_label    = [f"{i:.1f}" for i in np.linspace(0, 1, 6)]
+                ticks_loc      = np.linspace(vmin, vmax, 6)
+                cbar.locator   = ticker.FixedLocator(ticks_loc)
+                cbar.formatter = ticker.FixedFormatter(ticks_label)
+                cbar.update_ticks()
+
+        # If required, overplot a gray semi-transparent grid
+        # Note: this is only meaningful for smaller imagettes
+
+        if showGrid is True:
+            ax.grid(c='gray', ls='-', alpha=0.5, zorder=1)
+            
+        # Overplot rectangles over those pixels that are part of the mask
+        # Note: imshow reverses rows and columns
+
+        if showMaskOfStarID is not None:
+            rowIndices, colIndices, _, _, _ = self.getApertureMask(showMaskOfStarID, imageNr)
+            for k in range(len(rowIndices)):
+                rect = patches.Rectangle((colIndices[k], rowIndices[k]), 1, 1, linewidth=2.0,
+                                         edgecolor='b', facecolor='none', zorder=2)
+                ax.add_patch(rect)
+        
+        # If required, overplot the true averaged star positions
+
+        if showStarPositions:
+            ID, row, col, Xmm, Ymm, flux = self.getStarCoordinates(imageNr,
+                                                                   minVmag=minVmag,
+                                                                   maxVmag=maxVmag)
+            # Set linewidth of marker
+
+            lw = 0.06 * fontSize
+            
+            # Allow differentiating between a target and its contaminants
+            
+            if showStarPositions == 'PIC':
+
+                mag = -2.5*np.log10(flux) + 25
+                ax.scatter(col[0], row[0], s=tarMarkerSize, marker='o', c='lime',
+                           edgecolor='k', linewidth=lw, zorder=4)
+
+                if len(col) > 1:
+                    # Scale contaminant circle with area
+                    conDeltaMag   = mag[1:] - mag[0]
+                    conMarkerSize = tarMarkerSize * (mag[0]/mag[1:])**2
+                    ax.scatter(col[1:], row[1:], s=conMarkerSize, marker='o', c='gold',
+                               edgecolor='k', linewidth=lw, zorder=4)
+
+            # Or hightligth all stars the same
+            
+            else:
+                ax.scatter(col, row, s=int(tarMarkerSize/3), marker='o', c='royalblue',
+                           edgecolor='k', linewidth=lw, zorder=4)
+            if showStarIDs:
+                for k in range(len(ID)):
+                    label = "{0}".format(ID[k])
+                    ax.annotate(label, (col[k], row[k]), fontsize='small',
+                                fontweight='extra bold', color="black")
+
+        # If required, overplot the true averaged point-like ghost positions
+
+        if showPointLikeGhostPositions:
+            ID, row, col, Xmm, Ymm, flux = self.getPointLikeGhostCoordinates(imageNr,
+                                                                             minVmag=minVmag,
+                                                                             maxVmag=maxVmag)
+            ax.scatter(col, row, marker='o', s=6, c='b')
+            if showStarIDs:
+                for k in range(len(ID)):
+                    label = "{0}".format(ID[k])
+                    ax.annotate(label, (col[k], row[k]), fontsize='small',
+                                fontweight='extra bold', color="black")
+
+        # Ensure that the ax limits are properly set.
+        
+        ax.set_xlim(0, Ncols)
+        ax.set_ylim(0, Nrows)
+        
+        # If required, put the title
+
+        # User defined title-string
+        if isinstance(useTitle, str):
+            plt.title(useTitle, fontsize=fontSize)
+        # With the .hdf5
+        if useTitle is True:
+            fileBasename = os.path.splitext(self.filename)[0]
+            title = fileBasename + " - image{0:06d}".format(imageNr)
+            plt.title(title, fontsize=fontSize)
+
+        # By default, matplotlib only shows the (x,y) coordinates of each pixel,
+        # but not the pixel value itself. Change this by redefining the ax.format_coord
+
+        #Nrows, Ncols = image.shape
+        def format_coord(x, y):
+            col = int(x)
+            row = int(y)
+            if col>=0 and col<Ncols and row>=0 and row<Nrows:
+                z = image[row,col]
+                return "x={:.1f}, y={:.1f}, z={:.1f}".format(x, y, z)
+            else:
+                return "x={:.1f}, y={:.1f}".format(x, y)
+        ax.format_coord = format_coord
+
+        # Show all ticks for smaller subfields or otherwise 10
+        Nrows, Ncols = Ncols, Nrows
+        if Ncols <= 25:
+            plt.xticks(np.arange(0, Nrows+1))
+            plt.yticks(np.arange(0, Ncols+1))
+        elif Ncols > 15 and Ncols <= 100:
+            plt.xticks(np.arange(0, Nrows+1, 10))
+            plt.yticks(np.arange(0, Ncols+1, 10))
+        elif Ncols > 100 and Ncols <= 300:
+            plt.xticks(np.arange(0, Nrows+1, 50))
+            plt.yticks(np.arange(0, Ncols+1, 50))
+        elif Ncols > 300 and Ncols <= 1000:
+            plt.xticks(np.arange(0, Nrows+1, 100))
+            plt.yticks(np.arange(0, Ncols+1, 100))
+        else:
+            plt.xticks(np.arange(0, Nrows+1, 500))
+            plt.yticks(np.arange(0, Ncols+1, 500))
+
+        # Set labels if requested
+
+        plt.xlabel(r"Pixel column, $i$", fontsize=fontSize)
+        plt.ylabel(r"Pixel row, $j$",    fontsize=fontSize)
+
+        # Plot with or without a slider
+
+        if imageNr is False:
+
+            # Function to update slider
+            def update_image(n=0):
+                image = images[n]
+                imagePlot.set_data(image)
+                fig.canvas.draw()
+
+            # Create slider
+            slider = widgets.IntSlider(description='Image:',
+                                       value=0, min=0, max=Nimg-1, step=1,
+                                       layout=widgets.Layout(width='70%'))
+            widgets.interact(update_image, n=slider)
+
+        else:
+            plt.draw()
+            plt.show()
+            
+        # That's it!
+
+        return fig, ax
+
+
+
+
+
+    def showMap(self, pixelMap, clabel=False, figsize=(6,5)):
+
+        """Make a plot any pixel map.
+        
+        Parameters
+        ----------
+        pixelMap : ndarray
+            Any pixel map from the HDF5 output file
+        clabel : str
+            String to change the colour bar label
+        figsize : mpl object
+            Figure size of plot
+        """
+
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+        
+        # Axis and plot
+        
+        im = ax.imshow(pixelMap, interpolation='nearest', origin='lower', cmap="magma")
+
+        # Colorbar
+        
+        divider = make_axes_locatable(ax)
+        cax     = divider.append_axes('right', size='5%', pad=0.05)
+        cbar    = fig.colorbar(im, cax=cax, orientation='vertical')
+        
+        # Labels
+        
+        ax.set_xlabel(r"Pixel column, $i$")
+        ax.set_ylabel(r"Pixel row, $j$")
+        if clabel:
+            cbar.ax.set_ylabel(clabel)
+        else:
+            cbar.ax.set_ylabel('Counts [ADU]')
+            
+        # Settings
+        
+        plt.tight_layout()
+
+        # Returns
+
+        return fig, ax
+
+
+
+        
+
+    def showPSF(self, datasetName, useTitle=False, colorBar=True, colorMap="gist_stern",
+                figsize=(7,6)):
+
+        """
+        PURPOSE: make a plot of the requested PSF
+
+        INPUT: datasetName: the name of the dataset that contains the PSF in the HDF5 file
+               This is set by the Simulator and is currently:
+                    rebinnedPSFpixel, rebinnedPSFsubPixel,  or  rotatedPSF
+               useTitle: True is a title should be plotted, False otherwise
+
+        OUTPUT: None
+        """
+
+        # Get the image from the HDF5 file
+        # Flip (left-right) the image, then rotate it 90 degrees. This way the smearing lines
+        # are vertical, and the image is oriented in such a way that overplotting the
+        # star x,y coordinates from getStarPixelCoordinates() becomes straightforward.
+
+
+        psf = np.rot90(np.fliplr(self.getPSF(datasetName)))
+        Nrows, Ncols = psf.shape
+
+        # Plot the image.
+
+        fig, ax = plt.subplots(1, 1, sharex=True, sharey=True, figsize=figsize)
+
+
+        image = ax.imshow(psf, cmap=colorMap, interpolation="nearest",
+                          origin='lower', extent=[0, Nrows, 0, Ncols])
+
+        # If requested, set a default title
+
+        if useTitle:
+            fileBasename = os.path.splitext(self.filename)[0]
+            title = f"{fileBasename} - {datasetName}"
+            plt.title(title)
+
+        # If requested, set colorbar
+
+        if colorBar:
+            plt.colorbar(image, orientation='vertical', extend='max',
+                         cmap=colorMap, aspect=15, fraction=0.06)
+
+        # Labels
+
+        ax.set_xlabel(r"$x$ [subpixel]")
+        ax.set_ylabel(r"$y$ [subpixel]")
+
+        # Limits
+
+        ax.set_xlim(0, Nrows)
+        ax.set_ylim(0, Ncols)
+
+        # Ticks
+
+        ax.set_xticks(np.linspace(0, Nrows+1, 5))
+        ax.set_yticks(np.linspace(0, Ncols+1, 5))
+
+        # Settings
+
+        plt.tight_layout()
+
+        # That's it!
+
+        return fig, ax
+
+
+
+
+
+    def plotLightCurve(self, starID, timeUnit=False, fluxUnit=False, figsize=(9,5)):
+
+        """Function plot the simulated light curve.
+
+        Parameters
+        ----------
+        time_unit : bool, str
+            Pass a string with the unit that should be shown for the time axis.
+        flux_unit: bool, str
+            Pass a string with the unit that should be shown for the flux axis.
+        figsize : list
+            Matplotlib 'figsize' object to select image size.
+
+        Return
+        ------
+        fig, ax : objects
+            Axes matplotlib.pyplot handle object to be modified by the user.
+        """
+
+        # Fetch the light curve
+
+        df = self.getLightCurve(starID, fluxType='estimated')
+
+        # Change time units
+
+        if timeUnit == 'hour':
+            df.time /= 3600.
+        elif timeUnit == 'day':
+            df.time /= 86400.
+        else:
+            timeUnit = 's'
+
+        if fluxUnit == 'ppt':
+            df.flux = normalize(df.flux, factor=1e3)
+        elif fluxUnit == 'ppm':
+            df.flux = normalize(df.flux, factor=1e6)
+        else:
+            fluxUnit = r'e- s$^{-1}$'
+            
+        # Create matplotlib object
+
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+
+        # Plot the input variable source
+
+        if "flux_err" in df.columns:
+            ax.errorbar(df["time"], df["flux"], yerr=df["flux_err"],
+                        fmt=".", color='k', ecolor='darkgray', elinewidth=1,
+                        capsize=0, alpha=aa, label="Raw flux", zorder=1)
+        else:
+            ax.plot(df.time, df.flux, 'k.', ms=5, alpha=0.2, label="Raw flux", zorder=1)
+
+        # Plot a median filter
+
+        # if "flux_med" in df.columns:
+        #     ax.plot(df["time"], df["flux_med"], '-', c='royalblue', lw=lw, label='1h mdeian')
+
+        # Show binned mean points if requested
+
+        # if "flux_bin" in df.columns:
+        #     binsize = 1
+        #     ax.plot(df["time"], df["flux_bin"], 'ro', ms=8, mec='k', label=f'{binsize}h bins', zorder=3)
+
+        # Settings
+
+        ax.set_xlim(df.time.iloc[0], df.time.iloc[-1])
+        ax.set_xlabel(f"Time [{timeUnit}]")
+        ax.set_ylabel(f"Flux [{fluxUnit}]")
+        ax.legend(loc='best')
+        plt.tight_layout()
+        
+        # That's it!
+
+        return fig, ax
+
+
+
+
+    

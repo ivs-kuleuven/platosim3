@@ -15,12 +15,12 @@ import sys
 import ast
 import math
 import yaml
-import pyaml
 import inspect
 import datetime
 import subprocess
 
 # PlatoSim standard
+import pyaml
 import numpy as np
 
 # PlatoSim imports
@@ -720,7 +720,7 @@ class Simulation(object):
 
 
     def setSubfieldAroundPixelCoordinates(self, ccdCode, xCCDpixel, yCCDpixel,
-                                          subfieldSizeX, subfieldSizeY):
+                                          subfieldSizeX, subfieldSizeY, normal=True):
 
         """Set the subfield around pixel coordinates.
         
@@ -748,18 +748,10 @@ class Simulation(object):
 
         raStar, decStar = rf.pixelToSkyCoordinates(self, ccdCode, xCCDpixel, yCCDpixel)
 
-        # TODO: determine nominal from the given ccdCode
-
-        nominal = True
-
-        success = self.setSubfieldAroundCoordinates(raStar, decStar,
-                                                    subfieldSizeX, subfieldSizeY, True)
-
-        if not success:
-            print("WARNING: setSubfieldAroundPixelCoordinates() " +
-                  "failed to set subField around the star.")
-
-        return
+        success = self.setSubfieldAroundSkyCoordinates(raStar, decStar,
+                                                       subfieldSizeX, subfieldSizeY,
+                                                       normal)
+        return success
 
 
 
@@ -817,11 +809,11 @@ class Simulation(object):
                                                4510 - subfieldSizeY)
 
 
+        
 
 
 
-    def setSubfieldAroundCoordinates(self, raStar, decStar, subfieldSizeX, subfieldSizeY,
-                                     normal=True):
+    def setSubfieldAroundSkyCoordinates(self, raStar, decStar, subfieldSizeX, subfieldSizeY, normal=True):
 
         """Set subfield around stellar coordinates
 
@@ -843,8 +835,8 @@ class Simulation(object):
           the switch to include distortion or not is set correctly
         - The function does not set the exposure time, nor the focal length source, etc.
 
-        Paramters
-        ---------
+        Parameters
+        ----------
         raStar : float
             Right ascension of the star [radians]
         decStar : float
@@ -860,13 +852,31 @@ class Simulation(object):
         ------
         bool : True if the entire subfield fit on one of the 4 (pre-defined) CCDs,
                False otherwise.
+
+        Example
+        -------
+        >>> import numpy as np
+        >>> from platosim.simulation import Simulation 
+        >>> sim = Simulation("run001")                                     # Using default inputfile.yaml
+        >>> raStar = np.deg2rad(90.0)                                      # [rad]
+        >>> decStar = np.deg2rad(-48.0)                                    # [rad]
+        >>> subfieldSizeX, subfieldSizeY = 8,8                             # [pixels]
+        >>> success = sim.setSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY, normal=True)
+        >>> print(success)
         """
 
+        # Find the platform orientation [rad]
+
+        if self["Platform/Orientation/Source"] == "Angles":
+            raPlatform  = np.deg2rad(float(self["Platform/Orientation/Angles/RAPointing"]))
+            decPlatform = np.deg2rad(float(self["Platform/Orientation/Angles/DecPointing"]))
+            solarPanelOrientation = np.deg2rad(float(self["Platform/Orientation/Angles/SolarPanelOrientation"]))         # [rad]
+        else:
+            q_EQ2PLM = self["Platform/Orientation/Quaternion/Components"]
+            raPlatform, decPlatform, solarPanelOrientation = rf.platformAnglesFromQuaternion(q_EQ2PLM)                   # [rad]
+
         # Find out some instrumental characteristics from the sim object
-
-        raPlatform       = np.deg2rad(float(self["Platform/Orientation/Angles/RAPointing"]))
-        decPlatform      = np.deg2rad(float(self["Platform/Orientation/Angles/DecPointing"]))
-
+        
         telescopeGroupID = self["Telescope/GroupID"]
         if telescopeGroupID == "Custom":
             azimuthTelescope = np.deg2rad(float(self["Telescope/AzimuthAngle"]))
@@ -878,10 +888,9 @@ class Simulation(object):
             azimuthTelescope = np.deg2rad(self["CameraGroups/AzimuthAngle"][telescopeGroupID-1])
             tiltTelescope    = np.deg2rad(self["CameraGroups/TiltAngle"][telescopeGroupID-1])
 
-        solarPanelOrientation = np.deg2rad(float(self["Platform/Orientation/Angles/SolarPanelOrientation"]))         # [rad]
-        focalLength      = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0                                  # [m] -> [mm]
-        focalPlaneAngle  = np.deg2rad(float(self["Camera/FocalPlaneOrientation/ConstantValue"]))
-        pixelSize        = float(self["CCD/PixelSize"])
+        focalLength     = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
+        focalPlaneAngle = np.deg2rad(float(self["Camera/FocalPlaneOrientation/ConstantValue"]))
+        pixelSize       = float(self["CCD/PixelSize"])
 
         # If the psf is MappedFromFile we need to include mapped field distortion
 
@@ -957,6 +966,50 @@ class Simulation(object):
 
 
 
+    def createStarCatalogFile(self, ra, dec, mag, starID, starCatalogFile):
+
+        """Create a star catalogue file from equatorial coordinates.
+        
+        Create a star catalog ascii file given the equatorial coordinates 
+        (RA and Dec) of the stars. This is simple copy numpy's option to
+        save a ascii file, for the conveniece of the user.
+
+        NOTE: this function sets the stellar catalogue to the simfile object.
+
+        Paramters
+        ---------
+        ra : ndarray
+            Array with right ascensions of the stars [deg]
+        dec : ndarray
+            Array with declination of the stars [deg]
+        mag : ndarray
+            Array with Johnson V magnitudes of the stars
+        starID : ndarray
+            Array with IDs of the star (integers)
+        starCatalogPath : str
+            Path of the star catalog file that will be written.
+
+        Return
+        ------
+        A file will be saved, containing, ra, dec, and magnitude of the stars.
+        The "ObservingParameters/StarCatalogFile" tag in the yaml tree will be
+        changed to the given starCatalogPath
+        """
+
+        # Save the sky coordinates to the star catalog file
+
+        np.savetxt(starCatalogFile,
+                   np.transpose([ra, dec, mag, starID]),
+                   fmt=['%11.6f', '%11.6f', '%8.4f', '%i'])        
+
+        # Set the "ObservingParameters/StarCatalogFile" tag in the yaml tree
+
+        self["ObservingParameters/StarCatalogFile"] = starCatalogFile
+
+
+
+    
+
     def createStarCatalogFileFromPixelCoordinates(self, rows, cols, magnitudes,
                                                   starIDs, starCatalogPath):
 
@@ -966,7 +1019,7 @@ class Simulation(object):
         (row and column) of the stars. This requires the orientation
         of the spacecraft, telescopes, focal plane, hence it's a member
         function of the Simulation class.
-
+        
         Paramters
         ---------
         rows : ndarray
@@ -1068,7 +1121,7 @@ class Simulation(object):
 
 
 
-    def createPhotometryTargetFile(self, starIDs, fileName):
+    def createPhotometryFile(self, starIDs, photometryFile):
 
         """Create a photometry file list in ascii format and sets it to the YAML input.
 
@@ -1093,18 +1146,95 @@ class Simulation(object):
 
         # Create photometry list file
 
-        np.savetxt(fileName, np.transpose(starIDs), delimiter=" ", fmt="%d")
+        np.savetxt(photometryFile, np.transpose(starIDs), delimiter=" ", fmt="%d")
 
         # Set this to simulation and activate photometry
 
         self["Photometry/IncludePhotometry"] = True
-        self["Photometry/TargetFileName"]    = fileName
+        self["Photometry/TargetFileName"]    = photometryFile
+
+
+
+
+        
+    def createVariableSourceFile(self, time, dmag, variableSourceFile):
+
+        """Create a variable source file of a target star.
+        
+        This function will automatically create the 'variableSourceList()' needed in order
+        for PlatoSim to include the variability.
+        The "ObservingParameters/StarCatalogFile" tag in the yaml tree will be
+        changed to the given starCatalogPath
+
+        Paramters
+        ---------
+        time : ndarray
+            Array with right ascensions of the stars [deg]
+        dmag : ndarray
+            Array with declination of the stars [deg]
+        variableSourceFile : str
+            Path of the star catalog file that will be written.
+
+        Return
+        ------
+        A file will be saved containing an ascii file with the columns
+        time and delta magnitude.
+        """
+
+        # Save the sky coordinates to the star catalog file
+
+        np.savetxt(variableSourceFile,
+                   np.transpose([time, dmag]),
+                   fmt=['%.1f', '%.6f'])       
+
+        # Set the "ObservingParameters/StarCatalogFile" tag in the yaml tree
+
+        #self["Sky/IncludeVariableSources"] = True
+        #self["Sky/IncludeVariableSources"] = variableSourceFile
 
 
 
 
 
+    def createVariableSourceList(self, starID, variableSourceFile, variableSourceList):
 
+        """Create a variable source file of a target star.
+        
+        NOTE: This function will automatically create the 'variableSourceList()'
+        needed in order for PlatoSim to include the variability. Furthermore, the
+        "Sky/IncludeVariableSources" tag in the YAML tree will be changed True.
+
+        Paramters
+        ---------
+        time : ndarray
+            Array with right ascensions of the stars [deg]
+        dmag : ndarray
+            Array with declination of the stars [deg]
+        variableSourceFile : str
+            Path of the star catalog file that will be written.
+
+        Return
+        ------
+        A file will be saved containing an ascii file with the columns
+        time and delta magnitude.
+        """
+                
+        # Save the sky coordinates to the star catalog file
+        
+        with open(variableSourceList, 'w') as f:
+            for i in range(len(starID)):
+                f.write(f'{starID[i]} {variableSourceFile[i]}')
+
+        # Set the "Sky" tag in the yaml tree
+
+        self["Sky/IncludeVariableSources"] = True
+        self["Sky/VariableSourceList"]     = variableSourceList
+
+
+
+
+
+        
     def createDriftFile(self, quarter, fileName, model="poly", plot=False):
 
         """Create a photometry file list in ascii format and sets it to the YAML input.
@@ -1341,9 +1471,9 @@ class Simulation(object):
 
         for i in range(len(ra)):
 
-            subfieldIsOnCCD = self.setSubfieldAroundCoordinates(raTargetsRad[i], decTargetsRad[i],
-                                                                sizeSubfield, sizeSubfield,
-                                                                normal=True)
+            subfieldIsOnCCD = self.setSubfieldAroundSkyCoordinates(raTargetsRad[i], decTargetsRad[i],
+                                                                   sizeSubfield, sizeSubfield,
+                                                                   normal=True)
             if subfieldIsOnCCD:
 
                 xFP, yFP = rf.skyToFocalPlaneCoordinates(raTargetsRad[i], decTargetsRad[i],
@@ -1429,8 +1559,8 @@ class Simulation(object):
 
         for i in range(len(ra)):
 
-            subfieldIsOnCCD = self.setSubfieldAroundCoordinates(raTargetsRad[i], decTargetsRad[i],
-                                                                6, 6, normal=True)
+            subfieldIsOnCCD = self.setSubfieldAroundSkyCoordinates(raTargetsRad[i], decTargetsRad[i],
+                                                                   6, 6, normal=True)
             if subfieldIsOnCCD:
 
                 # Fetch CCD code and pixel coordinates (account for field distortion in included)

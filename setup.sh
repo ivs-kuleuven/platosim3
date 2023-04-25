@@ -8,7 +8,7 @@ PLATO_WORKDIR=$1
 PLATO_PIPELINE=$2
 
 # Set global parameters
-POETRY=$HOME/.local/bin/poetry
+POETRY=$HOME/.local/bin/poetry   # TODO check install location
 PLATO_SETUP=$PWD/.bash_profile
 PLATO_PROJECT_HOME=$PWD
 PLATO_MANPATH=$PWD/pipeline/man
@@ -85,13 +85,13 @@ else
     echo "export PYTHONPATH=${PYTHONPATH}:$POETRY:$PLATO_PROJECT_HOME/python:$PLATO_WORKDIR:$PLATO_PIPELINE:$PLATO_MANPATH:$PLATO_PYLIB" >> $PLATO_SETUP
     echo "export PATH=${PATH}:$HOME/.local/bin/:$PLATO_PROJECT_HOME/build:$PLATO_PIPELINE/bin" >> $PLATO_SETUP
        
-    # Add code to global executeables (-i overwrite old files)
+    # Add code to global executeables (-i overwrite old files) TODO
     cp -rf $PLATO_PROJECT_HOME/python/platosim/picsim/picsim       $HOME/.local/bin/
     cp -rf $PLATO_PROJECT_HOME/python/platosim/varsim/varsim       $HOME/.local/bin/
     cp -rf $PLATO_PROJECT_HOME/python/platosim/payload/payload     $HOME/.local/bin/
     cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/platonium $HOME/.local/bin/
     
-    # Reload .bashrc
+    # Reload .bashrc TODO mac
     . $HOME/.bashrc
 
     ## Lastly, try to install L1 pipeline

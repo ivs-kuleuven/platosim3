@@ -10,7 +10,7 @@ ObservingParameters:
 
     MissionDuration:                 6.5             # Total duration of the mission [yr], relevant for BOL->EOL degradation
     NumExposures:                    10              # Number of exposures
-    BeginExposureNr:                 0               # Sequential number of first exposure. useful for slurm parallellisation
+    BeginExposureNr:                 0               # Sequential number of first exposure (useful for slurm parallellisation)
     CycleTime:                       25              # Image cycle time (exposure + readout before next exposure starts)[s]
     Fluxm0:                          1.00179e8       # Photon flux of a V=0 G2V-star [phot/s/m^2/nm]
     StarCatalogFile:                 inputfiles/starcatalog.txt
@@ -41,7 +41,8 @@ Platform:
         DecPointing:                -46.4            # Platform (not telescope) declination pointing coordinate         [deg]
         SolarPanelOrientation:       -8.5            # Spacecraft roll angle to determine the solar panel orientation.  [deg]
       Quaternion:                                    # Unit quaternion to transform from the equatorial to the platfrom reference frame
-        Components:                  [1.0, 0.0, 0.0, 0.0]   # [q0, qx, qy, qz] with norm = 1.0
+        Components:                  [0.28799417562029345, -0.6861914144641562, 0.6254816331711222, 0.23446412111462545]   
+                                                     # [q0, qx, qy, qz] with norm = 1.0
     UseJitter:                       yes             # yes or no. If no, ignore everything below.
     JitterSource:                    FromRedNoise    # FromFile, FromRedNoise, or FromNetwork
     JitterYawRms:                    0.038           # [arcsec]
@@ -54,18 +55,17 @@ Platform:
 Telescope:
 
     GroupID:                         Custom          # There are four camera groups: 1, 2, 3, 4, Fast, Custom
-                                                     # (use Custom to specify the telescope azimuth and tilt angles)
     AzimuthAngle:                    0.0             # Azimuth angle of camera on the platform [deg] -> when GroupID = Custom
     TiltAngle:                       0.0             # Tilt    angle of camera on the platform [deg] -> when GroupID = Custom
     LightCollectingArea:             113.1           # Effective area of 1 telescope [cm^2]
     TransmissionEfficiency:
         BOL:                         0.8135          # Beginning of Life value in [0,1]
-        EOL:                         0.7945          # End of Life value in [0,1]
+        EOL:                         0.7945          # End       of Life value in [0,1]
     UseDrift:                        no              # yes or no. If no, ignore everything below.
-    UseDriftFromFile:                no              # yes or no. If yes: ignore RMS and timescale below
-    DriftYawRms:                     2.0             # RMS of thermo-elastic drift in yaw [arcsec]
+    DriftSource:                     FromRedNoise    # FromFile or FromRedNoise (use RMS and timescale below)
+    DriftYawRms:                     2.0             # RMS of thermo-elastic drift in yaw   [arcsec]
     DriftPitchRms:                   2.0             # RMS of thermo-elastic drift in pitch [arcsec]
-    DriftRollRms:                    2.0             # RMS of thermo-elastic drift in roll [arcsec]
+    DriftRollRms:                    2.0             # RMS of thermo-elastic drift in roll  [arcsec]
     DriftTimeScale:                  3600.           # Timescale of thermo-elastic drift [s]
     DriftFileName:                   inputfiles/drift.txt
 
@@ -88,7 +88,7 @@ Camera:
         Type:                        differential    # [differential, absolute]
         OrbitFile:                   inputfiles/orbit.txt
         StartTime:                   101489.207030
-    IncludeFieldDistortion:          yes             # Whether or not to include field distortion. This only applies when the PSF is not mapped from file. 
+    IncludeFieldDistortion:          yes             # Whether or not to include field distortion. Not used when a MappedFromFile PSF is selectie.
     FieldDistortion:                                 # Distortion model from Wang et al. (2007) with coefficients: [k1, k2, k3, q1, q2, p1, p2]
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent)
         ConstantCoefficients:        [ 0.32419,  0.0232909,  0.407979,  0.00022463,  0.000217599,  0.000381958,  0.000963902]  # Normal  coefficients if Source is Constant

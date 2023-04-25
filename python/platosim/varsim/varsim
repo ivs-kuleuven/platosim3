@@ -124,8 +124,8 @@ class Variability(object):
             plt.rcParams['text.usetex'] = True
         
         # Absolute cwd path
-        self.path     = Path(os.getenv("PLATO_PROJECT_HOME")) /  "python/platosim/varsim"
-        self.datapath = self.path / 'data'
+        self.path     = str(Path(os.getenv("PLATO_PROJECT_HOME"))) + "/python/platosim/varsim"
+        self.datapath = self.path + '/data'
         
         # OBSERVATIONAL PARAMETERS
 
@@ -168,7 +168,7 @@ class Variability(object):
         # Load the instrument passband
         if args.inst: self.intrument = args.inst
         else: self.instrument = 'plato'
-        passband = np.loadtxt(self.datapath / 'response_{0}.txt'.format(self.instrument))
+        passband = np.loadtxt(self.datapath + '/response_{0}.txt'.format(self.instrument))
         self.wvl_tele = passband[:,0] * u.nm  # Wavelengths [nm]
         self.tra_tele = passband[:,1]         # Normalized transmission
         
@@ -551,7 +551,7 @@ class Variability(object):
         cadence = self.cadence.to('Ms').value
 
         # Solar frequency spectrum: mode line-widths and frequencies
-        data = np.loadtxt(self.datapath / 'Main_Fits_BiSON_8640d_lbest_UseInSolarCycle.dat')
+        data = np.loadtxt(self.datapath + '/Main_Fits_BiSON_8640d_lbest_UseInSolarCycle.dat')
         eta  = np.exp(data[:,6])*np.pi  # From Chaplin et al. (2009) Eq. 1
         freq = data[:,2]                # frequencies of 96 modes
 

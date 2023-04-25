@@ -10,13 +10,13 @@ while is use the L1 proto-pipeline to extract the photometry.
 import os
 import sys
 import glob
+from zipfile import ZipFile
+
 import h5py
 import scipy
-import wotan
 import shutil
 import pathlib
 import natsort
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -24,10 +24,8 @@ import matplotlib.cm as cm
 import matplotlib.colors as colors
 #import statsmodels.api as sm
 import astropy.stats as stats
-
 from scipy import constants as c
 from scipy.ndimage import median_filter
-from zipfile import ZipFile
 from tqdm import tqdm
 
 import platosim.plot            as pt
@@ -463,7 +461,7 @@ class LightCurve(object):
         NOTE: flux_cor is only available for on-board photometry.
         """
         
-        if   unit == "e/s": flux = self.df[column] / 4.026526
+        if   unit == "e/s": flux = self.df[column] / 4.026526  # TODO change!
         elif unit == "rel": flux = ut.normalize(self.df[column], factor=1)
         elif unit == "ppt": flux = ut.normalize(self.df[column], factor=1e3)
         elif unit == "ppm": flux = ut.normalize(self.df[column], factor=1e6)
@@ -742,6 +740,7 @@ class LightCurve(object):
 
         
         if model == 'wotan':
+            import wotan
             self.df['flux_clip'] = wotan.slide_clip(self.df.time,
                                                     flux,
                                                     window_length=window*c.day,
@@ -944,6 +943,7 @@ class LightCurve(object):
 
         elif model == "wotan":
 
+            import wotan
             # Check if transits should be masked
             if mask:
                 mask = wotan.transit_mask(time=time,

@@ -3,7 +3,7 @@
 
 import os
 import numpy as np
-from platosim.fileSelect import fileMatch
+from platosim.utilities import fileMatch
 import h5py
 
 
