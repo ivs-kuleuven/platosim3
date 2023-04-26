@@ -82,14 +82,14 @@ else
     fi
 
     # Lastly, export the python path to bashrc
-    echo "export PYTHONPATH=${PYTHONPATH}:$POETRY:$PLATO_PROJECT_HOME/python:$PLATO_WORKDIR:$PLATO_PIPELINE:$PLATO_MANPATH:$PLATO_PYLIB" >> $PLATO_SETUP
-    echo "export PATH=${PATH}:$HOME/.local/bin/:$PLATO_PROJECT_HOME/build:$PLATO_PIPELINE/bin" >> $PLATO_SETUP
+    echo "export PYTHONPATH=${PYTHONPATH}:$CONDA_PREFIX:$PLATO_PROJECT_HOME/python:$PLATO_WORKDIR:$PLATO_PIPELINE:$PLATO_MANPATH:$PLATO_PYLIB" >> $PLATO_SETUP
+    echo "export PATH=${PATH}:$CONDA_PREFIX/bin:$PLATO_PROJECT_HOME/build:$PLATO_PIPELINE/bin" >> $PLATO_SETUP
        
     # Add code to global executeables (-i overwrite old files) TODO
-    cp -rf $PLATO_PROJECT_HOME/python/platosim/picsim/picsim       $HOME/.local/bin/
-    cp -rf $PLATO_PROJECT_HOME/python/platosim/varsim/varsim       $HOME/.local/bin/
-    cp -rf $PLATO_PROJECT_HOME/python/platosim/payload/payload     $HOME/.local/bin/
-    cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/platonium $HOME/.local/bin/
+    cp -rf $PLATO_PROJECT_HOME/python/platosim/picsim/picsim       $CONDA_PREFIX/bin
+    cp -rf $PLATO_PROJECT_HOME/python/platosim/varsim/varsim       $CONDA_PREFIX/bin
+    cp -rf $PLATO_PROJECT_HOME/python/platosim/payload/payload     $CONDA_PREFIX/bin
+    cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/platonium $CONDA_PREFIX/bin
     
     # Reload .bashrc TODO mac
     . $HOME/.bashrc
