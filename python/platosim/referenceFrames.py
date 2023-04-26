@@ -2011,8 +2011,7 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpix, yCCDpix):
         mappedDistortion       = True
 
     elif (sim["Camera/IncludeFieldDistortion"] == "yes" or
-          sim["Camera/IncludeFieldDistortion"] == "1"   or
-          sim["Camera/IncludeFieldDistortion"] == "True"):
+          sim["Camera/IncludeFieldDistortion"]):
         inverseDistortionCoefficients = sim["Camera/FieldDistortion/ConstantInverseCoefficients"]
         pathToPsfFile          = None
         mappedDistortion       = False
