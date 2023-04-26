@@ -341,7 +341,7 @@ class SimFile (object):
         data = {"highResPSF":      "highResPSF",
                 "diffusedPSF":     "diffusedPSF",
                 "PRNU":            "PRNU",
-                "IRNU":            "IRNU",
+                # "IRNU":            "IRNU",
                 "BackgroundMap":   "skyBackground",
                 "ThroughputMaps": f"throughputMap{imageNr:06d}",
                 "SmearingMaps":   f"smearingMap{imageNr:06d}",
@@ -415,19 +415,19 @@ class SimFile (object):
 
 
     
-    def getIRNU(self):
+    # def getIRNU(self):
 
-        """Get the Intra-pixel Response Non-Uniformity map from the HDF5 file.
+    #     """Get the Intra-pixel Response Non-Uniformity map from the HDF5 file.
 
-        To rebin the IRNU to the PRNU:
+    #     To rebin the IRNU to the PRNU:
 
-        >>> Nrows, Ncols = 100, 100      # size in pixels of the subfield
-        >>> NsubPixels = 16              # 16^2 subpixels in 1 pixel
-        >>> assert(IRNU.shape == (Nrows*NsubPixels, Ncols*NsubPixels))
-        >>> PRNU = IRNU.reshape(Nrows, NsubPixels, Ncols, NsubPixels).sum(axis=3).sum(axis=1)
-        """
+    #     >>> Nrows, Ncols = 100, 100      # size in pixels of the subfield
+    #     >>> NsubPixels = 16              # 16^2 subpixels in 1 pixel
+    #     >>> assert(IRNU.shape == (Nrows*NsubPixels, Ncols*NsubPixels))
+    #     >>> PRNU = IRNU.reshape(Nrows, NsubPixels, Ncols, NsubPixels).sum(axis=3).sum(axis=1)
+    #     """
 
-        return self.getMap("IRNU", imageNr=0)
+    #     return self.getMap("IRNU", imageNr=0)
 
 
 
@@ -1703,7 +1703,7 @@ class SimFile (object):
                   showStarPositions=False, showPointLikeGhostPositions=False,
                   minVmag=None, maxVmag=None, showStarIDs=False,
                   tarMarkerSize=200, showMaskOfStarID=None,
-                  useTitle=False, showGrid=False, colorBar=False, colorMap="magma",
+                  useTitle=False, showGrid=False, colorBar=False, colorMap="cubehelix",
                   origin="lower", figsize=(8,8), fontSize=15):
 
         """Make a plot of the a requested image or the entire cube in HDF5.
@@ -2039,7 +2039,7 @@ class SimFile (object):
         
         # Axis and plot
         
-        im = ax.imshow(pixelMap, interpolation='nearest', origin='lower', cmap="magma")
+        im = ax.imshow(pixelMap, interpolation='nearest', origin='lower', cmap="cubehelix")
 
         # Colorbar
         
@@ -2068,11 +2068,11 @@ class SimFile (object):
 
         
 
-    def showPSF(self, datasetName, useTitle=False, colorBar=True, colorMap="gist_stern",
-                figsize=(7,6)):
+    def showPSF(self, datasetName, showPixelGrid=False,
+                colorBar=True, colorMap="gist_stern",
+                useTitle=False, figsize=(7,6)):
 
-        """
-        PURPOSE: make a plot of the requested PSF
+        """Plot the requested PSF.
 
         INPUT: datasetName: the name of the dataset that contains the PSF in the HDF5 file
                This is set by the Simulator and is currently:
@@ -2109,9 +2109,10 @@ class SimFile (object):
         # If requested, set colorbar
 
         if colorBar:
-            plt.colorbar(image, orientation='vertical', extend='max',
-                         cmap=colorMap, aspect=15, fraction=0.06)
-
+            cbar = plt.colorbar(image, orientation='vertical', extend='max',
+                                cmap=colorMap, aspect=15, fraction=0.06)
+            cbar.formatter.set_powerlimits((0, 0))
+            
         # Labels
 
         ax.set_xlabel(r"$x$ [subpixel]")
@@ -2123,14 +2124,14 @@ class SimFile (object):
         ax.set_ylim(0, Ncols)
 
         # Ticks
+        ax.set_xticks(np.linspace(0, Nrows, 9))
+        ax.set_yticks(np.linspace(0, Ncols, 9))
 
-        ax.set_xticks(np.linspace(0, Nrows+1, 5))
-        ax.set_yticks(np.linspace(0, Ncols+1, 5))
+        # Set grid
 
-        # Settings
-
-        plt.tight_layout()
-
+        if showPixelGrid:
+            ax.grid(True, which='major', axis='both', ls='-', lw=0.5, color='w')
+        
         # That's it!
 
         return fig, ax
@@ -2139,7 +2140,7 @@ class SimFile (object):
 
 
 
-    def plotLightCurve(self, starID, timeUnit=False, fluxUnit=False, figsize=(9,5)):
+    def plotLightCurve(self, starID, timeUnit=False, fluxUnit=False, figsize=(8,5)):
 
         """Function plot the simulated light curve.
 
