@@ -114,6 +114,19 @@ void PointSpreadFunction::configure(ConfigurationParameters &configParam)
         throw IllegalArgumentException(errorMessage);
 	writeHighResolutionPSF = false;
     }
+
+    string focalLengthSource = configParam.getString("Camera/FocalLength/Source");
+    if (focalLengthSource == "ConstantValue")
+    {
+        double focalLength = configParam.getDouble("Camera/FocalLength/ConstantValue") * 1000;     // [m] -> [mm]
+    }
+    else if (focalLengthSource == "FromFile")
+    {
+        string focalLengthInputFile = configParam.getAbsoluteFilename("Camera/FocalLength/FromFile");
+        Parameter<double> *focalLength = new Parameter<double>(focalLengthInputFile, 1000);             // [m] -> [mm]
+        focalLengthValue = (*focalLength)();
+    }
+    Log.info("PointSpreadFunction: Using a focal length: " + to_string(focalLengthValue) + " mm");
 }
 
 
@@ -221,25 +234,7 @@ void PointSpreadFunction::select(double xFP, double yFP)
 
     isSelected = true;
 
-    // We read in the table that converts the undistorted coordinates to distorted coordinates from the psf HDF5 file.
-    vector<double> xUndistorted;
-    vector<double> yUndistorted;
-
-    vector<double> xDistorted;
-    vector<double> yDistorted;
-
-    psfFile.readArray("/Coordinates map/Undistorted", "x", xUndistorted);
-    psfFile.readArray("/Coordinates map/Undistorted", "y", yUndistorted);
-    psfFile.readArray("/Coordinates map/Distorted", "x", xDistorted);
-    psfFile.readArray("/Coordinates map/Distorted", "y", yDistorted);
-
-
-
-    for (unsigned int i=0; i < xDistorted.size(); i++)
-    {
-      const std::array<double, 4> coordinates = { xUndistorted.at(i), yUndistorted.at(i), xDistorted.at(i), yDistorted.at(i) };
-      distortionMap.push_back(coordinates);
-    }
+    initializeDistortionMap();
 }
 
 
@@ -374,3 +369,107 @@ vector<std::array<double, 4>> PointSpreadFunction::getDistortionMap()
 
 
 
+
+
+
+
+
+/*
+ * Initialize the distortion map. This can be done either by copying it from
+ * the HDF5 file or generated if the starPointing angles are given.
+ */
+
+void PointSpreadFunction::initializeDistortionMap()
+{
+
+    // First we check if a Coordinates Map is defined in the hdf5 file
+
+    if (psfFile.hasGroup("/Coordinates map"))
+        readDistortionmapFromFile();
+    else
+    {
+        // If no map is defined we will generate such a map.
+        generateDistortionMap();
+    }
+}
+
+
+
+
+
+
+/*
+ * Reads the distortion map from the HDf5 and copies its content in distortionMap.
+ */
+void PointSpreadFunction::readDistortionmapFromFile()
+{
+    // We read in the table that converts the undistorted coordinates to distorted coordinates from the psf HDF5 file.
+    vector<double> xUndistorted;
+    vector<double> yUndistorted;
+
+    vector<double> xDistorted;
+    vector<double> yDistorted;
+
+    psfFile.readArray("/Coordinates map/Undistorted", "x", xUndistorted);
+    psfFile.readArray("/Coordinates map/Undistorted", "y", yUndistorted);
+    psfFile.readArray("/Coordinates map/Distorted", "x", xDistorted);
+    psfFile.readArray("/Coordinates map/Distorted", "y", yDistorted);
+
+
+
+    for (unsigned int i=0; i < xDistorted.size(); i++)
+    {
+        const std::array<double, 4> coordinates = { xUndistorted.at(i), yUndistorted.at(i), xDistorted.at(i), yDistorted.at(i) };
+        distortionMap.push_back(coordinates);
+    }
+}
+
+
+
+
+
+
+/*
+ * Generates a distortion map if no map is given in the HDf5 file.
+ */
+void PointSpreadFunction::generateDistortionMap()
+{
+
+    unsigned int datasetIndex = 1;
+    string datasetName;
+    string selectedDatasetName;
+
+    while(true)
+    {
+        datasetName = to_string(datasetIndex);
+
+        if(psfFile.hasDataset("/", datasetName))
+        {
+            // The distorted FP coordinats are stored as strings in the HDF5 file rather than doubles,
+            // so we need to convert them.
+
+            double xPsf = stod(psfFile.readStringDatasetAttribute("/", datasetName, "centerCoordinates1"));
+            double yPsf = stod(psfFile.readStringDatasetAttribute("/", datasetName, "centerCoordinates2"));
+
+            // We then read in the star pointing angles and from those we obtain the undistorted FP coordiantes.
+
+            double starPointing1[1];
+            double starPointing2[1];
+            psfFile.readArrayDatasetAttribute("/", datasetName, "starPointing1", starPointing1);
+            psfFile.readArrayDatasetAttribute("/", datasetName, "starPointing2", starPointing2);
+
+            double xPsfUndistorted = focalLengthValue*tan(deg2rad(starPointing1[0]));
+            double yPsfUndistorted = focalLengthValue*tan(deg2rad(starPointing2[0]));
+
+            // Once we have these values we add them to the distortionMap
+            const std::array<double, 4> coordinates = { xPsfUndistorted, yPsfUndistorted, xPsf, xPsf };
+            distortionMap.push_back(coordinates);
+        }
+        else
+        {
+            break;
+        }
+
+        datasetIndex++;
+    }
+}
