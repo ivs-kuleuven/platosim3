@@ -1922,8 +1922,7 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal):
         pathToPsfFile          = sim["PSF/MappedFromFile/Filename"]
         mappedDistortion       = True
     elif (sim["Camera/IncludeFieldDistortion"] == "yes"  or
-          sim["Camera/IncludeFieldDistortion"] == "1"    or
-          sim["Camera/IncludeFieldDistortion"]):
+          sim["Camera/IncludeFieldDistortion"] == True):
         distortionCoefficients = sim["Camera/FieldDistortion/ConstantCoefficients"]
         pathToPsfFile          = None
         mappedDistortion       = False
@@ -2011,7 +2010,7 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpix, yCCDpix):
         mappedDistortion       = True
 
     elif (sim["Camera/IncludeFieldDistortion"] == "yes" or
-          sim["Camera/IncludeFieldDistortion"]):
+          sim["Camera/IncludeFieldDistortion"] == True):
         inverseDistortionCoefficients = sim["Camera/FieldDistortion/ConstantInverseCoefficients"]
         pathToPsfFile          = None
         mappedDistortion       = False
