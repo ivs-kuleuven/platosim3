@@ -25,7 +25,7 @@ import numpy as np
 
 # PlatoSim imports
 import platosim.referenceFrames as rf
-import platosim.instrument      as it
+import platosim.noise           as ns
 from platosim.simfile import SimFile
 
 
@@ -515,6 +515,8 @@ class Simulation(object):
     def turnOffAllOutput(self):
 
         """Function to write nothing to the HDF5 file.
+
+        TODO Bug: GroupByExposure = True if cosmics should be saved
         """
 
         # Fetch names of ControlHDF5Content attributes
@@ -525,11 +527,11 @@ class Simulation(object):
             entries.append(name)
 
         # Control the content
-
+        
         for entry in entries:
-            self.__setitem__(f"{group}/{entry}", "no")
+            self.__setitem__(f"{group}/{entry}", False)
 
-
+            
 
 
 
@@ -548,13 +550,34 @@ class Simulation(object):
         # Control the content
 
         for entry in entries:
-            self.__setitem__(f"{group}/{entry}", "yes")
+            self.__setitem__(f"{group}/{entry}", True)
                 
 
 
 
 
+    def showAllOutput(self):
 
+        """Function to write all to the HDF5 file.
+        """
+
+        # Fetch names of ControlHDF5Content attributes
+
+        group = "ControlHDF5Content"
+        entries = []
+        for name, dict_ in self.yamlDocument[group].items():
+            entries.append(name)
+
+        # Show the control content
+
+        for entry in entries:
+            switch = self.__getitem__(f"{group}/{entry}")
+            print(f"{group}/{entry} = {switch}")
+
+
+
+
+            
     def controlAllEffects(self, switch):
 
         """Function to write all or nothing to the HDF5 file.
@@ -568,7 +591,6 @@ class Simulation(object):
         Notes
         -----
         Parameters that are turned on/off:
-        - Stellar variability
         - Cosmic rays
         - AOCS jitter
         - Thermo-elastic drift (TED)
@@ -596,7 +618,6 @@ class Simulation(object):
         
         # Sky parameters
 
-        self["Sky/IncludeVariableSources"]      = switch
         self["Sky/IncludeCosmicsInSubField"]    = switch
         self["Sky/IncludeCosmicsInSmearingMap"] = switch
         self["Sky/IncludeCosmicsInBiasMap"]     = switch
@@ -1000,7 +1021,7 @@ class Simulation(object):
 
         np.savetxt(starCatalogFile,
                    np.transpose([ra, dec, mag, starID]),
-                   fmt=['%11.6f', '%11.6f', '%8.4f', '%i'])        
+                   fmt=['%11.6f', '%11.6f', '%8.4f', '%i'])
 
         # Set the "ObservingParameters/StarCatalogFile" tag in the yaml tree
 
@@ -1108,9 +1129,9 @@ class Simulation(object):
         # Save the sky coordinates (in [deg]) to the star catalog file
 
         myFile = open(starCatalogPath, "w")
-        myFile.write("# RA DEC Vmag starID\n")
+        myFile.write("# RA Dec Vmag starID\n")
         for n in range(len(ra)):
-            myFile.write("{0}  {1}  {2}  {3}\n".format(ra[n], dec[n], magnitudes[n], starIDs[n]))
+            myFile.write(f"{ra[n]:.6f} {dec[n]:.6f} {magnitudes[n]:.4f} {starIDs[n]}\n")
         myFile.close()
 
         # Set the "ObservingParameters/StarCatalogFile" tag in the yaml tree
@@ -1223,7 +1244,7 @@ class Simulation(object):
         
         with open(variableSourceList, 'w') as f:
             for i in range(len(starID)):
-                f.write(f'{starID[i]} {variableSourceFile[i]}')
+                f.write(f'{starID[i]} {variableSourceFile[i]}\n')
 
         # Set the "Sky" tag in the yaml tree
 
@@ -1255,7 +1276,7 @@ class Simulation(object):
 
         # Create TED file
 
-        it.getTED(quarter=quarter, model=model, outfile=fileName, plot=plot)
+        ns.getTED(quarter=quarter, model=model, outfile=fileName, plot=plot)
 
         # Set this to simulation
 
