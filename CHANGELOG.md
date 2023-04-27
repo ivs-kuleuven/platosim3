@@ -15,8 +15,8 @@
 
 ### Changed
 
-* Change of HDF5 structure for `Cosmics`, now using consistent upper case letter for "Exposure" (GH #765)
-* Change of YAML inputfile `Telescope` block named `UseDriftFromFile` to `DriftSource` (GH #766)
+* Change of HDF5 structure for `Cosmics`, now using consistent upper case letter for "Exposure" (Issue #765)
+* Change of YAML inputfile `Telescope` block named `UseDriftFromFile` to `DriftSource` (Issue #766)
 * Changed input structure of input files from "ObservingParameters/RApointing", "ObservingParameters/DecPointing" into "Platform/Orientation/Angles/RAPointing" and "latform/Orientation/Angles/DecPointing".
 * Changed validation tests to deal with new input structure.
 * Changed the naming convention SC (spacecraft) into PLM (Payload Module) in python code.
@@ -46,7 +46,7 @@
 
 ### Fixed
 
-* Fixed bug where mapped distortion was not used when calculating the vignetting. (GH #716)
+* Fixed bug where mapped distortion was not used when calculating the vignetting. (Issue #716)
 * Bugfix in pathlib in `picsim` file
 * Fixed colorbar for autoscaling in `simfile` for `showImage` method.
 
