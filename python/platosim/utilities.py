@@ -459,6 +459,30 @@ def stellarFlux(Vmag, exposureTime, fluxm0=1.00238e8,
 
 
 
+def fromMagToRelativeFlux(mag, norm=1e6):
+
+    """Convert magnitude to relative flux
+
+    Parameters
+    ----------
+    mag : float
+        Input magnitude
+    norm : float
+        Normalisation contant for relative flux
+
+    Return
+    ------
+    flux : ndarray
+        Relative flux scaled after the normalisation constant.
+    """
+
+    return (10**(-0.4*mag) - 1) * norm
+
+
+
+
+
+
 def passbandConversionV2P(mag, Teff, inverse=False, method='fialho'):
 
     """Coversion from Johnson-Cousin V magnitude to the PLATO passband.
