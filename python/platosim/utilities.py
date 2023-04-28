@@ -324,7 +324,7 @@ def normalize(signal, factor=1e6, length=-1):
         Normalized relative signal is returned. Default unit in [ppm].
     """
 
-    relative_signal = (signal / np.nanmean(signal[:int(length)]) - 1) * factor
+    relative_signal = (signal / np.nanmedian(signal[:int(length)]) - 1) * factor
 
     return relative_signal
 
@@ -475,8 +475,8 @@ def fromMagToRelativeFlux(mag, norm=1e6):
     flux : ndarray
         Relative flux scaled after the normalisation constant.
     """
-
-    return (10**(-0.4*mag) - 1) * norm
+    flux = 10**(-0.4*mag)
+    return (flux / np.nanmedian(flux) - 1) * norm
 
 
 
