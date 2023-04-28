@@ -914,7 +914,7 @@ Figure 9: Schematic presentation of the modelled sub-field and the parameters re
 <hr/>
 <h2><a class="anchor" id="controlTcpConnection"></a>ControlTcpConnection</h2>
 <p>The <b>ControlTcpConnection</b> block in the configuration file is used in case the jitter is read from a network (<a href="#jitterSource">JitterSource</a> = FromNetwork). The structure of this block is the following:</p>
-<div class="fragment"><div class="line">ControlTcpConnection:</div><div class="line"></div><div class="line">    SendImagettesToClients:        no</div><div class="line">    GetWindowPositionsFromServer:  no</div><div class="line"></div><div class="line">    WindowPositionServerAddress: tcp://localhost:5558</div><div class="line">    JitterServerAddress:         tcp://localhost:5559</div><div class="line">    ImagetteClientAddress:       tcp://localhost:5560</div><div class="line"></div><div class="line">    WindowPositionSocketTimeout:    100</div><div class="line">    JitterSocketTimeout:            100</div></div><!-- fragment --><h3><a class="anchor" id="sendImagettesToClients"></a>SendImagettesToClients</h3>
+<div class="fragment"><div class="line">ControlTcpConnection:</div><div class="line"></div><div class="line">    SendImagettesToClients:        no</div><div class="line">    GetWindowPositionsFromServer:  no</div><div class="line"></div><div class="line">    WindowPositionServerAddress: tcp://localhost:5558</div><div class="line">    JitterServerAddress:         tcp://localhost:5559</div><div class="line">    ImagetteClientAddress:       tcp://localhost:5560</div><div class="line"></div><div class="line">    WindowPositionSocketTimeout:    100000</div><div class="line">    JitterSocketTimeout:            100000</div></div><!-- fragment --><h3><a class="anchor" id="sendImagettesToClients"></a>SendImagettesToClients</h3>
 <p><em>Allowed values:</em> "yes" and "no"</p>
 <p>Indicates whether or not the simulated imagettes should be sent to the client.</p>
 <h3><a class="anchor" id="getWindowPositionsFromServer"></a>GetWindowPositionsFromServer</h3>
@@ -928,10 +928,10 @@ Figure 9: Schematic presentation of the modelled sub-field and the parameters re
 <p>Client address to which to send the simulated imagettes in case this is requested (<a href="#sendImagettesToClients">SendImagettesToClients</a> = yes).</p>
 <h3>WindowPositionSocketTimeout</h3>
 <p><em>Allowed values:</em> &gt; 0</p>
-<p>Number of seconds of not receiving window positions (from the <a href="#windowPositionServerAddress">window position server</a>), after which the connection to that server is regarded as stalled / broken.</p>
+<p>Number of milliseconds of not receiving window positions (from the <a href="#windowPositionServerAddress">window position server</a>), after which the connection to that server is regarded as stalled / broken.</p>
 <h3>JitterSocketTimeout</h3>
 <p><em>Allowed values:</em> &gt; 0</p>
-<p>Number of seconds of not receiving jitter positions (from the <a href="#jitterServerAddress">jitter server</a>), after which the connection to that server is regarded as stalled / broken. </p><hr/>
+<p>Number of milliseconds of not receiving jitter positions (from the <a href="#jitterServerAddress">jitter server</a>), after which the connection to that server is regarded as stalled / broken. </p><hr/>
 <h2><a class="anchor" id="cameraGroups"></a>Camera groups</h2>
 <p>The <b>CameraGroups</b> block in the configuration file is used in case a pre-defined camera groups (1, 2, 3, 4, or Fast) was selected via the <a href="#groupID">GroupID</a> parameter in the <a href="#telescopeParameters">Telescope</a> block in the configuration file. The structure of this block is the following:</p>
 <div class="fragment"><div class="line">CameraGroups:</div><div class="line"></div><div class="line">    AzimuthAngle:            [45.0, 135.0, 225.0, 315.0, 0.0] </div><div class="line">    TiltAngle:               [9.2, 9.2, 9.2, 9.2, 0.0] </div></div><!-- fragment --><p>Mind you, you are NOT supposed to alter this section of the configuration file!</p>

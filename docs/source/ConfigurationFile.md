@@ -2239,8 +2239,8 @@ ControlTcpConnection:
     JitterServerAddress:         tcp://localhost:5559
     ImagetteClientAddress:       tcp://localhost:5560
 
-    WindowPositionSocketTimeout:    100
-    JitterSocketTimeout:            100
+    WindowPositionSocketTimeout:    100000
+    JitterSocketTimeout:            100000
 \endcode
 
 
@@ -2283,7 +2283,7 @@ Client address to which to send the simulated imagettes in case this is requeste
 
 <i>Allowed values:</i> > 0
 
-Number of seconds of not receiving window positions (from the [window position server](#windowPositionServerAddress)), after which the connection to that server is regarded as stalled / broken.
+Number of milliseconds of not receiving window positions (from the [window position server](#windowPositionServerAddress)), after which the connection to that server is regarded as stalled / broken.
 
 
 
@@ -2291,7 +2291,7 @@ Number of seconds of not receiving window positions (from the [window position s
 
 <i>Allowed values:</i> > 0
 
-Number of seconds of not receiving jitter positions (from the [jitter server](#jitterServerAddress)), after which the connection to that server is regarded as stalled / broken.
+Number of milliseconds of not receiving jitter positions (from the [jitter server](#jitterServerAddress)), after which the connection to that server is regarded as stalled / broken.
 
 ---
 
