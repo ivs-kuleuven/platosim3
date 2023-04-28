@@ -952,7 +952,7 @@ double HDF5File::readDoubleGroupAttribute(string groupName, string attributeName
 
 
 
-void HDF5File::readArrayDatasetAttribute(string groupName, string datasetName, string attributeName, double (&outputArray)[])
+void HDF5File::readArrayDatasetAttribute(string groupName, string datasetName, string attributeName, double *outputArray)
 {
     // Complain if the file was not first opened
 

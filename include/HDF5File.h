@@ -60,7 +60,7 @@ class HDF5File
 
         double readDoubleGroupAttribute(string groupName, string attributeName);
         int readIntegerGroupAttribute(string groupName, string attributeName);
-        void readArrayDatasetAttribute(string groupName, string dataset, string attributeName, double (&outputArray)[]);
+        void readArrayDatasetAttribute(string groupName, string dataset, string attributeName, double *outputArray);
         double readDoubleDatasetAttribute(string groupName, string datasetName, string attributeName);
         string readStringDatasetAttribute(string groupName, string datasetName, string attributeName);
 
