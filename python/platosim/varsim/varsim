@@ -1699,7 +1699,6 @@ else:
     # Solar-like stars
     if args.star or args.star_params:
         if args.spot is True:
-            print(args.spot)
             v.stellar_activity()
         if not args.gran or not args.puls:
             v.stellar_gran_osc()    
