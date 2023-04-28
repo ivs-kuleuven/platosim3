@@ -1615,7 +1615,7 @@ class Variability(object):
 #                PARSING COMMAND-LINE ARGUMENTS                #
 #--------------------------------------------------------------#
 
-software = '\nNoise-less Light Curve Simulator\n'
+software = '\nVariable Source Simulator\n'
 parser = argparse.ArgumentParser(epilog=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter,
                                  description=errorcode('software', software))
@@ -1632,21 +1632,21 @@ obs_group.add_argument('--samp',    metavar='SECS', type=int, help='Time cadence
 obs_group.add_argument('--inst',    metavar='NAME', type=str, help='Observational instrument (Default: "PLATO")')
 
 star_group = parser.add_argument_group('STAR')
-star_group.add_argument('--star', metavar='NAME', type=str, help='Stellar variability source [None, <Object>, roAp, gDor, dSct] (Default: None)')
+star_group.add_argument('--star', metavar='NAME', type=str, help='Stellar variability source [<Object>, roAp, gDor, dSct] (Default: None)')
 star_group.add_argument('--star_params', action='append', type=float, nargs=5, metavar=('M', 'R', 'Teff', 'logg', 'Z'),
                         help='Stellar model parameters [M: Msun, R: Rsun, Teff: K] (Default: None)')
-star_group.add_argument('--gran', metavar='RELATION', type=str, help='Scaling relation of Granulation [None, Kallinger2014] (Default: Kallinger2014)')
-star_group.add_argument('--puls', metavar='RELATION', type=str, help='Scaling relation of Pulsations  [None, Corsaro2013] (Default: Corsaro2013)')
-star_group.add_argument('--corr', metavar='METHOD',   type=str, help='Scaling Correction method of p-modes [None] (Default: None)')
-star_group.add_argument('--spot', metavar='BOOL',     type=str, help='Inclusion of stellar spots [None, True] (Default: True)')
-star_group.add_argument('--pulslist', metavar='FILE', type=str, help='Use custum list of pulsations {periods, amplitudes, phases}')
+star_group.add_argument('--gran',     metavar='RELATION', type=str, help='Scaling relation of Granulation [Kallinger2014, None] (Default: Kallinger2014)')
+star_group.add_argument('--puls',     metavar='RELATION', type=str, help='Scaling relation of Pulsations  [Corsaro2013,   None] (Default: Corsaro2013)')
+star_group.add_argument('--corr',     metavar='METHOD',   type=str, help='Scaling Correction method of p-modes [None] (Default: None)')
+star_group.add_argument('--spot',     metavar='BOOL',     type=str, help='Inclusion of stellar spots    [True, False] (Default: True)')
+star_group.add_argument('--pulslist', metavar='FILE',     type=str, help='Use custum list of pulsations {periods, amplitudes, phases}')
 
 planet_group = parser.add_argument_group('EXOPLANET')
 planet_group.add_argument('--planet', metavar='NAME',  type=str, help='Exoplanet variability source (Default: None)')
 planet_group.add_argument('--planet_params', action='append', type=float, nargs=7, metavar=('t0', 'P', 'e', 'i', 'w', 'Rp', 'Mp'),
                           help='Planet model parameters [t0: days, P: days, i: deg, w: deg, Rp: Rearth, Mp: Mearth] (Default: None)')
-planet_group.add_argument('--ldm',   metavar='MODEL', type=str, help='Limb Darkening model (Default: "quadratic")')
-planet_group.add_argument('--phase_curve', action='store_true', help='Flag to include orbital phase curve model {Occultation, Beaming, Ellipsoidal} (Default: False)')
+planet_group.add_argument('--ldm',    metavar='MODEL', type=str, help='Limb Darkening model (Default: quadratic)')
+planet_group.add_argument('--phase_curve', action='store_true',  help='Flag to include orbital phase curve model {Occultation, Beaming, Ellipsoidal} (Default: False)')
 
 args = parser.parse_args()
 
@@ -1675,7 +1675,7 @@ if not args.xsource in (0, 1, 2, 3):
     args.xsource = False
 
 # Activate spot modulation by default
-if args.spot is None:
+if args.spot is True or args.spot is None:
     args.spot = True
 
 # Initialize instance of class
@@ -1698,7 +1698,8 @@ else:
     v.stellar_spectrum()
     # Solar-like stars
     if args.star or args.star_params:
-        if args.spot:
+        if args.spot is True:
+            print(args.spot)
             v.stellar_activity()
         if not args.gran or not args.puls:
             v.stellar_gran_osc()    
