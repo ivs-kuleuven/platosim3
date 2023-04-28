@@ -324,7 +324,7 @@ def normalize(signal, factor=1e6, length=-1):
         Normalized relative signal is returned. Default unit in [ppm].
     """
 
-    relative_signal = (signal / np.nanmean(signal[:int(length)]) - 1) * factor
+    relative_signal = (signal / np.nanmedian(signal[:int(length)]) - 1) * factor
 
     return relative_signal
 
@@ -454,6 +454,30 @@ def stellarFlux(Vmag, exposureTime, fluxm0=1.00238e8,
     electronFlux = photonFlux * quantumEfficiency
 
     return electronFlux
+
+
+
+
+
+def fromMagToRelativeFlux(mag, norm=1e6):
+
+    """Convert magnitude to relative flux
+
+    Parameters
+    ----------
+    mag : float
+        Input magnitude
+    norm : float
+        Normalisation contant for relative flux
+
+    Return
+    ------
+    flux : ndarray
+        Relative flux scaled after the normalisation constant.
+    """
+    flux = 10**(-0.4*mag)
+    return (flux / np.nanmedian(flux) - 1) * norm
+
 
 
 
