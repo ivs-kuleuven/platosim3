@@ -1,6 +1,6 @@
 import numpy as np
-from platosim.CTImap import createCTIinputFile
-from test            import Test
+from platosim.script.CTImap import createCTIinputFile
+from test                   import Test
 
 
 
