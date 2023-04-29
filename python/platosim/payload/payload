@@ -31,7 +31,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 # PlatoSim functions
-import platosim.instrument as it
+import platosim.noise as ns
 from platosim.utilities import errorcode, convertQuarterRange
 
 # Default prefix
@@ -157,7 +157,7 @@ class InstrumentSetup(object):
 
         # Generete PRE file
         errorcode('module', '\nPointing repeatability error (PRE)')
-        it.getPRE(self.ra, self.dec, self.kappa, self.Q, sigma=3,
+        ns.getPRE(self.ra, self.dec, self.kappa, self.Q, sigma=3,
                   outfile=self.fileNamePRE, show_table=True, plot=True)
         if self.odir: print(f"File saved: {self.fileNamePRE}")
 
@@ -171,7 +171,7 @@ class InstrumentSetup(object):
 
         # Generete APE file
         errorcode('module', '\nAbsolute Pointing Error (APE)')
-        it.getAPE(self.ra, self.dec, self.kappa, sigma=3,
+        ns.getAPE(self.ra, self.dec, self.kappa, sigma=3,
                   outfile=self.fileNameAPE, show_table=True, plot=True)
         if self.odir: print(f"File saved: {self.fileNameAPE}")
 
@@ -183,7 +183,7 @@ class InstrumentSetup(object):
         
         # Generate TED file
         errorcode('module', '\nThermo-Elastic Distortion (TED)')
-        it.getTED(self.Q, outfile=self.fileNameTED, show_table=True, plot=True)
+        ns.getTED(self.Q, outfile=self.fileNameTED, show_table=True, plot=True)
         if self.odir: print(f"File saved: {self.fileNameTED}")
 
 
@@ -535,7 +535,7 @@ class InstrumentSetup(object):
 #                PARSING COMMAND-LINE ARGUMENTS                #
 #--------------------------------------------------------------#
 
-software = '\nInstrument file generator'
+software = '\nInstrumental Noise Simulator'
 parser = argparse.ArgumentParser(epilog=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter,
                                  description=errorcode('software', software))
