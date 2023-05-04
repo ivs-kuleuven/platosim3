@@ -1,0 +1,6 @@
+Troubleshooting
+===============
+
+If you encounter any problems please open an issue on `PLATOnium' Github Page <https://github.com/nicholasjannsen/PLATOnium>`_.
+
+

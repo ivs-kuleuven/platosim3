@@ -1,0 +1,328 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Troubleshooting &mdash; PlatoSim 3.5.4 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  <link rel="stylesheet" href="_static/fonts.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Tutorials" href="platonium_tutorials.html" />
+    <link rel="prev" title="Prerequsites" href="platonium_prerequisites.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html">
+          
+
+          
+            
+            <img src="_static/logo_platosim_crop.png" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">General:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="basic_intro.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basic_troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basic_acknowledgements.html">Acknowledgements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basic_architecture.html">Architecture</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Installing &amp; Updating:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="install_overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install_conda.html">For Users (via Conda)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install_source.html">For Developers (from Source)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Running PlatoSim</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="run_overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="run_prerequisites.html">Prerequisites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="run_input.html">Input Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="run_simulations.html">Running Simulations</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">PLATOnium toolkit</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="platonium_overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="platonium_prerequisites.html">Prerequsites</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Troubleshooting</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#python-errors"><em>Python errors</em></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pymt64">pymt64</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#makefile-errors"><em>Makefile errors</em></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#disabled-environment">Disabled environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#aswsim3">aswsim3</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#openblas-vs-blas-lapack">OpenBLAS vs. BLAS/LAPACK</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#man-pages">Man pages</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#cannot-find-script"><em>Cannot find script</em></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#remove-warnings"><em>Remove warnings</em></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="platonium_tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="platonium_cluster.html">Parallel Computing</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PlatoSim</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+<div class="git-ribbon">
+  <a href="http://github.com/SwissDataScienceCenter" rel="me">Join us on GitHub</a>
+</div>
+
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Troubleshooting</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/platonium_troubleshooting.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="troubleshooting">
+<h1>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permalink to this headline">¶</a></h1>
+<hr><div class="section" id="python-errors">
+<span id="l1-trouble-python"></span><h2><em>Python errors</em><a class="headerlink" href="#python-errors" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="pymt64">
+<h3>pymt64<a class="headerlink" href="#pymt64" title="Permalink to this headline">¶</a></h3>
+<p>The package <code class="docutils literal notranslate"><span class="pre">pymt64</span></code> can sometimes cause porblems. A well known issue for this pacakage is the following error:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>import<span class="w"> </span>pymt64
+File<span class="w"> </span><span class="s2">&quot;pymt64.pyx&quot;</span>,<span class="w"> </span>line<span class="w"> </span><span class="m">1</span>,<span class="w"> </span><span class="k">in</span><span class="w"> </span>init<span class="w"> </span>pymt64
+ValueError:<span class="w"> </span>numpy.ndarray<span class="w"> </span>size<span class="w"> </span>changed,<span class="w"> </span>may<span class="w"> </span>indicate<span class="w"> </span>binary<span class="w"> </span>incompatibility.<span class="w"> </span>Expected<span class="w"> </span><span class="m">96</span><span class="w"> </span>from<span class="w"> </span>C<span class="w"> </span>header,<span class="w"> </span>got<span class="w"> </span><span class="m">88</span><span class="w"> </span>from<span class="w"> </span>PyObject
+</pre></div>
+</div>
+<p>This can be solved by re-installing the library:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>uninstall<span class="w"> </span>pymt64
+pip<span class="w"> </span>install<span class="w"> </span>--no-cache-dir<span class="w"> </span>pymt64
+</pre></div>
+</div>
+<hr></div>
+</div>
+<div class="section" id="makefile-errors">
+<span id="l1-trouble-makefile"></span><h2><em>Makefile errors</em><a class="headerlink" href="#makefile-errors" title="Permalink to this headline">¶</a></h2>
+<p>A few obstacles can happen writing a code assuming full sudo rights (and assuming that apt get is available). In order to successfully install the L1 pipeline on a cluster, the following ajustments may need to be inforced:</p>
+<div class="section" id="disabled-environment">
+<h3>Disabled environment<a class="headerlink" href="#disabled-environment" title="Permalink to this headline">¶</a></h3>
+<p>Make sure that the <code class="docutils literal notranslate"><span class="pre">$PLATO</span></code> environment is loaded. If added to your <code class="docutils literal notranslate"><span class="pre">.bashrc</span></code> or <code class="docutils literal notranslate"><span class="pre">.profile</span></code> file this path should automatically be loaded every time you enter a compute node on any machine/cluster. However, it occured that it was not and the installation will link to a wrong location and fail.</p>
+</div>
+<div class="section" id="aswsim3">
+<h3>aswsim3<a class="headerlink" href="#aswsim3" title="Permalink to this headline">¶</a></h3>
+<p>This library <code class="docutils literal notranslate"><span class="pre">aswsim3</span></code> sometimes cause errors and since we do not need to PLATOnium we can simply skip this library. However, <code class="docutils literal notranslate"><span class="pre">aswsim3</span></code> depends on the library <code class="docutils literal notranslate"><span class="pre">platosimlib</span></code> hence simply replace <code class="docutils literal notranslate"><span class="pre">aswsim3</span></code> with <code class="docutils literal notranslate"><span class="pre">platosimlib</span></code> in the section <code class="docutils literal notranslate"><span class="pre">install:</span> <span class="pre">all</span></code> listed within in <code class="docutils literal notranslate"><span class="pre">Makefile</span></code>.</p>
+</div>
+<div class="section" id="openblas-vs-blas-lapack">
+<h3>OpenBLAS vs. BLAS/LAPACK<a class="headerlink" href="#openblas-vs-blas-lapack" title="Permalink to this headline">¶</a></h3>
+<p>If using OpenBLAS as a BLAS (and LAPACK) implementation the <code class="docutils literal notranslate"><span class="pre">-lblas</span></code> and <code class="docutils literal notranslate"><span class="pre">-llapack</span></code> link arguments would be appropriate when linking to the reference BLAS/LAPACK libraries from NetLib, which are typically called <code class="docutils literal notranslate"><span class="pre">libblas.so</span></code> and <code class="docutils literal notranslate"><span class="pre">liblapack.so</span></code>. However, with OpenBLAS both are in the same shared library called <code class="docutils literal notranslate"><span class="pre">libopenblas.so</span></code>.</p>
+<ol class="arabic simple">
+<li><p>The first installation error you may encounter is thus from the library <code class="docutils literal notranslate"><span class="pre">WP/326100/spline2dbase</span></code>. This library uses the <code class="docutils literal notranslate"><span class="pre">setup.py</span></code> script within for the installation which link to the <code class="docutils literal notranslate"><span class="pre">-lblas</span></code> and <code class="docutils literal notranslate"><span class="pre">-llapack</span></code>. Thus, if using OpenBLAS you will need to replace <code class="docutils literal notranslate"><span class="pre">-lblas</span></code> and <code class="docutils literal notranslate"><span class="pre">-llapack</span></code> with <code class="docutils literal notranslate"><span class="pre">openblas</span></code> in the following line:</p></li>
+</ol>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nv">libraries</span><span class="o">=[</span><span class="s2">&quot;m&quot;</span>,<span class="s2">&quot;blas&quot;</span>,<span class="s2">&quot;lapack&quot;</span><span class="o">]</span>,<span class="w">  </span><span class="c1"># Unix-[like specific</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p>Within the main installation Makefile (<code class="docutils literal notranslate"><span class="pre">$PLATO/algorithms/Makefile</span></code>) the inversion modules named <code class="docutils literal notranslate"><span class="pre">WP/32100/voxel/..</span></code> link to the openblas libray. If you get a message that <code class="docutils literal notranslate"><span class="pre">-llapack</span> <span class="pre">not</span> <span class="pre">found</span></code> then a potential solution is to remove this flag completely since it is already included within openblas. Hence remove <code class="docutils literal notranslate"><span class="pre">-llapack</span></code> from the following line in each file you encounter this error:</p></li>
+</ol>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nv">LDLIBS</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>-lcvxs<span class="w"> </span>-lm<span class="w"> </span>-llapack<span class="w"> </span>-lopenblas<span class="w"> </span>-lpthread
+</pre></div>
+</div>
+</div>
+<div class="section" id="man-pages">
+<h3>Man pages<a class="headerlink" href="#man-pages" title="Permalink to this headline">¶</a></h3>
+<p>Since the user do not generally have sudo right on a computing cluster the inversion module tries to install the man pages for the packges <code class="docutils literal notranslate"><span class="pre">WP/32100/voxel/..</span></code>. This can result in the following error:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>warning:<span class="w"> </span>failed<span class="w"> </span>to<span class="w"> </span>load<span class="w"> </span>external<span class="w"> </span>entity<span class="w"> </span><span class="s2">&quot;/usr/share/xml/docbook/stylesheet/nwalsh/html/docbook.xsl&quot;</span>
+cannot<span class="w"> </span>parse<span class="w"> </span>/usr/share/xml/docbook/stylesheet/nwalsh/html/docbook.xsl
+</pre></div>
+</div>
+<p>These are really not needed for our computations and hence</p>
+<ol class="arabic simple">
+<li><p>Remove the <code class="docutils literal notranslate"><span class="pre">.1</span></code> and <code class="docutils literal notranslate"><span class="pre">.txt</span></code> files from <code class="docutils literal notranslate"><span class="pre">all</span> <span class="pre">:</span></code> that will be installed</p></li>
+<li><p>Comment out the line <code class="docutils literal notranslate"><span class="pre">install</span> <span class="pre">-m</span> <span class="pre">644</span> <span class="pre">combine-mat.1</span> <span class="pre">$(PLATOMAN1)/..</span></code></p></li>
+<li><p>Run <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">install</span></code> again</p></li>
+</ol>
+<hr></div>
+</div>
+<div class="section" id="cannot-find-script">
+<h2><em>Cannot find script</em><a class="headerlink" href="#cannot-find-script" title="Permalink to this headline">¶</a></h2>
+<p>Sometimes the following scripts: <code class="docutils literal notranslate"><span class="pre">combine-mat</span></code>, <code class="docutils literal notranslate"><span class="pre">invert-rls</span></code>, <code class="docutils literal notranslate"><span class="pre">spline2real</span></code>, and <code class="docutils literal notranslate"><span class="pre">find-amp</span></code> cannot be found globally by the local node you are running simulations on. By default these scripts are installed into your <code class="docutils literal notranslate"><span class="pre">$PLATO/bin</span></code> folder, thus, simply copy all of these files to your Poetry environment <strong>bin</strong> folder. You can find the Poetry environment folder by first activating your Poetry environment and thereafter type <code class="docutils literal notranslate"><span class="pre">which</span> <span class="pre">python</span></code>. Copy the files into the <strong>bin</strong> folder and not the <strong>bin/python</strong> folder!</p>
+<hr></div>
+<div class="section" id="remove-warnings">
+<h2><em>Remove warnings</em><a class="headerlink" href="#remove-warnings" title="Permalink to this headline">¶</a></h2>
+<p>If you attend to run a lot of simulations, it is quite important ro ignore all messages and warning printed to your <em>standard error output file</em> (assuming that you have double checked that your scripts run successfully of course). The reason is that you might overflow your memory storage space which can result in that all data is useless from the unset of low data storage (while the job schedular might tell you that the simulations are still running). Thus, always use the argument <code class="docutils literal notranslate"><span class="pre">-v</span> <span class="pre">0</span></code> for <code class="docutils literal notranslate"><span class="pre">platonium</span></code> and add the following python code to the top of the files <code class="docutils literal notranslate"><span class="pre">pproc.py</span></code> and <code class="docutils literal notranslate"><span class="pre">jittercorrection.py</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">warnings</span>
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="platonium_tutorials.html" class="btn btn-neutral float-right" title="Tutorials" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="platonium_prerequisites.html" class="btn btn-neutral float-left" title="Prerequsites" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright KU Leuven.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
